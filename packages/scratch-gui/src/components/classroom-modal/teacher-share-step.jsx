@@ -9,11 +9,10 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
-
 import ClassroomButton from './classroom-button.jsx';
+import styles from './classroom-modal.css';
 import SharedAssignmentForm from './shared-assignment-form.jsx';
 import { TeacherSubView } from './teacher-view-layout.jsx';
-import styles from './classroom-modal.css';
 
 const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel }) => {
     const [mode, setMode] = useState('limited');
@@ -42,11 +41,7 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
                 footer={
                     <>
                         <span />
-                        <ClassroomButton
-                            dataTestId="classroom-share-done"
-                            variant="primary"
-                            onClick={onCancel}
-                        >
+                        <ClassroomButton dataTestId="classroom-share-done" variant="primary" onClick={onCancel}>
                             <FormattedMessage
                                 defaultMessage="Close"
                                 description="Close the share step"
@@ -75,10 +70,7 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
                                 />
                                 {': '}
                             </span>
-                            <span
-                                className={styles.sharePasscodeValue}
-                                data-testid="classroom-share-passcode-value"
-                            >
+                            <span className={styles.sharePasscodeValue} data-testid="classroom-share-passcode-value">
                                 {lastShared.passcode}
                             </span>
                             <button
@@ -138,9 +130,7 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
                 />
             }
         >
-            <div className={styles.postAssignmentTarget}>
-                {classroom.assignmentName || classroom.className}
-            </div>
+            <div className={styles.postAssignmentTarget}>{classroom.assignmentName || classroom.className}</div>
 
             {/* 公開範囲の選択 */}
             <div className={styles.shareModeRow} role="radiogroup">

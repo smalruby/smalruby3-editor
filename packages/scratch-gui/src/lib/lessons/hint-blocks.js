@@ -1,7 +1,6 @@
 // ヒントの吹き出しに描くブロックを、Ruby（チャレンジの `steps[].blocks`）から作る。
 // 変換はいまの `code` と同じ Ruby → ブロック変換（ruby-to-blocks-converter）で、作った
 // ブロックは VM の target には入れず、Blockly の XML にして読み取り専用ワークスペースに描く。
-
 import RubyToBlocksConverter from '../ruby-to-blocks-converter';
 import { blocksToXml } from './blocks-xml';
 

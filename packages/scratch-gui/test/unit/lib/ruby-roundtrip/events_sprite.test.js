@@ -6,20 +6,23 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Events category blocks (sprite)', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             self.when(:flag_clicked) do
               bounce_if_on_edge
             end
@@ -82,7 +85,8 @@ describe('Ruby Roundtrip: Events category blocks (sprite)', () => {
             broadcast(x)
             broadcast_and_wait("message1")
             broadcast_and_wait(x)
-        `);
+        `,
+        );
     });
 
     test('Ruby -> Code -> Ruby (backward compatibility)', async () => {

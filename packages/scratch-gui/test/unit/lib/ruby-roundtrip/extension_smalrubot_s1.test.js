@@ -6,20 +6,23 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Smalrubot S1 extension blocks', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             smalrubot_s1.action("forward")
             smalrubot_s1.action("backward")
             smalrubot_s1.action("left")
@@ -48,6 +51,7 @@ describe('Ruby Roundtrip: Smalrubot S1 extension blocks', () => {
 
             smalrubot_s1.set_motor_speed("left", 50)
             smalrubot_s1.arm_calibration = 0
-        `);
+        `,
+        );
     });
 });

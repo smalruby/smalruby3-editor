@@ -1,62 +1,70 @@
 // === Smalruby: This file is Smalruby-specific (type-checking methods for RubyToBlocksConverter) ===
 import _ from 'lodash';
-
-import {normalizeColorString} from './color-utils';
+import { normalizeColorString } from './color-utils';
 
 /**
  * Type-checking utilities for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
  */
 const NodeTypeChecks = {
-    _isPrimitive (value) {
-        return value && (value._isPrimitive || value.constructor.name === 'Primitive' || value._type);
+    _isPrimitive(value) {
+        return value && (value._isPrimitive || value._type);
     },
 
-    _isSelf (block) {
+    /**
+     * The type of a `@ruby/prism` node (e.g. 'CallNode'), or null for anything else.
+     * `constructor.name` cannot be used: the production build renames the classes.
+     * @param {*} value - A value.
+     * @returns {?string} The type of the node.
+     */
+    _prismNodeType(value) {
+        return value && typeof value.accept === 'function' ? this._getNodeTypeName(value) : null;
+    },
+
+    _isSelf(block) {
         return this._isPrimitive(block) && block.type === 'self';
     },
 
-    _isStage () {
+    _isStage() {
         return this._context.target && this._context.target.isStage;
     },
 
-    isString (value) {
+    isString(value) {
         return this._isString(value);
     },
 
-    _isString (value) {
+    _isString(value) {
         if (_.isString(value)) return true;
         if (this._isPrimitive(value)) {
             return value.type === 'str' || value.type === 'string';
         }
-        return value &&
-            (value.constructor.name === 'StringNode' ||
-                value.constructor.name === 'InterpolatedStringNode');
+        const nodeType = this._prismNodeType(value);
+        return nodeType === 'StringNode' || nodeType === 'InterpolatedStringNode';
     },
 
-    isNumber (value) {
+    isNumber(value) {
         return this._isNumber(value);
     },
 
-    _isNumber (value) {
+    _isNumber(value) {
         if (_.isNumber(value)) return true;
         if (this._isPrimitive(value)) {
             return value.type === 'int' || value.type === 'float';
         }
-        return value &&
-            (value.constructor.name === 'IntegerNode' || value.constructor.name === 'FloatNode');
+        const nodeType = this._prismNodeType(value);
+        return nodeType === 'IntegerNode' || nodeType === 'FloatNode';
     },
 
-    isTrue (value) {
+    isTrue(value) {
         return this._isTrue(value);
     },
 
-    _isTrue (value) {
+    _isTrue(value) {
         if (value === true) return true;
         if (this._isPrimitive(value)) {
             return value.type === 'true';
         }
-        if (value && value.constructor.name === 'TrueNode') {
+        if (this._prismNodeType(value) === 'TrueNode') {
             return true;
         }
         if (this._isBlock(value) && value.opcode === 'operator_equals' && value.comment) {
@@ -66,16 +74,16 @@ const NodeTypeChecks = {
         return false;
     },
 
-    isFalse (value) {
+    isFalse(value) {
         return this._isFalse(value);
     },
 
-    _isFalse (value) {
+    _isFalse(value) {
         if (value === false) return true;
         if (this._isPrimitive(value)) {
             return value.type === 'false';
         }
-        if (value && value.constructor.name === 'FalseNode') {
+        if (this._prismNodeType(value) === 'FalseNode') {
             return true;
         }
         if (this._isBlock(value) && value.opcode === 'operator_lt' && value.comment) {
@@ -85,51 +93,51 @@ const NodeTypeChecks = {
         return false;
     },
 
-    isNil (value) {
+    isNil(value) {
         if (value === null) return true;
         if (this._isPrimitive(value)) {
             return value.type === 'nil';
         }
-        return value && value.constructor.name === 'NilNode';
+        return this._prismNodeType(value) === 'NilNode';
     },
 
-    _isArray (value) {
+    _isArray(value) {
         if (_.isArray(value)) return true;
         if (this._isPrimitive(value)) {
             return value.type === 'array';
         }
-        return value && value.constructor.name === 'ArrayNode';
+        return this._prismNodeType(value) === 'ArrayNode';
     },
 
-    _isHash (value) {
+    _isHash(value) {
         if (this._isPrimitive(value)) {
             return value.type === 'hash';
         }
-        return value && value.constructor.name === 'HashNode';
+        return this._prismNodeType(value) === 'HashNode';
     },
 
     // === Smalruby: Start of regex type support ===
-    _isRegexp (value) {
+    _isRegexp(value) {
         if (this._isPrimitive(value)) {
             return value.type === 'regexp';
         }
-        return value && value.constructor.name === 'RegularExpressionNode';
+        return this._prismNodeType(value) === 'RegularExpressionNode';
     },
 
-    _isRegexpOrBlock (regexpOrBlock) {
+    _isRegexpOrBlock(regexpOrBlock) {
         return this._isRegexp(regexpOrBlock) || this._isValueBlock(regexpOrBlock);
     },
     // === Smalruby: End of regex type support ===
 
-    _isConst (value) {
+    _isConst(value) {
         if (this._isPrimitive(value)) {
             return value.type === 'const';
         }
-        return value &&
-            (value.constructor.name === 'ConstantReadNode' || value.constructor.name === 'ConstantPathNode');
+        const nodeType = this._prismNodeType(value);
+        return nodeType === 'ConstantReadNode' || nodeType === 'ConstantPathNode';
     },
 
-    _isSymbol (value) {
+    _isSymbol(value) {
         if (this._isPrimitive(value)) {
             return value.type === 'sym';
         }
@@ -137,7 +145,7 @@ const NodeTypeChecks = {
             const comment = this._context.comments[value.comment];
             return comment && comment.text.startsWith('@ruby:symbol:');
         }
-        return value && value.constructor.name === 'SymbolNode';
+        return this._prismNodeType(value) === 'SymbolNode';
     },
 
     /**
@@ -147,7 +155,7 @@ const NodeTypeChecks = {
      * @param {object} node - A symbol node.
      * @returns {string|null} The symbol value, or null if not a symbol.
      */
-    _getSymbolValue (node) {
+    _getSymbolValue(node) {
         if (!node) return null;
         if (this._isPrimitive(node) && node.type === 'sym') {
             return node.value;
@@ -158,13 +166,13 @@ const NodeTypeChecks = {
                 return comment.text.slice('@ruby:symbol:'.length);
             }
         }
-        if (node.constructor && node.constructor.name === 'SymbolNode') {
+        if (this._prismNodeType(node) === 'SymbolNode') {
             return node.unescaped ? node.unescaped.value : null;
         }
         return null;
     },
 
-    isBlock (block) {
+    isBlock(block) {
         try {
             return Object.prototype.hasOwnProperty.call(block, 'opcode');
         } catch (e) {
@@ -172,59 +180,61 @@ const NodeTypeChecks = {
         }
     },
 
-    _isBlock (block) {
+    _isBlock(block) {
         return this.isBlock(block);
     },
 
-    _isStatementBlock (block) {
+    _isStatementBlock(block) {
         const blockType = this._getBlockType(block);
         return blockType === 'statement' || blockType === 'terminate';
     },
 
-    _isValueBlock (block) {
+    _isValueBlock(block) {
         if (!this._isBlock(block)) {
             return false;
         }
         return /^value/.test(this._getBlockType(block));
     },
 
-    isNumberOrBlock (numberOrBlock) {
+    isNumberOrBlock(numberOrBlock) {
         return this._isNumberOrBlock(numberOrBlock);
     },
 
-    _isNumberOrBlock (numberOrBlock) {
+    _isNumberOrBlock(numberOrBlock) {
         return this._isNumber(numberOrBlock) || this._isValueBlock(numberOrBlock);
     },
 
-    isStringOrBlock (stringOrBlock) {
+    isStringOrBlock(stringOrBlock) {
         return this._isStringOrBlock(stringOrBlock);
     },
 
-    _isStringOrBlock (stringOrBlock) {
+    _isStringOrBlock(stringOrBlock) {
         return this._isString(stringOrBlock) || this._isValueBlock(stringOrBlock);
     },
 
-    _isNumberOrStringOrBlock (block) {
+    _isNumberOrStringOrBlock(block) {
         return this._isNumber(block) || this._isString(block) || this._isValueBlock(block);
     },
 
-    isColorOrBlock (colorOrBlock) {
+    isColorOrBlock(colorOrBlock) {
         return this._isColorOrBlock(colorOrBlock);
     },
 
-    _isColorOrBlock (colorOrBlock) {
-        return this._isBlock(colorOrBlock) ||
-            (this._isString(colorOrBlock) && normalizeColorString(colorOrBlock) !== null);
+    _isColorOrBlock(colorOrBlock) {
+        return (
+            this._isBlock(colorOrBlock) ||
+            (this._isString(colorOrBlock) && normalizeColorString(colorOrBlock) !== null)
+        );
     },
 
     // Normalize a color string (named color, #rgb, rgb(), #rrggbb) into the `#rrggbb`
     // form the `colour_picker` field expects. Returns the input unchanged if it is not a
     // recognized color string (callers only pass strings that `_isColorOrBlock` accepted).
-    normalizeColor (colorString) {
+    normalizeColor(colorString) {
         return normalizeColorString(colorString);
     },
 
-    _isFalseOrBooleanBlock (block) {
+    _isFalseOrBooleanBlock(block) {
         if (this._isFalse(block)) {
             return true;
         }
@@ -245,33 +255,33 @@ const NodeTypeChecks = {
         return false;
     },
 
-    isVariableBlockType (block) {
+    isVariableBlockType(block) {
         return /_variable$/.test(this._getBlockType(block));
     },
 
-    isVariableBlock (block) {
+    isVariableBlock(block) {
         return this.isVariableBlockType(block) && block.opcode === 'data_variable';
     },
 
-    isListBlock (block) {
+    isListBlock(block) {
         return this.getBlockType(block) === 'value_variable' && block.opcode === 'data_listcontents';
     },
 
-    isRubyExpression (block) {
+    isRubyExpression(block) {
         return this._isRubyExpression(block);
     },
 
-    _isRubyExpression (block) {
+    _isRubyExpression(block) {
         return this._isBlock(block) && block.opcode === 'ruby_expression';
     },
 
-    _isRubyStatement (block) {
+    _isRubyStatement(block) {
         return this._isBlock(block) && block.opcode === 'ruby_statement';
     },
 
-    _isRubyBlock (block) {
+    _isRubyBlock(block) {
         return this._isBlock(block) && block.opcode.match(/^ruby_/);
-    }
+    },
 };
 
 export default NodeTypeChecks;

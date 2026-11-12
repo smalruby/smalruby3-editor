@@ -5,12 +5,9 @@
  * Ruby → DNCL → Ruby → Blocks. If the blocks conversion fails, the switch
  * is blocked and a localized error message is shown.
  */
-import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import {
-    makeSpriteTarget,
-    makeConverter,
-} from '../../helpers/ruby-roundtrip-helper';
+import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { makeSpriteTarget, makeConverter } from '../../helpers/ruby-roundtrip-helper';
 
 // The localized message used in the actual component (ja locale).
 const DNCL_VALIDATION_MESSAGE =
@@ -72,13 +69,7 @@ describe('DNCL mode switch validation', () => {
         });
 
         test('variable with if and say', async () => {
-            const code = [
-                '@x = 10',
-                'if @x > 5',
-                '  say("big", 1)',
-                'end',
-                '',
-            ].join('\n');
+            const code = ['@x = 10', 'if @x > 5', '  say("big", 1)', 'end', ''].join('\n');
             const { valid } = await validateForDncl(code);
             expect(valid).toBe(true);
         });
@@ -86,16 +77,14 @@ describe('DNCL mode switch validation', () => {
 
     describe('invalid code (should block switch)', () => {
         test('when_flag_clicked breaks in DNCL round-trip', async () => {
-            const code =
-                'when_flag_clicked do\n  say("hello", 1)\nend\n';
+            const code = 'when_flag_clicked do\n  say("hello", 1)\nend\n';
             const { valid, errors } = await validateForDncl(code);
             expect(valid).toBe(false);
             expect(errors.length).toBeGreaterThan(0);
         });
 
         test('when_key_pressed is not supported in DNCL', async () => {
-            const code =
-                'when_key_pressed("a") do\n  say("hello", 1)\nend\n';
+            const code = 'when_key_pressed("a") do\n  say("hello", 1)\nend\n';
             const { valid, errors } = await validateForDncl(code);
             expect(valid).toBe(false);
             expect(errors.length).toBeGreaterThan(0);
@@ -132,8 +121,7 @@ describe('DNCL mode switch validation', () => {
 
     describe('error message', () => {
         test('errors use the localized validation message', async () => {
-            const code =
-                'when_key_pressed("a") do\n  say("hello", 1)\nend\n';
+            const code = 'when_key_pressed("a") do\n  say("hello", 1)\nend\n';
             const { errors } = await validateForDncl(code);
             for (const err of errors) {
                 expect(err.text).toBe(DNCL_VALIDATION_MESSAGE);

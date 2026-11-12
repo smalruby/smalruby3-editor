@@ -6,13 +6,15 @@
 export default function (Generator) {
     // Helper function to convert argument names to snake_case lowercase
     const toSnakeCaseLowercase = function (name) {
-        return name
-            // Replace any sequence of non-alphanumeric characters except underscores with underscore
-            .replace(/[^a-zA-Z0-9_]+/g, '_')
-            // Convert camelCase to snake_case: insert underscore before uppercase letters
-            .replace(/([a-z])([A-Z])/g, '$1_$2')
-            // Convert to lowercase
-            .toLowerCase();
+        return (
+            name
+                // Replace any sequence of non-alphanumeric characters except underscores with underscore
+                .replace(/[^a-zA-Z0-9_]+/g, '_')
+                // Convert camelCase to snake_case: insert underscore before uppercase letters
+                .replace(/([a-z])([A-Z])/g, '$1_$2')
+                // Convert to lowercase
+                .toLowerCase()
+        );
     };
 
     /**
@@ -27,8 +29,9 @@ export default function (Generator) {
         }
         // SuperNode: output 'super(args)'
         const args = [];
-        const paramNamesIdsAndDefaults =
-            Generator.currentTarget.blocks.getProcedureParamNamesIdsAndDefaults(block.mutation.proccode);
+        const paramNamesIdsAndDefaults = Generator.currentTarget.blocks.getProcedureParamNamesIdsAndDefaults(
+            block.mutation.proccode,
+        );
         const ids = paramNamesIdsAndDefaults[1];
         const defaults = paramNamesIdsAndDefaults[2];
         for (let i = 0; i < ids.length; i++) {
@@ -53,8 +56,9 @@ export default function (Generator) {
      */
     const blockToMethodWithName = function (defBlock, customBlock, originalName) {
         const args = [];
-        const paramNamesIdsAndDefaults =
-            Generator.currentTarget.blocks.getProcedureParamNamesIdsAndDefaults(customBlock.mutation.proccode);
+        const paramNamesIdsAndDefaults = Generator.currentTarget.blocks.getProcedureParamNamesIdsAndDefaults(
+            customBlock.mutation.proccode,
+        );
         for (let i = 0; i < paramNamesIdsAndDefaults[0].length; i++) {
             let paramName = Generator.escapeVariableName(paramNamesIdsAndDefaults[0][i]);
             paramName = toSnakeCaseLowercase(paramName);
@@ -198,15 +202,17 @@ export default function (Generator) {
     };
 
     const blockToMethod = function (block, isCall) {
-        let methodName = block.mutation.proccode.split(' ')
-            .filter(i => !/^%[sb]$/.test(i))
+        let methodName = block.mutation.proccode
+            .split(' ')
+            .filter((i) => !/^%[sb]$/.test(i))
             .join('_');
         if (methodName.length === 0) {
             methodName = 'procedure';
         }
         const args = [];
-        const paramNamesIdsAndDefaults =
-            Generator.currentTarget.blocks.getProcedureParamNamesIdsAndDefaults(block.mutation.proccode);
+        const paramNamesIdsAndDefaults = Generator.currentTarget.blocks.getProcedureParamNamesIdsAndDefaults(
+            block.mutation.proccode,
+        );
         if (isCall) {
             const ids = paramNamesIdsAndDefaults[1];
             const defaults = paramNamesIdsAndDefaults[2];

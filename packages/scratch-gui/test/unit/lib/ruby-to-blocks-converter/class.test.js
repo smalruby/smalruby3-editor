@@ -1,13 +1,6 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    rubyToExpected
-} from '../../../helpers/expect-to-equal-blocks';
-import {
-    makeSpriteTarget,
-    makeStageTarget,
-    makeConverter
-} from '../../helpers/ruby-roundtrip-helper';
+import { convertAndExpectToEqualBlocks, rubyToExpected } from '../../../helpers/expect-to-equal-blocks';
+import { makeSpriteTarget, makeStageTarget, makeConverter } from '../../helpers/ruby-roundtrip-helper';
 
 describe('RubyToBlocksConverter/Class', () => {
     let converter;
@@ -16,7 +9,7 @@ describe('RubyToBlocksConverter/Class', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -31,16 +24,20 @@ describe('RubyToBlocksConverter/Class', () => {
                   end
                 end
             `;
-            expected = await rubyToExpected(converter, target, `
+            expected = await rubyToExpected(
+                converter,
+                target,
+                `
                 when_flag_clicked do
                   move(10)
                 end
-            `);
+            `,
+            );
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             // @ruby:class comment should be created with blockId=null
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class');
         });
@@ -57,7 +54,10 @@ describe('RubyToBlocksConverter/Class', () => {
                   end
                 end
             `;
-            expected = await rubyToExpected(converter, target, `
+            expected = await rubyToExpected(
+                converter,
+                target,
+                `
                 when_flag_clicked do
                   move(10)
                 end
@@ -65,11 +65,12 @@ describe('RubyToBlocksConverter/Class', () => {
                 when_key_pressed("space") do
                   move(20)
                 end
-            `);
+            `,
+            );
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class');
         });
@@ -84,17 +85,21 @@ describe('RubyToBlocksConverter/Class', () => {
 
                 bounce_if_on_edge
             `;
-            expected = await rubyToExpected(converter, target, `
+            expected = await rubyToExpected(
+                converter,
+                target,
+                `
                 when_flag_clicked do
                   move(10)
                 end
 
                 bounce_if_on_edge
-            `);
+            `,
+            );
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class');
         });
@@ -109,7 +114,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class');
         });
@@ -122,15 +127,19 @@ describe('RubyToBlocksConverter/Class', () => {
                   end
                 end
             `;
-            expected = await rubyToExpected(converter, target, `
+            expected = await rubyToExpected(
+                converter,
+                target,
+                `
                 when_flag_clicked do
                   move(10)
                 end
-            `);
+            `,
+            );
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:<=//Smalruby3/Sprite');
         });
@@ -143,15 +152,19 @@ describe('RubyToBlocksConverter/Class', () => {
                   end
                 end
             `;
-            expected = await rubyToExpected(converter, target, `
+            expected = await rubyToExpected(
+                converter,
+                target,
+                `
                 when_flag_clicked do
                   move(10)
                 end
-            `);
+            `,
+            );
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:<=Smalruby3/Sprite');
         });
@@ -164,15 +177,19 @@ describe('RubyToBlocksConverter/Class', () => {
                   end
                 end
             `;
-            expected = await rubyToExpected(converter, target, `
+            expected = await rubyToExpected(
+                converter,
+                target,
+                `
                 when_flag_clicked do
                   move(10)
                 end
-            `);
+            `,
+            );
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:<=Sprite');
         });
@@ -185,15 +202,19 @@ describe('RubyToBlocksConverter/Class', () => {
                   end
                 end
             `;
-            expected = await rubyToExpected(converter, target, `
+            expected = await rubyToExpected(
+                converter,
+                target,
+                `
                 when_flag_clicked do
                   move(10)
                 end
-            `);
+            `,
+            );
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:<=Foo');
         });
@@ -206,19 +227,22 @@ describe('RubyToBlocksConverter/Class', () => {
                   end
                 end
             `;
-            expected = await rubyToExpected(converter, target, `
+            expected = await rubyToExpected(
+                converter,
+                target,
+                `
                 when_flag_clicked do
                   move(10)
                 end
-            `);
+            `,
+            );
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class');
         });
-
     });
 
     describe('class name and set_name', () => {
@@ -230,16 +254,20 @@ describe('RubyToBlocksConverter/Class', () => {
                   end
                 end
             `;
-            expected = await rubyToExpected(converter, target, `
+            expected = await rubyToExpected(
+                converter,
+                target,
+                `
                 when_flag_clicked do
                   move(10)
                 end
-            `);
+            `,
+            );
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             // @ruby:class:name=Cat comment should be created
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:name=Cat');
 
@@ -258,16 +286,20 @@ describe('RubyToBlocksConverter/Class', () => {
                   end
                 end
             `;
-            expected = await rubyToExpected(converter, target, `
+            expected = await rubyToExpected(
+                converter,
+                target,
+                `
                 when_flag_clicked do
                   move(10)
                 end
-            `);
+            `,
+            );
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             // @ruby:class:name comment should be created
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:name');
 
@@ -292,7 +324,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             // set_name should not create any blocks
             const blocks = converter.blocks;
-            const blockOpcodes = Object.values(blocks).map(b => b.opcode);
+            const blockOpcodes = Object.values(blocks).map((b) => b.opcode);
             expect(blockOpcodes).not.toContain('ruby_statement');
         });
 
@@ -310,7 +342,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             // Should be @ruby:class (not @ruby:class:name) since class name matches Sprite%d% pattern
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class');
         });
@@ -340,7 +372,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             // Comment should list the attributes
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:x,y,direction');
         });
@@ -363,7 +395,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(converter._context.classInfo.visible).toEqual(false);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:visible');
         });
@@ -388,7 +420,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(converter._context.classInfo.current_costume).toEqual(2);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:size,current_costume');
         });
@@ -411,7 +443,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(converter._context.classInfo.rotation_style).toEqual('left-right');
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:rotation_style');
         });
@@ -438,7 +470,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             // set_xxx should not create ruby_statement blocks
             const blocks = converter.blocks;
-            const blockOpcodes = Object.values(blocks).map(b => b.opcode);
+            const blockOpcodes = Object.values(blocks).map((b) => b.opcode);
             expect(blockOpcodes).not.toContain('ruby_statement');
         });
 
@@ -457,7 +489,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:name=Cat,x');
 
@@ -482,7 +514,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:name,x');
 
@@ -507,7 +539,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             // name=Cat preserves class name; set_name value is in classInfo.name
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:name=Cat');
 
@@ -528,7 +560,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:name=Cat');
 
@@ -551,7 +583,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             // Sprite\d+ pattern should NOT have name= prefix
             expect(targetComments[0].text).toEqual('@ruby:class:name');
@@ -572,7 +604,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:name=Cat,x');
 
@@ -672,7 +704,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             // Comment should use sprite=Dog1 format
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:sprite=Dog1');
         });
@@ -695,7 +727,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(converter._context.classInfo.costumes).toEqual(['Dog1-a', 'Dog1-b']);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:costumes');
         });
@@ -718,7 +750,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(converter._context.classInfo.sounds).toEqual(['Dog1', 'Dog2']);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:sounds');
         });
@@ -743,7 +775,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(converter._context.classInfo.sounds).toEqual(['Dog1', 'Dog2']);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:costumes,sounds');
         });
@@ -767,7 +799,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(converter._context.classInfo.x).toEqual(100);
 
             const comments = converter._context.comments;
-            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            const targetComments = Object.values(comments).filter((c) => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class:sprite=Dog1,x');
         });
@@ -859,7 +891,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
 
             const blocks = converter.blocks;
-            const blockOpcodes = Object.values(blocks).map(b => b.opcode);
+            const blockOpcodes = Object.values(blocks).map((b) => b.opcode);
             expect(blockOpcodes).not.toContain('ruby_statement');
         });
 
@@ -878,7 +910,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
 
             const blocks = converter.blocks;
-            const blockOpcodes = Object.values(blocks).map(b => b.opcode);
+            const blockOpcodes = Object.values(blocks).map((b) => b.opcode);
             expect(blockOpcodes).not.toContain('ruby_statement');
         });
 
@@ -897,7 +929,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
 
             const blocks = converter.blocks;
-            const blockOpcodes = Object.values(blocks).map(b => b.opcode);
+            const blockOpcodes = Object.values(blocks).map((b) => b.opcode);
             expect(blockOpcodes).not.toContain('ruby_statement');
         });
 
@@ -1025,9 +1057,9 @@ describe('RubyToBlocksConverter/Class', () => {
         let spriteTarget, runtime, vmConverter;
 
         beforeEach(() => {
-            ({target: spriteTarget, runtime} = makeSpriteTarget());
-            spriteTarget.sprite = {name: 'スプライト1', costumes: []};
-            vmConverter = makeConverter(spriteTarget, runtime, {version: '2'});
+            ({ target: spriteTarget, runtime } = makeSpriteTarget());
+            spriteTarget.sprite = { name: 'スプライト1', costumes: [] };
+            vmConverter = makeConverter(spriteTarget, runtime, { version: '2' });
         });
 
         test('class Sprite1 applies sprite name Sprite1', async () => {
@@ -1194,8 +1226,8 @@ describe('RubyToBlocksConverter/Class', () => {
         });
 
         test('set_sprite replaces costumes and sounds from sprite library', async () => {
-            spriteTarget.sprite.costumes = [{name: 'old-costume', assetId: 'old', md5ext: 'old.svg'}];
-            spriteTarget.sprite.sounds = [{name: 'old-sound', assetId: 'old', md5ext: 'old.wav'}];
+            spriteTarget.sprite.costumes = [{ name: 'old-costume', assetId: 'old', md5ext: 'old.svg' }];
+            spriteTarget.sprite.sounds = [{ name: 'old-sound', assetId: 'old', md5ext: 'old.wav' }];
             code = `
                 class Sprite1
                   set_sprite "Dog1"
@@ -1218,7 +1250,7 @@ describe('RubyToBlocksConverter/Class', () => {
         });
 
         test('set_costumes replaces costumes from costume library', async () => {
-            spriteTarget.sprite.costumes = [{name: 'old-costume', assetId: 'old', md5ext: 'old.svg'}];
+            spriteTarget.sprite.costumes = [{ name: 'old-costume', assetId: 'old', md5ext: 'old.svg' }];
             code = `
                 class Sprite1
                   set_costumes ["Dog1-a", "Dog1-b"]
@@ -1239,7 +1271,7 @@ describe('RubyToBlocksConverter/Class', () => {
         });
 
         test('set_sounds replaces sounds from sound library', async () => {
-            spriteTarget.sprite.sounds = [{name: 'old-sound', assetId: 'old', md5ext: 'old.wav'}];
+            spriteTarget.sprite.sounds = [{ name: 'old-sound', assetId: 'old', md5ext: 'old.wav' }];
             code = `
                 class Sprite1
                   set_sounds ["Dog1", "Dog2"]
@@ -1260,8 +1292,8 @@ describe('RubyToBlocksConverter/Class', () => {
         });
 
         test('set_costumes and set_sounds together replace both', async () => {
-            spriteTarget.sprite.costumes = [{name: 'old-costume'}];
-            spriteTarget.sprite.sounds = [{name: 'old-sound'}];
+            spriteTarget.sprite.costumes = [{ name: 'old-costume' }];
+            spriteTarget.sprite.sounds = [{ name: 'old-sound' }];
             code = `
                 class Sprite1
                   set_costumes ["Dog1-a", "Dog1-b"]
@@ -1315,15 +1347,19 @@ describe('RubyToBlocksConverter/Class', () => {
                       end
                     end
                 `;
-                expected = await rubyToExpected(converter, target, `
+                expected = await rubyToExpected(
+                    converter,
+                    target,
+                    `
                     when_flag_clicked do
                       switch_backdrop("Arctic")
                     end
-                `);
+                `,
+                );
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 const comments = converter._context.comments;
-                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                const targetComments = Object.values(comments).filter((c) => c.blockId === null);
                 expect(targetComments).toHaveLength(1);
                 expect(targetComments[0].text).toEqual('@ruby:class');
             });
@@ -1336,15 +1372,19 @@ describe('RubyToBlocksConverter/Class', () => {
                       end
                     end
                 `;
-                expected = await rubyToExpected(converter, target, `
+                expected = await rubyToExpected(
+                    converter,
+                    target,
+                    `
                     when_flag_clicked do
                       switch_backdrop("Arctic")
                     end
-                `);
+                `,
+                );
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 const comments = converter._context.comments;
-                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                const targetComments = Object.values(comments).filter((c) => c.blockId === null);
                 expect(targetComments).toHaveLength(1);
                 expect(targetComments[0].text).toEqual('@ruby:class');
             });
@@ -1372,15 +1412,19 @@ describe('RubyToBlocksConverter/Class', () => {
                       end
                     end
                 `;
-                expected = await rubyToExpected(converter, target, `
+                expected = await rubyToExpected(
+                    converter,
+                    target,
+                    `
                     when_flag_clicked do
                       switch_backdrop("Arctic")
                     end
-                `);
+                `,
+                );
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 const comments = converter._context.comments;
-                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                const targetComments = Object.values(comments).filter((c) => c.blockId === null);
                 expect(targetComments).toHaveLength(1);
                 expect(targetComments[0].text).toEqual('@ruby:class');
             });
@@ -1395,7 +1439,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 expect(res).toBeTruthy();
 
                 const comments = converter._context.comments;
-                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                const targetComments = Object.values(comments).filter((c) => c.blockId === null);
                 expect(targetComments).toHaveLength(1);
                 expect(targetComments[0].text).toEqual('@ruby:class');
             });
@@ -1420,7 +1464,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 expect(converter._context.classInfo.current_backdrop).toEqual(1);
 
                 const comments = converter._context.comments;
-                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                const targetComments = Object.values(comments).filter((c) => c.blockId === null);
                 expect(targetComments).toHaveLength(1);
                 expect(targetComments[0].text).toEqual('@ruby:class:current_backdrop');
             });
@@ -1443,7 +1487,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 expect(converter._context.classInfo.backdrops).toEqual(['Arctic', 'Baseball 1']);
 
                 const comments = converter._context.comments;
-                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                const targetComments = Object.values(comments).filter((c) => c.blockId === null);
                 expect(targetComments).toHaveLength(1);
                 expect(targetComments[0].text).toEqual('@ruby:class:backdrops');
             });
@@ -1486,7 +1530,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 expect(converter._context.classInfo.sounds).toEqual(['Dog1', 'Dog2']);
 
                 const comments = converter._context.comments;
-                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                const targetComments = Object.values(comments).filter((c) => c.blockId === null);
                 expect(targetComments).toHaveLength(1);
                 expect(targetComments[0].text).toEqual('@ruby:class:backdrops,sounds');
             });
@@ -1660,9 +1704,9 @@ describe('RubyToBlocksConverter/Class', () => {
             let stageTarget, runtime, vmConverter;
 
             beforeEach(() => {
-                ({target: stageTarget, runtime} = makeStageTarget());
-                stageTarget.sprite = {name: 'Stage', costumes: []};
-                vmConverter = makeConverter(stageTarget, runtime, {version: '2'});
+                ({ target: stageTarget, runtime } = makeStageTarget());
+                stageTarget.sprite = { name: 'Stage', costumes: [] };
+                vmConverter = makeConverter(stageTarget, runtime, { version: '2' });
             });
 
             test('set_name applies to stage', async () => {
@@ -1702,7 +1746,7 @@ describe('RubyToBlocksConverter/Class', () => {
             });
 
             test('set_backdrops replaces costumes from backdrop library', async () => {
-                stageTarget.sprite.costumes = [{name: 'old-backdrop', assetId: 'old', md5ext: 'old.svg'}];
+                stageTarget.sprite.costumes = [{ name: 'old-backdrop', assetId: 'old', md5ext: 'old.svg' }];
                 code = `
                     class Stage
                       set_backdrops ["Arctic", "Baseball 1"]
@@ -1723,7 +1767,7 @@ describe('RubyToBlocksConverter/Class', () => {
             });
 
             test('set_sounds replaces sounds for stage', async () => {
-                stageTarget.sprite.sounds = [{name: 'old-sound', assetId: 'old', md5ext: 'old.wav'}];
+                stageTarget.sprite.sounds = [{ name: 'old-sound', assetId: 'old', md5ext: 'old.wav' }];
                 code = `
                     class Stage
                       set_sounds ["Dog1", "Dog2"]
@@ -1765,8 +1809,8 @@ describe('RubyToBlocksConverter/Class', () => {
 
             const iv = converter._context.initializeValues;
             expect(iv).toBeDefined();
-            expect(iv.x).toEqual({value: 10, type: ''});
-            expect(iv.name).toEqual({value: 'hello', type: ''});
+            expect(iv.x).toEqual({ value: 10, type: '' });
+            expect(iv.name).toEqual({ value: 'hello', type: '' });
         });
 
         test('sprite: parses @list = [...] assignments', async () => {
@@ -1787,7 +1831,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             const iv = converter._context.initializeValues;
             expect(iv).toBeDefined();
-            expect(iv.items).toEqual({value: ['a', 'b', 'c'], type: 'list'});
+            expect(iv.items).toEqual({ value: ['a', 'b', 'c'], type: 'list' });
         });
 
         test('sprite: parses empty list @list = []', async () => {
@@ -1808,7 +1852,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             const iv = converter._context.initializeValues;
             expect(iv).toBeDefined();
-            expect(iv.items).toEqual({value: [], type: 'list'});
+            expect(iv.items).toEqual({ value: [], type: 'list' });
         });
 
         test('stage: parses $var = value assignments', async () => {
@@ -1830,8 +1874,8 @@ describe('RubyToBlocksConverter/Class', () => {
 
             const iv = converter._context.initializeValues;
             expect(iv).toBeDefined();
-            expect(iv.score).toEqual({value: 100, type: ''});
-            expect(iv.title).toEqual({value: 'game', type: ''});
+            expect(iv.score).toEqual({ value: 100, type: '' });
+            expect(iv.title).toEqual({ value: 'game', type: '' });
         });
 
         test('stage: parses $list = [...] assignments', async () => {
@@ -1852,7 +1896,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             const iv = converter._context.initializeValues;
             expect(iv).toBeDefined();
-            expect(iv.items).toEqual({value: [1, 2, 3], type: 'list'});
+            expect(iv.items).toEqual({ value: [1, 2, 3], type: 'list' });
         });
 
         test('sprite: @var in stage class is an error', async () => {
@@ -1920,8 +1964,8 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
 
             const comments = converter._context.comments;
-            const initComments = Object.values(comments).filter(c =>
-                c.text && c.text.startsWith('@ruby:initialize')
+            const initComments = Object.values(comments).filter(
+                (c) => c.text && c.text.startsWith('@ruby:initialize'),
             );
             expect(initComments).toHaveLength(1);
             expect(initComments[0].text).toMatch(/args=/);
@@ -1946,8 +1990,8 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
 
             const comments = converter._context.comments;
-            const initComments = Object.values(comments).filter(c =>
-                c.text && c.text.startsWith('@ruby:initialize')
+            const initComments = Object.values(comments).filter(
+                (c) => c.text && c.text.startsWith('@ruby:initialize'),
             );
             expect(initComments).toHaveLength(1);
             expect(initComments[0].text).toMatch(/super/);
@@ -1971,8 +2015,8 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
 
             const comments = converter._context.comments;
-            const initComments = Object.values(comments).filter(c =>
-                c.text && c.text.startsWith('@ruby:initialize')
+            const initComments = Object.values(comments).filter(
+                (c) => c.text && c.text.startsWith('@ruby:initialize'),
             );
             expect(initComments).toHaveLength(1);
             expect(initComments[0].text).toMatch(/args=\(a\)/);
@@ -1997,7 +2041,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             // def initialize should not create procedures_definition blocks
             const blocks = converter.blocks;
-            const blockOpcodes = Object.values(blocks).map(b => b.opcode);
+            const blockOpcodes = Object.values(blocks).map((b) => b.opcode);
             expect(blockOpcodes).not.toContain('procedures_definition');
         });
 
@@ -2061,13 +2105,13 @@ describe('RubyToBlocksConverter/Class', () => {
             let spriteTarget, stageTarget, runtime, vmConverter;
 
             beforeEach(() => {
-                ({target: spriteTarget, stage: stageTarget, runtime} = makeSpriteTarget());
-                spriteTarget.sprite = {name: 'Sprite1', costumes: []};
-                stageTarget.sprite = {name: 'Stage', costumes: []};
+                ({ target: spriteTarget, stage: stageTarget, runtime } = makeSpriteTarget());
+                spriteTarget.sprite = { name: 'Sprite1', costumes: [] };
+                stageTarget.sprite = { name: 'Stage', costumes: [] };
             });
 
             test('sprite: variable values are applied to target', async () => {
-                vmConverter = makeConverter(spriteTarget, runtime, {version: '2'});
+                vmConverter = makeConverter(spriteTarget, runtime, { version: '2' });
                 code = `
                     class Sprite1
                       def initialize
@@ -2095,7 +2139,7 @@ describe('RubyToBlocksConverter/Class', () => {
             });
 
             test('sprite: list values are applied to target', async () => {
-                vmConverter = makeConverter(spriteTarget, runtime, {version: '2'});
+                vmConverter = makeConverter(spriteTarget, runtime, { version: '2' });
                 code = `
                     class Sprite1
                       def initialize
@@ -2118,7 +2162,7 @@ describe('RubyToBlocksConverter/Class', () => {
             });
 
             test('stage: global variable values are applied', async () => {
-                vmConverter = makeConverter(stageTarget, runtime, {version: '2'});
+                vmConverter = makeConverter(stageTarget, runtime, { version: '2' });
                 code = `
                     class Stage
                       def initialize
@@ -2141,7 +2185,7 @@ describe('RubyToBlocksConverter/Class', () => {
             });
 
             test('empty list is applied correctly', async () => {
-                vmConverter = makeConverter(spriteTarget, runtime, {version: '2'});
+                vmConverter = makeConverter(spriteTarget, runtime, { version: '2' });
                 code = `
                     class Sprite1
                       def initialize

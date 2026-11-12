@@ -6,7 +6,6 @@
 //   - 答え:           runtime の 'ANSWER' イベント（「聞いて待つ」に入力したとき）
 //   - いまの状態:     takeSnapshot（変数・リスト・スプライト数・コスチューム数・拡張機能）
 // 判定は、何か記録があったあとの次の step（runtime の 'BEFORE_STEP'）で 1 回だけ行う。
-
 import { createFacts, evaluateGoal, recordAnswer, recordExecution, recordSay, startRun } from './goal';
 import { hookOpcodeExecution, resetExecuteCaches } from './vm-execution-hook';
 

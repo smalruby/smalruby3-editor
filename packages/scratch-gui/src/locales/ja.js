@@ -931,13 +931,29 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean':
         '条件がブーリアンではありません：{SOURCE}\n比較演算子（==、<、>など）を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':
-        '命令ブロックではないブロックが含まれています。\nブロック定義の中では命令ブロック（コマンド）だけを使ってください。',
+        '「{ SOURCE }」は命令ではないので、ここには書けません。\n命令（例: move(10)）に書きかえるか、この行を消してください。',
+    'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
+        '「{ SOURCE }」はイベントなので、ほかのブロックの中には書けません。\nブロックの外に出して、そこから始まるスクリプトにしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.defInsideBlock':
+        '「{ SOURCE }」はメソッドの定義なので、ブロックやメソッドの中には書けません。\n「{ SOURCE }」から、対応する「end」までをまとめて、ブロックやメソッドの外に出してください。',
+    'gui.smalruby3.rubyToBlocksConverter.visibilityNotSupported':
+        '「{ NAME }」にはスモウルビーは対応していないので、使えません。\n「{ SOURCE }」を消してください。',
+    'gui.smalruby3.rubyToBlocksConverter.visibilityDefNotSupported':
+        '「{ NAME }」にはスモウルビーは対応していないので、使えません。\n「{ NAME }」を消してください。消すと「{ DEF }」から「end」までを、メソッドとして使えます。',
+    'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
+        '「{ SOURCE }」は値なので、それだけを命令として書くことはできません。\n命令の中で使う（例: say({ SOURCE })）か、変数に入れてください。',
+    'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue':
+        '「{ SOURCE }」はブロックにできない値なので、メソッドから返せません。\n数値、文字列、true / false、変数のどれかを返してください。',
+    'gui.smalruby3.rubyToBlocksConverter.cannotReturnList':
+        '「{ SOURCE }」はリストなので、メソッドから返せません。\nリストの中の値（例: return { SOURCE }[0]）か変数を返してください。',
+    'gui.smalruby3.rubyToBlocksConverter.recursiveCallAfterSavedValue':
+        '「{ SOURCE }」は、「{ NAME }」の中で、同じ行のほかのメソッドの呼び出しのあとに「{ NAME }」を呼んでいます。\nブロックでは、先に呼んだメソッドの戻り値がこの呼び出しで上書きされてしまいます。\n1 行で「{ NAME }」を呼ぶのは 1 回だけにして、ほかのメソッドより先に呼んでください。',
+    'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues':
+        '「{ SOURCE }」は値を2つ以上返していますが、メソッドが返せる値は1つだけです。\n返す値を1つにしてください（例: return { FIRST }）。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
         'ブロック定義「{NAME}」の引数#{INDEX}の型がまちがっています。\n数値、文字列、またはブーリアンの値を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
         '「{NAME}」は引数なので、値を変えられません。\n別の変数に写してから、その変数を変えてください（例: x = {NAME}）。',
-    'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInMyBlock':
-        '「{SOURCE}」は命令がまちがっています。\nつづりを確認するか、対応しているブロックを使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.spriteAndCostumesSoundsExclusive':
         'set_spriteとset_costumes/set_soundsは同時に使えません。\nset_spriteかset_costumes/set_soundsのどちらかを使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidSpriteName':

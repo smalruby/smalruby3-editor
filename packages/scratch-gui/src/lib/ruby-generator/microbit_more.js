@@ -25,7 +25,7 @@ export default function (Generator) {
     const TouchEventLabel = {
         DOWN: 'touched',
         UP: 'released',
-        CLICK: 'tapped'
+        CLICK: 'tapped',
     };
     Generator.microbitMore_whenTouchEvent = function (block) {
         block.isStatement = true;
@@ -62,7 +62,7 @@ export default function (Generator) {
             SHAKE: 'shake',
             JUMPED: 'jumped',
             MOVED: 'moved',
-            TILTED: 'tilted_any'
+            TILTED: 'tilted_any',
         };
         const gesture = Generator.getFieldValue(block, 'GESTURE', 'SHAKE');
         const gestureLabel = Generator.quote_(GestureLabel[gesture]);
@@ -74,7 +74,7 @@ export default function (Generator) {
         FRONT: 'front',
         BACK: 'back',
         LEFT: 'left',
-        RIGHT: 'right'
+        RIGHT: 'right',
     };
     Generator.microbitMore_whenTilted = function (block) {
         block.isStatement = true;
@@ -97,7 +97,7 @@ export default function (Generator) {
 
     const makeMatrixArgs = function (matrix) {
         matrix = matrix.replace(/0/g, '.');
-        matrix = matrix.match(/.{5}/g).map(s => Generator.quote_(s));
+        matrix = matrix.match(/.{5}/g).map((s) => Generator.quote_(s));
         return matrix.join(',\n');
     };
     Generator.microbitMore_displayMatrix = function (block) {
@@ -208,7 +208,7 @@ export default function (Generator) {
     const EventTypeLabel = {
         NONE: 'none',
         ON_PULSE: 'pulse',
-        ON_EDGE: 'edge'
+        ON_EDGE: 'edge',
     };
     Generator.microbitMore_listenPinEventType = function (block) {
         const eventType = Generator.getFieldValue(block, 'EVENT_TYPE', 'NONE');
@@ -221,7 +221,7 @@ export default function (Generator) {
         PULSE_LOW: 'low pulse',
         PULSE_HIGH: 'high pulse',
         FALL: 'fall',
-        RISE: 'rise'
+        RISE: 'rise',
     };
     Generator.microbitMore_whenPinEvent = function (block) {
         block.isStatement = true;

@@ -1,6 +1,6 @@
-@import "../../css/colors.css";
-@import "../../css/units.css";
-@import "../../css/z-index.css";
+@import '../../css/colors.css';
+@import '../../css/units.css';
+@import '../../css/z-index.css';
 
 /* 全文のパネルの置き場所。バー自身は overflow: hidden なので、パネルはこの外側に置く */
 .wrapper {

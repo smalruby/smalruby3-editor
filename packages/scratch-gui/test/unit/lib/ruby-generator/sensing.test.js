@@ -5,7 +5,7 @@ describe('RubyGenerator/Sensing', () => {
     beforeEach(() => {
         RubyGenerator.cache_ = {
             comments: {},
-            targetCommentTexts: []
+            targetCommentTexts: [],
         };
         RubyGenerator.definitions_ = {};
         RubyGenerator.functionNames_ = {};
@@ -19,8 +19,8 @@ describe('RubyGenerator/Sensing', () => {
                 id: 'block-id',
                 opcode: 'sensing_askandwait',
                 inputs: {
-                    QUESTION: {}
-                }
+                    QUESTION: {},
+                },
             };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('"What\'s your name?"');
             const expected = 'ask("What\'s your name?")\n';
@@ -32,8 +32,8 @@ describe('RubyGenerator/Sensing', () => {
                 id: 'block-id',
                 opcode: 'sensing_askandwait',
                 inputs: {
-                    QUESTION: {}
-                }
+                    QUESTION: {},
+                },
             };
             RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:gets' };
             const expected = '';
@@ -45,7 +45,7 @@ describe('RubyGenerator/Sensing', () => {
         test('normal answer', () => {
             const block = {
                 id: 'block-id',
-                opcode: 'sensing_answer'
+                opcode: 'sensing_answer',
             };
             const expected = ['answer', RubyGenerator.ORDER_ATOMIC];
             expect(RubyGenerator.sensing_answer(block)).toEqual(expected);
@@ -54,7 +54,7 @@ describe('RubyGenerator/Sensing', () => {
         test('with @ruby:method:gets', () => {
             const block = {
                 id: 'block-id',
-                opcode: 'sensing_answer'
+                opcode: 'sensing_answer',
             };
             RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:gets' };
             const expected = ['gets', RubyGenerator.ORDER_ATOMIC];
@@ -66,7 +66,7 @@ describe('RubyGenerator/Sensing', () => {
         test('generates online?', () => {
             const block = {
                 id: 'block-id',
-                opcode: 'sensing_online'
+                opcode: 'sensing_online',
             };
             const expected = ['online?', RubyGenerator.ORDER_ATOMIC];
             expect(RubyGenerator.sensing_online(block)).toEqual(expected);

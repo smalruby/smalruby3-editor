@@ -1,29 +1,28 @@
-let formatMessage = messageData => messageData.defaultMessage;
-
 /**
  * Smalruby Ruby extension - Ruby string manipulation methods
  */
-
-import rubyIconURL from './smalruby-ruby.svg';
 import rubyInsetIconURL from './smalruby-ruby-small.svg';
+import rubyIconURL from './smalruby-ruby.svg';
 import translations from './translations.json';
 
+let formatMessage = (messageData) => messageData.defaultMessage;
+
 const entry = {
-    get name () {
+    get name() {
         return formatMessage({
             defaultMessage: 'Ruby',
             description: "Name for the 'ruby' extension",
-            id: 'smalrubyRuby.entry.name'
+            id: 'smalrubyRuby.entry.name',
         });
     },
     extensionId: 'smalrubyRuby',
     iconURL: rubyIconURL,
     insetIconURL: rubyInsetIconURL,
-    get description () {
+    get description() {
         return formatMessage({
             defaultMessage: 'Use Ruby methods.',
             description: "Description for the 'ruby' extension",
-            id: 'smalrubyRuby.entry.description'
+            id: 'smalrubyRuby.entry.description',
         });
     },
     featured: true,
@@ -32,11 +31,11 @@ const entry = {
     internetConnectionRequired: false,
     launchPeripheralConnectionFlow: false,
     useAutoScan: false,
-    setFormatMessage: formatter => {
+    setFormatMessage: (formatter) => {
         formatMessage = formatter;
     },
-    translationMap: translations
+    translationMap: translations,
 };
 
-export {entry}; // loadable-extension needs this line.
+export { entry }; // loadable-extension needs this line.
 export default entry;

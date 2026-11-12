@@ -10,7 +10,7 @@ class RateLimiter {
      * @param {boolean} options.enableMerge - Whether to merge data in the queue (default: false).
      * @param {string} options.mergeKeyField - Field name to use as merge key (default: 'key').
      */
-    constructor (intervalMs, options = {}) {
+    constructor(intervalMs, options = {}) {
         this.intervalMs = intervalMs;
         this.queue = [];
         this.lastSendTime = 0;
@@ -25,7 +25,7 @@ class RateLimiter {
         this.stats = {
             totalSent: 0,
             totalMerged: 0,
-            lastReportTime: Date.now()
+            lastReportTime: Date.now(),
         };
     }
 
@@ -35,18 +35,21 @@ class RateLimiter {
      * @param {function(object): Promise} sendFunction - Asynchronous function to send data.
      * @returns {Promise} - Resolves with the result of sendFunction.
      */
-    send (data, sendFunction) {
+    send(data, sendFunction) {
         return new Promise((resolve, reject) => {
             if (this.enableMerge && Array.isArray(data)) {
                 // Merge mode: Update item in queue if same key exists
                 this.mergeIntoQueue(data, sendFunction, resolve, reject);
             } else {
                 // Normal mode: Always push to queue
-                this.queue.push({data, resolve, reject, sendFunction});
+                this.queue.push({ data, resolve, reject, sendFunction });
             }
 
-            debug(() => `RateLimiter: ${this.enableMerge ? 'Processed' : 'Added'} to queue ` +
-                `(size: ${this.queue.length}, enableMerge: ${this.enableMerge})`);
+            debug(
+                () =>
+                    `RateLimiter: ${this.enableMerge ? 'Processed' : 'Added'} to queue ` +
+                    `(size: ${this.queue.length}, enableMerge: ${this.enableMerge})`,
+            );
 
             this.processQueue();
         });
@@ -59,7 +62,7 @@ class RateLimiter {
      * @param {function(object)} resolve - Promise resolve callback.
      * @param {function(object)} reject - Promise reject callback.
      */
-    mergeIntoQueue (dataArray, sendFunction, resolve, reject) {
+    mergeIntoQueue(dataArray, sendFunction, resolve, reject) {
         let merged = false;
 
         // Find the last item in queue with same sendFunction
@@ -70,9 +73,12 @@ class RateLimiter {
                 const existingData = queueItem.data;
                 const mergedData = this.mergeData(existingData, dataArray);
 
-                debug(() => `RateLimiter: Merging data - ` +
-                    `before: ${JSON.stringify(existingData)}, ` +
-                    `after: ${JSON.stringify(mergedData)}`);
+                debug(
+                    () =>
+                        `RateLimiter: Merging data - ` +
+                        `before: ${JSON.stringify(existingData)}, ` +
+                        `after: ${JSON.stringify(mergedData)}`,
+                );
 
                 queueItem.data = mergedData;
 
@@ -83,11 +89,11 @@ class RateLimiter {
                     queueItem.rejecters = [queueItem.reject];
 
                     // Set new resolve/reject handlers that call all functions in the arrays
-                    queueItem.resolve = result => {
-                        queueItem.resolvers.forEach(r => r(result));
+                    queueItem.resolve = (result) => {
+                        queueItem.resolvers.forEach((r) => r(result));
                     };
-                    queueItem.reject = error => {
-                        queueItem.rejecters.forEach(r => r(error));
+                    queueItem.reject = (error) => {
+                        queueItem.rejecters.forEach((r) => r(error));
                     };
                 }
 
@@ -104,7 +110,7 @@ class RateLimiter {
             this.stats.totalMerged++;
             this.reportStatsIfNeeded();
         } else {
-            this.queue.push({data: dataArray, resolve, reject, sendFunction});
+            this.queue.push({ data: dataArray, resolve, reject, sendFunction });
         }
     }
 
@@ -112,15 +118,18 @@ class RateLimiter {
      * Report statistics periodically.
      * @private
      */
-    reportStatsIfNeeded () {
+    reportStatsIfNeeded() {
         const now = Date.now();
         const elapsed = now - this.stats.lastReportTime;
 
         // Output statistics every 10 seconds
         if (elapsed >= 10000) {
-            debug(() => `RateLimiter Stats (last ${(elapsed / 1000).toFixed(1)}s): ` +
-                `sent=${this.stats.totalSent}, merged=${this.stats.totalMerged}, ` +
-                `queue=${this.queue.length}`);
+            debug(
+                () =>
+                    `RateLimiter Stats (last ${(elapsed / 1000).toFixed(1)}s): ` +
+                    `sent=${this.stats.totalSent}, merged=${this.stats.totalMerged}, ` +
+                    `queue=${this.queue.length}`,
+            );
 
             this.stats.totalSent = 0;
             this.stats.totalMerged = 0;
@@ -134,12 +143,12 @@ class RateLimiter {
      * @param {Array} newData - New data items.
      * @returns {Array} - Merged data items.
      */
-    mergeData (existingData, newData) {
+    mergeData(existingData, newData) {
         const dataMap = new Map();
 
         // Add existing data
         if (Array.isArray(existingData)) {
-            existingData.forEach(item => {
+            existingData.forEach((item) => {
                 if (item && typeof item === 'object' && this.mergeKeyField in item) {
                     dataMap.set(item[this.mergeKeyField], item);
                 }
@@ -148,7 +157,7 @@ class RateLimiter {
 
         // Overwrite with new data
         if (Array.isArray(newData)) {
-            newData.forEach(item => {
+            newData.forEach((item) => {
                 if (item && typeof item === 'object' && this.mergeKeyField in item) {
                     dataMap.set(item[this.mergeKeyField], item);
                 }
@@ -162,10 +171,10 @@ class RateLimiter {
      * Wait for all current requests in the queue to complete.
      * @returns {Promise<void>} - A promise that resolves when the queue is empty.
      */
-    waitForCompletion () {
+    waitForCompletion() {
         if (!this.processing && this.queue.length === 0) return Promise.resolve();
-        
-        return new Promise(resolve => {
+
+        return new Promise((resolve) => {
             const check = () => {
                 if (!this.processing && this.queue.length === 0) {
                     resolve();
@@ -181,7 +190,7 @@ class RateLimiter {
      * Process the queue sequentially respecting the interval.
      * @private
      */
-    async processQueue () {
+    async processQueue() {
         if (this.processing || this.queue.length === 0) return;
 
         this.processing = true;
@@ -192,13 +201,12 @@ class RateLimiter {
 
             if (timeSinceLastSend < this.intervalMs) {
                 // Wait for the interval to pass
-                await new Promise(resolve => setTimeout(resolve, this.intervalMs - timeSinceLastSend));
+                await new Promise((resolve) => setTimeout(resolve, this.intervalMs - timeSinceLastSend));
             }
 
             const item = this.queue.shift();
             this.requestCount++;
-            debug(() => `RateLimiter: Sending request #${this.requestCount} ` +
-                `(queue remaining: ${this.queue.length})`);
+            debug(() => `RateLimiter: Sending request #${this.requestCount} (queue remaining: ${this.queue.length})`);
 
             try {
                 const result = await item.sendFunction(item.data);

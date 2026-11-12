@@ -3,7 +3,7 @@ import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Operators/Regexp', () => {
@@ -13,7 +13,7 @@ describe('RubyToBlocksConverter/Operators/Regexp', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -28,18 +28,18 @@ describe('RubyToBlocksConverter/Operators/Regexp', () => {
                     inputs: [
                         {
                             name: 'STRING1',
-                            block: expectedInfo.makeText('hello world')
+                            block: expectedInfo.makeText('hello world'),
                         },
                         {
                             name: 'STRING2',
-                            block: expectedInfo.makeText('/^hello/')
-                        }
+                            block: expectedInfo.makeText('/^hello/'),
+                        },
                     ],
                     comment: {
                         text: '@ruby:operator:=~:1',
-                        minimized: true
-                    }
-                }
+                        minimized: true,
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -52,18 +52,18 @@ describe('RubyToBlocksConverter/Operators/Regexp', () => {
                     inputs: [
                         {
                             name: 'STRING1',
-                            block: expectedInfo.makeText('Hello')
+                            block: expectedInfo.makeText('Hello'),
                         },
                         {
                             name: 'STRING2',
-                            block: expectedInfo.makeText('/hello/i')
-                        }
+                            block: expectedInfo.makeText('/hello/i'),
+                        },
                     ],
                     comment: {
                         text: '@ruby:operator:=~:1',
-                        minimized: true
-                    }
-                }
+                        minimized: true,
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -77,18 +77,18 @@ describe('RubyToBlocksConverter/Operators/Regexp', () => {
                         {
                             name: 'STRING1',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeText('apple')
+                            shadow: expectedInfo.makeText('apple'),
                         },
                         {
                             name: 'STRING2',
-                            block: expectedInfo.makeText('/\\d+/')
-                        }
+                            block: expectedInfo.makeText('/\\d+/'),
+                        },
                     ],
                     comment: {
                         text: '@ruby:operator:=~:1',
-                        minimized: true
-                    }
-                }
+                        minimized: true,
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -103,18 +103,18 @@ describe('RubyToBlocksConverter/Operators/Regexp', () => {
                     inputs: [
                         {
                             name: 'STRING1',
-                            block: expectedInfo.makeText('hello world')
+                            block: expectedInfo.makeText('hello world'),
                         },
                         {
                             name: 'STRING2',
-                            block: expectedInfo.makeText('/^hello/')
-                        }
+                            block: expectedInfo.makeText('/^hello/'),
+                        },
                     ],
                     comment: {
                         text: '@ruby:operator:=~:1:receiver',
-                        minimized: true
-                    }
-                }
+                        minimized: true,
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -134,25 +134,25 @@ describe('RubyToBlocksConverter/Operators/Regexp', () => {
                                 inputs: [
                                     {
                                         name: 'STRING1',
-                                        block: expectedInfo.makeText('hello')
+                                        block: expectedInfo.makeText('hello'),
                                     },
                                     {
                                         name: 'STRING2',
-                                        block: expectedInfo.makeText('/world/')
-                                    }
+                                        block: expectedInfo.makeText('/world/'),
+                                    },
                                 ],
                                 comment: {
                                     text: '@ruby:operator:!~:1',
-                                    minimized: true
-                                }
-                            }
-                        }
+                                    minimized: true,
+                                },
+                            },
+                        },
                     ],
                     comment: {
                         text: '@ruby:operator:!~:1',
-                        minimized: true
-                    }
-                }
+                        minimized: true,
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -170,25 +170,25 @@ describe('RubyToBlocksConverter/Operators/Regexp', () => {
                                 inputs: [
                                     {
                                         name: 'STRING1',
-                                        block: expectedInfo.makeText('hello')
+                                        block: expectedInfo.makeText('hello'),
                                     },
                                     {
                                         name: 'STRING2',
-                                        block: expectedInfo.makeText('/world/')
-                                    }
+                                        block: expectedInfo.makeText('/world/'),
+                                    },
                                 ],
                                 comment: {
                                     text: '@ruby:operator:!~:1:receiver',
-                                    minimized: true
-                                }
-                            }
-                        }
+                                    minimized: true,
+                                },
+                            },
+                        },
                     ],
                     comment: {
                         text: '@ruby:operator:!~:1:receiver',
-                        minimized: true
-                    }
-                }
+                        minimized: true,
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -203,18 +203,18 @@ describe('RubyToBlocksConverter/Operators/Regexp', () => {
                     inputs: [
                         {
                             name: 'STRING1',
-                            block: expectedInfo.makeText('Hello World')
+                            block: expectedInfo.makeText('Hello World'),
                         },
                         {
                             name: 'STRING2',
-                            block: expectedInfo.makeText('/hello/im')
-                        }
+                            block: expectedInfo.makeText('/hello/im'),
+                        },
                     ],
                     comment: {
                         text: '@ruby:operator:=~:1',
-                        minimized: true
-                    }
-                }
+                        minimized: true,
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -226,13 +226,13 @@ describe('RubyToBlocksConverter/Operators/Regexp', () => {
             expected = [
                 {
                     opcode: 'data_setvariableto',
-                    fields: [{name: 'VARIABLE', variable: '$r'}],
-                    inputs: [{name: 'VALUE', block: expectedInfo.makeText('/^hello/i')}],
+                    fields: [{ name: 'VARIABLE', variable: '$r' }],
+                    inputs: [{ name: 'VALUE', block: expectedInfo.makeText('/^hello/i') }],
                     comment: {
                         text: '@ruby:regexp:literal',
-                        minimized: true
-                    }
-                }
+                        minimized: true,
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
             expect(converter.variables.r.dataType).toBe('regexp');
@@ -243,13 +243,13 @@ describe('RubyToBlocksConverter/Operators/Regexp', () => {
             expected = [
                 {
                     opcode: 'data_setvariableto',
-                    fields: [{name: 'VARIABLE', variable: '@r'}],
-                    inputs: [{name: 'VALUE', block: expectedInfo.makeText('/\\d+/')}],
+                    fields: [{ name: 'VARIABLE', variable: '@r' }],
+                    inputs: [{ name: 'VALUE', block: expectedInfo.makeText('/\\d+/') }],
                     comment: {
                         text: '@ruby:regexp:literal',
-                        minimized: true
-                    }
-                }
+                        minimized: true,
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
             expect(converter.variables.r.dataType).toBe('regexp');
@@ -260,7 +260,7 @@ describe('RubyToBlocksConverter/Operators/Regexp', () => {
             await converter.targetCodeToBlocks(target, code);
             expect(converter.errors).toHaveLength(0);
             const localVars = converter._context.localVariables;
-            const varName = Object.keys(localVars).find(k => localVars[k].originalName === 'r');
+            const varName = Object.keys(localVars).find((k) => localVars[k].originalName === 'r');
             expect(varName).toBeTruthy();
             expect(localVars[varName].dataType).toBe('regexp');
         });

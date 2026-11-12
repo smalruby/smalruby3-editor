@@ -1,13 +1,11 @@
-import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
+import React, { useCallback } from 'react';
 import { defineMessages, injectIntl, FormattedMessage } from 'react-intl';
-
-import Box from '../box/box.jsx';
 import Modal from '../../containers/modal.jsx';
 import intlShape from '../../lib/intlShape.js';
+import Box from '../box/box.jsx';
 import closeIcon from '../close-button/icon--close.svg';
 import GoogleSignInSlot from '../google-sign-in-slot/google-sign-in-slot.jsx';
-
 import styles from './bug-report-modal.css';
 
 const messages = defineMessages({
@@ -18,8 +16,7 @@ const messages = defineMessages({
     },
     loginIntro: {
         id: 'gui.bugReportModal.loginIntro',
-        defaultMessage:
-            'Sign in so we can attach your project and tell you when the bug is fixed.',
+        defaultMessage: 'Sign in so we can attach your project and tell you when the bug is fixed.',
         description: 'Login step explanation',
     },
     loginGoogle: {
@@ -64,8 +61,7 @@ const messages = defineMessages({
     },
     successBody: {
         id: 'gui.bugReportModal.successBody',
-        defaultMessage:
-            'The developers will look into it. You can check the reply later from "My bug reports".',
+        defaultMessage: 'The developers will look into it. You can check the reply later from "My bug reports".',
         description: 'Success explanation',
     },
     viewMyReports: {
@@ -146,10 +142,7 @@ const ReportRow = ({ report, intl, onHide }) => {
     const statusMsg = STATUS_MESSAGE[report.status] || messages.statusOpen;
     const handleHideClick = useCallback(() => onHide(report.reportId), [onHide, report.reportId]);
     return (
-        <li
-            className={styles.reportRow}
-            data-testid="bug-report-item"
-        >
+        <li className={styles.reportRow} data-testid="bug-report-item">
             <div className={styles.reportRowHeader}>
                 <span
                     className={styles.reportStatus}
@@ -167,20 +160,12 @@ const ReportRow = ({ report, intl, onHide }) => {
                     onClick={handleHideClick}
                     data-testid="bug-report-item-hide"
                 >
-                    <img
-                        className={styles.hideIcon}
-                        src={closeIcon}
-                        alt=""
-                        draggable={false}
-                    />
+                    <img className={styles.hideIcon} src={closeIcon} alt="" draggable={false} />
                 </button>
             </div>
             <p className={styles.reportDescription}>{report.description}</p>
             {report.developerReply ? (
-                <div
-                    className={styles.reportReply}
-                    data-testid="bug-report-item-reply"
-                >
+                <div className={styles.reportReply} data-testid="bug-report-item-reply">
                     <span className={styles.reportReplyLabel}>
                         <FormattedMessage {...messages.replyLabel} />
                     </span>
@@ -244,197 +229,173 @@ const BugReportModal = (props) => {
             id="bugReportModal"
             onRequestClose={onRequestClose}
         >
-            <Box
-                className={styles.body}
-                grow={1}
-                data-testid="bug-report-modal"
-                data-phase={phase}
-            >
+            <Box className={styles.body} grow={1} data-testid="bug-report-modal" data-phase={phase}>
                 <div className={styles.content}>
-                {error ? (
-                    <div
-                        className={styles.error}
-                        data-testid="bug-report-error"
-                    >
-                        {error}
-                    </div>
-                ) : null}
-
-                {phase === 'login' && (
-                    <div className={styles.loginPhase}>
-                        <p>
-                            <FormattedMessage {...messages.loginIntro} />
-                        </p>
-                        {googleFallbackReason === null && (
-                            <button
-                                className={styles.loginButton}
-                                disabled={isBusy}
-                                onClick={onLoginGoogle}
-                                data-testid="bug-report-login-google"
-                            >
-                                <FormattedMessage {...messages.loginGoogle} />
-                            </button>
-                        )}
-                        {/* Google's own button takes this button's place when
-                            the browser prompt cannot sign the user in (#1149). */}
-                        <GoogleSignInSlot
-                            active={googleFallbackReason !== null}
-                            className={styles.googleSignInSlot}
-                            ref={googleSignInRef}
-                            showHint={googleFallbackReason !== null && googleFallbackReason !== 'unsupported'}
-                        />
-                        {microsoftAvailable ? (
-                            <button
-                                className={styles.loginButton}
-                                disabled={isBusy}
-                                onClick={onLoginMicrosoft}
-                                data-testid="bug-report-login-microsoft"
-                            >
-                                <FormattedMessage {...messages.loginMicrosoft} />
-                            </button>
-                        ) : null}
-                    </div>
-                )}
-
-                {phase === 'form' && (
-                    <div className={styles.formPhase}>
-                        <label
-                            className={styles.fieldLabel}
-                            htmlFor="bug-report-description"
-                        >
-                            <FormattedMessage {...messages.descriptionLabel} />
-                        </label>
-                        <textarea
-                            id="bug-report-description"
-                            className={styles.descriptionInput}
-                            value={description}
-                            maxLength={2000}
-                            rows={6}
-                            placeholder={intl.formatMessage(messages.descriptionPlaceholder)}
-                            onChange={onDescriptionChange}
-                            data-testid="bug-report-description"
-                        />
-                        <p className={styles.attachmentNote}>
-                            <FormattedMessage {...messages.attachmentNote} />
-                        </p>
-                        <div className={styles.buttons}>
-                            <button
-                                className={styles.secondaryButton}
-                                onClick={onShowMyReports}
-                                data-testid="bug-report-view-my-reports"
-                            >
-                                <FormattedMessage {...messages.viewMyReports} />
-                            </button>
-                            <button
-                                className={styles.primaryButton}
-                                disabled={isBusy || !description.trim()}
-                                onClick={onSubmit}
-                                data-testid="bug-report-submit"
-                            >
-                                <FormattedMessage {...messages.submit} />
-                            </button>
+                    {error ? (
+                        <div className={styles.error} data-testid="bug-report-error">
+                            {error}
                         </div>
-                    </div>
-                )}
+                    ) : null}
 
-                {phase === 'submitting' && (
-                    <div
-                        className={styles.submittingPhase}
-                        data-testid="bug-report-submitting"
-                    >
-                        <p>
-                            <FormattedMessage {...messages.sending} />
-                        </p>
-                        {submitProgressLabel ? <p className={styles.progress}>{submitProgressLabel}</p> : null}
-                    </div>
-                )}
-
-                {phase === 'success' && (
-                    <div
-                        className={styles.successPhase}
-                        data-testid="bug-report-success"
-                    >
-                        <h3>
-                            {'🎉 '}
-                            <FormattedMessage {...messages.successTitle} />
-                        </h3>
-                        <p>
-                            <FormattedMessage {...messages.successBody} />
-                        </p>
-                        <div className={styles.buttons}>
-                            <button
-                                className={styles.secondaryButton}
-                                onClick={onShowMyReports}
-                                data-testid="bug-report-success-my-reports"
-                            >
-                                <FormattedMessage {...messages.viewMyReports} />
-                            </button>
-                            <button
-                                className={styles.primaryButton}
-                                onClick={onRequestClose}
-                                data-testid="bug-report-success-close"
-                            >
-                                <FormattedMessage {...messages.close} />
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {phase === 'myReports' && (
-                    <div className={styles.myReportsPhase}>
-                        {reportsLoading ? (
-                            <p data-testid="bug-report-list-loading">
-                                <FormattedMessage {...messages.reportsLoading} />
+                    {phase === 'login' && (
+                        <div className={styles.loginPhase}>
+                            <p>
+                                <FormattedMessage {...messages.loginIntro} />
                             </p>
-                        ) : reports.length === 0 ? (
-                            <p data-testid="bug-report-list-empty">
-                                <FormattedMessage {...messages.noReports} />
-                            </p>
-                        ) : (
-                            <ul
-                                className={styles.reportList}
-                                data-testid="bug-report-list"
-                            >
-                                {reports.map((report) => (
-                                    <ReportRow
-                                        key={report.reportId}
-                                        report={report}
-                                        intl={intl}
-                                        onHide={onHideReport}
-                                    />
-                                ))}
-                            </ul>
-                        )}
-                        {hideToastVisible ? (
-                            <div
-                                className={styles.undoToast}
-                                data-testid="bug-report-undo-toast"
-                                role="status"
-                            >
-                                <span className={styles.undoToastText}>
-                                    <FormattedMessage {...messages.hideToast} />
-                                </span>
+                            {googleFallbackReason === null && (
                                 <button
-                                    type="button"
-                                    className={styles.undoButton}
-                                    onClick={onUndoHide}
-                                    data-testid="bug-report-undo"
+                                    className={styles.loginButton}
+                                    disabled={isBusy}
+                                    onClick={onLoginGoogle}
+                                    data-testid="bug-report-login-google"
                                 >
-                                    <FormattedMessage {...messages.undo} />
+                                    <FormattedMessage {...messages.loginGoogle} />
+                                </button>
+                            )}
+                            {/* Google's own button takes this button's place when
+                            the browser prompt cannot sign the user in (#1149). */}
+                            <GoogleSignInSlot
+                                active={googleFallbackReason !== null}
+                                className={styles.googleSignInSlot}
+                                ref={googleSignInRef}
+                                showHint={googleFallbackReason !== null && googleFallbackReason !== 'unsupported'}
+                            />
+                            {microsoftAvailable ? (
+                                <button
+                                    className={styles.loginButton}
+                                    disabled={isBusy}
+                                    onClick={onLoginMicrosoft}
+                                    data-testid="bug-report-login-microsoft"
+                                >
+                                    <FormattedMessage {...messages.loginMicrosoft} />
+                                </button>
+                            ) : null}
+                        </div>
+                    )}
+
+                    {phase === 'form' && (
+                        <div className={styles.formPhase}>
+                            <label className={styles.fieldLabel} htmlFor="bug-report-description">
+                                <FormattedMessage {...messages.descriptionLabel} />
+                            </label>
+                            <textarea
+                                id="bug-report-description"
+                                className={styles.descriptionInput}
+                                value={description}
+                                maxLength={2000}
+                                rows={6}
+                                placeholder={intl.formatMessage(messages.descriptionPlaceholder)}
+                                onChange={onDescriptionChange}
+                                data-testid="bug-report-description"
+                            />
+                            <p className={styles.attachmentNote}>
+                                <FormattedMessage {...messages.attachmentNote} />
+                            </p>
+                            <div className={styles.buttons}>
+                                <button
+                                    className={styles.secondaryButton}
+                                    onClick={onShowMyReports}
+                                    data-testid="bug-report-view-my-reports"
+                                >
+                                    <FormattedMessage {...messages.viewMyReports} />
+                                </button>
+                                <button
+                                    className={styles.primaryButton}
+                                    disabled={isBusy || !description.trim()}
+                                    onClick={onSubmit}
+                                    data-testid="bug-report-submit"
+                                >
+                                    <FormattedMessage {...messages.submit} />
                                 </button>
                             </div>
-                        ) : null}
-                        <div className={styles.buttons}>
-                            <button
-                                className={styles.secondaryButton}
-                                onClick={onShowForm}
-                                data-testid="bug-report-back-to-form"
-                            >
-                                <FormattedMessage {...messages.backToForm} />
-                            </button>
                         </div>
-                    </div>
-                )}
+                    )}
+
+                    {phase === 'submitting' && (
+                        <div className={styles.submittingPhase} data-testid="bug-report-submitting">
+                            <p>
+                                <FormattedMessage {...messages.sending} />
+                            </p>
+                            {submitProgressLabel ? <p className={styles.progress}>{submitProgressLabel}</p> : null}
+                        </div>
+                    )}
+
+                    {phase === 'success' && (
+                        <div className={styles.successPhase} data-testid="bug-report-success">
+                            <h3>
+                                {'🎉 '}
+                                <FormattedMessage {...messages.successTitle} />
+                            </h3>
+                            <p>
+                                <FormattedMessage {...messages.successBody} />
+                            </p>
+                            <div className={styles.buttons}>
+                                <button
+                                    className={styles.secondaryButton}
+                                    onClick={onShowMyReports}
+                                    data-testid="bug-report-success-my-reports"
+                                >
+                                    <FormattedMessage {...messages.viewMyReports} />
+                                </button>
+                                <button
+                                    className={styles.primaryButton}
+                                    onClick={onRequestClose}
+                                    data-testid="bug-report-success-close"
+                                >
+                                    <FormattedMessage {...messages.close} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {phase === 'myReports' && (
+                        <div className={styles.myReportsPhase}>
+                            {reportsLoading ? (
+                                <p data-testid="bug-report-list-loading">
+                                    <FormattedMessage {...messages.reportsLoading} />
+                                </p>
+                            ) : reports.length === 0 ? (
+                                <p data-testid="bug-report-list-empty">
+                                    <FormattedMessage {...messages.noReports} />
+                                </p>
+                            ) : (
+                                <ul className={styles.reportList} data-testid="bug-report-list">
+                                    {reports.map((report) => (
+                                        <ReportRow
+                                            key={report.reportId}
+                                            report={report}
+                                            intl={intl}
+                                            onHide={onHideReport}
+                                        />
+                                    ))}
+                                </ul>
+                            )}
+                            {hideToastVisible ? (
+                                <div className={styles.undoToast} data-testid="bug-report-undo-toast" role="status">
+                                    <span className={styles.undoToastText}>
+                                        <FormattedMessage {...messages.hideToast} />
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className={styles.undoButton}
+                                        onClick={onUndoHide}
+                                        data-testid="bug-report-undo"
+                                    >
+                                        <FormattedMessage {...messages.undo} />
+                                    </button>
+                                </div>
+                            ) : null}
+                            <div className={styles.buttons}>
+                                <button
+                                    className={styles.secondaryButton}
+                                    onClick={onShowForm}
+                                    data-testid="bug-report-back-to-form"
+                                >
+                                    <FormattedMessage {...messages.backToForm} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </Box>
         </Modal>

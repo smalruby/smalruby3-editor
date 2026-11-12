@@ -2,7 +2,7 @@ import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-convert
 import {
     convertAndExpectRubyBlockError,
     convertAndExpectToEqualBlocks,
-    rubyToExpected
+    rubyToExpected,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Control', () => {
@@ -11,7 +11,7 @@ describe('RubyToBlocksConverter/Control', () => {
     let code;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
     });
@@ -42,13 +42,7 @@ describe('RubyToBlocksConverter/Control', () => {
 
     describe('control_stop', () => {
         test('invalid', async () => {
-            const cases = [
-                'stop',
-                'stop()',
-                'stop(1)',
-                'stop("invalid option")',
-                'stop("all", 1)'
-            ];
+            const cases = ['stop', 'stop()', 'stop(1)', 'stop("invalid option")', 'stop("all", 1)'];
             for (const s of cases) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
@@ -62,7 +56,7 @@ describe('RubyToBlocksConverter/Control', () => {
                 'create_clone()',
                 'create_clone(1)',
                 'create_clone(move(10))',
-                'create_clone("_myself_", 1)'
+                'create_clone("_myself_", 1)',
             ];
             for (const s of cases) {
                 await convertAndExpectRubyBlockError(converter, target, s);
@@ -72,10 +66,7 @@ describe('RubyToBlocksConverter/Control', () => {
 
     describe('control_delete_this_clone', () => {
         test('invalid', async () => {
-            const cases = [
-                '12.delete_this_clone',
-                'delete_this_clone(1)'
-            ];
+            const cases = ['12.delete_this_clone', 'delete_this_clone(1)'];
             for (const s of cases) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
@@ -96,7 +87,7 @@ describe('RubyToBlocksConverter/Control', () => {
                     opcode: 'control_repeat_until',
                     comment: {
                         text: '@ruby:syntax:while',
-                        minimized: true
+                        minimized: true,
                     },
                     inputs: [
                         {
@@ -106,16 +97,14 @@ describe('RubyToBlocksConverter/Control', () => {
                                 inputs: [
                                     {
                                         name: 'OPERAND',
-                                        block: condBlock
-                                    }
-                                ]
-                            }
-                        }
+                                        block: condBlock,
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    branches: [
-                        moveBlock
-                    ]
-                }
+                    branches: [moveBlock],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -133,7 +122,7 @@ describe('RubyToBlocksConverter/Control', () => {
                     opcode: 'control_repeat_until',
                     comment: {
                         text: '@ruby:syntax:while',
-                        minimized: true
+                        minimized: true,
                     },
                     inputs: [
                         {
@@ -143,16 +132,14 @@ describe('RubyToBlocksConverter/Control', () => {
                                 inputs: [
                                     {
                                         name: 'OPERAND',
-                                        block: condBlock
-                                    }
-                                ]
-                            }
-                        }
+                                        block: condBlock,
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    branches: [
-                        moveBlock
-                    ]
-                }
+                    branches: [moveBlock],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -172,10 +159,7 @@ describe('RubyToBlocksConverter/Control', () => {
 
     describe('control_start_as_clone', () => {
         test('invalid', async () => {
-            const cases1 = [
-                'when_start_as_a_clone',
-                'when_start_as_a_clone(1) {}'
-            ];
+            const cases1 = ['when_start_as_a_clone', 'when_start_as_a_clone(1) {}'];
             for (const s of cases1) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
@@ -189,15 +173,12 @@ describe('RubyToBlocksConverter/Control', () => {
             stageTarget = {
                 isStage: true,
                 variables: {},
-                sprite: {}
+                sprite: {},
             };
         });
 
         test('sprite-only clone blocks should throw error on stage', async () => {
-            const spriteOnlyCommands = [
-                'delete_this_clone',
-                'when_start_as_a_clone {}'
-            ];
+            const spriteOnlyCommands = ['delete_this_clone', 'when_start_as_a_clone {}'];
 
             for (const command of spriteOnlyCommands) {
                 const result = await converter.targetCodeToBlocks(stageTarget, command);
@@ -214,7 +195,7 @@ describe('RubyToBlocksConverter/Control', () => {
                 'sleep(1)',
                 'repeat(3) {}',
                 'forever {}',
-                'stop("all")'
+                'stop("all")',
             ];
 
             for (const command of stageCommonCommands) {
@@ -233,7 +214,7 @@ describe('RubyToBlocksConverter/Control', () => {
                 'sleep(1)',
                 'repeat(3) {}',
                 'forever {}',
-                'stop("all")'
+                'stop("all")',
             ];
 
             for (const command of allCommands) {

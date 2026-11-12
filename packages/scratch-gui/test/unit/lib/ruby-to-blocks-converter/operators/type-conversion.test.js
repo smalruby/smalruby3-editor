@@ -3,7 +3,7 @@ import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Operators', () => {
@@ -13,7 +13,7 @@ describe('RubyToBlocksConverter/Operators', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -28,19 +28,19 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'STRING1',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeText('')
+                        shadow: expectedInfo.makeText(''),
                     },
                     {
                         name: 'STRING2',
                         block: expectedInfo.makeText(''),
-                        shadow: expectedInfo.makeText('')
-                    }
+                        shadow: expectedInfo.makeText(''),
+                    },
                 ],
                 comment: {
                     text: '@ruby:method:to_s',
-                    minimized: true
-                }
-            }
+                    minimized: true,
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -51,19 +51,19 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'STRING1',
-                        block: expectedInfo.makeNumber(123)
+                        block: expectedInfo.makeNumber(123),
                     },
                     {
                         name: 'STRING2',
                         block: expectedInfo.makeText(''),
-                        shadow: expectedInfo.makeText('')
-                    }
+                        shadow: expectedInfo.makeText(''),
+                    },
                 ],
                 comment: {
                     text: '@ruby:method:to_s',
-                    minimized: true
-                }
-            }
+                    minimized: true,
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -77,19 +77,19 @@ describe('RubyToBlocksConverter/Operators', () => {
         expected = [
             {
                 opcode: 'operator_mathop',
-                fields: [{name: 'OPERATOR', value: 'floor'}],
+                fields: [{ name: 'OPERATOR', value: 'floor' }],
                 inputs: [
                     {
                         name: 'NUM',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber('')
-                    }
+                        shadow: expectedInfo.makeNumber(''),
+                    },
                 ],
                 comment: {
                     text: '@ruby:method:to_i',
-                    minimized: true
-                }
-            }
+                    minimized: true,
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -97,31 +97,33 @@ describe('RubyToBlocksConverter/Operators', () => {
         expected = [
             {
                 opcode: 'operator_mathop',
-                fields: [{name: 'OPERATOR', value: 'floor'}],
+                fields: [{ name: 'OPERATOR', value: 'floor' }],
                 inputs: [
                     {
                         name: 'NUM',
-                        block: expectedInfo.makeText('123')
-                    }
+                        block: expectedInfo.makeText('123'),
+                    },
                 ],
                 comment: {
                     text: '@ruby:method:to_i',
-                    minimized: true
-                }
-            }
+                    minimized: true,
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
     test('reject non-boolean blocks in boolean inputs', async () => {
-        { for (const s of [
-            '!move(10)',
-            'move(10) && touching?("_edge_")',
-            'touching?("_edge_") && move(10)',
-            'move(10) || touching?("_edge_")',
-            'touching?("_edge_") || move(10)'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of [
+                '!move(10)',
+                'move(10) && touching?("_edge_")',
+                'touching?("_edge_") && move(10)',
+                'move(10) || touching?("_edge_")',
+                'touching?("_edge_") || move(10)',
+            ]) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 });

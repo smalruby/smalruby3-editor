@@ -1,22 +1,26 @@
-import {defineMessages} from 'react-intl';
 import _ from 'lodash';
+import { defineMessages } from 'react-intl';
 import * as Blockly from 'scratch-blocks';
+import { RubyToBlocksConverterError } from './errors';
 import Primitive from './primitive';
-import {RubyToBlocksConverterError} from './errors';
 
 const messages = defineMessages({
     invalidMyBlockArgumentType: {
-        defaultMessage: 'invalid type of My Block "{NAME}" argument #{INDEX}.' +
-            '\nUse a number, string, or boolean value.',
+        defaultMessage:
+            'invalid type of My Block "{NAME}" argument #{INDEX}.\nUse a number, string, or boolean value.',
         description: 'Error message when My Block argument has invalid type',
-        id: 'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType'
+        id: 'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType',
     },
-    wrongInstructionInMyBlock: {
-        defaultMessage: '"{SOURCE}" is the wrong instruction.' +
-            '\nCheck the spelling or use a supported block.',
-        description: 'Error message when non-statement block found in My Block definition body',
-        id: 'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInMyBlock'
-    }
+    recursiveCallAfterSavedValue: {
+        defaultMessage:
+            '"{ SOURCE }" calls "{ NAME }" in "{ NAME }" after another method call in the same line.' +
+            '\nWith blocks, the saved return value of the other call would be overwritten by this call.' +
+            '\nCall "{ NAME }" only once in a line, before other method calls.',
+        description:
+            'Error message when a method calls itself in a value after another call ' +
+            '(e.g. return fib(n - 1) + fib(n - 2)), whose saved return value the recursion would overwrite',
+        id: 'gui.smalruby3.rubyToBlocksConverter.recursiveCallAfterSavedValue',
+    },
 });
 
 /**
@@ -25,8 +29,8 @@ const messages = defineMessages({
 const MyBlocksConverter = {
     register: function (converter) {
         // Register my-block handler for procedure calls
-        converter.registerOnSendMyBlock('self', params => {
-            const {name, args, procedure} = params;
+        converter.registerOnSendMyBlock('self', (params) => {
+            const { name, args, procedure } = params;
 
             if (procedure.argumentIds.length !== args.length) return null;
 
@@ -36,14 +40,29 @@ const MyBlocksConverter = {
                     children: [],
                     proccode: procedure.procCode.join(' '),
                     tagName: 'mutation',
-                    warp: 'false'
-                }
+                    warp: 'false',
+                },
             });
 
             let callIndex;
             let callCount;
             // Add comment if procedure has return value and used as value
             if (procedure.hasReturnValue && converter.isValueContext()) {
+                // The return value of an earlier call in this line is saved in a variable of the sprite.
+                // A call of the method itself would run this line again inside and overwrite it, so
+                // `return fib(n - 1) + fib(n - 2)` would not give the value of Ruby.
+                if (
+                    name === converter._context.currentProcedureName &&
+                    converter._context.savedReturnValueInStatement
+                ) {
+                    throw new RubyToBlocksConverterError(
+                        converter._context.currentNode,
+                        converter._translator(messages.recursiveCallAfterSavedValue, {
+                            SOURCE: converter._getSource(converter._context.currentNode),
+                            NAME: name,
+                        }),
+                    );
+                }
                 callCount = converter._context.methodCallCounts[name] || 0;
                 callIndex = (converter._context.methodCallIndices[name] || 0) + 1;
                 converter._context.methodCallIndices[name] = callIndex;
@@ -69,14 +88,16 @@ const MyBlocksConverter = {
                         return;
                     }
                 }
-                if (!procedure.argumentVariables[i].isBoolean &&
-                    (converter._isNumberOrBlock(arg) || converter._isStringOrBlock(arg))) {
+                if (
+                    !procedure.argumentVariables[i].isBoolean &&
+                    (converter._isNumberOrBlock(arg) || converter._isStringOrBlock(arg))
+                ) {
                     converter._addTextInput(block, argumentId, converter._isNumber(arg) ? arg.toString() : arg, '');
                     return;
                 }
                 throw new RubyToBlocksConverterError(
                     converter._context.currentNode,
-                    converter._translator(messages.invalidMyBlockArgumentType, {NAME: name, INDEX: i + 1})
+                    converter._translator(messages.invalidMyBlockArgumentType, { NAME: name, INDEX: i + 1 }),
                 );
             });
 
@@ -100,9 +121,9 @@ const MyBlocksConverter = {
                                 name: 'VARIABLE',
                                 id: sourceVariable.id,
                                 value: sourceVariable.name,
-                                variableType: sourceVariable.type
-                            }
-                        }
+                                variableType: sourceVariable.type,
+                            },
+                        },
                     });
 
                     const evacuationBlock = converter._createBlock('data_setvariableto', 'statement', {
@@ -111,18 +132,20 @@ const MyBlocksConverter = {
                                 name: 'VARIABLE',
                                 id: targetVariable.id,
                                 value: targetVariable.name,
-                                variableType: targetVariable.type
-                            }
+                                variableType: targetVariable.type,
+                            },
                         },
                         inputs: {
                             VALUE: {
                                 name: 'VALUE',
-                                block: sourceBlock.id
-                            }
-                        }
+                                block: sourceBlock.id,
+                            },
+                        },
                     });
+                    sourceBlock.parent = evacuationBlock.id;
                     evacuationBlock.comment = converter._createComment(commentText, evacuationBlock.id);
                     resultBlocks.push(evacuationBlock);
+                    converter._context.savedReturnValueInStatement = true;
                 }
 
                 const variable = converter._lookupOrCreateVariable(`@_return_${name}${varSuffix}_`);
@@ -132,9 +155,9 @@ const MyBlocksConverter = {
                             name: 'VARIABLE',
                             id: variable.id,
                             value: variable.name,
-                            variableType: variable.type
-                        }
-                    }
+                            variableType: variable.type,
+                        },
+                    },
                 });
                 varBlock.comment = converter._createComment(commentText, varBlock.id);
                 resultBlocks.push(varBlock);
@@ -164,9 +187,9 @@ const MyBlocksConverter = {
                     fields: {
                         VALUE: {
                             name: 'VALUE',
-                            value: normalizedName
-                        }
-                    }
+                            value: normalizedName,
+                        },
+                    },
                 });
                 if (Object.prototype.hasOwnProperty.call(converter._context.argumentBlocks, variable.id)) {
                     converter._context.argumentBlocks[variable.id].push(block.id);
@@ -188,23 +211,23 @@ const MyBlocksConverter = {
             // Use renamed name if this is a module method being renamed for super
             const procedureName = converter._context.superRenameTarget || node.name;
             const block = converter._createBlock('procedures_definition', 'hat', {
-                topLevel: true
+                topLevel: true,
             });
             const procedure = converter._createProcedure(procedureName);
 
             const customBlock = converter._createBlock('procedures_prototype', 'statement', {
-                shadow: true
+                shadow: true,
             });
             converter._addInput(block, 'custom_block', customBlock);
 
             // Clear arguments from localVariables to allow reuse of names across different methods
-            Object.keys(converter._context.localVariables).forEach(key => {
+            Object.keys(converter._context.localVariables).forEach((key) => {
                 if (converter._context.localVariables[key].isArgument) {
                     delete converter._context.localVariables[key];
                 }
             });
 
-            (converter.visit(node.parameters) || []).forEach(n => {
+            (converter.visit(node.parameters) || []).forEach((n) => {
                 const originalName = n.toString();
                 // Convert argument name to snake_case lowercase
                 const normalizedName = converter._toSnakeCaseLowercase(originalName);
@@ -220,10 +243,10 @@ const MyBlocksConverter = {
                     fields: {
                         VALUE: {
                             name: 'VALUE',
-                            value: normalizedName
-                        }
+                            value: normalizedName,
+                        },
                     },
-                    shadow: true
+                    shadow: true,
                 });
                 converter._addInput(customBlock, inputId, inputBlock);
                 procedure.argumentBlocks.push(inputBlock);
@@ -235,30 +258,50 @@ const MyBlocksConverter = {
             const savedCurrentProcedureName = converter._context.currentProcedureName;
             converter._context.inMyBlockDefinition = true;
             converter._context.currentProcedureName = procedureName;
-            let body = converter.visit(node.body);
+            const savedBodyKind = converter._context.statementBodyKind;
+            converter._context.statementBodyKind = 'method';
+            let body;
+            try {
+                body = converter.visit(node.body);
+            } finally {
+                converter._context.statementBodyKind = savedBodyKind;
+            }
             if (typeof body === 'undefined') {
                 body = [];
             } else if (!_.isArray(body)) {
                 body = [body];
             }
-            body = body.filter(b => b !== null && typeof b !== 'undefined').map(b => {
-                if (converter._isNumber(b)) {
-                    const value = (b instanceof Primitive) ? b.value : b;
-                    return converter._createNumberBlock('math_number', value);
-                }
-                if (converter._isTrue(b)) {
-                    return converter._createTextBlock('true');
-                }
-                if (converter._isFalse(b)) {
-                    return converter._createTextBlock('false');
-                }
-                if (converter._isString(b) || converter.isNil(b) || converter._isSymbol(b)) {
-                    const value = (b instanceof Primitive) ? b.value : b;
-                    return converter._createTextBlock(value === null ? '' : value.toString());
-                }
-                if (converter._isBlock(b)) return b;
-                return b;
-            });
+            const literalMarkers = {};
+            body = body
+                .filter((b) => b !== null && typeof b !== 'undefined')
+                .map((b) => {
+                    if (converter._isNumber(b)) {
+                        const value = b instanceof Primitive ? b.value : b;
+                        return converter._createNumberBlock('math_number', value);
+                    }
+                    // A block stays as it is: `true` / `false` as their `1 = 1` / `0 < 0` blocks (as `return true`
+                    // does), so the implicit return comes back as `true`, not the string `"true"`, and
+                    // `:a.to_s` (a block with a symbol marker) as its join block.
+                    if (converter._isBlock(b)) return b;
+                    if (converter._isTrue(b)) return converter._createTextBlock('true');
+                    if (converter._isFalse(b)) return converter._createTextBlock('false');
+                    // `nil` / a symbol has no block of its own, so it becomes a text block and the return
+                    // block remembers the original with a comment marker (issue #1548).
+                    if (b instanceof Primitive && (b.type === 'nil' || b.type === 'sym')) {
+                        const isNil = b.type === 'nil';
+                        const textBlock = converter._createTextBlock(isNil ? '' : b.value.toString());
+                        // A comment keeps one line for the marker, so a symbol with a line break stays a string.
+                        if (isNil || !/[\r\n]/.test(b.value)) {
+                            literalMarkers[textBlock.id] = isNil ? '@ruby:nil' : `@ruby:symbol:${b.value}`;
+                        }
+                        return textBlock;
+                    }
+                    if (converter._isString(b) || converter.isNil(b) || converter._isSymbol(b)) {
+                        const value = b instanceof Primitive ? b.value : b;
+                        return converter._createTextBlock(value === null ? '' : value.toString());
+                    }
+                    return b;
+                });
             converter._context.inMyBlockDefinition = savedInMyBlockDefinition;
             converter._context.currentProcedureName = savedCurrentProcedureName;
 
@@ -270,18 +313,24 @@ const MyBlocksConverter = {
                 if (_.isArray(last)) {
                     last = last[last.length - 1];
                 }
-                const lastCommentText = (last && last.comment) ? converter._context.comments[last.comment].text : '';
+                const lastCommentText = last && last.comment ? converter._context.comments[last.comment].text : '';
                 // Check if the last expression is a procedures_call to a procedure with a return
                 // value (e.g., super calls to module methods that return values). In this case,
                 // the procedures_call sets the callee's return variable, and we need to copy it
                 // to this procedure's return variable.
-                if (last && last.opcode === 'procedures_call' &&
+                // A call followed by other blocks (e.g. `return bar`: the call, then the return block)
+                // is not the last expression; linking after it would cut them off (issue #1556).
+                if (
+                    last &&
+                    last.opcode === 'procedures_call' &&
+                    !last.next &&
                     converter._isProcedureCallWithReturnValue(last) &&
-                    !lastCommentText.includes('@ruby:syntax:return')) {
+                    !lastCommentText.includes('@ruby:syntax:return')
+                ) {
                     const calledProccode = last.mutation.proccode;
                     const calledProcName = calledProccode
                         .split(' ')
-                        .filter(i => !/^%[sb]$/.test(i))
+                        .filter((i) => !/^%[sb]$/.test(i))
                         .join('_');
                     const sourceVariable = converter._lookupOrCreateVariable(`@_return_${calledProcName}_`);
                     const targetVariable = converter._lookupOrCreateVariable(`@_return_${procedureName}_`);
@@ -293,9 +342,9 @@ const MyBlocksConverter = {
                                 name: 'VARIABLE',
                                 id: sourceVariable.id,
                                 value: sourceVariable.name,
-                                variableType: sourceVariable.type
-                            }
-                        }
+                                variableType: sourceVariable.type,
+                            },
+                        },
                     });
 
                     // Create assignment: @_return_procedureName_ = @_return_calledProcName_
@@ -305,9 +354,9 @@ const MyBlocksConverter = {
                                 name: 'VARIABLE',
                                 id: targetVariable.id,
                                 value: targetVariable.name,
-                                variableType: targetVariable.type
-                            }
-                        }
+                                variableType: targetVariable.type,
+                            },
+                        },
                     });
                     returnBlock.comment = converter._createComment(`@ruby:return:${procedureName}`, returnBlock.id);
                     converter._addInput(returnBlock, 'VALUE', sourceBlock);
@@ -319,9 +368,11 @@ const MyBlocksConverter = {
 
                     // Mark procedure as having a return value
                     procedure.hasReturnValue = true;
-                } else if (converter._isValueBlock(last) &&
+                } else if (
+                    converter._isValueBlock(last) &&
                     !(last instanceof Primitive && (last.type === 'self' || last.type === 'nil')) &&
-                    !lastCommentText.includes('@ruby:syntax:return')) {
+                    !lastCommentText.includes('@ruby:syntax:return')
+                ) {
                     const variable = converter._lookupOrCreateVariable(`@_return_${procedureName}_`);
                     const returnBlock = converter._createBlock('data_setvariableto', 'statement', {
                         fields: {
@@ -329,11 +380,15 @@ const MyBlocksConverter = {
                                 name: 'VARIABLE',
                                 id: variable.id,
                                 value: variable.name,
-                                variableType: variable.type
-                            }
-                        }
+                                variableType: variable.type,
+                            },
+                        },
                     });
-                    returnBlock.comment = converter._createComment(`@ruby:return:${procedureName}`, returnBlock.id);
+                    const literalMarker = literalMarkers[last.id];
+                    returnBlock.comment = converter._createComment(
+                        `@ruby:return:${procedureName}${literalMarker ? `,${literalMarker}` : ''}`,
+                        returnBlock.id,
+                    );
 
                     if (last.shadow) {
                         // Shadow blocks (e.g. math_number, text) are used directly as both block and shadow
@@ -359,12 +414,13 @@ const MyBlocksConverter = {
                 // If any block in the body has @ruby:syntax:return comment (from explicit return),
                 // mark procedure as having a return value so callers can use it as a value.
                 if (!procedure.hasReturnValue) {
-                    const hasExplicitReturn = Object.values(converter._context.blocks).some(b =>
-                        b.opcode === 'data_setvariableto' &&
-                        b.comment &&
-                        converter._context.comments[b.comment] &&
-                        converter._context.comments[b.comment].text.includes('@ruby:syntax:return') &&
-                        converter._context.comments[b.comment].text.includes(`@ruby:return:${procedureName}`)
+                    const hasExplicitReturn = Object.values(converter._context.blocks).some(
+                        (b) =>
+                            b.opcode === 'data_setvariableto' &&
+                            b.comment &&
+                            converter._context.comments[b.comment] &&
+                            converter._context.comments[b.comment].text.includes('@ruby:syntax:return') &&
+                            converter._context.comments[b.comment].text.includes(`@ruby:return:${procedureName}`),
                     );
                     if (hasExplicitReturn) {
                         procedure.hasReturnValue = true;
@@ -374,12 +430,13 @@ const MyBlocksConverter = {
                 // If procedure has explicit return statements, insert an initialize block at the top
                 // of the body to reset @_return_name_ to "" before each call, preventing stale values.
                 // This is only needed for explicit return (not for implicit return from last value).
-                const hasExplicitReturnForInit = Object.values(converter._context.blocks).some(b =>
-                    b.opcode === 'data_setvariableto' &&
-                    b.comment &&
-                    converter._context.comments[b.comment] &&
-                    converter._context.comments[b.comment].text.includes('@ruby:syntax:return') &&
-                    converter._context.comments[b.comment].text.includes(`@ruby:return:${procedureName}`)
+                const hasExplicitReturnForInit = Object.values(converter._context.blocks).some(
+                    (b) =>
+                        b.opcode === 'data_setvariableto' &&
+                        b.comment &&
+                        converter._context.comments[b.comment] &&
+                        converter._context.comments[b.comment].text.includes('@ruby:syntax:return') &&
+                        converter._context.comments[b.comment].text.includes(`@ruby:return:${procedureName}`),
                 );
                 if (hasExplicitReturnForInit) {
                     const variable = converter._lookupOrCreateVariable(`@_return_${procedureName}_`);
@@ -389,12 +446,13 @@ const MyBlocksConverter = {
                                 name: 'VARIABLE',
                                 id: variable.id,
                                 value: variable.name,
-                                variableType: variable.type
-                            }
-                        }
+                                variableType: variable.type,
+                            },
+                        },
                     });
                     initBlock.comment = converter._createComment(
-                        `@ruby:return:${procedureName}:initialize`, initBlock.id
+                        `@ruby:return:${procedureName}:initialize`,
+                        initBlock.id,
                     );
                     initBlock.node = node; // Use the def node for initialization block
                     converter._addTextInput(initBlock, 'VALUE', '', '');
@@ -408,24 +466,17 @@ const MyBlocksConverter = {
                 }
             }
 
-            _.flatten(body).forEach(b => {
-                if (converter._isValueBlock(b) ||
+            _.flatten(body).forEach((b) => {
+                if (
+                    converter._isValueBlock(b) ||
                     converter._isNumber(b) ||
                     converter._isString(b) ||
                     converter._isTrue(b) ||
-                    converter._isFalse(b)) {
-                    let bNode = b.node;
-                    if (!bNode && b.id) {
-                        for (const [n, id] of converter._context.nodeToBlockMap.entries()) {
-                            if (id === b.id) {
-                                bNode = n;
-                                break;
-                            }
-                        }
-                    }
-                    const src = converter._truncateSource(bNode ? bNode.source : '');
-                    const msg = converter._translator(messages.wrongInstructionInMyBlock, {SOURCE: src});
-                    throw new RubyToBlocksConverterError(bNode, msg);
+                    converter._isFalse(b)
+                ) {
+                    // A value on a line before the last one: `_checkStatementInBody` throws for it,
+                    // so this is a fallback for a value that comes another way (#1549).
+                    throw converter._valueAsStatementError(converter._nodeOfBlock(b) || node);
                 }
             });
             if (body.length > 0 && converter._isBlock(body[0])) {
@@ -444,12 +495,14 @@ const MyBlocksConverter = {
                 }
             });
 
-            if (booleanIndexes.length > 0 &&
-                Object.prototype.hasOwnProperty.call(converter._context.procedureCallBlocks, procedure.id)) {
-                converter._context.procedureCallBlocks[procedure.id].forEach(id => {
+            if (
+                booleanIndexes.length > 0 &&
+                Object.prototype.hasOwnProperty.call(converter._context.procedureCallBlocks, procedure.id)
+            ) {
+                converter._context.procedureCallBlocks[procedure.id].forEach((id) => {
                     const b = converter._context.blocks[id];
                     b.mutation.proccode = procedure.procCode.join(' ');
-                    booleanIndexes.forEach(booleanIndex => {
+                    booleanIndexes.forEach((booleanIndex) => {
                         const input = b.inputs[procedure.argumentIds[booleanIndex]];
                         const inputBlock = converter._context.blocks[input.block];
                         if (inputBlock) {
@@ -469,12 +522,12 @@ const MyBlocksConverter = {
                 children: [],
                 proccode: procedure.procCode.join(' '),
                 tagName: 'mutation',
-                warp: 'false'
+                warp: 'false',
             };
 
             return block;
         });
-    }
+    },
 };
 
 export default MyBlocksConverter;

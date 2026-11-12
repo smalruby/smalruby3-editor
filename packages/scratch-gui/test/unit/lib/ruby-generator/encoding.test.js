@@ -70,17 +70,17 @@ describe('RubyGenerator encoding helpers', () => {
 
     describe('hashToCode', () => {
         test('generates Ruby hash with braces by default', () => {
-            const result = RubyGenerator.hashToCode({x: 10, y: 20});
+            const result = RubyGenerator.hashToCode({ x: 10, y: 20 });
             expect(result).toEqual('{\n  x: 10,\n  y: 20\n}');
         });
 
         test('generates hash without braces when brace=false', () => {
-            const result = RubyGenerator.hashToCode({x: 10}, ': ', false);
+            const result = RubyGenerator.hashToCode({ x: 10 }, ': ', false);
             expect(result).toEqual('x: 10');
         });
 
         test('uses custom separator', () => {
-            const result = RubyGenerator.hashToCode({a: 1}, ' => ', false);
+            const result = RubyGenerator.hashToCode({ a: 1 }, ' => ', false);
             expect(result).toEqual('a => 1');
         });
     });

@@ -7,7 +7,6 @@
 //   - inputs: 入力の影（shadow）のフィールド（数・文字・音や背景のメニュー）
 // 値は文字列・数か、locale ごとの `{ja, 'ja-Hira', en}`（courses.js の localizeCode と同じ選び方）。
 // 書かないブロックはツールボックスの初期値のまま。
-
 import { localizeCode } from './courses';
 
 /**

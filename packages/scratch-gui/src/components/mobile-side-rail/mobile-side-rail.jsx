@@ -3,7 +3,14 @@ import React, { useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { FormattedMessage } from 'react-intl';
 import { connect } from 'react-redux';
-
+import {
+    activateTab,
+    BLOCKS_TAB_INDEX,
+    COSTUMES_TAB_INDEX,
+    RUBY_TAB_INDEX,
+    SOUNDS_TAB_INDEX,
+} from '../../reducers/editor-tab.js';
+import { setFullScreen } from '../../reducers/mode.js';
 import codeIcon from '../gui/icon--code.svg';
 import costumesIcon from '../gui/icon--costumes.svg';
 import rubyIcon from '../gui/icon--ruby.svg';
@@ -13,14 +20,6 @@ import hamburgerIcon from '../mobile-drawer/icon--hamburger.svg';
 import playIcon from '../mobile-top-bar/icon--play.svg';
 import stopIcon from '../mobile-top-bar/icon--stop.svg';
 import backpackIcon from './icon--backpack.svg';
-import {
-    activateTab,
-    BLOCKS_TAB_INDEX,
-    COSTUMES_TAB_INDEX,
-    RUBY_TAB_INDEX,
-    SOUNDS_TAB_INDEX,
-} from '../../reducers/editor-tab.js';
-import { setFullScreen } from '../../reducers/mode.js';
 import styles from './mobile-side-rail.css';
 
 const SPRITE_KEY = 'sprite';
@@ -67,7 +66,7 @@ const MobileSideRailComponent = ({
     onToggleBackpack,
 }) => {
     const handlePlayClick = useCallback(
-        e => {
+        (e) => {
             if (isFullScreen) {
                 vm.stopAll();
                 onSetFullScreen(false);
@@ -83,7 +82,7 @@ const MobileSideRailComponent = ({
     );
 
     const handleMenuClick = useCallback(
-        e => {
+        (e) => {
             onOpenDrawer();
             const target = e?.currentTarget;
             if (target) target.blur();
@@ -92,7 +91,7 @@ const MobileSideRailComponent = ({
     );
 
     const handleBackpackClick = useCallback(
-        e => {
+        (e) => {
             onToggleBackpack();
             const target = e?.currentTarget;
             if (target) target.blur();
@@ -101,7 +100,7 @@ const MobileSideRailComponent = ({
     );
 
     const handleTabClick = useCallback(
-        event => {
+        (event) => {
             const key = event.currentTarget.dataset.tabKey;
             if (key === SPRITE_KEY) {
                 onSpriteTabActiveChange(true);
@@ -180,18 +179,14 @@ const MobileSideRailComponent = ({
         },
     ];
 
-    const isTabActive = tab => {
+    const isTabActive = (tab) => {
         if (tab.key === SPRITE_KEY) return spriteTabActive;
         if (spriteTabActive) return false;
         return activeTabIndex === tab.tabIndex;
     };
 
     return createPortal(
-        <nav
-            className={styles.rail}
-            data-testid="mobile-side-rail"
-            aria-label="mobile side navigation"
-        >
+        <nav className={styles.rail} data-testid="mobile-side-rail" aria-label="mobile side navigation">
             <button
                 type="button"
                 className={styles.button}
@@ -217,7 +212,7 @@ const MobileSideRailComponent = ({
                 />
             </button>
             <div className={styles.divider} />
-            {tabs.map(tab => (
+            {tabs.map((tab) => (
                 <button
                     key={tab.key}
                     type="button"
@@ -277,16 +272,16 @@ MobileSideRailComponent.propTypes = {
     onToggleBackpack: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state) => ({
     vm: state.scratchGui.vm,
     isFullScreen: state.scratchGui.mode.isFullScreen,
     isStarted: state.scratchGui.vmStatus.started,
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
 });
 
-const mapDispatchToProps = dispatch => ({
-    onSetFullScreen: isFull => dispatch(setFullScreen(isFull)),
-    onActivateTab: tabIndex => dispatch(activateTab(tabIndex)),
+const mapDispatchToProps = (dispatch) => ({
+    onSetFullScreen: (isFull) => dispatch(setFullScreen(isFull)),
+    onActivateTab: (tabIndex) => dispatch(activateTab(tabIndex)),
 });
 
 const MobileSideRail = connect(mapStateToProps, mapDispatchToProps)(MobileSideRailComponent);

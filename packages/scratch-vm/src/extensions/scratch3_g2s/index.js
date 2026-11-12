@@ -1,18 +1,18 @@
-import BlockType from '../../extension-support/block-type';
-import ArgumentType from '../../extension-support/argument-type';
-import Cast from '../../util/cast';
-import translations from './translations.json';
-const blockIcon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAABDFJREFUeNrsnEFrE0EUgKe2IuIleoiHCt0KLZZc9qC2eNocczJFAnpq8guS/AKpfyDpL9j2pBihKQR6zAoe1FzWg0HbQzelCOZiLuJJcF6cKUNImt3Z3Uln+x5ssl2S92a+fW/mzexLCUFBQUG5ujIXhZJCoWDRN0uzvjuNRsOZKUAKLk/favQwNHUgjx5VCrIpq2A+BLwifXtNj5TGEQhtf57JZHrdbtdV5oEUHnjcCf87m80Sy9Irgh3HIe12W7y0TD3RC6pnQdJ+mZ+USiWSy+W0c721tTViGAaxbZtfegndCarnmqR9E17S6bSW8LhA26EPTKRCKDRA3UXog6ESYIqghAKIggARIAJEgCgIEAEiQASIAFEQIAJEgAgQBQEiQASIAFEQIAK8CgAdeOn3+9oDEPrgqQTocuOHh4fawoO2CwAdGR2ylQk79KjACTzZ9zxPu9KOTqdDWq2WeGlbRo90dRYrLrITMpSVGo3GrswXpauzoJopk8l8oacbRN8H7QN6vKDw3sgqUFlguUX+l0/AYL3nQ+0SPYrsHLyj5+M7QWy4YeoCIwXoE3KbQYbK0KzPm8Lrz7J+qkmD2tA1D7Q01Y2JtO4AvSTaSqoHDpII0FBoy0yyBw6S4HmzBOhqqnvmAE0MYfkkOiUs997HaIrrTjGbifFAU1GK4an2QlUArRmMgVaSAD7lsyRdo8YGkOkejNjUGyD7XR0Pp6aCPnEbJrOtvQeWhfMDBfYOJtjWDyCbCYt8gI9i/81HGDeFyaQY92wctwdWhPRlj6gTbivF2qAfQDb+lIUlVl0hwLowmZTjHAvj9MB9wfu2aWgpW6cyW9uCF+5rBZDecVuYeWF7XaX3cYhg0xFmZFsLgLShFWHiAE8okdlJSQjlImvb5QXI7nJNuLQp838IIvRCsL0pXKpF7YlzAeBMWxrBhJEX/t7ls+FFT9RYmmFOWD/zm1GdsAR0LxpbhTZvCVHBk+2dC/rie8U05wOcyQbhMDPZMJRH80CquxZBmlGneqsjeuFG2iTcA3+PRZAbNoRtEn47Hjpii0ktKw2JYkyqiGMbsxEWHmF9njp7+ykuGobX9bvL5MbKo8Ct+NvvkT9HnzhEU5gZzxf7hZUNuTHu+KO4WVEX2juEt746IEvp34H1do7vkJOfN4kfx/FdnQXwFp48C9yY+bNvHOA4rxxK/v7jsADHSu7hGXlw70hC8zoFuHhpNhMSLQgQASJABIgAURDgrMR3HggJMeR0gRPp069TP/P9149YOtc9vU1fVwN/r9e/FSlAWMemIBmekBAHXV9ygYc/w8X+q8/vwup1x9l4+wGS4cWo2isdwlHt51VHtrZ2STQP2UHH+W88mI1qVG2e9gFf21nsmUI+xAK9OWlXg20qGCE8pDluS4vtIuUl9Q6YXo+goKCgoEyUfwIMABBhRCYQOEdbAAAAAElFTkSuQmCC';
-
+import chroma from 'chroma-js';
 import Long from 'long';
-
-import {AkaDakoConnector, getAkaDakoConnector} from './akadako-connector';
-import VL53L0X from './vl53l0x';
+import ArgumentType from '../../extension-support/argument-type';
+import BlockType from '../../extension-support/block-type';
+import Cast from '../../util/cast';
 import ADXL345 from './adxl345';
+import { AkaDakoConnector, getAkaDakoConnector } from './akadako-connector';
 import BME280 from './bme280';
 import KXTJ3 from './kxtj3';
 import LTR303 from './ltr303';
-import chroma from 'chroma-js';
+import translations from './translations.json';
+import VL53L0X from './vl53l0x';
+
+const blockIcon =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAABDFJREFUeNrsnEFrE0EUgKe2IuIleoiHCt0KLZZc9qC2eNocczJFAnpq8guS/AKpfyDpL9j2pBihKQR6zAoe1FzWg0HbQzelCOZiLuJJcF6cKUNImt3Z3Uln+x5ssl2S92a+fW/mzexLCUFBQUG5ujIXhZJCoWDRN0uzvjuNRsOZKUAKLk/favQwNHUgjx5VCrIpq2A+BLwifXtNj5TGEQhtf57JZHrdbtdV5oEUHnjcCf87m80Sy9Irgh3HIe12W7y0TD3RC6pnQdJ+mZ+USiWSy+W0c721tTViGAaxbZtfegndCarnmqR9E17S6bSW8LhA26EPTKRCKDRA3UXog6ESYIqghAKIggARIAJEgCgIEAEiQASIAFEQIAJEgAgQBQEiQASIAFEQIAK8CgAdeOn3+9oDEPrgqQTocuOHh4fawoO2CwAdGR2ylQk79KjACTzZ9zxPu9KOTqdDWq2WeGlbRo90dRYrLrITMpSVGo3GrswXpauzoJopk8l8oacbRN8H7QN6vKDw3sgqUFlguUX+l0/AYL3nQ+0SPYrsHLyj5+M7QWy4YeoCIwXoE3KbQYbK0KzPm8Lrz7J+qkmD2tA1D7Q01Y2JtO4AvSTaSqoHDpII0FBoy0yyBw6S4HmzBOhqqnvmAE0MYfkkOiUs997HaIrrTjGbifFAU1GK4an2QlUArRmMgVaSAD7lsyRdo8YGkOkejNjUGyD7XR0Pp6aCPnEbJrOtvQeWhfMDBfYOJtjWDyCbCYt8gI9i/81HGDeFyaQY92wctwdWhPRlj6gTbivF2qAfQDb+lIUlVl0hwLowmZTjHAvj9MB9wfu2aWgpW6cyW9uCF+5rBZDecVuYeWF7XaX3cYhg0xFmZFsLgLShFWHiAE8okdlJSQjlImvb5QXI7nJNuLQp838IIvRCsL0pXKpF7YlzAeBMWxrBhJEX/t7ls+FFT9RYmmFOWD/zm1GdsAR0LxpbhTZvCVHBk+2dC/rie8U05wOcyQbhMDPZMJRH80CquxZBmlGneqsjeuFG2iTcA3+PRZAbNoRtEn47Hjpii0ktKw2JYkyqiGMbsxEWHmF9njp7+ykuGobX9bvL5MbKo8Ct+NvvkT9HnzhEU5gZzxf7hZUNuTHu+KO4WVEX2juEt746IEvp34H1do7vkJOfN4kfx/FdnQXwFp48C9yY+bNvHOA4rxxK/v7jsADHSu7hGXlw70hC8zoFuHhpNhMSLQgQASJABIgAURDgrMR3HggJMeR0gRPp069TP/P9149YOtc9vU1fVwN/r9e/FSlAWMemIBmekBAHXV9ygYc/w8X+q8/vwup1x9l4+wGS4cWo2isdwlHt51VHtrZ2STQP2UHH+W88mI1qVG2e9gFf21nsmUI+xAK9OWlXg20qGCE8pDluS4vtIuUl9Q6YXo+goKCgoEyUfwIMABBhRCYQOEdbAAAAAElFTkSuQmCC';
 
 /**
  * Returns a Long Integer converted from the value.
@@ -21,12 +21,12 @@ import chroma from 'chroma-js';
  * @returns {Long} converted Long value
  */
 const integer64From = (valueInput, unsigned) => {
-    if (!valueInput) return (unsigned ? Long.UZERO : Long.ZERO);
-    let value = valueInput
+    if (!valueInput) return unsigned ? Long.UZERO : Long.ZERO;
+    let value = valueInput;
     let radix = 10;
-    if (typeof value === 'string'){
+    if (typeof value === 'string') {
         value = value.trim();
-        if (value.length === 0) return (unsigned ? Long.UZERO : Long.ZERO);
+        if (value.length === 0) return unsigned ? Long.UZERO : Long.ZERO;
         let sign = '';
         if (value[0] === '-') {
             sign = '-';
@@ -40,7 +40,7 @@ const integer64From = (valueInput, unsigned) => {
             radix = 2;
             value = value.slice(2);
         }
-        return Long.fromString((sign + value), unsigned, radix);
+        return Long.fromString(sign + value, unsigned, radix);
     }
     return Long.fromValue(value, unsigned);
 };
@@ -50,14 +50,14 @@ const integer64From = (valueInput, unsigned) => {
  * @param {Array} array - numeric array to be converted
  * @returns {string} converted string
  */
-const numericArrayToString = array => array.join(', ');
+const numericArrayToString = (array) => array.join(', ');
 
 /**
  * Returns a numeric Array made from the string expression.
  * @param {string} stringExp - string to be converted
  * @returns {Array} numeric array from the string
  */
-const readAsNumericArray = stringExp => {
+const readAsNumericArray = (stringExp) => {
     if (typeof stringExp !== 'string') return [Number(stringExp)];
     stringExp = stringExp.trim();
     if (stringExp.length === 0) return [];
@@ -84,7 +84,7 @@ const readAsNumericArray = stringExp => {
  * @param {object} messageData - format-message object
  * @returns {string} - message for the locale
  */
-let formatMessage = messageData => messageData.defaultMessage;
+let formatMessage = (messageData) => messageData.defaultMessage;
 
 /**
  * Setup format-message for this extension.
@@ -93,10 +93,7 @@ const setupTranslations = () => {
     const localeSetup = formatMessage.setup();
     // biome-ignore lint/complexity/useOptionalChain: scratchのbuildはOptionalChainが使えない
     if (localeSetup && localeSetup.translations[localeSetup.locale]) {
-        Object.assign(
-            localeSetup.translations[localeSetup.locale],
-            translations[localeSetup.locale]
-        );
+        Object.assign(localeSetup.translations[localeSetup.locale], translations[localeSetup.locale]);
     }
 };
 
@@ -109,7 +106,6 @@ const EXTENSION_ID = 'g2s';
  */
 let extensionURL = 'https://tfabworks.github.io/xcx-g2s/dist/g2s.mjs';
 
-
 /**
  * Calculate rainbow color.
  * @param {number} idx - index
@@ -120,9 +116,9 @@ let extensionURL = 'https://tfabworks.github.io/xcx-g2s/dist/g2s.mjs';
 const getRainbowColor = (idx, length, brightness) => {
     const lightness = brightness;
     const chromacity = 0.15;
-    const hue = idx * 360 / length;
+    const hue = (idx * 360) / length;
     return chroma.oklch(lightness, chromacity, hue).rgb();
-}
+};
 
 /**
  * Parse color string or number to RGB array.
@@ -133,14 +129,14 @@ const getRainbowColor = (idx, length, brightness) => {
 const parseColor = (color, brightness) => {
     const rgb = [0, 0, 0];
     if (typeof color === 'string') {
-        if(color.includes(',')) {
+        if (color.includes(',')) {
             const nums = color.split(/\s*,\s*/).map(Cast.toNumber);
             rgb[0] = nums[0] || 0;
             rgb[1] = nums[1] || 0;
             rgb[2] = nums[2] || 0;
-        } else if(/^0x[0-9a-fA-F]+$/.test(color)) {
+        } else if (/^0x[0-9a-fA-F]+$/.test(color)) {
             const colorNumber = Math.round(Cast.toNumber(color));
-            if(colorNumber >= 0 && colorNumber <= 0xffffff) {
+            if (colorNumber >= 0 && colorNumber <= 0xffffff) {
                 rgb[0] = (colorNumber & 0xff0000) >> 16;
                 rgb[1] = (colorNumber & 0x00ff00) >> 8;
                 rgb[2] = (colorNumber & 0x0000ff) >> 0;
@@ -148,33 +144,32 @@ const parseColor = (color, brightness) => {
         }
     } else if (typeof color === 'number') {
         const colorNumber = Math.round(Cast.toNumber(color));
-        if(colorNumber >= 0 && colorNumber <= 0xffffff) {
+        if (colorNumber >= 0 && colorNumber <= 0xffffff) {
             rgb[0] = (colorNumber & 0xff0000) >> 16;
             rgb[1] = (colorNumber & 0x00ff00) >> 8;
             rgb[2] = (colorNumber & 0x0000ff) >> 0;
         }
-    } else if(Array.isArray(color)) {
+    } else if (Array.isArray(color)) {
         rgb[0] = Math.round(Cast.toNumber(color[0])) & 0xff;
         rgb[1] = Math.round(Cast.toNumber(color[1])) & 0xff;
         rgb[2] = Math.round(Cast.toNumber(color[2])) & 0xff;
     }
     // 明度を適用する
-    for(let i = 0; i < 3; i++) {
+    for (let i = 0; i < 3; i++) {
         rgb[i] = Math.round(Math.max(0, Math.min(255, rgb[i])) * brightness);
     }
     return rgb;
-}
+};
 
 /**
  * Scratch 3.0 blocks for example of Xcratch.
  */
 class ExtensionBlocks {
-
     /**
      * A translation object which is used in this class.
      * @param {FormatObject} formatter - translation object
      */
-    static set formatMessage (formatter) {
+    static set formatMessage(formatter) {
         formatMessage = formatter;
         if (formatMessage) setupTranslations();
     }
@@ -182,18 +177,18 @@ class ExtensionBlocks {
     /**
      * @return {string} - the name of this extension.
      */
-    static get EXTENSION_NAME () {
+    static get EXTENSION_NAME() {
         return formatMessage({
             id: 'g2s.name',
             default: 'AkaDako',
-            description: 'name of the extension'
+            description: 'name of the extension',
         });
     }
 
     /**
      * @return {string} - the ID of this extension.
      */
-    static get EXTENSION_ID () {
+    static get EXTENSION_ID() {
         return EXTENSION_ID;
     }
 
@@ -201,7 +196,7 @@ class ExtensionBlocks {
      * URL to get this extension.
      * @type {string}
      */
-    static get extensionURL () {
+    static get extensionURL() {
         return extensionURL;
     }
 
@@ -210,7 +205,7 @@ class ExtensionBlocks {
      * The extensionURL will be changed to the URL of the loading server.
      * @param {string} url - URL
      */
-    static set extensionURL (url) {
+    static set extensionURL(url) {
         extensionURL = url;
     }
 
@@ -218,7 +213,7 @@ class ExtensionBlocks {
      * Construct a set of blocks for Grove.
      * @param {Runtime} runtime - the Scratch 3.0 runtime.
      */
-    constructor (runtime) {
+    constructor(runtime) {
         /**
          * The Scratch 3.0 runtime.
          * @type {Runtime}
@@ -456,8 +451,6 @@ class ExtensionBlocks {
          */
         this.neoPixelBusy = false;
 
-
-
         /**
          * Manager of AkaDako boards
          * @type {AkaDakoConnector}
@@ -477,11 +470,10 @@ class ExtensionBlocks {
         // register to call scan()/connect()
         this.runtime.registerPeripheralExtension(EXTENSION_ID, this);
 
-        this.runtime.on('PROJECT_STOP_ALL', async() => {
+        this.runtime.on('PROJECT_STOP_ALL', async () => {
             await this.resetPinMode();
             await this.neoPixelClearAll();
         });
-
 
         /**
          * Threshold value for shake event [m/s^2]
@@ -495,7 +487,7 @@ class ExtensionBlocks {
          */
         this.shakeEventInterval = 200;
 
-        window.addEventListener('beforeunload', _e => {
+        window.addEventListener('beforeunload', (_e) => {
             this.resetShareServer();
             this.disconnectBoard();
         });
@@ -505,17 +497,17 @@ class ExtensionBlocks {
      * Reset pin mode
      * @returns {undefined}
      */
-    async resetPinMode () {
+    async resetPinMode() {
         if (!this.isConnected()) return;
         // デジタルピンのモードをINPUTにリセット
         for (const pin of [6, 9, 10, 11]) {
-            if(this.board.pins[pin].mode === this.board.MODES.PWM) {
+            if (this.board.pins[pin].mode === this.board.MODES.PWM) {
                 await this.board.pwmWrite(pin, 0);
             }
             await this.board.pinMode(pin, this.board.MODES.INPUT);
         }
         // 3ピンが振動モーターとして利用されていた場合はデューティー比を0にリセット
-        if(this.board.pins[3].mode === this.board.MODES.PWM) {
+        if (this.board.pins[3].mode === this.board.MODES.PWM) {
             await this.board.pwmWrite(3, 0);
         }
     }
@@ -523,14 +515,14 @@ class ExtensionBlocks {
     /**
      * Turn off the all NeoPixel strips.
      */
-    neoPixelClearAll () {
-        return this.neoPixelOperationWithLock({}, {}, () => this.board.neoPixelClearAll())
+    neoPixelClearAll() {
+        return this.neoPixelOperationWithLock({}, {}, () => this.board.neoPixelClearAll());
     }
 
     /**
      * Update connected board
      */
-    updateBoard () {
+    updateBoard() {
         // biome-ignore lint/complexity/useOptionalChain: scratchのbuildはOptionalChainが使えない
         if (this.board && this.board.isConnected()) return;
         const prev = this.board;
@@ -558,14 +550,14 @@ class ExtensionBlocks {
      * Called by the runtime when user wants to scan for a peripheral.
      * @returns {Promise} - a Promise which resolves when a board was connected
      */
-    scan () {
+    scan() {
         return this.connectBoard();
     }
 
     /**
      * Called by the runtime when user wants to cancel scanning or the peripheral was disconnected.
      */
-    disconnect () {
+    disconnect() {
         this.disconnectBoard();
     }
 
@@ -573,7 +565,7 @@ class ExtensionBlocks {
      * Return whether the board is ready to use or not.
      * @returns {boolean} true if the board is connected
      */
-    isConnected () {
+    isConnected() {
         if (!this.board) return false;
         return this.board.isReady();
     }
@@ -582,28 +574,29 @@ class ExtensionBlocks {
      * Connect a AkaDako board.
      * @returns {Promise<string>} a promise which resolves the result of this command
      */
-    connectBoard () {
+    connectBoard() {
         // biome-ignore lint/complexity/useOptionalChain: scratchのbuildはOptionalChainが使えない
         if (this.board && this.board.isConnected()) return; // Already connected
-        return this.boardConnector.connectedBoard(EXTENSION_ID)
-            .then(connectedBoard => {
+        return this.boardConnector
+            .connectedBoard(EXTENSION_ID)
+            .then((connectedBoard) => {
                 this.runtime.emit(this.runtime.constructor.PERIPHERAL_CONNECTED, {
                     name: connectedBoard.name,
-                    path: connectedBoard.portInfo
+                    path: connectedBoard.portInfo,
                 });
                 return `connected to ${JSON.stringify(connectedBoard.portInfo)}`;
             })
-            .catch(reason => {
+            .catch((reason) => {
                 if (reason) {
                     // eslint-disable-next-line no-console
                     console.log(reason);
                 } else {
                     // eslint-disable-next-line no-console
-                    console.log("fail to connect AkaDako Board");
+                    console.log('fail to connect AkaDako Board');
                 }
                 this.runtime.emit(this.runtime.constructor.PERIPHERAL_REQUEST_ERROR, {
-                    message: "Scratch lost connection to",
-                    extensionId: EXTENSION_ID
+                    message: 'Scratch lost connection to',
+                    extensionId: EXTENSION_ID,
                 });
                 return reason.toString();
             });
@@ -613,7 +606,7 @@ class ExtensionBlocks {
      * Disconnect from the current connected board.
      * @returns {undefined}
      */
-    disconnectBoard () {
+    disconnectBoard() {
         if (!this.board) return;
         return this.board.disconnect();
     }
@@ -624,7 +617,7 @@ class ExtensionBlocks {
      * @param {string} args.STATE - state to detect
      * @returns {boolean} true if the current state is same as the state
      */
-    boardStateChanged (args) {
+    boardStateChanged(args) {
         return (args.STATE === 'connected') === this.isConnected();
     }
 
@@ -632,14 +625,13 @@ class ExtensionBlocks {
      * Return the version information of the connected board.
      * @returns {string} version info
      */
-    boardVersion () {
+    boardVersion() {
         if (!this.isConnected()) return '';
-        return this.board.boardVersion()
-            .catch(reason => {
-                // eslint-disable-next-line no-console
-                console.log(`boardVersion() was rejected by ${reason}`);
-                return Promise.reject(reason);
-            });
+        return this.board.boardVersion().catch((reason) => {
+            // eslint-disable-next-line no-console
+            console.log(`boardVersion() was rejected by ${reason}`);
+            return Promise.reject(reason);
+        });
     }
 
     /**
@@ -648,22 +640,22 @@ class ExtensionBlocks {
      * @param {number} args.CONNECTOR - pin number of the connector
      * @returns {boolean} true for high
      */
-    digitalIsHigh (args) {
+    digitalIsHigh(args) {
         if (!this.isConnected()) return false;
         let pin = null;
         switch (args.CONNECTOR) {
-        case 'A':
-            pin = 6;
-            break;
-        case 'B':
-            pin = 9;
-            break;
-        case 'PIR':
-            pin = 9;
-            break;
-        default:
-            pin = parseInt(args.CONNECTOR, 10);
-            break;
+            case 'A':
+                pin = 6;
+                break;
+            case 'B':
+                pin = 9;
+                break;
+            case 'PIR':
+                pin = 9;
+                break;
+            default:
+                pin = parseInt(args.CONNECTOR, 10);
+                break;
         }
         return !!this.board.getDigitalValue(pin);
     }
@@ -672,7 +664,7 @@ class ExtensionBlocks {
      * The level [0|1] of digital A1 connector
      * @returns {number | string} - digital level or empty string when disconnected
      */
-    digitalLevelA1 () {
+    digitalLevelA1() {
         if (!this.isConnected()) return '';
         return this.board.getDigitalValue(10);
     }
@@ -681,7 +673,7 @@ class ExtensionBlocks {
      * The level [0|1] of digital A2 connector
      * @returns {number | string} - digital level or empty string when disconnected
      */
-    digitalLevelA2 () {
+    digitalLevelA2() {
         if (!this.isConnected()) return '';
         return this.board.getDigitalValue(11);
     }
@@ -690,7 +682,7 @@ class ExtensionBlocks {
      * The level [0|1] of digital B1 connector
      * @returns {number | string} - digital level or empty string when disconnected
      */
-    digitalLevelB1 () {
+    digitalLevelB1() {
         if (!this.isConnected()) return '';
         return this.board.getDigitalValue(6);
     }
@@ -699,7 +691,7 @@ class ExtensionBlocks {
      * The level [0|1] of digital B2 connector
      * @returns {number | string} - digital level or empty string when disconnected
      */
-    digitalLevelB2 () {
+    digitalLevelB2() {
         if (!this.isConnected()) return '';
         return this.board.getDigitalValue(9);
     }
@@ -711,22 +703,22 @@ class ExtensionBlocks {
      * @param {boolean} args.LEVEL - level to detect edge
      * @returns {boolean} is the level same as the current of the connector
      */
-    digitalLevelChanged (args) {
+    digitalLevelChanged(args) {
         if (!this.isConnected()) return false;
         let pin = null;
         switch (args.CONNECTOR) {
-        case 'A':
-            pin = 6;
-            break;
-        case 'B':
-            pin = 9;
-            break;
-        case 'PIR':
-            pin = 9;
-            break;
-        default:
-            pin = Number.parseInt(args.CONNECTOR, 10);
-            break;
+            case 'A':
+                pin = 6;
+                break;
+            case 'B':
+                pin = 9;
+                break;
+            case 'PIR':
+                pin = 9;
+                break;
+            default:
+                pin = Number.parseInt(args.CONNECTOR, 10);
+                break;
         }
         const rise = Cast.toBoolean(args.LEVEL);
         return rise === !!this.board.pins[pin].value; // Do NOT return Promise for the hat execute correctly.
@@ -739,7 +731,7 @@ class ExtensionBlocks {
      * @param {string} args.BIAS - input bias of the pin [none | pullUp]
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    inputBiasSet (args) {
+    inputBiasSet(args) {
         if (!this.isConnected()) return;
         const pin = Number.parseInt(args.PIN, 10);
         const pullUp = args.BIAS === 'pullUp';
@@ -753,7 +745,7 @@ class ExtensionBlocks {
      * @param {boolean | string | number} args.LEVEL - level to be set
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    digitalLevelSet (args) {
+    digitalLevelSet(args) {
         if (!this.isConnected()) return;
         const pin = Number.parseInt(args.CONNECTOR, 10);
         if (this.board.version.type === 2) {
@@ -771,7 +763,7 @@ class ExtensionBlocks {
      * The level [%] of analog A1 connector
      * @returns {number | string} - analog level or empty string when disconnected
      */
-    analogLevelA1 () {
+    analogLevelA1() {
         if (!this.isConnected()) return '';
         const raw = this.board.getAnalogValue(0);
         return Math.round((raw / 1023) * 1000) / 10;
@@ -781,7 +773,7 @@ class ExtensionBlocks {
      * The level [%] of analog A2 connector
      * @returns {number | string} - analog level or empty string when disconnected
      */
-    analogLevelA2 () {
+    analogLevelA2() {
         if (!this.isConnected()) return '';
         const raw = this.board.getAnalogValue(1);
         return Math.round((raw / 1023) * 1000) / 10;
@@ -791,7 +783,7 @@ class ExtensionBlocks {
      * The level [%] of analog B1 connector
      * @returns {number | string} - analog level or empty string when disconnected
      */
-    analogLevelB1 () {
+    analogLevelB1() {
         if (!this.isConnected()) return '';
         const raw = this.board.getAnalogValue(2);
         return Math.round((raw / 1023) * 1000) / 10;
@@ -801,7 +793,7 @@ class ExtensionBlocks {
      * The level [%] of analog B2 connector
      * @returns {number | string} - analog level or empty string when disconnected
      */
-    analogLevelB2 () {
+    analogLevelB2() {
         if (!this.isConnected()) return '';
         const raw = this.board.getAnalogValue(3);
         return Math.round((raw / 1023) * 1000) / 10;
@@ -815,7 +807,7 @@ class ExtensionBlocks {
      * @param {number?} args.MIN_INTERVAL - minimum interval between calls [ms] for the same pin, default is 0
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    async analogLevelSet (args) {
+    async analogLevelSet(args) {
         if (!this.isConnected()) return;
         const pin = Number.parseInt(args.CONNECTOR, 10);
         if (this.board.version.type === 2) {
@@ -829,16 +821,16 @@ class ExtensionBlocks {
         const value = Math.round(this.board.RESOLUTION.PWM * (percent / 100));
         const minInterval = Cast.toNumber(args.MIN_INTERVAL);
         // 前回の同一PINに対する書き込み時刻保存用マップがなければ初期化
-        if(typeof this.analogLevelSetLastTimestampMap === 'undefined') {
-            this.analogLevelSetLastTimestampMap = new Map()
+        if (typeof this.analogLevelSetLastTimestampMap === 'undefined') {
+            this.analogLevelSetLastTimestampMap = new Map();
         }
         // 実行からの最小インターバルが指定されており、かつ同一PINに対する前回の書き込み時刻からの時間がそれ以下であればsleepを入れる
-        if(minInterval > 0) {
-            const lastTimestamp = this.analogLevelSetLastTimestampMap.get(pin)
-            if(typeof lastTimestamp !== 'undefined') {
+        if (minInterval > 0) {
+            const lastTimestamp = this.analogLevelSetLastTimestampMap.get(pin);
+            if (typeof lastTimestamp !== 'undefined') {
                 const interval = Date.now() - lastTimestamp;
-                if(interval < minInterval) {
-                    await new Promise(resolve=>setTimeout(resolve, minInterval - interval))
+                if (interval < minInterval) {
+                    await new Promise((resolve) => setTimeout(resolve, minInterval - interval));
                 }
             }
         }
@@ -858,7 +850,7 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    servoTurn (args, util) {
+    servoTurn(args, util) {
         if (!this.isConnected()) return Promise.resolve();
         const pin = Number.parseInt(args.CONNECTOR, 10);
         const servo = this.board.getServo(pin);
@@ -870,12 +862,11 @@ class ExtensionBlocks {
             return; // Do not return Promise.resolve() to re-try.
         }
         const angle = Cast.toNumber(args.ANGLE);
-        const speed = ((typeof args.SPEED) === 'undefined') ? 100 : Cast.toNumber(args.SPEED);
+        const speed = typeof args.SPEED === 'undefined' ? 100 : Cast.toNumber(args.SPEED);
         servo.isBusy = true;
-        return servo.turnWithSpeed(angle, speed)
-            .finally(() => {
-                servo.isBusy = false;
-            });
+        return servo.turnWithSpeed(angle, speed).finally(() => {
+            servo.isBusy = false;
+        });
     }
 
     /**
@@ -886,7 +877,7 @@ class ExtensionBlocks {
      * @param {Array<string>} args.DATA - bytes to be written
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    i2cWrite (args) {
+    i2cWrite(args) {
         if (!this.isConnected()) return;
         const address = Number(args.ADDRESS);
         const register = Number(args.REGISTER);
@@ -901,14 +892,15 @@ class ExtensionBlocks {
      * @param {number} args.REGISTER - register to read
      * @returns {Promise<string>} a Promise which resolves read data
      */
-    i2cReadOnce (args) {
+    i2cReadOnce(args) {
         if (!this.isConnected()) return '';
         const address = Number(args.ADDRESS);
         const register = Number(args.REGISTER);
         const length = Number.parseInt(Cast.toNumber(args.LENGTH), 10);
-        return this.board.i2cReadOnce(address, register, length)
-            .then(data => numericArrayToString(data))
-            .catch(reason => {
+        return this.board
+            .i2cReadOnce(address, register, length)
+            .then((data) => numericArrayToString(data))
+            .catch((reason) => {
                 // eslint-disable-next-line no-console
                 console.log(`i2cReadOnce(${address}, ${register}, ${length}) was rejected by ${reason}`);
                 return '';
@@ -921,7 +913,7 @@ class ExtensionBlocks {
      * @param {number} args.CONNECTOR - pin number of the connector
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    oneWireReset (args) {
+    oneWireReset(args) {
         if (!this.isConnected()) return;
         const pin = Number.parseInt(args.CONNECTOR, 10);
         return this.board.sendOneWireReset(pin);
@@ -934,16 +926,15 @@ class ExtensionBlocks {
      * @param {Array<string>} args.DATA - bytes to be written
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    oneWireWrite (args) {
+    oneWireWrite(args) {
         if (!this.isConnected()) return;
         const pin = Number.parseInt(args.CONNECTOR, 10);
         const data = readAsNumericArray(args.DATA);
-        return this.board.oneWireWrite(pin, data)
-            .catch(error => {
-                // eslint-disable-next-line no-console
-                console.log(error);
-                return error.message ? error.message : error;
-            });
+        return this.board.oneWireWrite(pin, data).catch((error) => {
+            // eslint-disable-next-line no-console
+            console.log(error);
+            return error.message ? error.message : error;
+        });
     }
 
     /**
@@ -952,13 +943,14 @@ class ExtensionBlocks {
      * @param {number} args.CONNECTOR - pin number of the connector
      * @returns {Promise<string>} return a Promise which will resolve with read data
      */
-    oneWireRead (args) {
+    oneWireRead(args) {
         if (!this.isConnected()) return Promise.resolve('');
         const pin = Number.parseInt(args.CONNECTOR, 10);
         const length = Number.parseInt(Cast.toNumber(args.LENGTH), 10);
-        return this.board.oneWireRead(pin, length)
-            .then(readData => numericArrayToString(readData))
-            .catch(reason => {
+        return this.board
+            .oneWireRead(pin, length)
+            .then((readData) => numericArrayToString(readData))
+            .catch((reason) => {
                 // eslint-disable-next-line no-console
                 console.log(`oneWireRead(${pin}, ${length}) was rejected by ${reason}`);
                 return '';
@@ -972,20 +964,20 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise<string>} return a Promise which will resolve with read data
      */
-    oneWireWriteAndRead (args) {
+    oneWireWriteAndRead(args) {
         if (!this.isConnected()) return Promise.resolve('');
         const pin = Number.parseInt(args.CONNECTOR, 10);
         const data = readAsNumericArray(args.DATA);
         const readLength = Number.parseInt(Cast.toNumber(args.LENGTH), 10);
-        return this.board.oneWireWriteAndRead(pin, data, readLength)
-            .then(readData => numericArrayToString(readData))
-            .catch(reason => {
+        return this.board
+            .oneWireWriteAndRead(pin, data, readLength)
+            .then((readData) => numericArrayToString(readData))
+            .catch((reason) => {
                 // eslint-disable-next-line no-console
                 console.log(`oneWireWriteAndRead(${pin}, ${data}, ${readLength}) was rejected by ${reason}`);
                 return '';
             });
     }
-
 
     /**
      * Configure a NeoPixel module on the pin.
@@ -995,11 +987,11 @@ class ExtensionBlocks {
      * @param {string} args.LENGTH - length of LEDs on the module
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    neoPixelConfigStrip (args, util) {
-        return this.neoPixelOperationWithLock(args, util, pin => {
-            if(pin === null || pin === undefined) return;
+    neoPixelConfigStrip(args, util) {
+        return this.neoPixelOperationWithLock(args, util, (pin) => {
+            if (pin === null || pin === undefined) return;
             const length = Math.max(0, Math.min(60, Cast.toNumber(Number.parseInt(args.LENGTH, 10))));
-            return this.board.neoPixelConfigStrip(pin, length).then(()=>{});
+            return this.board.neoPixelConfigStrip(pin, length).then(() => {});
         });
     }
 
@@ -1009,10 +1001,8 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    neoPixelShow (args, util) {
-        return this.neoPixelOperationWithLock(args, util, () =>
-            this.board.neoPixelShow().then(()=>{})
-        );
+    neoPixelShow(args, util) {
+        return this.neoPixelOperationWithLock(args, util, () => this.board.neoPixelShow().then(() => {}));
     }
 
     /**
@@ -1024,24 +1014,24 @@ class ExtensionBlocks {
      * @param {string} args.COLOR - color values [r, g, b]
      * @param {string} args.BRIGHTNESS - brightness fo the LED [%]
      */
-    neoPixelSetColor (args, util) {
-        return this.neoPixelOperationWithLock(args, util, pin => {
-            if(pin === null || pin === undefined) return;
+    neoPixelSetColor(args, util) {
+        return this.neoPixelOperationWithLock(args, util, (pin) => {
+            if (pin === null || pin === undefined) return;
             const index = Cast.toNumber(args.POSITION) - 1;
             const brightness = Math.max(0, Math.min(100, Cast.toNumber(args.BRIGHTNESS))) / 100;
             // -1 は虹色として解釈する
-            if(args.COLOR === 'rainbow') {
+            if (args.COLOR === 'rainbow') {
                 const colorFn = (_, i, colors) => {
-                    if(i === index) {
+                    if (i === index) {
                         return getRainbowColor(i, colors.length, brightness);
                     }
                     return null;
-                }
+                };
                 return this.board.neoPixelFillColor(pin, colorFn);
             }
             // 指定された色をセットする
             const color = parseColor(args.COLOR, brightness);
-            return this.board.neoPixelSetColor(pin, color, index).then(()=>{});
+            return this.board.neoPixelSetColor(pin, color, index).then(() => {});
         });
     }
 
@@ -1053,26 +1043,26 @@ class ExtensionBlocks {
      * @param {string} args.COLOR - color values [r, g, b]
      * @param {string} args.BRIGHTNESS - brightness fo the LED [%]
      */
-    neoPixelFillColor (args, util) {
-        return this.neoPixelOperationWithLock(args, util, pin => {
-            if(pin === null || pin === undefined) return;
+    neoPixelFillColor(args, util) {
+        return this.neoPixelOperationWithLock(args, util, (pin) => {
+            if (pin === null || pin === undefined) return;
             const brightness = Cast.toNumber(args.BRIGHTNESS) / 100;
             let colorFn = null;
-            if(args.COLOR === 'rainbow') {
+            if (args.COLOR === 'rainbow') {
                 colorFn = (_, i, colors) => getRainbowColor(i, colors.length, brightness);
             }
             // 特別な色モードでない場合は全て指定の色にする
-            if(colorFn === null) {
+            if (colorFn === null) {
                 const color = parseColor(args.COLOR, brightness);
                 colorFn = () => color;
             }
-            return this.board.neoPixelFillColor(pin, colorFn).then(()=>{});
+            return this.board.neoPixelFillColor(pin, colorFn).then(() => {});
         });
     }
 
     neoPixelShiftColor(args, util) {
-        return this.neoPixelOperationWithLock(args, util, pin => {
-            if(pin === null || pin === undefined) return;
+        return this.neoPixelOperationWithLock(args, util, (pin) => {
+            if (pin === null || pin === undefined) return;
             const n = Cast.toNumber(args.N);
             const loopMode = Cast.toBoolean(args.LOOP_MODE);
             // 色をシフトする関数で塗りつぶす
@@ -1082,16 +1072,17 @@ class ExtensionBlocks {
                 const fromIndexInLoop = ((fromIndex % length) + length) % length;
                 const newColor = loopMode ? colors[fromIndexInLoop] : colors[fromIndex];
                 // 色が変化していなければスキップ
-                if((newColor === null || newColor === undefined) && (curColor === null || curColor === undefined)) return null;
-                if((newColor !== null && newColor !== undefined) && (curColor !== null && curColor !== undefined)) {
-                    if(newColor[0] === curColor[0] && newColor[1] === curColor[1] && newColor[2] === curColor[2]) {
+                if ((newColor === null || newColor === undefined) && (curColor === null || curColor === undefined))
+                    return null;
+                if (newColor !== null && newColor !== undefined && curColor !== null && curColor !== undefined) {
+                    if (newColor[0] === curColor[0] && newColor[1] === curColor[1] && newColor[2] === curColor[2]) {
                         return null;
                     }
                 }
                 // 新しい色が null なら [0, 0, 0] をセットする
                 return newColor || [0, 0, 0];
-            }
-            return this.board.neoPixelFillColor(pin, colorMapFn).then(()=>{});
+            };
+            return this.board.neoPixelFillColor(pin, colorMapFn).then(() => {});
         });
     }
 
@@ -1110,10 +1101,10 @@ class ExtensionBlocks {
             // STEAM Tool
             if (pin === 6 || pin === 9) {
                 // These pins are used for on-board buttons in the STEAM tool.
-                pin = null
+                pin = null;
             }
         }
-        return operation(pin)
+        return operation(pin);
     }
 
     /**
@@ -1124,8 +1115,8 @@ class ExtensionBlocks {
      * @param {string} args.BLUE - value for blue [0...255]
      * @returns {string} color value 0xRRGGBB in string
      */
-    neoPixelColor (args) {
-        const readAsColor = value =>
+    neoPixelColor(args) {
+        const readAsColor = (value) =>
             Math.round(Math.max(0, Math.min(255, Cast.toNumber(value))))
                 .toString(16)
                 .padStart(2, '0');
@@ -1148,18 +1139,20 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    neoPixelClear (args, util) {
-        return this.neoPixelOperationWithLock(args, util, pin => {
-            if(pin === null || pin === undefined) return;
+    neoPixelClear(args, util) {
+        return this.neoPixelOperationWithLock(args, util, (pin) => {
+            if (pin === null || pin === undefined) return;
             return this.board.neoPixelClear(pin);
         });
     }
 
-    async getOpticalDistanceSensor () {
+    async getOpticalDistanceSensor() {
         if (!this.vl53l0x) {
             let address = 0x08; // STEAM Tool v2.0.1 or later
-            if ((this.board.version.type <= 1) ||
-            (this.board.version.type === 2 && this.board.version.major === 0 && this.board.version.minor === 0)) {
+            if (
+                this.board.version.type <= 1 ||
+                (this.board.version.type === 2 && this.board.version.major === 0 && this.board.version.minor === 0)
+            ) {
                 address = null;
             }
             const newSensor = new VL53L0X(this.board, address);
@@ -1181,7 +1174,7 @@ class ExtensionBlocks {
      * @param {number} value - value of the ToF distance sensor
      * @returns {number} processed value
      */
-    reduceNoiseOfOpticalDistance (value) {
+    reduceNoiseOfOpticalDistance(value) {
         if (this.opticalDistanceSamples.length >= this.opticalDistanceSamplesSize) {
             this.opticalDistanceSamples.shift();
         }
@@ -1196,10 +1189,10 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise<number | string>} a Promise which resolves distance [cm] or empty string if it was fail
      */
-    measureDistanceWithLight (_args, util) {
+    measureDistanceWithLight(_args, util) {
         if (!this.isConnected()) return Promise.resolve('');
         let measureRequest = Promise.resolve(this.opticalDistance);
-        if ((Date.now() - this.opticalDistanceUpdatedTime) > this.opticalDistanceUpdateIntervalTime) {
+        if (Date.now() - this.opticalDistanceUpdatedTime > this.opticalDistanceUpdateIntervalTime) {
             if (this.opticalDistanceUpdating) {
                 util.yield(); // re-try this call after a while.
                 return; // Do not return Promise to re-try.
@@ -1207,14 +1200,14 @@ class ExtensionBlocks {
             this.opticalDistanceUpdating = true;
             measureRequest = measureRequest
                 .then(() => this.getOpticalDistanceSensor())
-                .then(sensor => sensor.readRangeContinuousMillimeters())
-                .then(distance => {
+                .then((sensor) => sensor.readRangeContinuousMillimeters())
+                .then((distance) => {
                     // STEAM Tool supplement: - 50[mm]
                     distance = distance - 50;
                     // STEAM Tool limit: 100 - 2000[mm]
                     return Math.max(100, Math.min(distance, 2000));
                 })
-                .then(distance => {
+                .then((distance) => {
                     this.opticalDistance = distance;
                     return distance;
                 })
@@ -1223,9 +1216,9 @@ class ExtensionBlocks {
                 });
         }
         return measureRequest
-            .then(distance => distance / 10) // convert unit [mm] to [cm]
-            .then(distance => this.reduceNoiseOfOpticalDistance(distance))
-            .catch(reason => {
+            .then((distance) => distance / 10) // convert unit [mm] to [cm]
+            .then((distance) => this.reduceNoiseOfOpticalDistance(distance))
+            .catch((reason) => {
                 // eslint-disable-next-line no-console
                 console.log(`measureDistanceWithLight was rejected by ${reason}`);
                 this.opticalDistance = null;
@@ -1239,18 +1232,19 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise<number | string>} a Promise which resolves distance [cm] or empty string if it was fail
      */
-    measureDistanceWithUltrasonicA (_args, util) {
+    measureDistanceWithUltrasonicA(_args, util) {
         if (!this.isConnected()) return Promise.resolve('');
         let getter = Promise.resolve(this.sonicDistanceA);
-        if ((Date.now() - this.sonicDistanceAUpdatedTime) > this.sonicDistanceAUpdateIntervalTime) {
+        if (Date.now() - this.sonicDistanceAUpdatedTime > this.sonicDistanceAUpdateIntervalTime) {
             if (this.sonicDistanceAUpdating) {
                 util.yield(); // re-try this call after a while.
                 return; // Do not return Promise to re-try.
             }
             this.sonicDistanceAUpdating = true;
             const pin = 10;
-            getter = getter.then(() => this.board.getDistanceByUltrasonic(pin))
-                .then(value => {
+            getter = getter
+                .then(() => this.board.getDistanceByUltrasonic(pin))
+                .then((value) => {
                     this.sonicDistanceA = value;
                     this.sonicDistanceAUpdatedTime = Date.now();
                     return this.sonicDistanceA;
@@ -1260,8 +1254,8 @@ class ExtensionBlocks {
                 });
         }
         return getter
-            .then(value => Math.min(350, Math.round(value / 10)))
-            .catch(reason => {
+            .then((value) => Math.min(350, Math.round(value / 10)))
+            .catch((reason) => {
                 // eslint-disable-next-line no-console
                 console.log(`ultrasonic distance A was rejected by ${reason}`);
                 return '';
@@ -1274,7 +1268,7 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise<number | string>} a Promise which resolves distance [cm] or empty string if it was fail
      */
-    measureDistanceWithUltrasonicB (_args, util) {
+    measureDistanceWithUltrasonicB(_args, util) {
         if (!this.isConnected()) return Promise.resolve('');
         if (this.board.version.type === 2) {
             // STEAM Tool
@@ -1282,15 +1276,16 @@ class ExtensionBlocks {
             return Promise.resolve('');
         }
         let getter = Promise.resolve(this.sonicDistanceB);
-        if ((Date.now() - this.sonicDistanceBUpdatedTime) > this.sonicDistanceBUpdateIntervalTime) {
+        if (Date.now() - this.sonicDistanceBUpdatedTime > this.sonicDistanceBUpdateIntervalTime) {
             if (this.sonicDistanceBUpdating) {
                 util.yield(); // re-try this call after a while.
                 return; // Do not return Promise to re-try.
             }
             this.sonicDistanceBUpdating = true;
             const pin = 6;
-            getter = getter.then(() => this.board.getDistanceByUltrasonic(pin))
-                .then(value => {
+            getter = getter
+                .then(() => this.board.getDistanceByUltrasonic(pin))
+                .then((value) => {
                     this.sonicDistanceB = value;
                     this.sonicDistanceBUpdatedTime = Date.now();
                     return this.sonicDistanceB;
@@ -1300,8 +1295,8 @@ class ExtensionBlocks {
                 });
         }
         return getter
-            .then(value => Math.min(350, Math.round(value / 10)))
-            .catch(reason => {
+            .then((value) => Math.min(350, Math.round(value / 10)))
+            .catch((reason) => {
                 // eslint-disable-next-line no-console
                 console.log(`ultrasonic distance B was rejected by ${reason}`);
                 return '';
@@ -1312,7 +1307,7 @@ class ExtensionBlocks {
      * Get instance of an accelerometer.
      * @returns {Promise} A Promise which resolves an accelerometer.
      */
-    async getAccelerometer () {
+    async getAccelerometer() {
         if (!this.accelerometer) {
             let newSensor = null;
             const isKXTJ3Connected = await KXTJ3.isConnected(this.board);
@@ -1336,7 +1331,7 @@ class ExtensionBlocks {
      * Get acceleration [m/s^2] for the axis.
      * @returns {Promise<?{x: number, y: number, z: number}>} a Promise which resolves acceleration
      */
-    async getAcceleration () {
+    async getAcceleration() {
         try {
             const sensor = await this.getAccelerometer();
             this.acceleration = await sensor.getAcceleration();
@@ -1350,15 +1345,16 @@ class ExtensionBlocks {
         }
     }
 
-    updateAcceleration (util) {
+    updateAcceleration(util) {
         let getRequest = Promise.resolve(this.acceleration);
-        if ((Date.now() - this.accelerationUpdatedTime) > this.accelerationUpdateIntervalTime) {
+        if (Date.now() - this.accelerationUpdatedTime > this.accelerationUpdateIntervalTime) {
             if (this.accelerationUpdating) {
                 util.yield(); // re-try this call after a while.
                 return; // Do not return Promise to re-try.
             }
             this.accelerationUpdating = true;
-            getRequest = getRequest.then(() => this.getAcceleration())
+            getRequest = getRequest
+                .then(() => this.getAcceleration())
                 .finally(() => {
                     this.accelerationUpdating = false;
                 });
@@ -1372,15 +1368,14 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise<number | string>} a Promise which resolves acceleration or empty string if it was fail
      */
-    getAccelerationX (_args, util) {
+    getAccelerationX(_args, util) {
         if (!this.isConnected()) return '';
         const updateAcc = this.updateAcceleration(util);
-        if ((typeof updateAcc) === 'undefined') return; // re-try thread
-        return updateAcc
-            .then(acc => {
-                if (!acc) return '';
-                return (Math.round(acc.x * 100)) / 100;
-            });
+        if (typeof updateAcc === 'undefined') return; // re-try thread
+        return updateAcc.then((acc) => {
+            if (!acc) return '';
+            return Math.round(acc.x * 100) / 100;
+        });
     }
 
     /**
@@ -1389,15 +1384,14 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise<number | string>} a Promise which resolves acceleration or empty string if it was fail
      */
-    getAccelerationY (_args, util) {
+    getAccelerationY(_args, util) {
         if (!this.isConnected()) return '';
         const updateAcc = this.updateAcceleration(util);
-        if ((typeof updateAcc) === 'undefined') return; // re-try thread
-        return updateAcc
-            .then(acc => {
-                if (!acc) return '';
-                return (Math.round(acc.y * 100)) / 100;
-            });
+        if (typeof updateAcc === 'undefined') return; // re-try thread
+        return updateAcc.then((acc) => {
+            if (!acc) return '';
+            return Math.round(acc.y * 100) / 100;
+        });
     }
 
     /**
@@ -1406,15 +1400,14 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise<number | string>} a Promise which resolves acceleration or empty string if it was fail
      */
-    getAccelerationZ (_args, util) {
+    getAccelerationZ(_args, util) {
         if (!this.isConnected()) return '';
         const updateAcc = this.updateAcceleration(util);
-        if ((typeof updateAcc) === 'undefined') return; // re-try thread
-        return updateAcc
-            .then(acc => {
-                if (!acc) return '';
-                return (Math.round(acc.z * 100)) / 100;
-            });
+        if (typeof updateAcc === 'undefined') return; // re-try thread
+        return updateAcc.then((acc) => {
+            if (!acc) return '';
+            return Math.round(acc.z * 100) / 100;
+        });
     }
 
     /**
@@ -1423,20 +1416,15 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise<number | string>} a Promise which resolves acceleration or empty string if it was fail
      */
-    getAccelerationAbsolute (_args, util) {
+    getAccelerationAbsolute(_args, util) {
         if (!this.isConnected()) return '';
         const updateAcc = this.updateAcceleration(util);
-        if ((typeof updateAcc) === 'undefined') return; // re-try thread
-        return updateAcc
-            .then(acc => {
-                if (!acc) return '';
-                const absolute = Math.sqrt(
-                    (acc.x ** 2) +
-                    (acc.y ** 2) +
-                    (acc.z ** 2)
-                );
-                return (Math.round(absolute * 100)) / 100;
-            });
+        if (typeof updateAcc === 'undefined') return; // re-try thread
+        return updateAcc.then((acc) => {
+            if (!acc) return '';
+            const absolute = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2);
+            return Math.round(absolute * 100) / 100;
+        });
     }
 
     /**
@@ -1445,16 +1433,15 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise<number | string>} a Promise which resolves roll or empty string if it was fail
      */
-    getRoll (_args, util) {
+    getRoll(_args, util) {
         if (!this.isConnected()) return '';
         const updateAcc = this.updateAcceleration(util);
-        if ((typeof updateAcc) === 'undefined') return; // re-try thread
-        return updateAcc
-            .then(acc => {
-                if (!acc) return '';
-                const roll = Math.atan2(acc.y, acc.z) * 180.0 / Math.PI;
-                return (Math.round(roll * 100)) / 100;
-            });
+        if (typeof updateAcc === 'undefined') return; // re-try thread
+        return updateAcc.then((acc) => {
+            if (!acc) return '';
+            const roll = (Math.atan2(acc.y, acc.z) * 180.0) / Math.PI;
+            return Math.round(roll * 100) / 100;
+        });
     }
 
     /**
@@ -1463,31 +1450,26 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise<number |string>} a Promise which resolves pitch or empty string if it was fail
      */
-    getPitch (_args, util) {
+    getPitch(_args, util) {
         if (!this.isConnected()) return '';
         const updateAcc = this.updateAcceleration(util);
-        if ((typeof updateAcc) === 'undefined') return; // re-try thread
-        return updateAcc
-            .then(acc => {
-                if (!acc) return '';
-                const angle = Math.atan2(
-                    acc.x,
-                    Math.sqrt((acc.y * acc.y) + (acc.z * acc.z))
-                ) * 180.0 / Math.PI;
-                let pitch = angle;
-                if (acc.z < 0) {
-                    pitch = ((angle > 0) ? 180 : -180) - angle;
-                }
-                return (Math.round(pitch * 100)) / 100;
-            });
+        if (typeof updateAcc === 'undefined') return; // re-try thread
+        return updateAcc.then((acc) => {
+            if (!acc) return '';
+            const angle = (Math.atan2(acc.x, Math.sqrt(acc.y * acc.y + acc.z * acc.z)) * 180.0) / Math.PI;
+            let pitch = angle;
+            if (acc.z < 0) {
+                pitch = (angle > 0 ? 180 : -180) - angle;
+            }
+            return Math.round(pitch * 100) / 100;
+        });
     }
-
 
     /**
      * Get instance of an environment sensor.
      * @returns {Promise} A Promise which resolves a sensor.
      */
-    async getEnvSensor () {
+    async getEnvSensor() {
         if (!this.envSensor) {
             const newSensor = new BME280(this.board);
             await newSensor.init();
@@ -1502,10 +1484,10 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise<number | string>} a Promise which resolves temp or empty string if it was fail
      */
-    getEvnTemperature (_args, util) {
+    getEvnTemperature(_args, util) {
         if (!this.isConnected()) return Promise.resolve('');
         let getter = Promise.resolve(this.envTemperature);
-        if ((Date.now() - this.envTemperatureUpdatedTime) > this.envTemperatureUpdateIntervalTime) {
+        if (Date.now() - this.envTemperatureUpdatedTime > this.envTemperatureUpdateIntervalTime) {
             if (this.envTemperatureUpdating) {
                 util.yield(); // re-try this call after a while.
                 return; // Do not return Promise to re-try.
@@ -1514,7 +1496,7 @@ class ExtensionBlocks {
             getter = getter
                 .then(() => this.getEnvSensor())
                 .then(() => this.envSensor.readTemperature())
-                .then(envTemperature => {
+                .then((envTemperature) => {
                     this.envTemperature = envTemperature;
                     this.envTemperatureUpdatedTime = Date.now();
                     return envTemperature;
@@ -1524,8 +1506,8 @@ class ExtensionBlocks {
                 });
         }
         return getter
-            .then(envTemperature => (Math.round(envTemperature * 100) / 100))
-            .catch(reason => {
+            .then((envTemperature) => Math.round(envTemperature * 100) / 100)
+            .catch((reason) => {
                 // eslint-disable-next-line no-console
                 console.log(`getting environment temperature was rejected by ${reason}`);
                 this.envTemperature = null;
@@ -1540,9 +1522,9 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise<number | string>} a Promise which resolves pressure or empty string if it was fail
      */
-    getEvnPressure (_args, util) {
+    getEvnPressure(_args, util) {
         let getter = Promise.resolve(this.envPressure);
-        if ((Date.now() - this.envPressureUpdatedTime) > this.envPressureUpdateIntervalTime) {
+        if (Date.now() - this.envPressureUpdatedTime > this.envPressureUpdateIntervalTime) {
             if (this.envPressureUpdating) {
                 util.yield(); // re-try this call after a while.
                 return; // Do not return Promise to re-try.
@@ -1551,7 +1533,7 @@ class ExtensionBlocks {
             getter = getter
                 .then(() => this.getEnvSensor())
                 .then(() => this.envSensor.readPressure())
-                .then(envPressure => {
+                .then((envPressure) => {
                     this.envPressure = envPressure;
                     this.envPressureUpdatedTime = Date.now();
                     return envPressure;
@@ -1561,8 +1543,8 @@ class ExtensionBlocks {
                 });
         }
         return getter
-            .then(envPressure => (Math.round(envPressure * 100) / 10000))
-            .catch(reason => {
+            .then((envPressure) => Math.round(envPressure * 100) / 10000)
+            .catch((reason) => {
                 // eslint-disable-next-line no-console
                 console.log(`getting environment pressure was rejected by ${reason}`);
                 this.envPressure = null;
@@ -1577,9 +1559,9 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise<number | string>} a Promise which resolves value of humidity or empty string if it was fail
      */
-    getEnvHumidity (_args, util) {
+    getEnvHumidity(_args, util) {
         let getter = Promise.resolve(this.envHumidity);
-        if ((Date.now() - this.envHumidityUpdatedTime) > this.envHumidityUpdateIntervalTime) {
+        if (Date.now() - this.envHumidityUpdatedTime > this.envHumidityUpdateIntervalTime) {
             if (this.envHumidityUpdating) {
                 util.yield(); // re-try this call after a while.
                 return; // Do not return Promise to re-try.
@@ -1588,7 +1570,7 @@ class ExtensionBlocks {
             getter = getter
                 .then(() => this.getEnvSensor())
                 .then(() => this.envSensor.readHumidity())
-                .then(envHumidity => {
+                .then((envHumidity) => {
                     this.envHumidity = envHumidity;
                     this.envHumidityUpdatedTime = Date.now();
                     return envHumidity;
@@ -1598,8 +1580,8 @@ class ExtensionBlocks {
                 });
         }
         return getter
-            .then(envHumidity => (Math.round(envHumidity * 100) / 100))
-            .catch(reason => {
+            .then((envHumidity) => Math.round(envHumidity * 100) / 100)
+            .catch((reason) => {
                 // eslint-disable-next-line no-console
                 console.log(`getting environment humidity was rejected by ${reason}`);
                 this.envHumidity = null;
@@ -1612,7 +1594,7 @@ class ExtensionBlocks {
      * Get instance of a brightness sensor.
      * @returns {Promise} A Promise which resolves a sensor.
      */
-    async getBrightnessSensor () {
+    async getBrightnessSensor() {
         if (!this.brightnessSensor) {
             const newSensor = new LTR303(this.board);
             await newSensor.init();
@@ -1627,10 +1609,10 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise<number | string>} a Promise which resolves value of brightness or empty string if it was fail
      */
-    getBrightness (_args, util) {
+    getBrightness(_args, util) {
         if (!this.isConnected()) return Promise.resolve('');
         let getter = Promise.resolve(this.brightness);
-        if ((Date.now() - this.brightnessUpdatedTime) > this.brightnessUpdateIntervalTime) {
+        if (Date.now() - this.brightnessUpdatedTime > this.brightnessUpdateIntervalTime) {
             if (this.brightnessUpdating) {
                 util.yield(); // re-try this call after a while.
                 return; // Do not return Promise to re-try.
@@ -1639,7 +1621,7 @@ class ExtensionBlocks {
             getter = getter
                 .then(() => this.getBrightnessSensor())
                 .then(() => this.brightnessSensor.getBrightness())
-                .then(brightness => {
+                .then((brightness) => {
                     this.brightness = brightness;
                     this.brightnessUpdatedTime = Date.now();
                     return brightness;
@@ -1649,8 +1631,8 @@ class ExtensionBlocks {
                 });
         }
         return getter
-            .then(brightness => Math.min(64000, (Math.round(brightness * 10) / 10))) // Ignore too big value
-            .catch(reason => {
+            .then((brightness) => Math.min(64000, Math.round(brightness * 10) / 10)) // Ignore too big value
+            .catch((reason) => {
                 // eslint-disable-next-line no-console
                 console.log(`getting brightness was rejected by ${reason}`);
                 this.brightness = null;
@@ -1664,12 +1646,13 @@ class ExtensionBlocks {
      * @param {number} pin - pin number to use
      * @returns {Promise<number>} a Promise which resolves value of temperature [℃]
      */
-    getTemperatureDS18B20 (pin) {
-        return this.board.sendOneWireReset(pin)
+    getTemperatureDS18B20(pin) {
+        return this.board
+            .sendOneWireReset(pin)
             .then(() => this.board.oneWireWrite(pin, 0x44))
             .then(() => this.board.sendOneWireReset(pin))
-            .then(() => this.board.oneWireWriteAndRead(pin, 0xBE, 9))
-            .then(readData => {
+            .then(() => this.board.oneWireWriteAndRead(pin, 0xbe, 9))
+            .then((readData) => {
                 const buffer = new Uint8Array(readData).buffer;
                 const dataView = new DataView(buffer);
                 const rawTemp = dataView.getInt16(0, true);
@@ -1682,13 +1665,12 @@ class ExtensionBlocks {
      * @param {number} pin - pin number for the sensor
      * @returns {Promise<number>} a Promise which resolves temperature [℃]
      */
-    getWaterTemp (pin) {
-        if ((this.board.version.type === 0)) {
+    getWaterTemp(pin) {
+        if (this.board.version.type === 0) {
             return this.getTemperatureDS18B20(pin);
         }
         // MidiDako v1.0.0 or later
-        return this.board.getWaterTemp(pin)
-            .then(data => data / 10);
+        return this.board.getWaterTemp(pin).then((data) => data / 10);
     }
 
     /**
@@ -1697,10 +1679,10 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise<number | string>} a Promise which resolves temperature [℃] or empty string if it was fail
      */
-    getWaterTemperatureA (_args, util) {
+    getWaterTemperatureA(_args, util) {
         if (!this.isConnected()) return Promise.resolve('');
         let getter = Promise.resolve(this.waterTempA);
-        if ((Date.now() - this.waterTempAUpdatedTime) > this.waterTempAUpdateIntervalTime) {
+        if (Date.now() - this.waterTempAUpdatedTime > this.waterTempAUpdateIntervalTime) {
             if (this.waterTempAUpdating) {
                 util.yield(); // re-try this call after a while.
                 return; // Do not return Promise to re-try.
@@ -1708,7 +1690,7 @@ class ExtensionBlocks {
             this.waterTempAUpdating = true;
             getter = getter
                 .then(() => this.getWaterTemp(10, util)) // Digital A1: 10
-                .then(waterTempA => {
+                .then((waterTempA) => {
                     this.waterTempA = waterTempA;
                     this.waterTempAUpdatedTime = Date.now();
                     return waterTempA;
@@ -1717,13 +1699,12 @@ class ExtensionBlocks {
                     this.waterTempAUpdating = false;
                 });
         }
-        return getter
-            .catch(reason => {
-                // eslint-disable-next-line no-console
-                console.log(`getting water temperature A was rejected by ${reason}`);
-                this.waterTempA = null;
-                return '';
-            });
+        return getter.catch((reason) => {
+            // eslint-disable-next-line no-console
+            console.log(`getting water temperature A was rejected by ${reason}`);
+            this.waterTempA = null;
+            return '';
+        });
     }
 
     /**
@@ -1732,10 +1713,10 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise<number | string>} a Promise which resolves temperature [℃] or empty string if it was fail
      */
-    getWaterTemperatureB (_args, util) {
+    getWaterTemperatureB(_args, util) {
         if (!this.isConnected()) return Promise.resolve('');
         let getter = Promise.resolve(this.waterTempB);
-        if ((Date.now() - this.waterTempBUpdatedTime) > this.waterTempBUpdateIntervalTime) {
+        if (Date.now() - this.waterTempBUpdatedTime > this.waterTempBUpdateIntervalTime) {
             if (this.waterTempBUpdating) {
                 util.yield(); // re-try this call after a while.
                 return; // Do not return Promise to re-try.
@@ -1743,7 +1724,7 @@ class ExtensionBlocks {
             this.waterTempBUpdating = true;
             getter = getter
                 .then(() => this.getWaterTemp(6, util)) // Digital B1: 6;
-                .then(waterTempB => {
+                .then((waterTempB) => {
                     this.waterTempB = waterTempB;
                     this.waterTempBUpdatedTime = Date.now();
                     return waterTempB;
@@ -1752,13 +1733,12 @@ class ExtensionBlocks {
                     this.waterTempBUpdating = false;
                 });
         }
-        return getter
-            .catch(reason => {
-                // eslint-disable-next-line no-console
-                console.log(`getting water temperature A was rejected by ${reason}`);
-                this.waterTempB = null;
-                return '';
-            });
+        return getter.catch((reason) => {
+            // eslint-disable-next-line no-console
+            console.log(`getting water temperature A was rejected by ${reason}`);
+            this.waterTempB = null;
+            return '';
+        });
     }
 
     /**
@@ -1767,25 +1747,26 @@ class ExtensionBlocks {
      * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {boolean} true when the accelerometer was shaken
      */
-    whenShaken (_args, util) {
+    whenShaken(_args, util) {
         if (!this.shakeEventUpdating) {
             const updater = this.getAccelerationAbsolute(null, util);
             if (updater) {
-                if (((typeof this.prevAccAbsolute) !== 'undefined') && (this.prevAccAbsolute !== null)) {
+                if (typeof this.prevAccAbsolute !== 'undefined' && this.prevAccAbsolute !== null) {
                     this.shakeEventUpdating = true;
                     setTimeout(() => {
-                        updater.then(currentAcc => {
-                            if (currentAcc === '') {
-                                this.shakeEventUpdating = false;
-                                return;
-                            }
-                            this.shaken = ((currentAcc - this.prevAccAbsolute) > this.shakeEventThreshold);
-                            this.prevAccAbsolute = currentAcc;
-                            setTimeout(() => {
-                                this.shakeEventUpdating = false;
-                            }, this.runtime.currentStepTime);
-                        })
-                            .catch(reason => {
+                        updater
+                            .then((currentAcc) => {
+                                if (currentAcc === '') {
+                                    this.shakeEventUpdating = false;
+                                    return;
+                                }
+                                this.shaken = currentAcc - this.prevAccAbsolute > this.shakeEventThreshold;
+                                this.prevAccAbsolute = currentAcc;
+                                setTimeout(() => {
+                                    this.shakeEventUpdating = false;
+                                }, this.runtime.currentStepTime);
+                            })
+                            .catch((reason) => {
                                 this.shakeEventUpdating = false;
                                 // eslint-disable-next-line no-console
                                 console.log(`promise rejected on whenShake: ${reason}`);
@@ -1793,7 +1774,7 @@ class ExtensionBlocks {
                             });
                     }, this.shakeEventInterval);
                 } else {
-                    updater.then(currentAcc => {
+                    updater.then((currentAcc) => {
                         if (currentAcc === '') {
                             return;
                         }
@@ -1811,7 +1792,7 @@ class ExtensionBlocks {
      * @param {string} args.ARRAY - numeric array
      * @returns {string} a number at the index
      */
-    numberAtIndex (args) {
+    numberAtIndex(args) {
         const array = readAsNumericArray(args.ARRAY);
         if (!array.length) return '';
         let index = Cast.toNumber(args.INDEX);
@@ -1830,7 +1811,7 @@ class ExtensionBlocks {
      * @param {string} args.INSERT - numeric array to be inserted
      * @returns {string} the modified numeric array
      */
-    spliceNumbers (args) {
+    spliceNumbers(args) {
         const array = readAsNumericArray(args.ARRAY);
         let index = Cast.toNumber(args.INDEX);
         index = Math.floor(index);
@@ -1838,7 +1819,7 @@ class ExtensionBlocks {
         deleteCount = Math.min(array.length, Math.max(0, deleteCount));
         deleteCount = Math.floor(deleteCount);
         const newNumbers = readAsNumericArray(args.INSERT);
-        array.splice(((index > 0) ? index - 1 : index), deleteCount, ...newNumbers);
+        array.splice(index > 0 ? index - 1 : index, deleteCount, ...newNumbers);
         return numericArrayToString(array);
     }
 
@@ -1848,7 +1829,7 @@ class ExtensionBlocks {
      * @param {string} args.ARRAY - numeric array
      * @returns {number} length of the numeric array
      */
-    lengthOfNumbers (args) {
+    lengthOfNumbers(args) {
         const array = readAsNumericArray(args.ARRAY);
         return array.length;
     }
@@ -1861,12 +1842,12 @@ class ExtensionBlocks {
      * @param {string} args.TYPE - type [Int16|Uint16] of the number
      * @returns {string} a numeric array of the converted numbers
      */
-    readBytesAs (args) {
+    readBytesAs(args) {
         try {
             const array = readAsNumericArray(args.ARRAY);
             const buffer = new Uint8Array(array).buffer;
             const dataView = new DataView(buffer);
-            const little = (args.ENDIAN === 'little');
+            const little = args.ENDIAN === 'little';
             const result = [];
             if (args.TYPE === 'Int16') {
                 if (array.length < 2) return '';
@@ -1899,7 +1880,7 @@ class ExtensionBlocks {
      * @param {string} args.RIGHT - right side value
      * @returns {string} result of this operation
      */
-    int64Operation (args) {
+    int64Operation(args) {
         const op = args.OP;
         const left = integer64From(args.LEFT);
         const right = integer64From(args.RIGHT);
@@ -1928,7 +1909,7 @@ class ExtensionBlocks {
      * @param {string} args.RIGHT - right side value
      * @returns {string} result of this operation
      */
-    bitOperation (args) {
+    bitOperation(args) {
         const op = args.OP;
         const left = integer64From(args.LEFT);
         const right = integer64From(args.RIGHT);
@@ -1955,11 +1936,10 @@ class ExtensionBlocks {
      * @param {string} args.VALUE - value to be operated
      * @returns {string} result of this operation
      */
-    bitNot (args) {
+    bitNot(args) {
         const bits = integer64From(args.VALUE);
         return bits.not().toString();
     }
-
 
     /**
      * 赤外線リモコンのコマンドを送信します。
@@ -1970,14 +1950,14 @@ class ExtensionBlocks {
      * @param {...*} argsRest - additional arguments
      * @returns {Promise<void>}
      */
-    async sendIrRemote (args, ...argsRest) {
+    async sendIrRemote(args, ...argsRest) {
         const n = Cast.toNumber(args.N);
         if (n < 1 || n > 9) {
             throw new Error(`Invalid button number: ${n}. Valid numbers are 1-9`);
-        };
+        }
         // CONNECTORの値がメニューに存在しない場合はデフォルト(セレクターの最初の選択肢)の値を使用する
         const connectorInput = Cast.toNumber(args.CONNECTOR);
-        const connectorValues = this.getIrRemoteMenuConnector().map(item => Cast.toNumber(item.value));
+        const connectorValues = this.getIrRemoteMenuConnector().map((item) => Cast.toNumber(item.value));
         const CONNECTOR = connectorValues.includes(connectorInput) ? connectorInput : connectorValues[0];
         // 「内蔵」を選択した場合は現在は何もしない
         if (CONNECTOR === 999) {
@@ -1988,15 +1968,14 @@ class ExtensionBlocks {
         // デューティー比の10の桁の数がコマンド番号になります。10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90% の9種類のコマンドが識別できることを確認しています。
         // 同一コネクタに対する analogLevelSet の呼び出し間隔は100ms以上にする必要がある。
         const MIN_INTERVAL = 100;
-        await this.analogLevelSet({CONNECTOR, LEVEL: 1, MIN_INTERVAL}); // デューティー比5%未満でコマンド入力待機の状態となるので。初期化のために1を送る。
-        await this.analogLevelSet({CONNECTOR, LEVEL: 10 * n, MIN_INTERVAL}); // ボタン1=10%, ボタン2=20%, ...
+        await this.analogLevelSet({ CONNECTOR, LEVEL: 1, MIN_INTERVAL }); // デューティー比5%未満でコマンド入力待機の状態となるので。初期化のために1を送る。
+        await this.analogLevelSet({ CONNECTOR, LEVEL: 10 * n, MIN_INTERVAL }); // ボタン1=10%, ボタン2=20%, ...
     }
-
 
     /**
      * @returns {object} metadata for this extension and its blocks.
      */
-    getInfo () {
+    getInfo() {
         setupTranslations();
         return {
             id: ExtensionBlocks.EXTENSION_ID,
@@ -2011,10 +1990,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.connectBoard',
                         default: 'connect board',
-                        description: 'open serial port and connect a board'
+                        description: 'open serial port and connect a board',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'boardStateChanged',
@@ -2022,14 +2000,14 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.boardStateChanged',
                         default: 'When board is [STATE]',
-                        description: 'catch event when the board state was changed'
+                        description: 'catch event when the board state was changed',
                     }),
                     arguments: {
                         STATE: {
                             type: ArgumentType.STRING,
-                            menu: 'boardStateMenu'
-                        }
-                    }
+                            menu: 'boardStateMenu',
+                        },
+                    },
                 },
                 {
                     opcode: 'disconnectBoard',
@@ -2038,10 +2016,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.disconnectBoard',
                         default: 'disconnect board',
-                        description: 'disconnect the board'
+                        description: 'disconnect the board',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'isConnected',
@@ -2049,10 +2026,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.isConnected',
                         default: 'board is connected',
-                        description: 'whether a board is connected'
+                        description: 'whether a board is connected',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 '---',
                 {
@@ -2061,21 +2037,21 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.servoTurn',
                         default: 'Servo [CONNECTOR] turn [ANGLE] degrees [SPEED] % speed',
-                        description: 'turn servo motor'
+                        description: 'turn servo motor',
                     }),
                     arguments: {
                         CONNECTOR: {
                             type: ArgumentType.STRING,
-                            menu: 'servoConnectorMenu'
+                            menu: 'servoConnectorMenu',
                         },
                         ANGLE: {
-                            type: ArgumentType.ANGLE
+                            type: ArgumentType.ANGLE,
                         },
                         SPEED: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: '100'
-                        }
-                    }
+                            defaultValue: '100',
+                        },
+                    },
                 },
                 '---',
                 {
@@ -2086,10 +2062,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.measureDistanceWithUltrasonicA',
                         default: 'distance by ultrasonic on Digital A (cm)',
-                        description: 'report distance by ultrasonic on Digital A'
+                        description: 'report distance by ultrasonic on Digital A',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'measureDistanceWithUltrasonicB',
@@ -2099,10 +2074,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.measureDistanceWithUltrasonicB',
                         default: 'distance by ultrasonic on Digital B (cm)',
-                        description: 'report distance by ultrasonic on Digital B'
+                        description: 'report distance by ultrasonic on Digital B',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'measureDistanceWithLight',
@@ -2112,10 +2086,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.measureDistanceWithLight',
                         default: 'distance by laser on I2C (cm)',
-                        description: 'report distance by light'
+                        description: 'report distance by light',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'motionSensorValue',
@@ -2125,10 +2098,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.motionSensorValue',
                         default: 'value of motion sensor on Tool',
-                        description: 'report value of motion sensor on Tool'
+                        description: 'report value of motion sensor on Tool',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 '---',
                 {
@@ -2139,10 +2111,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getBrightness',
                         default: 'light I2C brightness (lx)',
-                        description: 'report brightness'
+                        description: 'report brightness',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'getAnalogBrightness',
@@ -2152,10 +2123,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getAnalogBrightness',
                         default: 'light Analog brightness',
-                        description: 'report brightness by analog sensor'
+                        description: 'report brightness by analog sensor',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 '---',
                 {
@@ -2166,10 +2136,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getTemperature',
                         default: 'environment I2C temperature (°C)',
-                        description: 'report temperature'
+                        description: 'report temperature',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'getPressure',
@@ -2179,10 +2148,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getPressure',
                         default: 'environment I2C pressure (hPa)',
-                        description: 'report pressure'
+                        description: 'report pressure',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'getHumidity',
@@ -2192,10 +2160,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getHumidity',
                         default: 'environment I2C humidity (%)',
-                        description: 'report humidity'
+                        description: 'report humidity',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 '---',
                 {
@@ -2206,10 +2173,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getWaterTemperatureA',
                         default: 'water temperature on Digital A (°C)',
-                        description: 'report water temperature on Digital A'
+                        description: 'report water temperature on Digital A',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'getWaterTemperatureB',
@@ -2219,10 +2185,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getWaterTemperatureB',
                         default: 'water temperature on Digital B (°C)',
-                        description: 'report water temperature on Digital B'
+                        description: 'report water temperature on Digital B',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 '---',
                 {
@@ -2231,10 +2196,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.whenShaken',
                         default: 'When acceleration I2C was shaken',
-                        description: 'catch event when the accelerometer was shaken'
+                        description: 'catch event when the accelerometer was shaken',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 '---',
                 {
@@ -2245,10 +2209,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getPitch',
                         default: 'acceleration I2C pitch (degree)',
-                        description: 'report pitch angle'
+                        description: 'report pitch angle',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'getRoll',
@@ -2258,10 +2221,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getRoll',
                         default: 'acceleration I2C roll (degree)',
-                        description: 'report roll angle'
+                        description: 'report roll angle',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'getAccelerationX',
@@ -2271,10 +2233,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getAccelerationX',
                         default: 'acceleration I2C X (m/s^2)',
-                        description: 'report acceleration X'
+                        description: 'report acceleration X',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'getAccelerationY',
@@ -2284,10 +2245,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getAccelerationY',
                         default: 'acceleration I2C Y (m/s^2)',
-                        description: 'report acceleration Y'
+                        description: 'report acceleration Y',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'getAccelerationZ',
@@ -2297,10 +2257,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getAccelerationZ',
                         default: 'acceleration I2C Z (m/s^2)',
-                        description: 'report acceleration Z'
+                        description: 'report acceleration Z',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'getAccelerationAbsolute',
@@ -2310,10 +2269,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.getAccelerationAbsolute',
                         default: 'acceleration I2C Absolute (m/s^2)',
-                        description: 'report acceleration absolute'
+                        description: 'report acceleration absolute',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 '---',
                 {
@@ -2322,18 +2280,18 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.neoPixelConfigStrip',
                         default: 'set color LED [CONNECTOR] length [LENGTH]',
-                        description: 'configure color LED on the connector'
+                        description: 'configure color LED on the connector',
                     }),
                     arguments: {
                         CONNECTOR: {
                             type: ArgumentType.STRING,
-                            menu: 'neoPixelConnectorMenu'
+                            menu: 'neoPixelConnectorMenu',
                         },
                         LENGTH: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: '3'
-                        }
-                    }
+                            defaultValue: '3',
+                        },
+                    },
                 },
                 {
                     opcode: 'neoPixelSetColor',
@@ -2341,26 +2299,26 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.neoPixelSetColor',
                         default: 'color LED [CONNECTOR] set [POSITION] color [COLOR] brightness [BRIGHTNESS]',
-                        description: 'set color LED color'
+                        description: 'set color LED color',
                     }),
                     arguments: {
                         CONNECTOR: {
                             type: ArgumentType.STRING,
-                            menu: 'neoPixelConnectorMenu'
+                            menu: 'neoPixelConnectorMenu',
                         },
                         POSITION: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: '1'
+                            defaultValue: '1',
                         },
                         COLOR: {
                             type: ArgumentType.STRING,
-                            menu: 'neoPixelColorMenuSimple'
+                            menu: 'neoPixelColorMenuSimple',
                         },
                         BRIGHTNESS: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: '50'
-                        }
-                    }
+                            defaultValue: '50',
+                        },
+                    },
                 },
                 {
                     opcode: 'neoPixelFillColor',
@@ -2368,22 +2326,22 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.neoPixelFillColor',
                         default: 'color LED [CONNECTOR] set all color [COLOR] brightness [BRIGHTNESS]',
-                        description: 'set color LED color'
+                        description: 'set color LED color',
                     }),
                     arguments: {
                         CONNECTOR: {
                             type: ArgumentType.STRING,
-                            menu: 'neoPixelConnectorMenu'
+                            menu: 'neoPixelConnectorMenu',
                         },
                         COLOR: {
                             type: ArgumentType.STRING,
-                            menu: 'neoPixelColorMenu'
+                            menu: 'neoPixelColorMenu',
                         },
                         BRIGHTNESS: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: '50'
-                        }
-                    }
+                            defaultValue: '50',
+                        },
+                    },
                 },
                 {
                     opcode: 'neoPixelShiftColor',
@@ -2391,23 +2349,23 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.neoPixelShiftColor',
                         default: 'color LED [CONNECTOR] shift color settings by [N] ([LOOP_MODE])',
-                        description: 'shift color LED settings'
+                        description: 'shift color LED settings',
                     }),
                     arguments: {
                         CONNECTOR: {
                             type: ArgumentType.STRING,
-                            menu: 'neoPixelConnectorMenu'
+                            menu: 'neoPixelConnectorMenu',
                         },
                         N: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: '1'
+                            defaultValue: '1',
                         },
                         LOOP_MODE: {
                             type: ArgumentType.STRING,
                             defaultValue: 'true',
-                            menu: 'neoPixelShiftColorLoopModeMenu'
-                        }
-                    }
+                            menu: 'neoPixelShiftColorLoopModeMenu',
+                        },
+                    },
                 },
                 {
                     opcode: 'neoPixelColor',
@@ -2415,22 +2373,22 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.neoPixelColor',
                         default: 'color LED color R [RED] G [GREEN] B [BLUE]',
-                        description: 'color LED color values'
+                        description: 'color LED color values',
                     }),
                     arguments: {
                         RED: {
                             type: ArgumentType.STRING,
-                            defaultValue: '255'
+                            defaultValue: '255',
                         },
                         GREEN: {
                             type: ArgumentType.STRING,
-                            defaultValue: '255'
+                            defaultValue: '255',
                         },
                         BLUE: {
                             type: ArgumentType.STRING,
-                            defaultValue: '255'
-                        }
-                    }
+                            defaultValue: '255',
+                        },
+                    },
                 },
                 {
                     opcode: 'neoPixelColorMode',
@@ -2439,14 +2397,14 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.neoPixelColorMode',
                         default: 'color LED [MODE]',
-                        description: 'color LED color mode'
+                        description: 'color LED color mode',
                     }),
                     arguments: {
                         MODE: {
                             type: ArgumentType.STRING,
-                            menu: 'neoPixelColorModeMenu'
-                        }
-                    }
+                            menu: 'neoPixelColorModeMenu',
+                        },
+                    },
                 },
                 {
                     opcode: 'neoPixelShow',
@@ -2454,10 +2412,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.neoPixelShow',
                         default: 'color LED show',
-                        description: 'show color LED'
+                        description: 'show color LED',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'neoPixelClear',
@@ -2465,14 +2422,14 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.neoPixelClear',
                         default: 'color LED [CONNECTOR] clear',
-                        description: 'clear color LED'
+                        description: 'clear color LED',
                     }),
                     arguments: {
                         CONNECTOR: {
                             type: ArgumentType.STRING,
-                            menu: 'neoPixelConnectorMenu'
-                        }
-                    }
+                            menu: 'neoPixelConnectorMenu',
+                        },
+                    },
                 },
                 '---',
                 {
@@ -2482,10 +2439,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.analogLevelA1',
                         default: 'value of AnalogA(A1)',
-                        description: 'report analog level of the connector'
+                        description: 'report analog level of the connector',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'analogLevelA2',
@@ -2494,10 +2450,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.analogLevelA2',
                         default: 'value of AnalogA(A2)',
-                        description: 'report analog level of the connector'
+                        description: 'report analog level of the connector',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'analogLevelB1',
@@ -2506,10 +2461,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.analogLevelB1',
                         default: 'value of AnalogB(B1)',
-                        description: 'report analog level of the connector'
+                        description: 'report analog level of the connector',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'analogLevelB2',
@@ -2518,10 +2472,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.analogLevelB2',
                         default: 'value of AnalogB(B2)',
-                        description: 'report analog level of the connector'
+                        description: 'report analog level of the connector',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 '---',
                 {
@@ -2531,10 +2484,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.digitalLevelA1',
                         default: 'value of DigitalA(A1)',
-                        description: 'report digital level of the connector'
+                        description: 'report digital level of the connector',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'digitalLevelA2',
@@ -2543,10 +2495,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.digitalLevelA2',
                         default: 'value of DigitalA(A2)',
-                        description: 'report digital level of the connector'
+                        description: 'report digital level of the connector',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'digitalLevelB1',
@@ -2555,10 +2506,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.digitalLevelB1',
                         default: 'value of DigitalB(B1)',
-                        description: 'report digital level of the connector'
+                        description: 'report digital level of the connector',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 {
                     opcode: 'digitalLevelB2',
@@ -2567,10 +2517,9 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.digitalLevelB2',
                         default: 'value of DigitalB(B2)',
-                        description: 'report digital level of the connector'
+                        description: 'report digital level of the connector',
                     }),
-                    arguments: {
-                    }
+                    arguments: {},
                 },
                 '---',
                 {
@@ -2579,19 +2528,19 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.digitalLevelSet',
                         default: '[CONNECTOR] to digital [LEVEL]',
-                        description: 'set digital level of the connector'
+                        description: 'set digital level of the connector',
                     }),
                     arguments: {
                         CONNECTOR: {
                             type: ArgumentType.STRING,
-                            menu: 'digitalLevelSetConnectorMenu'
+                            menu: 'digitalLevelSetConnectorMenu',
                         },
                         LEVEL: {
                             type: ArgumentType.STRING,
                             menu: 'digitalLevelMenu',
-                            defaultValue: 'true'
-                        }
-                    }
+                            defaultValue: 'true',
+                        },
+                    },
                 },
                 {
                     opcode: 'digitalIsHigh',
@@ -2599,14 +2548,14 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.digitalIsHigh',
                         default: '[CONNECTOR] value is 1',
-                        description: 'whether the digital level of the connector is high or not'
+                        description: 'whether the digital level of the connector is high or not',
                     }),
                     arguments: {
                         CONNECTOR: {
                             type: ArgumentType.STRING,
-                            menu: 'digitalConnectorMenu'
-                        }
-                    }
+                            menu: 'digitalConnectorMenu',
+                        },
+                    },
                 },
                 {
                     opcode: 'digitalLevelChanged',
@@ -2614,19 +2563,19 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.digitalLevelChanged',
                         default: 'When [CONNECTOR] is [LEVEL]',
-                        description: 'catch pulse rise/fall of the connector'
+                        description: 'catch pulse rise/fall of the connector',
                     }),
                     arguments: {
                         CONNECTOR: {
                             type: ArgumentType.STRING,
-                            menu: 'digitalConnectorMenu'
+                            menu: 'digitalConnectorMenu',
                         },
                         LEVEL: {
                             type: ArgumentType.STRING,
                             menu: 'digitalLevelMenu',
-                            defaultValue: 'true'
-                        }
-                    }
+                            defaultValue: 'true',
+                        },
+                    },
                 },
                 {
                     opcode: 'inputBiasSet',
@@ -2634,18 +2583,18 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.inputBiasSet',
                         default: '[PIN] bias [BIAS]',
-                        description: 'set bias of the connector for g2s'
+                        description: 'set bias of the connector for g2s',
                     }),
                     arguments: {
                         PIN: {
                             type: ArgumentType.STRING,
-                            menu: 'inputPinsMenu'
+                            menu: 'inputPinsMenu',
                         },
                         BIAS: {
                             type: ArgumentType.STRING,
-                            menu: 'inputBiasMenu'
-                        }
-                    }
+                            menu: 'inputBiasMenu',
+                        },
+                    },
                 },
                 '---',
                 {
@@ -2654,18 +2603,18 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.analogLevelSet',
                         default: 'PWM [CONNECTOR] set duty cycle [LEVEL] %',
-                        description: 'set analog level of the connector'
+                        description: 'set analog level of the connector',
                     }),
                     arguments: {
                         CONNECTOR: {
                             type: ArgumentType.STRING,
-                            menu: 'pwmConnectorMenu'
+                            menu: 'pwmConnectorMenu',
                         },
                         LEVEL: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: 0
-                        }
-                    }
+                            defaultValue: 0,
+                        },
+                    },
                 },
                 '---',
                 {
@@ -2673,7 +2622,7 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.sendIrRemote',
                         default: 'Send built-in button [N]',
-                        description: 'Execute the built-in button of IR remote control'
+                        description: 'Execute the built-in button of IR remote control',
                     }),
                     blockType: BlockType.COMMAND,
                     arguments: {
@@ -2684,9 +2633,9 @@ class ExtensionBlocks {
                         N: {
                             type: ArgumentType.NUMBER,
                             menu: 'irRemoteMenuN',
-                            defaultValue: 1
-                        }
-                    }
+                            defaultValue: 1,
+                        },
+                    },
                 },
                 '---',
                 {
@@ -2695,22 +2644,22 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.i2cWrite',
                         default: 'I2C write on [ADDRESS] register [REGISTER] with [DATA]',
-                        description: 'write I2C data to the connector'
+                        description: 'write I2C data to the connector',
                     }),
                     arguments: {
                         ADDRESS: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0x00'
+                            defaultValue: '0x00',
                         },
                         REGISTER: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0x00'
+                            defaultValue: '0x00',
                         },
                         DATA: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0x00, 0x00'
-                        }
-                    }
+                            defaultValue: '0x00, 0x00',
+                        },
+                    },
                 },
                 {
                     opcode: 'i2cReadOnce',
@@ -2718,22 +2667,22 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.i2cReadOnce',
                         default: 'I2C read [LENGTH] bytes from [ADDRESS] register [REGISTER]',
-                        description: 'read I2C data from the connector'
+                        description: 'read I2C data from the connector',
                     }),
                     arguments: {
                         ADDRESS: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0x00'
+                            defaultValue: '0x00',
                         },
                         REGISTER: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0x00'
+                            defaultValue: '0x00',
                         },
                         LENGTH: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: 1
-                        }
-                    }
+                            defaultValue: 1,
+                        },
+                    },
                 },
                 // // comment out for future reference
                 // '---',
@@ -2820,18 +2769,18 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.numberAtIndex',
                         default: 'number of [ARRAY] at [INDEX]',
-                        description: 'get a number at the index of the array'
+                        description: 'get a number at the index of the array',
                     }),
                     arguments: {
                         ARRAY: {
                             type: ArgumentType.STRING,
-                            defaultValue: '1.0, 1E1, 0xFF'
+                            defaultValue: '1.0, 1E1, 0xFF',
                         },
                         INDEX: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: '1'
-                        }
-                    }
+                            defaultValue: '1',
+                        },
+                    },
                 },
                 {
                     opcode: 'spliceNumbers',
@@ -2839,26 +2788,26 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.spliceNumbers',
                         default: '[ARRAY] at [INDEX] delete [DELETE] insert [INSERT]',
-                        description: 'splice array'
+                        description: 'splice array',
                     }),
                     arguments: {
                         ARRAY: {
                             type: ArgumentType.STRING,
-                            defaultValue: '1.0, 1E1, 0xFF'
+                            defaultValue: '1.0, 1E1, 0xFF',
                         },
                         INDEX: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: '1'
+                            defaultValue: '1',
                         },
                         DELETE: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: '1'
+                            defaultValue: '1',
                         },
                         INSERT: {
                             type: ArgumentType.STRING,
-                            defaultValue: '-1, 0'
-                        }
-                    }
+                            defaultValue: '-1, 0',
+                        },
+                    },
                 },
                 {
                     opcode: 'lengthOfNumbers',
@@ -2866,14 +2815,14 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.lengthOfNumbers',
                         default: 'length of numbers [ARRAY]',
-                        description: 'get length of an Array in string'
+                        description: 'get length of an Array in string',
                     }),
                     arguments: {
                         ARRAY: {
                             type: ArgumentType.STRING,
-                            defaultValue: '1.0, 1E1, 0xFF'
-                        }
-                    }
+                            defaultValue: '1.0, 1E1, 0xFF',
+                        },
+                    },
                 },
                 {
                     opcode: 'readBytesAs',
@@ -2881,22 +2830,22 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.readBytesAs',
                         default: 'read bytes [ARRAY] as [TYPE] [ENDIAN]',
-                        description: 'read typed value from bytes'
+                        description: 'read typed value from bytes',
                     }),
                     arguments: {
                         ARRAY: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0x00, 0xFF, 0xFF, 0x00'
+                            defaultValue: '0x00, 0xFF, 0xFF, 0x00',
                         },
                         TYPE: {
                             type: ArgumentType.STRING,
-                            menu: 'bytesTypeMenu'
+                            menu: 'bytesTypeMenu',
                         },
                         ENDIAN: {
                             type: ArgumentType.STRING,
-                            menu: 'endianMenu'
-                        }
-                    }
+                            menu: 'endianMenu',
+                        },
+                    },
                 },
                 {
                     opcode: 'int64Operation',
@@ -2904,22 +2853,22 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.int64Operation',
                         default: 'int64 [LEFT] [OP] [RIGHT]',
-                        description: 'bitwise operation'
+                        description: 'bitwise operation',
                     }),
                     arguments: {
                         OP: {
                             type: ArgumentType.STRING,
-                            menu: 'int64OperationMenu'
+                            menu: 'int64OperationMenu',
                         },
                         LEFT: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0x01'
+                            defaultValue: '0x01',
                         },
                         RIGHT: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0x02'
-                        }
-                    }
+                            defaultValue: '0x02',
+                        },
+                    },
                 },
                 {
                     opcode: 'bitOperation',
@@ -2927,22 +2876,22 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.bitOperation',
                         default: 'bit [LEFT] [OP] [RIGHT]',
-                        description: 'bitwise operation'
+                        description: 'bitwise operation',
                     }),
                     arguments: {
                         OP: {
                             type: ArgumentType.STRING,
-                            menu: 'bitOperationMenu'
+                            menu: 'bitOperationMenu',
                         },
                         LEFT: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0x03'
+                            defaultValue: '0x03',
                         },
                         RIGHT: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0x01'
-                        }
-                    }
+                            defaultValue: '0x01',
+                        },
+                    },
                 },
                 {
                     opcode: 'bitNot',
@@ -2950,14 +2899,14 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.bitNot',
                         default: 'bit NOT [VALUE]',
-                        description: 'bitwise NOT'
+                        description: 'bitwise NOT',
                     }),
                     arguments: {
                         VALUE: {
                             type: ArgumentType.STRING,
-                            defaultValue: '0x01'
-                        }
-                    }
+                            defaultValue: '0x01',
+                        },
+                    },
                 },
                 {
                     opcode: 'boardVersion',
@@ -2966,90 +2915,89 @@ class ExtensionBlocks {
                     text: formatMessage({
                         id: 'g2s.boardVersion',
                         default: 'board version',
-                        description: 'version of the board'
+                        description: 'version of the board',
                     }),
-                    arguments: {
-                    }
-                }
+                    arguments: {},
+                },
             ],
             menus: {
                 boardStateMenu: {
                     acceptReporters: false,
-                    items: this.getBoardStateMenu()
+                    items: this.getBoardStateMenu(),
                 },
                 digitalConnectorMenu: {
                     acceptReporters: false,
-                    items: this.getDigitalConnectorMenu()
+                    items: this.getDigitalConnectorMenu(),
                 },
                 digitalLevelSetConnectorMenu: {
                     acceptReporters: false,
-                    items: this.getDigitalLevelSetConnectorMenu()
+                    items: this.getDigitalLevelSetConnectorMenu(),
                 },
                 inputBiasMenu: {
                     acceptReporters: false,
-                    items: this.getInputBiasMenu()
+                    items: this.getInputBiasMenu(),
                 },
                 digitalLevelMenu: {
                     acceptReporters: true,
-                    items: this.getDigitalLevelMenu()
+                    items: this.getDigitalLevelMenu(),
                 },
                 inputPinsMenu: {
                     acceptReporters: false,
-                    items: this.getInputPinsMenu()
+                    items: this.getInputPinsMenu(),
                 },
                 pwmConnectorMenu: {
                     acceptReporters: false,
-                    items: this.getPWMConnectorMenu()
+                    items: this.getPWMConnectorMenu(),
                 },
                 servoConnectorMenu: {
                     acceptReporters: false,
-                    items: this.getServoConnectorMenu()
+                    items: this.getServoConnectorMenu(),
                 },
                 neoPixelConnectorMenu: {
                     acceptReporters: false,
-                    items: this.getNeoPixelConnectorMenu()
+                    items: this.getNeoPixelConnectorMenu(),
                 },
                 neoPixelShiftColorLoopModeMenu: {
                     acceptReporters: true,
-                    items: this.getNeoPixelShiftColorLoopModeMenu()
+                    items: this.getNeoPixelShiftColorLoopModeMenu(),
                 },
                 neoPixelColorMenuSimple: {
                     acceptReporters: true,
-                    items: this.getNeoPixelColorMenu().filter(item => item.value !== 'rainbow')
+                    items: this.getNeoPixelColorMenu().filter((item) => item.value !== 'rainbow'),
                 },
                 neoPixelColorMenu: {
                     acceptReporters: true,
-                    items: this.getNeoPixelColorMenu()
+                    items: this.getNeoPixelColorMenu(),
                 },
                 neoPixelColorModeMenu: {
                     acceptReporters: true,
-                    items: this.getNeoPixelColorModeMenu()
+                    items: this.getNeoPixelColorModeMenu(),
                 },
                 bytesTypeMenu: {
                     acceptReporters: false,
-                    items: ['Int16', 'Uint16']
+                    items: ['Int16', 'Uint16'],
                 },
                 endianMenu: {
                     acceptReporters: false,
-                    items: ['little', 'big']
+                    items: ['little', 'big'],
                 },
                 int64OperationMenu: {
                     acceptReporters: false,
-                    items: ['＋', '－', '✕', '÷', 'mod']
+                    items: ['＋', '－', '✕', '÷', 'mod'],
                 },
                 bitOperationMenu: {
                     acceptReporters: false,
-                    items: ['<<', '>>', '&', '|', '^']
+                    items: ['<<', '>>', '&', '|', '^'],
                 },
                 irRemoteMenuConnector: {
                     acceptReporters: false,
-                    items: this.getIrRemoteMenuConnector()
+                    items: this.getIrRemoteMenuConnector(),
                 },
                 irRemoteMenuN: {
                     acceptReporters: true,
-                    items: ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+                    items: ['1', '2', '3', '4', '5', '6', '7', '8', '9'],
                 },
-            }
+            },
         };
     }
 
@@ -3057,22 +3005,22 @@ class ExtensionBlocks {
      * Returns menu items for board state.
      * @returns {Array<object>} menu items
      */
-    getBoardStateMenu () {
+    getBoardStateMenu() {
         return [
             {
                 text: formatMessage({
                     id: 'g2s.boardState.connected',
-                    default: 'connected'
+                    default: 'connected',
                 }),
-                value: 'connected'
+                value: 'connected',
             },
             {
                 text: formatMessage({
                     id: 'g2s.boardState.disconnected',
-                    default: 'disconnected'
+                    default: 'disconnected',
                 }),
-                value: 'disconnected'
-            }
+                value: 'disconnected',
+            },
         ];
     }
 
@@ -3080,52 +3028,52 @@ class ExtensionBlocks {
      * Returns menu items to select digital connectors.
      * @returns {Array<object>} menu items
      */
-    getDigitalConnectorMenu () {
+    getDigitalConnectorMenu() {
         const digitalPrefix = formatMessage({
             id: 'g2s.digitalConnector.prefix',
-            default: 'Digital'
+            default: 'Digital',
         });
         return [
             {
                 text: `${digitalPrefix}A (A1)`,
-                value: '10'
+                value: '10',
             },
             {
                 text: `${digitalPrefix}A (A2)`,
-                value: '11'
+                value: '11',
             },
             {
                 text: `${digitalPrefix}B (B1)`,
-                value: '6'
+                value: '6',
             },
             {
                 text: `${digitalPrefix}B (B2)`,
-                value: '9'
+                value: '9',
             },
             {
                 text: formatMessage({
                     id: 'g2s.digitalConnectorMenu.buttonAOnTool',
                     default: 'button A on Tool',
-                    description: 'label for button A on Tool in digital level get connector menu for g2s'
+                    description: 'label for button A on Tool in digital level get connector menu for g2s',
                 }),
-                value: 'A'
+                value: 'A',
             },
             {
                 text: formatMessage({
                     id: 'g2s.digitalConnectorMenu.buttonBOnTool',
                     default: 'button B on Tool',
-                    description: 'label for button B on Tool in digital level get connector menu for g2s'
+                    description: 'label for button B on Tool in digital level get connector menu for g2s',
                 }),
-                value: 'B'
+                value: 'B',
             },
             {
                 text: formatMessage({
                     id: 'g2s.digitalConnectorMenu.motionSensorOnTool',
                     default: 'PIR Motion sensor on Tool',
-                    description: 'label for motion sensor on board in digital connector menu for g2s'
+                    description: 'label for motion sensor on board in digital connector menu for g2s',
                 }),
-                value: 'PIR'
-            }
+                value: 'PIR',
+            },
         ];
     }
 
@@ -3133,36 +3081,36 @@ class ExtensionBlocks {
      * Returns menu items to select digital connectors.
      * @returns {Array<object>} menu items
      */
-    getDigitalLevelSetConnectorMenu () {
+    getDigitalLevelSetConnectorMenu() {
         const digitalPrefix = formatMessage({
             id: 'g2s.digitalConnector.prefix',
-            default: 'Digital'
+            default: 'Digital',
         });
         return [
             {
                 text: `${digitalPrefix}A (A1)`,
-                value: '10'
+                value: '10',
             },
             {
                 text: `${digitalPrefix}A (A2)`,
-                value: '11'
+                value: '11',
             },
             {
                 text: `${digitalPrefix}B (B1)`,
-                value: '6'
+                value: '6',
             },
             {
                 text: `${digitalPrefix}B (B2)`,
-                value: '9'
+                value: '9',
             },
             {
                 text: formatMessage({
                     id: 'g2s.digitalLevelSetConnectorMenu.relayOnSteamBox',
                     default: 'relay on Tool',
-                    description: 'label for relay on STEAM Tool in digital level set connector menu for g2s'
+                    description: 'label for relay on STEAM Tool in digital level set connector menu for g2s',
                 }),
-                value: '4'
-            }
+                value: '4',
+            },
         ];
     }
 
@@ -3170,65 +3118,65 @@ class ExtensionBlocks {
      * Returns menu items to select PWM connectors.
      * @returns {Array<object>} menu items
      */
-    getPWMConnectorMenu () {
+    getPWMConnectorMenu() {
         const digitalPrefix = formatMessage({
             id: 'g2s.digitalConnector.prefix',
-            default: 'Digital'
+            default: 'Digital',
         });
         return [
             {
                 text: `${digitalPrefix}A (A1)`,
-                value: '10'
+                value: '10',
             },
             {
                 text: `${digitalPrefix}A (A2)`,
-                value: '11'
+                value: '11',
             },
             {
                 text: `${digitalPrefix}B (B1)`,
-                value: '6'
+                value: '6',
             },
             {
                 text: `${digitalPrefix}B (B2)`,
-                value: '9'
+                value: '9',
             },
             {
                 text: formatMessage({
                     id: 'g2s.pwmConnectorMenu.vibrationMotorOnSteamBox',
                     default: 'vibration motor on Tool',
-                    description: 'label for vibration motor on STEAM Tool in PWM connector menu for g2s'
+                    description: 'label for vibration motor on STEAM Tool in PWM connector menu for g2s',
                 }),
-                value: '3'
+                value: '3',
             },
-			{
+            {
                 text: formatMessage({
                     id: 'g2s.digitalLevelSetConnectorMenu.relayOnSteamBox',
                     default: 'relay on Tool',
-                    description: 'label for relay on STEAM Tool in digital level set connector menu for g2s'
+                    description: 'label for relay on STEAM Tool in digital level set connector menu for g2s',
                 }),
-                value: '4'
-            }
+                value: '4',
+            },
         ];
     }
 
-    getIrRemoteMenuConnector () {
+    getIrRemoteMenuConnector() {
         const digitalPrefix = formatMessage({
             id: 'g2s.digitalConnector.prefix',
-            default: 'Digital'
+            default: 'Digital',
         });
         const onboard = formatMessage({
             id: 'g2s.sendIrRemote.CONNECTOR.onboard',
-            default: 'on board'
+            default: 'on board',
         });
         return [
             {
                 text: `${digitalPrefix}A (A1)`,
-                value: '10'
+                value: '10',
             },
             {
                 text: onboard,
-                value: '999'
-            }
+                value: '999',
+            },
         ];
     }
 
@@ -3236,28 +3184,28 @@ class ExtensionBlocks {
      * Returns menu items to select servo connectors.
      * @returns {Array<object>} menu items
      */
-    getServoConnectorMenu () {
+    getServoConnectorMenu() {
         const digitalPrefix = formatMessage({
             id: 'g2s.digitalConnector.prefix',
-            default: 'Digital'
+            default: 'Digital',
         });
         return [
             {
                 text: `${digitalPrefix}A (A1)`,
-                value: '10'
+                value: '10',
             },
             {
                 text: `${digitalPrefix}A (A2)`,
-                value: '11'
+                value: '11',
             },
             {
                 text: `${digitalPrefix}B (B1)`,
-                value: '6'
+                value: '6',
             },
             {
                 text: `${digitalPrefix}B (B2)`,
-                value: '9'
-            }
+                value: '9',
+            },
         ];
     }
 
@@ -3265,24 +3213,24 @@ class ExtensionBlocks {
      * Returns menu items to set digital level.
      * @returns {Array<object>} menu items
      */
-    getDigitalLevelMenu () {
+    getDigitalLevelMenu() {
         return [
             {
                 text: formatMessage({
                     id: 'g2s.digitalLevelMenu.low',
                     default: '0',
-                    description: 'label for low value in digital output menu for g2s'
+                    description: 'label for low value in digital output menu for g2s',
                 }),
-                value: 'false'
+                value: 'false',
             },
             {
                 text: formatMessage({
                     id: 'g2s.digitalLevelMenu.high',
                     default: '1',
-                    description: 'label for high value in digital output menu for g2s'
+                    description: 'label for high value in digital output menu for g2s',
                 }),
-                value: 'true'
-            }
+                value: 'true',
+            },
         ];
     }
 
@@ -3290,28 +3238,28 @@ class ExtensionBlocks {
      * Returns menu items to select digital input pin.
      * @returns {Array<object>} menu items
      */
-    getInputPinsMenu () {
+    getInputPinsMenu() {
         const digitalPrefix = formatMessage({
             id: 'g2s.digitalConnector.prefix',
-            default: 'Digital'
+            default: 'Digital',
         });
         return [
             {
                 text: `${digitalPrefix}A (A1)`,
-                value: '10'
+                value: '10',
             },
             {
                 text: `${digitalPrefix}A (A2)`,
-                value: '11'
+                value: '11',
             },
             {
                 text: `${digitalPrefix}B (B1)`,
-                value: '6'
+                value: '6',
             },
             {
                 text: `${digitalPrefix}B (B2)`,
-                value: '9'
-            }
+                value: '9',
+            },
         ];
     }
 
@@ -3319,62 +3267,61 @@ class ExtensionBlocks {
      * Returns menu items to set input bias.
      * @returns {Array<object>} menu items
      */
-    getInputBiasMenu () {
+    getInputBiasMenu() {
         return [
             {
                 text: formatMessage({
                     id: 'g2s.inputBiasMenu.none',
                     default: 'none',
-                    description: 'label for none in input bias menu for g2s'
+                    description: 'label for none in input bias menu for g2s',
                 }),
-                value: 'none'
+                value: 'none',
             },
             {
                 text: formatMessage({
                     id: 'g2s.inputBiasMenu.pullUp',
                     default: 'pull up',
-                    description: 'label for pull up in input bias menu for g2s'
+                    description: 'label for pull up in input bias menu for g2s',
                 }),
-                value: 'pullUp'
-            }
+                value: 'pullUp',
+            },
         ];
     }
 
-    getNeoPixelConnectorMenu () {
+    getNeoPixelConnectorMenu() {
         const digitalPrefix = formatMessage({
             id: 'g2s.digitalConnector.prefix',
-            default: 'Digital'
+            default: 'Digital',
         });
         return [
             {
                 text: `${digitalPrefix}A (A1)`,
-                value: '10'
+                value: '10',
             },
             {
                 text: `${digitalPrefix}A (A2)`,
-                value: '11'
+                value: '11',
             },
             {
                 text: `${digitalPrefix}B (B1)`,
-                value: '6'
+                value: '6',
             },
             {
                 text: `${digitalPrefix}B (B2)`,
-                value: '9'
+                value: '9',
             },
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelConnectorMenu.steamBox',
                     default: 'Tool',
-                    description: 'label for STEAM Tool in neoPixel connector menu for g2s'
+                    description: 'label for STEAM Tool in neoPixel connector menu for g2s',
                 }),
-                value: '7'
-            }
+                value: '7',
+            },
         ];
     }
 
-
-    getNeoPixelShiftColorLoopModeMenu () {
+    getNeoPixelShiftColorLoopModeMenu() {
         return [
             {
                 text: formatMessage({
@@ -3389,107 +3336,103 @@ class ExtensionBlocks {
                     default: 'no loop',
                 }),
                 value: 'false',
-            }
+            },
         ];
     }
 
-    getNeoPixelColorMenu () {
+    getNeoPixelColorMenu() {
         return [
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelColorMenu.red',
-                    default: 'red'
+                    default: 'red',
                 }),
-                value: '0xff, 0, 0'
+                value: '0xff, 0, 0',
             },
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelColorMenu.orange',
-                    default: 'orange'
+                    default: 'orange',
                 }),
-                value: '0xff, 0xa5, 0'
+                value: '0xff, 0xa5, 0',
             },
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelColorMenu.yellow',
-                    default: 'yellow'
+                    default: 'yellow',
                 }),
-                value: '0xff, 0xff, 0'
+                value: '0xff, 0xff, 0',
             },
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelColorMenu.green',
-                    default: 'green'
+                    default: 'green',
                 }),
-                value: '0, 0xff, 0'
+                value: '0, 0xff, 0',
             },
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelColorMenu.blue',
-                    default: 'blue'
+                    default: 'blue',
                 }),
-                value: '0, 0, 0xff'
+                value: '0, 0, 0xff',
             },
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelColorMenu.indigo',
-                    default: 'indigo'
+                    default: 'indigo',
                 }),
-                value: '0x4b, 0, 0x82'
+                value: '0x4b, 0, 0x82',
             },
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelColorMenu.violet',
-                    default: 'violet'
+                    default: 'violet',
                 }),
-                value: '0xee, 0x82, 0xee'
+                value: '0xee, 0x82, 0xee',
             },
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelColorMenu.purple',
-                    default: 'purple'
+                    default: 'purple',
                 }),
-                value: '0x80, 0, 0x80'
+                value: '0x80, 0, 0x80',
             },
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelColorMenu.white',
-                    default: 'white'
+                    default: 'white',
                 }),
-                value: '0xff, 0xff, 0xff'
+                value: '0xff, 0xff, 0xff',
             },
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelColorMenu.black',
-                    default: 'black'
+                    default: 'black',
                 }),
-                value: '0, 0, 0'
+                value: '0, 0, 0',
             },
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelColorMenu.rainbow',
-                    default: 'rainbow'
+                    default: 'rainbow',
                 }),
-                value: 'rainbow'
-            }
+                value: 'rainbow',
+            },
         ];
     }
 
-    getNeoPixelColorModeMenu () {
+    getNeoPixelColorModeMenu() {
         return [
             {
                 text: formatMessage({
                     id: 'g2s.neoPixelColorMode.rainbow',
-                    default: 'rainbow'
+                    default: 'rainbow',
                 }),
-                value: 'rainbow'
-            }
+                value: 'rainbow',
+            },
         ];
     }
 }
 
-
-export {
-    ExtensionBlocks as default,
-    ExtensionBlocks as blockClass
-};
+export { ExtensionBlocks as default, ExtensionBlocks as blockClass };

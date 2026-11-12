@@ -38,7 +38,7 @@ const LOOT_POINTS = {
     A: -10,
     B: -20,
     C: -30,
-    D: -40
+    D: -40,
 };
 
 /**
@@ -60,7 +60,7 @@ const RULE_ERRORS = {
     dynamite_lack: 'ダイナマイトがありません',
     bomb_lack: '爆弾がありません',
     map_invalid_pos: '指定された座標はマップ上に存在しません',
-    already_finished: 'このラウンドではもう行動できません'
+    already_finished: 'このラウンドではもう行動できません',
 };
 
 /**
@@ -68,7 +68,7 @@ const RULE_ERRORS = {
  * @param {number} seed - the seed.
  * @returns {Function} - a function returning floats in [0, 1).
  */
-const makeRng = seed => {
+const makeRng = (seed) => {
     let s = seed >>> 0;
     return () => {
         s = (s + 0x6d2b79f5) >>> 0;
@@ -84,7 +84,7 @@ const makeRng = seed => {
  * @param {number} code - the terrain code.
  * @returns {boolean} - true when a pawn (or the fiend) can enter the cell.
  */
-const walkable = code => code === 0 || code === 3 || code === 4;
+const walkable = (code) => code === 0 || code === 3 || code === 4;
 
 /**
  * One round of the practice game. See the module doc for the big picture.
@@ -96,7 +96,7 @@ class MockGame {
      * @param {number} [options.userSide] - which start the user takes (1 or 2).
      * @param {number} [options.seed] - PRNG seed (same seed = same fiend walk).
      */
-    constructor (options) {
+    constructor(options) {
         const map = options.map;
         this._rows = map.rows.length;
         this._cols = map.rows[0].length;
@@ -122,7 +122,7 @@ class MockGame {
         });
 
         const userSide = Number(options.userSide) === 2 ? 2 : 1;
-        this._pawns = [1, 2].map(side => {
+        this._pawns = [1, 2].map((side) => {
             const start = map.starts[side - 1];
             return this._makePawn(side, start, side === userSide);
         });
@@ -134,7 +134,7 @@ class MockGame {
             py: this._goal[1],
             active: true,
             killMark: 'none',
-            justKilled: false
+            justKilled: false,
         };
 
         this._fuses = [];
@@ -151,7 +151,7 @@ class MockGame {
      * @param {boolean} isUser - whether this pawn is driven by the user's AI.
      * @returns {object} - the pawn.
      */
-    _makePawn (side, start, isUser) {
+    _makePawn(side, start, isUser) {
         return {
             side,
             isUser,
@@ -176,8 +176,8 @@ class MockGame {
             sight: Array(this._floor.length).fill(-1), // freshness of each cell
             lastScanAt: null,
             moved: false,
-            intent: {step: null, plants: [], scans: []},
-            logs: []
+            intent: { step: null, plants: [], scans: [] },
+            logs: [],
         };
     }
 
@@ -186,8 +186,8 @@ class MockGame {
      * @param {number} y - the y coordinate.
      * @returns {number} - the flat cell index.
      */
-    _cellIndex (x, y) {
-        return (y * this._cols) + x;
+    _cellIndex(x, y) {
+        return y * this._cols + x;
     }
 
     /**
@@ -195,7 +195,7 @@ class MockGame {
      * @param {number} y - the y coordinate.
      * @returns {boolean} - true when (x, y) is on the board.
      */
-    _inBounds (x, y) {
+    _inBounds(x, y) {
         return x >= 0 && x < this._cols && y >= 0 && y < this._rows;
     }
 
@@ -203,7 +203,7 @@ class MockGame {
      * @param {number} side - 1 or 2.
      * @returns {object} - the pawn for that side.
      */
-    _pawn (side) {
+    _pawn(side) {
         return this._pawns[side - 1];
     }
 
@@ -211,7 +211,7 @@ class MockGame {
      * @param {number} side - 1 or 2.
      * @returns {object} - the opposing pawn.
      */
-    _rivalOf (side) {
+    _rivalOf(side) {
         return this._pawns[side === 1 ? 1 : 0];
     }
 
@@ -219,8 +219,8 @@ class MockGame {
      * @param {string} code - one of the RULE_ERRORS keys.
      * @returns {object} - an error result shaped like a real match error.
      */
-    _refuse (code) {
-        return {error: {code, message: RULE_ERRORS[code]}};
+    _refuse(code) {
+        return { error: { code, message: RULE_ERRORS[code] } };
     }
 
     /**
@@ -229,10 +229,10 @@ class MockGame {
      * @param {string} name - the player name (truncated to 14 chars).
      * @returns {object} - {info} with the joined pawn's state.
      */
-    join (side, name) {
+    join(side, name) {
         const pawn = this._pawn(side);
         pawn.name = String(name || '').slice(0, 14);
-        return {info: this.stateOf(side)};
+        return { info: this.stateOf(side) };
     }
 
     /**
@@ -240,7 +240,7 @@ class MockGame {
      * @param {object} pawn - the acting pawn.
      * @returns {?object} - an error result, or null when the action may proceed.
      */
-    _spendAct (pawn) {
+    _spendAct(pawn) {
         pawn.acts += 1; // even refused actions consume the slot
         if (pawn.acts > ACT_LIMIT) {
             return this._refuse('count_lack');
@@ -256,7 +256,7 @@ class MockGame {
      * @param {number} y - the window center y.
      * @returns {object} - {map, rivalSeen, fiend} or an error result.
      */
-    scan (side, x, y) {
+    scan(side, x, y) {
         const pawn = this._pawn(side);
         if (pawn.state !== 'playing') {
             return this._refuse('already_finished');
@@ -283,13 +283,11 @@ class MockGame {
         pawn.intent.scans.push([x, y]);
         const rival = this._rivalOf(side);
         const rivalSeen =
-            rival.x >= x0 && rival.x <= x1 && rival.y >= y0 && rival.y <= y1
-                ? [rival.x, rival.y]
-                : null;
+            rival.x >= x0 && rival.x <= x1 && rival.y >= y0 && rival.y <= y1 ? [rival.x, rival.y] : null;
         return {
             map: this.fogOf(side),
             rivalSeen,
-            fiend: this.fiendInfo()
+            fiend: this.fiendInfo(),
         };
     }
 
@@ -300,7 +298,7 @@ class MockGame {
      * @param {number} y - the destination y.
      * @returns {object} - {info} or an error result.
      */
-    step (side, x, y) {
+    step(side, x, y) {
         const pawn = this._pawn(side);
         if (pawn.state !== 'playing') {
             return this._refuse('already_finished');
@@ -316,21 +314,17 @@ class MockGame {
             // Climbing out of water eats the action; the coordinates are not
             // even looked at, and the move-per-turn right is kept.
             pawn.soaked = false;
-            return {info: this.stateOf(side)};
+            return { info: this.stateOf(side) };
         }
         pawn.canStep = false; // an invalid move still uses up the move right
         const dx = x - pawn.x;
         const dy = y - pawn.y;
-        const adjacent = (dx * dx) + (dy * dy) <= 1;
-        if (
-            !adjacent ||
-            !this._inBounds(x, y) ||
-            !walkable(this._floor[this._cellIndex(x, y)])
-        ) {
+        const adjacent = dx * dx + dy * dy <= 1;
+        if (!adjacent || !this._inBounds(x, y) || !walkable(this._floor[this._cellIndex(x, y)])) {
             return this._refuse('move_invalid_pos');
         }
         pawn.intent.step = [x, y];
-        return {info: this.stateOf(side)};
+        return { info: this.stateOf(side) };
     }
 
     /**
@@ -341,7 +335,7 @@ class MockGame {
      * @param {number} y - the target y.
      * @returns {object} - {ok: true} or an error result.
      */
-    plant (side, kind, x, y) {
+    plant(side, kind, x, y) {
         const pawn = this._pawn(side);
         const isDynamite = kind === 'dynamite';
         if (pawn.state !== 'playing') {
@@ -364,15 +358,15 @@ class MockGame {
         const base = pawn.intent.step || [pawn.x, pawn.y];
         const dx = x - base[0];
         const dy = y - base[1];
-        const nearBase = (dx * dx) + (dy * dy) <= 1;
+        const nearBase = dx * dx + dy * dy <= 1;
         const idx = this._cellIndex(x, y);
         const ground = this._inBounds(x, y) ? this._floor[idx] : null;
         const placeable = isDynamite ? ground === 0 || ground === 4 : ground === 0;
         if (!nearBase || !this._inBounds(x, y) || !placeable || this._loot.has(idx)) {
             return this._refuse(isDynamite ? 'dynamite_invalid_pos' : 'bomb_invalid_pos');
         }
-        pawn.intent.plants.push({kind, x, y});
-        return {ok: true};
+        pawn.intent.plants.push({ kind, x, y });
+        return { ok: true };
     }
 
     /**
@@ -381,13 +375,13 @@ class MockGame {
      * @param {string} msg - the message (truncated to 100 chars).
      * @returns {object} - {ok: true} or an error result.
      */
-    say (side, msg) {
+    say(side, msg) {
         const pawn = this._pawn(side);
         if (pawn.state !== 'playing') {
             return this._refuse('already_finished');
         }
         pawn.msg = String(msg === undefined || msg === null ? '' : msg).slice(0, 100);
-        return {ok: true};
+        return { ok: true };
     }
 
     /**
@@ -396,14 +390,14 @@ class MockGame {
      * @param {number} side - the side ending its turn.
      * @returns {object} - {info} with the pawn's state after resolution.
      */
-    finishTurn (side) {
+    finishTurn(side) {
         const pawn = this._pawn(side);
         if (pawn.state !== 'playing' || this._over) {
             // A finished pawn may keep calling turn over; it is harmless.
-            return {info: this.stateOf(side)};
+            return { info: this.stateOf(side) };
         }
         this._resolveTurn();
-        return {info: this.stateOf(side)};
+        return { info: this.stateOf(side) };
     }
 
     /**
@@ -411,10 +405,10 @@ class MockGame {
      * fiend moves first, then reserved pawn actions apply, then goals and the
      * turn limit, then scoring, then dynamite goes off, then the next turn.
      */
-    _resolveTurn () {
+    _resolveTurn() {
         this._events = [];
         this._fiend.justKilled = false;
-        this._pawns.forEach(pawn => {
+        this._pawns.forEach((pawn) => {
             pawn.logs = [];
             pawn.gotWalkBonus = false;
         });
@@ -434,7 +428,7 @@ class MockGame {
         this._detonate();
 
         this._turn += 1;
-        const allDone = this._pawns.every(pawn => pawn.state !== 'playing');
+        const allDone = this._pawns.every((pawn) => pawn.state !== 'playing');
         if (this._turn > MAX_TURN || allDone) {
             this._over = true;
             for (const pawn of this._pawns) {
@@ -449,10 +443,10 @@ class MockGame {
      * Apply one pawn's reserved actions and per-turn upkeep.
      * @param {object} pawn - the pawn.
      */
-    _applyIntent (pawn) {
+    _applyIntent(pawn) {
         if (pawn.state !== 'playing') {
             pawn.logs = [[pawn.state, null, null]];
-            pawn.intent = {step: null, plants: [], scans: []};
+            pawn.intent = { step: null, plants: [], scans: [] };
             return;
         }
         pawn.px = pawn.x;
@@ -477,7 +471,7 @@ class MockGame {
         for (const [sx, sy] of pawn.intent.scans) {
             pawn.logs.push(['search', sx, sy]);
         }
-        pawn.intent = {step: null, plants: [], scans: []};
+        pawn.intent = { step: null, plants: [], scans: [] };
 
         // Everything seen goes one notch stale each turn.
         for (let i = 0; i < pawn.sight.length; i++) {
@@ -501,8 +495,8 @@ class MockGame {
     /**
      * Give the fiend-slaying power to pawns standing on the sword item.
      */
-    _grantSwordPower () {
-        const holders = this._pawns.filter(pawn => {
+    _grantSwordPower() {
+        const holders = this._pawns.filter((pawn) => {
             const mark = this._loot.get(this._cellIndex(pawn.x, pawn.y));
             return mark === 'e';
         });
@@ -518,7 +512,7 @@ class MockGame {
      * @param {object} pawn - the pawn.
      * @returns {boolean} - true when it does.
      */
-    _hasSwordPower (pawn) {
+    _hasSwordPower(pawn) {
         const mark = this._fiend.killMark;
         return mark === 'both' || mark === `p${pawn.side}`;
     }
@@ -527,7 +521,7 @@ class MockGame {
      * Score one pawn: items, fiend contact, walk bonus, goal bonus.
      * @param {object} pawn - the pawn.
      */
-    _scorePawn (pawn) {
+    _scorePawn(pawn) {
         const rival = this._rivalOf(pawn.side);
         const idx = this._cellIndex(pawn.x, pawn.y);
         const mark = this._loot.get(idx);
@@ -554,19 +548,12 @@ class MockGame {
         }
 
         const fiend = this._fiend;
-        if (
-            fiend.active &&
-            pawn.x === fiend.x &&
-            pawn.y === fiend.y &&
-            !pawn.goalBonus
-        ) {
+        if (fiend.active && pawn.x === fiend.x && pawn.y === fiend.y && !pawn.goalBonus) {
             if (this._hasSwordPower(pawn)) {
-                const bothHere =
-                    fiend.killMark === 'both' && rival.x === fiend.x && rival.y === fiend.y;
+                const bothHere = fiend.killMark === 'both' && rival.x === fiend.x && rival.y === fiend.y;
                 pawn.pts += bothHere ? 15 : 30;
             } else {
-                const rivalSlaysHere =
-                    this._hasSwordPower(rival) && rival.x === fiend.x && rival.y === fiend.y;
+                const rivalSlaysHere = this._hasSwordPower(rival) && rival.x === fiend.x && rival.y === fiend.y;
                 if (!rivalSlaysHere) {
                     pawn.pts -= 10;
                 }
@@ -593,21 +580,21 @@ class MockGame {
     /**
      * @returns {number} - the goal bonus a pawn reaching the goal now earns.
      */
-    _currentGoalBonus () {
-        return 100 - (Math.floor((this._turn - 1) / 10) * 10);
+    _currentGoalBonus() {
+        return 100 - Math.floor((this._turn - 1) / 10) * 10;
     }
 
     /**
      * After scoring: slay the fiend if a power holder shares its cell, or
      * dissolve the power when its holder is out of the game.
      */
-    _settleSwordPower () {
+    _settleSwordPower() {
         const fiend = this._fiend;
         if (!fiend.active || fiend.killMark === 'none' || fiend.killMark === 'done') {
             return;
         }
-        const holders = this._pawns.filter(pawn => this._hasSwordPower(pawn));
-        const slayer = holders.find(pawn => pawn.x === fiend.x && pawn.y === fiend.y);
+        const holders = this._pawns.filter((pawn) => this._hasSwordPower(pawn));
+        const slayer = holders.find((pawn) => pawn.x === fiend.x && pawn.y === fiend.y);
         if (slayer) {
             fiend.active = false;
             fiend.justKilled = true;
@@ -617,7 +604,7 @@ class MockGame {
             return;
         }
         if (fiend.killMark === 'both') {
-            if (holders.every(pawn => pawn.goalBonus)) {
+            if (holders.every((pawn) => pawn.goalBonus)) {
                 fiend.killMark = 'none';
             }
             return;
@@ -631,13 +618,13 @@ class MockGame {
      * Blow up this turn's dynamite: each fuse turns the breakable walls on
      * its four neighbors into open space.
      */
-    _detonate () {
+    _detonate() {
         for (const [x, y] of this._fuses) {
             for (const [nx, ny] of [
                 [x + 1, y],
                 [x - 1, y],
                 [x, y + 1],
-                [x, y - 1]
+                [x, y - 1],
             ]) {
                 if (!this._inBounds(nx, ny)) {
                     continue;
@@ -655,7 +642,7 @@ class MockGame {
      * Move the fiend one cell: hunt a nearby pawn (whole board from turn 41),
      * wander randomly when nobody is close, hold still when cornered.
      */
-    _moveFiend () {
+    _moveFiend() {
         const fiend = this._fiend;
         if (!fiend.active) {
             return;
@@ -663,7 +650,7 @@ class MockGame {
         fiend.px = fiend.x;
         fiend.py = fiend.y;
         const raging = this._turn >= FIEND_RAGE_TURN;
-        const prey = this._pawns.filter(pawn => pawn.state === 'playing');
+        const prey = this._pawns.filter((pawn) => pawn.state === 'playing');
 
         let path = null;
         let minSteps = Infinity;
@@ -682,13 +669,11 @@ class MockGame {
             return;
         }
 
-        const near = prey.filter(
-            pawn => Math.abs(pawn.x - fiend.x) <= 3 && Math.abs(pawn.y - fiend.y) <= 3
-        );
+        const near = prey.filter((pawn) => Math.abs(pawn.x - fiend.x) <= 3 && Math.abs(pawn.y - fiend.y) <= 3);
         let target = null;
         let best = Infinity;
         for (const pawn of near) {
-            const d = ((pawn.x - fiend.x) ** 2) + ((pawn.y - fiend.y) ** 2);
+            const d = (pawn.x - fiend.x) ** 2 + (pawn.y - fiend.y) ** 2;
             if (d < best) {
                 best = d;
                 target = pawn;
@@ -706,10 +691,8 @@ class MockGame {
             [fiend.x + 1, fiend.y],
             [fiend.x - 1, fiend.y],
             [fiend.x, fiend.y + 1],
-            [fiend.x, fiend.y - 1]
-        ].filter(
-            ([nx, ny]) => this._inBounds(nx, ny) && walkable(this._floor[this._cellIndex(nx, ny)])
-        );
+            [fiend.x, fiend.y - 1],
+        ].filter(([nx, ny]) => this._inBounds(nx, ny) && walkable(this._floor[this._cellIndex(nx, ny)]));
         if (options.length > 0) {
             const [nx, ny] = options[Math.floor(this._rng() * options.length)];
             fiend.x = nx;
@@ -726,7 +709,7 @@ class MockGame {
      * @param {number} ty - target y.
      * @returns {?Array<Array<number>>} - the path as [x, y] cells, or null.
      */
-    _huntPath (sx, sy, tx, ty) {
+    _huntPath(sx, sy, tx, ty) {
         const startKey = this._cellIndex(sx, sy);
         const goalKey = this._cellIndex(tx, ty);
         if (startKey === goalKey) {
@@ -740,7 +723,7 @@ class MockGame {
                 [x + 1, y],
                 [x - 1, y],
                 [x, y + 1],
-                [x, y - 1]
+                [x, y - 1],
             ]) {
                 if (!this._inBounds(nx, ny)) {
                     continue;
@@ -772,7 +755,7 @@ class MockGame {
      * @returns {Array<Array<(number|string)>>} - a copy of that side's own map
      *     (-1 unexplored, terrain codes, item marks as letters).
      */
-    fogOf (side) {
+    fogOf(side) {
         const pawn = this._pawn(side);
         const grid = [];
         for (let y = 0; y < this._rows; y++) {
@@ -784,7 +767,7 @@ class MockGame {
     /**
      * @returns {object} - the fiend as reported to players (always visible).
      */
-    fiendInfo () {
+    fiendInfo() {
         const fiend = this._fiend;
         let state = 'normal';
         if (fiend.killMark === 'done') {
@@ -800,10 +783,8 @@ class MockGame {
             prev_x: fiend.px,
             prev_y: fiend.py,
             state,
-            kill_player: fiend.killMark === 'p1' ? 'player1'
-                : fiend.killMark === 'p2' ? 'player2'
-                    : fiend.killMark,
-            killed: fiend.justKilled
+            kill_player: fiend.killMark === 'p1' ? 'player1' : fiend.killMark === 'p2' ? 'player2' : fiend.killMark,
+            killed: fiend.justKilled,
         };
     }
 
@@ -813,7 +794,7 @@ class MockGame {
      * @param {number} side - 1 or 2.
      * @returns {object} - the pawn state.
      */
-    stateOf (side) {
+    stateOf(side) {
         const pawn = this._pawn(side);
         const finished = pawn.state !== 'playing';
         const levelBase = finished ? pawn.pts : pawn.pts + this._currentGoalBonus();
@@ -836,7 +817,7 @@ class MockGame {
             walk_bonus: pawn.gotWalkBonus,
             dynamite_items: Array(pawn.kegs).fill(10),
             bomb_items: Array(pawn.charges).fill(9),
-            msg: pawn.msg
+            msg: pawn.msg,
         };
     }
 
@@ -844,7 +825,7 @@ class MockGame {
      * Everything the debugging panel needs to draw the whole world.
      * @returns {object} - the full ground-truth snapshot.
      */
-    snapshot () {
+    snapshot() {
         const rows = [];
         for (let y = 0; y < this._rows; y++) {
             let row = '';
@@ -861,7 +842,7 @@ class MockGame {
             goal: this._goal.slice(),
             rows,
             events: this._events.slice(),
-            pawns: this._pawns.map(pawn => ({
+            pawns: this._pawns.map((pawn) => ({
                 side: pawn.side,
                 isUser: pawn.isUser,
                 name: pawn.name,
@@ -877,30 +858,30 @@ class MockGame {
                 inWater: pawn.soaked,
                 walkCount: pawn.stride,
                 message: pawn.msg,
-                level: this.stateOf(pawn.side).character_level
+                level: this.stateOf(pawn.side).character_level,
             })),
-            fiend: this.fiendInfo()
+            fiend: this.fiendInfo(),
         };
     }
 
     /**
      * @returns {number} - the current turn number (1-based).
      */
-    get turn () {
+    get turn() {
         return this._turn;
     }
 
     /**
      * @returns {boolean} - true once the round has ended.
      */
-    get over () {
+    get over() {
         return this._over;
     }
 
     /**
      * @returns {Array<number>} - the goal cell as [x, y].
      */
-    get goal () {
+    get goal() {
         return this._goal.slice();
     }
 
@@ -909,9 +890,9 @@ class MockGame {
      * @param {number} side - 1 or 2.
      * @returns {object} - {x, y, soaked, state}.
      */
-    pawnAt (side) {
+    pawnAt(side) {
         const pawn = this._pawn(side);
-        return {x: pawn.x, y: pawn.y, soaked: pawn.soaked, state: pawn.state};
+        return { x: pawn.x, y: pawn.y, soaked: pawn.soaked, state: pawn.state };
     }
 
     /**
@@ -920,14 +901,14 @@ class MockGame {
      * @param {number} y - the y coordinate.
      * @returns {boolean} - true when walkable terrain.
      */
-    isWalkable (x, y) {
+    isWalkable(x, y) {
         return this._inBounds(x, y) && walkable(this._floor[this._cellIndex(x, y)]);
     }
 
     /**
      * @returns {Function} - the game's deterministic RNG (shared with the rival).
      */
-    get rng () {
+    get rng() {
         return this._rng;
     }
 }
@@ -937,5 +918,5 @@ module.exports = {
     ACT_LIMIT,
     MAX_TURN,
     RULE_ERRORS,
-    LOOT_POINTS
+    LOOT_POINTS,
 };

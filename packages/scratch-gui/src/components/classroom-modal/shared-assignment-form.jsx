@@ -8,15 +8,8 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-
-import {
-    SCHOOL_LEVELS,
-    SUBJECTS_BY_LEVEL,
-    gradesForLevel,
-    parseTags,
-} from '../../lib/shared-assignment-taxonomy.js';
+import { SCHOOL_LEVELS, SUBJECTS_BY_LEVEL, gradesForLevel, parseTags } from '../../lib/shared-assignment-taxonomy.js';
 import { detectSharedAuthorProfile, persistSharedAuthorProfile } from '../../lib/shared-author-profile.js';
-
 import styles from './classroom-modal.css';
 
 const schoolLevelMessages = {
@@ -42,7 +35,15 @@ const schoolLevelMessages = {
     },
 };
 
-const SharedAssignmentForm = ({ selectedClassroom, initialValues, heading, isLoading, onCancel, onShare, submitLabel }) => {
+const SharedAssignmentForm = ({
+    selectedClassroom,
+    initialValues,
+    heading,
+    isLoading,
+    onCancel,
+    onShare,
+    submitLabel,
+}) => {
     const intl = useIntl();
     const savedProfile = detectSharedAuthorProfile();
     // 編集モード (#1110: 限定公開 → 全体公開に広げる) では既存項目の値を
@@ -98,7 +99,10 @@ const SharedAssignmentForm = ({ selectedClassroom, initialValues, heading, isLoa
         (e) => {
             e.preventDefault();
             if (!canSubmit) return;
-            persistSharedAuthorProfile({ authorName: authorName.trim(), authorAffiliation: authorAffiliation.trim() });
+            persistSharedAuthorProfile({
+                authorName: authorName.trim(),
+                authorAffiliation: authorAffiliation.trim(),
+            });
             onShare({
                 // 編集モード (selectedClassroom なし) では classroomId を送らない。
                 ...(selectedClassroom ? { classroomId: selectedClassroom.classroomId } : {}),
@@ -116,8 +120,19 @@ const SharedAssignmentForm = ({ selectedClassroom, initialValues, heading, isLoa
             });
         },
         [
-            canSubmit, onShare, selectedClassroom, title, summary, schoolLevel,
-            grades, subject, tagsText, lessonCount, supplementUrl, authorName, authorAffiliation,
+            canSubmit,
+            onShare,
+            selectedClassroom,
+            title,
+            summary,
+            schoolLevel,
+            grades,
+            subject,
+            tagsText,
+            lessonCount,
+            supplementUrl,
+            authorName,
+            authorAffiliation,
         ],
     );
 
@@ -195,7 +210,9 @@ const SharedAssignmentForm = ({ selectedClassroom, initialValues, heading, isLoa
                             })}
                         </option>
                         {subjects.map((s) => (
-                            <option key={s} value={s}>{s}</option>
+                            <option key={s} value={s}>
+                                {s}
+                            </option>
                         ))}
                     </select>
                 ) : (
@@ -349,12 +366,7 @@ const SharedAssignmentForm = ({ selectedClassroom, initialValues, heading, isLoa
             </label>
 
             <div className={styles.sharedFormActions}>
-                <button
-                    data-testid="shared-form-cancel"
-                    disabled={isLoading}
-                    type="button"
-                    onClick={onCancel}
-                >
+                <button data-testid="shared-form-cancel" disabled={isLoading} type="button" onClick={onCancel}>
                     <FormattedMessage
                         defaultMessage="Cancel"
                         description="Cancel button of the share form"

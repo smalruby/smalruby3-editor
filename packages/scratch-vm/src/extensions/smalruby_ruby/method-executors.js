@@ -16,10 +16,7 @@ const executeStringMethod = (args, util, setReturnValue) => {
         // Bang method: receiver is variable name
         const variableName = args.RECEIVER;
         const target = util.target;
-        const variable = target.lookupVariableByNameAndType(
-            variableName,
-            Variable.SCALAR_TYPE,
-        );
+        const variable = target.lookupVariableByNameAndType(variableName, Variable.SCALAR_TYPE);
         if (!variable) {
             setReturnValue(util, '');
             return;
@@ -36,10 +33,7 @@ const executeStringMethod = (args, util, setReturnValue) => {
                     .join('');
                 break;
             case 'gsub!':
-                result =
-                    arg2 === undefined
-                        ? string
-                        : string.replaceAll(String(arg1 || ''), String(arg2));
+                result = arg2 === undefined ? string : string.replaceAll(String(arg1 || ''), String(arg2));
                 break;
             default:
                 result = string;
@@ -75,10 +69,7 @@ const executeStringMethod = (args, util, setReturnValue) => {
                     .join('');
                 break;
             case 'gsub':
-                result =
-                    arg2 === undefined
-                        ? string
-                        : string.replaceAll(String(arg1 || ''), String(arg2));
+                result = arg2 === undefined ? string : string.replaceAll(String(arg1 || ''), String(arg2));
                 break;
             case '*':
                 result = string.repeat(Math.max(0, Math.floor(Number(arg1) || 0)));
@@ -122,14 +113,8 @@ const resolveListReceiverItems = (args, util) => {
                     const listField = inputBlock.fields.LIST;
                     const listVar = target.lookupVariableById
                         ? target.lookupVariableById(listField.id) ||
-                          target.lookupVariableByNameAndType(
-                              listField.value,
-                              Variable.LIST_TYPE,
-                          )
-                        : target.lookupVariableByNameAndType(
-                              listField.value,
-                              Variable.LIST_TYPE,
-                          );
+                          target.lookupVariableByNameAndType(listField.value, Variable.LIST_TYPE)
+                        : target.lookupVariableByNameAndType(listField.value, Variable.LIST_TYPE);
                     if (listVar && Array.isArray(listVar.value)) {
                         return listVar.value.slice();
                     }
@@ -155,10 +140,7 @@ const executeArrayMethod = (args, util, setReturnValue) => {
         // Bang method: receiver is variable name, modify list in place
         const variableName = args.RECEIVER;
         const target = util.target;
-        const listVar = target.lookupVariableByNameAndType(
-            variableName,
-            Variable.LIST_TYPE,
-        );
+        const listVar = target.lookupVariableByNameAndType(variableName, Variable.LIST_TYPE);
         if (!listVar) {
             setReturnValue(util, '');
             return;
@@ -214,9 +196,7 @@ const executeArrayMethod = (args, util, setReturnValue) => {
             }
             case 'sort': {
                 const nums = items.map(Number);
-                result = nums.every((n) => !isNaN(n))
-                    ? nums.sort((a, b) => a - b).join(' ')
-                    : items.sort().join(' ');
+                result = nums.every((n) => !isNaN(n)) ? nums.sort((a, b) => a - b).join(' ') : items.sort().join(' ');
                 break;
             }
             case 'reverse':
@@ -232,9 +212,7 @@ const executeArrayMethod = (args, util, setReturnValue) => {
                 result = items.length === 0;
                 break;
             case 'join':
-                result = items.join(
-                    arg1 === undefined ? '' : String(arg1),
-                );
+                result = items.join(arg1 === undefined ? '' : String(arg1));
                 break;
             default:
                 result = items.join(' ');

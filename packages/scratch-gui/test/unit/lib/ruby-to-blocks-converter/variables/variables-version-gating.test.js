@@ -12,7 +12,7 @@ describe('RubyToBlocksConverter/Variables/VersionGating', () => {
         let v1Converter;
 
         beforeEach(() => {
-            v1Converter = new RubyToBlocksConverter(null, {version: '1'});
+            v1Converter = new RubyToBlocksConverter(null, { version: '1' });
         });
 
         test('$a.push("thing") is rejected in v1', async () => {
@@ -102,7 +102,7 @@ describe('RubyToBlocksConverter/Variables/VersionGating', () => {
         let v2Converter;
 
         beforeEach(() => {
-            v2Converter = new RubyToBlocksConverter(null, {version: '2'});
+            v2Converter = new RubyToBlocksConverter(null, { version: '2' });
         });
 
         test('list("$a") is rejected in v2', async () => {

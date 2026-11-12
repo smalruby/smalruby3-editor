@@ -6,12 +6,12 @@
  * aligned to the token's column position using the editor's monospace font metrics.
  */
 class FuriganaRenderer {
-    constructor () {
+    constructor() {
         this._viewZoneIds = [];
         this._enabled = false;
     }
 
-    get enabled () {
+    get enabled() {
         return this._enabled;
     }
 
@@ -21,7 +21,7 @@ class FuriganaRenderer {
      * @param {object} monaco - Monaco namespace
      * @param {Map} annotations - Map<lineNumber, Array<{startColumn, label}>> from FuriganaAnnotator
      */
-    render (editor, monaco, annotations) {
+    render(editor, monaco, annotations) {
         this.clear(editor);
         this._enabled = true;
 
@@ -35,16 +35,14 @@ class FuriganaRenderer {
         const zoneHeight = Math.max(12, Math.floor(lineHeight * 0.55));
         const fontSize = Math.max(9, Math.floor(zoneHeight * 0.75 * 1.25));
 
-        editor.changeViewZones(accessor => {
+        editor.changeViewZones((accessor) => {
             for (const [lineNumber, anns] of annotations) {
-                const domNode = this._createZoneDom(
-                    anns, charWidth, zoneHeight, fontSize
-                );
+                const domNode = this._createZoneDom(anns, charWidth, zoneHeight, fontSize);
 
                 const zoneId = accessor.addZone({
                     afterLineNumber: lineNumber - 1, // insert above this line
                     heightInPx: zoneHeight,
-                    domNode
+                    domNode,
                 });
                 this._viewZoneIds.push(zoneId);
             }
@@ -55,11 +53,11 @@ class FuriganaRenderer {
      * Remove all furigana ViewZones from the editor.
      * @param {object} editor - Monaco editor instance
      */
-    clear (editor) {
+    clear(editor) {
         this._enabled = false;
         if (this._viewZoneIds.length === 0) return;
-        editor.changeViewZones(accessor => {
-            this._viewZoneIds.forEach(id => accessor.removeZone(id));
+        editor.changeViewZones((accessor) => {
+            this._viewZoneIds.forEach((id) => accessor.removeZone(id));
         });
         this._viewZoneIds = [];
     }
@@ -70,11 +68,11 @@ class FuriganaRenderer {
      * @param {object} monaco - Monaco namespace
      * @param {Map} annotations - Map from FuriganaAnnotator
      */
-    update (editor, monaco, annotations) {
+    update(editor, monaco, annotations) {
         this.render(editor, monaco, annotations);
     }
 
-    _createZoneDom (anns, charWidth, zoneHeight, fontSize) {
+    _createZoneDom(anns, charWidth, zoneHeight, fontSize) {
         const div = document.createElement('div');
         div.style.position = 'relative';
         div.style.height = `${zoneHeight}px`;
@@ -123,7 +121,7 @@ class FuriganaRenderer {
      * @param {string} char - character to color differently
      * @param {string} color - CSS color for the special character
      */
-    _appendColoredLabel (span, label, char, color) {
+    _appendColoredLabel(span, label, char, color) {
         const parts = label.split(char);
         for (let i = 0; i < parts.length; i++) {
             if (parts[i]) {
@@ -144,7 +142,7 @@ class FuriganaRenderer {
      * @param {string} text - The text to measure.
      * @param {number} fontSize - The font size in pixels.
      */
-    _measureTextWidth (text, fontSize) {
+    _measureTextWidth(text, fontSize) {
         if (!this._measureCanvas) {
             this._measureCanvas = document.createElement('canvas');
         }

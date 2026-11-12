@@ -1,10 +1,9 @@
 // === Smalruby: This file is Smalruby-specific (Monaco editor setup for Ruby tab) ===
-
 import CompletionProviderManager from './completion-provider-manager';
-import {DnclSnippetsCompleter} from './dncl-snippets';
-import {dnclLanguage, dnclLanguageConfiguration} from './dncl-mode';
+import { dnclLanguage, dnclLanguageConfiguration } from './dncl-mode';
+import { DnclSnippetsCompleter } from './dncl-snippets';
+import { smalrubyLanguage, smalrubyLanguageConfiguration } from './smalruby-mode';
 import SnippetsCompleter from './snippets-completer';
-import {smalrubyLanguage, smalrubyLanguageConfiguration} from './smalruby-mode';
 
 /**
  * Register a custom paste action that uses the Clipboard API.
@@ -14,14 +13,14 @@ import {smalrubyLanguage, smalrubyLanguageConfiguration} from './smalruby-mode';
  * @param {function(string): string} [transformText] - Rewrites the pasted
  *   text before it is inserted (e.g. tidying DNCL code, Issue #1192).
  */
-const registerCustomPasteAction = (editor, pasteLabel, transformText = text => text) => {
+const registerCustomPasteAction = (editor, pasteLabel, transformText = (text) => text) => {
     editor.addAction({
         id: 'smalruby.paste',
         label: pasteLabel,
         contextMenuGroupId: '9_cutcopypaste',
         contextMenuOrder: 4,
         precondition: '!editorReadonly',
-        run: async ed => {
+        run: async (ed) => {
             try {
                 const text = await navigator.clipboard.readText();
                 if (text) {
@@ -30,14 +29,14 @@ const registerCustomPasteAction = (editor, pasteLabel, transformText = text => t
                     ed.trigger('keyboard', 'paste', {
                         text: transformText(text),
                         pasteOnNewLine: false,
-                        multicursorText: null
+                        multicursorText: null,
                     });
                 }
             } catch (err) {
                 // eslint-disable-next-line no-console
                 console.error('Smalruby custom paste error:', err);
             }
-        }
+        },
     });
 };
 
@@ -54,7 +53,7 @@ const registerCustomPasteAction = (editor, pasteLabel, transformText = text => t
 const setupPasteTransform = (editor, transformText) => {
     const domNode = editor.getDomNode();
     if (!domNode) return () => {};
-    const handlePaste = event => {
+    const handlePaste = (event) => {
         // The find/replace widget lives inside the editor DOM too; only
         // rewrite pastes into the editor text itself.
         if (!event.clipboardData || !editor.hasTextFocus() || editor.getRawOptions().readOnly) return;
@@ -64,7 +63,7 @@ const setupPasteTransform = (editor, transformText) => {
         if (transformed === text) return;
         event.preventDefault();
         event.stopPropagation();
-        editor.trigger('keyboard', 'paste', {text: transformed, pasteOnNewLine: false, multicursorText: null});
+        editor.trigger('keyboard', 'paste', { text: transformed, pasteOnNewLine: false, multicursorText: null });
     };
     domNode.addEventListener('paste', handlePaste, true);
     return () => domNode.removeEventListener('paste', handlePaste, true);
@@ -81,10 +80,10 @@ const setupPasteDuplicateHider = () => {
     let pasteMutationObserver = null;
     let bodyMutationObserver = null;
 
-    const hideDuplicatePaste = shadowRoot => {
-        const pasteLabels = Array.from(shadowRoot.querySelectorAll(
-            '.action-label[aria-label="Paste"], .action-label[aria-label="貼り付け"]'
-        ));
+    const hideDuplicatePaste = (shadowRoot) => {
+        const pasteLabels = Array.from(
+            shadowRoot.querySelectorAll('.action-label[aria-label="Paste"], .action-label[aria-label="貼り付け"]'),
+        );
         if (pasteLabels.length >= 2) {
             const firstPasteItem = pasteLabels[0].closest('.action-item');
             if (firstPasteItem) {
@@ -93,7 +92,7 @@ const setupPasteDuplicateHider = () => {
         }
     };
 
-    const setupObserver = host => {
+    const setupObserver = (host) => {
         if (pasteMutationObserver) return;
 
         pasteMutationObserver = new MutationObserver(() => {
@@ -101,7 +100,7 @@ const setupPasteDuplicateHider = () => {
         });
         pasteMutationObserver.observe(host.shadowRoot, {
             childList: true,
-            subtree: true
+            subtree: true,
         });
         hideDuplicatePaste(host.shadowRoot);
     };
@@ -120,11 +119,11 @@ const setupPasteDuplicateHider = () => {
         });
         bodyMutationObserver.observe(document.body, {
             childList: true,
-            subtree: true
+            subtree: true,
         });
     }
 
-    return {pasteMutationObserver, bodyMutationObserver};
+    return { pasteMutationObserver, bodyMutationObserver };
 };
 
 /**
@@ -138,13 +137,13 @@ const setupPasteDuplicateHider = () => {
  */
 const registerLanguageAndProviders = (monaco, editor, vm, quickFixProvider, existingManager) => {
     // Register Smalruby language
-    monaco.languages.register({id: 'smalruby'});
+    monaco.languages.register({ id: 'smalruby' });
     monaco.languages.setMonarchTokensProvider('smalruby', smalrubyLanguage);
     monaco.languages.setLanguageConfiguration('smalruby', smalrubyLanguageConfiguration);
 
     // === Smalruby: Start of DNCL language registration ===
     // Register DNCL language mode
-    monaco.languages.register({id: 'dncl'});
+    monaco.languages.register({ id: 'dncl' });
     monaco.languages.setMonarchTokensProvider('dncl', dnclLanguage);
     monaco.languages.setLanguageConfiguration('dncl', dnclLanguageConfiguration);
     // === Smalruby: End of DNCL language registration ===
@@ -155,17 +154,15 @@ const registerLanguageAndProviders = (monaco, editor, vm, quickFixProvider, exis
         completionProviderManager = new CompletionProviderManager();
         const completer = new SnippetsCompleter(vm);
         completionProviderManager.register(monaco, 'smalruby', {
-            provideCompletionItems: (model, position, context, token) => (
-                completer.provideCompletionItems(model, position, context, token, monaco)
-            )
+            provideCompletionItems: (model, position, context, token) =>
+                completer.provideCompletionItems(model, position, context, token, monaco),
         });
 
         // === Smalruby: Start of DNCL completion provider ===
         const dnclCompleter = new DnclSnippetsCompleter();
         completionProviderManager.register(monaco, 'dncl', {
-            provideCompletionItems: (model, position, context, token) => (
-                dnclCompleter.provideCompletionItems(model, position, context, token, monaco)
-            )
+            provideCompletionItems: (model, position, context, token) =>
+                dnclCompleter.provideCompletionItems(model, position, context, token, monaco),
         });
         // === Smalruby: End of DNCL completion provider ===
     }
@@ -173,17 +170,11 @@ const registerLanguageAndProviders = (monaco, editor, vm, quickFixProvider, exis
     // Register quick fix provider for conversion errors
     quickFixProvider.setVM(vm);
     monaco.languages.registerCodeActionProvider('smalruby', {
-        provideCodeActions: (model, range, ctx, token) => (
-            quickFixProvider.provideCodeActions(model, range, ctx, token)
-        )
+        provideCodeActions: (model, range, ctx, token) =>
+            quickFixProvider.provideCodeActions(model, range, ctx, token),
     });
 
     return completionProviderManager;
 };
 
-export {
-    registerCustomPasteAction,
-    setupPasteTransform,
-    setupPasteDuplicateHider,
-    registerLanguageAndProviders
-};
+export { registerCustomPasteAction, setupPasteTransform, setupPasteDuplicateHider, registerLanguageAndProviders };

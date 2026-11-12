@@ -1,12 +1,12 @@
+import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
+import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../helpers/expect-to-equal-blocks';
-import Variable from '@smalruby/scratch-vm/src/engine/variable';
-import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
 
 describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
     let converter;
@@ -15,7 +15,7 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
     beforeEach(() => {
         const runtime = {
             emitProjectChanged: () => {},
-            getTargetForStage: () => target
+            getTargetForStage: () => target,
         };
         target = {
             blocks: new Blocks(runtime),
@@ -45,13 +45,13 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
                     y: y,
                     width: width,
                     height: height,
-                    minimized: minimized
+                    minimized: minimized,
                 };
-            }
+            },
         };
         const vm = {
             runtime: runtime,
-            editingTarget: target
+            editingTarget: target,
         };
         converter = new RubyToBlocksConverter(vm);
     });
@@ -91,38 +91,38 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
                                     proccode: 'one',
                                     argumentids: '[]',
                                     argumentnames: '[]',
-                                    argumentdefaults: '[]'
+                                    argumentdefaults: '[]',
                                 },
-                                shadow: true
-                            }
-                        }
+                                shadow: true,
+                            },
+                        },
                     ],
                     next: {
                         opcode: 'data_setvariableto',
                         fields: [
                             {
                                 name: 'VARIABLE',
-                                variable: '@_return_one_'
-                            }
+                                variable: '@_return_one_',
+                            },
                         ],
                         inputs: [
                             {
                                 name: 'VALUE',
-                                block: expectedInfo.makeNumber(1)
-                            }
+                                block: expectedInfo.makeNumber(1),
+                            },
                         ],
                         comment: {
                             text: '@ruby:return:one',
-                            minimized: true
-                        }
-                    }
+                            minimized: true,
+                        },
+                    },
                 },
                 {
                     opcode: 'procedures_call',
                     mutation: {
                         proccode: 'one',
                         argumentids: '[]',
-                        warp: 'false'
+                        warp: 'false',
                     },
                     next: {
                         opcode: 'looks_sayforsecs',
@@ -134,11 +134,11 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
                                     fields: [
                                         {
                                             name: 'VARIABLE',
-                                            variable: '@_return_one_'
-                                        }
-                                    ]
+                                            variable: '@_return_one_',
+                                        },
+                                    ],
                                 },
-                                shadow: expectedInfo.makeText('Hello!')
+                                shadow: expectedInfo.makeText('Hello!'),
                             },
                             {
                                 name: 'SECS',
@@ -147,15 +147,15 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
                                     fields: [
                                         {
                                             name: 'NUM',
-                                            value: '1'
-                                        }
+                                            value: '1',
+                                        },
                                     ],
-                                    shadow: true
-                                }
-                            }
-                        ]
-                    }
-                }
+                                    shadow: true,
+                                },
+                            },
+                        ],
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -180,38 +180,56 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
                                     proccode: 'is_true',
                                     argumentids: '[]',
                                     argumentnames: '[]',
-                                    argumentdefaults: '[]'
+                                    argumentdefaults: '[]',
                                 },
-                                shadow: true
-                            }
-                        }
+                                shadow: true,
+                            },
+                        },
                     ],
                     next: {
                         opcode: 'data_setvariableto',
                         fields: [
                             {
                                 name: 'VARIABLE',
-                                variable: '@_return_is_true_'
-                            }
+                                variable: '@_return_is_true_',
+                            },
                         ],
                         inputs: [
                             {
                                 name: 'VALUE',
-                                block: expectedInfo.makeText('true')
-                            }
+                                // `true` stays as its `1 = 1` block so it comes back as `true` (#1541)
+                                block: {
+                                    opcode: 'operator_equals',
+                                    inputs: [
+                                        {
+                                            name: 'OPERAND1',
+                                            block: expectedInfo.makeText('1'),
+                                        },
+                                        {
+                                            name: 'OPERAND2',
+                                            block: expectedInfo.makeText('1'),
+                                        },
+                                    ],
+                                    comment: {
+                                        text: '@ruby:literal:true:1',
+                                        minimized: true,
+                                    },
+                                },
+                                shadow: expectedInfo.makeText('0'),
+                            },
                         ],
                         comment: {
                             text: '@ruby:return:is_true',
-                            minimized: true
-                        }
-                    }
+                            minimized: true,
+                        },
+                    },
                 },
                 {
                     opcode: 'procedures_call',
                     mutation: {
                         proccode: 'is_true',
                         argumentids: '[]',
-                        warp: 'false'
+                        warp: 'false',
                     },
                     next: {
                         opcode: 'looks_sayforsecs',
@@ -223,11 +241,11 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
                                     fields: [
                                         {
                                             name: 'VARIABLE',
-                                            variable: '@_return_is_true_'
-                                        }
-                                    ]
+                                            variable: '@_return_is_true_',
+                                        },
+                                    ],
                                 },
-                                shadow: expectedInfo.makeText('Hello!')
+                                shadow: expectedInfo.makeText('Hello!'),
                             },
                             {
                                 name: 'SECS',
@@ -236,15 +254,15 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
                                     fields: [
                                         {
                                             name: 'NUM',
-                                            value: '1'
-                                        }
+                                            value: '1',
+                                        },
                                     ],
-                                    shadow: true
-                                }
-                            }
-                        ]
-                    }
-                }
+                                    shadow: true,
+                                },
+                            },
+                        ],
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -269,38 +287,38 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
                                     proccode: 'greeting',
                                     argumentids: '[]',
                                     argumentnames: '[]',
-                                    argumentdefaults: '[]'
+                                    argumentdefaults: '[]',
                                 },
-                                shadow: true
-                            }
-                        }
+                                shadow: true,
+                            },
+                        },
                     ],
                     next: {
                         opcode: 'data_setvariableto',
                         fields: [
                             {
                                 name: 'VARIABLE',
-                                variable: '@_return_greeting_'
-                            }
+                                variable: '@_return_greeting_',
+                            },
                         ],
                         inputs: [
                             {
                                 name: 'VALUE',
-                                block: expectedInfo.makeText('ハロー！')
-                            }
+                                block: expectedInfo.makeText('ハロー！'),
+                            },
                         ],
                         comment: {
                             text: '@ruby:return:greeting',
-                            minimized: true
-                        }
-                    }
+                            minimized: true,
+                        },
+                    },
                 },
                 {
                     opcode: 'procedures_call',
                     mutation: {
                         proccode: 'greeting',
                         argumentids: '[]',
-                        warp: 'false'
+                        warp: 'false',
                     },
                     next: {
                         opcode: 'looks_sayforsecs',
@@ -312,11 +330,11 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
                                     fields: [
                                         {
                                             name: 'VARIABLE',
-                                            variable: '@_return_greeting_'
-                                        }
-                                    ]
+                                            variable: '@_return_greeting_',
+                                        },
+                                    ],
                                 },
-                                shadow: expectedInfo.makeText('Hello!')
+                                shadow: expectedInfo.makeText('Hello!'),
                             },
                             {
                                 name: 'SECS',
@@ -325,15 +343,15 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
                                     fields: [
                                         {
                                             name: 'NUM',
-                                            value: '1'
-                                        }
+                                            value: '1',
+                                        },
                                     ],
-                                    shadow: true
-                                }
-                            }
-                        ]
-                    }
-                }
+                                    shadow: true,
+                                },
+                            },
+                        ],
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });

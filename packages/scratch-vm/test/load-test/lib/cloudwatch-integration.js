@@ -1,11 +1,11 @@
-const {CloudWatchClient, GetMetricDataCommand} = require('@aws-sdk/client-cloudwatch');
+const { CloudWatchClient, GetMetricDataCommand } = require('@aws-sdk/client-cloudwatch');
 
 class CloudWatchIntegration {
-    constructor (region = 'ap-northeast-1') {
-        this.client = new CloudWatchClient({region});
+    constructor(region = 'ap-northeast-1') {
+        this.client = new CloudWatchClient({ region });
     }
 
-    async getMetrics (startTime, endTime, apiId, tableName) {
+    async getMetrics(startTime, endTime, apiId, tableName) {
         // This is a template for fetching AppSync and DynamoDB metrics.
         // In a real scenario, you'd need the specific IDs and names.
 
@@ -18,11 +18,11 @@ class CloudWatchIntegration {
                     Metric: {
                         Namespace: 'AWS/AppSync',
                         MetricName: 'Latency',
-                        Dimensions: [{Name: 'GraphQLAPIId', Value: apiId}]
+                        Dimensions: [{ Name: 'GraphQLAPIId', Value: apiId }],
                     },
                     Period: 60,
-                    Stat: 'Average'
-                }
+                    Stat: 'Average',
+                },
             });
         }
 
@@ -33,11 +33,11 @@ class CloudWatchIntegration {
                     Metric: {
                         Namespace: 'AWS/DynamoDB',
                         MetricName: 'ConsumedWriteCapacityUnits',
-                        Dimensions: [{Name: 'TableName', Value: tableName}]
+                        Dimensions: [{ Name: 'TableName', Value: tableName }],
                     },
                     Period: 60,
-                    Stat: 'Sum'
-                }
+                    Stat: 'Sum',
+                },
             });
         }
 
@@ -46,7 +46,7 @@ class CloudWatchIntegration {
         const command = new GetMetricDataCommand({
             StartTime: startTime,
             EndTime: endTime,
-            MetricDataQueries: queries
+            MetricDataQueries: queries,
         });
 
         try {
@@ -59,4 +59,4 @@ class CloudWatchIntegration {
     }
 }
 
-module.exports = {CloudWatchIntegration};
+module.exports = { CloudWatchIntegration };

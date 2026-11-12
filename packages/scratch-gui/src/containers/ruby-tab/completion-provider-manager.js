@@ -11,7 +11,7 @@ class CompletionProviderManager {
      * @param {string} languageId - The language identifier.
      * @param {object} provider - The completion item provider.
      */
-    register (monaco, languageId, provider) {
+    register(monaco, languageId, provider) {
         const disposable = monaco.languages.registerCompletionItemProvider(languageId, provider);
         this.#disposables.push(disposable);
     }
@@ -19,8 +19,8 @@ class CompletionProviderManager {
     /**
      * Dispose all registered providers.
      */
-    dispose () {
-        this.#disposables.forEach(d => d.dispose());
+    dispose() {
+        this.#disposables.forEach((d) => d.dispose());
         this.#disposables = [];
     }
 }

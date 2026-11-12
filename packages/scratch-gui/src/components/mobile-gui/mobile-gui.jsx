@@ -1,11 +1,9 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
-
 import { connect } from 'react-redux';
-
 import GUI from '../../containers/gui.jsx';
-import codePayload from '../../lib/backpack/code-payload.js';
 import { saveBackpackObject } from '../../lib/backpack-api.js';
+import codePayload from '../../lib/backpack/code-payload.js';
 import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
 import { COSTUMES_TAB_INDEX } from '../../reducers/editor-tab.js';
 import { isLessonMode } from '../../reducers/lesson-mode.js';
@@ -15,7 +13,6 @@ import MobileOrientationGate from '../mobile-orientation-gate/mobile-orientation
 import MobilePaintToolbarToggle from '../mobile-paint-toolbar-toggle/mobile-paint-toolbar-toggle.jsx';
 import MobileSideRail from '../mobile-side-rail/mobile-side-rail.jsx';
 import MobileSpritePanel from '../mobile-sprite-panel/mobile-sprite-panel.jsx';
-
 // Side-effect import: グローバル CSS で upstream <GUI> の layout を上書きする。
 // `body.smalruby-mobile-mode` を起点にしたセレクタなので、MobileGui が
 // マウントされていない (= class が無い) 時はデスクトップに何も影響しない。
@@ -43,9 +40,9 @@ const MobileGui = ({ activeTabIndex, isFullScreen, lessonModeActive, vm, ...prop
     const [backpackOpen, setBackpackOpen] = useState(false);
     const handleOpenDrawer = useCallback(() => setDrawerOpen(true), []);
     const handleCloseDrawer = useCallback(() => setDrawerOpen(false), []);
-    const handleSpriteTabActiveChange = useCallback(active => setSpriteTabActive(active), []);
-    const handleTogglePaintToolbar = useCallback(() => setPaintToolbarCollapsed(v => !v), []);
-    const handleToggleBackpack = useCallback(() => setBackpackOpen(v => !v), []);
+    const handleSpriteTabActiveChange = useCallback((active) => setSpriteTabActive(active), []);
+    const handleTogglePaintToolbar = useCallback(() => setPaintToolbarCollapsed((v) => !v), []);
+    const handleToggleBackpack = useCallback(() => setBackpackOpen((v) => !v), []);
 
     // 上部ツールバー出し入れトグルは「コスチュームタブ + スプライトタブ非active」の
     // ときだけ意味があるので、その時だけ active にする。
@@ -65,7 +62,7 @@ const MobileGui = ({ activeTabIndex, isFullScreen, lessonModeActive, vm, ...prop
     useEffect(() => {
         if (!paintToolbarToggleActive || paintToolbarCollapsed) return () => {};
         if (typeof document === 'undefined') return () => {};
-        const handler = event => {
+        const handler = (event) => {
             const canvas = document.querySelector('[class*="paper-canvas_paper-canvas"]');
             if (canvas && (event.target === canvas || canvas.contains(event.target))) {
                 setPaintToolbarCollapsed(true);
@@ -82,7 +79,7 @@ const MobileGui = ({ activeTabIndex, isFullScreen, lessonModeActive, vm, ...prop
     useEffect(() => {
         if (!paintToolbarToggleActive) return () => {};
         if (typeof document === 'undefined') return () => {};
-        const handler = event => {
+        const handler = (event) => {
             const modeSelector = document.querySelector('[class*="paint-editor_mode-selector"]');
             if (modeSelector && (event.target === modeSelector || modeSelector.contains(event.target))) {
                 setPaintToolbarCollapsed(false);
@@ -182,7 +179,7 @@ const MobileGui = ({ activeTabIndex, isFullScreen, lessonModeActive, vm, ...prop
         if (typeof document === 'undefined' || !vm) return () => {};
         let lastX = 0;
         let lastY = 0;
-        const updatePointer = e => {
+        const updatePointer = (e) => {
             const point = e.touches?.[0] || e;
             if (typeof point.clientX === 'number') {
                 lastX = point.clientX;
@@ -223,7 +220,7 @@ const MobileGui = ({ activeTabIndex, isFullScreen, lessonModeActive, vm, ...prop
                     body: '',
                     thumbnail: '',
                 }))
-                .then(payload =>
+                .then((payload) =>
                     saveBackpackObject({
                         host: 'localStorage',
                         ...payload,
@@ -232,7 +229,7 @@ const MobileGui = ({ activeTabIndex, isFullScreen, lessonModeActive, vm, ...prop
                 .then(() => {
                     refreshBackpackContents();
                 })
-                .catch(err => {
+                .catch((err) => {
                     // eslint-disable-next-line no-console
                     console.error('Failed to save block to backpack:', err);
                 });
@@ -334,7 +331,7 @@ MobileGui.propTypes = {
     vm: PropTypes.object,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state) => ({
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     isFullScreen: state.scratchGui.mode.isFullScreen,
     lessonModeActive: isLessonMode(state),

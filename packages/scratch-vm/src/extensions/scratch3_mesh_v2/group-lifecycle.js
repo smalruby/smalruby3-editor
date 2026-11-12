@@ -2,13 +2,7 @@
 const log = require('../../util/log');
 const debugLogger = require('../../util/debug-logger');
 const debug = debugLogger(process.env.DEBUG);
-const {
-    CREATE_DOMAIN,
-    CREATE_GROUP,
-    JOIN_GROUP,
-    LEAVE_GROUP,
-    DISSOLVE_GROUP,
-} = require('./gql-operations');
+const { CREATE_DOMAIN, CREATE_GROUP, JOIN_GROUP, LEAVE_GROUP, DISSOLVE_GROUP } = require('./gql-operations');
 
 /**
  * Group lifecycle. グループの作成 (host) / 参加 (member) / 解散 (host) /

@@ -9,7 +9,7 @@ describe('QuickFixProvider', () => {
         mockModel = {
             uri: 'test-uri',
             getVersionId: () => 1,
-            getLineContent: jest.fn()
+            getLineContent: jest.fn(),
         };
     });
 
@@ -21,7 +21,7 @@ describe('QuickFixProvider', () => {
             startLineNumber: startLine,
             startColumn: startCol,
             endLineNumber: startLine,
-            endColumn: startCol + lineContent.length
+            endColumn: startCol + lineContent.length,
         };
     };
 
@@ -29,11 +29,9 @@ describe('QuickFixProvider', () => {
         test('should suggest changing @ to $ for instance-to-global scope change', () => {
             const marker = createMarker(
                 '"@my_var", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.',
-                '@my_var = 10'
+                '@my_var = 10',
             );
-            const result = provider.provideCodeActions(
-                mockModel, {}, {markers: [marker]}, null
-            );
+            const result = provider.provideCodeActions(mockModel, {}, { markers: [marker] }, null);
             expect(result.actions).toHaveLength(1);
             expect(result.actions[0].title).toBe('Change to $my_var');
             expect(result.actions[0].edit.edits[0].textEdit.text).toBe('$my_var');
@@ -42,11 +40,9 @@ describe('QuickFixProvider', () => {
         test('should suggest changing $ to @ for global-to-instance scope change', () => {
             const marker = createMarker(
                 '"$my_var", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.',
-                '$my_var = 10'
+                '$my_var = 10',
             );
-            const result = provider.provideCodeActions(
-                mockModel, {}, {markers: [marker]}, null
-            );
+            const result = provider.provideCodeActions(mockModel, {}, { markers: [marker] }, null);
             expect(result.actions).toHaveLength(1);
             expect(result.actions[0].title).toBe('Change to @my_var');
         });
@@ -56,21 +52,16 @@ describe('QuickFixProvider', () => {
         test('should suggest existing costume names', () => {
             const mockVM = {
                 editingTarget: {
-                    getCostumes: () => [
-                        {name: 'costume1'},
-                        {name: 'costume2'}
-                    ]
-                }
+                    getCostumes: () => [{ name: 'costume1' }, { name: 'costume2' }],
+                },
             };
             provider.setVM(mockVM);
 
             const marker = createMarker(
                 'costume "costume3" does not exist.\nCheck the name or add the costume first.',
-                'self.costume = "costume3"'
+                'self.costume = "costume3"',
             );
-            const result = provider.provideCodeActions(
-                mockModel, {}, {markers: [marker]}, null
-            );
+            const result = provider.provideCodeActions(mockModel, {}, { markers: [marker] }, null);
             expect(result.actions).toHaveLength(2);
             expect(result.actions[0].title).toBe('Change to "costume1"');
             expect(result.actions[1].title).toBe('Change to "costume2"');
@@ -80,11 +71,9 @@ describe('QuickFixProvider', () => {
             provider.setVM(null);
             const marker = createMarker(
                 'costume "missing" does not exist.\nCheck the name or add the costume first.',
-                'self.costume = "missing"'
+                'self.costume = "missing"',
             );
-            const result = provider.provideCodeActions(
-                mockModel, {}, {markers: [marker]}, null
-            );
+            const result = provider.provideCodeActions(mockModel, {}, { markers: [marker] }, null);
             expect(result.actions).toHaveLength(0);
         });
     });
@@ -94,22 +83,17 @@ describe('QuickFixProvider', () => {
             const mockVM = {
                 runtime: {
                     getTargetForStage: () => ({
-                        getCostumes: () => [
-                            {name: 'backdrop1'},
-                            {name: 'backdrop2'}
-                        ]
-                    })
-                }
+                        getCostumes: () => [{ name: 'backdrop1' }, { name: 'backdrop2' }],
+                    }),
+                },
             };
             provider.setVM(mockVM);
 
             const marker = createMarker(
                 'backdrop "backdrop3" does not exist.\nCheck the name or add the backdrop first.',
-                'self.backdrop = "backdrop3"'
+                'self.backdrop = "backdrop3"',
             );
-            const result = provider.provideCodeActions(
-                mockModel, {}, {markers: [marker]}, null
-            );
+            const result = provider.provideCodeActions(mockModel, {}, { markers: [marker] }, null);
             expect(result.actions).toHaveLength(2);
             expect(result.actions[0].title).toBe('Change to "backdrop1"');
             expect(result.actions[1].title).toBe('Change to "backdrop2"');
@@ -120,21 +104,16 @@ describe('QuickFixProvider', () => {
         test('should suggest existing sound names', () => {
             const mockVM = {
                 editingTarget: {
-                    getSounds: () => [
-                        {name: 'Meow'},
-                        {name: 'Pop'}
-                    ]
-                }
+                    getSounds: () => [{ name: 'Meow' }, { name: 'Pop' }],
+                },
             };
             provider.setVM(mockVM);
 
             const marker = createMarker(
                 'sound "Boing" does not exist.\nCheck the name or add the sound first.',
-                'play("Boing")'
+                'play("Boing")',
             );
-            const result = provider.provideCodeActions(
-                mockModel, {}, {markers: [marker]}, null
-            );
+            const result = provider.provideCodeActions(mockModel, {}, { markers: [marker] }, null);
             expect(result.actions).toHaveLength(2);
             expect(result.actions[0].title).toBe('Change to "Meow"');
             expect(result.actions[1].title).toBe('Change to "Pop"');
@@ -145,15 +124,14 @@ describe('QuickFixProvider', () => {
         test('should ignore markers from other owners', () => {
             const marker = {
                 owner: 'other',
-                message: '"@var", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.',
+                message:
+                    '"@var", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.',
                 startLineNumber: 1,
                 startColumn: 1,
                 endLineNumber: 1,
-                endColumn: 10
+                endColumn: 10,
             };
-            const result = provider.provideCodeActions(
-                mockModel, {}, {markers: [marker]}, null
-            );
+            const result = provider.provideCodeActions(mockModel, {}, { markers: [marker] }, null);
             expect(result.actions).toHaveLength(0);
         });
     });
@@ -162,11 +140,9 @@ describe('QuickFixProvider', () => {
         test('should return no actions for unknown error messages', () => {
             const marker = createMarker(
                 'Stage selected: no motion blocks. Select a sprite to use motion blocks.',
-                'self.x += 10'
+                'self.x += 10',
             );
-            const result = provider.provideCodeActions(
-                mockModel, {}, {markers: [marker]}, null
-            );
+            const result = provider.provideCodeActions(mockModel, {}, { markers: [marker] }, null);
             expect(result.actions).toHaveLength(0);
         });
     });

@@ -1,7 +1,7 @@
-const {MeshClientSimulator} = require('./lib/mesh-client-simulator');
-const {LoadTestMetrics} = require('./lib/load-test-metrics');
+const { MeshClientSimulator } = require('./lib/mesh-client-simulator');
+const { LoadTestMetrics } = require('./lib/load-test-metrics');
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Run Multi-Group Load Test.
@@ -15,7 +15,7 @@ const runMultiGroupLoadTest = async function (config) {
         dataUpdatesPerSecond = 2,
         eventsPerSecond = 2,
         durationMinutes = 5,
-        groupIdPrefix = 'multi-group-test'
+        groupIdPrefix = 'multi-group-test',
     } = config;
 
     const metrics = new LoadTestMetrics();
@@ -36,16 +36,16 @@ const runMultiGroupLoadTest = async function (config) {
                 nodeName: `node-${g}-${n}`,
                 appsyncEndpoint: process.env.MESH_GRAPHQL_ENDPOINT || process.env.APPSYNC_ENDPOINT,
                 apiKey: process.env.MESH_API_KEY || process.env.APPSYNC_API_KEY,
-                domain: `test-domain-${Date.now()}`
+                domain: `test-domain-${Date.now()}`,
             });
 
-            client.onDataUpdate(data => {
+            client.onDataUpdate((data) => {
                 if (data.groupId !== groupId) {
                     metrics.recordCrosstalk('data', groupId, data.groupId);
                 }
             });
 
-            client.onEvent(event => {
+            client.onEvent((event) => {
                 if (event.groupId !== groupId) {
                     metrics.recordCrosstalk('event', groupId, event.groupId);
                 }
@@ -53,7 +53,7 @@ const runMultiGroupLoadTest = async function (config) {
 
             clients.push(client);
         }
-        groups.push({groupId, clients});
+        groups.push({ groupId, clients });
     }
 
     console.log('クライアント接続中...');
@@ -64,20 +64,22 @@ const runMultiGroupLoadTest = async function (config) {
         const groupBatch = groups.slice(g, Math.min(g + batchSize, groups.length));
 
         // Each group's first client (host) creates the group
-        await Promise.all(groupBatch.map(async group => {
-            await group.clients[0].connect();
-            const createdGroup = await group.clients[0].createGroup(group.groupId);
-            const actualGroupId = createdGroup.id;
-            const actualDomain = createdGroup.domain;
+        await Promise.all(
+            groupBatch.map(async (group) => {
+                await group.clients[0].connect();
+                const createdGroup = await group.clients[0].createGroup(group.groupId);
+                const actualGroupId = createdGroup.id;
+                const actualDomain = createdGroup.domain;
 
-            // Update all other clients in this group with the actual group ID and domain
-            for (let i = 1; i < group.clients.length; i++) {
-                group.clients[i].groupId = actualGroupId;
-                group.clients[i].domain = actualDomain;
-            }
+                // Update all other clients in this group with the actual group ID and domain
+                for (let i = 1; i < group.clients.length; i++) {
+                    group.clients[i].groupId = actualGroupId;
+                    group.clients[i].domain = actualDomain;
+                }
 
-            console.log(`Host created group: ${actualGroupId} in domain: ${actualDomain}`);
-        }));
+                console.log(`Host created group: ${actualGroupId} in domain: ${actualDomain}`);
+            }),
+        );
 
         // Remaining clients join their respective groups
         for (const group of groupBatch) {
@@ -89,16 +91,18 @@ const runMultiGroupLoadTest = async function (config) {
 
         // All clients subscribe to events
         for (const group of groupBatch) {
-            await Promise.all(group.clients.map(c => c.subscribeToEvents()));
+            await Promise.all(group.clients.map((c) => c.subscribeToEvents()));
         }
 
-        console.log(`${Math.min(g + batchSize, groups.length)}/${groups.length} グループ作成・接続・サブスクライブ完了`);
+        console.log(
+            `${Math.min(g + batchSize, groups.length)}/${groups.length} グループ作成・接続・サブスクライブ完了`,
+        );
         await sleep(200);
     }
 
     console.log('負荷テスト開始...');
     const startTime = Date.now();
-    const endTime = startTime + (durationMinutes * 60 * 1000);
+    const endTime = startTime + durationMinutes * 60 * 1000;
 
     /**
      * Run Data Update Workload.
@@ -115,7 +119,7 @@ const runMultiGroupLoadTest = async function (config) {
             try {
                 await client.updateData({
                     timestamp: Date.now(),
-                    value: Math.random()
+                    value: Math.random(),
                 });
                 clientMetrics.recordDataUpdate(client.groupId, Date.now() - clientStartTime);
             } catch (error) {
@@ -141,7 +145,7 @@ const runMultiGroupLoadTest = async function (config) {
             try {
                 await client.publishEvent({
                     type: 'multi-load-event',
-                    data: {sentAt: Date.now(), val: Math.random()}
+                    data: { sentAt: Date.now(), val: Math.random() },
                 });
                 clientMetrics.recordEventPublish(client.groupId, Date.now() - clientStartTime);
             } catch (error) {
@@ -169,7 +173,7 @@ const runMultiGroupLoadTest = async function (config) {
 
     console.log('クライアント切断中...');
     for (const group of groups) {
-        await Promise.all(group.clients.map(c => c.disconnect()));
+        await Promise.all(group.clients.map((c) => c.disconnect()));
     }
 
     return metrics.generateReport();
@@ -181,7 +185,7 @@ const runMultiGroupLoadTest = async function (config) {
  */
 const main = async function () {
     const args = process.argv.slice(2);
-    const groupCountArg = args.find(a => a.startsWith('--groups='));
+    const groupCountArg = args.find((a) => a.startsWith('--groups='));
     const groupCount = groupCountArg ? parseInt(groupCountArg.split('=')[1], 10) : 2;
 
     if (!process.env.MESH_GRAPHQL_ENDPOINT && !process.env.APPSYNC_ENDPOINT) {
@@ -194,7 +198,7 @@ const main = async function () {
         nodesPerGroup: 4,
         dataUpdatesPerSecond: 2,
         eventsPerSecond: 2,
-        durationMinutes: 1
+        durationMinutes: 1,
     });
 
     console.log('最終結果:', JSON.stringify(result, null, 2));

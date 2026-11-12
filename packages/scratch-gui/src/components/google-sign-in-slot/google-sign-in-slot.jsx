@@ -11,9 +11,7 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { forwardRef, useEffect } from 'react';
 import { FormattedMessage } from 'react-intl';
-
 import { cancelGoogleLogin } from '../../lib/teacher-auth.js';
-
 import styles from './google-sign-in-slot.css';
 
 const GoogleSignInSlot = forwardRef(({ active, className, showHint }, ref) => {

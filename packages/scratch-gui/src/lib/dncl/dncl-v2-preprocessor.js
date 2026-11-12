@@ -17,15 +17,14 @@
 // the implicit `end` insertion based on `⎿` count.
 //
 // See Issue #640.
-
-import { skipString } from './paren-utils'
+import { skipString } from './paren-utils';
 
 /**
  * Matches a DNCLv2 line-number prefix: `(N)` or the hyphenated form
  * `(00-1)` used by 共通テスト for lines inserted before `(01)`, plus the
  * whitespace after it (so `stripLineNumber` can reuse the same pattern).
  */
-const LINE_NUMBER_RE = /^\(\d+(?:-\d+)*\)\s*/
+const LINE_NUMBER_RE = /^\(\d+(?:-\d+)*\)\s*/;
 
 /**
  * Strip the leading `(N) ` (and any trailing whitespace after it) from a
@@ -34,7 +33,7 @@ const LINE_NUMBER_RE = /^\(\d+(?:-\d+)*\)\s*/
  * @param {string} line - The source line.
  * @returns {string} The line with any `(N)` prefix removed.
  */
-const stripLineNumber = (line) => line.replace(LINE_NUMBER_RE, '')
+const stripLineNumber = (line) => line.replace(LINE_NUMBER_RE, '');
 
 /**
  * Walk `line` and return the offsets of every character that is OUTSIDE
@@ -44,20 +43,20 @@ const stripLineNumber = (line) => line.replace(LINE_NUMBER_RE, '')
  * @returns {Set<number>} Indices into `line` that are outside string literals.
  */
 const outsideStringIndices = (line) => {
-  const result = new Set()
-  let i = 0
-  while (i < line.length) {
-    const ch = line[i]
-    if (ch === '"' || ch === "'") {
-      const end = skipString(line, i, ch)
-      i = end
-      continue
+    const result = new Set();
+    let i = 0;
+    while (i < line.length) {
+        const ch = line[i];
+        if (ch === '"' || ch === "'") {
+            const end = skipString(line, i, ch);
+            i = end;
+            continue;
+        }
+        result.add(i);
+        i++;
     }
-    result.add(i)
-    i++
-  }
-  return result
-}
+    return result;
+};
 
 /**
  * Strip the trailing colon `:` on DNCLv2 control-flow line endings.
@@ -67,37 +66,37 @@ const outsideStringIndices = (line) => {
  * @returns {string} The line without its trailing colon.
  */
 const stripTrailingColon = (line) => {
-  // Trim trailing whitespace, check for `:`, and only strip if the colon
-  // sits outside any string literal.
-  // 共通テスト samples use both the ASCII `:` and the full-width `：`.
-  const trimmed = line.replace(/\s+$/, '')
-  if (!trimmed.endsWith(':') && !trimmed.endsWith('：')) return line
-  const colonIdx = trimmed.length - 1
-  const outside = outsideStringIndices(trimmed)
-  if (!outside.has(colonIdx)) return line
-  // Only strip when the colon follows one of the DNCL control-flow keywords.
-  // We match by checking for the keyword immediately before the colon.
-  const beforeColon = trimmed.substring(0, colonIdx).replace(/\s+$/, '')
-  const triggers = [
-    'なら',
-    'ならば',
-    'そうでなければ',
-    'の間繰り返す',
-    'の間',
-    '増やしながら繰り返す',
-    '増やしながら',
-    '減らしながら繰り返す',
-    '減らしながら',
-    'を定義する',
-    'と定義する',
-    'を実行する',
-    'を繰り返す',
-  ]
-  if (!triggers.some((t) => beforeColon.endsWith(t))) return line
-  // Preserve any whitespace that followed the original colon.
-  const trailing = line.substring(trimmed.length)
-  return `${beforeColon}${trailing}`
-}
+    // Trim trailing whitespace, check for `:`, and only strip if the colon
+    // sits outside any string literal.
+    // 共通テスト samples use both the ASCII `:` and the full-width `：`.
+    const trimmed = line.replace(/\s+$/, '');
+    if (!trimmed.endsWith(':') && !trimmed.endsWith('：')) return line;
+    const colonIdx = trimmed.length - 1;
+    const outside = outsideStringIndices(trimmed);
+    if (!outside.has(colonIdx)) return line;
+    // Only strip when the colon follows one of the DNCL control-flow keywords.
+    // We match by checking for the keyword immediately before the colon.
+    const beforeColon = trimmed.substring(0, colonIdx).replace(/\s+$/, '');
+    const triggers = [
+        'なら',
+        'ならば',
+        'そうでなければ',
+        'の間繰り返す',
+        'の間',
+        '増やしながら繰り返す',
+        '増やしながら',
+        '減らしながら繰り返す',
+        '減らしながら',
+        'を定義する',
+        'と定義する',
+        'を実行する',
+        'を繰り返す',
+    ];
+    if (!triggers.some((t) => beforeColon.endsWith(t))) return line;
+    // Preserve any whitespace that followed the original colon.
+    const trailing = line.substring(trimmed.length);
+    return `${beforeColon}${trailing}`;
+};
 
 /**
  * Normalize the DNCLv2 「繰り返す」 suffix to the Smalruby DNCL form. So:
@@ -111,10 +110,8 @@ const stripTrailingColon = (line) => {
  * @param {string} line - The line to normalize.
  * @returns {string} The line with the 繰り返す suffix removed if applicable.
  */
-const normalizeKurikaesuSuffix = (line) => line.replace(
-    /(の間|ずつ増やしながら|ずつ減らしながら)繰り返す(\s*)$/,
-    '$1$2',
-  )
+const normalizeKurikaesuSuffix = (line) =>
+    line.replace(/(の間|ずつ増やしながら|ずつ減らしながら)繰り返す(\s*)$/, '$1$2');
 
 /**
  * Insert the spaces the line converter needs around a parenthesized
@@ -127,13 +124,13 @@ const normalizeKurikaesuSuffix = (line) => line.replace(
  * @returns {string} The line with the keyword spacing normalized.
  */
 const normalizeConditionSpacing = (line) => {
-  // Indent markers have not been expanded yet, so allow them before the keyword.
-  let out = line.replace(/^([\s｜|⎿]*(?:もし|そうでなくもし))\(/, '$1 (')
-  if (/^[\s｜|⎿]*(?:もし|そうでなくもし)\s/.test(out)) {
-    out = out.replace(/\)(なら|ならば)(\s*)$/, ') $1$2')
-  }
-  return out.replace(/\)(の間)(\s*)$/, ') $1$2')
-}
+    // Indent markers have not been expanded yet, so allow them before the keyword.
+    let out = line.replace(/^([\s｜|⎿]*(?:もし|そうでなくもし))\(/, '$1 (');
+    if (/^[\s｜|⎿]*(?:もし|そうでなくもし)\s/.test(out)) {
+        out = out.replace(/\)(なら|ならば)(\s*)$/, ') $1$2');
+    }
+    return out.replace(/\)(の間)(\s*)$/, ') $1$2');
+};
 
 /**
  * Convert the 共通テスト array declaration `配列変数 X を初期化する` into
@@ -142,10 +139,8 @@ const normalizeConditionSpacing = (line) => {
  * @param {string} line - The source line.
  * @returns {string} The converted line.
  */
-const normalizeArrayInit = (line) => line.replace(
-    /^([\s｜|⎿]*)配列変数\s+([^\s]+)\s+を初期化する(\s*(?:#.*)?)$/,
-    '$1$2 = []$3',
-  )
+const normalizeArrayInit = (line) =>
+    line.replace(/^([\s｜|⎿]*)配列変数\s+([^\s]+)\s+を初期化する(\s*(?:#.*)?)$/, '$1$2 = []$3');
 
 /**
  * Net bracket depth of a line, ignoring string literals and comments.
@@ -154,21 +149,21 @@ const normalizeArrayInit = (line) => line.replace(
  * @returns {number} Opening brackets minus closing brackets.
  */
 const bracketDepth = (line) => {
-  let depth = 0
-  let i = 0
-  while (i < line.length) {
-    const ch = line[i]
-    if (ch === '"' || ch === "'") {
-      i = skipString(line, i, ch)
-      continue
+    let depth = 0;
+    let i = 0;
+    while (i < line.length) {
+        const ch = line[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(line, i, ch);
+            continue;
+        }
+        if (ch === '#') break;
+        if (ch === '(' || ch === '[' || ch === '{') depth++;
+        if (ch === ')' || ch === ']' || ch === '}') depth--;
+        i++;
     }
-    if (ch === '#') break
-    if (ch === '(' || ch === '[' || ch === '{') depth++
-    if (ch === ')' || ch === ']' || ch === '}') depth--
-    i++
-  }
-  return depth
-}
+    return depth;
+};
 
 /**
  * Join statements that 共通テスト samples wrap onto unnumbered
@@ -185,33 +180,29 @@ const bracketDepth = (line) => {
  *   starts on (a joined line maps to its first line).
  */
 const joinContinuationLines = (source) => {
-  const rawLines = source.split('\n')
-  const result = []
-  let i = 0
-  while (i < rawLines.length) {
-    const lineNumber = i + 1
-    let line = rawLines[i]
-    let extraCloseCount = 0
-    // Only numbered DNCLv2 lines wrap; in un-numbered code an unclosed
-    // bracket is a typo and must not swallow the rest of the program.
-    let depth = LINE_NUMBER_RE.test(line) ? bracketDepth(line) : 0
-    while (
-      depth > 0 &&
-      i + 1 < rawLines.length &&
-      !LINE_NUMBER_RE.test(rawLines[i + 1].trimStart())
-    ) {
-      i++
-      const m = rawLines[i].match(/^([\s｜|⎿]*)(.*)$/)
-      extraCloseCount += (m[1].match(/⎿/g) || []).length
-      const rest = m[2].trim()
-      line = `${line.replace(/\s+$/, '')} ${rest}`
-      depth += bracketDepth(rest)
+    const rawLines = source.split('\n');
+    const result = [];
+    let i = 0;
+    while (i < rawLines.length) {
+        const lineNumber = i + 1;
+        let line = rawLines[i];
+        let extraCloseCount = 0;
+        // Only numbered DNCLv2 lines wrap; in un-numbered code an unclosed
+        // bracket is a typo and must not swallow the rest of the program.
+        let depth = LINE_NUMBER_RE.test(line) ? bracketDepth(line) : 0;
+        while (depth > 0 && i + 1 < rawLines.length && !LINE_NUMBER_RE.test(rawLines[i + 1].trimStart())) {
+            i++;
+            const m = rawLines[i].match(/^([\s｜|⎿]*)(.*)$/);
+            extraCloseCount += (m[1].match(/⎿/g) || []).length;
+            const rest = m[2].trim();
+            line = `${line.replace(/\s+$/, '')} ${rest}`;
+            depth += bracketDepth(rest);
+        }
+        result.push({ line, extraCloseCount, lineNumber });
+        i++;
     }
-    result.push({ line, extraCloseCount, lineNumber })
-    i++
-  }
-  return result
-}
+    return result;
+};
 
 /**
  * Split a comma-separated multi-assignment line into multiple lines.
@@ -228,88 +219,88 @@ const joinContinuationLines = (source) => {
  * @returns {string} The original line, or multiple lines joined with `\n`.
  */
 const splitMultiAssignment = (line) => {
-  const indentMatch = line.match(/^(\s*)/)
-  const indent = indentMatch ? indentMatch[1] : ''
-  const body = line.substring(indent.length)
-  if (body.length === 0) return line
+    const indentMatch = line.match(/^(\s*)/);
+    const indent = indentMatch ? indentMatch[1] : '';
+    const body = line.substring(indent.length);
+    if (body.length === 0) return line;
 
-  // Walk the body, tracking depth + strings, and collect top-level commas.
-  const parts = []
-  let current = ''
-  let depth = 0
-  let i = 0
-  while (i < body.length) {
-    const ch = body[i]
-    if (ch === '"' || ch === "'") {
-      const end = skipString(body, i, ch)
-      current += body.substring(i, end)
-      i = end
-      continue
-    }
-    if (ch === '(' || ch === '[' || ch === '{') {
-      depth++
-      current += ch
-      i++
-      continue
-    }
-    if (ch === ')' || ch === ']' || ch === '}') {
-      depth--
-      current += ch
-      i++
-      continue
-    }
-    if (ch === ',' && depth === 0) {
-      parts.push(current)
-      current = ''
-      i++
-      continue
-    }
-    current += ch
-    i++
-  }
-  parts.push(current)
-
-  if (parts.length < 2) return line
-
-  // Every part must contain a top-level `=` (depth 0, outside strings).
-  // Otherwise we likely have a function call or a single expression with
-  // top-level commas, and shouldn't split.
-  const hasTopLevelEquals = (part) => {
-    let d = 0
-    let j = 0
-    while (j < part.length) {
-      const c = part[j]
-      if (c === '"' || c === "'") {
-        const end = skipString(part, j, c)
-        j = end
-        continue
-      }
-      if (c === '(' || c === '[' || c === '{') {
-        d++
-        j++
-        continue
-      }
-      if (c === ')' || c === ']' || c === '}') {
-        d--
-        j++
-        continue
-      }
-      if (c === '=' && d === 0) {
-        // Make sure this is `=` (assignment) not `==`, `<=`, `>=`, `!=`.
-        const prev = part[j - 1]
-        const next = part[j + 1]
-        if (prev !== '=' && prev !== '<' && prev !== '>' && prev !== '!' && next !== '=') {
-          return true
+    // Walk the body, tracking depth + strings, and collect top-level commas.
+    const parts = [];
+    let current = '';
+    let depth = 0;
+    let i = 0;
+    while (i < body.length) {
+        const ch = body[i];
+        if (ch === '"' || ch === "'") {
+            const end = skipString(body, i, ch);
+            current += body.substring(i, end);
+            i = end;
+            continue;
         }
-      }
-      j++
+        if (ch === '(' || ch === '[' || ch === '{') {
+            depth++;
+            current += ch;
+            i++;
+            continue;
+        }
+        if (ch === ')' || ch === ']' || ch === '}') {
+            depth--;
+            current += ch;
+            i++;
+            continue;
+        }
+        if (ch === ',' && depth === 0) {
+            parts.push(current);
+            current = '';
+            i++;
+            continue;
+        }
+        current += ch;
+        i++;
     }
-    return false
-  }
-  if (!parts.every(hasTopLevelEquals)) return line
+    parts.push(current);
 
-  return parts.map((p) => `${indent}${p.trim()}`).join('\n')
-}
+    if (parts.length < 2) return line;
+
+    // Every part must contain a top-level `=` (depth 0, outside strings).
+    // Otherwise we likely have a function call or a single expression with
+    // top-level commas, and shouldn't split.
+    const hasTopLevelEquals = (part) => {
+        let d = 0;
+        let j = 0;
+        while (j < part.length) {
+            const c = part[j];
+            if (c === '"' || c === "'") {
+                const end = skipString(part, j, c);
+                j = end;
+                continue;
+            }
+            if (c === '(' || c === '[' || c === '{') {
+                d++;
+                j++;
+                continue;
+            }
+            if (c === ')' || c === ']' || c === '}') {
+                d--;
+                j++;
+                continue;
+            }
+            if (c === '=' && d === 0) {
+                // Make sure this is `=` (assignment) not `==`, `<=`, `>=`, `!=`.
+                const prev = part[j - 1];
+                const next = part[j + 1];
+                if (prev !== '=' && prev !== '<' && prev !== '>' && prev !== '!' && next !== '=') {
+                    return true;
+                }
+            }
+            j++;
+        }
+        return false;
+    };
+    if (!parts.every(hasTopLevelEquals)) return line;
+
+    return parts.map((p) => `${indent}${p.trim()}`).join('\n');
+};
 
 /**
  * Replace standalone `and` / `or` with `かつ` / `または`. Only matches
@@ -319,46 +310,38 @@ const splitMultiAssignment = (line) => {
  * @returns {string} The line with `and` / `or` replaced.
  */
 const normalizeAndOr = (line) => {
-  let result = ''
-  let i = 0
-  while (i < line.length) {
-    const ch = line[i]
-    if (ch === '"' || ch === "'") {
-      const end = skipString(line, i, ch)
-      result += line.substring(i, end)
-      i = end
-      continue
+    let result = '';
+    let i = 0;
+    while (i < line.length) {
+        const ch = line[i];
+        if (ch === '"' || ch === "'") {
+            const end = skipString(line, i, ch);
+            result += line.substring(i, end);
+            i = end;
+            continue;
+        }
+        // Match `and` or `or` as whole word: bounded by whitespace, line edge,
+        // or a non-identifier character.
+        const isWordBoundary = (idx) => {
+            if (idx < 0 || idx >= line.length) return true;
+            const c = line[idx];
+            return !/[a-zA-Z0-9_]/.test(c);
+        };
+        if (line.startsWith('and', i) && isWordBoundary(i - 1) && isWordBoundary(i + 3)) {
+            result += 'かつ';
+            i += 3;
+            continue;
+        }
+        if (line.startsWith('or', i) && isWordBoundary(i - 1) && isWordBoundary(i + 2)) {
+            result += 'または';
+            i += 2;
+            continue;
+        }
+        result += ch;
+        i++;
     }
-    // Match `and` or `or` as whole word: bounded by whitespace, line edge,
-    // or a non-identifier character.
-    const isWordBoundary = (idx) => {
-      if (idx < 0 || idx >= line.length) return true
-      const c = line[idx]
-      return !/[a-zA-Z0-9_]/.test(c)
-    }
-    if (
-      line.startsWith('and', i) &&
-      isWordBoundary(i - 1) &&
-      isWordBoundary(i + 3)
-    ) {
-      result += 'かつ'
-      i += 3
-      continue
-    }
-    if (
-      line.startsWith('or', i) &&
-      isWordBoundary(i - 1) &&
-      isWordBoundary(i + 2)
-    ) {
-      result += 'または'
-      i += 2
-      continue
-    }
-    result += ch
-    i++
-  }
-  return result
-}
+    return result;
+};
 
 /**
  * Process the leading indent zone of `body` to expand `｜` / `⎿`
@@ -374,22 +357,22 @@ const normalizeAndOr = (line) => {
  *   the number of blocks the next outdent should close.
  */
 const processIndentMarkers = (body) => {
-  // Find the prefix consisting of leading whitespace + indent markers.
-  // We accept BOTH the full-width pipe `｜` (U+FF5C, used in DNCLv2 sources)
-  // and the ASCII pipe `|` (U+007C). The Smalruby auto-correct feature
-  // (on by default) converts `｜` to `|` on input, so the marker that
-  // reaches us may be either one. The hook character `⎿` (U+23BF, Box
-  // Drawing) is in a Unicode block auto-correct doesn't touch.
-  const m = body.match(/^([\s｜|⎿]*)(.*)$/)
-  if (!m) return { line: body, closeCount: 0 }
-  const prefix = m[1]
-  const rest = m[2]
-  const markers = prefix.match(/[｜|⎿]/g) || []
-  if (markers.length === 0) return { line: body, closeCount: 0 }
-  const closeCount = markers.filter((c) => c === '⎿').length
-  const newPrefix = ' '.repeat(2 * markers.length)
-  return { line: `${newPrefix}${rest}`, closeCount }
-}
+    // Find the prefix consisting of leading whitespace + indent markers.
+    // We accept BOTH the full-width pipe `｜` (U+FF5C, used in DNCLv2 sources)
+    // and the ASCII pipe `|` (U+007C). The Smalruby auto-correct feature
+    // (on by default) converts `｜` to `|` on input, so the marker that
+    // reaches us may be either one. The hook character `⎿` (U+23BF, Box
+    // Drawing) is in a Unicode block auto-correct doesn't touch.
+    const m = body.match(/^([\s｜|⎿]*)(.*)$/);
+    if (!m) return { line: body, closeCount: 0 };
+    const prefix = m[1];
+    const rest = m[2];
+    const markers = prefix.match(/[｜|⎿]/g) || [];
+    if (markers.length === 0) return { line: body, closeCount: 0 };
+    const closeCount = markers.filter((c) => c === '⎿').length;
+    const newPrefix = ' '.repeat(2 * markers.length);
+    return { line: `${newPrefix}${rest}`, closeCount };
+};
 
 /**
  * Determine the block type opened by the given DNCL line, if any.
@@ -402,16 +385,16 @@ const processIndentMarkers = (body) => {
  * @returns {string|null} `'if'`, `'loop'`, `'func'`, or `null`.
  */
 const detectBlockType = (body) => {
-  // Continuations: not new blocks.
-  if (/^そうでなくもし\s+.*\s+(?:なら|ならば)$/.test(body)) return null
-  if (body === 'そうでなければ') return null
-  // Openers.
-  if (/^もし\s+.*\s+(?:なら|ならば)$/.test(body)) return 'if'
-  if (/\sの間$/.test(body)) return 'loop'
-  if (/\sずつ(?:増やしながら|減らしながら)$/.test(body)) return 'loop'
-  if (/^関数\s+\w+\s*\(/.test(body)) return 'func'
-  return null
-}
+    // Continuations: not new blocks.
+    if (/^そうでなくもし\s+.*\s+(?:なら|ならば)$/.test(body)) return null;
+    if (body === 'そうでなければ') return null;
+    // Openers.
+    if (/^もし\s+.*\s+(?:なら|ならば)$/.test(body)) return 'if';
+    if (/\sの間$/.test(body)) return 'loop';
+    if (/\sずつ(?:増やしながら|減らしながら)$/.test(body)) return 'loop';
+    if (/^関数\s+\w+\s*\(/.test(body)) return 'func';
+    return null;
+};
 
 /**
  * Map a block type to its DNCL closer keyword.
@@ -419,15 +402,15 @@ const detectBlockType = (body) => {
  * @returns {string} The matching closer keyword.
  */
 const closerForBlockType = (type) => {
-  if (type === 'loop') return 'を繰り返す'
-  if (type === 'func') return 'と定義する'
-  return 'を実行する'
-}
+    if (type === 'loop') return 'を繰り返す';
+    if (type === 'func') return 'と定義する';
+    return 'を実行する';
+};
 
 /**
  * Explicit Smalruby DNCL block closers (a line consisting of just one of these).
  */
-const EXPLICIT_CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定義する'])
+const EXPLICIT_CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定義する']);
 
 /**
  * Whether the line continues an `if` block (`そうでなくもし` / `そうでなければ`)
@@ -435,8 +418,7 @@ const EXPLICIT_CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定�
  * @param {string} body - The line content with indent stripped.
  * @returns {boolean} True for an else / else-if line.
  */
-const isIfContinuation = (body) =>
-  body === 'そうでなければ' || /^そうでなくもし\s/.test(body)
+const isIfContinuation = (body) => body === 'そうでなければ' || /^そうでなくもし\s/.test(body);
 
 /**
  * Visual width of a leading indent. A tab counts as 4 columns and the
@@ -445,14 +427,14 @@ const isIfContinuation = (body) =>
  * @returns {number} The indent width in columns.
  */
 const indentWidth = (indent) => {
-  let width = 0
-  for (const ch of indent) {
-    if (ch === '\t') width += 4
-    else if (ch === '\u3000') width += 2
-    else width += 1
-  }
-  return width
-}
+    let width = 0;
+    for (const ch of indent) {
+        if (ch === '\t') width += 4;
+        else if (ch === '\u3000') width += 2;
+        else width += 1;
+    }
+    return width;
+};
 
 /**
  * Convert a DNCLv2 function-definition opener to the Smalruby form:
@@ -463,15 +445,14 @@ const indentWidth = (indent) => {
  * @param {string} line - The line to inspect.
  * @returns {string} The converted line.
  */
-const normalizeFunctionDefOpener = (line) => 
-  // Match: identifier + `(...)` + spaces + `を定義する` at end of line.
-  // The function name uses ASCII identifier chars + CJK ranges, matching
-  // what the existing DNCL converter accepts.
-   line.replace(
-    /^(\s*)([a-zA-Z_぀-ゟ゠-ヿ一-鿿][a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿]*\s*\([^)]*\))\s+を定義する(\s*)$/,
-    '$1関数 $2$3',
-  )
-
+const normalizeFunctionDefOpener = (line) =>
+    // Match: identifier + `(...)` + spaces + `を定義する` at end of line.
+    // The function name uses ASCII identifier chars + CJK ranges, matching
+    // what the existing DNCL converter accepts.
+    line.replace(
+        /^(\s*)([a-zA-Z_぀-ゟ゠-ヿ一-鿿][a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿]*\s*\([^)]*\))\s+を定義する(\s*)$/,
+        '$1関数 $2$3',
+    );
 
 /**
  * Run the DNCLv2 pre-processor on a single line. Applies all Phase 3
@@ -483,18 +464,18 @@ const normalizeFunctionDefOpener = (line) =>
  *   comma-separated multi-assignment was split).
  */
 const preprocessLine = (line) => {
-  // `//` is always integer division here; 共通テスト `//` comments are
-  // turned into `#` when pasted (dncl-paste-tidy.js, Issue #1192).
-  let out = stripLineNumber(line)
-  out = normalizeArrayInit(out)
-  out = stripTrailingColon(out)
-  out = normalizeKurikaesuSuffix(out)
-  out = normalizeConditionSpacing(out)
-  out = normalizeFunctionDefOpener(out)
-  out = normalizeAndOr(out)
-  out = splitMultiAssignment(out)
-  return out
-}
+    // `//` is always integer division here; 共通テスト `//` comments are
+    // turned into `#` when pasted (dncl-paste-tidy.js, Issue #1192).
+    let out = stripLineNumber(line);
+    out = normalizeArrayInit(out);
+    out = stripTrailingColon(out);
+    out = normalizeKurikaesuSuffix(out);
+    out = normalizeConditionSpacing(out);
+    out = normalizeFunctionDefOpener(out);
+    out = normalizeAndOr(out);
+    out = splitMultiAssignment(out);
+    return out;
+};
 
 /**
  * Pre-process a multi-line DNCLv2 source string into Smalruby DNCL form.
@@ -519,95 +500,87 @@ const preprocessLine = (line) => {
  *   source, and `lineMap[i]` = the 1-based source line of output line i+1.
  */
 const dnclV2PreprocessWithLineMap = (source) => {
-  const stack = []
-  const out = []
-  const lineMap = []
-  // Source line of the last code (non-blank, non-comment) line emitted,
-  // i.e. where an indentation-style block ends.
-  let lastCodeLine = 1
-  const emit = (text, lineNumber) => {
-    out.push(text)
-    lineMap.push(lineNumber)
-  }
-  const emitCloser = (block, lineNumber) =>
-    emit(`${block.indent}${closerForBlockType(block.type)}`, lineNumber)
-  // Close indentation-style blocks (opener ends with `:`, body indented, no
-  // `⎿` and no closer line, as in 共通テスト code typed without the `｜` /
-  // `⎿` markers) once a line at the opener's indent or shallower appears.
-  const closeByIndent = (width, body) => {
-    const explicit = EXPLICIT_CLOSERS.has(body)
-    while (stack.length > 0) {
-      const top = stack[stack.length - 1]
-      if (top.colon && !top.hasBody) {
-        if (width > top.width) {
-          top.hasBody = true
-          return
+    const stack = [];
+    const out = [];
+    const lineMap = [];
+    // Source line of the last code (non-blank, non-comment) line emitted,
+    // i.e. where an indentation-style block ends.
+    let lastCodeLine = 1;
+    const emit = (text, lineNumber) => {
+        out.push(text);
+        lineMap.push(lineNumber);
+    };
+    const emitCloser = (block, lineNumber) => emit(`${block.indent}${closerForBlockType(block.type)}`, lineNumber);
+    // Close indentation-style blocks (opener ends with `:`, body indented, no
+    // `⎿` and no closer line, as in 共通テスト code typed without the `｜` /
+    // `⎿` markers) once a line at the opener's indent or shallower appears.
+    const closeByIndent = (width, body) => {
+        const explicit = EXPLICIT_CLOSERS.has(body);
+        while (stack.length > 0) {
+            const top = stack[stack.length - 1];
+            if (top.colon && !top.hasBody) {
+                if (width > top.width) {
+                    top.hasBody = true;
+                    return;
+                }
+                // No indented body: the block is closed some other way.
+                top.colon = false;
+            }
+            if (!top.colon) {
+                if (explicit) stack.pop();
+                return;
+            }
+            if (width > top.width) return;
+            if (width === top.width && explicit) {
+                stack.pop();
+                return;
+            }
+            if (width === top.width && top.type === 'if' && isIfContinuation(body)) {
+                return;
+            }
+            emitCloser(stack.pop(), lastCodeLine);
         }
-        // No indented body: the block is closed some other way.
-        top.colon = false
-      }
-      if (!top.colon) {
-        if (explicit) stack.pop()
-        return
-      }
-      if (width > top.width) return
-      if (width === top.width && explicit) {
-        stack.pop()
-        return
-      }
-      if (width === top.width && top.type === 'if' && isIfContinuation(body)) {
-        return
-      }
-      emitCloser(stack.pop(), lastCodeLine)
+    };
+    for (const { line: rawLine, extraCloseCount, lineNumber } of joinContinuationLines(source)) {
+        // Phase 3 per-line transformations (may produce `\n` from multi-assignment).
+        const phase3 = preprocessLine(rawLine);
+        const colonOpener = /[:：]\s*$/.test(rawLine) && !/[:：]\s*$/.test(phase3);
+        const pieces = phase3.split('\n');
+        for (const [pieceIdx, line] of pieces.entries()) {
+            const { line: marked, closeCount: markerCloseCount } = processIndentMarkers(line);
+            // `⎿` markers on joined continuation lines close blocks after the
+            // whole logical line, i.e. after its last piece.
+            const closeCount = markerCloseCount + (pieceIdx === pieces.length - 1 ? extraCloseCount : 0);
+            // Detect block opener AFTER marker stripping so the indent reflects
+            // the expanded form.
+            const indentMatch = marked.match(/^(\s*)/);
+            const indent = indentMatch ? indentMatch[1] : '';
+            const body = marked.substring(indent.length).replace(/\s+$/, '');
+            const width = indentWidth(indent);
+            const isCode = body !== '' && !body.startsWith('#');
+            if (isCode) closeByIndent(width, body);
+            emit(marked, lineNumber);
+            if (isCode) lastCodeLine = lineNumber;
+            const type = detectBlockType(body);
+            if (type) {
+                stack.push({ type, indent, width, colon: colonOpener, hasBody: false });
+            }
+            // Emit closers for each `⎿` on this line.
+            for (let i = 0; i < closeCount; i++) {
+                const popped = stack.pop();
+                if (!popped) break;
+                emitCloser(popped, lineNumber);
+            }
+        }
     }
-  }
-  for (const {
-    line: rawLine,
-    extraCloseCount,
-    lineNumber,
-  } of joinContinuationLines(source)) {
-    // Phase 3 per-line transformations (may produce `\n` from multi-assignment).
-    const phase3 = preprocessLine(rawLine)
-    const colonOpener = /[:：]\s*$/.test(rawLine) && !/[:：]\s*$/.test(phase3)
-    const pieces = phase3.split('\n')
-    for (const [pieceIdx, line] of pieces.entries()) {
-      const { line: marked, closeCount: markerCloseCount } =
-        processIndentMarkers(line)
-      // `⎿` markers on joined continuation lines close blocks after the
-      // whole logical line, i.e. after its last piece.
-      const closeCount =
-        markerCloseCount +
-        (pieceIdx === pieces.length - 1 ? extraCloseCount : 0)
-      // Detect block opener AFTER marker stripping so the indent reflects
-      // the expanded form.
-      const indentMatch = marked.match(/^(\s*)/)
-      const indent = indentMatch ? indentMatch[1] : ''
-      const body = marked.substring(indent.length).replace(/\s+$/, '')
-      const width = indentWidth(indent)
-      const isCode = body !== '' && !body.startsWith('#')
-      if (isCode) closeByIndent(width, body)
-      emit(marked, lineNumber)
-      if (isCode) lastCodeLine = lineNumber
-      const type = detectBlockType(body)
-      if (type) {
-        stack.push({ type, indent, width, colon: colonOpener, hasBody: false })
-      }
-      // Emit closers for each `⎿` on this line.
-      for (let i = 0; i < closeCount; i++) {
-        const popped = stack.pop()
-        if (!popped) break
-        emitCloser(popped, lineNumber)
-      }
+    // Indentation-style blocks still open at the end of the program.
+    while (stack.length > 0) {
+        const top = stack[stack.length - 1];
+        if (!top.colon || !top.hasBody) break;
+        emitCloser(stack.pop(), lastCodeLine);
     }
-  }
-  // Indentation-style blocks still open at the end of the program.
-  while (stack.length > 0) {
-    const top = stack[stack.length - 1]
-    if (!top.colon || !top.hasBody) break
-    emitCloser(stack.pop(), lastCodeLine)
-  }
-  return { source: out.join('\n'), lineMap }
-}
+    return { source: out.join('\n'), lineMap };
+};
 
 /**
  * Pre-process a DNCLv2 source string into Smalruby DNCL form, without the
@@ -615,6 +588,6 @@ const dnclV2PreprocessWithLineMap = (source) => {
  * @param {string} source - The DNCLv2 source.
  * @returns {string} The pre-processed source.
  */
-const dnclV2Preprocess = (source) => dnclV2PreprocessWithLineMap(source).source
+const dnclV2Preprocess = (source) => dnclV2PreprocessWithLineMap(source).source;
 
-export { dnclV2Preprocess, dnclV2PreprocessWithLineMap }
+export { dnclV2Preprocess, dnclV2PreprocessWithLineMap };

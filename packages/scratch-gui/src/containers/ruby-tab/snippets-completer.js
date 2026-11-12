@@ -1,32 +1,25 @@
 import BaseCompleter from './base-completer';
-import {
-    detectContext,
-    CONTEXT_TOP_LEVEL,
-    CONTEXT_INSIDE_BLOCK,
-    CONTEXT_ALLOWED_TYPES
-} from './context-detector';
-
-import MotionSnippets from './motion-snippets.json';
-import LooksSnippets from './looks-snippets.json';
-import SoundSnippets from './sound-snippets.json';
-import EventsSnippets from './events-snippets.json';
+import { detectContext, CONTEXT_TOP_LEVEL, CONTEXT_INSIDE_BLOCK, CONTEXT_ALLOWED_TYPES } from './context-detector';
 import ControlSnippets from './control-snippets.json';
-import SensingSnippets from './sensing-snippets.json';
-import OperatorsSnippets from './operators-snippets.json';
-import VariablesSnippets from './variables-snippets.json';
-import ProcedureSnippets from './procedure-snippets.json';
-
+import EventsSnippets from './events-snippets.json';
+import GdxForSnippets from './gdx_for-snippets.json';
+import KoshienSnippets from './koshien-snippets.json';
+import LooksSnippets from './looks-snippets.json';
+import MakeySnippets from './makey-snippets.json';
+import MicrobitMoreSnippets from './microbit-more-snippets.json';
+import MicrobitSnippets from './microbit-snippets.json';
+import MotionSnippets from './motion-snippets.json';
 import MusicSnippets from './music-snippets.json';
+import OperatorsSnippets from './operators-snippets.json';
 import PenSnippets from './pen-snippets.json';
-import VideoSensingSnippets from './video-sensing-snippets.json';
+import ProcedureSnippets from './procedure-snippets.json';
+import SensingSnippets from './sensing-snippets.json';
+import SmalrubotS1Snippets from './smalrubot-s1-snippets.json';
+import SoundSnippets from './sound-snippets.json';
 import TextToSpeechSnippets from './text-to-speech-snippets.json';
 import TranslateSnippets from './translate-snippets.json';
-import MicrobitSnippets from './microbit-snippets.json';
-import SmalrubotS1Snippets from './smalrubot-s1-snippets.json';
-import MicrobitMoreSnippets from './microbit-more-snippets.json';
-import KoshienSnippets from './koshien-snippets.json';
-import MakeySnippets from './makey-snippets.json';
-import GdxForSnippets from './gdx_for-snippets.json';
+import VariablesSnippets from './variables-snippets.json';
+import VideoSensingSnippets from './video-sensing-snippets.json';
 
 // Regex to detect Japanese characters (hiragana, katakana, kanji)
 const JAPANESE_CHAR_PATTERN = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
@@ -36,38 +29,38 @@ class SnippetsCompleter extends BaseCompleter {
     #extensionCompletions = [];
     #vm;
 
-    constructor (vm) {
+    constructor(vm) {
         super();
         this.#vm = vm;
 
         const coreSnippetsList = [
-            {snippets: MotionSnippets, category: '01'},
-            {snippets: LooksSnippets, category: '02'},
-            {snippets: SoundSnippets, category: '03'},
-            {snippets: EventsSnippets, category: '04'},
-            {snippets: ControlSnippets, category: '05'},
-            {snippets: SensingSnippets, category: '06'},
-            {snippets: OperatorsSnippets, category: '07'},
-            {snippets: VariablesSnippets, category: '08'},
-            {snippets: ProcedureSnippets, category: '09'}
+            { snippets: MotionSnippets, category: '01' },
+            { snippets: LooksSnippets, category: '02' },
+            { snippets: SoundSnippets, category: '03' },
+            { snippets: EventsSnippets, category: '04' },
+            { snippets: ControlSnippets, category: '05' },
+            { snippets: SensingSnippets, category: '06' },
+            { snippets: OperatorsSnippets, category: '07' },
+            { snippets: VariablesSnippets, category: '08' },
+            { snippets: ProcedureSnippets, category: '09' },
         ];
 
         const extensionSnippetsList = [
-            {snippets: MusicSnippets, category: '10', extensionId: 'music'},
-            {snippets: PenSnippets, category: '11', extensionId: 'pen'},
-            {snippets: VideoSensingSnippets, category: '12', extensionId: 'videoSensing'},
-            {snippets: TextToSpeechSnippets, category: '13', extensionId: 'text2speech'},
-            {snippets: TranslateSnippets, category: '14', extensionId: 'translate'},
-            {snippets: MicrobitSnippets, category: '15', extensionId: 'microbit'},
-            {snippets: SmalrubotS1Snippets, category: '17', extensionId: 'smalrubotS1'},
-            {snippets: MicrobitMoreSnippets, category: '18', extensionId: 'microbitMore'},
-            {snippets: KoshienSnippets, category: '19', extensionId: 'koshien'},
-            {snippets: MakeySnippets, category: '20', extensionId: 'makeymakey'},
-            {snippets: GdxForSnippets, category: '21', extensionId: 'gdxfor'}
+            { snippets: MusicSnippets, category: '10', extensionId: 'music' },
+            { snippets: PenSnippets, category: '11', extensionId: 'pen' },
+            { snippets: VideoSensingSnippets, category: '12', extensionId: 'videoSensing' },
+            { snippets: TextToSpeechSnippets, category: '13', extensionId: 'text2speech' },
+            { snippets: TranslateSnippets, category: '14', extensionId: 'translate' },
+            { snippets: MicrobitSnippets, category: '15', extensionId: 'microbit' },
+            { snippets: SmalrubotS1Snippets, category: '17', extensionId: 'smalrubotS1' },
+            { snippets: MicrobitMoreSnippets, category: '18', extensionId: 'microbitMore' },
+            { snippets: KoshienSnippets, category: '19', extensionId: 'koshien' },
+            { snippets: MakeySnippets, category: '20', extensionId: 'makeymakey' },
+            { snippets: GdxForSnippets, category: '21', extensionId: 'gdxfor' },
         ];
 
         const processSnippets = (list, target) => {
-            list.forEach(({snippets, category, extensionId}) => {
+            list.forEach(({ snippets, category, extensionId }) => {
                 for (const [caption, item] of Object.entries(snippets)) {
                     item.caption = caption;
                     item.type = item.type || 'snippet';
@@ -95,7 +88,7 @@ class SnippetsCompleter extends BaseCompleter {
      * @param {object} monaco - The monaco instance.
      * @returns {object} Completion items.
      */
-    provideCompletionItems (model, position, context, token, monaco) {
+    provideCompletionItems(model, position, context, token, monaco) {
         const word = model.getWordUntilPosition(position);
 
         // Allow single Japanese character to trigger completions (e.g. "動"),
@@ -103,27 +96,27 @@ class SnippetsCompleter extends BaseCompleter {
         const isJapanese = JAPANESE_CHAR_PATTERN.test(word.word);
         const minLength = isJapanese ? 1 : 3;
         if (word.word.length < minLength) {
-            return {suggestions: []};
+            return { suggestions: [] };
         }
 
         const range = {
             startLineNumber: position.lineNumber,
             endLineNumber: position.lineNumber,
             startColumn: word.startColumn,
-            endColumn: word.endColumn
+            endColumn: word.endColumn,
         };
 
         const activeCompletions = this.#coreCompletions.concat(
-            this.#extensionCompletions.filter(item => this.#isExtensionActive(item.extensionId))
+            this.#extensionCompletions.filter((item) => this.#isExtensionActive(item.extensionId)),
         );
 
         const detectedContext = detectContext(model, position);
         const filteredCompletions = this.#filterByContext(activeCompletions, detectedContext);
 
-        const suggestions = filteredCompletions.map(item => this.toCompletionItem(item, range, monaco));
+        const suggestions = filteredCompletions.map((item) => this.toCompletionItem(item, range, monaco));
 
         return {
-            suggestions: suggestions
+            suggestions: suggestions,
         };
     }
 
@@ -133,13 +126,13 @@ class SnippetsCompleter extends BaseCompleter {
      * @param {string} detectedContext - The detected context type.
      * @returns {Array} Filtered completions.
      */
-    #filterByContext (completions, detectedContext) {
+    #filterByContext(completions, detectedContext) {
         const allowedTypes = CONTEXT_ALLOWED_TYPES[detectedContext];
         if (!allowedTypes) {
             return completions;
         }
 
-        return completions.filter(item => {
+        return completions.filter((item) => {
             const type = item.type || 'snippet';
 
             // Special handling for 'snippet' type based on context
@@ -160,12 +153,12 @@ class SnippetsCompleter extends BaseCompleter {
         });
     }
 
-    #isExtensionActive (extensionId) {
+    #isExtensionActive(extensionId) {
         if (!this.#vm || !this.#vm.extensionManager) {
             return true;
         }
         if (Array.isArray(extensionId)) {
-            return extensionId.some(id => this.#vm.extensionManager.isExtensionLoaded(id));
+            return extensionId.some((id) => this.#vm.extensionManager.isExtensionLoaded(id));
         }
         return this.#vm.extensionManager.isExtensionLoaded(extensionId);
     }

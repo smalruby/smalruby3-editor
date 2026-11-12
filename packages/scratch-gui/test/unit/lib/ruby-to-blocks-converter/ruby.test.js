@@ -1,14 +1,12 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectRubyBlockError
-} from '../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectRubyBlockError } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Ruby', () => {
     let converter;
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -23,14 +21,11 @@ describe('RubyToBlocksConverter/Ruby', () => {
     });
 
     test('ruby_statement(wait)', async () => {
-        { for (const s of [
-            'wait',
-            'wait()',
-            'wait(  )',
-            'wait(\n)'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['wait', 'wait()', 'wait(  )', 'wait(\n)']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('ruby_statement_with_block', async () => {

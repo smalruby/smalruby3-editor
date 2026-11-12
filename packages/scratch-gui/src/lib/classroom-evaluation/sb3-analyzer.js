@@ -344,8 +344,7 @@ const analyzeProject = (projectJson) => {
         }
     }
 
-    const changedSprites =
-        sprites.length > 1 || sprites.some((s) => !DEFAULT_SPRITE_NAMES.has(s.name));
+    const changedSprites = sprites.length > 1 || sprites.some((s) => !DEFAULT_SPRITE_NAMES.has(s.name));
 
     return {
         signals: {

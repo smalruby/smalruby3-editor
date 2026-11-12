@@ -22,8 +22,7 @@ export default function (Generator) {
     };
 
     const forSave = function () {
-        return Generator._options && Generator._options.forSave &&
-            String(Generator.version) !== '1';
+        return Generator._options && Generator._options.forSave && String(Generator.version) !== '1';
     };
 
     const needsWithScreenRefresh = function (block) {
@@ -54,7 +53,7 @@ export default function (Generator) {
         if (match) {
             return {
                 subject: match[1],
-                id: match[2]
+                id: match[2],
             };
         }
         return null;
@@ -94,13 +93,13 @@ export default function (Generator) {
         if (!comment) return null;
         // Check more specific patterns first to avoid substring conflicts
         if (comment.includes('@ruby:syntax:unless_else')) {
-            return {hasElse: true};
+            return { hasElse: true };
         }
         if (comment.includes('@ruby:syntax:unless_modifier')) {
-            return {isModifier: true};
+            return { isModifier: true };
         }
         if (comment.includes('@ruby:syntax:unless')) {
-            return {hasElse: false};
+            return { hasElse: false };
         }
         return null;
     };
@@ -185,8 +184,7 @@ export default function (Generator) {
             const substack2 = block.inputs.SUBSTACK2;
             if (substack2 && substack2.block) {
                 const nextBlock = Generator.getBlock(substack2.block);
-                if (nextBlock &&
-                    (nextBlock.opcode === 'control_if' || nextBlock.opcode === 'control_if_else')) {
+                if (nextBlock && (nextBlock.opcode === 'control_if' || nextBlock.opcode === 'control_if_else')) {
                     const nextComment = Generator.getCommentText(nextBlock);
                     const nextMatch = nextComment ? nextComment.match(/^@ruby:syntax:elsif:(\d+)$/) : null;
                     if (nextMatch && nextMatch[1] === elsifGroup) {
@@ -226,8 +224,7 @@ export default function (Generator) {
             const comment = Generator.getCommentText(block);
             const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
             const branch2 = Generator.statementToCode(block, 'SUBSTACK2') || '';
-            if (comment.includes('@ruby:syntax:unless_else') ||
-                comment.includes('@ruby:syntax:unless')) {
+            if (comment.includes('@ruby:syntax:unless_else') || comment.includes('@ruby:syntax:unless')) {
                 return `unless ${varName}\n${branch}else\n${branch2}end\n`;
             }
             return `if ${varName}\n${branch}else\n${branch2}end\n`;

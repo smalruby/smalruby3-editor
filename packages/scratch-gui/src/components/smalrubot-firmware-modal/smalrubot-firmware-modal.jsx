@@ -1,10 +1,8 @@
-import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React from 'react';
-
+import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
 import Box from '../box/box.jsx';
-
 import styles from './smalrubot-firmware-modal.css';
 
 const messages = defineMessages({

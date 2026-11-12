@@ -5,7 +5,7 @@ describe('RubyGenerator/Motion', () => {
     beforeEach(() => {
         RubyGenerator.cache_ = {
             comments: {},
-            targetCommentTexts: []
+            targetCommentTexts: [],
         };
         RubyGenerator.definitions_ = {};
         RubyGenerator.functionNames_ = {};
@@ -13,7 +13,7 @@ describe('RubyGenerator/Motion', () => {
         MotionBlocks(RubyGenerator);
     });
 
-    const makeBlock = id => ({id, opcode: 'dummy', inputs: {}, fields: {}});
+    const makeBlock = (id) => ({ id, opcode: 'dummy', inputs: {}, fields: {} });
 
     describe('motion_changexby', () => {
         test('positive DX emits self.x += N', () => {
@@ -66,13 +66,13 @@ describe('RubyGenerator/Motion', () => {
         });
 
         test('with @ruby:operator:+= comment emits self.direction += N', () => {
-            RubyGenerator.cache_.comments['b1'] = {text: '@ruby:operator:+='};
+            RubyGenerator.cache_.comments['b1'] = { text: '@ruby:operator:+=' };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('10');
             expect(RubyGenerator.motion_turnright(makeBlock('b1'))).toEqual('self.direction += 10\n');
         });
 
         test('with @ruby:operator:+= comment emits self.direction += expr', () => {
-            RubyGenerator.cache_.comments['b1'] = {text: '@ruby:operator:+='};
+            RubyGenerator.cache_.comments['b1'] = { text: '@ruby:operator:+=' };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('x');
             expect(RubyGenerator.motion_turnright(makeBlock('b1'))).toEqual('self.direction += x\n');
         });
@@ -85,13 +85,13 @@ describe('RubyGenerator/Motion', () => {
         });
 
         test('with @ruby:operator:-= comment emits self.direction -= N', () => {
-            RubyGenerator.cache_.comments['b1'] = {text: '@ruby:operator:-='};
+            RubyGenerator.cache_.comments['b1'] = { text: '@ruby:operator:-=' };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('10');
             expect(RubyGenerator.motion_turnleft(makeBlock('b1'))).toEqual('self.direction -= 10\n');
         });
 
         test('with @ruby:operator:-= comment emits self.direction -= expr', () => {
-            RubyGenerator.cache_.comments['b1'] = {text: '@ruby:operator:-='};
+            RubyGenerator.cache_.comments['b1'] = { text: '@ruby:operator:-=' };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('x');
             expect(RubyGenerator.motion_turnleft(makeBlock('b1'))).toEqual('self.direction -= x\n');
         });

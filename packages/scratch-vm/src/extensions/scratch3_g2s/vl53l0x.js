@@ -3,38 +3,37 @@
  * ref: https://github.com/pololu/vl53l0x-arduino
  */
 
-
 /* eslint-disable camelcase */
 
 // register addresses from API vl53l0x_device.h (ordered as listed there)
 // enum regAddr
 const SYSRANGE_START = 0x00;
 
-const SYSTEM_THRESH_HIGH = 0x0C;
-const SYSTEM_THRESH_LOW = 0x0E;
+const SYSTEM_THRESH_HIGH = 0x0c;
+const SYSTEM_THRESH_LOW = 0x0e;
 
 const SYSTEM_SEQUENCE_CONFIG = 0x01;
 const SYSTEM_RANGE_CONFIG = 0x09;
 const SYSTEM_INTERMEASUREMENT_PERIOD = 0x04;
 
-const SYSTEM_INTERRUPT_CONFIG_GPIO = 0x0A;
+const SYSTEM_INTERRUPT_CONFIG_GPIO = 0x0a;
 
 const GPIO_HV_MUX_ACTIVE_HIGH = 0x84;
 
-const SYSTEM_INTERRUPT_CLEAR = 0x0B;
+const SYSTEM_INTERRUPT_CLEAR = 0x0b;
 
 const RESULT_INTERRUPT_STATUS = 0x13;
 const RESULT_RANGE_STATUS = 0x14;
 
-const RESULT_CORE_AMBIENT_WINDOW_EVENTS_RTN = 0xBC;
-const RESULT_CORE_RANGING_TOTAL_EVENTS_RTN = 0xC0;
-const RESULT_CORE_AMBIENT_WINDOW_EVENTS_REF = 0xD0;
-const RESULT_CORE_RANGING_TOTAL_EVENTS_REF = 0xD4;
-const RESULT_PEAK_SIGNAL_RATE_REF = 0xB6;
+const RESULT_CORE_AMBIENT_WINDOW_EVENTS_RTN = 0xbc;
+const RESULT_CORE_RANGING_TOTAL_EVENTS_RTN = 0xc0;
+const RESULT_CORE_AMBIENT_WINDOW_EVENTS_REF = 0xd0;
+const RESULT_CORE_RANGING_TOTAL_EVENTS_REF = 0xd4;
+const RESULT_PEAK_SIGNAL_RATE_REF = 0xb6;
 
 const ALGO_PART_TO_PART_RANGE_OFFSET_MM = 0x28;
 
-const I2C_SLAVE_DEVICE_ADDRESS = 0x8A;
+const I2C_SLAVE_DEVICE_ADDRESS = 0x8a;
 
 const MSRC_CONFIG_CONTROL = 0x60;
 
@@ -66,23 +65,23 @@ const CROSSTALK_COMPENSATION_PEAK_RATE_MCPS = 0x20;
 
 const MSRC_CONFIG_TIMEOUT_MACROP = 0x46;
 
-const SOFT_RESET_GO2_SOFT_RESET_N = 0xBF;
-const IDENTIFICATION_MODEL_ID = 0xC0;
-const IDENTIFICATION_REVISION_ID = 0xC2;
+const SOFT_RESET_GO2_SOFT_RESET_N = 0xbf;
+const IDENTIFICATION_MODEL_ID = 0xc0;
+const IDENTIFICATION_REVISION_ID = 0xc2;
 
-const OSC_CALIBRATE_VAL = 0xF8;
+const OSC_CALIBRATE_VAL = 0xf8;
 
 const GLOBAL_CONFIG_VCSEL_WIDTH = 0x32;
-const GLOBAL_CONFIG_SPAD_ENABLES_REF_0 = 0xB0;
-const GLOBAL_CONFIG_SPAD_ENABLES_REF_1 = 0xB1;
-const GLOBAL_CONFIG_SPAD_ENABLES_REF_2 = 0xB2;
-const GLOBAL_CONFIG_SPAD_ENABLES_REF_3 = 0xB3;
-const GLOBAL_CONFIG_SPAD_ENABLES_REF_4 = 0xB4;
-const GLOBAL_CONFIG_SPAD_ENABLES_REF_5 = 0xB5;
+const GLOBAL_CONFIG_SPAD_ENABLES_REF_0 = 0xb0;
+const GLOBAL_CONFIG_SPAD_ENABLES_REF_1 = 0xb1;
+const GLOBAL_CONFIG_SPAD_ENABLES_REF_2 = 0xb2;
+const GLOBAL_CONFIG_SPAD_ENABLES_REF_3 = 0xb3;
+const GLOBAL_CONFIG_SPAD_ENABLES_REF_4 = 0xb4;
+const GLOBAL_CONFIG_SPAD_ENABLES_REF_5 = 0xb5;
 
-const GLOBAL_CONFIG_REF_EN_START_SELECT = 0xB6;
-const DYNAMIC_SPAD_NUM_REQUESTED_REF_SPAD = 0x4E;
-const DYNAMIC_SPAD_REF_EN_START_OFFSET = 0x4F;
+const GLOBAL_CONFIG_REF_EN_START_SELECT = 0xb6;
+const DYNAMIC_SPAD_NUM_REQUESTED_REF_SPAD = 0x4e;
+const DYNAMIC_SPAD_REF_EN_START_OFFSET = 0x4f;
 const POWER_MANAGEMENT_GO1_POWER_FORCE = 0x80;
 
 const VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV = 0x89;
@@ -101,29 +100,27 @@ const VcselPeriodFinalRange = 1;
  * @param {number} reg_val - register value
  * @returns {number} decoded value
  */
-const decodeVcselPeriod = reg_val => (((reg_val) + 1) << 1);
+const decodeVcselPeriod = (reg_val) => (reg_val + 1) << 1;
 
 // Encode VCSEL pulse period register value from period in PCLKs
 // based on VL53L0X_encode_vcsel_period()
-const encodeVcselPeriod = period_pclks => (((period_pclks) >> 1) - 1);
+const encodeVcselPeriod = (period_pclks) => (period_pclks >> 1) - 1;
 
 // Calculate macro period in *nanoseconds* from VCSEL period in PCLKs
 // based on VL53L0X_calc_macro_period_ps()
 // PLL_period_ps = 1655; macro_period_vclks = 2304
-const calcMacroPeriod = vcsel_period_pclks => (((2304 * (vcsel_period_pclks) * 1655) + 500) / 1000);
+const calcMacroPeriod = (vcsel_period_pclks) => (2304 * vcsel_period_pclks * 1655 + 500) / 1000;
 
 /**
  * This class is representing a VL53L0X distance sensor.
  */
 export default class VL53L0X {
-
     /**
      * Constructor of VL53L0X instance.
      * @param {AkadakoBoard} board - connecting akadako board
      * @param {number?} address - I2C address of the sensor
      */
-    constructor (board, address) {
-
+    constructor(board, address) {
         /**
          * Connecting akadako board
          * @type {import('./akadako-board').default}
@@ -167,7 +164,7 @@ export default class VL53L0X {
      * Change address for this module
      * @param {number} new_addr - I2C address to set
      */
-    setAddress (new_addr) {
+    setAddress(new_addr) {
         this.writeReg(I2C_SLAVE_DEVICE_ADDRESS, new_addr);
         this.address = new_addr;
     }
@@ -178,10 +175,10 @@ export default class VL53L0X {
      * @param {boolean} io2v8 - set 2V8 mode if it was true
      * @returns {Promise<boolean>} a Promise which resolves boolean if the initialization was succeeded.
      */
-    async init (io2v8) {
+    async init(io2v8) {
         // check model ID register (value specified in datasheet)
         const id = await this.readReg(IDENTIFICATION_MODEL_ID);
-        if (id !== 0xEE) {
+        if (id !== 0xee) {
             return false;
         }
 
@@ -189,35 +186,37 @@ export default class VL53L0X {
 
         // sensor uses 1V8 mode for I/O by default; switch to 2V8 mode if necessary
         if (io2v8) {
-            this.writeReg(VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV,
-                await this.readReg(VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV) | 0x01); // set bit 0
+            this.writeReg(
+                VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV,
+                (await this.readReg(VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV)) | 0x01,
+            ); // set bit 0
         }
 
         // "Set I2C standard mode"
         this.writeReg(0x88, 0x00);
 
         this.writeReg(0x80, 0x01);
-        this.writeReg(0xFF, 0x01);
+        this.writeReg(0xff, 0x01);
         this.writeReg(0x00, 0x00);
         this.stop_variable = await this.readReg(0x91);
         this.writeReg(0x00, 0x01);
-        this.writeReg(0xFF, 0x00);
+        this.writeReg(0xff, 0x00);
         this.writeReg(0x80, 0x00);
 
         // disable SIGNAL_RATE_MSRC (bit 1) and SIGNAL_RATE_PRE_RANGE (bit 4) limit checks
-        this.writeReg(MSRC_CONFIG_CONTROL, await this.readReg(MSRC_CONFIG_CONTROL) | 0x12);
+        this.writeReg(MSRC_CONFIG_CONTROL, (await this.readReg(MSRC_CONFIG_CONTROL)) | 0x12);
 
         // set final range signal rate limit to 0.25 MCPS (million counts per second)
         this.setSignalRateLimit(0.25);
 
-        this.writeReg(SYSTEM_SEQUENCE_CONFIG, 0xFF);
+        this.writeReg(SYSTEM_SEQUENCE_CONFIG, 0xff);
 
         // VL53L0X_DataInit() end
 
         // VL53L0X_StaticInit() begin
 
-        const info = {count: 0, isAperture: false};
-        if (!await this.getSpadInfo(info)) {
+        const info = { count: 0, isAperture: false };
+        if (!(await this.getSpadInfo(info))) {
             return false;
         }
 
@@ -228,11 +227,11 @@ export default class VL53L0X {
 
         // -- VL53L0X_set_reference_spads() begin (assume NVM values are valid)
 
-        this.writeReg(0xFF, 0x01);
+        this.writeReg(0xff, 0x01);
         this.writeReg(DYNAMIC_SPAD_REF_EN_START_OFFSET, 0x00);
-        this.writeReg(DYNAMIC_SPAD_NUM_REQUESTED_REF_SPAD, 0x2C);
-        this.writeReg(0xFF, 0x00);
-        this.writeReg(GLOBAL_CONFIG_REF_EN_START_SELECT, 0xB4);
+        this.writeReg(DYNAMIC_SPAD_NUM_REQUESTED_REF_SPAD, 0x2c);
+        this.writeReg(0xff, 0x00);
+        this.writeReg(GLOBAL_CONFIG_REF_EN_START_SELECT, 0xb4);
 
         const firstSpadToEnable = info.isAperture ? 12 : 0; // 12 is the first aperture spad
         let spadsEnabled = 0;
@@ -254,24 +253,24 @@ export default class VL53L0X {
         // -- VL53L0X_load_tuning_settings() begin
         // DefaultTuningSettings from vl53l0x_tuning.h
 
-        this.writeReg(0xFF, 0x01);
+        this.writeReg(0xff, 0x01);
         this.writeReg(0x00, 0x00);
 
-        this.writeReg(0xFF, 0x00);
+        this.writeReg(0xff, 0x00);
         this.writeReg(0x09, 0x00);
         this.writeReg(0x10, 0x00);
         this.writeReg(0x11, 0x00);
 
         this.writeReg(0x24, 0x01);
-        this.writeReg(0x25, 0xFF);
+        this.writeReg(0x25, 0xff);
         this.writeReg(0x75, 0x00);
 
-        this.writeReg(0xFF, 0x01);
-        this.writeReg(0x4E, 0x2C);
+        this.writeReg(0xff, 0x01);
+        this.writeReg(0x4e, 0x2c);
         this.writeReg(0x48, 0x00);
         this.writeReg(0x30, 0x20);
 
-        this.writeReg(0xFF, 0x00);
+        this.writeReg(0xff, 0x00);
         this.writeReg(0x30, 0x09);
         this.writeReg(0x54, 0x00);
         this.writeReg(0x31, 0x04);
@@ -289,41 +288,41 @@ export default class VL53L0X {
         this.writeReg(0x62, 0x00);
         this.writeReg(0x64, 0x00);
         this.writeReg(0x65, 0x00);
-        this.writeReg(0x66, 0xA0);
+        this.writeReg(0x66, 0xa0);
 
-        this.writeReg(0xFF, 0x01);
+        this.writeReg(0xff, 0x01);
         this.writeReg(0x22, 0x32);
         this.writeReg(0x47, 0x14);
-        this.writeReg(0x49, 0xFF);
-        this.writeReg(0x4A, 0x00);
+        this.writeReg(0x49, 0xff);
+        this.writeReg(0x4a, 0x00);
 
-        this.writeReg(0xFF, 0x00);
-        this.writeReg(0x7A, 0x0A);
-        this.writeReg(0x7B, 0x00);
+        this.writeReg(0xff, 0x00);
+        this.writeReg(0x7a, 0x0a);
+        this.writeReg(0x7b, 0x00);
         this.writeReg(0x78, 0x21);
 
-        this.writeReg(0xFF, 0x01);
+        this.writeReg(0xff, 0x01);
         this.writeReg(0x23, 0x34);
         this.writeReg(0x42, 0x00);
-        this.writeReg(0x44, 0xFF);
+        this.writeReg(0x44, 0xff);
         this.writeReg(0x45, 0x26);
         this.writeReg(0x46, 0x05);
         this.writeReg(0x40, 0x40);
-        this.writeReg(0x0E, 0x06);
-        this.writeReg(0x20, 0x1A);
+        this.writeReg(0x0e, 0x06);
+        this.writeReg(0x20, 0x1a);
         this.writeReg(0x43, 0x40);
 
-        this.writeReg(0xFF, 0x00);
+        this.writeReg(0xff, 0x00);
         this.writeReg(0x34, 0x03);
         this.writeReg(0x35, 0x44);
 
-        this.writeReg(0xFF, 0x01);
+        this.writeReg(0xff, 0x01);
         this.writeReg(0x31, 0x04);
-        this.writeReg(0x4B, 0x09);
-        this.writeReg(0x4C, 0x05);
-        this.writeReg(0x4D, 0x04);
+        this.writeReg(0x4b, 0x09);
+        this.writeReg(0x4c, 0x05);
+        this.writeReg(0x4d, 0x04);
 
-        this.writeReg(0xFF, 0x00);
+        this.writeReg(0xff, 0x00);
         this.writeReg(0x44, 0x00);
         this.writeReg(0x45, 0x20);
         this.writeReg(0x47, 0x08);
@@ -331,21 +330,21 @@ export default class VL53L0X {
         this.writeReg(0x67, 0x00);
         this.writeReg(0x70, 0x04);
         this.writeReg(0x71, 0x01);
-        this.writeReg(0x72, 0xFE);
+        this.writeReg(0x72, 0xfe);
         this.writeReg(0x76, 0x00);
         this.writeReg(0x77, 0x00);
 
-        this.writeReg(0xFF, 0x01);
-        this.writeReg(0x0D, 0x01);
+        this.writeReg(0xff, 0x01);
+        this.writeReg(0x0d, 0x01);
 
-        this.writeReg(0xFF, 0x00);
+        this.writeReg(0xff, 0x00);
         this.writeReg(0x80, 0x01);
-        this.writeReg(0x01, 0xF8);
+        this.writeReg(0x01, 0xf8);
 
-        this.writeReg(0xFF, 0x01);
-        this.writeReg(0x8E, 0x01);
+        this.writeReg(0xff, 0x01);
+        this.writeReg(0x8e, 0x01);
         this.writeReg(0x00, 0x01);
-        this.writeReg(0xFF, 0x00);
+        this.writeReg(0xff, 0x00);
         this.writeReg(0x80, 0x00);
 
         // -- VL53L0X_load_tuning_settings() end
@@ -366,7 +365,7 @@ export default class VL53L0X {
         // TCC = Target CentreCheck
         // -- VL53L0X_SetSequenceStepEnable() begin
 
-        this.writeReg(SYSTEM_SEQUENCE_CONFIG, 0xE8);
+        this.writeReg(SYSTEM_SEQUENCE_CONFIG, 0xe8);
 
         // -- VL53L0X_SetSequenceStepEnable() end
 
@@ -380,7 +379,7 @@ export default class VL53L0X {
         // -- VL53L0X_perform_vhv_calibration() begin
 
         this.writeReg(SYSTEM_SEQUENCE_CONFIG, 0x01);
-        if (!await this.performSingleRefCalibration(0x40)) {
+        if (!(await this.performSingleRefCalibration(0x40))) {
             return false;
         }
 
@@ -389,14 +388,14 @@ export default class VL53L0X {
         // -- VL53L0X_perform_phase_calibration() begin
 
         this.writeReg(SYSTEM_SEQUENCE_CONFIG, 0x02);
-        if (!await this.performSingleRefCalibration(0x00)) {
+        if (!(await this.performSingleRefCalibration(0x00))) {
             return false;
         }
 
         // -- VL53L0X_perform_phase_calibration() end
 
         // "restore the previous Sequence Config"
-        this.writeReg(SYSTEM_SEQUENCE_CONFIG, 0xE8);
+        this.writeReg(SYSTEM_SEQUENCE_CONFIG, 0xe8);
 
         // VL53L0X_PerformRefCalibration() end
 
@@ -408,20 +407,17 @@ export default class VL53L0X {
      * @param {number} register - register to write
      * @param {number} value - written 8-bit value
      */
-    writeReg (register, value) {
+    writeReg(register, value) {
         this.board.i2cWrite(this.address, register, value);
     }
-    
+
     /**
      * Write a 16-bit at the register.
      * @param {number} register - register to write
      * @param {number} value - written 16-bit value
      */
-    writeReg16Bit (register, value) {
-        const data = [
-            (value >> 8) & 0xFF,
-            value & 0xFF
-        ];
+    writeReg16Bit(register, value) {
+        const data = [(value >> 8) & 0xff, value & 0xff];
         this.board.i2cWrite(this.address, register, data);
     }
 
@@ -430,13 +426,8 @@ export default class VL53L0X {
      * @param {number} register - register to write
      * @param {number} value - written 32-bit value
      */
-    writeReg32Bit (register, value) {
-        const data = [
-            (value >> 24) & 0xFF,
-            (value >> 16) & 0xFF,
-            (value >> 8) & 0xFF,
-            value & 0xFF
-        ];
+    writeReg32Bit(register, value) {
+        const data = [(value >> 24) & 0xff, (value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff];
         this.board.i2cWrite(this.address, register, data);
     }
 
@@ -445,9 +436,8 @@ export default class VL53L0X {
      * @param {number} register - register to read
      * @returns {Promise<number>} a Promise which resolves read value
      */
-    readReg (register) {
-        return this.board.i2cReadOnce(this.address, register, 1, this.io_timeout)
-            .then(data => data[0]);
+    readReg(register) {
+        return this.board.i2cReadOnce(this.address, register, 1, this.io_timeout).then((data) => data[0]);
     }
 
     /**
@@ -455,12 +445,11 @@ export default class VL53L0X {
      * @param {number} register - starting register
      * @returns {Promise<number>} a Promise which resolves read value
      */
-    readReg16Bit (register) {
-        return this.board.i2cReadOnce(this.address, register, 2, this.io_timeout)
-            .then(data => {
-                const value = (data[0] << 8) | data[1];
-                return value;
-            });
+    readReg16Bit(register) {
+        return this.board.i2cReadOnce(this.address, register, 2, this.io_timeout).then((data) => {
+            const value = (data[0] << 8) | data[1];
+            return value;
+        });
     }
 
     /**
@@ -468,16 +457,11 @@ export default class VL53L0X {
      * @param {number} register - starting register
      * @returns {Promise<number>} a Promise which resolves read value
      */
-    readReg32Bit (register) {
-        return this.board.i2cReadOnce(this.address, register, 4, this.io_timeout)
-            .then(data => {
-                const value =
-                      (data[0] << 24) |
-                      (data[1] << 16) |
-                      (data[2] << 8) |
-                      data[3];
-                return value;
-            });
+    readReg32Bit(register) {
+        return this.board.i2cReadOnce(this.address, register, 4, this.io_timeout).then((data) => {
+            const value = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+            return value;
+        });
     }
 
     /**
@@ -485,7 +469,7 @@ export default class VL53L0X {
      * @param {number} register - starting register
      * @param {Array<number>} data - array of uint8t to be written
      */
-    writeMulti (register, data) {
+    writeMulti(register, data) {
         this.board.i2cWrite(this.address, register, data);
     }
 
@@ -495,14 +479,14 @@ export default class VL53L0X {
      * @param {number} bytesToRead - byte length to read
      * @returns {Promise<Array<number>>} a Promise which resolves read bytes
      */
-    readMulti (register, bytesToRead) {
+    readMulti(register, bytesToRead) {
         return this.board.i2cReadOnce(this.address, register, bytesToRead, this.io_timeout);
     }
 
     /**
      * Record the current time to check an upcoming timeout against
      */
-    startTimeout () {
+    startTimeout() {
         /**
          * Starting time to count timeout for IO.
          */
@@ -513,10 +497,9 @@ export default class VL53L0X {
      * Check if timeout is enabled (set to nonzero value) and has expired.
      * @returns {boolean} true when the timeout has expired
      */
-    checkTimeoutExpired () {
-        return this.io_timeout > 0 && ((Date.now() - this.timeout_start_ms) > this.io_timeout);
+    checkTimeoutExpired() {
+        return this.io_timeout > 0 && Date.now() - this.timeout_start_ms > this.io_timeout;
     }
-    
 
     // Set the return signal rate limit check value in units of MCPS (mega counts
     // per second). "This represents the amplitude of the signal reflected from the
@@ -526,7 +509,7 @@ export default class VL53L0X {
     // seems to increase the likelihood of getting an inaccurate reading because of
     // unwanted reflections from objects other than the intended target.
     // Defaults to 0.25 MCPS as initialized by the ST API and this library.
-    setSignalRateLimit (limitMCPS) {
+    setSignalRateLimit(limitMCPS) {
         if (limitMCPS < 0 || limitMCPS > 511.99) {
             return false;
         }
@@ -537,7 +520,7 @@ export default class VL53L0X {
     }
 
     // Get the return signal rate limit check value in MCPS
-    async getSignalRateLimit () {
+    async getSignalRateLimit() {
         return (await this.readReg16Bit(FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT)) / (1 << 7);
     }
 
@@ -548,16 +531,18 @@ export default class VL53L0X {
     // factor of N decreases the range measurement standard deviation by a factor of
     // sqrt(N). Defaults to about 33 milliseconds; the minimum is 20 ms.
     // based on VL53L0X_set_measurement_timing_budget_micro_seconds()
-    async setMeasurementTimingBudget (budget_us) {
-        const enables = {tcc: false, msrc: false, dss: false, pre_range: false, final_range: false};
-        const timeouts = {pre_range_vcsel_period_pclks: 0,
+    async setMeasurementTimingBudget(budget_us) {
+        const enables = { tcc: false, msrc: false, dss: false, pre_range: false, final_range: false };
+        const timeouts = {
+            pre_range_vcsel_period_pclks: 0,
             final_range_vcsel_period_pclks: 0,
             msrc_dss_tcc_mclks: 0,
             pre_range_mclks: 0,
             final_range_mclks: 0,
             msrc_dss_tcc_us: 0,
             pre_range_us: 0,
-            final_range_us: 0};
+            final_range_us: 0,
+        };
 
         const StartOverhead = 1910;
         const EndOverhead = 960;
@@ -579,17 +564,17 @@ export default class VL53L0X {
         await this.getSequenceStepTimeouts(enables, timeouts);
 
         if (enables.tcc) {
-            used_budget_us += (timeouts.msrc_dss_tcc_us + TccOverhead);
+            used_budget_us += timeouts.msrc_dss_tcc_us + TccOverhead;
         }
 
         if (enables.dss) {
             used_budget_us += 2 * (timeouts.msrc_dss_tcc_us + DssOverhead);
         } else if (enables.msrc) {
-            used_budget_us += (timeouts.msrc_dss_tcc_us + MsrcOverhead);
+            used_budget_us += timeouts.msrc_dss_tcc_us + MsrcOverhead;
         }
 
         if (enables.pre_range) {
-            used_budget_us += (timeouts.pre_range_us + PreRangeOverhead);
+            used_budget_us += timeouts.pre_range_us + PreRangeOverhead;
         }
 
         if (enables.final_range) {
@@ -616,17 +601,16 @@ export default class VL53L0X {
             //  timeouts must be expressed in macro periods MClks
             //  because they have different vcsel periods."
 
-            let final_range_timeout_mclks =
-             this.timeoutMicrosecondsToMclks(
-                 final_range_timeout_us,
-                 timeouts.final_range_vcsel_period_pclks);
+            let final_range_timeout_mclks = this.timeoutMicrosecondsToMclks(
+                final_range_timeout_us,
+                timeouts.final_range_vcsel_period_pclks,
+            );
 
             if (enables.pre_range) {
                 final_range_timeout_mclks += timeouts.pre_range_mclks;
             }
 
-            this.writeReg16Bit(FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI,
-                this.encodeTimeout(final_range_timeout_mclks));
+            this.writeReg16Bit(FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI, this.encodeTimeout(final_range_timeout_mclks));
 
             // set_sequence_step_timeout() end
 
@@ -638,16 +622,18 @@ export default class VL53L0X {
     // Get the measurement timing budget in microseconds
     // based on VL53L0X_get_measurement_timing_budget_micro_seconds()
     // in us
-    async getMeasurementTimingBudget () {
-        const enables = {tcc: false, msrc: false, dss: false, pre_range: false, final_range: false};
-        const timeouts = {pre_range_vcsel_period_pclks: 0,
+    async getMeasurementTimingBudget() {
+        const enables = { tcc: false, msrc: false, dss: false, pre_range: false, final_range: false };
+        const timeouts = {
+            pre_range_vcsel_period_pclks: 0,
             final_range_vcsel_period_pclks: 0,
             msrc_dss_tcc_mclks: 0,
             pre_range_mclks: 0,
             final_range_mclks: 0,
             msrc_dss_tcc_us: 0,
             pre_range_us: 0,
-            final_range_us: 0};
+            final_range_us: 0,
+        };
 
         const StartOverhead = 1910;
         const EndOverhead = 960;
@@ -664,21 +650,21 @@ export default class VL53L0X {
         await this.getSequenceStepTimeouts(enables, timeouts);
 
         if (enables.tcc) {
-            budget_us += (timeouts.msrc_dss_tcc_us + TccOverhead);
+            budget_us += timeouts.msrc_dss_tcc_us + TccOverhead;
         }
 
         if (enables.dss) {
             budget_us += 2 * (timeouts.msrc_dss_tcc_us + DssOverhead);
         } else if (enables.msrc) {
-            budget_us += (timeouts.msrc_dss_tcc_us + MsrcOverhead);
+            budget_us += timeouts.msrc_dss_tcc_us + MsrcOverhead;
         }
 
         if (enables.pre_range) {
-            budget_us += (timeouts.pre_range_us + PreRangeOverhead);
+            budget_us += timeouts.pre_range_us + PreRangeOverhead;
         }
 
         if (enables.final_range) {
-            budget_us += (timeouts.final_range_us + FinalRangeOverhead);
+            budget_us += timeouts.final_range_us + FinalRangeOverhead;
         }
 
         this.measurement_timing_budget_us = budget_us; // store for internal reuse
@@ -692,18 +678,20 @@ export default class VL53L0X {
     //  pre:  12 to 18 (initialized default: 14)
     //  final: 8 to 14 (initialized default: 10)
     // based on VL53L0X_set_vcsel_pulse_period()
-    async setVcselPulsePeriod (type, period_pclks) {
+    async setVcselPulsePeriod(type, period_pclks) {
         const vcsel_period_reg = encodeVcselPeriod(period_pclks);
 
-        const enables = {tcc: false, msrc: false, dss: false, pre_range: false, final_range: false};
-        const timeouts = {pre_range_vcsel_period_pclks: 0,
+        const enables = { tcc: false, msrc: false, dss: false, pre_range: false, final_range: false };
+        const timeouts = {
+            pre_range_vcsel_period_pclks: 0,
             final_range_vcsel_period_pclks: 0,
             msrc_dss_tcc_mclks: 0,
             pre_range_mclks: 0,
             final_range_mclks: 0,
             msrc_dss_tcc_us: 0,
             pre_range_us: 0,
-            final_range_us: 0};
+            final_range_us: 0,
+        };
 
         await this.getSequenceStepEnables(enables);
         await this.getSequenceStepTimeouts(enables, timeouts);
@@ -720,29 +708,28 @@ export default class VL53L0X {
         // For the MSRC timeout, the same applies - this timeout being
         // dependant on the pre-range vcsel period."
 
-
         if (type === VcselPeriodPreRange) {
             // "Set phase check limits"
             switch (period_pclks) {
-            case 12:
-                this.writeReg(PRE_RANGE_CONFIG_VALID_PHASE_HIGH, 0x18);
-                break;
+                case 12:
+                    this.writeReg(PRE_RANGE_CONFIG_VALID_PHASE_HIGH, 0x18);
+                    break;
 
-            case 14:
-                this.writeReg(PRE_RANGE_CONFIG_VALID_PHASE_HIGH, 0x30);
-                break;
+                case 14:
+                    this.writeReg(PRE_RANGE_CONFIG_VALID_PHASE_HIGH, 0x30);
+                    break;
 
-            case 16:
-                this.writeReg(PRE_RANGE_CONFIG_VALID_PHASE_HIGH, 0x40);
-                break;
+                case 16:
+                    this.writeReg(PRE_RANGE_CONFIG_VALID_PHASE_HIGH, 0x40);
+                    break;
 
-            case 18:
-                this.writeReg(PRE_RANGE_CONFIG_VALID_PHASE_HIGH, 0x50);
-                break;
+                case 18:
+                    this.writeReg(PRE_RANGE_CONFIG_VALID_PHASE_HIGH, 0x50);
+                    break;
 
-            default:
-                // invalid period
-                return false;
+                default:
+                    // invalid period
+                    return false;
             }
             this.writeReg(PRE_RANGE_CONFIG_VALID_PHASE_LOW, 0x08);
 
@@ -754,69 +741,68 @@ export default class VL53L0X {
             // set_sequence_step_timeout() begin
             // (SequenceStepId == VL53L0X_SEQUENCESTEP_PRE_RANGE)
 
-            const new_pre_range_timeout_mclks =
-      this.timeoutMicrosecondsToMclks(timeouts.pre_range_us, period_pclks);
+            const new_pre_range_timeout_mclks = this.timeoutMicrosecondsToMclks(timeouts.pre_range_us, period_pclks);
 
-            this.writeReg16Bit(PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI,
-                this.encodeTimeout(new_pre_range_timeout_mclks));
+            this.writeReg16Bit(PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI, this.encodeTimeout(new_pre_range_timeout_mclks));
 
             // set_sequence_step_timeout() end
 
             // set_sequence_step_timeout() begin
             // (SequenceStepId == VL53L0X_SEQUENCESTEP_MSRC)
 
-            const new_msrc_timeout_mclks =
-      this.timeoutMicrosecondsToMclks(timeouts.msrc_dss_tcc_us, period_pclks);
+            const new_msrc_timeout_mclks = this.timeoutMicrosecondsToMclks(timeouts.msrc_dss_tcc_us, period_pclks);
 
-            this.writeReg(MSRC_CONFIG_TIMEOUT_MACROP,
-                (new_msrc_timeout_mclks > 256) ? 255 : (new_msrc_timeout_mclks - 1));
+            this.writeReg(
+                MSRC_CONFIG_TIMEOUT_MACROP,
+                new_msrc_timeout_mclks > 256 ? 255 : new_msrc_timeout_mclks - 1,
+            );
 
             // set_sequence_step_timeout() end
         } else if (type === VcselPeriodFinalRange) {
             switch (period_pclks) {
-            case 8:
-                this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_HIGH, 0x10);
-                this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_LOW, 0x08);
-                this.writeReg(GLOBAL_CONFIG_VCSEL_WIDTH, 0x02);
-                this.writeReg(ALGO_PHASECAL_CONFIG_TIMEOUT, 0x0C);
-                this.writeReg(0xFF, 0x01);
-                this.writeReg(ALGO_PHASECAL_LIM, 0x30);
-                this.writeReg(0xFF, 0x00);
-                break;
+                case 8:
+                    this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_HIGH, 0x10);
+                    this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_LOW, 0x08);
+                    this.writeReg(GLOBAL_CONFIG_VCSEL_WIDTH, 0x02);
+                    this.writeReg(ALGO_PHASECAL_CONFIG_TIMEOUT, 0x0c);
+                    this.writeReg(0xff, 0x01);
+                    this.writeReg(ALGO_PHASECAL_LIM, 0x30);
+                    this.writeReg(0xff, 0x00);
+                    break;
 
-            case 10:
-                this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_HIGH, 0x28);
-                this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_LOW, 0x08);
-                this.writeReg(GLOBAL_CONFIG_VCSEL_WIDTH, 0x03);
-                this.writeReg(ALGO_PHASECAL_CONFIG_TIMEOUT, 0x09);
-                this.writeReg(0xFF, 0x01);
-                this.writeReg(ALGO_PHASECAL_LIM, 0x20);
-                this.writeReg(0xFF, 0x00);
-                break;
+                case 10:
+                    this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_HIGH, 0x28);
+                    this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_LOW, 0x08);
+                    this.writeReg(GLOBAL_CONFIG_VCSEL_WIDTH, 0x03);
+                    this.writeReg(ALGO_PHASECAL_CONFIG_TIMEOUT, 0x09);
+                    this.writeReg(0xff, 0x01);
+                    this.writeReg(ALGO_PHASECAL_LIM, 0x20);
+                    this.writeReg(0xff, 0x00);
+                    break;
 
-            case 12:
-                this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_HIGH, 0x38);
-                this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_LOW, 0x08);
-                this.writeReg(GLOBAL_CONFIG_VCSEL_WIDTH, 0x03);
-                this.writeReg(ALGO_PHASECAL_CONFIG_TIMEOUT, 0x08);
-                this.writeReg(0xFF, 0x01);
-                this.writeReg(ALGO_PHASECAL_LIM, 0x20);
-                this.writeReg(0xFF, 0x00);
-                break;
+                case 12:
+                    this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_HIGH, 0x38);
+                    this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_LOW, 0x08);
+                    this.writeReg(GLOBAL_CONFIG_VCSEL_WIDTH, 0x03);
+                    this.writeReg(ALGO_PHASECAL_CONFIG_TIMEOUT, 0x08);
+                    this.writeReg(0xff, 0x01);
+                    this.writeReg(ALGO_PHASECAL_LIM, 0x20);
+                    this.writeReg(0xff, 0x00);
+                    break;
 
-            case 14:
-                this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_HIGH, 0x48);
-                this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_LOW, 0x08);
-                this.writeReg(GLOBAL_CONFIG_VCSEL_WIDTH, 0x03);
-                this.writeReg(ALGO_PHASECAL_CONFIG_TIMEOUT, 0x07);
-                this.writeReg(0xFF, 0x01);
-                this.writeReg(ALGO_PHASECAL_LIM, 0x20);
-                this.writeReg(0xFF, 0x00);
-                break;
+                case 14:
+                    this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_HIGH, 0x48);
+                    this.writeReg(FINAL_RANGE_CONFIG_VALID_PHASE_LOW, 0x08);
+                    this.writeReg(GLOBAL_CONFIG_VCSEL_WIDTH, 0x03);
+                    this.writeReg(ALGO_PHASECAL_CONFIG_TIMEOUT, 0x07);
+                    this.writeReg(0xff, 0x01);
+                    this.writeReg(ALGO_PHASECAL_LIM, 0x20);
+                    this.writeReg(0xff, 0x00);
+                    break;
 
-            default:
-                // invalid period
-                return false;
+                default:
+                    // invalid period
+                    return false;
             }
 
             // apply new VCSEL period
@@ -832,15 +818,19 @@ export default class VL53L0X {
             //  timeouts must be expressed in macro periods MClks
             //  because they have different vcsel periods."
 
-            let new_final_range_timeout_mclks =
-                this.timeoutMicrosecondsToMclks(timeouts.final_range_us, period_pclks);
+            let new_final_range_timeout_mclks = this.timeoutMicrosecondsToMclks(
+                timeouts.final_range_us,
+                period_pclks,
+            );
 
             if (enables.pre_range) {
                 new_final_range_timeout_mclks += timeouts.pre_range_mclks;
             }
 
-            this.writeReg16Bit(FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI,
-                this.encodeTimeout(new_final_range_timeout_mclks));
+            this.writeReg16Bit(
+                FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI,
+                this.encodeTimeout(new_final_range_timeout_mclks),
+            );
 
             // set_sequence_step_timeout end
         } else {
@@ -867,7 +857,7 @@ export default class VL53L0X {
 
     // Get the VCSEL pulse period in PCLKs for the given period type.
     // based on VL53L0X_get_vcsel_pulse_period()
-    async getVcselPulsePeriod (type) {
+    async getVcselPulsePeriod(type) {
         if (type === VcselPeriodPreRange) {
             return decodeVcselPeriod(await this.readReg(PRE_RANGE_CONFIG_VCSEL_PERIOD));
         } else if (type === VcselPeriodFinalRange) {
@@ -885,13 +875,13 @@ export default class VL53L0X {
      * based on VL53L0X_StartMeasurement()
      * @param {number} period_ms - interval time between measurements
      */
-    async startContinuous (period_ms) {
+    async startContinuous(period_ms) {
         this.writeReg(0x80, 0x01);
-        this.writeReg(0xFF, 0x01);
+        this.writeReg(0xff, 0x01);
         this.writeReg(0x00, 0x00);
         this.writeReg(0x91, this.stop_variable);
         this.writeReg(0x00, 0x01);
-        this.writeReg(0xFF, 0x00);
+        this.writeReg(0xff, 0x00);
         this.writeReg(0x80, 0x00);
 
         if (period_ms) {
@@ -920,14 +910,14 @@ export default class VL53L0X {
      * Stop continuous measurements
      * based on VL53L0X_StopMeasurement()
      */
-    stopContinuous () {
+    stopContinuous() {
         this.writeReg(SYSRANGE_START, 0x01); // VL53L0X_REG_SYSRANGE_MODE_SINGLESHOT
 
-        this.writeReg(0xFF, 0x01);
+        this.writeReg(0xff, 0x01);
         this.writeReg(0x00, 0x00);
         this.writeReg(0x91, 0x00);
         this.writeReg(0x00, 0x01);
-        this.writeReg(0xFF, 0x00);
+        this.writeReg(0xff, 0x00);
     }
 
     /**
@@ -936,9 +926,9 @@ export default class VL53L0X {
      * single-shot range measurement)
      * @returns {Promise<number>} a Promise which resolves range for continuous mode
      */
-    async readRangeContinuousMillimeters () {
+    async readRangeContinuousMillimeters() {
         this.startTimeout();
-        while ((await this.readReg(RESULT_INTERRUPT_STATUS) & 0x07) === 0) {
+        while (((await this.readReg(RESULT_INTERRUPT_STATUS)) & 0x07) === 0) {
             if (this.checkTimeoutExpired()) {
                 this.did_timeout = true;
                 return Promise.reject(new Error(`timeout read RESULT_INTERRUPT_STATUS: ${this.io_timeout}ms`));
@@ -959,20 +949,20 @@ export default class VL53L0X {
      * based on VL53L0X_PerformSingleRangingMeasurement()
      * @returns {Promise<number>} a Promise which resolves range for single-shot mode
      */
-    async readRangeSingleMillimeters () {
+    async readRangeSingleMillimeters() {
         this.writeReg(0x80, 0x01);
-        this.writeReg(0xFF, 0x01);
+        this.writeReg(0xff, 0x01);
         this.writeReg(0x00, 0x00);
         this.writeReg(0x91, this.stop_variable);
         this.writeReg(0x00, 0x01);
-        this.writeReg(0xFF, 0x00);
+        this.writeReg(0xff, 0x00);
         this.writeReg(0x80, 0x00);
 
         this.writeReg(SYSRANGE_START, 0x01);
 
         // "Wait until start bit has been cleared"
         this.startTimeout();
-        while (await this.readReg(SYSRANGE_START) & 0x01) {
+        while ((await this.readReg(SYSRANGE_START)) & 0x01) {
             if (this.checkTimeoutExpired()) {
                 this.did_timeout = true;
                 return Promise.reject(new Error(`timeout read SYSRANGE_START: ${this.io_timeout}ms`));
@@ -986,7 +976,7 @@ export default class VL53L0X {
      * Return whether a timeout did occur and clear the timeout flag.
      * @returns {boolean} whether a timeout occur or not
      */
-    timeoutOccurred () {
+    timeoutOccurred() {
         const tmp = this.did_timeout;
         this.did_timeout = false;
         return tmp;
@@ -1001,14 +991,14 @@ export default class VL53L0X {
      * @param {boolean} info.isAperture - SPAD is aperture type or not
      * @returns {Promise<boolean>} whether the info has got or not
      */
-    async getSpadInfo (info) {
+    async getSpadInfo(info) {
         this.writeReg(0x80, 0x01);
-        this.writeReg(0xFF, 0x01);
+        this.writeReg(0xff, 0x01);
         this.writeReg(0x00, 0x00);
 
-        this.writeReg(0xFF, 0x06);
-        this.writeReg(0x83, await this.readReg(0x83) | 0x04);
-        this.writeReg(0xFF, 0x07);
+        this.writeReg(0xff, 0x06);
+        this.writeReg(0x83, (await this.readReg(0x83)) | 0x04);
+        this.writeReg(0xff, 0x07);
         this.writeReg(0x81, 0x01);
 
         this.writeReg(0x80, 0x01);
@@ -1016,7 +1006,7 @@ export default class VL53L0X {
         this.writeReg(0x94, 0x6b);
         this.writeReg(0x83, 0x00);
         this.startTimeout();
-        while (await this.readReg(0x83) === 0x00) {
+        while ((await this.readReg(0x83)) === 0x00) {
             if (this.checkTimeoutExpired()) {
                 return false;
             }
@@ -1028,12 +1018,12 @@ export default class VL53L0X {
         info.isAperture = ((tmp >> 7) & 0x01) === 0x01;
 
         this.writeReg(0x81, 0x00);
-        this.writeReg(0xFF, 0x06);
-        this.writeReg(0x83, await this.readReg(0x83) & ~0x04);
-        this.writeReg(0xFF, 0x01);
+        this.writeReg(0xff, 0x06);
+        this.writeReg(0x83, (await this.readReg(0x83)) & ~0x04);
+        this.writeReg(0xff, 0x01);
         this.writeReg(0x00, 0x01);
 
-        this.writeReg(0xFF, 0x00);
+        this.writeReg(0xff, 0x00);
         this.writeReg(0x80, 0x00);
 
         return true;
@@ -1044,7 +1034,7 @@ export default class VL53L0X {
      * based on VL53L0X_GetSequenceStepEnables()
      * @param {Promise<object>} enables - reading buffer for sequence step enables
      */
-    async getSequenceStepEnables (enables) {
+    async getSequenceStepEnables(enables) {
         const sequence_config = await this.readReg(SYSTEM_SEQUENCE_CONFIG);
 
         enables.tcc = (sequence_config >> 4) & 0x1;
@@ -1058,50 +1048,52 @@ export default class VL53L0X {
     // based on get_sequence_step_timeout(),
     // but gets all timeouts instead of just the requested one, and also stores
     // intermediate values
-    async getSequenceStepTimeouts (enables, timeouts) {
+    async getSequenceStepTimeouts(enables, timeouts) {
         timeouts.pre_range_vcsel_period_pclks = await this.getVcselPulsePeriod(VcselPeriodPreRange);
 
-        timeouts.msrc_dss_tcc_mclks = await this.readReg(MSRC_CONFIG_TIMEOUT_MACROP) + 1;
-        timeouts.msrc_dss_tcc_us =
-    this.timeoutMclksToMicroseconds(timeouts.msrc_dss_tcc_mclks,
-        timeouts.pre_range_vcsel_period_pclks);
+        timeouts.msrc_dss_tcc_mclks = (await this.readReg(MSRC_CONFIG_TIMEOUT_MACROP)) + 1;
+        timeouts.msrc_dss_tcc_us = this.timeoutMclksToMicroseconds(
+            timeouts.msrc_dss_tcc_mclks,
+            timeouts.pre_range_vcsel_period_pclks,
+        );
 
         // eslint-disable-next-line require-atomic-updates
-        timeouts.pre_range_mclks =
-    this.decodeTimeout(await this.readReg16Bit(PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI));
-        timeouts.pre_range_us =
-    this.timeoutMclksToMicroseconds(timeouts.pre_range_mclks,
-        timeouts.pre_range_vcsel_period_pclks);
+        timeouts.pre_range_mclks = this.decodeTimeout(await this.readReg16Bit(PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI));
+        timeouts.pre_range_us = this.timeoutMclksToMicroseconds(
+            timeouts.pre_range_mclks,
+            timeouts.pre_range_vcsel_period_pclks,
+        );
 
         // eslint-disable-next-line require-atomic-updates
         timeouts.final_range_vcsel_period_pclks = await this.getVcselPulsePeriod(VcselPeriodFinalRange);
 
         // eslint-disable-next-line require-atomic-updates
-        timeouts.final_range_mclks =
-    this.decodeTimeout(await this.readReg16Bit(FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI));
+        timeouts.final_range_mclks = this.decodeTimeout(
+            await this.readReg16Bit(FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI),
+        );
 
         if (enables.pre_range) {
             timeouts.final_range_mclks -= timeouts.pre_range_mclks;
         }
 
-        timeouts.final_range_us =
-    this.timeoutMclksToMicroseconds(timeouts.final_range_mclks,
-        timeouts.final_range_vcsel_period_pclks);
+        timeouts.final_range_us = this.timeoutMclksToMicroseconds(
+            timeouts.final_range_mclks,
+            timeouts.final_range_vcsel_period_pclks,
+        );
     }
 
     // Decode sequence step timeout in MCLKs from register value
     // based on VL53L0X_decode_timeout()
     // Note: the original function returned a uint32_t, but the return value is
     // always stored in a uint16_t.
-    decodeTimeout (reg_val) {
+    decodeTimeout(reg_val) {
         // format: "(LSByte * 2^MSByte) + 1"
-        return ((reg_val & 0x00FF) <<
-         ((reg_val & 0xFF00) >> 8)) + 1;
+        return ((reg_val & 0x00ff) << ((reg_val & 0xff00) >> 8)) + 1;
     }
 
     // Encode sequence step timeout register value from timeout in MCLKs
     // based on VL53L0X_encode_timeout()
-    encodeTimeout (timeout_mclks) {
+    encodeTimeout(timeout_mclks) {
         // format: "(LSByte * 2^MSByte) + 1"
 
         let ls_byte = 0;
@@ -1110,38 +1102,38 @@ export default class VL53L0X {
         if (timeout_mclks > 0) {
             ls_byte = timeout_mclks - 1;
 
-            while ((ls_byte & 0xFFFFFF00) > 0) {
+            while ((ls_byte & 0xffffff00) > 0) {
                 ls_byte >>= 1;
                 ms_byte++;
             }
 
-            return (ms_byte << 8) | (ls_byte & 0xFF);
+            return (ms_byte << 8) | (ls_byte & 0xff);
         }
         return 0;
     }
 
     // Convert sequence step timeout from MCLKs to microseconds with given VCSEL period in PCLKs
     // based on VL53L0X_calc_timeout_us()
-    timeoutMclksToMicroseconds (timeout_period_mclks, vcsel_period_pclks) {
+    timeoutMclksToMicroseconds(timeout_period_mclks, vcsel_period_pclks) {
         const macro_period_ns = calcMacroPeriod(vcsel_period_pclks);
 
-        return ((timeout_period_mclks * macro_period_ns) + 500) / 1000;
+        return (timeout_period_mclks * macro_period_ns + 500) / 1000;
     }
 
     // Convert sequence step timeout from microseconds to MCLKs with given VCSEL period in PCLKs
     // based on VL53L0X_calc_timeout_mclks()
-    timeoutMicrosecondsToMclks (timeout_period_us, vcsel_period_pclks) {
+    timeoutMicrosecondsToMclks(timeout_period_us, vcsel_period_pclks) {
         const macro_period_ns = calcMacroPeriod(vcsel_period_pclks);
 
-        return (((timeout_period_us * 1000) + (macro_period_ns / 2)) / macro_period_ns);
+        return (timeout_period_us * 1000 + macro_period_ns / 2) / macro_period_ns;
     }
 
     // based on VL53L0X_perform_single_ref_calibration()
-    async performSingleRefCalibration (vhv_init_byte) {
+    async performSingleRefCalibration(vhv_init_byte) {
         this.writeReg(SYSRANGE_START, 0x01 | vhv_init_byte); // VL53L0X_REG_SYSRANGE_MODE_START_STOP
 
         this.startTimeout();
-        while ((await this.readReg(RESULT_INTERRUPT_STATUS) & 0x07) === 0) {
+        while (((await this.readReg(RESULT_INTERRUPT_STATUS)) & 0x07) === 0) {
             if (this.checkTimeoutExpired()) {
                 return false;
             }
@@ -1159,42 +1151,41 @@ export default class VL53L0X {
      * @param {string} rangeProfile profile ID {'LONG_RANGE' | 'HIGH_SPEED' | 'HIGH_ACCURACY'}
      * @returns {Promise} a Promise which resolves the settings was done.
      */
-    async setRangeProfile (rangeProfile) {
+    async setRangeProfile(rangeProfile) {
         switch (rangeProfile) {
-        case 'LONG_RANGE':
-            // lower the return signal rate limit (default is 0.25 MCPS)
-            this.setSignalRateLimit(0.1);
-            // set timing budget to 33 ms (near the default value)
-            await this.setMeasurementTimingBudget(33000);
-            // increase laser pulse periods (defaults are 14 and 10 PCLKs)
-            await this.setVcselPulsePeriod(VcselPeriodPreRange, 18);
-            await this.setVcselPulsePeriod(VcselPeriodFinalRange, 14);
-            break;
-        
-        case 'HIGH_SPEED':
-            this.setSignalRateLimit(0.25);
-            // reduce timing budget to 20 ms (default is about 33 ms)
-            await this.setMeasurementTimingBudget(20000);
-            await this.setVcselPulsePeriod(VcselPeriodPreRange, 14);
-            await this.setVcselPulsePeriod(VcselPeriodFinalRange, 10);
-            break;
+            case 'LONG_RANGE':
+                // lower the return signal rate limit (default is 0.25 MCPS)
+                this.setSignalRateLimit(0.1);
+                // set timing budget to 33 ms (near the default value)
+                await this.setMeasurementTimingBudget(33000);
+                // increase laser pulse periods (defaults are 14 and 10 PCLKs)
+                await this.setVcselPulsePeriod(VcselPeriodPreRange, 18);
+                await this.setVcselPulsePeriod(VcselPeriodFinalRange, 14);
+                break;
 
-        case 'HIGH_ACCURACY':
-            this.setSignalRateLimit(0.25);
-            // increase timing budget to 200 ms
-            await this.setMeasurementTimingBudget(200000);
-            await this.setVcselPulsePeriod(VcselPeriodPreRange, 14);
-            await this.setVcselPulsePeriod(VcselPeriodFinalRange, 10);
-            break;
+            case 'HIGH_SPEED':
+                this.setSignalRateLimit(0.25);
+                // reduce timing budget to 20 ms (default is about 33 ms)
+                await this.setMeasurementTimingBudget(20000);
+                await this.setVcselPulsePeriod(VcselPeriodPreRange, 14);
+                await this.setVcselPulsePeriod(VcselPeriodFinalRange, 10);
+                break;
 
-        default:
-            // set the default profile
-            this.setSignalRateLimit(0.25);
-            await this.setMeasurementTimingBudget(30000);
-            await this.setVcselPulsePeriod(VcselPeriodPreRange, 14);
-            await this.setVcselPulsePeriod(VcselPeriodFinalRange, 10);
-            break;
+            case 'HIGH_ACCURACY':
+                this.setSignalRateLimit(0.25);
+                // increase timing budget to 200 ms
+                await this.setMeasurementTimingBudget(200000);
+                await this.setVcselPulsePeriod(VcselPeriodPreRange, 14);
+                await this.setVcselPulsePeriod(VcselPeriodFinalRange, 10);
+                break;
+
+            default:
+                // set the default profile
+                this.setSignalRateLimit(0.25);
+                await this.setMeasurementTimingBudget(30000);
+                await this.setVcselPulsePeriod(VcselPeriodPreRange, 14);
+                await this.setVcselPulsePeriod(VcselPeriodFinalRange, 10);
+                break;
         }
-
     }
 }

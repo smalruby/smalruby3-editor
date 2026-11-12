@@ -4,7 +4,7 @@ import ControlBlocks from '../../../../../src/lib/ruby-generator/control';
 describe('RubyGenerator/Control', () => {
     beforeEach(() => {
         RubyGenerator.cache_ = {
-            comments: {}
+            comments: {},
         };
         RubyGenerator.definitions_ = {};
         RubyGenerator.functionNames_ = {};
@@ -21,25 +21,25 @@ describe('RubyGenerator/Control', () => {
                 opcode: 'control_if',
                 inputs: {
                     CONDITION: { block: 'condition-id' },
-                    SUBSTACK: { block: 'substack-id' }
-                }
+                    SUBSTACK: { block: 'substack-id' },
+                },
             };
             const condBlock = {
                 id: 'condition-id',
                 opcode: 'operator_equals',
                 fields: {
                     OPERAND1: { value: '@a' },
-                    OPERAND2: { value: '1' }
-                }
+                    OPERAND2: { value: '1' },
+                },
             };
 
-            RubyGenerator.getCommentText = jest.fn(b => {
+            RubyGenerator.getCommentText = jest.fn((b) => {
                 if (b.id === 'block-id' || b.id === 'condition-id') {
                     return '@ruby:syntax:case:@a:1';
                 }
                 return null;
             });
-            RubyGenerator.getBlock = jest.fn(id => {
+            RubyGenerator.getBlock = jest.fn((id) => {
                 if (id === 'condition-id') return condBlock;
                 return null;
             });
@@ -63,25 +63,25 @@ describe('RubyGenerator/Control', () => {
                 inputs: {
                     CONDITION: { block: 'condition-id' },
                     SUBSTACK: { block: 'substack-id' },
-                    SUBSTACK2: { block: 'substack2-id' }
-                }
+                    SUBSTACK2: { block: 'substack2-id' },
+                },
             };
             const condBlock = {
                 id: 'condition-id',
                 opcode: 'operator_equals',
                 fields: {
                     OPERAND1: { value: '@a' },
-                    OPERAND2: { value: '1' }
-                }
+                    OPERAND2: { value: '1' },
+                },
             };
 
-            RubyGenerator.getCommentText = jest.fn(b => {
+            RubyGenerator.getCommentText = jest.fn((b) => {
                 if (b.id === 'block-id' || b.id === 'condition-id') {
                     return '@ruby:syntax:case:@a:1';
                 }
                 return null;
             });
-            RubyGenerator.getBlock = jest.fn(id => {
+            RubyGenerator.getBlock = jest.fn((id) => {
                 if (id === 'condition-id') return condBlock;
                 return null;
             });
@@ -96,7 +96,9 @@ describe('RubyGenerator/Control', () => {
                 return '';
             });
 
-            expect(RubyGenerator.control_if_else(block)).toEqual('case @a\nwhen 1\n  say("1")\nelse\n  say("other")\nend\n');
+            expect(RubyGenerator.control_if_else(block)).toEqual(
+                'case @a\nwhen 1\n  say("1")\nelse\n  say("other")\nend\n',
+            );
         });
 
         test('pattern3: case...when...when...else...end', () => {
@@ -106,16 +108,16 @@ describe('RubyGenerator/Control', () => {
                 inputs: {
                     CONDITION: { block: 'cond1-id' },
                     SUBSTACK: { block: 'sub1-id' },
-                    SUBSTACK2: { block: 'block2-id' }
-                }
+                    SUBSTACK2: { block: 'block2-id' },
+                },
             };
             const condBlock1 = {
                 id: 'cond1-id',
                 opcode: 'operator_equals',
                 fields: {
                     OPERAND1: { value: '@a' },
-                    OPERAND2: { value: '1' }
-                }
+                    OPERAND2: { value: '1' },
+                },
             };
             const block2 = {
                 id: 'block2-id',
@@ -123,25 +125,25 @@ describe('RubyGenerator/Control', () => {
                 inputs: {
                     CONDITION: { block: 'cond2-id' },
                     SUBSTACK: { block: 'sub2-id' },
-                    SUBSTACK2: { block: 'sub3-id' }
-                }
+                    SUBSTACK2: { block: 'sub3-id' },
+                },
             };
             const condBlock2 = {
                 id: 'cond2-id',
                 opcode: 'operator_equals',
                 fields: {
                     OPERAND1: { value: '@a' },
-                    OPERAND2: { value: '2' }
-                }
+                    OPERAND2: { value: '2' },
+                },
             };
 
-            RubyGenerator.getCommentText = jest.fn(b => {
+            RubyGenerator.getCommentText = jest.fn((b) => {
                 if (b.id === 'block1-id' || b.id === 'cond1-id' || b.id === 'block2-id' || b.id === 'cond2-id') {
                     return '@ruby:syntax:case:@a:1';
                 }
                 return null;
             });
-            RubyGenerator.getBlock = jest.fn(id => {
+            RubyGenerator.getBlock = jest.fn((id) => {
                 if (id === 'cond1-id') return condBlock1;
                 if (id === 'block2-id') return block2;
                 if (id === 'cond2-id') return condBlock2;
@@ -161,7 +163,9 @@ describe('RubyGenerator/Control', () => {
                 return '';
             });
 
-            expect(RubyGenerator.control_if_else(block1)).toEqual('case @a\nwhen 1\n  say("1")\nwhen 2\n  say("2")\nelse\n  say("other")\nend\n');
+            expect(RubyGenerator.control_if_else(block1)).toEqual(
+                'case @a\nwhen 1\n  say("1")\nwhen 2\n  say("2")\nelse\n  say("other")\nend\n',
+            );
         });
     });
 });

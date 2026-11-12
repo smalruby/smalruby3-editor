@@ -40,8 +40,8 @@ const DataSenderMixin = {
         // This avoids redundant mutations if values change back within the rate-limit interval.
         // Forced items always pass: an explicit set is a fresh write by definition.
         const filteredData = dataArray
-            .filter(item => force || this.latestQueuedData[item.key] !== item.value)
-            .map(item => (force ? { key: item.key, value: item.value, force: true } : item));
+            .filter((item) => force || this.latestQueuedData[item.key] !== item.value)
+            .map((item) => (force ? { key: item.key, value: item.value, force: true } : item));
 
         debug(
             () =>
@@ -54,7 +54,7 @@ const DataSenderMixin = {
         }
 
         // Update latestQueuedData IMMEDIATELY before sending to RateLimiter
-        filteredData.forEach(item => {
+        filteredData.forEach((item) => {
             this.latestQueuedData[item.key] = item.value;
         });
 
@@ -95,7 +95,7 @@ const DataSenderMixin = {
         // This handles cases where values changed back while an earlier mutation was in flight.
         // Forced items (issue #721) always pass — the per-item tag survives the
         // in-flight race where a completing mutation re-populates lastSentData.
-        const finalPayload = payload.filter(item => item.force || this.lastSentData[item.key] !== item.value);
+        const finalPayload = payload.filter((item) => item.force || this.lastSentData[item.key] !== item.value);
 
         if (finalPayload.length === 0) {
             debug(() => 'Mesh V2: Skipping mutation as all data is already up-to-date on server');
@@ -132,7 +132,7 @@ const DataSenderMixin = {
             const result = await this.lastDataSendPromise;
 
             // Update last sent data on success
-            finalPayload.forEach(item => {
+            finalPayload.forEach((item) => {
                 this.lastSentData[item.key] = item.value;
             });
 
@@ -161,7 +161,7 @@ const DataSenderMixin = {
         if (!this.remoteData[this.meshId]) {
             this.remoteData[this.meshId] = {};
         }
-        items.forEach(item => {
+        items.forEach((item) => {
             this.remoteData[this.meshId][item.key] = {
                 value: item.value,
                 timestamp: Date.now(),

@@ -5,7 +5,7 @@ describe('RubyToBlocksConverter/Variables/SymbolVarSay', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -17,7 +17,7 @@ describe('RubyToBlocksConverter/Variables/SymbolVarSay', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const sayBlock = blocks.find(b => b.opcode === 'looks_say');
+            const sayBlock = blocks.find((b) => b.opcode === 'looks_say');
             expect(sayBlock).toBeDefined();
 
             // MESSAGE should be a data_itemoflist block (not direct variable)
@@ -42,7 +42,7 @@ describe('RubyToBlocksConverter/Variables/SymbolVarSay', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const sayBlock = blocks.find(b => b.opcode === 'looks_sayforsecs');
+            const sayBlock = blocks.find((b) => b.opcode === 'looks_sayforsecs');
             expect(sayBlock).toBeDefined();
 
             const msgBlockId = sayBlock.inputs.MESSAGE.block;
@@ -57,7 +57,7 @@ describe('RubyToBlocksConverter/Variables/SymbolVarSay', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const thinkBlock = blocks.find(b => b.opcode === 'looks_think');
+            const thinkBlock = blocks.find((b) => b.opcode === 'looks_think');
             expect(thinkBlock).toBeDefined();
 
             const msgBlockId = thinkBlock.inputs.MESSAGE.block;
@@ -72,7 +72,7 @@ describe('RubyToBlocksConverter/Variables/SymbolVarSay', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const sayForSecsBlock = blocks.find(b => b.opcode === 'looks_sayforsecs');
+            const sayForSecsBlock = blocks.find((b) => b.opcode === 'looks_sayforsecs');
             expect(sayForSecsBlock).toBeDefined();
 
             const msgBlockId = sayForSecsBlock.inputs.MESSAGE.block;
@@ -88,7 +88,7 @@ describe('RubyToBlocksConverter/Variables/SymbolVarSay', () => {
             expect(result).toBeTruthy();
 
             const blocks = Object.values(converter.blocks);
-            const sayBlock = blocks.find(b => b.opcode === 'looks_say');
+            const sayBlock = blocks.find((b) => b.opcode === 'looks_say');
             expect(sayBlock).toBeDefined();
 
             const msgBlockId = sayBlock.inputs.MESSAGE.block;

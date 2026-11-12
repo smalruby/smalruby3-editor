@@ -66,10 +66,7 @@ const PanelKickRequest = ({ request, busy, onApprove, onReject }) => {
             data-testid="classroom-teacher-panel-kick-request"
         >
             <div className={styles.kickTitle}>
-                <ClassroomStatusIcon
-                    size={12}
-                    status="kickRequested"
-                />
+                <ClassroomStatusIcon size={12} status="kickRequested" />
                 <FormattedMessage
                     defaultMessage="Seat {seatNumber} (now: {name})"
                     description="Teacher status panel: seat of a kick request and the nickname now in it (#1203)"
@@ -179,18 +176,9 @@ const ClassroomTeacherPanel = ({
     const handleSelectChange = useCallback((e) => onSelectAssignment(e.target.value), [onSelectAssignment]);
     const handleSeatClick = useCallback((e) => onOpenSeat(e.currentTarget.dataset.memberId), [onOpenSeat]);
     const counts = summary ? (
-        <span
-            className={styles.headerCounts}
-            data-testid="classroom-teacher-panel-header-counts"
-        >
+        <span className={styles.headerCounts} data-testid="classroom-teacher-panel-header-counts">
             {`${summary.seated}/${summary.capacity} · ${summary.submitted}/${summary.joined}`}
-            {kickRequests.length > 0 ? (
-                <ClassroomStatusIcon
-                    badge
-                    size={12}
-                    status="kickRequested"
-                />
-            ) : null}
+            {kickRequests.length > 0 ? <ClassroomStatusIcon badge size={12} status="kickRequested" /> : null}
         </span>
     ) : null;
 
@@ -209,10 +197,7 @@ const ClassroomTeacherPanel = ({
                     ref={panelRef}
                     role="dialog"
                 >
-                    <div
-                        className={styles.header}
-                        data-testid="classroom-teacher-panel-header"
-                    >
+                    <div className={styles.header} data-testid="classroom-teacher-panel-header">
                         <span className={styles.headerTitle}>
                             <FormattedMessage
                                 defaultMessage="Current assignment status"
@@ -251,10 +236,7 @@ const ClassroomTeacherPanel = ({
                         </button>
                     </div>
                     {minimized ? null : (
-                        <div
-                            className={styles.body}
-                            data-testid="classroom-teacher-panel-body"
-                        >
+                        <div className={styles.body} data-testid="classroom-teacher-panel-body">
                             <label className={styles.switcher}>
                                 <span className={styles.switcherLabel}>
                                     {intl.formatMessage(messages.selectAssignment)}
@@ -266,18 +248,12 @@ const ClassroomTeacherPanel = ({
                                     onChange={handleSelectChange}
                                 >
                                     {classroom ? null : (
-                                        <option
-                                            disabled
-                                            value=""
-                                        >
+                                        <option disabled value="">
                                             {'-'}
                                         </option>
                                     )}
                                     {assignments.map((c) => (
-                                        <option
-                                            key={c.classroomId}
-                                            value={c.classroomId}
-                                        >
+                                        <option key={c.classroomId} value={c.classroomId}>
                                             {assignmentLabel(c)}
                                         </option>
                                     ))}
@@ -316,10 +292,7 @@ const ClassroomTeacherPanel = ({
                                             />
                                         </span>
                                     </div>
-                                    <div
-                                        className={styles.grid}
-                                        data-testid="classroom-teacher-panel-grid"
-                                    >
+                                    <div className={styles.grid} data-testid="classroom-teacher-panel-grid">
                                         {seats.map((seat) => (
                                             <button
                                                 className={classNames(styles.seat, {
@@ -374,10 +347,7 @@ const ClassroomTeacherPanel = ({
                                     ) : null}
                                 </React.Fragment>
                             ) : (
-                                <div
-                                    className={styles.empty}
-                                    data-testid="classroom-teacher-panel-empty"
-                                >
+                                <div className={styles.empty} data-testid="classroom-teacher-panel-empty">
                                     <FormattedMessage
                                         defaultMessage="Choose an assignment."
                                         description="Teacher status panel: no assignment is chosen yet (#1203)"
@@ -386,10 +356,7 @@ const ClassroomTeacherPanel = ({
                                 </div>
                             )}
                             {sessionExpired ? (
-                                <div
-                                    className={styles.error}
-                                    data-testid="classroom-teacher-panel-error"
-                                >
+                                <div className={styles.error} data-testid="classroom-teacher-panel-error">
                                     <FormattedMessage
                                         defaultMessage="Your login has expired."
                                         description="Teacher status panel: the teacher's login expired (#1250)"
@@ -410,10 +377,7 @@ const ClassroomTeacherPanel = ({
                                     </button>
                                 </div>
                             ) : error ? (
-                                <div
-                                    className={styles.error}
-                                    data-testid="classroom-teacher-panel-error"
-                                >
+                                <div className={styles.error} data-testid="classroom-teacher-panel-error">
                                     {error}
                                 </div>
                             ) : null}

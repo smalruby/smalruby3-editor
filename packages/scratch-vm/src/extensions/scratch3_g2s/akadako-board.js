@@ -1,23 +1,23 @@
-import {EventEmitter} from 'events';
-import bindTransport from 'firmata-io';
 import SerialPort from '@serialport/stream';
+import { EventEmitter } from 'events';
+import bindTransport from 'firmata-io';
+import throttledQueue from 'throttled-queue';
 import WSABinding from 'web-serial-binding';
+import { getSettings } from './akadako-board-settings';
 import MidiDakoTransport from './mididako-transport';
-import {getSettings} from './akadako-board-settings';
 import {
     FIRMATA_7BIT_MASK,
     COLOR_ORDER,
     PIXEL_COMMAND,
     PIXEL_CONFIG,
     PIXEL_SET_PIXEL,
-    PIXEL_SHOW
+    PIXEL_SHOW,
 } from './node-pixel-constants';
 import Servo from './servo';
-import throttledQueue from 'throttled-queue';
 
 const Firmata = bindTransport.Firmata;
 
-const BOARD_VERSION_QUERY = 0x0F;
+const BOARD_VERSION_QUERY = 0x0f;
 
 const ULTRASONIC_DISTANCE_QUERY = 0x01;
 
@@ -30,17 +30,18 @@ const DEVICE_ENABLE = 0x03;
  * @param {number} delay - waiting time to reject in milliseconds
  * @returns {Promise<string>} Promise which will reject with reason after the delay.
  */
-const timeoutReject = delay => new Promise((_, reject) => setTimeout(() => reject(new Error(`timeout ${delay}ms`)), delay));
+const timeoutReject = (delay) =>
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`timeout ${delay}ms`)), delay));
 
 /**
  * Decode int16 value from 7bit encoded two bytes array.
  * @param {Uint8Array} bytes encoded array
  * @returns {number} decoded value
  */
-const decodeInt16FromTwo7bitBytes = bytes => {
-    const lsb = (bytes[0] | (bytes[1] << 7)) & 0xFF;
-    const msb = ((bytes[1] >> 1) | ((bytes[1] >> 6) ? 0b11000000 : 0)); // two's complement
-    const dataView = new DataView((new Uint8Array([lsb, msb])).buffer);
+const decodeInt16FromTwo7bitBytes = (bytes) => {
+    const lsb = (bytes[0] | (bytes[1] << 7)) & 0xff;
+    const msb = (bytes[1] >> 1) | (bytes[1] >> 6 ? 0b11000000 : 0); // two's complement
+    const dataView = new DataView(new Uint8Array([lsb, msb]).buffer);
     const result = dataView.getInt16(0, true);
     return result;
 };
@@ -55,7 +56,7 @@ export let DEBUG = false;
 const neoPixelGammaTable = ((steps, gamma) => {
     const gammaTable = new Array(steps);
     for (let i = 0; i < steps; i++) {
-        gammaTable[i] = Math.floor((Math.pow((i / 255.0), gamma) * 255) + 0.5);
+        gammaTable[i] = Math.floor(Math.pow(i / 255.0, gamma) * 255 + 0.5);
     }
     return gammaTable;
 })(256, 2.8);
@@ -78,23 +79,18 @@ const neoPixelColorValue = (colors, gammaTable) => {
     gammaCorrectedColor[0] = gammaTable[gammaCorrectedColor[0]];
     gammaCorrectedColor[1] = gammaTable[gammaCorrectedColor[1]];
     gammaCorrectedColor[2] = gammaTable[gammaCorrectedColor[2]];
-    return (
-        (gammaCorrectedColor[0] << 16) +
-        (gammaCorrectedColor[1] << 8) +
-        (gammaCorrectedColor[2])
-    );
+    return (gammaCorrectedColor[0] << 16) + (gammaCorrectedColor[1] << 8) + gammaCorrectedColor[2];
 };
 
 /**
  * This class represents a board communicating with Firmata protocol.
  */
 class AkaDakoBoard extends EventEmitter {
-
     /**
      * Event name for reporting that this board has been released.
      * @const {string}
      */
-    static get RELEASED () {
+    static get RELEASED() {
         return 'RELEASED';
     }
 
@@ -102,7 +98,7 @@ class AkaDakoBoard extends EventEmitter {
      * Construct a AkaDako board object.
      * @param {Runtime} runtime - the Scratch runtime
      */
-    constructor (runtime) {
+    constructor(runtime) {
         super();
 
         this.name = 'AkaDakoBoard';
@@ -216,7 +212,7 @@ class AkaDakoBoard extends EventEmitter {
      * Setup default settings for Firmata
      * @param {Firmata} firmata set it up
      */
-    setupFirmata (firmata) {
+    setupFirmata(firmata) {
         // Setup firmata
         firmata.once('open', () => {
             if (this.firmata !== firmata) return;
@@ -228,35 +224,35 @@ class AkaDakoBoard extends EventEmitter {
             if (this.state === 'disconnect') return;
             this.releaseBoard();
         });
-        firmata.once('disconnect', error => {
+        firmata.once('disconnect', (error) => {
             if (this.firmata !== firmata) return;
             if (this.state === 'disconnect') return;
             this.handleDisconnectError(error);
         });
-        firmata.once('error', error => {
+        firmata.once('error', (error) => {
             if (this.firmata !== firmata) return;
             if (this.state === 'disconnect') return;
             this.handleDisconnectError(error);
         });
         if (DEBUG) {
             if (this.firmata !== firmata) return;
-            firmata.transport.addListener('data', data => {
+            firmata.transport.addListener('data', (data) => {
                 // eslint-disable-next-line no-console
                 console.log(data);
             });
         }
         firmata.clearSysexResponse(WATER_TEMPERATURE_QUERY);
-        firmata.sysexResponse(WATER_TEMPERATURE_QUERY, data => {
+        firmata.sysexResponse(WATER_TEMPERATURE_QUERY, (data) => {
             const pin = data[0];
             firmata.emit(`water-temp-reply-${pin}`, data.slice(1));
         });
         firmata.clearSysexResponse(ULTRASONIC_DISTANCE_QUERY);
-        firmata.sysexResponse(ULTRASONIC_DISTANCE_QUERY, data => {
+        firmata.sysexResponse(ULTRASONIC_DISTANCE_QUERY, (data) => {
             const pin = data[0];
             firmata.emit(`ultrasonic-distance-reply-${pin}`, data.slice(1));
         });
         firmata.clearSysexResponse(BOARD_VERSION_QUERY);
-        firmata.sysexResponse(BOARD_VERSION_QUERY, data => {
+        firmata.sysexResponse(BOARD_VERSION_QUERY, (data) => {
             firmata.emit(`board-version-reply`, data);
         });
         this.firmata = firmata;
@@ -267,10 +263,10 @@ class AkaDakoBoard extends EventEmitter {
      * @param {object} options - serial port options
      * @returns {SerialPort} opened serial port
      */
-    async openSerialPort (options) {
+    async openSerialPort(options) {
         let nativePort = null;
         const permittedPorts = await navigator.serial.getPorts();
-        if ((permittedPorts !== null) && (Array.isArray(permittedPorts)) && (permittedPorts.length > 0)) {
+        if (permittedPorts !== null && Array.isArray(permittedPorts) && permittedPorts.length > 0) {
             nativePort = permittedPorts[0];
         } else {
             nativePort = await navigator.serial.requestPort(options);
@@ -278,7 +274,7 @@ class AkaDakoBoard extends EventEmitter {
         SerialPort.Binding = WSABinding;
         const port = new SerialPort(nativePort, {
             baudRate: 57600, // default baud rate for firmata
-            autoOpen: true
+            autoOpen: true,
         });
         this.portInfo = port.path.getInfo();
         return port;
@@ -289,26 +285,22 @@ class AkaDakoBoard extends EventEmitter {
      * @param {object} options - serial port options
      * @returns {Promise<AkaDakoBoard>} a Promise which resolves a connected AkaDako board or reject with reason
      */
-    async connectSerial (options) {
+    async connectSerial(options) {
         if (this.firmata) return Promise.resolve(this); // already opened
         this.state = 'portRequesting';
         const port = await this.openSerialPort(options);
-        const request = new Promise(resolve => {
-            const firmata = new Firmata(
-                port,
-                {reportVersionTimeout: 500},
-                async () => {
-                    this.setupFirmata(firmata);
-                    await this.boardVersion();
-                    this.onBoardReady();
-                    resolve(this);
-                });
-        });
-        return Promise.race([request, timeoutReject(this.connectingWaitingTime)])
-            .catch(reason => {
-                this.releaseBoard();
-                return Promise.reject(reason);
+        const request = new Promise((resolve) => {
+            const firmata = new Firmata(port, { reportVersionTimeout: 500 }, async () => {
+                this.setupFirmata(firmata);
+                await this.boardVersion();
+                this.onBoardReady();
+                resolve(this);
             });
+        });
+        return Promise.race([request, timeoutReject(this.connectingWaitingTime)]).catch((reason) => {
+            this.releaseBoard();
+            return Promise.reject(reason);
+        });
     }
 
     /**
@@ -316,16 +308,19 @@ class AkaDakoBoard extends EventEmitter {
      * @param {Array<{manufacturer: string, name: string}>} filters selecting rules for MIDIPort
      * @returns {Promise<MidiDakoTransport>} MIDI transport for Firmata
      */
-    async openMIDIPort (filters) {
-        const midiAccess = await navigator.requestMIDIAccess({sysex: true})
+    async openMIDIPort(filters) {
+        const midiAccess = await navigator
+            .requestMIDIAccess({ sysex: true })
             .catch(() => Promise.reject(new Error(`no available MIDI Access`)));
         const findPort = async (portType, portFilters, retries = 3, delayMs = 700) => {
             const availablePorts = [];
             for (const filter of portFilters) {
-                const ports = (portType === 'input') ? midiAccess.inputs : midiAccess.outputs;
-                ports.forEach(port => {
-                    if ((!filter.manufacturer || filter.manufacturer.test(port.manufacturer)) &&
-                (!filter.name || filter.name.test(port.name))) {
+                const ports = portType === 'input' ? midiAccess.inputs : midiAccess.outputs;
+                ports.forEach((port) => {
+                    if (
+                        (!filter.manufacturer || filter.manufacturer.test(port.manufacturer)) &&
+                        (!filter.name || filter.name.test(port.name))
+                    ) {
                         availablePorts.push(port);
                     }
                 });
@@ -334,7 +329,7 @@ class AkaDakoBoard extends EventEmitter {
                 }
             }
             if (retries > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayMs));
+                await new Promise((resolve) => setTimeout(resolve, delayMs));
                 return findPort(portType, portFilters, retries - 1, delayMs);
             }
             return Promise.reject(new Error(`no available MIDIPort for the filters`));
@@ -344,7 +339,7 @@ class AkaDakoBoard extends EventEmitter {
         if (filters) {
             inputPort = await findPort('input', filters);
             if (!inputPort) {
-                midiAccess.inputs.forEach(port => {
+                midiAccess.inputs.forEach((port) => {
                     // eslint-disable-next-line no-console
                     console.log(`    {manufacturer:"${port.manufacturer}", name:"${port.name}"}\n`);
                 });
@@ -352,7 +347,7 @@ class AkaDakoBoard extends EventEmitter {
             }
             outputPort = await findPort('output', filters);
             if (!outputPort) {
-                midiAccess.outputs.forEach(port => {
+                midiAccess.outputs.forEach((port) => {
                     // eslint-disable-next-line no-console
                     console.log(`    {manufacturer:"${port.manufacturer}", name:"${port.name}"}\n`);
                 });
@@ -368,7 +363,7 @@ class AkaDakoBoard extends EventEmitter {
             if (result.done) return Promise.reject(new Error('no MIDIOutput'));
             outputPort = result.value;
         }
-        this.portInfo = {manufacturer: inputPort.manufacturer, name: inputPort.name};
+        this.portInfo = { manufacturer: inputPort.manufacturer, name: inputPort.name };
         const transport = new MidiDakoTransport(inputPort, outputPort);
         await transport.close();
         await transport.open();
@@ -380,19 +375,19 @@ class AkaDakoBoard extends EventEmitter {
      * @param {Array<{manufacturer: string, name: string}>} filters - selecting rules for MIDIPort
      * @returns {Promise<AkaDakoBoard>} a Promise which resolves a connected AkaDako board or reject with reason
      */
-    async connectMIDI (filters) {
+    async connectMIDI(filters) {
         if (this.firmata) return Promise.resolve(this); // already opened
         this.state = 'portRequesting';
         const port = await this.openMIDIPort(filters);
-        const request = new Promise(resolve => {
-            const {pins, analogPins} = getSettings();
+        const request = new Promise((resolve) => {
+            const { pins, analogPins } = getSettings();
             const firmata = new Firmata(
                 port,
                 {
                     reportVersionTimeout: 500,
                     skipCapabilities: true,
                     pins: pins,
-                    analogPins: analogPins
+                    analogPins: analogPins,
                 },
                 async () => {
                     this.setupFirmata(firmata);
@@ -402,40 +397,40 @@ class AkaDakoBoard extends EventEmitter {
                         name: String(this.version.type),
                         version: {
                             major: this.version.major,
-                            minor: this.version.minor
-                        }
+                            minor: this.version.minor,
+                        },
                     };
                     firmata.queryAnalogMapping(() => {
                         this.onBoardReady();
                         resolve(this);
                     });
-                });
-                // make the firmata initialize
-                // firmata version is fixed for MidiDako
+                },
+            );
+            // make the firmata initialize
+            // firmata version is fixed for MidiDako
             firmata.version.major = 2;
             firmata.version.minor = 3;
             firmata.emit('reportversion'); // skip version query
             firmata.emit('queryfirmware'); // skip firmware query
         });
-        return Promise.race([request, timeoutReject(this.connectingWaitingTime)])
-            .catch(reason => {
-                this.releaseBoard();
-                return Promise.reject(reason);
-            });
+        return Promise.race([request, timeoutReject(this.connectingWaitingTime)]).catch((reason) => {
+            this.releaseBoard();
+            return Promise.reject(reason);
+        });
     }
 
     /**
      * Called when a board was ready.
      */
-    onBoardReady () {
+    onBoardReady() {
         // eslint-disable-next-line no-console
         console.log(
             `${this.version.type}.${String(this.version.major)}.${String(this.version.minor)}` +
-            ` on: ${JSON.stringify(this.portInfo)}`
+                ` on: ${JSON.stringify(this.portInfo)}`,
         );
         const digitalPins = [6, 9, 10, 11]; // Pin config is fixed at least to STEAM Tool
         // Set up to report digital inputs.
-        digitalPins.forEach(pin => {
+        digitalPins.forEach((pin) => {
             this.firmata.pinMode(pin, this.firmata.MODES.INPUT);
             this.firmata.reportDigitalPin(pin, 1);
         });
@@ -452,22 +447,22 @@ class AkaDakoBoard extends EventEmitter {
      * Whether a board is connected.
      * @returns {boolean} true if a board is connected
      */
-    isConnected () {
-        return (this.state === 'connect' || this.state === 'ready');
+    isConnected() {
+        return this.state === 'connect' || this.state === 'ready';
     }
 
     /**
      * Whether the board is ready to operate.
      * @returns {boolean} true if the board is ready
      */
-    isReady () {
+    isReady() {
         return this.state === 'ready';
     }
 
     /**
      * Release resources of the board then emit released-event.
      */
-    releaseBoard () {
+    releaseBoard() {
         this.state = 'disconnect';
         this.neoPixel = [];
         if (this.firmata) {
@@ -492,7 +487,7 @@ class AkaDakoBoard extends EventEmitter {
     /**
      * Disconnect current connected board.
      */
-    disconnect () {
+    disconnect() {
         if (this.state === 'disconnect') return;
         if (this.firmata && this.firmata.transport.isOpen) {
             this.firmata.reset(); // notify disconnection to board
@@ -510,14 +505,14 @@ class AkaDakoBoard extends EventEmitter {
      * @param {string} error - cause of the error
      * @returns {undefined}
      */
-    handleDisconnectError (error) {
+    handleDisconnectError(error) {
         if (this.state === 'disconnect') return;
         error = error ? error : 'Firmata was disconnected by device';
         // eslint-disable-next-line no-console
         console.error(error);
         this.runtime.emit(this.runtime.constructor.PERIPHERAL_CONNECTION_LOST_ERROR, {
             message: `Scratch lost connection to`,
-            extensionId: this.extensionId
+            extensionId: this.extensionId,
         });
         this.disconnect();
     }
@@ -527,29 +522,27 @@ class AkaDakoBoard extends EventEmitter {
      * @param {?number} timeout - waiting time for the response
      * @returns {Promise<string>} A Promise which resolves version info.
      */
-    boardVersion (timeout) {
+    boardVersion(timeout) {
         if (this.version) return Promise.resolve(`${this.version.type}.${this.version.major}.${this.version.minor}`);
         const firmata = this.firmata;
         timeout = timeout ? timeout : this.boardVersionWaitingTime;
         const event = `board-version-reply`;
-        const request = new Promise(resolve => {
-            firmata.once(event,
-                data => {
-                    const value = Firmata.decode([data[0], data[1]]);
-                    this.version = {
-                        type: (value >> 10) & 0x0F,
-                        major: (value >> 6) & 0x0F,
-                        minor: value & 0x3F
-                    };
-                    resolve(`${this.version.type}.${this.version.major}.${this.version.minor}`);
-                });
+        const request = new Promise((resolve) => {
+            firmata.once(event, (data) => {
+                const value = Firmata.decode([data[0], data[1]]);
+                this.version = {
+                    type: (value >> 10) & 0x0f,
+                    major: (value >> 6) & 0x0f,
+                    minor: value & 0x3f,
+                };
+                resolve(`${this.version.type}.${this.version.major}.${this.version.minor}`);
+            });
             firmata.sysexCommand([BOARD_VERSION_QUERY]);
         });
-        return Promise.race([request, timeoutReject(timeout)])
-            .catch(reason => {
-                firmata.removeAllListeners(event);
-                return Promise.reject(reason);
-            });
+        return Promise.race([request, timeoutReject(timeout)]).catch((reason) => {
+            firmata.removeAllListeners(event);
+            return Promise.reject(reason);
+        });
     }
 
     /**
@@ -557,9 +550,9 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} deviceID ID to be enabled.
      * @returns {Promise} A Promise which resolves when the message was sent.
      */
-    enableDevice (deviceID) {
+    enableDevice(deviceID) {
         const message = [DEVICE_ENABLE, deviceID];
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             this.firmata.sysexCommand(message);
             setTimeout(() => resolve(), this.sendingInterval);
         });
@@ -571,7 +564,7 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} mode - The mode you want to set. Must be one of board.MODES
      * @returns {undefined}
      */
-    pinMode (pin, mode) {
+    pinMode(pin, mode) {
         return this.firmata.pinMode(pin, mode);
     }
 
@@ -580,7 +573,7 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} pin - number of the pin
      * @returns {number} digital level
      */
-    getDigitalValue (pin) {
+    getDigitalValue(pin) {
         return this.pins[pin].value;
     }
 
@@ -590,9 +583,9 @@ class AkaDakoBoard extends EventEmitter {
      * @param {boolean} pullUp - input bias of the pin [none | pullUp]
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    setInputBias (pin, pullUp) {
-        this.pins[pin].inputBias = (pullUp ? this.MODES.PULLUP : this.MODES.INPUT);
-        return new Promise(resolve => {
+    setInputBias(pin, pullUp) {
+        this.pins[pin].inputBias = pullUp ? this.MODES.PULLUP : this.MODES.INPUT;
+        return new Promise((resolve) => {
             this.pinMode(pin, this.pins[pin].inputBias);
             setTimeout(() => resolve(), this.sendingInterval);
         });
@@ -603,7 +596,7 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} analogPin - number as an analog pin
      * @returns {number} analog level
      */
-    getAnalogValue (analogPin) {
+    getAnalogValue(analogPin) {
         const pin = this.firmata.analogPins[analogPin];
         return this.pins[pin].value;
     }
@@ -615,15 +608,15 @@ class AkaDakoBoard extends EventEmitter {
      * @param {boolean} enqueue - When true, the local state is updated but the command is not sent to the board
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    digitalWrite (pin, value, enqueue) {
+    digitalWrite(pin, value, enqueue) {
         if (this.firmata.pins[pin].value === value) {
             // to avoid chattering of the relay
-            return new Promise(resolve => {
+            return new Promise((resolve) => {
                 setTimeout(() => resolve(), this.sendingInterval);
             });
         }
         this.firmata.pinMode(pin, this.firmata.MODES.OUTPUT);
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             this.firmata.digitalWrite(pin, value, enqueue);
             setTimeout(() => resolve(), this.sendingInterval);
         });
@@ -635,8 +628,8 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} value - PWM level
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    pwmWrite (pin, value) {
-        return new Promise(resolve => {
+    pwmWrite(pin, value) {
+        return new Promise((resolve) => {
             this.firmata.pwmWrite(pin, value);
             setTimeout(() => resolve(), this.sendingInterval);
         });
@@ -647,7 +640,7 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} pin - pin number of the servo
      * @returns {Servo?} servo which is connected on the pin
      */
-    getServo (pin) {
+    getServo(pin) {
         if (this.version.type === 2) {
             // STEAM Tool
             if (pin === 6 || pin === 9) {
@@ -668,8 +661,8 @@ class AkaDakoBoard extends EventEmitter {
      * @param {...*} args - the pin and value for servo write
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    servoWrite (...args) {
-        return new Promise(resolve => {
+    servoWrite(...args) {
+        return new Promise((resolve) => {
             this.firmata.servoWrite(...args);
             setTimeout(() => resolve(), this.sendingInterval);
         });
@@ -682,8 +675,8 @@ class AkaDakoBoard extends EventEmitter {
      * @param {Array<number>} inBytes - bytes to be wrote
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    i2cWrite (address, register, inBytes) {
-        return new Promise(resolve => {
+    i2cWrite(address, register, inBytes) {
+        return new Promise((resolve) => {
             this.firmata.i2cWrite(address, register, inBytes);
             setTimeout(() => resolve(), this.sendingInterval);
         });
@@ -697,24 +690,18 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} timeout - time to abort [milliseconds]
      * @returns {Promise<Array<number>>} a Promise which resolves read data
      */
-    i2cReadOnce (address, register, readLength, timeout) {
+    i2cReadOnce(address, register, readLength, timeout) {
         timeout = timeout ? timeout : this.i2cReadWaitingTime;
         const firmata = this.firmata;
-        const request = new Promise(resolve => {
-            firmata.i2cReadOnce(
-                address,
-                register,
-                readLength,
-                data => {
-                    resolve(data);
-                }
-            );
-        });
-        return Promise.race([request, timeoutReject(timeout)])
-            .catch(reason => {
-                firmata.removeAllListeners(`I2C-reply-${address}-${register}`);
-                return Promise.reject(reason);
+        const request = new Promise((resolve) => {
+            firmata.i2cReadOnce(address, register, readLength, (data) => {
+                resolve(data);
             });
+        });
+        return Promise.race([request, timeoutReject(timeout)]).catch((reason) => {
+            firmata.removeAllListeners(`I2C-reply-${address}-${register}`);
+            return Promise.reject(reason);
+        });
     }
 
     /**
@@ -722,8 +709,8 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} pin pin number to reset
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    sendOneWireReset (pin) {
-        return new Promise(resolve => {
+    sendOneWireReset(pin) {
+        return new Promise((resolve) => {
             this.firmata.sendOneWireReset(pin);
             setTimeout(() => resolve(), this.sendingInterval);
         });
@@ -734,7 +721,7 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} pin - pin number to search
      * @returns {Promise<Array<number>>} a Promise which resolves found device IDs
      */
-    searchOneWireDevices (pin) {
+    searchOneWireDevices(pin) {
         return new Promise((resolve, reject) => {
             if (this.firmata.pins[pin].mode !== this.firmata.MODES.ONEWIRE) {
                 this.firmata.sendOneWireConfig(pin, true);
@@ -757,11 +744,10 @@ class AkaDakoBoard extends EventEmitter {
      * @param {Array<number>} data - bytes to be wrote
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    oneWireWrite (pin, data) {
-        return this.searchOneWireDevices(pin)
-            .then(devices => {
-                this.firmata.sendOneWireWrite(pin, devices[0], data);
-            });
+    oneWireWrite(pin, data) {
+        return this.searchOneWireDevices(pin).then((devices) => {
+            this.firmata.sendOneWireWrite(pin, devices[0], data);
+        });
     }
 
     /**
@@ -771,16 +757,17 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} timeout - time to abort [milliseconds]
      * @returns {Promise<Array<number>>} a Promise which resolves read data
      */
-    oneWireRead (pin, length, timeout) {
+    oneWireRead(pin, length, timeout) {
         timeout = timeout ? timeout : this.oneWireReadWaitingTime;
-        const request = this.searchOneWireDevices(pin)
-            .then(devices =>
+        const request = this.searchOneWireDevices(pin).then(
+            (devices) =>
                 new Promise((resolve, reject) => {
                     this.firmata.sendOneWireRead(pin, devices[0], length, (readError, data) => {
                         if (readError) return reject(readError);
                         resolve(data);
                     });
-                }));
+                }),
+        );
         return Promise.race([request, timeoutReject(timeout)]);
     }
 
@@ -792,21 +779,17 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} timeout - time to abort [milliseconds]
      * @returns {Promise<Array<number>>} a Promise which resolves read data
      */
-    oneWireWriteAndRead (pin, data, readLength, timeout) {
+    oneWireWriteAndRead(pin, data, readLength, timeout) {
         timeout = timeout ? timeout : this.oneWireReadWaitingTime;
-        const request = this.searchOneWireDevices(pin)
-            .then(devices =>
+        const request = this.searchOneWireDevices(pin).then(
+            (devices) =>
                 new Promise((resolve, reject) => {
-                    this.firmata.sendOneWireWriteAndRead(
-                        pin,
-                        devices[0],
-                        data,
-                        readLength,
-                        (readError, readData) => {
-                            if (readError) return reject(readError);
-                            resolve(readData);
-                        });
-                }));
+                    this.firmata.sendOneWireWriteAndRead(pin, devices[0], data, readLength, (readError, readData) => {
+                        if (readError) return reject(readError);
+                        resolve(readData);
+                    });
+                }),
+        );
         return Promise.race([request, timeoutReject(timeout)]);
     }
 
@@ -816,15 +799,15 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} length - amount of LEDs
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    neoPixelConfigStrip (pin, length) {
+    neoPixelConfigStrip(pin, length) {
         this.pins[pin].mode = PIXEL_COMMAND;
-        const oldStrip = this.neoPixel.find(aStrip => aStrip.pin === pin);
-        if(oldStrip === null || oldStrip === undefined) {
-            this.neoPixel = this.neoPixel.filter(aStrip => aStrip.pin !== pin);
-            this.neoPixel.push({pin: pin, length: length});
+        const oldStrip = this.neoPixel.find((aStrip) => aStrip.pin === pin);
+        if (oldStrip === null || oldStrip === undefined) {
+            this.neoPixel = this.neoPixel.filter((aStrip) => aStrip.pin !== pin);
+            this.neoPixel.push({ pin: pin, length: length });
         } else {
-            this.neoPixel = this.neoPixel.filter(aStrip => aStrip.pin !== pin);
-            this.neoPixel.push(Object.assign(oldStrip, {length: length}));
+            this.neoPixel = this.neoPixel.filter((aStrip) => aStrip.pin !== pin);
+            this.neoPixel.push(Object.assign(oldStrip, { length: length }));
         }
         const message = [];
         message[0] = PIXEL_COMMAND;
@@ -834,7 +817,9 @@ class AkaDakoBoard extends EventEmitter {
             message.push(aStrip.length & FIRMATA_7BIT_MASK);
             message.push((aStrip.length >> 7) & FIRMATA_7BIT_MASK);
         }
-        return this.neoPixelThrottledQueue(()=>{this.firmata.sysexCommand(message)});
+        return this.neoPixelThrottledQueue(() => {
+            this.firmata.sysexCommand(message);
+        });
     }
 
     /**
@@ -846,7 +831,7 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} index - index of LED to be set, -1 for all LEDs
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    async neoPixelSetColor (pin, color, index=0) {
+    async neoPixelSetColor(pin, color, index = 0) {
         let address = 0;
         let prevStrip = true;
         for (const aStrip of this.neoPixel) {
@@ -862,20 +847,22 @@ class AkaDakoBoard extends EventEmitter {
             // A module at the pin has not configured yet.
             await this.neoPixelConfigStrip(pin, this.defaultNeoPixelLength);
         }
-        const strip = this.neoPixel.find(aStrip => aStrip.pin === pin);
+        const strip = this.neoPixel.find((aStrip) => aStrip.pin === pin);
         strip.colors = strip.colors || Array(strip.length);
         strip.colors[index] = color;
         const colorValue = neoPixelColorValue(color, neoPixelGammaTable);
         const message = new Array(8);
-        message[0] = (PIXEL_COMMAND);
-        message[1] = (PIXEL_SET_PIXEL);
-        message[2] = (address & FIRMATA_7BIT_MASK);
-        message[3] = ((address >> 7) & FIRMATA_7BIT_MASK);
-        message[4] = (colorValue & FIRMATA_7BIT_MASK);
-        message[5] = ((colorValue >> 7) & FIRMATA_7BIT_MASK);
-        message[6] = ((colorValue >> 14) & FIRMATA_7BIT_MASK);
-        message[7] = ((colorValue >> 21) & FIRMATA_7BIT_MASK);
-        return this.neoPixelThrottledQueue(()=>{this.firmata.sysexCommand(message)});
+        message[0] = PIXEL_COMMAND;
+        message[1] = PIXEL_SET_PIXEL;
+        message[2] = address & FIRMATA_7BIT_MASK;
+        message[3] = (address >> 7) & FIRMATA_7BIT_MASK;
+        message[4] = colorValue & FIRMATA_7BIT_MASK;
+        message[5] = (colorValue >> 7) & FIRMATA_7BIT_MASK;
+        message[6] = (colorValue >> 14) & FIRMATA_7BIT_MASK;
+        message[7] = (colorValue >> 21) & FIRMATA_7BIT_MASK;
+        return this.neoPixelThrottledQueue(() => {
+            this.firmata.sysexCommand(message);
+        });
     }
 
     /**
@@ -887,19 +874,19 @@ class AkaDakoBoard extends EventEmitter {
      * @returns {Promise} a Promise which resolves when the message was sent
      */
     async neoPixelFillColor(pin, colorMapFn) {
-        const strip = this.neoPixel.find(aStrip => aStrip.pin === pin);
+        const strip = this.neoPixel.find((aStrip) => aStrip.pin === pin);
         const length = strip ? strip.length : this.defaultNeoPixelLength;
         const oldColors = (strip && strip.colors) || Array(length);
-        if(oldColors.length < length) {
+        if (oldColors.length < length) {
             oldColors[length - 1] = null;
         }
-        if(length < oldColors.length) {
+        if (length < oldColors.length) {
             oldColors.splice(length);
         }
         const newColors = [...oldColors].map(colorMapFn);
         for (let index = 0; index < length; index++) {
             const color = newColors[index];
-            if(color !== null && color !== undefined) {
+            if (color !== null && color !== undefined) {
                 await this.neoPixelSetColor(pin, color, index);
             }
         }
@@ -909,7 +896,7 @@ class AkaDakoBoard extends EventEmitter {
      * Turn off the all LEDs on the NeoPixel module on the pin.
      * @param {number} pin - pin number of the module
      */
-    async neoPixelClear (pin) {
+    async neoPixelClear(pin) {
         await this.neoPixelFillColor(pin, () => [0, 0, 0]);
         await this.neoPixelShow();
     }
@@ -918,8 +905,8 @@ class AkaDakoBoard extends EventEmitter {
      * Clear all strips.
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    async neoPixelClearAll () {
-        for(const aStrip of this.neoPixel) {
+    async neoPixelClearAll() {
+        for (const aStrip of this.neoPixel) {
             await this.neoPixelFillColor(aStrip.pin, () => [0, 0, 0]);
         }
         await this.neoPixelShow();
@@ -928,13 +915,14 @@ class AkaDakoBoard extends EventEmitter {
      * Update color of LEDs on the all of NeoPixel modules.
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    neoPixelShow () {
+    neoPixelShow() {
         const message = new Array(2);
         message[0] = PIXEL_COMMAND;
         message[1] = PIXEL_SHOW;
-        return this.neoPixelThrottledQueue(()=>{this.firmata.sysexCommand(message)});
+        return this.neoPixelThrottledQueue(() => {
+            this.firmata.sysexCommand(message);
+        });
     }
-
 
     /**
      * Get colors of the js memory for NeoPixel.
@@ -942,16 +930,16 @@ class AkaDakoBoard extends EventEmitter {
      * @returns {Array<number>} colors of the NeoPixel
      */
     neoPixelGetColors(pin) {
-        const strip = this.neoPixel.find(aStrip => aStrip.pin === pin);
-        if(strip === null || strip === undefined) return;
-        if(strip.colors === null || strip.colors === undefined) {
+        const strip = this.neoPixel.find((aStrip) => aStrip.pin === pin);
+        if (strip === null || strip === undefined) return;
+        if (strip.colors === null || strip.colors === undefined) {
             strip.colors = Array(strip.length);
-        };
-        if(strip.length < strip.colors.length) {
+        }
+        if (strip.length < strip.colors.length) {
             strip.colors = strip.colors.slice(0, strip.length);
         }
 
-        if(typeof this.neoPixelColorsBuffer === 'undefined') {
+        if (typeof this.neoPixelColorsBuffer === 'undefined') {
             this.neoPixelColorsBuffer = new Array(strip.length);
         }
         return this.neoPixelColorsBuffer;
@@ -963,25 +951,23 @@ class AkaDakoBoard extends EventEmitter {
      * @param {number} timeout - waiting time for the response
      * @returns {Promise<number>} a Promise which resolves value from the sensor
      */
-    getDistanceByUltrasonic (pin, timeout) {
+    getDistanceByUltrasonic(pin, timeout) {
         const firmata = this.firmata;
         timeout = timeout ? timeout : this.ultrasonicDistanceWaitingTime;
         firmata.pinMode(pin, firmata.MODES.PING_READ);
         const event = `ultrasonic-distance-reply-${pin}`;
         const request = new Promise((resolve, reject) => {
-            firmata.once(event,
-                data => {
-                    if (data.length === 0) return reject(new Error('not available'));
-                    const value = decodeInt16FromTwo7bitBytes(data);
-                    resolve(value);
-                });
+            firmata.once(event, (data) => {
+                if (data.length === 0) return reject(new Error('not available'));
+                const value = decodeInt16FromTwo7bitBytes(data);
+                resolve(value);
+            });
             firmata.sysexCommand([ULTRASONIC_DISTANCE_QUERY, pin]);
         });
-        return Promise.race([request, timeoutReject(timeout)])
-            .catch(reason => {
-                firmata.removeAllListeners(event);
-                return Promise.reject(reason);
-            });
+        return Promise.race([request, timeoutReject(timeout)]).catch((reason) => {
+            firmata.removeAllListeners(event);
+            return Promise.reject(reason);
+        });
     }
 
     /**
@@ -990,30 +976,28 @@ class AkaDakoBoard extends EventEmitter {
      * @param {?number} timeout - waiting time for the response
      * @returns {Promise<number>} a Promise which resolves value from the sensor
      */
-    getWaterTemp (pin, timeout) {
+    getWaterTemp(pin, timeout) {
         const firmata = this.firmata;
         timeout = timeout ? timeout : this.getWaterTempWaitingTime;
         const event = `water-temp-reply-${pin}`;
         const request = new Promise((resolve, reject) => {
-            firmata.once(event,
-                data => {
-                    if (data.length === 0) return reject(new Error('not available'));
-                    const value = decodeInt16FromTwo7bitBytes(data);
-                    resolve(value);
-                });
+            firmata.once(event, (data) => {
+                if (data.length === 0) return reject(new Error('not available'));
+                const value = decodeInt16FromTwo7bitBytes(data);
+                resolve(value);
+            });
             firmata.sysexCommand([WATER_TEMPERATURE_QUERY, pin]);
         });
-        return Promise.race([request, timeoutReject(timeout)])
-            .catch(reason => {
-                firmata.removeAllListeners(event);
-                return Promise.reject(reason);
-            });
+        return Promise.race([request, timeoutReject(timeout)]).catch((reason) => {
+            firmata.removeAllListeners(event);
+            return Promise.reject(reason);
+        });
     }
 
     /**
      * State of the all pins
      */
-    get pins () {
+    get pins() {
         return this.firmata.pins;
     }
 
@@ -1021,7 +1005,7 @@ class AkaDakoBoard extends EventEmitter {
      * All pin mode types
      * @types {object<string, number>}
      */
-    get MODES () {
+    get MODES() {
         return this.firmata.MODES;
     }
 
@@ -1029,7 +1013,7 @@ class AkaDakoBoard extends EventEmitter {
      * Value for hight in digital signal
      * @types {number}
      */
-    get HIGH () {
+    get HIGH() {
         return this.firmata.HIGH;
     }
 
@@ -1037,7 +1021,7 @@ class AkaDakoBoard extends EventEmitter {
      * Value for low in digital signal
      * @types {number}
      */
-    get LOW () {
+    get LOW() {
         return this.firmata.LOW;
     }
 
@@ -1045,7 +1029,7 @@ class AkaDakoBoard extends EventEmitter {
      * Resolution values for ADC, DAC, PWA.
      * @types {object<string, number>}
      */
-    get RESOLUTION () {
+    get RESOLUTION() {
         return this.firmata.RESOLUTION;
     }
 }

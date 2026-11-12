@@ -1,16 +1,13 @@
 // === Smalruby: This file is Smalruby-specific (Ruby array syntax for Scratch lists) ===
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    expectedInfo
-} from '../../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks, expectedInfo } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
     let converter;
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -25,16 +22,16 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
+                            list: varName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('thing'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -47,16 +44,16 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
+                            list: varName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('thing'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -69,30 +66,30 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
+                            list: varName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
                             block: {
                                 opcode: 'operator_add',
-                                comment: {text: '@ruby:array:index', minimized: true},
+                                comment: { text: '@ruby:array:index', minimized: true },
                                 inputs: [
                                     {
                                         name: 'NUM1',
-                                        block: expectedInfo.makeNumber(0)
+                                        block: expectedInfo.makeNumber(0),
                                     },
                                     {
                                         name: 'NUM2',
-                                        block: expectedInfo.makeNumber(1)
-                                    }
-                                ]
+                                        block: expectedInfo.makeNumber(1),
+                                    },
+                                ],
                             },
-                            shadow: expectedInfo.makeNumber(1, 'math_integer')
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(1, 'math_integer'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -105,10 +102,10 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
-                    ]
-                }
+                            list: varName,
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -121,34 +118,34 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
+                            list: varName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
                             block: {
                                 opcode: 'operator_add',
-                                comment: {text: '@ruby:array:index', minimized: true},
+                                comment: { text: '@ruby:array:index', minimized: true },
                                 inputs: [
                                     {
                                         name: 'NUM1',
-                                        block: expectedInfo.makeNumber(0)
+                                        block: expectedInfo.makeNumber(0),
                                     },
                                     {
                                         name: 'NUM2',
-                                        block: expectedInfo.makeNumber(1)
-                                    }
-                                ]
+                                        block: expectedInfo.makeNumber(1),
+                                    },
+                                ],
                             },
-                            shadow: expectedInfo.makeNumber(1, 'math_integer')
+                            shadow: expectedInfo.makeNumber(1, 'math_integer'),
                         },
                         {
                             name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('thing'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -161,34 +158,34 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
+                            list: varName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
                             block: {
                                 opcode: 'operator_add',
-                                comment: {text: '@ruby:array:index', minimized: true},
+                                comment: { text: '@ruby:array:index', minimized: true },
                                 inputs: [
                                     {
                                         name: 'NUM1',
-                                        block: expectedInfo.makeNumber(0)
+                                        block: expectedInfo.makeNumber(0),
                                     },
                                     {
                                         name: 'NUM2',
-                                        block: expectedInfo.makeNumber(1)
-                                    }
-                                ]
+                                        block: expectedInfo.makeNumber(1),
+                                    },
+                                ],
                             },
-                            shadow: expectedInfo.makeNumber(1, 'math_integer')
+                            shadow: expectedInfo.makeNumber(1, 'math_integer'),
                         },
                         {
                             name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('thing'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -201,30 +198,30 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
+                            list: varName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
                             block: {
                                 opcode: 'operator_add',
-                                comment: {text: '@ruby:array:index', minimized: true},
+                                comment: { text: '@ruby:array:index', minimized: true },
                                 inputs: [
                                     {
                                         name: 'NUM1',
-                                        block: expectedInfo.makeNumber(0)
+                                        block: expectedInfo.makeNumber(0),
                                     },
                                     {
                                         name: 'NUM2',
-                                        block: expectedInfo.makeNumber(1)
-                                    }
-                                ]
+                                        block: expectedInfo.makeNumber(1),
+                                    },
+                                ],
                             },
-                            shadow: expectedInfo.makeNumber(1, 'math_integer')
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(1, 'math_integer'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -234,7 +231,7 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
             const expected = [
                 {
                     opcode: 'operator_subtract',
-                    comment: {text: '@ruby:array:index', minimized: true},
+                    comment: { text: '@ruby:array:index', minimized: true },
                     inputs: [
                         {
                             name: 'NUM1',
@@ -243,23 +240,23 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                                 fields: [
                                     {
                                         name: 'LIST',
-                                        list: varName
-                                    }
+                                        list: varName,
+                                    },
                                 ],
                                 inputs: [
                                     {
                                         name: 'ITEM',
-                                        block: expectedInfo.makeText('thing')
-                                    }
-                                ]
-                            }
+                                        block: expectedInfo.makeText('thing'),
+                                    },
+                                ],
+                            },
                         },
                         {
                             name: 'NUM2',
-                            block: expectedInfo.makeNumber(1)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(1),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -272,10 +269,10 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
-                    ]
-                }
+                            list: varName,
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -288,16 +285,16 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
+                            list: varName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('thing'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -310,59 +307,59 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
+                            list: varName,
+                        },
                     ],
-                    comment: {text: '@ruby:array:literal:3', minimized: true},
+                    comment: { text: '@ruby:array:literal:3', minimized: true },
                     next: {
                         opcode: 'data_addtolist',
                         fields: [
                             {
                                 name: 'LIST',
-                                list: varName
-                            }
+                                list: varName,
+                            },
                         ],
                         inputs: [
                             {
                                 name: 'ITEM',
-                                block: expectedInfo.makeText('1')
-                            }
+                                block: expectedInfo.makeText('1'),
+                            },
                         ],
-                        comment: {text: '@ruby:array:literal:element', minimized: true},
+                        comment: { text: '@ruby:array:literal:element', minimized: true },
                         next: {
                             opcode: 'data_addtolist',
                             fields: [
                                 {
                                     name: 'LIST',
-                                    list: varName
-                                }
+                                    list: varName,
+                                },
                             ],
                             inputs: [
                                 {
                                     name: 'ITEM',
-                                    block: expectedInfo.makeText('2')
-                                }
+                                    block: expectedInfo.makeText('2'),
+                                },
                             ],
-                            comment: {text: '@ruby:array:literal:element', minimized: true},
+                            comment: { text: '@ruby:array:literal:element', minimized: true },
                             next: {
                                 opcode: 'data_addtolist',
                                 fields: [
                                     {
                                         name: 'LIST',
-                                        list: varName
-                                    }
+                                        list: varName,
+                                    },
                                 ],
                                 inputs: [
                                     {
                                         name: 'ITEM',
-                                        block: expectedInfo.makeText('3')
-                                    }
+                                        block: expectedInfo.makeText('3'),
+                                    },
                                 ],
-                                comment: {text: '@ruby:array:literal:element', minimized: true}
-                            }
-                        }
-                    }
-                }
+                                comment: { text: '@ruby:array:literal:element', minimized: true },
+                            },
+                        },
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -375,11 +372,11 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
+                            list: varName,
+                        },
                     ],
-                    comment: {text: '@ruby:array:literal:0', minimized: true}
-                }
+                    comment: { text: '@ruby:array:literal:0', minimized: true },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });

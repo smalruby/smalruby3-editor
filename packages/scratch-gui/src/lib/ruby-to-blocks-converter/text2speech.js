@@ -2,13 +2,7 @@ import Primitive from './primitive';
 
 const Text2Speech = 'text2speech';
 
-const VoiceMenu = [
-    'ALTO',
-    'TENOR',
-    'SQUEAK',
-    'GIANT',
-    'KITTEN'
-];
+const VoiceMenu = ['ALTO', 'TENOR', 'SQUEAK', 'GIANT', 'KITTEN'];
 
 const LanguageMenu = [
     'ar',
@@ -33,7 +27,7 @@ const LanguageMenu = [
     'es-419',
     'sv',
     'tr',
-    'cy'
+    'cy',
 ];
 
 /**
@@ -41,14 +35,14 @@ const LanguageMenu = [
  */
 const Text2SpeechConverter = {
     register: function (converter) {
-        converter.registerOnSend('self', Text2Speech, 0, params => {
-            const {node} = params;
+        converter.registerOnSend('self', Text2Speech, 0, (params) => {
+            const { node } = params;
 
             return converter.createRubyExpressionBlock(Text2Speech, node);
         });
 
-        converter.registerOnSend(Text2Speech, 'speak', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Text2Speech, 'speak', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isStringOrBlock(args[0])) return null;
 
@@ -57,8 +51,8 @@ const Text2SpeechConverter = {
             return block;
         });
 
-        converter.registerOnSend(Text2Speech, 'voice=', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Text2Speech, 'voice=', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isStringOrBlock(args[0])) return null;
             if (converter.isString(args[0])) {
@@ -69,14 +63,12 @@ const Text2SpeechConverter = {
             }
 
             const block = converter.changeRubyExpressionBlock(receiver, 'text2speech_setVoice', 'statement');
-            converter.addFieldInput(
-                block, 'VOICE', 'text2speech_menu_voices', 'voices', args[0], 'ALTO'
-            );
+            converter.addFieldInput(block, 'VOICE', 'text2speech_menu_voices', 'voices', args[0], 'ALTO');
             return block;
         });
 
-        converter.registerOnSend(Text2Speech, 'language=', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Text2Speech, 'language=', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isStringOrBlock(args[0])) return null;
             if (converter.isString(args[0])) {
@@ -94,11 +86,16 @@ const Text2SpeechConverter = {
                 defaultLanguage = stage.textToSpeechLanguage;
             }
             converter.addFieldInput(
-                block, 'LANGUAGE', 'text2speech_menu_languages', 'languages', args[0], defaultLanguage
+                block,
+                'LANGUAGE',
+                'text2speech_menu_languages',
+                'languages',
+                args[0],
+                defaultLanguage,
             );
             return block;
         });
-    }
+    },
 };
 
 export default Text2SpeechConverter;

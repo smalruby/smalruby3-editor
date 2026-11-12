@@ -1,6 +1,5 @@
 // チャレンジを開くときの準備（deck-setup と同じ形の setup を作る）。
 // コースの言語からタブと Ruby モードの既定を決め、チャレンジの setup で上書きする。
-
 import { LANGUAGES } from './courses';
 
 // 言語ごとの既定。ブロックのコースはコードタブ、Ruby / DNCL のコースは Ruby タブで始める

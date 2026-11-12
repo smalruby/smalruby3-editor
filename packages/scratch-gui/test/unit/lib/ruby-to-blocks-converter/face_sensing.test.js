@@ -1,7 +1,5 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks
-} from '../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/FaceSensing', () => {
     let converter;
@@ -10,7 +8,7 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -24,10 +22,10 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
                 fields: [
                     {
                         name: 'PART',
-                        value: '2'
-                    }
-                ]
-            }
+                        value: '2',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -40,10 +38,10 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
                 fields: [
                     {
                         name: 'PART',
-                        value: '0'
-                    }
-                ]
-            }
+                        value: '0',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -56,10 +54,10 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
                 fields: [
                     {
                         name: 'PART',
-                        value: '7'
-                    }
-                ]
-            }
+                        value: '7',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -68,8 +66,8 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
         code = 'face_sensing.point_in_direction_of_face_tilt';
         expected = [
             {
-                opcode: 'faceSensing_pointInFaceTiltDirection'
-            }
+                opcode: 'faceSensing_pointInFaceTiltDirection',
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -78,8 +76,8 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
         code = 'face_sensing.set_size_to_face_size';
         expected = [
             {
-                opcode: 'faceSensing_setSizeToFaceSize'
-            }
+                opcode: 'faceSensing_setSizeToFaceSize',
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -92,10 +90,10 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
                 fields: [
                     {
                         name: 'DIRECTION',
-                        value: 'left'
-                    }
-                ]
-            }
+                        value: 'left',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -108,10 +106,10 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
                 fields: [
                     {
                         name: 'DIRECTION',
-                        value: 'right'
-                    }
-                ]
-            }
+                        value: 'right',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -124,10 +122,10 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
                 fields: [
                     {
                         name: 'PART',
-                        value: '2'
-                    }
-                ]
-            }
+                        value: '2',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -140,10 +138,10 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
                 fields: [
                     {
                         name: 'PART',
-                        value: '5'
-                    }
-                ]
-            }
+                        value: '5',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -152,8 +150,8 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
         code = 'face_sensing.when_face_detected do; end';
         expected = [
             {
-                opcode: 'faceSensing_whenFaceDetected'
-            }
+                opcode: 'faceSensing_whenFaceDetected',
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -162,8 +160,8 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
         code = 'face_sensing.face_detected?';
         expected = [
             {
-                opcode: 'faceSensing_faceIsDetected'
-            }
+                opcode: 'faceSensing_faceIsDetected',
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -172,8 +170,8 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
         code = 'face_sensing.face_tilt';
         expected = [
             {
-                opcode: 'faceSensing_faceTilt'
-            }
+                opcode: 'faceSensing_faceTilt',
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -182,8 +180,8 @@ describe('RubyToBlocksConverter/FaceSensing', () => {
         code = 'face_sensing.face_size';
         expected = [
             {
-                opcode: 'faceSensing_faceSize'
-            }
+                opcode: 'faceSensing_faceSize',
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });

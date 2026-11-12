@@ -367,17 +367,15 @@ const LessonsLibrary = ({
     const [query, setQuery] = useState('');
     const contentRef = useRef(null);
 
-    const languageCourses = useMemo(() => courses.filter((course) => course.language === language), [
-        courses,
-        language,
-    ]);
+    const languageCourses = useMemo(
+        () => courses.filter((course) => course.language === language),
+        [courses, language],
+    );
     const nameOf = useCallback((challenge) => intl.formatMessage(challenge.name), [intl]);
-    const statuses = useMemo(() => filterCourseStatuses(languageCourses, progress, query, nameOf), [
-        languageCourses,
-        progress,
-        query,
-        nameOf,
-    ]);
+    const statuses = useMemo(
+        () => filterCourseStatuses(languageCourses, progress, query, nameOf),
+        [languageCourses, progress, query, nameOf],
+    );
 
     const handleQueryChange = useCallback((event) => setQuery(event.target.value), []);
     const handleQueryClear = useCallback(() => setQuery(''), []);

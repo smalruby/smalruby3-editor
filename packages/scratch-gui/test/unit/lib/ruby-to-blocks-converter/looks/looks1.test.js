@@ -1,11 +1,11 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {RubyToBlocksConverterError} from '../../../../../src/lib/ruby-to-blocks-converter/errors';
+import { RubyToBlocksConverterError } from '../../../../../src/lib/ruby-to-blocks-converter/errors';
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
     expectedInfo,
-    expectNoArgsMethod
+    expectNoArgsMethod,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Looks', () => {
@@ -15,7 +15,7 @@ describe('RubyToBlocksConverter/Looks', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -30,14 +30,14 @@ describe('RubyToBlocksConverter/Looks', () => {
                     inputs: [
                         {
                             name: 'MESSAGE',
-                            block: expectedInfo.makeText('Hello!')
+                            block: expectedInfo.makeText('Hello!'),
                         },
                         {
                             name: 'SECS',
-                            block: expectedInfo.makeNumber(2)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(2),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -48,14 +48,14 @@ describe('RubyToBlocksConverter/Looks', () => {
                     inputs: [
                         {
                             name: 'MESSAGE',
-                            block: expectedInfo.makeText('1')
+                            block: expectedInfo.makeText('1'),
                         },
                         {
                             name: 'SECS',
-                            block: expectedInfo.makeNumber(2)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(2),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -67,14 +67,14 @@ describe('RubyToBlocksConverter/Looks', () => {
                         {
                             name: 'MESSAGE',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeText('Hello!')
+                            shadow: expectedInfo.makeText('Hello!'),
                         },
                         {
                             name: 'SECS',
-                            block: expectedInfo.makeNumber(2)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(2),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -86,27 +86,25 @@ describe('RubyToBlocksConverter/Looks', () => {
                         {
                             name: 'MESSAGE',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeText('Hello!')
+                            shadow: expectedInfo.makeText('Hello!'),
                         },
                         {
                             name: 'SECS',
                             block: (await rubyToExpected(converter, target, 'y'))[0],
-                            shadow: expectedInfo.makeNumber(2)
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(2),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'say("Hello!", "2")',
-                'say("Hello!", 2, 3)',
-                'say("Hello!", :symbol)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of ['say("Hello!", "2")', 'say("Hello!", 2, 3)', 'say("Hello!", :symbol)']) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
@@ -119,10 +117,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                     inputs: [
                         {
                             name: 'MESSAGE',
-                            block: expectedInfo.makeText('Hello!')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('Hello!'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -133,10 +131,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                     inputs: [
                         {
                             name: 'MESSAGE',
-                            block: expectedInfo.makeText('1')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('1'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -148,21 +146,20 @@ describe('RubyToBlocksConverter/Looks', () => {
                         {
                             name: 'MESSAGE',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeText('Hello!')
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeText('Hello!'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'say',
-                'say(1, 2, 1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of ['say', 'say(1, 2, 1)']) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
@@ -175,14 +172,14 @@ describe('RubyToBlocksConverter/Looks', () => {
                     inputs: [
                         {
                             name: 'MESSAGE',
-                            block: expectedInfo.makeText('Hmm...')
+                            block: expectedInfo.makeText('Hmm...'),
                         },
                         {
                             name: 'SECS',
-                            block: expectedInfo.makeNumber(2)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(2),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -193,14 +190,14 @@ describe('RubyToBlocksConverter/Looks', () => {
                     inputs: [
                         {
                             name: 'MESSAGE',
-                            block: expectedInfo.makeText('1')
+                            block: expectedInfo.makeText('1'),
                         },
                         {
                             name: 'SECS',
-                            block: expectedInfo.makeNumber(2)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(2),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -212,14 +209,14 @@ describe('RubyToBlocksConverter/Looks', () => {
                         {
                             name: 'MESSAGE',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeText('Hmm...')
+                            shadow: expectedInfo.makeText('Hmm...'),
                         },
                         {
                             name: 'SECS',
-                            block: expectedInfo.makeNumber(2)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(2),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -231,28 +228,25 @@ describe('RubyToBlocksConverter/Looks', () => {
                         {
                             name: 'MESSAGE',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeText('Hmm...')
+                            shadow: expectedInfo.makeText('Hmm...'),
                         },
                         {
                             name: 'SECS',
                             block: (await rubyToExpected(converter, target, 'y'))[0],
-                            shadow: expectedInfo.makeNumber(2)
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(2),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'think("Hello!", "2")',
-                'think("Hello!", 2, 3)',
-                'think("Hello!", :symbol)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of ['think("Hello!", "2")', 'think("Hello!", 2, 3)', 'think("Hello!", :symbol)']) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
-
 });

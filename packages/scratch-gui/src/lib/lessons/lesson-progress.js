@@ -212,8 +212,7 @@ const isLessonAllCompleted = (lesson, progress) => lessonProgress(lesson, progre
  * @returns {?object} レッスン。無ければ null。
  */
 const nextLessonOf = (course, lesson, progress) =>
-    course.lessons.slice(course.lessons.indexOf(lesson) + 1).find((l) => !isLessonAllCompleted(l, progress)) ||
-    null;
+    course.lessons.slice(course.lessons.indexOf(lesson) + 1).find((l) => !isLessonAllCompleted(l, progress)) || null;
 
 /**
  * 「できた！」に出すボタンの種類（COMPLETED_ACTIONS）。
@@ -225,7 +224,9 @@ const nextLessonOf = (course, lesson, progress) =>
 export const completedAction = (challengeId, progress, courses = COURSES) => {
     const found = findChallenge(challengeId, courses);
     if (!found || !isLessonAllCompleted(found.lesson, progress)) return COMPLETED_ACTIONS.NEXT;
-    return nextLessonOf(found.course, found.lesson, progress) ? COMPLETED_ACTIONS.OTHER_LESSONS : COMPLETED_ACTIONS.LIBRARY;
+    return nextLessonOf(found.course, found.lesson, progress)
+        ? COMPLETED_ACTIONS.OTHER_LESSONS
+        : COMPLETED_ACTIONS.LIBRARY;
 };
 
 /**

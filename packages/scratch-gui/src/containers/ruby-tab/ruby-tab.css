@@ -1,6 +1,6 @@
-@import "../../css/colors.css";
-@import "../../css/units.css";
-@import "../../css/z-index.css";
+@import '../../css/colors.css';
+@import '../../css/units.css';
+@import '../../css/z-index.css';
 
 .zoomControlsWrapper {
     position: absolute;
@@ -40,17 +40,17 @@
 }
 
 .tooltip {
-  background-color: $extensions-primary !important;
-  opacity: 1 !important;
-  border: 1px solid hsla(0, 0%, 0%, .1) !important;
-  border-radius: $form-radius !important;
-  box-shadow: 0 0 .5rem hsla(0, 0%, 0%, .25) !important;
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
-  z-index: $z-index-tooltip !important;
+    background-color: $extensions-primary !important;
+    opacity: 1 !important;
+    border: 1px solid hsla(0, 0%, 0%, 0.1) !important;
+    border-radius: $form-radius !important;
+    box-shadow: 0 0 0.5rem hsla(0, 0%, 0%, 0.25) !important;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+    z-index: $z-index-tooltip !important;
 }
 
 .tooltip:after {
-  background-color: $extensions-primary;
+    background-color: $extensions-primary;
 }
 
 $arrow-size: 0.5rem;
@@ -58,11 +58,11 @@ $arrow-inset: -0.25rem;
 $arrow-rounding: 0.125rem;
 
 .tooltip:after {
-    content: "";
-    border-top: 1px solid hsla(0, 0%, 0%, .1) !important;
+    content: '';
+    border-top: 1px solid hsla(0, 0%, 0%, 0.1) !important;
     border-left: 0 !important;
     border-bottom: 0 !important;
-    border-right: 1px solid hsla(0, 0%, 0%, .1) !important;
+    border-right: 1px solid hsla(0, 0%, 0%, 0.1) !important;
     border-radius: $arrow-rounding;
     height: $arrow-size !important;
     width: $arrow-size !important;
@@ -125,8 +125,8 @@ $arrow-rounding: 0.125rem;
 .valueReportBubble {
     position: fixed;
     z-index: 1000;
-    background-color: #FFFFFF;
-    border: 1px solid #AAAAAA;
+    background-color: #ffffff;
+    border: 1px solid #aaaaaa;
     border-radius: 4px;
     padding: 4px 8px;
     box-sizing: content-box;
@@ -138,12 +138,14 @@ $arrow-rounding: 0.125rem;
     word-wrap: break-word;
     word-break: break-all;
     text-align: center;
-    font-family: "Helvetica Neue", Helvetica, sans-serif;
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
     font-size: 0.8em;
     line-height: 1.2;
     opacity: 0;
     transform: translateX(-10px);
-    transition: opacity 0.25s, transform 0.25s;
+    transition:
+        opacity 0.25s,
+        transform 0.25s;
     pointer-events: none;
 }
 
@@ -160,7 +162,7 @@ $arrow-rounding: 0.125rem;
     transform: translateY(-50%) rotate(45deg);
     width: 16px;
     height: 16px;
-    background-color: #FFFFFF;
-    border-left: 1px solid #AAAAAA;
-    border-bottom: 1px solid #AAAAAA;
+    background-color: #ffffff;
+    border-left: 1px solid #aaaaaa;
+    border-bottom: 1px solid #aaaaaa;
 }

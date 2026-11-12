@@ -76,14 +76,14 @@ const PollingClientMixin = {
 
                 // ノードステータスは fetchAllNodesData と同じ処理に流す
                 if (nodeStatuses && nodeStatuses.length > 0) {
-                    nodeStatuses.forEach(status => this.handleDataUpdate(status));
+                    nodeStatuses.forEach((status) => this.handleDataUpdate(status));
                 }
 
                 if (events && events.length > 0) {
                     debug(() => `Mesh V2: Polled ${events.length} events`);
 
                     // Filter out events from self and sort by timestamp to preserve order
-                    const otherEvents = events.filter(event => event.firedByNodeId !== this.meshId);
+                    const otherEvents = events.filter((event) => event.firedByNodeId !== this.meshId);
 
                     if (otherEvents.length > 0) {
                         this._queueEventsForPlayback(otherEvents);

@@ -1,10 +1,10 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {RubyToBlocksConverterError} from '../../../../../src/lib/ruby-to-blocks-converter/errors';
+import { RubyToBlocksConverterError } from '../../../../../src/lib/ruby-to-blocks-converter/errors';
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Motion', () => {
@@ -12,7 +12,7 @@ describe('RubyToBlocksConverter/Motion', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -27,10 +27,10 @@ describe('RubyToBlocksConverter/Motion', () => {
                 inputs: [
                     {
                         name: 'DX',
-                        block: expectedInfo.makeNumber(10)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -42,10 +42,10 @@ describe('RubyToBlocksConverter/Motion', () => {
                     {
                         name: 'DX',
                         block: (await rubyToExpected(converter, target, 'y'))[0],
-                        shadow: expectedInfo.makeNumber(10)
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -56,10 +56,10 @@ describe('RubyToBlocksConverter/Motion', () => {
                 inputs: [
                     {
                         name: 'DX',
-                        block: expectedInfo.makeNumber(-10)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(-10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -71,20 +71,18 @@ describe('RubyToBlocksConverter/Motion', () => {
                     {
                         name: 'DX',
                         block: (await rubyToExpected(converter, target, '0 - y'))[0],
-                        shadow: expectedInfo.makeNumber(10)
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'self.x += "10"',
-            'self.x += :symbol',
-            'self.x += abc'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['self.x += "10"', 'self.x += :symbol', 'self.x += abc']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('motion_setx', async () => {
@@ -98,10 +96,10 @@ describe('RubyToBlocksConverter/Motion', () => {
                 inputs: [
                     {
                         name: 'X',
-                        block: expectedInfo.makeNumber(10)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -113,20 +111,18 @@ describe('RubyToBlocksConverter/Motion', () => {
                     {
                         name: 'X',
                         block: (await rubyToExpected(converter, target, 'y'))[0],
-                        shadow: expectedInfo.makeNumber(0)
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(0),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'self.x = "10"',
-            'self.x = :symbol',
-            'self.x = abc'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['self.x = "10"', 'self.x = :symbol', 'self.x = abc']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('motion_changeyby', async () => {
@@ -140,10 +136,10 @@ describe('RubyToBlocksConverter/Motion', () => {
                 inputs: [
                     {
                         name: 'DY',
-                        block: expectedInfo.makeNumber(10)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -155,10 +151,10 @@ describe('RubyToBlocksConverter/Motion', () => {
                     {
                         name: 'DY',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber(10)
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -169,10 +165,10 @@ describe('RubyToBlocksConverter/Motion', () => {
                 inputs: [
                     {
                         name: 'DY',
-                        block: expectedInfo.makeNumber(-10)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(-10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -184,20 +180,18 @@ describe('RubyToBlocksConverter/Motion', () => {
                     {
                         name: 'DY',
                         block: (await rubyToExpected(converter, target, '0 - x'))[0],
-                        shadow: expectedInfo.makeNumber(10)
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'self.y += "10"',
-            'self.y += :symbol',
-            'self.y += abc'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['self.y += "10"', 'self.y += :symbol', 'self.y += abc']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('motion_sety', async () => {
@@ -211,10 +205,10 @@ describe('RubyToBlocksConverter/Motion', () => {
                 inputs: [
                     {
                         name: 'Y',
-                        block: expectedInfo.makeNumber(10)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -226,32 +220,27 @@ describe('RubyToBlocksConverter/Motion', () => {
                     {
                         name: 'Y',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber(0)
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(0),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'self.y = "10"',
-            'self.y = :symbol',
-            'self.y = abc'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['self.y = "10"', 'self.y = :symbol', 'self.y = abc']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
-    [
-        'x',
-        'y'
-    ].forEach(xy => {
+    ['x', 'y'].forEach((xy) => {
         test(`motion_${xy}position`, async () => {
             const code = xy;
             const expected = [
                 {
-                    opcode: `motion_${xy}position`
-                }
+                    opcode: `motion_${xy}position`,
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -261,8 +250,8 @@ describe('RubyToBlocksConverter/Motion', () => {
         const code = 'direction';
         const expected = [
             {
-                opcode: 'motion_direction'
-            }
+                opcode: 'motion_direction',
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -278,11 +267,11 @@ describe('RubyToBlocksConverter/Motion', () => {
                 inputs: [
                     {
                         name: 'DEGREES',
-                        block: expectedInfo.makeNumber(10)
-                    }
+                        block: expectedInfo.makeNumber(10),
+                    },
                 ],
-                comment: {text: '@ruby:operator:+=', minimized: true}
-            }
+                comment: { text: '@ruby:operator:+=', minimized: true },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -294,21 +283,19 @@ describe('RubyToBlocksConverter/Motion', () => {
                     {
                         name: 'DEGREES',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber(15)
-                    }
+                        shadow: expectedInfo.makeNumber(15),
+                    },
                 ],
-                comment: {text: '@ruby:operator:+=', minimized: true}
-            }
+                comment: { text: '@ruby:operator:+=', minimized: true },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'self.direction += "10"',
-            'self.direction += :symbol',
-            'self.direction += abc'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['self.direction += "10"', 'self.direction += :symbol', 'self.direction += abc']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('self.direction -= N maps to motion_turnleft with @ruby:operator:-= comment', async () => {
@@ -322,11 +309,11 @@ describe('RubyToBlocksConverter/Motion', () => {
                 inputs: [
                     {
                         name: 'DEGREES',
-                        block: expectedInfo.makeNumber(10)
-                    }
+                        block: expectedInfo.makeNumber(10),
+                    },
                 ],
-                comment: {text: '@ruby:operator:-=', minimized: true}
-            }
+                comment: { text: '@ruby:operator:-=', minimized: true },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -338,21 +325,19 @@ describe('RubyToBlocksConverter/Motion', () => {
                     {
                         name: 'DEGREES',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber(15)
-                    }
+                        shadow: expectedInfo.makeNumber(15),
+                    },
                 ],
-                comment: {text: '@ruby:operator:-=', minimized: true}
-            }
+                comment: { text: '@ruby:operator:-=', minimized: true },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'self.direction -= "10"',
-            'self.direction -= :symbol',
-            'self.direction -= abc'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['self.direction -= "10"', 'self.direction -= :symbol', 'self.direction -= abc']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     describe('Stage validation', () => {
@@ -361,7 +346,7 @@ describe('RubyToBlocksConverter/Motion', () => {
         beforeEach(() => {
             stageTarget = {
                 isStage: true,
-                variables: {}
+                variables: {},
             };
         });
 
@@ -388,7 +373,7 @@ describe('RubyToBlocksConverter/Motion', () => {
                 'self.direction -= 5',
                 'x',
                 'y',
-                'direction'
+                'direction',
             ];
 
             for (const code of motionCommands) {
@@ -396,7 +381,7 @@ describe('RubyToBlocksConverter/Motion', () => {
                 expect(res).toBeFalsy();
                 expect(converter.errors).toHaveLength(1);
                 expect(converter.errors[0].text).toMatch(/is the wrong instruction\./);
-                
+
                 // Reset for next test
                 converter.reset();
             }
@@ -405,18 +390,20 @@ describe('RubyToBlocksConverter/Motion', () => {
         test('motion blocks work fine on sprite target', async () => {
             const spriteTarget = {
                 isStage: false,
-                variables: {}
+                variables: {},
             };
 
             // Test a few representative motion commands work on sprite
-            { for (const code of ['move(10)', 'turn_right(15)', 'x']) {
-                const res = await converter.targetCodeToBlocks(spriteTarget, code);
-                expect(res).toBeTruthy();
-                expect(converter.errors).toHaveLength(0);
-                
-                // Reset for next test
-                converter.reset();
-            } }
+            {
+                for (const code of ['move(10)', 'turn_right(15)', 'x']) {
+                    const res = await converter.targetCodeToBlocks(spriteTarget, code);
+                    expect(res).toBeTruthy();
+                    expect(converter.errors).toHaveLength(0);
+
+                    // Reset for next test
+                    converter.reset();
+                }
+            }
         });
     });
 });

@@ -18,7 +18,11 @@ const blocksOfChallenge = async (challenge) => {
     for (const source of codes) {
         const converter = new RubyToBlocksConverter(null, { version: '2' });
         const ok = await converter.targetCodeToBlocks(null, source);
-        expect({ id: challenge.id, ok, errors: converter.errors }).toEqual({ id: challenge.id, ok: true, errors: [] });
+        expect({ id: challenge.id, ok, errors: converter.errors }).toEqual({
+            id: challenge.id,
+            ok: true,
+            errors: [],
+        });
         blocks.push(...Object.values(converter.blocks));
     }
     return blocks;

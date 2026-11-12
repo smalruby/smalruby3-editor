@@ -1,4 +1,4 @@
-@import "../../css/z-index.css";
+@import '../../css/z-index.css';
 
 /* Position is set at runtime by `blocks-screenshot-button.jsx` so the camera
    button stays anchored to the actual scratch-blocks v2 zoom controls

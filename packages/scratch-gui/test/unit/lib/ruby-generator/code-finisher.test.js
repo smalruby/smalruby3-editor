@@ -16,9 +16,9 @@ describe('RubyGenerator code-finisher', () => {
         });
 
         test('populates requires_ from options', () => {
-            RubyGenerator.initTargets({requires: ['smalruby3']});
+            RubyGenerator.initTargets({ requires: ['smalruby3'] });
             expect(RubyGenerator.requires_).toEqual({
-                require__smalruby3: 'require "smalruby3"'
+                require__smalruby3: 'require "smalruby3"',
             });
         });
     });
@@ -57,7 +57,7 @@ describe('RubyGenerator code-finisher', () => {
                 '',
                 'class B',
                 'end',
-                ''
+                '',
             ].join('\n');
             const result = RubyGenerator.finishTargets(code);
             // Module should appear only once
@@ -79,11 +79,11 @@ describe('RubyGenerator code-finisher', () => {
             RubyGenerator.initTargets();
             RubyGenerator.init();
             RubyGenerator.currentTarget = {
-                sprite: {name: 'Sprite1'},
+                sprite: { name: 'Sprite1' },
                 comments: {},
-                blocks: {getBlock: () => null, getInputs: () => ({}), getScripts: () => []},
+                blocks: { getBlock: () => null, getInputs: () => ({}), getScripts: () => [] },
                 variables: {},
-                runtime: {targets: [{isStage: false, sprite: {name: 'Sprite1'}}]}
+                runtime: { targets: [{ isStage: false, sprite: { name: 'Sprite1' } }] },
             };
         });
 

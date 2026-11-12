@@ -12,12 +12,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
-
-import {
-    isTutorialSeen,
-    markClassroomTutorialSeen,
-} from '../../reducers/classroom-tutorial.js';
-
+import { isTutorialSeen, markClassroomTutorialSeen } from '../../reducers/classroom-tutorial.js';
 import BalloonButton from '../balloon/balloon-button.jsx';
 import styles from './classroom-tutorial.css';
 
@@ -32,10 +27,7 @@ const ClassroomTutorial = ({ name, children }) => {
     if (seen) return null;
 
     return (
-        <div
-            className={styles.overlay}
-            data-testid={`classroom-tutorial-${name}`}
-        >
+        <div className={styles.overlay} data-testid={`classroom-tutorial-${name}`}>
             <div className={styles.card}>
                 <div className={styles.body}>{children}</div>
                 <BalloonButton

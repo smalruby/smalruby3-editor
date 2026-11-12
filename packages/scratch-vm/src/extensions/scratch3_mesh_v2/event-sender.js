@@ -112,9 +112,7 @@ const EventSenderMixin = {
         }
 
         // ステップ1: 重複チェック
-        const isDuplicate = this.eventQueue.some(
-            item => item.eventName === eventName && item.payload === payload,
-        );
+        const isDuplicate = this.eventQueue.some((item) => item.eventName === eventName && item.payload === payload);
 
         if (isDuplicate) {
             this.eventQueueStats.duplicatesSkipped++;
@@ -139,11 +137,7 @@ const EventSenderMixin = {
             }
         }
 
-        debug(
-            () =>
-                `Mesh V2: Queuing event for sending: ${eventName} ` +
-                `(queue size: ${this.eventQueue.length})`,
-        );
+        debug(() => `Mesh V2: Queuing event for sending: ${eventName} (queue size: ${this.eventQueue.length})`);
 
         // キューに追加（発火日時と orderKey を記録）
         const firedAt = new Date();
@@ -195,10 +189,7 @@ const EventSenderMixin = {
         const now = Date.now();
         const elapsed = now - this.eventQueueStats.lastReportTime;
 
-        if (
-            elapsed >= 10000 &&
-            (this.eventQueueStats.duplicatesSkipped > 0 || this.eventQueueStats.dropped > 0)
-        ) {
+        if (elapsed >= 10000 && (this.eventQueueStats.duplicatesSkipped > 0 || this.eventQueueStats.dropped > 0)) {
             debug(
                 () =>
                     `Mesh V2: Event Queue Stats (last ${(elapsed / 1000).toFixed(1)}s): ` +

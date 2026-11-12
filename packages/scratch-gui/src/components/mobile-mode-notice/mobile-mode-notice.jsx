@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { defineMessages, FormattedMessage, injectIntl } from 'react-intl';
-
 import intlShape from '../../lib/intlShape';
 import { DISPLAY_MODE_DESKTOP } from '../../lib/settings/display-mode/index.js';
 import { persistDisplayMode } from '../../lib/settings/display-mode/persistence.js';
@@ -91,11 +90,7 @@ const MobileModeNoticeComponent = ({ intl, lessonModeActive }) => {
     }
 
     return createPortal(
-        <div
-            className={styles.notice}
-            role="status"
-            data-testid="mobile-mode-notice"
-        >
+        <div className={styles.notice} role="status" data-testid="mobile-mode-notice">
             <span className={styles.body}>
                 <FormattedMessage {...messages.body} />
             </span>

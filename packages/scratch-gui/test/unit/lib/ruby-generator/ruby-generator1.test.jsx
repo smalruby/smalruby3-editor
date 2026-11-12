@@ -14,8 +14,10 @@ describe('RubyGenerator', () => {
 
     describe('quote_', () => {
         test('escape only " to \\"', async () => {
-            const arg = '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'; // eslint-disable-line
-            const expected = '"!\\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"'; // eslint-disable-line
+            const arg =
+                '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'; // eslint-disable-line
+            const expected =
+                '"!\\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"'; // eslint-disable-line
             expect(RubyGenerator.quote_(arg)).toEqual(expected);
         });
     });
@@ -24,9 +26,9 @@ describe('RubyGenerator', () => {
         test('return self', async () => {
             RubyGenerator.currentTarget = {
                 sprite: {
-                    name: 'Sprite1'
+                    name: 'Sprite1',
                 },
-                comments: {}
+                comments: {},
             };
             expect(RubyGenerator.spriteName()).toEqual('self');
         });
@@ -38,46 +40,46 @@ describe('RubyGenerator', () => {
         beforeEach(() => {
             renderedTarget = {
                 sprite: {
-                    name: 'Sprite1'
+                    name: 'Sprite1',
                 },
                 comments: {},
                 variables: {
                     id1: {
                         name: 'Variable1',
-                        type: SCALAR_TYPE
+                        type: SCALAR_TYPE,
                     },
                     id2: {
                         name: 'List1',
-                        type: LIST_TYPE
+                        type: LIST_TYPE,
                     },
                     id3: {
                         name: 'Variable2',
-                        type: SCALAR_TYPE
+                        type: SCALAR_TYPE,
                     },
                     id4: {
                         name: 'List2',
-                        type: LIST_TYPE
+                        type: LIST_TYPE,
                     },
                     id2_1: {
                         name: 'Avg(Total / Count)',
-                        type: SCALAR_TYPE
+                        type: SCALAR_TYPE,
                     },
                     id2_2: {
                         name: 'List of Symbols.',
-                        type: LIST_TYPE
+                        type: LIST_TYPE,
                     },
                     id2_3: {
                         name: ' !"#$%&\'()*+,-./:;<=>?@[\\]^`{|}~]',
-                        type: SCALAR_TYPE
+                        type: SCALAR_TYPE,
                     },
                     id2_4: {
                         name: '平均(合計 / 件数)',
-                        type: SCALAR_TYPE
+                        type: SCALAR_TYPE,
                     },
                     id2_5: {
                         name: 'シンボル　配列。',
-                        type: LIST_TYPE
-                    }
+                        type: LIST_TYPE,
+                    },
                 },
                 runtime: {
                     getTargetForStage: function () {
@@ -85,16 +87,16 @@ describe('RubyGenerator', () => {
                             variables: {
                                 id5: {
                                     name: 'Variable3',
-                                    type: SCALAR_TYPE
+                                    type: SCALAR_TYPE,
                                 },
                                 id6: {
                                     name: 'List3',
-                                    type: LIST_TYPE
-                                }
-                            }
+                                    type: LIST_TYPE,
+                                },
+                            },
                         };
-                    }
-                }
+                    },
+                },
             };
             RubyGenerator.currentTarget = renderedTarget;
         });
@@ -121,7 +123,7 @@ describe('RubyGenerator', () => {
             expect(RubyGenerator.listName('unknown_id2')).toEqual(null);
         });
 
-        test('return $name if stage\'s local variable', async () => {
+        test("return $name if stage's local variable", async () => {
             renderedTarget.isStage = true;
             expect(RubyGenerator.variableName('id1')).toEqual('$Variable1');
             expect(RubyGenerator.listName('id2')).toEqual('$List1');

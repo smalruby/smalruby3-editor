@@ -6,12 +6,7 @@ class Range {
     }
 }
 
-const PASTED = [
-    '# 配列の添字は1から始まる',
-    'Akibi = [1, 1, 1]',
-    'tantou = 1',
-    '表示する(Akibi[tantou])',
-].join('\n');
+const PASTED = ['# 配列の添字は1から始まる', 'Akibi = [1, 1, 1]', 'tantou = 1', '表示する(Akibi[tantou])'].join('\n');
 
 const formatMessage = (descriptor, values = {}) =>
     `${descriptor.id}${Object.keys(values).length > 0 ? JSON.stringify(values) : ''}`;
@@ -82,9 +77,7 @@ describe('offerDnclIndexShift', () => {
     test('keeps the length hint of a loop whose variable is not used as an index', () => {
         const { result } = setup(`${PASTED}\ni を 1 から 要素数(Akibi) まで 1 ずつ増やしながら`, true);
         const suspect = result.decorations[result.decorations.length - 1];
-        expect(suspect.options.hoverMessage).toEqual([
-            { value: 'gui\\.rubyTab\\.dnclIndexShiftReasonLoopToLength' },
-        ]);
+        expect(suspect.options.hoverMessage).toEqual([{ value: 'gui\\.rubyTab\\.dnclIndexShiftReasonLoopToLength' }]);
     });
 
     test('marks an index that became -1 to check', () => {

@@ -2,7 +2,7 @@ import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter'
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
-    expectedInfo
+    expectedInfo,
 } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Text2Speech', () => {
@@ -12,7 +12,7 @@ describe('RubyToBlocksConverter/Text2Speech', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -26,10 +26,10 @@ describe('RubyToBlocksConverter/Text2Speech', () => {
                 inputs: [
                     {
                         name: 'WORDS',
-                        block: expectedInfo.makeText('hello')
-                    }
-                ]
-            }
+                        block: expectedInfo.makeText('hello'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -44,22 +44,18 @@ describe('RubyToBlocksConverter/Text2Speech', () => {
                         name: 'VOICE',
                         block: {
                             opcode: 'text2speech_menu_voices',
-                            fields: [{name: 'voices', value: 'ALTO'}],
-                            shadow: true
-                        }
-                    }
-                ]
-            }
+                            fields: [{ name: 'voices', value: 'ALTO' }],
+                            shadow: true,
+                        },
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
     test('invalid', async () => {
-        for (const s of [
-            'text2speech.speak(1)',
-            'text2speech.voice = 1',
-            'text2speech.voice = "invalid_voice"'
-        ]) {
+        for (const s of ['text2speech.speak(1)', 'text2speech.voice = 1', 'text2speech.voice = "invalid_voice"']) {
             await convertAndExpectRubyBlockError(converter, target, s);
         }
     });

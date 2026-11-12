@@ -1,10 +1,8 @@
-import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
-
-import ErrorDisplay from './error-display.jsx';
-
+import { FormattedMessage } from 'react-intl';
 import styles from './classroom-modal.css';
+import ErrorDisplay from './error-display.jsx';
 
 const TeacherDashboardPhase = ({
     classrooms,
@@ -24,15 +22,9 @@ const TeacherDashboardPhase = ({
     );
 
     return (
-        <div
-            className={styles.dashboardLayout}
-            data-testid="classroom-phase-teacher-dashboard"
-        >
+        <div className={styles.dashboardLayout} data-testid="classroom-phase-teacher-dashboard">
             <div className={styles.dashboardHeader}>
-                <div
-                    className={styles.phaseTitle}
-                    style={{ marginBottom: 0 }}
-                >
+                <div className={styles.phaseTitle} style={{ marginBottom: 0 }}>
                     <FormattedMessage
                         defaultMessage="Your Classrooms"
                         description="Teacher dashboard title"
@@ -42,10 +34,7 @@ const TeacherDashboardPhase = ({
             </div>
             <div className={styles.dashboardBody}>
                 {isLoading && (
-                    <div
-                        className={styles.loading}
-                        data-testid="classroom-loading"
-                    >
+                    <div className={styles.loading} data-testid="classroom-loading">
                         <FormattedMessage
                             defaultMessage="Loading..."
                             description="Loading indicator"
@@ -54,10 +43,7 @@ const TeacherDashboardPhase = ({
                     </div>
                 )}
                 {!isLoading && classrooms.length === 0 && (
-                    <div
-                        className={styles.description}
-                        data-testid="classroom-empty-message"
-                    >
+                    <div className={styles.description} data-testid="classroom-empty-message">
                         <FormattedMessage
                             defaultMessage="No classrooms yet. Create one to get started!"
                             description="Empty classrooms message"
@@ -66,10 +52,7 @@ const TeacherDashboardPhase = ({
                     </div>
                 )}
                 {!isLoading && classrooms.length > 0 && (
-                    <ul
-                        className={styles.classList}
-                        data-testid="classroom-list"
-                    >
+                    <ul className={styles.classList} data-testid="classroom-list">
                         {classrooms.map((c) => (
                             <li
                                 className={styles.classItem}
@@ -78,28 +61,20 @@ const TeacherDashboardPhase = ({
                             >
                                 <div className={styles.classItemMain}>
                                     <span
-                                        className={
-                                            styles.classItemName
-                                        }
+                                        className={styles.classItemName}
                                         data-testid={`classroom-item-name-${c.classroomId}`}
                                     >
                                         {c.className}
                                     </span>
                                     <span
-                                        className={
-                                            styles.classItemCode
-                                        }
+                                        className={styles.classItemCode}
                                         data-testid={`classroom-item-code-${c.classroomId}`}
                                     >
                                         {c.joinCode.toLowerCase()}
                                     </span>
                                 </div>
                                 <div className={styles.classItemMeta}>
-                                    <span
-                                        className={
-                                            styles.classItemMetaText
-                                        }
-                                    >
+                                    <span className={styles.classItemMetaText}>
                                         {c.studentCount}
                                         <FormattedMessage
                                             defaultMessage=" students"
@@ -108,46 +83,28 @@ const TeacherDashboardPhase = ({
                                         />
                                     </span>
                                     {c.createdAt && (
-                                        <span
-                                            className={
-                                                styles.classItemMetaText
-                                            }
-                                        >
-                                            {new Date(
-                                                c.createdAt,
-                                            ).toLocaleDateString()}
+                                        <span className={styles.classItemMetaText}>
+                                            {new Date(c.createdAt).toLocaleDateString()}
                                         </span>
                                     )}
                                     {c.expiresAt && (
-                                        <span
-                                            className={
-                                                styles.classItemMetaText
-                                            }
-                                        >
+                                        <span className={styles.classItemMetaText}>
                                             <FormattedMessage
                                                 defaultMessage="Expires: {date}"
                                                 description="Expiry date in class list"
                                                 id="gui.classroom.teacherDashboard.expiresAt"
                                                 values={{
-                                                    date: new Date(
-                                                        c.expiresAt,
-                                                    ).toLocaleDateString(),
+                                                    date: new Date(c.expiresAt).toLocaleDateString(),
                                                 }}
                                             />
                                         </span>
                                     )}
                                     <span style={{ flex: 1 }} />
                                     <button
-                                        className={
-                                            styles.secondaryButton
-                                        }
-                                        data-classroom-id={
-                                            c.classroomId
-                                        }
+                                        className={styles.secondaryButton}
+                                        data-classroom-id={c.classroomId}
                                         data-testid={`classroom-item-details-${c.classroomId}`}
-                                        onClick={
-                                            handleSelectClassroom
-                                        }
+                                        onClick={handleSelectClassroom}
                                     >
                                         <FormattedMessage
                                             defaultMessage="Details"

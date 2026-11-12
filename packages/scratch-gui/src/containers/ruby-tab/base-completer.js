@@ -6,25 +6,25 @@ class BaseCompleter {
      * @param {object} monaco - The monaco instance.
      * @returns {object} Monaco CompletionItem.
      */
-    toCompletionItem (item, range, monaco) {
+    toCompletionItem(item, range, monaco) {
         const snippet = item.snippet || item.value;
         const description = item.description || item.caption;
         const cleanSnippet = this.#removeSnippetVarAroundCode(snippet);
 
         // Use structured label when Japanese label is available
-        const label = item.labelJa ?
-            {label: item.labelJa, detail: ` ${cleanSnippet}`, description: description} :
-            item.caption;
+        const label = item.labelJa
+            ? { label: item.labelJa, detail: ` ${cleanSnippet}`, description: description }
+            : item.caption;
 
         const completionItem = {
             label: label,
             kind: this.#getCompletionItemKind(item.type, monaco),
             documentation: {
-                value: this.#toMarkdown(description, snippet)
+                value: this.#toMarkdown(description, snippet),
             },
             insertText: snippet,
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            range: range
+            range: range,
         };
 
         if (!item.labelJa) {
@@ -42,31 +42,31 @@ class BaseCompleter {
         return completionItem;
     }
 
-    #getCompletionItemKind (type, monaco) {
+    #getCompletionItemKind(type, monaco) {
         switch (type) {
-        case 'method':
-            return monaco.languages.CompletionItemKind.Method;
-        case 'function':
-            return monaco.languages.CompletionItemKind.Function;
-        case 'variable':
-            return monaco.languages.CompletionItemKind.Variable;
-        case 'value':
-            return monaco.languages.CompletionItemKind.Value;
-        case 'constant':
-            return monaco.languages.CompletionItemKind.Constant;
-        case 'enum_member':
-            return monaco.languages.CompletionItemKind.EnumMember;
-        case 'keyword':
-            return monaco.languages.CompletionItemKind.Keyword;
-        case 'event':
-            return monaco.languages.CompletionItemKind.Event;
-        case 'snippet':
-        default:
-            return monaco.languages.CompletionItemKind.Snippet;
+            case 'method':
+                return monaco.languages.CompletionItemKind.Method;
+            case 'function':
+                return monaco.languages.CompletionItemKind.Function;
+            case 'variable':
+                return monaco.languages.CompletionItemKind.Variable;
+            case 'value':
+                return monaco.languages.CompletionItemKind.Value;
+            case 'constant':
+                return monaco.languages.CompletionItemKind.Constant;
+            case 'enum_member':
+                return monaco.languages.CompletionItemKind.EnumMember;
+            case 'keyword':
+                return monaco.languages.CompletionItemKind.Keyword;
+            case 'event':
+                return monaco.languages.CompletionItemKind.Event;
+            case 'snippet':
+            default:
+                return monaco.languages.CompletionItemKind.Snippet;
         }
     }
 
-    #toMarkdown (description, snippet) {
+    #toMarkdown(description, snippet) {
         const cleanSnippet = this.#removeSnippetVarAroundCode(snippet);
         return `**${description}**\n\n---\n\n\`\`\`ruby\n${cleanSnippet}\n\`\`\``;
     }

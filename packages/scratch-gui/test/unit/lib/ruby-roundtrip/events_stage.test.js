@@ -6,20 +6,23 @@ import {
     makeStageTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Events category blocks (stage)', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeStageTarget());
+        ({ target, runtime } = makeStageTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             self.when(:flag_clicked) do
               switch_backdrop("backdrop1")
             end
@@ -46,7 +49,8 @@ describe('Ruby Roundtrip: Events category blocks (stage)', () => {
 
             broadcast("message1")
             broadcast_and_wait("message1")
-        `);
+        `,
+        );
     });
 
     test('Ruby -> Code -> Ruby (backward compatibility)', async () => {
