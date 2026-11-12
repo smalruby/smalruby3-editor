@@ -1,7 +1,7 @@
 # ステージ
 
 > **🔧 upstream 改良** — upstream にあるが Smalruby で機能を改良・拡張している
-> **改良点**: ① iPad portrait での **stage size を small に強制** (`narrow-desktop` 対応、issue #572 / #599)。② モバイル UI 向けの調整（`mobile-ui/` 参照）。
+> **改良点**: ① iPad portrait での **stage size を small に強制** (`narrow-desktop` 対応、issue #572 / #599)。② モバイル UI 向けの調整（`mobile-ui/` 参照）。③ 中サイズのステージでは、右下のステージの列の見出し「ステージ」を出さない。
 
 ## 概要
 
@@ -24,8 +24,23 @@ Smalruby は基本的に upstream のステージをそのまま使用してい�
 |---|---|
 | 緑旗 | 全スプライトの `when_flag_clicked` を発火 |
 | 停止ボタン | 全スクリプト停止 |
-| ステージサイズ切替 | small / middle（中サイズ。Smalruby 独自・既定）/ large / fullscreen。中サイズのときはスプライトの情報を詰めた形にする（[`docs/sprite/`](../sprite/README.md)） |
+| ステージサイズ切替 | small / middle（中サイズ。Smalruby 独自・既定）/ large / fullscreen。中サイズのときはスプライトの情報を詰めた形にし（[`docs/sprite/`](../sprite/README.md)）、ステージの列の見出しを出さない（下の「中サイズのステージのステージの列」） |
 | watermark | プロジェクトロード中の透かし表示 |
+
+### 中サイズのステージのステージの列
+
+![中サイズのステージのステージの列（1300×600・チャレンジ中）](screenshots/0201-stage-selector-middle-stage.png)
+
+右下のステージの列（ステージを選ぶ所。背景の絵・「背景」・背景の数・「背景を選ぶ」ボタン）は、中サイズのステージ
+（Smalruby 独自。既定）のときは**上の見出し「ステージ」を出さない**。授業のパソコン（1300×600）でレッスンの
+課題バーが出ると縦が 40px 減り、見出しがあると背景の数が「背景を選ぶ」ボタンと重なるため。スプライトの側で
+「スプライト」の字を出さないのと同じ考え方（[`docs/sprite/`](../sprite/README.md)）。
+
+- チャレンジ中かどうかに関係なく、中サイズのときは常にこの形。字を足さず減らすだけなので、どの言語でも同じに収まる。
+- 「背景」と背景の数の 2 行はそのまま。列を押すとステージが選ばれるのも同じ（選ばれたことは枠の色で分かる）。
+- 小・大のステージは upstream のまま（見出しあり）。SP のスプライトのパネル（`MobileSpritePanel`）は
+  `stageSize="middle"` を渡すが、`keepStageSelectorHeader` で見出しを残す（SP の見た目は変えない）。
+- ステージ（canvas）の位置は変わらない（見出しはステージの下の列の中にある）ので、resize を送る必要はない。
 
 ### 表示モード
 

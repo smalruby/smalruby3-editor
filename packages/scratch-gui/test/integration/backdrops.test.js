@@ -41,7 +41,11 @@ describe('Working with backdrops', () => {
         await clickText('Meow', scope.soundsTab);
 
         // Make sure the backdrop was actually added by going to the backdrops tab
-        await clickXpath('//span[text()="Stage"]');
+        // === Smalruby: Start of middle stage selector without header ===
+        // 中サイズのステージ（既定）ではステージの列に見出し「Stage」が無いので、列の「Backdrops」の行を押す
+        await clickXpath('//div[contains(@class, "stage-selector_stage-selector_")]' +
+            '//div[contains(@class, "stage-selector_label_")]');
+        // === Smalruby: End of middle stage selector without header ===
         await clickText('Backdrops');
         await clickText('Blue Sky', scope.costumesTab);
 

@@ -117,3 +117,10 @@ $header-height: calc($stage-menu-height - 2px);
     90% { box-shadow: 0 0 10px #7fff1e; }
     100% { box-shadow: none; }
 }
+
+/* === Smalruby: Start of middle stage selector without header === */
+/* 見出しが無いときは、背景の絵が枠の上の線にくっつかないように少し空ける */
+.no-header .costume-canvas {
+    margin-top: 0.5rem;
+}
+/* === Smalruby: End of middle stage selector without header === */
