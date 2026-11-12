@@ -374,6 +374,20 @@ Follow TDD (Test-Driven Development) approach:
   - Run specific tests: `docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec jest test/unit/lib/your-test.test.js"`
 - **CI testing**: The full test suite runs automatically on push. Do not wait for full local test runs before committing — trust CI for comprehensive regression detection.
 
+### ローカルで流すテストの範囲（必ず守る）
+
+人間も AI も autopilot の worker も、次のルールに従う。
+
+- **修正したあとにローカルで流すテストは、その修正に関係するものだけに絞る。** 次のテストファイルを 1 つずつ指定して流す。
+  - 足したテストファイル、変えたテストファイル。
+  - 変えたソースのテストファイル。
+  - 加えて lint を通す。
+- **テストの全体実行は、PR を作って CI で行う。** ローカルで直接関係するテストと lint が通ったら、早めに push して PR を作る。広い範囲の退行は CI の結果で確かめる。
+- **ディレクトリ全体をまとめて流さない。** 例: `test/unit/lib/ruby-to-blocks-converter/`、`test/unit/lib/ruby-roundtrip/`。`npm test`、`npm run test:unit`、`npm run test:integration` もローカルでは流さない。
+- **例外**: 全体を流してその結果を得なければ先へ進めないときだけ、ローカルで全体を流してよい。そのときは、なぜ全体が必要かを PR 本文か報告に書く。
+  - 例: CI で落ちたテストを手元で再現しないと原因が分からない。
+  - 例: テストの仕組みそのもの（jest の設定、テストのヘルパー）を変えた。
+
 ## Key Directories
 
 - `packages/`: All workspace packages (npm workspaces)

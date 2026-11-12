@@ -144,7 +144,7 @@ Issue と PR の Blocked コメント（理由）と、その後の人間のコ�
 
 ### 3. 対応する
 
-- **Must / 改善依頼 / `action:"fix"`**: worktree 内で修正 → 関連テスト/lint → `bin/bot-git` でコミット・push。
+- **Must / 改善依頼 / `action:"fix"`**: worktree 内で修正 → 関連テスト（直接関係するテストファイルだけ（`CLAUDE.md` の「ローカルで流すテストの範囲」。全体実行は PR の CI で。どうしても全体の結果が要るときだけ例外で、理由を書く））/lint → `bin/bot-git` でコミット・push。
 - **質問 / `action:"reply"`**: PR に bot で返信。コード変更を伴うならあわせて push。
 - **`action:"no-change"`**: 何もしない（既存のコメントを消さない）。
 - **人間が「直して」と言った指摘を、よほど大変・効果が小さいなどの理由でこの PR では直せないとき**は、
