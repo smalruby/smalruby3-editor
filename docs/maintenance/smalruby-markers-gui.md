@@ -115,6 +115,9 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/sprite-info/sprite-info.css` | compact middle sprite info | 上の詰めた形のスタイル（`.compact` / `.compact-name` / `.label-icon`） |
 | `src/components/direction-picker/direction-picker.jsx` | compact middle sprite info | `labelIcon` prop: 渡されたら「向き」の字の代わりにそれを Label に出す（propType も） |
 | `src/containers/direction-picker.jsx` | compact middle sprite info | `labelIcon` prop をコンポーネントへ渡す（propType も） |
+| `src/components/stage-selector/stage-selector.jsx` | middle stage selector without header | `hideHeader` prop: 渡されたら見出し「ステージ」（`.header`）を描かず、`.no-header` のクラスを付ける（分割代入・className・render・propType の 4 ペア。`docs/stage/README.md`） |
+| `src/components/stage-selector/stage-selector.css` | middle stage selector without header | 見出しが無いときの背景の絵の上の余白（`.no-header .costume-canvas`） |
+| `src/components/target-pane/target-pane.jsx` | middle stage selector without header | 中サイズのステージ（`STAGE_DISPLAY_SIZES.middle`）のとき StageSelector に `hideHeader` を渡す。SP のスプライトのパネルは `keepStageSelectorHeader` で見出しを残す（分割代入・JSX・propType の 3 ペア） |
 | `src/components/target-pane/target-pane.jsx` | mobile-sprite-panel suppress-library | MobileSpritePanel が同一ツリーで TargetPane を再描画する際の SpriteLibrary 二重表示を `hideSpriteLibrary` prop で抑止 (issue #572 Phase 2-F) |
 | `src/playground/render-gui-standalone.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/playground/render-gui-standalone.jsx` | no_beforeunload URL param | beforeunload 無効化 |

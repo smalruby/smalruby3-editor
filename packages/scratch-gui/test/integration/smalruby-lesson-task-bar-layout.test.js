@@ -6,6 +6,8 @@
  *   - 中サイズのステージ（既定）では、スプライトの情報が詰まった形（「スプライト」の字なし・大きさ / 向きはアイコン）。
  *     レッスンモードかどうかに関係なく同じ形で、どの入力欄も画面の中にあって押せる。
  *   - ほかのステージの大きさ（大）では、スプライトの情報は今までどおり。
+ *   - 中サイズのステージでは、ステージの列の見出し「ステージ」を出さず、背景の番号が「背景を選ぶ」ボタンと
+ *     重ならない（チャレンジ中もそうでないときも）。見出しが無くてもステージの列を押すとステージが選ばれる。
  */
 import path from 'path';
 import SeleniumHelper from '../helpers/selenium-helper';
@@ -75,6 +77,22 @@ const barLayout = () =>
             stageTop: stage.top,
             stageRight: stage.right,
             innerWidth: window.innerWidth,
+        };
+    `);
+
+// ステージの列: 見出しがあるか、背景の番号と「背景を選ぶ」ボタンの矩形が重なっていないか
+const stageSelectorLayout = () =>
+    driver.executeScript(`
+        const sel = document.querySelector('[class*="stage-selector_stage-selector_"]');
+        const count = sel.querySelector('[class*="stage-selector_count_"]').getBoundingClientRect();
+        const button = sel.querySelector('[class*="stage-selector_add-button_"] button').getBoundingClientRect();
+        const overlaps = !(count.bottom <= button.top || button.bottom <= count.top ||
+            count.right <= button.left || button.right <= count.left);
+        return {
+            hasHeader: Boolean(sel.querySelector('[class*="stage-selector_header_"]')),
+            countBottom: count.bottom,
+            buttonTop: button.top,
+            overlaps,
         };
     `);
 
@@ -177,6 +195,49 @@ describe('Smalruby Lessons: task bar across the whole width and the compact spri
         const after = await spriteInfoLayout();
         expect(after.inputsUsable).toBe(true);
         expect(after.pageScrolls).toBe(false);
+
+        const logs = await getLogs();
+        await expect(logs).toEqual([]);
+    });
+    test('on the middle stage the stage column has no header, and the backdrop count does not overlap the button', async () => {
+        await loadUri(`${uri}?no_beforeunload=1`);
+        await setViewport(1300, 600);
+        await waitForLoadingFinished();
+
+        // チャレンジ中でないとき
+        let layout = await stageSelectorLayout();
+        expect(layout.hasHeader).toBe(false);
+        expect(layout.overlaps).toBe(false);
+
+        // 見出しが無くても、ステージの列を押すとステージが選ばれる
+        await driver.executeScript(`document.querySelector('[class*="stage-selector_stage-selector_"]').click()`);
+        await driver.wait(
+            async () =>
+                driver.executeScript(
+                    `return document.querySelector('[class*="stage-selector_stage-selector_"]')` +
+                        `.className.includes('is-selected')`,
+                ),
+            5000,
+            'the stage should be selected',
+        );
+        // ステージを編集しているので、コスチュームのタブが「背景」になる
+        await findByXpath('//li[@role="tab"]//*[text()="Backdrops"]');
+
+        // チャレンジ中
+        await driver.executeScript(`window.smalruby.startChallenge('blocks-l1-click-say')`);
+        await findByXpath(byTestId('lesson-task-bar'));
+        await driver.sleep(500);
+        layout = await stageSelectorLayout();
+        expect(layout.hasHeader).toBe(false);
+        expect(layout.overlaps).toBe(false);
+
+        // 大きいステージでは今までどおり見出しがある
+        await clickXpath('//button[@title="Switch to large stage"]');
+        await driver.wait(
+            async () => (await stageSelectorLayout()).hasHeader,
+            5000,
+            'the stage column should show the header on the large stage',
+        );
 
         const logs = await getLogs();
         await expect(logs).toEqual([]);
