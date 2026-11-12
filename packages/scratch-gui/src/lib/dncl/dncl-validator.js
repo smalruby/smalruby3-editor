@@ -260,29 +260,12 @@ const validateDncl = (source) => {
     const errors = [];
     const lines = source.split('\n');
     for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        // Skip comments
-        const commentIdx = line.indexOf('#');
-        const code = commentIdx >= 0 ? line.substring(0, commentIdx) : line;
-        // Check for @ or $ outside strings
-        let inString = false;
-        let quote = null;
+        // The code before the comment, with the strings blanked out: a `#`
+        // in a string (`"#"`, `'#'`, `「#」`) is text, not a comment, so an
+        // `@` after it is still found, and an `@` in a string or in the
+        // comment is not (Issue #1709). The columns stay as written.
+        const code = codeWithoutStrings(lines[i]);
         for (let j = 0; j < code.length; j++) {
-            if (inString) {
-                if (code[j] === '\\') {
-                    j++;
-                    continue;
-                }
-                if (code[j] === quote) {
-                    inString = false;
-                }
-                continue;
-            }
-            if (code[j] === '"' || code[j] === "'") {
-                inString = true;
-                quote = code[j];
-                continue;
-            }
             if (code[j] === '@' || code[j] === '$') {
                 errors.push({
                     line: i + 1,

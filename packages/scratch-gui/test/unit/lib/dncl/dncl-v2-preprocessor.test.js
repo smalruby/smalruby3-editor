@@ -479,3 +479,18 @@ describe('DNCLv2 pre-processor: idempotency', () => {
         expect(twice).toBe(once);
     });
 });
+
+// A bracket or a `#` in a string (`"..."`, `'...'`, `「...」`) is text: it does not keep a
+// numbered statement open, so the next line is not joined to it (#1709).
+describe('DNCLv2 pre-processor: brackets and # in a string', () => {
+    test.each(['(1) 表示する(「(」)', '(1) 表示する("(")', '(1) 表示する(「#」)', "(1) 表示する('#')"])(
+        '%s does not swallow the next line',
+        (first) => {
+            expect(dnclV2Preprocess(`${first}\nx = 1`).split('\n')).toHaveLength(2);
+        },
+    );
+
+    test('a statement wrapped after a 「#」 is still joined', () => {
+        expect(dnclV2Preprocess('(1) 表示する(「#」,\n      a)')).toBe('表示する(「#」, a)');
+    });
+});

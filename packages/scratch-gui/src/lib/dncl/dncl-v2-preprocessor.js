@@ -154,8 +154,10 @@ const bracketDepth = (line) => {
     let i = 0;
     while (i < line.length) {
         const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            i = skipString(line, i, ch);
+        // 「...」 is a string too, so a `(` or `#` in it is text (Issue #1709).
+        const end = literalEndAt(line, i);
+        if (end !== -1) {
+            i = end;
             continue;
         }
         if (ch === '#') break;
