@@ -55,6 +55,14 @@ const messages = defineMessages({
         description: 'Error message when a key of a hash literal is not a symbol or a string (e.g. @h = {1 => 2})',
         id: 'gui.smalruby3.rubyToBlocksConverter.hashKeyNotSupported',
     },
+    stringMethodHasNoBlock: {
+        defaultMessage:
+            'A string (text) has no block for "{ METHOD }".\nUse it on a list, or write it with other blocks.',
+        description:
+            'Error message when a method of both String and Array (e.g. index) is used on a variable that ' +
+            'holds a string, and there is no block for it on a string',
+        id: 'gui.smalruby3.rubyToBlocksConverter.stringMethodHasNoBlock',
+    },
 });
 
 /**

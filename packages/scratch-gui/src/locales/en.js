@@ -671,6 +671,8 @@ export default {
         '"{ SOURCE }" cannot be a value in a hash.\nA value in a hash can be a number, a string, a symbol, or an expression (e.g. @x or 1 + 2).\nA hash, an array, or nil cannot be put in a hash.',
     'gui.smalruby3.rubyToBlocksConverter.hashKeyNotSupported':
         '"{ SOURCE }" cannot be a key of a hash.\nA key of a hash must be a symbol (e.g. :a) or a string (e.g. "a").',
+    'gui.smalruby3.rubyToBlocksConverter.stringMethodHasNoBlock':
+        'A string (text) has no block for "{ METHOD }".\nUse it on a list, or write it with other blocks.',
     'gui.smalruby3.rubyToBlocksConverter.hashLiteralReceiver':
         '"{ METHOD }" cannot be used directly on a hash literal.\nPut the hash in a variable first (e.g. @h), then use @h.{ METHOD }.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':

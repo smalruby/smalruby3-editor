@@ -922,6 +922,8 @@ export default {
         '「{ SOURCE }」はハッシュの値にできません。\nハッシュの値にできるのは、数・文字列・シンボル・式（例: @x や 1 + 2）です。\nハッシュ・配列・nil はハッシュの中に入れられません。',
     'gui.smalruby3.rubyToBlocksConverter.hashKeyNotSupported':
         '「{ SOURCE }」はハッシュのキーにできません。\nハッシュのキーは、シンボル（例: :a）か文字列（例: "a"）にしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.stringMethodHasNoBlock':
+        '文字列（テキスト）の「{ METHOD }」はブロックにできません。\nリストに使うか、ほかのブロックで書きかえてください。',
     'gui.smalruby3.rubyToBlocksConverter.hashLiteralReceiver':
         'ハッシュに直接「{ METHOD }」は使えません。\n先にハッシュを変数（例: @h）に入れてから、@h.{ METHOD } のように使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':

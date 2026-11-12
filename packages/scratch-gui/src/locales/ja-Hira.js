@@ -950,6 +950,8 @@ export default {
         '「{ SOURCE }」はハッシュのあたいにできません。\nハッシュのあたいにできるのは、かず・もじれつ・シンボル・しき（れい: @x や 1 + 2）です。\nハッシュ・はいれつ・nil はハッシュのなかにいれられません。',
     'gui.smalruby3.rubyToBlocksConverter.hashKeyNotSupported':
         '「{ SOURCE }」はハッシュのキーにできません。\nハッシュのキーは、シンボル（れい: :a）かもじれつ（れい: "a"）にしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.stringMethodHasNoBlock':
+        'もじれつ（テキスト）の「{ METHOD }」はブロックにできません。\nリストにつかうか、ほかのブロックでかきかえてください。',
     'gui.smalruby3.rubyToBlocksConverter.hashLiteralReceiver':
         'ハッシュにちょくせつ「{ METHOD }」はつかえません。\nさきにハッシュをへんすう（れい: @h）にいれてから、@h.{ METHOD } のようにつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
