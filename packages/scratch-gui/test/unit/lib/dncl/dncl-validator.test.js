@@ -3,7 +3,7 @@
  * the Ruby converter's missing `end`.
  */
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { findDnclBlockErrors } from '../../../../src/lib/dncl/dncl-validator';
+import { findDnclBlockErrors, validateDncl } from '../../../../src/lib/dncl/dncl-validator';
 
 const errorsOf = (lines) => findDnclBlockErrors(lines.join('\n'));
 
@@ -148,5 +148,53 @@ describe('dnclToRuby with a missing closer', () => {
     test('an error on a line after a DNCLv2 multi-assignment is on the line written', () => {
         const result = dnclToRuby(['a ← 1, b ← 2', 'もし a > 0 ならば', '  表示する(a)'].join('\n'));
         expect(result.blockErrors.map((err) => err.line)).toEqual([2]);
+    });
+});
+
+/**
+ * A `#` in a string is text, not a comment, so the `@` / `$` after it is still found
+ * (#1709). A `#` outside a string starts the comment, and an `@` in it is no error.
+ */
+describe('validateDncl and a # in a string', () => {
+    const atError = (column) => ({
+        line: 1,
+        column,
+        message: '日本語モードでは変数に「@」は使えません',
+    });
+
+    test.each([
+        ['x ← "#" + @y', 11],
+        ["x ← '#' + @y", 11],
+        ['x ← 「#」 + @y', 11],
+        ['x ← "a#b" + $y', 13],
+    ])('%s is an error at the @ / $', (line, column) => {
+        const errors = validateDncl(line);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].line).toBe(1);
+        expect(errors[0].column).toBe(column);
+        expect(errors[0].message).toMatch(/日本語モードでは変数に「[@$]」は使えません/);
+    });
+
+    test('the error stops the conversion of the line from the issue', () => {
+        const result = dnclToRuby('x ← "#" + @y');
+        expect(result.errors).toEqual([atError(11)]);
+        expect(result.ruby).toBeNull();
+    });
+
+    test.each(['x ← 1 # @y', 'x ← "#" # @y', 'x ← 「#」 # $y', "x ← '#' # @y", '# @y'])(
+        'an @ / $ in the comment of %s is no error',
+        (line) => {
+            expect(validateDncl(line)).toEqual([]);
+        },
+    );
+
+    test('an @ in 「...」 is text, not a variable', () => {
+        expect(validateDncl('x ← 「@y」')).toEqual([]);
+    });
+
+    test('a string after which the comment starts converts with the comment', () => {
+        const result = dnclToRuby('x ← "#" # @y');
+        expect(result.errors).toEqual([]);
+        expect(result.ruby).toBe('@x = "#" # @y');
     });
 });

@@ -18,8 +18,7 @@
 // the implicit `end` insertion based on `⎿` count.
 //
 // See Issue #640.
-import { splitTrailingComment } from './dncl-trailing-comment';
-import { skipString } from './paren-utils';
+import { splitTrailingComment, stringEndAt } from './dncl-trailing-comment';
 
 /**
  * Matches a DNCLv2 line-number prefix: `(N)` or the hyphenated form
@@ -40,7 +39,7 @@ const stripLineNumber = (line) => line.replace(LINE_NUMBER_RE, '');
 /**
  * Walk `line` and return the offsets of every character that is OUTSIDE
  * any string literal. Used by transformations that should ignore content
- * inside `"..."` / `'...'`.
+ * inside `"..."` / `'...'` / `「...」`.
  * @param {string} line - The source line.
  * @returns {Set<number>} Indices into `line` that are outside string literals.
  */
@@ -48,9 +47,8 @@ const outsideStringIndices = (line) => {
     const result = new Set();
     let i = 0;
     while (i < line.length) {
-        const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            const end = skipString(line, i, ch);
+        const end = stringEndAt(line, i);
+        if (end !== -1) {
             i = end;
             continue;
         }
@@ -155,8 +153,10 @@ const bracketDepth = (line) => {
     let i = 0;
     while (i < line.length) {
         const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            i = skipString(line, i, ch);
+        // 「...」 is a string too, so a `(` or `#` in it is text (Issue #1709).
+        const end = literalEndAt(line, i);
+        if (end !== -1) {
+            i = end;
             continue;
         }
         if (ch === '#') break;
@@ -233,8 +233,9 @@ const splitMultiAssignment = (line) => {
     let i = 0;
     while (i < body.length) {
         const ch = body[i];
-        if (ch === '"' || ch === "'") {
-            const end = skipString(body, i, ch);
+        // A `,` or `=` in 「...」 is text too (`表示 ← 「a=1, b=2」`, Issue #1709).
+        const end = stringEndAt(body, i);
+        if (end !== -1) {
             current += body.substring(i, end);
             i = end;
             continue;
@@ -272,8 +273,8 @@ const splitMultiAssignment = (line) => {
         let j = 0;
         while (j < part.length) {
             const c = part[j];
-            if (c === '"' || c === "'") {
-                const end = skipString(part, j, c);
+            const end = stringEndAt(part, j);
+            if (end !== -1) {
                 j = end;
                 continue;
             }
@@ -304,24 +305,11 @@ const splitMultiAssignment = (line) => {
     return parts.map((p) => `${indent}${p.trim()}`).join('\n');
 };
 
-/**
- * If a string literal starts at `line[i]`, return the index just past it;
- * otherwise -1. Besides `"..."` / `'...'`, Smalruby DNCL writes strings as
- * 「...」 (see `convertJapaneseStrings`), so a `#` or `and` inside 「」 is
- * text, not a comment or an operator. An unclosed 「 is not a string.
- * @param {string} line - The line.
- * @param {number} i - Index to test.
- * @returns {number} Index just past the literal, or -1.
- */
-const literalEndAt = (line, i) => {
-    const ch = line[i];
-    if (ch === '"' || ch === "'") return skipString(line, i, ch);
-    if (ch === '「') {
-        const close = line.indexOf('」', i + 1);
-        if (close !== -1) return close + 1;
-    }
-    return -1;
-};
+// If a string literal starts at `line[i]`, the index just past it, or -1.
+// Besides `"..."` / `'...'`, Smalruby DNCL writes strings as 「...」 (see
+// `convertJapaneseStrings`), so a `#` or `and` inside 「」 is text, not a
+// comment or an operator. Shared with the comment split (Issue #1709).
+const literalEndAt = stringEndAt;
 
 /**
  * Whether `ch` can be part of an identifier (`knot`, `not_yet`, `notフラグ`).
