@@ -68,11 +68,20 @@ describe('RubyGenerator/Operators', () => {
                 },
             };
             RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:array:index' };
-            RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('@my_list.index("thing")');
+            const itemNumBlock = { id: 'itemnumoflist-block-id', opcode: 'data_itemnumoflist' };
+            const getBlock = jest.spyOn(RubyGenerator, 'getBlock').mockReturnValue(itemNumBlock);
+            const blockToCode = jest
+                .spyOn(RubyGenerator, 'blockToCode')
+                .mockReturnValue(['@my_list.index("thing")', RubyGenerator.ORDER_FUNCTION_CALL]);
+            // NUM1 comes back with its own order, without parentheses (issue #1660).
             expect(RubyGenerator.operator_subtract(block)).toEqual([
                 '@my_list.index("thing")',
                 RubyGenerator.ORDER_FUNCTION_CALL,
             ]);
+            expect(getBlock).toHaveBeenCalledWith('itemnumoflist-block-id');
+            expect(blockToCode).toHaveBeenCalledWith(itemNumBlock);
+            getBlock.mockRestore();
+            blockToCode.mockRestore();
         });
     });
 

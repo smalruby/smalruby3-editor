@@ -1736,6 +1736,8 @@ export default {
         '添字に使う変数を <= で比べています。0 始まりでは < にする必要があるかもしれません',
     'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
         '添字が -1 になりました。ここはもともと 0 始まりだったかもしれないので、確かめてください',
+    'gui.rubyTab.dnclPostTestLoopError':
+        '後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。',
     'gui.rubyTab.dnclValidationError':
         '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
     'gui.mobile.drawer.title': 'メニュー',

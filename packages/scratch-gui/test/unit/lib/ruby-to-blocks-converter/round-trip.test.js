@@ -501,8 +501,7 @@ end
         });
 
         test('index method', async () => {
-            // Parentheses from operator_subtract wrapper (valid Ruby)
-            await expectRoundTrip('$a.index("thing")', '($a.index("thing"))');
+            await expectRoundTrip('$a.index("thing")');
         });
 
         test('length', async () => {
