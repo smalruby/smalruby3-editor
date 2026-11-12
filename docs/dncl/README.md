@@ -91,7 +91,7 @@ DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`]
 | `paren-utils.js` | 括弧解析ユーティリティ |
 | `dncl-trailing-comment.js` | **行末の `# コメント` の切り分け**（`splitTrailingComment`）。`dncl-to-ruby.js` / `dncl-v2-preprocessor.js` / `ruby-to-dncl.js` が、行末のコメントを外してからブロックの開始・続き・終了（`もし〜ならば` / `〜の間` / `そうでなければ` / `関数` / `を実行する`、`if` / `end` など）を判定・変換し、変換した行の末尾にコメントを付け直す。文字列（`"..."` / `'...'` / `「...」`）の中の `#` はコメントにしない。コメントだけの行はそのまま |
 | `ruby-to-dncl.js` | Ruby → DNCL 逆変換のエントリポイント |
-| `ruby-to-dncl-line-converter.js` | 行単位の Ruby → DNCL 変換 |
+| `ruby-to-dncl-line-converter.js` | 行単位の Ruby → DNCL 変換。`@i = 1` の次の `while @i <= 10`（`>=` も）を `i を 1 から 10 まで 1 ずつ増やしながら` にしてよいかを決める `findCountingLoopStep` もここ。数える繰り返しにするのは、本体の最後の行が `@i += 1` / `@i -= 1` / `@i += -1` / `@i = @i + 1` のように増分を足し、増分の向きが条件（`<=` は増やす、`>=` は減らす）と合い、増分が数か本体で変えない変数だけの式で、本体のほかの行が変数も増分も変えないときだけ。それ以外（増分が途中・2 回・`rand` などの呼び出し・入れ子の同じ変数など）は `i = 1` と `i <= 10 の間` のまま残す |
 | `ruby-to-dncl-identifier.js` | 識別子の逆変換 |
 | `ruby-to-dncl-builtins.js` | 組み込み関数の逆変換。`puts(... + ...)` の左寄せ `+` チェーンを `表示する(...)` 多引数にフラット化（display fragment 限定） |
 
