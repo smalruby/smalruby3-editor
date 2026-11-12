@@ -373,8 +373,10 @@ const blocksLesson2 = defineLesson({
             },
             steps: withTitles('blocks-l1-if', [
                 { target: HINT_TARGETS.PALETTE, blocks: 'when_flag_clicked do\nend\n' },
-                { target: HINT_TARGETS.PALETTE, blocks: 'loop do\nend\n' },
-                // `false` は空の穴として描く（Ruby → ブロック変換が条件の穴の `false` を空の穴にする）
+                // 「旗のブロックの下に」つなげるので、旗のブロックとつないだ「ずっと」を描く（#1578）
+                { target: HINT_TARGETS.PALETTE, blocks: 'when_flag_clicked do\n  loop do\n  end\nend\n' },
+                // `false` は空の穴として描く（Ruby → ブロック変換が条件の穴の `false` を空の穴にする）。
+                // 中身の無い `else` も「でなければ」のまま描く（変換は空の `else` を残す）
                 { target: HINT_TARGETS.PALETTE, blocks: 'if false\nelse\nend\n' },
                 { target: HINT_TARGETS.PALETTE, blocks: 'touching?("_mouse_")\n' },
                 // 「言う」2 つを、入れる場所（「もし」の中と「でなければ」の中）のまま描く

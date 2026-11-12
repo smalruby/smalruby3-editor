@@ -259,7 +259,7 @@ describe('lesson courses', () => {
             // 帽子のブロックを置く手順から。絵は置いてほしいブロックを置いてほしい並びのまま（#1564）
             expect(hints(c)).toEqual([
                 ['palette', 'when_flag_clicked do\nend\n', false],
-                ['palette', 'loop do\nend\n', false],
+                ['palette', 'when_flag_clicked do\n  loop do\n  end\nend\n', false],
                 ['palette', 'if false\nelse\nend\n', false],
                 ['palette', 'touching?("_mouse_")\n', false],
                 [
