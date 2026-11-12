@@ -145,21 +145,25 @@ const splitArgsAtTopLevel = (args) => {
 };
 
 /**
- * Wrap every top-level `/` in `line` with `.to_i` so that DNCL division
- * truncates like Ruby integer-division. Skips occurrences inside string
- * literals and inside the `//` integer-divide alias (which is handled
- * elsewhere). Operands are determined by walking outward across balanced
- * parens / brackets and stopping at lower-precedence boundaries (operators,
- * commas, assignment, statement edges).
+ * Turn every `÷` (the integer quotient of 共通テスト用プログラム表記) in
+ * `line` into Ruby `(A / B).to_i`. `/` is the ordinary division and is left
+ * as it is (Issue #1701). `÷` has the precedence of `*` / `/` / `%` and goes
+ * left to right, so the left operand takes in a `*` / `/` / `%` chain before
+ * it (`a * 3 ÷ 2` is `(a * 3) ÷ 2`), and the right operand is the next term.
+ * Skips string literals. Operands are found by walking outward across
+ * balanced parens / brackets and stopping at the other operators, commas,
+ * assignment and the statement edges.
  *
  * Examples:
- *   `a / b`             → `(a / b).to_i`
- *   `(a + b) / c`       → `((a + b) / c).to_i`
- *   `a + b / c`         → `a + (b / c).to_i`
- *   `Data[i + 1] / 2`   → `(Data[i + 1] / 2).to_i`
- *   `a / b * c`         → `(a / b).to_i * c`
+ *   `a ÷ b`             → `(a / b).to_i`
+ *   `(a + b) ÷ c`       → `((a + b) / c).to_i`
+ *   `a + b ÷ c`         → `a + (b / c).to_i`
+ *   `a * 3 ÷ 2`         → `(a * 3 / 2).to_i`
+ *   `a ÷ b * c`         → `(a / b).to_i * c`
+ *   `Data[i + 1] ÷ 2`   → `(Data[i + 1] / 2).to_i`
+ *   `(a ÷ b).to_i`      → `(a / b).to_i` (from `整数(a ÷ b)`)
  * @param {string} line - A Ruby-form line (post DNCL transforms).
- * @returns {string} The line with every `/` wrapped in `.to_i`.
+ * @returns {string} The line with every `÷` as a truncated division.
  */
 const wrapIntegerDivisions = (line) => {
     // Operator characters that, if they appear as the FIRST char of the
@@ -272,7 +276,23 @@ const wrapIntegerDivisions = (line) => {
         return i;
     };
 
-    // Iteratively wrap each `/` (left-to-right). After each wrap, the
+    // Extend the left operand over a `*` / `/` / `%` (and `**`) chain before
+    // it: they bind as tightly as `÷` and come first.
+    const findLeftChainStart = (s, endExclusive) => {
+        let start = findLeftOperandStart(s, endExclusive);
+        while (start !== null) {
+            let j = start - 1;
+            while (j >= 0 && /\s/.test(s[j])) j--;
+            if (j < 0 || !(s[j] === '*' || s[j] === '%' || (s[j] === '/' && s[j - 1] !== '/'))) break;
+            if (s[j] === '*' && s[j - 1] === '*') j--;
+            const prev = findLeftOperandStart(s, j);
+            if (prev === null || prev >= j || INVALID_LEFT_FIRST.has(s[prev])) break;
+            start = prev;
+        }
+        return start;
+    };
+
+    // Iteratively wrap each `÷` (left-to-right). After each wrap, the
     // result string changes length so we re-scan from the start.
     let s = line;
     let i = 0;
@@ -286,12 +306,8 @@ const wrapIntegerDivisions = (line) => {
             // Rest of line is a comment.
             break;
         }
-        if (ch === '/' && s[i - 1] !== '/' && s[i + 1] !== '/') {
-            // Skip if this `/` is already inside a `(... / ...).to_i` we
-            // produced earlier — detect by checking the trailing `.to_i`.
-            // We only care that the left/right operand isn't itself a
-            // freshly-generated wrapper.
-            const leftStart = findLeftOperandStart(s, i);
+        if (ch === '÷') {
+            const leftStart = findLeftChainStart(s, i);
             const rightEnd = findRightOperandEnd(s, i + 1);
             if (leftStart === null || rightEnd === null || leftStart >= i) {
                 i++;
@@ -304,22 +320,23 @@ const wrapIntegerDivisions = (line) => {
                 i++;
                 continue;
             }
-            // Already wrapped? Detect the surrounding `(... / ...).to_i` shape
-            // produced by an earlier pass (or by the `//` rewrite upstream) so we
-            // don't emit `((... / ...).to_i).to_i`.
+            // `整数(a ÷ b)` is `(a ÷ b).to_i` by now: the group already
+            // truncates, so `÷` only becomes `/` (not `((a / b).to_i).to_i`).
             const CLOSE_PAREN_TO_I = ').to_i';
             if (
                 leftStart > 0 &&
                 s[leftStart - 1] === '(' &&
                 s.substring(rightEnd, rightEnd + CLOSE_PAREN_TO_I.length) === CLOSE_PAREN_TO_I
             ) {
-                i = rightEnd + CLOSE_PAREN_TO_I.length;
+                s = `${s.substring(0, i)}/${s.substring(i + 1)}`;
+                i++;
                 continue;
             }
-            const replacement = `(${leftOperand} / ${rightOperand}).to_i`;
+            // The right operand may have quotients of its own (`a ÷ (b ÷ 2)`);
+            // scanning resumes after the replacement, so wrap them here.
+            const replacement = `(${leftOperand} / ${wrapIntegerDivisions(rightOperand)}).to_i`;
             s = s.substring(0, leftStart) + replacement + s.substring(rightEnd);
-            // Resume scanning AFTER the inserted `.to_i` so we don't re-process
-            // the same `/`.
+            // Resume scanning AFTER the inserted `.to_i`.
             i = leftStart + replacement.length;
             continue;
         }
@@ -329,42 +346,111 @@ const wrapIntegerDivisions = (line) => {
 };
 
 /**
- * Inverse of `wrapIntegerDivisions`: strip `(EXPR).to_i` when EXPR contains
- * a top-level `/`. DNCL division is integer division by convention so the
- * explicit `.to_i` is redundant — preserving it would surface as
- * `整数((... / ...))` after the standard `.to_i → 整数()` rewrite, which
- * obscures the original intent.
- *
- * Examples:
- *   `(a / b).to_i`             → `a / b`
- *   `(Data[i] / 2).to_i`       → `Data[i] / 2`
- *   `(answer).to_i`            → `(answer).to_i` (no `/`, untouched)
- *   `(a + (b / c).to_i).to_i`  → `(a + (b / c).to_i).to_i` (outer EXPR
- *     contains no top-level `/`; the inner one is reachable on its own and
- *     gets stripped on a subsequent pass)
- * @param {string} line - Ruby-form line.
- * @returns {string} Line with redundant int-division `.to_i` wrappers stripped.
+ * Find the matching close bracket for the `[` / `{` / `(` at `openPos`.
+ * Skips brackets inside string literals.
+ * @param {string} text - The text to scan.
+ * @param {number} openPos - Position of the open bracket.
+ * @returns {number} Position of the matching close bracket, or -1 if unmatched.
  */
-const stripIntegerDivisionToI = (line) => {
-    const containsTopLevelSlash = (s) => {
-        let depth = 0;
-        let i = 0;
-        while (i < s.length) {
-            const ch = s[i];
-            if (ch === '"' || ch === "'") {
-                i = skipString(s, i, ch);
+const findMatchingBracket = (text, openPos) => {
+    const open = text[openPos];
+    const close = open === '(' ? ')' : open === '[' ? ']' : '}';
+    let depth = 1;
+    let i = openPos + 1;
+    while (i < text.length) {
+        const ch = text[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(text, i, ch);
+            continue;
+        }
+        if (ch === open) {
+            depth++;
+        } else if (ch === close) {
+            depth--;
+            if (depth === 0) return i;
+        }
+        i++;
+    }
+    return -1;
+};
+
+/** A character a function / method name can end with, right before its `(`. */
+const CALL_NAME_CHAR_RE = /[\w?!\u3040-\u30FF\u4E00-\u9FFF]/;
+
+const TO_I_SUFFIX = '.to_i';
+
+/** Operators with the precedence of `÷` (a `*` / `/` / `%` chain). */
+const QUOTIENT_CHAIN_OPS = new Set(['*', '**', '/', '%', '÷']);
+
+/**
+ * The operators of `text` outside brackets and strings, in order. `**` is
+ * one operator. `!` / `?` count only when they do not end a method name
+ * (`a.empty?`).
+ * @param {string} text - Ruby-form text.
+ * @returns {Array<{op: string, pos: number}>} The operators.
+ */
+const topLevelOperators = (text) => {
+    const ops = [];
+    let depth = 0;
+    let i = 0;
+    while (i < text.length) {
+        const ch = text[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(text, i, ch);
+            continue;
+        }
+        if (ch === '(' || ch === '[' || ch === '{') {
+            depth++;
+        } else if (ch === ')' || ch === ']' || ch === '}') {
+            depth--;
+        } else if (depth === 0) {
+            if (ch === '*' && text[i + 1] === '*') {
+                ops.push({ op: '**', pos: i });
+                i += 2;
                 continue;
             }
-            if (ch === '(' || ch === '[' || ch === '{') depth++;
-            else if (ch === ')' || ch === ']' || ch === '}') depth--;
-            else if (ch === '/' && depth === 0 && s[i - 1] !== '/' && s[i + 1] !== '/') {
-                return true;
-            }
-            i++;
+            const nameEnd = (ch === '!' || ch === '?') && /[\w)\]]/.test(text[i - 1] || '');
+            if ('+-*/%<>=!&|^~?:÷'.includes(ch) && !nameEnd) ops.push({ op: ch, pos: i });
         }
-        return false;
-    };
+        i++;
+    }
+    return ops;
+};
 
+/**
+ * Where `inner` (of `(inner).to_i`) is one quotient `X ÷ B` of DNCL: a
+ * `*` / `/` / `%` chain whose last operator is `/`, with a single operand
+ * after it. `a / 2`, `(a + b) / 2`, `a * 3 / 2` and `a / 2 / 3` are
+ * (`a ÷ 2`, `(a + b) ÷ 2`, `a * 3 ÷ 2`, `a / 2 ÷ 3`); `a / 2 * 3`,
+ * `a / 2 + 1` and `-a / 2` are not.
+ * @param {string} inner - Ruby-form text between the parentheses.
+ * @returns {number} Position of that last `/`, or -1 if it is not one.
+ */
+const quotientSlashPos = (inner) => {
+    const ops = topLevelOperators(inner);
+    if (ops.length === 0 || !ops.every(({ op }) => QUOTIENT_CHAIN_OPS.has(op))) return -1;
+    const last = ops[ops.length - 1];
+    if (last.op !== '/' || inner.substring(0, ops[0].pos).trim() === '') return -1;
+    return isSingleOperand(inner.substring(last.pos + 1).trim()) ? last.pos : -1;
+};
+
+/**
+ * Inverse of `wrapIntegerDivisions`: Ruby `(X / B).to_i` becomes DNCL
+ * `X ÷ B` when it is one quotient (`quotientSlashPos`). Any other
+ * `(式).to_i` is left for the `.to_i → 整数()` rewrite, and a `/` without
+ * `.to_i` stays `/` (the ordinary division in both). (Issue #1701)
+ *
+ * Examples:
+ *   `(a / b).to_i`              → `a ÷ b`
+ *   `((a + b) / 2).to_i`        → `(a + b) ÷ 2`
+ *   `((a / 2).to_i / 3).to_i`   → `a ÷ 2 ÷ 3`
+ *   `a * (b / 2).to_i`          → `a * (b ÷ 2)`
+ *   `(a / 2).to_i.to_s`         → `(a ÷ 2).to_s`
+ *   `(a / 2 * 3).to_i`          → unchanged (becomes `整数(a / 2 * 3)`)
+ * @param {string} line - Ruby-form line.
+ * @returns {string} Line with the quotients written with `÷`.
+ */
+const stripIntegerDivisionToI = (line) => {
     let result = '';
     let i = 0;
     while (i < line.length) {
@@ -375,23 +461,33 @@ const stripIntegerDivisionToI = (line) => {
             i = end;
             continue;
         }
-        if (ch === '(') {
-            const close = findMatchingClose(line, i);
-            const TO_I_SUFFIX = '.to_i';
-            if (close !== -1 && line.substring(close + 1, close + 1 + TO_I_SUFFIX.length) === TO_I_SUFFIX) {
-                const inner = line.substring(i + 1, close);
-                if (containsTopLevelSlash(inner)) {
-                    // Recursively strip nested wrappers in `inner` before emitting.
-                    const end = close + 1 + TO_I_SUFFIX.length; // past `).to_i`
-                    const stripped = stripIntegerDivisionToI(inner);
-                    // A method after it (`(a / 2).to_i.to_s`) applies to the
-                    // whole division, so the parentheses stay: `(a / 2).to_s`,
-                    // not `a / 2.to_s`. (Issue #1686)
-                    result += line[end] === '.' ? `(${stripped})` : stripped;
-                    i = end;
-                    continue;
-                }
+        if (ch === '(' || ch === '[' || ch === '{') {
+            const close = findMatchingBracket(line, i);
+            if (close === -1) {
+                result += ch;
+                i++;
+                continue;
             }
+            const inner = line.substring(i + 1, close);
+            const end = close + 1 + TO_I_SUFFIX.length;
+            const isGroup = ch === '(' && !(i > 0 && CALL_NAME_CHAR_RE.test(line[i - 1]));
+            const toI = isGroup && line.startsWith(TO_I_SUFFIX, close + 1) && !/\w/.test(line[end] || '');
+            const slash = toI ? quotientSlashPos(inner) : -1;
+            if (slash !== -1) {
+                const quotient = stripIntegerDivisionToI(
+                    `${inner.substring(0, slash).trimEnd()} ÷ ${inner.substring(slash + 1).trimStart()}`,
+                );
+                // A method after it (`(a / 2).to_i.to_s`, Issue #1686) applies to
+                // the whole quotient, and so does a `*` / `/` / `%` / `÷` before
+                // it (`a * (b ÷ 2)`, not `a * b ÷ 2` = `(a * b) ÷ 2`).
+                const keepParens = line[end] === '.' || /[*/%÷]$/.test(result.trimEnd());
+                result += keepParens ? `(${quotient})` : quotient;
+                i = end;
+                continue;
+            }
+            result += ch + stripIntegerDivisionToI(inner) + line[close];
+            i = close + 1;
+            continue;
         }
         result += ch;
         i++;

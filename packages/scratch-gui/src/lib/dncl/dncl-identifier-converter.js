@@ -87,13 +87,18 @@ const convertArrow = (str) => str.replace(/\s*←\s*/g, ' = ');
 const convertOperators = (segment) => {
     let result = segment;
 
-    // Integer division // must be converted before single /
-    result = result.replace(/(\S+)\s*\/\/\s*(\S+)/g, (_, left, right) => `(${left} / ${right}).to_i`);
-
-    // DNCL `÷` is the explicit "商の整数値を返す" operator — normalize to `/`.
-    // Both `÷` and bare `/` are treated as integer division (E in #665 follow-up):
-    // `wrapIntegerDivisions` below adds the `.to_i` truncation in a single pass.
-    result = result.replace(/÷/g, '/');
+    // 共通テスト用プログラム表記: `/` is the ordinary division and `÷` the
+    // integer quotient; `wrapIntegerDivisions` below turns each `÷` into
+    // `(A / B).to_i`. (Issue #1701, replacing E of #665)
+    // Smalruby's `//` is the integer quotient too: it is read as `÷`, so it
+    // has the same operands and precedence (`(a + b) // 2` is
+    // `((a + b) / 2).to_i`, `a * 3 // 2` is `(a * 3 / 2).to_i`).
+    // `wrapIntegerDivisions` cannot read a Japanese name as an operand yet, so
+    // `合計 // 個数` keeps the old rewrite of the words around it.
+    result = result.replace(/(\S+)\s*\/\/\s*(\S+)/g, (match, left, right) =>
+        /[\u3040-\u30FF\u4E00-\u9FFF]/.test(left + right) ? `(${left} ÷ ${right}).to_i` : match,
+    );
+    result = result.replace(/\s*\/\/\s*/g, ' ÷ ');
     result = result.replace(/≦/g, '<=');
     result = result.replace(/≧/g, '>=');
 
@@ -104,11 +109,12 @@ const convertOperators = (segment) => {
     result = result.replace(/(?<=[\s!(]|^)真(?=[\s),]|$)/g, 'true');
     result = result.replace(/(?<=[\s!(]|^)偽(?=[\s),]|$)/g, 'false');
 
-    // DNCL convention: `/` (and `÷`, normalized to `/` above) is integer
-    // division — emulate Ruby's int/int = int truncation by wrapping each
-    // top-level `/` with `.to_i`. The Ruby-side blocks converter maps
-    // `.to_i` to the floor mathop block for actual runtime truncation.
+    // The Ruby-side blocks converter maps `.to_i` to the floor mathop block
+    // for actual runtime truncation.
     result = wrapIntegerDivisions(result);
+    // A `÷` whose operands could not be read (a Japanese name before it) is
+    // left as Ruby `/`, as before.
+    result = result.replace(/÷/g, '/');
 
     return result;
 };
