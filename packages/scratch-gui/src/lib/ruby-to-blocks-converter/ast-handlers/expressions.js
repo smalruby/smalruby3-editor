@@ -21,8 +21,25 @@ const messages = defineMessages({
             '\nDefine "{ METHOD }" in a module and include it in the class.',
         description: 'Error message when super is used but no matching module method exists',
         id: 'gui.smalruby3.rubyToBlocksConverter.superWithoutModuleMethod'
+    },
+    visibilityNotSupported: {
+        defaultMessage: '"{ NAME }" is not supported in Smalruby.' +
+            '\nDelete "{ SOURCE }".',
+        description: 'Error message when private / protected / public is written (with no argument or with ' +
+            'method names such as private :foo)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.visibilityNotSupported'
+    },
+    visibilityDefNotSupported: {
+        defaultMessage: '"{ NAME }" is not supported in Smalruby.' +
+            '\nDelete "{ NAME }". Then the method from "{ DEF }" to its "end" can be used.',
+        description: 'Error message when a method definition is written with private / protected / public ' +
+            '(e.g. private def foo ... end)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.visibilityDefNotSupported'
     }
 });
+
+// No block can hold the visibility of a method, so these are rejected wherever they are written (#1561).
+const VISIBILITY_MODIFIERS = ['private', 'protected', 'public'];
 
 /**
  * Expression AST handlers for RubyToBlocksConverter.
@@ -31,7 +48,32 @@ const messages = defineMessages({
 const ExpressionHandlers = {
     ...ExpressionsLiterals,
 
+    /**
+     * Throw an error when the node is `private` / `protected` / `public` (with or without arguments).
+     * @param {object} node - A node of a line.
+     */
+    _rejectVisibilityModifier (node) {
+        if (this._getNodeTypeName(node) !== 'CallNode' || node.receiver ||
+            !VISIBILITY_MODIFIERS.includes(node.name)) {
+            return;
+        }
+        const args = node.arguments_ ? node.arguments_.arguments_ : [];
+        const defNode = args.length === 1 && this._getNodeTypeName(args[0]) === 'DefNode' ? args[0] : null;
+        const message = defNode ?
+            this._translator(messages.visibilityDefNotSupported, {
+                NAME: node.name,
+                DEF: this._firstLineSource(defNode)
+            }) :
+            this._translator(messages.visibilityNotSupported, {
+                NAME: node.name,
+                SOURCE: this._truncateSource(this._firstLineSource(node))
+            });
+        throw new RubyToBlocksConverterError(node, message);
+    },
+
     visitCallNode (node) {
+        this._rejectVisibilityModifier(node);
+
         // === Smalruby: Start of attr_accessor getter/setter resolution ===
         const attrAccessors = this._context.attrAccessors;
         if (attrAccessors) {

@@ -49,6 +49,7 @@ const ModuleVisitor = {
                         this._translator(messages.moduleFunctionNotSupported)
                     );
                 }
+                this._rejectVisibilityModifier(stmt);
                 if (typeName !== 'DefNode') {
                     throw new RubyToBlocksConverterError(
                         stmt,

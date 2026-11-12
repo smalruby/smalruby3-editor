@@ -721,6 +721,7 @@ hide_list("@items")            # リストの非表示
 - `each` メソッド
 - `begin`/`rescue`/`ensure`（例外処理）
 - `module_function`, `extend`（`module` と `include` はサポート）
+- `private` / `protected` / `public`（`private :foo` や `private def foo ... end` の形も含む。どこに書いてもエラーになるので消す。`private def foo ... end` は `private` を消せば `def foo ... end` として使える）
 - `require` / `require_relative`
 - 文字列の式展開 (`"Hello #{name}"`)
 - 多重代入 (`a, b = 1, 2`)
