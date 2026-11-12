@@ -218,6 +218,23 @@ end
 `);
         });
 
+        test('super in the condition of elsif comes back as written (issue #1615)', async () => {
+            await expectRoundTrip(`${moduleReturningA}
+class Sprite1
+  include Mod
+
+  def func(a)
+    if a > 0
+      move(1)
+    elsif super(a) == 2
+      move(2)
+    end
+    return 0
+  end
+end
+`);
+        });
+
         test('return super in if comes back as written', async () => {
             await expectRoundTrip(`${moduleReturningA}
 class Sprite1

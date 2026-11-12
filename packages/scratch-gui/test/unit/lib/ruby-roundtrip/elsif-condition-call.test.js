@@ -4,6 +4,7 @@
  * `elsif`.
  */
 import dedent from 'dedent';
+import RubyGenerator from '../../../../src/lib/ruby-generator';
 import {
     makeSpriteTarget,
     makeConverter,
@@ -158,6 +159,29 @@ describe('Ruby Roundtrip: a call in the condition of elsif (issue #1615)', () =>
         ],
     ])('%s', async (_name, code) => {
         await roundTrip(code);
+    });
+
+    // A block put after the `if` of `elsif` in the blocks is kept, with or without a call.
+    test.each([
+        ['without a call', 'if @x == 1\n  move(10)\nelsif @x == 2\n  move(5)\nend'],
+        ['with a call', 'if @x == 1\n  move(10)\nelsif bar(2) == 2\n  move(5)\nend'],
+    ])('a block after the if of elsif is kept (%s)', async (_name, code) => {
+        expect(await converter.targetCodeToBlocks(target, `${BAR}\n\n${code}`)).toBeTruthy();
+        await converter.applyTargetBlocks(target);
+        const blocks = target.blocks._blocks;
+        const elsifIf = Object.values(blocks).find(
+            (b) =>
+                b.opcode === 'control_if' && b.comment && /@ruby:syntax:elsif/.test(target.comments[b.comment].text),
+        );
+        const move = Object.values(blocks).find((b) => b.opcode === 'motion_movesteps' && b.parent === elsifIf.id);
+        const moved = { ...move, id: 'after-elsif', parent: elsifIf.id, next: null, comment: null };
+        moved.inputs = { STEPS: { ...move.inputs.STEPS } };
+        blocks[moved.id] = moved;
+        elsifIf.next = moved.id;
+        RubyGenerator.currentTarget = target;
+        const ruby = RubyGenerator.targetToCode(target).trim();
+        expect(ruby).toContain('else\n  if ');
+        expect(ruby.match(/move\(5\)/g)).toHaveLength(2);
     });
 
     test('in a method', async () => {

@@ -183,7 +183,9 @@ export default function (Generator) {
     // and the block that keeps its value for a later call of the same method (issue #1615).
     const isElsifConditionCall = function (block) {
         const comment = getComment(block);
-        if (block.opcode === 'procedures_call') return /^@ruby:return:\S+$/.test(comment);
+        if (block.opcode === 'procedures_call') {
+            return /^(?:@ruby:super(?::forwarding)?,)?@ruby:return:\S+$/.test(comment);
+        }
         if (block.opcode === 'data_setvariableto') return /^@ruby:return:\w+:\d+$/.test(comment);
         return false;
     };
@@ -209,9 +211,9 @@ export default function (Generator) {
         }
         const nextMatch = getComment(nextBlock).match(ELSIF_PATTERN);
         if (!nextMatch || nextMatch[1] !== elsifGroup) return null;
-        if (calls.length === 0) return nextBlock;
         // Blocks after the `if` would be lost in `elsif`.
         if (nextBlock.next) return null;
+        if (calls.length === 0) return nextBlock;
         const written = calls.every((call) => {
             call._skipNextInScrub = true;
             const code = Generator.blockToCode(call);
