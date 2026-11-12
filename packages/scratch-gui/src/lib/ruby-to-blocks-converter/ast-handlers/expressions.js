@@ -226,9 +226,21 @@ const ExpressionHandlers = {
             }
         }
 
-        let block = this.callMethod(receiver, name, args, rubyBlockArgs, rubyBlock, node);
-        if (!block) {
-            block = this._callConvertersHandler('onSend', receiver, name, args, rubyBlockArgs, rubyBlock, node);
+        // A receiver or an argument that is not a value (e.g. `(a = 2)` of `(a = 2).to_s`), or a value
+        // before it in parentheses (e.g. `a` of `(a; b)`), makes the call one that cannot be converted,
+        // like `say(a = 2)`: put in an input, the command or the value was lost without an error (issue #1691).
+        // The loop of `loop.with_screen_refresh` / `N.times.with_screen_refresh` is a command by design.
+        const hasCommandValue =
+            (this._isCommandValue(receiver) && !this._isLoopToChain(receiver, name)) ||
+            args.some((a) => this._isCommandValue(a)) ||
+            this._hasLostPreBlock(preBlocks);
+
+        let block = null;
+        if (!hasCommandValue) {
+            block = this.callMethod(receiver, name, args, rubyBlockArgs, rubyBlock, node);
+            if (!block) {
+                block = this._callConvertersHandler('onSend', receiver, name, args, rubyBlockArgs, rubyBlock, node);
+            }
         }
 
         // === Smalruby: Start of auto-split method call return value ===
