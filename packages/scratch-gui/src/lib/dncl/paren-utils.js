@@ -394,7 +394,50 @@ const stripIntegerDivisionToI = (line) => {
     return result;
 };
 
+/**
+ * Whether `text` is one pair of parentheses around everything, like
+ * `(a > 1 && b)`. `(a) && (b)` is not: its first `(` closes early.
+ * @param {string} text - The expression.
+ * @returns {boolean} True if the outer parentheses enclose the whole text.
+ */
+const isWrappedInParens = (text) => text.startsWith('(') && findMatchingClose(text, 0) === text.length - 1;
+
+/** Characters that may appear outside brackets in a single operand (identifier, `@var`, `obj.method?`, `!x`). */
+const OPERAND_CHAR_RE = /[\w@.?!\u3040-\u30FF\u4E00-\u9FFF]/;
+
+/**
+ * Whether `text` is a single operand that needs no parentheses when it is
+ * negated: a variable, a literal, a call like `f(a, b)` or `A[i]`, or a
+ * whole `( ... )` group. `a > 1` or `a + b` are not (they have an operator
+ * outside brackets), so `!` in front of them would bind to `a` only.
+ * @param {string} text - The expression (trimmed).
+ * @returns {boolean} True if `!text` negates the whole expression.
+ */
+const isSingleOperand = (text) => {
+    if (text === '') return false;
+    let depth = 0;
+    let i = 0;
+    while (i < text.length) {
+        const ch = text[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(text, i, ch);
+            continue;
+        }
+        if (ch === '(' || ch === '[') {
+            depth++;
+        } else if (ch === ')' || ch === ']') {
+            depth--;
+        } else if (depth === 0 && !OPERAND_CHAR_RE.test(ch)) {
+            return false;
+        }
+        i++;
+    }
+    return depth === 0;
+};
+
 export {
+    isSingleOperand,
+    isWrappedInParens,
     skipString,
     findMatchingClose,
     replaceCall,

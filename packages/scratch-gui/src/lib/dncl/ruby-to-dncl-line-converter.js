@@ -1,6 +1,44 @@
 // === Smalruby: This file is Smalruby-specific (Ruby→DNCL line converter) ===
+import { skipString } from './paren-utils';
 import { convertBuiltins } from './ruby-to-dncl-builtins';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
+
+/**
+ * Whether a Ruby condition has `&&` / `||` / `and` / `or` outside brackets
+ * and strings.
+ * @param {string} condition - The Ruby condition.
+ * @returns {boolean} True if a logical operator joins its top-level terms.
+ */
+const hasTopLevelLogical = (condition) => {
+    let depth = 0;
+    let i = 0;
+    while (i < condition.length) {
+        const ch = condition[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(condition, i, ch);
+            continue;
+        }
+        if (ch === '(' || ch === '[') depth++;
+        if (ch === ')' || ch === ']') depth--;
+        if (depth === 0 && /^(&&|\|\||\s(and|or)\s)/.test(condition.slice(i))) return true;
+        i++;
+    }
+    return false;
+};
+
+/**
+ * The DNCL condition of `until condition`: `condition でない`. `でない`
+ * negates the condition up to the nearest `かつ` / `または`, so a condition
+ * joined by them is put in parentheses: `until a > 10 && b` is
+ * `(a > 10 かつ b) でない`, not `a > 10 かつ b でない` (= `a > 10 && !b`).
+ * (Issue #1662)
+ * @param {string} condition - The Ruby condition.
+ * @returns {string} The DNCL condition.
+ */
+const untilCondition = (condition) => {
+    const dncl = processSegments(condition);
+    return hasTopLevelLogical(condition) ? `(${dncl}) でない` : `${dncl} でない`;
+};
 
 /**
  * Convert a single Ruby line to DNCL.
@@ -64,8 +102,14 @@ const convertLine = (line, blockStack) => {
     const untilMatch = trimmed.match(/^until\s+(.+?)(?:\s+do)?$/);
     if (untilMatch) {
         blockStack.push('loop');
-        const condition = processSegments(untilMatch[1]);
-        return `${indent}${condition} でない の間`;
+        return `${indent}${untilCondition(untilMatch[1])} の間`;
+    }
+
+    // wait until condition → an empty loop. DNCL has no "wait until", and
+    // the loop waits the same way. (Issue #1662)
+    const waitUntilMatch = trimmed.match(/^wait\s+until\s+(.+)$/);
+    if (waitUntilMatch) {
+        return `${indent}${untilCondition(waitUntilMatch[1])} の間\n${indent}を繰り返す`;
     }
 
     // N.times do → i を 1 から N まで 1 ずつ増やしながら

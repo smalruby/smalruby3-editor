@@ -296,4 +296,142 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
             });
         });
     });
+    describe('a local variable of the same name in another event, method or block (issue #1630)', () => {
+        // In Ruby, `a` in one event (or method, or block) is not `a` in another, so one can be a
+        // string and the other a list.
+        let target, runtime, converter;
+
+        beforeEach(() => {
+            ({ target, runtime } = makeSpriteTarget());
+            setupRubyGenerator();
+            converter = makeConverter(target, runtime, { version: '2' });
+        });
+
+        const opcodes = () => Object.values(target.blocks._blocks).map((b) => b.opcode);
+
+        test.each([
+            [
+                'the issue: length of a string and of a list',
+                dedent`
+                    when_flag_clicked do
+                      a = "abc"
+                      say(a.length)
+                    end
+
+                    when_clicked do
+                      a = [1]
+                      say(a.length)
+                    end
+                `,
+                ['operator_length', 'data_lengthoflist'],
+            ],
+            [
+                'a string in one event and a list in another',
+                dedent`
+                    when_flag_clicked do
+                      a = "x"
+                      say(a.length)
+                    end
+
+                    when_clicked do
+                      a = []
+                      a.push(1)
+                    end
+                `,
+                ['operator_length', 'data_addtolist'],
+            ],
+            [
+                'a list in the first event and a string in the second',
+                dedent`
+                    when_flag_clicked do
+                      a = []
+                      a.push(1)
+                    end
+
+                    when_clicked do
+                      a = "x"
+                      say(a.length)
+                    end
+                `,
+                ['operator_length', 'data_addtolist'],
+            ],
+            [
+                'a string in one method and a list in another',
+                dedent`
+                    def f
+                      a = "x"
+                      say(a.length)
+                    end
+
+                    def g
+                      a = []
+                      a.push(1)
+                    end
+
+                    f
+                    g
+                `,
+                ['operator_length', 'data_addtolist'],
+            ],
+            [
+                'a list in a method',
+                dedent`
+                    def g
+                      a = []
+                      a.push(1)
+                      say(a.length)
+                    end
+
+                    g
+                `,
+                ['data_addtolist', 'data_lengthoflist'],
+            ],
+            [
+                'a list in one event and a block parameter in another',
+                dedent`
+                    when_flag_clicked do
+                      a = []
+                      a.push(1)
+                    end
+
+                    when_clicked do
+                      3.times do |a|
+                        say(a)
+                      end
+                    end
+                `,
+                ['data_addtolist'],
+            ],
+        ])('%s', async (_name, code, expectedOpcodes) => {
+            await expectRoundTrip(converter, target, code);
+            expect(opcodes()).toEqual(expect.arrayContaining(expectedOpcodes));
+        });
+
+        test('a local of the script outside the events is still shared with them', async () => {
+            // `a` set outside a block is the same `a` inside it (smalruby-ruby.test.js).
+            const code = 'a = "x"\n\nwhen_flag_clicked do\n  a = []\nend';
+            const { result, errors } = await convert(code);
+            expect(result).toBe(false);
+            expect(errors).toHaveLength(1);
+            expect(errors[0].text).toMatch(/^"a" is used as a list on line 4 and as a variable on line 1\./);
+        });
+
+        test('a string and a list in the same event is still an error', async () => {
+            const code = dedent`
+                when_flag_clicked do
+                  a = "x"
+                  a = []
+                end
+
+                when_clicked do
+                  a = "y"
+                end
+            `;
+            const { result, errors } = await convert(code);
+            expect(result).toBe(false);
+            expect(errors).toHaveLength(1);
+            expect(errors[0].row).toBe(1);
+            expect(errors[0].text).toMatch(/^"a" is used as a list on line 3 and as a variable on line 2\./);
+        });
+    });
 });
