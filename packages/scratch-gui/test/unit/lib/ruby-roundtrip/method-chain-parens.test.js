@@ -84,6 +84,11 @@ describe('Ruby Roundtrip: method chain without extra parentheses (issue #1675)',
         ['10 ** call', '@a = ["x"]\nsay(10 ** @a.length)'],
         ['times on call', '@a = ["x"]\n@a.length.times do\n  move(10)\nend'],
         ['each on keys', '@h = {"x" => 1}\n@h.keys.each do |k|\n  say(k)\nend'],
+        // `*` inside parentheses or a string is not the top of the receiver.
+        ['call on (a * 3).reverse', 'a = "x"\nsay((a * 3).reverse.length)'],
+        ['index on (a * 3).upcase', 'a = "x"\nsay((a * 3).upcase[0])'],
+        ['call on join(" * ")', '@a = ["x"]\nsay(@a.join(" * ").length)'],
+        ['call on "a * b".reverse', 'say("a * b".reverse.length)'],
     ])('%s', async (_name, code) => {
         await expectStableRoundTrip(code);
     });

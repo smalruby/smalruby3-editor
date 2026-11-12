@@ -20,6 +20,33 @@ export default function (Generator) {
         return Generator.hashVariableOfListBlock(receiverBlock);
     };
 
+    /**
+     * Whether the expression is a `*` at the top: `a * 3`, but not `(a * 3).reverse` or
+     * `@a.join(" * ")`, whose `*` is inside parentheses or a string.
+     * @param {string} expr - A Ruby expression.
+     * @returns {boolean} True when a ` * ` is outside every bracket and string.
+     */
+    const isTopLevelMultiply = function (expr) {
+        let depth = 0;
+        let quote = null;
+        for (let i = 0; i < expr.length; i++) {
+            const c = expr[i];
+            if (quote) {
+                if (c === '\\') i++;
+                else if (c === quote) quote = null;
+            } else if (c === '"' || c === "'") {
+                quote = c;
+            } else if ('([{'.includes(c)) {
+                depth++;
+            } else if (')]}'.includes(c)) {
+                depth--;
+            } else if (depth === 0 && expr.startsWith(' * ', i)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     // --- Method call expression builder ---
     const buildMethodCallExpr = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
@@ -168,7 +195,7 @@ export default function (Generator) {
         code = code.replace(
             new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_(?=([.[]?))`, 'gm'),
             (match, indent1, expr, indent2, before, after) => {
-                const inlined = after && / \* \S+$/.test(expr) ? `(${expr})` : expr;
+                const inlined = after && isTopLevelMultiply(expr) ? `(${expr})` : expr;
                 return `${indent2}${before}${inlined}`;
             },
         );
