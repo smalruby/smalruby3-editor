@@ -206,17 +206,30 @@ export default function (Generator) {
             '(?!(?:if|unless|while|until|elsif|case|when|for|return|break|next)\\b)' +
             '(?![^\\n]*\\bdo(?: \\|[^|\\n]*\\|)?$)' +
             '\\S[^\\n]*(?:\\.(?:reverse|upcase|downcase|empty\\?|lines|delete|gsub|max|min|sort|join|first|last|keys|values|reverse!|delete!|gsub!|sort!)(?:\\((?:[^()\\n]|\\([^()\\n]*\\))*\\))?| \\* [^\\n]+)';
+        const producer = new RegExp(`^[ \\t]*(${methodPattern})$`);
         // Process _rv_truthy_ BEFORE _rv_ to avoid partial match
-        code = code.replace(
-            new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_truthy_`, 'gm'),
-            (match, indent1, expr, indent2, before) => `${indent2}${before}${expr}`,
-        );
-        // The parentheses that the expression needs are already around `_rv_`: it told the outer
-        // block the order of the expression (`returnValueOrder`).
-        code = code.replace(
-            new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_`, 'gm'),
-            (match, indent1, expr, indent2, before) => `${indent2}${before}${expr}`,
-        );
+        const consumers = [/^([ \t]*)(.*?)_rv_truthy_/, /^([ \t]*)(.*?)_rv_/];
+        // The lines are read from the top, so a line made by inlining is the method line of the next
+        // one: a chain (`"ab".reverse.upcase` in `say(...)`) is inlined all the way (issue #1725).
+        // A line gets only the method line just before it, once: `_rv_` is the value of the method that
+        // ran last, so a second `_rv_` in the line must not take the method line before that one (it
+        // would write `say("b".reverse + "a".reverse)` for blocks that give "b" twice).
+        const lines = [];
+        code.split('\n').forEach((line) => {
+            const previous = lines.length > 0 ? lines[lines.length - 1].match(producer) : null;
+            const consumer = previous && consumers.find((re) => re.test(line));
+            if (consumer) {
+                // The parentheses that the expression needs are already around `_rv_`: it told the
+                // outer block the order of the expression (`returnValueOrder`).
+                lines[lines.length - 1] = line.replace(
+                    consumer,
+                    (match, indent, before) => `${indent}${before}${previous[1]}`,
+                );
+                return;
+            }
+            lines.push(line);
+        });
+        code = lines.join('\n');
         return code;
     };
 
