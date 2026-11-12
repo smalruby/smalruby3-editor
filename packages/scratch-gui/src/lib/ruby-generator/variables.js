@@ -28,23 +28,62 @@ export default function (Generator) {
         return `${prefix}${name.replace(escapeIdentityRegexp, '_')}`;
     };
 
+    /**
+     * Whether a target (the sprite or the stage) has a variable (not a list) of a name.
+     * @param {object} owner - The target that has the variable.
+     * @param {string} name - The name.
+     * @returns {boolean} true if the target has such a variable.
+     */
+    const hasScalarOfName = function (owner, name) {
+        return Object.values((owner && owner.variables) || {}).some((v) => v.name === name && v.type === SCALAR_TYPE);
+    };
+
+    /**
+     * Whether a list of a target has a variable of the same name beside it (issue #1622).
+     * @param {object} owner - The target that has the list.
+     * @param {object} variable - The variable or the list.
+     * @returns {boolean} true if it is a list and the target has a variable of its name.
+     */
+    Generator.isListBesideVariable = function (owner, variable) {
+        return variable.type === LIST_TYPE && hasScalarOfName(owner, variable.name);
+    };
+
+    /**
+     * The Ruby name of a variable or a list of a target. Scratch can have a variable and a list
+     * of the same name, but Ruby has one `@a`: only then the list is `@_a_list_` (`$_a_list_` on
+     * the stage), and the converter makes it the list `a` again (issue #1622).
+     * @param {object} owner - The target that has the variable or the list.
+     * @param {boolean} isStage - Whether the owner is the stage.
+     * @param {object} variable - The variable or the list.
+     * @returns {string} The Ruby name.
+     */
+    Generator.rubyNameOfVariable = function (owner, isStage, variable) {
+        if (this.isListBesideVariable(owner, variable)) {
+            return this.makeVariableName(isStage, `_${variable.name}_list_`);
+        }
+        return this.makeVariableName(isStage, variable.name);
+    };
+
     Generator.variableName = function (id, type = SCALAR_TYPE) {
         let currVar;
         let isStage;
+        let owner;
         const target = this.currentTarget;
         const variables = target.variables;
         if (Object.prototype.hasOwnProperty.call(variables, id)) {
             currVar = variables[id];
             isStage = target.isStage;
+            owner = target;
         } else if (target.runtime && !target.isStage) {
             const stage = target.runtime.getTargetForStage();
             if (stage && Object.prototype.hasOwnProperty.call(stage.variables, id)) {
                 currVar = stage.variables[id];
                 isStage = true;
+                owner = stage;
             }
         }
         if (currVar && currVar.type === type) {
-            return this.makeVariableName(isStage, currVar.name);
+            return this.rubyNameOfVariable(owner, isStage, currVar);
         }
         return null;
     };
@@ -72,15 +111,18 @@ export default function (Generator) {
     Generator.variableNameByName = function (name, type = SCALAR_TYPE) {
         let currVar;
         let isStage;
+        let owner;
         const target = this.currentTarget;
         if (target.runtime) {
             const stage = target.runtime.getTargetForStage();
             currVar = stage.lookupVariableByNameAndType(name, type);
             isStage = true;
+            owner = stage;
         }
         if (!currVar) {
             currVar = target.lookupVariableByNameAndType(name, type);
             isStage = target.isStage;
+            owner = target;
         }
         if (currVar && currVar.type === type) {
             // A field (e.g. koshien `map_from`'s MAP, a `reverse!` receiver) only keeps the
@@ -91,7 +133,7 @@ export default function (Generator) {
             if (localMatch && this.hasLocalVariableComment(localMatch[1], localMatch[2])) {
                 return localMatch[1];
             }
-            return this.makeVariableName(isStage, currVar.name);
+            return this.rubyNameOfVariable(owner, isStage, currVar);
         }
         return null;
     };

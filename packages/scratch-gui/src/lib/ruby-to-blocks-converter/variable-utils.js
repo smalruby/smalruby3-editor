@@ -30,6 +30,16 @@ const STRING_CALLS_WITHOUT_RECEIVER = new Set(['gets', 'answer']);
 // to another value.
 const EMPTY_USE = { list: false, scalar: false, hash: false, string: false, notString: false };
 const STRING_VALUE_NODE_TYPES = new Set(['StringNode', 'InterpolatedStringNode']);
+// Nodes that read or set an instance or a global variable (`name` is `@a` / `$a`).
+const INSTANCE_OR_GLOBAL_NODE_TYPES = new Set(
+    ['InstanceVariable', 'GlobalVariable'].flatMap((kind) =>
+        ['ReadNode', 'WriteNode', 'OperatorWriteNode', 'OrWriteNode', 'AndWriteNode', 'TargetNode'].map(
+            (suffix) => `${kind}${suffix}`,
+        ),
+    ),
+);
+// The Ruby name of a list beside a variable of the same name: `@_a_list_` is the list `a` (issue #1622).
+const LIST_BESIDE_VARIABLE_PATTERN = /^([$@])_(.+)_list_$/;
 
 const messages = defineMessages({
     cannotChangeVariableScope: {
@@ -100,6 +110,11 @@ const VariableUtils = {
                 const existing = this._context[sName][existingVar.transformedName];
                 if (existing) return existing;
             }
+        }
+
+        if (type === Variable.LIST_TYPE && scope !== 'local') {
+            const listName = this._listNameOfAlias(name);
+            if (listName !== null) varName = listName;
         }
 
         let storeName;
@@ -405,11 +420,21 @@ const VariableUtils = {
             unitOfNode.set(node, unit);
             return unit;
         };
-        const mark = (name, use, unit) => {
+        // Ruby name of an instance or a global variable -> {list, scalar} -> the first node of the use
+        const firstUses = {};
+        const rubyNames = new Set();
+        const mark = (name, use, unit, node) => {
             if (!name) return;
             const key = String(name);
             if (!uses[key]) uses[key] = { ...EMPTY_USE };
             uses[key][use] = true;
+            if (node && (use === 'list' || use === 'scalar') && (key[0] === '$' || key[0] === '@')) {
+                if (!firstUses[key]) firstUses[key] = {};
+                const line = this._getLoc(node).line;
+                if (!firstUses[key][use] || line < firstUses[key][use].line) {
+                    firstUses[key][use] = { line, node };
+                }
+            }
             if (key[0] !== '$' && key[0] !== '@') {
                 if (!localUses[unit][key]) localUses[unit][key] = { ...EMPTY_USE };
                 localUses[unit][key][use] = true;
@@ -432,14 +457,15 @@ const VariableUtils = {
             ) {
                 unit = newUnit(node, false);
             }
+            if (INSTANCE_OR_GLOBAL_NODE_TYPES.has(nodeType)) rubyNames.add(String(node.name));
             if (VARIABLE_WRITE_NODE_TYPES.has(nodeType)) {
                 const valueType = this._prismNodeType(node.value);
                 if (valueType === 'ArrayNode') {
-                    mark(node.name, 'list', unit);
+                    mark(node.name, 'list', unit, node);
                 } else if (valueType === 'HashNode') {
                     mark(node.name, 'hash', unit);
                 } else {
-                    mark(node.name, 'scalar', unit);
+                    mark(node.name, 'scalar', unit, node);
                     // Whether the value is a String, for the string `+` (issue #1659).
                     mark(node.name, this._isStringValueNode(node.value) ? 'string' : 'notString', unit);
                 }
@@ -452,7 +478,7 @@ const VariableUtils = {
                 const keyType = args.length > 0 ? this._prismNodeType(args[0]) : null;
                 // `@a[:key] = 1` and `@a["key"] = 1` are a hash.
                 if (!(node.name === '[]=' && (keyType === 'SymbolNode' || keyType === 'StringNode'))) {
-                    mark(node.receiver.name, 'list', unit);
+                    mark(node.receiver.name, 'list', unit, node);
                 }
             }
             if (typeof node.compactChildNodes === 'function') {
@@ -481,8 +507,136 @@ const VariableUtils = {
         );
 
         this._context.variableUses = uses;
+        this._context.firstVariableUses = firstUses;
+        this._context.rubyVariableNames = rubyNames;
+        this._context.listAliases = {};
         this._context.localVariableUnits = { unitOfNode, localUses, unitGroups, splitNames, scopeIndexes: {} };
         this._context.currentLocalUnit = 0;
+    },
+
+    /**
+     * The target that keeps the variables of a scope: the stage for `$a`, the sprite for `@a`.
+     * @param {string} scope - 'global' or 'instance'.
+     * @returns {?object} The target.
+     */
+    _ownerOfScope(scope) {
+        if (scope === 'global') {
+            const stage = this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage();
+            return stage || (this._context.target && this._context.target.isStage ? this._context.target : null);
+        }
+        if (scope === 'instance') return this._context.target || null;
+        return null;
+    },
+
+    /**
+     * Whether the sprite (or the stage) already has a variable or a list of a name.
+     * @param {string} scope - 'global' or 'instance'.
+     * @param {string} name - The name in Scratch.
+     * @param {?string} type - The type (a variable or a list), or null for either.
+     * @returns {boolean} true if it has one.
+     */
+    _ownerHasVariable(scope, name, type) {
+        const owner = this._ownerOfScope(scope);
+        return Object.values((owner && owner.variables) || {}).some(
+            (v) =>
+                v.name === name &&
+                (type === null ? v.type === Variable.SCALAR_TYPE || v.type === Variable.LIST_TYPE : v.type === type),
+        );
+    },
+
+    /**
+     * The list that a Ruby name of the form `@_a_list_` (`$_a_list_`) means (issue #1622). The
+     * generator names the list `a` so when the sprite (or the stage) also has the variable `a`.
+     * The name means the list `a` when the list `a` or the variable `a` is there, or the code uses
+     * `@a`. It is the name itself (a variable or a list that the user named `_a_list_`) when the
+     * sprite already has something of that name, when the code sets it to a number or a string,
+     * or when nothing named `a` is there.
+     * @param {string} rubyName - The Ruby name (`@_a_list_`, `$_a_list_`).
+     * @returns {?string} The name of the list in Scratch (`a`), or null when the name is itself.
+     */
+    _listNameOfAlias(rubyName) {
+        const match = String(rubyName).match(LIST_BESIDE_VARIABLE_PATTERN);
+        if (!match) return null;
+        const aliases = this._context.listAliases || (this._context.listAliases = {});
+        if (Object.prototype.hasOwnProperty.call(aliases, rubyName)) return aliases[rubyName];
+        const [, prefix, name] = match;
+        const scope = prefix === '$' ? 'global' : 'instance';
+        const use = this._context.variableUses && this._context.variableUses[rubyName];
+        const names = this._context.rubyVariableNames || new Set();
+        let listName = null;
+        if (
+            !(use && use.scalar && !use.list) &&
+            !this._ownerHasVariable(scope, rubyName.slice(1), null) &&
+            (this._ownerHasVariable(scope, name, null) || names.has(`${prefix}${name}`))
+        ) {
+            listName = name;
+        }
+        aliases[rubyName] = listName;
+        return listName;
+    },
+
+    /**
+     * Whether `@a` (`$a`) is a variable or a list, from everything that is known (issue #1622):
+     * `@_a_list_` is a list; then how the code uses the name (`@a = []` / `push` are a list,
+     * `@a = 0` / `+= 1` a variable); then what the sprite (or the stage) has: a variable (even
+     * with a list of the same name beside it, which is `@_a_list_`), or only a list.
+     * @param {string} rubyName - The Ruby name (`@a`, `$a`).
+     * @returns {?string} 'list', 'scalar', or null when nothing tells (or the code uses a hash).
+     */
+    _kindOfRubyName(rubyName) {
+        rubyName = String(rubyName);
+        const prefix = rubyName[0];
+        if (prefix !== '$' && prefix !== '@') return null;
+        if (this._listNameOfAlias(rubyName) !== null) return 'list';
+        const use = this._context.variableUses && this._context.variableUses[rubyName];
+        if (use && use.list) return 'list';
+        if (use && use.hash) return null;
+        if (use && use.scalar) return 'scalar';
+        const scope = prefix === '$' ? 'global' : 'instance';
+        const name = rubyName.slice(1);
+        // The code also uses `@_a_list_` for the list `a` beside: `@a` is the variable `a`, even when
+        // the code only reads it (`say(@a)` and `say(@_a_list_)`).
+        const aliasName = `${prefix}_${name}_list_`;
+        const names = this._context.rubyVariableNames;
+        if (names && names.has(aliasName) && this._listNameOfAlias(aliasName) === name) return 'scalar';
+        if (this._ownerHasVariable(scope, name, Variable.SCALAR_TYPE)) return 'scalar';
+        if (this._ownerHasVariable(scope, name, Variable.LIST_TYPE)) return 'list';
+        return null;
+    },
+
+    /**
+     * Whether a variable of the converter's stores is a variable or a list (see `_kindOfRubyName`).
+     * @param {object} variable - The variable in the converter's stores.
+     * @returns {?string} 'list', 'scalar', or null (always null for a local).
+     */
+    _kindOfVariable(variable) {
+        if (!variable || variable.isArgument) return null;
+        if (variable.scope === 'global') return this._kindOfRubyName(`$${variable.name}`);
+        if (variable.scope === 'instance') return this._kindOfRubyName(`@${variable.name}`);
+        return null;
+    },
+
+    /**
+     * Reject Ruby code that uses one `@a` (`$a`) as both a variable and a list (issue #1593):
+     * `@a = 0` and `@a.push(1)`. `@a` and `@_a_list_` are two names (issue #1622). Throws on the
+     * earliest line that uses the name as a variable.
+     */
+    _rejectRubyNameOfVariableAndList() {
+        const firstUses = this._context.firstVariableUses || {};
+        const conflicts = Object.keys(firstUses)
+            .filter((name) => firstUses[name].list && firstUses[name].scalar)
+            .map((name) => ({ name, ...firstUses[name] }))
+            .sort((a, b) => a.scalar.line - b.scalar.line);
+        if (conflicts.length === 0) return;
+        const { name, list, scalar } = conflicts[0];
+        throw new RubyToBlocksConverterError(
+            scalar.node,
+            this._translator(messages.variableAndListSameName, {
+                NAME: name,
+                LIST_LINE: list.line,
+                VARIABLE_LINE: scalar.line,
+            }),
+        );
     },
 
     /**
@@ -632,32 +786,6 @@ const VariableUtils = {
     },
 
     /**
-     * Whether a list that the project already has gives way to a variable of the same name.
-     * The VM keeps a list after the code that made it is rewritten (`@a = []` → `@a = 0`), so the
-     * code is converted with the list still there. When this code sets the variable and never uses
-     * the list, the variable is what the code means: Scratch can have both, so the variable is
-     * made and the list is left as it is (issue #1612). Only reading the name (`say(@a)`) still
-     * reads the list (issue #1567).
-     * @param {object} list - The list in `_context.lists`.
-     * @returns {boolean} true if the list should be left out of this conversion.
-     */
-    _isListShadowedByVariable(list) {
-        if (!list || !list.fromTarget || list.isArgument) return false;
-        const variable = this._context.variables[list.name];
-        if (!variable || variable.isArgument || variable.scope !== list.scope) return false;
-        let written = false;
-        const used = Object.values(this._context.blocks).some((block) => {
-            const fields = block.fields || {};
-            if (fields.LIST && fields.LIST.id === list.id) return true;
-            if (block.opcode !== 'data_variable' && fields.VARIABLE && fields.VARIABLE.id === variable.id) {
-                written = true;
-            }
-            return false;
-        });
-        return written && !used;
-    },
-
-    /**
      * Leave out the variables that were made only to be set to a hash literal and that no block uses.
      * A hash is kept in two lists (`_hash_h_keys_` / `_hash_h_values_`), but `_onVasgn` makes the
      * variable `h` before it sees that the value is a hash, and the variable would be left in the
@@ -689,20 +817,9 @@ const VariableUtils = {
     },
 
     /**
-     * Leave out the lists that give way to a variable of the same name (see
-     * `_isListShadowedByVariable`), so that the target applier makes the variable instead of
-     * dropping it with the script that sets it (issue #1612). The list stays in the project.
-     */
-    _dropListsShadowedByVariables() {
-        Object.keys(this._context.lists).forEach((name) => {
-            if (this._isListShadowedByVariable(this._context.lists[name])) {
-                delete this._context.lists[name];
-            }
-        });
-    },
-
-    /**
-     * Reject Ruby code that uses one name as both a variable and a list (e.g. `@a = 0` and `@a = []`).
+     * Reject Ruby code that uses one name as both a variable and a list (e.g. `@a = 0` and `@a = []`),
+     * from the blocks that it made (`_rejectRubyNameOfVariableAndList` rejects `@a` / `$a` from the
+     * code before converting).
      * Scratch can have a variable and a list of the same name, but Ruby has one `@a`, and the target
      * applier keeps only the list: a block that sets or changes the dropped variable would point at
      * nothing, and the script would disappear on the way back to Ruby (issue #1593).
@@ -726,23 +843,19 @@ const VariableUtils = {
         });
         if (listKeys.size === 0) return;
 
-        // A variable that the sprite (or the stage) already has keeps working: the applier skips
-        // creating it, but its id is the existing one. A Scratch project can have a variable and a
-        // list of the same name, and its Ruby (`$a = 0` and `$a.push(1)`) must still convert.
-        const existsInTarget = (variable) => {
-            let owner = null;
-            if (variable.scope === 'global') {
-                owner = this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage();
-            } else if (variable.scope === 'instance') {
-                owner = this._context.target;
-            }
-            const existing = owner && owner.variables && owner.variables[variable.id];
-            return Boolean(existing) && existing.type === Variable.SCALAR_TYPE;
-        };
+        // The list `a` of `@_a_list_` is beside the variable `a` (issue #1622): `@a` and `@_a_list_`
+        // are two names, so a list and a variable of the same name are not a conflict there. Whether
+        // the code uses one `@a` as both is in `_rejectRubyNameOfVariableAndList`.
+        const aliasedKeys = new Set();
+        Object.keys(this._context.listAliases || {}).forEach((rubyName) => {
+            const listName = this._context.listAliases[rubyName];
+            if (listName !== null) aliasedKeys.add(`${rubyName[0] === '$' ? 'global' : 'instance'}:${listName}`);
+        });
         const scalarIds = {};
         ['variables', 'localVariables'].forEach((storeName) => {
             Object.values(this._context[storeName]).forEach((variable) => {
-                if (!variable.isArgument && listKeys.has(keyOf(variable)) && !existsInTarget(variable)) {
+                const key = keyOf(variable);
+                if (!variable.isArgument && listKeys.has(key) && !aliasedKeys.has(key)) {
                     scalarIds[variable.id] = variable;
                 }
             });
