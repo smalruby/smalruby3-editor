@@ -240,9 +240,14 @@ const blocksLesson1 = defineLesson({
                 motion: ['motion_changeyby'],
             },
             steps: withTitles('blocks-l1-arrow-move', [
-                { target: HINT_TARGETS.PALETTE, blocks: 'self.y += 10\n' },
+                // 帽子のブロックを置いてから、その下にくっつける（docs/lessons/design.md の「ヒント」）
                 { target: HINT_TARGETS.PALETTE, blocks: 'when_key_pressed("up arrow") do\nend\n' },
-                { target: HINT_TARGETS.CODE_AREA },
+                { target: HINT_TARGETS.PALETTE, blocks: 'self.y += 10\n' },
+                // 複製して変えたあとの、下向き矢印のかたまり
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks: 'when_key_pressed("down arrow") do\n  self.y += -10\nend\n',
+                },
                 { target: HINT_TARGETS.STAGE },
             ]),
             debug: debugTips('blocks-l1-arrow-move', 2),
@@ -315,8 +320,13 @@ const blocksLesson1 = defineLesson({
             steps: withTitles('blocks-l1-repeat', [
                 { target: HINT_TARGETS.BACKDROP },
                 { target: HINT_TARGETS.SPRITE_LIST },
+                { target: HINT_TARGETS.PALETTE, blocks: 'when_key_pressed("1") do\nend\n' },
                 { target: HINT_TARGETS.PALETTE, blocks: '3.times\n' }, // 中身の無い「繰り返す」。do...end は中身が無いと変換できない
-                { target: HINT_TARGETS.CODE_AREA, blocks: 'switch_backdrop("Arctic")\n' },
+                // 「繰り返す」の中に入れる 4 つを、入れる並びのまま描く（「2 組」が見てわかるように）
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks: 'switch_backdrop("Canyon")\nsleep(1)\nswitch_backdrop("Arctic")\nsleep(1)\n',
+                },
                 { target: HINT_TARGETS.KEYBOARD },
             ]),
             debug: debugTips('blocks-l1-repeat', 2),
@@ -357,11 +367,21 @@ const blocksLesson2 = defineLesson({
                 ],
             },
             steps: withTitles('blocks-l1-if', [
+                { target: HINT_TARGETS.PALETTE, blocks: 'when_flag_clicked do\nend\n' },
                 { target: HINT_TARGETS.PALETTE, blocks: 'loop do\nend\n' },
                 // `false` は空の穴として描く（Ruby → ブロック変換が条件の穴の `false` を空の穴にする）
                 { target: HINT_TARGETS.PALETTE, blocks: 'if false\nelse\nend\n' },
                 { target: HINT_TARGETS.PALETTE, blocks: 'touching?("_mouse_")\n' },
-                { target: HINT_TARGETS.CODE_AREA },
+                // 「言う」2 つを、入れる場所（「もし」の中と「でなければ」の中）のまま描く
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks: {
+                        ja: 'if touching?("_mouse_")\n  say("くすぐったい！")\nelse\n  say("さわってみて")\nend\n',
+                        'ja-Hira':
+                            'if touching?("_mouse_")\n  say("くすぐったい！")\nelse\n  say("さわってみて")\nend\n',
+                        en: 'if touching?("_mouse_")\n  say("That tickles!")\nelse\n  say("Touch me")\nend\n',
+                    },
+                },
                 { target: HINT_TARGETS.GREEN_FLAG, spotlight: true },
             ]),
             debug: debugTips('blocks-l1-if', 2),
@@ -406,19 +426,25 @@ const blocksLesson2 = defineLesson({
                 looks: [{ opcode: 'looks_sayforsecs', inputs: SAY_HELLO }],
             },
             steps: withTitles('blocks-l1-ask-answer', [
-                {
-                    target: HINT_TARGETS.PALETTE,
-                    blocks: { ja: 'ask("なまえは？")\n', 'ja-Hira': 'ask("なまえは？")\n', en: 'ask("What\'s your name?")\n' },
-                },
-                { target: HINT_TARGETS.PALETTE, blocks: 'answer\n' },
-                { target: HINT_TARGETS.PALETTE, blocks: 'timer.reset\n' },
-                // 「(タイマー) と (秒でした)」の「と」1 つ（code と同じ書き方）
+                { target: HINT_TARGETS.PALETTE, blocks: 'when_clicked do\nend\n' },
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: {
-                        ja: 'timer.value + "秒でした"\n',
-                        'ja-Hira': 'timer.value + "びょうでした"\n',
-                        en: 'timer.value + " seconds"\n',
+                        ja: 'ask("なまえは？")\n',
+                        'ja-Hira': 'ask("なまえは？")\n',
+                        en: 'ask("What\'s your name?")\n',
+                    },
+                },
+                // 「言う」の白いところに「答え」を入れたところ
+                { target: HINT_TARGETS.PALETTE, blocks: 'say(answer, 2)\n' },
+                { target: HINT_TARGETS.PALETTE, blocks: 'timer.reset\n' },
+                // 「(タイマー) と (秒でした)」の「と」1 つを入れた「言う」（code と同じ書き方）
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: {
+                        ja: 'say(timer.value + "秒でした", 2)\n',
+                        'ja-Hira': 'say(timer.value + "びょうでした", 2)\n',
+                        en: 'say(timer.value + " seconds", 2)\n',
                     },
                 },
                 { target: HINT_TARGETS.STAGE },
@@ -474,9 +500,19 @@ const blocksLesson2 = defineLesson({
                 ],
             },
             steps: withTitles('blocks-l1-quiz', [
-                { target: HINT_TARGETS.PALETTE },
+                { target: HINT_TARGETS.PALETTE, blocks: 'when_clicked do\nend\n' },
+                { target: HINT_TARGETS.PALETTE, blocks: 'ask("4+3=?")\n' },
+                // 「もし〜なら でなければ」と、その中の「言う」2 つ（条件の穴はまだ空）
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: {
+                        ja: 'if false\n  say("正解です", 2)\nelse\n  say("ちがいます", 2)\nend\n',
+                        'ja-Hira': 'if false\n  say("せいかいです", 2)\nelse\n  say("ちがいます", 2)\nend\n',
+                        en: 'if false\n  say("Correct", 2)\nelse\n  say("Wrong", 2)\nend\n',
+                    },
+                },
                 { target: HINT_TARGETS.PALETTE, blocks: '"" == 7\n' },
-                { target: HINT_TARGETS.CODE_AREA },
+                { target: HINT_TARGETS.CODE_AREA, blocks: 'answer == 7\n' },
                 { target: HINT_TARGETS.STAGE },
             ]),
             debug: debugTips('blocks-l1-quiz', 1),
@@ -519,10 +555,22 @@ const blocksLesson3 = defineLesson({
             steps: withTitles('blocks-l1-count', [
                 { target: HINT_TARGETS.PALETTE },
                 // en の文言は「count」という変数を作ろうと書く（#1514）
-                { target: HINT_TARGETS.PALETTE, blocks: { ja: '$回数 = 0\n', 'ja-Hira': '$かいすう = 0\n', en: '$count = 0\n' } },
+                // 「〜のプログラムを作ろう」のヒントは、帽子のブロックからのかたまりで描く
                 {
                     target: HINT_TARGETS.PALETTE,
-                    blocks: { ja: '$回数 += 1\n', 'ja-Hira': '$かいすう += 1\n', en: '$count += 1\n' },
+                    blocks: {
+                        ja: 'when_flag_clicked do\n  $回数 = 0\nend\n',
+                        'ja-Hira': 'when_flag_clicked do\n  $かいすう = 0\nend\n',
+                        en: 'when_flag_clicked do\n  $count = 0\nend\n',
+                    },
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: {
+                        ja: 'when_clicked do\n  $回数 += 1\n  say($回数)\nend\n',
+                        'ja-Hira': 'when_clicked do\n  $かいすう += 1\n  say($かいすう)\nend\n',
+                        en: 'when_clicked do\n  $count += 1\n  say($count)\nend\n',
+                    },
                 },
                 { target: HINT_TARGETS.STAGE },
             ]),
@@ -555,18 +603,18 @@ const blocksLesson3 = defineLesson({
                 {
                     target: HINT_TARGETS.SPRITE_LIST,
                     blocks: {
-                        ja: 'broadcast("あいさつ")\n',
-                        'ja-Hira': 'broadcast("あいさつ")\n',
-                        en: 'broadcast("hello")\n',
+                        ja: 'when_clicked do\n  broadcast("あいさつ")\nend\n',
+                        'ja-Hira': 'when_clicked do\n  broadcast("あいさつ")\nend\n',
+                        en: 'when_clicked do\n  broadcast("hello")\nend\n',
                     },
                 },
                 { target: HINT_TARGETS.SPRITE_LIST },
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: {
-                        ja: 'when_receive("あいさつ") do\nend\n',
-                        'ja-Hira': 'when_receive("あいさつ") do\nend\n',
-                        en: 'when_receive("hello") do\nend\n',
+                        ja: 'when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n',
+                        'ja-Hira': 'when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n',
+                        en: 'when_receive("hello") do\n  say("Hi!", 2)\nend\n',
                     },
                 },
                 { target: HINT_TARGETS.STAGE },
@@ -624,9 +672,9 @@ const blocksLesson3 = defineLesson({
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: {
-                        ja: 'text2speech.speak("ボタンが押されました")\n',
-                        'ja-Hira': 'text2speech.speak("ボタンがおされました")\n',
-                        en: 'text2speech.speak("The button was clicked")\n',
+                        ja: 'when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n',
+                        'ja-Hira': 'when_clicked do\n  text2speech.speak("ボタンがおされました")\nend\n',
+                        en: 'when_clicked do\n  text2speech.speak("The button was clicked")\nend\n',
                     },
                 },
                 { target: HINT_TARGETS.STAGE },
@@ -662,10 +710,21 @@ const blocksLesson3 = defineLesson({
             },
             steps: withTitles('blocks-l1-message-list', [
                 { target: HINT_TARGETS.PALETTE },
-                { target: HINT_TARGETS.PALETTE, blocks: { ja: '$トーク.clear\n', 'ja-Hira': '$トーク.clear\n', en: '$talk.clear\n' } },
                 {
                     target: HINT_TARGETS.PALETTE,
-                    blocks: { ja: '$トーク.push(answer)\n', 'ja-Hira': '$トーク.push(answer)\n', en: '$talk.push(answer)\n' },
+                    blocks: {
+                        ja: 'when_flag_clicked do\n  $トーク.clear\nend\n',
+                        'ja-Hira': 'when_flag_clicked do\n  $トーク.clear\nend\n',
+                        en: 'when_flag_clicked do\n  $talk.clear\nend\n',
+                    },
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: {
+                        ja: 'when_clicked do\n  ask("メッセージは？")\n  $トーク.push(answer)\nend\n',
+                        'ja-Hira': 'when_clicked do\n  ask("メッセージは？")\n  $トーク.push(answer)\nend\n',
+                        en: 'when_clicked do\n  ask("Message?")\n  $talk.push(answer)\nend\n',
+                    },
                 },
                 { target: HINT_TARGETS.STAGE },
             ]),

@@ -193,10 +193,14 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
         await openChallenge('blocks-l1-arrow-move');
         expect(await textByTestId('lesson-task-bar-position')).toBe('2 of 4');
 
-        // ヒント 1 は「y座標を 10 ずつ変える」を描く
+        // ヒント 1 は帽子のブロック「上向き矢印キーが押されたとき」を描き、ヒント 2 は「y座標を 10 ずつ変える」
         await openHint();
         await findByXpath(byTestId('lesson-hint'));
-        await driver.wait(async () => (await hintBlockText()).includes('change y by'), 20000, 'hint blocks');
+        await driver.wait(async () => (await hintBlockText()).includes('up arrow'), 20000, 'hint 1 blocks');
+        await clickByTestId('lesson-hint-next');
+        await driver.wait(async () => (await hintBlockText()).includes('change y by'), 20000, 'hint 2 blocks');
+        // 1 ページ目にもどしてから閉じる（× はページを保つ）
+        await clickByTestId('lesson-hint-prev');
         await clickByTestId('lesson-hint-close');
 
         await insertProgramFromHints(5);
@@ -277,7 +281,27 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
         // スプライトを編集中のまま「プログラムを入れる」→ ステージに入る
         expect(await driver.executeScript('return window.smalruby.vm.editingTarget.isStage;')).toBe(false);
 
-        await insertProgramFromHints(6);
+        // ヒント 3 は帽子のブロック「1 キーが押されたとき」、ヒント 5 は「繰り返す」の中に入れる 4 つの並び（#1564）
+        await openHint();
+        await clickByTestId('lesson-hint-next');
+        await clickByTestId('lesson-hint-next');
+        expect(await textByTestId('lesson-hint-position')).toBe('Hint 3 of 7');
+        await driver.wait(async () => /when\s*1\s*key pressed/.test(await hintBlockText()), 20000, 'hint 3 blocks');
+        await clickByTestId('lesson-hint-next');
+        await clickByTestId('lesson-hint-next');
+        expect(await textByTestId('lesson-hint-position')).toBe('Hint 5 of 7');
+        await driver.wait(
+            async () => {
+                const text = await hintBlockText();
+                return ['Canyon', 'Arctic'].every((name) => text.includes(name)) && text.split('wait').length === 3;
+            },
+            20000,
+            'hint 5 blocks',
+        );
+        for (let i = 0; i < 4; i++) await clickByTestId('lesson-hint-prev');
+        expect(await textByTestId('lesson-hint-position')).toBe('Hint 1 of 7');
+
+        await insertProgramFromHints(7);
         await waitForOpcode('stage', 'control_repeat');
         expect(await opcodesOf('stage')).toEqual([
             'control_repeat',

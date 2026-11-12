@@ -254,14 +254,21 @@ describe('lesson courses', () => {
             });
             // タブはコースの言語の既定（ブロックのコース = コードタブ。challenge-setup.js）
             expect(c.setup).toBeNull();
+            // 帽子のブロックを置く手順から。絵は置いてほしいブロックを置いてほしい並びのまま（#1564）
             expect(hints(c)).toEqual([
+                ['palette', 'when_flag_clicked do\nend\n', false],
                 ['palette', 'loop do\nend\n', false],
                 ['palette', 'if false\nelse\nend\n', false],
                 ['palette', 'touching?("_mouse_")\n', false],
-                ['code-area', null, false],
+                [
+                    'code-area',
+                    'if touching?("_mouse_")\n  say("くすぐったい！")\nelse\n  say("さわってみて")\nend\n',
+                    false,
+                ],
                 ['green-flag', null, true],
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
+                '黄色い「イベント」の「旗が押されたとき」をコードエリアへドラッグしよう。',
                 '旗のブロックの下に「ずっと」をつなげよう。',
                 '「ずっと」の中に「もし〜なら でなければ」を入れよう。',
                 '水色の「調べる」から、六角形のブロックを「もし」の六角形の穴に入れよう。',
@@ -298,14 +305,16 @@ describe('lesson courses', () => {
                 looks: ['looks_sayforsecs'],
             });
             expect(hints(c)).toEqual([
+                ['palette', 'when_clicked do\nend\n', false],
                 ['palette', 'ask("なまえは？")\n', false],
-                ['palette', 'answer\n', false],
+                ['palette', 'say(answer, 2)\n', false],
                 ['palette', 'timer.reset\n', false],
                 // 「と」1 つだけを描く（`.to_s` を付けると「(タイマー) と ()」が入れ子になる）
-                ['palette', 'timer.value + "秒でした"\n', false],
+                ['palette', 'say(timer.value + "秒でした", 2)\n', false],
                 ['stage', null, false],
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
+                '黄色い「イベント」の「このスプライトが押されたとき」をコードエリアへドラッグしよう。',
                 '水色の「調べる」の「聞いて待つ」をつなげよう。「なまえは？」と聞くよ。',
                 '「言う」をつなげて、白いところに、丸い「答え」のブロックを入れよう。',
                 '聞く前に「タイマーをリセット」を入れよう。タイマーは 0 から数えはじめるよ。',
@@ -352,13 +361,17 @@ describe('lesson courses', () => {
                 looks: ['looks_sayforsecs'],
             });
             expect(hints(c)).toEqual([
-                ['palette', null, false],
+                ['palette', 'when_clicked do\nend\n', false],
+                ['palette', 'ask("4+3=?")\n', false],
+                ['palette', 'if false\n  say("正解です", 2)\nelse\n  say("ちがいます", 2)\nend\n', false],
                 ['palette', '"" == 7\n', false],
-                ['code-area', null, false],
+                ['code-area', 'answer == 7\n', false],
                 ['stage', null, false],
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
+                '黄色い「イベント」の「このスプライトが押されたとき」をコードエリアへドラッグしよう。',
                 '「聞いて待つ」で問題を出そう。',
+                'オレンジの「制御」の「もし〜なら でなければ」をつなげて、上と下に「言う」を入れよう。上は「正解です」、下は「ちがいます」にしよう。',
                 '緑の「演算」の「=」を、「もし」の穴に入れよう。',
                 '「=」の左に「答え」を入れよう。右は 7 のままでいいよ。',
                 '7 と、7 じゃない数の両方をためそう。',
@@ -387,8 +400,8 @@ describe('lesson courses', () => {
             });
             expect(hints(c)).toEqual([
                 ['palette', null, false],
-                ['palette', '$回数 = 0\n', false],
-                ['palette', '$回数 += 1\n', false],
+                ['palette', 'when_flag_clicked do\n  $回数 = 0\nend\n', false],
+                ['palette', 'when_clicked do\n  $回数 += 1\n  say($回数)\nend\n', false],
                 ['stage', null, false],
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
@@ -431,9 +444,9 @@ describe('lesson courses', () => {
             expect(c.setup).toBeNull();
             expect(hints(c)).toEqual([
                 ['sprite-list', null, true],
-                ['sprite-list', 'broadcast("あいさつ")\n', false],
+                ['sprite-list', 'when_clicked do\n  broadcast("あいさつ")\nend\n', false],
                 ['sprite-list', null, false],
-                ['palette', 'when_receive("あいさつ") do\nend\n', false],
+                ['palette', 'when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n', false],
                 ['stage', null, false],
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
@@ -477,7 +490,7 @@ describe('lesson courses', () => {
             expect(c.setup).toBeNull();
             expect(hints(c)).toEqual([
                 ['extension-button', null, true],
-                ['palette', 'text2speech.speak("ボタンが押されました")\n', false],
+                ['palette', 'when_clicked do\n  text2speech.speak("ボタンが押されました")\nend\n', false],
                 ['stage', null, false],
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
@@ -508,8 +521,8 @@ describe('lesson courses', () => {
             });
             expect(hints(c)).toEqual([
                 ['palette', null, false],
-                ['palette', '$トーク.clear\n', false],
-                ['palette', '$トーク.push(answer)\n', false],
+                ['palette', 'when_flag_clicked do\n  $トーク.clear\nend\n', false],
+                ['palette', 'when_clicked do\n  ask("メッセージは？")\n  $トーク.push(answer)\nend\n', false],
                 ['stage', null, false],
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
@@ -590,9 +603,9 @@ describe('lesson courses', () => {
             expect(ja[c.image.alt.id]).toBe('上向き矢印キーでネコが上へ、下向き矢印キーで下へ動く');
             expect(allowedOpcodes(c)).toEqual({ event: ['event_whenkeypressed'], motion: ['motion_changeyby'] });
             expect(hints(c)).toEqual([
-                [PALETTE, 'self.y += 10\n', false],
                 [PALETTE, 'when_key_pressed("up arrow") do\nend\n', false],
-                [CODE_AREA, null, false],
+                [PALETTE, 'self.y += 10\n', false],
+                [CODE_AREA, 'when_key_pressed("down arrow") do\n  self.y += -10\nend\n', false],
                 [STAGE, null, false],
             ]);
             expect(c.debug).toHaveLength(2);
@@ -653,8 +666,11 @@ describe('lesson courses', () => {
             expect(hints(c)).toEqual([
                 [BACKDROP, null, false],
                 [SPRITE_LIST, null, false],
+                // 帽子のブロックを置く手順（#1564）
+                [PALETTE, 'when_key_pressed("1") do\nend\n', false],
                 [PALETTE, '3.times\n', false],
-                [CODE_AREA, 'switch_backdrop("Arctic")\n', false],
+                // 「繰り返す」の中に入れる 4 つを、入れる並びのまま描く
+                [CODE_AREA, 'switch_backdrop("Canyon")\nsleep(1)\nswitch_backdrop("Arctic")\nsleep(1)\n', false],
                 [KEYBOARD, null, false],
             ]);
             expect(c.debug).toHaveLength(2);
@@ -702,8 +718,8 @@ describe('lesson courses', () => {
             });
             expectJa('blocks-l1-arrow-move', {
                 steps: [
-                    '「動き」の青いブロックを使うよ。上下は y、左右は x。',
-                    'キーのブロックの下にくっつけよう。▼が「上向き矢印」になっているか見よう。',
+                    '黄色い「イベント」の「上向き矢印キーが押されたとき」をコードエリアへドラッグしよう。▼が「上向き矢印」になっているか見よう。',
+                    'その下に、青い「動き」の「y座標を 10 ずつ変える」をくっつけよう。上下は y、左右は x。',
                     'できたかたまりを右クリックして「複製」。もう 1 つできたら、「下向き矢印」と「-10」に変えよう。',
                     '矢印キーで、ネコが上と下に動くか見よう。',
                 ],
@@ -730,7 +746,8 @@ describe('lesson courses', () => {
                 steps: [
                     '右下の「背景を選ぶ」から、「Canyon」と「Arctic」を足そう。',
                     '右の「ステージ」をえらぼう。ステージにもプログラムを書けるよ。',
-                    'オレンジの「制御」の「繰り返す」で、ブロックをはさもう。',
+                    '黄色い「イベント」の「1 キーが押されたとき」をコードエリアへドラッグしよう。▼が「1」になっているか見よう。',
+                    'その下に、オレンジの「制御」の「繰り返す」をつなげよう。',
                     '中に「背景を…にする」「1 秒待つ」を 2 組入れよう。',
                     '1 のキーを押してみよう。',
                 ],
@@ -738,6 +755,25 @@ describe('lesson courses', () => {
                     '1 回しかかわらないときは、ブロックが「繰り返す」の口の中に入っているか見よう。',
                     'すぐ終わるときは「1 秒待つ」が入っているか見よう。',
                 ],
+            });
+        });
+
+        // ヒントは帽子のブロックを置く手順を抜かさない（docs/lessons/design.md の「ヒント」・#1564）:
+        // できあがりのプログラムの帽子のブロック（`when_...`）は、どれもいずれかのヒントの絵に描く
+        test.each(['ja', 'ja-Hira', 'en'])('every hat block of the answer is drawn in a hint (%s)', (locale) => {
+            allChallenges().forEach((c) => {
+                const { code, spriteCodes } = challengeCodeFor(c, locale);
+                const hats = [code, ...spriteCodes.map((s) => s.code)]
+                    .join('\n')
+                    .split('\n')
+                    .filter((line) => /^when_\w+/.test(line))
+                    .map((line) => line.replace(/ do$/, ''));
+                expect(hats.length).toBeGreaterThan(0);
+                const drawn = c.steps.map((s) => localizeCode(s.blocks, locale) || '');
+                hats.forEach((hat) => {
+                    expect({ id: c.id, hat, drawn: drawn.some((b) => b.split('\n').some((l) => l.startsWith(`${hat} do`))) })
+                        .toEqual({ id: c.id, hat, drawn: true });
+                });
             });
         });
 
@@ -822,7 +858,12 @@ describe('lesson courses', () => {
             expect(enCode('blocks-l1-count').code).toBe(
                 'when_flag_clicked do\n  $count = 0\nend\n\nwhen_clicked do\n  $count += 1\n  say($count)\nend\n',
             );
-            expect(enHints('blocks-l1-count')).toEqual([null, '$count = 0\n', '$count += 1\n', null]);
+            expect(enHints('blocks-l1-count')).toEqual([
+                null,
+                'when_flag_clicked do\n  $count = 0\nend\n',
+                'when_clicked do\n  $count += 1\n  say($count)\nend\n',
+                null,
+            ]);
             expect(enText(challenge('blocks-l1-count').steps[0].title)).toContain('"count"');
 
             expect(enCode('blocks-l1-broadcast')).toEqual({
@@ -831,9 +872,9 @@ describe('lesson courses', () => {
             });
             expect(enHints('blocks-l1-broadcast')).toEqual([
                 null,
-                'broadcast("hello")\n',
+                'when_clicked do\n  broadcast("hello")\nend\n',
                 null,
-                'when_receive("hello") do\nend\n',
+                'when_receive("hello") do\n  say("Hi!", 2)\nend\n',
                 null,
             ]);
             expect(enText(challenge('blocks-l1-broadcast').task)).toContain('"Hi!"');
@@ -842,14 +883,23 @@ describe('lesson courses', () => {
             expect(enCode('blocks-l1-speak').code).toBe(
                 'when_clicked do\n  text2speech.speak("The button was clicked")\nend\n',
             );
-            expect(enHints('blocks-l1-speak')).toEqual([null, 'text2speech.speak("The button was clicked")\n', null]);
+            expect(enHints('blocks-l1-speak')).toEqual([
+                null,
+                'when_clicked do\n  text2speech.speak("The button was clicked")\nend\n',
+                null,
+            ]);
             expect(enText(challenge('blocks-l1-speak').task)).toContain('"The button was clicked"');
 
             expect(enCode('blocks-l1-message-list').code).toBe(
                 'when_flag_clicked do\n  $talk.clear\nend\n\nwhen_clicked do\n  ask("Message?")\n' +
                     '  $talk.push(answer)\nend\n',
             );
-            expect(enHints('blocks-l1-message-list')).toEqual([null, '$talk.clear\n', '$talk.push(answer)\n', null]);
+            expect(enHints('blocks-l1-message-list')).toEqual([
+                null,
+                'when_flag_clicked do\n  $talk.clear\nend\n',
+                'when_clicked do\n  ask("Message?")\n  $talk.push(answer)\nend\n',
+                null,
+            ]);
             expect(enText(challenge('blocks-l1-message-list').task)).toContain('"talk"');
             expect(enText(challenge('blocks-l1-message-list').task)).toContain('"Message?"');
         });
