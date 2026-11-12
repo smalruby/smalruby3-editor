@@ -663,6 +663,8 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.variableAndListSameName':
         '"{NAME}" is used as a list on line {LIST_LINE} and as a variable on line {VARIABLE_LINE}.\nIn Ruby, one name cannot be both a variable and a list. Rename one of them.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
+    'gui.smalruby3.rubyToBlocksConverter.withScreenRefreshOutsideLoop':
+        'with_screen_refresh do ... end can only be the only command in the body of until or while.\nPut it in a loop (until ... / while ...) with nothing else, or use 10.times.with_screen_refresh do / loop.with_screen_refresh do.',
     'gui.smalruby3.rubyToBlocksConverter.arrayLiteralReceiver':
         '"{ METHOD }" cannot be used directly on an array literal ([...]).\nPut the array in a variable first (e.g. a = [1, 2]), then use a.{ METHOD }.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
