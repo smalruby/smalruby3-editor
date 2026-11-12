@@ -1,7 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (DNCL→Ruby identifier conversion) ===
 import { DNCL_KEYWORDS, RUBY_LITERALS } from './dncl-keywords';
 import { addArrayName, isArrayName, isFunctionName, isFunctionParam, mapVarName } from './dncl-state';
-import { skipString, wrapIntegerDivisions } from './paren-utils';
+import { isSingleOperand, skipString, wrapIntegerDivisions } from './paren-utils';
 
 /**
  * Check if a character is the start of an identifier.
@@ -100,11 +100,9 @@ const convertOperators = (segment) => {
     // Japanese logical/boolean keywords (no \b for CJK characters)
     result = result.replace(/(?<=\s|^)かつ(?=\s|$)/g, '&&');
     result = result.replace(/(?<=\s|^)または(?=\s|$)/g, '||');
-    result = result.replace(/(?<=\s|^)真(?=\s|$)/g, 'true');
-    result = result.replace(/(?<=\s|^)偽(?=\s|$)/g, 'false');
-
-    // でない is postfix: "expr でない" → "!expr"
-    result = result.replace(/(\S+)\s+でない/g, (_, expr) => `!${expr}`);
+    // `!` / `(` before them come from `でない` (`真 でない` → `!真`).
+    result = result.replace(/(?<=[\s!(]|^)真(?=[\s),]|$)/g, 'true');
+    result = result.replace(/(?<=[\s!(]|^)偽(?=[\s),]|$)/g, 'false');
 
     // DNCL convention: `/` (and `÷`, normalized to `/` above) is integer
     // division — emulate Ruby's int/int = int truncation by wrapping each
@@ -113,6 +111,115 @@ const convertOperators = (segment) => {
     result = wrapIntegerDivisions(result);
 
     return result;
+};
+
+/** Words that end the operand of a `でない` (it binds tighter than they do). */
+const LOGICAL_WORDS = ['かつ', 'または', '&&', '||'];
+
+/** The postfix logical NOT of DNCL. */
+const NEGATION = 'でない';
+
+/**
+ * Whether `word` starts at `i` as a whole word: a space or the line edge
+ * before it, and a space, the line edge, a closing bracket or a comma after
+ * it (`表示する(a でない)`). DNCL words like `かつ` have no `\b` boundary in
+ * a regex.
+ * @param {string} line - The source line.
+ * @param {number} i - The position to check.
+ * @param {string} word - The word.
+ * @returns {boolean} True if the word is there as a whole word.
+ */
+const isWordAt = (line, i, word) =>
+    line.startsWith(word, i) &&
+    (i === 0 || /\s/.test(line[i - 1])) &&
+    /^(\s|$|[)\],])/.test(line.slice(i + word.length));
+
+/**
+ * The first of `words` that starts at `i` as a whole word.
+ * @param {string} line - The source line.
+ * @param {number} i - The position to check.
+ * @param {Array<string>} words - The words.
+ * @returns {string|undefined} The word, or undefined.
+ */
+const wordAt = (line, i, words) => words.find((w) => isWordAt(line, i, w));
+
+/**
+ * Whether the `=` at `i` is an assignment (not part of `==`, `!=`, `<=`, `>=`).
+ * @param {string} line - The source line.
+ * @param {number} i - The position of `=`.
+ * @returns {boolean} True for an assignment `=`.
+ */
+const isAssignmentAt = (line, i) => line[i] === '=' && !/[=!<>]/.test(line[i - 1] || '') && line[i + 1] !== '=';
+
+/**
+ * Convert the postfix `でない` to Ruby's `!`. `でない` negates the whole
+ * condition just before it, up to the nearest `かつ` / `または`, comma,
+ * assignment or open bracket — 論理演算は比較演算より弱く、`でない` は
+ * `かつ` / `または` より強い. So `a > 10 でない` is `!(a > 10)` (not
+ * `a > !10`), `x でない かつ y` is `!x && y`, and `(a かつ b) でない` is
+ * `!(a && b)`. (Issue #1662)
+ * @param {string} line - A line (or condition) of DNCL code.
+ * @returns {string} The line with every `でない` turned into `!`.
+ */
+const convertNegation = (line) => {
+    if (!line.includes(NEGATION)) return line;
+    let out = '';
+    // Where the operand of a `でない` would start, one entry per open bracket.
+    const starts = [0];
+    const markStart = () => {
+        starts[starts.length - 1] = out.length;
+    };
+    let i = 0;
+    while (i < line.length) {
+        const ch = line[i];
+        if (ch === '#') {
+            out += line.substring(i);
+            break;
+        }
+        if (ch === '"' || ch === "'") {
+            const end = skipString(line, i, ch);
+            out += line.substring(i, end);
+            i = end;
+            continue;
+        }
+        if (ch === '(' || ch === '[') {
+            out += ch;
+            i++;
+            starts.push(out.length);
+            continue;
+        }
+        if (ch === ')' || ch === ']') {
+            if (starts.length > 1) starts.pop();
+            out += ch;
+            i++;
+            continue;
+        }
+        if (isWordAt(line, i, NEGATION)) {
+            const start = starts[starts.length - 1];
+            const segment = out.substring(start);
+            const operand = segment.trim();
+            if (operand !== '') {
+                const lead = segment.match(/^\s*/)[0];
+                const negated = isSingleOperand(operand) ? `!${operand}` : `!(${operand})`;
+                out = `${out.substring(0, start)}${lead}${negated}`;
+                i += NEGATION.length;
+                continue;
+            }
+        }
+        const word = wordAt(line, i, LOGICAL_WORDS);
+        if (word) {
+            out += word;
+            i += word.length;
+            markStart();
+            continue;
+        }
+        out += ch;
+        i++;
+        if (ch === ',' || ch === '←' || isAssignmentAt(line, i - 1)) {
+            markStart();
+        }
+    }
+    return out;
 };
 
 /**
@@ -170,10 +277,13 @@ const convertIdentifiers = (segment) => {
 /**
  * Process a line, splitting it into string/non-string parts. Apply
  * conversions only to non-string parts.
- * @param {string} line - A single line of code.
+ * @param {string} source - A single line of code.
  * @returns {string} The converted line.
  */
-const processSegments = (line) => {
+const processSegments = (source) => {
+    // `でない` may need the whole condition, strings included, so it is
+    // converted on the whole line before splitting it at strings.
+    const line = convertNegation(source);
     let result = '';
     let i = 0;
 
@@ -210,4 +320,11 @@ const processSegments = (line) => {
     return result;
 };
 
-export { convertArrow, convertIdentifier, convertJapaneseStrings, convertOperators, processSegments };
+export {
+    convertArrow,
+    convertIdentifier,
+    convertJapaneseStrings,
+    convertNegation,
+    convertOperators,
+    processSegments,
+};
