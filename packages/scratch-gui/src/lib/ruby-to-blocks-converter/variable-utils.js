@@ -370,7 +370,7 @@ const VariableUtils = {
      * which the code is converted (issue #1613): `@a.length` in a method or an event before
      * `@a = "abc"`, `@a = gets`, or a number set last.
      * A name is used as a list when it is set to an array literal or a list-only method is called
-     * on it, and as a scalar when it is set to anything else (a hash literal is neither).
+     * on it, as a hash when it is set to a hash literal, and as a scalar when it is set to anything else.
      * The result is in `_context.variableUses`, keyed by the Ruby name (`@a`, `$a`, `a`).
      * @param {object} root - The root prism node.
      */
@@ -379,7 +379,7 @@ const VariableUtils = {
         const mark = (name, use) => {
             if (!name) return;
             const key = String(name);
-            if (!uses[key]) uses[key] = { list: false, scalar: false };
+            if (!uses[key]) uses[key] = { list: false, scalar: false, hash: false };
             uses[key][use] = true;
         };
         const queue = [root];
@@ -392,7 +392,9 @@ const VariableUtils = {
                 const valueType = this._prismNodeType(node.value);
                 if (valueType === 'ArrayNode') {
                     mark(node.name, 'list');
-                } else if (valueType !== 'HashNode') {
+                } else if (valueType === 'HashNode') {
+                    mark(node.name, 'hash');
+                } else {
                     mark(node.name, 'scalar');
                 }
             } else if (

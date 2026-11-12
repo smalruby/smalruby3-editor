@@ -946,6 +946,10 @@ export default {
         'with_screen_refresh do ... end は、until / while のなかにそれだけをかいたときにしかつかえません。\nuntil ... / while ... のなかにそれだけをかくか、10.times.with_screen_refresh do / loop.with_screen_refresh do をつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.arrayLiteralReceiver':
         'はいれつ（[...]）にちょくせつ「{ METHOD }」はつかえません。\nさきにはいれつをへんすうにいれてから（れい: a = [1, 2]）、a.{ METHOD } のようにつかってください。',
+    'gui.smalruby3.rubyToBlocksConverter.hashValueNotSupported':
+        '「{ SOURCE }」はハッシュのあたいにできません。\nハッシュのあたいにできるのは、かず・もじれつ・シンボル・しき（れい: @x や 1 + 2）です。\nハッシュ・はいれつ・nil はハッシュのなかにいれられません。',
+    'gui.smalruby3.rubyToBlocksConverter.hashKeyNotSupported':
+        '「{ SOURCE }」はハッシュのキーにできません。\nハッシュのキーは、シンボル（れい: :a）かもじれつ（れい: "a"）にしてください。',
     'gui.smalruby3.rubyToBlocksConverter.hashLiteralReceiver':
         'ハッシュにちょくせつ「{ METHOD }」はつかえません。\nさきにハッシュをへんすう（れい: @h）にいれてから、@h.{ METHOD } のようにつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':

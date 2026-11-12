@@ -6,6 +6,20 @@
  * @returns {object} same as param.
  */
 export default function (Generator) {
+    /**
+     * The hash of `@h.keys` / `@h.values`. Their receiver is the keys (or values) list of the
+     * hash, whose name must not come back into the Ruby code (`@_hash_h_keys_.keys`, issue #1652).
+     * @param {object} block - A smalrubyRuby_hashMethod block.
+     * @returns {?string} The Ruby name of the hash, or null for any other block.
+     */
+    const hashReceiver = function (block) {
+        if (block.opcode !== 'smalrubyRuby_hashMethod') return null;
+        const input = block.inputs && block.inputs.RECEIVER;
+        const receiverBlock = input && Generator.getBlock(input.block);
+        if (!receiverBlock || receiverBlock.opcode !== 'data_listcontents') return null;
+        return Generator.hashVariableOfListBlock(receiverBlock);
+    };
+
     // --- Method call expression builder ---
     const buildMethodCallExpr = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
@@ -22,7 +36,7 @@ export default function (Generator) {
             // so try both stores.
             receiver = Generator.variableNameByName(varName) || Generator.listNameByName(varName) || 'nil';
         } else {
-            receiver = Generator.valueToCode(block, 'RECEIVER', order) || Generator.quote_('');
+            receiver = hashReceiver(block) || Generator.valueToCode(block, 'RECEIVER', order) || Generator.quote_('');
         }
 
         const hasArg1 = block.inputs && block.inputs.ARG1;

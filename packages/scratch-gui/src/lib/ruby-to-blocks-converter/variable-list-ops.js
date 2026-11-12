@@ -1,6 +1,11 @@
 // === Smalruby: This file is Smalruby-specific (List/show/hide handlers for variable converter) ===
 import { RubyToBlocksConverterError } from './errors';
-import { isKnownStringReceiver } from './variable-hash-ops';
+import {
+    hashListsOfReceiver,
+    isKnownStringReceiver,
+    rejectHashValueThatIsNotABlock,
+    setListField,
+} from './variable-hash-ops';
 
 /**
  * Register all list operation and show/hide variable handlers on the converter.
@@ -213,6 +218,7 @@ export const registerListOperations = function (
                     converter._translator(messages.hashSyntaxNotAvailableInV1),
                 );
             }
+            rejectHashValueThatIsNotABlock(converter, messages, args[1]);
             if (
                 !converter._isStringOrBlock(args[1]) &&
                 !converter._isNumberOrBlock(args[1]) &&
@@ -293,8 +299,84 @@ export const registerListOperations = function (
         return block;
     });
 
+    /**
+     * Turn a hash receiver into "length of the keys list" (`@h.length`, `@h.empty?`). The comment
+     * keeps the name of a local hash, as on the other blocks of a local hash.
+     * @param {object} receiver - The receiver block (data_variable).
+     * @param {object} hash - The lists of the hash (`hashListsOfReceiver`).
+     * @param {?string} marker - Another `@ruby:` marker for the block, or null.
+     * @returns {object} The data_lengthoflist block.
+     */
+    const hashLengthBlock = (receiver, hash, marker) => {
+        const block = converter._changeBlock(receiver, 'data_lengthoflist', 'value');
+        setListField(block, hash.keysList);
+        const text = [hash.lvarComment, marker].filter(Boolean).join(',');
+        if (text) {
+            block.comment = converter._createComment(text, block.id);
+        } else {
+            delete block.comment;
+        }
+        return block;
+    };
+
+    /**
+     * The `@ruby:method:empty?:N` marker of the next `empty?` call.
+     * @returns {string} The marker.
+     */
+    const nextEmptyMarker = () => {
+        const name = 'empty?';
+        const index = (converter._context.methodCallIndices[name] || 0) + 1;
+        converter._context.methodCallIndices[name] = index;
+        return `@ruby:method:${name}:${index}`;
+    };
+
+    /**
+     * `length == 0` for `empty?`, with the marker on both blocks so that it comes back as `empty?`.
+     * @param {object} lengthBlock - The data_lengthoflist block.
+     * @param {string} marker - The `@ruby:method:empty?:N` marker.
+     * @returns {object} The operator_equals block.
+     */
+    const emptyBlock = (lengthBlock, marker) => {
+        const block = converter._createBlock('operator_equals', 'value_boolean');
+        converter._addInput(block, 'OPERAND1', lengthBlock, converter._createTextBlock(''));
+        converter._addTextInput(block, 'OPERAND2', '0', '50');
+        block.comment = converter._createComment(marker, block.id);
+        return block;
+    };
+
+    // Hash#key?: whether the keys list has the key (issue #1652). Symbol keys are stored as ":a".
+    converter.registerOnSend('variable', 'key?', 1, (params) => {
+        if (converter.version < 2) return null;
+        const { receiver, args } = params;
+        const key = args[0];
+        let item;
+        let marker;
+        if (converter._isSymbol(key) && converter._isPrimitive(key)) {
+            item = `:${converter._getSymbolValue(key)}`;
+            marker = '@ruby:hash:key?:sym';
+        } else if (converter._isString(key) && converter._isPrimitive(key)) {
+            item = key.value;
+            marker = '@ruby:hash:key?:str';
+        } else if (converter._isBlock(key)) {
+            item = key;
+            marker = '@ruby:hash:key?';
+        } else {
+            return null;
+        }
+        const hash = hashListsOfReceiver(converter, receiver, true);
+        if (!hash) return null;
+
+        const block = converter._changeBlock(receiver, 'data_listcontainsitem', 'value_boolean');
+        setListField(block, hash.keysList);
+        converter._addTextInput(block, 'ITEM', item, 'thing');
+        block.comment = converter._createComment([hash.lvarComment, marker].filter(Boolean).join(','), block.id);
+        return block;
+    });
+
     converter.registerOnSend('variable', 'length', 0, (params) => {
         const { receiver } = params;
+        const hash = hashListsOfReceiver(converter, receiver);
+        if (hash) return hashLengthBlock(receiver, hash, null);
         if (isKnownStringReceiver(converter, receiver)) return null;
 
         const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
@@ -329,23 +411,25 @@ export const registerListOperations = function (
         if (converter.version < 2) return null;
 
         const { receiver } = params;
+        const hash = hashListsOfReceiver(converter, receiver);
+        if (hash) {
+            const marker = nextEmptyMarker();
+            return emptyBlock(hashLengthBlock(receiver, hash, marker), marker);
+        }
         if (isKnownStringReceiver(converter, receiver)) return null;
+
+        // The comment of a local's read names the local; keep it with the marker (`a.empty?` came
+        // back as `@_a_1_.empty?`, issue #1652).
+        const readComment = receiver.comment && converter._context.comments[receiver.comment];
+        const lvarMatch = readComment && readComment.text.match(/@ruby:lvar:[^,\s]+/);
 
         const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         if (!converted || !listBlock) return null;
 
-        const name = 'empty?';
-        const index = (converter._context.methodCallIndices[name] || 0) + 1;
-        converter._context.methodCallIndices[name] = index;
-        const commentText = `@ruby:method:${name}:${index}`;
-
+        const marker = nextEmptyMarker();
         const lengthBlock = converter._changeBlock(listBlock, 'data_lengthoflist', 'value');
-        lengthBlock.comment = converter._createComment(commentText, lengthBlock.id);
-
-        const block = converter._createBlock('operator_equals', 'value_boolean');
-        converter._addInput(block, 'OPERAND1', lengthBlock, converter._createTextBlock(''));
-        converter._addTextInput(block, 'OPERAND2', '0', '50');
-        block.comment = converter._createComment(commentText, block.id);
-        return block;
+        const text = lvarMatch ? `${lvarMatch[0]},${marker}` : marker;
+        lengthBlock.comment = converter._createComment(text, lengthBlock.id);
+        return emptyBlock(lengthBlock, marker);
     });
 };

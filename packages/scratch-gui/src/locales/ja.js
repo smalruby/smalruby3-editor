@@ -918,6 +918,10 @@ export default {
         'with_screen_refresh do ... end は、until / while の中にそれだけを書いたときにしか使えません。\nuntil ... / while ... の中にそれだけを書くか、10.times.with_screen_refresh do / loop.with_screen_refresh do を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.arrayLiteralReceiver':
         '配列（[...]）に直接「{ METHOD }」は使えません。\n先に配列を変数に入れてから（例: a = [1, 2]）、a.{ METHOD } のように使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.hashValueNotSupported':
+        '「{ SOURCE }」はハッシュの値にできません。\nハッシュの値にできるのは、数・文字列・シンボル・式（例: @x や 1 + 2）です。\nハッシュ・配列・nil はハッシュの中に入れられません。',
+    'gui.smalruby3.rubyToBlocksConverter.hashKeyNotSupported':
+        '「{ SOURCE }」はハッシュのキーにできません。\nハッシュのキーは、シンボル（例: :a）か文字列（例: "a"）にしてください。',
     'gui.smalruby3.rubyToBlocksConverter.hashLiteralReceiver':
         'ハッシュに直接「{ METHOD }」は使えません。\n先にハッシュを変数（例: @h）に入れてから、@h.{ METHOD } のように使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':

@@ -380,3 +380,108 @@ export const convertHashSet = function (converter, receiver, keyArg, valueArg) {
 
     return converter._linkBlocks([deleteValuesBlock, deleteKeysBlock, pushKeyBlock, pushValueBlock]);
 };
+
+/**
+ * Get the Ruby name of a variable in the converter's stores (`@h`, `$h`, or the local's own name).
+ * @param {object} variable - The variable.
+ * @returns {?string} The Ruby name, or null for an unknown scope.
+ */
+const rubyNameOfVariable = function (variable) {
+    if (variable.scope === 'global') return `$${variable.name}`;
+    if (variable.scope === 'instance') return `@${variable.name}`;
+    if (variable.scope === 'local') return variable.originalName;
+    return null;
+};
+
+/**
+ * Find the two lists (keys and values) that hold the hash a receiver reads, for the methods of Hash
+ * that are also methods of Array or String (`length` / `empty?`). A receiver is a hash when the code
+ * sets it to a hash literal (`_collectVariableUses`) or the lists of the hash already exist (a hash
+ * of the project, or set earlier in this code). Otherwise these methods would use a list named
+ * after the hash, which is always empty (issue #1652).
+ * @param {object} converter - The converter instance.
+ * @param {object} receiver - The receiver block.
+ * @param {boolean} [assumeHash] - Treat any variable as a hash (`key?` is a method of Hash only).
+ * @returns {?{variable: object, keysList: object, valuesList: object, lvarComment: ?string}}
+ *     The lists of the hash, or null when the receiver is not a hash variable.
+ */
+export const hashListsOfReceiver = function (converter, receiver, assumeHash = false) {
+    if (!converter._isBlock(receiver) || receiver.opcode !== 'data_variable' || !receiver.fields.VARIABLE) {
+        return null;
+    }
+    const varName = receiver.fields.VARIABLE.value;
+    const variable = converter._context.variables[varName] || converter._context.localVariables[varName];
+    if (!variable || variable.isArgument) return null;
+    const rubyName = rubyNameOfVariable(variable);
+    if (!rubyName) return null;
+
+    const keysListName = converter._hashKeysListName(rubyName);
+    if (!assumeHash) {
+        const uses = converter._context.variableUses && converter._context.variableUses[rubyName];
+        const setToHash = Boolean(uses) && uses.hash && !uses.list;
+        const listsExist = variable.scope !== 'local' && Boolean(converter._context.lists[keysListName]);
+        if (!setToHash && !listsExist) return null;
+    }
+    return {
+        variable,
+        keysList: converter._lookupOrCreateList(keysListName),
+        valuesList: converter._lookupOrCreateList(converter._hashValuesListName(rubyName)),
+        lvarComment: variable.scope === 'local' ? `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}` : null,
+    };
+};
+
+/**
+ * Point a block at a list (sets its LIST field).
+ * @param {object} block - The block.
+ * @param {object} list - The list in the converter's stores.
+ */
+export const setListField = function (block, list) {
+    if (block.fields) delete block.fields.VARIABLE;
+    block.fields = block.fields || {};
+    block.fields.LIST = {
+        name: 'LIST',
+        id: list.id,
+        value: list.name,
+        variableType: list.type,
+    };
+};
+
+const HASH_VALUE_PRIMITIVE_TYPES = new Set(['sym', 'str', 'int', 'float']);
+
+/**
+ * Reject a value that a hash cannot hold as a block. A hash is two lists of text (keys and values),
+ * so a hash, an array, or nil in it would be lost: the converter used to put `0` there without
+ * saying so (issue #1654). Numbers, strings, symbols, and expressions (blocks) are kept.
+ * @param {object} converter - The converter instance.
+ * @param {object} messages - The messages object for error messages.
+ * @param {*} value - The value of a hash entry.
+ */
+export const rejectHashValueThatIsNotABlock = function (converter, messages, value) {
+    if (!converter._isPrimitive(value) || HASH_VALUE_PRIMITIVE_TYPES.has(value.type)) return;
+    const node = value.node || converter._context.currentNode;
+    throw new RubyToBlocksConverterError(
+        node,
+        converter._translator(messages.hashValueNotSupported, {
+            SOURCE: converter._truncateSource(converter._getSource(node)),
+        }),
+    );
+};
+
+/**
+ * Reject a key of a hash literal that is not a symbol or a string. Such an entry used to be skipped,
+ * and the whole assignment came back empty (issue #1654).
+ * @param {object} converter - The converter instance.
+ * @param {object} messages - The messages object for error messages.
+ * @param {*} key - The key of a hash entry.
+ */
+export const rejectHashKeyThatIsNotSymbolOrString = function (converter, messages, key) {
+    if (converter._isSymbol(key) || converter._isString(key)) return;
+    const node = (converter._isPrimitive(key) || converter._isBlock(key)) && key.node;
+    const errorNode = node || converter._context.currentNode;
+    throw new RubyToBlocksConverterError(
+        errorNode,
+        converter._translator(messages.hashKeyNotSupported, {
+            SOURCE: converter._truncateSource(converter._getSource(errorNode)),
+        }),
+    );
+};

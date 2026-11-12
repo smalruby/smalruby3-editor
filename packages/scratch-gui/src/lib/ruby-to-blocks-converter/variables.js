@@ -1,6 +1,13 @@
 import { defineMessages } from 'react-intl';
 import { RubyToBlocksConverterError } from './errors';
-import { convertToListBlock, adjustIndex, convertHashGet, convertHashSet } from './variable-hash-ops';
+import {
+    convertToListBlock,
+    adjustIndex,
+    convertHashGet,
+    convertHashSet,
+    rejectHashKeyThatIsNotSymbolOrString,
+    rejectHashValueThatIsNotABlock,
+} from './variable-hash-ops';
 import { registerListOperations } from './variable-list-ops';
 
 const messages = defineMessages({
@@ -32,6 +39,21 @@ const messages = defineMessages({
             '\nPlease switch to Ruby version 2 from the settings menu.',
         description: 'Error message when hash syntax ($a = {key: value}) is used in Ruby version 1',
         id: 'gui.smalruby3.rubyToBlocksConverter.hashSyntaxNotAvailableInV1',
+    },
+    hashValueNotSupported: {
+        defaultMessage:
+            '"{ SOURCE }" cannot be a value in a hash.' +
+            '\nA value in a hash can be a number, a string, a symbol, or an expression (e.g. @x or 1 + 2).' +
+            '\nA hash, an array, or nil cannot be put in a hash.',
+        description: 'Error message when a hash, an array, or nil is a value in a hash (e.g. @h = {a: {b: 1}})',
+        id: 'gui.smalruby3.rubyToBlocksConverter.hashValueNotSupported',
+    },
+    hashKeyNotSupported: {
+        defaultMessage:
+            '"{ SOURCE }" cannot be a key of a hash.' +
+            '\nA key of a hash must be a symbol (e.g. :a) or a string (e.g. "a").',
+        description: 'Error message when a key of a hash literal is not a symbol or a string (e.g. @h = {1 => 2})',
+        id: 'gui.smalruby3.rubyToBlocksConverter.hashKeyNotSupported',
     },
 });
 
@@ -326,6 +348,11 @@ const VariablesConverter = {
                     );
                 }
                 const hashEntries = rh.value; // Map<Primitive, Primitive>
+                // Check every entry before making blocks, so that nothing is lost silently (#1654).
+                hashEntries.forEach((value, key) => {
+                    rejectHashKeyThatIsNotSymbolOrString(converter, messages, key);
+                    rejectHashValueThatIsNotABlock(converter, messages, value);
+                });
                 let prefixedName;
                 if (variable.scope === 'global') {
                     prefixedName = `$${variable.name}`;
