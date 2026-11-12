@@ -226,15 +226,13 @@ const ExpressionHandlers = {
             }
         }
 
-        // A receiver or an argument that is not a value (e.g. `(a = 2)` of `(a = 2).to_s`, or `(a; b)`)
-        // makes the call one that cannot be converted, like `say(a = 2)`: put in an input, the
-        // command was lost without an error (issue #1691).
-        const argNodes = node.arguments_ ? node.arguments_.arguments_ : [];
+        // A receiver or an argument that is not a value (e.g. `(a = 2)` of `(a = 2).to_s`), or a value
+        // before it in parentheses (e.g. `a` of `(a; b)`), makes the call one that cannot be converted,
+        // like `say(a = 2)`: put in an input, the command or the value was lost without an error (issue #1691).
         const hasCommandValue =
             this._isCommandValue(receiver) ||
             args.some((a) => this._isCommandValue(a)) ||
-            this._isSequenceInParentheses(node.receiver) ||
-            argNodes.some((n) => this._isSequenceInParentheses(n));
+            this._hasLostPreBlock(preBlocks);
 
         let block = null;
         if (!hasCommandValue) {

@@ -21,6 +21,8 @@ describe('RubyToBlocksConverter/command in parentheses', () => {
         ['say((a = 2).to_s)'],
         ['say((n += 1).to_s)'],
         ['say((a; b).to_s)'],
+        ['say((1; a).to_s)'],
+        ['say((move(10); a; b).to_s)'],
         ['say(1 + (a = 2))'],
         ['say(!(a = 2))'],
         ['say(-(a = 2))'],
@@ -63,12 +65,28 @@ describe('RubyToBlocksConverter/command in parentheses', () => {
         expect(errors[0].text).toContain(wrongInstruction(source));
     });
 
-    test.each([['say((a + 1).to_s)'], ['say((a).to_s)'], ['say(((a)).to_s)'], ['say(((a + 1) * 2).to_s)']])(
-        '%s is converted',
-        async (code) => {
-            const { ok, errors } = await convert(code);
-            expect(errors).toEqual([]);
-            expect(ok).toBe(true);
-        },
-    );
+    test.each([
+        ['say((a + 1).to_s)'],
+        ['say((a).to_s)'],
+        ['say(((a)).to_s)'],
+        ['say(((a + 1) * 2).to_s)'],
+        // A command before the value is run before the call (as before issue #1691).
+        ['say((move(10); a).to_s)'],
+        ['say((a = 2; a + 1).to_s)'],
+        ['say(1 + (move(10); move(20); a))'],
+    ])('%s is converted', async (code) => {
+        const { ok, errors } = await convert(code);
+        expect(errors).toEqual([]);
+        expect(ok).toBe(true);
+    });
+
+    test('a command before the value in parentheses is run before the call', async () => {
+        const converter = new RubyToBlocksConverter(null, { version: '2' });
+        const ok = await converter.targetCodeToBlocks(null, 'a = 1\nsay((move(10); a).to_s)');
+        expect(converter.errors).toEqual([]);
+        expect(ok).toBe(true);
+        const blocks = converter._context.blocks;
+        const move = Object.values(blocks).find((b) => b.opcode === 'motion_movesteps');
+        expect(blocks[move.next].opcode).toBe('looks_say');
+    });
 });

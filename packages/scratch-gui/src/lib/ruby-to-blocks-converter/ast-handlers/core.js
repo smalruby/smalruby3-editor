@@ -373,22 +373,15 @@ const CoreHandlers = {
     },
 
     /**
-     * Whether a receiver or an argument is parentheses with more than one statement, at any depth
-     * (e.g. `(a; b)` or `((a; b))`): only the last one would be the value, and the others would be lost
-     * (issue #1691).
-     * @param {object} node - The receiver or the argument node.
-     * @returns {boolean} Whether there is more than one statement in the parentheses.
+     * Whether a statement put before a call cannot be run there (issue #1691).
+     * A command written before the value in parentheses (e.g. `move(1)` of `say((move(1); a).to_s)`) is
+     * run before the call, as the call of a My Block that returns a value is. A value or a symbol written
+     * there (e.g. `a` of `(a; b)`) cannot be run: it would be lost without an error.
+     * @param {Array} preBlocks - What is put before the call.
+     * @returns {boolean} Whether one of them is not a command.
      */
-    _isSequenceInParentheses(node) {
-        let n = node;
-        while (n && this._getNodeTypeName(n) === 'ParenthesesNode') {
-            const statements = this._parenthesesStatements(n);
-            if (statements.length > 1) {
-                return true;
-            }
-            n = statements[0];
-        }
-        return false;
+    _hasLostPreBlock(preBlocks) {
+        return preBlocks.some((b) => !this._isBlock(b) || this._getBlockType(b) !== 'statement');
     },
 
     /**
