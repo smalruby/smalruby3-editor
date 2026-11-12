@@ -242,6 +242,28 @@ describe('Ruby to blocks: return values that no block can hold (issues #1557, #1
         expect(errors[0].text).toContain('"bar" cannot be returned from a method');
     });
 
+    test('a call of the method itself after another call in the line is an error', async () => {
+        // The return value of fib(n - 1) is kept in a variable of the sprite, and fib(n - 2) would
+        // overwrite it while it runs, so the blocks would not give the value of Ruby.
+        const { result, errors } = await convert(
+            'def fib(n)\n  if n < 2\n    return n\n  end\n  return fib(n - 1) + fib(n - 2)\nend\n',
+        );
+        expect(result).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].row).toBe(4);
+        expect(errors[0].text).toContain('"fib(n - 2)" calls "fib" in "fib" after another method call');
+    });
+
+    test('a call of the method itself after a call of another method is an error', async () => {
+        const { result, errors } = await convert(
+            'def bar(a)\n  return a\nend\n\ndef baz\n  say(bar(1))\nend\n\n' +
+                'def fib(n)\n  if n < 2\n    return n\n  end\n  return bar(1) + fib(n - 1)\nend\n',
+        );
+        expect(result).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].text).toContain('"fib(n - 1)" calls "fib" in "fib"');
+    });
+
     test('return with more than one line in parentheses is an error', async () => {
         const { result, errors } = await convert('def self.foo\n  return (move(10); 1)\nend\n');
         expect(result).toBe(false);

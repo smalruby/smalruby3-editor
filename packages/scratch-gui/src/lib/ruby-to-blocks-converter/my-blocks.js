@@ -10,6 +10,14 @@ const messages = defineMessages({
             '\nUse a number, string, or boolean value.',
         description: 'Error message when My Block argument has invalid type',
         id: 'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType'
+    },
+    recursiveCallAfterSavedValue: {
+        defaultMessage: '"{ SOURCE }" calls "{ NAME }" in "{ NAME }" after another method call in the same line.' +
+            '\nWith blocks, the saved return value of the other call would be overwritten by this call.' +
+            '\nCall "{ NAME }" only once in a line, before other method calls.',
+        description: 'Error message when a method calls itself in a value after another call ' +
+            '(e.g. return fib(n - 1) + fib(n - 2)), whose saved return value the recursion would overwrite',
+        id: 'gui.smalruby3.rubyToBlocksConverter.recursiveCallAfterSavedValue'
     }
 });
 
@@ -38,6 +46,19 @@ const MyBlocksConverter = {
             let callCount;
             // Add comment if procedure has return value and used as value
             if (procedure.hasReturnValue && converter.isValueContext()) {
+                // The return value of an earlier call in this line is saved in a variable of the sprite.
+                // A call of the method itself would run this line again inside and overwrite it, so
+                // `return fib(n - 1) + fib(n - 2)` would not give the value of Ruby.
+                if (name === converter._context.currentProcedureName &&
+                    converter._context.savedReturnValueInStatement) {
+                    throw new RubyToBlocksConverterError(
+                        converter._context.currentNode,
+                        converter._translator(messages.recursiveCallAfterSavedValue, {
+                            SOURCE: converter._getSource(converter._context.currentNode),
+                            NAME: name
+                        })
+                    );
+                }
                 callCount = converter._context.methodCallCounts[name] || 0;
                 callIndex = (converter._context.methodCallIndices[name] || 0) + 1;
                 converter._context.methodCallIndices[name] = callIndex;
@@ -118,6 +139,7 @@ const MyBlocksConverter = {
                     sourceBlock.parent = evacuationBlock.id;
                     evacuationBlock.comment = converter._createComment(commentText, evacuationBlock.id);
                     resultBlocks.push(evacuationBlock);
+                    converter._context.savedReturnValueInStatement = true;
                 }
 
                 const variable = converter._lookupOrCreateVariable(`@_return_${name}${varSuffix}_`);

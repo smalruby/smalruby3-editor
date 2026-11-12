@@ -965,6 +965,8 @@ export default {
         '「{ SOURCE }」はブロックにできないあたいなので、メソッドからかえせません。\nすうち、もじれつ、true / false、へんすうのどれかをかえしてください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotReturnList':
         '「{ SOURCE }」はリストなので、メソッドからかえせません。\nリストのなかのあたい（れい: return { SOURCE }[0]）かへんすうをかえしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.recursiveCallAfterSavedValue':
+        '「{ SOURCE }」は、「{ NAME }」のなかで、おなじぎょうのほかのメソッドのよびだしのあとに「{ NAME }」をよんでいます。\nブロックでは、さきによんだメソッドのもどりちがこのよびだしでうわがきされてしまいます。\n1 ぎょうで「{ NAME }」をよぶのは 1 かいだけにして、ほかのメソッドよりさきによんでください。',
     'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues':
         '「{ SOURCE }」はあたいを2つ以上かえしていますが、メソッドがかえせるあたいは1つだけです。\nかえすあたいを1つにしてください（れい: return { FIRST }）。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':

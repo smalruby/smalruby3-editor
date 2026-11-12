@@ -91,6 +91,7 @@ const CoreHandlers = {
             // `1 != 50 && 2 != 60` (a single expression) produces indices :1 and :2.
             // Note: literalCallIndices are NOT reset per-statement - they accumulate across statements.
             this._context.methodCallIndices = {};
+            this._context.savedReturnValueInStatement = false;
             if (bodyKind && bodyKind !== 'top' && this._getNodeTypeName(childNode) === 'DefNode') {
                 // On any line, not only on the first one (#1554). The body of a class is not a block
                 // body (`bodyKind` is null), so a method written directly in a class is still converted;

@@ -447,6 +447,7 @@ const ClassVisitor = {
             const blockToStmt = new Map();
             for (const stmt of filteredStatements) {
                 this._context.methodCallIndices = {};
+                this._context.savedReturnValueInStatement = false;
                 const block = this.visit(stmt);
                 if (Array.isArray(block)) {
                     block.forEach(b => {

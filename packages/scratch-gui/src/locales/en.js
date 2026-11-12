@@ -671,6 +671,8 @@ export default {
         '"{ SOURCE }" cannot be returned from a method, because there is no block for this value.\nReturn a number, a string, true / false, or a variable instead.',
     'gui.smalruby3.rubyToBlocksConverter.cannotReturnList':
         '"{ SOURCE }" is a list, so it cannot be returned from a method.\nReturn an item of the list (e.g. return { SOURCE }[0]) or a variable instead.',
+    'gui.smalruby3.rubyToBlocksConverter.recursiveCallAfterSavedValue':
+        '"{ SOURCE }" calls "{ NAME }" in "{ NAME }" after another method call in the same line.\nWith blocks, the saved return value of the other call would be overwritten by this call.\nCall "{ NAME }" only once in a line, before other method calls.',
     'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues':
         '"{ SOURCE }" returns more than one value, but a method can return only one value.\nReturn one value (e.g. return { FIRST }).',
     'gui.smalruby3.rubyToBlocksConverter.invalidBackdropName':

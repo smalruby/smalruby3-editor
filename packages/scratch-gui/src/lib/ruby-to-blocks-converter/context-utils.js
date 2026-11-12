@@ -23,6 +23,8 @@ const ContextUtils = {
             procedures: {},
             methodCallCounts: {},
             methodCallIndices: {},
+            // Whether a return value of a call is saved in a variable in the current statement (issue #1556)
+            savedReturnValueInStatement: false,
             literalCallIndices: {},
             elsifCounter: 0,
             caseCounter: 0,
@@ -97,7 +99,7 @@ const ContextUtils = {
             const ast = queue.shift();
             if (!ast) continue;
 
-            if (ast.constructor.name === 'CallNode') {
+            if (this._prismNodeType(ast) === 'CallNode') {
                 const name = ast.name;
                 const procedure = this._lookupProcedure(name);
                 if (procedure && procedure.hasReturnValue) {
@@ -311,7 +313,8 @@ const ContextUtils = {
      */
     _countProcedureCallsInNode (node) {
         if (!node || typeof node !== 'object') return;
-        const nodeType = node.constructor && node.constructor.name;
+        // Not `constructor.name`: the production build renames the classes.
+        const nodeType = this._prismNodeType(node);
         if (!nodeType) return;
 
         if (nodeType === 'CallNode') {
@@ -345,7 +348,7 @@ const ContextUtils = {
                 const child = node[key];
                 if (!child) return;
                 if (typeof child === 'object' && child.constructor) {
-                    if (child.constructor.name.endsWith('Node')) {
+                    if (this._prismNodeType(child)) {
                         this._countProcedureCallsInNode(child);
                     } else if (Array.isArray(child) || typeof child.forEach === 'function') {
                         child.forEach(c => this._countProcedureCallsInNode(c));
@@ -362,7 +365,8 @@ const ContextUtils = {
      */
     _countCallsInValueNode (node) {
         if (!node || typeof node !== 'object') return;
-        const nodeType = node.constructor && node.constructor.name;
+        // Not `constructor.name`: the production build renames the classes.
+        const nodeType = this._prismNodeType(node);
         if (!nodeType) return;
 
         if (nodeType === 'CallNode') {
@@ -385,8 +389,7 @@ const ContextUtils = {
             const childKeys = ['value', 'left', 'right', 'condition', 'body'];
             childKeys.forEach(key => {
                 const child = node[key];
-                if (child && typeof child === 'object' && child.constructor &&
-                    child.constructor.name.endsWith('Node')) {
+                if (this._prismNodeType(child)) {
                     this._countCallsInValueNode(child);
                 }
             });
