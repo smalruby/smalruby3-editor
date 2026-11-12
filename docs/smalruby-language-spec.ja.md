@@ -736,7 +736,7 @@ say(@items)                    # リストそのもの（「リスト items」�
 以下のRuby構文はsmalrubyでは**使用できません**:
 
 - `for` ループ
-- `each` メソッド
+- `each` メソッド（`[1, 2].each do |i|` や `[1, 2].first` のように、配列 `[...]` に直接 `each` / `first` / `last` / `max` / `min` / `sort` / `reverse` / `join` を使うと、ブロックに変えるときにどの行かがわかるエラーになる。先に配列を変数に入れる: `@a = [1, 2]` → `@a.first`）
 - `break` / `next` / `redo` / `retry`（Scratch に当たるブロックがないので、ブロックに変えるときにどの行かがわかるエラーになる。くり返しは `until x > 3 ... end`（「〜まで繰り返す」）の条件で止め、残りを飛ばしたいときは `if` で囲む）
 - `begin`/`rescue`/`ensure`（例外処理）
 - `module_function`, `extend`（`module` と `include` はサポート）
