@@ -940,6 +940,10 @@ export default {
         '「{ SOURCE }」は値なので、それだけを命令として書くことはできません。\n命令の中で使う（例: say({ SOURCE })）か、変数に入れてください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue':
         '「{ SOURCE }」はブロックにできない値なので、メソッドから返せません。\n数値、文字列、true / false、変数のどれかを返してください。',
+    'gui.smalruby3.rubyToBlocksConverter.superWithoutReturnValue':
+        '「{ SOURCE }」を値として使っていますが、{ MODULE } の「{ METHOD }」は値を返しません。\n{ MODULE } の「{ METHOD }」で値を返す（例: return a）か、「{ SOURCE }」だけを 1 行に書いてください。',
+    'gui.smalruby3.rubyToBlocksConverter.superTwiceInLine':
+        '1 行の中で super の値を 2 回以上使っています。\nブロックでは、先の super の値が次の super で上書きされてしまいます。\n先に値を変数に入れて（例: x = super）、その変数を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotReturnList':
         '「{ SOURCE }」はリストなので、メソッドから返せません。\nリストの中の値（例: return { SOURCE }[0]）か変数を返してください。',
     'gui.smalruby3.rubyToBlocksConverter.recursiveCallAfterSavedValue':

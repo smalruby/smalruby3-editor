@@ -444,9 +444,13 @@ class Sprite1
 end
 ```
 
+The value of `super` can be used like any other value, as in `return super`, `return super + 1` or `say(super(a))`. With blocks, the call of the module's method comes first, and then its return value is used (the same form as `return bar + 1`).
+
 **Restrictions**:
 - `super` can only be used inside a `def` method
 - A same-named method must exist in an included module
+- To use `super` as a value, the module's method must return a value
+- The value of `super` can be used only once in a line (`return super + super` is an error; save it in a variable first, as in `x = super`)
 - Not available on Stage (`class Stage`)
 
 ## 4. Available Methods

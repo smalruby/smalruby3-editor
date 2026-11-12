@@ -197,15 +197,29 @@ const AssignmentHandlers = {
                 }
             }
             const savedBeforeWriter = this._saveContext();
+            // The value is visited again below, so the calls in it must be counted from the same index again.
+            const savedMethodCallIndices = Object.assign({}, this._context.methodCallIndices);
+            const savedReturnValueInStatement = this._context.savedReturnValueInStatement;
             const block = this.callMethod(null, writeName, [this.visit(valueNode)], rubyBlockArgs, rubyBlock, node);
             if (block) {
                 return block;
             }
             // Not a writer method: drop what visiting the value made, as it is visited again below.
             this._restoreContext(savedBeforeWriter);
+            this._context.methodCallIndices = savedMethodCallIndices;
+            this._context.savedReturnValueInStatement = savedReturnValueInStatement;
         }
         const variable = this._lookupOrCreateVariable(varName);
-        let rh = this.visit(valueNode);
+        // Visit the value as a value, like an argument of `say(...)`: a call of a method that returns
+        // a value (e.g. `x = bar(1)`, `x = super`) becomes the call followed by its return variable (#1568).
+        const savedIsValue = this._context.isValue;
+        this._context.isValue = true;
+        let rh;
+        try {
+            rh = this.visit(valueNode);
+        } finally {
+            this._context.isValue = savedIsValue;
+        }
         const split = this._splitPreBlocksAndValue(rh);
         rh = split.value;
         preBlocks.push(...split.preBlocks);

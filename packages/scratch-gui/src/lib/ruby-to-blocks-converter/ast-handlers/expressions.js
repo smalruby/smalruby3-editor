@@ -40,6 +40,24 @@ const messages = defineMessages({
             '(e.g. private def foo ... end)',
         id: 'gui.smalruby3.rubyToBlocksConverter.visibilityDefNotSupported',
     },
+    superWithoutReturnValue: {
+        defaultMessage:
+            '"{ SOURCE }" is used as a value, but "{ METHOD }" of { MODULE } does not return a value.' +
+            '\nReturn a value in "{ METHOD }" of { MODULE } (e.g. return a), or write "{ SOURCE }" on a line by itself.',
+        description:
+            'Error message when the value of super is used (e.g. return super) but the method of the module ' +
+            'that super calls does not return a value',
+        id: 'gui.smalruby3.rubyToBlocksConverter.superWithoutReturnValue',
+    },
+    superTwiceInLine: {
+        defaultMessage:
+            'The value of super is used more than once in a line.' +
+            '\nWith blocks, the value of the first super would be overwritten by the next one.' +
+            '\nSave the value in a variable first (e.g. x = super), then use the variable.',
+        description:
+            'Error message when the value of super is used twice or more in a line (e.g. return super + super)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.superTwiceInLine',
+    },
 });
 
 // No block can hold the visibility of a method, so these are rejected wherever they are written (#1561).
@@ -170,7 +188,16 @@ const ExpressionHandlers = {
         const saved = this._saveContext();
 
         const preBlocks = [];
-        let receiver = this.visit(node.receiver);
+        // The receiver is a value too (e.g. `bar(1)` / `super` of `super + 1`): a call of a method that
+        // returns a value becomes the call followed by its return variable, as an argument does (#1568).
+        const savedIsValueForReceiver = this._context.isValue;
+        this._context.isValue = true;
+        let receiver;
+        try {
+            receiver = this.visit(node.receiver);
+        } finally {
+            this._context.isValue = savedIsValueForReceiver;
+        }
         const split = this._splitPreBlocksAndValue(receiver);
         receiver = split.value;
         preBlocks.push(...split.preBlocks);
@@ -591,9 +618,61 @@ const ExpressionHandlers = {
 
         // Attach @ruby:super or @ruby:super:forwarding comment
         const commentText = isForwarding ? '@ruby:super:forwarding' : '@ruby:super';
+        if (this.isValueContext()) {
+            return this._superValueBlocks(node, callBlock, commentText, superInfo, procedure);
+        }
         callBlock.comment = this._createComment(commentText, callBlock.id);
 
         return callBlock;
+    },
+
+    /**
+     * The blocks of super used as a value (e.g. `return super + 1`): the call, then a read of the return
+     * variable of the module method, as `return bar + 1` does (issue #1568).
+     * @param {object} node - The super node.
+     * @param {object} callBlock - The procedures_call block of the module method.
+     * @param {string} commentText - `@ruby`:super or `@ruby`:super:forwarding.
+     * @param {object} superInfo - The module name and the renamed procedure name.
+     * @param {object} procedure - The renamed procedure of the module method.
+     * @returns {Array} The call block and the data_variable block of the value.
+     */
+    _superValueBlocks(node, callBlock, commentText, superInfo, procedure) {
+        const source = this._firstLineSource(node);
+        const methodName = this._context.currentProcedureName;
+        if (!procedure.hasReturnValue) {
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(messages.superWithoutReturnValue, {
+                    SOURCE: source,
+                    METHOD: methodName,
+                    MODULE: superInfo.moduleName,
+                }),
+            );
+        }
+        // All the super in a line share one return variable, so a second one would overwrite the first.
+        const renamedProcName = superInfo.renamedProcName;
+        const indexKey = `super:${renamedProcName}`;
+        const index = (this._context.methodCallIndices[indexKey] || 0) + 1;
+        this._context.methodCallIndices[indexKey] = index;
+        if (index > 1) {
+            throw new RubyToBlocksConverterError(node, this._translator(messages.superTwiceInLine));
+        }
+
+        const returnComment = `@ruby:return:${renamedProcName}`;
+        callBlock.comment = this._createComment(`${commentText},${returnComment}`, callBlock.id);
+        const variable = this._lookupOrCreateVariable(`@_return_${renamedProcName}_`);
+        const varBlock = this._createBlock('data_variable', 'value_variable', {
+            fields: {
+                VARIABLE: {
+                    name: 'VARIABLE',
+                    id: variable.id,
+                    value: variable.name,
+                    variableType: variable.type,
+                },
+            },
+        });
+        varBlock.comment = this._createComment(returnComment, varBlock.id);
+        return [callBlock, varBlock];
     },
 };
 
