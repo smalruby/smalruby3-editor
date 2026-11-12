@@ -301,6 +301,8 @@ class RubyToBlocksConverter extends Visitor {
 
         const previousNode = this._context.currentNode;
         this._context.currentNode = node;
+        // A method or a block of the script has its own local variables (issue #1630)
+        const previousLocalUnit = this._enterLocalUnit(node);
 
         // Resolve the handler name via node.accept() rather than constructor.name.
         // constructor.name is mangled by esbuild/terser in production builds, but
@@ -321,10 +323,14 @@ class RubyToBlocksConverter extends Visitor {
         node.accept(sniffer);
 
         let result;
-        if (handlerName && typeof this[handlerName] === 'function') {
-            result = this[handlerName](node);
-        } else {
-            throw new Error(`not supported node type: ${this._getNodeTypeName(node)}`);
+        try {
+            if (handlerName && typeof this[handlerName] === 'function') {
+                result = this[handlerName](node);
+            } else {
+                throw new Error(`not supported node type: ${this._getNodeTypeName(node)}`);
+            }
+        } finally {
+            if (previousLocalUnit !== null) this._context.currentLocalUnit = previousLocalUnit;
         }
 
         if (result && !this._context.nodeToBlockMap.has(node)) {
