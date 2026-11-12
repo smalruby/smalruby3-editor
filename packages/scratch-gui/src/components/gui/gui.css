@@ -425,3 +425,24 @@ body .alerts-container {
     }
 }
 /* === Smalruby: End of narrow-height vertical chrome compression === */
+
+/* === Smalruby: Start of lesson mode === */
+/*
+    レッスンモードの課題バー（components/lesson-task-bar/。1 行・2.5rem 固定）は、メニューバーと本体の
+    あいだに画面の幅いっぱいで出す。本体（エディタの列 + ステージの列）はその高さの分だけ縮める。
+    上の narrow-height（メニューバー 2.5rem）より後ろに置いて上書きする。
+*/
+.body-wrapper-with-lesson-task-bar {
+    height: calc(100% - $menu-bar-height - 2.5rem);
+}
+
+@media (max-height: 800px) {
+    .body-wrapper-with-lesson-task-bar {
+        height: calc(100% - 2.5rem - 2.5rem);
+    }
+}
+
+.body-wrapper-without-menu-bar.body-wrapper-with-lesson-task-bar {
+    height: calc(100% - 2.5rem);
+}
+/* === Smalruby: End of lesson mode === */

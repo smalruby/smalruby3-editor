@@ -55,7 +55,10 @@ const DirectionPicker = props => {
         <Label
             secondary
             above={props.labelAbove}
-            text={directionLabel}
+            // === Smalruby: Start of compact middle sprite info ===
+            // 中サイズのステージでは「向き」の字の代わりにアイコンを入力欄の左隣に出す
+            text={props.labelIcon || directionLabel}
+            // === Smalruby: End of compact middle sprite info ===
         >
             <Popover
                 body={
@@ -112,6 +115,9 @@ DirectionPicker.propTypes = {
     direction: PropTypes.number,
     disabled: PropTypes.bool.isRequired,
     labelAbove: PropTypes.bool,
+    // === Smalruby: Start of compact middle sprite info ===
+    labelIcon: PropTypes.node,
+    // === Smalruby: End of compact middle sprite info ===
     onChangeDirection: PropTypes.func.isRequired,
     onClickAllAround: PropTypes.func.isRequired,
     onClickDontRotate: PropTypes.func.isRequired,

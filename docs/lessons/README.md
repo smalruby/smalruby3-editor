@@ -635,12 +635,21 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 - **setup**: `lib/lessons/challenge-setup.js` の `setupForChallenge(course, challenge)` が
   `lib/deck-setup.js` に渡す形を作る。コースの言語から既定（ブロック = コードタブ、Ruby = Ruby タブ・Ruby
   モード、DNCL = Ruby タブ・DNCL モード）を決め、チャレンジの `setup` で上書きする。
-- **課題バー**（`components/lesson-task-bar/`）: エディタ列（タブの上）に 1 行・40px で出す。
+- **課題バー**（`components/lesson-task-bar/`）: メニューバーのすぐ下に、**画面の幅いっぱい**（エディタの列と
+  ステージの列の両方の上）で 1 行・40px で出す（`gui.jsx` がメニューバーと本体のあいだに置き、本体は
+  `.body-wrapper-with-lesson-task-bar` でその分だけ縮む）。
   「何個め / レッスンの中の数」（例: 「3 / 4」）・課題の 1 行（`task`。無ければチャレンジの名前）・ヒント・ほかのチャレンジへ。
-  stage の列には掛からないので、1300×600 の授業のパソコンでもコードエリアは 40px 縮むだけ。
-  課題の文は長くてもエディタ列を広げない（広げるとステージが画面の右にはみ出す）。入りきらない分は
+  課題の文が残りの幅を取るので、「ヒント」「ほかのチャレンジへ」は**画面の右端**に寄る（ステージの列の上）。
+  ステージの列（旗・止める・ステージの大きさのボタン）は帯の下に 40px 下がり、そのまま押せる。
+  1300×600 の授業のパソコンでは、エディタの列もステージの列も縦が 40px 減る。中サイズのステージ（既定）の
+  ステージ（360×270）は小さくならず、スプライトの情報を 2 行に詰めて（`docs/sprite/README.md`）スプライトの
+  一覧が隠れないようにしている（ページはスクロールしない）。大きいステージ（480×360）を選んだときは、
+  レッスンモードでなくても 600px の縦に収まらず、スプライトの情報の下が画面の外に出る（upstream の形のまま）。
+  課題の文は長くてもバーを広げない（`width: 0`）。入りきらない分は
   … で切る（全文は下のパネルで読む）。課題の文の改行（下の「課題の全文」）は、バーの 1 行ではつなぐ
-  （前後が両方とも半角なら空白でつなぎ、日本語は空白を入れない）。SP（MobileGui）でも同じ場所に出る。
+  （前後が両方とも半角なら空白でつなぎ、日本語は空白を入れない）。
+  SP（MobileGui）にはステージの列が無いので、これまでどおり編集エリアの上（サイドレールの右）に出す
+  （`mobile-gui.css` の 5b。バーの左に 56px の余白を取り、本体を 2.5rem 縮める）。
 - **はじめての人向けの表示と重ねない**: ウェルカムバルーンはレッスンモードのあいだ
   出さない（抜けたら元どおり）。SP の「スマホ用の画面です」の案内（`MobileModeNotice`、画面の上に `fixed` で
   出る）は、レッスンモードに入ったら閉じて、閉じたことを記録する（一度きりの案内で、レッスンを始めた人は
@@ -656,8 +665,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
     閉じる。開いているあいだは外（コードエリアも含む）を押す・Esc でも閉じる。キーボードでも課題の文に
     フォーカスして Enter で開閉できる。乗せて出すのはポインタの種類が `mouse` のときだけ（タッチでも
     `pointerover` が来るため）で、マウスで課題の文を押しても開いたままにはしない（離せば消える）。
-  - **パネルの置き方**: `position: absolute` でエディタの列に重ねるので、エディタの列の幅も高さも変えない
-    （ステージは押し出さない）。マウスで出しているときは `pointer-events: none`（パネルの上へ動かしても
+  - **パネルの置き方**: `position: absolute` でバーの下に、バーと同じ幅（画面の幅）で重ねるので、エディタの列・
+    ステージの列の幅も高さも変えない（ステージは押し出さない）。マウスで出しているときは `pointer-events: none`（パネルの上へ動かしても
     バーから離れたことになり消える）、タップで開いたときだけ中をスクロールできる。
   - **ヒントの吹き出しが出ていても、マウスを乗せれば全文を出す**: チャレンジを始めるとヒントが自動で開くので、
     吹き出しが出ているあいだ止めると、先生がプロジェクターで課題を説明する前にまず吹き出しを閉じる操作が要る。
@@ -1003,6 +1012,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | `onOpenLessonsLibrary` / `lessonModeActive`（`lessons button` マーカー）と `onOpenTipsLibrary`（`help menu` マーカー）の供給 |
 | `packages/scratch-gui/test/unit/components/lesson-task-bar.test.jsx` / `test/unit/containers/lesson-mode.test.jsx` | 課題バーとチャレンジを開く流れの unit テスト |
 | `packages/scratch-gui/test/integration/smalruby-lesson-task-bar-full-text.test.js` | 課題バーにマウスを乗せると改行つきの全文（画像も）が出て離すと消える・ヒントの吹き出しが出ていても吹き出しより上に出る・タップで開閉・「ほかのチャレンジへ」でレッスン表（Selenium・1300×600） |
+| `packages/scratch-gui/test/integration/smalruby-lesson-task-bar-layout.test.js` | 課題バーが画面の幅いっぱい・ボタンが右端・ステージの列の旗/止める/ステージの大きさが押せる・ページがスクロールしない、中サイズのステージのスプライトの情報が詰まった形でどの入力欄も押せる（大きいステージでは upstream の形）（Selenium・1300×600） |
+| `packages/scratch-gui/test/unit/components/sprite-info-compact.test.jsx` | 中サイズのステージのスプライトの情報（「スプライト」の字なし・x / y が左隣・大きさ / 向きのアイコンとツールチップ en / ja / ja-Hira、小・大は upstream のまま） |
 | `packages/scratch-gui/test/integration/smalruby-lessons.test.js` | チャレンジを開く → 課題バー・絞ったパレット → やめる → 元にもどる（Selenium） |
 | `packages/scratch-gui/test/unit/components/lessons-library.test.jsx` / `test/unit/containers/lessons-library.test.jsx` / `test/unit/components/menu-bar-lessons.test.jsx` | レッスン表（3 つのレッスン・カードの色の帯・✓・コースのバー・検索・言語とコースのボタン・「次はこれ！」）、コンテナ、「レッスン」ボタン（吹き出しを出さないこと）の unit テスト |
 | `packages/scratch-gui/test/integration/smalruby-lessons-library.test.js` | メニューから開く → チャレンジを押す → レッスンモード → やめる → レッスン表にもどる・記録に合わせた ✓ とコースの進み具合・検索（Selenium） |

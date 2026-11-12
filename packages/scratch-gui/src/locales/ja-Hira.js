@@ -912,6 +912,8 @@ export default {
         'もうしわけありません。スモウルビーがクラッシュしたようです。このバグはじどうてきにスモウルビーチームにほうこくされました。ページをさいよみこみしてください。',
     'gui.smalruby3.gui.defaultProjectTitle': 'スモウルビーのプロジェクト',
     'gui.smalruby3.gui.rubyTab': 'ルビー',
+    'gui.smalruby3.SpriteInfo.sizeIcon': 'おおきさ（%）',
+    'gui.smalruby3.SpriteInfo.directionIcon': 'むき（ど）',
     'gui.smalruby3.previewInfo.betawelcome': 'スモウルビー3.0 ベータばんにようこそ!',
     'gui.smalruby3.previewInfo.label': 'スモウルビー3.0をためしてみる',
     'gui.smalruby3.previewInfo.invitation':
