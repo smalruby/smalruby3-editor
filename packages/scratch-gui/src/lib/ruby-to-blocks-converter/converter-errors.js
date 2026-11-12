@@ -38,6 +38,13 @@ const messages = defineMessages({
             'Error message when with_screen_refresh do ... end is not the only statement of the body of until / while',
         id: 'gui.smalruby3.rubyToBlocksConverter.withScreenRefreshOutsideLoop',
     },
+    hashLiteralReceiver: {
+        defaultMessage:
+            '"{ METHOD }" cannot be used directly on a hash literal.' +
+            '\nPut the hash in a variable first (e.g. @h), then use @h.{ METHOD }.',
+        description: 'Error message when a hash method is called on a hash literal such as {a: 1}.keys',
+        id: 'gui.smalruby3.rubyToBlocksConverter.hashLiteralReceiver',
+    },
     cannotChangeVariableScope: {
         defaultMessage:
             '"{ VARIABLE }", can\'t change variable scope.' +

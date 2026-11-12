@@ -667,6 +667,8 @@ export default {
         'with_screen_refresh do ... end can only be the only command in the body of until or while.\nPut it in a loop (until ... / while ...) with nothing else, or use 10.times.with_screen_refresh do / loop.with_screen_refresh do.',
     'gui.smalruby3.rubyToBlocksConverter.arrayLiteralReceiver':
         '"{ METHOD }" cannot be used directly on an array literal ([...]).\nPut the array in a variable first (e.g. a = [1, 2]), then use a.{ METHOD }.',
+    'gui.smalruby3.rubyToBlocksConverter.hashLiteralReceiver':
+        '"{ METHOD }" cannot be used directly on a hash literal.\nPut the hash in a variable first (e.g. @h), then use @h.{ METHOD }.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
         '"{ SOURCE }" cannot be placed directly inside a class definition. Use it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
     'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':
