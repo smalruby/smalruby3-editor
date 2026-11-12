@@ -92,7 +92,10 @@ export const isKnownListReceiver = function (converter, block) {
     // create). A genuine scalar/String variable has no matching list entry, so
     // this correctly returns false for them.
     const varName = block.fields.VARIABLE.value;
-    return Boolean(converter._context.lists[varName]);
+    const list = converter._context.lists[varName];
+    // A list that the project already has, while this code sets a variable of the same name and
+    // does not use the list, is not what `@a` means here (`@a = "abc"` then `@a.length`, issue #1612).
+    return Boolean(list) && !converter._isListShadowedByVariable(list);
 };
 
 /**
