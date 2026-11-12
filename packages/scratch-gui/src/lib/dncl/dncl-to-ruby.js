@@ -2,6 +2,7 @@
 import { convertLine, resetForLoopStack } from './dncl-line-converter';
 import { DnclSourceMap } from './dncl-source-map';
 import { detectArrayNames, detectFunctionNames, resetFunctionScopes } from './dncl-state';
+import { splitTrailingComment } from './dncl-trailing-comment';
 import { dnclV2PreprocessWithLineMap } from './dncl-v2-preprocessor';
 import { findDnclBlockErrors, validateDncl } from './dncl-validator';
 
@@ -27,8 +28,14 @@ import { findDnclBlockErrors, validateDncl } from './dncl-validator';
  *   of the converter's missing / extra `end` when it fails — Issue #1419).
  */
 const dnclToRuby = (source) => {
-    const { source: normalized, lineMap } = dnclV2PreprocessWithLineMap(source);
+    const { source: preprocessed, lineMap } = dnclV2PreprocessWithLineMap(source);
     const sourceLineCount = source.split('\n').length;
+    // A `# comment` at the end of a line is taken off before the lines are
+    // checked and converted, so `もし a > 0 ならば # c` still opens a block,
+    // and put back at the end of the Ruby line (Issue #1696). Taking it off
+    // keeps the line count, so the line map still holds.
+    const parts = preprocessed.split('\n').map(splitTrailingComment);
+    const normalized = parts.map((part) => part.code).join('\n');
 
     const errors = validateDncl(normalized);
     if (errors.length > 0) {
@@ -48,11 +55,12 @@ const dnclToRuby = (source) => {
     resetForLoopStack();
     resetFunctionScopes();
 
-    const lines = normalized.split('\n');
     const rubyLines = [];
     const rubyToDncl = [];
-    lines.forEach((line, idx) => {
-        for (const rubyLine of convertLine(line).split('\n')) {
+    parts.forEach(({ code, comment }, idx) => {
+        // A line may become several Ruby lines (a counting loop, an input);
+        // the comment goes after the last, which carries the block keyword.
+        for (const rubyLine of `${convertLine(code)}${comment}`.split('\n')) {
             rubyLines.push(rubyLine);
             rubyToDncl.push(lineMap[idx]);
         }

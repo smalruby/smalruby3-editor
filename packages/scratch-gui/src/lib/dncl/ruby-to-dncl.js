@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (Ruby to DNCL reverse transpiler) ===
+import { splitTrailingComment } from './dncl-trailing-comment';
 import {
     findUnsupportedCommands,
     isPostTestLoopLine,
@@ -35,10 +36,21 @@ const rubyToDncl = (source) => {
     // are pushed here for while-based for-loop detection.
     const blockStack = [];
 
-    const lines = source.split('\n');
+    // A `# comment` at the end of a line is taken off so `if @a > 0 # c` is
+    // still an `if`, and put back at the end of the DNCL line; otherwise
+    // `ならば` would land inside the comment (Issue #1696). `comments[k]` is
+    // the comment of the DNCL line `dnclLines[k]`.
+    const parts = source.split('\n').map(splitTrailingComment);
+    const lines = parts.map((part) => part.code);
     const dnclLines = [];
+    const comments = [];
     // The index of the Ruby line each DNCL line comes from.
     const origins = [];
+    const push = (text, comment, origin) => {
+        dnclLines.push(text);
+        comments.push(comment);
+        origins.push(origin);
+    };
     const errors = [];
     let skipNext = false;
 
@@ -79,8 +91,8 @@ const rubyToDncl = (source) => {
                     // This is a for-loop! Output header placeholder, skip the while line
                     forInfo.headerIndex = dnclLines.length;
                     blockStack.push({ type: 'for', info: forInfo });
-                    dnclLines.push('__FOR_HEADER_PLACEHOLDER__');
-                    origins.push(i);
+                    // `@i = 1` and `while @i <= 3` become one header line.
+                    push('__FOR_HEADER_PLACEHOLDER__', `${parts[i].comment}${parts[i + 1].comment}`, i);
                     skipNext = true;
                     continue;
                 }
@@ -97,9 +109,11 @@ const rubyToDncl = (source) => {
                 // Check last body line for increment: varName += step
                 const lastLine = dnclLines.length > 0 ? dnclLines[dnclLines.length - 1].trim() : '';
                 const incMatch = lastLine.match(/^(.+?)\s*\+=\s*(.+)$/);
+                let incComment = '';
                 if (incMatch && incMatch[1] === info.varName) {
                     // Remove the increment line from output
                     dnclLines.pop();
+                    incComment = comments.pop();
                     origins.pop();
                     const stepExpr = incMatch[2].trim();
 
@@ -118,8 +132,7 @@ const rubyToDncl = (source) => {
                     const header = `${indent}${info.varName} を ${info.from} から ${info.to} まで ${step} ずつ${direction}`;
                     dnclLines[info.headerIndex] = header;
                 }
-                dnclLines.push(`${indent}を繰り返す`);
-                origins.push(i);
+                push(`${indent}を繰り返す`, `${incComment}${parts[i].comment}`, i);
                 continue;
             }
         }
@@ -142,22 +155,20 @@ const rubyToDncl = (source) => {
                     const varPart = processSegments(answerMatch[2]);
                     // `answer.to_i` is what 【整数を入力】 generates (Issue #1186).
                     const input = answerMatch[3] ? '整数を入力' : '外部からの入力';
-                    dnclLines.push(`${answerIndent}${varPart} = 【${input}】`);
-                    origins.push(i);
+                    push(`${answerIndent}${varPart} = 【${input}】`, `${parts[i].comment}${parts[i + 1].comment}`, i);
                     skipNext = true;
                     continue;
                 }
             }
             // Fallback: just output as-is
-            dnclLines.push(line);
-            origins.push(i);
+            push(line, parts[i].comment, i);
             continue;
         }
 
-        dnclLines.push(result);
-        origins.push(i);
+        push(result, parts[i].comment, i);
     }
 
+    // Without the comments (put back below), so a word in one is not a command.
     const dncl = dnclLines.join('\n');
     // A command the Japanese mode does not have (issue #1679) is found in the
     // DNCL, where `dnclToRuby` will find it again, and told on its Ruby line.
@@ -169,7 +180,7 @@ const rubyToDncl = (source) => {
     });
 
     return {
-        dncl,
+        dncl: dnclLines.map((line, k) => `${line}${comments[k]}`).join('\n'),
         errors: errors.sort((a, b) => a.line - b.line || a.column - b.column),
     };
 };
