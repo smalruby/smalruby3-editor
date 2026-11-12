@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (Ruby to DNCL reverse transpiler) ===
+import { splitTrailingComment } from './dncl-trailing-comment';
 import { isPostTestLoopLine, POST_TEST_LOOP_ERROR_ID, POST_TEST_LOOP_MESSAGE } from './dncl-validator';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
 import { convertLine, detectForLoopPattern, toDnclExpr } from './ruby-to-dncl-line-converter';
@@ -17,8 +18,18 @@ const rubyToDncl = (source) => {
     // are pushed here for while-based for-loop detection.
     const blockStack = [];
 
-    const lines = source.split('\n');
+    // A `# comment` at the end of a line is taken off so `if @a > 0 # c` is
+    // still an `if`, and put back at the end of the DNCL line; otherwise
+    // `ならば` would land inside the comment (Issue #1696). `comments[k]` is
+    // the comment of the DNCL line `dnclLines[k]`.
+    const parts = source.split('\n').map(splitTrailingComment);
+    const lines = parts.map((part) => part.code);
     const dnclLines = [];
+    const comments = [];
+    const push = (text, comment) => {
+        dnclLines.push(text);
+        comments.push(comment);
+    };
     const errors = [];
     let skipNext = false;
 
@@ -59,7 +70,8 @@ const rubyToDncl = (source) => {
                     // This is a for-loop! Output header placeholder, skip the while line
                     forInfo.headerIndex = dnclLines.length;
                     blockStack.push({ type: 'for', info: forInfo });
-                    dnclLines.push('__FOR_HEADER_PLACEHOLDER__');
+                    // `@i = 1` and `while @i <= 3` become one header line.
+                    push('__FOR_HEADER_PLACEHOLDER__', `${parts[i].comment}${parts[i + 1].comment}`);
                     skipNext = true;
                     continue;
                 }
@@ -76,9 +88,11 @@ const rubyToDncl = (source) => {
                 // Check last body line for increment: varName += step
                 const lastLine = dnclLines.length > 0 ? dnclLines[dnclLines.length - 1].trim() : '';
                 const incMatch = lastLine.match(/^(.+?)\s*\+=\s*(.+)$/);
+                let incComment = '';
                 if (incMatch && incMatch[1] === info.varName) {
                     // Remove the increment line from output
                     dnclLines.pop();
+                    incComment = comments.pop();
                     const stepExpr = incMatch[2].trim();
 
                     // Determine step value and direction
@@ -96,7 +110,7 @@ const rubyToDncl = (source) => {
                     const header = `${indent}${info.varName} を ${info.from} から ${info.to} まで ${step} ずつ${direction}`;
                     dnclLines[info.headerIndex] = header;
                 }
-                dnclLines.push(`${indent}を繰り返す`);
+                push(`${indent}を繰り返す`, `${incComment}${parts[i].comment}`);
                 continue;
             }
         }
@@ -119,21 +133,21 @@ const rubyToDncl = (source) => {
                     const varPart = processSegments(answerMatch[2]);
                     // `answer.to_i` is what 【整数を入力】 generates (Issue #1186).
                     const input = answerMatch[3] ? '整数を入力' : '外部からの入力';
-                    dnclLines.push(`${answerIndent}${varPart} = 【${input}】`);
+                    push(`${answerIndent}${varPart} = 【${input}】`, `${parts[i].comment}${parts[i + 1].comment}`);
                     skipNext = true;
                     continue;
                 }
             }
             // Fallback: just output as-is
-            dnclLines.push(line);
+            push(line, parts[i].comment);
             continue;
         }
 
-        dnclLines.push(result);
+        push(result, parts[i].comment);
     }
 
     return {
-        dncl: dnclLines.join('\n'),
+        dncl: dnclLines.map((line, k) => `${line}${comments[k]}`).join('\n'),
         errors,
     };
 };
