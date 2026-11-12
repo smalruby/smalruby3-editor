@@ -118,3 +118,61 @@ describe('Ruby → DNCL: say(...) flatten too (for backward compat)', () => {
         expect(rToD('say(@a, @b, @c, 1)')).toBe('表示する(a, b, c)');
     });
 });
+
+// An argument that is an expression is put in parentheses before `.to_s`, so
+// `.to_s` applies to the whole argument, not only its last term. `でない` is
+// converted first (it negates the argument it ends). (Issue #1672)
+describe('表示する multi arg: expressions are wrapped before .to_s (#1672)', () => {
+    test('表示する(a + 1, b) → puts((@a + 1).to_s + @b.to_s)', () => {
+        expect(dToR('表示する(a + 1, b)')).toBe('puts((@a + 1).to_s + @b.to_s)');
+    });
+
+    test('表示する(x でない, y) → puts((!@x).to_s + @y.to_s)', () => {
+        expect(dToR('表示する(x でない, y)')).toBe('puts((!@x).to_s + @y.to_s)');
+    });
+
+    test('表示する("答え", a > 1 でない) → puts("答え" + (!(@a > 1)).to_s)', () => {
+        expect(dToR('表示する("答え", a > 1 でない)')).toBe('puts("答え" + (!(@a > 1)).to_s)');
+    });
+
+    test('表示する("合計", a * 2) → puts("合計" + (@a * 2).to_s)', () => {
+        expect(dToR('表示する("合計", a * 2)')).toBe('puts("合計" + (@a * 2).to_s)');
+    });
+
+    test('表示する(x かつ y, "!") → puts((@x && @y).to_s + "!")', () => {
+        expect(dToR('表示する(x かつ y, "!")')).toBe('puts((@x && @y).to_s + "!")');
+    });
+
+    test('表示する(A[i], B[i]) keeps a single operand without parentheses', () => {
+        expect(dToR('A = [1]\nB = [2]\n表示する(A[i], B[i])')).toContain(
+            'puts(@_array_A_[@i].to_s + @_array_B_[@i].to_s)',
+        );
+    });
+
+    test('表示する((a + 1), "個") keeps an argument already in parentheses as is', () => {
+        expect(dToR('表示する((a + 1), "個")')).toBe('puts((@a + 1).to_s + "個")');
+    });
+
+    test('表示する(-1, "個") keeps a negative number without parentheses', () => {
+        expect(dToR('表示する(-1, "個")')).toBe('puts(-1.to_s + "個")');
+    });
+
+    test('表示する(a + 1) (one argument) is unchanged', () => {
+        expect(dToR('表示する(a + 1)')).toBe('puts(@a + 1)');
+    });
+
+    test('表示する(x でない) (one argument) is unchanged', () => {
+        expect(dToR('表示する(x でない)')).toBe('puts(!@x)');
+    });
+
+    test('Ruby → DNCL drops the parentheses of (expr).to_s', () => {
+        expect(rToD('puts((@a + 1).to_s + @b.to_s)')).toBe('表示する(a + 1, b)');
+        expect(rToD('puts("合計" + (@a * 2).to_s)')).toBe('表示する("合計", a * 2)');
+    });
+
+    test('DNCL → Ruby → DNCL → Ruby keeps the Ruby', () => {
+        const ruby = 'puts(@a.to_s + (@b + 1).to_s)';
+        expect(dToR(rToD(ruby))).toBe(ruby);
+        expect(dToR(rToD('puts((!@x).to_s + @y.to_s)'))).toBe('puts((!@x).to_s + @y.to_s)');
+    });
+});

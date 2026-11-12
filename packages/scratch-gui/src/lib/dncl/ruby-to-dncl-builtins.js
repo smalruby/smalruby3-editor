@@ -1,6 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (Ruby→DNCL builtin conversion) ===
 import {
     findMatchingClose,
+    isWrappedInParens,
     replaceCall,
     skipString,
     splitArgsAtTopLevel,
@@ -144,7 +145,10 @@ const flattenDisplayArgs = (args) => {
     // `表示する(a, b)`.
     const unwrapped = operands.map((op) => {
         const m = op.match(/^(.+)\.to_s$/);
-        return m ? m[1] : op;
+        if (!m) return op;
+        // `(a + 1).to_s` came from `表示する(a + 1, ...)`: the parentheses are
+        // only there for `.to_s`, so they are dropped. (Issue #1672)
+        return isWrappedInParens(m[1]) ? m[1].slice(1, -1).trim() : m[1];
     });
     return unwrapped.join(', ');
 };
