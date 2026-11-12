@@ -8,7 +8,17 @@ import { normalizeColorString } from './color-utils';
  */
 const NodeTypeChecks = {
     _isPrimitive(value) {
-        return value && (value._isPrimitive || value.constructor.name === 'Primitive' || value._type);
+        return value && (value._isPrimitive || value._type);
+    },
+
+    /**
+     * The type of a `@ruby/prism` node (e.g. 'CallNode'), or null for anything else.
+     * `constructor.name` cannot be used: the production build renames the classes.
+     * @param {*} value - A value.
+     * @returns {?string} The type of the node.
+     */
+    _prismNodeType(value) {
+        return value && typeof value.accept === 'function' ? this._getNodeTypeName(value) : null;
     },
 
     _isSelf(block) {
@@ -28,9 +38,8 @@ const NodeTypeChecks = {
         if (this._isPrimitive(value)) {
             return value.type === 'str' || value.type === 'string';
         }
-        return (
-            value && (value.constructor.name === 'StringNode' || value.constructor.name === 'InterpolatedStringNode')
-        );
+        const nodeType = this._prismNodeType(value);
+        return nodeType === 'StringNode' || nodeType === 'InterpolatedStringNode';
     },
 
     isNumber(value) {
@@ -42,7 +51,8 @@ const NodeTypeChecks = {
         if (this._isPrimitive(value)) {
             return value.type === 'int' || value.type === 'float';
         }
-        return value && (value.constructor.name === 'IntegerNode' || value.constructor.name === 'FloatNode');
+        const nodeType = this._prismNodeType(value);
+        return nodeType === 'IntegerNode' || nodeType === 'FloatNode';
     },
 
     isTrue(value) {
@@ -54,7 +64,7 @@ const NodeTypeChecks = {
         if (this._isPrimitive(value)) {
             return value.type === 'true';
         }
-        if (value && value.constructor.name === 'TrueNode') {
+        if (this._prismNodeType(value) === 'TrueNode') {
             return true;
         }
         if (this._isBlock(value) && value.opcode === 'operator_equals' && value.comment) {
@@ -73,7 +83,7 @@ const NodeTypeChecks = {
         if (this._isPrimitive(value)) {
             return value.type === 'false';
         }
-        if (value && value.constructor.name === 'FalseNode') {
+        if (this._prismNodeType(value) === 'FalseNode') {
             return true;
         }
         if (this._isBlock(value) && value.opcode === 'operator_lt' && value.comment) {
@@ -88,7 +98,7 @@ const NodeTypeChecks = {
         if (this._isPrimitive(value)) {
             return value.type === 'nil';
         }
-        return value && value.constructor.name === 'NilNode';
+        return this._prismNodeType(value) === 'NilNode';
     },
 
     _isArray(value) {
@@ -96,14 +106,14 @@ const NodeTypeChecks = {
         if (this._isPrimitive(value)) {
             return value.type === 'array';
         }
-        return value && value.constructor.name === 'ArrayNode';
+        return this._prismNodeType(value) === 'ArrayNode';
     },
 
     _isHash(value) {
         if (this._isPrimitive(value)) {
             return value.type === 'hash';
         }
-        return value && value.constructor.name === 'HashNode';
+        return this._prismNodeType(value) === 'HashNode';
     },
 
     // === Smalruby: Start of regex type support ===
@@ -111,7 +121,7 @@ const NodeTypeChecks = {
         if (this._isPrimitive(value)) {
             return value.type === 'regexp';
         }
-        return value && value.constructor.name === 'RegularExpressionNode';
+        return this._prismNodeType(value) === 'RegularExpressionNode';
     },
 
     _isRegexpOrBlock(regexpOrBlock) {
@@ -123,9 +133,8 @@ const NodeTypeChecks = {
         if (this._isPrimitive(value)) {
             return value.type === 'const';
         }
-        return (
-            value && (value.constructor.name === 'ConstantReadNode' || value.constructor.name === 'ConstantPathNode')
-        );
+        const nodeType = this._prismNodeType(value);
+        return nodeType === 'ConstantReadNode' || nodeType === 'ConstantPathNode';
     },
 
     _isSymbol(value) {
@@ -136,7 +145,7 @@ const NodeTypeChecks = {
             const comment = this._context.comments[value.comment];
             return comment && comment.text.startsWith('@ruby:symbol:');
         }
-        return value && value.constructor.name === 'SymbolNode';
+        return this._prismNodeType(value) === 'SymbolNode';
     },
 
     /**
@@ -157,7 +166,7 @@ const NodeTypeChecks = {
                 return comment.text.slice('@ruby:symbol:'.length);
             }
         }
-        if (node.constructor && node.constructor.name === 'SymbolNode') {
+        if (this._prismNodeType(node) === 'SymbolNode') {
             return node.unescaped ? node.unescaped.value : null;
         }
         return null;

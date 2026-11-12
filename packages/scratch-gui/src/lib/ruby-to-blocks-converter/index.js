@@ -270,7 +270,7 @@ class RubyToBlocksConverter extends Visitor {
 
             if (isContainerNode) {
                 const rangeEntry = {
-                    type: node.constructor.name,
+                    type: this._getNodeTypeName(node),
                     startLine,
                     endLine,
                     depth,
@@ -315,7 +315,7 @@ class RubyToBlocksConverter extends Visitor {
         if (handlerName && typeof this[handlerName] === 'function') {
             result = this[handlerName](node);
         } else {
-            throw new Error(`not supported node type: ${node.constructor.name}`);
+            throw new Error(`not supported node type: ${this._getNodeTypeName(node)}`);
         }
 
         if (result && !this._context.nodeToBlockMap.has(node)) {

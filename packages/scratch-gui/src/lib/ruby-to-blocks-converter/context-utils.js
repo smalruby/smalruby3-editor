@@ -23,6 +23,8 @@ const ContextUtils = {
             procedures: {},
             methodCallCounts: {},
             methodCallIndices: {},
+            // Whether a return value of a call is saved in a variable in the current statement (issue #1556)
+            savedReturnValueInStatement: false,
             literalCallIndices: {},
             elsifCounter: 0,
             caseCounter: 0,
@@ -97,7 +99,7 @@ const ContextUtils = {
             const ast = queue.shift();
             if (!ast) continue;
 
-            if (ast.constructor.name === 'CallNode') {
+            if (this._prismNodeType(ast) === 'CallNode') {
                 const name = ast.name;
                 const procedure = this._lookupProcedure(name);
                 if (procedure && procedure.hasReturnValue) {
@@ -323,7 +325,8 @@ const ContextUtils = {
      */
     _countProcedureCallsInNode(node) {
         if (!node || typeof node !== 'object') return;
-        const nodeType = node.constructor && node.constructor.name;
+        // Not `constructor.name`: the production build renames the classes.
+        const nodeType = this._prismNodeType(node);
         if (!nodeType) return;
 
         if (nodeType === 'CallNode') {
@@ -341,6 +344,13 @@ const ContextUtils = {
             }
             // Traverse receiver
             this._countProcedureCallsInNode(node.receiver);
+        } else if (nodeType === 'ReturnNode') {
+            // The value of `return` is used as a value too (issue #1556).
+            if (node.arguments_ && node.arguments_.arguments_) {
+                node.arguments_.arguments_.forEach((argNode) => {
+                    this._countCallsInValueNode(argNode);
+                });
+            }
         } else {
             // For other node types, traverse children generically
             const childKeys = [
@@ -363,7 +373,7 @@ const ContextUtils = {
                 const child = node[key];
                 if (!child) return;
                 if (typeof child === 'object' && child.constructor) {
-                    if (child.constructor.name.endsWith('Node')) {
+                    if (this._prismNodeType(child)) {
                         this._countProcedureCallsInNode(child);
                     } else if (Array.isArray(child) || typeof child.forEach === 'function') {
                         child.forEach((c) => this._countProcedureCallsInNode(c));
@@ -380,7 +390,8 @@ const ContextUtils = {
      */
     _countCallsInValueNode(node) {
         if (!node || typeof node !== 'object') return;
-        const nodeType = node.constructor && node.constructor.name;
+        // Not `constructor.name`: the production build renames the classes.
+        const nodeType = this._prismNodeType(node);
         if (!nodeType) return;
 
         if (nodeType === 'CallNode') {
@@ -388,23 +399,22 @@ const ContextUtils = {
             if (name) {
                 this._context.methodCallCounts[name] = (this._context.methodCallCounts[name] || 0) + 1;
             }
-            // Recurse into arguments
+            // Recurse into the receiver (e.g. `bar(1)` of `bar(1) + bar(2)`) and the arguments
+            this._countCallsInValueNode(node.receiver);
             if (node.arguments_ && node.arguments_.arguments_) {
                 node.arguments_.arguments_.forEach((argNode) => {
                     this._countCallsInValueNode(argNode);
                 });
             }
+        } else if (nodeType === 'StatementsNode') {
+            // The inside of parentheses, e.g. `(bar + 1)`
+            node.body.forEach((child) => this._countCallsInValueNode(child));
         } else {
             // Traverse relevant children
             const childKeys = ['value', 'left', 'right', 'condition', 'body'];
             childKeys.forEach((key) => {
                 const child = node[key];
-                if (
-                    child &&
-                    typeof child === 'object' &&
-                    child.constructor &&
-                    child.constructor.name.endsWith('Node')
-                ) {
+                if (this._prismNodeType(child)) {
                     this._countCallsInValueNode(child);
                 }
             });

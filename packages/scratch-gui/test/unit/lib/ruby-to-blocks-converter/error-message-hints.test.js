@@ -73,4 +73,13 @@ describe('Error message resolution hints', () => {
         expect(converter.errors[0].text).toMatch(/is a value/);
         expect(converter.errors[0].text).toMatch(/say\(x\)/);
     });
+
+    test('visibilityDefNotSupported error tells to delete private and keep the method', async () => {
+        const converter = new RubyToBlocksConverter(null, { version: 2 });
+        const code = 'class Sprite1\n  private def my_proc\n    move(10)\n  end\nend';
+        await converter.targetCodeToBlocks(target, code);
+        expect(converter.errors.length).toBeGreaterThan(0);
+        expect(converter.errors[0].text).toMatch(/"private" is not supported in Smalruby/);
+        expect(converter.errors[0].text).toMatch(/Delete "private"\. Then the method from "def my_proc"/);
+    });
 });

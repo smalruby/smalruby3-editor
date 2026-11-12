@@ -35,6 +35,7 @@ const ModuleVisitor = {
                 if (typeName === 'CallNode' && stmt.name === 'module_function' && !stmt.receiver) {
                     throw new RubyToBlocksConverterError(stmt, this._translator(messages.moduleFunctionNotSupported));
                 }
+                this._rejectVisibilityModifier(stmt);
                 if (typeName !== 'DefNode') {
                     throw new RubyToBlocksConverterError(stmt, this._translator(messages.onlyMethodsInModule));
                 }

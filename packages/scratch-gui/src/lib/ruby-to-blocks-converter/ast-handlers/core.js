@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import { defineMessages } from 'react-intl';
 import { RubyToBlocksConverterError } from '../errors';
+import { isKnownListReceiver } from '../variable-hash-ops';
 
 const messages = defineMessages({
     conditionIsNotBoolean: {
@@ -51,6 +52,15 @@ const messages = defineMessages({
             'with return or on the last line of the method',
         id: 'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue',
     },
+    cannotReturnList: {
+        defaultMessage:
+            '"{ SOURCE }" is a list, so it cannot be returned from a method.' +
+            '\nReturn an item of the list (e.g. return { SOURCE }[0]) or a variable instead.',
+        description:
+            'Error message when a method returns a list (e.g. return @a), ' +
+            'with return or on the last line of the method',
+        id: 'gui.smalruby3.rubyToBlocksConverter.cannotReturnList',
+    },
     returnMultipleValues: {
         defaultMessage:
             '"{ SOURCE }" returns more than one value, but a method can return only one value.' +
@@ -69,7 +79,14 @@ const UNRETURNABLE_PRIMITIVE_TYPES = ['self', 'array', 'hash', 'const', 'regexp'
  */
 const CoreHandlers = {
     visitProgramNode(node) {
-        return this.visit(node.statements);
+        // The top-level lines are checked too (see `_checkStatementInBody`).
+        const savedBodyKind = this._context.statementBodyKind;
+        this._context.statementBodyKind = 'top';
+        try {
+            return this.visit(node.statements);
+        } finally {
+            this._context.statementBodyKind = savedBodyKind;
+        }
     },
 
     visitStatementsNode(node) {
@@ -85,9 +102,11 @@ const CoreHandlers = {
             // `1 != 50 && 2 != 60` (a single expression) produces indices :1 and :2.
             // Note: literalCallIndices are NOT reset per-statement - they accumulate across statements.
             this._context.methodCallIndices = {};
-            if (bodyKind && this._getNodeTypeName(childNode) === 'DefNode') {
+            this._context.savedReturnValueInStatement = false;
+            if (bodyKind && bodyKind !== 'top' && this._getNodeTypeName(childNode) === 'DefNode') {
                 // On any line, not only on the first one (#1554). The body of a class is not a block
-                // body (`bodyKind` is null), so a method written directly in a class is still converted.
+                // body (`bodyKind` is null), so a method written directly in a class is still converted;
+                // neither is the top level (`bodyKind` is 'top').
                 throw new RubyToBlocksConverterError(
                     childNode,
                     this._translator(messages.defInsideBlock, { SOURCE: this._firstLineSource(childNode) }),
@@ -162,17 +181,31 @@ const CoreHandlers = {
      *   In a method body, the last line is the return value, so only the lines before it are checked (#1549).
      * - a symbol written as a line by itself, e.g. `:a`; it is not a command. On the second or a later
      *   line of a block body it was dropped silently (#1550).
+     * - a value no block can hold, e.g. `self`, `{a: 1}`, `Foo`, `/a/` or `"#{x}"`, written as a line by itself;
+     *   it became a string such as "self", or was dropped (#1553, #1558). This is also checked at the top level.
      * A method definition (`def`) does not come here: `visitStatementsNode` has already thrown an error
      * for it (#1554).
      * A value made by splitting one statement (e.g. the return value of `"a".reverse`, which
      * comes as an array after its command) is not checked.
      * @param {object} node - The statement node.
      * @param {object|Array} result - What visiting the statement returned.
-     * @param {string} bodyKind - 'block' or 'method' (see `statementBodyKind` of the context).
+     * @param {string} bodyKind - 'top', 'block' or 'method' (see `statementBodyKind` of the context).
      * @param {boolean} isLast - Whether the statement is the last one in the body.
      */
     _checkStatementInBody(node, result, bodyKind, isLast) {
         const blocks = _.isArray(result) ? result : [result];
+        const isInterpolated = !result && /^Interpolated/.test(this._getNodeTypeName(node) || '');
+        if (bodyKind === 'top') {
+            // At the top level, events and values may stand alone; only a value no block can hold
+            // (e.g. `self`, which became the string "self") is an error (#1558).
+            if (
+                isInterpolated ||
+                (!_.isArray(result) && this._isUnreturnableValue(result) && result.type !== 'array')
+            ) {
+                throw this._notCommandError(node);
+            }
+            return;
+        }
         if (
             blocks.some(
                 (b) => this._isBlock(b) && this._getBlockType(b) === 'hat' && b.opcode !== 'procedures_definition',
@@ -185,9 +218,12 @@ const CoreHandlers = {
         }
         if (bodyKind === 'method' && isLast) {
             // The last line is the return value: a value no block can hold would be dropped (#1553).
-            const isInterpolated = !result && /^Interpolated/.test(this._getNodeTypeName(node) || '');
             if (isInterpolated || (!_.isArray(result) && this._isUnreturnableValue(result))) {
                 throw this._cannotReturnError(node);
+            }
+            // A list would become 0 (#1557).
+            if (!_.isArray(result) && this._isListValue(result)) {
+                throw this._cannotReturnListError(node);
             }
             return;
         }
@@ -200,11 +236,10 @@ const CoreHandlers = {
             throw this._notCommandError(node);
         }
         // A value no block can hold (e.g. `self`, `[1]`, `Foo`, `"#{x}"`) before the last line of a method
-        // dropped the rest of the method silently (#1553).
-        if (
-            bodyKind === 'method' &&
-            (this._isUnreturnableValue(value) || (!value && /^Interpolated/.test(this._getNodeTypeName(node) || '')))
-        ) {
+        // dropped the rest of the method silently (#1553). In a block body it became a string such as
+        // "self" or "[object Map]", or was dropped (#1558); an array there comes back as written, so it stays.
+        const isUnreturnable = this._isUnreturnableValue(value) && (bodyKind === 'method' || value.type !== 'array');
+        if (isUnreturnable || (!value && isInterpolated)) {
             throw this._notCommandError(node);
         }
         // In a block body, other literals (e.g. `"abc"`) become an assignment to a temporary
@@ -253,6 +288,43 @@ const CoreHandlers = {
     _isUnreturnableValue(value) {
         const Primitive = require('../primitive').default;
         return value instanceof Primitive && UNRETURNABLE_PRIMITIVE_TYPES.includes(value.type);
+    },
+
+    /**
+     * Whether a value is a list (e.g. `@a` after `@a = []`): no value block keeps it a list (issue #1557).
+     * @param {*} value - What visiting the value returned.
+     * @returns {boolean} Whether the value is a list.
+     */
+    _isListValue(value) {
+        // A read of a list variable comes as a data_variable block: look the name up in the lists.
+        return isKnownListReceiver(this, value);
+    },
+
+    /**
+     * The statements in parentheses (e.g. `(x + 1)` has one, `(a; b)` has two, `()` has none).
+     * @param {object} node - The ParenthesesNode.
+     * @returns {Array} The statement nodes.
+     */
+    _parenthesesStatements(node) {
+        if (!node.body) {
+            return [];
+        }
+        if (this._getNodeTypeName(node.body) === 'StatementsNode') {
+            return node.body.body;
+        }
+        return [node.body];
+    },
+
+    /**
+     * The error for a list returned from a method (issue #1557).
+     * @param {object} node - The node of the value.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _cannotReturnListError(node) {
+        return new RubyToBlocksConverterError(
+            node,
+            this._translator(messages.cannotReturnList, { SOURCE: this._firstLineSource(node) }),
+        );
     },
 
     /**

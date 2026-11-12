@@ -34,7 +34,7 @@ const ControlFlowHandlers = {
         // even if the else body is empty — preserves round-trip fidelity for "if cond; else; end"
         if (
             node.subsequent &&
-            node.subsequent.constructor.name === 'ElseNode' &&
+            this._getNodeTypeName(node.subsequent) === 'ElseNode' &&
             this._isBlock(block) &&
             block.opcode !== 'control_if_else'
         ) {
@@ -45,7 +45,7 @@ const ControlFlowHandlers = {
         }
 
         let hasElsif = false;
-        if (node.subsequent && node.subsequent.constructor.name === 'IfNode') {
+        if (node.subsequent && this._getNodeTypeName(node.subsequent) === 'IfNode') {
             hasElsif = true;
             const elseBlock = _.isArray(elseStatement) ? elseStatement[0] : elseStatement;
             if (this.isBlock(block) && this.isBlock(elseBlock)) {
