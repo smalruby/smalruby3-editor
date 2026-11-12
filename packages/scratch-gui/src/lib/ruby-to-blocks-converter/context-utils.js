@@ -2,6 +2,8 @@ import { Variable, LOCAL_VARIABLE_PATTERN } from './constants';
 
 // Assignments whose value is visited as a value (see `_onVasgn`).
 const VALUE_WRITE_NODE_TYPES = ['LocalVariableWriteNode', 'InstanceVariableWriteNode', 'GlobalVariableWriteNode'];
+// Nodes with a condition (`predicate`) and the lines run by it (see `_countProcedureCallsInNode`).
+const CONDITION_NODE_TYPES = ['IfNode', 'UnlessNode', 'WhileNode', 'UntilNode'];
 
 /**
  * Context and state management utilities for RubyToBlocksConverter.
@@ -347,6 +349,15 @@ const ContextUtils = {
             }
             // The receiver is visited as a value (e.g. `bar(1)` of `bar(1) + bar(2)`) (issue #1568)
             this._countCallsInValueNode(node.receiver);
+        } else if (CONDITION_NODE_TYPES.includes(nodeType)) {
+            // The condition is visited as a value (e.g. `bar(1)` and `bar(2)` of `while bar(1) < bar(2)`),
+            // then the body and the other branches as lines (issue #1606).
+            this._countCallsInValueNode(node.predicate);
+            [node.statements, node.subsequent, node.elseClause].forEach((child) => {
+                if (this._prismNodeType(child)) {
+                    this._countProcedureCallsInNode(child);
+                }
+            });
         } else if (VALUE_WRITE_NODE_TYPES.includes(nodeType)) {
             // The value of an assignment is visited as a value too (e.g. `x = bar(1) + bar(2)`) (issue #1568).
             this._countCallsInValueNode(node.value);

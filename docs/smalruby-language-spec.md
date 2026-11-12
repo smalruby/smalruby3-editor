@@ -396,6 +396,8 @@ A list (such as `@a` after `@a = []`) has no block that returns it as a list eit
 
 A call of a method that returns a value (`return bar`, `return bar(1) + 1`, `return fact(n - 1) * n`) returns the value after the block that calls the method, as `say(bar)` does, so it comes back as written after a round trip. A call of a method that returns no value (one whose last line is a command), or of a method defined after the `return`, cannot be returned, so it is an error.
 
+A call of a method that returns a value in the condition of a loop (`while bar(a) < 3`, `until bar(a) == 0`, `wait until bar(a) == 0`) is put as a "call the method" block both before the loop and at the end of its body, so that the method is called before every check of the condition, as in Ruby. The call at the end of the body has a comment marker (`@ruby:loop_condition_call`) and is not written by blocks → Ruby, so the round trip gives back the code as written.
+
 In a method, a call of the method itself after another method call in the same line (`return fib(n - 1) + fib(n - 2)`) is an error. The blocks keep the return value of the earlier call in a variable of the sprite, and the same line run in the call of the method itself would overwrite it, so the value would differ from Ruby (a single call, as in `return fact(n - 1) * n`, can be written).
 
 A value in parentheses, as in `return (x + 1)`, returns the value in them. A comment marker (`@ruby:return-paren`) brings the parentheses back as `return (x + 1)` after a round trip (`return(1)` becomes `return (1)`, and `return ((1))` becomes `return (1)`). Two or more lines in the parentheses (`(move(10); 1)`) or nothing in them (`()`) is an error.

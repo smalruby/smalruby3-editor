@@ -1,3 +1,5 @@
+import { isLoopConditionCall } from './scrub.js';
+
 /**
  * Define Ruby code generator for Control Blocks
  * @param {RubyGenerator} Generator The RubyGenerator
@@ -265,8 +267,27 @@ export default function (Generator) {
         return `${Generator.INDENT}with_screen_refresh do\n${indented}${Generator.INDENT}end\n`;
     };
 
+    // Whether the body of a loop has only the blocks that call the methods of its condition again
+    // (`@ruby`:loop_condition_call, issue #1606).
+    const hasOnlyConditionCalls = function (block) {
+        const substack = block.inputs.SUBSTACK;
+        let child = substack ? Generator.getBlock(substack.block) : null;
+        while (child) {
+            if (!isLoopConditionCall(Generator.getCommentText(child))) {
+                return false;
+            }
+            child = Generator.getBlock(child.next);
+        }
+        return true;
+    };
+
     Generator.control_repeat_until = function (block) {
         const comment = Generator.getCommentText(block);
+        // `wait until bar(a) == 0`: a loop whose body only calls the methods of the condition again (issue #1606).
+        // A block put in the body on the blocks screen is written, as `until ... end`.
+        if (comment && comment.split(',').includes('@ruby:syntax:wait_until') && hasOnlyConditionCalls(block)) {
+            return Generator.control_wait_until(block);
+        }
         const useScreenRefresh = needsWithScreenRefresh(block);
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
         const varName = getVariableHint(block);
