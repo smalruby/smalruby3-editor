@@ -129,9 +129,9 @@ class GoogleDriveSaveDialog extends React.Component {
 
         // Validate filename
         if (!filename) {
+            // eslint-disable-next-line no-alert
             alert(
                 this.props.intl.formatMessage({
-                    // eslint-disable-line no-alert
                     id: 'gui.googleDriveSaveDialog.filenameRequired',
                     defaultMessage: 'Please enter a filename.',
                     description: 'Error message when filename is empty.',

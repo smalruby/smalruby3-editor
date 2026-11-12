@@ -289,7 +289,7 @@ class MeshV2Service {
                 `    - Batch Events: ${this.costTracking.batchEventReceived} msgs = ` +
                     `$${batchEventCost.toFixed(8)}`,
             );
-            log.info(`    - Dissolve: ${this.costTracking.dissolveReceived} msgs = ` + `$${dissolveCost.toFixed(8)}`);
+            log.info(`    - Dissolve: ${this.costTracking.dissolveReceived} msgs = $${dissolveCost.toFixed(8)}`);
             log.info(
                 `  Subscription Connection: ${connectionDurationMinutes.toFixed(2)} min × 1 = ` +
                     `$${connectionCost.toFixed(8)}`,

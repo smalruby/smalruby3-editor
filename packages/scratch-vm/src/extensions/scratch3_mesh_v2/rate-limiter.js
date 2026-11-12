@@ -206,10 +206,7 @@ class RateLimiter {
 
             const item = this.queue.shift();
             this.requestCount++;
-            debug(
-                () =>
-                    `RateLimiter: Sending request #${this.requestCount} ` + `(queue remaining: ${this.queue.length})`,
-            );
+            debug(() => `RateLimiter: Sending request #${this.requestCount} (queue remaining: ${this.queue.length})`);
 
             try {
                 const result = await item.sendFunction(item.data);

@@ -4,7 +4,7 @@ import { RubyToBlocksConverterError } from '../errors';
 
 const messages = defineMessages({
     conditionIsNotBoolean: {
-        defaultMessage: 'condition is not boolean: {SOURCE}.' + '\nUse a comparison operator (==, <, >, etc.).',
+        defaultMessage: 'condition is not boolean: {SOURCE}.\nUse a comparison operator (==, <, >, etc.).',
         description: 'Error message when if/until condition is not a boolean expression',
         id: 'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean',
     },

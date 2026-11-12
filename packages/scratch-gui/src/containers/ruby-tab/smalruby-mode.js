@@ -38,7 +38,7 @@ export const smalrubyLanguageConfiguration = {
         // (with negative lookahead for one-liners like
         // "if x then y end"), or lines ending with "do".
         increaseIndentPattern: new RegExp(
-            `^\\s*(?:(?:${INCREASE_INDENT_KEYWORDS})` + `\\b(?!.*\\bend\\b).*|.*\\bdo\\b\\s*)$`,
+            `^\\s*(?:(?:${INCREASE_INDENT_KEYWORDS})\\b(?!.*\\bend\\b).*|.*\\bdo\\b\\s*)$`,
         ),
         // Word boundary \b prevents matching "send", "blend", etc.
         // "when" requires a trailing space (e.g. "when 1") to avoid

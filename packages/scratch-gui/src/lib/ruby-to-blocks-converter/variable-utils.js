@@ -12,7 +12,7 @@ const messages = defineMessages({
         id: 'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope',
     },
     alreadyDefinedMyBlock: {
-        defaultMessage: 'already defined My Block "{NAME}".' + '\nUse a different name.',
+        defaultMessage: 'already defined My Block "{NAME}".\nUse a different name.',
         description: 'Error message when defining a My Block with a name that already exists',
         id: 'gui.smalruby3.rubyToBlocksConverter.alreadyDefinedMyBlock',
     },

@@ -350,9 +350,7 @@ class Smalrubot {
                 );
             });
         } catch (error) {
-            log.error(
-                `Error writing command: reason=<${error}>` + ` command=<${commandName} (${command})> pin=<${pin}>`,
-            );
+            log.error(`Error writing command: reason=<${error}> command=<${commandName} (${command})> pin=<${pin}>`);
         }
         return Promise.resolve();
     }
@@ -628,8 +626,8 @@ class SmalrubotS1 extends Smalrubot {
                         const position = readBuffer.indexOf('\r\n');
                         const line = readBuffer.substring(0, position);
                         readBuffer = readBuffer.substring(position + '\r\n'.length);
-                        // eslint-disable-next-line
                         debug(
+                            // eslint-disable-next-line no-loop-func
                             () =>
                                 `Got line from readBuffer: line=<${this.lineToString(line)}>` +
                                 ` readBuffer=<${this.lineToString(readBuffer)}>`,

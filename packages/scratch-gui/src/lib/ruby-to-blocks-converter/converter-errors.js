@@ -13,12 +13,12 @@ const backdropLibraryNames = new Set(backdropsLibrary.map((b) => b.name));
 const messages = defineMessages({
     couldNotConvertPrimitive: {
         defaultMessage:
-            '"{ SOURCE }" could not be converted to a block.' + '\nCheck the spelling or use a supported value.',
+            '"{ SOURCE }" could not be converted to a block.\nCheck the spelling or use a supported value.',
         description: 'Error message for converting ruby to block when find the primitive',
         id: 'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive',
     },
     wrongInstruction: {
-        defaultMessage: '"{ SOURCE }" is the wrong instruction.' + '\nCheck the spelling or use a supported block.',
+        defaultMessage: '"{ SOURCE }" is the wrong instruction.\nCheck the spelling or use a supported block.',
         description: 'Error message for converting ruby to block when find the wrong instruction',
         id: 'gui.smalruby3.rubyToBlocksConverter.wrongInstruction',
     },
@@ -59,7 +59,7 @@ const messages = defineMessages({
     },
     invalidSoundName: {
         defaultMessage:
-            'sound "{ NAME }" does not exist in the sound library.' + '\nCheck the name or use a valid sound name.',
+            'sound "{ NAME }" does not exist in the sound library.\nCheck the name or use a valid sound name.',
         description: 'Error message when set_sounds references an invalid sound library name',
         id: 'gui.smalruby3.rubyToBlocksConverter.invalidSoundName',
     },
@@ -71,14 +71,13 @@ const messages = defineMessages({
         id: 'gui.smalruby3.rubyToBlocksConverter.invalidBackdropName',
     },
     spriteMethodInStageClass: {
-        defaultMessage:
-            '"{ METHOD }" cannot be used in class Stage.' + '\nThis method is only available for sprites.',
+        defaultMessage: '"{ METHOD }" cannot be used in class Stage.\nThis method is only available for sprites.',
         description: 'Error message when a sprite-only set_xxx method is used in class Stage',
         id: 'gui.smalruby3.rubyToBlocksConverter.spriteMethodInStageClass',
     },
     stageMethodInSpriteClass: {
         defaultMessage:
-            '"{ METHOD }" cannot be used in a sprite class.' + '\nThis method is only available for class Stage.',
+            '"{ METHOD }" cannot be used in a sprite class.\nThis method is only available for class Stage.',
         description: 'Error message when a stage-only set_xxx method is used in a sprite class',
         id: 'gui.smalruby3.rubyToBlocksConverter.stageMethodInSpriteClass',
     },
@@ -148,13 +147,12 @@ const messages = defineMessages({
         id: 'gui.smalruby3.rubyToBlocksConverter.extendNotSupported',
     },
     moduleNotSupportedInStage: {
-        defaultMessage: 'module is not supported in Stage.' + '\nModules can only be used in sprite classes.',
+        defaultMessage: 'module is not supported in Stage.\nModules can only be used in sprite classes.',
         description: 'Error message when module syntax is used in Stage',
         id: 'gui.smalruby3.rubyToBlocksConverter.moduleNotSupportedInStage',
     },
     includeNotSupportedInStage: {
-        defaultMessage:
-            'include is not supported in class Stage.' + '\nModules can only be included in sprite classes.',
+        defaultMessage: 'include is not supported in class Stage.\nModules can only be included in sprite classes.',
         description: 'Error message when include is used in class Stage',
         id: 'gui.smalruby3.rubyToBlocksConverter.includeNotSupportedInStage',
     },
@@ -164,8 +162,7 @@ const messages = defineMessages({
         id: 'gui.smalruby3.rubyToBlocksConverter.moduleImportFailed',
     },
     symbolNeedsToS: {
-        defaultMessage:
-            '"{ SOURCE }" — symbols need .to_s to be used as a string.' + '\nWrite { SUGGESTION } instead.',
+        defaultMessage: '"{ SOURCE }" — symbols need .to_s to be used as a string.\nWrite { SUGGESTION } instead.',
         description: 'Error message when a symbol is used where a string is expected without .to_s',
         id: 'gui.smalruby3.rubyToBlocksConverter.symbolNeedsToS',
     },

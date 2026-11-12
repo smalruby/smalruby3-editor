@@ -7,7 +7,7 @@ import Primitive from './primitive';
 const messages = defineMessages({
     invalidMyBlockArgumentType: {
         defaultMessage:
-            'invalid type of My Block "{NAME}" argument #{INDEX}.' + '\nUse a number, string, or boolean value.',
+            'invalid type of My Block "{NAME}" argument #{INDEX}.\nUse a number, string, or boolean value.',
         description: 'Error message when My Block argument has invalid type',
         id: 'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType',
     },

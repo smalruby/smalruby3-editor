@@ -201,7 +201,7 @@ const TargetApplier = {
             });
             if (contextBlockIds.length > 0 && !hasTopLevelScript) {
                 throw new Error(
-                    'Converted block graph is broken: ' + `${contextBlockIds.length} blocks but no top-level script`,
+                    `Converted block graph is broken: ${contextBlockIds.length} blocks but no top-level script`,
                 );
             }
 

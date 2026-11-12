@@ -137,7 +137,7 @@ const EventSenderMixin = {
             }
         }
 
-        debug(() => `Mesh V2: Queuing event for sending: ${eventName} ` + `(queue size: ${this.eventQueue.length})`);
+        debug(() => `Mesh V2: Queuing event for sending: ${eventName} (queue size: ${this.eventQueue.length})`);
 
         // キューに追加（発火日時と orderKey を記録）
         const firedAt = new Date();
