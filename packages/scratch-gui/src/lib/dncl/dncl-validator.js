@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (DNCL source validator) ===
+import { skipString } from './paren-utils';
 
 /**
  * The id of the error for the post-test loop (issue #1626). The Japanese mode
@@ -85,6 +86,36 @@ const validateDncl = (source) => {
     return errors;
 };
 
+/**
+ * A line that opens a `do ... end` block (`with_screen_refresh do`, `loop do`,
+ * `when_flag_clicked do`, `list.each do |x|`, ...). Such a block has no DNCL
+ * form, so it is shown as Ruby in the DNCL and closed by `を実行する`
+ * (issue #1665). A `do` in a string is not at the end of the line, so it is
+ * not taken.
+ */
+const DO_BLOCK_RE = /(?:^|[\s)])do(?:\s*\|[^|]*\|)?$/;
+
+/**
+ * Whether the line opens a `do ... end` block (see `DO_BLOCK_RE`). A comment
+ * at the end of the line (`move(1) # what to do`) is cut off first, so a
+ * `do` in it is not taken; a `#` in a string is not a comment.
+ * @param {string} line - A trimmed line of Ruby or DNCL.
+ * @returns {boolean} True when the line opens a `do` block.
+ */
+const isDoBlockLine = (line) => {
+    let code = line;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(line, i, ch) - 1;
+        } else if (ch === '#') {
+            code = line.substring(0, i);
+            break;
+        }
+    }
+    return DO_BLOCK_RE.test(code.trimEnd());
+};
+
 // Block openers of the DNCL the line converter reads (after the DNCLv2
 // pre-processor), with the closer each needs and how the error names it.
 // The patterns are looser than the converter's so that an opener it would
@@ -100,6 +131,7 @@ const BLOCK_KINDS = [
     { re: /\sずつ減らしながら$/, name: '「〜ずつ減らしながら」', closer: 'を繰り返す' },
     { re: /^.+\sの間$/, name: '「〜の間」', closer: 'を繰り返す' },
     { re: /^関数\s+\S+?\s*\(/, name: '「関数」', closer: 'と定義する' },
+    { re: { test: isDoBlockLine }, name: '「〜 do」', closer: 'を実行する' },
 ];
 
 const CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定義する']);
@@ -228,4 +260,11 @@ const findDnclBlockErrors = (source) => {
     return errors.sort((a, b) => a.line - b.line);
 };
 
-export { findDnclBlockErrors, isPostTestLoopLine, POST_TEST_LOOP_ERROR_ID, POST_TEST_LOOP_MESSAGE, validateDncl };
+export {
+    findDnclBlockErrors,
+    isDoBlockLine,
+    isPostTestLoopLine,
+    POST_TEST_LOOP_ERROR_ID,
+    POST_TEST_LOOP_MESSAGE,
+    validateDncl,
+};

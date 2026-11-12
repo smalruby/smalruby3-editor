@@ -111,6 +111,21 @@ describe('DNCL mode switch validation', () => {
             expect(errors.length).toBeGreaterThan(0);
         });
 
+        test('a do block inside の間 is told on its line (issue #1665)', async () => {
+            const code = [
+                '@a = 0',
+                'while @a < 1',
+                '  with_screen_refresh do',
+                '    @a = @a + 1',
+                '  end',
+                'end',
+                '',
+            ].join('\n');
+            const { valid, errors } = await validateForDncl(code);
+            expect(valid).toBe(false);
+            expect(errors.map((e) => e.row)).toContain(2);
+        });
+
         test('when_clicked is not supported in DNCL', async () => {
             const code = 'when_clicked do\n  say("hello", 1)\nend\n';
             const { valid, errors } = await validateForDncl(code);
