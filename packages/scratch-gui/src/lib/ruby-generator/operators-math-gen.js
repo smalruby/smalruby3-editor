@@ -51,11 +51,22 @@ export default function (Generator) {
             }
             return ['0', Generator.ORDER_ATOMIC];
         }
-
         const order = Generator.ORDER_ADDITIVE;
         const leftSideOrder = order + 0.5;
         registerLeftAssocOverride(Generator, leftSideOrder, order);
         const num1 = Generator.valueToCode(block, 'NUM1', leftSideOrder) || 0;
+        // Only while the left side is still 0: once someone puts another value there the block is
+        // a plain subtraction again and `-X` would change its meaning.
+        if (String(num1) === '0' && comment && comment.split(/,(?=@ruby:)/).includes('@ruby:unary_minus')) {
+            // "(0) - (X)" made from `-X` (issue #1676). In Ruby `**` binds tighter than a unary
+            // minus and `*` looser, so X needs parens only when it is looser than `-` itself
+            // (`-(1 + 2)`, but `-a ** 2` and `-@a.length`). A nested minus needs no parens
+            // either; a space keeps `- -x` from reading as `--x`.
+            const unaryOrder = Generator.ORDER_UNARY_MINUS_SIGN;
+            registerLeftAssocOverride(Generator, unaryOrder, unaryOrder);
+            const operand = String(Generator.valueToCode(block, 'NUM2', unaryOrder) || 0);
+            return [`-${operand.startsWith('-') ? ' ' : ''}${operand}`, unaryOrder];
+        }
         const num2 = Generator.valueToCode(block, 'NUM2', order) || 0;
         return [`${num1} - ${num2}`, Generator.ORDER_ADDITIVE];
     };
