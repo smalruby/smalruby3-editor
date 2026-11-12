@@ -139,7 +139,7 @@ describe('Smalruby Lessons: lesson 1 challenges 5-8', () => {
 
     test('5 もし〜なら: the line changes when the mouse touches the cat and leaves it', async () => {
         await openChallengeAndInsertCode('blocks-l1-if', {
-            hintCount: 6,
+            hintCount: 7,
             firstTarget: 'palette',
             hatOpcode: 'event_whenflagclicked',
         });
@@ -166,7 +166,7 @@ describe('Smalruby Lessons: lesson 1 challenges 5-8', () => {
 
     test('6 聞いて答えよう: clicking the cat, typing a name, and the answer and the seconds are said', async () => {
         await openChallengeAndInsertCode('blocks-l1-ask-answer', {
-            hintCount: 6,
+            hintCount: 7,
             firstTarget: 'palette',
             hatOpcode: 'event_whenthisspriteclicked',
         });
@@ -196,7 +196,7 @@ describe('Smalruby Lessons: lesson 1 challenges 5-8', () => {
 
     test('7 クイズを作ろう: 7 says Correct, another number says Wrong (the en code), then it is done', async () => {
         await openChallengeAndInsertCode('blocks-l1-quiz', {
-            hintCount: 5,
+            hintCount: 7,
             firstTarget: 'palette',
             hatOpcode: 'event_whenthisspriteclicked',
         });
