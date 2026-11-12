@@ -19,7 +19,7 @@
 //
 // See Issue #640.
 import { lineNumberSeparator } from './dncl-line-number';
-import { splitTrailingComment, stringEndAt } from './dncl-trailing-comment';
+import { codeOfLine, splitTrailingComment, stringEndAt } from './dncl-trailing-comment';
 import { isLogicalWordAt, isNameChar, isWholeWordAt } from './paren-utils';
 
 /**
@@ -235,14 +235,26 @@ const joinContinuationLines = (source) => {
         // Only numbered DNCLv2 lines wrap; in un-numbered code an unclosed
         // bracket is a typo and must not swallow the rest of the program.
         let depth = LINE_NUMBER_RE.test(line) ? bracketDepth(line) : 0;
+        // Only the code of each line is joined; the `# comment`s go to the end
+        // of the joined line, or the rest of the statement would be inside
+        // the comment of the first line (Issue #1710).
+        const comments = [];
+        if (depth > 0) {
+            const code = codeOfLine(line);
+            comments.push(line.substring(code.length).trim());
+            line = code;
+        }
         while (depth > 0 && i + 1 < rawLines.length && !LINE_NUMBER_RE.test(rawLines[i + 1].trimStart())) {
             i++;
             const m = rawLines[i].match(/^([\s｜|⎿]*)(.*)$/);
             extraCloseCount += (m[1].match(/⎿/g) || []).length;
-            const rest = m[2].trim();
-            line = `${line.replace(/\s+$/, '')} ${rest}`;
+            const rest = codeOfLine(m[2].trim());
+            comments.push(m[2].trim().substring(rest.length).trim());
+            if (rest !== '') line = `${line} ${rest}`;
             depth += bracketDepth(rest);
         }
+        const comment = comments.filter((c) => c !== '').join(' ');
+        if (comment !== '') line = `${line} ${comment}`;
         result.push({ line, extraCloseCount, lineNumber });
         i++;
     }
