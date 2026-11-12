@@ -263,6 +263,10 @@ const ControlFlowHandlers = {
     },
 
     visitUntilNode(node) {
+        return this._withScreenRefreshScope(node, () => this._visitUntilNode(node));
+    },
+
+    _visitUntilNode(node) {
         const saved = this._saveContext();
 
         const preBlocks = [];
@@ -388,6 +392,10 @@ const ControlFlowHandlers = {
     },
 
     visitWhileNode(node) {
+        return this._withScreenRefreshScope(node, () => this._visitWhileNode(node));
+    },
+
+    _visitWhileNode(node) {
         const saved = this._saveContext();
 
         const preBlocks = [];
@@ -546,6 +554,53 @@ const ControlFlowHandlers = {
             this._addSubstack(block, calls[0]);
         }
         return opcode;
+    },
+
+    /**
+     * The `with_screen_refresh do ... end` that is the only statement of the body of a loop, or null.
+     * It is the only place the blocks have it: a mark on the loop (issue #1633).
+     * @param {object} node - The WhileNode / UntilNode.
+     * @returns {?object} The CallNode of `with_screen_refresh`.
+     */
+    _soleWithScreenRefreshCall(node) {
+        let statements = node.statements ? node.statements.body : [];
+        if (statements.length === 1 && this._getNodeTypeName(statements[0]) === 'BeginNode') {
+            const begin = statements[0];
+            if (begin.rescueClause || begin.elseClause || begin.ensureClause) return null;
+            statements = begin.statements ? begin.statements.body : [];
+        }
+        if (statements.length !== 1) return null;
+        const call = statements[0];
+        if (
+            this._getNodeTypeName(call) !== 'CallNode' ||
+            call.name !== 'with_screen_refresh' ||
+            call.receiver ||
+            call.arguments_ ||
+            !call.block
+        ) {
+            return null;
+        }
+        return call;
+    },
+
+    /**
+     * Visit a loop with its own `with_screen_refresh` state, so that neither the call allowed in its
+     * body nor the mark it leaves reaches another loop or another conversion (issue #1633).
+     * @param {object} node - The WhileNode / UntilNode.
+     * @param {Function} visit - Visits the loop.
+     * @returns {*} What visit returns.
+     */
+    _withScreenRefreshScope(node, visit) {
+        const savedBody = this._withScreenRefreshLoopBody;
+        const savedHad = this._hadWithScreenRefreshWrapper;
+        this._withScreenRefreshLoopBody = this._soleWithScreenRefreshCall(node);
+        this._hadWithScreenRefreshWrapper = false;
+        try {
+            return visit();
+        } finally {
+            this._withScreenRefreshLoopBody = savedBody;
+            this._hadWithScreenRefreshWrapper = savedHad;
+        }
     },
 
     /**
