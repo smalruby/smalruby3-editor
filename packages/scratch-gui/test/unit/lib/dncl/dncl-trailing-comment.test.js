@@ -4,7 +4,9 @@
 // end of the line.
 import dedent from 'dedent';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
+import { codeOfLine } from '../../../../src/lib/dncl/dncl-trailing-comment';
 import { dnclV2Preprocess } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
+import { isDoBlockLine } from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 
 const toRuby = (dncl) => {
@@ -231,6 +233,36 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
         );
         // ask("") / @x = answer # c / if @x > 0 # d / puts(@x) # e / end / puts(0)
         expect([1, 2, 3, 4, 5, 6].map((line) => sourceMap.rubyLineToDnclLine(line))).toEqual([1, 1, 2, 3, 3, 4]);
+    });
+
+    test('Ruby → DNCL: a command in a comment is not an unsupported command', () => {
+        expect(rubyToDncl('puts(1) # move(2)').errors).toEqual([]);
+        const { errors } = rubyToDncl('@i = 1 # a\nwhile @i <= 3 # b\n  @i += 1 # c\nend # d\nmove(2) # e');
+        expect(errors.map(({ line, column, name }) => ({ line, column, name }))).toEqual([
+            { line: 5, column: 1, name: 'move' },
+        ]);
+    });
+
+    describe('codeOfLine / isDoBlockLine', () => {
+        test.each([
+            ['loop do # c', 'loop do'],
+            ['# loop do', ''],
+            ['puts("#") # c', 'puts("#")'],
+            ['puts(「#」) # c', 'puts(「#」)'],
+            ['x = 1', 'x = 1'],
+        ])('codeOfLine(%j)', (line, code) => {
+            expect(codeOfLine(line)).toBe(code);
+        });
+
+        test.each([
+            ['loop do # c', true],
+            ['# loop do', false],
+            ['move(1) # what to do', false],
+            ['say(「#」) do', true],
+            ['say(「# do」)', false],
+        ])('isDoBlockLine(%j)', (line, expected) => {
+            expect(isDoBlockLine(line)).toBe(expected);
+        });
     });
 
     test('a keyword inside a comment does not open a block', () => {

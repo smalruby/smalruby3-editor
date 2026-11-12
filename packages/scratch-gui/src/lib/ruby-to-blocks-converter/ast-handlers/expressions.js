@@ -506,6 +506,30 @@ const ExpressionHandlers = {
     },
 
     _onVar(name, scope, node) {
+        // `@a` that is a list reads the list itself (issue #1622): the sprite has only the list `a`,
+        // the code uses `@a` as a list, or it is `@_a_list_`. Ruby version 1 reads a list with
+        // `list("@a")`, so there a read stays a variable read (the applier still reads the list
+        // that this code makes, issue #1567).
+        if (
+            this.version >= 2 &&
+            (scope === 'global' || scope === 'instance') &&
+            this._kindOfRubyName(name) === 'list'
+        ) {
+            const list = this._lookupOrCreateList(name);
+            const listBlock = this._createBlock('data_listcontents', 'value_variable', {
+                fields: {
+                    LIST: {
+                        name: 'LIST',
+                        id: list.id,
+                        value: list.name,
+                        variableType: list.type,
+                    },
+                },
+            });
+            // A read of `@a` in Ruby, whose index is from 0 (see `convertToListBlock`)
+            this._context.listReadBlockIds.add(listBlock.id);
+            return listBlock;
+        }
         const variable = this._lookupOrCreateVariable(name);
         const block = this._callConvertersHandler('onVar', scope, variable);
         if (block) {

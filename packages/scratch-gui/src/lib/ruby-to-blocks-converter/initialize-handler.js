@@ -83,11 +83,12 @@ const InitializeHandler = {
                     );
                 }
                 if (Array.isArray(value)) {
-                    initializeValues[varName] = { value, type: 'list' };
-                    this._lookupOrCreateList(`@${varName}`);
+                    // `@_a_list_` is the list `a` beside the variable `a` (issue #1622)
+                    const list = this._lookupOrCreateList(`@${varName}`);
+                    initializeValues[`list:${list.name}`] = { name: list.name, value, type: 'list' };
                 } else {
-                    initializeValues[varName] = { value, type: '' };
-                    this._lookupOrCreateVariable(`@${varName}`);
+                    const variable = this._lookupOrCreateVariable(`@${varName}`);
+                    initializeValues[`:${variable.name}`] = { name: variable.name, value, type: '' };
                 }
             } else if (stmtType === 'GlobalVariableWriteNode') {
                 if (!isStageClass) {
@@ -111,11 +112,12 @@ const InitializeHandler = {
                     );
                 }
                 if (Array.isArray(value)) {
-                    initializeValues[varName] = { value, type: 'list' };
-                    this._lookupOrCreateList(`$${varName}`);
+                    // `@_a_list_` is the list `a` beside the variable `a` (issue #1622)
+                    const list = this._lookupOrCreateList(`$${varName}`);
+                    initializeValues[`list:${list.name}`] = { name: list.name, value, type: 'list' };
                 } else {
-                    initializeValues[varName] = { value, type: '' };
-                    this._lookupOrCreateVariable(`$${varName}`);
+                    const variable = this._lookupOrCreateVariable(`$${varName}`);
+                    initializeValues[`:${variable.name}`] = { name: variable.name, value, type: '' };
                 }
             } else {
                 const src = this._truncateSource(this._getSource(stmt));

@@ -9,13 +9,18 @@ import { RubyToBlocksConverterError } from './errors';
  * @param {object} converter - The converter instance.
  * @param {object} messages - The messages object for error messages.
  * @param {object} block - The receiver block to convert.
- * @returns {{block: object|null, converted: boolean}} The converted block and whether conversion happened.
+ * @returns {{block: object|null, converted: boolean}} The list block, and whether it is the array syntax of
+ *     Ruby version 2 (a converted variable read, or a read of `@a` that is a list).
  */
 export const convertToListBlock = function (converter, messages, block) {
     if (!converter._isBlock(block)) return { block: null, converted: false };
 
-    // Already a list block, no conversion needed
-    if (converter.isListBlock(block)) return { block, converted: false };
+    // Already a list block. A read of `@a` that is a list (issue #1622) is the array syntax of
+    // Ruby version 2 like a converted one: its index is from 0. `list("$a")` of version 1 is not.
+    if (converter.isListBlock(block)) {
+        const listReadBlockIds = converter._context.listReadBlockIds;
+        return { block, converted: Boolean(listReadBlockIds && listReadBlockIds.has(block.id)) };
+    }
 
     if (block.opcode !== 'data_variable') return { block: null, converted: false };
 
@@ -58,20 +63,6 @@ export const convertToListBlock = function (converter, messages, block) {
 };
 
 /**
- * Whether the project already has both a variable and a list of this name. Their Ruby uses one name
- * for both (`@score = 0` and `say(@score.length)` for the length of the list), so how the code uses
- * the name as a whole (issue #1613) does not decide which one a method of both String and Array is.
- * @param {object} converter - The converter instance.
- * @param {string} varName - The name in the converter's stores.
- * @returns {boolean} true if both come from the project.
- */
-const projectHasVariableAndList = function (converter, varName) {
-    const variable = converter._context.variables[varName];
-    const list = converter._context.lists[varName];
-    return Boolean(variable && list && variable.fromTarget && list.fromTarget && variable.scope === list.scope);
-};
-
-/**
  * Determine whether a receiver block refers to a *known* list variable,
  * WITHOUT creating one.
  *
@@ -106,17 +97,19 @@ export const isKnownListReceiver = function (converter, block) {
     // create). A genuine scalar/String variable has no matching list entry, so
     // this correctly returns false for them.
     const varName = block.fields.VARIABLE.value;
+    const variable = converter._context.variables[varName] || converter._context.localVariables[varName];
     const list = converter._context.lists[varName];
-    // A list that the project already has, while this code sets a variable of the same name and
-    // does not use the list, is not what `@a` means here (`@a = "abc"` then `@a.length`, issue #1612).
-    if (!list) return false;
-    // The code sets `@a` to a string or a number and never uses it as a list, so a list of that name
-    // (one that the project already has) is not `@a`, even before the assignment is converted
-    // (`def f; say(@a.length); end` then `@a = "abc"`, issue #1613).
-    if (!list.isArgument && !projectHasVariableAndList(converter, varName) && converter._isUsedOnlyAsScalar(list)) {
-        return false;
+    if (variable && (variable.scope === 'global' || variable.scope === 'instance')) {
+        // Whether `@a` is a variable or a list is decided from what is known (issue #1622). When
+        // nothing tells, a list that this code has made of the name (`@a.length` before) is `@a`.
+        const kind = converter._kindOfVariable(variable);
+        if (kind !== null) return kind === 'list';
+        return Boolean(list) && list.scope === variable.scope;
     }
-    return !converter._isListShadowedByVariable(list);
+    if (!list) return false;
+    // The code sets the local to a string or a number and never uses it as a list, so a list of
+    // that name is not this local, even before the assignment is converted (issue #1613).
+    return !converter._isUsedOnlyAsScalar(list);
 };
 
 /**
@@ -141,7 +134,10 @@ export const isKnownStringReceiver = function (converter, block) {
     // Set to a string here, or set only to scalars anywhere in the code (`@a = gets`, a number set
     // last, or an assignment after this read, issue #1613): Scratch reads the variable as text.
     if (variable.dataType === 'string') return true;
-    return !projectHasVariableAndList(converter, varName) && converter._isUsedOnlyAsScalar(variable);
+    if (variable.scope === 'global' || variable.scope === 'instance') {
+        return converter._kindOfVariable(variable) === 'scalar';
+    }
+    return converter._isUsedOnlyAsScalar(variable);
 };
 
 /**

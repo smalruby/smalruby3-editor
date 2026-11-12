@@ -48,4 +48,16 @@ const splitTrailingComment = (line) => {
     return { code, comment: line.substring(code.length) };
 };
 
-export { splitTrailingComment };
+/**
+ * The code of a line without its `# comment` (a `#` in a string is not a
+ * comment). Unlike {@link splitTrailingComment}, a line that is only a
+ * comment has no code (''), so a keyword in it is not matched.
+ * @param {string} line - A DNCL or Ruby line.
+ * @returns {string} The code before the comment, with no trailing space.
+ */
+const codeOfLine = (line) => {
+    const idx = commentIndex(line);
+    return (idx === -1 ? line : line.substring(0, idx)).replace(/\s+$/, '');
+};
+
+export { codeOfLine, splitTrailingComment };

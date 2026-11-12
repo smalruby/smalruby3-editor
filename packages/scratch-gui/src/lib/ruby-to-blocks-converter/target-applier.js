@@ -71,18 +71,46 @@ const TargetApplier = {
         // `@a` is a list a value read like `say(@a)` would point at the dropped
         // scalar and come back as `say("")` (issue #1567).
         const droppedScalarToList = {};
+        // Scratch can have a variable and a list of the same name: `@a` and `@_a_list_` in Ruby
+        // (issue #1622). A variable of a sprite or the stage is kept beside the list when the
+        // project already has it or a block sets or changes it. One that the converter made only
+        // on the way to the list (`@a = []`, a read of `@a` in Ruby version 1) is dropped as above.
+        // `def initialize` sets a variable without a block.
+        const writtenIds = new Set();
+        const initializeValues = this._context.initializeValues || {};
+        Object.values(this._context.blocks).forEach((block) => {
+            const field = block.opcode !== 'data_variable' && block.fields && block.fields.VARIABLE;
+            if (field) writtenIds.add(field.id);
+        });
+        const listOfScalar = (variable) => {
+            const winner = seenVarKeys.get(`${variable.scope}:${variable.name}`);
+            if (winner) return winner.type === Variable.LIST_TYPE ? winner : null;
+            if (variable.scope !== 'global' && variable.scope !== 'instance') return null;
+            const listName = this._listNameOfAlias(`${variable.scope === 'global' ? '$' : '@'}${variable.name}`);
+            const list = listName !== null && this._context.lists[listName];
+            return list && list.scope === variable.scope ? list : null;
+        };
         ['lists', 'variables', 'localVariables'].forEach((storeName) => {
             Object.keys(this._context[storeName]).forEach((name) => {
                 const variable = this._context[storeName][name];
                 if (variable.isArgument) return;
 
                 const dedupeKey = `${variable.scope}:${variable.name}`;
-                if (seenVarKeys.has(dedupeKey)) {
+                const list = variable.type === Variable.SCALAR_TYPE ? listOfScalar(variable) : null;
+                const keptBesideList =
+                    list &&
+                    variable.scope !== 'local' &&
+                    (variable.fromTarget ||
+                        writtenIds.has(variable.id) ||
+                        // `@a` beside `@_a_list_` in the code (`say(@a)` and `say(@_a_list_)`)
+                        this._kindOfVariable(variable) === 'scalar' ||
+                        Object.prototype.hasOwnProperty.call(initializeValues, `:${variable.name}`));
+                if (list && !keptBesideList) {
+                    droppedScalarToList[variable.id] = list;
+                    return;
+                }
+                if (!keptBesideList && seenVarKeys.has(dedupeKey)) {
                     // Older entry from another store wins.
-                    const winner = seenVarKeys.get(dedupeKey);
-                    if (winner.type === Variable.LIST_TYPE && variable.type === Variable.SCALAR_TYPE) {
-                        droppedScalarToList[variable.id] = winner;
-                    }
                     return;
                 }
                 seenVarKeys.set(dedupeKey, variable);
@@ -126,8 +154,8 @@ const TargetApplier = {
 
         // Apply initialize values to variables/lists
         if (this._context.initializeValues) {
-            Object.keys(this._context.initializeValues).forEach((varName) => {
-                const { value, type } = this._context.initializeValues[varName];
+            Object.keys(this._context.initializeValues).forEach((key) => {
+                const { name: varName, value, type } = this._context.initializeValues[key];
                 // Find the variable on the appropriate target
                 const varType = type === 'list' ? Variable.LIST_TYPE : Variable.SCALAR_TYPE;
                 const owner = target.isStage ? stage : target;

@@ -127,6 +127,8 @@ class RubyToBlocksConverter extends Visitor {
             // Pre-pass: how each variable name is used, so that `@a.length` does not depend on
             // whether `@a = "abc"` was converted before it (issue #1613)
             this._collectVariableUses(root);
+            // One `@a` used as both a variable and a list is an error (issues #1593 / #1622)
+            this._rejectRubyNameOfVariableAndList();
             let blocks = this.visit(root);
             if (blocks === null || typeof blocks === 'undefined') {
                 return true;
@@ -222,7 +224,6 @@ class RubyToBlocksConverter extends Visitor {
                 }
             });
 
-            this._dropListsShadowedByVariables();
             this._dropUnusedHashVariables();
             this._rejectVariableAndListOfSameName();
 
