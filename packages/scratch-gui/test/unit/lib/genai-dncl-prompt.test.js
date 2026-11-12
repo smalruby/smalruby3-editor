@@ -32,6 +32,11 @@ describe('the kinds of trouble of the Japanese (DNCL) mode', () => {
 describe('buildDnclTabPrompt', () => {
     const prompt = buildDnclTabPrompt(params);
 
+    test('tells that the post-test loop cannot be written (issue #1626)', () => {
+        expect(prompt).toContain('後判定の繰り返し');
+        expect(prompt).not.toMatch(/「を\s*〜\s*になるまで実行する」の行で閉じて/);
+    });
+
     test('passes the DNCL in the editor as it is', () => {
         expect(prompt).toContain(
             `【直すプログラム（生徒がいま書いている DNCL）】\n\`\`\`\n${params.code.trim()}\n\`\`\``,

@@ -1,11 +1,15 @@
 // === Smalruby: This file is Smalruby-specific (Ruby to DNCL reverse transpiler) ===
+import { isPostTestLoopLine, POST_TEST_LOOP_ERROR_ID, POST_TEST_LOOP_MESSAGE } from './dncl-validator';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
 import { convertLine, detectForLoopPattern } from './ruby-to-dncl-line-converter';
 
 /**
  * Transpile Ruby source code to DNCL.
  * @param {string} source - The Ruby source code.
- * @returns {object} An object with `dncl` (the transpiled DNCL code).
+ * @returns {object} An object with `dncl` (the transpiled DNCL code) and
+ *   `errors` (code that cannot be written in DNCL, with `line` / `column` of
+ *   the Ruby source, `id` and `message`). The DNCL of such code is left as
+ *   Ruby, so `dnclToRuby` tells the same errors on the DNCL lines.
  */
 const rubyToDncl = (source) => {
     // Stack of block contexts. String entries (`'if'`, `'loop'`, `'func'`)
@@ -15,6 +19,7 @@ const rubyToDncl = (source) => {
 
     const lines = source.split('\n');
     const dnclLines = [];
+    const errors = [];
     let skipNext = false;
 
     for (let i = 0; i < lines.length; i++) {
@@ -96,6 +101,12 @@ const rubyToDncl = (source) => {
             }
         }
 
+        // The Japanese mode has no post-test loop (`begin ... end while / until`,
+        // issue #1626): 共通テスト用プログラム表記 has only the pre-test loops.
+        if (isPostTestLoopLine(trimmed)) {
+            errors.push({ line: i + 1, column: 1, id: POST_TEST_LOOP_ERROR_ID, message: POST_TEST_LOOP_MESSAGE });
+        }
+
         const result = convertLine(line, blockStack);
 
         // Handle ask("") or ask_and_wait("") + next line assignment → 入力
@@ -123,6 +134,7 @@ const rubyToDncl = (source) => {
 
     return {
         dncl: dnclLines.join('\n'),
+        errors,
     };
 };
 
