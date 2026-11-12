@@ -20,6 +20,33 @@ export default function (Generator) {
         return Generator.hashVariableOfListBlock(receiverBlock);
     };
 
+    /**
+     * Whether the expression is a `*` at the top: `a * 3`, but not `(a * 3).reverse` or
+     * `@a.join(" * ")`, whose `*` is inside parentheses or a string.
+     * @param {string} expr - A Ruby expression.
+     * @returns {boolean} True when a ` * ` is outside every bracket and string.
+     */
+    const isTopLevelMultiply = function (expr) {
+        let depth = 0;
+        let quote = null;
+        for (let i = 0; i < expr.length; i++) {
+            const c = expr[i];
+            if (quote) {
+                if (c === '\\') i++;
+                else if (c === quote) quote = null;
+            } else if (c === '"' || c === "'") {
+                quote = c;
+            } else if ('([{'.includes(c)) {
+                depth++;
+            } else if (')]}'.includes(c)) {
+                depth--;
+            } else if (depth === 0 && expr.startsWith(' * ', i)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     // --- Method call expression builder ---
     const buildMethodCallExpr = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
@@ -36,7 +63,10 @@ export default function (Generator) {
             // so try both stores.
             receiver = Generator.variableNameByName(varName) || Generator.listNameByName(varName) || 'nil';
         } else {
-            receiver = hashReceiver(block) || Generator.valueToCode(block, 'RECEIVER', order) || Generator.quote_('');
+            receiver =
+                hashReceiver(block) ||
+                Generator.valueToCode(block, 'RECEIVER', Generator.ORDER_RECEIVER) ||
+                Generator.quote_('');
         }
 
         const hasArg1 = block.inputs && block.inputs.ARG1;
@@ -96,8 +126,7 @@ export default function (Generator) {
 
     // --- Array method with block (CONDITIONAL, C-shape) ---
     Generator.smalrubyRuby_arrayMethodWithBlock = function (block) {
-        const order = Generator.ORDER_FUNCTION_CALL;
-        const receiver = Generator.valueToCode(block, 'RECEIVER', order) || Generator.quote_('');
+        const receiver = Generator.valueToCode(block, 'RECEIVER', Generator.ORDER_RECEIVER) || Generator.quote_('');
         const method = Generator.getFieldValue(block, 'METHOD') || 'each';
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const resolved = resolveBlockParams(block, branch);
@@ -107,8 +136,7 @@ export default function (Generator) {
 
     // --- Hash method with block (CONDITIONAL, C-shape) ---
     Generator.smalrubyRuby_hashMethodWithBlock = function (block) {
-        const order = Generator.ORDER_FUNCTION_CALL;
-        const receiver = Generator.valueToCode(block, 'RECEIVER', order) || Generator.quote_('');
+        const receiver = Generator.valueToCode(block, 'RECEIVER', Generator.ORDER_RECEIVER) || Generator.quote_('');
         const method = Generator.getFieldValue(block, 'METHOD') || 'each';
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const resolved = resolveBlockParams(block, branch);
@@ -118,7 +146,7 @@ export default function (Generator) {
 
     // --- Number method with block (CONDITIONAL, C-shape) ---
     Generator.smalrubyRuby_numberMethodWithBlock = function (block) {
-        const receiver = Generator.valueToCode(block, 'RECEIVER', Generator.ORDER_ATOMIC) || '0';
+        const receiver = Generator.valueToCode(block, 'RECEIVER', Generator.ORDER_RECEIVER) || '0';
         const method = Generator.getFieldValue(block, 'METHOD') || 'times';
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const resolved = resolveBlockParams(block, branch);
@@ -162,9 +190,14 @@ export default function (Generator) {
             new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_truthy_`, 'gm'),
             (match, indent1, expr, indent2, before) => `${indent2}${before}${expr}`,
         );
+        // `_rv_` is the receiver of a call without parentheses (issue #1675): `a * 3` there
+        // needs them back, `(a * 3).length`, while `a.reverse.length` does not.
         code = code.replace(
-            new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_`, 'gm'),
-            (match, indent1, expr, indent2, before) => `${indent2}${before}${expr}`,
+            new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_(?=([.[]?))`, 'gm'),
+            (match, indent1, expr, indent2, before, after) => {
+                const inlined = after && isTopLevelMultiply(expr) ? `(${expr})` : expr;
+                return `${indent2}${before}${inlined}`;
+            },
         );
         return code;
     };
