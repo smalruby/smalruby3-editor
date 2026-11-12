@@ -202,4 +202,9 @@ describe('tidyPastedDncl and 「...」', () => {
     test('a bracket in 「...」 does not join the next line', () => {
         expect(tidyPastedDncl('(00) 表示する(「(」)\n      x = 1')).toBe('表示する(「(」)\n      x = 1');
     });
+
+    test('a # comment on a wrapped statement moves to the end of the joined line (Issue #1710)', () => {
+        expect(tidyPastedDncl('(00) x = f(1, # c\n      2)\n(01) 表示する(x)')).toBe('x = f(1, 2) # c\n表示する(x)');
+        expect(tidyPastedDncl('(00) 表示する(a,\n      # メモ\n      b)')).toBe('表示する(a, b) # メモ');
+    });
 });

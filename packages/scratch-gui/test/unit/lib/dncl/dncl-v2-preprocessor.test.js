@@ -13,7 +13,7 @@
 //
 // See Issue #640.
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { dnclV2Preprocess } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
+import { dnclV2Preprocess, dnclV2PreprocessWithLineMap } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
 
 describe('DNCLv2 pre-processor: line numbers', () => {
     test('strips (N) prefix with single digit', () => {
@@ -506,5 +506,39 @@ describe('DNCLv2 pre-processor: brackets and # in a string', () => {
 
     test('a statement wrapped after a 「#」 is still joined', () => {
         expect(dnclV2Preprocess('(1) 表示する(「#」,\n      a)')).toBe('表示する(「#」, a)');
+    });
+});
+
+describe('DNCLv2 pre-processor: a # comment on a wrapped statement (Issue #1710)', () => {
+    test('the comment moves to the end of the joined line', () => {
+        expect(dnclV2Preprocess('(1) x = f(1, # c\n      2)\n(2) 表示する(x)')).toBe('x = f(1, 2) # c\n表示する(x)');
+    });
+
+    test('the comments of several wrapped lines are put together at the end', () => {
+        expect(dnclV2Preprocess('(1) 表示する(a, # 1つ目\n      b, # 2つ目\n      c)')).toBe(
+            '表示する(a, b, c) # 1つ目 # 2つ目',
+        );
+    });
+
+    test('a continuation line that is only a comment adds no code', () => {
+        expect(dnclV2Preprocess('(1) 表示する(a,\n      # メモ\n      b)')).toBe('表示する(a, b) # メモ');
+    });
+
+    test('a bracket in the comment is not counted', () => {
+        expect(dnclV2Preprocess('(1) x = f(1, # )\n      2)\n(2) y = 3')).toBe('x = f(1, 2) # )\ny = 3');
+        expect(dnclV2Preprocess('(1) x = 1 # (メモ\n      y = 2').split('\n')).toHaveLength(2);
+    });
+
+    test('a joined line still maps to its first source line', () => {
+        const { source, lineMap } = dnclV2PreprocessWithLineMap('(1) x = f(1, # c\n      2)\n(2) 表示する(x)');
+        expect(source).toBe('x = f(1, 2) # c\n表示する(x)');
+        expect(lineMap).toEqual([1, 3]);
+    });
+
+    test('the Ruby keeps the second argument and the comment', () => {
+        const { ruby } = dnclToRuby(dnclV2Preprocess('(1) 表示する(1, # c\n      2)'));
+        expect(ruby).toContain('# c');
+        expect(ruby).not.toMatch(/# c.*2/);
+        expect(ruby).toMatch(/1.*2/);
     });
 });

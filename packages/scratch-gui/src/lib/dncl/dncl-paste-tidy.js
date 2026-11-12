@@ -16,7 +16,7 @@
 // with a `//` (`withDoubleSlashHint`).
 //
 // See Issue #1192.
-import { commentIndex, stringEndAt } from './dncl-trailing-comment';
+import { codeOfLine, commentIndex, stringEndAt } from './dncl-trailing-comment';
 
 /**
  * A line-number prefix and the whitespace after it: the DNCLv2 form
@@ -190,14 +190,25 @@ const joinContinuationLines = (lines) => {
         let line = lines[i];
         let closeCount = 0;
         let depth = LINE_NUMBER_RE.test(line) ? bracketDepth(line) : 0;
+        // Join only the code; the `# comment`s go to the end of the joined
+        // line instead of swallowing the rest of the statement (Issue #1710).
+        const comments = [];
+        if (depth > 0) {
+            const code = codeOfLine(line);
+            comments.push(line.substring(code.length).trim());
+            line = code;
+        }
         while (depth > 0 && i + 1 < lines.length && !LINE_NUMBER_RE.test(lines[i + 1])) {
             i++;
             const m = lines[i].match(/^([\s｜|⎿]*)(.*)$/);
             closeCount += (m[1].match(/⎿/g) || []).length;
-            const rest = m[2].trim();
-            line = `${line.replace(/\s+$/, '')} ${rest}`;
+            const rest = codeOfLine(m[2].trim());
+            comments.push(m[2].trim().substring(rest.length).trim());
+            if (rest !== '') line = `${line} ${rest}`;
             depth += bracketDepth(rest);
         }
+        const comment = comments.filter((c) => c !== '').join(' ');
+        if (comment !== '') line = `${line} ${comment}`;
         if (closeCount > 0) {
             const prefix = line.match(LINE_NUMBER_RE)[0];
             const m = line.substring(prefix.length).match(/^([\s｜|⎿]*)(.*)$/);
