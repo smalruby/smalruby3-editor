@@ -7,7 +7,11 @@
  * go back and forth.
  */
 import { dnclToRuby, rubyForLeavingDncl } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { UNSUPPORTED_COMMAND_ERROR_ID, validateDncl } from '../../../../src/lib/dncl/dncl-validator';
+import {
+    isRubyCommandName,
+    UNSUPPORTED_COMMAND_ERROR_ID,
+    validateDncl,
+} from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 
 const lines = (...ls) => ls.join('\n');
@@ -119,6 +123,26 @@ describe('DNCL → Ruby: a command the Japanese mode does not have stops with an
         expect(commandErrors(lines('when_key_pressed("space") do', 'を実行する'))).toEqual([
             { line: 1, column: 1, name: 'when_key_pressed' },
         ]);
+    });
+
+    test('a Ruby name points to the Ruby mode', () => {
+        expect(dnclToRuby('move(2)').errors[0].message).toBe(
+            '「move」は日本語モードでは書けない命令です。Ruby モードでは書けます。',
+        );
+    });
+
+    test('a Japanese name asks to define the function', () => {
+        const result = dnclToRuby('a = 差分(1, 2)');
+        expect(result.ruby).toBeNull();
+        expect(result.errors[0]).toMatchObject({ id: UNSUPPORTED_COMMAND_ERROR_ID, name: '差分' });
+        expect(result.errors[0].message).toBe(
+            '「差分」は定義されていない関数です。「関数 差分(…)」で定義してください。',
+        );
+    });
+
+    test('isRubyCommandName tells a Ruby name from a Japanese one', () => {
+        expect(['move', 'key_pressed?', '_x', 'Move'].map(isRubyCommandName)).toEqual([true, true, true, true]);
+        expect(['差分', 'あいさつ', 'カウント'].map(isRubyCommandName)).toEqual([false, false, false]);
     });
 
     test('validateDncl tells it too', () => {

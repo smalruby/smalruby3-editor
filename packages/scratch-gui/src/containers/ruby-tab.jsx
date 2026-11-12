@@ -15,7 +15,7 @@ import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
 import { tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { dnclToRuby, rubyForLeavingDncl } from '../lib/dncl/dncl-to-ruby';
-import { POST_TEST_LOOP_ERROR_ID, UNSUPPORTED_COMMAND_ERROR_ID } from '../lib/dncl/dncl-validator';
+import { isRubyCommandName, POST_TEST_LOOP_ERROR_ID, UNSUPPORTED_COMMAND_ERROR_ID } from '../lib/dncl/dncl-validator';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import { makeRubyTabAdapterFactory } from '../lib/genai-ruby-adapter.js';
@@ -667,6 +667,17 @@ const RubyTab = (props) => {
     const dnclErrorText = useCallback(
         (err) => {
             if (err.id === POST_TEST_LOOP_ERROR_ID) return dnclPostTestLoopErrorMessage;
+            if (err.id === UNSUPPORTED_COMMAND_ERROR_ID && !isRubyCommandName(err.name)) {
+                // A Japanese name is a function to define, not a Ruby command.
+                return intl.formatMessage(
+                    {
+                        id: 'gui.rubyTab.dnclUndefinedFunctionError',
+                        defaultMessage:
+                            '"{name}" is a function that is not defined. Define it with "関数 {name}(…)".',
+                    },
+                    { name: err.name },
+                );
+            }
             if (err.id === UNSUPPORTED_COMMAND_ERROR_ID) {
                 return intl.formatMessage(
                     {

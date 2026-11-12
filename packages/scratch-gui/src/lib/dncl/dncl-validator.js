@@ -75,12 +75,25 @@ const isDoBlockLine = (line) => {
 const UNSUPPORTED_COMMAND_ERROR_ID = 'unsupportedCommand';
 
 /**
+ * Whether the name of an unsupported command is a Ruby one (it starts with an
+ * ASCII letter or `_`, like `move`). Another name (a Japanese one) is a
+ * function the program forgot to define, or one a problem of the common test
+ * says is given (`差分(...)`), so the error asks to define it instead of
+ * pointing to the Ruby mode.
+ * @param {string} name - The name of the command.
+ * @returns {boolean} True for a Ruby name.
+ */
+const isRubyCommandName = (name) => /^[A-Za-z_]/.test(name);
+
+/**
  * The message of the unsupported command error.
  * @param {string} name - The name of the command.
  * @returns {string} The message.
  */
 const unsupportedCommandMessage = (name) =>
-    `「${name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。`;
+    isRubyCommandName(name)
+        ? `「${name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。`
+        : `「${name}」は定義されていない関数です。「関数 ${name}(…)」で定義してください。`;
 
 const IDENT_HEAD_RE = /[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
 const IDENT_TAIL_RE = /[a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
@@ -439,6 +452,7 @@ export {
     findUnsupportedCommands,
     isDoBlockLine,
     isPostTestLoopLine,
+    isRubyCommandName,
     POST_TEST_LOOP_ERROR_ID,
     POST_TEST_LOOP_MESSAGE,
     UNSUPPORTED_COMMAND_ERROR_ID,

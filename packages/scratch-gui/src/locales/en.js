@@ -1380,6 +1380,8 @@ export default {
         'the index became -1; this part was probably 0-based already, so check it',
     'gui.rubyTab.dnclPostTestLoopError':
         'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in Ruby mode.',
+    'gui.rubyTab.dnclUndefinedFunctionError':
+        '"{name}" is a function that is not defined. Define it with "関数 {name}(…)".',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '"{name}" is a command that cannot be written in Japanese mode. You can write it in Ruby mode.',
     'gui.rubyTab.dnclValidationError':

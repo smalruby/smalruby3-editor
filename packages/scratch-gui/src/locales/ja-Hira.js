@@ -1791,6 +1791,8 @@ export default {
         'そえじが -1 になりました。ここはもともと 0 はじまりだったかもしれないので、たしかめてください',
     'gui.rubyTab.dnclPostTestLoopError':
         'あとではんていするくりかえし（さきに 1 かいうごかしてからじょうけんをたしかめるくりかえし）は、にほんごではかけません。さいしょの 1 かいをループのまえにかいてから、「〜のあいだくりかえす」にしてください。Ruby モードではかけます。',
+    'gui.rubyTab.dnclUndefinedFunctionError':
+        '「{name}」は、ていぎされていないかんすうです。「関数 {name}(…)」でていぎしてください。',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '「{name}」は、にほんごモードではかけないめいれいです。Ruby モードではかけます。',
     'gui.rubyTab.dnclValidationError':
