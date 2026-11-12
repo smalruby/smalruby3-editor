@@ -13,7 +13,7 @@ const OperatorsMath = {
         converter.registerOnSend('variable', '+', 1, (params) => {
             const { receiver, args } = params;
             const variable = converter.lookupVariableFromVariableBlock(receiver);
-            if (!variable || variable.dataType !== 'string') return null;
+            if (!converter._isStringVariable(variable)) return null;
 
             let rh = args[0];
             if (_.isArray(rh)) {
@@ -25,6 +25,8 @@ const OperatorsMath = {
             if (converter._isTrue(rh) || converter._isFalse(rh)) return null;
 
             if (!converter._isStringOrBlock(rh)) return null;
+            // A String only by the code's other assignments (issue #1659): join only a String.
+            if (variable.dataType !== 'string' && !converter._isStringOperand(rh)) return null;
 
             const block = converter._createBlock('operator_join', 'value');
             converter._addTextInput(block, 'STRING1', receiver, 'apple');
