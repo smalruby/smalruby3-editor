@@ -157,6 +157,20 @@ describe('表示する multi arg: expressions are wrapped before .to_s (#1672)',
         expect(dToR('表示する(-1, "個")')).toBe('puts(-1.to_s + "個")');
     });
 
+    test('表示する(-a, "個") puts a negated variable in parentheses', () => {
+        expect(dToR('表示する(-a, "個")')).toBe('puts((-@a).to_s + "個")');
+    });
+
+    test('表示する(a ÷ b, "x") converts the whole quotient to a string', () => {
+        expect(dToR('表示する(a ÷ b, "x")')).toBe('puts(((@a / @b).to_i).to_s + "x")');
+    });
+
+    test('表示する("平均", goukei / 要素数(Tensu)) (sum-average fixture) joins the floored quotient', () => {
+        expect(dToR('Tensu = [1]\n表示する("平均", goukei / 要素数(Tensu))')).toContain(
+            'puts("平均" + ((@goukei / @_array_Tensu_.length).to_i).to_s)',
+        );
+    });
+
     test('表示する(a + 1) (one argument) is unchanged', () => {
         expect(dToR('表示する(a + 1)')).toBe('puts(@a + 1)');
     });
