@@ -21,7 +21,7 @@ describe('DNCL / and ÷ (Issue #1701)', () => {
      * @returns {number|string} The value.
      */
     const evaluate = (src, vars) => {
-        const tokens = src.match(/\d+(?:\.\d+)?|@\w+|\.to_[is]|[-+*/()]/g);
+        const tokens = src.match(/\d+(?:\.\d+)?|@[\p{L}\p{N}_]+|\.to_[is]|[-+*/()]/gu);
         let pos = 0;
         const peek = () => tokens[pos];
         const next = () => tokens[pos++];
@@ -189,6 +189,94 @@ describe('DNCL / and ÷ (Issue #1701)', () => {
             ['b = 整数(a ÷ 2)', 'b = a ÷ 2'],
         ])('%s comes back as %s', (dncl, expected) => {
             expect(toDncl(toRuby(dncl))).toBe(expected);
+        });
+    });
+
+    // Japanese (kanji / kana) names are operands of `÷` / `//` too: they
+    // used to be skipped, so `合計 ÷ 個数` was 3.5 and `x ÷ 個数` broke.
+    // (Issue #1711)
+    describe('Japanese names around ÷ and // (Issue #1711)', () => {
+        test.each([
+            ['b = 合計 ÷ 個数', '@b = (@合計 / @個数).to_i'],
+            ['b = x ÷ 個数', '@b = (@x / @個数).to_i'],
+            ['b = 合計 ÷ 2', '@b = (@合計 / 2).to_i'],
+            ['b = 合計 // 2', '@b = (@合計 / 2).to_i'],
+            ['b = 合計 // 個数', '@b = (@合計 / @個数).to_i'],
+            ['b = x // 個数', '@b = (@x / @個数).to_i'],
+            ['b = 1 // 生徒番号', '@b = (1 / @生徒番号).to_i'],
+            ['b = 合計÷個数', '@b = (@合計 / @個数).to_i'],
+            ['b = (合計 + 1) ÷ 個数', '@b = ((@合計 + 1) / @個数).to_i'],
+            ['b = (合計 + 1) // 個数', '@b = ((@合計 + 1) / @個数).to_i'],
+            ['b = 合計 ÷ (個数 + 1)', '@b = (@合計 / (@個数 + 1)).to_i'],
+            ['b = 合計 ÷ 個数 * 2', '@b = (@合計 / @個数).to_i * 2'],
+            ['b = 合計 * 2 ÷ 個数', '@b = (@合計 * 2 / @個数).to_i'],
+            ['b = 合計 + 点数 ÷ 個数', '@b = @合計 + (@点数 / @個数).to_i'],
+            ['b = 合計 ÷ 個数 ÷ 2', '@b = ((@合計 / @個数).to_i / 2).to_i'],
+            ['b = 合計 ÷ (点数 ÷ 個数)', '@b = (@合計 / ((@点数 / @個数).to_i)).to_i'],
+            ['b = 整数(合計 ÷ 個数)', '@b = (@合計 / @個数).to_i'],
+            ['b = 整数(合計 / 個数)', '@b = (@合計 / @個数).to_i'],
+            ['b = 得点[i] ÷ 人数', '@b = (@得点[@i] / @人数).to_i'],
+            ['b = Tokuten[i] ÷ 人数', '@b = (@_array_Tokuten_[@i] / @人数).to_i'],
+            ['b = Data[合計 ÷ 個数]', '@b = @_array_Data_[(@合計 / @個数).to_i]'],
+            ['b = 要素数(Data) // (n + 1)', '@b = (@_array_Data_.length / (@n + 1)).to_i'],
+            ['b = 要素数(Data) ÷ 個数', '@b = (@_array_Data_.length / @個数).to_i'],
+            ['表示する(合計 ÷ 個数)', 'puts((@合計 / @個数).to_i)'],
+        ])('%s → %s', (dncl, ruby) => {
+            expect(toRuby(dncl)).toBe(ruby);
+        });
+
+        test.each([
+            ['@b = (@合計 / @個数).to_i', 'b = 合計 ÷ 個数'],
+            ['@b = ((@合計 + 1) / @個数).to_i', 'b = (合計 + 1) ÷ 個数'],
+            ['@b = (@x / @個数).to_i', 'b = x ÷ 個数'],
+        ])('%s → %s', (ruby, dncl) => {
+            expect(toDncl(ruby)).toBe(dncl);
+        });
+
+        const vars = (a) => ({ 合計: a * 3 + 1, 個数: 2, 点数: a, x: a + 4 });
+        const DNCL = [
+            'b = 合計 ÷ 個数',
+            'b = x ÷ 個数',
+            'b = 合計 ÷ 2',
+            'b = (合計 + 1) ÷ 個数',
+            'b = 合計 * 2 ÷ 個数',
+            'b = 合計 ÷ 個数 * 2',
+            'b = 合計 + 点数 ÷ 個数',
+            'b = 合計 ÷ (点数 ÷ 個数)',
+            'b = 整数(合計 / 個数 * 3)',
+            'b = 合計 / 個数',
+        ];
+
+        test.each(DNCL)('DNCL → Ruby → DNCL: %s', (dncl) => {
+            expect(toDncl(toRuby(dncl))).toBe(dncl);
+        });
+
+        test.each(DNCL)('DNCL → Ruby → DNCL keeps the value: %s', (dncl) => {
+            const ruby = toRuby(dncl);
+            const back = toRuby(toDncl(ruby));
+            for (const a of VALUES) {
+                expect(evaluate(rhs(back), vars(a))).toEqual(evaluate(rhs(ruby), vars(a)));
+            }
+        });
+
+        test('合計 ÷ 個数 is the quotient (7 ÷ 2 = 3)', () => {
+            expect(evaluate(rhs(toRuby('b = 合計 ÷ 個数')), { 合計: 7, 個数: 2 })).toBe(3);
+            expect(evaluate(rhs(toRuby('b = 合計 // 個数')), { 合計: 7, 個数: 2 })).toBe(3);
+            expect(evaluate(rhs(toRuby('b = 合計 / 個数')), { 合計: 7, 個数: 2 })).toBe(3.5);
+        });
+
+        test.each([
+            '@b = (@合計 / @個数).to_i',
+            '@b = ((@合計 + 1) / @個数).to_i',
+            '@b = (@合計 / 2 * 3).to_i',
+            '@b = @合計 / @個数',
+            '@b = (@合計 / @個数).to_i * 2',
+            '@b = @x + (@合計 / @個数).to_i',
+        ])('Ruby → DNCL → Ruby keeps the value: %s', (ruby) => {
+            const back = toRuby(toDncl(ruby));
+            for (const a of VALUES) {
+                expect(evaluate(rhs(back), vars(a))).toEqual(evaluate(rhs(ruby), vars(a)));
+            }
         });
     });
 });

@@ -13,7 +13,7 @@ import analytics from '../lib/analytics';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
-import { tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
+import { slashCommentRows, tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { dnclToRuby, rubyForLeavingDncl } from '../lib/dncl/dncl-to-ruby';
 import { isRubyCommandName, POST_TEST_LOOP_ERROR_ID, UNSUPPORTED_COMMAND_ERROR_ID } from '../lib/dncl/dncl-validator';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
@@ -58,6 +58,7 @@ import {
     DNCL_MODE_KEY,
     DNCL_INDEX_HINT_OWNER,
     DNCL_UNSUPPORTED_OWNER,
+    DNCL_SLASH_COMMENT_OWNER,
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import { offerDnclIndexShift } from './ruby-tab/dncl-index-shift';
@@ -1230,6 +1231,30 @@ const RubyTab = (props) => {
                 };
             });
         monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_INDEX_HINT_OWNER, markers);
+    }, [dnclMode, dnclDisplayCode, intl]);
+
+    // `//` is the quotient in Smalruby DNCL, so a 共通テスト style `//` comment
+    // (`a = 1 // 生徒番号`) converts without an error, into a different program.
+    // Warn on such lines (see `slashCommentRows`) so that the user writes `#`.
+    // The markers use their own owner so clearing conversion errors keeps them
+    // (Issue #1192, #1711).
+    useEffect(() => {
+        if (!editorRef.current || !monacoRef.current) return;
+        const lines = dnclMode ? dnclDisplayCode.split('\n') : [];
+        const rows = dnclMode ? slashCommentRows(lines) : [];
+        const message = intl.formatMessage({
+            id: 'gui.rubyTab.dnclDoubleSlashHint',
+            defaultMessage: 'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
+        });
+        const markers = rows.map((row) => ({
+            startLineNumber: row + 1,
+            startColumn: 1,
+            endLineNumber: row + 1,
+            endColumn: lines[row].length + 1,
+            message,
+            severity: monacoRef.current.MarkerSeverity.Warning,
+        }));
+        monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_SLASH_COMMENT_OWNER, markers);
     }, [dnclMode, dnclDisplayCode, intl]);
 
     // The post-test loop (Issue #1626) and the Ruby commands (Issue #1679)

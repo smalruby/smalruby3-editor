@@ -97,6 +97,27 @@ describe('checkDnclAnswer', () => {
         expect(result.problems[0].row).toBe(0);
     });
 
+    // The line converts now (`(1 / @生徒番号).to_i`, Issue #1711), so the hint
+    // comes from how the line looks: said once, even with other errors.
+    test('the `//` hint is said once per line and only where `//` looks like a comment', async () => {
+        const result = await check('合計 = 7\n個数 = 2\na = 合計 // 個数\nb = 1 // 生徒番号\n表示する(a, b)');
+        expect(result.ok).toBe(false);
+        expect(result.problems).toEqual([
+            {
+                type: 'error',
+                sprite: null,
+                row: 3,
+                text: 'スモウルビーでは // はコメントではありません（整数の割り算です）。コメントには # を使ってください。',
+            },
+        ]);
+    });
+
+    test('a quotient with Japanese names is ✔ (Issue #1711)', async () => {
+        const result = await check('合計 = 7\n個数 = 2\na = 合計 ÷ 個数\nb = 合計 // 個数\n表示する(a, b)');
+        expect(result.problems).toEqual([]);
+        expect(result.ok).toBe(true);
+    });
+
     test('an answer with 1-based indexes is ✔ with a note on the line (#1420)', async () => {
         const code =
             'Data = [3, 1, 2]\ngoukei ← 0\ni を 1 から 3 まで 1 ずつ増やしながら\n  goukei = goukei + Data[i]\nを繰り返す\n表示する(goukei)';

@@ -8,8 +8,12 @@
 //   - line numbers are removed (wrapped statements are joined first, since
 //     only numbered lines may continue onto the next line)
 //   - a `//` followed by neither a variable nor any operator becomes `#`
-// Anything else is left as typed; a `//` comment then fails to convert and
-// the error marker tells the user to use `#` (see `hasDoubleSlash`).
+// Anything else is left as typed. A `//` comment typed without line numbers
+// is then read as the quotient (`n = 1 // 生徒番号` is `(1 / @生徒番号).to_i`,
+// Issue #1711); the editor warns on such lines and the check of a 生成AI
+// answer reports them, both finding them by how they look
+// (`slashCommentRows`). The editor also adds the hint to the errors of lines
+// with a `//` (`withDoubleSlashHint`).
 //
 // See Issue #1192.
 import { commentIndex, stringEndAt } from './dncl-trailing-comment';
@@ -253,4 +257,24 @@ const withDoubleSlashHint = (errors, lines, hint) =>
             : err,
     );
 
-export { hasDoubleSlash, tidyPastedDncl, withDoubleSlashHint };
+/**
+ * Rows of `lines` with a `//` that looks like a 共通テスト comment rather than
+ * the quotient (`a = 1 // 生徒番号`; see `isDivisionSlash`). Such a line
+ * converts — `//` is the quotient — but most likely not into what was meant,
+ * so the editor warns there and the check of a 生成AI answer tells the AI to
+ * use `#` there. A name the
+ * program uses as code elsewhere (`個数 = 2` and `a = 合計 // 個数`) makes the
+ * `//` the quotient. (Issue #1711)
+ * @param {Array<string>} lines - The DNCL source lines.
+ * @returns {Array<number>} The 0-based rows.
+ */
+const slashCommentRows = (lines) => {
+    const names = collectNames(lines.join('\n'));
+    const rows = [];
+    lines.forEach((line, row) => {
+        if (slashIndices(line).some((i) => !isDivisionSlash(line, i, names))) rows.push(row);
+    });
+    return rows;
+};
+
+export { hasDoubleSlash, slashCommentRows, tidyPastedDncl, withDoubleSlashHint };
