@@ -24,6 +24,15 @@ const messages = defineMessages({
         description: 'Error message when an event (hat) block is written inside a block body (do ... end)',
         id: 'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock',
     },
+    defInsideBlock: {
+        defaultMessage:
+            '"{ SOURCE }" defines a method, so it cannot be written inside a block or a method.' +
+            '\nMove the whole method, from "{ SOURCE }" to its "end", out of the block or the method.',
+        description:
+            'Error message when a method definition (def) is written inside a block body ' +
+            '(do ... end, if, ...) or a method body',
+        id: 'gui.smalruby3.rubyToBlocksConverter.defInsideBlock',
+    },
     valueAsStatement: {
         defaultMessage:
             '"{ SOURCE }" is a value, so it cannot be written as a command by itself.' +
@@ -33,7 +42,26 @@ const messages = defineMessages({
             'or before the last line of a method body',
         id: 'gui.smalruby3.rubyToBlocksConverter.valueAsStatement',
     },
+    cannotReturnValue: {
+        defaultMessage:
+            '"{ SOURCE }" cannot be returned from a method, because there is no block for this value.' +
+            '\nReturn a number, a string, true / false, or a variable instead.',
+        description:
+            'Error message when a method returns a value that no block can hold (e.g. self or an array), ' +
+            'with return or on the last line of the method',
+        id: 'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue',
+    },
+    returnMultipleValues: {
+        defaultMessage:
+            '"{ SOURCE }" returns more than one value, but a method can return only one value.' +
+            '\nReturn one value (e.g. return { FIRST }).',
+        description: 'Error message when return has more than one value (e.g. return "a", "b")',
+        id: 'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues',
+    },
 });
+
+// Values with no block of their own: they cannot be a method's return value (issue #1553).
+const UNRETURNABLE_PRIMITIVE_TYPES = ['self', 'array', 'hash', 'const', 'regexp'];
 
 /**
  * Core AST handlers for RubyToBlocksConverter.
@@ -57,6 +85,14 @@ const CoreHandlers = {
             // `1 != 50 && 2 != 60` (a single expression) produces indices :1 and :2.
             // Note: literalCallIndices are NOT reset per-statement - they accumulate across statements.
             this._context.methodCallIndices = {};
+            if (bodyKind && this._getNodeTypeName(childNode) === 'DefNode') {
+                // On any line, not only on the first one (#1554). The body of a class is not a block
+                // body (`bodyKind` is null), so a method written directly in a class is still converted.
+                throw new RubyToBlocksConverterError(
+                    childNode,
+                    this._translator(messages.defInsideBlock, { SOURCE: this._firstLineSource(childNode) }),
+                );
+            }
             const block = this.visit(childNode);
             if (bodyKind) {
                 this._checkStatementInBody(childNode, block, bodyKind, index === node.body.length - 1);
@@ -126,7 +162,8 @@ const CoreHandlers = {
      *   In a method body, the last line is the return value, so only the lines before it are checked (#1549).
      * - a symbol written as a line by itself, e.g. `:a`; it is not a command. On the second or a later
      *   line of a block body it was dropped silently (#1550).
-     * A method definition (`def`) is left as before: it is placed as a script of its own.
+     * A method definition (`def`) does not come here: `visitStatementsNode` has already thrown an error
+     * for it (#1554).
      * A value made by splitting one statement (e.g. the return value of `"a".reverse`, which
      * comes as an array after its command) is not checked.
      * @param {object} node - The statement node.
@@ -147,6 +184,11 @@ const CoreHandlers = {
             );
         }
         if (bodyKind === 'method' && isLast) {
+            // The last line is the return value: a value no block can hold would be dropped (#1553).
+            const isInterpolated = !result && /^Interpolated/.test(this._getNodeTypeName(node) || '');
+            if (isInterpolated || (!_.isArray(result) && this._isUnreturnableValue(result))) {
+                throw this._cannotReturnError(node);
+            }
             return;
         }
         if (blocks.length !== 1) {
@@ -155,6 +197,14 @@ const CoreHandlers = {
         const Primitive = require('../primitive').default;
         const value = blocks[0];
         if (value instanceof Primitive && value.type === 'sym') {
+            throw this._notCommandError(node);
+        }
+        // A value no block can hold (e.g. `self`, `[1]`, `Foo`, `"#{x}"`) before the last line of a method
+        // dropped the rest of the method silently (#1553).
+        if (
+            bodyKind === 'method' &&
+            (this._isUnreturnableValue(value) || (!value && /^Interpolated/.test(this._getNodeTypeName(node) || '')))
+        ) {
             throw this._notCommandError(node);
         }
         // In a block body, other literals (e.g. `"abc"`) become an assignment to a temporary
@@ -192,6 +242,47 @@ const CoreHandlers = {
             .replace(/\s*\n\s*/g, ' ')
             .trim();
         return new RubyToBlocksConverterError(node, this._translator(messages.valueAsStatement, { SOURCE: source }));
+    },
+
+    /**
+     * Whether a value has no block of its own, so it cannot be a method's return value
+     * (e.g. `self`, `[1, 2]`, `Foo`) (issue #1553).
+     * @param {*} value - What visiting the value returned.
+     * @returns {boolean} Whether the value cannot be returned.
+     */
+    _isUnreturnableValue(value) {
+        const Primitive = require('../primitive').default;
+        return value instanceof Primitive && UNRETURNABLE_PRIMITIVE_TYPES.includes(value.type);
+    },
+
+    /**
+     * The error for a value that cannot be returned from a method (issue #1553).
+     * @param {object} node - The node of the value.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _cannotReturnError(node) {
+        const source = this._getSource(node)
+            .replace(/\s*\n\s*/g, ' ')
+            .trim();
+        return new RubyToBlocksConverterError(node, this._translator(messages.cannotReturnValue, { SOURCE: source }));
+    },
+
+    /**
+     * The error for `return` with more than one value (e.g. `return "a", "b"`) (issue #1553).
+     * @param {object} node - The return node.
+     * @param {object} firstNode - The node of the first value.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _returnMultipleValuesError(node, firstNode) {
+        return new RubyToBlocksConverterError(
+            node,
+            this._translator(messages.returnMultipleValues, {
+                SOURCE: this._firstLineSource(node),
+                FIRST: this._getSource(firstNode)
+                    .replace(/\s*\n\s*/g, ' ')
+                    .trim(),
+            }),
+        );
     },
 
     /**
@@ -296,8 +387,8 @@ const CoreHandlers = {
         }
         // A value block after the first one is not linked nor used (e.g. the returnValue
         // REPORTER of `"a".reverse` written as a statement): drop it, or it is left as an orphan.
-        // A method definition (a hat) is kept: it is placed as a script of its own. An event (hat) does
-        // not come here: `_checkStatementInBody` has already thrown an error for it (#1544).
+        // An event (hat) or a method definition does not come here: an error has already been thrown
+        // for it (#1544, #1554).
         blocks.slice(1).forEach((b) => {
             if (this._isBlock(b) && !this._isStatementBlock(b) && this._getBlockType(b) !== 'hat' && !b.parent) {
                 this._discardBlock(b);

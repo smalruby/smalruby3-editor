@@ -263,8 +263,26 @@ const ExpressionHandlers = {
         // Get return value (first argument of the return node, or nil)
         const args = node.arguments_ && node.arguments_.arguments_;
         let returnValue;
+        if (args && args.length > 1) {
+            // Only one value can be returned through blocks, so the others would be lost (issue #1553).
+            throw this._returnMultipleValuesError(node, args[0]);
+        }
         if (args && args.length > 0) {
             returnValue = this.visit(args[0]);
+            // A value no block can hold (e.g. `self`, `[1, 2]`, `"#{x}"`) or a command (e.g. `x = 1`)
+            // would be dropped or become "" (issue #1553).
+            const isCommand =
+                this._isBlock(returnValue) &&
+                !this._isValueBlock(returnValue) &&
+                returnValue.opcode !== 'procedures_call';
+            if (
+                returnValue === null ||
+                typeof returnValue === 'undefined' ||
+                isCommand ||
+                this._isUnreturnableValue(returnValue)
+            ) {
+                throw this._cannotReturnError(args[0]);
+            }
         }
 
         // Create assign block: @_return_procedureName_ = returnValue
@@ -280,7 +298,8 @@ const ExpressionHandlers = {
             },
         });
         // `return nil` / `return :a` keeps the text "" / "a" and a marker to come back as written (issue #1548).
-        let literalMarker = '';
+        // `return` without a value keeps the text "" too, and a marker to come back as `return` (issue #1553).
+        let literalMarker = returnValue ? '' : ',@ruby:return-bare';
         if (this._isPrimitive(returnValue) && (returnValue.type === 'nil' || returnValue.type === 'sym')) {
             const isNil = returnValue.type === 'nil';
             // A comment keeps one line for the marker, so a symbol with a line break stays a string.

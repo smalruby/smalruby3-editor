@@ -957,8 +957,14 @@ export default {
         '「{ SOURCE }」はめいれいではないので、ここにはかけません。\nめいれい（れい: move(10)）にかきかえるか、このぎょうをけしてください。',
     'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
         '「{ SOURCE }」はイベントなので、ほかのブロックのなかにはかけません。\nブロックのそとにだして、そこからはじまるスクリプトにしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.defInsideBlock':
+        '「{ SOURCE }」はメソッドのていぎなので、ブロックやメソッドのなかにはかけません。\n「{ SOURCE }」から、たいおうする「end」までをまとめて、ブロックやメソッドのそとにだしてください。',
     'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
         '「{ SOURCE }」はあたいなので、それだけをめいれいとしてかくことはできません。\nめいれいのなかでつかう（れい: say({ SOURCE })）か、へんすうにいれてください。',
+    'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue':
+        '「{ SOURCE }」はブロックにできないあたいなので、メソッドからかえせません。\nすうち、もじれつ、true / false、へんすうのどれかをかえしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues':
+        '「{ SOURCE }」はあたいを2つ以上かえしていますが、メソッドがかえせるあたいは1つだけです。\nかえすあたいを1つにしてください（れい: return { FIRST }）。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
         'ブロックていぎ「{NAME}」のひきすう#{INDEX}のかたがまちがっています。\nすうち、もじれつ、またはブーリアンのあたいをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':

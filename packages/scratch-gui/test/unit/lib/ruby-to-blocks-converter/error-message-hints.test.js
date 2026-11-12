@@ -29,7 +29,7 @@ describe('Error message resolution hints', () => {
         expect(converter.errors[0].text).toMatch(/comparison operator|==|<|>/);
     });
 
-    test('includeNotStatementBlocks error includes hint', async () => {
+    test('defInsideBlock error tells to move the whole method out', async () => {
         // Class syntax requires version 2
         const converter = new RubyToBlocksConverter(null, { version: 2 });
         const code = [
@@ -43,7 +43,16 @@ describe('Error message resolution hints', () => {
         ].join('\n');
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
-        expect(converter.errors[0].text).toMatch(/"def my_proc" is not a command/);
+        expect(converter.errors[0].text).toMatch(/"def my_proc" defines a method/);
+        expect(converter.errors[0].text).toMatch(/Move the whole method, from "def my_proc" to its "end"/);
+    });
+
+    test('includeNotStatementBlocks error tells how to fix the line', async () => {
+        const converter = new RubyToBlocksConverter(null, { version: 2 });
+        const code = 'class Sprite1\n  when_flag_clicked do\n    :my_proc\n  end\nend';
+        await converter.targetCodeToBlocks(target, code);
+        expect(converter.errors.length).toBeGreaterThan(0);
+        expect(converter.errors[0].text).toMatch(/":my_proc" is not a command/);
         expect(converter.errors[0].text).toMatch(/Write a command \(e\.g\. move\(10\)\) instead/);
     });
 
