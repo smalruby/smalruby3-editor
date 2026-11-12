@@ -9,6 +9,7 @@ import {
     makeConverter,
     setupRubyGenerator,
     expectRoundTrip,
+    rubyToBlocksToRuby,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: list as an argument (issue #1567)', () => {
@@ -36,5 +37,18 @@ describe('Ruby Roundtrip: list as an argument (issue #1567)', () => {
         ['repeat @a', '@a = []\n@a.times do\n  say("x")\nend'],
     ])('%s', async (_name, code) => {
         await expectRoundTrip(converter, target, code);
+    });
+
+    test('reuses the existing list and makes no scalar of the same name on a second apply', async () => {
+        const code = '@a = ["x"]\nsay(@a)';
+        await rubyToBlocksToRuby(converter, target, code);
+        const second = makeConverter(target, runtime, { version: '2' });
+        setupRubyGenerator();
+        expect(await rubyToBlocksToRuby(second, target, code)).toBe(code);
+
+        const vars = Object.values(target.variables).filter((v) => v.name === 'a');
+        expect(vars.map((v) => v.type)).toEqual(['list']);
+        const reads = Object.values(target.blocks._blocks).filter((b) => b.opcode === 'data_listcontents');
+        expect(reads.map((b) => b.fields.LIST.id)).toEqual([vars[0].id]);
     });
 });
