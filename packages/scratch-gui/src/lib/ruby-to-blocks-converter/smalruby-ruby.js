@@ -1,6 +1,4 @@
 // === Smalruby: This file is Smalruby-specific (Ruby method extension converter) ===
-
-import { convertToListBlock, isKnownListReceiver } from './variable-hash-ops';
 import { messages } from './converter-errors';
 import {
     buildMutation,
@@ -11,6 +9,7 @@ import {
     hashMethodArgs,
     hashMethodMenuItems,
 } from './smalruby-ruby-definitions';
+import { convertToListBlock, isKnownListReceiver } from './variable-hash-ops';
 
 // Set of all registered method names per class
 const STRING_METHODS = new Set(Object.keys(stringMethodArgs));
@@ -105,30 +104,23 @@ const SmalrubyRubyConverter = {
                     );
                 });
             } else {
-                converter.registerOnSend(
-                    ['string', 'block', 'variable'],
-                    method,
-                    numArgs,
-                    (params) => {
-                        const { receiver, args } = params;
-                        if (declineForListReceiver(method, receiver)) return null;
-                        return createMethodBlock(
-                            'smalrubyRuby_stringMethod',
-                            method,
-                            receiver,
-                            args,
-                            stringMethodArgs,
-                            stringMethodMenuItems,
-                        );
-                    },
-                );
+                converter.registerOnSend(['string', 'block', 'variable'], method, numArgs, (params) => {
+                    const { receiver, args } = params;
+                    if (declineForListReceiver(method, receiver)) return null;
+                    return createMethodBlock(
+                        'smalrubyRuby_stringMethod',
+                        method,
+                        receiver,
+                        args,
+                        stringMethodArgs,
+                        stringMethodMenuItems,
+                    );
+                });
             }
         };
 
         // 0-arg string methods (empty? handled by operators.js)
-        ['reverse', 'upcase', 'downcase', 'lines'].forEach((m) =>
-            registerStringMethod(m, 0),
-        );
+        ['reverse', 'upcase', 'downcase', 'lines'].forEach((m) => registerStringMethod(m, 0));
         // 1-arg string methods
         registerStringMethod('delete', 1);
         // String#* — only for string literal receivers to avoid conflict with numeric *
@@ -165,39 +157,28 @@ const SmalrubyRubyConverter = {
                     );
                 });
             } else {
-                converter.registerOnSend(
-                    ['string', 'block', 'variable', 'array'],
-                    method,
-                    numArgs,
-                    (params) => {
-                        let { receiver } = params;
-                        const { args } = params;
-                        // Convert data_variable to data_listcontents for list variables
-                        const result = convertToListBlock(
-                            converter,
-                            messages,
-                            receiver,
-                        );
-                        if (result.converted) {
-                            receiver = result.block;
-                        }
-                        return createMethodBlock(
-                            'smalrubyRuby_arrayMethod',
-                            method,
-                            receiver,
-                            args,
-                            arrayMethodArgs,
-                            arrayMethodMenuItems,
-                        );
-                    },
-                );
+                converter.registerOnSend(['string', 'block', 'variable', 'array'], method, numArgs, (params) => {
+                    let { receiver } = params;
+                    const { args } = params;
+                    // Convert data_variable to data_listcontents for list variables
+                    const result = convertToListBlock(converter, messages, receiver);
+                    if (result.converted) {
+                        receiver = result.block;
+                    }
+                    return createMethodBlock(
+                        'smalrubyRuby_arrayMethod',
+                        method,
+                        receiver,
+                        args,
+                        arrayMethodArgs,
+                        arrayMethodMenuItems,
+                    );
+                });
             }
         };
 
         // 0-arg array methods (empty? handled by variable-list-ops.js)
-        ['max', 'min', 'sort', 'reverse', 'first', 'last'].forEach(
-            (m) => registerArrayMethod(m, 0),
-        );
+        ['max', 'min', 'sort', 'reverse', 'first', 'last'].forEach((m) => registerArrayMethod(m, 0));
         // join: 0-1 args
         registerArrayMethod('join', 0);
         registerArrayMethod('join', 1);
@@ -207,97 +188,66 @@ const SmalrubyRubyConverter = {
 
         // --- Register hash methods ---
         const registerHashMethod = (method) => {
-            converter.registerOnSend(
-                ['string', 'block', 'variable', 'hash'],
-                method,
-                0,
-                (params) => {
-                    const { receiver } = params;
+            converter.registerOnSend(['string', 'block', 'variable', 'hash'], method, 0, (params) => {
+                const { receiver } = params;
 
-                    // For keys/values, reference the correct hash sub-list
-                    if (
-                        (method === 'keys' || method === 'values') &&
-                        converter._isBlock(receiver) &&
-                        receiver.opcode === 'data_variable'
-                    ) {
-                        const varName = receiver.fields.VARIABLE.value;
-                        const variable =
-                            converter._context.variables[varName] ||
-                            converter._context.localVariables[varName];
-                        if (variable) {
-                            let prefixedName;
-                            if (variable.scope === 'global')
-                                prefixedName = `$${varName}`;
-                            else if (variable.scope === 'instance')
-                                prefixedName = `@${varName}`;
-                            else if (variable.scope === 'local')
-                                prefixedName = variable.originalName;
+                // For keys/values, reference the correct hash sub-list
+                if (
+                    (method === 'keys' || method === 'values') &&
+                    converter._isBlock(receiver) &&
+                    receiver.opcode === 'data_variable'
+                ) {
+                    const varName = receiver.fields.VARIABLE.value;
+                    const variable =
+                        converter._context.variables[varName] || converter._context.localVariables[varName];
+                    if (variable) {
+                        let prefixedName;
+                        if (variable.scope === 'global') prefixedName = `$${varName}`;
+                        else if (variable.scope === 'instance') prefixedName = `@${varName}`;
+                        else if (variable.scope === 'local') prefixedName = variable.originalName;
 
-                            if (prefixedName) {
-                                const listName =
-                                    method === 'keys'
-                                        ? converter._hashKeysListName(
-                                              prefixedName,
-                                          )
-                                        : converter._hashValuesListName(
-                                              prefixedName,
-                                          );
-                                const listVar =
-                                    converter._lookupOrCreateList(listName);
-                                receiver.opcode = 'data_listcontents';
-                                delete receiver.fields.VARIABLE;
-                                receiver.fields.LIST = {
-                                    name: 'LIST',
-                                    id: listVar.id,
-                                    value: listVar.name,
-                                    variableType: listVar.type,
-                                };
-                            }
+                        if (prefixedName) {
+                            const listName =
+                                method === 'keys'
+                                    ? converter._hashKeysListName(prefixedName)
+                                    : converter._hashValuesListName(prefixedName);
+                            const listVar = converter._lookupOrCreateList(listName);
+                            receiver.opcode = 'data_listcontents';
+                            delete receiver.fields.VARIABLE;
+                            receiver.fields.LIST = {
+                                name: 'LIST',
+                                id: listVar.id,
+                                value: listVar.name,
+                                variableType: listVar.type,
+                            };
                         }
                     }
+                }
 
-                    return createMethodBlock(
-                        'smalrubyRuby_hashMethod',
-                        method,
-                        receiver,
-                        [],
-                        hashMethodArgs,
-                        hashMethodMenuItems,
-                    );
-                },
-            );
+                return createMethodBlock(
+                    'smalrubyRuby_hashMethod',
+                    method,
+                    receiver,
+                    [],
+                    hashMethodArgs,
+                    hashMethodMenuItems,
+                );
+            });
         };
 
         registerHashMethod('keys');
         registerHashMethod('values');
 
         // --- Helper: create arrayMethodWithBlock ---
-        const createArrayMethodWithBlock = (
-            method,
-            receiver,
-            rubyBlock,
-            rubyBlockArgs,
-        ) => {
+        const createArrayMethodWithBlock = (method, receiver, rubyBlock, rubyBlockArgs) => {
             if (typeof rubyBlock === 'undefined') return null;
             // Convert data_variable to data_listcontents for list variables
-            const result = convertToListBlock(
-                converter,
-                messages,
-                receiver,
-            );
+            const result = convertToListBlock(converter, messages, receiver);
             if (result.converted) {
                 receiver = result.block;
             }
-            const block = converter._createBlock(
-                'smalrubyRuby_arrayMethodWithBlock',
-                'statement',
-            );
-            converter._addTextInput(
-                block,
-                'RECEIVER',
-                receiver,
-                '',
-            );
+            const block = converter._createBlock('smalrubyRuby_arrayMethodWithBlock', 'statement');
+            converter._addTextInput(block, 'RECEIVER', receiver, '');
             converter._addField(block, 'METHOD', method);
 
             // When the receiver is a list (data_listcontents), propagate the
@@ -327,22 +277,16 @@ const SmalrubyRubyConverter = {
             if (rubyBlockArgs && rubyBlockArgs.length > 0) {
                 const commentParts = [];
                 rubyBlockArgs.forEach((paramName, idx) => {
-                    commentParts.push(
-                        `@ruby:block_param:${idx + 1}:${paramName}`,
-                    );
+                    commentParts.push(`@ruby:block_param:${idx + 1}:${paramName}`);
                 });
-                block.comment = converter._createComment(
-                    commentParts.join('\n'),
-                    block.id,
-                );
+                block.comment = converter._createComment(commentParts.join('\n'), block.id);
 
                 // Replace variable references in body with blockParam blocks
                 if (rubyBlock) {
                     // Build mapping: Scratch variable name → param index
                     const varNameToParamIdx = {};
                     rubyBlockArgs.forEach((paramName, idx) => {
-                        const variable =
-                            converter._lookupOrCreateVariable(paramName);
+                        const variable = converter._lookupOrCreateVariable(paramName);
                         varNameToParamIdx[variable.name] = idx;
                     });
 
@@ -354,33 +298,24 @@ const SmalrubyRubyConverter = {
                         if (b.inputs) {
                             for (const inputName of Object.keys(b.inputs)) {
                                 const input = b.inputs[inputName];
-                                const childBlock =
-                                    converter._context.blocks[input.block];
+                                const childBlock = converter._context.blocks[input.block];
                                 if (
                                     childBlock &&
-                                    childBlock.opcode ===
-                                        'data_variable' &&
+                                    childBlock.opcode === 'data_variable' &&
                                     childBlock.fields &&
                                     childBlock.fields.VARIABLE
                                 ) {
-                                    const varName =
-                                        childBlock.fields.VARIABLE.value;
-                                    const paramIdx =
-                                        varNameToParamIdx[varName];
+                                    const varName = childBlock.fields.VARIABLE.value;
+                                    const paramIdx = varNameToParamIdx[varName];
                                     if (paramIdx >= 0) {
                                         // Replace with blockParam block
-                                        childBlock.opcode =
-                                            'smalrubyRuby_blockParam';
-                                        delete childBlock.fields
-                                            .VARIABLE;
+                                        childBlock.opcode = 'smalrubyRuby_blockParam';
+                                        delete childBlock.fields.VARIABLE;
                                         childBlock.fields.PARAM = {
                                             name: 'PARAM',
                                             value: `_${paramIdx + 1}`,
                                         };
-                                        converter._setBlockType(
-                                            childBlock,
-                                            'value',
-                                        );
+                                        converter._setBlockType(childBlock, 'value');
                                     }
                                 }
                                 // Recurse into child inputs
@@ -394,14 +329,8 @@ const SmalrubyRubyConverter = {
                             replaceParamVars(b.next);
                         }
                         // Recurse into SUBSTACK
-                        if (
-                            b.inputs &&
-                            b.inputs.SUBSTACK &&
-                            b.inputs.SUBSTACK.block
-                        ) {
-                            replaceParamVars(
-                                b.inputs.SUBSTACK.block,
-                            );
+                        if (b.inputs && b.inputs.SUBSTACK && b.inputs.SUBSTACK.block) {
+                            replaceParamVars(b.inputs.SUBSTACK.block);
                         }
                     };
                     replaceParamVars(rubyBlock.id);
@@ -414,39 +343,17 @@ const SmalrubyRubyConverter = {
 
         // --- Register array method with block (each, etc.) ---
         // Without block params: ticket.each do ... end
-        converter.registerOnSendWithBlock(
-            ['string', 'block', 'variable', 'array'],
-            'each',
-            0,
-            0,
-            (params) => {
-                const { receiver } = params;
-                const { rubyBlock } = params;
-                return createArrayMethodWithBlock(
-                    'each',
-                    receiver,
-                    rubyBlock,
-                    null,
-                );
-            },
-        );
+        converter.registerOnSendWithBlock(['string', 'block', 'variable', 'array'], 'each', 0, 0, (params) => {
+            const { receiver } = params;
+            const { rubyBlock } = params;
+            return createArrayMethodWithBlock('each', receiver, rubyBlock, null);
+        });
 
         // With block params: ticket.each do |item| ... end
-        converter.registerOnSendWithBlock(
-            ['string', 'block', 'variable', 'array'],
-            'each',
-            0,
-            1,
-            (params) => {
-                const { receiver, rubyBlockArgs, rubyBlock } = params;
-                return createArrayMethodWithBlock(
-                    'each',
-                    receiver,
-                    rubyBlock,
-                    rubyBlockArgs,
-                );
-            },
-        );
+        converter.registerOnSendWithBlock(['string', 'block', 'variable', 'array'], 'each', 0, 1, (params) => {
+            const { receiver, rubyBlockArgs, rubyBlock } = params;
+            return createArrayMethodWithBlock('each', receiver, rubyBlock, rubyBlockArgs);
+        });
 
         // --- Helper: resolve prefixed name from a variable receiver ---
         // For hash variables stored as 2 parallel lists. Returns null if the
@@ -461,9 +368,7 @@ const SmalrubyRubyConverter = {
                 return null;
             }
             const varName = receiver.fields.VARIABLE.value;
-            const variable =
-                converter._context.variables[varName] ||
-                converter._context.localVariables[varName];
+            const variable = converter._context.variables[varName] || converter._context.localVariables[varName];
             if (!variable) return null;
             if (variable.scope === 'global') return `$${varName}`;
             if (variable.scope === 'instance') return `@${varName}`;
@@ -476,12 +381,7 @@ const SmalrubyRubyConverter = {
         // Resolve those lists from the receiver variable and propagate their
         // ID/name as hidden fields so the VM can iterate without going through
         // the lossy joined string of either list.
-        const createHashMethodWithBlock = (
-            method,
-            receiver,
-            rubyBlock,
-            rubyBlockArgs,
-        ) => {
+        const createHashMethodWithBlock = (method, receiver, rubyBlock, rubyBlockArgs) => {
             if (typeof rubyBlock === 'undefined') return null;
             const prefixedName = prefixedNameForReceiver(receiver);
             if (!prefixedName) return null;
@@ -492,10 +392,7 @@ const SmalrubyRubyConverter = {
             const valuesList = converter._lookupOrCreateList(valuesListName);
             if (!keysList || !valuesList) return null;
 
-            const block = converter._createBlock(
-                'smalrubyRuby_hashMethodWithBlock',
-                'statement',
-            );
+            const block = converter._createBlock('smalrubyRuby_hashMethodWithBlock', 'statement');
             converter._addTextInput(block, 'RECEIVER', receiver, '');
             converter._addField(block, 'METHOD', method);
             block.fields.KEYS_LIST_ID = {
@@ -531,22 +428,16 @@ const SmalrubyRubyConverter = {
             const commentParts = listRefLines.slice();
             if (rubyBlockArgs && rubyBlockArgs.length > 0) {
                 rubyBlockArgs.forEach((paramName, idx) => {
-                    commentParts.push(
-                        `@ruby:block_param:${idx + 1}:${paramName}`,
-                    );
+                    commentParts.push(`@ruby:block_param:${idx + 1}:${paramName}`);
                 });
             }
-            block.comment = converter._createComment(
-                commentParts.join('\n'),
-                block.id,
-            );
+            block.comment = converter._createComment(commentParts.join('\n'), block.id);
 
             if (rubyBlockArgs && rubyBlockArgs.length > 0) {
                 if (rubyBlock) {
                     const varNameToParamIdx = {};
                     rubyBlockArgs.forEach((paramName, idx) => {
-                        const variable =
-                            converter._lookupOrCreateVariable(paramName);
+                        const variable = converter._lookupOrCreateVariable(paramName);
                         varNameToParamIdx[variable.name] = idx;
                     });
 
@@ -557,30 +448,23 @@ const SmalrubyRubyConverter = {
                         if (b.inputs) {
                             for (const inputName of Object.keys(b.inputs)) {
                                 const input = b.inputs[inputName];
-                                const childBlock =
-                                    converter._context.blocks[input.block];
+                                const childBlock = converter._context.blocks[input.block];
                                 if (
                                     childBlock &&
                                     childBlock.opcode === 'data_variable' &&
                                     childBlock.fields &&
                                     childBlock.fields.VARIABLE
                                 ) {
-                                    const varName =
-                                        childBlock.fields.VARIABLE.value;
-                                    const paramIdx =
-                                        varNameToParamIdx[varName];
+                                    const varName = childBlock.fields.VARIABLE.value;
+                                    const paramIdx = varNameToParamIdx[varName];
                                     if (paramIdx >= 0) {
-                                        childBlock.opcode =
-                                            'smalrubyRuby_blockParam';
+                                        childBlock.opcode = 'smalrubyRuby_blockParam';
                                         delete childBlock.fields.VARIABLE;
                                         childBlock.fields.PARAM = {
                                             name: 'PARAM',
                                             value: `_${paramIdx + 1}`,
                                         };
-                                        converter._setBlockType(
-                                            childBlock,
-                                            'value',
-                                        );
+                                        converter._setBlockType(childBlock, 'value');
                                     }
                                 }
                                 if (input.block) {
@@ -589,11 +473,7 @@ const SmalrubyRubyConverter = {
                             }
                         }
                         if (b.next) replaceParamVars(b.next);
-                        if (
-                            b.inputs &&
-                            b.inputs.SUBSTACK &&
-                            b.inputs.SUBSTACK.block
-                        ) {
+                        if (b.inputs && b.inputs.SUBSTACK && b.inputs.SUBSTACK.block) {
                             replaceParamVars(b.inputs.SUBSTACK.block);
                         }
                     };
@@ -606,21 +486,10 @@ const SmalrubyRubyConverter = {
         };
 
         // --- Register hash.each with two block params: h.each do |k, v| ---
-        converter.registerOnSendWithBlock(
-            ['hash', 'variable'],
-            'each',
-            0,
-            2,
-            (params) => {
-                const { receiver, rubyBlockArgs, rubyBlock } = params;
-                return createHashMethodWithBlock(
-                    'each',
-                    receiver,
-                    rubyBlock,
-                    rubyBlockArgs,
-                );
-            },
-        );
+        converter.registerOnSendWithBlock(['hash', 'variable'], 'each', 0, 2, (params) => {
+            const { receiver, rubyBlockArgs, rubyBlock } = params;
+            return createHashMethodWithBlock('each', receiver, rubyBlock, rubyBlockArgs);
+        });
     },
 };
 

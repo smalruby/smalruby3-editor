@@ -6,20 +6,23 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Text to Speech extension blocks', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             text2speech.speak("hello")
             text2speech.voice = "ALTO"
             text2speech.voice = "TENOR"
@@ -29,7 +32,8 @@ describe('Ruby Roundtrip: Text to Speech extension blocks', () => {
             text2speech.language = "en"
             text2speech.language = "ja"
             text2speech.language = "de"
-        `);
+        `,
+        );
     });
 
     test('Ruby -> Code -> Ruby (case normalization)', async () => {

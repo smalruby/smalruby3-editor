@@ -10,14 +10,14 @@ const Ev3SensorMenu = ['1', '2', '3', '4'];
  */
 const EV3Converter = {
     register: function (converter) {
-        converter.registerOnSend('self', Ev3, 0, params => {
-            const {node} = params;
+        converter.registerOnSend('self', Ev3, 0, (params) => {
+            const { node } = params;
 
             return converter.createRubyExpressionBlock(Ev3, node);
         });
 
-        converter.registerOnSend(Ev3, 'motor_turn_this_way_for', 2, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Ev3, 'motor_turn_this_way_for', 2, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isString(args[0]) || !converter.isNumberOrBlock(args[1])) return null;
 
@@ -26,15 +26,15 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString())
+                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString()),
             );
             converter.addNumberInput(block, 'TIME', 'math_number', args[1], 1);
             return block;
         });
 
         // backward compatibility
-        converter.registerOnSend('self', 'ev3_motor_turn_this_way_for', 2, params => {
-            const {args} = params;
+        converter.registerOnSend('self', 'ev3_motor_turn_this_way_for', 2, (params) => {
+            const { args } = params;
 
             if (!converter.isString(args[0]) || !converter.isNumberOrBlock(args[1])) return null;
 
@@ -43,14 +43,14 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString())
+                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString()),
             );
             converter.addNumberInput(block, 'TIME', 'math_number', args[1], 1);
             return block;
         });
 
-        converter.registerOnSend(Ev3, 'motor_turn_that_way_for', 2, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Ev3, 'motor_turn_that_way_for', 2, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isString(args[0]) || !converter.isNumberOrBlock(args[1])) return null;
 
@@ -59,14 +59,14 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString())
+                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString()),
             );
             converter.addNumberInput(block, 'TIME', 'math_number', args[1], 1);
             return block;
         });
 
-        converter.registerOnSend(Ev3, 'motor_turn_that_way_for', 2, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Ev3, 'motor_turn_that_way_for', 2, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isString(args[0]) || !converter.isNumberOrBlock(args[1])) return null;
 
@@ -75,14 +75,14 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString())
+                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString()),
             );
             converter.addNumberInput(block, 'TIME', 'math_number', args[1], 1);
             return block;
         });
 
-        converter.registerOnSend(Ev3, 'motor_turn_that_way_for', 2, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Ev3, 'motor_turn_that_way_for', 2, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isString(args[0]) || !converter.isNumberOrBlock(args[1])) return null;
 
@@ -91,16 +91,15 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString())
+                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString()),
             );
             converter.addNumberInput(block, 'TIME', 'math_number', args[1], 1);
             return block;
         });
-
 
         // backward compatibility
-        converter.registerOnSend('self', 'ev3_motor_turn_that_way_for', 2, params => {
-            const {args} = params;
+        converter.registerOnSend('self', 'ev3_motor_turn_that_way_for', 2, (params) => {
+            const { args } = params;
 
             if (!converter.isString(args[0]) || !converter.isNumberOrBlock(args[1])) return null;
 
@@ -109,14 +108,14 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString())
+                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString()),
             );
             converter.addNumberInput(block, 'TIME', 'math_number', args[1], 1);
             return block;
         });
 
-        converter.registerOnSend(Ev3, 'motor_set_power', 2, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Ev3, 'motor_set_power', 2, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isString(args[0]) || !converter.isNumberOrBlock(args[1])) return null;
 
@@ -125,16 +124,15 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString())
+                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString()),
             );
             converter.addNumberInput(block, 'POWER', 'math_number', args[1], 100);
             return block;
         });
 
-
         // backward compatibility
-        converter.registerOnSend('self', 'ev3_motor_set_power', 2, params => {
-            const {args} = params;
+        converter.registerOnSend('self', 'ev3_motor_set_power', 2, (params) => {
+            const { args } = params;
 
             if (!converter.isString(args[0]) || !converter.isNumberOrBlock(args[1])) return null;
 
@@ -143,14 +141,14 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString())
+                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString()),
             );
             converter.addNumberInput(block, 'POWER', 'math_number', args[1], 100);
             return block;
         });
 
-        converter.registerOnSend(Ev3, 'motor_position', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Ev3, 'motor_position', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isString(args[0])) return null;
 
@@ -159,14 +157,14 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString())
+                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString()),
             );
             return block;
         });
 
         // backward compatibility
-        converter.registerOnSend('self', 'ev3_motor_position', 1, params => {
-            const {args} = params;
+        converter.registerOnSend('self', 'ev3_motor_position', 1, (params) => {
+            const { args } = params;
 
             if (!converter.isString(args[0])) return null;
 
@@ -175,13 +173,13 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString())
+                converter.createFieldBlock('ev3_menu_motorPorts', 'motorPorts', motor.toString()),
             );
             return block;
         });
 
-        converter.registerOnSend(Ev3, 'button_pressed?', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Ev3, 'button_pressed?', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isString(args[0])) return null;
 
@@ -190,14 +188,14 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_sensorPorts', 'sensorPorts', sensor.toString())
+                converter.createFieldBlock('ev3_menu_sensorPorts', 'sensorPorts', sensor.toString()),
             );
             return block;
         });
 
         // backward compatibility
-        converter.registerOnSend('self', 'ev3_button_pressed?', 1, params => {
-            const {args} = params;
+        converter.registerOnSend('self', 'ev3_button_pressed?', 1, (params) => {
+            const { args } = params;
 
             if (!converter.isString(args[0])) return null;
 
@@ -206,35 +204,33 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_sensorPorts', 'sensorPorts', sensor.toString())
+                converter.createFieldBlock('ev3_menu_sensorPorts', 'sensorPorts', sensor.toString()),
             );
             return block;
         });
 
-        converter.registerOnSend(Ev3, 'distance', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Ev3, 'distance', 0, (params) => {
+            const { receiver } = params;
 
             return converter.changeRubyExpressionBlock(receiver, 'ev3_getDistance', 'value');
         });
 
         // backward compatibility
-        converter.registerOnSend('self', 'ev3_distance', 0, () =>
-            converter.createBlock('ev3_getDistance', 'value')
-        );
+        converter.registerOnSend('self', 'ev3_distance', 0, () => converter.createBlock('ev3_getDistance', 'value'));
 
-        converter.registerOnSend(Ev3, 'brightness', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(Ev3, 'brightness', 0, (params) => {
+            const { receiver } = params;
 
             return converter.changeRubyExpressionBlock(receiver, 'ev3_getBrightness', 'value');
         });
 
         // backward compatibility
         converter.registerOnSend('self', 'ev3_brightness', 0, () =>
-            converter.createBlock('ev3_getBrightness', 'value')
+            converter.createBlock('ev3_getBrightness', 'value'),
         );
 
-        converter.registerOnSend(Ev3, 'beep_note', 2, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(Ev3, 'beep_note', 2, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isNumberOrBlock(args[0]) || !converter.isNumberOrBlock(args[1])) return null;
 
@@ -245,8 +241,8 @@ const EV3Converter = {
         });
 
         // backward compatibility
-        converter.registerOnSend('self', 'ev3_beep_note', 2, params => {
-            const {args} = params;
+        converter.registerOnSend('self', 'ev3_beep_note', 2, (params) => {
+            const { args } = params;
 
             if (!converter.isNumberOrBlock(args[0]) || !converter.isNumberOrBlock(args[1])) return null;
 
@@ -256,9 +252,9 @@ const EV3Converter = {
             return block;
         });
 
-        converter.registerOnSendWithBlock(Ev3, 'when_button_pressed', 1, 0, params => {
+        converter.registerOnSendWithBlock(Ev3, 'when_button_pressed', 1, 0, (params) => {
             console.log(Ev3, 'when_button_pressed', 1, 0, params);
-            const {receiver, args, rubyBlock} = params;
+            const { receiver, args, rubyBlock } = params;
 
             if (!converter.isStringOrBlock(args[0])) return null;
             console.log('a');
@@ -270,7 +266,7 @@ const EV3Converter = {
             converter.addInput(
                 block,
                 'PORT',
-                converter.createFieldBlock('ev3_menu_sensorPorts', 'sensorPorts', sensor.toString())
+                converter.createFieldBlock('ev3_menu_sensorPorts', 'sensorPorts', sensor.toString()),
             );
             console.log('d');
             converter.setParent(rubyBlock, block);
@@ -278,8 +274,8 @@ const EV3Converter = {
             return block;
         });
 
-        converter.registerOnSendWithBlock(Ev3, 'when_distance_lt', 1, 0, params => {
-            const {receiver, args, rubyBlock} = params;
+        converter.registerOnSendWithBlock(Ev3, 'when_distance_lt', 1, 0, (params) => {
+            const { receiver, args, rubyBlock } = params;
 
             if (!converter.isNumberOrBlock(args[0])) return null;
 
@@ -289,8 +285,8 @@ const EV3Converter = {
             return block;
         });
 
-        converter.registerOnSendWithBlock(Ev3, 'when_brightness_lt', 1, 0, params => {
-            const {receiver, args, rubyBlock} = params;
+        converter.registerOnSendWithBlock(Ev3, 'when_brightness_lt', 1, 0, (params) => {
+            const { receiver, args, rubyBlock } = params;
 
             if (!converter.isNumberOrBlock(args[0])) return null;
 
@@ -301,47 +297,47 @@ const EV3Converter = {
         });
 
         // backward compatibility
-        converter.registerOnSendWithBlock('self', 'when', 2, 0, params => {
-            const {args, rubyBlock} = params;
+        converter.registerOnSendWithBlock('self', 'when', 2, 0, (params) => {
+            const { args, rubyBlock } = params;
 
             if (!converter._isSymbol(args[0])) return null;
 
             let block;
             switch (converter._getSymbolValue(args[0])) {
-            case 'ev3_button_pressed': {
-                if (!converter.isStringOrBlock(args[1])) return null;
+                case 'ev3_button_pressed': {
+                    if (!converter.isStringOrBlock(args[1])) return null;
 
-                block = converter.createBlock('ev3_whenButtonPressed', 'hat');
-                const sensor = Ev3SensorMenu.indexOf(args[1].toString());
-                converter.addInput(
-                    block,
-                    'PORT',
-                    converter.createFieldBlock('ev3_menu_sensorPorts', 'sensorPorts', sensor.toString())
-                );
-                converter.setParent(rubyBlock, block);
-                break;
-            }
+                    block = converter.createBlock('ev3_whenButtonPressed', 'hat');
+                    const sensor = Ev3SensorMenu.indexOf(args[1].toString());
+                    converter.addInput(
+                        block,
+                        'PORT',
+                        converter.createFieldBlock('ev3_menu_sensorPorts', 'sensorPorts', sensor.toString()),
+                    );
+                    converter.setParent(rubyBlock, block);
+                    break;
+                }
 
-            case 'ev3_distance_gt':
-                if (!converter.isNumberOrBlock(args[1])) return null;
+                case 'ev3_distance_gt':
+                    if (!converter.isNumberOrBlock(args[1])) return null;
 
-                block = converter.createBlock('ev3_whenDistanceLessThan', 'hat');
-                converter.addNumberInput(block, 'DISTANCE', 'math_number', args[1], 5);
-                converter.setParent(rubyBlock, block);
-                break;
+                    block = converter.createBlock('ev3_whenDistanceLessThan', 'hat');
+                    converter.addNumberInput(block, 'DISTANCE', 'math_number', args[1], 5);
+                    converter.setParent(rubyBlock, block);
+                    break;
 
-            case 'ev3_brightness_gt':
-                if (!converter.isNumberOrBlock(args[1])) return null;
+                case 'ev3_brightness_gt':
+                    if (!converter.isNumberOrBlock(args[1])) return null;
 
-                block = converter.createBlock('ev3_whenBrightnessLessThan', 'hat');
-                converter.addNumberInput(block, 'DISTANCE', 'math_number', args[1], 50);
-                converter.setParent(rubyBlock, block);
-                break;
+                    block = converter.createBlock('ev3_whenBrightnessLessThan', 'hat');
+                    converter.addNumberInput(block, 'DISTANCE', 'math_number', args[1], 50);
+                    converter.setParent(rubyBlock, block);
+                    break;
             }
 
             return block;
         });
-    }
+    },
 };
 
 export default EV3Converter;

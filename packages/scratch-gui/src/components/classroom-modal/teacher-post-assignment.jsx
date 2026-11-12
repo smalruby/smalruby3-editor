@@ -1,12 +1,10 @@
-import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
-
-import ErrorDisplay from './error-display.jsx';
-
+import { FormattedMessage } from 'react-intl';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import styles from './classroom-modal.css';
+import ErrorDisplay from './error-display.jsx';
 
 const TeacherPostAssignment = ({
     error,
@@ -48,10 +46,7 @@ const TeacherPostAssignment = ({
     const targetLabel = group ? formatClassLabel(group) : selectedClassroom?.className;
 
     return (
-        <div
-            className={styles.postAssignmentContainer}
-            data-testid="classroom-phase-teacher-post-assignment"
-        >
+        <div className={styles.postAssignmentContainer} data-testid="classroom-phase-teacher-post-assignment">
             {posted ? (
                 // 配信後: タイトル(成功) + ヒント + フッター（左=戻る / 右=確認）。
                 // 基本レイアウト（プライマリー右下・キャンセル左下）に揃える。
@@ -92,11 +87,7 @@ const TeacherPostAssignment = ({
                                 rel="noopener noreferrer"
                                 target="_blank"
                             >
-                                <img
-                                    alt=""
-                                    className={styles.gcImportIcon}
-                                    src={googleClassroomIcon}
-                                />
+                                <img alt="" className={styles.gcImportIcon} src={googleClassroomIcon} />
                                 <FormattedMessage
                                     defaultMessage="View on Google Classroom"
                                     description="View posted assignment on Google Classroom"
@@ -176,11 +167,7 @@ const TeacherPostAssignment = ({
                             disabled={!title.trim() || isLoading}
                             onClick={handlePost}
                         >
-                            <img
-                                alt=""
-                                className={styles.gcImportIcon}
-                                src={googleClassroomIcon}
-                            />
+                            <img alt="" className={styles.gcImportIcon} src={googleClassroomIcon} />
                             <FormattedMessage
                                 defaultMessage="Post to Google Classroom"
                                 description="Post assignment button"

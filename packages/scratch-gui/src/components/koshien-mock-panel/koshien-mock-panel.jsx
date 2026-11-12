@@ -1,31 +1,28 @@
 // === Smalruby: This file is Smalruby-specific (Koshien practice game panel) ===
-
-import React, {useState, useCallback, useEffect, useRef} from 'react';
 import PropTypes from 'prop-types';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Draggable from 'react-draggable';
-import {defineMessages, useIntl} from 'react-intl';
-import styles from './koshien-mock-panel.css';
-
+import { defineMessages, useIntl } from 'react-intl';
 import closeIcon from '../cards/icon--close.svg';
-import shrinkIcon from '../cards/icon--shrink.svg';
 import expandIcon from '../cards/icon--expand.svg';
+import shrinkIcon from '../cards/icon--shrink.svg';
 import greenFlagIcon from '../green-flag/icon--green-flag.svg';
 import stopAllIcon from '../stop-all/icon--stop-all.svg';
-
-import itemTea from './item-tea.png';
-import itemSweets from './item-sweets.png';
-import itemCoin from './item-coin.png';
-import itemDolphin from './item-dolphin.png';
-import itemSword from './item-sword.png';
-import itemPoison from './item-poison.png';
-import itemSnake from './item-snake.png';
-import itemTrap from './item-trap.png';
-import itemBomb from './item-bomb.png';
-import player1Sprite from './player1.png';
-import player2Sprite from './player2.png';
-import enemyNormal from './enemy-normal.png';
 import enemyAngry from './enemy-angry.png';
 import enemyKill from './enemy-kill.png';
+import enemyNormal from './enemy-normal.png';
+import itemBomb from './item-bomb.png';
+import itemCoin from './item-coin.png';
+import itemDolphin from './item-dolphin.png';
+import itemPoison from './item-poison.png';
+import itemSnake from './item-snake.png';
+import itemSweets from './item-sweets.png';
+import itemSword from './item-sword.png';
+import itemTea from './item-tea.png';
+import itemTrap from './item-trap.png';
+import styles from './koshien-mock-panel.css';
+import player1Sprite from './player1.png';
+import player2Sprite from './player2.png';
 
 const MENU_BAR_HEIGHT = 48;
 const TILE = 22; // 17 tiles * 22px = 374px — fits a 600px-tall viewport
@@ -318,15 +315,15 @@ const TERRAIN_MESSAGES = {
     '-1': 'terrainUnknown',
 };
 const ITEM_TIPS = {
-    a: {message: 'itemTea', points: 10},
-    b: {message: 'itemSweets', points: 20},
-    c: {message: 'itemCoin', points: 30},
-    d: {message: 'itemDolphin', points: 40},
-    e: {message: 'itemSword', points: 60},
-    A: {message: 'itemPoison', points: -10},
-    B: {message: 'itemSnake', points: -20},
-    C: {message: 'itemTrap', points: -30},
-    D: {message: 'itemBomb', points: -40},
+    a: { message: 'itemTea', points: 10 },
+    b: { message: 'itemSweets', points: 20 },
+    c: { message: 'itemCoin', points: 30 },
+    d: { message: 'itemDolphin', points: 40 },
+    e: { message: 'itemSword', points: 60 },
+    A: { message: 'itemPoison', points: -10 },
+    B: { message: 'itemSnake', points: -20 },
+    C: { message: 'itemTrap', points: -30 },
+    D: { message: 'itemBomb', points: -40 },
 };
 
 /**
@@ -386,9 +383,11 @@ const drawCell = (ctx, sprites, x, y, cell) => {
 const drawFiend = (ctx, sprites, fiend) => {
     if (!fiend || fiend.state === 'done') return;
     const sprite =
-        fiend.state === 'angry' ? sprites.enemyAngry
-            : fiend.state === 'kill' ? sprites.enemyKill
-                : sprites.enemyNormal;
+        fiend.state === 'angry'
+            ? sprites.enemyAngry
+            : fiend.state === 'kill'
+              ? sprites.enemyKill
+              : sprites.enemyNormal;
     if (sprite && sprite.complete) {
         ctx.drawImage(sprite, fiend.x * TILE, fiend.y * TILE, TILE, TILE);
     }
@@ -457,8 +456,8 @@ const drawGame = (canvas, snapshot, sprites, view) => {
         ctx.lineWidth = 2;
         ctx.strokeRect(goal[0] * TILE + 1, goal[1] * TILE + 1, TILE - 2, TILE - 2);
         drawFiend(ctx, sprites, snapshot.myFiend);
-        const me = game.pawns.find(pawn => pawn.isUser);
-        const rival = game.pawns.find(pawn => !pawn.isUser);
+        const me = game.pawns.find((pawn) => pawn.isUser);
+        const rival = game.pawns.find((pawn) => !pawn.isUser);
         if (snapshot.myRival && rival) {
             const sprite = rival.side === 1 ? sprites.player1 : sprites.player2;
             if (sprite && sprite.complete) {
@@ -481,9 +480,7 @@ const drawGame = (canvas, snapshot, sprites, view) => {
 
     // Pawns (both on one cell -> nudge apart; finished pawns fade).
     const together =
-        game.pawns.length === 2 &&
-        game.pawns[0].x === game.pawns[1].x &&
-        game.pawns[0].y === game.pawns[1].y;
+        game.pawns.length === 2 && game.pawns[0].x === game.pawns[1].x && game.pawns[0].y === game.pawns[1].y;
     game.pawns.forEach((pawn, i) => {
         const sprite = pawn.side === 1 ? sprites.player1 : sprites.player2;
         if (!sprite || !sprite.complete) return;
@@ -518,7 +515,7 @@ const drawGame = (canvas, snapshot, sprites, view) => {
  * @param {Function} props.onStopAll - stop button handler.
  * @returns {JSX.Element} - the rendered panel.
  */
-const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
+const KoshienMockPanel = ({ snapshot, onClose, onGreenFlag, onStopAll }) => {
     const intl = useIntl();
     const [expanded, setExpanded] = useState(true);
     const [view, setView] = useState('all');
@@ -531,27 +528,30 @@ const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
     const tipTimerRef = useRef(null);
     if (!spriteCache) spriteCache = loadSprites();
 
-    const handleToggleExpanded = useCallback(() => setExpanded(value => !value), []);
+    const handleToggleExpanded = useCallback(() => setExpanded((value) => !value), []);
     const handleViewAll = useCallback(() => setView('all'), []);
     const handleViewMine = useCallback(() => setView('mine'), []);
-    const handleToggleLogExpanded = useCallback(() => setLogExpanded(value => !value), []);
+    const handleToggleLogExpanded = useCallback(() => setLogExpanded((value) => !value), []);
 
     // Tooltip timing: it shows a beat after the pointer rests on a cell, and
     // when the pointer moves on it lingers for the same beat before it
     // switches to the new cell (or goes away).
-    const scheduleTip = useCallback(next => {
+    const scheduleTip = useCallback((next) => {
         clearTimeout(tipTimerRef.current);
         tipTimerRef.current = setTimeout(() => setTipCell(next), TIP_DELAY_MS);
     }, []);
-    const handleBoardMouseMove = useCallback(e => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = Math.floor((e.clientX - rect.left) / TILE);
-        const y = Math.floor((e.clientY - rect.top) / TILE);
-        const prev = hoverCellRef.current;
-        if (prev && prev.x === x && prev.y === y) return;
-        hoverCellRef.current = {x, y};
-        scheduleTip({x, y});
-    }, [scheduleTip]);
+    const handleBoardMouseMove = useCallback(
+        (e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / TILE);
+            const y = Math.floor((e.clientY - rect.top) / TILE);
+            const prev = hoverCellRef.current;
+            if (prev && prev.x === x && prev.y === y) return;
+            hoverCellRef.current = { x, y };
+            scheduleTip({ x, y });
+        },
+        [scheduleTip],
+    );
     const handleBoardMouseLeave = useCallback(() => {
         hoverCellRef.current = null;
         scheduleTip(null);
@@ -566,9 +566,9 @@ const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
         const canvas = canvasRef.current;
         drawGame(canvas, snapshot, spriteCache, view);
         // Redraw once more when sprites finish loading the first time.
-        const pending = Object.values(spriteCache).filter(img => img && !img.complete);
-        pending.forEach(img => {
-            img.addEventListener('load', () => drawGame(canvas, snapshot, spriteCache, view), {once: true});
+        const pending = Object.values(spriteCache).filter((img) => img && !img.complete);
+        pending.forEach((img) => {
+            img.addEventListener('load', () => drawGame(canvas, snapshot, spriteCache, view), { once: true });
         });
     }, [snapshot, expanded, game, view]);
 
@@ -581,26 +581,31 @@ const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
         if (el) el.scrollTop = el.scrollHeight;
     }, [snapshot, game]);
 
-    const me = game && game.pawns.find(pawn => pawn.isUser);
-    const rival = game && game.pawns.find(pawn => !pawn.isUser);
+    const me = game && game.pawns.find((pawn) => pawn.isUser);
+    const rival = game && game.pawns.find((pawn) => !pawn.isUser);
 
     // Assemble the hovered-cell tooltip from whichever view is displayed.
     let tipInfo = null;
-    if (tipCell && game && tipCell.y >= 0 && tipCell.y < game.rows.length &&
-        tipCell.x >= 0 && tipCell.x < game.rows[tipCell.y].length) {
-        const {x, y} = tipCell;
+    if (
+        tipCell &&
+        game &&
+        tipCell.y >= 0 &&
+        tipCell.y < game.rows.length &&
+        tipCell.x >= 0 &&
+        tipCell.x < game.rows[tipCell.y].length
+    ) {
+        const { x, y } = tipCell;
         let cell;
         if (view === 'mine') {
-            cell = Array.isArray(snapshot.myMap) && snapshot.myMap[y] ?
-                snapshot.myMap[y][x] : -1;
+            cell = Array.isArray(snapshot.myMap) && snapshot.myMap[y] ? snapshot.myMap[y][x] : -1;
         } else {
             const ch = game.rows[y][x];
             cell = /[0-9]/.test(ch) ? Number(ch) : ch;
         }
         const item = ITEM_TIPS[cell];
-        const mapName = item ?
-            intl.formatMessage(messages.tipItem) :
-            intl.formatMessage(messages[TERRAIN_MESSAGES[String(cell)]] || messages.terrainUnknown);
+        const mapName = item
+            ? intl.formatMessage(messages.tipItem)
+            : intl.formatMessage(messages[TERRAIN_MESSAGES[String(cell)]] || messages.terrainUnknown);
         const who = [];
         if (view === 'mine') {
             if (snapshot.myRival && snapshot.myRival[0] === x && snapshot.myRival[1] === y) {
@@ -614,8 +619,7 @@ const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
             if (rival && rival.x === x && rival.y === y) {
                 who.push(intl.formatMessage(messages.tipRivalHere));
             }
-            if (game.fiend && game.fiend.state !== 'done' &&
-                game.fiend.x === x && game.fiend.y === y) {
+            if (game.fiend && game.fiend.state !== 'done' && game.fiend.x === x && game.fiend.y === y) {
                 who.push(intl.formatMessage(messages.tipFiendHere));
             }
         }
@@ -625,9 +629,9 @@ const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
             top: `${Math.max(2, Math.min(y * TILE - 8, boardSize - 92))}px`,
         };
         if (x < game.rows.length / 2) {
-            style.left = `${((x + 1) * TILE) + 6}px`;
+            style.left = `${(x + 1) * TILE + 6}px`;
         } else {
-            style.right = `${boardSize - (x * TILE) + 6}px`;
+            style.right = `${boardSize - x * TILE + 6}px`;
         }
         tipInfo = {
             x,
@@ -636,25 +640,24 @@ const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
             lines: [
                 `${intl.formatMessage(messages.tipCoordinate)} ${x}:${y}`,
                 `${intl.formatMessage(messages.tipMap)} ${cell} (${mapName})`,
-                `${intl.formatMessage(messages.tipItem)} ${item ?
-                    `${cell} ${intl.formatMessage(messages[item.message])} ${
-                        item.points > 0 ? `+${item.points}` : item.points}` :
-                    intl.formatMessage(messages.tipNone)}`,
+                `${intl.formatMessage(messages.tipItem)} ${
+                    item
+                        ? `${cell} ${intl.formatMessage(messages[item.message])} ${
+                              item.points > 0 ? `+${item.points}` : item.points
+                          }`
+                        : intl.formatMessage(messages.tipNone)
+                }`,
                 who.length > 0 ? who.join('・') : '-',
             ],
         };
     }
-    const statusLabel = status => {
+    const statusLabel = (status) => {
         if (status === 'completed') return intl.formatMessage(messages.statusCompleted);
         if (status === 'timeup') return intl.formatMessage(messages.statusTimeup);
         return intl.formatMessage(messages.statusPlaying);
     };
 
-    const defaultX = typeof window === 'undefined'
-        ? 0
-        : Math.max(0, window.innerWidth - (boardSize + 300))
-    ;
-
+    const defaultX = typeof window === 'undefined' ? 0 : Math.max(0, window.innerWidth - (boardSize + 300));
     // The stage may be hidden behind the panel, so its green flag / stop pair
     // lives here too — including before the AI has connected.
     const runButtons = (
@@ -665,11 +668,7 @@ const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
                 title={intl.formatMessage(messages.greenFlag)}
                 onClick={onGreenFlag}
             >
-                <img
-                    alt={intl.formatMessage(messages.greenFlag)}
-                    draggable={false}
-                    src={greenFlagIcon}
-                />
+                <img alt={intl.formatMessage(messages.greenFlag)} draggable={false} src={greenFlagIcon} />
             </button>
             <button
                 className={styles.runButton}
@@ -677,11 +676,7 @@ const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
                 title={intl.formatMessage(messages.stopAll)}
                 onClick={onStopAll}
             >
-                <img
-                    alt={intl.formatMessage(messages.stopAll)}
-                    draggable={false}
-                    src={stopAllIcon}
-                />
+                <img alt={intl.formatMessage(messages.stopAll)} draggable={false} src={stopAllIcon} />
             </button>
         </span>
     );
@@ -690,19 +685,13 @@ const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
         <div className={styles.overlay}>
             <Draggable
                 bounds="parent"
-                defaultPosition={{x: defaultX, y: MENU_BAR_HEIGHT + 8}}
+                defaultPosition={{ x: defaultX, y: MENU_BAR_HEIGHT + 8 }}
                 handle={`.${styles.header}`}
                 nodeRef={nodeRef}
             >
-                <div
-                    className={styles.panelContainer}
-                    data-testid="koshien-mock-panel"
-                    ref={nodeRef}
-                >
+                <div className={styles.panelContainer} data-testid="koshien-mock-panel" ref={nodeRef}>
                     <div className={styles.header}>
-                        <div className={styles.headerTitle}>
-                            {intl.formatMessage(messages.title)}
-                        </div>
+                        <div className={styles.headerTitle}>{intl.formatMessage(messages.title)}</div>
                         <div className={styles.headerButtons}>
                             <button
                                 className={styles.headerButton}
@@ -721,172 +710,164 @@ const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
                                 title={intl.formatMessage(messages.close)}
                                 onClick={onClose}
                             >
-                                <img
-                                    alt={intl.formatMessage(messages.close)}
-                                    src={closeIcon}
-                                />
+                                <img alt={intl.formatMessage(messages.close)} src={closeIcon} />
                             </button>
                         </div>
                     </div>
-                    {expanded ? <div className={styles.body}>
-                        {game ? (
-                            <React.Fragment>
-                                {/* The CSS size is pinned to the bitmap size so
+                    {expanded ? (
+                        <div className={styles.body}>
+                            {game ? (
+                                <React.Fragment>
+                                    {/* The CSS size is pinned to the bitmap size so
                                     flex stretching can never distort the 1:1 tiles. */}
-                                <div
-                                    className={styles.boardWrap}
-                                    style={{width: `${boardSize}px`, height: `${boardSize}px`}}
-                                >
-                                    <canvas
-                                        className={styles.board}
-                                        data-testid="koshien-mock-panel-canvas"
-                                        height={boardSize}
-                                        ref={canvasRef}
-                                        style={{width: `${boardSize}px`, height: `${boardSize}px`}}
-                                        width={boardSize}
-                                        onMouseLeave={handleBoardMouseLeave}
-                                        onMouseMove={handleBoardMouseMove}
-                                    />
-                                    {tipInfo ? (
-                                        <div
-                                            className={styles.cellTip}
-                                            data-testid="koshien-mock-panel-tip"
-                                            style={tipInfo.style}
-                                        >
-                                            {tipInfo.lines.map((line, i) => (
-                                                <div key={i}>{line}</div>
-                                            ))}
-                                        </div>
-                                    ) : null}
-                                </div>
-                                {/* Matches the board height so the journal scrolls
+                                    <div
+                                        className={styles.boardWrap}
+                                        style={{ width: `${boardSize}px`, height: `${boardSize}px` }}
+                                    >
+                                        <canvas
+                                            className={styles.board}
+                                            data-testid="koshien-mock-panel-canvas"
+                                            height={boardSize}
+                                            ref={canvasRef}
+                                            style={{ width: `${boardSize}px`, height: `${boardSize}px` }}
+                                            width={boardSize}
+                                            onMouseLeave={handleBoardMouseLeave}
+                                            onMouseMove={handleBoardMouseMove}
+                                        />
+                                        {tipInfo ? (
+                                            <div
+                                                className={styles.cellTip}
+                                                data-testid="koshien-mock-panel-tip"
+                                                style={tipInfo.style}
+                                            >
+                                                {tipInfo.lines.map((line, i) => (
+                                                    <div key={i}>{line}</div>
+                                                ))}
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                    {/* Matches the board height so the journal scrolls
                                     instead of growing the panel. */}
-                                <div
-                                    className={styles.side}
-                                    style={{height: `${boardSize}px`}}
-                                >
-                                    <div className={styles.viewRow}>
-                                        <button
-                                            aria-pressed={view === 'all'}
-                                            className={view === 'all' ? styles.viewButtonActive : styles.viewButton}
-                                            data-testid="koshien-mock-panel-view-all"
-                                            onClick={handleViewAll}
-                                        >
-                                            {intl.formatMessage(messages.viewAll)}
-                                        </button>
-                                        <button
-                                            aria-pressed={view === 'mine'}
-                                            className={view === 'mine' ? styles.viewButtonActive : styles.viewButton}
-                                            data-testid="koshien-mock-panel-view-mine"
-                                            onClick={handleViewMine}
-                                        >
-                                            {intl.formatMessage(messages.viewMine)}
-                                        </button>
-                                    </div>
-                                    <div className={styles.turnRow}>
-                                        <span data-testid="koshien-mock-panel-turn">
-                                            {`${intl.formatMessage(messages.turn)} ${game.turn} / 50`}
-                                            {game.over ? (
-                                                <span className={styles.gameOver}>
-                                                    {` ${intl.formatMessage(messages.gameOver)}`}
-                                                </span>
-                                            ) : null}
-                                        </span>
-                                        {runButtons}
-                                    </div>
-                                    {me && !logExpanded ? (
-                                        <div
-                                            className={styles.pawnCard}
-                                            data-testid="koshien-mock-panel-me"
-                                        >
-                                            <div className={styles.pawnName}>
-                                                {`${intl.formatMessage(messages.you)}: ${me.name} (player${me.side})`}
-                                                <span className={styles.pawnStatus}>
-                                                    {` ${statusLabel(me.status)}`}
-                                                </span>
-                                            </div>
-                                            <div className={styles.pawnStats}>
-                                                {`${intl.formatMessage(messages.score)} ${me.score} / (${me.x}:${me.y})`}
-                                            </div>
-                                            <div className={styles.pawnStats}>
-                                                {`${intl.formatMessage(messages.actionsLeft)} ${
-                                                    Math.max(0, me.actionsLimit - me.actionsUsed)
-                                                } ・ ${intl.formatMessage(messages.canMove)} ${me.canMove ? '○' : '×'}`}
-                                            </div>
-                                            <div className={styles.pawnStats}>
-                                                {`${intl.formatMessage(messages.dynamite)} ${me.dynamiteLeft} ・ ${
-                                                    intl.formatMessage(messages.bomb)
-                                                } ${me.bombLeft}`}
-                                                {me.inWater ? (
-                                                    <span className={styles.inWater}>
-                                                        {` ${intl.formatMessage(messages.inWater)}`}
+                                    <div className={styles.side} style={{ height: `${boardSize}px` }}>
+                                        <div className={styles.viewRow}>
+                                            <button
+                                                aria-pressed={view === 'all'}
+                                                className={
+                                                    view === 'all' ? styles.viewButtonActive : styles.viewButton
+                                                }
+                                                data-testid="koshien-mock-panel-view-all"
+                                                onClick={handleViewAll}
+                                            >
+                                                {intl.formatMessage(messages.viewAll)}
+                                            </button>
+                                            <button
+                                                aria-pressed={view === 'mine'}
+                                                className={
+                                                    view === 'mine' ? styles.viewButtonActive : styles.viewButton
+                                                }
+                                                data-testid="koshien-mock-panel-view-mine"
+                                                onClick={handleViewMine}
+                                            >
+                                                {intl.formatMessage(messages.viewMine)}
+                                            </button>
+                                        </div>
+                                        <div className={styles.turnRow}>
+                                            <span data-testid="koshien-mock-panel-turn">
+                                                {`${intl.formatMessage(messages.turn)} ${game.turn} / 50`}
+                                                {game.over ? (
+                                                    <span className={styles.gameOver}>
+                                                        {` ${intl.formatMessage(messages.gameOver)}`}
                                                     </span>
                                                 ) : null}
-                                            </div>
+                                            </span>
+                                            {runButtons}
                                         </div>
-                                    ) : null}
-                                    {rival && !logExpanded ? (
-                                        <div
-                                            className={styles.pawnCard}
-                                            data-testid="koshien-mock-panel-rival"
-                                        >
-                                            <div className={styles.pawnName}>
-                                                {`${intl.formatMessage(messages.rival)}: player${rival.side} (${snapshot.strategy})`}
-                                                <span className={styles.pawnStatus}>
-                                                    {` ${statusLabel(rival.status)}`}
-                                                </span>
+                                        {me && !logExpanded ? (
+                                            <div className={styles.pawnCard} data-testid="koshien-mock-panel-me">
+                                                <div className={styles.pawnName}>
+                                                    {`${intl.formatMessage(messages.you)}: ${me.name} (player${me.side})`}
+                                                    <span className={styles.pawnStatus}>
+                                                        {` ${statusLabel(me.status)}`}
+                                                    </span>
+                                                </div>
+                                                <div className={styles.pawnStats}>
+                                                    {`${intl.formatMessage(messages.score)} ${me.score} / (${me.x}:${me.y})`}
+                                                </div>
+                                                <div className={styles.pawnStats}>
+                                                    {`${intl.formatMessage(messages.actionsLeft)} ${Math.max(
+                                                        0,
+                                                        me.actionsLimit - me.actionsUsed,
+                                                    )} ・ ${intl.formatMessage(messages.canMove)} ${me.canMove ? '○' : '×'}`}
+                                                </div>
+                                                <div className={styles.pawnStats}>
+                                                    {`${intl.formatMessage(messages.dynamite)} ${me.dynamiteLeft} ・ ${intl.formatMessage(
+                                                        messages.bomb,
+                                                    )} ${me.bombLeft}`}
+                                                    {me.inWater ? (
+                                                        <span className={styles.inWater}>
+                                                            {` ${intl.formatMessage(messages.inWater)}`}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
                                             </div>
-                                            <div className={styles.pawnStats}>
-                                                {`${intl.formatMessage(messages.score)} ${rival.score} / (${rival.x}:${rival.y})`}
+                                        ) : null}
+                                        {rival && !logExpanded ? (
+                                            <div className={styles.pawnCard} data-testid="koshien-mock-panel-rival">
+                                                <div className={styles.pawnName}>
+                                                    {`${intl.formatMessage(messages.rival)}: player${rival.side} (${snapshot.strategy})`}
+                                                    <span className={styles.pawnStatus}>
+                                                        {` ${statusLabel(rival.status)}`}
+                                                    </span>
+                                                </div>
+                                                <div className={styles.pawnStats}>
+                                                    {`${intl.formatMessage(messages.score)} ${rival.score} / (${rival.x}:${rival.y})`}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ) : null}
-                                    <div className={styles.journalTitleRow}>
-                                        <span className={styles.journalTitle}>
-                                            {intl.formatMessage(messages.journal)}
-                                        </span>
-                                        <button
-                                            className={styles.logToggleButton}
-                                            data-testid="koshien-mock-panel-log-toggle"
-                                            onClick={handleToggleLogExpanded}
-                                        >
-                                            {intl.formatMessage(
-                                                logExpanded ? messages.shrinkLog : messages.expandLog
-                                            )}
-                                        </button>
-                                    </div>
-                                    <div
-                                        className={styles.journal}
-                                        data-testid="koshien-mock-panel-journal"
-                                        ref={journalRef}
-                                    >
-                                        {(snapshot.journal || []).map((entry, i) => (
-                                            <div
-                                                className={
-                                                    entry.kind === 'error' ? styles.journalError
-                                                        : entry.kind === 'event' ? styles.journalEvent
-                                                            : styles.journalAction
-                                                }
-                                                key={i}
+                                        ) : null}
+                                        <div className={styles.journalTitleRow}>
+                                            <span className={styles.journalTitle}>
+                                                {intl.formatMessage(messages.journal)}
+                                            </span>
+                                            <button
+                                                className={styles.logToggleButton}
+                                                data-testid="koshien-mock-panel-log-toggle"
+                                                onClick={handleToggleLogExpanded}
                                             >
-                                                {`T${entry.turn} ${entry.text}`}
-                                            </div>
-                                        ))}
+                                                {intl.formatMessage(
+                                                    logExpanded ? messages.shrinkLog : messages.expandLog,
+                                                )}
+                                            </button>
+                                        </div>
+                                        <div
+                                            className={styles.journal}
+                                            data-testid="koshien-mock-panel-journal"
+                                            ref={journalRef}
+                                        >
+                                            {(snapshot.journal || []).map((entry, i) => (
+                                                <div
+                                                    className={
+                                                        entry.kind === 'error'
+                                                            ? styles.journalError
+                                                            : entry.kind === 'event'
+                                                              ? styles.journalEvent
+                                                              : styles.journalAction
+                                                    }
+                                                    key={i}
+                                                >
+                                                    {`T${entry.turn} ${entry.text}`}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
+                                </React.Fragment>
+                            ) : (
+                                <div className={styles.notConnected} data-testid="koshien-mock-panel-not-connected">
+                                    <div className={styles.notConnectedButtons}>{runButtons}</div>
+                                    {intl.formatMessage(messages.notConnected)}
                                 </div>
-                            </React.Fragment>
-                        ) : (
-                            <div
-                                className={styles.notConnected}
-                                data-testid="koshien-mock-panel-not-connected"
-                            >
-                                <div className={styles.notConnectedButtons}>
-                                    {runButtons}
-                                </div>
-                                {intl.formatMessage(messages.notConnected)}
-                            </div>
-                        )}
-                    </div> : null}
+                            )}
+                        </div>
+                    ) : null}
                 </div>
             </Draggable>
         </div>

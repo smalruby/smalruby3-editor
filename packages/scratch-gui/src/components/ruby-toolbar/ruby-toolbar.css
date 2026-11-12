@@ -1,5 +1,5 @@
-@import "../../css/colors.css";
-@import "../../css/units.css";
+@import '../../css/colors.css';
+@import '../../css/units.css';
 
 .toolbar {
     display: flex;
@@ -23,7 +23,7 @@
     padding-right: $space;
 }
 
-[dir="rtl"] .modDashedBorder {
+[dir='rtl'] .modDashedBorder {
     border-left: 1px dashed hsla(0, 0%, 0%, 0.15);
     border-right: none;
     padding-left: $space;
@@ -84,18 +84,18 @@
     border-right: none;
 }
 
-[dir="rtl"] .buttonGroup .iconButton:not(:last-child) {
+[dir='rtl'] .buttonGroup .iconButton:not(:last-child) {
     border-left: none;
     border-right: 1px solid $ui-black-transparent;
 }
 
 .buttonGroup .iconButton:first-child,
-[dir="rtl"] .buttonGroup .iconButton:last-child {
+[dir='rtl'] .buttonGroup .iconButton:last-child {
     border-radius: $form-radius 0 0 $form-radius;
 }
 
 .buttonGroup .iconButton:last-child,
-[dir="rtl"] .buttonGroup .iconButton:first-child {
+[dir='rtl'] .buttonGroup .iconButton:first-child {
     border-radius: 0 $form-radius $form-radius 0;
 }
 
@@ -116,7 +116,7 @@
     width: 100%;
     height: 2rem; /* 32px */
     padding: 0 0.75rem;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-size: 0.625rem;
     font-weight: bold;
     color: $text-primary;
@@ -266,7 +266,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: box-shadow 0.2s, opacity 0.2s;
+    transition:
+        box-shadow 0.2s,
+        opacity 0.2s;
 }
 
 .furiganaButton img {
@@ -280,7 +282,9 @@
 
 .furiganaButtonActive {
     background: linear-gradient(to bottom, #e8f8ee, #c2eacc);
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.7), 0 0 10px 4px rgba(76, 175, 80, 0.35);
+    box-shadow:
+        0 0 0 2px rgba(76, 175, 80, 0.7),
+        0 0 10px 4px rgba(76, 175, 80, 0.35);
 }
 
 .autoCorrectButton {
@@ -295,7 +299,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: box-shadow 0.2s, opacity 0.2s;
+    transition:
+        box-shadow 0.2s,
+        opacity 0.2s;
 }
 
 .autoCorrectButton img {
@@ -309,7 +315,9 @@
 
 .autoCorrectButtonActive {
     background: linear-gradient(to bottom, #e8f8ee, #c2eacc);
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.7), 0 0 10px 4px rgba(76, 175, 80, 0.35);
+    box-shadow:
+        0 0 0 2px rgba(76, 175, 80, 0.7),
+        0 0 10px 4px rgba(76, 175, 80, 0.35);
 }
 
 .moreMenuWrapper {
@@ -336,7 +344,7 @@
     padding: calc($space / 2) 0;
 }
 
-[dir="rtl"] .moreMenu {
+[dir='rtl'] .moreMenu {
     right: auto;
     left: 0;
 }

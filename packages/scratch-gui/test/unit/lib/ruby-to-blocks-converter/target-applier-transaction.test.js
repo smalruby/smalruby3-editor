@@ -1,6 +1,6 @@
-import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
 import Variable from '@smalruby/scratch-vm/src/engine/variable';
+import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 
 // Issue #710: applyTargetBlocks deletes ALL existing blocks before creating
 // the converted ones. If createBlock throws midway (or the converted graph is
@@ -35,7 +35,7 @@ describe('RubyToBlocksConverter/TargetApplier transaction (issue #710)', () => {
             next: null,
             parent: 'oldhat',
             inputs: {
-                STEPS: {name: 'STEPS', block: 'oldnum', shadow: 'oldnum'},
+                STEPS: { name: 'STEPS', block: 'oldnum', shadow: 'oldnum' },
             },
             fields: {},
             shadow: false,
@@ -47,7 +47,7 @@ describe('RubyToBlocksConverter/TargetApplier transaction (issue #710)', () => {
             next: null,
             parent: 'oldmove',
             inputs: {},
-            fields: {NUM: {name: 'NUM', value: '10'}},
+            fields: { NUM: { name: 'NUM', value: '10' } },
             shadow: true,
             topLevel: false,
         });
@@ -81,7 +81,7 @@ describe('RubyToBlocksConverter/TargetApplier transaction (issue #710)', () => {
             blocks: new Blocks(runtime),
             variables: {},
             comments: {
-                oldcomment: {id: 'oldcomment', blockId: null, text: 'keep me'},
+                oldcomment: { id: 'oldcomment', blockId: null, text: 'keep me' },
             },
             isStage: false,
             createVariable: function (id, name, type) {
@@ -112,7 +112,7 @@ describe('RubyToBlocksConverter/TargetApplier transaction (issue #710)', () => {
                 delete this.variables[id];
             },
             createComment: function (id, blockId, text, x, y, width, height, minimized) {
-                this.comments[id] = {id, blockId, text, x, y, width, height, minimized};
+                this.comments[id] = { id, blockId, text, x, y, width, height, minimized };
             },
         };
         createOldProgram(target.blocks);
@@ -130,10 +130,7 @@ describe('RubyToBlocksConverter/TargetApplier transaction (issue #710)', () => {
     });
 
     test('should replace old blocks on successful apply', async () => {
-        const result = await converter.targetCodeToBlocks(
-            target,
-            'when_flag_clicked do\n  move(10)\nend\n',
-        );
+        const result = await converter.targetCodeToBlocks(target, 'when_flag_clicked do\n  move(10)\nend\n');
         expect(result).toBe(true);
 
         await converter.applyTargetBlocks(target);
@@ -141,16 +138,11 @@ describe('RubyToBlocksConverter/TargetApplier transaction (issue #710)', () => {
         const blockIds = Object.keys(target.blocks._blocks);
         expect(blockIds).not.toEqual(expect.arrayContaining(OLD_BLOCK_IDS));
         const opcodes = blockIds.map((id) => target.blocks._blocks[id].opcode);
-        expect(opcodes).toEqual(
-            expect.arrayContaining(['event_whenflagclicked', 'motion_movesteps']),
-        );
+        expect(opcodes).toEqual(expect.arrayContaining(['event_whenflagclicked', 'motion_movesteps']));
     });
 
     test('should roll back blocks and comments when createBlock throws during apply', async () => {
-        const result = await converter.targetCodeToBlocks(
-            target,
-            'when_flag_clicked do\n  move(10)\nend\n',
-        );
+        const result = await converter.targetCodeToBlocks(target, 'when_flag_clicked do\n  move(10)\nend\n');
         expect(result).toBe(true);
 
         // Simulate a deterministic failure while re-creating the converted
@@ -163,14 +155,10 @@ describe('RubyToBlocksConverter/TargetApplier transaction (issue #710)', () => {
             return originalCreateBlock(block);
         };
 
-        await expect(converter.applyTargetBlocks(target)).rejects.toThrow(
-            'simulated createBlock failure',
-        );
+        await expect(converter.applyTargetBlocks(target)).rejects.toThrow('simulated createBlock failure');
 
         // The old program must be fully restored — not deleted, not partial.
-        expect(Object.keys(target.blocks._blocks).sort()).toEqual(
-            [...OLD_BLOCK_IDS].sort(),
-        );
+        expect(Object.keys(target.blocks._blocks).sort()).toEqual([...OLD_BLOCK_IDS].sort());
         expect(target.blocks._blocks.oldhat.topLevel).toBe(true);
         expect(target.blocks.getScripts()).toEqual(['oldhat']);
         // Comments must be restored as well.
@@ -179,28 +167,21 @@ describe('RubyToBlocksConverter/TargetApplier transaction (issue #710)', () => {
     });
 
     test('should reject and keep old blocks when converted graph has no top-level script', async () => {
-        const result = await converter.targetCodeToBlocks(
-            target,
-            'when_flag_clicked do\n  move(10)\nend\n',
-        );
+        const result = await converter.targetCodeToBlocks(target, 'when_flag_clicked do\n  move(10)\nend\n');
         expect(result).toBe(true);
 
         // Corrupt the converted graph: drop the hat block so no top-level
         // script remains. Such a graph serializes to an empty workspace
         // even though apply "succeeds".
         const contextBlocks = converter._context.blocks;
-        const hatId = Object.keys(contextBlocks).find(
-            (id) => contextBlocks[id].opcode === 'event_whenflagclicked',
-        );
+        const hatId = Object.keys(contextBlocks).find((id) => contextBlocks[id].opcode === 'event_whenflagclicked');
         expect(hatId).toBeDefined();
         delete contextBlocks[hatId];
 
         await expect(converter.applyTargetBlocks(target)).rejects.toThrow();
 
         // The old program must remain untouched.
-        expect(Object.keys(target.blocks._blocks).sort()).toEqual(
-            [...OLD_BLOCK_IDS].sort(),
-        );
+        expect(Object.keys(target.blocks._blocks).sort()).toEqual([...OLD_BLOCK_IDS].sort());
         expect(target.blocks.getScripts()).toEqual(['oldhat']);
         expect(target.comments.oldcomment).toBeDefined();
     });

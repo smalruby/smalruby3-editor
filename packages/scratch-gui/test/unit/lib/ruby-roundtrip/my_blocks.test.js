@@ -7,14 +7,14 @@ import {
     makeConverter,
     setupRubyGenerator,
     expectRoundTrip,
-    rubyToBlocksToRuby
+    rubyToBlocksToRuby,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: My Blocks (procedure) category', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
@@ -38,16 +38,23 @@ describe('Ruby Roundtrip: My Blocks (procedure) category', () => {
     });
 
     test('Ruby -> Code -> Ruby (basic block_name)', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             def self.block_name
             end
 
             block_name
-        `);
+        `,
+        );
     });
 
     test('Method with return value should be convertible', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             def self.add(a, b)
               a + b
             end
@@ -55,21 +62,29 @@ describe('Ruby Roundtrip: My Blocks (procedure) category', () => {
             self.when(:flag_clicked) do
               say(add(1, 5))
             end
-        `);
+        `,
+        );
     });
 
     test('Method call with return value at top-level should be convertible', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             def self.add(a, b)
               a + b
             end
 
             say(add(1, 5))
-        `);
+        `,
+        );
     });
 
     test('Method with explicit return variable assignment should be convertible', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             def self.add(a, b)
               @_return_add = a + b
             end
@@ -78,7 +93,8 @@ describe('Ruby Roundtrip: My Blocks (procedure) category', () => {
               add(1, 5)
               say(@_return_add)
             end
-        `);
+        `,
+        );
     });
 
     test('Double conversion should not lose method body: minimal', async () => {

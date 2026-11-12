@@ -1,5 +1,5 @@
-import {targetCodeToBlocks} from '../../../../src/lib/ruby-to-blocks-converter';
-import {loadPrism} from '../../../../src/lib/prism-parser';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+import { targetCodeToBlocks } from '../../../../src/lib/ruby-to-blocks-converter';
 
 describe('RubyToBlocksConverter Core (Prism)', () => {
     let vm;
@@ -13,14 +13,14 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
         vm = {
             runtime: {
                 getEditingTarget: () => target,
-                getTargetForStage: () => ({id: 'stage'})
-            }
+                getTargetForStage: () => ({ id: 'stage' }),
+            },
         };
         target = {
             id: 'sprite1',
             isStage: false,
             variables: {},
-            lists: {}
+            lists: {},
         };
     });
 
@@ -29,7 +29,7 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
         const converter = await targetCodeToBlocks(vm, target, code);
         expect(converter.result).toBeTruthy();
         const blocks = Object.values(converter.blocks);
-        const moveBlock = blocks.find(b => b.opcode === 'motion_movesteps');
+        const moveBlock = blocks.find((b) => b.opcode === 'motion_movesteps');
         expect(moveBlock).toBeDefined();
         const stepsBlock = converter.blocks[moveBlock.inputs.STEPS.block];
         expect(stepsBlock.fields.NUM.value).toBe('10');
@@ -52,7 +52,7 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
         const converter = await targetCodeToBlocks(vm, target, code);
         expect(converter.result).toBeTruthy();
         const blocks = Object.values(converter.blocks);
-        const moveBlock = blocks.find(b => b.opcode === 'motion_movesteps');
+        const moveBlock = blocks.find((b) => b.opcode === 'motion_movesteps');
         expect(moveBlock).toBeDefined();
         const stepsBlock = converter.blocks[moveBlock.inputs.STEPS.block];
         expect(stepsBlock.fields.NUM.value).toBe('1.0');
@@ -63,7 +63,7 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
         const converter = await targetCodeToBlocks(vm, target, code);
         expect(converter.result).toBeTruthy();
         const blocks = Object.values(converter.blocks);
-        const moveBlock = blocks.find(b => b.opcode === 'motion_movesteps');
+        const moveBlock = blocks.find((b) => b.opcode === 'motion_movesteps');
         expect(moveBlock).toBeDefined();
         const stepsBlock = converter.blocks[moveBlock.inputs.STEPS.block];
         expect(stepsBlock.fields.NUM.value).toBe('3435.0');
@@ -81,7 +81,7 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
             const converter = await targetCodeToBlocks(vm, target, code);
             expect(converter.result).toBeTruthy();
             const blocks = Object.values(converter.blocks);
-            const ifBlock = blocks.find(b => b.opcode === 'control_if');
+            const ifBlock = blocks.find((b) => b.opcode === 'control_if');
             expect(ifBlock).toBeDefined();
             expect(getCommentText(converter, ifBlock)).toBe('@ruby:syntax:unless');
         });
@@ -91,7 +91,7 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
             const converter = await targetCodeToBlocks(vm, target, code);
             expect(converter.result).toBeTruthy();
             const blocks = Object.values(converter.blocks);
-            const ifBlock = blocks.find(b => b.opcode === 'control_if_else');
+            const ifBlock = blocks.find((b) => b.opcode === 'control_if_else');
             expect(ifBlock).toBeDefined();
             expect(getCommentText(converter, ifBlock)).toBe('@ruby:syntax:unless_else');
         });
@@ -101,7 +101,7 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
             const converter = await targetCodeToBlocks(vm, target, code);
             expect(converter.result).toBeTruthy();
             const blocks = Object.values(converter.blocks);
-            const ifBlock = blocks.find(b => b.opcode === 'control_if');
+            const ifBlock = blocks.find((b) => b.opcode === 'control_if');
             expect(ifBlock).toBeDefined();
             expect(getCommentText(converter, ifBlock)).toBe('@ruby:syntax:if_modifier');
         });
@@ -111,7 +111,7 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
             const converter = await targetCodeToBlocks(vm, target, code);
             expect(converter.result).toBeTruthy();
             const blocks = Object.values(converter.blocks);
-            const ifBlock = blocks.find(b => b.opcode === 'control_if');
+            const ifBlock = blocks.find((b) => b.opcode === 'control_if');
             expect(ifBlock).toBeDefined();
             expect(getCommentText(converter, ifBlock)).toBe('@ruby:syntax:unless_modifier');
         });

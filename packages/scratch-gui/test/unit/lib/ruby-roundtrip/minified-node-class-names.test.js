@@ -3,8 +3,8 @@
  * e.g. 'CallNode' there. These round trips run with the class names renamed the same way,
  * so that the converter must find the type of a node in another way (`_getNodeTypeName`).
  */
-import dedent from 'dedent';
 import * as prismNodes from '@ruby/prism/src/nodes.js';
+import dedent from 'dedent';
 import {
     makeSpriteTarget,
     makeConverter,

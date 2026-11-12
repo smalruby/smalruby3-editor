@@ -2,7 +2,7 @@ import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter'
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
-    rubyToExpected
+    rubyToExpected,
 } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Event', () => {
@@ -11,17 +11,14 @@ describe('RubyToBlocksConverter/Event', () => {
     let code;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
     });
 
     describe('event_whenflagclicked', () => {
         test('invalid', async () => {
-            const cases = [
-                'when_flag_clicked',
-                'when_flag_clicked(1) {}'
-            ];
+            const cases = ['when_flag_clicked', 'when_flag_clicked(1) {}'];
             for (const s of cases) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
@@ -41,11 +38,7 @@ describe('RubyToBlocksConverter/Event', () => {
 
     describe('event_whenkeypressed', () => {
         test('invalid', async () => {
-            const cases = [
-                'when_key_pressed',
-                'when_key_pressed(1) {}',
-                'when_key_pressed("space", 1) {}'
-            ];
+            const cases = ['when_key_pressed', 'when_key_pressed(1) {}', 'when_key_pressed("space", 1) {}'];
             for (const s of cases) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
@@ -65,10 +58,7 @@ describe('RubyToBlocksConverter/Event', () => {
 
     describe('event_whenthisspriteclicked', () => {
         test('invalid', async () => {
-            const cases = [
-                'when_clicked',
-                'when_clicked(1) {}'
-            ];
+            const cases = ['when_clicked', 'when_clicked(1) {}'];
             for (const s of cases) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
@@ -88,7 +78,7 @@ describe('RubyToBlocksConverter/Event', () => {
 
     describe('event_whenstageclicked', () => {
         test('valid with stage target', async () => {
-            const stageTarget = {isStage: true};
+            const stageTarget = { isStage: true };
             code = `
                 when_clicked do
                   switch_backdrop("backdrop1")
@@ -105,7 +95,7 @@ describe('RubyToBlocksConverter/Event', () => {
             const cases = [
                 'when_backdrop_switches',
                 'when_backdrop_switches(1) {}',
-                'when_backdrop_switches("backdrop1", 1) {}'
+                'when_backdrop_switches("backdrop1", 1) {}',
             ];
             for (const s of cases) {
                 await convertAndExpectRubyBlockError(converter, target, s);
@@ -130,7 +120,7 @@ describe('RubyToBlocksConverter/Event', () => {
                 'when_greater_than',
                 'when_greater_than(1) {}',
                 'when_greater_than("loudness", 1)',
-                'when_greater_than("loudness", 10, 1) {}'
+                'when_greater_than("loudness", 10, 1) {}',
             ];
             for (const s of cases) {
                 await convertAndExpectRubyBlockError(converter, target, s);
@@ -151,11 +141,7 @@ describe('RubyToBlocksConverter/Event', () => {
 
     describe('event_whenbroadcastreceived', () => {
         test('invalid', async () => {
-            const cases = [
-                'when_receive',
-                'when_receive(1) {}',
-                'when_receive("msg1", 1) {}'
-            ];
+            const cases = ['when_receive', 'when_receive(1) {}', 'when_receive("msg1", 1) {}'];
             for (const s of cases) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
@@ -175,12 +161,7 @@ describe('RubyToBlocksConverter/Event', () => {
 
     describe('event_broadcast', () => {
         test('invalid', async () => {
-            const cases = [
-                'broadcast',
-                'broadcast()',
-                'broadcast(1)',
-                'broadcast("msg1", 1)'
-            ];
+            const cases = ['broadcast', 'broadcast()', 'broadcast(1)', 'broadcast("msg1", 1)'];
             for (const s of cases) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
@@ -193,7 +174,7 @@ describe('RubyToBlocksConverter/Event', () => {
                 'broadcast_and_wait',
                 'broadcast_and_wait()',
                 'broadcast_and_wait(1)',
-                'broadcast_and_wait("msg1", 1)'
+                'broadcast_and_wait("msg1", 1)',
             ];
             for (const s of cases) {
                 await convertAndExpectRubyBlockError(converter, target, s);

@@ -7,12 +7,12 @@ describe('RubyGenerator', () => {
             MathBlocks(RubyGenerator);
         });
 
-        const makeBlock = numFieldValue => ({
+        const makeBlock = (numFieldValue) => ({
             id: 'block-id',
             opcode: 'math_number',
             fields: {
-                NUM: {name: 'NUM', value: numFieldValue}
-            }
+                NUM: { name: 'NUM', value: numFieldValue },
+            },
         });
 
         test('integer field value returns number', () => {

@@ -1,6 +1,7 @@
 import React from 'react';
-import {FormattedMessage} from 'react-intl';
-
+import { FormattedMessage } from 'react-intl';
+import { CATEGORIES } from '../../tutorial-tags';
+import GreenFlagIcon from '../green-flag-icon.jsx';
 import libraryRubyBasics1Numbers from '../thumbnails/ruby-basics-1-numbers.jpg';
 import libraryRubyBasics1TryRuby from '../thumbnails/ruby-basics-1-tryruby.png';
 import libraryRubyBasics2Strings from '../thumbnails/ruby-basics-2-strings.jpg';
@@ -8,8 +9,6 @@ import libraryRubyBasics3Variables from '../thumbnails/ruby-basics-3-variables.j
 import libraryRubyBasics4Arrays from '../thumbnails/ruby-basics-4-arrays.jpg';
 import libraryRubyBasics5Blocks from '../thumbnails/ruby-basics-5-blocks.jpg';
 import libraryRubyBasics6Methods from '../thumbnails/ruby-basics-6-methods.jpg';
-import {CATEGORIES} from '../../tutorial-tags';
-import GreenFlagIcon from '../green-flag-icon.jsx';
 
 const decks = {
     'ruby-basics-1-numbers': {
@@ -29,7 +28,7 @@ const decks = {
         // "チュートリアル起動時の環境セットアップ".
         setup: {
             tab: 'ruby',
-            rubyMode: 'ruby'
+            rubyMode: 'ruby',
         },
         allowedBlocks: {
             motion: [],
@@ -38,7 +37,7 @@ const decks = {
             event: ['event_whenflagclicked'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
         },
         steps: [
             {
@@ -51,7 +50,7 @@ const decks = {
                 ),
                 image: 'rubyBasics1Step1',
                 startTutorial: true,
-                animationTarget: 'startTutorialButton'
+                animationTarget: 'startTutorialButton',
             },
             {
                 title: (
@@ -65,7 +64,7 @@ const decks = {
                 code: `when_flag_clicked do
   puts 2 + 6
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -73,11 +72,11 @@ end`,
                         defaultMessage="{greenFlag}を押すと、ネコが「8」としゃべるよ"
                         description="Ruby Basics 1 Step 3: Run the program"
                         id="gui.howtos.ruby-basics-1-numbers.step3.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
+                        values={{ greenFlag: <GreenFlagIcon /> }}
                     />
                 ),
                 image: 'rubyBasics1Step3',
-                animationTarget: 'nextButton'
+                animationTarget: 'nextButton',
             },
             {
                 title: (
@@ -93,7 +92,7 @@ end`,
   puts 30 / 4
   puts 5 - 12
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -104,7 +103,7 @@ end`,
                     />
                 ),
                 image: 'rubyBasics1Step5',
-                animationTarget: 'nextButton'
+                animationTarget: 'nextButton',
             },
             {
                 externalResources: {
@@ -117,12 +116,12 @@ end`,
                                 description="External resource: TryRuby online playground"
                                 id="gui.howtos.ruby-basics-1-numbers.external.tryruby.name"
                             />
-                        )
-                    }
-                }
-            }
+                        ),
+                    },
+                },
+            },
         ],
-        urlId: 'rubyBasics1Numbers'
+        urlId: 'rubyBasics1Numbers',
     },
 
     // ─── Ruby Basics 2: 文字列で遊ぼう ───────────────────────────────────────
@@ -142,7 +141,7 @@ end`,
         // docs/tutorial/improvement-plan.md "チュートリアル起動時の環境セットアップ".
         setup: {
             tab: 'ruby',
-            rubyMode: 'ruby'
+            rubyMode: 'ruby',
         },
         allowedBlocks: {
             motion: [],
@@ -151,7 +150,7 @@ end`,
             event: ['event_whenflagclicked'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
         },
         steps: [
             {
@@ -164,12 +163,12 @@ end`,
                 ),
                 image: 'rubyBasics2Step1',
                 startTutorial: true,
-                animationTarget: 'startTutorialButton'
+                animationTarget: 'startTutorialButton',
             },
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="まずは「puts &quot;こんにちは&quot;」を実行してみよう"
+                        defaultMessage='まずは「puts "こんにちは"」を実行してみよう'
                         description="Ruby Basics 2 Step 2: Insert first string puts code"
                         id="gui.howtos.ruby-basics-2-strings.step2.title"
                     />
@@ -178,7 +177,7 @@ end`,
                 code: `when_flag_clicked do
   puts "こんにちは"
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -186,11 +185,11 @@ end`,
                         defaultMessage="{greenFlag}を押すと、ネコが「こんにちは」としゃべるよ"
                         description="Ruby Basics 2 Step 3: Run the program"
                         id="gui.howtos.ruby-basics-2-strings.step3.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
+                        values={{ greenFlag: <GreenFlagIcon /> }}
                     />
                 ),
                 image: 'rubyBasics2Step3',
-                animationTarget: 'nextButton'
+                animationTarget: 'nextButton',
             },
             {
                 title: (
@@ -205,7 +204,7 @@ end`,
   puts "スモウルビー".reverse
   puts "ruby".upcase
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -219,7 +218,7 @@ end`,
                 code: `when_flag_clicked do
   puts "すきなことば".reverse
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 externalResources: {
@@ -232,12 +231,12 @@ end`,
                                 description="External resource: TryRuby online playground"
                                 id="gui.howtos.ruby-basics-2-strings.external.tryruby.name"
                             />
-                        )
-                    }
-                }
-            }
+                        ),
+                    },
+                },
+            },
         ],
-        urlId: 'rubyBasics2Strings'
+        urlId: 'rubyBasics2Strings',
     },
 
     // ─── Ruby Basics 3: 変数を使ってみよう ───────────────────────────────────
@@ -257,7 +256,7 @@ end`,
         // docs/tutorial/improvement-plan.md "チュートリアル起動時の環境セットアップ".
         setup: {
             tab: 'ruby',
-            rubyMode: 'ruby'
+            rubyMode: 'ruby',
         },
         allowedBlocks: {
             motion: [],
@@ -266,7 +265,7 @@ end`,
             event: ['event_whenflagclicked'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
         },
         steps: [
             {
@@ -279,7 +278,7 @@ end`,
                 ),
                 image: 'rubyBasics3Step1',
                 startTutorial: true,
-                animationTarget: 'startTutorialButton'
+                animationTarget: 'startTutorialButton',
             },
             {
                 title: (
@@ -294,7 +293,7 @@ end`,
   name = "ネコ"
   puts name
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -302,11 +301,11 @@ end`,
                         defaultMessage="{greenFlag}を押すと、ネコが「ネコ」としゃべるよ"
                         description="Ruby Basics 3 Step 3: Run the program"
                         id="gui.howtos.ruby-basics-3-variables.step3.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
+                        values={{ greenFlag: <GreenFlagIcon /> }}
                     />
                 ),
                 image: 'rubyBasics3Step3',
-                animationTarget: 'nextButton'
+                animationTarget: 'nextButton',
             },
             {
                 title: (
@@ -321,7 +320,7 @@ end`,
   name = "スモウルビー"
   puts "わたしは" + name + "です"
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -336,7 +335,7 @@ end`,
   name = "あなたのなまえ"
   puts name + "、こんにちは！"
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 externalResources: {
@@ -349,12 +348,12 @@ end`,
                                 description="External resource: TryRuby online playground"
                                 id="gui.howtos.ruby-basics-3-variables.external.tryruby.name"
                             />
-                        )
-                    }
-                }
-            }
+                        ),
+                    },
+                },
+            },
         ],
-        urlId: 'rubyBasics3Variables'
+        urlId: 'rubyBasics3Variables',
     },
 
     // ─── Ruby Basics 4: 配列で遊ぼう ─────────────────────────────────────────
@@ -374,7 +373,7 @@ end`,
         // docs/tutorial/improvement-plan.md "チュートリアル起動時の環境セットアップ".
         setup: {
             tab: 'ruby',
-            rubyMode: 'ruby'
+            rubyMode: 'ruby',
         },
         allowedBlocks: {
             motion: [],
@@ -383,7 +382,7 @@ end`,
             event: ['event_whenflagclicked'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
         },
         steps: [
             {
@@ -396,7 +395,7 @@ end`,
                 ),
                 image: 'rubyBasics4Step1',
                 startTutorial: true,
-                animationTarget: 'startTutorialButton'
+                animationTarget: 'startTutorialButton',
             },
             {
                 title: (
@@ -411,7 +410,7 @@ end`,
   ticket = ["赤", "青", "黄"]
   puts ticket
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -419,11 +418,11 @@ end`,
                         defaultMessage="{greenFlag}を押すと、ネコが配列の中身をしゃべるよ"
                         description="Ruby Basics 4 Step 3: Run the program"
                         id="gui.howtos.ruby-basics-4-arrays.step3.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
+                        values={{ greenFlag: <GreenFlagIcon /> }}
                     />
                 ),
                 image: 'rubyBasics4Step3',
-                animationTarget: 'nextButton'
+                animationTarget: 'nextButton',
             },
             {
                 title: (
@@ -439,7 +438,7 @@ end`,
   puts ticket.reverse
   puts ticket[0]
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -454,7 +453,7 @@ end`,
   ticket = ["いぬ", "ねこ", "とり"]
   puts ticket.reverse
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 externalResources: {
@@ -467,12 +466,12 @@ end`,
                                 description="External resource: TryRuby online playground"
                                 id="gui.howtos.ruby-basics-4-arrays.external.tryruby.name"
                             />
-                        )
-                    }
-                }
-            }
+                        ),
+                    },
+                },
+            },
         ],
-        urlId: 'rubyBasics4Arrays'
+        urlId: 'rubyBasics4Arrays',
     },
 
     // ─── Ruby Basics 5: ブロックを使ってみよう ─────────────────────────────────
@@ -492,7 +491,7 @@ end`,
         // docs/tutorial/improvement-plan.md "チュートリアル起動時の環境セットアップ".
         setup: {
             tab: 'ruby',
-            rubyMode: 'ruby'
+            rubyMode: 'ruby',
         },
         allowedBlocks: {
             motion: ['motion_movesteps'],
@@ -501,7 +500,7 @@ end`,
             event: ['event_whenflagclicked'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
         },
         steps: [
             {
@@ -514,7 +513,7 @@ end`,
                 ),
                 image: 'rubyBasics5Step1',
                 startTutorial: true,
-                animationTarget: 'startTutorialButton'
+                animationTarget: 'startTutorialButton',
             },
             {
                 title: (
@@ -530,7 +529,7 @@ end`,
     puts i
   end
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -538,11 +537,11 @@ end`,
                         defaultMessage="{greenFlag}を押すと、ネコが「0」から「4」まで順番にしゃべるよ"
                         description="Ruby Basics 5 Step 3: Run the program"
                         id="gui.howtos.ruby-basics-5-blocks.step3.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
+                        values={{ greenFlag: <GreenFlagIcon /> }}
                     />
                 ),
                 image: 'rubyBasics5Step3',
-                animationTarget: 'nextButton'
+                animationTarget: 'nextButton',
             },
             {
                 title: (
@@ -559,7 +558,7 @@ end`,
     move(20)
   end
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -576,7 +575,7 @@ end`,
     move(10)
   end
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 externalResources: {
@@ -589,12 +588,12 @@ end`,
                                 description="External resource: TryRuby online playground"
                                 id="gui.howtos.ruby-basics-5-blocks.external.tryruby.name"
                             />
-                        )
-                    }
-                }
-            }
+                        ),
+                    },
+                },
+            },
         ],
-        urlId: 'rubyBasics5Blocks'
+        urlId: 'rubyBasics5Blocks',
     },
 
     // ─── Ruby Basics 6: メソッドをつくってみよう ───────────────────────────────
@@ -614,7 +613,7 @@ end`,
         // docs/tutorial/improvement-plan.md "チュートリアル起動時の環境セットアップ".
         setup: {
             tab: 'ruby',
-            rubyMode: 'ruby'
+            rubyMode: 'ruby',
         },
         allowedBlocks: {
             motion: [],
@@ -623,7 +622,7 @@ end`,
             event: ['event_whenflagclicked'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
         },
         steps: [
             {
@@ -636,7 +635,7 @@ end`,
                 ),
                 image: 'rubyBasics6Step1',
                 startTutorial: true,
-                animationTarget: 'startTutorialButton'
+                animationTarget: 'startTutorialButton',
             },
             {
                 title: (
@@ -654,7 +653,7 @@ end
 when_flag_clicked do
   hello("ネコ")
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -662,11 +661,11 @@ end`,
                         defaultMessage="{greenFlag}を押すと、ネコが「こんにちは、ネコ」としゃべるよ"
                         description="Ruby Basics 6 Step 3: Run the program"
                         id="gui.howtos.ruby-basics-6-methods.step3.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
+                        values={{ greenFlag: <GreenFlagIcon /> }}
                     />
                 ),
                 image: 'rubyBasics6Step3',
-                animationTarget: 'nextButton'
+                animationTarget: 'nextButton',
             },
             {
                 title: (
@@ -685,7 +684,7 @@ when_flag_clicked do
   hello("ネコ")
   hello("イヌ")
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -703,7 +702,7 @@ end
 when_flag_clicked do
   hello("あなたのなまえ")
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 externalResources: {
@@ -716,12 +715,12 @@ end`,
                                 description="External resource: TryRuby online playground"
                                 id="gui.howtos.ruby-basics-6-methods.external.tryruby.name"
                             />
-                        )
-                    }
-                }
-            }
+                        ),
+                    },
+                },
+            },
         ],
-        urlId: 'rubyBasics6Methods'
+        urlId: 'rubyBasics6Methods',
     },
 
     'ruby-basics-7-next': {
@@ -742,7 +741,7 @@ end`,
         // docs/tutorial/improvement-plan.md "チュートリアル起動時の環境セットアップ".
         setup: {
             tab: 'ruby',
-            rubyMode: 'ruby'
+            rubyMode: 'ruby',
         },
         allowedBlocks: {
             motion: [],
@@ -751,7 +750,7 @@ end`,
             event: ['event_whenflagclicked'],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
         },
         steps: [
             {
@@ -765,7 +764,7 @@ end`,
                 // Reuse deck 1 intro image.
                 image: 'rubyBasics1Step1',
                 startTutorial: true,
-                animationTarget: 'startTutorialButton'
+                animationTarget: 'startTutorialButton',
             },
             {
                 title: (
@@ -781,7 +780,7 @@ end`,
   puts 3 + 4
   puts 10 * 5
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -789,12 +788,12 @@ end`,
                         defaultMessage="{greenFlag}を押すと、ネコが答えをしゃべるよ"
                         description="Ruby Basics 7 Step 3: Run the review program"
                         id="gui.howtos.ruby-basics-7-next.step3.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
+                        values={{ greenFlag: <GreenFlagIcon /> }}
                     />
                 ),
                 // Reuse deck 1 result image.
                 image: 'rubyBasics1Step3',
-                animationTarget: 'nextButton'
+                animationTarget: 'nextButton',
             },
             {
                 title: (
@@ -809,7 +808,7 @@ end`,
                 code: `when_flag_clicked do
   puts "スモウルビー".reverse
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -828,11 +827,11 @@ end`,
                         description="Button label to open the TryRuby website in a new tab"
                         id="gui.howtos.ruby-basics-7-next.step5.openTryRuby"
                     />
-                )
-            }
+                ),
+            },
         ],
-        urlId: 'rubyBasics7Next'
-    }
+        urlId: 'rubyBasics7Next',
+    },
 };
 
 export default decks;

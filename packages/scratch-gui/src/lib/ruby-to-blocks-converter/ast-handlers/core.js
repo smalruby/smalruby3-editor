@@ -1,62 +1,73 @@
-import {defineMessages} from 'react-intl';
 import _ from 'lodash';
-import {RubyToBlocksConverterError} from '../errors';
-import {isKnownListReceiver} from '../variable-hash-ops';
+import { defineMessages } from 'react-intl';
+import { RubyToBlocksConverterError } from '../errors';
+import { isKnownListReceiver } from '../variable-hash-ops';
 
 const messages = defineMessages({
     conditionIsNotBoolean: {
-        defaultMessage: 'condition is not boolean: {SOURCE}.' +
-            '\nUse a comparison operator (==, <, >, etc.).',
+        defaultMessage: 'condition is not boolean: {SOURCE}.\nUse a comparison operator (==, <, >, etc.).',
         description: 'Error message when if/until condition is not a boolean expression',
-        id: 'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean'
+        id: 'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean',
     },
     includeNotStatementBlocks: {
-        defaultMessage: '"{ SOURCE }" is not a command, so it cannot be written here.' +
+        defaultMessage:
+            '"{ SOURCE }" is not a command, so it cannot be written here.' +
             '\nWrite a command (e.g. move(10)) instead, or delete this line.',
-        description: 'Error message when a line that is not a command (e.g. a symbol such as :a) is written ' +
+        description:
+            'Error message when a line that is not a command (e.g. a symbol such as :a) is written ' +
             'in a block body (do ... end, if, a method definition)',
-        id: 'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks'
+        id: 'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks',
     },
     eventInsideBlock: {
-        defaultMessage: '"{ SOURCE }" is an event, so it cannot be placed inside another block.' +
+        defaultMessage:
+            '"{ SOURCE }" is an event, so it cannot be placed inside another block.' +
             '\nMove it out of the block so that it starts a script of its own.',
         description: 'Error message when an event (hat) block is written inside a block body (do ... end)',
-        id: 'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock'
+        id: 'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock',
     },
     defInsideBlock: {
-        defaultMessage: '"{ SOURCE }" defines a method, so it cannot be written inside a block or a method.' +
+        defaultMessage:
+            '"{ SOURCE }" defines a method, so it cannot be written inside a block or a method.' +
             '\nMove the whole method, from "{ SOURCE }" to its "end", out of the block or the method.',
-        description: 'Error message when a method definition (def) is written inside a block body ' +
+        description:
+            'Error message when a method definition (def) is written inside a block body ' +
             '(do ... end, if, ...) or a method body',
-        id: 'gui.smalruby3.rubyToBlocksConverter.defInsideBlock'
+        id: 'gui.smalruby3.rubyToBlocksConverter.defInsideBlock',
     },
     valueAsStatement: {
-        defaultMessage: '"{ SOURCE }" is a value, so it cannot be written as a command by itself.' +
+        defaultMessage:
+            '"{ SOURCE }" is a value, so it cannot be written as a command by itself.' +
             '\nUse it in a command (e.g. say({ SOURCE })) or set it to a variable.',
-        description: 'Error message when a value (reporter) is written as a line by itself inside a block body ' +
+        description:
+            'Error message when a value (reporter) is written as a line by itself inside a block body ' +
             'or before the last line of a method body',
-        id: 'gui.smalruby3.rubyToBlocksConverter.valueAsStatement'
+        id: 'gui.smalruby3.rubyToBlocksConverter.valueAsStatement',
     },
     cannotReturnValue: {
-        defaultMessage: '"{ SOURCE }" cannot be returned from a method, because there is no block for this value.' +
+        defaultMessage:
+            '"{ SOURCE }" cannot be returned from a method, because there is no block for this value.' +
             '\nReturn a number, a string, true / false, or a variable instead.',
-        description: 'Error message when a method returns a value that no block can hold (e.g. self or an array), ' +
+        description:
+            'Error message when a method returns a value that no block can hold (e.g. self or an array), ' +
             'with return or on the last line of the method',
-        id: 'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue'
+        id: 'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue',
     },
     cannotReturnList: {
-        defaultMessage: '"{ SOURCE }" is a list, so it cannot be returned from a method.' +
+        defaultMessage:
+            '"{ SOURCE }" is a list, so it cannot be returned from a method.' +
             '\nReturn an item of the list (e.g. return { SOURCE }[0]) or a variable instead.',
-        description: 'Error message when a method returns a list (e.g. return @a), ' +
+        description:
+            'Error message when a method returns a list (e.g. return @a), ' +
             'with return or on the last line of the method',
-        id: 'gui.smalruby3.rubyToBlocksConverter.cannotReturnList'
+        id: 'gui.smalruby3.rubyToBlocksConverter.cannotReturnList',
     },
     returnMultipleValues: {
-        defaultMessage: '"{ SOURCE }" returns more than one value, but a method can return only one value.' +
+        defaultMessage:
+            '"{ SOURCE }" returns more than one value, but a method can return only one value.' +
             '\nReturn one value (e.g. return { FIRST }).',
         description: 'Error message when return has more than one value (e.g. return "a", "b")',
-        id: 'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues'
-    }
+        id: 'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues',
+    },
 });
 
 // Values with no block of their own: they cannot be a method's return value (issue #1553).
@@ -67,7 +78,7 @@ const UNRETURNABLE_PRIMITIVE_TYPES = ['self', 'array', 'hash', 'const', 'regexp'
  * @mixes RubyToBlocksConverter
  */
 const CoreHandlers = {
-    visitProgramNode (node) {
+    visitProgramNode(node) {
         // The top-level lines are checked too (see `_checkStatementInBody`).
         const savedBodyKind = this._context.statementBodyKind;
         this._context.statementBodyKind = 'top';
@@ -78,7 +89,7 @@ const CoreHandlers = {
         }
     },
 
-    visitStatementsNode (node) {
+    visitStatementsNode(node) {
         const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
         this._context.inMyBlockDefinition = false;
         // Only the statements directly in a block body are checked: a nested body sets it again.
@@ -98,7 +109,7 @@ const CoreHandlers = {
                 // neither is the top level (`bodyKind` is 'top').
                 throw new RubyToBlocksConverterError(
                     childNode,
-                    this._translator(messages.defInsideBlock, {SOURCE: this._firstLineSource(childNode)})
+                    this._translator(messages.defInsideBlock, { SOURCE: this._firstLineSource(childNode) }),
                 );
             }
             const block = this.visit(childNode);
@@ -106,7 +117,7 @@ const CoreHandlers = {
                 this._checkStatementInBody(childNode, block, bodyKind, index === node.body.length - 1);
             }
             if (_.isArray(block)) {
-                block.forEach(b => {
+                block.forEach((b) => {
                     blocks.push(b);
                 });
             } else {
@@ -118,44 +129,44 @@ const CoreHandlers = {
 
         let prevBlock = null;
         const result = [];
-        blocks.forEach(block => {
+        blocks.forEach((block) => {
             switch (this._getBlockType(block)) {
-            case 'statement':
-                if (prevBlock) {
-                    prevBlock.next = block.id;
-                    block.parent = prevBlock.id;
-                } else {
-                    result.push(block);
-                }
-
-                if (block.next) {
-                    const b = this._lastBlock(block);
-                    if (this._getBlockType(b) === 'statement') {
-                        prevBlock = b;
+                case 'statement':
+                    if (prevBlock) {
+                        prevBlock.next = block.id;
+                        block.parent = prevBlock.id;
                     } else {
-                        prevBlock = null;
+                        result.push(block);
                     }
-                } else {
-                    prevBlock = block;
-                }
-                break;
-            case 'terminate':
-                if (prevBlock) {
-                    prevBlock.next = block.id;
-                    block.parent = prevBlock.id;
-                } else {
+
+                    if (block.next) {
+                        const b = this._lastBlock(block);
+                        if (this._getBlockType(b) === 'statement') {
+                            prevBlock = b;
+                        } else {
+                            prevBlock = null;
+                        }
+                    } else {
+                        prevBlock = block;
+                    }
+                    break;
+                case 'terminate':
+                    if (prevBlock) {
+                        prevBlock.next = block.id;
+                        block.parent = prevBlock.id;
+                    } else {
+                        result.push(block);
+                    }
+                    prevBlock = null;
+                    break;
+                case 'value':
+                case 'value_boolean':
+                case 'value_variable':
+                case 'value_boolean_variable':
+                case 'hat':
+                case 'primitive':
                     result.push(block);
-                }
-                prevBlock = null;
-                break;
-            case 'value':
-            case 'value_boolean':
-            case 'value_variable':
-            case 'value_boolean_variable':
-            case 'hat':
-            case 'primitive':
-                result.push(block);
-                prevBlock = null;
+                    prevBlock = null;
             }
         });
         return result;
@@ -181,23 +192,28 @@ const CoreHandlers = {
      * @param {string} bodyKind - 'top', 'block' or 'method' (see `statementBodyKind` of the context).
      * @param {boolean} isLast - Whether the statement is the last one in the body.
      */
-    _checkStatementInBody (node, result, bodyKind, isLast) {
+    _checkStatementInBody(node, result, bodyKind, isLast) {
         const blocks = _.isArray(result) ? result : [result];
         const isInterpolated = !result && /^Interpolated/.test(this._getNodeTypeName(node) || '');
         if (bodyKind === 'top') {
             // At the top level, events and values may stand alone; only a value no block can hold
             // (e.g. `self`, which became the string "self") is an error (#1558).
-            if (isInterpolated || (!_.isArray(result) && this._isUnreturnableValue(result) &&
-                result.type !== 'array')) {
+            if (
+                isInterpolated ||
+                (!_.isArray(result) && this._isUnreturnableValue(result) && result.type !== 'array')
+            ) {
                 throw this._notCommandError(node);
             }
             return;
         }
-        if (blocks.some(b => this._isBlock(b) && this._getBlockType(b) === 'hat' &&
-            b.opcode !== 'procedures_definition')) {
+        if (
+            blocks.some(
+                (b) => this._isBlock(b) && this._getBlockType(b) === 'hat' && b.opcode !== 'procedures_definition',
+            )
+        ) {
             throw new RubyToBlocksConverterError(
                 node,
-                this._translator(messages.eventInsideBlock, {SOURCE: this._firstLineSource(node)})
+                this._translator(messages.eventInsideBlock, { SOURCE: this._firstLineSource(node) }),
             );
         }
         if (bodyKind === 'method' && isLast) {
@@ -222,16 +238,20 @@ const CoreHandlers = {
         // A value no block can hold (e.g. `self`, `[1]`, `Foo`, `"#{x}"`) before the last line of a method
         // dropped the rest of the method silently (#1553). In a block body it became a string such as
         // "self" or "[object Map]", or was dropped (#1558); an array there comes back as written, so it stays.
-        const isUnreturnable = this._isUnreturnableValue(value) &&
-            (bodyKind === 'method' || value.type !== 'array');
+        const isUnreturnable = this._isUnreturnableValue(value) && (bodyKind === 'method' || value.type !== 'array');
         if (isUnreturnable || (!value && isInterpolated)) {
             throw this._notCommandError(node);
         }
         // In a block body, other literals (e.g. `"abc"`) become an assignment to a temporary
         // variable (see `_processStatement`); in a method body they are values.
         const isValue = this._isValueBlock(value) && value.opcode !== 'data_setvariableto';
-        const isLiteral = value instanceof Primitive && (this._isNumber(value) || this._isString(value) ||
-            this._isTrue(value) || this._isFalse(value) || this.isNil(value));
+        const isLiteral =
+            value instanceof Primitive &&
+            (this._isNumber(value) ||
+                this._isString(value) ||
+                this._isTrue(value) ||
+                this._isFalse(value) ||
+                this.isNil(value));
         if (isValue || (bodyKind === 'method' && isLiteral)) {
             throw this._valueAsStatementError(node);
         }
@@ -242,7 +262,7 @@ const CoreHandlers = {
      * @param {object} node - The node.
      * @returns {string} The first line of the source.
      */
-    _firstLineSource (node) {
+    _firstLineSource(node) {
         return this._getSource(node).split('\n')[0].trim();
     },
 
@@ -251,13 +271,12 @@ const CoreHandlers = {
      * @param {object} node - The node of the line.
      * @returns {RubyToBlocksConverterError} The error.
      */
-    _valueAsStatementError (node) {
+    _valueAsStatementError(node) {
         // The source is also shown as `say(...)`, so a value written over several lines is put on one line.
-        const source = this._getSource(node).replace(/\s*\n\s*/g, ' ').trim();
-        return new RubyToBlocksConverterError(
-            node,
-            this._translator(messages.valueAsStatement, {SOURCE: source})
-        );
+        const source = this._getSource(node)
+            .replace(/\s*\n\s*/g, ' ')
+            .trim();
+        return new RubyToBlocksConverterError(node, this._translator(messages.valueAsStatement, { SOURCE: source }));
     },
 
     /**
@@ -266,7 +285,7 @@ const CoreHandlers = {
      * @param {*} value - What visiting the value returned.
      * @returns {boolean} Whether the value cannot be returned.
      */
-    _isUnreturnableValue (value) {
+    _isUnreturnableValue(value) {
         const Primitive = require('../primitive').default;
         return value instanceof Primitive && UNRETURNABLE_PRIMITIVE_TYPES.includes(value.type);
     },
@@ -276,7 +295,7 @@ const CoreHandlers = {
      * @param {*} value - What visiting the value returned.
      * @returns {boolean} Whether the value is a list.
      */
-    _isListValue (value) {
+    _isListValue(value) {
         // A read of a list variable comes as a data_variable block: look the name up in the lists.
         return isKnownListReceiver(this, value);
     },
@@ -286,7 +305,7 @@ const CoreHandlers = {
      * @param {object} node - The ParenthesesNode.
      * @returns {Array} The statement nodes.
      */
-    _parenthesesStatements (node) {
+    _parenthesesStatements(node) {
         if (!node.body) {
             return [];
         }
@@ -301,10 +320,10 @@ const CoreHandlers = {
      * @param {object} node - The node of the value.
      * @returns {RubyToBlocksConverterError} The error.
      */
-    _cannotReturnListError (node) {
+    _cannotReturnListError(node) {
         return new RubyToBlocksConverterError(
             node,
-            this._translator(messages.cannotReturnList, {SOURCE: this._firstLineSource(node)})
+            this._translator(messages.cannotReturnList, { SOURCE: this._firstLineSource(node) }),
         );
     },
 
@@ -313,12 +332,11 @@ const CoreHandlers = {
      * @param {object} node - The node of the value.
      * @returns {RubyToBlocksConverterError} The error.
      */
-    _cannotReturnError (node) {
-        const source = this._getSource(node).replace(/\s*\n\s*/g, ' ').trim();
-        return new RubyToBlocksConverterError(
-            node,
-            this._translator(messages.cannotReturnValue, {SOURCE: source})
-        );
+    _cannotReturnError(node) {
+        const source = this._getSource(node)
+            .replace(/\s*\n\s*/g, ' ')
+            .trim();
+        return new RubyToBlocksConverterError(node, this._translator(messages.cannotReturnValue, { SOURCE: source }));
     },
 
     /**
@@ -327,13 +345,15 @@ const CoreHandlers = {
      * @param {object} firstNode - The node of the first value.
      * @returns {RubyToBlocksConverterError} The error.
      */
-    _returnMultipleValuesError (node, firstNode) {
+    _returnMultipleValuesError(node, firstNode) {
         return new RubyToBlocksConverterError(
             node,
             this._translator(messages.returnMultipleValues, {
                 SOURCE: this._firstLineSource(node),
-                FIRST: this._getSource(firstNode).replace(/\s*\n\s*/g, ' ').trim()
-            })
+                FIRST: this._getSource(firstNode)
+                    .replace(/\s*\n\s*/g, ' ')
+                    .trim(),
+            }),
         );
     },
 
@@ -342,18 +362,18 @@ const CoreHandlers = {
      * @param {object} node - The node of the line.
      * @returns {RubyToBlocksConverterError} The error.
      */
-    _notCommandError (node) {
+    _notCommandError(node) {
         return new RubyToBlocksConverterError(
             node,
-            this._translator(messages.includeNotStatementBlocks, {SOURCE: this._firstLineSource(node)})
+            this._translator(messages.includeNotStatementBlocks, { SOURCE: this._firstLineSource(node) }),
         );
     },
 
-    visitBeginNode (node) {
+    visitBeginNode(node) {
         return this.visit(node.statements);
     },
 
-    _processCondition (node) {
+    _processCondition(node) {
         let cond = this.visit(node);
         const split = this._splitPreBlocksAndValue(cond);
         if (split.preBlocks.length > 0) {
@@ -362,8 +382,7 @@ const CoreHandlers = {
             // condition), replace the returnValue REPORTER with returnValueTruthy
             // BOOLEAN so it can be used as a condition input.
             let value = split.value;
-            if (this._isBlock(value) &&
-                value.opcode === 'smalrubyRuby_returnValue') {
+            if (this._isBlock(value) && value.opcode === 'smalrubyRuby_returnValue') {
                 this._discardBlock(value);
                 value = this._createBlock('smalrubyRuby_returnValueTruthy', 'value_boolean');
             }
@@ -371,7 +390,7 @@ const CoreHandlers = {
             if (!this._isFalseOrBooleanBlock(value)) {
                 throw new RubyToBlocksConverterError(
                     node,
-                    this._translator(messages.conditionIsNotBoolean, {SOURCE: this._getSource(node)})
+                    this._translator(messages.conditionIsNotBoolean, { SOURCE: this._getSource(node) }),
                 );
             }
             return [...split.preBlocks, value];
@@ -384,14 +403,14 @@ const CoreHandlers = {
             } else {
                 throw new RubyToBlocksConverterError(
                     node,
-                    this._translator(messages.conditionIsNotBoolean, {SOURCE: this._getSource(node)})
+                    this._translator(messages.conditionIsNotBoolean, { SOURCE: this._getSource(node) }),
                 );
             }
         }
         return cond;
     },
 
-    _processStatement (node, inMyBlockDefinition = null) {
+    _processStatement(node, inMyBlockDefinition = null) {
         const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
         if (inMyBlockDefinition !== null) {
             this._context.inMyBlockDefinition = inMyBlockDefinition;
@@ -409,7 +428,7 @@ const CoreHandlers = {
         }
         // === Smalruby: Start of bare literal in statement context ===
         const Primitive = require('../primitive').default;
-        blocks = blocks.map(b => {
+        blocks = blocks.map((b) => {
             if (b instanceof Primitive && b.type !== 'sym') {
                 return this._convertBareLiteralToAssignment(b);
             }
@@ -442,9 +461,8 @@ const CoreHandlers = {
         // REPORTER of `"a".reverse` written as a statement): drop it, or it is left as an orphan.
         // An event (hat) or a method definition does not come here: an error has already been thrown
         // for it (#1544, #1554).
-        blocks.slice(1).forEach(b => {
-            if (this._isBlock(b) && !this._isStatementBlock(b) && this._getBlockType(b) !== 'hat' &&
-                !b.parent) {
+        blocks.slice(1).forEach((b) => {
+            if (this._isBlock(b) && !this._isStatementBlock(b) && this._getBlockType(b) !== 'hat' && !b.parent) {
                 this._discardBlock(b);
             }
         });
@@ -465,7 +483,7 @@ const CoreHandlers = {
      * @param {object} block - The block or the primitive.
      * @returns {object|null} The node.
      */
-    _nodeOfBlock (block) {
+    _nodeOfBlock(block) {
         if (block && block.node) {
             return block.node;
         }
@@ -484,7 +502,7 @@ const CoreHandlers = {
      * @param {object} node - The body node.
      * @returns {object} The first statement node.
      */
-    _firstStatementNode (node) {
+    _firstStatementNode(node) {
         let n = node;
         if (n && n.statements) {
             n = n.statements;
@@ -495,7 +513,7 @@ const CoreHandlers = {
         return n || node;
     },
 
-    _getBlockIdFromResult (result) {
+    _getBlockIdFromResult(result) {
         if (this._isBlock(result)) {
             return result.id;
         }
@@ -505,25 +523,25 @@ const CoreHandlers = {
         return null;
     },
 
-    _splitPreBlocksAndValue (result) {
+    _splitPreBlocksAndValue(result) {
         if (_.isArray(result) && result.length === 1) {
             // Single element array - extract the value
             return {
                 preBlocks: [],
-                value: result[0]
+                value: result[0],
             };
         }
         if (_.isArray(result) && result.length > 0 && this._isBlock(result[0])) {
             return {
                 preBlocks: result.slice(0, result.length - 1),
-                value: result[result.length - 1]
+                value: result[result.length - 1],
             };
         }
         return {
             preBlocks: [],
-            value: result
+            value: result,
         };
-    }
+    },
 };
 
 export default CoreHandlers;

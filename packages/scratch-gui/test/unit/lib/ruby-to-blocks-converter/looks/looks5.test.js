@@ -1,11 +1,11 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {RubyToBlocksConverterError} from '../../../../../src/lib/ruby-to-blocks-converter/errors';
+import { RubyToBlocksConverterError } from '../../../../../src/lib/ruby-to-blocks-converter/errors';
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
     expectedInfo,
-    expectNoArgsMethod
+    expectNoArgsMethod,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Looks', () => {
@@ -15,7 +15,7 @@ describe('RubyToBlocksConverter/Looks', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -35,28 +35,30 @@ describe('RubyToBlocksConverter/Looks', () => {
                                 fields: [
                                     {
                                         name: 'BACKDROP',
-                                        value: 'backdrop2'
-                                    }
+                                        value: 'backdrop2',
+                                    },
                                 ],
-                                shadow: true
-                            }
-                        }
-                    ]
-                }
+                                shadow: true,
+                            },
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'switch_backdrop_and_wait',
-                'switch_backdrop_and_wait(:symbol)',
-                'switch_backdrop_and_wait(1)',
-                'switch_backdrop_and_wait(x)',
-                'switch_backdrop_and_wait("backdrop2", 1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of [
+                    'switch_backdrop_and_wait',
+                    'switch_backdrop_and_wait(:symbol)',
+                    'switch_backdrop_and_wait(1)',
+                    'switch_backdrop_and_wait(x)',
+                    'switch_backdrop_and_wait("backdrop2", 1)',
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
@@ -66,10 +68,7 @@ describe('RubyToBlocksConverter/Looks', () => {
         beforeEach(() => {
             // Mock target with costumes
             targetWithCostumes = {
-                getCostumes: () => [
-                    { name: 'costume1' },
-                    { name: 'costume2' }
-                ]
+                getCostumes: () => [{ name: 'costume1' }, { name: 'costume2' }],
             };
         });
 
@@ -87,14 +86,14 @@ describe('RubyToBlocksConverter/Looks', () => {
                                     fields: [
                                         {
                                             name: 'COSTUME',
-                                            value: 'costume1'
-                                        }
+                                            value: 'costume1',
+                                        },
                                     ],
-                                    shadow: true
-                                }
-                            }
-                        ]
-                    }
+                                    shadow: true,
+                                },
+                            },
+                        ],
+                    },
                 ];
                 await convertAndExpectToEqualBlocks(converter, targetWithCostumes, code, expected);
             });
@@ -117,10 +116,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                         fields: [
                             {
                                 name: 'NUMBER_NAME',
-                                value: 'number'
-                            }
-                        ]
-                    }
+                                value: 'number',
+                            },
+                        ],
+                    },
                 ];
                 await convertAndExpectToEqualBlocks(converter, targetWithCostumes, code, expected);
             });
@@ -133,10 +132,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                         fields: [
                             {
                                 name: 'NUMBER_NAME',
-                                value: 'name'
-                            }
-                        ]
-                    }
+                                value: 'name',
+                            },
+                        ],
+                    },
                 ];
                 await convertAndExpectToEqualBlocks(converter, targetWithCostumes, code, expected);
             });
@@ -150,30 +149,27 @@ describe('RubyToBlocksConverter/Looks', () => {
         beforeEach(() => {
             // Mock stage with backdrops
             stageWithBackdrops = {
-                getCostumes: () => [
-                    { name: 'backdrop1' },
-                    { name: 'backdrop2' }
-                ]
+                getCostumes: () => [{ name: 'backdrop1' }, { name: 'backdrop2' }],
             };
-            
+
             // Mock converter with VM runtime
             converterWithVM = new RubyToBlocksConverter({
                 runtime: {
-                    getTargetForStage: () => stageWithBackdrops
-                }
+                    getTargetForStage: () => stageWithBackdrops,
+                },
             });
         });
 
         [
             {
                 opcode: 'looks_switchbackdropto',
-                methodName: 'switch_backdrop'
+                methodName: 'switch_backdrop',
             },
             {
                 opcode: 'looks_switchbackdroptoandwait',
-                methodName: 'switch_backdrop_and_wait'
-            }
-        ].forEach(info => {
+                methodName: 'switch_backdrop_and_wait',
+            },
+        ].forEach((info) => {
             describe(`${info.opcode} with backdrop existence check`, () => {
                 test('existing backdrop should work', async () => {
                     code = `${info.methodName}("backdrop1")`;
@@ -188,14 +184,14 @@ describe('RubyToBlocksConverter/Looks', () => {
                                         fields: [
                                             {
                                                 name: 'BACKDROP',
-                                                value: 'backdrop1'
-                                            }
+                                                value: 'backdrop1',
+                                            },
                                         ],
-                                        shadow: true
-                                    }
-                                }
-                            ]
-                        }
+                                        shadow: true,
+                                    },
+                                },
+                            ],
+                        },
                     ];
                     await convertAndExpectToEqualBlocks(converterWithVM, stageWithBackdrops, code, expected);
                 });
@@ -219,10 +215,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                         fields: [
                             {
                                 name: 'NUMBER_NAME',
-                                value: 'number'
-                            }
-                        ]
-                    }
+                                value: 'number',
+                            },
+                        ],
+                    },
                 ];
                 await convertAndExpectToEqualBlocks(converterWithVM, stageWithBackdrops, code, expected);
             });
@@ -235,14 +231,13 @@ describe('RubyToBlocksConverter/Looks', () => {
                         fields: [
                             {
                                 name: 'NUMBER_NAME',
-                                value: 'name'
-                            }
-                        ]
-                    }
+                                value: 'name',
+                            },
+                        ],
+                    },
                 ];
                 await convertAndExpectToEqualBlocks(converterWithVM, stageWithBackdrops, code, expected);
             });
         });
     });
-
 });

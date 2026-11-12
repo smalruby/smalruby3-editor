@@ -6,20 +6,23 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: LEGO Education WeDo 2.0 extension blocks', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             wedo2.turn_on_for("motor", 1)
             wedo2.turn_on_for("motor A", 1)
             wedo2.turn_on_for("motor B", 1)
@@ -58,7 +61,8 @@ describe('Ruby Roundtrip: LEGO Education WeDo 2.0 extension blocks', () => {
             wedo2.tilted?("any")
 
             wedo2.tilt_angle("up")
-        `);
+        `,
+        );
     });
 
     test('Ruby -> Code -> Ruby (case normalization)', async () => {

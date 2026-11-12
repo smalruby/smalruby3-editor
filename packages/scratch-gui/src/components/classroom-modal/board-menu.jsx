@@ -5,7 +5,6 @@
  */
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-
 import styles from './classroom-modal.css';
 
 /**

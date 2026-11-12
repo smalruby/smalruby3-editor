@@ -6,20 +6,23 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Microbit More v2 extension blocks', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             microbit.when_microbit("connected") do
             end
 
@@ -198,6 +201,7 @@ describe('Ruby Roundtrip: Microbit More v2 extension blocks', () => {
 
             microbit.send_data_to_microbit("data", "label-01")
             microbit.send_data_to_microbit("123456", "label-02")
-        `);
+        `,
+        );
     });
 });

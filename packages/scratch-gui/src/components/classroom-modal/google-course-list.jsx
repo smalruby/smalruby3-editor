@@ -2,7 +2,6 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import { FormattedMessage } from 'react-intl';
-
 import styles from './classroom-modal.css';
 
 const GoogleCourseList = ({ courses, importedCourseIds, selectedCourseId, onSelect }) => {
@@ -20,22 +19,15 @@ const GoogleCourseList = ({ courses, importedCourseIds, selectedCourseId, onSele
             {courses.map((course) => (
                 <button
                     className={classNames(styles.courseTile, {
-                        [styles.courseTileSelected]:
-                            selectedCourseId === course.courseId,
+                        [styles.courseTileSelected]: selectedCourseId === course.courseId,
                     })}
                     data-course-id={course.courseId}
                     data-testid={`classroom-google-course-${course.courseId}`}
                     key={course.courseId}
                     onClick={handleClick}
                 >
-                    <span className={styles.courseTileName}>
-                        {course.name}
-                    </span>
-                    {course.section && (
-                        <span className={styles.courseTileSection}>
-                            {course.section}
-                        </span>
-                    )}
+                    <span className={styles.courseTileName}>{course.name}</span>
+                    {course.section && <span className={styles.courseTileSection}>{course.section}</span>}
                     {(importedCourseIds || []).includes(course.courseId) && (
                         <span
                             className={styles.courseTileImported}

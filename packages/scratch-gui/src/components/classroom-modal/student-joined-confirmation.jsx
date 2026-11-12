@@ -1,13 +1,11 @@
-import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React from 'react';
-
+import { FormattedMessage } from 'react-intl';
+import { formatStudentClassName } from '../../lib/classroom-class-label.js';
+import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import StudentContinueChoice from './student-continue-choice.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
-
-import { formatStudentClassName } from '../../lib/classroom-class-label.js';
-import styles from './classroom-modal.css';
 
 const StudentJoinedConfirmation = ({
     continueOptions,
@@ -23,10 +21,7 @@ const StudentJoinedConfirmation = ({
 }) => (
     <div data-testid="classroom-phase-student-joined">
         <div className={styles.successArea}>
-            <div
-                className={styles.successDetails}
-                data-testid="classroom-joined-details"
-            >
+            <div className={styles.successDetails} data-testid="classroom-joined-details">
                 <span data-testid="classroom-joined-class-name">
                     {formatStudentClassName(joinedInfo.className, joinedInfo.classYear)}
                 </span>
@@ -43,10 +38,7 @@ const StudentJoinedConfirmation = ({
                 </span>
             </div>
             {joinedInfo.assignmentName && (
-                <div
-                    className={styles.successAssignment}
-                    data-testid="classroom-joined-assignment"
-                >
+                <div className={styles.successAssignment} data-testid="classroom-joined-assignment">
                     {joinedInfo.assignmentName}
                 </div>
             )}
@@ -65,10 +57,7 @@ const StudentJoinedConfirmation = ({
             onLoadStarter={onLoadStarter}
             onLoadSubmission={onLoadSubmission}
         />
-        <ErrorDisplay
-            error={error}
-            errorTitle={errorTitle}
-        />
+        <ErrorDisplay error={error} errorTitle={errorTitle} />
         <div className={styles.joinHintBox}>
             <div className={styles.joinHintTitle}>
                 <FormattedMessage
@@ -89,11 +78,7 @@ const StudentJoinedConfirmation = ({
         {/* With choices, each choice starts (incl. "as it is"), so no separate Start button. */}
         {!continueOptions && !startChoice?.showStarter && (
             <div className={styles.buttonRow}>
-                <button
-                    className={styles.primaryButton}
-                    data-testid="classroom-joined-close"
-                    onClick={onClose}
-                >
+                <button className={styles.primaryButton} data-testid="classroom-joined-close" onClick={onClose}>
                     <FormattedMessage
                         defaultMessage="Start"
                         description="Close button after joining"

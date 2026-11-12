@@ -1,11 +1,9 @@
-import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-
+import { FormattedMessage } from 'react-intl';
 import { isMemberSeated } from '../../lib/classroom-presence.js';
-import ClassroomStatusIcon from './classroom-status-icon.jsx';
-
 import styles from './classroom-modal.css';
+import ClassroomStatusIcon from './classroom-status-icon.jsx';
 
 const TeacherMemberDetail = ({
     isLoading,
@@ -49,15 +47,8 @@ const TeacherMemberDetail = ({
     );
 
     const handleReturnClick = useCallback(() => {
-        if (
-            !selectedMember ||
-            !memberMap[selectedMember]?.submissionId
-        )
-            return;
-        onReturnSubmission(
-            memberMap[selectedMember].submissionId,
-            commentText,
-        );
+        if (!selectedMember || !memberMap[selectedMember]?.submissionId) return;
+        onReturnSubmission(memberMap[selectedMember].submissionId, commentText);
     }, [selectedMember, memberMap, commentText, onReturnSubmission]);
 
     const handleHideFromPeersChange = useCallback(
@@ -98,10 +89,7 @@ const TeacherMemberDetail = ({
         setCurrentImageIndex((prev) => {
             const member = memberMap[selectedMember];
             if (!member) return prev;
-            const allImages = [
-                member.thumbnailUrl,
-                ...(member.screenshotUrls || []),
-            ].filter(Boolean);
+            const allImages = [member.thumbnailUrl, ...(member.screenshotUrls || [])].filter(Boolean);
             return Math.min(allImages.length - 1, prev + 1);
         });
     }, [memberMap, selectedMember]);
@@ -124,10 +112,7 @@ const TeacherMemberDetail = ({
         const member = memberMap[selectedMember];
         return {
             ...member,
-            allImages: [
-                member.thumbnailUrl,
-                ...(member.screenshotUrls || []),
-            ].filter(Boolean),
+            allImages: [member.thumbnailUrl, ...(member.screenshotUrls || [])].filter(Boolean),
             isReturned: member.submissionStatus === 'returned',
             isSeated: isSeated(member),
         };
@@ -135,49 +120,26 @@ const TeacherMemberDetail = ({
 
     if (selectedMemberData) {
         return (
-            <div
-                className={styles.memberDetailPanel}
-                data-testid="classroom-member-detail"
-            >
+            <div className={styles.memberDetailPanel} data-testid="classroom-member-detail">
                 <div className={styles.memberDetailHeader}>
-                    <span
-                        className={styles.memberDetailSeat}
-                        data-testid="classroom-member-detail-seat"
-                    >
+                    <span className={styles.memberDetailSeat} data-testid="classroom-member-detail-seat">
                         <FormattedMessage
                             defaultMessage="Seat {number}"
                             description="Seat number display in member detail"
                             id="gui.classroom.teacherDetail.seatNumber"
                             values={{
-                                number: selectedMember.replace(
-                                    'seat-',
-                                    '',
-                                ),
+                                number: selectedMember.replace('seat-', ''),
                             }}
                         />
                     </span>
-                    <span data-testid="classroom-member-detail-name">
-                        {selectedMemberData.displayName || '-'}
-                    </span>
+                    <span data-testid="classroom-member-detail-name">{selectedMemberData.displayName || '-'}</span>
                     {selectedMemberData.hasSubmission && (
                         <span
-                            className={
-                                selectedMemberData.isReturned
-                                    ? styles.returnedBadge
-                                    : styles.submissionBadge
-                            }
+                            className={selectedMemberData.isReturned ? styles.returnedBadge : styles.submissionBadge}
                             data-testid="classroom-member-detail-submitted"
                         >
-                            <ClassroomStatusIcon
-                                status={
-                                    selectedMemberData.isReturned
-                                        ? 'returned'
-                                        : 'submitted'
-                                }
-                            />{' '}
-                            {new Date(
-                                selectedMemberData.submittedAt,
-                            ).toLocaleTimeString()}
+                            <ClassroomStatusIcon status={selectedMemberData.isReturned ? 'returned' : 'submitted'} />{' '}
+                            {new Date(selectedMemberData.submittedAt).toLocaleTimeString()}
                         </span>
                     )}
                     {!selectedMemberData.hasSubmission && (
@@ -194,20 +156,10 @@ const TeacherMemberDetail = ({
                         </span>
                     )}
                     <span
-                        className={
-                            selectedMemberData.isSeated
-                                ? styles.seatedBadge
-                                : styles.notSeatedBadge
-                        }
+                        className={selectedMemberData.isSeated ? styles.seatedBadge : styles.notSeatedBadge}
                         data-testid="classroom-member-detail-seated"
                     >
-                        <ClassroomStatusIcon
-                            status={
-                                selectedMemberData.isSeated
-                                    ? 'seated'
-                                    : 'notSeated'
-                            }
-                        />{' '}
+                        <ClassroomStatusIcon status={selectedMemberData.isSeated ? 'seated' : 'notSeated'} />{' '}
                         {selectedMemberData.isSeated ? (
                             <FormattedMessage
                                 defaultMessage="Seated"
@@ -236,10 +188,7 @@ const TeacherMemberDetail = ({
                     </button>
                 </div>
                 {kickRequestsForSelectedSeat && kickRequestsForSelectedSeat.length > 0 && (
-                    <div
-                        className={styles.kickRequestPanel}
-                        data-testid="classroom-member-kick-request-panel"
-                    >
+                    <div className={styles.kickRequestPanel} data-testid="classroom-member-kick-request-panel">
                         <div className={styles.kickRequestPanelTitle}>
                             <ClassroomStatusIcon status="kickRequested" />{' '}
                             <FormattedMessage
@@ -307,25 +256,13 @@ const TeacherMemberDetail = ({
                         {/* Image carousel */}
                         {selectedMemberData.allImages.length > 0 && (
                             <div className={styles.imageCarousel}>
-                                {selectedMemberData.allImages.length >
-                                    1 && (
-                                    <div
-                                        className={
-                                            styles.carouselNav
-                                        }
-                                    >
+                                {selectedMemberData.allImages.length > 1 && (
+                                    <div className={styles.carouselNav}>
                                         <button
-                                            className={
-                                                styles.carouselButton
-                                            }
+                                            className={styles.carouselButton}
                                             data-testid="classroom-member-detail-prev"
-                                            disabled={
-                                                currentImageIndex ===
-                                                0
-                                            }
-                                            onClick={
-                                                handlePrevImage
-                                            }
+                                            disabled={currentImageIndex === 0}
+                                            onClick={handlePrevImage}
                                         >
                                             {'<'}
                                         </button>
@@ -333,20 +270,10 @@ const TeacherMemberDetail = ({
                                             {`${currentImageIndex + 1} / ${selectedMemberData.allImages.length}`}
                                         </span>
                                         <button
-                                            className={
-                                                styles.carouselButton
-                                            }
+                                            className={styles.carouselButton}
                                             data-testid="classroom-member-detail-next"
-                                            disabled={
-                                                currentImageIndex >=
-                                                selectedMemberData
-                                                    .allImages
-                                                    .length -
-                                                    1
-                                            }
-                                            onClick={
-                                                handleNextImage
-                                            }
+                                            disabled={currentImageIndex >= selectedMemberData.allImages.length - 1}
+                                            onClick={handleNextImage}
                                         >
                                             {'>'}
                                         </button>
@@ -354,25 +281,18 @@ const TeacherMemberDetail = ({
                                 )}
                                 <img
                                     alt="Submission image"
-                                    className={
-                                        styles.memberDetailThumbnailLarge
-                                    }
+                                    className={styles.memberDetailThumbnailLarge}
                                     data-testid="classroom-member-detail-thumbnail"
                                     src={
-                                        selectedMemberData.allImages[
-                                            currentImageIndex
-                                        ] ||
-                                        selectedMemberData
-                                            .allImages[0]
+                                        selectedMemberData.allImages[currentImageIndex] ||
+                                        selectedMemberData.allImages[0]
                                     }
                                 />
                             </div>
                         )}
                         {selectedMemberData.projectName && (
                             <span
-                                className={
-                                    styles.submissionProjectName
-                                }
+                                className={styles.submissionProjectName}
                                 data-testid="classroom-member-detail-project-name"
                             >
                                 {selectedMemberData.projectName}
@@ -381,9 +301,7 @@ const TeacherMemberDetail = ({
                         {selectedMemberData.projectUrl && (
                             <button
                                 className={styles.primaryButton}
-                                data-project-url={
-                                    selectedMemberData.projectUrl
-                                }
+                                data-project-url={selectedMemberData.projectUrl}
                                 data-testid="classroom-member-detail-open"
                                 disabled={isLoading}
                                 onClick={handleOpenClick}
@@ -419,21 +337,14 @@ const TeacherMemberDetail = ({
                                 className={styles.commentInput}
                                 data-testid="classroom-member-detail-comment"
                                 maxLength={500}
-                                placeholder={
-                                    selectedMemberData.isReturned
-                                        ? ''
-                                        : '...'
-                                }
+                                placeholder={selectedMemberData.isReturned ? '' : '...'}
                                 value={commentText}
                                 onChange={handleCommentChange}
                             />
                             <button
                                 className={styles.returnButton}
                                 data-testid="classroom-member-detail-return"
-                                disabled={
-                                    isLoading ||
-                                    selectedMemberData.isReturned
-                                }
+                                disabled={isLoading || selectedMemberData.isReturned}
                                 onClick={handleReturnClick}
                             >
                                 {selectedMemberData.isReturned ? (
@@ -459,32 +370,20 @@ const TeacherMemberDetail = ({
 
     if (selectedMember && !memberMap[selectedMember]) {
         return (
-            <div
-                className={styles.memberDetailPanel}
-                data-testid="classroom-member-detail"
-            >
+            <div className={styles.memberDetailPanel} data-testid="classroom-member-detail">
                 <div className={styles.memberDetailHeader}>
-                    <span
-                        className={styles.memberDetailSeat}
-                        data-testid="classroom-member-detail-seat"
-                    >
+                    <span className={styles.memberDetailSeat} data-testid="classroom-member-detail-seat">
                         <FormattedMessage
                             defaultMessage="Seat {number}"
                             description="Seat number display in member detail"
                             id="gui.classroom.teacherDetail.seatNumber"
                             values={{
-                                number: selectedMember.replace(
-                                    'seat-',
-                                    '',
-                                ),
+                                number: selectedMember.replace('seat-', ''),
                             }}
                         />
                     </span>
                     <span>{' - '}</span>
-                    <span
-                        className={styles.notSeatedBadge}
-                        data-testid="classroom-member-detail-name"
-                    >
+                    <span className={styles.notSeatedBadge} data-testid="classroom-member-detail-name">
                         <FormattedMessage
                             defaultMessage="Not seated"
                             description="Student is not currently seated"

@@ -1,9 +1,5 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    rubyToExpected,
-    expectedInfo
-} from '../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks, rubyToExpected, expectedInfo } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/MicrobitMore', () => {
     let converter;
@@ -12,7 +8,7 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -26,13 +22,13 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 fields: [
                     {
                         name: 'PIN',
-                        value: 'P0'
-                    }
+                        value: 'P0',
+                    },
                 ],
                 next: null,
                 parent: null,
-                topLevel: true
-            }
+                topLevel: true,
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -45,10 +41,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 fields: [
                     {
                         name: 'DIRECTION',
-                        value: 'ANY'
-                    }
-                ]
-            }
+                        value: 'ANY',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -61,10 +57,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 fields: [
                     {
                         name: 'DIRECTION',
-                        value: 'FRONT'
-                    }
-                ]
-            }
+                        value: 'FRONT',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -77,10 +73,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 fields: [
                     {
                         name: 'GESTURE',
-                        value: 'MOVED'
-                    }
-                ]
-            }
+                        value: 'MOVED',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -93,10 +89,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 fields: [
                     {
                         name: 'DIRECTION',
-                        value: 'ANY'
-                    }
-                ]
-            }
+                        value: 'ANY',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -109,10 +105,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 fields: [
                     {
                         name: 'GESTURE',
-                        value: 'TILTED'
-                    }
-                ]
-            }
+                        value: 'TILTED',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -125,10 +121,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 fields: [
                     {
                         name: 'GESTURE',
-                        value: 'TILT_UP'
-                    }
-                ]
-            }
+                        value: 'TILT_UP',
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -141,10 +137,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 inputs: [
                     {
                         name: 'TEXT',
-                        block: expectedInfo.makeText('Hello!')
-                    }
-                ]
-            }
+                        block: expectedInfo.makeText('Hello!'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -157,14 +153,14 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 inputs: [
                     {
                         name: 'TEXT',
-                        block: expectedInfo.makeText('Hello!')
+                        block: expectedInfo.makeText('Hello!'),
                     },
                     {
                         name: 'DELAY',
-                        block: expectedInfo.makeNumber(120)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(120),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });

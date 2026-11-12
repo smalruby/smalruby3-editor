@@ -1,6 +1,5 @@
 import _ from 'lodash';
 
- 
 const createControlRepeatBlock = function (converter, times, body) {
     const block = converter._createBlock('control_repeat', 'statement');
     converter._addNumberInput(block, 'TIMES', 'math_whole_number', times, 10);
@@ -8,11 +7,7 @@ const createControlRepeatBlock = function (converter, times, body) {
     return block;
 };
 
-const StopOptions = [
-    'all',
-    'this script',
-    'other scripts in sprite'
-];
+const StopOptions = ['all', 'this script', 'other scripts in sprite'];
 
 const WITH_SCREEN_REFRESH_COMMENT = '@ruby:method:with_screen_refresh';
 
@@ -26,17 +21,15 @@ const addWithScreenRefreshComment = function (converter, block) {
         block.comment = converter._createComment(WITH_SCREEN_REFRESH_COMMENT, block.id);
     }
 };
- 
 
 /**
  * Control converter
  */
 const ControlConverter = {
-
     register: function (converter) {
         // sleep(duration) - control_wait
-        converter.registerOnSend('self', 'sleep', 1, params => {
-            const {args} = params;
+        converter.registerOnSend('self', 'sleep', 1, (params) => {
+            const { args } = params;
             if (!converter._isNumberOrBlock(args[0])) return null;
 
             const block = converter._createBlock('control_wait', 'statement');
@@ -45,8 +38,8 @@ const ControlConverter = {
         });
 
         // repeat(times) { block } - control_repeat
-        converter.registerOnSendWithBlock('self', 'repeat', 1, 0, params => {
-            const {args, rubyBlock} = params;
+        converter.registerOnSendWithBlock('self', 'repeat', 1, 0, (params) => {
+            const { args, rubyBlock } = params;
             if (!converter._isNumberOrBlock(args[0])) return null;
 
             const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
@@ -58,14 +51,12 @@ const ControlConverter = {
         });
 
         // loop (without block) - returns control_forever for chaining with with_screen_refresh
-        converter.registerOnSend('self', 'loop', 0, () =>
-            converter._createBlock('control_forever', 'terminate')
-        );
+        converter.registerOnSend('self', 'loop', 0, () => converter._createBlock('control_forever', 'terminate'));
 
         // loop { block } and forever { block } - control_forever
-        ['loop', 'forever'].forEach(methodName => {
-            converter.registerOnSendWithBlock('self', methodName, 0, 0, params => {
-                const {rubyBlock} = params;
+        ['loop', 'forever'].forEach((methodName) => {
+            converter.registerOnSendWithBlock('self', methodName, 0, 0, (params) => {
+                const { rubyBlock } = params;
                 if (typeof rubyBlock === 'undefined') return null;
 
                 const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
@@ -79,8 +70,8 @@ const ControlConverter = {
         });
 
         // stop(option) - control_stop
-        converter.registerOnSend('self', 'stop', 1, params => {
-            const {args} = params;
+        converter.registerOnSend('self', 'stop', 1, (params) => {
+            const { args } = params;
             if (!converter._isString(args[0]) || StopOptions.indexOf(args[0].toString()) < 0) return null;
 
             const block = converter._createBlock('control_stop', 'terminate');
@@ -89,13 +80,13 @@ const ControlConverter = {
         });
 
         // create_clone(target) - control_create_clone_of
-        converter.registerOnSend('self', 'create_clone', 1, params => {
-            const {args} = params;
+        converter.registerOnSend('self', 'create_clone', 1, (params) => {
+            const { args } = params;
             if (!converter._isString(args[0])) return null;
 
             const block = converter._createBlock('control_create_clone_of', 'statement');
             const optionBlock = converter._createBlock('control_create_clone_of_menu', 'value', {
-                shadow: true
+                shadow: true,
             });
             converter._addField(optionBlock, 'CLONE_OPTION', args[0]);
             converter._addInput(block, 'CLONE_OPTION', optionBlock, optionBlock);
@@ -104,13 +95,13 @@ const ControlConverter = {
 
         // clone / self.clone - control_create_clone_of("myself") with @ruby:method:clone
         // Stage cannot be cloned
-        converter.registerOnSend('self', 'clone', 0, params => {
+        converter.registerOnSend('self', 'clone', 0, (params) => {
             if (converter._context.target && converter._context.target.isStage) {
                 return null; // fall through to ruby_statement (Stage cannot clone)
             }
             const block = converter._createBlock('control_create_clone_of', 'statement');
             const optionBlock = converter._createBlock('control_create_clone_of_menu', 'value', {
-                shadow: true
+                shadow: true,
             });
             converter._addField(optionBlock, 'CLONE_OPTION', '_myself_');
             converter._addInput(block, 'CLONE_OPTION', optionBlock, optionBlock);
@@ -119,15 +110,15 @@ const ControlConverter = {
         });
 
         // number.times (without block) - returns control_repeat for chaining with with_screen_refresh
-        converter.registerOnSend('any', 'times', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend('any', 'times', 0, (params) => {
+            const { receiver } = params;
             if (!converter._isNumberOrBlock(receiver)) return null;
             return createControlRepeatBlock(converter, receiver, null);
         });
 
         // number.times { block } and variable.times { block } - control_repeat
-        converter.registerOnSendWithBlock('any', 'times', 0, 0, params => {
-            const {receiver, rubyBlock} = params;
+        converter.registerOnSendWithBlock('any', 'times', 0, 0, (params) => {
+            const { receiver, rubyBlock } = params;
             if (!rubyBlock || !converter._isNumberOrBlock(receiver)) return null;
 
             const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
@@ -139,23 +130,18 @@ const ControlConverter = {
         });
 
         // number.times { |i| block } - smalrubyRuby_numberMethodWithBlock
-        converter.registerOnSendWithBlock('any', 'times', 0, 1, params => {
-            const {receiver, rubyBlockArgs, rubyBlock} = params;
+        converter.registerOnSendWithBlock('any', 'times', 0, 1, (params) => {
+            const { receiver, rubyBlockArgs, rubyBlock } = params;
             if (!rubyBlock || !converter._isNumberOrBlock(receiver)) return null;
             if (!rubyBlockArgs || rubyBlockArgs.length !== 1) return null;
 
-            const block = converter._createBlock(
-                'smalrubyRuby_numberMethodWithBlock',
-                'statement'
-            );
+            const block = converter._createBlock('smalrubyRuby_numberMethodWithBlock', 'statement');
             converter._addNumberInput(block, 'RECEIVER', 'math_number', receiver, 5);
             converter._addField(block, 'METHOD', 'times');
 
             // Store block param mapping in comment
             const paramName = rubyBlockArgs[0];
-            block.comment = converter._createComment(
-                `@ruby:block_param:1:${paramName}`, block.id
-            );
+            block.comment = converter._createComment(`@ruby:block_param:1:${paramName}`, block.id);
 
             // Replace variable references in body with blockParam blocks
             const varNameToParamIdx = {};
@@ -170,10 +156,12 @@ const ControlConverter = {
                     for (const inputName of Object.keys(b.inputs)) {
                         const input = b.inputs[inputName];
                         const childBlock = converter._context.blocks[input.block];
-                        if (childBlock &&
+                        if (
+                            childBlock &&
                             childBlock.opcode === 'data_variable' &&
                             childBlock.fields &&
-                            childBlock.fields.VARIABLE) {
+                            childBlock.fields.VARIABLE
+                        ) {
                             const varName = childBlock.fields.VARIABLE.value;
                             const paramIdx = varNameToParamIdx[varName];
                             if (paramIdx >= 0) {
@@ -181,7 +169,7 @@ const ControlConverter = {
                                 delete childBlock.fields.VARIABLE;
                                 childBlock.fields.PARAM = {
                                     name: 'PARAM',
-                                    value: `_${paramIdx + 1}`
+                                    value: `_${paramIdx + 1}`,
                                 };
                                 converter._setBlockType(childBlock, 'value');
                             }
@@ -201,8 +189,8 @@ const ControlConverter = {
         });
 
         // number.times.with_screen_refresh { block } - control_repeat + comment
-        converter.registerOnSendWithBlock('any', 'with_screen_refresh', 0, 0, params => {
-            const {receiver, rubyBlock} = params;
+        converter.registerOnSendWithBlock('any', 'with_screen_refresh', 0, 0, (params) => {
+            const { receiver, rubyBlock } = params;
             if (!rubyBlock) return null;
 
             // receiver should be the result of N.times or loop (an Enumerator-like call)
@@ -227,8 +215,8 @@ const ControlConverter = {
         });
 
         // when_start_as_a_clone { block } (sprite only)
-        converter.registerOnSendWithBlock('sprite', 'when_start_as_a_clone', 0, 0, params => {
-            const {rubyBlock} = params;
+        converter.registerOnSendWithBlock('sprite', 'when_start_as_a_clone', 0, 0, (params) => {
+            const { rubyBlock } = params;
             const block = converter.createBlock('control_start_as_clone', 'hat');
             converter.setParent(rubyBlock, block);
             return block;
@@ -236,21 +224,25 @@ const ControlConverter = {
 
         // delete_this_clone method (sprite only)
         converter.registerOnSend('sprite', 'delete_this_clone', 0, () =>
-            converter._createBlock('control_delete_this_clone', 'statement')
+            converter._createBlock('control_delete_this_clone', 'statement'),
         );
 
         // backward compatibility
-        converter.registerOnSendWithBlock('self', 'when', 1, 0, params => {
-            const {args} = params;
+        converter.registerOnSendWithBlock('self', 'when', 1, 0, (params) => {
+            const { args } = params;
 
             if (!converter._isSymbol(args[0])) return null;
 
             switch (converter._getSymbolValue(args[0])) {
-            case 'start_as_a_clone':
-                return converter.callMethod(
-                    params.receiver, 'when_start_as_a_clone', params.args.slice(1),
-                    params.rubyBlockArgs, params.rubyBlock, params.node
-                );
+                case 'start_as_a_clone':
+                    return converter.callMethod(
+                        params.receiver,
+                        'when_start_as_a_clone',
+                        params.args.slice(1),
+                        params.rubyBlockArgs,
+                        params.rubyBlock,
+                        params.node,
+                    );
             }
 
             return null;
@@ -273,8 +265,8 @@ const ControlConverter = {
         // with_screen_refresh { block } - unwrap for until/while body
         // When with_screen_refresh do...end appears as the sole statement in until/while,
         // register it so it returns its inner block with a flag.
-        converter.registerOnSendWithBlock('self', 'with_screen_refresh', 0, 0, params => {
-            const {rubyBlock} = params;
+        converter.registerOnSendWithBlock('self', 'with_screen_refresh', 0, 0, (params) => {
+            const { rubyBlock } = params;
             if (!rubyBlock) return null;
 
             // Mark that this came from with_screen_refresh so the parent until/while knows
@@ -310,7 +302,7 @@ const ControlConverter = {
             }
             return block;
         });
-    }
+    },
 };
 
 export default ControlConverter;

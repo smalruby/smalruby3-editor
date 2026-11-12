@@ -15,9 +15,9 @@ describe('RubyGenerator/MicrobitMore', () => {
             opcode: 'microbitMore_whenPinConnected',
             fields: {
                 PIN: {
-                    value: 'P0'
-                }
-            }
+                    value: 'P0',
+                },
+            },
         };
         const expected = 'microbit.when_pin_connected(0) do\n';
         expect(RubyGenerator.microbitMore_whenPinConnected(block)).toEqual(expected);
@@ -28,9 +28,9 @@ describe('RubyGenerator/MicrobitMore', () => {
             opcode: 'microbitMore_whenTilted',
             fields: {
                 DIRECTION: {
-                    value: 'ANY'
-                }
-            }
+                    value: 'ANY',
+                },
+            },
         };
         const expected = 'microbit.when_tilted("any") do\n';
         expect(RubyGenerator.microbitMore_whenTilted(block)).toEqual(expected);
@@ -41,9 +41,9 @@ describe('RubyGenerator/MicrobitMore', () => {
             opcode: 'microbitMore_isTilted',
             fields: {
                 DIRECTION: {
-                    value: 'ANY'
-                }
-            }
+                    value: 'ANY',
+                },
+            },
         };
         const result = RubyGenerator.microbitMore_isTilted(block);
         expect(result[0]).toEqual('microbit.tilted?("any")');
@@ -54,9 +54,9 @@ describe('RubyGenerator/MicrobitMore', () => {
             opcode: 'microbitMore_getTiltAngle',
             fields: {
                 DIRECTION: {
-                    value: 'FRONT'
-                }
-            }
+                    value: 'FRONT',
+                },
+            },
         };
         const result = RubyGenerator.microbitMore_getTiltAngle(block);
         expect(result[0]).toEqual('microbit.tilt_angle("front")');
@@ -67,9 +67,9 @@ describe('RubyGenerator/MicrobitMore', () => {
             opcode: 'microbitMore_whenGesture',
             fields: {
                 GESTURE: {
-                    value: 'MOVED'
-                }
-            }
+                    value: 'MOVED',
+                },
+            },
         };
         const expected = 'microbit.when("moved") do\n';
         expect(RubyGenerator.microbitMore_whenGesture(block)).toEqual(expected);
@@ -80,9 +80,9 @@ describe('RubyGenerator/MicrobitMore', () => {
             opcode: 'microbitMore_whenGesture',
             fields: {
                 GESTURE: {
-                    value: 'TILTED'
-                }
-            }
+                    value: 'TILTED',
+                },
+            },
         };
         const expected = 'microbit.when("tilted_any") do\n';
         expect(RubyGenerator.microbitMore_whenGesture(block)).toEqual(expected);
@@ -93,9 +93,9 @@ describe('RubyGenerator/MicrobitMore', () => {
             opcode: 'microbitMore_whenGesture',
             fields: {
                 GESTURE: {
-                    value: 'TILT_UP'
-                }
-            }
+                    value: 'TILT_UP',
+                },
+            },
         };
         const expected = 'microbit.when("tilted_front") do\n';
         expect(RubyGenerator.microbitMore_whenGesture(block)).toEqual(expected);
@@ -106,9 +106,9 @@ describe('RubyGenerator/MicrobitMore', () => {
             opcode: 'microbitMore_display',
             inputs: {
                 TEXT: {
-                    name: 'TEXT'
-                }
-            }
+                    name: 'TEXT',
+                },
+            },
         };
         RubyGenerator.valueToCode = jest.fn().mockReturnValue('"Hello!"');
         const expected = 'microbit.display_text("Hello!")\n';
@@ -120,16 +120,14 @@ describe('RubyGenerator/MicrobitMore', () => {
             opcode: 'microbitMore_displayText',
             inputs: {
                 TEXT: {
-                    name: 'TEXT'
+                    name: 'TEXT',
                 },
                 DELAY: {
-                    name: 'DELAY'
-                }
-            }
+                    name: 'DELAY',
+                },
+            },
         };
-        RubyGenerator.valueToCode = jest.fn()
-            .mockReturnValueOnce('"Hello!"')
-            .mockReturnValueOnce('120');
+        RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"Hello!"').mockReturnValueOnce('120');
         const expected = 'microbit.display_text_delay("Hello!", 120)\n';
         expect(RubyGenerator.microbitMore_displayText(block)).toEqual(expected);
     });

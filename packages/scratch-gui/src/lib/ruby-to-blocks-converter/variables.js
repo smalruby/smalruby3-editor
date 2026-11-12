@@ -1,34 +1,38 @@
-import {defineMessages} from 'react-intl';
-import {RubyToBlocksConverterError} from './errors';
-import {convertToListBlock, adjustIndex, convertHashGet, convertHashSet} from './variable-hash-ops';
-import {registerListOperations} from './variable-list-ops';
+import { defineMessages } from 'react-intl';
+import { RubyToBlocksConverterError } from './errors';
+import { convertToListBlock, adjustIndex, convertHashGet, convertHashSet } from './variable-hash-ops';
+import { registerListOperations } from './variable-list-ops';
 
 const messages = defineMessages({
     arraySyntaxNotAvailableInV1: {
-        defaultMessage: 'Array syntax is only available in Ruby version 2.' +
+        defaultMessage:
+            'Array syntax is only available in Ruby version 2.' +
             '\nPlease switch to Ruby version 2 from the settings menu,' +
             '\nor use list() syntax instead.',
         description: 'Error message when array syntax ($a.push, $a[0], etc.) is used in Ruby version 1',
-        id: 'gui.smalruby3.rubyToBlocksConverter.arraySyntaxNotAvailableInV1'
+        id: 'gui.smalruby3.rubyToBlocksConverter.arraySyntaxNotAvailableInV1',
     },
     listSyntaxNotAvailableInV2: {
-        defaultMessage: 'list() syntax is only available in Ruby version 1.' +
+        defaultMessage:
+            'list() syntax is only available in Ruby version 1.' +
             '\nPlease use array syntax ($a.push(), $a[0], etc.) instead.',
         description: 'Error message when list() syntax is used in Ruby version 2',
-        id: 'gui.smalruby3.rubyToBlocksConverter.listSyntaxNotAvailableInV2'
+        id: 'gui.smalruby3.rubyToBlocksConverter.listSyntaxNotAvailableInV2',
     },
     arrayLiteralNotAvailableInV1: {
-        defaultMessage: 'Array literal syntax is only available in Ruby version 2.' +
+        defaultMessage:
+            'Array literal syntax is only available in Ruby version 2.' +
             '\nPlease switch to Ruby version 2 from the settings menu.',
         description: 'Error message when array literal ($a = [1, 2, 3]) is used in Ruby version 1',
-        id: 'gui.smalruby3.rubyToBlocksConverter.arrayLiteralNotAvailableInV1'
+        id: 'gui.smalruby3.rubyToBlocksConverter.arrayLiteralNotAvailableInV1',
     },
     hashSyntaxNotAvailableInV1: {
-        defaultMessage: 'Hash syntax is only available in Ruby version 2.' +
+        defaultMessage:
+            'Hash syntax is only available in Ruby version 2.' +
             '\nPlease switch to Ruby version 2 from the settings menu.',
         description: 'Error message when hash syntax ($a = {key: value}) is used in Ruby version 1',
-        id: 'gui.smalruby3.rubyToBlocksConverter.hashSyntaxNotAvailableInV1'
-    }
+        id: 'gui.smalruby3.rubyToBlocksConverter.hashSyntaxNotAvailableInV1',
+    },
 });
 
 /**
@@ -36,16 +40,14 @@ const messages = defineMessages({
  */
 const VariablesConverter = {
     register: function (converter) {
-        registerListOperations(
-            converter, messages, convertToListBlock, adjustIndex, convertHashGet, convertHashSet
-        );
+        registerListOperations(converter, messages, convertToListBlock, adjustIndex, convertHashGet, convertHashSet);
 
         // Operator to opcode mapping for compound assignments
         const COMPOUND_OPERATOR_MAP = {
             '-': 'operator_subtract',
             '*': 'operator_multiply',
             '/': 'operator_divide',
-            '%': 'operator_mod'
+            '%': 'operator_mod',
         };
 
         // Register onXxx handlers
@@ -69,17 +71,15 @@ const VariablesConverter = {
                                 name: 'VARIABLE',
                                 id: variable.id,
                                 value: variable.name,
-                                variableType: variable.type
-                            }
-                        }
+                                variableType: variable.type,
+                            },
+                        },
                     });
 
                     const syntaxComment = `@ruby:syntax:+=`;
                     if (variable.scope === 'local') {
                         const lvarComment = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
-                        block.comment = converter._createComment(
-                            `${lvarComment},${syntaxComment}`, block.id
-                        );
+                        block.comment = converter._createComment(`${lvarComment},${syntaxComment}`, block.id);
                     } else {
                         block.comment = converter._createComment(syntaxComment, block.id);
                     }
@@ -90,9 +90,9 @@ const VariablesConverter = {
                                 name: 'VARIABLE',
                                 id: variable.id,
                                 value: variable.name,
-                                variableType: variable.type
-                            }
-                        }
+                                variableType: variable.type,
+                            },
+                        },
                     });
                     if (variable.scope === 'local') {
                         const lvarComment = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
@@ -102,7 +102,10 @@ const VariablesConverter = {
                     const joinBlock = converter._createBlock('operator_join', 'value');
                     converter._addTextInput(joinBlock, 'STRING1', variableBlock, 'apple');
                     converter._addTextInput(
-                        joinBlock, 'STRING2', converter._isNumber(rh) ? rh.toString() : rh, 'banana'
+                        joinBlock,
+                        'STRING2',
+                        converter._isNumber(rh) ? rh.toString() : rh,
+                        'banana',
                     );
 
                     converter._addInput(block, 'VALUE', joinBlock);
@@ -115,9 +118,9 @@ const VariablesConverter = {
                                 name: 'VARIABLE',
                                 id: variable.id,
                                 value: variable.name,
-                                variableType: variable.type
-                            }
-                        }
+                                variableType: variable.type,
+                            },
+                        },
                     });
                     converter._addNumberInput(block, 'VALUE', 'math_number', rh, 1);
                 } else {
@@ -130,15 +133,13 @@ const VariablesConverter = {
                                 name: 'VARIABLE',
                                 id: variable.id,
                                 value: variable.name,
-                                variableType: variable.type
-                            }
-                        }
+                                variableType: variable.type,
+                            },
+                        },
                     });
 
                     const lvarComment = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
-                    block.comment = converter._createComment(
-                        `${lvarComment},@ruby:syntax:+=`, block.id
-                    );
+                    block.comment = converter._createComment(`${lvarComment},@ruby:syntax:+=`, block.id);
 
                     const variableBlock = converter._createBlock('data_variable', 'value_variable', {
                         fields: {
@@ -146,9 +147,9 @@ const VariablesConverter = {
                                 name: 'VARIABLE',
                                 id: variable.id,
                                 value: variable.name,
-                                variableType: variable.type
-                            }
-                        }
+                                variableType: variable.type,
+                            },
+                        },
                     });
                     variableBlock.comment = converter._createComment(lvarComment, variableBlock.id);
 
@@ -169,17 +170,15 @@ const VariablesConverter = {
                             name: 'VARIABLE',
                             id: variable.id,
                             value: variable.name,
-                            variableType: variable.type
-                        }
-                    }
+                            variableType: variable.type,
+                        },
+                    },
                 });
 
                 const syntaxComment = `@ruby:syntax:${operator}=`;
                 if (variable.scope === 'local') {
                     const lvarComment = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
-                    block.comment = converter._createComment(
-                        `${lvarComment},${syntaxComment}`, block.id
-                    );
+                    block.comment = converter._createComment(`${lvarComment},${syntaxComment}`, block.id);
                 } else {
                     block.comment = converter._createComment(syntaxComment, block.id);
                 }
@@ -190,9 +189,9 @@ const VariablesConverter = {
                             name: 'VARIABLE',
                             id: variable.id,
                             value: variable.name,
-                            variableType: variable.type
-                        }
-                    }
+                            variableType: variable.type,
+                        },
+                    },
                 });
 
                 if (variable.scope === 'local') {
@@ -217,9 +216,9 @@ const VariablesConverter = {
                             name: 'VARIABLE',
                             id: variable.id,
                             value: variable.name,
-                            variableType: variable.type
-                        }
-                    }
+                            variableType: variable.type,
+                        },
+                    },
                 });
             } else if (scope === 'local' && !variable.isArgument) {
                 const block = converter._createBlock('data_variable', 'value_variable', {
@@ -228,9 +227,9 @@ const VariablesConverter = {
                             name: 'VARIABLE',
                             id: variable.id,
                             value: variable.name,
-                            variableType: variable.type
-                        }
-                    }
+                            variableType: variable.type,
+                        },
+                    },
                 });
 
                 const commentText = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
@@ -242,19 +241,22 @@ const VariablesConverter = {
         });
 
         converter.registerOnVasgn((scope, variable, rh) => {
-            if ((scope === 'global' || scope === 'instance' ||
-                (scope === 'local' && !variable.isArgument)) &&
-                converter._isPrimitive(rh) && rh.type === 'sym') {
+            if (
+                (scope === 'global' || scope === 'instance' || (scope === 'local' && !variable.isArgument)) &&
+                converter._isPrimitive(rh) &&
+                rh.type === 'sym'
+            ) {
                 rh = converter._symbolToBlock(rh.value, rh.node);
             }
 
-            if ((scope === 'global' || scope === 'instance' ||
-                (scope === 'local' && !variable.isArgument)) &&
-                converter._isArray(rh)) {
+            if (
+                (scope === 'global' || scope === 'instance' || (scope === 'local' && !variable.isArgument)) &&
+                converter._isArray(rh)
+            ) {
                 if (converter.version < 2) {
                     throw new RubyToBlocksConverterError(
                         converter._context.currentNode,
-                        converter._translator(messages.arrayLiteralNotAvailableInV1)
+                        converter._translator(messages.arrayLiteralNotAvailableInV1),
                     );
                 }
                 const elements = rh.value;
@@ -275,18 +277,15 @@ const VariablesConverter = {
                             name: 'LIST',
                             id: listVar.id,
                             value: listVar.name,
-                            variableType: listVar.type
-                        }
-                    }
+                            variableType: listVar.type,
+                        },
+                    },
                 });
                 let arrayLiteralComment = `@ruby:array:literal:${elements.length}`;
                 if (scope === 'local') {
-                    arrayLiteralComment =
-                        `@ruby:lvar:${variable.originalName}:${variable.scopeIndex},${arrayLiteralComment}`;
+                    arrayLiteralComment = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex},${arrayLiteralComment}`;
                 }
-                clearBlock.comment = converter._createComment(
-                    arrayLiteralComment, clearBlock.id
-                );
+                clearBlock.comment = converter._createComment(arrayLiteralComment, clearBlock.id);
 
                 // Create push blocks for each element
                 const blocks = [clearBlock];
@@ -298,17 +297,17 @@ const VariablesConverter = {
                                 name: 'LIST',
                                 id: listVar.id,
                                 value: listVar.name,
-                                variableType: listVar.type
-                            }
-                        }
+                                variableType: listVar.type,
+                            },
+                        },
                     });
                     converter._addTextInput(
-                        pushBlock, 'ITEM',
-                        converter._isNumber(elem) ? elem.toString() : elem, 'thing'
+                        pushBlock,
+                        'ITEM',
+                        converter._isNumber(elem) ? elem.toString() : elem,
+                        'thing',
                     );
-                    pushBlock.comment = converter._createComment(
-                        '@ruby:array:literal:element', pushBlock.id
-                    );
+                    pushBlock.comment = converter._createComment('@ruby:array:literal:element', pushBlock.id);
                     blocks.push(pushBlock);
                 }
 
@@ -316,13 +315,14 @@ const VariablesConverter = {
                 return converter._linkBlocks(blocks);
             }
 
-            if ((scope === 'global' || scope === 'instance' ||
-                (scope === 'local' && !variable.isArgument)) &&
-                converter._isHash(rh)) {
+            if (
+                (scope === 'global' || scope === 'instance' || (scope === 'local' && !variable.isArgument)) &&
+                converter._isHash(rh)
+            ) {
                 if (converter.version < 2) {
                     throw new RubyToBlocksConverterError(
                         converter._context.currentNode,
-                        converter._translator(messages.hashSyntaxNotAvailableInV1)
+                        converter._translator(messages.hashSyntaxNotAvailableInV1),
                     );
                 }
                 const hashEntries = rh.value; // Map<Primitive, Primitive>
@@ -346,18 +346,15 @@ const VariablesConverter = {
                             name: 'LIST',
                             id: keysList.id,
                             value: keysList.name,
-                            variableType: keysList.type
-                        }
-                    }
+                            variableType: keysList.type,
+                        },
+                    },
                 });
                 let hashLiteralComment = `@ruby:hash:literal:${hashEntries.size}`;
                 if (scope === 'local') {
-                    hashLiteralComment =
-                        `@ruby:lvar:${variable.originalName}:${variable.scopeIndex},${hashLiteralComment}`;
+                    hashLiteralComment = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex},${hashLiteralComment}`;
                 }
-                clearKeysBlock.comment = converter._createComment(
-                    hashLiteralComment, clearKeysBlock.id
-                );
+                clearKeysBlock.comment = converter._createComment(hashLiteralComment, clearKeysBlock.id);
 
                 // Create clear block for values
                 const clearValuesBlock = converter._createBlock('data_deletealloflist', 'statement', {
@@ -366,13 +363,11 @@ const VariablesConverter = {
                             name: 'LIST',
                             id: valuesList.id,
                             value: valuesList.name,
-                            variableType: valuesList.type
-                        }
-                    }
+                            variableType: valuesList.type,
+                        },
+                    },
                 });
-                clearValuesBlock.comment = converter._createComment(
-                    '@ruby:hash:literal:values', clearValuesBlock.id
-                );
+                clearValuesBlock.comment = converter._createComment('@ruby:hash:literal:values', clearValuesBlock.id);
 
                 const blocks = [clearKeysBlock, clearValuesBlock];
 
@@ -398,9 +393,9 @@ const VariablesConverter = {
                                 name: 'LIST',
                                 id: keysList.id,
                                 value: keysList.name,
-                                variableType: keysList.type
-                            }
-                        }
+                                variableType: keysList.type,
+                            },
+                        },
                     });
                     converter._addTextInput(pushKeyBlock, 'ITEM', keyStr, 'thing');
                     pushKeyBlock.comment = converter._createComment(keyComment, pushKeyBlock.id);
@@ -424,17 +419,17 @@ const VariablesConverter = {
                                 name: 'LIST',
                                 id: valuesList.id,
                                 value: valuesList.name,
-                                variableType: valuesList.type
-                            }
-                        }
+                                variableType: valuesList.type,
+                            },
+                        },
                     });
                     converter._addTextInput(
-                        pushValueBlock, 'ITEM',
-                        converter._isNumber(valueItem) ? valueItem.toString() : valueItem, 'thing'
+                        pushValueBlock,
+                        'ITEM',
+                        converter._isNumber(valueItem) ? valueItem.toString() : valueItem,
+                        'thing',
                     );
-                    pushValueBlock.comment = converter._createComment(
-                        '@ruby:hash:literal:value', pushValueBlock.id
-                    );
+                    pushValueBlock.comment = converter._createComment('@ruby:hash:literal:value', pushValueBlock.id);
                     blocks.push(pushValueBlock);
                 });
 
@@ -442,26 +437,26 @@ const VariablesConverter = {
             }
 
             // === Smalruby: Start of regex variable assignment ===
-            if ((scope === 'global' || scope === 'instance' ||
-                (scope === 'local' && !variable.isArgument)) &&
-                converter._isRegexp(rh)) {
+            if (
+                (scope === 'global' || scope === 'instance' || (scope === 'local' && !variable.isArgument)) &&
+                converter._isRegexp(rh)
+            ) {
                 const block = converter._createBlock('data_setvariableto', 'statement', {
                     fields: {
                         VARIABLE: {
                             name: 'VARIABLE',
                             id: variable.id,
                             value: variable.name,
-                            variableType: variable.type
-                        }
-                    }
+                            variableType: variable.type,
+                        },
+                    },
                 });
                 converter._addTextInput(block, 'VALUE', rh.toString(), '0');
                 variable.dataType = converter._inferDataType(rh);
 
                 let commentText = '@ruby:regexp:literal';
                 if (scope === 'local') {
-                    commentText =
-                        `@ruby:lvar:${variable.originalName}:${variable.scopeIndex},${commentText}`;
+                    commentText = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex},${commentText}`;
                 }
                 block.comment = converter._createComment(commentText, block.id);
                 return block;
@@ -476,9 +471,9 @@ const VariablesConverter = {
                                 name: 'VARIABLE',
                                 id: variable.id,
                                 value: variable.name,
-                                variableType: variable.type
-                            }
-                        }
+                                variableType: variable.type,
+                            },
+                        },
                     });
                     converter._addTextInput(block, 'VALUE', converter._isNumber(rh) ? rh.toString() : rh, '0');
                     variable.dataType = converter._inferDataType(rh);
@@ -492,9 +487,9 @@ const VariablesConverter = {
                                 name: 'VARIABLE',
                                 id: variable.id,
                                 value: variable.name,
-                                variableType: variable.type
-                            }
-                        }
+                                variableType: variable.type,
+                            },
+                        },
                     });
 
                     const commentText = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
@@ -507,7 +502,7 @@ const VariablesConverter = {
             }
             return null;
         });
-    }
+    },
 };
 
 export default VariablesConverter;

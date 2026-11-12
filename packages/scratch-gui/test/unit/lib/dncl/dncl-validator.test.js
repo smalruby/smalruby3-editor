@@ -42,24 +42,18 @@ describe('findDnclBlockErrors', () => {
     });
 
     test('each kind of block names its own closer', () => {
-        expect(errorsOf(['x < 3 の間', '  x ← x + 1'])[0].message).toBe(
-            '「〜の間」を「を繰り返す」で閉じてください',
-        );
+        expect(errorsOf(['x < 3 の間', '  x ← x + 1'])[0].message).toBe('「〜の間」を「を繰り返す」で閉じてください');
         expect(errorsOf(['i を 1 から 3 まで 1 ずつ増やしながら'])[0].message).toBe(
             '「〜ずつ増やしながら」を「を繰り返す」で閉じてください',
         );
         expect(errorsOf(['i を 3 から 1 まで 1 ずつ減らしながら'])[0].message).toBe(
             '「〜ずつ減らしながら」を「を繰り返す」で閉じてください',
         );
-        expect(errorsOf(['関数 f(a)', '  返す a'])[0].message).toBe(
-            '「関数」を「と定義する」で閉じてください',
-        );
+        expect(errorsOf(['関数 f(a)', '  返す a'])[0].message).toBe('「関数」を「と定義する」で閉じてください');
     });
 
     test('an inner block left open is reported, not the outer one', () => {
-        expect(
-            errorsOf(['x < 3 の間', '  もし x > 1 ならば', '    表示する(x)', 'を繰り返す']),
-        ).toEqual([
+        expect(errorsOf(['x < 3 の間', '  もし x > 1 ならば', '    表示する(x)', 'を繰り返す'])).toEqual([
             {
                 line: 2,
                 column: 1,
@@ -69,9 +63,7 @@ describe('findDnclBlockErrors', () => {
     });
 
     test('a block closed with the wrong closer is reported when the Ruby breaks', () => {
-        expect(
-            errorsOf(['もし x > 0 ならば', '  表示する(x)', 'を繰り返す', 'を実行する']),
-        ).toEqual([
+        expect(errorsOf(['もし x > 0 ならば', '  表示する(x)', 'を繰り返す', 'を実行する'])).toEqual([
             {
                 line: 3,
                 column: 1,
@@ -147,12 +139,10 @@ describe('dnclToRuby with a missing closer', () => {
     });
 
     test('the DNCLv2 forms closed by ⎿ and by indentation have no block error', () => {
-        expect(
-            dnclToRuby(['もし x > 0 ならば:', '｜ 表示する(x)', '⎿ 表示する(1)'].join('\n')).blockErrors,
-        ).toEqual([]);
-        expect(
-            dnclToRuby(['もし x > 0 ならば:', '  表示する(x)', '表示する(1)'].join('\n')).blockErrors,
-        ).toEqual([]);
+        expect(dnclToRuby(['もし x > 0 ならば:', '｜ 表示する(x)', '⎿ 表示する(1)'].join('\n')).blockErrors).toEqual(
+            [],
+        );
+        expect(dnclToRuby(['もし x > 0 ならば:', '  表示する(x)', '表示する(1)'].join('\n')).blockErrors).toEqual([]);
     });
 
     test('an error on a line after a DNCLv2 multi-assignment is on the line written', () => {

@@ -125,13 +125,14 @@ export default function (Generator) {
             // Suppressed: handled by data_deletealloflist array literal pattern
             return '';
         }
-        if (comment && (comment.includes('@ruby:hash:literal:key:') ||
-            comment.includes('@ruby:hash:literal:value'))) {
+        if (
+            comment &&
+            (comment.includes('@ruby:hash:literal:key:') || comment.includes('@ruby:hash:literal:value'))
+        ) {
             // Suppressed: handled by data_deletealloflist hash literal pattern
             return '';
         }
-        if (comment && (comment === '@ruby:hash:set:push:key' ||
-            comment === '@ruby:hash:set:push:value')) {
+        if (comment && (comment === '@ruby:hash:set:push:key' || comment === '@ruby:hash:set:push:value')) {
             // Suppressed: handled by data_deleteoflist hash set pattern
             return '';
         }
@@ -159,9 +160,7 @@ export default function (Generator) {
                 hashVarName = lvarMatch[1];
             } else {
                 const valuesListName = getListName(block);
-                hashVarName = getHashVarName(
-                    valuesListName.replace(/_values_$/, '_keys_')
-                );
+                hashVarName = getHashVarName(valuesListName.replace(/_values_$/, '_keys_'));
             }
 
             // Get the key from the nested data_itemnumoflist
@@ -351,9 +350,7 @@ export default function (Generator) {
                 hashVarName = lvarMatch[1];
             } else {
                 const valuesListName = getListName(block);
-                hashVarName = getHashVarName(
-                    valuesListName.replace(/_values_$/, '_keys_')
-                );
+                hashVarName = getHashVarName(valuesListName.replace(/_values_$/, '_keys_'));
             }
 
             // Get the key from the nested data_itemnumoflist block
@@ -369,7 +366,6 @@ export default function (Generator) {
                     }
                     // String key: "foo" -> $a["foo"]
                     return [`${hashVarName}["${rawKey}"]`, Generator.ORDER_FUNCTION_CALL];
-
                 }
             }
         }

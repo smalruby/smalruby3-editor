@@ -13,7 +13,7 @@ const PartLabel = {
     4: 'left_ear',
     5: 'right_ear',
     6: 'between_eyes',
-    7: 'top_of_head'
+    7: 'top_of_head',
 };
 
 /**

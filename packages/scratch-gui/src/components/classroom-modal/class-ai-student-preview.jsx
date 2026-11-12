@@ -8,7 +8,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
-
 import styles from './class-ai-student-preview.css';
 
 const BLOCKS = ['hat', 'motion', 'motion', 'looks'];
@@ -86,10 +85,7 @@ const ClassAiStudentPreview = ({ genai, rubytee }) => {
                 </span>
                 <div className={styles.canvas}>
                     {BLOCKS.map((kind, i) => (
-                        <span
-                            key={i}
-                            className={styles[kind]}
-                        />
+                        <span key={i} className={styles[kind]} />
                     ))}
                     {genai ? (
                         <span className={styles.panel}>
@@ -114,11 +110,7 @@ const ClassAiStudentPreview = ({ genai, rubytee }) => {
                 <span className={styles.tab}>{'Ruby'}</span>
                 <div className={styles.editor}>
                     {CODE_LINES.map((width, i) => (
-                        <span
-                            key={i}
-                            className={styles.line}
-                            style={{ width: `${width}%` }}
-                        />
+                        <span key={i} className={styles.line} style={{ width: `${width}%` }} />
                     ))}
                     {genai ? <Face testId="classroom-class-ai-preview-consult-ruby" /> : null}
                 </div>

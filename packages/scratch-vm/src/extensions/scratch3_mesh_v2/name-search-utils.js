@@ -21,7 +21,7 @@ const MESH_ID_LABEL_CHARACTERS = {
     c: 'に',
     d: 'な',
     e: 'く',
-    f: 'き'
+    f: 'き',
 };
 
 // Build reverse mapping: hiragana → hex
@@ -35,7 +35,7 @@ Object.entries(MESH_ID_LABEL_CHARACTERS).forEach(([hex, hiragana]) => {
  * @param {string} hiraganaStr - Hiragana string (e.g., 'しかたうんて').
  * @returns {string|null} Hex prefix (e.g., '123456'), or null if invalid.
  */
-const hiraganaToHex = hiraganaStr => {
+const hiraganaToHex = (hiraganaStr) => {
     if (!hiraganaStr || typeof hiraganaStr !== 'string' || hiraganaStr.length === 0) {
         return null;
     }
@@ -51,5 +51,5 @@ const hiraganaToHex = hiraganaStr => {
 module.exports = {
     MESH_ID_LABEL_CHARACTERS,
     MESH_ID_LABEL_REVERSE,
-    hiraganaToHex
+    hiraganaToHex,
 };

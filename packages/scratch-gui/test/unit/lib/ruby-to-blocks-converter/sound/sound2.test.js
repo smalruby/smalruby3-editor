@@ -4,7 +4,7 @@ import {
     convertAndExpectRubyBlockError,
     rubyToExpected,
     expectedInfo,
-    expectNoArgsMethod
+    expectNoArgsMethod,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Sound', () => {
@@ -14,7 +14,7 @@ describe('RubyToBlocksConverter/Sound', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -29,10 +29,10 @@ describe('RubyToBlocksConverter/Sound', () => {
                     inputs: [
                         {
                             name: 'VOLUME',
-                            block: expectedInfo.makeNumber(100)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(100),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -44,10 +44,10 @@ describe('RubyToBlocksConverter/Sound', () => {
                         {
                             name: 'VOLUME',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeNumber(100)
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(100),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -58,22 +58,18 @@ describe('RubyToBlocksConverter/Sound', () => {
                 self.volume = 100
                 bounce_if_on_edge
             `;
-            expected = [
-                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
-            ];
+            expected = [(await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]];
             expected[0].next = (await rubyToExpected(converter, target, 'self.volume = 100'))[0];
             expected[0].next.next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'self.volume = "100"',
-                'self.volume = :symbol',
-                'self.volume = abc'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of ['self.volume = "100"', 'self.volume = :symbol', 'self.volume = abc']) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
@@ -84,26 +80,23 @@ describe('RubyToBlocksConverter/Sound', () => {
 
         beforeEach(() => {
             // Mock target with sounds
-            const sounds = [
-                { name: 'Meow' },
-                { name: 'Pop' }
-            ];
+            const sounds = [{ name: 'Meow' }, { name: 'Pop' }];
             targetWithSounds = {
                 sprite: { sounds },
-                getSounds: () => sounds
+                getSounds: () => sounds,
             };
         });
 
         [
             {
                 opcode: 'sound_playuntildone',
-                methodName: 'play_until_done'
+                methodName: 'play_until_done',
             },
             {
                 opcode: 'sound_play',
-                methodName: 'play'
-            }
-        ].forEach(info => {
+                methodName: 'play',
+            },
+        ].forEach((info) => {
             describe(`${info.opcode} with sound existence check`, () => {
                 test('existing sound should work', async () => {
                     code = `${info.methodName}("Meow")`;
@@ -118,14 +111,14 @@ describe('RubyToBlocksConverter/Sound', () => {
                                         fields: [
                                             {
                                                 name: 'SOUND_MENU',
-                                                value: 'Meow'
-                                            }
+                                                value: 'Meow',
+                                            },
                                         ],
-                                        shadow: true
-                                    }
-                                }
-                            ]
-                        }
+                                        shadow: true,
+                                    },
+                                },
+                            ],
+                        },
                     ];
                     await convertAndExpectToEqualBlocks(converter, targetWithSounds, code, expected);
                 });

@@ -12,8 +12,7 @@
 // the error marker tells the user to use `#` (see `hasDoubleSlash`).
 //
 // See Issue #1192.
-
-import {skipString} from './paren-utils';
+import { skipString } from './paren-utils';
 
 /**
  * A line-number prefix and the whitespace after it: the DNCLv2 form
@@ -40,7 +39,7 @@ const NAME_RE = /[a-zA-Z_぀-ゟ゠-ヿ一-鿿][a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿]
  * @param {string} line - The source line.
  * @returns {number} Index of the comment `#`, or `line.length` when none.
  */
-const commentStart = line => {
+const commentStart = (line) => {
     let i = 0;
     while (i < line.length) {
         const ch = line[i];
@@ -59,7 +58,7 @@ const commentStart = line => {
  * @param {string} line - The source line.
  * @returns {Array<number>} Index of the first `/` of each `//`.
  */
-const slashIndices = line => {
+const slashIndices = (line) => {
     const result = [];
     const end = commentStart(line);
     let i = 0;
@@ -84,7 +83,7 @@ const slashIndices = line => {
  * @param {string} line - The source line.
  * @returns {string} The line with every string literal replaced by a space.
  */
-const withoutStrings = line => {
+const withoutStrings = (line) => {
     let out = '';
     let i = 0;
     while (i < line.length) {
@@ -106,7 +105,7 @@ const withoutStrings = line => {
  * @param {string} source - Program text.
  * @returns {Set<string>} The names.
  */
-const collectNames = source => {
+const collectNames = (source) => {
     const names = new Set();
     for (const line of source.split('\n')) {
         const slashes = slashIndices(line);
@@ -123,7 +122,7 @@ const collectNames = source => {
  * @param {string} line - The source line.
  * @returns {number} Opening brackets minus closing brackets.
  */
-const bracketDepth = line => {
+const bracketDepth = (line) => {
     let depth = 0;
     const code = withoutStrings(line.substring(0, commentStart(line)));
     for (const ch of code) {
@@ -186,7 +185,7 @@ const convertSlashComment = (line, names) => {
  * @param {Array<string>} lines - Source lines (line numbers not removed yet).
  * @returns {Array<string>} The lines with wrapped statements joined.
  */
-const joinContinuationLines = lines => {
+const joinContinuationLines = (lines) => {
     const result = [];
     let i = 0;
     while (i < lines.length) {
@@ -232,10 +231,10 @@ const joinContinuationLines = lines => {
 const tidyPastedDncl = (text, context = '') => {
     const eol = text.includes('\r\n') ? '\r\n' : '\n';
     const lines = text.split(/\r?\n/);
-    if (!lines.some(line => LINE_NUMBER_RE.test(line))) return text;
-    const stripped = joinContinuationLines(lines).map(line => line.replace(LINE_NUMBER_RE, ''));
+    if (!lines.some((line) => LINE_NUMBER_RE.test(line))) return text;
+    const stripped = joinContinuationLines(lines).map((line) => line.replace(LINE_NUMBER_RE, ''));
     const names = collectNames(`${stripped.join('\n')}\n${context}`);
-    return stripped.map(line => convertSlashComment(line, names)).join(eol);
+    return stripped.map((line) => convertSlashComment(line, names)).join(eol);
 };
 
 /**
@@ -245,7 +244,7 @@ const tidyPastedDncl = (text, context = '') => {
  * @param {string} line - The source line.
  * @returns {boolean} True when the line has a `//`.
  */
-const hasDoubleSlash = line => slashIndices(line).length > 0;
+const hasDoubleSlash = (line) => slashIndices(line).length > 0;
 
 /**
  * Prefix `hint` to the message of each conversion error whose DNCL line has
@@ -256,10 +255,10 @@ const hasDoubleSlash = line => slashIndices(line).length > 0;
  * @returns {Array<object>} The errors, with the hint added where it applies.
  */
 const withDoubleSlashHint = (errors, lines, hint) =>
-    errors.map(err =>
+    errors.map((err) =>
         err.row >= 0 && err.row < lines.length && hasDoubleSlash(lines[err.row])
-            ? {...err, text: `${hint}\n${err.text}`}
+            ? { ...err, text: `${hint}\n${err.text}` }
             : err,
     );
 
-export {hasDoubleSlash, tidyPastedDncl, withDoubleSlashHint};
+export { hasDoubleSlash, tidyPastedDncl, withDoubleSlashHint };

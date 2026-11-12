@@ -4,7 +4,7 @@ import ControlBlocks from '../../../../../src/lib/ruby-generator/control';
 describe('RubyGenerator/Control', () => {
     beforeEach(() => {
         RubyGenerator.cache_ = {
-            comments: {}
+            comments: {},
         };
         RubyGenerator.definitions_ = {};
         RubyGenerator.functionNames_ = {};
@@ -21,17 +21,15 @@ describe('RubyGenerator/Control', () => {
                 opcode: 'control_if',
                 inputs: {
                     CONDITION: {
-                        block: 'condition-id'
+                        block: 'condition-id',
                     },
                     SUBSTACK: {
-                        block: 'substack-id'
-                    }
-                }
+                        block: 'substack-id',
+                    },
+                },
             };
-            RubyGenerator.valueToCode = jest.fn()
-                .mockReturnValueOnce('x == 1');
-            RubyGenerator.statementToCode = jest.fn()
-                .mockReturnValueOnce('  move(10)\n');
+            RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('x == 1');
+            RubyGenerator.statementToCode = jest.fn().mockReturnValueOnce('  move(10)\n');
             expect(RubyGenerator.control_if(block)).toEqual('if x == 1\n  move(10)\nend\n');
         });
     });
@@ -43,19 +41,19 @@ describe('RubyGenerator/Control', () => {
                 opcode: 'control_if_else',
                 inputs: {
                     CONDITION: {
-                        block: 'condition-id'
+                        block: 'condition-id',
                     },
                     SUBSTACK: {
-                        block: 'substack-id'
+                        block: 'substack-id',
                     },
                     SUBSTACK2: {
-                        block: 'substack2-id'
-                    }
-                }
+                        block: 'substack2-id',
+                    },
+                },
             };
-            RubyGenerator.valueToCode = jest.fn()
-                .mockReturnValueOnce('x == 1');
-            RubyGenerator.statementToCode = jest.fn()
+            RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('x == 1');
+            RubyGenerator.statementToCode = jest
+                .fn()
                 .mockReturnValueOnce('  move(10)\n')
                 .mockReturnValueOnce('  move(20)\n');
             expect(RubyGenerator.control_if_else(block)).toEqual('if x == 1\n  move(10)\nelse\n  move(20)\nend\n');
@@ -68,25 +66,25 @@ describe('RubyGenerator/Control', () => {
                 inputs: {
                     CONDITION: { block: 'condition-id' },
                     SUBSTACK: { block: 'substack-id' },
-                    SUBSTACK2: { block: 'substack2-id' }
-                }
+                    SUBSTACK2: { block: 'substack2-id' },
+                },
             };
             const nestedBlock = {
                 id: 'substack2-id',
                 opcode: 'control_if',
                 inputs: {
                     CONDITION: { block: 'condition2-id' },
-                    SUBSTACK: { block: 'substack3-id' }
-                }
+                    SUBSTACK: { block: 'substack3-id' },
+                },
             };
 
-            RubyGenerator.getCommentText = jest.fn(b => {
+            RubyGenerator.getCommentText = jest.fn((b) => {
                 if (b.id === 'block-id' || b.id === 'substack2-id') {
                     return '@ruby:syntax:elsif:1';
                 }
                 return null;
             });
-            RubyGenerator.getBlock = jest.fn(id => {
+            RubyGenerator.getBlock = jest.fn((id) => {
                 if (id === 'substack2-id') return nestedBlock;
                 return null;
             });
@@ -101,7 +99,9 @@ describe('RubyGenerator/Control', () => {
                 return '';
             });
 
-            expect(RubyGenerator.control_if_else(block)).toEqual('if x == 1\n  move(10)\nelsif x == 2\n  move(20)\nend\n');
+            expect(RubyGenerator.control_if_else(block)).toEqual(
+                'if x == 1\n  move(10)\nelsif x == 2\n  move(20)\nend\n',
+            );
         });
 
         test('elsif + else', () => {
@@ -111,8 +111,8 @@ describe('RubyGenerator/Control', () => {
                 inputs: {
                     CONDITION: { block: 'condition-id' },
                     SUBSTACK: { block: 'substack-id' },
-                    SUBSTACK2: { block: 'substack2-id' }
-                }
+                    SUBSTACK2: { block: 'substack2-id' },
+                },
             };
             const nestedBlock = {
                 id: 'substack2-id',
@@ -120,17 +120,17 @@ describe('RubyGenerator/Control', () => {
                 inputs: {
                     CONDITION: { block: 'condition2-id' },
                     SUBSTACK: { block: 'substack3-id' },
-                    SUBSTACK2: { block: 'substack4-id' }
-                }
+                    SUBSTACK2: { block: 'substack4-id' },
+                },
             };
 
-            RubyGenerator.getCommentText = jest.fn(b => {
+            RubyGenerator.getCommentText = jest.fn((b) => {
                 if (b.id === 'block-id' || b.id === 'substack2-id') {
                     return '@ruby:syntax:elsif:1';
                 }
                 return null;
             });
-            RubyGenerator.getBlock = jest.fn(id => {
+            RubyGenerator.getBlock = jest.fn((id) => {
                 if (id === 'substack2-id') return nestedBlock;
                 return null;
             });
@@ -146,7 +146,9 @@ describe('RubyGenerator/Control', () => {
                 return '';
             });
 
-            expect(RubyGenerator.control_if_else(block)).toEqual('if x == 1\n  move(10)\nelsif x == 2\n  move(20)\nelse\n  move(30)\nend\n');
+            expect(RubyGenerator.control_if_else(block)).toEqual(
+                'if x == 1\n  move(10)\nelsif x == 2\n  move(20)\nelse\n  move(30)\nend\n',
+            );
         });
 
         test('multiple elsif', () => {
@@ -156,8 +158,8 @@ describe('RubyGenerator/Control', () => {
                 inputs: {
                     CONDITION: { block: 'cond1-id' },
                     SUBSTACK: { block: 'sub1-id' },
-                    SUBSTACK2: { block: 'block2-id' }
-                }
+                    SUBSTACK2: { block: 'block2-id' },
+                },
             };
             const block2 = {
                 id: 'block2-id',
@@ -165,8 +167,8 @@ describe('RubyGenerator/Control', () => {
                 inputs: {
                     CONDITION: { block: 'cond2-id' },
                     SUBSTACK: { block: 'sub2-id' },
-                    SUBSTACK2: { block: 'block3-id' }
-                }
+                    SUBSTACK2: { block: 'block3-id' },
+                },
             };
             const block3 = {
                 id: 'block3-id',
@@ -174,17 +176,17 @@ describe('RubyGenerator/Control', () => {
                 inputs: {
                     CONDITION: { block: 'cond3-id' },
                     SUBSTACK: { block: 'sub3-id' },
-                    SUBSTACK2: { block: 'sub4-id' }
-                }
+                    SUBSTACK2: { block: 'sub4-id' },
+                },
             };
 
-            RubyGenerator.getCommentText = jest.fn(b => {
+            RubyGenerator.getCommentText = jest.fn((b) => {
                 if (b.id === 'block1-id' || b.id === 'block2-id' || b.id === 'block3-id') {
                     return '@ruby:syntax:elsif:1';
                 }
                 return null;
             });
-            RubyGenerator.getBlock = jest.fn(id => {
+            RubyGenerator.getBlock = jest.fn((id) => {
                 if (id === 'block2-id') return block2;
                 if (id === 'block3-id') return block3;
                 return null;
@@ -203,7 +205,9 @@ describe('RubyGenerator/Control', () => {
                 return '';
             });
 
-            expect(RubyGenerator.control_if_else(block1)).toEqual('if x == 1\n  move(10)\nelsif x == 2\n  move(20)\nelsif x == 3\n  move(30)\nelse\n  move(40)\nend\n');
+            expect(RubyGenerator.control_if_else(block1)).toEqual(
+                'if x == 1\n  move(10)\nelsif x == 2\n  move(20)\nelsif x == 3\n  move(30)\nelse\n  move(40)\nend\n',
+            );
         });
     });
 });

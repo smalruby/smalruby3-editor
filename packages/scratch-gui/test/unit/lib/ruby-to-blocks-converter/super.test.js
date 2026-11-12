@@ -5,13 +5,13 @@ describe('RubyToBlocksConverter/Super', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
     describe('error cases', () => {
         test('super in v1 throws error', async () => {
-            const converterV1 = new RubyToBlocksConverter(null, {version: '1'});
+            const converterV1 = new RubyToBlocksConverter(null, { version: '1' });
             const code = `
                 module Mod
                   def func(a, b)
@@ -36,7 +36,7 @@ describe('RubyToBlocksConverter/Super', () => {
             const stageTarget = {
                 isStage: true,
                 variables: {},
-                sprite: {}
+                sprite: {},
             };
             const code = `
                 module Mod
@@ -115,7 +115,7 @@ describe('RubyToBlocksConverter/Super', () => {
         });
 
         test('forwarding super (no args) in v1 throws error', async () => {
-            const converterV1 = new RubyToBlocksConverter(null, {version: '1'});
+            const converterV1 = new RubyToBlocksConverter(null, { version: '1' });
             const code = `
                 module Mod
                   def func(a)
@@ -206,15 +206,15 @@ describe('RubyToBlocksConverter/Super', () => {
             const blocks = converter._context.blocks;
 
             // Check that there are two procedures_definition blocks
-            const procDefs = Object.values(blocks).filter(b => b.opcode === 'procedures_definition');
+            const procDefs = Object.values(blocks).filter((b) => b.opcode === 'procedures_definition');
             expect(procDefs).toHaveLength(2);
 
             // Find the module method (renamed) and class method
-            const moduleProc = procDefs.find(b => {
+            const moduleProc = procDefs.find((b) => {
                 const comment = converter._context.comments[b.comment];
                 return comment && comment.text.includes('module_source');
             });
-            const classProc = procDefs.find(b => b !== moduleProc);
+            const classProc = procDefs.find((b) => b !== moduleProc);
 
             expect(moduleProc).toBeTruthy();
             expect(classProc).toBeTruthy();
@@ -232,7 +232,7 @@ describe('RubyToBlocksConverter/Super', () => {
             expect(classPrototype.mutation.proccode).toMatch(/^func /);
 
             // Check that super call exists as procedures_call to _super_func_1_
-            const superCalls = Object.values(blocks).filter(b => {
+            const superCalls = Object.values(blocks).filter((b) => {
                 if (b.opcode !== 'procedures_call') return false;
                 const comment = b.comment && converter._context.comments[b.comment];
                 return comment && comment.text === '@ruby:super';
@@ -264,7 +264,7 @@ describe('RubyToBlocksConverter/Super', () => {
             const blocks = converter._context.blocks;
 
             // Check that super call exists with forwarding comment
-            const superCalls = Object.values(blocks).filter(b => {
+            const superCalls = Object.values(blocks).filter((b) => {
                 if (b.opcode !== 'procedures_call') return false;
                 const comment = b.comment && converter._context.comments[b.comment];
                 return comment && comment.text === '@ruby:super:forwarding';
@@ -300,14 +300,14 @@ describe('RubyToBlocksConverter/Super', () => {
             const blocks = converter._context.blocks;
 
             // Find all procedures_call blocks that are NOT super calls
-            const regularCalls = Object.values(blocks).filter(b => {
+            const regularCalls = Object.values(blocks).filter((b) => {
                 if (b.opcode !== 'procedures_call') return false;
                 const comment = b.comment && converter._context.comments[b.comment];
                 return !comment || !comment.text.startsWith('@ruby:super');
             });
 
             // The func(5) call should reference the class method 'func', not '_super_func_1_'
-            const funcCall = regularCalls.find(b => b.mutation.proccode.startsWith('func '));
+            const funcCall = regularCalls.find((b) => b.mutation.proccode.startsWith('func '));
             expect(funcCall).toBeTruthy();
         });
     });

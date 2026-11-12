@@ -2,7 +2,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
-
 import styles from './genai-concierge.css';
 import messages from './messages.js';
 

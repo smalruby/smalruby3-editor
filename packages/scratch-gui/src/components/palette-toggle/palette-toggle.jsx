@@ -1,14 +1,11 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import styles from './palette-toggle.css';
 
-const PaletteToggle = ({paletteVisible, onClick, style}) => (
+const PaletteToggle = ({ paletteVisible, onClick, style }) => (
     <button
-        className={classNames(
-            styles.paletteToggleButton,
-            {[styles.paletteToggleButtonHidden]: !paletteVisible}
-        )}
+        className={classNames(styles.paletteToggleButton, { [styles.paletteToggleButtonHidden]: !paletteVisible })}
         style={style}
         title={paletteVisible ? 'ブロックパレットを隠す' : 'ブロックパレットを表示する'}
         data-testid="palette-toggle-button"
@@ -21,7 +18,7 @@ const PaletteToggle = ({paletteVisible, onClick, style}) => (
 PaletteToggle.propTypes = {
     onClick: PropTypes.func.isRequired,
     paletteVisible: PropTypes.bool.isRequired,
-    style: PropTypes.object
+    style: PropTypes.object,
 };
 
 export default PaletteToggle;

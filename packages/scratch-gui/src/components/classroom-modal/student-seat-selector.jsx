@@ -1,14 +1,11 @@
-import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
-
+import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import { SEAT_IDLE_HINT_MS, decideSeatAction, parseSeatNumberInput } from '../../lib/classroom-seat-selection.js';
-
+import styles from './classroom-modal.css';
 import ClassroomStatusIcon from './classroom-status-icon.jsx';
 import ErrorDisplay from './error-display.jsx';
 import KickRequestConfirmDialog from './kick-request-confirm-dialog.jsx';
-
-import styles from './classroom-modal.css';
 
 const messages = defineMessages({
     numberInputLabel: {
@@ -27,7 +24,8 @@ const messages = defineMessages({
         id: 'gui.classroom.studentSeat.numberError',
     },
     alreadyRequested: {
-        defaultMessage: 'Seat {seatNumber} is in use. You are already waiting for the teacher, so please wait a little.',
+        defaultMessage:
+            'Seat {seatNumber} is in use. You are already waiting for the teacher, so please wait a little.',
         description: 'Error shown when the typed seat is taken and a kick request is already pending',
         id: 'gui.classroom.studentSeat.alreadyRequested',
     },
@@ -148,10 +146,7 @@ const StudentSeatSelector = ({
     }
 
     return (
-        <div
-            className={styles.studentSeatLayout}
-            data-testid="classroom-phase-student-seat"
-        >
+        <div className={styles.studentSeatLayout} data-testid="classroom-phase-student-seat">
             <div className={styles.studentMain} data-testid="classroom-seat-main">
                 {selectedSeat ? (
                     // Tapping a seat goes straight to this confirmation, with Join
@@ -228,7 +223,7 @@ const StudentSeatSelector = ({
                             />
                         </div>
                         <div className={styles.seatGrid} data-testid="classroom-seat-grid">
-                            {Array.from({ length: seatCount }, (_, i) => i + 1).map(n => {
+                            {Array.from({ length: seatCount }, (_, i) => i + 1).map((n) => {
                                 const isTaken = takenSeats.includes(n);
                                 const isTyped = typedSeat === n;
                                 // Taken seats become tappable when an onRequestKick handler is
@@ -246,12 +241,7 @@ const StudentSeatSelector = ({
                                         onClick={handleSeatClick}
                                     >
                                         <span className={styles.seatButtonNumber}>{n}</span>
-                                        {isTaken && (
-                                            <ClassroomStatusIcon
-                                                size={12}
-                                                status="occupied"
-                                            />
-                                        )}
+                                        {isTaken && <ClassroomStatusIcon size={12} status="occupied" />}
                                     </button>
                                 );
                             })}
@@ -347,10 +337,7 @@ const StudentSeatSelector = ({
                     </div>
                 )}
                 {kickRequestPending && (
-                    <div
-                        className={styles.kickRequestPendingBanner}
-                        data-testid="kick-request-pending-banner"
-                    >
+                    <div className={styles.kickRequestPendingBanner} data-testid="kick-request-pending-banner">
                         <FormattedMessage
                             defaultMessage="Waiting for the teacher to free seat {seatNumber}..."
                             description="Banner shown while a pending kick request is outstanding"
@@ -367,10 +354,7 @@ const StudentSeatSelector = ({
                     </div>
                 )}
                 {!kickRequestPending && kickRequestRejectedNotice && (
-                    <div
-                        className={styles.kickRequestRejectedBanner}
-                        data-testid="kick-request-rejected-banner"
-                    >
+                    <div className={styles.kickRequestRejectedBanner} data-testid="kick-request-rejected-banner">
                         <div className={styles.kickRequestRejectedText}>
                             <FormattedMessage
                                 defaultMessage="The teacher did not free seat {seatNumber} this time. Try a different seat, or send a new request."

@@ -2,7 +2,7 @@ const log = require('../../util/log');
 
 const MESH_DOMAIN_STORAGE_KEY = 'mesh_v2_domain';
 
-const validateDomain = domain => {
+const validateDomain = (domain) => {
     if (!domain) return null;
 
     if (domain.length > 256) {
@@ -40,7 +40,7 @@ const getDomainFromLocalStorage = () => {
 };
 
 /* istanbul ignore next */
-const saveDomainToLocalStorage = domain => {
+const saveDomainToLocalStorage = (domain) => {
     /* istanbul ignore next */
     if (typeof window === 'undefined' || !window.localStorage) return;
     if (domain) {
@@ -68,5 +68,5 @@ module.exports = {
     saveDomainToLocalStorage,
     getDomain,
     validateDomain,
-    getForcePollingFromUrl
+    getForcePollingFromUrl,
 };

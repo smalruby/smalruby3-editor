@@ -6,14 +6,14 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Pen extension blocks', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
@@ -84,7 +84,7 @@ describe('Ruby Roundtrip: Pen extension blocks', () => {
     });
 
     test('Ruby -> Code -> Ruby (v2)', async () => {
-        const converter2 = makeConverter(target, runtime, {version: 2});
+        const converter2 = makeConverter(target, runtime, { version: 2 });
         const v2Code = dedent`
             pen.clear
             pen.stamp
@@ -102,6 +102,6 @@ describe('Ruby Roundtrip: Pen extension blocks', () => {
             pen.size += 1
             pen.size = 1
         `;
-        await expectRoundTrip(converter2, target, v2Code, null, {version: 2});
+        await expectRoundTrip(converter2, target, v2Code, null, { version: 2 });
     });
 });

@@ -8,36 +8,39 @@ import BlockCreation from './block-creation';
 const BlockUtils = {
     ...BlockCreation,
 
-    setParent (block, parent) {
+    setParent(block, parent) {
         return this._setParent(block, parent);
     },
 
-    _setParent (block, parent) {
+    _setParent(block, parent) {
         if (this._isBlock(block)) {
             block.parent = parent.id;
             parent.next = block.id;
         }
     },
 
-    addField (block, name, value, attributes = {}) {
+    addField(block, name, value, attributes = {}) {
         return this._addField(block, name, value, attributes);
     },
 
-    _addField (block, name, value, attributes = {}) {
+    _addField(block, name, value, attributes = {}) {
         if (!this._isBlock(block)) {
             return;
         }
-        block.fields[name] = Object.assign({
-            name: name,
-            value: value.toString()
-        }, attributes);
+        block.fields[name] = Object.assign(
+            {
+                name: name,
+                value: value.toString(),
+            },
+            attributes,
+        );
     },
 
-    addInput (block, name, inputBlock, shadowBlock) {
+    addInput(block, name, inputBlock, shadowBlock) {
         return this._addInput(block, name, inputBlock, shadowBlock);
     },
 
-    _addInput (block, name, inputBlock, shadowBlock) {
+    _addInput(block, name, inputBlock, shadowBlock) {
         if (!name) {
             name = inputBlock.id;
         }
@@ -52,11 +55,11 @@ const BlockUtils = {
         block.inputs[name] = {
             name: name,
             block: inputBlock.id,
-            shadow: inputBlock.shadow ? inputBlock.id : shadowBlockId
+            shadow: inputBlock.shadow ? inputBlock.id : shadowBlockId,
         };
     },
 
-    addBooleanInput (block, name, value) {
+    addBooleanInput(block, name, value) {
         return this._addBooleanInput(block, name, value);
     },
 
@@ -68,7 +71,7 @@ const BlockUtils = {
      * @param {string} name - The input name (e.g. `CONDITION`, `OPERAND`).
      * @param {*} value - The converted value (a block, or a `false` literal).
      */
-    _addBooleanInput (block, name, value) {
+    _addBooleanInput(block, name, value) {
         if (this._isFalse(value)) {
             this._discardBooleanLiteral(value);
             return;
@@ -83,7 +86,7 @@ const BlockUtils = {
      * counter is wound back when it was the last one, so that the next literal keeps its number.
      * @param {*} value - The `true` / `false` literal (a block, a primitive, or a boolean).
      */
-    _discardBooleanLiteral (value) {
+    _discardBooleanLiteral(value) {
         if (!this._isBlock(value)) return;
         const comment = value.comment ? this._context.comments[value.comment] : null;
         if (comment) {
@@ -95,7 +98,7 @@ const BlockUtils = {
         this._discardBlock(value);
     },
 
-    discardValue (value) {
+    discardValue(value) {
         return this._discardValue(value);
     },
 
@@ -105,7 +108,7 @@ const BlockUtils = {
      * an orphan. A primitive (number, string, symbol, ...) has no block, so nothing is dropped.
      * @param {*} value - The converted value (a block, a primitive, or a literal).
      */
-    _discardValue (value) {
+    _discardValue(value) {
         if (!this._isBlock(value)) return;
         if (this._isTrue(value) || this._isFalse(value)) {
             this._discardBooleanLiteral(value);
@@ -120,22 +123,22 @@ const BlockUtils = {
      * context. The blocks after it (`next`) are kept: the caller unlinks the block from its chain.
      * @param {object} block - The block to drop.
      */
-    _discardBlock (block) {
+    _discardBlock(block) {
         if (!this._isBlock(block)) return;
         const ids = [];
-        const collect = b => {
+        const collect = (b) => {
             if (!b || ids.includes(b.id)) return;
             ids.push(b.id);
             if (b.comment) {
                 delete this._context.comments[b.comment];
             }
-            Object.values(b.inputs || {}).forEach(input => {
+            Object.values(b.inputs || {}).forEach((input) => {
                 collect(this._context.blocks[input.block]);
                 collect(this._context.blocks[input.shadow]);
             });
         };
         collect(block);
-        ids.forEach(id => {
+        ids.forEach((id) => {
             delete this._context.blocks[id];
             delete this._context.blockTypes[id];
         });
@@ -147,11 +150,11 @@ const BlockUtils = {
         }
     },
 
-    addNumberInput (block, name, opcode, inputValue, shadowValue) {
+    addNumberInput(block, name, opcode, inputValue, shadowValue) {
         return this._addNumberInput(block, name, opcode, inputValue, shadowValue);
     },
 
-    _addNumberInput (block, name, opcode, inputValue, shadowValue) {
+    _addNumberInput(block, name, opcode, inputValue, shadowValue) {
         const previousNode = this._context.currentNode;
         this._context.currentNode = null;
 
@@ -166,11 +169,11 @@ const BlockUtils = {
         this._context.currentNode = previousNode;
     },
 
-    addNoteInput (block, name, inputValue, shadowValue) {
+    addNoteInput(block, name, inputValue, shadowValue) {
         return this._addNoteInput(block, name, inputValue, shadowValue);
     },
 
-    _addNoteInput (block, name, inputValue, shadowValue) {
+    _addNoteInput(block, name, inputValue, shadowValue) {
         const previousNode = this._context.currentNode;
         this._context.currentNode = null;
 
@@ -184,18 +187,18 @@ const BlockUtils = {
         this._context.currentNode = previousNode;
     },
 
-    _createNoteBlock (opcode, value) {
+    _createNoteBlock(opcode, value) {
         if (this._isNumber(value) || value === '') {
             return this._createFieldBlock(opcode, 'NOTE', value.toString());
         }
         return value;
     },
 
-    addTextInput (block, name, inputValue, shadowValue) {
+    addTextInput(block, name, inputValue, shadowValue) {
         return this._addTextInput(block, name, inputValue, shadowValue);
     },
 
-    _addTextInput (block, name, inputValue, shadowValue) {
+    _addTextInput(block, name, inputValue, shadowValue) {
         const previousNode = this._context.currentNode;
         this._context.currentNode = null;
 
@@ -208,11 +211,11 @@ const BlockUtils = {
         this._context.currentNode = previousNode;
     },
 
-    addFieldInput (block, name, opcode, fieldName, inputValue, shadowValue) {
+    addFieldInput(block, name, opcode, fieldName, inputValue, shadowValue) {
         return this._addFieldInput(block, name, opcode, fieldName, inputValue, shadowValue);
     },
 
-    _addFieldInput (block, name, opcode, fieldName, inputValue, shadowValue) {
+    _addFieldInput(block, name, opcode, fieldName, inputValue, shadowValue) {
         const previousNode = this._context.currentNode;
         this._context.currentNode = null;
 
@@ -227,21 +230,19 @@ const BlockUtils = {
         this._context.currentNode = previousNode;
     },
 
-    addColorFieldInput (block, name, inputValue, shadowValue) {
+    addColorFieldInput(block, name, inputValue, shadowValue) {
         return this._addColorFieldInput(block, name, inputValue, shadowValue);
     },
 
     // Like _addFieldInput for a `colour_picker` field, but normalizes string color
     // values (named colors, #rgb, rgb()) into `#rrggbb` so AI-generated/hand-written
     // color code does not error. Non-string inputs (e.g. variable blocks) pass through.
-    _addColorFieldInput (block, name, inputValue, shadowValue) {
-        const normalized = this._isString(inputValue) ?
-            (this.normalizeColor(inputValue) || inputValue) :
-            inputValue;
+    _addColorFieldInput(block, name, inputValue, shadowValue) {
+        const normalized = this._isString(inputValue) ? this.normalizeColor(inputValue) || inputValue : inputValue;
         return this._addFieldInput(block, name, 'colour_picker', 'COLOUR', normalized, shadowValue);
     },
 
-    _addSubstack (block, substackBlock, num = 1) {
+    _addSubstack(block, substackBlock, num = 1) {
         let name = 'SUBSTACK';
         if (num > 1) {
             name = `${name}${num}`;
@@ -254,11 +255,11 @@ const BlockUtils = {
         block.inputs[name] = {
             name: name,
             block: substackBlockId,
-            shadow: null
+            shadow: null,
         };
     },
 
-    _lastBlock (block) {
+    _lastBlock(block) {
         let b = block;
         while (b.next) {
             b = this._context.blocks[b.next];
@@ -266,7 +267,7 @@ const BlockUtils = {
         return b;
     },
 
-    removeBlock (block) {
+    removeBlock(block) {
         if (this.isNil(block)) {
             return;
         }
@@ -280,7 +281,7 @@ const BlockUtils = {
         delete this._context.blocks[block.id];
     },
 
-    _removeWaitBlocks (block) {
+    _removeWaitBlocks(block) {
         if (!block) {
             this._hadWaitInLastRemove = false;
             return null;
@@ -320,13 +321,13 @@ const BlockUtils = {
         return firstBlock;
     },
 
-    _linkBlocks (blocks) {
+    _linkBlocks(blocks) {
         if (!_.isArray(blocks) || blocks.length < 2) {
             return blocks;
         }
         let prevBlock = null;
         const result = [];
-        blocks.forEach(block => {
+        blocks.forEach((block) => {
             if (!this._isBlock(block)) {
                 prevBlock = null;
                 return;
@@ -355,7 +356,7 @@ const BlockUtils = {
             }
         });
         return result;
-    }
+    },
 };
 
 export default BlockUtils;

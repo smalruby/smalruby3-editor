@@ -28,16 +28,16 @@ describe('RubyGenerator', () => {
                             md5: '01ae57fd339529445cb890978ef8a054.svg',
                             dataFormat: 'svg',
                             rotationCenterX: 47,
-                            rotationCenterY: 55
+                            rotationCenterY: 55,
                         },
                         {
                             assetId: '3b6274510488d5b26447c1c266475801',
                             name: 'Costume2',
                             dataFormat: 'png',
                             rotationCenterX: 65,
-                            rotationCenterY: 61
-                        }
-                    ]
+                            rotationCenterY: 61,
+                        },
+                    ],
                 },
                 x: 11,
                 y: 12,
@@ -50,34 +50,34 @@ describe('RubyGenerator', () => {
                     id1: {
                         name: 'Variable1',
                         type: SCALAR_TYPE,
-                        value: 10
+                        value: 10,
                     },
                     id2: {
                         name: 'List1',
                         type: LIST_TYPE,
-                        value: [1, 2, 3]
+                        value: [1, 2, 3],
                     },
                     id3: {
                         name: 'Variable2',
                         type: SCALAR_TYPE,
-                        value: 0
+                        value: 0,
                     },
                     id4: {
                         name: 'List2',
                         type: LIST_TYPE,
-                        value: []
+                        value: [],
                     },
                     id5: {
                         name: 'Variable3',
                         type: SCALAR_TYPE,
-                        value: 'abc'
+                        value: 'abc',
                     },
                     id6: {
                         name: 'List3',
                         type: LIST_TYPE,
-                        value: ['a', 'b', 'c']
-                    }
-                }
+                        value: ['a', 'b', 'c'],
+                    },
+                },
             };
         });
 
@@ -146,7 +146,7 @@ describe('RubyGenerator', () => {
                 size: 100,
                 currentCostume: 1,
                 rotationStyle: 'all around',
-                variables: {}
+                variables: {},
             });
             renderedTarget.sprite.costumes = [];
             const expected = `Sprite.new(${RubyGenerator.quote_(spriteName)})`;
@@ -155,7 +155,7 @@ describe('RubyGenerator', () => {
 
         test('the Stage.new instead of the Sprite.new if stage', async () => {
             Object.assign(renderedTarget, {
-                isStage: true
+                isStage: true,
             });
             const expected = `Stage.new(${RubyGenerator.quote_(spriteName)},
           x: ${renderedTarget.x},
@@ -218,19 +218,19 @@ describe('RubyGenerator', () => {
                     id1: {
                         name: 'my variable',
                         type: SCALAR_TYPE,
-                        value: 10
+                        value: 10,
                     },
                     id2: {
                         name: 'my list',
                         type: LIST_TYPE,
-                        value: [1, 2, 3]
+                        value: [1, 2, 3],
                     },
                     id3: {
                         name: 'variable with spaces',
                         type: SCALAR_TYPE,
-                        value: 'test'
-                    }
-                }
+                        value: 'test',
+                    },
+                },
             });
             const expected = `Sprite.new(${RubyGenerator.quote_(spriteName)},
            x: ${renderedTarget.x},

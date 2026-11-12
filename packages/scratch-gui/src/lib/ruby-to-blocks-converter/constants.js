@@ -40,7 +40,7 @@ const KeyOptions = [
     '6',
     '7',
     '8',
-    '9'
+    '9',
 ];
 
 /**
@@ -50,7 +50,7 @@ const KeyOptions = [
 const Variable = {
     SCALAR_TYPE: '',
     LIST_TYPE: 'list',
-    BROADCAST_MESSAGE_TYPE: 'broadcast_msg'
+    BROADCAST_MESSAGE_TYPE: 'broadcast_msg',
 };
 
 /**
@@ -66,8 +66,4 @@ const Variable = {
  */
 const LOCAL_VARIABLE_PATTERN = /^_(?![A-Z])[\p{L}_][\p{L}\p{N}_]*_\d+_$/u;
 
-export {
-    KeyOptions,
-    Variable,
-    LOCAL_VARIABLE_PATTERN
-};
+export { KeyOptions, Variable, LOCAL_VARIABLE_PATTERN };

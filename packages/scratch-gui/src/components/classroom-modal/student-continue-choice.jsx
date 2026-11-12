@@ -17,7 +17,6 @@
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import { FormattedMessage } from 'react-intl';
-
 import styles from './classroom-modal.css';
 
 const formatSubmittedAt = (iso) =>

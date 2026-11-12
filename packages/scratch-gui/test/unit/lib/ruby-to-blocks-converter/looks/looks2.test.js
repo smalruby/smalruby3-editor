@@ -1,11 +1,11 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {RubyToBlocksConverterError} from '../../../../../src/lib/ruby-to-blocks-converter/errors';
+import { RubyToBlocksConverterError } from '../../../../../src/lib/ruby-to-blocks-converter/errors';
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
     expectedInfo,
-    expectNoArgsMethod
+    expectNoArgsMethod,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Looks', () => {
@@ -15,7 +15,7 @@ describe('RubyToBlocksConverter/Looks', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -30,10 +30,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                     inputs: [
                         {
                             name: 'MESSAGE',
-                            block: expectedInfo.makeText('Hmm...')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('Hmm...'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -44,10 +44,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                     inputs: [
                         {
                             name: 'MESSAGE',
-                            block: expectedInfo.makeText('1')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('1'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -59,21 +59,20 @@ describe('RubyToBlocksConverter/Looks', () => {
                         {
                             name: 'MESSAGE',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeText('Hmm...')
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeText('Hmm...'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'think',
-                'think(1, 2, 1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of ['think', 'think(1, 2, 1)']) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
@@ -91,14 +90,14 @@ describe('RubyToBlocksConverter/Looks', () => {
                                 fields: [
                                     {
                                         name: 'COSTUME',
-                                        value: 'costume2'
-                                    }
+                                        value: 'costume2',
+                                    },
                                 ],
-                                shadow: true
-                            }
-                        }
-                    ]
-                }
+                                shadow: true,
+                            },
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -118,29 +117,31 @@ describe('RubyToBlocksConverter/Looks', () => {
                                     fields: [
                                         {
                                             name: 'COSTUME',
-                                            value: name
-                                        }
+                                            value: name,
+                                        },
                                     ],
-                                    shadow: true
-                                }
-                            }
-                        ]
-                    }
+                                    shadow: true,
+                                },
+                            },
+                        ],
+                    },
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             }
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'switch_costume',
-                'switch_costume(:symbol)',
-                'switch_costume(1)',
-                'switch_costume(x)',
-                'switch_costume("costume2", 1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of [
+                    'switch_costume',
+                    'switch_costume(:symbol)',
+                    'switch_costume(1)',
+                    'switch_costume(x)',
+                    'switch_costume("costume2", 1)',
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
@@ -160,14 +161,14 @@ describe('RubyToBlocksConverter/Looks', () => {
                                 fields: [
                                     {
                                         name: 'BACKDROP',
-                                        value: 'backdrop2'
-                                    }
+                                        value: 'backdrop2',
+                                    },
                                 ],
-                                shadow: true
-                            }
-                        }
-                    ]
-                }
+                                shadow: true,
+                            },
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -187,29 +188,31 @@ describe('RubyToBlocksConverter/Looks', () => {
                                     fields: [
                                         {
                                             name: 'BACKDROP',
-                                            value: name
-                                        }
+                                            value: name,
+                                        },
                                     ],
-                                    shadow: true
-                                }
-                            }
-                        ]
-                    }
+                                    shadow: true,
+                                },
+                            },
+                        ],
+                    },
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             }
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'switch_backdrop',
-                'switch_backdrop(:symbol)',
-                'switch_backdrop(1)',
-                'switch_backdrop(x)',
-                'switch_backdrop("backdrop2", 1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of [
+                    'switch_backdrop',
+                    'switch_backdrop(:symbol)',
+                    'switch_backdrop(1)',
+                    'switch_backdrop(x)',
+                    'switch_backdrop("backdrop2", 1)',
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
@@ -224,10 +227,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                     inputs: [
                         {
                             name: 'CHANGE',
-                            block: expectedInfo.makeNumber(10)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(10),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -239,10 +242,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                         {
                             name: 'CHANGE',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeNumber(10)
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(10),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -255,10 +258,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                     inputs: [
                         {
                             name: 'CHANGE',
-                            block: expectedInfo.makeNumber(-10)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(-10),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -270,22 +273,20 @@ describe('RubyToBlocksConverter/Looks', () => {
                         {
                             name: 'CHANGE',
                             block: (await rubyToExpected(converter, target, '0 - x'))[0],
-                            shadow: expectedInfo.makeNumber(10)
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(10),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'self.size += "10"',
-                'self.size += :symbol',
-                'self.size += abc'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of ['self.size += "10"', 'self.size += :symbol', 'self.size += abc']) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
@@ -298,10 +299,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                     inputs: [
                         {
                             name: 'SIZE',
-                            block: expectedInfo.makeNumber(10)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(10),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -313,23 +314,20 @@ describe('RubyToBlocksConverter/Looks', () => {
                         {
                             name: 'SIZE',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeNumber(100)
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(100),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'self.size = "10"',
-                'self.size = :symbol',
-                'self.size = abc'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of ['self.size = "10"', 'self.size = :symbol', 'self.size = abc']) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
-
 });

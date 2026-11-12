@@ -22,9 +22,9 @@ const IMPASSABLE_CODES = new Set([1, 2, 5]);
  * @param {string} position - the "x:y" string.
  * @returns {{x: number, y: number}} - the parsed coordinates (NaN when invalid).
  */
-const parsePosition = position => {
+const parsePosition = (position) => {
     const [x, y] = String(position).split(':').map(Number);
-    return {x, y};
+    return { x, y };
 };
 
 /**
@@ -40,12 +40,12 @@ const formatPosition = (x, y) => `${x}:${y}`;
  * @param {string} mapString - the map string ('-' = unexplored).
  * @returns {Array<Array<(number|string)>>} - the parsed grid.
  */
-const parseMapString = mapString => {
+const parseMapString = (mapString) => {
     if (typeof mapString !== 'string' || mapString.length === 0) {
         return [];
     }
-    return mapString.split(',').map(row =>
-        row.split('').map(ch => {
+    return mapString.split(',').map((row) =>
+        row.split('').map((ch) => {
             if (ch === '-') {
                 return -1;
             }
@@ -59,10 +59,8 @@ const parseMapString = mapString => {
  * @param {Array<Array<(number|string)>>} grid - the grid.
  * @returns {string} - the "row,row,..." map string.
  */
-const gridToMapString = grid =>
-    grid
-        .map(row => row.map(cell => (cell === -1 ? '-' : String(cell))).join(''))
-        .join(',');
+const gridToMapString = (grid) =>
+    grid.map((row) => row.map((cell) => (cell === -1 ? '-' : String(cell))).join('')).join(',');
 
 /**
  * Read a single cell, returning -1 (unexplored) when out of bounds.
@@ -89,7 +87,7 @@ const cellAt = (grid, x, y) => {
  * @param {(number|string)} cell - the cell value.
  * @returns {number} - the movement cost.
  */
-const moveCost = cell => {
+const moveCost = (cell) => {
     if (typeof cell === 'number' && IMPASSABLE_CODES.has(cell)) {
         return Infinity;
     }
@@ -137,8 +135,8 @@ const calcRoute = (grid, src, dst, exceptCells = []) => {
 
     const blocked = new Set(
         (Array.isArray(exceptCells) ? exceptCells : [])
-            .filter(cell => typeof cell === 'string' && cell.includes(':'))
-            .map(cell => {
+            .filter((cell) => typeof cell === 'string' && cell.includes(':'))
+            .map((cell) => {
                 const p = parsePosition(cell);
                 return key(p.x, p.y);
             }),
@@ -217,21 +215,24 @@ const calcRoute = (grid, src, dst, exceptCells = []) => {
  * @param {(string|Array)} objects - the objects argument.
  * @returns {Array<string>} - object codes as strings.
  */
-const normalizeObjectCodes = objects => {
+const normalizeObjectCodes = (objects) => {
     if (objects === undefined || objects === null) {
         return [];
     }
     if (Array.isArray(objects)) {
-        return objects.map(o => String(o).trim()).filter(o => o !== '');
+        return objects.map((o) => String(o).trim()).filter((o) => o !== '');
     }
     const str = String(objects).trim();
     if (str === '') {
         return [];
     }
     if (str.includes(',')) {
-        return str.split(',').map(s => s.trim()).filter(s => s !== '');
+        return str
+            .split(',')
+            .map((s) => s.trim())
+            .filter((s) => s !== '');
     }
-    return str.split('').filter(c => c.trim() !== '');
+    return str.split('').filter((c) => c.trim() !== '');
 };
 
 /**
@@ -270,9 +271,7 @@ const locateObjects = (grid, centerPos, sqSize, objects) => {
  * @returns {Array<Array<number>>} - the unexplored grid.
  */
 const createUnexploredGrid = (width, height) =>
-    Array.from({length: height}, () =>
-        Array.from({length: width}, () => -1),
-    );
+    Array.from({ length: height }, () => Array.from({ length: width }, () => -1));
 
 /**
  * Reveal a square window of the source grid into the destination ("my map"),

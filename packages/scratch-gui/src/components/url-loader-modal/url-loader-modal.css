@@ -1,5 +1,5 @@
-@import "../../css/colors.css";
-@import "../../css/units.css";
+@import '../../css/colors.css';
+@import '../../css/units.css';
 
 .modal-content {
     width: 500px;
@@ -114,13 +114,13 @@
 .exampleItem {
     font-size: 0.75rem;
     color: $text-primary-transparent;
-    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     padding-left: 1rem;
     position: relative;
 }
 
 .exampleItem::before {
-    content: "•";
+    content: '•';
     position: absolute;
     left: 0;
     color: $text-primary-transparent;

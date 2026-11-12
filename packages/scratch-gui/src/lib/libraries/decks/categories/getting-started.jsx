@@ -1,11 +1,10 @@
 import React from 'react';
-import {FormattedMessage} from 'react-intl';
-
-import libraryIntro from '../thumbnails/getting-started.jpg';
+import { FormattedMessage } from 'react-intl';
+import { CATEGORIES } from '../../tutorial-tags';
+import GreenFlagIcon from '../green-flag-icon.jsx';
 import libraryGettingStartedCostume from '../thumbnails/getting-started-costume.jpg';
 import libraryGettingStartedSprites from '../thumbnails/getting-started-sprites.jpg';
-import {CATEGORIES} from '../../tutorial-tags';
-import GreenFlagIcon from '../green-flag-icon.jsx';
+import libraryIntro from '../thumbnails/getting-started.jpg';
 
 // 単機能チュートリアルの規約 (issue #1179 で確定。後続 leaf もこれに従う):
 //   - deck id     : `getting-started-<機能スラッグ>` — Lv 番号も通し番号も付けない。
@@ -45,7 +44,7 @@ const decks = {
                 ),
                 image: 'introRubyTab',
                 startTutorial: true,
-                animationTarget: 'startTutorialButton'
+                animationTarget: 'startTutorialButton',
             },
             {
                 title: (
@@ -62,7 +61,7 @@ const decks = {
     bounce_if_on_edge
   end
 end`,
-                animationTarget: 'insertCodeButton'
+                animationTarget: 'insertCodeButton',
             },
             {
                 title: (
@@ -73,7 +72,7 @@ end`,
                     />
                 ),
                 image: 'introRunRuby',
-                animationTarget: 'nextButton'
+                animationTarget: 'nextButton',
             },
             {
                 title: (
@@ -83,10 +82,10 @@ end`,
                         id="gui.howtos.getting-started.step.firstProgram"
                     />
                 ),
-                image: 'introFirstProgram'
-            }
+                image: 'introFirstProgram',
+            },
         ],
-        urlId: 'getStarted'
+        urlId: 'getStarted',
     },
 
     // ─── コスチュームをかえてみよう（単機能・見た目） ───────────────────────
@@ -145,7 +144,7 @@ end`,
                         defaultMessage="「コード」タブでこのプログラムを入れて、{greenFlag}を押してみよう"
                         description="Getting Started Costume Step 3: Insert the next-costume blocks and run"
                         id="gui.howtos.getting-started-costume.step3.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
+                        values={{ greenFlag: <GreenFlagIcon /> }}
                     />
                 ),
                 image: 'gettingStartedCostumeStep3',
@@ -236,7 +235,7 @@ end`,
                         defaultMessage="ペンギンをえらぶとプログラムが切りかわるよ。入れたら{greenFlag}を押してみよう"
                         description="Getting Started Sprites Step 4: Selecting the penguin switches the program; insert it and run"
                         id="gui.howtos.getting-started-sprites.step4.title"
-                        values={{greenFlag: <GreenFlagIcon />}}
+                        values={{ greenFlag: <GreenFlagIcon /> }}
                     />
                 ),
                 image: 'gettingStartedSpritesStep4',

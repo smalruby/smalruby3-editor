@@ -17,9 +17,10 @@ export default function (Generator) {
         if (!this.isConnectedValue(block)) {
             let comment = this.getCommentText(block);
             if (comment) {
-                isInlineComment = comment.split('\n').some(line => line === '@ruby:comment_position:inline');
-                const filteredComment = comment.split('\n')
-                    .filter(line => !line.startsWith('@ruby:'))
+                isInlineComment = comment.split('\n').some((line) => line === '@ruby:comment_position:inline');
+                const filteredComment = comment
+                    .split('\n')
+                    .filter((line) => !line.startsWith('@ruby:'))
                     .join('\n');
                 if (filteredComment.trim().length > 0) {
                     if (!isInlineComment) {
@@ -34,8 +35,9 @@ export default function (Generator) {
                 if (childBlock) {
                     comment = this.allNestedComments(childBlock);
                     if (comment) {
-                        const filteredComment = comment.split('\n')
-                            .filter(line => !line.startsWith('@ruby:'))
+                        const filteredComment = comment
+                            .split('\n')
+                            .filter((line) => !line.startsWith('@ruby:'))
                             .join('\n');
                         if (filteredComment.trim().length > 0) {
                             commentCode += this.prefixLines(filteredComment, '# ');
@@ -64,8 +66,9 @@ export default function (Generator) {
             delete block.isStatement;
         }
         if (isInlineComment && !this.isConnectedValue(block)) {
-            const inlineComment = this.getCommentText(block).split('\n')
-                .filter(line => !line.startsWith('@ruby:'))
+            const inlineComment = this.getCommentText(block)
+                .split('\n')
+                .filter((line) => !line.startsWith('@ruby:'))
                 .join(' ');
             if (inlineComment.trim().length > 0 && code.endsWith('\n')) {
                 code = `${code.slice(0, -1)} # ${inlineComment.trim()}\n`;

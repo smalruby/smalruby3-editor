@@ -4,7 +4,7 @@
  * Clear an existing executing line decoration.
  * @param {object|null} decoration - The decoration collection to clear.
  */
-const clearDecoration = decoration => {
+const clearDecoration = (decoration) => {
     if (decoration) {
         decoration.clear();
     }
@@ -21,13 +21,15 @@ const clearDecoration = decoration => {
 const highlightLine = (editor, monaco, lineNumber, existingDecoration) => {
     clearDecoration(existingDecoration);
 
-    const decoration = editor.createDecorationsCollection([{
-        range: new monaco.Range(lineNumber, 1, lineNumber, 1),
-        options: {
-            isWholeLine: true,
-            className: 'executing-line'
-        }
-    }]);
+    const decoration = editor.createDecorationsCollection([
+        {
+            range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+            options: {
+                isWholeLine: true,
+                className: 'executing-line',
+            },
+        },
+    ]);
 
     editor.revealLineInCenter(lineNumber);
     return decoration;
@@ -45,13 +47,15 @@ const highlightLine = (editor, monaco, lineNumber, existingDecoration) => {
 const highlightLineRange = (editor, monaco, startLine, endLine, existingDecoration) => {
     clearDecoration(existingDecoration);
 
-    const decoration = editor.createDecorationsCollection([{
-        range: new monaco.Range(startLine, 1, endLine, 1),
-        options: {
-            isWholeLine: true,
-            className: 'executing-line'
-        }
-    }]);
+    const decoration = editor.createDecorationsCollection([
+        {
+            range: new monaco.Range(startLine, 1, endLine, 1),
+            options: {
+                isWholeLine: true,
+                className: 'executing-line',
+            },
+        },
+    ]);
 
     const middleLine = Math.floor((startLine + endLine) / 2);
     editor.revealLineInCenter(middleLine);
@@ -78,9 +82,4 @@ const findExecutableLine = (code, lineNumber) => {
     return null;
 };
 
-export {
-    clearDecoration,
-    highlightLine,
-    highlightLineRange,
-    findExecutableLine
-};
+export { clearDecoration, highlightLine, highlightLineRange, findExecutableLine };

@@ -14,16 +14,16 @@
  *
  * See docs/tutorial/improvement-plan.md and issues #1177 / #1179.
  */
+import { enImages } from '../../../../../src/lib/libraries/decks/en-steps';
 import decks from '../../../../../src/lib/libraries/decks/index.jsx';
-import {jaImages} from '../../../../../src/lib/libraries/decks/ja-steps';
-import {enImages} from '../../../../../src/lib/libraries/decks/en-steps';
-import {CATEGORIES} from '../../../../../src/lib/libraries/tutorial-tags';
+import { jaImages } from '../../../../../src/lib/libraries/decks/ja-steps';
+import { CATEGORIES } from '../../../../../src/lib/libraries/tutorial-tags';
+import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
+import en from '../../../../../src/locales/en';
 import ja from '../../../../../src/locales/ja';
 import jaHira from '../../../../../src/locales/ja-Hira';
-import en from '../../../../../src/locales/en';
-import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
 
-const LOCALES = {ja, 'ja-Hira': jaHira, en};
+const LOCALES = { ja, 'ja-Hira': jaHira, en };
 
 // The single-feature decks added by #1179. `intro-getting-started` is the
 // pre-existing deck and is guarded separately (it is a Ruby intro, not a
@@ -32,14 +32,14 @@ const SINGLE_FEATURE_DECK_IDS = ['getting-started-costume', 'getting-started-spr
 
 // The final `{deckIds}` step renders upstream's PreviewsStep and has no
 // title / image / code of its own, so content checks look only at the rest.
-const contentSteps = deck => deck.steps.filter(step => !step.deckIds);
+const contentSteps = (deck) => deck.steps.filter((step) => !step.deckIds);
 
-const collectMessageIds = deck => {
+const collectMessageIds = (deck) => {
     const ids = [];
     if (deck.name && deck.name.props && deck.name.props.id) {
         ids.push(deck.name.props.id);
     }
-    deck.steps.forEach(step => {
+    deck.steps.forEach((step) => {
         if (step.title && step.title.props && step.title.props.id) {
             ids.push(step.title.props.id);
         }
@@ -54,13 +54,13 @@ describe('Getting Started single-feature tutorial decks', () => {
     });
 
     test('both decks exist under the gettingStarted category', () => {
-        SINGLE_FEATURE_DECK_IDS.forEach(id => {
+        SINGLE_FEATURE_DECK_IDS.forEach((id) => {
             expect(decks[id]).toBeDefined();
             expect(decks[id].category).toBe(CATEGORIES.gettingStarted);
         });
     });
 
-    describe.each(SINGLE_FEATURE_DECK_IDS)('%s', deckId => {
+    describe.each(SINGLE_FEATURE_DECK_IDS)('%s', (deckId) => {
         let deck;
         beforeEach(() => {
             deck = decks[deckId];
@@ -78,10 +78,8 @@ describe('Getting Started single-feature tutorial decks', () => {
             const last = deck.steps[deck.steps.length - 1];
             // 他の単機能 deck をすべて相互に紹介する（自分自身は含めない）。
             // PreviewsStep は先頭 2 件しか表示しないが、並びの網羅はここで担保する。
-            expect([...last.deckIds].sort()).toEqual(
-                SINGLE_FEATURE_DECK_IDS.filter(id => id !== deckId).sort(),
-            );
-            last.deckIds.forEach(id => {
+            expect([...last.deckIds].sort()).toEqual(SINGLE_FEATURE_DECK_IDS.filter((id) => id !== deckId).sort());
+            last.deckIds.forEach((id) => {
                 expect(decks[id]).toBeDefined();
                 expect(decks[id].category).toBe(CATEGORIES.gettingStarted);
             });
@@ -93,7 +91,7 @@ describe('Getting Started single-feature tutorial decks', () => {
             const ids = collectMessageIds(deck);
             expect(ids.length).toBeGreaterThan(0);
             const missing = [];
-            ids.forEach(id => {
+            ids.forEach((id) => {
                 Object.entries(LOCALES).forEach(([locale, table]) => {
                     if (!Object.prototype.hasOwnProperty.call(table, id)) {
                         missing.push(`${id} missing in ${locale}`);
@@ -106,7 +104,7 @@ describe('Getting Started single-feature tutorial decks', () => {
         test('has a thumbnail and every step image key resolves in ja / en image maps', () => {
             expect(deck.img).toBeTruthy();
             const missing = [];
-            contentSteps(deck).forEach(step => {
+            contentSteps(deck).forEach((step) => {
                 expect(typeof step.image).toBe('string');
                 if (!Object.prototype.hasOwnProperty.call(jaImages, step.image)) {
                     missing.push(`${step.image} missing in jaImages`);
@@ -121,18 +119,18 @@ describe('Getting Started single-feature tutorial decks', () => {
         test('no two steps reuse the same image key (説明と絵がズレるのを防ぐ)', () => {
             // jest は画像 import をすべて同じスタブに解決するので、解決後の値では
             // なくキーの重複を見る（ja-steps.js のキー → ファイルは 1:1 で運用する）。
-            const keys = contentSteps(deck).map(step => step.image);
+            const keys = contentSteps(deck).map((step) => step.image);
             expect(new Set(keys).size).toBe(keys.length);
         });
 
         test('every step code snippet converts to blocks without errors', async () => {
-            const codeSteps = deck.steps.filter(step => step.code);
+            const codeSteps = deck.steps.filter((step) => step.code);
             expect(codeSteps.length).toBeGreaterThan(0);
             for (const step of codeSteps) {
                 // Single-feature decks teach blocks, so the inserted Ruby has to
                 // land in the Code tab as blocks.
                 expect(step.codeType).toBe('blocks');
-                const converter = new RubyToBlocksConverter(null, {version: '2'});
+                const converter = new RubyToBlocksConverter(null, { version: '2' });
                 const res = await converter.targetCodeToBlocks(null, step.code);
                 expect(converter.errors).toHaveLength(0);
                 expect(res).toBeTruthy();

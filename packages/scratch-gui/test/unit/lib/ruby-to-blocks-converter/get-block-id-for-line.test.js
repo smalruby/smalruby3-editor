@@ -5,7 +5,7 @@ describe('RubyToBlocksConverter.getBlockIdForLine', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = {
             isStage: false,
             variables: {},
@@ -13,41 +13,36 @@ describe('RubyToBlocksConverter.getBlockIdForLine', () => {
                 _blocks: {},
                 deleteBlock: jest.fn(),
                 createBlock: jest.fn(),
-                getBlock: (id) => converter.blocks[id]
+                getBlock: (id) => converter.blocks[id],
             },
             lookupVariableByNameAndType: jest.fn(),
             createVariable: jest.fn(),
-            deleteVariable: jest.fn()
+            deleteVariable: jest.fn(),
         };
         converter.vm = {
             runtime: {
                 getTargetForStage: () => ({
                     lookupVariableByNameAndType: jest.fn(),
                     createVariable: jest.fn(),
-                    variables: {}
-                })
+                    variables: {},
+                }),
             },
             extensionManager: {
-                isExtensionLoaded: () => true
+                isExtensionLoaded: () => true,
             },
-            emitWorkspaceUpdate: jest.fn()
+            emitWorkspaceUpdate: jest.fn(),
         };
     });
 
     test('should return block ID for end line of if statement', async () => {
-        const code = [
-            'text = "ハロー！"',
-            'if text.empty?',
-            '  say("empty")',
-            'end'
-        ].join('\n');
-        
+        const code = ['text = "ハロー！"', 'if text.empty?', '  say("empty")', 'end'].join('\n');
+
         const result = await converter.targetCodeToBlocks(target, code);
         if (!result) {
             console.error(converter.errors);
         }
         expect(result).toBeTruthy();
-        
+
         const line4BlockId = converter.getBlockIdForLine(4);
         expect(line4BlockId).not.toBeNull();
         expect(line4BlockId).toBeDefined();
@@ -58,21 +53,14 @@ describe('RubyToBlocksConverter.getBlockIdForLine', () => {
     });
 
     test('should return block ID for trailing empty lines after if statement', async () => {
-        const code = [
-            'text = "ハロー！"',
-            'if text.empty?',
-            '  say("true")',
-            'end',
-            '',
-            ''
-        ].join('\n');
-        
+        const code = ['text = "ハロー！"', 'if text.empty?', '  say("true")', 'end', '', ''].join('\n');
+
         const result = await converter.targetCodeToBlocks(target, code);
         if (!result) {
             console.error(converter.errors);
         }
         expect(result).toBeTruthy();
-        
+
         // Line 4 (end)
         const line4BlockId = converter.getBlockIdForLine(4);
         expect(line4BlockId).not.toBeNull();

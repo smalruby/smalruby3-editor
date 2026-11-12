@@ -14,13 +14,11 @@ describe('RubyGenerator variable helpers', () => {
     describe('escapeVariableName', () => {
         test('replaces special characters with underscore', () => {
             expect(RubyGenerator.escapeVariableName('a b')).toEqual('a_b');
-            expect(RubyGenerator.escapeVariableName('Avg(Total / Count)'))
-                .toEqual('Avg_Total___Count_');
+            expect(RubyGenerator.escapeVariableName('Avg(Total / Count)')).toEqual('Avg_Total___Count_');
         });
 
         test('preserves multibyte characters', () => {
-            expect(RubyGenerator.escapeVariableName('平均(合計 / 件数)'))
-                .toEqual('平均_合計___件数_');
+            expect(RubyGenerator.escapeVariableName('平均(合計 / 件数)')).toEqual('平均_合計___件数_');
         });
 
         test('preserves alphanumeric and underscore', () => {
@@ -53,21 +51,21 @@ describe('RubyGenerator variable helpers', () => {
 
         beforeEach(() => {
             renderedTarget = {
-                sprite: {name: 'Sprite1'},
+                sprite: { name: 'Sprite1' },
                 comments: {},
                 variables: {
-                    id1: {name: 'Var1', type: SCALAR_TYPE},
-                    id2: {name: 'List1', type: LIST_TYPE}
+                    id1: { name: 'Var1', type: SCALAR_TYPE },
+                    id2: { name: 'List1', type: LIST_TYPE },
                 },
                 runtime: {
-                    getTargetForStage () {
+                    getTargetForStage() {
                         return {
                             variables: {
-                                id3: {name: 'GlobalVar', type: SCALAR_TYPE}
-                            }
+                                id3: { name: 'GlobalVar', type: SCALAR_TYPE },
+                            },
                         };
-                    }
-                }
+                    },
+                },
             };
             RubyGenerator.currentTarget = renderedTarget;
         });
@@ -92,11 +90,11 @@ describe('RubyGenerator variable helpers', () => {
     describe('listName', () => {
         beforeEach(() => {
             RubyGenerator.currentTarget = {
-                sprite: {name: 'Sprite1'},
+                sprite: { name: 'Sprite1' },
                 comments: {},
                 variables: {
-                    id1: {name: 'MyList', type: LIST_TYPE}
-                }
+                    id1: { name: 'MyList', type: LIST_TYPE },
+                },
             };
         });
 
@@ -108,27 +106,27 @@ describe('RubyGenerator variable helpers', () => {
     describe('variableNameByName', () => {
         beforeEach(() => {
             RubyGenerator.currentTarget = {
-                sprite: {name: 'Sprite1'},
+                sprite: { name: 'Sprite1' },
                 comments: {},
                 isStage: false,
-                lookupVariableByNameAndType (name, type) {
+                lookupVariableByNameAndType(name, type) {
                     if (name === 'LocalVar' && type === SCALAR_TYPE) {
-                        return {name: 'LocalVar', type: SCALAR_TYPE};
+                        return { name: 'LocalVar', type: SCALAR_TYPE };
                     }
                     return null;
                 },
                 runtime: {
-                    getTargetForStage () {
+                    getTargetForStage() {
                         return {
-                            lookupVariableByNameAndType (name, type) {
+                            lookupVariableByNameAndType(name, type) {
                                 if (name === 'StageVar' && type === SCALAR_TYPE) {
-                                    return {name: 'StageVar', type: SCALAR_TYPE};
+                                    return { name: 'StageVar', type: SCALAR_TYPE };
                                 }
                                 return null;
-                            }
+                            },
                         };
-                    }
-                }
+                    },
+                },
             };
         });
 
@@ -148,24 +146,24 @@ describe('RubyGenerator variable helpers', () => {
     describe('listNameByName', () => {
         beforeEach(() => {
             RubyGenerator.currentTarget = {
-                sprite: {name: 'Sprite1'},
+                sprite: { name: 'Sprite1' },
                 comments: {},
                 isStage: false,
-                lookupVariableByNameAndType (name, type) {
+                lookupVariableByNameAndType(name, type) {
                     if (name === 'MyList' && type === LIST_TYPE) {
-                        return {name: 'MyList', type: LIST_TYPE};
+                        return { name: 'MyList', type: LIST_TYPE };
                     }
                     return null;
                 },
                 runtime: {
-                    getTargetForStage () {
+                    getTargetForStage() {
                         return {
-                            lookupVariableByNameAndType () {
+                            lookupVariableByNameAndType() {
                                 return null;
-                            }
+                            },
                         };
-                    }
-                }
+                    },
+                },
             };
         });
 

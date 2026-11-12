@@ -6,20 +6,23 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Control category blocks', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             sleep(1)
             sleep(x)
             sleep(touching?("_edge_"))
@@ -77,23 +80,34 @@ describe('Ruby Roundtrip: Control category blocks', () => {
             create_clone("_myself_")
             create_clone("Abby")
             delete_this_clone
-        `);
+        `,
+        );
     });
 
     test('Ruby -> Code -> Ruby (v2)', async () => {
-        const converter2 = makeConverter(target, runtime, {version: 2});
-        await expectRoundTrip(converter2, target, dedent`
+        const converter2 = makeConverter(target, runtime, { version: 2 });
+        await expectRoundTrip(
+            converter2,
+            target,
+            dedent`
             when_start_as_a_clone do
             end
-        `, null, {version: 2});
+        `,
+            null,
+            { version: 2 },
+        );
     });
 
     test('Ruby -> Code -> Ruby (backward compatibility)', async () => {
         // In v1, self.when(:start_as_a_clone) round-trips to itself
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             self.when(:start_as_a_clone) do
             end
-        `);
+        `,
+        );
     });
 
     test('Ruby -> Code -> Ruby (alias)', async () => {

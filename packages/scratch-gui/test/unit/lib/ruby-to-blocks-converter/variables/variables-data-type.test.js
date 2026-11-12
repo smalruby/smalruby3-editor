@@ -1,15 +1,12 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    expectedInfo
-} from '../../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks, expectedInfo } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Variables/dataType', () => {
     let converter;
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -20,8 +17,8 @@ describe('RubyToBlocksConverter/Variables/dataType', () => {
                 {
                     opcode: 'data_setvariableto',
                     fields: [{ name: 'VARIABLE', variable: '$a' }],
-                    inputs: [{ name: 'VALUE', block: expectedInfo.makeText('hello') }]
-                }
+                    inputs: [{ name: 'VALUE', block: expectedInfo.makeText('hello') }],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
             expect(converter.variables['a'].dataType).toBe('string');
@@ -33,8 +30,8 @@ describe('RubyToBlocksConverter/Variables/dataType', () => {
                 {
                     opcode: 'data_setvariableto',
                     fields: [{ name: 'VARIABLE', variable: '$a' }],
-                    inputs: [{ name: 'VALUE', block: expectedInfo.makeText('42') }]
-                }
+                    inputs: [{ name: 'VALUE', block: expectedInfo.makeText('42') }],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
             expect(converter.variables['a'].dataType).toBe('number');
@@ -58,7 +55,7 @@ describe('RubyToBlocksConverter/Variables/dataType', () => {
             const code = 'a = "He"';
             await converter.targetCodeToBlocks(target, code);
             const localVars = converter._context.localVariables;
-            const varEntry = Object.values(localVars).find(v => v.originalName === 'a');
+            const varEntry = Object.values(localVars).find((v) => v.originalName === 'a');
             expect(varEntry).toBeDefined();
             expect(varEntry.dataType).toBe('string');
         });
@@ -67,7 +64,7 @@ describe('RubyToBlocksConverter/Variables/dataType', () => {
             const code = 'a = 1';
             await converter.targetCodeToBlocks(target, code);
             const localVars = converter._context.localVariables;
-            const varEntry = Object.values(localVars).find(v => v.originalName === 'a');
+            const varEntry = Object.values(localVars).find((v) => v.originalName === 'a');
             expect(varEntry).toBeDefined();
             expect(varEntry.dataType).toBe('number');
         });
@@ -76,7 +73,7 @@ describe('RubyToBlocksConverter/Variables/dataType', () => {
             const code = 'a = true';
             await converter.targetCodeToBlocks(target, code);
             const localVars = converter._context.localVariables;
-            const varEntry = Object.values(localVars).find(v => v.originalName === 'a');
+            const varEntry = Object.values(localVars).find((v) => v.originalName === 'a');
             expect(varEntry).toBeDefined();
             expect(varEntry.dataType).toBe('boolean');
         });
@@ -85,7 +82,7 @@ describe('RubyToBlocksConverter/Variables/dataType', () => {
             const code = 'a = "He" + "llo"';
             await converter.targetCodeToBlocks(target, code);
             const localVars = converter._context.localVariables;
-            const varEntry = Object.values(localVars).find(v => v.originalName === 'a');
+            const varEntry = Object.values(localVars).find((v) => v.originalName === 'a');
             expect(varEntry).toBeDefined();
             expect(varEntry.dataType).toBe('string');
         });
@@ -94,7 +91,7 @@ describe('RubyToBlocksConverter/Variables/dataType', () => {
             const code = 'a = 1.to_s';
             await converter.targetCodeToBlocks(target, code);
             const localVars = converter._context.localVariables;
-            const varEntry = Object.values(localVars).find(v => v.originalName === 'a');
+            const varEntry = Object.values(localVars).find((v) => v.originalName === 'a');
             expect(varEntry).toBeDefined();
             expect(varEntry.dataType).toBe('string');
         });
@@ -103,7 +100,7 @@ describe('RubyToBlocksConverter/Variables/dataType', () => {
             const code = 'a = "1".to_i';
             await converter.targetCodeToBlocks(target, code);
             const localVars = converter._context.localVariables;
-            const varEntry = Object.values(localVars).find(v => v.originalName === 'a');
+            const varEntry = Object.values(localVars).find((v) => v.originalName === 'a');
             expect(varEntry).toBeDefined();
             expect(varEntry.dataType).toBe('number');
         });
@@ -112,7 +109,7 @@ describe('RubyToBlocksConverter/Variables/dataType', () => {
             const code = 'a = touching?("edge")';
             await converter.targetCodeToBlocks(target, code);
             const localVars = converter._context.localVariables;
-            const varEntry = Object.values(localVars).find(v => v.originalName === 'a');
+            const varEntry = Object.values(localVars).find((v) => v.originalName === 'a');
             expect(varEntry).toBeDefined();
             expect(varEntry.dataType).toBeNull();
         });

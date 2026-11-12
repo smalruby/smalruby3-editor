@@ -10,7 +10,6 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
-
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import {
     buildAiSettingsUpdate,
@@ -23,10 +22,9 @@ import {
 import ClassAiSettings from './class-ai-settings.jsx';
 import ClassAiStudentPreview from './class-ai-student-preview.jsx';
 import ClassroomButton from './classroom-button.jsx';
+import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
-
-import styles from './classroom-modal.css';
 
 /** Default school year: before April it is still the previous year's term. */
 const currentSchoolYear = () => {
@@ -241,7 +239,8 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
     const missingConfirmation = missingAiConfirmation(aiDraft);
     const formRef = useRef(null);
     const handleGoToConfirmation = useCallback(() => {
-        const input = formRef.current && formRef.current.querySelector(`input[name="${missingConfirmation}Confirmed"]`);
+        const input =
+            formRef.current && formRef.current.querySelector(`input[name="${missingConfirmation}Confirmed"]`);
         if (!input) return;
         input.scrollIntoView({ block: 'center' });
         input.focus();
@@ -938,7 +937,11 @@ const TeacherClassList = ({
                     />
                 </ClassroomButton>
                 {isLoading ? (
-                    <span className={styles.classListLoading} data-testid="classroom-class-list-loading" role="status">
+                    <span
+                        className={styles.classListLoading}
+                        data-testid="classroom-class-list-loading"
+                        role="status"
+                    >
                         <FormattedMessage
                             defaultMessage="Loading…"
                             description="Shown next to the create button while the class list is busy"

@@ -90,7 +90,7 @@ describe('Ruby Roundtrip: return without a value', () => {
 
     test('the return block holds the text "" for a value used in blocks', async () => {
         await converter.targetCodeToBlocks(target, 'def self.foo\n  return\nend\n');
-        const returnBlock = Object.values(converter._context.blocks).find(b => {
+        const returnBlock = Object.values(converter._context.blocks).find((b) => {
             const comment = b.comment && converter._context.comments[b.comment];
             return b.opcode === 'data_setvariableto' && comment && comment.text.includes('@ruby:syntax:return');
         });
@@ -101,7 +101,7 @@ describe('Ruby Roundtrip: return without a value', () => {
 });
 
 describe('Ruby to blocks: a return value that no block can hold', () => {
-    const convert = async code => {
+    const convert = async (code) => {
         const { target, runtime } = makeSpriteTarget();
         const converter = makeConverter(target, runtime, { version: 2 });
         const result = await converter.targetCodeToBlocks(target, code);

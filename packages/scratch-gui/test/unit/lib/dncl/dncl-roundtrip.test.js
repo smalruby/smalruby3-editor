@@ -1,205 +1,194 @@
-import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby'
-import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl'
+import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
+import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 
 /**
  * Round-trip test: DNCL → Ruby → DNCL
  * Verifies that converting DNCL to Ruby and back produces the same DNCL.
  */
 describe('DNCL round-trip (DNCL → Ruby → DNCL)', () => {
-  const roundtrip = (dncl) => {
-    const ruby = dnclToRuby(dncl).ruby
-    const result = rubyToDncl(ruby).dncl
-    return result
-  }
+    const roundtrip = (dncl) => {
+        const ruby = dnclToRuby(dncl).ruby;
+        const result = rubyToDncl(ruby).dncl;
+        return result;
+    };
 
-  describe('variables', () => {
-    test('lowercase variable assignment', () => {
-      expect(roundtrip('a = 3')).toBe('a = 3')
-    })
+    describe('variables', () => {
+        test('lowercase variable assignment', () => {
+            expect(roundtrip('a = 3')).toBe('a = 3');
+        });
 
-    test('uppercase scalar variable', () => {
-      expect(roundtrip('A = 3')).toBe('A = 3')
-    })
+        test('uppercase scalar variable', () => {
+            expect(roundtrip('A = 3')).toBe('A = 3');
+        });
 
-    test('uppercase array variable', () => {
-      expect(roundtrip('Kouka = [1, 5, 10]')).toBe('Kouka = [1, 5, 10]')
-    })
-  })
+        test('uppercase array variable', () => {
+            expect(roundtrip('Kouka = [1, 5, 10]')).toBe('Kouka = [1, 5, 10]');
+        });
+    });
 
-  describe('operators', () => {
-    test('boolean true/false', () => {
-      expect(roundtrip('a = 真')).toBe('a = 真')
-      expect(roundtrip('a = 偽')).toBe('a = 偽')
-    })
+    describe('operators', () => {
+        test('boolean true/false', () => {
+            expect(roundtrip('a = 真')).toBe('a = 真');
+            expect(roundtrip('a = 偽')).toBe('a = 偽');
+        });
 
-    test('logical operators', () => {
-      expect(roundtrip('a = x かつ y')).toBe('a = x かつ y')
-      expect(roundtrip('a = x または y')).toBe('a = x または y')
-    })
-  })
+        test('logical operators', () => {
+            expect(roundtrip('a = x かつ y')).toBe('a = x かつ y');
+            expect(roundtrip('a = x または y')).toBe('a = x または y');
+        });
+    });
 
-  describe('display and input', () => {
-    test('表示する round-trips', () => {
-      expect(roundtrip('表示する(a)')).toBe('表示する(a)')
-    })
+    describe('display and input', () => {
+        test('表示する round-trips', () => {
+            expect(roundtrip('表示する(a)')).toBe('表示する(a)');
+        });
 
-    test('入力 round-trips', () => {
-      expect(roundtrip('a = 【外部からの入力】')).toBe('a = 【外部からの入力】')
-      expect(roundtrip('n = 【整数を入力】')).toBe('n = 【整数を入力】')
-    })
-  })
+        test('入力 round-trips', () => {
+            expect(roundtrip('a = 【外部からの入力】')).toBe('a = 【外部からの入力】');
+            expect(roundtrip('n = 【整数を入力】')).toBe('n = 【整数を入力】');
+        });
+    });
 
-  describe('control flow', () => {
-    test('simple if', () => {
-      const dncl = 'もし a > 0 ならば\n  a = 1\nを実行する'
-      expect(roundtrip(dncl)).toBe(dncl)
-    })
+    describe('control flow', () => {
+        test('simple if', () => {
+            const dncl = 'もし a > 0 ならば\n  a = 1\nを実行する';
+            expect(roundtrip(dncl)).toBe(dncl);
+        });
 
-    test('if-else', () => {
-      const dncl =
-        'もし a > 0 ならば\n  a = 1\nそうでなければ\n  a = 2\nを実行する'
-      expect(roundtrip(dncl)).toBe(dncl)
-    })
+        test('if-else', () => {
+            const dncl = 'もし a > 0 ならば\n  a = 1\nそうでなければ\n  a = 2\nを実行する';
+            expect(roundtrip(dncl)).toBe(dncl);
+        });
 
-    test('if with なら normalizes to ならば', () => {
-      const input = 'もし a > 0 なら\n  a = 1\nを実行する'
-      const expected = 'もし a > 0 ならば\n  a = 1\nを実行する'
-      expect(roundtrip(input)).toBe(expected)
-    })
+        test('if with なら normalizes to ならば', () => {
+            const input = 'もし a > 0 なら\n  a = 1\nを実行する';
+            const expected = 'もし a > 0 ならば\n  a = 1\nを実行する';
+            expect(roundtrip(input)).toBe(expected);
+        });
 
-    test('while loop', () => {
-      const dncl = 'a > 0 の間\n  a = a - 1\nを繰り返す'
-      expect(roundtrip(dncl)).toBe(dncl)
-    })
+        test('while loop', () => {
+            const dncl = 'a > 0 の間\n  a = a - 1\nを繰り返す';
+            expect(roundtrip(dncl)).toBe(dncl);
+        });
 
-    test('ascending for loop', () => {
-      const dncl =
-        'i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す'
-      expect(roundtrip(dncl)).toBe(dncl)
-    })
+        test('ascending for loop', () => {
+            const dncl = 'i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す';
+            expect(roundtrip(dncl)).toBe(dncl);
+        });
 
-    test('descending for loop', () => {
-      const dncl =
-        'i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す'
-      expect(roundtrip(dncl)).toBe(dncl)
-    })
+        test('descending for loop', () => {
+            const dncl = 'i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す';
+            expect(roundtrip(dncl)).toBe(dncl);
+        });
 
-    test('function definition', () => {
-      const dncl = '関数 f(x)\n  返す x * 2\nと定義する'
-      expect(roundtrip(dncl)).toBe(dncl)
-    })
-  })
+        test('function definition', () => {
+            const dncl = '関数 f(x)\n  返す x * 2\nと定義する';
+            expect(roundtrip(dncl)).toBe(dncl);
+        });
+    });
 
-  describe('built-in functions', () => {
-    test('整数 round-trips', () => {
-      expect(roundtrip('a = 整数(x)')).toBe('a = 整数(x)')
-    })
+    describe('built-in functions', () => {
+        test('整数 round-trips', () => {
+            expect(roundtrip('a = 整数(x)')).toBe('a = 整数(x)');
+        });
 
-    test('文字列 round-trips', () => {
-      expect(roundtrip('a = 文字列(x)')).toBe('a = 文字列(x)')
-    })
+        test('文字列 round-trips', () => {
+            expect(roundtrip('a = 文字列(x)')).toBe('a = 文字列(x)');
+        });
 
-    test('乱数 round-trips', () => {
-      expect(roundtrip('a = 乱数(10)')).toBe('a = 乱数(10)')
-    })
+        test('乱数 round-trips', () => {
+            expect(roundtrip('a = 乱数(10)')).toBe('a = 乱数(10)');
+        });
 
-    test('四捨五入 round-trips', () => {
-      expect(roundtrip('a = 四捨五入(x)')).toBe('a = 四捨五入(x)')
-    })
+        test('四捨五入 round-trips', () => {
+            expect(roundtrip('a = 四捨五入(x)')).toBe('a = 四捨五入(x)');
+        });
 
-    test('切り捨て round-trips', () => {
-      expect(roundtrip('a = 切り捨て(x)')).toBe('a = 切り捨て(x)')
-    })
+        test('切り捨て round-trips', () => {
+            expect(roundtrip('a = 切り捨て(x)')).toBe('a = 切り捨て(x)');
+        });
 
-    test('切り上げ round-trips', () => {
-      expect(roundtrip('a = 切り上げ(x)')).toBe('a = 切り上げ(x)')
-    })
+        test('切り上げ round-trips', () => {
+            expect(roundtrip('a = 切り上げ(x)')).toBe('a = 切り上げ(x)');
+        });
 
-    test('絶対値 round-trips', () => {
-      expect(roundtrip('a = 絶対値(x)')).toBe('a = 絶対値(x)')
-    })
+        test('絶対値 round-trips', () => {
+            expect(roundtrip('a = 絶対値(x)')).toBe('a = 絶対値(x)');
+        });
 
-    test('平方根 round-trips', () => {
-      expect(roundtrip('a = 平方根(x)')).toBe('a = 平方根(x)')
-    })
+        test('平方根 round-trips', () => {
+            expect(roundtrip('a = 平方根(x)')).toBe('a = 平方根(x)');
+        });
 
-    test('含む round-trips', () => {
-      expect(roundtrip('a = 含む("hello", "ell")')).toBe(
-        'a = 含む("hello", "ell")',
-      )
-    })
-  })
+        test('含む round-trips', () => {
+            expect(roundtrip('a = 含む("hello", "ell")')).toBe('a = 含む("hello", "ell")');
+        });
+    });
 
-  describe('nested function calls', () => {
-    test('表示する(乱数(1..10)) round-trips', () => {
-      expect(roundtrip('表示する(乱数(1..10))')).toBe('表示する(乱数(1..10))')
-    })
+    describe('nested function calls', () => {
+        test('表示する(乱数(1..10)) round-trips', () => {
+            expect(roundtrip('表示する(乱数(1..10))')).toBe('表示する(乱数(1..10))');
+        });
 
-    test('表示する(整数(x)) round-trips', () => {
-      expect(roundtrip('表示する(整数(x))')).toBe('表示する(整数(x))')
-    })
+        test('表示する(整数(x)) round-trips', () => {
+            expect(roundtrip('表示する(整数(x))')).toBe('表示する(整数(x))');
+        });
 
-    test('表示する(絶対値(x)) round-trips', () => {
-      expect(roundtrip('表示する(絶対値(x))')).toBe('表示する(絶対値(x))')
-    })
+        test('表示する(絶対値(x)) round-trips', () => {
+            expect(roundtrip('表示する(絶対値(x))')).toBe('表示する(絶対値(x))');
+        });
 
-    test('表示する(乱数(1..10) + 5) round-trips', () => {
-      expect(roundtrip('表示する(乱数(1..10) + 5)')).toBe(
-        '表示する(乱数(1..10) + 5)',
-      )
-    })
+        test('表示する(乱数(1..10) + 5) round-trips', () => {
+            expect(roundtrip('表示する(乱数(1..10) + 5)')).toBe('表示する(乱数(1..10) + 5)');
+        });
 
-    test('a = 含む(s, 乱数(1..10)) round-trips', () => {
-      expect(roundtrip('a = 含む(s, 乱数(1..10))')).toBe(
-        'a = 含む(s, 乱数(1..10))',
-      )
-    })
-  })
+        test('a = 含む(s, 乱数(1..10)) round-trips', () => {
+            expect(roundtrip('a = 含む(s, 乱数(1..10))')).toBe('a = 含む(s, 乱数(1..10))');
+        });
+    });
 
-  describe('user-defined function calls', () => {
-    test('function definition + call round-trips', () => {
-      const dncl = '関数 myfunc(x)\n  返す 5\nと定義する\nmyfunc(3)'
-      expect(roundtrip(dncl)).toBe(dncl)
-    })
+    describe('user-defined function calls', () => {
+        test('function definition + call round-trips', () => {
+            const dncl = '関数 myfunc(x)\n  返す 5\nと定義する\nmyfunc(3)';
+            expect(roundtrip(dncl)).toBe(dncl);
+        });
 
-    test('function call in assignment round-trips', () => {
-      const dncl = '関数 myfunc(x)\n  返す 5\nと定義する\na = myfunc(3)'
-      expect(roundtrip(dncl)).toBe(dncl)
-    })
-  })
+        test('function call in assignment round-trips', () => {
+            const dncl = '関数 myfunc(x)\n  返す 5\nと定義する\na = myfunc(3)';
+            expect(roundtrip(dncl)).toBe(dncl);
+        });
+    });
 
-  describe('Ruby → DNCL → Ruby (regression for nested parens)', () => {
-    const rubyRoundtrip = (ruby) => {
-      const dncl = rubyToDncl(ruby).dncl
-      return dnclToRuby(dncl).ruby
-    }
+    describe('Ruby → DNCL → Ruby (regression for nested parens)', () => {
+        const rubyRoundtrip = (ruby) => {
+            const dncl = rubyToDncl(ruby).dncl;
+            return dnclToRuby(dncl).ruby;
+        };
 
-    test('say(rand(1..10), 1) → puts(rand(1..10)) (表示する uses puts)', () => {
-      // 表示する → puts (Issue #640): the say() output is normalized to
-      // puts() in the new direction, so round-trip lands on puts().
-      expect(rubyRoundtrip('say(rand(1..10), 1)')).toBe('puts(rand(1..10))')
-    })
+        test('say(rand(1..10), 1) → puts(rand(1..10)) (表示する uses puts)', () => {
+            // 表示する → puts (Issue #640): the say() output is normalized to
+            // puts() in the new direction, so round-trip lands on puts().
+            expect(rubyRoundtrip('say(rand(1..10), 1)')).toBe('puts(rand(1..10))');
+        });
 
-    test('say(rand(1..10) + 5, 1) → puts(rand(1..10) + 5) (single expr, not flattened)', () => {
-      // Operands are not all string-literal-or-.to_s, so the `+` chain
-      // stays as a single expression in DNCL. Round-trips to puts(...).
-      expect(rubyRoundtrip('say(rand(1..10) + 5, 1)')).toBe(
-        'puts(rand(1..10) + 5)',
-      )
-    })
+        test('say(rand(1..10) + 5, 1) → puts(rand(1..10) + 5) (single expr, not flattened)', () => {
+            // Operands are not all string-literal-or-.to_s, so the `+` chain
+            // stays as a single expression in DNCL. Round-trips to puts(...).
+            expect(rubyRoundtrip('say(rand(1..10) + 5, 1)')).toBe('puts(rand(1..10) + 5)');
+        });
 
-    test('say(@x.to_i, 1) → puts(@x.to_i)', () => {
-      expect(rubyRoundtrip('say(@x.to_i, 1)')).toBe('puts(@x.to_i)')
-    })
-  })
+        test('say(@x.to_i, 1) → puts(@x.to_i)', () => {
+            expect(rubyRoundtrip('say(@x.to_i, 1)')).toBe('puts(@x.to_i)');
+        });
+    });
 
-  describe('comments and blank lines', () => {
-    test('preserves comments', () => {
-      expect(roundtrip('# コメント')).toBe('# コメント')
-    })
+    describe('comments and blank lines', () => {
+        test('preserves comments', () => {
+            expect(roundtrip('# コメント')).toBe('# コメント');
+        });
 
-    test('preserves blank lines', () => {
-      expect(roundtrip('a = 1\n\nb = 2')).toBe('a = 1\n\nb = 2')
-    })
-  })
-})
+        test('preserves blank lines', () => {
+            expect(roundtrip('a = 1\n\nb = 2')).toBe('a = 1\n\nb = 2');
+        });
+    });
+});

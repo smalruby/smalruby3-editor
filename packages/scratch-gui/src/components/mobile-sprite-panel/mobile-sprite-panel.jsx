@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React, { useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { connect } from 'react-redux';
-
 import TargetPane from '../../containers/target-pane.jsx';
 import { ModalFocusProvider } from '../../contexts/modal-focus-context.jsx';
 import { openBackdropLibrary } from '../../reducers/modals.js';
@@ -106,12 +105,7 @@ const MobileSpritePanelComponent = ({ active, vm, onNewBackdropClick }) => {
                  * もすべての項目を編集できた方が良いので "middle" を採用
                  * (270px 右ペインと違いモバイルでは 390px+ あるため十分収まる)。
                  */}
-                <TargetPane
-                    vm={vm}
-                    stageSize="middle"
-                    hideSpriteLibrary
-                    onNewBackdropClick={onNewBackdropClick}
-                />
+                <TargetPane vm={vm} stageSize="middle" hideSpriteLibrary onNewBackdropClick={onNewBackdropClick} />
             </ModalFocusProvider>
         </div>,
         document.body,
@@ -126,11 +120,11 @@ MobileSpritePanelComponent.propTypes = {
     onNewBackdropClick: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state) => ({
     vm: state.scratchGui.vm,
 });
 
-const mapDispatchToProps = dispatch => ({
+const mapDispatchToProps = (dispatch) => ({
     onNewBackdropClick: () => dispatch(openBackdropLibrary()),
 });
 

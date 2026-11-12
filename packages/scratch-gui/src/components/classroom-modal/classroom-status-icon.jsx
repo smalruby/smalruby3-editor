@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, useIntl } from 'react-intl';
-
 import styles from './classroom-modal.css';
 
 /**
@@ -72,7 +71,15 @@ const ICONS = {
         color: '#8c8c8c',
         body: (
             <React.Fragment>
-                <circle cx="8" cy="8" fill="none" r="5.5" stroke="currentColor" strokeDasharray="2 2" strokeWidth="1.5" />
+                <circle
+                    cx="8"
+                    cy="8"
+                    fill="none"
+                    r="5.5"
+                    stroke="currentColor"
+                    strokeDasharray="2 2"
+                    strokeWidth="1.5"
+                />
                 <path d="M5 8h6" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
             </React.Fragment>
         ),
@@ -83,7 +90,14 @@ const ICONS = {
         body: (
             <React.Fragment>
                 <rect fill="currentColor" height="13" rx="2" width="13" x="1.5" y="1.5" />
-                <path d="M4.5 8.2l2.4 2.4 4.6-5" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                <path
+                    d="M4.5 8.2l2.4 2.4 4.6-5"
+                    fill="none"
+                    stroke="#fff"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                />
             </React.Fragment>
         ),
     },
@@ -97,8 +111,21 @@ const ICONS = {
         color: '#ff8c1a',
         body: (
             <React.Fragment>
-                <path d="M6 3L2.5 6.5 6 10" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                <path d="M3 6.5h6.5a3.5 3.5 0 0 1 0 7H7" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+                <path
+                    d="M6 3L2.5 6.5 6 10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                />
+                <path
+                    d="M3 6.5h6.5a3.5 3.5 0 0 1 0 7H7"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeWidth="2"
+                />
             </React.Fragment>
         ),
     },

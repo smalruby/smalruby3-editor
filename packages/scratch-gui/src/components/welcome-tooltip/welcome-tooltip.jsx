@@ -82,12 +82,7 @@ const WelcomeTooltip = ({ onClick }) => {
 
     return (
         <div className={styles.tooltipContainer} data-testid="welcome-tooltip">
-            <div
-                className={styles.tooltip}
-                onClick={handleClick}
-                role="button"
-                tabIndex={0}
-            >
+            <div className={styles.tooltip} onClick={handleClick} role="button" tabIndex={0}>
                 <div className={styles.arrow} />
                 <FormattedMessage
                     defaultMessage="Welcome to Smalruby"

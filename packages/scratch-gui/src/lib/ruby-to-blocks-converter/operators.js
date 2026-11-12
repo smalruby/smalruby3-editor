@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import {RubyToBlocksConverterError} from './errors';
+import { RubyToBlocksConverterError } from './errors';
 import OperatorsMath from './operators-math';
 
 /**
@@ -10,8 +10,8 @@ const OperatorsConverter = {
         // Register arithmetic and math function handlers
         OperatorsMath.registerMath(converter);
 
-        converter.registerOnSend(['string', 'block', 'variable'], '[]', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(['string', 'block', 'variable'], '[]', 1, (params) => {
+            const { receiver, args } = params;
             if (!converter._isNumberOrBlock(args[0])) return null;
 
             const block = converter._createBlock('operator_letter_of', 'value');
@@ -24,16 +24,16 @@ const OperatorsConverter = {
             return block;
         });
 
-        converter.registerOnSend(['string', 'block', 'variable'], 'length', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(['string', 'block', 'variable'], 'length', 0, (params) => {
+            const { receiver } = params;
 
             const block = converter._createBlock('operator_length', 'value');
             converter._addTextInput(block, 'STRING', receiver, 'apple');
             return block;
         });
 
-        converter.registerOnSend(['string', 'block', 'variable'], 'empty?', 0, params => {
-            const {receiver, name} = params;
+        converter.registerOnSend(['string', 'block', 'variable'], 'empty?', 0, (params) => {
+            const { receiver, name } = params;
 
             const index = (converter._context.methodCallIndices[name] || 0) + 1;
             converter._context.methodCallIndices[name] = index;
@@ -56,8 +56,8 @@ const OperatorsConverter = {
             return block;
         });
 
-        converter.registerOnSend(['string', 'block'], 'include?', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(['string', 'block'], 'include?', 1, (params) => {
+            const { receiver, args } = params;
             if (!converter._isStringOrBlock(args[0])) return null;
 
             const block = converter._createBlock('operator_contains', 'value');
@@ -66,8 +66,8 @@ const OperatorsConverter = {
             return block;
         });
 
-        converter.registerOnSend(['string', 'block'], '+', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(['string', 'block'], '+', 1, (params) => {
+            const { receiver, args } = params;
             let rh = args[0];
             if (_.isArray(rh)) {
                 if (rh.length !== 1) return null;
@@ -81,14 +81,17 @@ const OperatorsConverter = {
 
             const block = converter._createBlock('operator_join', 'value');
             converter._addTextInput(
-                block, 'STRING1', converter._isNumber(receiver) ? receiver.toString() : receiver, 'apple'
+                block,
+                'STRING1',
+                converter._isNumber(receiver) ? receiver.toString() : receiver,
+                'apple',
             );
             converter._addTextInput(block, 'STRING2', converter._isNumber(rh) ? rh.toString() : rh, 'banana');
             return block;
         });
 
-        converter.registerOnSend('any', '!=', 1, params => {
-            const {receiver, args, name} = params;
+        converter.registerOnSend('any', '!=', 1, (params) => {
+            const { receiver, args, name } = params;
             let rh = args[0];
             if (_.isArray(rh)) {
                 if (rh.length !== 1) return null;
@@ -102,11 +105,12 @@ const OperatorsConverter = {
 
             const equalsBlock = converter._createBlock('operator_equals', 'value_boolean');
             converter._addTextInput(
-                equalsBlock, 'OPERAND1', converter._isNumber(receiver) ? receiver.toString() : receiver, ''
+                equalsBlock,
+                'OPERAND1',
+                converter._isNumber(receiver) ? receiver.toString() : receiver,
+                '',
             );
-            converter._addTextInput(
-                equalsBlock, 'OPERAND2', converter._isNumber(rh) ? rh.toString() : rh, '50'
-            );
+            converter._addTextInput(equalsBlock, 'OPERAND2', converter._isNumber(rh) ? rh.toString() : rh, '50');
             equalsBlock.comment = converter._createComment(commentText, equalsBlock.id);
 
             const block = converter._createBlock('operator_not', 'value_boolean');
@@ -115,9 +119,9 @@ const OperatorsConverter = {
             return block;
         });
 
-        ['>=', '<='].forEach(operator => {
-            converter.registerOnSend('any', operator, 1, params => {
-                const {receiver, args, name} = params;
+        ['>=', '<='].forEach((operator) => {
+            converter.registerOnSend('any', operator, 1, (params) => {
+                const { receiver, args, name } = params;
                 let rh = args[0];
                 if (_.isArray(rh)) {
                     if (rh.length !== 1) return null;
@@ -139,12 +143,8 @@ const OperatorsConverter = {
                 subBlock.comment = converter._createComment(commentText, subBlock.id);
 
                 const equalsBlock = converter._createBlock('operator_equals', 'value_boolean');
-                converter._addTextInput(
-                    equalsBlock, 'OPERAND1', converter._cloneBlock(receiverValue), ''
-                );
-                converter._addTextInput(
-                    equalsBlock, 'OPERAND2', converter._cloneBlock(rhValue), '50'
-                );
+                converter._addTextInput(equalsBlock, 'OPERAND1', converter._cloneBlock(receiverValue), '');
+                converter._addTextInput(equalsBlock, 'OPERAND2', converter._cloneBlock(rhValue), '50');
                 equalsBlock.comment = converter._createComment(commentText, equalsBlock.id);
 
                 const block = converter._createBlock('operator_or', 'value_boolean');
@@ -156,8 +156,8 @@ const OperatorsConverter = {
         });
 
         // === Smalruby: Start of regex match operators ===
-        converter.registerOnSend('any', '=~', 1, params => {
-            const {receiver, args, name} = params;
+        converter.registerOnSend('any', '=~', 1, (params) => {
+            const { receiver, args, name } = params;
 
             const index = (converter._context.methodCallIndices[name] || 0) + 1;
             converter._context.methodCallIndices[name] = index;
@@ -181,17 +181,15 @@ const OperatorsConverter = {
 
             const block = converter._createBlock('operator_contains', 'value_boolean');
             converter._addTextInput(block, 'STRING1', str, 'apple');
-            converter._addTextInput(
-                block, 'STRING2', converter._isRegexp(regexp) ? regexp.toString() : regexp, 'a'
-            );
+            converter._addTextInput(block, 'STRING2', converter._isRegexp(regexp) ? regexp.toString() : regexp, 'a');
 
             const commentText = `@ruby:operator:${name}:${index}${commentSuffix}`;
             block.comment = converter._createComment(commentText, block.id);
             return block;
         });
 
-        converter.registerOnSend('any', '!~', 1, params => {
-            const {receiver, args, name} = params;
+        converter.registerOnSend('any', '!~', 1, (params) => {
+            const { receiver, args, name } = params;
 
             const index = (converter._context.methodCallIndices[name] || 0) + 1;
             converter._context.methodCallIndices[name] = index;
@@ -218,7 +216,10 @@ const OperatorsConverter = {
             const containsBlock = converter._createBlock('operator_contains', 'value_boolean');
             converter._addTextInput(containsBlock, 'STRING1', str, 'apple');
             converter._addTextInput(
-                containsBlock, 'STRING2', converter._isRegexp(regexp) ? regexp.toString() : regexp, 'a'
+                containsBlock,
+                'STRING2',
+                converter._isRegexp(regexp) ? regexp.toString() : regexp,
+                'a',
             );
             containsBlock.comment = converter._createComment(commentText, containsBlock.id);
 
@@ -229,9 +230,9 @@ const OperatorsConverter = {
         });
         // === Smalruby: End of regex match operators ===
 
-        ['>', '<', '=='].forEach(operator => {
-            converter.registerOnSend('any', operator, 1, params => {
-                const {receiver, args, node} = params;
+        ['>', '<', '=='].forEach((operator) => {
+            converter.registerOnSend('any', operator, 1, (params) => {
+                const { receiver, args, node } = params;
                 let rh = args[0];
                 if (_.isArray(rh)) {
                     if (rh.length !== 1) return null;
@@ -239,14 +240,11 @@ const OperatorsConverter = {
                 }
 
                 // For >, <: reject symbol args (Ruby raises ArgumentError for mixed types)
-                if (operator !== '==' &&
-                    converter._isPrimitive(rh) && rh.type === 'sym') {
+                if (operator !== '==' && converter._isPrimitive(rh) && rh.type === 'sym') {
                     const source = converter._truncateSource(converter._getSource(node));
                     throw new RubyToBlocksConverterError(
                         node,
-                        converter._translator(
-                            converter._symbolCannotCompareMessage(), {SOURCE: source}
-                        )
+                        converter._translator(converter._symbolCannotCompareMessage(), { SOURCE: source }),
                     );
                 }
 
@@ -261,16 +259,19 @@ const OperatorsConverter = {
 
                 const block = converter._createBlock(opcode, 'value_boolean');
                 converter._addTextInput(
-                    block, 'OPERAND1', converter._isNumber(receiver) ? receiver.toString() : receiver, ''
+                    block,
+                    'OPERAND1',
+                    converter._isNumber(receiver) ? receiver.toString() : receiver,
+                    '',
                 );
                 converter._addTextInput(block, 'OPERAND2', converter._isNumber(rh) ? rh.toString() : rh, '50');
                 return block;
             });
         });
 
-        ['>', '<', '=='].forEach(operator => {
-            converter.registerOnSend('symbol', operator, 1, params => {
-                const {receiver, args, node} = params;
+        ['>', '<', '=='].forEach((operator) => {
+            converter.registerOnSend('symbol', operator, 1, (params) => {
+                const { receiver, args, node } = params;
                 let rh = args[0];
                 if (_.isArray(rh)) {
                     if (rh.length !== 1) return null;
@@ -284,13 +285,11 @@ const OperatorsConverter = {
                     const source = converter._truncateSource(converter._getSource(node));
                     throw new RubyToBlocksConverterError(
                         node,
-                        converter._translator(converter._symbolCannotCompareMessage(), {SOURCE: source})
+                        converter._translator(converter._symbolCannotCompareMessage(), { SOURCE: source }),
                     );
                 }
 
-                const receiverBlock = converter._symbolToBlock(
-                    converter._getSymbolValue(receiver), receiver.node
-                );
+                const receiverBlock = converter._symbolToBlock(converter._getSymbolValue(receiver), receiver.node);
                 if (rhIsSymbol) {
                     rh = converter._symbolToBlock(rh.value, rh.node);
                 }
@@ -305,26 +304,23 @@ const OperatorsConverter = {
                 }
 
                 const block = converter._createBlock(opcode, 'value_boolean');
-                converter._addInput(
-                    block, 'OPERAND1', receiverBlock, converter._createTextBlock('')
-                );
+                converter._addInput(block, 'OPERAND1', receiverBlock, converter._createTextBlock(''));
                 if (converter._isBlock(rh)) {
-                    converter._addInput(
-                        block, 'OPERAND2', rh, converter._createTextBlock('50')
-                    );
+                    converter._addInput(block, 'OPERAND2', rh, converter._createTextBlock('50'));
                 } else {
-                    converter._addTextInput(
-                        block, 'OPERAND2', converter._isNumber(rh) ? rh.toString() : rh, '50'
-                    );
+                    converter._addTextInput(block, 'OPERAND2', converter._isNumber(rh) ? rh.toString() : rh, '50');
                 }
                 return block;
             });
         });
 
-        converter.registerOnSend(['variable', 'boolean', 'block'], '!', 0, params => {
-            const {receiver} = params;
-            if (!converter._isFalseOrBooleanBlock(receiver) &&
-                !(converter._isBlock(receiver) && receiver.opcode === 'data_variable')) return null;
+        converter.registerOnSend(['variable', 'boolean', 'block'], '!', 0, (params) => {
+            const { receiver } = params;
+            if (
+                !converter._isFalseOrBooleanBlock(receiver) &&
+                !(converter._isBlock(receiver) && receiver.opcode === 'data_variable')
+            )
+                return null;
 
             const block = converter._createBlock('operator_not', 'value_boolean');
             if (converter._isFalse(receiver)) {
@@ -333,14 +329,14 @@ const OperatorsConverter = {
                 converter._addInput(
                     block,
                     'OPERAND',
-                    converter._createTextBlock(converter._isNumber(receiver) ? receiver.toString() : receiver)
+                    converter._createTextBlock(converter._isNumber(receiver) ? receiver.toString() : receiver),
                 );
             }
             return block;
         });
 
-        converter.registerOnSend('symbol', 'to_s', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend('symbol', 'to_s', 0, (params) => {
+            const { receiver } = params;
             const symbolName = converter._getSymbolValue(receiver);
             if (!symbolName) return null;
 
@@ -352,8 +348,8 @@ const OperatorsConverter = {
             return block;
         });
 
-        converter.registerOnSend(['variable', 'number', 'string', 'block'], 'to_s', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(['variable', 'number', 'string', 'block'], 'to_s', 0, (params) => {
+            const { receiver } = params;
 
             const block = converter._createBlock('operator_join', 'value');
             if (converter._isNumber(receiver)) {
@@ -366,8 +362,8 @@ const OperatorsConverter = {
             return block;
         });
 
-        converter.registerOnSend(['variable', 'number', 'string', 'block'], 'to_i', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(['variable', 'number', 'string', 'block'], 'to_i', 0, (params) => {
+            const { receiver } = params;
 
             // Map `.to_i` to `operator_mathop(floor, x)` so the runtime
             // actually truncates (the previous `operator_add(x, 0)` was a
@@ -385,9 +381,9 @@ const OperatorsConverter = {
         });
 
         // Register onXxx handlers
-        converter.registerOnAnd(operands => {
+        converter.registerOnAnd((operands) => {
             const block = converter._createBlock('operator_and', 'value_boolean');
-            operands.forEach(o => {
+            operands.forEach((o) => {
                 if (o) {
                     o.parent = block.id;
                 }
@@ -401,9 +397,9 @@ const OperatorsConverter = {
             return block;
         });
 
-        converter.registerOnOr(operands => {
+        converter.registerOnOr((operands) => {
             const block = converter._createBlock('operator_or', 'value_boolean');
-            operands.forEach(o => {
+            operands.forEach((o) => {
                 if (o) {
                     o.parent = block.id;
                 }
@@ -416,7 +412,7 @@ const OperatorsConverter = {
             }
             return block;
         });
-    }
+    },
 };
 
 export default OperatorsConverter;

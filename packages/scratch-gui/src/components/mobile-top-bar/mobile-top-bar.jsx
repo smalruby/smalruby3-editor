@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { connect } from 'react-redux';
-
 import { setFullScreen } from '../../reducers/mode.js';
 import hamburgerIcon from '../mobile-drawer/icon--hamburger.svg';
 import playIcon from './icon--play.svg';
@@ -68,19 +67,12 @@ const usePositionAtVisualViewportTop = (ref, enabled) => {
  * @param {Function} props.onOpenDrawer - ☰ クリックで呼ぶ
  * @returns {JSX.Element|null} Portal でレンダリングされる上部バー
  */
-const MobileTopBarComponent = ({
-    vm,
-    isFullScreen,
-    isStarted,
-    projectTitle,
-    onSetFullScreen,
-    onOpenDrawer,
-}) => {
+const MobileTopBarComponent = ({ vm, isFullScreen, isStarted, projectTitle, onSetFullScreen, onOpenDrawer }) => {
     const ref = useRef(null);
     usePositionAtVisualViewportTop(ref, true);
 
     const handleToggleClick = useCallback(
-        e => {
+        (e) => {
             if (isFullScreen) {
                 vm.stopAll();
                 onSetFullScreen(false);
@@ -98,7 +90,7 @@ const MobileTopBarComponent = ({
     );
 
     const handleMenuClick = useCallback(
-        e => {
+        (e) => {
             onOpenDrawer();
             const target = e?.currentTarget;
             if (target) target.blur();
@@ -119,13 +111,7 @@ const MobileTopBarComponent = ({
                 data-testid="mobile-top-bar-menu"
                 aria-label="menu"
             >
-                <img
-                    alt=""
-                    aria-hidden="true"
-                    className={styles.menuIcon}
-                    draggable={false}
-                    src={hamburgerIcon}
-                />
+                <img alt="" aria-hidden="true" className={styles.menuIcon} draggable={false} src={hamburgerIcon} />
             </button>
             <span className={styles.projectTitle} data-testid="mobile-top-bar-title">
                 {projectTitle}
@@ -163,15 +149,15 @@ MobileTopBarComponent.propTypes = {
     onOpenDrawer: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state) => ({
     vm: state.scratchGui.vm,
     isFullScreen: state.scratchGui.mode.isFullScreen,
     isStarted: state.scratchGui.vmStatus.started,
     projectTitle: state.scratchGui.projectTitle,
 });
 
-const mapDispatchToProps = dispatch => ({
-    onSetFullScreen: isFull => dispatch(setFullScreen(isFull)),
+const mapDispatchToProps = (dispatch) => ({
+    onSetFullScreen: (isFull) => dispatch(setFullScreen(isFull)),
 });
 
 const MobileTopBar = connect(mapStateToProps, mapDispatchToProps)(MobileTopBarComponent);

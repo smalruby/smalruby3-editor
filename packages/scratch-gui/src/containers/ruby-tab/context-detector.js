@@ -9,8 +9,16 @@ export const CONTEXT_EXPRESSION_EXPECTED = 'expression_expected';
 // Allowed snippet types per context
 export const CONTEXT_ALLOWED_TYPES = {
     [CONTEXT_TOP_LEVEL]: new Set(['event', 'enum_member']),
-    [CONTEXT_INSIDE_BLOCK]: new Set(['function', 'method', 'snippet', 'variable', 'value', 'constant', 'enum_member']),
-    [CONTEXT_EXPRESSION_EXPECTED]: new Set(['variable', 'value', 'constant', 'method', 'enum_member'])
+    [CONTEXT_INSIDE_BLOCK]: new Set([
+        'function',
+        'method',
+        'snippet',
+        'variable',
+        'value',
+        'constant',
+        'enum_member',
+    ]),
+    [CONTEXT_EXPRESSION_EXPECTED]: new Set(['variable', 'value', 'constant', 'method', 'enum_member']),
 };
 
 /**
@@ -24,7 +32,7 @@ export const detectContext = (model, position) => {
         startLineNumber: 1,
         startColumn: 1,
         endLineNumber: position.lineNumber,
-        endColumn: position.column
+        endColumn: position.column,
     });
 
     // Count nesting level by tracking do/def vs end keywords
@@ -33,8 +41,7 @@ export const detectContext = (model, position) => {
     for (const line of lines) {
         // Strip comments
         const codePart = line.replace(/#.*$/, '');
-        const opens = (codePart.match(/\bdo\b/g) || []).length +
-                      (codePart.match(/\bdef\s/g) || []).length;
+        const opens = (codePart.match(/\bdo\b/g) || []).length + (codePart.match(/\bdef\s/g) || []).length;
         const closes = (codePart.match(/\bend\b/g) || []).length;
         nestingLevel += opens - closes;
     }
@@ -48,7 +55,7 @@ export const detectContext = (model, position) => {
         startLineNumber: position.lineNumber,
         startColumn: 1,
         endLineNumber: position.lineNumber,
-        endColumn: position.column
+        endColumn: position.column,
     });
 
     // Remove the current word being typed to check the preceding context

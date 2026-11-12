@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
-
 import { peerViewEntryState } from '../../lib/classroom-peer-view.js';
 import { closeClassroomModal, openStudentPeerPanel } from '../../reducers/classroom.js';
 import styles from './classroom-modal.css';
@@ -29,10 +28,7 @@ const StudentPeerViewButton = ({ disabled }) => {
     if (entry === 'hidden') return null;
     if (entry === 'locked') {
         return (
-            <span
-                className={styles.peerViewLocked}
-                data-testid="classroom-peer-view-locked"
-            >
+            <span className={styles.peerViewLocked} data-testid="classroom-peer-view-locked">
                 <FormattedMessage
                     defaultMessage="Submit to see classmates' work"
                     description="Student status: peer view opens after submitting (#1210)"

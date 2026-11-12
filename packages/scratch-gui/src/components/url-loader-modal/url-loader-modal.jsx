@@ -1,103 +1,95 @@
 import classNames from 'classnames';
+import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
-import bindAll from 'lodash.bindall';
-import {defineMessages, FormattedMessage, injectIntl} from 'react-intl';
-import intlShape from '../../lib/intlShape.js';
-
-import Box from '../box/box.jsx';
+import { defineMessages, FormattedMessage, injectIntl } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
+import intlShape from '../../lib/intlShape.js';
+import Box from '../box/box.jsx';
 import urlLoaderIcon from './url-loader-icon.svg';
-
 import styles from './url-loader-modal.css';
 
 const messages = defineMessages({
     title: {
         defaultMessage: 'Load from Scratch',
         description: 'Title for the Scratch loader modal',
-        id: 'gui.urlLoader.title'
+        id: 'gui.urlLoader.title',
     },
     urlPlaceholder: {
         defaultMessage: 'Enter project URL...',
         description: 'Placeholder text for URL input field',
-        id: 'gui.urlLoader.urlPlaceholder'
+        id: 'gui.urlLoader.urlPlaceholder',
     },
     urlExamplesTitle: {
         defaultMessage: 'URL Examples',
         description: 'Title for URL examples section',
-        id: 'gui.urlLoader.urlExamplesTitle'
+        id: 'gui.urlLoader.urlExamplesTitle',
     },
     urlExampleScratch: {
         defaultMessage: 'https://scratch.mit.edu/projects/1234567/',
         description: 'Example URL for Scratch projects',
-        id: 'gui.urlLoader.urlExampleScratch'
+        id: 'gui.urlLoader.urlExampleScratch',
     },
     openButton: {
         defaultMessage: 'Open',
         description: 'Label for open button',
-        id: 'gui.urlLoader.openButton'
+        id: 'gui.urlLoader.openButton',
     },
     cancelButton: {
         defaultMessage: 'Cancel',
         description: 'Label for cancel button',
-        id: 'gui.urlLoader.cancelButton'
+        id: 'gui.urlLoader.cancelButton',
     },
     loading: {
         defaultMessage: 'Loading…',
         description: 'Shown in the modal while a project is being fetched and loaded from a URL',
-        id: 'gui.urlLoader.loading'
-    }
+        id: 'gui.urlLoader.loading',
+    },
 });
 
 class URLLoaderModal extends React.Component {
-    constructor (props) {
+    constructor(props) {
         super(props);
-        bindAll(this, [
-            'handleUrlChange',
-            'handleOpenClick',
-            'handleCancelClick',
-            'handleKeyPress',
-            'clearError'
-        ]);
+        bindAll(this, ['handleUrlChange', 'handleOpenClick', 'handleCancelClick', 'handleKeyPress', 'clearError']);
 
         this.state = {
             url: '',
-            error: null
+            error: null,
         };
     }
 
-    handleUrlChange (event) {
+    handleUrlChange(event) {
         this.setState({
             url: event.target.value,
-            error: null // Clear error when user types
+            error: null, // Clear error when user types
         });
     }
 
-    clearError () {
-        this.setState({error: null});
+    clearError() {
+        this.setState({ error: null });
     }
 
-    handleOpenClick () {
+    handleOpenClick() {
         // Ignore clicks while a load is already running so the project is only
         // loaded once even if the user taps "Open"/Enter repeatedly (#972).
         if (this.props.loading) {
             return;
         }
-        const {url} = this.state;
+        const { url } = this.state;
         if (url.trim()) {
-            this.props.onLoadUrl(url.trim(), error => {
+            this.props.onLoadUrl(url.trim(), (error) => {
                 if (error) {
-                    this.setState({error: error});
+                    this.setState({ error: error });
                 }
             });
         }
     }
 
-    handleCancelClick () {
+    handleCancelClick() {
         this.props.onRequestClose();
     }
 
-    handleKeyPress (event) {
+    handleKeyPress(event) {
         // The Enter that commits an IME conversion must not open the project.
         // React's SyntheticKeyboardEvent omits isComposing, so read the native
         // event. This is bound to keypress, which Chromium never fires while
@@ -109,9 +101,9 @@ class URLLoaderModal extends React.Component {
         }
     }
 
-    render () {
-        const {intl, loading, onRequestClose} = this.props;
-        const {url, error} = this.state;
+    render() {
+        const { intl, loading, onRequestClose } = this.props;
+        const { url, error } = this.state;
 
         return (
             <Modal
@@ -126,7 +118,7 @@ class URLLoaderModal extends React.Component {
                     <Box className={styles.inputSection}>
                         <input
                             className={classNames(styles.urlInput, {
-                                [styles.inputError]: error
+                                [styles.inputError]: error,
                             })}
                             type="text"
                             value={url}
@@ -144,51 +136,35 @@ class URLLoaderModal extends React.Component {
                     </Box>
 
                     {loading && (
-                        <Box
-                            className={styles.loadingIndicator}
-                            data-testid="url-loader-loading"
-                        >
+                        <Box className={styles.loadingIndicator} data-testid="url-loader-loading">
                             <span className={styles.loadingSpinner} />
-                            <FormattedMessage
-                                {...messages.loading}
-                            />
+                            <FormattedMessage {...messages.loading} />
                         </Box>
                     )}
 
                     <Box className={styles.examplesSection}>
                         <div className={styles.examplesTitle}>
-                            <FormattedMessage
-                                {...messages.urlExamplesTitle}
-                            />
+                            <FormattedMessage {...messages.urlExamplesTitle} />
                         </div>
                         <ul className={styles.examplesList}>
                             <li className={styles.exampleItem}>
-                                <FormattedMessage
-                                    {...messages.urlExampleScratch}
-                                />
+                                <FormattedMessage {...messages.urlExampleScratch} />
                             </li>
                         </ul>
                     </Box>
 
                     <Box className={styles.buttonSection}>
-                        <button
-                            className={styles.cancelButton}
-                            onClick={this.handleCancelClick}
-                        >
-                            <FormattedMessage
-                                {...messages.cancelButton}
-                            />
+                        <button className={styles.cancelButton} onClick={this.handleCancelClick}>
+                            <FormattedMessage {...messages.cancelButton} />
                         </button>
                         <button
                             className={classNames(styles.openButton, {
-                                [styles.disabled]: !url.trim() || loading
+                                [styles.disabled]: !url.trim() || loading,
                             })}
                             onClick={this.handleOpenClick}
                             disabled={!url.trim() || loading}
                         >
-                            <FormattedMessage
-                                {...messages.openButton}
-                            />
+                            <FormattedMessage {...messages.openButton} />
                         </button>
                     </Box>
                 </Box>
@@ -201,7 +177,7 @@ URLLoaderModal.propTypes = {
     intl: intlShape.isRequired,
     loading: PropTypes.bool,
     onRequestClose: PropTypes.func.isRequired,
-    onLoadUrl: PropTypes.func.isRequired
+    onLoadUrl: PropTypes.func.isRequired,
 };
 
 export default injectIntl(URLLoaderModal);

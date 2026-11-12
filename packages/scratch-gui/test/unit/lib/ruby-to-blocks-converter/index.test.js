@@ -1,9 +1,5 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    rubyToExpected,
-    expectedInfo
-} from '../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks, rubyToExpected, expectedInfo } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter', () => {
     let converter;
@@ -12,7 +8,7 @@ describe('RubyToBlocksConverter', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -35,12 +31,9 @@ describe('RubyToBlocksConverter', () => {
             expect(Object.keys(converter.lists)).toHaveLength(0);
         });
 
-
         describe('top level blocks', () => {
             test('statements', async () => {
-                expected = [
-                    (await rubyToExpected(converter, target, 'move(10)'))[0]
-                ];
+                expected = [(await rubyToExpected(converter, target, 'move(10)'))[0]];
                 expected[0].next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
                 expected[0].next.next = (await rubyToExpected(converter, target, 'turn_right(180)'))[0];
 
@@ -85,8 +78,7 @@ describe('RubyToBlocksConverter', () => {
                 expected = [
                     (await rubyToExpected(converter, target, 'x'))[0],
                     (await rubyToExpected(converter, target, 'y'))[0],
-                    (await rubyToExpected(converter, target, 'size'))[0]
-
+                    (await rubyToExpected(converter, target, 'size'))[0],
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
@@ -100,7 +92,7 @@ describe('RubyToBlocksConverter', () => {
                 expected = [
                     (await rubyToExpected(converter, target, 'when_flag_clicked {}'))[0],
                     (await rubyToExpected(converter, target, 'when_flag_clicked {}'))[0],
-                    (await rubyToExpected(converter, target, 'when_flag_clicked {}'))[0]
+                    (await rubyToExpected(converter, target, 'when_flag_clicked {}'))[0],
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
@@ -114,7 +106,7 @@ describe('RubyToBlocksConverter', () => {
                 expected = [
                     (await rubyToExpected(converter, target, 'forever {}'))[0],
                     (await rubyToExpected(converter, target, 'forever {}'))[0],
-                    (await rubyToExpected(converter, target, 'forever {}'))[0]
+                    (await rubyToExpected(converter, target, 'forever {}'))[0],
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
@@ -144,7 +136,7 @@ describe('RubyToBlocksConverter', () => {
                     (await rubyToExpected(converter, target, 'when_flag_clicked {}'))[0],
                     (await rubyToExpected(converter, target, 'bounce_if_on_edge; forever {}'))[0],
                     (await rubyToExpected(converter, target, 'move(10)'))[0],
-                    (await rubyToExpected(converter, target, 'x'))[0]
+                    (await rubyToExpected(converter, target, 'x'))[0],
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
@@ -161,7 +153,7 @@ describe('RubyToBlocksConverter', () => {
                     (await rubyToExpected(converter, target, 'move(10); forever {}'))[0],
                     (await rubyToExpected(converter, target, 'turn_right(180); forever {}'))[0],
                     (await rubyToExpected(converter, target, 'move(10); turn_right(180); forever {}'))[0],
-                    (await rubyToExpected(converter, target, 'move(10)'))[0]
+                    (await rubyToExpected(converter, target, 'move(10)'))[0],
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
@@ -170,26 +162,23 @@ describe('RubyToBlocksConverter', () => {
                 // Bare literals (1, "Hello!") are now auto-converted to temp
                 // variable assignments, so they no longer error.
                 // Only symbols still error.
-                { for (const c of [
-                    ':symbol'
-                ]) {
-                    const res = await converter.targetCodeToBlocks(target, c);
-                    expect(converter.errors).toHaveLength(1);
-                    expect(converter.errors[0].row).toEqual(0);
-                    expect(res).toBeFalsy();
-                } }
+                {
+                    for (const c of [':symbol']) {
+                        const res = await converter.targetCodeToBlocks(target, c);
+                        expect(converter.errors).toHaveLength(1);
+                        expect(converter.errors[0].row).toEqual(0);
+                        expect(res).toBeFalsy();
+                    }
+                }
             });
 
             test('bare literals are accepted', async () => {
-                { for (const c of [
-                    '1',
-                    '"Hello!"',
-                    'move(10); 1',
-                    'move(10); 1; bounce_if_on_edge'
-                ]) {
-                    const res = await converter.targetCodeToBlocks(target, c);
-                    expect(res).toBeTruthy();
-                } }
+                {
+                    for (const c of ['1', '"Hello!"', 'move(10); 1', 'move(10); 1; bounce_if_on_edge']) {
+                        const res = await converter.targetCodeToBlocks(target, c);
+                        expect(res).toBeTruthy();
+                    }
+                }
             });
         });
 
@@ -233,27 +222,25 @@ describe('RubyToBlocksConverter', () => {
                                                             fields: [
                                                                 {
                                                                     name: 'VARIABLE',
-                                                                    variable: '$global'
-                                                                }
-                                                            ]
+                                                                    variable: '$global',
+                                                                },
+                                                            ],
                                                         },
-                                                        shadow: expectedInfo.makeText('')
+                                                        shadow: expectedInfo.makeText(''),
                                                     },
                                                     {
                                                         name: 'OPERAND2',
-                                                        block: expectedInfo.makeText('21')
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
+                                                        block: expectedInfo.makeText('21'),
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
                         ],
-                        branches: [
-                            (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
-                        ]
-                    }
+                        branches: [(await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]],
+                    },
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });

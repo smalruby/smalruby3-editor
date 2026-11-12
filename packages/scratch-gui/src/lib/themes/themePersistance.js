@@ -1,12 +1,11 @@
 import cookie from 'cookie';
-
-import {DEFAULT_THEME, HIGH_CONTRAST_THEME} from '.';
+import { DEFAULT_THEME, HIGH_CONTRAST_THEME } from '.';
 
 const PREFERS_HIGH_CONTRAST_QUERY = '(prefers-contrast: more)';
 const COOKIE_KEY = 'scratchtheme';
 
 // Dark mode isn't enabled yet
-const isValidTheme = theme => [DEFAULT_THEME, HIGH_CONTRAST_THEME].includes(theme);
+const isValidTheme = (theme) => [DEFAULT_THEME, HIGH_CONTRAST_THEME].includes(theme);
 
 const systemPreferencesTheme = () => {
     if (window.matchMedia && window.matchMedia(PREFERS_HIGH_CONTRAST_QUERY).matches) return HIGH_CONTRAST_THEME;
@@ -24,7 +23,7 @@ const detectTheme = () => {
     return systemPreferencesTheme();
 };
 
-const persistTheme = theme => {
+const persistTheme = (theme) => {
     if (!isValidTheme(theme)) {
         throw new Error(`Invalid theme: ${theme}`);
     }
@@ -39,7 +38,4 @@ const persistTheme = theme => {
     document.cookie = `${COOKIE_KEY}=${theme};expires=${expires};path=/`;
 };
 
-export {
-    detectTheme,
-    persistTheme
-};
+export { detectTheme, persistTheme };

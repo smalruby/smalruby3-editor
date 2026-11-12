@@ -4,11 +4,11 @@
  * Monaco CodeActionProvider that provides quick fixes for Ruby-to-blocks conversion errors.
  */
 class QuickFixProvider {
-    constructor () {
+    constructor() {
         this._vm = null;
     }
 
-    setVM (vm) {
+    setVM(vm) {
         this._vm = vm;
     }
 
@@ -20,16 +20,16 @@ class QuickFixProvider {
      * @param {object} _token - Cancellation token
      * @returns {object} List of code actions
      */
-    provideCodeActions (model, range, context, _token) {
+    provideCodeActions(model, range, context, _token) {
         const actions = [];
         for (const marker of context.markers) {
             if (marker.owner !== 'smalruby') continue;
             actions.push(...this._getActionsForMarker(model, marker));
         }
-        return {actions, dispose: () => {}};
+        return { actions, dispose: () => {} };
     }
 
-    _getActionsForMarker (model, marker) {
+    _getActionsForMarker(model, marker) {
         const msg = marker.message;
         const actions = [];
 
@@ -41,11 +41,7 @@ class QuickFixProvider {
             const newPrefix = prefix === '@' ? '$' : '@';
             const oldText = `${prefix}${varName}`;
             const newText = `${newPrefix}${varName}`;
-            actions.push(this._createReplaceAction(
-                model, marker,
-                `Change to ${newText}`,
-                oldText, newText
-            ));
+            actions.push(this._createReplaceAction(model, marker, `Change to ${newText}`, oldText, newText));
         }
 
         // Costume does not exist
@@ -55,11 +51,9 @@ class QuickFixProvider {
             const costumes = this._getCostumeNames();
             for (const name of costumes) {
                 if (name === wrongName) continue;
-                actions.push(this._createReplaceAction(
-                    model, marker,
-                    `Change to "${name}"`,
-                    `"${wrongName}"`, `"${name}"`
-                ));
+                actions.push(
+                    this._createReplaceAction(model, marker, `Change to "${name}"`, `"${wrongName}"`, `"${name}"`),
+                );
             }
         }
 
@@ -70,11 +64,9 @@ class QuickFixProvider {
             const backdrops = this._getBackdropNames();
             for (const name of backdrops) {
                 if (name === wrongName) continue;
-                actions.push(this._createReplaceAction(
-                    model, marker,
-                    `Change to "${name}"`,
-                    `"${wrongName}"`, `"${name}"`
-                ));
+                actions.push(
+                    this._createReplaceAction(model, marker, `Change to "${name}"`, `"${wrongName}"`, `"${name}"`),
+                );
             }
         }
 
@@ -85,70 +77,71 @@ class QuickFixProvider {
             const sounds = this._getSoundNames();
             for (const name of sounds) {
                 if (name === wrongName) continue;
-                actions.push(this._createReplaceAction(
-                    model, marker,
-                    `Change to "${name}"`,
-                    `"${wrongName}"`, `"${name}"`
-                ));
+                actions.push(
+                    this._createReplaceAction(model, marker, `Change to "${name}"`, `"${wrongName}"`, `"${name}"`),
+                );
             }
         }
 
         return actions;
     }
 
-    _createReplaceAction (model, marker, title, oldText, newText) {
+    _createReplaceAction(model, marker, title, oldText, newText) {
         // Find the exact position of oldText in the marker's line
         const lineContent = model.getLineContent(marker.startLineNumber);
         const startIdx = lineContent.indexOf(oldText, marker.startColumn - 1);
-        const range = startIdx >= 0 ?
-            {
-                startLineNumber: marker.startLineNumber,
-                startColumn: startIdx + 1,
-                endLineNumber: marker.startLineNumber,
-                endColumn: startIdx + oldText.length + 1
-            } :
-            {
-                startLineNumber: marker.startLineNumber,
-                startColumn: marker.startColumn,
-                endLineNumber: marker.endLineNumber,
-                endColumn: marker.endColumn
-            };
+        const range =
+            startIdx >= 0
+                ? {
+                      startLineNumber: marker.startLineNumber,
+                      startColumn: startIdx + 1,
+                      endLineNumber: marker.startLineNumber,
+                      endColumn: startIdx + oldText.length + 1,
+                  }
+                : {
+                      startLineNumber: marker.startLineNumber,
+                      startColumn: marker.startColumn,
+                      endLineNumber: marker.endLineNumber,
+                      endColumn: marker.endColumn,
+                  };
 
         return {
             title,
             diagnostics: [marker],
             kind: 'quickfix',
             edit: {
-                edits: [{
-                    resource: model.uri,
-                    textEdit: {
-                        range,
-                        text: newText
+                edits: [
+                    {
+                        resource: model.uri,
+                        textEdit: {
+                            range,
+                            text: newText,
+                        },
+                        versionId: model.getVersionId(),
                     },
-                    versionId: model.getVersionId()
-                }]
-            }
+                ],
+            },
         };
     }
 
-    _getCostumeNames () {
+    _getCostumeNames() {
         if (!this._vm || !this._vm.editingTarget) return [];
         const costumes = this._vm.editingTarget.getCostumes();
-        return costumes ? costumes.map(c => c.name) : [];
+        return costumes ? costumes.map((c) => c.name) : [];
     }
 
-    _getBackdropNames () {
+    _getBackdropNames() {
         if (!this._vm || !this._vm.runtime) return [];
         const stage = this._vm.runtime.getTargetForStage();
         if (!stage) return [];
         const backdrops = stage.getCostumes();
-        return backdrops ? backdrops.map(b => b.name) : [];
+        return backdrops ? backdrops.map((b) => b.name) : [];
     }
 
-    _getSoundNames () {
+    _getSoundNames() {
         if (!this._vm || !this._vm.editingTarget) return [];
         const sounds = this._vm.editingTarget.getSounds();
-        return sounds ? sounds.map(s => s.name) : [];
+        return sounds ? sounds.map((s) => s.name) : [];
     }
 }
 

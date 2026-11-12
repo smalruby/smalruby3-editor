@@ -6,20 +6,23 @@ import {
     makeStageTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Sensing category blocks (stage)', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeStageTarget());
+        ({ target, runtime } = makeStageTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             ask("What's your name?")
 
             answer
@@ -65,6 +68,7 @@ describe('Ruby Roundtrip: Sensing category blocks (stage)', () => {
             online?
 
             user_name
-        `);
+        `,
+        );
     });
 });

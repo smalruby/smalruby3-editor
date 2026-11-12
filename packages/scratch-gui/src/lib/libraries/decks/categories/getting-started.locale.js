@@ -19,8 +19,7 @@ export const ja = {
         '「コード」タブでこのプログラムを入れて、{greenFlag}を押してみよう',
     'gui.howtos.getting-started-sprites.name': 'スプライトを2つ使ってみよう',
     'gui.howtos.getting-started-sprites.step1.title': 'スプライトをふやして、2つのキャラクターを動かそう！',
-    'gui.howtos.getting-started-sprites.step2.title':
-        'スプライトリストの右下のボタンから、ペンギンをふやしてみよう',
+    'gui.howtos.getting-started-sprites.step2.title': 'スプライトリストの右下のボタンから、ペンギンをふやしてみよう',
     'gui.howtos.getting-started-sprites.step3.title': 'ネコ（スプライト1）をえらんでから、このプログラムを入れよう',
     'gui.howtos.getting-started-sprites.step4.title':
         'ペンギンをえらぶとプログラムが切りかわるよ。入れたら{greenFlag}を押してみよう',
@@ -41,8 +40,7 @@ export const jaHira = {
     'gui.howtos.getting-started-sprites.step1.title': 'スプライトをふやして、2つのキャラクターをうごかそう！',
     'gui.howtos.getting-started-sprites.step2.title':
         'スプライトリストのみぎしたのボタンから、ペンギンをふやしてみよう',
-    'gui.howtos.getting-started-sprites.step3.title':
-        'ネコ（スプライト1）をえらんでから、このプログラムをいれよう',
+    'gui.howtos.getting-started-sprites.step3.title': 'ネコ（スプライト1）をえらんでから、このプログラムをいれよう',
     'gui.howtos.getting-started-sprites.step4.title':
         'ペンギンをえらぶとプログラムがきりかわるよ。いれたら{greenFlag}をおしてみよう',
 };

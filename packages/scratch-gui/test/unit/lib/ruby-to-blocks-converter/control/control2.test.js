@@ -1,8 +1,5 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    rubyToExpected
-} from '../../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks, rubyToExpected } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Control', () => {
     let converter;
@@ -10,7 +7,7 @@ describe('RubyToBlocksConverter/Control', () => {
     let code;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
     });
@@ -24,14 +21,18 @@ describe('RubyToBlocksConverter/Control', () => {
                   move(20)
                 end
             `;
-            const expected = await rubyToExpected(converter, target, 'if x == 1; move(10); else; if x == 2; move(20); end; end');
+            const expected = await rubyToExpected(
+                converter,
+                target,
+                'if x == 1; move(10); else; if x == 2; move(20); end; end',
+            );
             expected[0].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: true
+                minimized: true,
             };
             expected[0].branches[1].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: true
+                minimized: true,
             };
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -46,14 +47,18 @@ describe('RubyToBlocksConverter/Control', () => {
                   move(30)
                 end
             `;
-            const expected = await rubyToExpected(converter, target, 'if x == 1; move(10); else; if x == 2; move(20); else; move(30); end; end');
+            const expected = await rubyToExpected(
+                converter,
+                target,
+                'if x == 1; move(10); else; if x == 2; move(20); else; move(30); end; end',
+            );
             expected[0].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: true
+                minimized: true,
             };
             expected[0].branches[1].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: true
+                minimized: true,
             };
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -70,18 +75,22 @@ describe('RubyToBlocksConverter/Control', () => {
                   move(40)
                 end
             `;
-            const expected = await rubyToExpected(converter, target, 'if x == 1; move(10); else; if x == 2; move(20); else; if x == 3; move(30); else; move(40); end; end; end');
+            const expected = await rubyToExpected(
+                converter,
+                target,
+                'if x == 1; move(10); else; if x == 2; move(20); else; if x == 3; move(30); else; move(40); end; end; end',
+            );
             expected[0].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: true
+                minimized: true,
             };
             expected[0].branches[1].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: true
+                minimized: true,
             };
             expected[0].branches[1].branches[1].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: true
+                minimized: true,
             };
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -98,11 +107,11 @@ describe('RubyToBlocksConverter/Control', () => {
             const expected = await rubyToExpected(converter, target, 'if @a == 1; move(10); end');
             expected[0].comment = {
                 text: '@ruby:syntax:case:@a:1',
-                minimized: true
+                minimized: true,
             };
-            expected[0].inputs.find(i => i.name === 'CONDITION').block.comment = {
+            expected[0].inputs.find((i) => i.name === 'CONDITION').block.comment = {
                 text: '@ruby:syntax:case:@a:1',
-                minimized: true
+                minimized: true,
             };
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -119,11 +128,11 @@ describe('RubyToBlocksConverter/Control', () => {
             const expected = await rubyToExpected(converter, target, 'if @a == 1; move(10); else; move(20); end');
             expected[0].comment = {
                 text: '@ruby:syntax:case:@a:1',
-                minimized: true
+                minimized: true,
             };
-            expected[0].inputs.find(i => i.name === 'CONDITION').block.comment = {
+            expected[0].inputs.find((i) => i.name === 'CONDITION').block.comment = {
                 text: '@ruby:syntax:case:@a:1',
-                minimized: true
+                minimized: true,
             };
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -139,22 +148,26 @@ describe('RubyToBlocksConverter/Control', () => {
                   move(30)
                 end
             `;
-            const expected = await rubyToExpected(converter, target, 'if @a == 1; move(10); else; if @a == 2; move(20); else; move(30); end; end');
+            const expected = await rubyToExpected(
+                converter,
+                target,
+                'if @a == 1; move(10); else; if @a == 2; move(20); else; move(30); end; end',
+            );
             expected[0].comment = {
                 text: '@ruby:syntax:case:@a:1',
-                minimized: true
+                minimized: true,
             };
-            expected[0].inputs.find(i => i.name === 'CONDITION').block.comment = {
+            expected[0].inputs.find((i) => i.name === 'CONDITION').block.comment = {
                 text: '@ruby:syntax:case:@a:1',
-                minimized: true
+                minimized: true,
             };
             expected[0].branches[1].comment = {
                 text: '@ruby:syntax:case:@a:1',
-                minimized: true
+                minimized: true,
             };
-            expected[0].branches[1].inputs.find(i => i.name === 'CONDITION').block.comment = {
+            expected[0].branches[1].inputs.find((i) => i.name === 'CONDITION').block.comment = {
                 text: '@ruby:syntax:case:@a:1',
-                minimized: true
+                minimized: true,
             };
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -173,21 +186,21 @@ describe('RubyToBlocksConverter/Control', () => {
             const expected1 = await rubyToExpected(converter, target, 'if @a == 1; move(10); end');
             expected1[0].comment = {
                 text: '@ruby:syntax:case:@a:1',
-                minimized: true
+                minimized: true,
             };
-            expected1[0].inputs.find(i => i.name === 'CONDITION').block.comment = {
+            expected1[0].inputs.find((i) => i.name === 'CONDITION').block.comment = {
                 text: '@ruby:syntax:case:@a:1',
-                minimized: true
+                minimized: true,
             };
 
             const expected2 = await rubyToExpected(converter, target, 'if @b == 2; move(20); end');
             expected2[0].comment = {
                 text: '@ruby:syntax:case:@b:2',
-                minimized: true
+                minimized: true,
             };
-            expected2[0].inputs.find(i => i.name === 'CONDITION').block.comment = {
+            expected2[0].inputs.find((i) => i.name === 'CONDITION').block.comment = {
                 text: '@ruby:syntax:case:@b:2',
-                minimized: true
+                minimized: true,
             };
             expected1[0].next = expected2[0];
             await convertAndExpectToEqualBlocks(converter, target, code, [expected1[0]]);

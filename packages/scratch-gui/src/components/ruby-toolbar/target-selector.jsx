@@ -1,17 +1,14 @@
 // === Smalruby: This file is Smalruby-specific (target selector for Ruby toolbar) ===
-
-import React, {useState, useCallback} from 'react';
-import PropTypes from 'prop-types';
-import {useIntl} from 'react-intl';
 import VM from '@smalruby/scratch-vm';
-
-import styles from './ruby-toolbar.css';
-import messages from './messages.js';
-
+import PropTypes from 'prop-types';
+import React, { useState, useCallback } from 'react';
+import { useIntl } from 'react-intl';
 import iconBack from './icon--back.svg';
 import iconForward from './icon--forward.svg';
+import messages from './messages.js';
+import styles from './ruby-toolbar.css';
 
-const TargetSelector = props => {
+const TargetSelector = (props) => {
     const intl = useIntl();
     const [commandValue, setCommandValue] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
@@ -22,7 +19,7 @@ const TargetSelector = props => {
             return [];
         }
         return props.vm.runtime.targets
-            .filter(t => !t.isStage)
+            .filter((t) => !t.isStage)
             .sort((a, b) => a.getLayerOrder() - b.getLayerOrder());
     }, [props.vm]);
 
@@ -30,7 +27,7 @@ const TargetSelector = props => {
         if (!props.vm || !props.vm.runtime) {
             return [];
         }
-        const stage = props.vm.runtime.targets.find(t => t.isStage);
+        const stage = props.vm.runtime.targets.find((t) => t.isStage);
         const sprites = getSortedSprites();
         return stage ? [stage, ...sprites] : sprites;
     }, [props.vm, getSortedSprites]);
@@ -38,16 +35,19 @@ const TargetSelector = props => {
     const getCurrentSpriteIndex = useCallback(() => {
         const sprites = getSortedSprites();
         const currentId = props.editingTarget?.id;
-        return sprites.findIndex(s => s.id === currentId);
+        return sprites.findIndex((s) => s.id === currentId);
     }, [getSortedSprites, props.editingTarget]);
 
-    const getTargetName = useCallback(target => {
-        if (!target) return '';
-        if (target.isStage) return intl.formatMessage(messages.stage);
-        if (typeof target.getName === 'function') return target.getName();
-        if (target.sprite && target.sprite.name) return target.sprite.name;
-        return target.name || '';
-    }, [intl]);
+    const getTargetName = useCallback(
+        (target) => {
+            if (!target) return '';
+            if (target.isStage) return intl.formatMessage(messages.stage);
+            if (typeof target.getName === 'function') return target.getName();
+            if (target.sprite && target.sprite.name) return target.sprite.name;
+            return target.name || '';
+        },
+        [intl],
+    );
 
     const handlePrevSprite = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
@@ -57,7 +57,7 @@ const TargetSelector = props => {
         if (props.editingTarget?.isStage) return;
 
         if (currentIndex === 0) {
-            const stage = props.vm.runtime.targets.find(t => t.isStage);
+            const stage = props.vm.runtime.targets.find((t) => t.isStage);
             if (stage) props.onSelectTarget(stage.id);
         } else if (currentIndex > 0) {
             props.onSelectTarget(sprites[currentIndex - 1].id);
@@ -76,34 +76,40 @@ const TargetSelector = props => {
         }
     }, [getSortedSprites, getCurrentSpriteIndex, props]);
 
-    const handleSelectTarget = useCallback(targetId => {
-        if (props.onDismissBubble) props.onDismissBubble();
-        props.onSelectTarget(targetId);
-        setCommandValue('');
-        setShowDropdown(false);
-    }, [props]);
-
-    const handleCommandChange = useCallback(e => {
-        const value = e.target.value;
-        setCommandValue(value);
-
-        if (value.startsWith('>')) {
+    const handleSelectTarget = useCallback(
+        (targetId) => {
+            if (props.onDismissBubble) props.onDismissBubble();
+            props.onSelectTarget(targetId);
+            setCommandValue('');
             setShowDropdown(false);
-        } else {
-            const allTargets = getAllTargets();
-            const filtered = allTargets.filter(target => {
-                const name = getTargetName(target).toLowerCase();
-                return name.includes(value.toLowerCase());
-            });
-            setShowDropdown(value.length > 0 && filtered.length > 0);
-            setFilteredTargets(filtered);
-        }
-    }, [getAllTargets, getTargetName]);
+        },
+        [props],
+    );
+
+    const handleCommandChange = useCallback(
+        (e) => {
+            const value = e.target.value;
+            setCommandValue(value);
+
+            if (value.startsWith('>')) {
+                setShowDropdown(false);
+            } else {
+                const allTargets = getAllTargets();
+                const filtered = allTargets.filter((target) => {
+                    const name = getTargetName(target).toLowerCase();
+                    return name.includes(value.toLowerCase());
+                });
+                setShowDropdown(value.length > 0 && filtered.length > 0);
+                setFilteredTargets(filtered);
+            }
+        },
+        [getAllTargets, getTargetName],
+    );
 
     const handleCommandFocus = useCallback(() => {
         if (commandValue && !commandValue.startsWith('>')) {
             const allTargets = getAllTargets();
-            const filtered = allTargets.filter(target => {
+            const filtered = allTargets.filter((target) => {
                 const name = getTargetName(target).toLowerCase();
                 return name.includes(commandValue.toLowerCase());
             });
@@ -118,25 +124,31 @@ const TargetSelector = props => {
         }, 200);
     }, []);
 
-    const handleCommandKeyDown = useCallback(e => {
-        // Enter commits and Escape cancels an IME conversion; neither should be
-        // handled here. React's SyntheticKeyboardEvent does NOT expose
-        // isComposing (it is absent from React 18's KeyboardEventInterface), so
-        // read the native event; keyCode 229 covers browsers that omit it.
-        if ((e.nativeEvent && e.nativeEvent.isComposing) || e.keyCode === 229) return;
-        if (e.key === 'Escape') {
-            setCommandValue('');
-            setShowDropdown(false);
-            e.target.blur();
-        } else if (e.key === 'Enter' && filteredTargets.length > 0) {
-            handleSelectTarget(filteredTargets[0].id);
-        }
-    }, [filteredTargets, handleSelectTarget]);
+    const handleCommandKeyDown = useCallback(
+        (e) => {
+            // Enter commits and Escape cancels an IME conversion; neither should be
+            // handled here. React's SyntheticKeyboardEvent does NOT expose
+            // isComposing (it is absent from React 18's KeyboardEventInterface), so
+            // read the native event; keyCode 229 covers browsers that omit it.
+            if ((e.nativeEvent && e.nativeEvent.isComposing) || e.keyCode === 229) return;
+            if (e.key === 'Escape') {
+                setCommandValue('');
+                setShowDropdown(false);
+                e.target.blur();
+            } else if (e.key === 'Enter' && filteredTargets.length > 0) {
+                handleSelectTarget(filteredTargets[0].id);
+            }
+        },
+        [filteredTargets, handleSelectTarget],
+    );
 
-    const handleSelectTargetFromDropdown = useCallback(e => {
-        const targetId = e.currentTarget.dataset.targetId;
-        handleSelectTarget(targetId);
-    }, [handleSelectTarget]);
+    const handleSelectTargetFromDropdown = useCallback(
+        (e) => {
+            const targetId = e.currentTarget.dataset.targetId;
+            handleSelectTarget(targetId);
+        },
+        [handleSelectTarget],
+    );
 
     const canGoPrev = useCallback(() => {
         if (props.editingTarget?.isStage) return false;
@@ -159,9 +171,7 @@ const TargetSelector = props => {
         return (
             <>
                 {text.substring(0, index)}
-                <span className={styles.highlight}>
-                    {text.substring(index, index + query.length)}
-                </span>
+                <span className={styles.highlight}>{text.substring(index, index + query.length)}</span>
                 {text.substring(index + query.length)}
             </>
         );
@@ -177,10 +187,7 @@ const TargetSelector = props => {
                 aria-label={intl.formatMessage(messages.prevSprite)}
                 title={intl.formatMessage(messages.prevSprite)}
             >
-                <img
-                    src={iconBack}
-                    alt=""
-                />
+                <img src={iconBack} alt="" />
             </button>
             <button
                 className={styles.iconButton}
@@ -190,10 +197,7 @@ const TargetSelector = props => {
                 aria-label={intl.formatMessage(messages.nextSprite)}
                 title={intl.formatMessage(messages.nextSprite)}
             >
-                <img
-                    src={iconForward}
-                    alt=""
-                />
+                <img src={iconForward} alt="" />
             </button>
             <div className={styles.commandWrapper}>
                 <input
@@ -209,7 +213,7 @@ const TargetSelector = props => {
                 />
                 {showDropdown && (
                     <div className={styles.dropdown}>
-                        {filteredTargets.map(target => (
+                        {filteredTargets.map((target) => (
                             <div
                                 key={target.id}
                                 className={styles.dropdownItem}
@@ -230,7 +234,7 @@ TargetSelector.propTypes = {
     editingTarget: PropTypes.object,
     vm: PropTypes.instanceOf(VM).isRequired,
     onSelectTarget: PropTypes.func.isRequired,
-    onDismissBubble: PropTypes.func
+    onDismissBubble: PropTypes.func,
 };
 
 export default TargetSelector;

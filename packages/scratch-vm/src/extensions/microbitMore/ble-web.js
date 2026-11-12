@@ -1,13 +1,12 @@
 const log = require('../../util/log');
 
-const uint8ArrayToBase64 = array => window.btoa(String.fromCharCode(...array));
-const base64ToUint8Array = base64 => {
+const uint8ArrayToBase64 = (array) => window.btoa(String.fromCharCode(...array));
+const base64ToUint8Array = (base64) => {
     const raw = window.atob(base64);
-    return Uint8Array.from(Array.prototype.map.call(raw, x => x.charCodeAt(0)));
+    return Uint8Array.from(Array.prototype.map.call(raw, (x) => x.charCodeAt(0)));
 };
 
 class WebBLE {
-
     /**
      * A BLE peripheral object.  It handles connecting, over Web Bluetooth API, to
      * BLE peripherals, and reading and writing data to them.
@@ -17,7 +16,7 @@ class WebBLE {
      * @param {object} connectCallback - a callback for connection.
      * @param {object} resetCallback - a callback for resetting extension state.
      */
-    constructor (runtime, extensionId, peripheralOptions, connectCallback, resetCallback = null) {
+    constructor(runtime, extensionId, peripheralOptions, connectCallback, resetCallback = null) {
         /**
          * Remote device which have been connected.
          * @type {object}
@@ -45,17 +44,18 @@ class WebBLE {
      * Request connection to the peripheral.
      * Request user to choose a device, and then connect it automatically.
      */
-    requestPeripheral () {
+    requestPeripheral() {
         if (this._server) {
             this.disconnect();
         }
-        navigator.bluetooth.requestDevice(this._peripheralOptions)
-            .then(device => {
+        navigator.bluetooth
+            .requestDevice(this._peripheralOptions)
+            .then((device) => {
                 this._device = device;
                 log.debug(`device=${this._device.name}`);
                 this._runtime.connectPeripheral(this._extensionId, this._device.id);
             })
-            .catch(e => {
+            .catch((e) => {
                 this._handleRequestError(e);
             });
     }
@@ -64,29 +64,27 @@ class WebBLE {
      * Try connecting to the GATT server of the device, and then call the connect
      * callback when connection is successful.
      */
-    connectPeripheral (/* id */) {
+    connectPeripheral(/* id */) {
         if (!this._device) {
             throw new Error('device is not chosen');
         }
-        this._device.gatt.connect()
-            .then(gattServer => {
-                log.debug(`GATTServer is connected`);
-                this._server = gattServer;
-                this._runtime.emit(this._runtime.constructor.PERIPHERAL_CONNECTED);
-                this._disconnected = false;
-                this._connectCallback();
-                this._device.addEventListener('gattserverdisconnected',
-                    event => {
-                        this.onDisconnected(event);
-                    });
+        this._device.gatt.connect().then((gattServer) => {
+            log.debug(`GATTServer is connected`);
+            this._server = gattServer;
+            this._runtime.emit(this._runtime.constructor.PERIPHERAL_CONNECTED);
+            this._disconnected = false;
+            this._connectCallback();
+            this._device.addEventListener('gattserverdisconnected', (event) => {
+                this.onDisconnected(event);
             });
+        });
     }
 
     /**
      * Disconnect from the device and clean up.
      * Then emit the connection state by the runtime.
      */
-    disconnect () {
+    disconnect() {
         if (!this._server) return;
         this._server.disconnect();
         this._disconnected = true;
@@ -98,7 +96,7 @@ class WebBLE {
     /**
      * @returns {boolean} whether the peripheral is connected.
      */
-    isConnected () {
+    isConnected() {
         if (!this._server) return false;
         return this._server.connected;
     }
@@ -111,15 +109,15 @@ class WebBLE {
      *  like function(base64message).
      * @returns {Promise} - a promise from the remote startNotifications request.
      */
-    startNotifications (serviceId, characteristicId, onCharacteristicChanged = null) {
-        return this._server.getPrimaryService(serviceId)
-            .then(service => service.getCharacteristic(characteristicId))
-            .then(characteristic => {
-                characteristic.addEventListener('characteristicvaluechanged',
-                    event => {
-                        const dataView = event.target.value;
-                        onCharacteristicChanged(uint8ArrayToBase64(new Uint8Array(dataView.buffer)));
-                    });
+    startNotifications(serviceId, characteristicId, onCharacteristicChanged = null) {
+        return this._server
+            .getPrimaryService(serviceId)
+            .then((service) => service.getCharacteristic(characteristicId))
+            .then((characteristic) => {
+                characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                    const dataView = event.target.value;
+                    onCharacteristicChanged(uint8ArrayToBase64(new Uint8Array(dataView.buffer)));
+                });
                 characteristic.startNotifications();
             });
     }
@@ -133,17 +131,18 @@ class WebBLE {
      *  like function(base64message).
      * @returns {Promise} - a promise from the remote read request which resolve {message: base64string}.
      */
-    read (serviceId, characteristicId, optStartNotifications = false, onCharacteristicChanged = null) {
-        return this._server.getPrimaryService(serviceId)
-            .then(service => service.getCharacteristic(characteristicId))
-            .then(characteristic => {
+    read(serviceId, characteristicId, optStartNotifications = false, onCharacteristicChanged = null) {
+        return this._server
+            .getPrimaryService(serviceId)
+            .then((service) => service.getCharacteristic(characteristicId))
+            .then((characteristic) => {
                 if (optStartNotifications) {
                     this.startNotifications(serviceId, characteristicId, onCharacteristicChanged);
                 }
                 return characteristic.readValue();
             })
-            .then(dataView => ({
-                message: uint8ArrayToBase64(new Uint8Array(dataView.buffer))
+            .then((dataView) => ({
+                message: uint8ArrayToBase64(new Uint8Array(dataView.buffer)),
             }));
     }
 
@@ -156,12 +155,13 @@ class WebBLE {
      * @param {boolean} withResponse - if true, resolve after peripheral's response.
      * @returns {Promise} - a promise from the remote send request.
      */
-     
-    write (serviceId, characteristicId, message, encoding = null, withResponse = null) {
+
+    write(serviceId, characteristicId, message, encoding = null, withResponse = null) {
         const value = encoding === 'base64' ? base64ToUint8Array(message) : message;
-        return this._server.getPrimaryService(serviceId)
-            .then(service => service.getCharacteristic(characteristicId))
-            .then(characteristic => {
+        return this._server
+            .getPrimaryService(serviceId)
+            .then((service) => service.getCharacteristic(characteristicId))
+            .then((characteristic) => {
                 if (withResponse && characteristic.writeValueWithResponse) {
                     return characteristic.writeValueWithResponse(value);
                 }
@@ -183,7 +183,7 @@ class WebBLE {
      * Disconnect the device, and if the extension using this object has a
      * reset callback, call it. Finally, emit an error to the runtime.
      */
-    handleDisconnectError (/* e */) {
+    handleDisconnectError(/* e */) {
         // log.error(`BLE error: ${JSON.stringify(e)}`);
 
         if (this._disconnected) return;
@@ -196,23 +196,23 @@ class WebBLE {
 
         this._runtime.emit(this._runtime.constructor.PERIPHERAL_CONNECTION_LOST_ERROR, {
             message: `Scratch lost connection to`,
-            extensionId: this._extensionId
+            extensionId: this._extensionId,
         });
     }
 
-    _handleRequestError (/* e */) {
+    _handleRequestError(/* e */) {
         // log.error(`BLE error: ${JSON.stringify(e)}`);
 
         this._runtime.emit(this._runtime.constructor.PERIPHERAL_REQUEST_ERROR, {
             message: `Scratch lost connection to`,
-            extensionId: this._extensionId
+            extensionId: this._extensionId,
         });
     }
 
     /**
      * Called when disconnected by the device.
      */
-    onDisconnected (/* event */) {
+    onDisconnected(/* event */) {
         this.handleDisconnectError(new Error('device disconnected'));
     }
 }

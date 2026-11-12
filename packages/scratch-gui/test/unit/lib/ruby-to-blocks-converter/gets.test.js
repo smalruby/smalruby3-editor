@@ -1,9 +1,5 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    rubyToExpected,
-    expectedInfo
-} from '../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks, rubyToExpected, expectedInfo } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Gets', () => {
     let converter;
@@ -12,7 +8,7 @@ describe('RubyToBlocksConverter/Gets', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -27,22 +23,22 @@ describe('RubyToBlocksConverter/Gets', () => {
                     inputs: [
                         {
                             name: 'QUESTION',
-                            block: expectedInfo.makeText('')
-                        }
+                            block: expectedInfo.makeText(''),
+                        },
                     ],
                     comment: {
                         text: '@ruby:method:gets',
-                        minimized: true
-                    }
-                }
+                        minimized: true,
+                    },
+                },
             ];
             expected[0].next = {
                 opcode: 'data_setvariableto',
                 fields: [
                     {
                         name: 'VARIABLE',
-                        variable: '_text_1_'
-                    }
+                        variable: '_text_1_',
+                    },
                 ],
                 inputs: [
                     {
@@ -51,16 +47,16 @@ describe('RubyToBlocksConverter/Gets', () => {
                             opcode: 'sensing_answer',
                             comment: {
                                 text: '@ruby:method:gets',
-                                minimized: true
-                            }
+                                minimized: true,
+                            },
                         },
-                        shadow: expectedInfo.makeText('0')
-                    }
+                        shadow: expectedInfo.makeText('0'),
+                    },
                 ],
                 comment: {
                     text: '@ruby:lvar:text:1',
-                    minimized: true
-                }
+                    minimized: true,
+                },
             };
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -73,14 +69,14 @@ describe('RubyToBlocksConverter/Gets', () => {
                     inputs: [
                         {
                             name: 'QUESTION',
-                            block: expectedInfo.makeText('')
-                        }
+                            block: expectedInfo.makeText(''),
+                        },
                     ],
                     comment: {
                         text: '@ruby:method:gets',
-                        minimized: true
-                    }
-                }
+                        minimized: true,
+                    },
+                },
             ];
             expected[0].next = {
                 opcode: 'looks_sayforsecs',
@@ -91,20 +87,20 @@ describe('RubyToBlocksConverter/Gets', () => {
                             opcode: 'sensing_answer',
                             comment: {
                                 text: '@ruby:method:gets',
-                                minimized: true
-                            }
+                                minimized: true,
+                            },
                         },
-                        shadow: expectedInfo.makeText('Hello!')
+                        shadow: expectedInfo.makeText('Hello!'),
                     },
                     {
                         name: 'SECS',
-                        block: expectedInfo.makeNumber(1)
-                    }
+                        block: expectedInfo.makeNumber(1),
+                    },
                 ],
                 comment: {
                     text: '@ruby:method:puts',
-                    minimized: true
-                }
+                    minimized: true,
+                },
             };
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -119,30 +115,30 @@ describe('RubyToBlocksConverter/Gets', () => {
                 inputs: [
                     {
                         name: 'QUESTION',
-                        block: expectedInfo.makeText('')
-                    }
+                        block: expectedInfo.makeText(''),
+                    },
                 ],
                 comment: {
                     text: '@ruby:method:gets',
-                    minimized: true
-                }
+                    minimized: true,
+                },
             });
             const answerBlock = {
                 opcode: 'sensing_answer',
                 comment: {
                     text: '@ruby:method:gets',
-                    minimized: true
-                }
+                    minimized: true,
+                },
             };
-            
+
             const setA = {
                 opcode: 'data_setvariableto',
                 fields: [{ name: 'VARIABLE', variable: '_a_1_' }],
                 inputs: [{ name: 'VALUE', block: answerBlock, shadow: expectedInfo.makeText('0') }],
                 comment: {
                     text: '@ruby:lvar:a:1',
-                    minimized: true
-                }
+                    minimized: true,
+                },
             };
             const setB = {
                 opcode: 'data_setvariableto',
@@ -150,8 +146,8 @@ describe('RubyToBlocksConverter/Gets', () => {
                 inputs: [{ name: 'VALUE', block: answerBlock, shadow: expectedInfo.makeText('0') }],
                 comment: {
                     text: '@ruby:lvar:b:1',
-                    minimized: true
-                }
+                    minimized: true,
+                },
             };
 
             const e = askBlock();
@@ -169,20 +165,20 @@ describe('RubyToBlocksConverter/Gets', () => {
                 inputs: [
                     {
                         name: 'QUESTION',
-                        block: expectedInfo.makeText('')
-                    }
+                        block: expectedInfo.makeText(''),
+                    },
                 ],
                 comment: {
                     text: '@ruby:method:gets',
-                    minimized: true
-                }
+                    minimized: true,
+                },
             };
             const answerBlock = {
                 opcode: 'sensing_answer',
                 comment: {
                     text: '@ruby:method:gets',
-                    minimized: true
-                }
+                    minimized: true,
+                },
             };
             expected = [askBlock, answerBlock];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);

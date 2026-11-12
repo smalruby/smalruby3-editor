@@ -10,14 +10,14 @@ import {
     makeStageTarget,
     setupRubyGenerator,
     makeConverter,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 let target, stage, runtime, converter;
 
 describe('Extension hat blocks in class - round trip', () => {
     beforeEach(() => {
-        ({target, stage, runtime} = makeSpriteTarget());
+        ({ target, stage, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
@@ -122,8 +122,7 @@ describe('Extension hat blocks in class - round trip', () => {
         test('def + microbit.when_button_is', async () => {
             // Procedure calls use bare name (no self. prefix) in generated code
             const code =
-                'def self.my_block\n  move(10)\nend\n\n' +
-                'microbit.when_button_is("B", "up") do\n  my_block\nend';
+                'def self.my_block\n  move(10)\nend\n\n' + 'microbit.when_button_is("B", "up") do\n  my_block\nend';
             await expectRoundTrip(converter, target, code);
         });
     });
@@ -131,7 +130,7 @@ describe('Extension hat blocks in class - round trip', () => {
 
 describe('Extension hat blocks on stage - round trip', () => {
     beforeEach(() => {
-        ({target, stage, runtime} = makeStageTarget());
+        ({ target, stage, runtime } = makeStageTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });

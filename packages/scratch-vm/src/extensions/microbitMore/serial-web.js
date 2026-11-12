@@ -1,9 +1,9 @@
 const log = require('../../util/log');
 
-const uint8ArrayToBase64 = array => window.btoa(String.fromCharCode(...array));
-const base64ToUint8Array = base64 => {
+const uint8ArrayToBase64 = (array) => window.btoa(String.fromCharCode(...array));
+const base64ToUint8Array = (base64) => {
     const raw = window.atob(base64);
-    return Uint8Array.from(Array.prototype.map.call(raw, x => x.charCodeAt(0)));
+    return Uint8Array.from(Array.prototype.map.call(raw, (x) => x.charCodeAt(0)));
 };
 
 /**
@@ -18,13 +18,13 @@ const SERIAL_CH_ID = {
     '0b500120-607f-4151-9091-7d008d6ffc5c': 0x0120,
     '0b500121-607f-4151-9091-7d008d6ffc5c': 0x0121,
     '0b500122-607f-4151-9091-7d008d6ffc5c': 0x0122,
-    '0b500130-607f-4151-9091-7d008d6ffc5c': 0x0130
+    '0b500130-607f-4151-9091-7d008d6ffc5c': 0x0130,
 };
 
 /**
  * Start Frame Delimiter
  */
-const SFD = 0xFF;
+const SFD = 0xff;
 
 /**
  * Request type in data frame.
@@ -34,7 +34,7 @@ const ChRequest = {
     WRITE: 0x10,
     WRITE_RESPONSE: 0x11,
     NOTIFY_STOP: 0x20,
-    NOTIFY_START: 0x21
+    NOTIFY_START: 0x21,
 };
 
 /**
@@ -43,14 +43,13 @@ const ChRequest = {
 const ChResponse = {
     READ: 0x01,
     WRITE_RESPONSE: 0x11,
-    NOTIFY: 0x21
+    NOTIFY: 0x21,
 };
 
 /**
  * Class to communicate with device via USB serial-port using Web Serial API.
  */
 class WebSerial {
-
     /**
      * A BLE peripheral object.  It handles connecting, over Web Bluetooth API, to
      * BLE peripherals, and reading and writing data to them.
@@ -60,7 +59,7 @@ class WebSerial {
      * @param {function(): void} connectCallback - a callback for connection.
      * @param {function(): void} [resetCallback] - a callback for resetting extension state.
      */
-    constructor (runtime, extensionId, peripheralOptions, connectCallback, resetCallback = null) {
+    constructor(runtime, extensionId, peripheralOptions, connectCallback, resetCallback = null) {
         /**
          * Remote device which have been connected.
          */
@@ -73,7 +72,7 @@ class WebSerial {
         this._peripheralOptions = peripheralOptions;
         this._serialOptions = {
             // baudRate: 57600
-            baudRate: 115200 // Default for micro:bit
+            baudRate: 115200, // Default for micro:bit
         };
         this._runtime = runtime;
         this.receivingInterval = 1;
@@ -97,18 +96,19 @@ class WebSerial {
      * Request user to choose a device, and then connect it automatically.
      * @returns {Promise} - a Promise which will resolved when a serial-port was selected.
      */
-    requestPeripheral () {
+    requestPeripheral() {
         let promise = Promise.resolve();
         if (this.isConnected()) {
             promise = promise.then(() => this.disconnect());
         }
         return promise.then(() => {
-            navigator.serial.requestPort(this._peripheralOptions)
-                .then(selected => {
+            navigator.serial
+                .requestPort(this._peripheralOptions)
+                .then((selected) => {
                     this.port = selected;
                     this._runtime.connectPeripheral(this._extensionId, null);
                 })
-                .catch(e => {
+                .catch((e) => {
                     this._handleRequestError(e);
                 });
         });
@@ -118,22 +118,22 @@ class WebSerial {
      * Try connecting to the serial-port of the device, and then call the connect
      * callback when connection is successful.
      */
-    connectPeripheral (/* id */) {
+    connectPeripheral(/* id */) {
         if (!this.port) {
             throw new Error('device is not chosen');
         }
         class ChValueTransformer {
-            constructor () {
+            constructor() {
                 // A container for holding stream data until a new frame.
                 this.chunks = [];
             }
 
-            transform (chunk, controller) {
+            transform(chunk, controller) {
                 // Append new chunks to existing chunks.
                 this.chunks = this.chunks.concat(Array.from(chunk));
                 // Split chunks into {ch: {type: value}.
                 // Skip until SFD occurred
-                const frameStart = this.chunks.findIndex(element => element === SFD);
+                const frameStart = this.chunks.findIndex((element) => element === SFD);
                 if (frameStart === -1) {
                     this.chunks = [];
                     return;
@@ -151,16 +151,16 @@ class WebSerial {
                 const ch = (this.chunks[2] << 8) | this.chunks[3];
                 const valueLength = this.chunks[4];
                 const frameEnd = 5 + valueLength;
-                if (this.chunks.length < (frameEnd + 1)) {
+                if (this.chunks.length < frameEnd + 1) {
                     return;
                 }
                 const value = this.chunks.slice(5, frameEnd);
                 // Checksum
-                const checksum = this.chunks.slice(0, frameEnd).reduce((acc, cur) => acc + cur) % 0xFF;
+                const checksum = this.chunks.slice(0, frameEnd).reduce((acc, cur) => acc + cur) % 0xff;
                 if (checksum === this.chunks[frameEnd]) {
                     // Received successfully
                     this.chunks.splice(0, frameEnd + 1);
-                    controller.enqueue({ch: ch, data: {type: type, value: value}});
+                    controller.enqueue({ ch: ch, data: { type: type, value: value } });
                 } else {
                     // Error occurred
                     // log.debug(this.chunks); // debug
@@ -169,28 +169,26 @@ class WebSerial {
                 }
             }
 
-            flush (controller) {
+            flush(controller) {
                 // When the stream is closed, delete any remaining chunks.
                 controller.terminate();
             }
         }
-        this.port.open(this._serialOptions)
-            .then(() => {
-                log.log(`SerialPort: open`);
-                this.state = 'open';
-                this.writer = this.port.writable.getWriter();
-                 
-                const chValueTransformStream = new TransformStream(new ChValueTransformer());
-                this.readableStreamClosed = this.port.readable.pipeTo(chValueTransformStream.writable);
-                this.reader = chValueTransformStream.readable.getReader();
-                this.port.addEventListener('disconnect',
-                    event => {
-                        this.onDisconnected(event);
-                    });
-                this._runtime.emit(this._runtime.constructor.PERIPHERAL_CONNECTED);
-                this._connectCallback();
-                this.startReceiving();
+        this.port.open(this._serialOptions).then(() => {
+            log.log(`SerialPort: open`);
+            this.state = 'open';
+            this.writer = this.port.writable.getWriter();
+
+            const chValueTransformStream = new TransformStream(new ChValueTransformer());
+            this.readableStreamClosed = this.port.readable.pipeTo(chValueTransformStream.writable);
+            this.reader = chValueTransformStream.readable.getReader();
+            this.port.addEventListener('disconnect', (event) => {
+                this.onDisconnected(event);
             });
+            this._runtime.emit(this._runtime.constructor.PERIPHERAL_CONNECTED);
+            this._connectCallback();
+            this.startReceiving();
+        });
     }
 
     /**
@@ -198,12 +196,14 @@ class WebSerial {
      * Then emit the connection state by the runtime.
      * @returns {Promise} - a Promise which will resolve when the serial-port was disconnected.
      */
-    async disconnect () {
+    async disconnect() {
         if (this.state !== 'open') return;
         this.state = 'closing';
         this.stopReceiving();
         await this.reader.cancel();
-        await this.readableStreamClosed.catch(() => { /* Ignore the error */ });
+        await this.readableStreamClosed.catch(() => {
+            /* Ignore the error */
+        });
         this.writer.close();
         await this.writer.closed;
         await this.port.close();
@@ -217,7 +217,7 @@ class WebSerial {
     /**
      * @returns {boolean} whether the peripheral is connected.
      */
-    isConnected () {
+    isConnected() {
         return this.state === 'open';
     }
 
@@ -225,34 +225,33 @@ class WebSerial {
      * Receive data and process it.
      * @returns {Promise} - a Promise which will resolve when read next data
      */
-    receiveData () {
-        return this.reader.read()
-            .then(result => {
-                const {value, done} = result;
-                if (done) {
-                    this.reader.releaseLock();
+    receiveData() {
+        return this.reader.read().then((result) => {
+            const { value, done } = result;
+            if (done) {
+                this.reader.releaseLock();
+            }
+            if (value) {
+                const data = value.data;
+                const ch = value.ch;
+                if (!this.chValues[ch]) {
+                    this.chValues[ch] = {};
                 }
-                if (value) {
-                    const data = value.data;
-                    const ch = value.ch;
-                    if (!this.chValues[ch]) {
-                        this.chValues[ch] = {};
+                this.chValues[ch][data.type] = data.value;
+                if (data.type === ChResponse.NOTIFY) {
+                    if (ch in this.notifyListeners) {
+                        this.notifyListeners[ch](uint8ArrayToBase64(data.value));
                     }
-                    this.chValues[ch][data.type] = data.value;
-                    if (data.type === ChResponse.NOTIFY) {
-                        if (ch in this.notifyListeners) {
-                            this.notifyListeners[ch](uint8ArrayToBase64(data.value));
-                        }
-                    }
-                    // log.debug({ch: ch, type: data.type, value: data.value});
                 }
-            });
+                // log.debug({ch: ch, type: data.type, value: data.value});
+            }
+        });
     }
 
     /**
      * Start data receiving process.
      */
-    startReceiving () {
+    startReceiving() {
         this.dataReceiving = window.setTimeout(() => {
             if (this.state !== 'open') return;
             this.receiveData()
@@ -269,7 +268,7 @@ class WebSerial {
     /**
      * Stop data receiving process.
      */
-    stopReceiving () {
+    stopReceiving() {
         clearTimeout(this.dataReceiving);
         this.dataReceiving = null;
     }
@@ -279,12 +278,15 @@ class WebSerial {
      * @param {Uint8Array} data - data to send
      * @returns {Promise} - a Promise which will resolve write process was done
      */
-    sendData (data) {
+    sendData(data) {
         return this.writer.ready
             .then(() => this.writer.write(data))
-            .then(() => new Promise(resolve => {
-                setTimeout(() => resolve(), this.sendDataInterval); // Wait for receiving process in micro:bit
-            }));
+            .then(
+                () =>
+                    new Promise((resolve) => {
+                        setTimeout(() => resolve(), this.sendDataInterval); // Wait for receiving process in micro:bit
+                    }),
+            );
     }
 
     /**
@@ -295,45 +297,44 @@ class WebSerial {
      *  like function(base64message).
      * @returns {Promise} - a Promise which will resolve when requested start notification.
      */
-    startNotifications (_serviceId, characteristicId, onCharacteristicChanged = null) {
+    startNotifications(_serviceId, characteristicId, onCharacteristicChanged = null) {
         // Connected device will start necessary notifications automatically on serial-port.
         this.notifyListeners[SERIAL_CH_ID[characteristicId]] = onCharacteristicChanged;
         return Promise.resolve();
     }
 
-    readCh (ch) {
+    readCh(ch) {
         if (this.state !== 'open') {
             return Promise.reject(new Error('port is not opened'));
         }
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             const dataFrame = new Uint8Array(4);
             dataFrame[0] = SFD;
             dataFrame[1] = ChRequest.READ;
             dataFrame[2] = ch >> 8;
-            dataFrame[3] = ch & 0xFF;
+            dataFrame[3] = ch & 0xff;
             if (this.chValues[ch]) {
                 this.chValues[ch][ChResponse.READ] = null;
             }
-            this.sendData(dataFrame)
-                .then(() => {
-                    const checkInterval = 10;
-                    const check = count => {
-                        const received = this.chValues[ch];
-                        if (received && received[ChResponse.READ]) {
-                            return resolve({
-                                message: uint8ArrayToBase64(received[ChResponse.READ])
-                            });
-                        }
-                        count--;
-                        if (count === 0) {
-                            return resolve(null);
-                        }
-                        setTimeout(() => {
-                            check(count);
-                        }, checkInterval);
-                    };
-                    check(50);
-                });
+            this.sendData(dataFrame).then(() => {
+                const checkInterval = 10;
+                const check = (count) => {
+                    const received = this.chValues[ch];
+                    if (received && received[ChResponse.READ]) {
+                        return resolve({
+                            message: uint8ArrayToBase64(received[ChResponse.READ]),
+                        });
+                    }
+                    count--;
+                    if (count === 0) {
+                        return resolve(null);
+                    }
+                    setTimeout(() => {
+                        check(count);
+                    }, checkInterval);
+                };
+                check(50);
+            });
         });
     }
 
@@ -346,54 +347,52 @@ class WebSerial {
      *  like function(base64message).
      * @returns {Promise} - a Promise from the remote read request which resolve {message: base64string}.
      */
-    read (serviceId, characteristicId, optStartNotifications = false, onCharacteristicChanged = null) {
+    read(serviceId, characteristicId, optStartNotifications = false, onCharacteristicChanged = null) {
         const ch = SERIAL_CH_ID[characteristicId];
-        const constantUpdatingCh = [
-            0x0101, /* State */
-            0x0102 /* Motion */
-        ];
+        const constantUpdatingCh = [0x0101 /* State */, 0x0102 /* Motion */];
         if (constantUpdatingCh.includes(ch)) {
             // Return already received values because rapid repeating requests will make the port freeze.
             if (!this.chValues[ch]) {
                 return Promise.resolve(null);
             }
             return Promise.resolve({
-                message: uint8ArrayToBase64(this.chValues[ch][ChResponse.READ])
+                message: uint8ArrayToBase64(this.chValues[ch][ChResponse.READ]),
             });
         }
-        const readRetry = count => new Promise((resolve, reject) => {
-            if (count < 0) {
-                reject(new Error(`no response`));
-                log.debug(`read ch: ${ch} dose not response`);
-                return;
-            }
-            this.readCh(ch)
-                .then(result => {
-                    if (result) {
-                        if (optStartNotifications) {
-                            this.startNotifications(serviceId, characteristicId, onCharacteristicChanged)
-                                .then(() => resolve(result));
+        const readRetry = (count) =>
+            new Promise((resolve, reject) => {
+                if (count < 0) {
+                    reject(new Error(`no response`));
+                    log.debug(`read ch: ${ch} dose not response`);
+                    return;
+                }
+                this.readCh(ch)
+                    .then((result) => {
+                        if (result) {
+                            if (optStartNotifications) {
+                                this.startNotifications(serviceId, characteristicId, onCharacteristicChanged).then(
+                                    () => resolve(result),
+                                );
+                                return;
+                            }
+                            resolve(result);
                             return;
                         }
-                        resolve(result);
+                        count--;
+                        resolve(readRetry(count));
                         return;
-                    }
-                    count--;
-                    resolve(readRetry(count));
-                    return;
-                })
-                .catch(err => {
-                    resolve(null);
-                    log.debug(err);
-                    return;
-                });
-        });
-        return readRetry(2)
-            .catch(err => {
-                log.debug(err);
-                this.handleDisconnectError(err);
-                return;
+                    })
+                    .catch((err) => {
+                        resolve(null);
+                        log.debug(err);
+                        return;
+                    });
             });
+        return readRetry(2).catch((err) => {
+            log.debug(err);
+            this.handleDisconnectError(err);
+            return;
+        });
     }
 
     /**
@@ -403,41 +402,39 @@ class WebSerial {
      * @param {boolean} withResponse - whether request response or not
      * @returns {Promise} - a Promise which will resolve true when success to write
      */
-    writeCh (ch, value, withResponse) {
+    writeCh(ch, value, withResponse) {
         if (this.state !== 'open') {
             return Promise.reject(new Error('port is not opened'));
         }
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             const header = new Uint8Array(5);
             header[0] = SFD;
             header[1] = withResponse ? ChRequest.WRITE_RESPONSE : ChRequest.WRITE;
             header[2] = ch >> 8;
-            header[3] = ch & 0xFF;
+            header[3] = ch & 0xff;
             header[4] = value.length;
             const dataFrame = new Uint8Array([...header, ...value, 0]);
-            dataFrame[dataFrame.length - 1] = dataFrame.reduce((acc, cur) => acc + cur) % 0xFF;
+            dataFrame[dataFrame.length - 1] = dataFrame.reduce((acc, cur) => acc + cur) % 0xff;
             if (withResponse) {
-                this.sendData(dataFrame)
-                    .then(() => {
-                        const checkInterval = 10;
-                        const check = count => {
-                            const received = this.chValues[ch];
-                            if (received && (received[ChResponse.WRITE_RESPONSE])) {
-                                return resolve(received[ChResponse.WRITE_RESPONSE][0] === 1);
-                            }
-                            count--;
-                            if (count === 0) {
-                                return resolve(false);
-                            }
-                            setTimeout(() => {
-                                check(count);
-                            }, checkInterval);
-                        };
-                        check(20);
-                    });
+                this.sendData(dataFrame).then(() => {
+                    const checkInterval = 10;
+                    const check = (count) => {
+                        const received = this.chValues[ch];
+                        if (received && received[ChResponse.WRITE_RESPONSE]) {
+                            return resolve(received[ChResponse.WRITE_RESPONSE][0] === 1);
+                        }
+                        count--;
+                        if (count === 0) {
+                            return resolve(false);
+                        }
+                        setTimeout(() => {
+                            check(count);
+                        }, checkInterval);
+                    };
+                    check(20);
+                });
             } else {
-                this.sendData(dataFrame)
-                    .then(() => resolve(true));
+                this.sendData(dataFrame).then(() => resolve(true));
             }
         });
     }
@@ -451,42 +448,42 @@ class WebSerial {
      * @param {boolean} withResponse - if true, resolve after peripheral's response. Always true for serial port.
      * @returns {Promise} - a Promise which will resolve true when success to write or reject with 'no response'
      */
-     
-    write (serviceId, characteristicId, message, encoding = null, withResponse = null) {
+
+    write(serviceId, characteristicId, message, encoding = null, withResponse = null) {
         withResponse = false; // true for noise tolerance on serial-port.
-        const value = (encoding === 'base64') ? base64ToUint8Array(message) : message;
+        const value = encoding === 'base64' ? base64ToUint8Array(message) : message;
         const ch = SERIAL_CH_ID[characteristicId];
         if (this.chValues[ch]) {
             this.chValues[ch][ChResponse.WRITE_RESPONSE] = null;
         }
-        const writeRetry = count => new Promise((resolve, reject) => {
-            if (count < 0) {
-                reject(new Error(`no response`));
-                log.debug(`write ch: ${ch} dose not response`);
-                return;
-            }
-            this.writeCh(ch, value, withResponse)
-                .then(result => {
-                    if (result) {
-                        resolve(result);
+        const writeRetry = (count) =>
+            new Promise((resolve, reject) => {
+                if (count < 0) {
+                    reject(new Error(`no response`));
+                    log.debug(`write ch: ${ch} dose not response`);
+                    return;
+                }
+                this.writeCh(ch, value, withResponse)
+                    .then((result) => {
+                        if (result) {
+                            resolve(result);
+                            return;
+                        }
+                        count--;
+                        resolve(writeRetry(count));
                         return;
-                    }
-                    count--;
-                    resolve(writeRetry(count));
-                    return;
-                })
-                .catch(err => {
-                    resolve(null);
-                    log.debug(err);
-                    return;
-                });
-        });
-        return writeRetry(2)
-            .catch(err => {
-                log.debug(err);
-                this.handleDisconnectError(err);
-                return;
+                    })
+                    .catch((err) => {
+                        resolve(null);
+                        log.debug(err);
+                        return;
+                    });
             });
+        return writeRetry(2).catch((err) => {
+            log.debug(err);
+            this.handleDisconnectError(err);
+            return;
+        });
     }
 
     /**
@@ -500,35 +497,34 @@ class WebSerial {
      * Disconnect the device, and if the extension using this object has a
      * reset callback, call it. Finally, emit an error to the runtime.
      */
-    handleDisconnectError (/* e */) {
+    handleDisconnectError(/* e */) {
         if (this.state !== 'open') return;
 
-        this.disconnect()
-            .then(() => {
-                if (this._resetCallback) {
-                    this._resetCallback();
-                }
+        this.disconnect().then(() => {
+            if (this._resetCallback) {
+                this._resetCallback();
+            }
 
-                this._runtime.emit(this._runtime.constructor.PERIPHERAL_CONNECTION_LOST_ERROR, {
-                    message: `Scratch lost connection to`,
-                    extensionId: this._extensionId
-                });
+            this._runtime.emit(this._runtime.constructor.PERIPHERAL_CONNECTION_LOST_ERROR, {
+                message: `Scratch lost connection to`,
+                extensionId: this._extensionId,
             });
+        });
     }
 
-    _handleRequestError (/* e */) {
+    _handleRequestError(/* e */) {
         // log.error(`BLE error: ${JSON.stringify(e)}`);
 
         this._runtime.emit(this._runtime.constructor.PERIPHERAL_REQUEST_ERROR, {
             message: `Scratch lost connection to`,
-            extensionId: this._extensionId
+            extensionId: this._extensionId,
         });
     }
 
     /**
      * Called when disconnected by the device.
      */
-    onDisconnected (/* event */) {
+    onDisconnected(/* event */) {
         this.handleDisconnectError(new Error('device disconnected'));
     }
 }

@@ -6,36 +6,36 @@
  * (BOOK constants + opening/closing step factories) that the follow-up
  * Block series decks (#680) build on.
  */
-import {CATEGORIES} from '../../../../../src/lib/libraries/tutorial-tags';
 import {
     BOOK,
     BOOK_URL,
     bookOpeningStep,
     bookClosingStep,
-    bookAdvancedClosingStep
+    bookAdvancedClosingStep,
 } from '../../../../../src/lib/libraries/decks/categories/book-promo.jsx';
+import { CATEGORIES } from '../../../../../src/lib/libraries/tutorial-tags';
+import en from '../../../../../src/locales/en';
 import ja from '../../../../../src/locales/ja';
 import jaHira from '../../../../../src/locales/ja-Hira';
-import en from '../../../../../src/locales/en';
 
 const BLOCK_CATEGORIES = ['blockBasics', 'blockGames'];
 
 describe('Block-axis taxonomy (issue #956)', () => {
     test('CATEGORIES contains the two block categories', () => {
-        BLOCK_CATEGORIES.forEach(key => {
+        BLOCK_CATEGORIES.forEach((key) => {
             expect(CATEGORIES[key]).toBe(key);
         });
     });
 
     test('category display order is gettingStarted -> block 4 -> rubyBasics -> mesh', () => {
         const order = Object.values(CATEGORIES);
-        const idx = key => order.indexOf(key);
+        const idx = (key) => order.indexOf(key);
         // gettingStarted first
         expect(idx('gettingStarted')).toBe(0);
         // the block categories come next, in the intended sequence
         expect(order.slice(1, 1 + BLOCK_CATEGORIES.length)).toEqual(BLOCK_CATEGORIES);
         // rubyBasics after all block categories
-        BLOCK_CATEGORIES.forEach(key => {
+        BLOCK_CATEGORIES.forEach((key) => {
             expect(idx('rubyBasics')).toBeGreaterThan(idx(key));
         });
         // mesh after rubyBasics
@@ -45,7 +45,7 @@ describe('Block-axis taxonomy (issue #956)', () => {
     });
 
     test('central locale files carry a label for every block category', () => {
-        BLOCK_CATEGORIES.forEach(key => {
+        BLOCK_CATEGORIES.forEach((key) => {
             const id = `gui.library.${key}`;
             expect(typeof ja[id]).toBe('string');
             expect(ja[id].length).toBeGreaterThan(0);
@@ -95,9 +95,9 @@ describe('Book promotion shared helpers (issue #956)', () => {
             'gui.howtos.book-promo.opening.title',
             'gui.howtos.book-promo.closing.title',
             'gui.howtos.book-promo.advancedClosing.title',
-            'gui.howtos.book-promo.purchase'
+            'gui.howtos.book-promo.purchase',
         ];
-        ids.forEach(id => {
+        ids.forEach((id) => {
             expect(typeof ja[id]).toBe('string');
             expect(typeof jaHira[id]).toBe('string');
             expect(typeof en[id]).toBe('string');

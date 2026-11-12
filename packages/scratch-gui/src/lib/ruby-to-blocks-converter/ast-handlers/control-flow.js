@@ -8,7 +8,7 @@ import ControlFlowDef from './control-flow-def';
 const ControlFlowHandlers = {
     ...ControlFlowDef,
 
-    visitIfNode (node) {
+    visitIfNode(node) {
         const saved = this._saveContext();
 
         const preBlocks = [];
@@ -32,11 +32,15 @@ const ControlFlowHandlers = {
 
         // When there's an explicit else clause (ElseNode, not IfNode/elsif), ensure control_if_else
         // even if the else body is empty — preserves round-trip fidelity for "if cond; else; end"
-        if (node.subsequent && this._getNodeTypeName(node.subsequent) === 'ElseNode' &&
-            this._isBlock(block) && block.opcode !== 'control_if_else') {
+        if (
+            node.subsequent &&
+            this._getNodeTypeName(node.subsequent) === 'ElseNode' &&
+            this._isBlock(block) &&
+            block.opcode !== 'control_if_else'
+        ) {
             block.opcode = 'control_if_else';
             if (!block.inputs.SUBSTACK2) {
-                block.inputs.SUBSTACK2 = {name: 'SUBSTACK2', block: null, shadow: null};
+                block.inputs.SUBSTACK2 = { name: 'SUBSTACK2', block: null, shadow: null };
             }
         }
 
@@ -60,7 +64,7 @@ const ControlFlowHandlers = {
                     n = this._context.elsifCounter;
                 }
                 const commentText = `@ruby:syntax:elsif:${n}`;
-                [block, elseBlock].forEach(b => {
+                [block, elseBlock].forEach((b) => {
                     if (b.comment) {
                         const comment = this._context.comments[b.comment];
                         if (comment) {
@@ -110,7 +114,7 @@ const ControlFlowHandlers = {
         return block;
     },
 
-    visitCaseNode (node) {
+    visitCaseNode(node) {
         const saved = this._saveContext();
 
         const subjectNode = node.predicate;
@@ -131,7 +135,7 @@ const ControlFlowHandlers = {
         const whenNodes = node.conditions;
         const elseNode = node.elseClause;
 
-        const convertWhen = index => {
+        const convertWhen = (index) => {
             if (index >= whenNodes.length) {
                 if (elseNode) {
                     return this._processStatement(elseNode);
@@ -162,10 +166,16 @@ const ControlFlowHandlers = {
             // Create subject == rh block
             const condBlock = this._createBlock('operator_equals', 'value_boolean');
             this._addTextInput(
-                condBlock, 'OPERAND1', this._isNumber(currentSubject) ? currentSubject.toString() : currentSubject, ''
+                condBlock,
+                'OPERAND1',
+                this._isNumber(currentSubject) ? currentSubject.toString() : currentSubject,
+                '',
             );
             this._addTextInput(
-                condBlock, 'OPERAND2', this._isNumber(currentRh) ? currentRh.toString() : currentRh, '50'
+                condBlock,
+                'OPERAND2',
+                this._isNumber(currentRh) ? currentRh.toString() : currentRh,
+                '50',
             );
 
             // Add comment to condition block
@@ -211,7 +221,7 @@ const ControlFlowHandlers = {
         return result;
     },
 
-    visitUntilNode (node) {
+    visitUntilNode(node) {
         const saved = this._saveContext();
 
         const preBlocks = [];
@@ -252,7 +262,7 @@ const ControlFlowHandlers = {
         return block;
     },
 
-    visitUnlessNode (node) {
+    visitUnlessNode(node) {
         const saved = this._saveContext();
 
         const preBlocks = [];
@@ -283,7 +293,7 @@ const ControlFlowHandlers = {
             // Ensure control_if_else and SUBSTACK2 exist even when unlessElse is null
             block.opcode = 'control_if_else';
             if (!block.inputs.SUBSTACK2) {
-                block.inputs.SUBSTACK2 = {name: 'SUBSTACK2', block: null, shadow: null};
+                block.inputs.SUBSTACK2 = { name: 'SUBSTACK2', block: null, shadow: null };
             }
         }
 
@@ -320,11 +330,11 @@ const ControlFlowHandlers = {
         return block;
     },
 
-    visitElseNode (node) {
+    visitElseNode(node) {
         return this.visit(node.statements);
     },
 
-    visitWhileNode (node) {
+    visitWhileNode(node) {
         const saved = this._saveContext();
 
         const preBlocks = [];
@@ -368,9 +378,9 @@ const ControlFlowHandlers = {
         return block;
     },
 
-    visitAndNode (node) {
+    visitAndNode(node) {
         const preBlocks = [];
-        const operands = [node.left, node.right].map(childNode => {
+        const operands = [node.left, node.right].map((childNode) => {
             const result = this._processCondition(childNode);
             const s = this._splitPreBlocksAndValue(result);
             preBlocks.push(...s.preBlocks);
@@ -387,9 +397,9 @@ const ControlFlowHandlers = {
         return block;
     },
 
-    visitOrNode (node) {
+    visitOrNode(node) {
         const preBlocks = [];
-        const operands = [node.left, node.right].map(childNode => {
+        const operands = [node.left, node.right].map((childNode) => {
             const result = this._processCondition(childNode);
             const s = this._splitPreBlocksAndValue(result);
             preBlocks.push(...s.preBlocks);
@@ -404,7 +414,7 @@ const ControlFlowHandlers = {
             return [...preBlocks, block];
         }
         return block;
-    }
+    },
 };
 
 export default ControlFlowHandlers;

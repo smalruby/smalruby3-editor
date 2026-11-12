@@ -9,7 +9,7 @@
  * @param {number} innerOrder The inner block's natural order (e.g. ORDER_ADDITIVE).
  */
 const registerLeftAssocOverride = (Generator, outerOrder, innerOrder) => {
-    if (!Generator.ORDER_OVERRIDES.some(p => p[0] === outerOrder && p[1] === innerOrder)) {
+    if (!Generator.ORDER_OVERRIDES.some((p) => p[0] === outerOrder && p[1] === innerOrder)) {
         Generator.ORDER_OVERRIDES.push([outerOrder, innerOrder]);
     }
 };
@@ -98,42 +98,42 @@ export default function (Generator) {
         const operator = Generator.getFieldValue(block, 'OPERATOR') || null;
         const comment = Generator.getCommentText(block);
         switch (operator) {
-        case 'abs':
-            return [`${num}.abs`, order];
-        case 'floor':
-            // `.to_i` and `.floor` both compile to operator_mathop(floor);
-            // the `@ruby:method:to_i` marker distinguishes the two on
-            // round-trip so we restore the source method name.
-            if (comment === '@ruby:method:to_i') {
-                return [`${num}.to_i`, order];
-            }
-            return [`${num}.floor`, order];
-        case 'ceiling':
-            return [`${num}.ceil`, order];
-        case 'sqrt':
-            return [`Math.sqrt(${num})`, order];
-        case 'sin':
-            return [`Math.sin(${num})`, order];
-        case 'cos':
-            return [`Math.cos(${num})`, order];
-        case 'tan':
-            return [`Math.tan(${num})`, order];
-        case 'asin':
-            return [`Math.asin(${num})`, order];
-        case 'acos':
-            return [`Math.acos(${num})`, order];
-        case 'atan':
-            return [`Math.atan(${num})`, order];
-        case 'ln':
-            return [`Math.log(${num})`, order];
-        case 'log':
-            return [`Math.log10(${num})`, order];
-        case 'e ^':
-            return [`Math::E ** ${num}`, order];
-        case '10 ^':
-            return [`10 ** ${num}`, order];
-        default:
-            return [null, order];
+            case 'abs':
+                return [`${num}.abs`, order];
+            case 'floor':
+                // `.to_i` and `.floor` both compile to operator_mathop(floor);
+                // the `@ruby:method:to_i` marker distinguishes the two on
+                // round-trip so we restore the source method name.
+                if (comment === '@ruby:method:to_i') {
+                    return [`${num}.to_i`, order];
+                }
+                return [`${num}.floor`, order];
+            case 'ceiling':
+                return [`${num}.ceil`, order];
+            case 'sqrt':
+                return [`Math.sqrt(${num})`, order];
+            case 'sin':
+                return [`Math.sin(${num})`, order];
+            case 'cos':
+                return [`Math.cos(${num})`, order];
+            case 'tan':
+                return [`Math.tan(${num})`, order];
+            case 'asin':
+                return [`Math.asin(${num})`, order];
+            case 'acos':
+                return [`Math.acos(${num})`, order];
+            case 'atan':
+                return [`Math.atan(${num})`, order];
+            case 'ln':
+                return [`Math.log(${num})`, order];
+            case 'log':
+                return [`Math.log10(${num})`, order];
+            case 'e ^':
+                return [`Math::E ** ${num}`, order];
+            case '10 ^':
+                return [`10 ** ${num}`, order];
+            default:
+                return [null, order];
         }
     };
 

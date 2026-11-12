@@ -4,7 +4,7 @@ import {
     convertAndExpectRubyBlockError,
     rubyToExpected,
     expectedInfo,
-    expectNoArgsMethod
+    expectNoArgsMethod,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Sensing', () => {
@@ -14,7 +14,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -34,14 +34,14 @@ describe('RubyToBlocksConverter/Sensing', () => {
                                 fields: [
                                     {
                                         name: 'KEY_OPTION',
-                                        value: 'space'
-                                    }
+                                        value: 'space',
+                                    },
                                 ],
-                                shadow: true
-                            }
-                        }
-                    ]
-                }
+                                shadow: true,
+                            },
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -58,14 +58,14 @@ describe('RubyToBlocksConverter/Sensing', () => {
                                 fields: [
                                     {
                                         name: 'KEY_OPTION',
-                                        value: 'space'
-                                    }
+                                        value: 'space',
+                                    },
                                 ],
-                                shadow: true
-                            }
-                        }
-                    ]
-                }
+                                shadow: true,
+                            },
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -79,21 +79,23 @@ describe('RubyToBlocksConverter/Sensing', () => {
             expected = [
                 (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
                 (await rubyToExpected(converter, target, 'Keyboard.pressed?("space")'))[0],
-                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
+                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'Keyboard.pressed?',
-                'Keyboard.pressed?()',
-                'Keyboard.pressed?(1)',
-                'Keyboard.pressed?("invalid")',
-                'Keyboard.pressed?("space", 1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of [
+                    'Keyboard.pressed?',
+                    'Keyboard.pressed?()',
+                    'Keyboard.pressed?(1)',
+                    'Keyboard.pressed?("invalid")',
+                    'Keyboard.pressed?("space", 1)',
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
 
         test('error', async () => {
@@ -121,10 +123,10 @@ describe('RubyToBlocksConverter/Sensing', () => {
                     fields: [
                         {
                             name: 'DRAG_MODE',
-                            value: 'draggable'
-                        }
-                    ]
-                }
+                            value: 'draggable',
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -135,10 +137,10 @@ describe('RubyToBlocksConverter/Sensing', () => {
                     fields: [
                         {
                             name: 'DRAG_MODE',
-                            value: 'not draggable'
-                        }
-                    ]
-                }
+                            value: 'not draggable',
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -151,10 +153,10 @@ describe('RubyToBlocksConverter/Sensing', () => {
                     fields: [
                         {
                             name: 'DRAG_MODE',
-                            value: 'draggable'
-                        }
-                    ]
-                }
+                            value: 'draggable',
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -165,10 +167,10 @@ describe('RubyToBlocksConverter/Sensing', () => {
                     fields: [
                         {
                             name: 'DRAG_MODE',
-                            value: 'not draggable'
-                        }
-                    ]
-                }
+                            value: 'not draggable',
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -179,28 +181,27 @@ describe('RubyToBlocksConverter/Sensing', () => {
                 self.drag_mode = "draggable"
                 bounce_if_on_edge
             `;
-            expected = [
-                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
-            ];
+            expected = [(await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]];
             expected[0].next = (await rubyToExpected(converter, target, 'self.drag_mode = "draggable"'))[0];
             expected[0].next.next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'self.drag_mode',
-                'self.drag_mode()',
-                'self.drag_mode = "invalid"',
-                'self.drag_mode = 1'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of [
+                    'self.drag_mode',
+                    'self.drag_mode()',
+                    'self.drag_mode = "invalid"',
+                    'self.drag_mode = 1',
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
     expectNoArgsMethod('sensing_loudness', 'loudness', 'value');
     expectNoArgsMethod('sensing_timer', 'Timer.value', 'value');
     expectNoArgsMethod('sensing_resettimer', 'Timer.reset');
-
 });

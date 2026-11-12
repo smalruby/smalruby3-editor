@@ -140,7 +140,7 @@ describe('Ruby Roundtrip: return with a call of a method that returns a value (i
     test('the method is called before the return block', async () => {
         await converter.targetCodeToBlocks(target, 'def bar\n  1\nend\n\ndef foo\n  return bar\nend\n');
         const blocks = converter._context.blocks;
-        const returnBlock = Object.values(blocks).find(b => {
+        const returnBlock = Object.values(blocks).find((b) => {
             const comment = b.comment && converter._context.comments[b.comment];
             return b.opcode === 'data_setvariableto' && comment && comment.text.includes('@ruby:syntax:return');
         });
@@ -227,7 +227,7 @@ describe('Ruby Roundtrip: return with parentheses (issue #1557)', () => {
 });
 
 describe('Ruby to blocks: return values that no block can hold (issues #1557, #1558)', () => {
-    const convert = async code => {
+    const convert = async (code) => {
         const { target, runtime } = makeSpriteTarget();
         const converter = makeConverter(target, runtime, { version: 2 });
         const result = await converter.targetCodeToBlocks(target, code);
@@ -235,7 +235,9 @@ describe('Ruby to blocks: return values that no block can hold (issues #1557, #1
     };
 
     test('return with a call of a method that returns no value is an error', async () => {
-        const { result, errors } = await convert('def self.bar\n  move(10)\nend\n\ndef self.foo\n  return bar\nend\n');
+        const { result, errors } = await convert(
+            'def self.bar\n  move(10)\nend\n\ndef self.foo\n  return bar\nend\n',
+        );
         expect(result).toBe(false);
         expect(errors).toHaveLength(1);
         expect(errors[0].row).toBe(5);

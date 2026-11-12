@@ -1,49 +1,49 @@
 import * as Blockly from 'scratch-blocks';
 import Generator from '../generator';
-
-import EncodingHelpers from './encoding.js';
-import VariableHelpers from './variables.js';
-import ScrubHandler from './scrub.js';
-import SpriteNewGenerator from './sprite-new.js';
+import BoostBlocks from './boost.js';
 import ClassWrapper from './class-wrapper.js';
 import CodeFinisher from './code-finisher.js';
-import MathBlocks from './math.js';
-import TextBlocks from './text.js';
 import ColourBlocks from './colour.js';
-import MotionBlocks from './motion.js';
-import LooksBlocks from './looks.js';
-import SoundBlocks from './sound.js';
-import EventBlocks from './event.js';
 import ControlBlocks from './control.js';
-import SensingBlocks from './sensing.js';
-import OperatorsBlocks from './operators.js';
 import DataBlocks from './data.js';
-import ProcedureBlocks from './procedure.js';
-import RubyBlocks from './ruby.js';
-import MusicBlocks from './music.js';
-import PenBlocks from './pen.js';
-import VideoBlocks from './video.js';
-import Text2SpeechBlocks from './text2speech.js';
-import TranslateBlocks from './translate.js';
-import MakeyMakeyBlocks from './makeymakey.js';
-import MicrobitBlocks from './microbit.js';
-import MicrobitMoreBlocks from './microbit_more.js';
-import BoostBlocks from './boost.js';
+import EncodingHelpers from './encoding.js';
 import EV3Blocks from './ev3.js';
-import WeDo2Blocks from './wedo2.js';
-import GdxForBlocks from './gdx_for.js';
-import MeshV2Blocks from './mesh_v2.js';
-import SmalrubotS1Blocks from './smalrubot_s1.js';
-import KoshienBlocks from './koshien.js';
+import EventBlocks from './event.js';
 import FaceSensingBlocks from './face_sensing.js';
-// === Smalruby: Start of TM2Scratch extension ===
-import TM2ScratchBlocks from './tm2scratch.js';
 // === Smalruby: End of TM2Scratch extension ===
 // === Smalruby: Start of AkaDako extension ===
 import G2SBlocks from './g2s.js';
+import GdxForBlocks from './gdx_for.js';
+import KoshienBlocks from './koshien.js';
+import LooksBlocks from './looks.js';
+import MakeyMakeyBlocks from './makeymakey.js';
+import MathBlocks from './math.js';
+import MeshV2Blocks from './mesh_v2.js';
+import MicrobitBlocks from './microbit.js';
+import MicrobitMoreBlocks from './microbit_more.js';
+import MotionBlocks from './motion.js';
+import MusicBlocks from './music.js';
+import OperatorsBlocks from './operators.js';
+import PenBlocks from './pen.js';
+import ProcedureBlocks from './procedure.js';
+import RubyBlocks from './ruby.js';
+import ScrubHandler from './scrub.js';
+import SensingBlocks from './sensing.js';
+import SmalrubotS1Blocks from './smalrubot_s1.js';
 // === Smalruby: End of AkaDako extension ===
 // === Smalruby: Start of Ruby String extension ===
 import SmalrubyRubyBlocks from './smalruby-ruby.js';
+import SoundBlocks from './sound.js';
+import SpriteNewGenerator from './sprite-new.js';
+import Text2SpeechBlocks from './text2speech.js';
+import TextBlocks from './text.js';
+// === Smalruby: Start of TM2Scratch extension ===
+import TM2ScratchBlocks from './tm2scratch.js';
+import TranslateBlocks from './translate.js';
+import VariableHelpers from './variables.js';
+import VideoBlocks from './video.js';
+import WeDo2Blocks from './wedo2.js';
+
 // === Smalruby: End of Ruby String extension ===
 
 const RubyGenerator = new Generator('Ruby');
@@ -89,35 +89,34 @@ RubyGenerator.addReservedWords(
      end
      next
      return
-     until`.split(/\s+/));
+     until`.split(/\s+/),
+);
 
- 
-RubyGenerator.ORDER_ATOMIC = 0;            // 0 "" ...
-RubyGenerator.ORDER_COLLECTION = 1;        // tuples, lists, dictionaries
+RubyGenerator.ORDER_ATOMIC = 0; // 0 "" ...
+RubyGenerator.ORDER_COLLECTION = 1; // tuples, lists, dictionaries
 RubyGenerator.ORDER_STRING_CONVERSION = 1; // `expression...`
-RubyGenerator.ORDER_MEMBER = 2;            // ::
-RubyGenerator.ORDER_INDEX = 3;             // []
-RubyGenerator.ORDER_FUNCTION_CALL = 4;     // ()
-RubyGenerator.ORDER_UNARY_SIGN = 5;        // +(単項)  !  ~
-RubyGenerator.ORDER_EXPONENTIATION = 6;    // **
-RubyGenerator.ORDER_UNARY_MINUS_SIGN = 7;  // -(単項)
-RubyGenerator.ORDER_MULTIPLICATIVE = 8;    // *  /  %
-RubyGenerator.ORDER_ADDITIVE = 9;          // +  -
-RubyGenerator.ORDER_BITWISE_SHIFT = 10;    // << >>
-RubyGenerator.ORDER_BITWISE_AND = 11;      // &
-RubyGenerator.ORDER_BITWISE_XOR = 12;      // ^
-RubyGenerator.ORDER_BITWISE_OR = 12;       // |
-RubyGenerator.ORDER_RELATIONAL = 13;       // > >=  < <=
-RubyGenerator.ORDER_EQUALS = 14;           // <=> ==  === !=  =~  !~
-RubyGenerator.ORDER_LOGICAL_AND = 15;      // &&
-RubyGenerator.ORDER_LOGICAL_OR = 16;       // ||
-RubyGenerator.ORDER_RANGE = 17;            // ..  ...
-RubyGenerator.ORDER_CONDITIONAL = 18;      // ?:(条件演算子)
-RubyGenerator.ORDER_ASSIGNMENT = 19;       // =(+=, -= ... )
-RubyGenerator.ORDER_NOT = 20;              // not
-RubyGenerator.ORDER_AND_OR = 21;           // and or
-RubyGenerator.ORDER_NONE = 99;             // (...)
- 
+RubyGenerator.ORDER_MEMBER = 2; // ::
+RubyGenerator.ORDER_INDEX = 3; // []
+RubyGenerator.ORDER_FUNCTION_CALL = 4; // ()
+RubyGenerator.ORDER_UNARY_SIGN = 5; // +(単項)  !  ~
+RubyGenerator.ORDER_EXPONENTIATION = 6; // **
+RubyGenerator.ORDER_UNARY_MINUS_SIGN = 7; // -(単項)
+RubyGenerator.ORDER_MULTIPLICATIVE = 8; // *  /  %
+RubyGenerator.ORDER_ADDITIVE = 9; // +  -
+RubyGenerator.ORDER_BITWISE_SHIFT = 10; // << >>
+RubyGenerator.ORDER_BITWISE_AND = 11; // &
+RubyGenerator.ORDER_BITWISE_XOR = 12; // ^
+RubyGenerator.ORDER_BITWISE_OR = 12; // |
+RubyGenerator.ORDER_RELATIONAL = 13; // > >=  < <=
+RubyGenerator.ORDER_EQUALS = 14; // <=> ==  === !=  =~  !~
+RubyGenerator.ORDER_LOGICAL_AND = 15; // &&
+RubyGenerator.ORDER_LOGICAL_OR = 16; // ||
+RubyGenerator.ORDER_RANGE = 17; // ..  ...
+RubyGenerator.ORDER_CONDITIONAL = 18; // ?:(条件演算子)
+RubyGenerator.ORDER_ASSIGNMENT = 19; // =(+=, -= ... )
+RubyGenerator.ORDER_NOT = 20; // not
+RubyGenerator.ORDER_AND_OR = 21; // and or
+RubyGenerator.ORDER_NONE = 99; // (...)
 
 RubyGenerator.init = function (options) {
     this.definitions_ = {};
@@ -148,7 +147,7 @@ RubyGenerator.init = function (options) {
                 for (const part of parts) {
                     const match = part.match(/^attr_(?:accessor|reader|writer)=(.+)$/);
                     if (match) {
-                        match[1].split('+').forEach(name => {
+                        match[1].split('+').forEach((name) => {
                             this._attrAccessorNames.add(name);
                         });
                     }
@@ -165,8 +164,8 @@ RubyGenerator.spriteName = function () {
 
 RubyGenerator.getScripts = function () {
     return Generator.prototype.getScripts.call(this).sort((a, b) => {
-        const aValue = (this.getBlock(a).opcode === 'procedures_definition' ? 1 : -1);
-        const bValue = (this.getBlock(b).opcode === 'procedures_definition' ? 1 : -1);
+        const aValue = this.getBlock(a).opcode === 'procedures_definition' ? 1 : -1;
+        const bValue = this.getBlock(b).opcode === 'procedures_definition' ? 1 : -1;
         return bValue - aValue;
     });
 };

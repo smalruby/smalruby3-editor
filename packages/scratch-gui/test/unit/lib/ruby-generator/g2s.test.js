@@ -20,15 +20,11 @@ describe('RubyGenerator/G2S', () => {
     // --- Board connection ---
 
     test('connectBoard', () => {
-        expect(RubyGenerator.g2s_connectBoard(makeBlock('b1'))).toEqual(
-            'akadako.connect_board\n',
-        );
+        expect(RubyGenerator.g2s_connectBoard(makeBlock('b1'))).toEqual('akadako.connect_board\n');
     });
 
     test('disconnectBoard', () => {
-        expect(RubyGenerator.g2s_disconnectBoard(makeBlock('b1'))).toEqual(
-            'akadako.disconnect_board\n',
-        );
+        expect(RubyGenerator.g2s_disconnectBoard(makeBlock('b1'))).toEqual('akadako.disconnect_board\n');
     });
 
     test('isConnected', () => {
@@ -38,14 +34,10 @@ describe('RubyGenerator/G2S', () => {
     });
 
     test('boardStateChanged', () => {
-        RubyGenerator.valueToCode = jest
-            .fn()
-            .mockReturnValue('"connected"');
+        RubyGenerator.valueToCode = jest.fn().mockReturnValue('"connected"');
         const block = makeBlock('b1');
         const result = RubyGenerator.g2s_boardStateChanged(block);
-        expect(result).toEqual(
-            'akadako.when_board_state_changed("connected") do\n',
-        );
+        expect(result).toEqual('akadako.when_board_state_changed("connected") do\n');
         expect(block.isStatement).toBe(true);
     });
 
@@ -100,55 +92,35 @@ describe('RubyGenerator/G2S', () => {
     });
 
     test('digitalLevelSet', () => {
-        RubyGenerator.valueToCode = jest
-            .fn()
-            .mockReturnValueOnce('"10"')
-            .mockReturnValueOnce('"true"');
-        expect(
-            RubyGenerator.g2s_digitalLevelSet(makeBlock('b1')),
-        ).toEqual('akadako.set_digital_level("10", "true")\n');
+        RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"10"').mockReturnValueOnce('"true"');
+        expect(RubyGenerator.g2s_digitalLevelSet(makeBlock('b1'))).toEqual(
+            'akadako.set_digital_level("10", "true")\n',
+        );
     });
 
     test('digitalIsHigh', () => {
         RubyGenerator.valueToCode = jest.fn().mockReturnValue('"6"');
-        const [code, order] = RubyGenerator.g2s_digitalIsHigh(
-            makeBlock('b1'),
-        );
+        const [code, order] = RubyGenerator.g2s_digitalIsHigh(makeBlock('b1'));
         expect(code).toEqual('akadako.digital_high?("6")');
         expect(order).toEqual(RubyGenerator.ORDER_FUNCTION_CALL);
     });
 
     test('digitalLevelChanged', () => {
-        RubyGenerator.valueToCode = jest
-            .fn()
-            .mockReturnValueOnce('"10"')
-            .mockReturnValueOnce('"true"');
+        RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"10"').mockReturnValueOnce('"true"');
         const block = makeBlock('b1');
         const result = RubyGenerator.g2s_digitalLevelChanged(block);
-        expect(result).toEqual(
-            'akadako.when_digital_level_changed("10", "true") do\n',
-        );
+        expect(result).toEqual('akadako.when_digital_level_changed("10", "true") do\n');
         expect(block.isStatement).toBe(true);
     });
 
     test('inputBiasSet', () => {
-        RubyGenerator.valueToCode = jest
-            .fn()
-            .mockReturnValueOnce('"10"')
-            .mockReturnValueOnce('"pullUp"');
-        expect(RubyGenerator.g2s_inputBiasSet(makeBlock('b1'))).toEqual(
-            'akadako.set_input_bias("10", "pullUp")\n',
-        );
+        RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"10"').mockReturnValueOnce('"pullUp"');
+        expect(RubyGenerator.g2s_inputBiasSet(makeBlock('b1'))).toEqual('akadako.set_input_bias("10", "pullUp")\n');
     });
 
     test('analogLevelSet', () => {
-        RubyGenerator.valueToCode = jest
-            .fn()
-            .mockReturnValueOnce('"10"')
-            .mockReturnValueOnce('50');
-        expect(RubyGenerator.g2s_analogLevelSet(makeBlock('b1'))).toEqual(
-            'akadako.set_pwm_duty("10", 50)\n',
-        );
+        RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"10"').mockReturnValueOnce('50');
+        expect(RubyGenerator.g2s_analogLevelSet(makeBlock('b1'))).toEqual('akadako.set_pwm_duty("10", 50)\n');
     });
 
     // --- Servo + IR ---
@@ -159,43 +131,28 @@ describe('RubyGenerator/G2S', () => {
             .mockReturnValueOnce('"10"')
             .mockReturnValueOnce('90')
             .mockReturnValueOnce('100');
-        expect(RubyGenerator.g2s_servoTurn(makeBlock('b1'))).toEqual(
-            'akadako.servo_turn("10", 90, 100)\n',
-        );
+        expect(RubyGenerator.g2s_servoTurn(makeBlock('b1'))).toEqual('akadako.servo_turn("10", 90, 100)\n');
     });
 
     test('sendIrRemote', () => {
-        RubyGenerator.valueToCode = jest
-            .fn()
-            .mockReturnValueOnce('"999"')
-            .mockReturnValueOnce('"3"');
-        expect(RubyGenerator.g2s_sendIrRemote(makeBlock('b1'))).toEqual(
-            'akadako.send_ir_remote("999", "3")\n',
-        );
+        RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"999"').mockReturnValueOnce('"3"');
+        expect(RubyGenerator.g2s_sendIrRemote(makeBlock('b1'))).toEqual('akadako.send_ir_remote("999", "3")\n');
     });
 
     // --- Distance/Motion sensors ---
 
     test('measureDistanceWithUltrasonicA', () => {
-        const [code] =
-            RubyGenerator.g2s_measureDistanceWithUltrasonicA(
-                makeBlock('b1'),
-            );
+        const [code] = RubyGenerator.g2s_measureDistanceWithUltrasonicA(makeBlock('b1'));
         expect(code).toEqual('akadako.ultrasonic_distance_a');
     });
 
     test('measureDistanceWithUltrasonicB', () => {
-        const [code] =
-            RubyGenerator.g2s_measureDistanceWithUltrasonicB(
-                makeBlock('b1'),
-            );
+        const [code] = RubyGenerator.g2s_measureDistanceWithUltrasonicB(makeBlock('b1'));
         expect(code).toEqual('akadako.ultrasonic_distance_b');
     });
 
     test('measureDistanceWithLight', () => {
-        const [code] = RubyGenerator.g2s_measureDistanceWithLight(
-            makeBlock('b1'),
-        );
+        const [code] = RubyGenerator.g2s_measureDistanceWithLight(makeBlock('b1'));
         expect(code).toEqual('akadako.laser_distance');
     });
 
@@ -239,9 +196,7 @@ describe('RubyGenerator/G2S', () => {
     });
 
     test('getAccelerationAbsolute', () => {
-        const [code] = RubyGenerator.g2s_getAccelerationAbsolute(
-            makeBlock('b1'),
-        );
+        const [code] = RubyGenerator.g2s_getAccelerationAbsolute(makeBlock('b1'));
         expect(code).toEqual('akadako.acceleration_absolute');
     });
 
@@ -253,9 +208,7 @@ describe('RubyGenerator/G2S', () => {
     });
 
     test('getAnalogBrightness', () => {
-        const [code] = RubyGenerator.g2s_getAnalogBrightness(
-            makeBlock('b1'),
-        );
+        const [code] = RubyGenerator.g2s_getAnalogBrightness(makeBlock('b1'));
         expect(code).toEqual('akadako.analog_brightness');
     });
 
@@ -275,29 +228,20 @@ describe('RubyGenerator/G2S', () => {
     });
 
     test('getWaterTemperatureA', () => {
-        const [code] = RubyGenerator.g2s_getWaterTemperatureA(
-            makeBlock('b1'),
-        );
+        const [code] = RubyGenerator.g2s_getWaterTemperatureA(makeBlock('b1'));
         expect(code).toEqual('akadako.water_temperature_a');
     });
 
     test('getWaterTemperatureB', () => {
-        const [code] = RubyGenerator.g2s_getWaterTemperatureB(
-            makeBlock('b1'),
-        );
+        const [code] = RubyGenerator.g2s_getWaterTemperatureB(makeBlock('b1'));
         expect(code).toEqual('akadako.water_temperature_b');
     });
 
     // --- NeoPixel LED ---
 
     test('neoPixelConfigStrip', () => {
-        RubyGenerator.valueToCode = jest
-            .fn()
-            .mockReturnValueOnce('"10"')
-            .mockReturnValueOnce('3');
-        expect(
-            RubyGenerator.g2s_neoPixelConfigStrip(makeBlock('b1')),
-        ).toEqual('akadako.neopixel_config("10", 3)\n');
+        RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"10"').mockReturnValueOnce('3');
+        expect(RubyGenerator.g2s_neoPixelConfigStrip(makeBlock('b1'))).toEqual('akadako.neopixel_config("10", 3)\n');
     });
 
     test('neoPixelSetColor', () => {
@@ -307,9 +251,7 @@ describe('RubyGenerator/G2S', () => {
             .mockReturnValueOnce('1')
             .mockReturnValueOnce('"0xff, 0, 0"')
             .mockReturnValueOnce('50');
-        expect(
-            RubyGenerator.g2s_neoPixelSetColor(makeBlock('b1')),
-        ).toEqual(
+        expect(RubyGenerator.g2s_neoPixelSetColor(makeBlock('b1'))).toEqual(
             'akadako.neopixel_set_color("7", 1, "0xff, 0, 0", 50)\n',
         );
     });
@@ -320,9 +262,7 @@ describe('RubyGenerator/G2S', () => {
             .mockReturnValueOnce('"7"')
             .mockReturnValueOnce('"0, 0xff, 0"')
             .mockReturnValueOnce('100');
-        expect(
-            RubyGenerator.g2s_neoPixelFillColor(makeBlock('b1')),
-        ).toEqual(
+        expect(RubyGenerator.g2s_neoPixelFillColor(makeBlock('b1'))).toEqual(
             'akadako.neopixel_fill_color("7", "0, 0xff, 0", 100)\n',
         );
     });
@@ -333,9 +273,7 @@ describe('RubyGenerator/G2S', () => {
             .mockReturnValueOnce('"10"')
             .mockReturnValueOnce('2')
             .mockReturnValueOnce('"true"');
-        expect(
-            RubyGenerator.g2s_neoPixelShiftColor(makeBlock('b1')),
-        ).toEqual(
+        expect(RubyGenerator.g2s_neoPixelShiftColor(makeBlock('b1'))).toEqual(
             'akadako.neopixel_shift_color("10", 2, "true")\n',
         );
     });
@@ -346,32 +284,24 @@ describe('RubyGenerator/G2S', () => {
             .mockReturnValueOnce('255')
             .mockReturnValueOnce('0')
             .mockReturnValueOnce('0');
-        const [code, order] = RubyGenerator.g2s_neoPixelColor(
-            makeBlock('b1'),
-        );
+        const [code, order] = RubyGenerator.g2s_neoPixelColor(makeBlock('b1'));
         expect(code).toEqual('akadako.neopixel_color(255, 0, 0)');
         expect(order).toEqual(RubyGenerator.ORDER_FUNCTION_CALL);
     });
 
     test('neoPixelColorMode', () => {
-        RubyGenerator.valueToCode = jest
-            .fn()
-            .mockReturnValue('"rainbow"');
+        RubyGenerator.valueToCode = jest.fn().mockReturnValue('"rainbow"');
         const [code] = RubyGenerator.g2s_neoPixelColorMode(makeBlock('b1'));
         expect(code).toEqual('akadako.neopixel_color_mode("rainbow")');
     });
 
     test('neoPixelShow', () => {
-        expect(RubyGenerator.g2s_neoPixelShow(makeBlock('b1'))).toEqual(
-            'akadako.neopixel_show\n',
-        );
+        expect(RubyGenerator.g2s_neoPixelShow(makeBlock('b1'))).toEqual('akadako.neopixel_show\n');
     });
 
     test('neoPixelClear', () => {
         RubyGenerator.valueToCode = jest.fn().mockReturnValue('"7"');
-        expect(RubyGenerator.g2s_neoPixelClear(makeBlock('b1'))).toEqual(
-            'akadako.neopixel_clear("7")\n',
-        );
+        expect(RubyGenerator.g2s_neoPixelClear(makeBlock('b1'))).toEqual('akadako.neopixel_clear("7")\n');
     });
 
     // --- I2C ---
@@ -393,9 +323,7 @@ describe('RubyGenerator/G2S', () => {
             .mockReturnValueOnce('"0x10"')
             .mockReturnValueOnce('"0x20"')
             .mockReturnValueOnce('4');
-        const [code, order] = RubyGenerator.g2s_i2cReadOnce(
-            makeBlock('b1'),
-        );
+        const [code, order] = RubyGenerator.g2s_i2cReadOnce(makeBlock('b1'));
         expect(code).toEqual('akadako.i2c_read("0x10", "0x20", 4)');
         expect(order).toEqual(RubyGenerator.ORDER_FUNCTION_CALL);
     });
@@ -403,10 +331,7 @@ describe('RubyGenerator/G2S', () => {
     // --- Array/Data ---
 
     test('numberAtIndex', () => {
-        RubyGenerator.valueToCode = jest
-            .fn()
-            .mockReturnValueOnce('"1, 2, 3"')
-            .mockReturnValueOnce('2');
+        RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('"1, 2, 3"').mockReturnValueOnce('2');
         const [code] = RubyGenerator.g2s_numberAtIndex(makeBlock('b1'));
         expect(code).toEqual('akadako.number_at("1, 2, 3", 2)');
     });
@@ -419,15 +344,11 @@ describe('RubyGenerator/G2S', () => {
             .mockReturnValueOnce('1')
             .mockReturnValueOnce('"-1, 0"');
         const [code] = RubyGenerator.g2s_spliceNumbers(makeBlock('b1'));
-        expect(code).toEqual(
-            'akadako.splice_numbers("1.0, 1E1, 0xFF", 1, 1, "-1, 0")',
-        );
+        expect(code).toEqual('akadako.splice_numbers("1.0, 1E1, 0xFF", 1, 1, "-1, 0")');
     });
 
     test('lengthOfNumbers', () => {
-        RubyGenerator.valueToCode = jest
-            .fn()
-            .mockReturnValue('"1.0, 1E1, 0xFF"');
+        RubyGenerator.valueToCode = jest.fn().mockReturnValue('"1.0, 1E1, 0xFF"');
         const [code] = RubyGenerator.g2s_lengthOfNumbers(makeBlock('b1'));
         expect(code).toEqual('akadako.numbers_length("1.0, 1E1, 0xFF")');
     });
@@ -439,9 +360,7 @@ describe('RubyGenerator/G2S', () => {
             .mockReturnValueOnce('"Int16"')
             .mockReturnValueOnce('"little"');
         const [code] = RubyGenerator.g2s_readBytesAs(makeBlock('b1'));
-        expect(code).toEqual(
-            'akadako.read_bytes_as("0x00, 0xFF", "Int16", "little")',
-        );
+        expect(code).toEqual('akadako.read_bytes_as("0x00, 0xFF", "Int16", "little")');
     });
 
     // --- Bitwise ---
@@ -453,9 +372,7 @@ describe('RubyGenerator/G2S', () => {
             .mockReturnValueOnce('"\uFF0B"')
             .mockReturnValueOnce('"0x02"');
         const [code] = RubyGenerator.g2s_int64Operation(makeBlock('b1'));
-        expect(code).toEqual(
-            'akadako.int64_op("0x01", "\uFF0B", "0x02")',
-        );
+        expect(code).toEqual('akadako.int64_op("0x01", "\uFF0B", "0x02")');
     });
 
     test('bitOperation', () => {
@@ -465,9 +382,7 @@ describe('RubyGenerator/G2S', () => {
             .mockReturnValueOnce('"&"')
             .mockReturnValueOnce('"0x01"');
         const [code] = RubyGenerator.g2s_bitOperation(makeBlock('b1'));
-        expect(code).toEqual(
-            'akadako.bit_op("0x03", "&", "0x01")',
-        );
+        expect(code).toEqual('akadako.bit_op("0x03", "&", "0x01")');
     });
 
     test('bitNot', () => {
@@ -482,8 +397,7 @@ describe('RubyGenerator/G2S', () => {
         const block = {
             fields: { boardStateMenu: { value: 'connected' } },
         };
-        const [code, order] =
-            RubyGenerator.g2s_menu_boardStateMenu(block);
+        const [code, order] = RubyGenerator.g2s_menu_boardStateMenu(block);
         expect(code).toEqual('"connected"');
         expect(order).toEqual(RubyGenerator.ORDER_ATOMIC);
     });
@@ -500,8 +414,7 @@ describe('RubyGenerator/G2S', () => {
         const block = {
             fields: { digitalConnectorMenu: { value: '6' } },
         };
-        const [code] =
-            RubyGenerator.g2s_menu_digitalConnectorMenu(block);
+        const [code] = RubyGenerator.g2s_menu_digitalConnectorMenu(block);
         expect(code).toEqual('"6"');
     });
 
@@ -509,8 +422,7 @@ describe('RubyGenerator/G2S', () => {
         const block = {
             fields: { digitalLevelSetConnectorMenu: { value: '4' } },
         };
-        const [code] =
-            RubyGenerator.g2s_menu_digitalLevelSetConnectorMenu(block);
+        const [code] = RubyGenerator.g2s_menu_digitalLevelSetConnectorMenu(block);
         expect(code).toEqual('"4"');
     });
 
@@ -558,8 +470,7 @@ describe('RubyGenerator/G2S', () => {
         const block = {
             fields: { neoPixelConnectorMenu: { value: '7' } },
         };
-        const [code] =
-            RubyGenerator.g2s_menu_neoPixelConnectorMenu(block);
+        const [code] = RubyGenerator.g2s_menu_neoPixelConnectorMenu(block);
         expect(code).toEqual('"7"');
     });
 
@@ -567,8 +478,7 @@ describe('RubyGenerator/G2S', () => {
         const block = {
             fields: { neoPixelShiftColorLoopModeMenu: { value: 'false' } },
         };
-        const [code] =
-            RubyGenerator.g2s_menu_neoPixelShiftColorLoopModeMenu(block);
+        const [code] = RubyGenerator.g2s_menu_neoPixelShiftColorLoopModeMenu(block);
         expect(code).toEqual('"false"');
     });
 
@@ -578,8 +488,7 @@ describe('RubyGenerator/G2S', () => {
                 neoPixelColorMenuSimple: { value: '0xff, 0xa5, 0' },
             },
         };
-        const [code] =
-            RubyGenerator.g2s_menu_neoPixelColorMenuSimple(block);
+        const [code] = RubyGenerator.g2s_menu_neoPixelColorMenuSimple(block);
         expect(code).toEqual('"0xff, 0xa5, 0"');
     });
 
@@ -595,8 +504,7 @@ describe('RubyGenerator/G2S', () => {
         const block = {
             fields: { neoPixelColorModeMenu: { value: 'rainbow' } },
         };
-        const [code] =
-            RubyGenerator.g2s_menu_neoPixelColorModeMenu(block);
+        const [code] = RubyGenerator.g2s_menu_neoPixelColorModeMenu(block);
         expect(code).toEqual('"rainbow"');
     });
 
@@ -620,8 +528,7 @@ describe('RubyGenerator/G2S', () => {
         const block = {
             fields: { int64OperationMenu: { value: 'mod' } },
         };
-        const [code] =
-            RubyGenerator.g2s_menu_int64OperationMenu(block);
+        const [code] = RubyGenerator.g2s_menu_int64OperationMenu(block);
         expect(code).toEqual('"mod"');
     });
 
@@ -637,8 +544,7 @@ describe('RubyGenerator/G2S', () => {
         const block = {
             fields: { irRemoteMenuConnector: { value: '999' } },
         };
-        const [code] =
-            RubyGenerator.g2s_menu_irRemoteMenuConnector(block);
+        const [code] = RubyGenerator.g2s_menu_irRemoteMenuConnector(block);
         expect(code).toEqual('"999"');
     });
 

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React, { useLayoutEffect, useRef } from 'react';
-import cameraIcon from './icon--camera.svg';
 import styles from './blocks-screenshot-button.css';
+import cameraIcon from './icon--camera.svg';
 
 /** Visual gap between the camera button and the topmost zoom button. */
 const ZOOM_GAP_PX = 8;
@@ -37,10 +37,7 @@ const BlocksScreenshotButton = ({ onClick }) => {
             const zoomRect = zoomIn.getBoundingClientRect();
             const wrapperRect = wrapper.getBoundingClientRect();
             const right = Math.max(0, wrapperRect.right - zoomRect.right);
-            const bottom = Math.max(
-                0,
-                wrapperRect.bottom - (zoomRect.top - ZOOM_GAP_PX),
-            );
+            const bottom = Math.max(0, wrapperRect.bottom - (zoomRect.top - ZOOM_GAP_PX));
             button.style.right = `${right}px`;
             button.style.bottom = `${bottom}px`;
         };

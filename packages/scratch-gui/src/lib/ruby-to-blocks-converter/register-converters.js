@@ -1,37 +1,38 @@
-import MotionConverter from './motion';
-import LooksConverter from './looks';
-import SoundConverter from './sound';
-import EventConverter from './event';
-import ControlConverter from './control';
-import SensingConverter from './sensing';
-import OperatorsConverter from './operators';
-import VariablesConverter from './variables';
-import MyBlocksConverter from './my-blocks';
-import MusicConverter from './music';
-import PenConverter from './pen';
-import MicroBitConverter from './microbit';
-import MicrobitMoreConverter from './microbit_more';
-import EV3Converter from './ev3';
-import Wedo2Converter from './wedo2';
-import GdxForConverter from './gdx_for';
-import MeshConverter from './mesh';
-import MeshV2Converter from './mesh_v2';
-import SmalrubotS1Converter from './smalrubot_s1';
 import BoostConverter from './boost';
-import TranslateConverter from './translate';
-import MakeyMakeyConverter from './makeymakey';
-import VideoConverter from './video';
-import Text2SpeechConverter from './text2speech';
-import KoshienConverter from './koshien';
+import ControlConverter from './control';
+import EV3Converter from './ev3';
+import EventConverter from './event';
 import FaceSensingConverter from './face_sensing';
-// === Smalruby: Start of TM2Scratch extension ===
-import TM2ScratchConverter from './tm2scratch';
 // === Smalruby: End of TM2Scratch extension ===
 // === Smalruby: Start of G2S (AkaDako) extension ===
 import G2SConverter from './g2s';
+import GdxForConverter from './gdx_for';
+import KoshienConverter from './koshien';
+import LooksConverter from './looks';
+import MakeyMakeyConverter from './makeymakey';
+import MeshConverter from './mesh';
+import MeshV2Converter from './mesh_v2';
+import MicroBitConverter from './microbit';
+import MicrobitMoreConverter from './microbit_more';
+import MotionConverter from './motion';
+import MusicConverter from './music';
+import MyBlocksConverter from './my-blocks';
+import OperatorsConverter from './operators';
+import PenConverter from './pen';
+import SensingConverter from './sensing';
+import SmalrubotS1Converter from './smalrubot_s1';
 // === Smalruby: End of G2S (AkaDako) extension ===
 // === Smalruby: Start of Ruby String extension ===
 import SmalrubyRubyConverter from './smalruby-ruby';
+import SoundConverter from './sound';
+import Text2SpeechConverter from './text2speech';
+// === Smalruby: Start of TM2Scratch extension ===
+import TM2ScratchConverter from './tm2scratch';
+import TranslateConverter from './translate';
+import VariablesConverter from './variables';
+import VideoConverter from './video';
+import Wedo2Converter from './wedo2';
+
 // === Smalruby: End of Ruby String extension ===
 
 const registerConverters = function (converter) {
@@ -64,8 +65,8 @@ const registerConverters = function (converter) {
         SmalrubotS1Converter,
         MotionConverter,
         SensingConverter,
-        MyBlocksConverter
-    ].forEach(x => x.register(converter));
+        MyBlocksConverter,
+    ].forEach((x) => x.register(converter));
 };
 
 export {
@@ -80,5 +81,5 @@ export {
     MakeyMakeyConverter,
     LooksConverter,
     SoundConverter,
-    SensingConverter
+    SensingConverter,
 };
