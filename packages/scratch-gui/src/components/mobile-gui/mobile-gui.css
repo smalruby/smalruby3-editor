@@ -340,11 +340,11 @@
  * (gui.jsx)。SP にはステージの列が無いので、これまでどおり編集エリアの上
  * (サイドレールの右) に置き、本体はバーの高さ (2.5rem) の分だけ縮める。
  */
-:global(body.smalruby-mobile-mode [class*="lesson-task-bar_wrapper"]) {
+:global(body.smalruby-mobile-mode [class*='lesson-task-bar_wrapper']) {
     margin-left: 56px;
 }
 
-:global(body.smalruby-mobile-mode [class*="gui_body-wrapper-with-lesson-task-bar"]) {
+:global(body.smalruby-mobile-mode [class*='gui_body-wrapper-with-lesson-task-bar']) {
     height: calc(100dvh - 2.5rem);
 }
 
