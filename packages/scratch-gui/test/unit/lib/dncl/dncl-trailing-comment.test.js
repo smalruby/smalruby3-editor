@@ -190,6 +190,49 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
         expect(toDncl('ask("")\n@x = answer # c')).toBe('x = 【外部からの入力】 # c');
     });
 
+    describe('two Ruby lines that become one DNCL line keep both comments', () => {
+        // Each case: Ruby, the DNCL it becomes, and the Ruby that DNCL becomes.
+        // The comments move to one line once, and then stay put: converting
+        // back and forth again does not add or move them.
+        test.each([
+            [
+                'counting loop',
+                '@i = 1 # a\nwhile @i <= 3 # b\n  puts(@i) # p\n  @i += 1 # inc\nend # e',
+                'i を 1 から 3 まで 1 ずつ増やしながら # a # b\n  表示する(i) # p\nを繰り返す # inc # e',
+                '@i = 1\nwhile @i <= 3 # a # b\n  puts(@i) # p\n  @i += 1\nend # inc # e',
+            ],
+            [
+                'input',
+                'ask("") # q\n@x = answer # a',
+                'x = 【外部からの入力】 # q # a',
+                'ask("")\n@x = answer # q # a',
+            ],
+        ])('%s', (name, ruby, dncl, rubyBack) => {
+            expect(toDncl(ruby)).toBe(dncl);
+            expect(toRuby(dncl)).toBe(rubyBack);
+            expect(toDncl(rubyBack)).toBe(dncl);
+            expect(toRuby(toDncl(rubyBack))).toBe(rubyBack);
+        });
+    });
+
+    describe('strings that are not plain', () => {
+        test.each([
+            ['an escaped quote', 'x ← "a\\"#b" # c', '@x = "a\\"#b" # c'],
+            ['two strings', 'x ← "a" + "#b" # c', '@x = "a" + "#b" # c'],
+            ['an unclosed string is all code', 'x ← "abc # c', '@x = "abc # c'],
+        ])('%s', (name, dncl, ruby) => {
+            expect(toRuby(dncl)).toBe(ruby);
+        });
+    });
+
+    test('the source map still points at the DNCL lines', () => {
+        const { sourceMap } = dnclToRuby(
+            'x ← 【外部からの入力】 # c\nもし x > 0 ならば: # d\n    表示する(x) # e\n表示する(0)',
+        );
+        // ask("") / @x = answer # c / if @x > 0 # d / puts(@x) # e / end / puts(0)
+        expect([1, 2, 3, 4, 5, 6].map((line) => sourceMap.rubyLineToDnclLine(line))).toEqual([1, 1, 2, 3, 3, 4]);
+    });
+
     test('a keyword inside a comment does not open a block', () => {
         expect(toRuby('x ← 1 # もし a ならば')).toBe('@x = 1 # もし a ならば');
         expect(toRuby('x ← 1 # a の間')).toBe('@x = 1 # a の間');
