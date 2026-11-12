@@ -641,7 +641,7 @@ stage.variable("$var")
 | `10 ** value` | 10 to the power | `10 ** 3` |
 | `string.length` | String length | `"hello".length` |
 | `string.include?(substring)` | String contains? | `"hello".include?("ell")` |
-| `string[index]` | Character at index | `"hello"[0]` |
+| `string[index]` | Character at index (counted from 0; a variable or an expression also works. The block is "letter (index + 1) of") | `"hello"[0]`, `"hello"[i]` |
 | `string1 + string2` | String concatenation | `"hello" + " world"` |
 | `string =~ /regexp/` | Regex match | `"hello" =~ /^he/` |
 | `/regexp/ =~ string` | Regex match (reversed) | `/^he/ =~ "hello"` |

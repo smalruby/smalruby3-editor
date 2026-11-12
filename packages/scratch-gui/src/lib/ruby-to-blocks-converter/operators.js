@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import { RubyToBlocksConverterError } from './errors';
 import OperatorsMath from './operators-math';
+import { adjustIndex } from './variable-hash-ops';
 
 /**
  * Operators converter
@@ -19,6 +20,10 @@ const OperatorsConverter = {
             let letter = args[0];
             if (converter._isNumber(args[0]) && !_.isNumber(args[0]) && args[0].type === 'int') {
                 letter = letter.value + 1;
+            } else if (converter._isBlock(args[0])) {
+                // Ruby counts letters from 0 and the block from 1: "abc"[i] is "letter (i + 1) of".
+                // The mark lets the generator write "abc"[i] back instead of "abc"[i + 1 - 1].
+                letter = adjustIndex(converter, args[0], true);
             }
             converter._addNumberInput(block, 'LETTER', 'math_number', letter, 1);
             return block;
