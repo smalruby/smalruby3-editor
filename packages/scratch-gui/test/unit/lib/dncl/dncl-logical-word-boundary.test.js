@@ -147,7 +147,7 @@ describe('かつ / または without spaces around them (Issue #1697)', () => {
 
         test('in an if condition', () => {
             expect(toRuby('もし not (a > 0)and(b > 0) ならば:\n    x = 1')).toBe(
-                'if !(@a > 0) && (@b > 0)\n    @x = 1\nend',
+                'if !(@a > 0) && (@b > 0)\n  @x = 1\nend',
             );
         });
 
