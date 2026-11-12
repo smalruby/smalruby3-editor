@@ -71,11 +71,11 @@ describe('DNCL built-in with an expression argument (Issue #1686)', () => {
             expect(roundtrip(dncl)).toBe(dncl);
         });
 
-        // `/` is integer division in DNCL, so `整数(...)` around it is
-        // redundant and comes back as the division alone.
+        // `整数(x / 2)` is the integer quotient, which DNCL writes `x ÷ 2`
+        // (Issue #1701).
         test.each([
-            ['y = 整数(x / 2)', 'y = x / 2'],
-            ['b = 文字列(整数(x / 2))', 'b = 文字列(x / 2)'],
+            ['y = 整数(x / 2)', 'y = x ÷ 2'],
+            ['b = 文字列(整数(x / 2))', 'b = 文字列(x ÷ 2)'],
             ['b = 文字列(x / 2)', 'b = 文字列(x / 2)'],
         ])('%s comes back as %s', (dncl, expected) => {
             expect(roundtrip(dncl)).toBe(expected);
