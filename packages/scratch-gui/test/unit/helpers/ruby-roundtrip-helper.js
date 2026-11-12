@@ -99,6 +99,11 @@ export const makeStageTarget = () => {
     return { target: stage, stage, runtime };
 };
 
+// `finishTargets` as production has it: `ruby-generator/index.js` has already wrapped it once with the
+// `_rv_` post-processing of smalruby-ruby.js. Calling SmalrubyRubyBlocks again wraps it again, so the
+// post-processing ran once more per test and gave results production never gives (issue #1725).
+const productionFinishTargets = RubyGenerator.finishTargets;
+
 /**
  * Register all block generators into RubyGenerator and reset its state.
  * Call this in beforeEach so each test starts fresh.
@@ -122,6 +127,7 @@ export const setupRubyGenerator = () => {
     ProcedureBlocks(RubyGenerator);
     RubyBlocks(RubyGenerator);
     SmalrubyRubyBlocks(RubyGenerator);
+    RubyGenerator.finishTargets = productionFinishTargets;
 };
 
 /**

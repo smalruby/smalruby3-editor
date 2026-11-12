@@ -446,7 +446,9 @@ const ControlFlowHandlers = {
         const nodeToBlockMap = context.nodeToBlockMap && new Map(context.nodeToBlockMap);
         let split;
         try {
-            split = this._splitPreBlocksAndValue(this._processCondition(node));
+            // Two return values in the condition are saved in variables again too (issue #1725), so
+            // the condition reads the values of this check, not of the first one.
+            split = this._splitPreBlocksAndValue(this._saveReturnValuesUsedTwice(this._processCondition(node)));
         } finally {
             context.methodCallIndices = after.methodCallIndices;
             context.savedReturnValueInStatement = after.savedReturnValueInStatement;

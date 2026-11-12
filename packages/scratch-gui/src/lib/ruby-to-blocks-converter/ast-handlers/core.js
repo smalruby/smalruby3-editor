@@ -157,7 +157,8 @@ const CoreHandlers = {
                     this._translator(messages.defInsideBlock, { SOURCE: this._firstLineSource(childNode) }),
                 );
             }
-            const block = this.visit(childNode);
+            // A statement that uses two return values saves them in variables first (issue #1725).
+            const block = this._saveReturnValuesUsedTwice(this.visit(childNode));
             if (bodyKind) {
                 this._checkStatementInBody(childNode, block, bodyKind, index === node.body.length - 1);
             }

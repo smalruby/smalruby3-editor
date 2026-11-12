@@ -206,17 +206,27 @@ export default function (Generator) {
             '(?!(?:if|unless|while|until|elsif|case|when|for|return|break|next)\\b)' +
             '(?![^\\n]*\\bdo(?: \\|[^|\\n]*\\|)?$)' +
             '\\S[^\\n]*(?:\\.(?:reverse|upcase|downcase|empty\\?|lines|delete|gsub|max|min|sort|join|first|last|keys|values|reverse!|delete!|gsub!|sort!)(?:\\((?:[^()\\n]|\\([^()\\n]*\\))*\\))?| \\* [^\\n]+)';
-        // Process _rv_truthy_ BEFORE _rv_ to avoid partial match
-        code = code.replace(
-            new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_truthy_`, 'gm'),
-            (match, indent1, expr, indent2, before) => `${indent2}${before}${expr}`,
-        );
-        // The parentheses that the expression needs are already around `_rv_`: it told the outer
-        // block the order of the expression (`returnValueOrder`).
-        code = code.replace(
-            new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_`, 'gm'),
-            (match, indent1, expr, indent2, before) => `${indent2}${before}${expr}`,
-        );
+        const inline = (text) => {
+            // Process _rv_truthy_ BEFORE _rv_ to avoid partial match
+            let result = text.replace(
+                new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_truthy_`, 'gm'),
+                (match, indent1, expr, indent2, before) => `${indent2}${before}${expr}`,
+            );
+            // The parentheses that the expression needs are already around `_rv_`: it told the outer
+            // block the order of the expression (`returnValueOrder`).
+            result = result.replace(
+                new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_`, 'gm'),
+                (match, indent1, expr, indent2, before) => `${indent2}${before}${expr}`,
+            );
+            return result;
+        };
+        // A chain (`"ab".reverse.upcase` in `say(...)`) is inlined one call per pass: the line made by
+        // one replacement is not matched again in the same pass, so `say(_rv_)` was left (issue #1725).
+        // Each pass removes at least one `_rv_`, so this ends.
+        for (let previous = null; previous !== code; ) {
+            previous = code;
+            code = inline(code);
+        }
         return code;
     };
 

@@ -258,6 +258,7 @@ const ExpressionHandlers = {
             const method = block.fields && block.fields.METHOD && block.fields.METHOD.value;
             if (!method || !method.endsWith('!')) {
                 const rvBlock = this._createBlock('smalrubyRuby_returnValue', 'value');
+                this._recordReturnValueSource(rvBlock, block);
                 preBlocks.push(block);
                 block = rvBlock;
             }
