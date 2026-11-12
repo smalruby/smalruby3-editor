@@ -1,5 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (Ruby→DNCL identifier conversion) ===
-import { skipString } from './paren-utils';
+import { findMatchingClose, skipString } from './paren-utils';
 
 /** Regex character class for identifiers: word chars + CJK (hiragana, katakana, kanji). */
 const ID = '\\w\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF';
@@ -33,18 +33,119 @@ const convertOperators = (segment) => {
     result = result.replace(/(?<=\s|^)true(?=\s|$)/g, '真');
     result = result.replace(/(?<=\s|^)false(?=\s|$)/g, '偽');
 
-    // !expr → expr でない (handle @-prefixed vars too)
-    result = result.replace(new RegExp(`!(@?[${ID}]+)`, 'g'), '$1 でない');
-
     return result;
+};
+
+/** Characters of a name in an operand: `@var`, `obj.method?`. */
+const NAME_CHAR_RE = new RegExp(`[${ID}@.?]`);
+
+/**
+ * Find the `]` that closes the `[` at `open`, skipping strings.
+ * @param {string} text - The text.
+ * @param {number} open - Position of `[`.
+ * @returns {number} Position of the matching `]`, or -1.
+ */
+const findMatchingBracket = (text, open) => {
+    let depth = 0;
+    let i = open;
+    while (i < text.length) {
+        const ch = text[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(text, i, ch);
+            continue;
+        }
+        if (ch === '[') depth++;
+        if (ch === ']' && --depth === 0) return i;
+        i++;
+    }
+    return -1;
+};
+
+/**
+ * End of the operand of a `!` that starts at `start`: a name with its
+ * calls / indexes (`f(x)`, `A[i]`, `touching?("_edge_")`), a `( ... )`
+ * group, a string, or another `!operand`.
+ * @param {string} text - The line.
+ * @param {number} start - Where the operand starts.
+ * @returns {number} The position just after the operand (`start` if none).
+ */
+const operandEnd = (text, start) => {
+    if (text[start] === '!') {
+        const end = operandEnd(text, start + 1);
+        return end === start + 1 ? start : end;
+    }
+    let i = start;
+    while (i < text.length) {
+        const ch = text[i];
+        if (ch === '(') {
+            const close = findMatchingClose(text, i);
+            if (close === -1) return i;
+            i = close + 1;
+        } else if (ch === '[' && i > start) {
+            const close = findMatchingBracket(text, i);
+            if (close === -1) return i;
+            i = close + 1;
+        } else if ((ch === '"' || ch === "'") && i === start) {
+            i = skipString(text, i, ch);
+        } else if (NAME_CHAR_RE.test(ch)) {
+            i++;
+        } else {
+            break;
+        }
+    }
+    return i;
+};
+
+/**
+ * Convert Ruby's `!operand` to DNCL's postfix `operand でない`. The whole
+ * operand moves in front of `でない` — `!f(x)` is `f(x) でない` and
+ * `!(a > 10)` is `(a > 10) でない` — so `dnclToRuby` negates the same
+ * thing again. `!=` and method names like `save!` are left as they are.
+ * (Issue #1662)
+ * @param {string} line - A line of Ruby code.
+ * @returns {string} The line with `!` turned into `でない`.
+ */
+const convertNot = (line) => {
+    if (!line.includes('!')) return line;
+    let out = '';
+    let i = 0;
+    while (i < line.length) {
+        const ch = line[i];
+        if (ch === '#') {
+            out += line.substring(i);
+            break;
+        }
+        if (ch === '"' || ch === "'") {
+            const end = skipString(line, i, ch);
+            out += line.substring(i, end);
+            i = end;
+            continue;
+        }
+        if (ch === '!' && line[i + 1] !== '=' && !(i > 0 && NAME_CHAR_RE.test(line[i - 1]))) {
+            let start = i + 1;
+            while (line[start] === ' ') start++;
+            const end = operandEnd(line, start);
+            if (end > start) {
+                out += `${convertNot(line.substring(start, end))} でない`;
+                i = end;
+                continue;
+            }
+        }
+        out += ch;
+        i++;
+    }
+    return out;
 };
 
 /**
  * Process a line, applying conversions only outside strings and comments.
- * @param {string} line - A line of code.
+ * @param {string} source - A line of code.
  * @returns {string} The converted line.
  */
-const processSegments = (line) => {
+const processSegments = (source) => {
+    // The operand of `!` may hold a string (`!f("x")`), so `!` is converted
+    // on the whole line before splitting it at strings.
+    const line = convertNot(source);
     let result = '';
     let i = 0;
 
@@ -79,4 +180,4 @@ const processSegments = (line) => {
     return result;
 };
 
-export { ID, convertOperators, convertVarRefs, processSegments };
+export { ID, convertNot, convertOperators, convertVarRefs, processSegments };
