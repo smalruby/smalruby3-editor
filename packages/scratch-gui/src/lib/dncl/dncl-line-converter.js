@@ -27,6 +27,16 @@ const FUNC_DEF_RE = new RegExp(`^関数\\s+(${DNCL_IDENT_PATTERN})\\(([^)]*)\\)$
 let forLoopStack = [];
 
 /**
+ * The step of `X ずつ減らしながら` with a minus in front: `-1`, `-@a`, and
+ * `-(@a + 1)` for a step of more than one term, as `-@a + 1` would subtract
+ * `@a` and add 1.
+ * @param {string} stepRuby - The step (Ruby).
+ * @returns {string} The negated step.
+ */
+const negateStep = (stepRuby) =>
+    isSingleOperand(stepRuby) && !stepRuby.startsWith('!') ? `-${stepRuby}` : `-(${stepRuby})`;
+
+/**
  * Reset the for-loop stack. Called at the beginning of `dnclToRuby`.
  */
 const resetForLoopStack = () => {
@@ -93,7 +103,7 @@ const convertLine = (line) => {
             // Check if this end matches the innermost for-loop by indent level
             if (top.indent === indent) {
                 forLoopStack.pop();
-                const stepExpr = top.ascending ? top.stepRuby : `-${top.stepRuby}`;
+                const stepExpr = top.ascending ? top.stepRuby : negateStep(top.stepRuby);
                 const bodyIndent = `${indent}  `;
                 return `${bodyIndent}${top.varName} += ${stepExpr}\n${indent}end`;
             }
