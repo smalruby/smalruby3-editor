@@ -19,6 +19,7 @@
 //
 // See Issue #640.
 import { splitTrailingComment, stringEndAt } from './dncl-trailing-comment';
+import { isWholeWordAt } from './paren-utils';
 
 /**
  * Matches a DNCLv2 line-number prefix: `(N)` or the hyphenated form
@@ -311,26 +312,12 @@ const splitMultiAssignment = (line) => {
 // comment or an operator. Shared with the comment split (Issue #1709).
 const literalEndAt = stringEndAt;
 
-/**
- * Whether `ch` can be part of an identifier (`knot`, `not_yet`, `notフラグ`).
- * DNCL names may use Japanese letters, so any Unicode letter or digit counts.
- * @param {string} [ch] - A character, or nothing past the line edge.
- * @returns {boolean} True for an identifier character.
- */
-const isIdentChar = (ch) => typeof ch === 'string' && /[\p{L}\p{N}_]/u.test(ch);
-
-/**
- * Whether the keyword `word` stands on its own at `line[i]`, not as part of
- * a name (`bandwidth`, `フラグor`, `nothing`). Shared by the `and` / `or` /
- * `not` passes so they agree on what a name is (Issues #1671 / #1685).
- * A digit counts as a name character too, so `1and` is left as written.
- * @param {string} line - The line.
- * @param {number} i - Index to test.
- * @param {string} word - The keyword.
- * @returns {boolean} True when `word` is a whole word at `i`.
- */
-const isKeywordAt = (line, i, word) =>
-    line.startsWith(word, i) && !isIdentChar(line[i - 1]) && !isIdentChar(line[i + word.length]);
+// Whether the keyword `word` stands on its own at `line[i]`, not as part of
+// a name (`bandwidth`, `フラグor`, `nothing`). The `and` / `or` / `not`
+// passes and the DNCL converter's `かつ` / `または` / `でない` share it, so
+// they agree on what a name is (Issues #1671 / #1685 / #1697). A digit
+// counts as a name character too, so `1and` is left as written.
+const isKeywordAt = isWholeWordAt;
 
 /**
  * Replace standalone `and` / `or` with `かつ` / `または`. Only matches

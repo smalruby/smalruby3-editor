@@ -154,6 +154,57 @@ const splitArgsAtTopLevel = (args) => {
 const isNameChar = (ch) => typeof ch === 'string' && /[\p{L}\p{N}_]/u.test(ch);
 
 /**
+ * Whether `word` stands on its own at `line[i]`: no name character
+ * (`isNameChar`) right before or after it, so it is not part of a name
+ * (`bandwidth`, `フラグor`, `かつお`, `たかつき`). Shared by the DNCLv2
+ * pre-processor (`and` / `or` / `not`) and the DNCL converter (`かつ` /
+ * `または` / `でない`) so they agree on what a name is (Issue #1697).
+ * @param {string} line - The line.
+ * @param {number} i - Index to test.
+ * @param {string} word - The keyword.
+ * @returns {boolean} True when `word` is a whole word at `i`.
+ */
+const isWholeWordAt = (line, i, word) =>
+    line.startsWith(word, i) && !isNameChar(line[i - 1]) && !isNameChar(line[i + word.length]);
+
+/**
+ * Whether the name characters just before `i` are a number (`1`, `1.5`), not
+ * a name. A name cannot start with a digit, so a digit run that touches a
+ * keyword ends a number literal there (`a == 1かつ b`).
+ * @param {string} line - The line.
+ * @param {number} i - Index just past the characters to look at.
+ * @returns {boolean} True when a number ends at `i`.
+ */
+const numberEndsAt = (line, i) => {
+    let start = i;
+    while (start > 0 && isNameChar(line[start - 1])) start--;
+    return start < i && /^\p{Nd}+$/u.test(line.substring(start, i));
+};
+
+/**
+ * Whether the DNCL logical word `word` (`かつ` / `または` / `でない`) is an
+ * operator at `line[i]`, decided by whether it is part of a name — not by the
+ * spaces around it (Issue #1697). It is an operator when no name character
+ * follows it and no name character comes before it, or what comes before is a
+ * number: `(a > 0)かつ(b > 0)`, `a[1]かつ b`, `「はい」かつ b` and `1かつ b`
+ * are operators; `かつお`, `または2`, `しかつめ` and `たかつき` are names.
+ * A name and a keyword that touch (`真かつ偽`) cannot be told apart, so the
+ * whole run is one name, as `isNameChar` reads it. After `@` / `$` / `.`
+ * the word is a variable or method name.
+ * @param {string} line - The line (outside strings and comments).
+ * @param {number} i - Index to test.
+ * @param {string} word - The DNCL logical word.
+ * @returns {boolean} True when `word` is the operator at `i`.
+ */
+const isLogicalWordAt = (line, i, word) => {
+    if (!line.startsWith(word, i)) return false;
+    if (isNameChar(line[i + word.length])) return false;
+    const before = line[i - 1];
+    if (before === '@' || before === '$' || before === '.') return false;
+    return !isNameChar(before) || numberEndsAt(line, i);
+};
+
+/**
  * Whether `ch` can be part of an operand outside brackets: a name character,
  * `@` / `$` (Ruby variables) or `.` (`a.length`, `1.5`).
  * @param {string} ch - The character.
@@ -562,7 +613,9 @@ const isSingleOperand = (text) => {
 };
 
 export {
+    isLogicalWordAt,
     isNameChar,
+    isWholeWordAt,
     isSingleOperand,
     isWrappedInParens,
     skipString,

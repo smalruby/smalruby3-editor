@@ -1,7 +1,8 @@
 // === Smalruby: This file is Smalruby-specific (DNCL→Ruby identifier conversion) ===
 import { DNCL_KEYWORDS, RUBY_LITERALS } from './dncl-keywords';
 import { addArrayName, isArrayName, isFunctionName, isFunctionParam, mapVarName } from './dncl-state';
-import { isSingleOperand, skipString, wrapIntegerDivisions } from './paren-utils';
+import { stringEndAt } from './dncl-trailing-comment';
+import { isLogicalWordAt, isSingleOperand, skipString, wrapIntegerDivisions } from './paren-utils';
 
 /**
  * Check if a character is the start of an identifier.
@@ -79,6 +80,58 @@ const convertJapaneseStrings = (line) => {
  */
 const convertArrow = (str) => str.replace(/\s*←\s*/g, ' = ');
 
+/** DNCL `かつ` / `または` and the Ruby operators they become. */
+const LOGICAL_OPERATORS = [
+    ['かつ', '&&'],
+    ['または', '||'],
+];
+
+/**
+ * The `[word, operator]` pair of the `かつ` / `または` operator at `line[i]`.
+ * @param {string} line - The line.
+ * @param {number} i - Index to test.
+ * @returns {Array<string>|undefined} The pair, or undefined when none is there.
+ */
+const logicalOperatorAt = (line, i) => LOGICAL_OPERATORS.find(([word]) => isLogicalWordAt(line, i, word));
+
+/**
+ * Turn `かつ` / `または` into `&&` / `||`. Whether a word is the operator is
+ * decided by whether it is part of a name (`isLogicalWordAt`), not by the
+ * spaces around it, so `(a > 0)かつ(b > 0)` is `(a > 0) && (b > 0)` while
+ * `かつお` and `たかつき` stay names (Issue #1697). A space is put on a side
+ * that has none, so the Ruby reads as usual.
+ * Strings and the trailing comment are left as they are.
+ * @param {string} line - A line (or condition) of DNCL code.
+ * @returns {string} The line with `&&` / `||`.
+ */
+const convertLogicalWords = (line) => {
+    let result = '';
+    let i = 0;
+    while (i < line.length) {
+        // Strings and the comment are kept as written.
+        const end = stringEndAt(line, i);
+        if (end !== -1) {
+            result += line.substring(i, end);
+            i = end;
+            continue;
+        }
+        if (line[i] === '#') return result + line.substring(i);
+        const found = logicalOperatorAt(line, i);
+        if (!found) {
+            result += line[i];
+            i++;
+            continue;
+        }
+        const [word, op] = found;
+        const next = line[i + word.length];
+        const spaceBefore = result !== '' && !/\s$/.test(result) ? ' ' : '';
+        const spaceAfter = i + word.length < line.length && !/\s/.test(next) ? ' ' : '';
+        result += `${spaceBefore}${op}${spaceAfter}`;
+        i += word.length;
+    }
+    return result;
+};
+
 /**
  * Convert operators in a line segment (outside strings).
  * @param {string} segment - A code segment outside of strings.
@@ -98,9 +151,6 @@ const convertOperators = (segment) => {
     result = result.replace(/≦/g, '<=');
     result = result.replace(/≧/g, '>=');
 
-    // Japanese logical/boolean keywords (no \b for CJK characters)
-    result = result.replace(/(?<=\s|^)かつ(?=\s|$)/g, '&&');
-    result = result.replace(/(?<=\s|^)または(?=\s|$)/g, '||');
     // `!` / `(` before them come from `でない` (`真 でない` → `!真`).
     result = result.replace(/(?<=[\s!(]|^)真(?=[\s),]|$)/g, 'true');
     result = result.replace(/(?<=[\s!(]|^)偽(?=[\s),]|$)/g, 'false');
@@ -122,19 +172,16 @@ const LOGICAL_WORDS = ['かつ', 'または', '&&', '||'];
 const NEGATION = 'でない';
 
 /**
- * Whether `word` starts at `i` as a whole word: a space or the line edge
- * before it, and a space, the line edge, a closing bracket or a comma after
- * it (`表示する(a でない)`). DNCL words like `かつ` have no `\b` boundary in
- * a regex.
+ * Whether `word` starts at `i` as a whole word. `&&` / `||` always are;
+ * a DNCL word (`かつ` / `または` / `でない`) is when it is not part of a name
+ * (`isLogicalWordAt`), so `(a > 0)でない` negates `(a > 0)` while
+ * `できでない` stays a name (Issue #1697).
  * @param {string} line - The source line.
  * @param {number} i - The position to check.
  * @param {string} word - The word.
  * @returns {boolean} True if the word is there as a whole word.
  */
-const isWordAt = (line, i, word) =>
-    line.startsWith(word, i) &&
-    (i === 0 || /\s/.test(line[i - 1])) &&
-    /^(\s|$|[)\],])/.test(line.slice(i + word.length));
+const isWordAt = (line, i, word) => (/^[&|]/.test(word) ? line.startsWith(word, i) : isLogicalWordAt(line, i, word));
 
 /**
  * The first of `words` that starts at `i` as a whole word.
@@ -178,8 +225,8 @@ const convertNegation = (line) => {
             out += line.substring(i);
             break;
         }
-        if (ch === '"' || ch === "'") {
-            const end = skipString(line, i, ch);
+        const end = stringEndAt(line, i);
+        if (end !== -1) {
             out += line.substring(i, end);
             i = end;
             continue;
@@ -285,7 +332,9 @@ const convertIdentifiers = (segment) => {
 const processSegments = (source) => {
     // `でない` may need the whole condition, strings included, so it is
     // converted on the whole line before splitting it at strings.
-    const line = convertNegation(source);
+    // `かつ` / `または` are converted on the whole line too, so a space can be
+    // put between them and a string next to them (`「はい」かつ b`).
+    const line = convertLogicalWords(convertNegation(source));
     let result = '';
     let i = 0;
 
