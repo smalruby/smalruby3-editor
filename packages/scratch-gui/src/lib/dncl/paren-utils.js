@@ -316,7 +316,9 @@ const wrapIntegerDivisions = (line) => {
                 i = rightEnd + CLOSE_PAREN_TO_I.length;
                 continue;
             }
-            const replacement = `(${leftOperand} / ${rightOperand}).to_i`;
+            // The right operand may have divisions of its own (`a / (b / 2)`);
+            // scanning resumes after the replacement, so wrap them here.
+            const replacement = `(${leftOperand} / ${wrapIntegerDivisions(rightOperand)}).to_i`;
             s = s.substring(0, leftStart) + replacement + s.substring(rightEnd);
             // Resume scanning AFTER the inserted `.to_i` so we don't re-process
             // the same `/`.
@@ -329,42 +331,90 @@ const wrapIntegerDivisions = (line) => {
 };
 
 /**
- * Inverse of `wrapIntegerDivisions`: strip `(EXPR).to_i` when EXPR contains
- * a top-level `/`. DNCL division is integer division by convention so the
- * explicit `.to_i` is redundant — preserving it would surface as
- * `整数((... / ...))` after the standard `.to_i → 整数()` rewrite, which
- * obscures the original intent.
- *
- * Examples:
- *   `(a / b).to_i`             → `a / b`
- *   `(Data[i] / 2).to_i`       → `Data[i] / 2`
- *   `(answer).to_i`            → `(answer).to_i` (no `/`, untouched)
- *   `(a + (b / c).to_i).to_i`  → `(a + (b / c).to_i).to_i` (outer EXPR
- *     contains no top-level `/`; the inner one is reachable on its own and
- *     gets stripped on a subsequent pass)
- * @param {string} line - Ruby-form line.
- * @returns {string} Line with redundant int-division `.to_i` wrappers stripped.
+ * Find the matching close bracket for the `[` / `{` / `(` at `openPos`.
+ * Skips brackets inside string literals.
+ * @param {string} text - The text to scan.
+ * @param {number} openPos - Position of the open bracket.
+ * @returns {number} Position of the matching close bracket, or -1 if unmatched.
  */
-const stripIntegerDivisionToI = (line) => {
-    const containsTopLevelSlash = (s) => {
-        let depth = 0;
-        let i = 0;
-        while (i < s.length) {
-            const ch = s[i];
-            if (ch === '"' || ch === "'") {
-                i = skipString(s, i, ch);
-                continue;
-            }
-            if (ch === '(' || ch === '[' || ch === '{') depth++;
-            else if (ch === ')' || ch === ']' || ch === '}') depth--;
-            else if (ch === '/' && depth === 0 && s[i - 1] !== '/' && s[i + 1] !== '/') {
-                return true;
-            }
-            i++;
+const findMatchingBracket = (text, openPos) => {
+    const open = text[openPos];
+    const close = open === '(' ? ')' : open === '[' ? ']' : '}';
+    let depth = 1;
+    let i = openPos + 1;
+    while (i < text.length) {
+        const ch = text[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(text, i, ch);
+            continue;
         }
-        return false;
-    };
+        if (ch === open) {
+            depth++;
+        } else if (ch === close) {
+            depth--;
+            if (depth === 0) return i;
+        }
+        i++;
+    }
+    return -1;
+};
 
+/** A character a function / method name can end with, right before its `(`. */
+const CALL_NAME_CHAR_RE = /[\w?!\u3040-\u30FF\u4E00-\u9FFF]/;
+
+/**
+ * Whether the `(` at `pos` opens the arguments of a call (`f(`, `rand(`,
+ * `表示する(`), not a group.
+ * @param {string} text - The text.
+ * @param {number} pos - Position of the `(`.
+ * @returns {boolean} True if it is a call's parenthesis.
+ */
+const isCallParen = (text, pos) => pos > 0 && CALL_NAME_CHAR_RE.test(text[pos - 1]);
+
+const TO_I_SUFFIX = '.to_i';
+
+/**
+ * Whether the group closed at `close` is followed by `.to_i` (and not by a
+ * longer name such as `.to_int`).
+ * @param {string} text - The text.
+ * @param {number} close - Position of the `)`.
+ * @returns {boolean} True if `.to_i` follows.
+ */
+const isFollowedByToI = (text, close) =>
+    text.startsWith(TO_I_SUFFIX, close + 1) && !/\w/.test(text[close + 1 + TO_I_SUFFIX.length] || '');
+
+/**
+ * Whether `s[i]` is a single `/` (not part of `//`).
+ * @param {string} s - The text.
+ * @param {number} i - The position.
+ * @returns {boolean} True if it is a single `/`.
+ */
+const isSingleSlash = (s, i) => s[i] === '/' && s[i - 1] !== '/' && s[i + 1] !== '/';
+
+/**
+ * Stand-in for a `/` that is the ordinary division (see `markRealDivisions`),
+ * so `wrapIntegerDivisions` leaves it alone. A private-use character, which
+ * no source contains.
+ */
+const REAL_DIVISION_MARK = '\uE000';
+
+/**
+ * Mark the `/` that are the ordinary division in DNCL → Ruby: those inside
+ * `整数(...)`, which has become `( ... ).to_i` by now. `整数(a / 2 * 3)`
+ * truncates `a / 2 * 3` once at the end, as Ruby `(@a / 2 * 3).to_i` does,
+ * so that `(式).to_i` written in Ruby comes back with the same value.
+ * Elsewhere `/` stays the integer division of DNCL (`a / 2` → `(a / 2).to_i`).
+ * Plain groups inside are part of the same expression (`整数((a / 2) * 3)`),
+ * but the arguments of a call and an index are not (`整数(Data[i / 2])` keeps
+ * the index an integer). `÷` is the explicit integer quotient, so it is not
+ * marked. (Issue #1701)
+ * @param {string} line - A Ruby-form line before `wrapIntegerDivisions`.
+ * @returns {string} The line with those `/` replaced by `REAL_DIVISION_MARK`.
+ */
+const markRealDivisions = (line) => {
+    // Each open bracket: 'real' (a group followed by `.to_i`), 'pass' (a
+    // plain group) or 'stop' (call arguments, an index, a hash).
+    const stack = [];
     let result = '';
     let i = 0;
     while (i < line.length) {
@@ -377,21 +427,160 @@ const stripIntegerDivisionToI = (line) => {
         }
         if (ch === '(') {
             const close = findMatchingClose(line, i);
-            const TO_I_SUFFIX = '.to_i';
-            if (close !== -1 && line.substring(close + 1, close + 1 + TO_I_SUFFIX.length) === TO_I_SUFFIX) {
-                const inner = line.substring(i + 1, close);
-                if (containsTopLevelSlash(inner)) {
-                    // Recursively strip nested wrappers in `inner` before emitting.
-                    const end = close + 1 + TO_I_SUFFIX.length; // past `).to_i`
-                    const stripped = stripIntegerDivisionToI(inner);
-                    // A method after it (`(a / 2).to_i.to_s`) applies to the
-                    // whole division, so the parentheses stay: `(a / 2).to_s`,
-                    // not `a / 2.to_s`. (Issue #1686)
-                    result += line[end] === '.' ? `(${stripped})` : stripped;
-                    i = end;
-                    continue;
+            if (close === -1 || isCallParen(line, i)) stack.push('stop');
+            else stack.push(isFollowedByToI(line, close) ? 'real' : 'pass');
+        } else if (ch === '[' || ch === '{') {
+            stack.push('stop');
+        } else if (ch === ')' || ch === ']' || ch === '}') {
+            stack.pop();
+        } else if (isSingleSlash(line, i)) {
+            let real = false;
+            for (let k = stack.length - 1; k >= 0 && stack[k] !== 'stop'; k--) {
+                if (stack[k] === 'real') {
+                    real = true;
+                    break;
                 }
             }
+            result += real ? REAL_DIVISION_MARK : ch;
+            i++;
+            continue;
+        }
+        result += ch;
+        i++;
+    }
+    return result;
+};
+
+/**
+ * Put back the `/` marked by `markRealDivisions`.
+ * @param {string} line - The line with marks.
+ * @returns {string} The line with `/` again.
+ */
+const unmarkRealDivisions = (line) => line.split(REAL_DIVISION_MARK).join('/');
+
+/**
+ * Whether `s` has a `/` that is the ordinary division in Ruby: one that is not
+ * inside a `( ... ).to_i` group, the arguments of a call or an index.
+ * @param {string} s - Ruby-form text.
+ * @returns {boolean} True if such a `/` is there.
+ */
+const hasRealDivision = (s) => {
+    let i = 0;
+    while (i < s.length) {
+        const ch = s[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(s, i, ch);
+            continue;
+        }
+        if (ch === '(' || ch === '[' || ch === '{') {
+            const close = findMatchingBracket(s, i);
+            if (close === -1) return false;
+            const opaque = ch !== '(' || isCallParen(s, i) || isFollowedByToI(s, close);
+            if (!opaque && hasRealDivision(s.substring(i + 1, close))) return true;
+            i = close + 1;
+            continue;
+        }
+        if (isSingleSlash(s, i)) return true;
+        i++;
+    }
+    return false;
+};
+
+/**
+ * Whether `inner` (of `(inner).to_i`) is exactly one division `A / B` that
+ * DNCL `A / B` means: `A` and `B` are single operands with no ordinary
+ * division of their own. `a / 2 * 3`, `a * 3 / 2` and `(a / 2) / 3` are not.
+ * @param {string} inner - Ruby-form text between the parentheses.
+ * @returns {boolean} True if `.to_i` can be dropped.
+ */
+const isSingleIntegerDivision = (inner) => {
+    const slashes = [];
+    let depth = 0;
+    let i = 0;
+    while (i < inner.length) {
+        const ch = inner[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(inner, i, ch);
+            continue;
+        }
+        if (ch === '(' || ch === '[' || ch === '{') depth++;
+        else if (ch === ')' || ch === ']' || ch === '}') depth--;
+        else if (depth === 0 && isSingleSlash(inner, i)) slashes.push(i);
+        i++;
+    }
+    if (slashes.length !== 1) return false;
+    const left = inner.substring(0, slashes[0]).trim();
+    const right = inner.substring(slashes[0] + 1).trim();
+    const isOperand = (operand) => isSingleOperand(operand) && !hasRealDivision(operand);
+    return isOperand(left) && isOperand(right);
+};
+
+/**
+ * Inverse of `wrapIntegerDivisions`: drop `.to_i` from `(A / B).to_i`, as
+ * DNCL `/` is already the integer division. Only a group that is exactly one
+ * division is dropped (`isSingleIntegerDivision`); any other `(式).to_i` is
+ * left for the `.to_i → 整数()` rewrite, and the `/` in it is the ordinary
+ * division there (`markRealDivisions`), so the value stays the same
+ * (`(a / 2 * 3).to_i` → `整数(a / 2 * 3)`, not `a / 2 * 3` = `(a / 2).to_i * 3`).
+ * Inside such a group, an inner `(A / B).to_i` is kept as well, as `A / B`
+ * there would be the ordinary division. (Issue #1701)
+ *
+ * Examples:
+ *   `(a / b).to_i`              → `a / b`
+ *   `((a + b) / 2).to_i`        → `(a + b) / 2`
+ *   `((a / 2).to_i / 3).to_i`   → `a / 2 / 3`
+ *   `(a / (b / 2).to_i).to_i`   → `a / (b / 2)`
+ *   `(a / 2).to_i.to_s`         → `(a / 2).to_s`
+ *   `(a / 2 * 3).to_i`          → `(a / 2 * 3).to_i` (becomes `整数(a / 2 * 3)`)
+ *   `((a / 2).to_i * 3).to_i`   → unchanged (becomes `整数(整数(a / 2) * 3)`)
+ * @param {string} line - Ruby-form line.
+ * @param {boolean} [inToI] - Whether `line` is inside a kept `( ... ).to_i`.
+ * @returns {string} Line with redundant int-division `.to_i` wrappers stripped.
+ */
+const stripIntegerDivisionToI = (line, inToI = false) => {
+    let result = '';
+    let i = 0;
+    while (i < line.length) {
+        const ch = line[i];
+        if (ch === '"' || ch === "'") {
+            const end = skipString(line, i, ch);
+            result += line.substring(i, end);
+            i = end;
+            continue;
+        }
+        if (ch === '(' || ch === '[' || ch === '{') {
+            const close = findMatchingBracket(line, i);
+            if (close === -1) {
+                result += ch;
+                i++;
+                continue;
+            }
+            const inner = line.substring(i + 1, close);
+            if (ch !== '(' || isCallParen(line, i)) {
+                // Arguments and indexes are expressions of their own.
+                result += ch + stripIntegerDivisionToI(inner, false) + line[close];
+                i = close + 1;
+                continue;
+            }
+            if (isFollowedByToI(line, close)) {
+                const end = close + 1 + TO_I_SUFFIX.length;
+                if (!inToI && isSingleIntegerDivision(inner)) {
+                    const stripped = stripIntegerDivisionToI(inner, false);
+                    // A method after it (`(a / 2).to_i.to_s`) applies to the
+                    // whole division (Issue #1686), and so does a `/` before
+                    // it (`a / (b / 2)`, not `a / b / 2`).
+                    const before = result.trimEnd();
+                    const keepParens = line[end] === '.' || before.endsWith('/');
+                    result += keepParens ? `(${stripped})` : stripped;
+                } else {
+                    result += `(${stripIntegerDivisionToI(inner, true)}).to_i`;
+                }
+                i = end;
+                continue;
+            }
+            result += `(${stripIntegerDivisionToI(inner, inToI)})`;
+            i = close + 1;
+            continue;
         }
         result += ch;
         i++;
@@ -448,5 +637,7 @@ export {
     replaceCall,
     splitArgsAtTopLevel,
     wrapIntegerDivisions,
+    markRealDivisions,
+    unmarkRealDivisions,
     stripIntegerDivisionToI,
 };

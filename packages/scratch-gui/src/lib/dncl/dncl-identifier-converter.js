@@ -1,7 +1,13 @@
 // === Smalruby: This file is Smalruby-specific (DNCL→Ruby identifier conversion) ===
 import { DNCL_KEYWORDS, RUBY_LITERALS } from './dncl-keywords';
 import { addArrayName, isArrayName, isFunctionName, isFunctionParam, mapVarName } from './dncl-state';
-import { isSingleOperand, skipString, wrapIntegerDivisions } from './paren-utils';
+import {
+    isSingleOperand,
+    markRealDivisions,
+    skipString,
+    unmarkRealDivisions,
+    wrapIntegerDivisions,
+} from './paren-utils';
 
 /**
  * Check if a character is the start of an identifier.
@@ -87,6 +93,11 @@ const convertArrow = (str) => str.replace(/\s*←\s*/g, ' = ');
 const convertOperators = (segment) => {
     let result = segment;
 
+    // `/` inside `整数(...)` (now `( ... ).to_i`) is the ordinary division:
+    // mark it before `//` and `÷` turn into `/`, so `wrapIntegerDivisions`
+    // skips it and those stay the integer quotient there too. (Issue #1701)
+    result = markRealDivisions(result);
+
     // Integer division // must be converted before single /
     result = result.replace(/(\S+)\s*\/\/\s*(\S+)/g, (_, left, right) => `(${left} / ${right}).to_i`);
 
@@ -108,7 +119,7 @@ const convertOperators = (segment) => {
     // division — emulate Ruby's int/int = int truncation by wrapping each
     // top-level `/` with `.to_i`. The Ruby-side blocks converter maps
     // `.to_i` to the floor mathop block for actual runtime truncation.
-    result = wrapIntegerDivisions(result);
+    result = unmarkRealDivisions(wrapIntegerDivisions(result));
 
     return result;
 };
