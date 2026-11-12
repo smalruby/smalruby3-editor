@@ -46,6 +46,8 @@ describe('Ruby to blocks: rescue / else / ensure (issue #1620)', () => {
         ['begin ... rescue ... end while', 'a = 0\nbegin\n  a += 1\nrescue\n  move(2)\nend while a < 3', 'rescue'],
         ['modifier rescue', 'move(10) rescue move(20)', 'move(10) rescue move(20)'],
         ['modifier rescue in assignment', 'a = bar rescue 1', 'a = bar rescue 1'],
+        ['begin ... rescue as a value', 'x = begin\n  1\nrescue\n  2\nend', 'rescue'],
+        ['begin ... rescue ... end until', 'begin\n  move(1)\nrescue\nend until x > 1', 'rescue'],
     ])('%s is an error on the line of the clause', async (_name, code, line) => {
         const result = await converter.targetCodeToBlocks(target, code);
         expect(result).toBeFalsy();
@@ -106,6 +108,10 @@ describe('Ruby to blocks: rescue / else / ensure (issue #1620)', () => {
     test('`rescue` written as a word in a string is not an error', async () => {
         await expectRoundTrip(converter, target, 'say("rescue")');
     });
+
+    test('`rescue` / `ensure` in a method name or a symbol is not an error', async () => {
+        await expectRoundTrip(converter, target, 'def self.rescue_it\n  move(1)\nend\n\nrescue_it\nsay(:ensure)');
+    });
 });
 
 describe('Messages of rescue / else / ensure (issue #1620)', () => {
@@ -116,5 +122,9 @@ describe('Messages of rescue / else / ensure (issue #1620)', () => {
     ])('%s has the message, with the source', (_name, locale) => {
         expect(locale[MESSAGE_ID]).toContain('{ SOURCE }');
         expect(locale[MESSAGE_ID]).toContain('rescue');
+    });
+
+    test('ja-Hira has no kanji', () => {
+        expect(jaHira[MESSAGE_ID]).not.toMatch(/[\u4e00-\u9fff]/);
     });
 });
