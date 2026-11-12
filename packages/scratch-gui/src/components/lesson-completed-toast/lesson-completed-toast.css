@@ -1,10 +1,12 @@
 @import '../../css/z-index.css';
 @import '../../css/colors.css';
 
-/* レッスンが全部できたときのお祝いのオレンジ（モックの色）。枠・丸・ボタンの地は明るいオレンジ、
-   白地の上の字（タイトル・「もう少し見る」）は読めるように濃いオレンジにする */
+/* レッスンが全部できたときのお祝いのオレンジ（モックの色）。枠・丸・ボタンの地は明るいオレンジ。
+   字は WCAG AA（4.5:1）に届く色にする: 明るいオレンジの上の字は白（約 2:1 で読みにくい）ではなく濃い茶色
+   （約 6:1）、白地の上の字（タイトル・「もう少し見る」）は濃いオレンジ（約 4.7:1） */
 $celebrate: hsla(37, 91%, 55%, 1); /* #F5A623 */
-$celebrate-ink: hsla(29, 79%, 48%, 1); /* #D9771A */
+$celebrate-ink: hsla(31, 100%, 35%, 1); /* #B35C00 */
+$celebrate-on: hsla(34, 100%, 15%, 1); /* #4D2B00 */
 $celebrate-light: hsla(45, 100%, 98%, 1); /* #FFFDF6 */
 
 /* Non-blocking toast pinned to the top-center of the viewport, above the editor but
@@ -30,6 +32,7 @@ $celebrate-light: hsla(45, 100%, 98%, 1); /* #FFFDF6 */
     color: $text-primary;
     --accent: $motion-primary;
     --accent-ink: $motion-primary;
+    --accent-on: $ui-white;
 }
 
 .lesson-done {
@@ -37,6 +40,7 @@ $celebrate-light: hsla(45, 100%, 98%, 1); /* #FFFDF6 */
     background-color: $celebrate-light;
     --accent: $celebrate;
     --accent-ink: $celebrate-ink;
+    --accent-on: $celebrate-on;
 }
 
 .icon {
@@ -120,7 +124,7 @@ $celebrate-light: hsla(45, 100%, 98%, 1); /* #FFFDF6 */
 .next {
     border: 2px solid var(--accent);
     background-color: var(--accent);
-    color: $ui-white;
+    color: var(--accent-on);
 }
 
 /* 「もう少し見る」: 白地に枠（次へ進むボタンより目立たせない） */

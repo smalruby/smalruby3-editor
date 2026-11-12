@@ -73,12 +73,14 @@ const BUTTON_MESSAGES = {
  * 「できた！」の表示（#1589）。場面は 3 つ（`action` で決まる）:
  *   - next: チャレンジができた（レッスンの途中）。「できた！」＋レッスンの中のできた数の丸＋「あと n つ」（青）
  *   - otherLessons: レッスンのチャレンジが全部できた。「レッスン n ぜんぶできた！」＋レッスン名の行（オレンジ・🏆）
- *   - library: 全部できて、残っているレッスンが無い。2 行目はコース名の行（オレンジ・🏆）
+ *   - library: 全部できて、後ろに残っているレッスンが無い。2 行目はコース名の行（コースが全部できたとき。
+ *     前のレッスンを飛ばしているときはレッスン名の行）（オレンジ・🏆）
  * チャレンジの名前は出さない（課題バーに出ている）。「もう少し見る」は閉じるだけ。
  * @param {object} props - props。
  * @param {string} props.action - 場面（lesson-progress.js の COMPLETED_ACTIONS）。
  * @param {string} props.challengeId - できたチャレンジ id（`data-challenge-id`。テストが見る）。
  * @param {Array<{id: string, completed: boolean}>} props.challenges - レッスンのチャレンジ（並び順）。
+ * @param {boolean} props.courseCompleted - コースのチャレンジが全部できたか（library の 2 行目を決める）。
  * @param {object} props.courseName - コース名（message descriptor）。
  * @param {number} props.lessonNumber - コースの中のレッスンの番号。
  * @param {object} props.lessonName - レッスン名（message descriptor）。
@@ -91,6 +93,7 @@ const LessonCompletedToast = ({
     action = COMPLETED_ACTIONS.NEXT,
     challengeId,
     challenges = [],
+    courseCompleted = false,
     courseName,
     lessonName,
     lessonNumber,
@@ -102,10 +105,12 @@ const LessonCompletedToast = ({
     const total = challenges.length;
     const remaining = challenges.filter((c) => !c.completed).length;
     let detail = null;
-    if (action === COMPLETED_ACTIONS.OTHER_LESSONS && lessonName) {
-        detail = intl.formatMessage(messages.lessonDetail, { name: intl.formatMessage(lessonName), count: total });
-    } else if (action === COMPLETED_ACTIONS.LIBRARY && courseName) {
+    // 「これで全部です」はコースのチャレンジが全部できたときだけ。library は「後ろに残っているレッスンが無い」
+    // だけなので、前のレッスンを飛ばした生徒には出さず、レッスン名の行にする
+    if (action === COMPLETED_ACTIONS.LIBRARY && courseCompleted && courseName) {
         detail = intl.formatMessage(messages.courseDetail, { course: intl.formatMessage(courseName) });
+    } else if (lessonDone && lessonName) {
+        detail = intl.formatMessage(messages.lessonDetail, { name: intl.formatMessage(lessonName), count: total });
     }
     return (
         <div
@@ -191,6 +196,8 @@ LessonCompletedToast.propTypes = {
             completed: PropTypes.bool.isRequired,
         }),
     ),
+    // コースのチャレンジが全部できたか。library のとき、true なら「これで全部です」、false ならレッスン名の行
+    courseCompleted: PropTypes.bool,
     courseName: PropTypes.object,
     intl: intlShape.isRequired,
     lessonName: PropTypes.object,

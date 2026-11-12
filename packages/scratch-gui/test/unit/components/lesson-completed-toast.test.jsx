@@ -123,7 +123,13 @@ describe('LessonCompletedToast', () => {
     });
 
     describe('every challenge of the lesson is done and no lesson is left', () => {
-        const props = { action: 'library', challenges: allDone, challengeId: 'd', lessonNumber: 3 };
+        const props = {
+            action: 'library',
+            challenges: allDone,
+            challengeId: 'd',
+            courseCompleted: true,
+            lessonNumber: 3,
+        };
 
         test('shows the course line and "Go to the lessons"', () => {
             const { getByTestId } = renderToast(props);
@@ -149,6 +155,21 @@ describe('LessonCompletedToast', () => {
             expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent('のレッスンは、これでぜんぶです');
             expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('レッスンひょうへ');
         });
+    });
+
+    test('a skipped earlier lesson: "no lesson left after this" does not say the course is all done', () => {
+        const { getByTestId } = renderToast({
+            action: 'library',
+            challenges: allDone,
+            challengeId: 'd',
+            courseCompleted: false,
+            lessonNumber: 3,
+        });
+        expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('Lesson 3 complete!');
+        expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent(
+            'You finished all 4 challenges of "Let\'s Move".',
+        );
+        expect(getByTestId('lesson-completed-toast-next')).toHaveTextContent('Go to the lessons');
     });
 
     test('omits the next button without onNextChallenge but keeps "Keep looking"', () => {

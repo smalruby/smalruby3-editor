@@ -179,8 +179,9 @@ describe('Lessons: "Next challenge" on the completed toast', () => {
         await loadWithEmptyRecord();
         await completeLesson(LESSON3, LESSON3[1]);
 
+        // レッスン 1・2 はまだなので「これで全部です」とは言わず、レッスン名の行にする（ボタンはレッスン表へ）
         const detail = await waitForTestId('lesson-completed-toast-detail');
-        expect(await detail.getText()).toBe('That was every lesson in "Programmer from Today".');
+        expect(await detail.getText()).toBe('You finished all 4 challenges of "Remember and Tell".');
         expect(await (await driver.findElement({ css: byTestId('lesson-completed-toast-title') })).getText()).toBe(
             'Lesson 3 complete!',
         );

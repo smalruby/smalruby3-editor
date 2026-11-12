@@ -5,7 +5,7 @@ import LessonCompletedToast from '../components/lesson-completed-toast/lesson-co
 import { findChallenge } from '../lib/lessons/courses.js';
 import { attachGoalMonitor } from '../lib/lessons/goal-monitor.js';
 import { evaluateGoal, validateGoal } from '../lib/lessons/goal.js';
-import { completedAction, isChallengeCompleted } from '../lib/lessons/lesson-progress.js';
+import { completedAction, courseProgress, isChallengeCompleted } from '../lib/lessons/lesson-progress.js';
 import { openLessonsLibraryAt } from '../lib/lessons/open-lessons-library.js';
 import { closeLesson, dismissCompleted, markChallengeCompleted, openChallenge } from '../reducers/lesson-mode.js';
 
@@ -68,6 +68,7 @@ const LessonGoalWatcher = ({
             action={completedAction(challenge.id, progress)}
             challengeId={challenge.id}
             challenges={lesson.challenges.map((c) => ({ id: c.id, completed: isChallengeCompleted(progress, c.id) }))}
+            courseCompleted={courseProgress(course, progress).allCompleted}
             courseName={course.name}
             lessonName={lesson.name}
             lessonNumber={course.lessons.indexOf(lesson) + 1}
