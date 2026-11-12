@@ -12,7 +12,7 @@ DNCL は大学入学共通テスト手順記述標準言語（DNCLv2）を参考
 DNCL コード → (DNCLv2 pre-processor) → Smalruby DNCL → Ruby コード → Scratch ブロック → 実行
 ```
 
-**DNCLv2 互換**: 共通テスト 例題サイト（[nodai2hitc.github.io/ictl_example](https://nodai2hitc.github.io/ictl_example/)）で公開されている DNCLv2 形式のプログラムを **そのままコピペして実行** できる。`(N) ` 行番号、`｜` / `⎿` インデントマーカー、`もし ... ならば:` 末尾コロン、`の間繰り返す:` / `増やしながら繰り返す:` 形式、`hidari = 0 , migi = kazu - 1` のような同一行複数代入、`and` / `or`、`NAME(ARGS) を定義する` 形式の関数定義などをサポート。詳細は「DNCLv2 互換」セクション参照。
+**DNCLv2 互換**: 共通テスト 例題サイト（[nodai2hitc.github.io/ictl_example](https://nodai2hitc.github.io/ictl_example/)）で公開されている DNCLv2 形式のプログラムを **そのままコピペして実行** できる。`(N) ` 行番号、`｜` / `⎿` インデントマーカー、`もし ... ならば:` 末尾コロン、`の間繰り返す:` / `増やしながら繰り返す:` 形式、`hidari = 0 , migi = kazu - 1` のような同一行複数代入、`and` / `or` / `not`、`NAME(ARGS) を定義する` 形式の関数定義などをサポート。詳細は「DNCLv2 互換」セクション参照。
 
 ブロック → Ruby → DNCL の逆方向変換にも対応しているため、ビジュアルブロックで作った作品を日本語コードで読むことも可能（turn-around 後は Smalruby DNCL 形式に正規化される）。
 
@@ -76,7 +76,7 @@ DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`]
 | ファイル | 役割 |
 |---|---|
 | `dncl-to-ruby.js` | DNCL → Ruby 変換のエントリポイント（pre-processor → validator → line converter） |
-| `dncl-v2-preprocessor.js` | **DNCLv2 → Smalruby DNCL 正規化**（行番号、コロン、`｜` / `⎿`、複数代入、`and` / `or`、関数定義 opener） |
+| `dncl-v2-preprocessor.js` | **DNCLv2 → Smalruby DNCL 正規化**（行番号、コロン、`｜` / `⎿`、複数代入、`and` / `or` / `not`、関数定義 opener） |
 | `dncl-paste-tidy.js` | **貼り付け時の整形**（日本語モードのエディタに貼り付けた行番号付きのテキストの行番号を消し、`//` コメントを `#` に直す。下の「貼り付け時の整形」）と、`//` のある行の変換エラーに「`//` はコメントではない」と添える `withDoubleSlashHint` |
 | `dncl-array-index-hint.js` | **範囲外の添字の警告**（`findArrayIndexHints`）。1 から始まる添字で書いたときのように配列の範囲外を読む `X[i]` / `X[3]` を見つける。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclArrayIndexHint`）にして、添字が 0 から始まることと直し方を表示する。下の「配列の添字は 0 から」 |
 | `dncl-paste-index-shift.js` | **貼り付け時の添字の 0 始まりへの書き換え**（`hasOneBasedIndexNote` / `shiftArrayIndexes` / `findOneBasedSuspects`）。「添字は 1 から始まる」の注釈がある貼り付けテキストの配列の添字を 1 減らし、1 始まりを前提にしていそうな行を見つける。下の「貼り付け時の添字の書き換え」 |
@@ -228,6 +228,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
 | インデントだけのブロック（`｜` / `⎿` も終了行も無し） | `もし a > 0 ならば:`<br>`    a = 1`<br>`b = 2` | 末尾コロンの行の後にインデントした本体があれば、インデントが開始行と同じか浅い行の前（またはプログラム末尾）で `を実行する` / `を繰り返す` を自動で追加。同じ深さの `そうでなくもし` / `そうでなければ` は `もし` の続き。空行・コメント行では閉じない。明示の終了行・`⎿` と二重には閉じない |
 | 同一行複数代入 | `a = X , b = Y` | 2 行に分割 |
 | `and` / `or` | `a > 0 and b == 1` | `a > 0 かつ b == 1` |
+| `not`（前置の否定） | `not a > 10` / `x and not y` / `not (a or b)` | `a > 10 でない` / `x かつ y でない` / `(a または b) でない`。`not` は比較演算より弱く `and` / `or` より強い（Python と同じ。`でない` と同じ範囲を否定する）。文字列・コメントの中と、名前の一部（`nothing`・`knot`）は変えない |
 | 関数定義 | `calc(x) を定義する:` | `関数 calc(x)` |
 | `表示する` 多引数 | `表示する(a, "は", b)` | `puts(@a.to_s + "は" + @b.to_s)`（1 つの吹き出し）|
 
