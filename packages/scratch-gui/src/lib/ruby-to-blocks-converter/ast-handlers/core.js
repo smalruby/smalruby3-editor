@@ -361,6 +361,37 @@ const CoreHandlers = {
     },
 
     /**
+     * Whether what visiting a receiver or an argument returned cannot be put in an input (issue #1691).
+     * A command (e.g. `a = 2`, or the if-else block of `a > 1 ? 1 : 2`) in parentheses comes as a
+     * statement block: put in an input, it was lost without an error (`(a = 2).to_s` became `a.to_s`).
+     * A `ruby_*` block is left out: it is reported as an error by itself.
+     * @param {*} value - The value of the receiver or the argument.
+     * @returns {boolean} Whether the value is not a value.
+     */
+    _isCommandValue(value) {
+        return this._isBlock(value) && !this._isValueBlock(value) && !this._isRubyBlock(value);
+    },
+
+    /**
+     * Whether a receiver or an argument is parentheses with more than one statement, at any depth
+     * (e.g. `(a; b)` or `((a; b))`): only the last one would be the value, and the others would be lost
+     * (issue #1691).
+     * @param {object} node - The receiver or the argument node.
+     * @returns {boolean} Whether there is more than one statement in the parentheses.
+     */
+    _isSequenceInParentheses(node) {
+        let n = node;
+        while (n && this._getNodeTypeName(n) === 'ParenthesesNode') {
+            const statements = this._parenthesesStatements(n);
+            if (statements.length > 1) {
+                return true;
+            }
+            n = statements[0];
+        }
+        return false;
+    },
+
+    /**
      * The error for a list returned from a method (issue #1557).
      * @param {object} node - The node of the value.
      * @returns {RubyToBlocksConverterError} The error.
