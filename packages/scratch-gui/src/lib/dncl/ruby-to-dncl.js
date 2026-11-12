@@ -16,7 +16,8 @@ import { convertLine, detectForLoopPattern } from './ruby-to-dncl-line-converter
  * @returns {number} The 1-based column, or 1 when it is not found.
  */
 const rubyColumn = (line, name) => {
-    const m = line.match(new RegExp(`(?<![${ID}@$])${name}(?![${ID}?!])`));
+    const escaped = name.replace(/[?!]/g, '\\$&');
+    const m = line.match(new RegExp(`(?<![${ID}@$])${escaped}(?![${ID}?!])`));
     return m ? m.index + 1 : 1;
 };
 

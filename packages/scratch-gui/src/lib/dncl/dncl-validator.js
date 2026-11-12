@@ -84,8 +84,9 @@ const unsupportedCommandMessage = (name) =>
 
 const IDENT_HEAD_RE = /[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
 const IDENT_TAIL_RE = /[a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
+// A trailing `?` / `!` is a Ruby predicate or bang method (`stop!`).
 const LONE_IDENT_RE =
-    /^[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF][a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]*$/;
+    /^[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF][a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]*[?!]?$/;
 const TRAILING_IDENT_RE =
     /[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF][a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]*$/;
 
@@ -208,11 +209,15 @@ const findUnsupportedCommands = (source) => {
             }
             const start = i;
             while (i < code.length && IDENT_TAIL_RE.test(code[i])) i++;
+            // A Ruby predicate or bang method keeps its `?` / `!`
+            // (`key_pressed?("space")`, `touching?("_edge_")`).
+            const end = (code[i] === '?' || code[i] === '!') && code[i + 1] === '(' ? i + 1 : i;
             // After `.` it is a method of a value (`.to_i`, `.length`); after
             // `@` / `$` it is told as a forbidden character; after `:` a symbol.
-            if (code[i] === '(' && !/[.@$:]/.test(code[start - 1] || '')) {
-                add(code.substring(start, i), start);
+            if (code[end] === '(' && !/[.@$:]/.test(code[start - 1] || '')) {
+                add(code.substring(start, end), start);
             }
+            i = end;
         }
         if (found.length === 0 && isDoBlockLine(trimmed) && !/^(?:while|until)\s/.test(trimmed)) {
             const command = doBlockCommand(code.trimEnd());

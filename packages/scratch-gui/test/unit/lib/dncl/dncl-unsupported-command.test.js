@@ -88,6 +88,15 @@ describe('DNCL → Ruby: a command the Japanese mode does not have stops with an
         ]);
     });
 
+    test('a predicate or bang method keeps its ? / !', () => {
+        expect(commandErrors(lines('もし key_pressed?("space") ならば', '  stop!()', 'を実行する'))).toEqual([
+            { line: 1, column: 4, name: 'key_pressed?' },
+            { line: 2, column: 3, name: 'stop!' },
+        ]);
+        expect(commandErrors('stop!')).toEqual([{ line: 1, column: 1, name: 'stop!' }]);
+        expect(dnclToRuby('表示する(touching?("_mouse_"))').ruby).toBeNull();
+    });
+
     test('the examples of the issue: a do block, a command in it and a block parameter', () => {
         const dncl = lines(
             'with_screen_refresh do',
@@ -148,6 +157,12 @@ describe('Ruby → DNCL: a command the Japanese mode does not have is told on it
     test('the line after a counting loop that became one DNCL line', () => {
         expect(rubyErrors(lines('@i = 1', 'while @i <= 3', '  turn_right(@i)', '  @i += 1', 'end'))).toEqual([
             { line: 3, column: 3, name: 'turn_right' },
+        ]);
+    });
+
+    test('a predicate method is told on its column', () => {
+        expect(rubyErrors(lines('if key_pressed?("space")', '  puts(1)', 'end'))).toEqual([
+            { line: 1, column: 4, name: 'key_pressed?' },
         ]);
     });
 
