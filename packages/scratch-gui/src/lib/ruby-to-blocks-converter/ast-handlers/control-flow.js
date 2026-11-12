@@ -51,7 +51,7 @@ const ControlFlowHandlers = {
         let hasElsif = false;
         if (node.subsequent && this._getNodeTypeName(node.subsequent) === 'IfNode') {
             hasElsif = true;
-            const elseBlock = _.isArray(elseStatement) ? elseStatement[0] : elseStatement;
+            const elseBlock = this._elsifBlockOf(_.isArray(elseStatement) ? elseStatement[0] : elseStatement);
             if (this.isBlock(block) && this.isBlock(elseBlock)) {
                 let n;
                 if (elseBlock.comment) {
@@ -116,6 +116,20 @@ const ControlFlowHandlers = {
             return [...preBlocks, block];
         }
         return block;
+    },
+
+    /**
+     * The block of the `if` of `elsif` in `else`. It comes after the blocks that call the methods of
+     * its condition (issue #1615), so it is not always the first block of `else`.
+     * @param {object} elseBlock - The first block of `else`.
+     * @returns {object} The block of the `if`, or the first block when there is no `if`.
+     */
+    _elsifBlockOf(elseBlock) {
+        if (!this.isBlock(elseBlock)) return elseBlock;
+        for (let b = elseBlock; b; b = this._context.blocks[b.next]) {
+            if (b.opcode === 'control_if' || b.opcode === 'control_if_else') return b;
+        }
+        return elseBlock;
     },
 
     visitCaseNode(node) {

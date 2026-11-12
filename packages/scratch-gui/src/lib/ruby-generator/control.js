@@ -177,33 +177,63 @@ export default function (Generator) {
         return `if ${operator}\n${branch}end\n`;
     };
 
+    const ELSIF_PATTERN = /^@ruby:syntax:elsif:(\d+)$/;
+
+    // A block in `else` before the `if` of `elsif` that calls a method of its condition: the call
+    // and the block that keeps its value for a later call of the same method (issue #1615).
+    const isElsifConditionCall = function (block) {
+        const comment = getComment(block);
+        if (block.opcode === 'procedures_call') return /^@ruby:return:\S+$/.test(comment);
+        if (block.opcode === 'data_setvariableto') return /^@ruby:return:\w+:\d+$/.test(comment);
+        return false;
+    };
+
+    /**
+     * Find the `if` of `elsif` in `else` of a block, after the blocks that call the methods of its
+     * condition (issue #1615), and write those blocks: they write nothing and put the calls in the
+     * cache that the condition takes them from.
+     * @param {object} block - The control_if_else block of `if` / `elsif`.
+     * @param {string} elsifGroup - The number of the `elsif` marker of the block.
+     * @returns {?object} The block of `elsif`, or null when `else` is not only one `elsif`.
+     */
+    const elsifBlockOf = function (block, elsifGroup) {
+        const substack2 = block.inputs.SUBSTACK2;
+        const calls = [];
+        let nextBlock = substack2 && substack2.block ? Generator.getBlock(substack2.block) : null;
+        while (nextBlock && isElsifConditionCall(nextBlock)) {
+            calls.push(nextBlock);
+            nextBlock = Generator.getBlock(nextBlock.next);
+        }
+        if (!nextBlock || (nextBlock.opcode !== 'control_if' && nextBlock.opcode !== 'control_if_else')) {
+            return null;
+        }
+        const nextMatch = getComment(nextBlock).match(ELSIF_PATTERN);
+        if (!nextMatch || nextMatch[1] !== elsifGroup) return null;
+        if (calls.length === 0) return nextBlock;
+        // Blocks after the `if` would be lost in `elsif`.
+        if (nextBlock.next) return null;
+        const written = calls.every((call) => {
+            call._skipNextInScrub = true;
+            const code = Generator.blockToCode(call);
+            delete call._skipNextInScrub;
+            return code === '';
+        });
+        return written ? nextBlock : null;
+    };
+
     const controlIfElseInternal = function (block, isTopLevel) {
-        const comment = Generator.getCommentText(block);
-        const match = comment ? comment.match(/^@ruby:syntax:elsif:(\d+)$/) : null;
+        const match = getComment(block).match(ELSIF_PATTERN);
         const elsifGroup = match ? match[1] : null;
 
-        if (elsifGroup) {
-            const substack2 = block.inputs.SUBSTACK2;
-            if (substack2 && substack2.block) {
-                const nextBlock = Generator.getBlock(substack2.block);
-                if (nextBlock && (nextBlock.opcode === 'control_if' || nextBlock.opcode === 'control_if_else')) {
-                    const nextComment = Generator.getCommentText(nextBlock);
-                    const nextMatch = nextComment ? nextComment.match(/^@ruby:syntax:elsif:(\d+)$/) : null;
-                    if (nextMatch && nextMatch[1] === elsifGroup) {
-                        const nextOperator =
-                            Generator.valueToCode(nextBlock, 'CONDITION', Generator.ORDER_NONE) || false;
-                        const nextBranch = Generator.statementToCode(nextBlock, 'SUBSTACK') || '';
-                        let nextBranch2 = '';
-                        if (nextBlock.opcode === 'control_if_else') {
-                            nextBranch2 = controlIfElseInternal(nextBlock, false);
-                        }
-                        if (nextBranch2) {
-                            return `elsif ${nextOperator}\n${nextBranch}${nextBranch2}`;
-                        }
-                        return `elsif ${nextOperator}\n${nextBranch}`;
-                    }
-                }
+        const nextBlock = elsifGroup ? elsifBlockOf(block, elsifGroup) : null;
+        if (nextBlock) {
+            const nextOperator = Generator.valueToCode(nextBlock, 'CONDITION', Generator.ORDER_NONE) || false;
+            const nextBranch = Generator.statementToCode(nextBlock, 'SUBSTACK') || '';
+            let nextBranch2 = '';
+            if (nextBlock.opcode === 'control_if_else') {
+                nextBranch2 = controlIfElseInternal(nextBlock, false);
             }
+            return `elsif ${nextOperator}\n${nextBranch}${nextBranch2}`;
         }
 
         const branch2 = Generator.statementToCode(block, 'SUBSTACK2') || '';
