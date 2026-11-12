@@ -15,7 +15,7 @@ import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
 import { tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { dnclToRuby, rubyForLeavingDncl } from '../lib/dncl/dncl-to-ruby';
-import { POST_TEST_LOOP_ERROR_ID } from '../lib/dncl/dncl-validator';
+import { POST_TEST_LOOP_ERROR_ID, UNSUPPORTED_COMMAND_ERROR_ID } from '../lib/dncl/dncl-validator';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import { makeRubyTabAdapterFactory } from '../lib/genai-ruby-adapter.js';
@@ -663,6 +663,25 @@ const RubyTab = (props) => {
             'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in Ruby mode.',
     });
 
+    // The message of a DNCL conversion error, by its id.
+    const dnclErrorText = useCallback(
+        (err) => {
+            if (err.id === POST_TEST_LOOP_ERROR_ID) return dnclPostTestLoopErrorMessage;
+            if (err.id === UNSUPPORTED_COMMAND_ERROR_ID) {
+                return intl.formatMessage(
+                    {
+                        id: 'gui.rubyTab.dnclUnsupportedCommandError',
+                        defaultMessage:
+                            '"{name}" is a command that cannot be written in Japanese mode. You can write it in Ruby mode.',
+                    },
+                    { name: err.name },
+                );
+            }
+            return dnclValidationErrorMessage;
+        },
+        [intl, dnclPostTestLoopErrorMessage, dnclValidationErrorMessage],
+    );
+
     const handleToggleDnclMode = useCallback(async () => {
         const enabling = !dnclModeRef.current;
 
@@ -686,10 +705,7 @@ const RubyTab = (props) => {
                         dnclResult.errors.map((err) => ({
                             row: err.line - 1,
                             column: err.column - 1,
-                            text:
-                                err.id === POST_TEST_LOOP_ERROR_ID
-                                    ? dnclPostTestLoopErrorMessage
-                                    : dnclValidationErrorMessage,
+                            text: dnclErrorText(err),
                             type: 'error',
                         })),
                     );
@@ -703,10 +719,7 @@ const RubyTab = (props) => {
                     const errors = rubyResult.errors.map((err) => ({
                         row: err.line - 1,
                         column: err.column - 1,
-                        text:
-                            err.id === POST_TEST_LOOP_ERROR_ID
-                                ? dnclPostTestLoopErrorMessage
-                                : dnclValidationErrorMessage,
+                        text: dnclErrorText(err),
                         type: 'error',
                     }));
                     showErrors(errors);
@@ -785,15 +798,7 @@ const RubyTab = (props) => {
         } else if (furiganaEnabledRef.current) {
             renderFurigana();
         }
-    }, [
-        vm,
-        rubyCode.target,
-        intl,
-        rubyVersion,
-        dnclValidationErrorMessage,
-        dnclPostTestLoopErrorMessage,
-        onSetDnclMode,
-    ]);
+    }, [vm, rubyCode.target, intl, rubyVersion, dnclValidationErrorMessage, dnclErrorText, onSetDnclMode]);
 
     const handleToggleFurigana = useCallback(() => {
         setFuriganaEnabled((prev) => {
@@ -1216,28 +1221,35 @@ const RubyTab = (props) => {
         monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_INDEX_HINT_OWNER, markers);
     }, [dnclMode, dnclDisplayCode, intl]);
 
-    // The post-test loop cannot be written in DNCL (Issue #1626). Such DNCL is
-    // not converted to Ruby (it would become `@begin`), so tell it on its
-    // lines whether it was typed or shown from blocks. The markers use their
-    // own owner so clearing conversion errors keeps them.
+    // The post-test loop (Issue #1626) and the Ruby commands (Issue #1679)
+    // cannot be written in DNCL. Such DNCL is not converted to Ruby (it would
+    // become `@begin` / `@move(2)`), so tell it on its lines whether it was
+    // typed or shown from blocks. The markers use their own owner so clearing
+    // conversion errors keeps them.
     useEffect(() => {
         if (!editorRef.current || !monacoRef.current) return;
         const errors = dnclMode
-            ? dnclToRuby(dnclDisplayCode).errors.filter((err) => err.id === POST_TEST_LOOP_ERROR_ID)
+            ? dnclToRuby(dnclDisplayCode).errors.filter(
+                  (err) => err.id === POST_TEST_LOOP_ERROR_ID || err.id === UNSUPPORTED_COMMAND_ERROR_ID,
+              )
             : [];
         const lines = dnclDisplayCode.split('\n');
         const markers = errors
             .filter((err) => err.line <= lines.length)
-            .map((err) => ({
-                startLineNumber: err.line,
-                startColumn: 1,
-                endLineNumber: err.line,
-                endColumn: lines[err.line - 1].length + 1,
-                message: dnclPostTestLoopErrorMessage,
-                severity: monacoRef.current.MarkerSeverity.Error,
-            }));
+            .map((err) => {
+                const lineEnd = lines[err.line - 1].length + 1;
+                const command = err.id === UNSUPPORTED_COMMAND_ERROR_ID && err.column + err.name.length <= lineEnd;
+                return {
+                    startLineNumber: err.line,
+                    startColumn: command ? err.column : 1,
+                    endLineNumber: err.line,
+                    endColumn: command ? err.column + err.name.length : lineEnd,
+                    message: dnclErrorText(err),
+                    severity: monacoRef.current.MarkerSeverity.Error,
+                };
+            });
         monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_UNSUPPORTED_OWNER, markers);
-    }, [dnclMode, dnclDisplayCode, dnclPostTestLoopErrorMessage]);
+    }, [dnclMode, dnclDisplayCode, dnclErrorText]);
 
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);

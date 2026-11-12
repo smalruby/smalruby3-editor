@@ -1,5 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (DNCL source validator) ===
-import { skipString } from './paren-utils';
+import { DNCL_KEYWORDS, RUBY_LITERALS } from './dncl-keywords';
+import { findFunctionNames } from './dncl-state';
+import { findMatchingClose, skipString } from './paren-utils';
 
 /**
  * The id of the error for the post-test loop (issue #1626). The Japanese mode
@@ -31,6 +33,203 @@ const POST_TEST_LOOP_LINE_RES = [
  * @returns {boolean} True for a line of the post-test loop.
  */
 const isPostTestLoopLine = (trimmed) => POST_TEST_LOOP_LINE_RES.some((re) => re.test(trimmed));
+
+/**
+ * A line that opens a `do ... end` block (`with_screen_refresh do`, `loop do`,
+ * `when_flag_clicked do`, `list.each do |x|`, ...). Such a block has no DNCL
+ * form, so it is shown as Ruby in the DNCL and closed by `を実行する`
+ * (issue #1665). A `do` in a string is not at the end of the line, so it is
+ * not taken.
+ */
+const DO_BLOCK_RE = /(?:^|[\s)])do(?:\s*\|[^|]*\|)?$/;
+
+/**
+ * Whether the line opens a `do ... end` block (see `DO_BLOCK_RE`). A comment
+ * at the end of the line (`move(1) # what to do`) is cut off first, so a
+ * `do` in it is not taken; a `#` in a string is not a comment.
+ * @param {string} line - A trimmed line of Ruby or DNCL.
+ * @returns {boolean} True when the line opens a `do` block.
+ */
+const isDoBlockLine = (line) => {
+    let code = line;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(line, i, ch) - 1;
+        } else if (ch === '#') {
+            code = line.substring(0, i);
+            break;
+        }
+    }
+    return DO_BLOCK_RE.test(code.trimEnd());
+};
+
+/**
+ * The id of the error for a Ruby command or method call that the Japanese mode
+ * does not have (`move(2)`, `bounce_if_on_edge`, `with_screen_refresh do`,
+ * `[1, 2].each do |x|`; issue #1679). Its name would be taken for a variable
+ * and get an `@` (`@move(2)`), which is broken Ruby, so such DNCL makes no
+ * Ruby. The editor shows the error in the language of the UI by this id and
+ * the `name` of the error.
+ */
+const UNSUPPORTED_COMMAND_ERROR_ID = 'unsupportedCommand';
+
+/**
+ * The message of the unsupported command error.
+ * @param {string} name - The name of the command.
+ * @returns {string} The message.
+ */
+const unsupportedCommandMessage = (name) =>
+    `「${name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。`;
+
+const IDENT_HEAD_RE = /[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
+const IDENT_TAIL_RE = /[a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
+const LONE_IDENT_RE =
+    /^[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF][a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]*$/;
+const TRAILING_IDENT_RE =
+    /[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF][a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]*$/;
+
+/**
+ * The code of a line before its comment, with every string (`"..."`,
+ * `'...'`, `「...」`) blanked out by spaces so that the columns stay.
+ * @param {string} line - A line of DNCL.
+ * @returns {string} The code without strings and comment.
+ */
+const codeWithoutStrings = (line) => {
+    let out = '';
+    let i = 0;
+    while (i < line.length) {
+        const ch = line[i];
+        if (ch === '#') break;
+        let end = -1;
+        if (ch === '"' || ch === "'") {
+            end = skipString(line, i, ch);
+        } else if (ch === '「') {
+            const close = line.indexOf('」', i + 1);
+            if (close !== -1) end = close + 1;
+        }
+        if (end > i) {
+            out += ' '.repeat(end - i);
+            i = end;
+            continue;
+        }
+        out += ch;
+        i++;
+    }
+    return out;
+};
+
+/**
+ * The command of a `do` block line: the name just before `do` and the
+ * arguments of the command (`with_screen_refresh do` → `with_screen_refresh`,
+ * `[1, 2].each do |x|` → `each`, `self.when(:clicked) do` → `when`).
+ * @param {string} code - The line without strings and comment.
+ * @returns {?object} `{name, index}`, or null when there is no name.
+ */
+const doBlockCommand = (code) => {
+    let head = code.replace(/\s*do(?:\s*\|[^|]*\|)?\s*$/, '');
+    if (head.endsWith(')')) {
+        // The `(` whose `)` ends the head.
+        for (let open = head.lastIndexOf('('); open >= 0; open = head.lastIndexOf('(', open - 1)) {
+            if (findMatchingClose(head, open) === head.length - 1) {
+                head = head.substring(0, open);
+                break;
+            }
+        }
+    }
+    const m = head.match(TRAILING_IDENT_RE);
+    return m ? { name: m[0], index: m.index } : null;
+};
+
+/**
+ * The names the source declares as variables: assigned (`a ← 1`, `a = 1`,
+ * `a += 1`), counted by a loop (`i を 1 から …`) or a function parameter.
+ * @param {string} source - DNCL source after the DNCLv2 pre-processor.
+ * @returns {Set<string>} The names.
+ */
+const findDeclaredNames = (source) => {
+    const names = new Set();
+    const ident =
+        '[a-zA-Z_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF][a-zA-Z0-9_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF]*';
+    const assign = new RegExp(`^(${ident})\\s*(?:←|[-+*/]?=(?!=))`);
+    const loop = new RegExp(`^(${ident})\\s+を\\s`);
+    const params = new RegExp(`^関数\\s+${ident}\\s*\\(([^)]*)\\)`);
+    for (const line of source.split('\n')) {
+        const trimmed = line.trim();
+        const m = trimmed.match(assign) || trimmed.match(loop);
+        if (m) names.add(m[1]);
+        const p = trimmed.match(params);
+        if (p) {
+            p[1]
+                .split(',')
+                .map((name) => name.trim())
+                .forEach((name) => names.add(name));
+        }
+    }
+    return names;
+};
+
+/**
+ * Find the Ruby commands and method calls the Japanese mode does not have
+ * (issue #1679): a name called with `(` (not after `.`), a lowercase name
+ * alone on a line that the source does not declare as a variable, and the
+ * command of a `do` block. The names the Japanese mode has
+ * are the DNCL keywords and built-in functions, the Ruby names the converter
+ * passes as they are (`puts`, `say`, `rand`, ...) and the functions the
+ * source defines. A variable (a name not called) is not taken, so a
+ * variable may have the name of a command.
+ * @param {string} source - DNCL source after the DNCLv2 pre-processor.
+ * @returns {Array<object>} Errors with `line`, `column`, `id`, `name` and
+ *   `message`.
+ */
+const findUnsupportedCommands = (source) => {
+    const functionNames = findFunctionNames(source);
+    const known = (name) => DNCL_KEYWORDS.has(name) || RUBY_LITERALS.has(name) || functionNames.has(name);
+    const declared = findDeclaredNames(source);
+    const errors = [];
+    source.split('\n').forEach((line, lineIndex) => {
+        const code = codeWithoutStrings(line);
+        const trimmed = code.trim();
+        if (trimmed === '' || isPostTestLoopLine(trimmed)) return;
+        const found = [];
+        const add = (name, index) => {
+            if (!known(name)) found.push({ name, index });
+        };
+        // A name alone on a line is a command without arguments, unless it
+        // is a variable: an uppercase name, or one the source assigns.
+        if (LONE_IDENT_RE.test(trimmed) && /^[a-z_]/.test(trimmed) && !declared.has(trimmed)) {
+            add(trimmed, code.indexOf(trimmed));
+        }
+        let i = 0;
+        while (i < code.length) {
+            if (!IDENT_HEAD_RE.test(code[i])) {
+                i++;
+                continue;
+            }
+            const start = i;
+            while (i < code.length && IDENT_TAIL_RE.test(code[i])) i++;
+            // After `.` it is a method of a value (`.to_i`, `.length`); after
+            // `@` / `$` it is told as a forbidden character; after `:` a symbol.
+            if (code[i] === '(' && !/[.@$:]/.test(code[start - 1] || '')) {
+                add(code.substring(start, i), start);
+            }
+        }
+        if (found.length === 0 && isDoBlockLine(trimmed) && !/^(?:while|until)\s/.test(trimmed)) {
+            const command = doBlockCommand(code.trimEnd());
+            if (command) add(command.name, command.index);
+        }
+        found.forEach(({ name, index }) =>
+            errors.push({
+                line: lineIndex + 1,
+                column: index + 1,
+                id: UNSUPPORTED_COMMAND_ERROR_ID,
+                name,
+                message: unsupportedCommandMessage(name),
+            }),
+        );
+    });
+    return errors;
+};
 
 /**
  * Validate DNCL source for forbidden characters. DNCL variables cannot use
@@ -83,37 +282,7 @@ const validateDncl = (source) => {
             });
         }
     }
-    return errors;
-};
-
-/**
- * A line that opens a `do ... end` block (`with_screen_refresh do`, `loop do`,
- * `when_flag_clicked do`, `list.each do |x|`, ...). Such a block has no DNCL
- * form, so it is shown as Ruby in the DNCL and closed by `を実行する`
- * (issue #1665). A `do` in a string is not at the end of the line, so it is
- * not taken.
- */
-const DO_BLOCK_RE = /(?:^|[\s)])do(?:\s*\|[^|]*\|)?$/;
-
-/**
- * Whether the line opens a `do ... end` block (see `DO_BLOCK_RE`). A comment
- * at the end of the line (`move(1) # what to do`) is cut off first, so a
- * `do` in it is not taken; a `#` in a string is not a comment.
- * @param {string} line - A trimmed line of Ruby or DNCL.
- * @returns {boolean} True when the line opens a `do` block.
- */
-const isDoBlockLine = (line) => {
-    let code = line;
-    for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            i = skipString(line, i, ch) - 1;
-        } else if (ch === '#') {
-            code = line.substring(0, i);
-            break;
-        }
-    }
-    return DO_BLOCK_RE.test(code.trimEnd());
+    return errors.concat(findUnsupportedCommands(source)).sort((a, b) => a.line - b.line || a.column - b.column);
 };
 
 // Block openers of the DNCL the line converter reads (after the DNCLv2
@@ -262,9 +431,11 @@ const findDnclBlockErrors = (source) => {
 
 export {
     findDnclBlockErrors,
+    findUnsupportedCommands,
     isDoBlockLine,
     isPostTestLoopLine,
     POST_TEST_LOOP_ERROR_ID,
     POST_TEST_LOOP_MESSAGE,
+    UNSUPPORTED_COMMAND_ERROR_ID,
     validateDncl,
 };

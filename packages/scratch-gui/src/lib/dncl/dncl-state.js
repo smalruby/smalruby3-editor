@@ -94,24 +94,32 @@ const detectArrayNames = (source) => {
 };
 
 /**
+ * The names of the functions the source defines (`関数 name(...)`).
+ * @param {string} source - The full DNCL source code.
+ * @returns {Set<string>} The function names.
+ */
+const findFunctionNames = (source) => {
+    const names = new Set();
+    // CJK-aware function name regex (Issue #643). Built once outside the
+    // loop because RegExp construction is non-trivial.
+    const re = new RegExp(`^関数\\s+(${DNCL_IDENT_PATTERN})\\s*\\(`);
+    for (const line of source.split('\n')) {
+        const m = line.trim().match(re);
+        if (m) {
+            names.add(m[1]);
+        }
+    }
+    return names;
+};
+
+/**
  * Detect user-defined function names from `関数 name(...)` definitions.
  * Runs before line-by-line conversion so calls (including forward
  * references) can be recognized regardless of definition order.
  * @param {string} source - The full DNCL source code.
  */
 const detectFunctionNames = (source) => {
-    functionNames = new Set();
-    const lines = source.split('\n');
-    // CJK-aware function name regex (Issue #643). Built once outside the
-    // loop because RegExp construction is non-trivial.
-    const re = new RegExp(`^関数\\s+(${DNCL_IDENT_PATTERN})\\s*\\(`);
-    for (const line of lines) {
-        const trimmed = line.trim();
-        const m = trimmed.match(re);
-        if (m) {
-            functionNames.add(m[1]);
-        }
-    }
+    functionNames = findFunctionNames(source);
 };
 
 /**
@@ -184,6 +192,7 @@ export {
     detectFunctionNames,
     enterFunctionScope,
     exitFunctionScope,
+    findFunctionNames,
     isArrayName,
     isFunctionName,
     isFunctionParam,

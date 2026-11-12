@@ -1,7 +1,24 @@
 // === Smalruby: This file is Smalruby-specific (Ruby to DNCL reverse transpiler) ===
-import { isPostTestLoopLine, POST_TEST_LOOP_ERROR_ID, POST_TEST_LOOP_MESSAGE } from './dncl-validator';
+import {
+    findUnsupportedCommands,
+    isPostTestLoopLine,
+    POST_TEST_LOOP_ERROR_ID,
+    POST_TEST_LOOP_MESSAGE,
+} from './dncl-validator';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
 import { convertLine, detectForLoopPattern } from './ruby-to-dncl-line-converter';
+
+/**
+ * The column of a command in its Ruby line: the first `name` that is not a
+ * part of a longer name or a variable (`@name`, `@_var_name_`).
+ * @param {string} line - The Ruby line.
+ * @param {string} name - The name of the command.
+ * @returns {number} The 1-based column, or 1 when it is not found.
+ */
+const rubyColumn = (line, name) => {
+    const m = line.match(new RegExp(`(?<![${ID}@$])${name}(?![${ID}?!])`));
+    return m ? m.index + 1 : 1;
+};
 
 /**
  * Transpile Ruby source code to DNCL.
@@ -19,6 +36,8 @@ const rubyToDncl = (source) => {
 
     const lines = source.split('\n');
     const dnclLines = [];
+    // The index of the Ruby line each DNCL line comes from.
+    const origins = [];
     const errors = [];
     let skipNext = false;
 
@@ -60,6 +79,7 @@ const rubyToDncl = (source) => {
                     forInfo.headerIndex = dnclLines.length;
                     blockStack.push({ type: 'for', info: forInfo });
                     dnclLines.push('__FOR_HEADER_PLACEHOLDER__');
+                    origins.push(i);
                     skipNext = true;
                     continue;
                 }
@@ -79,6 +99,7 @@ const rubyToDncl = (source) => {
                 if (incMatch && incMatch[1] === info.varName) {
                     // Remove the increment line from output
                     dnclLines.pop();
+                    origins.pop();
                     const stepExpr = incMatch[2].trim();
 
                     // Determine step value and direction
@@ -97,6 +118,7 @@ const rubyToDncl = (source) => {
                     dnclLines[info.headerIndex] = header;
                 }
                 dnclLines.push(`${indent}を繰り返す`);
+                origins.push(i);
                 continue;
             }
         }
@@ -120,21 +142,34 @@ const rubyToDncl = (source) => {
                     // `answer.to_i` is what 【整数を入力】 generates (Issue #1186).
                     const input = answerMatch[3] ? '整数を入力' : '外部からの入力';
                     dnclLines.push(`${answerIndent}${varPart} = 【${input}】`);
+                    origins.push(i);
                     skipNext = true;
                     continue;
                 }
             }
             // Fallback: just output as-is
             dnclLines.push(line);
+            origins.push(i);
             continue;
         }
 
         dnclLines.push(result);
+        origins.push(i);
     }
 
+    const dncl = dnclLines.join('\n');
+    // A command the Japanese mode does not have (issue #1679) is found in the
+    // DNCL, where `dnclToRuby` will find it again, and told on its Ruby line.
+    // One entry may hold several DNCL lines (`wait_until` → `の間` + `を繰り返す`).
+    const lineOrigins = dnclLines.flatMap((text, k) => text.split('\n').map(() => origins[k]));
+    findUnsupportedCommands(dncl).forEach((err) => {
+        const index = lineOrigins[err.line - 1];
+        errors.push({ ...err, line: index + 1, column: rubyColumn(lines[index], err.name) });
+    });
+
     return {
-        dncl: dnclLines.join('\n'),
-        errors,
+        dncl,
+        errors: errors.sort((a, b) => a.line - b.line || a.column - b.column),
     };
 };
 
