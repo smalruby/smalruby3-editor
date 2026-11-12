@@ -94,7 +94,10 @@ const VariablesConverter = {
 
             if (operator === '+') {
                 // Check if this is a string-typed variable: use operator_join
-                if (variable.dataType === 'string') {
+                if (
+                    variable.dataType === 'string' ||
+                    (converter._isStringVariable(variable) && converter._isStringOperand(rh))
+                ) {
                     block = converter._createBlock('data_setvariableto', 'statement', {
                         fields: {
                             VARIABLE: {

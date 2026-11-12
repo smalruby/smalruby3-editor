@@ -24,6 +24,12 @@ const VARIABLE_READ_NODE_TYPES = new Set([
     'GlobalVariableReadNode',
     'LocalVariableReadNode',
 ]);
+// Calls whose value is always a String (issue #1659): `gets` / `answer` (no receiver), and `x.to_s`.
+const STRING_CALLS_WITHOUT_RECEIVER = new Set(['gets', 'answer']);
+// How the code uses a name (see `_collectVariableUses`). `string` / `notString`: set to a String /
+// to another value.
+const EMPTY_USE = { list: false, scalar: false, hash: false, string: false, notString: false };
+const STRING_VALUE_NODE_TYPES = new Set(['StringNode', 'InterpolatedStringNode']);
 
 const messages = defineMessages({
     cannotChangeVariableScope: {
@@ -402,10 +408,10 @@ const VariableUtils = {
         const mark = (name, use, unit) => {
             if (!name) return;
             const key = String(name);
-            if (!uses[key]) uses[key] = { list: false, scalar: false, hash: false };
+            if (!uses[key]) uses[key] = { ...EMPTY_USE };
             uses[key][use] = true;
             if (key[0] !== '$' && key[0] !== '@') {
-                if (!localUses[unit][key]) localUses[unit][key] = { list: false, scalar: false, hash: false };
+                if (!localUses[unit][key]) localUses[unit][key] = { ...EMPTY_USE };
                 localUses[unit][key][use] = true;
             }
         };
@@ -434,6 +440,8 @@ const VariableUtils = {
                     mark(node.name, 'hash', unit);
                 } else {
                     mark(node.name, 'scalar', unit);
+                    // Whether the value is a String, for the string `+` (issue #1659).
+                    mark(node.name, this._isStringValueNode(node.value) ? 'string' : 'notString', unit);
                 }
             } else if (
                 nodeType === 'CallNode' &&
@@ -539,8 +547,8 @@ const VariableUtils = {
         Object.keys(units.localUses).forEach((u) => {
             const use = units.unitGroups[u] === 0 && units.localUses[u][name];
             if (!use) return;
-            if (!found) found = { list: false, scalar: false, hash: false };
-            ['list', 'scalar', 'hash'].forEach((kind) => {
+            if (!found) found = { ...EMPTY_USE };
+            Object.keys(EMPTY_USE).forEach((kind) => {
                 found[kind] = found[kind] || use[kind];
             });
         });
@@ -556,6 +564,63 @@ const VariableUtils = {
         if (!variable || variable.isArgument) return false;
         const use = this._variableUsesOf(variable);
         return Boolean(use) && use.scalar && !use.list;
+    },
+
+    /**
+     * Whether a prism node is a value that is always a String (see `_collectVariableUses`):
+     * a string literal, `gets`, `answer` or `x.to_s`.
+     * @param {object} node - The prism node of the value.
+     * @returns {boolean} true if the value is a String.
+     */
+    _isStringValueNode(node) {
+        const nodeType = this._prismNodeType(node);
+        if (STRING_VALUE_NODE_TYPES.has(nodeType)) return true;
+        if (nodeType !== 'CallNode') return false;
+        const name = String(node.name);
+        const args = node.arguments_ ? node.arguments_.arguments_ : [];
+        if (args.length > 0 || node.block) return false;
+        if (name === 'to_s') return true;
+        return !node.receiver && STRING_CALLS_WITHOUT_RECEIVER.has(name);
+    },
+
+    /**
+     * Whether the code sets a variable only to Strings (see `_collectVariableUses`), so that
+     * `@a + x` is the string `+` even where the converter has not seen the string yet (issue #1659).
+     * @param {object} variable - The variable in the converter's stores.
+     * @returns {boolean} true if every value the code sets the name to is a String.
+     */
+    _isUsedOnlyAsString(variable) {
+        if (!variable || variable.isArgument) return false;
+        const use = this._variableUsesOf(variable);
+        return Boolean(use) && use.string && !use.notString && !use.list && !use.hash;
+    },
+
+    /**
+     * Whether `+` on a variable is the string `+` (`operator_join`): the variable holds a String
+     * where it is converted, or the code sets it only to Strings (issue #1659).
+     * @param {object} variable - The variable in the converter's stores.
+     * @returns {boolean} true if `+` on the variable joins strings.
+     */
+    _isStringVariable(variable) {
+        if (!variable) return false;
+        if (variable.dataType === 'string') return true;
+        return !variable.dataType && this._isUsedOnlyAsString(variable);
+    },
+
+    /**
+     * Whether `x + operand` is the string `+` when `x` is a String only by `_isUsedOnlyAsString`
+     * (issue #1659). The operand must be a String too: after `@a = gets`, adding a number or a
+     * name not known to be a String (`@a + 1`) stays the number `+`, as it was before.
+     * @param {object} operand - The right-hand side of `+` (a value or a block).
+     * @returns {boolean} true if the operand is a String.
+     */
+    _isStringOperand(operand) {
+        if (this._isString(operand)) return true;
+        if (!this._isBlock(operand)) return false;
+        if (this.isVariableBlock(operand)) {
+            return this._isStringVariable(this.lookupVariableFromVariableBlock(operand));
+        }
+        return this._getBlockDataType(operand) === 'string';
     },
 
     /**
