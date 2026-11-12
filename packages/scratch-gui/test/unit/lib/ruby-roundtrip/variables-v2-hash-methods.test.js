@@ -104,6 +104,48 @@ describe('Ruby Roundtrip: V2 hash methods (#1652)', () => {
     test('empty? of a local array keeps the local name', async () => {
         await expectRoundTrip(converter, target, inFlag(['a = [1]', 'say(a.empty?)']));
     });
+
+    // A list that the user named like the lists of a hash is not a hash: it keeps its own name,
+    // and converting the code again still reads that list.
+    test.each([
+        ['@_hash_x_keys_ = [1, 2]', 'say(@_hash_x_keys_.length)', 'say(@_hash_x_keys_.empty?)'],
+        ['@_hash_x_values_ = [1, 2, 3]', 'say(@_hash_x_values_.length)'],
+        ['$_hash_x_keys_ = [1]', 'say($_hash_x_keys_.length)'],
+        ['@_hash_x_keys_ = [1, 2]', '@x = 3', 'say(@_hash_x_keys_.length)', 'say(@x)'],
+    ])('a list named %s keeps its name after two round trips', async (...lines) => {
+        const code = inFlag(lines);
+        await expectRoundTrip(converter, target, code);
+        await expectRoundTrip(makeConverter(target, runtime, { version: '2' }), target, code);
+    });
+
+    test('length of a hash of the stage, read in a sprite, reads the keys list of the stage', async () => {
+        const stage = runtime.getTargetForStage();
+        const stageConverter = makeConverter(stage, runtime, { version: '2' });
+        expect(await stageConverter.targetCodeToBlocks(stage, inFlag(['$h = {a: 1}']))).toBe(true);
+        await stageConverter.applyTargetBlocks(stage);
+
+        const code = inFlag(['say($h.length)', 'say($h.empty?)']);
+        expect(await converter.targetCodeToBlocks(target, code)).toBe(true);
+        const lengths = Object.values(converter._context.blocks).filter((b) => b.opcode === 'data_lengthoflist');
+        expect(lengths.map((b) => b.fields.LIST.value)).toEqual(['_hash_h_keys_', '_hash_h_keys_']);
+        await expectRoundTrip(makeConverter(target, runtime, { version: '2' }), target, code);
+    });
+
+    test('a string whose name has a list named like the lists of a hash is still a string', async () => {
+        const code = inFlag(['@_hash_s_keys_ = [1]', '@s = "ab"', 'say(@s.length)']);
+        expect(await converter.targetCodeToBlocks(target, code)).toBe(true);
+        const blocks = Object.values(converter._context.blocks);
+        expect(blocks.some((b) => b.opcode === 'operator_length')).toBe(true);
+        expect(blocks.some((b) => b.opcode === 'data_lengthoflist')).toBe(false);
+    });
+
+    test.each([
+        ['@s = "a"', 'say(@s.key?(:a))'],
+        ['@a = [1]', 'say(@a.key?(:a))'],
+    ])('%s: key? of a string or a list does not make the lists of a hash', async (...lines) => {
+        await converter.targetCodeToBlocks(target, inFlag(lines));
+        expect(Object.keys(converter._context.lists).filter((name) => name.includes('_hash_'))).toEqual([]);
+    });
 });
 
 describe('Ruby Roundtrip: V2 hash literal values that are not blocks (#1654)', () => {

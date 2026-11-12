@@ -419,7 +419,15 @@ export const hashListsOfReceiver = function (converter, receiver, assumeHash = f
     if (!assumeHash) {
         const uses = converter._context.variableUses && converter._context.variableUses[rubyName];
         const setToHash = Boolean(uses) && uses.hash && !uses.list;
-        const listsExist = variable.scope !== 'local' && Boolean(converter._context.lists[keysListName]);
+        // The lists are kept under the bare name (`_hash_h_keys_`) with their scope. A hash of the
+        // project (`$h = {...}` in the stage, read in a sprite) is one only when this code does not
+        // set the name to something else.
+        const existing = converter._context.lists[keysListName.replace(/^[$@]/, '')];
+        const listsExist =
+            variable.scope !== 'local' &&
+            Boolean(existing) &&
+            existing.scope === variable.scope &&
+            !(uses && (uses.list || uses.scalar));
         if (!setToHash && !listsExist) return null;
     }
     return {

@@ -421,8 +421,10 @@ export default function (Generator) {
     Generator.data_lengthoflist = function (block) {
         const list = getListName(block);
         const comment = Generator.getCommentText(block);
-        // `@h.length` / `@h.empty?` read the keys list of the hash.
-        const receiver = Generator.hashVariableOfListBlock(block) || renderList(list);
+        // `@h.length` / `@h.empty?` read the keys list of the hash. Only the blocks that the
+        // converter marked: a list that the user named `@_hash_x_keys_` keeps its own name.
+        const isHashLength = Boolean(comment) && comment.includes('@ruby:hash:length');
+        const receiver = (isHashLength && Generator.hashVariableOfListBlock(block)) || renderList(list);
         // The marker may follow the `@ruby:lvar` of a local (`@ruby:lvar:a:1,@ruby:method:empty?:1`).
         const emptyMatch = comment && comment.match(/@ruby:method:empty\?:(\d+)/);
         if (emptyMatch) {

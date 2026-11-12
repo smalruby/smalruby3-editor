@@ -2,6 +2,7 @@
 import { RubyToBlocksConverterError } from './errors';
 import {
     hashListsOfReceiver,
+    isKnownListReceiver,
     isKnownStringReceiver,
     rejectHashValueThatIsNotABlock,
     setListField,
@@ -309,7 +310,9 @@ export const registerListOperations = function (
 
     /**
      * Turn a hash receiver into "length of the keys list" (`@h.length`, `@h.empty?`). The comment
-     * keeps the name of a local hash, as on the other blocks of a local hash.
+     * keeps the name of a local hash, as on the other blocks of a local hash, and marks the block
+     * as the length of a hash: a list that the user named `@_hash_x_keys_` must still come back
+     * as `@_hash_x_keys_.length`, not `@x.length`.
      * @param {object} receiver - The receiver block (data_variable).
      * @param {object} hash - The lists of the hash (`hashListsOfReceiver`).
      * @param {?string} marker - Another `@ruby:` marker for the block, or null.
@@ -318,12 +321,8 @@ export const registerListOperations = function (
     const hashLengthBlock = (receiver, hash, marker) => {
         const block = converter._changeBlock(receiver, 'data_lengthoflist', 'value');
         setListField(block, hash.keysList);
-        const text = [hash.lvarComment, marker].filter(Boolean).join(',');
-        if (text) {
-            block.comment = converter._createComment(text, block.id);
-        } else {
-            delete block.comment;
-        }
+        const text = [hash.lvarComment, '@ruby:hash:length', marker].filter(Boolean).join(',');
+        block.comment = converter._createComment(text, block.id);
         return block;
     };
 
@@ -371,6 +370,8 @@ export const registerListOperations = function (
         } else {
             return null;
         }
+        // A list or a string has no key?: do not make the lists of a hash for it.
+        if (isKnownListReceiver(converter, receiver) || isKnownStringReceiver(converter, receiver)) return null;
         const hash = hashListsOfReceiver(converter, receiver, true);
         if (!hash) return null;
 
