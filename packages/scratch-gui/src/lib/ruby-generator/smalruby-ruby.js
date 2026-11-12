@@ -74,6 +74,12 @@ export default function (Generator) {
         return { paramStr, branch: resolvedBranch };
     };
 
+    // The body is the SUBSTACK, so `end` closes it here. The next block is the statement after the
+    // loop: `isStatement` (for hat blocks, whose next block is the body) would put it inside (#1628).
+    const blockMethodCode = function (call, resolved) {
+        return `${call} do${resolved.paramStr}\n${resolved.branch}end\n`;
+    };
+
     // --- Array method with block (CONDITIONAL, C-shape) ---
     Generator.smalrubyRuby_arrayMethodWithBlock = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
@@ -82,8 +88,7 @@ export default function (Generator) {
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const resolved = resolveBlockParams(block, branch);
 
-        block.isStatement = true;
-        return `${receiver}.${method} do${resolved.paramStr}\n${resolved.branch}`;
+        return blockMethodCode(`${receiver}.${method}`, resolved);
     };
 
     // --- Hash method with block (CONDITIONAL, C-shape) ---
@@ -94,8 +99,7 @@ export default function (Generator) {
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const resolved = resolveBlockParams(block, branch);
 
-        block.isStatement = true;
-        return `${receiver}.${method} do${resolved.paramStr}\n${resolved.branch}`;
+        return blockMethodCode(`${receiver}.${method}`, resolved);
     };
 
     // --- Number method with block (CONDITIONAL, C-shape) ---
@@ -105,8 +109,7 @@ export default function (Generator) {
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const resolved = resolveBlockParams(block, branch);
 
-        block.isStatement = true;
-        return `${receiver}.${method} do${resolved.paramStr}\n${resolved.branch}`;
+        return blockMethodCode(`${receiver}.${method}`, resolved);
     };
 
     // --- Block parameter (REPORTER) ---
