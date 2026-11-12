@@ -684,7 +684,7 @@ The following Ruby syntax is **NOT supported** in Smalruby:
 - `each` method
 - `begin`/`rescue`/`ensure` (exception handling)
 - `module_function`, `extend` (`module` and `include` are supported)
-- `private` / `protected` / `public` (including `private :foo` and `private def foo ... end`; they are an error wherever they are written, so delete them. For `private def foo ... end`, delete `private` and `def foo ... end` can be used)
+- `private` / `protected` / `public` (including `private :foo` and `private def foo ... end`; they are an error wherever they are written, so delete them. For `private def foo ... end`, delete `private` and `def foo ... end` can be used. Calling a method you defined yourself as `def private ... end` is not an error)
 - `require` / `require_relative`
 - String interpolation (`"Hello #{name}"`)
 - Multiple assignment (`a, b = 1, 2`)

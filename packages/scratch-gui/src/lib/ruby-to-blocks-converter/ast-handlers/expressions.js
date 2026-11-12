@@ -57,6 +57,10 @@ const ExpressionHandlers = {
             !VISIBILITY_MODIFIERS.includes(node.name)) {
             return;
         }
+        // A custom block (def private ... end) may be named private; calling it is not a visibility modifier.
+        if (this._lookupProcedure(node.name)) {
+            return;
+        }
         const args = node.arguments_ ? node.arguments_.arguments_ : [];
         const defNode = args.length === 1 && this._getNodeTypeName(args[0]) === 'DefNode' ? args[0] : null;
         const message = defNode ?

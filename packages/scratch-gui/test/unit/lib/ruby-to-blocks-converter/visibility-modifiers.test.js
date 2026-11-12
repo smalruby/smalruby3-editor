@@ -94,6 +94,31 @@ describe('RubyToBlocksConverter: private / protected / public', () => {
         expect(converter.errors[0].text).not.toMatch(/is not supported in Smalruby/);
     });
 
+    describe.each(['private', 'protected', 'public'])('a custom block named %s', name => {
+        test('is called without an error', async () => {
+            const converter = await convert(
+                ['class Sprite1', `  def ${name}`, '    move(10)', '  end', '  when_flag_clicked do', `    ${name}`,
+                    '  end', 'end'].join('\n'),
+            );
+            expect(converter.errors).toHaveLength(0);
+        });
+
+        test('is used as a value without an error', async () => {
+            const converter = await convert(
+                ['class Sprite1', `  def ${name}`, '    10', '  end', '  when_flag_clicked do', `    say(${name})`,
+                    '  end', 'end'].join('\n'),
+            );
+            expect(converter.errors).toHaveLength(0);
+        });
+    });
+
+    test('a local variable named private is not rejected', async () => {
+        const converter = await convert(
+            ['class Sprite1', '  when_flag_clicked do', '    private = 1', '    say(private)', '  end', 'end'].join('\n'),
+        );
+        expect(converter.errors).toHaveLength(0);
+    });
+
     test('the same class without private is converted', async () => {
         const converter = await convert(['class Sprite1', '  def foo', '    move(10)', '  end', 'end'].join('\n'));
         expect(converter.errors).toHaveLength(0);
