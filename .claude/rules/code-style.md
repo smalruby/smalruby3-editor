@@ -18,6 +18,26 @@
 
 **新しい Smalruby 固有ファイルを追加する際は、該当パッケージの `.prettierignore`（ホワイトリスト）に追加すること。** これだけで Prettier 対象になる（別途の一覧ファイルは持たない）。
 
+`.prettierignore` の先頭の `*` は**どの深さのファイルにもマッチする**ため、ディレクトリの書き方に注意する
+（書き方の正は各 `.prettierignore` の冒頭コメント）:
+
+- **Smalruby だけのディレクトリ**を足すときは `!dir/` と `!dir/**` の **2 行**を書く。
+  `!dir/` だけでは、ディレクトリそのものしか戻らず**中のファイルは対象外のまま**になる。
+- **upstream のファイルが混ざるディレクトリ**は `!dir/` + `dir/*` で中を一度すべて外し、
+  Smalruby のファイルだけを `!dir/<file>` で個別に戻す。
+- 足したら `npx prettier --file-info <file>` で `"ignored": false` になっていることを確かめる。
+
+```gitignore
+# Smalruby だけのディレクトリ
+!src/components/bug-report-modal/
+!src/components/bug-report-modal/**
+
+# upstream のファイルが混ざるディレクトリ
+!src/lib/
+src/lib/*
+!src/lib/auto-correct.js
+```
+
 ```bash
 # フォーマット実行
 docker compose run --rm app npm run format
