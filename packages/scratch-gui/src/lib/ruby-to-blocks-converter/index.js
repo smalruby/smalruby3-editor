@@ -219,6 +219,8 @@ class RubyToBlocksConverter extends Visitor {
                 }
             });
 
+            this._rejectVariableAndListOfSameName();
+
             // Create $_symbols_ list if symbols were collected
             this._createSymbolsList();
 

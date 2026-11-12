@@ -56,11 +56,11 @@ const OperatorsConverter = {
             return block;
         });
 
-        converter.registerOnSend(['string', 'block'], 'include?', 1, (params) => {
+        converter.registerOnSend(['string', 'block', 'variable'], 'include?', 1, (params) => {
             const { receiver, args } = params;
             if (!converter._isStringOrBlock(args[0])) return null;
 
-            const block = converter._createBlock('operator_contains', 'value');
+            const block = converter._createBlock('operator_contains', 'value_boolean');
             converter._addTextInput(block, 'STRING1', receiver, 'apple');
             converter._addTextInput(block, 'STRING2', args[0], 'a');
             return block;

@@ -918,6 +918,8 @@ export default {
         '「{ SOURCE }」はclass定義の中に直接置くことはできません。\nイベントブロック（例: when_flag_clicked）やメソッド定義（def）の中で使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope':
         '「{VARIABLE}」、変数のスコープは変更できません。\n変数をいったん削除してから、正しいスコープで作り直してください。',
+    'gui.smalruby3.rubyToBlocksConverter.variableAndListSameName':
+        '「{NAME}」は {LIST_LINE} 行目ではリスト、{VARIABLE_LINE} 行目では変数として使われています。\nRuby では同じ名前を変数とリストの両方には使えません。どちらかの名前を変えてください。',
     'gui.smalruby3.rubyToBlocksConverter.alreadyDefinedMyBlock':
         '「{NAME}」というブロック定義はすでに存在しています。\n別の名前を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.costumeDoesNotExist':
