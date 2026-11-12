@@ -89,8 +89,11 @@ const ContextUtils = {
             } else {
                 storeName = 'lists';
             }
+            // `fromTarget` marks what the project already has, so that a list left behind by
+            // earlier code can give way to a variable of the same name (issue #1612).
             this._context[storeName][variable.name] = Object.assign({}, variable, {
                 scope: scope,
+                fromTarget: true,
             });
         });
     },
