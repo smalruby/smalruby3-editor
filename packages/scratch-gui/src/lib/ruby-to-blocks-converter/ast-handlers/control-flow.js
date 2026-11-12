@@ -1,9 +1,32 @@
 import _ from 'lodash';
+import { defineMessages } from 'react-intl';
+import { RubyToBlocksConverterError } from '../errors';
 import ControlFlowDef from './control-flow-def';
 
 // The marker of the blocks that call the methods of the condition of a loop again at the end of
 // its body (issue #1606). The generator does not write them (see `scrub.js` of the generator).
 const LOOP_CONDITION_CALL_MARKER = '@ruby:loop_condition_call';
+
+// `begin ... end while cond` / `begin ... end until cond` run the body once before the condition is
+// checked (issue #1610). The blocks put the body once before the loop (each block of it marked with
+// BEGIN_LOOP_BODY_MARKER) and the loop is marked with BEGIN_LOOP_MARKER. The generator writes
+// `begin ... end while cond` and not the body before the loop, while both are the same.
+const BEGIN_LOOP_BODY_MARKER = '@ruby:begin_loop_body';
+const BEGIN_LOOP_MARKER = '@ruby:syntax:begin_end';
+
+const messages = defineMessages({
+    beginLoopBodyNeverEnds: {
+        defaultMessage:
+            '"{ SOURCE }" cannot be made into blocks, because the commands between begin and end end with ' +
+            'a command that nothing can follow (loop do ... end, return, stop and so on), so the condition ' +
+            'is never checked.' +
+            '\nWrite the commands without begin ... end and the condition after end.',
+        description:
+            'Error message when the body of begin ... end while / until ends with a command that nothing ' +
+            'can follow (e.g. begin loop do ... end end while x < 3, or return in the body)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.beginLoopBodyNeverEnds',
+    },
+});
 
 /**
  * Control flow AST handlers for RubyToBlocksConverter.
@@ -252,10 +275,12 @@ const ControlFlowHandlers = {
         cond = split.value;
         preBlocks.push(...split.preBlocks);
 
+        const bodyCallState = this._methodCallState();
         const statement = this._processStatement(node.statements);
         const conditionCalls = this._conditionCallsAgain(node.predicate, split.preBlocks, callState);
 
         let block = this._callConvertersHandler('onUntil', cond, statement);
+        let bodyCopy = null;
         if (!block) {
             this._restoreContext(saved);
 
@@ -263,6 +288,8 @@ const ControlFlowHandlers = {
         } else if (this._appendConditionCalls(block, conditionCalls) === 'control_wait_until') {
             // `wait until bar(a) == 0` became a loop that calls bar again: write it back as written.
             this._addCommentMarker(block, '@ruby:syntax:wait_until');
+        } else {
+            bodyCopy = this._beginLoopBodyCopy(node, block, bodyCallState);
         }
 
         if (variableHint && this._isBlock(block)) {
@@ -276,6 +303,9 @@ const ControlFlowHandlers = {
             }
         }
 
+        if (bodyCopy) {
+            preBlocks.unshift(bodyCopy);
+        }
         if (preBlocks.length > 0 && block) {
             if (_.isArray(block)) {
                 return [...preBlocks, ...block];
@@ -376,10 +406,12 @@ const ControlFlowHandlers = {
             this._addBooleanInput(notBlock, 'OPERAND', cond);
         }
 
+        const bodyCallState = this._methodCallState();
         const statement = this._processStatement(node.statements);
         const conditionCalls = this._conditionCallsAgain(node.predicate, split.preBlocks, callState);
 
         let block = this._callConvertersHandler('onUntil', notBlock, statement);
+        let bodyCopy = null;
         if (!block) {
             this._restoreContext(saved);
 
@@ -393,8 +425,12 @@ const ControlFlowHandlers = {
                 commentText += `,@ruby:variable:${variableHint}`;
             }
             this._addCommentMarker(block, commentText);
+            bodyCopy = this._beginLoopBodyCopy(node, block, bodyCallState);
         }
 
+        if (bodyCopy) {
+            preBlocks.unshift(bodyCopy);
+        }
         if (preBlocks.length > 0 && block) {
             if (_.isArray(block)) {
                 return [...preBlocks, ...block];
@@ -510,6 +546,72 @@ const ControlFlowHandlers = {
             this._addSubstack(block, calls[0]);
         }
         return opcode;
+    },
+
+    /**
+     * The body of `begin ... end while cond` / `begin ... end until cond`, put once before the loop
+     * (issue #1610): Ruby runs it before the condition is checked the first time. The body is
+     * visited again as it was visited for the loop (the same call numbers, e.g. `@_return_bar_1_`),
+     * and each block of it is marked so that the generator writes `begin ... end while cond` back.
+     * @param {object} node - The WhileNode / UntilNode.
+     * @param {object} loop - The loop block made for the node.
+     * @param {object} callState - The state before the body was visited (see `_methodCallState`).
+     * @returns {?object} The first block of the body before the loop, or null if it is not needed.
+     */
+    _beginLoopBodyCopy(node, loop, callState) {
+        if (!node.isBeginModifier() || !node.statements || !this._isBlock(loop)) {
+            return null;
+        }
+        if (loop.opcode !== 'control_repeat_until') {
+            return null;
+        }
+        const context = this._context;
+        const after = {
+            methodCallIndices: context.methodCallIndices,
+            savedReturnValueInStatement: context.savedReturnValueInStatement,
+            variableHint: context.variableHint,
+        };
+        context.methodCallIndices = Object.assign({}, callState.methodCallIndices);
+        context.savedReturnValueInStatement = callState.savedReturnValueInStatement;
+        // A line of the Ruby code stays mapped to the blocks in the loop.
+        const nodeToBlockMap = context.nodeToBlockMap && new Map(context.nodeToBlockMap);
+        let head;
+        try {
+            head = this._processStatement(node.statements);
+        } finally {
+            context.methodCallIndices = after.methodCallIndices;
+            context.savedReturnValueInStatement = after.savedReturnValueInStatement;
+            context.variableHint = after.variableHint;
+            if (nodeToBlockMap) {
+                context.nodeToBlockMap.clear();
+                nodeToBlockMap.forEach((blockId, n) => context.nodeToBlockMap.set(n, blockId));
+            }
+        }
+        // `wait` in a loop waits for the next frame and has no block: the loop keeps it as a marker,
+        // and the body before the loop drops it, as the body of the loop does.
+        head = this._isBlock(head) ? this._removeWaitBlocks(head) : null;
+        if (!this._isBlock(head)) {
+            return null;
+        }
+        head.parent = null;
+        const blocks = [];
+        for (let b = head; b; b = context.blocks[b.next]) {
+            blocks.push(b);
+        }
+        if (this._getBlockType(blocks[blocks.length - 1]) === 'terminate') {
+            // Nothing can follow it, and Ruby never checks the condition.
+            const line = this._getNodeStartLine(node.predicate);
+            const lineSource = line ? (context.sourceCode.split('\n')[line - 1] || '').trim() : '';
+            throw new RubyToBlocksConverterError(
+                node.predicate,
+                this._translator(messages.beginLoopBodyNeverEnds, {
+                    SOURCE: lineSource || this._getSource(node.predicate),
+                }),
+            );
+        }
+        blocks.forEach((b) => this._addCommentMarker(b, BEGIN_LOOP_BODY_MARKER));
+        this._addCommentMarker(loop, BEGIN_LOOP_MARKER);
+        return head;
     },
 
     /**
