@@ -22,6 +22,13 @@ const messages = defineMessages({
         description: 'Error message for converting ruby to block when find the wrong instruction',
         id: 'gui.smalruby3.rubyToBlocksConverter.wrongInstruction',
     },
+    arrayLiteralReceiver: {
+        defaultMessage:
+            '"{ METHOD }" cannot be used directly on an array literal ([...]).' +
+            '\nPut the array in a variable first (e.g. a = [1, 2]), then use a.{ METHOD }.',
+        description: 'Error message when an array method is called on an array literal such as [1, 2].each',
+        id: 'gui.smalruby3.rubyToBlocksConverter.arrayLiteralReceiver',
+    },
     cannotChangeVariableScope: {
         defaultMessage:
             '"{ VARIABLE }", can\'t change variable scope.' +

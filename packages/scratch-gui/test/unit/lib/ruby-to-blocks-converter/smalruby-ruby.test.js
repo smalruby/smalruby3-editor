@@ -111,6 +111,55 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
         });
     });
 
+    // Issue #1621: an array literal cannot be the receiver of a block (Scratch has no
+    // "list literal" reporter). It used to be dropped silently and come back as `""`.
+    describe('array literal receiver (#1621)', () => {
+        const cases = [
+            ['[1, 2].each do |i|', 'each'],
+            ['[1, 2].each do', 'each'],
+            ['["a", "b"].each do |s|', 'each'],
+            ['[].each do |i|', 'each'],
+        ];
+        test.each(cases)('should report an error on the line of %s', async (header, method) => {
+            const code = `when_flag_clicked do\n  say(1)\n  ${header}\n    say(2)\n  end\nend`;
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(false);
+            expect(converter.errors).toHaveLength(1);
+            expect(converter.errors[0].row).toBe(2);
+            expect(converter.errors[0].text).toContain(method);
+            expect(converter.errors[0].text).toMatch(/variable/);
+        });
+
+        test.each(['first', 'last', 'max', 'min', 'sort', 'reverse', 'join'])(
+            'should report an error for [1, 2].%s',
+            async (method) => {
+                const code = `when_flag_clicked do\n  say([1, 2].${method})\nend`;
+                const result = await converter.targetCodeToBlocks(target, code);
+                expect(result).toBe(false);
+                expect(converter.errors).toHaveLength(1);
+                expect(converter.errors[0].row).toBe(1);
+                expect(converter.errors[0].text).toContain(method);
+            },
+        );
+
+        test('should report an error for [1, 2].join(", ")', async () => {
+            const code = 'when_flag_clicked do\n  say([1, 2].join(", "))\nend';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(false);
+            expect(converter.errors[0].row).toBe(1);
+            expect(converter.errors[0].text).toContain('join');
+        });
+
+        test('should report the error in Ruby version 1 too', async () => {
+            converter = new RubyToBlocksConverter(null, { version: '1' });
+            const code = 'when_flag_clicked do\n  [1, 2].each do |i|\n    say(i)\n  end\nend';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(false);
+            expect(converter.errors[0].row).toBe(1);
+            expect(converter.errors[0].text).toContain('each');
+        });
+    });
+
     describe('reverse disambiguation (String vs Array)', () => {
         const findOpcode = (opcode) => Object.values(converter._context.blocks).find((b) => b.opcode === opcode);
 

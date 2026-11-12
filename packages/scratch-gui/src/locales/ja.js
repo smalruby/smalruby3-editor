@@ -914,6 +914,8 @@ export default {
         '「{ SOURCE }」はブロックに変換できません。\nつづりを確認するか、対応している値を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction':
         '「{ SOURCE }」は命令がまちがっています。\nつづりを確認するか、対応しているブロックを使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.arrayLiteralReceiver':
+        '配列（[...]）に直接「{ METHOD }」は使えません。\n先に配列を変数に入れてから（例: a = [1, 2]）、a.{ METHOD } のように使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
         '「{ SOURCE }」はclass定義の中に直接置くことはできません。\nイベントブロック（例: when_flag_clicked）やメソッド定義（def）の中で使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope':
