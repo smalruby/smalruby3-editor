@@ -1,8 +1,8 @@
 // === Smalruby: This file is Smalruby-specific (DNCL source validator) ===
 import { DNCL_KEYWORDS, RUBY_LITERALS } from './dncl-keywords';
 import { findFunctionNames } from './dncl-state';
-import { codeOfLine } from './dncl-trailing-comment';
-import { findMatchingClose, skipString } from './paren-utils';
+import { codeOfLine, commentIndex, stringEndAt } from './dncl-trailing-comment';
+import { findMatchingClose } from './paren-utils';
 
 /**
  * The id of the error for the post-test loop (issue #1626). The Japanese mode
@@ -100,24 +100,18 @@ const TRAILING_IDENT_RE =
  * @returns {string} The code without strings and comment.
  */
 const codeWithoutStrings = (line) => {
+    const comment = commentIndex(line);
+    const code = comment === -1 ? line : line.substring(0, comment);
     let out = '';
     let i = 0;
-    while (i < line.length) {
-        const ch = line[i];
-        if (ch === '#') break;
-        let end = -1;
-        if (ch === '"' || ch === "'") {
-            end = skipString(line, i, ch);
-        } else if (ch === '「') {
-            const close = line.indexOf('」', i + 1);
-            if (close !== -1) end = close + 1;
-        }
-        if (end > i) {
+    while (i < code.length) {
+        const end = stringEndAt(code, i);
+        if (end !== -1) {
             out += ' '.repeat(end - i);
             i = end;
             continue;
         }
-        out += ch;
+        out += code[i];
         i++;
     }
     return out;
@@ -250,29 +244,12 @@ const validateDncl = (source) => {
     const errors = [];
     const lines = source.split('\n');
     for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        // Skip comments
-        const commentIdx = line.indexOf('#');
-        const code = commentIdx >= 0 ? line.substring(0, commentIdx) : line;
-        // Check for @ or $ outside strings
-        let inString = false;
-        let quote = null;
+        // The code before the comment, with the strings blanked out: a `#`
+        // in a string (`"#"`, `'#'`, `「#」`) is text, not a comment, so an
+        // `@` after it is still found, and an `@` in a string or in the
+        // comment is not (Issue #1709). The columns stay as written.
+        const code = codeWithoutStrings(lines[i]);
         for (let j = 0; j < code.length; j++) {
-            if (inString) {
-                if (code[j] === '\\') {
-                    j++;
-                    continue;
-                }
-                if (code[j] === quote) {
-                    inString = false;
-                }
-                continue;
-            }
-            if (code[j] === '"' || code[j] === "'") {
-                inString = true;
-                quote = code[j];
-                continue;
-            }
             if (code[j] === '@' || code[j] === '$') {
                 errors.push({
                     line: i + 1,

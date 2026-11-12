@@ -4,7 +4,7 @@
 // end of the line.
 import dedent from 'dedent';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { codeOfLine } from '../../../../src/lib/dncl/dncl-trailing-comment';
+import { codeOfLine, commentIndex, stringEndAt } from '../../../../src/lib/dncl/dncl-trailing-comment';
 import { dnclV2Preprocess } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
 import { isDoBlockLine } from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
@@ -314,5 +314,29 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
             `;
             expect(toRuby(dncl)).toBe('if @a > 0 # c\n  puts(@a) # d\nend');
         });
+    });
+});
+
+// The scanners of the DNCL lines share what a string is (#1709).
+describe('stringEndAt / commentIndex', () => {
+    test.each([
+        ['"#" + a', 0, 3],
+        ["'#' + a", 0, 3],
+        ['「#」 + a', 0, 3],
+        ['"a\\"#" + b', 0, 6],
+        ['「#', 0, -1],
+        ['a + "b"', 0, -1],
+    ])('stringEndAt(%j, %i) is %i', (line, i, end) => {
+        expect(stringEndAt(line, i)).toBe(end);
+    });
+
+    test.each([
+        ['x ← "#" + @y', -1],
+        ['x ← 「#」 + @y', -1],
+        ["x ← '#' # c", 8],
+        ['x ← 「# c', 5],
+        ['x ← 1 # @y', 6],
+    ])('commentIndex(%j) is %i', (line, index) => {
+        expect(commentIndex(line)).toBe(index);
     });
 });

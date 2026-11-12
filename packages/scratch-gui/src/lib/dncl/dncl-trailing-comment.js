@@ -2,6 +2,26 @@
 import { skipString } from './paren-utils';
 
 /**
+ * The end (the index after the closing quote) of the string literal that
+ * starts at `line[i]`: `"..."` / `'...'`, or the DNCL 「...」. -1 when no
+ * string starts there; an unclosed 「 is not a string. Every scanner that
+ * skips the strings of a DNCL line uses this, so they agree on what a
+ * string is (Issue #1709).
+ * @param {string} line - A DNCL or Ruby line.
+ * @param {number} i - The index to look at.
+ * @returns {number} The end of the string, or -1.
+ */
+const stringEndAt = (line, i) => {
+    const ch = line[i];
+    if (ch === '"' || ch === "'") return skipString(line, i, ch);
+    if (ch === '「') {
+        const close = line.indexOf('」', i + 1);
+        if (close !== -1) return close + 1;
+    }
+    return -1;
+};
+
+/**
  * Index of the `#` that starts the comment of a line, or -1 when there is
  * none. A `#` inside a string literal (`"..."` / `'...'`, or the DNCL
  * 「...」) is text, not a comment. An unclosed 「 is not a string.
@@ -11,19 +31,12 @@ import { skipString } from './paren-utils';
 const commentIndex = (line) => {
     let i = 0;
     while (i < line.length) {
-        const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            i = skipString(line, i, ch);
+        const end = stringEndAt(line, i);
+        if (end !== -1) {
+            i = end;
             continue;
         }
-        if (ch === '「') {
-            const close = line.indexOf('」', i + 1);
-            if (close !== -1) {
-                i = close + 1;
-                continue;
-            }
-        }
-        if (ch === '#') return i;
+        if (line[i] === '#') return i;
         i++;
     }
     return -1;
@@ -60,4 +73,4 @@ const codeOfLine = (line) => {
     return (idx === -1 ? line : line.substring(0, idx)).replace(/\s+$/, '');
 };
 
-export { codeOfLine, splitTrailingComment };
+export { codeOfLine, commentIndex, splitTrailingComment, stringEndAt };

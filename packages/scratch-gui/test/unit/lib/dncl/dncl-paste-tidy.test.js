@@ -187,3 +187,19 @@ describe('slashCommentRows', () => {
         expect(slashCommentRows(['表示する("http://x")', 'a = 1 # 説明 // です'])).toEqual([]);
     });
 });
+
+// A `#` or `//` in a 「...」 string is text, as in `"..."` (#1709).
+describe('tidyPastedDncl and 「...」', () => {
+    test('a `//` comment after a 「#」 becomes `#`', () => {
+        expect(tidyPastedDncl('(00) 表示する(「#」) // 表示')).toBe('表示する(「#」) # 表示');
+    });
+
+    test('a `//` in 「...」 is not a comment', () => {
+        expect(tidyPastedDncl('(00) 表示する(「a // b」)')).toBe('表示する(「a // b」)');
+        expect(hasDoubleSlash('表示する(「//」)')).toBe(false);
+    });
+
+    test('a bracket in 「...」 does not join the next line', () => {
+        expect(tidyPastedDncl('(00) 表示する(「(」)\n      x = 1')).toBe('表示する(「(」)\n      x = 1');
+    });
+});
