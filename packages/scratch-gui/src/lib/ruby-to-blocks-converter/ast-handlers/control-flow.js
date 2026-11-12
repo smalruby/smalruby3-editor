@@ -264,7 +264,7 @@ const ControlFlowHandlers = {
         const statement = this._processStatement(node.statements);
         const conditionCalls = this._conditionCallsAgain(node.predicate, split.preBlocks, callState);
 
-        let block = this._callConvertersHandler('onUntil', cond, statement);
+        let block = this._callConvertersHandler('onUntil', cond, statement, this._loopForm(node));
         let bodyCopy = null;
         if (!block) {
             this._restoreContext(saved);
@@ -381,7 +381,7 @@ const ControlFlowHandlers = {
         const statement = this._processStatement(node.statements);
         const conditionCalls = this._conditionCallsAgain(node.predicate, split.preBlocks, callState);
 
-        let block = this._callConvertersHandler('onUntil', notBlock, statement);
+        let block = this._callConvertersHandler('onUntil', notBlock, statement, this._loopForm(node));
         let bodyCopy = null;
         if (!block) {
             this._restoreContext(saved);
@@ -511,6 +511,20 @@ const ControlFlowHandlers = {
             this._addSubstack(block, calls[0]);
         }
         return opcode;
+    },
+
+    /**
+     * How a WhileNode / UntilNode is written, to tell "wait until" from an empty "repeat until"
+     * (issues #1655 / #1656).
+     * @param {object} node - The WhileNode / UntilNode.
+     * @returns {{modifier: boolean, doKeyword: boolean}} `modifier` for `wait until x` (not
+     *     `begin ... end until x`), `doKeyword` for `until x do`.
+     */
+    _loopForm(node) {
+        return {
+            modifier: !node.closingLoc && !node.isBeginModifier(),
+            doKeyword: !!node.doKeywordLoc,
+        };
     },
 
     /**

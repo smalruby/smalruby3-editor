@@ -90,7 +90,8 @@ const convertLine = (line, blockStack) => {
     }
 
     // while condition → condition の間
-    const whileMatch = trimmed.match(/^while\s+(.+)$/);
+    // `while x do` / `until x do` is how the generator writes an empty loop (issue #1655): drop `do`.
+    const whileMatch = trimmed.match(/^while\s+(.+?)(?:\s+do)?$/);
     if (whileMatch) {
         blockStack.push('loop');
         const condition = processSegments(whileMatch[1]);
@@ -98,7 +99,7 @@ const convertLine = (line, blockStack) => {
     }
 
     // until condition → condition でない の間
-    const untilMatch = trimmed.match(/^until\s+(.+)$/);
+    const untilMatch = trimmed.match(/^until\s+(.+?)(?:\s+do)?$/);
     if (untilMatch) {
         blockStack.push('loop');
         return `${indent}${untilCondition(untilMatch[1])} の間`;
@@ -194,7 +195,7 @@ const detectForLoopPattern = (pending, whileLine, whileIndent) => {
     if (pending.indent !== whileIndent) return null;
 
     // Match: while @var <= expr  or  while @var >= expr
-    const whileMatch = whileLine.match(new RegExp(`^while\\s+(@[${ID}]+)\\s*(<=|>=)\\s*(.+)$`));
+    const whileMatch = whileLine.match(new RegExp(`^while\\s+(@[${ID}]+)\\s*(<=|>=)\\s*(.+?)(?:\\s+do)?$`));
     if (!whileMatch) return null;
     if (whileMatch[1] !== pending.varRef) return null;
 
