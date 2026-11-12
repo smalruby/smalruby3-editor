@@ -58,6 +58,8 @@ const ContextUtils = {
             variableUses: {},
             // Where the code uses each local variable, and the unit being converted (issue #1630)
             localVariableUnits: null,
+            // The list blocks that read `@a` / `$a` of Ruby version 2 (issue #1622)
+            listReadBlockIds: new Set(),
             currentLocalUnit: 0,
         };
         if (this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage) {

@@ -226,9 +226,21 @@ const ExpressionHandlers = {
             }
         }
 
-        let block = this.callMethod(receiver, name, args, rubyBlockArgs, rubyBlock, node);
-        if (!block) {
-            block = this._callConvertersHandler('onSend', receiver, name, args, rubyBlockArgs, rubyBlock, node);
+        // A receiver or an argument that is not a value (e.g. `(a = 2)` of `(a = 2).to_s`), or a value
+        // before it in parentheses (e.g. `a` of `(a; b)`), makes the call one that cannot be converted,
+        // like `say(a = 2)`: put in an input, the command or the value was lost without an error (issue #1691).
+        // The loop of `loop.with_screen_refresh` / `N.times.with_screen_refresh` is a command by design.
+        const hasCommandValue =
+            (this._isCommandValue(receiver) && !this._isLoopToChain(receiver, name)) ||
+            args.some((a) => this._isCommandValue(a)) ||
+            this._hasLostPreBlock(preBlocks);
+
+        let block = null;
+        if (!hasCommandValue) {
+            block = this.callMethod(receiver, name, args, rubyBlockArgs, rubyBlock, node);
+            if (!block) {
+                block = this._callConvertersHandler('onSend', receiver, name, args, rubyBlockArgs, rubyBlock, node);
+            }
         }
 
         // === Smalruby: Start of auto-split method call return value ===
@@ -494,6 +506,30 @@ const ExpressionHandlers = {
     },
 
     _onVar(name, scope, node) {
+        // `@a` that is a list reads the list itself (issue #1622): the sprite has only the list `a`,
+        // the code uses `@a` as a list, or it is `@_a_list_`. Ruby version 1 reads a list with
+        // `list("@a")`, so there a read stays a variable read (the applier still reads the list
+        // that this code makes, issue #1567).
+        if (
+            this.version >= 2 &&
+            (scope === 'global' || scope === 'instance') &&
+            this._kindOfRubyName(name) === 'list'
+        ) {
+            const list = this._lookupOrCreateList(name);
+            const listBlock = this._createBlock('data_listcontents', 'value_variable', {
+                fields: {
+                    LIST: {
+                        name: 'LIST',
+                        id: list.id,
+                        value: list.name,
+                        variableType: list.type,
+                    },
+                },
+            });
+            // A read of `@a` in Ruby, whose index is from 0 (see `convertToListBlock`)
+            this._context.listReadBlockIds.add(listBlock.id);
+            return listBlock;
+        }
         const variable = this._lookupOrCreateVariable(name);
         const block = this._callConvertersHandler('onVar', scope, variable);
         if (block) {
