@@ -227,10 +227,10 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
             expect(Object.values(target.variables).filter((v) => v.type === 'list')).toHaveLength(1);
         });
 
-        test('a list method of a name that is also set to a string is still an error', async () => {
+        test('a list method of a name that is also set to a string is still an error that shows the line of the list method', async () => {
             const { result, errors } = await convert('def f\n  say(@a.length)\nend\n\n@a = "abc"\n@a.push(1)');
             expect(result).toBe(false);
-            expect(errors[0].text).toContain('"@a" is used as a list on line 2 and as a variable on line 5.');
+            expect(errors[0].text).toContain('"@a" is used as a list on line 6 and as a variable on line 5.');
         });
 
         test.each([

@@ -12,6 +12,13 @@ const VARIABLE_WRITE_NODE_TYPES = new Set(
         ['WriteNode', 'OperatorWriteNode', 'OrWriteNode', 'AndWriteNode'].map((suffix) => `${kind}${suffix}`),
     ),
 );
+// List blocks of Ruby that a String also has (`length` / `[i]` / `include?`), and the read of a list.
+const LIST_OPCODES_ALSO_FOR_STRINGS = new Set([
+    'data_lengthoflist',
+    'data_itemoflist',
+    'data_listcontainsitem',
+    'data_listcontents',
+]);
 const VARIABLE_READ_NODE_TYPES = new Set([
     'InstanceVariableReadNode',
     'GlobalVariableReadNode',
@@ -512,6 +519,10 @@ const VariableUtils = {
         if (Object.keys(scalarIds).length === 0) return;
 
         const firstListLine = {};
+        // A line that uses the name only as a list (`@a.push(1)`, `@a = []`) is the one to show: a
+        // `length` / `include?` / `[i]` / read of the name is a list only because of such a line
+        // (issue #1613).
+        const firstListOnlyLine = {};
         const firstScalarUse = {};
         Object.values(this._context.blocks).forEach((block) => {
             const fields = block.fields || {};
@@ -523,6 +534,9 @@ const VariableUtils = {
             if (list) {
                 const key = keyOf(list);
                 if (earlier(line, firstListLine[key])) firstListLine[key] = line;
+                if (!LIST_OPCODES_ALSO_FOR_STRINGS.has(block.opcode) && earlier(line, firstListOnlyLine[key])) {
+                    firstListOnlyLine[key] = line;
+                }
             }
             if (scalar) {
                 const key = keyOf(scalar);
@@ -552,7 +566,11 @@ const VariableUtils = {
             node,
             this._translator(messages.variableAndListSameName, {
                 NAME: name,
-                LIST_LINE: lineText(firstListLine[keyOf(variable)]),
+                LIST_LINE: lineText(
+                    typeof firstListOnlyLine[keyOf(variable)] === 'undefined'
+                        ? firstListLine[keyOf(variable)]
+                        : firstListOnlyLine[keyOf(variable)],
+                ),
                 VARIABLE_LINE: lineText(line),
             }),
         );
