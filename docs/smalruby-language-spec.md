@@ -297,6 +297,8 @@ until touching?("_edge_")
 end
 ```
 
+`begin ... end while condition` / `begin ... end until condition` (run once before the condition is checked) can be used too. The blocks put the commands once before the loop and then repeat them with "repeat until", so the first run happens whatever the condition is, as in Ruby. The commands before the loop have a comment marker (`@ruby:begin_loop_body`) and the loop has `@ruby:syntax:begin_end`; blocks → Ruby does not write the commands before the loop and gives back `begin ... end while condition`. When the commands before the loop and in the loop become different on the blocks screen, the commands before the loop are written as they are and the loop is written as a plain `while` / `until`. When the commands end with a command that nothing can follow (e.g. `loop do ... end` or `return`), it is an error on the line of the condition.
+
 **Note**: `for` and `each` loops are NOT supported.
 
 **Important — Loop auto-wait**: `loop do...end`, `N.times do...end`, `while...end`, and `until...end` automatically wait 1 frame (~33ms, 30fps) at each iteration end. Do NOT add `sleep()` for animation speed control. Only use `sleep()` for explicit long waits (0.5s or more).

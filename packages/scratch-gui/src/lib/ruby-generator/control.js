@@ -1,4 +1,4 @@
-import { isLoopConditionCall } from './scrub.js';
+import { beginLoopBodyOf, isLoopConditionCall } from './scrub.js';
 
 /**
  * Define Ruby code generator for Control Blocks
@@ -323,24 +323,23 @@ export default function (Generator) {
         const useScreenRefresh = needsWithScreenRefresh(block);
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
         const varName = getVariableHint(block);
+        const isWhile = !!comment && comment.includes('@ruby:syntax:while');
+        let operator;
         if (varName) {
-            const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-            const body = useScreenRefresh ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
-            if (comment.includes('@ruby:syntax:while')) {
-                return `while ${varName}\n${body}end\n`;
-            }
-            return `until ${varName}\n${body}end\n`;
+            operator = varName;
+        } else if (isWhile) {
+            operator = getWhileCondition(block);
+        } else {
+            operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
         }
-        if (comment && comment.includes('@ruby:syntax:while')) {
-            const operator = getWhileCondition(block);
-            const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-            const body = useScreenRefresh ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
-            return `while ${operator}\n${body}end\n`;
-        }
-        const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
+        const keyword = isWhile ? 'while' : 'until';
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const body = useScreenRefresh ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
-        return `until ${operator}\n${body}end\n`;
+        // `begin ... end while cond` (issue #1610): the body before the loop is not written (see scrub.js).
+        if (beginLoopBodyOf(Generator, block)) {
+            return `begin\n${body}end ${keyword} ${operator}\n`;
+        }
+        return `${keyword} ${operator}\n${body}end\n`;
     };
 
     Generator.control_stop = function (block) {
