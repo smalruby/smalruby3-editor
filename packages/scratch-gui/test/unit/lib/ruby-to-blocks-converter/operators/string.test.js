@@ -108,7 +108,22 @@ describe('RubyToBlocksConverter/Operators', () => {
                     },
                     {
                         name: 'LETTER',
-                        block: (await rubyToExpected(converter, target, 'y'))[0],
+                        // Ruby counts from 0 and the block from 1: x[y] is "letter (y + 1) of x"
+                        block: {
+                            opcode: 'operator_add',
+                            comment: { text: '@ruby:array:index', minimized: true },
+                            inputs: [
+                                {
+                                    name: 'NUM1',
+                                    block: (await rubyToExpected(converter, target, 'y'))[0],
+                                    shadow: expectedInfo.makeNumber(0),
+                                },
+                                {
+                                    name: 'NUM2',
+                                    block: expectedInfo.makeNumber(1),
+                                },
+                            ],
+                        },
                         shadow: expectedInfo.makeNumber(1),
                     },
                 ],

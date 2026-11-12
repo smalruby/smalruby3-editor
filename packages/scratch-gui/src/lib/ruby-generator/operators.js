@@ -278,11 +278,37 @@ export default function (Generator) {
         return [`${rightStr} + ${leftStr}`, order];
     };
 
+    /**
+     * The Ruby index (from 0) for the LETTER input of "letter (n) of" (from 1).
+     * - operator_add(x, 1) with the `@ruby`:array:index mark (made by the converter from
+     *   "abc"[x]): x itself, so the round trip keeps "abc"[x].
+     * - a number: the number - 1.
+     * - any other expression: "expression - 1".
+     * @param {object} block - The operator_letter_of block.
+     * @returns {(string|number)} The index expression.
+     */
+    const letterOfIndex = function (block) {
+        const indexBlockId = block.inputs && block.inputs.LETTER && block.inputs.LETTER.block;
+        const indexBlock = indexBlockId && Generator.getBlock(indexBlockId);
+        if (indexBlock && indexBlock.opcode === 'operator_add') {
+            const comment = Generator.getCommentText(indexBlock);
+            if (comment && comment.includes('@ruby:array:index')) {
+                return Generator.valueToCode(indexBlock, 'NUM1', Generator.ORDER_NONE) || 0;
+            }
+        }
+
+        const letter = Generator.valueToCode(block, 'LETTER', Generator.ORDER_ADDITIVE) || '1';
+        const num = Number(letter);
+        if (!isNaN(num) && String(num) === String(letter)) {
+            return num - 1;
+        }
+        return `${letter} - 1`;
+    };
+
     Generator.operator_letter_of = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
         const str = Generator.valueToCode(block, 'STRING', Generator.ORDER_RECEIVER) || Generator.quote_('');
-        const letter = Generator.valueToCode(block, 'LETTER', Generator.ORDER_INDEX) - 1 || '0';
-        return [`${str}[${letter}]`, order];
+        return [`${str}[${letterOfIndex(block)}]`, order];
     };
 
     Generator.operator_length = function (block) {
