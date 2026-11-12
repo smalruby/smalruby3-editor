@@ -692,6 +692,8 @@ hide_list("@items")            # Hide list
 say(@items)                    # Pass the list itself (the list reporter block) as a value
 ```
 
+One name cannot be both a variable and a list (Scratch can have a variable and a list of the same name, but Ruby has one `@a`). Using a name as both, like `@a = 0` and `@a = []`, is an error that tells the lines when the code is turned into blocks. Only reading a list as a value (`say(@a)` after `@a = []`) is not an error. `length` / `include?` / `empty?` / `[i]` of a variable set to a string become string blocks and make no list.
+
 ## 5. Unsupported Ruby Syntax
 
 The following Ruby syntax is **NOT supported** in Smalruby:
@@ -722,6 +724,24 @@ change_x(10)
 self.x = 100
 self.x += 10
 ```
+
+```ruby
+# ⚠️ Without self., x = / y = means different things depending on the right-hand side
+x = 100        # only a number or a variable → sets the x position (same as self.x = 100)
+x = bar(1)     # a method call, super, or a calculation → assigns a local variable x
+x = 1 + bar(1) #   (the x position does not change)
+x = super
+
+# ✅ To change the position, always write self.x = / self.y =
+self.x = bar(1)
+self.y = super
+
+# ✅ Use a name other than x / y for a temporary variable
+v = bar(1)
+return v
+```
+
+The same applies to other attributes you can set with `self.name =`, such as `direction` and `size`. To avoid confusion, add `self.` when you change an attribute, and do not give a temporary variable the same name as an attribute.
 
 ```ruby
 # ❌ Wrong method names

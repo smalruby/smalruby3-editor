@@ -96,6 +96,27 @@ export const isKnownListReceiver = function (converter, block) {
 };
 
 /**
+ * Determine whether a receiver block reads a variable that was set to a string and is not a list.
+ * `length` / `include?` / `empty?` / `[i]` are methods of both String and Array, and a variable
+ * read is a data_variable block either way, so the list handlers would make a list of the same
+ * name as the string variable (`@a = "x"` then `@a.length`), and the string variable would be
+ * dropped with the script that sets it (issue #1593). For such a receiver the list handlers leave
+ * it to the string handlers. Never creates a list.
+ * @param {object} converter - The converter instance.
+ * @param {object} block - The receiver block to inspect.
+ * @returns {boolean} true if the receiver reads a variable known to hold a string.
+ */
+export const isKnownStringReceiver = function (converter, block) {
+    if (!converter._isBlock(block) || block.opcode !== 'data_variable' || !block.fields || !block.fields.VARIABLE) {
+        return false;
+    }
+    if (isKnownListReceiver(converter, block)) return false;
+    const varName = block.fields.VARIABLE.value;
+    const variable = converter._context.variables[varName] || converter._context.localVariables[varName];
+    return Boolean(variable) && variable.dataType === 'string';
+};
+
+/**
  * Adjust a 0-indexed Ruby array index to 1-indexed Scratch list index.
  * Always wraps in operator_add(index, 1) with `@ruby`:array:index comment
  * to enable round-trip conversion.

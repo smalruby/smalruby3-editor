@@ -1,5 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (List/show/hide handlers for variable converter) ===
 import { RubyToBlocksConverterError } from './errors';
+import { isKnownStringReceiver } from './variable-hash-ops';
 
 /**
  * Register all list operation and show/hide variable handlers on the converter.
@@ -250,6 +251,7 @@ export const registerListOperations = function (
         }
 
         if (!converter._isNumberOrBlock(args[0])) return null;
+        if (isKnownStringReceiver(converter, receiver)) return null;
 
         const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         if (converted && listBlock) {
@@ -293,6 +295,7 @@ export const registerListOperations = function (
 
     converter.registerOnSend('variable', 'length', 0, (params) => {
         const { receiver } = params;
+        if (isKnownStringReceiver(converter, receiver)) return null;
 
         const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         if (converted && listBlock) {
@@ -308,6 +311,7 @@ export const registerListOperations = function (
     converter.registerOnSend('variable', 'include?', 1, (params) => {
         const { receiver, args } = params;
         if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
+        if (isKnownStringReceiver(converter, receiver)) return null;
 
         let recv = receiver;
         if (converter.version >= 2) {
@@ -325,6 +329,7 @@ export const registerListOperations = function (
         if (converter.version < 2) return null;
 
         const { receiver } = params;
+        if (isKnownStringReceiver(converter, receiver)) return null;
 
         const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         if (!converted || !listBlock) return null;
