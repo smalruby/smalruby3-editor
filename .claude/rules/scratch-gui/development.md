@@ -188,6 +188,18 @@ docker compose run --rm app bash -c "cd packages/scratch-gui && npm run format"
 docker compose run --rm app bash -c "cd packages/scratch-gui && npm run format:check"
 ```
 
+## 授業 PC（1300×600）で確かめる条件
+
+授業のパソコンの画面は **1300×600**。画面の収まり（スクロールしない・確定のボタンが見える・入力欄が押せる）を
+確かめる・レビューするときの条件は次のとおり。
+
+- **ステージが小・中サイズのときが対象**（中が既定。`STAGE_DISPLAY_SIZES.small` / `.middle`）。
+- **大サイズ（`large`）は対象外**。1300×600 で大きいステージを選んで、ステージの下のスプライトの領域などが
+  画面の外に出ても不具合として扱わない（選んだ生徒がブラウザ全体のズームを変えるなどして対応する前提）。
+  大サイズで収まらないことを理由に Must / Question にしない。
+- クラス管理の画面の決まりは [`classroom-ui.md`](classroom-ui.md) の R6、レッスンは `docs/lessons/design.md` の
+  「使われる場面」も参照。
+
 ## SP / iPad 対応のレビュー観点
 
 `gui.css` / `gui.jsx` / `menu-bar.css` / `playground/index.css` / `mobile-*` コンポーネント / `responsive-gui*` / `use-is-narrow-screen*` / `palette-toggle/` を変更した場合、または新しいモーダルやボタンを追加した場合は、SP (スマホ) と iPad のリグレッション確認が必要。
