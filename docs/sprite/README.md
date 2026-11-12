@@ -1,6 +1,7 @@
 # スプライト
 
-> **⬆️ upstream そのまま** — upstream の実装をほぼそのまま利用
+> **🔧 upstream 改良** — upstream にあるが Smalruby で機能を改良・拡張している
+> 改良点: 中サイズのステージ（Smalruby 独自）では、スプライトの情報のラベルを詰めてスプライトの一覧を広くする
 
 ## 概要
 
@@ -28,6 +29,30 @@ Scratch プロジェクトに登場する**キャラクター（スプライト�
 | 表示/非表示 | show/hide トグル |
 | ロック | スプライトをドラッグ移動できないようにロック |
 
+### 中サイズのステージのスプライトの情報
+
+![中サイズのステージのスプライトの情報（1300×600）](screenshots/0201-sprite-info-middle-stage.png)
+
+中サイズのステージ（Smalruby 独自。既定のステージの大きさ）のときは、スプライトの情報（名前・x・y・表示・
+大きさ・向き）を 2 行に詰め、その分スプライトを選ぶ一覧の高さを増やす。授業のパソコン（1300×600）で
+レッスンの課題バーが出ると縦が 40px 減るため、一覧が隠れないようにする。レッスンモードかどうかに関係なく、
+中サイズのステージのときは常にこの形。
+
+- 「スプライト」の字は出さない（名前の入力欄だけ。名前の入力欄は x / y の残りの幅を使う）。
+- 「x」「y」は入力欄の**左隣**に置く（上ではなく）。
+- 「大きさ」「向き」は、1 文字ぶんの**アイコン**（大きさ = `sprite-info/icon--size.svg`、向き = direction-picker の
+  `icon--all-around.svg`）にして入力欄の左隣に置く。マウスを乗せると意味が出る（`title` / `aria-label`。
+  en「Size (%)」「Direction (degrees)」・ja「大きさ（%）」「向き（度）」・ja-Hira「おおきさ（%）」「むき（ど）」）。
+- 大きさ・向きの入力欄は x / y と同じ幅（3rem）。字の代わりのアイコンの分、列の幅を広げない。
+- ほかのステージの大きさ（小・大）は upstream のまま。SP のスプライトのパネル（`MobileSpritePanel`）は
+  `stageSize="middle"` を渡しているので、SP でも同じ詰めた形になる（縦の短い SP でも一覧が広くなる）。
+
+| data-testid | 要素 | 説明 |
+|---|---|---|
+| `sprite-info-compact` | div | 中サイズのステージの詰めたスプライトの情報 |
+| `sprite-info-size-icon` | img | 大きさのアイコン |
+| `sprite-info-direction-icon` | img | 向きのアイコン |
+
 ## 主要ファイル
 
 ### scratch-gui
@@ -37,7 +62,8 @@ Scratch プロジェクトに登場する**キャラクター（スプライト�
 | ファイル | 役割 |
 |---|---|
 | `packages/scratch-gui/src/containers/sprite-info.jsx` | スプライト情報パネル (座標・向き・サイズ・表示) |
-| `packages/scratch-gui/src/components/sprite-info/` | UI コンポーネント |
+| `packages/scratch-gui/src/components/sprite-info/` | UI コンポーネント（中サイズのステージの詰めた形は `sprite-info.jsx` のマーカー `compact middle sprite info`） |
+| `packages/scratch-gui/src/components/sprite-info/icon--size.svg` | 大きさのアイコン（Smalruby で追加） |
 | `packages/scratch-gui/src/containers/sprite-selector-item.jsx` | スプライト一覧の各カード |
 | `packages/scratch-gui/src/components/sprite-selector/` | スプライト一覧 UI |
 | `packages/scratch-gui/src/components/sprite-selector-item/` | カード UI |
