@@ -961,6 +961,14 @@ export default {
         '「{ SOURCE }」は、「{ NAME }」の中で、同じ行のほかのメソッドの呼び出しのあとに「{ NAME }」を呼んでいます。\nブロックでは、先に呼んだメソッドの戻り値がこの呼び出しで上書きされてしまいます。\n1 行で「{ NAME }」を呼ぶのは 1 回だけにして、ほかのメソッドより先に呼んでください。',
     'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues':
         '「{ SOURCE }」は値を2つ以上返していますが、メソッドが返せる値は1つだけです。\n返す値を1つにしてください（例: return { FIRST }）。',
+    'gui.smalruby3.rubyToBlocksConverter.breakNotSupported':
+        '「{ SOURCE }」はブロックにできません。break（繰り返しのとちゅうでぬける）に当たるブロックがないためです。\n繰り返しは「〜まで繰り返す」の条件で止めてください（例: until x > 3 ... end）。',
+    'gui.smalruby3.rubyToBlocksConverter.nextNotSupported':
+        '「{ SOURCE }」はブロックにできません。next（繰り返しの残りを飛ばす）に当たるブロックがないためです。\n残りの命令を「もし〜なら」（if）で囲んで、動かすときだけ動くようにしてください（例: if x <= 3 ... end）。',
+    'gui.smalruby3.rubyToBlocksConverter.redoNotSupported':
+        '「{ SOURCE }」はブロックにできません。redo（繰り返しの同じ回をやり直す）に当たるブロックがないためです。\nredo を消して、「〜まで繰り返す」の条件で命令を繰り返してください（例: until x > 3 ... end）。',
+    'gui.smalruby3.rubyToBlocksConverter.retryNotSupported':
+        '「{ SOURCE }」はブロックにできません。retry（rescue のあとで begin をやり直す）に当たるブロックがないためです。\nretry を消して、「〜まで繰り返す」の条件で命令を繰り返してください（例: until x > 3 ... end）。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
         'ブロック定義「{NAME}」の引数#{INDEX}の型がまちがっています。\n数値、文字列、またはブーリアンの値を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
@@ -1062,6 +1070,14 @@ export default {
     'gui.smalruby3.prismError.expectedCloseParams': '`)` が足りません。\n`)` を追加して引数の定義を閉じてください。',
     'gui.smalruby3.prismError.unexpectedLocalVariableOrMethod':
         'コードが終わるべき場所に、変数やメソッドがあります。\n`end` の不足や、余分な命令がないか確認してください。',
+    'gui.smalruby3.prismError.invalidBreak':
+        '`break` は繰り返しの中でしか使えません。また、break に当たるブロックはありません。\n繰り返しは「〜まで繰り返す」の条件で止めてください（例: until x > 3 ... end）。',
+    'gui.smalruby3.prismError.invalidNext':
+        '`next` は繰り返しの中でしか使えません。また、next に当たるブロックはありません。\n命令を「もし〜なら」（if）で囲んで、動かすときだけ動くようにしてください（例: if x <= 3 ... end）。',
+    'gui.smalruby3.prismError.invalidRedo':
+        '`redo` は繰り返しの中でしか使えません。また、redo に当たるブロックはありません。\nredo を消して、「〜まで繰り返す」の条件で命令を繰り返してください（例: until x > 3 ... end）。',
+    'gui.smalruby3.prismError.invalidRetry':
+        '`retry` は rescue の中でしか使えません。また、retry に当たるブロックはありません。\nretry を消して、「〜まで繰り返す」の条件で命令を繰り返してください（例: until x > 3 ... end）。',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': 'はい、スモウルビーの改善に協力します。',
     'gui.smalruby3.extension.mesh.description': 'ネットワーク上でユーザー間のやりとりを行う。',
     'mesh.sensorValue': '[NAME] センサーの値',

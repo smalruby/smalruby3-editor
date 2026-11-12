@@ -68,6 +68,40 @@ const messages = defineMessages({
         description: 'Error message when return has more than one value (e.g. return "a", "b")',
         id: 'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues',
     },
+    breakNotSupported: {
+        defaultMessage:
+            '"{ SOURCE }" cannot be made into blocks, because there is no block for break ' +
+            '(leaving a loop in the middle).' +
+            '\nStop the loop with its condition instead (e.g. until x > 3 ... end, the "repeat until" block).',
+        description: 'Error message when break is written in a loop (e.g. loop do ... break if x > 3 end)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.breakNotSupported',
+    },
+    nextNotSupported: {
+        defaultMessage:
+            '"{ SOURCE }" cannot be made into blocks, because there is no block for next ' +
+            '(skipping the rest of a loop).' +
+            '\nPut the rest of the loop in if instead, so that it runs only when it should (e.g. if x <= 3 ... end).',
+        description: 'Error message when next is written in a loop (e.g. 10.times do ... next if x > 3 end)',
+        id: 'gui.smalruby3.rubyToBlocksConverter.nextNotSupported',
+    },
+    redoNotSupported: {
+        defaultMessage:
+            '"{ SOURCE }" cannot be made into blocks, because there is no block for redo ' +
+            '(doing the same turn of a loop again).' +
+            '\nDelete redo, and repeat the commands with a loop that stops with its condition ' +
+            '(e.g. until x > 3 ... end).',
+        description: 'Error message when redo is written in a loop',
+        id: 'gui.smalruby3.rubyToBlocksConverter.redoNotSupported',
+    },
+    retryNotSupported: {
+        defaultMessage:
+            '"{ SOURCE }" cannot be made into blocks, because there is no block for retry ' +
+            '(running begin again after rescue).' +
+            '\nDelete retry, and repeat the commands with a loop that stops with its condition ' +
+            '(e.g. until x > 3 ... end).',
+        description: 'Error message when retry is written in rescue',
+        id: 'gui.smalruby3.rubyToBlocksConverter.retryNotSupported',
+    },
 });
 
 // Values with no block of their own: they cannot be a method's return value (issue #1553).
@@ -367,6 +401,39 @@ const CoreHandlers = {
             node,
             this._translator(messages.includeNotStatementBlocks, { SOURCE: this._firstLineSource(node) }),
         );
+    },
+
+    /**
+     * The error for a jump with no block (`break` / `next` / `redo` / `retry`) (issue #1609).
+     * Without it the line was dropped, and `break if x > 3` came back as ` if x > 3`.
+     * The whole line is shown, so that a modifier (e.g. `break if x > 3`) is shown with its condition.
+     * @param {object} node - The node of the jump.
+     * @param {object} message - The message of the jump.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _jumpNotSupportedError(node, message) {
+        const line = this._getNodeStartLine(node);
+        const lineSource = line ? (this._context.sourceCode.split('\n')[line - 1] || '').trim() : '';
+        return new RubyToBlocksConverterError(
+            node,
+            this._translator(message, { SOURCE: lineSource || this._firstLineSource(node) }),
+        );
+    },
+
+    visitBreakNode(node) {
+        throw this._jumpNotSupportedError(node, messages.breakNotSupported);
+    },
+
+    visitNextNode(node) {
+        throw this._jumpNotSupportedError(node, messages.nextNotSupported);
+    },
+
+    visitRedoNode(node) {
+        throw this._jumpNotSupportedError(node, messages.redoNotSupported);
+    },
+
+    visitRetryNode(node) {
+        throw this._jumpNotSupportedError(node, messages.retryNotSupported);
     },
 
     visitBeginNode(node) {

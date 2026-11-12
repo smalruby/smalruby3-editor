@@ -316,7 +316,7 @@ until touching?("_edge_")
 end
 ```
 
-**注意**: `for`, `each` ループはサポートされていません。
+**注意**: `for`, `each` ループはサポートされていません。ループの途中で抜ける `break`・残りを飛ばす `next` も使えません（エラーになります）。条件ループの条件で止めてください。
 
 **重要 — ループの自動1フレーム待機**:
 `loop do...end`、`N.times do...end`、`while...end`、`until...end` はすべて、**毎ループ終端で自動的に1フレーム（約33ms、30fps相当）待機**します。
@@ -737,6 +737,7 @@ say(@items)                    # リストそのもの（「リスト items」�
 
 - `for` ループ
 - `each` メソッド
+- `break` / `next` / `redo` / `retry`（Scratch に当たるブロックがないので、ブロックに変えるときにどの行かがわかるエラーになる。くり返しは `until x > 3 ... end`（「〜まで繰り返す」）の条件で止め、残りを飛ばしたいときは `if` で囲む）
 - `begin`/`rescue`/`ensure`（例外処理）
 - `module_function`, `extend`（`module` と `include` はサポート）
 - `private` / `protected` / `public`（`private :foo` や `private def foo ... end` の形も含む。どこに書いてもエラーになるので消す。`private def foo ... end` は `private` を消せば `def foo ... end` として使える。自分で `def private ... end` と定義したメソッドを呼ぶのはエラーにならない）
