@@ -77,12 +77,16 @@ The following cannot be written there. Writing one is an error that points to th
 - An **event handler** (`when_xxx do ... end`) cannot be written inside a block such as `do ... end`, `if` or `loop`, nor inside a method definition (`def`). Move it out of the block (to the top level or directly in the class definition) so that it starts a script of its own
 - A **line with only a value** (just `x`, just `1 + 2`) cannot be written inside a block such as `do ... end`, `if` or `loop`. Use it in a command such as `say(x)`, or set it to a variable. Directly in a method definition (`def`), it cannot be written before the last line either (the value on the last line is the return value, see [Return Values](#return-values))
 - A **line with only a symbol** (just `:a`) is not a command, so it cannot be written inside a block, nor in a method definition before the last line
+- A **method definition** (`def ... end`) cannot be written inside a block such as `do ... end`, `if` or `loop`, nor inside another method definition, on any line. Move the whole method, from `def` to its `end`, out of the block (to the top level, or directly in the class or module definition). Directly in a class or module definition, methods (including `def initialize`) and events can be written as before
 
 ```ruby
 when_flag_clicked do
   move(10)
   when_clicked do   # error: it is an event, so it cannot be placed inside another block
     move(5)
+  end
+  def my_proc       # error: it defines a method, so it cannot be written inside a block
+    move(1)
   end
 end
 ```

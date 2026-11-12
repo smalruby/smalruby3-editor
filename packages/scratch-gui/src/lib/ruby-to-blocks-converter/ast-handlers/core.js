@@ -23,6 +23,13 @@ const messages = defineMessages({
         description: 'Error message when an event (hat) block is written inside a block body (do ... end)',
         id: 'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock'
     },
+    defInsideBlock: {
+        defaultMessage: '"{ SOURCE }" defines a method, so it cannot be written inside a block or a method.' +
+            '\nMove the whole method, from "{ SOURCE }" to its "end", out of the block or the method.',
+        description: 'Error message when a method definition (def) is written inside a block body ' +
+            '(do ... end, if, ...) or a method body',
+        id: 'gui.smalruby3.rubyToBlocksConverter.defInsideBlock'
+    },
     valueAsStatement: {
         defaultMessage: '"{ SOURCE }" is a value, so it cannot be written as a command by itself.' +
             '\nUse it in a command (e.g. say({ SOURCE })) or set it to a variable.',
@@ -84,6 +91,15 @@ const CoreHandlers = {
             // `1 != 50 && 2 != 60` (a single expression) produces indices :1 and :2.
             // Note: literalCallIndices are NOT reset per-statement - they accumulate across statements.
             this._context.methodCallIndices = {};
+            if (bodyKind && bodyKind !== 'top' && this._getNodeTypeName(childNode) === 'DefNode') {
+                // On any line, not only on the first one (#1554). The body of a class is not a block
+                // body (`bodyKind` is null), so a method written directly in a class is still converted;
+                // neither is the top level (`bodyKind` is 'top').
+                throw new RubyToBlocksConverterError(
+                    childNode,
+                    this._translator(messages.defInsideBlock, {SOURCE: this._firstLineSource(childNode)})
+                );
+            }
             const block = this.visit(childNode);
             if (bodyKind) {
                 this._checkStatementInBody(childNode, block, bodyKind, index === node.body.length - 1);
@@ -155,7 +171,8 @@ const CoreHandlers = {
      *   line of a block body it was dropped silently (#1550).
      * - a value no block can hold, e.g. `self`, `{a: 1}`, `Foo`, `/a/` or `"#{x}"`, written as a line by itself;
      *   it became a string such as "self", or was dropped (#1553, #1558). This is also checked at the top level.
-     * A method definition (`def`) is left as before: it is placed as a script of its own.
+     * A method definition (`def`) does not come here: `visitStatementsNode` has already thrown an error
+     * for it (#1554).
      * A value made by splitting one statement (e.g. the return value of `"a".reverse`, which
      * comes as an array after its command) is not checked.
      * @param {object} node - The statement node.
@@ -422,8 +439,8 @@ const CoreHandlers = {
         }
         // A value block after the first one is not linked nor used (e.g. the returnValue
         // REPORTER of `"a".reverse` written as a statement): drop it, or it is left as an orphan.
-        // A method definition (a hat) is kept: it is placed as a script of its own. An event (hat) does
-        // not come here: `_checkStatementInBody` has already thrown an error for it (#1544).
+        // An event (hat) or a method definition does not come here: an error has already been thrown
+        // for it (#1544, #1554).
         blocks.slice(1).forEach(b => {
             if (this._isBlock(b) && !this._isStatementBlock(b) && this._getBlockType(b) !== 'hat' &&
                 !b.parent) {

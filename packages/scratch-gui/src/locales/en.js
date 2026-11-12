@@ -663,6 +663,8 @@ export default {
         '"{ SOURCE }" is not a command, so it cannot be written here.\nWrite a command (e.g. move(10)) instead, or delete this line.',
     'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
         '"{ SOURCE }" is an event, so it cannot be placed inside another block.\nMove it out of the block so that it starts a script of its own.',
+    'gui.smalruby3.rubyToBlocksConverter.defInsideBlock':
+        '"{ SOURCE }" defines a method, so it cannot be written inside a block or a method.\nMove the whole method, from "{ SOURCE }" to its "end", out of the block or the method.',
     'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
         '"{ SOURCE }" is a value, so it cannot be written as a command by itself.\nUse it in a command (e.g. say({ SOURCE })) or set it to a variable.',
     'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue':
