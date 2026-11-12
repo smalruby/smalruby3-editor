@@ -15,6 +15,7 @@ import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
 import { tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { dnclToRuby } from '../lib/dncl/dncl-to-ruby';
+import { POST_TEST_LOOP_ERROR_ID } from '../lib/dncl/dncl-validator';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import { makeRubyTabAdapterFactory } from '../lib/genai-ruby-adapter.js';
@@ -56,6 +57,7 @@ import {
     AUTO_CORRECT_SETTINGS_KEY,
     DNCL_MODE_KEY,
     DNCL_INDEX_HINT_OWNER,
+    DNCL_UNSUPPORTED_OWNER,
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import { offerDnclIndexShift } from './ruby-tab/dncl-index-shift';
@@ -652,6 +654,12 @@ const RubyTab = (props) => {
             'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
     });
 
+    const dnclPostTestLoopErrorMessage = intl.formatMessage({
+        id: 'gui.rubyTab.dnclPostTestLoopError',
+        defaultMessage:
+            'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in Ruby mode.',
+    });
+
     const handleToggleDnclMode = useCallback(async () => {
         const enabling = !dnclModeRef.current;
 
@@ -667,6 +675,24 @@ const RubyTab = (props) => {
             try {
                 const currentRuby = editorRef.current.getModel().getValue();
                 const dnclResult = rubyToDncl(currentRuby);
+
+                // Code that has no DNCL form, such as the post-test loop
+                // `begin ... end while` (Issue #1626), on its Ruby lines.
+                if (dnclResult.errors.length > 0) {
+                    showErrors(
+                        dnclResult.errors.map((err) => ({
+                            row: err.line - 1,
+                            column: err.column - 1,
+                            text:
+                                err.id === POST_TEST_LOOP_ERROR_ID
+                                    ? dnclPostTestLoopErrorMessage
+                                    : dnclValidationErrorMessage,
+                            type: 'error',
+                        })),
+                    );
+                    return;
+                }
+
                 const rubyResult = dnclToRuby(dnclResult.dncl);
 
                 // Check DNCL → Ruby conversion errors (e.g. @ or $ in DNCL)
@@ -753,7 +779,15 @@ const RubyTab = (props) => {
         } else if (furiganaEnabledRef.current) {
             renderFurigana();
         }
-    }, [vm, rubyCode.target, intl, rubyVersion, dnclValidationErrorMessage, onSetDnclMode]);
+    }, [
+        vm,
+        rubyCode.target,
+        intl,
+        rubyVersion,
+        dnclValidationErrorMessage,
+        dnclPostTestLoopErrorMessage,
+        onSetDnclMode,
+    ]);
 
     const handleToggleFurigana = useCallback(() => {
         setFuriganaEnabled((prev) => {
@@ -1175,6 +1209,29 @@ const RubyTab = (props) => {
             });
         monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_INDEX_HINT_OWNER, markers);
     }, [dnclMode, dnclDisplayCode, intl]);
+
+    // The post-test loop cannot be written in DNCL (Issue #1626). Such DNCL is
+    // not converted to Ruby (it would become `@begin`), so tell it on its
+    // lines whether it was typed or shown from blocks. The markers use their
+    // own owner so clearing conversion errors keeps them.
+    useEffect(() => {
+        if (!editorRef.current || !monacoRef.current) return;
+        const errors = dnclMode
+            ? dnclToRuby(dnclDisplayCode).errors.filter((err) => err.id === POST_TEST_LOOP_ERROR_ID)
+            : [];
+        const lines = dnclDisplayCode.split('\n');
+        const markers = errors
+            .filter((err) => err.line <= lines.length)
+            .map((err) => ({
+                startLineNumber: err.line,
+                startColumn: 1,
+                endLineNumber: err.line,
+                endColumn: lines[err.line - 1].length + 1,
+                message: dnclPostTestLoopErrorMessage,
+                severity: monacoRef.current.MarkerSeverity.Error,
+            }));
+        monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_UNSUPPORTED_OWNER, markers);
+    }, [dnclMode, dnclDisplayCode, dnclPostTestLoopErrorMessage]);
 
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);

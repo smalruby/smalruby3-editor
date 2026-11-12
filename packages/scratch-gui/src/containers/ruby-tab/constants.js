@@ -8,6 +8,9 @@ const AUTO_CORRECT_SETTINGS_KEY = 'smalruby:autoCorrectSettings';
 const DNCL_MODE_KEY = 'smalruby:dnclMode';
 // Monaco marker owner for the DNCL array index warnings (Issue #1357).
 const DNCL_INDEX_HINT_OWNER = 'smalruby-dncl-index';
+// Monaco marker owner for the code that cannot be written in DNCL, such as the
+// post-test loop (Issue #1626).
+const DNCL_UNSUPPORTED_OWNER = 'smalruby-dncl-unsupported';
 
 export {
     FONT_SIZES,
@@ -17,4 +20,5 @@ export {
     AUTO_CORRECT_SETTINGS_KEY,
     DNCL_MODE_KEY,
     DNCL_INDEX_HINT_OWNER,
+    DNCL_UNSUPPORTED_OWNER,
 };

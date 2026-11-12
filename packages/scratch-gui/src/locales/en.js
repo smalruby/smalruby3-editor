@@ -1374,6 +1374,8 @@ export default {
         'compares an index with <=; with 0-based indices it may need to be <',
     'gui.rubyTab.dnclIndexShiftReasonNegativeIndex':
         'the index became -1; this part was probably 0-based already, so check it',
+    'gui.rubyTab.dnclPostTestLoopError':
+        'A post-test loop (a loop that runs once before it checks the condition) cannot be written in Japanese. Write the first run before the loop, then make it a "〜の間繰り返す" loop. You can write it in Ruby mode.',
     'gui.rubyTab.dnclValidationError':
         'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
     'gui.mobile.drawer.title': 'Menu',

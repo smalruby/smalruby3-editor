@@ -1,6 +1,36 @@
 // === Smalruby: This file is Smalruby-specific (DNCL source validator) ===
 
 /**
+ * The id of the error for the post-test loop (issue #1626). The Japanese mode
+ * follows 共通テスト用プログラム表記, which has only the pre-test loops
+ * (`〜の間繰り返す` / `〜ずつ増やしながら繰り返す`), so a loop whose body runs
+ * once before the condition is checked cannot be written in it. The editor
+ * shows the error in the language of the UI by this id.
+ */
+const POST_TEST_LOOP_ERROR_ID = 'postTestLoop';
+
+const POST_TEST_LOOP_MESSAGE =
+    '後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。' +
+    '最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。';
+
+// `begin` / `end while 〜` / `end until 〜` (the Ruby of the post-test loop,
+// shown as it is by rubyToDncl), and `繰り返し、… を、〜になるまで実行する`
+// (the post-test loop of the old DNCL of 情報関係基礎).
+const POST_TEST_LOOP_LINE_RES = [
+    /^begin$/,
+    /^end\s+(?:while|until)(?:\s|\(|$)/,
+    /^繰り返し[、，,]?$/,
+    /^を[、，,]?\s*.+(?:になる|でなくなる)まで実行する$/,
+];
+
+/**
+ * Whether a (trimmed, comment-less) line is a line of the post-test loop.
+ * @param {string} trimmed - The trimmed line without its comment.
+ * @returns {boolean} True for a line of the post-test loop.
+ */
+const isPostTestLoopLine = (trimmed) => POST_TEST_LOOP_LINE_RES.some((re) => re.test(trimmed));
+
+/**
  * Validate DNCL source for forbidden characters. DNCL variables cannot use
  * `@` or `$` prefixes.
  * @param {string} source - The DNCL source code.
@@ -42,14 +72,17 @@ const validateDncl = (source) => {
                 });
             }
         }
+        if (isPostTestLoopLine(code.trim())) {
+            errors.push({
+                line: i + 1,
+                column: 1,
+                id: POST_TEST_LOOP_ERROR_ID,
+                message: POST_TEST_LOOP_MESSAGE,
+            });
+        }
     }
     return errors;
 };
-
-// The closer of `繰り返し` names its condition (`を a >= 3 になるまで実行する`),
-// so it is matched by a pattern and named by this word.
-const POST_TEST_CLOSER = 'を〜になるまで実行する';
-const POST_TEST_CLOSER_RE = /^を[、，,]?\s*.+?\s*(?:になる|でなくなる)まで実行する$/;
 
 // Block openers of the DNCL the line converter reads (after the DNCLv2
 // pre-processor), with the closer each needs and how the error names it.
@@ -66,8 +99,6 @@ const BLOCK_KINDS = [
     { re: /\sずつ減らしながら$/, name: '「〜ずつ減らしながら」', closer: 'を繰り返す' },
     { re: /^.+\sの間$/, name: '「〜の間」', closer: 'を繰り返す' },
     { re: /^関数\s+\S+?\s*\(/, name: '「関数」', closer: 'と定義する' },
-    // DNCL の後判定の繰り返し (issue #1626).
-    { re: /^繰り返し[、，,]?$/, name: '「繰り返し」', closer: POST_TEST_CLOSER },
 ];
 
 const CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定義する']);
@@ -96,10 +127,6 @@ const readBlockLines = (source) => {
         const line = i + 1;
         if (CLOSERS.has(body)) {
             result.push({ line, closer: body });
-            return;
-        }
-        if (POST_TEST_CLOSER_RE.test(body)) {
-            result.push({ line, closer: POST_TEST_CLOSER });
             return;
         }
         const continuation = continuationName(body);
@@ -200,4 +227,4 @@ const findDnclBlockErrors = (source) => {
     return errors.sort((a, b) => a.line - b.line);
 };
 
-export { findDnclBlockErrors, validateDncl };
+export { findDnclBlockErrors, isPostTestLoopLine, POST_TEST_LOOP_ERROR_ID, POST_TEST_LOOP_MESSAGE, validateDncl };

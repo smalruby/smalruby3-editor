@@ -36,11 +36,6 @@ const DNCL_SNIPPETS = [
         documentation: '条件繰り返し（while ループ）',
     },
     {
-        label: '条件になるまで繰り返す（後判定）',
-        insertText: '繰り返し\n  ${1}\nを ${2:条件} になるまで実行する',
-        documentation: '後判定の繰り返し（本体を 1 回実行してから条件を調べる。begin ... end until）',
-    },
-    {
         label: '関数定義',
         insertText: '関数 ${1:名前}(${2:引数})\n  ${3}\nと定義する',
         documentation: '関数を定義する',

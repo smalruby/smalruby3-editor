@@ -1,31 +1,15 @@
 // === Smalruby: This file is Smalruby-specific (Ruby to DNCL reverse transpiler) ===
+import { isPostTestLoopLine, POST_TEST_LOOP_ERROR_ID, POST_TEST_LOOP_MESSAGE } from './dncl-validator';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
-import { convertLine, detectForLoopPattern, isPostTestLoopEnd } from './ruby-to-dncl-line-converter';
-
-/**
- * Whether the `begin` at `lines[index]` is closed by `end while cond` /
- * `end until cond` (a loop whose body runs once before the condition is
- * checked, issue #1626) rather than a plain `end`. The closer is the first
- * code line after it that is not indented deeper than the `begin`.
- * @param {Array<string>} lines - The Ruby lines.
- * @param {number} index - The index of the `begin` line.
- * @param {string} indent - The indent of the `begin` line.
- * @returns {boolean} True for `begin ... end while / until`.
- */
-const isPostTestLoopBegin = (lines, index, indent) => {
-    for (let j = index + 1; j < lines.length; j++) {
-        if (lines[j].trim() === '') continue;
-        const lineIndent = lines[j].match(/^(\s*)/)[1];
-        if (lineIndent.length > indent.length) continue;
-        return lineIndent === indent && isPostTestLoopEnd(lines[j].trim());
-    }
-    return false;
-};
+import { convertLine, detectForLoopPattern } from './ruby-to-dncl-line-converter';
 
 /**
  * Transpile Ruby source code to DNCL.
  * @param {string} source - The Ruby source code.
- * @returns {object} An object with `dncl` (the transpiled DNCL code).
+ * @returns {object} An object with `dncl` (the transpiled DNCL code) and
+ *   `errors` (code that cannot be written in DNCL, with `line` / `column` of
+ *   the Ruby source, `id` and `message`). The DNCL of such code is left as
+ *   Ruby, so `dnclToRuby` tells the same errors on the DNCL lines.
  */
 const rubyToDncl = (source) => {
     // Stack of block contexts. String entries (`'if'`, `'loop'`, `'func'`)
@@ -35,6 +19,7 @@ const rubyToDncl = (source) => {
 
     const lines = source.split('\n');
     const dnclLines = [];
+    const errors = [];
     let skipNext = false;
 
     for (let i = 0; i < lines.length; i++) {
@@ -116,18 +101,10 @@ const rubyToDncl = (source) => {
             }
         }
 
-        // `begin ... end while cond` → `繰り返し ... を cond でなくなるまで実行する`
-        // (DNCL の後判定の繰り返し, issue #1626). A plain `begin ... end` has
-        // no DNCL form and is left as it is.
-        if (trimmed === 'begin') {
-            if (isPostTestLoopBegin(lines, i, indent)) {
-                blockStack.push('postTestLoop');
-                dnclLines.push(`${indent}繰り返し`);
-            } else {
-                blockStack.push('begin');
-                dnclLines.push(line);
-            }
-            continue;
+        // The Japanese mode has no post-test loop (`begin ... end while / until`,
+        // issue #1626): 共通テスト用プログラム表記 has only the pre-test loops.
+        if (isPostTestLoopLine(trimmed)) {
+            errors.push({ line: i + 1, column: 1, id: POST_TEST_LOOP_ERROR_ID, message: POST_TEST_LOOP_MESSAGE });
         }
 
         const result = convertLine(line, blockStack);
@@ -157,6 +134,7 @@ const rubyToDncl = (source) => {
 
     return {
         dncl: dnclLines.join('\n'),
+        errors,
     };
 };
 

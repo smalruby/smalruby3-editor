@@ -16,11 +16,10 @@ export const dnclLanguageConfiguration = {
     wordPattern: new RegExp(`(-?\\d*\\.\\d\\w*)|([a-zA-Z_${JA}][\\w${JA}]*)`),
     indentationRules: {
         increaseIndentPattern: new RegExp(
-            `^\\s*(?:もし\\s.+\\s(?:なら|ならば)|そうでなくもし\\s.+\\s(?:なら|ならば)|そうでなければ|.+\\sの間|.+\\sずつ(?:増やし|減らし)ながら|関数\\s.+|繰り返し[、，,]?)$`,
+            `^\\s*(?:もし\\s.+\\s(?:なら|ならば)|そうでなくもし\\s.+\\s(?:なら|ならば)|そうでなければ|.+\\sの間|.+\\sずつ(?:増やし|減らし)ながら|関数\\s.+)$`,
         ),
-        // `を a >= 3 になるまで実行する` closes `繰り返し` (DNCL の後判定の繰り返し, issue #1626).
         decreaseIndentPattern: new RegExp(
-            `^\\s*(?:${DECREASE_INDENT_KEYWORDS.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}|そうでなくもし\\s|を[、，,]?\\s*.+(?:になる|でなくなる)まで実行する\\s*$).*$`,
+            `^\\s*(?:${DECREASE_INDENT_KEYWORDS.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}|そうでなくもし\\s).*$`,
         ),
     },
     brackets: [
@@ -77,9 +76,6 @@ export const dnclLanguage = {
         '関数',
         '返す',
         'と定義する',
-        '繰り返し',
-        'になるまで実行する',
-        'でなくなるまで実行する',
     ],
 
     builtinFunctions: [

@@ -18,17 +18,6 @@ import { DNCL_IDENT_PATTERN, enterFunctionScope, exitFunctionScope } from './dnc
 const FUNC_DEF_RE = new RegExp(`^関数\\s+(${DNCL_IDENT_PATTERN})\\(([^)]*)\\)$`);
 
 /**
- * The opener and the closer of DNCL の後判定の繰り返し (issue #1626):
- *   繰り返し、
- *     処理
- *   を、条件 になるまで実行する
- * `条件 でなくなるまで` is the form of Ruby's `end while 条件`. The commas of
- * DNCL (`、` / `，` / `,`) are optional.
- */
-const POST_TEST_BEGIN_RE = /^繰り返し[、，,]?$/;
-const POST_TEST_END_RE = /^を[、，,]?\s*(.+?)\s*(になる|でなくなる)まで実行する$/;
-
-/**
  * Stack tracking for-loop state for increment insertion at `を繰り返す`.
  * Each entry: { varName, stepRuby, ascending, indent }. Reset via
  * `resetForLoopStack` at the start of each conversion.
@@ -89,23 +78,6 @@ const convertLine = (line) => {
     // そうでなければ → else
     if (trimmed === 'そうでなければ') {
         return `${indent}else`;
-    }
-
-    // 繰り返し(、) → begin: DNCL の後判定の繰り返し (issue #1626). The body
-    // runs once before the condition at the closer is checked.
-    if (POST_TEST_BEGIN_RE.test(trimmed)) {
-        return `${indent}begin`;
-    }
-
-    // を(、) condition になるまで実行する → end until condition
-    // を(、) condition でなくなるまで実行する → end while condition
-    const postTestMatch = trimmed.match(POST_TEST_END_RE);
-    if (postTestMatch) {
-        let condition = convertJapaneseStrings(convertArrow(postTestMatch[1]));
-        condition = convertBuiltinFunctions(condition);
-        condition = processSegments(condition);
-        const keyword = postTestMatch[2] === 'でなくなる' ? 'while' : 'until';
-        return `${indent}end ${keyword} ${condition}`;
     }
 
     // を実行する → end
