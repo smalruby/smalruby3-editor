@@ -443,7 +443,15 @@ const blocksLesson2 = defineLesson({
                 },
                 // 「言う」の白いところに「答え」を入れたところ
                 { target: HINT_TARGETS.PALETTE, blocks: 'say(answer, 2)\n' },
-                { target: HINT_TARGETS.PALETTE, blocks: 'timer.reset\n' },
+                // 「聞いて待つ」の上に入れるので、その下に「聞いて待つ」をつないだ絵にする（#1580）
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: {
+                        ja: 'timer.reset\nask("なまえは？")\n',
+                        'ja-Hira': 'timer.reset\nask("なまえは？")\n',
+                        en: 'timer.reset\nask("What\'s your name?")\n',
+                    },
+                },
                 // 「(タイマー) と (秒でした)」の「と」1 つを入れた「言う」（code と同じ書き方）
                 {
                     target: HINT_TARGETS.PALETTE,

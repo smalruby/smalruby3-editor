@@ -89,7 +89,7 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-ask-answer.step3':
         '「言う」をつなげて、白いところに、丸い「答え」のブロックを入れよう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step4':
-        '聞く前に「タイマーをリセット」を入れよう。タイマーは 0 から数えはじめるよ。',
+        '「聞いて待つ」の上に「タイマーをリセット」を入れよう。タイマーは 0 から数えはじめるよ。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step5':
         '緑の「演算」の「と」で、丸い「タイマー」と「秒でした」をつないで、もう 1 つの「言う」に入れよう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step6': 'ネコを押して、下に出る入力らんに名前を書いて ✓ を押そう。',
@@ -260,7 +260,7 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-ask-answer.step3':
         '「いう」をつなげて、しろいところに、まるい「こたえ」のブロックをいれよう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step4':
-        'きくまえに「タイマーをリセット」をいれよう。タイマーは 0 からかぞえはじめるよ。',
+        '「きいてまつ」のうえに「タイマーをリセット」をいれよう。タイマーは 0 からかぞえはじめるよ。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step5':
         'みどりの「えんざん」の「と」で、まるい「タイマー」と「びょうでした」をつないで、もう 1 つの「いう」にいれよう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step6':
@@ -433,7 +433,7 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-ask-answer.step3':
         'Snap on a "say" block, and put the round "answer" block into its white part.',
     'gui.lessons.challenge.blocks-l1-ask-answer.step4':
-        'Put "reset timer" before asking. The timer starts counting from 0.',
+        'Put "reset timer" above "ask and wait". The timer starts counting from 0.',
     'gui.lessons.challenge.blocks-l1-ask-answer.step5':
         'Use "join" from the green "Operators" to join the round "timer" and " seconds", and put it into another "say".',
     'gui.lessons.challenge.blocks-l1-ask-answer.step6':

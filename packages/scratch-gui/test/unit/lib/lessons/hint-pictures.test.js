@@ -116,4 +116,20 @@ describe('hint pictures', () => {
             });
         });
     });
+
+    describe('聞いて答えよう (blocks-l1-ask-answer)', () => {
+        test('the step 4 picture is "reset timer" above "ask and wait" (#1580)', () => {
+            const question = { ja: 'なまえは？', 'ja-Hira': 'なまえは？', en: "What's your name?" };
+            [drawn, drawnInProduction].forEach((all) => {
+                LOCALES.forEach((locale) => {
+                    const { xml, opcodes } = hintOf(all, 'blocks-l1-ask-answer', 4, locale);
+                    expect(opcodes).toEqual(['sensing_resettimer', 'sensing_askandwait']);
+                    expect(xml).toMatch(
+                        /type="sensing_resettimer"><next><block id="[^"]*" type="sensing_askandwait">/,
+                    );
+                    expect(xml).toContain(`<field name="TEXT">${question[locale].replace(/'/g, '&apos;')}</field>`);
+                });
+            });
+        });
+    });
 });
