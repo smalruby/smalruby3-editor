@@ -574,7 +574,8 @@ const ControlFlowHandlers = {
         if (
             this._getNodeTypeName(call) !== 'CallNode' ||
             call.name !== 'with_screen_refresh' ||
-            call.receiver ||
+            // `self.with_screen_refresh` is the same call as `with_screen_refresh`.
+            (call.receiver && this._getNodeTypeName(call.receiver) !== 'SelfNode') ||
             call.arguments_ ||
             !call.block
         ) {

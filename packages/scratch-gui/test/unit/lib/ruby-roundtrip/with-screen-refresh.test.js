@@ -119,6 +119,31 @@ describe('Ruby Roundtrip: with_screen_refresh do ... end (issue #1633)', () => {
             `,
             );
         });
+        test('self.with_screen_refresh', async () => {
+            await expectRoundTrip(
+                converter,
+                target,
+                dedent`
+                when_flag_clicked do
+                  until x > 1
+                    self.with_screen_refresh do
+                      move(2)
+                    end
+                  end
+                end
+            `,
+                dedent`
+                when_flag_clicked do
+                  until x > 1
+                    with_screen_refresh do
+                      move(2)
+                    end
+                  end
+                end
+            `,
+            );
+        });
+
         test('begin ... end while', async () => {
             await expectRoundTrip(
                 converter,
