@@ -38,9 +38,18 @@ export default function (Generator) {
     Generator.operator_subtract = function (block) {
         const comment = Generator.getCommentText(block);
         if (comment && comment.includes('@ruby:array:index')) {
-            // Round-trip pattern: subtract(itemnumoflist, 1) -> pass through .index() result
-            const num1 = Generator.valueToCode(block, 'NUM1', Generator.ORDER_FUNCTION_CALL) || 0;
-            return [num1, Generator.ORDER_FUNCTION_CALL];
+            // Round-trip pattern: subtract(itemnumoflist, 1) -> pass through .index() result.
+            // Hand back NUM1 with its own order and let the outer block decide on parentheses:
+            // asking valueToCode for ORDER_FUNCTION_CALL wrapped the `.index()` call (also
+            // ORDER_FUNCTION_CALL) in parentheses, so `say(@a.index("x"))` came back as
+            // `say((@a.index("x")))` (issue #1660).
+            const innerId = block.inputs && block.inputs.NUM1 && block.inputs.NUM1.block;
+            const inner = innerId && Generator.getBlock(innerId);
+            const tuple = inner ? Generator.blockToCode(inner) : '';
+            if (Array.isArray(tuple) && tuple[0]) {
+                return tuple;
+            }
+            return ['0', Generator.ORDER_ATOMIC];
         }
 
         const order = Generator.ORDER_ADDITIVE;
