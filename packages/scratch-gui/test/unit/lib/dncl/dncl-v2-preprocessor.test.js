@@ -12,6 +12,7 @@
 // implicit `end` insertion based on `⎿` count.
 //
 // See Issue #640.
+import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { dnclV2Preprocess } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
 
 describe('DNCLv2 pre-processor: line numbers', () => {
@@ -169,6 +170,83 @@ describe('DNCLv2 pre-processor: and / or normalization', () => {
         expect(dnclV2Preprocess('hidari <= migi and owari == 0 の間繰り返す:')).toBe(
             'hidari <= migi かつ owari == 0 の間',
         );
+    });
+});
+
+// Issue #1683 / #1685: comments are kept as written, and `and` / `or`
+// touching a Japanese letter or a digit is part of a name — the same rules
+// as `not` (Issue #1671).
+describe('DNCLv2 pre-processor: and / or / not are left alone in comments and names', () => {
+    test('and / or in a comment are left alone (#1683)', () => {
+        expect(dnclV2Preprocess('x = 1 # a and b or c')).toBe('x = 1 # a and b or c');
+    });
+
+    test('and / or / not in a comment after a condition (#1683)', () => {
+        expect(dnclV2Preprocess('もし a > 0 and b ならば # not a or b and c')).toBe(
+            'もし a > 0 かつ b ならば # not a or b and c',
+        );
+    });
+
+    test('a whole-line comment is left alone (#1683)', () => {
+        expect(dnclV2Preprocess('# x and y or not z')).toBe('# x and y or not z');
+    });
+
+    test('# inside a string is not a comment', () => {
+        expect(dnclV2Preprocess('s = "#" and t or u')).toBe('s = "#" かつ t または u');
+    });
+
+    test('and / or / not inside a string are left alone', () => {
+        expect(dnclV2Preprocess("s = 'x or y' and 'not z'")).toBe("s = 'x or y' かつ 'not z'");
+    });
+
+    test('or at the end of a Japanese name is part of the name (#1685)', () => {
+        expect(dnclV2Preprocess('フラグor = 1')).toBe('フラグor = 1');
+    });
+
+    test('and at the end of a Japanese name is part of the name (#1685)', () => {
+        expect(dnclV2Preprocess('x = 値and + 1')).toBe('x = 値and + 1');
+    });
+
+    test('and / or at the start of a Japanese name are part of the name (#1685)', () => {
+        expect(dnclV2Preprocess('x = andフラグ + orカウント')).toBe('x = andフラグ + orカウント');
+    });
+
+    test('and / or between Japanese names separated by spaces are converted', () => {
+        expect(dnclV2Preprocess('もし 値 > 0 and フラグ or 合計 ならば:')).toBe(
+            'もし 値 > 0 かつ フラグ または 合計 ならば',
+        );
+    });
+
+    test('a plain a > 0 and b is converted', () => {
+        expect(dnclV2Preprocess('もし a > 0 and b ならば:')).toBe('もし a > 0 かつ b ならば');
+    });
+
+    test('nothing / android / order / organ are left alone', () => {
+        expect(dnclV2Preprocess('x = nothing + android + order + organ')).toBe(
+            'x = nothing + android + order + organ',
+        );
+    });
+
+    test('and right after a digit is part of the number token, like not', () => {
+        // `1and` / `1not` stay as written; DNCLv2 puts spaces around operators.
+        expect(dnclV2Preprocess('もし x == 1and y ならば:')).toBe('もし x == 1and y ならば');
+        expect(dnclV2Preprocess('b = 1not')).toBe('b = 1not');
+    });
+});
+
+describe('DNCLv2 and / or in comments and names → Ruby', () => {
+    const toRuby = (dncl) => dnclToRuby(dnclV2Preprocess(dncl)).ruby;
+
+    test('フラグor = 1 (#1685)', () => {
+        expect(toRuby('フラグor = 1')).toBe('@フラグor = 1');
+    });
+
+    test('値and + 1 (#1685)', () => {
+        expect(toRuby('x = 値and + 1')).toBe('@x = @値and + 1');
+    });
+
+    test('a comment keeps and / or (#1683)', () => {
+        expect(toRuby('x = 1 # a and b or c')).toBe('@x = 1 # a and b or c');
     });
 });
 

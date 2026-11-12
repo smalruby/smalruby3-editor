@@ -304,9 +304,31 @@ const splitMultiAssignment = (line) => {
 };
 
 /**
+ * Whether `ch` can be part of an identifier (`knot`, `not_yet`, `notフラグ`).
+ * DNCL names may use Japanese letters, so any Unicode letter or digit counts.
+ * @param {string} [ch] - A character, or nothing past the line edge.
+ * @returns {boolean} True for an identifier character.
+ */
+const isIdentChar = (ch) => typeof ch === 'string' && /[\p{L}\p{N}_]/u.test(ch);
+
+/**
+ * Whether the keyword `word` stands on its own at `line[i]`, not as part of
+ * a name (`bandwidth`, `フラグor`, `nothing`). Shared by the `and` / `or` /
+ * `not` passes so they agree on what a name is (Issues #1671 / #1685).
+ * A digit counts as a name character too, so `1and` is left as written.
+ * @param {string} line - The line.
+ * @param {number} i - Index to test.
+ * @param {string} word - The keyword.
+ * @returns {boolean} True when `word` is a whole word at `i`.
+ */
+const isKeywordAt = (line, i, word) =>
+    line.startsWith(word, i) && !isIdentChar(line[i - 1]) && !isIdentChar(line[i + word.length]);
+
+/**
  * Replace standalone `and` / `or` with `かつ` / `または`. Only matches
- * whole-word occurrences outside string literals — `bandwidth` and
- * `ordinary` stay as-is.
+ * whole-word occurrences outside string literals and comments —
+ * `bandwidth`, `ordinary` and `フラグor` stay as-is, and so does
+ * `# a and b` (Issues #1683 / #1685).
  * @param {string} line - The line to transform.
  * @returns {string} The line with `and` / `or` replaced.
  */
@@ -321,19 +343,14 @@ const normalizeAndOr = (line) => {
             i = end;
             continue;
         }
-        // Match `and` or `or` as whole word: bounded by whitespace, line edge,
-        // or a non-identifier character.
-        const isWordBoundary = (idx) => {
-            if (idx < 0 || idx >= line.length) return true;
-            const c = line[idx];
-            return !/[a-zA-Z0-9_]/.test(c);
-        };
-        if (line.startsWith('and', i) && isWordBoundary(i - 1) && isWordBoundary(i + 3)) {
+        // Comments are kept as written.
+        if (ch === '#') return result + line.substring(i);
+        if (isKeywordAt(line, i, 'and')) {
             result += 'かつ';
             i += 3;
             continue;
         }
-        if (line.startsWith('or', i) && isWordBoundary(i - 1) && isWordBoundary(i + 2)) {
+        if (isKeywordAt(line, i, 'or')) {
             result += 'または';
             i += 2;
             continue;
@@ -343,14 +360,6 @@ const normalizeAndOr = (line) => {
     }
     return result;
 };
-
-/**
- * Whether `ch` can be part of an identifier (`knot`, `not_yet`, `notフラグ`).
- * DNCL names may use Japanese letters, so any Unicode letter or digit counts.
- * @param {string} [ch] - A character, or nothing past the line edge.
- * @returns {boolean} True for an identifier character.
- */
-const isIdentChar = (ch) => typeof ch === 'string' && /[\p{L}\p{N}_]/u.test(ch);
 
 /**
  * Words that end the operand of a `not`, when written after whitespace:
@@ -416,7 +425,7 @@ const normalizeNot = (line) => {
         }
         // Comments are kept as written.
         if (ch === '#') return result + line.substring(i);
-        if (line.startsWith('not', i) && !isIdentChar(line[i - 1]) && !isIdentChar(line[i + 3])) {
+        if (isKeywordAt(line, i, 'not')) {
             let start = i + 3;
             while (start < line.length && /\s/.test(line[start])) start++;
             const end = notOperandEnd(line, start);
