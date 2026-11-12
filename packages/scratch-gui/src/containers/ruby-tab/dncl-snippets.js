@@ -73,17 +73,17 @@ const DNCL_SNIPPETS = [
     {
         label: '四捨五入',
         insertText: '四捨五入(${1:値})',
-        documentation: '四捨五入する',
+        documentation: '四捨五入する（ちょうど半分は大きいほうへ。四捨五入(-2.5) は -2）',
     },
     {
         label: '切り捨て',
         insertText: '切り捨て(${1:値})',
-        documentation: '小数点以下を切り捨てる',
+        documentation: '小さいほうの整数にする（切り捨て(-2.5) は -3）',
     },
     {
         label: '切り上げ',
         insertText: '切り上げ(${1:値})',
-        documentation: '小数点以下を切り上げる',
+        documentation: '大きいほうの整数にする（切り上げ(-2.5) は -2）',
     },
     {
         label: '絶対値',

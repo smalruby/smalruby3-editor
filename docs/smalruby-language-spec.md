@@ -34,6 +34,9 @@ Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual p
 | `.to_i` on a negative number | `(-3.5).to_i` → `-4`, `(-7 / 2.0).to_i` → `-4` | `-3`, `-3` (truncates toward zero) | It becomes the "floor" block, which goes to the smaller integer |
 | `.to_i` on a string with non-number characters | `"12abc".to_i` → `0` | `12` (reads the leading digits) | A string that cannot be read as a whole number becomes 0 |
 | `.round` on a negative half | `(-2.5).round` → `-2` | `-3` (away from zero) | The "round" block rounds halves up (`2.5.round` is `3`, the same as Ruby) |
+| `Math.sin` / `Math.cos` / `Math.tan` and `Math.asin` / `Math.acos` / `Math.atan` | Angles in degrees (`Math.sin(90)` → `1`, `Math.atan(1)` → `45`) | Radians (`Math.sin(90)` → `0.893...`, `Math.atan(1)` → `0.785...`) | The Scratch "sin" and other blocks calculate in degrees |
+| `==` / `<` / `>` between strings | `"a" == "A"` → `true`, `"10" < "9"` → `false` | `false`, `true` | The "=", "<" and ">" blocks ignore upper/lower case and compare strings that read as numbers as numbers (`"1" == 1` is also `true`) |
+| `/` by zero | `1 / 0` → `Infinity` | An error (`ZeroDivisionError`) | The "( ) / ( )" block does not raise an error |
 
 `%` gives the same value as Ruby, even with negative numbers (`-7 % 2` → `1`, `7 % -2` → `-1`).
 
