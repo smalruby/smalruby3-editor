@@ -28,8 +28,24 @@ const messages = defineMessages({
         description: 'Error message when a value (reporter) is written as a line by itself inside a block body ' +
             'or before the last line of a method body',
         id: 'gui.smalruby3.rubyToBlocksConverter.valueAsStatement'
+    },
+    cannotReturnValue: {
+        defaultMessage: '"{ SOURCE }" cannot be returned from a method, because there is no block for this value.' +
+            '\nReturn a number, a string, true / false, or a variable instead.',
+        description: 'Error message when a method returns a value that no block can hold (e.g. self or an array), ' +
+            'with return or on the last line of the method',
+        id: 'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue'
+    },
+    returnMultipleValues: {
+        defaultMessage: '"{ SOURCE }" returns more than one value, but a method can return only one value.' +
+            '\nReturn one value (e.g. return { FIRST }).',
+        description: 'Error message when return has more than one value (e.g. return "a", "b")',
+        id: 'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues'
     }
 });
+
+// Values with no block of their own: they cannot be a method's return value (issue #1553).
+const UNRETURNABLE_PRIMITIVE_TYPES = ['self', 'array', 'hash', 'const', 'regexp'];
 
 /**
  * Core AST handlers for RubyToBlocksConverter.
@@ -140,6 +156,11 @@ const CoreHandlers = {
             );
         }
         if (bodyKind === 'method' && isLast) {
+            // The last line is the return value: a value no block can hold would be dropped (#1553).
+            const isInterpolated = !result && /^Interpolated/.test(this._getNodeTypeName(node) || '');
+            if (isInterpolated || (!_.isArray(result) && this._isUnreturnableValue(result))) {
+                throw this._cannotReturnError(node);
+            }
             return;
         }
         if (blocks.length !== 1) {
@@ -148,6 +169,12 @@ const CoreHandlers = {
         const Primitive = require('../primitive').default;
         const value = blocks[0];
         if (value instanceof Primitive && value.type === 'sym') {
+            throw this._notCommandError(node);
+        }
+        // A value no block can hold (e.g. `self`, `[1]`, `Foo`, `"#{x}"`) before the last line of a method
+        // dropped the rest of the method silently (#1553).
+        if (bodyKind === 'method' && (this._isUnreturnableValue(value) ||
+            (!value && /^Interpolated/.test(this._getNodeTypeName(node) || '')))) {
             throw this._notCommandError(node);
         }
         // In a block body, other literals (e.g. `"abc"`) become an assignment to a temporary
@@ -180,6 +207,46 @@ const CoreHandlers = {
         return new RubyToBlocksConverterError(
             node,
             this._translator(messages.valueAsStatement, {SOURCE: source})
+        );
+    },
+
+    /**
+     * Whether a value has no block of its own, so it cannot be a method's return value
+     * (e.g. `self`, `[1, 2]`, `Foo`) (issue #1553).
+     * @param {*} value - What visiting the value returned.
+     * @returns {boolean} Whether the value cannot be returned.
+     */
+    _isUnreturnableValue (value) {
+        const Primitive = require('../primitive').default;
+        return value instanceof Primitive && UNRETURNABLE_PRIMITIVE_TYPES.includes(value.type);
+    },
+
+    /**
+     * The error for a value that cannot be returned from a method (issue #1553).
+     * @param {object} node - The node of the value.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _cannotReturnError (node) {
+        const source = this._getSource(node).replace(/\s*\n\s*/g, ' ').trim();
+        return new RubyToBlocksConverterError(
+            node,
+            this._translator(messages.cannotReturnValue, {SOURCE: source})
+        );
+    },
+
+    /**
+     * The error for `return` with more than one value (e.g. `return "a", "b"`) (issue #1553).
+     * @param {object} node - The return node.
+     * @param {object} firstNode - The node of the first value.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _returnMultipleValuesError (node, firstNode) {
+        return new RubyToBlocksConverterError(
+            node,
+            this._translator(messages.returnMultipleValues, {
+                SOURCE: this._firstLineSource(node),
+                FIRST: this._getSource(firstNode).replace(/\s*\n\s*/g, ' ').trim()
+            })
         );
     },
 

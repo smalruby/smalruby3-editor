@@ -383,6 +383,10 @@ A trailing `true` / `false` is returned as the "(1) = (1)" / "(0) < (0)" block, 
 
 `nil` and a symbol (`:a`) have no block of their own, so the blocks return them as the strings `""` / `"a"`. The block's comment keeps the original (`@ruby:nil` / `@ruby:symbol:a`), so both a trailing value and `return nil` / `return :a` come back as `nil` / `:a` after a round trip (if you change the text in the blocks, the changed text is used).
 
+A `return` without a value also returns the string `""` in the blocks. A comment marker (`@ruby:return-bare`) brings it back as `return` (not `return ""`) after a round trip.
+
+A value that no block can hold (`self`, an array `[1, 2]`, a hash, a constant, a regular expression, or a string with `#{x}`) cannot be returned, with `return` or on the last line, so that line is an error (return a number, a string, `true` / `false`, or a variable instead). Written by itself on a line before the last one, it is not a command, so that line is an error too. `return "a", "b"` cannot return more than one value either, so it is an error (return one value).
+
 ### super
 
 When a class `include`s a module and overrides a same-named method, `super` calls the module's version of that method.

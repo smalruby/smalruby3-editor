@@ -114,6 +114,12 @@ export default function (Generator) {
             }
             // === Smalruby: End of nil / symbol return value ===
             if (comment.includes('@ruby:syntax:return')) {
+                // === Smalruby: Start of bare return ===
+                // `return` without a value keeps the text "" and a comment marker (issue #1553).
+                if (comment.includes(',@ruby:return-bare') && value === Generator.quote_('')) {
+                    return 'return\n';
+                }
+                // === Smalruby: End of bare return ===
                 return `return ${Generator.nosToCode(value)}\n`;
             }
 
