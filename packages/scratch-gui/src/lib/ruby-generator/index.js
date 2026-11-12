@@ -118,6 +118,15 @@ RubyGenerator.ORDER_NOT = 20; // not
 RubyGenerator.ORDER_AND_OR = 21; // and or
 RubyGenerator.ORDER_NONE = 99; // (...)
 
+/**
+ * The order to ask the receiver of a method call, `[]` or `.` with. A call on the result of a
+ * call is left-associative (`@a.length.round` is `(@a.length).round`), so a receiver of
+ * ORDER_FUNCTION_CALL gets no parentheses; an operator expression as the receiver
+ * (`(a + 1).to_s`) still gets them (issue #1675).
+ */
+RubyGenerator.ORDER_RECEIVER = RubyGenerator.ORDER_FUNCTION_CALL + 0.5;
+RubyGenerator.ORDER_OVERRIDES.push([RubyGenerator.ORDER_RECEIVER, RubyGenerator.ORDER_FUNCTION_CALL]);
+
 RubyGenerator.init = function (options) {
     this.definitions_ = {};
     this.returnCallCache_ = {}; // Clear return value call cache

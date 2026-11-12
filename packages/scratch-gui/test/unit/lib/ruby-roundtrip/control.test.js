@@ -32,7 +32,7 @@ describe('Ruby Roundtrip: Control category blocks', () => {
             x.times do
               move(10)
             end
-            (touching?("_edge_")).times do
+            touching?("_edge_").times do
               move(10)
             end
             loop do
@@ -125,7 +125,7 @@ describe('Ruby Roundtrip: Control category blocks', () => {
             x.times do
               move(10)
             end
-            (touching?("_edge_")).times do
+            touching?("_edge_").times do
               move(10)
             end
             loop do

@@ -23,7 +23,7 @@ export default function (Generator) {
     Generator.operator_add = function (block) {
         const comment = Generator.getCommentText(block);
         if (comment === '@ruby:method:to_i') {
-            const value = Generator.valueToCode(block, 'NUM1', Generator.ORDER_FUNCTION_CALL) || 0;
+            const value = Generator.valueToCode(block, 'NUM1', Generator.ORDER_RECEIVER) || 0;
             return [`${value}.to_i`, Generator.ORDER_FUNCTION_CALL];
         }
 
@@ -97,14 +97,23 @@ export default function (Generator) {
 
     Generator.operator_round = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const num = Generator.valueToCode(block, 'NUM', order) || '0';
+        const num = Generator.valueToCode(block, 'NUM', Generator.ORDER_RECEIVER) || '0';
         return [`${num}.round`, order];
     };
 
     Generator.operator_mathop = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const num = Generator.valueToCode(block, 'NUM', Generator.ORDER_NONE) || '0';
         const operator = Generator.getFieldValue(block, 'OPERATOR') || null;
+        // `.abs` and the like take NUM as the receiver: `(a + 1).abs` keeps its parentheses
+        // (issue #1675). `Math.sqrt(...)` takes it as an argument, and `10 ** x` as the right
+        // operand of `**`, which also makes the whole expression an exponentiation.
+        let numOrder = Generator.ORDER_RECEIVER;
+        if (operator === 'e ^' || operator === '10 ^') {
+            numOrder = Generator.ORDER_EXPONENTIATION;
+        } else if (!['abs', 'floor', 'ceiling'].includes(operator)) {
+            numOrder = Generator.ORDER_NONE;
+        }
+        const num = Generator.valueToCode(block, 'NUM', numOrder) || '0';
         const comment = Generator.getCommentText(block);
         switch (operator) {
             case 'abs':
@@ -138,9 +147,9 @@ export default function (Generator) {
             case 'log':
                 return [`Math.log10(${num})`, order];
             case 'e ^':
-                return [`Math::E ** ${num}`, order];
+                return [`Math::E ** ${num}`, Generator.ORDER_EXPONENTIATION];
             case '10 ^':
-                return [`10 ** ${num}`, order];
+                return [`10 ** ${num}`, Generator.ORDER_EXPONENTIATION];
             default:
                 return [null, order];
         }
