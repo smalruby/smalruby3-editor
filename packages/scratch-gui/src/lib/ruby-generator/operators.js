@@ -360,9 +360,10 @@ export default function (Generator) {
             }
         }
 
-        const str1 = Generator.valueToCode(block, 'STRING1', Generator.ORDER_NONE) || Generator.quote_('');
+        // STRING1 is the receiver: `("a" + "b").include?("c")` keeps its parentheses.
+        const str1 = Generator.valueToCode(block, 'STRING1', Generator.ORDER_RECEIVER) || Generator.quote_('');
         const str2 = Generator.valueToCode(block, 'STRING2', Generator.ORDER_NONE) || Generator.quote_('');
-        return [`${str1}.include?(${str2})`, Generator.ORDER_ATOMIC];
+        return [`${str1}.include?(${str2})`, Generator.ORDER_FUNCTION_CALL];
     };
     // === Smalruby: End of regex-aware operator_contains ===
 

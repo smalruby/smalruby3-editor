@@ -101,7 +101,10 @@ export default function (Generator) {
 
     Generator.operator_mod = function (block) {
         const order = Generator.ORDER_MULTIPLICATIVE;
-        const num1 = Generator.valueToCode(block, 'NUM1', order) || '0';
+        // `%` is left-associative with `*` and `/`: `a * b % 3` is `(a * b) % 3`.
+        const leftSideOrder = order + 0.5;
+        registerLeftAssocOverride(Generator, leftSideOrder, order);
+        const num1 = Generator.valueToCode(block, 'NUM1', leftSideOrder) || '0';
         const num2 = Generator.valueToCode(block, 'NUM2', order) || '0';
         return [`${num1} % ${num2}`, order];
     };

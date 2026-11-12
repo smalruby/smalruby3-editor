@@ -20,36 +20,48 @@ export default function (Generator) {
         return Generator.hashVariableOfListBlock(receiverBlock);
     };
 
+    const METHOD_OPCODES = ['smalrubyRuby_stringMethod', 'smalrubyRuby_arrayMethod', 'smalrubyRuby_hashMethod'];
+
     /**
-     * Whether the expression is a `*` at the top: `a * 3`, but not `(a * 3).reverse` or
-     * `@a.join(" * ")`, whose `*` is inside parentheses or a string.
-     * @param {string} expr - A Ruby expression.
-     * @returns {boolean} True when a ` * ` is outside every bracket and string.
+     * The statement block just before the statement that holds the block, or null when the
+     * statement is the first one of a script or of a C block.
+     * @param {object} block - A reporter block.
+     * @returns {?object} The previous statement block.
      */
-    const isTopLevelMultiply = function (expr) {
-        let depth = 0;
-        let quote = null;
-        for (let i = 0; i < expr.length; i++) {
-            const c = expr[i];
-            if (quote) {
-                if (c === '\\') i++;
-                else if (c === quote) quote = null;
-            } else if (c === '"' || c === "'") {
-                quote = c;
-            } else if ('([{'.includes(c)) {
-                depth++;
-            } else if (')]}'.includes(c)) {
-                depth--;
-            } else if (depth === 0 && expr.startsWith(' * ', i)) {
-                return true;
+    const previousStatementOf = function (block) {
+        let child = block;
+        let parent = child && child.parent ? Generator.getBlock(child.parent) : null;
+        while (parent) {
+            if (parent.next === child.id) return parent;
+            const inputs = parent.inputs || {};
+            const childId = child.id;
+            for (const name of Object.keys(inputs)) {
+                if (name.startsWith('SUBSTACK') && inputs[name].block === childId) return null;
             }
+            child = parent;
+            parent = child.parent ? Generator.getBlock(child.parent) : null;
         }
-        return false;
+        return null;
+    };
+
+    /**
+     * The order of the expression that replaces `_rv_`: the method block just before it, whose
+     * line `finishTargets` moves into `_rv_`. `"ab" * 3` is a multiplication, so the outer block
+     * puts parentheses around it where they are needed: `-("ab" * 3)`, `("ab" * 3).length`, but
+     * not `"y" + "ab" * 3` (issue #1690). Any other method makes a call.
+     * @param {object} block - A smalrubyRuby_returnValue(Truthy) block.
+     * @returns {number} The order of the expression.
+     */
+    const returnValueOrder = function (block) {
+        const prev = previousStatementOf(block);
+        if (prev && METHOD_OPCODES.includes(prev.opcode) && Generator.getFieldValue(prev, 'METHOD') === '*') {
+            return Generator.ORDER_MULTIPLICATIVE;
+        }
+        return Generator.ORDER_FUNCTION_CALL;
     };
 
     // --- Method call expression builder ---
     const buildMethodCallExpr = function (block) {
-        const order = Generator.ORDER_FUNCTION_CALL;
         const method = Generator.getFieldValue(block, 'METHOD') || 'reverse';
         const isBang = method.endsWith('!');
 
@@ -74,13 +86,18 @@ export default function (Generator) {
             return `${receiver}.${method}`;
         }
 
-        const arg1 = Generator.valueToCode(block, 'ARG1', order) || Generator.quote_('');
-        const arg2 = Generator.valueToCode(block, 'ARG2', order);
-
-        // Operator methods: generate infix notation (e.g. receiver * arg)
+        // Operator methods: generate infix notation (e.g. receiver * arg). The right side of `*`
+        // needs parentheses only for an operator as loose as `*` or looser: `"ab" * a.length`,
+        // `"ab" * (1 + 2)`.
         if (method === '*') {
-            return `${receiver} ${method} ${arg1}`;
+            const operand =
+                Generator.valueToCode(block, 'ARG1', Generator.ORDER_MULTIPLICATIVE) || Generator.quote_('');
+            return `${receiver} ${method} ${operand}`;
         }
+
+        // Arguments need no parentheses: `"ab".delete(a.reverse)`, not `"ab".delete((a.reverse))`.
+        const arg1 = Generator.valueToCode(block, 'ARG1', Generator.ORDER_NONE) || Generator.quote_('');
+        const arg2 = Generator.valueToCode(block, 'ARG2', Generator.ORDER_NONE);
 
         const args = [arg1];
         if (arg2) args.push(arg2);
@@ -162,13 +179,13 @@ export default function (Generator) {
     };
 
     // --- Return value (REPORTER) ---
-    Generator.smalrubyRuby_returnValue = function (_block) {
-        return ['_rv_', Generator.ORDER_FUNCTION_CALL];
+    Generator.smalrubyRuby_returnValue = function (block) {
+        return ['_rv_', returnValueOrder(block)];
     };
 
     // --- Return value truthy? (BOOLEAN) ---
-    Generator.smalrubyRuby_returnValueTruthy = function (_block) {
-        return ['_rv_truthy_', Generator.ORDER_FUNCTION_CALL];
+    Generator.smalrubyRuby_returnValueTruthy = function (block) {
+        return ['_rv_truthy_', returnValueOrder(block)];
     };
 
     // --- Post-processing: inline _rv_ references ---
@@ -182,22 +199,23 @@ export default function (Generator) {
         code = originalFinishTargets(code, options);
         // Replace: "  expr.method\n  ...(_rv_)..." → inline expr.method into _rv_
         // Pattern: a line ending with .method_call (optionally with args),
-        // followed by a line that references _rv_ or _rv_truthy_
+        // followed by a line that references _rv_ or _rv_truthy_. The line of a C block
+        // (`if a * 2 > 3`, `(a * 2).times do`) is not a method block and must stay: moving it
+        // into `_rv_` would leave its `end` alone.
         const methodPattern =
-            '\\S[^\\n]*(?:\\.(?:reverse|upcase|downcase|empty\\?|lines|delete|gsub|max|min|sort|join|first|last|keys|values|reverse!|delete!|gsub!|sort!)(?:\\([^)]*\\))?| \\* \\S+)';
+            '(?!(?:if|unless|while|until|elsif|case|when|for|return|break|next)\\b)' +
+            '(?![^\\n]*\\bdo(?: \\|[^|\\n]*\\|)?$)' +
+            '\\S[^\\n]*(?:\\.(?:reverse|upcase|downcase|empty\\?|lines|delete|gsub|max|min|sort|join|first|last|keys|values|reverse!|delete!|gsub!|sort!)(?:\\((?:[^()\\n]|\\([^()\\n]*\\))*\\))?| \\* [^\\n]+)';
         // Process _rv_truthy_ BEFORE _rv_ to avoid partial match
         code = code.replace(
             new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_truthy_`, 'gm'),
             (match, indent1, expr, indent2, before) => `${indent2}${before}${expr}`,
         );
-        // `_rv_` is the receiver of a call without parentheses (issue #1675): `a * 3` there
-        // needs them back, `(a * 3).length`, while `a.reverse.length` does not.
+        // The parentheses that the expression needs are already around `_rv_`: it told the outer
+        // block the order of the expression (`returnValueOrder`).
         code = code.replace(
-            new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_(?=([.[]?))`, 'gm'),
-            (match, indent1, expr, indent2, before, after) => {
-                const inlined = after && isTopLevelMultiply(expr) ? `(${expr})` : expr;
-                return `${indent2}${before}${inlined}`;
-            },
+            new RegExp(`^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_`, 'gm'),
+            (match, indent1, expr, indent2, before) => `${indent2}${before}${expr}`,
         );
         return code;
     };
