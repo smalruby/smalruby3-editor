@@ -1,5 +1,9 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import { convertAndExpectToEqualBlocks, rubyToExpected } from '../../../../helpers/expect-to-equal-blocks';
+import {
+    convertAndExpectToEqualBlocks,
+    expectedInfo,
+    rubyToExpected,
+} from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Control/unless', () => {
     let converter;
@@ -166,7 +170,7 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                 inputs: [
                                     {
                                         name: 'OPERAND',
-                                        block: {
+                                        block: expectedInfo.makeVariableCondition({
                                             opcode: 'data_variable',
                                             fields: [
                                                 {
@@ -174,7 +178,7 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                                     variable: '$global',
                                                 },
                                             ],
-                                        },
+                                        }),
                                     },
                                 ],
                             },
@@ -204,7 +208,7 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                 inputs: [
                                     {
                                         name: 'OPERAND',
-                                        block: {
+                                        block: expectedInfo.makeVariableCondition({
                                             opcode: 'data_variable',
                                             fields: [
                                                 {
@@ -212,7 +216,7 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                                     variable: '@ivar',
                                                 },
                                             ],
-                                        },
+                                        }),
                                     },
                                 ],
                             },
@@ -246,7 +250,7 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                     inputs: [
                                         {
                                             name: 'OPERAND',
-                                            block: {
+                                            block: expectedInfo.makeVariableCondition({
                                                 opcode: 'data_variable',
                                                 fields: [
                                                     {
@@ -254,7 +258,7 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                                         variable: '_bool_1_',
                                                     },
                                                 ],
-                                            },
+                                            }),
                                         },
                                     ],
                                 },

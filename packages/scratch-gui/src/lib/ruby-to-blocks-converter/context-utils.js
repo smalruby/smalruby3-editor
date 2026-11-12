@@ -33,7 +33,6 @@ const ContextUtils = {
             literalCallIndices: {},
             elsifCounter: 0,
             caseCounter: 0,
-            variableHint: null,
             isValue: false,
             inMyBlockDefinition: false,
             // what the statements being converted are the body of (#1544): 'block' for a block
