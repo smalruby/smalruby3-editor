@@ -94,7 +94,7 @@ describe('RubyGenerator/Data', () => {
 
         test('data_listcontents returns array variable name', () => {
             const block = makeListBlock('data_listcontents');
-            expect(RubyGenerator.data_listcontents(block)).toEqual(['@my_list', RubyGenerator.ORDER_COLLECTION]);
+            expect(RubyGenerator.data_listcontents(block)).toEqual(['@my_list', RubyGenerator.ORDER_ATOMIC]);
         });
 
         test('data_addtolist generates push', () => {

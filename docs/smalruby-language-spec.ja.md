@@ -720,6 +720,7 @@ hide_variable("@score")
 @items.empty?                  # 空か
 show_list("@items")            # リストの表示
 hide_list("@items")            # リストの非表示
+say(@items)                    # リストそのもの（「リスト items」ブロック）を値として渡す
 ```
 
 ## 5. サポートされていないRuby構文

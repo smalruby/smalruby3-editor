@@ -683,6 +683,7 @@ hide_variable("@score")
 @items.empty?                  # Empty?
 show_list("@items")            # Show list
 hide_list("@items")            # Hide list
+say(@items)                    # Pass the list itself (the list reporter block) as a value
 ```
 
 ## 5. Unsupported Ruby Syntax
