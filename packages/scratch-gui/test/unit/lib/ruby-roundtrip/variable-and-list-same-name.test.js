@@ -248,4 +248,58 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
             ).toEqual(['', 'list']);
         });
     });
+    describe('a method of both String and Array that has no string block (issue #1629)', () => {
+        // `index` is a method of String too, but Scratch has no block for the position of a text
+        // in a string. A name used only as a string is not a list, so the error says so.
+        const stringIndexError =
+            'A string (text) has no block for "index".\nUse it on a list, or write it with other blocks.';
+
+        test.each([
+            ['@a = gets', '@a = gets\nsay(@a.index("x"))', 2],
+            ['@a = "abc"', '@a = "abc"\nsay(@a.index("x"))', 2],
+            ['$a = gets', '$a = gets\nsay($a.index("x"))', 2],
+            ['a local set to gets', 'text = gets\nsay(text.index("x"))', 2],
+            ['read in a method before the assignment', 'def f\n  say(@a.index("x"))\nend\n\n@a = gets\nf', 2],
+            ['a number set after a string', '@a = "abc"\n@a = 3\nsay(@a.index("x"))', 3],
+        ])('%s is an error that does not say list', async (_name, code, line) => {
+            const { result, errors } = await convert(code);
+            expect(result).toBe(false);
+            expect(errors).toHaveLength(1);
+            expect(errors[0].row).toBe(line - 1);
+            expect(errors[0].text).toBe(stringIndexError);
+        });
+
+        describe('a list still uses the list block', () => {
+            let target, runtime, converter;
+
+            beforeEach(() => {
+                ({ target, runtime } = makeSpriteTarget());
+                setupRubyGenerator();
+                converter = makeConverter(target, runtime, { version: '2' });
+            });
+
+            test.each([
+                ['@a = []', '@a = []\n@a.push("x")\n@b = @a.index("x")'],
+                ['a list method only', '@a.push("x")\n@b = @a.index("x")'],
+                ['read in a method before the list is made', 'def f\n  @b = @a.index("x")\nend\n\n@a = []\nf'],
+            ])('%s', async (_name, code) => {
+                // The generator writes `(...)` around the `index` of a list, as on develop.
+                await expectRoundTrip(converter, target, code, code.replace('@a.index("x")', '(@a.index("x"))'));
+                expect(Object.values(target.variables).filter((v) => v.type === 'list')).toHaveLength(1);
+            });
+
+            test('a variable and a list of the same name that the project already has', async () => {
+                target.variables.v1 = new Variable('v1', 'score', Variable.SCALAR_TYPE);
+                target.variables.l1 = new Variable('l1', 'score', Variable.LIST_TYPE);
+                await expectRoundTrip(
+                    converter,
+                    target,
+                    '@score = 0\n@b = @score.index("x")',
+                    '@score = 0\n@b = (@score.index("x"))',
+                );
+                const opcodes = Object.values(target.blocks._blocks).map((b) => b.opcode);
+                expect(opcodes).toContain('data_itemnumoflist');
+            });
+        });
+    });
 });
