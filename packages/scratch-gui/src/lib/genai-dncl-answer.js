@@ -6,7 +6,7 @@
 // An answer counting its indexes from 1 still turns into blocks, so it stays ✔, but the
 // accesses past the end of an array are noted as the editor warns about them (#1420).
 import { findArrayIndexHints } from './dncl/dncl-array-index-hint';
-import { tidyPastedDncl, withDoubleSlashHint } from './dncl/dncl-paste-tidy';
+import { slashCommentRows, tidyPastedDncl } from './dncl/dncl-paste-tidy';
 import { dnclToRuby } from './dncl/dncl-to-ruby';
 import { extractDncl } from './genai-dncl-prompt.js';
 
@@ -46,12 +46,15 @@ const checkDnclAnswer = async ({ answer, editingName, convert }) => {
     // error on the same DNCL line is said once.
     const said = new Set();
     const toProblems = (errors) =>
-        withDoubleSlashHint(errors, lines, DOUBLE_SLASH_HINT).forEach((error) => {
+        errors.forEach((error) => {
             const key = `${error.row}:${error.text}`;
             if (said.has(key)) return;
             said.add(key);
             problems.push({ type: 'error', sprite: null, row: error.row, text: error.text });
         });
+    // A `//` comment (`a = 1 // 生徒番号`) converts, as the quotient, so it is found by
+    // how the line looks, and the AI is told to use `#` there (#1192, #1711).
+    toProblems(slashCommentRows(lines).map((row) => ({ row, text: DOUBLE_SLASH_HINT })));
     const transpiled = dnclToRuby(code);
     if (transpiled.ruby === null) {
         toProblems(transpiled.errors.map((error) => ({ row: error.line - 1, text: error.message })));

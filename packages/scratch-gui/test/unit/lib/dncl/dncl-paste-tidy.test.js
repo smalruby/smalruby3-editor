@@ -1,5 +1,10 @@
 // Tidying DNCL code pasted into the Japanese mode editor (Issue #1192)
-import { hasDoubleSlash, tidyPastedDncl, withDoubleSlashHint } from '../../../../src/lib/dncl/dncl-paste-tidy';
+import {
+    hasDoubleSlash,
+    slashCommentRows,
+    tidyPastedDncl,
+    withDoubleSlashHint,
+} from '../../../../src/lib/dncl/dncl-paste-tidy';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 
 describe('tidyPastedDncl', () => {
@@ -157,5 +162,28 @@ describe('withDoubleSlashHint', () => {
             'e2',
             'e5',
         ]);
+    });
+});
+
+// `a = 1 // 生徒番号` now converts (to `(1 / @生徒番号).to_i`), so a `//`
+// comment is found by how the line looks, not by a conversion error.
+// (Issue #1711)
+describe('slashCommentRows', () => {
+    test('finds the lines whose `//` looks like a comment', () => {
+        const lines = ['a = 1 // 生徒番号', 'b = 10 // 3', '表示する(a) // 答えを表示', 'c = 2'];
+        expect(slashCommentRows(lines)).toEqual([0, 2]);
+    });
+
+    test('a `//` before a name the program uses is the quotient', () => {
+        const lines = ['個数 = 2', '合計 = 7', 'a = 合計 // 個数'];
+        expect(slashCommentRows(lines)).toEqual([]);
+    });
+
+    test('a `//` with an operator after it or inside brackets is the quotient', () => {
+        expect(slashCommentRows(['a = 合計 // 個数 + 1', 'a = (合計 // 個数)', 'a = x // y'])).toEqual([]);
+    });
+
+    test('ignores `//` in strings and `#` comments', () => {
+        expect(slashCommentRows(['表示する("http://x")', 'a = 1 # 説明 // です'])).toEqual([]);
     });
 });

@@ -145,6 +145,23 @@ const splitArgsAtTopLevel = (args) => {
 };
 
 /**
+ * Whether `ch` can be part of a DNCL name: a letter of any script (so kanji
+ * and kana too), a digit or `_`. The same test as the DNCLv2 pre-processor's
+ * `isIdentChar`. (Issue #1711)
+ * @param {string} ch - The character.
+ * @returns {boolean} True for a name character.
+ */
+const isNameChar = (ch) => typeof ch === 'string' && /[\p{L}\p{N}_]/u.test(ch);
+
+/**
+ * Whether `ch` can be part of an operand outside brackets: a name character,
+ * `@` / `$` (Ruby variables) or `.` (`a.length`, `1.5`).
+ * @param {string} ch - The character.
+ * @returns {boolean} True for an operand character.
+ */
+const isOperandChar = (ch) => isNameChar(ch) || ch === '@' || ch === '$' || ch === '.';
+
+/**
  * Turn every `÷` (the integer quotient of 共通テスト用プログラム表記) in
  * `line` into Ruby `(A / B).to_i`. `/` is the ordinary division and is left
  * as it is (Issue #1701). `÷` has the precedence of `*` / `/` / `%` and goes
@@ -152,7 +169,9 @@ const splitArgsAtTopLevel = (args) => {
  * it (`a * 3 ÷ 2` is `(a * 3) ÷ 2`), and the right operand is the next term.
  * Skips string literals. Operands are found by walking outward across
  * balanced parens / brackets and stopping at the other operators, commas,
- * assignment and the statement edges.
+ * assignment, spaces and the statement edges. A name in an operand may be
+ * Japanese (`合計 ÷ 個数`): its characters are those of DNCL names
+ * (`isNameChar`, Issue #1711).
  *
  * Examples:
  *   `a ÷ b`             → `(a / b).to_i`
@@ -162,6 +181,7 @@ const splitArgsAtTopLevel = (args) => {
  *   `a ÷ b * c`         → `(a / b).to_i * c`
  *   `Data[i + 1] ÷ 2`   → `(Data[i + 1] / 2).to_i`
  *   `(a ÷ b).to_i`      → `(a / b).to_i` (from `整数(a ÷ b)`)
+ *   `合計 ÷ 個数`       → `(合計 / 個数).to_i`
  * @param {string} line - A Ruby-form line (post DNCL transforms).
  * @returns {string} The line with every `÷` as a truncated division.
  */
@@ -222,7 +242,7 @@ const wrapIntegerDivisions = (line) => {
                 // any preceding identifier (function/array name) or chained dot.
                 continue;
             }
-            if (/[\w@$.]/.test(ch)) {
+            if (isOperandChar(ch)) {
                 i--;
                 continue;
             }
@@ -267,7 +287,7 @@ const wrapIntegerDivisions = (line) => {
                 i = skipString(s, i, ch);
                 continue;
             }
-            if (/[\w@$.]/.test(ch)) {
+            if (isOperandChar(ch)) {
                 i++;
                 continue;
             }
@@ -309,7 +329,12 @@ const wrapIntegerDivisions = (line) => {
         if (ch === '÷') {
             const leftStart = findLeftChainStart(s, i);
             const rightEnd = findRightOperandEnd(s, i + 1);
-            if (leftStart === null || rightEnd === null || leftStart >= i) {
+            if (
+                leftStart === null ||
+                rightEnd === null ||
+                leftStart >= i ||
+                s.substring(i + 1, rightEnd).trim() === ''
+            ) {
                 i++;
                 continue;
             }
@@ -537,6 +562,7 @@ const isSingleOperand = (text) => {
 };
 
 export {
+    isNameChar,
     isSingleOperand,
     isWrappedInParens,
     skipString,

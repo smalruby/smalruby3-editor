@@ -1,8 +1,10 @@
 import {
     findMatchingClose,
+    isNameChar,
     replaceCall,
     skipString,
     splitArgsAtTopLevel,
+    wrapIntegerDivisions,
 } from '../../../../src/lib/dncl/paren-utils';
 
 describe('paren-utils', () => {
@@ -134,6 +136,35 @@ describe('paren-utils', () => {
 
         test('trims whitespace around args', () => {
             expect(splitArgsAtTopLevel('  a  ,  b  ')).toEqual(['a', 'b']);
+        });
+    });
+
+    // Japanese names are operands of `÷` (Issue #1711).
+    describe('wrapIntegerDivisions with Japanese names', () => {
+        test.each([
+            ['a = 合計 ÷ 個数', 'a = (合計 / 個数).to_i'],
+            ['a = x ÷ 個数', 'a = (x / 個数).to_i'],
+            ['a = 合計 ÷ 2 + 1', 'a = (合計 / 2).to_i + 1'],
+            ['a = 得点[i] ÷ 人数', 'a = (得点[i] / 人数).to_i'],
+            ['a = 平均(合計) ÷ 個数', 'a = (平均(合計) / 個数).to_i'],
+            ['a = 合計 ÷ 平均(個数, 2)', 'a = (合計 / 平均(個数, 2)).to_i'],
+            ['puts(合計 ÷ 個数, 1)', 'puts((合計 / 個数).to_i, 1)'],
+        ])('%s → %s', (line, expected) => {
+            expect(wrapIntegerDivisions(line)).toBe(expected);
+        });
+
+        test('leaves a ÷ with nothing after it', () => {
+            expect(wrapIntegerDivisions('a = x ÷ ')).toBe('a = x ÷ ');
+        });
+    });
+
+    describe('isNameChar', () => {
+        test('letters of any script, digits and _ are name characters', () => {
+            for (const ch of ['a', 'Z', '0', '_', '合', 'か', 'カ', 'ー', '々']) expect(isNameChar(ch)).toBe(true);
+        });
+
+        test('operators, spaces and brackets are not', () => {
+            for (const ch of ['÷', '/', ' ', '(', ')', '[', ',', '、', undefined]) expect(isNameChar(ch)).toBe(false);
         });
     });
 });
