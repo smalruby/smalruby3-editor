@@ -930,6 +930,8 @@ export default {
         '「{ SOURCE }」は命令ではないので、ここには書けません。\n命令（例: move(10)）に書きかえるか、この行を消してください。',
     'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock':
         '「{ SOURCE }」はイベントなので、ほかのブロックの中には書けません。\nブロックの外に出して、そこから始まるスクリプトにしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.defInsideBlock':
+        '「{ SOURCE }」はメソッドの定義なので、ブロックやメソッドの中には書けません。\n「{ SOURCE }」から、対応する「end」までをまとめて、ブロックの外に出してください。',
     'gui.smalruby3.rubyToBlocksConverter.valueAsStatement':
         '「{ SOURCE }」は値なので、それだけを命令として書くことはできません。\n命令の中で使う（例: say({ SOURCE })）か、変数に入れてください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue':
