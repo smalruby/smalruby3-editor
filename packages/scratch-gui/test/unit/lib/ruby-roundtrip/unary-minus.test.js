@@ -6,6 +6,7 @@
  * are the same as the blocks of the original code, so the parentheses (or the lack of them) keep
  * the meaning: `-a ** 2` is `-(a ** 2)` in Ruby, and `-a * b` is `(-a) * b`.
  */
+import RubyGenerator from '../../../../src/lib/ruby-generator';
 import {
     makeSpriteTarget,
     makeConverter,
@@ -48,7 +49,24 @@ const convert = async (code) => {
     setupRubyGenerator();
     const converter = makeConverter(target, runtime, { version: '2' });
     const ruby = await rubyToBlocksToRuby(converter, target, code);
-    return { ruby, trees: blockTrees(target) };
+    return { ruby, trees: blockTrees(target), target };
+};
+
+/**
+ * Put a number into an input of the first "(0) - (X)" block, as a user would by typing in it.
+ * @param {object} target - The target the converter wrote to.
+ * @param {string} input - `NUM1` or `NUM2`.
+ * @param {string} value - The number to type.
+ * @returns {string} The Ruby generated after the change.
+ */
+const editSubtractInput = (target, input, value) => {
+    const blocks = target.blocks._blocks;
+    const subtract = Object.values(blocks).find((b) => b.opcode === 'operator_subtract');
+    const inputBlock = blocks[subtract.inputs[input].block];
+    inputBlock.opcode = 'math_number';
+    inputBlock.fields = { NUM: { name: 'NUM', value } };
+    RubyGenerator.currentTarget = target;
+    return RubyGenerator.targetToCode(target, { version: '2' }).trim();
 };
 
 /**
@@ -91,6 +109,7 @@ describe('Ruby Roundtrip: unary minus on non-literals (issue #1676)', () => {
         ['double minus', '@x = 1\nsay(- -@x)'],
         ['assignment', '@a = 1\n@a = -@a'],
         ['comparison', '@x = 1\nif -@x < 0\n  say("ok")\nend'],
+        ['minus of a negative number', 'say(- -1)'],
     ])('%s', async (_name, code) => {
         const first = await convert(code);
         expect(first.ruby).toBe(code);
@@ -125,5 +144,18 @@ describe('Ruby Roundtrip: unary minus on non-literals (issue #1676)', () => {
         const { ruby, trees } = await convert(code);
         expect(ruby).toBe(code);
         expect(findBlock(trees, 'operator_subtract')).toBeNull();
+    });
+
+    test('writes a plain subtraction once the left side is no longer 0', async () => {
+        const { target } = await convert('@x = 1\nsay(-@x)');
+        expect(editSubtractInput(target, 'NUM1', '5')).toBe('@x = 1\nsay(5 - @x)');
+    });
+
+    test('a negative number on the right comes back as a block too', async () => {
+        const { target } = await convert('@x = 1\nsay(-@x)');
+        const ruby = editSubtractInput(target, 'NUM2', '-1');
+        expect(ruby).toBe('@x = 1\nsay(- -1)');
+        const again = await convert(ruby);
+        expect(findBlock(again.trees, 'operator_subtract').comment).toBe('@ruby:unary_minus');
     });
 });

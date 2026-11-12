@@ -93,8 +93,10 @@ const OperatorsMath = {
 
         // Unary minus on a non-literal (`-@x`, `-(1 + 2)`, `-@a.length`): Scratch has no block for
         // it, so make "(0) - (X)" and mark it so the generator writes `-X` again (issue #1676).
-        // A number literal like `-1` is already a number and never reaches here.
-        converter.registerOnSend(['variable', 'block'], '-@', 0, (params) => {
+        // A number literal like `-1` is already a number and never reaches here, but `- -1` and
+        // `-(1)` do (the generator writes `- -1` when the right side of a marked block is a
+        // negative number).
+        converter.registerOnSend(['variable', 'number', 'block'], '-@', 0, (params) => {
             const { receiver } = params;
 
             const block = converter._createBlock('operator_subtract', 'value');
