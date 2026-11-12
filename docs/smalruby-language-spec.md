@@ -270,6 +270,8 @@ move(10) if keyboard.pressed?("space")
 say("safe") unless touching?("_edge_")
 ```
 
+A condition can be a variable alone (`if @flag`, `while a < 3 && @x`, `until @done || a > 3`, `!@x` and so on). As in Ruby, the variable is false only when it is `false`; `0` and an empty string are true. The blocks make "not ((variable) = (false))", and the "not" block has a comment marker (`@ruby:variable_condition`); blocks → Ruby gives back the variable alone, so it round-trips as written.
+
 ### Loops
 
 ```ruby

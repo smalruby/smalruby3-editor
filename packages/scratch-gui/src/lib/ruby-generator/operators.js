@@ -157,8 +157,51 @@ export default function (Generator) {
         return [`${operand1} || ${operand2}`, order];
     };
 
+    /**
+     * The `x = "false"` block of `not (x = "false")` made for a variable alone as a condition (e.g. `while x`)
+     * (issue #1611), or null if the block is not it. The block is marked `@ruby`:variable_condition.
+     * Blocks made by an older version have no mark and compare with `(0 < 0)`; they are written as the
+     * variable too, as the older version did with the mark on the `if` / loop.
+     * @param {object} block - The operator_not block.
+     * @param {string} comment - The comment of the block.
+     * @returns {?object} The operator_equals block, whose OPERAND1 is the variable.
+     */
+    const variableConditionOf = function (block, comment) {
+        const inputBlock = (b, name) => {
+            const input = b && b.inputs && b.inputs[name];
+            return input && input.block ? Generator.getBlock(input.block) : null;
+        };
+        const eqBlock = inputBlock(block, 'OPERAND');
+        if (!eqBlock || eqBlock.opcode !== 'operator_equals' || Generator.getCommentText(eqBlock)) return null;
+        const varBlock = inputBlock(eqBlock, 'OPERAND1');
+        const rhBlock = inputBlock(eqBlock, 'OPERAND2');
+        if (!varBlock || varBlock.opcode !== 'data_variable' || !rhBlock) return null;
+        const isText = (b, value) => b && b.opcode === 'text' && String(Generator.getFieldValue(b, 'TEXT')) === value;
+        const marked = !!comment && comment.split(/,(?=@ruby:)/).includes('@ruby:variable_condition');
+        if (marked) {
+            return isText(rhBlock, 'false') ? eqBlock : null;
+        }
+        if (
+            !comment &&
+            rhBlock.opcode === 'operator_lt' &&
+            !Generator.getCommentText(rhBlock) &&
+            isText(inputBlock(rhBlock, 'OPERAND1'), '0') &&
+            isText(inputBlock(rhBlock, 'OPERAND2'), '0')
+        ) {
+            return eqBlock;
+        }
+        return null;
+    };
+
     Generator.operator_not = function (block) {
         const comment = Generator.getCommentText(block);
+        const conditionBlock = variableConditionOf(block, comment);
+        if (conditionBlock) {
+            return [
+                Generator.valueToCode(conditionBlock, 'OPERAND1', Generator.ORDER_ATOMIC),
+                Generator.ORDER_ATOMIC,
+            ];
+        }
         if (comment) {
             const commentParts = comment.split(/,(?=@ruby:)/);
             for (const part of commentParts) {

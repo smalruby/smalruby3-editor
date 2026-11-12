@@ -39,10 +39,7 @@ const ControlFlowHandlers = {
         const saved = this._saveContext();
 
         const preBlocks = [];
-        this._context.variableHint = null;
         let cond = this._processCondition(node.predicate);
-        const variableHint = this._context.variableHint;
-        this._context.variableHint = null;
         const split = this._splitPreBlocksAndValue(cond);
         cond = split.value;
         preBlocks.push(...split.preBlocks);
@@ -71,9 +68,7 @@ const ControlFlowHandlers = {
             }
         }
 
-        let hasElsif = false;
         if (node.subsequent && this._getNodeTypeName(node.subsequent) === 'IfNode') {
-            hasElsif = true;
             const elseBlock = this._elsifBlockOf(_.isArray(elseStatement) ? elseStatement[0] : elseStatement);
             if (this.isBlock(block) && this.isBlock(elseBlock)) {
                 let n;
@@ -108,8 +103,7 @@ const ControlFlowHandlers = {
 
         // Detect if modifier form: endKeywordLoc is null for modifier syntax
         if (node.endKeywordLoc === null && this._isBlock(block)) {
-            let commentText = '@ruby:syntax:if_modifier';
-            if (variableHint) commentText += `,@ruby:variable:${variableHint}`;
+            const commentText = '@ruby:syntax:if_modifier';
             if (block.comment) {
                 const comment = this._context.comments[block.comment];
                 if (comment) {
@@ -118,16 +112,6 @@ const ControlFlowHandlers = {
                 }
             } else {
                 const commentId = this._createComment(commentText, block.id);
-                block.comment = commentId;
-            }
-        } else if (variableHint && !hasElsif && this._isBlock(block)) {
-            // Attach @ruby:variable: comment for round-trip (non-modifier, non-elsif forms)
-            const varCommentText = `@ruby:variable:${variableHint}`;
-            if (block.comment) {
-                const existingComment = this._context.comments[block.comment];
-                if (existingComment) existingComment.text += `,${varCommentText}`;
-            } else {
-                const commentId = this._createComment(varCommentText, block.id);
                 block.comment = commentId;
             }
         }
@@ -267,10 +251,7 @@ const ControlFlowHandlers = {
 
         const preBlocks = [];
         const callState = this._methodCallState();
-        this._context.variableHint = null;
         let cond = this._processCondition(node.predicate);
-        const variableHint = this._context.variableHint;
-        this._context.variableHint = null;
         const split = this._splitPreBlocksAndValue(cond);
         cond = split.value;
         preBlocks.push(...split.preBlocks);
@@ -292,17 +273,6 @@ const ControlFlowHandlers = {
             bodyCopy = this._beginLoopBodyCopy(node, block, bodyCallState);
         }
 
-        if (variableHint && this._isBlock(block)) {
-            const varCommentText = `@ruby:variable:${variableHint}`;
-            if (block.comment) {
-                const existingComment = this._context.comments[block.comment];
-                if (existingComment) existingComment.text += `,${varCommentText}`;
-            } else {
-                const commentId = this._createComment(varCommentText, block.id);
-                block.comment = commentId;
-            }
-        }
-
         if (bodyCopy) {
             preBlocks.unshift(bodyCopy);
         }
@@ -319,10 +289,7 @@ const ControlFlowHandlers = {
         const saved = this._saveContext();
 
         const preBlocks = [];
-        this._context.variableHint = null;
         let cond = this._processCondition(node.predicate);
-        const variableHint = this._context.variableHint;
-        this._context.variableHint = null;
         const split = this._splitPreBlocksAndValue(cond);
         cond = split.value;
         preBlocks.push(...split.preBlocks);
@@ -361,7 +328,6 @@ const ControlFlowHandlers = {
             } else {
                 commentText2 = '@ruby:syntax:unless';
             }
-            if (variableHint) commentText2 += `,@ruby:variable:${variableHint}`;
             if (block.comment) {
                 const comment = this._context.comments[block.comment];
                 if (comment) {
@@ -392,10 +358,7 @@ const ControlFlowHandlers = {
 
         const preBlocks = [];
         const callState = this._methodCallState();
-        this._context.variableHint = null;
         let cond = this._processCondition(node.predicate);
-        const variableHint = this._context.variableHint;
-        this._context.variableHint = null;
         const split = this._splitPreBlocksAndValue(cond);
         cond = split.value;
         preBlocks.push(...split.preBlocks);
@@ -420,11 +383,7 @@ const ControlFlowHandlers = {
             this._appendConditionCalls(block, conditionCalls);
             // Attach @ruby:syntax:while comment for round-trip fidelity, keeping the markers the loop
             // has (e.g. `@ruby:method:wait` of a body that ends with `wait`).
-            let commentText = '@ruby:syntax:while';
-            if (variableHint) {
-                commentText += `,@ruby:variable:${variableHint}`;
-            }
-            this._addCommentMarker(block, commentText);
+            this._addCommentMarker(block, '@ruby:syntax:while');
             bodyCopy = this._beginLoopBodyCopy(node, block, bodyCallState);
         }
 
@@ -471,7 +430,6 @@ const ControlFlowHandlers = {
         const after = {
             methodCallIndices: context.methodCallIndices,
             savedReturnValueInStatement: context.savedReturnValueInStatement,
-            variableHint: context.variableHint,
         };
         // The calls get the same comments and variables as the first time (e.g. `@_return_bar_1_`).
         context.methodCallIndices = Object.assign({}, callState.methodCallIndices);
@@ -484,7 +442,6 @@ const ControlFlowHandlers = {
         } finally {
             context.methodCallIndices = after.methodCallIndices;
             context.savedReturnValueInStatement = after.savedReturnValueInStatement;
-            context.variableHint = after.variableHint;
             if (nodeToBlockMap) {
                 context.nodeToBlockMap.clear();
                 nodeToBlockMap.forEach((blockId, n) => context.nodeToBlockMap.set(n, blockId));
@@ -569,7 +526,6 @@ const ControlFlowHandlers = {
         const after = {
             methodCallIndices: context.methodCallIndices,
             savedReturnValueInStatement: context.savedReturnValueInStatement,
-            variableHint: context.variableHint,
         };
         context.methodCallIndices = Object.assign({}, callState.methodCallIndices);
         context.savedReturnValueInStatement = callState.savedReturnValueInStatement;
@@ -581,7 +537,6 @@ const ControlFlowHandlers = {
         } finally {
             context.methodCallIndices = after.methodCallIndices;
             context.savedReturnValueInStatement = after.savedReturnValueInStatement;
-            context.variableHint = after.variableHint;
             if (nodeToBlockMap) {
                 context.nodeToBlockMap.clear();
                 nodeToBlockMap.forEach((blockId, n) => context.nodeToBlockMap.set(n, blockId));

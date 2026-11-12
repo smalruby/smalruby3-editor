@@ -289,6 +289,8 @@ move(10) if keyboard.pressed?("space")
 say("セーフ") unless touching?("_edge_")
 ```
 
+条件には変数だけを書くこともできます（`if @flag`・`while a < 3 && @x`・`until @done || a > 3`・`!@x` など）。Ruby と同じく、変数が `false` のときだけ偽で、`0` や空の文字列は真です。ブロックでは「(変数) = (false)」ではない、になり、この「ではない」ブロックにはコメントの印（`@ruby:variable_condition`）が付きます。ブロック → Ruby では変数だけに戻すので、往復しても書いたとおりに戻ります。
+
 ### ループ
 
 ```ruby
