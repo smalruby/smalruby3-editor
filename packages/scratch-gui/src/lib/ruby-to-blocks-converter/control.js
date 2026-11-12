@@ -1,4 +1,6 @@
 import _ from 'lodash';
+import { messages } from './converter-errors';
+import { RubyToBlocksConverterError } from './errors';
 
 const createControlRepeatBlock = function (converter, times, body) {
     const block = converter._createBlock('control_repeat', 'statement');
@@ -263,10 +265,17 @@ const ControlConverter = {
         });
 
         // with_screen_refresh { block } - unwrap for until/while body
-        // When with_screen_refresh do...end appears as the sole statement in until/while,
-        // register it so it returns its inner block with a flag.
+        // The blocks have it only as a mark on the loop of until / while whose body has nothing else
+        // (`_withScreenRefreshLoopBody`, set by visitUntilNode / visitWhileNode). Anywhere else it would
+        // be dropped, or the mark would move to a later loop, so it is an error (issue #1633).
         converter.registerOnSendWithBlock('self', 'with_screen_refresh', 0, 0, (params) => {
-            const { rubyBlock } = params;
+            const { rubyBlock, node } = params;
+            if (!node || node !== converter._withScreenRefreshLoopBody) {
+                throw new RubyToBlocksConverterError(
+                    node || converter._context.currentNode,
+                    converter._translator(messages.withScreenRefreshOutsideLoop),
+                );
+            }
             if (!rubyBlock) return null;
 
             // Mark that this came from with_screen_refresh so the parent until/while knows

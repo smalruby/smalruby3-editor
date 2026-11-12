@@ -29,6 +29,15 @@ const messages = defineMessages({
         description: 'Error message when an array method is called on an array literal such as [1, 2].each',
         id: 'gui.smalruby3.rubyToBlocksConverter.arrayLiteralReceiver',
     },
+    withScreenRefreshOutsideLoop: {
+        defaultMessage:
+            'with_screen_refresh do ... end can only be the only command in the body of until or while.' +
+            '\nPut it in a loop (until ... / while ...) with nothing else, ' +
+            'or use 10.times.with_screen_refresh do / loop.with_screen_refresh do.',
+        description:
+            'Error message when with_screen_refresh do ... end is not the only statement of the body of until / while',
+        id: 'gui.smalruby3.rubyToBlocksConverter.withScreenRefreshOutsideLoop',
+    },
     cannotChangeVariableScope: {
         defaultMessage:
             '"{ VARIABLE }", can\'t change variable scope.' +
