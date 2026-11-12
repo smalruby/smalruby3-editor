@@ -65,7 +65,12 @@ const TargetApplier = {
         // any block referencing the list. Iterate `lists` first so list
         // wins over the eager scalar; the second iteration of
         // localVariables drops the duplicate. ===
-        const seenVarKeys = new Set();
+        const seenVarKeys = new Map();
+        // A scalar dropped in favour of a list of the same name, keyed by the
+        // scalar's id. Reading `@a` always makes a data_variable block, so when
+        // `@a` is a list a value read like `say(@a)` would point at the dropped
+        // scalar and come back as `say("")` (issue #1567).
+        const droppedScalarToList = {};
         ['lists', 'variables', 'localVariables'].forEach((storeName) => {
             Object.keys(this._context[storeName]).forEach((name) => {
                 const variable = this._context[storeName][name];
@@ -73,12 +78,14 @@ const TargetApplier = {
 
                 const dedupeKey = `${variable.scope}:${variable.name}`;
                 if (seenVarKeys.has(dedupeKey)) {
-                    // Older entry from another store wins; remap any later
-                    // references through variableIdMap so block fields stay
-                    // consistent.
+                    // Older entry from another store wins.
+                    const winner = seenVarKeys.get(dedupeKey);
+                    if (winner.type === Variable.LIST_TYPE && variable.type === Variable.SCALAR_TYPE) {
+                        droppedScalarToList[variable.id] = winner;
+                    }
                     return;
                 }
-                seenVarKeys.add(dedupeKey);
+                seenVarKeys.set(dedupeKey, variable);
 
                 const oldId = variable.id;
                 let existingVar = null;
@@ -134,6 +141,23 @@ const TargetApplier = {
         // Update variable IDs in blocks
         Object.keys(this._context.blocks).forEach((blockId) => {
             const block = this._context.blocks[blockId];
+            // Read the list itself (data_listcontents) where a value read of
+            // `@a` points at the scalar dropped in favour of the list `@a`.
+            const listVar =
+                block.opcode === 'data_variable' &&
+                block.fields &&
+                block.fields.VARIABLE &&
+                droppedScalarToList[block.fields.VARIABLE.id];
+            if (listVar) {
+                block.opcode = 'data_listcontents';
+                delete block.fields.VARIABLE;
+                block.fields.LIST = {
+                    name: 'LIST',
+                    id: listVar.id,
+                    value: listVar.name,
+                    variableType: listVar.type,
+                };
+            }
             if (block.fields) {
                 ['VARIABLE', 'LIST'].forEach((fieldName) => {
                     const field = block.fields[fieldName];

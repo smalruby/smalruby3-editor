@@ -215,14 +215,15 @@ export default function (Generator) {
         if (comment) {
             const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+)/);
             if (lvarMatch) {
-                return [lvarMatch[1], Generator.ORDER_COLLECTION];
+                return [lvarMatch[1], Generator.ORDER_ATOMIC];
             }
         }
         const list = Generator.listName(Generator.getFieldId(block, 'LIST'));
         // v1 uses the `list("$name")` wrapper (Smalruby3::List); v2 uses the
-        // plain global/instance array variable `$name`.
+        // plain global/instance array variable `$name`, which is atomic like a
+        // scalar variable read (`@a.times`, not `(@a).times`).
         if (String(Generator.version) === '2') {
-            return [list, Generator.ORDER_COLLECTION];
+            return [list, Generator.ORDER_ATOMIC];
         }
         return [`list(${Generator.quote_(list)})`, Generator.ORDER_COLLECTION];
     };
