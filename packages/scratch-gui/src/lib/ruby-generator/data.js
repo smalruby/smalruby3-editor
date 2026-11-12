@@ -120,6 +120,12 @@ export default function (Generator) {
                     return 'return\n';
                 }
                 // === Smalruby: End of bare return ===
+                // === Smalruby: Start of parenthesized return value ===
+                // `return (x + 1)` keeps a comment marker to bring the parentheses back (issue #1557).
+                if (comment.includes(',@ruby:return-paren')) {
+                    return `return (${Generator.nosToCode(value)})\n`;
+                }
+                // === Smalruby: End of parenthesized return value ===
                 return `return ${Generator.nosToCode(value)}\n`;
             }
 
