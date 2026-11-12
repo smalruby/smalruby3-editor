@@ -24,18 +24,54 @@ import { isLogicalWordAt, isNameChar, isWholeWordAt } from './paren-utils';
 /**
  * Matches a DNCLv2 line-number prefix: `(N)` or the hyphenated form
  * `(00-1)` used by 共通テスト for lines inserted before `(01)`, plus the
- * whitespace after it (so `stripLineNumber` can reuse the same pattern).
+ * whitespace after it. The line number is only a presentation aid; it is
+ * taken off by `removeLineNumber`, which keeps the indent after it.
  */
 const LINE_NUMBER_RE = /^\(\d+(?:-\d+)*\)\s*/;
 
 /**
- * Strip the leading `(N) ` (and any trailing whitespace after it) from a
- * line. The line number is purely a presentation aid in DNCLv2 examples
- * — it has no semantic meaning, so we simply discard it.
- * @param {string} line - The source line.
- * @returns {string} The line with any `(N)` prefix removed.
+ * Matches just the `(N)` label of a numbered line, without the whitespace
+ * after it, which is the line's indent (Issue #1718).
  */
-const stripLineNumber = (line) => line.replace(LINE_NUMBER_RE, '');
+const LINE_NUMBER_LABEL_RE = /^\(\d+(?:-\d+)*\)/;
+
+/**
+ * The whitespace that separates the line numbers from the code on the least
+ * indented numbered line (usually 1 space). It is taken off every numbered
+ * line, so what is left after the line number is the indent of the code and
+ * an indentation-only block can be closed on numbered lines too. Measuring
+ * after the label (not the column) keeps `(00-1) a` and `(01) b` at the same
+ * depth (Issue #1718).
+ * @param {Array<{line: string}>} lines - The logical lines.
+ * @returns {number} The number of whitespace characters to take off.
+ */
+const lineNumberSeparatorLength = (lines) => {
+    let min = Infinity;
+    for (const { line } of lines) {
+        const label = line.match(LINE_NUMBER_LABEL_RE);
+        if (!label) continue;
+        const after = line.substring(label[0].length);
+        const ws = after.match(/^\s*/)[0];
+        if (after.length === ws.length) continue;
+        min = Math.min(min, ws.length);
+    }
+    return min === Infinity ? 0 : min;
+};
+
+/**
+ * Take the `(N)` label and the separator after it off a numbered line, and
+ * keep the rest of the whitespace as the indent of the code.
+ * @param {string} line - The source line.
+ * @param {number} separatorLength - See `lineNumberSeparatorLength`.
+ * @returns {string} The line without its line number.
+ */
+const removeLineNumber = (line, separatorLength) => {
+    const label = line.match(LINE_NUMBER_LABEL_RE);
+    if (!label) return line;
+    const after = line.substring(label[0].length);
+    const ws = after.match(/^\s*/)[0];
+    return after.substring(Math.min(ws.length, separatorLength));
+};
 
 /**
  * Walk `line` and return the offsets of every character that is OUTSIDE
@@ -579,7 +615,7 @@ const preprocessLine = (line) => {
     // The line-end matches below (`:`, `繰り返す`, `を定義する`) look at the
     // code, not at a `# comment` after it; the comment is put back at the
     // end of the (last) line (Issue #1696).
-    const { code, comment } = splitTrailingComment(stripLineNumber(line));
+    const { code, comment } = splitTrailingComment(line);
     let out = normalizeArrayInit(code);
     out = stripTrailingColon(out);
     out = normalizeKurikaesuSuffix(out);
@@ -655,7 +691,10 @@ const dnclV2PreprocessWithLineMap = (source) => {
             emitCloser(stack.pop(), lastCodeLine);
         }
     };
-    for (const { line: rawLine, extraCloseCount, lineNumber } of joinContinuationLines(source)) {
+    const logicalLines = joinContinuationLines(source);
+    const separatorLength = lineNumberSeparatorLength(logicalLines);
+    for (const { line: numberedLine, extraCloseCount, lineNumber } of logicalLines) {
+        const rawLine = removeLineNumber(numberedLine, separatorLength);
         // Phase 3 per-line transformations (may produce `\n` from multi-assignment).
         const phase3 = preprocessLine(rawLine);
         const colonOpener =
@@ -676,11 +715,19 @@ const dnclV2PreprocessWithLineMap = (source) => {
             const width = indentWidth(indent);
             const isCode = body !== '' && !body.startsWith('#');
             if (isCode) closeByIndent(width, body);
-            emit(marked, lineNumber);
+            // The Ruby indent is made from the block depth (2 spaces a level),
+            // not kept from the source, whose indent may be 3 / 4 spaces, a
+            // full-width space or a tab (Issue #1718). An else / else-if line
+            // stands at the depth of its `もし`.
+            const rest = marked.substring(indent.length);
+            const top = stack[stack.length - 1];
+            const depth = stack.length - (top && top.type === 'if' && isIfContinuation(body) ? 1 : 0);
+            const depthIndent = '  '.repeat(depth);
+            emit(rest === '' ? '' : `${depthIndent}${rest}`, lineNumber);
             if (isCode) lastCodeLine = lineNumber;
             const type = detectBlockType(body);
             if (type) {
-                stack.push({ type, indent, width, colon: colonOpener, hasBody: false });
+                stack.push({ type, indent: depthIndent, width, colon: colonOpener, hasBody: false });
             }
             // Emit closers for each `⎿` on this line.
             for (let i = 0; i < closeCount; i++) {

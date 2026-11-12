@@ -28,6 +28,55 @@ import { commentIndex, stringEndAt } from './dncl-trailing-comment';
 const LINE_NUMBER_RE = /^\s*(?:\(\d+(?:-\d+)*\)\s*|\d+:(?:\s+|$))/;
 
 /**
+ * The line-number label alone, without the whitespace after it: that
+ * whitespace is the indent of the code (Issue #1718).
+ */
+const LINE_NUMBER_LABEL_RE = /^\s*(?:\(\d+(?:-\d+)*\)|\d+:(?=\s|$))/;
+
+/**
+ * Split a numbered line into the whitespace after its label and the code.
+ * @param {string} line - A line with a line number.
+ * @returns {{ws: string, code: string}} The whitespace and the code after it.
+ */
+const afterLineNumber = (line) => {
+    const after = line.substring(line.match(LINE_NUMBER_LABEL_RE)[0].length);
+    const ws = after.match(/^\s*/)[0];
+    return { ws, code: after.substring(ws.length) };
+};
+
+/**
+ * Whether the code starts with a `｜` / `⎿` indent marker.
+ * @param {string} code - The code after the line number and its whitespace.
+ * @returns {boolean} True when it starts with a marker.
+ */
+const startsWithMarker = (code) => /^[｜|⎿]/.test(code);
+
+/**
+ * Remove the line numbers but keep the indent of code written with
+ * indentation only (no `｜` / `⎿`), so that its blocks still close: the
+ * separator after the numbers (the whitespace of the least indented line,
+ * usually 1 space) is taken off and the rest is kept. Lines starting with a
+ * marker lose all the whitespace before it, as before (Issue #1718).
+ * @param {Array<string>} lines - The lines (continuation lines joined).
+ * @returns {Array<string>} The lines without line numbers.
+ */
+const removeLineNumbers = (lines) => {
+    let separator = Infinity;
+    for (const line of lines) {
+        if (!LINE_NUMBER_RE.test(line)) continue;
+        const { ws, code } = afterLineNumber(line);
+        if (code !== '' && !startsWithMarker(code)) separator = Math.min(separator, ws.length);
+    }
+    if (separator === Infinity) separator = 0;
+    return lines.map((line) => {
+        if (!LINE_NUMBER_RE.test(line)) return line;
+        const { ws, code } = afterLineNumber(line);
+        if (code === '' || startsWithMarker(code)) return code;
+        return `${ws.substring(Math.min(ws.length, separator))}${code}`;
+    });
+};
+
+/**
  * Operators that make the text after a `//` look like code: ASCII
  * operators, the DNCL symbols and the `かつ` / `または` keywords between
  * spaces. The converter also takes them without spaces (`(a)かつ(b)`,
@@ -230,7 +279,7 @@ const tidyPastedDncl = (text, context = '') => {
     const eol = text.includes('\r\n') ? '\r\n' : '\n';
     const lines = text.split(/\r?\n/);
     if (!lines.some((line) => LINE_NUMBER_RE.test(line))) return text;
-    const stripped = joinContinuationLines(lines).map((line) => line.replace(LINE_NUMBER_RE, ''));
+    const stripped = removeLineNumbers(joinContinuationLines(lines));
     const names = collectNames(`${stripped.join('\n')}\n${context}`);
     return stripped.map((line) => convertSlashComment(line, names)).join(eol);
 };

@@ -252,8 +252,8 @@ describe('dnclToRuby', () => {
             expect(convert('a = 1\n\nb = 2')).toBe('@a = 1\n\n@b = 2');
         });
 
-        test('preserves indentation', () => {
-            expect(convert('  a = 1')).toBe('  @a = 1');
+        test('indents by block depth, not by the source indent (Issue #1718)', () => {
+            expect(convert('  a = 1')).toBe('@a = 1');
         });
     });
 
