@@ -283,20 +283,14 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
                 ['a list method only', '@a.push("x")\n@b = @a.index("x")'],
                 ['read in a method before the list is made', 'def f\n  @b = @a.index("x")\nend\n\n@a = []\nf'],
             ])('%s', async (_name, code) => {
-                // The generator writes `(...)` around the `index` of a list, as on develop.
-                await expectRoundTrip(converter, target, code, code.replace('@a.index("x")', '(@a.index("x"))'));
+                await expectRoundTrip(converter, target, code);
                 expect(Object.values(target.variables).filter((v) => v.type === 'list')).toHaveLength(1);
             });
 
             test('a variable and a list of the same name that the project already has', async () => {
                 target.variables.v1 = new Variable('v1', 'score', Variable.SCALAR_TYPE);
                 target.variables.l1 = new Variable('l1', 'score', Variable.LIST_TYPE);
-                await expectRoundTrip(
-                    converter,
-                    target,
-                    '@score = 0\n@b = @score.index("x")',
-                    '@score = 0\n@b = (@score.index("x"))',
-                );
+                await expectRoundTrip(converter, target, '@score = 0\n@b = @score.index("x")');
                 const opcodes = Object.values(target.blocks._blocks).map((b) => b.opcode);
                 expect(opcodes).toContain('data_itemnumoflist');
             });
