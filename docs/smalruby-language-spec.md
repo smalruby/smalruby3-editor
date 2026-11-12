@@ -24,6 +24,19 @@ Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual p
 - Compound assignment operators `+=`, `-=`, `*=`, `/=`, `%=` ARE supported
 - Recursion is NOT supported
 
+### Differences from Ruby (Caution)
+
+"Key Differences from Standard Ruby" above lists syntax that cannot be written. This section lists code that **can be written but gives a different result from Ruby**. The code is converted to blocks, and the value comes from the Scratch block's calculation.
+
+| Code | Smalruby | Ruby | Why |
+|---|---|---|---|
+| `/` between integers | `7 / 2` → `3.5`, `-7 / 2` → `-3.5` | `3`, `-4` (integer division) | It becomes the "( ) / ( )" block, which is ordinary division. For the integer quotient, write `(7 / 2).to_i` |
+| `.to_i` on a negative number | `(-3.5).to_i` → `-4`, `(-7 / 2.0).to_i` → `-4` | `-3`, `-3` (truncates toward zero) | It becomes the "floor" block, which goes to the smaller integer |
+| `.to_i` on a string with non-number characters | `"12abc".to_i` → `0` | `12` (reads the leading digits) | A string that cannot be read as a whole number becomes 0 |
+| `.round` on a negative half | `(-2.5).round` → `-2` | `-3` (away from zero) | The "round" block rounds halves up (`2.5.round` is `3`, the same as Ruby) |
+
+`%` gives the same value as Ruby, even with negative numbers (`-7 % 2` → `1`, `7 % -2` → `-1`).
+
 ## 2. Program Structure
 
 ### Top-Level Structure
@@ -353,7 +366,7 @@ end
 | `+` | `@score + 1` |
 | `-` | `x - 10` |
 | `*` | `@speed * 2` |
-| `/` | `360 / 10` |
+| `/` | `360 / 10` (a decimal even between integers; see [Differences from Ruby (Caution)](#differences-from-ruby-caution)) |
 | `%` | `@count % 2` |
 | `**` | `10 ** 2` (power) |
 | `-` (unary) | `-@x`, `-(@x + 1)` (becomes the "(0) - (X)" block; a number like `-1` stays a number) |

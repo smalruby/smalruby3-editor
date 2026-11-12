@@ -58,7 +58,7 @@ const DNCL_SNIPPETS = [
     {
         label: '整数',
         insertText: '整数(${1:値})',
-        documentation: '整数に変換する',
+        documentation: '整数に変換する（小さいほうの整数にする。整数(-3.5) は -4）',
     },
     {
         label: '文字列',
