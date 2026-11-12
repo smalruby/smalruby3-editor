@@ -90,9 +90,15 @@ const convertOperators = (segment) => {
     // 共通テスト用プログラム表記: `/` is the ordinary division and `÷` the
     // integer quotient; `wrapIntegerDivisions` below turns each `÷` into
     // `(A / B).to_i`. (Issue #1701, replacing E of #665)
-    // Smalruby's `//` is the integer quotient too. It keeps its own rewrite,
-    // so its output stays as it was (the `÷` in it becomes `/` below).
-    result = result.replace(/(\S+)\s*\/\/\s*(\S+)/g, (_, left, right) => `(${left} ÷ ${right}).to_i`);
+    // Smalruby's `//` is the integer quotient too: it is read as `÷`, so it
+    // has the same operands and precedence (`(a + b) // 2` is
+    // `((a + b) / 2).to_i`, `a * 3 // 2` is `(a * 3 / 2).to_i`).
+    // `wrapIntegerDivisions` cannot read a Japanese name as an operand yet, so
+    // `合計 // 個数` keeps the old rewrite of the words around it.
+    result = result.replace(/(\S+)\s*\/\/\s*(\S+)/g, (match, left, right) =>
+        /[\u3040-\u30FF\u4E00-\u9FFF]/.test(left + right) ? `(${left} ÷ ${right}).to_i` : match,
+    );
+    result = result.replace(/\s*\/\/\s*/g, ' ÷ ');
     result = result.replace(/≦/g, '<=');
     result = result.replace(/≧/g, '>=');
 
