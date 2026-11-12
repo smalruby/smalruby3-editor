@@ -722,6 +722,24 @@ self.x += 10
 ```
 
 ```ruby
+# ⚠️ Without self., x = / y = means different things depending on the right-hand side
+x = 100        # only a number or a variable → sets the x position (same as self.x = 100)
+x = bar(1)     # a method call, super, or a calculation → assigns a local variable x
+x = 1 + bar(1) #   (the x position does not change)
+x = super
+
+# ✅ To change the position, always write self.x = / self.y =
+self.x = bar(1)
+self.y = super
+
+# ✅ Use a name other than x / y for a temporary variable
+v = bar(1)
+return v
+```
+
+The same applies to other attributes you can set with `self.name =`, such as `direction` and `size`. To avoid confusion, add `self.` when you change an attribute, and do not give a temporary variable the same name as an attribute.
+
+```ruby
 # ❌ Wrong method names
 mouse_x
 key_pressed?("space")
