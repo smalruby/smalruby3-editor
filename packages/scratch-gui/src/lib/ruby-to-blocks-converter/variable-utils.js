@@ -3,6 +3,28 @@ import * as Blockly from 'scratch-blocks';
 import { Variable } from './constants';
 import { RubyToBlocksConverterError } from './errors';
 
+// Methods that this converter turns into list blocks only (a String has no such block here), so
+// calling one is evidence that the name is a list (issue #1613).
+const LIST_ONLY_METHODS = new Set(['push', '<<', 'delete_at', 'clear', 'insert', '[]=']);
+// Nodes that set a variable, whose `name` is the Ruby name (`@a`, `$a`, `a`) and `value` the value.
+const VARIABLE_WRITE_NODE_TYPES = new Set(
+    ['InstanceVariable', 'GlobalVariable', 'LocalVariable'].flatMap((kind) =>
+        ['WriteNode', 'OperatorWriteNode', 'OrWriteNode', 'AndWriteNode'].map((suffix) => `${kind}${suffix}`),
+    ),
+);
+// List blocks of Ruby that a String also has (`length` / `[i]` / `include?`), and the read of a list.
+const LIST_OPCODES_ALSO_FOR_STRINGS = new Set([
+    'data_lengthoflist',
+    'data_itemoflist',
+    'data_listcontainsitem',
+    'data_listcontents',
+]);
+const VARIABLE_READ_NODE_TYPES = new Set([
+    'InstanceVariableReadNode',
+    'GlobalVariableReadNode',
+    'LocalVariableReadNode',
+]);
+
 const messages = defineMessages({
     cannotChangeVariableScope: {
         defaultMessage:
@@ -343,6 +365,73 @@ const VariableUtils = {
     },
 
     /**
+     * Collect, before converting, how the code uses each variable name, so that a method of both
+     * String and Array (`length` / `include?` / `empty?` / `[i]`) does not depend on the order in
+     * which the code is converted (issue #1613): `@a.length` in a method or an event before
+     * `@a = "abc"`, `@a = gets`, or a number set last.
+     * A name is used as a list when it is set to an array literal or a list-only method is called
+     * on it, and as a scalar when it is set to anything else (a hash literal is neither).
+     * The result is in `_context.variableUses`, keyed by the Ruby name (`@a`, `$a`, `a`).
+     * @param {object} root - The root prism node.
+     */
+    _collectVariableUses(root) {
+        const uses = {};
+        const mark = (name, use) => {
+            if (!name) return;
+            const key = String(name);
+            if (!uses[key]) uses[key] = { list: false, scalar: false };
+            uses[key][use] = true;
+        };
+        const queue = [root];
+        while (queue.length > 0) {
+            const node = queue.pop();
+            // Not `constructor.name`: the production build renames the classes.
+            const nodeType = this._prismNodeType(node);
+            if (!nodeType) continue;
+            if (VARIABLE_WRITE_NODE_TYPES.has(nodeType)) {
+                const valueType = this._prismNodeType(node.value);
+                if (valueType === 'ArrayNode') {
+                    mark(node.name, 'list');
+                } else if (valueType !== 'HashNode') {
+                    mark(node.name, 'scalar');
+                }
+            } else if (
+                nodeType === 'CallNode' &&
+                LIST_ONLY_METHODS.has(String(node.name)) &&
+                VARIABLE_READ_NODE_TYPES.has(this._prismNodeType(node.receiver))
+            ) {
+                const args = node.arguments_ ? node.arguments_.arguments_ : [];
+                const keyType = args.length > 0 ? this._prismNodeType(args[0]) : null;
+                // `@a[:key] = 1` and `@a["key"] = 1` are a hash.
+                if (!(node.name === '[]=' && (keyType === 'SymbolNode' || keyType === 'StringNode'))) {
+                    mark(node.receiver.name, 'list');
+                }
+            }
+            if (typeof node.compactChildNodes === 'function') {
+                node.compactChildNodes().forEach((child) => queue.push(child));
+            }
+        }
+        this._context.variableUses = uses;
+    },
+
+    /**
+     * Whether the code uses a variable only as a scalar (see `_collectVariableUses`).
+     * @param {object} variable - The variable (or list) in the converter's stores.
+     * @returns {boolean} true if the code sets the name to a scalar and never uses it as a list.
+     */
+    _isUsedOnlyAsScalar(variable) {
+        if (!variable || variable.isArgument || !this._context.variableUses) return false;
+        let rubyName = variable.originalName || variable.name;
+        if (variable.scope === 'global') {
+            rubyName = `$${variable.name}`;
+        } else if (variable.scope === 'instance') {
+            rubyName = `@${variable.name}`;
+        }
+        const use = this._context.variableUses[rubyName];
+        return Boolean(use) && use.scalar && !use.list;
+    },
+
+    /**
      * Whether a list that the project already has gives way to a variable of the same name.
      * The VM keeps a list after the code that made it is rewritten (`@a = []` → `@a = 0`), so the
      * code is converted with the list still there. When this code sets the variable and never uses
@@ -430,6 +519,10 @@ const VariableUtils = {
         if (Object.keys(scalarIds).length === 0) return;
 
         const firstListLine = {};
+        // A line that uses the name only as a list (`@a.push(1)`, `@a = []`) is the one to show: a
+        // `length` / `include?` / `[i]` / read of the name is a list only because of such a line
+        // (issue #1613).
+        const firstListOnlyLine = {};
         const firstScalarUse = {};
         Object.values(this._context.blocks).forEach((block) => {
             const fields = block.fields || {};
@@ -441,6 +534,9 @@ const VariableUtils = {
             if (list) {
                 const key = keyOf(list);
                 if (earlier(line, firstListLine[key])) firstListLine[key] = line;
+                if (!LIST_OPCODES_ALSO_FOR_STRINGS.has(block.opcode) && earlier(line, firstListOnlyLine[key])) {
+                    firstListOnlyLine[key] = line;
+                }
             }
             if (scalar) {
                 const key = keyOf(scalar);
@@ -470,7 +566,11 @@ const VariableUtils = {
             node,
             this._translator(messages.variableAndListSameName, {
                 NAME: name,
-                LIST_LINE: lineText(firstListLine[keyOf(variable)]),
+                LIST_LINE: lineText(
+                    typeof firstListOnlyLine[keyOf(variable)] === 'undefined'
+                        ? firstListLine[keyOf(variable)]
+                        : firstListOnlyLine[keyOf(variable)],
+                ),
                 VARIABLE_LINE: lineText(line),
             }),
         );
