@@ -86,6 +86,17 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
             const converter = makeConverter(target, runtime, { version: '2' });
             await expectRoundTrip(converter, target, code);
         });
+        test('the length of the list is still the list (issue #1613)', async () => {
+            const { target, runtime } = makeSpriteTarget();
+            target.variables.v1 = new Variable('v1', 'score', Variable.SCALAR_TYPE);
+            target.variables.l1 = new Variable('l1', 'score', Variable.LIST_TYPE);
+            setupRubyGenerator();
+            const converter = makeConverter(target, runtime, { version: '2' });
+            await expectRoundTrip(converter, target, '@score = 0\nsay(@score.length)');
+            const opcodes = Object.values(target.blocks._blocks).map((b) => b.opcode);
+            expect(opcodes).toContain('data_lengthoflist');
+            expect(opcodes).not.toContain('operator_length');
+        });
     });
 
     describe('a list that the sprite already has and this code does not use as a list (issue #1612)', () => {
@@ -169,6 +180,72 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
             const { result, errors } = await convert('@a = "abc"\n@a.push(1)');
             expect(result).toBe(false);
             expect(errors[0].text).toContain('"@a" is used as a list on line 2 and as a variable on line 1.');
+        });
+    });
+
+    describe('a string method does not depend on the order of the code (issue #1613)', () => {
+        // Whether `@a` holds a string or a list is decided from the whole code before converting,
+        // so a read before the assignment, `gets`, or a number set last still reads the variable.
+        let target, runtime, converter;
+
+        beforeEach(() => {
+            ({ target, runtime } = makeSpriteTarget());
+            setupRubyGenerator();
+            converter = makeConverter(target, runtime, { version: '2' });
+        });
+
+        test.each([
+            ['@a = gets', '@a = gets\nsay(@a.length)'],
+            ['a local set to gets', 'text = gets\nsay(text.length)'],
+            ['read in a method before the assignment', 'def f\n  say(@a.length)\nend\n\n@a = "abc"\nf'],
+            ['@a[0] in a method before the assignment', 'def f\n  say(@a[0])\nend\n\n@a = "abc"\nf'],
+            ['@a.include? in a method before the assignment', 'def f\n  say(@a.include?("b"))\nend\n\n@a = "abc"\nf'],
+            [
+                '@a.empty? in a method before the assignment',
+                'def f\n  if @a.empty?\n    say("empty")\n  end\nend\n\n@a = "abc"\nf',
+            ],
+            [
+                'a number set in the last branch',
+                dedent`
+                    if @x == 1
+                      @a = "abc"
+                    else
+                      @a = 1
+                    end
+                    say(@a.length)
+                `,
+            ],
+            ['a number set after a string', '@a = "abc"\n@a = 3\nsay(@a.length)'],
+            ['read in an event before the assignment', 'when_flag_clicked do\n  say(@a.length)\nend\n\n@a = "abc"'],
+        ])('%s', async (_name, code) => {
+            await expectRoundTrip(converter, target, code);
+            expect(Object.values(target.variables).filter((v) => v.type === 'list')).toEqual([]);
+        });
+
+        test('a list method still makes the name a list', async () => {
+            await expectRoundTrip(converter, target, 'def f\n  say(@a.length)\nend\n\n@a.push(1)\nf');
+            expect(Object.values(target.variables).filter((v) => v.type === 'list')).toHaveLength(1);
+        });
+
+        test('a list method of a name that is also set to a string is still an error', async () => {
+            const { result, errors } = await convert('def f\n  say(@a.length)\nend\n\n@a = "abc"\n@a.push(1)');
+            expect(result).toBe(false);
+            expect(errors[0].text).toContain('"@a" is used as a list on line 2 and as a variable on line 5.');
+        });
+
+        test.each([
+            ['read in a method', 'def f\n  say(@a.length)\nend\n\n@a = "abc"\nf'],
+            ['read in an event', 'when_flag_clicked do\n  say(@a.length)\nend\n\n@a = "abc"'],
+        ])('with a list that the sprite already has, %s before the assignment', async (_name, code) => {
+            await expectRoundTrip(converter, target, '@a = []\n@a.push(1)');
+            const second = makeConverter(target, runtime, { version: '2' });
+            await expectRoundTrip(second, target, code);
+            expect(
+                Object.values(target.variables)
+                    .filter((v) => v.name === 'a')
+                    .map((v) => v.type)
+                    .sort(),
+            ).toEqual(['', 'list']);
         });
     });
 });
