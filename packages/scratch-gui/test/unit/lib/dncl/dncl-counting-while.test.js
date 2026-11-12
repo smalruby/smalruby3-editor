@@ -69,24 +69,24 @@ describe('counting while loop (Issue #1695)', () => {
             expect(dncl).toBe(['i = 1', 'i <= 10 の間', '  表示する(i)', '  i -= 1', 'を繰り返す'].join('\n'));
         });
 
-        test('-= with a step of two terms', () => {
-            // `X ずつ減らしながら` comes back as `+= -X`, which is not `-= a + 1`.
-            expectBothWays(
-                ['@i = 10', 'while @i >= 1', '  puts(@i)', '  @i -= @a + 1', 'end'].join('\n'),
-                ['i = 10', 'i >= 1 の間', '  表示する(i)', '  i -= a + 1', 'を繰り返す'].join('\n'),
-            );
-        });
-
         test('the step calls a method', () => {
             const dncl = toDncl(['@i = 1', 'while @i <= 10', '  puts(@i)', '  @i += rand(3)', 'end'].join('\n'));
             expect(dncl).not.toContain(PLACEHOLDER);
             expect(dncl.split('\n').slice(0, 2)).toEqual(['i = 1', 'i <= 10 の間']);
         });
 
-        test('a blank line before end', () => {
-            const dncl = toDncl(['@i = 1', 'while @i <= 10', '  puts(@i)', '  @i += 1', '', 'end'].join('\n'));
-            expect(dncl).not.toContain(PLACEHOLDER);
-            expect(dncl.split('\n').slice(0, 2)).toEqual(['i = 1', 'i <= 10 の間']);
+        test('the variable is the first of a multiple assignment', () => {
+            expectBothWays(
+                ['@i = 1', 'while @i <= 10', '  @i, @j = 5, 0', '  @i += 1', 'end'].join('\n'),
+                ['i = 1', 'i <= 10 の間', '  i, j = 5, 0', '  i += 1', 'を繰り返す'].join('\n'),
+            );
+        });
+
+        test('the negated step is more than one operand', () => {
+            expectBothWays(
+                ['@i = 10', 'while @i >= 1', '  puts(@i)', '  @i += -(@a) + 1', 'end'].join('\n'),
+                ['i = 10', 'i >= 1 の間', '  表示する(i)', '  i += -(a) + 1', 'を繰り返す'].join('\n'),
+            );
         });
 
         test('the increment is in an if at the end of the body', () => {
@@ -151,6 +151,36 @@ describe('counting while loop (Issue #1695)', () => {
             );
         });
 
+        test('-= with a step of two terms', () => {
+            const ruby = ['@i = 10', 'while @i >= 1', '  puts(@i)', '  @i -= @a + 1', 'end'].join('\n');
+            const dncl = ['i を 10 から 1 まで a + 1 ずつ減らしながら', '  表示する(i)', 'を繰り返す'].join('\n');
+            expect(toDncl(ruby)).toBe(dncl);
+            expect(toDncl(toRuby(dncl))).toBe(dncl);
+        });
+
+        test('blank lines before end', () => {
+            const ruby = ['@i = 1', 'while @i <= 10', '  puts(@i)', '  @i += 1', '', '', 'end'].join('\n');
+            const dncl = ['i を 1 から 10 まで 1 ずつ増やしながら', '  表示する(i)', '', '', 'を繰り返す'].join('\n');
+            expect(toDncl(ruby)).toBe(dncl);
+            expect(toDncl(toRuby(dncl))).toBe(dncl);
+        });
+
+        test('a step of integer division', () => {
+            expectBothWays(
+                ['@i = 0', 'while @i <= 10', '  puts(@i)', '  @i += (@s / 2).to_i', 'end'].join('\n'),
+                ['i を 0 から 10 まで s ÷ 2 ずつ増やしながら', '  表示する(i)', 'を繰り返す'].join('\n'),
+            );
+            expectBothWays(
+                ['@i = 10', 'while @i >= 0', '  puts(@i)', '  @i += -(@s / 2).to_i', 'end'].join('\n'),
+                ['i を 10 から 0 まで s ÷ 2 ずつ減らしながら', '  表示する(i)', 'を繰り返す'].join('\n'),
+            );
+        });
+
+        test('a body indented by four spaces', () => {
+            const dncl = ['i を 1 から 10 まで 1 ずつ増やしながら', '    表示する(i)', 'を繰り返す'].join('\n');
+            expect(toDncl(toRuby(dncl))).toBe(dncl);
+        });
+
         test('with comments at the end of lines', () => {
             const ruby = ['@i = 1 # a', 'while @i <= 10 # b', '  puts(@i) # c', '  @i += 1 # d', 'end # e'].join(
                 '\n',
@@ -162,6 +192,27 @@ describe('counting while loop (Issue #1695)', () => {
             ].join('\n');
             expect(toDncl(ruby)).toBe(dncl);
             // The header and the closer each hold the comments of two Ruby lines.
+            expect(toDncl(toRuby(dncl))).toBe(dncl);
+        });
+    });
+
+    describe('a decreasing step of more than one term (DNCL → Ruby)', () => {
+        test.each([
+            ['a + 1', '-(@a + 1)'],
+            ['a * 2', '-(@a * 2)'],
+            ['-1', '-(-1)'],
+            ['a', '-@a'],
+            ['2', '-2'],
+            ['整数(a / 2)', '-(@a / 2).to_i'],
+        ])('%s ずつ減らしながら adds %s', (step, rubyStep) => {
+            const dncl = [`i を 10 から 1 まで ${step} ずつ減らしながら`, '  表示する(i)', 'を繰り返す'].join('\n');
+            expect(toRuby(dncl)).toBe(
+                ['@i = 10', 'while @i >= 1', '  puts(@i)', `  @i += ${rubyStep}`, 'end'].join('\n'),
+            );
+        });
+
+        test('it comes back as the same DNCL', () => {
+            const dncl = ['i を 10 から 1 まで a + 1 ずつ減らしながら', '  表示する(i)', 'を繰り返す'].join('\n');
             expect(toDncl(toRuby(dncl))).toBe(dncl);
         });
     });

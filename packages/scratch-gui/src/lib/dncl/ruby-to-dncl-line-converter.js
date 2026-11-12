@@ -1,6 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (Ruby→DNCL line converter) ===
 import { isDoBlockLine } from './dncl-validator';
-import { skipString } from './paren-utils';
+import { isSingleOperand, isWrappedInParens, skipString } from './paren-utils';
 import { convertBuiltins } from './ruby-to-dncl-builtins';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
 
@@ -237,12 +237,15 @@ const indentOf = (line) => line.match(/^(\s*)/)[1];
  * @returns {RegExp} The pattern.
  */
 const assignmentPattern = (varRef) =>
-    new RegExp(`(?<![${ID}@$])${varRef}(?![${ID}?!])\\s*(?:\\*\\*|\\|\\||&&|[-+*/%])?=(?![=~>])`);
+    new RegExp(
+        `(?<![${ID}@$])${varRef}(?![${ID}?!])(?:\\s*,\\s*\\*?[@$]?[${ID}]+)*` +
+            `\\s*(?:\\*\\*|\\|\\||&&|[-+*/%])?=(?![=~>])`,
+    );
 
-// One term the DNCL → Ruby side can put after a unary minus (`-1`, `-@s`).
+// One term (`1`, `@s`), for `@i = @i - X` where `- 1 + 2` would change the sign of a part.
 const SIMPLE_STEP = new RegExp(`^(?:\\d+(?:\\.\\d+)?|@[${ID}]+(?:\\.to_[if])?)$`);
 // A step of numbers and variables only, with no calls that could change things.
-const PURE_STEP = new RegExp(`^(?:\\s|\\d+(?:\\.\\d+)?|@[${ID}]+(?:\\.to_[if])?|[-+*/%()])+$`);
+const PURE_STEP = new RegExp(`^(?:\\s|\\d+(?:\\.\\d+)?|@[${ID}]+|\\.to_[if]|[-+*/%()])+$`);
 
 /**
  * The increment of a counting loop at the end of its body: `+=` / `-=` a
@@ -270,11 +273,13 @@ const parseIncrement = (trimmed, varRef) => {
     }
     const negated = rhs.match(/^-\s*(.+)$/);
     if (negated) {
-        // `+= -X` is how DNCL → Ruby writes `X ずつ減らしながら`; X must be one term.
-        if (!SIMPLE_STEP.test(negated[1])) return null;
-        return { step: negated[1], ascending: sign === '-' };
+        // `+= -X` / `+= -(X)` is how DNCL → Ruby writes `X ずつ減らしながら`.
+        // X is one operand (`1`, `@s`, `(@a + 1)`, `(@a / 2).to_i`), as a
+        // minus in front of `@a + 1` would only negate `@a`.
+        if (!isSingleOperand(negated[1]) || !PURE_STEP.test(negated[1])) return null;
+        const step = isWrappedInParens(negated[1]) ? negated[1].slice(1, -1).trim() : negated[1];
+        return { step, ascending: sign === '-' };
     }
-    if (sign === '-' && !SIMPLE_STEP.test(rhs)) return null;
     if (!PURE_STEP.test(rhs)) return null;
     return { step: rhs, ascending: sign === '+' };
 };
@@ -301,10 +306,14 @@ const findCountingLoopStep = (lines, whileIndex, info) => {
             break;
         }
     }
-    const incIndex = endIndex - 1;
-    if (incIndex <= whileIndex || lines[incIndex].trim() === '') return null;
-    const firstBody = lines.slice(whileIndex + 1, endIndex).find((line) => line.trim() !== '');
-    if (indentOf(lines[incIndex]) !== indentOf(firstBody)) return null;
+    // Blank lines before `end` do not count as the last line of the body.
+    let incIndex = endIndex - 1;
+    while (incIndex > whileIndex && lines[incIndex].trim() === '') incIndex--;
+    // A nested block ends with its own `end`, so the line before this `end` is
+    // in the body itself even when its indent is not the one of the other
+    // lines (DNCL → Ruby adds the increment with two spaces after a body
+    // indented by four).
+    if (incIndex <= whileIndex) return null;
 
     const inc = parseIncrement(lines[incIndex].trim(), info.varRef);
     if (!inc || inc.ascending !== info.ascending) return null;
