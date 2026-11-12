@@ -33,6 +33,14 @@ const messages = defineMessages({
         description: 'Error message when hash syntax ($a = {key: value}) is used in Ruby version 1',
         id: 'gui.smalruby3.rubyToBlocksConverter.hashSyntaxNotAvailableInV1',
     },
+    stringMethodHasNoBlock: {
+        defaultMessage:
+            'A string (text) has no block for "{ METHOD }".\nUse it on a list, or write it with other blocks.',
+        description:
+            'Error message when a method of both String and Array (e.g. index) is used on a variable that ' +
+            'holds a string, and there is no block for it on a string',
+        id: 'gui.smalruby3.rubyToBlocksConverter.stringMethodHasNoBlock',
+    },
 });
 
 /**

@@ -117,9 +117,25 @@ export default function (Generator) {
         return [`${Generator.nosToCode(operand1)} == ${Generator.nosToCode(operand2)}`, order];
     };
 
+    /**
+     * The order to ask the left operand of a left-associative operator with, so that the same
+     * operator on the left gets no parentheses: `a && b && c` is `(a && b) && c` in Ruby
+     * (issue #1634). The right operand keeps `order`, so `a && (b && c)`, a different block tree,
+     * keeps its parentheses and comes back the same.
+     * @param {number} order - The order of the operator.
+     * @returns {number} The order for the left operand.
+     */
+    const leftAssocOrder = function (order) {
+        const leftSideOrder = order + 0.5;
+        if (!Generator.ORDER_OVERRIDES.some((p) => p[0] === leftSideOrder && p[1] === order)) {
+            Generator.ORDER_OVERRIDES.push([leftSideOrder, order]);
+        }
+        return leftSideOrder;
+    };
+
     Generator.operator_and = function (block) {
         const order = Generator.ORDER_LOGICAL_AND;
-        const operand1 = Generator.valueToCode(block, 'OPERAND1', order) || 'false';
+        const operand1 = Generator.valueToCode(block, 'OPERAND1', leftAssocOrder(order)) || 'false';
         const operand2 = Generator.valueToCode(block, 'OPERAND2', order) || 'false';
         return [`${operand1} && ${operand2}`, order];
     };
@@ -152,7 +168,7 @@ export default function (Generator) {
         }
 
         const order = Generator.ORDER_LOGICAL_OR;
-        const operand1 = Generator.valueToCode(block, 'OPERAND1', order) || 'false';
+        const operand1 = Generator.valueToCode(block, 'OPERAND1', leftAssocOrder(order)) || 'false';
         const operand2 = Generator.valueToCode(block, 'OPERAND2', order) || 'false';
         return [`${operand1} || ${operand2}`, order];
     };
@@ -255,15 +271,10 @@ export default function (Generator) {
         // `+` is left-associative, so an inner `+` chain on the LEFT side
         // (STRING1) does not need parens — `(a + b) + c` and `a + b + c`
         // produce the same block tree. Request the left child at a slightly
-        // higher precedence (`order + 0.5`) and register the matching pair
-        // in `ORDER_OVERRIDES` so `valueToCode` skips the parens for the
-        // same-precedence join. The right side stays at `order` so that
+        // higher precedence (`leftAssocOrder`) so `valueToCode` skips the
+        // parens for the same-precedence join. The right side stays at `order` so that
         // `a + (b + c)` keeps its semantically meaningful parens.
-        const leftSideOrder = order + 0.5;
-        if (!Generator.ORDER_OVERRIDES.some((p) => p[0] === leftSideOrder && p[1] === order)) {
-            Generator.ORDER_OVERRIDES.push([leftSideOrder, order]);
-        }
-        const rightStr = Generator.valueToCode(block, 'STRING1', leftSideOrder) || Generator.quote_('');
+        const rightStr = Generator.valueToCode(block, 'STRING1', leftAssocOrder(order)) || Generator.quote_('');
         const leftStr = Generator.valueToCode(block, 'STRING2', order) || Generator.quote_('');
         return [`${rightStr} + ${leftStr}`, order];
     };

@@ -667,6 +667,8 @@ export default {
         'with_screen_refresh do ... end can only be the only command in the body of until or while.\nPut it in a loop (until ... / while ...) with nothing else, or use 10.times.with_screen_refresh do / loop.with_screen_refresh do.',
     'gui.smalruby3.rubyToBlocksConverter.arrayLiteralReceiver':
         '"{ METHOD }" cannot be used directly on an array literal ([...]).\nPut the array in a variable first (e.g. a = [1, 2]), then use a.{ METHOD }.',
+    'gui.smalruby3.rubyToBlocksConverter.stringMethodHasNoBlock':
+        'A string (text) has no block for "{ METHOD }".\nUse it on a list, or write it with other blocks.',
     'gui.smalruby3.rubyToBlocksConverter.hashLiteralReceiver':
         '"{ METHOD }" cannot be used directly on a hash literal.\nPut the hash in a variable first (e.g. @h), then use @h.{ METHOD }.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
