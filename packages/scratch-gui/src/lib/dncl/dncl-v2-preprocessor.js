@@ -304,44 +304,22 @@ const splitMultiAssignment = (line) => {
 };
 
 /**
- * Replace standalone `and` / `or` with `かつ` / `または`. Only matches
- * whole-word occurrences outside string literals — `bandwidth` and
- * `ordinary` stay as-is.
- * @param {string} line - The line to transform.
- * @returns {string} The line with `and` / `or` replaced.
+ * If a string literal starts at `line[i]`, return the index just past it;
+ * otherwise -1. Besides `"..."` / `'...'`, Smalruby DNCL writes strings as
+ * 「...」 (see `convertJapaneseStrings`), so a `#` or `and` inside 「」 is
+ * text, not a comment or an operator. An unclosed 「 is not a string.
+ * @param {string} line - The line.
+ * @param {number} i - Index to test.
+ * @returns {number} Index just past the literal, or -1.
  */
-const normalizeAndOr = (line) => {
-    let result = '';
-    let i = 0;
-    while (i < line.length) {
-        const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            const end = skipString(line, i, ch);
-            result += line.substring(i, end);
-            i = end;
-            continue;
-        }
-        // Match `and` or `or` as whole word: bounded by whitespace, line edge,
-        // or a non-identifier character.
-        const isWordBoundary = (idx) => {
-            if (idx < 0 || idx >= line.length) return true;
-            const c = line[idx];
-            return !/[a-zA-Z0-9_]/.test(c);
-        };
-        if (line.startsWith('and', i) && isWordBoundary(i - 1) && isWordBoundary(i + 3)) {
-            result += 'かつ';
-            i += 3;
-            continue;
-        }
-        if (line.startsWith('or', i) && isWordBoundary(i - 1) && isWordBoundary(i + 2)) {
-            result += 'または';
-            i += 2;
-            continue;
-        }
-        result += ch;
-        i++;
+const literalEndAt = (line, i) => {
+    const ch = line[i];
+    if (ch === '"' || ch === "'") return skipString(line, i, ch);
+    if (ch === '「') {
+        const close = line.indexOf('」', i + 1);
+        if (close !== -1) return close + 1;
     }
-    return result;
+    return -1;
 };
 
 /**
@@ -351,6 +329,57 @@ const normalizeAndOr = (line) => {
  * @returns {boolean} True for an identifier character.
  */
 const isIdentChar = (ch) => typeof ch === 'string' && /[\p{L}\p{N}_]/u.test(ch);
+
+/**
+ * Whether the keyword `word` stands on its own at `line[i]`, not as part of
+ * a name (`bandwidth`, `フラグor`, `nothing`). Shared by the `and` / `or` /
+ * `not` passes so they agree on what a name is (Issues #1671 / #1685).
+ * A digit counts as a name character too, so `1and` is left as written.
+ * @param {string} line - The line.
+ * @param {number} i - Index to test.
+ * @param {string} word - The keyword.
+ * @returns {boolean} True when `word` is a whole word at `i`.
+ */
+const isKeywordAt = (line, i, word) =>
+    line.startsWith(word, i) && !isIdentChar(line[i - 1]) && !isIdentChar(line[i + word.length]);
+
+/**
+ * Replace standalone `and` / `or` with `かつ` / `または`. Only matches
+ * whole-word occurrences outside string literals (`"..."`, `'...'`,
+ * 「...」) and comments —
+ * `bandwidth`, `ordinary` and `フラグor` stay as-is, and so does
+ * `# a and b` (Issues #1683 / #1685).
+ * @param {string} line - The line to transform.
+ * @returns {string} The line with `and` / `or` replaced.
+ */
+const normalizeAndOr = (line) => {
+    let result = '';
+    let i = 0;
+    while (i < line.length) {
+        const ch = line[i];
+        const end = literalEndAt(line, i);
+        if (end !== -1) {
+            result += line.substring(i, end);
+            i = end;
+            continue;
+        }
+        // Comments are kept as written.
+        if (ch === '#') return result + line.substring(i);
+        if (isKeywordAt(line, i, 'and')) {
+            result += 'かつ';
+            i += 3;
+            continue;
+        }
+        if (isKeywordAt(line, i, 'or')) {
+            result += 'または';
+            i += 2;
+            continue;
+        }
+        result += ch;
+        i++;
+    }
+    return result;
+};
 
 /**
  * Words that end the operand of a `not`, when written after whitespace:
@@ -373,8 +402,9 @@ const notOperandEnd = (line, start) => {
     let i = start;
     while (i < line.length) {
         const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            i = skipString(line, i, ch);
+        const end = literalEndAt(line, i);
+        if (end !== -1) {
+            i = end;
             continue;
         }
         if (ch === '(' || ch === '[' || ch === '{') depth++;
@@ -408,15 +438,15 @@ const normalizeNot = (line) => {
     let i = 0;
     while (i < line.length) {
         const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            const end = skipString(line, i, ch);
-            result += line.substring(i, end);
-            i = end;
+        const literalEnd = literalEndAt(line, i);
+        if (literalEnd !== -1) {
+            result += line.substring(i, literalEnd);
+            i = literalEnd;
             continue;
         }
         // Comments are kept as written.
         if (ch === '#') return result + line.substring(i);
-        if (line.startsWith('not', i) && !isIdentChar(line[i - 1]) && !isIdentChar(line[i + 3])) {
+        if (isKeywordAt(line, i, 'not')) {
             let start = i + 3;
             while (start < line.length && /\s/.test(line[start])) start++;
             const end = notOperandEnd(line, start);
