@@ -663,6 +663,8 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.variableAndListSameName':
         '"{NAME}" is used as a list on line {LIST_LINE} and as a variable on line {VARIABLE_LINE}.\nIn Ruby, one name cannot be both a variable and a list. Rename one of them.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
+    'gui.smalruby3.rubyToBlocksConverter.arrayLiteralReceiver':
+        '"{ METHOD }" cannot be used directly on an array literal ([...]).\nPut the array in a variable first (e.g. a = [1, 2]), then use a.{ METHOD }.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
         '"{ SOURCE }" cannot be placed directly inside a class definition. Use it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
     'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':

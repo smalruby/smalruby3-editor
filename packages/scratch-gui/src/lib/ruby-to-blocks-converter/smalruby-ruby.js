@@ -1,5 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (Ruby method extension converter) ===
 import { messages } from './converter-errors';
+import { RubyToBlocksConverterError } from './errors';
 import {
     buildMutation,
     stringMethodArgs,
@@ -142,6 +143,17 @@ const SmalrubyRubyConverter = {
         registerStringMethod('delete!', 1);
         registerStringMethod('gsub!', 2);
 
+        // --- Helper: reject an array literal receiver ([1, 2].each, [1, 2].first, ...) ---
+        // Scratch has no reporter for a list literal, so the array would be lost and the
+        // receiver would come back as `""` (#1621). Report the line instead.
+        const rejectArrayLiteralReceiver = (method, receiver) => {
+            if (!converter._isArray(receiver)) return;
+            throw new RubyToBlocksConverterError(
+                converter._context.currentNode,
+                converter._translator(messages.arrayLiteralReceiver, { METHOD: method }),
+            );
+        };
+
         // --- Register array methods ---
         const registerArrayMethod = (method, numArgs) => {
             if (method.endsWith('!')) {
@@ -160,6 +172,7 @@ const SmalrubyRubyConverter = {
                 converter.registerOnSend(['string', 'block', 'variable', 'array'], method, numArgs, (params) => {
                     let { receiver } = params;
                     const { args } = params;
+                    rejectArrayLiteralReceiver(method, receiver);
                     // Convert data_variable to data_listcontents for list variables
                     const result = convertToListBlock(converter, messages, receiver);
                     if (result.converted) {
@@ -241,6 +254,7 @@ const SmalrubyRubyConverter = {
         // --- Helper: create arrayMethodWithBlock ---
         const createArrayMethodWithBlock = (method, receiver, rubyBlock, rubyBlockArgs) => {
             if (typeof rubyBlock === 'undefined') return null;
+            rejectArrayLiteralReceiver(method, receiver);
             // Convert data_variable to data_listcontents for list variables
             const result = convertToListBlock(converter, messages, receiver);
             if (result.converted) {
