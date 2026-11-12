@@ -5,6 +5,7 @@
  * converting it is an error that tells the lines, instead of the script silently disappearing.
  * Only reading a list (`@a = []` then `say(@a)`) is not such a use (issue #1567).
  */
+import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import dedent from 'dedent';
 import {
     makeSpriteTarget,
@@ -67,6 +68,22 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
                 `,
             ],
         ])('%s', async (_name, code) => {
+            await expectRoundTrip(converter, target, code);
+        });
+    });
+
+    describe('a variable and a list of the same name that the project already has', () => {
+        // Scratch can have both, and the Ruby of such a project uses one name for both.
+        test.each([
+            ['on the stage', true, '$score = 0\n$score.push(1)'],
+            ['in the sprite', false, '@score = 0\n@score.push(1)'],
+        ])('%s still converts', async (_name, onStage, code) => {
+            const { target, stage, runtime } = makeSpriteTarget();
+            const owner = onStage ? stage : target;
+            owner.variables.v1 = new Variable('v1', 'score', Variable.SCALAR_TYPE);
+            owner.variables.l1 = new Variable('l1', 'score', Variable.LIST_TYPE);
+            setupRubyGenerator();
+            const converter = makeConverter(target, runtime, { version: '2' });
             await expectRoundTrip(converter, target, code);
         });
     });

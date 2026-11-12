@@ -367,10 +367,23 @@ const VariableUtils = {
         });
         if (listKeys.size === 0) return;
 
+        // A variable that the sprite (or the stage) already has keeps working: the applier skips
+        // creating it, but its id is the existing one. A Scratch project can have a variable and a
+        // list of the same name, and its Ruby (`$a = 0` and `$a.push(1)`) must still convert.
+        const existsInTarget = (variable) => {
+            let owner = null;
+            if (variable.scope === 'global') {
+                owner = this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage();
+            } else if (variable.scope === 'instance') {
+                owner = this._context.target;
+            }
+            const existing = owner && owner.variables && owner.variables[variable.id];
+            return Boolean(existing) && existing.type === Variable.SCALAR_TYPE;
+        };
         const scalarIds = {};
         ['variables', 'localVariables'].forEach((storeName) => {
             Object.values(this._context[storeName]).forEach((variable) => {
-                if (!variable.isArgument && listKeys.has(keyOf(variable))) {
+                if (!variable.isArgument && listKeys.has(keyOf(variable)) && !existsInTarget(variable)) {
                     scalarIds[variable.id] = variable;
                 }
             });
