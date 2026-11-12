@@ -696,7 +696,7 @@ hide_list("@items")            # Hide list
 say(@items)                    # Pass the list itself (the list reporter block) as a value
 ```
 
-One name cannot be both a variable and a list (Scratch can have a variable and a list of the same name, but Ruby has one `@a`). Using a name as both, like `@a = 0` and `@a = []`, is an error that tells the lines when the code is turned into blocks. Only reading a list as a value (`say(@a)` after `@a = []`) is not an error. `length` / `include?` / `empty?` / `[i]` of a variable set to a string become string blocks and make no list. When the code is rewritten from a list to a variable (`@a = []` → `@a = 0`), the list that the sprite (or the stage) already has stays, and the variable is made beside it: a list that this code does not use is not an error.
+One name cannot be both a variable and a list (Scratch can have a variable and a list of the same name, but Ruby has one `@a`). Using a name as both, like `@a = 0` and `@a = []`, is an error that tells the lines when the code is turned into blocks. Only reading a list as a value (`say(@a)` after `@a = []`) is not an error. `length` / `include?` / `empty?` / `[i]` of a variable set to a string become string blocks and make no list. `index` has no string block, so `@a.index("x")` of a name set only to strings is an error that tells the line and says a string has no block for it (not the list error). When the code is rewritten from a list to a variable (`@a = []` → `@a = 0`), the list that the sprite (or the stage) already has stays, and the variable is made beside it: a list that this code does not use is not an error.
 
 ## 5. Unsupported Ruby Syntax
 

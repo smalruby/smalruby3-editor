@@ -273,6 +273,14 @@ export const registerListOperations = function (
     converter.registerOnSend('variable', 'index', 1, (params) => {
         const { receiver, args } = params;
         if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
+        // String#index too, but Scratch has no block for where a text is in a string. A name used
+        // only as a string is not a list, so say that instead of "used as a list" (issue #1629).
+        if (isKnownStringReceiver(converter, receiver)) {
+            throw new RubyToBlocksConverterError(
+                converter._context.currentNode,
+                converter._translator(messages.stringMethodHasNoBlock, { METHOD: 'index' }),
+            );
+        }
 
         const { block: listBlock, converted } = convertToListBlock(converter, messages, receiver);
         const recv = converted ? listBlock : receiver;
