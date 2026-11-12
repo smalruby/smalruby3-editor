@@ -29,7 +29,8 @@ describe('RubyToBlocksConverter/Control', () => {
                 await convertAndExpectRubyBlockError(converter, target, c);
             }
 
-            const cases2 = ['10.times { |i| }', '"10".times { }'];
+            // An empty body is valid (an empty C block, issue #1649): '10.times { }', '10.times { |i| }'
+            const cases2 = ['"10".times { }', '"10".times { |i| }'];
             for (const c of cases2) {
                 await convertAndExpectRubyBlockError(converter, target, c);
             }
