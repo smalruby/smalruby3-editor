@@ -940,6 +940,11 @@ export default {
         '「{ SOURCE }」は値なので、それだけを命令として書くことはできません。\n命令の中で使う（例: say({ SOURCE })）か、変数に入れてください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue':
         '「{ SOURCE }」はブロックにできない値なので、メソッドから返せません。\n数値、文字列、true / false、変数のどれかを返してください。',
+    'gui.smalruby3.rubyToBlocksConverter.superNotSupportedInV1':
+        'superはルビーバージョン1では使えません。\n設定メニューからルビーバージョン2に切り替えてください。',
+    'gui.smalruby3.rubyToBlocksConverter.superOutsideMethod': 'superはメソッドの定義（def）の中でだけ使えます。',
+    'gui.smalruby3.rubyToBlocksConverter.superWithoutModuleMethod':
+        '「{ METHOD }」の中のsuperには、includeしたモジュールに同じ名前のメソッドが必要です。\nモジュールに「{ METHOD }」を定義して、クラスでincludeしてください。',
     'gui.smalruby3.rubyToBlocksConverter.superWithoutReturnValue':
         '「{ SOURCE }」を値として使っていますが、{ MODULE } の「{ METHOD }」は値を返しません。\n{ MODULE } の「{ METHOD }」で値を返す（例: return a）か、「{ SOURCE }」だけを 1 行に書いてください。',
     'gui.smalruby3.rubyToBlocksConverter.superTwiceInLine':
