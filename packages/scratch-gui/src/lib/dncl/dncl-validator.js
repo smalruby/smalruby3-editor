@@ -85,6 +85,15 @@ const validateDncl = (source) => {
     return errors;
 };
 
+/**
+ * A line that opens a `do ... end` block (`with_screen_refresh do`, `loop do`,
+ * `when_flag_clicked do`, `list.each do |x|`, ...). Such a block has no DNCL
+ * form, so it is shown as Ruby in the DNCL and closed by `を実行する`
+ * (issue #1665). A `do` in a string is not at the end of the line, so it is
+ * not taken.
+ */
+const DO_BLOCK_RE = /(?:^|[\s)])do(?:\s*\|[^|]*\|)?$/;
+
 // Block openers of the DNCL the line converter reads (after the DNCLv2
 // pre-processor), with the closer each needs and how the error names it.
 // The patterns are looser than the converter's so that an opener it would
@@ -100,6 +109,7 @@ const BLOCK_KINDS = [
     { re: /\sずつ減らしながら$/, name: '「〜ずつ減らしながら」', closer: 'を繰り返す' },
     { re: /^.+\sの間$/, name: '「〜の間」', closer: 'を繰り返す' },
     { re: /^関数\s+\S+?\s*\(/, name: '「関数」', closer: 'と定義する' },
+    { re: DO_BLOCK_RE, name: '「〜 do」', closer: 'を実行する' },
 ];
 
 const CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定義する']);
@@ -228,4 +238,11 @@ const findDnclBlockErrors = (source) => {
     return errors.sort((a, b) => a.line - b.line);
 };
 
-export { findDnclBlockErrors, isPostTestLoopLine, POST_TEST_LOOP_ERROR_ID, POST_TEST_LOOP_MESSAGE, validateDncl };
+export {
+    DO_BLOCK_RE,
+    findDnclBlockErrors,
+    isPostTestLoopLine,
+    POST_TEST_LOOP_ERROR_ID,
+    POST_TEST_LOOP_MESSAGE,
+    validateDncl,
+};

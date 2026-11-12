@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (Ruby→DNCL line converter) ===
+import { DO_BLOCK_RE } from './dncl-validator';
 import { skipString } from './paren-utils';
 import { convertBuiltins } from './ruby-to-dncl-builtins';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
@@ -44,7 +45,7 @@ const untilCondition = (condition) => {
  * Convert a single Ruby line to DNCL.
  *
  * `blockStack` is a stack of block-context strings (`'if'`, `'loop'`,
- * `'func'`) used to translate `end` to the right DNCL terminator. The
+ * `'func'`, `'do'`) used to translate `end` to the right DNCL terminator. The
  * caller (`rubyToDncl`) owns the stack so for-loop detection (which lives
  * outside this function) can interleave its own entries on the same stack.
  * @param {string} line - A single line of Ruby code.
@@ -149,6 +150,13 @@ const convertLine = (line, blockStack) => {
     if (defMatch) {
         blockStack.push('func');
         return `${indent}関数 ${defMatch[1]}(${defMatch[2]})`;
+    }
+
+    // Any other `xxx do` / `xxx do |x|` has no DNCL form and is shown as it is,
+    // but its `end` must not take the closer of the block around it (issue #1665).
+    if (DO_BLOCK_RE.test(trimmed)) {
+        blockStack.push('do');
+        return convertBuiltins(processSegments(line));
     }
 
     // return expr → 返す expr
