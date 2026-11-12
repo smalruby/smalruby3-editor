@@ -920,6 +920,8 @@ export default {
         '配列（[...]）に直接「{ METHOD }」は使えません。\n先に配列を変数に入れてから（例: a = [1, 2]）、a.{ METHOD } のように使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.stringMethodHasNoBlock':
         '文字列（テキスト）の「{ METHOD }」はブロックにできません。\nリストに使うか、ほかのブロックで書きかえてください。',
+    'gui.smalruby3.rubyToBlocksConverter.hashLiteralReceiver':
+        'ハッシュに直接「{ METHOD }」は使えません。\n先にハッシュを変数（例: @h）に入れてから、@h.{ METHOD } のように使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
         '「{ SOURCE }」はclass定義の中に直接置くことはできません。\nイベントブロック（例: when_flag_clicked）やメソッド定義（def）の中で使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope':

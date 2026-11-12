@@ -669,6 +669,8 @@ export default {
         '"{ METHOD }" cannot be used directly on an array literal ([...]).\nPut the array in a variable first (e.g. a = [1, 2]), then use a.{ METHOD }.',
     'gui.smalruby3.rubyToBlocksConverter.stringMethodHasNoBlock':
         'A string (text) has no block for "{ METHOD }".\nUse it on a list, or write it with other blocks.',
+    'gui.smalruby3.rubyToBlocksConverter.hashLiteralReceiver':
+        '"{ METHOD }" cannot be used directly on a hash literal.\nPut the hash in a variable first (e.g. @h), then use @h.{ METHOD }.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
         '"{ SOURCE }" cannot be placed directly inside a class definition. Use it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
     'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':

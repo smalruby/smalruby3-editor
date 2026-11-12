@@ -948,6 +948,8 @@ export default {
         'はいれつ（[...]）にちょくせつ「{ METHOD }」はつかえません。\nさきにはいれつをへんすうにいれてから（れい: a = [1, 2]）、a.{ METHOD } のようにつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.stringMethodHasNoBlock':
         'もじれつ（テキスト）の「{ METHOD }」はブロックにできません。\nリストにつかうか、ほかのブロックでかきかえてください。',
+    'gui.smalruby3.rubyToBlocksConverter.hashLiteralReceiver':
+        'ハッシュにちょくせつ「{ METHOD }」はつかえません。\nさきにハッシュをへんすう（れい: @h）にいれてから、@h.{ METHOD } のようにつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
         '「{ SOURCE }」はclassていぎのなかにちょくせつおくことはできません。\nイベントブロック（れい: when_flag_clicked）やメソッドていぎ（def）のなかでつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope':

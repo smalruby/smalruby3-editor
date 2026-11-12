@@ -199,10 +199,22 @@ const SmalrubyRubyConverter = {
         registerArrayMethod('sort!', 0);
         registerArrayMethod('reverse!', 0);
 
+        // --- Helper: reject a hash literal receiver ({a: 1}.keys, {a: 1}.each, ...) ---
+        // Scratch has no reporter for a hash literal, so the hash would be lost and the
+        // receiver would come back as `""` (#1625). Report the line instead.
+        const rejectHashLiteralReceiver = (method, receiver) => {
+            if (!converter._isHash(receiver)) return;
+            throw new RubyToBlocksConverterError(
+                converter._context.currentNode,
+                converter._translator(messages.hashLiteralReceiver, { METHOD: method }),
+            );
+        };
+
         // --- Register hash methods ---
         const registerHashMethod = (method) => {
             converter.registerOnSend(['string', 'block', 'variable', 'hash'], method, 0, (params) => {
                 const { receiver } = params;
+                rejectHashLiteralReceiver(method, receiver);
 
                 // For keys/values, reference the correct hash sub-list
                 if (
@@ -397,6 +409,7 @@ const SmalrubyRubyConverter = {
         // the lossy joined string of either list.
         const createHashMethodWithBlock = (method, receiver, rubyBlock, rubyBlockArgs) => {
             if (typeof rubyBlock === 'undefined') return null;
+            rejectHashLiteralReceiver(method, receiver);
             const prefixedName = prefixedNameForReceiver(receiver);
             if (!prefixedName) return null;
 
