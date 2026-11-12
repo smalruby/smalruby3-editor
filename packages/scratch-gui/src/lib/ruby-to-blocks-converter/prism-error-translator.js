@@ -95,6 +95,30 @@ const messages = {
         defaultMessage: '`)` is missing.\nAdd `)` to close the parameters.',
         id: 'gui.smalruby3.prismError.expectedCloseParams',
     },
+    invalidBreak: {
+        defaultMessage:
+            '`break` can be used only in a loop, and there is no block for break.' +
+            '\nStop the loop with its condition instead (e.g. until x > 3 ... end, the "repeat until" block).',
+        id: 'gui.smalruby3.prismError.invalidBreak',
+    },
+    invalidNext: {
+        defaultMessage:
+            '`next` can be used only in a loop, and there is no block for next.' +
+            '\nPut the commands in if instead, so that they run only when they should (e.g. if x <= 3 ... end).',
+        id: 'gui.smalruby3.prismError.invalidNext',
+    },
+    invalidRedo: {
+        defaultMessage:
+            '`redo` can be used only in a loop, and there is no block for redo.' +
+            '\nDelete redo, and repeat the commands with a loop that stops with its condition (e.g. until x > 3 ... end).',
+        id: 'gui.smalruby3.prismError.invalidRedo',
+    },
+    invalidRetry: {
+        defaultMessage:
+            '`retry` can be used only in rescue, and there is no block for retry.' +
+            '\nDelete retry, and repeat the commands with a loop that stops with its condition (e.g. until x > 3 ... end).',
+        id: 'gui.smalruby3.prismError.invalidRetry',
+    },
     unexpectedLocalVariableOrMethod: {
         defaultMessage:
             'Unexpected variable or method found where the code should have ended.\nCheck for missing `end` or extra statements.',
@@ -181,6 +205,23 @@ const rules = [
     {
         pattern: /expected a `\)` to close the parameters$/,
         key: 'expectedCloseParams',
+    },
+    // break / next / redo / retry outside a loop (or outside rescue): there is no block for them (issue #1609).
+    {
+        pattern: /^Invalid break$/,
+        key: 'invalidBreak',
+    },
+    {
+        pattern: /^Invalid next$/,
+        key: 'invalidNext',
+    },
+    {
+        pattern: /^Invalid redo$/,
+        key: 'invalidRedo',
+    },
+    {
+        pattern: /^Invalid retry\b/,
+        key: 'invalidRetry',
     },
     {
         pattern: /^unexpected local variable or method, expecting end-of-input$/,

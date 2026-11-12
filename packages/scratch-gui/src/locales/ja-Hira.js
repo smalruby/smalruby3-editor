@@ -990,6 +990,14 @@ export default {
         '「{ SOURCE }」は、「{ NAME }」のなかで、おなじぎょうのほかのメソッドのよびだしのあとに「{ NAME }」をよんでいます。\nブロックでは、さきによんだメソッドのもどりちがこのよびだしでうわがきされてしまいます。\n1 ぎょうで「{ NAME }」をよぶのは 1 かいだけにして、ほかのメソッドよりさきによんでください。',
     'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues':
         '「{ SOURCE }」はあたいを2つ以上かえしていますが、メソッドがかえせるあたいは1つだけです。\nかえすあたいを1つにしてください（れい: return { FIRST }）。',
+    'gui.smalruby3.rubyToBlocksConverter.breakNotSupported':
+        '「{ SOURCE }」はブロックにできません。break（くりかえしのとちゅうでぬける）にあたるブロックがないためです。\nくりかえしは「〜までくりかえす」のじょうけんでとめてください（れい: until x > 3 ... end）。',
+    'gui.smalruby3.rubyToBlocksConverter.nextNotSupported':
+        '「{ SOURCE }」はブロックにできません。next（くりかえしののこりをとばす）にあたるブロックがないためです。\nのこりのめいれいを「もし〜なら」（if）でかこんで、うごかすときだけうごくようにしてください（れい: if x <= 3 ... end）。',
+    'gui.smalruby3.rubyToBlocksConverter.redoNotSupported':
+        '「{ SOURCE }」はブロックにできません。redo（くりかえしのおなじかいをやりなおす）にあたるブロックがないためです。\nredo をけして、「〜までくりかえす」のじょうけんでめいれいをくりかえしてください（れい: until x > 3 ... end）。',
+    'gui.smalruby3.rubyToBlocksConverter.retryNotSupported':
+        '「{ SOURCE }」はブロックにできません。retry（rescue のあとで begin をやりなおす）にあたるブロックがないためです。\nretry をけして、「〜までくりかえす」のじょうけんでめいれいをくりかえしてください（れい: until x > 3 ... end）。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
         'ブロックていぎ「{NAME}」のひきすう#{INDEX}のかたがまちがっています。\nすうち、もじれつ、またはブーリアンのあたいをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
@@ -1097,6 +1105,14 @@ export default {
         '`)` がたりません。\n`)` をついかしてひきすうのていぎをとじてください。',
     'gui.smalruby3.prismError.unexpectedLocalVariableOrMethod':
         'コードがおわるべきばしょに、へんすうやメソッドがあります。\n`end` のふそくや、よぶんなめいれいがないかかくにんしてください。',
+    'gui.smalruby3.prismError.invalidBreak':
+        '`break` はくりかえしのなかでしかつかえません。また、break にあたるブロックはありません。\nくりかえしは「〜までくりかえす」のじょうけんでとめてください（れい: until x > 3 ... end）。',
+    'gui.smalruby3.prismError.invalidNext':
+        '`next` はくりかえしのなかでしかつかえません。また、next にあたるブロックはありません。\nめいれいを「もし〜なら」（if）でかこんで、うごかすときだけうごくようにしてください（れい: if x <= 3 ... end）。',
+    'gui.smalruby3.prismError.invalidRedo':
+        '`redo` はくりかえしのなかでしかつかえません。また、redo にあたるブロックはありません。\nredo をけして、「〜までくりかえす」のじょうけんでめいれいをくりかえしてください（れい: until x > 3 ... end）。',
+    'gui.smalruby3.prismError.invalidRetry':
+        '`retry` は rescue のなかでしかつかえません。また、retry にあたるブロックはありません。\nretry をけして、「〜までくりかえす」のじょうけんでめいれいをくりかえしてください（れい: until x > 3 ... end）。',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': 'はい、スモウルビーのかいぜんにきょうりょくします。',
     'gui.smalruby3.extension.mesh.description': 'ネットワークじょうでユーザーかんのやりとりを おこなう。',
     'mesh.sensorValue': '[NAME] センサーのあたい',

@@ -689,6 +689,22 @@ export default {
         '"{ SOURCE }" calls "{ NAME }" in "{ NAME }" after another method call in the same line.\nWith blocks, the saved return value of the other call would be overwritten by this call.\nCall "{ NAME }" only once in a line, before other method calls.',
     'gui.smalruby3.rubyToBlocksConverter.returnMultipleValues':
         '"{ SOURCE }" returns more than one value, but a method can return only one value.\nReturn one value (e.g. return { FIRST }).',
+    'gui.smalruby3.rubyToBlocksConverter.breakNotSupported':
+        '"{ SOURCE }" cannot be made into blocks, because there is no block for break (leaving a loop in the middle).\nStop the loop with its condition instead (e.g. until x > 3 ... end, the "repeat until" block).',
+    'gui.smalruby3.rubyToBlocksConverter.nextNotSupported':
+        '"{ SOURCE }" cannot be made into blocks, because there is no block for next (skipping the rest of a loop).\nPut the rest of the loop in if instead, so that it runs only when it should (e.g. if x <= 3 ... end).',
+    'gui.smalruby3.rubyToBlocksConverter.redoNotSupported':
+        '"{ SOURCE }" cannot be made into blocks, because there is no block for redo (doing the same turn of a loop again).\nDelete redo, and repeat the commands with a loop that stops with its condition (e.g. until x > 3 ... end).',
+    'gui.smalruby3.rubyToBlocksConverter.retryNotSupported':
+        '"{ SOURCE }" cannot be made into blocks, because there is no block for retry (running begin again after rescue).\nDelete retry, and repeat the commands with a loop that stops with its condition (e.g. until x > 3 ... end).',
+    'gui.smalruby3.prismError.invalidBreak':
+        '`break` can be used only in a loop, and there is no block for break.\nStop the loop with its condition instead (e.g. until x > 3 ... end, the "repeat until" block).',
+    'gui.smalruby3.prismError.invalidNext':
+        '`next` can be used only in a loop, and there is no block for next.\nPut the commands in if instead, so that they run only when they should (e.g. if x <= 3 ... end).',
+    'gui.smalruby3.prismError.invalidRedo':
+        '`redo` can be used only in a loop, and there is no block for redo.\nDelete redo, and repeat the commands with a loop that stops with its condition (e.g. until x > 3 ... end).',
+    'gui.smalruby3.prismError.invalidRetry':
+        '`retry` can be used only in rescue, and there is no block for retry.\nDelete retry, and repeat the commands with a loop that stops with its condition (e.g. until x > 3 ... end).',
     'gui.smalruby3.rubyToBlocksConverter.invalidBackdropName':
         'backdrop "{ NAME }" does not exist in the backdrop library.',
     'gui.smalruby3.rubyToBlocksConverter.spriteMethodInStageClass':
