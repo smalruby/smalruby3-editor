@@ -154,7 +154,7 @@ describe('DNCL → Ruby: a command the Japanese mode does not have stops with an
     });
 
     test('a DNCLv2 line number does not hide the command', () => {
-        expect(commandErrors(lines('(01) a ← 1', '(02) move(a)'))).toEqual([{ line: 2, column: 1, name: 'move' }]);
+        expect(commandErrors(lines('(01) a ← 1', '(02) move(a)'))).toEqual([{ line: 2, column: 6, name: 'move' }]);
     });
 });
 

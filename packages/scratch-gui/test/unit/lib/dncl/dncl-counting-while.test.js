@@ -177,8 +177,10 @@ describe('counting while loop (Issue #1695)', () => {
         });
 
         test('a body indented by four spaces', () => {
+            // The Ruby indent comes from the block depth (Issue #1718).
             const dncl = ['i を 1 から 10 まで 1 ずつ増やしながら', '    表示する(i)', 'を繰り返す'].join('\n');
-            expect(toDncl(toRuby(dncl))).toBe(dncl);
+            expect(toRuby(dncl)).toBe(['@i = 1', 'while @i <= 10', '  puts(@i)', '  @i += 1', 'end'].join('\n'));
+            expect(toDncl(toRuby(dncl))).toBe(dncl.replace('    表示する', '  表示する'));
         });
 
         test('with comments at the end of lines', () => {

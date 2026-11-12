@@ -95,7 +95,7 @@ describe('DNCLv2 pre-processor: ICTL sample notations (Issue #1186)', () => {
             '  if @t < 10',
             '    puts("a" + @t.to_s + "b")',
             '  end',
-            '  ',
+            '',
             '  @t += 1',
             'end',
         ]);
@@ -272,14 +272,14 @@ describe('DNCLv2 blocks written with indentation only (Issue #1186)', () => {
             ).split('\n'),
         ).toEqual([
             'もし a > 0 ならば',
-            '    a = 1',
+            '  a = 1',
             'そうでなくもし a < 0 ならば',
-            '    a = -1',
+            '  a = -1',
             'そうでなければ',
-            '    a = 0',
+            '  a = 0',
             'を実行する',
             'a の間',
-            '    a = a - 1',
+            '  a = a - 1',
             'を繰り返す',
             '表示する(a)',
         ]);
@@ -297,7 +297,7 @@ describe('DNCLv2 blocks written with indentation only (Issue #1186)', () => {
             '  もし b ならば',
             '    b = 0',
             '',
-            '# comment',
+            '    # comment',
             '    c = 1',
             '  を実行する',
             'を繰り返す',
@@ -308,7 +308,7 @@ describe('DNCLv2 blocks written with indentation only (Issue #1186)', () => {
     test('explicit closer lines and `⎿` markers are not closed twice', () => {
         expect(
             dnclV2Preprocess(['もし a ならば:', '    a = 1', 'を実行する', 'b = 2'].join('\n')).split('\n'),
-        ).toEqual(['もし a ならば', '    a = 1', 'を実行する', 'b = 2']);
+        ).toEqual(['もし a ならば', '  a = 1', 'を実行する', 'b = 2']);
         expect(dnclV2Preprocess(['(1) もし a ならば:', '(2)  ⎿ a = 1', '(3) b = 2'].join('\n')).split('\n')).toEqual([
             'もし a ならば',
             '  a = 1',

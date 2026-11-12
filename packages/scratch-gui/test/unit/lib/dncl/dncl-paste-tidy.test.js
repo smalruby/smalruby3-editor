@@ -12,6 +12,23 @@ describe('tidyPastedDncl', () => {
         expect(tidyPastedDncl('(00-1) a = 1\n(01) b = 2\n(02)  ｜ c = 3')).toBe('a = 1\nb = 2\n｜ c = 3');
     });
 
+    test('keeps the indent after the line number of indentation-only blocks (Issue #1718)', () => {
+        expect(tidyPastedDncl('(1) もし x > 0 ならば:\n(2)     y = 1\n(3) z = 2')).toBe(
+            'もし x > 0 ならば:\n    y = 1\nz = 2',
+        );
+        expect(tidyPastedDncl('(00-1) a = 1\n(01) もし a ならば:\n(02)   b = 2')).toBe(
+            'a = 1\nもし a ならば:\n  b = 2',
+        );
+        expect(tidyPastedDncl('1: もし a ならば:\n2:     b = 2')).toBe('もし a ならば:\n    b = 2');
+    });
+
+    test('takes off the padding of aligned line numbers (`(9)  x` / `(10) x`) (Issue #1718)', () => {
+        expect(tidyPastedDncl('(9)  もし x > 0 ならば:\n(10)     y = 1\n(11) z = 2')).toBe(
+            'もし x > 0 ならば:\n    y = 1\nz = 2',
+        );
+        expect(tidyPastedDncl('(1)  a = 1\n(2)   ｜ b = 2\n(10) c = 3')).toBe('a = 1\n｜ b = 2\nc = 3');
+    });
+
     test('turns a `//` comment on a numbered line into `#`', () => {
         expect(tidyPastedDncl('(00) n = 1 // 生徒番号')).toBe('n = 1 # 生徒番号');
     });

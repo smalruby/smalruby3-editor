@@ -118,8 +118,10 @@ describe('DNCLv2 pre-processor: comma-separated multi-assignment', () => {
         expect(dnclV2Preprocess('a = 1 , b = 2 , c = 3')).toBe('a = 1\nb = 2\nc = 3');
     });
 
-    test('preserves indent on each split line', () => {
-        expect(dnclV2Preprocess('  a = 1 , b = 2')).toBe('  a = 1\n  b = 2');
+    test('indents each split line by its block depth', () => {
+        expect(dnclV2Preprocess('もし x ならば\n  a = 1 , b = 2\nを実行する')).toBe(
+            'もし x ならば\n  a = 1\n  b = 2\nを実行する',
+        );
     });
 
     test('does not split when comma is inside array literal', () => {

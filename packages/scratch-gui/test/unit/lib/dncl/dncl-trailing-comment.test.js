@@ -277,18 +277,18 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
                     表示する(a)
                 表示する(b)
             `;
-            expect(toRuby(dncl)).toBe('if @a > 0 # c\n    puts(@a)\nend\nputs(@b)');
+            expect(toRuby(dncl)).toBe('if @a > 0 # c\n  puts(@a)\nend\nputs(@b)');
         });
 
         test('pre-processor strips the colon before the comment', () => {
             expect(dnclV2Preprocess('もし a > 0 ならば: # c\n    表示する(a)')).toBe(
-                'もし a > 0 ならば # c\n    表示する(a)\nを実行する',
+                'もし a > 0 ならば # c\n  表示する(a)\nを実行する',
             );
         });
 
         test('の間繰り返す: with a trailing comment', () => {
             expect(dnclV2Preprocess('a < 3 の間繰り返す: # c\n    a = a + 1')).toBe(
-                'a < 3 の間 # c\n    a = a + 1\nを繰り返す',
+                'a < 3 の間 # c\n  a = a + 1\nを繰り返す',
             );
         });
 
@@ -300,7 +300,7 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
                     表示する(b)
                 表示する(c)
             `;
-            expect(toRuby(dncl)).toBe('if @a > 0 # c1\n    puts(@a)\nelse # c2\n    puts(@b)\nend\nputs(@c)');
+            expect(toRuby(dncl)).toBe('if @a > 0 # c1\n  puts(@a)\nelse # c2\n  puts(@b)\nend\nputs(@c)');
         });
 
         test('multi-assignment keeps the comment on the last piece', () => {
