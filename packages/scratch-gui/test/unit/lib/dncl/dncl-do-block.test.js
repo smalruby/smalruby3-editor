@@ -98,6 +98,16 @@ describe('Ruby → DNCL: the end of a do block (issue #1665)', () => {
         expect(convert(ruby).split('\n')[3]).toBe('を繰り返す');
     });
 
+    test('a do in a comment at the end of the line does not open a block', () => {
+        const ruby = lines('while @a < 1', '  move(1) # what to do', '  puts("#") # do', 'end');
+        expect(convert(ruby).split('\n')[3]).toBe('を繰り返す');
+    });
+
+    test('a comment after the do does not hide the block', () => {
+        const ruby = lines('while @a < 1', '  loop do # forever', '    move(1)', '  end', 'end');
+        expect(convert(ruby).split('\n').slice(3)).toEqual(['  を実行する', 'を繰り返す']);
+    });
+
     test('a do block inside the post-test loop does not take its end', () => {
         const ruby = lines('begin', '  with_screen_refresh do', '    move(2)', '  end', 'end while @a < 1');
         const { dncl, errors } = rubyToDncl(ruby);
@@ -127,6 +137,10 @@ describe('findDnclBlockErrors: a do block is closed by を実行する (issue #1
         expect(
             findDnclBlockErrors(lines('a < 1 の間', '  loop do', '    a = a + 1', '  を実行する', 'を繰り返す')),
         ).toEqual([]);
+    });
+
+    test('a do in a comment is not a block', () => {
+        expect(findDnclBlockErrors(lines('a < 1 の間', '  表示する a # do', 'を繰り返す'))).toEqual([]);
     });
 
     test('a do block left open is told', () => {

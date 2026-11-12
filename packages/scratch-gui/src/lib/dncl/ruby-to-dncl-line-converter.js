@@ -1,5 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (Ruby→DNCL line converter) ===
-import { DO_BLOCK_RE } from './dncl-validator';
+import { isDoBlockLine } from './dncl-validator';
 import { skipString } from './paren-utils';
 import { convertBuiltins } from './ruby-to-dncl-builtins';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
@@ -154,7 +154,7 @@ const convertLine = (line, blockStack) => {
 
     // Any other `xxx do` / `xxx do |x|` has no DNCL form and is shown as it is,
     // but its `end` must not take the closer of the block around it (issue #1665).
-    if (DO_BLOCK_RE.test(trimmed)) {
+    if (isDoBlockLine(trimmed)) {
         blockStack.push('do');
         return convertBuiltins(processSegments(line));
     }
