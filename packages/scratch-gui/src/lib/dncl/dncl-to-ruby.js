@@ -28,7 +28,14 @@ import { findDnclBlockErrors, validateDncl } from './dncl-validator';
  *   of the converter's missing / extra `end` when it fails — Issue #1419).
  */
 const dnclToRuby = (source) => {
-    const { source: preprocessed, lineMap } = dnclV2PreprocessWithLineMap(source);
+    const { source: preprocessed, lineMap, columnShift } = dnclV2PreprocessWithLineMap(source);
+    // Errors are found on the pre-processed lines, whose indent is made from
+    // the block depth (Issue #1718): put their columns back on the source.
+    const toSource = (err) => ({
+        ...err,
+        line: lineMap[err.line - 1] || err.line,
+        column: err.column + (columnShift[err.line - 1] || 0),
+    });
     const sourceLineCount = source.split('\n').length;
     // A `# comment` at the end of a line is taken off before the lines are
     // checked and converted, so `もし a > 0 ならば # c` still opens a block,
@@ -41,10 +48,7 @@ const dnclToRuby = (source) => {
     if (errors.length > 0) {
         return {
             ruby: null,
-            errors: errors.map((err) => ({
-                ...err,
-                line: lineMap[err.line - 1] || err.line,
-            })),
+            errors: errors.map(toSource),
             sourceMap: null,
             blockErrors: [],
         };

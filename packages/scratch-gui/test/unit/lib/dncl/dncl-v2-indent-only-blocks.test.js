@@ -67,6 +67,12 @@ describe('DNCLv2 indentation-only blocks: Ruby indent (Issue #1718)', () => {
         );
     });
 
+    test('a function with a Japanese name indents and closes its body', () => {
+        expect(ruby(['合計(a) を定義する:', '    もし a > 0 ならば:', '        表示する(a)', '表示する(1)'])).toBe(
+            'def 合計(a)\n  if a > 0\n    puts(a)\n  end\nend\nputs(1)',
+        );
+    });
+
     test('the pre-processor re-indents by block depth', () => {
         expect(dnclV2Preprocess(['もし a ならば:', '        a = 1', 'b = 2'].join('\n')).split('\n')).toEqual([
             'もし a ならば',
@@ -120,10 +126,60 @@ describe('DNCLv2 indentation-only blocks on numbered lines (Issue #1718)', () =>
         );
     });
 
+    test('line numbers aligned by padding (`(9)  x` / `(10) x`) do not look like an indent', () => {
+        expect(
+            ruby([
+                '(7)  hidari <= migi の間繰り返す:',
+                '(8)      もし aida == 3 ならば:',
+                '(9)          owari = 1',
+                '(10)     そうでなくもし aida < 3 ならば:',
+                '(11)         hidari = aida + 1',
+                '(12)     そうでなければ:',
+                '(13)         migi = aida - 1',
+                '(14) 表示する(owari)',
+            ]),
+        ).toBe(
+            [
+                'while @hidari <= @migi',
+                '  if @aida == 3',
+                '    @owari = 1',
+                '  elsif @aida < 3',
+                '    @hidari = @aida + 1',
+                '  else',
+                '    @migi = @aida - 1',
+                '  end',
+                'end',
+                'puts(@owari)',
+            ].join('\n'),
+        );
+        expect(ruby(['(9)  もし x > 0 ならば:', '(10)  y = 1', '(11) z = 2'])).toBe(
+            'if @x > 0\n  @y = 1\nend\n@z = 2',
+        );
+    });
+
     test('`｜` / `⎿` markers on numbered lines still work', () => {
         expect(ruby(['(1) もし x > 0 ならば:', '(2)  ⎿ y = 1', '(3) z = 2'])).toBe(
             'if @x > 0\n  @y = 1\nend\n@z = 2',
         );
+    });
+});
+
+describe('DNCLv2 indentation-only blocks: error columns (Issue #1718)', () => {
+    // The Ruby indent is made from the block depth, but errors are shown on
+    // the DNCL the user wrote, so their columns must not move with it.
+    const errorAt = (lines) => {
+        const [error] = dnclToRuby(lines.join('\n')).errors;
+        return lines[error.line - 1].substring(error.column - 1);
+    };
+
+    test('an error on a 4-space indented line points at the code', () => {
+        expect(errorAt(['もし x > 0 ならば:', '    move(2)'])).toBe('move(2)');
+        expect(errorAt(['もし x > 0 ならば', '    move(2)', 'を実行する'])).toBe('move(2)');
+    });
+
+    test('an error on a numbered line points at the code', () => {
+        expect(errorAt(['(1) もし x > 0 ならば:', '(2)     a = @b'])).toBe('@b');
+        expect(errorAt(['(1) もし x > 0 ならば:', '(2) ⎿ move(1)'])).toBe('move(1)');
     });
 });
 

@@ -16,6 +16,7 @@
 // with a `//` (`withDoubleSlashHint`).
 //
 // See Issue #1192.
+import { lineNumberSeparator } from './dncl-line-number';
 import { commentIndex, stringEndAt } from './dncl-trailing-comment';
 
 /**
@@ -36,12 +37,15 @@ const LINE_NUMBER_LABEL_RE = /^\s*(?:\(\d+(?:-\d+)*\)|\d+:(?=\s|$))/;
 /**
  * Split a numbered line into the whitespace after its label and the code.
  * @param {string} line - A line with a line number.
- * @returns {{ws: string, code: string}} The whitespace and the code after it.
+ * @returns {{label: string, ws: string, code: string}} The label, the
+ *   whitespace after it and the code.
  */
 const afterLineNumber = (line) => {
-    const after = line.substring(line.match(LINE_NUMBER_LABEL_RE)[0].length);
+    const [prefix] = line.match(LINE_NUMBER_LABEL_RE);
+    const label = prefix.trimStart();
+    const after = line.substring(prefix.length);
     const ws = after.match(/^\s*/)[0];
-    return { ws, code: after.substring(ws.length) };
+    return { label, ws, code: after.substring(ws.length) };
 };
 
 /**
@@ -54,25 +58,24 @@ const startsWithMarker = (code) => /^[｜|⎿]/.test(code);
 /**
  * Remove the line numbers but keep the indent of code written with
  * indentation only (no `｜` / `⎿`), so that its blocks still close: the
- * separator after the numbers (the whitespace of the least indented line,
- * usually 1 space) is taken off and the rest is kept. Lines starting with a
- * marker lose all the whitespace before it, as before (Issue #1718).
+ * separator after the numbers (see `lineNumberSeparator`) is taken off and
+ * the rest is kept. Lines starting with a marker lose all the whitespace
+ * before it, as before (Issue #1718).
  * @param {Array<string>} lines - The lines (continuation lines joined).
  * @returns {Array<string>} The lines without line numbers.
  */
 const removeLineNumbers = (lines) => {
-    let separator = Infinity;
-    for (const line of lines) {
-        if (!LINE_NUMBER_RE.test(line)) continue;
-        const { ws, code } = afterLineNumber(line);
-        if (code !== '' && !startsWithMarker(code)) separator = Math.min(separator, ws.length);
-    }
-    if (separator === Infinity) separator = 0;
+    const separator = lineNumberSeparator(
+        lines
+            .filter((line) => LINE_NUMBER_RE.test(line))
+            .map(afterLineNumber)
+            .filter(({ code }) => code !== '' && !startsWithMarker(code)),
+    );
     return lines.map((line) => {
         if (!LINE_NUMBER_RE.test(line)) return line;
-        const { ws, code } = afterLineNumber(line);
+        const { label, ws, code } = afterLineNumber(line);
         if (code === '' || startsWithMarker(code)) return code;
-        return `${ws.substring(Math.min(ws.length, separator))}${code}`;
+        return `${ws.substring(Math.min(ws.length, separator(label)))}${code}`;
     });
 };
 

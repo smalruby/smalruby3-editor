@@ -18,6 +18,7 @@
 // the implicit `end` insertion based on `⎿` count.
 //
 // See Issue #640.
+import { lineNumberSeparator } from './dncl-line-number';
 import { splitTrailingComment, stringEndAt } from './dncl-trailing-comment';
 import { isLogicalWordAt, isNameChar, isWholeWordAt } from './paren-utils';
 
@@ -30,47 +31,52 @@ import { isLogicalWordAt, isNameChar, isWholeWordAt } from './paren-utils';
 const LINE_NUMBER_RE = /^\(\d+(?:-\d+)*\)\s*/;
 
 /**
+ * The line number, the indent and the `｜` / `⎿` markers before the code of
+ * a source line, to find the column where its code starts.
+ */
+const SOURCE_CODE_START_RE = /^(?:\(\d+(?:-\d+)*\))?[\s｜|⎿]*/;
+
+/**
  * Matches just the `(N)` label of a numbered line, without the whitespace
  * after it, which is the line's indent (Issue #1718).
  */
 const LINE_NUMBER_LABEL_RE = /^\(\d+(?:-\d+)*\)/;
 
 /**
- * The whitespace that separates the line numbers from the code on the least
- * indented numbered line (usually 1 space). It is taken off every numbered
- * line, so what is left after the line number is the indent of the code and
- * an indentation-only block can be closed on numbered lines too. Measuring
- * after the label (not the column) keeps `(00-1) a` and `(01) b` at the same
- * depth (Issue #1718).
+ * The whitespace after the line numbers that separates them from the code
+ * (see `lineNumberSeparator`). What is left after it is the indent of the
+ * code, so an indentation-only block can be closed on numbered lines too
+ * (Issue #1718).
  * @param {Array<{line: string}>} lines - The logical lines.
- * @returns {number} The number of whitespace characters to take off.
+ * @returns {function(string): number} The number of whitespace characters
+ *   to take off after the given label.
  */
-const lineNumberSeparatorLength = (lines) => {
-    let min = Infinity;
+const lineNumberSeparatorFor = (lines) => {
+    const numbered = [];
     for (const { line } of lines) {
         const label = line.match(LINE_NUMBER_LABEL_RE);
         if (!label) continue;
         const after = line.substring(label[0].length);
         const ws = after.match(/^\s*/)[0];
         if (after.length === ws.length) continue;
-        min = Math.min(min, ws.length);
+        numbered.push({ label: label[0], ws });
     }
-    return min === Infinity ? 0 : min;
+    return lineNumberSeparator(numbered);
 };
 
 /**
  * Take the `(N)` label and the separator after it off a numbered line, and
  * keep the rest of the whitespace as the indent of the code.
  * @param {string} line - The source line.
- * @param {number} separatorLength - See `lineNumberSeparatorLength`.
+ * @param {function(string): number} separator - See `lineNumberSeparatorFor`.
  * @returns {string} The line without its line number.
  */
-const removeLineNumber = (line, separatorLength) => {
+const removeLineNumber = (line, separator) => {
     const label = line.match(LINE_NUMBER_LABEL_RE);
     if (!label) return line;
     const after = line.substring(label[0].length);
     const ws = after.match(/^\s*/)[0];
-    return after.substring(Math.min(ws.length, separatorLength));
+    return after.substring(Math.min(ws.length, separator(label[0])));
 };
 
 /**
@@ -538,7 +544,10 @@ const detectBlockType = (body) => {
     if (/^もし\s+.*\s+(?:なら|ならば)$/.test(body)) return 'if';
     if (/\sの間$/.test(body)) return 'loop';
     if (/\sずつ(?:増やしながら|減らしながら)$/.test(body)) return 'loop';
-    if (/^関数\s+\w+\s*\(/.test(body)) return 'func';
+    // The name may be Japanese (`関数 合計(a)`), as `normalizeFunctionDefOpener`
+    // accepts; with `\w` such a function was not counted as a block, so its
+    // body lost its depth (Issue #1718).
+    if (/^関数\s+[\p{L}_][\p{L}\p{N}_]*\s*\(/u.test(body)) return 'func';
     return null;
 };
 
@@ -646,19 +655,24 @@ const preprocessLine = (line) => {
  *   - a closer added for an indentation-style block maps to the last code
  *     line of the block it closes
  * @param {string} source - The DNCLv2 source.
- * @returns {{source: string, lineMap: Array<number>}} The pre-processed
- *   source, and `lineMap[i]` = the 1-based source line of output line i+1.
+ * @returns {{source: string, lineMap: Array<number>, columnShift: Array<number>}}
+ *   The pre-processed source, `lineMap[i]` = the 1-based source line of
+ *   output line i+1, and `columnShift[i]` = what to add to a column of the
+ *   code on output line i+1 to get its column in the source (the indent is
+ *   made from the block depth and the line number is taken off).
  */
 const dnclV2PreprocessWithLineMap = (source) => {
     const stack = [];
     const out = [];
     const lineMap = [];
+    const columnShift = [];
     // Source line of the last code (non-blank, non-comment) line emitted,
     // i.e. where an indentation-style block ends.
     let lastCodeLine = 1;
-    const emit = (text, lineNumber) => {
+    const emit = (text, lineNumber, shift = 0) => {
         out.push(text);
         lineMap.push(lineNumber);
+        columnShift.push(shift);
     };
     const emitCloser = (block, lineNumber) => emit(`${block.indent}${closerForBlockType(block.type)}`, lineNumber);
     // Close indentation-style blocks (opener ends with `:`, body indented, no
@@ -692,9 +706,10 @@ const dnclV2PreprocessWithLineMap = (source) => {
         }
     };
     const logicalLines = joinContinuationLines(source);
-    const separatorLength = lineNumberSeparatorLength(logicalLines);
+    const separator = lineNumberSeparatorFor(logicalLines);
     for (const { line: numberedLine, extraCloseCount, lineNumber } of logicalLines) {
-        const rawLine = removeLineNumber(numberedLine, separatorLength);
+        const rawLine = removeLineNumber(numberedLine, separator);
+        const codeStart = numberedLine.match(SOURCE_CODE_START_RE)[0].length;
         // Phase 3 per-line transformations (may produce `\n` from multi-assignment).
         const phase3 = preprocessLine(rawLine);
         const colonOpener =
@@ -723,7 +738,11 @@ const dnclV2PreprocessWithLineMap = (source) => {
             const top = stack[stack.length - 1];
             const depth = stack.length - (top && top.type === 'if' && isIfContinuation(body) ? 1 : 0);
             const depthIndent = '  '.repeat(depth);
-            emit(rest === '' ? '' : `${depthIndent}${rest}`, lineNumber);
+            // Columns of the code move with the indent; errors are put back
+            // where the user wrote them (a piece of a split multi-assignment
+            // has no column of its own).
+            const shift = pieceIdx === 0 ? codeStart - depthIndent.length : 0;
+            emit(rest === '' ? '' : `${depthIndent}${rest}`, lineNumber, shift);
             if (isCode) lastCodeLine = lineNumber;
             const type = detectBlockType(body);
             if (type) {
@@ -743,7 +762,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
         if (!top.colon || !top.hasBody) break;
         emitCloser(stack.pop(), lastCodeLine);
     }
-    return { source: out.join('\n'), lineMap };
+    return { source: out.join('\n'), lineMap, columnShift };
 };
 
 /**
