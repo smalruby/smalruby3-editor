@@ -228,4 +228,94 @@ const detectForLoopPattern = (pending, whileLine, whileIndent) => {
     };
 };
 
-export { convertLine, detectForLoopPattern, toDnclExpr };
+const indentOf = (line) => line.match(/^(\s*)/)[1];
+
+/**
+ * A pattern that finds where a Ruby line assigns to the variable with `=`,
+ * `+=`, `-=` and the other assignment operators, also in a multiple assignment.
+ * @param {string} varRef - The Ruby variable.
+ * @returns {RegExp} The pattern.
+ */
+const assignmentPattern = (varRef) =>
+    new RegExp(`(?<![${ID}@$])${varRef}(?![${ID}?!])\\s*(?:\\*\\*|\\|\\||&&|[-+*/%])?=(?![=~>])`);
+
+// One term the DNCL → Ruby side can put after a unary minus (`-1`, `-@s`).
+const SIMPLE_STEP = new RegExp(`^(?:\\d+(?:\\.\\d+)?|@[${ID}]+(?:\\.to_[if])?)$`);
+// A step of numbers and variables only, with no calls that could change things.
+const PURE_STEP = new RegExp(`^(?:\\s|\\d+(?:\\.\\d+)?|@[${ID}]+(?:\\.to_[if])?|[-+*/%()])+$`);
+
+/**
+ * The increment of a counting loop at the end of its body: `+=` / `-=` a
+ * step (`+= -1` too), or the variable set to itself plus or minus one term.
+ * @param {string} trimmed - The Ruby line (trimmed, without its comment).
+ * @param {string} varRef - The Ruby loop variable.
+ * @returns {?{step: string, ascending: boolean}} The step (as Ruby, without
+ *   its sign) and whether it counts up, or null when the line is not such an
+ *   increment.
+ */
+const parseIncrement = (trimmed, varRef) => {
+    let sign;
+    let rhs;
+    const compound = trimmed.match(new RegExp(`^(@[${ID}]+)\\s*([-+])=\\s*(.+)$`));
+    const plain = trimmed.match(new RegExp(`^(@[${ID}]+)\\s*=\\s*(@[${ID}]+)\\s*([-+])\\s*(.+)$`));
+    if (compound && compound[1] === varRef) {
+        sign = compound[2];
+        rhs = compound[3].trim();
+    } else if (plain && plain[1] === varRef && plain[2] === varRef && SIMPLE_STEP.test(plain[4].trim())) {
+        // `@i = @i - 1 + 2` is not `@i -= 1 + 2`, so only one term.
+        sign = plain[3];
+        rhs = plain[4].trim();
+    } else {
+        return null;
+    }
+    const negated = rhs.match(/^-\s*(.+)$/);
+    if (negated) {
+        // `+= -X` is how DNCL → Ruby writes `X ずつ減らしながら`; X must be one term.
+        if (!SIMPLE_STEP.test(negated[1])) return null;
+        return { step: negated[1], ascending: sign === '-' };
+    }
+    if (sign === '-' && !SIMPLE_STEP.test(rhs)) return null;
+    if (!PURE_STEP.test(rhs)) return null;
+    return { step: rhs, ascending: sign === '+' };
+};
+
+/**
+ * Whether the `while` loop found by `detectForLoopPattern` can be written as
+ * a DNCL counting loop (`i を 1 から 10 まで 1 ずつ増やしながら`): the last
+ * line of its body adds a step to the variable, the step goes the way of the
+ * condition (`<=` up, `>=` down), and nothing else in the body changes the
+ * variable or the step. Any other `while` stays a `の間` loop. (Issue #1695)
+ * @param {Array<string>} lines - The Ruby lines (without their comments).
+ * @param {number} whileIndex - The index of the `while` line.
+ * @param {object} info - The result of `detectForLoopPattern`.
+ * @returns {?{incIndex: number, step: string}} The index of the increment
+ *   line and the step as DNCL, or null when the loop is not a counting loop.
+ */
+const findCountingLoopStep = (lines, whileIndex, info) => {
+    const whileIndent = info.indent.length;
+    let endIndex = -1;
+    for (let k = whileIndex + 1; k < lines.length; k++) {
+        if (lines[k].trim() === '') continue;
+        if (indentOf(lines[k]).length <= whileIndent) {
+            if (lines[k].trim() === 'end' && indentOf(lines[k]).length === whileIndent) endIndex = k;
+            break;
+        }
+    }
+    const incIndex = endIndex - 1;
+    if (incIndex <= whileIndex || lines[incIndex].trim() === '') return null;
+    const firstBody = lines.slice(whileIndex + 1, endIndex).find((line) => line.trim() !== '');
+    if (indentOf(lines[incIndex]) !== indentOf(firstBody)) return null;
+
+    const inc = parseIncrement(lines[incIndex].trim(), info.varRef);
+    if (!inc || inc.ascending !== info.ascending) return null;
+
+    const stepVars = inc.step.match(new RegExp(`@[${ID}]+`, 'g')) || [];
+    if (stepVars.includes(info.varRef)) return null;
+    const watched = [info.varRef, ...stepVars].map(assignmentPattern);
+    const body = lines.slice(whileIndex + 1, incIndex);
+    if (body.some((line) => watched.some((re) => re.test(line)))) return null;
+
+    return { incIndex, step: toDnclExpr(inc.step) };
+};
+
+export { convertLine, detectForLoopPattern, findCountingLoopStep, toDnclExpr };

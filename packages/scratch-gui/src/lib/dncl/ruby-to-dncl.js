@@ -7,7 +7,7 @@ import {
     POST_TEST_LOOP_MESSAGE,
 } from './dncl-validator';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
-import { convertLine, detectForLoopPattern, toDnclExpr } from './ruby-to-dncl-line-converter';
+import { convertLine, detectForLoopPattern, findCountingLoopStep, toDnclExpr } from './ruby-to-dncl-line-converter';
 
 /**
  * The column of a command in its Ruby line: the first `name` that is not a
@@ -87,16 +87,29 @@ const rubyToDncl = (source) => {
                     nextTrimmed,
                     nextIndent,
                 );
-                if (forInfo) {
-                    // This is a for-loop! Output header placeholder, skip the while line
-                    forInfo.headerIndex = dnclLines.length;
-                    blockStack.push({ type: 'for', info: forInfo });
-                    // `@i = 1` and `while @i <= 3` become one header line.
-                    push('__FOR_HEADER_PLACEHOLDER__', `${parts[i].comment}${parts[i + 1].comment}`, i);
+                const counting = forInfo && findCountingLoopStep(lines, i + 1, forInfo);
+                if (counting) {
+                    // `@i = 1` and `while @i <= 3` become one header line, and the
+                    // increment at the end of the body goes into it. Any other
+                    // `while` stays `i = 1` / `i <= 3 の間` (Issue #1695).
+                    const direction = forInfo.ascending ? '増やしながら' : '減らしながら';
+                    blockStack.push({ type: 'for', info: forInfo, incIndex: counting.incIndex, incComment: '' });
+                    push(
+                        `${indent}${forInfo.varName} を ${forInfo.from} から ${forInfo.to} まで ${counting.step} ずつ${direction}`,
+                        `${parts[i].comment}${parts[i + 1].comment}`,
+                        i,
+                    );
                     skipNext = true;
                     continue;
                 }
             }
+        }
+
+        // The increment of a counting loop is in its header: keep only its comment.
+        const forTop = blockStack.find((entry) => typeof entry === 'object' && entry.incIndex === i);
+        if (forTop) {
+            forTop.incComment = parts[i].comment;
+            continue;
         }
 
         // Handle `end` for for-loop BEFORE calling convertLine
@@ -105,34 +118,7 @@ const rubyToDncl = (source) => {
             const top = blockStack[blockStack.length - 1];
             if (typeof top === 'object' && top.type === 'for' && top.info.indent === indent) {
                 blockStack.pop();
-                const info = top.info;
-                // Check last body line for increment: varName += step
-                const lastLine = dnclLines.length > 0 ? dnclLines[dnclLines.length - 1].trim() : '';
-                const incMatch = lastLine.match(/^(.+?)\s*\+=\s*(.+)$/);
-                let incComment = '';
-                if (incMatch && incMatch[1] === info.varName) {
-                    // Remove the increment line from output
-                    dnclLines.pop();
-                    incComment = comments.pop();
-                    origins.pop();
-                    const stepExpr = incMatch[2].trim();
-
-                    // Determine step value and direction
-                    let step;
-                    let ascending = info.ascending;
-                    const negMatch = stepExpr.match(/^-(.+)$/);
-                    if (negMatch) {
-                        step = negMatch[1];
-                        ascending = false;
-                    } else {
-                        step = stepExpr;
-                    }
-
-                    const direction = ascending ? '増やしながら' : '減らしながら';
-                    const header = `${indent}${info.varName} を ${info.from} から ${info.to} まで ${step} ずつ${direction}`;
-                    dnclLines[info.headerIndex] = header;
-                }
-                push(`${indent}を繰り返す`, `${incComment}${parts[i].comment}`, i);
+                push(`${indent}を繰り返す`, `${top.incComment}${parts[i].comment}`, i);
                 continue;
             }
         }
