@@ -54,6 +54,8 @@ const ContextUtils = {
             superMethodMap: {},
             superRenameTarget: null,
             symbols: new Set(),
+            // How the code uses each variable name, collected before converting (issue #1613)
+            variableUses: {},
         };
         if (this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage) {
             this._loadVariables(this.vm.runtime.getTargetForStage());

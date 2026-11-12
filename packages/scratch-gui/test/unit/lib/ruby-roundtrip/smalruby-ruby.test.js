@@ -671,4 +671,104 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
             opts,
         );
     });
+    // Issue #1628: the statements after a block method (`times do |i|`, `each do |x|`, ...) stay after
+    // its `end`, not inside the loop.
+    describe('statements after a method with a block stay outside of it (#1628)', () => {
+        const cases = {
+            'times do |i| at the top level': dedent`
+                3.times do |i|
+                  say(i)
+                end
+                say("after")
+            `,
+            'times do |i| in when_flag_clicked': dedent`
+                when_flag_clicked do
+                  3.times do |i|
+                    say(i)
+                  end
+                  say("after")
+                end
+            `,
+            'each do |x| on a list in when_flag_clicked': dedent`
+                @l = [1, 2]
+
+                when_flag_clicked do
+                  @l.each do |x|
+                    say(x)
+                  end
+                  say("after")
+                end
+            `,
+            'each do without a parameter': dedent`
+                when_flag_clicked do
+                  ticket = [35, 12, 47]
+                  ticket.each do
+                    say("hello", 1)
+                  end
+                  say("after")
+                end
+            `,
+            'Hash#each do |k, v|': dedent`
+                when_flag_clicked do
+                  h = {a: 1, b: 2}
+                  h.each do |k, v|
+                    say(k, 1)
+                  end
+                  say("after")
+                end
+            `,
+            'several statements after the loop': dedent`
+                when_flag_clicked do
+                  3.times do |i|
+                    say(i)
+                  end
+                  say("one")
+                  say("two")
+                  move(10)
+                end
+            `,
+            'another loop after the loop': dedent`
+                @l = [1, 2]
+
+                when_flag_clicked do
+                  3.times do |i|
+                    say(i)
+                  end
+                  @l.each do |x|
+                    say(x)
+                  end
+                  say("after")
+                end
+            `,
+            'nested loops': dedent`
+                @l = [1, 2]
+
+                when_flag_clicked do
+                  3.times do |i|
+                    @l.each do |x|
+                      say(x)
+                    end
+                    say(i)
+                  end
+                  say("after")
+                end
+            `,
+            'inside a method': dedent`
+                def count_up
+                  3.times do |i|
+                    say(i)
+                  end
+                  say("after")
+                end
+
+                when_flag_clicked do
+                  count_up
+                end
+            `,
+        };
+
+        test.each(Object.entries(cases))('%s', async (_name, code) => {
+            await expectRoundTrip(converter, target, code, null, opts);
+        });
+    });
 });

@@ -58,6 +58,20 @@ export const convertToListBlock = function (converter, messages, block) {
 };
 
 /**
+ * Whether the project already has both a variable and a list of this name. Their Ruby uses one name
+ * for both (`@score = 0` and `say(@score.length)` for the length of the list), so how the code uses
+ * the name as a whole (issue #1613) does not decide which one a method of both String and Array is.
+ * @param {object} converter - The converter instance.
+ * @param {string} varName - The name in the converter's stores.
+ * @returns {boolean} true if both come from the project.
+ */
+const projectHasVariableAndList = function (converter, varName) {
+    const variable = converter._context.variables[varName];
+    const list = converter._context.lists[varName];
+    return Boolean(variable && list && variable.fromTarget && list.fromTarget && variable.scope === list.scope);
+};
+
+/**
  * Determine whether a receiver block refers to a *known* list variable,
  * WITHOUT creating one.
  *
@@ -95,7 +109,14 @@ export const isKnownListReceiver = function (converter, block) {
     const list = converter._context.lists[varName];
     // A list that the project already has, while this code sets a variable of the same name and
     // does not use the list, is not what `@a` means here (`@a = "abc"` then `@a.length`, issue #1612).
-    return Boolean(list) && !converter._isListShadowedByVariable(list);
+    if (!list) return false;
+    // The code sets `@a` to a string or a number and never uses it as a list, so a list of that name
+    // (one that the project already has) is not `@a`, even before the assignment is converted
+    // (`def f; say(@a.length); end` then `@a = "abc"`, issue #1613).
+    if (!list.isArgument && !projectHasVariableAndList(converter, varName) && converter._isUsedOnlyAsScalar(list)) {
+        return false;
+    }
+    return !converter._isListShadowedByVariable(list);
 };
 
 /**
@@ -116,7 +137,11 @@ export const isKnownStringReceiver = function (converter, block) {
     if (isKnownListReceiver(converter, block)) return false;
     const varName = block.fields.VARIABLE.value;
     const variable = converter._context.variables[varName] || converter._context.localVariables[varName];
-    return Boolean(variable) && variable.dataType === 'string';
+    if (!variable) return false;
+    // Set to a string here, or set only to scalars anywhere in the code (`@a = gets`, a number set
+    // last, or an assignment after this read, issue #1613): Scratch reads the variable as text.
+    if (variable.dataType === 'string') return true;
+    return !projectHasVariableAndList(converter, varName) && converter._isUsedOnlyAsScalar(variable);
 };
 
 /**

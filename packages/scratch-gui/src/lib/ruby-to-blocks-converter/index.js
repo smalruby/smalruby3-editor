@@ -124,6 +124,9 @@ class RubyToBlocksConverter extends Visitor {
             this._context.rootNode = root; // Save root node for line mapping
             // Pre-pass: count procedure calls to support evacuation block generation
             this._countProcedureCallsInNode(root);
+            // Pre-pass: how each variable name is used, so that `@a.length` does not depend on
+            // whether `@a = "abc"` was converted before it (issue #1613)
+            this._collectVariableUses(root);
             let blocks = this.visit(root);
             if (blocks === null || typeof blocks === 'undefined') {
                 return true;
