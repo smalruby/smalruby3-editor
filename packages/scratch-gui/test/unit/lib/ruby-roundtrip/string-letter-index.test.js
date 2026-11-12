@@ -80,6 +80,6 @@ describe('Ruby Roundtrip: a variable or an expression as the index of a string',
         add.comment = null;
         RubyGenerator.currentTarget = target;
         const code = RubyGenerator.targetToCode(target, { version: '2' }).trim();
-        expect(code).toBe('i = 1\nsay("abc"[(i + 1) - 1])');
+        expect(code).toBe('i = 1\nsay("abc"[i + 1 - 1])');
     });
 });

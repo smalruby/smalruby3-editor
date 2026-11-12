@@ -297,7 +297,8 @@ export default function (Generator) {
             }
         }
 
-        const letter = Generator.valueToCode(block, 'LETTER', Generator.ORDER_ADDITIVE) || '1';
+        // "expression - 1" is a left-associative subtraction: (i + 1) - 1 is written i + 1 - 1.
+        const letter = Generator.valueToCode(block, 'LETTER', leftAssocOrder(Generator.ORDER_ADDITIVE)) || '1';
         const num = Number(letter);
         if (!isNaN(num) && String(num) === String(letter)) {
             return num - 1;
