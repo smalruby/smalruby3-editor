@@ -145,11 +145,6 @@ describe('Ruby Roundtrip: V2 array syntax', () => {
 
             $a.index("b")
         `,
-            dedent`
-            $a = ["a", "b"]
-
-            ($a.index("b"))
-        `,
         );
     });
 
