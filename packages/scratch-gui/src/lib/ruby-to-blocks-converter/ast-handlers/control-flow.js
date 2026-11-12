@@ -1,6 +1,10 @@
 import _ from 'lodash';
 import ControlFlowDef from './control-flow-def';
 
+// The marker of the blocks that call the methods of the condition of a loop again at the end of
+// its body (issue #1606). The generator does not write them (see `scrub.js` of the generator).
+const LOOP_CONDITION_CALL_MARKER = '@ruby:loop_condition_call';
+
 /**
  * Control flow AST handlers for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
@@ -225,6 +229,7 @@ const ControlFlowHandlers = {
         const saved = this._saveContext();
 
         const preBlocks = [];
+        const callState = this._methodCallState();
         this._context.variableHint = null;
         let cond = this._processCondition(node.predicate);
         const variableHint = this._context.variableHint;
@@ -234,12 +239,16 @@ const ControlFlowHandlers = {
         preBlocks.push(...split.preBlocks);
 
         const statement = this._processStatement(node.statements);
+        const conditionCalls = this._conditionCallsAgain(node.predicate, split.preBlocks, callState);
 
         let block = this._callConvertersHandler('onUntil', cond, statement);
         if (!block) {
             this._restoreContext(saved);
 
             block = this._createRubyStatementBlock(this._getSource(node), node);
+        } else if (this._appendConditionCalls(block, conditionCalls) === 'control_wait_until') {
+            // `wait until bar(a) == 0` became a loop that calls bar again: write it back as written.
+            this._addCommentMarker(block, '@ruby:syntax:wait_until');
         }
 
         if (variableHint && this._isBlock(block)) {
@@ -338,6 +347,7 @@ const ControlFlowHandlers = {
         const saved = this._saveContext();
 
         const preBlocks = [];
+        const callState = this._methodCallState();
         this._context.variableHint = null;
         let cond = this._processCondition(node.predicate);
         const variableHint = this._context.variableHint;
@@ -353,6 +363,7 @@ const ControlFlowHandlers = {
         }
 
         const statement = this._processStatement(node.statements);
+        const conditionCalls = this._conditionCallsAgain(node.predicate, split.preBlocks, callState);
 
         let block = this._callConvertersHandler('onUntil', notBlock, statement);
         if (!block) {
@@ -360,13 +371,14 @@ const ControlFlowHandlers = {
 
             block = this._createRubyStatementBlock(this._getSource(node), node);
         } else if (this._isBlock(block)) {
-            // Attach @ruby:syntax:while comment for round-trip fidelity
+            this._appendConditionCalls(block, conditionCalls);
+            // Attach @ruby:syntax:while comment for round-trip fidelity, keeping the markers the loop
+            // has (e.g. `@ruby:method:wait` of a body that ends with `wait`).
             let commentText = '@ruby:syntax:while';
             if (variableHint) {
                 commentText += `,@ruby:variable:${variableHint}`;
             }
-            const commentId = this._createComment(commentText, block.id);
-            block.comment = commentId;
+            this._addCommentMarker(block, commentText);
         }
 
         if (preBlocks.length > 0 && block) {
@@ -376,6 +388,122 @@ const ControlFlowHandlers = {
             return [...preBlocks, block];
         }
         return block;
+    },
+
+    /**
+     * The state of the return values of the calls in the current line, to visit a condition again
+     * as it was visited the first time (see `_conditionCallsAgain`).
+     * @returns {object} The call indices and whether a return value is saved in this line.
+     */
+    _methodCallState() {
+        return {
+            methodCallIndices: Object.assign({}, this._context.methodCallIndices),
+            savedReturnValueInStatement: this._context.savedReturnValueInStatement,
+        };
+    },
+
+    /**
+     * The blocks that call the methods of the condition of a loop again (issue #1606). A method
+     * called in a condition (e.g. `while bar(a) < 3`) is called by a block before the loop, and the
+     * condition reads the return value; Ruby calls it before every check, so the blocks call it
+     * again at the end of the body. They are marked `@ruby`:loop_condition_call so that the
+     * generator does not write them: the condition is written once, as in Ruby.
+     * @param {object} node - The condition node.
+     * @param {Array} preBlocks - The blocks put before the loop by the first visit of the condition.
+     * @param {object} callState - The state before the first visit (see `_methodCallState`).
+     * @returns {Array} The statement blocks to put at the end of the body (none if no call).
+     */
+    _conditionCallsAgain(node, preBlocks, callState) {
+        if (!preBlocks.some((b) => this._isBlock(b))) {
+            return [];
+        }
+        const context = this._context;
+        const after = {
+            methodCallIndices: context.methodCallIndices,
+            savedReturnValueInStatement: context.savedReturnValueInStatement,
+            variableHint: context.variableHint,
+        };
+        // The calls get the same comments and variables as the first time (e.g. `@_return_bar_1_`).
+        context.methodCallIndices = Object.assign({}, callState.methodCallIndices);
+        context.savedReturnValueInStatement = callState.savedReturnValueInStatement;
+        // A line of the Ruby code stays mapped to the blocks before the loop.
+        const nodeToBlockMap = context.nodeToBlockMap && new Map(context.nodeToBlockMap);
+        let split;
+        try {
+            split = this._splitPreBlocksAndValue(this._processCondition(node));
+        } finally {
+            context.methodCallIndices = after.methodCallIndices;
+            context.savedReturnValueInStatement = after.savedReturnValueInStatement;
+            context.variableHint = after.variableHint;
+            if (nodeToBlockMap) {
+                context.nodeToBlockMap.clear();
+                nodeToBlockMap.forEach((blockId, n) => context.nodeToBlockMap.set(n, blockId));
+            }
+        }
+        // Only the calls are used: the loop reads the value with the condition of the first visit.
+        this._discardBlock(split.value);
+        const calls = split.preBlocks.filter((b) => this._isBlock(b));
+        calls.forEach((b) => {
+            if (b.comment && context.comments[b.comment]) {
+                context.comments[b.comment].text = LOOP_CONDITION_CALL_MARKER;
+            } else {
+                b.comment = this._createComment(LOOP_CONDITION_CALL_MARKER, b.id);
+            }
+        });
+        return calls;
+    },
+
+    /**
+     * Put the blocks of `_conditionCallsAgain` at the end of the body of a loop. A loop without a
+     * body (`control_wait_until`, e.g. `wait until bar(a) == 0`) becomes `control_repeat_until`
+     * with them as its body, so that the methods are called while waiting.
+     * @param {object} block - The loop block (`control_repeat_until` or `control_wait_until`).
+     * @param {Array} calls - The blocks to put.
+     * @returns {?string} The opcode of the loop before they were put, or null if nothing was put.
+     */
+    _appendConditionCalls(block, calls) {
+        if (calls.length === 0 || !this._isBlock(block)) {
+            return null;
+        }
+        const opcode = block.opcode;
+        if (opcode !== 'control_repeat_until' && opcode !== 'control_wait_until') {
+            return null;
+        }
+        const firstId = block.inputs.SUBSTACK && block.inputs.SUBSTACK.block;
+        const last = firstId ? this._lastBlock(this._context.blocks[firstId]) : null;
+        if (last && this._getBlockType(last) === 'terminate') {
+            // The end of the body is never reached (e.g. `loop do ... end`), and nothing can follow it.
+            calls.forEach((b) => this._discardBlock(b));
+            return null;
+        }
+        calls.forEach((b, i) => {
+            if (i > 0) {
+                calls[i - 1].next = b.id;
+                b.parent = calls[i - 1].id;
+            }
+        });
+        if (last) {
+            last.next = calls[0].id;
+            calls[0].parent = last.id;
+        } else {
+            block.opcode = 'control_repeat_until';
+            this._addSubstack(block, calls[0]);
+        }
+        return opcode;
+    },
+
+    /**
+     * Add a `@ruby`: marker to the comment of a block, keeping the markers it has.
+     * @param {object} block - The block.
+     * @param {string} marker - The marker.
+     */
+    _addCommentMarker(block, marker) {
+        const comment = block.comment && this._context.comments[block.comment];
+        if (comment) {
+            comment.text = comment.text ? `${comment.text},${marker}` : marker;
+        } else {
+            block.comment = this._createComment(marker, block.id);
+        }
     },
 
     visitAndNode(node) {

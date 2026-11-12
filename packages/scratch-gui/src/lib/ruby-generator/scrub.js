@@ -1,6 +1,14 @@
 // === Smalruby: This file is Smalruby-specific (comment/block-chain scrub handler for RubyGenerator) ===
 
 /**
+ * Whether a comment marks a block that calls a method of the condition of a loop again
+ * (`@ruby`:loop_condition_call, put by the converter's `_conditionCallsAgain`).
+ * @param {?string} comment - The comment text of the block.
+ * @returns {boolean} True if it is the marker.
+ */
+const isLoopConditionCall = (comment) => !!comment && comment.split(/[,\s]/).includes('@ruby:loop_condition_call');
+
+/**
  * Register the scrub_ method on the RubyGenerator.
  * Handles comment output, block chaining (next), isStatement end, and inline comments.
  * @param {object} Generator - The RubyGenerator instance.
@@ -10,6 +18,11 @@ export default function (Generator) {
     Generator.scrub_ = function (block, code) {
         if (code === null) {
             return '';
+        }
+        // A block that calls a method of the condition of a loop again at the end of its body is not
+        // written: the condition is written once, as in Ruby (issue #1606).
+        if (!this.isConnectedValue(block) && isLoopConditionCall(this.getCommentText(block))) {
+            return this.blockToCode(this.getBlock(block.next));
         }
 
         let commentCode = '';

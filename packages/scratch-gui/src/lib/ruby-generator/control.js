@@ -267,6 +267,10 @@ export default function (Generator) {
 
     Generator.control_repeat_until = function (block) {
         const comment = Generator.getCommentText(block);
+        // `wait until bar(a) == 0`: a loop whose body only calls the methods of the condition again (issue #1606).
+        if (comment && comment.split(',').includes('@ruby:syntax:wait_until')) {
+            return Generator.control_wait_until(block);
+        }
         const useScreenRefresh = needsWithScreenRefresh(block);
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
         const varName = getVariableHint(block);
