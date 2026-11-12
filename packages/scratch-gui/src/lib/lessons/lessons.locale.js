@@ -115,8 +115,9 @@ export const ja = {
         'ネコを押した回数を数えて、その数を言うようにしよう。\n3 回押してみよう',
     'gui.lessons.challenge.blocks-l1-count.step1':
         'オレンジの「変数」で「変数を作る」を押して、「回数」という変数を作ろう。',
-    'gui.lessons.challenge.blocks-l1-count.step2': '旗を押したら 0 にもどすプログラムを作ろう。',
-    'gui.lessons.challenge.blocks-l1-count.step3': '押されたら 1 ふやして、その数を言うプログラムを作ろう。',
+    'gui.lessons.challenge.blocks-l1-count.step2': '1 つめのプログラム: 旗を押したら「回数」を 0 にもどそう。',
+    'gui.lessons.challenge.blocks-l1-count.step3':
+        '2 つめのプログラムを、旗のプログラムとはべつに作ろう。黄色い「イベント」の「このスプライトが押されたとき」を新しく置いて、その下で 1 ふやして、その数を言おう。',
     'gui.lessons.challenge.blocks-l1-count.step4':
         '旗を押してから、ネコを 3 回押そう。ステージの左上にも数が出るよ。',
     'gui.lessons.challenge.blocks-l1-count.debug1':
@@ -287,8 +288,9 @@ export const jaHira = {
         'ネコをおしたかいすうをかぞえて、そのかずをいうようにしよう。\n3 かいおしてみよう',
     'gui.lessons.challenge.blocks-l1-count.step1':
         'オレンジの「へんすう」で「へんすうをつくる」をおして、「かいすう」というへんすうをつくろう。',
-    'gui.lessons.challenge.blocks-l1-count.step2': 'はたをおしたら 0 にもどすプログラムをつくろう。',
-    'gui.lessons.challenge.blocks-l1-count.step3': 'おされたら 1 ふやして、そのかずをいうプログラムをつくろう。',
+    'gui.lessons.challenge.blocks-l1-count.step2': '1 つめのプログラム: はたをおしたら「かいすう」を 0 にもどそう。',
+    'gui.lessons.challenge.blocks-l1-count.step3':
+        '2 つめのプログラムを、はたのプログラムとはべつにつくろう。きいろい「イベント」の「このスプライトがおされたとき」をあたらしくおいて、そのしたで 1 ふやして、そのかずをいおう。',
     'gui.lessons.challenge.blocks-l1-count.step4':
         'はたをおしてから、ネコを 3 かいおそう。ステージのひだりうえにもかずがでるよ。',
     'gui.lessons.challenge.blocks-l1-count.debug1':
@@ -461,9 +463,9 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-count.step1':
         'In the orange "Variables", click "Make a Variable" and make a variable named "count".',
     'gui.lessons.challenge.blocks-l1-count.step2':
-        'Make a program that sets it back to 0 when the green flag is clicked.',
+        'Program 1: when the green flag is clicked, set "count" back to 0.',
     'gui.lessons.challenge.blocks-l1-count.step3':
-        'Make a program that adds 1 when the cat is clicked, and says the number.',
+        'Make program 2 separately from the flag program. Put a new "when this sprite clicked" from the yellow "Events", and under it add 1 and say the number.',
     'gui.lessons.challenge.blocks-l1-count.step4':
         'Click the green flag, then click the cat 3 times. The number also shows at the top left of the stage.',
     'gui.lessons.challenge.blocks-l1-count.debug1':
