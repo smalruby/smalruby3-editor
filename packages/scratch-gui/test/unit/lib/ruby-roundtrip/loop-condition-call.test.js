@@ -4,6 +4,7 @@
  * check of the condition as in Ruby; the call at the end of the body is not written back to Ruby.
  */
 import dedent from 'dedent';
+import RubyGenerator from '../../../../src/lib/ruby-generator';
 import {
     makeSpriteTarget,
     makeConverter,
@@ -116,6 +117,39 @@ describe('Ruby Roundtrip: a call in the condition of a loop (issue #1606)', () =
         expect(loop).toBeTruthy();
         expect(isCallOf(tailOf(loop)[0], 'bar %s')).toBe(true);
         expect(Object.values(blocksOf()).some((b) => b.opcode === 'control_wait_until')).toBe(false);
+    });
+
+    test('a block put in the body of wait until on the blocks screen is written (until ... end)', async () => {
+        await roundTrip('a = 0\nwait until bar(a) == 0');
+        // Put `move(10)` after the calls, as on the blocks screen.
+        const blocks = target.blocks._blocks;
+        const loop = Object.values(blocks).find((b) => b.opcode === 'control_repeat_until');
+        const last = chain(loop.inputs.SUBSTACK.block).pop();
+        blocks.move = {
+            id: 'move',
+            opcode: 'motion_movesteps',
+            inputs: { STEPS: { name: 'STEPS', block: 'steps', shadow: 'steps' } },
+            fields: {},
+            next: null,
+            parent: last.id,
+            shadow: false,
+            topLevel: false,
+        };
+        blocks.steps = {
+            id: 'steps',
+            opcode: 'math_number',
+            inputs: {},
+            fields: { NUM: { name: 'NUM', value: '10' } },
+            next: null,
+            parent: 'move',
+            shadow: true,
+            topLevel: false,
+        };
+        last.next = 'move';
+        RubyGenerator.currentTarget = target;
+        expect(RubyGenerator.targetToCode(target, {}).trim()).toBe(
+            `${BAR}\n\na = 0\nuntil bar(a) == 0\n  move(10)\nend`,
+        );
     });
 
     test('a body that ends with wait', async () => {

@@ -6,7 +6,8 @@
  * @param {?string} comment - The comment text of the block.
  * @returns {boolean} True if it is the marker.
  */
-const isLoopConditionCall = (comment) => !!comment && comment.split(/[,\s]/).includes('@ruby:loop_condition_call');
+export const isLoopConditionCall = (comment) =>
+    !!comment && comment.split(/[,\s]/).includes('@ruby:loop_condition_call');
 
 /**
  * Register the scrub_ method on the RubyGenerator.

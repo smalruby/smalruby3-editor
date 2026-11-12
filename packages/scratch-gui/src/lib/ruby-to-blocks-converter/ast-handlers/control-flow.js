@@ -462,11 +462,17 @@ const ControlFlowHandlers = {
      * @returns {?string} The opcode of the loop before they were put, or null if nothing was put.
      */
     _appendConditionCalls(block, calls) {
-        if (calls.length === 0 || !this._isBlock(block)) {
+        if (calls.length === 0) {
+            return null;
+        }
+        if (!this._isBlock(block)) {
+            calls.forEach((b) => this._discardBlock(b));
             return null;
         }
         const opcode = block.opcode;
         if (opcode !== 'control_repeat_until' && opcode !== 'control_wait_until') {
+            // Not left behind as orphans.
+            calls.forEach((b) => this._discardBlock(b));
             return null;
         }
         const firstId = block.inputs.SUBSTACK && block.inputs.SUBSTACK.block;
