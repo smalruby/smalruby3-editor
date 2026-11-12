@@ -11,6 +11,9 @@ const DNCL_INDEX_HINT_OWNER = 'smalruby-dncl-index';
 // Monaco marker owner for the code that cannot be written in DNCL, such as the
 // post-test loop (Issue #1626).
 const DNCL_UNSUPPORTED_OWNER = 'smalruby-dncl-unsupported';
+// Monaco marker owner for the warnings on a `//` that looks like a comment
+// (Issue #1711).
+const DNCL_SLASH_COMMENT_OWNER = 'smalruby-dncl-slash-comment';
 
 export {
     FONT_SIZES,
@@ -21,4 +24,5 @@ export {
     DNCL_MODE_KEY,
     DNCL_INDEX_HINT_OWNER,
     DNCL_UNSUPPORTED_OWNER,
+    DNCL_SLASH_COMMENT_OWNER,
 };
