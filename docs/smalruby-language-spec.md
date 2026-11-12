@@ -702,7 +702,7 @@ The following Ruby syntax is **NOT supported** in Smalruby:
 
 - `for` loops
 - `each` method (calling `each` / `first` / `last` / `max` / `min` / `sort` / `reverse` / `join` directly on an array literal, such as `[1, 2].each do |i|` or `[1, 2].first`, is an error that shows the line when converting to blocks. Put the array in a variable first: `@a = [1, 2]` → `@a.first`)
-- `begin`/`rescue`/`ensure` (exception handling)
+- `rescue` / `else` / `ensure` (exception handling, including `def ... rescue ... end`, `do ... rescue ... end` and the modifier `x rescue y`. It is an error that shows the line of the clause when converting to blocks. `begin ... end` with no clause, and `begin ... end while`, can be used)
 - `module_function`, `extend` (`module` and `include` are supported)
 - `private` / `protected` / `public` (including `private :foo` and `private def foo ... end`; they are an error wherever they are written, so delete them. For `private def foo ... end`, delete `private` and `def foo ... end` can be used. Calling a method you defined yourself as `def private ... end` is not an error)
 - `require` / `require_relative`
