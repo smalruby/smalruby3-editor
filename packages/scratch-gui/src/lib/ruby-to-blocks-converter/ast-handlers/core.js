@@ -373,6 +373,22 @@ const CoreHandlers = {
     },
 
     /**
+     * Whether a receiver is a loop made to be chained (issue #1691): `loop` and `N.times` without a block
+     * come as the loop block (`control_forever` / `control_repeat`) for `.with_screen_refresh do ... end`,
+     * which puts its body into it. That is the only method that takes a command as its receiver.
+     * @param {*} receiver - The value of the receiver.
+     * @param {string} name - The name of the method.
+     * @returns {boolean} Whether the receiver is the loop of `loop.with_screen_refresh` / `N.times.with_screen_refresh`.
+     */
+    _isLoopToChain(receiver, name) {
+        return (
+            name === 'with_screen_refresh' &&
+            this._isBlock(receiver) &&
+            (receiver.opcode === 'control_repeat' || receiver.opcode === 'control_forever')
+        );
+    },
+
+    /**
      * Whether a statement put before a call cannot be run there (issue #1691).
      * A command written before the value in parentheses (e.g. `move(1)` of `say((move(1); a).to_s)`) is
      * run before the call, as the call of a My Block that returns a value is. A value or a symbol written

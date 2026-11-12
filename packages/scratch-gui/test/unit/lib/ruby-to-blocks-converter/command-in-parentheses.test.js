@@ -89,4 +89,23 @@ describe('RubyToBlocksConverter/command in parentheses', () => {
         const move = Object.values(blocks).find((b) => b.opcode === 'motion_movesteps');
         expect(blocks[move.next].opcode).toBe('looks_say');
     });
+
+    // `loop` / `N.times` without a block is the loop block to chain: it is a command by design.
+    test.each([
+        ['loop.with_screen_refresh do\n  move(10)\nend'],
+        ['10.times.with_screen_refresh do\n  move(10)\nend'],
+        ['loop.with_screen_refresh do\nend'],
+        ['10.times.with_screen_refresh do\nend'],
+    ])('%s is converted', async (code) => {
+        const { ok, errors } = await convert(code);
+        expect(errors).toEqual([]);
+        expect(ok).toBe(true);
+    });
+
+    test.each([['say(10.times.to_s)'], ['say((loop).to_s)']])('%s is the wrong instruction', async (code) => {
+        const { ok, errors } = await convert(code);
+        expect(ok).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].text).toContain(wrongInstruction(code));
+    });
 });
