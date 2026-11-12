@@ -111,6 +111,18 @@ const LessonMode = ({
         };
     }, [onStartChallenge]);
 
+    // 課題バー（画面の幅いっぱい）が出る・消えると、ステージの列がその高さの分だけ上下に動く。
+    // ステージ（containers/stage.jsx）は canvas の位置を window の resize / scroll でしか測り直さない
+    // ので、知らせないとマウスの位置が課題バーの高さの分ずれて、ネコにマウスを重ねても
+    // 「さわった」にならない（#1581）。ブロックの作業場所も高さが変わるので同じく resize で知らせる
+    const taskBarVisible = Boolean(current);
+    const taskBarVisibleRef = useRef(taskBarVisible);
+    useEffect(() => {
+        if (taskBarVisibleRef.current === taskBarVisible) return;
+        taskBarVisibleRef.current = taskBarVisible;
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('resize'));
+    }, [taskBarVisible]);
+
     const handleHint = useCallback(() => {
         if (hint && hint.visible) onHideHint();
         else onShowHint();
