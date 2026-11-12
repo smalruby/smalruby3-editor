@@ -942,6 +942,8 @@ export default {
         '「{ SOURCE }」はブロックにへんかんできません。\nつづりをかくにんするか、たいおうしているあたいをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction':
         '「{ SOURCE }」はめいれいがまちがっています。\nつづりをかくにんするか、たいおうしているブロックをつかってください。',
+    'gui.smalruby3.rubyToBlocksConverter.arrayLiteralReceiver':
+        'はいれつ（[...]）にちょくせつ「{ METHOD }」はつかえません。\nさきにはいれつをへんすうにいれてから（れい: a = [1, 2]）、a.{ METHOD } のようにつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
         '「{ SOURCE }」はclassていぎのなかにちょくせつおくことはできません。\nイベントブロック（れい: when_flag_clicked）やメソッドていぎ（def）のなかでつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope':

@@ -7,6 +7,7 @@ import {
     makeConverter,
     setupRubyGenerator,
     expectRoundTrip,
+    rubyToBlocksToRuby,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: smalrubyRuby extension', () => {
@@ -416,6 +417,33 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
             null,
             opts,
         );
+    });
+
+    // Issue #1621: list variables as receivers keep working.
+    test.each(['@a', '$a'])('Array#each on list variable %s round-trips', async (name) => {
+        await expectRoundTrip(
+            converter,
+            target,
+            `${name} = [1, 2]\n\nwhen_flag_clicked do\n  ${name}.each do |i|\n    say(i)\n  end\nend`,
+            null,
+            opts,
+        );
+    });
+
+    test('Array#each on an array literal is an error, not "".each (#1621)', async () => {
+        await expect(
+            rubyToBlocksToRuby(
+                converter,
+                target,
+                dedent`
+                when_flag_clicked do
+                  [1, 2].each do |i|
+                    say(i)
+                  end
+                end
+            `,
+            ),
+        ).rejects.toThrow(/"row":1/);
     });
 
     test('Array#each with single-char items round-trips', async () => {
