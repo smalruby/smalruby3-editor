@@ -660,6 +660,8 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument':
         '"{NAME}" is an argument, so it cannot be changed.\nCopy it to another variable and change that one (e.g. x = {NAME}).',
     'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive': '"{ SOURCE }" could not be converted the block.',
+    'gui.smalruby3.rubyToBlocksConverter.variableAndListSameName':
+        '"{NAME}" is used as a list on line {LIST_LINE} and as a variable on line {VARIABLE_LINE}.\nIn Ruby, one name cannot be both a variable and a list. Rename one of them.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
         '"{ SOURCE }" cannot be placed directly inside a class definition. Use it inside an event block (e.g. when_flag_clicked) or a method definition (def).',

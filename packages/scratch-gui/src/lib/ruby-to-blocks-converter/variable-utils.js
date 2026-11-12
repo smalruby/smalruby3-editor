@@ -16,6 +16,13 @@ const messages = defineMessages({
         description: 'Error message when defining a My Block with a name that already exists',
         id: 'gui.smalruby3.rubyToBlocksConverter.alreadyDefinedMyBlock',
     },
+    variableAndListSameName: {
+        defaultMessage:
+            '"{NAME}" is used as a list on line {LIST_LINE} and as a variable on line {VARIABLE_LINE}.' +
+            '\nIn Ruby, one name cannot be both a variable and a list. Rename one of them.',
+        description: 'Error message when one Ruby variable name is used as both a variable and a list',
+        id: 'gui.smalruby3.rubyToBlocksConverter.variableAndListSameName',
+    },
 });
 
 /**
@@ -333,6 +340,88 @@ const VariableUtils = {
             });
         }
         return true;
+    },
+
+    /**
+     * Reject Ruby code that uses one name as both a variable and a list (e.g. `@a = 0` and `@a = []`).
+     * Scratch can have a variable and a list of the same name, but Ruby has one `@a`, and the target
+     * applier keeps only the list: a block that sets or changes the dropped variable would point at
+     * nothing, and the script would disappear on the way back to Ruby (issue #1593).
+     * Reading the name (a data_variable block) is not such a use: the applier reads the list itself
+     * there, including a read in a method before the list is made (issues #634 / #1567).
+     * Throws on the earliest line that uses the name as a variable.
+     */
+    _rejectVariableAndListOfSameName() {
+        const keyOf = (variable) => `${variable.scope}:${variable.name}`;
+        // A block whose node is not known still counts (so the script never disappears silently);
+        // it is placed after the blocks whose lines are known.
+        const lineOf = (node) => (node ? this._getLoc(node).line : Infinity);
+        const earlier = (line, other) => typeof other === 'undefined' || line < other;
+
+        const listKeys = new Set();
+        const listIds = {};
+        Object.values(this._context.lists).forEach((list) => {
+            if (list.isArgument) return;
+            listKeys.add(keyOf(list));
+            listIds[list.id] = list;
+        });
+        if (listKeys.size === 0) return;
+
+        const scalarIds = {};
+        ['variables', 'localVariables'].forEach((storeName) => {
+            Object.values(this._context[storeName]).forEach((variable) => {
+                if (!variable.isArgument && listKeys.has(keyOf(variable))) {
+                    scalarIds[variable.id] = variable;
+                }
+            });
+        });
+        if (Object.keys(scalarIds).length === 0) return;
+
+        const firstListLine = {};
+        const firstScalarUse = {};
+        Object.values(this._context.blocks).forEach((block) => {
+            const fields = block.fields || {};
+            const list = fields.LIST && listIds[fields.LIST.id];
+            const scalar = block.opcode !== 'data_variable' && fields.VARIABLE && scalarIds[fields.VARIABLE.id];
+            if (!list && !scalar) return;
+            const node = this._nodeOfBlock(block);
+            const line = lineOf(node);
+            if (list) {
+                const key = keyOf(list);
+                if (earlier(line, firstListLine[key])) firstListLine[key] = line;
+            }
+            if (scalar) {
+                const key = keyOf(scalar);
+                if (!firstScalarUse[key] || earlier(line, firstScalarUse[key].line)) {
+                    firstScalarUse[key] = { line, node, variable: scalar };
+                }
+            }
+        });
+
+        const conflicts = Object.keys(firstScalarUse)
+            .filter((key) => typeof firstListLine[key] !== 'undefined')
+            .map((key) => firstScalarUse[key])
+            .sort((a, b) => a.line - b.line);
+        if (conflicts.length === 0) return;
+
+        const { line, node, variable } = conflicts[0];
+        const lineText = (n) => (n === Infinity ? '?' : n);
+        let name = variable.name;
+        if (variable.scope === 'global') {
+            name = `$${variable.name}`;
+        } else if (variable.scope === 'instance') {
+            name = `@${variable.name}`;
+        } else if (variable.originalName) {
+            name = variable.originalName;
+        }
+        throw new RubyToBlocksConverterError(
+            node,
+            this._translator(messages.variableAndListSameName, {
+                NAME: name,
+                LIST_LINE: lineText(firstListLine[keyOf(variable)]),
+                VARIABLE_LINE: lineText(line),
+            }),
+        );
     },
 };
 

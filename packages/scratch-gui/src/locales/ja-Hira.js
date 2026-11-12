@@ -946,6 +946,8 @@ export default {
         '「{ SOURCE }」はclassていぎのなかにちょくせつおくことはできません。\nイベントブロック（れい: when_flag_clicked）やメソッドていぎ（def）のなかでつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope':
         '「{VARIABLE}」、へんすうのスコープはへんこうできません。\nへんすうをいったんさくじょしてから、ただしいスコープでつくりなおしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.variableAndListSameName':
+        '「{NAME}」は {LIST_LINE} ぎょうめではリスト、{VARIABLE_LINE} ぎょうめではへんすうとしてつかわれています。\nRuby ではおなじなまえをへんすうとリストのりょうほうにはつかえません。どちらかのなまえをかえてください。',
     'gui.smalruby3.rubyToBlocksConverter.alreadyDefinedMyBlock':
         '「{NAME}」というブロックていぎはすでにそんざいしています。\nべつのなまえをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.costumeDoesNotExist':

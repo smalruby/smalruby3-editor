@@ -690,6 +690,8 @@ hide_list("@items")            # Hide list
 say(@items)                    # Pass the list itself (the list reporter block) as a value
 ```
 
+One name cannot be both a variable and a list (Scratch can have a variable and a list of the same name, but Ruby has one `@a`). Using a name as both, like `@a = 0` and `@a = []`, is an error that tells the lines when the code is turned into blocks. Only reading a list as a value (`say(@a)` after `@a = []`) is not an error. `length` / `include?` / `empty?` / `[i]` of a variable set to a string become string blocks and make no list.
+
 ## 5. Unsupported Ruby Syntax
 
 The following Ruby syntax is **NOT supported** in Smalruby:
