@@ -69,4 +69,19 @@ const dnclToRuby = (source) => {
     };
 };
 
-export { dnclToRuby };
+/**
+ * The Ruby to show when leaving the Japanese mode. DNCL that cannot become
+ * Ruby (the post-test loop of issue #1626 shown from blocks, `@` / `$`)
+ * makes no Ruby, so the last Ruby made from the editor (or from the blocks)
+ * is kept: the switch to the Ruby mode, where such code can be written, must
+ * not fail.
+ * @param {string} dncl - The DNCL in the editor.
+ * @param {?string} lastRuby - The last Ruby of the editor.
+ * @returns {string} The Ruby to show.
+ */
+const rubyForLeavingDncl = (dncl, lastRuby) => {
+    const { ruby } = dnclToRuby(dncl);
+    return ruby === null ? lastRuby || '' : ruby;
+};
+
+export { dnclToRuby, rubyForLeavingDncl };

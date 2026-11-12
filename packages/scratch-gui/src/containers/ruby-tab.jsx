@@ -14,7 +14,7 @@ import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../l
 import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
 import { tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
-import { dnclToRuby } from '../lib/dncl/dncl-to-ruby';
+import { dnclToRuby, rubyForLeavingDncl } from '../lib/dncl/dncl-to-ruby';
 import { POST_TEST_LOOP_ERROR_ID } from '../lib/dncl/dncl-validator';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
 import FuriganaAnnotator from '../lib/furigana-annotator';
@@ -232,6 +232,9 @@ const RubyTab = (props) => {
     // while the VM switches to another sprite (#1435).
     const rubyCodeTargetRef = useRef(rubyCode.target);
     rubyCodeTargetRef.current = rubyCode.target;
+    // The last Ruby of the editor, kept when the DNCL cannot become Ruby (#1626).
+    const rubyCodeCodeRef = useRef(rubyCode.code);
+    rubyCodeCodeRef.current = rubyCode.code;
     const editorTargetListenersRef = useRef(new Set());
     const genaiAdapterRef = useRef(null);
     if (!genaiAdapterRef.current) {
@@ -700,7 +703,10 @@ const RubyTab = (props) => {
                     const errors = rubyResult.errors.map((err) => ({
                         row: err.line - 1,
                         column: err.column - 1,
-                        text: dnclValidationErrorMessage,
+                        text:
+                            err.id === POST_TEST_LOOP_ERROR_ID
+                                ? dnclPostTestLoopErrorMessage
+                                : dnclValidationErrorMessage,
                         type: 'error',
                     }));
                     showErrors(errors);
@@ -758,12 +764,12 @@ const RubyTab = (props) => {
             } else {
                 // Switching to Ruby: convert DNCL → Ruby
                 const currentDncl = model.getValue();
-                const result = dnclToRuby(currentDncl);
+                const ruby = rubyForLeavingDncl(currentDncl, rubyCodeCodeRef.current);
                 dnclSourceMapRef.current = null;
                 monacoRef.current.editor.setModelLanguage(model, 'smalruby');
-                model.setValue(result.ruby);
+                model.setValue(ruby);
                 setDnclDisplayCode('');
-                onChangeRef.current(result.ruby);
+                onChangeRef.current(ruby);
             }
         }
 

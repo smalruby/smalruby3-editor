@@ -19,7 +19,8 @@ const POST_TEST_LOOP_MESSAGE =
 const POST_TEST_LOOP_LINE_RES = [
     /^begin$/,
     /^end\s+(?:while|until)(?:\s|\(|$)/,
-    /^繰り返し[、，,]?$/,
+    // `繰り返し、` alone, or with the body on the same line (`繰り返し、a ← a + 1 を、…`).
+    /^繰り返し\s*(?:[、，,].*)?$/,
     /^を[、，,]?\s*.+(?:になる|でなくなる)まで実行する$/,
 ];
 

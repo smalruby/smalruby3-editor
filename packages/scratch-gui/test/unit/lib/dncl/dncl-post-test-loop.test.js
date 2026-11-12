@@ -7,7 +7,7 @@
  * Japanese mode does not write it: `begin ... end while / until` is told as an error on its line,
  * and the DNCL never turns into broken Ruby such as `@begin`.
  */
-import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
+import { dnclToRuby, rubyForLeavingDncl } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { POST_TEST_LOOP_ERROR_ID } from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 
@@ -79,11 +79,25 @@ describe('DNCL: the post-test loop is not supported (issue #1626)', () => {
             ['end until', 'a = 0\nbegin\n  a = a + 1\nend until a >= 3', [2, 4]],
             ['the old DNCL', '繰り返し、\n  a = a + 1\nを、a >= 3 になるまで実行する', [1, 3]],
             ['the old DNCL without commas', '繰り返し\n  a = a + 1\nを a < 3 でなくなるまで実行する', [1, 3]],
+            ['the old DNCL on one line', '繰り返し，a = a + 1 を，a >= 3 になるまで実行する', [1]],
         ])('%s is told as an error on its lines', (name, dncl, lines) => {
             const result = dnclToRuby(dncl);
             expect(result.ruby).toBeNull();
             expect(result.errors.map((e) => e.line)).toEqual(lines);
             result.errors.forEach((e) => expect(e.id).toBe(POST_TEST_LOOP_ERROR_ID));
+        });
+
+        test.each([
+            ['a variable', '繰り返し回数 = 3\n表示する(繰り返し回数)'],
+            ['a string', '表示する("繰り返し")\n表示する("begin")'],
+            ['a comment', '# 繰り返し\na = 1 # begin'],
+            [
+                'the closers of the pre-test loops and if',
+                'a = 0\nもし a < 1 ならば\n  a = 1\nを実行する\na < 3 の間\n  a = a + 1\nを繰り返す',
+            ],
+            ['the DNCLv2 pre-test loop', 'a = 0\na < 3 の間繰り返す:\n  a = a + 1'],
+        ])('%s with 繰り返し or begin is not an error', (name, dncl) => {
+            expect(dnclToRuby(dncl).errors).toEqual([]);
         });
 
         test('a variable named begin_count is not an error', () => {
@@ -94,6 +108,21 @@ describe('DNCL: the post-test loop is not supported (issue #1626)', () => {
             expect(dToR('a = 0\na < 3 の間\n  a = a + 1\nを繰り返す')).toBe(
                 '@a = 0\nwhile @a < 3\n  @a = @a + 1\nend',
             );
+        });
+    });
+
+    describe('leaving the Japanese mode', () => {
+        test('the last Ruby is kept when the DNCL has a post-test loop', () => {
+            const ruby = '@a = 0\nbegin\n  @a = @a + 1\nend while @a < 3';
+            expect(rubyForLeavingDncl(rubyToDncl(ruby).dncl, ruby)).toBe(ruby);
+        });
+
+        test('an empty Ruby is used when there is no last Ruby', () => {
+            expect(rubyForLeavingDncl('begin\nend while a < 3', null)).toBe('');
+        });
+
+        test('the DNCL that can become Ruby is converted', () => {
+            expect(rubyForLeavingDncl('a = 1', 'old')).toBe('@a = 1');
         });
     });
 });
