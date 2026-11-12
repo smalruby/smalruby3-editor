@@ -751,7 +751,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   （`lib/ruby-to-blocks-converter`）でブロックにし、VM の target には入れずに Blockly の XML
   （`lib/lessons/blocks-xml.js`。scratch-vm の `Blocks#toXML` と同じ形）にして、吹き出しの中の
   **scratch-blocks の読み取り専用ワークスペース**（`lesson-hint-blocks.jsx`。`inject` に `readOnly: true`、
-  エディタより大きい 0.8 倍）に描く。スクリーンショットは使わない。言語・色のモードはエディタと同じ
+  エディタより大きい 0.8 倍。吹き出しの幅より広いかたまりは、右が切れないように幅に合わせて縮める）に描く。
+  スクリーンショットは使わない。言語・色のモードはエディタと同じ
   （Blocks コンテナが Redux に置いた ScratchBlocks を使う）。inject は main workspace を差し替えるので、
   描いたあとにエディタのワークスペースを `setMainWorkspace` で戻す。変換した XML は Ruby ごとに覚える。
   変換できない Ruby は「（このブロックは描けませんでした）」を出す（文言は出る）。`blocks` が locale ごとの

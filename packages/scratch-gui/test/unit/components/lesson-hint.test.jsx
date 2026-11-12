@@ -296,6 +296,29 @@ describe('LessonHint', () => {
         expect(scratchBlocks.workspace.dispose).toHaveBeenCalledTimes(1);
     });
 
+    test('shrinks the blocks that are wider than the balloon so that their right end is not cut off', () => {
+        const scratchBlocks = makeScratchBlocks();
+        scratchBlocks.workspace.getBlocksBoundingBox = () => ({ left: 0, top: 0, right: 500, bottom: 50 });
+        scratchBlocks.workspace.setScale = jest.fn((scale) => {
+            scratchBlocks.workspace.scale = scale;
+        });
+        // 吹き出しの幅で 216px までしか見えない（.blocks は max-width: 100%）
+        const rect = jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+            return { width: Math.min(parseFloat(this.style.width) || 0, 216) };
+        });
+        const { getByTestId } = renderHint({
+            scratchBlocks,
+            blocksXml: '<xml><block type="looks_sayforsecs"></block></xml>',
+            mediaPath: './static/blocks-media/default/',
+        });
+        rect.mockRestore();
+        const div = getByTestId('lesson-hint-blocks');
+        // 500×0.8 + 16 = 416px → 見える 216px（中身 200px = 500 × 0.4）に縮める
+        expect(scratchBlocks.workspace.setScale).toHaveBeenCalledWith(0.4);
+        expect(div.style.width).toBe('216px');
+        expect(div.style.height).toBe('36px');
+    });
+
     test('disposes the read-only workspace when drawing fails, and still shows the text', () => {
         const scratchBlocks = makeScratchBlocks();
         scratchBlocks.Xml.domToWorkspace = jest.fn(() => {

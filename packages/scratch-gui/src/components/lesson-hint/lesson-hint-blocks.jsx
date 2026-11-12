@@ -57,12 +57,23 @@ const renderBlocks = (scratchBlocks, div, xml, mediaPath, colorMode) => {
             return root && root.getAttribute('data-shapes') === 'hat';
         });
         const box = workspace.getBlocksBoundingBox();
-        const scale = workspace.scale;
-        const top = PADDING + (hasHat ? HAT_PADDING * scale : 0);
-        const width = Math.ceil((box.right - box.left) * scale + PADDING * 2);
-        const height = Math.ceil((box.bottom - box.top) * scale + top + PADDING);
-        div.style.width = `${Math.max(width, 1)}px`;
-        div.style.height = `${Math.max(height, 1)}px`;
+        const fit = () => {
+            const scale = workspace.scale;
+            const top = PADDING + (hasHat ? HAT_PADDING * scale : 0);
+            const width = Math.ceil((box.right - box.left) * scale + PADDING * 2);
+            const height = Math.ceil((box.bottom - box.top) * scale + top + PADDING);
+            div.style.width = `${Math.max(width, 1)}px`;
+            div.style.height = `${Math.max(height, 1)}px`;
+            return { scale, top, width };
+        };
+        let { scale, top, width } = fit();
+        // 吹き出しの幅（max-width）より広いかたまり（「言う」に「と」を入れたものなど）は、
+        // 右が切れないように縮めて描く（.blocks は max-width: 100% で overflow: hidden）
+        const shown = div.getBoundingClientRect().width;
+        if (shown > 0 && shown + 1 < width) {
+            workspace.setScale(scale * ((shown - PADDING * 2) / (width - PADDING * 2)));
+            ({ scale, top, width } = fit());
+        }
         scratchBlocks.svgResize(workspace);
         // 内容の左上が見えるように平行移動する（スクロールバーは無い）
         workspace.translate(-box.left * scale + PADDING, -box.top * scale + top);
