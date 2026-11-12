@@ -4,6 +4,9 @@ import _ from 'lodash';
 const Math = '::Math';
 const MathE = '::Math::E';
 
+/** Marker on "(0) - (X)" that came from `-X` (the generator reads it to write `-X` back). */
+const UNARY_MINUS_COMMENT = '@ruby:unary_minus';
+
 /**
  * Math and arithmetic operator handlers for OperatorsConverter.
  */
@@ -86,6 +89,19 @@ const OperatorsMath = {
                 converter._addNumberInput(block, 'NUM2', 'math_number', rh, '');
                 return block;
             });
+        });
+
+        // Unary minus on a non-literal (`-@x`, `-(1 + 2)`, `-@a.length`): Scratch has no block for
+        // it, so make "(0) - (X)" and mark it so the generator writes `-X` again (issue #1676).
+        // A number literal like `-1` is already a number and never reaches here.
+        converter.registerOnSend(['variable', 'block'], '-@', 0, (params) => {
+            const { receiver } = params;
+
+            const block = converter._createBlock('operator_subtract', 'value');
+            converter._addNumberInput(block, 'NUM1', 'math_number', 0, '');
+            converter._addNumberInput(block, 'NUM2', 'math_number', receiver, '');
+            block.comment = converter._createComment(UNARY_MINUS_COMMENT, block.id);
+            return block;
         });
 
         converter.registerOnSend(['variable', 'number', 'block'], 'round', 0, (params) => {

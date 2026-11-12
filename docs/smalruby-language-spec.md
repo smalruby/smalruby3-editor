@@ -356,6 +356,7 @@ end
 | `/` | `360 / 10` |
 | `%` | `@count % 2` |
 | `**` | `10 ** 2` (power) |
+| `-` (unary) | `-@x`, `-(@x + 1)` (becomes the "(0) - (X)" block; a number like `-1` stays a number) |
 
 ### Method Definition
 

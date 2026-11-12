@@ -51,6 +51,16 @@ export default function (Generator) {
             }
             return ['0', Generator.ORDER_ATOMIC];
         }
+        if (comment && comment.split(/,(?=@ruby:)/).includes('@ruby:unary_minus')) {
+            // "(0) - (X)" made from `-X` (issue #1676). In Ruby `**` binds tighter than a unary
+            // minus and `*` looser, so X needs parens only when it is looser than `-` itself
+            // (`-(1 + 2)`, but `-a ** 2` and `-@a.length`). A nested minus needs no parens
+            // either; a space keeps `- -x` from reading as `--x`.
+            const order = Generator.ORDER_UNARY_MINUS_SIGN;
+            registerLeftAssocOverride(Generator, order, order);
+            const operand = String(Generator.valueToCode(block, 'NUM2', order) || 0);
+            return [`-${operand.startsWith('-') ? ' ' : ''}${operand}`, order];
+        }
 
         const order = Generator.ORDER_ADDITIVE;
         const leftSideOrder = order + 0.5;
