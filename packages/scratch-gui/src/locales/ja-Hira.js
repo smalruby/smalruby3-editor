@@ -972,6 +972,16 @@ export default {
         '「{ SOURCE }」はあたいなので、それだけをめいれいとしてかくことはできません。\nめいれいのなかでつかう（れい: say({ SOURCE })）か、へんすうにいれてください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotReturnValue':
         '「{ SOURCE }」はブロックにできないあたいなので、メソッドからかえせません。\nすうち、もじれつ、true / false、へんすうのどれかをかえしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.superNotSupportedInV1':
+        'superはルビーバージョン1ではつかえません。\nせっていメニューからルビーバージョン2にきりかえてください。',
+    'gui.smalruby3.rubyToBlocksConverter.superOutsideMethod':
+        'superはメソッドのていぎ（def）のなかでだけつかえます。',
+    'gui.smalruby3.rubyToBlocksConverter.superWithoutModuleMethod':
+        '「{ METHOD }」のなかのsuperには、includeしたモジュールにおなじなまえのメソッドがひつようです。\nモジュールに「{ METHOD }」をていぎして、クラスでincludeしてください。',
+    'gui.smalruby3.rubyToBlocksConverter.superWithoutReturnValue':
+        '「{ SOURCE }」をあたいとしてつかっていますが、{ MODULE } の「{ METHOD }」はあたいをかえしません。\n{ MODULE } の「{ METHOD }」であたいをかえす（れい: return a）か、「{ SOURCE }」だけを 1 ぎょうにかいてください。',
+    'gui.smalruby3.rubyToBlocksConverter.superTwiceInLine':
+        '1 ぎょうのなかで super のあたいを 2 かいいじょうつかっています。\nブロックでは、さきの super のあたいがつぎの super でうわがきされてしまいます。\nさきにあたいをへんすうにいれて（れい: x = super）、そのへんすうをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.cannotReturnList':
         '「{ SOURCE }」はリストなので、メソッドからかえせません。\nリストのなかのあたい（れい: return { SOURCE }[0]）かへんすうをかえしてください。',
     'gui.smalruby3.rubyToBlocksConverter.recursiveCallAfterSavedValue':

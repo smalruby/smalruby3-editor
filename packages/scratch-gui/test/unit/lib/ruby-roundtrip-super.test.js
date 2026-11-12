@@ -115,6 +115,272 @@ describe('Ruby Roundtrip/Super', () => {
         return generatedCode;
     };
 
+    // Blank lines are left out of the comparison: the generator puts its own between methods.
+    const withoutBlankLines = (code) => code.replace(/\n\s*\n/g, '\n').trim();
+
+    const moduleReturningA = `module Mod
+  def func(a)
+    return a
+  end
+end
+`;
+
+    const expectRoundTrip = async (inputCode) => {
+        const outputCode = await rubyToBlocksToRuby(inputCode);
+        expect(withoutBlankLines(outputCode)).toEqual(withoutBlankLines(inputCode));
+    };
+
+    const errorsOf = async (code) => {
+        const result = await converter.targetCodeToBlocks(target, code);
+        expect(result).toBeFalsy();
+        return converter.errors;
+    };
+
+    describe('super as a value (issue #1568)', () => {
+        test('return super comes back as written', async () => {
+            await expectRoundTrip(`${moduleReturningA}
+class Sprite1
+  include Mod
+
+  def func(a)
+    return super
+  end
+
+  when_flag_clicked do
+    say(func(5))
+  end
+end
+`);
+        });
+
+        test('return super + 1 comes back as written', async () => {
+            await expectRoundTrip(`${moduleReturningA}
+class Sprite1
+  include Mod
+
+  def func(a)
+    return super + 1
+  end
+
+  when_flag_clicked do
+    say(func(5))
+  end
+end
+`);
+        });
+
+        test('return super(a) comes back as written', async () => {
+            await expectRoundTrip(`${moduleReturningA}
+class Sprite1
+  include Mod
+
+  def func(a)
+    return super(a)
+  end
+end
+`);
+        });
+
+        test('return super(a) * 2 comes back as written', async () => {
+            await expectRoundTrip(`${moduleReturningA}
+class Sprite1
+  include Mod
+
+  def func(a)
+    return super(a) * 2
+  end
+end
+`);
+        });
+
+        test('super + 1 on the last line comes back as written', async () => {
+            await expectRoundTrip(`${moduleReturningA}
+class Sprite1
+  include Mod
+
+  def func(a)
+    super + 1
+  end
+end
+`);
+        });
+
+        test('x = super and return x come back as written', async () => {
+            await expectRoundTrip(`${moduleReturningA}
+class Sprite1
+  include Mod
+
+  def func(a)
+    x = super
+    return x
+  end
+end
+`);
+        });
+
+        test('return super in if comes back as written', async () => {
+            await expectRoundTrip(`${moduleReturningA}
+class Sprite1
+  include Mod
+
+  def func(a)
+    if a > 0
+      return super
+    end
+    return 0
+  end
+end
+`);
+        });
+
+        test('super(a) as an argument of a command comes back as written', async () => {
+            await expectRoundTrip(`${moduleReturningA}
+class Sprite1
+  include Mod
+
+  def func(a)
+    say(super(a))
+  end
+end
+`);
+        });
+
+        test('return super in a class with a superclass and an included module comes back', async () => {
+            await expectRoundTrip(`${moduleReturningA}
+class Sprite1 < ::Smalruby3::Sprite
+  include Mod
+
+  def func(a)
+    return super + 1
+  end
+end
+`);
+        });
+
+        test('bare super on the last line still comes back as written', async () => {
+            await expectRoundTrip(`${moduleReturningA}
+class Sprite1
+  include Mod
+
+  def func(a)
+    super
+  end
+end
+`);
+        });
+
+        test('return super becomes the call block and then the return of its value', async () => {
+            const code = `${moduleReturningA}
+class Sprite1
+  include Mod
+
+  def func(a)
+    return super + 1
+  end
+end
+`;
+            expect(await converter.targetCodeToBlocks(target, code)).toBeTruthy();
+            const blocks = Object.values(converter._context.blocks);
+            const commentOf = (b) => (b.comment ? converter._context.comments[b.comment].text : '');
+            const superCall = blocks.find(
+                (b) => b.opcode === 'procedures_call' && commentOf(b).startsWith('@ruby:super'),
+            );
+            expect(superCall).toBeDefined();
+            const next = converter._context.blocks[superCall.next];
+            expect(next.opcode).toEqual('data_setvariableto');
+            expect(commentOf(next)).toContain('@ruby:syntax:return');
+            const operator = converter._context.blocks[next.inputs.VALUE.block];
+            expect(operator.opcode).toEqual('operator_add');
+            const value = converter._context.blocks[operator.inputs.NUM1.block];
+            expect(value.opcode).toEqual('data_variable');
+            expect(value.fields.VARIABLE.value).toContain('_return__super_func_1_');
+        });
+    });
+
+    describe('a call of a method that returns a value, where super is now used too (issue #1568)', () => {
+        const barReturningA = `class Sprite1
+  def bar(a)
+    return a
+  end
+`;
+
+        test('x = bar(a) and return x come back as written', async () => {
+            await expectRoundTrip(`${barReturningA}
+  def func(a)
+    x = bar(a)
+    return x
+  end
+end
+`);
+        });
+
+        test('bar(a) + 1 on the last line comes back as written', async () => {
+            await expectRoundTrip(`${barReturningA}
+  def func(a)
+    bar(a) + 1
+  end
+end
+`);
+        });
+
+        test('x = bar(1) + bar(2) keeps both return values', async () => {
+            await expectRoundTrip(`${barReturningA}
+  def func(a)
+    x = bar(1) + bar(2)
+    return x
+  end
+end
+`);
+        });
+
+        test('bar(1) + bar(2) on the last line keeps both return values', async () => {
+            await expectRoundTrip(`${barReturningA}
+  def func(a)
+    bar(1) + bar(2)
+  end
+end
+`);
+        });
+    });
+
+    describe('super that cannot be a value (issue #1568)', () => {
+        test('return super of a method that returns nothing tells which method to change', async () => {
+            const errors = await errorsOf(`module Mod
+  def func(a)
+    say(a)
+  end
+end
+
+class Sprite1
+  include Mod
+
+  def func(a)
+    return super
+  end
+end
+`);
+            expect(errors).toHaveLength(1);
+            expect(errors[0].row).toEqual(10);
+            expect(errors[0].text).toContain('"func" of Mod does not return a value');
+            expect(errors[0].text).not.toContain('cannot be returned from a method');
+        });
+
+        test('super twice in a line tells to save it in a variable', async () => {
+            const errors = await errorsOf(`${moduleReturningA}
+class Sprite1
+  include Mod
+
+  def func(a)
+    return super + super
+  end
+end
+`);
+            expect(errors).toHaveLength(1);
+            expect(errors[0].row).toEqual(10);
+            expect(errors[0].text).toContain('x = super');
+        });
+    });
+
     describe('super(args) round-trip', () => {
         test('super(a, a) is preserved in round-trip', async () => {
             const inputCode = `module Mod

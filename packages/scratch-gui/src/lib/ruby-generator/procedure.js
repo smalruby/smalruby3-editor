@@ -17,6 +17,9 @@ export default function (Generator) {
         );
     };
 
+    // `@ruby:super` / `@ruby:super:forwarding`, and the return key when its value is used (issue #1568).
+    const SUPER_COMMENT_PATTERN = /^(@ruby:super(?::forwarding)?)(?:,@ruby:return:(\S+))?$/;
+
     /**
      * Generate super call code from a procedures_call block with super comment.
      * @param {object} block - The procedures_call block
@@ -248,6 +251,16 @@ export default function (Generator) {
 
         // Check if this is a super call AND next block is a return assignment
         // (i.e., super is the last expression in a method with return value)
+        const superMatch = comment && comment.match(SUPER_COMMENT_PATTERN);
+        if (superMatch && superMatch[2]) {
+            // The value of super is used (e.g. `return super + 1`): the read of the return variable
+            // takes the call from the cache, as for `return bar + 1` (issue #1568).
+            if (!Generator.returnCallCache_) {
+                Generator.returnCallCache_ = {};
+            }
+            Generator.returnCallCache_[superMatch[2]] = generateSuperCall(block, superMatch[1]);
+            return '';
+        }
         if (comment === '@ruby:super' || comment === '@ruby:super:forwarding') {
             const nextBlock = Generator.getBlock(block.next);
             if (Generator.isRubyReturnAssignment(nextBlock)) {

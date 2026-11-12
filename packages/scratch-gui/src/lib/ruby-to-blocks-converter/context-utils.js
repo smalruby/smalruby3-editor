@@ -1,5 +1,8 @@
 import { Variable, LOCAL_VARIABLE_PATTERN } from './constants';
 
+// Assignments whose value is visited as a value (see `_onVasgn`).
+const VALUE_WRITE_NODE_TYPES = ['LocalVariableWriteNode', 'InstanceVariableWriteNode', 'GlobalVariableWriteNode'];
+
 /**
  * Context and state management utilities for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
@@ -342,8 +345,11 @@ const ContextUtils = {
             if (node.block && node.block.body) {
                 this._countProcedureCallsInNode(node.block.body);
             }
-            // Traverse receiver
-            this._countProcedureCallsInNode(node.receiver);
+            // The receiver is visited as a value (e.g. `bar(1)` of `bar(1) + bar(2)`) (issue #1568)
+            this._countCallsInValueNode(node.receiver);
+        } else if (VALUE_WRITE_NODE_TYPES.includes(nodeType)) {
+            // The value of an assignment is visited as a value too (e.g. `x = bar(1) + bar(2)`) (issue #1568).
+            this._countCallsInValueNode(node.value);
         } else if (nodeType === 'ReturnNode') {
             // The value of `return` is used as a value too (issue #1556).
             if (node.arguments_ && node.arguments_.arguments_) {
