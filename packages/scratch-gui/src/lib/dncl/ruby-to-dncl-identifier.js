@@ -97,6 +97,16 @@ const operandEnd = (text, start) => {
 };
 
 /**
+ * Whether the `=` at `i` is an assignment (`=`, `+=`, ...), not part of
+ * `==`, `!=`, `<=`, `>=`, `=~` or `=>`.
+ * @param {string} line - The line.
+ * @param {number} i - The position of `=`.
+ * @returns {boolean} True for an assignment `=`.
+ */
+const isAssignmentAt = (line, i) =>
+    line[i] === '=' && !/[=!<>]/.test(line[i - 1] || '') && !/[=~>]/.test(line[i + 1] || '');
+
+/**
  * Convert Ruby's `!operand` to DNCL's postfix `operand でない`. The whole
  * operand moves in front of `でない` — `!f(x)` is `f(x) でない` and
  * `!(a > 10)` is `(a > 10) でない` — so `dnclToRuby` negates the same
@@ -108,6 +118,8 @@ const operandEnd = (text, start) => {
 const convertNot = (line) => {
     if (!line.includes('!')) return line;
     let out = '';
+    // Where the current term starts in `out`, one entry per open bracket.
+    const starts = [0];
     let i = 0;
     while (i < line.length) {
         const ch = line[i];
@@ -126,13 +138,32 @@ const convertNot = (line) => {
             while (line[start] === ' ') start++;
             const end = operandEnd(line, start);
             if (end > start) {
-                out += `${convertNot(line.substring(start, end))} でない`;
+                const negated = `${convertNot(line.substring(start, end))} でない`;
+                // `でない` negates everything before it up to かつ / または, so a
+                // `!` in the middle of a term (`a == !b`) is put in parentheses:
+                // `a == (b でない)`, not `a == b でない` (= `!(a == b)`).
+                const inTerm = out.substring(starts[starts.length - 1]).trim() !== '';
+                out += inTerm ? `(${negated})` : negated;
                 i = end;
                 continue;
             }
         }
+        const logical = line.slice(i).match(/^(&&|\|\||\s(?:and|or)\s)/);
+        if (logical) {
+            out += logical[0];
+            i += logical[0].length;
+            starts[starts.length - 1] = out.length;
+            continue;
+        }
         out += ch;
         i++;
+        if (ch === '(' || ch === '[') {
+            starts.push(out.length);
+        } else if (ch === ')' || ch === ']') {
+            if (starts.length > 1) starts.pop();
+        } else if (ch === ',' || isAssignmentAt(line, i - 1)) {
+            starts[starts.length - 1] = out.length;
+        }
     }
     return out;
 };

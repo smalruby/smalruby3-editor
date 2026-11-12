@@ -109,6 +109,31 @@ describe('DNCL round trip: until', () => {
         expect(toRuby(toDncl('while !(@a > 10)\nend'))).toBe('until @a > 10\nend');
     });
 
+    // `!` that negates only the right-hand side of a comparison must not grow
+    // into the whole comparison on the way back (`でない` negates everything
+    // before it up to かつ / または).
+    describe.each([
+        ['@c = @a == !@b', 'c = a == (b でない)', '@c = @a == (!@b)'],
+        ['@c = @a > 1 && @b == !@d', 'c = a > 1 かつ b == (d でない)', '@c = @a > 1 && @b == (!@d)'],
+        ['if @a == !@b\nend', 'もし a == (b でない) ならば\nを実行する', 'if @a == (!@b)\nend'],
+        ['until @a == !@b\nend', 'a == (b でない) でない の間\nを繰り返す', 'until @a == (!@b)\nend'],
+    ])('a ! on the right of a comparison: %s', (ruby, dncl, back) => {
+        test('Ruby → DNCL puts the negation in parentheses', () => {
+            expect(toDncl(ruby)).toBe(dncl);
+        });
+        test('DNCL → Ruby keeps the meaning', () => {
+            expect(toRuby(dncl)).toBe(back);
+        });
+    });
+
+    test.each(['@b = !@x', '@b = !@x && @y', '@b = @x || !@y', '@c = !@a == @b'])(
+        'a ! that starts its term needs no parentheses: %s',
+        (ruby) => {
+            expect(toDncl(ruby)).not.toContain('(');
+            expect(toRuby(toDncl(ruby))).toBe(ruby);
+        },
+    );
+
     test('wait until @a > 10 keeps the same meaning', () => {
         expect(toRuby(toDncl('wait until @a > 10'))).toBe('until @a > 10\nend');
     });
