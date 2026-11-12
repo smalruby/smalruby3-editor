@@ -199,8 +199,12 @@ export default function (Generator) {
         code = originalFinishTargets(code, options);
         // Replace: "  expr.method\n  ...(_rv_)..." → inline expr.method into _rv_
         // Pattern: a line ending with .method_call (optionally with args),
-        // followed by a line that references _rv_ or _rv_truthy_
+        // followed by a line that references _rv_ or _rv_truthy_. The line of a C block
+        // (`if a * 2 > 3`, `(a * 2).times do`) is not a method block and must stay: moving it
+        // into `_rv_` would leave its `end` alone.
         const methodPattern =
+            '(?!(?:if|unless|while|until|elsif|case|when|for|return|break|next)\\b)' +
+            '(?![^\\n]*\\bdo(?: \\|[^|\\n]*\\|)?$)' +
             '\\S[^\\n]*(?:\\.(?:reverse|upcase|downcase|empty\\?|lines|delete|gsub|max|min|sort|join|first|last|keys|values|reverse!|delete!|gsub!|sort!)(?:\\((?:[^()\\n]|\\([^()\\n]*\\))*\\))?| \\* [^\\n]+)';
         // Process _rv_truthy_ BEFORE _rv_ to avoid partial match
         code = code.replace(

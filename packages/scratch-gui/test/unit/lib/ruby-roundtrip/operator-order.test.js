@@ -174,6 +174,46 @@ describe('Ruby Roundtrip: return value of a method block (issue #1690)', () => {
     });
 });
 
+describe('Ruby Roundtrip: the line of a C block is not moved into `_rv_`', () => {
+    /**
+     * Take the method block out of its stack, as a user would by dragging it away, so the
+     * return value block is the first block inside the C block.
+     * @param {object} target - The target the converter wrote to.
+     * @returns {string} The Ruby generated after the change.
+     */
+    const removeMethodBlock = (target) => {
+        const blocks = target.blocks._blocks;
+        const block = Object.values(blocks).find((b) => b.opcode === 'smalrubyRuby_stringMethod');
+        const parent = blocks[block.parent];
+        Object.keys(parent.inputs).forEach((name) => {
+            if (parent.inputs[name].block === block.id) parent.inputs[name].block = block.next;
+        });
+        blocks[block.next].parent = parent.id;
+        delete blocks[block.id];
+        target.blocks.resetCache();
+        RubyGenerator.currentTarget = target;
+        return RubyGenerator.targetToCode(target, { version: '2' }).trim();
+    };
+
+    test.each([
+        ['if', 'a = 2\nif a * 2 > 3\n  say("ab".reverse)\nend', 'a = 2\nif a * 2 > 3\n  say(_rv_)\nend'],
+        ['times', 'a = 2\n(a * 2).times do\n  say("ab".reverse)\nend', 'a = 2\n(a * 2).times do\n  say(_rv_)\nend'],
+        [
+            'while',
+            'a = 2\nwhile a * (2 + 1) > 3\n  say("ab".reverse)\nend',
+            'a = 2\nwhile a * (2 + 1) > 3\n  say(_rv_)\nend',
+        ],
+        [
+            'if with a call',
+            'a = "x"\nif a.empty?\n  say("ab".reverse)\nend',
+            'a = "x"\nif a.empty?\n  say(_rv_)\nend',
+        ],
+    ])('%s', async (_name, code, expected) => {
+        const { target } = await convert(code);
+        expect(removeMethodBlock(target)).toBe(expected);
+    });
+});
+
 describe('Ruby Roundtrip: other blocks with the wrong order of operations', () => {
     test.each([
         ['include? on a sum', 'say(("a" + "b").include?("c"))'],
