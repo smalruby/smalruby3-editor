@@ -311,15 +311,49 @@ const ExpressionHandlers = {
             // Only one value can be returned through blocks, so the others would be lost (issue #1553).
             throw this._returnMultipleValuesError(node, args[0]);
         }
+        let preBlocks = [];
+        let parenthesized = false;
         if (args && args.length > 0) {
-            returnValue = this.visit(args[0]);
+            // `return (x + 1)`: the value in the parentheses is returned, and a marker brings the
+            // parentheses back (issue #1557). More than one line in them (e.g. `(move(10); 1)`) is an error.
+            let valueNode = args[0];
+            while (this._getNodeTypeName(valueNode) === 'ParenthesesNode') {
+                const statements = this._parenthesesStatements(valueNode);
+                if (statements.length !== 1) {
+                    throw this._cannotReturnError(args[0]);
+                }
+                parenthesized = true;
+                valueNode = statements[0];
+            }
+            // A `return` with a value makes the method one that returns a value. Mark it now, so that a call
+            // of the method itself in the value (e.g. `return fact(n - 1) * n`) is a call that returns a value.
+            const procedure = this._lookupProcedure(procedureName);
+            if (procedure) {
+                procedure.hasReturnValue = true;
+            }
+            // Visit the value as a value, like an argument of `say(...)`: a call of a method that returns
+            // a value becomes the call followed by its return variable (issue #1556).
+            const savedIsValue = this._context.isValue;
+            this._context.isValue = true;
+            let visited;
+            try {
+                visited = this.visit(valueNode);
+            } finally {
+                this._context.isValue = savedIsValue;
+            }
+            const split = this._splitPreBlocksAndValue(visited);
+            preBlocks = split.preBlocks;
+            returnValue = split.value;
             // A value no block can hold (e.g. `self`, `[1, 2]`, `"#{x}"`) or a command (e.g. `x = 1`)
             // would be dropped or become "" (issue #1553).
-            const isCommand = this._isBlock(returnValue) && !this._isValueBlock(returnValue) &&
-                returnValue.opcode !== 'procedures_call';
+            const isCommand = this._isBlock(returnValue) && !this._isValueBlock(returnValue);
             if (returnValue === null || typeof returnValue === 'undefined' || isCommand ||
                 this._isUnreturnableValue(returnValue)) {
                 throw this._cannotReturnError(args[0]);
+            }
+            // A list has no value block that keeps it a list: it would become 0 (issue #1557).
+            if (this._isListValue(returnValue)) {
+                throw this._cannotReturnListError(args[0]);
             }
         }
 
@@ -338,6 +372,8 @@ const ExpressionHandlers = {
         // `return nil` / `return :a` keeps the text "" / "a" and a marker to come back as written (issue #1548).
         // `return` without a value keeps the text "" too, and a marker to come back as `return` (issue #1553).
         let literalMarker = returnValue ? '' : ',@ruby:return-bare';
+        // The parentheses marker comes before the nil / symbol one: the symbol one runs to the end.
+        const parenMarker = parenthesized ? ',@ruby:return-paren' : '';
         if (this._isPrimitive(returnValue) && (returnValue.type === 'nil' || returnValue.type === 'sym')) {
             const isNil = returnValue.type === 'nil';
             // A comment keeps one line for the marker, so a symbol with a line break stays a string.
@@ -347,7 +383,7 @@ const ExpressionHandlers = {
             returnValue = this._createTextBlock(isNil ? '' : returnValue.value.toString());
         }
         assignBlock.comment = this._createComment(
-            `@ruby:syntax:return @ruby:return:${procedureName}${literalMarker}`, assignBlock.id
+            `@ruby:syntax:return @ruby:return:${procedureName}${parenMarker}${literalMarker}`, assignBlock.id
         );
         if (returnValue) {
             this._addTextInput(
@@ -373,7 +409,7 @@ const ExpressionHandlers = {
         });
         stopBlock.comment = this._createComment('@ruby:syntax:return', stopBlock.id);
 
-        return [assignBlock, stopBlock];
+        return [...preBlocks, assignBlock, stopBlock];
     },
 
     visitParametersNode (node) {

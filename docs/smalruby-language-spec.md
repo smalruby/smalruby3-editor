@@ -77,6 +77,7 @@ The following cannot be written there. Writing one is an error that points to th
 - An **event handler** (`when_xxx do ... end`) cannot be written inside a block such as `do ... end`, `if` or `loop`, nor inside a method definition (`def`). Move it out of the block (to the top level or directly in the class definition) so that it starts a script of its own
 - A **line with only a value** (just `x`, just `1 + 2`) cannot be written inside a block such as `do ... end`, `if` or `loop`. Use it in a command such as `say(x)`, or set it to a variable. Directly in a method definition (`def`), it cannot be written before the last line either (the value on the last line is the return value, see [Return Values](#return-values))
 - A **line with only a symbol** (just `:a`) is not a command, so it cannot be written inside a block, nor in a method definition before the last line
+- A **line with only a value that no block can hold** (just `self`, a hash `{a: 1}`, a constant `Foo`, a regular expression `/a/`, or a string with `#{x}`) is not a command either, so it cannot be written inside a block, at the top level, nor in a method definition before the last line (a line with only an array `[1]` can still be written inside a block and at the top level)
 - A **method definition** (`def ... end`) cannot be written inside a block such as `do ... end`, `if` or `loop`, nor inside another method definition, on any line. Move the whole method, from `def` to its `end`, out of the block (to the top level, or directly in the class or module definition). Directly in a class or module definition, methods (including `def initialize`) and events can be written as before
 
 ```ruby
@@ -390,6 +391,14 @@ A trailing `true` / `false` is returned as the "(1) = (1)" / "(0) < (0)" block, 
 A `return` without a value also returns the string `""` in the blocks. A comment marker (`@ruby:return-bare`) brings it back as `return` (not `return ""`) after a round trip.
 
 A value that no block can hold (`self`, an array `[1, 2]`, a hash, a constant, a regular expression, or a string with `#{x}`) cannot be returned, with `return` or on the last line, so that line is an error (return a number, a string, `true` / `false`, or a variable instead). Written by itself on a line before the last one, it is not a command, so that line is an error too. `return "a", "b"` cannot return more than one value either, so it is an error (return one value).
+
+A list (such as `@a` after `@a = []`) has no block that returns it as a list either, so `return @a` and `@a` on the last line are errors (return an item of the list instead, such as `return @a[0]`).
+
+A call of a method that returns a value (`return bar`, `return bar(1) + 1`, `return fact(n - 1) * n`) returns the value after the block that calls the method, as `say(bar)` does, so it comes back as written after a round trip. A call of a method that returns no value (one whose last line is a command), or of a method defined after the `return`, cannot be returned, so it is an error.
+
+In a method, a call of the method itself after another method call in the same line (`return fib(n - 1) + fib(n - 2)`) is an error. The blocks keep the return value of the earlier call in a variable of the sprite, and the same line run in the call of the method itself would overwrite it, so the value would differ from Ruby (a single call, as in `return fact(n - 1) * n`, can be written).
+
+A value in parentheses, as in `return (x + 1)`, returns the value in them. A comment marker (`@ruby:return-paren`) brings the parentheses back as `return (x + 1)` after a round trip (`return(1)` becomes `return (1)`, and `return ((1))` becomes `return (1)`). Two or more lines in the parentheses (`(move(10); 1)`) or nothing in them (`()`) is an error.
 
 ### super
 
