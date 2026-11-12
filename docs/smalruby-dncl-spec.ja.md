@@ -15,7 +15,7 @@ smalruby の日本語モード（DNCLモード）は、大学入学共通テス�
 DNCL コード → (dncl-v2-preprocessor.js) → Smalruby DNCL → (dncl-to-ruby.js) → Ruby コード → (ruby-to-blocks-converter) → Scratch ブロック → 実行
 ```
 
-最初に **DNCLv2 pre-processor** が DNCLv2 形式の構文（行番号、`｜` / `⎿` インデントマーカー、末尾コロン、`の間繰り返す` / `増やしながら繰り返す` の `繰り返す` 接尾辞、同一行複数代入、`and` / `or`、関数定義 opener 形式 `NAME(ARGS) を定義する`）を **Smalruby DNCL に正規化**します。Smalruby DNCL の入力はそのまま通過します。
+最初に **DNCLv2 pre-processor** が DNCLv2 形式の構文（行番号、`｜` / `⎿` インデントマーカー、末尾コロン、`の間繰り返す` / `増やしながら繰り返す` の `繰り返す` 接尾辞、同一行複数代入、`and` / `or`、前置の `not`（`not X` → `X でない`）、関数定義 opener 形式 `NAME(ARGS) を定義する`）を **Smalruby DNCL に正規化**します。Smalruby DNCL の入力はそのまま通過します。
 
 ブロック → Ruby → DNCL の逆方向の変換も可能です（`ruby-to-dncl.js`）。turn-around 後は Smalruby DNCL 形式に正規化されます（DNCLv2 形式の `(N)` / `｜` / `⎿` / 末尾コロンは復元されません）。
 

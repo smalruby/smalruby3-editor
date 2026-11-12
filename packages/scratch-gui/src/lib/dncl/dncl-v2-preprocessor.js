@@ -12,6 +12,7 @@
 //     `減らしながら繰り返す`
 //   - Comma-separated multi-assignment (`a = X , b = Y` → 2 lines)
 //   - `and` / `or` → `かつ` / `または`
+//   - prefix `not X` → postfix `X でない` (Issue #1671)
 //
 // Phase 4 (separate commit) will add `｜` / `⎿` indent markers and
 // the implicit `end` insertion based on `⎿` count.
@@ -344,6 +345,94 @@ const normalizeAndOr = (line) => {
 };
 
 /**
+ * Whether `ch` can be part of an identifier (`knot`, `not_yet`, `notフラグ`).
+ * DNCL names may use Japanese letters, so any Unicode letter or digit counts.
+ * @param {string} [ch] - A character, or nothing past the line edge.
+ * @returns {boolean} True for an identifier character.
+ */
+const isIdentChar = (ch) => typeof ch === 'string' && /[\p{L}\p{N}_]/u.test(ch);
+
+/**
+ * Words that end the operand of a `not`, when written after whitespace:
+ * the logical operators it binds tighter than, and the keywords that close
+ * a condition (`もし … ならば`, `… の間`).
+ */
+const NOT_OPERAND_END_RE = /^\s+(?:かつ|または|ならば|なら|の間)(?=\s|$)/;
+
+/**
+ * Find where the operand of a `not` that starts at `start` ends. Like
+ * Smalruby's `でない`, it runs up to the next `かつ` / `または`, `,`,
+ * assignment, closing bracket, comment or condition keyword at its own
+ * bracket depth, so `not a > 10` negates the whole comparison.
+ * @param {string} line - The line (`and` / `or` already converted).
+ * @param {number} start - Index of the first character of the operand.
+ * @returns {number} Index just past the operand (trailing spaces excluded).
+ */
+const notOperandEnd = (line, start) => {
+    let depth = 0;
+    let i = start;
+    while (i < line.length) {
+        const ch = line[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(line, i, ch);
+            continue;
+        }
+        if (ch === '(' || ch === '[' || ch === '{') depth++;
+        if (ch === ')' || ch === ']' || ch === '}') {
+            if (depth === 0) break;
+            depth--;
+        }
+        if (depth === 0) {
+            if (ch === ',' || ch === '#' || ch === '←') break;
+            if (ch === '=' && !'=<>!'.includes(line[i - 1]) && line[i + 1] !== '=') break;
+            if (NOT_OPERAND_END_RE.test(line.substring(i))) break;
+        }
+        i++;
+    }
+    while (i > start && /\s/.test(line[i - 1])) i--;
+    return i;
+};
+
+/**
+ * Turn the DNCLv2 (Python-style) prefix `not X` into Smalruby DNCL's
+ * postfix `X でない`. Both have the same precedence — weaker than a
+ * comparison, stronger than `かつ` / `または` — so `not a > 10` becomes
+ * `a > 10 でない` (`!(a > 10)`) and `not a かつ b` becomes `a でない かつ b`.
+ * `not` inside a string or as part of an identifier (`nothing`, `knot`) is
+ * left alone, and so is a comment. Runs after `normalizeAndOr`.
+ * @param {string} line - The line to transform.
+ * @returns {string} The line with every `not X` turned into `X でない`.
+ */
+const normalizeNot = (line) => {
+    let result = '';
+    let i = 0;
+    while (i < line.length) {
+        const ch = line[i];
+        if (ch === '"' || ch === "'") {
+            const end = skipString(line, i, ch);
+            result += line.substring(i, end);
+            i = end;
+            continue;
+        }
+        // Comments are kept as written.
+        if (ch === '#') return result + line.substring(i);
+        if (line.startsWith('not', i) && !isIdentChar(line[i - 1]) && !isIdentChar(line[i + 3])) {
+            let start = i + 3;
+            while (start < line.length && /\s/.test(line[start])) start++;
+            const end = notOperandEnd(line, start);
+            if (end > start) {
+                result += `${normalizeNot(line.substring(start, end))} でない`;
+                i = end;
+                continue;
+            }
+        }
+        result += ch;
+        i++;
+    }
+    return result;
+};
+
+/**
  * Process the leading indent zone of `body` to expand `｜` / `⎿`
  * markers. Each marker (with its surrounding whitespace) becomes 2
  * spaces of indent, so 1 marker = 1 indent level (= 2 spaces of Ruby
@@ -473,6 +562,7 @@ const preprocessLine = (line) => {
     out = normalizeConditionSpacing(out);
     out = normalizeFunctionDefOpener(out);
     out = normalizeAndOr(out);
+    out = normalizeNot(out);
     out = splitMultiAssignment(out);
     return out;
 };
