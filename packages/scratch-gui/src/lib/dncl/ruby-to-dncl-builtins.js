@@ -192,13 +192,104 @@ const replaceStandalonePCall = (text) => {
     return result;
 };
 
+/** DNCL built-ins written as a method with no arguments in Ruby. */
+const POSTFIX_METHODS = {
+    to_i: '整数',
+    to_s: '文字列',
+    round: '四捨五入',
+    floor: '切り捨て',
+    ceil: '切り上げ',
+    abs: '絶対値',
+    length: '要素数',
+};
+
+const POSTFIX_METHOD_RE = new RegExp(`^\\.(${Object.keys(POSTFIX_METHODS).join('|')})(?![${ID}?!])`);
+const ID_CHAR_RE = new RegExp(`[${ID}]`);
+
+/**
+ * Map the position of each `)` / `]` in `text` (outside strings) to the
+ * position of its opening bracket.
+ * @param {string} text - The text to scan.
+ * @returns {Map<number, number>} Close position → open position.
+ */
+const bracketOpenings = (text) => {
+    const openings = new Map();
+    const stack = [];
+    let i = 0;
+    while (i < text.length) {
+        const ch = text[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(text, i, ch);
+            continue;
+        }
+        if (ch === '(' || ch === '[') stack.push(i);
+        else if ((ch === ')' || ch === ']') && stack.length > 0) openings.set(i, stack.pop());
+        i++;
+    }
+    return openings;
+};
+
+/**
+ * Convert `receiver.to_i` / `.to_s` / `.round` / `.floor` / `.ceil` / `.abs` /
+ * `.length` to `整数(receiver)` etc. The receiver is the operand right before
+ * the method: a name, a number, a call like `rand(1..10)`, an index like
+ * `Data[1]`, or a `( ... )` group, whose parentheses are dropped as they are
+ * only there for the method (`(a + 1).to_i` → `整数(a + 1)`). DNCL → Ruby
+ * puts them back (`toReceiver` in dncl-builtins.js). A string literal
+ * receiver (`"x".to_s`) is left as it is. (Issue #1686)
+ * @param {string} text - Ruby-form text (identifiers already converted).
+ * @returns {string} Text with the methods converted to DNCL built-ins.
+ */
+const replacePostfixMethods = (text) => {
+    let s = text;
+    let i = 0;
+    while (i < s.length) {
+        const ch = s[i];
+        if (ch === '"' || ch === "'") {
+            i = skipString(s, i, ch);
+            continue;
+        }
+        const match = ch === '.' ? s.substring(i).match(POSTFIX_METHOD_RE) : null;
+        if (!match) {
+            i++;
+            continue;
+        }
+        const openings = bracketOpenings(s);
+        let j = i - 1;
+        while (j >= 0) {
+            const c = s[j];
+            if ((c === ')' || c === ']') && openings.has(j)) {
+                j = openings.get(j) - 1;
+            } else if (ID_CHAR_RE.test(c)) {
+                j--;
+            } else if (c === '.' && /\d/.test(s[j - 1] || '') && /\d/.test(s[j + 1] || '')) {
+                j--;
+            } else {
+                break;
+            }
+        }
+        const start = j + 1;
+        const end = i + match[0].length;
+        if (start === i) {
+            i = end;
+            continue;
+        }
+        const receiver = s.substring(start, i);
+        const arg = isWrappedInParens(receiver) ? receiver.slice(1, -1).trim() : receiver;
+        const replacement = `${POSTFIX_METHODS[match[1]]}(${arg})`;
+        s = s.substring(0, start) + replacement + s.substring(end);
+        i = start + replacement.length;
+    }
+    return s;
+};
+
 /**
  * Convert Ruby built-in method calls back to DNCL. Uses balanced-paren
  * matching for prefix-call forms so nested same-name calls work.
  *
- * Postfix-with-args forms (`.include?`) and postfix-no-args forms
- * (`.to_i`, `.length` etc.) still use regex because they have a different
- * shape. Same-name nesting on postfix calls is a known limitation.
+ * The postfix-with-args form (`.include?`) still uses a regex; same-name
+ * nesting on it is a known limitation. Postfix-no-args forms (`.to_i`,
+ * `.length` etc.) go through `replacePostfixMethods`.
  * @param {string} line - A line of code.
  * @returns {string} Line with DNCL functions.
  */
@@ -246,20 +337,12 @@ const convertBuiltins = (line) => {
     // `整数((a / b))` which obscures the original DNCL.
     result = stripIntegerDivisionToI(result);
 
-    // Postfix-no-args methods. expr is matched as a word identifier; nested
-    // calls like `rand(...).to_i` are not handled (known limitation).
-    result = result.replace(new RegExp(`([${ID}]+)\\.to_i`, 'g'), (_, expr) => `整数(${expr})`);
-    result = result.replace(new RegExp(`([${ID}]+)\\.to_s`, 'g'), (_, expr) => `文字列(${expr})`);
-    result = result.replace(new RegExp(`([${ID}]+)\\.round`, 'g'), (_, expr) => `四捨五入(${expr})`);
-    result = result.replace(new RegExp(`([${ID}]+)\\.floor`, 'g'), (_, expr) => `切り捨て(${expr})`);
-    result = result.replace(new RegExp(`([${ID}]+)\\.ceil`, 'g'), (_, expr) => `切り上げ(${expr})`);
-    result = result.replace(new RegExp(`([${ID}]+)\\.abs`, 'g'), (_, expr) => `絶対値(${expr})`);
+    // Postfix-no-args methods (`.to_i`, `.to_s`, `.round`, ...). The
+    // receiver may be a call, an index or a `( ... )` group (#1686).
+    result = replacePostfixMethods(result);
 
     // rand(n) → 乱数(n)
     result = replaceCall(result, 'rand', (n) => `乱数(${n})`);
-
-    // expr.length → 要素数(expr)
-    result = result.replace(new RegExp(`([${ID}]+)\\.length`, 'g'), (_, expr) => `要素数(${expr})`);
 
     return result;
 };

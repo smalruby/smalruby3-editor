@@ -5,6 +5,15 @@ import { convertBuiltins } from './ruby-to-dncl-builtins';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
 
 /**
+ * A Ruby expression of a control-flow line (condition, loop bound, return
+ * value) as DNCL, built-ins included: `@a.to_i > 3` → `整数(a) > 3`. The
+ * DNCL → Ruby side converts built-ins in these places too. (Issue #1686)
+ * @param {string} expr - The Ruby expression.
+ * @returns {string} The DNCL expression.
+ */
+const toDnclExpr = (expr) => convertBuiltins(processSegments(expr));
+
+/**
  * Whether a Ruby condition has `&&` / `||` / `and` / `or` outside brackets
  * and strings.
  * @param {string} condition - The Ruby condition.
@@ -37,7 +46,7 @@ const hasTopLevelLogical = (condition) => {
  * @returns {string} The DNCL condition.
  */
 const untilCondition = (condition) => {
-    const dncl = processSegments(condition);
+    const dncl = toDnclExpr(condition);
     return hasTopLevelLogical(condition) ? `(${dncl}) でない` : `${dncl} でない`;
 };
 
@@ -74,14 +83,14 @@ const convertLine = (line, blockStack) => {
     const ifMatch = trimmed.match(/^if\s+(.+)$/);
     if (ifMatch) {
         blockStack.push('if');
-        const condition = processSegments(ifMatch[1]);
+        const condition = toDnclExpr(ifMatch[1]);
         return `${indent}もし ${condition} ならば`;
     }
 
     // elsif condition → そうでなくもし condition ならば
     const elsifMatch = trimmed.match(/^elsif\s+(.+)$/);
     if (elsifMatch) {
-        const condition = processSegments(elsifMatch[1]);
+        const condition = toDnclExpr(elsifMatch[1]);
         return `${indent}そうでなくもし ${condition} ならば`;
     }
 
@@ -95,7 +104,7 @@ const convertLine = (line, blockStack) => {
     const whileMatch = trimmed.match(/^while\s+(.+?)(?:\s+do)?$/);
     if (whileMatch) {
         blockStack.push('loop');
-        const condition = processSegments(whileMatch[1]);
+        const condition = toDnclExpr(whileMatch[1]);
         return `${indent}${condition} の間`;
     }
 
@@ -117,7 +126,7 @@ const convertLine = (line, blockStack) => {
     const timesMatch = trimmed.match(/^(.+?)\.times\s+do$/);
     if (timesMatch) {
         blockStack.push('loop');
-        const count = processSegments(timesMatch[1]);
+        const count = toDnclExpr(timesMatch[1]);
         return `${indent}_ を 1 から ${count} まで 1 ずつ増やしながら`;
     }
 
@@ -128,9 +137,9 @@ const convertLine = (line, blockStack) => {
     if (forAscMatch) {
         blockStack.push('loop');
         const [, from, to, step, loopVar] = forAscMatch;
-        const fromDncl = processSegments(from);
-        const toDncl = processSegments(to);
-        const stepDncl = processSegments(step);
+        const fromDncl = toDnclExpr(from);
+        const toDncl = toDnclExpr(to);
+        const stepDncl = toDnclExpr(step);
         return `${indent}${loopVar} を ${fromDncl} から ${toDncl} まで ${stepDncl} ずつ増やしながら`;
     }
 
@@ -139,9 +148,9 @@ const convertLine = (line, blockStack) => {
     if (forDescMatch) {
         blockStack.push('loop');
         const [, from, to, step, loopVar] = forDescMatch;
-        const fromDncl = processSegments(from);
-        const toDncl = processSegments(to);
-        const stepDncl = processSegments(step);
+        const fromDncl = toDnclExpr(from);
+        const toDncl = toDnclExpr(to);
+        const stepDncl = toDnclExpr(step);
         return `${indent}${loopVar} を ${fromDncl} から ${toDncl} まで ${stepDncl} ずつ減らしながら`;
     }
 
@@ -162,7 +171,7 @@ const convertLine = (line, blockStack) => {
     // return expr → 返す expr
     const returnMatch = trimmed.match(/^return\s+(.+)$/);
     if (returnMatch) {
-        const expr = processSegments(returnMatch[1]);
+        const expr = toDnclExpr(returnMatch[1]);
         return `${indent}返す ${expr}`;
     }
 
@@ -212,11 +221,11 @@ const detectForLoopPattern = (pending, whileLine, whileIndent) => {
         varName: pending.varName,
         varRef: pending.varRef,
         from: pending.expr,
-        to: processSegments(whileMatch[3]),
+        to: toDnclExpr(whileMatch[3]),
         ascending,
         indent: whileIndent,
         headerIndex: -1, // will be set by caller
     };
 };
 
-export { convertLine, detectForLoopPattern };
+export { convertLine, detectForLoopPattern, toDnclExpr };

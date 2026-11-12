@@ -1,7 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (Ruby to DNCL reverse transpiler) ===
 import { isPostTestLoopLine, POST_TEST_LOOP_ERROR_ID, POST_TEST_LOOP_MESSAGE } from './dncl-validator';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
-import { convertLine, detectForLoopPattern } from './ruby-to-dncl-line-converter';
+import { convertLine, detectForLoopPattern, toDnclExpr } from './ruby-to-dncl-line-converter';
 
 /**
  * Transpile Ruby source code to DNCL.
@@ -50,7 +50,7 @@ const rubyToDncl = (source) => {
                         indent,
                         varName: processSegments(varRef),
                         varRef,
-                        expr: processSegments(exprRaw),
+                        expr: toDnclExpr(exprRaw),
                     },
                     nextTrimmed,
                     nextIndent,
