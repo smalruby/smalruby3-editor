@@ -20,6 +20,34 @@ const hasMarker = (comment, marker) => !!comment && comment.split(/[,\s]/).inclu
 export const isBeginLoopBody = (comment) => hasMarker(comment, '@ruby:begin_loop_body');
 
 /**
+ * The comment text of a block as it is kept, with the `@ruby`:begin_loop_body marker.
+ * @param {object} Generator - The RubyGenerator.
+ * @param {?object} block - The block.
+ * @returns {?string} The comment text, or null.
+ */
+const rawCommentText = (Generator, block) => {
+    const comment = block && Generator.cache_ && Generator.cache_.comments[block.id];
+    return comment ? comment.text : null;
+};
+
+/**
+ * A comment text without the `@ruby`:begin_loop_body marker. The marker is added after the markers
+ * the block has (e.g. `@ruby`:lvar:a:1), and the generators of the blocks read those markers as
+ * the whole comment, so they must not see it when the body before the loop is written (issue #1610).
+ * @param {?string} text - The comment text.
+ * @returns {?string} The text without the marker, or null if nothing is left.
+ */
+const withoutBeginLoopBody = (text) => {
+    if (!isBeginLoopBody(text)) {
+        return text;
+    }
+    const stripped = text
+        .replace(/,@ruby:begin_loop_body(?=$|[,\s])/g, '')
+        .replace(/(^|\s)@ruby:begin_loop_body(?:,|(?=$|\s))/g, '$1');
+    return stripped.trim() === '' ? null : stripped;
+};
+
+/**
  * Whether a comment marks the loop of `begin ... end while cond` (`@ruby`:syntax:begin_end).
  * @param {?string} comment - The comment text of the loop block.
  * @returns {boolean} True if it is the marker.
@@ -28,8 +56,9 @@ export const isBeginLoop = (comment) => hasMarker(comment, '@ruby:syntax:begin_e
 
 /**
  * A text that is the same for two blocks that make the same code: the opcode, the fields, the
- * mutation and the blocks in the inputs (and the blocks after them in a substack), without ids
- * and comments.
+ * mutation and the blocks in the inputs (and the blocks after them in a substack), without the ids
+ * of the blocks and comments. The ids of the variables / lists in the fields are kept: two variables
+ * can have the same name (e.g. a local variable of another method).
  * @param {object} Generator - The RubyGenerator.
  * @param {?object} block - The first block.
  * @returns {string} The text of the block and the blocks after it.
@@ -39,7 +68,7 @@ const chainSignature = (Generator, block) => {
     for (let b = block; b; b = Generator.getBlock(b.next)) {
         const fields = Object.keys(b.fields || {})
             .sort()
-            .map((name) => `${name}=${JSON.stringify(b.fields[name].value)}`);
+            .map((name) => `${name}=${JSON.stringify([b.fields[name].id, b.fields[name].value])}`);
         const mutation = b.mutation ? JSON.stringify(b.mutation, Object.keys(b.mutation).sort()) : '';
         const inputs = Object.keys(b.inputs || {})
             .sort()
@@ -92,7 +121,7 @@ export const beginLoopBodyOf = (Generator, loop) => {
     }
     const callsBefore = [];
     let b = previousBlock(Generator, loop);
-    while (b && callsBefore.length < calls.length && !isBeginLoopBody(Generator.getCommentText(b))) {
+    while (b && callsBefore.length < calls.length && !isBeginLoopBody(rawCommentText(Generator, b))) {
         callsBefore.unshift(b);
         b = previousBlock(Generator, b);
     }
@@ -100,12 +129,12 @@ export const beginLoopBodyOf = (Generator, loop) => {
         return null;
     }
     const copy = [];
-    while (b && copy.length < body.length && isBeginLoopBody(Generator.getCommentText(b))) {
+    while (b && copy.length < body.length && isBeginLoopBody(rawCommentText(Generator, b))) {
         copy.unshift(b);
         b = previousBlock(Generator, b);
     }
     // One block of the copy more (left by a change) makes it not the same.
-    if (copy.length !== body.length || (b && isBeginLoopBody(Generator.getCommentText(b)))) {
+    if (copy.length !== body.length || (b && isBeginLoopBody(rawCommentText(Generator, b)))) {
         return null;
     }
     const same = (xs, ys) =>
@@ -127,11 +156,11 @@ export const beginLoopBodyOf = (Generator, loop) => {
  */
 const isSkippedBeginLoopBody = (Generator, block) => {
     let b = block;
-    while (b && isBeginLoopBody(Generator.getCommentText(b))) {
+    while (b && isBeginLoopBody(rawCommentText(Generator, b))) {
         b = Generator.getBlock(b.next);
     }
     // Over the blocks that call the methods of the condition, to the loop.
-    while (b && b.opcode !== 'control_repeat_until' && !isBeginLoopBody(Generator.getCommentText(b))) {
+    while (b && b.opcode !== 'control_repeat_until' && !isBeginLoopBody(rawCommentText(Generator, b))) {
         b = Generator.getBlock(b.next);
     }
     const copy = b && b.opcode === 'control_repeat_until' ? beginLoopBodyOf(Generator, b) : null;
@@ -145,6 +174,10 @@ const isSkippedBeginLoopBody = (Generator, block) => {
  * @returns {object} The Generator instance.
  */
 export default function (Generator) {
+    Generator.getCommentText = function (block) {
+        return withoutBeginLoopBody(rawCommentText(this, block));
+    };
+
     Generator.scrub_ = function (block, code) {
         if (code === null) {
             return '';
@@ -157,7 +190,7 @@ export default function (Generator) {
         // The body of `begin ... end while cond` before the loop is written once, in the loop (issue #1610).
         if (
             !this.isConnectedValue(block) &&
-            isBeginLoopBody(this.getCommentText(block)) &&
+            isBeginLoopBody(rawCommentText(this, block)) &&
             isSkippedBeginLoopBody(this, block)
         ) {
             return this.blockToCode(this.getBlock(block.next));

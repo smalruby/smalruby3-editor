@@ -173,6 +173,47 @@ describe('Ruby Roundtrip: begin ... end while / until (issue #1610)', () => {
         expect(generate()).toBe('a = 0\nwhile a < 3\n  move(10)\nend');
     });
 
+    test.each([
+        ['a = a + 1'],
+        ['b = 1\n  a = a + b'],
+        ['x = bar(a)\n  a = a + 1'],
+        ['s = "x"\n  s += "y"\n  a += 1'],
+    ])('when a block is put before the loop, the body before it keeps its local variables: %s', async (body) => {
+        await expectRoundTrip(converter, target, `${BAR}\n\na = 0\nbegin\n  ${body}\nend while a < 3`);
+        const blocks = target.blocks._blocks;
+        const loop = Object.values(blocks).find((b) => b.opcode === 'control_repeat_until');
+        const before = blocks[loop.parent];
+        blocks.turn = {
+            id: 'turn',
+            opcode: 'motion_turnright',
+            inputs: {},
+            fields: {},
+            next: loop.id,
+            parent: before.id,
+            topLevel: false,
+            shadow: false,
+        };
+        before.next = 'turn';
+        loop.parent = 'turn';
+        const copy = body.replace(/\n {2}/g, '\n');
+        expect(generate()).toBe(`${BAR}\n\na = 0\n${copy}\nturn_right(0)\nwhile a < 3\n  ${body}\nend`);
+    });
+
+    test('when the variable of the body before the loop is changed to another one of the same name', async () => {
+        await expectRoundTrip(converter, target, '$v = 0\na = 0\nbegin\n  $v = 1\nend while a < 3');
+        target.createVariable('sprite-v', 'v', '');
+        const copy = topChain().find((b) => commentOf(b).includes('@ruby:begin_loop_body'));
+        target.blocks._blocks[copy.id].fields.VARIABLE.id = 'sprite-v';
+        expect(generate()).toBe('$v = 0\na = 0\n@v = 1\nwhile a < 3\n  $v = 1\nend');
+    });
+
+    test('a body that ends with return is an error', async () => {
+        const code = 'def self.foo\n  a = 0\n  begin\n    return 1\n  end while a < 3\nend';
+        expect(await converter.targetCodeToBlocks(target, code)).toBe(false);
+        expect(converter.errors).toHaveLength(1);
+        expect(converter.errors[0].text).toContain('end while a < 3');
+    });
+
     test('a condition that is only a variable', async () => {
         await expectRoundTrip(converter, target, '@x = true\nbegin\n  move(10)\nend while @x');
     });

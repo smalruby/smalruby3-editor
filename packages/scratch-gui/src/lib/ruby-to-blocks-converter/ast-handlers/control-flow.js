@@ -17,12 +17,13 @@ const BEGIN_LOOP_MARKER = '@ruby:syntax:begin_end';
 const messages = defineMessages({
     beginLoopBodyNeverEnds: {
         defaultMessage:
-            '"{ SOURCE }" cannot be made into blocks, because the commands between begin and end never ' +
-            'finish, so the condition is never checked.' +
+            '"{ SOURCE }" cannot be made into blocks, because the commands between begin and end end with ' +
+            'a command that nothing can follow (loop do ... end, return, stop and so on), so the condition ' +
+            'is never checked.' +
             '\nWrite the commands without begin ... end and the condition after end.',
         description:
-            'Error message when the body of begin ... end while / until never finishes ' +
-            '(e.g. begin loop do ... end end while x < 3)',
+            'Error message when the body of begin ... end while / until ends with a command that nothing ' +
+            'can follow (e.g. begin loop do ... end end while x < 3, or return in the body)',
         id: 'gui.smalruby3.rubyToBlocksConverter.beginLoopBodyNeverEnds',
     },
 });
