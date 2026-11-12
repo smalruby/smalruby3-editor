@@ -114,6 +114,38 @@ export default function (Generator) {
         return keysListName;
     };
 
+    /**
+     * The Ruby name of the hash that a list belongs to, or null when the list is not one of the
+     * two lists of a hash. `@h = {a: 1}` is held in `@_hash_h_keys_` and `@_hash_h_values_`, and
+     * `@h.keys` / `@h.length` read them: those names must not come back into the Ruby code
+     * (`say(@_hash_h_keys_.keys)`, issue #1652). A local hash names itself in the
+     * `@ruby:lvar` comment, which `getListName` already reads.
+     * @param {string} listName - The list name as `getListName` returns it.
+     * @returns {?string} The Ruby name of the hash (`@h`, `$h`, `h`), or null.
+     */
+    Generator.hashVariableOfList = function (listName) {
+        const match = String(listName).match(/^([$@]?)_hash_(.+)_(?:keys|values)_$/);
+        return match ? `${match[1]}${match[2]}` : null;
+    };
+
+    /**
+     * The receiver of a hash method on a list block: the hash for one of the lists of a hash
+     * (local or not), or null.
+     * @param {object} block - A block with a LIST field.
+     * @returns {?string} The Ruby name of the hash, or null.
+     */
+    Generator.hashVariableOfListBlock = function (block) {
+        const comment = Generator.getCommentText(block);
+        const lvarMatch = comment && comment.match(/@ruby:lvar:([^:,\s]+)/);
+        const listName = Generator.listName(Generator.getFieldId(block, 'LIST'));
+        const hash = Generator.hashVariableOfList(listName);
+        if (lvarMatch) {
+            // A local hash: its lists have the local's transformed name, not the `_hash_` one.
+            return /_hash_.+_(?:keys|values)_/.test(listName) ? lvarMatch[1] : null;
+        }
+        return hash;
+    };
+
     Generator.data_addtolist = function (block) {
         // === Smalruby: Start of bare literal suppression ===
         if (block._suppressOutput) {
@@ -389,18 +421,38 @@ export default function (Generator) {
     Generator.data_lengthoflist = function (block) {
         const list = getListName(block);
         const comment = Generator.getCommentText(block);
-        if (comment && comment.startsWith('@ruby:method:empty?:')) {
-            const index = comment.substring(20);
+        // `@h.length` / `@h.empty?` read the keys list of the hash. Only the blocks that the
+        // converter marked: a list that the user named `@_hash_x_keys_` keeps its own name.
+        const isHashLength = Boolean(comment) && comment.includes('@ruby:hash:length');
+        const receiver = (isHashLength && Generator.hashVariableOfListBlock(block)) || renderList(list);
+        // The marker may follow the `@ruby:lvar` of a local (`@ruby:lvar:a:1,@ruby:method:empty?:1`).
+        const emptyMatch = comment && comment.match(/@ruby:method:empty\?:(\d+)/);
+        if (emptyMatch) {
+            const index = emptyMatch[1];
             // Store the version-aware list expression so operator_equals renders
             // list("$a").empty? in v1 and $a.empty? in v2.
-            Generator.emptyCallCache_[index] = renderList(list);
+            Generator.emptyCallCache_[index] = receiver;
             return [`@ruby:method:empty?:${index}`, Generator.ORDER_FUNCTION_CALL];
         }
-        return [`${renderList(list)}.length`, Generator.ORDER_FUNCTION_CALL];
+        return [`${receiver}.length`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.data_listcontainsitem = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
+        const comment = Generator.getCommentText(block);
+        const keyMatch = comment && comment.match(/@ruby:hash:key\?(?::(sym|str))?/);
+        const hash = keyMatch && Generator.hashVariableOfListBlock(block);
+        if (hash) {
+            let key;
+            if (keyMatch[1] === 'sym') {
+                key = getTextInputValue(block, 'ITEM');
+            } else if (keyMatch[1] === 'str') {
+                key = Generator.quote_(getTextInputValue(block, 'ITEM'));
+            } else {
+                key = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || Generator.quote_('');
+            }
+            return [`${hash}.key?(${key})`, order];
+        }
         const item = Generator.valueToCode(block, 'ITEM', order) || '0';
         const list = getListName(block);
         return [`${renderList(list)}.include?(${Generator.nosToCode(item)})`, order];

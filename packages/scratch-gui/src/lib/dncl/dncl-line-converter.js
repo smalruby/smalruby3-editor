@@ -7,6 +7,7 @@ import {
     processSegments,
 } from './dncl-identifier-converter';
 import { DNCL_IDENT_PATTERN, enterFunctionScope, exitFunctionScope } from './dncl-state';
+import { isSingleOperand, isWrappedInParens } from './paren-utils';
 
 /**
  * Pre-compiled regex matching `関数 NAME(args)` in DNCL source. Built
@@ -142,6 +143,15 @@ const convertLine = (line) => {
         let condition = convertJapaneseStrings(convertArrow(whileMatch[1]));
         condition = convertBuiltinFunctions(condition);
         condition = processSegments(condition);
+        // `条件 でない の間` is how the "repeat until" block is written in
+        // DNCL, so a condition that is one negation becomes `until` again
+        // (not `while !(...)`, which the blocks read as "until not not").
+        // (Issue #1662)
+        const negated = condition.match(/^!(.+)$/);
+        if (negated && isSingleOperand(negated[1])) {
+            const inner = isWrappedInParens(negated[1]) ? negated[1].slice(1, -1).trim() : negated[1];
+            return `${indent}until ${inner}`;
+        }
         return `${indent}while ${condition}`;
     }
 

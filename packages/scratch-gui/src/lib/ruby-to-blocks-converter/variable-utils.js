@@ -82,14 +82,17 @@ const VariableUtils = {
             // Local variable - transform to pseudo-local
             varName = name;
             scope = 'local';
-            scopeIndex = this._getScopeIndex();
+            scopeIndex = this._localScopeIndex(varName);
 
             // Check if already exists in current scope
             const currentScope = this._getCurrentScope();
             if (currentScope && currentScope.localVars[varName]) {
                 const existingVar = currentScope.localVars[varName];
                 const sName = type === Variable.SCALAR_TYPE ? 'localVariables' : 'lists';
-                return this._context[sName][existingVar.transformedName];
+                // The scope knows the name, but maybe only as a variable: `a = []` in a method
+                // makes the variable first, then the list of the same name (issue #1630).
+                const existing = this._context[sName][existingVar.transformedName];
+                if (existing) return existing;
             }
         }
 
@@ -127,9 +130,9 @@ const VariableUtils = {
                 this._context[storeName][transformedName] = variable;
             }
 
-            // Track in current scope
+            // Track in current scope (the first entry stays: it tells an argument of the method)
             const currentScope = this._getCurrentScope();
-            if (currentScope) {
+            if (currentScope && !currentScope.localVars[varName]) {
                 currentScope.localVars[varName] = {
                     transformedName: transformedName,
                     variable: variable,
@@ -370,30 +373,67 @@ const VariableUtils = {
      * which the code is converted (issue #1613): `@a.length` in a method or an event before
      * `@a = "abc"`, `@a = gets`, or a number set last.
      * A name is used as a list when it is set to an array literal or a list-only method is called
-     * on it, and as a scalar when it is set to anything else (a hash literal is neither).
+     * on it, as a hash when it is set to a hash literal, and as a scalar when it is set to anything else.
      * The result is in `_context.variableUses`, keyed by the Ruby name (`@a`, `$a`, `a`).
+     *
+     * A local variable is also collected by where it is used (issue #1630), since `a` in one
+     * method, or in one block of the script (an event `when_flag_clicked do`), is not `a` in
+     * another. A method is a unit of its own. A block of the script (a call with `do ... end`
+     * outside any method or other block) is a unit too, but it sees the locals of the script
+     * outside the blocks (unit 0). The units are in `_context.localVariableUnits` (see
+     * `_variableUsesOf` and `_localScopeIndex`).
      * @param {object} root - The root prism node.
      */
     _collectVariableUses(root) {
         const uses = {};
-        const mark = (name, use) => {
+        // unit id -> Ruby name of a local -> use
+        const localUses = { 0: {} };
+        // unit id -> the unit whose locals it sees: itself for a method, 0 for a block of the script
+        const unitGroups = { 0: 0 };
+        const unitOfNode = new Map();
+        let nextUnit = 1;
+        const newUnit = (node, ownGroup) => {
+            const unit = nextUnit++;
+            unitGroups[unit] = ownGroup ? unit : 0;
+            localUses[unit] = {};
+            unitOfNode.set(node, unit);
+            return unit;
+        };
+        const mark = (name, use, unit) => {
             if (!name) return;
             const key = String(name);
-            if (!uses[key]) uses[key] = { list: false, scalar: false };
+            if (!uses[key]) uses[key] = { list: false, scalar: false, hash: false };
             uses[key][use] = true;
+            if (key[0] !== '$' && key[0] !== '@') {
+                if (!localUses[unit][key]) localUses[unit][key] = { list: false, scalar: false, hash: false };
+                localUses[unit][key][use] = true;
+            }
         };
-        const queue = [root];
+        const queue = [[root, 0]];
         while (queue.length > 0) {
-            const node = queue.pop();
+            const [node, outerUnit] = queue.pop();
             // Not `constructor.name`: the production build renames the classes.
             const nodeType = this._prismNodeType(node);
             if (!nodeType) continue;
+            let unit = outerUnit;
+            if (nodeType === 'DefNode') {
+                unit = newUnit(node, true);
+            } else if (
+                nodeType === 'CallNode' &&
+                outerUnit === 0 &&
+                node.block &&
+                this._prismNodeType(node.block) === 'BlockNode'
+            ) {
+                unit = newUnit(node, false);
+            }
             if (VARIABLE_WRITE_NODE_TYPES.has(nodeType)) {
                 const valueType = this._prismNodeType(node.value);
                 if (valueType === 'ArrayNode') {
-                    mark(node.name, 'list');
-                } else if (valueType !== 'HashNode') {
-                    mark(node.name, 'scalar');
+                    mark(node.name, 'list', unit);
+                } else if (valueType === 'HashNode') {
+                    mark(node.name, 'hash', unit);
+                } else {
+                    mark(node.name, 'scalar', unit);
                 }
             } else if (
                 nodeType === 'CallNode' &&
@@ -404,14 +444,107 @@ const VariableUtils = {
                 const keyType = args.length > 0 ? this._prismNodeType(args[0]) : null;
                 // `@a[:key] = 1` and `@a["key"] = 1` are a hash.
                 if (!(node.name === '[]=' && (keyType === 'SymbolNode' || keyType === 'StringNode'))) {
-                    mark(node.receiver.name, 'list');
+                    mark(node.receiver.name, 'list', unit);
                 }
             }
             if (typeof node.compactChildNodes === 'function') {
-                node.compactChildNodes().forEach((child) => queue.push(child));
+                node.compactChildNodes().forEach((child) => queue.push([child, unit]));
             }
         }
+
+        // A local that the script outside the blocks does not use, and that its blocks use as
+        // different things (a string in one event, a list in another), is a separate local in
+        // each block: it gets a scope index for each block (`_localScopeIndex`).
+        const kindOf = (use) => {
+            if (use.list) return 'list';
+            if (use.hash) return 'hash';
+            return 'scalar';
+        };
+        const kindsOfName = {};
+        Object.keys(localUses).forEach((unit) => {
+            if (Number(unit) === 0 || unitGroups[unit] !== 0) return;
+            Object.keys(localUses[unit]).forEach((name) => {
+                if (!kindsOfName[name]) kindsOfName[name] = new Set();
+                kindsOfName[name].add(kindOf(localUses[unit][name]));
+            });
+        });
+        const splitNames = new Set(
+            Object.keys(kindsOfName).filter((name) => kindsOfName[name].size > 1 && !localUses[0][name]),
+        );
+
         this._context.variableUses = uses;
+        this._context.localVariableUnits = { unitOfNode, localUses, unitGroups, splitNames, scopeIndexes: {} };
+        this._context.currentLocalUnit = 0;
+    },
+
+    /**
+     * Enter the unit of local variables (see `_collectVariableUses`) that a node starts.
+     * @param {object} node - The prism node being converted.
+     * @returns {?number} The unit to go back to after the node, or null when the node starts none.
+     */
+    _enterLocalUnit(node) {
+        const units = this._context.localVariableUnits;
+        if (!units || !units.unitOfNode.has(node)) return null;
+        const previous = this._context.currentLocalUnit || 0;
+        this._context.currentLocalUnit = units.unitOfNode.get(node);
+        return previous;
+    },
+
+    /**
+     * The scope index of a local variable being made (the `1` of `_a_1_`). A method has its own
+     * (`_enterScope`). In the script, a local that blocks use as different things gets one for
+     * each block (issue #1630); any other local of the script is `1`, shared by its blocks.
+     * @param {string} varName - The Ruby name of the local.
+     * @returns {number} The scope index.
+     */
+    _localScopeIndex(varName) {
+        const scopeIndex = this._getScopeIndex();
+        const units = this._context.localVariableUnits;
+        const unit = this._context.currentLocalUnit || 0;
+        if (
+            this._context.scopeStack.length > 0 ||
+            !units ||
+            unit === 0 ||
+            units.unitGroups[unit] !== 0 ||
+            !units.splitNames.has(varName)
+        ) {
+            return scopeIndex;
+        }
+        if (!units.scopeIndexes[unit]) {
+            this._context.scopeCounter++;
+            units.scopeIndexes[unit] = this._context.scopeCounter;
+        }
+        return units.scopeIndexes[unit];
+    },
+
+    /**
+     * How the code uses a variable (see `_collectVariableUses`). For a local, only the uses where
+     * it is the same variable: in its method, or in the script and its blocks (only in its block
+     * when the blocks use the name as different things).
+     * @param {object} variable - The variable (or list) in the converter's stores.
+     * @returns {?object} `{list, scalar, hash}`, or null when the code does not set the name.
+     */
+    _variableUsesOf(variable) {
+        if (!variable || !this._context.variableUses) return null;
+        if (variable.scope === 'global') return this._context.variableUses[`$${variable.name}`] || null;
+        if (variable.scope === 'instance') return this._context.variableUses[`@${variable.name}`] || null;
+        const name = variable.originalName || variable.name;
+        const units = this._context.localVariableUnits;
+        if (!units) return this._context.variableUses[name] || null;
+        const unit = this._context.currentLocalUnit || 0;
+        if (units.unitGroups[unit] !== 0 || (unit !== 0 && units.splitNames.has(name))) {
+            return units.localUses[unit][name] || null;
+        }
+        let found = null;
+        Object.keys(units.localUses).forEach((u) => {
+            const use = units.unitGroups[u] === 0 && units.localUses[u][name];
+            if (!use) return;
+            if (!found) found = { list: false, scalar: false, hash: false };
+            ['list', 'scalar', 'hash'].forEach((kind) => {
+                found[kind] = found[kind] || use[kind];
+            });
+        });
+        return found;
     },
 
     /**
@@ -420,14 +553,8 @@ const VariableUtils = {
      * @returns {boolean} true if the code sets the name to a scalar and never uses it as a list.
      */
     _isUsedOnlyAsScalar(variable) {
-        if (!variable || variable.isArgument || !this._context.variableUses) return false;
-        let rubyName = variable.originalName || variable.name;
-        if (variable.scope === 'global') {
-            rubyName = `$${variable.name}`;
-        } else if (variable.scope === 'instance') {
-            rubyName = `@${variable.name}`;
-        }
-        const use = this._context.variableUses[rubyName];
+        if (!variable || variable.isArgument) return false;
+        const use = this._variableUsesOf(variable);
         return Boolean(use) && use.scalar && !use.list;
     },
 

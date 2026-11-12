@@ -162,6 +162,12 @@ describe('rubyToDncl', () => {
         test('until loop converts to でない の間', () => {
             expect(convert('until @a > 10\n  @a = @a + 1\nend')).toBe('a > 10 でない の間\n  a = a + 1\nを繰り返す');
         });
+
+        // The generator writes an empty "repeat until" as `until x do` / `end` (issue #1655).
+        test('the do of an empty until / while is dropped', () => {
+            expect(convert('until @a > 10 do\nend')).toBe('a > 10 でない の間\nを繰り返す');
+            expect(convert('while @a > 10 do\nend')).toBe('a > 10 の間\nを繰り返す');
+        });
     });
 
     describe('control flow: N.times', () => {
