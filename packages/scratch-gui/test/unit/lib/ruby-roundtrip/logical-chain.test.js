@@ -67,6 +67,9 @@ describe('Ruby Roundtrip: a chain of && / || (issue #1634)', () => {
         'if !(a > 0 || a < 3 || a > 1)\n  move(10)\nend',
         'if a + 1 > 0 && a * 2 < 3 && a - 1 >= 1\n  move(10)\nend',
         'if a >= 0 && a <= 3 && a != 1\n  move(10)\nend',
+        'if !(a > 0) && a < 3 && !(a > 1 || a < 0)\n  move(10)\nend',
+        'say("x" + "y" + "z" == "xyz" && a > 0 && a < 3)',
+        'say((a > 0 && a < 3) == (a > 1 || a < 5))',
         // A variable alone as a condition (issue #1611).
         'while @x && @y && a < 3\n  move(10)\nend',
         'while @x || @y || @z\n  move(10)\nend',
@@ -81,6 +84,11 @@ describe('Ruby Roundtrip: a chain of && / || (issue #1634)', () => {
         ['while (a > 0 && a < 3) && a > 1', 'while a > 0 && a < 3 && a > 1'],
         ['while ((a > 0 || a < 3) || a > 1) || a == 2', 'while a > 0 || a < 3 || a > 1 || a == 2'],
         ['while (a > 0 && a < 3) || a > 1', 'while a > 0 && a < 3 || a > 1'],
+        // The keywords `and` / `or` / `not` become the same blocks as `&&` / `||` / `!`.
+        ['while a > 0 and a < 3 and a > 1', 'while a > 0 && a < 3 && a > 1'],
+        ['while (a > 0 or a < 3) and a > 1', 'while (a > 0 || a < 3) && a > 1'],
+        // `not` binds looser than `&&`: `not (x) && y` is `not ((x) && y)`.
+        ['while not (a > 0 && a < 3) && a > 1', 'while !(a > 0 && a < 3 && a > 1)'],
     ])('`%s` comes back without the parentheses on the left', async (code, expected) => {
         await expectRoundTrip(
             converter,
