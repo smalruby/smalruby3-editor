@@ -21,7 +21,8 @@
  *
  * or from a statement that cannot be placed in a block body (#1544), which is now an error:
  * - an event (hat) inside `do ... end` / `if` / `def`: it and its body were lost;
- * - a value written as a line by itself (`x`, `1 + 2`) after another statement in a block body.
+ * - a value written as a line by itself (`x`, `1 + 2`) after another statement in a block body;
+ * - a method definition (`def`) in a block body or a method body, on any line (#1554).
  */
 import dedent from 'dedent';
 
@@ -518,17 +519,120 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
             expect(findOrphans(target.blocks._blocks, target.comments)).toEqual([]);
         });
 
-        test('a method defined in a loop is still a script of its own', async () => {
-            const { converter, target, ruby } = await convert(dedent`
-                loop do
-                  move(10)
-                  def g
+        // A method definition in a block body is an error on any line (#1554): it used to be an error
+        // on the first line but a script of its own on the second or a later line.
+        const defInsideBlock = /^"def my_proc" defines a method, so it cannot be written inside a block/;
+        test.each([
+            [
+                'on the first line of an event',
+                'when_flag_clicked do\n  def my_proc\n    move(1)\n  end\nend',
+                1,
+            ],
+            [
+                'after a statement in an event',
+                'when_flag_clicked do\n  move(10)\n  def my_proc\n    move(1)\n  end\nend',
+                2,
+            ],
+            ['on the first line of a loop', 'loop do\n  def my_proc\n  end\n  move(10)\nend', 1],
+            ['after a statement in a loop', 'loop do\n  move(10)\n  def my_proc\n  end\nend', 2],
+            ['in an if', 'if x > 1\n  move(10)\n  def my_proc\n  end\nend', 2],
+            ['in an else', 'if x > 1\n  move(10)\nelse\n  def my_proc\n  end\nend', 3],
+            ['in a method', 'def foo\n  move(10)\n  def my_proc\n  end\nend', 2],
+            ['as the last line of a method', 'def foo\n  def my_proc\n  end\nend', 1],
+            [
+                'in an event of a class',
+                dedent`
+                    class Sprite1
+                      when_flag_clicked do
+                        move(10)
+                        def my_proc
+                        end
+                      end
+                    end
+                `,
+                3,
+            ],
+            [
+                'in a method of a class',
+                dedent`
+                    class Sprite1
+                      def foo
+                        move(10)
+                        def my_proc
+                        end
+                      end
+                    end
+                `,
+                3,
+            ],
+            [
+                'in a method of a module',
+                dedent`
+                    module Utils
+                      def foo
+                        move(10)
+                        def my_proc
+                        end
+                      end
+                    end
+
+                    class Sprite1
+                      include Utils
+                    end
+                `,
+                3,
+            ],
+        ])('a method definition %s is an error', async (_name, code, row) => {
+            const { converter, result } = await convertWithErrors(code);
+            expect(result).toBe(false);
+            expect(converter.errors).toHaveLength(1);
+            expect(converter.errors[0].row).toBe(row);
+            expect(converter.errors[0].text).toMatch(defInsideBlock);
+            expect(converter.errors[0].text).toMatch(
+                /Move the whole method, from "def my_proc" to its "end", out of the block or the method\.$/,
+            );
+        });
+
+        test('methods, initialize and events directly in a class are still converted', async () => {
+            const code = dedent`
+                class Sprite1
+                  def initialize
+                    @score = 0
+                  end
+
+                  def my_proc
+                    move(1)
+                  end
+
+                  when_flag_clicked do
+                    my_proc
                   end
                 end
-            `);
-            expect(ruby).toBe('def g\nend\n\nloop do\n  move(10)\nend');
-            expect(findOrphans(converter._context.blocks, converter._context.comments)).toEqual([]);
-            expect(findOrphans(target.blocks._blocks, target.comments)).toEqual([]);
+            `;
+            const { converter, result } = await convertWithErrors(code);
+            expect(converter.errors).toEqual([]);
+            expect(result).toBe(true);
+        });
+
+        test('methods directly in a module are still converted', async () => {
+            const code = dedent`
+                module Utils
+                  def my_proc
+                    move(1)
+                  end
+                end
+
+                class Sprite1
+                  include Utils
+
+                  when_flag_clicked do
+                    my_proc
+                  end
+                end
+            `;
+            const { converter, result } = await convertWithErrors(code);
+            expect(converter.errors).toEqual([]);
+            expect(result).toBe(true);
         });
     });
 
