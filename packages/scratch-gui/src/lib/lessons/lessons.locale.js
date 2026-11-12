@@ -91,7 +91,7 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-ask-answer.step4':
         '「聞いて待つ」の上に「タイマーをリセット」を入れよう。タイマーは 0 から数えはじめるよ。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step5':
-        '緑の「演算」の「と」で、丸い「タイマー」と「秒でした」をつないで、もう 1 つの「言う」に入れよう。',
+        '「言う」をもう 1 つつなげて、緑の「演算」の「と」で、丸い「タイマー」と「秒でした」をつないで入れよう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step6': 'ネコを押して、下に出る入力らんに名前を書いて ✓ を押そう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.debug1':
         '「答え」という文字を言ってしまうときは、文字を書いたのではなく、丸い「答え」のブロックを入れたか見よう。',
@@ -102,7 +102,7 @@ export const ja = {
         'ネコを押したら「4＋3＝？」と聞いて、\n7 なら「正解です」、ちがえば「ちがいます」と言うようにしよう',
     'gui.lessons.challenge.blocks-l1-quiz.step1':
         '黄色い「イベント」の「このスプライトが押されたとき」をコードエリアへドラッグしよう。',
-    'gui.lessons.challenge.blocks-l1-quiz.step2': '「聞いて待つ」で問題を出そう。',
+    'gui.lessons.challenge.blocks-l1-quiz.step2': '「聞いて待つ」をつなげて、問題を出そう。',
     'gui.lessons.challenge.blocks-l1-quiz.step3':
         'オレンジの「制御」の「もし〜なら でなければ」をつなげて、上と下に「言う」を入れよう。上は「正解です」、下は「ちがいます」にしよう。',
     'gui.lessons.challenge.blocks-l1-quiz.step4': '緑の「演算」の「=」を、「もし」の穴に入れよう。',
@@ -262,7 +262,7 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-ask-answer.step4':
         '「きいてまつ」のうえに「タイマーをリセット」をいれよう。タイマーは 0 からかぞえはじめるよ。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step5':
-        'みどりの「えんざん」の「と」で、まるい「タイマー」と「びょうでした」をつないで、もう 1 つの「いう」にいれよう。',
+        '「いう」をもう 1 つつなげて、みどりの「えんざん」の「と」で、まるい「タイマー」と「びょうでした」をつないでいれよう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.step6':
         'ネコをおして、したにでるにゅうりょくらんになまえをかいて ✓ をおそう。',
     'gui.lessons.challenge.blocks-l1-ask-answer.debug1':
@@ -274,7 +274,7 @@ export const jaHira = {
         'ネコをおしたら「4＋3＝？」ときいて、\n7 なら「せいかいです」、ちがえば「ちがいます」というようにしよう',
     'gui.lessons.challenge.blocks-l1-quiz.step1':
         'きいろい「イベント」の「このスプライトがおされたとき」をコードエリアへドラッグしよう。',
-    'gui.lessons.challenge.blocks-l1-quiz.step2': '「きいてまつ」でもんだいをだそう。',
+    'gui.lessons.challenge.blocks-l1-quiz.step2': '「きいてまつ」をつなげて、もんだいをだそう。',
     'gui.lessons.challenge.blocks-l1-quiz.step3':
         'オレンジの「せいぎょ」の「もし〜なら でなければ」をつなげて、うえとしたに「いう」をいれよう。うえは「せいかいです」、したは「ちがいます」にしよう。',
     'gui.lessons.challenge.blocks-l1-quiz.step4': 'みどりの「えんざん」の「=」を、「もし」のあなにいれよう。',
@@ -435,7 +435,7 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-ask-answer.step4':
         'Put "reset timer" above "ask and wait". The timer starts counting from 0.',
     'gui.lessons.challenge.blocks-l1-ask-answer.step5':
-        'Use "join" from the green "Operators" to join the round "timer" and " seconds", and put it into another "say".',
+        'Snap on another "say", and use "join" from the green "Operators" to join the round "timer" and " seconds" in it.',
     'gui.lessons.challenge.blocks-l1-ask-answer.step6':
         'Click the cat, type your name in the box that appears at the bottom, and click ✓.',
     'gui.lessons.challenge.blocks-l1-ask-answer.debug1':
@@ -447,7 +447,7 @@ export const en = {
         'Make the cat ask "4+3=?" when it is clicked,\nand say "Correct" for 7 and "Wrong" for anything else',
     'gui.lessons.challenge.blocks-l1-quiz.step1':
         'Drag "when this sprite clicked" from the yellow "Events" to the code area.',
-    'gui.lessons.challenge.blocks-l1-quiz.step2': 'Ask the question with "ask and wait".',
+    'gui.lessons.challenge.blocks-l1-quiz.step2': 'Snap on "ask and wait" to ask the question.',
     'gui.lessons.challenge.blocks-l1-quiz.step3':
         'Snap on "if ... then ... else" from the orange "Control" blocks, and put a "say" in the top and the bottom: "Correct" in the top, "Wrong" in the bottom.',
     'gui.lessons.challenge.blocks-l1-quiz.step4': 'Put the "=" from the green "Operators" into the hole of "if".',

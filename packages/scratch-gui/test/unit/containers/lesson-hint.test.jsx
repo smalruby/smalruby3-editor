@@ -269,11 +269,15 @@ describe('LessonHint container', () => {
         const hint = { ...keySoundLastPage().hint, index: 2, step, lastResort: false };
         renderContainer({ ...baseProps(), current, hint }, 'en');
         await flush();
-        expect(rubyToBlocksXml.mock.calls[0][2]).toBe('play_until_done("Meow")\n');
+        expect(rubyToBlocksXml.mock.calls[0][2]).toBe(
+            'when_key_pressed("space") do\n  play_until_done("Meow")\nend\n',
+        );
         rubyToBlocksXml.mockClear();
         renderContainer({ ...baseProps(), current, hint }, 'ja');
         await flush();
-        expect(rubyToBlocksXml.mock.calls[0][2]).toBe('play_until_done("ニャー")\n');
+        expect(rubyToBlocksXml.mock.calls[0][2]).toBe(
+            'when_key_pressed("space") do\n  play_until_done("ニャー")\nend\n',
+        );
     });
 
     test('a challenge with codeTarget "stage" selects the stage and inserts the code there', async () => {
