@@ -260,8 +260,9 @@ describe('lesson courses', () => {
             expect(hints(c)).toEqual([
                 ['palette', 'when_flag_clicked do\nend\n', false],
                 ['palette', 'when_flag_clicked do\n  loop do\n  end\nend\n', false],
-                ['palette', 'if false\nelse\nend\n', false],
-                ['palette', 'touching?("_mouse_")\n', false],
+                // 「ずっと」の中・「もし」の穴に入れた並び（#1582）
+                ['palette', 'loop do\n  if false\n  else\n  end\nend\n', false],
+                ['palette', 'if touching?("_mouse_")\nelse\nend\n', false],
                 [
                     'code-area',
                     'if touching?("_mouse_")\n  say("くすぐったい！")\nelse\n  say("さわってみて")\nend\n',
@@ -308,12 +309,13 @@ describe('lesson courses', () => {
             });
             expect(hints(c)).toEqual([
                 ['palette', 'when_clicked do\nend\n', false],
-                ['palette', 'ask("なまえは？")\n', false],
-                ['palette', 'say(answer, 2)\n', false],
+                // つなげる相手とつないだ並び（#1582）
+                ['palette', 'when_clicked do\n  ask("なまえは？")\nend\n', false],
+                ['palette', 'ask("なまえは？")\nsay(answer, 2)\n', false],
                 // 「聞いて待つ」の上に入れるので、その下に「聞いて待つ」をつないだ絵（#1580）
                 ['palette', 'timer.reset\nask("なまえは？")\n', false],
                 // 「と」1 つだけを描く（`.to_s` を付けると「(タイマー) と ()」が入れ子になる）
-                ['palette', 'say(timer.value + "秒でした", 2)\n', false],
+                ['palette', 'say(answer, 2)\nsay(timer.value + "秒でした", 2)\n', false],
                 ['stage', null, false],
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
@@ -321,7 +323,7 @@ describe('lesson courses', () => {
                 '水色の「調べる」の「聞いて待つ」をつなげよう。「なまえは？」と聞くよ。',
                 '「言う」をつなげて、白いところに、丸い「答え」のブロックを入れよう。',
                 '「聞いて待つ」の上に「タイマーをリセット」を入れよう。タイマーは 0 から数えはじめるよ。',
-                '緑の「演算」の「と」で、丸い「タイマー」と「秒でした」をつないで、もう 1 つの「言う」に入れよう。',
+                '「言う」をもう 1 つつなげて、緑の「演算」の「と」で、丸い「タイマー」と「秒でした」をつないで入れよう。',
                 'ネコを押して、下に出る入力らんに名前を書いて ✓ を押そう。',
             ]);
             expect(c.debug.map(jaText)).toEqual([
@@ -365,15 +367,20 @@ describe('lesson courses', () => {
             });
             expect(hints(c)).toEqual([
                 ['palette', 'when_clicked do\nend\n', false],
-                ['palette', 'ask("4+3=?")\n', false],
-                ['palette', 'if false\n  say("正解です", 2)\nelse\n  say("ちがいます", 2)\nend\n', false],
-                ['palette', '"" == 7\n', false],
+                // つなげる相手・入れる相手とつないだ並び（#1582）
+                ['palette', 'when_clicked do\n  ask("4+3=?")\nend\n', false],
+                [
+                    'palette',
+                    'ask("4+3=?")\nif false\n  say("正解です", 2)\nelse\n  say("ちがいます", 2)\nend\n',
+                    false,
+                ],
+                ['palette', 'if "" == 7\n  say("正解です", 2)\nelse\n  say("ちがいます", 2)\nend\n', false],
                 ['code-area', 'answer == 7\n', false],
                 ['stage', null, false],
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
                 '黄色い「イベント」の「このスプライトが押されたとき」をコードエリアへドラッグしよう。',
-                '「聞いて待つ」で問題を出そう。',
+                '「聞いて待つ」をつなげて、問題を出そう。',
                 'オレンジの「制御」の「もし〜なら でなければ」をつなげて、上と下に「言う」を入れよう。上は「正解です」、下は「ちがいます」にしよう。',
                 '緑の「演算」の「=」を、「もし」の穴に入れよう。',
                 '「=」の左に「答え」を入れよう。右は 7 のままでいいよ。',
@@ -593,8 +600,9 @@ describe('lesson courses', () => {
             expect(hints(c)).toEqual([
                 [SOUNDS_TAB, null, false],
                 [PALETTE, 'when_key_pressed("space") do\nend\n', true],
-                [PALETTE, 'play_until_done("ニャー")\n', true],
-                [CODE_AREA, 'play("Owl")\n', false],
+                // つなげる相手（その上のブロック）とつないだ並び（#1582）
+                [PALETTE, 'when_key_pressed("space") do\n  play_until_done("ニャー")\nend\n', true],
+                [CODE_AREA, 'play_until_done("ニャー")\nplay("Owl")\n', false],
                 [KEYBOARD, null, true],
             ]);
             expect(c.debug).toHaveLength(2);
@@ -621,7 +629,7 @@ describe('lesson courses', () => {
             expect(allowedOpcodes(c)).toEqual({ event: ['event_whenkeypressed'], motion: ['motion_changeyby'] });
             expect(hints(c)).toEqual([
                 [PALETTE, 'when_key_pressed("up arrow") do\nend\n', false],
-                [PALETTE, 'self.y += 10\n', false],
+                [PALETTE, 'when_key_pressed("up arrow") do\n  self.y += 10\nend\n', false],
                 [CODE_AREA, 'when_key_pressed("down arrow") do\n  self.y += -10\nend\n', false],
                 [STAGE, null, false],
             ]);
@@ -655,8 +663,8 @@ describe('lesson courses', () => {
             expect(hints(c)).toEqual([
                 [COSTUMES_TAB, null, false],
                 [PALETTE, 'when_clicked do\nend\n', true],
-                [PALETTE, 'say("こんにちは！", 2)\n', true],
-                [PALETTE, 'next_costume\n', false],
+                [PALETTE, 'when_clicked do\n  say("こんにちは！", 2)\nend\n', true],
+                [PALETTE, 'say("こんにちは！", 2)\nnext_costume\n', false],
                 [CODE_AREA, null, true],
                 [STAGE, null, true],
             ]);
@@ -687,9 +695,13 @@ describe('lesson courses', () => {
                 [SPRITE_LIST, null, false],
                 // 帽子のブロックを置く手順（#1564）
                 [PALETTE, 'when_key_pressed("1") do\nend\n', false],
-                [PALETTE, '3.times\n', false],
-                // 「繰り返す」の中に入れる 4 つを、入れる並びのまま描く
-                [CODE_AREA, 'switch_backdrop("Canyon")\nsleep(1)\nswitch_backdrop("Arctic")\nsleep(1)\n', false],
+                [PALETTE, 'when_key_pressed("1") do\n  3.times\nend\n', false],
+                // 「繰り返す」の中に入れる 4 つを、「繰り返す」に入れた並びのまま描く（#1582）
+                [
+                    CODE_AREA,
+                    '3.times do\n  switch_backdrop("Canyon")\n  sleep(1)\n  switch_backdrop("Arctic")\n  sleep(1)\nend\n',
+                    false,
+                ],
                 [KEYBOARD, null, false],
             ]);
             expect(c.debug).toHaveLength(2);
@@ -876,7 +888,10 @@ describe('lesson courses', () => {
             const c = challenge('blocks-l1-key-sound');
             expect(localizeCode(c.code, 'ja')).toContain('play_until_done("ニャー")');
             expect(localizeCode(c.code, 'en')).toContain('play_until_done("Meow")');
-            expect(localizeCode(c.steps[2].blocks, 'en')).toBe('play_until_done("Meow")\n');
+            expect(localizeCode(c.steps[2].blocks, 'en')).toBe(
+                'when_key_pressed("space") do\n  play_until_done("Meow")\nend\n',
+            );
+            expect(localizeCode(c.steps[3].blocks, 'en')).toBe('play_until_done("Meow")\nplay("Owl")\n');
         });
 
         test('the en code says the lines the en task and hints write', () => {
