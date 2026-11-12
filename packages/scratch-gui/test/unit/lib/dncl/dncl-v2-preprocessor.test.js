@@ -199,6 +199,18 @@ describe('DNCLv2 pre-processor: and / or / not are left alone in comments and na
         expect(dnclV2Preprocess("s = 'x or y' and 'not z'")).toBe("s = 'x or y' かつ 'not z'");
     });
 
+    test('# inside a 「」 string is not a comment', () => {
+        expect(dnclV2Preprocess('s = 「#」 and t or not u')).toBe('s = 「#」 かつ t または u でない');
+    });
+
+    test('and / or / not inside a 「」 string are left alone', () => {
+        expect(dnclV2Preprocess('s = 「x or y」 and 「not z」')).toBe('s = 「x or y」 かつ 「not z」');
+    });
+
+    test('an unclosed 「 is not a string', () => {
+        expect(dnclV2Preprocess('s = 「 and t')).toBe('s = 「 かつ t');
+    });
+
     test('or at the end of a Japanese name is part of the name (#1685)', () => {
         expect(dnclV2Preprocess('フラグor = 1')).toBe('フラグor = 1');
     });
@@ -247,6 +259,10 @@ describe('DNCLv2 and / or in comments and names → Ruby', () => {
 
     test('a comment keeps and / or (#1683)', () => {
         expect(toRuby('x = 1 # a and b or c')).toBe('@x = 1 # a and b or c');
+    });
+
+    test('a 「#」 string does not hide the and after it', () => {
+        expect(toRuby('x = 「#」 and b')).toBe('@x = "#" && @b');
     });
 });
 

@@ -304,6 +304,25 @@ const splitMultiAssignment = (line) => {
 };
 
 /**
+ * If a string literal starts at `line[i]`, return the index just past it;
+ * otherwise -1. Besides `"..."` / `'...'`, Smalruby DNCL writes strings as
+ * 「...」 (see `convertJapaneseStrings`), so a `#` or `and` inside 「」 is
+ * text, not a comment or an operator. An unclosed 「 is not a string.
+ * @param {string} line - The line.
+ * @param {number} i - Index to test.
+ * @returns {number} Index just past the literal, or -1.
+ */
+const literalEndAt = (line, i) => {
+    const ch = line[i];
+    if (ch === '"' || ch === "'") return skipString(line, i, ch);
+    if (ch === '「') {
+        const close = line.indexOf('」', i + 1);
+        if (close !== -1) return close + 1;
+    }
+    return -1;
+};
+
+/**
  * Whether `ch` can be part of an identifier (`knot`, `not_yet`, `notフラグ`).
  * DNCL names may use Japanese letters, so any Unicode letter or digit counts.
  * @param {string} [ch] - A character, or nothing past the line edge.
@@ -326,7 +345,8 @@ const isKeywordAt = (line, i, word) =>
 
 /**
  * Replace standalone `and` / `or` with `かつ` / `または`. Only matches
- * whole-word occurrences outside string literals and comments —
+ * whole-word occurrences outside string literals (`"..."`, `'...'`,
+ * 「...」) and comments —
  * `bandwidth`, `ordinary` and `フラグor` stay as-is, and so does
  * `# a and b` (Issues #1683 / #1685).
  * @param {string} line - The line to transform.
@@ -337,8 +357,8 @@ const normalizeAndOr = (line) => {
     let i = 0;
     while (i < line.length) {
         const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            const end = skipString(line, i, ch);
+        const end = literalEndAt(line, i);
+        if (end !== -1) {
             result += line.substring(i, end);
             i = end;
             continue;
@@ -382,8 +402,9 @@ const notOperandEnd = (line, start) => {
     let i = start;
     while (i < line.length) {
         const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            i = skipString(line, i, ch);
+        const end = literalEndAt(line, i);
+        if (end !== -1) {
+            i = end;
             continue;
         }
         if (ch === '(' || ch === '[' || ch === '{') depth++;
@@ -417,10 +438,10 @@ const normalizeNot = (line) => {
     let i = 0;
     while (i < line.length) {
         const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            const end = skipString(line, i, ch);
-            result += line.substring(i, end);
-            i = end;
+        const literalEnd = literalEndAt(line, i);
+        if (literalEnd !== -1) {
+            result += line.substring(i, literalEnd);
+            i = literalEnd;
             continue;
         }
         // Comments are kept as written.
