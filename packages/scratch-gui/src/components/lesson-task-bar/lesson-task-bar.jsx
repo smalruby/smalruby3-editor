@@ -1,5 +1,5 @@
 // レッスンモードでメニューバーの下に画面の幅いっぱいで出す課題バー（1 行）。
-// 「何個め / 全部で何個」・課題の 1 行・ヒント・ほかのチャレンジへ。見た目の高さは 40px に収め、
+// 「何個め / 全部で何個」・課題の 1 行・ヒント・ほかのチャレンジへ・レッスンをおえる。見た目の高さは 40px に収め、
 // 1300×600 の授業のパソコンでコードエリアを圧迫しない。
 // 課題の全文（チャレンジの定義の改行つき・画像があれば画像も）は、バーにマウスを乗せているあいだ
 // バーの下に大きめの字で出す（先生がプロジェクターに映して説明する場面のため。課題が短くても出す。
@@ -32,6 +32,13 @@ const messages = defineMessages({
         description: 'Button that ends the current challenge and opens the lessons library to choose another one',
         defaultMessage: 'Try another challenge',
     },
+    end: {
+        id: 'gui.lessonTaskBar.end',
+        description:
+            'Button at the right end of the lesson task bar that leaves the lesson and goes back to the usual ' +
+            'editor (the program stays, every block can be used again)',
+        defaultMessage: 'End lesson',
+    },
 });
 
 const FULL_TEXT_ID = 'lesson-task-bar-full-text';
@@ -53,6 +60,7 @@ const LessonTaskBar = ({
     hintAvailable,
     hintVisible,
     menuOpen,
+    onEnd,
     onHint,
     onOpenFullText,
     onQuit,
@@ -188,9 +196,24 @@ const LessonTaskBar = ({
                 >
                     {intl.formatMessage(messages.hint)}
                 </button>
-                <button type="button" className={styles.button} data-testid="lesson-task-bar-quit" onClick={onQuit}>
+                <button
+                    type="button"
+                    className={styles.buttonPrimary}
+                    data-testid="lesson-task-bar-quit"
+                    onClick={onQuit}
+                >
                     {intl.formatMessage(messages.another)}
                 </button>
+                {onEnd && (
+                    <button
+                        type="button"
+                        className={styles.buttonEnd}
+                        data-testid="lesson-task-bar-end"
+                        onClick={onEnd}
+                    >
+                        {intl.formatMessage(messages.end)}
+                    </button>
+                )}
             </div>
             {open && (
                 <div
@@ -232,6 +255,8 @@ LessonTaskBar.propTypes = {
     hintVisible: PropTypes.bool,
     // メニューバーのメニュー（ファイル・編集など）が開いているか（開いているあいだはホバーで全文を出さない）
     menuOpen: PropTypes.bool,
+    // レッスンをおえる（レッスンから出て、いつもの画面にもどる。レッスン表は開かない）。無ければボタンを出さない
+    onEnd: PropTypes.func,
     onHint: PropTypes.func.isRequired,
     // タップで全文のパネルを開くとき（ヒントの吹き出し・「できた！」を閉じる）
     onOpenFullText: PropTypes.func,

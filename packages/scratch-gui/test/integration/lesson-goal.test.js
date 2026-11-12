@@ -149,8 +149,9 @@ describe('Lesson goal monitor', () => {
             'the completed toast did not appear',
         );
         expect(await toast.isDisplayed()).toBe(true);
-        const challengeName = await driver.findElement({ css: '[data-testid="lesson-completed-toast-challenge"]' });
-        expect(await challengeName.getText()).toBe('Play a sound with a key');
+        expect(await toast.getAttribute('data-challenge-id')).toBe('blocks-l1-key-sound');
+        // チャレンジの名前は出さない（課題バーに出ている）
+        expect(await toast.getText()).not.toContain('Play a sound with a key');
 
         const saved = await driver.executeScript(
             `return JSON.parse(window.localStorage.getItem('smalruby:lessonProgress'));`,

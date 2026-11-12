@@ -72,7 +72,22 @@ describe('Lessons: "Next challenge" on the completed toast', () => {
         const next = await waitForTestId('lesson-completed-toast-next');
         expect(await next.getText()).toBe('Next challenge');
         expect(await next.getAttribute('data-action')).toBe('next');
-        expect(await driver.findElements({ css: byTestId('lesson-completed-toast-last') })).toHaveLength(0);
+        expect(await driver.findElements({ css: byTestId('lesson-completed-toast-detail') })).toHaveLength(0);
+        expect(await (await driver.findElement({ css: byTestId('lesson-completed-toast-title') })).getText()).toBe(
+            'You did it!',
+        );
+        // Lesson 1 has 4 challenges and only the first one is done
+        expect(
+            await (await driver.findElement({ css: byTestId('lesson-completed-toast-remaining') })).getText(),
+        ).toBe('3 more in this lesson');
+        const dots = await driver.executeScript(
+            `return Array.from(document.querySelectorAll('[data-testid="lesson-completed-toast-dot"]'))
+                .map((d) => d.dataset.completed + '/' + d.dataset.current);`,
+        );
+        expect(dots).toEqual(['true/true', 'false/false', 'false/false', 'false/false']);
+        expect(await (await driver.findElement({ css: byTestId('lesson-completed-toast-close') })).getText()).toBe(
+            'Keep looking',
+        );
 
         await clickByTestId('lesson-completed-toast-next');
         await waitForTestId('lessons-library', 'the lessons library did not open');
@@ -117,7 +132,7 @@ describe('Lessons: "Next challenge" on the completed toast', () => {
         const next = await waitForTestId('lesson-completed-toast-next');
         expect(await next.getText()).toBe('Next challenge');
         expect(await next.getAttribute('data-action')).toBe('next');
-        expect(await driver.findElements({ css: byTestId('lesson-completed-toast-last') })).toHaveLength(0);
+        expect(await driver.findElements({ css: byTestId('lesson-completed-toast-detail') })).toHaveLength(0);
 
         await clickByTestId('lesson-completed-toast-next');
         await waitForTestId('lessons-library', 'the lessons library did not open');
@@ -141,9 +156,12 @@ describe('Lessons: "Next challenge" on the completed toast', () => {
         await loadWithEmptyRecord();
         await completeLesson(LESSON1, SECOND);
 
-        const last = await waitForTestId('lesson-completed-toast-last');
-        expect(await last.getText()).toBe('You have done every challenge of this lesson.');
+        const title = await waitForTestId('lesson-completed-toast-title');
+        expect(await title.getText()).toBe('Lesson 1 complete!');
+        const detail = await driver.findElement({ css: byTestId('lesson-completed-toast-detail') });
+        expect(await detail.getText()).toBe(`You finished all ${LESSON1.length} challenges of "Let's Move".`);
         const next = await driver.findElement({ css: byTestId('lesson-completed-toast-next') });
+        expect(await next.getText()).toBe('Next lesson');
         expect(await next.getAttribute('data-action')).toBe('otherLessons');
 
         await clickByTestId('lesson-completed-toast-next');
@@ -161,7 +179,12 @@ describe('Lessons: "Next challenge" on the completed toast', () => {
         await loadWithEmptyRecord();
         await completeLesson(LESSON3, LESSON3[1]);
 
-        await waitForTestId('lesson-completed-toast-last');
+        // レッスン 1・2 はまだなので「これで全部です」とは言わず、レッスン名の行にする（ボタンはレッスン表へ）
+        const detail = await waitForTestId('lesson-completed-toast-detail');
+        expect(await detail.getText()).toBe('You finished all 4 challenges of "Remember and Tell".');
+        expect(await (await driver.findElement({ css: byTestId('lesson-completed-toast-title') })).getText()).toBe(
+            'Lesson 3 complete!',
+        );
         const next = await driver.findElement({ css: byTestId('lesson-completed-toast-next') });
         expect(await next.getText()).toBe('Go to the lessons');
         expect(await next.getAttribute('data-action')).toBe('library');

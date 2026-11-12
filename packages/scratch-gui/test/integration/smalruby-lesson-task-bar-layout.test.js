@@ -58,6 +58,7 @@ const barLayout = () =>
         const bar = document.querySelector('[data-testid="lesson-task-bar"]').getBoundingClientRect();
         const hint = document.querySelector('[data-testid="lesson-task-bar-hint"]').getBoundingClientRect();
         const quit = document.querySelector('[data-testid="lesson-task-bar-quit"]').getBoundingClientRect();
+        const end = document.querySelector('[data-testid="lesson-task-bar-end"]').getBoundingClientRect();
         const flag = document.querySelector('[class*="green-flag_green-flag_"]');
         const stop = document.querySelector('[class*="stop-all_stop-all_"]');
         const stageButtons = Array.from(document.querySelectorAll('[title^="Switch to"], [class*="stage-header_stage-button_"]'));
@@ -69,6 +70,8 @@ const barLayout = () =>
             hintRight: hint.right,
             quitLeft: quit.left,
             quitRight: quit.right,
+            endLeft: end.left,
+            endRight: end.right,
             flagTop: flag.getBoundingClientRect().top,
             flagUsable: hit(flag),
             stopUsable: hit(stop),
@@ -142,8 +145,9 @@ describe('Smalruby Lessons: task bar across the whole width and the compact spri
         // 画面の幅いっぱい
         expect(bar.barLeft).toBe(0);
         expect(Math.abs(bar.barRight - bar.innerWidth)).toBeLessThanOrEqual(1);
-        // ボタンは右端（ステージの列の上）
-        expect(bar.innerWidth - bar.quitRight).toBeLessThanOrEqual(24);
+        // ボタンは右端（ステージの列の上）。いちばん右が「レッスンをおえる」
+        expect(bar.innerWidth - bar.endRight).toBeLessThanOrEqual(24);
+        expect(bar.quitRight).toBeLessThanOrEqual(bar.endLeft);
         expect(bar.hintRight).toBeLessThanOrEqual(bar.quitLeft);
         expect(bar.quitLeft).toBeGreaterThan(bar.innerWidth - 400);
         // ステージの列はバーの下にあって、旗・止める・ステージの大きさのボタンが押せる

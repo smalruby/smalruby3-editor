@@ -91,7 +91,10 @@ const waitForCompletedToast = async () => {
         20000,
         'the completed toast did not appear',
     );
-    return textByTestId('lesson-completed-toast-challenge');
+    // チャレンジの名前は出さない（課題バーに出ている）ので、できたチャレンジは data-challenge-id で見る
+    return driver.executeScript(
+        `return document.querySelector('[data-testid="lesson-completed-toast"]').getAttribute('data-challenge-id');`,
+    );
 };
 
 const countCompletedToasts = async () =>
@@ -169,7 +172,7 @@ describe('Smalruby Lessons: lesson 1 challenges 5-8', () => {
 
         // ネコに重ねる →「くすぐったい！」も出たので「できた」
         await moveMouseOnStage(0, 0);
-        expect(await waitForCompletedToast()).toBe('If ...');
+        expect(await waitForCompletedToast()).toBe('blocks-l1-if');
         await driver.executeScript('window.smalruby.vm.stopAll();');
     });
 
@@ -195,7 +198,7 @@ describe('Smalruby Lessons: lesson 1 challenges 5-8', () => {
         await clickCat();
         await answerQuestion('たろう');
         // 答え（2 秒）→ 秒数（2 秒）を言ったら「できた」
-        expect(await waitForCompletedToast()).toBe('Ask and answer');
+        expect(await waitForCompletedToast()).toBe('blocks-l1-ask-answer');
         // 言った文字（スプライトの「聞いて待つ」は質問も吹き出しで言う）: 質問・名前・「<小数の秒数> seconds」。
         // UI は en なので、code も en の課題の文言（"What's your name?" / " seconds"）。秒数は四捨五入しない
         const says = await driver.executeScript('return window.__lessonSays;');
@@ -218,7 +221,7 @@ describe('Smalruby Lessons: lesson 1 challenges 5-8', () => {
 
         await clickCat();
         await answerQuestion('5');
-        expect(await waitForCompletedToast()).toBe('Make a quiz');
+        expect(await waitForCompletedToast()).toBe('blocks-l1-quiz');
     });
 
     test('8 数えよう: a variable made with "Make a Variable", the flag, and 3 clicks on the cat', async () => {
@@ -255,7 +258,7 @@ describe('Smalruby Lessons: lesson 1 challenges 5-8', () => {
         await driver.sleep(300);
         expect(await countCompletedToasts()).toBe(0);
         await clickCat();
-        expect(await waitForCompletedToast()).toBe('Count');
+        expect(await waitForCompletedToast()).toBe('blocks-l1-count');
         const count = await driver.executeScript(`
             const stage = window.smalruby.vm.runtime.getTargetForStage();
             return stage.lookupVariableByNameAndType('count', '').value;

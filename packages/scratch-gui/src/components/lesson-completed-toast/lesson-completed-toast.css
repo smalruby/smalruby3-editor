@@ -1,6 +1,14 @@
 @import '../../css/z-index.css';
 @import '../../css/colors.css';
 
+/* レッスンが全部できたときのお祝いのオレンジ（モックの色）。枠・丸・ボタンの地は明るいオレンジ。
+   字は WCAG AA（4.5:1）に届く色にする: 明るいオレンジの上の字は白（約 2:1 で読みにくい）ではなく濃い茶色
+   （約 6:1）、白地の上の字（タイトル・「もう少し見る」）は濃いオレンジ（約 4.7:1） */
+$celebrate: hsla(37, 91%, 55%, 1); /* #F5A623 */
+$celebrate-ink: hsla(31, 100%, 35%, 1); /* #B35C00 */
+$celebrate-on: hsla(34, 100%, 15%, 1); /* #4D2B00 */
+$celebrate-light: hsla(45, 100%, 98%, 1); /* #FFFDF6 */
+
 /* Non-blocking toast pinned to the top-center of the viewport, above the editor but
    below modals. Only the toast itself takes pointer events.
    top = menu bar (3rem) + lesson task bar (2.5rem, lesson-task-bar.css) + gap, so the
@@ -12,19 +20,31 @@
     transform: translateX(-50%);
     z-index: $z-index-card;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    max-width: min(92vw, 640px);
-    padding: 12px 12px 12px 16px;
+    align-items: flex-start;
+    gap: 14px;
+    width: max-content;
+    max-width: min(92vw, 560px);
+    padding: 14px 20px 16px 16px;
     background-color: rgba(255, 255, 255, 0.98);
-    border: 2px solid $motion-primary;
-    border-radius: 12px;
+    border: 3px solid $motion-primary;
+    border-radius: 14px;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
     color: $text-primary;
+    --accent: $motion-primary;
+    --accent-ink: $motion-primary;
+    --accent-on: $ui-white;
+}
+
+.lesson-done {
+    border-color: $celebrate;
+    background-color: $celebrate-light;
+    --accent: $celebrate;
+    --accent-ink: $celebrate-ink;
+    --accent-on: $celebrate-on;
 }
 
 .icon {
-    font-size: 28px;
+    font-size: 40px;
     line-height: 1;
     flex-shrink: 0;
 }
@@ -34,61 +54,87 @@
     min-width: 0;
 }
 
+/* 「できた！」と「レッスン n ぜんぶできた！」は同じ大きさ */
 .title {
+    font-size: 26px;
+    font-weight: bold;
+    line-height: 1.2;
+    color: var(--accent-ink);
+    overflow-wrap: anywhere;
+}
+
+.progress {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
-    gap: 8px;
-    font-size: 18px;
-    font-weight: bold;
-    color: $motion-primary;
-}
-
-.challengeName {
-    font-size: 14px;
-    font-weight: normal;
-    color: $text-primary;
-}
-
-.lastInLesson {
-    margin-top: 4px;
-    font-size: 13px;
-    font-weight: bold;
-}
-
-.actions {
+    align-items: center;
+    gap: 6px 12px;
     margin-top: 8px;
 }
 
-.next {
+.dots {
+    display: inline-flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background-color: $ui-white;
+    box-sizing: border-box;
+}
+
+.dot-completed {
+    background-color: var(--accent);
+}
+
+/* いまできたもの: 塗り＋外側の輪で強調 */
+.dot-current {
+    box-shadow:
+        0 0 0 2px $ui-white,
+        0 0 0 4px var(--accent);
+}
+
+.detail {
+    font-size: 15px;
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.next,
+.close {
     min-height: 44px;
     padding: 8px 20px;
-    border: none;
     border-radius: 22px;
-    background-color: $motion-primary;
-    color: $ui-white;
     font-size: 15px;
     font-weight: bold;
     cursor: pointer;
+    white-space: nowrap;
 }
 
-.next:hover {
-    opacity: 0.85;
+.next {
+    border: 2px solid var(--accent);
+    background-color: var(--accent);
+    color: var(--accent-on);
 }
 
+/* 「もう少し見る」: 白地に枠（次へ進むボタンより目立たせない） */
 .close {
-    background: none;
-    border: none;
-    color: $text-primary;
-    cursor: pointer;
-    font-size: 20px;
-    line-height: 1;
-    flex-shrink: 0;
-    padding: 4px 8px;
-    min-width: 44px;
-    min-height: 44px;
+    border: 2px solid var(--accent);
+    background-color: $ui-white;
+    color: var(--accent-ink);
 }
 
+.next:hover,
 .close:hover {
-    opacity: 0.7;
+    opacity: 0.85;
 }

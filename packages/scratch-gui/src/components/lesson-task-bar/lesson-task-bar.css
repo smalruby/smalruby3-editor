@@ -11,7 +11,7 @@
 /*
     1 行・40px 固定。メニューバーのすぐ下に画面の幅いっぱい（エディタの列とステージの列の両方の上）で出す。
     本体（gui.css の .body-wrapper-with-lesson-task-bar）はこの高さの分だけ縮む。
-    課題の文が残りの幅を取るので、「ヒント」「ほかのチャレンジへ」は右端に寄る。
+    課題の文が残りの幅を取るので、「ヒント」「ほかのチャレンジへ」「レッスンをおえる」は右端に寄る。
 */
 .bar {
     display: flex;
@@ -80,6 +80,23 @@
 .button:disabled {
     opacity: 0.5;
     cursor: default;
+}
+
+/* 「ほかのチャレンジへ」: 主な道なので白地で目立たせる */
+.button-primary {
+    composes: button;
+    background-color: $ui-white;
+    color: $motion-primary;
+}
+
+.button-primary:hover:not(:disabled) {
+    opacity: 0.85;
+}
+
+/* 「レッスンをおえる」: 右端。「ほかのチャレンジへ」より目立たせない（透明地に白い枠・字は細め） */
+.button-end {
+    composes: button;
+    font-weight: normal;
 }
 
 /*

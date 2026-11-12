@@ -14,9 +14,15 @@ jest.mock('../../../src/lib/lessons/courses.js', () => {
     });
     const lesson = {
         id: 'l',
+        name: { id: 'gui.lessons.lesson.l.name', defaultMessage: 'Move it' },
         challenges: [makeChallenge('test-challenge', 'Test challenge'), makeChallenge('last-challenge', 'Last')],
     };
-    const course = { id: 'c', language: 'blocks', lessons: [lesson] };
+    const course = {
+        id: 'c',
+        language: 'blocks',
+        name: { id: 'gui.lessons.course.c.name', defaultMessage: 'Starter course' },
+        lessons: [lesson],
+    };
     return {
         COURSES: [course],
         findChallenge: (id) => {
@@ -134,7 +140,11 @@ describe('LessonGoalWatcher', () => {
             justCompletedId: 'test-challenge',
             onDismiss,
         });
-        expect(getByTestId('lesson-completed-toast-challenge')).toHaveTextContent('Test challenge');
+        const toast = getByTestId('lesson-completed-toast');
+        expect(toast).toHaveAttribute('data-challenge-id', 'test-challenge');
+        // チャレンジの名前は出さない（課題バーに出ている）
+        expect(toast).not.toHaveTextContent('Test challenge');
+        expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('You did it!');
         fireEvent.click(getByTestId('lesson-completed-toast-close'));
         expect(onDismiss).toHaveBeenCalledTimes(1);
     });
@@ -163,8 +173,14 @@ describe('LessonGoalWatcher', () => {
             justCompletedId: 'last-challenge',
             progress: { version: 1, challenges: { 'last-challenge': doneRecord } },
         });
-        expect(queryByTestId('lesson-completed-toast-last')).not.toBeInTheDocument();
+        expect(queryByTestId('lesson-completed-toast-detail')).not.toBeInTheDocument();
         expect(getByTestId('lesson-completed-toast-next')).toHaveAttribute('data-action', 'next');
+        expect(getByTestId('lesson-completed-toast-remaining')).toHaveTextContent('1 more in this lesson');
+        const dots = getByTestId('lesson-completed-toast-dots').children;
+        expect(Array.from(dots).map((d) => [d.dataset.completed, d.dataset.current])).toEqual([
+            ['false', 'false'],
+            ['true', 'true'],
+        ]);
     });
 
     test('when every challenge of the lesson is done (no next lesson), points to the lessons library', () => {
@@ -174,7 +190,10 @@ describe('LessonGoalWatcher', () => {
             justCompletedId: 'test-challenge',
             progress: { version: 1, challenges: { 'test-challenge': doneRecord, 'last-challenge': doneRecord } },
         });
-        expect(getByTestId('lesson-completed-toast-last')).toBeInTheDocument();
+        expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('Lesson 1 complete!');
+        expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent(
+            'That was every lesson in "Starter course".',
+        );
         expect(getByTestId('lesson-completed-toast-next')).toHaveAttribute('data-action', 'library');
     });
 

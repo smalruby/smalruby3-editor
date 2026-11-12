@@ -109,7 +109,10 @@ const waitForCompleted = async () => {
         20000,
         'the completed toast did not appear',
     );
-    return textByTestId('lesson-completed-toast-challenge');
+    // チャレンジの名前は出さない（課題バーに出ている）ので、できたチャレンジは data-challenge-id で見る
+    return driver.executeScript(
+        `return document.querySelector('[data-testid="lesson-completed-toast"]').getAttribute('data-challenge-id');`,
+    );
 };
 
 // レッスン 3 の 4 つ。操作は insertCode の後
