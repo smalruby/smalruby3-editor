@@ -13,15 +13,21 @@ const StopOptions = ['all', 'this script', 'other scripts in sprite'];
 
 const WITH_SCREEN_REFRESH_COMMENT = '@ruby:method:with_screen_refresh';
 
-const addWithScreenRefreshComment = function (converter, block) {
+const WAIT_COMMENT = '@ruby:method:wait';
+
+const addMethodComment = function (converter, block, text) {
     if (block.comment) {
         const existingComment = converter._context.comments[block.comment];
-        if (existingComment && !existingComment.text.includes(WITH_SCREEN_REFRESH_COMMENT)) {
-            existingComment.text += `,${WITH_SCREEN_REFRESH_COMMENT}`;
+        if (existingComment && !existingComment.text.includes(text)) {
+            existingComment.text += `,${text}`;
         }
     } else {
-        block.comment = converter._createComment(WITH_SCREEN_REFRESH_COMMENT, block.id);
+        block.comment = converter._createComment(text, block.id);
     }
+};
+
+const addWithScreenRefreshComment = function (converter, block) {
+    addMethodComment(converter, block, WITH_SCREEN_REFRESH_COMMENT);
 };
 
 /**
@@ -119,9 +125,10 @@ const ControlConverter = {
         });
 
         // number.times { block } and variable.times { block } - control_repeat
+        // An empty body (rubyBlock is null) is an empty C block, as Scratch allows (issue #1649).
         converter.registerOnSendWithBlock('any', 'times', 0, 0, (params) => {
             const { receiver, rubyBlock } = params;
-            if (!rubyBlock || !converter._isNumberOrBlock(receiver)) return null;
+            if (typeof rubyBlock === 'undefined' || !converter._isNumberOrBlock(receiver)) return null;
 
             const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
             const block = createControlRepeatBlock(converter, receiver, cleanedRubyBlock);
@@ -134,7 +141,7 @@ const ControlConverter = {
         // number.times { |i| block } - smalrubyRuby_numberMethodWithBlock
         converter.registerOnSendWithBlock('any', 'times', 0, 1, (params) => {
             const { receiver, rubyBlockArgs, rubyBlock } = params;
-            if (!rubyBlock || !converter._isNumberOrBlock(receiver)) return null;
+            if (typeof rubyBlock === 'undefined' || !converter._isNumberOrBlock(receiver)) return null;
             if (!rubyBlockArgs || rubyBlockArgs.length !== 1) return null;
 
             const block = converter._createBlock('smalrubyRuby_numberMethodWithBlock', 'statement');
@@ -184,36 +191,33 @@ const ControlConverter = {
                     replaceParamVars(b.inputs.SUBSTACK.block);
                 }
             };
-            replaceParamVars(rubyBlock.id);
+            if (rubyBlock) replaceParamVars(rubyBlock.id);
 
             converter._addSubstack(block, rubyBlock);
             return block;
         });
 
         // number.times.with_screen_refresh { block } - control_repeat + comment
+        // An empty body (rubyBlock is null) keeps the loop's empty C block (issue #1649).
         converter.registerOnSendWithBlock('any', 'with_screen_refresh', 0, 0, (params) => {
             const { receiver, rubyBlock } = params;
-            if (!rubyBlock) return null;
+            if (typeof rubyBlock === 'undefined') return null;
 
-            // receiver should be the result of N.times or loop (an Enumerator-like call)
-            // Check if receiver is a control_repeat block (from N.times)
-            if (converter._isBlock(receiver) && receiver.opcode === 'control_repeat') {
-                // Replace the empty substack with our rubyBlock
-                const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
-                converter._addSubstack(receiver, cleanedRubyBlock);
-                addWithScreenRefreshComment(converter, receiver);
-                return receiver;
+            // receiver should be the result of N.times (control_repeat) or loop (control_forever)
+            if (
+                !converter._isBlock(receiver) ||
+                (receiver.opcode !== 'control_repeat' && receiver.opcode !== 'control_forever')
+            ) {
+                return null;
             }
 
-            // Check if receiver is a control_forever block (from loop)
-            if (converter._isBlock(receiver) && receiver.opcode === 'control_forever') {
-                const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
-                converter._addSubstack(receiver, cleanedRubyBlock);
-                addWithScreenRefreshComment(converter, receiver);
-                return receiver;
-            }
-
-            return null;
+            const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
+            const hadWait = converter._hadWaitInLastRemove;
+            converter._addSubstack(receiver, cleanedRubyBlock);
+            addWithScreenRefreshComment(converter, receiver);
+            // Keep `wait` too, as `N.times do wait end` does (the generator reads both marks)
+            if (hadWait) addMethodComment(converter, receiver, WAIT_COMMENT);
+            return receiver;
         });
 
         // when_start_as_a_clone { block } (sprite only)
@@ -276,11 +280,11 @@ const ControlConverter = {
                     converter._translator(messages.withScreenRefreshOutsideLoop),
                 );
             }
-            if (!rubyBlock) return null;
-
             // Mark that this came from with_screen_refresh so the parent until/while knows
             converter._hadWithScreenRefreshWrapper = true;
-            return rubyBlock;
+            // An empty body is what the generator writes for an empty "repeat until" in the saved form:
+            // nothing goes in the loop, and the mark keeps it a "repeat until" (issue #1649).
+            return rubyBlock || [];
         });
 
         converter.registerOnUntil((cond, statement) => {
@@ -291,7 +295,8 @@ const ControlConverter = {
             const hadWait = converter._hadWaitInLastRemove;
 
             let opcode;
-            if (statement === null) {
+            // An empty body is "wait until", unless `with_screen_refresh do end` marks an empty loop
+            if (statement === null && !hadWithScreenRefresh) {
                 opcode = 'control_wait_until';
             } else {
                 opcode = 'control_repeat_until';
