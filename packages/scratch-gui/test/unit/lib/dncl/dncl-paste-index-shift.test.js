@@ -79,7 +79,9 @@ describe('shiftArrayIndexes', () => {
     test('keeps array literals, strings and comments', () => {
         expect(shift('Nissu = [4, 1, 3]')).toBe('Nissu = [4, 1, 3]');
         expect(shift('Data = [[1, 2], [3, 4]]')).toBe('Data = [[1, 2], [3, 4]]');
-        expect(shift('表示する("A[1]", Akibi[1]) # Akibi[1] は最初')).toBe('表示する("A[1]", Akibi[0]) # Akibi[1] は最初');
+        expect(shift('表示する("A[1]", Akibi[1]) # Akibi[1] は最初')).toBe(
+            '表示する("A[1]", Akibi[0]) # Akibi[1] は最初',
+        );
         expect(shift('表示する(「A[1]」)')).toBe('表示する(「A[1]」)');
     });
 
@@ -161,7 +163,9 @@ describe('shiftArrayIndexes negative indexes', () => {
 describe('findOneBasedSuspects', () => {
     test('finds the 1-based lines of the 共通テスト sample', () => {
         const suspects = findOneBasedSuspects(shiftArrayIndexes(KOUGEIHIN).text);
-        expect(suspects.map(({ line, text, reasons, usedAsIndex }) => ({ line, text, reasons, usedAsIndex }))).toEqual([
+        expect(
+            suspects.map(({ line, text, reasons, usedAsIndex }) => ({ line, text, reasons, usedAsIndex })),
+        ).toEqual([
             {
                 line: 6,
                 text: 'kougeihin を 1 から kougeihinsu まで 1 ずつ増やしながら',
@@ -184,12 +188,16 @@ describe('findOneBasedSuspects', () => {
     });
 
     test('finds a loop up to 要素数(X)', () => {
-        const src = ['i を 0 から 要素数(Kouka) まで 1 ずつ増やしながら', '  表示する(Kouka[i])', 'を繰り返す'].join('\n');
+        const src = ['i を 0 から 要素数(Kouka) まで 1 ずつ増やしながら', '  表示する(Kouka[i])', 'を繰り返す'].join(
+            '\n',
+        );
         expect(findOneBasedSuspects(src)).toMatchObject([{ line: 1, reasons: ['loopToLength'] }]);
     });
 
     test('finds <= bounds of index variables', () => {
-        const src = ['i = 0', 'i <= 要素数(Kouka) の間', '  表示する(Kouka[i])', '  i = i + 1', 'を繰り返す'].join('\n');
+        const src = ['i = 0', 'i <= 要素数(Kouka) の間', '  表示する(Kouka[i])', '  i = i + 1', 'を繰り返す'].join(
+            '\n',
+        );
         expect(findOneBasedSuspects(src)).toMatchObject([{ line: 2, reasons: ['lessEqual'], usedAsIndex: true }]);
         expect(findOneBasedSuspects('もし a <= b ならば')).toEqual([]);
     });

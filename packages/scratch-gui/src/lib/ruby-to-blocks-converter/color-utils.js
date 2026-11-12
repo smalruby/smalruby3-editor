@@ -154,7 +154,7 @@ const CSS_NAMED_COLORS = {
     white: '#ffffff',
     whitesmoke: '#f5f5f5',
     yellow: '#ffff00',
-    yellowgreen: '#9acd32'
+    yellowgreen: '#9acd32',
 };
 
 const toHex2 = function (n) {
@@ -206,4 +206,4 @@ const normalizeColorString = function (value) {
     return null;
 };
 
-export {CSS_NAMED_COLORS, normalizeColorString};
+export { CSS_NAMED_COLORS, normalizeColorString };

@@ -1,10 +1,8 @@
-import { FormattedMessage, useIntl } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
-
-import ErrorDisplay from './error-display.jsx';
-
+import { FormattedMessage, useIntl } from 'react-intl';
 import styles from './classroom-modal.css';
+import ErrorDisplay from './error-display.jsx';
 
 /**
  * Normalize input for join code: full-width to half-width, then keep only [a-z0-9].
@@ -73,39 +71,23 @@ const StudentJoinForm = ({
         [code, onJoin],
     );
 
-    const handleHistorySelect = useCallback(
-        (e) => {
-            const selectedCode = e.target.value;
-            if (selectedCode) {
-                setCode(selectedCode);
-            }
-        },
-        [],
-    );
+    const handleHistorySelect = useCallback((e) => {
+        const selectedCode = e.target.value;
+        if (selectedCode) {
+            setCode(selectedCode);
+        }
+    }, []);
 
-    const hasHistory =
-        Array.isArray(joinCodeHistory) && joinCodeHistory.length > 0;
+    const hasHistory = Array.isArray(joinCodeHistory) && joinCodeHistory.length > 0;
 
     // Show selected state if current code matches a history entry
-    const historySelectValue =
-        hasHistory && joinCodeHistory.some((e) => e.joinCode === code)
-            ? code
-            : '';
+    const historySelectValue = hasHistory && joinCodeHistory.some((e) => e.joinCode === code) ? code : '';
 
     return (
         <div data-testid="classroom-phase-student-join">
             {!noBackButton && (
-                <button
-                    className={styles.backLink}
-                    data-testid="classroom-back"
-                    onClick={onBack}
-                >
-                    {'<'}{' '}
-                    <FormattedMessage
-                        defaultMessage="Back"
-                        description="Back button"
-                        id="gui.classroom.back"
-                    />
+                <button className={styles.backLink} data-testid="classroom-back" onClick={onBack}>
+                    {'<'} <FormattedMessage defaultMessage="Back" description="Back button" id="gui.classroom.back" />
                 </button>
             )}
             <div className={styles.phaseTitle}>
@@ -148,10 +130,7 @@ const StudentJoinForm = ({
                             })}
                         </option>
                         {joinCodeHistory.map((entry) => (
-                            <option
-                                key={entry.joinCode}
-                                value={entry.joinCode}
-                            >
+                            <option key={entry.joinCode} value={entry.joinCode}>
                                 {`${entry.className}${entry.assignmentName ? `/${entry.assignmentName}` : ''} ${entry.joinCode}`}
                             </option>
                         ))}

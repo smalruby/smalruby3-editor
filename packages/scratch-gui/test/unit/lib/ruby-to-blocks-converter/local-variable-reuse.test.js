@@ -1,6 +1,6 @@
-import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
+import Variable from '@smalruby/scratch-vm/src/engine/variable';
+import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 
 describe('RubyToBlocksConverter/Local Variable Reuse', () => {
     let converter;
@@ -24,12 +24,12 @@ describe('RubyToBlocksConverter/Local Variable Reuse', () => {
                     }
                 }
                 return null;
-            }
+            },
         };
 
         const runtime = {
             emitProjectChanged: () => {},
-            getTargetForStage: () => stage
+            getTargetForStage: () => stage,
         };
 
         target = {
@@ -78,7 +78,7 @@ describe('RubyToBlocksConverter/Local Variable Reuse', () => {
             },
             createComment: function (id, blockId, text, x, y, width, height, minimized) {
                 // Mock comment creation
-            }
+            },
         };
 
         vm = {
@@ -86,8 +86,8 @@ describe('RubyToBlocksConverter/Local Variable Reuse', () => {
             emitWorkspaceUpdate: () => {},
             extensionManager: {
                 isExtensionLoaded: () => true,
-                loadExtensionURL: () => Promise.resolve()
-            }
+                loadExtensionURL: () => Promise.resolve(),
+            },
         };
 
         converter = new RubyToBlocksConverter(vm);
@@ -116,10 +116,13 @@ describe('RubyToBlocksConverter/Local Variable Reuse', () => {
         // Before applying, verify the old variable still exists and log its name
         expect(target.variables[firstVarId]).toBeDefined();
         // eslint-disable-next-line no-console
-        console.log('Before second apply - variables:', Object.keys(target.variables).map(id => ({
-            id,
-            name: target.variables[id].name
-        })));
+        console.log(
+            'Before second apply - variables:',
+            Object.keys(target.variables).map((id) => ({
+                id,
+                name: target.variables[id].name,
+            })),
+        );
 
         // This should NOT throw an error about variable ID conflict
         await converter2.applyTargetBlocks(target);

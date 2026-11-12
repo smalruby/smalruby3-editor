@@ -31,17 +31,19 @@ const GenaiTroubleStep = ({ kinds, kindId, text, onKindChange, onTextChange, onM
                     <FormattedMessage {...messages.troubleQuestion} />
                 </p>
                 <div className={styles.chips}>
-                    {kinds.map((id) => PROBLEM_KINDS.find((k) => k.id === id)).map((k) => (
-                        <button
-                            key={k.id}
-                            className={k.id === kindId ? styles.chipOn : styles.chip}
-                            data-testid={`genai-kind-${k.id}`}
-                            data-kind={k.id}
-                            onClick={handleKindClick}
-                        >
-                            <FormattedMessage {...KIND_MESSAGES[k.id].label} />
-                        </button>
-                    ))}
+                    {kinds
+                        .map((id) => PROBLEM_KINDS.find((k) => k.id === id))
+                        .map((k) => (
+                            <button
+                                key={k.id}
+                                className={k.id === kindId ? styles.chipOn : styles.chip}
+                                data-testid={`genai-kind-${k.id}`}
+                                data-kind={k.id}
+                                onClick={handleKindClick}
+                            >
+                                <FormattedMessage {...KIND_MESSAGES[k.id].label} />
+                            </button>
+                        ))}
                 </div>
                 {kindId && (
                     <textarea

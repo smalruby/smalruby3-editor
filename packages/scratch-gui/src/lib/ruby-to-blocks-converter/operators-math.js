@@ -10,8 +10,8 @@ const MathE = '::Math::E';
 const OperatorsMath = {
     registerMath: function (converter) {
         // String-typed variable + any: use operator_join (must be registered before the numeric + handler)
-        converter.registerOnSend('variable', '+', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend('variable', '+', 1, (params) => {
+            const { receiver, args } = params;
             const variable = converter.lookupVariableFromVariableBlock(receiver);
             if (!variable || variable.dataType !== 'string') return null;
 
@@ -32,16 +32,16 @@ const OperatorsMath = {
             return block;
         });
 
-        converter.registerOnSend('self', 'rand', 1, params => {
-            const {args} = params;
+        converter.registerOnSend('self', 'rand', 1, (params) => {
+            const { args } = params;
             if (!converter._isBlock(args[0]) || args[0].opcode !== 'ruby_range') return null;
 
             return converter._changeBlock(args[0], 'operator_random', 'value');
         });
 
-        ['+', '-', '*', '/', '%'].forEach(operator => {
-            converter.registerOnSend(['variable', 'number', 'block'], operator, 1, params => {
-                const {receiver, args} = params;
+        ['+', '-', '*', '/', '%'].forEach((operator) => {
+            converter.registerOnSend(['variable', 'number', 'block'], operator, 1, (params) => {
+                const { receiver, args } = params;
                 let rh = args[0];
                 if (_.isArray(rh)) {
                     if (rh.length !== 1) return null;
@@ -86,17 +86,17 @@ const OperatorsMath = {
             });
         });
 
-        converter.registerOnSend(['variable', 'number', 'block'], 'round', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend(['variable', 'number', 'block'], 'round', 0, (params) => {
+            const { receiver } = params;
 
             const block = converter._createBlock('operator_round', 'value');
             converter._addNumberInput(block, 'NUM', 'math_number', receiver, '');
             return block;
         });
 
-        ['abs', 'floor', 'ceil'].forEach(methodName => {
-            converter.registerOnSend(['variable', 'number', 'block'], methodName, 0, params => {
-                const {receiver} = params;
+        ['abs', 'floor', 'ceil'].forEach((methodName) => {
+            converter.registerOnSend(['variable', 'number', 'block'], methodName, 0, (params) => {
+                const { receiver } = params;
 
                 let operator = methodName;
                 if (methodName === 'ceil') {
@@ -109,9 +109,9 @@ const OperatorsMath = {
             });
         });
 
-        ['sqrt', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'log', 'log10'].forEach(methodName => {
-            converter.registerOnSend(Math, methodName, 1, params => {
-                const {args} = params;
+        ['sqrt', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'log', 'log10'].forEach((methodName) => {
+            converter.registerOnSend(Math, methodName, 1, (params) => {
+                const { args } = params;
                 let rh = args[0];
                 if (_.isArray(rh)) {
                     if (rh.length !== 1) return null;
@@ -122,14 +122,14 @@ const OperatorsMath = {
 
                 let operator;
                 switch (methodName) {
-                case 'log':
-                    operator = 'ln';
-                    break;
-                case 'log10':
-                    operator = 'log';
-                    break;
-                default:
-                    operator = methodName;
+                    case 'log':
+                        operator = 'ln';
+                        break;
+                    case 'log10':
+                        operator = 'log';
+                        break;
+                    default:
+                        operator = methodName;
                 }
                 const block = converter._createBlock('operator_mathop', 'value');
                 converter._addField(block, 'OPERATOR', operator);
@@ -138,8 +138,8 @@ const OperatorsMath = {
             });
         });
 
-        converter.registerOnSend(MathE, '**', 1, params => {
-            const {args} = params;
+        converter.registerOnSend(MathE, '**', 1, (params) => {
+            const { args } = params;
             let rh = args[0];
             if (_.isArray(rh)) {
                 if (rh.length !== 1) return null;
@@ -154,8 +154,8 @@ const OperatorsMath = {
             return block;
         });
 
-        converter.registerOnSend('number', '**', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend('number', '**', 1, (params) => {
+            const { receiver, args } = params;
             let rh = args[0];
             if (_.isArray(rh)) {
                 if (rh.length !== 1) return null;
@@ -170,7 +170,7 @@ const OperatorsMath = {
             converter._addNumberInput(block, 'NUM', 'math_number', rh, '');
             return block;
         });
-    }
+    },
 };
 
 export default OperatorsMath;

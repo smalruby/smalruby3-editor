@@ -898,7 +898,9 @@
     cursor: pointer;
     text-align: left;
     overflow: hidden;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition:
+        border-color 0.15s,
+        box-shadow 0.15s;
 }
 
 .course-tile:hover {
@@ -948,7 +950,6 @@
         grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
     }
 }
-
 
 .seat-button {
     background-color: #4c97ff;
@@ -3117,7 +3118,7 @@
 
 /* 要約の項目は「・」で区切る（#1300 L2）。 */
 .class-card-meta > span + span::before {
-    content: "・";
+    content: '・';
 }
 
 /* --- Create a class: small dialog over the class list (#1300 K5) --- */
@@ -3899,7 +3900,6 @@
     cursor: pointer;
 }
 
-
 .topic-add-button {
     border: 1px solid #855cd6;
     background: white;
@@ -4359,7 +4359,6 @@
     opacity: 0.4;
     cursor: default;
 }
-
 
 /* --- Unified teacher view layout (review round 3) ---
    クラス管理のトップレベル画面（評価・クラス一覧・課題ボード）の共通コンテナ。

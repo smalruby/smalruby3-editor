@@ -5,7 +5,7 @@ describe('RubyToBlocksConverter/Event backward compatibility (v1 syntax in v2 mo
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 

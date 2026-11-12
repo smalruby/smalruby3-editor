@@ -4,7 +4,7 @@ import {
     convertAndExpectRubyBlockError,
     rubyToExpected,
     expectedInfo,
-    expectNoArgsMethod
+    expectNoArgsMethod,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Sensing', () => {
@@ -14,7 +14,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -25,14 +25,14 @@ describe('RubyToBlocksConverter/Sensing', () => {
             const spritePropertyToMethod = {
                 'x position': 'x',
                 'y position': 'y',
-                'direction': 'direction',
+                direction: 'direction',
                 'costume #': 'costume_number',
                 'costume name': 'costume_name',
-                'size': 'size',
-                'volume': 'volume',
-                'local': 'variable("local")'
+                size: 'size',
+                volume: 'volume',
+                local: 'variable("local")',
             };
-            Object.keys(spritePropertyToMethod).forEach(property => {
+            Object.keys(spritePropertyToMethod).forEach((property) => {
                 const method = spritePropertyToMethod[property];
                 test(method, async () => {
                     code = `sprite("Sprite1").${method}`;
@@ -42,8 +42,8 @@ describe('RubyToBlocksConverter/Sensing', () => {
                             fields: [
                                 {
                                     name: 'PROPERTY',
-                                    value: property
-                                }
+                                    value: property,
+                                },
                             ],
                             inputs: [
                                 {
@@ -53,14 +53,14 @@ describe('RubyToBlocksConverter/Sensing', () => {
                                         fields: [
                                             {
                                                 name: 'OBJECT',
-                                                value: 'Sprite1'
-                                            }
+                                                value: 'Sprite1',
+                                            },
                                         ],
-                                        shadow: true
-                                    }
-                                }
-                            ]
-                        }
+                                        shadow: true,
+                                    },
+                                },
+                            ],
+                        },
                     ];
                     await convertAndExpectToEqualBlocks(converter, target, code, expected);
                 });
@@ -69,10 +69,10 @@ describe('RubyToBlocksConverter/Sensing', () => {
             const stagePropertyToMethod = {
                 'backdrop #': 'backdrop_number',
                 'backdrop name': 'backdrop_name',
-                'volume': 'volume',
-                'global': 'variable("global")'
+                volume: 'volume',
+                global: 'variable("global")',
             };
-            Object.keys(stagePropertyToMethod).forEach(property => {
+            Object.keys(stagePropertyToMethod).forEach((property) => {
                 const method = stagePropertyToMethod[property];
                 test(method, async () => {
                     code = `stage.${method}`;
@@ -82,8 +82,8 @@ describe('RubyToBlocksConverter/Sensing', () => {
                             fields: [
                                 {
                                     name: 'PROPERTY',
-                                    value: property
-                                }
+                                    value: property,
+                                },
                             ],
                             inputs: [
                                 {
@@ -93,14 +93,14 @@ describe('RubyToBlocksConverter/Sensing', () => {
                                         fields: [
                                             {
                                                 name: 'OBJECT',
-                                                value: '_stage_'
-                                            }
+                                                value: '_stage_',
+                                            },
                                         ],
-                                        shadow: true
-                                    }
-                                }
-                            ]
-                        }
+                                        shadow: true,
+                                    },
+                                },
+                            ],
+                        },
                     ];
                     await convertAndExpectToEqualBlocks(converter, target, code, expected);
                 });
@@ -116,7 +116,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
             expected = [
                 (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
                 (await rubyToExpected(converter, target, 'sprite("Sprite1").x'))[0],
-                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
+                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -128,21 +128,23 @@ describe('RubyToBlocksConverter/Sensing', () => {
             expected = [
                 (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
                 (await rubyToExpected(converter, target, 'stage.volume'))[0],
-                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
+                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'sprite("Sprite1", 1).x',
-                'sprite(1).x',
-                'sprite(1).x(1)',
-                'stage(1).x',
-                'stage.x(1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of [
+                    'sprite("Sprite1", 1).x',
+                    'sprite(1).x',
+                    'sprite(1).x(1)',
+                    'stage(1).x',
+                    'stage.x(1)',
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
 
         test('error', async () => {
@@ -166,5 +168,4 @@ describe('RubyToBlocksConverter/Sensing', () => {
             expect(res).toBeFalsy();
         });
     });
-
 });

@@ -68,16 +68,10 @@ const TeacherMenuItem = ({ id, badge, count, onSelect }) => {
     const handleClick = useCallback(() => onSelect(id), [id, onSelect]);
     return (
         <MenuItem onClick={handleClick}>
-            <span
-                className={styles.item}
-                data-testid={`classroom-teacher-menu-${id}`}
-            >
+            <span className={styles.item} data-testid={`classroom-teacher-menu-${id}`}>
                 {typeof label === 'function' ? label(count || 0) : label}
                 {badge ? (
-                    <span
-                        className={styles.badge}
-                        data-testid={`classroom-teacher-menu-${id}-badge`}
-                    >
+                    <span className={styles.badge} data-testid={`classroom-teacher-menu-${id}-badge`}>
                         {'!'}
                     </span>
                 ) : null}
@@ -113,7 +107,13 @@ const ClassroomTeacherMenu = ({
     className,
     activeClassName,
     menuClassName,
-    items, open, place, onOpen, onRequestClose, onSelect }) => {
+    items,
+    open,
+    place,
+    onOpen,
+    onRequestClose,
+    onSelect,
+}) => {
     const hasBadge = items.some((item) => item.badge);
     return (
         <div
@@ -123,10 +123,7 @@ const ClassroomTeacherMenu = ({
         >
             {/* A white frame with an icon sets the teacher entry apart from
                 the student "クラス" menu (M2 in #1299). */}
-            <span
-                className={styles.frame}
-                data-testid="classroom-teacher-menu-frame"
-            >
+            <span className={styles.frame} data-testid="classroom-teacher-menu-frame">
                 <img
                     alt=""
                     className={styles.icon}
@@ -142,10 +139,7 @@ const ClassroomTeacherMenu = ({
                     />
                 </span>
                 {hasBadge ? (
-                    <span
-                        className={styles.badge}
-                        data-testid="classroom-teacher-menu-badge"
-                    >
+                    <span className={styles.badge} data-testid="classroom-teacher-menu-badge">
                         {'!'}
                     </span>
                 ) : null}
@@ -157,12 +151,7 @@ const ClassroomTeacherMenu = ({
                     src={dropdownCaret}
                 />
             </span>
-            <MenuBarMenu
-                className={menuClassName}
-                open={open}
-                place={place}
-                onRequestClose={onRequestClose}
-            >
+            <MenuBarMenu className={menuClassName} open={open} place={place} onRequestClose={onRequestClose}>
                 <MenuSection>
                     {items.map((item) => (
                         <TeacherMenuItem

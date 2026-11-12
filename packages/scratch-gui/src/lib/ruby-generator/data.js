@@ -67,9 +67,9 @@ export default function (Generator) {
         // === Smalruby: Start of regex literal variable generation ===
         if (comment && comment.includes('@ruby:regexp:literal') && hasValueInput) {
             const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+):\d+/);
-            const variable = lvarMatch ?
-                lvarMatch[1] :
-                Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
+            const variable = lvarMatch
+                ? lvarMatch[1]
+                : Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
             const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '""';
             const regexLiteral = Generator.unquoteRegex_(value) || Generator.nosToCode(value);
             return `${variable} = ${regexLiteral}\n`;
@@ -121,8 +121,11 @@ export default function (Generator) {
             if (block._isLastReturnInProcedure) {
                 // Check if there's a cached super call for this method
                 const returnMethodMatch = comment.match(/@ruby:return:(\w+)/);
-                if (returnMethodMatch && Generator.returnCallCache_ &&
-                    Generator.returnCallCache_[returnMethodMatch[1]]) {
+                if (
+                    returnMethodMatch &&
+                    Generator.returnCallCache_ &&
+                    Generator.returnCallCache_[returnMethodMatch[1]]
+                ) {
                     const cachedCall = Generator.returnCallCache_[returnMethodMatch[1]];
                     delete Generator.returnCallCache_[returnMethodMatch[1]];
                     return `${cachedCall}\n`;
@@ -140,9 +143,9 @@ export default function (Generator) {
             const op = compoundMatch[1];
             // Extract original variable name from @ruby:lvar comment if present
             const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+):\d+/);
-            const variable = lvarMatch ?
-                lvarMatch[1] :
-                Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
+            const variable = lvarMatch
+                ? lvarMatch[1]
+                : Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
             const operatorBlock = Generator.getBlock(block.inputs.VALUE.block);
             if (operatorBlock) {
                 // For operator_join (string +=), use STRING2 input; for numeric operators, use NUM2

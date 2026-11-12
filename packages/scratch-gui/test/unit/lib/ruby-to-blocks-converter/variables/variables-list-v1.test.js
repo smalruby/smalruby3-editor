@@ -1,9 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (v1 list() syntax converter tests) ===
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    expectedInfo
-} from '../../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks, expectedInfo } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Variables/ListV1', () => {
     let converter;
@@ -26,16 +23,16 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
+                            list: listName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('thing'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -48,16 +45,16 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
+                            list: listName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(1, 'math_integer'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -70,10 +67,10 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
-                    ]
-                }
+                            list: listName,
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -86,20 +83,20 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
+                            list: listName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
+                            block: expectedInfo.makeNumber(1, 'math_integer'),
                         },
                         {
                             name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('thing'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -112,20 +109,20 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
+                            list: listName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
+                            block: expectedInfo.makeNumber(1, 'math_integer'),
                         },
                         {
                             name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('thing'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -138,16 +135,16 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
+                            list: listName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(1, 'math_integer'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -160,16 +157,16 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
+                            list: listName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('thing'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -182,10 +179,10 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
-                    ]
-                }
+                            list: listName,
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -198,16 +195,16 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
+                            list: listName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('thing'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -224,16 +221,16 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
+                            list: listName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(1, 'math_integer'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -246,16 +243,16 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
+                            list: listName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(1, 'math_integer'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -272,16 +269,16 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
+                            list: listName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(3, 'math_integer')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(3, 'math_integer'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -294,20 +291,20 @@ describe('RubyToBlocksConverter/Variables/ListV1', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: listName
-                        }
+                            list: listName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(2, 'math_integer')
+                            block: expectedInfo.makeNumber(2, 'math_integer'),
                         },
                         {
                             name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('thing'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });

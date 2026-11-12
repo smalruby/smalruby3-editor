@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styles from './classroom-modal.css';
 
 const ErrorDisplay = ({ error, errorTitle, actionLabel, onAction }) => {
@@ -26,11 +25,7 @@ const ErrorDisplay = ({ error, errorTitle, actionLabel, onAction }) => {
         <div className={styles.errorText} data-testid="classroom-error">
             {error}
             {actionLabel && onAction && (
-                <button
-                    className={styles.errorActionLink}
-                    data-testid="classroom-error-action"
-                    onClick={onAction}
-                >
+                <button className={styles.errorActionLink} data-testid="classroom-error-action" onClick={onAction}>
                     {actionLabel}
                 </button>
             )}

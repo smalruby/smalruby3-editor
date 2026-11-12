@@ -1,13 +1,11 @@
-import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React from 'react';
-
+import { FormattedMessage } from 'react-intl';
+import { formatStudentClassName } from '../../lib/classroom-class-label.js';
+import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import StudentContinueChoice from './student-continue-choice.jsx';
 import StudentPeerViewButton from './student-peer-view-button.jsx';
-
-import { formatStudentClassName } from '../../lib/classroom-class-label.js';
-import styles from './classroom-modal.css';
 
 const StudentStatusView = ({
     classroomState,
@@ -43,10 +41,7 @@ const StudentStatusView = ({
                         id="gui.classroom.studentStatus.class"
                     />
                 </span>
-                <span
-                    className={styles.statusValue}
-                    data-testid="classroom-status-class-name"
-                >
+                <span className={styles.statusValue} data-testid="classroom-status-class-name">
                     {formatStudentClassName(classroomState.className, classroomState.classYear)}
                 </span>
             </div>
@@ -58,10 +53,7 @@ const StudentStatusView = ({
                         id="gui.classroom.studentStatus.seatNumber"
                     />
                 </span>
-                <span
-                    className={styles.statusValue}
-                    data-testid="classroom-status-seat-number"
-                >
+                <span className={styles.statusValue} data-testid="classroom-status-seat-number">
                     {String(classroomState.seatNumber).padStart(2, '0')}
                 </span>
             </div>
@@ -74,10 +66,7 @@ const StudentStatusView = ({
                             id="gui.classroom.studentStatus.assignment"
                         />
                     </span>
-                    <span
-                        className={styles.statusValue}
-                        data-testid="classroom-status-assignment"
-                    >
+                    <span className={styles.statusValue} data-testid="classroom-status-assignment">
                         {classroomState.assignmentName}
                     </span>
                 </div>
@@ -91,20 +80,14 @@ const StudentStatusView = ({
                             id="gui.classroom.studentStatus.joinedAt"
                         />
                     </span>
-                    <span
-                        className={styles.statusValue}
-                        data-testid="classroom-status-joined-at"
-                    >
-                        {new Date(classroomState.joinedAt).toLocaleString(
-                            [],
-                            {
-                                year: 'numeric',
-                                month: 'numeric',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                            },
-                        )}
+                    <span className={styles.statusValue} data-testid="classroom-status-joined-at">
+                        {new Date(classroomState.joinedAt).toLocaleString([], {
+                            year: 'numeric',
+                            month: 'numeric',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        })}
                     </span>
                 </div>
             )}
@@ -116,10 +99,7 @@ const StudentStatusView = ({
                         id="gui.classroom.studentStatus.submissionStatus"
                     />
                 </span>
-                <span
-                    className={styles.statusValue}
-                    data-testid="classroom-submit-status"
-                >
+                <span className={styles.statusValue} data-testid="classroom-submit-status">
                     {classroomState.submissionStatus === 'returned' ? (
                         <React.Fragment>
                             {'↩ '}
@@ -162,10 +142,7 @@ const StudentStatusView = ({
                 </button>
             </div>
             {classroomState.submissionStatus === 'returned' && teacherComment && (
-                <div
-                    className={styles.teacherCommentBox}
-                    data-testid="classroom-status-teacher-comment"
-                >
+                <div className={styles.teacherCommentBox} data-testid="classroom-status-teacher-comment">
                     <span className={styles.statusLabel}>
                         <FormattedMessage
                             defaultMessage="Teacher's Comment"
@@ -173,9 +150,7 @@ const StudentStatusView = ({
                             id="gui.classroom.studentStatus.teacherComment"
                         />
                     </span>
-                    <span className={styles.teacherCommentText}>
-                        {teacherComment}
-                    </span>
+                    <span className={styles.teacherCommentText}>{teacherComment}</span>
                 </div>
             )}
         </div>

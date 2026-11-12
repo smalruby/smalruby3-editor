@@ -2,7 +2,7 @@ import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-convert
 import {
     convertAndExpectToEqualBlocks,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Variables', () => {
@@ -10,7 +10,7 @@ describe('RubyToBlocksConverter/Variables', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -25,10 +25,10 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'VARIABLE',
-                            variable: varName
-                        }
-                    ]
-                }
+                            variable: varName,
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -43,10 +43,10 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
-                    ]
-                }
+                            list: varName,
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -59,30 +59,30 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: varName
-                        }
+                            list: varName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'INDEX',
                             block: {
                                 opcode: 'operator_add',
-                                comment: {text: '@ruby:array:index', minimized: true},
+                                comment: { text: '@ruby:array:index', minimized: true },
                                 inputs: [
                                     {
                                         name: 'NUM1',
-                                        block: expectedInfo.makeNumber(0)
+                                        block: expectedInfo.makeNumber(0),
                                     },
                                     {
                                         name: 'NUM2',
-                                        block: expectedInfo.makeNumber(1)
-                                    }
-                                ]
+                                        block: expectedInfo.makeNumber(1),
+                                    },
+                                ],
                             },
-                            shadow: expectedInfo.makeNumber(1, 'math_integer')
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(1, 'math_integer'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -96,16 +96,16 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'VARIABLE',
-                            variable: varName
-                        }
+                            variable: varName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'VALUE',
-                            block: expectedInfo.makeText('world')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeText('world'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -118,16 +118,16 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'VARIABLE',
-                            variable: varName
-                        }
+                            variable: varName,
+                        },
                     ],
                     inputs: [
                         {
                             name: 'VALUE',
-                            block: expectedInfo.makeNumber(1)
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(1),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -140,8 +140,8 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'VARIABLE',
-                            variable: varName
-                        }
+                            variable: varName,
+                        },
                     ],
                     inputs: [
                         {
@@ -156,21 +156,21 @@ describe('RubyToBlocksConverter/Variables', () => {
                                             fields: [
                                                 {
                                                     name: 'VARIABLE',
-                                                    variable: varName
-                                                }
-                                            ]
-                                        }
+                                                    variable: varName,
+                                                },
+                                            ],
+                                        },
                                     },
                                     {
                                         name: 'NUM2',
-                                        block: expectedInfo.makeNumber(1)
-                                    }
-                                ]
-                            }
-                        }
+                                        block: expectedInfo.makeNumber(1),
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    comment: {text: '@ruby:syntax:-=', minimized: true}
-                }
+                    comment: { text: '@ruby:syntax:-=', minimized: true },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -183,8 +183,8 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'VARIABLE',
-                            variable: varName
-                        }
+                            variable: varName,
+                        },
                     ],
                     inputs: [
                         {
@@ -199,21 +199,21 @@ describe('RubyToBlocksConverter/Variables', () => {
                                             fields: [
                                                 {
                                                     name: 'VARIABLE',
-                                                    variable: varName
-                                                }
-                                            ]
-                                        }
+                                                    variable: varName,
+                                                },
+                                            ],
+                                        },
                                     },
                                     {
                                         name: 'NUM2',
-                                        block: expectedInfo.makeNumber(2)
-                                    }
-                                ]
-                            }
-                        }
+                                        block: expectedInfo.makeNumber(2),
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    comment: {text: '@ruby:syntax:*=', minimized: true}
-                }
+                    comment: { text: '@ruby:syntax:*=', minimized: true },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -226,8 +226,8 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'VARIABLE',
-                            variable: varName
-                        }
+                            variable: varName,
+                        },
                     ],
                     inputs: [
                         {
@@ -242,21 +242,21 @@ describe('RubyToBlocksConverter/Variables', () => {
                                             fields: [
                                                 {
                                                     name: 'VARIABLE',
-                                                    variable: varName
-                                                }
-                                            ]
-                                        }
+                                                    variable: varName,
+                                                },
+                                            ],
+                                        },
                                     },
                                     {
                                         name: 'NUM2',
-                                        block: expectedInfo.makeNumber(2)
-                                    }
-                                ]
-                            }
-                        }
+                                        block: expectedInfo.makeNumber(2),
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    comment: {text: '@ruby:syntax:/=', minimized: true}
-                }
+                    comment: { text: '@ruby:syntax:/=', minimized: true },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -269,8 +269,8 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'VARIABLE',
-                            variable: varName
-                        }
+                            variable: varName,
+                        },
                     ],
                     inputs: [
                         {
@@ -285,21 +285,21 @@ describe('RubyToBlocksConverter/Variables', () => {
                                             fields: [
                                                 {
                                                     name: 'VARIABLE',
-                                                    variable: varName
-                                                }
-                                            ]
-                                        }
+                                                    variable: varName,
+                                                },
+                                            ],
+                                        },
                                     },
                                     {
                                         name: 'NUM2',
-                                        block: expectedInfo.makeNumber(3)
-                                    }
-                                ]
-                            }
-                        }
+                                        block: expectedInfo.makeNumber(3),
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    comment: {text: '@ruby:syntax:%=', minimized: true}
-                }
+                    comment: { text: '@ruby:syntax:%=', minimized: true },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -312,10 +312,10 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'VARIABLE',
-                            variable: varName
-                        }
-                    ]
-                }
+                            variable: varName,
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -328,10 +328,10 @@ describe('RubyToBlocksConverter/Variables', () => {
                     fields: [
                         {
                             name: 'VARIABLE',
-                            variable: varName
-                        }
-                    ]
-                }
+                            variable: varName,
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });

@@ -31,7 +31,7 @@
  *
  * height: 100% でサイドレール右の利用可能高さを使い切る。
  */
-.panel :global([class*="target-pane_target-pane"]) {
+.panel :global([class*='target-pane_target-pane']) {
     flex-grow: 1;
     height: 100%;
 }
@@ -50,4 +50,3 @@
 :global(.ReactModal__Overlay) {
     z-index: 9999 !important;
 }
-

@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
-
 import intlShape from '../../lib/intlShape.js';
 import styles from './mesh-self-sensor-notice.css';
 

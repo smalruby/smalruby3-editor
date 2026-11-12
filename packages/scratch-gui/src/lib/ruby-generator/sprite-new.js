@@ -36,17 +36,19 @@ export default function (Generator) {
         }
         const costumes = renderedTarget.sprite.costumes;
         if (costumes.length > 0) {
-            const s = costumes.map(i => {
-                const h = {
-                    asset_id: this.quote_(i.assetId),
-                    name: this.quote_(i.name),
-                    bitmap_resolution: i.bitmapResolution ? i.bitmapResolution : 1,
-                    data_format: this.quote_(i.dataFormat),
-                    rotation_center_x: i.rotationCenterX,
-                    rotation_center_y: i.rotationCenterY
-                };
-                return this.hashToCode(h);
-            }).join(',\n');
+            const s = costumes
+                .map((i) => {
+                    const h = {
+                        asset_id: this.quote_(i.assetId),
+                        name: this.quote_(i.name),
+                        bitmap_resolution: i.bitmapResolution ? i.bitmapResolution : 1,
+                        data_format: this.quote_(i.dataFormat),
+                        rotation_center_x: i.rotationCenterX,
+                        rotation_center_y: i.rotationCenterY,
+                    };
+                    return this.hashToCode(h);
+                })
+                .join(',\n');
             attributes.costumes = `[\n${this.prefixLines(s, this.INDENT)}\n]`;
         }
         if (renderedTarget.rotationStyle !== 'all around') {
@@ -58,36 +60,40 @@ export default function (Generator) {
         for (const id in renderedTarget.variables) {
             const v = renderedTarget.variables[id];
             switch (v.type) {
-            case SCALAR_TYPE:
-                variables.push(v);
-                break;
-            case LIST_TYPE:
-                lists.push(v);
-                break;
+                case SCALAR_TYPE:
+                    variables.push(v);
+                    break;
+                case LIST_TYPE:
+                    lists.push(v);
+                    break;
             }
         }
         if (variables.length > 0) {
-            const s = variables.map(i => {
-                const h = {
-                    name: this.quote_(this.escapeVariableName(i.name))
-                };
-                if (i.value !== 0) {
-                    h.value = this.scalarToCode(i.value);
-                }
-                return this.hashToCode(h);
-            }).join(',\n');
+            const s = variables
+                .map((i) => {
+                    const h = {
+                        name: this.quote_(this.escapeVariableName(i.name)),
+                    };
+                    if (i.value !== 0) {
+                        h.value = this.scalarToCode(i.value);
+                    }
+                    return this.hashToCode(h);
+                })
+                .join(',\n');
             attributes.variables = `[\n${this.prefixLines(s, this.INDENT)}\n]`;
         }
         if (lists.length > 0) {
-            const s = lists.map(i => {
-                const h = {
-                    name: this.quote_(this.escapeVariableName(i.name))
-                };
-                if (i.value.length > 0) {
-                    h.value = this.listToCode(i.value);
-                }
-                return this.hashToCode(h);
-            }).join(',\n');
+            const s = lists
+                .map((i) => {
+                    const h = {
+                        name: this.quote_(this.escapeVariableName(i.name)),
+                    };
+                    if (i.value.length > 0) {
+                        h.value = this.listToCode(i.value);
+                    }
+                    return this.hashToCode(h);
+                })
+                .join(',\n');
             attributes.lists = `[\n${this.prefixLines(s, this.INDENT)}\n]`;
         }
 

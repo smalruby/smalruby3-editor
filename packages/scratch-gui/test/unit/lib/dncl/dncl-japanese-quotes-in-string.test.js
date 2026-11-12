@@ -4,10 +4,9 @@
 // A Japanese sentence in a `"..."` string often contains 「」 too, so that
 // conversion must skip string literals — otherwise `"「く」がある"` became
 // `""@く"がある"` and the program could not be turned into blocks.
-
-import { loadPrism } from '../../../../src/lib/prism-parser';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 
 const dToR = (src) => dnclToRuby(src).ruby;
 const rToD = (src) => rubyToDncl(src).dncl;
@@ -46,16 +45,12 @@ describe('DNCL: 「」 inside a "..." string (Issue #1457)', () => {
     });
 
     test('「」 inside a "..." string in a condition is left alone', () => {
-        expect(dToR('もし a == "「く」" ならば\n  a = 1\nを実行する')).toBe(
-            'if @a == "「く」"\n  @a = 1\nend',
-        );
+        expect(dToR('もし a == "「く」" ならば\n  a = 1\nを実行する')).toBe('if @a == "「く」"\n  @a = 1\nend');
     });
 
     test('a string written with 「」 still becomes "..."', () => {
         expect(dToR('表示する(「こんにちは」)')).toBe('puts("こんにちは")');
         expect(dToR('a = 「く」 + "「け」"')).toBe('@a = "く" + "「け」"');
-        expect(dToR('もし a == 「く」 ならば\n  a = 1\nを実行する')).toBe(
-            'if @a == "く"\n  @a = 1\nend',
-        );
+        expect(dToR('もし a == 「く」 ならば\n  a = 1\nを実行する')).toBe('if @a == "く"\n  @a = 1\nend');
     });
 });

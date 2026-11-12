@@ -481,9 +481,7 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         const result = await converter.targetCodeToBlocks(target, code);
         expect(result).toBe(true);
         const blocks = Object.values(converter._context.blocks);
-        const eachBlock = blocks.find(
-            (b) => b.opcode === 'smalrubyRuby_arrayMethodWithBlock',
-        );
+        const eachBlock = blocks.find((b) => b.opcode === 'smalrubyRuby_arrayMethodWithBlock');
         expect(eachBlock).toBeDefined();
         expect(eachBlock.fields.LIST_ID).toBeDefined();
         expect(eachBlock.fields.LIST_NAME).toBeDefined();
@@ -520,9 +518,7 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         const result = await converter.targetCodeToBlocks(target, code);
         expect(result).toBe(true);
         const blocks = Object.values(converter._context.blocks);
-        const eachBlock = blocks.find(
-            (b) => b.opcode === 'smalrubyRuby_hashMethodWithBlock',
-        );
+        const eachBlock = blocks.find((b) => b.opcode === 'smalrubyRuby_hashMethodWithBlock');
         expect(eachBlock).toBeDefined();
         expect(eachBlock.fields.METHOD.value).toBe('each');
         expect(eachBlock.fields.KEYS_LIST_ID).toBeDefined();

@@ -3,7 +3,7 @@ import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Operators', () => {
@@ -13,7 +13,7 @@ describe('RubyToBlocksConverter/Operators', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -27,14 +27,14 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'STRING1',
-                        block: expectedInfo.makeText('apple')
+                        block: expectedInfo.makeText('apple'),
                     },
                     {
                         name: 'STRING2',
-                        block: expectedInfo.makeText('banana')
-                    }
-                ]
-            }
+                        block: expectedInfo.makeText('banana'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -45,15 +45,15 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'STRING1',
-                        block: expectedInfo.makeText('apple')
+                        block: expectedInfo.makeText('apple'),
                     },
                     {
                         name: 'STRING2',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeText('banana')
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeText('banana'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -65,14 +65,14 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'STRING1',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeText('apple')
+                        shadow: expectedInfo.makeText('apple'),
                     },
                     {
                         name: 'STRING2',
-                        block: expectedInfo.makeText('banana')
-                    }
-                ]
-            }
+                        block: expectedInfo.makeText('banana'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -85,14 +85,14 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'STRING',
-                        block: expectedInfo.makeText('apple')
+                        block: expectedInfo.makeText('apple'),
                     },
                     {
                         name: 'LETTER',
-                        block: expectedInfo.makeNumber(1)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(1),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -104,15 +104,15 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'STRING',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeText('apple')
+                        shadow: expectedInfo.makeText('apple'),
                     },
                     {
                         name: 'LETTER',
                         block: (await rubyToExpected(converter, target, 'y'))[0],
-                        shadow: expectedInfo.makeNumber(1)
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(1),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -125,10 +125,10 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'STRING',
-                        block: expectedInfo.makeText('apple')
-                    }
-                ]
-            }
+                        block: expectedInfo.makeText('apple'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -140,10 +140,10 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'STRING',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeText('apple')
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeText('apple'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -161,26 +161,26 @@ describe('RubyToBlocksConverter/Operators', () => {
                             inputs: [
                                 {
                                     name: 'STRING',
-                                    block: expectedInfo.makeText('apple')
-                                }
+                                    block: expectedInfo.makeText('apple'),
+                                },
                             ],
                             comment: {
                                 text: '@ruby:method:empty?:1',
-                                minimized: true
-                            }
+                                minimized: true,
+                            },
                         },
-                        shadow: expectedInfo.makeText('')
+                        shadow: expectedInfo.makeText(''),
                     },
                     {
                         name: 'OPERAND2',
-                        block: expectedInfo.makeText('0')
-                    }
+                        block: expectedInfo.makeText('0'),
+                    },
                 ],
                 comment: {
                     text: '@ruby:method:empty?:1',
-                    minimized: true
-                }
-            }
+                    minimized: true,
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -197,26 +197,26 @@ describe('RubyToBlocksConverter/Operators', () => {
                                 {
                                     name: 'STRING',
                                     block: (await rubyToExpected(converter, target, 'x'))[0],
-                                    shadow: expectedInfo.makeText('apple')
-                                }
+                                    shadow: expectedInfo.makeText('apple'),
+                                },
                             ],
                             comment: {
                                 text: '@ruby:method:empty?:1',
-                                minimized: true
-                            }
+                                minimized: true,
+                            },
                         },
-                        shadow: expectedInfo.makeText('')
+                        shadow: expectedInfo.makeText(''),
                     },
                     {
                         name: 'OPERAND2',
-                        block: expectedInfo.makeText('0')
-                    }
+                        block: expectedInfo.makeText('0'),
+                    },
                 ],
                 comment: {
                     text: '@ruby:method:empty?:1',
-                    minimized: true
-                }
-            }
+                    minimized: true,
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -233,26 +233,26 @@ describe('RubyToBlocksConverter/Operators', () => {
                             fields: [
                                 {
                                     name: 'LIST',
-                                    list: '@list'
-                                }
+                                    list: '@list',
+                                },
                             ],
                             comment: {
                                 text: '@ruby:method:empty?:1',
-                                minimized: true
-                            }
+                                minimized: true,
+                            },
                         },
-                        shadow: expectedInfo.makeText('')
+                        shadow: expectedInfo.makeText(''),
                     },
                     {
                         name: 'OPERAND2',
-                        block: expectedInfo.makeText('0')
-                    }
+                        block: expectedInfo.makeText('0'),
+                    },
                 ],
                 comment: {
                     text: '@ruby:method:empty?:1',
-                    minimized: true
-                }
-            }
+                    minimized: true,
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -265,14 +265,14 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'STRING1',
-                        block: expectedInfo.makeText('apple')
+                        block: expectedInfo.makeText('apple'),
                     },
                     {
                         name: 'STRING2',
-                        block: expectedInfo.makeText('a')
-                    }
-                ]
-            }
+                        block: expectedInfo.makeText('a'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -284,15 +284,15 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'STRING1',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeText('apple')
+                        shadow: expectedInfo.makeText('apple'),
                     },
                     {
                         name: 'STRING2',
                         block: (await rubyToExpected(converter, target, 'y'))[0],
-                        shadow: expectedInfo.makeText('a')
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeText('a'),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });

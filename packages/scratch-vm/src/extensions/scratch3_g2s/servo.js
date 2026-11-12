@@ -2,13 +2,12 @@
  * This is a class to represent a servo motor
  */
 export default class Servo {
-
     /**
      * Constructor of Servo instance.
      * @param {AkadakoBoard} board - connecting akadako board
      * @param {number} pin - the pin the servo is connected to
      */
-    constructor (board, pin) {
+    constructor(board, pin) {
         /**
          * Connecting akadako board
          * @type {import('./akadako-board').default}
@@ -40,7 +39,7 @@ export default class Servo {
      * @param {number} angle - degree to turn
      * @returns {Promise} a Promise which resolves when the message was sent
      */
-    turn (angle) {
+    turn(angle) {
         let servoValue = 90 - angle; // convert from zero centered clockwise
         servoValue = Math.min(180, Math.max(0, servoValue));
         this.board.pinMode(this.pin, this.board.MODES.SERVO);
@@ -52,7 +51,7 @@ export default class Servo {
      * @param {number} angle - degree to turn
      * @param {number} speed - turn speed
      */
-    async turnWithSpeed (angle, speed) {
+    async turnWithSpeed(angle, speed) {
         if (speed <= 0) return; // Do not rotate when the speed is zero or less.
 
         const MAX_SPEED = 100;

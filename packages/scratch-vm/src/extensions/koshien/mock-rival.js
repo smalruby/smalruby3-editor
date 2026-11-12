@@ -24,18 +24,14 @@ const mapUtils = require('./map-utils');
  * @returns {Array<string>} - the route as "x:y" strings.
  */
 const routeOnFog = (fog, from, to) =>
-    mapUtils.calcRoute(
-        fog,
-        mapUtils.formatPosition(from.x, from.y),
-        mapUtils.formatPosition(to[0], to[1])
-    );
+    mapUtils.calcRoute(fog, mapUtils.formatPosition(from.x, from.y), mapUtils.formatPosition(to[0], to[1]));
 
 /**
  * Positions of the beneficial items the rival has seen so far.
  * @param {Array<Array<(number|string)>>} fog - the rival's own map.
  * @returns {Array<Array<number>>} - item cells as [x, y].
  */
-const knownGoodies = fog => {
+const knownGoodies = (fog) => {
     const found = [];
     fog.forEach((row, y) => {
         row.forEach((cell, x) => {
@@ -80,7 +76,7 @@ const playRivalTurn = (game, side, strategy) => {
             [me.x + 1, me.y],
             [me.x - 1, me.y],
             [me.x, me.y + 1],
-            [me.x, me.y - 1]
+            [me.x, me.y - 1],
         ].filter(([x, y]) => game.isWalkable(x, y));
         if (options.length > 0) {
             const [x, y] = options[Math.floor(game.rng() * options.length)];
@@ -118,5 +114,5 @@ const playRivalTurn = (game, side, strategy) => {
 };
 
 module.exports = {
-    playRivalTurn
+    playRivalTurn,
 };

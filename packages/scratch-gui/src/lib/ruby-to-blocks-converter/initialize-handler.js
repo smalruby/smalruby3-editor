@@ -1,7 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (initialize handler for Ruby-to-blocks converter) ===
-
-import {RubyToBlocksConverterError} from './errors';
-import {messages} from './converter-errors';
+import { messages } from './converter-errors';
+import { RubyToBlocksConverterError } from './errors';
 
 /**
  * Mixin methods for processing def initialize in the Ruby-to-blocks converter.
@@ -15,7 +14,7 @@ const InitializeHandler = {
      * @param {object} defNode - The DefNode for initialize
      * @param {boolean} isStageClass - Whether this is a Stage class
      */
-    _processInitialize (defNode, isStageClass) {
+    _processInitialize(defNode, isStageClass) {
         const commentParts = [];
 
         // Save arguments if present
@@ -33,9 +32,7 @@ const InitializeHandler = {
         // Get body statements
         let bodyStmts = [];
         if (defNode.body && defNode.body.body) {
-            bodyStmts = Array.isArray(defNode.body.body) ?
-                defNode.body.body :
-                [defNode.body.body];
+            bodyStmts = Array.isArray(defNode.body.body) ? defNode.body.body : [defNode.body.body];
         }
 
         // Check for super at the beginning
@@ -45,7 +42,7 @@ const InitializeHandler = {
             if (firstType === 'SuperNode') {
                 const superArgs = bodyStmts[0].arguments_;
                 if (superArgs && superArgs.arguments_ && superArgs.arguments_.length > 0) {
-                    const argsSource = superArgs.arguments_.map(a => this._getSource(a)).join(', ');
+                    const argsSource = superArgs.arguments_.map((a) => this._getSource(a)).join(', ');
                     commentParts.push(`super=(${argsSource})`);
                 } else {
                     commentParts.push('super');
@@ -70,8 +67,8 @@ const InitializeHandler = {
                         this._translator(messages.wrongVariableScopeInInitialize, {
                             SOURCE: this._getSource(stmt),
                             PREFIX: '$',
-                            CLASS_TYPE: 'Stage'
-                        })
+                            CLASS_TYPE: 'Stage',
+                        }),
                     );
                 }
                 const varName = stmt.name.replace(/^@/, '');
@@ -80,15 +77,15 @@ const InitializeHandler = {
                     throw new RubyToBlocksConverterError(
                         stmt,
                         this._translator(messages.invalidInitializeBody, {
-                            SOURCE: this._truncateSource(this._getSource(stmt))
-                        })
+                            SOURCE: this._truncateSource(this._getSource(stmt)),
+                        }),
                     );
                 }
                 if (Array.isArray(value)) {
-                    initializeValues[varName] = {value, type: 'list'};
+                    initializeValues[varName] = { value, type: 'list' };
                     this._lookupOrCreateList(`@${varName}`);
                 } else {
-                    initializeValues[varName] = {value, type: ''};
+                    initializeValues[varName] = { value, type: '' };
                     this._lookupOrCreateVariable(`@${varName}`);
                 }
             } else if (stmtType === 'GlobalVariableWriteNode') {
@@ -98,8 +95,8 @@ const InitializeHandler = {
                         this._translator(messages.wrongVariableScopeInInitialize, {
                             SOURCE: this._getSource(stmt),
                             PREFIX: '@',
-                            CLASS_TYPE: 'sprite'
-                        })
+                            CLASS_TYPE: 'sprite',
+                        }),
                     );
                 }
                 const varName = stmt.name.replace(/^\$/, '');
@@ -108,22 +105,22 @@ const InitializeHandler = {
                     throw new RubyToBlocksConverterError(
                         stmt,
                         this._translator(messages.invalidInitializeBody, {
-                            SOURCE: this._truncateSource(this._getSource(stmt))
-                        })
+                            SOURCE: this._truncateSource(this._getSource(stmt)),
+                        }),
                     );
                 }
                 if (Array.isArray(value)) {
-                    initializeValues[varName] = {value, type: 'list'};
+                    initializeValues[varName] = { value, type: 'list' };
                     this._lookupOrCreateList(`$${varName}`);
                 } else {
-                    initializeValues[varName] = {value, type: ''};
+                    initializeValues[varName] = { value, type: '' };
                     this._lookupOrCreateVariable(`$${varName}`);
                 }
             } else {
                 const src = this._truncateSource(this._getSource(stmt));
                 throw new RubyToBlocksConverterError(
                     stmt,
-                    this._translator(messages.invalidInitializeBody, {SOURCE: src})
+                    this._translator(messages.invalidInitializeBody, { SOURCE: src }),
                 );
             }
         }
@@ -141,45 +138,45 @@ const InitializeHandler = {
      * @param {object} valueNode - AST node representing the value
      * @returns {number|string|boolean|Array|null} The extracted value, or null if not supported
      */
-    _extractInitializeValue (valueNode) {
+    _extractInitializeValue(valueNode) {
         const type = this._getNodeTypeName(valueNode);
         switch (type) {
-        case 'IntegerNode':
-            return valueNode.value;
-        case 'FloatNode':
-            return valueNode.value;
-        case 'StringNode': {
-            const unescaped = valueNode.unescaped;
-            return typeof unescaped === 'object' ? unescaped.value : unescaped;
-        }
-        case 'TrueNode':
-            return true;
-        case 'FalseNode':
-            return false;
-        case 'NilNode':
-            return '';
-        case 'CallNode':
-            // Handle negative numbers: -10 (parsed as CallNode with name '-@')
-            if (valueNode.name === '-@') {
-                const inner = this._extractInitializeValue(valueNode.receiver);
-                if (typeof inner === 'number') return -inner;
+            case 'IntegerNode':
+                return valueNode.value;
+            case 'FloatNode':
+                return valueNode.value;
+            case 'StringNode': {
+                const unescaped = valueNode.unescaped;
+                return typeof unescaped === 'object' ? unescaped.value : unescaped;
             }
-            return null;
-        case 'ArrayNode': {
-            const elements = valueNode.elements || [];
-            const result = [];
-            for (const elem of elements) {
-                const val = this._extractInitializeValue(elem);
-                if (val === null) return null;
-                if (Array.isArray(val)) return null; // No nested arrays
-                result.push(val);
+            case 'TrueNode':
+                return true;
+            case 'FalseNode':
+                return false;
+            case 'NilNode':
+                return '';
+            case 'CallNode':
+                // Handle negative numbers: -10 (parsed as CallNode with name '-@')
+                if (valueNode.name === '-@') {
+                    const inner = this._extractInitializeValue(valueNode.receiver);
+                    if (typeof inner === 'number') return -inner;
+                }
+                return null;
+            case 'ArrayNode': {
+                const elements = valueNode.elements || [];
+                const result = [];
+                for (const elem of elements) {
+                    const val = this._extractInitializeValue(elem);
+                    if (val === null) return null;
+                    if (Array.isArray(val)) return null; // No nested arrays
+                    result.push(val);
+                }
+                return result;
             }
-            return result;
+            default:
+                return null;
         }
-        default:
-            return null;
-        }
-    }
+    },
 };
 
 export default InitializeHandler;

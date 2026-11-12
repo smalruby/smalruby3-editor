@@ -6,20 +6,23 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Video Sensing extension blocks', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             video_sensing.when_video_motion_greater_than(10) do
             end
 
@@ -36,6 +39,7 @@ describe('Ruby Roundtrip: Video Sensing extension blocks', () => {
             video_sensing.video_turn("off")
             video_sensing.video_turn("on-flipped")
             video_sensing.video_transparency = 50
-        `);
+        `,
+        );
     });
 });

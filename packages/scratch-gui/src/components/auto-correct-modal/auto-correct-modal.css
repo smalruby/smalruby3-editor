@@ -1,5 +1,5 @@
-@import "../../css/colors.css";
-@import "../../css/units.css";
+@import '../../css/colors.css';
+@import '../../css/units.css';
 
 .modalContent {
     width: 360px;
@@ -49,7 +49,7 @@
 }
 
 .checkbox:checked::after {
-    content: "\2713";
+    content: '\2713';
     position: absolute;
     top: -2px;
     left: 1px;

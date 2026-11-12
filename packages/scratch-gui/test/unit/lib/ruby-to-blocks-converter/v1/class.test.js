@@ -8,7 +8,7 @@ describe('RubyToBlocksConverter/Class (v1)', () => {
     });
 
     test('class definition is rejected in version 1', async () => {
-        const v1Converter = new RubyToBlocksConverter(null, {version: '1'});
+        const v1Converter = new RubyToBlocksConverter(null, { version: '1' });
         const code = `
             class Sprite1
               self.when(:flag_clicked) do

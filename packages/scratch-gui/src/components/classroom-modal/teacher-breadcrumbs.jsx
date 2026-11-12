@@ -5,7 +5,6 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styles from './classroom-modal.css';
 
 const TeacherBreadcrumbs = ({ items }) => (

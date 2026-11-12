@@ -1,13 +1,12 @@
 // === Smalruby: This file is Smalruby-specific (class visitor for Ruby-to-blocks converter) ===
-
-import {RubyToBlocksConverterError} from './errors';
 import {
     messages,
     spriteLibraryNames,
     costumeLibraryNames,
     soundLibraryNames,
-    backdropLibraryNames
+    backdropLibraryNames,
 } from './converter-errors';
+import { RubyToBlocksConverterError } from './errors';
 
 /**
  * Mixin methods for visiting class nodes in the Ruby-to-blocks converter.
@@ -15,13 +14,10 @@ import {
  * @type {object}
  */
 const ClassVisitor = {
-    visitClassNode (node) {
+    visitClassNode(node) {
         // class definitions are only supported in version 2
         if (String(this.version) === '1') {
-            throw new RubyToBlocksConverterError(
-                node,
-                this._translator(messages.classNotSupportedInV1)
-            );
+            throw new RubyToBlocksConverterError(node, this._translator(messages.classNotSupportedInV1));
         }
 
         const className = node.name;
@@ -39,7 +35,7 @@ const ClassVisitor = {
             if (superclassPath !== '::Smalruby3::Stage' && superclassPath !== 'Smalruby3::Stage') {
                 throw new RubyToBlocksConverterError(
                     node.superclass,
-                    this._translator(messages.invalidStageSuperclass)
+                    this._translator(messages.invalidStageSuperclass),
                 );
             }
             // Accepted Stage superclass — don't store it (Stage is always Stage)
@@ -58,7 +54,7 @@ const ClassVisitor = {
             set_current_costume: 'current_costume',
             set_rotation_style: 'rotation_style',
             set_costumes: 'costumes',
-            set_sounds: 'sounds'
+            set_sounds: 'sounds',
         };
 
         // Set of recognized set_xxx class methods (stage-specific)
@@ -66,7 +62,7 @@ const ClassVisitor = {
             set_name: 'name',
             set_current_backdrop: 'current_backdrop',
             set_backdrops: 'backdrops',
-            set_sounds: 'sounds'
+            set_sounds: 'sounds',
         };
 
         // Methods rejected in V2 (use def initialize instead)
@@ -74,25 +70,37 @@ const ClassVisitor = {
 
         // Methods only allowed in sprite classes (forbidden in Stage)
         const SPRITE_ONLY_METHODS = new Set([
-            'set_sprite', 'set_x', 'set_y', 'set_direction', 'set_visible',
-            'set_size', 'set_current_costume', 'set_rotation_style', 'set_costumes'
+            'set_sprite',
+            'set_x',
+            'set_y',
+            'set_direction',
+            'set_visible',
+            'set_size',
+            'set_current_costume',
+            'set_rotation_style',
+            'set_costumes',
         ]);
 
         // Methods only allowed in stage class (forbidden in sprite classes)
-        const STAGE_ONLY_METHODS = new Set([
-            'set_current_backdrop', 'set_backdrops'
-        ]);
+        const STAGE_ONLY_METHODS = new Set(['set_current_backdrop', 'set_backdrops']);
 
         const SET_METHODS = isStageClass ? STAGE_SET_METHODS : SPRITE_SET_METHODS;
 
         // Canonical attribute order for comment text
         const SPRITE_ATTR_ORDER = [
-            'sprite', 'name', 'x', 'y', 'direction', 'visible', 'size',
-            'current_costume', 'rotation_style', 'costumes', 'sounds'
+            'sprite',
+            'name',
+            'x',
+            'y',
+            'direction',
+            'visible',
+            'size',
+            'current_costume',
+            'rotation_style',
+            'costumes',
+            'sounds',
         ];
-        const STAGE_ATTR_ORDER = [
-            'name', 'current_backdrop', 'backdrops', 'sounds'
-        ];
+        const STAGE_ATTR_ORDER = ['name', 'current_backdrop', 'backdrops', 'sounds'];
         const ATTR_ORDER = isStageClass ? STAGE_ATTR_ORDER : SPRITE_ATTR_ORDER;
 
         // Pre-scan class body for attr_accessor/attr_reader/attr_writer
@@ -101,14 +109,13 @@ const ClassVisitor = {
         const attrStatements = new Set();
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
-                if (this._getNodeTypeName(stmt) === 'CallNode' &&
+                if (
+                    this._getNodeTypeName(stmt) === 'CallNode' &&
                     !stmt.receiver &&
-                    (stmt.name === 'attr_accessor' ||
-                     stmt.name === 'attr_reader' ||
-                     stmt.name === 'attr_writer') &&
+                    (stmt.name === 'attr_accessor' || stmt.name === 'attr_reader' || stmt.name === 'attr_writer') &&
                     stmt.arguments_ &&
-                    stmt.arguments_.arguments_.length >= 1) {
-
+                    stmt.arguments_.arguments_.length >= 1
+                ) {
                     const kind = stmt.name.replace('attr_', '');
                     for (const argNode of stmt.arguments_.arguments_) {
                         if (this._getNodeTypeName(argNode) === 'SymbolNode') {
@@ -131,22 +138,23 @@ const ClassVisitor = {
         const setMethodNames = new Set();
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
-                if (this._getNodeTypeName(stmt) === 'CallNode' &&
+                if (
+                    this._getNodeTypeName(stmt) === 'CallNode' &&
                     !stmt.receiver &&
                     stmt.arguments_ &&
-                    stmt.arguments_.arguments_.length === 1) {
-
+                    stmt.arguments_.arguments_.length === 1
+                ) {
                     // Check for cross-class method usage
                     if (isStageClass && SPRITE_ONLY_METHODS.has(stmt.name)) {
                         throw new RubyToBlocksConverterError(
                             stmt,
-                            this._translator(messages.spriteMethodInStageClass, {METHOD: stmt.name})
+                            this._translator(messages.spriteMethodInStageClass, { METHOD: stmt.name }),
                         );
                     }
                     if (!isStageClass && STAGE_ONLY_METHODS.has(stmt.name)) {
                         throw new RubyToBlocksConverterError(
                             stmt,
-                            this._translator(messages.stageMethodInSpriteClass, {METHOD: stmt.name})
+                            this._translator(messages.stageMethodInSpriteClass, { METHOD: stmt.name }),
                         );
                     }
 
@@ -154,7 +162,7 @@ const ClassVisitor = {
                     if (REJECTED_SET_METHODS.has(stmt.name)) {
                         throw new RubyToBlocksConverterError(
                             stmt,
-                            this._translator(messages.setVariablesListsNotSupported, {METHOD: stmt.name})
+                            this._translator(messages.setVariablesListsNotSupported, { METHOD: stmt.name }),
                         );
                     }
 
@@ -179,15 +187,10 @@ const ClassVisitor = {
                 if (this._getNodeTypeName(stmt) === 'CallNode' && !stmt.receiver) {
                     // Reject extend
                     if (stmt.name === 'extend') {
-                        throw new RubyToBlocksConverterError(
-                            stmt,
-                            this._translator(messages.extendNotSupported)
-                        );
+                        throw new RubyToBlocksConverterError(stmt, this._translator(messages.extendNotSupported));
                     }
                     // Handle include
-                    if (stmt.name === 'include' &&
-                        stmt.arguments_ &&
-                        stmt.arguments_.arguments_.length === 1) {
+                    if (stmt.name === 'include' && stmt.arguments_ && stmt.arguments_.arguments_.length === 1) {
                         const argNode = stmt.arguments_.arguments_[0];
                         const argType = this._getNodeTypeName(argNode);
                         if (argType === 'ConstantReadNode') {
@@ -196,7 +199,7 @@ const ClassVisitor = {
                             if (isStageClass) {
                                 throw new RubyToBlocksConverterError(
                                     stmt,
-                                    this._translator(messages.includeNotSupportedInStage)
+                                    this._translator(messages.includeNotSupportedInStage),
                                 );
                             }
 
@@ -206,7 +209,7 @@ const ClassVisitor = {
                                 if (!imported) {
                                     throw new RubyToBlocksConverterError(
                                         stmt,
-                                        this._translator(messages.undefinedModule, {NAME: moduleName})
+                                        this._translator(messages.undefinedModule, { NAME: moduleName }),
                                     );
                                 }
                             }
@@ -231,7 +234,7 @@ const ClassVisitor = {
                         let foundModule = null;
                         for (const moduleName of includedModuleNames) {
                             const moduleDef = this._context.modules[moduleName];
-                            if (moduleDef && moduleDef.methods.some(m => m.name === methodName)) {
+                            if (moduleDef && moduleDef.methods.some((m) => m.name === methodName)) {
                                 foundModule = moduleName;
                                 break;
                             }
@@ -240,7 +243,7 @@ const ClassVisitor = {
                             const index = Object.keys(superMethodMap).length + 1;
                             superMethodMap[methodName] = {
                                 moduleName: foundModule,
-                                renamedProcName: `_super_${methodName}_${index}_`
+                                renamedProcName: `_super_${methodName}_${index}_`,
                             };
                         }
                     }
@@ -250,19 +253,16 @@ const ClassVisitor = {
         this._context.superMethodMap = superMethodMap;
 
         // Mutual exclusion: set_sprite cannot be used with set_costumes/set_sounds (sprite only)
-        const has = prop => Object.prototype.hasOwnProperty.call(classInfo, prop);
+        const has = (prop) => Object.prototype.hasOwnProperty.call(classInfo, prop);
         if (!isStageClass && has('sprite') && (has('costumes') || has('sounds'))) {
-            throw new RubyToBlocksConverterError(
-                node,
-                this._translator(messages.spriteAndCostumesSoundsExclusive)
-            );
+            throw new RubyToBlocksConverterError(node, this._translator(messages.spriteAndCostumesSoundsExclusive));
         }
 
         // Validate library names
         if (has('sprite') && !spriteLibraryNames.has(classInfo.sprite)) {
             throw new RubyToBlocksConverterError(
                 node,
-                this._translator(messages.invalidSpriteName, {NAME: classInfo.sprite})
+                this._translator(messages.invalidSpriteName, { NAME: classInfo.sprite }),
             );
         }
         if (has('costumes') && Array.isArray(classInfo.costumes)) {
@@ -270,7 +270,7 @@ const ClassVisitor = {
                 if (!costumeLibraryNames.has(name)) {
                     throw new RubyToBlocksConverterError(
                         node,
-                        this._translator(messages.invalidCostumeName, {NAME: name})
+                        this._translator(messages.invalidCostumeName, { NAME: name }),
                     );
                 }
             }
@@ -280,7 +280,7 @@ const ClassVisitor = {
                 if (!backdropLibraryNames.has(name)) {
                     throw new RubyToBlocksConverterError(
                         node,
-                        this._translator(messages.invalidBackdropName, {NAME: name})
+                        this._translator(messages.invalidBackdropName, { NAME: name }),
                     );
                 }
             }
@@ -290,7 +290,7 @@ const ClassVisitor = {
                 if (!soundLibraryNames.has(name)) {
                     throw new RubyToBlocksConverterError(
                         node,
-                        this._translator(messages.invalidSoundName, {NAME: name})
+                        this._translator(messages.invalidSoundName, { NAME: name }),
                     );
                 }
             }
@@ -298,8 +298,7 @@ const ClassVisitor = {
 
         // Collect attribute names for comment
         const attributeNames = Object.keys(classInfo);
-        if (!isSpriteIndexName && !isStageClass &&
-            !Object.prototype.hasOwnProperty.call(classInfo, 'name')) {
+        if (!isSpriteIndexName && !isStageClass && !Object.prototype.hasOwnProperty.call(classInfo, 'name')) {
             attributeNames.push('name');
         }
         // Sort by canonical order
@@ -320,7 +319,7 @@ const ClassVisitor = {
             commentParts.push(`<=${encodedSuperclass}`);
         }
         if (attributeNames.length > 0) {
-            attributeNames.forEach(attr => {
+            attributeNames.forEach((attr) => {
                 if (attr === 'name' && !isSpriteIndexName && !isStageClass) {
                     commentParts.push(`name=${className}`);
                 } else if (attr === 'sprite') {
@@ -342,7 +341,7 @@ const ClassVisitor = {
         }
 
         // Add include= parts for each included module (in order)
-        includedModuleNames.forEach(moduleName => {
+        includedModuleNames.forEach((moduleName) => {
             commentParts.push(`include=${moduleName}`);
         });
 
@@ -355,8 +354,7 @@ const ClassVisitor = {
 
         // Store class info in context
         if (attributeNames.length > 0) {
-            if (!Object.prototype.hasOwnProperty.call(classInfo, 'name') &&
-                !isSpriteIndexName && !isStageClass) {
+            if (!Object.prototype.hasOwnProperty.call(classInfo, 'name') && !isSpriteIndexName && !isStageClass) {
                 classInfo.name = className;
             }
             this._context.classInfo = classInfo;
@@ -387,14 +385,11 @@ const ClassVisitor = {
                             // Attach comment with super_of info if renamed
                             let moduleCommentText;
                             if (superEntry && superEntry.moduleName === moduleName) {
-                                moduleCommentText =
-                                    `@ruby:module_source:${moduleName}:super_of:${originalMethodName}`;
+                                moduleCommentText = `@ruby:module_source:${moduleName}:super_of:${originalMethodName}`;
                             } else {
                                 moduleCommentText = `@ruby:module_source:${moduleName}`;
                             }
-                            const commentId = this._createComment(
-                                moduleCommentText, b.id, 0, 0, true
-                            );
+                            const commentId = this._createComment(moduleCommentText, b.id, 0, 0, true);
                             b.comment = commentId;
                         }
                     }
@@ -417,10 +412,8 @@ const ClassVisitor = {
 
         // Visit class body, filtering out set_xxx calls, include statements, and def initialize
         if (node.body && node.body.body) {
-            const filteredStatements = node.body.body.filter(stmt => {
-                if (this._getNodeTypeName(stmt) === 'CallNode' &&
-                    setMethodNames.has(stmt.name) &&
-                    !stmt.receiver) {
+            const filteredStatements = node.body.body.filter((stmt) => {
+                if (this._getNodeTypeName(stmt) === 'CallNode' && setMethodNames.has(stmt.name) && !stmt.receiver) {
                     return false;
                 }
                 // Filter out include statements (already processed above)
@@ -449,7 +442,7 @@ const ClassVisitor = {
                 this._context.methodCallIndices = {};
                 const block = this.visit(stmt);
                 if (Array.isArray(block)) {
-                    block.forEach(b => {
+                    block.forEach((b) => {
                         blocks.push(b);
                         blockToStmt.set(b, stmt);
                     });
@@ -468,10 +461,7 @@ const ClassVisitor = {
                     const src = this._truncateSource(this._getSource(errorNode));
                     throw new RubyToBlocksConverterError(
                         errorNode,
-                        this._translator(
-                            messages.wrongInstructionInClass,
-                            {SOURCE: src}
-                        )
+                        this._translator(messages.wrongInstructionInClass, { SOURCE: src }),
                     );
                 }
             }
@@ -486,43 +476,43 @@ const ClassVisitor = {
      * @param {object} argNode - AST node representing the argument
      * @returns {number|string|boolean|Array|null} The extracted value, or null if not supported
      */
-    _extractClassMethodArg (argNode) {
+    _extractClassMethodArg(argNode) {
         const type = this._getNodeTypeName(argNode);
         switch (type) {
-        case 'StringNode': {
-            const unescaped = argNode.unescaped;
-            return typeof unescaped === 'object' ? unescaped.value : unescaped;
-        }
-        case 'IntegerNode':
-            return argNode.value;
-        case 'FloatNode':
-            return argNode.value;
-        case 'TrueNode':
-            return true;
-        case 'FalseNode':
-            return false;
-        case 'CallNode':
-            // Handle unary minus: e.g., -50
-            if (argNode.name === '-@' && argNode.receiver) {
-                const innerValue = this._extractClassMethodArg(argNode.receiver);
-                if (typeof innerValue === 'number') {
-                    return -innerValue;
+            case 'StringNode': {
+                const unescaped = argNode.unescaped;
+                return typeof unescaped === 'object' ? unescaped.value : unescaped;
+            }
+            case 'IntegerNode':
+                return argNode.value;
+            case 'FloatNode':
+                return argNode.value;
+            case 'TrueNode':
+                return true;
+            case 'FalseNode':
+                return false;
+            case 'CallNode':
+                // Handle unary minus: e.g., -50
+                if (argNode.name === '-@' && argNode.receiver) {
+                    const innerValue = this._extractClassMethodArg(argNode.receiver);
+                    if (typeof innerValue === 'number') {
+                        return -innerValue;
+                    }
                 }
+                return null;
+            case 'ArrayNode': {
+                const elements = argNode.elements;
+                if (!elements || elements.length === 0) return null;
+                const result = [];
+                for (const elem of elements) {
+                    const val = this._extractClassMethodArg(elem);
+                    if (val === null) return null;
+                    result.push(val);
+                }
+                return result;
             }
-            return null;
-        case 'ArrayNode': {
-            const elements = argNode.elements;
-            if (!elements || elements.length === 0) return null;
-            const result = [];
-            for (const elem of elements) {
-                const val = this._extractClassMethodArg(elem);
-                if (val === null) return null;
-                result.push(val);
-            }
-            return result;
-        }
-        default:
-            return null;
+            default:
+                return null;
         }
     },
 
@@ -531,7 +521,7 @@ const ClassVisitor = {
      * @param {object} node - AST node to search
      * @returns {boolean} true if super is found
      */
-    _nodeContainsSuper (node) {
+    _nodeContainsSuper(node) {
         if (!node) return false;
         const typeName = this._getNodeTypeName(node);
         if (typeName === 'SuperNode' || typeName === 'ForwardingSuperNode') {
@@ -545,7 +535,7 @@ const ClassVisitor = {
             }
         }
         return false;
-    }
+    },
 };
 
 export default ClassVisitor;

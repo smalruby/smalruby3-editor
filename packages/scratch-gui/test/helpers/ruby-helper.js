@@ -1,11 +1,11 @@
 import bindAll from 'lodash.bindall';
 import webdriver from 'selenium-webdriver';
-import {EDIT_MENU_XPATH} from './menu-xpaths';
+import { EDIT_MENU_XPATH } from './menu-xpaths';
 
-const {By, until} = webdriver;
+const { By, until } = webdriver;
 
 class RubyHelper {
-    constructor (seleniumHelper) {
+    constructor(seleniumHelper) {
         bindAll(this, [
             'fillInRubyProgram',
             'currentRubyProgram',
@@ -14,7 +14,7 @@ class RubyHelper {
             'waitForErrorOnLine',
             'waitForNoErrors',
             'dismissAlertsIfPresent',
-            'expectInterconvertBetweenCodeAndRuby'
+            'expectInterconvertBetweenCodeAndRuby',
         ]);
 
         this.seleniumHelper = seleniumHelper;
@@ -22,26 +22,32 @@ class RubyHelper {
         this.clickXpath = seleniumHelper.clickXpath;
     }
 
-    get driver () {
+    get driver() {
         return this.seleniumHelper.driver;
     }
 
-    currentRubyProgram () {
+    currentRubyProgram() {
         return this.driver.executeScript(`return window.monacoEditor.getValue();`);
     }
 
-    async fillInRubyProgram (code) {
+    async fillInRubyProgram(code) {
         // Wait for monacoEditor to be available
-        await this.driver.wait(async () => {
-            const available = await this.driver.executeScript('return typeof window.monacoEditor !== "undefined";');
-            return available;
-        }, 10000, 'monacoEditor did not become available');
+        await this.driver.wait(
+            async () => {
+                const available = await this.driver.executeScript(
+                    'return typeof window.monacoEditor !== "undefined";',
+                );
+                return available;
+            },
+            10000,
+            'monacoEditor did not become available',
+        );
 
         code = code.replace(/\n/g, '\\n').replace(/'/g, "\\'");
         return this.driver.executeScript(`window.monacoEditor.setValue('${code}');`);
     }
 
-    getErrors () {
+    getErrors() {
         return this.driver.executeScript(`
             return window.monaco.editor.getModelMarkers({}).map(m => ({
                 line: m.startLineNumber,
@@ -52,30 +58,30 @@ class RubyHelper {
         `);
     }
 
-    async getErrorOnLine (line) {
+    async getErrorOnLine(line) {
         const errors = await this.getErrors();
-        return errors.find(e => e.line === line);
+        return errors.find((e) => e.line === line);
     }
 
-    async waitForErrorOnLine (line) {
+    async waitForErrorOnLine(line) {
         return this.driver.wait(async () => {
             const error = await this.getErrorOnLine(line);
             return !!error;
         }, 5000);
     }
 
-    async waitForNoErrors () {
+    async waitForNoErrors() {
         return this.driver.wait(async () => {
             const errors = await this.getErrors();
             return errors.length === 0;
         }, 5000);
     }
 
-    async dismissAlertsIfPresent () {
+    async dismissAlertsIfPresent() {
         try {
             // Find and dismiss any alert messages that have close buttons
             const alertCloseButtons = await this.driver.findElements(
-                By.xpath('//div[contains(@class, "alert_alert-close-button")]')
+                By.xpath('//div[contains(@class, "alert_alert-close-button")]'),
             );
             for (const button of alertCloseButtons) {
                 if (await button.isDisplayed()) {
@@ -88,7 +94,7 @@ class RubyHelper {
         }
     }
 
-    async expectInterconvertBetweenCodeAndRuby (inputCode, expectedCode = null) {
+    async expectInterconvertBetweenCodeAndRuby(inputCode, expectedCode = null) {
         await this.clickText('Ruby', '*[@role="tab"]');
         await this.fillInRubyProgram(inputCode);
         await this.clickText('Code', '*[@role="tab"]');

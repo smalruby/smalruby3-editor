@@ -11,7 +11,6 @@
 // design discussion. After turn-around (blocks → Ruby → DNCL) the
 // output is allowed to be the Smalruby DNCL form (i.e. NOT preserve
 // `(N)`, `｜`, `⎿`, trailing `:` — those are unidirectional).
-
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { dnclV2Preprocess } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
 

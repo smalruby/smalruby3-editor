@@ -11,7 +11,7 @@ const LineMappingUtils = {
      * @param {number} lineNumber - Line number (1-indexed)
      * @returns {string|null} Block ID or null if not found
      */
-    getBlockIdForLine (lineNumber) {
+    getBlockIdForLine(lineNumber) {
         const entry = this._context.lineToNodeMap.get(lineNumber);
 
         if (!entry) {
@@ -61,7 +61,7 @@ const LineMappingUtils = {
      * @param {number} lineNumber - Line number to search for
      * @returns {{node: object, depth: number}|null} Entry with node and depth, or null
      */
-    _findContainingNode (lineNumber) {
+    _findContainingNode(lineNumber) {
         let bestMatchNode = null;
         let bestMatchStartLine = null;
         let bestMatchEndLine = null;
@@ -74,17 +74,21 @@ const LineMappingUtils = {
                 const endLine = this._getNodeEndLine(node) || startLine;
 
                 // Check if this node's range contains the target line
-                if (startLine !== null && typeof startLine !== 'undefined' &&
-                    endLine !== null && typeof endLine !== 'undefined' &&
-                    startLine <= lineNumber && lineNumber <= endLine) {
+                if (
+                    startLine !== null &&
+                    typeof startLine !== 'undefined' &&
+                    endLine !== null &&
+                    typeof endLine !== 'undefined' &&
+                    startLine <= lineNumber &&
+                    lineNumber <= endLine
+                ) {
                     // Keep the shallowest (smallest range) matching node
                     // If multiple nodes have same range, keep first found
                     const range = endLine - startLine;
-                    const currentBestRange = bestMatchEndLine === null ? Infinity :
-                        bestMatchEndLine - bestMatchStartLine;
+                    const currentBestRange =
+                        bestMatchEndLine === null ? Infinity : bestMatchEndLine - bestMatchStartLine;
 
-                    if (range < currentBestRange ||
-                        (range === currentBestRange && startLine < bestMatchStartLine)) {
+                    if (range < currentBestRange || (range === currentBestRange && startLine < bestMatchStartLine)) {
                         bestMatchNode = node;
                         bestMatchStartLine = startLine;
                         bestMatchEndLine = endLine;
@@ -94,7 +98,7 @@ const LineMappingUtils = {
         }
 
         if (bestMatchNode) {
-            return {node: bestMatchNode, depth: 0};
+            return { node: bestMatchNode, depth: 0 };
         }
 
         return null;
@@ -106,7 +110,7 @@ const LineMappingUtils = {
      * @param {number} lineNumber - Line number to start searching from
      * @returns {number|null} Nearest executable line number, or null if not found
      */
-    _findNearestExecutableLine (lineNumber) {
+    _findNearestExecutableLine(lineNumber) {
         // Search backwards from the line before the target
         for (let line = lineNumber - 1; line >= 1; line--) {
             const entry = this._context.lineToNodeMap.get(line);
@@ -133,7 +137,7 @@ const LineMappingUtils = {
      * @param {object} blocks - Blocks object from VM target
      * @returns {{startLine: number, endLine: number}|null} Line range or null if not found
      */
-    getLineRangeForTopLevelScript (topBlockId, blocks) {
+    getLineRangeForTopLevelScript(topBlockId, blocks) {
         if (!topBlockId || !blocks) return null;
 
         let minLine = Infinity;
@@ -141,7 +145,7 @@ const LineMappingUtils = {
         let foundAny = false;
 
         // Traverse all blocks in the script
-        const visitBlock = blockId => {
+        const visitBlock = (blockId) => {
             if (!blockId) return;
 
             const block = blocks.getBlock ? blocks.getBlock(blockId) : blocks[blockId];
@@ -153,8 +157,12 @@ const LineMappingUtils = {
                         const startLine = this._getNodeStartLine(node);
                         const endLine = this._getNodeEndLine(node) || startLine;
 
-                        if (startLine !== null && typeof startLine !== 'undefined' &&
-                            endLine !== null && typeof endLine !== 'undefined') {
+                        if (
+                            startLine !== null &&
+                            typeof startLine !== 'undefined' &&
+                            endLine !== null &&
+                            typeof endLine !== 'undefined'
+                        ) {
                             minLine = Math.min(minLine, startLine);
                             maxLine = Math.max(maxLine, endLine);
                             foundAny = true;
@@ -187,7 +195,7 @@ const LineMappingUtils = {
             let bestContainerSize = Infinity;
 
             if (this._context.containerNodeRanges) {
-                this._context.containerNodeRanges.forEach(container => {
+                this._context.containerNodeRanges.forEach((container) => {
                     // Only consider 'BlockNode' type containers (do...end blocks)
                     // Skip others as they are often too broad
                     if (container.type !== 'BlockNode') {
@@ -209,11 +217,11 @@ const LineMappingUtils = {
                 }
             }
 
-            return {startLine: minLine, endLine: maxLine};
+            return { startLine: minLine, endLine: maxLine };
         }
 
         return null;
-    }
+    },
 };
 
 export default LineMappingUtils;

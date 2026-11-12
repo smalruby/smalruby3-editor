@@ -2,25 +2,21 @@
 const log = require('../../util/log');
 const debugLogger = require('../../util/debug-logger');
 const debug = debugLogger(process.env.DEBUG);
-const {getClient} = require('./mesh-client');
+const { getClient } = require('./mesh-client');
 const RateLimiter = require('./rate-limiter');
-const {
-    LIST_GROUPS_BY_DOMAIN,
-    SEARCH_GROUPS_BY_NAME_PREFIX,
-    LIST_NODES_IN_GROUP
-} = require('./gql-operations');
+const { LIST_GROUPS_BY_DOMAIN, SEARCH_GROUPS_BY_NAME_PREFIX, LIST_NODES_IN_GROUP } = require('./gql-operations');
 
-const {getForcePollingFromUrl} = require('./utils');
+const { getForcePollingFromUrl } = require('./utils');
 
-const {NetworkFilterMixin} = require('./network-filter');
-const {PeriodicSyncMixin} = require('./periodic-sync');
-const {PollingClientMixin} = require('./polling-client');
-const {SubscriptionManagerMixin} = require('./subscription-manager');
-const {HeartbeatManagerMixin} = require('./heartbeat-manager');
-const {DataSenderMixin} = require('./data-sender');
-const {BroadcastReceiverMixin} = require('./broadcast-receiver');
-const {EventSenderMixin} = require('./event-sender');
-const {GroupLifecycleMixin} = require('./group-lifecycle');
+const { NetworkFilterMixin } = require('./network-filter');
+const { PeriodicSyncMixin } = require('./periodic-sync');
+const { PollingClientMixin } = require('./polling-client');
+const { SubscriptionManagerMixin } = require('./subscription-manager');
+const { HeartbeatManagerMixin } = require('./heartbeat-manager');
+const { DataSenderMixin } = require('./data-sender');
+const { BroadcastReceiverMixin } = require('./broadcast-receiver');
+const { EventSenderMixin } = require('./event-sender');
+const { GroupLifecycleMixin } = require('./group-lifecycle');
 
 /**
  * Parses an environment variable as an integer with validation.
@@ -41,7 +37,7 @@ const parseEnvInt = (envVar, defaultValue, min = 0, max = Infinity) => {
 
 /* istanbul ignore next */
 class MeshV2Service {
-    constructor (blocks, meshId, domain) {
+    constructor(blocks, meshId, domain) {
         debug(() => 'Initializing MeshV2Service (GraphQL)');
         this.blocks = blocks;
         this.runtime = blocks.runtime;
@@ -81,12 +77,12 @@ class MeshV2Service {
             process.env.MESH_DATA_UPDATE_INTERVAL_MS,
             1000, // default
             100, // min: 100ms
-            10000 // max: 10 seconds
+            10000, // max: 10 seconds
         );
         log.info(`Mesh V2: Data update interval set to ${dataInterval}ms`);
         this.dataRateLimiter = new RateLimiter(dataInterval, {
             enableMerge: true,
-            mergeKeyField: 'key'
+            mergeKeyField: 'key',
         });
 
         // Event queue for batch sending: { eventName, payload, firedAt } の配列
@@ -96,7 +92,7 @@ class MeshV2Service {
             process.env.MESH_EVENT_BATCH_INTERVAL_MS,
             1000, // default
             100, // min: 100ms
-            10000 // max: 10 seconds
+            10000, // max: 10 seconds
         );
         log.info(`Mesh V2: Event batch interval set to ${this.eventBatchInterval}ms`);
         this.eventBatchTimer = null;
@@ -106,7 +102,7 @@ class MeshV2Service {
             process.env.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS,
             15000, // default
             1000, // min: 1 second
-            3600000 // max: 1 hour
+            3600000, // max: 1 hour
         );
         log.info(`Mesh V2: Periodic data sync interval set to ${this.periodicDataSyncInterval}ms`);
 
@@ -115,7 +111,7 @@ class MeshV2Service {
         this.eventQueueStats = {
             duplicatesSkipped: 0,
             dropped: 0,
-            lastReportTime: Date.now()
+            lastReportTime: Date.now(),
         };
 
         // issue #556: orderKey 生成用のシーケンスカウンタ。
@@ -168,22 +164,22 @@ class MeshV2Service {
             leaveCount: 0, // LEAVE_GROUP or DISSOLVE_GROUP
             dataUpdateReceived: 0, // ON_DATA_UPDATE
             batchEventReceived: 0, // ON_BATCH_EVENT
-            dissolveReceived: 0 // ON_GROUP_DISSOLVE
+            dissolveReceived: 0, // ON_GROUP_DISSOLVE
         };
     }
 
-    setDisconnectCallback (callback) {
+    setDisconnectCallback(callback) {
         this.disconnectCallback = callback;
     }
 
-    cleanupAndDisconnect (reason = 'unknown') {
+    cleanupAndDisconnect(reason = 'unknown') {
         this.cleanup();
         if (this.disconnectCallback) {
             this.disconnectCallback(reason);
         }
     }
 
-    async listGroups () {
+    async listGroups() {
         if (!this.client) throw new Error('Client not initialized');
 
         try {
@@ -198,9 +194,9 @@ class MeshV2Service {
             const result = await this.client.query({
                 query: LIST_GROUPS_BY_DOMAIN,
                 variables: {
-                    domain: this.domain
+                    domain: this.domain,
                 },
-                fetchPolicy: 'network-only'
+                fetchPolicy: 'network-only',
             });
 
             const groups = result.data.listGroupsByDomain;
@@ -213,15 +209,15 @@ class MeshV2Service {
         }
     }
 
-    async searchGroupsByNamePrefix (namePrefix) {
+    async searchGroupsByNamePrefix(namePrefix) {
         if (!this.client) throw new Error('Client not initialized');
 
         try {
             this.costTracking.queryCount++;
             const result = await this.client.query({
                 query: SEARCH_GROUPS_BY_NAME_PREFIX,
-                variables: {namePrefix, limit: 10},
-                fetchPolicy: 'network-only'
+                variables: { namePrefix, limit: 10 },
+                fetchPolicy: 'network-only',
             });
 
             return result.data.searchGroupsByNamePrefix;
@@ -237,7 +233,7 @@ class MeshV2Service {
      * @param {string} [domain] - domain (default: the current domain).
      * @returns {Promise<Array<object>>} nodes (`id` carries the seat suffix in a class).
      */
-    async listNodesInGroup (groupId = this.groupId, domain = this.domain) {
+    async listNodesInGroup(groupId = this.groupId, domain = this.domain) {
         if (!this.client) throw new Error('Client not initialized');
         if (!groupId || !domain) return [];
 
@@ -245,8 +241,8 @@ class MeshV2Service {
             this.costTracking.queryCount++;
             const result = await this.client.query({
                 query: LIST_NODES_IN_GROUP,
-                variables: {groupId, domain},
-                fetchPolicy: 'network-only'
+                variables: { groupId, domain },
+                fetchPolicy: 'network-only',
             });
             return result.data.listNodesInGroup || [];
         } catch (error) {
@@ -255,7 +251,7 @@ class MeshV2Service {
         }
     }
 
-    cleanup () {
+    cleanup() {
         // コスト計算とログ出力
         if (this.costTracking.connectionStartTime) {
             const connectionDurationSeconds = (Date.now() - this.costTracking.connectionStartTime) / 1000;
@@ -273,8 +269,8 @@ class MeshV2Service {
             // Subscription connection cost: $0.00000008 per connection-minute (1 subscription)
             const connectionCost = connectionDurationMinutes * 0.00000008;
 
-            const totalCost = queryCost + mutationCost + dataUpdateCost + batchEventCost +
-                dissolveCost + connectionCost;
+            const totalCost =
+                queryCost + mutationCost + dataUpdateCost + batchEventCost + dissolveCost + connectionCost;
 
             log.info(`Mesh V2: Cost Summary for ${connectionDurationMinutes.toFixed(2)} minutes connection`);
             log.info(`  Role: ${this.isHost ? 'Host' : 'Member'}`);
@@ -285,26 +281,38 @@ class MeshV2Service {
             log.info(`    - FIRE_EVENTS: ${this.costTracking.fireEventsCount}`);
             log.info(`    - LEAVE/DISSOLVE: ${this.costTracking.leaveCount}`);
             log.info(`  Subscription Messages:`);
-            log.info(`    - Data Updates: ${this.costTracking.dataUpdateReceived} msgs = ` +
-                `$${dataUpdateCost.toFixed(8)}`);
-            log.info(`    - Batch Events: ${this.costTracking.batchEventReceived} msgs = ` +
-                `$${batchEventCost.toFixed(8)}`);
-            log.info(`    - Dissolve: ${this.costTracking.dissolveReceived} msgs = ` +
-                `$${dissolveCost.toFixed(8)}`);
-            log.info(`  Subscription Connection: ${connectionDurationMinutes.toFixed(2)} min × 1 = ` +
-                `$${connectionCost.toFixed(8)}`);
-            log.info(`  TOTAL ESTIMATED COST: $${totalCost.toFixed(8)} ` +
-                `(${(totalCost * 1000000).toFixed(2)} per million operations equivalent)`);
+            log.info(
+                `    - Data Updates: ${this.costTracking.dataUpdateReceived} msgs = ` +
+                    `$${dataUpdateCost.toFixed(8)}`,
+            );
+            log.info(
+                `    - Batch Events: ${this.costTracking.batchEventReceived} msgs = ` +
+                    `$${batchEventCost.toFixed(8)}`,
+            );
+            log.info(`    - Dissolve: ${this.costTracking.dissolveReceived} msgs = ` + `$${dissolveCost.toFixed(8)}`);
+            log.info(
+                `  Subscription Connection: ${connectionDurationMinutes.toFixed(2)} min × 1 = ` +
+                    `$${connectionCost.toFixed(8)}`,
+            );
+            log.info(
+                `  TOTAL ESTIMATED COST: $${totalCost.toFixed(8)} ` +
+                    `(${(totalCost * 1000000).toFixed(2)} per million operations equivalent)`,
+            );
             log.info(`  Average cost per second: $${(totalCost / connectionDurationSeconds).toFixed(10)}`);
             this.costTracking.connectionStartTime = null;
         }
 
         // 統計情報を出力
-        if (this.eventQueueStats &&
-            (this.eventQueueStats.duplicatesSkipped > 0 || this.eventQueueStats.dropped > 0)) {
-            debug(() => `Mesh V2: Final Event Queue Stats: ` +
-                `duplicates skipped=${this.eventQueueStats.duplicatesSkipped}, ` +
-                `dropped=${this.eventQueueStats.dropped}`);
+        if (
+            this.eventQueueStats &&
+            (this.eventQueueStats.duplicatesSkipped > 0 || this.eventQueueStats.dropped > 0)
+        ) {
+            debug(
+                () =>
+                    `Mesh V2: Final Event Queue Stats: ` +
+                    `duplicates skipped=${this.eventQueueStats.duplicatesSkipped}, ` +
+                    `dropped=${this.eventQueueStats.dropped}`,
+            );
         }
 
         // キューをクリア
@@ -326,7 +334,6 @@ class MeshV2Service {
         this.lastSentData = {};
         this.latestQueuedData = {};
     }
-
 }
 
 // Mixins: split responsibilities into separate files for maintainability.

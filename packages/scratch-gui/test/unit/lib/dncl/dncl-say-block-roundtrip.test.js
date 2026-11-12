@@ -20,7 +20,6 @@
 // 秒数の扱い:
 //   DNCL では秒数を表現しない。Block ↔ Ruby は秒数を保持するが、
 //   DNCL を経由すると秒数情報は失われる (1 秒のデフォルトに戻る)。
-
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 
@@ -44,17 +43,13 @@ describe('Display matrix: Ruby say(...) → DNCL 表示する (秒数無視)', (
         // The reported bug case: var + string concat with secs=2.
         // The Ruby side keeps the `+` chain because operands are not all
         // string-literal-or-.to_s, so flattening doesn't apply.
-        expect(rToD('say(@変数 + "バナナ", 2)')).toBe(
-            '表示する(変数 + "バナナ")',
-        );
+        expect(rToD('say(@変数 + "バナナ", 2)')).toBe('表示する(変数 + "バナナ")');
     });
 
     test('say(arg.to_s + "x" + arg2.to_s, 3) → 表示する(arg, "x", arg2)', () => {
         // All operands are display fragments (.to_s or string literal),
         // so flatten + unwrap applies.
-        expect(rToD('say(@a.to_s + "x" + @b.to_s, 3)')).toBe(
-            '表示する(a, "x", b)',
-        );
+        expect(rToD('say(@a.to_s + "x" + @b.to_s, 3)')).toBe('表示する(a, "x", b)');
     });
 });
 
@@ -70,9 +65,7 @@ describe('Display matrix: DNCL 表示する → Ruby puts (不可逆)', () => {
     });
 
     test('表示する(a, "は", b) → puts(@a.to_s + "は" + @b.to_s)', () => {
-        expect(dToR('表示する(a, "は", b)')).toBe(
-            'puts(@a.to_s + "は" + @b.to_s)',
-        );
+        expect(dToR('表示する(a, "は", b)')).toBe('puts(@a.to_s + "は" + @b.to_s)');
     });
 });
 

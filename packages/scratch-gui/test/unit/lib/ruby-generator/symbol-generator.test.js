@@ -1,13 +1,13 @@
 import RubyGenerator from '../../../../src/lib/ruby-generator';
 import DataBlocks from '../../../../src/lib/ruby-generator/data';
-import OperatorsBlocks from '../../../../src/lib/ruby-generator/operators';
 import LooksBlocks from '../../../../src/lib/ruby-generator/looks';
+import OperatorsBlocks from '../../../../src/lib/ruby-generator/operators';
 
 describe('RubyGenerator/Symbol', () => {
     beforeEach(() => {
         RubyGenerator.cache_ = {
             comments: {},
-            targetCommentTexts: []
+            targetCommentTexts: [],
         };
         RubyGenerator.definitions_ = {};
         RubyGenerator.functionNames_ = {};
@@ -24,13 +24,13 @@ describe('RubyGenerator/Symbol', () => {
                 id: 'block-id',
                 opcode: 'data_itemnumoflist',
                 fields: {
-                    LIST: {id: 'list-id', value: '_symbols_'}
+                    LIST: { id: 'list-id', value: '_symbols_' },
                 },
                 inputs: {
-                    ITEM: {block: 'item-block-id'}
-                }
+                    ITEM: { block: 'item-block-id' },
+                },
             };
-            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:symbol:foo'};
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:symbol:foo' };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('":foo"');
             RubyGenerator.getFieldId = jest.fn().mockReturnValue('list-id');
             RubyGenerator.variableName = jest.fn().mockReturnValue('$_symbols_');
@@ -44,11 +44,11 @@ describe('RubyGenerator/Symbol', () => {
                 id: 'block-id',
                 opcode: 'data_itemnumoflist',
                 fields: {
-                    LIST: {id: 'list-id', value: 'my_list'}
+                    LIST: { id: 'list-id', value: 'my_list' },
                 },
                 inputs: {
-                    ITEM: {block: 'item-block-id'}
-                }
+                    ITEM: { block: 'item-block-id' },
+                },
             };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('"thing"');
             RubyGenerator.getFieldId = jest.fn().mockReturnValue('list-id');
@@ -66,10 +66,10 @@ describe('RubyGenerator/Symbol', () => {
                 opcode: 'operator_join',
                 inputs: {
                     STRING1: {},
-                    STRING2: {}
-                }
+                    STRING2: {},
+                },
             };
-            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:symbol:foo'};
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:symbol:foo' };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('"foo"');
 
             const result = RubyGenerator.operator_join(block);
@@ -83,10 +83,10 @@ describe('RubyGenerator/Symbol', () => {
                 id: 'block-id',
                 opcode: 'looks_say',
                 inputs: {
-                    MESSAGE: {}
-                }
+                    MESSAGE: {},
+                },
             };
-            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:symbol:foo'};
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:symbol:foo' };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('"foo"');
 
             const result = RubyGenerator.looks_say(block);
@@ -98,8 +98,8 @@ describe('RubyGenerator/Symbol', () => {
                 id: 'block-id',
                 opcode: 'looks_say',
                 inputs: {
-                    MESSAGE: {}
-                }
+                    MESSAGE: {},
+                },
             };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('"hello"');
 
@@ -114,10 +114,10 @@ describe('RubyGenerator/Symbol', () => {
                 id: 'block-id',
                 opcode: 'looks_think',
                 inputs: {
-                    MESSAGE: {}
-                }
+                    MESSAGE: {},
+                },
             };
-            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:symbol:foo'};
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:symbol:foo' };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('"foo"');
 
             const result = RubyGenerator.looks_think(block);
@@ -131,13 +131,13 @@ describe('RubyGenerator/Symbol', () => {
                 id: 'block-id',
                 opcode: 'data_itemoflist',
                 fields: {
-                    LIST: {id: 'list-id', value: '_symbols_'}
+                    LIST: { id: 'list-id', value: '_symbols_' },
                 },
                 inputs: {
-                    INDEX: {block: 'index-block-id'}
-                }
+                    INDEX: { block: 'index-block-id' },
+                },
             };
-            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:symbol:var'};
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:symbol:var' };
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('$a');
 
             const result = RubyGenerator.data_itemoflist(block);

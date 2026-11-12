@@ -14,13 +14,11 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
-
-import { GRADE_ORDER, combineOverall } from '../../lib/classroom-evaluation/evaluation-utils.js';
-
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import { GRADE_ORDER, combineOverall } from '../../lib/classroom-evaluation/evaluation-utils.js';
 import ClassroomButton from './classroom-button.jsx';
-import { TeacherScreen } from './teacher-view-layout.jsx';
 import styles from './classroom-modal.css';
+import { TeacherScreen } from './teacher-view-layout.jsx';
 
 const GRADES = [...GRADE_ORDER].reverse(); // S, A, B, C
 
@@ -42,7 +40,6 @@ const STRICTNESS_MESSAGES = defineMessages({
         id: 'gui.classroom.evaluation.strictnessStrict',
     },
 });
-
 
 /**
  * Which step of the grading flow the teacher is on (#1304 V1).
@@ -282,9 +279,7 @@ const TeacherEvaluation = ({
     );
     // 表に出ている席 × 選んだ課題だけを数える (読み込み直しても前回の下書きは state に残るため)。
     const hasComments = seats.some((seatNumber) =>
-        selectedLessons.some(
-            (lesson) => (comments[`${seatNumber}:${lesson.classroomId}`] || '').trim() !== '',
-        ),
+        selectedLessons.some((lesson) => (comments[`${seatNumber}:${lesson.classroomId}`] || '').trim() !== ''),
     );
     const step = currentEvalStep({ loaded, hasGrades, hasComments });
     const [hintOpen, setHintOpen] = useState(false);
@@ -298,7 +293,12 @@ const TeacherEvaluation = ({
     );
     const handleStrictnessChange = useCallback((e) => onSetStrictness(e.target.value), [onSetStrictness]);
     const handleAxisChange = useCallback(
-        (e) => onChangeRubricAxis(parseInt(e.currentTarget.dataset.index, 10), e.currentTarget.dataset.field, e.target.value),
+        (e) =>
+            onChangeRubricAxis(
+                parseInt(e.currentTarget.dataset.index, 10),
+                e.currentTarget.dataset.field,
+                e.target.value,
+            ),
         [onChangeRubricAxis],
     );
     const handleRunGrade = useCallback(() => onRunAi('grade'), [onRunAi]);
@@ -307,11 +307,7 @@ const TeacherEvaluation = ({
     /* キャンセルは左端。右に「書き出し ▾」と 1〜4 の手順（いまの手順だけ主ボタン）。 */
     const footer = (
         <>
-            <ClassroomButton
-                className={styles.evalCancel}
-                dataTestId="classroom-evaluation-cancel"
-                onClick={onBack}
-            >
+            <ClassroomButton className={styles.evalCancel} dataTestId="classroom-evaluation-cancel" onClick={onBack}>
                 <FormattedMessage
                     defaultMessage="Cancel"
                     description="Cancel button of the evaluation screen (returns to the class list)"
@@ -459,7 +455,6 @@ const TeacherEvaluation = ({
             testId="classroom-phase-teacher-evaluation"
             title={evalGroup ? formatClassLabel(evalGroup) : ''}
         >
-
             {/* Lesson selection */}
             <div className={styles.evalSection}>
                 <span className={styles.assignmentNameLabel}>
@@ -507,7 +502,9 @@ const TeacherEvaluation = ({
                     />
                 </span>
                 <span className={styles.evalSettingsValue}>
-                    {STRICTNESS_MESSAGES[strictness] ? intl.formatMessage(STRICTNESS_MESSAGES[strictness]) : strictness}
+                    {STRICTNESS_MESSAGES[strictness]
+                        ? intl.formatMessage(STRICTNESS_MESSAGES[strictness])
+                        : strictness}
                 </span>
                 <button
                     aria-expanded={settingsOpen}
@@ -636,9 +633,7 @@ const TeacherEvaluation = ({
                                 );
                                 return (
                                     <tr key={seatNumber}>
-                                        <td className={styles.evalSeatCell}>
-                                            {String(seatNumber).padStart(2, '0')}
-                                        </td>
+                                        <td className={styles.evalSeatCell}>{String(seatNumber).padStart(2, '0')}</td>
                                         {selectedLessons.map((lesson) => (
                                             <GradeCell
                                                 cell={getCell(seatNumber, lesson.classroomId)}
@@ -664,7 +659,6 @@ const TeacherEvaluation = ({
                     </table>
                 </div>
             )}
-
         </TeacherScreen>
     );
 };

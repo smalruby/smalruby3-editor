@@ -10,13 +10,12 @@ const toJson = function (o) {
 const expectToEqualFields = function (context, actualFields, expectedFieldsInfo) {
     expect(Object.keys(actualFields)).toHaveLength(expectedFieldsInfo ? expectedFieldsInfo.length : 0);
     if (expectedFieldsInfo) {
-        expectedFieldsInfo.forEach(expectedField => {
+        expectedFieldsInfo.forEach((expectedField) => {
             expect(actualFields).toHaveProperty(expectedField.name);
             const field = actualFields[expectedField.name];
 
             expect(field.name).toEqual(expectedField.name);
-            if (expectedField.hasOwnProperty('variable') ||
-                expectedField.hasOwnProperty('list')) {
+            if (expectedField.hasOwnProperty('variable') || expectedField.hasOwnProperty('list')) {
                 const s = expectedField.variable || expectedField.list;
                 let varName;
                 let scope;
@@ -85,7 +84,7 @@ const expectToEqualInputs = function (context, parent, actualInputs, expectedInp
     const blocks = context.blocks;
     expect(Object.keys(actualInputs)).toHaveLength(expectedInputsInfo ? expectedInputsInfo.length : 0);
     if (expectedInputsInfo) {
-        expectedInputsInfo.forEach(expectedInput => {
+        expectedInputsInfo.forEach((expectedInput) => {
             expect(actualInputs).toHaveProperty(expectedInput.name);
             const input = actualInputs[expectedInput.name];
 
@@ -113,63 +112,63 @@ const expectToEqualMutation = function (context, block, actualMutation, expected
     }
 
     const blocks = context.blocks;
-    Object.keys(expectedMutationInfo).forEach(key => {
+    Object.keys(expectedMutationInfo).forEach((key) => {
         switch (key) {
-        case 'arguments': {
-            const expectedArguments = expectedMutationInfo[key];
+            case 'arguments': {
+                const expectedArguments = expectedMutationInfo[key];
 
-            const argumentNames = expectedArguments.map(a => a.name);
-            expect(actualMutation).toHaveProperty('argumentnames', JSON.stringify(argumentNames));
+                const argumentNames = expectedArguments.map((a) => a.name);
+                expect(actualMutation).toHaveProperty('argumentnames', JSON.stringify(argumentNames));
 
-            const actualArgInputIds = JSON.parse(actualMutation.argumentids);
-            expect(actualArgInputIds).toHaveLength(expectedArguments.length);
+                const actualArgInputIds = JSON.parse(actualMutation.argumentids);
+                expect(actualArgInputIds).toHaveLength(expectedArguments.length);
 
-            const expectedArgDefaults = [];
-            actualArgInputIds.forEach((actualArgInputId, i) => {
-                const actualArgInput = block.inputs[actualArgInputId];
-                const expectedArgBlock = {
-                    opcode: `argument_reporter_${expectedArguments[i].type}`,
-                    fields: [
-                        {
-                            name: 'VALUE',
-                            value: expectedArguments[i].name
-                        }
-                    ],
-                    shadow: true
-                };
-                if (expectedArguments[i].type === 'string_number') {
-                    expectedArgDefaults.push('');
-                } else {
-                    expectedArgDefaults.push('false');
-                }
-                // eslint-disable-next-line no-use-before-define
-                expectToEqualBlock(context, block.id, blocks.getBlock(actualArgInput.block), expectedArgBlock);
-            });
-
-            expect(actualMutation).toHaveProperty('argumentdefaults', JSON.stringify(expectedArgDefaults));
-            break;
-        }
-        case 'argument_blocks': {
-            const actualArgInputIds = JSON.parse(actualMutation.argumentids);
-            actualArgInputIds.forEach((actualArgInputId, i) => {
-                const actualArgInput = block.inputs[actualArgInputId];
-                const expectedArgBlock = expectedMutationInfo[key][i];
-
-                expect(actualArgInput).toHaveProperty('name', actualArgInputId);
-                if (expectedArgBlock === false) {
-                    expect(actualArgInput.block).toEqual(null);
-                    expect(actualArgInput.shadow).toEqual(null);
-                } else {
-                    const actualArgBlock = blocks.getBlock(actualArgInput.block);
+                const expectedArgDefaults = [];
+                actualArgInputIds.forEach((actualArgInputId, i) => {
+                    const actualArgInput = block.inputs[actualArgInputId];
+                    const expectedArgBlock = {
+                        opcode: `argument_reporter_${expectedArguments[i].type}`,
+                        fields: [
+                            {
+                                name: 'VALUE',
+                                value: expectedArguments[i].name,
+                            },
+                        ],
+                        shadow: true,
+                    };
+                    if (expectedArguments[i].type === 'string_number') {
+                        expectedArgDefaults.push('');
+                    } else {
+                        expectedArgDefaults.push('false');
+                    }
                     // eslint-disable-next-line no-use-before-define
-                    expectToEqualBlock(context, block.id, actualArgBlock, expectedArgBlock);
-                }
-            });
-            expect(actualArgInputIds).toHaveLength(expectedMutationInfo[key].length);
-            break;
-        }
-        default:
-            expect(actualMutation).toHaveProperty(key, expectedMutationInfo[key]);
+                    expectToEqualBlock(context, block.id, blocks.getBlock(actualArgInput.block), expectedArgBlock);
+                });
+
+                expect(actualMutation).toHaveProperty('argumentdefaults', JSON.stringify(expectedArgDefaults));
+                break;
+            }
+            case 'argument_blocks': {
+                const actualArgInputIds = JSON.parse(actualMutation.argumentids);
+                actualArgInputIds.forEach((actualArgInputId, i) => {
+                    const actualArgInput = block.inputs[actualArgInputId];
+                    const expectedArgBlock = expectedMutationInfo[key][i];
+
+                    expect(actualArgInput).toHaveProperty('name', actualArgInputId);
+                    if (expectedArgBlock === false) {
+                        expect(actualArgInput.block).toEqual(null);
+                        expect(actualArgInput.shadow).toEqual(null);
+                    } else {
+                        const actualArgBlock = blocks.getBlock(actualArgInput.block);
+                        // eslint-disable-next-line no-use-before-define
+                        expectToEqualBlock(context, block.id, actualArgBlock, expectedArgBlock);
+                    }
+                });
+                expect(actualArgInputIds).toHaveLength(expectedMutationInfo[key].length);
+                break;
+            }
+            default:
+                expect(actualMutation).toHaveProperty(key, expectedMutationInfo[key]);
         }
     });
     expect(actualMutation).toHaveProperty('tagName', 'mutation');
@@ -202,7 +201,7 @@ const expectToEqualBlock = function (context, parent, actualBlock, expectedBlock
     expectToEqualMutation(context, block, blocks.getMutation(block), expected.mutation);
 
     expectToEqualBranches(context, block, expected.branches);
-    
+
     if (expected.comment) {
         expect(block.comment).not.toBeNull();
         const actualComment = context.converter._context.comments[block.comment];
@@ -220,7 +219,7 @@ const expectToEqualBlock = function (context, parent, actualBlock, expectedBlock
 const expectToEqualBlocks = function (converter, expectedBlocksInfo) {
     const blocks = new Blocks();
     blocks.forceNoGlow = true;
-    Object.keys(converter.blocks).forEach(blockId => {
+    Object.keys(converter.blocks).forEach((blockId) => {
         blocks.createBlock(converter.blocks[blockId]);
     });
 
@@ -229,7 +228,7 @@ const expectToEqualBlocks = function (converter, expectedBlocksInfo) {
         blocks: blocks,
         variables: Object.assign({}, converter.variables, converter._context.localVariables),
         lists: converter.lists,
-        broadcastMsgs: converter.broadcastMsgs
+        broadcastMsgs: converter.broadcastMsgs,
     };
 
     const scripts = blocks.getScripts();
@@ -249,7 +248,9 @@ const convertAndExpectToEqualBlocks = async function (converter, target, code, e
 const convertAndExpectRubyBlockError = async function (converter, target, code) {
     await converter.targetCodeToBlocks(target, code);
     expect(converter.errors).toHaveLength(1);
-    expect(converter.errors[0].text).toMatch(/ is the wrong instruction\.|condition is not boolean: |is not a command, so it cannot be written here|is a value, so it cannot be written as a command|\.to_s/);
+    expect(converter.errors[0].text).toMatch(
+        / is the wrong instruction\.|condition is not boolean: |is not a command, so it cannot be written here|is a value, so it cannot be written as a command|\.to_s/,
+    );
 };
 
 const expectToEqualRubyStatement = function (converter, expectedStatement) {
@@ -264,14 +265,14 @@ const expectToEqualRubyStatement = function (converter, expectedStatement) {
                         fields: [
                             {
                                 name: 'TEXT',
-                                value: expectedStatement
-                            }
+                                value: expectedStatement,
+                            },
                         ],
-                        shadow: true
-                    }
-                }
-            ]
-        }
+                        shadow: true,
+                    },
+                },
+            ],
+        },
     ];
     expectToEqualBlocks(converter, expected);
 };
@@ -288,7 +289,7 @@ const fieldsToExpected = function (context, fields) {
         return null;
     }
 
-    return Object.keys(fields).map(name => {
+    return Object.keys(fields).map((name) => {
         const field = fields[name];
         if (field.id) {
             let varName = field.value;
@@ -305,7 +306,7 @@ const fieldsToExpected = function (context, fields) {
             if (field.variableType === Variable.BROADCAST_MESSAGE_TYPE) {
                 return {
                     name: field.name,
-                    broadcastMsg: field.value
+                    broadcastMsg: field.value,
                 };
             }
             let scope;
@@ -319,17 +320,17 @@ const fieldsToExpected = function (context, fields) {
             if (field.variableType === Variable.SCALAR_TYPE) {
                 return {
                     name: field.name,
-                    variable: `${scope}${varName}`
+                    variable: `${scope}${varName}`,
                 };
             }
             return {
                 name: field.name,
-                list: `${scope}${varName}`
+                list: `${scope}${varName}`,
             };
         }
         return {
             name: field.name,
-            value: field.value
+            value: field.value,
         };
     });
 };
@@ -339,11 +340,11 @@ const inputsToExpected = function (context, inputs) {
         return null;
     }
 
-    return Object.keys(inputs).map(name => {
+    return Object.keys(inputs).map((name) => {
         const input = inputs[name];
         const expected = {
             name: input.name,
-            block: blockToExpected(context, input.block) // eslint-disable-line no-use-before-define
+            block: blockToExpected(context, input.block), // eslint-disable-line no-use-before-define
         };
         if (input.shadow !== null && input.shadow !== input.block) {
             expected.shadow = blockToExpected(context, input.shadow); // eslint-disable-line no-use-before-define
@@ -376,7 +377,7 @@ const blockToExpected = function (context, blockId) {
     const blocks = context.blocks;
     const block = blocks.getBlock(blockId);
     const expected = {
-        opcode: blocks.getOpcode(block)
+        opcode: blocks.getOpcode(block),
     };
     if (block.shadow) {
         expected.shadow = true;
@@ -407,7 +408,7 @@ const rubyToExpected = async function (converter, target, code) {
 
     const blocks = new Blocks();
     blocks.forceNoGlow = true;
-    Object.keys(converter.blocks).forEach(blockId => {
+    Object.keys(converter.blocks).forEach((blockId) => {
         blocks.createBlock(converter.blocks[blockId]);
     });
 
@@ -416,34 +417,34 @@ const rubyToExpected = async function (converter, target, code) {
         blocks: blocks,
         variables: Object.assign({}, converter.variables, converter._context.localVariables),
         lists: converter.lists,
-        broadcastMsgs: converter.broadcastMsgs
+        broadcastMsgs: converter.broadcastMsgs,
     };
 
     const scripts = blocks.getScripts();
-    return scripts.map(scriptId => blockToExpected(context, scriptId));
+    return scripts.map((scriptId) => blockToExpected(context, scriptId));
 };
 
 const expectedInfo = {
-    makeText: text => ({
+    makeText: (text) => ({
         opcode: 'text',
         fields: [
             {
                 name: 'TEXT',
-                value: text.toString()
-            }
+                value: text.toString(),
+            },
         ],
-        shadow: true
+        shadow: true,
     }),
     makeNumber: (num, opcode = 'math_number') => ({
         opcode: opcode,
         fields: [
             {
                 name: 'NUM',
-                value: num.toString()
-            }
+                value: num.toString(),
+            },
         ],
-        shadow: true
-    })
+        shadow: true,
+    }),
 };
 
 const expectNoArgsMethod = function (opcode, methodName, blockType = 'statement') {
@@ -464,16 +465,16 @@ const expectNoArgsMethod = function (opcode, methodName, blockType = 'statement'
             code = methodName;
             expected = [
                 {
-                    opcode: opcode
-                }
+                    opcode: opcode,
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             code = `${methodName}()`;
             expected = [
                 {
-                    opcode: opcode
-                }
+                    opcode: opcode,
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -485,9 +486,7 @@ const expectNoArgsMethod = function (opcode, methodName, blockType = 'statement'
                     ${methodName}
                     bounce_if_on_edge
                 `;
-                expected = [
-                    (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
-                ];
+                expected = [(await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]];
                 expected[0].next = (await rubyToExpected(converter, target, `${methodName}`))[0];
                 expected[0].next.next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
@@ -502,7 +501,7 @@ const expectNoArgsMethod = function (opcode, methodName, blockType = 'statement'
                 expected = [
                     (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
                     (await rubyToExpected(converter, target, `${methodName}`))[0],
-                    (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
+                    (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
@@ -514,7 +513,7 @@ const expectNoArgsMethod = function (opcode, methodName, blockType = 'statement'
                 `${methodName}(true)`,
                 `${methodName}(1)`,
                 `${methodName}("backdrop2")`,
-                `${methodName}(x)`
+                `${methodName}(x)`,
             ];
             for (const c of cases) {
                 await convertAndExpectRubyBlockError(converter, target, c);
@@ -532,5 +531,5 @@ export {
     convertAndExpectToEqualRubyStatement,
     rubyToExpected,
     expectedInfo,
-    expectNoArgsMethod
+    expectNoArgsMethod,
 };

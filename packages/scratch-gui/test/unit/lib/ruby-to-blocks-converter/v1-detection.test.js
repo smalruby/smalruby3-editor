@@ -1,4 +1,4 @@
-import {containsV1Code} from '../../../../src/lib/ruby-to-blocks-converter/v1-detection';
+import { containsV1Code } from '../../../../src/lib/ruby-to-blocks-converter/v1-detection';
 
 describe('containsV1Code', () => {
     describe('v1 patterns that should be detected', () => {

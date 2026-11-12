@@ -28,7 +28,7 @@ const SubscriptionManagerMixin = {
                 variables,
             })
             .subscribe({
-                next: result => {
+                next: (result) => {
                     const message = result.data.onMessageInGroup;
                     if (!message) return;
 
@@ -49,14 +49,14 @@ const SubscriptionManagerMixin = {
                         log.warn('Mesh V2: Received message with all fields null');
                     }
                 },
-                error: err => log.error(`Mesh V2: Subscription error: ${err}`),
+                error: (err) => log.error(`Mesh V2: Subscription error: ${err}`),
             });
 
         this.subscriptions.push(messageSub);
     },
 
     stopSubscriptions() {
-        this.subscriptions.forEach(sub => sub.unsubscribe());
+        this.subscriptions.forEach((sub) => sub.unsubscribe());
         this.subscriptions = [];
     },
 
@@ -79,7 +79,7 @@ const SubscriptionManagerMixin = {
             ? new Date(nodeStatus.timestamp).getTime()
             : (log.warn('Mesh V2: Missing server timestamp, using client time'), Date.now());
 
-        nodeStatus.data.forEach(item => {
+        nodeStatus.data.forEach((item) => {
             // Issue #713: own values always originate locally (seeded by
             // sendData with a client timestamp), so an echo can never carry
             // newer information than the local seed.
@@ -105,7 +105,7 @@ const SubscriptionManagerMixin = {
         if (!batchEvent || batchEvent.firedByNodeId === this.meshId) return;
 
         const events = batchEvent.events
-            ? batchEvent.events.filter(event => event.firedByNodeId !== this.meshId)
+            ? batchEvent.events.filter((event) => event.firedByNodeId !== this.meshId)
             : [];
         if (events.length === 0) return;
 

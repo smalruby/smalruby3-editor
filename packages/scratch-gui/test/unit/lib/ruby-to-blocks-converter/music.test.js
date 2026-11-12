@@ -2,7 +2,7 @@ import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter'
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
-    expectedInfo
+    expectedInfo,
 } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Music', () => {
@@ -12,7 +12,7 @@ describe('RubyToBlocksConverter/Music', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -26,14 +26,14 @@ describe('RubyToBlocksConverter/Music', () => {
                 inputs: [
                     {
                         name: 'DRUM',
-                        block: {opcode: 'music_menu_DRUM', fields: [{name: 'DRUM', value: '1'}], shadow: true}
+                        block: { opcode: 'music_menu_DRUM', fields: [{ name: 'DRUM', value: '1' }], shadow: true },
                     },
                     {
                         name: 'BEATS',
-                        block: expectedInfo.makeNumber(0.25)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(0.25),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -46,10 +46,10 @@ describe('RubyToBlocksConverter/Music', () => {
                 inputs: [
                     {
                         name: 'BEATS',
-                        block: expectedInfo.makeNumber(0.25)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(0.25),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -62,14 +62,14 @@ describe('RubyToBlocksConverter/Music', () => {
                 inputs: [
                     {
                         name: 'NOTE',
-                        block: {opcode: 'note', fields: [{name: 'NOTE', value: '60'}], shadow: true}
+                        block: { opcode: 'note', fields: [{ name: 'NOTE', value: '60' }], shadow: true },
                     },
                     {
                         name: 'BEATS',
-                        block: expectedInfo.makeNumber(0.25)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(0.25),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -84,12 +84,12 @@ describe('RubyToBlocksConverter/Music', () => {
                         name: 'INSTRUMENT',
                         block: {
                             opcode: 'music_menu_INSTRUMENT',
-                            fields: [{name: 'INSTRUMENT', value: '1'}],
-                            shadow: true
-                        }
-                    }
-                ]
-            }
+                            fields: [{ name: 'INSTRUMENT', value: '1' }],
+                            shadow: true,
+                        },
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -102,10 +102,10 @@ describe('RubyToBlocksConverter/Music', () => {
                 inputs: [
                     {
                         name: 'TEMPO',
-                        block: expectedInfo.makeNumber(120)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(120),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -118,10 +118,10 @@ describe('RubyToBlocksConverter/Music', () => {
                 inputs: [
                     {
                         name: 'TEMPO',
-                        block: expectedInfo.makeNumber(20)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(20),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -134,12 +134,7 @@ describe('RubyToBlocksConverter/Music', () => {
     });
 
     test('invalid', async () => {
-        for (const s of [
-            'play_drum(1)',
-            'play_drum(drum: 1)',
-            'rest("abc")',
-            'play_note(note: 60)'
-        ]) {
+        for (const s of ['play_drum(1)', 'play_drum(drum: 1)', 'rest("abc")', 'play_note(note: 60)']) {
             await convertAndExpectRubyBlockError(converter, target, s);
         }
     });

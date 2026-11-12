@@ -1,22 +1,17 @@
-import {defineMessages} from 'react-intl';
 import _ from 'lodash';
-import {RubyToBlocksConverterError} from './errors';
+import { defineMessages } from 'react-intl';
+import { RubyToBlocksConverterError } from './errors';
 
 const messages = defineMessages({
     soundDoesNotExist: {
-        defaultMessage: 'sound "{NAME}" does not exist.' +
-            '\nCheck the name or add the sound first.',
+        defaultMessage: 'sound "{NAME}" does not exist.' + '\nCheck the name or add the sound first.',
         description: 'Error message when playing a sound that does not exist',
-        id: 'gui.smalruby3.rubyToBlocksConverter.soundDoesNotExist'
-    }
+        id: 'gui.smalruby3.rubyToBlocksConverter.soundDoesNotExist',
+    },
 });
 
-const Effects = [
-    'PITCH',
-    'PAN'
-];
+const Effects = ['PITCH', 'PAN'];
 
- 
 const validateSound = function (converter, soundName, node) {
     // Skip validation if no target context (e.g., in tests)
     if (!converter._context.target || !converter._context.target.getSounds) {
@@ -24,11 +19,11 @@ const validateSound = function (converter, soundName, node) {
     }
 
     const sounds = converter._context.target.getSounds();
-    const soundExists = sounds.some(sound => sound.name === soundName);
+    const soundExists = sounds.some((sound) => sound.name === soundName);
     if (!soundExists) {
         throw new RubyToBlocksConverterError(
             node,
-            converter._translator(messages.soundDoesNotExist, {NAME: soundName})
+            converter._translator(messages.soundDoesNotExist, { NAME: soundName }),
         );
     }
 };
@@ -39,8 +34,8 @@ const validateSound = function (converter, soundName, node) {
 const SoundConverter = {
     register: function (converter) {
         // play(name) - sound_play
-        converter.registerOnSend('self', 'play', 1, params => {
-            const {receiver, args, node} = params;
+        converter.registerOnSend('self', 'play', 1, (params) => {
+            const { receiver, args, node } = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
             if (!converter._isString(args[0]) && !converter._isBlock(args[0])) return null;
 
@@ -54,8 +49,8 @@ const SoundConverter = {
         });
 
         // play_until_done(name) - sound_playuntildone
-        converter.registerOnSend('self', 'play_until_done', 1, params => {
-            const {receiver, args, node} = params;
+        converter.registerOnSend('self', 'play_until_done', 1, (params) => {
+            const { receiver, args, node } = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
             if (!converter._isString(args[0]) && !converter._isBlock(args[0])) return null;
 
@@ -69,16 +64,16 @@ const SoundConverter = {
         });
 
         // stop_all_sounds
-        converter.registerOnSend('self', 'stop_all_sounds', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend('self', 'stop_all_sounds', 0, (params) => {
+            const { receiver } = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
 
             return converter._createBlock('sound_stopallsounds', 'statement');
         });
 
         // change_sound_effect_by(effect, value)
-        converter.registerOnSend('self', 'change_sound_effect_by', 2, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend('self', 'change_sound_effect_by', 2, (params) => {
+            const { receiver, args } = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
             if (!converter._isString(args[0]) || Effects.indexOf(args[0].toString().toUpperCase()) < 0) return null;
             if (!converter._isNumberOrBlock(args[1])) return null;
@@ -90,8 +85,8 @@ const SoundConverter = {
         });
 
         // set_sound_effect(effect, value)
-        converter.registerOnSend('self', 'set_sound_effect', 2, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend('self', 'set_sound_effect', 2, (params) => {
+            const { receiver, args } = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
             if (!converter._isString(args[0]) || Effects.indexOf(args[0].toString().toUpperCase()) < 0) return null;
             if (!converter._isNumberOrBlock(args[1])) return null;
@@ -103,16 +98,16 @@ const SoundConverter = {
         });
 
         // clear_sound_effects
-        converter.registerOnSend('self', 'clear_sound_effects', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend('self', 'clear_sound_effects', 0, (params) => {
+            const { receiver } = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
 
             return converter._createBlock('sound_cleareffects', 'statement');
         });
 
         // volume = value
-        converter.registerOnSend('self', 'volume=', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend('self', 'volume=', 1, (params) => {
+            const { receiver, args } = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
             if (!converter._isNumberOrBlock(args[0])) return null;
 
@@ -122,8 +117,8 @@ const SoundConverter = {
         });
 
         // volume getter
-        converter.registerOnSend('self', 'volume', 0, params => {
-            const {receiver} = params;
+        converter.registerOnSend('self', 'volume', 0, (params) => {
+            const { receiver } = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
 
             return converter._createBlock('sound_volume', 'value');
@@ -153,7 +148,7 @@ const SoundConverter = {
             }
             return block;
         });
-    }
+    },
 };
 
 export default SoundConverter;

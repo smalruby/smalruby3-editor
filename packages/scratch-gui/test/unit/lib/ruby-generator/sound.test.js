@@ -5,7 +5,7 @@ describe('RubyGenerator/Sound', () => {
     beforeEach(() => {
         RubyGenerator.cache_ = {
             comments: {},
-            targetCommentTexts: []
+            targetCommentTexts: [],
         };
         RubyGenerator.definitions_ = {};
         RubyGenerator.functionNames_ = {};
@@ -13,7 +13,7 @@ describe('RubyGenerator/Sound', () => {
         SoundBlocks(RubyGenerator);
     });
 
-    const makeBlock = id => ({id, opcode: 'dummy', inputs: {}, fields: {}});
+    const makeBlock = (id) => ({ id, opcode: 'dummy', inputs: {}, fields: {} });
 
     describe('sound_changevolumeby', () => {
         test('positive VOLUME emits self.volume += N', () => {

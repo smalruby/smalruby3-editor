@@ -4,53 +4,60 @@ import RubyGenerator from '../../../../../src/lib/ruby-generator';
 
 const makeMockTarget = (name, index = 1, overrides = {}) => {
     const targets = [];
-    const stage = {isStage: true, sprite: {name: 'Stage', costumes: [], sounds: []}};
+    const stage = { isStage: true, sprite: { name: 'Stage', costumes: [], sounds: [] } };
     for (let i = 0; i < index; i++) {
         targets.push({
             isStage: false,
-            sprite: {name: `OtherSprite${i + 1}`, costumes: [], sounds: []}
+            sprite: { name: `OtherSprite${i + 1}`, costumes: [], sounds: [] },
         });
     }
     const target = targets[index - 1];
     Object.assign(target, {
-        x: 0, y: 0, direction: 90, visible: true, size: 100,
-        currentCostume: 0, rotationStyle: 'all around', variables: {},
-        ...overrides
+        x: 0,
+        y: 0,
+        direction: 90,
+        visible: true,
+        size: 100,
+        currentCostume: 0,
+        rotationStyle: 'all around',
+        variables: {},
+        ...overrides,
     });
-    target.sprite = {name, costumes: [], sounds: [], ...overrides.sprite};
+    target.sprite = { name, costumes: [], sounds: [], ...overrides.sprite };
     targets.unshift(stage);
-    target.runtime = {targets};
-    return {target, runtime: {targets}};
+    target.runtime = { targets };
+    return { target, runtime: { targets } };
 };
 
 const makeMockStageTarget = (overrides = {}) => {
     const stage = {
         isStage: true,
-        sprite: {name: 'Stage', costumes: [], sounds: [], ...overrides.sprite},
-        currentCostume: 0, variables: {},
-        ...overrides
+        sprite: { name: 'Stage', costumes: [], sounds: [], ...overrides.sprite },
+        currentCostume: 0,
+        variables: {},
+        ...overrides,
     };
-    stage.sprite = {name: overrides.spriteName || 'Stage', costumes: [], sounds: [], ...overrides.sprite};
-    const runtime = {targets: [stage]};
+    stage.sprite = { name: overrides.spriteName || 'Stage', costumes: [], sounds: [], ...overrides.sprite };
+    const runtime = { targets: [stage] };
     stage.runtime = runtime;
-    return {target: stage, runtime};
+    return { target: stage, runtime };
 };
 
 const setupGenerator = (version, target, commentTexts = []) => {
-    RubyGenerator.init({version});
+    RubyGenerator.init({ version });
     RubyGenerator.definitions_ = {};
     RubyGenerator.requires_ = {};
     RubyGenerator.prepares_ = {};
     RubyGenerator.cache_ = {
         targetCommentTexts: commentTexts,
-        comments: {}
+        comments: {},
     };
     RubyGenerator.currentTarget_ = target;
 };
 
 describe('Version 1 - No class (standard v1 output)', () => {
     test('simple hat block without withSpriteNew returns code as-is', () => {
-        const {target} = makeMockTarget('Sprite1');
+        const { target } = makeMockTarget('Sprite1');
         setupGenerator('1', target);
 
         const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
@@ -62,7 +69,7 @@ describe('Version 1 - No class (standard v1 output)', () => {
     });
 
     test('multiple hat blocks without withSpriteNew', () => {
-        const {target} = makeMockTarget('Sprite1');
+        const { target } = makeMockTarget('Sprite1');
         setupGenerator('1', target);
 
         const code =
@@ -75,13 +82,13 @@ describe('Version 1 - No class (standard v1 output)', () => {
     });
 
     test('hat block with withSpriteNew uses Sprite.new format', () => {
-        const {target} = makeMockTarget('Sprite1', 1, {
-            sprite: {name: 'Sprite1', costumes: [], sounds: []}
+        const { target } = makeMockTarget('Sprite1', 1, {
+            sprite: { name: 'Sprite1', costumes: [], sounds: [] },
         });
         setupGenerator('1', target);
 
         const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+        const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
         expect(result).toContain('Sprite.new("Sprite1")');
         expect(result).toContain('  self.when(:flag_clicked) do');
@@ -90,22 +97,27 @@ describe('Version 1 - No class (standard v1 output)', () => {
     });
 
     test('stage target with withSpriteNew uses Stage.new format', () => {
-        const {target} = makeMockStageTarget({
-            x: 0, y: 0, direction: 90, visible: true, size: 100,
-            currentCostume: 0, rotationStyle: 'all around',
-            sprite: {name: 'Stage', costumes: [], sounds: []}
+        const { target } = makeMockStageTarget({
+            x: 0,
+            y: 0,
+            direction: 90,
+            visible: true,
+            size: 100,
+            currentCostume: 0,
+            rotationStyle: 'all around',
+            sprite: { name: 'Stage', costumes: [], sounds: [] },
         });
         setupGenerator('1', target);
 
         const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
-        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+        const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
         expect(result).toContain('Stage.new("Stage")');
         expect(result).not.toContain('class ');
     });
 
     test('empty code returns empty string', () => {
-        const {target} = makeMockTarget('Sprite1');
+        const { target } = makeMockTarget('Sprite1');
         setupGenerator('1', target);
 
         const result = RubyGenerator.finish('', {});
@@ -114,12 +126,12 @@ describe('Version 1 - No class (standard v1 output)', () => {
     });
 
     test('empty code with withSpriteNew still wraps with Sprite.new', () => {
-        const {target} = makeMockTarget('Sprite1', 1, {
-            sprite: {name: 'Sprite1', costumes: [], sounds: []}
+        const { target } = makeMockTarget('Sprite1', 1, {
+            sprite: { name: 'Sprite1', costumes: [], sounds: [] },
         });
         setupGenerator('1', target);
 
-        const result = RubyGenerator.finish('', {withSpriteNew: true});
+        const result = RubyGenerator.finish('', { withSpriteNew: true });
 
         expect(result).toContain('Sprite.new("Sprite1")');
         expect(result).toContain('do\n');
@@ -127,23 +139,32 @@ describe('Version 1 - No class (standard v1 output)', () => {
     });
 
     test('Sprite.new includes non-default attributes', () => {
-        const {target} = makeMockTarget('Cat', 1, {
-            x: 50, y: -30, direction: 45, visible: false, size: 75,
+        const { target } = makeMockTarget('Cat', 1, {
+            x: 50,
+            y: -30,
+            direction: 45,
+            visible: false,
+            size: 75,
             sprite: {
                 name: 'Cat',
-                costumes: [{
-                    assetId: 'abc', name: 'costume1',
-                    bitmapResolution: 1, dataFormat: 'svg',
-                    rotationCenterX: 48, rotationCenterY: 50
-                }],
-                sounds: []
+                costumes: [
+                    {
+                        assetId: 'abc',
+                        name: 'costume1',
+                        bitmapResolution: 1,
+                        dataFormat: 'svg',
+                        rotationCenterX: 48,
+                        rotationCenterY: 50,
+                    },
+                ],
+                sounds: [],
             },
-            rotationStyle: 'left-right'
+            rotationStyle: 'left-right',
         });
         setupGenerator('1', target);
 
         const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+        const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
         expect(result).toContain('Sprite.new("Cat"');
         expect(result).toContain('x: 50');
@@ -157,27 +178,29 @@ describe('Version 1 - No class (standard v1 output)', () => {
 
 describe('Version 1 - With @ruby:class', () => {
     test('@ruby:class with withSpriteNew uses Sprite.new (NOT class)', () => {
-        const {target} = makeMockTarget('Sprite1', 1, {
-            sprite: {name: 'Sprite1', costumes: [], sounds: []}
+        const { target } = makeMockTarget('Sprite1', 1, {
+            sprite: { name: 'Sprite1', costumes: [], sounds: [] },
         });
         setupGenerator('1', target, ['@ruby:class']);
 
         const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+        const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
         expect(result).toContain('Sprite.new("Sprite1")');
         expect(result).not.toContain('class ');
     });
 
     test('@ruby:class:x,y with withSpriteNew uses Sprite.new with attributes', () => {
-        const {target} = makeMockTarget('ネコ', 1, {
-            x: 100, y: -50, direction: 45,
-            sprite: {name: 'ネコ', costumes: [], sounds: []}
+        const { target } = makeMockTarget('ネコ', 1, {
+            x: 100,
+            y: -50,
+            direction: 45,
+            sprite: { name: 'ネコ', costumes: [], sounds: [] },
         });
         setupGenerator('1', target, ['@ruby:class:x,y']);
 
         const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+        const result = RubyGenerator.finish(code, { withSpriteNew: true });
 
         expect(result).toContain('Sprite.new("ネコ"');
         expect(result).toContain('x: 100');
@@ -187,7 +210,7 @@ describe('Version 1 - With @ruby:class', () => {
     });
 
     test('@ruby:class WITHOUT withSpriteNew does NOT wrap with class in v1', () => {
-        const {target} = makeMockTarget('Sprite1');
+        const { target } = makeMockTarget('Sprite1');
         setupGenerator('1', target, ['@ruby:class']);
 
         const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';

@@ -6,20 +6,23 @@ import {
     makeSpriteTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('Ruby Roundtrip: Koshien extension blocks', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
+        ({ target, runtime } = makeSpriteTarget());
         setupRubyGenerator();
         converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, dedent`
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
             koshien.connect_game(name: "player1")
             koshien.get_map_area("0:1")
             koshien.move_to("2:3")
@@ -98,6 +101,7 @@ describe('Ruby Roundtrip: Koshien extension blocks', () => {
             koshien.object("trap")
 
             koshien.object("bomb")
-        `);
+        `,
+        );
     });
 });

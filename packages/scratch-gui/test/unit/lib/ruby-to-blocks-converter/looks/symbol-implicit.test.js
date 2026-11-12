@@ -5,7 +5,7 @@ describe('RubyToBlocksConverter/Looks/SymbolImplicit', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -17,7 +17,7 @@ describe('RubyToBlocksConverter/Looks/SymbolImplicit', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const sayBlock = blocks.find(b => b.opcode === 'looks_say');
+            const sayBlock = blocks.find((b) => b.opcode === 'looks_say');
             expect(sayBlock).toBeDefined();
 
             // MESSAGE should be "foo" (symbol name without colon)
@@ -31,7 +31,7 @@ describe('RubyToBlocksConverter/Looks/SymbolImplicit', () => {
             await converter.targetCodeToBlocks(target, code);
 
             const blocks = Object.values(converter.blocks);
-            const sayBlock = blocks.find(b => b.opcode === 'looks_say');
+            const sayBlock = blocks.find((b) => b.opcode === 'looks_say');
             const comment = converter._context.comments[sayBlock.comment];
             expect(comment.text).toBe('@ruby:symbol:foo');
         });
@@ -49,7 +49,7 @@ describe('RubyToBlocksConverter/Looks/SymbolImplicit', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const sayBlock = blocks.find(b => b.opcode === 'looks_sayforsecs');
+            const sayBlock = blocks.find((b) => b.opcode === 'looks_sayforsecs');
             expect(sayBlock).toBeDefined();
 
             const msgBlockId = sayBlock.inputs.MESSAGE.block;
@@ -66,7 +66,7 @@ describe('RubyToBlocksConverter/Looks/SymbolImplicit', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const sayBlock = blocks.find(b => b.opcode === 'looks_sayforsecs');
+            const sayBlock = blocks.find((b) => b.opcode === 'looks_sayforsecs');
             expect(sayBlock).toBeDefined();
         });
 
@@ -93,7 +93,7 @@ describe('RubyToBlocksConverter/Looks/SymbolImplicit', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const thinkBlock = blocks.find(b => b.opcode === 'looks_think');
+            const thinkBlock = blocks.find((b) => b.opcode === 'looks_think');
             expect(thinkBlock).toBeDefined();
         });
     });

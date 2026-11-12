@@ -5,14 +5,14 @@ const LegacyMesh = 'mesh_v1';
 
 const MeshConverter = {
     register: function (converter) {
-        converter.registerOnSend('self', LegacyMesh, 0, params => {
-            const {node} = params;
+        converter.registerOnSend('self', LegacyMesh, 0, (params) => {
+            const { node } = params;
 
             return converter.createRubyExpressionBlock(LegacyMesh, node);
         });
 
-        converter.registerOnSend(LegacyMesh, 'sensor_value', 1, params => {
-            const {receiver, args} = params;
+        converter.registerOnSend(LegacyMesh, 'sensor_value', 1, (params) => {
+            const { receiver, args } = params;
 
             if (!converter.isStringOrBlock(args[0])) return null;
 

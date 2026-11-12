@@ -8,7 +8,7 @@ describe('RubyToBlocksConverter/Module (v1)', () => {
     });
 
     test('module in v1 throws error', async () => {
-        const converterV1 = new RubyToBlocksConverter(null, {version: '1'});
+        const converterV1 = new RubyToBlocksConverter(null, { version: '1' });
         const code = `
             module Utils
               def add(a, b)

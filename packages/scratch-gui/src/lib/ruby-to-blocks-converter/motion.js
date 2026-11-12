@@ -1,21 +1,16 @@
-import {defineMessages} from 'react-intl';
 import _ from 'lodash';
-import {RubyToBlocksConverterError} from './errors';
+import { defineMessages } from 'react-intl';
+import { RubyToBlocksConverterError } from './errors';
 
 const messages = defineMessages({
     stageNoMotionBlocks: {
-        defaultMessage: 'Stage selected: no motion blocks.' +
-            '\nSelect a sprite to use motion blocks.',
+        defaultMessage: 'Stage selected: no motion blocks.' + '\nSelect a sprite to use motion blocks.',
         description: 'Error message when trying to use motion blocks on the Stage',
-        id: 'gui.smalruby3.rubyToBlocksConverter.stageNoMotionBlocks'
-    }
+        id: 'gui.smalruby3.rubyToBlocksConverter.stageNoMotionBlocks',
+    },
 });
 
-const RotationStyle = [
-    'left-right',
-    'don\'t rotate',
-    'all around'
-];
+const RotationStyle = ['left-right', "don't rotate", 'all around'];
 
 /**
  * Motion converter
@@ -23,8 +18,8 @@ const RotationStyle = [
 const MotionConverter = {
     register: function (converter) {
         // move(steps)
-        converter.registerOnSend('sprite', 'move', 1, params => {
-            const {args} = params;
+        converter.registerOnSend('sprite', 'move', 1, (params) => {
+            const { args } = params;
             if (!converter._isNumberOrBlock(args[0])) return null;
 
             const block = converter._createBlock('motion_movesteps', 'statement');
@@ -33,9 +28,9 @@ const MotionConverter = {
         });
 
         // turn_right(degrees) and turn_left(degrees)
-        ['turn_right', 'turn_left'].forEach(methodName => {
-            converter.registerOnSend('sprite', methodName, 1, params => {
-                const {args} = params;
+        ['turn_right', 'turn_left'].forEach((methodName) => {
+            converter.registerOnSend('sprite', methodName, 1, (params) => {
+                const { args } = params;
                 if (!converter._isNumberOrBlock(args[0])) return null;
 
                 const opcode = methodName === 'turn_right' ? 'motion_turnright' : 'motion_turnleft';
@@ -46,14 +41,18 @@ const MotionConverter = {
         });
 
         // go_to(target)
-        converter.registerOnSend('sprite', 'go_to', 1, params => {
-            const {args} = params;
+        converter.registerOnSend('sprite', 'go_to', 1, (params) => {
+            const { args } = params;
             if (converter._isString(args[0])) {
                 const block = converter._createBlock('motion_goto', 'statement');
                 converter._addInput(block, 'TO', converter._createFieldBlock('motion_goto_menu', 'TO', args[0]));
                 return block;
-            } else if (converter._isArray(args[0]) && args[0].length === 2 &&
-                       converter._isNumberOrBlock(args[0].value[0]) && converter._isNumberOrBlock(args[0].value[1])) {
+            } else if (
+                converter._isArray(args[0]) &&
+                args[0].length === 2 &&
+                converter._isNumberOrBlock(args[0].value[0]) &&
+                converter._isNumberOrBlock(args[0].value[1])
+            ) {
                 const block = converter._createBlock('motion_gotoxy', 'statement');
                 converter._addNumberInput(block, 'X', 'math_number', args[0].value[0], 0);
                 converter._addNumberInput(block, 'Y', 'math_number', args[0].value[1], 0);
@@ -63,8 +62,8 @@ const MotionConverter = {
         });
 
         // glide(target, secs: duration)
-        converter.registerOnSend('sprite', 'glide', 2, params => {
-            const {args} = params;
+        converter.registerOnSend('sprite', 'glide', 2, (params) => {
+            const { args } = params;
             if (args.length !== 2 || !converter._isHash(args[1]) || args[1].size !== 1) return null;
 
             const secs = args[1].get('sym:secs');
@@ -74,8 +73,12 @@ const MotionConverter = {
             if (converter._isString(args[0])) {
                 block = converter._createBlock('motion_glideto', 'statement');
                 converter._addInput(block, 'TO', converter._createFieldBlock('motion_glideto_menu', 'TO', args[0]));
-            } else if (converter._isArray(args[0]) && args[0].length === 2 &&
-                       converter._isNumberOrBlock(args[0].value[0]) && converter._isNumberOrBlock(args[0].value[1])) {
+            } else if (
+                converter._isArray(args[0]) &&
+                args[0].length === 2 &&
+                converter._isNumberOrBlock(args[0].value[0]) &&
+                converter._isNumberOrBlock(args[0].value[1])
+            ) {
                 block = converter._createBlock('motion_glidesecstoxy', 'statement');
                 converter._addNumberInput(block, 'X', 'math_number', args[0].value[0], 0);
                 converter._addNumberInput(block, 'Y', 'math_number', args[0].value[1], 0);
@@ -90,8 +93,8 @@ const MotionConverter = {
         });
 
         // direction = value
-        converter.registerOnSend('sprite', 'direction=', 1, params => {
-            const {args} = params;
+        converter.registerOnSend('sprite', 'direction=', 1, (params) => {
+            const { args } = params;
             if (!converter._isNumberOrBlock(args[0])) return null;
 
             const block = converter._createBlock('motion_pointindirection', 'statement');
@@ -100,26 +103,27 @@ const MotionConverter = {
         });
 
         // point_towards(target)
-        converter.registerOnSend('sprite', 'point_towards', 1, params => {
-            const {args} = params;
+        converter.registerOnSend('sprite', 'point_towards', 1, (params) => {
+            const { args } = params;
             if (!converter._isString(args[0])) return null;
 
             const block = converter._createBlock('motion_pointtowards', 'statement');
             converter._addInput(
                 block,
                 'TOWARDS',
-                converter._createFieldBlock('motion_pointtowards_menu', 'TOWARDS', args[0])
+                converter._createFieldBlock('motion_pointtowards_menu', 'TOWARDS', args[0]),
             );
             return block;
         });
 
         // bounce_if_on_edge()
         converter.registerOnSend('sprite', 'bounce_if_on_edge', 0, () =>
-            converter._createBlock('motion_ifonedgebounce', 'statement'));
+            converter._createBlock('motion_ifonedgebounce', 'statement'),
+        );
 
         // rotation_style = value
-        converter.registerOnSend('sprite', 'rotation_style=', 1, params => {
-            const {args} = params;
+        converter.registerOnSend('sprite', 'rotation_style=', 1, (params) => {
+            const { args } = params;
             if (!converter._isString(args[0]) || RotationStyle.indexOf(args[0].toString()) < 0) return null;
 
             const block = converter._createBlock('motion_setrotationstyle', 'statement');
@@ -128,9 +132,9 @@ const MotionConverter = {
         });
 
         // x = value and y = value
-        ['x=', 'y='].forEach(methodName => {
-            converter.registerOnSend('sprite', methodName, 1, params => {
-                const {args} = params;
+        ['x=', 'y='].forEach((methodName) => {
+            converter.registerOnSend('sprite', methodName, 1, (params) => {
+                const { args } = params;
                 if (!converter._isNumberOrBlock(args[0])) return null;
 
                 const xy = methodName === 'x=' ? 'x' : 'y';
@@ -141,14 +145,14 @@ const MotionConverter = {
         });
 
         // x and y position getters
-        ['x', 'y'].forEach(methodName => {
+        ['x', 'y'].forEach((methodName) => {
             converter.registerOnSend('sprite', methodName, 0, () =>
-                converter._createBlock(`motion_${methodName}position`, 'value'));
+                converter._createBlock(`motion_${methodName}position`, 'value'),
+            );
         });
 
         // direction getter
-        converter.registerOnSend('sprite', 'direction', 0, () =>
-            converter._createBlock('motion_direction', 'value'));
+        converter.registerOnSend('sprite', 'direction', 0, () => converter._createBlock('motion_direction', 'value'));
 
         // Register onXxx handlers
         converter.registerOnOpAsgn((lh, operator, rh) => {
@@ -156,53 +160,55 @@ const MotionConverter = {
             if (converter._isBlock(lh) && (operator === '+' || operator === '-') && converter._isNumberOrBlock(rh)) {
                 let xy;
                 switch (lh.opcode) {
-                case 'motion_xposition':
-                case 'motion_yposition':
-                    // All Motion blocks are sprite-only
-                    if (converter._isStage()) {
-                        throw new RubyToBlocksConverterError(
-                            lh.node, converter._translator(messages.stageNoMotionBlocks)
-                        );
-                    }
-                    xy = lh.opcode === 'motion_xposition' ? 'x' : 'y';
-                    block = converter._changeBlock(lh, `motion_change${xy}by`, 'statement');
-                    if (operator === '-') {
-                        let negatedRh;
-                        if (converter._isNumber(rh)) {
-                            negatedRh = -Number(rh.toString());
-                        } else {
-                            const subtractBlock = converter._createBlock('operator_subtract', 'value');
-                            converter._addNumberInput(subtractBlock, 'NUM1', 'math_number', 0, '');
-                            converter._addNumberInput(subtractBlock, 'NUM2', 'math_number', rh, '');
-                            negatedRh = subtractBlock;
+                    case 'motion_xposition':
+                    case 'motion_yposition':
+                        // All Motion blocks are sprite-only
+                        if (converter._isStage()) {
+                            throw new RubyToBlocksConverterError(
+                                lh.node,
+                                converter._translator(messages.stageNoMotionBlocks),
+                            );
                         }
-                        converter._addNumberInput(block, `D${_.toUpper(xy)}`, 'math_number', negatedRh, 10);
-                    } else {
-                        converter._addNumberInput(block, `D${_.toUpper(xy)}`, 'math_number', rh, 10);
-                    }
-                    break;
-                case 'motion_direction':
-                    // All Motion blocks are sprite-only
-                    if (converter._isStage()) {
-                        throw new RubyToBlocksConverterError(
-                            lh.node, converter._translator(messages.stageNoMotionBlocks)
-                        );
-                    }
-                    if (operator === '+') {
-                        block = converter._changeBlock(lh, 'motion_turnright', 'statement');
-                        converter._addNumberInput(block, 'DEGREES', 'math_number', rh, 15);
-                        block.comment = converter._createComment('@ruby:operator:+=', block.id);
-                    } else {
-                        block = converter._changeBlock(lh, 'motion_turnleft', 'statement');
-                        converter._addNumberInput(block, 'DEGREES', 'math_number', rh, 15);
-                        block.comment = converter._createComment('@ruby:operator:-=', block.id);
-                    }
-                    break;
+                        xy = lh.opcode === 'motion_xposition' ? 'x' : 'y';
+                        block = converter._changeBlock(lh, `motion_change${xy}by`, 'statement');
+                        if (operator === '-') {
+                            let negatedRh;
+                            if (converter._isNumber(rh)) {
+                                negatedRh = -Number(rh.toString());
+                            } else {
+                                const subtractBlock = converter._createBlock('operator_subtract', 'value');
+                                converter._addNumberInput(subtractBlock, 'NUM1', 'math_number', 0, '');
+                                converter._addNumberInput(subtractBlock, 'NUM2', 'math_number', rh, '');
+                                negatedRh = subtractBlock;
+                            }
+                            converter._addNumberInput(block, `D${_.toUpper(xy)}`, 'math_number', negatedRh, 10);
+                        } else {
+                            converter._addNumberInput(block, `D${_.toUpper(xy)}`, 'math_number', rh, 10);
+                        }
+                        break;
+                    case 'motion_direction':
+                        // All Motion blocks are sprite-only
+                        if (converter._isStage()) {
+                            throw new RubyToBlocksConverterError(
+                                lh.node,
+                                converter._translator(messages.stageNoMotionBlocks),
+                            );
+                        }
+                        if (operator === '+') {
+                            block = converter._changeBlock(lh, 'motion_turnright', 'statement');
+                            converter._addNumberInput(block, 'DEGREES', 'math_number', rh, 15);
+                            block.comment = converter._createComment('@ruby:operator:+=', block.id);
+                        } else {
+                            block = converter._changeBlock(lh, 'motion_turnleft', 'statement');
+                            converter._addNumberInput(block, 'DEGREES', 'math_number', rh, 15);
+                            block.comment = converter._createComment('@ruby:operator:-=', block.id);
+                        }
+                        break;
                 }
             }
             return block;
         });
-    }
+    },
 };
 
 export default MotionConverter;

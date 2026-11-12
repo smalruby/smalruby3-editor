@@ -2,7 +2,6 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
-
 import {
     actualSizeView,
     clampPan,
@@ -116,7 +115,7 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
     const hasViewport = Boolean(current);
 
     // 計算の結果で view と fitMode を同時に更新する
-    const applyView = useCallback(next => {
+    const applyView = useCallback((next) => {
         const { imageSize: image, viewportSize: viewport } = stateRef.current;
         if (!image) return;
         stateRef.current = { ...stateRef.current, view: next };
@@ -125,7 +124,7 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
     }, []);
 
     const updateView = useCallback(
-        compute => {
+        (compute) => {
             const { view: prev, imageSize: image, viewportSize: viewport } = stateRef.current;
             if (!image) return;
             applyView(compute(prev, image, viewport));
@@ -150,12 +149,12 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
     // 画像の読み込み / ビューポートのリサイズ: 全体表示中なら全体表示を保ち、それ以外は範囲に収め直す
     useEffect(() => {
         if (!imageSize) return;
-        setView(prev => (fitMode ? fitView(imageSize, viewportSize) : clampPan(prev, imageSize, viewportSize)));
+        setView((prev) => (fitMode ? fitView(imageSize, viewportSize) : clampPan(prev, imageSize, viewportSize)));
         // fitMode の変化だけで走っても、全体表示 / 範囲内のビューを作り直すだけなので無害
     }, [fitMode, imageSize, viewportSize]);
 
     const goTo = useCallback(
-        nextIndex => {
+        (nextIndex) => {
             const clamped = clampIndex(nextIndex, images.length);
             if (clamped === currentIndex) return;
             setIndex(clamped);
@@ -170,16 +169,19 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
     const goPrevious = useCallback(() => goTo(currentIndex - 1), [currentIndex, goTo]);
     const goNext = useCallback(() => goTo(currentIndex + 1), [currentIndex, goTo]);
 
-    const handleImageLoad = useCallback(e => {
+    const handleImageLoad = useCallback((e) => {
         setImageSize({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight });
     }, []);
 
-    const localPoint = useCallback(e => {
+    const localPoint = useCallback((e) => {
         const rect = viewportRef.current.getBoundingClientRect();
         return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     }, []);
 
-    const zoomIn = useCallback(() => updateView((v, image, viewport) => zoomByStep(v, 1, image, viewport)), [updateView]);
+    const zoomIn = useCallback(
+        () => updateView((v, image, viewport) => zoomByStep(v, 1, image, viewport)),
+        [updateView],
+    );
     const zoomOut = useCallback(
         () => updateView((v, image, viewport) => zoomByStep(v, -1, image, viewport)),
         [updateView],
@@ -192,7 +194,7 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
 
     // ダブルクリック / ダブルタップ: 全体表示なら指した場所を中心に拡大、拡大中なら全体表示へ
     const toggleZoomAt = useCallback(
-        point =>
+        (point) =>
             updateView((v, image, viewport) => {
                 const { min, max } = scaleLimits(image, viewport);
                 if (v.scale > min + SCALE_EPSILON) return fitView(image, viewport);
@@ -205,7 +207,7 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
         const el = viewportRef.current;
         if (!el) return noop;
         // React の onWheel は passive で preventDefault できない (Ctrl+ホイールのブラウザズームを止められない)
-        const handleWheel = e => {
+        const handleWheel = (e) => {
             e.preventDefault();
             const rect = el.getBoundingClientRect();
             const focal = { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -217,7 +219,7 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
     }, [hasViewport, updateView]);
 
     const handlePointerDown = useCallback(
-        e => {
+        (e) => {
             if (e.pointerType === 'mouse' && e.button !== 0) return;
             lastPointerTypeRef.current = e.pointerType;
             if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
@@ -243,7 +245,7 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
     );
 
     const handlePointerMove = useCallback(
-        e => {
+        (e) => {
             const pointers = pointersRef.current;
             if (!pointers.has(e.pointerId)) return;
             const prev = Array.from(pointers.values()).slice(0, 2);
@@ -259,13 +261,13 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
         [localPoint, updateView],
     );
 
-    const handlePointerEnd = useCallback(e => {
+    const handlePointerEnd = useCallback((e) => {
         pointersRef.current.delete(e.pointerId);
         if (pointersRef.current.size === 0) setDragging(false);
     }, []);
 
     const handleDoubleClick = useCallback(
-        e => {
+        (e) => {
             // タッチのダブルタップは pointerdown 側で処理済み (合成 dblclick で二重に切り替えない)
             if (lastPointerTypeRef.current !== 'mouse') return;
             toggleZoomAt(localPoint(e));
@@ -274,10 +276,10 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
     );
 
     const handleKeyDown = useCallback(
-        e => {
+        (e) => {
             // Ctrl/Cmd + +/-/0 などブラウザのズーム操作は奪わない
             if (e.ctrlKey || e.metaKey || e.altKey) return;
-            const pan = delta => updateView((v, image, viewport) => panBy(v, delta, image, viewport));
+            const pan = (delta) => updateView((v, image, viewport) => panBy(v, delta, image, viewport));
             switch (e.key) {
                 case '+':
                 case '=':
@@ -344,17 +346,11 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
                             {'◀'}
                         </button>
                     )}
-                    <span
-                        className={styles.name}
-                        data-testid="image-viewer-name"
-                    >
+                    <span className={styles.name} data-testid="image-viewer-name">
                         {current.name}
                     </span>
                     {multiple && (
-                        <span
-                            className={styles.counter}
-                            data-testid="image-viewer-counter"
-                        >
+                        <span className={styles.counter} data-testid="image-viewer-counter">
                             {`${currentIndex + 1} / ${images.length}`}
                         </span>
                     )}
@@ -384,11 +380,7 @@ const ImageViewer = ({ images, initialIndex = 0, onIndexChange, className }) => 
                     >
                         {'−'}
                     </button>
-                    <span
-                        className={styles.zoomLevel}
-                        aria-live="polite"
-                        data-testid="image-viewer-zoom-level"
-                    >
+                    <span className={styles.zoomLevel} aria-live="polite" data-testid="image-viewer-zoom-level">
                         {`${zoomPercent}%`}
                     </span>
                     <button

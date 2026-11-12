@@ -1,12 +1,12 @@
 import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
-import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 import RubyGenerator from '../../../../src/lib/ruby-generator';
+import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 
 describe('Ruby Round Trip', () => {
     let converter;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
     });
 
     const expectRoundTrip = async (code, expectedRuby = null) => {
@@ -16,19 +16,19 @@ describe('Ruby Round Trip', () => {
 
         const blocks = new Blocks();
         blocks.forceNoGlow = true;
-        Object.keys(converter.blocks).forEach(blockId => {
+        Object.keys(converter.blocks).forEach((blockId) => {
             blocks.createBlock(converter.blocks[blockId]);
         });
 
         const variables = {};
-        [converter.variables, converter._context.localVariables].forEach(vars => {
-            Object.values(vars).forEach(v => {
+        [converter.variables, converter._context.localVariables].forEach((vars) => {
+            Object.values(vars).forEach((v) => {
                 variables[v.id] = v;
             });
         });
 
         const lists = {};
-        Object.values(converter.lists).forEach(v => {
+        Object.values(converter.lists).forEach((v) => {
             lists[v.id] = v;
             // Lists must also be in variables for variableName/listName lookup
             variables[v.id] = v;
@@ -37,7 +37,7 @@ describe('Ruby Round Trip', () => {
         // Separate global (stage) and instance (sprite) variables
         const stageVars = {};
         const spriteVars = {};
-        Object.keys(variables).forEach(id => {
+        Object.keys(variables).forEach((id) => {
             const v = variables[id];
             if (v.scope === 'global') {
                 stageVars[id] = v;
@@ -50,10 +50,10 @@ describe('Ruby Round Trip', () => {
             id: 'stage-id',
             isStage: true,
             variables: stageVars,
-            lookupVariableById: id => stageVars[id],
+            lookupVariableById: (id) => stageVars[id],
             lookupVariableByNameAndType: (name, type) => {
-                return Object.values(stageVars).find(v => v.name === name && v.type === type);
-            }
+                return Object.values(stageVars).find((v) => v.name === name && v.type === type);
+            },
         };
 
         const target = {
@@ -64,21 +64,23 @@ describe('Ruby Round Trip', () => {
             comments: converter._context.comments,
             isStage: false,
             // Mocking some methods needed by RubyGenerator or Blocks
-            lookupVariableById: id => spriteVars[id] || stageVars[id],
+            lookupVariableById: (id) => spriteVars[id] || stageVars[id],
             lookupVariableByNameAndType: (name, type) => {
-                return Object.values(spriteVars).find(v => v.name === name && v.type === type) ||
-                    Object.values(stageVars).find(v => v.name === name && v.type === type);
+                return (
+                    Object.values(spriteVars).find((v) => v.name === name && v.type === type) ||
+                    Object.values(stageVars).find((v) => v.name === name && v.type === type)
+                );
             },
             runtime: {
                 targets: [stage, null],
-                getTargetForStage: () => stage
-            }
+                getTargetForStage: () => stage,
+            },
         };
 
-        RubyGenerator.init({version: '2'});
+        RubyGenerator.init({ version: '2' });
         RubyGenerator.currentTarget = target;
 
-        const generatedRuby = RubyGenerator.targetToCode(target, {version: '2'});
+        const generatedRuby = RubyGenerator.targetToCode(target, { version: '2' });
         expect(generatedRuby.trim()).toEqual((expectedRuby || code).trim());
     };
 
@@ -157,22 +159,27 @@ describe('Ruby Round Trip', () => {
     });
 
     test('return statement in method', async () => {
-        await expectRoundTrip(`
+        await expectRoundTrip(
+            `
 def add(a, b)
   return a + b
 end
-`.trim());
+`.trim(),
+        );
 
-        await expectRoundTrip(`
+        await expectRoundTrip(
+            `
 def div(a, b)
   if b == 0
     return 0
   end
   return a / b
 end
-`.trim());
+`.trim(),
+        );
 
-        await expectRoundTrip(`
+        await expectRoundTrip(
+            `
 def check(x)
   if x < 0
     return "negative"
@@ -182,28 +189,19 @@ def check(x)
   end
   return "positive"
 end
-`.trim());
+`.trim(),
+        );
     });
 
     test('unless...end round-trip', async () => {
-        await expectRoundTrip(
-            'unless touching?("_edge_")\n  move(10)\nend'
-        );
+        await expectRoundTrip('unless touching?("_edge_")\n  move(10)\nend');
     });
 
     test('unless...else...end round-trip', async () => {
-        await expectRoundTrip(
-            'unless touching?("_edge_")\n  move(10)\nelse\n  turn_right(180)\nend'
-        );
-        await expectRoundTrip(
-            'unless touching?("_edge_")\n  move(10)\nelse\nend'
-        );
-        await expectRoundTrip(
-            'unless touching?("_edge_")\nelse\n  move(10)\nend'
-        );
-        await expectRoundTrip(
-            'unless touching?("_edge_")\nelse\nend'
-        );
+        await expectRoundTrip('unless touching?("_edge_")\n  move(10)\nelse\n  turn_right(180)\nend');
+        await expectRoundTrip('unless touching?("_edge_")\n  move(10)\nelse\nend');
+        await expectRoundTrip('unless touching?("_edge_")\nelse\n  move(10)\nend');
+        await expectRoundTrip('unless touching?("_edge_")\nelse\nend');
     });
 
     test('if modifier round-trip', async () => {
@@ -255,10 +253,11 @@ end
 
     test('Japanese local variable names round-trip correctly', async () => {
         await expectRoundTrip('価格 = 100');
-        await expectRoundTrip('価格 = 100\n売値 = 価格 * 0.7\nputs 売値',
-            '価格 = 100\n売値 = 価格 * 0.7\nputs(売値)');
-        await expectRoundTrip('ねこ = "にゃー"\nputs ねこ',
-            'ねこ = "にゃー"\nputs(ねこ)');
+        await expectRoundTrip(
+            '価格 = 100\n売値 = 価格 * 0.7\nputs 売値',
+            '価格 = 100\n売値 = 価格 * 0.7\nputs(売値)',
+        );
+        await expectRoundTrip('ねこ = "にゃー"\nputs ねこ', 'ねこ = "にゃー"\nputs(ねこ)');
         await expectRoundTrip('スコア = 0\nスコア = スコア + 10');
     });
 
@@ -271,14 +270,12 @@ end
     });
 
     test('while...end round-trip', async () => {
-        await expectRoundTrip(
-            'while touching?("_edge_")\n  move(10)\nend'
-        );
+        await expectRoundTrip('while touching?("_edge_")\n  move(10)\nend');
     });
 
     test('while with comparison round-trip', async () => {
         await expectRoundTrip(
-            '@shikin = 30000\nwhile @shikin >= 0\n  say(@shikin, 1)\n  @shikin = @shikin - 5080\nend'
+            '@shikin = 30000\nwhile @shikin >= 0\n  say(@shikin, 1)\n  @shikin = @shikin - 5080\nend',
         );
     });
 
@@ -313,7 +310,7 @@ end
 
         test('complex program with while and boolean variable', async () => {
             await expectRoundTrip(
-                'when_flag_clicked do\n  @game_on = true\n  while @game_on\n    go_to("_random_")\n    @game_on = false\n  end\nend'
+                'when_flag_clicked do\n  @game_on = true\n  while @game_on\n    go_to("_random_")\n    @game_on = false\n  end\nend',
             );
         });
     });
@@ -322,7 +319,7 @@ end
         let converterV2;
 
         beforeEach(() => {
-            converterV2 = new RubyToBlocksConverter(null, {version: 2});
+            converterV2 = new RubyToBlocksConverter(null, { version: 2 });
         });
 
         const expectClassRoundTrip = async (code, expectedRuby = null, spriteOptions = {}) => {
@@ -332,19 +329,19 @@ end
 
             const blocks = new Blocks();
             blocks.forceNoGlow = true;
-            Object.keys(converterV2.blocks).forEach(blockId => {
+            Object.keys(converterV2.blocks).forEach((blockId) => {
                 blocks.createBlock(converterV2.blocks[blockId]);
             });
 
             const variables = {};
-            [converterV2.variables, converterV2._context.localVariables].forEach(vars => {
-                Object.values(vars).forEach(v => {
+            [converterV2.variables, converterV2._context.localVariables].forEach((vars) => {
+                Object.values(vars).forEach((v) => {
                     variables[v.id] = v;
                 });
             });
 
             const lists = {};
-            Object.values(converterV2.lists).forEach(v => {
+            Object.values(converterV2.lists).forEach((v) => {
                 lists[v.id] = v;
             });
 
@@ -356,7 +353,7 @@ end
                 lists: lists,
                 comments: converterV2._context.comments,
                 isStage: false,
-                sprite: {name: spriteName, costumes: []},
+                sprite: { name: spriteName, costumes: [] },
                 x: spriteOptions.x || 0,
                 y: spriteOptions.y || 0,
                 direction: spriteOptions.direction || 90,
@@ -364,41 +361,37 @@ end
                 size: spriteOptions.size || 100,
                 currentCostume: spriteOptions.currentCostume || 0,
                 rotationStyle: spriteOptions.rotationStyle || 'all around',
-                lookupVariableById: id => variables[id],
+                lookupVariableById: (id) => variables[id],
                 lookupVariableByNameAndType: (name, type) => {
-                    return Object.values(variables).find(v => v.name === name && v.type === type);
-                }
+                    return Object.values(variables).find((v) => v.name === name && v.type === type);
+                },
             };
 
             // Set up runtime.targets mock
-            const stage = {isStage: true};
-            target.runtime = {targets: [stage, target]};
+            const stage = { isStage: true };
+            target.runtime = { targets: [stage, target] };
 
             RubyGenerator.currentTarget = target;
 
-            const generatedRuby = RubyGenerator.targetToCode(target, {version: '2'});
+            const generatedRuby = RubyGenerator.targetToCode(target, { version: '2' });
             expect(generatedRuby.trim()).toEqual((expectedRuby || code).trim());
         };
 
         test('basic class Sprite1 round trip', async () => {
-            await expectClassRoundTrip(
-                `class Sprite1\n  when_flag_clicked do\n    move(10)\n  end\nend`
-            );
+            await expectClassRoundTrip(`class Sprite1\n  when_flag_clicked do\n    move(10)\n  end\nend`);
         });
 
         test('class Cat round trip', async () => {
-            await expectClassRoundTrip(
-                `class Cat\n  when_flag_clicked do\n    move(10)\n  end\nend`,
-                null,
-                {name: 'Cat'}
-            );
+            await expectClassRoundTrip(`class Cat\n  when_flag_clicked do\n    move(10)\n  end\nend`, null, {
+                name: 'Cat',
+            });
         });
 
         test('class with set_name round trip', async () => {
             await expectClassRoundTrip(
                 `class Sprite1\n  set_name "ネコ"\n\n  when_flag_clicked do\n    move(10)\n  end\nend`,
                 null,
-                {name: 'ネコ'}
+                { name: 'ネコ' },
             );
         });
 
@@ -406,7 +399,7 @@ end
             await expectClassRoundTrip(
                 `class Sprite1\n  set_x 100\n  set_y -50\n\n  when_flag_clicked do\n    move(10)\n  end\nend`,
                 null,
-                {x: 100, y: -50}
+                { x: 100, y: -50 },
             );
         });
 
@@ -414,7 +407,7 @@ end
             await expectClassRoundTrip(
                 `class Cat\n  set_x 90\n\n  when_flag_clicked do\n    move(10)\n  end\nend`,
                 null,
-                {name: 'Cat', x: 90}
+                { name: 'Cat', x: 90 },
             );
         });
 
@@ -422,7 +415,7 @@ end
             await expectClassRoundTrip(
                 `class Cat\n  set_name "ネコ"\n\n  when_flag_clicked do\n    move(10)\n  end\nend`,
                 null,
-                {name: 'ネコ'}
+                { name: 'ネコ' },
             );
         });
 
@@ -430,25 +423,24 @@ end
             await expectClassRoundTrip(
                 `class Cat\n  set_name "ネコ"\n  set_x 100\n\n  when_flag_clicked do\n    move(10)\n  end\nend`,
                 null,
-                {name: 'ネコ', x: 100}
+                { name: 'ネコ', x: 100 },
             );
         });
 
         test('class without set_xxx does not output attributes', async () => {
             // Even though sprite has non-default x,y, they should NOT appear
             // because the class had no set_xxx calls (comment is @ruby:class)
-            await expectClassRoundTrip(
-                `class Sprite1\n  when_flag_clicked do\n    move(10)\n  end\nend`,
-                null,
-                {x: 100, y: -50}
-            );
+            await expectClassRoundTrip(`class Sprite1\n  when_flag_clicked do\n    move(10)\n  end\nend`, null, {
+                x: 100,
+                y: -50,
+            });
         });
 
         test('class with only set_name round trip', async () => {
             await expectClassRoundTrip(
                 `class Sprite1\n  set_name "ネコ"\nend`,
                 `class Sprite1\n  set_name "ネコ"\nend`,
-                {name: 'ネコ'}
+                { name: 'ネコ' },
             );
         });
 
@@ -456,7 +448,7 @@ end
             await expectClassRoundTrip(
                 `class Sprite1\n  set_x 100\n  set_y -50\nend`,
                 `class Sprite1\n  set_x 100\n  set_y -50\nend`,
-                {x: 100, y: -50}
+                { x: 100, y: -50 },
             );
         });
 
@@ -465,7 +457,16 @@ end
             await expectClassRoundTrip(
                 `class Sprite1\n  set_name "ネコ"\n  set_x 100\n  set_y -50\n  set_direction 180\n  set_visible false\n  set_size 50\n  set_current_costume 3\n  set_rotation_style "left-right"\nend`,
                 `class Sprite1\n  set_name "ネコ"\n  set_x 100\n  set_y -50\n  set_direction 180\n  set_visible false\n  set_size 50\n  set_current_costume 3\n  set_rotation_style "left-right"\nend`,
-                {name: 'ネコ', x: 100, y: -50, direction: 180, visible: false, size: 50, currentCostume: 2, rotationStyle: 'left-right'}
+                {
+                    name: 'ネコ',
+                    x: 100,
+                    y: -50,
+                    direction: 180,
+                    visible: false,
+                    size: 50,
+                    currentCostume: 2,
+                    rotationStyle: 'left-right',
+                },
             );
         });
     });

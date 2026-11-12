@@ -18,11 +18,9 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-
+import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import TeacherBreadcrumbs from './teacher-breadcrumbs.jsx';
-
-import styles from './classroom-modal.css';
 
 const breadcrumbItemsShape = PropTypes.arrayOf(
     PropTypes.shape({

@@ -42,9 +42,13 @@ const generateReport = async function (inputPath, outputPath) {
 
 ## クロストーク
 - 検出数: ${data.crosstalk.count}
-${data.crosstalk.count > 0 ? `
+${
+    data.crosstalk.count > 0
+        ? `
 ### 詳細
-${JSON.stringify(data.crosstalk.details, null, 2)}` : ''}
+${JSON.stringify(data.crosstalk.details, null, 2)}`
+        : ''
+}
 `;
 
     fs.writeFileSync(outputPath, report);
@@ -59,7 +63,7 @@ ${JSON.stringify(data.crosstalk.details, null, 2)}` : ''}
  */
 const main = async function () {
     const args = process.argv.slice(2);
-    const inputArg = args.find(a => a.startsWith('--input='));
+    const inputArg = args.find((a) => a.startsWith('--input='));
     const inputPath = inputArg ? inputArg.split('=')[1] : null;
 
     if (!inputPath) {

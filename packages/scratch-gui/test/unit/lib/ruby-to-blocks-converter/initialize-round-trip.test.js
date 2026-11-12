@@ -3,10 +3,10 @@ import {
     makeStageTarget,
     makeConverter,
     setupRubyGenerator,
-    expectRoundTrip
+    expectRoundTrip,
 } from '../../helpers/ruby-roundtrip-helper';
 
-const V2_OPTIONS = {version: '2'};
+const V2_OPTIONS = { version: '2' };
 
 describe('def initialize round-trip', () => {
     beforeEach(() => {
@@ -17,10 +17,10 @@ describe('def initialize round-trip', () => {
         let target, stage, runtime, converter;
 
         beforeEach(() => {
-            ({target, stage, runtime} = makeSpriteTarget());
-            target.sprite = {name: 'Sprite1', costumes: []};
+            ({ target, stage, runtime } = makeSpriteTarget());
+            target.sprite = { name: 'Sprite1', costumes: [] };
             runtime.targets = [stage, target];
-            converter = makeConverter(target, runtime, {version: '2'});
+            converter = makeConverter(target, runtime, { version: '2' });
         });
 
         test('basic variable initialization round-trips', async () => {
@@ -33,7 +33,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    move(10)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await expectRoundTrip(converter, target, code, null, V2_OPTIONS);
         });
@@ -49,7 +49,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    move(10)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             const expected = [
                 'class Sprite1',
@@ -61,7 +61,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    move(10)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await expectRoundTrip(converter, target, input, expected, V2_OPTIONS);
         });
@@ -76,7 +76,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    move(10)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await expectRoundTrip(converter, target, code, null, V2_OPTIONS);
         });
@@ -91,7 +91,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    move(10)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await expectRoundTrip(converter, target, code, null, V2_OPTIONS);
         });
@@ -106,7 +106,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    move(10)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await expectRoundTrip(converter, target, code, null, V2_OPTIONS);
         });
@@ -123,7 +123,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    move(10)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await expectRoundTrip(converter, target, code, null, V2_OPTIONS);
         });
@@ -138,7 +138,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    move(10)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await expectRoundTrip(converter, target, code, null, V2_OPTIONS);
         });
@@ -154,7 +154,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    move(10)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await expectRoundTrip(converter, target, code, null, V2_OPTIONS);
         });
@@ -170,7 +170,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    move(10)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await expectRoundTrip(converter, target, code, null, V2_OPTIONS);
         });
@@ -185,7 +185,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    say(@x)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await expectRoundTrip(converter, target, code, null, V2_OPTIONS);
         });
@@ -195,10 +195,10 @@ describe('def initialize round-trip', () => {
         let target, runtime, converter;
 
         beforeEach(() => {
-            ({target, runtime} = makeStageTarget());
-            target.sprite = {name: 'Stage', costumes: []};
+            ({ target, runtime } = makeStageTarget());
+            target.sprite = { name: 'Stage', costumes: [] };
             runtime.targets = [target];
-            converter = makeConverter(target, runtime, {version: '2'});
+            converter = makeConverter(target, runtime, { version: '2' });
         });
 
         test('global variable initialization round-trips', async () => {
@@ -211,7 +211,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    switch_backdrop("Arctic")',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await expectRoundTrip(converter, target, code, null, V2_OPTIONS);
         });
@@ -226,7 +226,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    switch_backdrop("Arctic")',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await expectRoundTrip(converter, target, code, null, V2_OPTIONS);
         });
@@ -234,9 +234,9 @@ describe('def initialize round-trip', () => {
 
     describe('error cases', () => {
         test('invalid code in initialize produces error', async () => {
-            const {target, runtime} = makeSpriteTarget();
-            target.sprite = {name: 'Sprite1', costumes: []};
-            const converter = makeConverter(target, runtime, {version: '2'});
+            const { target, runtime } = makeSpriteTarget();
+            target.sprite = { name: 'Sprite1', costumes: [] };
+            const converter = makeConverter(target, runtime, { version: '2' });
             const code = [
                 'class Sprite1',
                 '  def initialize',
@@ -246,16 +246,16 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    move(10)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await converter.targetCodeToBlocks(target, code);
             expect(converter.errors.length).toBeGreaterThan(0);
         });
 
         test('set_variables in V2 produces error', async () => {
-            const {target, runtime} = makeSpriteTarget();
-            target.sprite = {name: 'Sprite1', costumes: []};
-            const converter = makeConverter(target, runtime, {version: '2'});
+            const { target, runtime } = makeSpriteTarget();
+            target.sprite = { name: 'Sprite1', costumes: [] };
+            const converter = makeConverter(target, runtime, { version: '2' });
             const code = [
                 'class Sprite1',
                 '  set_variables ["x"]',
@@ -263,7 +263,7 @@ describe('def initialize round-trip', () => {
                 '  when_flag_clicked do',
                 '    move(10)',
                 '  end',
-                'end'
+                'end',
             ].join('\n');
             await converter.targetCodeToBlocks(target, code);
             expect(converter.errors.length).toBeGreaterThan(0);

@@ -1,16 +1,13 @@
 // === Smalruby: This file is Smalruby-specific (Ruby hash syntax for Scratch lists) ===
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    expectedInfo
-} from '../../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks, expectedInfo } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
     let converter;
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -25,85 +22,85 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: '$_hash_a_keys_'
-                        }
+                            list: '$_hash_a_keys_',
+                        },
                     ],
-                    comment: {text: '@ruby:hash:literal:2', minimized: true},
+                    comment: { text: '@ruby:hash:literal:2', minimized: true },
                     next: {
                         opcode: 'data_deletealloflist',
                         fields: [
                             {
                                 name: 'LIST',
-                                list: '$_hash_a_values_'
-                            }
+                                list: '$_hash_a_values_',
+                            },
                         ],
-                        comment: {text: '@ruby:hash:literal:values', minimized: true},
+                        comment: { text: '@ruby:hash:literal:values', minimized: true },
                         next: {
                             opcode: 'data_addtolist',
                             fields: [
                                 {
                                     name: 'LIST',
-                                    list: '$_hash_a_keys_'
-                                }
+                                    list: '$_hash_a_keys_',
+                                },
                             ],
                             inputs: [
                                 {
                                     name: 'ITEM',
-                                    block: expectedInfo.makeText(':name')
-                                }
+                                    block: expectedInfo.makeText(':name'),
+                                },
                             ],
-                            comment: {text: '@ruby:hash:literal:key:sym', minimized: true},
+                            comment: { text: '@ruby:hash:literal:key:sym', minimized: true },
                             next: {
                                 opcode: 'data_addtolist',
                                 fields: [
                                     {
                                         name: 'LIST',
-                                        list: '$_hash_a_values_'
-                                    }
+                                        list: '$_hash_a_values_',
+                                    },
                                 ],
                                 inputs: [
                                     {
                                         name: 'ITEM',
-                                        block: expectedInfo.makeText('Alice')
-                                    }
+                                        block: expectedInfo.makeText('Alice'),
+                                    },
                                 ],
-                                comment: {text: '@ruby:hash:literal:value', minimized: true},
+                                comment: { text: '@ruby:hash:literal:value', minimized: true },
                                 next: {
                                     opcode: 'data_addtolist',
                                     fields: [
                                         {
                                             name: 'LIST',
-                                            list: '$_hash_a_keys_'
-                                        }
+                                            list: '$_hash_a_keys_',
+                                        },
                                     ],
                                     inputs: [
                                         {
                                             name: 'ITEM',
-                                            block: expectedInfo.makeText(':age')
-                                        }
+                                            block: expectedInfo.makeText(':age'),
+                                        },
                                     ],
-                                    comment: {text: '@ruby:hash:literal:key:sym', minimized: true},
+                                    comment: { text: '@ruby:hash:literal:key:sym', minimized: true },
                                     next: {
                                         opcode: 'data_addtolist',
                                         fields: [
                                             {
                                                 name: 'LIST',
-                                                list: '$_hash_a_values_'
-                                            }
+                                                list: '$_hash_a_values_',
+                                            },
                                         ],
                                         inputs: [
                                             {
                                                 name: 'ITEM',
-                                                block: expectedInfo.makeText('30')
-                                            }
+                                                block: expectedInfo.makeText('30'),
+                                            },
                                         ],
-                                        comment: {text: '@ruby:hash:literal:value', minimized: true}
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                                        comment: { text: '@ruby:hash:literal:value', minimized: true },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -116,21 +113,21 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: '$_hash_a_keys_'
-                        }
+                            list: '$_hash_a_keys_',
+                        },
                     ],
-                    comment: {text: '@ruby:hash:literal:0', minimized: true},
+                    comment: { text: '@ruby:hash:literal:0', minimized: true },
                     next: {
                         opcode: 'data_deletealloflist',
                         fields: [
                             {
                                 name: 'LIST',
-                                list: '$_hash_a_values_'
-                            }
+                                list: '$_hash_a_values_',
+                            },
                         ],
-                        comment: {text: '@ruby:hash:literal:values', minimized: true}
-                    }
-                }
+                        comment: { text: '@ruby:hash:literal:values', minimized: true },
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -143,53 +140,53 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: '$_hash_a_keys_'
-                        }
+                            list: '$_hash_a_keys_',
+                        },
                     ],
-                    comment: {text: '@ruby:hash:literal:1', minimized: true},
+                    comment: { text: '@ruby:hash:literal:1', minimized: true },
                     next: {
                         opcode: 'data_deletealloflist',
                         fields: [
                             {
                                 name: 'LIST',
-                                list: '$_hash_a_values_'
-                            }
+                                list: '$_hash_a_values_',
+                            },
                         ],
-                        comment: {text: '@ruby:hash:literal:values', minimized: true},
+                        comment: { text: '@ruby:hash:literal:values', minimized: true },
                         next: {
                             opcode: 'data_addtolist',
                             fields: [
                                 {
                                     name: 'LIST',
-                                    list: '$_hash_a_keys_'
-                                }
+                                    list: '$_hash_a_keys_',
+                                },
                             ],
                             inputs: [
                                 {
                                     name: 'ITEM',
-                                    block: expectedInfo.makeText('foo')
-                                }
+                                    block: expectedInfo.makeText('foo'),
+                                },
                             ],
-                            comment: {text: '@ruby:hash:literal:key:str', minimized: true},
+                            comment: { text: '@ruby:hash:literal:key:str', minimized: true },
                             next: {
                                 opcode: 'data_addtolist',
                                 fields: [
                                     {
                                         name: 'LIST',
-                                        list: '$_hash_a_values_'
-                                    }
+                                        list: '$_hash_a_values_',
+                                    },
                                 ],
                                 inputs: [
                                     {
                                         name: 'ITEM',
-                                        block: expectedInfo.makeText('bar')
-                                    }
+                                        block: expectedInfo.makeText('bar'),
+                                    },
                                 ],
-                                comment: {text: '@ruby:hash:literal:value', minimized: true}
-                            }
-                        }
-                    }
-                }
+                                comment: { text: '@ruby:hash:literal:value', minimized: true },
+                            },
+                        },
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -202,53 +199,53 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: '$_hash_a_keys_'
-                        }
+                            list: '$_hash_a_keys_',
+                        },
                     ],
-                    comment: {text: '@ruby:hash:literal:1', minimized: true},
+                    comment: { text: '@ruby:hash:literal:1', minimized: true },
                     next: {
                         opcode: 'data_deletealloflist',
                         fields: [
                             {
                                 name: 'LIST',
-                                list: '$_hash_a_values_'
-                            }
+                                list: '$_hash_a_values_',
+                            },
                         ],
-                        comment: {text: '@ruby:hash:literal:values', minimized: true},
+                        comment: { text: '@ruby:hash:literal:values', minimized: true },
                         next: {
                             opcode: 'data_addtolist',
                             fields: [
                                 {
                                     name: 'LIST',
-                                    list: '$_hash_a_keys_'
-                                }
+                                    list: '$_hash_a_keys_',
+                                },
                             ],
                             inputs: [
                                 {
                                     name: 'ITEM',
-                                    block: expectedInfo.makeText(':name')
-                                }
+                                    block: expectedInfo.makeText(':name'),
+                                },
                             ],
-                            comment: {text: '@ruby:hash:literal:key:sym', minimized: true},
+                            comment: { text: '@ruby:hash:literal:key:sym', minimized: true },
                             next: {
                                 opcode: 'data_addtolist',
                                 fields: [
                                     {
                                         name: 'LIST',
-                                        list: '$_hash_a_values_'
-                                    }
+                                        list: '$_hash_a_values_',
+                                    },
                                 ],
                                 inputs: [
                                     {
                                         name: 'ITEM',
-                                        block: expectedInfo.makeText('Alice')
-                                    }
+                                        block: expectedInfo.makeText('Alice'),
+                                    },
                                 ],
-                                comment: {text: '@ruby:hash:literal:value', minimized: true}
-                            }
-                        }
-                    }
-                }
+                                comment: { text: '@ruby:hash:literal:value', minimized: true },
+                            },
+                        },
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -262,10 +259,10 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
             expect(res).toBeTruthy();
 
             const blockIds = Object.keys(converter.blocks);
-            const blocks = blockIds.map(id => converter.blocks[id]);
+            const blocks = blockIds.map((id) => converter.blocks[id]);
 
             // Find data_itemoflist block (hash get)
-            const itemBlock = blocks.find(b => b.opcode === 'data_itemoflist');
+            const itemBlock = blocks.find((b) => b.opcode === 'data_itemoflist');
             expect(itemBlock).toBeTruthy();
 
             // Verify it has @ruby:hash:get:sym comment
@@ -276,7 +273,7 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
             expect(itemBlock.fields.LIST.value).toBe('_hash_a_values_');
 
             // Find data_itemnumoflist block (key lookup)
-            const numBlock = blocks.find(b => b.opcode === 'data_itemnumoflist');
+            const numBlock = blocks.find((b) => b.opcode === 'data_itemnumoflist');
             expect(numBlock).toBeTruthy();
             // Verify it references the keys list
             expect(numBlock.fields.LIST.value).toBe('_hash_a_keys_');
@@ -289,9 +286,9 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
             expect(res).toBeTruthy();
 
             const blockIds = Object.keys(converter.blocks);
-            const blocks = blockIds.map(id => converter.blocks[id]);
+            const blocks = blockIds.map((id) => converter.blocks[id]);
 
-            const itemBlock = blocks.find(b => b.opcode === 'data_itemoflist');
+            const itemBlock = blocks.find((b) => b.opcode === 'data_itemoflist');
             expect(itemBlock).toBeTruthy();
 
             const itemComment = converter._context.comments[itemBlock.comment];
@@ -307,35 +304,35 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
             expect(res).toBeTruthy();
 
             const blockIds = Object.keys(converter.blocks);
-            const blocks = blockIds.map(id => converter.blocks[id]);
+            const blocks = blockIds.map((id) => converter.blocks[id]);
 
             // Should have 2 delete blocks and 2 push blocks (+ literal blocks)
-            const deleteBlocks = blocks.filter(b => b.opcode === 'data_deleteoflist');
+            const deleteBlocks = blocks.filter((b) => b.opcode === 'data_deleteoflist');
             expect(deleteBlocks).toHaveLength(2);
 
             // First delete should have @ruby:hash:set:sym comment
-            const setBlock = deleteBlocks.find(b => {
+            const setBlock = deleteBlocks.find((b) => {
                 const c = converter._context.comments[b.comment];
                 return c && c.text === '@ruby:hash:set:sym';
             });
             expect(setBlock).toBeTruthy();
 
             // Second delete should have @ruby:hash:set:delete:key comment
-            const deleteKeyBlock = deleteBlocks.find(b => {
+            const deleteKeyBlock = deleteBlocks.find((b) => {
                 const c = converter._context.comments[b.comment];
                 return c && c.text === '@ruby:hash:set:delete:key';
             });
             expect(deleteKeyBlock).toBeTruthy();
 
             // Push key and push value blocks
-            const addBlocks = blocks.filter(b => b.opcode === 'data_addtolist');
-            const pushKeyBlock = addBlocks.find(b => {
+            const addBlocks = blocks.filter((b) => b.opcode === 'data_addtolist');
+            const pushKeyBlock = addBlocks.find((b) => {
                 const c = converter._context.comments[b.comment];
                 return c && c.text === '@ruby:hash:set:push:key';
             });
             expect(pushKeyBlock).toBeTruthy();
 
-            const pushValueBlock = addBlocks.find(b => {
+            const pushValueBlock = addBlocks.find((b) => {
                 const c = converter._context.comments[b.comment];
                 return c && c.text === '@ruby:hash:set:push:value';
             });
@@ -349,9 +346,9 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
             expect(res).toBeTruthy();
 
             const blockIds = Object.keys(converter.blocks);
-            const blocks = blockIds.map(id => converter.blocks[id]);
+            const blocks = blockIds.map((id) => converter.blocks[id]);
 
-            const setBlock = blocks.find(b => {
+            const setBlock = blocks.find((b) => {
                 const c = converter._context.comments[b.comment];
                 return c && c.text === '@ruby:hash:set:str';
             });
@@ -363,7 +360,7 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
         let v1Converter;
 
         beforeEach(() => {
-            v1Converter = new RubyToBlocksConverter(null, {version: '1'});
+            v1Converter = new RubyToBlocksConverter(null, { version: '1' });
         });
 
         test('hash literal in v1 throws error', async () => {
@@ -397,53 +394,53 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
                     fields: [
                         {
                             name: 'LIST',
-                            list: '@_hash_a_keys_'
-                        }
+                            list: '@_hash_a_keys_',
+                        },
                     ],
-                    comment: {text: '@ruby:hash:literal:1', minimized: true},
+                    comment: { text: '@ruby:hash:literal:1', minimized: true },
                     next: {
                         opcode: 'data_deletealloflist',
                         fields: [
                             {
                                 name: 'LIST',
-                                list: '@_hash_a_values_'
-                            }
+                                list: '@_hash_a_values_',
+                            },
                         ],
-                        comment: {text: '@ruby:hash:literal:values', minimized: true},
+                        comment: { text: '@ruby:hash:literal:values', minimized: true },
                         next: {
                             opcode: 'data_addtolist',
                             fields: [
                                 {
                                     name: 'LIST',
-                                    list: '@_hash_a_keys_'
-                                }
+                                    list: '@_hash_a_keys_',
+                                },
                             ],
                             inputs: [
                                 {
                                     name: 'ITEM',
-                                    block: expectedInfo.makeText(':x')
-                                }
+                                    block: expectedInfo.makeText(':x'),
+                                },
                             ],
-                            comment: {text: '@ruby:hash:literal:key:sym', minimized: true},
+                            comment: { text: '@ruby:hash:literal:key:sym', minimized: true },
                             next: {
                                 opcode: 'data_addtolist',
                                 fields: [
                                     {
                                         name: 'LIST',
-                                        list: '@_hash_a_values_'
-                                    }
+                                        list: '@_hash_a_values_',
+                                    },
                                 ],
                                 inputs: [
                                     {
                                         name: 'ITEM',
-                                        block: expectedInfo.makeText('1')
-                                    }
+                                        block: expectedInfo.makeText('1'),
+                                    },
                                 ],
-                                comment: {text: '@ruby:hash:literal:value', minimized: true}
-                            }
-                        }
-                    }
-                }
+                                comment: { text: '@ruby:hash:literal:value', minimized: true },
+                            },
+                        },
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });

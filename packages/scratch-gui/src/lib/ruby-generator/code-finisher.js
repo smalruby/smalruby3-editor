@@ -38,8 +38,9 @@ export default function (Generator) {
                 const moduleMatch = comment.match(/@ruby:module:(\S+)/);
                 if (moduleMatch) {
                     const moduleName = moduleMatch[1];
-                    const userText = comment.split('\n')
-                        .filter(line => !line.startsWith('@ruby:'))
+                    const userText = comment
+                        .split('\n')
+                        .filter((line) => !line.startsWith('@ruby:'))
                         .join('\n');
                     if (userText.trim().length > 0) {
                         moduleComments[moduleName] = userText;
@@ -87,9 +88,7 @@ export default function (Generator) {
         // For version 2, @ruby:class takes priority over withSpriteNew.
         // For version 2 stage targets without @ruby:class, auto-wrap with class Stage.
         if (classComment && this.version !== '1') {
-            code = this._wrapWithClass(
-                code, classComment, options && options.withSpriteNew
-            );
+            code = this._wrapWithClass(code, classComment, options && options.withSpriteNew);
         } else if (this.version !== '1' && options && options.withSpriteNew) {
             // Version 2: auto-wrap with class (both sprite and stage).
             // Wrap even with no scripts when the target has variables/lists (or
@@ -111,7 +110,7 @@ export default function (Generator) {
         // Add non-class target comments AFTER class wrapping so they appear
         // before the class definition, not inside it.
         if (otherComments.length > 0) {
-            const commentCodes = otherComments.map(comment => `${this.prefixLines(comment, '# ')}\n`);
+            const commentCodes = otherComments.map((comment) => `${this.prefixLines(comment, '# ')}\n`);
             code = `${commentCodes.join('\n')}\n${code}`;
         }
 
@@ -133,7 +132,7 @@ export default function (Generator) {
         this.prepares_ = {};
 
         if (options && Object.prototype.hasOwnProperty.call(options, 'requires')) {
-            options.requires.forEach(name => {
+            options.requires.forEach((name) => {
                 this.requires_[`require__${name}`] = `require "${name}"`;
             });
         }
@@ -141,12 +140,12 @@ export default function (Generator) {
 
     Generator.finishTargets = function (code, _options) {
         let s = '';
-        const requires = Object.keys(this.requires_).map(name => this.requires_[name]);
+        const requires = Object.keys(this.requires_).map((name) => this.requires_[name]);
         if (requires.length > 0) {
             s += `${requires.join('\n')}\n\n`;
         }
 
-        const prepares = Object.keys(this.prepares_).map(name => this.prepares_[name]);
+        const prepares = Object.keys(this.prepares_).map((name) => this.prepares_[name]);
         if (prepares.length > 0) {
             s += `${prepares.join('\n')}\n\n`;
         }

@@ -7,8 +7,7 @@ const LIST_TYPE = 'list';
 // (see `_lookupOrCreateVariable` in ruby-to-blocks-converter/variable-utils.js).
 const LOCAL_VARIABLE_PATTERN = /^_((?![A-Z])[\p{L}_][\p{L}\p{N}_]*)_(\d+)_$/u;
 
-const escapeIdentityRegexp =
-    /[\x00-\x1f\x7f-\x9f !"#$%&'()*+,-./:;<=>?@[\\\]^`{|}~]/g; // eslint-disable-line no-control-regex
+const escapeIdentityRegexp = /[\x00-\x1f\x7f-\x9f !"#$%&'()*+,-./:;<=>?@[\\\]^`{|}~]/g; // eslint-disable-line no-control-regex
 
 /**
  * Register variable name resolution and escaping methods on the RubyGenerator.
@@ -65,8 +64,9 @@ export default function (Generator) {
         // `name` matches LOCAL_VARIABLE_PATTERN (identifier characters only), so it needs no escaping.
         const token = new RegExp(`(?:^|[,\\s])@ruby:lvar:${name}:${scopeIndex}(?=$|[,\\s])`, 'u');
         const comments = (this.cache_ && this.cache_.comments) || {};
-        return Object.values(comments).some(comment =>
-            typeof comment.text === 'string' && token.test(comment.text));
+        return Object.values(comments).some(
+            (comment) => typeof comment.text === 'string' && token.test(comment.text),
+        );
     };
 
     Generator.variableNameByName = function (name, type = SCALAR_TYPE) {

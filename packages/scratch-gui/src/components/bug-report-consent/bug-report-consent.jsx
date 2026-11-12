@@ -1,8 +1,7 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 import { defineMessages, injectIntl, FormattedMessage } from 'react-intl';
 import intlShape from '../../lib/intlShape.js';
-
 import styles from './bug-report-consent.css';
 
 const messages = defineMessages({
@@ -13,8 +12,7 @@ const messages = defineMessages({
     },
     intro: {
         id: 'gui.bugReportConsent.intro',
-        defaultMessage:
-            'To fix the bug, your current project is shared with the Smalruby developers.',
+        defaultMessage: 'To fix the bug, your current project is shared with the Smalruby developers.',
         description: 'Explanation that the project is shared',
     },
     pointShared: {
@@ -24,8 +22,7 @@ const messages = defineMessages({
     },
     pointLogin: {
         id: 'gui.bugReportConsent.pointLogin',
-        defaultMessage:
-            'You sign in with Google or Microsoft so we can tell you when it is fixed.',
+        defaultMessage: 'You sign in with Google or Microsoft so we can tell you when it is fixed.',
         description: 'Why login is required',
     },
     pointNoPersonalInfo: {
@@ -72,10 +69,7 @@ const messages = defineMessages({
  * @returns {React.Element} Notice dialog
  */
 const BugReportConsent = ({ onAccept, onCancel, intl }) => (
-    <div
-        className={styles.overlay}
-        data-testid="bug-report-consent"
-    >
+    <div className={styles.overlay} data-testid="bug-report-consent">
         <div className={styles.dialog}>
             <h2 className={styles.title}>
                 {'🐛 '}
@@ -101,28 +95,16 @@ const BugReportConsent = ({ onAccept, onCancel, intl }) => (
             {/* Informational note for guardians — NOT a consent gate. */}
             <p className={styles.guardianNote}>
                 <FormattedMessage {...messages.guardianNote} />{' '}
-                <a
-                    href="/privacy-policy.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
+                <a href="/privacy-policy.html" target="_blank" rel="noopener noreferrer">
                     {intl.formatMessage(messages.privacyLink)}
                 </a>
             </p>
 
             <div className={styles.buttons}>
-                <button
-                    className={styles.cancelButton}
-                    onClick={onCancel}
-                    data-testid="bug-report-consent-cancel"
-                >
+                <button className={styles.cancelButton} onClick={onCancel} data-testid="bug-report-consent-cancel">
                     <FormattedMessage {...messages.cancel} />
                 </button>
-                <button
-                    className={styles.acceptButton}
-                    onClick={onAccept}
-                    data-testid="bug-report-consent-accept"
-                >
+                <button className={styles.acceptButton} onClick={onAccept} data-testid="bug-report-consent-accept">
                     <FormattedMessage {...messages.accept} />
                 </button>
             </div>

@@ -9,7 +9,6 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
-
 import { initialsFromEmail } from '../../lib/avatar-initials.js';
 import styles from './classroom-teacher-modal.css';
 
@@ -26,7 +25,7 @@ const TeacherAvatarMenu = ({ email, onLogout }) => {
     const [open, setOpen] = useState(false);
     const wrapperRef = useRef(null);
 
-    const toggle = useCallback(() => setOpen(o => !o), []);
+    const toggle = useCallback(() => setOpen((o) => !o), []);
     const handleLogout = useCallback(() => {
         setOpen(false);
         onLogout();
@@ -35,10 +34,10 @@ const TeacherAvatarMenu = ({ email, onLogout }) => {
     // 外側クリック / Esc で閉じる。
     useEffect(() => {
         if (!open) return () => {};
-        const onDocDown = e => {
+        const onDocDown = (e) => {
             if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false);
         };
-        const onKey = e => {
+        const onKey = (e) => {
             if (e.key === 'Escape') setOpen(false);
         };
         document.addEventListener('mousedown', onDocDown);
@@ -64,12 +63,16 @@ const TeacherAvatarMenu = ({ email, onLogout }) => {
                 <span className={styles.avatarInitials} data-testid="classroom-avatar-initials">
                     {initialsFromEmail(email)}
                 </span>
-                <span aria-hidden="true" className={styles.avatarCaret}>{'▼'}</span>
+                <span aria-hidden="true" className={styles.avatarCaret}>
+                    {'▼'}
+                </span>
             </button>
             {open && (
                 <div className={styles.avatarPopup} data-testid="classroom-avatar-popup" role="menu">
                     {email ? (
-                        <div className={styles.avatarPopupEmail} data-testid="classroom-avatar-email">{email}</div>
+                        <div className={styles.avatarPopupEmail} data-testid="classroom-avatar-email">
+                            {email}
+                        </div>
                     ) : null}
                     <button
                         className={styles.avatarPopupItem}

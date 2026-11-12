@@ -23,9 +23,9 @@ const getSmalrubyMockState = () => ({
     googleDriveFile: {},
     koshienFile: {},
     rubyCode: {},
-    cards: {}
+    cards: {},
 });
 
 module.exports = {
-    getSmalrubyMockState
+    getSmalrubyMockState,
 };

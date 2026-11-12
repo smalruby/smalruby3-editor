@@ -19,12 +19,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { problemToJapanese } from '../../lib/genai-answer.js';
 import { canOfferTakeover, marksToShow } from '../../lib/genai-concierge-state.js';
 import { buildRewritePrompt } from '../../lib/genai-prompt.js';
-import {
-    MAX_TAKEOVER_TRIES,
-    requestTakeover,
-    runTakeover,
-    takeoverExplanation,
-} from '../../lib/genai-takeover.js';
+import { MAX_TAKEOVER_TRIES, requestTakeover, runTakeover, takeoverExplanation } from '../../lib/genai-takeover.js';
 import styles from './genai-concierge.css';
 import messages from './messages.js';
 
@@ -100,7 +95,9 @@ const describeProblem = (intl, problem, putsCode) => {
         case 'raw':
             return {
                 place: placeOf(intl, problem.sprite, null),
-                text: intl.formatMessage(putsCode ? messages.problemRawCode : messages.problemRaw, { count: problem.count }),
+                text: intl.formatMessage(putsCode ? messages.problemRawCode : messages.problemRaw, {
+                    count: problem.count,
+                }),
             };
         case 'error':
             return {
@@ -214,7 +211,9 @@ const ChangeList = ({ parts, several, onShow }) => {
                 <ul>
                     {lines.slice(0, MAX_CHANGES).map(({ part, change }, i) => {
                         const text = changeMessage(intl, change);
-                        const place = several ? `${intl.formatMessage(messages.spriteOf, { sprite: part.name })}: ` : '';
+                        const place = several
+                            ? `${intl.formatMessage(messages.spriteOf, { sprite: part.name })}: `
+                            : '';
                         const showable = onShow && change.kind !== 'removed';
                         return (
                             <li
@@ -236,7 +235,10 @@ const ChangeList = ({ parts, several, onShow }) => {
                     })}
                     {lines.length > MAX_CHANGES && (
                         <li className={styles.small}>
-                            <FormattedMessage {...messages.changesMore} values={{ count: lines.length - MAX_CHANGES }} />
+                            <FormattedMessage
+                                {...messages.changesMore}
+                                values={{ count: lines.length - MAX_CHANGES }}
+                            />
                         </li>
                     )}
                 </ul>
@@ -505,7 +507,10 @@ const GenaiAnswerSteps = ({
             const out = await runTakeover({
                 first,
                 send: (userMessage, history) =>
-                    requestTakeover({ userMessage, history, stateContext, sessionToken }, { signal: controller.signal }),
+                    requestTakeover(
+                        { userMessage, history, stateContext, sessionToken },
+                        { signal: controller.signal },
+                    ),
                 check: (text) => adapter.check(text, scope),
                 toJapanese: problemToJapanese,
                 onTry: (n) => setTakeover({ state: 'running', tries: n }),
@@ -595,7 +600,9 @@ const GenaiAnswerSteps = ({
                                 <IndexHintList hints={converted.indexHints} />
                             )}
                             {adapter.mountDiff ? (
-                                converted.parts.map((part) => <LineDiff key={part.name} adapter={adapter} part={part} />)
+                                converted.parts.map((part) => (
+                                    <LineDiff key={part.name} adapter={adapter} part={part} />
+                                ))
                             ) : (
                                 <ChangeList parts={converted.parts} several={converted.parts.length > 1} />
                             )}
@@ -681,75 +688,75 @@ const GenaiAnswerSteps = ({
                     )}
                 </div>
                 {running ? (
-                <div className={styles.footer}>
-                    <button data-testid="genai-takeover-cancel" onClick={handleCancelTakeover}>
-                        <FormattedMessage {...messages.takeoverCancel} />
-                    </button>
-                </div>
-                ) : (
-                <div className={styles.footer}>
-                    <button onClick={handleToCopy}>
-                        <FormattedMessage {...messages.back} />
-                    </button>
-                    {!converted && (
-                        <button
-                            className={styles.primary}
-                            data-testid="genai-convert"
-                            disabled={!answer.trim() || checking}
-                            onClick={handleConvert}
-                        >
-                            <FormattedMessage {...(putsCode ? messages.convertCode : messages.convert)} />
+                    <div className={styles.footer}>
+                        <button data-testid="genai-takeover-cancel" onClick={handleCancelTakeover}>
+                            <FormattedMessage {...messages.takeoverCancel} />
                         </button>
-                    )}
-                    {converted && converted.ok && (
-                        <>
-                            <button data-testid="genai-self" onClick={onClose}>
-                                <FormattedMessage {...(putsCode ? messages.selfCode : messages.self)} />
-                            </button>
+                    </div>
+                ) : (
+                    <div className={styles.footer}>
+                        <button onClick={handleToCopy}>
+                            <FormattedMessage {...messages.back} />
+                        </button>
+                        {!converted && (
                             <button
                                 className={styles.primary}
-                                data-testid="genai-apply"
-                                disabled={reflection.trim().length < MIN_REFLECTION || busy}
-                                onClick={handleApply}
+                                data-testid="genai-convert"
+                                disabled={!answer.trim() || checking}
+                                onClick={handleConvert}
                             >
-                                <FormattedMessage {...(putsCode ? messages.applyCode : messages.apply)} />
+                                <FormattedMessage {...(putsCode ? messages.convertCode : messages.convert)} />
                             </button>
-                            {reflection.trim().length < MIN_REFLECTION && (
-                                // In the footer, which is always in view: the reflection may be scrolled away.
-                                <p className={styles.footerHint} data-testid="genai-reflection-hint">
-                                    <FormattedMessage
-                                        {...(putsCode ? messages.reflectionHintCode : messages.reflectionHint)}
-                                        values={{ count: MIN_REFLECTION - reflection.trim().length }}
-                                    />
-                                </p>
-                            )}
-                        </>
-                    )}
-                    {converted && !converted.ok && canOfferTakeover({ failures, rubyteeAvailable }) && (
-                        <button data-testid="genai-takeover" onClick={startTakeover}>
-                            <FormattedMessage {...messages.takeover} />
-                        </button>
-                    )}
-                    {converted && !converted.ok && converted.code && (
-                        <button
-                            className={nextAnswer.trim() ? '' : styles.primary}
-                            data-testid="genai-copy-rewrite"
-                            onClick={handleCopyRewrite}
-                        >
-                            <FormattedMessage {...messages.copyRewrite} />
-                        </button>
-                    )}
-                    {converted && !converted.ok && nextAnswer.trim() && (
-                        <button
-                            className={styles.primary}
-                            data-testid="genai-convert"
-                            disabled={checking}
-                            onClick={handleConvert}
-                        >
-                            <FormattedMessage {...(putsCode ? messages.convertCode : messages.convert)} />
-                        </button>
-                    )}
-                </div>
+                        )}
+                        {converted && converted.ok && (
+                            <>
+                                <button data-testid="genai-self" onClick={onClose}>
+                                    <FormattedMessage {...(putsCode ? messages.selfCode : messages.self)} />
+                                </button>
+                                <button
+                                    className={styles.primary}
+                                    data-testid="genai-apply"
+                                    disabled={reflection.trim().length < MIN_REFLECTION || busy}
+                                    onClick={handleApply}
+                                >
+                                    <FormattedMessage {...(putsCode ? messages.applyCode : messages.apply)} />
+                                </button>
+                                {reflection.trim().length < MIN_REFLECTION && (
+                                    // In the footer, which is always in view: the reflection may be scrolled away.
+                                    <p className={styles.footerHint} data-testid="genai-reflection-hint">
+                                        <FormattedMessage
+                                            {...(putsCode ? messages.reflectionHintCode : messages.reflectionHint)}
+                                            values={{ count: MIN_REFLECTION - reflection.trim().length }}
+                                        />
+                                    </p>
+                                )}
+                            </>
+                        )}
+                        {converted && !converted.ok && canOfferTakeover({ failures, rubyteeAvailable }) && (
+                            <button data-testid="genai-takeover" onClick={startTakeover}>
+                                <FormattedMessage {...messages.takeover} />
+                            </button>
+                        )}
+                        {converted && !converted.ok && converted.code && (
+                            <button
+                                className={nextAnswer.trim() ? '' : styles.primary}
+                                data-testid="genai-copy-rewrite"
+                                onClick={handleCopyRewrite}
+                            >
+                                <FormattedMessage {...messages.copyRewrite} />
+                            </button>
+                        )}
+                        {converted && !converted.ok && nextAnswer.trim() && (
+                            <button
+                                className={styles.primary}
+                                data-testid="genai-convert"
+                                disabled={checking}
+                                onClick={handleConvert}
+                            >
+                                <FormattedMessage {...(putsCode ? messages.convertCode : messages.convert)} />
+                            </button>
+                        )}
+                    </div>
                 )}
             </>
         );

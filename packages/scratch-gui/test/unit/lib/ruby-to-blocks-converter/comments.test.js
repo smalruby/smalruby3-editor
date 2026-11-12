@@ -1,5 +1,5 @@
+import { loadPrism } from '../../../../src/lib/prism-parser';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import {loadPrism} from '../../../../src/lib/prism-parser';
 
 describe('RubyToBlocksConverter comment extraction', () => {
     let converter;
@@ -26,7 +26,7 @@ describe('RubyToBlocksConverter comment extraction', () => {
                 type: 'inline',
                 text: 'top comment',
                 line: 1,
-                isTrailing: false
+                isTrailing: false,
             });
         });
 
@@ -37,8 +37,8 @@ describe('RubyToBlocksConverter comment extraction', () => {
             const comments = converter._extractSourceComments(parseResult, code);
 
             expect(comments).toHaveLength(2);
-            expect(comments[0]).toMatchObject({type: 'inline', text: 'first', line: 1});
-            expect(comments[1]).toMatchObject({type: 'inline', text: 'second', line: 2});
+            expect(comments[0]).toMatchObject({ type: 'inline', text: 'first', line: 1 });
+            expect(comments[1]).toMatchObject({ type: 'inline', text: 'second', line: 2 });
         });
 
         test('should detect trailing comments (inline after code)', () => {
@@ -52,7 +52,7 @@ describe('RubyToBlocksConverter comment extraction', () => {
                 type: 'inline',
                 text: 'inline comment',
                 line: 1,
-                isTrailing: true
+                isTrailing: true,
             });
         });
 
@@ -67,7 +67,7 @@ describe('RubyToBlocksConverter comment extraction', () => {
                 type: 'embdoc',
                 text: 'block comment\nmore text',
                 line: 1,
-                isTrailing: false
+                isTrailing: false,
             });
         });
 
@@ -78,9 +78,9 @@ describe('RubyToBlocksConverter comment extraction', () => {
             const comments = converter._extractSourceComments(parseResult, code);
 
             expect(comments).toHaveLength(3);
-            expect(comments[0]).toMatchObject({text: 'before class', line: 1, isTrailing: false});
-            expect(comments[1]).toMatchObject({text: 'inside class', line: 3, isTrailing: false});
-            expect(comments[2]).toMatchObject({text: 'inline', line: 4, isTrailing: true});
+            expect(comments[0]).toMatchObject({ text: 'before class', line: 1, isTrailing: false });
+            expect(comments[1]).toMatchObject({ text: 'inside class', line: 3, isTrailing: false });
+            expect(comments[2]).toMatchObject({ text: 'inline', line: 4, isTrailing: true });
         });
 
         test('should return empty array when no comments', () => {
@@ -106,7 +106,7 @@ describe('RubyToBlocksConverter comment extraction', () => {
 
     describe('comment preservation through targetCodeToBlocks', () => {
         beforeEach(() => {
-            converter = new RubyToBlocksConverter(null, {version: '2'});
+            converter = new RubyToBlocksConverter(null, { version: '2' });
         });
 
         test('should preserve target-level comment (no block following)', async () => {
@@ -116,7 +116,7 @@ describe('RubyToBlocksConverter comment extraction', () => {
 
             const comments = converter._context.comments;
             const commentValues = Object.values(comments);
-            const targetComments = commentValues.filter(c => c.blockId === null && !c.text.startsWith('@ruby:'));
+            const targetComments = commentValues.filter((c) => c.blockId === null && !c.text.startsWith('@ruby:'));
 
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toBe('file description');
@@ -130,7 +130,7 @@ describe('RubyToBlocksConverter comment extraction', () => {
             const blocks = converter._context.blocks;
 
             // Find the move block
-            const moveBlock = Object.values(blocks).find(b => b.opcode === 'motion_movesteps');
+            const moveBlock = Object.values(blocks).find((b) => b.opcode === 'motion_movesteps');
             expect(moveBlock).toBeDefined();
             expect(moveBlock.comment).toBeDefined();
 
@@ -145,7 +145,7 @@ describe('RubyToBlocksConverter comment extraction', () => {
             const comments = converter._context.comments;
             const blocks = converter._context.blocks;
 
-            const moveBlock = Object.values(blocks).find(b => b.opcode === 'motion_movesteps');
+            const moveBlock = Object.values(blocks).find((b) => b.opcode === 'motion_movesteps');
             expect(moveBlock).toBeDefined();
             expect(moveBlock.comment).toBeDefined();
 
@@ -161,7 +161,7 @@ describe('RubyToBlocksConverter comment extraction', () => {
             const comments = converter._context.comments;
             const blocks = converter._context.blocks;
 
-            const moveBlock = Object.values(blocks).find(b => b.opcode === 'motion_movesteps');
+            const moveBlock = Object.values(blocks).find((b) => b.opcode === 'motion_movesteps');
             expect(moveBlock).toBeDefined();
             expect(moveBlock.comment).toBeDefined();
 
@@ -183,11 +183,11 @@ describe('RubyToBlocksConverter comment extraction', () => {
             // The user comment "change x position" is attached to the block that also has
             // a @ruby:operator:+= metadata comment. Check that both are present.
             // The motion changexby block has a metadata comment, and the user comment should be merged.
-            const hasChangeX = commentValues.some(c => c.text.includes('change x position'));
+            const hasChangeX = commentValues.some((c) => c.text.includes('change x position'));
             expect(hasChangeX).toBe(true);
 
             // Check that the block also has metadata
-            const blockWithComment = blockValues.find(b => b.comment);
+            const blockWithComment = blockValues.find((b) => b.comment);
             expect(blockWithComment).toBeDefined();
             if (blockWithComment) {
                 const comment = comments[blockWithComment.comment];
@@ -202,7 +202,7 @@ describe('RubyToBlocksConverter comment extraction', () => {
 
             const comments = converter._context.comments;
             const blocks = converter._context.blocks;
-            const moveBlock = Object.values(blocks).find(b => b.opcode === 'motion_movesteps');
+            const moveBlock = Object.values(blocks).find((b) => b.opcode === 'motion_movesteps');
             expect(moveBlock).toBeDefined();
             expect(moveBlock.comment).toBeDefined();
 
@@ -216,7 +216,7 @@ describe('RubyToBlocksConverter comment extraction', () => {
 
             const comments = converter._context.comments;
             const commentValues = Object.values(comments);
-            const targetComments = commentValues.filter(c => c.blockId === null && !c.text.startsWith('@ruby:'));
+            const targetComments = commentValues.filter((c) => c.blockId === null && !c.text.startsWith('@ruby:'));
 
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toBe('program description');
@@ -228,7 +228,7 @@ describe('RubyToBlocksConverter comment extraction', () => {
 
             const comments = converter._context.comments;
             const commentValues = Object.values(comments);
-            const userComments = commentValues.filter(c => !c.text.startsWith('@ruby:'));
+            const userComments = commentValues.filter((c) => !c.text.startsWith('@ruby:'));
 
             expect(userComments).toHaveLength(0);
         });
@@ -242,7 +242,7 @@ describe('RubyToBlocksConverter comment extraction', () => {
             const commentValues = Object.values(comments);
 
             // The "class description" comment should be preserved as a target-level comment
-            const hasClassDescription = commentValues.some(c => c.text.includes('class description'));
+            const hasClassDescription = commentValues.some((c) => c.text.includes('class description'));
             expect(hasClassDescription).toBe(true);
         });
     });

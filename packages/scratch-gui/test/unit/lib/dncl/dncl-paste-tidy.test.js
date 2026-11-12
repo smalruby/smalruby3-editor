@@ -1,7 +1,6 @@
 // Tidying DNCL code pasted into the Japanese mode editor (Issue #1192)
-
-import {hasDoubleSlash, tidyPastedDncl, withDoubleSlashHint} from '../../../../src/lib/dncl/dncl-paste-tidy';
-import {dnclToRuby} from '../../../../src/lib/dncl/dncl-to-ruby';
+import { hasDoubleSlash, tidyPastedDncl, withDoubleSlashHint } from '../../../../src/lib/dncl/dncl-paste-tidy';
+import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 
 describe('tidyPastedDncl', () => {
     test('removes line numbers, including the hyphenated form', () => {
@@ -147,12 +146,12 @@ describe('withDoubleSlashHint', () => {
     test('adds the hint only to errors on lines with a `//`', () => {
         const lines = ['a = 1', 'n = 1 // 生徒番号', '表示する("http://x")'];
         const errors = [
-            {row: 0, column: 0, text: 'e0'},
-            {row: 1, column: 0, text: 'e1'},
-            {row: 2, column: 0, text: 'e2'},
-            {row: 5, column: 0, text: 'e5'},
+            { row: 0, column: 0, text: 'e0' },
+            { row: 1, column: 0, text: 'e1' },
+            { row: 2, column: 0, text: 'e2' },
+            { row: 5, column: 0, text: 'e5' },
         ];
-        expect(withDoubleSlashHint(errors, lines, 'use #').map(err => err.text)).toEqual([
+        expect(withDoubleSlashHint(errors, lines, 'use #').map((err) => err.text)).toEqual([
             'e0',
             'use #\ne1',
             'e2',

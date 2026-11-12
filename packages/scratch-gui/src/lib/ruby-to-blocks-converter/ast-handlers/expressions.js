@@ -1,27 +1,29 @@
-import {defineMessages} from 'react-intl';
 import _ from 'lodash';
-import {RubyToBlocksConverterError} from '../errors';
+import { defineMessages } from 'react-intl';
+import { RubyToBlocksConverterError } from '../errors';
 import Primitive from '../primitive';
 import ExpressionsLiterals from './expressions-literals';
 
 const messages = defineMessages({
     superNotSupportedInV1: {
-        defaultMessage: 'super is only available in Ruby version 2.' +
+        defaultMessage:
+            'super is only available in Ruby version 2.' +
             '\nPlease switch to Ruby version 2 from the settings menu.',
         description: 'Error message when super is used in Ruby version 1',
-        id: 'gui.smalruby3.rubyToBlocksConverter.superNotSupportedInV1'
+        id: 'gui.smalruby3.rubyToBlocksConverter.superNotSupportedInV1',
     },
     superOutsideMethod: {
         defaultMessage: 'super can only be used inside a method definition (def).',
         description: 'Error message when super is used outside a method',
-        id: 'gui.smalruby3.rubyToBlocksConverter.superOutsideMethod'
+        id: 'gui.smalruby3.rubyToBlocksConverter.superOutsideMethod',
     },
     superWithoutModuleMethod: {
-        defaultMessage: 'super in "{ METHOD }" requires a same-named method in an included module.' +
+        defaultMessage:
+            'super in "{ METHOD }" requires a same-named method in an included module.' +
             '\nDefine "{ METHOD }" in a module and include it in the class.',
         description: 'Error message when super is used but no matching module method exists',
-        id: 'gui.smalruby3.rubyToBlocksConverter.superWithoutModuleMethod'
-    }
+        id: 'gui.smalruby3.rubyToBlocksConverter.superWithoutModuleMethod',
+    },
 });
 
 /**
@@ -31,7 +33,7 @@ const messages = defineMessages({
 const ExpressionHandlers = {
     ...ExpressionsLiterals,
 
-    visitCallNode (node) {
+    visitCallNode(node) {
         // === Smalruby: Start of attr_accessor getter/setter resolution ===
         const attrAccessors = this._context.attrAccessors;
         if (attrAccessors) {
@@ -39,9 +41,7 @@ const ExpressionHandlers = {
             const isSelfOrNone = !node.receiver || recvType === 'SelfNode';
 
             // Getter: foo or self.foo (no args, no block)
-            if (isSelfOrNone &&
-                (!node.arguments_ || node.arguments_.arguments_.length === 0) &&
-                !node.block) {
+            if (isSelfOrNone && (!node.arguments_ || node.arguments_.arguments_.length === 0) && !node.block) {
                 const attrKind = attrAccessors[node.name];
                 if (attrKind === 'accessor' || attrKind === 'reader') {
                     return this._onVar(`@${node.name}`, 'instance', node);
@@ -49,9 +49,12 @@ const ExpressionHandlers = {
             }
 
             // Setter: self.foo = val (name ends with =, 1 arg)
-            if (node.name.endsWith('=') &&
+            if (
+                node.name.endsWith('=') &&
                 recvType === 'SelfNode' &&
-                node.arguments_ && node.arguments_.arguments_.length === 1) {
+                node.arguments_ &&
+                node.arguments_.arguments_.length === 1
+            ) {
                 const baseName = node.name.slice(0, -1);
                 const attrKind = attrAccessors[baseName];
                 if (attrKind === 'accessor' || attrKind === 'writer') {
@@ -91,10 +94,8 @@ const ExpressionHandlers = {
                         const sizeType = this._getNodeTypeName(sizeNode);
                         if (sizeType === 'IntegerNode') {
                             const size = sizeNode.value;
-                            const fillVal = ctorArgs.length === 2
-                                ? this.visit(ctorArgs[1])
-                                : '';
-                            const items = Array.from({length: size}, () => fillVal);
+                            const fillVal = ctorArgs.length === 2 ? this.visit(ctorArgs[1]) : '';
+                            const items = Array.from({ length: size }, () => fillVal);
                             return new Primitive('array', items, node);
                         }
                     }
@@ -108,7 +109,7 @@ const ExpressionHandlers = {
                     throw new RubyToBlocksConverterError(
                         node,
                         `Hash.new(${this._getSource(ctorArgs[0])}) — ` +
-                        'ハッシュのデフォルト値には対応していません。{} を使ってください。'
+                            'ハッシュのデフォルト値には対応していません。{} を使ってください。',
                     );
                 }
             }
@@ -126,7 +127,7 @@ const ExpressionHandlers = {
         const name = node.name;
         const savedIsValue = this._context.isValue;
         this._context.isValue = true;
-        const args = (node.arguments_ ? node.arguments_.arguments_ : []).map(childNode => {
+        const args = (node.arguments_ ? node.arguments_.arguments_ : []).map((childNode) => {
             const result = this.visit(childNode);
             const s = this._splitPreBlocksAndValue(result);
             preBlocks.push(...s.preBlocks);
@@ -157,9 +158,12 @@ const ExpressionHandlers = {
         // (e.g. say("hello".reverse)), split into:
         //   1. The COMMAND block (as a pre-block)
         //   2. A returnValue REPORTER (as the value)
-        if (block && this._isBlock(block) &&
+        if (
+            block &&
+            this._isBlock(block) &&
             typeof block.opcode === 'string' &&
-            /^smalrubyRuby_\w+Method$/.test(block.opcode)) {
+            /^smalrubyRuby_\w+Method$/.test(block.opcode)
+        ) {
             // Skip auto-split for bang methods (they are statements, not expressions)
             const method = block.fields && block.fields.METHOD && block.fields.METHOD.value;
             if (!method || !method.endsWith('!')) {
@@ -173,11 +177,11 @@ const ExpressionHandlers = {
         if (!block) {
             if ((this._isSelf(receiver) || receiver === null) && !rubyBlock) {
                 switch (name) {
-                case 'wait':
-                    if (args.length === 0) {
-                        block = this._createRubyStatementBlock('wait', node);
-                    }
-                    break;
+                    case 'wait':
+                        if (args.length === 0) {
+                            block = this._createRubyStatementBlock('wait', node);
+                        }
+                        break;
                 }
             }
         }
@@ -188,22 +192,19 @@ const ExpressionHandlers = {
             const arithmeticOps = ['+', '-', '*', '/', '%', '**'];
             const comparisonOps = ['>', '<', '>=', '<='];
             const isSymReceiver = this._isPrimitive(receiver) && receiver.type === 'sym';
-            const symbolArg = args.find(a => this._isPrimitive(a) && a.type === 'sym');
+            const symbolArg = args.find((a) => this._isPrimitive(a) && a.type === 'sym');
 
             // Symbol in arithmetic → specific error
             if (arithmeticOps.indexOf(name) >= 0 && (isSymReceiver || symbolArg)) {
                 const source = this._truncateSource(this._getSource(node));
                 const sym = isSymReceiver ? receiver : symbolArg;
-                const suggestion = source.replace(
-                    `:${sym.value}`,
-                    `:${sym.value}.to_s`
-                );
+                const suggestion = source.replace(`:${sym.value}`, `:${sym.value}.to_s`);
                 throw new RubyToBlocksConverterError(
                     node,
                     this._translator(this._symbolCannotArithmeticMessage(), {
                         SOURCE: source,
-                        SUGGESTION: suggestion
-                    })
+                        SUGGESTION: suggestion,
+                    }),
                 );
             }
 
@@ -212,23 +213,20 @@ const ExpressionHandlers = {
                 const source = this._truncateSource(this._getSource(node));
                 throw new RubyToBlocksConverterError(
                     node,
-                    this._translator(this._symbolCannotCompareMessage(), {SOURCE: source})
+                    this._translator(this._symbolCannotCompareMessage(), { SOURCE: source }),
                 );
             }
 
             // Symbol in other contexts → needs .to_s
             if (symbolArg) {
                 const source = this._truncateSource(this._getSource(node));
-                const suggestion = source.replace(
-                    `:${symbolArg.value}`,
-                    `:${symbolArg.value}.to_s`
-                );
+                const suggestion = source.replace(`:${symbolArg.value}`, `:${symbolArg.value}.to_s`);
                 throw new RubyToBlocksConverterError(
                     node,
                     this._translator(this._symbolNeedsToSMessage(), {
                         SOURCE: source,
-                        SUGGESTION: suggestion
-                    })
+                        SUGGESTION: suggestion,
+                    }),
                 );
             }
 
@@ -236,7 +234,11 @@ const ExpressionHandlers = {
                 block = this._createBlock('ruby_statement_with_block', 'statement');
                 block.node = node;
                 this._addTextInput(block, 'STATEMENT', this._getSource(node));
-                this._addTextInput(block, 'ARGS', node.block.parameters ? this._getSource(node.block.parameters) : '');
+                this._addTextInput(
+                    block,
+                    'ARGS',
+                    node.block.parameters ? this._getSource(node.block.parameters) : '',
+                );
                 this._addSubstack(block, this._processStatement(node.block.body));
             } else {
                 block = this._createRubyStatementBlock(this._getSource(node), node);
@@ -252,7 +254,7 @@ const ExpressionHandlers = {
         return block;
     },
 
-    visitReturnNode (node) {
+    visitReturnNode(node) {
         const procedureName = this._context.currentProcedureName;
         if (!procedureName) {
             return this._createRubyStatementBlock(this._getSource(node), node);
@@ -273,9 +275,9 @@ const ExpressionHandlers = {
                     name: 'VARIABLE',
                     id: variable.id,
                     value: variable.name,
-                    variableType: variable.type
-                }
-            }
+                    variableType: variable.type,
+                },
+            },
         });
         // `return nil` / `return :a` keeps the text "" / "a" and a marker to come back as written (issue #1548).
         let literalMarker = '';
@@ -288,11 +290,15 @@ const ExpressionHandlers = {
             returnValue = this._createTextBlock(isNil ? '' : returnValue.value.toString());
         }
         assignBlock.comment = this._createComment(
-            `@ruby:syntax:return @ruby:return:${procedureName}${literalMarker}`, assignBlock.id
+            `@ruby:syntax:return @ruby:return:${procedureName}${literalMarker}`,
+            assignBlock.id,
         );
         if (returnValue) {
             this._addTextInput(
-                assignBlock, 'VALUE', this._isNumber(returnValue) ? returnValue.toString() : returnValue, '0'
+                assignBlock,
+                'VALUE',
+                this._isNumber(returnValue) ? returnValue.toString() : returnValue,
+                '0',
             );
         } else {
             this._addTextInput(assignBlock, 'VALUE', '', '0');
@@ -303,42 +309,42 @@ const ExpressionHandlers = {
             fields: {
                 STOP_OPTION: {
                     name: 'STOP_OPTION',
-                    value: 'this script'
-                }
+                    value: 'this script',
+                },
             },
             mutation: {
                 hasnext: 'false',
                 tagName: 'mutation',
-                children: []
-            }
+                children: [],
+            },
         });
         stopBlock.comment = this._createComment('@ruby:syntax:return', stopBlock.id);
 
         return [assignBlock, stopBlock];
     },
 
-    visitParametersNode (node) {
+    visitParametersNode(node) {
         // Used for method definition parameters: def foo(arg1, arg2)
-        return (node.requireds || []).map(childNode => this.visit(childNode));
+        return (node.requireds || []).map((childNode) => this.visit(childNode));
     },
 
-    visitBlockParametersNode (node) {
-        return (node.parameters ? node.parameters.requireds : []).map(childNode => this.visit(childNode));
+    visitBlockParametersNode(node) {
+        return (node.parameters ? node.parameters.requireds : []).map((childNode) => this.visit(childNode));
     },
 
-    visitRequiredParameterNode (node) {
+    visitRequiredParameterNode(node) {
         return node.name;
     },
 
-    visitGlobalVariableReadNode (node) {
+    visitGlobalVariableReadNode(node) {
         return this._onVar(node.name, 'global', node);
     },
 
-    visitInstanceVariableReadNode (node) {
+    visitInstanceVariableReadNode(node) {
         return this._onVar(node.name, 'instance', node);
     },
 
-    visitLocalVariableReadNode (node) {
+    visitLocalVariableReadNode(node) {
         const originalVarName = node.name;
         // Normalize variable name to match how arguments and other locals are stored
         const normalizedVarName = this._toSnakeCaseLowercase(originalVarName);
@@ -356,7 +362,7 @@ const ExpressionHandlers = {
         return normalizedVarName;
     },
 
-    _onVar (name, scope, node) {
+    _onVar(name, scope, node) {
         const variable = this._lookupOrCreateVariable(name);
         const block = this._callConvertersHandler('onVar', scope, variable);
         if (block) {
@@ -372,7 +378,7 @@ const ExpressionHandlers = {
      * @param {object} node - SuperNode AST node
      * @returns {object} procedures_call block for the module method
      */
-    visitSuperNode (node) {
+    visitSuperNode(node) {
         return this._handleSuper(node, false);
     },
 
@@ -381,7 +387,7 @@ const ExpressionHandlers = {
      * @param {object} node - ForwardingSuperNode AST node
      * @returns {object} procedures_call block for the module method
      */
-    visitForwardingSuperNode (node) {
+    visitForwardingSuperNode(node) {
         return this._handleSuper(node, true);
     },
 
@@ -391,22 +397,16 @@ const ExpressionHandlers = {
      * @param {boolean} isForwarding - true for bare super (forward all args)
      * @returns {object} procedures_call block
      */
-    _handleSuper (node, isForwarding) {
+    _handleSuper(node, isForwarding) {
         // Validate: v1 not supported
         if (String(this.version) === '1') {
-            throw new RubyToBlocksConverterError(
-                node,
-                this._translator(messages.superNotSupportedInV1)
-            );
+            throw new RubyToBlocksConverterError(node, this._translator(messages.superNotSupportedInV1));
         }
 
         // Validate: must be inside a method definition
         const procedureName = this._context.currentProcedureName;
         if (!procedureName) {
-            throw new RubyToBlocksConverterError(
-                node,
-                this._translator(messages.superOutsideMethod)
-            );
+            throw new RubyToBlocksConverterError(node, this._translator(messages.superOutsideMethod));
         }
 
         // Validate: a same-named method must exist in an included module
@@ -414,7 +414,7 @@ const ExpressionHandlers = {
         if (!superInfo) {
             throw new RubyToBlocksConverterError(
                 node,
-                this._translator(messages.superWithoutModuleMethod, {METHOD: procedureName})
+                this._translator(messages.superWithoutModuleMethod, { METHOD: procedureName }),
             );
         }
 
@@ -424,7 +424,7 @@ const ExpressionHandlers = {
         if (!procedure) {
             throw new RubyToBlocksConverterError(
                 node,
-                this._translator(messages.superWithoutModuleMethod, {METHOD: procedureName})
+                this._translator(messages.superWithoutModuleMethod, { METHOD: procedureName }),
             );
         }
 
@@ -434,7 +434,7 @@ const ExpressionHandlers = {
             // Forward all arguments from the current method
             const currentProc = this._lookupProcedure(procedureName);
             if (currentProc) {
-                args = currentProc.argumentVariables.map(v => {
+                args = currentProc.argumentVariables.map((v) => {
                     const block = this._callConvertersHandler('onVar', 'local', v);
                     return block || v.name;
                 });
@@ -445,9 +445,7 @@ const ExpressionHandlers = {
             // Explicit arguments from super(a, b, ...)
             const savedIsValue = this._context.isValue;
             this._context.isValue = true;
-            args = (node.arguments_ ? node.arguments_.arguments_ : []).map(
-                childNode => this.visit(childNode)
-            );
+            args = (node.arguments_ ? node.arguments_.arguments_ : []).map((childNode) => this.visit(childNode));
             this._context.isValue = savedIsValue;
         }
 
@@ -459,8 +457,8 @@ const ExpressionHandlers = {
                 proccode: procedure.procCode.join(' '),
                 tagName: 'mutation',
                 children: [],
-                warp: 'false'
-            }
+                warp: 'false',
+            },
         });
 
         // Add arguments as inputs
@@ -468,8 +466,12 @@ const ExpressionHandlers = {
             const inputId = procedure.argumentIds[i];
             const arg = i < args.length ? args[i] : procedure.argumentDefaults[i];
             if (this._isNumberOrBlock(arg) || this._isStringOrBlock(arg)) {
-                this._addTextInput(callBlock, inputId, this._isNumber(arg) ? arg.toString() : arg,
-                    procedure.argumentDefaults[i] || '');
+                this._addTextInput(
+                    callBlock,
+                    inputId,
+                    this._isNumber(arg) ? arg.toString() : arg,
+                    procedure.argumentDefaults[i] || '',
+                );
             } else if (this._isFalse(arg)) {
                 // boolean false: don't add input (default)
             } else {
@@ -488,7 +490,7 @@ const ExpressionHandlers = {
         callBlock.comment = this._createComment(commentText, callBlock.id);
 
         return callBlock;
-    }
+    },
 };
 
 export default ExpressionHandlers;

@@ -2,49 +2,49 @@ import RubyGenerator from '../../../../src/lib/ruby-generator';
 
 describe('RubyGenerator/Module', () => {
     beforeEach(() => {
-        RubyGenerator.init({version: '2'});
+        RubyGenerator.init({ version: '2' });
         RubyGenerator.definitions_ = {};
         RubyGenerator.requires_ = {};
         RubyGenerator.prepares_ = {};
         RubyGenerator.cache_ = {
             targetCommentTexts: [],
-            comments: {}
+            comments: {},
         };
     });
 
     const makeMockTarget = (name, index = 1) => {
         const targets = [];
-        const stage = {isStage: true, sprite: {name: 'Stage'}};
+        const stage = { isStage: true, sprite: { name: 'Stage' } };
         for (let i = 0; i < index; i++) {
-            targets.push({isStage: false, sprite: {name: `Sprite${i + 1}`}});
+            targets.push({ isStage: false, sprite: { name: `Sprite${i + 1}` } });
         }
         const target = targets[index - 1];
-        target.sprite = {name};
+        target.sprite = { name };
         targets.unshift(stage);
         return {
             target,
-            runtime: {targets}
+            runtime: { targets },
         };
     };
 
     describe('_moduleMethodCodes initialization', () => {
         test('init() resets _moduleMethodCodes', () => {
-            RubyGenerator._moduleMethodCodes = {Utils: ['def foo\nend\n']};
-            RubyGenerator.init({version: '2'});
+            RubyGenerator._moduleMethodCodes = { Utils: ['def foo\nend\n'] };
+            RubyGenerator.init({ version: '2' });
             expect(RubyGenerator._moduleMethodCodes).toEqual({});
         });
     });
 
     describe('finish(): module wrapping and include', () => {
         test('generates module...end before class and include inside class', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:include=Utils'];
 
             // Simulate module method codes collected during block generation
             RubyGenerator._moduleMethodCodes = {
-                Utils: ['def add(a, b)\n  a + b\nend\n']
+                Utils: ['def add(a, b)\n  a + b\nend\n'],
             };
 
             const code = 'when_flag_clicked do\n  move(10)\nend\n';
@@ -69,16 +69,14 @@ describe('RubyGenerator/Module', () => {
         });
 
         test('multiple modules with include order preserved', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
-            RubyGenerator.cache_.targetCommentTexts = [
-                '@ruby:class:include=Utils,include=Helpers'
-            ];
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:include=Utils,include=Helpers'];
 
             RubyGenerator._moduleMethodCodes = {
                 Utils: ['def add(a, b)\n  a + b\nend\n'],
-                Helpers: ['def greet\n  say("hello")\nend\n']
+                Helpers: ['def greet\n  say("hello")\nend\n'],
             };
 
             const code = 'when_flag_clicked do\n  move(10)\nend\n';
@@ -100,7 +98,7 @@ describe('RubyGenerator/Module', () => {
         });
 
         test('no module codes means no module block generated', () => {
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            const { target, runtime } = makeMockTarget('Sprite1', 1);
             target.runtime = runtime;
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
@@ -118,7 +116,7 @@ describe('RubyGenerator/Module', () => {
 
     describe('finishTargets(): module deduplication', () => {
         test('deduplicates module definitions in multi-target output', () => {
-            RubyGenerator.initTargets({requires: ['smalruby3']});
+            RubyGenerator.initTargets({ requires: ['smalruby3'] });
 
             // Simulate multi-target output where module appears in each target
             const code = [
@@ -141,7 +139,7 @@ describe('RubyGenerator/Module', () => {
                 'class Sprite2',
                 '  include Utils',
                 'end',
-                ''
+                '',
             ].join('\n');
 
             const result = RubyGenerator.finishTargets(code, {});
@@ -170,7 +168,7 @@ describe('RubyGenerator/Module', () => {
         });
 
         test('deduplicates multiple different modules', () => {
-            RubyGenerator.initTargets({requires: ['smalruby3']});
+            RubyGenerator.initTargets({ requires: ['smalruby3'] });
 
             const code = [
                 'module Utils',
@@ -206,7 +204,7 @@ describe('RubyGenerator/Module', () => {
                 '  include Utils',
                 '  include Helpers',
                 'end',
-                ''
+                '',
             ].join('\n');
 
             const result = RubyGenerator.finishTargets(code, {});
@@ -218,7 +216,7 @@ describe('RubyGenerator/Module', () => {
         });
 
         test('no modules means no deduplication needed', () => {
-            RubyGenerator.initTargets({requires: ['smalruby3']});
+            RubyGenerator.initTargets({ requires: ['smalruby3'] });
 
             const code = 'class Sprite1\nend\n\nclass Sprite2\nend\n';
             const result = RubyGenerator.finishTargets(code, {});

@@ -1,17 +1,10 @@
-import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import ReactDOM from 'react-dom';
-
+import { FormattedMessage } from 'react-intl';
 import styles from './classroom-modal.css';
 
-const ClassCodeDisplay = ({
-    classroom,
-    isFullscreen,
-    onClose,
-    onCopyInviteLink,
-    onToggleFullscreen,
-}) => {
+const ClassCodeDisplay = ({ classroom, isFullscreen, onClose, onCopyInviteLink, onToggleFullscreen }) => {
     const code = classroom.joinCode.toLowerCase();
     const [copied, setCopied] = useState(false);
     const handleCopy = useCallback(() => {
@@ -49,16 +42,8 @@ const ClassCodeDisplay = ({
                                 id="gui.classroom.teacherDashboard.studentCountSuffix"
                             />
                         </span>
-                        {classroom.assignmentName && (
-                            <span>{classroom.assignmentName}</span>
-                        )}
-                        {classroom.createdAt && (
-                            <span>
-                                {new Date(
-                                    classroom.createdAt,
-                                ).toLocaleDateString()}
-                            </span>
-                        )}
+                        {classroom.assignmentName && <span>{classroom.assignmentName}</span>}
+                        {classroom.createdAt && <span>{new Date(classroom.createdAt).toLocaleDateString()}</span>}
                     </div>
                     <div className={styles.codeDisplayActions}>
                         <button
@@ -74,17 +59,9 @@ const ClassCodeDisplay = ({
                                 viewBox="0 0 24 24"
                                 width="16"
                             >
-                                <rect
-                                    height="13"
-                                    rx="2"
-                                    ry="2"
-                                    width="13"
-                                    x="9"
-                                    y="9"
-                                />
+                                <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                            </svg>
-                            {' '}
+                            </svg>{' '}
                             {copied ? (
                                 <FormattedMessage
                                     defaultMessage="Copied"
@@ -107,17 +84,9 @@ const ClassCodeDisplay = ({
     }
 
     return (
-        <div
-            className={styles.codeDisplay}
-            data-testid="classroom-phase-teacher-code-display"
-        >
+        <div className={styles.codeDisplay} data-testid="classroom-phase-teacher-code-display">
             <button className={styles.backLink} onClick={onClose}>
-                {'<'}{' '}
-                <FormattedMessage
-                    defaultMessage="Back"
-                    description="Back button"
-                    id="gui.classroom.back"
-                />
+                {'<'} <FormattedMessage defaultMessage="Back" description="Back button" id="gui.classroom.back" />
             </button>
             <div className={styles.codeDisplayTitle}>
                 <FormattedMessage
@@ -138,16 +107,8 @@ const ClassCodeDisplay = ({
                             id="gui.classroom.teacherDashboard.studentCountSuffix"
                         />
                     </span>
-                    {classroom.assignmentName && (
-                        <span>{classroom.assignmentName}</span>
-                    )}
-                    {classroom.createdAt && (
-                        <span>
-                            {new Date(
-                                classroom.createdAt,
-                            ).toLocaleDateString()}
-                        </span>
-                    )}
+                    {classroom.assignmentName && <span>{classroom.assignmentName}</span>}
+                    {classroom.createdAt && <span>{new Date(classroom.createdAt).toLocaleDateString()}</span>}
                 </div>
                 <div className={styles.codeDisplayActions}>
                     <button
@@ -163,17 +124,9 @@ const ClassCodeDisplay = ({
                             viewBox="0 0 24 24"
                             width="16"
                         >
-                            <rect
-                                height="13"
-                                rx="2"
-                                ry="2"
-                                width="13"
-                                x="9"
-                                y="9"
-                            />
+                            <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                        </svg>
-                        {' '}
+                        </svg>{' '}
                         {copied ? (
                             <FormattedMessage
                                 defaultMessage="Copied"

@@ -1,10 +1,8 @@
-import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React from 'react';
-
-import ErrorDisplay from './error-display.jsx';
-
+import { FormattedMessage } from 'react-intl';
 import styles from './classroom-modal.css';
+import ErrorDisplay from './error-display.jsx';
 
 const StudentSubmitConfirm = ({
     thumbnailDataUrl,
@@ -41,11 +39,7 @@ const StudentSubmitConfirm = ({
             />
         </div>
         <div className={styles.buttonRow}>
-            <button
-                className={styles.secondaryButton}
-                data-testid="classroom-submit-cancel"
-                onClick={onCancelSubmit}
-            >
+            <button className={styles.secondaryButton} data-testid="classroom-submit-cancel" onClick={onCancelSubmit}>
                 <FormattedMessage
                     defaultMessage="Cancel"
                     description="Cancel submit button"

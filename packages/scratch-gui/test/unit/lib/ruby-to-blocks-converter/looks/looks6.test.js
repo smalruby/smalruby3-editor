@@ -1,11 +1,11 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {RubyToBlocksConverterError} from '../../../../../src/lib/ruby-to-blocks-converter/errors';
+import { RubyToBlocksConverterError } from '../../../../../src/lib/ruby-to-blocks-converter/errors';
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
     expectedInfo,
-    expectNoArgsMethod
+    expectNoArgsMethod,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Looks', () => {
@@ -15,7 +15,7 @@ describe('RubyToBlocksConverter/Looks', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -28,11 +28,11 @@ describe('RubyToBlocksConverter/Looks', () => {
         beforeEach(() => {
             stageTarget = {
                 isStage: true,
-                variables: {}
+                variables: {},
             };
             spriteTarget = {
                 isStage: false,
-                variables: {}
+                variables: {},
             };
         });
 
@@ -51,7 +51,7 @@ describe('RubyToBlocksConverter/Looks', () => {
                 'hide',
                 'size',
                 'costume_name',
-                'costume_number'
+                'costume_number',
             ];
 
             for (const code of spriteOnlyCommands) {
@@ -59,7 +59,7 @@ describe('RubyToBlocksConverter/Looks', () => {
                 expect(res).toBeFalsy();
                 expect(converter.errors).toHaveLength(1);
                 expect(converter.errors[0].text).toMatch(/is the wrong instruction\./);
-                
+
                 // Reset for next test
                 converter.reset();
             }
@@ -74,7 +74,7 @@ describe('RubyToBlocksConverter/Looks', () => {
                 'change_effect_by("COLOR", 25)',
                 'set_effect("COLOR", 50)',
                 'backdrop_name',
-                'backdrop_number'
+                'backdrop_number',
             ];
 
             for (const code of stageCompatibleCommands) {
@@ -85,7 +85,7 @@ describe('RubyToBlocksConverter/Looks', () => {
                 }
                 expect(res).toBeTruthy();
                 expect(converter.errors).toHaveLength(0);
-                
+
                 // Reset for next test
                 converter.reset();
             }
@@ -104,22 +104,24 @@ describe('RubyToBlocksConverter/Looks', () => {
                 // Common blocks
                 'switch_backdrop("backdrop1")',
                 'next_backdrop',
-                'clear_graphic_effects'
+                'clear_graphic_effects',
             ];
 
-            { for (const code of allCommands) {
-                const res = await converter.targetCodeToBlocks(spriteTarget, code);
-                expect(res).toBeTruthy();
-                expect(converter.errors).toHaveLength(0);
-                
-                // Reset for next test
-                converter.reset();
-            } }
+            {
+                for (const code of allCommands) {
+                    const res = await converter.targetCodeToBlocks(spriteTarget, code);
+                    expect(res).toBeTruthy();
+                    expect(converter.errors).toHaveLength(0);
+
+                    // Reset for next test
+                    converter.reset();
+                }
+            }
         });
     });
 
     describe('print, puts, p', () => {
-        ['print', 'puts', 'p'].forEach(method => {
+        ['print', 'puts', 'p'].forEach((method) => {
             test(`${method}("Hello") should become looks_sayforsecs with comment`, async () => {
                 code = `${method}("Hello")`;
                 expected = [
@@ -128,21 +130,23 @@ describe('RubyToBlocksConverter/Looks', () => {
                         inputs: [
                             {
                                 name: 'MESSAGE',
-                                block: expectedInfo.makeText('Hello')
+                                block: expectedInfo.makeText('Hello'),
                             },
                             {
                                 name: 'SECS',
-                                block: expectedInfo.makeNumber(1)
-                            }
-                        ]
-                    }
+                                block: expectedInfo.makeNumber(1),
+                            },
+                        ],
+                    },
                 ];
 
                 // First verify blocks structure
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 // Then verify comment
-                const blockId = Object.keys(converter.blocks).find(id => converter.blocks[id].opcode === 'looks_sayforsecs');
+                const blockId = Object.keys(converter.blocks).find(
+                    (id) => converter.blocks[id].opcode === 'looks_sayforsecs',
+                );
                 const block = converter.blocks[blockId];
                 expect(block.comment).toBeDefined();
 
@@ -159,24 +163,28 @@ describe('RubyToBlocksConverter/Looks', () => {
                         inputs: [
                             {
                                 name: 'MESSAGE',
-                                block: expectedInfo.makeText('10')
+                                block: expectedInfo.makeText('10'),
                             },
                             {
                                 name: 'SECS',
-                                block: expectedInfo.makeNumber(1)
-                            }
-                        ]
-                    }
+                                block: expectedInfo.makeNumber(1),
+                            },
+                        ],
+                    },
                 ];
 
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-                const blockId = Object.keys(converter.blocks).find(id => converter.blocks[id].opcode === 'looks_sayforsecs');
+                const blockId = Object.keys(converter.blocks).find(
+                    (id) => converter.blocks[id].opcode === 'looks_sayforsecs',
+                );
                 const block = converter.blocks[blockId];
                 expect(block.comment).toBeDefined();
 
                 const commentId = block.comment;
-                expect(converter._context.comments[commentId].text).toEqual(`@ruby:method:${method},@ruby:argument:1:type:Integer`);
+                expect(converter._context.comments[commentId].text).toEqual(
+                    `@ruby:method:${method},@ruby:argument:1:type:Integer`,
+                );
             });
 
             test(`${method}(3.5) should become looks_sayforsecs with type comment`, async () => {
@@ -187,24 +195,28 @@ describe('RubyToBlocksConverter/Looks', () => {
                         inputs: [
                             {
                                 name: 'MESSAGE',
-                                block: expectedInfo.makeText('3.5')
+                                block: expectedInfo.makeText('3.5'),
                             },
                             {
                                 name: 'SECS',
-                                block: expectedInfo.makeNumber(1)
-                            }
-                        ]
-                    }
+                                block: expectedInfo.makeNumber(1),
+                            },
+                        ],
+                    },
                 ];
 
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-                const blockId = Object.keys(converter.blocks).find(id => converter.blocks[id].opcode === 'looks_sayforsecs');
+                const blockId = Object.keys(converter.blocks).find(
+                    (id) => converter.blocks[id].opcode === 'looks_sayforsecs',
+                );
                 const block = converter.blocks[blockId];
                 expect(block.comment).toBeDefined();
 
                 const commentId = block.comment;
-                expect(converter._context.comments[commentId].text).toEqual(`@ruby:method:${method},@ruby:argument:1:type:Float`);
+                expect(converter._context.comments[commentId].text).toEqual(
+                    `@ruby:method:${method},@ruby:argument:1:type:Float`,
+                );
             });
 
             test(`${method}("Hello", 10, 3.5) should become multiple looks_sayforsecs blocks`, async () => {
@@ -215,55 +227,59 @@ describe('RubyToBlocksConverter/Looks', () => {
                         inputs: [
                             {
                                 name: 'MESSAGE',
-                                block: expectedInfo.makeText('Hello')
+                                block: expectedInfo.makeText('Hello'),
                             },
                             {
                                 name: 'SECS',
-                                block: expectedInfo.makeNumber(1)
-                            }
+                                block: expectedInfo.makeNumber(1),
+                            },
                         ],
                         next: {
                             opcode: 'looks_sayforsecs',
                             inputs: [
                                 {
                                     name: 'MESSAGE',
-                                    block: expectedInfo.makeText('10')
+                                    block: expectedInfo.makeText('10'),
                                 },
                                 {
                                     name: 'SECS',
-                                    block: expectedInfo.makeNumber(1)
-                                }
+                                    block: expectedInfo.makeNumber(1),
+                                },
                             ],
                             next: {
                                 opcode: 'looks_sayforsecs',
                                 inputs: [
                                     {
                                         name: 'MESSAGE',
-                                        block: expectedInfo.makeText('3.5')
+                                        block: expectedInfo.makeText('3.5'),
                                     },
                                     {
                                         name: 'SECS',
-                                        block: expectedInfo.makeNumber(1)
-                                    }
-                                ]
-                            }
-                        }
-                    }
+                                        block: expectedInfo.makeNumber(1),
+                                    },
+                                ],
+                            },
+                        },
+                    },
                 ];
 
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-                const blocks = Object.values(converter.blocks).filter(b => b.opcode === 'looks_sayforsecs');
+                const blocks = Object.values(converter.blocks).filter((b) => b.opcode === 'looks_sayforsecs');
                 expect(blocks).toHaveLength(3);
 
                 // Find blocks in order
-                const firstBlock = blocks.find(b => !b.parent);
+                const firstBlock = blocks.find((b) => !b.parent);
                 const secondBlock = converter.blocks[firstBlock.next];
                 const thirdBlock = converter.blocks[secondBlock.next];
 
                 expect(converter._context.comments[firstBlock.comment].text).toEqual(`@ruby:method:${method}`);
-                expect(converter._context.comments[secondBlock.comment].text).toEqual(`@ruby:method:${method},@ruby:argument:1:type:Integer`);
-                expect(converter._context.comments[thirdBlock.comment].text).toEqual(`@ruby:method:${method},@ruby:argument:1:type:Float`);
+                expect(converter._context.comments[secondBlock.comment].text).toEqual(
+                    `@ruby:method:${method},@ruby:argument:1:type:Integer`,
+                );
+                expect(converter._context.comments[thirdBlock.comment].text).toEqual(
+                    `@ruby:method:${method},@ruby:argument:1:type:Float`,
+                );
             });
         });
     });

@@ -1,34 +1,38 @@
-import {defineMessages} from 'react-intl';
 import _ from 'lodash';
-import {RubyToBlocksConverterError} from '../errors';
+import { defineMessages } from 'react-intl';
+import { RubyToBlocksConverterError } from '../errors';
 
 const messages = defineMessages({
     conditionIsNotBoolean: {
-        defaultMessage: 'condition is not boolean: {SOURCE}.' +
-            '\nUse a comparison operator (==, <, >, etc.).',
+        defaultMessage: 'condition is not boolean: {SOURCE}.' + '\nUse a comparison operator (==, <, >, etc.).',
         description: 'Error message when if/until condition is not a boolean expression',
-        id: 'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean'
+        id: 'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean',
     },
     includeNotStatementBlocks: {
-        defaultMessage: '"{ SOURCE }" is not a command, so it cannot be written here.' +
+        defaultMessage:
+            '"{ SOURCE }" is not a command, so it cannot be written here.' +
             '\nWrite a command (e.g. move(10)) instead, or delete this line.',
-        description: 'Error message when a line that is not a command (e.g. a symbol such as :a) is written ' +
+        description:
+            'Error message when a line that is not a command (e.g. a symbol such as :a) is written ' +
             'in a block body (do ... end, if, a method definition)',
-        id: 'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks'
+        id: 'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks',
     },
     eventInsideBlock: {
-        defaultMessage: '"{ SOURCE }" is an event, so it cannot be placed inside another block.' +
+        defaultMessage:
+            '"{ SOURCE }" is an event, so it cannot be placed inside another block.' +
             '\nMove it out of the block so that it starts a script of its own.',
         description: 'Error message when an event (hat) block is written inside a block body (do ... end)',
-        id: 'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock'
+        id: 'gui.smalruby3.rubyToBlocksConverter.eventInsideBlock',
     },
     valueAsStatement: {
-        defaultMessage: '"{ SOURCE }" is a value, so it cannot be written as a command by itself.' +
+        defaultMessage:
+            '"{ SOURCE }" is a value, so it cannot be written as a command by itself.' +
             '\nUse it in a command (e.g. say({ SOURCE })) or set it to a variable.',
-        description: 'Error message when a value (reporter) is written as a line by itself inside a block body ' +
+        description:
+            'Error message when a value (reporter) is written as a line by itself inside a block body ' +
             'or before the last line of a method body',
-        id: 'gui.smalruby3.rubyToBlocksConverter.valueAsStatement'
-    }
+        id: 'gui.smalruby3.rubyToBlocksConverter.valueAsStatement',
+    },
 });
 
 /**
@@ -36,11 +40,11 @@ const messages = defineMessages({
  * @mixes RubyToBlocksConverter
  */
 const CoreHandlers = {
-    visitProgramNode (node) {
+    visitProgramNode(node) {
         return this.visit(node.statements);
     },
 
-    visitStatementsNode (node) {
+    visitStatementsNode(node) {
         const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
         this._context.inMyBlockDefinition = false;
         // Only the statements directly in a block body are checked: a nested body sets it again.
@@ -58,7 +62,7 @@ const CoreHandlers = {
                 this._checkStatementInBody(childNode, block, bodyKind, index === node.body.length - 1);
             }
             if (_.isArray(block)) {
-                block.forEach(b => {
+                block.forEach((b) => {
                     blocks.push(b);
                 });
             } else {
@@ -70,44 +74,44 @@ const CoreHandlers = {
 
         let prevBlock = null;
         const result = [];
-        blocks.forEach(block => {
+        blocks.forEach((block) => {
             switch (this._getBlockType(block)) {
-            case 'statement':
-                if (prevBlock) {
-                    prevBlock.next = block.id;
-                    block.parent = prevBlock.id;
-                } else {
-                    result.push(block);
-                }
-
-                if (block.next) {
-                    const b = this._lastBlock(block);
-                    if (this._getBlockType(b) === 'statement') {
-                        prevBlock = b;
+                case 'statement':
+                    if (prevBlock) {
+                        prevBlock.next = block.id;
+                        block.parent = prevBlock.id;
                     } else {
-                        prevBlock = null;
+                        result.push(block);
                     }
-                } else {
-                    prevBlock = block;
-                }
-                break;
-            case 'terminate':
-                if (prevBlock) {
-                    prevBlock.next = block.id;
-                    block.parent = prevBlock.id;
-                } else {
+
+                    if (block.next) {
+                        const b = this._lastBlock(block);
+                        if (this._getBlockType(b) === 'statement') {
+                            prevBlock = b;
+                        } else {
+                            prevBlock = null;
+                        }
+                    } else {
+                        prevBlock = block;
+                    }
+                    break;
+                case 'terminate':
+                    if (prevBlock) {
+                        prevBlock.next = block.id;
+                        block.parent = prevBlock.id;
+                    } else {
+                        result.push(block);
+                    }
+                    prevBlock = null;
+                    break;
+                case 'value':
+                case 'value_boolean':
+                case 'value_variable':
+                case 'value_boolean_variable':
+                case 'hat':
+                case 'primitive':
                     result.push(block);
-                }
-                prevBlock = null;
-                break;
-            case 'value':
-            case 'value_boolean':
-            case 'value_variable':
-            case 'value_boolean_variable':
-            case 'hat':
-            case 'primitive':
-                result.push(block);
-                prevBlock = null;
+                    prevBlock = null;
             }
         });
         return result;
@@ -130,13 +134,16 @@ const CoreHandlers = {
      * @param {string} bodyKind - 'block' or 'method' (see `statementBodyKind` of the context).
      * @param {boolean} isLast - Whether the statement is the last one in the body.
      */
-    _checkStatementInBody (node, result, bodyKind, isLast) {
+    _checkStatementInBody(node, result, bodyKind, isLast) {
         const blocks = _.isArray(result) ? result : [result];
-        if (blocks.some(b => this._isBlock(b) && this._getBlockType(b) === 'hat' &&
-            b.opcode !== 'procedures_definition')) {
+        if (
+            blocks.some(
+                (b) => this._isBlock(b) && this._getBlockType(b) === 'hat' && b.opcode !== 'procedures_definition',
+            )
+        ) {
             throw new RubyToBlocksConverterError(
                 node,
-                this._translator(messages.eventInsideBlock, {SOURCE: this._firstLineSource(node)})
+                this._translator(messages.eventInsideBlock, { SOURCE: this._firstLineSource(node) }),
             );
         }
         if (bodyKind === 'method' && isLast) {
@@ -153,8 +160,13 @@ const CoreHandlers = {
         // In a block body, other literals (e.g. `"abc"`) become an assignment to a temporary
         // variable (see `_processStatement`); in a method body they are values.
         const isValue = this._isValueBlock(value) && value.opcode !== 'data_setvariableto';
-        const isLiteral = value instanceof Primitive && (this._isNumber(value) || this._isString(value) ||
-            this._isTrue(value) || this._isFalse(value) || this.isNil(value));
+        const isLiteral =
+            value instanceof Primitive &&
+            (this._isNumber(value) ||
+                this._isString(value) ||
+                this._isTrue(value) ||
+                this._isFalse(value) ||
+                this.isNil(value));
         if (isValue || (bodyKind === 'method' && isLiteral)) {
             throw this._valueAsStatementError(node);
         }
@@ -165,7 +177,7 @@ const CoreHandlers = {
      * @param {object} node - The node.
      * @returns {string} The first line of the source.
      */
-    _firstLineSource (node) {
+    _firstLineSource(node) {
         return this._getSource(node).split('\n')[0].trim();
     },
 
@@ -174,13 +186,12 @@ const CoreHandlers = {
      * @param {object} node - The node of the line.
      * @returns {RubyToBlocksConverterError} The error.
      */
-    _valueAsStatementError (node) {
+    _valueAsStatementError(node) {
         // The source is also shown as `say(...)`, so a value written over several lines is put on one line.
-        const source = this._getSource(node).replace(/\s*\n\s*/g, ' ').trim();
-        return new RubyToBlocksConverterError(
-            node,
-            this._translator(messages.valueAsStatement, {SOURCE: source})
-        );
+        const source = this._getSource(node)
+            .replace(/\s*\n\s*/g, ' ')
+            .trim();
+        return new RubyToBlocksConverterError(node, this._translator(messages.valueAsStatement, { SOURCE: source }));
     },
 
     /**
@@ -188,18 +199,18 @@ const CoreHandlers = {
      * @param {object} node - The node of the line.
      * @returns {RubyToBlocksConverterError} The error.
      */
-    _notCommandError (node) {
+    _notCommandError(node) {
         return new RubyToBlocksConverterError(
             node,
-            this._translator(messages.includeNotStatementBlocks, {SOURCE: this._firstLineSource(node)})
+            this._translator(messages.includeNotStatementBlocks, { SOURCE: this._firstLineSource(node) }),
         );
     },
 
-    visitBeginNode (node) {
+    visitBeginNode(node) {
         return this.visit(node.statements);
     },
 
-    _processCondition (node) {
+    _processCondition(node) {
         let cond = this.visit(node);
         const split = this._splitPreBlocksAndValue(cond);
         if (split.preBlocks.length > 0) {
@@ -208,8 +219,7 @@ const CoreHandlers = {
             // condition), replace the returnValue REPORTER with returnValueTruthy
             // BOOLEAN so it can be used as a condition input.
             let value = split.value;
-            if (this._isBlock(value) &&
-                value.opcode === 'smalrubyRuby_returnValue') {
+            if (this._isBlock(value) && value.opcode === 'smalrubyRuby_returnValue') {
                 this._discardBlock(value);
                 value = this._createBlock('smalrubyRuby_returnValueTruthy', 'value_boolean');
             }
@@ -217,7 +227,7 @@ const CoreHandlers = {
             if (!this._isFalseOrBooleanBlock(value)) {
                 throw new RubyToBlocksConverterError(
                     node,
-                    this._translator(messages.conditionIsNotBoolean, {SOURCE: this._getSource(node)})
+                    this._translator(messages.conditionIsNotBoolean, { SOURCE: this._getSource(node) }),
                 );
             }
             return [...split.preBlocks, value];
@@ -230,14 +240,14 @@ const CoreHandlers = {
             } else {
                 throw new RubyToBlocksConverterError(
                     node,
-                    this._translator(messages.conditionIsNotBoolean, {SOURCE: this._getSource(node)})
+                    this._translator(messages.conditionIsNotBoolean, { SOURCE: this._getSource(node) }),
                 );
             }
         }
         return cond;
     },
 
-    _processStatement (node, inMyBlockDefinition = null) {
+    _processStatement(node, inMyBlockDefinition = null) {
         const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
         if (inMyBlockDefinition !== null) {
             this._context.inMyBlockDefinition = inMyBlockDefinition;
@@ -255,7 +265,7 @@ const CoreHandlers = {
         }
         // === Smalruby: Start of bare literal in statement context ===
         const Primitive = require('../primitive').default;
-        blocks = blocks.map(b => {
+        blocks = blocks.map((b) => {
             if (b instanceof Primitive && b.type !== 'sym') {
                 return this._convertBareLiteralToAssignment(b);
             }
@@ -288,9 +298,8 @@ const CoreHandlers = {
         // REPORTER of `"a".reverse` written as a statement): drop it, or it is left as an orphan.
         // A method definition (a hat) is kept: it is placed as a script of its own. An event (hat) does
         // not come here: `_checkStatementInBody` has already thrown an error for it (#1544).
-        blocks.slice(1).forEach(b => {
-            if (this._isBlock(b) && !this._isStatementBlock(b) && this._getBlockType(b) !== 'hat' &&
-                !b.parent) {
+        blocks.slice(1).forEach((b) => {
+            if (this._isBlock(b) && !this._isStatementBlock(b) && this._getBlockType(b) !== 'hat' && !b.parent) {
                 this._discardBlock(b);
             }
         });
@@ -311,7 +320,7 @@ const CoreHandlers = {
      * @param {object} block - The block or the primitive.
      * @returns {object|null} The node.
      */
-    _nodeOfBlock (block) {
+    _nodeOfBlock(block) {
         if (block && block.node) {
             return block.node;
         }
@@ -330,7 +339,7 @@ const CoreHandlers = {
      * @param {object} node - The body node.
      * @returns {object} The first statement node.
      */
-    _firstStatementNode (node) {
+    _firstStatementNode(node) {
         let n = node;
         if (n && n.statements) {
             n = n.statements;
@@ -341,7 +350,7 @@ const CoreHandlers = {
         return n || node;
     },
 
-    _getBlockIdFromResult (result) {
+    _getBlockIdFromResult(result) {
         if (this._isBlock(result)) {
             return result.id;
         }
@@ -351,25 +360,25 @@ const CoreHandlers = {
         return null;
     },
 
-    _splitPreBlocksAndValue (result) {
+    _splitPreBlocksAndValue(result) {
         if (_.isArray(result) && result.length === 1) {
             // Single element array - extract the value
             return {
                 preBlocks: [],
-                value: result[0]
+                value: result[0],
             };
         }
         if (_.isArray(result) && result.length > 0 && this._isBlock(result[0])) {
             return {
                 preBlocks: result.slice(0, result.length - 1),
-                value: result[result.length - 1]
+                value: result[result.length - 1],
             };
         }
         return {
             preBlocks: [],
-            value: result
+            value: result,
         };
-    }
+    },
 };
 
 export default CoreHandlers;

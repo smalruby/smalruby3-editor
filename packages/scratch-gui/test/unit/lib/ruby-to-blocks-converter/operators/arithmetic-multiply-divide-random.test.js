@@ -3,7 +3,7 @@ import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Operators', () => {
@@ -13,7 +13,7 @@ describe('RubyToBlocksConverter/Operators', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -27,14 +27,14 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'NUM1',
-                        block: expectedInfo.makeNumber(1)
+                        block: expectedInfo.makeNumber(1),
                     },
                     {
                         name: 'NUM2',
-                        block: expectedInfo.makeNumber(2)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(2),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -49,15 +49,15 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'NUM1',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber('')
+                        shadow: expectedInfo.makeNumber(''),
                     },
                     {
                         name: 'NUM2',
                         block: (await rubyToExpected(converter, target, 'y'))[0],
-                        shadow: expectedInfo.makeNumber('')
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(''),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -69,25 +69,25 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'NUM1',
                         block: (await rubyToExpected(converter, target, '$global'))[0],
-                        shadow: expectedInfo.makeNumber('')
+                        shadow: expectedInfo.makeNumber(''),
                     },
                     {
                         name: 'NUM2',
                         block: (await rubyToExpected(converter, target, 'y'))[0],
-                        shadow: expectedInfo.makeNumber('')
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(''),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
         // "1" * 2 is now valid (String#*), "1" * "2" is also handled by String#*
         // Only numeric receiver with string arg remains an error
-        { for (const s of [
-            '1 * "2"'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['1 * "2"']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('operator_divide', async () => {
@@ -98,14 +98,14 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'NUM1',
-                        block: expectedInfo.makeNumber(2)
+                        block: expectedInfo.makeNumber(2),
                     },
                     {
                         name: 'NUM2',
-                        block: expectedInfo.makeNumber(1)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(1),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -120,15 +120,15 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'NUM1',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber('')
+                        shadow: expectedInfo.makeNumber(''),
                     },
                     {
                         name: 'NUM2',
                         block: (await rubyToExpected(converter, target, 'y'))[0],
-                        shadow: expectedInfo.makeNumber('')
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(''),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -140,25 +140,23 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'NUM1',
                         block: (await rubyToExpected(converter, target, '$global'))[0],
-                        shadow: expectedInfo.makeNumber('')
+                        shadow: expectedInfo.makeNumber(''),
                     },
                     {
                         name: 'NUM2',
                         block: (await rubyToExpected(converter, target, 'y'))[0],
-                        shadow: expectedInfo.makeNumber('')
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(''),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            '"2" / "1"',
-            '2 / "1"',
-            '"2" / 1'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of ['"2" / "1"', '2 / "1"', '"2" / 1']) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 
     test('operator_random', async () => {
@@ -169,14 +167,14 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'FROM',
-                        block: expectedInfo.makeNumber(1)
+                        block: expectedInfo.makeNumber(1),
                     },
                     {
                         name: 'TO',
-                        block: expectedInfo.makeNumber(10)
-                    }
-                ]
-            }
+                        block: expectedInfo.makeNumber(10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -188,15 +186,15 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'FROM',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
-                        shadow: expectedInfo.makeNumber(1)
+                        shadow: expectedInfo.makeNumber(1),
                     },
                     {
                         name: 'TO',
                         block: (await rubyToExpected(converter, target, 'y'))[0],
-                        shadow: expectedInfo.makeNumber(10)
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -208,27 +206,29 @@ describe('RubyToBlocksConverter/Operators', () => {
                     {
                         name: 'FROM',
                         block: (await rubyToExpected(converter, target, '$global'))[0],
-                        shadow: expectedInfo.makeNumber(1)
+                        shadow: expectedInfo.makeNumber(1),
                     },
                     {
                         name: 'TO',
                         block: (await rubyToExpected(converter, target, 'y'))[0],
-                        shadow: expectedInfo.makeNumber(10)
-                    }
-                ]
-            }
+                        shadow: expectedInfo.makeNumber(10),
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'random()',
-            'random',
-            'random(1)',
-            'random(10)',
-            'random(1..10, 23)',
-            'random("1..10")'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of [
+                'random()',
+                'random',
+                'random(1)',
+                'random(10)',
+                'random(1..10, 23)',
+                'random("1..10")',
+            ]) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 });

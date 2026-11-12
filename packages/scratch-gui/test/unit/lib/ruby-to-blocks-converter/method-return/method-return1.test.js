@@ -1,10 +1,7 @@
-import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    expectedInfo
-} from '../../../../helpers/expect-to-equal-blocks';
-import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
+import Variable from '@smalruby/scratch-vm/src/engine/variable';
+import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
+import { convertAndExpectToEqualBlocks, expectedInfo } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Method Return', () => {
     let converter;
@@ -13,7 +10,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
     beforeEach(() => {
         const runtime = {
             emitProjectChanged: () => {},
-            getTargetForStage: () => target
+            getTargetForStage: () => target,
         };
         target = {
             blocks: new Blocks(runtime),
@@ -43,17 +40,17 @@ describe('RubyToBlocksConverter/Method Return', () => {
                     y: y,
                     width: width,
                     height: height,
-                    minimized: minimized
+                    minimized: minimized,
                 };
-            }
+            },
         };
         const vm = {
             runtime: runtime,
             emitWorkspaceUpdate: () => {},
             extensionManager: {
                 isExtensionLoaded: () => true,
-                loadExtensionURL: () => Promise.resolve()
-            }
+                loadExtensionURL: () => Promise.resolve(),
+            },
         };
         converter = new RubyToBlocksConverter(vm);
         converter._context.target = target;
@@ -79,13 +76,13 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                     arguments: [
                                         {
                                             name: 'arg1',
-                                            type: 'string_number'
-                                        }
-                                    ]
+                                            type: 'string_number',
+                                        },
+                                    ],
                                 },
-                                shadow: true
-                            }
-                        }
+                                shadow: true,
+                            },
+                        },
                     ],
                     next: {
                         opcode: 'motion_movesteps',
@@ -97,15 +94,15 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                     fields: [
                                         {
                                             name: 'VALUE',
-                                            value: 'arg1'
-                                        }
-                                    ]
+                                            value: 'arg1',
+                                        },
+                                    ],
                                 },
-                                shadow: expectedInfo.makeNumber(10)
-                            }
-                        ]
-                    }
-                }
+                                shadow: expectedInfo.makeNumber(10),
+                            },
+                        ],
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });

@@ -34,15 +34,15 @@ const MAX_SEAT = 999;
 const MAX_SEATS = 100;
 const MAX_GROUP_NAME_LENGTH = 512;
 
-const isSeat = value => Number.isInteger(value) && value > 0 && value <= MAX_SEAT;
+const isSeat = (value) => Number.isInteger(value) && value > 0 && value <= MAX_SEAT;
 
-const parseSeat = text => (SEAT_RE.test(text) ? Number(text) : null);
+const parseSeat = (text) => (SEAT_RE.test(text) ? Number(text) : null);
 
 /**
  * @param {string} nodeId - node id.
  * @returns {?number} the seat number in the node id, or null.
  */
-const parseNodeSeat = nodeId => {
+const parseNodeSeat = (nodeId) => {
     if (typeof nodeId !== 'string') return null;
     const match = NODE_SEAT_RE.exec(nodeId);
     if (!match) return null;
@@ -60,9 +60,7 @@ const parseNodeSeat = nodeId => {
 const buildGroupName = (hostNodeId, info) => {
     const parts = [hostNodeId];
     if (info) {
-        const seats = Array.isArray(info.seats) ?
-            [...new Set(info.seats.filter(isSeat))].sort((a, b) => a - b) :
-            [];
+        const seats = Array.isArray(info.seats) ? [...new Set(info.seats.filter(isSeat))].sort((a, b) => a - b) : [];
         if (seats.length > 0) parts.push(`seats=${seats.join(',')}`);
         if (isSeat(info.host) || info.host === TEACHER_HOST) parts.push(`host=${info.host}`);
     }
@@ -77,11 +75,11 @@ const buildGroupName = (hostNodeId, info) => {
  * @returns {?{baseName: string, seats: Array<number>, host: (number|string|null)}}
  *   seat information, or null for a legacy name or a malformed one.
  */
-const parseGroupName = name => {
+const parseGroupName = (name) => {
     if (typeof name !== 'string' || name.length > MAX_GROUP_NAME_LENGTH) return null;
     const [baseName, ...segments] = name.split(SEPARATOR);
     if (!NODE_ID_RE.test(baseName) || segments.length === 0) return null;
-    const result = {baseName, seats: [], host: null};
+    const result = { baseName, seats: [], host: null };
     const seen = new Set();
     for (const segment of segments) {
         const eq = segment.indexOf('=');
@@ -92,7 +90,7 @@ const parseGroupName = name => {
         seen.add(key);
         if (key === 'seats') {
             const seats = value.split(',').map(parseSeat);
-            if (seats.length > MAX_SEATS || seats.some(seat => seat === null)) return null;
+            if (seats.length > MAX_SEATS || seats.some((seat) => seat === null)) return null;
             if (new Set(seats).size !== seats.length) return null;
             result.seats = seats;
         } else if (key === 'host') {
@@ -114,13 +112,13 @@ const parseGroupName = name => {
  * @param {number} seat - seat number.
  * @returns {string} the node id suffix (`s07`), or '' for no seat.
  */
-const seatNodeIdSuffix = seat => (isSeat(seat) ? `s${String(seat).padStart(2, '0')}` : '');
+const seatNodeIdSuffix = (seat) => (isSeat(seat) ? `s${String(seat).padStart(2, '0')}` : '');
 
 /**
  * @param {string} nodeId - node id, with or without a seat suffix.
  * @returns {string} the node id without a seat suffix.
  */
-const stripSeatSuffix = nodeId => String(nodeId).replace(NODE_SEAT_RE, '');
+const stripSeatSuffix = (nodeId) => String(nodeId).replace(NODE_SEAT_RE, '');
 
 /**
  * @param {string} nodeId - base node id.
@@ -136,5 +134,5 @@ module.exports = {
     seatNodeIdSuffix,
     withSeatSuffix,
     stripSeatSuffix,
-    parseNodeSeat
+    parseNodeSeat,
 };

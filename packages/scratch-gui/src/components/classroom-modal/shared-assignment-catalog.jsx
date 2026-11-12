@@ -8,11 +8,9 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
-
 import { SCHOOL_LEVELS, SUBJECTS_BY_LEVEL } from '../../lib/shared-assignment-taxonomy.js';
-
-import SharedAssignmentForm from './shared-assignment-form.jsx';
 import styles from './classroom-modal.css';
+import SharedAssignmentForm from './shared-assignment-form.jsx';
 
 // Static message map so the level label can be resolved at runtime from the
 // taxonomy value (React Intl requires statically evaluate-able messages).
@@ -99,7 +97,9 @@ const CatalogCard = ({ item, onOpenDetail }) => {
                         </span>
                     ) : null}
                     {(item.tags || []).map((tag) => (
-                        <span key={tag} className={styles.sharedCardTag}>{tag}</span>
+                        <span key={tag} className={styles.sharedCardTag}>
+                            {tag}
+                        </span>
                     ))}
                 </span>
                 <span className={styles.sharedCardMeta}>
@@ -151,10 +151,7 @@ const SharedAssignmentDetail = ({
             onReport(detail.sharedId, reportReason.trim());
         }
     }, [onReport, detail.sharedId, reportReason]);
-    const handleUnlist = useCallback(
-        () => onSetStatus(detail.sharedId, 'unlisted'),
-        [onSetStatus, detail.sharedId],
-    );
+    const handleUnlist = useCallback(() => onSetStatus(detail.sharedId, 'unlisted'), [onSetStatus, detail.sharedId]);
     const handleRepublish = useCallback(
         () => onSetStatus(detail.sharedId, 'published'),
         [onSetStatus, detail.sharedId],
@@ -174,11 +171,7 @@ const SharedAssignmentDetail = ({
         <div className={styles.sharedDetail} data-testid="shared-catalog-detail">
             <div className={styles.sharedDetailHeader}>
                 <h3 className={styles.sharedFormTitle}>{detail.title}</h3>
-                <button
-                    data-testid="shared-detail-close"
-                    type="button"
-                    onClick={onClose}
-                >
+                <button data-testid="shared-detail-close" type="button" onClick={onClose}>
                     <FormattedMessage
                         defaultMessage="Back to the list"
                         description="Close the shared assignment detail"
@@ -241,11 +234,7 @@ const SharedAssignmentDetail = ({
                             </button>
                         </span>
                     ) : (
-                        <button
-                            data-testid="shared-detail-url"
-                            type="button"
-                            onClick={handleShowUrl}
-                        >
+                        <button data-testid="shared-detail-url" type="button" onClick={handleShowUrl}>
                             <FormattedMessage
                                 defaultMessage="Supplement material (lesson plan etc.)"
                                 description="Button that reveals the supplement URL confirmation"
@@ -267,7 +256,10 @@ const SharedAssignmentDetail = ({
                 </p>
             ) : null}
             <div className={styles.sharedFormActions}>
-                {detail.isMine && detail.visibility === 'limited' && detail.status === 'published' && onOpenBroaden ? (
+                {detail.isMine &&
+                detail.visibility === 'limited' &&
+                detail.status === 'published' &&
+                onOpenBroaden ? (
                     <button
                         className={styles.sharedFormSubmit}
                         data-testid="shared-detail-broaden"
@@ -558,7 +550,9 @@ const SharedAssignmentCatalog = ({ group, isLoading, shared }) => {
                                     })}
                                 </option>
                                 {subjects.map((s) => (
-                                    <option key={s} value={s}>{s}</option>
+                                    <option key={s} value={s}>
+                                        {s}
+                                    </option>
                                 ))}
                             </select>
                             <select

@@ -1,24 +1,13 @@
-import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React from 'react';
-
-import ErrorDisplay from './error-display.jsx';
-
+import { FormattedMessage } from 'react-intl';
 import styles from './classroom-modal.css';
+import ErrorDisplay from './error-display.jsx';
 
 const TeacherLoginPhase = ({ error, errorTitle, onBack, onTeacherLogin }) => (
     <div data-testid="classroom-phase-teacher-login">
-        <button
-            className={styles.backLink}
-            data-testid="classroom-back"
-            onClick={onBack}
-        >
-            {'<'}{' '}
-            <FormattedMessage
-                defaultMessage="Back"
-                description="Back button"
-                id="gui.classroom.back"
-            />
+        <button className={styles.backLink} data-testid="classroom-back" onClick={onBack}>
+            {'<'} <FormattedMessage defaultMessage="Back" description="Back button" id="gui.classroom.back" />
         </button>
         <div className={styles.phaseTitle}>
             <FormattedMessage
@@ -35,11 +24,7 @@ const TeacherLoginPhase = ({ error, errorTitle, onBack, onTeacherLogin }) => (
             />
         </div>
         <div className={styles.buttonRow}>
-            <button
-                className={styles.primaryButton}
-                data-testid="classroom-google-login"
-                onClick={onTeacherLogin}
-            >
+            <button className={styles.primaryButton} data-testid="classroom-google-login" onClick={onTeacherLogin}>
                 <FormattedMessage
                     defaultMessage="Sign in with Google"
                     description="Google sign in button"

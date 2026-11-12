@@ -5,7 +5,7 @@ describe('RubyToBlocksConverter/Operators/SymbolToS', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -17,7 +17,7 @@ describe('RubyToBlocksConverter/Operators/SymbolToS', () => {
             expect(converter.errors).toHaveLength(0);
 
             const blocks = Object.values(converter.blocks);
-            const joinBlock = blocks.find(b => b.opcode === 'operator_join');
+            const joinBlock = blocks.find((b) => b.opcode === 'operator_join');
             expect(joinBlock).toBeDefined();
 
             // STRING1 should be "foo" (symbol name without colon)
@@ -36,7 +36,7 @@ describe('RubyToBlocksConverter/Operators/SymbolToS', () => {
             await converter.targetCodeToBlocks(target, code);
 
             const blocks = Object.values(converter.blocks);
-            const joinBlock = blocks.find(b => b.opcode === 'operator_join');
+            const joinBlock = blocks.find((b) => b.opcode === 'operator_join');
             const comment = converter._context.comments[joinBlock.comment];
             expect(comment.text).toBe('@ruby:symbol:foo');
         });
@@ -54,10 +54,7 @@ describe('RubyToBlocksConverter/Operators/SymbolToS', () => {
         });
 
         test('multiple :symbol.to_s collects all symbols', async () => {
-            const code = [
-                'say(:foo.to_s)',
-                'say(:bar.to_s)'
-            ].join('\n');
+            const code = ['say(:foo.to_s)', 'say(:bar.to_s)'].join('\n');
             await converter.targetCodeToBlocks(target, code);
             expect(Array.from(converter._context.symbols)).toEqual([':foo', ':bar']);
         });

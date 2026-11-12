@@ -1,15 +1,12 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    rubyToExpected
-} from '../../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks, rubyToExpected } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Control/unless', () => {
     let converter;
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -35,16 +32,14 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                 inputs: [
                                     {
                                         name: 'OPERAND',
-                                        block: condBlock
-                                    }
-                                ]
-                            }
-                        }
+                                        block: condBlock,
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    branches: [
-                        moveBlock
-                    ]
-                }
+                    branches: [moveBlock],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -73,17 +68,14 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                 inputs: [
                                     {
                                         name: 'OPERAND',
-                                        block: condBlock
-                                    }
-                                ]
-                            }
-                        }
+                                        block: condBlock,
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    branches: [
-                        moveBlock,
-                        turnBlock
-                    ]
-                }
+                    branches: [moveBlock, turnBlock],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -110,17 +102,14 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                 inputs: [
                                     {
                                         name: 'OPERAND',
-                                        block: condBlock
-                                    }
-                                ]
-                            }
-                        }
+                                        block: condBlock,
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    branches: [
-                        null,
-                        turnBlock
-                    ]
-                }
+                    branches: [null, turnBlock],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -145,17 +134,14 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                 inputs: [
                                     {
                                         name: 'OPERAND',
-                                        block: condBlock
-                                    }
-                                ]
-                            }
-                        }
+                                        block: condBlock,
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    branches: [
-                        null,
-                        null
-                    ]
-                }
+                    branches: [null, null],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -185,19 +171,17 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                             fields: [
                                                 {
                                                     name: 'VARIABLE',
-                                                    variable: '$global'
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        }
+                                                    variable: '$global',
+                                                },
+                                            ],
+                                        },
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    branches: [
-                        moveBlock
-                    ]
-                }
+                    branches: [moveBlock],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -225,19 +209,17 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                             fields: [
                                                 {
                                                     name: 'VARIABLE',
-                                                    variable: '@ivar'
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        }
+                                                    variable: '@ivar',
+                                                },
+                                            ],
+                                        },
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    branches: [
-                        moveBlock
-                    ]
-                }
+                    branches: [moveBlock],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -269,20 +251,18 @@ describe('RubyToBlocksConverter/Control/unless', () => {
                                                 fields: [
                                                     {
                                                         name: 'VARIABLE',
-                                                        variable: '_bool_1_'
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
+                                                        variable: '_bool_1_',
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
                         ],
-                        branches: [
-                            sayBlock
-                        ]
-                    }
-                }
+                        branches: [sayBlock],
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });

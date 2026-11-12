@@ -1,5 +1,5 @@
-@import "../../css/colors.css";
-@import "../../css/units.css";
+@import '../../css/colors.css';
+@import '../../css/units.css';
 
 .header {
     background-color: $looks-secondary;
@@ -223,12 +223,12 @@
     background: $ui-black-transparent-10;
 }
 
-.report-status[data-status="resolved"] {
+.report-status[data-status='resolved'] {
     background: $data-primary;
     color: white;
 }
 
-.report-status[data-status="in_progress"] {
+.report-status[data-status='in_progress'] {
     background: $motion-primary;
     color: white;
 }

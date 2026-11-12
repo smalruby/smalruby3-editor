@@ -1,5 +1,4 @@
 // === Smalruby: This file is Smalruby-specific (DNCL 0-based array index hints) ===
-
 import { dnclV2PreprocessWithLineMap } from './dncl-v2-preprocessor';
 
 // Smalruby DNCL arrays start at index 0, like the 共通テスト notation by
@@ -9,7 +8,8 @@ import { dnclV2PreprocessWithLineMap } from './dncl-v2-preprocessor';
 // #1357). These hints point at the accesses that run past the end so the
 // editor can tell the user that indices start at 0.
 
-const ID = '[A-Za-z_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF][\\w\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF]*';
+const ID =
+    '[A-Za-z_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF][\\w\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF]*';
 const ID_CHAR = '[\\w\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF]';
 
 const FOR_RE = new RegExp(`^(${ID})\\s+を\\s+(.+?)\\s+から\\s+(.+?)\\s+まで\\s+(.+?)\\s+ずつ(増やし|減らし)ながら$`);
@@ -20,7 +20,10 @@ const ACCESS_RE = new RegExp(`(?<!${ID_CHAR})(${ID})\\[\\s*([^\\[\\]]*?)\\s*\\]`
 const BOUND_RE = new RegExp(`^(-?\\d+|${ID}|要素数\\(\\s*(${ID})\\s*\\))(?:\\s*([+-])\\s*(\\d+))?$`);
 const FUNCTION_RE = new RegExp(`^関数\\s+${ID}\\s*\\(([^)]*)\\)$`);
 // List blocks that add or remove items appear as these Ruby calls in DNCL.
-const RESIZE_RE = new RegExp(`(?<!${ID_CHAR})(${ID})\\.(?:push|insert|delete_at|delete|clear|pop|shift|unshift|concat)(?!${ID_CHAR})`, 'g');
+const RESIZE_RE = new RegExp(
+    `(?<!${ID_CHAR})(${ID})\\.(?:push|insert|delete_at|delete|clear|pop|shift|unshift|concat)(?!${ID_CHAR})`,
+    'g',
+);
 
 const OPENERS = [/^もし\s+.+\s+(?:なら|ならば)$/, /^.+\s+の間$/, /^関数\s/];
 const CLOSERS = ['を繰り返す', 'を実行する', 'と定義する', 'を定義する'];

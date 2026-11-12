@@ -17,12 +17,8 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             expect(result).toBe(true);
             // Auto-split: COMMAND + returnValue REPORTER
             const blocks = Object.values(converter._context.blocks);
-            const methodBlock = blocks.find(
-                (b) => b.opcode === 'smalrubyRuby_stringMethod',
-            );
-            const rvBlock = blocks.find(
-                (b) => b.opcode === 'smalrubyRuby_returnValue',
-            );
+            const methodBlock = blocks.find((b) => b.opcode === 'smalrubyRuby_stringMethod');
+            const rvBlock = blocks.find((b) => b.opcode === 'smalrubyRuby_returnValue');
             expect(methodBlock).toBeTruthy();
             expect(methodBlock.fields.METHOD.value).toBe('reverse');
             expect(rvBlock).toBeTruthy();
@@ -62,9 +58,7 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
             const blocks = Object.values(converter._context.blocks);
-            const methodBlock = blocks.find(
-                (b) => b.opcode === 'smalrubyRuby_stringMethod',
-            );
+            const methodBlock = blocks.find((b) => b.opcode === 'smalrubyRuby_stringMethod');
             expect(methodBlock).toBeTruthy();
             expect(methodBlock.fields.METHOD.value).toBe('*');
         });
@@ -88,20 +82,13 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
             const blocks = Object.values(converter._context.blocks);
-            const methodBlock = blocks.find(
-                (b) => b.opcode === 'smalrubyRuby_arrayMethod',
-            );
+            const methodBlock = blocks.find((b) => b.opcode === 'smalrubyRuby_arrayMethod');
             expect(methodBlock).toBeTruthy();
             expect(methodBlock.fields.METHOD.value).toBe('reverse');
             // No String#reverse block should be generated for a list variable.
-            expect(
-                blocks.find(
-                    (b) => b.opcode === 'smalrubyRuby_stringMethod',
-                ),
-            ).toBeFalsy();
+            expect(blocks.find((b) => b.opcode === 'smalrubyRuby_stringMethod')).toBeFalsy();
             // The receiver must be rewritten to a list read.
-            const receiverBlock =
-                converter._context.blocks[methodBlock.inputs.RECEIVER.block];
+            const receiverBlock = converter._context.blocks[methodBlock.inputs.RECEIVER.block];
             expect(receiverBlock.opcode).toBe('data_listcontents');
         });
 
@@ -125,10 +112,7 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
     });
 
     describe('reverse disambiguation (String vs Array)', () => {
-        const findOpcode = (opcode) =>
-            Object.values(converter._context.blocks).find(
-                (b) => b.opcode === opcode,
-            );
+        const findOpcode = (opcode) => Object.values(converter._context.blocks).find((b) => b.opcode === opcode);
 
         test('array (string) variable .reverse -> arrayMethod + list receiver', async () => {
             const code = 'ticket = ["赤", "青", "黄"]\nticket.reverse';
@@ -138,8 +122,7 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             expect(methodBlock).toBeTruthy();
             expect(methodBlock.fields.METHOD.value).toBe('reverse');
             expect(findOpcode('smalrubyRuby_stringMethod')).toBeFalsy();
-            const receiverBlock =
-                converter._context.blocks[methodBlock.inputs.RECEIVER.block];
+            const receiverBlock = converter._context.blocks[methodBlock.inputs.RECEIVER.block];
             expect(receiverBlock.opcode).toBe('data_listcontents');
         });
 
@@ -194,7 +177,6 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
         });
-
     });
 
     describe('bare literals', () => {
@@ -203,9 +185,7 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
             const blocks = Object.values(converter._context.blocks);
-            const setBlock = blocks.find(
-                (b) => b.opcode === 'data_setvariableto',
-            );
+            const setBlock = blocks.find((b) => b.opcode === 'data_setvariableto');
             expect(setBlock).toBeTruthy();
             expect(setBlock.comment).toBeTruthy();
         });

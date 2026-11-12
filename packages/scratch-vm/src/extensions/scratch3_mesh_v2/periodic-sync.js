@@ -36,7 +36,7 @@ const PeriodicSyncMixin = {
 
             // Reuse handleDataUpdate so polling/subscription/periodic-sync
             // share a single ingestion path.
-            nodeStatuses.forEach(status => this.handleDataUpdate(status));
+            nodeStatuses.forEach((status) => this.handleDataUpdate(status));
 
             debug(() => `Mesh V2: Fetched data from ${nodeStatuses.length} nodes`);
         } catch (error) {

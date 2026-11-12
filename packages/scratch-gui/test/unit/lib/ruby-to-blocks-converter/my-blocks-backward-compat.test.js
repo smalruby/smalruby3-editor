@@ -1,15 +1,12 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    expectedInfo
-} from '../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks, expectedInfo } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/My Blocks backward compatibility (def self.method in v2 mode)', () => {
     let converter;
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -28,13 +25,13 @@ describe('RubyToBlocksConverter/My Blocks backward compatibility (def self.metho
                             opcode: 'procedures_prototype',
                             mutation: {
                                 proccode: 'made_block',
-                                arguments: []
+                                arguments: [],
                             },
-                            shadow: true
-                        }
-                    }
-                ]
-            }
+                            shadow: true,
+                        },
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -58,28 +55,28 @@ describe('RubyToBlocksConverter/My Blocks backward compatibility (def self.metho
                                 arguments: [
                                     {
                                         name: 'arg1',
-                                        type: 'string_number'
+                                        type: 'string_number',
                                     },
                                     {
                                         name: 'arg2',
-                                        type: 'string_number'
-                                    }
-                                ]
+                                        type: 'string_number',
+                                    },
+                                ],
                             },
-                            shadow: true
-                        }
-                    }
+                            shadow: true,
+                        },
+                    },
                 ],
                 next: {
                     opcode: 'motion_movesteps',
                     inputs: [
                         {
                             name: 'STEPS',
-                            block: expectedInfo.makeNumber(10)
-                        }
-                    ]
-                }
-            }
+                            block: expectedInfo.makeNumber(10),
+                        },
+                    ],
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });

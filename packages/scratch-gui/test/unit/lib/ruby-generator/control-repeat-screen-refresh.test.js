@@ -14,7 +14,7 @@ describe('control blocks with_screen_refresh for save', () => {
         const orig = {
             valueToCode: RubyGenerator.valueToCode,
             statementToCode: RubyGenerator.statementToCode,
-            getCommentText: RubyGenerator.getCommentText
+            getCommentText: RubyGenerator.getCommentText,
         };
         return orig;
     };
@@ -47,7 +47,7 @@ describe('control blocks with_screen_refresh for save', () => {
             RubyGenerator.valueToCode = () => '10';
             RubyGenerator.statementToCode = () => `${RubyGenerator.INDENT}move(10)\n`;
             RubyGenerator.getCommentText = () => null;
-            RubyGenerator._options = {forSave: true};
+            RubyGenerator._options = { forSave: true };
 
             const result = RubyGenerator.control_repeat({});
             expect(result).toBe('10.times.with_screen_refresh do\n  move(10)\nend\n');
@@ -76,7 +76,7 @@ describe('control blocks with_screen_refresh for save', () => {
             const orig = mockGeneratorMethods();
             RubyGenerator.statementToCode = () => `${RubyGenerator.INDENT}move(2)\n`;
             RubyGenerator.getCommentText = () => null;
-            RubyGenerator._options = {forSave: true};
+            RubyGenerator._options = { forSave: true };
 
             const result = RubyGenerator.control_forever({});
             expect(result).toBe('loop.with_screen_refresh do\n  move(2)\nend\n');
@@ -107,15 +107,11 @@ describe('control blocks with_screen_refresh for save', () => {
             RubyGenerator.valueToCode = () => 'touching?("goal")';
             RubyGenerator.statementToCode = () => `${RubyGenerator.INDENT}move(10)\n`;
             RubyGenerator.getCommentText = () => null;
-            RubyGenerator._options = {forSave: true};
+            RubyGenerator._options = { forSave: true };
 
             const result = RubyGenerator.control_repeat_until({});
             expect(result).toBe(
-                'until touching?("goal")\n' +
-                '  with_screen_refresh do\n' +
-                '    move(10)\n' +
-                '  end\n' +
-                'end\n'
+                'until touching?("goal")\n' + '  with_screen_refresh do\n' + '    move(10)\n' + '  end\n' + 'end\n',
             );
 
             restoreGeneratorMethods(orig);
@@ -130,7 +126,7 @@ describe('control blocks with_screen_refresh for save', () => {
             RubyGenerator.valueToCode = () => '10';
             RubyGenerator.statementToCode = () => `${RubyGenerator.INDENT}move(10)\n`;
             RubyGenerator.getCommentText = () => null;
-            RubyGenerator._options = {forSave: true};
+            RubyGenerator._options = { forSave: true };
             RubyGenerator.version = '1';
 
             const result = RubyGenerator.control_repeat({});
@@ -144,7 +140,7 @@ describe('control blocks with_screen_refresh for save', () => {
             const orig = mockGeneratorMethods();
             RubyGenerator.statementToCode = () => `${RubyGenerator.INDENT}move(2)\n`;
             RubyGenerator.getCommentText = () => null;
-            RubyGenerator._options = {forSave: true};
+            RubyGenerator._options = { forSave: true };
             RubyGenerator.version = '1';
 
             const result = RubyGenerator.control_forever({});
@@ -159,7 +155,7 @@ describe('control blocks with_screen_refresh for save', () => {
             RubyGenerator.valueToCode = () => 'touching?("goal")';
             RubyGenerator.statementToCode = () => `${RubyGenerator.INDENT}move(10)\n`;
             RubyGenerator.getCommentText = () => null;
-            RubyGenerator._options = {forSave: true};
+            RubyGenerator._options = { forSave: true };
             RubyGenerator.version = '1';
 
             const result = RubyGenerator.control_repeat_until({});
@@ -207,11 +203,7 @@ describe('control blocks with_screen_refresh for save', () => {
 
             const result = RubyGenerator.control_repeat_until({});
             expect(result).toBe(
-                'until touching?("goal")\n' +
-                '  with_screen_refresh do\n' +
-                '    move(10)\n' +
-                '  end\n' +
-                'end\n'
+                'until touching?("goal")\n' + '  with_screen_refresh do\n' + '    move(10)\n' + '  end\n' + 'end\n',
             );
 
             restoreGeneratorMethods(orig);

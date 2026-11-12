@@ -1,11 +1,11 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
-import {RubyToBlocksConverterError} from '../../../../../src/lib/ruby-to-blocks-converter/errors';
+import { RubyToBlocksConverterError } from '../../../../../src/lib/ruby-to-blocks-converter/errors';
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,
     rubyToExpected,
     expectedInfo,
-    expectNoArgsMethod
+    expectNoArgsMethod,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Looks', () => {
@@ -15,7 +15,7 @@ describe('RubyToBlocksConverter/Looks', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -30,10 +30,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'FRONT_BACK',
-                            value: 'front'
-                        }
-                    ]
-                }
+                            value: 'front',
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -44,24 +44,26 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'FRONT_BACK',
-                            value: 'back'
-                        }
-                    ]
-                }
+                            value: 'back',
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'go_to_layer',
-                'go_to_layer()',
-                'go_to_layer("invalid")',
-                'go_to_layer(25)',
-                'go_to_layer(x)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of [
+                    'go_to_layer',
+                    'go_to_layer()',
+                    'go_to_layer("invalid")',
+                    'go_to_layer(25)',
+                    'go_to_layer(x)',
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
@@ -74,16 +76,16 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'FORWARD_BACKWARD',
-                            value: 'forward'
-                        }
+                            value: 'forward',
+                        },
                     ],
                     inputs: [
                         {
                             name: 'NUM',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(1, 'math_integer'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -94,16 +96,16 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'FORWARD_BACKWARD',
-                            value: 'backward'
-                        }
+                            value: 'backward',
+                        },
                     ],
                     inputs: [
                         {
                             name: 'NUM',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
-                        }
-                    ]
-                }
+                            block: expectedInfo.makeNumber(1, 'math_integer'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -114,34 +116,36 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'FORWARD_BACKWARD',
-                            value: 'forward'
-                        }
+                            value: 'forward',
+                        },
                     ],
                     inputs: [
                         {
                             name: 'NUM',
                             block: (await rubyToExpected(converter, target, 'x'))[0],
-                            shadow: expectedInfo.makeNumber(1, 'math_integer')
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(1, 'math_integer'),
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'go_layers',
-                'go_layers()',
-                'go_layers("invalid")',
-                'go_layers(25)',
-                'go_layers(x)',
-                'go_layers(1, "invalid")',
-                'go_layers("1", "forward")',
-                'go_layers(:symbol, "forward")'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of [
+                    'go_layers',
+                    'go_layers()',
+                    'go_layers("invalid")',
+                    'go_layers(25)',
+                    'go_layers(x)',
+                    'go_layers(1, "invalid")',
+                    'go_layers("1", "forward")',
+                    'go_layers(:symbol, "forward")',
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
@@ -154,10 +158,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'NUMBER_NAME',
-                            value: 'number'
-                        }
-                    ]
-                }
+                            value: 'number',
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -168,21 +172,20 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'NUMBER_NAME',
-                            value: 'name'
-                        }
-                    ]
-                }
+                            value: 'name',
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'costume_number(1)',
-                'costume_name(1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of ['costume_number(1)', 'costume_name(1)']) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
 
@@ -195,10 +198,10 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'NUMBER_NAME',
-                            value: 'number'
-                        }
-                    ]
-                }
+                            value: 'number',
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
@@ -209,22 +212,20 @@ describe('RubyToBlocksConverter/Looks', () => {
                     fields: [
                         {
                             name: 'NUMBER_NAME',
-                            value: 'name'
-                        }
-                    ]
-                }
+                            value: 'name',
+                        },
+                    ],
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         test('invalid', async () => {
-            { for (const c of [
-                'backdrop_number(1)',
-                'backdrop_name(1)'
-            ]) {
-                await convertAndExpectRubyBlockError(converter, target, c);
-            } }
+            {
+                for (const c of ['backdrop_number(1)', 'backdrop_name(1)']) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                }
+            }
         });
     });
-
 });

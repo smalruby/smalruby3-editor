@@ -21,7 +21,7 @@ export default function (Generator) {
                     const operand2 = Generator.valueToCode(block, 'OPERAND2', order) || 0;
                     Generator.greaterThanOrEqualCallCache_[index] = {
                         lhs: Generator.nosToCode(operand1),
-                        rhs: Generator.nosToCode(operand2)
+                        rhs: Generator.nosToCode(operand2),
                     };
                     return [`@ruby:operator:>=:${index}`, order];
                 }
@@ -46,7 +46,7 @@ export default function (Generator) {
                     const operand2 = Generator.valueToCode(block, 'OPERAND2', order) || 0;
                     Generator.lessThanOrEqualCallCache_[index] = {
                         lhs: Generator.nosToCode(operand1),
-                        rhs: Generator.nosToCode(operand2)
+                        rhs: Generator.nosToCode(operand2),
                     };
                     return [`@ruby:operator:<=:${index}`, order];
                 }
@@ -101,7 +101,7 @@ export default function (Generator) {
                 const operand2 = Generator.valueToCode(block, 'OPERAND2', order) || 0;
                 Generator.notEqualsCallCache_[index] = {
                     lhs: Generator.nosToCode(operand1),
-                    rhs: Generator.nosToCode(operand2)
+                    rhs: Generator.nosToCode(operand2),
                 };
                 return [`@ruby:operator:!=:${index}`, order];
             } else if (methodName === '>=') {
@@ -134,7 +134,7 @@ export default function (Generator) {
                     const order = Generator.ORDER_RELATIONAL;
                     const operand1 = Generator.valueToCode(block, 'OPERAND1', Generator.ORDER_NONE);
                     if (operand1 === `@ruby:operator:>=:${index}`) {
-                        const {lhs, rhs} = Generator.greaterThanOrEqualCallCache_[index];
+                        const { lhs, rhs } = Generator.greaterThanOrEqualCallCache_[index];
                         delete Generator.greaterThanOrEqualCallCache_[index];
                         return [`${lhs} >= ${rhs}`, order];
                     }
@@ -143,7 +143,7 @@ export default function (Generator) {
                     const order = Generator.ORDER_RELATIONAL;
                     const operand1 = Generator.valueToCode(block, 'OPERAND1', Generator.ORDER_NONE);
                     if (operand1 === `@ruby:operator:<=:${index}`) {
-                        const {lhs, rhs} = Generator.lessThanOrEqualCallCache_[index];
+                        const { lhs, rhs } = Generator.lessThanOrEqualCallCache_[index];
                         delete Generator.lessThanOrEqualCallCache_[index];
                         return [`${lhs} <= ${rhs}`, order];
                     }
@@ -167,15 +167,13 @@ export default function (Generator) {
                     const order = Generator.ORDER_NONE;
                     const operand = Generator.valueToCode(block, 'OPERAND', order);
                     if (operand === `@ruby:operator:!=:${index}`) {
-                        const {lhs, rhs} = Generator.notEqualsCallCache_[index];
+                        const { lhs, rhs } = Generator.notEqualsCallCache_[index];
                         delete Generator.notEqualsCallCache_[index];
                         return [`${lhs} != ${rhs}`, Generator.ORDER_EQUALS];
                     }
                 }
                 // === Smalruby: Start of !~ operator generation ===
-                const matchNotMatch = part.match(
-                    /^@ruby:operator:!~:(\d+)(:receiver)?$/
-                );
+                const matchNotMatch = part.match(/^@ruby:operator:!~:(\d+)(:receiver)?$/);
                 if (matchNotMatch) {
                     const cacheKey = `${matchNotMatch[1]}${matchNotMatch[2] || ''}`;
                     const order = Generator.ORDER_NONE;
@@ -205,8 +203,8 @@ export default function (Generator) {
             return [`:${symbolName}.to_s`, Generator.ORDER_FUNCTION_CALL];
         }
         if (comment === '@ruby:method:to_s') {
-            const value = Generator.valueToCode(block, 'STRING1', Generator.ORDER_FUNCTION_CALL) ||
-                Generator.quote_('');
+            const value =
+                Generator.valueToCode(block, 'STRING1', Generator.ORDER_FUNCTION_CALL) || Generator.quote_('');
             return [`${value}.to_s`, Generator.ORDER_FUNCTION_CALL];
         }
 
@@ -219,7 +217,7 @@ export default function (Generator) {
         // same-precedence join. The right side stays at `order` so that
         // `a + (b + c)` keeps its semantically meaningful parens.
         const leftSideOrder = order + 0.5;
-        if (!Generator.ORDER_OVERRIDES.some(p => p[0] === leftSideOrder && p[1] === order)) {
+        if (!Generator.ORDER_OVERRIDES.some((p) => p[0] === leftSideOrder && p[1] === order)) {
             Generator.ORDER_OVERRIDES.push([leftSideOrder, order]);
         }
         const rightStr = Generator.valueToCode(block, 'STRING1', leftSideOrder) || Generator.quote_('');
@@ -247,8 +245,8 @@ export default function (Generator) {
                 }
             }
             if (methodName === 'empty?') {
-                const str = Generator.valueToCode(block, 'STRING', Generator.ORDER_FUNCTION_CALL) ||
-                    Generator.quote_('');
+                const str =
+                    Generator.valueToCode(block, 'STRING', Generator.ORDER_FUNCTION_CALL) || Generator.quote_('');
                 Generator.emptyCallCache_[index] = str;
                 return [`@ruby:method:empty?:${index}`, Generator.ORDER_FUNCTION_CALL];
             }
@@ -271,15 +269,13 @@ export default function (Generator) {
         if (!m) return null;
         // Unescape Ruby string escapes back to literal characters
         const unescapes = {
-            'n': '\n',
-            't': '\t',
-            'r': '\r',
+            n: '\n',
+            t: '\t',
+            r: '\r',
             '\\': '\\',
-            '"': '"'
+            '"': '"',
         };
-        return m[1].replace(/\\(.)/g, (_, ch) =>
-            unescapes[ch] || `\\${ch}`
-        );
+        return m[1].replace(/\\(.)/g, (_, ch) => unescapes[ch] || `\\${ch}`);
     };
 
     Generator.operator_contains = function (block) {
@@ -287,28 +283,21 @@ export default function (Generator) {
         if (comment) {
             const commentParts = comment.split(/,(?=@ruby:)/);
             for (const part of commentParts) {
-                const matchOp = part.match(
-                    /^@ruby:operator:(=~|!~):(\d+)(:receiver)?$/
-                );
+                const matchOp = part.match(/^@ruby:operator:(=~|!~):(\d+)(:receiver)?$/);
                 if (matchOp) {
                     const [, op, index, receiverFlag] = matchOp;
                     const order = Generator.ORDER_EQUALS;
-                    const str1 = Generator.valueToCode(
-                        block, 'STRING1', order
-                    ) || Generator.quote_('');
-                    const str2 = Generator.valueToCode(
-                        block, 'STRING2', order
-                    ) || Generator.quote_('');
+                    const str1 = Generator.valueToCode(block, 'STRING1', order) || Generator.quote_('');
+                    const str2 = Generator.valueToCode(block, 'STRING2', order) || Generator.quote_('');
                     const regexStr = Generator.unquoteRegex_(str2) || str2;
 
                     if (op === '!~') {
-                        Generator.regexNotMatchCallCache_[
-                            `${index}${receiverFlag || ''}`
-                        ] = {str: str1, regex: regexStr, receiverFlag};
-                        return [
-                            `@ruby:operator:!~:${index}${receiverFlag || ''}`,
-                            order
-                        ];
+                        Generator.regexNotMatchCallCache_[`${index}${receiverFlag || ''}`] = {
+                            str: str1,
+                            regex: regexStr,
+                            receiverFlag,
+                        };
+                        return [`@ruby:operator:!~:${index}${receiverFlag || ''}`, order];
                     }
                     // =~ operator
                     if (receiverFlag) {
@@ -319,12 +308,8 @@ export default function (Generator) {
             }
         }
 
-        const str1 = Generator.valueToCode(
-            block, 'STRING1', Generator.ORDER_NONE
-        ) || Generator.quote_('');
-        const str2 = Generator.valueToCode(
-            block, 'STRING2', Generator.ORDER_NONE
-        ) || Generator.quote_('');
+        const str1 = Generator.valueToCode(block, 'STRING1', Generator.ORDER_NONE) || Generator.quote_('');
+        const str2 = Generator.valueToCode(block, 'STRING2', Generator.ORDER_NONE) || Generator.quote_('');
         return [`${str1}.include?(${str2})`, Generator.ORDER_ATOMIC];
     };
     // === Smalruby: End of regex-aware operator_contains ===

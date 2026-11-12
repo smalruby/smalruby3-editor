@@ -147,7 +147,7 @@ describe('Ruby Roundtrip: literal at the end of a method definition', () => {
     ])('%s edited as a text block comes back as the new text', async (_name, value, expected) => {
         await converter.targetCodeToBlocks(target, `def self.foo\n  ${value}\nend`);
         await converter.applyTargetBlocks(target);
-        const textBlock = Object.values(target.blocks._blocks).find(b => b.opcode === 'text');
+        const textBlock = Object.values(target.blocks._blocks).find((b) => b.opcode === 'text');
         textBlock.fields.TEXT.value = 'x';
         RubyGenerator.currentTarget = target;
         expect(RubyGenerator.targetToCode(target, { version: converter.version }).trim()).toBe(
@@ -227,19 +227,16 @@ describe('Ruby Roundtrip: local variable kept in a field', () => {
         await expectRoundTrip(converter, target, `a = [3, 1]\n${call}`);
     });
 
-    test.each([
-        ['$ticket'],
-        ['@ticket'],
-    ])('String#reverse! on %s keeps its prefix', async (name) => {
+    test.each([['$ticket'], ['@ticket']])('String#reverse! on %s keeps its prefix', async (name) => {
         await expectRoundTrip(converter, target, `${name} = "abc"\n${name}.reverse!`);
     });
 
-    test.each([
-        ['@_x_1_'],
-        ['$_x_1_'],
-    ])('String#reverse! on %s (named like a local variable inside) keeps its name', async (name) => {
-        await expectRoundTrip(converter, target, `${name} = "abc"\n${name}.reverse!`);
-    });
+    test.each([['@_x_1_'], ['$_x_1_']])(
+        'String#reverse! on %s (named like a local variable inside) keeps its name',
+        async (name) => {
+            await expectRoundTrip(converter, target, `${name} = "abc"\n${name}.reverse!`);
+        },
+    );
 
     test('koshien map_from with a local variable', async () => {
         await expectRoundTrip(

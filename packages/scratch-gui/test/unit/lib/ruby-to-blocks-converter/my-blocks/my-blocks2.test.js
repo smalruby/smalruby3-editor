@@ -2,7 +2,7 @@ import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-convert
 import {
     convertAndExpectToEqualBlocks,
     rubyToExpected,
-    expectedInfo
+    expectedInfo,
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/My Blocks', () => {
@@ -10,7 +10,7 @@ describe('RubyToBlocksConverter/My Blocks', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
@@ -35,13 +35,13 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                                 arguments: [
                                     {
                                         name: 'arg1',
-                                        type: 'boolean'
-                                    }
-                                ]
+                                        type: 'boolean',
+                                    },
+                                ],
                             },
-                            shadow: true
-                        }
-                    }
+                            shadow: true,
+                        },
+                    },
                 ],
                 next: {
                     opcode: 'motion_movesteps',
@@ -53,12 +53,12 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                                 fields: [
                                     {
                                         name: 'VALUE',
-                                        value: 'arg1'
-                                    }
-                                ]
+                                        value: 'arg1',
+                                    },
+                                ],
                             },
-                            shadow: expectedInfo.makeNumber(10)
-                        }
+                            shadow: expectedInfo.makeNumber(10),
+                        },
                     ],
                     next: {
                         opcode: 'control_if',
@@ -70,16 +70,16 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                                     fields: [
                                         {
                                             name: 'VALUE',
-                                            value: 'arg1'
-                                        }
-                                    ]
-                                }
-                            }
+                                            value: 'arg1',
+                                        },
+                                    ],
+                                },
+                            },
                         ],
-                        branches: []
-                    }
-                }
-            }
+                        branches: [],
+                    },
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -109,13 +109,13 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                                 arguments: [
                                     {
                                         name: 'arg1',
-                                        type: 'string_number'
-                                    }
-                                ]
+                                        type: 'string_number',
+                                    },
+                                ],
                             },
-                            shadow: true
-                        }
-                    }
+                            shadow: true,
+                        },
+                    },
                 ],
                 next: {
                     opcode: 'motion_movesteps',
@@ -127,14 +127,14 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                                 fields: [
                                     {
                                         name: 'VALUE',
-                                        value: 'arg1'
-                                    }
-                                ]
+                                        value: 'arg1',
+                                    },
+                                ],
                             },
-                            shadow: expectedInfo.makeNumber(10)
-                        }
-                    ]
-                }
+                            shadow: expectedInfo.makeNumber(10),
+                        },
+                    ],
+                },
             },
             {
                 opcode: 'procedures_definition',
@@ -148,13 +148,13 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                                 arguments: [
                                     {
                                         name: 'arg1',
-                                        type: 'boolean'
-                                    }
-                                ]
+                                        type: 'boolean',
+                                    },
+                                ],
                             },
-                            shadow: true
-                        }
-                    }
+                            shadow: true,
+                        },
+                    },
                 ],
                 next: {
                     opcode: 'motion_movesteps',
@@ -166,12 +166,12 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                                 fields: [
                                     {
                                         name: 'VALUE',
-                                        value: 'arg1'
-                                    }
-                                ]
+                                        value: 'arg1',
+                                    },
+                                ],
                             },
-                            shadow: expectedInfo.makeNumber(10)
-                        }
+                            shadow: expectedInfo.makeNumber(10),
+                        },
                     ],
                     next: {
                         opcode: 'control_if',
@@ -183,16 +183,16 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                                     fields: [
                                         {
                                             name: 'VALUE',
-                                            value: 'arg1'
-                                        }
-                                    ]
-                                }
-                            }
+                                            value: 'arg1',
+                                        },
+                                    ],
+                                },
+                            },
                         ],
-                        branches: []
-                    }
-                }
-            }
+                        branches: [],
+                    },
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
@@ -221,17 +221,17 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                                 arguments: [
                                     {
                                         name: 'arg1',
-                                        type: 'string_number'
+                                        type: 'string_number',
                                     },
                                     {
                                         name: 'arg2',
-                                        type: 'boolean'
-                                    }
-                                ]
+                                        type: 'boolean',
+                                    },
+                                ],
                             },
-                            shadow: true
-                        }
-                    }
+                            shadow: true,
+                        },
+                    },
                 ],
                 next: {
                     opcode: 'motion_movesteps',
@@ -243,12 +243,12 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                                 fields: [
                                     {
                                         name: 'VALUE',
-                                        value: 'arg1'
-                                    }
-                                ]
+                                        value: 'arg1',
+                                    },
+                                ],
                             },
-                            shadow: expectedInfo.makeNumber(10)
-                        }
+                            shadow: expectedInfo.makeNumber(10),
+                        },
                     ],
                     next: {
                         opcode: 'control_if',
@@ -260,17 +260,15 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                                     fields: [
                                         {
                                             name: 'VALUE',
-                                            value: 'arg2'
-                                        }
-                                    ]
-                                }
-                            }
+                                            value: 'arg2',
+                                        },
+                                    ],
+                                },
+                            },
                         ],
-                        branches: [
-                            (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
-                        ]
-                    }
-                }
+                        branches: [(await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]],
+                    },
+                },
             },
             {
                 opcode: 'procedures_call',
@@ -278,10 +276,10 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                     proccode: 'made_block %s %b',
                     argument_blocks: [
                         expectedInfo.makeText('12'),
-                        (await rubyToExpected(converter, target, 'touching?("_edge_")'))[0]
-                    ]
-                }
-            }
+                        (await rubyToExpected(converter, target, 'touching?("_edge_")'))[0],
+                    ],
+                },
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });

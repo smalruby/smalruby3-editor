@@ -6,10 +6,9 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
-
 import ClassroomButton from './classroom-button.jsx';
-import { TeacherSubView } from './teacher-view-layout.jsx';
 import styles from './classroom-modal.css';
+import { TeacherSubView } from './teacher-view-layout.jsx';
 
 const TeacherPasscodeImport = ({ group, isLoading, lookup, error, onLookup, onImport, onCancel }) => {
     const [passcode, setPasscode] = useState('');

@@ -11,12 +11,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
-
+import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import StudentContinueChoice from './student-continue-choice.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
-
-import styles from './classroom-modal.css';
 
 const StudentAssignmentPanel = ({
     assignment,
@@ -79,7 +77,10 @@ const StudentAssignmentPanel = ({
                                 id="gui.classroom.studentAssignment.prevPage"
                             />
                         </button>
-                        <span className={styles.assignmentPagerLabel} data-testid="classroom-assignment-page-indicator">
+                        <span
+                            className={styles.assignmentPagerLabel}
+                            data-testid="classroom-assignment-page-indicator"
+                        >
                             {`${pageIndex + 1} / ${pages.length}`}
                         </span>
                         <button

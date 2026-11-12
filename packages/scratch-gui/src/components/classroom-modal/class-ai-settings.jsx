@@ -8,14 +8,12 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
-
 import {
     displayGenaiUrl,
     draftWithRubytee,
     draftWithService,
     validateGenaiUrl,
 } from '../../lib/classroom-genai-settings.js';
-
 import styles from './class-ai-settings.css';
 
 // The condition lines follow each service's terms (checked for #1277; sources

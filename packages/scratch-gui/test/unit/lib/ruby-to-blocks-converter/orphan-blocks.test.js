@@ -24,7 +24,6 @@
  * - a value written as a line by itself (`x`, `1 + 2`) after another statement in a block body.
  */
 import dedent from 'dedent';
-
 import {
     makeConverter,
     makeSpriteTarget,
@@ -158,9 +157,7 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
 
     test('wait until has no SUBSTACK input', async () => {
         const { converter } = await convert('wait until x > 10');
-        const [block] = Object.values(converter._context.blocks).filter(
-            (b) => b.opcode === 'control_wait_until',
-        );
+        const [block] = Object.values(converter._context.blocks).filter((b) => b.opcode === 'control_wait_until');
         expect(Object.keys(block.inputs)).toEqual(['CONDITION']);
     });
 
@@ -185,11 +182,7 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
         test.each([
             ['drag mode = true', 'self.drag_mode = true', 'self.drag_mode = "draggable"'],
             ['drag mode = false', 'self.drag_mode = false', 'self.drag_mode = "not draggable"'],
-            [
-                'reverse! of a list',
-                'ticket = [12, 47, 35]\nticket.reverse!',
-                null,
-            ],
+            ['reverse! of a list', 'ticket = [12, 47, 35]\nticket.reverse!', null],
             ['reverse! of a string', 's = "hello"\ns.reverse!', null],
             ['sort! of a list', 't = [3, 1, 2]\nt.sort!', null],
             [
@@ -246,11 +239,7 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
                 `,
                 null,
             ],
-            [
-                'koshien map_from with a local variable',
-                'm = "x"\n$map = koshien.map_from("14:0", m)',
-                null,
-            ],
+            ['koshien map_from with a local variable', 'm = "x"\n$map = koshien.map_from("14:0", m)', null],
             ['smalrubot LED on', 'smalrubot_s1.led("left", true)', null],
             ['smalrubot LED off', 'smalrubot_s1.led("right", false)', null],
             [
@@ -286,9 +275,7 @@ describe('RubyToBlocksConverter: no orphan blocks', () => {
 
         test('self.drag_mode = true leaves no literal comment', async () => {
             const { converter } = await convert('self.drag_mode = true\na = true');
-            const literalComments = commentTexts(converter).filter((t) =>
-                t.startsWith('@ruby:literal:true:'),
-            );
+            const literalComments = commentTexts(converter).filter((t) => t.startsWith('@ruby:literal:true:'));
             // the dropped literal gives its number back to the next one
             expect(literalComments).toEqual(['@ruby:literal:true:1']);
         });

@@ -5,7 +5,7 @@ describe('RubyToBlocksConverter/Operators/SymbolError', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 

@@ -7,14 +7,13 @@
  * `==` operand, ...) keeps the `0 < 0` block with the `@ruby:literal:false:N` comment.
  */
 import dedent from 'dedent';
-
+import RubyGenerator from '../../../../src/lib/ruby-generator';
 import {
     makeConverter,
     makeSpriteTarget,
     rubyToBlocksToRuby,
     setupRubyGenerator,
 } from '../../helpers/ruby-roundtrip-helper';
-import RubyGenerator from '../../../../src/lib/ruby-generator';
 
 const FALSE_COMMENT = /^@ruby:literal:false:/;
 
@@ -26,8 +25,7 @@ const convert = async (code) => {
     return converter;
 };
 
-const blocksOf = (converter, opcode) =>
-    Object.values(converter._context.blocks).filter((b) => b.opcode === opcode);
+const blocksOf = (converter, opcode) => Object.values(converter._context.blocks).filter((b) => b.opcode === opcode);
 
 const falseComments = (converter) =>
     Object.values(converter._context.comments).filter((c) => FALSE_COMMENT.test(c.text));

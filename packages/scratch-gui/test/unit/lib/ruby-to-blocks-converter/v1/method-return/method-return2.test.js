@@ -1,10 +1,7 @@
-import RubyToBlocksConverter from '../../../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    expectedInfo
-} from '../../../../../helpers/expect-to-equal-blocks';
-import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
+import Variable from '@smalruby/scratch-vm/src/engine/variable';
+import RubyToBlocksConverter from '../../../../../../src/lib/ruby-to-blocks-converter';
+import { convertAndExpectToEqualBlocks, expectedInfo } from '../../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Method Return', () => {
     let converter;
@@ -13,7 +10,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
     beforeEach(() => {
         const runtime = {
             emitProjectChanged: () => {},
-            getTargetForStage: () => target
+            getTargetForStage: () => target,
         };
         target = {
             blocks: new Blocks(runtime),
@@ -43,17 +40,17 @@ describe('RubyToBlocksConverter/Method Return', () => {
                     y: y,
                     width: width,
                     height: height,
-                    minimized: minimized
+                    minimized: minimized,
                 };
-            }
+            },
         };
         const vm = {
             runtime: runtime,
             emitWorkspaceUpdate: () => {},
             extensionManager: {
                 isExtensionLoaded: () => true,
-                loadExtensionURL: () => Promise.resolve()
-            }
+                loadExtensionURL: () => Promise.resolve(),
+            },
         };
         converter = new RubyToBlocksConverter(vm);
         converter._context.target = target;
@@ -79,25 +76,25 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                     arguments: [
                                         {
                                             name: 'a',
-                                            type: 'string_number'
+                                            type: 'string_number',
                                         },
                                         {
                                             name: 'b',
-                                            type: 'string_number'
-                                        }
-                                    ]
+                                            type: 'string_number',
+                                        },
+                                    ],
                                 },
-                                shadow: true
-                            }
-                        }
+                                shadow: true,
+                            },
+                        },
                     ],
                     next: {
                         opcode: 'data_setvariableto',
                         fields: [
                             {
                                 name: 'VARIABLE',
-                                variable: '@_return_add_'
-                            }
+                                variable: '@_return_add_',
+                            },
                         ],
                         inputs: [
                             {
@@ -112,11 +109,11 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                                 fields: [
                                                     {
                                                         name: 'VALUE',
-                                                        value: 'a'
-                                                    }
-                                                ]
+                                                        value: 'a',
+                                                    },
+                                                ],
                                             },
-                                            shadow: expectedInfo.makeNumber('')
+                                            shadow: expectedInfo.makeNumber(''),
                                         },
                                         {
                                             name: 'NUM2',
@@ -125,23 +122,23 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                                 fields: [
                                                     {
                                                         name: 'VALUE',
-                                                        value: 'b'
-                                                    }
-                                                ]
+                                                        value: 'b',
+                                                    },
+                                                ],
                                             },
-                                            shadow: expectedInfo.makeNumber('')
-                                        }
-                                    ]
+                                            shadow: expectedInfo.makeNumber(''),
+                                        },
+                                    ],
                                 },
-                                shadow: expectedInfo.makeText('0')
-                            }
+                                shadow: expectedInfo.makeText('0'),
+                            },
                         ],
                         comment: {
                             text: '@ruby:return:add',
-                            minimized: true
-                        }
-                    }
-                }
+                            minimized: true,
+                        },
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -165,13 +162,13 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                     arguments: [
                                         {
                                             name: 'name',
-                                            type: 'string_number'
-                                        }
-                                    ]
+                                            type: 'string_number',
+                                        },
+                                    ],
                                 },
-                                shadow: true
-                            }
-                        }
+                                shadow: true,
+                            },
+                        },
                     ],
                     next: {
                         opcode: 'looks_say',
@@ -183,16 +180,16 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                     fields: [
                                         {
                                             name: 'TEXT',
-                                            value: 'Hello '
-                                        }
+                                            value: 'Hello ',
+                                        },
                                     ],
-                                    shadow: true
+                                    shadow: true,
                                 },
-                                shadow: expectedInfo.makeText('Hello ')
-                            }
-                        ]
-                    }
-                }
+                                shadow: expectedInfo.makeText('Hello '),
+                            },
+                        ],
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -217,13 +214,13 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                     arguments: [
                                         {
                                             name: 'x',
-                                            type: 'string_number'
-                                        }
-                                    ]
+                                            type: 'string_number',
+                                        },
+                                    ],
                                 },
-                                shadow: true
-                            }
-                        }
+                                shadow: true,
+                            },
+                        },
                     ],
                     next: {
                         opcode: 'looks_say',
@@ -235,21 +232,21 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                     fields: [
                                         {
                                             name: 'TEXT',
-                                            value: 'Calculating...'
-                                        }
+                                            value: 'Calculating...',
+                                        },
                                     ],
-                                    shadow: true
+                                    shadow: true,
                                 },
-                                shadow: expectedInfo.makeText('Calculating...')
-                            }
+                                shadow: expectedInfo.makeText('Calculating...'),
+                            },
                         ],
                         next: {
                             opcode: 'data_setvariableto',
                             fields: [
                                 {
                                     name: 'VARIABLE',
-                                    variable: '@_return_calculate_'
-                                }
+                                    variable: '@_return_calculate_',
+                                },
                             ],
                             inputs: [
                                 {
@@ -264,11 +261,11 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                                     fields: [
                                                         {
                                                             name: 'VALUE',
-                                                            value: 'x'
-                                                        }
-                                                    ]
+                                                            value: 'x',
+                                                        },
+                                                    ],
                                                 },
-                                                shadow: expectedInfo.makeNumber('')
+                                                shadow: expectedInfo.makeNumber(''),
                                             },
                                             {
                                                 name: 'NUM2',
@@ -277,24 +274,24 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                                     fields: [
                                                         {
                                                             name: 'NUM',
-                                                            value: '2'
-                                                        }
+                                                            value: '2',
+                                                        },
                                                     ],
-                                                    shadow: true
-                                                }
-                                            }
-                                        ]
+                                                    shadow: true,
+                                                },
+                                            },
+                                        ],
                                     },
-                                    shadow: expectedInfo.makeText('0')
-                                }
+                                    shadow: expectedInfo.makeText('0'),
+                                },
                             ],
                             comment: {
                                 text: '@ruby:return:calculate',
-                                minimized: true
-                            }
-                        }
-                    }
-                }
+                                minimized: true,
+                            },
+                        },
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -318,25 +315,25 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                     arguments: [
                                         {
                                             name: 'a',
-                                            type: 'string_number'
+                                            type: 'string_number',
                                         },
                                         {
                                             name: 'b',
-                                            type: 'string_number'
-                                        }
-                                    ]
+                                            type: 'string_number',
+                                        },
+                                    ],
                                 },
-                                shadow: true
-                            }
-                        }
+                                shadow: true,
+                            },
+                        },
                     ],
                     next: {
                         opcode: 'data_setvariableto',
                         fields: [
                             {
                                 name: 'VARIABLE',
-                                variable: '@_return_add_'
-                            }
+                                variable: '@_return_add_',
+                            },
                         ],
                         inputs: [
                             {
@@ -351,11 +348,11 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                                 fields: [
                                                     {
                                                         name: 'VALUE',
-                                                        value: 'a'
-                                                    }
-                                                ]
+                                                        value: 'a',
+                                                    },
+                                                ],
                                             },
-                                            shadow: expectedInfo.makeNumber('')
+                                            shadow: expectedInfo.makeNumber(''),
                                         },
                                         {
                                             name: 'NUM2',
@@ -364,20 +361,20 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                                 fields: [
                                                     {
                                                         name: 'VALUE',
-                                                        value: 'b'
-                                                    }
-                                                ]
+                                                        value: 'b',
+                                                    },
+                                                ],
                                             },
-                                            shadow: expectedInfo.makeNumber('')
-                                        }
-                                    ]
+                                            shadow: expectedInfo.makeNumber(''),
+                                        },
+                                    ],
                                 },
-                                shadow: expectedInfo.makeText('0')
-                            }
-                        ]
+                                shadow: expectedInfo.makeText('0'),
+                            },
+                        ],
                         // NOTE: No comment field - this is the key assertion
-                    }
-                }
+                    },
+                },
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });

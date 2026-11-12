@@ -1,7 +1,5 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectRubyBlockError
-} from '../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectRubyBlockError } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Translate', () => {
     let converter;
@@ -9,7 +7,7 @@ describe('RubyToBlocksConverter/Translate', () => {
     let code;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
     });

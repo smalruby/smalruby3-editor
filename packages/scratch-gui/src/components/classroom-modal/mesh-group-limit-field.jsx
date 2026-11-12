@@ -8,9 +8,7 @@
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
-
 import { normalizeMeshGroupLimit } from '../../lib/classroom-assignment-utils.js';
-
 import styles from './classroom-modal.css';
 
 const messages = defineMessages({
@@ -56,7 +54,9 @@ const MeshGroupLimitField = ({ disabled, testId, value, onChange }) => {
             </label>
             <span className={styles.assignmentStartFromPreviousHint}>
                 <FormattedMessage
-                    defaultMessage={'With "No limit" the whole class can be one group: when you press "Become host", it becomes the teacher\'s group, and students join it with one tap.'}
+                    defaultMessage={
+                        'With "No limit" the whole class can be one group: when you press "Become host", it becomes the teacher\'s group, and students join it with one tap.'
+                    }
                     description="Assignment setting: explanation of the no-limit mesh group size"
                     id="gui.classroom.assignmentEditor.meshGroupLimitHint"
                 />

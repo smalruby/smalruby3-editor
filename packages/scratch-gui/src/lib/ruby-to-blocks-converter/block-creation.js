@@ -1,17 +1,17 @@
 // === Smalruby: This file is Smalruby-specific (block creation methods for RubyToBlocksConverter) ===
-import * as Blockly from 'scratch-blocks';
 import _ from 'lodash';
+import * as Blockly from 'scratch-blocks';
 
 /**
  * Block creation utilities for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
  */
 const BlockCreation = {
-    createComment (text, blockId, x = 0, y = 0, minimized = true) {
+    createComment(text, blockId, x = 0, y = 0, minimized = true) {
         return this._createComment(text, blockId, x, y, minimized);
     },
 
-    _createComment (text, blockId, x = 0, y = 0, minimized = true) {
+    _createComment(text, blockId, x = 0, y = 0, minimized = true) {
         // For block-attached comments, scratch-blocks v2 hardcodes the bubble
         // ID to `${block.id}_comment` (see ScratchCommentBubble constructor).
         // The XML <comment id="..."> attribute is ignored by Blockly v12's
@@ -35,28 +35,31 @@ const BlockCreation = {
             y: y,
             width: 200,
             height: 200,
-            minimized: minimized
+            minimized: minimized,
         };
         return id;
     },
 
-    createBlock (opcode, type, attributes = {}) {
+    createBlock(opcode, type, attributes = {}) {
         return this._createBlock(opcode, type, attributes);
     },
 
-    _createBlock (opcode, type, attributes = {}) {
-        const block = Object.assign({
-            id: Blockly.utils.idGenerator.genUid(),
-            opcode: opcode,
-            inputs: {},
-            fields: {},
-            next: null,
-            topLevel: false,
-            parent: null,
-            shadow: false,
-            x: void 0,
-            y: void 0
-        }, attributes);
+    _createBlock(opcode, type, attributes = {}) {
+        const block = Object.assign(
+            {
+                id: Blockly.utils.idGenerator.genUid(),
+                opcode: opcode,
+                inputs: {},
+                fields: {},
+                next: null,
+                topLevel: false,
+                parent: null,
+                shadow: false,
+                x: void 0,
+                y: void 0,
+            },
+            attributes,
+        );
         if (attributes.comment) {
             block.comment = this._createComment(attributes.comment, block.id);
         }
@@ -71,11 +74,11 @@ const BlockCreation = {
         return block;
     },
 
-    createFieldBlock (opcode, fieldName, value) {
+    createFieldBlock(opcode, fieldName, value) {
         return this._createFieldBlock(opcode, fieldName, value);
     },
 
-    _createFieldBlock (opcode, fieldName, value) {
+    _createFieldBlock(opcode, fieldName, value) {
         if (this._isBlock(value)) {
             return value;
         }
@@ -84,25 +87,25 @@ const BlockCreation = {
                 [fieldName]: {
                     name: fieldName,
                     id: void 0,
-                    value: value.toString()
-                }
+                    value: value.toString(),
+                },
             },
-            shadow: true
+            shadow: true,
         });
     },
 
-    createTextBlock (value) {
+    createTextBlock(value) {
         return this._createTextBlock(value);
     },
 
-    _createTextBlock (value) {
+    _createTextBlock(value) {
         if (this._isString(value)) {
             return this._createFieldBlock('text', 'TEXT', value.toString());
         }
         return value;
     },
 
-    _createNumberBlock (opcode, value) {
+    _createNumberBlock(opcode, value) {
         if (this._isNumber(value) || value === '') {
             let numStr;
             if (this._isPrimitive(value) && value.type === 'float' && Number.isInteger(value.value)) {
@@ -115,39 +118,39 @@ const BlockCreation = {
         return value;
     },
 
-    createRubyExpressionBlock (expression, node) {
+    createRubyExpressionBlock(expression, node) {
         return this._createRubyExpressionBlock(expression, node);
     },
 
-    _createRubyExpressionBlock (expression, node) {
+    _createRubyExpressionBlock(expression, node) {
         const block = this._createBlock('ruby_expression', 'value_boolean');
         block.node = node;
         this._addInput(block, 'EXPRESSION', this._createTextBlock(expression));
         return block;
     },
 
-    createRubyStatementBlock (statement, node) {
+    createRubyStatementBlock(statement, node) {
         return this._createRubyStatementBlock(statement, node);
     },
 
-    _createRubyStatementBlock (statement, node) {
+    _createRubyStatementBlock(statement, node) {
         const block = this._createBlock('ruby_statement', 'statement');
         block.node = node;
         this._addInput(block, 'STATEMENT', this._createTextBlock(statement));
         return block;
     },
 
-    changeBlock (block, opcode, blockType) {
+    changeBlock(block, opcode, blockType) {
         return this._changeBlock(block, opcode, blockType);
     },
 
-    _changeBlock (block, opcode, blockType) {
+    _changeBlock(block, opcode, blockType) {
         block.opcode = opcode;
         this._setBlockType(block, blockType);
         return block;
     },
 
-    _cloneBlock (block) {
+    _cloneBlock(block) {
         if (!this._isBlock(block)) {
             return block;
         }
@@ -157,7 +160,7 @@ const BlockCreation = {
             parent: null,
             next: null,
             inputs: {},
-            fields: _.cloneDeep(block.fields)
+            fields: _.cloneDeep(block.fields),
         });
         this._context.blocks[newBlock.id] = newBlock;
         this._context.blockTypes[newBlock.id] = this._context.blockTypes[block.id];
@@ -189,25 +192,25 @@ const BlockCreation = {
         return newBlock;
     },
 
-    changeRubyExpression (block, node, source = null) {
+    changeRubyExpression(block, node, source = null) {
         block.node = node;
         const expressionBlock = this._context.blocks[block.inputs.EXPRESSION.block];
         expressionBlock.fields.TEXT.value = source || this._getSource(node);
         return block;
     },
 
-    changeRubyExpressionBlock (block, opcode, blockType) {
+    changeRubyExpressionBlock(block, opcode, blockType) {
         return this._changeRubyExpressionBlock(block, opcode, blockType);
     },
 
-    _changeRubyExpressionBlock (block, opcode, blockType) {
+    _changeRubyExpressionBlock(block, opcode, blockType) {
         this._changeBlock(block, opcode, blockType);
 
         delete this._context.blocks[block.inputs.EXPRESSION.block];
         delete block.inputs.EXPRESSION;
 
         return block;
-    }
+    },
 };
 
 export default BlockCreation;

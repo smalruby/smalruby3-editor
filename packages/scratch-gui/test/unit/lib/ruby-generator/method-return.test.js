@@ -1,14 +1,14 @@
 import RubyGenerator from '../../../../src/lib/ruby-generator';
-import ProcedureBlocks from '../../../../src/lib/ruby-generator/procedure';
 import DataBlocks from '../../../../src/lib/ruby-generator/data';
-import MathBlocks from '../../../../src/lib/ruby-generator/math';
 import LooksBlocks from '../../../../src/lib/ruby-generator/looks';
+import MathBlocks from '../../../../src/lib/ruby-generator/math';
+import ProcedureBlocks from '../../../../src/lib/ruby-generator/procedure';
 
 describe('RubyGenerator/MethodReturn', () => {
     beforeEach(() => {
         RubyGenerator.cache_ = {
             comments: {},
-            targetCommentTexts: []
+            targetCommentTexts: [],
         };
         RubyGenerator.definitions_ = {};
         RubyGenerator.functionNames_ = {};
@@ -16,7 +16,7 @@ describe('RubyGenerator/MethodReturn', () => {
             id: 'target-id',
             comments: {},
             variables: {
-                v1: { id: 'v1', name: '_return_add', type: '' }
+                v1: { id: 'v1', name: '_return_add', type: '' },
             },
             isStage: false,
             blocks: {
@@ -24,12 +24,16 @@ describe('RubyGenerator/MethodReturn', () => {
                 getInputs: (block) => block.inputs || {},
                 getProcedureParamNamesIdsAndDefaults: (proccode) => {
                     if (proccode === 'add %s %s') {
-                        return [['x', 'y'], ['i1', 'i2'], ['', '']];
+                        return [
+                            ['x', 'y'],
+                            ['i1', 'i2'],
+                            ['', ''],
+                        ];
                     }
                     return [[], [], []];
                 },
-                getScripts: () => RubyGenerator.currentTarget.blocks._scripts || []
-            }
+                getScripts: () => RubyGenerator.currentTarget.blocks._scripts || [],
+            },
         };
         ProcedureBlocks(RubyGenerator);
         DataBlocks(RubyGenerator);
@@ -43,7 +47,7 @@ describe('RubyGenerator/MethodReturn', () => {
         RubyGenerator.currentTarget.comments = comments;
         // Trigger currentTarget setter
         RubyGenerator.currentTarget = RubyGenerator.currentTarget;
-        return RubyGenerator.targetToCode(RubyGenerator.currentTarget, {version: '2'});
+        return RubyGenerator.targetToCode(RubyGenerator.currentTarget, { version: '2' });
     };
 
     describe('Method Return Values', () => {
@@ -54,41 +58,41 @@ describe('RubyGenerator/MethodReturn', () => {
                     opcode: 'procedures_definition',
                     inputs: { custom_block: { block: 'b2' } },
                     next: 'b3',
-                    topLevel: true
+                    topLevel: true,
                 },
                 b2: {
                     id: 'b2',
                     opcode: 'procedures_prototype',
                     mutation: { proccode: 'add %s %s' },
-                    shadow: true
+                    shadow: true,
                 },
                 b3: {
                     id: 'b3',
                     opcode: 'data_setvariableto',
                     fields: { VARIABLE: { id: 'v1', value: '_return_add' } },
-                    inputs: { VALUE: { block: 'b4' } }
+                    inputs: { VALUE: { block: 'b4' } },
                 },
                 b4: {
                     id: 'b4',
                     opcode: 'operator_add',
                     inputs: {
                         NUM1: { block: 'b5' },
-                        NUM2: { block: 'b6' }
-                    }
+                        NUM2: { block: 'b6' },
+                    },
                 },
                 b5: {
                     id: 'b5',
                     opcode: 'argument_reporter_string_number',
-                    fields: { VALUE: { value: 'x' } }
+                    fields: { VALUE: { value: 'x' } },
                 },
                 b6: {
                     id: 'b6',
                     opcode: 'argument_reporter_string_number',
-                    fields: { VALUE: { value: 'y' } }
-                }
+                    fields: { VALUE: { value: 'y' } },
+                },
             };
             const comments = {
-                c1: { id: 'c1', blockId: 'b3', text: '@ruby:return:add' }
+                c1: { id: 'c1', blockId: 'b3', text: '@ruby:return:add' },
             };
             const code = generateCode(blocks, ['b1'], comments);
             // With @ruby:return comment, this is an implicit return - output just the value
@@ -103,12 +107,12 @@ describe('RubyGenerator/MethodReturn', () => {
                     mutation: { proccode: 'add %s %s' },
                     inputs: {
                         i1: { block: 'b2' },
-                        i2: { block: 'b3' }
+                        i2: { block: 'b3' },
                     },
-                    topLevel: true
+                    topLevel: true,
                 },
                 b2: { id: 'b2', opcode: 'math_number', fields: { NUM: { value: '1' } }, shadow: true },
-                b3: { id: 'b3', opcode: 'math_number', fields: { NUM: { value: '2' } }, shadow: true }
+                b3: { id: 'b3', opcode: 'math_number', fields: { NUM: { value: '2' } }, shadow: true },
             };
             setBlocks(blocks);
             // procedures_call(b1) is topLevel and its next is NOT Ruby return assignment.
@@ -125,15 +129,15 @@ describe('RubyGenerator/MethodReturn', () => {
                     mutation: { proccode: 'add %s %s' },
                     inputs: {
                         i1: { block: 'b2' },
-                        i2: { block: 'b3' }
+                        i2: { block: 'b3' },
                     },
-                    topLevel: true
+                    topLevel: true,
                 },
                 b2: { id: 'b2', opcode: 'math_number', fields: { NUM: { value: '1' } }, shadow: true },
-                b3: { id: 'b3', opcode: 'math_number', fields: { NUM: { value: '2' } }, shadow: true }
+                b3: { id: 'b3', opcode: 'math_number', fields: { NUM: { value: '2' } }, shadow: true },
             };
             const comments = {
-                c1: { id: 'c1', blockId: 'b1', text: '@ruby:return:add' }
+                c1: { id: 'c1', blockId: 'b1', text: '@ruby:return:add' },
             };
             setBlocks(blocks, comments);
             // With @ruby:return:add comment, output should be suppressed
@@ -150,27 +154,27 @@ describe('RubyGenerator/MethodReturn', () => {
                     mutation: { proccode: 'add %s %s' },
                     inputs: {
                         i1: { block: 'b2' },
-                        i2: { block: 'b3' }
+                        i2: { block: 'b3' },
                     },
                     next: 'b4',
-                    topLevel: true
+                    topLevel: true,
                 },
                 b2: { id: 'b2', opcode: 'math_number', fields: { NUM: { value: '1' } }, shadow: true },
                 b3: { id: 'b3', opcode: 'math_number', fields: { NUM: { value: '2' } }, shadow: true },
                 b4: {
                     id: 'b4',
                     opcode: 'looks_say',
-                    inputs: { MESSAGE: { block: 'b5' } }
+                    inputs: { MESSAGE: { block: 'b5' } },
                 },
                 b5: {
                     id: 'b5',
                     opcode: 'data_variable',
-                    fields: { VARIABLE: { id: 'v1', value: '_return_add' } }
-                }
+                    fields: { VARIABLE: { id: 'v1', value: '_return_add' } },
+                },
             };
             const comments = {
                 c1: { id: 'c1', blockId: 'b1', text: '@ruby:return:add' },
-                c2: { id: 'c2', blockId: 'b5', text: '@ruby:return:add' }
+                c2: { id: 'c2', blockId: 'b5', text: '@ruby:return:add' },
             };
             const code = generateCode(blocks, ['b1'], comments);
             expect(code).toBe('say(add(1, 2))\n');
@@ -183,19 +187,19 @@ describe('RubyGenerator/MethodReturn', () => {
                     opcode: 'procedures_definition',
                     inputs: { custom_block: { block: 'b2' } },
                     next: 'b3',
-                    topLevel: true
+                    topLevel: true,
                 },
                 b2: {
                     id: 'b2',
                     opcode: 'procedures_prototype',
                     mutation: { proccode: 'add %s %s' },
-                    shadow: true
+                    shadow: true,
                 },
                 b3: {
                     id: 'b3',
                     opcode: 'data_setvariableto',
                     fields: { VARIABLE: { id: 'v1', value: '_return_add' } },
-                    inputs: { VALUE: { block: 'b4' } }
+                    inputs: { VALUE: { block: 'b4' } },
                     // NOTE: No comment - this is a user-written assignment
                 },
                 b4: {
@@ -203,19 +207,19 @@ describe('RubyGenerator/MethodReturn', () => {
                     opcode: 'operator_add',
                     inputs: {
                         NUM1: { block: 'b5' },
-                        NUM2: { block: 'b6' }
-                    }
+                        NUM2: { block: 'b6' },
+                    },
                 },
                 b5: {
                     id: 'b5',
                     opcode: 'argument_reporter_string_number',
-                    fields: { VALUE: { value: 'x' } }
+                    fields: { VALUE: { value: 'x' } },
                 },
                 b6: {
                     id: 'b6',
                     opcode: 'argument_reporter_string_number',
-                    fields: { VALUE: { value: 'y' } }
-                }
+                    fields: { VALUE: { value: 'y' } },
+                },
             };
             const code = generateCode(blocks, ['b1'], {});
             // Without @ruby:return comment, output normal variable assignment

@@ -1,7 +1,7 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 import {
     convertAndExpectToEqualBlocks,
-    convertAndExpectRubyBlockError
+    convertAndExpectRubyBlockError,
 } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Mesh', () => {
@@ -11,7 +11,7 @@ describe('RubyToBlocksConverter/Mesh', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
         code = null;
         expected = null;
@@ -30,23 +30,25 @@ describe('RubyToBlocksConverter/Mesh', () => {
                             fields: [
                                 {
                                     name: 'variableNames',
-                                    value: ' '
-                                }
+                                    value: ' ',
+                                },
                             ],
-                            shadow: true
-                        }
-                    }
-                ]
-            }
+                            shadow: true,
+                        },
+                    },
+                ],
+            },
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        { for (const s of [
-            'mesh_v1.sensor_value()',
-            'mesh_v1.sensor_value(1)',
-            'mesh_v1.sensor_value("arg1", "arg2")'
-        ]) {
-            await convertAndExpectRubyBlockError(converter, target, s);
-        } }
+        {
+            for (const s of [
+                'mesh_v1.sensor_value()',
+                'mesh_v1.sensor_value(1)',
+                'mesh_v1.sensor_value("arg1", "arg2")',
+            ]) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        }
     });
 });

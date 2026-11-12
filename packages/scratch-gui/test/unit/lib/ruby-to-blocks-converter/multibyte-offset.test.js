@@ -4,7 +4,7 @@ describe('Multibyte character offset handling', () => {
     let converter;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
     });
 
     describe('error location with multibyte characters', () => {

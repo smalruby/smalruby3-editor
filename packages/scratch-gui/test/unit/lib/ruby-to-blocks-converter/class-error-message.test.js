@@ -5,7 +5,7 @@ describe('Class error message', () => {
 
     test('invalid key inside class reports the statement, not the class', async () => {
         // Class syntax requires version 2
-        const converter = new RubyToBlocksConverter(null, {version: 2});
+        const converter = new RubyToBlocksConverter(null, { version: 2 });
         const code = 'class Sprite1\n  when_key_pressed("invalid") do\n  end\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
@@ -15,7 +15,7 @@ describe('Class error message', () => {
 
     test('non-hat block inside class mentions class definition in error', async () => {
         // Class syntax requires version 2
-        const converter = new RubyToBlocksConverter(null, {version: 2});
+        const converter = new RubyToBlocksConverter(null, { version: 2 });
         const code = 'class Sprite1\n  move(10)\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
@@ -26,7 +26,7 @@ describe('Class error message', () => {
 
     test('error message does not contain source code newlines', async () => {
         // Class syntax requires version 2
-        const converter = new RubyToBlocksConverter(null, {version: 2});
+        const converter = new RubyToBlocksConverter(null, { version: 2 });
         const code = 'class Sprite1\n  when_flag_clicked do\n    move(10)\n  end\n  move(10)\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
@@ -36,7 +36,7 @@ describe('Class error message', () => {
     });
 
     test('error source is truncated', async () => {
-        const converter = new RubyToBlocksConverter(null, {version: '2'});
+        const converter = new RubyToBlocksConverter(null, { version: '2' });
         const code = 'when_key_pressed("invalid") do\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
@@ -45,7 +45,7 @@ describe('Class error message', () => {
     });
 
     test('def initialize at top level is an error', async () => {
-        const converter = new RubyToBlocksConverter(null, {version: '2'});
+        const converter = new RubyToBlocksConverter(null, { version: '2' });
         const code = 'def initialize\n  @x = 0\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
@@ -54,7 +54,7 @@ describe('Class error message', () => {
     });
 
     test('def initialize at top level with other code is an error', async () => {
-        const converter = new RubyToBlocksConverter(null, {version: '2'});
+        const converter = new RubyToBlocksConverter(null, { version: '2' });
         const code = 'def initialize\n  @x = 0\nend\n\nwhen_flag_clicked do\n  move(10)\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
@@ -62,7 +62,7 @@ describe('Class error message', () => {
     });
 
     test('top-level wrongInstruction error has SOURCE expanded', async () => {
-        const converter = new RubyToBlocksConverter(null, {version: '2'});
+        const converter = new RubyToBlocksConverter(null, { version: '2' });
         const code = 'when_key_pressed("invalid") do\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);

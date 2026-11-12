@@ -1,4 +1,4 @@
-@import "../../css/z-index.css";
+@import '../../css/z-index.css';
 
 /* Non-blocking banner pinned to the top-center of the viewport. It must not
    cover the editor (pointer-events only on the banner itself). */
