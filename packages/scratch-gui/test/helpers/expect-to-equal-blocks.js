@@ -425,6 +425,29 @@ const rubyToExpected = async function (converter, target, code) {
 };
 
 const expectedInfo = {
+    // `not (x = "false")`: a variable alone as a condition, true unless it is false (issue #1611).
+    makeVariableCondition: (variableBlock) => ({
+        opcode: 'operator_not',
+        inputs: [
+            {
+                name: 'OPERAND',
+                block: {
+                    opcode: 'operator_equals',
+                    inputs: [
+                        {
+                            name: 'OPERAND1',
+                            block: variableBlock,
+                            shadow: expectedInfo.makeText(''),
+                        },
+                        {
+                            name: 'OPERAND2',
+                            block: expectedInfo.makeText('false'),
+                        },
+                    ],
+                },
+            },
+        ],
+    }),
     makeText: (text) => ({
         opcode: 'text',
         fields: [

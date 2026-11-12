@@ -703,6 +703,8 @@ export default {
         '"{ SOURCE }" cannot be made into blocks, because there is no block for redo (doing the same turn of a loop again).\nDelete redo, and repeat the commands with a loop that stops with its condition (e.g. until x > 3 ... end).',
     'gui.smalruby3.rubyToBlocksConverter.retryNotSupported':
         '"{ SOURCE }" cannot be made into blocks, because there is no block for retry (running begin again after rescue).\nDelete retry, and repeat the commands with a loop that stops with its condition (e.g. until x > 3 ... end).',
+    'gui.smalruby3.rubyToBlocksConverter.exceptionHandlingNotSupported':
+        '"{ SOURCE }" cannot be made into blocks, because there is no block for exception handling (rescue / else / ensure).\nDelete rescue / else / ensure and the commands after them, and write only the commands that run when nothing goes wrong.',
     'gui.smalruby3.rubyToBlocksConverter.beginLoopBodyNeverEnds':
         '"{ SOURCE }" cannot be made into blocks, because the commands between begin and end end with a command that nothing can follow (loop do ... end, return, stop and so on), so the condition is never checked.\nWrite the commands without begin ... end and the condition after end.',
     'gui.smalruby3.prismError.invalidBreak':

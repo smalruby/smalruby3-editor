@@ -975,6 +975,8 @@ export default {
         '「{ SOURCE }」はブロックにできません。redo（繰り返しの同じ回をやり直す）に当たるブロックがないためです。\nredo を消して、「〜まで繰り返す」の条件で命令を繰り返してください（例: until x > 3 ... end）。',
     'gui.smalruby3.rubyToBlocksConverter.retryNotSupported':
         '「{ SOURCE }」はブロックにできません。retry（rescue のあとで begin をやり直す）に当たるブロックがないためです。\nretry を消して、「〜まで繰り返す」の条件で命令を繰り返してください（例: until x > 3 ... end）。',
+    'gui.smalruby3.rubyToBlocksConverter.exceptionHandlingNotSupported':
+        '「{ SOURCE }」はブロックにできません。例外処理（rescue / else / ensure）に当たるブロックがないためです。\nrescue / else / ensure とそのあとの命令を消して、うまくいったときに動かす命令だけを書いてください。',
     'gui.smalruby3.rubyToBlocksConverter.beginLoopBodyNeverEnds':
         '「{ SOURCE }」はブロックにできません。begin と end の間の命令が、あとに何も続けられない命令（loop do ... end・return・stop など）で終わっていて、条件が確かめられることがないためです。\nbegin ... end と end のあとの条件を消して、命令だけを書いてください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
