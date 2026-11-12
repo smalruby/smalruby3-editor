@@ -88,6 +88,61 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
         });
     });
 
+    describe('a list that the sprite already has and this code does not use as a list (issue #1612)', () => {
+        // The list stays in the project after the code that made it is rewritten (the VM does not
+        // delete unused variables), so the code is converted again with the list still there.
+        const convertTwice = async (first, second, expected = second) => {
+            const { target, stage, runtime } = makeSpriteTarget();
+            setupRubyGenerator();
+            await expectRoundTrip(makeConverter(target, runtime, { version: '2' }), target, first);
+            await expectRoundTrip(makeConverter(target, runtime, { version: '2' }), target, second, expected);
+            return { target, stage, runtime };
+        };
+        const scalarsAndLists = (owner, name) =>
+            Object.values(owner.variables)
+                .filter((v) => v.name === name)
+                .map((v) => v.type)
+                .sort();
+
+        test.each([
+            ['@a = 0, say(@a)', '@a = []\n@a.push(1)', '@a = 0\nsay(@a)', false],
+            ['$a = 0, say($a)', '$a = []\n$a.push(1)', '$a = 0\nsay($a)', true],
+            ['@a = "abc", say(@a.length)', '@a = []\n@a.push(1)', '@a = "abc"\nsay(@a.length)', false],
+            ['$a = "abc", say($a.length)', '$a = []\n$a.push(1)', '$a = "abc"\nsay($a.length)', true],
+            ['@a += 1', '@a = []\n@a.push(1)', '@a = 0\n@a += 1\nsay(@a)', false],
+        ])('%s does not lose the script', async (_name, first, second, onStage) => {
+            const { target, stage } = await convertTwice(first, second);
+            // Scratch keeps both: the list from before, and the variable that this code uses.
+            expect(scalarsAndLists(onStage ? stage : target, 'a')).toEqual(['', 'list']);
+        });
+
+        test('converting the same code again keeps the script', async () => {
+            const { target, runtime } = await convertTwice('@a = []\n@a.push(1)', '@a = "abc"\nsay(@a.length)');
+            const converter = makeConverter(target, runtime, { version: '2' });
+            await expectRoundTrip(converter, target, '@a = "abc"\nsay(@a.length)');
+        });
+
+        test('reading the list that the sprite has still reads the list (issue #1567)', async () => {
+            await convertTwice('@a = []\n@a.push(1)', 'say(@a)');
+        });
+
+        test('using it as a list again still works', async () => {
+            await convertTwice('@a = []\n@a.push(1)', '@a.push(2)\nsay(@a)');
+        });
+
+        test('a list method of a variable that has a list of the same name is still an error', async () => {
+            const { target, runtime } = makeSpriteTarget();
+            setupRubyGenerator();
+            await expectRoundTrip(makeConverter(target, runtime, { version: '2' }), target, '@a = []\n@a.push(1)');
+            const converter = makeConverter(target, runtime, { version: '2' });
+            const result = await converter.targetCodeToBlocks(target, '@a = 0\n@a.push(1)');
+            expect(result).toBe(false);
+            expect(converter.errors[0].text).toContain(
+                '"@a" is used as a list on line 2 and as a variable on line 1.',
+            );
+        });
+    });
+
     describe('a string method of a string variable does not make a list of the same name', () => {
         let target, runtime, converter;
 

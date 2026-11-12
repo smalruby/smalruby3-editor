@@ -343,6 +343,45 @@ const VariableUtils = {
     },
 
     /**
+     * Whether a list that the project already has gives way to a variable of the same name.
+     * The VM keeps a list after the code that made it is rewritten (`@a = []` → `@a = 0`), so the
+     * code is converted with the list still there. When this code sets the variable and never uses
+     * the list, the variable is what the code means: Scratch can have both, so the variable is
+     * made and the list is left as it is (issue #1612). Only reading the name (`say(@a)`) still
+     * reads the list (issue #1567).
+     * @param {object} list - The list in `_context.lists`.
+     * @returns {boolean} true if the list should be left out of this conversion.
+     */
+    _isListShadowedByVariable(list) {
+        if (!list || !list.fromTarget || list.isArgument) return false;
+        const variable = this._context.variables[list.name];
+        if (!variable || variable.isArgument || variable.scope !== list.scope) return false;
+        let written = false;
+        const used = Object.values(this._context.blocks).some((block) => {
+            const fields = block.fields || {};
+            if (fields.LIST && fields.LIST.id === list.id) return true;
+            if (block.opcode !== 'data_variable' && fields.VARIABLE && fields.VARIABLE.id === variable.id) {
+                written = true;
+            }
+            return false;
+        });
+        return written && !used;
+    },
+
+    /**
+     * Leave out the lists that give way to a variable of the same name (see
+     * `_isListShadowedByVariable`), so that the target applier makes the variable instead of
+     * dropping it with the script that sets it (issue #1612). The list stays in the project.
+     */
+    _dropListsShadowedByVariables() {
+        Object.keys(this._context.lists).forEach((name) => {
+            if (this._isListShadowedByVariable(this._context.lists[name])) {
+                delete this._context.lists[name];
+            }
+        });
+    },
+
+    /**
      * Reject Ruby code that uses one name as both a variable and a list (e.g. `@a = 0` and `@a = []`).
      * Scratch can have a variable and a list of the same name, but Ruby has one `@a`, and the target
      * applier keeps only the list: a block that sets or changes the dropped variable would point at
