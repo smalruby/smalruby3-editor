@@ -110,6 +110,8 @@ describe('Ruby Roundtrip: unary minus on non-literals (issue #1676)', () => {
         ['assignment', '@a = 1\n@a = -@a'],
         ['comparison', '@x = 1\nif -@x < 0\n  say("ok")\nend'],
         ['minus of a negative number', 'say(- -1)'],
+        ['receiver of abs', '@x = 1\nsay((-@x).abs)'],
+        ['receiver of to_s', '@x = 1\nsay((-@x).to_s)'],
     ])('%s', async (_name, code) => {
         const first = await convert(code);
         expect(first.ruby).toBe(code);
@@ -130,6 +132,14 @@ describe('Ruby Roundtrip: unary minus on non-literals (issue #1676)', () => {
         const { trees } = await convert('@x = 1\nsay(-10 ** @x)');
         const block = findBlock(trees, 'operator_subtract');
         expect(block.inputs.NUM2.opcode).toBe('operator_mathop');
+    });
+
+    test('a minus as the exponent keeps its meaning (parentheses are added)', async () => {
+        const first = await convert('@x = 1\nsay(10 ** -@x)');
+        expect(first.ruby).toBe('@x = 1\nsay(10 ** (-@x))');
+
+        const second = await convert(first.ruby);
+        expect(second.trees).toEqual(first.trees);
     });
 
     test('a plain 0 - x stays 0 - x', async () => {
