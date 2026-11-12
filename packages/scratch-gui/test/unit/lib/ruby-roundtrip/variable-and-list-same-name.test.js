@@ -73,10 +73,10 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
     });
 
     describe('a variable and a list of the same name that the project already has', () => {
-        // Scratch can have both, and the Ruby of such a project uses one name for both.
+        // Scratch can have both. In Ruby the list is `@_score_list_` (`$_score_list_`, issue #1622).
         test.each([
-            ['on the stage', true, '$score = 0\n$score.push(1)'],
-            ['in the sprite', false, '@score = 0\n@score.push(1)'],
+            ['on the stage', true, '$score = 0\n$_score_list_.push(1)'],
+            ['in the sprite', false, '@score = 0\n@_score_list_.push(1)'],
         ])('%s still converts', async (_name, onStage, code) => {
             const { target, stage, runtime } = makeSpriteTarget();
             const owner = onStage ? stage : target;
@@ -92,7 +92,7 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
             target.variables.l1 = new Variable('l1', 'score', Variable.LIST_TYPE);
             setupRubyGenerator();
             const converter = makeConverter(target, runtime, { version: '2' });
-            await expectRoundTrip(converter, target, '@score = 0\nsay(@score.length)');
+            await expectRoundTrip(converter, target, '@score = 0\nsay(@_score_list_.length)');
             const opcodes = Object.values(target.blocks._blocks).map((b) => b.opcode);
             expect(opcodes).toContain('data_lengthoflist');
             expect(opcodes).not.toContain('operator_length');
@@ -290,7 +290,7 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
             test('a variable and a list of the same name that the project already has', async () => {
                 target.variables.v1 = new Variable('v1', 'score', Variable.SCALAR_TYPE);
                 target.variables.l1 = new Variable('l1', 'score', Variable.LIST_TYPE);
-                await expectRoundTrip(converter, target, '@score = 0\n@b = @score.index("x")');
+                await expectRoundTrip(converter, target, '@score = 0\n@b = @_score_list_.index("x")');
                 const opcodes = Object.values(target.blocks._blocks).map((b) => b.opcode);
                 expect(opcodes).toContain('data_itemnumoflist');
             });

@@ -1809,8 +1809,8 @@ describe('RubyToBlocksConverter/Class', () => {
 
             const iv = converter._context.initializeValues;
             expect(iv).toBeDefined();
-            expect(iv.x).toEqual({ value: 10, type: '' });
-            expect(iv.name).toEqual({ value: 'hello', type: '' });
+            expect(iv[':x']).toEqual({ name: 'x', value: 10, type: '' });
+            expect(iv[':name']).toEqual({ name: 'name', value: 'hello', type: '' });
         });
 
         test('sprite: parses @list = [...] assignments', async () => {
@@ -1831,7 +1831,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             const iv = converter._context.initializeValues;
             expect(iv).toBeDefined();
-            expect(iv.items).toEqual({ value: ['a', 'b', 'c'], type: 'list' });
+            expect(iv['list:items']).toEqual({ name: 'items', value: ['a', 'b', 'c'], type: 'list' });
         });
 
         test('sprite: parses empty list @list = []', async () => {
@@ -1852,7 +1852,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             const iv = converter._context.initializeValues;
             expect(iv).toBeDefined();
-            expect(iv.items).toEqual({ value: [], type: 'list' });
+            expect(iv['list:items']).toEqual({ name: 'items', value: [], type: 'list' });
         });
 
         test('stage: parses $var = value assignments', async () => {
@@ -1874,8 +1874,8 @@ describe('RubyToBlocksConverter/Class', () => {
 
             const iv = converter._context.initializeValues;
             expect(iv).toBeDefined();
-            expect(iv.score).toEqual({ value: 100, type: '' });
-            expect(iv.title).toEqual({ value: 'game', type: '' });
+            expect(iv[':score']).toEqual({ name: 'score', value: 100, type: '' });
+            expect(iv[':title']).toEqual({ name: 'title', value: 'game', type: '' });
         });
 
         test('stage: parses $list = [...] assignments', async () => {
@@ -1896,7 +1896,7 @@ describe('RubyToBlocksConverter/Class', () => {
 
             const iv = converter._context.initializeValues;
             expect(iv).toBeDefined();
-            expect(iv.items).toEqual({ value: [1, 2, 3], type: 'list' });
+            expect(iv['list:items']).toEqual({ name: 'items', value: [1, 2, 3], type: 'list' });
         });
 
         test('sprite: @var in stage class is an error', async () => {

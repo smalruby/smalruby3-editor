@@ -21,8 +21,13 @@ describe('Ruby Round Trip', () => {
         });
 
         const variables = {};
+        // The converter makes a variable on the way to a list of the same name (`$a = []`, a read
+        // of `$a`), and the target applier leaves it out. Leave it out here too: the generator
+        // names a list beside a variable of the same name `$_a_list_` (issue #1622).
+        const listKeys = new Set(Object.values(converter.lists).map((v) => `${v.scope}:${v.name}`));
         [converter.variables, converter._context.localVariables].forEach((vars) => {
             Object.values(vars).forEach((v) => {
+                if (listKeys.has(`${v.scope}:${v.name}`)) return;
                 variables[v.id] = v;
             });
         });
