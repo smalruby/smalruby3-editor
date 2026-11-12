@@ -19,7 +19,7 @@
 //
 // See Issue #640.
 import { splitTrailingComment, stringEndAt } from './dncl-trailing-comment';
-import { isWholeWordAt } from './paren-utils';
+import { isLogicalWordAt, isNameChar, isWholeWordAt } from './paren-utils';
 
 /**
  * Matches a DNCLv2 line-number prefix: `(N)` or the hyphenated form
@@ -358,11 +358,23 @@ const normalizeAndOr = (line) => {
 };
 
 /**
- * Words that end the operand of a `not`, when written after whitespace:
- * the logical operators it binds tighter than, and the keywords that close
- * a condition (`もし … ならば`, `… の間`).
+ * Keywords that close a condition (`もし … ならば`, `… の間`) and so end the
+ * operand of a `not`, when written after whitespace.
  */
-const NOT_OPERAND_END_RE = /^\s+(?:かつ|または|ならば|なら|の間)(?=\s|$)/;
+const NOT_OPERAND_END_RE = /^\s+(?:ならば|なら|の間)(?=\s|$)/;
+
+/**
+ * Whether the operand of a `not` ends at `line[i]` because a `かつ` /
+ * `または` starts there, the operators it binds tighter than. They are
+ * found as the DNCL converter finds them (`isLogicalWordAt`), with or
+ * without spaces, so `not (a > 0)and(b > 0)` negates `(a > 0)` only and
+ * does not become `(a > 0)かつ(b > 0) でない` (`(a > 0) && !(b > 0)`,
+ * Issue #1697).
+ * @param {string} line - The line (`and` / `or` already converted).
+ * @param {number} i - Index to test.
+ * @returns {boolean} True when a logical operator starts at `i`.
+ */
+const isLogicalOperatorAt = (line, i) => isLogicalWordAt(line, i, 'かつ') || isLogicalWordAt(line, i, 'または');
 
 /**
  * Find where the operand of a `not` that starts at `start` ends. Like
@@ -391,7 +403,7 @@ const notOperandEnd = (line, start) => {
         if (depth === 0) {
             if (ch === ',' || ch === '#' || ch === '←') break;
             if (ch === '=' && !'=<>!'.includes(line[i - 1]) && line[i + 1] !== '=') break;
-            if (NOT_OPERAND_END_RE.test(line.substring(i))) break;
+            if (NOT_OPERAND_END_RE.test(line.substring(i)) || isLogicalOperatorAt(line, i)) break;
         }
         i++;
     }
@@ -427,7 +439,10 @@ const normalizeNot = (line) => {
             while (start < line.length && /\s/.test(line[start])) start++;
             const end = notOperandEnd(line, start);
             if (end > start) {
-                result += `${normalizeNot(line.substring(start, end))} でない`;
+                // `でない` must not touch the name or keyword after it
+                // (`not (a)and b` → `(a) でない かつ b`).
+                const after = isNameChar(line[end]) ? ' ' : '';
+                result += `${normalizeNot(line.substring(start, end))} でない${after}`;
                 i = end;
                 continue;
             }

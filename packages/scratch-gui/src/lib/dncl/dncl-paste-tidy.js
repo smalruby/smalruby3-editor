@@ -29,8 +29,10 @@ const LINE_NUMBER_RE = /^\s*(?:\(\d+(?:-\d+)*\)\s*|\d+:(?:\s+|$))/;
 
 /**
  * Operators that make the text after a `//` look like code: ASCII
- * operators, the DNCL symbols and the `かつ` / `または` keywords (which the
- * converter only accepts between spaces).
+ * operators, the DNCL symbols and the `かつ` / `または` keywords between
+ * spaces. The converter also takes them without spaces (`(a)かつ(b)`,
+ * Issue #1697), but this is only a guess at code, and counting `、かつ` too
+ * would turn a comment such as `// 偶数、かつ 正の数` into a division.
  */
 const OPERATOR_RE = /[+\-*/%=<>!&|÷×≦≧≠]|(?:^|\s)(?:かつ|または)(?=\s|$)/;
 

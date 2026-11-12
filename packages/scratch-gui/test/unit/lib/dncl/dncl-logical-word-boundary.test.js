@@ -130,6 +130,32 @@ describe('かつ / または without spaces around them (Issue #1697)', () => {
         });
     });
 
+    describe('DNCLv2 not before and / or without spaces', () => {
+        // `not` negates only its own operand, up to the `and` / `or` even
+        // without spaces, not the operand after it.
+        test('not (a > 0)and(b > 0)', () => {
+            expect(toRuby('x = not (a > 0)and(b > 0)')).toBe('@x = !(@a > 0) && (@b > 0)');
+        });
+
+        test('not a[1]and b', () => {
+            expect(toRuby('x = not a[1]and b')).toBe('@x = !@a[1] && @b');
+        });
+
+        test('not a or(b)', () => {
+            expect(toRuby('x = not a or(b)')).toBe('@x = !@a || (@b)');
+        });
+
+        test('in an if condition', () => {
+            expect(toRuby('もし not (a > 0)and(b > 0) ならば:\n    x = 1')).toBe(
+                'if !(@a > 0) && (@b > 0)\n    @x = 1\nend',
+            );
+        });
+
+        test('a name containing かつ is still part of the operand', () => {
+            expect(toRuby('x = not かつお > 0')).toBe('@x = !(@かつお > 0)');
+        });
+    });
+
     describe('Ruby → DNCL → Ruby', () => {
         const roundtrip = (ruby) => toRuby(rubyToDncl(ruby).dncl);
 
