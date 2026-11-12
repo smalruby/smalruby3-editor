@@ -557,6 +557,28 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         expect(eachBlock.fields.VALUES_LIST_NAME.value).toContain('values');
     });
 
+    test('Hash#keys on a hash literal is an error, not "".keys (#1625)', async () => {
+        await expect(
+            rubyToBlocksToRuby(
+                converter,
+                target,
+                dedent`
+                when_flag_clicked do
+                  say({a: 1}.keys)
+                end
+            `,
+            ),
+        ).rejects.toThrow(/"row":1/);
+    });
+
+    // Issue #1625: hash literals as values (assignment, keyword arguments) keep working.
+    test.each(['@h = {a: 1}', '$h = {"a" => 1}', 'glide([1, 2], secs: 1)'])(
+        'hash literal as a value round-trips: %s',
+        async (line) => {
+            await expectRoundTrip(converter, target, `when_flag_clicked do\n  ${line}\nend`, null, opts);
+        },
+    );
+
     test('.times do |i| with block parameter', async () => {
         await expectRoundTrip(
             converter,

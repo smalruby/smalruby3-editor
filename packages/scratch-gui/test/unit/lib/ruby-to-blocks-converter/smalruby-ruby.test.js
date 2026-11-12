@@ -160,6 +160,58 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
         });
     });
 
+    // Issue #1625: a hash literal cannot be the receiver of a hash method (Scratch has no
+    // "hash literal" reporter). `{a: 1}.keys` used to come back as `"".keys`.
+    describe('hash literal receiver (#1625)', () => {
+        test.each([
+            ['say({a: 1}.keys)', 'keys'],
+            ['say({"a" => 1}.values)', 'values'],
+            ['say({}.keys)', 'keys'],
+            ['say({a: 1}.keys.length)', 'keys'],
+            ['say({"a" => 1}.keys.join(","))', 'keys'],
+            ['@a = {"a" => 1}.keys', 'keys'],
+        ])('should report an error on the line of %s', async (line, method) => {
+            const code = `when_flag_clicked do\n  say(1)\n  ${line}\nend`;
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(false);
+            expect(converter.errors).toHaveLength(1);
+            expect(converter.errors[0].row).toBe(2);
+            expect(converter.errors[0].text).toContain(method);
+            expect(converter.errors[0].text).toMatch(/hash literal/);
+            expect(converter.errors[0].text).toMatch(/variable/);
+        });
+
+        test('should report an error for {a: 1}.each do |k, v|', async () => {
+            const code = 'when_flag_clicked do\n  {a: 1}.each do |k, v|\n    say(k)\n  end\nend';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(false);
+            expect(converter.errors).toHaveLength(1);
+            expect(converter.errors[0].row).toBe(1);
+            expect(converter.errors[0].text).toContain('each');
+            expect(converter.errors[0].text).toMatch(/hash literal/);
+        });
+
+        test('should report the error in Ruby version 1 too', async () => {
+            converter = new RubyToBlocksConverter(null, { version: '1' });
+            const code = 'when_flag_clicked do\n  say({a: 1}.keys)\nend';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(false);
+            expect(converter.errors[0].row).toBe(1);
+            expect(converter.errors[0].text).toContain('keys');
+        });
+
+        test('should still convert keys / values on a hash variable', async () => {
+            const code = 'when_flag_clicked do\n  @h = {a: 1}\n  say(@h.keys)\n  say(@h.values)\nend';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toEqual([]);
+            expect(result).toBe(true);
+            const methods = Object.values(converter._context.blocks)
+                .filter((b) => b.opcode === 'smalrubyRuby_hashMethod')
+                .map((b) => b.fields.METHOD.value);
+            expect(methods.sort()).toEqual(['keys', 'values']);
+        });
+    });
+
     describe('reverse disambiguation (String vs Array)', () => {
         const findOpcode = (opcode) => Object.values(converter._context.blocks).find((b) => b.opcode === opcode);
 
