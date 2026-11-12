@@ -19,7 +19,6 @@
 //
 // See Issue #640.
 import { splitTrailingComment, stringEndAt } from './dncl-trailing-comment';
-import { skipString } from './paren-utils';
 
 /**
  * Matches a DNCLv2 line-number prefix: `(N)` or the hyphenated form
@@ -40,7 +39,7 @@ const stripLineNumber = (line) => line.replace(LINE_NUMBER_RE, '');
 /**
  * Walk `line` and return the offsets of every character that is OUTSIDE
  * any string literal. Used by transformations that should ignore content
- * inside `"..."` / `'...'`.
+ * inside `"..."` / `'...'` / `「...」`.
  * @param {string} line - The source line.
  * @returns {Set<number>} Indices into `line` that are outside string literals.
  */
@@ -48,9 +47,8 @@ const outsideStringIndices = (line) => {
     const result = new Set();
     let i = 0;
     while (i < line.length) {
-        const ch = line[i];
-        if (ch === '"' || ch === "'") {
-            const end = skipString(line, i, ch);
+        const end = stringEndAt(line, i);
+        if (end !== -1) {
             i = end;
             continue;
         }
@@ -235,8 +233,9 @@ const splitMultiAssignment = (line) => {
     let i = 0;
     while (i < body.length) {
         const ch = body[i];
-        if (ch === '"' || ch === "'") {
-            const end = skipString(body, i, ch);
+        // A `,` or `=` in 「...」 is text too (`表示 ← 「a=1, b=2」`, Issue #1709).
+        const end = stringEndAt(body, i);
+        if (end !== -1) {
             current += body.substring(i, end);
             i = end;
             continue;
@@ -274,8 +273,8 @@ const splitMultiAssignment = (line) => {
         let j = 0;
         while (j < part.length) {
             const c = part[j];
-            if (c === '"' || c === "'") {
-                const end = skipString(part, j, c);
+            const end = stringEndAt(part, j);
+            if (end !== -1) {
                 j = end;
                 continue;
             }
