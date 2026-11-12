@@ -699,7 +699,7 @@ One name cannot be both a variable and a list (Scratch can have a variable and a
 The following Ruby syntax is **NOT supported** in Smalruby:
 
 - `for` loops
-- `each` method
+- `each` method (calling `each` / `first` / `last` / `max` / `min` / `sort` / `reverse` / `join` directly on an array literal, such as `[1, 2].each do |i|` or `[1, 2].first`, is an error that shows the line when converting to blocks. Put the array in a variable first: `@a = [1, 2]` → `@a.first`)
 - `begin`/`rescue`/`ensure` (exception handling)
 - `module_function`, `extend` (`module` and `include` are supported)
 - `private` / `protected` / `public` (including `private :foo` and `private def foo ... end`; they are an error wherever they are written, so delete them. For `private def foo ... end`, delete `private` and `def foo ... end` can be used. Calling a method you defined yourself as `def private ... end` is not an error)
