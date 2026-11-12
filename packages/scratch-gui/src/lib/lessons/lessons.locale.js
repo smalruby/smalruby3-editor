@@ -44,10 +44,11 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-click-say.step3':
         '紫の「見た目」のブロックをくっつけよう。白いところは「こんにちは！」になっているよ。',
     'gui.lessons.challenge.blocks-l1-click-say.step4': 'その下に、これもくっつけよう。',
-    'gui.lessons.challenge.blocks-l1-click-say.step5': 'ステージのネコをクリックしてみよう。',
-    'gui.lessons.challenge.blocks-l1-click-say.step6': 'いらないブロックは、パレットへドラッグしてもどすと消えるよ。',
+    'gui.lessons.challenge.blocks-l1-click-say.step5':
+        'まちがえて置いたブロックは、パレットへドラッグしてもどすと消えるよ。',
+    'gui.lessons.challenge.blocks-l1-click-say.step6': 'ステージのスプライトをクリックしてみよう。',
     'gui.lessons.challenge.blocks-l1-click-say.debug1':
-        '何も起きないときは、ステージのネコそのものを押しているか見よう。',
+        '何も起きないときは、ステージのスプライトそのものを押しているか見よう。',
     'gui.lessons.challenge.blocks-l1-click-say.debug2':
         'プログラムを入れたスプライトと、押したスプライトが同じか、右下のスプライトリストで確かめよう。',
     'gui.lessons.challenge.blocks-l1-repeat.name': 'くり返そう',
@@ -210,10 +211,11 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-click-say.step3':
         'むらさきの「みため」のブロックをくっつけよう。しろいところは「こんにちは！」になっているよ。',
     'gui.lessons.challenge.blocks-l1-click-say.step4': 'そのしたに、これもくっつけよう。',
-    'gui.lessons.challenge.blocks-l1-click-say.step5': 'ステージのネコをクリックしてみよう。',
-    'gui.lessons.challenge.blocks-l1-click-say.step6': 'いらないブロックは、パレットへドラッグしてもどすときえるよ。',
+    'gui.lessons.challenge.blocks-l1-click-say.step5':
+        'まちがえておいたブロックは、パレットへドラッグしてもどすときえるよ。',
+    'gui.lessons.challenge.blocks-l1-click-say.step6': 'ステージのスプライトをクリックしてみよう。',
     'gui.lessons.challenge.blocks-l1-click-say.debug1':
-        'なにもおきないときは、ステージのネコそのものをおしているかみよう。',
+        'なにもおきないときは、ステージのスプライトそのものをおしているかみよう。',
     'gui.lessons.challenge.blocks-l1-click-say.debug2':
         'プログラムをいれたスプライトと、おしたスプライトがおなじか、みぎしたのスプライトリストでたしかめよう。',
     'gui.lessons.challenge.blocks-l1-repeat.name': 'くりかえそう',
@@ -382,11 +384,11 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-click-say.step3':
         'Snap on the purple "Looks" block. The white part already says "Hello!".',
     'gui.lessons.challenge.blocks-l1-click-say.step4': 'Snap this one on underneath.',
-    'gui.lessons.challenge.blocks-l1-click-say.step5': 'Click the cat on the stage.',
-    'gui.lessons.challenge.blocks-l1-click-say.step6':
-        'To remove a block you do not need, drag it back to the palette.',
+    'gui.lessons.challenge.blocks-l1-click-say.step5':
+        'If you put a block by mistake, drag it back to the palette to remove it.',
+    'gui.lessons.challenge.blocks-l1-click-say.step6': 'Click the sprite on the stage.',
     'gui.lessons.challenge.blocks-l1-click-say.debug1':
-        'If nothing happens, check that you are clicking the cat itself on the stage.',
+        'If nothing happens, check that you are clicking the sprite itself on the stage.',
     'gui.lessons.challenge.blocks-l1-click-say.debug2':
         'Check in the sprite list at the bottom right that the sprite with the program is the one you clicked.',
     'gui.lessons.challenge.blocks-l1-repeat.name': 'Repeat',

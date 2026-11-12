@@ -656,8 +656,8 @@ describe('lesson courses', () => {
                 [PALETTE, 'when_clicked do\nend\n', true],
                 [PALETTE, 'say("こんにちは！", 2)\n', true],
                 [PALETTE, 'next_costume\n', false],
-                [STAGE, null, true],
                 [CODE_AREA, null, true],
+                [STAGE, null, true],
             ]);
             expect(c.debug).toHaveLength(2);
             expect(c.goal).toEqual([
@@ -752,11 +752,11 @@ describe('lesson courses', () => {
                     '「コード」タブにもどって、「押されたとき」のブロックをコードエリアへドラッグしよう。',
                     '紫の「見た目」のブロックをくっつけよう。白いところは「こんにちは！」になっているよ。',
                     'その下に、これもくっつけよう。',
-                    'ステージのネコをクリックしてみよう。',
-                    'いらないブロックは、パレットへドラッグしてもどすと消えるよ。',
+                    'まちがえて置いたブロックは、パレットへドラッグしてもどすと消えるよ。',
+                    'ステージのスプライトをクリックしてみよう。',
                 ],
                 debug: [
-                    '何も起きないときは、ステージのネコそのものを押しているか見よう。',
+                    '何も起きないときは、ステージのスプライトそのものを押しているか見よう。',
                     'プログラムを入れたスプライトと、押したスプライトが同じか、右下のスプライトリストで確かめよう。',
                 ],
             });
@@ -773,6 +773,24 @@ describe('lesson courses', () => {
                     '1 回しかかわらないときは、ブロックが「繰り返す」の口の中に入っているか見よう。',
                     'すぐ終わるときは「1 秒待つ」が入っているか見よう。',
                 ],
+            });
+        });
+
+        // 「できた」になる操作（キーを押す・ステージのスプライトを押す・旗を押す・答えを入れる）を促すヒントを
+        // 最後にする（docs/lessons/design.md の「ヒント」・#1576）。できたら吹き出しが閉じるので、そのあとの
+        // ヒントは見られない。試す操作のヒントは、ステージ・キーボード・旗を指すものだけ
+        test('the hint that asks to try it out is the last one', () => {
+            const tryTargets = [HINT_TARGETS.STAGE, HINT_TARGETS.KEYBOARD, HINT_TARGETS.GREEN_FLAG];
+            allChallenges().forEach((c) => {
+                const targets = c.steps.map((s) => s.target);
+                expect({ id: c.id, last: tryTargets.includes(targets[targets.length - 1]) }).toEqual({
+                    id: c.id,
+                    last: true,
+                });
+                expect({ id: c.id, before: targets.slice(0, -1).filter((t) => tryTargets.includes(t)) }).toEqual({
+                    id: c.id,
+                    before: [],
+                });
             });
         });
 

@@ -289,8 +289,9 @@ const blocksLesson1 = defineLesson({
                     spotlight: true,
                 },
                 { target: HINT_TARGETS.PALETTE, blocks: 'next_costume\n' },
-                { target: HINT_TARGETS.STAGE, spotlight: true },
+                // ブロックの消し方は、押して試すヒントより前（できたら吹き出しが閉じて見られない・#1576）
                 { target: HINT_TARGETS.CODE_AREA, spotlight: true },
+                { target: HINT_TARGETS.STAGE, spotlight: true },
             ]),
             debug: debugTips('blocks-l1-click-say', 2),
             goal: [

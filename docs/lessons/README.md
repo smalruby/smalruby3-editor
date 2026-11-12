@@ -202,6 +202,10 @@ code: {
 そのページで置いてほしいブロックを置いてほしい並びのまま描く（決まりは [`design.md`](design.md) の「ヒント」）。
 帽子のブロックが描かれていることは `courses.test.js`（`every hat block of the answer is drawn in a hint`）が
 3 locale で確かめる。
+最後のヒントは、どのチャレンジも「できた」になる操作を促すページ（ステージ・キーボード・旗を指す）で、
+それより前のページはステージ・キーボード・旗を指さない（できたら吹き出しが閉じて、そのあとのページは
+見られないため）。これは `courses.test.js`（`the hint that asks to try it out is the last one`）が確かめる。
+チャレンジ 3 は、ブロックの消し方（コードエリアを指す）を、ステージのスプライトを押すページの前に置く。
 
 作るときの注意:
 
@@ -918,6 +922,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `screenshots/0515-challenge4-repeat-hint5-1300x600.png` | チャレンジ 4 のヒント 5（「繰り返す」の中に入れる 4 つを、入れる並びのまま描く） |
 | `screenshots/0516-challenge7-quiz-hint3-1300x600.png` | チャレンジ 7 のヒント 3（「もし〜なら でなければ」と、その中の「言う」2 つ） |
 | `screenshots/0517-challenge9-broadcast-hint4-1300x600.png` | チャレンジ 9 のヒント 4（ペンギンの「あいさつを受け取ったとき」と「やあ！と 2 秒言う」） |
+| `screenshots/0518-challenge3-click-say-hint5-1300x600.png` | チャレンジ 3 のヒント 5（ブロックの消し方。コードエリアを照らす。押して試すページより前） |
+| `screenshots/0519-challenge3-click-say-hint6-1300x600.png` | チャレンジ 3 のヒント 6（最後のヒント「ステージのスプライトをクリックしてみよう。」。ステージを照らす） |
 
 ### チャレンジ 9〜11 のメモ
 
