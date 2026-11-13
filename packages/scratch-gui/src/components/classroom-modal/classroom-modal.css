@@ -3082,6 +3082,27 @@
     margin-right: 0.75rem;
 }
 
+/* 採点の画面の「レッスンの点」の欄（#1778）: 課題名と欄を 1 行に並べる。 */
+.eval-scoring-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.eval-scoring-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+}
+
+.eval-settings-note {
+    color: #575e75;
+    font-size: 0.8rem;
+}
+
 .eval-strictness-row {
     display: inline-flex;
     align-items: center;

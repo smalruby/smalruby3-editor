@@ -4,7 +4,11 @@ import {
     chunk,
     combineOverall,
     csvField,
+    currentLessonOnlyStep,
     evaluationColumns,
+    evaluationFlowMode,
+    isLessonOnlyAssignment,
+    lessonScoringSavePayload,
 } from '../../../src/lib/classroom-evaluation/evaluation-utils';
 
 describe('combineOverall', () => {
@@ -139,5 +143,61 @@ describe('レッスンの点の列（#1603）', () => {
         );
         expect(lines[1]).toBe('1,○,A,r,78,×,,,,A');
         expect(lines[2]).toBe('2,×,,,,×,,,50,');
+    });
+});
+
+describe('採点の流れ（#1778）', () => {
+    const work = { classroomId: 'w', hasLesson: false };
+    const lessonOnly = { classroomId: 'lo', hasLesson: true, lessonSetting: { submitWork: false } };
+    const lessonWithWork = { classroomId: 'lw', hasLesson: true, lessonSetting: { submitWork: true } };
+    const lessonUnknown = { classroomId: 'lu', hasLesson: true };
+
+    test('作品を出さないレッスンの課題だけ → AI を使わない流れ', () => {
+        expect(evaluationFlowMode([lessonOnly])).toBe('lessonOnly');
+        expect(isLessonOnlyAssignment(lessonOnly)).toBe(true);
+    });
+
+    test('作品も提出するレッスンの課題・ふつうの課題 → いまの AI の流れ', () => {
+        expect(evaluationFlowMode([lessonWithWork])).toBe('work');
+        expect(evaluationFlowMode([work, lessonWithWork])).toBe('work');
+        expect(evaluationFlowMode([])).toBe('work');
+    });
+
+    test('混ぜて選んだ → AI の流れ（レッスンだけの課題には AI を使わない）', () => {
+        expect(evaluationFlowMode([work, lessonOnly])).toBe('mixed');
+        expect(evaluationFlowMode([lessonWithWork, lessonOnly])).toBe('mixed');
+    });
+
+    test('設定がまだ読めていなければ、進み具合と一緒に返った設定で決める（読めなければ AI の流れ）', () => {
+        expect(evaluationFlowMode([lessonUnknown])).toBe('work');
+        expect(evaluationFlowMode([lessonUnknown], { lu: { submitWork: false, scores: {} } })).toBe('lessonOnly');
+        expect(evaluationColumns([lessonOnly]).map((c) => c.kind)).toEqual(['lesson']);
+        expect(evaluationColumns([lessonWithWork]).map((c) => c.kind)).toEqual(['work', 'lesson']);
+    });
+
+    test('レッスンだけの流れ: ①読み込む → ②点を確かめる → ③書き出す', () => {
+        expect(currentLessonOnlyStep({ loaded: false, checked: false })).toBe('load');
+        expect(currentLessonOnlyStep({ loaded: false, checked: true })).toBe('load');
+        expect(currentLessonOnlyStep({ loaded: true, checked: false })).toBe('check');
+        expect(currentLessonOnlyStep({ loaded: true, checked: true })).toBe('export');
+    });
+
+    test('点の保存は、説明のページとはじめのプロジェクトをそのまま送り直す', () => {
+        const lesson = { courseId: 'c', scoring: { total: 100, requiredPoints: 50, optionalPoints: 50 } };
+        const data = {
+            assignment: {
+                pages: [
+                    { text: 'p1', imageKey: 'k/1.png', imageUrl: 'https://x' },
+                    { text: 'p2', imageKey: null, imageUrl: null },
+                ],
+                starterKey: 'k/s.sb3',
+            },
+        };
+        expect(lessonScoringSavePayload(data, lesson)).toEqual({
+            pages: [{ text: 'p1', imageKey: 'k/1.png' }, { text: 'p2' }],
+            keepStarter: true,
+            lesson,
+        });
+        expect(lessonScoringSavePayload({ assignment: null }, lesson)).toEqual({ pages: [], lesson });
     });
 });

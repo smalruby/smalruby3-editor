@@ -371,7 +371,7 @@ try {
     await page.waitForTimeout(400);
     record(
         "grading: lesson column",
-        (await text("classroom-eval-lesson-head-c1")) === "レッスン",
+        (await text("classroom-eval-lesson-head-c1")) === "レッスン（自動）",
     );
     record(
         "grading: score of seat 11 (all done)",

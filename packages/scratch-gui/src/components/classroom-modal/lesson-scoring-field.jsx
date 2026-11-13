@@ -1,7 +1,7 @@
 /**
- * The lesson scoring points in「詳しい設定」(EPIC #1592 D10 / #1598): 満点 and
- * 必須を全部こなしたときの点. The points of one challenge are derived and
- * shown below (docs/classroom/ui-ux.md「採点」).
+ * The lesson scoring points in「詳しい設定」(EPIC #1592 D10 / #1598) and on the
+ * grading screen (#1778): 満点 and 必須を全部こなしたときの点. The points of one
+ * challenge are derived and shown below (docs/classroom/ui-ux.md「採点」).
  */
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
@@ -11,6 +11,7 @@ import {
     canChooseRequiredPoints,
     challengePoints,
     effectiveScoring,
+    requiredPointsUnusedReason,
     setScoring,
 } from '../../lib/classroom-lesson-settings.js';
 import styles from './classroom-modal.css';
@@ -22,16 +23,34 @@ export const lessonScoringMessages = defineMessages({
         description: 'Assignment editor: advanced settings summary — lesson scoring (full marks and required points)',
         id: 'gui.classroom.lessonScoring.summary',
     },
+    allRequired: {
+        defaultMessage: '(not used: the required ones alone clear the assignment, so they share the full marks)',
+        description:
+            'Lesson points: why the required points field is not used when every challenge needed to clear ' +
+            'the assignment is required (#1778)',
+        id: 'gui.classroom.lessonScoring.unusedAllRequired',
+    },
+    noneRequired: {
+        defaultMessage: '(not used: nothing is required)',
+        description: 'Lesson points: why the required points field is not used when nothing is required (#1778)',
+        id: 'gui.classroom.lessonScoring.unusedNoneRequired',
+    },
+    savesRightAway: {
+        defaultMessage: 'Changes are saved to the assignment right away.',
+        description: 'Grading screen: the lesson points are saved as soon as they are changed (#1778)',
+        id: 'gui.classroom.lessonScoring.savesRightAway',
+    },
 });
 
 // Show 7.5 as 7.5 and 33.333… as 33.3 (the score itself is rounded up).
 const formatPoints = (value) => String(Math.round(value * 10) / 10);
 
-const LessonScoringField = ({ disabled, draft, onChange }) => {
+const LessonScoringField = ({ className, disabled, draft, savesRightAway, title, onChange }) => {
     const intl = useIntl();
     const scoring = effectiveScoring(draft);
     const points = challengePoints(draft);
     const choosable = canChooseRequiredPoints(draft);
+    const unusedReason = requiredPointsUnusedReason(draft);
     const handleTotalCommit = useCallback(
         (value) => onChange(setScoring(draft, { total: value })),
         [draft, onChange],
@@ -66,13 +85,15 @@ const LessonScoringField = ({ disabled, draft, onChange }) => {
     }
 
     return (
-        <div className={styles.assignmentPeerView} data-testid="classroom-lesson-scoring">
+        <div className={className || styles.assignmentPeerView} data-testid="classroom-lesson-scoring">
             <span className={styles.assignmentStartFromPreviousLabel}>
-                <FormattedMessage
-                    defaultMessage="Lesson points"
-                    description="Assignment editor: label of the lesson scoring settings"
-                    id="gui.classroom.lessonScoring.title"
-                />
+                {title || (
+                    <FormattedMessage
+                        defaultMessage="Lesson points"
+                        description="Assignment editor: label of the lesson scoring settings"
+                        id="gui.classroom.lessonScoring.title"
+                    />
+                )}
             </span>
             <label className={styles.lessonRadio}>
                 <span>
@@ -109,6 +130,14 @@ const LessonScoringField = ({ disabled, draft, onChange }) => {
                     value={scoring.requiredPoints}
                     onCommit={handleRequiredCommit}
                 />
+                {unusedReason && (
+                    <span
+                        className={styles.assignmentStartFromPreviousHint}
+                        data-testid="classroom-lesson-scoring-required-unused"
+                    >
+                        {intl.formatMessage(lessonScoringMessages[unusedReason])}
+                    </span>
+                )}
             </label>
             <span className={styles.assignmentStartFromPreviousHint} data-testid="classroom-lesson-scoring-each">
                 {perChallenge}{' '}
@@ -117,14 +146,18 @@ const LessonScoringField = ({ disabled, draft, onChange }) => {
                     description: 'Assignment editor: how the lesson score is computed',
                     id: 'gui.classroom.lessonScoring.howTo',
                 })}
+                {savesRightAway && ` ${intl.formatMessage(lessonScoringMessages.savesRightAway)}`}
             </span>
         </div>
     );
 };
 
 LessonScoringField.propTypes = {
+    className: PropTypes.string,
     disabled: PropTypes.bool,
     draft: PropTypes.object.isRequired,
+    savesRightAway: PropTypes.bool,
+    title: PropTypes.node,
     onChange: PropTypes.func.isRequired,
 };
 

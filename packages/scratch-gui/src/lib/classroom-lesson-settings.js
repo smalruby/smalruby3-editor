@@ -192,45 +192,87 @@ export const completionTarget = (draft) => {
 };
 
 /**
- * The scoring that is stored: 満点・必須を全部こなしたときの点・必須でないものの合計点.
- * 必須が 0 個なら全部同じ点（必須の点 0）、必須でないものが 0 個なら必須の点 = 満点.
+ * The numbers the scoring split depends on (#1778): n = 課題クリアの数
+ * (「全部」なら選んだ数) and r = 必須の数.
+ * @param {?object} draft - draft
+ * @returns {{n: number, r: number}} counts
+ */
+export const scoringCounts = (draft) => ({ n: completionTarget(draft), r: lessonCounts(draft).required });
+
+/**
+ * The points of one challenge (#1778). Doing exactly what clears the
+ * assignment gives full marks:
+ * - r = n: 必須 1 つ = T ÷ r, the others 0 (the required ones alone clear it)
+ * - r = 0: 1 つ = T ÷ n
+ * - 0 < r < n: 必須 1 つ = R ÷ r, the others (T − R) ÷ (n − r)
+ * @param {object} params - inputs
+ * @param {number} params.n - how many challenges clear the assignment
+ * @param {number} params.r - how many are required
+ * @param {number} params.total - 満点 (T)
+ * @param {number} params.requiredPoints - 必須を全部こなしたときの点 (R, used only when 0 < r < n)
+ * @returns {{required: ?number, optional: number}} points (required null when r = 0)
+ */
+export const splitLessonPoints = ({ n, r, total, requiredPoints }) => {
+    if (n <= 0) return { required: null, optional: 0 };
+    if (r === 0) return { required: null, optional: total / n };
+    if (r >= n) return { required: total / r, optional: 0 };
+    return { required: requiredPoints / r, optional: (total - requiredPoints) / (n - r) };
+};
+
+/**
+ * The required points field only means something when 0 < r < n (#1778):
+ * with r = n the required ones carry full marks, with r = 0 there are none.
+ * @param {?object} draft - draft
+ * @returns {boolean} whether the required points field is used
+ */
+export const canChooseRequiredPoints = (draft) => {
+    const { n, r } = scoringCounts(draft);
+    return r > 0 && r < n;
+};
+
+/**
+ * Why the required points field is not used (#1778), for the note next to it.
+ * @param {?object} draft - draft
+ * @returns {?string} 'allRequired' (r = n) | 'noneRequired' (r = 0) | null (it is used)
+ */
+export const requiredPointsUnusedReason = (draft) => {
+    const { n, r } = scoringCounts(draft);
+    if (n === 0) return null;
+    if (r === 0) return 'noneRequired';
+    if (r >= n) return 'allRequired';
+    return null;
+};
+
+/**
+ * The scoring that is stored: 満点・必須を全部こなしたときの点・残り（満点 − 必須の点）.
+ * 必須が 0 個なら必須の点 0、必須だけで課題クリア（r = n）なら必須の点 = 満点.
  * @param {?object} draft - draft
  * @returns {{total: number, requiredPoints: number, optionalPoints: number}} scoring
  */
 export const effectiveScoring = (draft) => {
     const scoring = (draft && draft.scoring) || {};
     const total = Number.isFinite(scoring.total) && scoring.total > 0 ? scoring.total : DEFAULT_LESSON_TOTAL;
-    const { required, optional } = lessonCounts(draft);
-    if (required === 0) return { total, requiredPoints: 0, optionalPoints: total };
-    if (optional === 0) return { total, requiredPoints: total, optionalPoints: 0 };
+    const { r } = scoringCounts(draft);
+    if (r === 0) return { total, requiredPoints: 0, optionalPoints: total };
+    if (!canChooseRequiredPoints(draft)) return { total, requiredPoints: total, optionalPoints: 0 };
     const chosen = Number.isFinite(scoring.requiredPoints) ? scoring.requiredPoints : defaultRequiredPoints(total);
     const requiredPoints = Math.min(Math.max(chosen, 0), total);
     return { total, requiredPoints, optionalPoints: total - requiredPoints };
 };
 
 /**
- * 1 つの点: 必須 1 つ = 必須の点 ÷ 必須の数、必須でない 1 つ = 残り ÷ 必須でない数.
+ * 1 つの点（#1778 の配り方・splitLessonPoints）.
  * @param {?object} draft - draft
  * @returns {{required: ?number, optional: ?number}} points of one challenge (null when there is none)
  */
 export const challengePoints = (draft) => {
     const { required, optional } = lessonCounts(draft);
-    const { requiredPoints, optionalPoints } = effectiveScoring(draft);
+    const { total, requiredPoints } = effectiveScoring(draft);
+    const split = splitLessonPoints({ ...scoringCounts(draft), total, requiredPoints });
     return {
-        required: required > 0 ? requiredPoints / required : null,
-        optional: optional > 0 ? optionalPoints / optional : null,
+        required: required > 0 ? split.required : null,
+        optional: optional > 0 ? split.optional : null,
     };
-};
-
-/**
- * The scoring inputs can only be changed when they mean something: the
- * required points need both required and optional challenges.
- * @param {?object} draft - draft
- * @returns {boolean} whether the required points field is editable
- */
-export const canChooseRequiredPoints = (draft) => {
-    const { required, optional } = lessonCounts(draft);
-    return required > 0 && optional > 0;
 };
 
 /**
@@ -411,8 +453,10 @@ export const validateLessonDraft = (draft, course) => {
 };
 
 /**
- * レッスンの点 = できたチャレンジの点の合計（切り上げ・満点まで）. Progress of
- * challenges outside the setting is not counted.
+ * レッスンの点 = できたチャレンジの点の合計（小数第 6 位で丸めて切り上げ・満点まで）.
+ * The points of one challenge follow splitLessonPoints (#1778), so doing
+ * what clears the assignment gives full marks. Progress of challenges
+ * outside the setting is not counted.
  * @param {?object} lesson - lesson payload (stored settings)
  * @param {Array<string>} doneIds - completed challenge ids (「前」も入れる)
  * @param {?object} [course] - its course; challenges it does not have are not counted
@@ -421,20 +465,13 @@ export const validateLessonDraft = (draft, course) => {
 export const computeLessonScore = (lesson, doneIds, course) => {
     const draft = lessonDraftFromSaved(lesson, course);
     if (!draft || draft.challengeIds.length === 0) return null;
-    const scoring = lesson.scoring
-        ? {
-              total: lesson.scoring.total,
-              requiredPoints: lesson.scoring.requiredPoints,
-              optionalPoints: lesson.scoring.optionalPoints,
-          }
-        : effectiveScoring(draft);
-    const { required, optional } = lessonCounts(draft);
+    const { total } = effectiveScoring(draft);
+    const points = challengePoints(draft);
     const done = new Set(doneIds);
     let sum = 0;
     for (const id of draft.challengeIds) {
         if (!done.has(id)) continue;
-        if (draft.requiredChallengeIds.includes(id)) sum += scoring.requiredPoints / required;
-        else sum += required === 0 ? scoring.total / draft.challengeIds.length : scoring.optionalPoints / optional;
+        sum += draft.requiredChallengeIds.includes(id) ? points.required : points.optional;
     }
-    return Math.min(scoring.total, ceilPoints(sum));
+    return Math.min(total, ceilPoints(sum));
 };

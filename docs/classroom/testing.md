@@ -258,9 +258,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-peer-view` | select | 「他者参照」（`none` = しない（既定） / `always` = いつでも見られる / `afterSubmit` = 自分が提出したら見られる・保存で反映・Issue #1208） |
 | `classroom-assignment-mesh-group-limit` | select | 「メッシュのグループの人数」（`6` = 6人まで / `0` = 制限なし（この設定より前の課題の表示）・保存で反映・Issue #1257） |
 | `classroom-assignment-advanced-summary-scoring` | span | 要約の「レッスンの点: 100 点（★ 70）」（レッスンを紐付けた課題だけ・変えたら `data-changed="true"`） |
-| `classroom-lesson-scoring` | div | 「詳しい設定」の中のレッスンの点（レッスンを紐付けた課題だけ） |
+| `classroom-lesson-scoring` | div | 「詳しい設定」の中のレッスンの点（レッスンを紐付けた課題だけ）。採点の画面にも同じ欄を出す |
 | `classroom-lesson-scoring-total` | input (number) | 満点（1〜1000・既定 100。欄を出る・Enter のときに確定。空なら前の値） |
-| `classroom-lesson-scoring-required` | input (number) | 必須（★）を全部こなしたときの点（0〜満点・既定は満点の 70%。欄を出る・Enter のときに確定。空なら既定。必須が 0 個か全部必須のときは disabled） |
+| `classroom-lesson-scoring-required` | input (number) | 必須（★）を全部こなしたときの点（0〜満点・既定は満点の 70%。欄を出る・Enter のときに確定。空なら既定。必須が 0 個か、必須だけで課題クリアになる（必須の数 = 条件の数）ときは disabled） |
+| `classroom-lesson-scoring-required-unused` | span | 必須の点の欄を使わない理由（必須が 0 個 / 必須だけで課題クリア） |
 | `classroom-lesson-scoring-each` | span | 1 つの点（「必須 1 つ 35 点・必須でない 1 つ 7.5 点」） |
 | `classroom-lesson-settings` | div | 「レッスン」欄（左の列・ページの枠の上） |
 | `classroom-lesson-toggle` | button | レッスン欄の開閉（`aria-expanded`） |
@@ -497,6 +498,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-phase-teacher-evaluation` | div | 採点フェーズのルート |
 | `classroom-eval-hint-toggle` | button | 説明の「詳しく / 閉じる」（`aria-expanded`） |
 | `classroom-eval-hint-detail` | span | 「詳しく」で開く説明の残り |
+| `classroom-eval-lesson-only-hint` | span | 作品を出さないレッスンの課題だけのときの説明（「…自動で採点します。AI の採点は使いません」） |
+| `classroom-eval-mixed-note` | span | 混ぜて選んだとき、レッスンだけの課題には AI を使わないことの注意（採点の設定の行の右） |
+| `classroom-eval-lesson-scoring` | div | 採点の画面の「レッスンの点」の欄のまとまり（設定を読めたレッスンの課題だけ） |
+| `classroom-eval-lesson-scoring-{classroomId}` | div | 課題ごとのレッスンの点の欄（課題名 + `classroom-lesson-scoring`。変えるとすぐ保存） |
 | `classroom-eval-lesson-{classroomId}` | input | 課題の選択チェックボックス |
 | `classroom-eval-settings-summary` | div | 採点の設定の 1 行（観点の名前・採点の厳しさ・［変える］） |
 | `classroom-eval-settings-toggle` | button | 採点の設定の「変える / 閉じる」（`aria-expanded`） |
@@ -512,8 +517,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-overall-{seat}` | td | 総合 |
 | `classroom-eval-lesson-head-{classroomId}` | th | 「レッスン」の列の見出し（レッスンの課題だけ・作品の列の右・#1603） |
 | `classroom-eval-lesson-score-{seat}-{classroomId}` | td | 席のレッスンの点（記録が無ければ「—」） |
-| `classroom-eval-steps` | div | フッターの手順（1〜4 のボタンと矢印） |
-| `classroom-eval-load` | button | 手順 1「提出を読み込む」（sb3 をブラウザ内で静的解析） |
+| `classroom-eval-steps` | div | フッターの手順（1〜4 のボタンと矢印。レッスンだけの課題のときは 1〜3） |
+| `classroom-eval-load` | button | 手順 1「提出を読み込む」（sb3 をブラウザ内で静的解析）。レッスンだけの課題のときは「進み具合を読み込む」 |
+| `classroom-eval-check-points` | button | レッスンだけの課題の手順 2「点を確かめる」（レッスンの点の欄へ） |
+| `classroom-eval-export-lesson` | button | レッスンだけの課題の手順 3「書き出す」（採点結果（CSV）） |
 | `classroom-eval-run-grade` | button | 手順 2「AIで採点」 |
 | `classroom-eval-run-comment` | button | 手順 3「コメントを下書き」 |
 | `classroom-eval-return-comments` | button | 手順 4「コメントを返却」 |

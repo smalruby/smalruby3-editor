@@ -159,8 +159,9 @@ describe('lessonScoresBySeat', () => {
         const result = lessonScoresBySeat(progressData, course, NOW);
         expect(result.total).toBe(100);
         expect(result.submitWork).toBe(false);
-        // 席 1: a だけ = 15、席 2: a(前)+b+d = 15+35+35 = 85、席 4: a = 15
-        expect(result.scores).toEqual({ 1: 15, 2: 85, 4: 15 });
+        // 条件 3・必須 2（#1778）: 必須 1 つ = 35、必須以外 1 つ = 30 ÷ (3 − 2) = 30
+        // 席 1: a だけ = 30、席 2: a(前)+b+d = 30+35+35 = 100（課題クリアで満点）、席 4: a = 30
+        expect(result.scores).toEqual({ 1: 30, 2: 100, 4: 30 });
     });
 
     test('先生が決めた満点', () => {
@@ -170,8 +171,8 @@ describe('lessonScoresBySeat', () => {
         };
         const result = lessonScoresBySeat(data, course, NOW);
         expect(result.total).toBe(50);
-        // 席 2: 10 + 15 + 15 = 40
-        expect(result.scores[2]).toBe(40);
+        // 席 2: 20 + 15 + 15 = 50（必須以外 1 つ = (50 − 30) ÷ (3 − 2)）
+        expect(result.scores[2]).toBe(50);
     });
 
     test('設定が無ければ null・無いコースは点なしで submitWork だけ伝える（作品の列を正しく出すため）', () => {
@@ -188,7 +189,7 @@ describe('CSV の列', () => {
         expect(cells.times.a).toBe('前');
         expect(cells.times.b).toMatch(/^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/);
         expect(cells.times.e).toBe('');
-        expect(cells.score).toBe(85);
+        expect(cells.score).toBe(100);
     });
 
     test('mergedChallengeColumns: 課題をまたいで重ねずに並べる', () => {
@@ -210,10 +211,10 @@ describe('submissionCsvRows', () => {
             now: NOW,
         });
         expect(rows.map((r) => [r.seat, r.status, r.lesson && r.lesson.score])).toEqual([
-            ['01', '未提出', 15],
-            ['02', '未提出', 85],
+            ['01', '未提出', 30],
+            ['02', '未提出', 100],
             ['03', '未提出', 0],
-            ['04', '未提出', 15],
+            ['04', '未提出', 30],
         ]);
     });
 
