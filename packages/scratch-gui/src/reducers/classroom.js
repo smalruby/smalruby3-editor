@@ -1,5 +1,6 @@
 import { loadTeacherSession } from '../lib/classroom-teacher-session.js';
 import { normalizeStudentGenai } from '../lib/genai-concierge-state.js';
+import { normalizeAssignmentLesson } from '../lib/lessons/assignment-progress.js';
 
 const OPEN_MODAL = 'scratch-gui/classroom/OPEN_MODAL';
 const CLOSE_MODAL = 'scratch-gui/classroom/CLOSE_MODAL';
@@ -31,6 +32,9 @@ const REQUEST_MESH_CONNECT = 'scratch-gui/classroom/REQUEST_MESH_CONNECT';
 const CLEAR_MESH_CONNECT_REQUEST = 'scratch-gui/classroom/CLEAR_MESH_CONNECT_REQUEST';
 const SET_STUDENT_GENAI = 'scratch-gui/classroom/SET_STUDENT_GENAI';
 const SET_RUBYTEE_ENABLED = 'scratch-gui/classroom/SET_RUBYTEE_ENABLED';
+const SET_STUDENT_LESSON = 'scratch-gui/classroom/SET_STUDENT_LESSON';
+const REQUEST_STUDENT_SUBMIT = 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT';
+const CLEAR_STUDENT_SUBMIT_REQUEST = 'scratch-gui/classroom/CLEAR_STUDENT_SUBMIT_REQUEST';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -191,6 +195,14 @@ const initialState = {
     // The class's generative AI as last told by join / verify-session (#1279).
     // Persisted with the session so the face is there again after a reload.
     studentGenai: normalizeStudentGenai(storedSession?.studentGenai),
+    // The lesson tied to the joined assignment (EPIC #1592 / #1599), from the
+    // assignment response (`lesson`, normalized; null = not a lesson
+    // assignment). Persisted with the session so the menu-bar mark and the
+    // lessons library band survive a reload until the next fetch.
+    studentLesson: normalizeAssignmentLesson(storedSession?.studentLesson),
+    // 「課題を提出する」 on the lesson screens asks the classroom modal to go
+    // straight to the submit confirmation; consumed by ClassroomModal.
+    studentSubmitRequested: false,
 };
 
 const reducer = (state, action) => {
@@ -222,10 +234,20 @@ const reducer = (state, action) => {
                 rubyteeEnabled: action.rubyteeEnabled === true,
             };
             if (action.role === 'student' && action.sessionToken) {
-                saveSession(session);
+                saveSession({
+                    ...session,
+                    studentLesson: action.classroomId === state.classroomId ? state.studentLesson : null,
+                });
             }
             if (action.classroomId !== state.classroomId) {
-                return { ...state, ...session, studentPeerView: null, studentPeerPanelOpen: false };
+                // Another assignment has its own lesson; the assignment response tells it.
+                return {
+                    ...state,
+                    ...session,
+                    studentPeerView: null,
+                    studentPeerPanelOpen: false,
+                    studentLesson: null,
+                };
             }
             return { ...state, ...session };
         }
@@ -252,6 +274,8 @@ const reducer = (state, action) => {
                 studentPeerPanelOpen: false,
                 meshConnectPending: false,
                 studentGenai: normalizeStudentGenai(null),
+                studentLesson: null,
+                studentSubmitRequested: false,
             };
         case SET_SUBMISSION_THUMBNAIL:
             return { ...state, submissionThumbnail: action.submissionThumbnail };
@@ -353,6 +377,17 @@ const reducer = (state, action) => {
             }
             return { ...state, studentGenai };
         }
+        case SET_STUDENT_LESSON: {
+            const studentLesson = normalizeAssignmentLesson(action.lesson);
+            if (state.role === 'student' && state.sessionToken) {
+                saveSession({ ...state, studentLesson });
+            }
+            return { ...state, studentLesson };
+        }
+        case REQUEST_STUDENT_SUBMIT:
+            return { ...state, modalVisible: true, studentSubmitRequested: true };
+        case CLEAR_STUDENT_SUBMIT_REQUEST:
+            return state.studentSubmitRequested ? { ...state, studentSubmitRequested: false } : state;
         default:
             return state;
     }
@@ -467,6 +502,21 @@ const setStudentGenai = (genai) => ({ type: SET_STUDENT_GENAI, genai });
 const setRubyteeEnabled = (enabled) => ({ type: SET_RUBYTEE_ENABLED, enabled: enabled === true });
 
 /**
+ * Remember the lesson tied to the joined assignment (EPIC #1592 / #1599).
+ * @param {?object} lesson - `lesson` of the assignment response (null = none)
+ * @returns {object} action
+ */
+const setStudentLesson = (lesson) => ({ type: SET_STUDENT_LESSON, lesson: lesson || null });
+
+/**
+ * 「課題を提出する」 from the lesson screens: open the classroom modal on the
+ * submit confirmation (#1599).
+ * @returns {object} action
+ */
+const requestStudentSubmit = () => ({ type: REQUEST_STUDENT_SUBMIT });
+const clearStudentSubmitRequest = () => ({ type: CLEAR_STUDENT_SUBMIT_REQUEST });
+
+/**
  * Rubytee is offered only to a student who has joined a class whose teacher
  * turned it on (#1278). A teacher who has a class open is not offered it:
  * requests are recorded per seat and a teacher has none — to see what the
@@ -477,6 +527,18 @@ const setRubyteeEnabled = (enabled) => ({ type: SET_RUBYTEE_ENABLED, enabled: en
 const selectRubyteeAvailable = (state) => {
     const classroom = state.scratchGui.classroom;
     return classroom.role === 'student' && !!classroom.sessionToken && classroom.rubyteeEnabled === true;
+};
+
+/**
+ * The lesson of the assignment the student has joined (#1599); null when not
+ * joined as a student or the assignment has no lesson.
+ * @param {object} state - root redux state
+ * @returns {?object} normalized lesson setting (lib/lessons/assignment-progress.js)
+ */
+const selectStudentLesson = (state) => {
+    const classroom = state.scratchGui.classroom;
+    if (!classroom || classroom.role !== 'student' || !classroom.sessionToken) return null;
+    return classroom.studentLesson || null;
 };
 
 export default reducer;
@@ -512,5 +574,9 @@ export {
     clearMeshConnectRequest,
     setStudentGenai,
     setRubyteeEnabled,
+    setStudentLesson,
+    requestStudentSubmit,
+    clearStudentSubmitRequest,
     selectRubyteeAvailable,
+    selectStudentLesson,
 };

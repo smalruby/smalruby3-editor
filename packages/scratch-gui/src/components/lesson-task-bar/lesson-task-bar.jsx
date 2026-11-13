@@ -55,6 +55,7 @@ const toOneLine = (text) =>
     );
 
 const LessonTaskBar = ({
+    assignmentBand = null,
     challenge,
     challengeCount,
     hintAvailable,
@@ -176,6 +177,7 @@ const LessonTaskBar = ({
                 <span className={styles.position} data-testid="lesson-task-bar-position">
                     {intl.formatMessage(messages.position, { number: challenge.number, count: challengeCount })}
                 </span>
+                {assignmentBand}
                 <button
                     type="button"
                     className={styles.task}
@@ -239,6 +241,8 @@ const LessonTaskBar = ({
 };
 
 LessonTaskBar.propTypes = {
+    // クラスの課題の小さな帯（lesson-assignment-band の compact）。位置の右に出す。課題のチャレンジでなければ null
+    assignmentBand: PropTypes.node,
     // courses.js の defineChallenge が返す形（number / name / task / image）
     challenge: PropTypes.shape({
         number: PropTypes.number.isRequired,

@@ -1375,6 +1375,16 @@ export default {
     'gui.lessonsLibrary.courseProgress': '{completed} / {total}',
     'gui.lessonsLibrary.done': 'Done',
     'gui.lessonsLibrary.next': 'Next!',
+    'gui.lessonsLibrary.required': 'Required',
+    'gui.classroom.studentJoined.lessonNextSteps':
+        'This is a lesson assignment. Go through the lessons; once you meet the goal, make your own program and submit it.',
+    'gui.classroom.studentJoined.lessonNextStepsNoSubmit':
+        'This is a lesson assignment. Go through the lessons; once you meet the goal, the assignment is cleared.',
+    'gui.classroom.studentStatus.lessonProgress': 'Progress',
+    'gui.classroom.studentStatus.continueLesson': 'Continue the lesson',
+    'gui.menuBar.classroomLessonNotStarted': 'Lesson: not started',
+    'gui.menuBar.classroomLessonInProgress': 'Lesson: {done} of {total} done',
+    'gui.menuBar.classroomLessonCleared': 'Lesson: assignment cleared',
     'gui.lessonsLibrary.category.motion': 'Motion',
     'gui.lessonsLibrary.category.looks': 'Looks',
     'gui.lessonsLibrary.category.sound': 'Sound',

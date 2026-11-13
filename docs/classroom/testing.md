@@ -148,7 +148,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-joined-class-name` | span | クラス（学級）名 |
 | `classroom-joined-seat-number` | span | 出席番号（0埋め2桁） |
 | `classroom-joined-assignment` | div | 課題名（課題名がある場合のみ） |
-| `classroom-joined-close` | button | はじめる（「どこから始めますか？」の選択肢を出しているときは描画しない） |
+| `classroom-joined-close` | button | はじめる（「どこから始めますか？」の選択肢を出しているときと、レッスンの課題では描画しない） |
+| `classroom-joined-start-lesson` | button | レッスンの課題の「はじめる」（レッスン表を課題のチャレンジだけで開く・課題パネルにも出す） |
+| `classroom-joined-next-steps` | div | 「つぎにやること」の文（レッスンの課題ではレッスンの課題の説明） |
 
 ### 生徒: ステータス
 
@@ -161,7 +163,11 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-submit-status` | span | 提出状況 |
 | `classroom-status-teacher-comment` | div | 先生からのコメント |
 | `classroom-student-refresh` | button | 更新 (↻) |
-| `classroom-submit-button` | button | 課題を提出する / 課題を再提出する |
+| `classroom-submit-button` | button | 課題を提出する / 課題を再提出する（レッスンの課題では、作品も提出する課題で課題クリアのあとだけ） |
+| `classroom-status-lesson-progress` | div | レッスンの課題の「進み具合」の行（丸は `lesson-assignment-dot`、`lesson-assignment-done-count`・`lesson-assignment-remaining`・`lesson-assignment-required-remaining`・`lesson-assignment-cleared`） |
+| `classroom-continue-lesson-button` | button | レッスンを続ける（レッスンの課題だけ。レッスン表を課題のチャレンジだけで開く） |
+| `classroom-status-lesson-submit-guide` | div | 作品も提出する課題で課題クリアのあと（または、この版に無いチャレンジがあるとき）の案内。はじめて提出するまで |
+| `classroom-status-lesson-unknown` | span | 「新しいレッスンがあります。ページを読み込み直してね」（この版のコースに無いチャレンジがあるとき） |
 | `classroom-leave` | button | 退出する |
 | `classroom-peer-view-button` | button | みんなの作品を見る（他者参照が有効なとき。押すとモーダルを閉じてパネルを開く・#1210） |
 | `classroom-peer-view-locked` | span | 「提出すると見られます」（`自分が提出したら` で未提出のとき。ボタンの代わり） |
@@ -249,7 +255,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-prev-page` / `classroom-assignment-next-page` | button | ページ送り |
 | `classroom-assignment-page-indicator` | span | ページ位置（`1 / 3`） |
 | `classroom-assignment-reload-starter` | button | スタータープロジェクトを開く（編集中は confirm）。「課題を見る」から開き直したときだけ（参加直後はスターターも選択肢の 1 つ） |
-| `classroom-assignment-close` | button | はじめる！（モーダルを閉じる。選択肢を出しているときは描画しない） |
+| `classroom-assignment-close` | button | はじめる！（モーダルを閉じる。選択肢を出しているときと、レッスンの課題では描画しない） |
+| `classroom-assignment-lesson-notice` | div | レッスンの課題の説明（参加直後のみ） |
 | `classroom-view-assignment-button` | button | ステータス画面の「課題を見る」（hasAssignment 時のみ） |
 
 ### どこから始めるかの選択（生徒・Issue #1201）
@@ -481,7 +488,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-menu-button` | div | クラスボタン（コンテナ） |
 | `classroom-menu-label` | span | メニューバーのクラス表示テキスト全体（参加中は「クラス:出席番号NN」、未参加時は「クラス」）|
 | `classroom-menu-seat-number` | span | 出席番号（0埋め2桁、参加中のみレンダリングされる） |
-| `classroom-menu-submission-status` | span | 自分の提出状態アイコン（未提出 / 提出済み / 返却済み。参加中のみ） |
+| `classroom-menu-submission-status` | span | 自分の提出状態アイコン（未提出 / 提出済み / 返却済み。参加中のみ）。レッスンの課題では中に進み具合の印 |
+| `classroom-menu-lesson-mark` | span | レッスンの課題の進み具合の印（`data-kind` = `notStarted` ○ / `inProgress` 「2/4」 / `cleared` ✓）。作品も提出する課題で提出したら横に `classroom-status-icon-submitted` |
 
 #### 先生メニュー（先生ログイン中のみ）
 

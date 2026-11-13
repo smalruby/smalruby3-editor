@@ -7,17 +7,72 @@ import ErrorDisplay from './error-display.jsx';
 import StudentContinueChoice from './student-continue-choice.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
 
+/**
+ * 「つぎにやること」 of a lesson assignment (#1599): tell right after joining
+ * that it is a lesson assignment and when to submit, so students do not ask
+ * "where is the submit button?".
+ * @param {object} props - component props
+ * @param {object} props.lesson - normalized lesson setting
+ * @returns {React.ReactElement} the text
+ */
+const LessonNextSteps = ({ lesson }) =>
+    lesson.submitWork ? (
+        <FormattedMessage
+            defaultMessage="This is a lesson assignment. Go through the lessons; once you meet the goal, make your own program and submit it."
+            description="Next steps after joining a lesson assignment that also asks for a work submission"
+            id="gui.classroom.studentJoined.lessonNextSteps"
+        />
+    ) : (
+        <FormattedMessage
+            defaultMessage="This is a lesson assignment. Go through the lessons; once you meet the goal, the assignment is cleared."
+            description="Next steps after joining a lesson assignment (no work submission)"
+            id="gui.classroom.studentJoined.lessonNextStepsNoSubmit"
+        />
+    );
+
+LessonNextSteps.propTypes = {
+    lesson: PropTypes.shape({ submitWork: PropTypes.bool }).isRequired,
+};
+
+/**
+ * 「はじめる」 of a lesson assignment: opens the lessons library with the
+ * assignment's challenges only (#1599).
+ * @param {object} props - component props
+ * @param {Function} props.onStartLesson - opens the lessons library
+ * @returns {React.ReactElement} the button row
+ */
+const StartLessonButton = ({ onStartLesson }) => (
+    <div className={styles.buttonRow}>
+        <button className={styles.primaryButton} data-testid="classroom-joined-start-lesson" onClick={onStartLesson}>
+            <FormattedMessage
+                defaultMessage="Start"
+                description="Close button after joining"
+                id="gui.classroom.studentJoined.start"
+            />
+        </button>
+    </div>
+);
+
+StartLessonButton.propTypes = {
+    onStartLesson: PropTypes.func.isRequired,
+};
+
+export { LessonNextSteps, StartLessonButton };
+
 const StudentJoinedConfirmation = ({
     continueOptions,
     error,
     errorTitle,
     isLoading,
     joinedInfo,
+    lessonStartOnly = false,
     loadedChoice,
     startChoice,
+    studentLesson = null,
     onClose,
     onLoadStarter,
     onLoadSubmission,
+    onStartLesson,
 }) => (
     <div data-testid="classroom-phase-student-joined">
         <div className={styles.successArea}>
@@ -46,17 +101,20 @@ const StudentJoinedConfirmation = ({
         <StudentPreviousComment previousComment={joinedInfo.previousComment} />
         {/* Where to start: the starter and earlier submissions (#1201). Nothing
             is loaded until the student presses one. */}
-        <StudentContinueChoice
-            continueOptions={continueOptions}
-            isLoading={isLoading}
-            loadedChoice={loadedChoice}
-            recommend={startChoice?.recommend}
-            showStarter={!!startChoice?.showStarter}
-            startNotice={startChoice?.notice}
-            onKeepCurrent={onClose}
-            onLoadStarter={onLoadStarter}
-            onLoadSubmission={onLoadSubmission}
-        />
+        {/* A lesson assignment without a starter starts in the lessons library (#1599). */}
+        {!lessonStartOnly && (
+            <StudentContinueChoice
+                continueOptions={continueOptions}
+                isLoading={isLoading}
+                loadedChoice={loadedChoice}
+                recommend={startChoice?.recommend}
+                showStarter={!!startChoice?.showStarter}
+                startNotice={startChoice?.notice}
+                onKeepCurrent={onClose}
+                onLoadStarter={onLoadStarter}
+                onLoadSubmission={onLoadSubmission}
+            />
+        )}
         <ErrorDisplay error={error} errorTitle={errorTitle} />
         <div className={styles.joinHintBox}>
             <div className={styles.joinHintTitle}>
@@ -66,17 +124,22 @@ const StudentJoinedConfirmation = ({
                     id="gui.classroom.studentJoined.nextStepsTitle"
                 />
             </div>
-            <div className={styles.joinHintText}>
-                <FormattedMessage
-                    defaultMessage="1. Close this dialog and create your project{br}2. When you're done, click the assignment name in the menu bar to submit"
-                    description="Next steps hint after joining"
-                    id="gui.classroom.studentJoined.nextSteps"
-                    values={{ br: <br /> }}
-                />
+            <div className={styles.joinHintText} data-testid="classroom-joined-next-steps">
+                {studentLesson ? (
+                    <LessonNextSteps lesson={studentLesson} />
+                ) : (
+                    <FormattedMessage
+                        defaultMessage="1. Close this dialog and create your project{br}2. When you're done, click the assignment name in the menu bar to submit"
+                        description="Next steps hint after joining"
+                        id="gui.classroom.studentJoined.nextSteps"
+                        values={{ br: <br /> }}
+                    />
+                )}
             </div>
         </div>
+        {studentLesson && onStartLesson && <StartLessonButton onStartLesson={onStartLesson} />}
         {/* With choices, each choice starts (incl. "as it is"), so no separate Start button. */}
-        {!continueOptions && !startChoice?.showStarter && (
+        {!studentLesson && !continueOptions && !startChoice?.showStarter && (
             <div className={styles.buttonRow}>
                 <button className={styles.primaryButton} data-testid="classroom-joined-close" onClick={onClose}>
                     <FormattedMessage
@@ -102,7 +165,11 @@ StudentJoinedConfirmation.propTypes = {
         seatNumber: PropTypes.number,
         previousComment: PropTypes.object,
     }).isRequired,
+    // A lesson assignment without a starter: no start choices (#1599)
+    lessonStartOnly: PropTypes.bool,
     loadedChoice: PropTypes.string,
+    // normalized lesson setting of the joined assignment (null = not a lesson assignment)
+    studentLesson: PropTypes.shape({ submitWork: PropTypes.bool }),
     startChoice: PropTypes.shape({
         showStarter: PropTypes.bool,
         recommend: PropTypes.string,
@@ -111,6 +178,7 @@ StudentJoinedConfirmation.propTypes = {
     onClose: PropTypes.func.isRequired,
     onLoadStarter: PropTypes.func,
     onLoadSubmission: PropTypes.func,
+    onStartLesson: PropTypes.func,
 };
 
 export default StudentJoinedConfirmation;

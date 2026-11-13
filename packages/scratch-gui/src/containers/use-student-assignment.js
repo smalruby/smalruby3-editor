@@ -11,15 +11,29 @@
  * the recommended choice. Nothing clobbers work silently: when the open
  * project has unsaved changes the student is asked first. A loaded project
  * that uses mesh asks for the mesh connection modal (#1251).
+ *
+ * A lesson assignment (EPIC #1592 / #1599) is told by the assignment
+ * response (`lesson`), so the assignment is always fetched right after
+ * joining (join / verify-session only tell `hasAssignment`, which is false
+ * for a lesson-only assignment). The lesson goes to Redux
+ * (classroom.studentLesson) for the lessons library, the class screen and
+ * the menu-bar mark. Without a starter, a lesson assignment starts in the
+ * lessons library (「はじめる」) instead of the start choices.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import classroomAPI from '../lib/classroom-api.js';
 import { decideJoinStart, normalizeContinueOptions } from '../lib/classroom-continue-options.js';
 import { readMeshState, shouldPromptMeshConnect } from '../lib/classroom-mesh-connect.js';
+import { normalizeAssignmentLesson } from '../lib/lessons/assignment-progress.js';
 import { loadProjectWithChecks } from '../lib/project-loader-utils.js';
-import { clearMeshConnectRequest, requestMeshConnect, setStudentPeerView } from '../reducers/classroom.js';
+import {
+    clearMeshConnectRequest,
+    requestMeshConnect,
+    setStudentLesson,
+    setStudentPeerView,
+} from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
 const NO_START_CHOICE = { showStarter: false, recommend: null, notice: null };
@@ -84,12 +98,19 @@ const useStudentAssignment = ({
     const dispatch = useDispatch();
     // The assignment response carries the peer view setting (#1210); keep it
     // so the status view can hide / lock "みんなの作品を見る" without a request.
+    // The same response carries the lesson (#1599); a failed fetch (no data)
+    // keeps the lesson known so far.
     const rememberPeerView = useCallback(
         (data) => {
             if (data && typeof data.peerView === 'string') dispatch(setStudentPeerView(data.peerView));
+            if (data && 'lesson' in data) dispatch(setStudentLesson(data.lesson));
         },
         [dispatch],
     );
+
+    // The session token as of now (stale answers are dropped, like classroom-modal.jsx).
+    const sessionTokenRef = useRef(classroomState.sessionToken);
+    sessionTokenRef.current = classroomState.sessionToken;
 
     const [assignment, setAssignment] = useState(null);
     const [assignmentPageIndex, setAssignmentPageIndex] = useState(0);
@@ -107,6 +128,9 @@ const useStudentAssignment = ({
     // is offered, which choice is recommended by the teacher's setting
     // (#1202) and the notice explaining it.
     const [startChoice, setStartChoice] = useState(NO_START_CHOICE);
+    // A lesson assignment without a starter: right after joining, 「はじめる」
+    // opens the lessons library and the start choices are not shown (#1599).
+    const [lessonStartOnly, setLessonStartOnly] = useState(false);
 
     /**
      * Download an sb3 and load it into the VM. Asks for confirmation when the
@@ -192,21 +216,51 @@ const useStudentAssignment = ({
             setStartChoice(NO_START_CHOICE);
             setContinueOptions(null);
             setHasAssignment(false);
+            setLessonStartOnly(false);
+            // Fetched even without `hasAssignment`: a lesson-only assignment has
+            // no pages or starter but still a lesson (#1599).
             const [assignmentData, { options, startFromPrevious }] = await Promise.all([
-                withAssignment ? classroomAPI.getAssignment(sessionToken, classroomId).catch(() => null) : null,
+                Promise.resolve()
+                    .then(() => classroomAPI.getAssignment(sessionToken, classroomId))
+                    .catch(() => null),
                 fetchContinueOptions(sessionToken, classroomId),
             ]);
             rememberPeerView(assignmentData);
-            const joinedAssignment = assignmentData?.assignment || null;
+            const joinedAssignment = withAssignment ? assignmentData?.assignment || null : null;
             setAssignment(joinedAssignment);
             setAssignmentPageIndex(0);
-            setStartChoice(decideJoinStart(options, startFromPrevious, !!joinedAssignment?.starterUrl));
+            const hasLesson = !!normalizeAssignmentLesson(assignmentData?.lesson);
+            if (hasLesson && !joinedAssignment?.starterUrl) {
+                setLessonStartOnly(true);
+                setStartChoice(NO_START_CHOICE);
+            } else {
+                setStartChoice(decideJoinStart(options, startFromPrevious, !!joinedAssignment?.starterUrl));
+            }
             if (!joinedAssignment) return null;
             setHasAssignment(true);
             return (joinedAssignment.pages || []).length > 0 ? 'student-assignment' : null;
         },
         [fetchContinueOptions, rememberPeerView],
     );
+
+    /**
+     * Re-read the assignment's lesson (status view): the teacher may tie a
+     * lesson to the assignment, or change it, after the student joined (#1599).
+     * Best-effort: a failure keeps the lesson known so far.
+     */
+    const refreshLesson = useCallback(async () => {
+        const token = classroomState.sessionToken;
+        if (!token || !classroomState.classroomId) return;
+        try {
+            const data = await classroomAPI.getAssignment(token, classroomState.classroomId);
+            // The student may have left or joined another assignment meanwhile:
+            // an answer for an old session must not land in the new one (#1599 FYI1).
+            if (token !== sessionTokenRef.current) return;
+            rememberPeerView(data);
+        } catch {
+            // keep what we have
+        }
+    }, [classroomState.sessionToken, classroomState.classroomId, rememberPeerView]);
 
     /** Re-fetch the submissions to continue from (status view). */
     const refreshContinueOptions = useCallback(async () => {
@@ -359,6 +413,7 @@ const useStudentAssignment = ({
         assignmentPageIndex,
         continueOptions,
         hasAssignment,
+        lessonStartOnly,
         loadedChoice,
         startChoice,
         setHasAssignment,
@@ -368,6 +423,7 @@ const useStudentAssignment = ({
         handleReloadStarter,
         handleChooseStarter,
         refreshContinueOptions,
+        refreshLesson,
         handleAssignmentPrevPage,
         handleAssignmentNextPage,
     };

@@ -4,6 +4,7 @@ import React from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
 import intlShape from '../../lib/intlShape.js';
 import { COMPLETED_ACTIONS } from '../../lib/lessons/lesson-progress.js';
+import { messages as bandMessages } from '../lesson-assignment-band/lesson-assignment-band.jsx';
 import styles from './lesson-completed-toast.css';
 
 const messages = defineMessages({
@@ -55,6 +56,25 @@ const messages = defineMessages({
             'Button on the completed toast when every challenge of the lesson is done and there is no next ' +
             'lesson; opens the lessons library',
     },
+    assignmentTitle: {
+        id: 'gui.lessons.completed.assignmentTitle',
+        defaultMessage: 'Assignment cleared!',
+        description:
+            'Title of the completed toast when this challenge met the completion condition of the class assignment ' +
+            '(shown once, instead of "Lesson n complete!")',
+    },
+    assignmentDetail: {
+        id: 'gui.lessons.completed.assignmentDetail',
+        defaultMessage: 'You met the goal of "{name}".',
+        description:
+            'Second line of the completed toast when the class assignment is cleared (no work to submit). ' +
+            '{name} is the assignment name',
+    },
+    assignmentDetailNoName: {
+        id: 'gui.lessons.completed.assignmentDetailNoName',
+        defaultMessage: 'You met the goal of the assignment.',
+        description: 'Second line of the completed toast when the class assignment (without a name) is cleared',
+    },
     close: {
         id: 'gui.lessons.completed.close',
         defaultMessage: 'Keep looking',
@@ -70,7 +90,8 @@ const BUTTON_MESSAGES = {
 };
 
 /**
- * 「できた！」の表示（#1589）。場面は 3 つ（`action` で決まる）:
+ * 「できた！」の表示（#1589）。場面は 3 つ（`action` で決まる）。クラスの課題の条件をはじめて満たしたときは、
+ * それより優先して「課題クリア！」（#1599。作品も提出する課題では案内と「課題を提出する」）:
  *   - next: チャレンジができた（レッスンの途中）。「できた！」＋レッスンの中のできた数の丸＋「あと n つ」（青）
  *   - otherLessons: レッスンのチャレンジが全部できた。「レッスン n ぜんぶできた！」＋レッスン名の行（オレンジ・🏆）
  *   - library: 全部できて、後ろに残っているレッスンが無い。2 行目はコース名の行（コースが全部できたとき。
@@ -78,6 +99,10 @@ const BUTTON_MESSAGES = {
  * チャレンジの名前は出さない（課題バーに出ている）。「もう少し見る」は閉じるだけ。
  * @param {object} props - props。
  * @param {string} props.action - 場面（lesson-progress.js の COMPLETED_ACTIONS）。
+ * @param {Array<object>} props.assignmentChallenges - 課題クリアのときの、課題のチャレンジ（丸）。
+ * @param {boolean} props.assignmentCleared - この「できた」ではじめて課題クリアになったか（「課題クリア！」）。
+ * @param {?string} props.assignmentName - 課題の名前。
+ * @param {?Function} props.onSubmitAssignment - 作品も提出する課題の「課題を提出する」。
  * @param {string} props.challengeId - できたチャレンジ id（`data-challenge-id`。テストが見る）。
  * @param {Array<{id: string, completed: boolean}>} props.challenges - レッスンのチャレンジ（並び順）。
  * @param {boolean} props.courseCompleted - コースのチャレンジが全部できたか（library の 2 行目を決める）。
@@ -91,6 +116,10 @@ const BUTTON_MESSAGES = {
  */
 const LessonCompletedToast = ({
     action = COMPLETED_ACTIONS.NEXT,
+    assignmentChallenges = [],
+    assignmentCleared = false,
+    assignmentName = null,
+    onSubmitAssignment = null,
     challengeId,
     challenges = [],
     courseCompleted = false,
@@ -101,13 +130,19 @@ const LessonCompletedToast = ({
     onNextChallenge,
     intl,
 }) => {
-    const lessonDone = action !== COMPLETED_ACTIONS.NEXT;
-    const total = challenges.length;
+    // 課題クリア（#1599）: 段 1 の「レッスン n ぜんぶできた！」より優先。同じお祝いの形で、丸は課題のチャレンジ
+    const lessonDone = assignmentCleared || action !== COMPLETED_ACTIONS.NEXT;
+    const dots = assignmentCleared ? assignmentChallenges : challenges;
+    const total = dots.length;
     const remaining = challenges.filter((c) => !c.completed).length;
     let detail = null;
     // 「これで全部です」はコースのチャレンジが全部できたときだけ。library は「後ろに残っているレッスンが無い」
     // だけなので、前のレッスンを飛ばした生徒には出さず、レッスン名の行にする
-    if (action === COMPLETED_ACTIONS.LIBRARY && courseCompleted && courseName) {
+    if (assignmentCleared) {
+        if (onSubmitAssignment) detail = intl.formatMessage(bandMessages.submitGuide);
+        else if (assignmentName) detail = intl.formatMessage(messages.assignmentDetail, { name: assignmentName });
+        else detail = intl.formatMessage(messages.assignmentDetailNoName);
+    } else if (action === COMPLETED_ACTIONS.LIBRARY && courseCompleted && courseName) {
         detail = intl.formatMessage(messages.courseDetail, { course: intl.formatMessage(courseName) });
     } else if (lessonDone && lessonName) {
         detail = intl.formatMessage(messages.lessonDetail, { name: intl.formatMessage(lessonName), count: total });
@@ -118,6 +153,7 @@ const LessonCompletedToast = ({
             role="status"
             data-testid="lesson-completed-toast"
             data-action={action}
+            data-assignment-cleared={assignmentCleared ? 'true' : 'false'}
             data-challenge-id={challengeId}
         >
             <span className={styles.icon} aria-hidden="true">
@@ -125,24 +161,29 @@ const LessonCompletedToast = ({
             </span>
             <div className={styles.body}>
                 <div className={styles.title} data-testid="lesson-completed-toast-title">
-                    {lessonDone
-                        ? intl.formatMessage(messages.lessonTitle, { number: lessonNumber })
-                        : intl.formatMessage(messages.title)}
+                    {assignmentCleared
+                        ? intl.formatMessage(messages.assignmentTitle)
+                        : lessonDone
+                          ? intl.formatMessage(messages.lessonTitle, { number: lessonNumber })
+                          : intl.formatMessage(messages.title)}
                 </div>
                 <div className={styles.progress}>
                     {total > 0 && (
                         <span className={styles.dots} data-testid="lesson-completed-toast-dots" aria-hidden="true">
-                            {challenges.map((c) => (
+                            {dots.map((c) => (
                                 <span
                                     key={c.id}
                                     className={classNames(styles.dot, {
+                                        [styles.dotRequired]: c.required,
                                         [styles.dotCompleted]: c.completed,
                                         [styles.dotCurrent]: c.id === challengeId,
                                     })}
                                     data-testid="lesson-completed-toast-dot"
                                     data-completed={c.completed ? 'true' : 'false'}
                                     data-current={c.id === challengeId ? 'true' : 'false'}
-                                />
+                                >
+                                    {c.required ? '★' : null}
+                                </span>
                             ))}
                         </span>
                     )}
@@ -159,7 +200,16 @@ const LessonCompletedToast = ({
                           )}
                 </div>
                 <div className={styles.actions}>
-                    {onNextChallenge ? (
+                    {assignmentCleared && onSubmitAssignment ? (
+                        <button
+                            type="button"
+                            className={styles.next}
+                            onClick={onSubmitAssignment}
+                            data-testid="lesson-completed-toast-submit"
+                        >
+                            {intl.formatMessage(bandMessages.submit)}
+                        </button>
+                    ) : onNextChallenge ? (
                         <button
                             type="button"
                             className={styles.next}
@@ -188,6 +238,19 @@ LessonCompletedToast.propTypes = {
     // 場面。next =「できた！」、otherLessons / library はレッスンのチャレンジが全部できたとき。
     // 決め方は lesson-progress.js の completedAction
     action: PropTypes.oneOf(Object.values(COMPLETED_ACTIONS)),
+    // 課題クリアのとき（#1599）の、課題のチャレンジ（丸。★ は必須）
+    assignmentChallenges: PropTypes.arrayOf(
+        PropTypes.shape({
+            id: PropTypes.string.isRequired,
+            completed: PropTypes.bool.isRequired,
+            required: PropTypes.bool,
+        }),
+    ),
+    // この「できた」ではじめてクラスの課題の条件を満たしたか（「課題クリア！」を出す）
+    assignmentCleared: PropTypes.bool,
+    assignmentName: PropTypes.string,
+    // 作品も提出する課題の「課題を提出する」。課題クリアのときだけ主ボタンにする
+    onSubmitAssignment: PropTypes.func,
     challengeId: PropTypes.string,
     // レッスンのチャレンジ（丸の数と塗り。いまできた `challengeId` は強調）
     challenges: PropTypes.arrayOf(

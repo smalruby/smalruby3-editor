@@ -1708,6 +1708,16 @@ export default {
     'gui.lessonsLibrary.courseProgress': '{completed} / {total}',
     'gui.lessonsLibrary.done': 'できた',
     'gui.lessonsLibrary.next': '次はこれ！',
+    'gui.lessonsLibrary.required': '必須',
+    'gui.classroom.studentJoined.lessonNextSteps':
+        'この課題はレッスンの課題です。レッスンを進めて、条件を満たしたら自由にプログラムをつくって作品を提出します',
+    'gui.classroom.studentJoined.lessonNextStepsNoSubmit':
+        'この課題はレッスンの課題です。レッスンを進めて、条件を満たしたら課題クリアです',
+    'gui.classroom.studentStatus.lessonProgress': '進み具合',
+    'gui.classroom.studentStatus.continueLesson': 'レッスンを続ける',
+    'gui.menuBar.classroomLessonNotStarted': 'レッスン: まだ始めていない',
+    'gui.menuBar.classroomLessonInProgress': 'レッスン: {total} つのうち {done} つできた',
+    'gui.menuBar.classroomLessonCleared': 'レッスン: 課題クリア',
     'gui.lessonsLibrary.category.motion': '動き',
     'gui.lessonsLibrary.category.looks': '見た目',
     'gui.lessonsLibrary.category.sound': '音',
