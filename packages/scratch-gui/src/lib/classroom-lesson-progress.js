@@ -21,7 +21,6 @@
  */
 import { csvLines } from './classroom-download-utils.js';
 import { computeLessonScore } from './classroom-lesson-settings.js';
-import { SEATED_THRESHOLD_MS } from './classroom-presence.js';
 import { assignmentProgress, normalizeAssignmentLesson } from './lessons/assignment-progress.js';
 
 /** 同じチャレンジにこの長さいると「!」（止まっている）. */
@@ -29,9 +28,11 @@ export const STUCK_THRESHOLD_MS = 10 * 60 * 1000;
 
 /**
  * ▶ と ! は目安: 進み具合は定期的に送らないので、席の最後の送信がこれより
- * 前なら出さない（着席の目安と同じ 1 時間）.
+ * 前なら出さない. 35 分は人間の判断（#1779）: 授業 45〜50 分のうち最初の会話と
+ * 振り返りで約 10 分、メッシュの接続も 35 分. 座席・「進み具合」タブ・パネル・
+ * 席の詳細はすべて seatProgress を通るので、この 1 か所だけで決まる.
  */
-export const CURRENT_FRESH_MS = SEATED_THRESHOLD_MS;
+export const CURRENT_FRESH_MS = 35 * 60 * 1000;
 
 export const SEAT_STATES = Object.freeze({
     NOT_JOINED: 'notJoined',
@@ -49,6 +50,22 @@ export const CELL_KINDS = Object.freeze({
 });
 
 export const SORT_ORDERS = Object.freeze(['seat', 'progress', 'stuck']);
+
+/**
+ * The text of a vertical challenge header of the 「進み具合」 tab. In English
+ * the names are long and get cut when written vertically, so the header shows
+ * the challenge number (「1-2」) and the name is left to the header's title
+ * (#1779 Q8, a human decision). ja / ja-Hira keep the name.
+ * @param {object} column - a column of lessonProgressContext
+ * @param {string} name - the challenge name in the UI locale
+ * @param {string} locale - the UI locale (intl.locale)
+ * @returns {string} the header text (★ in front for a required challenge)
+ */
+export const challengeHeadText = (column, name, locale) => {
+    const isEnglish = typeof locale === 'string' && /^en(-|$)/i.test(locale);
+    const text = isEnglish ? `${column.lessonIndex + 1}-${column.challenge.number}` : name;
+    return column.required ? `★${text}` : text;
+};
 
 const toMs = (value) => {
     if (typeof value !== 'string' && typeof value !== 'number') return NaN;

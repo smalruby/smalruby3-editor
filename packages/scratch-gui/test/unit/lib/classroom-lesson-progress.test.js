@@ -4,8 +4,10 @@
  */
 import {
     CELL_KINDS,
+    CURRENT_FRESH_MS,
     SEAT_STATES,
     buildLessonProgressCsv,
+    challengeHeadText,
     clearedSummary,
     columnTotals,
     formatCsvTime,
@@ -107,15 +109,36 @@ describe('seatProgress', () => {
         expect(stuck.current.elapsedMs).toBe(12 * 60 * 1000);
     });
 
-    test('最後の送信が 1 時間より前なら ▶ と ! を出さない', () => {
+    test('▶ と ! の目安は最後の送信から 35 分（#1779）', () => {
+        expect(CURRENT_FRESH_MS).toBe(35 * 60 * 1000);
+    });
+
+    test.each([
+        [34, CELL_KINDS.STUCK],
+        [35, CELL_KINDS.TODO],
+        [36, CELL_KINDS.TODO],
+    ])('最後の送信が %i 分前なら %s（35 分以上前は ▶ と ! を出さない）', (minutes, kind) => {
         const row = {
             challenges: {},
-            current: { challengeId: 'b', openedAt: minutesAgo(70) },
-            updatedAt: minutesAgo(61),
+            current: { challengeId: 'b', openedAt: minutesAgo(40) },
+            updatedAt: minutesAgo(minutes),
         };
         const p = seatProgress(row, ctx, NOW);
-        expect(p.current).toBeNull();
-        expect(p.cells.b).toBe(CELL_KINDS.TODO);
+        expect(p.cells.b).toBe(kind);
+        expect(p.stuck).toBe(kind === CELL_KINDS.STUCK);
+        expect(p.current === null).toBe(kind === CELL_KINDS.TODO);
+    });
+
+    test('課題クリアした子は 34 分前の送信でも ! にせず ▶ のまま', () => {
+        const row = {
+            challenges: { a: done(), b: done(), d: done() },
+            current: { challengeId: 'e', openedAt: minutesAgo(40) },
+            updatedAt: minutesAgo(34),
+        };
+        const p = seatProgress(row, ctx, NOW);
+        expect(p.cleared).toBe(true);
+        expect(p.cells.e).toBe(CELL_KINDS.CURRENT);
+        expect(p.stuck).toBe(false);
     });
 
     test('できたチャレンジを開き直していても止まっているにしない', () => {
@@ -251,8 +274,23 @@ describe('CSV', () => {
         const lines = csv.replace(/^﻿/, '').split('\r\n');
         expect(lines[0]).toBe('出席番号,名前,課題クリア,できた数,A,B,D,E,得点');
         const time = formatCsvTime(minutesAgo(30));
-        // 必須 1 つ = 35 点・必須でない 1 つ = 15 点
-        expect(lines[1]).toBe(`01,あ,,1,${time},,,,15`);
-        expect(lines[2]).toBe(`02,い,○,3,前,${time},${time},,85`);
+        // 条件 3・必須 2（#1778）: 必須 1 つ = 35 点・必須でない 1 つ = 30 ÷ (3 − 2) = 30 点
+        expect(lines[1]).toBe(`01,あ,,1,${time},,,,30`);
+        expect(lines[2]).toBe(`02,い,○,3,前,${time},${time},,100`);
+    });
+});
+
+describe('challengeHeadText（#1779 Q8）', () => {
+    const column = { lessonIndex: 0, challenge: { number: 2 }, required: false };
+    test('英語は番号（1-2）を出す', () => {
+        expect(challengeHeadText(column, 'Move with arrow keys', 'en')).toBe('1-2');
+        expect(challengeHeadText({ ...column, lessonIndex: 1 }, 'x', 'en-US')).toBe('2-2');
+    });
+    test('英語の必須は ★ を付けた番号', () => {
+        expect(challengeHeadText({ ...column, required: true }, 'Move', 'en')).toBe('★1-2');
+    });
+    test('ja / ja-Hira は今のまま名前', () => {
+        expect(challengeHeadText(column, '矢印キーで動かす', 'ja')).toBe('矢印キーで動かす');
+        expect(challengeHeadText({ ...column, required: true }, 'やじるし', 'ja-Hira')).toBe('★やじるし');
     });
 });

@@ -506,6 +506,7 @@ test/unit/components/*
 !test/unit/components/lesson-number-input.test.jsx
 !test/unit/components/student-continue-choice.test.jsx
 !test/unit/components/teacher-class-detail.test.jsx
+!test/unit/components/teacher-lesson-progress.test.jsx
 !test/unit/components/student-peer-view-button.test.jsx
 !test/unit/components/classroom-status-icon.test.jsx
 !test/unit/components/teacher-notifications.test.jsx

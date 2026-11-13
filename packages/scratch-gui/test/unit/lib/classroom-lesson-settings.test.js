@@ -15,13 +15,17 @@ import {
     droppedChallengeIds,
     effectiveScoring,
     lessonChanges,
+    isSameLessonScoring,
     lessonDraftFromSaved,
     missingChallengeIds,
+    requiredPointsUnusedReason,
+    scoringCounts,
     setChallengeChecked,
     setChallengeRequired,
     setCompletion,
     setLessonChecked,
     setScoring,
+    splitLessonPoints,
     validateLessonDraft,
 } from '../../../src/lib/classroom-lesson-settings.js';
 import { COURSES } from '../../../src/lib/lessons/courses.js';
@@ -324,5 +328,124 @@ describe('レビュー対応（#1765）', () => {
         expect(lessonChanges(draft, saved).challenges).toBe(true);
         // 得点の分母にも入れない
         expect(computeLessonScore(saved, ['a', 'b'], course)).toBe(100);
+    });
+});
+
+describe('#1778: 点の配り方は条件の数 n と必須の数 r から決める', () => {
+    const ids = ['a', 'b', 'c1', 'd', 'e', 'f'];
+    const lessonOf = ({ required, completion = { type: 'all' }, scoring = null, challengeIds = ids }) => ({
+        courseId: 'c',
+        challengeIds,
+        requiredChallengeIds: required,
+        completion,
+        submitWork: false,
+        scoring,
+    });
+
+    test('splitLessonPoints: r = n / r = 0 / 0 < r < n', () => {
+        expect(splitLessonPoints({ n: 6, r: 6, total: 100, requiredPoints: 70 })).toEqual({
+            required: 100 / 6,
+            optional: 0,
+        });
+        expect(splitLessonPoints({ n: 4, r: 0, total: 100, requiredPoints: 0 })).toEqual({
+            required: null,
+            optional: 25,
+        });
+        expect(splitLessonPoints({ n: 6, r: 2, total: 100, requiredPoints: 70 })).toEqual({
+            required: 35,
+            optional: 7.5,
+        });
+        expect(splitLessonPoints({ n: 0, r: 0, total: 100, requiredPoints: 0 })).toEqual({
+            required: null,
+            optional: 0,
+        });
+    });
+
+    test('r = n（条件 6・必須 6・選んだ 8）: 必須 6 つで満点、必須以外は 0 点（保存済みの必須の点 70 は使わない）', () => {
+        const lesson = lessonOf({
+            challengeIds: [...ids, 'x', 'y'],
+            required: ids,
+            completion: { type: 'count', count: 6 },
+            scoring: { total: 100, requiredPoints: 70, optionalPoints: 30 },
+        });
+        const extended = { id: 'c', lessons: [{ id: 'l', challenges: [...ids, 'x', 'y'].map((id) => ({ id })) }] };
+        expect(computeLessonScore(lesson, ids, extended)).toBe(100);
+        expect(computeLessonScore(lesson, ['x', 'y'], extended)).toBe(0);
+        expect(computeLessonScore(lesson, ['a', 'b', 'c1'], extended)).toBe(50);
+        const draft = lessonDraftFromSaved(lesson, extended);
+        expect(canChooseRequiredPoints(draft)).toBe(false);
+        expect(requiredPointsUnusedReason(draft)).toBe('allRequired');
+        expect(effectiveScoring(draft)).toEqual({ total: 100, requiredPoints: 100, optionalPoints: 0 });
+        expect(challengePoints(draft)).toEqual({ required: 100 / 6, optional: 0 });
+    });
+
+    test('r = 0（条件「4 つ」・選んだ 6）: 1 つ = 満点 ÷ 4、条件より多くできても満点まで', () => {
+        const lesson = lessonOf({ required: [], completion: { type: 'count', count: 4 } });
+        expect(computeLessonScore(lesson, ['a', 'b'], course)).toBe(50);
+        expect(computeLessonScore(lesson, ['a', 'b', 'c1', 'd'], course)).toBe(100);
+        expect(computeLessonScore(lesson, ids, course)).toBe(100);
+        expect(requiredPointsUnusedReason(lessonDraftFromSaved(lesson, course))).toBe('noneRequired');
+    });
+
+    test('0 < r < n（満点 100・n = 6・r = 2・必須の点 70）: 必須 35 点ずつ・それ以外 7.5 点ずつ → 条件を満たすと 100', () => {
+        const lesson = lessonOf({ required: ['a', 'd'] });
+        expect(computeLessonScore(lesson, ids, course)).toBe(100);
+        expect(computeLessonScore(lesson, ['a', 'd'], course)).toBe(70);
+        expect(computeLessonScore(lesson, ['a', 'b'], course)).toBe(43); // 35 + 7.5 = 42.5 → 43
+        expect(requiredPointsUnusedReason(lessonDraftFromSaved(lesson, course))).toBeNull();
+    });
+
+    test('0 < r < n で条件が「n つ」: 必須以外は (T − R) ÷ (n − r)、条件より多くできても満点まで', () => {
+        // 選んだ 6・条件 4・必須 2 → 必須 35・それ以外 15
+        const lesson = lessonOf({ required: ['a', 'd'], completion: { type: 'count', count: 4 } });
+        expect(computeLessonScore(lesson, ['a', 'd', 'b', 'c1'], course)).toBe(100);
+        expect(computeLessonScore(lesson, ['b', 'c1', 'e', 'f'], course)).toBe(60);
+        expect(computeLessonScore(lesson, ids, course)).toBe(100);
+    });
+
+    test('割り切れない点も、条件ちょうどで満点（小数第 6 位で丸めてから切り上げ）', () => {
+        // 満点 100・r = 0・n = 3 → 33.333… × 3
+        const lesson = lessonOf({ required: [], completion: { type: 'count', count: 3 } });
+        expect(computeLessonScore(lesson, ['a', 'b', 'c1'], course)).toBe(100);
+        expect(computeLessonScore(lesson, ['a'], course)).toBe(34);
+        // 満点 10・r = n = 3 → 3.333… × 3
+        const all = lessonOf({
+            required: ['a', 'b', 'c1'],
+            completion: { type: 'count', count: 3 },
+            scoring: { total: 10, requiredPoints: 10, optionalPoints: 0 },
+        });
+        expect(computeLessonScore(all, ['a', 'b', 'c1'], course)).toBe(10);
+    });
+
+    test('条件「全部」なら n = 選んだ数', () => {
+        const draft = lessonDraftFromSaved(lessonOf({ required: ['a'] }), course);
+        expect(scoringCounts(draft)).toEqual({ n: 6, r: 1 });
+        expect(challengePoints(draft)).toEqual({ required: 70, optional: 6 });
+    });
+
+    test('採点の画面から: 必須の点を変えた lesson を作る（ほかの設定はそのまま）', () => {
+        const saved = lessonOf({ required: ['a', 'd'] });
+        const change = (lesson, value) => buildLessonPayload(setScoring(lessonDraftFromSaved(lesson, course), value));
+        const next = change(saved, { requiredPoints: 50 });
+        expect(next.scoring).toEqual({ total: 100, requiredPoints: 50, optionalPoints: 50 });
+        expect(next.challengeIds).toEqual(ids);
+        expect(next.requiredChallengeIds).toEqual(['a', 'd']);
+        expect(computeLessonScore(next, ['a', 'd'], course)).toBe(50);
+        // 既定に戻すと scoring は null（既定）
+        expect(change(next, { requiredPoints: 70 }).scoring).toBeNull();
+    });
+
+    test('FYI1: 点が変わっていなければ同じ（既定の書き方の違いも同じとみなす）', () => {
+        const saved = lessonOf({
+            required: ['a', 'd'],
+            scoring: { total: 100, requiredPoints: 70, optionalPoints: 30 },
+        });
+        expect(isSameLessonScoring(saved, null)).toBe(true);
+        expect(isSameLessonScoring(saved, { total: 100, requiredPoints: 70, optionalPoints: 30 })).toBe(true);
+        expect(isSameLessonScoring(saved, { total: 100, requiredPoints: 50, optionalPoints: 50 })).toBe(false);
+        expect(isSameLessonScoring(lessonOf({ required: [] }), null)).toBe(true);
+        expect(
+            isSameLessonScoring(lessonOf({ required: [] }), { total: 80, requiredPoints: 0, optionalPoints: 80 }),
+        ).toBe(false);
     });
 });

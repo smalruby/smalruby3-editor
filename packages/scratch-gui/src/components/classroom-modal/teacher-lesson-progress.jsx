@@ -5,6 +5,7 @@ import { defineMessages, useIntl } from 'react-intl';
 import {
     CELL_KINDS,
     SORT_ORDERS,
+    challengeHeadText,
     columnTotals,
     progressTableRows,
     sortProgressRows,
@@ -317,7 +318,7 @@ const TeacherLessonProgress = ({
                                                 column.required && styles.lessonRequiredMark,
                                             )}
                                         >
-                                            {column.required ? `★${name}` : name}
+                                            {challengeHeadText(column, name, intl.locale)}
                                         </span>
                                     </th>
                                 );
