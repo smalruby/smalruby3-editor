@@ -1181,6 +1181,6 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | 種類 | キー | 説明 |
 |------|------|------|
 | localStorage | `smalruby:lessonProgress` | チャレンジ ID → できた日時（とコース・レッスン） |
-| localStorage | `smalruby:lessonAssignmentConsent` | 本人の確認の答え（課題 × 席 → `{answer: mine\|cleared\|none, beforeIds, decidedAt}`。新しいものから 50 件） |
+| localStorage | `smalruby:lessonAssignmentConsent` | 本人の確認の答え（課題 × 席 × 席に入った人（参加した時刻、無ければトークンの短いハッシュ）→ `{answer: mine\|cleared\|none, beforeIds, decidedAt}`。新しいものから 50 件） |
 | localStorage | `smalruby:lessonSpotlightSeen` | チャレンジ ID → はじめて開いた日時（ヒントのスポットライトを 2 回目から出さないため） |
 | localStorage | `smalruby:tutorialSeen` | レッスン表を開くと `true` を書く（`tutorial-onboarding` reducer の `markTutorialSeen`）。いまは読む画面が無い（「レッスン」ボタンの下の吹き出しは出さないため） |

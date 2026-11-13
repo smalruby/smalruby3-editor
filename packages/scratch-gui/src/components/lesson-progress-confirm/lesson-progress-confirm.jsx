@@ -4,7 +4,7 @@
 //   - step="confirmClear": 決め方を伝えてもう一度確かめる ［戻る］［消す］
 // 答えの保存と送信は containers/lesson-progress-sync.jsx。
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
 import Box from '../box/box.jsx';
@@ -76,6 +76,16 @@ const messages = defineMessages({
 
 const LessonProgressConfirm = ({ items, step, onBack, onClear, onClose, onMine, onNotMine }) => {
     const intl = useIntl();
+    // 開いたとき・段が変わったとき、その段の最初のボタンにフォーカスを置く（押したボタンが消えて
+    // フォーカスが body に落ちると、キーボードで操作できなくなるため・FYI2）。共有 Modal（react-modal）は
+    // 開いたあとに本文の枠へフォーカスを移すので、そのあとに置く
+    const firstButtonRef = useRef(null);
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (firstButtonRef.current) firstButtonRef.current.focus();
+        }, 0);
+        return () => clearTimeout(timer);
+    }, [step]);
     return (
         <Modal
             className={styles.modalContent}
@@ -94,6 +104,7 @@ const LessonProgressConfirm = ({ items, step, onBack, onClear, onClose, onMine, 
                                 className={styles.secondaryButton}
                                 data-testid="lesson-progress-confirm-back"
                                 onClick={onBack}
+                                ref={firstButtonRef}
                                 type="button"
                             >
                                 {intl.formatMessage(messages.back)}
@@ -127,6 +138,7 @@ const LessonProgressConfirm = ({ items, step, onBack, onClear, onClose, onMine, 
                                 className={styles.secondaryButton}
                                 data-testid="lesson-progress-confirm-not-mine"
                                 onClick={onNotMine}
+                                ref={firstButtonRef}
                                 type="button"
                             >
                                 {intl.formatMessage(messages.notMine)}

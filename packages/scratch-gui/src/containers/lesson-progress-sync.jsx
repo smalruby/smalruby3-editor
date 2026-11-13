@@ -41,13 +41,14 @@ const LessonProgressSync = () => {
     const sessionToken = useSelector((state) => state.scratchGui.classroom.sessionToken);
     const classroomId = useSelector((state) => state.scratchGui.classroom.classroomId);
     const seatNumber = useSelector((state) => state.scratchGui.classroom.seatNumber);
+    const joinedAt = useSelector((state) => state.scratchGui.classroom.joinedAt);
     const studentLesson = useSelector((state) => state.scratchGui.classroom.studentLesson);
     const progress = useSelector((state) => state.scratchGui.lessonMode.progress);
     const challengeId = useSelector((state) => state.scratchGui.lessonMode.challengeId);
     const sendRequest = useSelector((state) => state.scratchGui.lessonMode.progressSendRequest);
 
     const lesson = role === 'student' && sessionToken ? studentLesson || null : null;
-    const key = lesson ? consentKey(classroomId, seatNumber) : null;
+    const key = lesson ? consentKey(classroomId, seatNumber, { joinedAt, sessionToken }) : null;
     const records = useMemo(() => assignmentChallengeRecords(lesson, progress), [lesson, progress]);
 
     // 開いているチャレンジと、開いた日時（チャレンジが変わったときに決める）
@@ -84,12 +85,14 @@ const LessonProgressSync = () => {
         if (stoppedRef.current.has(latest.sessionToken)) return;
         const latestRecords = assignmentChallengeRecords(latest.lesson, latest.progress);
         let consent = consentOf(latest.key);
+        // 同意していない記録（はじめて・先生があとから足したチャレンジの前の記録）があれば、送る前に聞く。
+        // 答えが「消す」なら聞かずに、その記録を送らない（buildProgressPayload が外す）
+        if (needsConfirmation(latest.lesson, consent, latestRecords)) {
+            setConfirmStep((step) => step || CONFIRM_STEPS.ASK);
+            return;
+        }
         if (!consent) {
-            if (needsConfirmation(consent, latestRecords)) {
-                setConfirmStep((step) => step || CONFIRM_STEPS.ASK);
-                return;
-            }
-            consent = makeConsent(CONSENT_ANSWERS.NONE, latestRecords, now());
+            consent = makeConsent(CONSENT_ANSWERS.NONE, [], now());
             rememberConsent(latest.key, consent);
         }
         const payload = buildProgressPayload(latest.lesson, latest.progress, consent, latest.current);
@@ -129,24 +132,30 @@ const LessonProgressSync = () => {
         if (!key) setConfirmStep(null);
     }, [key]);
 
+    // 一覧に出している記録（「わたしの記録です」で「前」にするのは、これだけ・FYI3）
+    const shownItems = confirmStep && key ? confirmationItems(lesson, records, consentOf(key)) : [];
+    const shownIdsRef = useRef([]);
+    shownIdsRef.current = shownItems.map((item) => item.id);
+
     const handleMine = useCallback(() => {
         const latest = latestRef.current;
         if (latest.key) {
-            rememberConsent(
-                latest.key,
-                makeConsent(CONSENT_ANSWERS.MINE, assignmentChallengeRecords(latest.lesson, latest.progress), now()),
-            );
+            const previous = consentOf(latest.key);
+            rememberConsent(latest.key, makeConsent(CONSENT_ANSWERS.MINE, shownIdsRef.current, now(), previous));
         }
         setConfirmStep(null);
         send();
-    }, [rememberConsent, send]);
+    }, [consentOf, rememberConsent, send]);
 
     const handleClear = useCallback(() => {
         const latest = latestRef.current;
-        if (latest.key) rememberConsent(latest.key, makeConsent(CONSENT_ANSWERS.CLEARED, {}, now()));
+        if (latest.key) {
+            const previous = consentOf(latest.key);
+            rememberConsent(latest.key, makeConsent(CONSENT_ANSWERS.CLEARED, [], now(), previous));
+        }
         setConfirmStep(null);
         dispatch(clearProgress());
-    }, [dispatch, rememberConsent]);
+    }, [consentOf, dispatch, rememberConsent]);
 
     const handleNotMine = useCallback(() => setConfirmStep(CONFIRM_STEPS.CONFIRM_CLEAR), []);
     const handleBack = useCallback(() => setConfirmStep(CONFIRM_STEPS.ASK), []);
@@ -156,7 +165,7 @@ const LessonProgressSync = () => {
     if (!confirmStep || !key) return null;
     return (
         <LessonProgressConfirm
-            items={confirmationItems(lesson, records)}
+            items={shownItems}
             step={confirmStep}
             onBack={handleBack}
             onClear={handleClear}

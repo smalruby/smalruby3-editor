@@ -158,6 +158,8 @@ const judge = async (page, { who, name, body = '[data-testid="classroom-modal"]'
 
 const browser = await chromium.launch({ headless: HEADLESS, channel: CHANNEL });
 
+// 参加した時刻は固定する (本人の確認の答えのキーに入るため・#1600)
+const SESSION_JOINED_AT = new Date().toISOString();
 const session = (extra = {}) => ({
     role: 'student',
     classroomId: 'c1',
@@ -167,7 +169,7 @@ const session = (extra = {}) => ({
     seatNumber: 7,
     memberId: 'seat-07',
     sessionToken: 'stub',
-    joinedAt: new Date().toISOString(),
+    joinedAt: SESSION_JOINED_AT,
     ...extra,
 });
 
@@ -504,7 +506,7 @@ const lessonRecords = (ids) => ({
         ids.map((id) => [id, { completedAt: '2026-11-15T01:00:00.000Z', courseId: 'kyou-kara-programmer', lessonId: 'x' }]),
     ),
 });
-const CONSENT_ANSWERED = { 'c1#7': { answer: 'mine', beforeIds: [], decidedAt: '2026-11-15T00:00:00.000Z' } };
+const CONSENT_ANSWERED = { [`c1#7#j${SESSION_JOINED_AT}`]: { answer: 'mine', beforeIds: [], decidedAt: '2026-11-15T00:00:00.000Z' } };
 const routeLessonAssignment = (p) =>
     p.route('**/classrooms/c1/assignment', (r) => r.fulfill({ json: { assignment: null, lesson: LESSON } }));
 

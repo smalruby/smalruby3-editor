@@ -10,12 +10,14 @@ import {
     consentKey,
     currentChallengeOf,
     isCoveredBy,
+    isSendableTimestamp,
     loadConsent,
     loadConsents,
     makeConsent,
     mergeAcked,
     needsConfirmation,
     saveConsent,
+    unconsentedIds,
 } from '../../../../src/lib/lessons/lesson-progress-sync';
 
 const T1 = '2026-11-15T01:00:00.000Z';
@@ -58,21 +60,29 @@ const memoryStorage = () => {
 };
 
 describe('consentKey', () => {
-    test('should join the assignment and the seat', () => {
-        expect(consentKey('class-1', 7)).toBe('class-1#7');
+    test('should join the assignment, the seat and who joined (the join time)', () => {
+        expect(consentKey('class-1', 7, { joinedAt: T1, sessionToken: 'tok' })).toBe(`class-1#7#j${T1}`);
     });
 
-    test('should be null without an assignment or a seat', () => {
-        expect(consentKey(null, 7)).toBeNull();
-        expect(consentKey('class-1', null)).toBeNull();
-        expect(consentKey('class-1', '')).toBeNull();
+    test('should tell who joined by a short hash of the session token without the join time', () => {
+        const key = consentKey('class-1', 7, { sessionToken: 'secret-token' });
+        expect(key).toMatch(/^class-1#7#t[0-9a-f]{8}$/);
+        expect(key).not.toContain('secret-token');
+        expect(consentKey('class-1', 7, { sessionToken: 'other-token' })).not.toBe(key);
+    });
+
+    test('should be null without an assignment, a seat or who joined', () => {
+        expect(consentKey(null, 7, { joinedAt: T1 })).toBeNull();
+        expect(consentKey('class-1', null, { joinedAt: T1 })).toBeNull();
+        expect(consentKey('class-1', '', { joinedAt: T1 })).toBeNull();
+        expect(consentKey('class-1', 7)).toBeNull();
     });
 });
 
 describe('consents in storage', () => {
     test('should save and load an answer per assignment and seat', () => {
         const storage = memoryStorage();
-        const consent = makeConsent(CONSENT_ANSWERS.MINE, { b: {}, a: {} }, T1);
+        const consent = makeConsent(CONSENT_ANSWERS.MINE, ['b', 'a'], T1);
         expect(saveConsent('class-1#7', consent, storage)).toBe(true);
         expect(loadConsent('class-1#7', storage)).toEqual({ answer: 'mine', beforeIds: ['a', 'b'], decidedAt: T1 });
         expect(loadConsent('class-1#8', storage)).toBeNull();
@@ -93,7 +103,7 @@ describe('consents in storage', () => {
         const storage = memoryStorage();
         for (let i = 0; i < MAX_CONSENTS + 2; i++) {
             const at = new Date(Date.UTC(2026, 10, 1, 0, i)).toISOString();
-            saveConsent(`c${i}#1`, makeConsent(CONSENT_ANSWERS.NONE, {}, at), storage);
+            saveConsent(`c${i}#1`, makeConsent(CONSENT_ANSWERS.NONE, [], at), storage);
         }
         const consents = loadConsents(storage);
         expect(Object.keys(consents)).toHaveLength(MAX_CONSENTS);
@@ -102,52 +112,136 @@ describe('consents in storage', () => {
     });
 
     test('should not throw when storage is missing or full', () => {
-        expect(saveConsent('k', makeConsent(CONSENT_ANSWERS.NONE, {}, T1), null)).toBe(false);
+        expect(saveConsent('k', makeConsent(CONSENT_ANSWERS.NONE, [], T1), null)).toBe(false);
         const full = {
             getItem: () => null,
             setItem: () => {
                 throw new Error('quota');
             },
         };
-        expect(saveConsent('k', makeConsent(CONSENT_ANSWERS.NONE, {}, T1), full)).toBe(false);
+        expect(saveConsent('k', makeConsent(CONSENT_ANSWERS.NONE, [], T1), full)).toBe(false);
         expect(loadConsent('k', null)).toBeNull();
     });
 });
 
+const T0 = '2026-11-15T00:30:00.000Z';
+const T3 = '2026-11-15T03:00:00.000Z';
+const recs = (entries) => Object.fromEntries(Object.entries(entries).map(([id, at]) => [id, { completedAt: at }]));
+
 describe('makeConsent', () => {
-    test('should make the present records "before" only when they are mine', () => {
-        const records = { a: { completedAt: T1 } };
-        expect(makeConsent(CONSENT_ANSWERS.MINE, records, T2).beforeIds).toEqual(['a']);
-        expect(makeConsent(CONSENT_ANSWERS.CLEARED, records, T2).beforeIds).toEqual([]);
-        expect(makeConsent(CONSENT_ANSWERS.NONE, {}, T2).beforeIds).toEqual([]);
+    test('should make only the listed records "before", and only when they are mine', () => {
+        expect(makeConsent(CONSENT_ANSWERS.MINE, ['b', 'a'], T2)).toEqual({
+            answer: 'mine',
+            beforeIds: ['a', 'b'],
+            decidedAt: T2,
+        });
+        expect(makeConsent(CONSENT_ANSWERS.CLEARED, ['a'], T2).beforeIds).toEqual([]);
+        expect(makeConsent(CONSENT_ANSWERS.NONE, [], T2).beforeIds).toEqual([]);
+    });
+
+    test('should keep the first answer time and add to "before" when asked again', () => {
+        const first = makeConsent(CONSENT_ANSWERS.NONE, [], T1);
+        expect(makeConsent(CONSENT_ANSWERS.MINE, ['c'], T3, first)).toEqual({
+            answer: 'mine',
+            beforeIds: ['c'],
+            decidedAt: T1,
+        });
+        const mine = makeConsent(CONSENT_ANSWERS.MINE, ['a'], T1);
+        expect(makeConsent(CONSENT_ANSWERS.MINE, ['c'], T3, mine).beforeIds).toEqual(['a', 'c']);
+    });
+
+    test('should move the answer time to the clearing time', () => {
+        const mine = makeConsent(CONSENT_ANSWERS.MINE, ['a'], T1);
+        expect(makeConsent(CONSENT_ANSWERS.CLEARED, [], T3, mine)).toEqual({
+            answer: 'cleared',
+            beforeIds: ['a'],
+            decidedAt: T3,
+        });
+    });
+});
+
+describe('unconsentedIds', () => {
+    test('should be every record before any answer', () => {
+        expect(unconsentedIds(null, recs({ a: T1, b: T2 }))).toEqual(['a', 'b']);
+    });
+
+    test('should be the records done by the answer time that were not agreed to', () => {
+        const consent = makeConsent(CONSENT_ANSWERS.MINE, ['a'], T2);
+        // a: agreed, b: done at the answer time (not agreed), c: done after the answer
+        expect(unconsentedIds(consent, recs({ a: T1, b: T2, c: T3 }))).toEqual(['b']);
+    });
+
+    test('should treat unreadable times as not agreed', () => {
+        const consent = makeConsent(CONSENT_ANSWERS.NONE, [], T1);
+        expect(unconsentedIds(consent, recs({ a: 'oops' }))).toEqual(['a']);
     });
 });
 
 describe('needsConfirmation', () => {
     test('should ask once when the device has records of the assignment', () => {
-        expect(needsConfirmation(null, { a: { completedAt: T1 } })).toBe(true);
+        expect(needsConfirmation(lesson, null, recs({ a: T1 }), FAKE_COURSES)).toBe(true);
     });
 
     test('should not ask without records', () => {
-        expect(needsConfirmation(null, {})).toBe(false);
+        expect(needsConfirmation(lesson, null, {}, FAKE_COURSES)).toBe(false);
     });
 
-    test('should not ask again after an answer', () => {
-        const answered = makeConsent(CONSENT_ANSWERS.MINE, {}, T1);
-        expect(needsConfirmation(answered, { a: { completedAt: T1 } })).toBe(false);
+    test('should not ask again about agreed records or records made after the answer', () => {
+        const answered = makeConsent(CONSENT_ANSWERS.MINE, ['a'], T1);
+        expect(needsConfirmation(lesson, answered, recs({ a: T0, b: T2 }), FAKE_COURSES)).toBe(false);
+    });
+
+    test('should ask again about old records that come into the assignment later (none / mine)', () => {
+        // the teacher adds challenge c after the answer; the device has an older record of it
+        const none = makeConsent(CONSENT_ANSWERS.NONE, [], T2);
+        expect(needsConfirmation(lesson, none, recs({ c: T1 }), FAKE_COURSES)).toBe(true);
+        const mine = makeConsent(CONSENT_ANSWERS.MINE, ['a'], T2);
+        expect(needsConfirmation(lesson, mine, recs({ a: T1, c: T1 }), FAKE_COURSES)).toBe(true);
+    });
+
+    test('should not ask after clearing (the old records are dropped silently)', () => {
+        const cleared = makeConsent(CONSENT_ANSWERS.CLEARED, [], T2);
+        expect(needsConfirmation(lesson, cleared, recs({ a: T1 }), FAKE_COURSES)).toBe(false);
+    });
+
+    test('should not ask about challenges this build does not know (they cannot be listed)', () => {
+        const withUnknown = normalizeAssignmentLesson({
+            courseId: 'kyou-kara-programmer',
+            challengeIds: ['a', 'zz'],
+        });
+        expect(needsConfirmation(withUnknown, null, recs({ zz: T1 }), FAKE_COURSES)).toBe(false);
     });
 });
 
 describe('confirmationItems', () => {
     test('should list the records in the order of the assignment', () => {
-        const items = confirmationItems(lesson, { c: { completedAt: T2 }, a: { completedAt: T1 } }, FAKE_COURSES);
+        const items = confirmationItems(lesson, recs({ c: T2, a: T1 }), null, FAKE_COURSES);
         expect(items.map((i) => i.id)).toEqual(['a', 'c']);
         expect(items[0].name).toEqual({ id: 'name.a', defaultMessage: 'a' });
         expect(items[1].completedAt).toBe(T2);
     });
 
+    test('should list only the records not agreed to yet when asked again', () => {
+        const mine = makeConsent(CONSENT_ANSWERS.MINE, ['a'], T2);
+        const items = confirmationItems(lesson, recs({ a: T1, b: T3, c: T1 }), mine, FAKE_COURSES);
+        expect(items.map((i) => i.id)).toEqual(['c']);
+    });
+
     test('should be empty without a lesson', () => {
-        expect(confirmationItems(null, { a: { completedAt: T1 } }, FAKE_COURSES)).toEqual([]);
+        expect(confirmationItems(null, recs({ a: T1 }), null, FAKE_COURSES)).toEqual([]);
+    });
+});
+
+describe('isSendableTimestamp', () => {
+    test('should accept readable times from 2020 on', () => {
+        expect(isSendableTimestamp(T1)).toBe(true);
+        expect(isSendableTimestamp('2020-01-01T00:00:00.000Z')).toBe(true);
+    });
+
+    test('should reject unreadable or older times (the server answers 400)', () => {
+        expect(isSendableTimestamp('2019-12-31T23:59:59.999Z')).toBe(false);
+        expect(isSendableTimestamp('yesterday')).toBe(false);
+        expect(isSendableTimestamp(null)).toBe(false);
     });
 });
 
@@ -160,6 +254,7 @@ describe('currentChallengeOf', () => {
         expect(currentChallengeOf(lesson, 'z', T1)).toBeNull();
         expect(currentChallengeOf(lesson, null, null)).toBeNull();
         expect(currentChallengeOf(null, 'b', T1)).toBeNull();
+        expect(currentChallengeOf(lesson, 'b', '2001-01-01T00:00:00.000Z')).toBeNull();
     });
 });
 
@@ -167,7 +262,7 @@ describe('buildProgressPayload', () => {
     const progress = progressOf({ a: T1, b: T2, z: T1 });
 
     test('should send every record of the assignment, marking the ones from before', () => {
-        const consent = makeConsent(CONSENT_ANSWERS.MINE, { a: {} }, T1);
+        const consent = makeConsent(CONSENT_ANSWERS.MINE, ['a'], T1);
         expect(buildProgressPayload(lesson, progress, consent, null)).toEqual({
             challenges: {
                 a: { completedAt: T1, before: true },
@@ -177,14 +272,38 @@ describe('buildProgressPayload', () => {
     });
 
     test('should add the open challenge as current', () => {
-        const consent = makeConsent(CONSENT_ANSWERS.NONE, {}, T1);
+        const consent = makeConsent(CONSENT_ANSWERS.NONE, [], T1);
         const current = { challengeId: 'c', openedAt: T2 };
         expect(buildProgressPayload(lesson, progress, consent, current).current).toEqual(current);
     });
 
     test('should send nothing outside the assignment', () => {
-        const payload = buildProgressPayload(lesson, progress, null, null);
+        const payload = buildProgressPayload(lesson, progress, makeConsent(CONSENT_ANSWERS.NONE, [], T0), null);
         expect(payload.challenges.z).toBeUndefined();
+    });
+
+    test('should never send records done by the answer time that were not agreed to', () => {
+        // b: done before the answer and not listed → not sent (none / mine / cleared alike)
+        [CONSENT_ANSWERS.NONE, CONSENT_ANSWERS.MINE, CONSENT_ANSWERS.CLEARED].forEach((answer) => {
+            const consent = makeConsent(answer, answer === CONSENT_ANSWERS.MINE ? ['a'] : [], T3);
+            const payload = buildProgressPayload(lesson, progress, consent, null);
+            expect(payload.challenges.b).toBeUndefined();
+        });
+    });
+
+    test('should drop cleared records written back by another tab, but send newer ones', () => {
+        const cleared = makeConsent(CONSENT_ANSWERS.CLEARED, [], T1);
+        const payload = buildProgressPayload(lesson, progressOf({ a: T0, b: T2 }), cleared, null);
+        expect(payload.challenges).toEqual({ b: { completedAt: T2, before: false } });
+    });
+
+    test('should drop records and current with times the server cannot take', () => {
+        const consent = makeConsent(CONSENT_ANSWERS.NONE, [], '2000-01-01T00:00:00.000Z');
+        const payload = buildProgressPayload(lesson, progressOf({ a: '2019-06-01T00:00:00.000Z', b: T2 }), consent, {
+            challengeId: 'c',
+            openedAt: 'broken',
+        });
+        expect(payload).toEqual({ challenges: { b: { completedAt: T2, before: false } } });
     });
 });
 

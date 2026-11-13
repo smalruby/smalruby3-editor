@@ -7,8 +7,13 @@
 //     別に取っておかなくても、次に送るときに自然に入る（オフライン・API の失敗・席に入り直して行が
 //     作り直されたときも同じ）。
 //   - 最後に送れた中身で足りているときは送らない（席ごとの 1 分 20 回の上限を無駄に使わない）。
-//   - 「前」（before）は、その課題ではじめて送るときに端末にあった記録。本人の確認の答えと一緒に
+//   - 「前」（before）は、本人の確認で一覧に出して「わたしの記録です」と答えた記録。答えと一緒に
 //     端末に覚える（はじめての送信が失敗しても、次の送信で同じ「前」を送れる）。
+//   - 同意していない記録は送らない（ひとつの決まり・#1600 M1 / M2）: できた日時が答えた日時
+//     （decidedAt）以前で、beforeIds に無い記録は、前に使った人のものかもしれない。答えが「わたしの記録です」
+//     「記録が無かった」なら、その記録だけについてもう一度聞く（先生があとから課題にチャレンジを足したとき）。
+//     「消す」なら黙って捨てる（別のタブが消す前の記録を書き戻したとき）。答えのあとにできた記録はそのまま送る。
+//   - 送れない日時（読めない・2020 年より前）の記録は送らない（サーバーが 400 で送信ごと拒むため・FYI1）。
 import { assignmentChallengeRecords } from './assignment-progress';
 import { COURSES, findChallenge } from './courses';
 
@@ -28,17 +33,34 @@ export const CONSENT_ANSWERS = Object.freeze({
 
 const ANSWER_VALUES = Object.values(CONSENT_ANSWERS);
 
+// セッショントークンの短いハッシュ（FNV-1a 32bit）。参加した人を見分けるだけに使い、トークンそのものは
+// localStorage の答えのキーに残さない
+const shortHash = (text) => {
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    return hash.toString(16).padStart(8, '0');
+};
+
 /**
- * 本人の確認の答えを覚える単位。課題（= classroomId）× 席。共用のパソコンで、同じ課題に別の席で
- * 参加した人（前に使った人とは別の人）には、もう一度聞く（推奨で決めた）。
+ * 本人の確認の答えを覚える単位。課題（= classroomId）× 席 × 席に入った人（推奨で決めた・#1600 Q1）。
+ * サーバーは席の人が入れ替わる（参加した時刻が変わる）と行を作り直すので、クライアントも参加ごとに
+ * 聞き直す。席に入った人は、その端末で参加した時刻（セッションの `joinedAt`。参加するたびに変わる）で
+ * 見分け、無ければセッショントークンの短いハッシュで見分ける。同じ生徒が入り直したときも、もう一度聞く。
  * @param {?string} classroomId - 課題の id。
  * @param {?(number|string)} seatNumber - 席番号。
- * @returns {?string} キー。どちらかが無ければ null。
+ * @param {object} [occupant] - 席に入った人。
+ * @param {?string} [occupant.joinedAt] - 参加した時刻。
+ * @param {?string} [occupant.sessionToken] - セッショントークン（joinedAt が無いとき）。
+ * @returns {?string} キー。課題・席・人のどれかが分からなければ null。
  */
-export const consentKey = (classroomId, seatNumber) =>
-    classroomId && seatNumber !== null && typeof seatNumber !== 'undefined' && seatNumber !== ''
-        ? `${classroomId}#${seatNumber}`
-        : null;
+export const consentKey = (classroomId, seatNumber, { joinedAt = null, sessionToken = null } = {}) => {
+    if (!classroomId || seatNumber === null || typeof seatNumber === 'undefined' || seatNumber === '') return null;
+    const occupant = joinedAt ? `j${joinedAt}` : sessionToken ? `t${shortHash(sessionToken)}` : null;
+    return occupant ? `${classroomId}#${seatNumber}#${occupant}` : null;
+};
 
 const defaultStorage = () => {
     try {
@@ -108,41 +130,96 @@ export const saveConsent = (key, consent, storage = defaultStorage()) => {
     }
 };
 
-/**
- * 答えを作る。「わたしの記録です」なら、いま端末にある課題のチャレンジの記録を「前」にする。
- * @param {string} answer - CONSENT_ANSWERS のどれか。
- * @param {object} records - assignmentChallengeRecords の結果（答えたときのもの）。
- * @param {string} decidedAt - 答えた日時（ISO 文字列）。
- * @returns {object} `{answer, beforeIds, decidedAt}`。
- */
-export const makeConsent = (answer, records, decidedAt) => ({
-    answer,
-    beforeIds: answer === CONSENT_ANSWERS.MINE ? Object.keys(records).sort() : [],
-    decidedAt,
-});
+// サーバーが受け付ける日時の下限（`normalizeTimestamp` は 2020-01-01 より前を 400 で拒む）
+const MIN_TIMESTAMP_MS = Date.UTC(2020, 0, 1);
 
 /**
- * 送る前に本人の確認を出すか。まだ答えていない課題 × 席で、端末に課題のチャレンジの記録があるとき。
- * @param {?object} consent - loadConsent の結果。
+ * @param {*} value - 日時（ISO 文字列）。
+ * @returns {boolean} サーバーへ送れる日時（読める・2020 年以降）なら true。
+ */
+export const isSendableTimestamp = (value) => {
+    if (typeof value !== 'string') return false;
+    const ms = Date.parse(value);
+    return Number.isFinite(ms) && ms >= MIN_TIMESTAMP_MS;
+};
+
+const timeOf = (value) => {
+    const ms = Date.parse(value);
+    return Number.isFinite(ms) ? ms : null;
+};
+
+/**
+ * 同意していない記録の id（課題の並び順）。答えが無ければ、課題の記録の全部。答えがあれば、できた日時が
+ * 答えた日時以前で beforeIds に無いもの（前に使った人のものかもしれない）。日時が読めない記録も、同意して
+ * いないものとして扱う（送らない）。
+ * @param {?object} consent - 答え（loadConsent の結果）。
  * @param {object} records - assignmentChallengeRecords の結果。
- * @returns {boolean} 聞くなら true。
+ * @returns {Array<string>} id。
  */
-export const needsConfirmation = (consent, records) => !consent && Object.keys(records).length > 0;
+export const unconsentedIds = (consent, records) => {
+    const ids = Object.keys(records);
+    if (!consent) return ids;
+    const decided = timeOf(consent.decidedAt);
+    const before = new Set(consent.beforeIds);
+    return ids.filter((id) => {
+        if (before.has(id)) return false;
+        const done = timeOf(records[id].completedAt);
+        return decided === null || done === null || done <= decided;
+    });
+};
 
 /**
- * 本人の確認に出す記録の一覧（課題の並び順・知らないチャレンジは除く）。
+ * 本人の確認に出す記録の一覧（課題の並び順・この版のコースに無いチャレンジは除く）。同意していない
+ * 記録だけを出す（はじめては課題の記録の全部、聞き直しは新しく出てきたものだけ）。
  * @param {?object} lesson - normalizeAssignmentLesson の結果。
  * @param {object} records - assignmentChallengeRecords の結果。
+ * @param {?object} consent - 答え（はじめては null）。
  * @param {Array} [courses] - コース（テスト用）。
  * @returns {Array<{id: string, name: object, completedAt: string}>} 一覧（name はメッセージ記述子）。
  */
-export const confirmationItems = (lesson, records, courses = COURSES) => {
+export const confirmationItems = (lesson, records, consent, courses = COURSES) => {
     if (!lesson) return [];
+    const pending = new Set(unconsentedIds(consent, records));
     return lesson.challengeIds
-        .filter((id) => records[id])
+        .filter((id) => pending.has(id))
         .map((id) => ({ id, found: findChallenge(id, courses) }))
         .filter(({ found }) => found)
         .map(({ id, found }) => ({ id, name: found.challenge.name, completedAt: records[id].completedAt }));
+};
+
+/**
+ * 送る前に本人の確認を出すか。同意していない記録のうち、一覧に出せるもの（この版のコースにある
+ * チャレンジ）があるとき。答えが「消す」なら聞かない（黙って捨てる）。
+ * @param {?object} lesson - normalizeAssignmentLesson の結果。
+ * @param {?object} consent - 答え（loadConsent の結果）。
+ * @param {object} records - assignmentChallengeRecords の結果。
+ * @param {Array} [courses] - コース（テスト用）。
+ * @returns {boolean} 聞くなら true。
+ */
+export const needsConfirmation = (lesson, consent, records, courses = COURSES) =>
+    !(consent && consent.answer === CONSENT_ANSWERS.CLEARED) &&
+    confirmationItems(lesson, records, consent, courses).length > 0;
+
+/**
+ * 答えを作る。前の答えがあれば（聞き直し）、答えた日時はそのまま（答えたあとにできた記録を「前より前」に
+ * しない）、beforeIds は合わせる。
+ *   - MINE: 一覧に出した記録（shownIds）を「前」にする（出していない記録には同意していない・FYI3）
+ *   - NONE: はじめて送るとき、聞く記録が無かった
+ *   - CLEARED: 端末の記録を空にした。答えた日時を今にして、それより前の記録は（別のタブが書き戻しても）送らない
+ * @param {string} answer - CONSENT_ANSWERS のどれか。
+ * @param {Array<string>} shownIds - 一覧に出した記録の id（MINE のとき）。
+ * @param {string} decidedAt - 答えた日時（ISO 文字列）。
+ * @param {?object} [previous] - 前の答え。
+ * @returns {object} `{answer, beforeIds, decidedAt}`。
+ */
+export const makeConsent = (answer, shownIds, decidedAt, previous = null) => {
+    const beforeIds = new Set(previous ? previous.beforeIds : []);
+    if (answer === CONSENT_ANSWERS.MINE) shownIds.forEach((id) => beforeIds.add(id));
+    return {
+        answer,
+        beforeIds: [...beforeIds].sort(),
+        decidedAt: previous && answer !== CONSENT_ANSWERS.CLEARED ? previous.decidedAt : decidedAt,
+    };
 };
 
 /**
@@ -153,11 +230,14 @@ export const confirmationItems = (lesson, records, courses = COURSES) => {
  * @returns {?{challengeId: string, openedAt: string}} current。無ければ null（送らない）。
  */
 export const currentChallengeOf = (lesson, challengeId, openedAt) =>
-    lesson && challengeId && openedAt && lesson.challengeIds.includes(challengeId) ? { challengeId, openedAt } : null;
+    lesson && challengeId && isSendableTimestamp(openedAt) && lesson.challengeIds.includes(challengeId)
+        ? { challengeId, openedAt }
+        : null;
 
 /**
- * 送る中身（PUT /classrooms/{id}/lesson-progress の本文）。課題のチャレンジの記録を全部と、
- * 開いているときだけ current（閉じたときに null は送らない。先生の表は「できた」を優先して見せる）。
+ * 送る中身（PUT /classrooms/{id}/lesson-progress の本文）。課題のチャレンジの記録のうち、同意したもの
+ * （beforeIds にある・答えたあとにできた）を全部と、開いているときだけ current（閉じたときに null は
+ * 送らない。先生の表は「できた」を優先して見せる）。同意していない記録・送れない日時の記録は外す。
  * @param {?object} lesson - normalizeAssignmentLesson の結果。
  * @param {object} progress - 端末の記録。
  * @param {object} consent - 答え（beforeIds を「前」にする）。
@@ -165,13 +245,16 @@ export const currentChallengeOf = (lesson, challengeId, openedAt) =>
  * @returns {{challenges: object, current: (object|undefined)}} 本文。
  */
 export const buildProgressPayload = (lesson, progress, consent, current) => {
+    const records = assignmentChallengeRecords(lesson, progress);
+    const skipped = new Set(unconsentedIds(consent, records));
     const before = new Set(consent ? consent.beforeIds : []);
     const challenges = {};
-    Object.entries(assignmentChallengeRecords(lesson, progress)).forEach(([id, { completedAt }]) => {
+    Object.entries(records).forEach(([id, { completedAt }]) => {
+        if (skipped.has(id) || !isSendableTimestamp(completedAt)) return;
         challenges[id] = { completedAt, before: before.has(id) };
     });
     const payload = { challenges };
-    if (current) payload.current = current;
+    if (current && isSendableTimestamp(current.openedAt)) payload.current = current;
     return payload;
 };
 
