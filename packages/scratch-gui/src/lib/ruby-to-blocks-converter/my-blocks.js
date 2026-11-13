@@ -530,4 +530,5 @@ const MyBlocksConverter = {
     },
 };
 
+export { messages as myBlocksMessages };
 export default MyBlocksConverter;

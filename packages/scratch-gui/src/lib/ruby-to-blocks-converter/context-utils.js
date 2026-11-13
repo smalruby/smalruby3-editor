@@ -30,6 +30,10 @@ const ContextUtils = {
             methodCallIndices: {},
             // Whether a return value of a call is saved in a variable in the current statement (issue #1556)
             savedReturnValueInStatement: false,
+            // return value reporter id -> id of the method block it gives the value of (issue #1725)
+            returnValueSources: {},
+            // the numbers of `@_retN` the code already uses (issue #1725), found when first needed
+            returnValueTempsInSource: null,
             literalCallIndices: {},
             elsifCounter: 0,
             caseCounter: 0,
