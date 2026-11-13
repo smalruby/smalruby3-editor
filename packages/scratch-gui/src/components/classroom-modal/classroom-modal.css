@@ -24,7 +24,8 @@
 
 /* Student body: 1rem margins x2 + 3.125rem header + 8px modal border. */
 .student-body {
-    padding: 1rem 1.5rem;
+    /* Less top padding: the step band sits at the very top (#1792). */
+    padding: 0.75rem 1.5rem 1rem;
     max-height: calc(100vh - 5.125rem - 8px);
 }
 
@@ -237,8 +238,9 @@
 .status-card {
     background-color: #f2f2f2;
     border-radius: 8px;
-    padding: 1rem;
-    margin: 0.5rem 0 1rem;
+    /* Tighter than other cards so the step band above still fits 1300x600 (#1792). */
+    padding: 0.6rem 1rem;
+    margin: 0.5rem 0 0.6rem;
 }
 
 .status-row {

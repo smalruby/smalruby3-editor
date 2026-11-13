@@ -61,6 +61,9 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [errorActionLabel, setErrorActionLabel] = useState(null);
     const [errorActionHandler, setErrorActionHandler] = useState(null);
+    // The assignment panel opened from 「課題を見る」 rather than right after
+    // joining: the step band shows ④ instead of ③ (#1792).
+    const [assignmentReopened, setAssignmentReopened] = useState(false);
 
     const showError = useCallback((message, title = null) => {
         setError(message);
@@ -370,6 +373,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 // to continue from (#1201) and decide the start choices. Nothing
                 // is loaded until the student presses a choice; we jump straight
                 // to the assignment pages when there are any.
+                setAssignmentReopened(false);
                 const nextPhase = await studentAssignment.handleJoined(
                     data.sessionToken,
                     data.classroomId,
@@ -388,6 +392,12 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         },
         [dispatch, pendingJoinCode, pendingClassroomInfo, clearError, showError, intl, studentAssignment],
     );
+
+    const { handleOpenAssignment } = studentAssignment;
+    const handleReopenAssignment = useCallback(() => {
+        setAssignmentReopened(true);
+        return handleOpenAssignment();
+    }, [handleOpenAssignment]);
 
     const handleConfirmJoin = useCallback(() => joinSeat(selectedSeat), [joinSeat, selectedSeat]);
 
@@ -548,6 +558,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     return (
         <ClassroomModalComponent
             assignment={studentAssignment.assignment}
+            assignmentReopened={assignmentReopened}
             assignmentPageIndex={studentAssignment.assignmentPageIndex}
             classroomState={classroomState}
             continueOptions={studentAssignment.continueOptions}
@@ -562,7 +573,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             onLoadSubmission={studentAssignment.handleLoadSubmission}
             onAssignmentNextPage={studentAssignment.handleAssignmentNextPage}
             onAssignmentPrevPage={studentAssignment.handleAssignmentPrevPage}
-            onOpenAssignment={studentAssignment.handleOpenAssignment}
+            onOpenAssignment={handleReopenAssignment}
             onReloadStarter={studentAssignment.handleReloadStarter}
             onChooseStarter={studentAssignment.handleChooseStarter}
             errorActionHandler={errorActionHandler}

@@ -23,6 +23,10 @@ smalruby3-editor/
 │   │   │   │   ├── google-course-list.jsx ← GC コースタイルグリッド
 │   │   │   │   ├── kick-request-confirm-dialog.jsx ← 退室依頼ダイアログ (#692)
 │   │   │   │   ├── student-seat-selector.jsx ← 生徒の席選択（番号入力・案内・参加確認・依頼中表示）
+│   │   │   │   ├── student-step-band.jsx ← 生徒の画面の上の進む順の帯（① 参加〜⑤ 提出・済み/いま/まだ）
+│   │   │   │   ├── student-main-button.jsx ← 生徒の画面の主ボタン（大きい青・説明の小さい字つき・画面に 1 つ）
+│   │   │   │   ├── student-text-link.jsx ← 生徒の画面の小さな文字のリンク（主ボタン以外の操作）
+│   │   │   │   ├── student-screen-parts.css ← 上の 3 つの部品のスタイル
 │   │   │   │   ├── student-continue-choice.jsx ← 「どこから始めますか？」（スターター / 前回 / この課題の提出物）#1201
 │   │   │   │   ├── teacher-class-detail.jsx ← 先生の課題詳細 (退室リクエストバッジ + 退室通知バナー)
 │   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
@@ -94,6 +98,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── classroom-seat-selection.js ← 席選択の純粋ロジック（番号入力の検証・ポーリング判定・定数）
 │   │   │   ├── classroom-continue-options.js ← 続きに使える提出物の正規化・参加直後にどこから始めるかの判定 decideJoinStart（純粋）#1201 #1202
+│   │   │   ├── classroom-student-steps.js ← 進む順の帯の状態（画面と提出状況からいまの段を決める・純粋）
 │   │   │   ├── classroom-mesh-connect.js ← メッシュの接続モーダルを出すか / いま出せるかの判定（純粋）#1251
 │   │   │   ├── classroom-teacher-kick-alerts.js ← 先生の退室依頼通知の純粋ロジック（間隔・バックオフ・要約）
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth

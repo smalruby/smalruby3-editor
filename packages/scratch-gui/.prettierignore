@@ -241,6 +241,7 @@ src/lib/*
 !src/lib/classroom-lesson-progress.js
 !src/lib/classroom-lesson-summary.js
 !src/lib/classroom-lesson-description.js
+!src/lib/classroom-student-steps.js
 !src/lib/classroom-assignment-templates/
 !src/lib/classroom-assignment-templates/**
 !src/lib/classroom-evaluation/
@@ -521,6 +522,7 @@ test/unit/components/*
 !test/unit/components/menu-bar-help-menu.test.jsx
 !test/unit/components/menu-bar-lessons.test.jsx
 !test/unit/components/student-seat-selector.test.jsx
+!test/unit/components/student-screen-parts.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
 !test/unit/components/mobile-mode-notice.test.jsx
@@ -615,6 +617,7 @@ test/unit/lib/*
 !test/unit/lib/scratch-blocks-ime-patch.test.js
 !test/unit/lib/avatar-initials.test.js
 !test/unit/lib/classroom-api.test.js
+!test/unit/lib/classroom-student-steps.test.js
 !test/unit/lib/classroom-teacher-session.test.js
 !test/unit/lib/classroom-teacher-kick-alerts.test.js
 !test/unit/lib/classroom-teacher-panel.test.js
