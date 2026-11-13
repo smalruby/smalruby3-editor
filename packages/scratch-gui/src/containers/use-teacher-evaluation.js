@@ -20,6 +20,8 @@ import {
     chunk,
 } from '../lib/classroom-evaluation/evaluation-utils.js';
 import { analyzeProject } from '../lib/classroom-evaluation/sb3-analyzer.js';
+import { lessonScoresBySeat } from '../lib/classroom-lesson-summary.js';
+import { findCourse } from '../lib/lessons/courses.js';
 import translateError from './classroom-error-utils.js';
 
 const EVAL_CHUNK_SIZE = 10;
@@ -66,19 +68,26 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     // {label, done, total} while loading submissions / calling the AI
     const [evalProgress, setEvalProgress] = useState(null);
     const [comments, setComments] = useState({});
+    // classroomId → lessonScoresBySeat (null = cannot be scored) for lesson assignments (#1603)
+    const [lessonScores, setLessonScores] = useState({});
 
     const handleShowEvaluation = useCallback(
         (group) => {
             clearError();
             const lessons = (classrooms || [])
                 .filter((c) => c.groupId === group.groupId)
-                .map((c) => ({ classroomId: c.classroomId, assignmentName: c.assignmentName || '' }));
+                .map((c) => ({
+                    classroomId: c.classroomId,
+                    assignmentName: c.assignmentName || '',
+                    hasLesson: !!c.hasLesson,
+                }));
             setEvalGroup(group);
             setEvalLessons(lessons);
             setSelectedLessonIds(lessons.map((l) => l.classroomId));
             setMatrix({});
             setSeats([]);
             setComments({});
+            setLessonScores({});
             setEvalProgress(null);
             setPhase('teacher-evaluation');
         },
@@ -102,11 +111,28 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         clearError();
         const targets = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
         const nextMatrix = {};
+        const nextLessonScores = {};
         const seatSet = new Set();
         let done = 0;
         try {
             for (const lesson of targets) {
                 setEvalProgress({ label: lesson.assignmentName, done, total: targets.length });
+                if (lesson.hasLesson) {
+                    // The lesson score comes from the progress, not the work (#1603).
+                    // A failed fetch only leaves that column empty.
+                    const progressData = await classroomAPI
+                        .getLessonProgress(idToken, lesson.classroomId)
+                        .catch((err) => {
+                            if (err.status === 401) throw err;
+                            return null;
+                        });
+                    const saved = progressData && progressData.lesson;
+                    const scored = saved
+                        ? lessonScoresBySeat(progressData, findCourse(saved.courseId), Date.now())
+                        : null;
+                    nextLessonScores[lesson.classroomId] = scored;
+                    if (scored) Object.keys(scored.scores).forEach((seat) => seatSet.add(Number(seat)));
+                }
                 const data = await classroomAPI.listSubmissions(idToken, lesson.classroomId);
                 for (const submission of data.submissions || []) {
                     const seatNumber = seatFromMemberId(submission.memberId);
@@ -144,6 +170,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                 done++;
             }
             setMatrix(nextMatrix);
+            setLessonScores(nextLessonScores);
             setSeats([...seatSet].sort((a, b) => a - b));
         } catch (err) {
             if (err.status === 401) {
@@ -294,9 +321,9 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     const handleExportEvaluationCsv = useCallback(() => {
         downloadText(
             `${evalGroup?.name || 'class'}_採点結果.csv`,
-            buildEvaluationCsv(selectedLessons, seats, getCell),
+            buildEvaluationCsv(selectedLessons, seats, getCell, lessonScores),
         );
-    }, [evalGroup, selectedLessons, seats, getCell]);
+    }, [evalGroup, selectedLessons, seats, getCell, lessonScores]);
 
     const handleExportAuditCsv = useCallback(() => {
         downloadText(`${evalGroup?.name || 'class'}_検証用.csv`, buildAuditCsv(selectedLessons, seats, getCell));
@@ -348,6 +375,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         seats,
         matrix,
         comments,
+        lessonScores,
         rubricAxes,
         strictness,
         evalProgress,

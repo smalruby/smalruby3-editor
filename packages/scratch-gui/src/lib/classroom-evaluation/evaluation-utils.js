@@ -52,20 +52,59 @@ const csvField = (value) => {
 const toCsv = (rows) => `${'\ufeff'}${rows.map((row) => row.map(csvField).join(',')).join('\r\n')}`;
 
 /**
+ * The columns of the grading table and CSV (#1603). Each assignment has a
+ * work column (the AI-assisted grade), and a lesson assignment also has a
+ * 「レッスン」 column (the machine score from its progress) right after it.
+ * A lesson assignment whose students submit no work has only the lesson
+ * column. The two scores stay separate (EPIC #1592 D10 ③).
+ * @param {Array<object>} lessons - [{classroomId, assignmentName, hasLesson}]
+ * @param {object} [lessonScores] - classroomId → lessonScoresBySeat result (null = cannot be scored)
+ * @returns {Array<{lesson: object, kind: 'work'|'lesson'}>} columns in order
+ */
+const evaluationColumns = (lessons, lessonScores = {}) => {
+    const columns = [];
+    for (const lesson of lessons) {
+        const info = lessonScores[lesson.classroomId];
+        if (!(lesson.hasLesson && info && info.submitWork === false)) columns.push({ lesson, kind: 'work' });
+        if (lesson.hasLesson) columns.push({ lesson, kind: 'lesson' });
+    }
+    return columns;
+};
+
+/**
+ * The lesson score of a seat (null when it has no record or cannot be scored).
+ * @param {object} lessonScores - classroomId → lessonScoresBySeat result
+ * @param {string} classroomId - assignment
+ * @param {number} seatNumber - seat
+ * @returns {?number} score
+ */
+const lessonScoreOf = (lessonScores, classroomId, seatNumber) => {
+    const info = lessonScores && lessonScores[classroomId];
+    const score = info ? info.scores[seatNumber] : null;
+    return typeof score === 'number' ? score : null;
+};
+
+/**
  * Build the term-end evaluation CSV.
- * @param {Array<object>} lessons - [{classroomId, assignmentName}]
+ * @param {Array<object>} lessons - [{classroomId, assignmentName, hasLesson}]
  * @param {Array<number>} seats - Sorted seat numbers
  * @param {Function} getCell - (seatNumber, classroomId) => cell or null
+ * @param {object} [lessonScores] - classroomId → lessonScoresBySeat result (#1603)
  * @returns {string} CSV text
  */
-const buildEvaluationCsv = (lessons, seats, getCell) => {
+const buildEvaluationCsv = (lessons, seats, getCell, lessonScores = {}) => {
+    const columns = evaluationColumns(lessons, lessonScores);
     const header = ['出席番号'];
-    for (const lesson of lessons) {
-        header.push(
-            `${lesson.assignmentName}:提出`,
-            `${lesson.assignmentName}:評価`,
-            `${lesson.assignmentName}:評価理由`,
-        );
+    for (const { lesson, kind } of columns) {
+        if (kind === 'lesson') {
+            header.push(`${lesson.assignmentName}:レッスンの点`);
+        } else {
+            header.push(
+                `${lesson.assignmentName}:提出`,
+                `${lesson.assignmentName}:評価`,
+                `${lesson.assignmentName}:評価理由`,
+            );
+        }
     }
     header.push('総合評価');
 
@@ -73,7 +112,11 @@ const buildEvaluationCsv = (lessons, seats, getCell) => {
     for (const seatNumber of seats) {
         const row = [seatNumber];
         const grades = [];
-        for (const lesson of lessons) {
+        for (const { lesson, kind } of columns) {
+            if (kind === 'lesson') {
+                row.push(lessonScoreOf(lessonScores, lesson.classroomId, seatNumber));
+                continue;
+            }
             const cell = getCell(seatNumber, lesson.classroomId);
             row.push(cell && cell.submitted ? '○' : '×');
             row.push(cell?.grade || '');
@@ -138,6 +181,8 @@ export {
     GRADE_ORDER,
     combineOverall,
     buildEvaluationCsv,
+    evaluationColumns,
+    lessonScoreOf,
     buildAuditCsv,
     chunk,
     csvField,

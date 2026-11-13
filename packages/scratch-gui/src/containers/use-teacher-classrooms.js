@@ -6,6 +6,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
 import { summarizeAssignmentRow } from '../lib/classroom-assignment-utils.js';
+import { lessonClearedCount } from '../lib/classroom-lesson-summary.js';
+import { findCourse } from '../lib/lessons/courses.js';
 import translateError from './classroom-error-utils.js';
 
 // Marks a lesson progress fetch that failed (distinct from `null` = no lesson).
@@ -106,22 +108,40 @@ export const pickDetailEntryTab = ({ classroomId, requestedTab, freshlyCreatedId
 /**
  * Load what an opened board row shows (#1301) with the existing teacher APIs.
  * The description is optional: a failing getAssignment only drops that line.
+ * A lesson assignment also gets 「課題クリア N」 (#1603) from its progress;
+ * `lessonCleared` is null when it cannot be counted (failed fetch, a course
+ * this version does not have) and absent for an assignment without a lesson.
  * @param {object} api - classroom API client (classroomAPI)
  * @param {string} token - teacher ID token
- * @param {object} classroom - the assignment (classroomId, studentCount)
- * @returns {Promise<object>} summarizeAssignmentRow result
+ * @param {object} classroom - the assignment (classroomId, studentCount, hasLesson)
+ * @param {number} [now] - current time (ms epoch)
+ * @returns {Promise<object>} summarizeAssignmentRow result (+ lessonCleared)
  */
-export const fetchAssignmentRowSummary = async (api, token, classroom) => {
-    const [membersData, submissionsData, assignmentData] = await Promise.all([
+export const fetchAssignmentRowSummary = async (api, token, classroom, now = Date.now()) => {
+    const [membersData, submissionsData, assignmentData, progressData] = await Promise.all([
         api.listMembers(token, classroom.classroomId),
         api.listSubmissions(token, classroom.classroomId),
         api.getAssignment(token, classroom.classroomId).catch(() => null),
+        classroom.hasLesson ? api.getLessonProgress(token, classroom.classroomId).catch(() => null) : null,
     ]);
-    return summarizeAssignmentRow({
-        members: enrichMembers(membersData, submissionsData),
+    const members = enrichMembers(membersData, submissionsData);
+    const summary = summarizeAssignmentRow({
+        members,
         studentCount: classroom.studentCount,
         assignment: assignmentData && assignmentData.assignment,
     });
+    if (!classroom.hasLesson) return summary;
+    const lesson = progressData && progressData.lesson;
+    return {
+        ...summary,
+        lessonCleared: lessonClearedCount({
+            members,
+            progressData,
+            course: lesson ? findCourse(lesson.courseId) : null,
+            studentCount: classroom.studentCount,
+            now,
+        }),
+    };
 };
 
 /**

@@ -303,31 +303,52 @@ export const formatCsvTime = (iso) => {
 };
 
 /**
+ * The lesson cells of one seat for the CSVs: 課題クリア (「○」か空)・できた数
+ * (「前」もふくむ)・チャレンジごと（できた時刻か「前」か空）・得点（レッスンの点）.
+ * @param {?object} row - the seat's progress row
+ * @param {object} ctx - lessonProgressContext
+ * @param {number} now - current time (ms epoch)
+ * @returns {{cleared: string, done: number, times: object, score: ?number}} cells (`times`: id → text)
+ */
+export const lessonCsvCells = (row, ctx, now) => {
+    const progress = seatProgress(row, ctx, now);
+    const records = (row && row.challenges) || {};
+    const times = {};
+    for (const id of ctx.challengeIds) {
+        const kind = progress.cells[id];
+        if (kind === CELL_KINDS.BEFORE) times[id] = '前';
+        else if (kind === CELL_KINDS.DONE) times[id] = formatCsvTime(records[id] && records[id].completedAt);
+        else times[id] = '';
+    }
+    return {
+        cleared: progress.cleared ? '○' : '',
+        done: progress.done,
+        times,
+        score: computeLessonScore(ctx.lesson, progress.doneIds, ctx.course),
+    };
+};
+
+/**
  * The 「進み具合」 CSV: 出席番号・名前・課題クリア・できた数・チャレンジごと
  * （できた時刻か「前」か空）・得点（レッスンの点）. Rows in the given order.
  * @param {Array<object>} rows - progressTableRows (already sorted)
  * @param {object} rowsByMember - progressRowsByMember (for the times)
  * @param {object} ctx - lessonProgressContext
  * @param {Array<string>} challengeNames - column titles, in ctx.columns order
+ * @param {number} now - current time (ms epoch)
  * @returns {string} CSV text (BOM + CRLF)
  */
-export const buildLessonProgressCsv = (rows, rowsByMember, ctx, challengeNames) => {
+export const buildLessonProgressCsv = (rows, rowsByMember, ctx, challengeNames, now) => {
     const header = ['出席番号', '名前', '課題クリア', 'できた数', ...challengeNames, '得点'];
     const lines = rows.map((row) => {
-        const records = (rowsByMember[row.memberId] && rowsByMember[row.memberId].challenges) || {};
-        const cells = ctx.challengeIds.map((id) => {
-            const kind = row.progress.cells[id];
-            if (kind === CELL_KINDS.BEFORE) return '前';
-            if (kind === CELL_KINDS.DONE) return formatCsvTime(records[id] && records[id].completedAt);
-            return '';
-        });
+        const cells = lessonCsvCells(rowsByMember[row.memberId] || null, ctx, now);
         return [
             pad2(row.seatNumber),
             (row.member && row.member.displayName) || '',
-            row.progress.cleared ? '○' : '',
-            row.progress.done,
-            ...cells,
-            computeLessonScore(ctx.lesson, row.progress.doneIds, ctx.course),
+            cells.cleared,
+            cells.done,
+            ...ctx.challengeIds.map((id) => cells.times[id]),
+            cells.score,
         ];
     });
     return csvLines([header, ...lines]);

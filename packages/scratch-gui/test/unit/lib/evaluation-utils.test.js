@@ -4,6 +4,7 @@ import {
     chunk,
     combineOverall,
     csvField,
+    evaluationColumns,
 } from '../../../src/lib/classroom-evaluation/evaluation-utils';
 
 describe('combineOverall', () => {
@@ -85,5 +86,41 @@ describe('chunk', () => {
         expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
         expect(chunk([], 3)).toEqual([]);
         expect(chunk(null, 3)).toEqual([]);
+    });
+});
+
+describe('レッスンの点の列（#1603）', () => {
+    const lessons = [
+        { classroomId: 'c1', assignmentName: '第1回' },
+        { classroomId: 'c2', assignmentName: 'レッスン', hasLesson: true },
+        { classroomId: 'c3', assignmentName: '作品も', hasLesson: true },
+    ];
+    const lessonScores = {
+        c2: { total: 100, submitWork: false, scores: { 1: 78 } },
+        c3: { total: 50, submitWork: true, scores: { 2: 50 } },
+    };
+    const getCell = (seat, cid) => (seat === 1 && cid === 'c1' ? { submitted: true, grade: 'A', reason: 'r' } : null);
+
+    test('作品の列のすぐ横に「レッスン」の列。作品を出さない課題はレッスンの列だけ', () => {
+        expect(evaluationColumns(lessons, lessonScores).map((c) => `${c.lesson.classroomId}:${c.kind}`)).toEqual([
+            'c1:work',
+            'c2:lesson',
+            'c3:work',
+            'c3:lesson',
+        ]);
+    });
+
+    test('採点できない（無いコース）ときは作品の列も残す', () => {
+        expect(evaluationColumns([lessons[1]], { c2: null }).map((c) => c.kind)).toEqual(['work', 'lesson']);
+    });
+
+    test('CSV: <課題>:レッスンの点（記録の無い席は空）・総合評価は作品の評価だけで出す', () => {
+        const lines = buildEvaluationCsv(lessons, [1, 2], getCell, lessonScores).slice(1).split('\r\n');
+        expect(lines[0]).toBe(
+            '出席番号,第1回:提出,第1回:評価,第1回:評価理由,レッスン:レッスンの点,' +
+                '作品も:提出,作品も:評価,作品も:評価理由,作品も:レッスンの点,総合評価',
+        );
+        expect(lines[1]).toBe('1,○,A,r,78,×,,,,A');
+        expect(lines[2]).toBe('2,×,,,,×,,,50,');
     });
 });

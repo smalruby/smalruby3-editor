@@ -74,13 +74,39 @@ export const csvLines = (lines) => `${'\ufeff'}${lines.map((row) => row.map(csvF
 
 /**
  * Build the submission status CSV for the class-wide zip.
- * @param {Array<object>} rows - [{assignmentName, seat, name, projectName, submittedAt, status}]
+ *
+ * When any assignment has a lesson (EPIC #1592 / #1603), the lesson columns
+ * come after the existing ones: 課題クリア・できた数・得点（レッスンの点）, then
+ * one column per challenge (できた時刻か「前」か空). The challenge columns are
+ * last because their number changes with the assignments in the file, so the
+ * fixed columns stay in the same place. Rows of assignments without a lesson
+ * leave them empty.
+ * @param {Array<object>} rows - [{assignmentName, seat, name, projectName, submittedAt, status,
+ *   lesson?: {cleared, done, score, times}}]
+ * @param {?Array<{id: string, name: string}>} [challengeColumns] - lesson challenge columns
+ *   (null / omitted when no assignment has a lesson: the CSV keeps its old columns)
  * @returns {string} CSV text (U+FEFF BOM + CRLF rows, Excel-friendly)
  */
-export const buildSubmissionsCsv = (rows) => {
+export const buildSubmissionsCsv = (rows, challengeColumns = null) => {
     const header = ['課題名', '出席番号', '名前', '作品名', '提出日時', '状態'];
+    const withLesson = Array.isArray(challengeColumns);
+    if (withLesson) header.push('課題クリア', 'できた数', '得点', ...challengeColumns.map((c) => c.name));
     return csvLines([
         header,
-        ...(rows || []).map((r) => [r.assignmentName, r.seat, r.name, r.projectName, r.submittedAt, r.status]),
+        ...(rows || []).map((r) => {
+            const cells = [r.assignmentName, r.seat, r.name, r.projectName, r.submittedAt, r.status];
+            if (!withLesson) return cells;
+            const lesson = r.lesson;
+            if (!lesson) return [...cells, '', '', '', ...challengeColumns.map(() => '')];
+            return [
+                ...cells,
+                lesson.cleared,
+                lesson.done,
+                lesson.score,
+                ...challengeColumns.map((c) =>
+                    Object.prototype.hasOwnProperty.call(lesson.times, c.id) ? lesson.times[c.id] : '',
+                ),
+            ];
+        }),
     ]);
 };

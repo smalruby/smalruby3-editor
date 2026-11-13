@@ -69,4 +69,35 @@ describe('fetchAssignmentRowSummary (#1301)', () => {
         expect(summary.descriptionLine).toBe('');
         expect(summary.joined).toBe(2);
     });
+
+    test('レッスンの課題は課題クリアの数も出す（#1603）', async () => {
+        const lesson = {
+            courseId: 'kyou-kara-programmer',
+            challengeIds: ['blocks-l1-key-sound'],
+            requiredChallengeIds: [],
+            completion: { type: 'all' },
+            submitWork: false,
+            scoring: null,
+        };
+        const progress = [
+            {
+                memberId: 'seat-01',
+                seatNumber: 1,
+                challenges: { 'blocks-l1-key-sound': { completedAt: '2026-11-15T01:00:00Z' } },
+                current: null,
+                updatedAt: '2026-11-15T01:00:00Z',
+            },
+        ];
+        const a = api({ getLessonProgress: jest.fn().mockResolvedValue({ lesson, progress }) });
+        const summary = await fetchAssignmentRowSummary(a, 'tok', { classroomId: 'c1', studentCount: 30, hasLesson: true });
+        expect(a.getLessonProgress).toHaveBeenCalledWith('tok', 'c1');
+        expect(summary.lessonCleared).toBe(1);
+    });
+
+    test('レッスンの無い課題は進み具合を取りに行かない', async () => {
+        const a = api({ getLessonProgress: jest.fn() });
+        const summary = await fetchAssignmentRowSummary(a, 'tok', { classroomId: 'c1', studentCount: 30 });
+        expect(a.getLessonProgress).not.toHaveBeenCalled();
+        expect(summary).not.toHaveProperty('lessonCleared');
+    });
 });

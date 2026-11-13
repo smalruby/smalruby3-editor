@@ -303,6 +303,16 @@ const AssignmentRow = ({
                     onClick={handleToggle}
                 >
                     <span className={styles.boardRowName}>{classroom.assignmentName || classroom.className}</span>
+                    {/* レッスンの課題の印 (#1603): 文字のラベル（R5）。 */}
+                    {classroom.hasLesson ? (
+                        <span className={styles.boardRowLessonMark} data-testid={`classroom-board-lesson-mark-${id}`}>
+                            <FormattedMessage
+                                defaultMessage="Lesson"
+                                description="Per-row label on an assignment that uses a lesson (EPIC #1592)"
+                                id="gui.classroom.board.lessonMark"
+                            />
+                        </span>
+                    ) : null}
                     {/* 共有推奨マーク (#1106): 運営が共有をおすすめした課題。 */}
                     {classroom.recommendedForSharing ? (
                         <span
@@ -476,6 +486,24 @@ const AssignmentRow = ({
                                 />
                             )}
                         </span>
+                        {loaded && classroom.hasLesson ? (
+                            <span
+                                className={styles.boardRowMeta}
+                                data-testid={`classroom-board-row-lesson-cleared-${id}`}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Cleared {cleared}"
+                                    description="Opened row of a lesson assignment: how many students cleared it (EPIC #1592)"
+                                    id="gui.classroom.board.rowLessonCleared"
+                                    values={{
+                                        cleared:
+                                            typeof summary.data.lessonCleared === 'number'
+                                                ? summary.data.lessonCleared
+                                                : '-',
+                                    }}
+                                />
+                            </span>
+                        ) : null}
                     </div>
                     {loaded && summary.data.descriptionLine ? (
                         <p
@@ -555,6 +583,7 @@ AssignmentRow.propTypes = {
             capacity: PropTypes.number,
             descriptionLine: PropTypes.string,
             joined: PropTypes.number,
+            lessonCleared: PropTypes.number,
             submitted: PropTypes.number,
         }),
         failed: PropTypes.bool,
