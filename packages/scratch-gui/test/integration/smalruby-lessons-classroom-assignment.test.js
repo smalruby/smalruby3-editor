@@ -132,7 +132,7 @@ const installClassroomStub = (lesson) =>
             const route = routes.find(([re]) => re.test(href.split('#')[0]));
             if (!route) return original(url, options);
             const method = (options && options.method) || 'GET';
-            window.__classroomCalls.push(method + ' ' + href.replace(/^.*?(\\/(classroom|notification|kick))/, '$1'));
+            window.__classroomCalls.push(method + ' ' + href.replace(/^https?:\\/\\/[^/]+/, ''));
             return Promise.resolve(new Response(JSON.stringify(route[1]()), {
                 status: 200,
                 headers: {'Content-Type': 'application/json'}
