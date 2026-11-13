@@ -80,7 +80,7 @@ const NAME_HEAD_RE = new RegExp(`[a-z_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9
  */
 const findRubyLocalNames = (lines) => {
     const names = new Set();
-    const assign = new RegExp(`^([${ID}]+)\\s*(?:[-+*/%]|\\|\\||&&)?=(?![=~>])`);
+    const assign = new RegExp(`^([${ID}]+(?:\\s*,\\s*[${ID}]+)*)\\s*(?:[-+*/%]|\\|\\||&&)?=(?![=~>])`);
     const def = new RegExp(`^def\\s+([${ID}]+[?!]?)\\s*(?:\\(([^)]*)\\)|(.*))?$`);
     const splitParams = (text) =>
         (text || '')
@@ -96,7 +96,8 @@ const findRubyLocalNames = (lines) => {
         const code = codeWithoutStrings(line);
         const trimmed = code.trim();
         const a = trimmed.match(assign);
-        if (a) names.add(a[1]);
+        // `a, b = 1, 2` assigns each name.
+        if (a) splitParams(a[1]).forEach((name) => names.add(name));
         const d = trimmed.match(def);
         if (d) {
             names.add(d[1]);
@@ -150,9 +151,12 @@ const bareNamesOf = (code) => {
  * @param {Array<string>} lines - The Ruby lines without their comments.
  * @param {Array<string>} dnclLines - The DNCL lines.
  * @param {Array<number>} origins - The index of the Ruby line of each DNCL line.
+ * @param {Map<number, number>} folded - The Ruby lines written in the DNCL
+ *   line of another Ruby line (the `while` and the increment of a counting
+ *   loop are in the header made from its `@i = 1`), to the index of that line.
  * @returns {Array<object>} Errors with `line`, `column`, `id`, `name` and `message`.
  */
-const findBareMethods = (lines, dnclLines, origins) => {
+const findBareMethods = (lines, dnclLines, origins, folded) => {
     const locals = findRubyLocalNames(lines);
     const known = (name) =>
         RUBY_KEYWORDS.has(name) || RUBY_LITERALS.has(name) || DNCL_KEYWORDS.has(name) || locals.has(name);
@@ -166,7 +170,7 @@ const findBareMethods = (lines, dnclLines, origins) => {
     });
     const errors = [];
     lines.forEach((line, index) => {
-        const inDncl = dnclNamesByLine.get(index);
+        const inDncl = dnclNamesByLine.get(folded.has(index) ? folded.get(index) : index);
         if (!inDncl) return;
         bareNamesOf(codeWithoutStrings(line)).forEach(({ name, index: column }) => {
             if (known(name) || !inDncl.has(name)) return;
@@ -212,6 +216,8 @@ const rubyToDncl = (source) => {
         origins.push(origin);
     };
     const errors = [];
+    // Ruby lines put in the DNCL line of another one (see `findBareMethods`).
+    const folded = new Map();
     let skipNext = false;
 
     for (let i = 0; i < lines.length; i++) {
@@ -259,6 +265,8 @@ const rubyToDncl = (source) => {
                         `${parts[i].comment}${parts[i + 1].comment}`,
                         i,
                     );
+                    folded.set(i + 1, i);
+                    folded.set(counting.incIndex, i);
                     skipNext = true;
                     continue;
                 }
@@ -326,7 +334,7 @@ const rubyToDncl = (source) => {
     });
     // A method without parentheses in an expression (issue #1694); a name
     // already told above (a name alone on a line) is not told again.
-    findBareMethods(lines, dnclLines, origins).forEach((err) => {
+    findBareMethods(lines, dnclLines, origins, folded).forEach((err) => {
         const told = errors.some(
             (e) => e.id === UNSUPPORTED_COMMAND_ERROR_ID && e.line === err.line && e.name === err.name,
         );

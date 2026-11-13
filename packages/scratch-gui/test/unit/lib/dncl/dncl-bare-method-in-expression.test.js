@@ -33,6 +33,16 @@ describe('Ruby → DNCL: a method without parentheses in an expression (issue #1
         ]);
     });
 
+    test('a method in the bound or the step of a counting loop', () => {
+        // The `while` and the increment are written in the header made from `@i = 1`.
+        expect(
+            rubyErrors(lines('@i = 1', 'while @i <= x_position', '  puts(@i)', '  @i += costume_number', 'end')),
+        ).toEqual([
+            { line: 2, column: 13, name: 'x_position' },
+            { line: 4, column: 9, name: 'costume_number' },
+        ]);
+    });
+
     test('the error message points to the Ruby mode', () => {
         const [err] = rubyToDncl('@a = x_position').errors;
         expect(err.message).toContain('x_position');
@@ -53,6 +63,10 @@ describe('Ruby → DNCL: names that stay as they are (issue #1694)', () => {
         expect(rubyErrors(lines('b = 2', '@a = 1 + b'))).toEqual([]);
     });
 
+    test('Ruby local variables assigned together', () => {
+        expect(rubyErrors(lines('a, b = 1, 2', 'puts(a + b)'))).toEqual([]);
+    });
+
     test('a method parameter', () => {
         expect(rubyErrors(lines('def f(x)', '  return x * 2', 'end', '@a = f(3)'))).toEqual([]);
     });
@@ -69,16 +83,20 @@ describe('Ruby → DNCL: names that stay as they are (issue #1694)', () => {
     test('answer, rand and the built-in functions', () => {
         expect(
             rubyErrors(
-                lines('ask("")', '@a = answer', '@b = rand(1..6)', '@c = @a.to_i + @b.length', 'puts(true && !false)'),
+                lines(
+                    'ask("")',
+                    '@a = answer',
+                    '@b = rand(1..6)',
+                    '@c = @a.to_i + @b.length',
+                    'puts(true && !false)',
+                ),
             ),
         ).toEqual([]);
     });
 
     test('instance and global variables, constants and keywords', () => {
         expect(
-            rubyErrors(
-                lines('@a = $b + @_var_c_ + Math.sqrt(4)', 'if @a > 1 and not @a == 2', '  @a = nil', 'end'),
-            ),
+            rubyErrors(lines('@a = $b + @_var_c_ + Math.sqrt(4)', 'if @a > 1 and not @a == 2', '  @a = nil', 'end')),
         ).toEqual([]);
     });
 
