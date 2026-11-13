@@ -185,6 +185,30 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
                 expect(blockOf(target, 'data_addtolist').fields.LIST.id).toBe('l1');
                 expect(Object.values(owner.variables).some((v) => v.name === '_score_list2_')).toBe(true);
             });
+
+            test('@_score_list3_ is a variable of its own when _score_list_ is free', async () => {
+                // `@_score_list2_` is not the list then, but that does not make `@_score_list3_` the list.
+                const { target, owner, converter } = setup(false, []);
+                await expectRoundTrip(converter, target, '@score = 0\n@_score_list_.push(1)\n@_score_list3_.push(2)');
+                const lists = Object.values(target.blocks._blocks)
+                    .filter((b) => b.opcode === 'data_addtolist')
+                    .map((b) => b.fields.LIST.value);
+                expect(lists.sort()).toEqual(['_score_list3_', 'score']);
+                expect(Object.values(owner.variables).some((v) => v.name === '_score_list3_')).toBe(true);
+            });
+
+            test('a large number is a name of its own and does not overflow the stack', async () => {
+                const { target, converter } = setup(false, [['o1', '_score_list_', Variable.SCALAR_TYPE]]);
+                await expectRoundTrip(converter, target, '@score = 0\n@_score_list50000_.push(1)');
+                expect(converter.errors).toEqual([]);
+                expect(blockOf(target, 'data_addtolist').fields.LIST.value).toBe('_score_list50000_');
+            });
+
+            test('a message of the stage named _score_list_ does not move the list', async () => {
+                const { target, converter } = setup(true, [['b1', '_score_list_', 'broadcast_msg']]);
+                await expectRoundTrip(converter, target, '$score = 0\n$_score_list_.push(1)');
+                expect(blockOf(target, 'data_addtolist').fields.LIST.id).toBe('l1');
+            });
         });
     });
 

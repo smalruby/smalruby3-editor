@@ -62,7 +62,13 @@ export default function (Generator) {
      */
     Generator.rubyBaseNameOfVariable = function (owner, variable) {
         if (!this.isListBesideVariable(owner, variable)) return variable.name;
-        const names = new Set(Object.values((owner && owner.variables) || {}).map((v) => v.name));
+        // Only variables and lists have a Ruby name: a message of the stage named `_a_list_` is not
+        // in the way, and the converter does not skip it either.
+        const names = new Set(
+            Object.values((owner && owner.variables) || {})
+                .filter((v) => v.type === SCALAR_TYPE || v.type === LIST_TYPE)
+                .map((v) => v.name),
+        );
         let name = `_${variable.name}_list_`;
         for (let n = 2; names.has(name); n++) {
             name = `_${variable.name}_list${n}_`;

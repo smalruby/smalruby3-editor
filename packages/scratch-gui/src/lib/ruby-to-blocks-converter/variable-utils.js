@@ -562,8 +562,9 @@ const VariableUtils = {
      * sprite already has something of that name, when the code sets it to a number or a string,
      * or when nothing named `a` is there.
      * When `_a_list_` is itself, the generator names the list `@_a_list2_` (then `@_a_list3_`, ...,
-     * issue #1707): `@_a_list2_` is the list `a` only when `@_a_list_` is itself, so a name that
-     * the user wrote for a variable of its own keeps meaning that variable.
+     * issue #1707): `@_a_list3_` is the list `a` only when `@_a_list_` and `@_a_list2_` are both
+     * the user's own, so a name that the user wrote for a variable of its own keeps meaning that
+     * variable.
      * @param {string} rubyName - The Ruby name (`@_a_list_`, `$_a_list_`, `@_a_list2_`).
      * @returns {?string} The name of the list in Scratch (`a`), or null when the name is itself.
      */
@@ -575,16 +576,20 @@ const VariableUtils = {
         const [, prefix, name, number] = match;
         const n = number ? Number(number) : 1;
         const scope = prefix === '$' ? 'global' : 'instance';
-        const use = this._context.variableUses && this._context.variableUses[rubyName];
         const names = this._context.rubyVariableNames || new Set();
+        // A name is the user's own when the sprite has it or the code sets it to a number or a string.
+        const isTaken = (k) => {
+            const aliasName = listAliasName(prefix, name, k);
+            const use = this._context.variableUses && this._context.variableUses[aliasName];
+            return Boolean(use && use.scalar && !use.list) || this._ownerHasVariable(scope, aliasName.slice(1), null);
+        };
         let listName = null;
-        if (
-            !(use && use.scalar && !use.list) &&
-            !this._ownerHasVariable(scope, rubyName.slice(1), null) &&
-            (this._ownerHasVariable(scope, name, null) || names.has(`${prefix}${name}`)) &&
-            (n === 1 || this._listNameOfAlias(listAliasName(prefix, name, n - 1)) === null)
-        ) {
-            listName = name;
+        if (this._ownerHasVariable(scope, name, null) || names.has(`${prefix}${name}`)) {
+            // The list is the first name that is not taken, as the generator chooses it. The loop
+            // stops there, so a large number (`@_a_list99999_`) does not try every name before it.
+            let k = 1;
+            while (k < n && isTaken(k)) k++;
+            if (k === n && !isTaken(n)) listName = name;
         }
         aliases[rubyName] = listName;
         return listName;
