@@ -7,6 +7,7 @@
  * the challenges whose contents are in (task / palette / hints / goal / code).
  */
 import { allowedBlockOpcode } from '../../../../src/lib/lessons/block-defaults';
+import { setupForChallenge } from '../../../../src/lib/lessons/challenge-setup';
 import {
     CATEGORIES,
     COURSES,
@@ -223,6 +224,27 @@ describe('lesson courses', () => {
         const lesson = defineLesson({ id: 'l', challenges: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] });
         expect(lesson.name.id).toBe('gui.lessons.lesson.l.name');
         expect(lesson.challenges.map((c) => c.number)).toEqual([1, 2, 3]);
+    });
+
+    // 日本語モードに切りかえてよいか（#1741）。書いていなければ切りかえ不可
+    test('defineLesson does not allow the Japanese mode unless the lesson says so', () => {
+        expect(defineLesson({ id: 'l', challenges: [] }).allowDnclMode).toBe(false);
+        expect(defineLesson({ id: 'l', challenges: [], allowDnclMode: true }).allowDnclMode).toBe(true);
+    });
+
+    test('every lesson that starts a challenge in the Japanese mode allows the Japanese mode', () => {
+        for (const course of COURSES) {
+            for (const lesson of course.lessons) {
+                const startsInDncl = lesson.challenges.some(
+                    (challenge) => setupForChallenge(course, challenge).rubyMode === 'dncl',
+                );
+                if (startsInDncl)
+                    expect({ lesson: lesson.id, allowDnclMode: lesson.allowDnclMode }).toEqual({
+                        lesson: lesson.id,
+                        allowDnclMode: true,
+                    });
+            }
+        }
     });
 
     test('findChallenge returns the course and lesson the challenge belongs to', () => {

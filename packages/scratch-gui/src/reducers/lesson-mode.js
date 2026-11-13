@@ -243,6 +243,17 @@ const getLessonAllowedBlocks = (state) => {
 };
 
 /**
+ * Ruby タブを日本語モードに切りかえてよいか。レッスンモードでなければ切りかえてよい。レッスンモードの
+ * あいだは、いまのレッスンの `allowDnclMode`（書いていなければ不可・#1741）。
+ * @param {object} state - Redux の state。
+ * @returns {boolean} 切りかえてよいとき true。
+ */
+const getLessonDnclModeAllowed = (state) => {
+    const found = getCurrentChallenge(state);
+    return found ? found.lesson.allowDnclMode === true : true;
+};
+
+/**
  * ヒントの吹き出しの状態（見た目は吹き出しの実装が作る）。
  * @param {object} state - Redux の state。
  * @returns {?{visible: boolean, index: number, count: number, step: ?object, spotlight: boolean,
@@ -291,5 +302,6 @@ export {
     isLessonMode,
     getCurrentChallenge,
     getLessonAllowedBlocks,
+    getLessonDnclModeAllowed,
     getCurrentHint,
 };

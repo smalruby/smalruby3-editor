@@ -167,6 +167,8 @@ const RubyToolbar = (props) => {
 
     const handleSelectDnclMode = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
+        // The lesson does not allow the Japanese mode (#1741): the button is disabled, this is a guard
+        if (props.dnclModeLocked) return;
         trackModeSwitch('dncl');
         // Switch to DNCL mode (disable furigana since DNCL is already in Japanese)
         if (!props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
@@ -348,14 +350,18 @@ const RubyToolbar = (props) => {
                         >
                             {'Ruby'}
                         </button>
+                        {/* A lesson that does not allow the Japanese mode locks this button (#1741):
+                            its palette filter would hide the blocks of the challenge */}
                         <button
                             className={`${styles.modeToggleItem} ${
                                 props.dnclMode ? styles.modeToggleItemActive : ''
-                            }`}
+                            } ${props.dnclModeLocked ? styles.modeToggleItemDisabled : ''}`}
                             data-testid="ruby-toolbar-mode-dncl"
-                            disabled={props.dnclValidating}
+                            disabled={props.dnclValidating || props.dnclModeLocked}
                             onClick={handleSelectDnclMode}
-                            title={intl.formatMessage(messages.modeDncl)}
+                            title={intl.formatMessage(
+                                props.dnclModeLocked ? messages.modeDnclLockedInLesson : messages.modeDncl,
+                            )}
                         >
                             {props.dnclValidating ? (
                                 <Spinner small level="info" />
@@ -436,6 +442,7 @@ RubyToolbar.propTypes = {
     canRedo: PropTypes.bool,
     dnclMode: PropTypes.bool,
     dnclValidating: PropTypes.bool,
+    dnclModeLocked: PropTypes.bool,
     onToggleDnclMode: PropTypes.func,
     furiganaEnabled: PropTypes.bool,
     onToggleFurigana: PropTypes.func,

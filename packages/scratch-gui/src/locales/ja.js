@@ -1487,6 +1487,7 @@ export default {
     'gui.rubyToolbar.modeFuriganaLine2': 'Ruby',
     'gui.rubyToolbar.modeRuby': 'Rubyモード',
     'gui.rubyToolbar.modeDncl': '日本語モード',
+    'gui.rubyToolbar.modeDnclLockedInLesson': 'このレッスンでは日本語モードに切りかえられません',
     'gui.rubyToolbar.stopExecution': '実行を停止',
     'gui.rubyToolbar.search': '検索',
     'gui.rubyToolbar.keyboardShow': 'キーボードを表示',
