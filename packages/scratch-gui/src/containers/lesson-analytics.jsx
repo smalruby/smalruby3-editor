@@ -1,14 +1,20 @@
 // レッスンの使われ方を GA に送るコンテナ（描画はしない）。gui.jsx に常時マウントする。
 // state の変わり目から送るイベントを決めるのは lib/lessons/lesson-analytics.js の
 // stepLessonAnalytics（純粋関数）で、ここは state を渡して analytics.event に送るだけ。
-// レッスン表・課題バー・ヒントは生徒（ふつうのエディタ）の画面にだけあるので、先生の画面からは送られない。
+// 先生（クラス管理にログイン中）のときは送らない（stepLessonAnalytics が覚えだけ進める）。
+// 覚え（どこまで送ったか）はモジュールに 1 つ持つ（lesson-analytics.js の sharedMemo）。PC 表示と
+// スマホ表示の切りかえでこのコンテナがマウントし直されても、二重に送らず、滞在時間も続けて測る。
+// 秒は、タブが裏にあった時間を引いた時計（activeNow）で測る。
 import PropTypes from 'prop-types';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { connect } from 'react-redux';
 import analytics from '../lib/analytics';
 import {
-    createLessonAnalyticsMemo,
+    activeNow,
+    getSharedLessonAnalyticsMemo,
+    installVisibilityTracking,
     lessonAnalyticsSnapshot,
+    setSharedLessonAnalyticsMemo,
     stepLessonAnalytics,
 } from '../lib/lessons/lesson-analytics';
 
@@ -23,10 +29,13 @@ const LessonAnalytics = ({
     justCompletedId = null,
     libraryVisible = false,
     libraryFocus = false,
-    now = Date.now,
+    teacherLoggedIn = false,
+    now = activeNow,
     send = analytics.event,
 }) => {
-    const memoRef = useRef(createLessonAnalyticsMemo());
+    useEffect(() => {
+        installVisibilityTracking();
+    }, []);
     useEffect(() => {
         const snapshot = {
             courseId,
@@ -39,9 +48,10 @@ const LessonAnalytics = ({
             justCompletedId,
             libraryVisible,
             libraryFocus,
+            teacherLoggedIn,
         };
-        const { memo, events } = stepLessonAnalytics(memoRef.current, snapshot, now());
-        memoRef.current = memo;
+        const { memo, events } = stepLessonAnalytics(getSharedLessonAnalyticsMemo(), snapshot, now());
+        setSharedLessonAnalyticsMemo(memo);
         events.forEach((event) => {
             try {
                 send(event);
@@ -60,6 +70,7 @@ const LessonAnalytics = ({
         justCompletedId,
         libraryVisible,
         libraryFocus,
+        teacherLoggedIn,
         now,
         send,
     ]);
@@ -77,6 +88,8 @@ LessonAnalytics.propTypes = {
     lessonId: PropTypes.string,
     libraryFocus: PropTypes.bool,
     libraryVisible: PropTypes.bool,
+    // 先生がクラス管理にログイン中か（そのときは送らない）
+    teacherLoggedIn: PropTypes.bool,
     // テスト用: 時計と送り先
     now: PropTypes.func,
     send: PropTypes.func,

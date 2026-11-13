@@ -58,6 +58,7 @@ const LessonMode = ({
     onStartChallenge,
     pendingChallengeId,
     projectChanged,
+    teacherLoggedIn = false,
     toastVisible,
     vm,
 }) => {
@@ -154,14 +155,14 @@ const LessonMode = ({
 
     // 課題バーのボタンの GA 計測（どのチャレンジで押したか。lib/lessons/lesson-analytics.js）
     const handleQuit = useCallback(() => {
-        sendLessonEvent(LESSON_EVENTS.OTHER_CHALLENGE, current, fromAssignment);
+        sendLessonEvent(LESSON_EVENTS.OTHER_CHALLENGE, current, { fromAssignment, teacherLoggedIn });
         onCloseLesson();
-    }, [current, fromAssignment, onCloseLesson]);
+    }, [current, fromAssignment, onCloseLesson, teacherLoggedIn]);
 
     const handleEnd = useCallback(() => {
-        sendLessonEvent(LESSON_EVENTS.LESSON_END, current, fromAssignment);
+        sendLessonEvent(LESSON_EVENTS.LESSON_END, current, { fromAssignment, teacherLoggedIn });
         onEndLesson();
-    }, [current, fromAssignment, onEndLesson]);
+    }, [current, fromAssignment, onEndLesson, teacherLoggedIn]);
 
     if (!current) return null;
     // ヒントの吹き出し（containers/lesson-hint.jsx）は document.body に portal で出るので、
@@ -217,6 +218,8 @@ LessonMode.propTypes = {
     onStartChallenge: PropTypes.func.isRequired,
     pendingChallengeId: PropTypes.string,
     projectChanged: PropTypes.bool.isRequired,
+    // 先生（クラス管理にログイン中）か（GA に送らない）
+    teacherLoggedIn: PropTypes.bool,
     toastVisible: PropTypes.bool,
     vm: PropTypes.object,
 };
@@ -227,6 +230,8 @@ const mapStateToProps = (state) => {
         current: getCurrentChallenge(state),
         dnclMode: state.scratchGui.dnclMode.dnclMode,
         fromAssignment: Boolean(state.scratchGui.lessonMode.fromAssignment),
+        // 先生（クラス管理にログイン中）のときは GA に送らない
+        teacherLoggedIn: Boolean(state.scratchGui.classroom && state.scratchGui.classroom.teacherLoggedIn),
         hint: getCurrentHint(state),
         isAnyCreatingNewState: getIsAnyCreatingNewState(loadingState),
         isShowingProject: getIsShowingProject(loadingState),

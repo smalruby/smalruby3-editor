@@ -2,6 +2,7 @@
 import { render } from '@testing-library/react';
 import React from 'react';
 import { LessonAnalytics } from '../../../src/containers/lesson-analytics.jsx';
+import { resetSharedLessonAnalytics } from '../../../src/lib/lessons/lesson-analytics';
 
 const open = {
     courseId: 'kyou-kara-programmer',
@@ -13,6 +14,33 @@ const open = {
 };
 
 describe('LessonAnalytics container', () => {
+    beforeEach(() => {
+        resetSharedLessonAnalytics();
+    });
+
+    test('remounting (PC <-> SP layout switch) does not resend and keeps measuring the hint page', () => {
+        const send = jest.fn();
+        let time = 1000;
+        const now = () => time;
+        const first = render(<LessonAnalytics {...open} now={now} send={send} />);
+        expect(send).toHaveBeenCalledTimes(1);
+        first.unmount();
+        time = 4000;
+        const second = render(<LessonAnalytics {...open} now={now} send={send} />);
+        expect(send).toHaveBeenCalledTimes(1);
+        time = 11000;
+        second.rerender(<LessonAnalytics {...open} hintIndex={1} now={now} send={send} />);
+        expect(send).toHaveBeenCalledTimes(2);
+        expect(send).toHaveBeenLastCalledWith(expect.objectContaining({ action: 'hint_view', page: 1, seconds: 10 }));
+    });
+
+    test('sends nothing while a classroom teacher is logged in', () => {
+        const send = jest.fn();
+        const { rerender } = render(<LessonAnalytics {...open} teacherLoggedIn now={() => 0} send={send} />);
+        rerender(<LessonAnalytics {...open} teacherLoggedIn hintIndex={1} now={() => 5000} send={send} />);
+        expect(send).not.toHaveBeenCalled();
+    });
+
     test('sends the events decided from the lesson state changes', () => {
         const send = jest.fn();
         let time = 0;

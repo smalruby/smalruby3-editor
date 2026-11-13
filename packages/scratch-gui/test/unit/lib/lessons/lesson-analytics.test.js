@@ -1,4 +1,8 @@
 import {
+    activeNow,
+    activeTime,
+    resetSharedLessonAnalytics,
+    installVisibilityTracking,
     LESSON_ANALYTICS_CATEGORY,
     LESSON_EVENTS,
     buildLessonEvent,
@@ -20,6 +24,7 @@ const closed = {
     justCompletedId: null,
     libraryVisible: false,
     libraryFocus: false,
+    teacherLoggedIn: false,
 };
 
 const opened = (overrides = {}) => ({
@@ -234,6 +239,7 @@ describe('lesson analytics', () => {
                     progress: { challenges: {} },
                 },
                 modals: { lessonsLibrary: true },
+                classroom: { teacherLoggedIn: true },
             },
         };
         expect(lessonAnalyticsSnapshot(state)).toEqual({
@@ -247,6 +253,7 @@ describe('lesson analytics', () => {
             justCompletedId: null,
             libraryVisible: true,
             libraryFocus: true,
+            teacherLoggedIn: true,
         });
     });
 
@@ -268,7 +275,7 @@ describe('lesson analytics', () => {
     test('sendLessonEvent sends through the given sender and swallows failures', () => {
         const send = jest.fn();
         const current = { course: { id: 'c' }, lesson: { id: 'l' }, challenge: { id: 'x' } };
-        sendLessonEvent(LESSON_EVENTS.ANSWER_VIEW, current, true, send);
+        sendLessonEvent(LESSON_EVENTS.ANSWER_VIEW, current, { fromAssignment: true }, send);
         expect(send).toHaveBeenCalledWith({
             category: 'lessons',
             action: 'answer_view',
@@ -281,10 +288,91 @@ describe('lesson analytics', () => {
         const failing = jest.fn(() => {
             throw new Error('no dataLayer');
         });
-        expect(() => sendLessonEvent(LESSON_EVENTS.ANSWER_VIEW, current, false, failing)).not.toThrow();
+        expect(() => sendLessonEvent(LESSON_EVENTS.ANSWER_VIEW, current, {}, failing)).not.toThrow();
         // チャレンジを開いていなければ送らない
         const none = jest.fn();
-        sendLessonEvent(LESSON_EVENTS.LESSON_END, null, false, none);
+        sendLessonEvent(LESSON_EVENTS.LESSON_END, null, {}, none);
         expect(none).not.toHaveBeenCalled();
+    });
+
+    test('every lessons event sets all six keys (unused ones undefined) so GTM forgets the previous values', () => {
+        const keys = ['course_id', 'lesson_id', 'challenge_id', 'from_assignment', 'page', 'seconds'];
+        const events = run([
+            [opened(), 0],
+            [opened({ hintIndex: 1 }), 3000],
+            [opened({ challengeId: 'blocks-l1-other', hintSession: 2, hintVisible: false }), 5000],
+            [
+                opened({ challengeId: 'blocks-l1-other', hintSession: 2, hintVisible: false, libraryVisible: true }),
+                6000,
+            ],
+        ]);
+        expect(actions(events)).toEqual([
+            'challenge_open',
+            'hint_view',
+            'hint_view',
+            'challenge_open',
+            'library_open',
+        ]);
+        events.forEach((e) => keys.forEach((k) => expect(Object.keys(e)).toContain(k)));
+        // hint_view のあとの challenge_open では page / seconds が undefined
+        const reopened = events[3];
+        expect(reopened.page).toBeUndefined();
+        expect(reopened.seconds).toBeUndefined();
+        expect(reopened.challenge_id).toBe('blocks-l1-other');
+        // library_open は id も消す
+        expect(events[4].challenge_id).toBeUndefined();
+        const send = jest.fn();
+        sendLessonEvent(
+            LESSON_EVENTS.LESSON_END,
+            { course: { id: 'c' }, lesson: { id: 'l' }, challenge: { id: 'x' } },
+            {},
+            send,
+        );
+        keys.forEach((k) => expect(Object.keys(send.mock.calls[0][0])).toContain(k));
+    });
+
+    test('sends nothing while a classroom teacher is logged in, but keeps the memory going', () => {
+        let memo = createLessonAnalyticsMemo();
+        let result = stepLessonAnalytics(memo, opened({ teacherLoggedIn: true }), 0);
+        expect(result.events).toEqual([]);
+        memo = result.memo;
+        result = stepLessonAnalytics(memo, opened({ teacherLoggedIn: true, hintIndex: 1 }), 1000);
+        expect(result.events).toEqual([]);
+        // ログアウトしても、先生のときに開いたチャレンジを開いたことにはしない
+        result = stepLessonAnalytics(result.memo, opened({ hintIndex: 1 }), 2000);
+        expect(result.events).toEqual([]);
+        const send = jest.fn();
+        const current = { course: { id: 'c' }, lesson: { id: 'l' }, challenge: { id: 'x' } };
+        sendLessonEvent(LESSON_EVENTS.ANSWER_VIEW, current, { teacherLoggedIn: true }, send);
+        expect(send).not.toHaveBeenCalled();
+    });
+
+    test('activeTime subtracts the time the tab was hidden', () => {
+        expect(activeTime(10000, 0, null)).toBe(10000);
+        expect(activeTime(10000, 3000, null)).toBe(7000);
+        // いま裏にある分も引く
+        expect(activeTime(10000, 3000, 8000)).toBe(5000);
+    });
+
+    test('installVisibilityTracking accumulates hidden time from visibilitychange', () => {
+        let listener = null;
+        const doc = { hidden: false, addEventListener: (type, fn) => (listener = fn) };
+        let t = 0;
+        resetSharedLessonAnalytics();
+        installVisibilityTracking(doc, () => t);
+        expect(activeNow(1000)).toBe(1000);
+        t = 1000;
+        doc.hidden = true;
+        listener();
+        expect(activeNow(5000)).toBe(1000);
+        t = 6000;
+        doc.hidden = false;
+        listener();
+        expect(activeNow(8000)).toBe(3000);
+        // 2 回目は見張りを足さない
+        const again = { hidden: false, addEventListener: jest.fn() };
+        installVisibilityTracking(again, () => t);
+        expect(again.addEventListener).not.toHaveBeenCalled();
+        resetSharedLessonAnalytics();
     });
 });

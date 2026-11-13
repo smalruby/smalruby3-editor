@@ -135,7 +135,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/reducers/settings.js` | ruby_version URL param | Ruby バージョン URL パラメーター |
 | `src/lib/url-params.js` | welcome URL param | `?welcome=1` でウェルカムモーダルを初回ロード時に自動表示 |
 | `src/containers/backpack.jsx` | mesh v1 backpack auto-migration | Skyway 停止 (Issue #592) に伴う localStorage バックパックの自動 v1→v2 マイグレーション |
-| `src/lib/analytics.js` | extra GA params | `analytics.event` に渡した category / action / label 以外の項目（レッスンの `page` / `seconds` など）を dataLayer の項目として同じ push に入れる。`event` は category で上書きされない（`docs/lessons/README.md` の「GA の計測」） |
+| `src/lib/analytics.js` | extra GA params | `analytics.event` に渡した category / action / label 以外の項目（レッスンの `page` / `seconds` など）を dataLayer の項目として同じ push に入れる（2 ペア: 入れた項目の覚え `pushedExtraKeys` と `event`）。前のイベントで入れた項目は、それを入れないあとのイベントで `undefined` にもどす（GTM は最後の値を覚えるため）。`event` は category で上書きされない（`docs/lessons/README.md` の「GA の計測」） |
 | `src/containers/controls.jsx` | block_run analytics | 緑旗クリック時に GA4 イベントを発火 (issue #645 Phase 1) |
 | `src/containers/connection-modal.jsx` | mesh_v2/smalrubot_s1 connect analytics | 接続成功時に拡張別カテゴリ (`mesh_v2` / `smalrubot_s1`) で GA4 イベントを発火 (issue #645 Phase 1) |
 | `src/containers/connection-modal.jsx` | mesh_v2/smalrubot_s1 disconnect analytics | 切断時に拡張別カテゴリで GA4 イベントを発火 (issue #645 Phase 1) |

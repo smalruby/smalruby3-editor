@@ -121,6 +121,22 @@ describe('LessonMode container', () => {
         ]);
     });
 
+    test('does not send the task bar events to GA while a classroom teacher is logged in', () => {
+        analytics.event.mockClear();
+        const props = {
+            ...baseProps(),
+            current: findChallenge(CHALLENGE_ID),
+            teacherLoggedIn: true,
+            hint: { visible: false, index: 0, count: 0, step: null },
+        };
+        const { getByTestId } = renderLessonMode(props);
+        fireEvent.click(getByTestId('lesson-task-bar-quit'));
+        fireEvent.click(getByTestId('lesson-task-bar-end'));
+        expect(analytics.event).not.toHaveBeenCalled();
+        expect(props.onCloseLesson).toHaveBeenCalledTimes(1);
+        expect(props.onEndLesson).toHaveBeenCalledTimes(1);
+    });
+
     test('hint button shows the hint, and hides it when it is visible', () => {
         const props = {
             ...baseProps(),

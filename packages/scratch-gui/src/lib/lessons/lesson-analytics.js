@@ -8,6 +8,8 @@
 //   押したところから sendLessonEvent で送る。
 // - 個人を特定するもの（席・ニックネーム・クラス・課題の ID・参加コード・入力した文字）は送らない。
 //   送るのはコース・レッスン・チャレンジの id・ページの番号・秒・課題からか（真偽）だけ。
+// - 先生（クラス管理にログイン中）のときは送らない（授業の準備で開くと数がゆがむため）。
+// - 秒は、タブが裏にあった時間（document.hidden）を引いた「見えていた時間」で測る（activeNow）。
 import analytics from '../analytics';
 
 const LESSON_ANALYTICS_CATEGORY = 'lessons';
@@ -33,6 +35,18 @@ const CLOSED_SNAPSHOT = {
     justCompletedId: null,
     libraryVisible: false,
     libraryFocus: false,
+    teacherLoggedIn: false,
+};
+
+// lessons のイベントはいつも 6 つの項目を全部入れる。GTM の data layer は前の push の値を覚えているので、
+// 使わない項目を undefined で消さないと、前のイベントの page / seconds などが次のイベントに残る
+const EMPTY_PARAMS = {
+    course_id: undefined, // eslint-disable-line no-undefined
+    lesson_id: undefined, // eslint-disable-line no-undefined
+    challenge_id: undefined, // eslint-disable-line no-undefined
+    from_assignment: undefined, // eslint-disable-line no-undefined
+    page: undefined, // eslint-disable-line no-undefined
+    seconds: undefined, // eslint-disable-line no-undefined
 };
 
 /**
@@ -53,6 +67,7 @@ const lessonAnalyticsSnapshot = (state) => {
         justCompletedId: lessonMode.justCompletedId,
         libraryVisible: Boolean(state.scratchGui.modals.lessonsLibrary),
         libraryFocus: Boolean(lessonMode.libraryFocusChallengeId),
+        teacherLoggedIn: Boolean(state.scratchGui.classroom && state.scratchGui.classroom.teacherLoggedIn),
     };
 };
 
@@ -95,6 +110,7 @@ const buildLessonEvent = (action, ids, params = {}) => ({
     category: LESSON_ANALYTICS_CATEGORY,
     action,
     label: ids.challenge_id,
+    ...EMPTY_PARAMS,
     ...ids,
     ...params,
 });
@@ -107,7 +123,8 @@ const secondsBetween = (from, to) => Math.max(0, Math.round((to - from) / 1000))
  * 別のチャレンジを開くまで。見おわったときに 1 回送る。
  * @param {object} memo - 前の覚え（createLessonAnalyticsMemo / 前回の結果の memo）。
  * @param {object} next - 今のスナップショット（lessonAnalyticsSnapshot）。
- * @param {number} now - 今の時刻（ms）。
+ * 先生（`teacherLoggedIn`）のときは覚えだけ進めて、何も送らない。
+ * @param {number} now - 今の時刻（ms）。タブが裏にあった時間を引いた時計（activeNow）を渡す。
  * @returns {{memo: object, events: Array<object>}} 次の覚えと送るイベント。
  */
 const stepLessonAnalytics = (memo, next, now) => {
@@ -120,6 +137,7 @@ const stepLessonAnalytics = (memo, next, now) => {
             category: LESSON_ANALYTICS_CATEGORY,
             action: LESSON_EVENTS.LIBRARY_OPEN,
             label: next.libraryFocus ? 'next' : 'menu',
+            ...EMPTY_PARAMS,
         });
     }
 
@@ -162,19 +180,26 @@ const stepLessonAnalytics = (memo, next, now) => {
         page = { key: pageKey, index: next.hintIndex, at: now, ids: snapshotIds(next) };
     }
 
-    return { memo: { snapshot: next, openedAt, page }, events };
+    return { memo: { snapshot: next, openedAt, page }, events: next.teacherLoggedIn ? [] : events };
 };
 
 /**
  * ボタンで決まるイベントを送る。計測の失敗でレッスンを止めない。
  * @param {string} action - LESSON_EVENTS の値。
  * @param {?{course: object, lesson: object, challenge: object}} current - いまのチャレンジ（無ければ送らない）。
- * @param {boolean} fromAssignment - クラスの課題から開いたか。
+ * @param {object} [options] - オプション。
+ * @param {boolean} [options.fromAssignment] - クラスの課題から開いたか。
+ * @param {boolean} [options.teacherLoggedIn] - 先生がログイン中か（そのときは送らない）。
  * @param {Function} [send] - 送る関数（テスト用。既定は analytics.event）。
  */
-const sendLessonEvent = (action, current, fromAssignment, send = analytics.event) => {
+const sendLessonEvent = (
+    action,
+    current,
+    { fromAssignment = false, teacherLoggedIn = false } = {},
+    send = analytics.event,
+) => {
     const ids = lessonEventIds(current, fromAssignment);
-    if (!ids) return;
+    if (!ids || teacherLoggedIn) return;
     try {
         send(buildLessonEvent(action, ids));
     } catch (_e) {
@@ -182,11 +207,72 @@ const sendLessonEvent = (action, current, fromAssignment, send = analytics.event
     }
 };
 
+/**
+ * タブが裏にあった時間を引いた時計（ms）。hiddenSince は裏になった時刻（いま見えていれば null）。
+ * @param {number} now - 今の時刻（ms）。
+ * @param {number} hiddenTotal - これまでに裏にあった時間の合計（ms。いまの裏の分はふくまない）。
+ * @param {?number} hiddenSince - いま裏にあるなら、裏になった時刻（ms）。
+ * @returns {number} 見えていた時間だけ進む時計（ms）。
+ */
+const activeTime = (now, hiddenTotal, hiddenSince) =>
+    now - hiddenTotal - (hiddenSince === null ? 0 : Math.max(0, now - hiddenSince));
+
+// 画面に GUI は 1 つだけなので、覚えと見えていた時間はモジュールに 1 つ持つ。コンテナに持つと、
+// PC 表示とスマホ表示の切りかえ（<GUI> と <MobileGui> の入れかえ）でマウントし直したときに最初に戻り、
+// challenge_open が二重に送られ、見ていたヒントのページの滞在時間が消える
+let sharedMemo = createLessonAnalyticsMemo();
+const visibility = { installed: false, hiddenTotal: 0, hiddenSince: null };
+
+const getSharedLessonAnalyticsMemo = () => sharedMemo;
+
+const setSharedLessonAnalyticsMemo = (memo) => {
+    sharedMemo = memo;
+};
+
+/**
+ * タブの表示・非表示を見張り始める（1 回だけ）。document が無い環境では何もしない。
+ * @param {?object} [doc] - document（テスト用）。
+ * @param {Function} [now] - 時計（テスト用）。
+ */
+const installVisibilityTracking = (doc = typeof document === 'undefined' ? null : document, now = Date.now) => {
+    if (visibility.installed || !doc || typeof doc.addEventListener !== 'function') return;
+    visibility.installed = true;
+    if (doc.hidden) visibility.hiddenSince = now();
+    doc.addEventListener('visibilitychange', () => {
+        const t = now();
+        if (doc.hidden) {
+            if (visibility.hiddenSince === null) visibility.hiddenSince = t;
+        } else if (visibility.hiddenSince !== null) {
+            visibility.hiddenTotal += Math.max(0, t - visibility.hiddenSince);
+            visibility.hiddenSince = null;
+        }
+    });
+};
+
+/**
+ * @param {number} [now] - 今の時刻（ms）。
+ * @returns {number} タブが裏にあった時間を引いた時計（ms）。
+ */
+const activeNow = (now = Date.now()) => activeTime(now, visibility.hiddenTotal, visibility.hiddenSince);
+
+/** テスト用: 覚えと見えていた時間を最初に戻す（見張りは外さない）。 */
+const resetSharedLessonAnalytics = () => {
+    sharedMemo = createLessonAnalyticsMemo();
+    visibility.hiddenTotal = 0;
+    visibility.hiddenSince = null;
+};
+
 export {
     LESSON_ANALYTICS_CATEGORY,
     LESSON_EVENTS,
+    activeNow,
+    activeTime,
     buildLessonEvent,
     createLessonAnalyticsMemo,
+    getSharedLessonAnalyticsMemo,
+    installVisibilityTracking,
+    resetSharedLessonAnalytics,
+    setSharedLessonAnalyticsMemo,
     lessonAnalyticsSnapshot,
     lessonEventIds,
     sendLessonEvent,
