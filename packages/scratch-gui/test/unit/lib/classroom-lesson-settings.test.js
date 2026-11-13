@@ -16,6 +16,7 @@ import {
     effectiveScoring,
     lessonChanges,
     lessonDraftFromSaved,
+    missingChallengeIds,
     setChallengeChecked,
     setChallengeRequired,
     setCompletion,
@@ -245,5 +246,83 @@ describe('本物のコース', () => {
                 for (const challenge of lesson.challenges) expect(challenge.id).toMatch(ID);
             }
         }
+    });
+});
+
+describe('レビュー対応（#1765）', () => {
+    // 11 チャレンジ・★ 2 の下書き
+    const course11 = {
+        id: 'c11',
+        lessons: [{ id: 'l', challenges: Array.from({ length: 11 }, (_, i) => ({ id: `x${i}` })) }],
+    };
+    const eleven = () => {
+        let d = setLessonChecked(createLessonDraft('c11'), course11, 'l', true);
+        d = setChallengeRequired(setChallengeRequired(d, 'x0', true), 'x1', true);
+        return setCompletion(d, 'count');
+    };
+
+    test('M1: ★2 で「10」を確定できる（入力中の「1」は確定しない前提）', () => {
+        expect(setCompletion(eleven(), 'count', '10').completion.count).toBe(10);
+        // 途中の「1」を確定すると min に吸われる（だから確定は blur / Enter のときだけ）
+        expect(setCompletion(eleven(), 'count', '1').completion.count).toBe(2);
+    });
+
+    test('M1: 空の確定は前の値のまま', () => {
+        const d = setCompletion(eleven(), 'count', '7');
+        expect(setCompletion(d, 'count', '').completion.count).toBe(7);
+        const s = setScoring(d, { total: 80 });
+        expect(setScoring(s, { total: '' }).scoring.total).toBe(80);
+    });
+
+    test('M1: 満点を消して 50 を確定すると 50（150 にならない）', () => {
+        const d = setScoring(eleven(), { total: '50' });
+        expect(effectiveScoring(d).total).toBe(50);
+    });
+
+    test('M1: 必須の点を消して確定すると既定（満点の 70%）に戻る', () => {
+        const d = setScoring(setScoring(eleven(), { requiredPoints: 40 }), { requiredPoints: '' });
+        expect(d.scoring.requiredPoints).toBeNull();
+        expect(effectiveScoring(d).requiredPoints).toBe(70);
+    });
+
+    test('Q1: 既定と同じ点は既定として扱う（scoring: null で送る・満点に追従する）', () => {
+        const d = eleven();
+        expect(buildLessonPayload(setScoring(d, { total: 100 })).scoring).toBeNull();
+        expect(buildLessonPayload(setScoring(d, { total: 100, requiredPoints: 70 })).scoring).toBeNull();
+        // 必須の点を既定と同じにすると既定に追従する
+        const linked = setScoring(setScoring(d, { requiredPoints: 70 }), { total: 200 });
+        expect(effectiveScoring(linked).requiredPoints).toBe(140);
+    });
+
+    test('Q1: 既定と同じ保存値は、読み直すと満点に追従する', () => {
+        const saved = {
+            ...buildLessonPayload(eleven()),
+            scoring: { total: 50, requiredPoints: 35, optionalPoints: 15 },
+        };
+        const draft = lessonDraftFromSaved(saved);
+        expect(draft.scoring).toEqual({ total: 50, requiredPoints: null });
+        expect(effectiveScoring(setScoring(draft, { total: 200 })).requiredPoints).toBe(140);
+        const def = { ...saved, scoring: { total: 100, requiredPoints: 70, optionalPoints: 30 } };
+        expect(lessonChanges(lessonDraftFromSaved(def), def).any).toBe(false);
+        expect(buildLessonPayload(lessonDraftFromSaved(def)).scoring).toBeNull();
+    });
+
+    test('FYI2: コースに無い保存済みのチャレンジは数えない・保存で外れる', () => {
+        const saved = {
+            courseId: 'c',
+            challengeIds: ['a', 'gone', 'b'],
+            requiredChallengeIds: ['gone', 'a'],
+            completion: { type: 'count', count: 3 },
+        };
+        const draft = lessonDraftFromSaved(saved, course);
+        expect(draft.challengeIds).toEqual(['a', 'b']);
+        expect(draft.requiredChallengeIds).toEqual(['a']);
+        expect(missingChallengeIds(saved, course)).toEqual(['gone']);
+        expect(missingChallengeIds(saved, null)).toEqual([]);
+        expect(buildLessonPayload(draft).challengeIds).toEqual(['a', 'b']);
+        expect(buildLessonPayload(draft).completion).toEqual({ type: 'count', count: 2 });
+        expect(lessonChanges(draft, saved).challenges).toBe(true);
+        // 得点の分母にも入れない
+        expect(computeLessonScore(saved, ['a', 'b'], course)).toBe(100);
     });
 });

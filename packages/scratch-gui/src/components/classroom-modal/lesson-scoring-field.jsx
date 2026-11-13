@@ -14,6 +14,7 @@ import {
     setScoring,
 } from '../../lib/classroom-lesson-settings.js';
 import styles from './classroom-modal.css';
+import LessonNumberInput from './lesson-number-input.jsx';
 
 export const lessonScoringMessages = defineMessages({
     summary: {
@@ -31,12 +32,12 @@ const LessonScoringField = ({ disabled, draft, onChange }) => {
     const scoring = effectiveScoring(draft);
     const points = challengePoints(draft);
     const choosable = canChooseRequiredPoints(draft);
-    const handleTotalChange = useCallback(
-        (e) => onChange(setScoring(draft, { total: e.target.value })),
+    const handleTotalCommit = useCallback(
+        (value) => onChange(setScoring(draft, { total: value })),
         [draft, onChange],
     );
-    const handleRequiredChange = useCallback(
-        (e) => onChange(setScoring(draft, { requiredPoints: e.target.value })),
+    const handleRequiredCommit = useCallback(
+        (value) => onChange(setScoring(draft, { requiredPoints: value })),
         [draft, onChange],
     );
 
@@ -81,15 +82,14 @@ const LessonScoringField = ({ disabled, draft, onChange }) => {
                         id="gui.classroom.lessonScoring.total"
                     />
                 </span>
-                <input
+                <LessonNumberInput
                     className={styles.lessonCountInput}
-                    data-testid="classroom-lesson-scoring-total"
                     disabled={disabled}
                     max={MAX_LESSON_TOTAL}
                     min={1}
-                    type="number"
+                    testId="classroom-lesson-scoring-total"
                     value={scoring.total}
-                    onChange={handleTotalChange}
+                    onCommit={handleTotalCommit}
                 />
             </label>
             <label className={styles.lessonRadio}>
@@ -100,15 +100,14 @@ const LessonScoringField = ({ disabled, draft, onChange }) => {
                         id="gui.classroom.lessonScoring.requiredPoints"
                     />
                 </span>
-                <input
+                <LessonNumberInput
                     className={styles.lessonCountInput}
-                    data-testid="classroom-lesson-scoring-required"
                     disabled={disabled || !choosable}
                     max={scoring.total}
                     min={0}
-                    type="number"
+                    testId="classroom-lesson-scoring-required"
                     value={scoring.requiredPoints}
-                    onChange={handleRequiredChange}
+                    onCommit={handleRequiredCommit}
                 />
             </label>
             <span className={styles.assignmentStartFromPreviousHint} data-testid="classroom-lesson-scoring-each">

@@ -159,7 +159,10 @@ const useTeacherAssignment = ({
             setSavedStartFromPrevious(data.startFromPrevious === true);
             setSavedPeerView(normalizePeerView(data.peerView));
             setSavedLesson(data.lesson || null);
-            setLessonDraft(lessonDraftFromSaved(data.lesson || null));
+            // Challenges the course no longer has are left out (#1765 FYI2).
+            setLessonDraft(
+                lessonDraftFromSaved(data.lesson || null, data.lesson && findCourse(data.lesson.courseId)),
+            );
         } catch (err) {
             if (err.status === 401) {
                 handleTeacher401();

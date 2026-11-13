@@ -31,6 +31,7 @@ smalruby3-editor/
 │   │   │   │   ├── teacher-assignment-editor.jsx ← 課題詳細の説明タブの編集フォーム（ページ + スターター + 詳しい設定）
 │   │   │   │   ├── lesson-settings-field.jsx ← 説明タブの「レッスン」欄（コース・チャレンジ・★・完了の条件・作品の提出）
 │   │   │   │   ├── lesson-scoring-field.jsx ← 「詳しい設定」の中のレッスンの点（満点・必須の点）
+│   │   │   │   ├── lesson-number-input.jsx ← レッスン欄の数の欄（打っている途中は直さず、欄を出る・Enter で確定）
 │   │   │   │   ├── board-menu.jsx ← 小さなドロップダウン（［＋ 作成 ▾］・⋮・課題詳細の「…」で共用）
 │   │   │   │   ├── mesh-group-limit-field.jsx ← 「メッシュのグループの人数」の選択（作成画面と課題エディタで共用・#1257）
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理

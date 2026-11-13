@@ -490,6 +490,7 @@ test/unit/components/*
 !test/unit/components/mesh-v2-scanning-step-seats.test.jsx
 !test/unit/components/mesh-v2-seat-connect.test.jsx
 !test/unit/components/student-assignment-panel.test.jsx
+!test/unit/components/lesson-number-input.test.jsx
 !test/unit/components/student-continue-choice.test.jsx
 !test/unit/components/teacher-class-detail.test.jsx
 !test/unit/components/student-peer-view-button.test.jsx

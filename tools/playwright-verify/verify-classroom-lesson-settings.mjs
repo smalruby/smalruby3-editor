@@ -185,7 +185,12 @@ try {
     const firstLessonIndeterminate = await lessonBoxes[0].evaluate((el) => el.indeterminate);
     record('partly chosen lesson is indeterminate', firstLessonIndeterminate);
     await page.locator(tid('classroom-lesson-completion-count')).click();
+    // M1 (#1765): typing "1" on the way to "10" is not clamped; it commits on Enter.
+    await page.fill(tid('classroom-lesson-completion-count-value'), '1');
+    const typing = await page.$eval(tid('classroom-lesson-completion-count-value'), (el) => el.value);
+    record('typing is not clamped until commit', typing === '1', `value=${typing}`);
     await page.fill(tid('classroom-lesson-completion-count-value'), '3');
+    await page.press(tid('classroom-lesson-completion-count-value'), 'Enter');
     await page.waitForTimeout(200);
     const selected = chosen.length - 1;
     const sentence = await text('classroom-lesson-sentence');
@@ -215,6 +220,7 @@ try {
     const each = await text('classroom-lesson-scoring-each');
     record('scoring: default 70 split', each.includes('必須 1 つ 35 点'), each);
     await page.fill(tid('classroom-lesson-scoring-total'), '50');
+    await page.press(tid('classroom-lesson-scoring-total'), 'Enter');
     await page.waitForTimeout(200);
     m = await measure();
     record('advanced open with scoring: R6', r6(m), describe(m));
@@ -248,6 +254,19 @@ try {
     await page.locator(tid(`classroom-lesson-challenge-${chosen[0]}`)).click();
     const notice = !!(await page.$(tid('classroom-lesson-dropped-notice')));
     record('dropped-progress notice', notice);
+    // FYI3 (#1765): with the notice shown the panel still fits and nothing is clipped.
+    m = await measure();
+    const clip = await page.evaluate(() => {
+        const panel = document.querySelector('[data-testid="classroom-lesson-panel"]').getBoundingClientRect();
+        const n = document.querySelector('[data-testid="classroom-lesson-dropped-notice"]').getBoundingClientRect();
+        return { notice: Math.round(n.bottom), panel: Math.round(panel.bottom) };
+    });
+    record(
+        'panel open with dropped notice: R6, not clipped',
+        r6(m) && m.panelBottom <= m.vh && clip.notice <= clip.panel,
+        `${describe(m)} notice.bottom=${clip.notice}`,
+    );
+    await shot('panel-dropped-notice');
     await page.keyboard.press('Escape');
 
     // 7. Unknown course: warning, saving keeps it (no `lesson` sent).

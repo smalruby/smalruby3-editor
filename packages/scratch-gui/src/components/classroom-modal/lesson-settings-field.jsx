@@ -15,6 +15,7 @@ import {
     completionTarget,
     createLessonDraft,
     droppedChallengeIds,
+    missingChallengeIds,
     lessonChanges,
     lessonCounts,
     setChallengeChecked,
@@ -24,6 +25,7 @@ import {
 } from '../../lib/classroom-lesson-settings.js';
 import { COURSES, findCourse } from '../../lib/lessons/courses.js';
 import styles from './classroom-modal.css';
+import LessonNumberInput from './lesson-number-input.jsx';
 
 export const lessonMessages = defineMessages({
     title: {
@@ -86,6 +88,16 @@ export const lessonMessages = defineMessages({
         description: 'Completion condition shown to students, with the number of required challenges',
         id: 'gui.classroom.lessonSettings.sentenceRequired',
     },
+    requiredMarkLabel: {
+        defaultMessage: 'Make {challenge} required',
+        description: 'Assignment editor: accessible name of the required (★) button of one challenge',
+        id: 'gui.classroom.lessonSettings.requiredMarkLabel',
+    },
+    countLabel: {
+        defaultMessage: 'Number of challenges to complete',
+        description: 'Assignment editor: accessible name of the n field of the completion condition',
+        id: 'gui.classroom.lessonSettings.countLabel',
+    },
     requiredMark: {
         defaultMessage: 'Make required',
         description: 'Assignment editor: button that marks a challenge as required (★)',
@@ -135,6 +147,7 @@ const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
     const intl = useIntl();
     const [open, setOpen] = useState(false);
     const rootRef = useRef(null);
+    const toggleRef = useRef(null);
     const [placement, setPlacement] = useState(null);
     const handleToggle = useCallback(() => setOpen((v) => !v), []);
     useLayoutEffect(() => {
@@ -155,6 +168,8 @@ const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
             if (e.key !== 'Escape') return;
             e.stopPropagation();
             setOpen(false);
+            // The panel unmounts; keep the keyboard user on the toggle.
+            if (toggleRef.current) toggleRef.current.focus();
         };
         document.addEventListener('mousedown', handleDown);
         document.addEventListener('keydown', handleKey, true);
@@ -169,6 +184,7 @@ const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
     const counts = lessonCounts(draft);
     const range = completionRange(draft);
     const dropped = droppedChallengeIds(draft, saved);
+    const missing = draft && saved && saved.courseId === draft.courseId ? missingChallengeIds(saved, course) : [];
 
     const handleCourseChange = useCallback(
         (e) => onChange(e.target.value === NO_COURSE ? null : createLessonDraft(e.target.value)),
@@ -193,8 +209,8 @@ const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
         (e) => onChange(setCompletion(draft, e.target.value)),
         [draft, onChange],
     );
-    const handleCountChange = useCallback(
-        (e) => onChange(setCompletion(draft, 'count', e.target.value)),
+    const handleCountCommit = useCallback(
+        (value) => onChange(setCompletion(draft, 'count', value)),
         [draft, onChange],
     );
     const handleSubmitChange = useCallback(
@@ -247,6 +263,7 @@ const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
                 aria-expanded={open}
                 className={styles.assignmentAdvancedToggle}
                 data-testid="classroom-lesson-toggle"
+                ref={toggleRef}
                 type="button"
                 onClick={handleToggle}
             >
@@ -273,6 +290,16 @@ const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
                         defaultMessage="This course is not in this version of Smalruby. The setting is kept as it is; choose another course to change it."
                         description="Assignment editor: warning for a lesson whose course does not exist (e.g. a copied shared assignment)"
                         id="gui.classroom.lessonSettings.unknownCourseWarning"
+                    />
+                </p>
+            )}
+            {missing.length > 0 && (
+                <p className={styles.lessonWarning} data-testid="classroom-lesson-missing-challenges">
+                    <FormattedMessage
+                        defaultMessage="{count} saved challenges are not in this version of Smalruby. They are not counted and are removed when you save."
+                        description="Assignment editor: warning for saved challenge ids that the course no longer has"
+                        id="gui.classroom.lessonSettings.missingChallenges"
+                        values={{ count: missing.length }}
                     />
                 </p>
             )}
@@ -363,6 +390,12 @@ const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
                                                             </span>
                                                         </label>
                                                         <button
+                                                            aria-label={intl.formatMessage(
+                                                                lessonMessages.requiredMarkLabel,
+                                                                {
+                                                                    challenge: `${lessonIndex + 1}-${challenge.number} ${intl.formatMessage(challenge.name)}`,
+                                                                },
+                                                            )}
                                                             aria-pressed={required}
                                                             className={classNames(styles.lessonRequiredButton, {
                                                                 [styles.lessonRequiredButtonOn]: required,
@@ -419,19 +452,19 @@ const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
                                         id="gui.classroom.lessonSettings.completionCount"
                                         values={{
                                             count: (
-                                                <input
+                                                <LessonNumberInput
+                                                    ariaLabel={intl.formatMessage(lessonMessages.countLabel)}
                                                     className={styles.lessonCountInput}
-                                                    data-testid="classroom-lesson-completion-count-value"
                                                     disabled={disabled || draft.completion.type !== 'count'}
                                                     max={range.max}
                                                     min={range.min}
-                                                    type="number"
+                                                    testId="classroom-lesson-completion-count-value"
                                                     value={
                                                         draft.completion.type === 'count'
                                                             ? completionTarget(draft)
                                                             : counts.selected
                                                     }
-                                                    onChange={handleCountChange}
+                                                    onCommit={handleCountCommit}
                                                 />
                                             ),
                                         }}

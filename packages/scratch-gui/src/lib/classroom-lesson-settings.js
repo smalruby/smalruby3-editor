@@ -174,6 +174,7 @@ export const setCompletion = (draft, type, count) => {
     const { min, max } = completionRange(draft);
     const given = count === null || typeof count === 'undefined' || count === '' ? NaN : Math.round(Number(count));
     let n = given;
+    // An empty or non-numeric commit keeps the current n.
     if (!Number.isFinite(n))
         n = draft.completion.type === 'count' && draft.completion.count !== null ? draft.completion.count : max;
     return { ...draft, completion: { type: 'count', count: Math.min(Math.max(n, min), max) } };
@@ -241,7 +242,8 @@ export const setScoring = (draft, change) => {
     const current = draft.scoring || { total: DEFAULT_LESSON_TOTAL, requiredPoints: null };
     const next = { ...current };
     if (Object.prototype.hasOwnProperty.call(change, 'total')) {
-        const total = Math.round(Number(change.total));
+        // An empty commit keeps the total (Number('') would be 0).
+        const total = change.total === null || change.total === '' ? NaN : Math.round(Number(change.total));
         if (Number.isFinite(total)) next.total = Math.min(Math.max(total, 1), MAX_LESSON_TOTAL);
     }
     if (Object.prototype.hasOwnProperty.call(change, 'requiredPoints')) {
@@ -250,10 +252,24 @@ export const setScoring = (draft, change) => {
         next.requiredPoints =
             points === null || !Number.isFinite(points) ? null : Math.min(Math.max(points, 0), next.total);
     }
-    // Changing the total does not clamp the stored required points (typing
-    // "50" passes through "5"); effectiveScoring clamps what is used.
+    // Required points equal to the default are the default: they follow the
+    // total when it changes (#1765 Q1). Changing the total does not clamp
+    // chosen required points; effectiveScoring clamps what is used.
+    if (next.requiredPoints === defaultRequiredPoints(next.total)) next.requiredPoints = null;
     return { ...draft, scoring: next };
 };
+
+/**
+ * Scoring the teacher has not changed from the defaults (満点 100・必須の点 =
+ * 満点の 70%) is sent as `null`, so "untouched" means the same before and
+ * after a save (#1765 Q1).
+ * @param {?object} scoring - draft scoring
+ * @returns {boolean} whether it is the default
+ */
+const isDefaultScoring = (scoring) =>
+    !scoring ||
+    (scoring.total === DEFAULT_LESSON_TOTAL &&
+        (scoring.requiredPoints === null || scoring.requiredPoints === defaultRequiredPoints(DEFAULT_LESSON_TOTAL)));
 
 /**
  * Build the API `lesson` field from a draft.
@@ -270,18 +286,36 @@ export const buildLessonPayload = (draft) => {
         requiredChallengeIds: [...draft.requiredChallengeIds],
         completion,
         submitWork: !!draft.submitWork,
-        scoring: draft.scoring ? effectiveScoring(draft) : null,
+        scoring: isDefaultScoring(draft.scoring) ? null : effectiveScoring(draft),
     };
+};
+
+/**
+ * Saved challenge ids that the course data of this version does not have
+ * (the course changed after saving). They are not counted and a save drops
+ * them (#1765 FYI2).
+ * @param {?object} lesson - stored lesson settings
+ * @param {?object} course - its course (null when unknown: nothing is checked)
+ * @returns {Array<string>} missing challenge ids
+ */
+export const missingChallengeIds = (lesson, course) => {
+    if (!lesson || !course || lesson.courseId !== course.id || !Array.isArray(lesson.challengeIds)) return [];
+    const known = new Set(courseChallengeIds(course));
+    return lesson.challengeIds.filter((id) => !known.has(id));
 };
 
 /**
  * Make the editor draft from the stored `lesson` (GET /assignment).
  * @param {?object} lesson - stored lesson settings
+ * @param {?object} [course] - its course; challenges it does not have are left out
  * @returns {?object} draft (null when the assignment has no lesson)
  */
-export const lessonDraftFromSaved = (lesson) => {
+export const lessonDraftFromSaved = (lesson, course) => {
     if (!lesson || typeof lesson.courseId !== 'string') return null;
-    const challengeIds = Array.isArray(lesson.challengeIds) ? [...lesson.challengeIds] : [];
+    const missing = new Set(missingChallengeIds(lesson, course));
+    const challengeIds = Array.isArray(lesson.challengeIds)
+        ? lesson.challengeIds.filter((id) => !missing.has(id))
+        : [];
     const requiredChallengeIds = (lesson.requiredChallengeIds || []).filter((id) => challengeIds.includes(id));
     const completion =
         lesson.completion && lesson.completion.type === 'count'
@@ -298,13 +332,18 @@ export const lessonDraftFromSaved = (lesson) => {
     if (lesson.scoring) {
         // The stored required points only mean the teacher's choice when there
         // are both kinds; otherwise they are derived (0 or 満点), so keep the
-        // default to use once ★ are added.
+        // default to use once ★ are added. The default value itself is kept
+        // linked to the total (#1765 Q1).
+        const { total, requiredPoints } = lesson.scoring;
         draft.scoring = {
-            total: lesson.scoring.total,
-            requiredPoints: canChooseRequiredPoints(draft) ? lesson.scoring.requiredPoints : null,
+            total,
+            requiredPoints:
+                canChooseRequiredPoints(draft) && requiredPoints !== defaultRequiredPoints(total)
+                    ? requiredPoints
+                    : null,
         };
     }
-    return draft;
+    return missing.size > 0 ? normalizeDraft(draft) : draft;
 };
 
 /**
@@ -376,10 +415,11 @@ export const validateLessonDraft = (draft, course) => {
  * challenges outside the setting is not counted.
  * @param {?object} lesson - lesson payload (stored settings)
  * @param {Array<string>} doneIds - completed challenge ids (「前」も入れる)
+ * @param {?object} [course] - its course; challenges it does not have are not counted
  * @returns {?number} the score, or null when there is no lesson
  */
-export const computeLessonScore = (lesson, doneIds) => {
-    const draft = lessonDraftFromSaved(lesson);
+export const computeLessonScore = (lesson, doneIds, course) => {
+    const draft = lessonDraftFromSaved(lesson, course);
     if (!draft || draft.challengeIds.length === 0) return null;
     const scoring = lesson.scoring
         ? {

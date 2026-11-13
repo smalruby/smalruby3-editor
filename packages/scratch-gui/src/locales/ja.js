@@ -736,6 +736,10 @@ export default {
     'gui.classroom.lessonSettings.sentenceCount': '{total} つのうち {target} つ',
     'gui.classroom.lessonSettings.sentenceRequired': '{sentence}（★ {required} つをふくむ）',
     'gui.classroom.lessonSettings.requiredMark': '必須にする',
+    'gui.classroom.lessonSettings.requiredMarkLabel': '{challenge} を必須にする',
+    'gui.classroom.lessonSettings.countLabel': '完了の条件の数',
+    'gui.classroom.lessonSettings.missingChallenges':
+        '保存したチャレンジのうち {count} 個は、このスモウルビーにはありません。数えずに、保存すると設定から外れます。',
     'gui.classroom.lessonSettings.unknownCourseWarning':
         'このコースは、このスモウルビーにはありません。設定はそのまま残ります。変えるときは別のコースを選んでください。',
     'gui.classroom.lessonSettings.course': 'コース',

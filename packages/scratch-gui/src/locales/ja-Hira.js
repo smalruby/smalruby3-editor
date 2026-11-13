@@ -756,6 +756,10 @@ export default {
     'gui.classroom.lessonSettings.sentenceCount': '{total} つのうち {target} つ',
     'gui.classroom.lessonSettings.sentenceRequired': '{sentence}（★ {required} つをふくむ）',
     'gui.classroom.lessonSettings.requiredMark': 'ひっすにする',
+    'gui.classroom.lessonSettings.requiredMarkLabel': '{challenge} をひっすにする',
+    'gui.classroom.lessonSettings.countLabel': 'かんりょうのじょうけんのかず',
+    'gui.classroom.lessonSettings.missingChallenges':
+        'ほぞんしたチャレンジのうち {count} こは、このスモウルビーにはありません。かぞえずに、ほぞんするとせっていからはずれます。',
     'gui.classroom.lessonSettings.unknownCourseWarning':
         'このコースは、このスモウルビーにはありません。せっていはそのままのこります。かえるときはべつのコースをえらんでください。',
     'gui.classroom.lessonSettings.course': 'コース',

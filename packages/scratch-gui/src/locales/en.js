@@ -639,6 +639,10 @@ export default {
     'gui.classroom.lessonSettings.sentenceCount': '{target} of {total}',
     'gui.classroom.lessonSettings.sentenceRequired': '{sentence} (including {required} ★)',
     'gui.classroom.lessonSettings.requiredMark': 'Make required',
+    'gui.classroom.lessonSettings.requiredMarkLabel': 'Make {challenge} required',
+    'gui.classroom.lessonSettings.countLabel': 'Number of challenges to complete',
+    'gui.classroom.lessonSettings.missingChallenges':
+        '{count} saved challenges are not in this version of Smalruby. They are not counted and are removed when you save.',
     'gui.classroom.lessonSettings.unknownCourseWarning':
         'This course is not in this version of Smalruby. The setting is kept as it is; choose another course to change it.',
     'gui.classroom.lessonSettings.course': 'Course',
