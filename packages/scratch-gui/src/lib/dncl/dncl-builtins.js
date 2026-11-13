@@ -1,6 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (DNCL→Ruby builtin conversion) ===
 import { convertNegation } from './dncl-identifier-converter';
 import { isSingleOperand, replaceCall, skipString, splitArgsAtTopLevel } from './paren-utils';
+import { isNumberSign } from './ruby-to-dncl-builtins';
 
 /**
  * Check whether an argument string is exactly a string literal — either
@@ -45,6 +46,30 @@ const toReceiver = (arg) => {
 const toDisplayTerm = (arg) => `${toReceiver(arg)}.to_s`;
 
 /**
+ * Whether a built-in call comes right after a unary minus (`-絶対値(5)`,
+ * `3 * -絶対値(5)`), not a subtraction (`a - 絶対値(5)`).
+ * @param {string} before - The text before the call.
+ * @returns {boolean} True if the call is negated.
+ */
+const isNegated = (before) => {
+    const text = before.trimEnd();
+    return text.endsWith('-') && isNumberSign(text, text.length - 1);
+};
+
+/**
+ * A built-in that becomes a method call on its argument (`絶対値(x)` →
+ * `x.abs`). After a unary minus the method call is put in parentheses:
+ * Ruby reads `-5.abs` as `(-5).abs` (5), but `-絶対値(5)` is -5, so it
+ * becomes `-(5.abs)`, as the generator writes a unary minus. (Issue #1744)
+ * @param {Function} toCall - Makes the method call from the arguments.
+ * @returns {Function} The transform for `replaceCall`.
+ */
+const methodCall = (toCall) => (args, before) => {
+    const call = toCall(args);
+    return isNegated(before) ? `(${call})` : call;
+};
+
+/**
  * Convert DNCL built-in function calls to Ruby equivalents. Uses balanced
  * paren matching so nested calls (e.g. `表示する(乱数(1..10))`) are
  * correctly delimited.
@@ -75,32 +100,60 @@ const convertBuiltinFunctions = (text) => {
 
     // 含む(str, sub) → str.include?(sub) — only the 2-arg form is valid;
     // any other arity is left unchanged so we don't emit malformed Ruby.
-    result = replaceCall(result, '含む', (args) => {
+    result = replaceCall(result, '含む', (args, before) => {
         const parts = splitArgsAtTopLevel(args);
         if (parts.length === 2) {
-            return `${toReceiver(parts[0])}.include?(${parts[1]})`;
+            return methodCall(() => `${toReceiver(parts[0])}.include?(${parts[1]})`)(args, before);
         }
         return `含む(${args})`;
     });
 
     // 要素数(Name) → Name.length
-    result = replaceCall(result, '要素数', (args) => `${toReceiver(args)}.length`);
+    result = replaceCall(
+        result,
+        '要素数',
+        methodCall((args) => `${toReceiver(args)}.length`),
+    );
 
     // 整数(expr) → expr.to_i — an expression is parenthesized (`toReceiver`),
     // and so are the arguments of the other method-call built-ins below.
-    result = replaceCall(result, '整数', (args) => `${toReceiver(args)}.to_i`);
+    result = replaceCall(
+        result,
+        '整数',
+        methodCall((args) => `${toReceiver(args)}.to_i`),
+    );
 
     // 文字列(expr) → expr.to_s
-    result = replaceCall(result, '文字列', (args) => `${toReceiver(args)}.to_s`);
+    result = replaceCall(
+        result,
+        '文字列',
+        methodCall((args) => `${toReceiver(args)}.to_s`),
+    );
 
     // 乱数(n) → rand(n)
     result = replaceCall(result, '乱数', (args) => `rand(${args})`);
 
     // Math functions
-    result = replaceCall(result, '四捨五入', (args) => `${toReceiver(args)}.round`);
-    result = replaceCall(result, '切り捨て', (args) => `${toReceiver(args)}.floor`);
-    result = replaceCall(result, '切り上げ', (args) => `${toReceiver(args)}.ceil`);
-    result = replaceCall(result, '絶対値', (args) => `${toReceiver(args)}.abs`);
+    result = replaceCall(
+        result,
+        '四捨五入',
+        methodCall((args) => `${toReceiver(args)}.round`),
+    );
+    result = replaceCall(
+        result,
+        '切り捨て',
+        methodCall((args) => `${toReceiver(args)}.floor`),
+    );
+    result = replaceCall(
+        result,
+        '切り上げ',
+        methodCall((args) => `${toReceiver(args)}.ceil`),
+    );
+    result = replaceCall(
+        result,
+        '絶対値',
+        methodCall((args) => `${toReceiver(args)}.abs`),
+    );
     result = replaceCall(result, '平方根', (args) => `Math.sqrt(${args})`);
 
     return result;

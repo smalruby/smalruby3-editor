@@ -266,6 +266,8 @@ const OPERAND_START_WORDS = new Set([
  * (`かつ -5`). `a -5` / `3 -5` are subtractions. (Issue #1700)
  * @param {string} text - The text.
  * @param {number} pos - The position of the `-`.
+ * DNCL → Ruby uses it too, to tell a `-` that negates a built-in
+ * (`-絶対値(5)`) from a subtraction (`a - 絶対値(5)`). (Issue #1744)
  * @returns {boolean} True if the `-` belongs to the number after it.
  */
 const isNumberSign = (text, pos) => {
@@ -274,6 +276,22 @@ const isNumberSign = (text, pos) => {
     if (k < 0 || !OPERAND_END_RE.test(text[k])) return true;
     const word = text.substring(0, k + 1).match(LAST_WORD_RE);
     return Boolean(word) && OPERAND_START_WORDS.has(word[0]);
+};
+
+/**
+ * Whether `(` at `open` and `)` at `close` put just one method call in
+ * parentheses after a unary minus (`-(5.abs)`). DNCL → Ruby writes
+ * `-絶対値(5)` that way (Issue #1744), so Ruby → DNCL drops them again.
+ * @param {string} text - The text.
+ * @param {number} open - The position just before the method call.
+ * @param {number} close - The position just after the method call.
+ * @returns {boolean} True if the parentheses can be dropped.
+ */
+const isNegatedGroup = (text, open, close) => {
+    if (text[open] !== '(' || text[close] !== ')') return false;
+    let k = open - 1;
+    while (k >= 0 && text[k] === ' ') k--;
+    return k >= 0 && text[k] === '-' && isNumberSign(text, k);
 };
 
 /**
@@ -334,6 +352,13 @@ const replacePostfixMethods = (text) => {
         const receiver = s.substring(start, i);
         const arg = isWrappedInParens(receiver) ? receiver.slice(1, -1).trim() : receiver;
         const replacement = `${POSTFIX_METHODS[match[1]]}(${arg})`;
+        if (isNegatedGroup(s, start - 1, end)) {
+            // `-(5.abs)` → `-絶対値(5)`: the parentheses are only there so
+            // Ruby does not read `-5.abs` as `(-5).abs` (Issue #1744).
+            s = s.substring(0, start - 1) + replacement + s.substring(end + 1);
+            i = start - 1 + replacement.length;
+            continue;
+        }
         s = s.substring(0, start) + replacement + s.substring(end);
         i = start + replacement.length;
     }
@@ -403,4 +428,4 @@ const convertBuiltins = (line) => {
     return result;
 };
 
-export { convertBuiltins };
+export { convertBuiltins, isNumberSign };
