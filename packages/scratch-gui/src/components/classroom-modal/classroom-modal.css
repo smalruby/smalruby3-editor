@@ -1309,7 +1309,9 @@
 
 .members-grid {
     display: grid;
-    grid-template-columns: repeat(10, 1fr);
+    /* minmax(0, …): the lesson tiles' min-content must not widen the modal past
+       1300px and push the seat detail on the right off screen (#1603). */
+    grid-template-columns: repeat(10, minmax(0, 1fr));
     gap: 4px;
     margin: 0.5rem 0;
     /* The seats (up to 40) are a list: only this frame scrolls (R6 exception). */

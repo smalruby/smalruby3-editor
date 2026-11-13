@@ -247,7 +247,7 @@
  * Lesson assignments (#1603). The seat colours are those of the members tab
  * (grey = not started, blue = in progress, green = cleared). With 40 seats the
  * panel stays within 600px: the per-challenge bars are thin rows and, beyond
- * about 10 challenges, scroll inside their own frame only.
+ * 12 challenges, scroll inside their own frame only.
  */
 .lesson-seat-not-started {
     border-color: transparent;
@@ -337,7 +337,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
-    max-height: 9.5rem;
+    max-height: 11.5rem;
     overflow-y: auto;
 }
 
