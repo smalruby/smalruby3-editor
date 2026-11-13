@@ -138,7 +138,7 @@ $celebrate-light: hsla(45, 100%, 98%, 1);
 
 /*
     課題バー（青・40px）の同じ行に出す小さな帯。高さを変えない（変えると resize を送る決まりに当たる）。
-    白い丸と字で、バーの青の上に出す
+    白い字で、バーの青の上に「あと 5 つ（★ 5 つ）」だけを出す（#1771）
 */
 .compact {
     display: inline-flex;
@@ -151,27 +151,9 @@ $celebrate-light: hsla(45, 100%, 98%, 1);
     white-space: nowrap;
 }
 
-.compact .dot {
-    width: 12px;
-    height: 12px;
-    border-color: $ui-white;
-    background-color: transparent;
-    color: $ui-white;
-    font-size: 8px;
-}
-
-.compact .dot-completed {
-    background-color: $ui-white;
-    color: $motion-primary;
-}
-
 .compact .required-remaining,
 .compact .cleared {
     color: inherit;
-}
-
-.compact-dots {
-    flex-wrap: nowrap;
 }
 
 /* この版のコースに無いチャレンジがあるとき（読み込み直してね） */

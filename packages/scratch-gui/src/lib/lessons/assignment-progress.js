@@ -105,6 +105,19 @@ export const assignmentProgress = (lesson, progress, courses = COURSES) => {
 };
 
 /**
+ * 課題の帯の文「あと N つ（★ R つ）で課題クリア」の数（#1771・人間の決定）。
+ *   - total (N): あといくつで課題クリアか（assignmentProgress の remaining。必須が残っていれば必須の数より減らない）
+ *   - required (R): 残っている必須（★）の数。0 なら「（★ R つ）」を出さない
+ * 帯（レッスン表・チャレンジの中）と先生の画面で数がずれないよう、文の数はここだけで決める。
+ * @param {?object} status - assignmentProgress の結果。
+ * @returns {?{total: number, required: number}} 数。課題クリアのあと・status が無ければ null。
+ */
+export const assignmentRemainingParts = (status) => {
+    if (!status || status.cleared) return null;
+    return { total: status.remaining, required: status.requiredRemaining };
+};
+
+/**
  * 作品も提出する課題で［課題を提出する］を出してよいか。課題クリアのあと、または、この版のコースに無い
  * チャレンジがあって課題クリアまで進めないとき（提出できなくなるのを防ぐ・#1599 M1）。
  * @param {?object} lesson - normalizeAssignmentLesson の結果。

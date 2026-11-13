@@ -686,7 +686,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `lessons-library-course-nav-<courseId>` | button | コースのボタン（押すとそのコースまでスクロール） |
 | `lessons-library-course-<courseId>` | section | コース |
 | `lessons-library-course-done` | span | コース名の前の ✓（コースのチャレンジが全部できたときだけ） |
-| `lessons-library-course-progress` | div | コースのプログレスバー（`role="progressbar"`）と数 |
+| `lessons-library-course-progress` | div | コースのプログレスバー（`role="progressbar"`）と数（課題のチャレンジだけのレッスン表では出さない） |
 | `lessons-library-course-progress-text` | span | 「m / n」（コース全体） |
 | `lessons-library-lesson-<lessonId>` | section | レッスン（`data-focused`） |
 | `lessons-library-challenge-<challengeId>` | button | チャレンジのカード（`data-completed="true\|false"`・`data-next`） |
@@ -696,8 +696,9 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `lessons-library-challenge-required` | span | カードの右の ★（クラスの課題で先生が必須にしたチャレンジ・課題に参加しているときだけ）。カードにも `data-required` |
 | `lesson-assignment-band` | div | クラスの課題の帯（課題に参加しているときだけ。`data-cleared`） |
 | `lesson-assignment-band-name` / `lesson-assignment-band-condition` | span | 帯の課題名・条件（「条件: 全部（6 つ）」） |
-| `lesson-assignment-dot` | span | 帯の丸 1 つ（`data-challenge-id` / `data-completed` / `data-required`）。クラスの画面の進み具合でも使う |
-| `lesson-assignment-remaining` / `lesson-assignment-required-remaining` | span | 「あと n つで課題クリア」（`data-count`）／「★ あと n」 |
+| `lesson-assignment-dot` | span | クラスの画面の進み具合の丸 1 つ（`data-challenge-id` / `data-completed` / `data-required`）。課題の帯には出さない |
+| `lesson-assignment-remaining` | span | 帯の文「あと N つ（★ R つ）で課題クリア」（小さな帯は「あと N つ（★ R つ）」。`data-count` = N・`data-required` = R）。クラスの画面では「あと n つで課題クリア」 |
+| `lesson-assignment-required-remaining` | span | クラスの画面の進み具合の「★ あと n」 |
 | `lesson-assignment-cleared` | span | 「✓ 課題クリア」 |
 | `lesson-assignment-band-submit-guide` / `lesson-assignment-band-submit` | span / button | 作品も提出する課題で課題クリアのあと（または、この版に無いチャレンジがあるとき）の案内と「課題を提出する」。はじめて提出するまで |
 | `lesson-assignment-band-unknown` | span | 「新しいレッスンがあります。ページを読み込み直してね」（この版のコースに無いチャレンジがあるとき） |
@@ -1150,7 +1151,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/lib/lessons/open-lessons-library.js` | レッスン表をいまのレッスンを見せて開く（`openLessonsLibraryAt`。「次のチャレンジ」が使う）・クラスの課題のチャレンジだけで開く（`openAssignmentLessonsLibrary`。「はじめる」「レッスンを続ける」） |
 | `packages/scratch-gui/src/lib/lessons/assignment-progress.js` | クラスの課題のレッスンの数え方（設定をそろえる・条件の数・あと n つ・課題クリア・メニューバーの印・はじめての課題クリア・レッスン表を課題のチャレンジに絞る・次にやる課題のチャレンジ・クラスへ送る分の記録）の純粋関数 |
 | `packages/scratch-gui/test/unit/lib/lessons/assignment-progress.test.js` | 上の unit テスト |
-| `packages/scratch-gui/src/components/lesson-assignment-band/` | クラスの課題の帯（レッスン表の上・課題バーの小さな帯・クラスの画面の丸と数） |
+| `packages/scratch-gui/src/components/lesson-assignment-band/` | クラスの課題の帯（レッスン表の上の 1 行の文・課題バーの小さな帯・クラスの画面の丸と数） |
 | `packages/scratch-gui/src/components/classroom-modal/classroom-menu-status.jsx` | メニューバーの課題の横の印（提出状態、レッスンの課題では ○ / 2/4 / ✓） |
 | `packages/scratch-gui/test/integration/smalruby-lessons-next-challenge.test.js` | 「できた！」の「次のチャレンジ」→ レッスン表のいまのレッスン・「次はこれ！」→ 選ぶと開く。3 つの場面のタイトル・丸・「あと n つ」・2 行目・ボタンの文言（Selenium） |
 | `packages/scratch-gui/src/containers/lessons-library.jsx` | レッスン表のコンテナ（開くたびに記録を取り込む・チャレンジを押したら `startChallenge` + 閉じる）。`gui.jsx` に常時マウント（Smalruby マーカー `lessons library`） |

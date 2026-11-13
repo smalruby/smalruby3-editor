@@ -4,6 +4,7 @@ import {
     assignmentLibraryFocus,
     assignmentMenuMark,
     assignmentProgress,
+    assignmentRemainingParts,
     canSubmitAssignment,
     conditionCount,
     isAssignmentChallenge,
@@ -157,6 +158,34 @@ describe('assignmentProgress', () => {
 
     test('returns null without a lesson', () => {
         expect(progressFor(null, progressOf('a'))).toBeNull();
+    });
+});
+
+describe('assignmentRemainingParts (#1771: 「あと N つ（★ R つ）で課題クリア」)', () => {
+    const partsFor = (l, p) => assignmentRemainingParts(progressFor(l, p));
+
+    test('nothing done: N is the condition count, R the required count', () => {
+        // condition 6 (all), required b and e
+        expect(partsFor(lesson(), progressOf())).toEqual({ total: 6, required: 2 });
+    });
+
+    test('N is max(condition - done, required left) and R the required left', () => {
+        const count4 = lesson({ completion: { type: 'count', count: 4 } });
+        expect(partsFor(count4, progressOf('a'))).toEqual({ total: 3, required: 2 });
+        // 4 done but both required are left: N = 2 (the two ★)
+        expect(partsFor(count4, progressOf('a', 'c', 'd', 'f'))).toEqual({ total: 2, required: 2 });
+        // required both done, 1 more of any
+        expect(partsFor(count4, progressOf('b', 'e', 'a'))).toEqual({ total: 1, required: 0 });
+    });
+
+    test('R is 0 when there are no required challenges (the ★ part is left out)', () => {
+        const noRequired = lesson({ requiredChallengeIds: [], completion: { type: 'count', count: 3 } });
+        expect(partsFor(noRequired, progressOf('a'))).toEqual({ total: 2, required: 0 });
+    });
+
+    test('null once the assignment is cleared, or without a status', () => {
+        expect(partsFor(lesson(), progressOf('a', 'b', 'c', 'd', 'e', 'f'))).toBeNull();
+        expect(assignmentRemainingParts(null)).toBeNull();
     });
 });
 
