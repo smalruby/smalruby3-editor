@@ -3,14 +3,26 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import { sanitizeEntryName } from '../../lib/classroom-download-utils.js';
 import {
     canVerifyGoogleShare,
     googleShareBlockedMessage,
     googleShareVerdict,
     isGoogleShareBlocked,
 } from '../../lib/classroom-google-share.js';
+import {
+    SEAT_STATES,
+    buildLessonProgressCsv,
+    clearedSummary,
+    lessonProgressContext,
+    progressRowsByMember,
+    progressTableRows,
+    seatMemberId,
+    seatTile,
+} from '../../lib/classroom-lesson-progress.js';
 import { isMemberSeated } from '../../lib/classroom-presence.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
+import { findCourse } from '../../lib/lessons/courses.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
 import ClassCodeDisplay from './class-code-display.jsx';
@@ -22,9 +34,47 @@ import ClassroomStatusIcon, {
     getSubmissionStatus,
 } from './classroom-status-icon.jsx';
 import ErrorDisplay from './error-display.jsx';
+import LessonSeatTile, { lessonSeatMessages } from './lesson-seat-tile.jsx';
 import { formatCompletionSentence } from './lesson-settings-field.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
+import TeacherLessonProgress from './teacher-lesson-progress.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
+
+// Lesson assignments (#1602): the seat colour shows the lesson progress, so
+// the legend lists presence and leave requests (+ submission when work is
+// submitted too); 「未参加」 is in the colour legend.
+const LESSON_LEGEND_STATUSES = ['seated', 'notSeated', 'kickRequested'];
+const LESSON_SUBMIT_LEGEND_STATUSES = [
+    'seated',
+    'notSeated',
+    'submitted',
+    'notSubmitted',
+    'returned',
+    'kickRequested',
+];
+
+const LESSON_TILE_CLASSES = {
+    [SEAT_STATES.NOT_JOINED]: 'lessonSeatNotJoined',
+    [SEAT_STATES.NOT_STARTED]: 'lessonSeatNotStarted',
+    [SEAT_STATES.IN_PROGRESS]: 'lessonSeatInProgress',
+    [SEAT_STATES.CLEARED]: 'lessonSeatCleared',
+};
+
+/**
+ * Save a CSV text as a file.
+ * @param {string} text - CSV text
+ * @param {string} fileName - file name
+ */
+const downloadCsv = (text, fileName) => {
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
 
 const MEMBER_LEGEND_STATUSES = [
     'seated',
@@ -73,6 +123,7 @@ const TeacherClassDetail = ({
     codeDisplayClassroom,
     codeDisplayFullscreen,
     kickRequestsBySeat,
+    lessonProgress,
     onApproveKickRequest,
     onRejectKickRequest,
     onDetailTabChange,
@@ -309,6 +360,38 @@ const TeacherClassDetail = ({
 
     const joinedCount = members.filter((m) => !m.left).length;
     const totalCount = selectedClassroom.studentCount;
+
+    // Lesson progress (#1602). The fetched response carries the assignment's
+    // current lesson settings; before it arrives, the stored ones of the
+    // description editor tell whether this is a lesson assignment.
+    const fetchedProgress =
+        lessonProgress && lessonProgress.classroomId === selectedClassroom.classroomId ? lessonProgress : null;
+    const lesson = (fetchedProgress && fetchedProgress.lesson) || descEditor.savedLesson || null;
+    const lessonCtx = React.useMemo(
+        () => (lesson ? lessonProgressContext(lesson, findCourse(lesson.courseId)) : null),
+        [lesson],
+    );
+    const rowsByMember = React.useMemo(() => progressRowsByMember(fetchedProgress), [fetchedProgress]);
+    // Recomputed on each refresh (every 30 s), so ▶ / ! follow the clock.
+    const progressNow = React.useMemo(() => Date.now(), [fetchedProgress, members]);
+    const lessonTiles = React.useMemo(() => {
+        if (!lessonCtx) return null;
+        return Array.from({ length: totalCount }, (_, i) => {
+            const memberId = seatMemberId(i + 1);
+            return seatTile(memberMap[memberId] || null, rowsByMember[memberId] || null, lessonCtx, progressNow);
+        });
+    }, [lessonCtx, totalCount, memberMap, rowsByMember, progressNow]);
+    const lessonSummary = lessonTiles ? clearedSummary(lessonTiles) : null;
+    const submitsWork = Boolean(lesson && lesson.submitWork);
+    const showProgressTab = Boolean(lesson);
+
+    const handleDownloadProgressCsv = useCallback(() => {
+        if (!lessonCtx) return;
+        const rows = progressTableRows(members, rowsByMember, totalCount, lessonCtx, Date.now());
+        const names = lessonCtx.columns.map((c) => intl.formatMessage(c.challenge.name));
+        const name = sanitizeEntryName(selectedClassroom.assignmentName || selectedClassroom.className);
+        downloadCsv(buildLessonProgressCsv(rows, rowsByMember, lessonCtx, names), `進み具合_${name}.csv`);
+    }, [lessonCtx, members, rowsByMember, totalCount, intl, selectedClassroom]);
 
     return (
         <div className={styles.detailLayout} data-testid="classroom-phase-teacher-detail">
@@ -718,6 +801,23 @@ const TeacherClassDetail = ({
                                         id="gui.classroom.members.title"
                                     />
                                 </button>
+                                {showProgressTab && (
+                                    <button
+                                        className={classNames(
+                                            styles.detailTab,
+                                            activeTab === 'progress' && styles.detailTabActive,
+                                        )}
+                                        data-tab="progress"
+                                        data-testid="classroom-tab-progress"
+                                        onClick={handleTabClick}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Progress"
+                                            description="Tab of a lesson assignment: the seat × challenge progress table"
+                                            id="gui.classroom.teacherDetail.progressTab"
+                                        />
+                                    </button>
+                                )}
                                 {/* まれな操作は「…」の中（R2・#1303 D1）。ダウンロード中は
                                     メニューが閉じるので、進み具合は「…」の横に出す。 */}
                                 <span className={styles.detailTabsMore}>
@@ -742,6 +842,19 @@ const TeacherClassDetail = ({
                                     >
                                         {(close) => (
                                             <React.Fragment>
+                                                {activeTab === 'progress' && lessonCtx ? (
+                                                    <BoardMenuItem
+                                                        close={close}
+                                                        testId="classroom-lesson-progress-csv"
+                                                        onSelect={handleDownloadProgressCsv}
+                                                    >
+                                                        <FormattedMessage
+                                                            defaultMessage="Download the progress (CSV)"
+                                                            description="… menu of the progress tab: save the seat × challenge table as CSV"
+                                                            id="gui.classroom.teacherDetail.progressCsv"
+                                                        />
+                                                    </BoardMenuItem>
+                                                ) : null}
                                                 <BoardMenuItem
                                                     close={close}
                                                     disabled={isLoading || !!downloadProgress}
@@ -813,44 +926,90 @@ const TeacherClassDetail = ({
                                 <React.Fragment>
                                     <div className={styles.membersHeader}>
                                         <div className={styles.membersLegends}>
-                                            {/* 座席の色の意味（R5・#1303 D2）。アイコンの凡例より先に出す。 */}
-                                            <div
-                                                className={styles.seatColorLegend}
-                                                data-testid="classroom-seat-color-legend"
-                                            >
-                                                <span className={styles.statusLegendItem}>
-                                                    <span
-                                                        className={classNames(
-                                                            styles.seatColorSwatch,
-                                                            styles.memberCellJoined,
-                                                        )}
-                                                    />
-                                                    <FormattedMessage
-                                                        defaultMessage="Joined"
-                                                        description="Seat color legend: a grey seat is a student who joined"
-                                                        id="gui.classroom.teacherDetail.seatColorJoined"
-                                                    />
-                                                </span>
-                                                <span className={styles.statusLegendItem}>
-                                                    <span
-                                                        className={classNames(
-                                                            styles.seatColorSwatch,
-                                                            styles.memberCellEmpty,
-                                                        )}
-                                                    />
-                                                    <FormattedMessage
-                                                        defaultMessage="Not joined yet"
-                                                        description="Seat color legend: a blue seat has no student yet"
-                                                        id="gui.classroom.teacherDetail.seatColorNotJoined"
-                                                    />
-                                                </span>
-                                            </div>
+                                            {/* 座席の色の意味（R5・#1303 D2）。アイコンの凡例より先に出す。
+                                                レッスンの課題では色は進み具合（#1602）。 */}
+                                            {lessonTiles ? (
+                                                <div
+                                                    className={styles.seatColorLegend}
+                                                    data-testid="classroom-lesson-seat-legend"
+                                                >
+                                                    {[
+                                                        ['lessonSeatNotStarted', lessonSeatMessages.notStarted],
+                                                        ['lessonSeatInProgress', lessonSeatMessages.inProgress],
+                                                        ['lessonSeatCleared', lessonSeatMessages.cleared],
+                                                        ['lessonSeatNotJoined', lessonSeatMessages.notJoined],
+                                                    ].map(([cls, message]) => (
+                                                        <span className={styles.statusLegendItem} key={cls}>
+                                                            <span
+                                                                className={classNames(
+                                                                    styles.seatColorSwatch,
+                                                                    styles[cls],
+                                                                )}
+                                                            />
+                                                            {intl.formatMessage(message)}
+                                                        </span>
+                                                    ))}
+                                                    <span className={styles.statusLegendItem}>
+                                                        <span className={styles.lessonSeatStuckLegend}>{'!'}</span>
+                                                        {intl.formatMessage(lessonSeatMessages.stuck)}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <div
+                                                    className={styles.seatColorLegend}
+                                                    data-testid="classroom-seat-color-legend"
+                                                >
+                                                    <span className={styles.statusLegendItem}>
+                                                        <span
+                                                            className={classNames(
+                                                                styles.seatColorSwatch,
+                                                                styles.memberCellJoined,
+                                                            )}
+                                                        />
+                                                        <FormattedMessage
+                                                            defaultMessage="Joined"
+                                                            description="Seat color legend: a grey seat is a student who joined"
+                                                            id="gui.classroom.teacherDetail.seatColorJoined"
+                                                        />
+                                                    </span>
+                                                    <span className={styles.statusLegendItem}>
+                                                        <span
+                                                            className={classNames(
+                                                                styles.seatColorSwatch,
+                                                                styles.memberCellEmpty,
+                                                            )}
+                                                        />
+                                                        <FormattedMessage
+                                                            defaultMessage="Not joined yet"
+                                                            description="Seat color legend: a blue seat has no student yet"
+                                                            id="gui.classroom.teacherDetail.seatColorNotJoined"
+                                                        />
+                                                    </span>
+                                                </div>
+                                            )}
                                             <ClassroomStatusLegend
                                                 className={styles.membersLegend}
-                                                statuses={MEMBER_LEGEND_STATUSES}
+                                                statuses={
+                                                    lessonTiles
+                                                        ? submitsWork
+                                                            ? LESSON_SUBMIT_LEGEND_STATUSES
+                                                            : LESSON_LEGEND_STATUSES
+                                                        : MEMBER_LEGEND_STATUSES
+                                                }
                                             />
                                         </div>
                                         <div className={styles.membersHeaderRight}>
+                                            {lessonSummary ? (
+                                                <span
+                                                    className={styles.lessonClearedSummary}
+                                                    data-testid="classroom-lesson-cleared-summary"
+                                                >
+                                                    {intl.formatMessage(lessonSeatMessages.clearedSummary, {
+                                                        cleared: lessonSummary.cleared,
+                                                        joined: lessonSummary.joined,
+                                                    })}
+                                                </span>
+                                            ) : null}
                                             <span
                                                 className={styles.membersCount}
                                                 data-testid="classroom-members-count"
@@ -878,8 +1037,14 @@ const TeacherClassDetail = ({
                                             const hasSubmission = member && member.hasSubmission;
                                             const isReturned = member && member.submissionStatus === 'returned';
                                             const seated = member && isSeated(member);
+                                            const tile = lessonTiles ? lessonTiles[i] : null;
                                             let cellColorClass = styles.memberCellEmpty;
-                                            if (member) {
+                                            if (tile) {
+                                                cellColorClass = classNames(
+                                                    styles.lessonSeat,
+                                                    styles[LESSON_TILE_CLASSES[tile.state]],
+                                                );
+                                            } else if (member) {
                                                 if (isReturned) {
                                                     cellColorClass = styles.memberCellReturned;
                                                 } else if (hasSubmission) {
@@ -899,18 +1064,32 @@ const TeacherClassDetail = ({
                                             return (
                                                 <button
                                                     className={cellClass}
+                                                    data-lesson-state={tile ? tile.state : null}
                                                     data-member-id={memberId}
                                                     data-testid={`classroom-member-${memberId}`}
                                                     key={memberId}
                                                     onClick={handleCellClick}
                                                 >
-                                                    <span className={styles.memberCellNumber}>{seatNum}</span>
-                                                    <ClassroomStatusIcons
-                                                        className={styles.memberCellIcons}
-                                                        presence={getPresenceStatus(member, seated)}
-                                                        size={10}
-                                                        submission={getSubmissionStatus(member)}
-                                                    />
+                                                    {tile ? (
+                                                        <LessonSeatTile
+                                                            presence={getPresenceStatus(member, seated)}
+                                                            seatNumber={seatNum}
+                                                            submission={
+                                                                submitsWork ? getSubmissionStatus(member) : null
+                                                            }
+                                                            tile={tile}
+                                                        />
+                                                    ) : (
+                                                        <React.Fragment>
+                                                            <span className={styles.memberCellNumber}>{seatNum}</span>
+                                                            <ClassroomStatusIcons
+                                                                className={styles.memberCellIcons}
+                                                                presence={getPresenceStatus(member, seated)}
+                                                                size={10}
+                                                                submission={getSubmissionStatus(member)}
+                                                            />
+                                                        </React.Fragment>
+                                                    )}
                                                     {seatKickRequests.length > 0 && (
                                                         <span
                                                             className={styles.seatKickRequestBadge}
@@ -924,6 +1103,19 @@ const TeacherClassDetail = ({
                                         })}
                                     </div>
                                 </React.Fragment>
+                            )}
+
+                            {/* Progress tab (#1602): seat × challenge table of a lesson assignment. */}
+                            {activeTab === 'progress' && showProgressTab && (
+                                <TeacherLessonProgress
+                                    ctx={lessonCtx}
+                                    members={members}
+                                    now={progressNow}
+                                    rowsByMember={rowsByMember}
+                                    selectedMember={selectedMember}
+                                    studentCount={totalCount}
+                                    onSelectSeat={onSelectMember}
+                                />
                             )}
 
                             {/* Archive confirmation (soft-delete, restorable — issue #1051).
@@ -1179,11 +1371,17 @@ TeacherClassDetail.propTypes = {
     onToggleCodeFullscreen: PropTypes.func.isRequired,
     onUpdateAssignmentName: PropTypes.func,
     kickRequestsBySeat: PropTypes.object,
+    // GET lesson-progress of the selected assignment (+ its classroomId), #1602
+    lessonProgress: PropTypes.shape({
+        classroomId: PropTypes.string,
+        lesson: PropTypes.object,
+        progress: PropTypes.arrayOf(PropTypes.object),
+    }),
     onApproveKickRequest: PropTypes.func,
     onRejectKickRequest: PropTypes.func,
     onDetailTabChange: PropTypes.func,
     detailEntry: PropTypes.shape({
-        tab: PropTypes.oneOf(['members', 'description']),
+        tab: PropTypes.oneOf(['members', 'description', 'progress']),
         seq: PropTypes.number,
     }),
     onOpenShareSuggestion: PropTypes.func,

@@ -754,3 +754,71 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
         expect(byTestId('classroom-description-preview-body')).toBeInTheDocument();
     });
 });
+
+describe('TeacherClassDetail — lesson progress (#1602)', () => {
+    const lesson = {
+        courseId: 'kyou-kara-programmer',
+        challengeIds: ['blocks-l1-key-sound', 'blocks-l1-arrow-move', 'blocks-l1-click-say'],
+        requiredChallengeIds: ['blocks-l1-click-say'],
+        completion: { type: 'all' },
+        submitWork: false,
+        scoring: null,
+    };
+    const recent = new Date(Date.now() - 60 * 1000).toISOString();
+    const lessonProgress = {
+        classroomId: 'c1',
+        lesson,
+        progress: [
+            {
+                memberId: 'seat-01',
+                seatNumber: 1,
+                challenges: { 'blocks-l1-key-sound': { completedAt: recent, before: false } },
+                current: {
+                    challengeId: 'blocks-l1-arrow-move',
+                    openedAt: new Date(Date.now() - 15 * 60000).toISOString(),
+                },
+                updatedAt: recent,
+            },
+        ],
+    };
+    const members = [{ memberId: 'seat-01', displayName: 'あ', lastActiveAt: recent }];
+
+    test('colours the seats by progress and shows the count, ★ left and「!」', () => {
+        renderDetail({ lessonProgress, members });
+        const seat1 = document.querySelector('[data-testid="classroom-member-seat-01"]');
+        expect(seat1.dataset.lessonState).toBe('inProgress');
+        expect(document.querySelector('[data-testid="classroom-lesson-seat-count-1"]').textContent).toBe('1 / 3');
+        expect(document.querySelector('[data-testid="classroom-lesson-seat-required-1"]')).toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-lesson-seat-stuck-1"]')).toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-member-seat-02"]').dataset.lessonState).toBe(
+            'notJoined',
+        );
+        expect(document.querySelector('[data-testid="classroom-lesson-seat-legend"]')).toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-seat-color-legend"]')).not.toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-lesson-cleared-summary"]').textContent).toContain('0');
+    });
+
+    test('keeps the ordinary seat colours for an assignment without a lesson', () => {
+        renderDetail({ members });
+        expect(document.querySelector('[data-testid="classroom-tab-progress"]')).not.toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-seat-color-legend"]')).toBeInTheDocument();
+    });
+
+    test('the progress tab shows the seat × challenge table and opens the seat on click', () => {
+        const onSelectMember = jest.fn();
+        renderDetail({ lessonProgress, members, onSelectMember });
+        fireEvent.click(document.querySelector('[data-testid="classroom-tab-progress"]'));
+        expect(document.querySelector('[data-testid="classroom-lesson-progress"]')).toBeInTheDocument();
+        const cell = (id) =>
+            document.querySelector(`[data-testid="classroom-lesson-progress-cell-seat-01-${id}"]`).textContent;
+        expect(cell('blocks-l1-key-sound')).toBe('✓');
+        expect(cell('blocks-l1-arrow-move')).toBe('!');
+        expect(cell('blocks-l1-click-say')).toBe('・');
+        expect(
+            document.querySelector('[data-testid="classroom-lesson-progress-total-blocks-l1-arrow-move"]')
+                .textContent,
+        ).toBe('0▶1');
+        fireEvent.click(document.querySelector('[data-testid="classroom-lesson-progress-seat-seat-01"]'));
+        expect(onSelectMember).toHaveBeenCalledWith('seat-01');
+    });
+});

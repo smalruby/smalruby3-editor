@@ -62,15 +62,21 @@ const csvField = (value) => {
 };
 
 /**
+ * Join rows into Excel-friendly CSV text.
+ * @param {Array<Array<*>>} lines - rows of cells (the first is the header)
+ * @returns {string} CSV text (U+FEFF BOM + CRLF rows)
+ */
+export const csvLines = (lines) => `${'\ufeff'}${lines.map((row) => row.map(csvField).join(',')).join('\r\n')}`;
+
+/**
  * Build the submission status CSV for the class-wide zip.
  * @param {Array<object>} rows - [{assignmentName, seat, name, projectName, submittedAt, status}]
  * @returns {string} CSV text (U+FEFF BOM + CRLF rows, Excel-friendly)
  */
 export const buildSubmissionsCsv = (rows) => {
     const header = ['課題名', '出席番号', '名前', '作品名', '提出日時', '状態'];
-    const lines = [
+    return csvLines([
         header,
         ...(rows || []).map((r) => [r.assignmentName, r.seat, r.name, r.projectName, r.submittedAt, r.status]),
-    ];
-    return `${'\ufeff'}${lines.map((row) => row.map(csvField).join(',')).join('\r\n')}`;
+    ]);
 };

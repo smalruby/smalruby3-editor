@@ -158,6 +158,12 @@ const useTeacherClassrooms = ({
     // students send overlapping requests for the same seat (no abuse cap),
     // and the teacher should see them all. Cleared on classroom switch.
     const [kickRequestsBySeat, setKickRequestsBySeat] = useState({});
+    // Lesson progress of the selected assignment (EPIC #1592 / #1602): the
+    // GET lesson-progress response, or null when it has no lesson / not loaded.
+    const [lessonProgress, setLessonProgress] = useState(null);
+    // Read by the refresh so its identity does not change with the classroom.
+    const hasLessonRef = useRef(false);
+    hasLessonRef.current = Boolean(selectedClassroom && selectedClassroom.hasLesson);
 
     const refreshTimerRef = useRef(null);
     // Which detail tab is visible. Polling of attendance/submissions runs
@@ -381,13 +387,17 @@ const useTeacherClassrooms = ({
     const refreshMembersOnly = useCallback(
         async (classroomId) => {
             try {
-                const [membersData, submissionsData, kickRequestsData] = await Promise.all([
+                const withLesson = hasLessonRef.current;
+                const [membersData, submissionsData, kickRequestsData, progressData] = await Promise.all([
                     classroomAPI.listMembers(idToken, classroomId),
                     classroomAPI.listSubmissions(idToken, classroomId),
                     classroomAPI.listKickRequests(idToken, classroomId).catch(() => ({ requests: [] })),
+                    // Only lesson assignments have progress (the API answers 400 otherwise).
+                    withLesson ? classroomAPI.getLessonProgress(idToken, classroomId).catch(() => null) : null,
                 ]);
                 setMembers(enrichMembers(membersData, submissionsData));
                 setKickRequestsBySeat(groupKickRequestsBySeat(kickRequestsData));
+                setLessonProgress(progressData && { ...progressData, classroomId });
             } catch (err) {
                 if (err.status === 401) {
                     await handleTeacher401();
@@ -399,8 +409,11 @@ const useTeacherClassrooms = ({
     );
 
     useEffect(() => {
-        if (phase === 'teacher-class-detail' && selectedClassroom && idToken && detailTab === 'members') {
-            // Refresh immediately when the members tab opens, then poll.
+        // The members tab and the lesson progress tab (#1602) both show the
+        // seats, so both poll; the description tab does not.
+        const pollingTab = detailTab === 'members' || detailTab === 'progress';
+        if (phase === 'teacher-class-detail' && selectedClassroom && idToken && pollingTab) {
+            // Refresh immediately when the tab opens, then poll.
             refreshMembersOnly(selectedClassroom.classroomId);
             refreshTimerRef.current = setInterval(() => {
                 refreshMembersOnly(selectedClassroom.classroomId);
@@ -413,6 +426,11 @@ const useTeacherClassrooms = ({
             }
         };
     }, [phase, selectedClassroom, idToken, refreshMembersOnly, detailTab]);
+
+    // Another assignment: drop the progress of the previous one.
+    useEffect(() => {
+        setLessonProgress(null);
+    }, [selectedClassroom && selectedClassroom.classroomId]);
 
     // --- Navigation ---
 
@@ -641,6 +659,7 @@ const useTeacherClassrooms = ({
         setMembers,
         selectedMember,
         kickRequestsBySeat,
+        lessonProgress,
         loadClassroomDetail,
         handleCreateClassroom,
         handleDeleteClassroom,

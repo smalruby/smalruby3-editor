@@ -286,6 +286,7 @@ const useTeacherClassroom = ({
 
         // Kick requests (Phase 4-6)
         kickRequestsBySeat: classrooms.kickRequestsBySeat,
+        lessonProgress: classrooms.lessonProgress,
         handleApproveKickRequest: classrooms.handleApproveKickRequest,
         handleRejectKickRequest: classrooms.handleRejectKickRequest,
 

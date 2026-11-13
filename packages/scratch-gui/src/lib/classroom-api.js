@@ -196,6 +196,17 @@ class ClassroomAPI {
     }
 
     /**
+     * Lesson progress of every seat (teacher, EPIC #1592). Counts must use the
+     * assignment's current `lesson.challengeIds` (rows keep older ids too).
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom ID
+     * @returns {Promise<object>} {lesson, progress: [{memberId, seatNumber, challenges, current, updatedAt}]}
+     */
+    async getLessonProgress(idToken, classroomId) {
+        return this._request('GET', `/classrooms/${classroomId}/lesson-progress`, null, idToken);
+    }
+
+    /**
      * Pending kick requests across every assignment the teacher may manage
      * (#1200). Polled every ~10s while a teacher is logged in.
      * @param {string} idToken - Teacher ID token
