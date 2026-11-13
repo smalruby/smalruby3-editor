@@ -327,6 +327,39 @@ describe('TeacherAssignmentBoard — create screen asks only the name (#1303 C1)
     });
 });
 
+describe('TeacherAssignmentBoard — 「レッスン」 in the create menu (#1780)', () => {
+    test('sits right below「課題」 and creates through the same name screen with lesson: true', () => {
+        const props = defaultProps();
+        renderBoard(props);
+        openCreateMenu();
+        const assignment = byTestId('classroom-board-create');
+        const lesson = byTestId('classroom-board-create-lesson');
+        expect(lesson).toHaveTextContent('Lesson');
+        expect(assignment.nextElementSibling).toBe(lesson);
+        fireEvent.click(lesson);
+
+        expect(byTestId('classroom-board-create-view')).toHaveTextContent('Create a lesson assignment');
+        fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: 'レッスン1' } });
+        fireEvent.click(byTestId('classroom-board-create-submit'));
+        expect(props.onCreateAssignmentInClass).toHaveBeenCalledWith(props.group, 'レッスン1', {
+            meshGroupLimit: 6,
+            lesson: true,
+        });
+    });
+
+    test('「課題」 after「レッスン」 creates a plain assignment', () => {
+        const props = defaultProps();
+        renderBoard(props);
+        clickCreateItem('classroom-board-create-lesson');
+        fireEvent.click(byTestId('classroom-board-create-cancel'));
+        clickCreateItem('classroom-board-create');
+        expect(byTestId('classroom-board-create-view')).toHaveTextContent('Create an assignment');
+        fireEvent.change(byTestId('classroom-board-create-name'), { target: { value: '課題2' } });
+        fireEvent.click(byTestId('classroom-board-create-submit'));
+        expect(props.onCreateAssignmentInClass).toHaveBeenCalledWith(props.group, '課題2', { meshGroupLimit: 6 });
+    });
+});
+
 describe('TeacherAssignmentBoard — Stream / Classwork tabs (#1301, B5)', () => {
     test('opens on Stream; Classwork shows the assignment list and the create menu', () => {
         renderStream();
@@ -456,6 +489,7 @@ describe('TeacherAssignmentBoard — one［＋ 作成 ▾］menu (B6)', () => {
         ).map((el) => el.getAttribute('data-testid'));
         expect(items).toEqual([
             'classroom-board-create',
+            'classroom-board-create-lesson',
             'classroom-board-reuse',
             'classroom-board-shared-catalog',
             'classroom-board-passcode-import',

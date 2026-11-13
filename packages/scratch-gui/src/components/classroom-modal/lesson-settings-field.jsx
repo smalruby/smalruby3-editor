@@ -147,9 +147,22 @@ const panelPlacement = (root) => {
     return { top, right: Math.max(0, Math.round(right)), maxHeight: Math.round(baseRect.height - top) };
 };
 
-const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
+const LessonSettingsField = ({ autoOpen, disabled, draft, saved, onAutoOpened, onChange, onClose }) => {
     const intl = useIntl();
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(Boolean(autoOpen));
+    // ［＋ 作成 ▾］→「レッスン」(#1780): the panel opens by itself once.
+    useEffect(() => {
+        if (!autoOpen) return;
+        setOpen(true);
+        if (onAutoOpened) onAutoOpened();
+    }, [autoOpen, onAutoOpened]);
+    // Every way of closing (✕・外・Escape・the toggle) ends here, so the
+    // editor can ask about the page description (#1780).
+    const wasOpenRef = useRef(open);
+    useEffect(() => {
+        if (wasOpenRef.current && !open && onClose) onClose();
+        wasOpenRef.current = open;
+    }, [open, onClose]);
     const rootRef = useRef(null);
     const toggleRef = useRef(null);
     const [placement, setPlacement] = useState(null);
@@ -548,12 +561,17 @@ const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
 };
 
 LessonSettingsField.propTypes = {
+    // Open the panel by itself (then onAutoOpened is called once).
+    autoOpen: PropTypes.bool,
     disabled: PropTypes.bool,
     // The editor draft (null = no lesson). Shape: lib/classroom-lesson-settings.js.
     draft: PropTypes.object,
     // The stored `lesson` field, to mark unsaved changes.
     saved: PropTypes.object,
+    onAutoOpened: PropTypes.func,
     onChange: PropTypes.func.isRequired,
+    // Called after the panel closes, however it was closed.
+    onClose: PropTypes.func,
 };
 
 export default LessonSettingsField;

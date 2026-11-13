@@ -290,6 +290,8 @@ export default {
     'gui.classroom.board.streamArchivedDateLabel': 'Archived',
     'gui.classroom.board.createMenu': '+ Create ▾',
     'gui.classroom.board.createAssignmentItem': 'Assignment',
+    'gui.classroom.board.createLessonItem': 'Lesson',
+    'gui.classroom.board.createLessonTitle': 'Create a lesson assignment',
     'gui.classroom.board.moreMenu': 'More',
     'gui.classroom.board.noTopicSection': 'No topic',
     'gui.classroom.board.topicRename': 'Rename',
@@ -655,6 +657,9 @@ export default {
     'gui.classroom.lessonSettings.submit': 'Submitting work',
     'gui.classroom.lessonSettings.submitNone': 'No submission (lesson only)',
     'gui.classroom.lessonSettings.submitWork': 'Also submit work at the end',
+    'gui.classroom.lessonSettings.descriptionQuestion': 'Replace the page text with the lesson description?',
+    'gui.classroom.lessonSettings.descriptionYes': 'Yes',
+    'gui.classroom.lessonSettings.descriptionNo': 'No',
     'gui.classroom.lessonSettings.droppedNotice':
         'Progress students already sent stays, but challenges that are no longer chosen are not counted.',
     'gui.classroom.lessonScoring.summary': 'Lesson points: {total} (★ {required})',

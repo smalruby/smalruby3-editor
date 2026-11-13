@@ -2464,6 +2464,31 @@
     font-size: 0.75rem;
 }
 
+/* 「ページの説明をレッスンの説明で上書きしますか？」（#1780）。ページの上に 1 行で出す
+   （confirm() は使わない）。急ぎの対処ではないので赤にしない（R4）。 */
+.lesson-description-question {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.25rem 0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.3rem;
+    background: #eef3ff;
+    color: #575e75;
+    font-size: 0.8rem;
+}
+
+.lesson-description-answer {
+    padding: 0.15rem 0.75rem;
+    border: 1px solid #855cd6;
+    border-radius: 0.3rem;
+    background: white;
+    color: #855cd6;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
 /* トップレベル画面（TeacherScreen）の説明文。#1125 で .assignment-editor-hint から
    改名し、同色・同サイズだった .class-list-hint を統合した。 */
 .teacher-view-hint {

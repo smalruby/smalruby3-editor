@@ -240,6 +240,7 @@ src/lib/*
 !src/lib/classroom-lesson-settings.js
 !src/lib/classroom-lesson-progress.js
 !src/lib/classroom-lesson-summary.js
+!src/lib/classroom-lesson-description.js
 !src/lib/classroom-assignment-templates/
 !src/lib/classroom-assignment-templates/**
 !src/lib/classroom-evaluation/
@@ -480,6 +481,7 @@ test/unit/components/*
 !test/unit/components/koshien-mock-panel.test.jsx
 !test/unit/components/koshien-settings-modal.test.jsx
 !test/unit/components/lesson-settings-field-close.test.jsx
+!test/unit/components/lesson-settings-field-auto-open.test.jsx
 !test/unit/components/koshien-test-modal.test.jsx
 !test/unit/components/url-loader-modal.test.jsx
 !test/unit/components/dncl-mode-notice.test.jsx
@@ -562,6 +564,7 @@ test/unit/containers/*
 !test/unit/containers/use-student-class-settings-refresh.test.js
 !test/unit/containers/use-student-assignment.test.js
 !test/unit/containers/use-teacher-assignment.test.js
+!test/unit/containers/use-teacher-assignment-lesson-description.test.js
 !test/unit/containers/use-teacher-classrooms-rename.test.js
 !test/unit/containers/use-teacher-classrooms-lesson-progress.test.js
 !test/unit/containers/use-student-submit.test.js
@@ -621,6 +624,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-lesson-settings.test.js
 !test/unit/lib/classroom-lesson-progress.test.js
 !test/unit/lib/classroom-lesson-summary.test.js
+!test/unit/lib/classroom-lesson-description.test.js
 !test/unit/lib/classroom-download-utils.test.js
 !test/unit/lib/classroom-group-utils.test.js
 !test/unit/lib/google-classroom-auth.test.js
