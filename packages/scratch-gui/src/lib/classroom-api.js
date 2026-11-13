@@ -551,6 +551,19 @@ class ClassroomAPI {
     }
 
     /**
+     * Change only the lesson points (`lesson.scoring`) of an assignment
+     * (teacher only, #1787). Pages, images, starter and the other lesson
+     * settings are left as they are. 400 when the assignment has no lesson.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom (assignment) ID
+     * @param {?object} scoring - {total, requiredPoints, optionalPoints}; null = the defaults
+     * @returns {Promise<object>} {lesson} — the saved lesson settings
+     */
+    async setLessonScoring(idToken, classroomId, scoring) {
+        return this._request('PATCH', `/classrooms/${classroomId}/assignment/lesson-scoring`, { scoring }, idToken);
+    }
+
+    /**
      * Get the assignment content of a classroom with download URLs.
      * Accepts either a teacher ID token or a student session token.
      * @param {string} token - Teacher ID token or student session token

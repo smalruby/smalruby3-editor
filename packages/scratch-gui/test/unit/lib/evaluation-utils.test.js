@@ -8,7 +8,6 @@ import {
     evaluationColumns,
     evaluationFlowMode,
     isLessonOnlyAssignment,
-    lessonScoringSavePayload,
 } from '../../../src/lib/classroom-evaluation/evaluation-utils';
 
 describe('combineOverall', () => {
@@ -180,51 +179,5 @@ describe('採点の流れ（#1778）', () => {
         expect(currentLessonOnlyStep({ loaded: false, checked: true })).toBe('load');
         expect(currentLessonOnlyStep({ loaded: true, checked: false })).toBe('check');
         expect(currentLessonOnlyStep({ loaded: true, checked: true })).toBe('export');
-    });
-
-    test('点の保存は、説明のページとはじめのプロジェクトをそのまま送り直す', () => {
-        const scoring = { total: 100, requiredPoints: 50, optionalPoints: 50 };
-        const lesson = { courseId: 'c', challengeIds: ['a'], scoring: null };
-        const data = {
-            assignment: {
-                pages: [
-                    { text: 'p1', imageKey: 'k/1.png', imageUrl: 'https://x' },
-                    { text: 'p2', imageKey: null, imageUrl: null },
-                ],
-                starterKey: 'k/s.sb3',
-            },
-            lesson,
-        };
-        expect(lessonScoringSavePayload(data, scoring)).toEqual({
-            pages: [{ text: 'p1', imageKey: 'k/1.png' }, { text: 'p2' }],
-            keepStarter: true,
-            lesson: { ...lesson, scoring },
-        });
-        expect(lessonScoringSavePayload({ assignment: null, lesson }, scoring)).toEqual({
-            pages: [],
-            lesson: { ...lesson, scoring },
-        });
-    });
-
-    test('M1: 保存の直前に読んだ lesson に scoring だけを重ねる（ほかの設定・コースに無い ID もそのまま）', () => {
-        const current = {
-            courseId: 'c',
-            challengeIds: ['a', 'gone', 'b', 'added-elsewhere'],
-            requiredChallengeIds: ['a'],
-            completion: { type: 'count', count: 3 },
-            submitWork: true,
-            scoring: { total: 80, requiredPoints: 56, optionalPoints: 24 },
-        };
-        const scoring = { total: 100, requiredPoints: 50, optionalPoints: 50 };
-        const payload = lessonScoringSavePayload({ assignment: null, lesson: current }, scoring);
-        const { scoring: sent, ...rest } = payload.lesson;
-        const { scoring: _, ...currentRest } = current;
-        expect(rest).toEqual(currentRest);
-        expect(sent).toEqual(scoring);
-    });
-
-    test('M1: レッスンが外されていたら保存しない（null）', () => {
-        expect(lessonScoringSavePayload({ assignment: null, lesson: null }, null)).toBeNull();
-        expect(lessonScoringSavePayload(null, null)).toBeNull();
     });
 });
