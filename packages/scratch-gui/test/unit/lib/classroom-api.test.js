@@ -342,3 +342,31 @@ describe('ClassroomAPI.putLessonProgress (#1600)', () => {
         expect(JSON.parse(opts.body)).toEqual(payload);
     });
 });
+
+describe('ClassroomAPI.getLessonProgress (#1602)', () => {
+    let classroomAPI;
+
+    beforeEach(() => {
+        jest.resetModules();
+        global.fetch = jest.fn();
+        classroomAPI = require('../../../src/lib/classroom-api.js').default;
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('GETs the lesson progress of the assignment with the teacher token', async () => {
+        global.fetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: jest.fn().mockResolvedValue({ lesson: null, progress: [] }),
+        });
+        const data = await classroomAPI.getLessonProgress('id-token', 'c1');
+        const [url, opts] = global.fetch.mock.calls[0];
+        expect(url).toContain('/classrooms/c1/lesson-progress');
+        expect(opts.method).toBe('GET');
+        expect(opts.headers.Authorization).toBe('Bearer id-token');
+        expect(data).toEqual({ lesson: null, progress: [] });
+    });
+});

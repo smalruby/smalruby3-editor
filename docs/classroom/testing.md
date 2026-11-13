@@ -86,6 +86,34 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-delete-cancel` | button | アーカイブキャンセル |
 | `classroom-download-all` | button (menuitem) | 「…」の「全作品ダウンロード」 |
 
+### レッスンの進み具合 (先生・レッスンの課題だけ)
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-tab-progress` | button | 「進み具合」タブ（レッスンを紐付けた課題だけ） |
+| `classroom-member-{memberId}` | button | 座席（レッスンの課題では `data-lesson-state` = `notJoined` / `notStarted` / `inProgress` / `cleared`） |
+| `classroom-lesson-seat-legend` | div | 座席の色の凡例（まだ・とちゅう・課題クリア・未参加・「!」）。レッスンの課題では `classroom-seat-color-legend` の代わりに出る |
+| `classroom-lesson-cleared-summary` | span | 「クリア N / 参加 N」 |
+| `classroom-lesson-seat-count-{seat}` | span[role=img] | タイルの「できた数 / 条件の数」（できた数は条件の数で止める） |
+| `classroom-lesson-seat-required-{seat}` | span | タイルの「★ あと n」（必須が残っているときだけ） |
+| `classroom-lesson-seat-stuck-{seat}` | span[role=img] | タイルの「!」（同じチャレンジに 10 分以上・最後の送信が 1 時間以内のときだけ） |
+| `classroom-lesson-progress` | div | 「進み具合」タブの中身 |
+| `classroom-lesson-progress-legend` | div | 記号の凡例（✓・前・▶・!・・・★） |
+| `classroom-lesson-progress-sort` | select | 並べ方（`seat` / `progress` / `stuck`） |
+| `classroom-lesson-progress-frame` | div | 表の枠（この枠の中だけスクロールする。見出しと席の列は固定） |
+| `classroom-lesson-progress-head-{challengeId}` | th | チャレンジの見出し（縦書き・`title` に全文） |
+| `classroom-lesson-progress-totals` | tr | 見出しの中の「できた人」の行 |
+| `classroom-lesson-progress-total-{challengeId}` | th | 列のできた人の数（上の線がチャレンジの色・`title` に詳しく） |
+| `classroom-lesson-progress-current-{challengeId}` | sup | 列のいまやっている人の数（右肩の青い数。いるときだけ） |
+| `classroom-lesson-progress-loading` | p | はじめの取得が終わるまでの「進み具合を読み込み中…」（メンバータブ・「進み具合」タブ） |
+| `classroom-lesson-progress-error` | p | はじめの取得から失敗したときの「進み具合を読み込めませんでした。…」 |
+| `classroom-detail-compact-code` | div | 「進み具合」タブでの小さな 1 行の参加コード（課題名の欄と保存期限の行の代わり） |
+| `classroom-lesson-progress-row-{memberId}` | tr | 席の行 |
+| `classroom-lesson-progress-seat-{memberId}` | button | 席番号（押すと右にメンバーの詳細） |
+| `classroom-lesson-progress-cell-{memberId}-{challengeId}` | span | セル（`data-kind` = `done` / `before` / `current` / `stuck` / `todo`） |
+| `classroom-lesson-progress-unknown-course` | p | このスモウルビーに無いコースのとき表の代わりに出す文 |
+| `classroom-lesson-progress-csv` | button (menuitem) | 「…」の「進み具合を CSV でダウンロード」（「進み具合」タブのときだけ） |
+
 ### メンバー詳細パネル (先生)
 
 | data-testid | 要素 | 説明 |
