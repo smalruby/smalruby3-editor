@@ -27,7 +27,7 @@ import {
     setRubyteeEnabled,
     clearStudentSubmitRequest,
 } from '../reducers/classroom.js';
-import { reloadProgress } from '../reducers/lesson-mode.js';
+import { reloadProgress, requestProgressSend } from '../reducers/lesson-mode.js';
 import { setProjectTitle } from '../reducers/project-title.js';
 import { decideClasscodeAction, initialStudentPhase, resolveAutoJoinCode } from './classroom-classcode-utils.js';
 import translateError, { extractKickReason } from './classroom-error-utils.js';
@@ -431,9 +431,11 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             studentAssignment.refreshContinueOptions();
             // The lesson progress row is built from the device's lesson records
             // (#1599); take in what another tab wrote and re-read the lesson.
-            // Sending the progress to the class on opening this screen is #1600.
+            // Opening this screen is also a moment to send the progress to the
+            // class (#1600): catches up what failed to send earlier. Asked after
+            // the lesson is re-read so a changed lesson is sent as it is now.
             dispatch(reloadProgress());
-            studentAssignment.refreshLesson();
+            studentAssignment.refreshLesson().then(() => dispatch(requestProgressSend()));
         } catch (err) {
             if (token !== sessionTokenRef.current) return;
             const kick = extractKickReason(err);
