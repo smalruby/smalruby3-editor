@@ -42,6 +42,11 @@ const messages = defineMessages({
         defaultMessage: 'DNCL mode',
         description: 'Tooltip for DNCL mode button',
     },
+    modeDnclLockedInLesson: {
+        id: 'gui.rubyToolbar.modeDnclLockedInLesson',
+        defaultMessage: 'You cannot switch to the Japanese mode in this lesson',
+        description: 'Tooltip for the DNCL mode button while the current lesson does not allow the Japanese mode',
+    },
     stopExecution: {
         id: 'gui.rubyToolbar.stopExecution',
         defaultMessage: 'Stop execution',

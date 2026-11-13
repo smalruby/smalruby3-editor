@@ -143,11 +143,15 @@ export const defineChallenge = (def) => ({
  * @param {object} def - レッスンの定義。
  * @param {string} def.id - レッスン id。
  * @param {Array<object>} def.challenges - チャレンジの定義（並び順）。
+ * @param {boolean} [def.allowDnclMode] - レッスンのあいだ Ruby タブを日本語モードに切りかえてよいか。
+ *   書いていなければ不可（日本語モードのパレットの絞り込みがチャレンジの絞り込みに重なり、チャレンジの
+ *   ブロックが出なくなるため・#1741）。setup で日本語モードにするレッスン（DNCL のコースなど）は true にする。
  * @returns {object} レッスン。
  */
-export const defineLesson = ({ id, challenges }) => ({
+export const defineLesson = ({ id, challenges, allowDnclMode = false }) => ({
     id,
     name: message(`gui.lessons.lesson.${id}.name`),
+    allowDnclMode: Boolean(allowDnclMode),
     challenges: challenges.map((def, index) => defineChallenge({ ...def, number: index + 1 })),
 });
 

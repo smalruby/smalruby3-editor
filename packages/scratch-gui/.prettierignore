@@ -517,6 +517,7 @@ test/unit/components/*
 !test/unit/components/ruby-toolbar-analytics.test.jsx
 !test/unit/components/ruby-toolbar-no-rubytee.test.jsx
 !test/unit/components/ruby-toolbar-keyboard.test.jsx
+!test/unit/components/ruby-toolbar-dncl-lock.test.jsx
 !test/unit/components/scanning-step-name-search.test.js
 !test/unit/components/student-join-form.test.js
 

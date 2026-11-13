@@ -1533,6 +1533,7 @@ export default {
     'gui.rubyToolbar.modeFuriganaLine2': 'Ruby',
     'gui.rubyToolbar.modeRuby': 'Rubyモード',
     'gui.rubyToolbar.modeDncl': 'にほんごモード',
+    'gui.rubyToolbar.modeDnclLockedInLesson': 'このレッスンでは にほんごモードに きりかえられません',
     'gui.rubyToolbar.stopExecution': 'じっこうをていし',
     'gui.rubyToolbar.search': 'けんさく',
     'gui.rubyToolbar.keyboardShow': 'キーボードをひょうじ',

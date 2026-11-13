@@ -36,6 +36,7 @@ import { showAlertWithTimeout, closeAlertWithId } from '../reducers/alerts';
 import { setDnclMode as setDnclModeAction, clearExternalExitDnclModeRequest } from '../reducers/dncl-mode';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
 import { setAiSaveStatus, clearAiSaveStatus } from '../reducers/koshien-file';
+import { getLessonDnclModeAllowed } from '../reducers/lesson-mode';
 import { closeFileMenu } from '../reducers/menus.js';
 import { setProjectChanged } from '../reducers/project-changed';
 import {
@@ -130,6 +131,7 @@ const RubyTab = (props) => {
         onDismissV1Prompt,
         onSetDnclMode,
         exitDnclModeExternallyRequested,
+        dnclModeLocked,
         onClearExitDnclModeRequest,
         onActivateTab,
     } = props;
@@ -178,6 +180,9 @@ const RubyTab = (props) => {
     const dnclSourceMapRef = useRef(null);
     const dnclModeRef = useRef(dnclMode);
     dnclModeRef.current = dnclMode;
+    // The toggle reads it through a ref so that a stale callback (requestAnimationFrame) sees the latest lock
+    const dnclModeLockedRef = useRef(dnclModeLocked);
+    dnclModeLockedRef.current = dnclModeLocked;
 
     // --- Instance refs ---
     const editorRef = useRef(null);
@@ -696,6 +701,9 @@ const RubyTab = (props) => {
 
     const handleToggleDnclMode = useCallback(async () => {
         const enabling = !dnclModeRef.current;
+        // A lesson that does not allow the Japanese mode (#1741): never enter it (leaving it is always fine).
+        // Covers the toolbar button and the re-entry when coming back to the Ruby tab
+        if (enabling && dnclModeLockedRef.current) return;
 
         // Clear any existing errors before mode switch attempt.
         clearErrors();
@@ -1152,7 +1160,8 @@ const RubyTab = (props) => {
             setFuriganaEnabled(loadBool(FURIGANA_ENABLED_KEY, true));
             if (typeof window !== 'undefined' && window.localStorage) {
                 const savedDncl = window.localStorage.getItem(DNCL_MODE_KEY) === 'true';
-                if (savedDncl !== dnclMode) {
+                // Do not restore the Japanese mode during a lesson that does not allow it (#1741)
+                if (savedDncl !== dnclMode && !(savedDncl && dnclModeLocked)) {
                     setDnclMode(savedDncl);
                     onSetDnclMode(savedDncl);
                 }
@@ -1546,6 +1555,7 @@ const RubyTab = (props) => {
                     onPreviewRubyScript={handlePreviewRubyScript}
                     dnclMode={dnclMode}
                     dnclValidating={dnclValidating}
+                    dnclModeLocked={dnclModeLocked}
                     onToggleDnclMode={handleToggleDnclMode}
                     locale={locale}
                 />
@@ -1659,6 +1669,7 @@ RubyTab.propTypes = {
     onDismissV1Prompt: PropTypes.func,
     onSetDnclMode: PropTypes.func,
     exitDnclModeExternallyRequested: PropTypes.bool,
+    dnclModeLocked: PropTypes.bool,
     onClearExitDnclModeRequest: PropTypes.func,
     onActivateTab: PropTypes.func,
 };
@@ -1674,6 +1685,8 @@ const mapStateToProps = (state) => ({
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     v1PromptDismissed: state.scratchGui.settings.v1PromptDismissed,
     exitDnclModeExternallyRequested: state.scratchGui.dnclMode.exitDnclModeExternallyRequested,
+    // A lesson that does not allow the Japanese mode (#1741)
+    dnclModeLocked: !getLessonDnclModeAllowed(state),
 });
 
 const mapDispatchToProps = (dispatch) => ({

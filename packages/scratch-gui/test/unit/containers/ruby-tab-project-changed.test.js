@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import ConnectedRubyTab from '../../../src/containers/ruby-tab.jsx';
 import { legacyConfig } from '../../../src/legacy-config';
+import { lessonModeInitialState } from '../../../src/reducers/lesson-mode';
 
 // Capture the onChange callback passed to Monaco Editor
 let capturedOnChange = null;
@@ -123,6 +124,7 @@ describe('Ruby tab projectChanged on edit', () => {
                 tutorialOnboarding: { rubyTabUsed: true },
                 koshienFile: { aiSaveStatus: null },
                 dnclMode: { dnclMode: false, exitDnclModeExternallyRequested: false },
+                lessonMode: lessonModeInitialState,
             },
             locales: { locale: 'en' },
         });

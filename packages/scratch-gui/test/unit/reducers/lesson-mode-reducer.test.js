@@ -25,6 +25,7 @@ import reducer, {
     nextHint,
     prevHint,
     getLessonAllowedBlocks,
+    getLessonDnclModeAllowed,
     getCurrentHint,
 } from '../../../src/reducers/lesson-mode';
 
@@ -180,6 +181,36 @@ describe('lesson-mode reducer: starting a challenge', () => {
     test('opening a tutorial deck outside lesson mode keeps the state as is', () => {
         const state = reducer(lessonModeInitialState, activateDeck('chat-1-basic-1'));
         expect(state).toBe(lessonModeInitialState);
+    });
+});
+
+describe('lesson-mode reducer: the Japanese mode (#1741)', () => {
+    test('the Japanese mode is allowed outside lesson mode', () => {
+        expect(getLessonDnclModeAllowed(wrap(lessonModeInitialState))).toBe(true);
+    });
+
+    test('the Japanese mode is not allowed in a lesson that does not say so', () => {
+        const state = reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say'));
+        expect(getLessonDnclModeAllowed(wrap(state))).toBe(false);
+    });
+
+    test('the Japanese mode is allowed again after the lesson ends', () => {
+        const inLesson = reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say'));
+        expect(getLessonDnclModeAllowed(wrap(reducer(inLesson, closeLesson())))).toBe(true);
+    });
+
+    test('the Japanese mode is allowed in a lesson with allowDnclMode', () => {
+        const courses = require('../../../src/lib/lessons/courses');
+        const found = courses.findChallenge('blocks-l1-click-say');
+        const spy = jest
+            .spyOn(courses, 'findChallenge')
+            .mockReturnValue({ ...found, lesson: { ...found.lesson, allowDnclMode: true } });
+        try {
+            const state = reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say'));
+            expect(getLessonDnclModeAllowed(wrap(state))).toBe(true);
+        } finally {
+            spy.mockRestore();
+        }
     });
 });
 

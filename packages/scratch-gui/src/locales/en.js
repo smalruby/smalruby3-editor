@@ -1162,6 +1162,7 @@ export default {
     'gui.rubyToolbar.search': 'Search',
     'gui.rubyToolbar.keyboardShow': 'Show keyboard',
     'gui.rubyToolbar.keyboardHide': 'Hide keyboard',
+    'gui.rubyToolbar.modeDnclLockedInLesson': 'You cannot switch to the Japanese mode in this lesson',
     'gui.rubyToolbar.prevSprite': 'Previous sprite',
     'gui.rubyToolbar.nextSprite': 'Next sprite',
     'gui.rubyToolbar.undo': 'Undo',
