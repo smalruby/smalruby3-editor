@@ -264,10 +264,10 @@ const OPERAND_START_WORDS = new Set([
  * ends an operand (a name, a number, `)`, `]`, a string) comes before it,
  * spaces skipped: `= -5`, `(-5`, `* -5`, or a keyword like `かつ` / `when`
  * (`かつ -5`). `a -5` / `3 -5` are subtractions. (Issue #1700)
- * @param {string} text - The text.
- * @param {number} pos - The position of the `-`.
  * DNCL → Ruby uses it too, to tell a `-` that negates a built-in
  * (`-絶対値(5)`) from a subtraction (`a - 絶対値(5)`). (Issue #1744)
+ * @param {string} text - The text.
+ * @param {number} pos - The position of the `-`.
  * @returns {boolean} True if the `-` belongs to the number after it.
  */
 const isNumberSign = (text, pos) => {
