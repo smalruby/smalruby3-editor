@@ -7,6 +7,7 @@
  */
 import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import dedent from 'dedent';
+import RubyGenerator from '../../../../src/lib/ruby-generator';
 import {
     makeSpriteTarget,
     makeConverter,
@@ -96,6 +97,94 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
             const opcodes = Object.values(target.blocks._blocks).map((b) => b.opcode);
             expect(opcodes).toContain('data_lengthoflist');
             expect(opcodes).not.toContain('operator_length');
+        });
+
+        // The user can also name something `_score_list_`: then the list `score` is
+        // `@_score_list2_` (`@_score_list3_` when that is taken too), so the two do not become one
+        // Ruby name (issue #1707).
+        describe('when the sprite also has something named _score_list_ (issue #1707)', () => {
+            const setup = (onStage, others) => {
+                const { target, stage, runtime } = makeSpriteTarget();
+                const owner = onStage ? stage : target;
+                owner.variables.v1 = new Variable('v1', 'score', Variable.SCALAR_TYPE);
+                owner.variables.l1 = new Variable('l1', 'score', Variable.LIST_TYPE);
+                others.forEach(([id, name, type]) => {
+                    owner.variables[id] = new Variable(id, name, type);
+                });
+                setupRubyGenerator();
+                const converter = makeConverter(target, runtime, { version: '2' });
+                return { target, owner, converter };
+            };
+            const blockOf = (target, opcode) => Object.values(target.blocks._blocks).find((b) => b.opcode === opcode);
+
+            test.each([
+                [
+                    'a variable in the sprite',
+                    false,
+                    Variable.SCALAR_TYPE,
+                    '@score = 0\n@_score_list2_.push(1)\nsay(@_score_list_)',
+                ],
+                [
+                    'a variable on the stage',
+                    true,
+                    Variable.SCALAR_TYPE,
+                    '$score = 0\n$_score_list2_.push(1)\nsay($_score_list_)',
+                ],
+                [
+                    'a list in the sprite',
+                    false,
+                    Variable.LIST_TYPE,
+                    '@score = 0\n@_score_list2_.push(1)\n@_score_list_.push(2)',
+                ],
+            ])('%s: the list score is the second name', async (_name, onStage, type, code) => {
+                const { target, owner, converter } = setup(onStage, [['o1', '_score_list_', type]]);
+                await expectRoundTrip(converter, target, code);
+                const pushes = Object.values(target.blocks._blocks).filter((b) => b.opcode === 'data_addtolist');
+                const pushOf = (value) =>
+                    pushes.find((b) => target.blocks._blocks[b.inputs.ITEM.shadow].fields.TEXT.value === value);
+                expect(pushOf('1').fields.LIST.id).toBe('l1');
+                if (type === Variable.SCALAR_TYPE) {
+                    const say = blockOf(target, 'looks_say');
+                    expect(target.blocks._blocks[say.inputs.MESSAGE.block].fields.VARIABLE.id).toBe('o1');
+                } else {
+                    expect(pushOf('2').fields.LIST.id).toBe('o1');
+                }
+                expect(
+                    Object.values(owner.variables)
+                        .map((v) => v.name)
+                        .sort(),
+                ).toEqual(['_score_list_', 'score', 'score'].sort());
+            });
+
+            test('the third name when the second is taken too', async () => {
+                const { target, converter } = setup(false, [
+                    ['o1', '_score_list_', Variable.SCALAR_TYPE],
+                    ['o2', '_score_list2_', Variable.SCALAR_TYPE],
+                ]);
+                await expectRoundTrip(
+                    converter,
+                    target,
+                    '@score = 0\n@_score_list3_.push(1)\nsay(@_score_list_)\nsay(@_score_list2_)',
+                );
+                expect(blockOf(target, 'data_addtolist').fields.LIST.id).toBe('l1');
+            });
+
+            test('the list is set in def initialize', async () => {
+                const { target, owner } = setup(false, [['o1', '_score_list_', Variable.SCALAR_TYPE]]);
+                owner.variables.l1.value = [1, 2];
+                const code = RubyGenerator._generateInitialize(target, []).join('\n');
+                expect(code).toContain('@_score_list2_ = [1, 2]');
+                expect(code).not.toContain('@_score_list_ = [1, 2]');
+            });
+
+            test('@_score_list2_ is a variable of its own when _score_list_ is free', async () => {
+                // The generator never writes `@_score_list2_` for the list then, so the name keeps
+                // meaning what the user wrote.
+                const { target, owner, converter } = setup(false, []);
+                await expectRoundTrip(converter, target, '@score = 0\n@_score_list2_ = 1\n@_score_list_.push(1)');
+                expect(blockOf(target, 'data_addtolist').fields.LIST.id).toBe('l1');
+                expect(Object.values(owner.variables).some((v) => v.name === '_score_list2_')).toBe(true);
+            });
         });
     });
 
