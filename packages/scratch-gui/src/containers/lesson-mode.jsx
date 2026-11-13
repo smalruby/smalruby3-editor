@@ -11,6 +11,7 @@ import LessonTaskBar from '../components/lesson-task-bar/lesson-task-bar.jsx';
 import { applyDeckSetup } from '../lib/deck-setup';
 import { setupForChallenge } from '../lib/lessons/challenge-setup';
 import { findChallenge } from '../lib/lessons/courses';
+import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics';
 import sharedMessages from '../lib/shared-messages';
 import { closeCards } from '../reducers/cards';
 import { requestExternalExitDnclMode, setDnclMode } from '../reducers/dncl-mode';
@@ -39,6 +40,7 @@ const LessonMode = ({
     current,
     dispatch,
     dnclMode,
+    fromAssignment = false,
     hint,
     isAnyCreatingNewState,
     isShowingProject,
@@ -150,6 +152,17 @@ const LessonMode = ({
         if (toastVisible) onDismissCompleted();
     }, [hint, onHideHint, toastVisible, onDismissCompleted]);
 
+    // 課題バーのボタンの GA 計測（どのチャレンジで押したか。lib/lessons/lesson-analytics.js）
+    const handleQuit = useCallback(() => {
+        sendLessonEvent(LESSON_EVENTS.OTHER_CHALLENGE, current, fromAssignment);
+        onCloseLesson();
+    }, [current, fromAssignment, onCloseLesson]);
+
+    const handleEnd = useCallback(() => {
+        sendLessonEvent(LESSON_EVENTS.LESSON_END, current, fromAssignment);
+        onEndLesson();
+    }, [current, fromAssignment, onEndLesson]);
+
     if (!current) return null;
     // ヒントの吹き出し（containers/lesson-hint.jsx）は document.body に portal で出るので、
     // ここに置いても本体のレイアウトには影響しない
@@ -161,10 +174,10 @@ const LessonMode = ({
                 hintAvailable={Boolean(hint && hint.count > 0)}
                 hintVisible={Boolean(hint && hint.visible)}
                 menuOpen={menuOpen}
-                onEnd={onEndLesson}
+                onEnd={handleEnd}
                 onHint={handleHint}
                 onOpenFullText={handleOpenFullText}
-                onQuit={onCloseLesson}
+                onQuit={handleQuit}
                 toastVisible={toastVisible}
             />
             <LessonHint />
@@ -180,6 +193,8 @@ LessonMode.propTypes = {
     }),
     dispatch: PropTypes.func.isRequired,
     dnclMode: PropTypes.bool,
+    // クラスの課題から開いたか（GA の計測で送る）
+    fromAssignment: PropTypes.bool,
     hint: PropTypes.shape({
         visible: PropTypes.bool.isRequired,
         index: PropTypes.number.isRequired,
@@ -211,6 +226,7 @@ const mapStateToProps = (state) => {
     return {
         current: getCurrentChallenge(state),
         dnclMode: state.scratchGui.dnclMode.dnclMode,
+        fromAssignment: Boolean(state.scratchGui.lessonMode.fromAssignment),
         hint: getCurrentHint(state),
         isAnyCreatingNewState: getIsAnyCreatingNewState(loadingState),
         isShowingProject: getIsShowingProject(loadingState),

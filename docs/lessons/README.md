@@ -1030,6 +1030,44 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 
 ![チャレンジ 9 のヒント 1（1300×600）](screenshots/0509-challenge9-hint-1300x600.png)
 
+## GA の計測
+
+レッスン全体（課題の外もふくむ・クラスに参加していないときもふくむ）の使われ方を GA で計測する。目的は
+**人気のないコンテンツ**と**滞在の長いヒント**を見つけて見直すこと（方針は [`design.md`](design.md) の
+「GA の計測の方針」）。
+
+仕組みは、いまの GUI の計測（ルビータブ・接続など）と同じ `lib/analytics.js`（GTM の `dataLayer` に push）。
+`category` はすべて **`lessons`**、`action` がイベントの名前、`label` はチャレンジ id（レッスン表はどう開いたか）。
+数を見る項目（ページ・秒・課題からか）は、`label` に詰めずに **dataLayer の項目**として同じ push に入れる
+（`analytics.js` の Smalruby マーカー `extra GA params`。GA4 で見るには GTM でデータレイヤー変数を作る）（推奨で決めた）。
+
+| `action` | いつ | `label` | 項目 |
+|---|---|---|---|
+| `library_open` | レッスン表を開いた（メニュー・SP のドロワー・「ほかのチャレンジへ」・「できた！」の「次のチャレンジへ」） | `menu`（ふつうに開いた）／`next`（「次のチャレンジへ」で、いまのレッスンを見せて開いた） | — |
+| `challenge_open` | チャレンジを開いた（レッスンモードに入った。同じチャレンジを開き直しても送る） | チャレンジ id | `course_id`・`lesson_id`・`challenge_id`・`from_assignment` |
+| `challenge_complete` | 「できた！」になった（もう一度できたときも送る） | チャレンジ id | 上の 4 つ + `seconds`（チャレンジを開いてから「できた！」まで） |
+| `hint_view` | ヒントの 1 ページを見おわった（下の「ヒントの滞在時間」） | チャレンジ id | 上の 4 つ + `page`（1 から。最後の手段のページもふくむ）・`seconds` |
+| `answer_view` | 「正解のプログラムを確認する」で、正解のプログラムを入れた（「はい」で入れたとき。「いいえ」・入れられなかったときは送らない） | チャレンジ id | 上の 4 つ |
+| `other_challenge` | 課題バーの「ほかのチャレンジへ」を押した | チャレンジ id | 上の 4 つ |
+| `lesson_end` | 課題バーの「レッスンをおえる」を押した | チャレンジ id | 上の 4 つ |
+
+- **ヒントの滞在時間**（`hint_view` の `seconds`）: ページごとに、**そのページを出してから、次のページ・前のページへ
+  移る・吹き出しを閉じる（×・「おわり」）・「できた！」になる・チャレンジを閉じる／ほかのチャレンジを開く**までの秒
+  （整数に丸める）。1 ページを見おわるたびに 1 回送る（ページを出したときには送らない）。同じページを閉じて開き直すと、
+  開き直したところから測りなおして、もう 1 回送る。タブを閉じた・再読み込みしたときの見ていたページは送らない
+  （推奨で決めた）。
+- **`from_assignment`**: クラスの課題のチャレンジから開いたか（true / false だけ）。開く入口が
+  `startChallenge(id, {fromAssignment: true})` を渡す（課題の画面は段 2 の別の Issue で作る。いまは常に false）。
+- **送らないもの**: 個人を特定する ID・クラス・席番号・ニックネーム・セッション・課題の ID・参加コード・入力した文字
+  （検索の文字もふくむ）。送るのはコース・レッスン・チャレンジの id・ページの番号・秒・課題からか、だけ。
+- **先生の画面には出さない**: レッスン表・課題バー・ヒントは生徒（ふつうのエディタ）の画面にだけあり、先生の画面
+  （クラスの管理）には無いので、先生の画面からは送らない。
+- 計測の失敗（`dataLayer` が無いなど）は握りつぶし、レッスンの動きを止めない。
+- 判断は純粋関数 `lib/lessons/lesson-analytics.js`（`stepLessonAnalytics`。前の状態と今の状態と時刻から、送るイベントを
+  決める）、送るのは `containers/lesson-analytics.jsx`（gui.jsx のマーカー `lesson mode` の中に常時マウント）。
+  ボタンで決まる `answer_view` / `other_challenge` / `lesson_end` は、押したところ（`containers/lesson-hint.jsx` /
+  `containers/lesson-mode.jsx`）から `sendLessonEvent` で送る。
+
 ## いまのチュートリアルの入口
 
 レッスン機能がチュートリアルの役目を引き継ぐため、従来の **「チュートリアル」「デバッグ」のボタンはメニューバーから外し、右上の「?」メニューの項目**にした（ふだんは目に入らないようにする。そろったら消す）。
@@ -1057,6 +1095,9 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・DOM の探し方・置き方・ドラッグした位置を画面に収める（`clampHintPosition`）・置いてよい範囲（`hintViewport`。SP のサイドレールの右）（純粋関数） |
 | `packages/scratch-gui/src/lib/lessons/hint-blocks.js` / `blocks-xml.js` | Ruby → ブロック → Blockly の XML |
 | `packages/scratch-gui/src/lib/lessons/insert-sprite-code.js` | 「プログラムを入れる」で `spriteCodes` をそれぞれのスプライトに入れる（いなければライブラリから足す） |
+| `packages/scratch-gui/src/lib/lessons/lesson-analytics.js` | GA の計測の判断（`stepLessonAnalytics`。前の状態・今の状態・時刻から送るイベントを決める純粋関数）と、ボタンで決まるイベントを送る `sendLessonEvent`（上の「GA の計測」） |
+| `packages/scratch-gui/src/containers/lesson-analytics.jsx` | GA の計測のコンテナ（描画しない。state を渡して `analytics.event` に送る）。`gui.jsx` のマーカー `lesson mode` の中に常時マウント |
+| `packages/scratch-gui/test/unit/lib/lessons/lesson-analytics.test.js` / `test/unit/containers/lesson-analytics.test.jsx` | GA の計測の unit テスト（イベントの名前・項目・ヒントの滞在時間・送らない項目） |
 | `packages/scratch-gui/src/lib/lessons/spotlight-seen.js` | スポットライトを見せたチャレンジの記録（`smalruby:lessonSpotlightSeen`） |
 | `packages/scratch-gui/test/unit/components/lesson-hint.test.jsx` / `test/unit/containers/lesson-hint.test.jsx` | 吹き出しとコンテナの unit テスト |
 | `packages/scratch-gui/test/unit/components/balloon.test.jsx` | 吹き出しの共通の土台の unit テスト |

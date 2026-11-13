@@ -4,9 +4,11 @@ import { act, fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonMode } from '../../../src/containers/lesson-mode.jsx';
+import analytics from '../../../src/lib/analytics';
 import { applyDeckSetup } from '../../../src/lib/deck-setup';
 import { findChallenge } from '../../../src/lib/lessons/courses';
 
+jest.mock('../../../src/lib/analytics', () => ({ event: jest.fn() }));
 jest.mock('../../../src/lib/deck-setup', () => ({
     applyDeckSetup: jest.fn(() => Promise.resolve()),
 }));
@@ -92,6 +94,31 @@ describe('LessonMode container', () => {
         fireEvent.click(getByTestId('lesson-task-bar-end'));
         expect(props.onEndLesson).toHaveBeenCalledTimes(1);
         expect(props.onCloseLesson).not.toHaveBeenCalled();
+    });
+
+    test('sends other_challenge / lesson_end to GA with the challenge (no class data)', () => {
+        analytics.event.mockClear();
+        const props = {
+            ...baseProps(),
+            current: findChallenge(CHALLENGE_ID),
+            fromAssignment: true,
+            hint: { visible: false, index: 0, count: 0, step: null },
+        };
+        const { getByTestId } = renderLessonMode(props);
+        fireEvent.click(getByTestId('lesson-task-bar-quit'));
+        fireEvent.click(getByTestId('lesson-task-bar-end'));
+        const ids = {
+            category: 'lessons',
+            label: CHALLENGE_ID,
+            course_id: 'kyou-kara-programmer',
+            lesson_id: findChallenge(CHALLENGE_ID).lesson.id,
+            challenge_id: CHALLENGE_ID,
+            from_assignment: true,
+        };
+        expect(analytics.event.mock.calls).toEqual([
+            [{ ...ids, action: 'other_challenge' }],
+            [{ ...ids, action: 'lesson_end' }],
+        ]);
     });
 
     test('hint button shows the hint, and hides it when it is visible', () => {
