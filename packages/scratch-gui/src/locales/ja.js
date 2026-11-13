@@ -1743,6 +1743,8 @@ export default {
         '「{name}」は定義されていない関数です。「関数 {name}(…)」で定義してください。',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '「{name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。',
+    'gui.rubyTab.dnclUnsupportedNumberError':
+        '「{name}」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。「1000」「0.5」のように書いてください。Ruby モードでは書けます。',
     'gui.rubyTab.dnclValidationError':
         '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
     'gui.mobile.drawer.title': 'メニュー',

@@ -1385,6 +1385,8 @@ export default {
         '"{name}" is a function that is not defined. Define it with "関数 {name}(…)".',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '"{name}" is a command that cannot be written in Japanese mode. You can write it in Ruby mode.',
+    'gui.rubyTab.dnclUnsupportedNumberError':
+        '"{name}" is a way of writing a number that cannot be used in Japanese mode (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in Ruby mode.',
     'gui.rubyTab.dnclValidationError':
         'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
     'gui.mobile.drawer.title': 'Menu',
