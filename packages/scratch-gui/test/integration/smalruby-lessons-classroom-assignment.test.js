@@ -12,9 +12,8 @@
  * `window.smalruby.lessonGoal` (like smalruby-lessons-next-challenge.test.js).
  *
  * The classroom menu (the student 「クラス」 button with the lesson mark, and the teacher
- * 「クラス管理」 menu) is only rendered when the build has CLASSROOM_API_ENDPOINT. The
- * student flow opens the class modal through the store so it runs in any build; the
- * menu bar mark and the teacher field are checked only in a build with the endpoint.
+ * 「クラス管理」 menu) is only rendered when the build has CLASSROOM_API_ENDPOINT; CI builds
+ * with a dummy endpoint (.github/workflows/ci-cd.yml) so both are always checked.
  */
 import path from 'path';
 import SeleniumHelper from '../helpers/selenium-helper';
@@ -143,8 +142,6 @@ const installClassroomStub = (lesson) =>
         lesson,
     );
 
-const isClassroomConfigured = async () => (await countByTestId('classroom-menu-button')) > 0;
-
 describe('Lessons in classroom assignments (stage 2)', () => {
     beforeAll(async () => {
         driver = await getDriver();
@@ -230,20 +227,14 @@ describe('Lessons in classroom assignments (stage 2)', () => {
         await waitForTestId('lesson-assignment-cleared');
         expect(await countByTestId('classroom-submit-button')).toBe(0);
 
-        // The menu bar mark (only in a build with the classroom API endpoint).
-        if (await isClassroomConfigured()) {
-            const mark = await waitForTestId('classroom-menu-lesson-mark');
-            expect(await mark.getAttribute('data-kind')).toBe('cleared');
-        }
+        // The menu bar mark.
+        const mark = await waitForTestId('classroom-menu-lesson-mark');
+        expect(await mark.getAttribute('data-kind')).toBe('cleared');
     });
 
     test('teacher: the lesson field of the description tab shows the summary', async () => {
         await loadUri(`${uri}&devlogin=stub-token`);
         await waitForLessonGoalHook();
-        if (!(await isClassroomConfigured())) {
-            // The teacher menu needs CLASSROOM_API_ENDPOINT in the build.
-            return;
-        }
         await installClassroomStub(LESSON);
         await waitForTestId('classroom-teacher-menu-button', 'the teacher menu did not appear', 15000);
         await clickByTestId('classroom-teacher-menu-button');
