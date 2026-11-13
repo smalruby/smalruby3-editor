@@ -191,6 +191,7 @@ src/containers/*
 !src/containers/google-drive-loader-hoc.jsx
 !src/containers/koshien-mock-panel.jsx
 !src/containers/lesson-hint.jsx
+!src/containers/lesson-analytics.jsx
 !src/containers/lesson-goal-watcher.jsx
 !src/containers/lesson-mode.jsx
 !src/containers/lessons-library.jsx
@@ -524,6 +525,7 @@ test/unit/components/*
 # Level 3: test/unit/containers/*
 test/unit/containers/*
 !test/unit/containers/ruby-tab/
+!test/unit/containers/lesson-analytics.test.jsx
 !test/unit/containers/lesson-goal-watcher.test.jsx
 !test/unit/containers/ruby-tab/**
 !test/unit/containers/backpack.test.jsx

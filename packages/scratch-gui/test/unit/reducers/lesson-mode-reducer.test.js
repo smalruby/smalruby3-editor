@@ -164,6 +164,25 @@ describe('lesson-mode reducer: starting a challenge', () => {
         expect(state.challengeId).toBe('blocks-l1-click-say');
     });
 
+    test('fromAssignment is carried from startChallenge to the opened challenge (for GA)', () => {
+        let state = reducer(lessonModeInitialState, startChallenge('blocks-l1-click-say', { fromAssignment: true }));
+        expect(state.pendingFromAssignment).toBe(true);
+        state = reducer(state, openChallenge('blocks-l1-click-say'));
+        expect(state.fromAssignment).toBe(true);
+        expect(state.pendingFromAssignment).toBe(false);
+        // ふつうに開いたときは false
+        state = reducer(state, startChallenge('blocks-l1-quiz'));
+        state = reducer(state, openChallenge('blocks-l1-quiz'));
+        expect(state.fromAssignment).toBe(false);
+        // startChallenge を通らずに開いたときも false
+        state = reducer(state, startChallenge('blocks-l1-click-say', { fromAssignment: true }));
+        state = reducer(state, openChallenge('blocks-l1-quiz'));
+        expect(state.fromAssignment).toBe(false);
+        // 閉じたら消す
+        state = reducer(state, closeLesson());
+        expect(state.fromAssignment).toBe(false);
+    });
+
     test('closeLesson also drops a pending challenge', () => {
         let state = reducer(lessonModeInitialState, startChallenge('blocks-l1-click-say'));
         state = reducer(state, closeLesson());

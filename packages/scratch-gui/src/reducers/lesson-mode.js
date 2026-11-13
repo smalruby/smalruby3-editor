@@ -48,6 +48,10 @@ const closedState = {
     challengeId: null,
     // 開こうとしているチャレンジ（新しい作品ができるまでの間だけ入る）
     pendingChallengeId: null,
+    // 開こうとしている・開いているチャレンジを、クラスの課題から開いたか（GA の計測で送る真偽だけ。
+    // 課題の ID は持たない。lib/lessons/lesson-analytics.js）
+    pendingFromAssignment: false,
+    fromAssignment: false,
     ...hintClosedState,
     // はじめて開いたチャレンジか（spotlight のヒントで周りを暗くする。開いたときに決める）
     hintSpotlight: false,
@@ -78,10 +82,16 @@ const reducer = function (state, action) {
     switch (action.type) {
         case START_CHALLENGE: {
             if (!findChallenge(action.challengeId)) return state;
-            return { ...state, pendingChallengeId: action.challengeId };
+            return {
+                ...state,
+                pendingChallengeId: action.challengeId,
+                pendingFromAssignment: Boolean(action.fromAssignment),
+            };
         }
         case CANCEL_START_CHALLENGE:
-            return state.pendingChallengeId === null ? state : { ...state, pendingChallengeId: null };
+            return state.pendingChallengeId === null
+                ? state
+                : { ...state, pendingChallengeId: null, pendingFromAssignment: false };
         case OPEN_CHALLENGE: {
             const found = findChallenge(action.challengeId);
             if (!found) return state;
@@ -97,6 +107,10 @@ const reducer = function (state, action) {
                 lessonId: found.lesson.id,
                 challengeId: found.challenge.id,
                 pendingChallengeId: null,
+                pendingFromAssignment: false,
+                // startChallenge から来たときだけ、そのときの「課題からか」を引き継ぐ
+                fromAssignment:
+                    state.pendingChallengeId === found.challenge.id ? Boolean(state.pendingFromAssignment) : false,
                 ...hintClosedState,
                 hintVisible: hintPageCount(found.challenge) > 0,
                 hintSession: (state.hintSession || 0) + 1,
@@ -170,9 +184,15 @@ const reducer = function (state, action) {
  * チャレンジを開く（レッスン表が呼ぶ入口）。新しい作品にしてから setup を適用し、
  * レッスンモードに入るところまでを containers/lesson-mode.jsx が進める。
  * @param {string} challengeId - チャレンジ id（知らない id は無視）。
+ * @param {object} [options] - オプション。
+ * @param {boolean} [options.fromAssignment] - クラスの課題から開いたか（GA の計測で送る）。
  * @returns {object} action。
  */
-const startChallenge = (challengeId) => ({ type: START_CHALLENGE, challengeId });
+const startChallenge = (challengeId, { fromAssignment = false } = {}) => ({
+    type: START_CHALLENGE,
+    challengeId,
+    fromAssignment: Boolean(fromAssignment),
+});
 
 /** 「保存しますか」で取りやめたときなど、開こうとしていたチャレンジを取り消す。 */
 const cancelStartChallenge = () => ({ type: CANCEL_START_CHALLENGE });
