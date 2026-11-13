@@ -20,7 +20,7 @@
  * the menu-bar mark. Without a starter, a lesson assignment starts in the
  * lessons library (「はじめる」) instead of the start choices.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import classroomAPI from '../lib/classroom-api.js';
@@ -107,6 +107,10 @@ const useStudentAssignment = ({
         },
         [dispatch],
     );
+
+    // The session token as of now (stale answers are dropped, like classroom-modal.jsx).
+    const sessionTokenRef = useRef(classroomState.sessionToken);
+    sessionTokenRef.current = classroomState.sessionToken;
 
     const [assignment, setAssignment] = useState(null);
     const [assignmentPageIndex, setAssignmentPageIndex] = useState(0);
@@ -245,11 +249,14 @@ const useStudentAssignment = ({
      * Best-effort: a failure keeps the lesson known so far.
      */
     const refreshLesson = useCallback(async () => {
-        if (!classroomState.sessionToken || !classroomState.classroomId) return;
+        const token = classroomState.sessionToken;
+        if (!token || !classroomState.classroomId) return;
         try {
-            rememberPeerView(
-                await classroomAPI.getAssignment(classroomState.sessionToken, classroomState.classroomId),
-            );
+            const data = await classroomAPI.getAssignment(token, classroomState.classroomId);
+            // The student may have left or joined another assignment meanwhile:
+            // an answer for an old session must not land in the new one (#1599 FYI1).
+            if (token !== sessionTokenRef.current) return;
+            rememberPeerView(data);
         } catch {
             // keep what we have
         }

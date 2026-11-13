@@ -166,7 +166,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-submit-button` | button | 課題を提出する / 課題を再提出する（レッスンの課題では、作品も提出する課題で課題クリアのあとだけ） |
 | `classroom-status-lesson-progress` | div | レッスンの課題の「進み具合」の行（丸は `lesson-assignment-dot`、`lesson-assignment-done-count`・`lesson-assignment-remaining`・`lesson-assignment-required-remaining`・`lesson-assignment-cleared`） |
 | `classroom-continue-lesson-button` | button | レッスンを続ける（レッスンの課題だけ。レッスン表を課題のチャレンジだけで開く） |
-| `classroom-status-lesson-submit-guide` | div | 作品も提出する課題で課題クリアのあとの案内 |
+| `classroom-status-lesson-submit-guide` | div | 作品も提出する課題で課題クリアのあと（または、この版に無いチャレンジがあるとき）の案内。はじめて提出するまで |
+| `classroom-status-lesson-unknown` | span | 「新しいレッスンがあります。ページを読み込み直してね」（この版のコースに無いチャレンジがあるとき） |
 | `classroom-leave` | button | 退出する |
 | `classroom-peer-view-button` | button | みんなの作品を見る（他者参照が有効なとき。押すとモーダルを閉じてパネルを開く・#1210） |
 | `classroom-peer-view-locked` | span | 「提出すると見られます」（`自分が提出したら` で未提出のとき。ボタンの代わり） |

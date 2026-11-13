@@ -4,6 +4,7 @@ import {
     assignmentLibraryFocus,
     assignmentMenuMark,
     assignmentProgress,
+    canSubmitAssignment,
     conditionCount,
     isAssignmentChallenge,
     isAssignmentJustCleared,
@@ -25,6 +26,17 @@ const lesson = (overrides = {}) =>
         submitWork: false,
         ...overrides,
     });
+
+// テスト用のコース（a〜f）。実際のコースの ID に縛られずに数え方を見る
+const FAKE_COURSES = [
+    {
+        id: 'kyou-kara-programmer',
+        language: 'blocks',
+        lessons: [{ id: 'l', challenges: ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id })) }],
+    },
+];
+const progressFor = (l, p) => assignmentProgress(l, p, FAKE_COURSES);
+const justCleared = (l, p, id, wasNew) => isAssignmentJustCleared(l, p, id, wasNew, FAKE_COURSES);
 
 describe('normalizeAssignmentLesson', () => {
     test('returns null for missing or malformed settings', () => {
@@ -90,7 +102,7 @@ describe('conditionCount', () => {
 
 describe('assignmentProgress', () => {
     test('nothing done: remaining is the condition count', () => {
-        const status = assignmentProgress(lesson(), progressOf());
+        const status = progressFor(lesson(), progressOf());
         expect(status).toMatchObject({
             completedCount: 0,
             cappedCount: 0,
@@ -112,7 +124,7 @@ describe('assignmentProgress', () => {
     });
 
     test('ignores records of challenges outside the assignment', () => {
-        const status = assignmentProgress(lesson(), progressOf('x', 'y', 'a'));
+        const status = progressFor(lesson(), progressOf('x', 'y', 'a'));
         expect(status.completedCount).toBe(1);
         expect(status.started).toBe(true);
     });
@@ -120,7 +132,7 @@ describe('assignmentProgress', () => {
     test('remaining is max(condition - done, required left)', () => {
         const count4 = lesson({ completion: { type: 'count', count: 4 } });
         // 4 done but a required one is left: not 0
-        const status = assignmentProgress(count4, progressOf('a', 'c', 'd', 'f'));
+        const status = progressFor(count4, progressOf('a', 'c', 'd', 'f'));
         expect(status.completedCount).toBe(4);
         expect(status.requiredRemaining).toBe(2);
         expect(status.remaining).toBe(2);
@@ -129,7 +141,7 @@ describe('assignmentProgress', () => {
 
     test('caps the done count at the condition count', () => {
         const count4 = lesson({ completion: { type: 'count', count: 4 } });
-        const status = assignmentProgress(count4, progressOf('a', 'b', 'c', 'd', 'e'));
+        const status = progressFor(count4, progressOf('a', 'b', 'c', 'd', 'e'));
         expect(status.completedCount).toBe(5);
         expect(status.cappedCount).toBe(4);
         expect(status.remaining).toBe(0);
@@ -137,20 +149,20 @@ describe('assignmentProgress', () => {
     });
 
     test('cleared needs the count and every required challenge', () => {
-        expect(assignmentProgress(lesson(), progressOf('a', 'b', 'c', 'd', 'e')).cleared).toBe(false);
-        expect(assignmentProgress(lesson(), progressOf('a', 'b', 'c', 'd', 'e', 'f')).cleared).toBe(true);
+        expect(progressFor(lesson(), progressOf('a', 'b', 'c', 'd', 'e')).cleared).toBe(false);
+        expect(progressFor(lesson(), progressOf('a', 'b', 'c', 'd', 'e', 'f')).cleared).toBe(true);
         const noRequired = lesson({ requiredChallengeIds: [], completion: { type: 'count', count: 2 } });
-        expect(assignmentProgress(noRequired, progressOf('c', 'f')).cleared).toBe(true);
+        expect(progressFor(noRequired, progressOf('c', 'f')).cleared).toBe(true);
     });
 
     test('returns null without a lesson', () => {
-        expect(assignmentProgress(null, progressOf('a'))).toBeNull();
+        expect(progressFor(null, progressOf('a'))).toBeNull();
     });
 });
 
 describe('assignmentMenuMark', () => {
     test('not started → ○', () => {
-        expect(assignmentMenuMark(assignmentProgress(lesson(), progressOf()))).toEqual({
+        expect(assignmentMenuMark(progressFor(lesson(), progressOf()))).toEqual({
             kind: ASSIGNMENT_MARKS.NOT_STARTED,
             text: '○',
             submitted: false,
@@ -159,17 +171,17 @@ describe('assignmentMenuMark', () => {
 
     test('in progress → capped done / condition', () => {
         const count4 = lesson({ completion: { type: 'count', count: 4 } });
-        expect(assignmentMenuMark(assignmentProgress(count4, progressOf('a', 'c')))).toEqual({
+        expect(assignmentMenuMark(progressFor(count4, progressOf('a', 'c')))).toEqual({
             kind: ASSIGNMENT_MARKS.IN_PROGRESS,
             text: '2/4',
             submitted: false,
         });
         // 5 done with a required one left shows 4/4, not 5/4
-        expect(assignmentMenuMark(assignmentProgress(count4, progressOf('a', 'c', 'd', 'f', 'b'))).text).toBe('4/4');
+        expect(assignmentMenuMark(progressFor(count4, progressOf('a', 'c', 'd', 'f', 'b'))).text).toBe('4/4');
     });
 
     test('cleared → ✓, and tells whether the work was submitted', () => {
-        const cleared = assignmentProgress(lesson(), progressOf('a', 'b', 'c', 'd', 'e', 'f'));
+        const cleared = progressFor(lesson(), progressOf('a', 'b', 'c', 'd', 'e', 'f'));
         expect(assignmentMenuMark(cleared)).toEqual({ kind: ASSIGNMENT_MARKS.CLEARED, text: '✓', submitted: false });
         expect(assignmentMenuMark(cleared, { submitted: true }).submitted).toBe(true);
     });
@@ -184,24 +196,24 @@ describe('isAssignmentJustCleared', () => {
 
     test('true when this new record made the assignment cleared', () => {
         const after = progressOf('a', 'b', 'c', 'd', 'e', 'f');
-        expect(isAssignmentJustCleared(all, after, 'f', true)).toBe(true);
+        expect(justCleared(all, after, 'f', true)).toBe(true);
     });
 
     test('false when the record was already there (done again)', () => {
         const after = progressOf('a', 'b', 'c', 'd', 'e', 'f');
-        expect(isAssignmentJustCleared(all, after, 'f', false)).toBe(false);
+        expect(justCleared(all, after, 'f', false)).toBe(false);
     });
 
     test('false when cleared already before this challenge (count condition)', () => {
         const count2 = lesson({ requiredChallengeIds: [], completion: { type: 'count', count: 2 } });
-        expect(isAssignmentJustCleared(count2, progressOf('a', 'b'), 'b', true)).toBe(true);
-        expect(isAssignmentJustCleared(count2, progressOf('a', 'b', 'c'), 'c', true)).toBe(false);
+        expect(justCleared(count2, progressOf('a', 'b'), 'b', true)).toBe(true);
+        expect(justCleared(count2, progressOf('a', 'b', 'c'), 'c', true)).toBe(false);
     });
 
     test('false when not cleared, outside the assignment, or no lesson', () => {
-        expect(isAssignmentJustCleared(all, progressOf('a'), 'a', true)).toBe(false);
-        expect(isAssignmentJustCleared(all, progressOf('a', 'b', 'c', 'd', 'e', 'f', 'z'), 'z', true)).toBe(false);
-        expect(isAssignmentJustCleared(null, progressOf('a'), 'a', true)).toBe(false);
+        expect(justCleared(all, progressOf('a'), 'a', true)).toBe(false);
+        expect(justCleared(all, progressOf('a', 'b', 'c', 'd', 'e', 'f', 'z'), 'z', true)).toBe(false);
+        expect(justCleared(null, progressOf('a'), 'a', true)).toBe(false);
     });
 });
 
@@ -270,6 +282,16 @@ describe('assignmentLibraryFocus', () => {
         expect(assignmentLibraryFocus(a, progressOf(), second.id).nextChallengeId).toBe(first.id);
     });
 
+    test('falls back to the current challenge when it is the only one not done (#1599 FYI2)', () => {
+        const focus = assignmentLibraryFocus(a, progressOf(first.id, later.id), third.id);
+        expect(focus.nextChallengeId).toBe(third.id);
+        expect(focus.lessonId).toBe(course.lessons[0].id);
+        // done already: no mark
+        expect(
+            assignmentLibraryFocus(a, progressOf(first.id, third.id, later.id), third.id).nextChallengeId,
+        ).toBeNull();
+    });
+
     test('no mark when every assignment challenge is done', () => {
         const focus = assignmentLibraryFocus(a, progressOf(first.id, third.id, later.id));
         expect(focus.nextChallengeId).toBeNull();
@@ -284,5 +306,55 @@ describe('assignmentLibraryFocus', () => {
                 progressOf(),
             ),
         ).toBeNull();
+    });
+});
+
+describe('challenges unknown to this build (#1599 M1)', () => {
+    // 'n1' / 'n2' は、先生が新しい版で選んだ、この版のコースに無いチャレンジ
+    const withUnknown = (overrides = {}) =>
+        lesson({ challengeIds: ['a', 'b', 'n1', 'n2'], requiredChallengeIds: ['b', 'n1'], ...overrides });
+
+    test('leaves them out of the circles, the counts and the condition', () => {
+        const status = progressFor(withUnknown(), progressOf('a'));
+        expect(status.challenges.map((c) => c.id)).toEqual(['a', 'b']);
+        expect(status.unknownCount).toBe(2);
+        expect(status.conditionCount).toBe(2);
+        expect(status.requiredCount).toBe(1);
+        expect(status.remaining).toBe(1);
+    });
+
+    test('a condition count above the known challenges is capped to them, so it can be cleared', () => {
+        const status = progressFor(withUnknown({ completion: { type: 'count', count: 3 } }), progressOf('a', 'b'));
+        expect(status.conditionCount).toBe(2);
+        expect(status.cleared).toBe(true);
+    });
+
+    test('all unknown: never cleared, but the work can still be submitted', () => {
+        const l = lesson({ challengeIds: ['n1', 'n2'], requiredChallengeIds: [], submitWork: true });
+        const status = progressFor(l, progressOf());
+        expect(status.challenges).toEqual([]);
+        expect(status.cleared).toBe(false);
+        expect(canSubmitAssignment(l, status)).toBe(true);
+    });
+
+    test('canSubmitAssignment: cleared or unknown challenges, and only for work-submit assignments', () => {
+        const submit = withUnknown({ submitWork: true });
+        expect(canSubmitAssignment(submit, progressFor(submit, progressOf()))).toBe(true);
+        const known = lesson({ submitWork: true });
+        expect(canSubmitAssignment(known, progressFor(known, progressOf('a')))).toBe(false);
+        expect(canSubmitAssignment(known, progressFor(known, progressOf('a', 'b', 'c', 'd', 'e', 'f')))).toBe(true);
+        const noSubmit = withUnknown();
+        expect(canSubmitAssignment(noSubmit, progressFor(noSubmit, progressOf()))).toBe(false);
+        expect(canSubmitAssignment(null, null)).toBe(false);
+    });
+
+    test('with the real courses, unknown ids are counted as unknown', () => {
+        const l = normalizeAssignmentLesson({
+            courseId: 'kyou-kara-programmer',
+            challengeIds: [COURSES[0].lessons[0].challenges[0].id, 'not-in-this-build'],
+        });
+        const status = assignmentProgress(l, progressOf());
+        expect(status.challenges).toHaveLength(1);
+        expect(status.unknownCount).toBe(1);
     });
 });

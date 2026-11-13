@@ -17,6 +17,7 @@ import LessonsLibraryComponent from '../components/lessons-library/lessons-libra
 import {
     assignmentLibraryFocus,
     assignmentProgress,
+    canSubmitAssignment,
     isAssignmentChallenge,
 } from '../lib/lessons/assignment-progress';
 import { COURSES, findCourse } from '../lib/lessons/courses';
@@ -36,6 +37,7 @@ const LessonsLibrary = ({
     onStartChallenge,
     onSubmitAssignment,
     progress,
+    submitted = false,
     visible,
 }) => {
     useEffect(() => {
@@ -74,8 +76,9 @@ const LessonsLibrary = ({
                     <LessonAssignmentBand
                         assignmentName={assignmentName}
                         completionAll={lesson.completion.type !== 'count'}
+                        canSubmit={canSubmitAssignment(lesson, status)}
                         status={status}
-                        submitWork={lesson.submitWork}
+                        submitted={submitted}
                         onSubmit={handleSubmitAssignment}
                     />
                 ) : null
@@ -116,6 +119,8 @@ LessonsLibrary.propTypes = {
     onStartChallenge: PropTypes.func.isRequired,
     onSubmitAssignment: PropTypes.func.isRequired,
     progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }).isRequired,
+    // 作品をもう提出したか（帯の提出の案内はクラスの画面と同じく、はじめて提出するまで）
+    submitted: PropTypes.bool,
     visible: PropTypes.bool.isRequired,
 };
 
@@ -123,6 +128,7 @@ const mapStateToProps = (state) => ({
     assignmentName: state.scratchGui.classroom ? state.scratchGui.classroom.assignmentName : null,
     assignmentOnly: Boolean(state.scratchGui.lessonMode.libraryAssignmentOnly),
     lesson: selectStudentLesson(state),
+    submitted: Boolean(state.scratchGui.classroom && state.scratchGui.classroom.submissionStatus),
     colorMode: state.scratchGui.settings.colorMode,
     focusChallengeId: state.scratchGui.lessonMode.libraryFocusChallengeId,
     progress: state.scratchGui.lessonMode.progress,

@@ -699,7 +699,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `lesson-assignment-dot` | span | 帯の丸 1 つ（`data-challenge-id` / `data-completed` / `data-required`）。クラスの画面の進み具合でも使う |
 | `lesson-assignment-remaining` / `lesson-assignment-required-remaining` | span | 「あと n つで課題クリア」（`data-count`）／「★ あと n」 |
 | `lesson-assignment-cleared` | span | 「✓ 課題クリア」 |
-| `lesson-assignment-band-submit-guide` / `lesson-assignment-band-submit` | span / button | 作品も提出する課題で課題クリアのあとの案内と「課題を提出する」 |
+| `lesson-assignment-band-submit-guide` / `lesson-assignment-band-submit` | span / button | 作品も提出する課題で課題クリアのあと（または、この版に無いチャレンジがあるとき）の案内と「課題を提出する」。はじめて提出するまで |
+| `lesson-assignment-band-unknown` | span | 「新しいレッスンがあります。ページを読み込み直してね」（この版のコースに無いチャレンジがあるとき） |
 | `lesson-task-bar-assignment` | span | 課題バーの同じ行の小さな帯（課題のチャレンジのときだけ） |
 
 ## レッスンモード

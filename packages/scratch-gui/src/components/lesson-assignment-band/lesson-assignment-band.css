@@ -173,3 +173,9 @@ $celebrate-light: hsla(45, 100%, 98%, 1);
 .compact-dots {
     flex-wrap: nowrap;
 }
+
+/* この版のコースに無いチャレンジがあるとき（読み込み直してね） */
+.unknown-note {
+    color: $text-primary;
+    font-weight: bold;
+}

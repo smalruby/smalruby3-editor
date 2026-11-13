@@ -61,25 +61,33 @@ const isCompleted = (progress, id) => Boolean(progress && progress.challenges &&
 
 /**
  * 課題の進み具合。
- *   - completedCount: 課題のチャレンジのうちできた数（課題の外の記録は数えない）
+ *   - challenges: 課題のチャレンジのうち、この版のコースにあるもの（丸）
+ *   - completedCount: そのうちできた数（課題の外の記録は数えない）
  *   - cappedCount: 条件の数で止めたできた数（「5/4」にしない）
  *   - remaining: 「あと n つ」= max(条件の数 − できた数, 残っている必須の数)
  *   - cleared: できた数が条件の数以上で、必須が全部できた
+ *   - unknownCount: この版のコースに無いチャレンジの数（先生が新しい版で選んだもの・#1599 M1）
+ * 知らないチャレンジは開けないので、丸・数・条件から外す（条件の数は知っているチャレンジの数で止める）。
+ * そうしないと「全部」の課題がいつまでも課題クリアにならず、作品も提出する課題で提出できなくなる。
+ * 知らないチャレンジがあるときは、画面で「読み込み直してね」と伝え、提出はいつでもできるようにする
+ * （canSubmitAssignment）。
  * @param {?object} lesson - normalizeAssignmentLesson の結果。
  * @param {object} progress - 端末の記録。
+ * @param {Array} [courses] - コース（テスト用）。
  * @returns {?object} 進み具合。lesson が無ければ null。
  */
-export const assignmentProgress = (lesson, progress) => {
+export const assignmentProgress = (lesson, progress, courses = COURSES) => {
     if (!lesson) return null;
-    const required = new Set(lesson.requiredChallengeIds);
-    const challenges = lesson.challengeIds.map((id) => ({
+    const known = lesson.challengeIds.filter((id) => findChallenge(id, courses));
+    const required = new Set(lesson.requiredChallengeIds.filter((id) => known.includes(id)));
+    const challenges = known.map((id) => ({
         id,
         required: required.has(id),
         completed: isCompleted(progress, id),
     }));
     const completedCount = challenges.filter((c) => c.completed).length;
     const requiredRemaining = challenges.filter((c) => c.required && !c.completed).length;
-    const count = conditionCount(lesson);
+    const count = Math.min(conditionCount(lesson), known.length);
     const remaining = Math.max(count - completedCount, requiredRemaining, 0);
     return {
         challenges,
@@ -90,9 +98,21 @@ export const assignmentProgress = (lesson, progress) => {
         requiredRemaining,
         remaining,
         started: completedCount > 0,
-        cleared: remaining === 0,
+        // 知っているチャレンジが 1 つも無い課題は、クリアにしない（何もせずに ✓ にならないように）
+        cleared: known.length > 0 && remaining === 0,
+        unknownCount: lesson.challengeIds.length - known.length,
     };
 };
+
+/**
+ * 作品も提出する課題で［課題を提出する］を出してよいか。課題クリアのあと、または、この版のコースに無い
+ * チャレンジがあって課題クリアまで進めないとき（提出できなくなるのを防ぐ・#1599 M1）。
+ * @param {?object} lesson - normalizeAssignmentLesson の結果。
+ * @param {?object} status - assignmentProgress の結果。
+ * @returns {boolean} 出してよければ true。
+ */
+export const canSubmitAssignment = (lesson, status) =>
+    Boolean(lesson && status && lesson.submitWork && (status.cleared || status.unknownCount > 0));
 
 /**
  * メニューバーの課題名の横の印（未着手 ○ ／ 2/4 ／ ✓）。
@@ -119,15 +139,16 @@ export const assignmentMenuMark = (status, { submitted = false } = {}) => {
  * @param {object} progressAfter - できたあとの記録。
  * @param {string} challengeId - できたチャレンジ id。
  * @param {boolean} wasNew - この「できた」で記録が増えたか。
+ * @param {Array} [courses] - コース（テスト用）。
  * @returns {boolean} はじめて課題クリアになったら true。
  */
-export const isAssignmentJustCleared = (lesson, progressAfter, challengeId, wasNew) => {
+export const isAssignmentJustCleared = (lesson, progressAfter, challengeId, wasNew, courses = COURSES) => {
     if (!lesson || !wasNew || !lesson.challengeIds.includes(challengeId)) return false;
-    const after = assignmentProgress(lesson, progressAfter);
+    const after = assignmentProgress(lesson, progressAfter, courses);
     if (!after.cleared) return false;
     const challenges = { ...progressAfter.challenges };
     delete challenges[challengeId];
-    return !assignmentProgress(lesson, { ...progressAfter, challenges }).cleared;
+    return !assignmentProgress(lesson, { ...progressAfter, challenges }, courses).cleared;
 };
 
 /**
@@ -187,7 +208,8 @@ export const restrictCourseStatus = (status, challengeIds) => {
 /**
  * 課題のレッスン表を開くとき、どのレッスンを見せて、どのチャレンジに「次はこれ！」を付けるか。
  * 課題のチャレンジを並び順に、`afterId` の次からさがして（最後まで行ったら先頭にもどる）、
- * まだできていない最初のもの。全部できていれば印は付けない（コースの先頭のレッスンを見せる）。
+ * まだできていない最初のもの。まだできていないのが `afterId` だけならそれ。全部できていれば印は付けない
+ * （コースの先頭のレッスンを見せる）。
  * @param {?object} lesson - normalizeAssignmentLesson の結果。
  * @param {object} progress - 端末の記録。
  * @param {?string} [afterId] - いまのチャレンジ id（課題の外・null なら先頭から）。
@@ -209,6 +231,8 @@ export const assignmentLibraryFocus = (lesson, progress, afterId = null, courses
             break;
         }
     }
+    // まだできていないのが、いま投げ出したチャレンジだけなら、それを「次はこれ！」にする
+    if (!next && index >= 0 && !isCompleted(progress, afterId) && findChallenge(afterId, courses)) next = afterId;
     const found = next ? findChallenge(next, courses) : null;
     const firstLesson = course.lessons.find((l) => l.challenges.some((c) => ids.includes(c.id)));
     return {

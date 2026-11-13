@@ -72,6 +72,12 @@ const messages = defineMessages({
             'own program and submit it',
         defaultMessage: 'Use what you learned in the lessons to make your own program. When it is ready, submit it.',
     },
+    unknownChallenges: {
+        id: 'gui.lessons.assignment.unknownChallenges',
+        description:
+            'Shown when the class assignment has challenges this (older) page does not know yet: reload the page',
+        defaultMessage: 'There are new lessons. Please reload the page.',
+    },
     submit: {
         id: 'gui.lessons.assignment.submit',
         description: 'Button that submits the work of a cleared lesson assignment',
@@ -202,16 +208,39 @@ AssignmentDoneCount.propTypes = {
     }).isRequired,
 };
 
+/**
+ * 「新しいレッスンがあります。ページを読み込み直してね」（この版のコースに無いチャレンジがあるとき・#1599 M1）。
+ * @param {object} props - props。
+ * @param {string} [props.className] - クラス。
+ * @param {string} props.testId - data-testid。
+ * @returns {React.ReactElement} 文。
+ */
+export const UnknownChallengesNote = ({ className, testId }) => {
+    const intl = useIntl();
+    return (
+        <span className={classNames(styles.unknownNote, className)} data-testid={testId} role="note">
+            {intl.formatMessage(messages.unknownChallenges)}
+        </span>
+    );
+};
+
+UnknownChallengesNote.propTypes = {
+    className: PropTypes.string,
+    testId: PropTypes.string.isRequired,
+};
+
 const LessonAssignmentBand = ({
     assignmentName = null,
+    canSubmit = false,
     completionAll = true,
     onSubmit = null,
     status,
-    submitWork = false,
+    submitted = false,
     variant = 'full',
 }) => {
     const intl = useIntl();
-    const showSubmit = submitWork && status.cleared && Boolean(onSubmit);
+    // クラスの画面の提出の案内とそろえて、はじめて提出するまでだけ出す（#1599 FYI3）
+    const showSubmit = canSubmit && !submitted && Boolean(onSubmit);
     if (variant === 'compact') {
         return (
             <span
@@ -242,6 +271,7 @@ const LessonAssignmentBand = ({
                 </span>
                 <AssignmentDots challenges={status.challenges} />
                 <AssignmentRemaining status={status} />
+                {status.unknownCount > 0 ? <UnknownChallengesNote testId="lesson-assignment-band-unknown" /> : null}
             </div>
             {showSubmit ? (
                 <div className={styles.submitRow}>
@@ -264,9 +294,11 @@ const LessonAssignmentBand = ({
 
 LessonAssignmentBand.propTypes = {
     assignmentName: PropTypes.string,
+    // 提出の案内と［課題を提出する］を出してよいか（assignment-progress.js の canSubmitAssignment）
+    canSubmit: PropTypes.bool,
     // 完了の条件が「全部」か（false なら「n つ」）
     completionAll: PropTypes.bool,
-    // 「課題を提出する」（作品も提出する課題で、課題クリアのあとだけ出す）
+    // 「課題を提出する」（canSubmit で、まだ提出していないときだけ出す）
     onSubmit: PropTypes.func,
     // assignment-progress.js の assignmentProgress の結果
     status: PropTypes.shape({
@@ -276,8 +308,10 @@ LessonAssignmentBand.propTypes = {
         requiredCount: PropTypes.number.isRequired,
         remaining: PropTypes.number.isRequired,
         requiredRemaining: PropTypes.number.isRequired,
+        unknownCount: PropTypes.number,
     }).isRequired,
-    submitWork: PropTypes.bool,
+    // 作品をもう提出したか（提出したあとは案内とボタンを出さない）
+    submitted: PropTypes.bool,
     variant: PropTypes.oneOf(['full', 'compact']),
 };
 

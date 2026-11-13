@@ -2,10 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { formatStudentClassName } from '../../lib/classroom-class-label.js';
+import { canSubmitAssignment } from '../../lib/lessons/assignment-progress.js';
 import {
     AssignmentDoneCount,
     AssignmentDots,
     AssignmentRemaining,
+    UnknownChallengesNote,
     messages as bandMessages,
 } from '../lesson-assignment-band/lesson-assignment-band.jsx';
 import styles from './classroom-modal.css';
@@ -49,7 +51,13 @@ const LessonProgressRow = ({ lessonStatus, children }) => (
         <span className={`${styles.statusValue} ${styles.lessonProgressValue}`}>
             <AssignmentDots challenges={lessonStatus.challenges} />
             <AssignmentDoneCount status={lessonStatus} />
-            <AssignmentRemaining status={lessonStatus} />
+            {/* With challenges this build does not know, "n more" can mislead: ask
+                for a reload in its place (one line, so 1300x600 still fits). */}
+            {lessonStatus.unknownCount > 0 && !lessonStatus.cleared ? (
+                <UnknownChallengesNote testId="classroom-status-lesson-unknown" />
+            ) : (
+                <AssignmentRemaining status={lessonStatus} />
+            )}
         </span>
         {children}
     </div>
@@ -107,7 +115,9 @@ const StudentStatusView = ({
     // for one that also asks for a work submission; the button appears once
     // the goal is met (#1599).
     const showSubmissionRow = !lesson || lesson.submitWork;
-    const lessonSubmitReady = !!lesson && lesson.submitWork && lessonStatus.cleared;
+    // Also when the lesson has challenges this build does not know yet: the
+    // goal cannot be met here, and the student must still be able to submit.
+    const lessonSubmitReady = !!lesson && canSubmitAssignment(lesson, lessonStatus);
     const showSubmitButton = !lesson || lessonSubmitReady;
     return (
         <div data-testid="classroom-phase-student-status">

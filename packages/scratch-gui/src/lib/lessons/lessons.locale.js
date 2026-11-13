@@ -186,6 +186,7 @@ export const ja = {
     'gui.lessons.assignment.submitGuide':
         'レッスンで学んだことをつかって、自由にプログラムをつくろう。できたら作品を提出しよう',
     'gui.lessons.assignment.submit': '課題を提出する',
+    'gui.lessons.assignment.unknownChallenges': '新しいレッスンがあります。ページを読み込み直してね',
 };
 
 export const jaHira = {
@@ -380,6 +381,7 @@ export const jaHira = {
     'gui.lessons.assignment.submitGuide':
         'レッスンで まなんだことを つかって、じゆうに プログラムを つくろう。できたら さくひんを ていしゅつしよう',
     'gui.lessons.assignment.submit': 'かだいを ていしゅつする',
+    'gui.lessons.assignment.unknownChallenges': 'あたらしい レッスンが あります。ページを よみこみなおしてね',
 };
 
 export const en = {
@@ -576,4 +578,5 @@ export const en = {
     'gui.lessons.assignment.submitGuide':
         'Use what you learned in the lessons to make your own program. When it is ready, submit it.',
     'gui.lessons.assignment.submit': 'Submit assignment',
+    'gui.lessons.assignment.unknownChallenges': 'There are new lessons. Please reload the page.',
 };

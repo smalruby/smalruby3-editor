@@ -542,22 +542,26 @@ const routeLessonAssignment = (p) =>
 
 // クラスの画面: 進み具合 (とちゅう・★ 残り / 課題クリア) + 提出状況 + 続きの選択肢。
 // 返却 + 長いコメントのときと、まだ提出していない (提出の案内が出る) とき。
-for (const [label, done, primary, returned] of [
+// 新しい版のチャレンジがある課題 (#1599 M1): 読み込み直しの一言 + 提出の案内 + 提出ボタン。
+const LESSON_WITH_UNKNOWN = { ...LESSON, challengeIds: [...LESSON_IDS, 'not-in-this-build'] };
+for (const [label, done, primary, returned, lesson = LESSON] of [
     ['in progress', LESSON_IDS.slice(0, 6), 'classroom-continue-lesson-button', true],
     ['cleared + returned', LESSON_IDS.slice(0, 9), 'classroom-submit-button', true],
     ['cleared + submit guide', LESSON_IDS.slice(0, 9), 'classroom-submit-button', false],
+    ['unknown challenge + submit guide', LESSON_IDS.slice(0, 3), 'classroom-submit-button', false, LESSON_WITH_UNKNOWN],
+    ['unknown challenge + returned', LESSON_IDS.slice(0, 3), 'classroom-submit-button', true, LESSON_WITH_UNKNOWN],
 ]) {
     const submission = returned
         ? { status: 'returned', submittedAt: new Date().toISOString(), teacherComment: LONG_COMMENT }
         : null;
     const { ctx, page } = await studentPage({
         storage: {
-            'smalruby:classroom': session({ submissionStatus: returned ? 'returned' : null, studentLesson: LESSON }),
+            'smalruby:classroom': session({ submissionStatus: returned ? 'returned' : null, studentLesson: lesson }),
             'smalruby:lessonProgress': lessonRecords(done),
         },
         routes: async (p) => {
             await routeContinuable(p);
-            await routeLessonAssignment(p);
+            await p.route('**/classrooms/c1/assignment', (r) => r.fulfill({ json: { assignment: null, lesson } }));
             await p.route('**/classrooms/verify-session', (r) =>
                 r.fulfill({
                     json: { valid: true, hasAssignment: false, submission },

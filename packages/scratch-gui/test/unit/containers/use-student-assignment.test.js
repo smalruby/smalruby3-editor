@@ -464,3 +464,42 @@ describe('useStudentAssignment — メッシュの接続モーダルを出す (#
         expect(mockDispatch).not.toHaveBeenCalledWith(REQUEST);
     });
 });
+
+describe('useStudentAssignment — レッスンの設定を読み直す (#1599)', () => {
+    const LESSON = { courseId: 'kyou-kara-programmer', challengeIds: ['blocks-l1-key-sound'] };
+
+    beforeEach(() => {
+        mockGetAssignment.mockReset();
+        mockDispatch.mockReset();
+    });
+
+    test('クラスの画面で読み直したレッスンを Redux に入れる', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: null, lesson: LESSON });
+        const { hook } = setup();
+        await act(async () => {
+            await hook.result.current.refreshLesson();
+        });
+        expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({ lesson: LESSON }));
+    });
+
+    test('答えが届く前に別の課題に参加したら、前の課題のレッスンを入れない', async () => {
+        let resolve;
+        mockGetAssignment.mockReturnValue(
+            new Promise((r) => {
+                resolve = r;
+            }),
+        );
+        const { deps, hook } = setup();
+        let pending;
+        act(() => {
+            pending = hook.result.current.refreshLesson();
+        });
+        deps.classroomState = { sessionToken: 'st-other', classroomId: 'c-other' };
+        hook.rerender();
+        await act(async () => {
+            resolve({ assignment: null, lesson: LESSON, peerView: 'always' });
+            await pending;
+        });
+        expect(mockDispatch).not.toHaveBeenCalled();
+    });
+});
