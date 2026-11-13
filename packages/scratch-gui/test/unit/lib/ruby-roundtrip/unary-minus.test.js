@@ -112,6 +112,14 @@ describe('Ruby Roundtrip: unary minus on non-literals (issue #1676)', () => {
         ['minus of a negative number', 'say(- -1)'],
         ['receiver of abs', '@x = 1\nsay((-@x).abs)'],
         ['receiver of to_s', '@x = 1\nsay((-@x).to_s)'],
+        ['minus of a call on an integer (issue #1747)', 'say(-(5.abs))'],
+        ['minus of a call on a float', 'say(-(2.5.round))'],
+        ['minus of to_s on an integer', 'say(-(1.to_s))'],
+        ['minus of a chain on an integer', 'say(-(5.abs.to_s))'],
+        ['minus of a sum that starts with a call on a number', 'say(-(5.abs + 1))'],
+        ['minus of a parenthesized number', 'say(-(5))'],
+        ['call on a negative number', 'say((-5).abs)'],
+        ['negative number', 'move(-5)'],
     ])('%s', async (_name, code) => {
         const first = await convert(code);
         expect(first.ruby).toBe(code);
@@ -140,6 +148,28 @@ describe('Ruby Roundtrip: unary minus on non-literals (issue #1676)', () => {
 
         const second = await convert(first.ruby);
         expect(second.trees).toEqual(first.trees);
+    });
+
+    test.each([
+        ['-5.abs is a call on -5', 'say(-5.abs)', 'say((-5).abs)'],
+        ['-(@a.abs) needs no parentheses', '@a = 1\nsay(-(@a.abs))', '@a = 1\nsay(-@a.abs)'],
+        ['a minus of a call on a number as the exponent', 'say(10 ** -(5.abs))', 'say(10 ** (-(5.abs)))'],
+    ])('%s', async (_name, code, expected) => {
+        const first = await convert(code);
+        expect(first.ruby).toBe(expected);
+
+        const second = await convert(first.ruby);
+        expect(second.trees).toEqual(first.trees);
+    });
+
+    test('-(5.abs) is the minus of 5.abs, not abs of -5 (issue #1747)', async () => {
+        const { trees } = await convert('say(-(5.abs))');
+        const block = findBlock(trees, 'operator_subtract');
+        expect(block.comment).toBe('@ruby:unary_minus');
+        expect(block.inputs.NUM2.opcode).toBe('operator_mathop');
+        expect(block.inputs.NUM2.inputs.NUM).toEqual(
+            expect.objectContaining({ opcode: 'math_number', fields: { NUM: '5' } }),
+        );
     });
 
     test('a plain 0 - x stays 0 - x', async () => {
