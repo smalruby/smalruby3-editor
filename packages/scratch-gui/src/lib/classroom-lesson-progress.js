@@ -12,11 +12,17 @@
  * of this version knows are counted; あと n つ = max(条件 − できた, 残りの必須);
  * 課題クリア = できた ≥ 条件 and every required one is done.
  *
+ * The counting itself is the student side's `assignmentProgress`
+ * (lib/lessons/assignment-progress.js), so the teacher and the student see
+ * the same numbers; a server row has the same `challenges` shape as the
+ * device record.
+ *
  * Pure functions only: the time is passed in (`now`, ms epoch).
  */
 import { csvLines } from './classroom-download-utils.js';
-import { completionTarget, computeLessonScore, lessonDraftFromSaved } from './classroom-lesson-settings.js';
+import { computeLessonScore } from './classroom-lesson-settings.js';
 import { SEATED_THRESHOLD_MS } from './classroom-presence.js';
+import { assignmentProgress, normalizeAssignmentLesson } from './lessons/assignment-progress.js';
 
 /** 同じチャレンジにこの長さいると「!」（止まっている）. */
 export const STUCK_THRESHOLD_MS = 10 * 60 * 1000;
@@ -58,11 +64,13 @@ const toMs = (value) => {
  * @returns {?object} context, or null when there is nothing to count
  */
 export const lessonProgressContext = (lesson, course) => {
-    if (!lesson || !course || lesson.courseId !== course.id) return null;
-    const draft = lessonDraftFromSaved(lesson, course);
-    if (!draft || draft.challengeIds.length === 0) return null;
-    const selected = new Set(draft.challengeIds);
-    const required = new Set(draft.requiredChallengeIds);
+    const normalized = normalizeAssignmentLesson(lesson);
+    if (!normalized || !course || normalized.courseId !== course.id) return null;
+    const courses = [course];
+    const empty = assignmentProgress(normalized, null, courses);
+    if (empty.challenges.length === 0) return null;
+    const selected = new Set(empty.challenges.map((c) => c.id));
+    const required = new Set(empty.challenges.filter((c) => c.required).map((c) => c.id));
     const columns = [];
     const lessonGroups = [];
     course.lessons.forEach((courseLesson, lessonIndex) => {
@@ -75,10 +83,12 @@ export const lessonProgressContext = (lesson, course) => {
     });
     return {
         lesson,
+        normalized,
         course,
+        courses,
         challengeIds: columns.map((c) => c.id),
-        requiredIds: draft.requiredChallengeIds,
-        target: completionTarget(draft),
+        requiredIds: [...required],
+        target: empty.conditionCount,
         columns,
         lessonGroups,
     };
@@ -94,17 +104,15 @@ export const lessonProgressContext = (lesson, course) => {
  */
 export const seatProgress = (row, ctx, now) => {
     const records = (row && row.challenges) || {};
-    const required = new Set(ctx.requiredIds);
+    const status = assignmentProgress(ctx.normalized, row, ctx.courses);
     const doneIds = [];
     let before = 0;
-    let requiredDone = 0;
     const cells = {};
-    for (const id of ctx.challengeIds) {
-        const rec = Object.prototype.hasOwnProperty.call(records, id) ? records[id] : null;
-        if (rec && typeof rec === 'object') {
+    for (const challenge of status.challenges) {
+        const { id } = challenge;
+        if (challenge.completed) {
             doneIds.push(id);
-            if (required.has(id)) requiredDone += 1;
-            if (rec.before === true) {
+            if (records[id] && records[id].before === true) {
                 before += 1;
                 cells[id] = CELL_KINDS.BEFORE;
             } else {
@@ -114,9 +122,8 @@ export const seatProgress = (row, ctx, now) => {
             cells[id] = CELL_KINDS.TODO;
         }
     }
-    const done = doneIds.length;
-    const requiredLeft = ctx.requiredIds.length - requiredDone;
-    const cleared = done >= ctx.target && requiredLeft === 0;
+    const done = status.completedCount;
+    const cleared = status.cleared;
 
     // ▶ / !: only a challenge of the setting that is not done yet (going back
     // to a done one is not being stuck), and only while the seat's last send
@@ -145,10 +152,10 @@ export const seatProgress = (row, ctx, now) => {
         done,
         before,
         // 「5/4」にしない: できた数は条件の数で止める.
-        shown: Math.min(done, ctx.target),
-        target: ctx.target,
-        requiredLeft,
-        remaining: Math.max(ctx.target - done, requiredLeft, 0),
+        shown: status.cappedCount,
+        target: status.conditionCount,
+        requiredLeft: status.requiredRemaining,
+        remaining: status.remaining,
         cleared,
         doneIds,
         cells,
