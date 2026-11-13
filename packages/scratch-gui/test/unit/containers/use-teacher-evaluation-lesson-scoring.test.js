@@ -1,8 +1,10 @@
 /* eslint-env jest */
 /**
- * 採点の画面からレッスンの点を保存する (#1778 のレビュー M1 / FYI1 / FYI2 / FYI4)。
+ * 採点の画面からレッスンの点を保存する (#1778 のレビュー M1 / FYI1 / FYI2 / FYI4・#1787)。
  *
- * - M1: 送る lesson は、保存の直前に GET したものに scoring だけを重ねる（開いたときの値で上書きしない）
+ * - #1787: 点だけの API（PATCH .../assignment/lesson-scoring）に `{scoring}` だけを送る。
+ *   ページ・はじめのプロジェクトは送らない（GET と PUT のあいだに差し替えた画像を消さない）
+ * - M1: 画面は返ってきた lesson（ほかで変えた設定も入っている）に合わせる
  * - FYI1: 点が変わっていなければ保存しない
  * - FYI2: 保存に失敗したら、サーバーの値を読み直して合わせる
  */
@@ -11,6 +13,7 @@ import useTeacherEvaluation from '../../../src/containers/use-teacher-evaluation
 
 const mockGetAssignment = jest.fn();
 const mockSetAssignment = jest.fn();
+const mockSetLessonScoring = jest.fn();
 const mockGetLessonProgress = jest.fn();
 const mockListSubmissions = jest.fn();
 jest.mock('../../../src/lib/classroom-api.js', () => ({
@@ -18,6 +21,7 @@ jest.mock('../../../src/lib/classroom-api.js', () => ({
     default: {
         getAssignment: (...args) => mockGetAssignment(...args),
         setAssignment: (...args) => mockSetAssignment(...args),
+        setLessonScoring: (...args) => mockSetLessonScoring(...args),
         getLessonProgress: (...args) => mockGetLessonProgress(...args),
         listSubmissions: (...args) => mockListSubmissions(...args),
     },
@@ -82,15 +86,16 @@ const setup = async () => {
 const settingOf = (hook) => hook.result.current.evalLessons[0].lessonSetting;
 const scoreOf = (hook) => hook.result.current.lessonScores.c1.scores[1];
 
-describe('useTeacherEvaluation — レッスンの点の保存 (#1778)', () => {
+describe('useTeacherEvaluation — レッスンの点の保存 (#1778 / #1787)', () => {
     beforeEach(() => {
         mockGetAssignment.mockReset();
         mockSetAssignment.mockReset();
+        mockSetLessonScoring.mockReset();
         mockGetLessonProgress.mockReset();
         mockListSubmissions.mockReset();
         mockGetAssignment.mockResolvedValue({ assignment: content, lesson: opened });
         mockGetLessonProgress.mockResolvedValue({ lesson: opened, progress });
-        mockSetAssignment.mockResolvedValue({});
+        mockSetLessonScoring.mockImplementation((token, id, scoring) => Promise.resolve({ lesson: { ...opened, scoring } }));
     });
 
     test('読み込み: 作品を出さないレッスンの課題は提出を取りに行かない・★ 2 つで 70 点', async () => {
@@ -100,29 +105,49 @@ describe('useTeacherEvaluation — レッスンの点の保存 (#1778)', () => {
         expect(scoreOf(hook)).toBe(70);
     });
 
-    test('M1: 保存の直前に読んだ lesson に scoring だけを重ねて送る（開いたあとでほかが変えた設定を戻さない）', async () => {
+    test('#1787: 点だけの API に scoring だけを送る（読み直さない・ページやはじめのプロジェクトを送らない）', async () => {
+        const { hook } = await setup();
+        await act(async () => {
+            await hook.result.current.handleChangeLessonScoring('c1', NEW_SCORING);
+        });
+        expect(mockSetLessonScoring).toHaveBeenCalledTimes(1);
+        expect(mockSetLessonScoring).toHaveBeenCalledWith('id-token', 'c1', NEW_SCORING);
+        expect(mockGetAssignment).not.toHaveBeenCalled();
+        expect(mockSetAssignment).not.toHaveBeenCalled();
+        expect(settingOf(hook)).toEqual({ ...opened, scoring: NEW_SCORING });
+        expect(scoreOf(hook)).toBe(50);
+        expect(hook.result.current.scoringSavingId).toBeNull();
+    });
+
+    test('#1787: 既定に戻すときは scoring: null を送る', async () => {
+        const { hook } = await setup();
+        await act(async () => {
+            await hook.result.current.handleChangeLessonScoring('c1', NEW_SCORING);
+        });
+        await act(async () => {
+            await hook.result.current.handleChangeLessonScoring('c1', null);
+        });
+        expect(mockSetLessonScoring).toHaveBeenLastCalledWith('id-token', 'c1', null);
+        expect(settingOf(hook).scoring).toBeNull();
+        expect(scoreOf(hook)).toBe(70);
+    });
+
+    test('M1: 画面は返ってきた lesson に合わせる（開いたあとでほかが変えた設定を戻さない）', async () => {
         const { hook } = await setup();
         // 画面を開いたあとで、別のタブがチャレンジ・条件・コースに無い ID を足した
         const changedElsewhere = {
             ...opened,
             challengeIds: [...CH, 'blocks-l1-quiz', 'gone-id'],
             completion: { type: 'count', count: 4 },
-            scoring: { total: 100, requiredPoints: 60, optionalPoints: 40 },
+            scoring: NEW_SCORING,
         };
-        mockGetAssignment.mockResolvedValue({ assignment: content, lesson: changedElsewhere });
+        mockSetLessonScoring.mockResolvedValue({ lesson: changedElsewhere });
         await act(async () => {
             await hook.result.current.handleChangeLessonScoring('c1', NEW_SCORING);
         });
-        expect(mockSetAssignment).toHaveBeenCalledTimes(1);
-        const [, id, body] = mockSetAssignment.mock.calls[0];
-        expect(id).toBe('c1');
-        expect(body.lesson).toEqual({ ...changedElsewhere, scoring: NEW_SCORING });
-        expect(body.pages).toEqual([{ text: 'p1', imageKey: 'c1/assignment/image-1.png' }]);
-        expect(body.keepStarter).toBe(true);
-        // 画面もサーバーの設定に合わせる（条件 4・必須 50 → ★ 2 つで 50 点）
-        expect(settingOf(hook)).toEqual({ ...changedElsewhere, scoring: NEW_SCORING });
+        // 条件 4・必須 50 → ★ 2 つで 50 点
+        expect(settingOf(hook)).toEqual(changedElsewhere);
         expect(scoreOf(hook)).toBe(50);
-        expect(hook.result.current.scoringSavingId).toBeNull();
     });
 
     test('FYI1: 点が変わっていなければ保存しない（欄を出ただけ）', async () => {
@@ -135,29 +160,41 @@ describe('useTeacherEvaluation — レッスンの点の保存 (#1778)', () => {
                 optionalPoints: 30,
             });
         });
+        expect(mockSetLessonScoring).not.toHaveBeenCalled();
         expect(mockGetAssignment).not.toHaveBeenCalled();
-        expect(mockSetAssignment).not.toHaveBeenCalled();
     });
 
-    test('M1: レッスンが外されていたら保存せず、短く知らせる', async () => {
+    test('400: レッスンが外されていたら、短く知らせて表から外す', async () => {
         const { hook, deps } = await setup();
-        mockGetAssignment.mockResolvedValue({ assignment: content, lesson: null });
+        mockSetLessonScoring.mockRejectedValue(Object.assign(new Error('This assignment has no lesson'), { status: 400 }));
         await act(async () => {
             await hook.result.current.handleChangeLessonScoring('c1', NEW_SCORING);
         });
-        expect(mockSetAssignment).not.toHaveBeenCalled();
         expect(deps.showError).toHaveBeenCalledWith(
             'This assignment no longer has a lesson, so the points were not saved.',
         );
         expect(settingOf(hook)).toBeNull();
+        expect(hook.result.current.scoringSavingId).toBeNull();
     });
 
-    test('FYI2: PUT が失敗しても、サーバーに保存されていればその値を出す', async () => {
+    test('401: 前の点に戻して、ログインし直しへ', async () => {
         const { hook, deps } = await setup();
-        mockSetAssignment.mockRejectedValue(new Error('network'));
-        mockGetAssignment
-            .mockResolvedValueOnce({ assignment: content, lesson: opened })
-            .mockResolvedValueOnce({ assignment: content, lesson: { ...opened, scoring: NEW_SCORING } });
+        mockSetLessonScoring.mockRejectedValue(Object.assign(new Error('unauthorized'), { status: 401 }));
+        await act(async () => {
+            await hook.result.current.handleChangeLessonScoring('c1', NEW_SCORING);
+        });
+        expect(deps.handleTeacher401).toHaveBeenCalled();
+        expect(settingOf(hook)).toEqual(opened);
+        expect(scoreOf(hook)).toBe(70);
+    });
+
+    test('FYI2: 保存が失敗しても、サーバーに保存されていればその値を出す', async () => {
+        const { hook, deps } = await setup();
+        mockSetLessonScoring.mockRejectedValue(new Error('network'));
+        mockGetAssignment.mockResolvedValueOnce({
+            assignment: content,
+            lesson: { ...opened, scoring: NEW_SCORING },
+        });
         await act(async () => {
             await hook.result.current.handleChangeLessonScoring('c1', NEW_SCORING);
         });
@@ -166,12 +203,10 @@ describe('useTeacherEvaluation — レッスンの点の保存 (#1778)', () => {
         expect(scoreOf(hook)).toBe(50);
     });
 
-    test('FYI2: PUT も読み直しも失敗したら、前の点に戻す', async () => {
+    test('FYI2: 保存も読み直しも失敗したら、前の点に戻す', async () => {
         const { hook, deps } = await setup();
-        mockSetAssignment.mockRejectedValue(new Error('network'));
-        mockGetAssignment
-            .mockResolvedValueOnce({ assignment: content, lesson: opened })
-            .mockRejectedValueOnce(new Error('network'));
+        mockSetLessonScoring.mockRejectedValue(new Error('network'));
+        mockGetAssignment.mockRejectedValueOnce(new Error('network'));
         await act(async () => {
             await hook.result.current.handleChangeLessonScoring('c1', NEW_SCORING);
         });

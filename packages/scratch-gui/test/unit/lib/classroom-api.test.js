@@ -370,3 +370,43 @@ describe('ClassroomAPI.getLessonProgress (#1602)', () => {
         expect(data).toEqual({ lesson: null, progress: [] });
     });
 });
+
+describe('ClassroomAPI.setLessonScoring (#1787)', () => {
+    let classroomAPI;
+
+    beforeEach(() => {
+        jest.resetModules();
+        global.fetch = jest.fn();
+        classroomAPI = require('../../../src/lib/classroom-api.js').default;
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('PATCHes only the scoring of the lesson with the teacher token', async () => {
+        const lesson = { courseId: 'c', scoring: { total: 100, requiredPoints: 50, optionalPoints: 50 } };
+        global.fetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: jest.fn().mockResolvedValue({ lesson }),
+        });
+        const data = await classroomAPI.setLessonScoring('id-token', 'c1', lesson.scoring);
+        const [url, opts] = global.fetch.mock.calls[0];
+        expect(url).toContain('/classrooms/c1/assignment/lesson-scoring');
+        expect(opts.method).toBe('PATCH');
+        expect(opts.headers.Authorization).toBe('Bearer id-token');
+        expect(JSON.parse(opts.body)).toEqual({ scoring: lesson.scoring });
+        expect(data).toEqual({ lesson });
+    });
+
+    test('sends scoring: null to go back to the defaults', async () => {
+        global.fetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: jest.fn().mockResolvedValue({ lesson: { courseId: 'c', scoring: null } }),
+        });
+        await classroomAPI.setLessonScoring('id-token', 'c1', null);
+        expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({ scoring: null });
+    });
+});

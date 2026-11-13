@@ -20,7 +20,6 @@ import {
     buildEvaluationCsv,
     chunk,
     isLessonOnlyAssignment,
-    lessonScoringSavePayload,
 } from '../lib/classroom-evaluation/evaluation-utils.js';
 import { analyzeProject } from '../lib/classroom-evaluation/sb3-analyzer.js';
 import { isSameLessonScoring } from '../lib/classroom-lesson-settings.js';
@@ -346,10 +345,11 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
 
     /**
      * Save new lesson points from the grading screen (#1778): the table is
-     * re-scored at once, then the assignment is saved. Only `scoring` is
-     * changed, on top of the lesson read right before the PUT (M1). Nothing is
-     * saved when the points do not change (FYI1). When the save fails, the
-     * screen follows what the server has (the PUT may have gone through, FYI2).
+     * re-scored at once, then only `scoring` is sent to the points-only API
+     * (#1787: pages and the starter are not sent back, so an image replaced in
+     * the meantime is kept). The screen follows the returned lesson (M1).
+     * Nothing is saved when the points do not change (FYI1). When the save
+     * fails, the screen follows what the server has (it may have gone through, FYI2).
      * @param {string} classroomId - assignment
      * @param {?object} scoring - the new `lesson.scoring` (null = the defaults)
      */
@@ -380,24 +380,21 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
             setScoringChecked(true);
             setScoringSavingId(classroomId);
             try {
-                // Read just before saving: the PUT replaces the content and the whole lesson.
-                const current = await classroomAPI.getAssignment(idToken, classroomId);
-                const payload = lessonScoringSavePayload(current, scoring);
-                if (!payload) {
-                    // The lesson was removed elsewhere: do not put it back.
+                const saved = await classroomAPI.setLessonScoring(idToken, classroomId, scoring);
+                apply((saved && saved.lesson) || null);
+            } catch (err) {
+                if (err.status === 400) {
+                    // The lesson was removed elsewhere: the server does not put it back.
                     apply(null);
                     showError(intl.formatMessage(evaluationMessages.lessonRemoved));
                     return;
                 }
-                apply(payload.lesson);
-                await classroomAPI.setAssignment(idToken, classroomId, payload);
-            } catch (err) {
                 if (err.status === 401) {
                     apply(before);
                     handleTeacher401();
                     return;
                 }
-                // The PUT may have been saved even though it failed here: show
+                // The points may have been saved even though it failed here: show
                 // what the server has, or the old points when it cannot be read.
                 const UNREAD = {};
                 const fresh = await classroomAPI.getAssignment(idToken, classroomId).catch(() => UNREAD);

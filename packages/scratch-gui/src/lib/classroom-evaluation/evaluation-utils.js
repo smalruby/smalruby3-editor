@@ -90,29 +90,6 @@ const currentLessonOnlyStep = ({ loaded, checked }) => {
 };
 
 /**
- * The assignment PUT that saves new lesson points from the grading screen
- * (#1778). Built from the GET done right before the PUT: the PUT replaces the
- * assignment content and the whole lesson, so the stored pages, starter and
- * lesson settings are sent back and only `scoring` is changed (a lesson read
- * when the screen opened may be stale — another tab or co-teacher may have
- * changed it since).
- * @param {?object} assignmentData - GET /classrooms/{id}/assignment response
- * @param {?object} scoring - the new `lesson.scoring` (null = the defaults)
- * @returns {?object} the PUT body, or null when the assignment has no lesson any more
- */
-const lessonScoringSavePayload = (assignmentData, scoring) => {
-    const lesson = assignmentData && assignmentData.lesson;
-    if (!lesson) return null;
-    const content = assignmentData.assignment;
-    const pages = ((content && content.pages) || []).map((page) =>
-        page.imageKey ? { text: page.text, imageKey: page.imageKey } : { text: page.text },
-    );
-    const payload = { pages, lesson: { ...lesson, scoring } };
-    if (content && content.starterKey) payload.keepStarter = true;
-    return payload;
-};
-
-/**
  * The columns of the grading table and CSV (#1603). Each assignment has a
  * work column (the AI-assisted grade), and a lesson assignment also has a
  * 「レッスン」 column (the machine score from its progress) right after it.
@@ -246,7 +223,6 @@ export {
     evaluationFlowMode,
     isLessonOnlyAssignment,
     lessonScoreOf,
-    lessonScoringSavePayload,
     buildAuditCsv,
     chunk,
     csvField,
