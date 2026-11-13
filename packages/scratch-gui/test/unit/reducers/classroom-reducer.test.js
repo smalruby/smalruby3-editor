@@ -712,6 +712,15 @@ describe('classroom reducer', () => {
             expect(reducer(state, setStudentLesson(null)).studentLesson).toBeNull();
         });
 
+        test('joining another class drops the previous submission status; rejoining the same keeps it (#1792)', () => {
+            let state = reducer(classroomInitialState, setClassroomSession(session));
+            state = reducer(state, setSubmissionStatus('submitted', '2026-11-13T10:00:00.000Z'));
+            const other = reducer(state, setClassroomSession({ ...session, classroomId: 'other' }));
+            expect(other.submissionStatus).toBeNull();
+            expect(other.lastSubmittedAt).toBeNull();
+            expect(reducer(state, setClassroomSession(session)).submissionStatus).toBe('submitted');
+        });
+
         test('requestStudentSubmit opens the modal and is consumed once', () => {
             let state = reducer(classroomInitialState, requestStudentSubmit());
             expect(state.modalVisible).toBe(true);

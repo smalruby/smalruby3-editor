@@ -247,6 +247,10 @@ const reducer = (state, action) => {
                     studentPeerView: null,
                     studentPeerPanelOpen: false,
                     studentLesson: null,
+                    // The previous assignment's submission is not this one's (#1792):
+                    // the status is read again from the server for the new assignment.
+                    submissionStatus: null,
+                    lastSubmittedAt: null,
                 };
             }
             return { ...state, ...session };

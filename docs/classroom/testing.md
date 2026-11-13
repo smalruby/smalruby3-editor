@@ -151,10 +151,22 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 生徒の参加から提出までの画面は、[ui-ux.md の「生徒の画面の決まり」](ui-ux.md#生徒の画面の決まり参加から提出まで)と 5〜9 の仕様で作り直す（主ボタンは 1 つ・進む順の帯・始め方を 1 つに決める・おかえりなさい・メニューバーの「提出する」）。下の表のうち、次のものは新しい画面に置きかわる。新しい画面の data-testid は**実装の sub-issue で確定**し、そのときにこの一覧を書きかえる（ここでは名前を先に決めない）。
 
-- 「生徒: 参加完了」の `classroom-joined-next-steps`（「つぎにやること」）→ 出さない（帯にかわる）。`classroom-joined-close` → 決めた始め方の主ボタン
+- 「生徒: 参加完了」の `classroom-joined-close` → 決めた始め方の主ボタン（「つぎにやること」の `classroom-joined-next-steps` は帯にかわってなくなった）
 - 「生徒: ステータス」の `classroom-leave`（「退出する」）→ 確認つきの小さなリンク「クラスから出る」。提出のボタン → メニューバーの「提出する」
 - 「どこから始めるかの選択」の `classroom-continue-*`（横に並ぶ選択肢）と `classroom-continue-*-recommended`（おすすめのバッジ）→ 主ボタン 1 つと「ほかの始め方」
 - 「メニューバー」→ 「提出する」/「提出済み ✓」/「返却済み ✓」のボタンが加わる
+
+### 生徒: 共通の部品（進む順の帯・主ボタン・小さなリンク）
+
+[ui-ux.md の「生徒の画面の決まり」](ui-ux.md#生徒の画面の決まり参加から提出まで)の部品。帯は生徒の画面（`classroom-modal`）のいちばん上に出る。
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-step-band` | ol | 進む順の帯。`data-complete` = `true`（提出済み・返却済みなどで全部すんだ。⑤ に ✓）/ `false` |
+| `classroom-step-band-{step}` | span | 帯の札（`step` = `join` / `seat` / `start` / `make` / `submit`）。`data-state` = `done`（すんだ・薄い緑）/ `now`（いま・青・`aria-current="step"`）/ `todo`（まだ・灰色）。押せない |
+| `classroom-step-band-{step}-state` | span | 札の状態の文字（「（済み）」「（いま）」「（まだ）」）。画面には見えず、読み上げだけに出す |
+
+主ボタン（`StudentMainButton`）と小さな文字のリンク（`StudentTextLink`）は、使う画面が `dataTestId` で data-testid を決める。主ボタンの説明の小さい字は `<主ボタンの data-testid>-note`。
 
 ### 生徒: 参加
 
@@ -193,7 +205,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-joined-assignment` | div | 課題名（課題名がある場合のみ） |
 | `classroom-joined-close` | button | はじめる（「どこから始めますか？」の選択肢を出しているときと、レッスンの課題では描画しない） |
 | `classroom-joined-start-lesson` | button | レッスンの課題の「はじめる」（レッスン表を課題のチャレンジだけで開く・課題パネルにも出す） |
-| `classroom-joined-next-steps` | div | 「つぎにやること」の文（レッスンの課題ではレッスンの課題の説明） |
+| `classroom-joined-lesson-notice` | div | レッスンの課題の 1 行のお知らせ（レッスンの課題であることと提出のタイミング。レッスンの課題のときだけ） |
 
 ### 生徒: ステータス
 
