@@ -805,6 +805,7 @@ export default {
         'レッスンのかだいは、すすみぐあいからじどうでさいてんします。AI のさいてんはつかいません。',
     'gui.classroom.evaluation.mixedNote': '{names} には AI をつかいません（すすみぐあいからじどうでさいてん）。',
     'gui.classroom.evaluation.lessonHeadNamed': '{name}（レッスン・じどう）',
+    'gui.classroom.evaluation.lessonRemoved': 'このかだいにはもうレッスンがないので、てんはほぞんしませんでした。',
     'gui.classroom.evaluation.lessonScoringOf': '{name} のレッスンのてん',
     'gui.classroom.evaluation.loadProgress': 'すすみぐあいをよみこむ',
     'gui.classroom.evaluation.checkPoints': 'てんをたしかめる',

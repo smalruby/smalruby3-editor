@@ -785,6 +785,7 @@ export default {
         'レッスンの課題は、進み具合から自動で採点します。AI の採点は使いません。',
     'gui.classroom.evaluation.mixedNote': '{names} には AI を使いません（進み具合から自動で採点）。',
     'gui.classroom.evaluation.lessonHeadNamed': '{name}（レッスン・自動）',
+    'gui.classroom.evaluation.lessonRemoved': 'この課題にはもうレッスンが無いので、点は保存しませんでした。',
     'gui.classroom.evaluation.lessonScoringOf': '{name} のレッスンの点',
     'gui.classroom.evaluation.loadProgress': '進み具合を読み込む',
     'gui.classroom.evaluation.checkPoints': '点を確かめる',

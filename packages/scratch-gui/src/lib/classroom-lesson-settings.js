@@ -475,3 +475,16 @@ export const computeLessonScore = (lesson, doneIds, course) => {
     }
     return Math.min(total, ceilPoints(sum));
 };
+
+/**
+ * Whether new scoring means the same points as the stored one (#1778 FYI1):
+ * leaving a field without changing it does not save.
+ * @param {?object} lesson - stored lesson settings
+ * @param {?object} scoring - the new `lesson.scoring`
+ * @returns {boolean} whether nothing changes
+ */
+export const isSameLessonScoring = (lesson, scoring) => {
+    const a = canonicalLesson(lesson);
+    const b = canonicalLesson(lesson ? { ...lesson, scoring } : null);
+    return JSON.stringify(a && a.scoring) === JSON.stringify(b && b.scoring);
+};

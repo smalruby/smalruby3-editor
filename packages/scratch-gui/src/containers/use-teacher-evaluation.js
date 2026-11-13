@@ -12,6 +12,7 @@
  */
 import JSZip from 'jszip';
 import { useCallback, useRef, useState } from 'react';
+import { defineMessages } from 'react-intl';
 import classroomAPI from '../lib/classroom-api.js';
 import {
     DEFAULT_RUBRIC_AXES,
@@ -22,9 +23,18 @@ import {
     lessonScoringSavePayload,
 } from '../lib/classroom-evaluation/evaluation-utils.js';
 import { analyzeProject } from '../lib/classroom-evaluation/sb3-analyzer.js';
+import { isSameLessonScoring } from '../lib/classroom-lesson-settings.js';
 import { lessonScoresBySeat } from '../lib/classroom-lesson-summary.js';
 import { findCourse } from '../lib/lessons/courses.js';
 import translateError from './classroom-error-utils.js';
+
+const evaluationMessages = defineMessages({
+    lessonRemoved: {
+        defaultMessage: 'This assignment no longer has a lesson, so the points were not saved.',
+        description: 'Grading screen: the lesson was removed elsewhere before the lesson points were saved (#1778)',
+        id: 'gui.classroom.evaluation.lessonRemoved',
+    },
+});
 
 const EVAL_CHUNK_SIZE = 10;
 const cellKey = (seatNumber, classroomId) => `${seatNumber}:${classroomId}`;
@@ -336,14 +346,19 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
 
     /**
      * Save new lesson points from the grading screen (#1778): the table is
-     * re-scored at once, then the assignment setting is saved. A failed save
-     * puts the old points back.
+     * re-scored at once, then the assignment is saved. Only `scoring` is
+     * changed, on top of the lesson read right before the PUT (M1). Nothing is
+     * saved when the points do not change (FYI1). When the save fails, the
+     * screen follows what the server has (the PUT may have gone through, FYI2).
+     * @param {string} classroomId - assignment
+     * @param {?object} scoring - the new `lesson.scoring` (null = the defaults)
      */
     const handleChangeLessonScoring = useCallback(
-        async (classroomId, lesson) => {
+        async (classroomId, scoring) => {
             const target = evalLessons.find((l) => l.classroomId === classroomId);
-            if (!target || !target.lessonSetting || !lesson) return;
+            if (!target || !target.lessonSetting) return;
             const before = target.lessonSetting;
+            if (isSameLessonScoring(before, scoring)) return;
             const progressData = lessonProgress[classroomId];
             const apply = (setting) => {
                 setEvalLessons((prev) =>
@@ -354,24 +369,39 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                     setLessonProgress((prev) => ({ ...prev, [classroomId]: next }));
                     setLessonScores((prev) => ({
                         ...prev,
-                        [classroomId]: lessonScoresBySeat(next, findCourse(setting.courseId), Date.now()),
+                        [classroomId]: setting
+                            ? lessonScoresBySeat(next, findCourse(setting.courseId), Date.now())
+                            : null,
                     }));
                 }
             };
             clearError();
-            apply(lesson);
+            apply({ ...before, scoring });
             setScoringChecked(true);
             setScoringSavingId(classroomId);
             try {
-                // Read the content just before saving: the PUT replaces it.
+                // Read just before saving: the PUT replaces the content and the whole lesson.
                 const current = await classroomAPI.getAssignment(idToken, classroomId);
-                await classroomAPI.setAssignment(idToken, classroomId, lessonScoringSavePayload(current, lesson));
+                const payload = lessonScoringSavePayload(current, scoring);
+                if (!payload) {
+                    // The lesson was removed elsewhere: do not put it back.
+                    apply(null);
+                    showError(intl.formatMessage(evaluationMessages.lessonRemoved));
+                    return;
+                }
+                apply(payload.lesson);
+                await classroomAPI.setAssignment(idToken, classroomId, payload);
             } catch (err) {
-                apply(before);
                 if (err.status === 401) {
+                    apply(before);
                     handleTeacher401();
                     return;
                 }
+                // The PUT may have been saved even though it failed here: show
+                // what the server has, or the old points when it cannot be read.
+                const UNREAD = {};
+                const fresh = await classroomAPI.getAssignment(idToken, classroomId).catch(() => UNREAD);
+                apply(fresh === UNREAD ? before : (fresh && fresh.lesson) || null);
                 showError(translateError(intl, err));
             } finally {
                 setScoringSavingId(null);

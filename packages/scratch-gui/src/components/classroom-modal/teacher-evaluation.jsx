@@ -300,7 +300,7 @@ const LessonScoringPanel = ({ disabled, lesson, saving, onChangeLessonScoring })
     const course = findCourse(lesson.lessonSetting.courseId);
     const draft = course ? lessonDraftFromSaved(lesson.lessonSetting, course) : null;
     const handleChange = useCallback(
-        (next) => onChangeLessonScoring(lesson.classroomId, buildLessonPayload(next)),
+        (next) => onChangeLessonScoring(lesson.classroomId, buildLessonPayload(next).scoring),
         [lesson.classroomId, onChangeLessonScoring],
     );
     if (!draft || draft.challengeIds.length === 0) return null;

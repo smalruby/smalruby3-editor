@@ -15,6 +15,7 @@ import {
     droppedChallengeIds,
     effectiveScoring,
     lessonChanges,
+    isSameLessonScoring,
     lessonDraftFromSaved,
     missingChallengeIds,
     requiredPointsUnusedReason,
@@ -432,5 +433,19 @@ describe('#1778: 点の配り方は条件の数 n と必須の数 r から決め
         expect(computeLessonScore(next, ['a', 'd'], course)).toBe(50);
         // 既定に戻すと scoring は null（既定）
         expect(change(next, { requiredPoints: 70 }).scoring).toBeNull();
+    });
+
+    test('FYI1: 点が変わっていなければ同じ（既定の書き方の違いも同じとみなす）', () => {
+        const saved = lessonOf({
+            required: ['a', 'd'],
+            scoring: { total: 100, requiredPoints: 70, optionalPoints: 30 },
+        });
+        expect(isSameLessonScoring(saved, null)).toBe(true);
+        expect(isSameLessonScoring(saved, { total: 100, requiredPoints: 70, optionalPoints: 30 })).toBe(true);
+        expect(isSameLessonScoring(saved, { total: 100, requiredPoints: 50, optionalPoints: 50 })).toBe(false);
+        expect(isSameLessonScoring(lessonOf({ required: [] }), null)).toBe(true);
+        expect(
+            isSameLessonScoring(lessonOf({ required: [] }), { total: 80, requiredPoints: 0, optionalPoints: 80 }),
+        ).toBe(false);
     });
 });

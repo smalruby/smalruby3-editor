@@ -688,6 +688,7 @@ export default {
         'Lesson assignments are scored automatically from the progress. AI grading is not used.',
     'gui.classroom.evaluation.mixedNote': 'AI is not used for {names} (scored automatically from the progress).',
     'gui.classroom.evaluation.lessonHeadNamed': '{name} (lesson, auto)',
+    'gui.classroom.evaluation.lessonRemoved': 'This assignment no longer has a lesson, so the points were not saved.',
     'gui.classroom.evaluation.lessonScoringOf': 'Lesson points of {name}',
     'gui.classroom.evaluation.loadProgress': 'Load Progress',
     'gui.classroom.evaluation.checkPoints': 'Check Points',
