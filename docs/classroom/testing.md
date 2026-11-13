@@ -151,7 +151,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 生徒の参加から提出までの画面は、[ui-ux.md の「生徒の画面の決まり」](ui-ux.md#生徒の画面の決まり参加から提出まで)と 5〜9 の仕様で作り直す（主ボタンは 1 つ・進む順の帯・始め方を 1 つに決める・おかえりなさい・メニューバーの「提出する」）。下の表のうち、次のものは新しい画面に置きかわる。新しい画面の data-testid は**実装の sub-issue で確定**し、そのときにこの一覧を書きかえる（ここでは名前を先に決めない）。
 
-- 「生徒: 席番号選択」の `classroom-seat-guide`（いつも出ている案内文）→ 30 秒たったときだけ出す右側の案内の枠と、前回の番号の表示
 - 「生徒: 参加完了」の `classroom-joined-next-steps`（「つぎにやること」）→ 出さない（帯にかわる）。`classroom-joined-close` → 決めた始め方の主ボタン
 - 「生徒: ステータス」の `classroom-leave`（「退出する」）→ 確認つきの小さなリンク「クラスから出る」。提出のボタン → メニューバーの「提出する」
 - 「どこから始めるかの選択」の `classroom-continue-*`（横に並ぶ選択肢）と `classroom-continue-*-recommended`（おすすめのバッジ）→ 主ボタン 1 つと「ほかの始め方」
@@ -169,14 +168,16 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-seat-grid` | div | 席番号グリッド |
-| `classroom-seat-{n}` | button | 席番号 n のボタン（使用中は `classroom-status-icon-occupied` を含む） |
+| `classroom-seat-heading` | div | 見出しの行（「出席番号を選んでください」と、あれば `classroom-seat-previous`） |
+| `classroom-seat-previous` | div | 見出しと同じ行の「前回は NN 番でした」（この PC で同じクラスに前に入った番号があるときだけ。localStorage `smalruby:classroom:lastSeats`） |
+| `classroom-seat-{n}` | button | 席番号 n のボタン。使用中は `classroom-status-icon-occupied` と「使用中」の字を含み、`data-occupied="1"`（押せる。押すと退室依頼ダイアログ）。前回の番号は `data-previous="1"`（光る枠だけで、選ばれない）。30 秒たったときに 1 回光る使用中の席は `data-flash="1"` |
 | `classroom-selected-seat` | div (hidden) | 選択中の席番号 |
 | `classroom-seat-number-toggle` | button | 「番号が見つからないとき」（グリッドの下）。押すと番号入力フォームが開く（開いたあとは消える） |
 | `classroom-seat-number-form` | form | 出席番号の数値入力フォーム（`classroom-seat-number-toggle` を押したときだけ、グリッドの下） |
 | `classroom-seat-number-input` | input | 出席番号の入力欄（1〜定員。全角数字も可）。入力した番号のセルは `data-typed` で強調 |
 | `classroom-seat-number-submit` | button | 「この番号にする」。空席なら選択→確認、使用中なら退室依頼ダイアログ |
 | `classroom-seat-number-error` | div | 範囲外・数字以外の入力エラー |
-| `classroom-seat-guide` | div | 常時の案内文。表示から 30 秒席が選ばれないと `data-idle="1"` で強調（`prefers-reduced-motion` ではアニメなし） |
+| `classroom-seat-idle-guide` | div | 右の列の案内の枠（使用中ボタンの小さな絵つき）。`data-variant="idle"` = グリッドが出てから 30 秒選ばれないとき（使用中の席があるときだけ）、`data-variant="previousTaken"` = 前回の番号が使用中のとき（すぐ出る）。確認・退室依頼ダイアログ・依頼の承認待ちの間は出ない |
 | `classroom-seat-confirm` | div | 席を選んだあとの確認ステップ（座席グリッドの代わりに表示。確認文・［選び直す］・［参加する］を含む） |
 | `classroom-seat-confirm-message` | div | 参加確定前の大きな確認「出席番号 NN で参加します」 |
 | `classroom-seat-reselect` | button | 「選び直す」。座席グリッドに戻る |
@@ -651,8 +652,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-kicked-banner-dismiss` | button | バナーの × |
 | `kick-request-confirm-dialog` | div | 「使用中の席」をタップしたとき表示される退室依頼ダイアログ |
 | `kick-request-reason-input` | textarea | 任意のひと言入力欄（200 字制限）|
-| `kick-request-submit` | button | 依頼を送信 |
-| `kick-request-cancel` | button | ダイアログを閉じる |
+| `kick-request-submit` | button | 「先生にお願いする」（依頼を送信・主ボタン） |
+| `kick-request-cancel` | button | 「やめる」（小さなリンク。ダイアログを閉じ、30 秒を数え直す） |
 | `kick-request-error` | div | 依頼送信エラー表示 |
 | `kick-request-pending-banner` | div | 「先生に依頼中です…」バナー（依頼が生きている間・タブ表示中だけ 5 秒ごとに lookupClassroom を polling。承認で席が空いたらその席で自動参加）|
 | `kick-request-pending-note` | div | 依頼中バナー内の補足「先生に届いています。先生が確認しに来ます。待つ間スモウルビーを使っていてもかまいません…」 |

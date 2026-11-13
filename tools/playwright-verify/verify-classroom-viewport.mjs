@@ -38,6 +38,8 @@ const DOC_SHOT_NAMES = {
     'student-seat-confirm': ['0315-student-seat-confirm.png'],
     'student-seat-pending': ['0308-student-kick-request-pending.png'],
     'student-seat-rejected': ['0307-student-kicked-banner.png', '0309-student-kick-request-rejected.png'],
+    'student-seat-previous-taken': ['0327-student-seat-previous-taken.png'],
+    'student-kick-dialog': ['0328-student-kick-request-dialog.png'],
     'student-joined': ['0303-student-joined.png'],
     'student-assignment': ['0314-student-assignment-panel.png'],
     'student-status': ['0304-student-status.png'],
@@ -176,6 +178,8 @@ const session = (extra = {}) => ({
 });
 
 const lookup = (activeKickRequestIds = []) => ({
+    classroomId: 'c1',
+    groupId: 'g1',
     className: LONG_CLASS,
     assignmentName: LONG_ASSIGNMENT,
     studentCount: SEATS,
@@ -332,10 +336,27 @@ const kickedRoutes = (activeIds) => async (p) => {
     await page.locator('[data-testid="classroom-seat-number-input"]').fill('99');
     await page.locator('[data-testid="classroom-seat-number-submit"]').click();
     if (!SKIP_IDLE) {
-        await page.locator('[data-testid="classroom-seat-guide"][data-idle="1"]').waitFor({ timeout: 40000 });
+        await page.locator('[data-testid="classroom-seat-idle-guide"][data-variant="idle"]').waitFor({ timeout: 40000 });
     }
     await page.waitForTimeout(500);
     await judge(page, { who: 'student', name: 'student-seat (kicked + rejected + idle + input error)', shot: 'student-seat-rejected' });
+    await ctx.close();
+}
+
+// ---------- student-seat: 前回の番号が使用中 (すぐ出る案内の枠) + kicked + 退室依頼の待機中 (#1796) ----------
+{
+    const { ctx, page } = await studentPage({
+        storage: {
+            'smalruby:classroom': session(),
+            'smalruby:classroom:lastSeats': { 'group:g1': 9 },
+        },
+        routes: kickedRoutes([]),
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-seat-grid"]').waitFor({ state: 'visible', timeout: 10000 });
+    await page.locator('[data-testid="classroom-seat-idle-guide"][data-variant="previousTaken"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(300);
+    await judge(page, { who: 'student', name: 'student-seat (previous seat in use + kicked)', shot: 'student-seat-previous-taken' });
     await ctx.close();
 }
 

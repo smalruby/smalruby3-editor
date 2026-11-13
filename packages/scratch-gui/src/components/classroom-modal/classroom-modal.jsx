@@ -21,6 +21,7 @@ const messages = defineMessages({
 
 const ClassroomModal = ({
     phase,
+    previousSeat,
     seatCount,
     takenSeats,
     selectedSeat,
@@ -108,6 +109,7 @@ const ClassroomModal = ({
                         kickRequestError={kickRequestError}
                         kickRequestPending={kickRequestPending}
                         kickRequestRejectedNotice={kickRequestRejectedNotice}
+                        previousSeat={previousSeat}
                         seatCount={seatCount}
                         selectedSeat={selectedSeat}
                         takenSeats={takenSeats}
@@ -279,6 +281,7 @@ ClassroomModal.propTypes = {
     onSelectTeacher: PropTypes.func,
     onStartSubmit: PropTypes.func.isRequired,
     phase: PropTypes.string.isRequired,
+    previousSeat: PropTypes.number,
     seatCount: PropTypes.number,
     selectedSeat: PropTypes.number,
     submitProgress: PropTypes.shape({

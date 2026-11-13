@@ -10,7 +10,8 @@ import {
     savePendingKickRequest,
     clearPendingKickRequest,
 } from '../lib/classroom-kick-request-storage.js';
-import { evaluateKickRequestPoll } from '../lib/classroom-seat-selection.js';
+import { clearLastSeat, loadLastSeat, saveLastSeat } from '../lib/classroom-last-seats-storage.js';
+import { evaluateKickRequestPoll, lastSeatKeyFor } from '../lib/classroom-seat-selection.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
 import { assignmentProgress } from '../lib/lessons/assignment-progress.js';
 import { openAssignmentLessonsLibrary } from '../lib/lessons/open-lessons-library.js';
@@ -156,6 +157,9 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     const [takenSeats, setTakenSeats] = useState([]);
     const [selectedSeat, setSelectedSeat] = useState(null);
     const [pendingClassroomInfo, setPendingClassroomInfo] = useState(null);
+    // Seat this PC joined the same class with last time (#1796). Only
+    // highlighted; never picked for the student.
+    const [previousSeat, setPreviousSeat] = useState(null);
     const [joinedInfo, setJoinedInfo] = useState(null);
     // Set to {joinCode, className, seatNumber} when the student arrives at the
     // seat-selection screen because the teacher kicked them. The seat-selector
@@ -208,17 +212,25 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     // --- Join with code ---
 
     const handleJoinWithCode = useCallback(
-        async (joinCode) => {
+        // `options.forgetSeat`: the seat the student just freed with "wrong
+        // number", so it is not offered as the previous seat again (#1796).
+        async (joinCode, options) => {
             clearError();
             setIsLoading(true);
             try {
                 const data = await classroomAPI.lookupClassroom(joinCode);
                 setPendingJoinCode(joinCode);
+                // The class (group) from the lookup lets the seat screen recall
+                // the number this PC joined the same class with (#1796).
+                const seatKey = lastSeatKeyFor(data);
+                if (options && options.forgetSeat) clearLastSeat(seatKey, options.forgetSeat);
                 setPendingClassroomInfo({
                     className: data.className || '',
                     assignmentName: data.assignmentName || '',
                     expiresAt: data.expiresAt || null,
+                    lastSeatKey: seatKey,
                 });
+                setPreviousSeat(loadLastSeat(seatKey, data.studentCount));
                 setSeatCount(data.studentCount);
                 setTakenSeats(data.takenSeats || []);
                 setSelectedSeat(null);
@@ -355,6 +367,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                     expiresAt: pendingClassroomInfo?.expiresAt || null,
                 });
                 setJoinCodeHistory(loadHistory());
+                if (pendingClassroomInfo) saveLastSeat(pendingClassroomInfo.lastSeatKey, data.seatNumber);
                 setJoinedInfo({
                     className: data.className,
                     classYear: typeof data.classYear === 'number' ? data.classYear : null,
@@ -577,6 +590,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             kickRequestPending={kickRequestPending}
             kickRequestRejectedNotice={kickRequestRejectedNotice}
             phase={phase}
+            previousSeat={previousSeat}
             seatCount={seatCount}
             selectedSeat={selectedSeat}
             submitProgress={submit.submitProgress}

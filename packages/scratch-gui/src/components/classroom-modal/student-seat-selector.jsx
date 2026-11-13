@@ -1,7 +1,13 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
-import { SEAT_IDLE_HINT_MS, decideSeatAction, parseSeatNumberInput } from '../../lib/classroom-seat-selection.js';
+import {
+    SEAT_IDLE_HINT_MS,
+    decideSeatAction,
+    isSeatIdleCounting,
+    parseSeatNumberInput,
+    seatGuideFor,
+} from '../../lib/classroom-seat-selection.js';
 import styles from './classroom-modal.css';
 import ClassroomStatusIcon from './classroom-status-icon.jsx';
 import ErrorDisplay from './error-display.jsx';
@@ -29,14 +35,37 @@ const messages = defineMessages({
         description: 'Error shown when the typed seat is taken and a kick request is already pending',
         id: 'gui.classroom.studentSeat.alreadyRequested',
     },
+    inUse: {
+        defaultMessage: 'In use',
+        description:
+            'Small label inside an occupied seat button. The button can still be pressed to ask the teacher to free the seat',
+        id: 'gui.classroom.studentSeat.inUse',
+    },
 });
+
+// A non-interactive copy of an occupied seat button, so the guide shows
+// exactly what to press (#1796).
+const OccupiedSeatSample = ({ label }) => (
+    <span aria-hidden="true" className={`${styles.seatButton} ${styles.seatTaken} ${styles.seatGuideSample}`}>
+        <span className={styles.seatButtonTop}>
+            <span className={styles.seatButtonNumber}>{'03'}</span>
+            <ClassroomStatusIcon size={12} status="occupied" />
+        </span>
+        <span className={styles.seatInUseLabel}>{label}</span>
+    </span>
+);
+
+OccupiedSeatSample.propTypes = {
+    label: PropTypes.string.isRequired,
+};
 
 const padSeat = (n) => String(n).padStart(2, '0');
 
 /**
  * Becomes true after the student has not picked a seat for
- * SEAT_IDLE_HINT_MS, so the guide can start moving (#1198).
- * @param {boolean} waiting - no seat picked and nothing else to wait for.
+ * SEAT_IDLE_HINT_MS (#1198). The count restarts each time `waiting` turns
+ * true again, i.e. each time the grid comes back (#1796).
+ * @param {boolean} waiting - the grid is shown and nothing else is pending.
  * @returns {boolean} true once the student has been idle long enough.
  */
 const useSeatIdleHint = (waiting) => {
@@ -64,6 +93,7 @@ const StudentSeatSelector = ({
     kickRequestPending,
     kickRequestRejectedNotice,
     kickRequestError,
+    previousSeat,
     onSelectSeat,
     onConfirmJoin,
     onDismissKickedNotice,
@@ -78,7 +108,11 @@ const StudentSeatSelector = ({
     // Seat the student typed; highlighted in the grid even when it is taken.
     const [typedSeat, setTypedSeat] = useState(null);
     const [numberFormOpen, setNumberFormOpen] = useState(false);
-    const idle = useSeatIdleHint(!selectedSeat && !kickRequestPending && !kickRequestDialogSeat);
+    const counting = isSeatIdleCounting({ selectedSeat, kickRequestDialogSeat, kickRequestPending });
+    const idle = useSeatIdleHint(counting);
+    const { guide, flashTaken } = seatGuideFor({ previousSeat, takenSeats, idle, counting });
+
+    const inUseLabel = intl.formatMessage(messages.inUse);
 
     const handleOpenNumberForm = useCallback(() => setNumberFormOpen(true), []);
 
@@ -204,34 +238,48 @@ const StudentSeatSelector = ({
                     </div>
                 ) : (
                     <React.Fragment>
-                        <div className={styles.phaseTitle}>
-                            <FormattedMessage
-                                defaultMessage="Select your seat number"
-                                description="Seat selection prompt"
-                                id="gui.classroom.studentSeat.prompt"
-                            />
-                        </div>
-                        <div
-                            className={`${styles.seatGuide} ${idle ? styles.seatGuideIdle : ''}`}
-                            data-idle={idle ? '1' : '0'}
-                            data-testid="classroom-seat-guide"
-                        >
-                            <FormattedMessage
-                                defaultMessage="If your number is already in use, press that number. You can ask the teacher to free the seat, and the teacher will come to check with you."
-                                description="Always-visible guide on the seat selection screen explaining how to get an occupied seat back"
-                                id="gui.classroom.studentSeat.guide"
-                            />
+                        {/* The previous seat shares the heading line so 40 seats still
+                            fit in 1300x600 (#1796). */}
+                        <div className={styles.seatHeading} data-testid="classroom-seat-heading">
+                            <div className={styles.phaseTitle}>
+                                <FormattedMessage
+                                    defaultMessage="Select your seat number"
+                                    description="Seat selection prompt"
+                                    id="gui.classroom.studentSeat.prompt"
+                                />
+                            </div>
+                            {previousSeat && (
+                                <div className={styles.seatPreviousNote} data-testid="classroom-seat-previous">
+                                    <FormattedMessage
+                                        defaultMessage="Last time you were number {seatNumber}"
+                                        description="Shown next to the seat selection heading: the seat this PC joined the same class with last time. The seat is highlighted but never picked automatically"
+                                        id="gui.classroom.studentSeat.previousSeat"
+                                        values={{ seatNumber: padSeat(previousSeat) }}
+                                    />
+                                </div>
+                            )}
                         </div>
                         <div className={styles.seatGrid} data-testid="classroom-seat-grid">
                             {Array.from({ length: seatCount }, (_, i) => i + 1).map((n) => {
                                 const isTaken = takenSeats.includes(n);
                                 const isTyped = typedSeat === n;
+                                const isPrevious = previousSeat === n;
+                                const isFlashing = isTaken && flashTaken;
                                 // Taken seats become tappable when an onRequestKick handler is
                                 // provided AND we're not already waiting on a different one.
                                 const canRequestKick = isTaken && onRequestKick && !kickRequestPending;
                                 return (
                                     <button
-                                        className={`${styles.seatButton} ${isTaken ? styles.seatTaken : ''} ${isTyped ? styles.seatTyped : ''}`}
+                                        className={[
+                                            styles.seatButton,
+                                            isTaken ? styles.seatTaken : '',
+                                            isTyped ? styles.seatTyped : '',
+                                            isPrevious ? styles.seatPrevious : '',
+                                            isFlashing ? styles.seatFlash : '',
+                                        ].join(' ')}
+                                        data-flash={isFlashing ? '1' : '0'}
+                                        data-occupied={isTaken ? '1' : '0'}
+                                        data-previous={isPrevious ? '1' : '0'}
                                         data-seat={n}
                                         data-taken={canRequestKick ? '1' : '0'}
                                         data-typed={isTyped ? '1' : '0'}
@@ -240,8 +288,11 @@ const StudentSeatSelector = ({
                                         key={n}
                                         onClick={handleSeatClick}
                                     >
-                                        <span className={styles.seatButtonNumber}>{n}</span>
-                                        {isTaken && <ClassroomStatusIcon size={12} status="occupied" />}
+                                        <span className={styles.seatButtonTop}>
+                                            <span className={styles.seatButtonNumber}>{n}</span>
+                                            {isTaken && <ClassroomStatusIcon size={12} status="occupied" />}
+                                        </span>
+                                        {isTaken && <span className={styles.seatInUseLabel}>{inUseLabel}</span>}
                                     </button>
                                 );
                             })}
@@ -304,6 +355,30 @@ const StudentSeatSelector = ({
                 <ErrorDisplay error={error} errorTitle={errorTitle} />
             </div>
             <div className={styles.studentNotices} data-testid="classroom-seat-notices">
+                {guide && (
+                    <div
+                        className={styles.seatIdleGuide}
+                        data-testid="classroom-seat-idle-guide"
+                        data-variant={guide}
+                    >
+                        <OccupiedSeatSample label={inUseLabel} />
+                        <div className={styles.seatIdleGuideText}>
+                            {guide === 'previousTaken' ? (
+                                <FormattedMessage
+                                    defaultMessage="Press it even if it is in use. Your teacher can free the seat for you."
+                                    description="Guide next to the seat grid shown at once when the seat this PC joined last time is now in use (the number is already shown next to the heading)"
+                                    id="gui.classroom.studentSeat.previousTakenGuide"
+                                />
+                            ) : (
+                                <FormattedMessage
+                                    defaultMessage="If your number is 'In use', you can still press it. Your teacher can free the seat for you."
+                                    description="Guide next to the seat grid shown after 30 seconds without a pick, encouraging the student to press an occupied seat"
+                                    id="gui.classroom.studentSeat.idleGuide"
+                                />
+                            )}
+                        </div>
+                    </div>
+                )}
                 {kickedNotice && (
                     <div className={styles.kickedBanner} data-testid="classroom-kicked-banner">
                         <div className={styles.kickedBannerText}>
@@ -409,6 +484,7 @@ StudentSeatSelector.propTypes = {
     onDismissKickedNotice: PropTypes.func,
     onRequestKick: PropTypes.func,
     onSelectSeat: PropTypes.func.isRequired,
+    previousSeat: PropTypes.number,
     seatCount: PropTypes.number.isRequired,
     selectedSeat: PropTypes.number,
     takenSeats: PropTypes.arrayOf(PropTypes.number),
