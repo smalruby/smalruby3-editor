@@ -2,7 +2,7 @@
 // at the lesson PC size (1300x600). The classroom API is stubbed with
 // page.route, so no login or stg data is needed — only the dev server.
 //
-// Checks: choosing a course / lessons / challenges / ★ / completion / submit /
+// Checks: the ✕ of the open panels (#1770), choosing a course / lessons / challenges / ★ / completion / submit /
 // scoring, the PUT payload's `lesson`, the unsaved marks, the dropped-progress
 // notice, an unknown course, and R6 (the save button bottom ≤ 600, the page
 // and the modal body do not scroll, only the challenge list frame scrolls).
@@ -202,6 +202,27 @@ try {
     const unsaved = !!(await page.$(tid('classroom-lesson-unsaved')));
     record('unsaved mark', unsaved);
 
+    // #1770: the ✕ closes the panel and focus returns to the toggle.
+    const closeBox = await page.$eval(tid('classroom-lesson-close'), (el) => {
+        const r = el.getBoundingClientRect();
+        const p = el.closest('[data-testid="classroom-lesson-panel"]').getBoundingClientRect();
+        return { label: el.getAttribute('aria-label'), top: Math.round(r.top - p.top), right: Math.round(p.right - r.right) };
+    });
+    const panelBox = await page.$eval(tid('classroom-lesson-panel'), (el) => {
+        const r = el.getBoundingClientRect();
+        return { top: Math.round(r.top), bottom: Math.round(r.bottom), height: Math.round(r.height) };
+    });
+    console.log(`  lesson panel: ${JSON.stringify(panelBox)} close: ${JSON.stringify(closeBox)}`);
+    await page.locator(tid('classroom-lesson-close')).click();
+    await page.waitForTimeout(200);
+    const closedByX = !(await page.$(tid('classroom-lesson-panel')));
+    const focusOnToggle = await page.evaluate(
+        () => document.activeElement && document.activeElement.dataset.testid === 'classroom-lesson-toggle',
+    );
+    record('✕ closes the lesson panel, focus on toggle', closedByX && focusOnToggle && closeBox.label === '閉じる', JSON.stringify(closeBox));
+    await page.locator(tid('classroom-lesson-toggle')).click();
+    await page.waitForTimeout(200);
+
     // 3. Close (Escape), summary shows the current values.
     await page.keyboard.press('Escape');
     await page.waitForTimeout(200);
@@ -225,7 +246,15 @@ try {
     m = await measure();
     record('advanced open with scoring: R6', r6(m), describe(m));
     await shot('advanced-scoring', '0245-detail-lesson-scoring.png');
-    await page.keyboard.press('Escape');
+    await page.locator(tid('classroom-assignment-advanced-close')).click();
+    await page.waitForTimeout(200);
+    record(
+        '✕ closes「詳しい設定」, focus on toggle',
+        !(await page.$(tid('classroom-assignment-advanced-panel'))) &&
+            (await page.evaluate(
+                () => document.activeElement && document.activeElement.dataset.testid === 'classroom-assignment-advanced-toggle',
+            )),
+    );
 
     // 5. Save → PUT carries lesson.
     await page.locator(tid('classroom-assignment-save')).click();

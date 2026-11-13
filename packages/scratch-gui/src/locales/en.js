@@ -624,6 +624,7 @@ export default {
     'gui.classroom.teacherDetail.seatColorNotJoined': 'Not joined yet',
     'gui.classroom.teacherDetail.previewEmpty': 'Write a page and it shows up here',
     'gui.classroom.assignmentEditor.advanced': 'Advanced settings',
+    'gui.classroom.assignmentEditor.panelClose': 'Close',
     'gui.classroom.assignmentEditor.advancedUnsaved': 'Not saved yet',
     'gui.classroom.lessonSettings.title': 'Lesson',
     'gui.classroom.lessonSettings.summaryNone': "Don't use lessons",

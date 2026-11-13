@@ -25,6 +25,7 @@ import ErrorDisplay from './error-display.jsx';
 import LessonScoringField, { lessonScoringMessages } from './lesson-scoring-field.jsx';
 import LessonSettingsField from './lesson-settings-field.jsx';
 import MeshGroupLimitField, { meshGroupLimitMessages } from './mesh-group-limit-field.jsx';
+import PanelCloseButton from './panel-close-button.jsx';
 
 const messages = defineMessages({
     peerViewNone: {
@@ -257,7 +258,13 @@ const TeacherAssignmentEditor = ({
     // toggle shows the current (unsaved included) values (R3).
     const [showAdvanced, setShowAdvanced] = useState(false);
     const advancedRef = useRef(null);
+    const advancedToggleRef = useRef(null);
     const handleToggleAdvanced = useCallback(() => setShowAdvanced((v) => !v), []);
+    // ✕ (#1770) and Escape: the panel unmounts, so keep the keyboard user on the toggle.
+    const handleCloseAdvanced = useCallback(() => {
+        setShowAdvanced(false);
+        if (advancedToggleRef.current) advancedToggleRef.current.focus();
+    }, []);
     // The open panel floats over the pages, so a click elsewhere or Escape
     // closes it. Escape is caught in the capture phase and stopped there:
     // otherwise the same key also reaches the modal and closes it.
@@ -269,7 +276,7 @@ const TeacherAssignmentEditor = ({
         const handleKey = (e) => {
             if (e.key !== 'Escape') return;
             e.stopPropagation();
-            setShowAdvanced(false);
+            handleCloseAdvanced();
         };
         document.addEventListener('mousedown', handleDown);
         document.addEventListener('keydown', handleKey, true);
@@ -277,7 +284,7 @@ const TeacherAssignmentEditor = ({
             document.removeEventListener('mousedown', handleDown);
             document.removeEventListener('keydown', handleKey, true);
         };
-    }, [showAdvanced]);
+    }, [showAdvanced, handleCloseAdvanced]);
     const hasAdvanced = Boolean(onChangeStartFromPrevious || onChangePeerView || onChangeMeshGroupLimit);
     // With many settings it is easy to lose track of which values are still
     // unsaved, so a value that differs from the saved one is coloured (in the
@@ -549,6 +556,7 @@ const TeacherAssignmentEditor = ({
                                 aria-expanded={showAdvanced}
                                 className={styles.assignmentAdvancedToggle}
                                 data-testid="classroom-assignment-advanced-toggle"
+                                ref={advancedToggleRef}
                                 type="button"
                                 onClick={handleToggleAdvanced}
                             >
@@ -596,6 +604,10 @@ const TeacherAssignmentEditor = ({
                                     className={styles.assignmentAdvancedPanel}
                                     data-testid="classroom-assignment-advanced-panel"
                                 >
+                                    <PanelCloseButton
+                                        testId="classroom-assignment-advanced-close"
+                                        onClick={handleCloseAdvanced}
+                                    />
                                     {/* Follow-up lessons (#1202): students open last time's work by
                                         default instead of choosing (and mistaking) the starter. */}
                                     {onChangeStartFromPrevious && (

@@ -26,6 +26,7 @@ import {
 import { COURSES, findCourse } from '../../lib/lessons/courses.js';
 import styles from './classroom-modal.css';
 import LessonNumberInput from './lesson-number-input.jsx';
+import PanelCloseButton from './panel-close-button.jsx';
 
 export const lessonMessages = defineMessages({
     title: {
@@ -129,7 +130,7 @@ const NO_COURSE = '';
  * the assignment name and tabs (to the top of the scrolling body) and stops
  * left of［課題を保存］so the save button stays visible (R6).
  * @param {HTMLElement} root - the lesson section
- * @returns {?{top: number, right: number}} offsets from the positioned columns
+ * @returns {?{top: number, right: number, maxHeight: number}} offsets from the positioned columns
  */
 const panelPlacement = (root) => {
     const base = root && root.offsetParent;
@@ -140,7 +141,10 @@ const panelPlacement = (root) => {
     const scroller = root.closest('main') || editor;
     const topLimit = scroller ? scroller.getBoundingClientRect().top + 8 : baseRect.top;
     const right = save ? baseRect.right - save.getBoundingClientRect().left + 12 : 0;
-    return { top: Math.min(0, Math.round(topLimit - baseRect.top)), right: Math.max(0, Math.round(right)) };
+    const top = Math.min(0, Math.round(topLimit - baseRect.top));
+    // The panel is as tall as its content (#1770) but never taller than the
+    // columns plus the part it reaches up over, so it stays above the bottom.
+    return { top, right: Math.max(0, Math.round(right)), maxHeight: Math.round(baseRect.height - top) };
 };
 
 const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
@@ -150,6 +154,11 @@ const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
     const toggleRef = useRef(null);
     const [placement, setPlacement] = useState(null);
     const handleToggle = useCallback(() => setOpen((v) => !v), []);
+    // ✕ (#1770): the panel unmounts, so keep the keyboard user on the toggle.
+    const handleClose = useCallback(() => {
+        setOpen(false);
+        if (toggleRef.current) toggleRef.current.focus();
+    }, []);
     useLayoutEffect(() => {
         if (!open) return () => {};
         const place = () => setPlacement(panelPlacement(rootRef.current));
@@ -305,6 +314,7 @@ const LessonSettingsField = ({ disabled, draft, saved, onChange }) => {
             )}
             {open && (
                 <div className={styles.lessonPanel} data-testid="classroom-lesson-panel" style={placement}>
+                    <PanelCloseButton testId="classroom-lesson-close" onClick={handleClose} />
                     <label className={classNames(styles.lessonCourseRow, settingClass('course'))}>
                         <span className={styles.assignmentStartFromPreviousLabel}>
                             <FormattedMessage
