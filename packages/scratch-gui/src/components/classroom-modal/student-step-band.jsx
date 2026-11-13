@@ -35,11 +35,27 @@ const messages = defineMessages({
         description: 'Student progress band step 5: submit the project',
         id: 'gui.classroom.stepBand.submit',
     },
+    done: {
+        defaultMessage: '(done)',
+        description: 'Screen-reader-only state of a finished step in the student progress band',
+        id: 'gui.classroom.stepBand.stateDone',
+    },
+    now: {
+        defaultMessage: '(now)',
+        description: 'Screen-reader-only state of the current step in the student progress band',
+        id: 'gui.classroom.stepBand.stateNow',
+    },
+    todo: {
+        defaultMessage: '(not yet)',
+        description: 'Screen-reader-only state of a step not reached yet in the student progress band',
+        id: 'gui.classroom.stepBand.stateTodo',
+    },
 });
 
 /**
  * 進む順の帯「① 参加 → ② 番号 → ③ はじめる → ④ つくる → ⑤ 提出」(#1792)。
  * すんだ段は薄い緑、いまの段は青、まだの段は灰色。全部すんだら全部緑で ⑤ に ✓。
+ * 色だけで伝えないよう、読み上げ用に状態の文字（すんだ・いま・まだ）も添える。
  * 札は押せない（行き先を選ばせないため）。
  * @param {object} props - component props（studentStepStates の入力）
  * @param {string} props.phase - クラスの画面のフェーズ
@@ -74,6 +90,9 @@ const StudentStepBand = ({ phase, submissionStatus = null, assignmentReopened = 
                     >
                         {intl.formatMessage(messages[step])}
                         {band.complete && step === 'submit' && ' ✓'}
+                        <span className={styles.visuallyHidden} data-testid={`classroom-step-band-${step}-state`}>
+                            {intl.formatMessage(messages[state])}
+                        </span>
                     </span>
                 </li>
             ))}

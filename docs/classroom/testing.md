@@ -165,6 +165,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-step-band` | ol | 進む順の帯。`data-complete` = `true`（提出済み・返却済みなどで全部すんだ。⑤ に ✓）/ `false` |
 | `classroom-step-band-{step}` | span | 帯の札（`step` = `join` / `seat` / `start` / `make` / `submit`）。`data-state` = `done`（すんだ・薄い緑）/ `now`（いま・青・`aria-current="step"`）/ `todo`（まだ・灰色）。押せない |
+| `classroom-step-band-{step}-state` | span | 札の状態の文字（「（済み）」「（いま）」「（まだ）」）。画面には見えず、読み上げだけに出す |
 
 主ボタン（`StudentMainButton`）と小さな文字のリンク（`StudentTextLink`）は、使う画面が `dataTestId` で data-testid を決める。主ボタンの説明の小さい字は `<主ボタンの data-testid>-note`。
 

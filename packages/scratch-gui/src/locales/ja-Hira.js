@@ -199,6 +199,9 @@ export default {
     'gui.classroom.stepBand.start': '③ はじめる',
     'gui.classroom.stepBand.make': '④ つくる',
     'gui.classroom.stepBand.submit': '⑤ ていしゅつ',
+    'gui.classroom.stepBand.stateDone': '（すみ）',
+    'gui.classroom.stepBand.stateNow': '（いま）',
+    'gui.classroom.stepBand.stateTodo': '（まだ）',
     'gui.classroom.studentStatus.submitHint':
         'プロジェクトがかんせいしたら「かだいをていしゅつする」をおしてください。',
     'gui.classroom.studentStatus.title': 'さんかしているかだい',

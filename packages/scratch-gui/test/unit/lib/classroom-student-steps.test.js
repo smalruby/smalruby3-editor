@@ -37,6 +37,29 @@ describe('studentCurrentStep', () => {
         expect(studentCurrentStep({ phase, submissionStatus, assignmentReopened: true })).toBe('complete');
     });
 
+    test('参加した直後の課題パネルは、提出済みでも ③ はじめる (参加完了と同じ)', () => {
+        expect(
+            studentCurrentStep({
+                phase: 'student-assignment',
+                submissionStatus: 'submitted',
+                assignmentReopened: false,
+            }),
+        ).toBe('start');
+    });
+
+    test('参加した直後の課題パネルは、作品を提出しないレッスンの課題で課題クリアでも ③ はじめる', () => {
+        const lesson = { submitWork: false, cleared: true };
+        expect(studentCurrentStep({ phase: 'student-assignment', lesson, assignmentReopened: false })).toBe('start');
+        expect(studentCurrentStep({ phase: 'student-assignment', lesson, assignmentReopened: true })).toBe(
+            'complete',
+        );
+    });
+
+    test('「課題を見る」から開き直した課題パネル (未提出) は ④ つくる、参加し直すと ③ に戻る', () => {
+        expect(studentCurrentStep({ phase: 'student-assignment', assignmentReopened: true })).toBe('make');
+        expect(studentCurrentStep({ phase: 'student-assignment', assignmentReopened: false })).toBe('start');
+    });
+
     test('参加完了は提出済みでも ③ はじめる', () => {
         expect(studentCurrentStep({ phase: 'student-joined', submissionStatus: 'submitted' })).toBe('start');
     });

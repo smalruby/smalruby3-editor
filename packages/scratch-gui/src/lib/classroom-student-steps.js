@@ -20,10 +20,6 @@ const PHASE_STEP = {
     'student-submit-confirm': 'submit',
 };
 
-// 提出してから開いた画面（提出できました・おかえりなさい・課題パネル）は全部すんだ。
-// 参加完了と提出確認は、提出済みでもその段にいる（入り直し・再提出の途中のため）。
-const PHASES_DONE_WHEN_SUBMITTED = ['student-assignment', 'student-status'];
-
 const isSubmitted = (submissionStatus) => submissionStatus === 'submitted' || submissionStatus === 'returned';
 
 /**
@@ -38,7 +34,11 @@ const isSubmitted = (submissionStatus) => submissionStatus === 'submitted' || su
 const studentCurrentStep = ({ phase, submissionStatus = null, assignmentReopened = false, lesson = null } = {}) => {
     const step = PHASE_STEP[phase];
     if (!step) return null;
-    if (PHASES_DONE_WHEN_SUBMITTED.includes(phase)) {
+    // 提出してから開いた画面（提出できました・おかえりなさい・「課題を見る」から開いた課題パネル）は
+    // 全部すんだ。参加完了・参加した直後の課題パネルと提出確認は、提出済みでもその段にいる
+    // （入り直し・再提出の途中のため。ui-ux.md の帯の表）。
+    const canBeComplete = phase === 'student-status' || (phase === 'student-assignment' && assignmentReopened);
+    if (canBeComplete) {
         if (isSubmitted(submissionStatus)) return STEPS_COMPLETE;
         // 作品を提出しないレッスンの課題には ⑤ 提出が無いので、課題クリアで全部すんだとする。
         if (lesson && lesson.submitWork === false && lesson.cleared) return STEPS_COMPLETE;

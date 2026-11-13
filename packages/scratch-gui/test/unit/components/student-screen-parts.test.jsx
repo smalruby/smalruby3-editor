@@ -91,6 +91,13 @@ describe('StudentStepBand', () => {
         expect(getByTestId('classroom-step-band-make')).not.toHaveTextContent('✓');
     });
 
+    test('読み上げ用に、各段の状態の文字を添える (色だけで伝えない)', () => {
+        const { getByTestId } = withIntl(<StudentStepBand phase="student-joined" />);
+        expect(getByTestId('classroom-step-band-join-state')).toHaveTextContent('(done)');
+        expect(getByTestId('classroom-step-band-start-state')).toHaveTextContent('(now)');
+        expect(getByTestId('classroom-step-band-submit-state')).toHaveTextContent('(not yet)');
+    });
+
     test('札は押せない (ボタンでない)', () => {
         const { getByTestId } = withIntl(<StudentStepBand phase="student-join" />);
         expect(getByTestId('classroom-step-band').querySelector('button')).toBeNull();

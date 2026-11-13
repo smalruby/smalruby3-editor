@@ -22,9 +22,10 @@
     border-radius: 0 0 8px 8px;
 }
 
-/* Student body: 1rem margins x2 + 3.125rem header + 8px modal border. */
+/* Student body: max-height leaves room for the modal's 1rem margins x2 + 3.125rem
+   header + 8px border. The top padding is 0.75rem so the step band sits close to
+   the header (#1792). */
 .student-body {
-    /* Less top padding: the step band sits at the very top (#1792). */
     padding: 0.75rem 1.5rem 1rem;
     max-height: calc(100vh - 5.125rem - 8px);
 }
