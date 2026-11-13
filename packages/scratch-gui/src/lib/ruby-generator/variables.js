@@ -49,19 +49,43 @@ export default function (Generator) {
     };
 
     /**
-     * The Ruby name of a variable or a list of a target. Scratch can have a variable and a list
-     * of the same name, but Ruby has one `@a`: only then the list is `@_a_list_` (`$_a_list_` on
-     * the stage), and the converter makes it the list `a` again (issue #1622).
+     * The name (without `@` / `$`) of a variable or a list of a target in Ruby. Scratch can have
+     * a variable and a list of the same name, but Ruby has one `@a`: only then the list is
+     * `_a_list_`, and the converter makes it the list `a` again (issue #1622). When the target
+     * also has something that the user named `_a_list_`, the list is `_a_list2_` (`_a_list3_`
+     * when that is taken too), so two things never share one Ruby name (issue #1707). The
+     * number comes before the last `_` so that the name is not one of a local variable
+     * (`_a_list_2_`).
+     * @param {object} owner - The target that has the variable or the list.
+     * @param {object} variable - The variable or the list.
+     * @returns {string} The name.
+     */
+    Generator.rubyBaseNameOfVariable = function (owner, variable) {
+        if (!this.isListBesideVariable(owner, variable)) return variable.name;
+        // Only variables and lists have a Ruby name: a message of the stage named `_a_list_` is not
+        // in the way, and the converter does not skip it either.
+        const names = new Set(
+            Object.values((owner && owner.variables) || {})
+                .filter((v) => v.type === SCALAR_TYPE || v.type === LIST_TYPE)
+                .map((v) => v.name),
+        );
+        let name = `_${variable.name}_list_`;
+        for (let n = 2; names.has(name); n++) {
+            name = `_${variable.name}_list${n}_`;
+        }
+        return name;
+    };
+
+    /**
+     * The Ruby name of a variable or a list of a target: `@a`, or `@_a_list_` for a list beside
+     * a variable of the same name (`$` on the stage). See `rubyBaseNameOfVariable`.
      * @param {object} owner - The target that has the variable or the list.
      * @param {boolean} isStage - Whether the owner is the stage.
      * @param {object} variable - The variable or the list.
      * @returns {string} The Ruby name.
      */
     Generator.rubyNameOfVariable = function (owner, isStage, variable) {
-        if (this.isListBesideVariable(owner, variable)) {
-            return this.makeVariableName(isStage, `_${variable.name}_list_`);
-        }
-        return this.makeVariableName(isStage, variable.name);
+        return this.makeVariableName(isStage, this.rubyBaseNameOfVariable(owner, variable));
     };
 
     Generator.variableName = function (id, type = SCALAR_TYPE) {

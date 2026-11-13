@@ -39,7 +39,17 @@ const INSTANCE_OR_GLOBAL_NODE_TYPES = new Set(
     ),
 );
 // The Ruby name of a list beside a variable of the same name: `@_a_list_` is the list `a` (issue #1622).
-const LIST_BESIDE_VARIABLE_PATTERN = /^([$@])_(.+)_list_$/;
+// `@_a_list2_`, `@_a_list3_`, ... are the same list when the sprite has `_a_list_` too (issue #1707).
+const LIST_BESIDE_VARIABLE_PATTERN = /^([$@])_(.+)_list(?:([2-9]|[1-9]\d+))?_$/;
+
+/**
+ * The Ruby name before `@_a_list<n>_` in the order the generator tries the names (issue #1707).
+ * @param {string} prefix - `@` or `$`.
+ * @param {string} name - The name of the list (`a`).
+ * @param {number} n - The number of the name (1 for `@_a_list_`).
+ * @returns {string} The Ruby name.
+ */
+const listAliasName = (prefix, name, n) => `${prefix}_${name}_list${n > 1 ? n : ''}_`;
 
 const messages = defineMessages({
     cannotChangeVariableScope: {
@@ -551,7 +561,11 @@ const VariableUtils = {
      * `@a`. It is the name itself (a variable or a list that the user named `_a_list_`) when the
      * sprite already has something of that name, when the code sets it to a number or a string,
      * or when nothing named `a` is there.
-     * @param {string} rubyName - The Ruby name (`@_a_list_`, `$_a_list_`).
+     * When `_a_list_` is itself, the generator names the list `@_a_list2_` (then `@_a_list3_`, ...,
+     * issue #1707): `@_a_list3_` is the list `a` only when `@_a_list_` and `@_a_list2_` are both
+     * the user's own, so a name that the user wrote for a variable of its own keeps meaning that
+     * variable.
+     * @param {string} rubyName - The Ruby name (`@_a_list_`, `$_a_list_`, `@_a_list2_`).
      * @returns {?string} The name of the list in Scratch (`a`), or null when the name is itself.
      */
     _listNameOfAlias(rubyName) {
@@ -559,17 +573,23 @@ const VariableUtils = {
         if (!match) return null;
         const aliases = this._context.listAliases || (this._context.listAliases = {});
         if (Object.prototype.hasOwnProperty.call(aliases, rubyName)) return aliases[rubyName];
-        const [, prefix, name] = match;
+        const [, prefix, name, number] = match;
+        const n = number ? Number(number) : 1;
         const scope = prefix === '$' ? 'global' : 'instance';
-        const use = this._context.variableUses && this._context.variableUses[rubyName];
         const names = this._context.rubyVariableNames || new Set();
+        // A name is the user's own when the sprite has it or the code sets it to a number or a string.
+        const isTaken = (k) => {
+            const aliasName = listAliasName(prefix, name, k);
+            const use = this._context.variableUses && this._context.variableUses[aliasName];
+            return Boolean(use && use.scalar && !use.list) || this._ownerHasVariable(scope, aliasName.slice(1), null);
+        };
         let listName = null;
-        if (
-            !(use && use.scalar && !use.list) &&
-            !this._ownerHasVariable(scope, rubyName.slice(1), null) &&
-            (this._ownerHasVariable(scope, name, null) || names.has(`${prefix}${name}`))
-        ) {
-            listName = name;
+        if (this._ownerHasVariable(scope, name, null) || names.has(`${prefix}${name}`)) {
+            // The list is the first name that is not taken, as the generator chooses it. The loop
+            // stops there, so a large number (`@_a_list99999_`) does not try every name before it.
+            let k = 1;
+            while (k < n && isTaken(k)) k++;
+            if (k === n && !isTaken(n)) listName = name;
         }
         aliases[rubyName] = listName;
         return listName;
@@ -596,9 +616,15 @@ const VariableUtils = {
         const name = rubyName.slice(1);
         // The code also uses `@_a_list_` for the list `a` beside: `@a` is the variable `a`, even when
         // the code only reads it (`say(@a)` and `say(@_a_list_)`).
-        const aliasName = `${prefix}_${name}_list_`;
         const names = this._context.rubyVariableNames;
-        if (names && names.has(aliasName) && this._listNameOfAlias(aliasName) === name) return 'scalar';
+        if (names) {
+            for (const other of names) {
+                const match = other.match(LIST_BESIDE_VARIABLE_PATTERN);
+                if (match && match[1] === prefix && match[2] === name && this._listNameOfAlias(other) === name) {
+                    return 'scalar';
+                }
+            }
+        }
         if (this._ownerHasVariable(scope, name, Variable.SCALAR_TYPE)) return 'scalar';
         if (this._ownerHasVariable(scope, name, Variable.LIST_TYPE)) return 'list';
         return null;

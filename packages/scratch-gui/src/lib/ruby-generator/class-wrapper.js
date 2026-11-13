@@ -294,8 +294,8 @@ export default function (Generator) {
             } else {
                 valueCode = this.scalarToCode(variable.value);
             }
-            // A list beside a variable of the same name is `@_a_list_` (issue #1622).
-            const name = this.isListBesideVariable(target, variable) ? `_${variable.name}_list_` : variable.name;
+            // A list beside a variable of the same name is `@_a_list_` (issue #1622, #1707).
+            const name = this.rubyBaseNameOfVariable(target, variable);
             assignments.push({
                 name,
                 code: `  ${prefix}${name} = ${valueCode}`,
