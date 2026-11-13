@@ -147,6 +147,16 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-code-display-shrink` | button | 全画面解除 |
 | `classroom-code-display-close` | button | コード表示を閉じる |
 
+### 生徒の画面の作り直し（参加から提出まで）
+
+生徒の参加から提出までの画面は、[ui-ux.md の「生徒の画面の決まり」](ui-ux.md#生徒の画面の決まり参加から提出まで)と 5〜9 の仕様で作り直す（主ボタンは 1 つ・進む順の帯・始め方を 1 つに決める・おかえりなさい・メニューバーの「提出する」）。下の表のうち、次のものは新しい画面に置きかわる。新しい画面の data-testid は**実装の sub-issue で確定**し、そのときにこの一覧を書きかえる（ここでは名前を先に決めない）。
+
+- 「生徒: 席番号選択」の `classroom-seat-guide`（いつも出ている案内文）→ 30 秒たったときだけ出す右側の案内の枠と、前回の番号の表示
+- 「生徒: 参加完了」の `classroom-joined-next-steps`（「つぎにやること」）→ 出さない（帯にかわる）。`classroom-joined-close` → 決めた始め方の主ボタン
+- 「生徒: ステータス」の `classroom-leave`（「退出する」）→ 確認つきの小さなリンク「クラスから出る」。提出のボタン → メニューバーの「提出する」
+- 「どこから始めるかの選択」の `classroom-continue-*`（横に並ぶ選択肢）と `classroom-continue-*-recommended`（おすすめのバッジ）→ 主ボタン 1 つと「ほかの始め方」
+- 「メニューバー」→ 「提出する」/「提出済み ✓」/「返却済み ✓」のボタンが加わる
+
 ### 生徒: 参加
 
 | data-testid | 要素 | 説明 |
@@ -303,6 +313,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-view-assignment-button` | button | ステータス画面の「課題を見る」（hasAssignment 時のみ） |
 
 ### どこから始めるかの選択（生徒・Issue #1201）
+
+> この節は主ボタン 1 つと「ほかの始め方」に置きかわる（上の「生徒の画面の作り直し」）。新しい data-testid は実装の sub-issue で確定。
 
 参加完了（`student-joined`）・課題パネル（`student-assignment`）は、スターターか続きに使える提出物があるときに表示（参加しただけでは何も読み込まない）。ステータス（`student-status`）は続きに使える提出物があるときだけ。
 
