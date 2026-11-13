@@ -22,6 +22,7 @@ import ClassroomStatusIcon, {
     getSubmissionStatus,
 } from './classroom-status-icon.jsx';
 import ErrorDisplay from './error-display.jsx';
+import { formatCompletionSentence } from './lesson-settings-field.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
 
@@ -96,6 +97,7 @@ const TeacherClassDetail = ({
     const handleDescChangeStartFromPrevious = descEditor.onChangeStartFromPrevious;
     const handleDescChangePeerView = descEditor.onChangePeerView;
     const handleDescChangeMeshGroupLimit = descEditor.onChangeMeshGroupLimit;
+    const handleDescChangeLesson = descEditor.onChangeLesson;
     const handleDescSave = descEditor.onSave;
     const handleDescUseCurrentProject = descEditor.onUseCurrentProject;
     const handleDescUseFile = descEditor.onUseFile;
@@ -787,6 +789,9 @@ const TeacherClassDetail = ({
                                     startFromPrevious={!!descEditor.startFromPrevious}
                                     peerView={descEditor.peerView || 'none'}
                                     meshGroupLimit={descEditor.meshGroupLimit}
+                                    lessonDraft={descEditor.lessonDraft || null}
+                                    savedLesson={descEditor.savedLesson || null}
+                                    onChangeLesson={handleDescChangeLesson}
                                     onAddPage={handleDescAddPage}
                                     onAttachPageImage={handleDescAttachPageImage}
                                     onChangePageText={handleDescChangePageText}
@@ -1080,6 +1085,38 @@ const TeacherClassDetail = ({
                                                         );
                                                     })()}
                                                 </div>
+                                                {/* The lesson strip students see above the lesson
+                                                    library (#1598): condition and circles (★ = required). */}
+                                                {descEditor.lessonDraft &&
+                                                descEditor.lessonDraft.challengeIds.length > 0 ? (
+                                                    <div
+                                                        className={styles.assignmentPreviewStart}
+                                                        data-testid="classroom-description-preview-lesson"
+                                                    >
+                                                        <FormattedMessage
+                                                            defaultMessage="Lesson: {sentence}"
+                                                            description="Student-view preview: the lesson completion condition"
+                                                            id="gui.classroom.teacherDetail.previewLesson"
+                                                            values={{
+                                                                sentence: formatCompletionSentence(
+                                                                    intl,
+                                                                    descEditor.lessonDraft,
+                                                                ),
+                                                            }}
+                                                        />{' '}
+                                                        <span aria-hidden="true">
+                                                            {descEditor.lessonDraft.challengeIds
+                                                                .map((id) =>
+                                                                    descEditor.lessonDraft.requiredChallengeIds.includes(
+                                                                        id,
+                                                                    )
+                                                                        ? '★'
+                                                                        : '○',
+                                                                )
+                                                                .join('')}
+                                                        </span>
+                                                    </div>
+                                                ) : null}
                                             </React.Fragment>
                                         );
                                     })()}

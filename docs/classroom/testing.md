@@ -218,6 +218,29 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-start-from-previous` | input (checkbox) | 「前回の提出物から始めさせる」（既定 OFF・保存で反映・Issue #1202） |
 | `classroom-assignment-peer-view` | select | 「他者参照」（`none` = しない（既定） / `always` = いつでも見られる / `afterSubmit` = 自分が提出したら見られる・保存で反映・Issue #1208） |
 | `classroom-assignment-mesh-group-limit` | select | 「メッシュのグループの人数」（`6` = 6人まで / `0` = 制限なし（この設定より前の課題の表示）・保存で反映・Issue #1257） |
+| `classroom-assignment-advanced-summary-scoring` | span | 要約の「レッスンの点: 100 点（★ 70）」（レッスンを紐付けた課題だけ・変えたら `data-changed="true"`） |
+| `classroom-lesson-scoring` | div | 「詳しい設定」の中のレッスンの点（レッスンを紐付けた課題だけ） |
+| `classroom-lesson-scoring-total` | input (number) | 満点（1〜1000・既定 100。欄を出る・Enter のときに確定。空なら前の値） |
+| `classroom-lesson-scoring-required` | input (number) | 必須（★）を全部こなしたときの点（0〜満点・既定は満点の 70%。欄を出る・Enter のときに確定。空なら既定。必須が 0 個か全部必須のときは disabled） |
+| `classroom-lesson-scoring-each` | span | 1 つの点（「必須 1 つ 35 点・必須でない 1 つ 7.5 点」） |
+| `classroom-lesson-settings` | div | 「レッスン」欄（左の列・ページの枠の上） |
+| `classroom-lesson-toggle` | button | レッスン欄の開閉（`aria-expanded`） |
+| `classroom-lesson-summary` | span | 閉じたレッスン欄のいまの値（「コース: きょうからプログラマー・6 つ（★ 2）・条件: 全部・提出: しない」か「レッスンを使わない」） |
+| `classroom-lesson-summary-{course\|challenges\|completion\|submit}` | span | 要約の各値。保存した値から変えたものは `data-changed="true"`（オレンジ色） |
+| `classroom-lesson-unsaved` | span | 「保存していません」（レッスンの設定を変えたときだけ） |
+| `classroom-lesson-unknown-course` | p | このスモウルビーに無いコースの警告（みんなの課題のコピーなど） |
+| `classroom-lesson-missing-challenges` | p | 保存したチャレンジのうち、このスモウルビーのコースに無いものの警告（数えない・保存すると外れる） |
+| `classroom-lesson-panel` | div | 開いたレッスン欄（ページの列の上に重ねる・開いたときだけある） |
+| `classroom-lesson-course` | select | コース（`""` = レッスンを使わない / コース id） |
+| `classroom-lesson-challenges` | div | レッスンとチャレンジの一覧の枠（この枠の中だけスクロールする） |
+| `classroom-lesson-lesson-{lessonId}` | input (checkbox) | レッスン（チェックで中のチャレンジが全部入る。一部だけなら indeterminate） |
+| `classroom-lesson-challenge-{challengeId}` | input (checkbox) | チャレンジ |
+| `classroom-lesson-required-{challengeId}` | button | ★「必須にする」（`aria-pressed`。名前は「1-2 …を必須にする」。選んだチャレンジだけ押せる） |
+| `classroom-lesson-completion-all` / `-count` | input (radio) | 完了の条件「全部」/「n つ（必須をふくむ）」 |
+| `classroom-lesson-completion-count-value` | input (number) | 「n つ」の n（必須の数（最低 1）〜選んだ数。名前は「完了の条件の数」。打っている途中は直さず、欄を出る・Enter のときに範囲へ収める） |
+| `classroom-lesson-sentence` | span | 生徒に出る文（「6 つのうち 4 つ（★ 2 つをふくむ）」） |
+| `classroom-lesson-submit-no` / `-yes` | input (radio) | 「提出しない（レッスンだけ）」（既定）/「最後に作品も提出する」 |
+| `classroom-lesson-dropped-notice` | p | 保存したチャレンジを外したときの注意（送られた進み具合は残るが数えない） |
 | `classroom-assignment-save` | button | 課題を保存（フォームの最上段） |
 
 ### 課題パネル（生徒）
@@ -415,6 +438,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-description-preview-empty` | p | どのページも空のときの 1 行「ページを書くとここに出ます」（本文・ページ送り・「参加したとき」の代わり） |
 | `classroom-description-preview-prev` / `-next` | button | プレビューのページ送り |
 | `classroom-description-preview-start` | div | プレビュー下の「参加したとき: …」（設定「前回の提出物から始めさせる」とスターターの有無で文言が変わる・Issue #1202） |
+| `classroom-description-preview-lesson` | div | プレビュー下の「レッスン: 6 つのうち 4 つ（★ 2 つをふくむ）」と丸（★ = 必須）（レッスンを紐付けたときだけ） |
 | `classroom-avatar-email` | span | アカウントメニュー内のユーザーメール（OIDC トークンに email がある場合のみ。旧 `classroom-teacher-email` は廃止） |
 | `classroom-board-create-cancel` / `classroom-board-reuse-cancel` | button | インラインフォームのキャンセル |
 | `classroom-google-course-imported-{courseId}` | span | GC コースの「インポート済み」バッジ |

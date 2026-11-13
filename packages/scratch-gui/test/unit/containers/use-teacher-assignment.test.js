@@ -222,3 +222,80 @@ describe('useTeacherAssignment — meshGroupLimit (#1257)', () => {
         expect(hook.result.current.meshGroupLimit).toBe(6);
     });
 });
+
+describe('useTeacherAssignment — lesson (#1598)', () => {
+    const saved = {
+        courseId: 'kyou-kara-programmer',
+        challengeIds: ['blocks-l1-key-sound'],
+        requiredChallengeIds: [],
+        completion: { type: 'all' },
+        submitWork: false,
+        scoring: null,
+    };
+
+    beforeEach(() => {
+        mockGetAssignment.mockReset();
+        mockSetAssignment.mockReset();
+        mockSetAssignment.mockResolvedValue({ imageUploadUrls: [], starterUploadUrl: null });
+    });
+
+    test('保存済みのレッスンを読み込み、変えていなければ PUT に lesson を載せない', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: { pages: [{ text: 'p' }] }, lesson: saved });
+        const hook = setup();
+        await act(async () => {});
+        expect(hook.result.current.savedLesson).toEqual(saved);
+        expect(hook.result.current.lessonDraft.challengeIds).toEqual(['blocks-l1-key-sound']);
+        await act(async () => {
+            await hook.result.current.handleSaveAssignment();
+        });
+        expect(mockSetAssignment.mock.calls[0][2]).not.toHaveProperty('lesson');
+    });
+
+    test('変えたレッスンを PUT に載せる・「使わない」は null', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: { pages: [{ text: 'p' }] }, lesson: saved });
+        const hook = setup();
+        await act(async () => {});
+        act(() => hook.result.current.handleChangeLesson({ ...hook.result.current.lessonDraft, submitWork: true }));
+        await act(async () => {
+            await hook.result.current.handleSaveAssignment();
+        });
+        expect(mockSetAssignment.mock.calls[0][2].lesson).toMatchObject({ submitWork: true });
+
+        act(() => hook.result.current.handleChangeLesson(null));
+        await act(async () => {
+            await hook.result.current.handleSaveAssignment();
+        });
+        expect(mockSetAssignment.mock.calls[1][2].lesson).toBeNull();
+    });
+
+    test('チャレンジを選んでいないレッスンは保存しない', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: null });
+        const showError = jest.fn();
+        const hook = setup({ showError });
+        await act(async () => {});
+        act(() =>
+            hook.result.current.handleChangeLesson({
+                ...saved,
+                challengeIds: [],
+                completion: { type: 'all', count: null },
+            }),
+        );
+        await act(async () => {
+            await hook.result.current.handleSaveAssignment();
+        });
+        expect(mockSetAssignment).not.toHaveBeenCalled();
+        expect(showError).toHaveBeenCalled();
+    });
+
+    test('このスモウルビーに無いコースでも、変えなければそのまま保存できる', async () => {
+        const gone = { ...saved, courseId: 'gone-course', challengeIds: ['x'] };
+        mockGetAssignment.mockResolvedValue({ assignment: { pages: [{ text: 'p' }] }, lesson: gone });
+        const hook = setup();
+        await act(async () => {});
+        await act(async () => {
+            await hook.result.current.handleSaveAssignment();
+        });
+        expect(mockSetAssignment).toHaveBeenCalled();
+        expect(mockSetAssignment.mock.calls[0][2]).not.toHaveProperty('lesson');
+    });
+});

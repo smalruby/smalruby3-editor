@@ -2175,9 +2175,20 @@
 }
 
 .assignment-editor-columns {
+    /* レッスン欄の開いた中身（.lesson-panel）をページの列に重ねる基準。 */
+    position: relative;
     display: flex;
     gap: 1rem;
     flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* 左の列: 上にレッスン欄の 1 行、その下にページの枠。 */
+.assignment-editor-main {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
     min-height: 0;
 }
 
@@ -2279,6 +2290,154 @@
     border-radius: 0.4rem;
     background: white;
     box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.15);
+}
+
+/* レッスン欄（#1598）: ページの枠の上の 1 行の要約といまの値（R3）。開いた中身は左の列の上に
+   重ね（［課題を保存］は隠さない・R6）、チャレンジの一覧の枠の中だけがスクロールする。
+   position は付けない（.lesson-panel の基準は .assignment-editor-columns。上と右の端は
+   開いたときに JS で測って決める）。 */
+.lesson-settings {
+    flex: 0 0 auto;
+    margin-bottom: 0.4rem;
+    padding: 0.2rem 0.5rem 0.3rem;
+    border: 1px solid #e5e8ec;
+    border-radius: 0.4rem;
+    background: #fafbfc;
+}
+
+.lesson-warning {
+    margin: 0.25rem 0 0;
+    color: #b35c00;
+    font-size: 0.75rem;
+}
+
+.lesson-panel {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: calc(16rem + 1rem);
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem 0.6rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    background: white;
+    box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.15);
+    overflow: hidden;
+}
+
+.lesson-course-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.lesson-hint {
+    margin: 0;
+    color: #575e75;
+    font-size: 0.75rem;
+}
+
+.lesson-challenge-list {
+    flex: 1 1 auto;
+    min-height: 3rem;
+    overflow-y: auto;
+    border: 1px solid #e5e8ec;
+    border-radius: 0.3rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.lesson-group + .lesson-group {
+    margin-top: 0.25rem;
+}
+
+.lesson-group-row,
+.lesson-challenge-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #575e75;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.lesson-group-row {
+    font-weight: bold;
+}
+
+.lesson-challenge-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-left: 1.25rem;
+    line-height: 1.6;
+}
+
+.lesson-required-button {
+    flex: 0 0 auto;
+    padding: 0 0.4rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.6rem;
+    background: white;
+    color: #575e75;
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+
+.lesson-required-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.lesson-required-button-on {
+    border-color: #ff8c1a;
+    background: #fff1dd;
+    color: #b35c00;
+    font-weight: bold;
+}
+
+.lesson-option-row {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+}
+
+.lesson-radio {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #575e75;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.lesson-count-input {
+    width: 3.5rem;
+    padding: 0.1rem 0.25rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.3rem;
+    font-size: 0.85rem;
+}
+
+.lesson-sentence {
+    color: #575e75;
+    font-size: 0.75rem;
+}
+
+.lesson-notice {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.3rem;
+    background: #fff8ee;
+    color: #575e75;
+    font-size: 0.75rem;
 }
 
 /* トップレベル画面（TeacherScreen）の説明文。#1125 で .assignment-editor-hint から
