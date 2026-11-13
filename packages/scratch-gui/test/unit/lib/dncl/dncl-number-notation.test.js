@@ -120,3 +120,44 @@ describe('Ruby → DNCL: the same numbers are told on the Ruby line (issue #1745
         expect(rubyToDncl('@a = 1.5\nputs("0x5")\n@b = 1.to_s # 1e3').errors).toEqual([]);
     });
 });
+
+describe('an integer with leading zeros (issue #1745)', () => {
+    // DNCL reads `017` as 17, but Ruby reads it as octal 15 (and `08` is an error).
+    test.each([
+        ['a = 017', '@a = 17'],
+        ['a = 08', '@a = 8'],
+        ['a = 007 + 1', '@a = 7 + 1'],
+        ['a = 00.5', '@a = 0.5'],
+        ['a = A[01]', '@a = @_array_A_[1]'],
+        ['Data = [1, 02, 3]', '@_array_Data_ = [1, 2, 3]'],
+        ['a = 0', '@a = 0'],
+        ['a = 0.5', '@a = 0.5'],
+        ['a = 10 + 1.05', '@a = 10 + 1.05'],
+        ['(01) a = 017', '@a = 17'],
+    ])('DNCL %s is the decimal number in Ruby', (dncl, ruby) => {
+        expect(dnclToRuby(dncl)).toMatchObject({ ruby, errors: [] });
+    });
+
+    test('the loop bounds are decimal numbers too', () => {
+        expect(dnclToRuby('i を 01 から 010 まで 1 ずつ増やしながら繰り返す:').ruby).toBe('@i = 1\nwhile @i <= 10');
+    });
+
+    test.each([
+        ['@a = 017', '017', 6],
+        ['@a = 08', '08', 6],
+        ['@a = 017.to_s', '017', 6],
+    ])('Ruby %s (octal) is an error on its line', (ruby, name, column) => {
+        expect(numberErrors(rubyToDncl(ruby).errors)).toEqual([{ line: 1, column, name }]);
+    });
+
+    test.each(['@a = 0', '@a = 0.5', '@a = 10', '@a = 1.05', '@a01 = 1', 'puts("017")'])(
+        'Ruby %s has no number error',
+        (ruby) => {
+            expect(rubyToDncl(ruby).errors).toEqual([]);
+        },
+    );
+
+    test('the DNCL check does not tell leading zeros (they become decimal)', () => {
+        expect(findUnsupportedNumbers('a = 017')).toEqual([]);
+    });
+});

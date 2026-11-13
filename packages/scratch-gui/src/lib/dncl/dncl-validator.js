@@ -157,18 +157,31 @@ const unsupportedNumberMessage = (name) =>
 const UNSUPPORTED_NUMBER_RE =
     /(?<![a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿])(?<!\d\.)\d+(?:\.\d+)?[a-zA-Z_](?:[a-zA-Z0-9_]|(?<=[eE])[+-](?=\d)|\.(?=\d))*/g;
 
+// An integer with leading zeros (`017`, `08`), which is octal in Ruby (`017`
+// is 15) but decimal in DNCL. Only Ruby is checked for it: the DNCL `017`
+// becomes the Ruby `17` (see `convertIdentifiers`).
+const RUBY_LEADING_ZERO_RE = /(?<![a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿])(?<!\d\.)0\d+(?:\.\d+)?(?![a-zA-Z0-9_]|\.\d)/g;
+
 /**
  * Find the numbers written in a notation the Japanese mode does not have
  * (see `UNSUPPORTED_NUMBER_ERROR_ID`). Strings and the comment are not
  * looked at. It reads Ruby lines as well as DNCL lines.
  * @param {string} source - DNCL (or Ruby) source.
+ * @param {object} [options] - Options.
+ * @param {boolean} [options.ruby] - The source is Ruby: an integer with
+ *   leading zeros (`017`, octal in Ruby) is told too, since the DNCL `017`
+ *   would read as 17.
  * @returns {Array<object>} Errors with `line`, `column`, `id`, `name` and
  *   `message`.
  */
-const findUnsupportedNumbers = (source) => {
+const findUnsupportedNumbers = (source, { ruby = false } = {}) => {
     const errors = [];
     source.split('\n').forEach((line, lineIndex) => {
-        for (const m of codeWithoutStrings(line).matchAll(UNSUPPORTED_NUMBER_RE)) {
+        const code = codeWithoutStrings(line);
+        const matches = [...code.matchAll(UNSUPPORTED_NUMBER_RE)];
+        if (ruby) matches.push(...code.matchAll(RUBY_LEADING_ZERO_RE));
+        matches.sort((a, b) => a.index - b.index);
+        for (const m of matches) {
             errors.push({
                 line: lineIndex + 1,
                 column: m.index + 1,

@@ -335,8 +335,9 @@ const rubyToDncl = (source) => {
     });
     // A number in a notation the Japanese mode does not have (`0x5`, `1_000`,
     // `1e3`; issue #1745) stays as it is in the DNCL, where `dnclToRuby`
-    // tells it again; it is told here on its Ruby line.
-    errors.push(...findUnsupportedNumbers(lines.join('\n')));
+    // tells it again; it is told here on its Ruby line. So is an octal `017`,
+    // which the DNCL would read as 17.
+    errors.push(...findUnsupportedNumbers(lines.join('\n'), { ruby: true }));
     // A method without parentheses in an expression (issue #1694); a name
     // already told above (a name alone on a line) is not told again.
     findBareMethods(lines, dnclLines, origins, folded).forEach((err) => {

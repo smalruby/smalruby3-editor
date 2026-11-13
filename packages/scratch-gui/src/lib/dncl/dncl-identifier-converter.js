@@ -299,9 +299,12 @@ const convertIdentifiers = (segment) => {
         // `1e3`), so no `@` gets inside it (issue #1745). The validator tells
         // such numbers as errors; this keeps the number whole in any case.
         // A digit here starts a number: the digits of a name are read with it.
+        // A plain number with leading zeros (`017`, `007`) is a decimal number
+        // in DNCL, but an octal one in Ruby (`017` is 15, `08` an error), so
+        // the zeros are taken off (`17`); `0` and `0.5` stay (issue #1745).
         if (/\d/.test(segment[i])) {
             const number = segment.substring(i).match(NUMBER_RE)[0];
-            result += number;
+            result += /^\d+(?:\.\d+)?$/.test(number) ? number.replace(/^0+(?=\d)/, '') : number;
             i += number.length;
             afterDot = false;
             continue;
