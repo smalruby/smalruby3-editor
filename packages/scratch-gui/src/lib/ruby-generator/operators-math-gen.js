@@ -64,7 +64,15 @@ export default function (Generator) {
             // either; a space keeps `- -x` from reading as `--x`.
             const unaryOrder = Generator.ORDER_UNARY_MINUS_SIGN;
             registerLeftAssocOverride(Generator, unaryOrder, unaryOrder);
-            const operand = String(Generator.valueToCode(block, 'NUM2', unaryOrder) || 0);
+            let operand = String(Generator.valueToCode(block, 'NUM2', unaryOrder) || 0);
+            // A minus written right before a number literal is part of the literal, so `-5.abs`
+            // is `(-5).abs` and `-5` is a plain number (issue #1747). Keep the parens when X is a
+            // literal or starts with a literal followed by a call (`-(5)`, `-(5.abs)`); a literal
+            // followed by a space (`-10 ** x`) is still the minus of the whole power.
+            const literal = operand.match(/^\d[\d_]*(?:\.\d[\d_]*)?(?:[eE][+-]?\d+)?/);
+            if (literal && !operand.slice(literal[0].length).startsWith(' ')) {
+                operand = `(${operand})`;
+            }
             return [`-${operand.startsWith('-') ? ' ' : ''}${operand}`, unaryOrder];
         }
         const num2 = Generator.valueToCode(block, 'NUM2', order) || 0;
