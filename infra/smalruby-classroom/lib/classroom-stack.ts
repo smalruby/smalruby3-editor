@@ -26,6 +26,7 @@ export class ClassroomStack extends cdk.Stack {
   public readonly sharedAssignmentsTable: dynamodb.Table;
   public readonly sharedReportsTable: dynamodb.Table;
   public readonly notificationsTable: dynamodb.Table;
+  public readonly lessonProgressTable: dynamodb.Table;
   public readonly submissionsBucket: s3.Bucket;
   public readonly sharedBucket: s3.Bucket;
   public readonly api: apigatewayv2.HttpApi;
@@ -203,6 +204,31 @@ export class ClassroomStack extends cdk.Stack {
     });
 
     cdk.Tags.of(this.submissionsTable).add('ResourceType', 'DynamoDB');
+
+    // Lesson progress table (#1597 / EPIC #1592) — one row per seat ×
+    // assignment (PK classroomId, SK memberId = seat-NN). The row's ttl is
+    // copied from the assignment, so it expires together with it, and its
+    // REMOVEs are snapshotted by the archiver like the other data tables.
+    this.lessonProgressTable = new dynamodb.Table(this, 'LessonProgressTable', {
+      tableName: `ClassroomLessonProgress${stageSuffix}`,
+      partitionKey: {
+        name: 'classroomId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'memberId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: false,
+      },
+      stream: dynamodb.StreamViewType.OLD_IMAGE,
+      timeToLiveAttribute: 'ttl',
+    });
+
+    cdk.Tags.of(this.lessonProgressTable).add('ResourceType', 'DynamoDB');
 
     // Kick requests table — short-lived (1h TTL) records of students asking
     // the teacher to free up a specific seat. PK is classroomId; SK is the
@@ -502,6 +528,7 @@ export class ClassroomStack extends cdk.Stack {
         SHARED_ASSIGNMENTS_TABLE_NAME: this.sharedAssignmentsTable.tableName,
         SHARED_REPORTS_TABLE_NAME: this.sharedReportsTable.tableName,
         NOTIFICATIONS_TABLE_NAME: this.notificationsTable.tableName,
+        LESSON_PROGRESS_TABLE_NAME: this.lessonProgressTable.tableName,
         RUBYTEE_RATE_LIMIT_TABLE_NAME: rubyteeRateLimitTableName,
         RUBYTEE_USAGE_TABLE_NAME: rubyteeUsageTableName,
         SUBMISSIONS_BUCKET_NAME: this.submissionsBucket.bucketName,
@@ -552,6 +579,7 @@ export class ClassroomStack extends cdk.Stack {
     this.coTeacherIndexTable.grantReadWriteData(handlerFn);
     this.sharedAssignmentsTable.grantReadWriteData(handlerFn);
     this.sharedReportsTable.grantReadWriteData(handlerFn);
+    this.lessonProgressTable.grantReadWriteData(handlerFn);
     // お知らせは admin スタックが単一の書き手 (#1111)。この Lambda は一覧
     // (Query) と既読化 (UpdateItem) しか行わないので、PutItem を含む RW では
     // なく必要最小限だけ grant して「エディタからお知らせを偽造できない」を
@@ -590,7 +618,8 @@ export class ClassroomStack extends cdk.Stack {
     this.sharedBucket.grantDelete(handlerFn);
 
     // --- Delete-snapshot archiver (issue #1053) ---
-    // Streams on the four data tables feed every REMOVE (TTL sweep or
+    // Streams on the data tables (classrooms, memberships, submissions,
+    // groups, lesson progress) feed every REMOVE (TTL sweep or
     // explicit delete) into a small Lambda that snapshots the old item to
     // `ddb-archive/…` in the submissions bucket. KickRequests (1h ephemera)
     // is deliberately not archived.
@@ -627,6 +656,7 @@ export class ClassroomStack extends cdk.Stack {
       this.membershipsTable,
       this.submissionsTable,
       this.groupsTable,
+      this.lessonProgressTable,
     ];
     for (const table of archivedTables) {
       archiverFn.addEventSource(new lambdaEventSources.DynamoEventSource(table, {
@@ -807,6 +837,14 @@ export class ClassroomStack extends cdk.Stack {
     // reads (GET; dual-auth resolved in the Lambda handler).
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/assignment',
+      methods: [apigatewayv2.HttpMethod.PUT, apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    // Lesson progress (#1597): student upserts its seat (PUT, session token),
+    // teacher lists every seat (GET, ID token).
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/lesson-progress',
       methods: [apigatewayv2.HttpMethod.PUT, apigatewayv2.HttpMethod.GET],
       integration,
     });

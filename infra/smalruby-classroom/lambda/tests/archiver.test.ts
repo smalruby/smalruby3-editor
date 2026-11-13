@@ -45,6 +45,8 @@ describe('tableSpecFromArn', () => {
     expect(tableSpecFromArn(arn('ClassroomMemberships-stg'))?.kind).toBe('memberships');
     expect(tableSpecFromArn(arn('ClassroomSubmissions'))?.kind).toBe('submissions');
     expect(tableSpecFromArn(arn('ClassroomGroups-stg'))?.kind).toBe('groups');
+    expect(tableSpecFromArn(arn('ClassroomLessonProgress-stg'))?.kind).toBe('lesson-progress');
+    expect(tableSpecFromArn(arn('ClassroomLessonProgress'))?.kind).toBe('lesson-progress');
   });
 
   test('ignores unknown tables and malformed ARNs', () => {
@@ -84,6 +86,14 @@ describe('snapshotPlanForRecord', () => {
       s3Key: { S: 'c1/sub-1/project.sb3' },
     }) as never);
     expect(submission?.key).toBe('ddb-archive/submissions/c1/sub-1.json');
+  });
+
+  test('snapshots lesson progress per assignment and seat (#1597)', () => {
+    const plan = snapshotPlanForRecord(removeRecord('ClassroomLessonProgress-stg', {
+      classroomId: { S: 'c1' },
+      memberId: { S: 'seat-07' },
+    }) as never);
+    expect(plan?.key).toBe('ddb-archive/lesson-progress/c1/seat-07.json');
   });
 
   test('skips eval-quota counter rows in the Classrooms table', () => {

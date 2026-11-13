@@ -70,7 +70,7 @@ npx ts-node bin/restore-classroom.ts --classroom-id <uuid> --apply
 ### スクリプトの挙動
 
 - **対象がまだ DynamoDB に生きている場合は no-op**: 「UI から復元してください」と案内して終了（誤アーカイブは運用者の出番ではない）
-- 復元内容: 課題本体（`status: active` + `restoredAt` スタンプ）+ メンバー + 提出メタ + （消えていれば）所属クラス（group）。**TTL はすべて実行時点から再設定**（過去の TTL のまま書くと即再削除されるため）
+- 復元内容: 課題本体（`status: active` + `restoredAt` スタンプ）+ メンバー + 提出メタ + レッスンの進み具合 + （消えていれば）所属クラス（group）。**TTL はすべて実行時点から再設定**（過去の TTL のまま書くと即再削除されるため）
 - 提出ファイル（S3 実体）の存在確認を行い、欠落があれば dry-run 時に警告表示
 - 課題本体の書き込みは `attribute_not_exists` 条件付き（復元の競合で生きているデータを上書きしない）
 

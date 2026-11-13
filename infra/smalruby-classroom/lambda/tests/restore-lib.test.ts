@@ -104,6 +104,23 @@ describe('buildRestorePlan', () => {
     expect(plan[0].item).not.toHaveProperty('archivedAt');
   });
 
+  test('restores lesson progress with the classroom TTL (#1597)', () => {
+    const plan = buildRestorePlan(
+      {
+        classroom: { classroomId: 'c1', ttl: 123 },
+        memberships: [],
+        submissions: [],
+        lessonProgress: [{ classroomId: 'c1', memberId: 'seat-02', ttl: 123 }],
+      },
+      NOW,
+      90,
+      400,
+    );
+
+    expect(plan.map((p) => p.table)).toEqual(['classrooms', 'lesson-progress']);
+    expect(plan[1].item.ttl).toBe(plan[0].item.ttl);
+  });
+
   test('restores the group first with its own (longer) TTL', () => {
     const plan = buildRestorePlan(
       {
@@ -128,6 +145,8 @@ describe('resourceNamesForStage', () => {
     expect(resourceNamesForStage('prod').classroomsTable).toBe('Classrooms');
     expect(resourceNamesForStage('prod').bucket).toBe('smalruby-classroom-submissions');
     expect(resourceNamesForStage('stg').classroomsTable).toBe('Classrooms-stg');
+    expect(resourceNamesForStage('prod').lessonProgressTable).toBe('ClassroomLessonProgress');
+    expect(resourceNamesForStage('stg').lessonProgressTable).toBe('ClassroomLessonProgress-stg');
     expect(resourceNamesForStage('stg').groupsTable).toBe('ClassroomGroups-stg');
   });
 });

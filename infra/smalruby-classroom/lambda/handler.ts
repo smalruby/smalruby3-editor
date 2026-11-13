@@ -33,6 +33,14 @@ import {
   todayCountsBySeat,
   usagePk,
 } from './ai-usage-lib';
+import {
+  LessonInputError,
+  lessonSettingOf,
+  mergeLessonProgress,
+  validateLessonProgressInput,
+  validateLessonSetting,
+  type LessonProgress,
+} from './lesson-lib';
 
 // --- Configuration ---
 
@@ -50,6 +58,8 @@ const SHARED_REPORTS_TABLE = process.env.SHARED_REPORTS_TABLE_NAME || 'SharedAss
 // お知らせ (notification center, EPIC #1111) — admin → teacher notices. The
 // admin stack writes items; this API lists/marks-read for the teacher.
 const NOTIFICATIONS_TABLE = process.env.NOTIFICATIONS_TABLE_NAME || 'ClassroomNotifications';
+// 席 × 課題のレッスンの進み具合（#1597）。
+const LESSON_PROGRESS_TABLE = process.env.LESSON_PROGRESS_TABLE_NAME || 'ClassroomLessonProgress';
 // rubytee relay の表（読み取りだけ・#1311）。未設定ならメンバー一覧の aiUsage は null
 const RUBYTEE_RATE_LIMIT_TABLE = process.env.RUBYTEE_RATE_LIMIT_TABLE_NAME || '';
 const RUBYTEE_USAGE_TABLE = process.env.RUBYTEE_USAGE_TABLE_NAME || '';
@@ -138,6 +148,12 @@ const MAX_TOPIC_NAME_LENGTH = 50;
 // a classroom. Objects live under {classroomId}/assignment/ in the
 // submissions bucket and share its lifecycle expiry.
 const MAX_ASSIGNMENT_PAGES = 10;
+// 進み具合の送信の上限（席ごと・Lambda インスタンスごと。join と同じ in-memory 方式）。
+// 想定は「できた」と「チャレンジを開いた」で 1 授業 20 回ほど（D8）なので、1 分 20 回は十分に広い。
+const LESSON_PROGRESS_RATE_LIMIT_WINDOW_SECONDS = parseInt(process.env.LESSON_PROGRESS_RATE_LIMIT_WINDOW_SECONDS || '60', 10);
+const LESSON_PROGRESS_RATE_LIMIT_MAX = parseInt(process.env.LESSON_PROGRESS_RATE_LIMIT_MAX || '20', 10);
+// 同じ席の送信がぶつかったとき（2 つのタブなど）に読み直す回数。
+const LESSON_PROGRESS_MAX_ATTEMPTS = 3;
 const MAX_ASSIGNMENT_PAGE_TEXT_LENGTH = 500;
 // Content types accepted for assignment page images (MIME → S3 key extension).
 const ASSIGNMENT_IMAGE_CONTENT_TYPES: Record<string, string> = {
@@ -1123,6 +1139,7 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
     topic: item.topic || null,
     sortDate: item.sortDate || item.createdAt || null,
     hasAssignment: hasAssignmentContent(item),
+    hasLesson: lessonSettingOf(item) !== null,
     meshGroupLimit: meshGroupLimitOf(item),
     // 共有推奨 (#1106): 書き込みは admin スタックのみ。boolean へ投影する
     // （recommendedForSharingBy = admin email は内部情報）。
@@ -1224,6 +1241,7 @@ async function handleGetClassroom(identity: TeacherIdentity, classroomId: string
       topic: result.Item.topic || null,
       sortDate: result.Item.sortDate || result.Item.createdAt || null,
       hasAssignment: hasAssignmentContent(result.Item),
+      hasLesson: lessonSettingOf(result.Item) !== null,
       meshGroupLimit: meshGroupLimitOf(result.Item),
       recommendedForSharing: !!result.Item.recommendedForSharingAt,
       archivedAt: archivedAtOf(result.Item),
@@ -2132,7 +2150,9 @@ async function handleRejectKickRequest(
 
 // --- Session Token Auth ---
 
-export async function verifySessionToken(sessionToken: string): Promise<{ classroomId: string; memberId: string }> {
+export async function verifySessionToken(
+  sessionToken: string,
+): Promise<{ classroomId: string; memberId: string; joinedAt?: string }> {
   const result = await docClient.send(new QueryCommand({
     TableName: MEMBERSHIPS_TABLE,
     IndexName: 'sessionToken-index',
@@ -2156,7 +2176,12 @@ export async function verifySessionToken(sessionToken: string): Promise<{ classr
       (item.kickSeatNumber as number) || 0,
     );
   }
-  return { classroomId: item.classroomId as string, memberId: item.memberId as string };
+  return {
+    classroomId: item.classroomId as string,
+    memberId: item.memberId as string,
+    // Who sits in the seat now (#1597): a new join on the same seat gets a new joinedAt.
+    ...(typeof item.joinedAt === 'string' ? { joinedAt: item.joinedAt } : {}),
+  };
 }
 
 /**
@@ -4106,6 +4131,8 @@ async function handleDuplicateClassroom(
       // ...and how big its mesh groups may be (#1255), copied as stored: an
       // unset (pre-#1255, no limit) source stays unset.
       ...(hasStoredMeshGroupLimit(source) ? { meshGroupLimit: source.meshGroupLimit } : {}),
+      // ...and its lesson setting (#1597). Progress is per assignment and is not copied.
+      ...(lessonSettingOf(source) ? { lesson: lessonSettingOf(source) } : {}),
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -4125,6 +4152,7 @@ async function handleDuplicateClassroom(
       topic: topic || null,
       sortDate: now,
       hasAssignment: !!assignment,
+      hasLesson: lessonSettingOf(source) !== null,
       meshGroupLimit: meshGroupLimitOf(source),
       status: 'active',
       createdAt: now,
@@ -4310,6 +4338,7 @@ async function handleSetAssignment(
   const pagesInput = validateAssignmentPages(body.pages, classroomId);
   const startFromPreviousInput = validateStartFromPrevious(body.startFromPrevious);
   const peerViewInput = validatePeerView(body.peerView);
+  const lessonInput = validateLessonSetting(body.lesson);
   const keepStarter = body.keepStarter === true;
   const newStarter = body.newStarter === true;
   if (keepStarter && newStarter) {
@@ -4383,26 +4412,34 @@ async function handleSetAssignment(
   const setPeerView = peerViewInput === undefined ? '' : ', peerView = :pv';
   const peerViewValues = peerViewInput === undefined ? {} : { ':pv': peerViewInput };
   const peerView = peerViewInput ?? peerViewOf(classroomResult.Item);
+  // The lesson setting (#1597) follows the same rule: undefined keeps it, null removes it.
+  const setLesson = lessonInput ? ', lesson = :lesson' : '';
+  const lessonValues = lessonInput ? { ':lesson': lessonInput } : {};
+  const removeLesson = lessonInput === null ? ['lesson'] : [];
+  const lesson = lessonInput === undefined ? lessonSettingOf(classroomResult.Item) : lessonInput;
   if (pages.length === 0 && !starterKey) {
     // An empty request clears the assignment content (the settings stay).
     await docClient.send(new UpdateCommand({
       TableName: CLASSROOMS_TABLE,
       Key: { classroomId },
-      UpdateExpression: `REMOVE assignment SET updatedAt = :now${setStartFromPrevious}${setPeerView}`,
-      ExpressionAttributeValues: { ':now': now, ...startFromPreviousValues, ...peerViewValues },
+      UpdateExpression:
+        `REMOVE ${['assignment', ...removeLesson].join(', ')} SET updatedAt = :now${setStartFromPrevious}${setPeerView}${setLesson}`,
+      ExpressionAttributeValues: { ':now': now, ...startFromPreviousValues, ...peerViewValues, ...lessonValues },
     }));
-    return { statusCode: 200, body: JSON.stringify({ assignment: null, startFromPrevious, peerView }) };
+    return { statusCode: 200, body: JSON.stringify({ assignment: null, startFromPrevious, peerView, lesson }) };
   }
 
   await docClient.send(new UpdateCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
-    UpdateExpression: `SET assignment = :assignment, updatedAt = :now${setStartFromPrevious}${setPeerView}`,
+    UpdateExpression: `SET assignment = :assignment, updatedAt = :now${setStartFromPrevious}${setPeerView}${setLesson}` +
+      (removeLesson.length ? ` REMOVE ${removeLesson.join(', ')}` : ''),
     ExpressionAttributeValues: {
       ':assignment': { pages, starterKey, updatedAt: now },
       ':now': now,
       ...startFromPreviousValues,
       ...peerViewValues,
+      ...lessonValues,
     },
   }));
 
@@ -4412,6 +4449,7 @@ async function handleSetAssignment(
       assignment: { pages, starterKey: starterKey || null, updatedAt: now },
       startFromPrevious,
       peerView,
+      lesson,
       imageUploadUrls,
       starterUploadUrl,
     }),
@@ -4450,8 +4488,9 @@ async function handleGetAssignment(rawToken: string, classroomId: string): Promi
   const assignment = classroomResult.Item.assignment as AssignmentContent | undefined;
   const startFromPrevious = startFromPreviousOf(classroomResult.Item);
   const peerView = peerViewOf(classroomResult.Item);
+  const lesson = lessonSettingOf(classroomResult.Item);
   if (!hasAssignmentContent(classroomResult.Item)) {
-    return { statusCode: 200, body: JSON.stringify({ assignment: null, startFromPrevious, peerView }) };
+    return { statusCode: 200, body: JSON.stringify({ assignment: null, startFromPrevious, peerView, lesson }) };
   }
 
   // imageKey is echoed back so the teacher editor can round-trip unchanged
@@ -4488,7 +4527,179 @@ async function handleGetAssignment(rawToken: string, classroomId: string): Promi
       },
       startFromPrevious,
       peerView,
+      lesson,
     }),
+  };
+}
+
+// --- Lesson progress handlers (#1597 / EPIC #1592) ---
+// One record per seat × assignment in ClassroomLessonProgress (PK classroomId,
+// SK memberId). The student sends the whole record for its seat at once (on
+// "done" and when opening a challenge / the class screen — D8), and the server
+// merges it: challenges outside the assignment are dropped, a completion never
+// disappears and its time never moves. The record's ttl is copied from the
+// assignment so it expires, is archived and is snapshotted together with it.
+
+const lessonProgressAttempts = new Map<string, { count: number; windowStart: number }>();
+
+/** Per-seat in-memory limiter (same best-effort pattern as the join limiter). */
+function checkLessonProgressRateLimit(key: string): void {
+  const now = Math.floor(Date.now() / 1000);
+  const entry = lessonProgressAttempts.get(key);
+  if (entry && (now - entry.windowStart) < LESSON_PROGRESS_RATE_LIMIT_WINDOW_SECONDS) {
+    if (entry.count >= LESSON_PROGRESS_RATE_LIMIT_MAX) {
+      throw new ValidationError('Too many lesson progress updates. Please try again later.');
+    }
+    entry.count++;
+  } else {
+    lessonProgressAttempts.set(key, { count: 1, windowStart: now });
+  }
+  if (lessonProgressAttempts.size > 5000) {
+    for (const [k, e] of lessonProgressAttempts) {
+      if ((now - e.windowStart) >= LESSON_PROGRESS_RATE_LIMIT_WINDOW_SECONDS) {
+        lessonProgressAttempts.delete(k);
+      }
+    }
+  }
+}
+
+/**
+ * Whether a progress row belongs to the student now in the seat. Rows store
+ * the occupant's membership joinedAt; rows without it are treated as the
+ * occupant's (none exist outside tests, but never hide data on a missing field).
+ */
+function isSameOccupant(row: Record<string, unknown>, joinedAt: string): boolean {
+  return typeof row.occupantJoinedAt !== 'string' || row.occupantJoinedAt === joinedAt;
+}
+
+/** The response / list shape of one progress record. */
+function mapLessonProgress(item: Record<string, unknown> | undefined, memberId: string) {
+  return {
+    memberId,
+    seatNumber: seatNumberOfMemberId(memberId),
+    challenges: (item?.challenges as LessonProgress['challenges']) || {},
+    current: (item?.current as LessonProgress['current']) || null,
+    updatedAt: (item?.updatedAt as string) || null,
+  };
+}
+
+async function handleUpsertLessonProgress(
+  classroomId: string, memberId: string, occupantJoinedAt: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  checkLessonProgressRateLimit(`${classroomId}#${memberId}`);
+  const input = validateLessonProgressInput(body, Date.now());
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  const classroom = classroomResult.Item;
+  // Same lockout as submissions: memberships survive an archive, the status does not.
+  if (!classroom || classroom.status !== 'active' || isTtlExpired(classroom, nowSec)) {
+    throw new NotFoundError('This classroom is no longer active');
+  }
+  const lesson = lessonSettingOf(classroom);
+  if (!lesson) {
+    throw new ValidationError('This assignment has no lesson');
+  }
+
+  for (let attempt = 1; ; attempt++) {
+    const existingResult = await docClient.send(new GetCommand({
+      TableName: LESSON_PROGRESS_TABLE,
+      Key: { classroomId, memberId },
+      ConsistentRead: true,
+    }));
+    const existing = existingResult.Item;
+    // A row written by an earlier occupant of this seat (kick / leave, then
+    // someone else joined) is not this student's: start afresh instead of merging.
+    const ownRow = existing && isSameOccupant(existing, occupantJoinedAt) ? existing : undefined;
+    const stored = ownRow ? mapLessonProgress(ownRow, memberId) : null;
+    const { progress, changed } = mergeLessonProgress(
+      stored ? { challenges: stored.challenges, current: stored.current } : null,
+      input,
+      lesson.challengeIds,
+    );
+    if (!changed) {
+      // Nothing new (e.g. the class screen re-sending what it already sent): skip the write (D8).
+      return { statusCode: 200, body: JSON.stringify(mapLessonProgress(ownRow, memberId)) };
+    }
+    const now = new Date().toISOString();
+    const prevVersion = typeof existing?.version === 'number' ? existing.version : 0;
+    const item = {
+      classroomId,
+      memberId,
+      challenges: progress.challenges,
+      current: progress.current,
+      version: prevVersion + 1,
+      occupantJoinedAt,
+      updatedAt: now,
+      // Expire with the assignment (TTL copied), like the other per-assignment rows.
+      ...(typeof classroom.ttl === 'number' ? { ttl: classroom.ttl } : {}),
+    };
+    try {
+      await docClient.send(new PutCommand({
+        TableName: LESSON_PROGRESS_TABLE,
+        Item: item,
+        // Optimistic lock: two tabs of the same seat must not drop each other's completions.
+        ...(existing
+          ? { ConditionExpression: 'version = :prev', ExpressionAttributeValues: { ':prev': prevVersion } }
+          : { ConditionExpression: 'attribute_not_exists(memberId)' }),
+      }));
+      return { statusCode: 200, body: JSON.stringify(mapLessonProgress(item, memberId)) };
+    } catch (err: unknown) {
+      const conflict = (err as { name?: string })?.name === 'ConditionalCheckFailedException';
+      if (!conflict) throw err;
+      if (attempt >= LESSON_PROGRESS_MAX_ATTEMPTS) {
+        throw new ConflictError('Lesson progress was updated concurrently. Please retry.');
+      }
+    }
+  }
+}
+
+async function handleListLessonProgress(
+  identity: TeacherIdentity, classroomId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroomResult.Item || !(await canManageViaGroup(classroomResult.Item, identity))) {
+    throw new AuthError('Not authorized to view lesson progress');
+  }
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const items = await queryAll({
+    TableName: LESSON_PROGRESS_TABLE,
+    KeyConditionExpression: 'classroomId = :cid',
+    ExpressionAttributeValues: { ':cid': classroomId },
+  });
+  // Hide a row when someone else sits in that seat now (their own row replaces
+  // it on their first send). A seat left empty or kicked keeps showing the
+  // last occupant's progress — kick / leave never deletes it.
+  const members = await queryAll({
+    TableName: MEMBERSHIPS_TABLE,
+    KeyConditionExpression: 'classroomId = :cid',
+    ExpressionAttributeValues: { ':cid': classroomId },
+  });
+  const occupantBySeat = new Map<string, string>();
+  for (const m of members) {
+    if (m.kicked !== true && typeof m.memberId === 'string' && !isTtlExpired(m, nowSec)) {
+      occupantBySeat.set(m.memberId, typeof m.joinedAt === 'string' ? m.joinedAt : '');
+    }
+  }
+  const progress = items
+    .filter(item => !isTtlExpired(item, nowSec))
+    .filter(item => {
+      const occupant = occupantBySeat.get(item.memberId as string);
+      return occupant === undefined || isSameOccupant(item, occupant);
+    })
+    .map(item => mapLessonProgress(item, item.memberId as string))
+    .sort((a, b) => a.seatNumber - b.seatNumber);
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ lesson: lessonSettingOf(classroomResult.Item), progress }),
   };
 }
 
@@ -5032,6 +5243,7 @@ function mapSharedSummary(item: Record<string, unknown>, opts: { includePasscode
       ? (item.content as AssignmentContent).pages!.length
       : 0,
     hasStarter: !!(item.content as AssignmentContent | undefined)?.starterKey,
+    hasLesson: lessonSettingOf(item) !== null,
     reuseCount: (item.reuseCount as number) || 0,
     // 公開範囲: 'public' = みんなの課題カタログ / 'limited' = 合言葉限定公開。
     visibility: (item.visibility as string) || 'public',
@@ -5171,12 +5383,14 @@ async function handleShareAssignment(
     throw new AuthError('Not authorized to share this classroom');
   }
   const assignment = classroomResult.Item.assignment as AssignmentContent | undefined;
-  if (!assignment || ((!assignment.pages || assignment.pages.length === 0) && !assignment.starterKey)) {
-    throw new ValidationError('This assignment has no content (pages or starter project) to share');
+  // A lesson-only assignment (#1597) has neither pages nor a starter but is still worth sharing.
+  const sourceLesson = lessonSettingOf(classroomResult.Item);
+  if (!hasAssignmentContent(classroomResult.Item) && !sourceLesson) {
+    throw new ValidationError('This assignment has no content (pages, starter project or lesson) to share');
   }
 
   // Starter size cap (D11) — checked before any copy.
-  if (assignment.starterKey) {
+  if (assignment?.starterKey) {
     const head = await s3Client.send(new HeadObjectCommand({
       Bucket: SUBMISSIONS_BUCKET,
       Key: assignment.starterKey,
@@ -5217,6 +5431,7 @@ async function handleShareAssignment(
     title: title.trim(),
     summary,
     content: { pages, starterKey },
+    ...(sourceLesson ? { lesson: sourceLesson } : {}),
     supplementUrl,
     ...attributes,
     ...profile,
@@ -5357,6 +5572,7 @@ async function handleGetSharedAssignment(
       ...mapSharedSummary(item, { includePasscode: isMine }),
       pages,
       starterUrl,
+      lesson: lessonSettingOf(item),
       isMine,
     }),
   };
@@ -5448,6 +5664,8 @@ async function importSharedItem(
       assignment,
       // A new assignment always stores its mesh group limit (#1255).
       meshGroupLimit: DEFAULT_MESH_GROUP_LIMIT,
+      // The shared lesson setting comes along (#1597).
+      ...(lessonSettingOf(item) ? { lesson: lessonSettingOf(item) } : {}),
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -5478,6 +5696,7 @@ async function importSharedItem(
       groupId,
       sortDate: now,
       hasAssignment: !!assignment,
+      hasLesson: lessonSettingOf(item) !== null,
       meshGroupLimit: DEFAULT_MESH_GROUP_LIMIT,
       status: 'active',
       createdAt: now,
@@ -5533,6 +5752,7 @@ async function handleUpdateSharedAssignment(
   }
 
   const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  const removes: string[] = [];
   if (body.title !== undefined) {
     if (typeof body.title !== 'string' || body.title.trim().length === 0 ||
         body.title.trim().length > MAX_SHARED_TITLE_LENGTH) {
@@ -5635,10 +5855,11 @@ async function handleUpdateSharedAssignment(
       throw new AuthError('Not authorized to share this classroom');
     }
     const assignment = classroomResult.Item.assignment as AssignmentContent | undefined;
-    if (!assignment || ((!assignment.pages || assignment.pages.length === 0) && !assignment.starterKey)) {
-      throw new ValidationError('This assignment has no content (pages or starter project) to share');
+    // A lesson-only assignment (#1597) has neither pages nor a starter but is still worth sharing.
+    if (!hasAssignmentContent(classroomResult.Item) && !lessonSettingOf(classroomResult.Item)) {
+      throw new ValidationError('This assignment has no content (pages, starter project or lesson) to share');
     }
-    if (assignment.starterKey) {
+    if (assignment?.starterKey) {
       const head = await s3Client.send(new HeadObjectCommand({
         Bucket: SUBMISSIONS_BUCKET,
         Key: assignment.starterKey,
@@ -5668,6 +5889,13 @@ async function handleUpdateSharedAssignment(
       s3Client.send(new DeleteObjectCommand({ Bucket: SHARED_BUCKET, Key: key })),
     ));
     updates.content = { pages, starterKey };
+    // Overwrite semantics: the lesson setting follows the source assignment too (#1597).
+    const sourceLesson = lessonSettingOf(classroomResult.Item);
+    if (sourceLesson) {
+      updates.lesson = sourceLesson;
+    } else if (lessonSettingOf(item)) {
+      removes.push('lesson');
+    }
   }
 
   const expressionParts: string[] = [];
@@ -5683,7 +5911,7 @@ async function handleUpdateSharedAssignment(
   const result = await docClient.send(new UpdateCommand({
     TableName: SHARED_ASSIGNMENTS_TABLE,
     Key: { sharedId },
-    UpdateExpression: `SET ${expressionParts.join(', ')}`,
+    UpdateExpression: `SET ${expressionParts.join(', ')}${removes.length ? ` REMOVE ${removes.join(', ')}` : ''}`,
     ExpressionAttributeNames: expressionNames,
     ExpressionAttributeValues: expressionValues,
     ReturnValues: 'ALL_NEW',
@@ -6112,6 +6340,23 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleGetAssignment(token, classroomId);
 
+    } else if (method === 'PUT' && /^\/classrooms\/[^/]+\/lesson-progress$/.test(path)) {
+      // Student-only (session token): upsert this seat's lesson progress (#1597).
+      const token = extractBearerToken(event.headers?.authorization);
+      const session = await verifySessionToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      if (session.classroomId !== classroomId) {
+        throw new AuthError('Session does not match this classroom');
+      }
+      result = await handleUpsertLessonProgress(classroomId, session.memberId, session.joinedAt || '', body);
+
+    } else if (method === 'GET' && /^\/classrooms\/[^/]+\/lesson-progress$/.test(path)) {
+      // Teacher (ID token): every seat's progress in one assignment (#1597).
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleListLessonProgress(identity, classroomId);
+
     } else if (method === 'POST' && /^\/classrooms\/[^/]+\/submissions$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
       const session = await verifySessionToken(token);
@@ -6170,7 +6415,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   } catch (err) {
     console.error('Handler error:', err);
 
-    if (err instanceof ValidationError) {
+    if (err instanceof ValidationError || err instanceof LessonInputError) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
     }
     if (err instanceof AuthError) {
