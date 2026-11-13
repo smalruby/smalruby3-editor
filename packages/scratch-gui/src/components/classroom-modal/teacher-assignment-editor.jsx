@@ -5,7 +5,7 @@
  * optional image) plus one optional starter project, and how students start
  * (#1202: "start from the previous submission") and whether students may
  * see classmates' submission images (#1208: "peer view"), and the mesh
- * group size limit (#1257). Kept deliberately
+ * group size limit (#1257), and the lesson settings (#1598). Kept deliberately
  * simple — a constrained format the teacher can fill in minutes.
  */
 import classNames from 'classnames';
@@ -17,9 +17,13 @@ import {
     MAX_ASSIGNMENT_PAGE_TEXT_LENGTH,
     normalizeMeshGroupLimit,
 } from '../../lib/classroom-assignment-utils.js';
+import { effectiveScoring, lessonChanges } from '../../lib/classroom-lesson-settings.js';
+import { findCourse } from '../../lib/lessons/courses.js';
 import Spinner from '../spinner/spinner.jsx';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
+import LessonScoringField, { lessonScoringMessages } from './lesson-scoring-field.jsx';
+import LessonSettingsField from './lesson-settings-field.jsx';
 import MeshGroupLimitField, { meshGroupLimitMessages } from './mesh-group-limit-field.jsx';
 
 const messages = defineMessages({
@@ -230,9 +234,12 @@ const TeacherAssignmentEditor = ({
     startFromPrevious,
     peerView,
     meshGroupLimit,
+    lessonDraft,
+    savedLesson,
     onAddPage,
     onAttachPageImage,
     onChangePageText,
+    onChangeLesson,
     onChangeMeshGroupLimit,
     onChangePeerView,
     onChangeStartFromPrevious,
@@ -275,14 +282,19 @@ const TeacherAssignmentEditor = ({
     // With many settings it is easy to lose track of which values are still
     // unsaved, so a value that differs from the saved one is coloured (in the
     // summary and in the panel) until［課題を保存］stores it (#1303 review Q1).
+    // Lesson points sit in the advanced settings (D10), only for a lesson of
+    // a course this version knows.
+    const hasLessonScoring = Boolean(onChangeLesson && lessonDraft && findCourse(lessonDraft.courseId));
     const changed = savedSettings
         ? {
               previous: !!startFromPrevious !== !!savedSettings.startFromPrevious,
               peerView: (peerView || 'none') !== (savedSettings.peerView || 'none'),
               mesh: normalizeMeshGroupLimit(meshGroupLimit) !== normalizeMeshGroupLimit(savedSettings.meshGroupLimit),
+              scoring: hasLessonScoring && lessonChanges(lessonDraft, savedLesson).scoring,
           }
-        : { previous: false, peerView: false, mesh: false };
-    const hasUnsaved = changed.previous || changed.peerView || changed.mesh;
+        : { previous: false, peerView: false, mesh: false, scoring: false };
+    const hasUnsaved = changed.previous || changed.peerView || changed.mesh || changed.scoring;
+    const lessonScoring = hasLessonScoring ? effectiveScoring(lessonDraft) : null;
     const summaryValue = (key, text) => (
         <span
             className={changed[key] ? styles.assignmentAdvancedChanged : null}
@@ -409,44 +421,56 @@ const TeacherAssignmentEditor = ({
             <ErrorDisplay error={error} errorTitle={errorTitle} />
 
             <div className={styles.assignmentEditorColumns}>
-                {/* The pages are a list whose length the teacher decides (up
+                <div className={styles.assignmentEditorMain}>
+                    {/* The lesson row sits above the pages: the side column has
+                        no room left at 1300x600 (R6). */}
+                    {onChangeLesson && (
+                        <LessonSettingsField
+                            disabled={isSaving}
+                            draft={lessonDraft}
+                            saved={savedLesson}
+                            onChange={onChangeLesson}
+                        />
+                    )}
+                    {/* The pages are a list whose length the teacher decides (up
                     to 10), so only this frame scrolls (R6 exception). */}
-                <div className={styles.assignmentEditorPages} data-testid="classroom-assignment-pages">
-                    {editorPages.map((page, i) => (
-                        <AssignmentPageEditor
-                            index={i}
-                            key={i}
-                            page={page}
-                            pageCount={editorPages.length}
-                            onAttachImage={onAttachPageImage}
-                            onChangeText={onChangePageText}
-                            onMove={onMovePage}
-                            onRemove={onRemovePage}
-                            onRemoveImage={onRemovePageImage}
-                        />
-                    ))}
-
-                    <div className={styles.buttonRow}>
-                        <button
-                            className={styles.secondaryButton}
-                            data-testid="classroom-assignment-add-page"
-                            disabled={editorPages.length >= MAX_ASSIGNMENT_PAGES}
-                            onClick={onAddPage}
-                        >
-                            <FormattedMessage
-                                defaultMessage="+ Add Page"
-                                description="Assignment editor: add page"
-                                id="gui.classroom.assignmentEditor.addPage"
+                    <div className={styles.assignmentEditorPages} data-testid="classroom-assignment-pages">
+                        {editorPages.map((page, i) => (
+                            <AssignmentPageEditor
+                                index={i}
+                                key={i}
+                                page={page}
+                                pageCount={editorPages.length}
+                                onAttachImage={onAttachPageImage}
+                                onChangeText={onChangePageText}
+                                onMove={onMovePage}
+                                onRemove={onRemovePage}
+                                onRemoveImage={onRemovePageImage}
                             />
-                        </button>
+                        ))}
+
+                        <div className={styles.buttonRow}>
+                            <button
+                                className={styles.secondaryButton}
+                                data-testid="classroom-assignment-add-page"
+                                disabled={editorPages.length >= MAX_ASSIGNMENT_PAGES}
+                                onClick={onAddPage}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="+ Add Page"
+                                    description="Assignment editor: add page"
+                                    id="gui.classroom.assignmentEditor.addPage"
+                                />
+                            </button>
+                        </div>
+                        <p className={styles.assignmentEditorLimits}>
+                            <FormattedMessage
+                                defaultMessage="Up to 10 pages, 500 characters and one image per page, one starter project."
+                                description="Assignment editor limits note"
+                                id="gui.classroom.assignmentEditor.limitsNote"
+                            />
+                        </p>
                     </div>
-                    <p className={styles.assignmentEditorLimits}>
-                        <FormattedMessage
-                            defaultMessage="Up to 10 pages, 500 characters and one image per page, one starter project."
-                            description="Assignment editor limits note"
-                            id="gui.classroom.assignmentEditor.limitsNote"
-                        />
-                    </p>
                 </div>
 
                 <div className={styles.assignmentEditorSide}>
@@ -553,6 +577,18 @@ const TeacherAssignmentEditor = ({
                                     data-testid="classroom-assignment-advanced-summary"
                                 >
                                     {advancedSummary}
+                                    {lessonScoring && (
+                                        <React.Fragment>
+                                            {' · '}
+                                            {summaryValue(
+                                                'scoring',
+                                                intl.formatMessage(lessonScoringMessages.summary, {
+                                                    total: lessonScoring.total,
+                                                    required: lessonScoring.requiredPoints,
+                                                }),
+                                            )}
+                                        </React.Fragment>
+                                    )}
                                 </span>
                             </button>
                             {showAdvanced && (
@@ -648,6 +684,15 @@ const TeacherAssignmentEditor = ({
                                             />
                                         </div>
                                     )}
+                                    {hasLessonScoring && (
+                                        <div className={settingClass('scoring')}>
+                                            <LessonScoringField
+                                                disabled={isSaving}
+                                                draft={lessonDraft}
+                                                onChange={onChangeLesson}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -676,9 +721,13 @@ TeacherAssignmentEditor.propTypes = {
     startFromPrevious: PropTypes.bool,
     peerView: PropTypes.oneOf(['none', 'always', 'afterSubmit']),
     meshGroupLimit: PropTypes.number,
+    // Lesson settings (#1598): the draft (null = no lesson) and the stored value.
+    lessonDraft: PropTypes.object,
+    savedLesson: PropTypes.object,
     onAddPage: PropTypes.func.isRequired,
     onAttachPageImage: PropTypes.func.isRequired,
     onChangePageText: PropTypes.func.isRequired,
+    onChangeLesson: PropTypes.func,
     onChangeMeshGroupLimit: PropTypes.func,
     onChangePeerView: PropTypes.func,
     onChangeStartFromPrevious: PropTypes.func,

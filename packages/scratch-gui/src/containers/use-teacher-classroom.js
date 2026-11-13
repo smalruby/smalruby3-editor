@@ -315,6 +315,8 @@ const useTeacherClassroom = ({
         assignmentPeerView: assignment.peerView,
         assignmentMeshGroupLimit: assignment.meshGroupLimit,
         assignmentSavedSettings: assignment.savedSettings,
+        assignmentLessonDraft: assignment.lessonDraft,
+        assignmentSavedLesson: assignment.savedLesson,
         handleAssignmentAddPage: assignment.handleAddPage,
         handleAssignmentRemovePage: assignment.handleRemovePage,
         handleAssignmentMovePage: assignment.handleMovePage,
@@ -327,6 +329,7 @@ const useTeacherClassroom = ({
         handleAssignmentChangeStartFromPrevious: assignment.handleChangeStartFromPrevious,
         handleAssignmentChangePeerView: assignment.handleChangePeerView,
         handleAssignmentChangeMeshGroupLimit: assignment.handleChangeMeshGroupLimit,
+        handleAssignmentChangeLesson: assignment.handleChangeLesson,
         handleAssignmentSave: assignment.handleSaveAssignment,
         handleAssignmentApplyTemplate: assignment.handleApplyTemplate,
 
