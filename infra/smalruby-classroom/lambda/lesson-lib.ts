@@ -81,6 +81,11 @@ function validateId(value: unknown, label: string): string {
   if (typeof value !== 'string' || !LESSON_ID_REGEX.test(value)) {
     throw new LessonInputError(`${label} must match ${LESSON_ID_REGEX}`);
   }
+  // `constructor` は形に合うが、map のキーにすると DynamoDB の marshall が普通の
+  // オブジェクトと見なせず落ちる（500）。Object.prototype の名前は ID に使わせない。
+  if (Object.prototype.hasOwnProperty.call(Object.prototype, value)) {
+    throw new LessonInputError(`${label} must not be a reserved name (${value})`);
+  }
   return value;
 }
 

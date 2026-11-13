@@ -509,7 +509,7 @@ erDiagram
 
 | 項目 | 型 | 検証 |
 |---|---|---|
-| `courseId` | string | 必須。`^[a-z0-9][a-z0-9_-]{0,63}$` |
+| `courseId` | string | 必須。`^[a-z0-9][a-z0-9_-]{0,63}$`。`constructor` など `Object.prototype` の名前は使えない（チャレンジ ID も同じ。進み具合の map のキーにすると DynamoDB に保存できないため） |
 | `challengeIds` | string[] | 必須。レッスンの順。1〜100 件・同じ形・重複なし |
 | `requiredChallengeIds` | string[] | 任意（既定 `[]`）。`challengeIds` の中から・重複なし |
 | `completion` | `{type: 'all'}` \| `{type: 'count', count}` | 任意（既定 `all`）。`count` は整数で「必須の数（最低 1）〜`challengeIds` の数」 |

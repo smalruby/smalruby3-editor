@@ -315,14 +315,17 @@ describe('PUT /classrooms/{id}/lesson-progress (student)', () => {
     expect(commands('PutCommand', PROGRESS_TABLE)).toHaveLength(0);
   });
 
-  test('チャレンジ ID constructor も保存でき、__proto__ は 400', async () => {
-    useData({ item: classroom({ lesson: lesson({ challengeIds: ['constructor', 'a1'], requiredChallengeIds: [] }) }) });
-    const ok = await call('PUT', '/classrooms/c1/lesson-progress', SESSION, {
+  test('チャレンジ ID constructor / __proto__ は 400（DynamoDB の map のキーにできない）', async () => {
+    useData({ item: classroom({ lesson: lesson() }) });
+    const ctor = await call('PUT', '/classrooms/c1/lesson-progress', SESSION, {
       challenges: { constructor: { completedAt: '2026-11-10T02:00:00Z' } },
     });
-    expect(ok.body.challenges).toEqual({ constructor: { completedAt: '2026-11-10T02:00:00.000Z', before: false } });
-    const res = await handler(makeEvent('PUT', '/classrooms/c1/lesson-progress', { classroomId: 'c1' }, SESSION, undefined));
-    expect(res.statusCode).toBe(200);
+    expect(ctor.status).toBe(400);
+    const setting = await call('PUT', '/classrooms/c1/assignment', DEV_TOKEN, {
+      pages: [], lesson: lesson({ challengeIds: ['constructor'], requiredChallengeIds: [] }),
+    });
+    expect(setting.status).toBe(400);
+    expect(commands('PutCommand', PROGRESS_TABLE)).toHaveLength(0);
     const bad = await handler({
       ...makeEvent('PUT', '/classrooms/c1/lesson-progress', { classroomId: 'c1' }, SESSION),
       body: '{"challenges":{"__proto__":{"completedAt":"2026-11-10T02:00:00Z"}}}',
