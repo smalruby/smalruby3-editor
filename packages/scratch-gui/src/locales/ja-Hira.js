@@ -1796,6 +1796,8 @@ export default {
         '「{name}」は、ていぎされていないかんすうです。「関数 {name}(…)」でていぎしてください。',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '「{name}」は、にほんごモードではかけないめいれいです。Ruby モードではかけます。',
+    'gui.rubyTab.dnclUnsupportedNumberError':
+        '「{name}」は、にほんごモードではかけないかずのかきかたです（16 しんすう、_ のくぎり、しすうひょうきなど）。「1000」「0.5」のようにかいてください。Ruby モードではかけます。',
     'gui.rubyTab.dnclValidationError':
         'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
     'gui.mobile.drawer.title': 'メニュー',

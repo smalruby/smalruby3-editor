@@ -19,6 +19,12 @@ const isIdentStart = (ch) => /[a-zA-Z_぀-ゟ゠-ヿ一-鿿]/.test(ch);
 const isIdentChar = (ch) => /[a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿]/.test(ch);
 
 /**
+ * A number from its first digit: the digits, a decimal part, and the letters,
+ * `_` and exponent sign Ruby reads as a part of it (`0x5`, `1_000`, `1.5e-3`).
+ */
+const NUMBER_RE = /^\d+(?:\.\d+)?(?:[a-zA-Z0-9_]|(?<=[eE])[+-](?=\d)|\.(?=\d))*/;
+
+/**
  * Convert a single DNCL token/identifier to its Ruby equivalent.
  * @param {string} name - The identifier.
  * @returns {string} The Ruby variable reference.
@@ -286,6 +292,21 @@ const convertIdentifiers = (segment) => {
             result += '.';
             afterDot = true;
             i++;
+            continue;
+        }
+
+        // A number is copied as it is, letters and all (`0x5`, `1_000`,
+        // `1e3`), so no `@` gets inside it (issue #1745). The validator tells
+        // such numbers as errors; this keeps the number whole in any case.
+        // A digit here starts a number: the digits of a name are read with it.
+        // A plain number with leading zeros (`017`, `007`) is a decimal number
+        // in DNCL, but an octal one in Ruby (`017` is 15, `08` an error), so
+        // the zeros are taken off (`17`); `0` and `0.5` stay (issue #1745).
+        if (/\d/.test(segment[i])) {
+            const number = segment.substring(i).match(NUMBER_RE)[0];
+            result += /^\d+(?:\.\d+)?$/.test(number) ? number.replace(/^0+(?=\d)/, '') : number;
+            i += number.length;
+            afterDot = false;
             continue;
         }
 

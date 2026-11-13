@@ -130,6 +130,71 @@ const codeWithoutStrings = (line) => {
 };
 
 /**
+ * The id of the error for a number written in a Ruby notation that
+ * 共通テスト用プログラム表記 does not use (issue #1745): a hex / binary /
+ * octal prefix (`0x5`, `0b101`, `0o17`), `_` between digits (`1_000`), an
+ * exponent (`1e3`, `1.5e-3`) and the rational / imaginary suffixes (`3r`,
+ * `2i`). The examples of the common test write numbers only as `123` and
+ * `0.5`. The letters in such a number would be taken for a name and get an
+ * `@` (`0@x5`), which is broken Ruby, so such DNCL makes no Ruby. The editor
+ * shows the error in the language of the UI by this id and the `name` of
+ * the error (the number as written).
+ */
+const UNSUPPORTED_NUMBER_ERROR_ID = 'unsupportedNumber';
+
+/**
+ * The message of the unsupported number error.
+ * @param {string} name - The number as written.
+ * @returns {string} The message.
+ */
+const unsupportedNumberMessage = (name) =>
+    `「${name}」は日本語モードでは書けない数の書き方です（16 進数、_ の区切り、指数表記など）。` +
+    '「1000」「0.5」のように書いてください。Ruby モードでは書けます。';
+
+// A number (not a part of a name, nor the digits after the `.` of a decimal)
+// followed by a letter or `_`: the letters belong to the number in Ruby. The
+// sign of an exponent (`1.5e-3`, `2E+10`) is a part of it too.
+const UNSUPPORTED_NUMBER_RE =
+    /(?<![a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿])(?<!\d\.)\d+(?:\.\d+)?[a-zA-Z_](?:[a-zA-Z0-9_]|(?<=[eE])[+-](?=\d)|\.(?=\d))*/g;
+
+// An integer with leading zeros (`017`, `08`), which is octal in Ruby (`017`
+// is 15) but decimal in DNCL. Only Ruby is checked for it: the DNCL `017`
+// becomes the Ruby `17` (see `convertIdentifiers`).
+const RUBY_LEADING_ZERO_RE = /(?<![a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿])(?<!\d\.)0\d+(?:\.\d+)?(?![a-zA-Z0-9_]|\.\d)/g;
+
+/**
+ * Find the numbers written in a notation the Japanese mode does not have
+ * (see `UNSUPPORTED_NUMBER_ERROR_ID`). Strings and the comment are not
+ * looked at. It reads Ruby lines as well as DNCL lines.
+ * @param {string} source - DNCL (or Ruby) source.
+ * @param {object} [options] - Options.
+ * @param {boolean} [options.ruby] - The source is Ruby: an integer with
+ *   leading zeros (`017`, octal in Ruby) is told too, since the DNCL `017`
+ *   would read as 17.
+ * @returns {Array<object>} Errors with `line`, `column`, `id`, `name` and
+ *   `message`.
+ */
+const findUnsupportedNumbers = (source, { ruby = false } = {}) => {
+    const errors = [];
+    source.split('\n').forEach((line, lineIndex) => {
+        const code = codeWithoutStrings(line);
+        const matches = [...code.matchAll(UNSUPPORTED_NUMBER_RE)];
+        if (ruby) matches.push(...code.matchAll(RUBY_LEADING_ZERO_RE));
+        matches.sort((a, b) => a.index - b.index);
+        for (const m of matches) {
+            errors.push({
+                line: lineIndex + 1,
+                column: m.index + 1,
+                id: UNSUPPORTED_NUMBER_ERROR_ID,
+                name: m[0],
+                message: unsupportedNumberMessage(m[0]),
+            });
+        }
+    });
+    return errors;
+};
+
+/**
  * The command of a `do` block line: the name just before `do` and the
  * arguments of the command (`with_screen_refresh do` → `with_screen_refresh`,
  * `[1, 2].each do |x|` → `each`, `self.when(:clicked) do` → `when`).
@@ -284,7 +349,9 @@ const validateDncl = (source) => {
             });
         }
     }
-    return errors.concat(findUnsupportedCommands(source)).sort((a, b) => a.line - b.line || a.column - b.column);
+    return errors
+        .concat(findUnsupportedNumbers(source), findUnsupportedCommands(source))
+        .sort((a, b) => a.line - b.line || a.column - b.column);
 };
 
 // Block openers of the DNCL the line converter reads (after the DNCLv2
@@ -435,6 +502,7 @@ export {
     codeWithoutStrings,
     findDnclBlockErrors,
     findUnsupportedCommands,
+    findUnsupportedNumbers,
     isDoBlockLine,
     isPostTestLoopLine,
     isRubyCommandName,
@@ -442,5 +510,7 @@ export {
     POST_TEST_LOOP_MESSAGE,
     UNSUPPORTED_COMMAND_ERROR_ID,
     unsupportedCommandMessage,
+    UNSUPPORTED_NUMBER_ERROR_ID,
+    unsupportedNumberMessage,
     validateDncl,
 };

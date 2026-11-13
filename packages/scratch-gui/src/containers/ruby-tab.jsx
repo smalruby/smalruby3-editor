@@ -15,7 +15,12 @@ import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
 import { slashCommentRows, tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
 import { dnclToRuby, rubyForLeavingDncl } from '../lib/dncl/dncl-to-ruby';
-import { isRubyCommandName, POST_TEST_LOOP_ERROR_ID, UNSUPPORTED_COMMAND_ERROR_ID } from '../lib/dncl/dncl-validator';
+import {
+    isRubyCommandName,
+    POST_TEST_LOOP_ERROR_ID,
+    UNSUPPORTED_COMMAND_ERROR_ID,
+    UNSUPPORTED_NUMBER_ERROR_ID,
+} from '../lib/dncl/dncl-validator';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import { makeRubyTabAdapterFactory } from '../lib/genai-ruby-adapter.js';
@@ -684,6 +689,16 @@ const RubyTab = (props) => {
                     { name: err.name },
                 );
             }
+            if (err.id === UNSUPPORTED_NUMBER_ERROR_ID) {
+                return intl.formatMessage(
+                    {
+                        id: 'gui.rubyTab.dnclUnsupportedNumberError',
+                        defaultMessage:
+                            '"{name}" is a way of writing a number that cannot be used in Japanese mode (a hex number, _ between digits, an exponent and so on). Write it like "1000" or "0.5". You can write it in Ruby mode.',
+                    },
+                    { name: err.name },
+                );
+            }
             if (err.id === UNSUPPORTED_COMMAND_ERROR_ID) {
                 return intl.formatMessage(
                     {
@@ -1275,7 +1290,10 @@ const RubyTab = (props) => {
         if (!editorRef.current || !monacoRef.current) return;
         const errors = dnclMode
             ? dnclToRuby(dnclDisplayCode).errors.filter(
-                  (err) => err.id === POST_TEST_LOOP_ERROR_ID || err.id === UNSUPPORTED_COMMAND_ERROR_ID,
+                  (err) =>
+                      err.id === POST_TEST_LOOP_ERROR_ID ||
+                      err.id === UNSUPPORTED_COMMAND_ERROR_ID ||
+                      err.id === UNSUPPORTED_NUMBER_ERROR_ID,
               )
             : [];
         const lines = dnclDisplayCode.split('\n');
@@ -1283,7 +1301,9 @@ const RubyTab = (props) => {
             .filter((err) => err.line <= lines.length)
             .map((err) => {
                 const lineEnd = lines[err.line - 1].length + 1;
-                const command = err.id === UNSUPPORTED_COMMAND_ERROR_ID && err.column + err.name.length <= lineEnd;
+                const command =
+                    (err.id === UNSUPPORTED_COMMAND_ERROR_ID || err.id === UNSUPPORTED_NUMBER_ERROR_ID) &&
+                    err.column + err.name.length <= lineEnd;
                 return {
                     startLineNumber: err.line,
                     startColumn: command ? err.column : 1,
