@@ -267,6 +267,15 @@
     text-align: right;
 }
 
+/* レッスンの課題の「進み具合」（#1599）: 丸・できた数・あと n つを 1 行に（丸は 1 行に収める） */
+.lesson-progress-value {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+}
+
 .assignment-name-row {
     display: flex;
     align-items: center;
@@ -5194,4 +5203,31 @@
 .lesson-state-not-started {
     background-color: #eceef4;
     color: #8a90a6;
+}
+
+/* メニューバーのレッスンの課題の印（○ / 2/4 / ✓・#1599）。青いメニューバーの上で読めるよう白地の丸角 */
+.menu-lesson-marks {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.menu-lesson-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    padding: 0 0.3rem;
+    border-radius: 0.5625rem;
+    background-color: #fff;
+    color: #4c97ff;
+    font-size: 0.75rem;
+    font-weight: bold;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.menu-lesson-mark[data-kind='cleared'] {
+    color: #0fbd8c;
 }

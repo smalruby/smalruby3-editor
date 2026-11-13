@@ -28,6 +28,10 @@ import reducer, {
     setStudentGenai,
     setRubyteeEnabled,
     selectRubyteeAvailable,
+    setStudentLesson,
+    requestStudentSubmit,
+    clearStudentSubmitRequest,
+    selectStudentLesson,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -668,6 +672,52 @@ describe('classroom reducer', () => {
                 setTeacherSelection({ classroomId: 'class-123', joinCode: 'ABC234' }),
             );
             expect(selectRubyteeAvailable(asRoot({ ...teacher, rubyteeEnabled: true }))).toBe(false);
+        });
+    });
+
+    describe('lesson assignment (#1599)', () => {
+        const session = {
+            role: 'student',
+            classroomId: 'class-123',
+            className: '2年A組',
+            joinCode: 'ABC234',
+            seatNumber: 5,
+            memberId: 'seat-05',
+            sessionToken: 'token-abc',
+        };
+        const lesson = { courseId: 'kyou-kara-programmer', challengeIds: ['a', 'b'], requiredChallengeIds: ['b'] };
+
+        test('setStudentLesson normalizes, persists and is selected only for a joined student', () => {
+            let state = reducer(classroomInitialState, setClassroomSession(session));
+            state = reducer(state, setStudentLesson(lesson));
+            expect(state.studentLesson).toEqual(
+                expect.objectContaining({ courseId: 'kyou-kara-programmer', completion: { type: 'all' } }),
+            );
+            expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)).studentLesson.challengeIds).toEqual([
+                'a',
+                'b',
+            ]);
+            expect(selectStudentLesson({ scratchGui: { classroom: state } })).toBe(state.studentLesson);
+            expect(selectStudentLesson({ scratchGui: { classroom: { ...state, sessionToken: null } } })).toBeNull();
+        });
+
+        test('joining another class or leaving drops the lesson', () => {
+            let state = reducer(classroomInitialState, setClassroomSession(session));
+            state = reducer(state, setStudentLesson(lesson));
+            expect(
+                reducer(state, setClassroomSession({ ...session, classroomId: 'other' })).studentLesson,
+            ).toBeNull();
+            expect(reducer(state, setClassroomSession(session)).studentLesson).not.toBeNull();
+            expect(reducer(state, clearClassroomSession()).studentLesson).toBeNull();
+            expect(reducer(state, setStudentLesson(null)).studentLesson).toBeNull();
+        });
+
+        test('requestStudentSubmit opens the modal and is consumed once', () => {
+            let state = reducer(classroomInitialState, requestStudentSubmit());
+            expect(state.modalVisible).toBe(true);
+            expect(state.studentSubmitRequested).toBe(true);
+            state = reducer(state, clearStudentSubmitRequest());
+            expect(state.studentSubmitRequested).toBe(false);
         });
     });
 });

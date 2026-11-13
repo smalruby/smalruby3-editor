@@ -138,3 +138,17 @@ $celebrate-light: hsla(45, 100%, 98%, 1); /* #FFFDF6 */
 .close:hover {
     opacity: 0.85;
 }
+
+/* 課題クリアの丸の ★（先生が必須にしたチャレンジ） */
+.dot-required {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-ink);
+    font-size: 10px;
+    line-height: 1;
+}
+
+.dot-required.dot-completed {
+    color: var(--accent-on);
+}

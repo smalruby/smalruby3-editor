@@ -84,6 +84,8 @@ src/components/*
 !src/components/koshien-mock-panel/
 !src/components/lesson-completed-toast/
 !src/components/lesson-completed-toast/**
+!src/components/lesson-assignment-band/
+!src/components/lesson-assignment-band/**
 !src/components/koshien-mock-panel/**
 !src/components/mesh-self-sensor-notice/
 !src/components/mesh-self-sensor-notice/**
@@ -487,6 +489,7 @@ test/unit/components/*
 !test/unit/components/extension-button-dncl.test.jsx
 !test/unit/components/connected-step.test.jsx
 !test/unit/components/lesson-completed-toast.test.jsx
+!test/unit/components/lesson-assignment-band.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/mesh-v2-scanning-step-seats.test.jsx
 !test/unit/components/mesh-v2-seat-connect.test.jsx

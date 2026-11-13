@@ -178,3 +178,44 @@ describe('LessonCompletedToast', () => {
         expect(getByTestId('lesson-completed-toast-close')).toBeInTheDocument();
     });
 });
+
+describe('LessonCompletedToast: assignment cleared (#1599)', () => {
+    const assignmentChallenges = [
+        { id: 'a', completed: true, required: true },
+        { id: 'b', completed: true, required: false },
+    ];
+
+    test('shows "Assignment cleared!" before "Lesson n complete!", with the assignment dots and ★', () => {
+        const { getByTestId } = renderToast(
+            { action: 'otherLessons', assignmentCleared: true, assignmentChallenges, assignmentName: 'Week 1' },
+            { locale: 'ja', messages: ja },
+        );
+        expect(getByTestId('lesson-completed-toast')).toHaveAttribute('data-assignment-cleared', 'true');
+        expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('課題クリア！');
+        expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent('「Week 1」の条件を満たしました');
+        const dots = getByTestId('lesson-completed-toast-dots').children;
+        expect(dots).toHaveLength(2);
+        expect(dots[0]).toHaveTextContent('★');
+        // no work to submit: the stage 1 button stays
+        expect(getByTestId('lesson-completed-toast-next')).toHaveAttribute('data-action', 'otherLessons');
+    });
+
+    test('a work-submit assignment shows the guidance and "Submit assignment" as the main button', () => {
+        const onSubmitAssignment = jest.fn();
+        const { getByTestId, queryByTestId } = renderToast(
+            { assignmentCleared: true, assignmentChallenges, onSubmitAssignment },
+            { locale: 'ja-Hira', messages: jaHira },
+        );
+        expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent('じゆうに プログラムを つくろう');
+        expect(queryByTestId('lesson-completed-toast-next')).toBeNull();
+        fireEvent.click(getByTestId('lesson-completed-toast-submit'));
+        expect(onSubmitAssignment).toHaveBeenCalled();
+        expect(getByTestId('lesson-completed-toast-submit')).toHaveTextContent('かだいを ていしゅつする');
+    });
+
+    test('without assignmentCleared it is the usual toast', () => {
+        const { getByTestId, queryByTestId } = renderToast({ assignmentChallenges, onSubmitAssignment: jest.fn() });
+        expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('You did it!');
+        expect(queryByTestId('lesson-completed-toast-submit')).toBeNull();
+    });
+});

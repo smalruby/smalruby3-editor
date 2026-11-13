@@ -6,6 +6,7 @@ import { IntlProvider } from 'react-intl';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import ConnectedLessonsLibrary, { LessonsLibrary } from '../../../src/containers/lessons-library.jsx';
+import { normalizeAssignmentLesson } from '../../../src/lib/lessons/assignment-progress';
 import { emptyProgress } from '../../../src/lib/lessons/lesson-progress';
 import { clearLessonsLibraryFocus, reloadProgress, startChallenge } from '../../../src/reducers/lesson-mode';
 import { closeLessonsLibrary } from '../../../src/reducers/modals';
@@ -29,6 +30,7 @@ const renderUnconnected = (props = {}) => {
         onReloadProgress: jest.fn(),
         onRequestClose: jest.fn(),
         onStartChallenge: jest.fn(),
+        onSubmitAssignment: jest.fn(),
         progress: emptyProgress(),
         visible: true,
         ...props,
@@ -70,7 +72,7 @@ describe('LessonsLibrary container', () => {
     test('selecting a challenge starts it and closes the library', () => {
         const { getByTestId, onStartChallenge, onRequestClose } = renderUnconnected();
         fireEvent.click(getByTestId(`lessons-library-challenge-${CHALLENGE_ID}`));
-        expect(onStartChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
+        expect(onStartChallenge).toHaveBeenCalledWith(CHALLENGE_ID, { fromAssignment: false });
         expect(onRequestClose).toHaveBeenCalledTimes(1);
     });
 
@@ -111,5 +113,40 @@ describe('LessonsLibrary container', () => {
         fireEvent.click(getByTestId(`lessons-library-challenge-${CHALLENGE_ID}`));
         expect(store.getActions()).toContainEqual(closeLessonsLibrary());
         expect(store.getActions()).toContainEqual(clearLessonsLibraryFocus());
+    });
+});
+
+describe('LessonsLibrary container: class assignment (#1599)', () => {
+    const lesson = normalizeAssignmentLesson({
+        courseId: 'kyou-kara-programmer',
+        challengeIds: ['blocks-l1-key-sound', 'blocks-l1-if'],
+        requiredChallengeIds: ['blocks-l1-if'],
+    });
+
+    test('from 「はじめる」 only the assignment challenges are shown, with the band, ★ and the next mark', () => {
+        const { getByTestId, queryByTestId, onStartChallenge } = renderUnconnected({
+            lesson,
+            assignmentOnly: true,
+            assignmentName: '第1回',
+        });
+        expect(getByTestId('lesson-assignment-band-name')).toHaveTextContent('第1回');
+        expect(getByTestId('lessons-library-challenge-blocks-l1-key-sound')).toHaveAttribute('data-next', 'true');
+        expect(getByTestId('lessons-library-challenge-blocks-l1-if')).toHaveAttribute('data-required', 'true');
+        expect(queryByTestId(`lessons-library-challenge-${CHALLENGE_ID}`)).toBeNull();
+        fireEvent.click(getByTestId('lessons-library-challenge-blocks-l1-if'));
+        expect(onStartChallenge).toHaveBeenCalledWith('blocks-l1-if', { fromAssignment: true });
+    });
+
+    test('from the menu the whole course is shown under the band', () => {
+        const { getByTestId, onStartChallenge } = renderUnconnected({ lesson, assignmentOnly: false });
+        expect(getByTestId('lesson-assignment-band')).toBeInTheDocument();
+        fireEvent.click(getByTestId(`lessons-library-challenge-${CHALLENGE_ID}`));
+        expect(onStartChallenge).toHaveBeenCalledWith(CHALLENGE_ID, { fromAssignment: false });
+    });
+
+    test('without a lesson assignment there is no band and no ★', () => {
+        const { queryByTestId } = renderUnconnected();
+        expect(queryByTestId('lesson-assignment-band')).toBeNull();
+        expect(queryByTestId('lessons-library-challenge-required')).toBeNull();
     });
 });

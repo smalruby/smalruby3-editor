@@ -1802,6 +1802,16 @@ export default {
     'gui.lessonsLibrary.courseProgress': '{completed} / {total}',
     'gui.lessonsLibrary.done': 'できた',
     'gui.lessonsLibrary.next': 'つぎはこれ！',
+    'gui.lessonsLibrary.required': 'ひっす',
+    'gui.classroom.studentJoined.lessonNextSteps':
+        'この かだいは レッスンの かだいです。レッスンを すすめて、じょうけんを みたしたら じゆうに プログラムを つくって さくひんを ていしゅつします',
+    'gui.classroom.studentJoined.lessonNextStepsNoSubmit':
+        'この かだいは レッスンの かだいです。レッスンを すすめて、じょうけんを みたしたら かだいクリアです',
+    'gui.classroom.studentStatus.lessonProgress': 'すすみぐあい',
+    'gui.classroom.studentStatus.continueLesson': 'レッスンを つづける',
+    'gui.menuBar.classroomLessonNotStarted': 'レッスン: まだ はじめていない',
+    'gui.menuBar.classroomLessonInProgress': 'レッスン: {total} つのうち {done} つ できた',
+    'gui.menuBar.classroomLessonCleared': 'レッスン: かだいクリア',
     'gui.lessonsLibrary.category.motion': 'うごき',
     'gui.lessonsLibrary.category.looks': 'みため',
     'gui.lessonsLibrary.category.sound': 'おと',

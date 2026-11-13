@@ -61,6 +61,7 @@ const renderWatcher = (props) =>
                 onCompleted={jest.fn()}
                 onDismiss={jest.fn()}
                 onNextChallenge={jest.fn()}
+                onSubmitAssignment={jest.fn()}
                 progress={noProgress}
                 {...props}
             />
@@ -163,7 +164,7 @@ describe('LessonGoalWatcher', () => {
         expect(next).toHaveAttribute('data-action', 'next');
         fireEvent.click(next);
         expect(onDismiss).toHaveBeenCalledTimes(1);
-        expect(onNextChallenge).toHaveBeenCalledWith('test-challenge');
+        expect(onNextChallenge).toHaveBeenCalledWith('test-challenge', false);
     });
 
     test('the last challenge keeps "Next challenge" while the lesson has challenges not done', () => {

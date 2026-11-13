@@ -109,15 +109,32 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
 
     test('課題の中身が無くても、前回の提出物の選択肢は出す', async () => {
         mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS });
+        // レッスンの課題かどうかは課題の取得でしかわからないので、中身が無くても取得する (#1599)
+        mockGetAssignment.mockResolvedValue({ assignment: null, lesson: null });
         const { hook } = setup();
         let next;
         await act(async () => {
             next = await hook.result.current.handleJoined('st', 'c-now', false);
         });
         expect(next).toBeNull();
-        expect(mockGetAssignment).not.toHaveBeenCalled();
+        expect(mockGetAssignment).toHaveBeenCalledWith('st', 'c-now');
+        expect(hook.result.current.lessonStartOnly).toBe(false);
         expect(hook.result.current.hasAssignment).toBe(false);
         expect(hook.result.current.continueOptions.previous).toEqual(PREVIOUS);
+    });
+
+    test('スターターの無いレッスンの課題は、どこから始めるかを出さずにレッスンで始める (#1599)', async () => {
+        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS });
+        mockGetAssignment.mockResolvedValue({
+            assignment: null,
+            lesson: { courseId: 'kyou-kara-programmer', challengeIds: ['blocks-l1-key-sound'] },
+        });
+        const { hook } = setup();
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', false);
+        });
+        expect(hook.result.current.lessonStartOnly).toBe(true);
+        expect(hook.result.current.startChoice.showStarter).toBe(false);
     });
 
     test('提出物の取得に失敗しても参加は止めず、スターターを選択肢に出す', async () => {
@@ -445,5 +462,44 @@ describe('useStudentAssignment — メッシュの接続モーダルを出す (#
         });
         expect(deps.showError).toHaveBeenCalled();
         expect(mockDispatch).not.toHaveBeenCalledWith(REQUEST);
+    });
+});
+
+describe('useStudentAssignment — レッスンの設定を読み直す (#1599)', () => {
+    const LESSON = { courseId: 'kyou-kara-programmer', challengeIds: ['blocks-l1-key-sound'] };
+
+    beforeEach(() => {
+        mockGetAssignment.mockReset();
+        mockDispatch.mockReset();
+    });
+
+    test('クラスの画面で読み直したレッスンを Redux に入れる', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: null, lesson: LESSON });
+        const { hook } = setup();
+        await act(async () => {
+            await hook.result.current.refreshLesson();
+        });
+        expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({ lesson: LESSON }));
+    });
+
+    test('答えが届く前に別の課題に参加したら、前の課題のレッスンを入れない', async () => {
+        let resolve;
+        mockGetAssignment.mockReturnValue(
+            new Promise((r) => {
+                resolve = r;
+            }),
+        );
+        const { deps, hook } = setup();
+        let pending;
+        act(() => {
+            pending = hook.result.current.refreshLesson();
+        });
+        deps.classroomState = { sessionToken: 'st-other', classroomId: 'c-other' };
+        hook.rerender();
+        await act(async () => {
+            resolve({ assignment: null, lesson: LESSON, peerView: 'always' });
+            await pending;
+        });
+        expect(mockDispatch).not.toHaveBeenCalled();
     });
 });
