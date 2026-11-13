@@ -2,7 +2,7 @@
 // at the lesson PC size (1300x600). The classroom API is stubbed with
 // page.route, so no login or stg data is needed — only the dev server.
 //
-// Checks: the ✕ of the open panels (#1770), choosing a course / lessons / challenges / ★ / completion / submit /
+// Checks: the ✕ of the open panels (#1770), the red retention banner (#1774), choosing a course / lessons / challenges / ★ / completion / submit /
 // scoring, the PUT payload's `lesson`, the unsaved marks, the dropped-progress
 // notice, an unknown course, and R6 (the save button bottom ≤ 600, the page
 // and the modal body do not scroll, only the challenge list frame scrolls).
@@ -45,6 +45,8 @@ const assignment = (over) => ({
 const classrooms = [
     assignment({ classroomId: 'c1', assignmentName: 'レッスンをやろう', joinCode: 'abc234' }),
     assignment({ classroomId: 'c2', assignmentName: '取り込んだ課題', joinCode: 'kx7p2m' }),
+    // #1774: the deadline is within 7 days, so the red retention banner is shown (R4).
+    assignment({ classroomId: 'c3', assignmentName: '期限の近い課題', joinCode: 'pq3r8s', expiresAt: iso(now + 5 * DAY) }),
 ];
 const savedLessons = {
     c1: null,
@@ -56,6 +58,7 @@ const savedLessons = {
         submitWork: false,
         scoring: null,
     },
+    c3: null,
 };
 const puts = [];
 
@@ -309,6 +312,23 @@ try {
     await page.waitForTimeout(1200);
     const put2 = puts.at(-1);
     record('unknown course kept (no lesson in PUT)', put2 && put2.id === 'c2' && !('lesson' in put2.body));
+
+    // 8. #1774: with the red retention banner (deadline within 7 days) and a saved lesson
+    // with scoring (the「詳しい設定」summary gets longer), the body still does not scroll
+    // with the lesson panel closed or open.
+    savedLessons.c3 = savedLessons.c1;
+    await backToBoard();
+    await openDescription('c3');
+    const banner = !!(await page.$(tid('classroom-retention-banner')));
+    m = await measure();
+    record('near deadline, folded: banner shown, R6', banner && r6(m), describe(m));
+    await shot('near-deadline-folded');
+    await page.locator(tid('classroom-lesson-toggle')).click();
+    await page.waitForTimeout(300);
+    m = await measure();
+    record('near deadline, panel open: R6', r6(m) && m.panelBottom <= m.vh, describe(m));
+    await shot('near-deadline-panel-open');
+    await page.keyboard.press('Escape');
 } catch (e) {
     record('script', false, e.stack);
     await shot('error');
