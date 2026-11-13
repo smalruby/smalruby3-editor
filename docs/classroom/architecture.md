@@ -205,7 +205,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `POST` | `/classroom-groups/migrate` | v1→v2 冪等 bulk migration（未所属課題のクラス自動作成・割当 + フィールド引き上げ） |
 | `PATCH` | `/classroom-groups/{groupId}/topics` | トピックの add / remove / rename（rename・remove は課題へ一括追従） |
 | `POST` | `/classrooms/{id}/duplicate` | 課題（1 授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない。`meshGroupLimit` は元の保存値をそのまま写し（未設定なら未設定のまま）、レスポンスにも含む |
-| `GET` | `/classrooms/{id}/lesson-progress` | レッスンの進み具合（EPIC #1592）。`{lesson, progress: [{memberId, seatNumber, challenges, current, updatedAt}]}` を席番号順に返す（`lesson` は課題の設定・無ければ `null`。TTL 切れの行は除く）。形は下記「ClassroomLessonProgress テーブル」 |
+| `GET` | `/classrooms/{id}/lesson-progress` | レッスンの進み具合（EPIC #1592）。`{lesson, progress: [{memberId, seatNumber, challenges, current, updatedAt}]}` を席番号順に返す（`lesson` は課題の設定・無ければ `null`。TTL 切れの行と、いま別の生徒が座っている席の前の人の行は除く）。**`challenges` には今の `lesson.challengeIds` に無い ID も含まれる**（サーバーは課題の設定を変える前の記録も残す）ので、できた数・完了の条件・得点は `lesson.challengeIds` で絞って数えること。形は下記「ClassroomLessonProgress テーブル」 |
 | `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーし、`mode: grade` は S/A/B/C 案 + 根拠 + needsReview、`mode: comment` は生徒向けポジティブコメント下書きを返す。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時） |
 | `GET` | `/notifications` | お知らせ一覧（EPIC #1111）。自分宛て（teacherSub）の直近 50 件 + `unreadCount` を返す。書き込みは admin スタックのみ（単一ライター） |
 | `POST` | `/notifications/mark-read` | お知らせ既読化。`{notificationIds?}` — 省略時は一覧窓（直近 50 件）の未読を全既読化（パネルを開いたらバッジが消える UX） |
@@ -231,7 +231,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 - データ: `SharedAssignments{suffix}`（**TTL なし・prod は RETAIN + PITR**。GSI: `status-createdAt-index` / `authorSub-createdAt-index` / `passcode-index`（合言葉ルックアップ・#1109））、`SharedAssignmentReports{suffix}`（TTL 90日）
 - ファイル: 専用バケット `smalruby-shared-assignments{suffix}`（**lifecycle なし = 永続**、`shared/{sharedId}/` プレフィックス）。課題側の保存期限と完全に分離
 - 共有/取り込みの実体は既存 duplicate と同じ S3 サーバー側コピー（クロスバケット）
-- **レッスンの設定（EPIC #1592）**: 共有すると課題の `lesson` を項目の `lesson` に写し（内容の再スナップショットでも写す。元の課題に無ければ消す）、取り込むと新しい課題に載る。詳細は `lesson`（無ければ `null`）、一覧・詳細の summary は `hasLesson` を返す。ページもスターターも無いレッスンだけの課題も共有できる（何も無い課題はいままでどおり 400）
+- **レッスンの設定（EPIC #1592）**: 共有すると課題の `lesson` を項目の `lesson` に写し（内容の再スナップショットでも写す。元の課題に無ければ消す）、取り込むと新しい課題に載る（取り込みのレスポンスにも `hasLesson`）。詳細は `lesson`（無ければ `null`）、一覧・詳細の summary は `hasLesson` を返す。ページもスターターも無いレッスンだけの課題も共有できる（何も無い課題はいままでどおり 400）
 
 ### 生徒用 (認証不要 / Session Token)
 
@@ -243,9 +243,9 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401。`meshGroupLimit` / `genai` / `rubytee`（lookup と同じ。参加後に先生が変えた値もここで届く）を含む |
 | `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。課題が非 active なら 404。任意の `screenshotLabels`（各ブロック画像のスプライト名の配列・`screenshotCount` 以下・各100文字以内・Issue #1239）を保存する |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
-| `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。`startFromPrevious`（未設定は false）と `peerView`（未設定は `none`）も返す（`assignment: null` のときも）。lookup / join / verify-session は `hasAssignment` フラグを返す。`lesson`（レッスンの設定・無ければ `null`）も返す（ページもスターターも無いレッスンだけの課題でも返す）。課題一覧・課題詳細は `hasLesson` を返す |
+| `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。`startFromPrevious`（未設定は false）と `peerView`（未設定は `none`）も返す（`assignment: null` のときも）。lookup / join / verify-session は `hasAssignment` フラグを返す。`lesson`（レッスンの設定・無ければ `null`）も返す（ページもスターターも無いレッスンだけの課題でも返す）。課題一覧・課題詳細・複製（duplicate）とみんなの課題の取り込みのレスポンスは `hasLesson` を返す |
 | `GET` | `/classrooms/{id}/continuable-submissions` | Session Token | 続きに使える提出物（Issue #1201）。`{current, previous, startFromPrevious}` を返す（`startFromPrevious` は課題の設定・Issue #1202）。`current` = この課題での自分の席の提出物、`previous` = 同じクラスのこの課題より前に作られた課題（最大3回分遡る）での同じ席番号の提出物。各要素は `{classroomId, assignmentName, projectName, submittedAt, projectUrl}`（`projectUrl` は project.sb3 の Presigned GET URL）か `null`。TTL 切れの提出物・課題、project.sb3 の無い記録は返さない。パスの課題とセッションの課題が違えば 401、課題が非 active なら 404 |
-| `PUT` | `/classrooms/{id}/lesson-progress` | Session Token | レッスンの進み具合を送る（EPIC #1592）。その席・その課題の 1 件をまとめて送る: `{challenges?: {<challengeId>: {completedAt, before?}}, current?: {challengeId, openedAt} \| null}`。サーバーはマージする — 課題の対象外のチャレンジは捨てる・保存済みの「できた」は消さず、時刻も `before` も変えない（あとから来た記録で上書きしない）・`current` は送ったときだけ変える（`null` で外す。対象外のチャレンジは無視）・未来の日時は今に丸める。変わらない送信は書き込まない（`{}` を送ると今の記録を返す）。レスポンスはマージ後の 1 件（`GET` の `progress` の要素と同じ形）。ID の形の違い・日時でない値・101 件以上は 400。席ごとに 1 分 20 回まで（超えると 400）。レッスンの無い課題は 400、非 active・TTL 切れは 404、パスの課題とセッションの課題が違えば 401。同じ席の同時送信は `version` で楽観ロックし、読み直して最大 3 回試す（だめなら 409） |
+| `PUT` | `/classrooms/{id}/lesson-progress` | Session Token | レッスンの進み具合を送る（EPIC #1592）。その席・その課題の 1 件をまとめて送る: `{challenges?: {<challengeId>: {completedAt, before?}}, current?: {challengeId, openedAt} \| null}`。サーバーはマージする — 課題の対象外のチャレンジは捨てる・保存済みの「できた」は消さず、時刻も `before` も変えない（あとから来た記録で上書きしない）・`current` は送ったときだけ変える（`null` で外す。対象外のチャレンジは無視）・未来の日時は今に丸める。変わらない送信は書き込まない（はじめてでも中身が空なら行を作らない。`{}` を送ると今の記録を返し、まだ無ければ空の記録 `{challenges: {}, current: null, updatedAt: null}` を返す）。席に別の生徒が座ったあと（kick・退出のあと別の人が参加）は、前の人の行に重ねずに作り直す。レスポンスはマージ後の 1 件（`GET` の `progress` の要素と同じ形）。ID の形の違い・日時でない値・101 件以上は 400。席ごとに 1 分 20 回まで（超えると 400）。レッスンの無い課題は 400、非 active・TTL 切れは 404、パスの課題とセッションの課題が違えば 401。同じ席の同時送信は `version` で楽観ロックし、読み直して最大 3 回試す（だめなら 409） |
 | `GET` | `/classrooms/{id}/peer-submissions` | Session Token | 他者参照（Issue #1239）。同じ課題の提出済みクラスメイトを `{peerView, submissions: [{seatNumber, submittedAt, thumbnailUrl, screenshotUrls, screenshotLabels}]}` で席番号順に返す（URL は Presigned GET・`screenshotLabels` は無ければ `null`）。**`.sb3` の URL・ニックネーム・作品名・先生のコメントは返さない**。自分・先生が `hiddenFromPeers` にした提出・TTL 切れは除く。`peerView` が `none` なら 403 `{reason:'peer-view-off'}`、`afterSubmit` で自分が未提出なら 403 `{reason:'not-submitted'}`。パスの課題とセッションの課題が違えば 401、課題が非 active なら 404 |
 
 ### Google Classroom 連携 (ID Token + Access Token)
@@ -491,13 +491,16 @@ erDiagram
         map challenges "{<challengeId>: {completedAt: ISO8601, before: boolean}}。before = 課題の前から（端末の記録から）できていた"
         map current "いまやっているチャレンジ {challengeId, openedAt} または null"
         number version "楽観ロックの版（書くたびに +1）"
+        string occupantJoinedAt "この行を書いた生徒の参加時刻（ClassroomMemberships の joinedAt）。席の生徒が変わったかを見分ける"
         string updatedAt "ISO8601"
         number ttl "課題（Classrooms）の ttl を写す"
     }
 ```
 
 - 席 × 課題で 1 件。生徒の 1 回の送信が 1 回の書き込みになる（D8: 40 人 × 11 チャレンジ × 2 回 ≒ 授業 1 回で 880 書き込みまで。変わらない送信は書かない）
-- 席が退出・kick されても消さない（提出と同じく課題に属する記録）。課題のアーカイブ中は送れない（読み出しは先生だけ）
+- 席が退出・kick されても消さない（提出と同じく課題に属する記録）。ただし**席の生徒が変わったら引き継がない**: 行に書いた生徒の `occupantJoinedAt`（参加時刻）を持たせ、送ってきたセッションの参加時刻と違えば前の行に重ねずに作り直す。先生の一覧は、いま別の生徒が座っている席の前の人の行を出さない（空いた席・kick された席は最後の人の行を出す）。同じ生徒でも退出して参加し直すと参加時刻が変わるので作り直しになる（端末の記録から送り直す前提・D9）
+- 課題のアーカイブ中は送れない（読み出しは先生だけ）
+- **進み具合は生徒の端末の自己申告**。サーバーはコースの中身を知らないので、「できた」が本当かは確かめられない（Session Token を持つ生徒は、自分の席について課題のチャレンジを全部「できた」にできる）。評価・得点に使うときは、作品の提出や先生の確認を裏付けにする
 - 期限は課題の TTL を写すので、課題と一緒に消え、削除スナップショット・復元 CLI の対象にもなる
 
 ### レッスンの設定（`lesson`）

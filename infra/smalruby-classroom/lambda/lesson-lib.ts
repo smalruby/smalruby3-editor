@@ -240,6 +240,10 @@ export function validateLessonProgressInput(body: Record<string, unknown>, nowMs
   return { challenges, current };
 }
 
+// `challenges` は通常のオブジェクトなので、`constructor` のような ID は in / [] だと
+// Object.prototype のものに当たる。自分の項目かどうかは必ずこれで見る。
+const hasOwn = (obj: object, key: string): boolean => Object.prototype.hasOwnProperty.call(obj, key);
+
 const sameCurrent = (a: CurrentChallenge | null, b: CurrentChallenge | null): boolean =>
   a === b || (!!a && !!b && a.challengeId === b.challengeId && a.openedAt === b.openedAt);
 
@@ -250,6 +254,7 @@ const sameCurrent = (a: CurrentChallenge | null, b: CurrentChallenge | null): bo
  * - 既にできた記録は変えない（できた時刻を過去にも未来にも動かさない・`before` も変えない）。
  * - 保存されている記録は、送られなくても・課題から外されても消さない（先生が戻したときに見える）。
  * - current は送られたときだけ変える。対象外のチャレンジの current は無視する。
+ * - 保存値から何も変わらなければ changed=false（はじめてで中身が空のときも書かない）。
  * @param existing - 保存されている進み具合（はじめてなら null）
  * @param input - validateLessonProgressInput の結果
  * @param allowedIds - 課題の対象のチャレンジ ID
@@ -262,9 +267,9 @@ export function mergeLessonProgress(
 ): { progress: LessonProgress; changed: boolean } {
   const allowed = new Set(allowedIds);
   const challenges: Record<string, ChallengeProgress> = { ...(existing?.challenges || {}) };
-  let changed = !existing;
+  let changed = false;
   for (const [id, record] of Object.entries(input.challenges)) {
-    if (!allowed.has(id) || challenges[id]) continue;
+    if (!allowed.has(id) || hasOwn(challenges, id)) continue;
     challenges[id] = record;
     changed = true;
   }
@@ -277,6 +282,7 @@ export function mergeLessonProgress(
     current = input.current;
   }
   if (!sameCurrent(prevCurrent, current)) changed = true;
+  // はじめての送信でも、中身が空（{} や対象外だけ）なら空の行は書かない（D8）。
 
   return { progress: { challenges, current }, changed };
 }

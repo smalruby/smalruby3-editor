@@ -2150,7 +2150,9 @@ async function handleRejectKickRequest(
 
 // --- Session Token Auth ---
 
-export async function verifySessionToken(sessionToken: string): Promise<{ classroomId: string; memberId: string }> {
+export async function verifySessionToken(
+  sessionToken: string,
+): Promise<{ classroomId: string; memberId: string; joinedAt?: string }> {
   const result = await docClient.send(new QueryCommand({
     TableName: MEMBERSHIPS_TABLE,
     IndexName: 'sessionToken-index',
@@ -2174,7 +2176,12 @@ export async function verifySessionToken(sessionToken: string): Promise<{ classr
       (item.kickSeatNumber as number) || 0,
     );
   }
-  return { classroomId: item.classroomId as string, memberId: item.memberId as string };
+  return {
+    classroomId: item.classroomId as string,
+    memberId: item.memberId as string,
+    // Who sits in the seat now (#1597): a new join on the same seat gets a new joinedAt.
+    ...(typeof item.joinedAt === 'string' ? { joinedAt: item.joinedAt } : {}),
+  };
 }
 
 /**
@@ -4145,6 +4152,7 @@ async function handleDuplicateClassroom(
       topic: topic || null,
       sortDate: now,
       hasAssignment: !!assignment,
+      hasLesson: lessonSettingOf(source) !== null,
       meshGroupLimit: meshGroupLimitOf(source),
       status: 'active',
       createdAt: now,
@@ -4555,6 +4563,15 @@ function checkLessonProgressRateLimit(key: string): void {
   }
 }
 
+/**
+ * Whether a progress row belongs to the student now in the seat. Rows store
+ * the occupant's membership joinedAt; rows without it are treated as the
+ * occupant's (none exist outside tests, but never hide data on a missing field).
+ */
+function isSameOccupant(row: Record<string, unknown>, joinedAt: string): boolean {
+  return typeof row.occupantJoinedAt !== 'string' || row.occupantJoinedAt === joinedAt;
+}
+
 /** The response / list shape of one progress record. */
 function mapLessonProgress(item: Record<string, unknown> | undefined, memberId: string) {
   return {
@@ -4567,7 +4584,7 @@ function mapLessonProgress(item: Record<string, unknown> | undefined, memberId: 
 }
 
 async function handleUpsertLessonProgress(
-  classroomId: string, memberId: string, body: Record<string, unknown>,
+  classroomId: string, memberId: string, occupantJoinedAt: string, body: Record<string, unknown>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   checkLessonProgressRateLimit(`${classroomId}#${memberId}`);
   const input = validateLessonProgressInput(body, Date.now());
@@ -4594,7 +4611,10 @@ async function handleUpsertLessonProgress(
       ConsistentRead: true,
     }));
     const existing = existingResult.Item;
-    const stored = existing ? mapLessonProgress(existing, memberId) : null;
+    // A row written by an earlier occupant of this seat (kick / leave, then
+    // someone else joined) is not this student's: start afresh instead of merging.
+    const ownRow = existing && isSameOccupant(existing, occupantJoinedAt) ? existing : undefined;
+    const stored = ownRow ? mapLessonProgress(ownRow, memberId) : null;
     const { progress, changed } = mergeLessonProgress(
       stored ? { challenges: stored.challenges, current: stored.current } : null,
       input,
@@ -4602,7 +4622,7 @@ async function handleUpsertLessonProgress(
     );
     if (!changed) {
       // Nothing new (e.g. the class screen re-sending what it already sent): skip the write (D8).
-      return { statusCode: 200, body: JSON.stringify(mapLessonProgress(existing, memberId)) };
+      return { statusCode: 200, body: JSON.stringify(mapLessonProgress(ownRow, memberId)) };
     }
     const now = new Date().toISOString();
     const prevVersion = typeof existing?.version === 'number' ? existing.version : 0;
@@ -4612,6 +4632,7 @@ async function handleUpsertLessonProgress(
       challenges: progress.challenges,
       current: progress.current,
       version: prevVersion + 1,
+      occupantJoinedAt,
       updatedAt: now,
       // Expire with the assignment (TTL copied), like the other per-assignment rows.
       ...(typeof classroom.ttl === 'number' ? { ttl: classroom.ttl } : {}),
@@ -4653,8 +4674,26 @@ async function handleListLessonProgress(
     KeyConditionExpression: 'classroomId = :cid',
     ExpressionAttributeValues: { ':cid': classroomId },
   });
+  // Hide a row when someone else sits in that seat now (their own row replaces
+  // it on their first send). A seat left empty or kicked keeps showing the
+  // last occupant's progress — kick / leave never deletes it.
+  const members = await queryAll({
+    TableName: MEMBERSHIPS_TABLE,
+    KeyConditionExpression: 'classroomId = :cid',
+    ExpressionAttributeValues: { ':cid': classroomId },
+  });
+  const occupantBySeat = new Map<string, string>();
+  for (const m of members) {
+    if (m.kicked !== true && typeof m.memberId === 'string' && !isTtlExpired(m, nowSec)) {
+      occupantBySeat.set(m.memberId, typeof m.joinedAt === 'string' ? m.joinedAt : '');
+    }
+  }
   const progress = items
     .filter(item => !isTtlExpired(item, nowSec))
+    .filter(item => {
+      const occupant = occupantBySeat.get(item.memberId as string);
+      return occupant === undefined || isSameOccupant(item, occupant);
+    })
     .map(item => mapLessonProgress(item, item.memberId as string))
     .sort((a, b) => a.seatNumber - b.seatNumber);
 
@@ -5657,6 +5696,7 @@ async function importSharedItem(
       groupId,
       sortDate: now,
       hasAssignment: !!assignment,
+      hasLesson: lessonSettingOf(item) !== null,
       meshGroupLimit: DEFAULT_MESH_GROUP_LIMIT,
       status: 'active',
       createdAt: now,
@@ -6308,7 +6348,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       if (session.classroomId !== classroomId) {
         throw new AuthError('Session does not match this classroom');
       }
-      result = await handleUpsertLessonProgress(classroomId, session.memberId, body);
+      result = await handleUpsertLessonProgress(classroomId, session.memberId, session.joinedAt || '', body);
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+\/lesson-progress$/.test(path)) {
       // Teacher (ID token): every seat's progress in one assignment (#1597).

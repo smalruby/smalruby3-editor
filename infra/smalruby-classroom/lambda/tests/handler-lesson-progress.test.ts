@@ -78,9 +78,14 @@ interface Data {
   progress?: Row[];
   shared?: Row;
   group?: Row;
+  /** 送信するセッションの席に、いま座っている生徒の参加時刻。 */
+  joinedAt?: string;
+  memberships?: Row[];
 }
 
-const useData = ({ item, progress = [], shared, group }: Data) => {
+const JOINED = '2026-11-10T00:00:00.000Z';
+
+const useData = ({ item, progress = [], shared, group, joinedAt = JOINED, memberships = [] }: Data) => {
   mockSend.mockImplementation((cmd: { constructor: { name: string }; input: Record<string, any> }) => {
     const name = cmd.constructor.name;
     const input = cmd.input;
@@ -99,7 +104,10 @@ const useData = ({ item, progress = [], shared, group }: Data) => {
       return Promise.resolve({ Item: group });
     }
     if (name === 'QueryCommand' && input.IndexName === 'sessionToken-index') {
-      return Promise.resolve({ Items: [{ classroomId: 'c1', memberId: ME, sessionToken: SESSION }] });
+      return Promise.resolve({ Items: [{ classroomId: 'c1', memberId: ME, sessionToken: SESSION, joinedAt }] });
+    }
+    if (name === 'QueryCommand' && input.TableName === 'ClassroomMemberships') {
+      return Promise.resolve({ Items: memberships.filter(m => m.classroomId === input.ExpressionAttributeValues[':cid']) });
     }
     if (name === 'QueryCommand' && input.TableName === PROGRESS_TABLE) {
       return Promise.resolve({ Items: progress.filter(p => p.classroomId === input.ExpressionAttributeValues[':cid']) });
@@ -192,6 +200,7 @@ describe('assignment lesson setting', () => {
     expect(status).toBe(201);
     const puts = commands('PutCommand', 'Classrooms');
     expect(puts[0].input.Item.lesson).toEqual(lesson());
+    expect(JSON.parse((await handler(makeEvent('POST', '/classrooms/c1/duplicate', { classroomId: 'c1' }, DEV_TOKEN, {}))).body || '{}').hasLesson).toBe(true);
     expect(commands('PutCommand', PROGRESS_TABLE)).toHaveLength(0);
   });
 });
@@ -210,7 +219,7 @@ describe('PUT /classrooms/{id}/lesson-progress (student)', () => {
     expect(body.challenges).toEqual({ a1: { completedAt: '2026-11-10T02:00:00.000Z', before: true } });
     expect(body.current).toEqual({ challengeId: 'a2', openedAt: '2026-11-10T02:10:00.000Z' });
     const [put] = commands('PutCommand', PROGRESS_TABLE);
-    expect(put.input.Item).toMatchObject({ classroomId: 'c1', memberId: ME, ttl: CLASS_TTL, version: 1 });
+    expect(put.input.Item).toMatchObject({ classroomId: 'c1', memberId: ME, ttl: CLASS_TTL, version: 1, occupantJoinedAt: JOINED });
     expect(put.input.ConditionExpression).toBe('attribute_not_exists(memberId)');
   });
 
@@ -218,7 +227,7 @@ describe('PUT /classrooms/{id}/lesson-progress (student)', () => {
     useData({
       item: classroom({ lesson: lesson() }),
       progress: [{
-        classroomId: 'c1', memberId: ME, version: 4, ttl: CLASS_TTL,
+        classroomId: 'c1', memberId: ME, version: 4, ttl: CLASS_TTL, occupantJoinedAt: JOINED,
         challenges: { a1: { completedAt: '2026-11-10T02:00:00.000Z', before: false } },
         current: null, updatedAt: '2026-11-10T02:00:00.000Z',
       }],
@@ -241,7 +250,7 @@ describe('PUT /classrooms/{id}/lesson-progress (student)', () => {
     useData({
       item: classroom({ lesson: lesson() }),
       progress: [{
-        classroomId: 'c1', memberId: ME, version: 1, ttl: CLASS_TTL,
+        classroomId: 'c1', memberId: ME, version: 1, ttl: CLASS_TTL, occupantJoinedAt: JOINED,
         challenges: { a1: { completedAt: '2026-11-10T02:00:00.000Z', before: false } },
         current: null, updatedAt: '2026-11-10T02:00:00.000Z',
       }],
@@ -252,6 +261,73 @@ describe('PUT /classrooms/{id}/lesson-progress (student)', () => {
     expect(status).toBe(200);
     expect(body.updatedAt).toBe('2026-11-10T02:00:00.000Z');
     expect(commands('PutCommand', PROGRESS_TABLE)).toHaveLength(0);
+  });
+
+  test('はじめての {} は空の行を書かずに空の記録を返す', async () => {
+    useData({ item: classroom({ lesson: lesson() }) });
+    const { status, body } = await call('PUT', '/classrooms/c1/lesson-progress', SESSION, {});
+    expect(status).toBe(200);
+    expect(body).toEqual({ memberId: ME, seatNumber: 3, challenges: {}, current: null, updatedAt: null });
+    expect(commands('PutCommand', PROGRESS_TABLE)).toHaveLength(0);
+  });
+
+  test('はじめての送信が対象外のチャレンジだけなら書かない', async () => {
+    useData({ item: classroom({ lesson: lesson() }) });
+    await call('PUT', '/classrooms/c1/lesson-progress', SESSION, {
+      challenges: { other: { completedAt: '2026-11-10T02:00:00Z' } },
+    });
+    expect(commands('PutCommand', PROGRESS_TABLE)).toHaveLength(0);
+  });
+
+  test('席に別の生徒が座ったら、前の人の進み具合を引き継がず作り直す', async () => {
+    useData({
+      item: classroom({ lesson: lesson() }),
+      joinedAt: '2026-11-12T00:00:00.000Z',
+      progress: [{
+        classroomId: 'c1', memberId: ME, version: 7, ttl: CLASS_TTL, occupantJoinedAt: JOINED,
+        challenges: { a1: { completedAt: '2026-11-10T02:00:00.000Z', before: false } },
+        current: { challengeId: 'a3', openedAt: '2026-11-10T02:00:00.000Z' }, updatedAt: '2026-11-10T02:00:00.000Z',
+      }],
+    });
+    const { status, body } = await call('PUT', '/classrooms/c1/lesson-progress', SESSION, {
+      challenges: { a2: { completedAt: '2026-11-12T01:00:00Z' } },
+    });
+    expect(status).toBe(200);
+    expect(body.challenges).toEqual({ a2: { completedAt: '2026-11-12T01:00:00.000Z', before: false } });
+    expect(body.current).toBeNull();
+    const [put] = commands('PutCommand', PROGRESS_TABLE);
+    expect(put.input.Item.occupantJoinedAt).toBe('2026-11-12T00:00:00.000Z');
+    expect(put.input.Item.version).toBe(8);
+    expect(put.input.ConditionExpression).toBe('version = :prev');
+  });
+
+  test('席に別の生徒が座ったあとの {} は前の人の記録を返さない', async () => {
+    useData({
+      item: classroom({ lesson: lesson() }),
+      joinedAt: '2026-11-12T00:00:00.000Z',
+      progress: [{
+        classroomId: 'c1', memberId: ME, version: 1, ttl: CLASS_TTL, occupantJoinedAt: JOINED,
+        challenges: { a1: { completedAt: '2026-11-10T02:00:00.000Z', before: false } }, current: null, updatedAt: 'u',
+      }],
+    });
+    const { body } = await call('PUT', '/classrooms/c1/lesson-progress', SESSION, {});
+    expect(body.challenges).toEqual({});
+    expect(commands('PutCommand', PROGRESS_TABLE)).toHaveLength(0);
+  });
+
+  test('チャレンジ ID constructor も保存でき、__proto__ は 400', async () => {
+    useData({ item: classroom({ lesson: lesson({ challengeIds: ['constructor', 'a1'], requiredChallengeIds: [] }) }) });
+    const ok = await call('PUT', '/classrooms/c1/lesson-progress', SESSION, {
+      challenges: { constructor: { completedAt: '2026-11-10T02:00:00Z' } },
+    });
+    expect(ok.body.challenges).toEqual({ constructor: { completedAt: '2026-11-10T02:00:00.000Z', before: false } });
+    const res = await handler(makeEvent('PUT', '/classrooms/c1/lesson-progress', { classroomId: 'c1' }, SESSION, undefined));
+    expect(res.statusCode).toBe(200);
+    const bad = await handler({
+      ...makeEvent('PUT', '/classrooms/c1/lesson-progress', { classroomId: 'c1' }, SESSION),
+      body: '{"challenges":{"__proto__":{"completedAt":"2026-11-10T02:00:00Z"}}}',
+    });
+    expect(bad.statusCode).toBe(400);
   });
 
   test('ぶつかったら読み直して 1 回やり直す', async () => {
@@ -339,6 +415,26 @@ describe('GET /classrooms/{id}/lesson-progress (teacher)', () => {
     });
   });
 
+  test('席にいま別の生徒が座っている行（前の人の記録）は返さない', async () => {
+    useData({
+      item: classroom({ lesson: lesson() }),
+      memberships: [
+        { classroomId: 'c1', memberId: 'seat-01', joinedAt: 'J-new' },
+        { classroomId: 'c1', memberId: 'seat-02', joinedAt: 'J-same' },
+        { classroomId: 'c1', memberId: 'seat-04', joinedAt: 'J-kicked', kicked: true },
+      ],
+      progress: [
+        { classroomId: 'c1', memberId: 'seat-01', ttl: CLASS_TTL, occupantJoinedAt: 'J-old', challenges: {}, current: null, updatedAt: 'u1' },
+        { classroomId: 'c1', memberId: 'seat-02', ttl: CLASS_TTL, occupantJoinedAt: 'J-same', challenges: {}, current: null, updatedAt: 'u2' },
+        // 退出した生徒（席の行が無い）と kick された生徒の記録は残して見せる
+        { classroomId: 'c1', memberId: 'seat-03', ttl: CLASS_TTL, occupantJoinedAt: 'J-left', challenges: {}, current: null, updatedAt: 'u3' },
+        { classroomId: 'c1', memberId: 'seat-04', ttl: CLASS_TTL, occupantJoinedAt: 'J-kicked', challenges: {}, current: null, updatedAt: 'u4' },
+      ],
+    });
+    const { body } = await call('GET', '/classrooms/c1/lesson-progress', DEV_TOKEN);
+    expect(body.progress.map((p: Row) => p.seatNumber)).toEqual([2, 3, 4]);
+  });
+
   test('生徒のセッショントークンでは見られない', async () => {
     useData({ item: classroom({ lesson: lesson() }) });
     const { status } = await call('GET', '/classrooms/c1/lesson-progress', SESSION);
@@ -372,8 +468,9 @@ describe('みんなの課題とレッスンの設定', () => {
       shared: { sharedId: 's1', status: 'published', visibility: 'public', title: 'L', content: { pages: [] }, lesson: lesson() },
       group: { groupId: 'g1', teacherSub: 'dev-test-teacher', name: '2年1組', studentCount: 30, status: 'active' },
     });
-    const { status } = await call('POST', '/shared-assignments/s1/import', DEV_TOKEN, { groupId: 'g1' }, { sharedId: 's1' });
+    const { status, body } = await call('POST', '/shared-assignments/s1/import', DEV_TOKEN, { groupId: 'g1' }, { sharedId: 's1' });
     expect(status).toBe(201);
+    expect(body.hasLesson).toBe(true);
     const [put] = commands('PutCommand', 'Classrooms');
     expect(put.input.Item.lesson).toEqual(lesson());
   });

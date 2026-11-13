@@ -243,6 +243,22 @@ describe('mergeLessonProgress', () => {
     expect(moved.progress.current).toEqual({ challengeId: 'a2', openedAt: '2026-11-15T02:30:00.000Z' });
   });
 
+  test('はじめてでも中身が空なら changed=false（空の行を書かない）', () => {
+    expect(mergeLessonProgress(null, { challenges: {}, current: undefined }, allowed).changed).toBe(false);
+    expect(mergeLessonProgress(null, { challenges: {}, current: null }, allowed).changed).toBe(false);
+    expect(mergeLessonProgress(null, {
+      challenges: { other: { completedAt: '2026-11-15T02:00:00.000Z', before: false } }, current: undefined,
+    }, allowed).changed).toBe(false);
+  });
+
+  test('ID constructor も「まだ」と判定する（own property だけを見る）', () => {
+    const { progress, changed } = mergeLessonProgress(null, {
+      challenges: { constructor: { completedAt: '2026-11-15T02:00:00.000Z', before: false } }, current: undefined,
+    }, ['constructor']);
+    expect(changed).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(progress.challenges, 'constructor')).toBe(true);
+  });
+
   test('同じ内容の送信は changed=false（書き込みを省く）', () => {
     const existing = {
       challenges: { a1: { completedAt: '2026-11-15T02:00:00.000Z', before: false } },
