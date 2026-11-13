@@ -9,7 +9,7 @@
  *   'keep' — keep the server-side starter as-is
  *   'new'  — upload a new starter on save (from the open project or a file)
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import classroomAPI from '../lib/classroom-api.js';
 import {
@@ -21,6 +21,21 @@ import {
     normalizePeerView,
     validateEditorPages,
 } from '../lib/classroom-assignment-utils.js';
+import {
+    autoDescriptionPages,
+    buildLessonDescription,
+    firstLessonDraft,
+    overwriteDescriptionPages,
+    pagesAreEmpty,
+    shouldAskOverwrite,
+} from '../lib/classroom-lesson-description.js';
+import {
+    buildLessonPayload,
+    lessonChanges,
+    lessonDraftFromSaved,
+    validateLessonDraft,
+} from '../lib/classroom-lesson-settings.js';
+import { findCourse } from '../lib/lessons/courses.js';
 import translateError from './classroom-error-utils.js';
 
 const messages = defineMessages({
@@ -43,6 +58,16 @@ const messages = defineMessages({
         defaultMessage: 'Failed to save the current project as starter',
         description: 'Assignment editor error: vm.saveProjectSb3 failed',
         id: 'gui.classroom.assignmentEditor.errorStarterSave',
+    },
+    lessonUnknownCourse: {
+        defaultMessage: 'The course of the lesson is not available. Choose another course or "Don\'t use lessons".',
+        description: 'Assignment editor error: the lesson course does not exist in this version',
+        id: 'gui.classroom.assignmentEditor.errorLessonUnknownCourse',
+    },
+    lessonNoChallenges: {
+        defaultMessage: 'Choose at least one challenge for the lesson.',
+        description: 'Assignment editor error: a course is chosen but no challenge is selected',
+        id: 'gui.classroom.assignmentEditor.errorLessonNoChallenges',
     },
     templateOverwriteConfirm: {
         defaultMessage: 'Replace the current pages with the template?',
@@ -105,6 +130,27 @@ const useTeacherAssignment = ({
     // right after a save.
     const [savedStartFromPrevious, setSavedStartFromPrevious] = useState(false);
     const [savedPeerView, setSavedPeerView] = useState('none');
+    // Lesson settings (#1598): the editor draft (null = no lesson) and the
+    // stored `lesson` field, to mark unsaved changes and to send `lesson`
+    // only when it changed (an unchanged one — even of a course this version
+    // does not know — is kept by omitting it).
+    const [lessonDraft, setLessonDraft] = useState(null);
+    const [savedLesson, setSavedLesson] = useState(null);
+    // The lesson description (#1780): the assignment created with
+    // ［＋ 作成 ▾］→「レッスン」 (its id until its editor is loaded), whether the
+    // lesson panel should open by itself, whether the lesson was changed while
+    // the panel was open, and the in-page「上書きしますか？」question.
+    const lessonStartIdRef = useRef(null);
+    const [lessonPanelAutoOpen, setLessonPanelAutoOpen] = useState(false);
+    const lessonTouchedRef = useRef(false);
+    // The description the teacher answered［いいえ］to: not asked again.
+    const declinedDescriptionRef = useRef(null);
+    const [descriptionQuestion, setDescriptionQuestion] = useState(false);
+    const describe = useCallback(
+        (draft) =>
+            buildLessonDescription({ course: draft && findCourse(draft.courseId), draft, locale: intl.locale }),
+        [intl.locale],
+    );
 
     /** Release blob preview URLs to avoid leaking object URLs. */
     const releasePreviews = useCallback((pages) => {
@@ -116,6 +162,11 @@ const useTeacherAssignment = ({
     /** Load the saved assignment content into the editor state (no phase change). */
     const loadAssignmentEditor = useCallback(async () => {
         if (!selectedClassroom) return;
+        // ［＋ 作成 ▾］→「レッスン」is used by the first load of that assignment
+        // only; any load (another assignment, or one that fails) drops it so
+        // it never fires later by surprise (#1785 FYI3).
+        const startLesson = lessonStartIdRef.current === selectedClassroom.classroomId;
+        lessonStartIdRef.current = null;
         clearError();
         setIsLoading(true);
         try {
@@ -126,7 +177,7 @@ const useTeacherAssignment = ({
                 imageKey: page.imageKey || null,
                 imageUrl: page.imageUrl || null,
             }));
-            setEditorPages(pages.length > 0 ? pages : [{ text: '' }]);
+            let loadedPages = pages.length > 0 ? pages : [{ text: '' }];
             const hasStarter = !!assignment?.starterKey;
             setHasExistingStarter(hasStarter);
             setStarterMode(hasStarter ? 'keep' : 'none');
@@ -135,6 +186,24 @@ const useTeacherAssignment = ({
             setPeerView(normalizePeerView(data.peerView));
             setSavedStartFromPrevious(data.startFromPrevious === true);
             setSavedPeerView(normalizePeerView(data.peerView));
+            setSavedLesson(data.lesson || null);
+            // Challenges the course no longer has are left out (#1765 FYI2).
+            let draft = lessonDraftFromSaved(data.lesson || null, data.lesson && findCourse(data.lesson.courseId));
+            // ［＋ 作成 ▾］→「レッスン」(#1780): the new assignment starts with the
+            // first lesson chosen (not saved yet) and its description in the
+            // empty page, and the lesson panel opens.
+            if (startLesson && !draft) {
+                draft = firstLessonDraft();
+                if (draft && pagesAreEmpty(loadedPages)) {
+                    loadedPages = overwriteDescriptionPages(loadedPages, describe(draft));
+                }
+            }
+            setEditorPages(loadedPages);
+            setLessonDraft(draft);
+            setLessonPanelAutoOpen(startLesson && Boolean(draft));
+            lessonTouchedRef.current = false;
+            declinedDescriptionRef.current = null;
+            setDescriptionQuestion(false);
         } catch (err) {
             if (err.status === 401) {
                 handleTeacher401();
@@ -144,7 +213,7 @@ const useTeacherAssignment = ({
         } finally {
             setIsLoading(false);
         }
-    }, [idToken, selectedClassroom, clearError, showError, intl, setIsLoading, setPhase, handleTeacher401]);
+    }, [idToken, selectedClassroom, clearError, showError, intl, setIsLoading, setPhase, handleTeacher401, describe]);
 
     // The description tab is the detail view's default — keep the editor
     // in sync with the opened assignment.
@@ -280,6 +349,57 @@ const useTeacherAssignment = ({
         setMeshGroupLimit(normalizeMeshGroupLimit(value));
     }, []);
 
+    // The description in the page follows the lesson while the page is empty
+    // or still holds the generated text; pages the teacher wrote are only
+    // replaced after［はい］(handleLessonPanelClose).
+    const handleChangeLesson = useCallback(
+        (draft) => {
+            const next = draft || null;
+            const previousText = describe(lessonDraft);
+            const nextText = describe(next);
+            setEditorPages((pages) => autoDescriptionPages(pages, previousText, nextText) || pages);
+            setLessonDraft(next);
+            // Only a change of the description itself is worth asking about
+            // (scoring etc. does not change it · #1785 Q2).
+            if (previousText !== nextText) lessonTouchedRef.current = true;
+            setDescriptionQuestion(false);
+        },
+        [describe, lessonDraft],
+    );
+
+    /** Closing the lesson panel (✕・外・Escape) asks about overwriting the page. */
+    const handleLessonPanelClose = useCallback(() => {
+        const touched = lessonTouchedRef.current;
+        lessonTouchedRef.current = false;
+        if (touched && shouldAskOverwrite(editorPages, describe(lessonDraft), declinedDescriptionRef.current)) {
+            setDescriptionQuestion(true);
+        }
+    }, [editorPages, describe, lessonDraft]);
+
+    const handleAnswerDescriptionQuestion = useCallback(
+        (overwrite) => {
+            setDescriptionQuestion(false);
+            const text = describe(lessonDraft);
+            if (!overwrite) {
+                declinedDescriptionRef.current = text;
+                return;
+            }
+            if (text) setEditorPages((pages) => overwriteDescriptionPages(pages, text));
+        },
+        [describe, lessonDraft],
+    );
+
+    const handleLessonPanelAutoOpened = useCallback(() => setLessonPanelAutoOpen(false), []);
+
+    /**
+     * ［＋ 作成 ▾］→「レッスン」: remember the new assignment so its editor
+     * starts with the first lesson when it is loaded.
+     * @param {string} classroomId - the new assignment
+     */
+    const requestLessonStart = useCallback((classroomId) => {
+        lessonStartIdRef.current = classroomId || null;
+    }, []);
+
     const handleRemoveStarter = useCallback(() => {
         setStarterMode('none');
         setStarterSource(null);
@@ -293,6 +413,18 @@ const useTeacherAssignment = ({
                 intl.formatMessage(messages[validation.error], {
                     page: (validation.pageIndex ?? 0) + 1,
                 }),
+            );
+            return;
+        }
+        const lessonChanged = lessonChanges(lessonDraft, savedLesson).any;
+        const lessonError = lessonChanged
+            ? validateLessonDraft(lessonDraft, lessonDraft && findCourse(lessonDraft.courseId))
+            : null;
+        if (lessonError) {
+            showError(
+                intl.formatMessage(
+                    lessonError === 'unknownCourse' ? messages.lessonUnknownCourse : messages.lessonNoChallenges,
+                ),
             );
             return;
         }
@@ -316,6 +448,7 @@ const useTeacherAssignment = ({
             }
 
             const payload = buildAssignmentPayload(editorPages, starterMode, startFromPrevious, peerView);
+            if (lessonChanged) payload.lesson = buildLessonPayload(lessonDraft);
             const result = await classroomAPI.setAssignment(idToken, selectedClassroom.classroomId, payload);
 
             // Upload newly attached images / starter to the presigned URLs.
@@ -341,6 +474,14 @@ const useTeacherAssignment = ({
                 );
             }
             await Promise.all(uploads);
+
+            // The members / progress tabs fetch lesson progress only for lesson
+            // assignments (#1602): follow a lesson that was just added or removed.
+            if (lessonChanged && setSelectedClassroom) {
+                const hasLesson = Boolean(payload.lesson);
+                const { classroomId } = selectedClassroom;
+                setSelectedClassroom((c) => (c && c.classroomId === classroomId ? { ...c, hasLesson } : c));
+            }
 
             if (meshGroupLimit !== normalizeMeshGroupLimit(selectedClassroom.meshGroupLimit)) {
                 const { classroomId } = selectedClassroom;
@@ -373,6 +514,8 @@ const useTeacherAssignment = ({
         startFromPrevious,
         peerView,
         meshGroupLimit,
+        lessonDraft,
+        savedLesson,
         vm,
         clearError,
         showError,
@@ -394,6 +537,8 @@ const useTeacherAssignment = ({
         peerView,
         meshGroupLimit,
         savedSettings,
+        lessonDraft,
+        savedLesson,
         loadAssignmentEditor,
         handleAddPage,
         handleRemovePage,
@@ -407,8 +552,15 @@ const useTeacherAssignment = ({
         handleChangeStartFromPrevious,
         handleChangePeerView,
         handleChangeMeshGroupLimit,
+        handleChangeLesson,
         handleSaveAssignment,
         handleApplyTemplate,
+        lessonPanelAutoOpen,
+        descriptionQuestion,
+        handleLessonPanelClose,
+        handleLessonPanelAutoOpened,
+        handleAnswerDescriptionQuestion,
+        requestLessonStart,
     };
 };
 

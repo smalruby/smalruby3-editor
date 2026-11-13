@@ -64,6 +64,8 @@ const collectMessages = () => {
     const messages = [];
     COURSES.forEach((course) => {
         messages.push(course.name);
+        // #1780: the course description goes into assignment pages
+        messages.push(course.description);
         course.lessons.forEach((lesson) => {
             messages.push(lesson.name);
             lesson.challenges.forEach((challenge) => {

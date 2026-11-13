@@ -124,6 +124,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onConfirmGoogleImport,
         onUpdateAssignmentName,
         kickRequestsBySeat,
+        lessonProgress,
         onApproveKickRequest,
         onRejectKickRequest,
         assignmentEditorPages,
@@ -135,6 +136,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         assignmentPeerView,
         assignmentMeshGroupLimit,
         assignmentSavedSettings,
+        assignmentLessonDraft,
+        assignmentSavedLesson,
         onAssignmentAddPage,
         onAssignmentRemovePage,
         onAssignmentMovePage,
@@ -147,6 +150,12 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onAssignmentChangeStartFromPrevious,
         onAssignmentChangePeerView,
         onAssignmentChangeMeshGroupLimit,
+        onAssignmentChangeLesson,
+        assignmentLessonPanelAutoOpen,
+        assignmentDescriptionQuestion,
+        onAssignmentLessonPanelClose,
+        onAssignmentLessonPanelAutoOpened,
+        onAssignmentAnswerDescriptionQuestion,
         onAssignmentSave,
         groups,
         teacherEmail,
@@ -301,12 +310,17 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         evalLessons={evaluation.evalLessons}
                         evalProgress={evaluation.evalProgress}
                         getCell={evaluation.getCell}
+                        lessonScores={evaluation.lessonScores}
                         rubricAxes={evaluation.rubricAxes}
+                        scoringChecked={evaluation.scoringChecked}
+                        scoringSavingId={evaluation.scoringSavingId}
                         seats={evaluation.seats}
                         selectedLessonIds={evaluation.selectedLessonIds}
                         strictness={evaluation.strictness}
                         onBack={evaluation.handleBackFromEvaluation}
+                        onChangeLessonScoring={evaluation.handleChangeLessonScoring}
                         onChangeRubricAxis={evaluation.handleChangeRubricAxis}
+                        onCheckScoring={evaluation.handleCheckScoring}
                         onExportAuditCsv={evaluation.handleExportAuditCsv}
                         onExportEvaluationCsv={evaluation.handleExportEvaluationCsv}
                         onLoadSubmissions={evaluation.handleLoadSubmissions}
@@ -353,6 +367,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             peerView: assignmentPeerView,
                             meshGroupLimit: assignmentMeshGroupLimit,
                             savedSettings: assignmentSavedSettings,
+                            lessonDraft: assignmentLessonDraft,
+                            savedLesson: assignmentSavedLesson,
                             onAddPage: onAssignmentAddPage,
                             onAttachPageImage: onAssignmentAttachPageImage,
                             onChangePageText: onAssignmentChangePageText,
@@ -363,6 +379,12 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             onChangeStartFromPrevious: onAssignmentChangeStartFromPrevious,
                             onChangePeerView: onAssignmentChangePeerView,
                             onChangeMeshGroupLimit: onAssignmentChangeMeshGroupLimit,
+                            onChangeLesson: onAssignmentChangeLesson,
+                            lessonPanelAutoOpen: assignmentLessonPanelAutoOpen,
+                            descriptionQuestion: assignmentDescriptionQuestion,
+                            onLessonPanelClose: onAssignmentLessonPanelClose,
+                            onLessonPanelAutoOpened: onAssignmentLessonPanelAutoOpened,
+                            onAnswerDescriptionQuestion: onAssignmentAnswerDescriptionQuestion,
                             onSave: onAssignmentSave,
                             onUseCurrentProject: onAssignmentUseCurrentProject,
                             onUseFile: onAssignmentUseFile,
@@ -379,6 +401,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         isLoading={isLoading}
                         isVerifyingGoogleCourseAccess={isVerifyingGoogleCourseAccess}
                         kickRequestsBySeat={kickRequestsBySeat}
+                        lessonProgress={lessonProgress}
                         members={members}
                         noBackButton
                         selectedClassroom={selectedClassroom}

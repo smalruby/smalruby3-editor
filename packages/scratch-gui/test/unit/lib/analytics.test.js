@@ -83,4 +83,26 @@ describe('analytics (GA4 dataLayer wrapper)', () => {
         }
         expect(window.dataLayer).toEqual(cases.map((c) => ({ event: c.category, action: c.action, label: c.label })));
     });
+
+    test('pushes extra params as data layer variables (lessons: page / seconds)', () => {
+        analytics.event({ category: 'lessons', action: 'hint_view', label: 'c1', page: 2, seconds: 15 });
+        expect(window.dataLayer).toEqual([
+            { event: 'lessons', action: 'hint_view', label: 'c1', page: 2, seconds: 15 },
+        ]);
+    });
+
+    test('extra params cannot overwrite the event name', () => {
+        analytics.event({ category: 'lessons', action: 'a', label: 'l', event: 'other' });
+        expect(window.dataLayer[0].event).toBe('lessons');
+    });
+
+    test('resets extra keys of an earlier event on later events (GTM keeps the last value)', () => {
+        analytics.event({ category: 'lessons', action: 'hint_view', label: 'c1', page: 2, seconds: 15 });
+        analytics.event({ category: 'ruby_tab', action: 'open', label: 'x' });
+        const later = window.dataLayer[1];
+        expect(Object.keys(later)).toEqual(expect.arrayContaining(['page', 'seconds']));
+        expect(later.page).toBeUndefined();
+        expect(later.seconds).toBeUndefined();
+        expect(later.event).toBe('ruby_tab');
+    });
 });

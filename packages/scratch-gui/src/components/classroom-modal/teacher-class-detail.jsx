@@ -3,14 +3,27 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import { sanitizeEntryName } from '../../lib/classroom-download-utils.js';
 import {
     canVerifyGoogleShare,
     googleShareBlockedMessage,
     googleShareVerdict,
     isGoogleShareBlocked,
 } from '../../lib/classroom-google-share.js';
+import {
+    SEAT_STATES,
+    buildLessonProgressCsv,
+    clearedSummary,
+    lessonProgressContext,
+    progressRowsByMember,
+    progressTableRows,
+    seatMemberId,
+    seatTile,
+} from '../../lib/classroom-lesson-progress.js';
+import { seatChallengeDetails } from '../../lib/classroom-lesson-summary.js';
 import { isMemberSeated } from '../../lib/classroom-presence.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
+import { findCourse } from '../../lib/lessons/courses.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
 import ClassCodeDisplay from './class-code-display.jsx';
@@ -22,8 +35,47 @@ import ClassroomStatusIcon, {
     getSubmissionStatus,
 } from './classroom-status-icon.jsx';
 import ErrorDisplay from './error-display.jsx';
+import LessonSeatTile, { lessonSeatMessages } from './lesson-seat-tile.jsx';
+import { formatCompletionSentence } from './lesson-settings-field.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
+import TeacherLessonProgress from './teacher-lesson-progress.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
+
+// Lesson assignments (#1602): the seat colour shows the lesson progress, so
+// the legend lists presence and leave requests (+ submission when work is
+// submitted too); 「未参加」 is in the colour legend.
+const LESSON_LEGEND_STATUSES = ['seated', 'notSeated', 'kickRequested'];
+const LESSON_SUBMIT_LEGEND_STATUSES = [
+    'seated',
+    'notSeated',
+    'submitted',
+    'notSubmitted',
+    'returned',
+    'kickRequested',
+];
+
+const LESSON_TILE_CLASSES = {
+    [SEAT_STATES.NOT_JOINED]: 'lessonSeatNotJoined',
+    [SEAT_STATES.NOT_STARTED]: 'lessonSeatNotStarted',
+    [SEAT_STATES.IN_PROGRESS]: 'lessonSeatInProgress',
+    [SEAT_STATES.CLEARED]: 'lessonSeatCleared',
+};
+
+/**
+ * Save a CSV text as a file.
+ * @param {string} text - CSV text
+ * @param {string} fileName - file name
+ */
+const downloadCsv = (text, fileName) => {
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
 
 const MEMBER_LEGEND_STATUSES = [
     'seated',
@@ -72,6 +124,7 @@ const TeacherClassDetail = ({
     codeDisplayClassroom,
     codeDisplayFullscreen,
     kickRequestsBySeat,
+    lessonProgress,
     onApproveKickRequest,
     onRejectKickRequest,
     onDetailTabChange,
@@ -96,6 +149,10 @@ const TeacherClassDetail = ({
     const handleDescChangeStartFromPrevious = descEditor.onChangeStartFromPrevious;
     const handleDescChangePeerView = descEditor.onChangePeerView;
     const handleDescChangeMeshGroupLimit = descEditor.onChangeMeshGroupLimit;
+    const handleDescChangeLesson = descEditor.onChangeLesson;
+    const handleDescLessonPanelClose = descEditor.onLessonPanelClose;
+    const handleDescLessonPanelAutoOpened = descEditor.onLessonPanelAutoOpened;
+    const handleDescAnswerDescriptionQuestion = descEditor.onAnswerDescriptionQuestion;
     const handleDescSave = descEditor.onSave;
     const handleDescUseCurrentProject = descEditor.onUseCurrentProject;
     const handleDescUseFile = descEditor.onUseFile;
@@ -308,6 +365,56 @@ const TeacherClassDetail = ({
     const joinedCount = members.filter((m) => !m.left).length;
     const totalCount = selectedClassroom.studentCount;
 
+    // Lesson progress (#1602). The fetched response carries the assignment's
+    // current lesson settings; before it arrives, the stored ones of the
+    // description editor tell whether this is a lesson assignment.
+    const fetchedProgress =
+        lessonProgress && lessonProgress.classroomId === selectedClassroom.classroomId ? lessonProgress : null;
+    // The first fetch failed: there is no progress to show yet (#1767 M2).
+    const progressError = Boolean(fetchedProgress && fetchedProgress.error);
+    const progressData = fetchedProgress && !progressError ? fetchedProgress : null;
+    const lesson = (progressData ? progressData.lesson : descEditor.savedLesson) || null;
+    // Until the first fetch, show 読み込み中 instead of grey 「0 / n」 seats.
+    const progressLoading = Boolean(lesson) && !fetchedProgress;
+    // Each refresh returns a new `lesson` object: rebuild the context only
+    // when its contents change (#1767 FYI1).
+    const lessonKey = lesson ? JSON.stringify(lesson) : '';
+    const lessonCtx = React.useMemo(
+        () => (lesson ? lessonProgressContext(lesson, findCourse(lesson.courseId)) : null),
+        [lessonKey],
+    );
+    const rowsByMember = React.useMemo(() => progressRowsByMember(progressData), [progressData]);
+    // Recomputed on each refresh (every 30 s), so ▶ / ! follow the clock.
+    const progressNow = React.useMemo(() => Date.now(), [fetchedProgress, members]);
+    const lessonTiles = React.useMemo(() => {
+        if (!lessonCtx || !progressData) return null;
+        return Array.from({ length: totalCount }, (_, i) => {
+            const memberId = seatMemberId(i + 1);
+            return seatTile(memberMap[memberId] || null, rowsByMember[memberId] || null, lessonCtx, progressNow);
+        });
+    }, [lessonCtx, progressData, totalCount, memberMap, rowsByMember, progressNow]);
+    const lessonSummary = lessonTiles ? clearedSummary(lessonTiles) : null;
+    const submitsWork = Boolean(lesson && lesson.submitWork);
+    // The seat detail on the right (#1603): one row per challenge of the setting.
+    const lessonDetail =
+        lessonCtx && progressData && !progressError && selectedMember
+            ? seatChallengeDetails(rowsByMember[selectedMember] || null, lessonCtx, progressNow)
+            : null;
+    const showProgressTab = Boolean(lesson);
+    // The progress tab needs the height for the table (#1767 M1): the
+    // assignment name (editable in the description tab) and the retention
+    // line fold away, the join code becomes one small line.
+    const compactHeader = activeTab === 'progress' && showProgressTab;
+
+    const handleDownloadProgressCsv = useCallback(() => {
+        if (!lessonCtx || !progressData) return;
+        const now = Date.now();
+        const rows = progressTableRows(members, rowsByMember, totalCount, lessonCtx, now);
+        const names = lessonCtx.columns.map((c) => intl.formatMessage(c.challenge.name));
+        const name = sanitizeEntryName(selectedClassroom.assignmentName || selectedClassroom.className);
+        downloadCsv(buildLessonProgressCsv(rows, rowsByMember, lessonCtx, names, now), `進み具合_${name}.csv`);
+    }, [lessonCtx, progressData, members, rowsByMember, totalCount, intl, selectedClassroom]);
+
     return (
         <div className={styles.detailLayout} data-testid="classroom-phase-teacher-detail">
             {showCodeDisplay ? (
@@ -344,102 +451,33 @@ const TeacherClassDetail = ({
                     <div className={styles.detailTwoPaneLayout}>
                         {/* Left pane */}
                         <div className={styles.detailLeftPane}>
-                            <div className={styles.teacherViewTitle} data-testid="classroom-detail-name">
+                            <div
+                                className={classNames(
+                                    styles.teacherViewTitle,
+                                    compactHeader && styles.compactHeaderTitle,
+                                )}
+                                data-testid="classroom-detail-name"
+                            >
                                 {group ? formatClassLabel(group) : selectedClassroom.className}
                             </div>
 
                             {/* 課題名（左）と参加コード（右）を均等幅の 2 カラムに
                                 分け、各カラムを 2 行に収める。参加コードカードが
                                 縦に伸びて全体が崩れるのを防ぐ。 */}
-                            <div className={styles.nameCodeRow}>
-                                {/* 左: 課題名。1 行の入力欄（#1303 D3）。カーソルがある間は
-                                    欄の下に保存のしかた、保存後は欄の横に結果を出す（#1388）。 */}
-                                <div className={styles.nameCol}>
-                                    <label className={styles.assignmentNameLabel} htmlFor={nameInputId}>
-                                        <FormattedMessage
-                                            defaultMessage="Assignment Name"
-                                            description="Assignment name label in class detail"
-                                            id="gui.classroom.teacherDetail.assignmentNameLabel"
-                                        />
-                                        {': '}
-                                    </label>
-                                    <div className={styles.assignmentNameField}>
-                                        <input
-                                            className={styles.assignmentNameInput}
-                                            data-testid="classroom-detail-assignment-name"
-                                            id={nameInputId}
-                                            maxLength={50}
-                                            type="text"
-                                            value={editAssignmentName}
-                                            onBlur={handleAssignmentNameBlur}
-                                            onChange={handleAssignmentNameChange}
-                                            onFocus={handleAssignmentNameFocus}
-                                            onKeyDown={handleAssignmentNameKeyDown}
-                                        />
-                                        {nameFocused && (
-                                            <div
-                                                className={styles.assignmentNameSaveHint}
-                                                data-testid="classroom-detail-assignment-name-save-hint"
-                                            >
-                                                <FormattedMessage
-                                                    defaultMessage="Press Enter or click outside the field to save"
-                                                    description="Shown under the assignment name field while it is focused: how the name is saved"
-                                                    id="gui.classroom.teacherDetail.assignmentNameSaveHint"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                    {nameSaveStatus === 'saved' && (
-                                        <span
-                                            className={styles.assignmentNameSaved}
-                                            data-testid="classroom-detail-assignment-name-saved"
-                                            role="status"
-                                        >
-                                            {'✓ '}
-                                            <FormattedMessage
-                                                defaultMessage="Saved"
-                                                description="Shown next to the assignment name for a moment after it was saved"
-                                                id="gui.classroom.teacherDetail.assignmentNameSaved"
-                                            />
-                                        </span>
-                                    )}
-                                    {nameSaveStatus === 'error' && (
-                                        <span
-                                            className={styles.assignmentNameSaveError}
-                                            data-testid="classroom-detail-assignment-name-save-error"
-                                            role="alert"
-                                        >
-                                            <FormattedMessage
-                                                defaultMessage="Couldn't save"
-                                                description="Shown next to the assignment name when saving it failed"
-                                                id="gui.classroom.teacherDetail.assignmentNameSaveFailed"
-                                            />
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* 右: 参加コードカード。コードとボタンを 1 つの
-                                    flex flow に並べ、同じ行から始めることで 3 つの
-                                    ボタンが 2 行に収まる。狭い幅では全画面表示・招待
-                                    リンクコピーをアイコンのみ、GC 共有を短縮表示。 */}
-                                <div className={styles.joinCodeCard}>
-                                    <span className={styles.joinCodeCodePart}>
-                                        <span className={styles.joinCodeLabel}>
-                                            <FormattedMessage
-                                                defaultMessage="Join Code"
-                                                description="Join code label"
-                                                id="gui.classroom.joinCode.label"
-                                            />
-                                            {': '}
-                                        </span>
-                                        <span
-                                            className={styles.joinCodeValue}
-                                            data-testid="classroom-detail-join-code"
-                                        >
-                                            {selectedClassroom.joinCode.toLowerCase()}
-                                        </span>
+                            {compactHeader ? (
+                                <div className={styles.compactCodeRow} data-testid="classroom-detail-compact-code">
+                                    <FormattedMessage
+                                        defaultMessage="Join Code"
+                                        description="Join code label"
+                                        id="gui.classroom.joinCode.label"
+                                    />
+                                    {': '}
+                                    <span
+                                        className={styles.compactCodeValue}
+                                        data-testid="classroom-detail-join-code"
+                                    >
+                                        {selectedClassroom.joinCode.toLowerCase()}
                                     </span>
-                                    {/* 全画面表示: 幅に関わらずアイコンのみ（tooltip でラベル補足） */}
                                     <button
                                         className={styles.joinCodeAction}
                                         data-testid="classroom-detail-expand-code"
@@ -453,147 +491,258 @@ const TeacherClassDetail = ({
                                     >
                                         <span className={styles.joinCodeIcon}>{'⛶'}</span>
                                     </button>
-                                    {/* 招待リンクをコピー: アイコンのみ。クリックすると
+                                </div>
+                            ) : (
+                                <div className={styles.nameCodeRow}>
+                                    {/* 左: 課題名。1 行の入力欄（#1303 D3）。カーソルがある間は
+                                    欄の下に保存のしかた、保存後は欄の横に結果を出す（#1388）。 */}
+                                    <div className={styles.nameCol}>
+                                        <label className={styles.assignmentNameLabel} htmlFor={nameInputId}>
+                                            <FormattedMessage
+                                                defaultMessage="Assignment Name"
+                                                description="Assignment name label in class detail"
+                                                id="gui.classroom.teacherDetail.assignmentNameLabel"
+                                            />
+                                            {': '}
+                                        </label>
+                                        <div className={styles.assignmentNameField}>
+                                            <input
+                                                className={styles.assignmentNameInput}
+                                                data-testid="classroom-detail-assignment-name"
+                                                id={nameInputId}
+                                                maxLength={50}
+                                                type="text"
+                                                value={editAssignmentName}
+                                                onBlur={handleAssignmentNameBlur}
+                                                onChange={handleAssignmentNameChange}
+                                                onFocus={handleAssignmentNameFocus}
+                                                onKeyDown={handleAssignmentNameKeyDown}
+                                            />
+                                            {nameFocused && (
+                                                <div
+                                                    className={styles.assignmentNameSaveHint}
+                                                    data-testid="classroom-detail-assignment-name-save-hint"
+                                                >
+                                                    <FormattedMessage
+                                                        defaultMessage="Press Enter or click outside the field to save"
+                                                        description="Shown under the assignment name field while it is focused: how the name is saved"
+                                                        id="gui.classroom.teacherDetail.assignmentNameSaveHint"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                        {nameSaveStatus === 'saved' && (
+                                            <span
+                                                className={styles.assignmentNameSaved}
+                                                data-testid="classroom-detail-assignment-name-saved"
+                                                role="status"
+                                            >
+                                                {'✓ '}
+                                                <FormattedMessage
+                                                    defaultMessage="Saved"
+                                                    description="Shown next to the assignment name for a moment after it was saved"
+                                                    id="gui.classroom.teacherDetail.assignmentNameSaved"
+                                                />
+                                            </span>
+                                        )}
+                                        {nameSaveStatus === 'error' && (
+                                            <span
+                                                className={styles.assignmentNameSaveError}
+                                                data-testid="classroom-detail-assignment-name-save-error"
+                                                role="alert"
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Couldn't save"
+                                                    description="Shown next to the assignment name when saving it failed"
+                                                    id="gui.classroom.teacherDetail.assignmentNameSaveFailed"
+                                                />
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* 右: 参加コードカード。コードとボタンを 1 つの
+                                    flex flow に並べ、同じ行から始めることで 3 つの
+                                    ボタンが 2 行に収まる。狭い幅では全画面表示・招待
+                                    リンクコピーをアイコンのみ、GC 共有を短縮表示。 */}
+                                    <div className={styles.joinCodeCard}>
+                                        <span className={styles.joinCodeCodePart}>
+                                            <span className={styles.joinCodeLabel}>
+                                                <FormattedMessage
+                                                    defaultMessage="Join Code"
+                                                    description="Join code label"
+                                                    id="gui.classroom.joinCode.label"
+                                                />
+                                                {': '}
+                                            </span>
+                                            <span
+                                                className={styles.joinCodeValue}
+                                                data-testid="classroom-detail-join-code"
+                                            >
+                                                {selectedClassroom.joinCode.toLowerCase()}
+                                            </span>
+                                        </span>
+                                        {/* 全画面表示: 幅に関わらずアイコンのみ（tooltip でラベル補足） */}
+                                        <button
+                                            className={styles.joinCodeAction}
+                                            data-testid="classroom-detail-expand-code"
+                                            title={intl.formatMessage({
+                                                id: 'gui.classroom.joinCode.fullscreen',
+                                                defaultMessage: 'Show fullscreen',
+                                                description: 'Fullscreen the join code',
+                                            })}
+                                            type="button"
+                                            onClick={handleShowCode}
+                                        >
+                                            <span className={styles.joinCodeIcon}>{'⛶'}</span>
+                                        </button>
+                                        {/* 招待リンクをコピー: アイコンのみ。クリックすると
                                             アイコンがチェックに変わり、コピー完了を示す。 */}
-                                    <button
-                                        className={classNames(styles.joinCodeAction, {
-                                            [styles.joinCodeActionCopied]: inviteCopied,
-                                        })}
-                                        data-testid="classroom-detail-copy-link"
-                                        title={intl.formatMessage(
-                                            inviteCopied
-                                                ? {
-                                                      id: 'gui.classroom.codeDisplay.copied',
-                                                      defaultMessage: 'Copied',
-                                                      description: 'Confirmation after copying invite link',
-                                                  }
-                                                : {
-                                                      id: 'gui.classroom.codeDisplay.copyLink',
-                                                      defaultMessage: 'Copy invite link',
-                                                      description: 'Button to copy classroom invite link',
-                                                  },
-                                        )}
-                                        type="button"
-                                        onClick={handleCopyInvite}
-                                    >
-                                        {inviteCopied ? (
-                                            <svg
-                                                className={styles.joinCodeIcon}
-                                                fill="none"
-                                                height="15"
-                                                stroke="currentColor"
-                                                strokeWidth="2.5"
-                                                viewBox="0 0 24 24"
-                                                width="15"
-                                            >
-                                                <path d="M20 6L9 17l-5-5" />
-                                            </svg>
-                                        ) : (
-                                            <svg
-                                                className={styles.joinCodeIcon}
-                                                fill="none"
-                                                height="15"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                viewBox="0 0 24 24"
-                                                width="15"
-                                            >
-                                                <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
-                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                            </svg>
-                                        )}
-                                    </button>
-                                    {/* Google Classroom linkage lives on the class
+                                        <button
+                                            className={classNames(styles.joinCodeAction, {
+                                                [styles.joinCodeActionCopied]: inviteCopied,
+                                            })}
+                                            data-testid="classroom-detail-copy-link"
+                                            title={intl.formatMessage(
+                                                inviteCopied
+                                                    ? {
+                                                          id: 'gui.classroom.codeDisplay.copied',
+                                                          defaultMessage: 'Copied',
+                                                          description: 'Confirmation after copying invite link',
+                                                      }
+                                                    : {
+                                                          id: 'gui.classroom.codeDisplay.copyLink',
+                                                          defaultMessage: 'Copy invite link',
+                                                          description: 'Button to copy classroom invite link',
+                                                      },
+                                            )}
+                                            type="button"
+                                            onClick={handleCopyInvite}
+                                        >
+                                            {inviteCopied ? (
+                                                <svg
+                                                    className={styles.joinCodeIcon}
+                                                    fill="none"
+                                                    height="15"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2.5"
+                                                    viewBox="0 0 24 24"
+                                                    width="15"
+                                                >
+                                                    <path d="M20 6L9 17l-5-5" />
+                                                </svg>
+                                            ) : (
+                                                <svg
+                                                    className={styles.joinCodeIcon}
+                                                    fill="none"
+                                                    height="15"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    viewBox="0 0 24 24"
+                                                    width="15"
+                                                >
+                                                    <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
+                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                        {/* Google Classroom linkage lives on the class
                                             (group), so an assignment posts to the group's
                                             course even without its own courseId. ボタンは
                                             幅に関わらず "[アイコン]に共有" の短縮表示で固定。 */}
-                                    {(selectedClassroom.googleClassroomCourseId ||
-                                        (group && group.googleClassroomCourseId)) &&
-                                        (selectedClassroom.googleClassroomAlternateLink ? (
-                                            <a
-                                                className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
-                                                data-testid="classroom-view-assignment"
-                                                href={selectedClassroom.googleClassroomAlternateLink}
-                                                rel="noopener noreferrer"
-                                                target="_blank"
-                                            >
-                                                <img
-                                                    alt=""
-                                                    className={styles.gcImportIcon}
-                                                    src={googleClassroomIcon}
-                                                />
-                                                <span className={styles.joinCodeGcLabel}>
-                                                    <FormattedMessage
-                                                        defaultMessage="Open"
-                                                        description="Short label (icon shows Google Classroom) to open the assignment"
-                                                        id="gui.classroom.joinCode.openInGcShort"
+                                        {(selectedClassroom.googleClassroomCourseId ||
+                                            (group && group.googleClassroomCourseId)) &&
+                                            (selectedClassroom.googleClassroomAlternateLink ? (
+                                                <a
+                                                    className={classNames(
+                                                        styles.joinCodeAction,
+                                                        styles.joinCodeActionGc,
+                                                    )}
+                                                    data-testid="classroom-view-assignment"
+                                                    href={selectedClassroom.googleClassroomAlternateLink}
+                                                    rel="noopener noreferrer"
+                                                    target="_blank"
+                                                >
+                                                    <img
+                                                        alt=""
+                                                        className={styles.gcImportIcon}
+                                                        src={googleClassroomIcon}
                                                     />
-                                                </span>
-                                            </a>
-                                        ) : (
-                                            <button
-                                                className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
-                                                data-testid="classroom-post-assignment"
-                                                disabled={gcShareBlocked}
-                                                title={gcShareBlockedText || null}
-                                                type="button"
-                                                onClick={onShowPostAssignment}
-                                            >
-                                                <img
-                                                    alt=""
-                                                    className={styles.gcImportIcon}
-                                                    src={googleClassroomIcon}
-                                                />
-                                                <span className={styles.joinCodeGcLabel}>
-                                                    <FormattedMessage
-                                                        defaultMessage="Share join code"
-                                                        description="Short label (icon shows Google Classroom) to share the join code"
-                                                        id="gui.classroom.joinCode.shareToGcShort"
+                                                    <span className={styles.joinCodeGcLabel}>
+                                                        <FormattedMessage
+                                                            defaultMessage="Open"
+                                                            description="Short label (icon shows Google Classroom) to open the assignment"
+                                                            id="gui.classroom.joinCode.openInGcShort"
+                                                        />
+                                                    </span>
+                                                </a>
+                                            ) : (
+                                                <button
+                                                    className={classNames(
+                                                        styles.joinCodeAction,
+                                                        styles.joinCodeActionGc,
+                                                    )}
+                                                    data-testid="classroom-post-assignment"
+                                                    disabled={gcShareBlocked}
+                                                    title={gcShareBlockedText || null}
+                                                    type="button"
+                                                    onClick={onShowPostAssignment}
+                                                >
+                                                    <img
+                                                        alt=""
+                                                        className={styles.gcImportIcon}
+                                                        src={googleClassroomIcon}
                                                     />
-                                                </span>
-                                            </button>
-                                        ))}
-                                    {/* 共有できない理由（GC コースの教師ではない共同担当）
+                                                    <span className={styles.joinCodeGcLabel}>
+                                                        <FormattedMessage
+                                                            defaultMessage="Share join code"
+                                                            description="Short label (icon shows Google Classroom) to share the join code"
+                                                            id="gui.classroom.joinCode.shareToGcShort"
+                                                        />
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        {/* 共有できない理由（GC コースの教師ではない共同担当）
                                         をボタンの近くに出す。本当に GC の共同教師である
                                         先生だけが「確認する」で自分で解除できる。#1184 */}
-                                    {gcShareBlocked && (
-                                        <div
-                                            className={styles.joinCodeGcBlockedNote}
-                                            data-testid="classroom-post-assignment-blocked"
-                                        >
-                                            {gcShareBlockedText}
-                                            {gcCanVerify && (
-                                                <button
-                                                    className={styles.joinCodeGcVerifyButton}
-                                                    data-testid="classroom-post-assignment-verify"
-                                                    disabled={isVerifyingGoogleCourseAccess}
-                                                    type="button"
-                                                    onClick={handleVerifyGcAccess}
-                                                >
-                                                    {isVerifyingGoogleCourseAccess ? (
-                                                        <FormattedMessage
-                                                            defaultMessage="Checking…"
-                                                            description="Label while checking the teacher's Google Classroom access"
-                                                            id="gui.classroom.googleShare.verifying"
-                                                        />
-                                                    ) : (
-                                                        <FormattedMessage
-                                                            defaultMessage="I am a teacher of this Google Classroom class (check)"
-                                                            description="Button that lets a Google Classroom co-teacher prove their access and share"
-                                                            id="gui.classroom.googleShare.verify"
-                                                        />
-                                                    )}
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
+                                        {gcShareBlocked && (
+                                            <div
+                                                className={styles.joinCodeGcBlockedNote}
+                                                data-testid="classroom-post-assignment-blocked"
+                                            >
+                                                {gcShareBlockedText}
+                                                {gcCanVerify && (
+                                                    <button
+                                                        className={styles.joinCodeGcVerifyButton}
+                                                        data-testid="classroom-post-assignment-verify"
+                                                        disabled={isVerifyingGoogleCourseAccess}
+                                                        type="button"
+                                                        onClick={handleVerifyGcAccess}
+                                                    >
+                                                        {isVerifyingGoogleCourseAccess ? (
+                                                            <FormattedMessage
+                                                                defaultMessage="Checking…"
+                                                                description="Label while checking the teacher's Google Classroom access"
+                                                                id="gui.classroom.googleShare.verifying"
+                                                            />
+                                                        ) : (
+                                                            <FormattedMessage
+                                                                defaultMessage="I am a teacher of this Google Classroom class (check)"
+                                                                description="Button that lets a Google Classroom co-teacher prove their access and share"
+                                                                id="gui.classroom.googleShare.verify"
+                                                            />
+                                                        )}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                             {/* 保存期限（#1303 D1・R4）: ふだんは灰色の小さな 1 行。
                                 残り 7 日以内のときだけ赤い警告と「全作品ダウンロード」を
                                 日付の右に出す（課題一覧の行と同じ扱い）。狭い幅では
                                 「ダウンロードして保存してください」を省略する。 */}
-                            {selectedClassroom.expiresAt && (
+                            {selectedClassroom.expiresAt && (!compactHeader || retentionUrgent) && (
                                 <div
                                     className={classNames(styles.expiresAtText, {
                                         [styles.expiresAtWarning]: retentionUrgent,
@@ -716,6 +865,23 @@ const TeacherClassDetail = ({
                                         id="gui.classroom.members.title"
                                     />
                                 </button>
+                                {showProgressTab && (
+                                    <button
+                                        className={classNames(
+                                            styles.detailTab,
+                                            activeTab === 'progress' && styles.detailTabActive,
+                                        )}
+                                        data-tab="progress"
+                                        data-testid="classroom-tab-progress"
+                                        onClick={handleTabClick}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Progress"
+                                            description="Tab of a lesson assignment: the seat × challenge progress table"
+                                            id="gui.classroom.teacherDetail.progressTab"
+                                        />
+                                    </button>
+                                )}
                                 {/* まれな操作は「…」の中（R2・#1303 D1）。ダウンロード中は
                                     メニューが閉じるので、進み具合は「…」の横に出す。 */}
                                 <span className={styles.detailTabsMore}>
@@ -740,6 +906,19 @@ const TeacherClassDetail = ({
                                     >
                                         {(close) => (
                                             <React.Fragment>
+                                                {activeTab === 'progress' && lessonCtx && progressData ? (
+                                                    <BoardMenuItem
+                                                        close={close}
+                                                        testId="classroom-lesson-progress-csv"
+                                                        onSelect={handleDownloadProgressCsv}
+                                                    >
+                                                        <FormattedMessage
+                                                            defaultMessage="Download the progress (CSV)"
+                                                            description="… menu of the progress tab: save the seat × challenge table as CSV"
+                                                            id="gui.classroom.teacherDetail.progressCsv"
+                                                        />
+                                                    </BoardMenuItem>
+                                                ) : null}
                                                 <BoardMenuItem
                                                     close={close}
                                                     disabled={isLoading || !!downloadProgress}
@@ -787,6 +966,14 @@ const TeacherClassDetail = ({
                                     startFromPrevious={!!descEditor.startFromPrevious}
                                     peerView={descEditor.peerView || 'none'}
                                     meshGroupLimit={descEditor.meshGroupLimit}
+                                    lessonDraft={descEditor.lessonDraft || null}
+                                    savedLesson={descEditor.savedLesson || null}
+                                    descriptionQuestion={!!descEditor.descriptionQuestion}
+                                    lessonPanelAutoOpen={!!descEditor.lessonPanelAutoOpen}
+                                    onAnswerDescriptionQuestion={handleDescAnswerDescriptionQuestion}
+                                    onChangeLesson={handleDescChangeLesson}
+                                    onLessonPanelAutoOpened={handleDescLessonPanelAutoOpened}
+                                    onLessonPanelClose={handleDescLessonPanelClose}
                                     onAddPage={handleDescAddPage}
                                     onAttachPageImage={handleDescAttachPageImage}
                                     onChangePageText={handleDescChangePageText}
@@ -808,44 +995,90 @@ const TeacherClassDetail = ({
                                 <React.Fragment>
                                     <div className={styles.membersHeader}>
                                         <div className={styles.membersLegends}>
-                                            {/* 座席の色の意味（R5・#1303 D2）。アイコンの凡例より先に出す。 */}
-                                            <div
-                                                className={styles.seatColorLegend}
-                                                data-testid="classroom-seat-color-legend"
-                                            >
-                                                <span className={styles.statusLegendItem}>
-                                                    <span
-                                                        className={classNames(
-                                                            styles.seatColorSwatch,
-                                                            styles.memberCellJoined,
-                                                        )}
-                                                    />
-                                                    <FormattedMessage
-                                                        defaultMessage="Joined"
-                                                        description="Seat color legend: a grey seat is a student who joined"
-                                                        id="gui.classroom.teacherDetail.seatColorJoined"
-                                                    />
-                                                </span>
-                                                <span className={styles.statusLegendItem}>
-                                                    <span
-                                                        className={classNames(
-                                                            styles.seatColorSwatch,
-                                                            styles.memberCellEmpty,
-                                                        )}
-                                                    />
-                                                    <FormattedMessage
-                                                        defaultMessage="Not joined yet"
-                                                        description="Seat color legend: a blue seat has no student yet"
-                                                        id="gui.classroom.teacherDetail.seatColorNotJoined"
-                                                    />
-                                                </span>
-                                            </div>
+                                            {/* 座席の色の意味（R5・#1303 D2）。アイコンの凡例より先に出す。
+                                                レッスンの課題では色は進み具合（#1602）。 */}
+                                            {lessonTiles ? (
+                                                <div
+                                                    className={styles.seatColorLegend}
+                                                    data-testid="classroom-lesson-seat-legend"
+                                                >
+                                                    {[
+                                                        ['lessonSeatNotStarted', lessonSeatMessages.notStarted],
+                                                        ['lessonSeatInProgress', lessonSeatMessages.inProgress],
+                                                        ['lessonSeatCleared', lessonSeatMessages.cleared],
+                                                        ['lessonSeatNotJoined', lessonSeatMessages.notJoined],
+                                                    ].map(([cls, message]) => (
+                                                        <span className={styles.statusLegendItem} key={cls}>
+                                                            <span
+                                                                className={classNames(
+                                                                    styles.seatColorSwatch,
+                                                                    styles[cls],
+                                                                )}
+                                                            />
+                                                            {intl.formatMessage(message)}
+                                                        </span>
+                                                    ))}
+                                                    <span className={styles.statusLegendItem}>
+                                                        <span className={styles.lessonSeatStuckLegend}>{'!'}</span>
+                                                        {intl.formatMessage(lessonSeatMessages.stuck)}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <div
+                                                    className={styles.seatColorLegend}
+                                                    data-testid="classroom-seat-color-legend"
+                                                >
+                                                    <span className={styles.statusLegendItem}>
+                                                        <span
+                                                            className={classNames(
+                                                                styles.seatColorSwatch,
+                                                                styles.memberCellJoined,
+                                                            )}
+                                                        />
+                                                        <FormattedMessage
+                                                            defaultMessage="Joined"
+                                                            description="Seat color legend: a grey seat is a student who joined"
+                                                            id="gui.classroom.teacherDetail.seatColorJoined"
+                                                        />
+                                                    </span>
+                                                    <span className={styles.statusLegendItem}>
+                                                        <span
+                                                            className={classNames(
+                                                                styles.seatColorSwatch,
+                                                                styles.memberCellEmpty,
+                                                            )}
+                                                        />
+                                                        <FormattedMessage
+                                                            defaultMessage="Not joined yet"
+                                                            description="Seat color legend: a blue seat has no student yet"
+                                                            id="gui.classroom.teacherDetail.seatColorNotJoined"
+                                                        />
+                                                    </span>
+                                                </div>
+                                            )}
                                             <ClassroomStatusLegend
                                                 className={styles.membersLegend}
-                                                statuses={MEMBER_LEGEND_STATUSES}
+                                                statuses={
+                                                    lessonTiles
+                                                        ? submitsWork
+                                                            ? LESSON_SUBMIT_LEGEND_STATUSES
+                                                            : LESSON_LEGEND_STATUSES
+                                                        : MEMBER_LEGEND_STATUSES
+                                                }
                                             />
                                         </div>
                                         <div className={styles.membersHeaderRight}>
+                                            {lessonSummary ? (
+                                                <span
+                                                    className={styles.lessonClearedSummary}
+                                                    data-testid="classroom-lesson-cleared-summary"
+                                                >
+                                                    {intl.formatMessage(lessonSeatMessages.clearedSummary, {
+                                                        cleared: lessonSummary.cleared,
+                                                        joined: lessonSummary.joined,
+                                                    })}
+                                                </span>
+                                            ) : null}
                                             <span
                                                 className={styles.membersCount}
                                                 data-testid="classroom-members-count"
@@ -864,61 +1097,117 @@ const TeacherClassDetail = ({
                                             </button>
                                         </div>
                                     </div>
-                                    <div className={styles.membersGrid} data-testid="classroom-members-grid">
-                                        {Array.from({ length: totalCount }, (_, i) => {
-                                            const seatNum = i + 1;
-                                            const memberId = `seat-${String(seatNum).padStart(2, '0')}`;
-                                            const member = memberMap[memberId];
-                                            const isSelected = selectedMember === memberId;
-                                            const hasSubmission = member && member.hasSubmission;
-                                            const isReturned = member && member.submissionStatus === 'returned';
-                                            const seated = member && isSeated(member);
-                                            let cellColorClass = styles.memberCellEmpty;
-                                            if (member) {
-                                                if (isReturned) {
-                                                    cellColorClass = styles.memberCellReturned;
-                                                } else if (hasSubmission) {
-                                                    cellColorClass = styles.memberCellSubmitted;
-                                                } else {
-                                                    cellColorClass = styles.memberCellJoined;
+                                    {progressError ? (
+                                        <p
+                                            className={styles.lessonProgressNotice}
+                                            data-testid="classroom-lesson-progress-error"
+                                        >
+                                            {intl.formatMessage(lessonSeatMessages.loadError)}
+                                        </p>
+                                    ) : null}
+                                    {progressLoading ? (
+                                        <p
+                                            className={styles.lessonProgressNotice}
+                                            data-testid="classroom-lesson-progress-loading"
+                                        >
+                                            {intl.formatMessage(lessonSeatMessages.loading)}
+                                        </p>
+                                    ) : (
+                                        <div className={styles.membersGrid} data-testid="classroom-members-grid">
+                                            {Array.from({ length: totalCount }, (_, i) => {
+                                                const seatNum = i + 1;
+                                                const memberId = `seat-${String(seatNum).padStart(2, '0')}`;
+                                                const member = memberMap[memberId];
+                                                const isSelected = selectedMember === memberId;
+                                                const hasSubmission = member && member.hasSubmission;
+                                                const isReturned = member && member.submissionStatus === 'returned';
+                                                const seated = member && isSeated(member);
+                                                const tile = lessonTiles ? lessonTiles[i] : null;
+                                                let cellColorClass = styles.memberCellEmpty;
+                                                if (tile) {
+                                                    cellColorClass = classNames(
+                                                        styles.lessonSeat,
+                                                        styles[LESSON_TILE_CLASSES[tile.state]],
+                                                    );
+                                                } else if (member) {
+                                                    if (isReturned) {
+                                                        cellColorClass = styles.memberCellReturned;
+                                                    } else if (hasSubmission) {
+                                                        cellColorClass = styles.memberCellSubmitted;
+                                                    } else {
+                                                        cellColorClass = styles.memberCellJoined;
+                                                    }
                                                 }
-                                            }
-                                            const cellClass = classNames(
-                                                styles.memberCell,
-                                                cellColorClass,
-                                                isSelected && styles.memberCellSelected,
-                                                seated && styles.memberCellSeated,
-                                            );
-                                            const seatKickRequests =
-                                                (kickRequestsBySeat && kickRequestsBySeat[seatNum]) || [];
-                                            return (
-                                                <button
-                                                    className={cellClass}
-                                                    data-member-id={memberId}
-                                                    data-testid={`classroom-member-${memberId}`}
-                                                    key={memberId}
-                                                    onClick={handleCellClick}
-                                                >
-                                                    <span className={styles.memberCellNumber}>{seatNum}</span>
-                                                    <ClassroomStatusIcons
-                                                        className={styles.memberCellIcons}
-                                                        presence={getPresenceStatus(member, seated)}
-                                                        size={10}
-                                                        submission={getSubmissionStatus(member)}
-                                                    />
-                                                    {seatKickRequests.length > 0 && (
-                                                        <span
-                                                            className={styles.seatKickRequestBadge}
-                                                            data-testid={`classroom-seat-kick-request-${seatNum}`}
-                                                        >
-                                                            <ClassroomStatusIcon size={14} status="kickRequested" />
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                                                const cellClass = classNames(
+                                                    styles.memberCell,
+                                                    cellColorClass,
+                                                    isSelected && styles.memberCellSelected,
+                                                    seated && styles.memberCellSeated,
+                                                );
+                                                const seatKickRequests =
+                                                    (kickRequestsBySeat && kickRequestsBySeat[seatNum]) || [];
+                                                return (
+                                                    <button
+                                                        className={cellClass}
+                                                        data-lesson-state={tile ? tile.state : null}
+                                                        data-member-id={memberId}
+                                                        data-testid={`classroom-member-${memberId}`}
+                                                        key={memberId}
+                                                        onClick={handleCellClick}
+                                                    >
+                                                        {tile ? (
+                                                            <LessonSeatTile
+                                                                presence={getPresenceStatus(member, seated)}
+                                                                seatNumber={seatNum}
+                                                                submission={
+                                                                    submitsWork ? getSubmissionStatus(member) : null
+                                                                }
+                                                                tile={tile}
+                                                            />
+                                                        ) : (
+                                                            <React.Fragment>
+                                                                <span className={styles.memberCellNumber}>
+                                                                    {seatNum}
+                                                                </span>
+                                                                <ClassroomStatusIcons
+                                                                    className={styles.memberCellIcons}
+                                                                    presence={getPresenceStatus(member, seated)}
+                                                                    size={10}
+                                                                    submission={getSubmissionStatus(member)}
+                                                                />
+                                                            </React.Fragment>
+                                                        )}
+                                                        {seatKickRequests.length > 0 && (
+                                                            <span
+                                                                className={styles.seatKickRequestBadge}
+                                                                data-testid={`classroom-seat-kick-request-${seatNum}`}
+                                                            >
+                                                                <ClassroomStatusIcon
+                                                                    size={14}
+                                                                    status="kickRequested"
+                                                                />
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </React.Fragment>
+                            )}
+
+                            {/* Progress tab (#1602): seat × challenge table of a lesson assignment. */}
+                            {activeTab === 'progress' && showProgressTab && (
+                                <TeacherLessonProgress
+                                    ctx={lessonCtx}
+                                    status={progressLoading ? 'loading' : progressError ? 'error' : 'ready'}
+                                    members={members}
+                                    now={progressNow}
+                                    rowsByMember={rowsByMember}
+                                    selectedMember={selectedMember}
+                                    studentCount={totalCount}
+                                    onSelectSeat={onSelectMember}
+                                />
                             )}
 
                             {/* Archive confirmation (soft-delete, restorable — issue #1051).
@@ -1080,6 +1369,38 @@ const TeacherClassDetail = ({
                                                         );
                                                     })()}
                                                 </div>
+                                                {/* The lesson strip students see above the lesson
+                                                    library (#1598): condition and circles (★ = required). */}
+                                                {descEditor.lessonDraft &&
+                                                descEditor.lessonDraft.challengeIds.length > 0 ? (
+                                                    <div
+                                                        className={styles.assignmentPreviewStart}
+                                                        data-testid="classroom-description-preview-lesson"
+                                                    >
+                                                        <FormattedMessage
+                                                            defaultMessage="Lesson: {sentence}"
+                                                            description="Student-view preview: the lesson completion condition"
+                                                            id="gui.classroom.teacherDetail.previewLesson"
+                                                            values={{
+                                                                sentence: formatCompletionSentence(
+                                                                    intl,
+                                                                    descEditor.lessonDraft,
+                                                                ),
+                                                            }}
+                                                        />{' '}
+                                                        <span aria-hidden="true">
+                                                            {descEditor.lessonDraft.challengeIds
+                                                                .map((id) =>
+                                                                    descEditor.lessonDraft.requiredChallengeIds.includes(
+                                                                        id,
+                                                                    )
+                                                                        ? '★'
+                                                                        : '○',
+                                                                )
+                                                                .join('')}
+                                                        </span>
+                                                    </div>
+                                                ) : null}
                                             </React.Fragment>
                                         );
                                     })()}
@@ -1093,9 +1414,12 @@ const TeacherClassDetail = ({
                                         if (!match) return [];
                                         return kickRequestsBySeat[parseInt(match[1], 10)] || [];
                                     })()}
+                                    lessonDetail={lessonDetail}
+                                    lessonNow={progressNow}
                                     memberMap={memberMap}
                                     members={members}
                                     selectedMember={selectedMember}
+                                    showSubmission={!lessonCtx || submitsWork}
                                     onApproveKickRequest={onApproveKickRequest}
                                     onDeleteMember={onDeleteMember}
                                     onOpenSubmission={onOpenSubmission}
@@ -1142,11 +1466,17 @@ TeacherClassDetail.propTypes = {
     onToggleCodeFullscreen: PropTypes.func.isRequired,
     onUpdateAssignmentName: PropTypes.func,
     kickRequestsBySeat: PropTypes.object,
+    // GET lesson-progress of the selected assignment (+ its classroomId), #1602
+    lessonProgress: PropTypes.shape({
+        classroomId: PropTypes.string,
+        lesson: PropTypes.object,
+        progress: PropTypes.arrayOf(PropTypes.object),
+    }),
     onApproveKickRequest: PropTypes.func,
     onRejectKickRequest: PropTypes.func,
     onDetailTabChange: PropTypes.func,
     detailEntry: PropTypes.shape({
-        tab: PropTypes.oneOf(['members', 'description']),
+        tab: PropTypes.oneOf(['members', 'description', 'progress']),
         seq: PropTypes.number,
     }),
     onOpenShareSuggestion: PropTypes.func,

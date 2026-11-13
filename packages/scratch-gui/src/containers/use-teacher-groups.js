@@ -209,12 +209,15 @@ const useTeacherGroups = ({
                 );
                 markClassroomCreated(created && created.classroomId);
                 setClassrooms((prev) => [...prev, { ...created, role: 'owner', coTeacherEmails: [] }]);
+                // The caller can open it right away (［＋ 作成 ▾］→「レッスン」・#1780).
+                return created;
             } catch (err) {
                 if (err.status === 401) {
                     handleTeacher401();
-                    return;
+                    return null;
                 }
                 showError(translateError(intl, err));
+                return null;
             } finally {
                 setIsLoading(false);
             }

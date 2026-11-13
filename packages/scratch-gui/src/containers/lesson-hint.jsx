@@ -22,6 +22,7 @@ import LessonHint from '../components/lesson-hint/lesson-hint.jsx';
 import { LANGUAGES, challengeCodeCandidates, localizeCode } from '../lib/lessons/courses';
 import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
 import { findCodeSprite, findSpriteByName, insertSpriteCodes } from '../lib/lessons/insert-sprite-code';
+import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { colorModeMap } from '../lib/settings/color-mode';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
@@ -38,6 +39,7 @@ import { updateRubyCode, updateRubyCodeTarget } from '../reducers/ruby-code';
 const LessonHintContainer = ({
     colorMode,
     current,
+    fromAssignment = false,
     hint,
     onFinishHint,
     onHideHint,
@@ -46,6 +48,7 @@ const LessonHintContainer = ({
     onPrevHint,
     rubyVersion,
     scratchBlocks,
+    teacherLoggedIn = false,
     vm,
 }) => {
     const intl = useIntl();
@@ -152,7 +155,9 @@ const LessonHintContainer = ({
         }
         if (target) vm.setEditingTarget(target.id);
         onInsertCode(chosen.code, current.course.language, target, rubyVersion);
-    }, [current, intl, onInsertCode, rubyVersion, vm]);
+        // 正解のプログラムを確認した（入れたときだけ。入れられなかったときは上で戻る）
+        sendLessonEvent(LESSON_EVENTS.ANSWER_VIEW, current, { fromAssignment, teacherLoggedIn });
+    }, [current, fromAssignment, intl, onInsertCode, rubyVersion, teacherLoggedIn, vm]);
 
     // 「プログラムを入れる」を続けて押したときに 2 回入れない（spriteCodes ではペンギンが 2 匹足される）
     const insertingRef = useRef(false);
@@ -201,6 +206,8 @@ LessonHintContainer.propTypes = {
         lesson: PropTypes.object.isRequired,
         challenge: PropTypes.object.isRequired,
     }),
+    // クラスの課題から開いたか（GA の計測で送る）
+    fromAssignment: PropTypes.bool,
     hint: PropTypes.shape({
         visible: PropTypes.bool.isRequired,
         index: PropTypes.number.isRequired,
@@ -220,12 +227,17 @@ LessonHintContainer.propTypes = {
     onPrevHint: PropTypes.func.isRequired,
     rubyVersion: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     scratchBlocks: PropTypes.object,
+    // 先生（クラス管理にログイン中）か（GA に送らない）
+    teacherLoggedIn: PropTypes.bool,
     vm: PropTypes.object,
 };
 
 const mapStateToProps = (state) => ({
     colorMode: state.scratchGui.settings.colorMode,
     current: getCurrentChallenge(state),
+    fromAssignment: Boolean(state.scratchGui.lessonMode.fromAssignment),
+    // 先生（クラス管理にログイン中）のときは GA に送らない
+    teacherLoggedIn: Boolean(state.scratchGui.classroom && state.scratchGui.classroom.teacherLoggedIn),
     hint: getCurrentHint(state),
     rubyVersion: state.scratchGui.settings.rubyVersion,
     scratchBlocks: state.scratchGui.blockDisplay.scratchBlocks,

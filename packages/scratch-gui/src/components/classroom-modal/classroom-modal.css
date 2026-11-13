@@ -267,6 +267,15 @@
     text-align: right;
 }
 
+/* レッスンの課題の「進み具合」（#1599）: 丸・できた数・あと n つを 1 行に（丸は 1 行に収める） */
+.lesson-progress-value {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+}
+
 .assignment-name-row {
     display: flex;
     align-items: center;
@@ -550,7 +559,9 @@
 
 .expires-at-download {
     margin-left: 0.3rem;
-    padding: 0.1rem 0.6rem;
+    /* 保存期限の 1 行の高さに収める（縦の余白で行を高くしない・#1774）。 */
+    padding: 0 0.6rem;
+    line-height: 1.3;
     border: 1px solid hsla(10, 80%, 42%, 1);
     border-radius: 0.3rem;
     background: white;
@@ -569,8 +580,10 @@
     align-self: center;
 }
 
-/* 幅が狭ければ「ダウンロードして保存してください」を省いて領域を確保。 */
-@container (max-width: 520px) {
+/* 幅が狭ければ「ダウンロードして保存してください」を省いて、保存期限と警告を 1 行に収める。
+   2 行に折り返すと説明タブの本文が縦に伸び、1300×600 で本文がスクロールする（R6・#1774）。
+   1300 幅の課題詳細（左の列 約 800px）では省く。 */
+@container (max-width: 900px) {
     .expires-at-hint {
         display: none;
     }
@@ -1300,7 +1313,9 @@
 
 .members-grid {
     display: grid;
-    grid-template-columns: repeat(10, 1fr);
+    /* minmax(0, …): the lesson tiles' min-content must not widen the modal past
+       1300px and push the seat detail on the right off screen (#1603). */
+    grid-template-columns: repeat(10, minmax(0, 1fr));
     gap: 4px;
     margin: 0.5rem 0;
     /* The seats (up to 40) are a list: only this frame scrolls (R6 exception). */
@@ -2166,9 +2181,20 @@
 }
 
 .assignment-editor-columns {
+    /* レッスン欄の開いた中身（.lesson-panel）をページの列に重ねる基準。 */
+    position: relative;
     display: flex;
     gap: 1rem;
     flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* 左の列: 上にレッスン欄の 1 行、その下にページの枠。 */
+.assignment-editor-main {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
     min-height: 0;
 }
 
@@ -2265,11 +2291,202 @@
     z-index: 20;
     width: 26rem;
     max-width: 70vw;
-    padding: 0.25rem 0.9rem 0.75rem;
+    /* 右上の ✕（.panel-close-button）の分だけ右を空ける。 */
+    padding: 0.25rem 2.75rem 0.75rem 0.9rem;
     border: 1px solid hsla(0, 0%, 0%, 0.15);
     border-radius: 0.4rem;
     background: white;
     box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.15);
+}
+
+/* レッスン欄（#1598）: ページの枠の上の 1 行の要約といまの値（R3）。開いた中身は左の列の上に
+   重ね（［課題を保存］は隠さない・R6）、チャレンジの一覧の枠の中だけがスクロールする。
+   position は付けない（.lesson-panel の基準は .assignment-editor-columns。上と右の端は
+   開いたときに JS で測って決める）。 */
+.lesson-settings {
+    flex: 0 0 auto;
+    margin-bottom: 0.4rem;
+    padding: 0.2rem 0.5rem 0.3rem;
+    border: 1px solid #e5e8ec;
+    border-radius: 0.4rem;
+    background: #fafbfc;
+}
+
+.lesson-warning {
+    margin: 0.25rem 0 0;
+    color: #b35c00;
+    font-size: 0.75rem;
+}
+
+.lesson-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: calc(16rem + 1rem);
+    /* 高さは中身に合わせる（#1770）。上限は開いたときに JS で測る（max-height）。 */
+    max-height: 100%;
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    /* 右上の ✕（.panel-close-button）の分だけ右を空ける。 */
+    padding: 0.5rem 2.75rem 0.6rem 0.9rem;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: 0.4rem;
+    background: white;
+    box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.15);
+    overflow: hidden;
+}
+
+/* 開いたレッスン欄・詳しい設定の右上の ✕（#1770）。見た目は共有モーダルの見出しの ✕（CloseButton の large）。 */
+.panel-close-button {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.5rem;
+    z-index: 1;
+    padding: 0;
+    border: none;
+}
+
+.panel-close-button:focus-visible {
+    outline: 2px solid #4c97ff;
+    outline-offset: 2px;
+}
+
+.lesson-course-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.lesson-hint {
+    margin: 0;
+    color: #575e75;
+    font-size: 0.75rem;
+}
+
+.lesson-challenge-list {
+    flex: 1 1 auto;
+    min-height: 3rem;
+    overflow-y: auto;
+    border: 1px solid #e5e8ec;
+    border-radius: 0.3rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.lesson-group + .lesson-group {
+    margin-top: 0.25rem;
+}
+
+.lesson-group-row,
+.lesson-challenge-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #575e75;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.lesson-group-row {
+    font-weight: bold;
+}
+
+.lesson-challenge-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-left: 1.25rem;
+    line-height: 1.6;
+}
+
+.lesson-required-button {
+    flex: 0 0 auto;
+    padding: 0 0.4rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.6rem;
+    background: white;
+    color: #575e75;
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+
+.lesson-required-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.lesson-required-button-on {
+    border-color: #ff8c1a;
+    background: #fff1dd;
+    color: #b35c00;
+    font-weight: bold;
+}
+
+.lesson-option-row {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+}
+
+.lesson-radio {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #575e75;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.lesson-count-input {
+    width: 3.5rem;
+    padding: 0.1rem 0.25rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.3rem;
+    font-size: 0.85rem;
+}
+
+.lesson-sentence {
+    color: #575e75;
+    font-size: 0.75rem;
+}
+
+.lesson-notice {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.3rem;
+    background: #fff8ee;
+    color: #575e75;
+    font-size: 0.75rem;
+}
+
+/* 「ページの説明をレッスンの説明で上書きしますか？」（#1780）。ページの上に 1 行で出す
+   （confirm() は使わない）。急ぎの対処ではないので赤にしない（R4）。 */
+.lesson-description-question {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.25rem 0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.3rem;
+    background: #eef3ff;
+    color: #575e75;
+    font-size: 0.8rem;
+}
+
+.lesson-description-answer {
+    padding: 0.15rem 0.75rem;
+    border: 1px solid #855cd6;
+    border-radius: 0.3rem;
+    background: white;
+    color: #855cd6;
+    font-size: 0.8rem;
+    cursor: pointer;
 }
 
 /* トップレベル画面（TeacherScreen）の説明文。#1125 で .assignment-editor-hint から
@@ -2890,6 +3107,27 @@
     margin-right: 0.75rem;
 }
 
+/* 採点の画面の「レッスンの点」の欄（#1778）: 課題名と欄を 1 行に並べる。 */
+.eval-scoring-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.eval-scoring-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+}
+
+.eval-settings-note {
+    color: #575e75;
+    font-size: 0.8rem;
+}
+
 .eval-strictness-row {
     display: inline-flex;
     align-items: center;
@@ -3013,6 +3251,14 @@
     font-size: 0.8rem;
     font-family: inherit;
     resize: vertical;
+}
+
+/* レッスンの点 (#1603): 作品の列の横。点だけなので狭く、数字は右寄せ。 */
+.eval-lesson-head,
+.eval-lesson-cell {
+    width: 4.5rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .eval-overall-cell {
@@ -3557,6 +3803,18 @@
 }
 
 /* ボード行の共有推奨マーク (#1106)。推薦バッジ (#1110) と同系色。 */
+/* 「レッスン」の印 (#1603): レッスンの課題であることを文字で示す（R5）。 */
+.board-row-lesson-mark {
+    flex: none;
+    margin-left: 0.4rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.25rem;
+    background: hsla(163, 85%, 40%, 0.15);
+    color: hsla(163, 85%, 25%, 1);
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
 .board-row-share-suggested {
     flex: none;
     margin-left: 0.4rem;
@@ -4662,4 +4920,519 @@
     white-space: nowrap;
     font-size: 0.8rem;
     color: hsla(225, 15%, 40%, 1);
+}
+
+/* --- Lesson progress (#1602) --- */
+
+/* Seat tile colours of a lesson assignment: grey = not started, blue = in
+   progress, green = cleared. A seat with no student is white with a dotted
+   border, since blue now means "in progress". */
+.lesson-seat {
+    justify-content: flex-start;
+    padding-top: clamp(3px, 6cqi, 10px);
+    gap: clamp(1px, 3cqi, 5px);
+}
+
+.lesson-seat-not-started {
+    background-color: #d9d9d9;
+    color: #575e75;
+}
+
+.lesson-seat-in-progress {
+    background-color: #4c97ff;
+    color: white;
+}
+
+.lesson-seat-cleared {
+    background-color: #0fbd8c;
+    color: white;
+}
+
+/* The seated dot is the same green as a cleared tile, so it disappears there.
+   Draw it white instead (#1604): still a filled dot, unlike the hollow
+   「未着席」 ring. !important beats the icon's inline colour. The submission
+   icon already has a white badge. */
+.lesson-seat-cleared [data-status='seated'] {
+    color: #fff !important;
+}
+
+.lesson-seat-not-joined {
+    background-color: #fff;
+    color: #9aa1b8;
+    border: 1.5px dashed #c8cddb;
+    cursor: default;
+}
+
+.lesson-seat-head {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.lesson-seat-head svg {
+    width: clamp(10px, 16cqi, 24px);
+    height: clamp(10px, 16cqi, 24px);
+}
+
+.lesson-seat-count {
+    background-color: rgba(255, 255, 255, 0.92);
+    color: #575e75;
+    border-radius: 4px;
+    padding: 0 clamp(3px, 6cqi, 8px);
+    font-size: clamp(0.65rem, 13cqi, 1.1rem);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+}
+
+.lesson-seat-meter {
+    width: 78%;
+    height: clamp(3px, 5cqi, 6px);
+    border-radius: 3px;
+    background-color: rgba(255, 255, 255, 0.45);
+    overflow: hidden;
+}
+
+.lesson-seat-not-started .lesson-seat-meter {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.lesson-seat-meter-fill {
+    display: block;
+    height: 100%;
+    background-color: #fff;
+}
+
+.lesson-seat-required {
+    font-size: clamp(0.55rem, 11cqi, 0.9rem);
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+/* 「!」: top-left (the leave-request badge is top-right). */
+.lesson-seat-stuck,
+.lesson-seat-stuck-legend {
+    background-color: #ff8c1a;
+    color: #fff;
+    border-radius: 999px;
+    font-weight: 800;
+    line-height: 1.3;
+    padding: 0 5px;
+    font-size: 0.65rem;
+}
+
+.lesson-seat-stuck {
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    pointer-events: none;
+}
+
+.lesson-seat-submission {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    line-height: 0;
+}
+
+/* Rows of the progress table: as low as the 16px cells allow (#1767 M1). */
+.lesson-progress-table tbody td,
+.lesson-progress-table tbody th {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.compact-header-title {
+    margin-bottom: 0.3rem;
+}
+
+.compact-code-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: #575e75;
+    margin-bottom: 0.25rem;
+}
+
+.compact-code-value {
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    color: #4c97ff;
+}
+
+.compact-code-row .join-code-action {
+    padding: 0 0.3rem;
+    min-height: 0;
+    line-height: 1.3;
+}
+
+.lesson-cleared-summary {
+    white-space: nowrap;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #0b8e69;
+}
+
+.members-header-right .members-count {
+    white-space: nowrap;
+}
+
+/* Progress tab: toolbar + table frame (only the frame scrolls). */
+.lesson-progress {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 0.4rem;
+}
+
+.detail-left-pane > .lesson-progress {
+    flex-shrink: 1;
+}
+
+.lesson-progress-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+/* Legend and sort share one line (#1767 M1). */
+.lesson-progress-legend {
+    display: flex;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    gap: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    color: #575e75;
+}
+
+.lesson-progress-sort {
+    font-size: 0.8rem;
+    color: #575e75;
+    white-space: nowrap;
+}
+
+.lesson-progress-sort select {
+    font-size: 0.8rem;
+}
+
+.lesson-progress-notice {
+    font-size: 0.85rem;
+    color: #575e75;
+}
+
+.lesson-progress-frame {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    border: 1px solid #eceef4;
+    border-radius: 6px;
+}
+
+.lesson-progress-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.75rem;
+    color: #575e75;
+}
+
+.lesson-progress-table th,
+.lesson-progress-table td {
+    padding: 1px 2px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+    border-bottom: 1px solid #f0f1f5;
+    background-color: #fff;
+}
+
+/* The whole header stays on top; the seat rows scroll under it. */
+.lesson-progress-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.lesson-progress-table thead th {
+    border-bottom: 0;
+    font-weight: bold;
+    vertical-align: bottom;
+}
+
+.lesson-progress-table .lesson-progress-lesson-start {
+    border-left: 2px solid #d5d8e3;
+}
+
+.lesson-progress-challenge-head {
+    width: 22px;
+    max-width: 22px;
+}
+
+/* Vertical and short so the fixed header stays low (EPIC #1592 D6). */
+.lesson-progress-challenge-name {
+    display: inline-block;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    max-height: 3rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.7rem;
+    letter-spacing: 0;
+    line-height: 1.1;
+}
+
+.lesson-required-mark {
+    color: #c25e00;
+    font-weight: bold;
+}
+
+.lesson-progress-bottom-head {
+    padding: 0 6px;
+}
+
+/* 「できた人」: one line. Its top line is the challenge colour band. */
+.lesson-progress-totals-row th {
+    border-top: 4px solid #eceef4;
+    border-bottom: 2px solid #e3e6ee;
+    font-size: 0.7rem;
+    line-height: 1.2;
+    vertical-align: middle;
+}
+
+.lesson-progress-total-done {
+    font-variant-numeric: tabular-nums;
+}
+
+/* いまやっている人の数: small, at the top right of the number. */
+.lesson-progress-total-current {
+    color: #1e5fc2;
+    font-size: 0.55rem;
+    font-weight: normal;
+    vertical-align: super;
+    line-height: 0;
+}
+
+/* Seat column stays on the left when scrolled sideways. */
+.lesson-progress-table .lesson-progress-seat-col {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    text-align: left;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.lesson-progress-table thead .lesson-progress-seat-col {
+    z-index: 3;
+}
+
+.lesson-progress-seat-button {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    font-weight: bold;
+    color: #855cd6;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.lesson-progress-left {
+    margin-left: 3px;
+    font-size: 0.65rem;
+    font-weight: normal;
+    color: #8a90a6;
+}
+
+.lesson-progress-selected td,
+.lesson-progress-selected th {
+    background-color: #f1ecfb;
+}
+
+.lesson-progress-done-cell {
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+
+.lesson-progress-empty {
+    padding: 1rem;
+    color: #8a90a6;
+}
+
+.lesson-cell {
+    display: inline-grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.lesson-cell-done {
+    background-color: #0fbd8c;
+    color: #fff;
+}
+
+.lesson-cell-before {
+    background-color: #fff;
+    color: #0b8e69;
+    box-shadow: inset 0 0 0 2px #0fbd8c;
+}
+
+.lesson-cell-current {
+    background-color: #4c97ff;
+    color: #fff;
+}
+
+.lesson-cell-stuck {
+    background-color: #ff8c1a;
+    color: #fff;
+}
+
+.lesson-cell-todo {
+    background-color: #f0f1f5;
+    color: #b0b5c4;
+}
+
+.lesson-state-pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0 6px;
+    font-size: 0.65rem;
+    font-weight: bold;
+}
+
+.lesson-state-cleared {
+    background-color: #0fbd8c;
+    color: #fff;
+}
+
+.lesson-state-in-progress {
+    background-color: #e6f0ff;
+    color: #1e5fc2;
+}
+
+.lesson-state-not-started {
+    background-color: #eceef4;
+    color: #8a90a6;
+}
+
+/* メニューバーのレッスンの課題の印（○ / 2/4 / ✓・#1599）。青いメニューバーの上で読めるよう白地の丸角 */
+.menu-lesson-marks {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.menu-lesson-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    padding: 0 0.3rem;
+    border-radius: 0.5625rem;
+    background-color: #fff;
+    color: #4c97ff;
+    font-size: 0.75rem;
+    font-weight: bold;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.menu-lesson-mark[data-kind='cleared'] {
+    color: #0fbd8c;
+}
+
+/* Seat detail of a lesson assignment (#1603): per-challenge rows. Only the
+   list scrolls (it can shrink), so the work part below stays reachable at
+   1300×600. */
+.lesson-detail {
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 auto;
+    min-height: 0;
+    margin-bottom: 0.5rem;
+}
+
+.lesson-detail-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.8rem;
+}
+
+.lesson-detail-title {
+    font-weight: bold;
+}
+
+.lesson-detail-required-left {
+    color: #575e75;
+}
+
+.lesson-detail-list {
+    flex: 0 1 auto;
+    min-height: 3rem;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+    border: 1px solid #e0e0e0;
+    border-radius: 0.25rem;
+}
+
+.lesson-detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+
+/* The lesson boundary, like the column line of the progress tab. */
+.lesson-detail-row.lesson-detail-lesson-start:not(:first-child) {
+    border-top: 1px solid #c8cddb;
+}
+
+.lesson-detail-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lesson-detail-star {
+    margin-right: 0.15rem;
+    color: #ff8c1a;
+}
+
+.lesson-detail-status {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.lesson-detail-done .lesson-detail-status,
+.lesson-detail-before .lesson-detail-status {
+    color: #0b8e69;
+    font-weight: bold;
+}
+
+.lesson-detail-current .lesson-detail-status {
+    color: #4c97ff;
+    font-weight: bold;
+}
+
+.lesson-detail-stuck .lesson-detail-status {
+    color: #ff661a;
+    font-weight: bold;
+}
+
+.lesson-detail-todo .lesson-detail-status {
+    color: #9aa1b8;
 }

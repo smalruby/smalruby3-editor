@@ -500,6 +500,11 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `lesson-completed-toast-detail` | span | 2 行目「「レッスン名」の n つ、全部できました」／「「コース名」のレッスンは、これで全部です」（レッスンのチャレンジが全部できたときだけ） |
 | `lesson-completed-toast-next` | button | 「次のチャレンジへ」／「次のレッスンへ」／「レッスン表へ」。`data-action` が `next` / `otherLessons` / `library`（`COMPLETED_ACTIONS`） |
 | `lesson-completed-toast-close` | button | 「もう少し見る」（閉じるだけ） |
+| `lesson-completed-toast-submit` | button | 「課題を提出する」（クラスの課題がはじめて課題クリアになり、作品も提出する課題のときだけ。主ボタン） |
+
+クラスの課題に参加しているとき、その課題の条件をはじめて満たしたチャレンジでは、`lesson-completed-toast` の
+`data-assignment-cleared="true"` で、タイトルが「課題クリア！」、丸が課題のチャレンジ（★ は必須）になる
+（design.md の「課題クリア」）。
 
 **3 つの場面**（方針は `design.md` の「「できた！」のあと」）。チャレンジの名前は出さない（課題バーに出ている）。
 × は置かず、2 つめのボタン「もう少し見る」（白地に枠）で閉じる。
@@ -681,13 +686,23 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `lessons-library-course-nav-<courseId>` | button | コースのボタン（押すとそのコースまでスクロール） |
 | `lessons-library-course-<courseId>` | section | コース |
 | `lessons-library-course-done` | span | コース名の前の ✓（コースのチャレンジが全部できたときだけ） |
-| `lessons-library-course-progress` | div | コースのプログレスバー（`role="progressbar"`）と数 |
+| `lessons-library-course-progress` | div | コースのプログレスバー（`role="progressbar"`）と数（課題のチャレンジだけのレッスン表では出さない） |
 | `lessons-library-course-progress-text` | span | 「m / n」（コース全体） |
 | `lessons-library-lesson-<lessonId>` | section | レッスン（`data-focused`） |
 | `lessons-library-challenge-<challengeId>` | button | チャレンジのカード（`data-completed="true\|false"`・`data-next`） |
 | `lessons-library-card-band` | span | カードの左の色の帯（`data-category` = なかま） |
 | `lessons-library-challenge-done` | span | カードの右上の ✓ |
 | `lessons-library-challenge-next` | span | 「次はこれ！」 |
+| `lessons-library-challenge-required` | span | カードの右の ★（クラスの課題で先生が必須にしたチャレンジ・課題に参加しているときだけ）。カードにも `data-required` |
+| `lesson-assignment-band` | div | クラスの課題の帯（課題に参加しているときだけ。`data-cleared`） |
+| `lesson-assignment-band-name` / `lesson-assignment-band-condition` | span | 帯の課題名・条件（「条件: 全部（6 つ）」） |
+| `lesson-assignment-dot` | span | クラスの画面の進み具合の丸 1 つ（`data-challenge-id` / `data-completed` / `data-required`）。課題の帯には出さない |
+| `lesson-assignment-remaining` | span | 帯の文「あと N つ（★ R つ）で課題クリア」（小さな帯は「あと N つ（★ R つ）」。`data-count` = N・`data-required` = R）。クラスの画面では「あと n つで課題クリア」 |
+| `lesson-assignment-required-remaining` | span | クラスの画面の進み具合の「★ あと n」 |
+| `lesson-assignment-cleared` | span | 「✓ 課題クリア」 |
+| `lesson-assignment-band-submit-guide` / `lesson-assignment-band-submit` | span / button | 作品も提出する課題で課題クリアのあと（または、この版に無いチャレンジがあるとき）の案内と「課題を提出する」。はじめて提出するまで |
+| `lesson-assignment-band-unknown` | span | 「新しいレッスンがあります。ページを読み込み直してね」（この版のコースに無いチャレンジがあるとき） |
+| `lesson-task-bar-assignment` | span | 課題バーの同じ行の小さな帯（課題のチャレンジのときだけ） |
 
 ## レッスンモード
 
@@ -1030,6 +1045,55 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 
 ![チャレンジ 9 のヒント 1（1300×600）](screenshots/0509-challenge9-hint-1300x600.png)
 
+## GA の計測
+
+レッスン全体（課題の外もふくむ・クラスに参加していないときもふくむ）の使われ方を GA で計測する。目的は
+**人気のないコンテンツ**と**滞在の長いヒント**を見つけて見直すこと（方針は [`design.md`](design.md) の
+「GA の計測の方針」）。
+
+仕組みは、いまの GUI の計測（ルビータブ・接続など）と同じ `lib/analytics.js`（GTM の `dataLayer` に push）。
+`category` はすべて **`lessons`**、`action` がイベントの名前、`label` はチャレンジ id（レッスン表はどう開いたか）。
+数を見る項目（ページ・秒・課題からか）は、`label` に詰めずに **dataLayer の項目**として同じ push に入れる
+（`analytics.js` の Smalruby マーカー `extra GA params`。GA4 で見るには GTM でデータレイヤー変数を作る）。
+- **`lessons` のイベントは、いつも 6 つの項目（`course_id`・`lesson_id`・`challenge_id`・`from_assignment`・`page`・
+  `seconds`）を全部入れ、使わない項目は `undefined` にする**。GTM の data layer は前の push の値を
+  上書きされるまで覚えているので、消さないと前のイベントの `page` / `seconds` やチャレンジの id が次のイベントに残る。
+  同じ理由で `analytics.js` は、前のイベントで入れた追加の項目を、それを入れないあとのイベント（ルビータブ・接続など
+  ほかの category もふくむ）で `undefined` にもどす（マーカー `extra GA params`）。
+
+| `action` | いつ | `label` | 項目 |
+|---|---|---|---|
+| `library_open` | レッスン表を開いた（メニュー・SP のドロワー・「ほかのチャレンジへ」・「できた！」の「次のチャレンジへ」） | `menu`（ふつうに開いた）／`next`（「次のチャレンジへ」で、いまのレッスンを見せて開いた） | — |
+| `challenge_open` | チャレンジを開いた（レッスンモードに入った。同じチャレンジを開き直しても送る） | チャレンジ id | `course_id`・`lesson_id`・`challenge_id`・`from_assignment` |
+| `challenge_complete` | 「できた！」になった（もう一度できたときも送る） | チャレンジ id | 上の 4 つ + `seconds`（チャレンジを開いてから「できた！」まで） |
+| `hint_view` | ヒントの 1 ページを見おわった（下の「ヒントの滞在時間」） | チャレンジ id | 上の 4 つ + `page`（1 から。最後の手段のページもふくむ）・`seconds` |
+| `answer_view` | 「正解のプログラムを確認する」で、正解のプログラムを入れた（「はい」で入れたとき。「いいえ」・入れられなかったときは送らない） | チャレンジ id | 上の 4 つ |
+| `other_challenge` | 課題バーの「ほかのチャレンジへ」を押した | チャレンジ id | 上の 4 つ |
+| `lesson_end` | 課題バーの「レッスンをおえる」を押した | チャレンジ id | 上の 4 つ |
+
+- **ヒントの滞在時間**（`hint_view` の `seconds`）: ページごとに、**そのページを出してから、次のページ・前のページへ
+  移る・吹き出しを閉じる（×・「おわり」）・「できた！」になる・チャレンジを閉じる／ほかのチャレンジを開く**までの秒
+  （整数に丸める）。1 ページを見おわるたびに 1 回送る（ページを出したときには送らない）。同じページを閉じて開き直すと、
+  開き直したところから測りなおして、もう 1 回送る。タブを閉じた・再読み込みしたときの見ていたページは送らない。
+- **秒（`hint_view` と `challenge_complete` の `seconds`）は、タブが裏にあった時間を引く**。
+  `visibilitychange` で `document.hidden` のあいだを数え（PC のスリープもふくむ）、見えていた時間だけで測る
+  （`activeNow`）。別のタブへ行ったままの何十分が平均を引っぱらないため。
+- **PC 表示とスマホ表示の切りかえ**（`<GUI>` と `<MobileGui>` の入れかえでコンテナがマウントし直される）では、
+  二重に送らず、見ていたページの滞在時間も続けて測る。どこまで送ったかの覚えをコンテナではなくモジュールに
+  1 つ持つため（画面に GUI は 1 つだけ）。
+- **`from_assignment`**: クラスの課題のチャレンジから開いたか（true / false だけ）。レッスン表が、
+  課題のチャレンジを開くときに `startChallenge(id, {fromAssignment: true})` を渡す（課題の外のチャレンジや、課題に参加していないときは false）。
+- **送らないもの**: 個人を特定する ID・クラス・席番号・ニックネーム・セッション・課題の ID・参加コード・入力した文字
+  （検索の文字もふくむ）。送るのはコース・レッスン・チャレンジの id・ページの番号・秒・課題からか、だけ。
+- **先生（ログイン中）からは送らない**: 先生がクラス管理にログインしているあいだは、エディタでレッスンを開いても
+  何も送らない（`state.scratchGui.classroom.teacherLoggedIn`。授業の準備で開くと数がゆがむため）。どこまで送ったかの
+  覚えだけは進めるので、ログアウトしても、先生のときに開いたチャレンジを開いたことにはしない。
+- 計測の失敗（`dataLayer` が無いなど）は握りつぶし、レッスンの動きを止めない。
+- 判断は純粋関数 `lib/lessons/lesson-analytics.js`（`stepLessonAnalytics`。前の状態と今の状態と時刻から、送るイベントを
+  決める）、送るのは `containers/lesson-analytics.jsx`（gui.jsx のマーカー `lesson mode` の中に常時マウント）。
+  ボタンで決まる `answer_view` / `other_challenge` / `lesson_end` は、押したところ（`containers/lesson-hint.jsx` /
+  `containers/lesson-mode.jsx`）から `sendLessonEvent` で送る。
+
 ## いまのチュートリアルの入口
 
 レッスン機能がチュートリアルの役目を引き継ぐため、従来の **「チュートリアル」「デバッグ」のボタンはメニューバーから外し、右上の「?」メニューの項目**にした（ふだんは目に入らないようにする。そろったら消す）。
@@ -1057,6 +1121,13 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・DOM の探し方・置き方・ドラッグした位置を画面に収める（`clampHintPosition`）・置いてよい範囲（`hintViewport`。SP のサイドレールの右）（純粋関数） |
 | `packages/scratch-gui/src/lib/lessons/hint-blocks.js` / `blocks-xml.js` | Ruby → ブロック → Blockly の XML |
 | `packages/scratch-gui/src/lib/lessons/insert-sprite-code.js` | 「プログラムを入れる」で `spriteCodes` をそれぞれのスプライトに入れる（いなければライブラリから足す） |
+| `packages/scratch-gui/src/lib/lessons/lesson-analytics.js` | GA の計測の判断（`stepLessonAnalytics`。前の状態・今の状態・時刻から送るイベントを決める純粋関数）と、ボタンで決まるイベントを送る `sendLessonEvent`（上の「GA の計測」） |
+| `packages/scratch-gui/src/containers/lesson-analytics.jsx` | GA の計測のコンテナ（描画しない。state を渡して `analytics.event` に送る）。`gui.jsx` のマーカー `lesson mode` の中に常時マウント |
+| `packages/scratch-gui/test/unit/lib/lessons/lesson-analytics.test.js` / `test/unit/containers/lesson-analytics.test.jsx` | GA の計測の unit テスト（イベントの名前・項目・ヒントの滞在時間・送らない項目） |
+| `packages/scratch-gui/src/lib/lessons/lesson-progress-sync.js` | クラスの課題へ進み具合を送るときの決まり（送る中身・本人の確認を出すか・「前」・送らなくてよいか・失敗の扱い）の純粋関数と、本人の確認の答えの保存（design.md の「本人の確認」「進み具合の送り方」） |
+| `packages/scratch-gui/src/containers/lesson-progress-sync.jsx` | 進み具合を送るコンテナ（できた・課題のチャレンジを開いた・クラスの画面を開いたときに `PUT /classrooms/{id}/lesson-progress`）と本人の確認のダイアログ。`gui.jsx` のマーカー `lesson mode` の中に常時マウント |
+| `packages/scratch-gui/src/components/lesson-progress-confirm/` | 本人の確認のダイアログ（「わたしの記録です」/「ちがう（記録を消す）」→［戻る］［消す］） |
+| `packages/scratch-gui/test/unit/lib/lessons/lesson-progress-sync.test.js` / `test/unit/containers/lesson-progress-sync.test.jsx` | 進み具合の送信と本人の確認の unit テスト |
 | `packages/scratch-gui/src/lib/lessons/spotlight-seen.js` | スポットライトを見せたチャレンジの記録（`smalruby:lessonSpotlightSeen`） |
 | `packages/scratch-gui/test/unit/components/lesson-hint.test.jsx` / `test/unit/containers/lesson-hint.test.jsx` | 吹き出しとコンテナの unit テスト |
 | `packages/scratch-gui/test/unit/components/balloon.test.jsx` | 吹き出しの共通の土台の unit テスト |
@@ -1076,7 +1147,11 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/components/lessons-library/` | レッスン表（モーダル） |
 | `packages/scratch-gui/src/lib/lessons/library-filter.js` | レッスン表の検索（`filterCourseStatuses`）・出す言語（`libraryLanguages`）・コースのボタンを出すか（`showCourseNav`） |
 | `packages/scratch-gui/test/unit/lib/lessons/library-filter.test.js` | 上の unit テスト |
-| `packages/scratch-gui/src/lib/lessons/open-lessons-library.js` | レッスン表をいまのレッスンを見せて開く（`openLessonsLibraryAt`。「次のチャレンジ」が使う） |
+| `packages/scratch-gui/src/lib/lessons/open-lessons-library.js` | レッスン表をいまのレッスンを見せて開く（`openLessonsLibraryAt`。「次のチャレンジ」が使う）・クラスの課題のチャレンジだけで開く（`openAssignmentLessonsLibrary`。「はじめる」「レッスンを続ける」） |
+| `packages/scratch-gui/src/lib/lessons/assignment-progress.js` | クラスの課題のレッスンの数え方（設定をそろえる・条件の数・あと n つ・課題クリア・メニューバーの印・はじめての課題クリア・レッスン表を課題のチャレンジに絞る・次にやる課題のチャレンジ・クラスへ送る分の記録）の純粋関数 |
+| `packages/scratch-gui/test/unit/lib/lessons/assignment-progress.test.js` | 上の unit テスト |
+| `packages/scratch-gui/src/components/lesson-assignment-band/` | クラスの課題の帯（レッスン表の上の 1 行の文・課題バーの小さな帯・クラスの画面の丸と数） |
+| `packages/scratch-gui/src/components/classroom-modal/classroom-menu-status.jsx` | メニューバーの課題の横の印（提出状態、レッスンの課題では ○ / 2/4 / ✓） |
 | `packages/scratch-gui/test/integration/smalruby-lessons-next-challenge.test.js` | 「できた！」の「次のチャレンジ」→ レッスン表のいまのレッスン・「次はこれ！」→ 選ぶと開く。3 つの場面のタイトル・丸・「あと n つ」・2 行目・ボタンの文言（Selenium） |
 | `packages/scratch-gui/src/containers/lessons-library.jsx` | レッスン表のコンテナ（開くたびに記録を取り込む・チャレンジを押したら `startChallenge` + 閉じる）。`gui.jsx` に常時マウント（Smalruby マーカー `lessons library`） |
 | `packages/scratch-gui/src/reducers/modals.js` | `lessonsLibrary` モーダルの開閉（Smalruby マーカー `lessons library`） |
@@ -1106,5 +1181,6 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | 種類 | キー | 説明 |
 |------|------|------|
 | localStorage | `smalruby:lessonProgress` | チャレンジ ID → できた日時（とコース・レッスン） |
+| localStorage | `smalruby:lessonAssignmentConsent` | 本人の確認の答え（課題 × 席 × 席に入った人（参加した時刻、無ければトークンの短いハッシュ）→ `{answer: mine\|cleared\|none, beforeIds, decidedAt}`。新しいものから 50 件） |
 | localStorage | `smalruby:lessonSpotlightSeen` | チャレンジ ID → はじめて開いた日時（ヒントのスポットライトを 2 回目から出さないため） |
 | localStorage | `smalruby:tutorialSeen` | レッスン表を開くと `true` を書く（`tutorial-onboarding` reducer の `markTutorialSeen`）。いまは読む画面が無い（「レッスン」ボタンの下の吹き出しは出さないため） |

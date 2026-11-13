@@ -225,6 +225,10 @@ jobs:
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
       - name: Build packages
+        # A dummy classroom endpoint so the classroom menus render; the integration tests stub
+        # window.fetch for the classroom paths and never reach it (#1775).
+        env:
+          CLASSROOM_API_ENDPOINT: https://classroom.invalid
         run: npm run build:dev
       - name: Create test-results directories
         run: mkdir -p packages/scratch-gui/test-results

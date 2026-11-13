@@ -3,6 +3,8 @@ import { defineMessages, useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomTeacherPanelComponent from '../components/classroom-teacher-panel/classroom-teacher-panel.jsx';
 import classroomAPI from '../lib/classroom-api.js';
+import { lessonProgressContext } from '../lib/classroom-lesson-progress.js';
+import { panelLessonSummary } from '../lib/classroom-lesson-summary.js';
 import {
     buildPanelSeats,
     clampPanelPosition,
@@ -14,6 +16,7 @@ import {
 } from '../lib/classroom-teacher-panel.js';
 import { isTeacherAuthExpired, reauthenticateTeacher } from '../lib/classroom-teacher-reauth.js';
 import { saveTeacherLastSelection, saveTeacherToken } from '../lib/classroom-teacher-session.js';
+import { findCourse } from '../lib/lessons/courses.js';
 import { attemptSilentReauth } from '../lib/teacher-auth.js';
 import { getUrlParams } from '../lib/url-params.js';
 import {
@@ -92,6 +95,8 @@ const ClassroomTeacherPanel = () => {
     const [minimized, setMinimized] = useState(false);
     const [classrooms, setClassrooms] = useState([]);
     const [membersById, setMembersById] = useState({});
+    // GET lesson-progress of lesson assignments (#1603), by classroomId.
+    const [lessonById, setLessonById] = useState({});
     const [loading, setLoading] = useState(false);
     const [busyIds, setBusyIds] = useState([]);
     const [error, setError] = useState(null);
@@ -137,6 +142,11 @@ const ClassroomTeacherPanel = () => {
         setMembersById((prev) => ({ ...prev, [id]: members }));
     }, []);
 
+    const handleLessonProgress = useCallback((id, data) => {
+        setLessonById((prev) => ({ ...prev, [id]: data }));
+    }, []);
+
+    const shownClassroom = classrooms.find((c) => c.classroomId === classroomId) || null;
     const { refresh } = useTeacherPanelPolling({
         // Every call would be another 401 until the teacher re-authenticates.
         open: shown && !sessionExpired,
@@ -144,6 +154,8 @@ const ClassroomTeacherPanel = () => {
         classroomId,
         onMembers: handleMembers,
         onError: handleLoadError,
+        withLesson: Boolean(shownClassroom && shownClassroom.hasLesson),
+        onLessonProgress: handleLessonProgress,
     });
 
     // Started by the click on "再認証する": the provider prompt needs a user
@@ -218,7 +230,7 @@ const ClassroomTeacherPanel = () => {
         fit();
         window.addEventListener('resize', fit);
         return () => window.removeEventListener('resize', fit);
-    }, [shown, minimized, classroomId, membersById, sessionExpired]);
+    }, [shown, minimized, classroomId, membersById, lessonById, sessionExpired]);
 
     const handleDrag = useCallback((e, data) => setPosition({ x: data.x, y: data.y }), []);
     const handleDragStop = useCallback((e, data) => {
@@ -293,13 +305,26 @@ const ClassroomTeacherPanel = () => {
         const current = classrooms.find((c) => c.classroomId === classroomId);
         return current && !recent.includes(current) ? [current, ...recent] : recent;
     }, [classrooms, classroomId]);
-    const classroom = classrooms.find((c) => c.classroomId === classroomId) || null;
+    const classroom = shownClassroom;
     const members = membersById[classroomId];
     const kickRequests = kickRequestsForClassroom(allKickRequests, classroomId);
     const now = Date.now();
     const studentCount = (classroom && classroom.studentCount) || 0;
     const summary = classroom && members ? summarizePanelStatus({ members, studentCount, now }) : null;
     const seats = classroom ? buildPanelSeats({ members: members || [], studentCount, kickRequests, now }) : [];
+    // Lesson assignments (#1603): 課題クリア・止まっている・per-challenge bars and
+    // the seat colours of the members tab. A course this version does not have
+    // keeps the usual panel.
+    const progressData = classroom && classroom.hasLesson ? lessonById[classroomId] || null : null;
+    const savedLesson = progressData && progressData.lesson;
+    const lessonCtx = savedLesson ? lessonProgressContext(savedLesson, findCourse(savedLesson.courseId)) : null;
+    const lesson =
+        lessonCtx && members
+            ? {
+                  ...panelLessonSummary({ members, progressData, studentCount, ctx: lessonCtx, now }),
+                  submitWork: savedLesson.submitWork === true,
+              }
+            : null;
 
     if (!shown) return null;
 
@@ -310,6 +335,7 @@ const ClassroomTeacherPanel = () => {
             classroom={classroom}
             error={error}
             kickRequests={kickRequests}
+            lesson={lesson}
             loading={loading}
             minimized={minimized}
             panelRef={panelRef}

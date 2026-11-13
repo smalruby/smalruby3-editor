@@ -12,6 +12,7 @@ import { fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import TeacherEvaluation, { currentEvalStep } from '../../../src/components/classroom-modal/teacher-evaluation.jsx';
+import { COURSES } from '../../../src/lib/lessons/courses.js';
 
 const LESSONS = [{ classroomId: 'c1', assignmentName: '迷路' }];
 
@@ -255,5 +256,119 @@ describe('TeacherEvaluation grading settings (R3 / R6)', () => {
         expect(handlers.onChangeRubricAxis).toHaveBeenCalledWith(1, 'name', 'アイデア');
         fireEvent.change(getByTestId('classroom-eval-strictness'), { target: { value: 'lenient' } });
         expect(handlers.onSetStrictness).toHaveBeenCalledWith('lenient');
+    });
+});
+
+describe('レッスンの点の列（#1603）', () => {
+    test('作品の列の横に「Lesson」の列を出し、記録の無い席は —', () => {
+        const lessons = [{ classroomId: 'c1', assignmentName: '迷路', hasLesson: true }];
+        const { getByTestId } = renderEvaluation({
+            evalLessons: lessons,
+            seats: [1, 2],
+            lessonScores: { c1: { total: 100, submitWork: true, scores: { 1: 78 } } },
+        });
+        expect(getByTestId('classroom-eval-lesson-head-c1')).toHaveTextContent('Lesson');
+        expect(getByTestId('classroom-eval-lesson-score-1-c1')).toHaveTextContent('78');
+        expect(getByTestId('classroom-eval-lesson-score-2-c1')).toHaveTextContent('—');
+        expect(getByTestId('classroom-eval-cell-1-c1')).toBeInTheDocument();
+    });
+
+    test('作品を出さないレッスンの課題は作品の列を出さない', () => {
+        const lessons = [{ classroomId: 'c1', assignmentName: '迷路', hasLesson: true }];
+        const { queryByTestId } = renderEvaluation({
+            evalLessons: lessons,
+            seats: [1],
+            lessonScores: { c1: { total: 100, submitWork: false, scores: { 1: 100 } } },
+        });
+        expect(queryByTestId('classroom-eval-cell-1-c1')).toBeNull();
+        expect(queryByTestId('classroom-eval-lesson-score-1-c1')).toHaveTextContent('100');
+    });
+});
+
+describe('レッスンの課題の採点の流れ (#1778)', () => {
+    // 実在のコースのチャレンジを使う（コースが無いと欄を出さない）
+    const lessonSettingOf = (submitWork) => ({
+        courseId: COURSES[0].id,
+        challengeIds: COURSES[0].lessons[0].challenges.map((c) => c.id),
+        requiredChallengeIds: [],
+        completion: { type: 'all' },
+        submitWork,
+        scoring: null,
+    });
+    const lessonOnly = {
+        classroomId: 'lo',
+        assignmentName: 'レッスン1',
+        hasLesson: true,
+        lessonSetting: lessonSettingOf(false),
+    };
+    const withWork = {
+        classroomId: 'lw',
+        assignmentName: '迷路',
+        hasLesson: true,
+        lessonSetting: lessonSettingOf(true),
+    };
+
+    test('作品を出さないレッスンの課題だけ: AI の観点・厳しさを出さず、①読み込む → ②点を確かめる → ③書き出す', () => {
+        const onCheckScoring = jest.fn();
+        const { getByTestId, queryByTestId } = renderEvaluation({
+            evalLessons: [lessonOnly],
+            selectedLessonIds: ['lo'],
+            seats: [1],
+            onChangeLessonScoring: jest.fn(),
+            onCheckScoring,
+        });
+        expect(queryByTestId('classroom-eval-settings-summary')).toBeNull();
+        expect(queryByTestId('classroom-eval-run-grade')).toBeNull();
+        expect(queryByTestId('classroom-eval-return-comments')).toBeNull();
+        expect(queryByTestId('classroom-eval-export-menu')).toBeNull();
+        expect(getByTestId('classroom-eval-lesson-only-hint')).toHaveTextContent('AI grading is not used');
+        expect(getByTestId('classroom-eval-check-points')).toHaveAttribute('aria-current', 'step');
+        expect(getByTestId('classroom-eval-lesson-scoring-lo')).toBeInTheDocument();
+        fireEvent.click(getByTestId('classroom-eval-check-points'));
+        expect(onCheckScoring).toHaveBeenCalled();
+    });
+
+    test('点を確かめたら ③書き出す が主ボタン・押すと採点結果の CSV', () => {
+        const { getByTestId, handlers } = renderEvaluation({
+            evalLessons: [lessonOnly],
+            selectedLessonIds: ['lo'],
+            seats: [1],
+            scoringChecked: true,
+            onChangeLessonScoring: jest.fn(),
+        });
+        expect(getByTestId('classroom-eval-export-lesson')).toHaveAttribute('aria-current', 'step');
+        fireEvent.click(getByTestId('classroom-eval-export-lesson'));
+        expect(handlers.onExportEvaluationCsv).toHaveBeenCalled();
+    });
+
+    test('作品も提出するレッスンの課題: いまの 4 つの手順のまま・レッスンの点の欄も出す', () => {
+        const { getByTestId, queryByTestId } = renderEvaluation({
+            evalLessons: [withWork],
+            selectedLessonIds: ['lw'],
+            onChangeLessonScoring: jest.fn(),
+        });
+        expect(getByTestId('classroom-eval-run-grade')).toBeInTheDocument();
+        expect(getByTestId('classroom-eval-settings-summary')).toBeInTheDocument();
+        expect(queryByTestId('classroom-eval-mixed-note')).toBeNull();
+        expect(getByTestId('classroom-eval-lesson-scoring-lw')).toBeInTheDocument();
+    });
+
+    test('混ぜて選んだ: AI の流れで、レッスンだけの課題には AI を使わないと示す', () => {
+        const { getByTestId } = renderEvaluation({
+            evalLessons: [withWork, lessonOnly],
+            selectedLessonIds: ['lw', 'lo'],
+        });
+        expect(getByTestId('classroom-eval-run-grade')).toBeInTheDocument();
+        expect(getByTestId('classroom-eval-mixed-note')).toHaveTextContent('AI is not used for レッスン1');
+    });
+
+    test('必須が無いときは、必須の点の欄を使わないと示す', () => {
+        const { getByTestId } = renderEvaluation({
+            evalLessons: [lessonOnly],
+            selectedLessonIds: ['lo'],
+            onChangeLessonScoring: jest.fn(),
+        });
+        expect(getByTestId('classroom-lesson-scoring-required-unused')).toHaveTextContent('nothing is required');
+        expect(getByTestId('classroom-lesson-scoring-required')).toBeDisabled();
     });
 });

@@ -166,6 +166,8 @@ export const defineCourse = ({ id, language, lessons }) => ({
     id,
     language,
     name: message(`gui.lessons.course.${id}.name`),
+    // そのコースで学べること（1〜2 文）。クラス管理の課題のページに入れるレッスンの説明文で使う
+    description: message(`gui.lessons.course.${id}.description`),
     lessons,
 });
 

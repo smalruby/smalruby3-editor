@@ -196,6 +196,17 @@ class ClassroomAPI {
     }
 
     /**
+     * Lesson progress of every seat (teacher, EPIC #1592). Counts must use the
+     * assignment's current `lesson.challengeIds` (rows keep older ids too).
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom ID
+     * @returns {Promise<object>} {lesson, progress: [{memberId, seatNumber, challenges, current, updatedAt}]}
+     */
+    async getLessonProgress(idToken, classroomId) {
+        return this._request('GET', `/classrooms/${classroomId}/lesson-progress`, null, idToken);
+    }
+
+    /**
      * Pending kick requests across every assignment the teacher may manage
      * (#1200). Polled every ~10s while a teacher is logged in.
      * @param {string} idToken - Teacher ID token
@@ -540,6 +551,19 @@ class ClassroomAPI {
     }
 
     /**
+     * Change only the lesson points (`lesson.scoring`) of an assignment
+     * (teacher only, #1787). Pages, images, starter and the other lesson
+     * settings are left as they are. 400 when the assignment has no lesson.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom (assignment) ID
+     * @param {?object} scoring - {total, requiredPoints, optionalPoints}; null = the defaults
+     * @returns {Promise<object>} {lesson} — the saved lesson settings
+     */
+    async setLessonScoring(idToken, classroomId, scoring) {
+        return this._request('PATCH', `/classrooms/${classroomId}/assignment/lesson-scoring`, { scoring }, idToken);
+    }
+
+    /**
      * Get the assignment content of a classroom with download URLs.
      * Accepts either a teacher ID token or a student session token.
      * @param {string} token - Teacher ID token or student session token
@@ -561,6 +585,20 @@ class ClassroomAPI {
      */
     async getContinuableSubmissions(sessionToken, classroomId) {
         return this._request('GET', `/classrooms/${classroomId}/continuable-submissions`, null, sessionToken);
+    }
+
+    /**
+     * Send the seat's lesson progress for the joined assignment (EPIC #1592 / #1600).
+     * One request per seat × assignment; the server merges (keeps the first
+     * completedAt / before, drops challenges outside the assignment) and does not
+     * write when nothing changes.
+     * @param {string} sessionToken - Student session token
+     * @param {string} classroomId - Joined classroom (assignment) ID
+     * @param {object} payload - {challenges: {<id>: {completedAt, before}}, current?: {challengeId, openedAt}|null}
+     * @returns {Promise<object>} the merged record {memberId, seatNumber, challenges, current, updatedAt}
+     */
+    async putLessonProgress(sessionToken, classroomId, payload) {
+        return this._request('PUT', `/classrooms/${classroomId}/lesson-progress`, payload, sessionToken);
     }
 
     /**

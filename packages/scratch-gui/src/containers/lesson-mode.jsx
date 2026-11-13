@@ -7,12 +7,17 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
+import LessonAssignmentBand from '../components/lesson-assignment-band/lesson-assignment-band.jsx';
 import LessonTaskBar from '../components/lesson-task-bar/lesson-task-bar.jsx';
 import { applyDeckSetup } from '../lib/deck-setup';
+import { assignmentProgress, isAssignmentChallenge } from '../lib/lessons/assignment-progress';
 import { setupForChallenge } from '../lib/lessons/challenge-setup';
 import { findChallenge } from '../lib/lessons/courses';
+import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics';
+import { openAssignmentLessonsLibrary } from '../lib/lessons/open-lessons-library';
 import sharedMessages from '../lib/shared-messages';
 import { closeCards } from '../reducers/cards';
+import { selectStudentLesson } from '../reducers/classroom';
 import { requestExternalExitDnclMode, setDnclMode } from '../reducers/dncl-mode';
 import { clearGoogleDriveFile } from '../reducers/google-drive-file';
 import {
@@ -36,9 +41,11 @@ import {
 import LessonHint from './lesson-hint.jsx';
 
 const LessonMode = ({
+    assignmentLesson = null,
     current,
     dispatch,
     dnclMode,
+    fromAssignment = false,
     hint,
     isAnyCreatingNewState,
     isShowingProject,
@@ -55,7 +62,9 @@ const LessonMode = ({
     onShowHint,
     onStartChallenge,
     pendingChallengeId,
+    progress,
     projectChanged,
+    teacherLoggedIn = false,
     toastVisible,
     vm,
 }) => {
@@ -150,21 +159,40 @@ const LessonMode = ({
         if (toastVisible) onDismissCompleted();
     }, [hint, onHideHint, toastVisible, onDismissCompleted]);
 
+    // 課題バーのボタンの GA 計測（どのチャレンジで押したか。lib/lessons/lesson-analytics.js）
+    // 課題のチャレンジからは、レッスン表を課題のチャレンジだけで開き直す（#1599）
+    const handleQuit = useCallback(() => {
+        sendLessonEvent(LESSON_EVENTS.OTHER_CHALLENGE, current, { fromAssignment, teacherLoggedIn });
+        onCloseLesson(fromAssignment ? current.challenge.id : null);
+    }, [current, fromAssignment, onCloseLesson, teacherLoggedIn]);
+
+    const handleEnd = useCallback(() => {
+        sendLessonEvent(LESSON_EVENTS.LESSON_END, current, { fromAssignment, teacherLoggedIn });
+        onEndLesson();
+    }, [current, fromAssignment, onEndLesson, teacherLoggedIn]);
+
     if (!current) return null;
+    // 課題のチャレンジの中では、課題バーの同じ行に小さな課題の帯（丸と「あと n つ」）を出す（高さは変えない）
+    const assignmentStatus = isAssignmentChallenge(assignmentLesson, current.challenge.id)
+        ? assignmentProgress(assignmentLesson, progress)
+        : null;
     // ヒントの吹き出し（containers/lesson-hint.jsx）は document.body に portal で出るので、
     // ここに置いても本体のレイアウトには影響しない
     return (
         <>
             <LessonTaskBar
+                assignmentBand={
+                    assignmentStatus ? <LessonAssignmentBand status={assignmentStatus} variant="compact" /> : null
+                }
                 challenge={current.challenge}
                 challengeCount={current.lesson.challenges.length}
                 hintAvailable={Boolean(hint && hint.count > 0)}
                 hintVisible={Boolean(hint && hint.visible)}
                 menuOpen={menuOpen}
-                onEnd={onEndLesson}
+                onEnd={handleEnd}
                 onHint={handleHint}
                 onOpenFullText={handleOpenFullText}
-                onQuit={onCloseLesson}
+                onQuit={handleQuit}
                 toastVisible={toastVisible}
             />
             <LessonHint />
@@ -173,6 +201,10 @@ const LessonMode = ({
 };
 
 LessonMode.propTypes = {
+    // 参加している課題のレッスンの設定（assignment-progress.js）。無ければ null
+    assignmentLesson: PropTypes.shape({
+        challengeIds: PropTypes.arrayOf(PropTypes.string).isRequired,
+    }),
     current: PropTypes.shape({
         course: PropTypes.object.isRequired,
         lesson: PropTypes.object.isRequired,
@@ -180,6 +212,8 @@ LessonMode.propTypes = {
     }),
     dispatch: PropTypes.func.isRequired,
     dnclMode: PropTypes.bool,
+    // クラスの課題から開いたか（GA の計測で送る）
+    fromAssignment: PropTypes.bool,
     hint: PropTypes.shape({
         visible: PropTypes.bool.isRequired,
         index: PropTypes.number.isRequired,
@@ -201,7 +235,11 @@ LessonMode.propTypes = {
     onShowHint: PropTypes.func.isRequired,
     onStartChallenge: PropTypes.func.isRequired,
     pendingChallengeId: PropTypes.string,
+    // lesson-progress.js の記録（課題の帯の数）
+    progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }),
     projectChanged: PropTypes.bool.isRequired,
+    // 先生（クラス管理にログイン中）か（GA に送らない）
+    teacherLoggedIn: PropTypes.bool,
     toastVisible: PropTypes.bool,
     vm: PropTypes.object,
 };
@@ -209,8 +247,12 @@ LessonMode.propTypes = {
 const mapStateToProps = (state) => {
     const { loadingState } = state.scratchGui.projectState;
     return {
+        assignmentLesson: selectStudentLesson(state),
         current: getCurrentChallenge(state),
         dnclMode: state.scratchGui.dnclMode.dnclMode,
+        fromAssignment: Boolean(state.scratchGui.lessonMode.fromAssignment),
+        // 先生（クラス管理にログイン中）のときは GA に送らない
+        teacherLoggedIn: Boolean(state.scratchGui.classroom && state.scratchGui.classroom.teacherLoggedIn),
         hint: getCurrentHint(state),
         isAnyCreatingNewState: getIsAnyCreatingNewState(loadingState),
         isShowingProject: getIsShowingProject(loadingState),
@@ -218,6 +260,7 @@ const mapStateToProps = (state) => {
         // メニューバーのメニューがどれか開いているか（課題バーのホバーの全文がメニューに重ならないように）
         menuOpen: Object.values(state.scratchGui.menus).some(Boolean),
         pendingChallengeId: state.scratchGui.lessonMode.pendingChallengeId,
+        progress: state.scratchGui.lessonMode.progress,
         projectChanged: state.scratchGui.projectChanged,
         // lesson-goal-watcher.jsx が「できた！」の toast を出す条件と同じ
         toastVisible:
@@ -230,10 +273,12 @@ const mapStateToProps = (state) => {
 const mapDispatchToProps = (dispatch) => ({
     dispatch,
     onCancelStart: () => dispatch(cancelStartChallenge()),
-    onCloseLesson: () => {
-        // 「ほかのチャレンジへ」: いまのチャレンジを終えてレッスン表を開く（次のチャレンジをすぐ選べるように）
+    onCloseLesson: (assignmentChallengeId = null) => {
+        // 「ほかのチャレンジへ」: いまのチャレンジを終えてレッスン表を開く（次のチャレンジをすぐ選べるように）。
+        // 課題のチャレンジからは、課題のチャレンジだけで開き、次の課題のチャレンジに「次はこれ！」
         dispatch(closeLesson());
-        dispatch(openLessonsLibrary());
+        if (assignmentChallengeId) openAssignmentLessonsLibrary(dispatch, assignmentChallengeId);
+        else dispatch(openLessonsLibrary());
     },
     onDismissCompleted: () => dispatch(dismissCompleted()),
     // 「レッスンをおえる」: レッスンから出るだけ（レッスン表は開かない・確認も出さない）。作品はそのまま残り、
@@ -256,7 +301,7 @@ const mapDispatchToProps = (dispatch) => ({
         dispatch(requestNewProject(false));
     },
     onShowHint: () => dispatch(showHint()),
-    onStartChallenge: (challengeId) => dispatch(startChallenge(challengeId)),
+    onStartChallenge: (challengeId, options) => dispatch(startChallenge(challengeId, options)),
 });
 
 export { LessonMode };

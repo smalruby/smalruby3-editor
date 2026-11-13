@@ -4,10 +4,12 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonHint } from '../../../src/containers/lesson-hint.jsx';
+import analytics from '../../../src/lib/analytics';
 import { challengeCodeFor, findChallenge, localizeCode } from '../../../src/lib/lessons/courses';
 import { rubyToBlocksXml } from '../../../src/lib/lessons/hint-blocks';
 import { targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';
 
+jest.mock('../../../src/lib/analytics', () => ({ event: jest.fn() }));
 jest.mock('../../../src/lib/lessons/hint-blocks', () => ({
     rubyToBlocksXml: jest.fn(() => Promise.resolve({ xml: '<xml><block type="x"></block></xml>', errors: [] })),
 }));
@@ -168,6 +170,28 @@ describe('LessonHint container', () => {
         expect(queryByTestId('lesson-hint-insert-code-error')).not.toBeInTheDocument();
     });
 
+    test('sends answer_view to GA only when the answer program is inserted', async () => {
+        analytics.event.mockClear();
+        const props = { ...baseProps(), hint: hintFor(6) };
+        const { getByTestId } = renderContainer(props);
+        // 「いいえ」では送らない
+        fireEvent.click(getByTestId('lesson-hint-insert-code'));
+        fireEvent.click(getByTestId('lesson-hint-insert-code-no'));
+        await flush();
+        expect(analytics.event).not.toHaveBeenCalled();
+        insertWithConfirm(getByTestId);
+        await flush();
+        expect(analytics.event).toHaveBeenCalledWith(
+            expect.objectContaining({
+                category: 'lessons',
+                action: 'answer_view',
+                label: CHALLENGE_ID,
+                challenge_id: CHALLENGE_ID,
+                from_assignment: false,
+            }),
+        );
+    });
+
     test('does not insert and shows why when the program would not convert yet (e.g. Owl not added)', async () => {
         // en の code（"Meow"）も、ほかの locale の code（「ニャー」）も入らない
         const owlMissing = () => Promise.resolve({ xml: null, errors: [{ text: 'sound "Owl" does not exist.' }] });
@@ -184,12 +208,15 @@ describe('LessonHint container', () => {
             debug: challenge.debug,
             code: challenge.code,
         };
+        analytics.event.mockClear();
         const props = { ...baseProps(), current, hint };
         const { getByTestId } = renderContainer(props);
         insertWithConfirm(getByTestId);
         await flush();
         expect(props.onInsertCode).not.toHaveBeenCalled();
         expect(getByTestId('lesson-hint-insert-code-error')).toHaveTextContent('sound "Owl" does not exist.');
+        // 入れられなかったときは「正解のプログラムを確認した」を送らない
+        expect(analytics.event).not.toHaveBeenCalled();
     });
 
     const keySoundLastPage = () => {

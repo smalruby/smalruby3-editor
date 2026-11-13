@@ -15,12 +15,14 @@ import classroomReducer, { classroomInitialState } from '../../../src/reducers/c
 const mockListClassrooms = jest.fn();
 const mockListMembers = jest.fn();
 const mockListSubmissions = jest.fn();
+const mockGetLessonProgress = jest.fn();
 jest.mock('../../../src/lib/classroom-api.js', () => ({
     __esModule: true,
     default: {
         listClassrooms: (...args) => mockListClassrooms(...args),
         listMembers: (...args) => mockListMembers(...args),
         listSubmissions: (...args) => mockListSubmissions(...args),
+        getLessonProgress: (...args) => mockGetLessonProgress(...args),
     },
 }));
 
@@ -209,5 +211,67 @@ describe('ClassroomTeacherPanel session expiry (#1250)', () => {
         await flush();
         expect(mockListMembers).toHaveBeenCalledWith('modal-token', 'c1');
         expect(screen.queryByTestId('classroom-teacher-panel-error')).toBeNull();
+    });
+});
+
+describe('ClassroomTeacherPanel のレッスンの課題 (#1603)', () => {
+    const lesson = {
+        courseId: 'kyou-kara-programmer',
+        challengeIds: ['blocks-l1-key-sound'],
+        requiredChallengeIds: [],
+        completion: { type: 'all' },
+        submitWork: false,
+        scoring: null,
+    };
+
+    beforeEach(() => {
+        jest.useFakeTimers();
+        mockToken = 'old-token';
+        mockListClassrooms.mockReset();
+        mockListMembers.mockReset();
+        mockListSubmissions.mockReset();
+        mockGetLessonProgress.mockReset();
+        mockListClassrooms.mockResolvedValue({
+            classrooms: [{ classroomId: 'c1', studentCount: 3, hasLesson: true }],
+        });
+        mockListMembers.mockResolvedValue({
+            members: [{ memberId: 'seat-01' }, { memberId: 'seat-02' }],
+        });
+        mockListSubmissions.mockResolvedValue({ submissions: [] });
+        mockGetLessonProgress.mockResolvedValue({
+            lesson,
+            progress: [
+                {
+                    memberId: 'seat-01',
+                    seatNumber: 1,
+                    challenges: { 'blocks-l1-key-sound': { completedAt: new Date().toISOString() } },
+                    current: null,
+                    updatedAt: new Date().toISOString(),
+                },
+            ],
+        });
+        Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    test('課題クリア・止まっているの数、座席の色、チャレンジの横棒を出す', async () => {
+        renderPanel();
+        await flush();
+        await flush();
+        expect(mockGetLessonProgress).toHaveBeenCalledWith('old-token', 'c1');
+        expect(screen.getByTestId('classroom-teacher-panel-lesson-cleared').textContent).toBe('Cleared 1 / 2');
+        expect(screen.getByTestId('classroom-teacher-panel-lesson-stuck').textContent).toBe('Stuck 0');
+        expect(screen.getByTestId('classroom-teacher-panel-seat-1').getAttribute('data-lesson-state')).toBe(
+            'cleared',
+        );
+        expect(screen.getByTestId('classroom-teacher-panel-seat-2').getAttribute('data-lesson-state')).toBe(
+            'notStarted',
+        );
+        expect(screen.getByTestId('classroom-teacher-panel-bar-blocks-l1-key-sound')).toBeTruthy();
+        // 作品を出さない課題では「提出」の数を出さない
+        expect(screen.queryByTestId('classroom-teacher-panel-submitted')).toBeNull();
     });
 });

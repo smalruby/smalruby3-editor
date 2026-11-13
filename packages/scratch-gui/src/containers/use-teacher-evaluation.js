@@ -11,16 +11,29 @@
  * needsReview, comment, returned}.
  */
 import JSZip from 'jszip';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { defineMessages } from 'react-intl';
 import classroomAPI from '../lib/classroom-api.js';
 import {
     DEFAULT_RUBRIC_AXES,
     buildAuditCsv,
     buildEvaluationCsv,
     chunk,
+    isLessonOnlyAssignment,
 } from '../lib/classroom-evaluation/evaluation-utils.js';
 import { analyzeProject } from '../lib/classroom-evaluation/sb3-analyzer.js';
+import { isSameLessonScoring } from '../lib/classroom-lesson-settings.js';
+import { lessonScoresBySeat } from '../lib/classroom-lesson-summary.js';
+import { findCourse } from '../lib/lessons/courses.js';
 import translateError from './classroom-error-utils.js';
+
+const evaluationMessages = defineMessages({
+    lessonRemoved: {
+        defaultMessage: 'This assignment no longer has a lesson, so the points were not saved.',
+        description: 'Grading screen: the lesson was removed elsewhere before the lesson points were saved (#1778)',
+        id: 'gui.classroom.evaluation.lessonRemoved',
+    },
+});
 
 const EVAL_CHUNK_SIZE = 10;
 const cellKey = (seatNumber, classroomId) => `${seatNumber}:${classroomId}`;
@@ -66,23 +79,59 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     // {label, done, total} while loading submissions / calling the AI
     const [evalProgress, setEvalProgress] = useState(null);
     const [comments, setComments] = useState({});
+    // classroomId → lessonScoresBySeat (null = cannot be scored) for lesson assignments (#1603)
+    const [lessonScores, setLessonScores] = useState({});
+    // classroomId → GET lesson-progress (kept to re-score after the points change, #1778)
+    const [lessonProgress, setLessonProgress] = useState({});
+    // The teacher has checked (or changed) the lesson points: the lesson-only flow moves on (#1778)
+    const [scoringChecked, setScoringChecked] = useState(false);
+    // classroomId whose lesson points are being saved
+    const [scoringSavingId, setScoringSavingId] = useState(null);
+    // Settings fetched for a group that is no longer shown are dropped.
+    const shownGroupRef = useRef(null);
 
     const handleShowEvaluation = useCallback(
         (group) => {
             clearError();
             const lessons = (classrooms || [])
                 .filter((c) => c.groupId === group.groupId)
-                .map((c) => ({ classroomId: c.classroomId, assignmentName: c.assignmentName || '' }));
+                .map((c) => ({
+                    classroomId: c.classroomId,
+                    assignmentName: c.assignmentName || '',
+                    hasLesson: !!c.hasLesson,
+                }));
+            shownGroupRef.current = group.groupId;
             setEvalGroup(group);
             setEvalLessons(lessons);
             setSelectedLessonIds(lessons.map((l) => l.classroomId));
             setMatrix({});
             setSeats([]);
             setComments({});
+            setLessonScores({});
+            setLessonProgress({});
+            setScoringChecked(false);
+            setScoringSavingId(null);
             setEvalProgress(null);
             setPhase('teacher-evaluation');
+            // The lesson settings decide the flow (lesson-only assignments are not
+            // graded by the AI) and feed the lesson points field (#1778). A failed
+            // read leaves the assignment in the usual flow.
+            lessons
+                .filter((l) => l.hasLesson)
+                .forEach((l) => {
+                    classroomAPI
+                        .getAssignment(idToken, l.classroomId)
+                        .then((data) => {
+                            if (shownGroupRef.current !== group.groupId) return;
+                            const lessonSetting = (data && data.lesson) || null;
+                            setEvalLessons((prev) =>
+                                prev.map((x) => (x.classroomId === l.classroomId ? { ...x, lessonSetting } : x)),
+                            );
+                        })
+                        .catch(() => {});
+                });
         },
-        [classrooms, clearError, setPhase],
+        [idToken, classrooms, clearError, setPhase],
     );
 
     const handleBackFromEvaluation = useCallback(() => {
@@ -102,11 +151,44 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         clearError();
         const targets = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
         const nextMatrix = {};
+        const nextLessonScores = {};
+        const nextLessonProgress = {};
         const seatSet = new Set();
         let done = 0;
         try {
             for (const lesson of targets) {
                 setEvalProgress({ label: lesson.assignmentName, done, total: targets.length });
+                if (lesson.hasLesson) {
+                    // The lesson score comes from the progress, not the work (#1603).
+                    // A failed fetch leaves the scores empty (「—」) but still reads the
+                    // setting, so an assignment without work keeps showing no work column.
+                    const notAuthorized = (err) => {
+                        if (err.status === 401) throw err;
+                        return null;
+                    };
+                    let progressData = await classroomAPI
+                        .getLessonProgress(idToken, lesson.classroomId)
+                        .catch(notAuthorized);
+                    if (!progressData) {
+                        const assignment = await classroomAPI
+                            .getAssignment(idToken, lesson.classroomId)
+                            .catch(notAuthorized);
+                        progressData =
+                            assignment && assignment.lesson ? { lesson: assignment.lesson, progress: [] } : null;
+                    }
+                    const saved = progressData && progressData.lesson;
+                    const scored = saved
+                        ? lessonScoresBySeat(progressData, findCourse(saved.courseId), Date.now())
+                        : null;
+                    nextLessonScores[lesson.classroomId] = scored;
+                    nextLessonProgress[lesson.classroomId] = progressData;
+                    if (scored) Object.keys(scored.scores).forEach((seat) => seatSet.add(Number(seat)));
+                    // No work is submitted: nothing to download or grade (#1778).
+                    if (isLessonOnlyAssignment(lesson, nextLessonScores)) {
+                        done++;
+                        continue;
+                    }
+                }
                 const data = await classroomAPI.listSubmissions(idToken, lesson.classroomId);
                 for (const submission of data.submissions || []) {
                     const seatNumber = seatFromMemberId(submission.memberId);
@@ -144,6 +226,9 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                 done++;
             }
             setMatrix(nextMatrix);
+            setLessonScores(nextLessonScores);
+            setLessonProgress(nextLessonProgress);
+            setScoringChecked(false);
             setSeats([...seatSet].sort((a, b) => a - b));
         } catch (err) {
             if (err.status === 401) {
@@ -256,6 +341,72 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         ],
     );
 
+    const handleCheckScoring = useCallback(() => setScoringChecked(true), []);
+
+    /**
+     * Save new lesson points from the grading screen (#1778): the table is
+     * re-scored at once, then only `scoring` is sent to the points-only API
+     * (#1787: pages and the starter are not sent back, so an image replaced in
+     * the meantime is kept). The screen follows the returned lesson (M1).
+     * Nothing is saved when the points do not change (FYI1). When the save
+     * fails, the screen follows what the server has (it may have gone through, FYI2).
+     * @param {string} classroomId - assignment
+     * @param {?object} scoring - the new `lesson.scoring` (null = the defaults)
+     */
+    const handleChangeLessonScoring = useCallback(
+        async (classroomId, scoring) => {
+            const target = evalLessons.find((l) => l.classroomId === classroomId);
+            if (!target || !target.lessonSetting) return;
+            const before = target.lessonSetting;
+            if (isSameLessonScoring(before, scoring)) return;
+            const progressData = lessonProgress[classroomId];
+            const apply = (setting) => {
+                setEvalLessons((prev) =>
+                    prev.map((l) => (l.classroomId === classroomId ? { ...l, lessonSetting: setting } : l)),
+                );
+                if (progressData) {
+                    const next = { ...progressData, lesson: setting };
+                    setLessonProgress((prev) => ({ ...prev, [classroomId]: next }));
+                    setLessonScores((prev) => ({
+                        ...prev,
+                        [classroomId]: setting
+                            ? lessonScoresBySeat(next, findCourse(setting.courseId), Date.now())
+                            : null,
+                    }));
+                }
+            };
+            clearError();
+            apply({ ...before, scoring });
+            setScoringChecked(true);
+            setScoringSavingId(classroomId);
+            try {
+                const saved = await classroomAPI.setLessonScoring(idToken, classroomId, scoring);
+                apply((saved && saved.lesson) || null);
+            } catch (err) {
+                if (err.status === 400) {
+                    // The lesson was removed elsewhere: the server does not put it back.
+                    apply(null);
+                    showError(intl.formatMessage(evaluationMessages.lessonRemoved));
+                    return;
+                }
+                if (err.status === 401) {
+                    apply(before);
+                    handleTeacher401();
+                    return;
+                }
+                // The points may have been saved even though it failed here: show
+                // what the server has, or the old points when it cannot be read.
+                const UNREAD = {};
+                const fresh = await classroomAPI.getAssignment(idToken, classroomId).catch(() => UNREAD);
+                apply(fresh === UNREAD ? before : (fresh && fresh.lesson) || null);
+                showError(translateError(intl, err));
+            } finally {
+                setScoringSavingId(null);
+            }
+        },
+        [idToken, evalLessons, lessonProgress, clearError, showError, intl, handleTeacher401],
+    );
+
     /** Teacher edits a cell — marks it manual so it feeds calibration. */
     const handleSetCellGrade = useCallback((seatNumber, classroomId, grade) => {
         setMatrix((prev) => {
@@ -294,9 +445,9 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     const handleExportEvaluationCsv = useCallback(() => {
         downloadText(
             `${evalGroup?.name || 'class'}_採点結果.csv`,
-            buildEvaluationCsv(selectedLessons, seats, getCell),
+            buildEvaluationCsv(selectedLessons, seats, getCell, lessonScores),
         );
-    }, [evalGroup, selectedLessons, seats, getCell]);
+    }, [evalGroup, selectedLessons, seats, getCell, lessonScores]);
 
     const handleExportAuditCsv = useCallback(() => {
         downloadText(`${evalGroup?.name || 'class'}_検証用.csv`, buildAuditCsv(selectedLessons, seats, getCell));
@@ -348,6 +499,9 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         seats,
         matrix,
         comments,
+        lessonScores,
+        scoringChecked,
+        scoringSavingId,
         rubricAxes,
         strictness,
         evalProgress,
@@ -362,6 +516,8 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         handleSetCellReason,
         handleSetComment,
         handleChangeRubricAxis,
+        handleCheckScoring,
+        handleChangeLessonScoring,
         handleExportEvaluationCsv,
         handleExportAuditCsv,
         handleReturnComments,

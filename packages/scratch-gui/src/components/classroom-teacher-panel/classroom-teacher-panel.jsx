@@ -3,7 +3,10 @@ import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import Draggable from 'react-draggable';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
+import { SEAT_STATES } from '../../lib/classroom-lesson-progress.js';
+import { barWidths } from '../../lib/classroom-lesson-summary.js';
 import ClassroomStatusIcon, { ClassroomStatusIcons } from '../classroom-modal/classroom-status-icon.jsx';
+import { lessonSeatMessages } from '../classroom-modal/lesson-seat-tile.jsx';
 import styles from './classroom-teacher-panel.css';
 
 const messages = defineMessages({
@@ -37,12 +40,115 @@ const messages = defineMessages({
         description: 'Teacher status panel: tooltip of a seat cell (#1203)',
         id: 'gui.classroomTeacherPanel.openSeat',
     },
+    lessonCleared: {
+        defaultMessage: 'Cleared {cleared} / {joined}',
+        description: 'Teacher status panel of a lesson assignment: cleared / joined students (#1603)',
+        id: 'gui.classroomTeacherPanel.lessonCleared',
+    },
+    lessonStuck: {
+        defaultMessage: 'Stuck {count}',
+        description: 'Teacher status panel of a lesson assignment: students 10+ min on the same challenge (#1603)',
+        id: 'gui.classroomTeacherPanel.lessonStuck',
+    },
+    lessonStuckHint: {
+        defaultMessage: 'Students on the same challenge for 10 minutes or more (a rough guide)',
+        description: 'Teacher status panel: tooltip of the stuck count (#1603)',
+        id: 'gui.classroomTeacherPanel.lessonStuckHint',
+    },
+    lessonStuckLegend: {
+        defaultMessage: '10+ min',
+        description: 'Teacher status panel legend: the「!」on a seat = 10+ minutes on the same challenge (#1603)',
+        id: 'gui.classroomTeacherPanel.lessonStuckLegend',
+    },
+    barDone: {
+        defaultMessage: 'Done',
+        description: 'Teacher status panel legend: green part of a challenge bar = students who did it (#1603)',
+        id: 'gui.classroomTeacherPanel.barDone',
+    },
+    barCurrent: {
+        defaultMessage: 'On it now',
+        description: 'Teacher status panel legend: blue part of a challenge bar = students on it now (#1603)',
+        id: 'gui.classroomTeacherPanel.barCurrent',
+    },
+    barTitle: {
+        defaultMessage: '{name}: {done} did it · {current} on it now',
+        description: 'Teacher status panel: tooltip of a challenge bar (#1603)',
+        id: 'gui.classroomTeacherPanel.barTitle',
+    },
     selectAssignment: {
         defaultMessage: 'Assignment',
         description: 'Teacher status panel: label of the assignment switcher (#1203)',
         id: 'gui.classroomTeacherPanel.selectAssignment',
     },
 });
+
+const LESSON_SEAT_CLASSES = {
+    [SEAT_STATES.NOT_JOINED]: 'seatEmpty',
+    [SEAT_STATES.NOT_STARTED]: 'lessonSeatNotStarted',
+    [SEAT_STATES.IN_PROGRESS]: 'lessonSeatInProgress',
+    [SEAT_STATES.CLEARED]: 'lessonSeatCleared',
+};
+
+/**
+ * The lesson part of the panel (#1603): one bar per challenge (done = green,
+ * on it now = blue) with its legend. Many challenges scroll inside the bars
+ * frame only, so the seats above stay in place.
+ * @param {object} props - component props
+ * @param {object} props.lesson - panelLessonSummary result
+ * @returns {React.ReactElement} the bars
+ */
+const PanelLessonBars = ({ lesson }) => {
+    const intl = useIntl();
+    return (
+        <div className={styles.lessonBars} data-testid="classroom-teacher-panel-lesson-bars">
+            <div className={styles.legend} data-testid="classroom-teacher-panel-bar-legend">
+                <span className={styles.legendItem}>
+                    <span className={classNames(styles.legendSwatch, styles.barDoneSwatch)} />
+                    {intl.formatMessage(messages.barDone)}
+                </span>
+                <span className={styles.legendItem}>
+                    <span className={classNames(styles.legendSwatch, styles.barCurrentSwatch)} />
+                    {intl.formatMessage(messages.barCurrent)}
+                </span>
+            </div>
+            <div className={styles.barList}>
+                {lesson.bars.map((bar) => {
+                    const name = intl.formatMessage(bar.challenge.name);
+                    const widths = barWidths(bar, lesson.rowCount);
+                    return (
+                        <div
+                            className={styles.barRow}
+                            data-testid={`classroom-teacher-panel-bar-${bar.id}`}
+                            key={bar.id}
+                            title={intl.formatMessage(messages.barTitle, {
+                                name,
+                                done: bar.done,
+                                current: bar.current,
+                            })}
+                        >
+                            <span className={styles.barName}>
+                                {bar.required ? <span className={styles.barStar}>{'★'}</span> : null}
+                                {name}
+                            </span>
+                            <span className={styles.barTrack}>
+                                <span className={styles.barDone} style={{ width: `${widths.done}%` }} />
+                                <span className={styles.barCurrent} style={{ width: `${widths.current}%` }} />
+                            </span>
+                            <span className={styles.barCount}>{bar.done}</span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+PanelLessonBars.propTypes = {
+    lesson: PropTypes.shape({
+        bars: PropTypes.arrayOf(PropTypes.object).isRequired,
+        rowCount: PropTypes.number.isRequired,
+    }).isRequired,
+};
 
 const assignmentLabel = (c) => [c.className, c.assignmentName].filter(Boolean).join(' / ') || c.classroomId;
 
@@ -129,6 +235,8 @@ PanelKickRequest.propTypes = {
  * @param {Array<object>} props.assignments - recent assignments for the switcher
  * @param {?object} props.summary - counts (summarizePanelStatus), null before the first load
  * @param {Array<object>} props.seats - mini grid cells (buildPanelSeats)
+ * @param {?object} props.lesson - lesson summary of a lesson assignment (panelLessonSummary +
+ *   submitWork), null otherwise
  * @param {Array<object>} props.kickRequests - pending requests of this assignment
  * @param {Array<string>} props.busyIds - request ids with an action in flight
  * @param {boolean} props.loading - a manual refresh is running
@@ -155,6 +263,7 @@ const ClassroomTeacherPanel = ({
     assignments,
     summary,
     seats,
+    lesson,
     kickRequests,
     busyIds,
     loading,
@@ -177,7 +286,9 @@ const ClassroomTeacherPanel = ({
     const handleSeatClick = useCallback((e) => onOpenSeat(e.currentTarget.dataset.memberId), [onOpenSeat]);
     const counts = summary ? (
         <span className={styles.headerCounts} data-testid="classroom-teacher-panel-header-counts">
-            {`${summary.seated}/${summary.capacity} · ${summary.submitted}/${summary.joined}`}
+            {lesson
+                ? `${summary.seated}/${summary.capacity} · ✓${lesson.cleared}/${lesson.joined}`
+                : `${summary.seated}/${summary.capacity} · ${summary.submitted}/${summary.joined}`}
             {kickRequests.length > 0 ? <ClassroomStatusIcon badge size={12} status="kickRequested" /> : null}
         </span>
     ) : null;
@@ -277,51 +388,115 @@ const ClassroomTeacherPanel = ({
                                                 }}
                                             />
                                         </span>
-                                        <span
-                                            className={styles.summaryItem}
-                                            data-testid="classroom-teacher-panel-submitted"
-                                        >
-                                            <FormattedMessage
-                                                defaultMessage="Submitted {submitted} / {joined}"
-                                                description="Teacher status panel: submitted / joined members (#1203)"
-                                                id="gui.classroomTeacherPanel.submitted"
-                                                values={{
-                                                    submitted: summary ? summary.submitted : '-',
-                                                    joined: summary ? summary.joined : '-',
-                                                }}
-                                            />
-                                        </span>
-                                    </div>
-                                    <div className={styles.grid} data-testid="classroom-teacher-panel-grid">
-                                        {seats.map((seat) => (
-                                            <button
-                                                className={classNames(styles.seat, {
-                                                    [styles.seatEmpty]: seat.presence === 'notJoined',
-                                                    [styles.seatKick]: seat.kickRequested,
-                                                })}
-                                                data-member-id={seat.memberId}
-                                                data-testid={`classroom-teacher-panel-seat-${seat.seatNumber}`}
-                                                key={seat.memberId}
-                                                title={[
-                                                    intl.formatMessage(messages.openSeat, {
-                                                        seatNumber: seat.seatNumber,
-                                                    }),
-                                                    seat.nickname,
-                                                ]
-                                                    .filter(Boolean)
-                                                    .join(' — ')}
-                                                onClick={handleSeatClick}
+                                        {lesson && !lesson.submitWork ? null : (
+                                            <span
+                                                className={styles.summaryItem}
+                                                data-testid="classroom-teacher-panel-submitted"
                                             >
-                                                <span className={styles.seatNumber}>{seat.seatNumber}</span>
-                                                <ClassroomStatusIcons
-                                                    kickRequested={seat.kickRequested}
-                                                    presence={seat.presence}
-                                                    size={8}
-                                                    submission={seat.submission}
+                                                <FormattedMessage
+                                                    defaultMessage="Submitted {submitted} / {joined}"
+                                                    description="Teacher status panel: submitted / joined members (#1203)"
+                                                    id="gui.classroomTeacherPanel.submitted"
+                                                    values={{
+                                                        submitted: summary ? summary.submitted : '-',
+                                                        joined: summary ? summary.joined : '-',
+                                                    }}
                                                 />
-                                            </button>
-                                        ))}
+                                            </span>
+                                        )}
                                     </div>
+                                    {lesson ? (
+                                        <div
+                                            className={styles.summary}
+                                            data-testid="classroom-teacher-panel-lesson-summary"
+                                        >
+                                            <span
+                                                className={styles.summaryItem}
+                                                data-testid="classroom-teacher-panel-lesson-cleared"
+                                            >
+                                                {intl.formatMessage(messages.lessonCleared, {
+                                                    cleared: lesson.cleared,
+                                                    joined: lesson.joined,
+                                                })}
+                                            </span>
+                                            <span
+                                                className={classNames(styles.summaryItem, {
+                                                    [styles.summaryStuck]: lesson.stuck > 0,
+                                                })}
+                                                data-testid="classroom-teacher-panel-lesson-stuck"
+                                                title={intl.formatMessage(messages.lessonStuckHint)}
+                                            >
+                                                {intl.formatMessage(messages.lessonStuck, { count: lesson.stuck })}
+                                            </span>
+                                        </div>
+                                    ) : null}
+                                    <div className={styles.grid} data-testid="classroom-teacher-panel-grid">
+                                        {seats.map((seat, i) => {
+                                            const tile = lesson ? lesson.tiles[i] : null;
+                                            return (
+                                                <button
+                                                    className={classNames(styles.seat, {
+                                                        [styles.seatEmpty]: !tile && seat.presence === 'notJoined',
+                                                        [styles[tile ? LESSON_SEAT_CLASSES[tile.state] : '']]: !!tile,
+                                                        [styles.seatKick]: seat.kickRequested,
+                                                    })}
+                                                    data-lesson-state={tile ? tile.state : null}
+                                                    data-member-id={seat.memberId}
+                                                    data-testid={`classroom-teacher-panel-seat-${seat.seatNumber}`}
+                                                    key={seat.memberId}
+                                                    title={[
+                                                        intl.formatMessage(messages.openSeat, {
+                                                            seatNumber: seat.seatNumber,
+                                                        }),
+                                                        seat.nickname,
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(' — ')}
+                                                    onClick={handleSeatClick}
+                                                >
+                                                    {tile && tile.progress && tile.progress.stuck ? (
+                                                        <span
+                                                            className={styles.seatStuck}
+                                                            data-testid={`classroom-teacher-panel-seat-stuck-${seat.seatNumber}`}
+                                                        >
+                                                            {'!'}
+                                                        </span>
+                                                    ) : null}
+                                                    <span className={styles.seatNumber}>{seat.seatNumber}</span>
+                                                    <ClassroomStatusIcons
+                                                        kickRequested={seat.kickRequested}
+                                                        presence={seat.presence}
+                                                        size={8}
+                                                        submission={
+                                                            lesson && !lesson.submitWork ? null : seat.submission
+                                                        }
+                                                    />
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    {lesson ? (
+                                        <div
+                                            className={styles.legend}
+                                            data-testid="classroom-teacher-panel-seat-legend"
+                                        >
+                                            {[
+                                                ['lessonSeatNotStarted', lessonSeatMessages.notStarted],
+                                                ['lessonSeatInProgress', lessonSeatMessages.inProgress],
+                                                ['lessonSeatCleared', lessonSeatMessages.cleared],
+                                            ].map(([cls, msg]) => (
+                                                <span className={styles.legendItem} key={cls}>
+                                                    <span className={classNames(styles.legendSwatch, styles[cls])} />
+                                                    {intl.formatMessage(msg)}
+                                                </span>
+                                            ))}
+                                            <span className={styles.legendItem}>
+                                                <span className={styles.legendStuck}>{'!'}</span>
+                                                {intl.formatMessage(messages.lessonStuckLegend)}
+                                            </span>
+                                        </div>
+                                    ) : null}
+                                    {lesson ? <PanelLessonBars lesson={lesson} /> : null}
                                     {kickRequests.length > 0 ? (
                                         <div
                                             className={styles.kickList}
@@ -398,6 +573,15 @@ ClassroomTeacherPanel.propTypes = {
     reauthing: PropTypes.bool,
     onReauth: PropTypes.func,
     kickRequests: PropTypes.arrayOf(PropTypes.object).isRequired,
+    lesson: PropTypes.shape({
+        bars: PropTypes.arrayOf(PropTypes.object),
+        cleared: PropTypes.number,
+        joined: PropTypes.number,
+        rowCount: PropTypes.number,
+        stuck: PropTypes.number,
+        submitWork: PropTypes.bool,
+        tiles: PropTypes.arrayOf(PropTypes.object),
+    }),
     loading: PropTypes.bool,
     minimized: PropTypes.bool,
     panelRef: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),

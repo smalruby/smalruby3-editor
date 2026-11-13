@@ -35,6 +35,8 @@ import TipsLibrary from '../../containers/tips-library.jsx';
 import Cards from '../../containers/cards.jsx';
 // === Smalruby: Start of lesson mode ===
 import LessonMode from '../../containers/lesson-mode.jsx';
+import LessonAnalytics from '../../containers/lesson-analytics.jsx';
+import LessonProgressSync from '../../containers/lesson-progress-sync.jsx';
 // === Smalruby: End of lesson mode ===
 // === Smalruby: Start of lessons library ===
 import LessonsLibrary from '../../containers/lessons-library.jsx';
@@ -595,6 +597,10 @@ const GUIComponent = props => {
                     {/* === Smalruby: Start of lesson mode === */}
                     {/* 課題バーは画面の幅いっぱい（エディタの列とステージの列の両方の上）に出す */}
                     <LessonMode />
+                    {/* レッスンの使われ方の GA 計測（描画しない） */}
+                    <LessonAnalytics />
+                    {/* クラスの課題へ進み具合を送る・本人の確認 */}
+                    <LessonProgressSync />
                     {/* === Smalruby: End of lesson mode === */}
                     <Box className={classNames(boxStyles, styles.flexWrapper)}>
                         <Box

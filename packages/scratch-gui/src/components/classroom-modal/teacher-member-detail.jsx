@@ -4,6 +4,7 @@ import { FormattedMessage } from 'react-intl';
 import { isMemberSeated } from '../../lib/classroom-presence.js';
 import styles from './classroom-modal.css';
 import ClassroomStatusIcon from './classroom-status-icon.jsx';
+import LessonMemberDetail from './lesson-member-detail.jsx';
 
 const TeacherMemberDetail = ({
     isLoading,
@@ -17,6 +18,9 @@ const TeacherMemberDetail = ({
     kickRequestsForSelectedSeat,
     onApproveKickRequest,
     onRejectKickRequest,
+    lessonDetail,
+    lessonNow,
+    showSubmission = true,
 }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [commentText, setCommentText] = useState('');
@@ -133,7 +137,7 @@ const TeacherMemberDetail = ({
                         />
                     </span>
                     <span data-testid="classroom-member-detail-name">{selectedMemberData.displayName || '-'}</span>
-                    {selectedMemberData.hasSubmission && (
+                    {showSubmission && selectedMemberData.hasSubmission && (
                         <span
                             className={selectedMemberData.isReturned ? styles.returnedBadge : styles.submissionBadge}
                             data-testid="classroom-member-detail-submitted"
@@ -142,7 +146,7 @@ const TeacherMemberDetail = ({
                             {new Date(selectedMemberData.submittedAt).toLocaleTimeString()}
                         </span>
                     )}
-                    {!selectedMemberData.hasSubmission && (
+                    {showSubmission && !selectedMemberData.hasSubmission && (
                         <span
                             className={styles.notSubmittedBadge}
                             data-testid="classroom-member-detail-not-submitted"
@@ -251,7 +255,10 @@ const TeacherMemberDetail = ({
                         ))}
                     </div>
                 )}
-                {selectedMemberData.hasSubmission && (
+                {/* Lesson assignments (#1603): per-challenge progress first; the
+                    work (thumbnail, comment, return) follows when work is submitted too. */}
+                {lessonDetail ? <LessonMemberDetail detail={lessonDetail} now={lessonNow} /> : null}
+                {showSubmission && selectedMemberData.hasSubmission && (
                     <div className={styles.memberDetailBody}>
                         {/* Image carousel */}
                         {selectedMemberData.allImages.length > 0 && (
@@ -391,6 +398,8 @@ const TeacherMemberDetail = ({
                         />
                     </span>
                 </div>
+                {/* A seat whose last student left still shows its progress record. */}
+                {lessonDetail ? <LessonMemberDetail detail={lessonDetail} now={lessonNow} /> : null}
             </div>
         );
     }
@@ -408,6 +417,12 @@ const TeacherMemberDetail = ({
 
 TeacherMemberDetail.propTypes = {
     isLoading: PropTypes.bool,
+    lessonDetail: PropTypes.shape({
+        progress: PropTypes.object,
+        rows: PropTypes.arrayOf(PropTypes.object),
+    }),
+    lessonNow: PropTypes.number,
+    showSubmission: PropTypes.bool,
     kickRequestsForSelectedSeat: PropTypes.arrayOf(
         PropTypes.shape({
             requestId: PropTypes.string.isRequired,

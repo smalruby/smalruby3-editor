@@ -242,3 +242,160 @@
     opacity: 0.5;
     cursor: default;
 }
+
+/*
+ * Lesson assignments (#1603). The seat colours are those of the members tab
+ * (grey = not started, blue = in progress, green = cleared). With 40 seats the
+ * panel stays within 600px: the per-challenge bars are thin rows and, beyond
+ * 12 challenges, scroll inside their own frame only.
+ */
+.lesson-seat-not-started {
+    border-color: transparent;
+    background-color: #d9d9d9;
+    color: #575e75;
+}
+
+.lesson-seat-in-progress {
+    border-color: transparent;
+    background-color: #4c97ff;
+    color: $ui-white;
+}
+
+.lesson-seat-cleared {
+    border-color: transparent;
+    background-color: #0fbd8c;
+    color: $ui-white;
+}
+
+/* The seated dot and the submitted square are the same green as a cleared seat,
+   so they disappear there (#1604). Draw the dot white (still a filled dot, unlike
+   the hollow 「未着席」 ring; !important beats the icon's inline colour) and put
+   the square on a white backing (its check mark is already white). */
+.lesson-seat-cleared [data-status='seated'] {
+    color: $ui-white !important;
+}
+
+.lesson-seat-cleared [data-status='submitted'] {
+    background-color: $ui-white;
+    border-radius: 2px;
+}
+
+.seat {
+    position: relative;
+}
+
+.seat-stuck {
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background-color: #ff661a;
+    color: $ui-white;
+    font-size: 0.55rem;
+    font-weight: bold;
+    line-height: 0.75rem;
+    pointer-events: none;
+}
+
+.summary-stuck {
+    color: #d9531e;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.1rem 0.5rem;
+    color: $text-primary-transparent;
+    font-size: 0.625rem;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    white-space: nowrap;
+}
+
+.legend-swatch {
+    display: inline-block;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 0.15rem;
+}
+
+.legend-stuck {
+    display: inline-block;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background-color: #ff661a;
+    color: $ui-white;
+    font-size: 0.5rem;
+    font-weight: bold;
+    line-height: 0.6rem;
+    text-align: center;
+}
+
+.lesson-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding-top: 0.3rem;
+    border-top: 1px solid $ui-black-transparent;
+}
+
+.bar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    max-height: 11.5rem;
+    overflow-y: auto;
+}
+
+.bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 0.75rem;
+    font-size: 0.625rem;
+    line-height: 1;
+}
+
+.bar-name {
+    flex: 0 0 6.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bar-star {
+    margin-right: 0.1rem;
+    color: #ff8c1a;
+}
+
+.bar-track {
+    display: flex;
+    flex: 1;
+    height: 0.5rem;
+    overflow: hidden;
+    border-radius: 0.25rem;
+    background-color: $ui-tertiary;
+}
+
+.bar-done,
+.bar-done-swatch {
+    background-color: #0fbd8c;
+}
+
+.bar-current,
+.bar-current-swatch {
+    background-color: #4c97ff;
+}
+
+.bar-count {
+    flex: 0 0 1.2rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}

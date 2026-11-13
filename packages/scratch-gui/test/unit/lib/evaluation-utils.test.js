@@ -4,6 +4,10 @@ import {
     chunk,
     combineOverall,
     csvField,
+    currentLessonOnlyStep,
+    evaluationColumns,
+    evaluationFlowMode,
+    isLessonOnlyAssignment,
 } from '../../../src/lib/classroom-evaluation/evaluation-utils';
 
 describe('combineOverall', () => {
@@ -35,6 +39,18 @@ describe('csvField', () => {
         expect(csvField('say "hi"')).toBe('"say ""hi"""');
         expect(csvField('line1\nline2')).toBe('"line1\nline2"');
         expect(csvField(null)).toBe('');
+    });
+
+    test('採点結果 CSV の課題名が = で始まっても数式にしない（#1603）', () => {
+        const csv = buildEvaluationCsv(
+            [{ classroomId: 'c1', assignmentName: '=1+1', hasLesson: true }],
+            [],
+            () => null,
+            {
+                c1: { total: 100, submitWork: false, scores: {} },
+            },
+        );
+        expect(csv.slice(1).split('\r\n')[0]).toBe("出席番号,'=1+1:レッスンの点,総合評価");
     });
 });
 
@@ -85,5 +101,83 @@ describe('chunk', () => {
         expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
         expect(chunk([], 3)).toEqual([]);
         expect(chunk(null, 3)).toEqual([]);
+    });
+});
+
+describe('レッスンの点の列（#1603）', () => {
+    const lessons = [
+        { classroomId: 'c1', assignmentName: '第1回' },
+        { classroomId: 'c2', assignmentName: 'レッスン', hasLesson: true },
+        { classroomId: 'c3', assignmentName: '作品も', hasLesson: true },
+    ];
+    const lessonScores = {
+        c2: { total: 100, submitWork: false, scores: { 1: 78 } },
+        c3: { total: 50, submitWork: true, scores: { 2: 50 } },
+    };
+    const getCell = (seat, cid) => (seat === 1 && cid === 'c1' ? { submitted: true, grade: 'A', reason: 'r' } : null);
+
+    test('作品の列のすぐ横に「レッスン」の列。作品を出さない課題はレッスンの列だけ', () => {
+        expect(evaluationColumns(lessons, lessonScores).map((c) => `${c.lesson.classroomId}:${c.kind}`)).toEqual([
+            'c1:work',
+            'c2:lesson',
+            'c3:work',
+            'c3:lesson',
+        ]);
+    });
+
+    test('点を出せなくても作品を出さないと分かっていれば作品の列は出さない', () => {
+        const info = { c2: { total: null, submitWork: false, scores: {} } };
+        expect(evaluationColumns([lessons[1]], info).map((c) => c.kind)).toEqual(['lesson']);
+    });
+
+    test('採点できない（設定も読めない）ときは作品の列も残す', () => {
+        expect(evaluationColumns([lessons[1]], { c2: null }).map((c) => c.kind)).toEqual(['work', 'lesson']);
+    });
+
+    test('CSV: <課題>:レッスンの点（記録の無い席は空）・総合評価は作品の評価だけで出す', () => {
+        const lines = buildEvaluationCsv(lessons, [1, 2], getCell, lessonScores).slice(1).split('\r\n');
+        expect(lines[0]).toBe(
+            '出席番号,第1回:提出,第1回:評価,第1回:評価理由,レッスン:レッスンの点,' +
+                '作品も:提出,作品も:評価,作品も:評価理由,作品も:レッスンの点,総合評価',
+        );
+        expect(lines[1]).toBe('1,○,A,r,78,×,,,,A');
+        expect(lines[2]).toBe('2,×,,,,×,,,50,');
+    });
+});
+
+describe('採点の流れ（#1778）', () => {
+    const work = { classroomId: 'w', hasLesson: false };
+    const lessonOnly = { classroomId: 'lo', hasLesson: true, lessonSetting: { submitWork: false } };
+    const lessonWithWork = { classroomId: 'lw', hasLesson: true, lessonSetting: { submitWork: true } };
+    const lessonUnknown = { classroomId: 'lu', hasLesson: true };
+
+    test('作品を出さないレッスンの課題だけ → AI を使わない流れ', () => {
+        expect(evaluationFlowMode([lessonOnly])).toBe('lessonOnly');
+        expect(isLessonOnlyAssignment(lessonOnly)).toBe(true);
+    });
+
+    test('作品も提出するレッスンの課題・ふつうの課題 → いまの AI の流れ', () => {
+        expect(evaluationFlowMode([lessonWithWork])).toBe('work');
+        expect(evaluationFlowMode([work, lessonWithWork])).toBe('work');
+        expect(evaluationFlowMode([])).toBe('work');
+    });
+
+    test('混ぜて選んだ → AI の流れ（レッスンだけの課題には AI を使わない）', () => {
+        expect(evaluationFlowMode([work, lessonOnly])).toBe('mixed');
+        expect(evaluationFlowMode([lessonWithWork, lessonOnly])).toBe('mixed');
+    });
+
+    test('設定がまだ読めていなければ、進み具合と一緒に返った設定で決める（読めなければ AI の流れ）', () => {
+        expect(evaluationFlowMode([lessonUnknown])).toBe('work');
+        expect(evaluationFlowMode([lessonUnknown], { lu: { submitWork: false, scores: {} } })).toBe('lessonOnly');
+        expect(evaluationColumns([lessonOnly]).map((c) => c.kind)).toEqual(['lesson']);
+        expect(evaluationColumns([lessonWithWork]).map((c) => c.kind)).toEqual(['work', 'lesson']);
+    });
+
+    test('レッスンだけの流れ: ①読み込む → ②点を確かめる → ③書き出す', () => {
+        expect(currentLessonOnlyStep({ loaded: false, checked: false })).toBe('load');
+        expect(currentLessonOnlyStep({ loaded: false, checked: true })).toBe('load');
+        expect(currentLessonOnlyStep({ loaded: true, checked: false })).toBe('check');
+        expect(currentLessonOnlyStep({ loaded: true, checked: true })).toBe('export');
     });
 });

@@ -17,6 +17,8 @@ import reducer, {
     markChallengeCompleted,
     openChallenge,
     reloadProgress,
+    clearProgress,
+    requestProgressSend,
     startChallenge,
     cancelStartChallenge,
     showHint,
@@ -27,6 +29,7 @@ import reducer, {
     getLessonAllowedBlocks,
     getLessonDnclModeAllowed,
     getCurrentHint,
+    setLibraryAssignmentOnly,
 } from '../../../src/reducers/lesson-mode';
 
 const wrap = (lessonMode) => ({ scratchGui: { lessonMode } });
@@ -106,6 +109,24 @@ describe('lesson-mode reducer', () => {
         expect(reducer(reloaded, reloadProgress())).toBe(reloaded);
     });
 
+    test('clearProgress empties the lesson records on the device (本人の確認 #1600)', () => {
+        const state = reducer(
+            lessonModeInitialState,
+            markChallengeCompleted('blocks-l1-broadcast', '2026-11-10T00:00:00.000Z'),
+        );
+        const cleared = reducer(state, clearProgress());
+        expect(cleared.progress.challenges).toEqual({});
+        expect(cleared.justCompletedId).toBeNull();
+        const saved = JSON.parse(window.localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY));
+        expect(saved.challenges).toEqual({});
+    });
+
+    test('requestProgressSend counts the requests to send the progress to the class', () => {
+        const once = reducer(lessonModeInitialState, requestProgressSend());
+        expect(once.progressSendRequest).toBe(1);
+        expect(reducer(once, requestProgressSend()).progressSendRequest).toBe(2);
+    });
+
     test('markChallengeCompleted shows "You did it!" for that challenge, even when already completed', () => {
         const opened = reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz'));
         expect(opened.justCompletedId).toBeNull();
@@ -162,6 +183,25 @@ describe('lesson-mode reducer: starting a challenge', () => {
         state = reducer(state, openChallenge('blocks-l1-click-say'));
         expect(state.pendingChallengeId).toBeNull();
         expect(state.challengeId).toBe('blocks-l1-click-say');
+    });
+
+    test('fromAssignment is carried from startChallenge to the opened challenge (for GA)', () => {
+        let state = reducer(lessonModeInitialState, startChallenge('blocks-l1-click-say', { fromAssignment: true }));
+        expect(state.pendingFromAssignment).toBe(true);
+        state = reducer(state, openChallenge('blocks-l1-click-say'));
+        expect(state.fromAssignment).toBe(true);
+        expect(state.pendingFromAssignment).toBe(false);
+        // ふつうに開いたときは false
+        state = reducer(state, startChallenge('blocks-l1-quiz'));
+        state = reducer(state, openChallenge('blocks-l1-quiz'));
+        expect(state.fromAssignment).toBe(false);
+        // startChallenge を通らずに開いたときも false
+        state = reducer(state, startChallenge('blocks-l1-click-say', { fromAssignment: true }));
+        state = reducer(state, openChallenge('blocks-l1-quiz'));
+        expect(state.fromAssignment).toBe(false);
+        // 閉じたら消す
+        state = reducer(state, closeLesson());
+        expect(state.fromAssignment).toBe(false);
     });
 
     test('closeLesson also drops a pending challenge', () => {
@@ -469,5 +509,32 @@ describe('lesson-mode reducer: lessons library focus', () => {
     test('closing the lesson keeps the focus (the library clears it when it closes)', () => {
         const open = reducer(reducer(lessonModeInitialState, openChallenge(ID)), focusLessonsLibrary(ID));
         expect(reducer(open, closeLesson()).libraryFocusChallengeId).toBe(ID);
+    });
+
+    describe('class assignment (#1599)', () => {
+        test('justCompletedNew is true only when the completion added the record', () => {
+            let state = reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz'));
+            state = reducer(state, markChallengeCompleted('blocks-l1-quiz', '2026-11-15T00:00:00.000Z'));
+            expect(state.justCompletedNew).toBe(true);
+            state = reducer(state, dismissCompleted());
+            expect(state.justCompletedNew).toBe(false);
+            state = reducer(state, markChallengeCompleted('blocks-l1-quiz', '2026-11-15T00:05:00.000Z'));
+            expect(state.justCompletedId).toBe('blocks-l1-quiz');
+            expect(state.justCompletedNew).toBe(false);
+        });
+
+        test('setLibraryAssignmentOnly is cleared when the library focus is cleared', () => {
+            let state = reducer(lessonModeInitialState, setLibraryAssignmentOnly(true));
+            expect(state.libraryAssignmentOnly).toBe(true);
+            expect(reducer(state, setLibraryAssignmentOnly(true))).toBe(state);
+            state = reducer(state, clearLessonsLibraryFocus());
+            expect(state.libraryAssignmentOnly).toBe(false);
+        });
+
+        test('startChallenge keeps fromAssignment until the challenge opens', () => {
+            let state = reducer(lessonModeInitialState, startChallenge('blocks-l1-quiz', { fromAssignment: true }));
+            state = reducer(state, openChallenge('blocks-l1-quiz'));
+            expect(state.fromAssignment).toBe(true);
+        });
     });
 });

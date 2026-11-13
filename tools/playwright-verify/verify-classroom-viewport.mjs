@@ -42,6 +42,10 @@ const DOC_SHOT_NAMES = {
     'student-assignment': ['0314-student-assignment-panel.png'],
     'student-status': ['0304-student-status.png'],
     'student-submit-confirm': ['0306-student-submit-confirm.png'],
+    'student-lesson-progress-confirm': ['0324-lesson-progress-confirm.png'],
+    'student-lesson-progress-confirm-clear': ['0325-lesson-progress-confirm-clear.png'],
+    'student-lessons-library-assignment': ['0321-lessons-library-assignment.png'],
+    'student-lessons-library-assignment-cleared': ['0323-lessons-library-assignment-cleared.png'],
     // みんなの作品パネル + ビューア (#1210) は peer viewer のブロックで撮る: 0318-student-peer-viewer.png
 };
 
@@ -156,6 +160,8 @@ const judge = async (page, { who, name, body = '[data-testid="classroom-modal"]'
 
 const browser = await chromium.launch({ headless: HEADLESS, channel: CHANNEL });
 
+// 参加した時刻は固定する (本人の確認の答えのキーに入るため・#1600)
+const SESSION_JOINED_AT = new Date().toISOString();
 const session = (extra = {}) => ({
     role: 'student',
     classroomId: 'c1',
@@ -165,7 +171,7 @@ const session = (extra = {}) => ({
     seatNumber: 7,
     memberId: 'seat-07',
     sessionToken: 'stub',
-    joinedAt: new Date().toISOString(),
+    joinedAt: SESSION_JOINED_AT,
     ...extra,
 });
 
@@ -189,6 +195,10 @@ const studentPage = async ({ storage = {}, routes } = {}) => {
     const ctx = await browser.newContext({ viewport: VIEWPORT });
     const page = await ctx.newPage();
     await page.route('**/classrooms/lookup', (r) => r.fulfill({ json: lookup() }));
+    // レッスンの進み具合の送信 (#1600)。stg に飛ばさない
+    await page.route('**/lesson-progress', (r) =>
+        r.fulfill({ json: { challenges: {}, current: null, updatedAt: null } }),
+    );
     if (routes) await routes(page);
     await page.addInitScript((s) => {
         if (window.sessionStorage.getItem('__seeded')) return;
@@ -474,6 +484,252 @@ const kickedRoutes = (activeIds) => async (p) => {
     await page.locator('[data-testid="classroom-phase-submit-confirm"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(1500);
     await judge(page, { who: 'student', name: 'submit-confirm', shot: 'student-submit-confirm' });
+    await ctx.close();
+}
+
+// ---------- レッスンの課題 (EPIC #1592 / #1599) ----------
+// 一番長い状態: 11 チャレンジ全部を選び★ 4 つ・作品も提出する・長い名前。
+const LESSON_IDS = [
+    'blocks-l1-key-sound', 'blocks-l1-arrow-move', 'blocks-l1-click-say', 'blocks-l1-repeat',
+    'blocks-l1-if', 'blocks-l1-ask-answer', 'blocks-l1-quiz',
+    'blocks-l1-count', 'blocks-l1-broadcast', 'blocks-l1-speak', 'blocks-l1-message-list',
+];
+const LESSON = {
+    courseId: 'kyou-kara-programmer',
+    challengeIds: LESSON_IDS,
+    requiredChallengeIds: ['blocks-l1-arrow-move', 'blocks-l1-if', 'blocks-l1-count', 'blocks-l1-broadcast'],
+    completion: { type: 'count', count: 8 },
+    submitWork: true,
+    scoring: null,
+};
+const lessonRecords = (ids) => ({
+    version: 1,
+    challenges: Object.fromEntries(
+        ids.map((id) => [id, { completedAt: '2026-11-15T01:00:00.000Z', courseId: 'kyou-kara-programmer', lessonId: 'x' }]),
+    ),
+});
+const CONSENT_ANSWERED = { [`c1#7#j${SESSION_JOINED_AT}`]: { answer: 'mine', beforeIds: [], decidedAt: '2026-11-15T00:00:00.000Z' } };
+const routeLessonAssignment = (p) =>
+    p.route('**/classrooms/c1/assignment', (r) => r.fulfill({ json: { assignment: null, lesson: LESSON } }));
+
+// 参加完了: レッスンの課題の説明 +「はじめる」(どこから始めるかの選択肢は出さない)
+{
+    const { ctx, page } = await studentPage({
+        routes: async (p) => {
+            await routeContinuable(p);
+            await routeLessonAssignment(p);
+            await p.route('**/classrooms/join', (r) =>
+                r.fulfill({
+                    json: {
+                        classroomId: 'c1',
+                        className: LONG_CLASS,
+                        classYear: 2026,
+                        assignmentName: LONG_ASSIGNMENT,
+                        seatNumber: 3,
+                        memberId: 'seat-03',
+                        sessionToken: 'stub',
+                        hasAssignment: false,
+                        previousComment: { assignmentName: LONG_ASSIGNMENT, teacherComment: LONG_COMMENT, status: 'returned' },
+                    },
+                }),
+            );
+        },
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-join-code-input"]').fill('abc234');
+    await page.locator('[data-testid="classroom-join-submit"]').click();
+    await page.locator('[data-testid="classroom-seat-3"]').click();
+    await page.locator('[data-testid="classroom-confirm-seat"]').click();
+    await page.locator('[data-testid="classroom-joined-start-lesson"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(500);
+    await judge(page, {
+        who: 'student',
+        name: 'student-joined (lesson assignment + previous comment)',
+        shot: 'student-joined-lesson',
+        primary: '[data-testid="classroom-joined-start-lesson"]',
+    });
+    await ctx.close();
+}
+
+// クラスの画面: 進み具合 (とちゅう・★ 残り / 課題クリア) + 提出状況 + 続きの選択肢。
+// 返却 + 長いコメントのときと、まだ提出していない (提出の案内が出る) とき。
+// 新しい版のチャレンジがある課題 (#1599 M1): 読み込み直しの一言 + 提出の案内 + 提出ボタン。
+const LESSON_WITH_UNKNOWN = { ...LESSON, challengeIds: [...LESSON_IDS, 'not-in-this-build'] };
+for (const [label, done, primary, returned, lesson = LESSON] of [
+    ['in progress', LESSON_IDS.slice(0, 6), 'classroom-continue-lesson-button', true],
+    ['cleared + returned', LESSON_IDS.slice(0, 9), 'classroom-submit-button', true],
+    ['cleared + submit guide', LESSON_IDS.slice(0, 9), 'classroom-submit-button', false],
+    ['unknown challenge + submit guide', LESSON_IDS.slice(0, 3), 'classroom-submit-button', false, LESSON_WITH_UNKNOWN],
+    ['unknown challenge + returned', LESSON_IDS.slice(0, 3), 'classroom-submit-button', true, LESSON_WITH_UNKNOWN],
+]) {
+    const submission = returned
+        ? { status: 'returned', submittedAt: new Date().toISOString(), teacherComment: LONG_COMMENT }
+        : null;
+    const { ctx, page } = await studentPage({
+        storage: {
+            'smalruby:classroom': session({ submissionStatus: returned ? 'returned' : null, studentLesson: lesson }),
+            'smalruby:lessonProgress': lessonRecords(done),
+            // 本人の確認 (#1600) は答えたことにする (下の別のブロックで測る)
+            'smalruby:lessonAssignmentConsent': CONSENT_ANSWERED,
+        },
+        routes: async (p) => {
+            await routeContinuable(p);
+            await p.route('**/classrooms/c1/assignment', (r) => r.fulfill({ json: { assignment: null, lesson } }));
+            await p.route('**/classrooms/verify-session', (r) =>
+                r.fulfill({
+                    json: { valid: true, hasAssignment: false, submission },
+                }),
+            );
+        },
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-status-lesson-progress"]').waitFor({ timeout: 10000 });
+    await page.locator('[data-testid="classroom-continue-choice"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(800);
+    await judge(page, {
+        who: 'student',
+        name: `student-status (lesson ${label} + continue choice)`,
+        shot: `student-status-lesson-${label.replace(/[^a-z]+/g, '-')}`,
+        primary: `[data-testid="${primary}"]`,
+    });
+    await ctx.close();
+}
+
+// レッスン表の課題の帯 (#1771): 1 行の文・丸なし。「はじめる」/「レッスンを続ける」で開いた課題のチャレンジだけの
+// レッスン表ではコースの進み具合 (バーと「n / 全部」) を出さない。メニューの「レッスン」(コース全体) では出す。
+// チャレンジの中の小さな帯は「あと N つ（★ R つ）」だけ。
+const bandInfo = (page) =>
+    page.evaluate(() => {
+        const band = document.querySelector('[data-testid="lesson-assignment-band"]');
+        const rem = document.querySelector('[data-testid="lesson-assignment-band"] [data-testid="lesson-assignment-remaining"], [data-testid="lesson-assignment-band"] [data-testid="lesson-assignment-cleared"]');
+        return {
+            text: band ? band.querySelector('div').textContent : null,
+            height: band ? Math.round(band.getBoundingClientRect().height) : null,
+            remaining: rem ? rem.textContent : null,
+            dots: document.querySelectorAll('[data-testid="lesson-assignment-band"] [data-testid="lesson-assignment-dot"]').length,
+            courseProgress: document.querySelectorAll('[data-testid="lessons-library-course-progress"]').length,
+        };
+    });
+for (const [label, done, shot] of [
+    ['in progress', LESSON_IDS.slice(0, 1), 'student-lessons-library-assignment'],
+    ['cleared + submit guide', LESSON_IDS.slice(0, 9), 'student-lessons-library-assignment-cleared'],
+]) {
+    const { ctx, page } = await studentPage({
+        storage: {
+            'smalruby:classroom': session({ studentLesson: LESSON }),
+            'smalruby:lessonProgress': lessonRecords(done),
+            'smalruby:lessonAssignmentConsent': CONSENT_ANSWERED,
+        },
+        routes: async (p) => {
+            await routeContinuable(p);
+            await routeLessonAssignment(p);
+            await p.route('**/classrooms/verify-session', (r) =>
+                r.fulfill({ json: { valid: true, hasAssignment: false, submission: null } }),
+            );
+        },
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-continue-lesson-button"]').click();
+    await page.locator('[data-testid="lesson-assignment-band"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(600);
+    const info = await bandInfo(page);
+    console.log(`  band (${label}): ${JSON.stringify(info)}`);
+    const bandOk = info.dots === 0 && info.courseProgress === 0;
+    await judge(page, {
+        who: 'student',
+        name: `lessons library (assignment only, ${label}) — no dots ${info.dots === 0}, no course progress ${info.courseProgress === 0}`,
+        body: '[data-testid="lessons-library"]',
+        shot,
+    });
+    if (!bandOk) rows[rows.length - 1].ok = false;
+    if (label === 'in progress') {
+        // チャレンジの中の小さな帯
+        await page.locator('[data-testid^="lessons-library-challenge-"][data-next="true"]').first().click();
+        await page.locator('[data-testid="lesson-task-bar-assignment"]').waitFor({ timeout: 15000 });
+        await page.waitForTimeout(800);
+        const compact = await page.$eval('[data-testid="lesson-task-bar-assignment"]', (el) => ({
+            text: el.textContent,
+            dots: el.querySelectorAll('[data-testid="lesson-assignment-dot"]').length,
+        }));
+        console.log(`  compact band: ${JSON.stringify(compact)}`);
+        await page.screenshot({ path: resolve(SHOT_DIR, 'viewport-student-lesson-task-bar-assignment.png') });
+        if (DOCS_SHOTS) {
+            await page.screenshot({ path: resolve(REPO_ROOT, 'docs', 'classroom', 'screenshots', '0326-lesson-task-bar-assignment.png') });
+        }
+    }
+    await ctx.close();
+}
+// メニューの「レッスン」(コース全体): コースの進み具合は残し、帯は同じ 1 行の文
+{
+    const { ctx, page } = await studentPage({
+        storage: {
+            'smalruby:classroom': session({ studentLesson: LESSON }),
+            'smalruby:lessonProgress': lessonRecords(LESSON_IDS.slice(0, 1)),
+            'smalruby:lessonAssignmentConsent': CONSENT_ANSWERED,
+        },
+        routes: async (p) => {
+            await routeContinuable(p);
+            await routeLessonAssignment(p);
+            await p.route('**/classrooms/verify-session', (r) =>
+                r.fulfill({ json: { valid: true, hasAssignment: false, submission: null } }),
+            );
+        },
+    });
+    // 課題の設定を読み込ませるため、一度クラスの画面を開いて閉じる
+    await openModal(page);
+    await page.locator('[data-testid="classroom-status-lesson-progress"]').waitFor({ timeout: 10000 });
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+    await page.$eval('[data-testid="menu-bar-lessons"]', (el) => el.click());
+    await page.locator('[data-testid="lesson-assignment-band"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(600);
+    const info = await bandInfo(page);
+    console.log(`  band (whole course): ${JSON.stringify(info)}`);
+    await judge(page, {
+        who: 'student',
+        name: `lessons library (whole course from the menu) — course progress shown ${info.courseProgress > 0}`,
+        body: '[data-testid="lessons-library"]',
+        shot: 'student-lessons-library-whole-course',
+    });
+    if (!(info.dots === 0 && info.courseProgress > 0)) rows[rows.length - 1].ok = false;
+    await ctx.close();
+}
+
+// 本人の確認 (#1600): 端末に課題のチャレンジの記録が 11 個全部あるとき (一覧が一番長い)。
+// クラスの画面を開くと、送る前に出る。1 つめ → ［ちがう（記録を消す）］→ 2 つめ。
+{
+    const { ctx, page } = await studentPage({
+        storage: {
+            'smalruby:classroom': session({ studentLesson: LESSON }),
+            'smalruby:lessonProgress': lessonRecords(LESSON_IDS),
+        },
+        routes: async (p) => {
+            await routeContinuable(p);
+            await routeLessonAssignment(p);
+            await p.route('**/classrooms/verify-session', (r) =>
+                r.fulfill({ json: { valid: true, hasAssignment: false, submission: null } }),
+            );
+        },
+    });
+    await page.locator('[data-testid="lesson-progress-confirm"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(500);
+    await judge(page, {
+        who: 'student',
+        name: 'lesson progress confirm (11 records)',
+        body: '[data-testid="lesson-progress-confirm"]',
+        shot: 'student-lesson-progress-confirm',
+        primary: '[data-testid="lesson-progress-confirm-mine"]',
+    });
+    await page.locator('[data-testid="lesson-progress-confirm-not-mine"]').click();
+    await page.locator('[data-testid="lesson-progress-confirm-clear"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(300);
+    await judge(page, {
+        who: 'student',
+        name: 'lesson progress confirm (clear, second step)',
+        body: '[data-testid="lesson-progress-confirm"]',
+        shot: 'student-lesson-progress-confirm-clear',
+        primary: '[data-testid="lesson-progress-confirm-clear"]',
+    });
     await ctx.close();
 }
 
