@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
@@ -12,6 +12,8 @@ import {
 } from '../lib/classroom-kick-request-storage.js';
 import { evaluateKickRequestPoll } from '../lib/classroom-seat-selection.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
+import { assignmentProgress } from '../lib/lessons/assignment-progress.js';
+import { openAssignmentLessonsLibrary } from '../lib/lessons/open-lessons-library.js';
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import { getUrlParams, clearClasscode } from '../lib/url-params.js';
 import { showAlertWithTimeout } from '../reducers/alerts.js';
@@ -23,7 +25,9 @@ import {
     clearClassroomSession,
     setSubmissionStatus,
     setRubyteeEnabled,
+    clearStudentSubmitRequest,
 } from '../reducers/classroom.js';
+import { reloadProgress } from '../reducers/lesson-mode.js';
 import { setProjectTitle } from '../reducers/project-title.js';
 import { decideClasscodeAction, initialStudentPhase, resolveAutoJoinCode } from './classroom-classcode-utils.js';
 import translateError, { extractKickReason } from './classroom-error-utils.js';
@@ -38,6 +42,13 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     const vm = useSelector((state) => state.scratchGui.vm);
     const projectTitle = useSelector((state) => state.scratchGui.projectTitle);
     const scratchBlocks = useSelector((state) => state.scratchGui.blockDisplay?.scratchBlocks);
+    // The lesson assignment's progress (#1599), built from the device's lesson records.
+    const lessonRecords = useSelector((state) => state.scratchGui.lessonMode.progress);
+    const studentLesson = classroomState.studentLesson || null;
+    const lessonStatus = useMemo(
+        () => assignmentProgress(studentLesson, lessonRecords),
+        [studentLesson, lessonRecords],
+    );
 
     // Determine initial phase from persisted session (a `?classcode=` URL for
     // another class skips verifying the old session; see initialStudentPhase)
@@ -101,6 +112,14 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         // a chosen project starts the work right away (#1201)
         onStarted: handleClose,
     });
+
+    // 「はじめる」 / 「レッスンを続ける」 of a lesson assignment (#1599): open the
+    // lessons library with only the assignment's challenges, the next one to
+    // do marked 「次はこれ！」.
+    const handleStartLesson = useCallback(() => {
+        dispatch(closeClassroomModal());
+        openAssignmentLessonsLibrary(dispatch);
+    }, [dispatch]);
 
     // Go back to join screen (used as error action for session expiry)
     const handleGoToLogin = useCallback(() => {
@@ -410,6 +429,11 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             }
             studentAssignment.setHasAssignment(!!result.hasAssignment);
             studentAssignment.refreshContinueOptions();
+            // The lesson progress row is built from the device's lesson records
+            // (#1599); take in what another tab wrote and re-read the lesson.
+            // Sending the progress to the class on opening this screen is #1600.
+            dispatch(reloadProgress());
+            studentAssignment.refreshLesson();
         } catch (err) {
             if (token !== sessionTokenRef.current) return;
             const kick = extractKickReason(err);
@@ -441,6 +465,14 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             refreshStudentStatus();
         }
     }, [phase]); // Only on phase change
+
+    // 「課題を提出する」 on the lesson screens (#1599): go straight to the submit
+    // confirmation once the status view (the joined student's start) is up.
+    useEffect(() => {
+        if (!classroomState.studentSubmitRequested) return;
+        dispatch(clearStudentSubmitRequest());
+        if (phase === 'student-status' && classroomState.sessionToken) submit.handleStartSubmit();
+    }, [classroomState.studentSubmitRequested, classroomState.sessionToken, phase, dispatch, submit]);
 
     // --- Leave classroom ---
 
@@ -519,6 +551,10 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             continueOptions={studentAssignment.continueOptions}
             error={error}
             hasAssignment={studentAssignment.hasAssignment}
+            lessonStartOnly={studentAssignment.lessonStartOnly}
+            lessonStatus={lessonStatus}
+            studentLesson={studentLesson}
+            onStartLesson={handleStartLesson}
             loadedChoice={studentAssignment.loadedChoice}
             startChoice={studentAssignment.startChoice}
             onLoadSubmission={studentAssignment.handleLoadSubmission}

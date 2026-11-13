@@ -1,0 +1,175 @@
+@import '../../css/colors.css';
+
+/* 課題クリアのお祝いの色は「できた！」のオレンジ（lesson-completed-toast.css）にそろえる */
+$celebrate: hsla(37, 91%, 55%, 1);
+$celebrate-ink: hsla(31, 100%, 35%, 1);
+$celebrate-on: hsla(34, 100%, 15%, 1);
+$celebrate-light: hsla(45, 100%, 98%, 1);
+
+/* レッスン表の上の帯。1 行（狭いときは折り返す）。白地に青の枠 */
+.band {
+    flex-shrink: 0;
+    margin: 0.5rem 1rem 0;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid $motion-primary;
+    border-radius: 0.5rem;
+    background-color: $ui-white;
+    color: $text-primary;
+    font-size: 0.875rem;
+}
+
+.band-cleared {
+    border-color: $celebrate;
+    background-color: $celebrate-light;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+}
+
+.label {
+    padding: 0.125rem 0.5rem;
+    border-radius: 1rem;
+    background-color: $motion-primary;
+    color: $ui-white;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.band-cleared .label {
+    background-color: $celebrate;
+    color: $celebrate-on;
+}
+
+.name {
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+.condition {
+    white-space: nowrap;
+}
+
+.dots {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid $motion-primary;
+    background-color: $ui-white;
+    box-sizing: border-box;
+    color: $motion-primary;
+    font-size: 10px;
+    line-height: 1;
+}
+
+.dot-completed {
+    background-color: $motion-primary;
+    color: $ui-white;
+}
+
+.band-cleared .dot {
+    border-color: $celebrate;
+    color: $celebrate-ink;
+}
+
+.band-cleared .dot-completed {
+    background-color: $celebrate;
+    color: $celebrate-on;
+}
+
+.remaining,
+.cleared,
+.done-count {
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.required-remaining {
+    margin-right: 0.5rem;
+    color: $celebrate-ink;
+}
+
+.cleared {
+    color: $celebrate-ink;
+}
+
+.submit-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    margin-top: 0.5rem;
+}
+
+.submit-guide {
+    flex: 1 1 20rem;
+    font-weight: bold;
+}
+
+.submit {
+    min-height: 2.25rem;
+    padding: 0.25rem 1.25rem;
+    border: 2px solid $celebrate;
+    border-radius: 1.125rem;
+    background-color: $celebrate;
+    color: $celebrate-on;
+    font-size: 0.875rem;
+    font-weight: bold;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.submit:hover {
+    opacity: 0.85;
+}
+
+/*
+    課題バー（青・40px）の同じ行に出す小さな帯。高さを変えない（変えると resize を送る決まりに当たる）。
+    白い丸と字で、バーの青の上に出す
+*/
+.compact {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.125rem 0.5rem;
+    border: 1px solid $ui-white;
+    border-radius: 1rem;
+    white-space: nowrap;
+}
+
+.compact .dot {
+    width: 12px;
+    height: 12px;
+    border-color: $ui-white;
+    background-color: transparent;
+    color: $ui-white;
+    font-size: 8px;
+}
+
+.compact .dot-completed {
+    background-color: $ui-white;
+    color: $motion-primary;
+}
+
+.compact .required-remaining,
+.compact .cleared {
+    color: inherit;
+}
+
+.compact-dots {
+    flex-wrap: nowrap;
+}

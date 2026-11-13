@@ -73,7 +73,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダル state マッピング |
 | `src/containers/gui.jsx` | classroom modal | クラスルームモーダル state マッピング |
 | `src/containers/gui.jsx` | classcode auto-open | クラスコード URL パラメーターによるモーダル自動オープン |
-| `src/components/menu-bar/menu-bar.jsx` | classroom button | クラスルームボタンの import、レンダリング、Redux 接続 |
+| `src/components/menu-bar/menu-bar.jsx` | classroom button | クラスルームボタンの import、レンダリング、Redux 接続。ラベルの横の印は `ClassroomMenuStatus`（提出状態、レッスンの課題では進み具合の ○ / 2/4 / ✓） |
 | `src/components/menu-bar/menu-bar.jsx` | classroom teacher menu | 先生用「クラス管理」メニューを右端（? の左）に置く。先生ログイン中はウェルカムの吹き出しを出さない（welcome tooltip マーカー内）・`classroomTeacherLoggedIn` の Redux 接続 |
 | `src/components/menu-bar/menu-bar.jsx` | welcome tooltip | About (`?`) ボタンの左隣にウェルカムバルーンを描画。`buildAboutMenu` 内に `WelcomeTooltip` 配置 + `position: relative` 化、`handleClickWelcomeTooltip` ハンドラ追加、`onShowWelcomeModal` 用 mapDispatchToProps 追加 |
 | `src/components/menu-bar/menu-bar.jsx` | help menu | 「チュートリアル」「デバッグ」をメニューバーのボタンから「?」メニューの項目へ移す。`buildAboutMenu` 内に `MenuSection`（`menu-bar-help-tutorials` / `menu-bar-help-debug`）を追加し、upstream の about 項目（`onClickAbout`）も `MenuSection` で囲んで区切り線を入れる、`?` の div に `data-testid="menu-bar-about"`、upstream のボタン群（と先頭の `Divider`）・`helpIcon` / `debugIcon` import を削除 |

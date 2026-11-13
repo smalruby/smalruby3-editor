@@ -14,6 +14,7 @@ import { FormattedMessage } from 'react-intl';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import StudentContinueChoice from './student-continue-choice.jsx';
+import { LessonNextSteps, StartLessonButton } from './student-joined-confirmation.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
 
 const StudentAssignmentPanel = ({
@@ -23,21 +24,27 @@ const StudentAssignmentPanel = ({
     errorTitle,
     isLoading,
     joinedInfo,
+    lessonStartOnly = false,
     loadedChoice,
     pageIndex,
     startChoice,
+    studentLesson = null,
     onChooseStarter,
     onClose,
     onLoadSubmission,
     onNextPage,
     onPrevPage,
     onReloadStarter,
+    onStartLesson,
 }) => {
     const pages = assignment?.pages || [];
     const page = pages[pageIndex] || null;
     // Just joined: the start choices. Reopened from the status view: no choices.
     const showStarterChoice = !!joinedInfo && !!startChoice?.showStarter;
-    const hasChoices = !!joinedInfo && (showStarterChoice || !!continueOptions);
+    // A lesson assignment without a starter starts in the lessons library (#1599)
+    const showChoices = !!joinedInfo && !lessonStartOnly;
+    const hasChoices = showChoices && (showStarterChoice || !!continueOptions);
+    const lessonStart = !!joinedInfo && !!studentLesson && !!onStartLesson;
 
     return (
         <div data-testid="classroom-phase-student-assignment">
@@ -118,12 +125,18 @@ const StudentAssignmentPanel = ({
                 </div>
             )}
 
+            {lessonStart && (
+                <div className={styles.joinHintText} data-testid="classroom-assignment-lesson-notice">
+                    <LessonNextSteps lesson={studentLesson} />
+                </div>
+            )}
+
             {/* Choice and the close button side by side (one row at 1300x600). */}
             <div className={styles.assignmentFooter}>
                 {/* Right after joining, each choice starts (the starter, earlier
                     submissions #1201, or as it is), so there is no separate Start
                     button and nothing to reload. */}
-                {joinedInfo && (
+                {showChoices && (
                     <StudentContinueChoice
                         continueOptions={continueOptions}
                         isLoading={isLoading}
@@ -137,7 +150,9 @@ const StudentAssignmentPanel = ({
                     />
                 )}
 
-                {!hasChoices && (
+                {lessonStart && <StartLessonButton onStartLesson={onStartLesson} />}
+
+                {!hasChoices && !lessonStart && (
                     <div className={styles.buttonRow}>
                         {!joinedInfo && assignment?.starterUrl && (
                             <button
@@ -189,6 +204,8 @@ StudentAssignmentPanel.propTypes = {
         seatNumber: PropTypes.number,
         previousComment: PropTypes.object,
     }),
+    // A lesson assignment without a starter: no start choices (#1599)
+    lessonStartOnly: PropTypes.bool,
     loadedChoice: PropTypes.string,
     pageIndex: PropTypes.number.isRequired,
     startChoice: PropTypes.shape({
@@ -202,6 +219,9 @@ StudentAssignmentPanel.propTypes = {
     onNextPage: PropTypes.func.isRequired,
     onPrevPage: PropTypes.func.isRequired,
     onReloadStarter: PropTypes.func.isRequired,
+    onStartLesson: PropTypes.func,
+    // normalized lesson setting of the joined assignment (null = not a lesson assignment)
+    studentLesson: PropTypes.shape({ submitWork: PropTypes.bool }),
 };
 
 export default StudentAssignmentPanel;

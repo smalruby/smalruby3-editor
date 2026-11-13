@@ -67,6 +67,10 @@ const ClassroomModal = ({
     onAssignmentNextPage,
     onReloadStarter,
     onChooseStarter,
+    lessonStartOnly = false,
+    lessonStatus = null,
+    studentLesson = null,
+    onStartLesson,
 }) => {
     const intl = useIntl();
 
@@ -127,9 +131,12 @@ const ClassroomModal = ({
                         joinedInfo={joinedInfo}
                         loadedChoice={loadedChoice}
                         startChoice={startChoice}
+                        lessonStartOnly={lessonStartOnly}
+                        studentLesson={studentLesson}
                         onClose={onClose}
                         onLoadStarter={onChooseStarter}
                         onLoadSubmission={onLoadSubmission}
+                        onStartLesson={onStartLesson}
                     />
                 )}
 
@@ -148,9 +155,12 @@ const ClassroomModal = ({
                         onChooseStarter={onChooseStarter}
                         onClose={onClose}
                         onLoadSubmission={onLoadSubmission}
+                        lessonStartOnly={lessonStartOnly}
+                        studentLesson={studentLesson}
                         onNextPage={onAssignmentNextPage}
                         onPrevPage={onAssignmentPrevPage}
                         onReloadStarter={onReloadStarter}
+                        onStartLesson={onStartLesson}
                     />
                 )}
 
@@ -166,11 +176,14 @@ const ClassroomModal = ({
                         hasAssignment={hasAssignment}
                         isLoading={isLoading}
                         loadedChoice={loadedChoice}
+                        lessonStatus={lessonStatus}
+                        studentLesson={studentLesson}
                         teacherComment={teacherComment}
                         onLeaveClassroom={onLeaveClassroom}
                         onLoadSubmission={onLoadSubmission}
                         onOpenAssignment={onOpenAssignment}
                         onRefreshStudentStatus={onRefreshStudentStatus}
+                        onStartLesson={onStartLesson}
                         onStartSubmit={onStartSubmit}
                     />
                 )}
@@ -193,6 +206,13 @@ const ClassroomModal = ({
 };
 
 ClassroomModal.propTypes = {
+    // A lesson assignment without a starter: 「はじめる」 opens the lessons library (#1599)
+    lessonStartOnly: PropTypes.bool,
+    // assignmentProgress() of the joined lesson assignment (null when not a lesson assignment)
+    lessonStatus: PropTypes.object,
+    // normalized lesson setting of the joined assignment (lib/lessons/assignment-progress.js)
+    studentLesson: PropTypes.object,
+    onStartLesson: PropTypes.func,
     assignment: PropTypes.object,
     assignmentPageIndex: PropTypes.number,
     continueOptions: PropTypes.object,

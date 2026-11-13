@@ -477,6 +477,107 @@ const kickedRoutes = (activeIds) => async (p) => {
     await ctx.close();
 }
 
+// ---------- レッスンの課題 (EPIC #1592 / #1599) ----------
+// 一番長い状態: 11 チャレンジ全部を選び★ 4 つ・作品も提出する・長い名前。
+const LESSON_IDS = [
+    'blocks-l1-key-sound', 'blocks-l1-arrow-move', 'blocks-l1-click-say', 'blocks-l1-repeat',
+    'blocks-l1-if', 'blocks-l1-ask-answer', 'blocks-l1-quiz',
+    'blocks-l1-count', 'blocks-l1-broadcast', 'blocks-l1-speak', 'blocks-l1-message-list',
+];
+const LESSON = {
+    courseId: 'kyou-kara-programmer',
+    challengeIds: LESSON_IDS,
+    requiredChallengeIds: ['blocks-l1-arrow-move', 'blocks-l1-if', 'blocks-l1-count', 'blocks-l1-broadcast'],
+    completion: { type: 'count', count: 8 },
+    submitWork: true,
+    scoring: null,
+};
+const lessonRecords = (ids) => ({
+    version: 1,
+    challenges: Object.fromEntries(
+        ids.map((id) => [id, { completedAt: '2026-11-15T01:00:00.000Z', courseId: 'kyou-kara-programmer', lessonId: 'x' }]),
+    ),
+});
+const routeLessonAssignment = (p) =>
+    p.route('**/classrooms/c1/assignment', (r) => r.fulfill({ json: { assignment: null, lesson: LESSON } }));
+
+// 参加完了: レッスンの課題の説明 +「はじめる」(どこから始めるかの選択肢は出さない)
+{
+    const { ctx, page } = await studentPage({
+        routes: async (p) => {
+            await routeContinuable(p);
+            await routeLessonAssignment(p);
+            await p.route('**/classrooms/join', (r) =>
+                r.fulfill({
+                    json: {
+                        classroomId: 'c1',
+                        className: LONG_CLASS,
+                        classYear: 2026,
+                        assignmentName: LONG_ASSIGNMENT,
+                        seatNumber: 3,
+                        memberId: 'seat-03',
+                        sessionToken: 'stub',
+                        hasAssignment: false,
+                        previousComment: { assignmentName: LONG_ASSIGNMENT, teacherComment: LONG_COMMENT, status: 'returned' },
+                    },
+                }),
+            );
+        },
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-join-code-input"]').fill('abc234');
+    await page.locator('[data-testid="classroom-join-submit"]').click();
+    await page.locator('[data-testid="classroom-seat-3"]').click();
+    await page.locator('[data-testid="classroom-confirm-seat"]').click();
+    await page.locator('[data-testid="classroom-joined-start-lesson"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(500);
+    await judge(page, {
+        who: 'student',
+        name: 'student-joined (lesson assignment + previous comment)',
+        shot: 'student-joined-lesson',
+        primary: '[data-testid="classroom-joined-start-lesson"]',
+    });
+    await ctx.close();
+}
+
+// クラスの画面: 進み具合 (とちゅう・★ 残り / 課題クリア) + 提出状況 + 続きの選択肢。
+// 返却 + 長いコメントのときと、まだ提出していない (提出の案内が出る) とき。
+for (const [label, done, primary, returned] of [
+    ['in progress', LESSON_IDS.slice(0, 6), 'classroom-continue-lesson-button', true],
+    ['cleared + returned', LESSON_IDS.slice(0, 9), 'classroom-submit-button', true],
+    ['cleared + submit guide', LESSON_IDS.slice(0, 9), 'classroom-submit-button', false],
+]) {
+    const submission = returned
+        ? { status: 'returned', submittedAt: new Date().toISOString(), teacherComment: LONG_COMMENT }
+        : null;
+    const { ctx, page } = await studentPage({
+        storage: {
+            'smalruby:classroom': session({ submissionStatus: returned ? 'returned' : null, studentLesson: LESSON }),
+            'smalruby:lessonProgress': lessonRecords(done),
+        },
+        routes: async (p) => {
+            await routeContinuable(p);
+            await routeLessonAssignment(p);
+            await p.route('**/classrooms/verify-session', (r) =>
+                r.fulfill({
+                    json: { valid: true, hasAssignment: false, submission },
+                }),
+            );
+        },
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-status-lesson-progress"]').waitFor({ timeout: 10000 });
+    await page.locator('[data-testid="classroom-continue-choice"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(800);
+    await judge(page, {
+        who: 'student',
+        name: `student-status (lesson ${label} + continue choice)`,
+        shot: `student-status-lesson-${label.replace(/[^a-z]+/g, '-')}`,
+        primary: `[data-testid="${primary}"]`,
+    });
+    await ctx.close();
+}
+
 // ---------- みんなの作品パネル + 画像ビューア (他者参照・#1210) ----------
 // 一番長い状態: 自分以外の 39 席がすべて提出済み、スプライトの画像が 8 枚。
 // パネル・ビューアがビューポートに収まり、ページが縦にスクロールしないこと、
