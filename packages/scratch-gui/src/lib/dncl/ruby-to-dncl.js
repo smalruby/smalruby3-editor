@@ -1,10 +1,14 @@
 // === Smalruby: This file is Smalruby-specific (Ruby to DNCL reverse transpiler) ===
+import { DNCL_KEYWORDS, RUBY_LITERALS } from './dncl-keywords';
 import { splitTrailingComment } from './dncl-trailing-comment';
 import {
+    codeWithoutStrings,
     findUnsupportedCommands,
     isPostTestLoopLine,
     POST_TEST_LOOP_ERROR_ID,
     POST_TEST_LOOP_MESSAGE,
+    UNSUPPORTED_COMMAND_ERROR_ID,
+    unsupportedCommandMessage,
 } from './dncl-validator';
 import { ID, processSegments } from './ruby-to-dncl-identifier';
 import { convertLine, detectForLoopPattern, findCountingLoopStep, toDnclExpr } from './ruby-to-dncl-line-converter';
@@ -20,6 +24,162 @@ const rubyColumn = (line, name) => {
     const escaped = name.replace(/[?!]/g, '\\$&');
     const m = line.match(new RegExp(`(?<![${ID}@$])${escaped}(?![${ID}?!])`));
     return m ? m.index + 1 : 1;
+};
+
+/** Ruby keywords: never a method of the program. */
+const RUBY_KEYWORDS = new Set([
+    'alias',
+    'and',
+    'begin',
+    'break',
+    'case',
+    'class',
+    'def',
+    'defined?',
+    'do',
+    'else',
+    'elsif',
+    'end',
+    'ensure',
+    'false',
+    'for',
+    'if',
+    'in',
+    'module',
+    'next',
+    'nil',
+    'not',
+    'or',
+    'redo',
+    'rescue',
+    'retry',
+    'return',
+    'self',
+    'super',
+    'then',
+    'true',
+    'undef',
+    'unless',
+    'until',
+    'when',
+    'while',
+    'yield',
+]);
+
+const NAME_RE = new RegExp(`[${ID}]`);
+const NAME_HEAD_RE = new RegExp(`[a-z_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF]`);
+
+/**
+ * The names a Ruby source has as local variables or methods it defines:
+ * assigned (`b = 1`, `b += 1`), a parameter of a block (`do |i|`) or of a
+ * method (`def f(x)`), and the name of a method (`def f`). Such a bare name
+ * stays as it is in the Japanese mode (or goes back to a variable, as an
+ * assigned local does today), so it is not an unknown method.
+ * @param {Array<string>} lines - The Ruby lines without their comments.
+ * @returns {Set<string>} The names.
+ */
+const findRubyLocalNames = (lines) => {
+    const names = new Set();
+    const assign = new RegExp(`^([${ID}]+)\\s*(?:[-+*/%]|\\|\\||&&)?=(?![=~>])`);
+    const def = new RegExp(`^def\\s+([${ID}]+[?!]?)\\s*(?:\\(([^)]*)\\)|(.*))?$`);
+    const splitParams = (text) =>
+        (text || '')
+            .split(',')
+            .map((name) =>
+                name
+                    .trim()
+                    .replace(/^[*&]+/, '')
+                    .replace(/\s*=.*$/, ''),
+            )
+            .filter((name) => name !== '');
+    for (const line of lines) {
+        const code = codeWithoutStrings(line);
+        const trimmed = code.trim();
+        const a = trimmed.match(assign);
+        if (a) names.add(a[1]);
+        const d = trimmed.match(def);
+        if (d) {
+            names.add(d[1]);
+            splitParams(d[2] || d[3]).forEach((name) => names.add(name));
+        }
+        for (const m of code.matchAll(/\|([^|]*)\|/g)) {
+            splitParams(m[1]).forEach((name) => names.add(name));
+        }
+    }
+    return names;
+};
+
+/**
+ * The bare names of a Ruby line that are not called with `(`: not after
+ * `@` / `$` / `.` / `:`, not a constant (uppercase), not a hash key (`a: 1`).
+ * @param {string} code - The Ruby line without strings and comment.
+ * @returns {Array<object>} `{name, index}` per name.
+ */
+const bareNamesOf = (code) => {
+    const found = [];
+    let i = 0;
+    while (i < code.length) {
+        if (!NAME_RE.test(code[i])) {
+            i++;
+            continue;
+        }
+        const start = i;
+        while (i < code.length && NAME_RE.test(code[i])) i++;
+        let end = i;
+        // A predicate or bang method keeps its `?` / `!` (but `!=` is an operator).
+        if ((code[end] === '?' || code[end] === '!') && code[end + 1] !== '=') end++;
+        i = end;
+        const before = code[start - 1] || '';
+        if (/[@$.:]/.test(before) || !NAME_HEAD_RE.test(code[start])) continue;
+        if (code[end] === '(' || (code[end] === ':' && code[end + 1] !== ':')) continue;
+        found.push({ name: code.substring(start, end), index: start });
+    }
+    return found;
+};
+
+/**
+ * Find the Smalruby methods written without parentheses in an expression
+ * (`@a = 1 + x_position`, `puts(costume_number)`; issue #1694). In the
+ * Japanese mode such a name has the form of a variable, so `dnclToRuby`
+ * puts `@` on it (`@x_position`): the program reads a variable instead of
+ * the method, with no error. Only Ruby knows it is not a variable (it has
+ * no `@`), so it is told here as a command the Japanese mode does not have.
+ * A local variable, a parameter, a method the source defines and the names
+ * the Japanese mode has (`answer`, `rand`, ...) are not taken, nor a name
+ * the converter turned into DNCL words (`wait until`).
+ * @param {Array<string>} lines - The Ruby lines without their comments.
+ * @param {Array<string>} dnclLines - The DNCL lines.
+ * @param {Array<number>} origins - The index of the Ruby line of each DNCL line.
+ * @returns {Array<object>} Errors with `line`, `column`, `id`, `name` and `message`.
+ */
+const findBareMethods = (lines, dnclLines, origins) => {
+    const locals = findRubyLocalNames(lines);
+    const known = (name) =>
+        RUBY_KEYWORDS.has(name) || RUBY_LITERALS.has(name) || DNCL_KEYWORDS.has(name) || locals.has(name);
+    const dnclNamesByLine = new Map();
+    dnclLines.forEach((text, k) => {
+        const names = dnclNamesByLine.get(origins[k]) || new Set();
+        text.split('\n').forEach((dnclLine) =>
+            bareNamesOf(codeWithoutStrings(dnclLine)).forEach(({ name }) => names.add(name)),
+        );
+        dnclNamesByLine.set(origins[k], names);
+    });
+    const errors = [];
+    lines.forEach((line, index) => {
+        const inDncl = dnclNamesByLine.get(index);
+        if (!inDncl) return;
+        bareNamesOf(codeWithoutStrings(line)).forEach(({ name, index: column }) => {
+            if (known(name) || !inDncl.has(name)) return;
+            errors.push({
+                line: index + 1,
+                column: column + 1,
+                id: UNSUPPORTED_COMMAND_ERROR_ID,
+                name,
+                message: unsupportedCommandMessage(name),
+            });
+        });
+    });
+    return errors;
 };
 
 /**
@@ -163,6 +323,14 @@ const rubyToDncl = (source) => {
     findUnsupportedCommands(dncl).forEach((err) => {
         const index = lineOrigins[err.line - 1];
         errors.push({ ...err, line: index + 1, column: rubyColumn(lines[index], err.name) });
+    });
+    // A method without parentheses in an expression (issue #1694); a name
+    // already told above (a name alone on a line) is not told again.
+    findBareMethods(lines, dnclLines, origins).forEach((err) => {
+        const told = errors.some(
+            (e) => e.id === UNSUPPORTED_COMMAND_ERROR_ID && e.line === err.line && e.name === err.name,
+        );
+        if (!told) errors.push(err);
     });
 
     return {
