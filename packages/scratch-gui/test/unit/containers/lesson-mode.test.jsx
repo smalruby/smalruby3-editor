@@ -18,6 +18,7 @@ const CHALLENGE_ID = 'blocks-l1-click-say';
 const baseProps = () => ({
     current: null,
     dispatch: jest.fn(),
+    dnclMode: false,
     hint: null,
     isAnyCreatingNewState: false,
     isShowingProject: true,
@@ -26,6 +27,7 @@ const baseProps = () => ({
     onCloseLesson: jest.fn(),
     onDismissCompleted: jest.fn(),
     onEndLesson: jest.fn(),
+    onExitDnclMode: jest.fn(),
     onHideHint: jest.fn(),
     onOpenChallenge: jest.fn(),
     onRequestNewProject: jest.fn(),
@@ -187,6 +189,33 @@ describe('LessonMode container', () => {
         renderLessonMode(props);
         expect(window.confirm).toHaveBeenCalledTimes(1);
         expect(props.onRequestNewProject).toHaveBeenCalledTimes(1);
+    });
+
+    // 日本語モードのあいだはパレットが日本語で書けるブロックに絞られ、チャレンジのブロックが出ない（#1735）
+    test('leaves the Japanese mode before starting a new project for the challenge', () => {
+        const props = { ...baseProps(), pendingChallengeId: CHALLENGE_ID, dnclMode: true };
+        renderLessonMode(props);
+        expect(props.onExitDnclMode).toHaveBeenCalledTimes(1);
+        expect(props.onRequestNewProject).toHaveBeenCalledTimes(1);
+    });
+
+    test('keeps the Japanese mode when replacing the project is declined', () => {
+        window.confirm.mockReturnValue(false);
+        const props = {
+            ...baseProps(),
+            pendingChallengeId: CHALLENGE_ID,
+            projectChanged: true,
+            dnclMode: true,
+        };
+        renderLessonMode(props);
+        expect(props.onCancelStart).toHaveBeenCalledTimes(1);
+        expect(props.onExitDnclMode).not.toHaveBeenCalled();
+    });
+
+    test('does not touch the mode outside the Japanese mode', () => {
+        const props = { ...baseProps(), pendingChallengeId: CHALLENGE_ID };
+        renderLessonMode(props);
+        expect(props.onExitDnclMode).not.toHaveBeenCalled();
     });
 
     test('applies the setup and opens the challenge once the new project is showing', async () => {
