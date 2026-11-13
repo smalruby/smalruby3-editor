@@ -91,3 +91,43 @@ describe('DNCL built-in with an expression argument (Issue #1686)', () => {
         });
     });
 });
+
+/**
+ * A negative number literal is one number in Ruby: `-5.abs` is `(-5).abs`
+ * (5), not `-(5.abs)`. Ruby → DNCL keeps the `-` inside the built-in, so
+ * the DNCL reads as the same value. A `-` before a name, or a `-` with a
+ * space after it, negates the result as before. (Issue #1700)
+ */
+describe('Ruby → DNCL with a negative number receiver (Issue #1700)', () => {
+    const toDncl = (ruby) => rubyToDncl(ruby).dncl;
+    const toRuby = (dncl) => dnclToRuby(dncl).ruby;
+
+    test.each([
+        ['@b = -5.abs', 'b = 絶対値(-5)'],
+        ['@b = -1.to_s', 'b = 文字列(-1)'],
+        ['@b = -1.5.abs', 'b = 絶対値(-1.5)'],
+        ['@b = -2.5.round', 'b = 四捨五入(-2.5)'],
+        ['@b = 3 * -5.abs', 'b = 3 * 絶対値(-5)'],
+        ['@b = (-5.abs + 1)', 'b = (絶対値(-5) + 1)'],
+        ['puts(-1.to_s + "個")', '表示する(-1, "個")'],
+    ])('%s → %s', (ruby, dncl) => {
+        expect(toDncl(ruby)).toBe(dncl);
+    });
+
+    test.each([
+        ['@b = -@a.abs', 'b = -絶対値(a)'],
+        ['@b = - 5.abs', 'b = - 絶対値(5)'],
+        ['@b = @a - 5.abs', 'b = a - 絶対値(5)'],
+        ['@b = @a -5.abs', 'b = a -絶対値(5)'],
+        ['@b = 3 -5.abs', 'b = 3 -絶対値(5)'],
+    ])('a `-` that is not part of the number stays outside: %s', (ruby, dncl) => {
+        expect(toDncl(ruby)).toBe(dncl);
+    });
+
+    test.each(['b = 絶対値(-5)', 'b = 文字列(-1)', 'b = -絶対値(a)', '表示する(-1, "個")'])(
+        'DNCL → Ruby → DNCL: %s',
+        (dncl) => {
+            expect(toDncl(toRuby(dncl))).toBe(dncl);
+        },
+    );
+});

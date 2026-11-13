@@ -229,6 +229,25 @@ const bracketOpenings = (text) => {
     return openings;
 };
 
+const NUMBER_RE = /^\d+(\.\d+)?$/;
+const OPERAND_END_RE = new RegExp(`[${ID})\\]"']`);
+
+/**
+ * Whether the `-` at `pos` is a unary minus that Ruby reads as part of the
+ * number right after it (`-5.abs` is `(-5).abs`). It is when nothing that
+ * ends an operand (a name, a number, `)`, `]`, a string) comes before it,
+ * spaces skipped: `= -5`, `(-5`, `* -5`. `a -5` / `3 -5` are subtractions.
+ * (Issue #1700)
+ * @param {string} text - The text.
+ * @param {number} pos - The position of the `-`.
+ * @returns {boolean} True if the `-` belongs to the number after it.
+ */
+const isNumberSign = (text, pos) => {
+    let k = pos - 1;
+    while (k >= 0 && text[k] === ' ') k--;
+    return k < 0 || !OPERAND_END_RE.test(text[k]);
+};
+
 /**
  * Convert `receiver.to_i` / `.to_s` / `.round` / `.floor` / `.ceil` / `.abs` /
  * `.length` to `整数(receiver)` etc. The receiver is the operand right before
@@ -236,7 +255,9 @@ const bracketOpenings = (text) => {
  * `Data[1]`, or a `( ... )` group, whose parentheses are dropped as they are
  * only there for the method (`(a + 1).to_i` → `整数(a + 1)`). DNCL → Ruby
  * puts them back (`toReceiver` in dncl-builtins.js). A string literal
- * receiver (`"x".to_s`) is left as it is. (Issue #1686)
+ * receiver (`"x".to_s`) is left as it is. A negative number receiver
+ * (`-5.abs`, which Ruby reads as `(-5).abs`) keeps its `-` inside
+ * (`絶対値(-5)`), as it is part of the number. (Issues #1686, #1700)
  * @param {string} text - Ruby-form text (identifiers already converted).
  * @returns {string} Text with the methods converted to DNCL built-ins.
  */
@@ -268,8 +289,16 @@ const replacePostfixMethods = (text) => {
                 break;
             }
         }
-        const start = j + 1;
+        let start = j + 1;
         const end = i + match[0].length;
+        if (
+            start > 0 &&
+            s[start - 1] === '-' &&
+            NUMBER_RE.test(s.substring(start, i)) &&
+            isNumberSign(s, start - 1)
+        ) {
+            start--;
+        }
         if (start === i) {
             i = end;
             continue;
