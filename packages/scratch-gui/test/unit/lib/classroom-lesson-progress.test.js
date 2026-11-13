@@ -251,8 +251,8 @@ describe('CSV', () => {
         const lines = csv.replace(/^﻿/, '').split('\r\n');
         expect(lines[0]).toBe('出席番号,名前,課題クリア,できた数,A,B,D,E,得点');
         const time = formatCsvTime(minutesAgo(30));
-        // 必須 1 つ = 35 点・必須でない 1 つ = 15 点
-        expect(lines[1]).toBe(`01,あ,,1,${time},,,,15`);
-        expect(lines[2]).toBe(`02,い,○,3,前,${time},${time},,85`);
+        // 条件 3・必須 2（#1778）: 必須 1 つ = 35 点・必須でない 1 つ = 30 ÷ (3 − 2) = 30 点
+        expect(lines[1]).toBe(`01,あ,,1,${time},,,,30`);
+        expect(lines[2]).toBe(`02,い,○,3,前,${time},${time},,100`);
     });
 });

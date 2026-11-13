@@ -307,11 +307,15 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         getCell={evaluation.getCell}
                         lessonScores={evaluation.lessonScores}
                         rubricAxes={evaluation.rubricAxes}
+                        scoringChecked={evaluation.scoringChecked}
+                        scoringSavingId={evaluation.scoringSavingId}
                         seats={evaluation.seats}
                         selectedLessonIds={evaluation.selectedLessonIds}
                         strictness={evaluation.strictness}
                         onBack={evaluation.handleBackFromEvaluation}
+                        onChangeLessonScoring={evaluation.handleChangeLessonScoring}
                         onChangeRubricAxis={evaluation.handleChangeRubricAxis}
+                        onCheckScoring={evaluation.handleCheckScoring}
                         onExportAuditCsv={evaluation.handleExportAuditCsv}
                         onExportEvaluationCsv={evaluation.handleExportEvaluationCsv}
                         onLoadSubmissions={evaluation.handleLoadSubmissions}

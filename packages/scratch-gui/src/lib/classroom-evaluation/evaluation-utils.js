@@ -43,20 +43,89 @@ const combineOverall = (grades) => {
 const toCsv = (rows) => csvLines(rows);
 
 /**
+ * A lesson assignment whose students submit no work (#1778): it is graded
+ * from the progress only, never by the AI. The setting read when the grading
+ * screen opens (`lessonSetting`) decides; before it arrives, the setting
+ * returned with the progress (lessonScores) does.
+ * @param {object} lesson - {classroomId, hasLesson, lessonSetting?}
+ * @param {object} [lessonScores] - classroomId → lessonScoresBySeat result
+ * @returns {boolean} whether it is a lesson-only assignment
+ */
+const isLessonOnlyAssignment = (lesson, lessonScores = {}) => {
+    if (!lesson || !lesson.hasLesson) return false;
+    if (lesson.lessonSetting) return lesson.lessonSetting.submitWork !== true;
+    const info = lessonScores && lessonScores[lesson.classroomId];
+    return !!(info && info.submitWork === false);
+};
+
+/**
+ * Which grading flow the selected assignments need (#1778).
+ * - 'lessonOnly': every selected assignment is a lesson without work → no AI
+ *   (① 読み込む → ② 点を確かめる → ③ 書き出す)
+ * - 'mixed': some are lesson-only → the AI flow, noting that those are not
+ *   graded by the AI
+ * - 'work': the AI flow (① 読み込む → ② AIで採点 → ③ 下書き → ④ 返却)
+ * @param {Array<object>} lessons - the selected assignments
+ * @param {object} [lessonScores] - classroomId → lessonScoresBySeat result
+ * @returns {'lessonOnly'|'mixed'|'work'} the flow
+ */
+const evaluationFlowMode = (lessons, lessonScores = {}) => {
+    const list = lessons || [];
+    const lessonOnly = list.filter((l) => isLessonOnlyAssignment(l, lessonScores)).length;
+    if (lessonOnly === 0) return 'work';
+    return lessonOnly === list.length ? 'lessonOnly' : 'mixed';
+};
+
+/**
+ * The current step of the lesson-only flow (#1778): load the progress →
+ * check the points (the lesson points field) → export.
+ * @param {object} state - what has been done so far
+ * @param {boolean} state.loaded - the progress is loaded
+ * @param {boolean} state.checked - the teacher checked (or changed) the points
+ * @returns {'load'|'check'|'export'} the current step
+ */
+const currentLessonOnlyStep = ({ loaded, checked }) => {
+    if (!loaded) return 'load';
+    return checked ? 'export' : 'check';
+};
+
+/**
+ * The assignment PUT that saves new lesson points from the grading screen
+ * (#1778). Built from the GET done right before the PUT: the PUT replaces the
+ * assignment content and the whole lesson, so the stored pages, starter and
+ * lesson settings are sent back and only `scoring` is changed (a lesson read
+ * when the screen opened may be stale — another tab or co-teacher may have
+ * changed it since).
+ * @param {?object} assignmentData - GET /classrooms/{id}/assignment response
+ * @param {?object} scoring - the new `lesson.scoring` (null = the defaults)
+ * @returns {?object} the PUT body, or null when the assignment has no lesson any more
+ */
+const lessonScoringSavePayload = (assignmentData, scoring) => {
+    const lesson = assignmentData && assignmentData.lesson;
+    if (!lesson) return null;
+    const content = assignmentData.assignment;
+    const pages = ((content && content.pages) || []).map((page) =>
+        page.imageKey ? { text: page.text, imageKey: page.imageKey } : { text: page.text },
+    );
+    const payload = { pages, lesson: { ...lesson, scoring } };
+    if (content && content.starterKey) payload.keepStarter = true;
+    return payload;
+};
+
+/**
  * The columns of the grading table and CSV (#1603). Each assignment has a
  * work column (the AI-assisted grade), and a lesson assignment also has a
  * 「レッスン」 column (the machine score from its progress) right after it.
  * A lesson assignment whose students submit no work has only the lesson
  * column. The two scores stay separate (EPIC #1592 D10 ③).
- * @param {Array<object>} lessons - [{classroomId, assignmentName, hasLesson}]
+ * @param {Array<object>} lessons - [{classroomId, assignmentName, hasLesson, lessonSetting?}]
  * @param {object} [lessonScores] - classroomId → lessonScoresBySeat result (null = cannot be scored)
  * @returns {Array<{lesson: object, kind: 'work'|'lesson'}>} columns in order
  */
 const evaluationColumns = (lessons, lessonScores = {}) => {
     const columns = [];
     for (const lesson of lessons) {
-        const info = lessonScores[lesson.classroomId];
-        if (!(lesson.hasLesson && info && info.submitWork === false)) columns.push({ lesson, kind: 'work' });
+        if (!isLessonOnlyAssignment(lesson, lessonScores)) columns.push({ lesson, kind: 'work' });
         if (lesson.hasLesson) columns.push({ lesson, kind: 'lesson' });
     }
     return columns;
@@ -172,8 +241,12 @@ export {
     GRADE_ORDER,
     combineOverall,
     buildEvaluationCsv,
+    currentLessonOnlyStep,
     evaluationColumns,
+    evaluationFlowMode,
+    isLessonOnlyAssignment,
     lessonScoreOf,
+    lessonScoringSavePayload,
     buildAuditCsv,
     chunk,
     csvField,
