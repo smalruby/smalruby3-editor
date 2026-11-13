@@ -222,7 +222,7 @@ try {
     text0 = await pageText();
     record(
         'generated text follows the lesson',
-        text0.includes('★ のついたチャレンジ 1 つは') && text0.includes('作品をつくって提出しよう'),
+        text0.includes('★ のついたチャレンジ 1 こは') && text0.includes('作品をつくって提出しよう'),
         JSON.stringify(text0),
     );
     await page.locator(tid('classroom-lesson-close')).click();

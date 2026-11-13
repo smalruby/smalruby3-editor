@@ -73,6 +73,57 @@ describe('useTeacherAssignment — lesson description (#1780)', () => {
         expect(hook.result.current.editorPages[0].text).toBe('mine');
     });
 
+    test('［いいえ］ is remembered: the same description is not asked again (#1785 Q2)', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: { pages: [{ text: 'mine' }] } });
+        const hook = setup();
+        await act(async () => {});
+        act(() => hook.result.current.handleChangeLesson(firstLessonDraft()));
+        act(() => hook.result.current.handleLessonPanelClose());
+        act(() => hook.result.current.handleAnswerDescriptionQuestion(false));
+        // A change that does not change the description (scoring) does not ask.
+        act(() => hook.result.current.handleChangeLesson({ ...firstLessonDraft(), scoring: { total: 50 } }));
+        act(() => hook.result.current.handleLessonPanelClose());
+        expect(hook.result.current.descriptionQuestion).toBe(false);
+        // Changing and changing back to the declined description does not ask either.
+        act(() => hook.result.current.handleChangeLesson(lesson2));
+        act(() => hook.result.current.handleChangeLesson(firstLessonDraft()));
+        act(() => hook.result.current.handleLessonPanelClose());
+        expect(hook.result.current.descriptionQuestion).toBe(false);
+        // A new description asks again.
+        act(() => hook.result.current.handleChangeLesson(lesson2));
+        act(() => hook.result.current.handleLessonPanelClose());
+        expect(hook.result.current.descriptionQuestion).toBe(true);
+    });
+
+    test('an image-only page is asked about, not filled (#1785 Q1)', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: { pages: [{ text: '', imageKey: 'k', imageUrl: 'u' }] } });
+        const hook = setup();
+        await act(async () => {});
+        act(() => hook.result.current.handleChangeLesson(firstLessonDraft()));
+        expect(hook.result.current.editorPages[0].text).toBe('');
+        act(() => hook.result.current.handleLessonPanelClose());
+        expect(hook.result.current.descriptionQuestion).toBe(true);
+        act(() => hook.result.current.handleAnswerDescriptionQuestion(true));
+        expect(hook.result.current.editorPages[0]).toMatchObject({
+            text: describeJa(firstLessonDraft()),
+            imageKey: 'k',
+        });
+    });
+
+    test('a lesson start that was not used is dropped when the load fails (#1785 FYI3)', async () => {
+        const hook = setup('c-x', 'teacher-dashboard');
+        act(() => hook.result.current.requestLessonStart('c-x'));
+        mockGetAssignment.mockRejectedValueOnce(Object.assign(new Error('boom'), { status: 500 }));
+        hook.rerender(makeDeps('c-x', 'teacher-class-detail'));
+        await act(async () => {});
+        mockGetAssignment.mockResolvedValue({ assignment: null });
+        await act(async () => {
+            await hook.result.current.loadAssignmentEditor();
+        });
+        expect(hook.result.current.lessonDraft).toBeNull();
+        expect(hook.result.current.lessonPanelAutoOpen).toBe(false);
+    });
+
     test('［はい］ overwrites page 1', async () => {
         mockGetAssignment.mockResolvedValue({ assignment: { pages: [{ text: 'mine' }, { text: 'p2' }] } });
         const hook = setup();

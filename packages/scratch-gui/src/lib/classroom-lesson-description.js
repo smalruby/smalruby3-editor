@@ -17,29 +17,31 @@
  * right away, following the lesson while page 1 is still the generated text,
  * and otherwise only after the teacher says yes (shouldAskOverwrite).
  */
-import { createLessonDraft, setLessonChecked } from './classroom-lesson-settings.js';
+import { completionTarget, createLessonDraft, setLessonChecked } from './classroom-lesson-settings.js';
 import { COURSES } from './lessons/courses.js';
 import { en as lessonsEn, ja as lessonsJa, jaHira as lessonsJaHira } from './lessons/lessons.locale.js';
 
 const LESSON_MESSAGES = { ja: lessonsJa, 'ja-Hira': lessonsJaHira, en: lessonsEn };
 
 // One template per language. Each line is a function so plural forms (en)
-// and optional lines stay readable.
+// and optional lines stay readable. Students read this, so counts use 「こ」
+// (「11 こ」reads better than「11 つ」for 10 and more); the teacher's UI keeps
+// 「つ」.
 const TEXT = {
     ja: {
         intro: (course) => `「${course}」のレッスンにチャレンジしよう！`,
-        conditionAll: (total) => `・チャレンジは ${total} つ。全部できたら課題クリア！`,
-        conditionCount: (total, target) => `・チャレンジは ${total} つ。そのうち ${target} つできたら課題クリア！`,
-        required: (required) => `・★ のついたチャレンジ ${required} つは、かならずやろう。`,
+        conditionAll: (total) => `・チャレンジは ${total} こ。全部できたら課題クリア！`,
+        conditionCount: (total, target) => `・チャレンジは ${total} こ。そのうち ${target} こできたら課題クリア！`,
+        required: (required) => `・★ のついたチャレンジ ${required} こは、かならずやろう。`,
         order: '・やる順番は自由！ 好きなチャレンジからはじめよう。',
         submit: '・おわったら、学んだことをつかって作品をつくって提出しよう。',
     },
     'ja-Hira': {
         intro: (course) => `「${course}」の レッスンに チャレンジしよう！`,
-        conditionAll: (total) => `・チャレンジは ${total} つ。ぜんぶ できたら かだいクリア！`,
+        conditionAll: (total) => `・チャレンジは ${total} こ。ぜんぶ できたら かだいクリア！`,
         conditionCount: (total, target) =>
-            `・チャレンジは ${total} つ。そのうち ${target} つ できたら かだいクリア！`,
-        required: (required) => `・★ の ついた チャレンジ ${required} つは、かならず やろう。`,
+            `・チャレンジは ${total} こ。そのうち ${target} こ できたら かだいクリア！`,
+        required: (required) => `・★ の ついた チャレンジ ${required} こは、かならず やろう。`,
         order: '・やる じゅんばんは じゆう！ すきな チャレンジから はじめよう。',
         submit: '・おわったら、まなんだことを つかって さくひんを つくって ていしゅつしよう。',
     },
@@ -92,10 +94,7 @@ export const buildLessonDescription = ({ course, draft, locale }) => {
     const text = TEXT[lang];
     const total = draft.challengeIds.length;
     const required = draft.requiredChallengeIds.length;
-    const count = draft.completion.type === 'count' ? draft.completion.count : null;
-    // Same rule as completionTarget: the count never goes below the required ones.
-    const target =
-        count === null || typeof count === 'undefined' ? total : Math.min(Math.max(count, required), total);
+    const target = Math.min(completionTarget(draft), total);
     const lines = [text.intro(courseText(course.name, lang))];
     const what = courseText(course.description, lang);
     if (what) lines.push(what);
@@ -110,12 +109,13 @@ export const buildLessonDescription = ({ course, draft, locale }) => {
 const isBlank = (text) => !(text || '').trim();
 
 /**
- * "The page is empty": no page has text. An attached image alone does not
- * count — the description goes above it.
+ * "The page is empty": no page has text or an image — the same check as
+ * applying a template (an image-only page is the teacher's, so it is asked).
  * @param {Array<object>} pages - editor pages
- * @returns {boolean} whether the pages have no text
+ * @returns {boolean} whether the pages have no content
  */
-export const pagesAreEmpty = (pages) => pages.every((page) => isBlank(page.text));
+export const pagesAreEmpty = (pages) =>
+    pages.every((page) => isBlank(page.text) && !page.imageKey && !page.previewUrl && !page.newImageBlob);
 
 const withFirstText = (pages, text) =>
     pages.length === 0 ? [{ text }] : pages.map((page, i) => (i === 0 ? { ...page, text } : page));
@@ -139,13 +139,15 @@ export const autoDescriptionPages = (pages, previousText, nextText) => {
 
 /**
  * Whether closing the lesson panel asks「ページの説明をレッスンの説明で上書きしますか？」:
- * there is a description and the pages hold something else the teacher wrote.
+ * there is a description, the pages hold something else the teacher wrote,
+ * and the teacher has not already said［いいえ］to this same description.
  * @param {Array<object>} pages - editor pages
  * @param {string} text - the description of the current lesson
+ * @param {?string} [declinedText] - the description answered［いいえ］last time
  * @returns {boolean} whether to ask
  */
-export const shouldAskOverwrite = (pages, text) =>
-    text !== '' && !pagesAreEmpty(pages) && (pages[0] ? pages[0].text || '' : '') !== text;
+export const shouldAskOverwrite = (pages, text, declinedText = null) =>
+    text !== '' && text !== declinedText && !pagesAreEmpty(pages) && (pages[0] ? pages[0].text || '' : '') !== text;
 
 /**
  * ［はい］: the description replaces the text of page 1. Its image and the

@@ -51,8 +51,8 @@ describe('buildLessonDescription', () => {
                 '「きょうからプログラマー」のレッスンにチャレンジしよう！',
                 'キーやクリックでネコを動かしたり、音を鳴らしたり、質問したりしながら、くり返し・もし〜なら・変数・メッセージ・リストといったプログラムの基本を学べるよ。',
                 '',
-                '・チャレンジは 6 つ。そのうち 4 つできたら課題クリア！',
-                '・★ のついたチャレンジ 2 つは、かならずやろう。',
+                '・チャレンジは 6 こ。そのうち 4 こできたら課題クリア！',
+                '・★ のついたチャレンジ 2 こは、かならずやろう。',
                 '・やる順番は自由！ 好きなチャレンジからはじめよう。',
             ].join('\n'),
         );
@@ -69,8 +69,17 @@ describe('buildLessonDescription', () => {
             draft: { ...draft, requiredChallengeIds: [], completion: { type: 'all', count: null } },
             locale: 'ja',
         });
-        expect(text).toContain('・チャレンジは 6 つ。全部できたら課題クリア！');
+        expect(text).toContain('・チャレンジは 6 こ。全部できたら課題クリア！');
         expect(text).not.toContain('★');
+    });
+
+    test('the count follows completionTarget (never below the required ones)', () => {
+        const text = buildLessonDescription({
+            course,
+            draft: { ...draft, completion: { type: 'count', count: 1 } },
+            locale: 'ja',
+        });
+        expect(text).toContain('そのうち 2 こできたら');
     });
 
     test('a count equal to the number of challenges reads as "all"', () => {
@@ -85,8 +94,8 @@ describe('buildLessonDescription', () => {
     test('ja-Hira is written in hiragana', () => {
         const text = buildLessonDescription({ course, draft: { ...draft, submitWork: true }, locale: 'ja-Hira' });
         expect(text).toContain('「きょうからプログラマー」の レッスンに チャレンジしよう！');
-        expect(text).toContain('・チャレンジは 6 つ。そのうち 4 つ できたら かだいクリア！');
-        expect(text).toContain('・★ の ついた チャレンジ 2 つは、かならず やろう。');
+        expect(text).toContain('・チャレンジは 6 こ。そのうち 4 こ できたら かだいクリア！');
+        expect(text).toContain('・★ の ついた チャレンジ 2 こは、かならず やろう。');
         expect(text).toContain('・やる じゅんばんは じゆう！');
         expect(text).toContain('さくひんを つくって ていしゅつしよう。');
         // 漢字を使わない
@@ -140,11 +149,12 @@ describe('buildLessonDescription', () => {
 });
 
 describe('pagesAreEmpty', () => {
-    test('empty when no page has text (an image alone does not count)', () => {
+    test('empty when no page has text or an image (same as the template check)', () => {
         expect(pagesAreEmpty([])).toBe(true);
         expect(pagesAreEmpty([{ text: '' }])).toBe(true);
         expect(pagesAreEmpty([{ text: '  \n' }, { text: '' }])).toBe(true);
-        expect(pagesAreEmpty([{ text: '', imageKey: 'k' }])).toBe(true);
+        expect(pagesAreEmpty([{ text: '', imageKey: 'k' }])).toBe(false);
+        expect(pagesAreEmpty([{ text: '', previewUrl: 'blob:x' }])).toBe(false);
         expect(pagesAreEmpty([{ text: '' }, { text: 'a' }])).toBe(false);
     });
 });
@@ -154,10 +164,12 @@ describe('autoDescriptionPages', () => {
         expect(autoDescriptionPages([{ text: '' }], '', 'new')).toEqual([{ text: 'new' }]);
         expect(autoDescriptionPages([], '', 'new')).toEqual([{ text: 'new' }]);
         // keeps the image and the other pages
-        expect(autoDescriptionPages([{ text: '', imageKey: 'k' }, { text: '' }], '', 'new')).toEqual([
-            { text: 'new', imageKey: 'k' },
+        expect(autoDescriptionPages([{ text: '' }, { text: '' }], '', 'new')).toEqual([
+            { text: 'new' },
             { text: '' },
         ]);
+        // an image-only page is the teacher's: asked instead
+        expect(autoDescriptionPages([{ text: '', imageKey: 'k' }], '', 'new')).toBeNull();
     });
 
     test('follows the lesson while the first page is still the generated text', () => {
@@ -185,6 +197,10 @@ describe('shouldAskOverwrite / overwriteDescriptionPages', () => {
         expect(shouldAskOverwrite([{ text: 'desc' }], 'desc')).toBe(false);
         expect(shouldAskOverwrite([{ text: '' }], 'desc')).toBe(false);
         expect(shouldAskOverwrite([{ text: 'mine' }], '')).toBe(false);
+        expect(shouldAskOverwrite([{ text: '', imageKey: 'k' }], 'desc')).toBe(true);
+        // the text the teacher already said ［いいえ］ to is not asked again
+        expect(shouldAskOverwrite([{ text: 'mine' }], 'desc', 'desc')).toBe(false);
+        expect(shouldAskOverwrite([{ text: 'mine' }], 'desc2', 'desc')).toBe(true);
     });
 
     test('overwrites the first page text only', () => {

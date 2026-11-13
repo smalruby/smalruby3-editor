@@ -248,7 +248,10 @@ const useTeacherClassroom = ({
             const created = await createAssignmentInClass(group, assignmentName, rest);
             if (lesson && created && created.classroomId) {
                 requestLessonStart(created.classroomId);
-                await handleSelectClassroom(created.classroomId, { tab: 'description' });
+                const opened = await handleSelectClassroom(created.classroomId, { tab: 'description' });
+                // Not opened: drop the request so opening it later from the
+                // list is a plain open (#1785 FYI3).
+                if (!opened) requestLessonStart(null);
             }
             return created;
         },

@@ -143,6 +143,8 @@ const useTeacherAssignment = ({
     const lessonStartIdRef = useRef(null);
     const [lessonPanelAutoOpen, setLessonPanelAutoOpen] = useState(false);
     const lessonTouchedRef = useRef(false);
+    // The description the teacher answered［いいえ］to: not asked again.
+    const declinedDescriptionRef = useRef(null);
     const [descriptionQuestion, setDescriptionQuestion] = useState(false);
     const describe = useCallback(
         (draft) =>
@@ -160,6 +162,11 @@ const useTeacherAssignment = ({
     /** Load the saved assignment content into the editor state (no phase change). */
     const loadAssignmentEditor = useCallback(async () => {
         if (!selectedClassroom) return;
+        // ［＋ 作成 ▾］→「レッスン」is used by the first load of that assignment
+        // only; any load (another assignment, or one that fails) drops it so
+        // it never fires later by surprise (#1785 FYI3).
+        const startLesson = lessonStartIdRef.current === selectedClassroom.classroomId;
+        lessonStartIdRef.current = null;
         clearError();
         setIsLoading(true);
         try {
@@ -185,8 +192,6 @@ const useTeacherAssignment = ({
             // ［＋ 作成 ▾］→「レッスン」(#1780): the new assignment starts with the
             // first lesson chosen (not saved yet) and its description in the
             // empty page, and the lesson panel opens.
-            const startLesson = lessonStartIdRef.current === selectedClassroom.classroomId;
-            lessonStartIdRef.current = null;
             if (startLesson && !draft) {
                 draft = firstLessonDraft();
                 if (draft && pagesAreEmpty(loadedPages)) {
@@ -197,6 +202,7 @@ const useTeacherAssignment = ({
             setLessonDraft(draft);
             setLessonPanelAutoOpen(startLesson && Boolean(draft));
             lessonTouchedRef.current = false;
+            declinedDescriptionRef.current = null;
             setDescriptionQuestion(false);
         } catch (err) {
             if (err.status === 401) {
@@ -353,7 +359,9 @@ const useTeacherAssignment = ({
             const nextText = describe(next);
             setEditorPages((pages) => autoDescriptionPages(pages, previousText, nextText) || pages);
             setLessonDraft(next);
-            lessonTouchedRef.current = true;
+            // Only a change of the description itself is worth asking about
+            // (scoring etc. does not change it · #1785 Q2).
+            if (previousText !== nextText) lessonTouchedRef.current = true;
             setDescriptionQuestion(false);
         },
         [describe, lessonDraft],
@@ -363,14 +371,19 @@ const useTeacherAssignment = ({
     const handleLessonPanelClose = useCallback(() => {
         const touched = lessonTouchedRef.current;
         lessonTouchedRef.current = false;
-        if (touched && shouldAskOverwrite(editorPages, describe(lessonDraft))) setDescriptionQuestion(true);
+        if (touched && shouldAskOverwrite(editorPages, describe(lessonDraft), declinedDescriptionRef.current)) {
+            setDescriptionQuestion(true);
+        }
     }, [editorPages, describe, lessonDraft]);
 
     const handleAnswerDescriptionQuestion = useCallback(
         (overwrite) => {
             setDescriptionQuestion(false);
-            if (!overwrite) return;
             const text = describe(lessonDraft);
+            if (!overwrite) {
+                declinedDescriptionRef.current = text;
+                return;
+            }
             if (text) setEditorPages((pages) => overwriteDescriptionPages(pages, text));
         },
         [describe, lessonDraft],
