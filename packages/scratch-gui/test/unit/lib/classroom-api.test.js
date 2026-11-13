@@ -310,3 +310,35 @@ describe('ClassroomAPI.createClassroom — meshGroupLimit (#1257)', () => {
         expect(JSON.parse(opts.body)).not.toHaveProperty('meshGroupLimit');
     });
 });
+
+describe('ClassroomAPI.putLessonProgress (#1600)', () => {
+    let classroomAPI;
+
+    beforeEach(() => {
+        jest.resetModules();
+        global.fetch = jest.fn();
+        classroomAPI = require('../../../src/lib/classroom-api.js').default;
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('PUTs the seat progress of the joined assignment with the session token', async () => {
+        global.fetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: jest.fn().mockResolvedValue({ challenges: {}, current: null, updatedAt: null }),
+        });
+        const payload = {
+            challenges: { 'blocks-l1-quiz': { completedAt: '2026-11-15T01:00:00.000Z', before: true } },
+            current: { challengeId: 'blocks-l1-if', openedAt: '2026-11-15T02:00:00.000Z' },
+        };
+        await classroomAPI.putLessonProgress('session-token', 'c1', payload);
+        const [url, opts] = global.fetch.mock.calls[0];
+        expect(url).toContain('/classrooms/c1/lesson-progress');
+        expect(opts.method).toBe('PUT');
+        expect(opts.headers.Authorization).toBe('Bearer session-token');
+        expect(JSON.parse(opts.body)).toEqual(payload);
+    });
+});

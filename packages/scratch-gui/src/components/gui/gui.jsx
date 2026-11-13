@@ -36,6 +36,7 @@ import Cards from '../../containers/cards.jsx';
 // === Smalruby: Start of lesson mode ===
 import LessonMode from '../../containers/lesson-mode.jsx';
 import LessonAnalytics from '../../containers/lesson-analytics.jsx';
+import LessonProgressSync from '../../containers/lesson-progress-sync.jsx';
 // === Smalruby: End of lesson mode ===
 // === Smalruby: Start of lessons library ===
 import LessonsLibrary from '../../containers/lessons-library.jsx';
@@ -598,6 +599,8 @@ const GUIComponent = props => {
                     <LessonMode />
                     {/* レッスンの使われ方の GA 計測（描画しない） */}
                     <LessonAnalytics />
+                    {/* クラスの課題へ進み具合を送る・本人の確認 */}
+                    <LessonProgressSync />
                     {/* === Smalruby: End of lesson mode === */}
                     <Box className={classNames(boxStyles, styles.flexWrapper)}>
                         <Box

@@ -564,6 +564,20 @@ class ClassroomAPI {
     }
 
     /**
+     * Send the seat's lesson progress for the joined assignment (EPIC #1592 / #1600).
+     * One request per seat × assignment; the server merges (keeps the first
+     * completedAt / before, drops challenges outside the assignment) and does not
+     * write when nothing changes.
+     * @param {string} sessionToken - Student session token
+     * @param {string} classroomId - Joined classroom (assignment) ID
+     * @param {object} payload - {challenges: {<id>: {completedAt, before}}, current?: {challengeId, openedAt}|null}
+     * @returns {Promise<object>} the merged record {memberId, seatNumber, challenges, current, updatedAt}
+     */
+    async putLessonProgress(sessionToken, classroomId, payload) {
+        return this._request('PUT', `/classrooms/${classroomId}/lesson-progress`, payload, sessionToken);
+    }
+
+    /**
      * Classmates' submissions of the joined assignment for peer view (#1210):
      * seat number, submitted time and presigned image URLs with sprite names
      * only (no .sb3, no nickname). 403 with body.reason 'peer-view-off' /

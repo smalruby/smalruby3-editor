@@ -1124,6 +1124,10 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/lib/lessons/lesson-analytics.js` | GA の計測の判断（`stepLessonAnalytics`。前の状態・今の状態・時刻から送るイベントを決める純粋関数）と、ボタンで決まるイベントを送る `sendLessonEvent`（上の「GA の計測」） |
 | `packages/scratch-gui/src/containers/lesson-analytics.jsx` | GA の計測のコンテナ（描画しない。state を渡して `analytics.event` に送る）。`gui.jsx` のマーカー `lesson mode` の中に常時マウント |
 | `packages/scratch-gui/test/unit/lib/lessons/lesson-analytics.test.js` / `test/unit/containers/lesson-analytics.test.jsx` | GA の計測の unit テスト（イベントの名前・項目・ヒントの滞在時間・送らない項目） |
+| `packages/scratch-gui/src/lib/lessons/lesson-progress-sync.js` | クラスの課題へ進み具合を送るときの決まり（送る中身・本人の確認を出すか・「前」・送らなくてよいか・失敗の扱い）の純粋関数と、本人の確認の答えの保存（design.md の「本人の確認」「進み具合の送り方」） |
+| `packages/scratch-gui/src/containers/lesson-progress-sync.jsx` | 進み具合を送るコンテナ（できた・課題のチャレンジを開いた・クラスの画面を開いたときに `PUT /classrooms/{id}/lesson-progress`）と本人の確認のダイアログ。`gui.jsx` のマーカー `lesson mode` の中に常時マウント |
+| `packages/scratch-gui/src/components/lesson-progress-confirm/` | 本人の確認のダイアログ（「わたしの記録です」/「ちがう（記録を消す）」→［戻る］［消す］） |
+| `packages/scratch-gui/test/unit/lib/lessons/lesson-progress-sync.test.js` / `test/unit/containers/lesson-progress-sync.test.jsx` | 進み具合の送信と本人の確認の unit テスト |
 | `packages/scratch-gui/src/lib/lessons/spotlight-seen.js` | スポットライトを見せたチャレンジの記録（`smalruby:lessonSpotlightSeen`） |
 | `packages/scratch-gui/test/unit/components/lesson-hint.test.jsx` / `test/unit/containers/lesson-hint.test.jsx` | 吹き出しとコンテナの unit テスト |
 | `packages/scratch-gui/test/unit/components/balloon.test.jsx` | 吹き出しの共通の土台の unit テスト |
@@ -1177,5 +1181,6 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | 種類 | キー | 説明 |
 |------|------|------|
 | localStorage | `smalruby:lessonProgress` | チャレンジ ID → できた日時（とコース・レッスン） |
+| localStorage | `smalruby:lessonAssignmentConsent` | 本人の確認の答え（課題 × 席 → `{answer: mine\|cleared\|none, beforeIds, decidedAt}`。新しいものから 50 件） |
 | localStorage | `smalruby:lessonSpotlightSeen` | チャレンジ ID → はじめて開いた日時（ヒントのスポットライトを 2 回目から出さないため） |
 | localStorage | `smalruby:tutorialSeen` | レッスン表を開くと `true` を書く（`tutorial-onboarding` reducer の `markTutorialSeen`）。いまは読む画面が無い（「レッスン」ボタンの下の吹き出しは出さないため） |
