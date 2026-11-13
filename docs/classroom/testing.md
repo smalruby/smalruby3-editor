@@ -253,6 +253,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-advanced-summary-{previous\|peerView\|mesh}` | span | 要約の各値。保存した値から変えたものは `data-changed="true"`（オレンジ色） |
 | `classroom-assignment-advanced-unsaved` | span | 「保存していません」（保存した値から変えた設定があるときだけ） |
 | `classroom-assignment-advanced-panel` | div | 開いた「詳しい設定」（下の 3 つの設定はこの中・開いたときだけある） |
+| `classroom-assignment-advanced-close` | button | 開いた「詳しい設定」の右上の ✕（`aria-label`「閉じる」。閉じたら開閉ボタンにフォーカスを戻す） |
 | `classroom-assignment-start-from-previous` | input (checkbox) | 「前回の提出物から始めさせる」（既定 OFF・保存で反映・Issue #1202） |
 | `classroom-assignment-peer-view` | select | 「他者参照」（`none` = しない（既定） / `always` = いつでも見られる / `afterSubmit` = 自分が提出したら見られる・保存で反映・Issue #1208） |
 | `classroom-assignment-mesh-group-limit` | select | 「メッシュのグループの人数」（`6` = 6人まで / `0` = 制限なし（この設定より前の課題の表示）・保存で反映・Issue #1257） |
@@ -268,7 +269,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-lesson-unsaved` | span | 「保存していません」（レッスンの設定を変えたときだけ） |
 | `classroom-lesson-unknown-course` | p | このスモウルビーに無いコースの警告（みんなの課題のコピーなど） |
 | `classroom-lesson-missing-challenges` | p | 保存したチャレンジのうち、このスモウルビーのコースに無いものの警告（数えない・保存すると外れる） |
-| `classroom-lesson-panel` | div | 開いたレッスン欄（ページの列の上に重ねる・開いたときだけある） |
+| `classroom-lesson-panel` | div | 開いたレッスン欄（ページの列の上に重ねる・開いたときだけある。高さは中身に合わせる） |
+| `classroom-lesson-close` | button | 開いたレッスン欄の右上の ✕（`aria-label`「閉じる」。閉じたら開閉ボタンにフォーカスを戻す） |
 | `classroom-lesson-course` | select | コース（`""` = レッスンを使わない / コース id） |
 | `classroom-lesson-challenges` | div | レッスンとチャレンジの一覧の枠（この枠の中だけスクロールする） |
 | `classroom-lesson-lesson-{lessonId}` | input (checkbox) | レッスン（チェックで中のチャレンジが全部入る。一部だけなら indeterminate） |

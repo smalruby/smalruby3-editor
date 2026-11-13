@@ -722,6 +722,7 @@ export default {
     'gui.classroom.teacherDetail.seatColorNotJoined': 'まだ参加していない',
     'gui.classroom.teacherDetail.previewEmpty': 'ページを書くとここに出ます',
     'gui.classroom.assignmentEditor.advanced': '詳しい設定',
+    'gui.classroom.assignmentEditor.panelClose': '閉じる',
     'gui.classroom.assignmentEditor.advancedUnsaved': '保存していません',
     'gui.classroom.lessonSettings.title': 'レッスン',
     'gui.classroom.lessonSettings.summaryNone': 'レッスンを使わない',
