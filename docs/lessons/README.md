@@ -1054,9 +1054,9 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 仕組みは、いまの GUI の計測（ルビータブ・接続など）と同じ `lib/analytics.js`（GTM の `dataLayer` に push）。
 `category` はすべて **`lessons`**、`action` がイベントの名前、`label` はチャレンジ id（レッスン表はどう開いたか）。
 数を見る項目（ページ・秒・課題からか）は、`label` に詰めずに **dataLayer の項目**として同じ push に入れる
-（`analytics.js` の Smalruby マーカー `extra GA params`。GA4 で見るには GTM でデータレイヤー変数を作る）（推奨で決めた）。
+（`analytics.js` の Smalruby マーカー `extra GA params`。GA4 で見るには GTM でデータレイヤー変数を作る）。
 - **`lessons` のイベントは、いつも 6 つの項目（`course_id`・`lesson_id`・`challenge_id`・`from_assignment`・`page`・
-  `seconds`）を全部入れ、使わない項目は `undefined` にする**（推奨で決めた）。GTM の data layer は前の push の値を
+  `seconds`）を全部入れ、使わない項目は `undefined` にする**。GTM の data layer は前の push の値を
   上書きされるまで覚えているので、消さないと前のイベントの `page` / `seconds` やチャレンジの id が次のイベントに残る。
   同じ理由で `analytics.js` は、前のイベントで入れた追加の項目を、それを入れないあとのイベント（ルビータブ・接続など
   ほかの category もふくむ）で `undefined` にもどす（マーカー `extra GA params`）。
@@ -1074,21 +1074,20 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 - **ヒントの滞在時間**（`hint_view` の `seconds`）: ページごとに、**そのページを出してから、次のページ・前のページへ
   移る・吹き出しを閉じる（×・「おわり」）・「できた！」になる・チャレンジを閉じる／ほかのチャレンジを開く**までの秒
   （整数に丸める）。1 ページを見おわるたびに 1 回送る（ページを出したときには送らない）。同じページを閉じて開き直すと、
-  開き直したところから測りなおして、もう 1 回送る。タブを閉じた・再読み込みしたときの見ていたページは送らない
-  （推奨で決めた）。
-- **秒（`hint_view` と `challenge_complete` の `seconds`）は、タブが裏にあった時間を引く**（推奨で決めた）。
+  開き直したところから測りなおして、もう 1 回送る。タブを閉じた・再読み込みしたときの見ていたページは送らない。
+- **秒（`hint_view` と `challenge_complete` の `seconds`）は、タブが裏にあった時間を引く**。
   `visibilitychange` で `document.hidden` のあいだを数え（PC のスリープもふくむ）、見えていた時間だけで測る
   （`activeNow`）。別のタブへ行ったままの何十分が平均を引っぱらないため。
 - **PC 表示とスマホ表示の切りかえ**（`<GUI>` と `<MobileGui>` の入れかえでコンテナがマウントし直される）では、
   二重に送らず、見ていたページの滞在時間も続けて測る。どこまで送ったかの覚えをコンテナではなくモジュールに
-  1 つ持つため（画面に GUI は 1 つだけ）（推奨で決めた）。
-- **`from_assignment`**: クラスの課題のチャレンジから開いたか（true / false だけ）。開く入口が
-  `startChallenge(id, {fromAssignment: true})` を渡す（課題の画面は段 2 の別の Issue で作る。いまは常に false）。
+  1 つ持つため（画面に GUI は 1 つだけ）。
+- **`from_assignment`**: クラスの課題のチャレンジから開いたか（true / false だけ）。レッスン表が、
+  課題のチャレンジを開くときに `startChallenge(id, {fromAssignment: true})` を渡す（課題の外のチャレンジや、課題に参加していないときは false）。
 - **送らないもの**: 個人を特定する ID・クラス・席番号・ニックネーム・セッション・課題の ID・参加コード・入力した文字
   （検索の文字もふくむ）。送るのはコース・レッスン・チャレンジの id・ページの番号・秒・課題からか、だけ。
 - **先生（ログイン中）からは送らない**: 先生がクラス管理にログインしているあいだは、エディタでレッスンを開いても
   何も送らない（`state.scratchGui.classroom.teacherLoggedIn`。授業の準備で開くと数がゆがむため）。どこまで送ったかの
-  覚えだけは進めるので、ログアウトしても、先生のときに開いたチャレンジを開いたことにはしない（推奨で決めた）。
+  覚えだけは進めるので、ログアウトしても、先生のときに開いたチャレンジを開いたことにはしない。
 - 計測の失敗（`dataLayer` が無いなど）は握りつぶし、レッスンの動きを止めない。
 - 判断は純粋関数 `lib/lessons/lesson-analytics.js`（`stepLessonAnalytics`。前の状態と今の状態と時刻から、送るイベントを
   決める）、送るのは `containers/lesson-analytics.jsx`（gui.jsx のマーカー `lesson mode` の中に常時マウント）。
