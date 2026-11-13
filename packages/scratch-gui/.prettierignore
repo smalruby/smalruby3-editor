@@ -446,6 +446,7 @@ test/integration/*
 !test/integration/smalruby-lessons-library.test.js
 !test/integration/smalruby-lessons-en.test.js
 !test/integration/smalruby-lessons-next-challenge.test.js
+!test/integration/smalruby-lessons-classroom-assignment.test.js
 !test/integration/v1-detection-prompt.test.js
 !test/integration/palette-toggle-position.test.js
 !test/integration/version-update-notification.test.js

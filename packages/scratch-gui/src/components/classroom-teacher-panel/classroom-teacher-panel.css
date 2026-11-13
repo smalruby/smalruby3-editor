@@ -267,6 +267,19 @@
     color: $ui-white;
 }
 
+/* The seated dot and the submitted square are the same green as a cleared seat,
+   so they disappear there (#1604). Draw the dot white (still a filled dot, unlike
+   the hollow 「未着席」 ring; !important beats the icon's inline colour) and put
+   the square on a white backing (its check mark is already white). */
+.lesson-seat-cleared [data-status='seated'] {
+    color: $ui-white !important;
+}
+
+.lesson-seat-cleared [data-status='submitted'] {
+    background-color: $ui-white;
+    border-radius: 2px;
+}
+
 .seat {
     position: relative;
 }

@@ -4898,6 +4898,14 @@
     color: white;
 }
 
+/* The seated dot is the same green as a cleared tile, so it disappears there.
+   Draw it white instead (#1604): still a filled dot, unlike the hollow
+   「未着席」 ring. !important beats the icon's inline colour. The submission
+   icon already has a white badge. */
+.lesson-seat-cleared [data-status='seated'] {
+    color: #fff !important;
+}
+
 .lesson-seat-not-joined {
     background-color: #fff;
     color: #9aa1b8;
