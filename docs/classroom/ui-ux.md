@@ -1572,7 +1572,7 @@ Google Classroom にリンクしたクラス（学級）の課題で、課題リ
 | キー | 内容 |
 |------|------|
 | `smalruby:classroom` | 生徒のセッション情報 (JSON) |
-| `smalruby:classroom:lastSeats` | この PC で前に入った出席番号。キーは `group:<groupId>`（クラス（学級）に入っている課題。`groupId` は `POST /classrooms/lookup` の応答）か `assignment:<classroomId>`（クラスに入っていない課題）、値は出席番号。番号選びの「前回は NN 番でした」に使う。「出席番号がちがう」で空けた番号は消す |
+| `smalruby:classroom:lastSeats` | この PC で前に入った出席番号。キーは `group:<groupId>`（クラス（学級）に入っている課題。`groupId` は `POST /classrooms/lookup` の応答）か `assignment:<classroomId>`（クラスに入っていない課題）、値は出席番号。番号選びの「前回は NN 番でした」に使う。「出席番号がちがう」で空けた番号と、先生に退室させられた番号は消す（自分の番号ではなかったため） |
 | `smalruby:classroom:kickRequest` | 退室依頼の中身（`joinCode`・`seatNumber`・`requestId`・`createdAt`）。依頼が生きている間（最長 1 時間）だけ残し、モーダルを閉じても承認・却下を見張るのに使う |
 
 生徒が課題に参加すると、以下の情報が localStorage に保存されます:

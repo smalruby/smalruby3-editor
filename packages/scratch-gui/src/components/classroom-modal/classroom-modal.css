@@ -956,7 +956,7 @@
    One height for free and occupied seats, which carry an "In use" line. */
 .student-main .seat-grid {
     grid-template-columns: repeat(10, minmax(0, 1fr));
-    grid-auto-rows: 2.6rem;
+    grid-auto-rows: 3rem;
     margin: 0.6rem 0 0;
 }
 
@@ -4779,11 +4779,18 @@
     gap: 3px;
 }
 
+.seat-button-icon {
+    display: inline-flex;
+}
+
+/* One line, except where the locale puts a line break in the label: the
+   hiragana label is too wide for a 10-column seat on one line. */
 .seat-in-use-label {
     font-size: 0.62rem;
     font-weight: bold;
     line-height: 1;
-    white-space: nowrap;
+    white-space: pre;
+    text-align: center;
 }
 
 /* --- Seat selection: number input, guide and confirmation (#1198) --- */
@@ -4883,6 +4890,29 @@
     50% {
         box-shadow: 0 0 12px 4px rgba(255, 140, 26, 0.8);
         background-color: #fff1dc;
+    }
+}
+
+/* The previous seat keeps its frame while it glows. */
+@keyframes seat-flash-once-previous {
+    0%,
+    100% {
+        box-shadow:
+            0 0 0 3px #ffab19,
+            0 0 10px 3px rgba(255, 171, 25, 0.7);
+        background-color: white;
+    }
+    50% {
+        box-shadow:
+            0 0 0 3px #ffab19,
+            0 0 14px 6px rgba(255, 140, 26, 0.9);
+        background-color: #fff1dc;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .seat-previous.seat-flash {
+        animation-name: seat-flash-once-previous;
     }
 }
 

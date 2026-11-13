@@ -462,7 +462,9 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 // "session expired" alert.
                 dispatch(clearClassroomSession());
                 setKickedNotice(kick);
-                handleJoinWithCode(kick.joinCode);
+                // The freed seat was not this student's (a kick request was approved
+                // for it), so do not offer it as the previous seat (#1796).
+                handleJoinWithCode(kick.joinCode, { forgetSeat: kick.seatNumber });
             } else if (rejoinCode) {
                 dispatch(clearClassroomSession());
                 handleJoinWithCode(rejoinCode);

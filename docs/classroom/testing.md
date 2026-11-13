@@ -170,7 +170,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-seat-grid` | div | 席番号グリッド |
 | `classroom-seat-heading` | div | 見出しの行（「出席番号を選んでください」と、あれば `classroom-seat-previous`） |
 | `classroom-seat-previous` | div | 見出しと同じ行の「前回は NN 番でした」（この PC で同じクラスに前に入った番号があるときだけ。localStorage `smalruby:classroom:lastSeats`） |
-| `classroom-seat-{n}` | button | 席番号 n のボタン。使用中は `classroom-status-icon-occupied` と「使用中」の字を含み、`data-occupied="1"`（押せる。押すと退室依頼ダイアログ）。前回の番号は `data-previous="1"`（光る枠だけで、選ばれない）。30 秒たったときに 1 回光る使用中の席は `data-flash="1"` |
+| `classroom-seat-{n}` | button | 席番号 n のボタン。使用中は `classroom-status-icon-occupied` と「使用中」の字を含み、`data-occupied="1"`（押せる。押すと退室依頼ダイアログ）。前回の番号は `data-previous="1"`（光る枠だけで、選ばれない。`aria-describedby` で `classroom-seat-previous` を指す）。30 秒たったときに 1 回光る使用中の席は `data-flash="1"` |
 | `classroom-selected-seat` | div (hidden) | 選択中の席番号 |
 | `classroom-seat-number-toggle` | button | 「番号が見つからないとき」（グリッドの下）。押すと番号入力フォームが開く（開いたあとは消える） |
 | `classroom-seat-number-form` | form | 出席番号の数値入力フォーム（`classroom-seat-number-toggle` を押したときだけ、グリッドの下） |

@@ -556,6 +556,7 @@ test/unit/containers/*
 !test/unit/containers/classroom-teacher-menu.test.jsx
 !test/unit/containers/use-teacher-auth-restore.test.js
 !test/unit/containers/classroom-kick-request-watcher.test.jsx
+!test/unit/containers/classroom-modal-last-seat.test.jsx
 !test/unit/containers/classroom-teacher-kick-alerts.test.jsx
 !test/unit/containers/classroom-teacher-panel.test.jsx
 !test/unit/containers/use-teacher-kick-request-polling.test.js

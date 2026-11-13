@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useId, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import {
     SEAT_IDLE_HINT_MS,
@@ -113,6 +113,8 @@ const StudentSeatSelector = ({
     const { guide, flashTaken } = seatGuideFor({ previousSeat, takenSeats, idle, counting });
 
     const inUseLabel = intl.formatMessage(messages.inUse);
+    // Screen readers learn which seat was used last time from the heading line.
+    const previousNoteId = useId();
 
     const handleOpenNumberForm = useCallback(() => setNumberFormOpen(true), []);
 
@@ -249,7 +251,11 @@ const StudentSeatSelector = ({
                                 />
                             </div>
                             {previousSeat && (
-                                <div className={styles.seatPreviousNote} data-testid="classroom-seat-previous">
+                                <div
+                                    className={styles.seatPreviousNote}
+                                    data-testid="classroom-seat-previous"
+                                    id={previousNoteId}
+                                >
                                     <FormattedMessage
                                         defaultMessage="Last time you were number {seatNumber}"
                                         description="Shown next to the seat selection heading: the seat this PC joined the same class with last time. The seat is highlighted but never picked automatically"
@@ -277,6 +283,7 @@ const StudentSeatSelector = ({
                                             isPrevious ? styles.seatPrevious : '',
                                             isFlashing ? styles.seatFlash : '',
                                         ].join(' ')}
+                                        aria-describedby={isPrevious ? previousNoteId : null}
                                         data-flash={isFlashing ? '1' : '0'}
                                         data-occupied={isTaken ? '1' : '0'}
                                         data-previous={isPrevious ? '1' : '0'}
@@ -290,7 +297,13 @@ const StudentSeatSelector = ({
                                     >
                                         <span className={styles.seatButtonTop}>
                                             <span className={styles.seatButtonNumber}>{n}</span>
-                                            {isTaken && <ClassroomStatusIcon size={12} status="occupied" />}
+                                            {/* The "In use" text names the seat; the icon is
+                                                decoration, so it is not read twice. */}
+                                            {isTaken && (
+                                                <span aria-hidden="true" className={styles.seatButtonIcon}>
+                                                    <ClassroomStatusIcon size={12} status="occupied" />
+                                                </span>
+                                            )}
                                         </span>
                                         {isTaken && <span className={styles.seatInUseLabel}>{inUseLabel}</span>}
                                     </button>

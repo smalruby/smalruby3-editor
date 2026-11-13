@@ -272,6 +272,19 @@ describe('StudentSeatSelector occupied seats and guide (#1796)', () => {
         expect(screen.queryByTestId('classroom-seat-idle-guide')).not.toBeInTheDocument();
     });
 
+    test('an occupied seat reads "In use" only once', () => {
+        renderSelector();
+        expect(screen.getByRole('button', { name: '3 In use' })).toBe(screen.getByTestId('classroom-seat-3'));
+    });
+
+    test('the previous seat button is described by the previous line', () => {
+        renderSelector({ previousSeat: 5 });
+        const note = screen.getByTestId('classroom-seat-previous');
+        expect(note.id).not.toBe('');
+        expect(screen.getByTestId('classroom-seat-5')).toHaveAttribute('aria-describedby', note.id);
+        expect(screen.getByTestId('classroom-seat-4')).not.toHaveAttribute('aria-describedby');
+    });
+
     test('an occupied previous seat shows its guide at once', () => {
         renderSelector({ previousSeat: 3 });
         const guide = screen.getByTestId('classroom-seat-idle-guide');

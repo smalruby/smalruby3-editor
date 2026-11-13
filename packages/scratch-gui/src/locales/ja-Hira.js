@@ -165,7 +165,7 @@ export default {
     'gui.classroom.studentSeat.numberError': '1から{seatCount}までのすうじをいれてください。',
     'gui.classroom.studentSeat.alreadyRequested':
         'しゅっせきばんごう{seatNumber}はつかわれています。いませんせいにおねがいしているところなので、すこしまっていてください。',
-    'gui.classroom.studentSeat.inUse': 'しようちゅう',
+    'gui.classroom.studentSeat.inUse': 'しよう\nちゅう',
     'gui.classroom.studentSeat.previousSeat': 'ぜんかいは {seatNumber} ばんでした',
     'gui.classroom.studentSeat.idleGuide':
         'じぶんのばんごうが『しようちゅう』でも、おしてだいじょうぶ。せんせいにせきをあけてもらえます',
