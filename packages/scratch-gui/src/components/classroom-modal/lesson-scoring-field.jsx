@@ -1,0 +1,132 @@
+/**
+ * The lesson scoring points in「詳しい設定」(EPIC #1592 D10 / #1598): 満点 and
+ * 必須を全部こなしたときの点. The points of one challenge are derived and
+ * shown below (docs/classroom/ui-ux.md「採点」).
+ */
+import PropTypes from 'prop-types';
+import React, { useCallback } from 'react';
+import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
+import {
+    MAX_LESSON_TOTAL,
+    canChooseRequiredPoints,
+    challengePoints,
+    effectiveScoring,
+    setScoring,
+} from '../../lib/classroom-lesson-settings.js';
+import styles from './classroom-modal.css';
+
+export const lessonScoringMessages = defineMessages({
+    summary: {
+        defaultMessage: 'Lesson points: {total} (★ {required})',
+        description: 'Assignment editor: advanced settings summary — lesson scoring (full marks and required points)',
+        id: 'gui.classroom.lessonScoring.summary',
+    },
+});
+
+// Show 7.5 as 7.5 and 33.333… as 33.3 (the score itself is rounded up).
+const formatPoints = (value) => String(Math.round(value * 10) / 10);
+
+const LessonScoringField = ({ disabled, draft, onChange }) => {
+    const intl = useIntl();
+    const scoring = effectiveScoring(draft);
+    const points = challengePoints(draft);
+    const choosable = canChooseRequiredPoints(draft);
+    const handleTotalChange = useCallback(
+        (e) => onChange(setScoring(draft, { total: e.target.value })),
+        [draft, onChange],
+    );
+    const handleRequiredChange = useCallback(
+        (e) => onChange(setScoring(draft, { requiredPoints: e.target.value })),
+        [draft, onChange],
+    );
+
+    let perChallenge;
+    if (points.required === null) {
+        perChallenge = (
+            <FormattedMessage
+                defaultMessage="Each challenge: {points} pts"
+                description="Assignment editor: lesson points of one challenge when none is required"
+                id="gui.classroom.lessonScoring.perChallenge"
+                values={{ points: formatPoints(points.optional || 0) }}
+            />
+        );
+    } else {
+        perChallenge = (
+            <FormattedMessage
+                defaultMessage="Required: {required} pts each · Others: {optional} pts each"
+                description="Assignment editor: lesson points of one required and one other challenge"
+                id="gui.classroom.lessonScoring.perChallengeSplit"
+                values={{
+                    required: formatPoints(points.required),
+                    optional: points.optional === null ? '-' : formatPoints(points.optional),
+                }}
+            />
+        );
+    }
+
+    return (
+        <div className={styles.assignmentPeerView} data-testid="classroom-lesson-scoring">
+            <span className={styles.assignmentStartFromPreviousLabel}>
+                <FormattedMessage
+                    defaultMessage="Lesson points"
+                    description="Assignment editor: label of the lesson scoring settings"
+                    id="gui.classroom.lessonScoring.title"
+                />
+            </span>
+            <label className={styles.lessonRadio}>
+                <span>
+                    <FormattedMessage
+                        defaultMessage="Full marks"
+                        description="Assignment editor: label of the lesson full marks"
+                        id="gui.classroom.lessonScoring.total"
+                    />
+                </span>
+                <input
+                    className={styles.lessonCountInput}
+                    data-testid="classroom-lesson-scoring-total"
+                    disabled={disabled}
+                    max={MAX_LESSON_TOTAL}
+                    min={1}
+                    type="number"
+                    value={scoring.total}
+                    onChange={handleTotalChange}
+                />
+            </label>
+            <label className={styles.lessonRadio}>
+                <span>
+                    <FormattedMessage
+                        defaultMessage="Points for doing all required (★)"
+                        description="Assignment editor: label of the points for completing all required challenges"
+                        id="gui.classroom.lessonScoring.requiredPoints"
+                    />
+                </span>
+                <input
+                    className={styles.lessonCountInput}
+                    data-testid="classroom-lesson-scoring-required"
+                    disabled={disabled || !choosable}
+                    max={scoring.total}
+                    min={0}
+                    type="number"
+                    value={scoring.requiredPoints}
+                    onChange={handleRequiredChange}
+                />
+            </label>
+            <span className={styles.assignmentStartFromPreviousHint} data-testid="classroom-lesson-scoring-each">
+                {perChallenge}{' '}
+                {intl.formatMessage({
+                    defaultMessage: '(the score is the total of completed ones, rounded up)',
+                    description: 'Assignment editor: how the lesson score is computed',
+                    id: 'gui.classroom.lessonScoring.howTo',
+                })}
+            </span>
+        </div>
+    );
+};
+
+LessonScoringField.propTypes = {
+    disabled: PropTypes.bool,
+    draft: PropTypes.object.isRequired,
+    onChange: PropTypes.func.isRequired,
+};
+
+export default LessonScoringField;

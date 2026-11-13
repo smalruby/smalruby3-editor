@@ -232,6 +232,7 @@ src/lib/*
 !src/lib/avatar-initials.js
 !src/lib/classroom-api.js
 !src/lib/classroom-assignment-utils.js
+!src/lib/classroom-lesson-settings.js
 !src/lib/classroom-assignment-templates/
 !src/lib/classroom-assignment-templates/**
 !src/lib/classroom-evaluation/
@@ -603,6 +604,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-peer-view.test.js
 !test/unit/lib/classroom-assignment-templates.test.js
 !test/unit/lib/classroom-assignment-utils.test.js
+!test/unit/lib/classroom-lesson-settings.test.js
 !test/unit/lib/classroom-download-utils.test.js
 !test/unit/lib/classroom-group-utils.test.js
 !test/unit/lib/google-classroom-auth.test.js

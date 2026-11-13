@@ -29,6 +29,8 @@ smalruby3-editor/
 │   │   │   │   ├── classroom-status-icon.jsx ← 着席・提出などの状態アイコン共通部品 (+ 凡例)
 │   │   │   │   ├── teacher-create-form.jsx ← 課題作成フォーム
 │   │   │   │   ├── teacher-assignment-editor.jsx ← 課題詳細の説明タブの編集フォーム（ページ + スターター + 詳しい設定）
+│   │   │   │   ├── lesson-settings-field.jsx ← 説明タブの「レッスン」欄（コース・チャレンジ・★・完了の条件・作品の提出）
+│   │   │   │   ├── lesson-scoring-field.jsx ← 「詳しい設定」の中のレッスンの点（満点・必須の点）
 │   │   │   │   ├── board-menu.jsx ← 小さなドロップダウン（［＋ 作成 ▾］・⋮・課題詳細の「…」で共用）
 │   │   │   │   ├── mesh-group-limit-field.jsx ← 「メッシュのグループの人数」の選択（作成画面と課題エディタで共用・#1257）
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理
@@ -77,6 +79,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-teacher-session.js ← 先生ログインの永続化（provider + 最後の課題のみ、トークン非保存）・メニュー出し分け（純粋）#1199
 │   │   │   ├── classroom-teacher-reauth.js ← 先生ログインの有効期限切れ（401 判定・クリックからの再認証、純粋）#1250
 │   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
+│   │   │   ├── classroom-lesson-settings.js ← 課題のレッスンの設定の純粋ロジック（下書き ↔ API の lesson・完了の条件・採点の点）
 │   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
 │   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）を組み立てる（純粋）
 │   │   │   ├── classroom-genai-settings.js ← クラスの生成AI・ルビティー設定の下書き・検証・PATCH 差分（純粋）#1277

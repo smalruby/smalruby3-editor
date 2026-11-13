@@ -21,6 +21,13 @@ import {
     normalizePeerView,
     validateEditorPages,
 } from '../lib/classroom-assignment-utils.js';
+import {
+    buildLessonPayload,
+    lessonChanges,
+    lessonDraftFromSaved,
+    validateLessonDraft,
+} from '../lib/classroom-lesson-settings.js';
+import { findCourse } from '../lib/lessons/courses.js';
 import translateError from './classroom-error-utils.js';
 
 const messages = defineMessages({
@@ -43,6 +50,16 @@ const messages = defineMessages({
         defaultMessage: 'Failed to save the current project as starter',
         description: 'Assignment editor error: vm.saveProjectSb3 failed',
         id: 'gui.classroom.assignmentEditor.errorStarterSave',
+    },
+    lessonUnknownCourse: {
+        defaultMessage: 'The course of the lesson is not available. Choose another course or "Don\'t use lessons".',
+        description: 'Assignment editor error: the lesson course does not exist in this version',
+        id: 'gui.classroom.assignmentEditor.errorLessonUnknownCourse',
+    },
+    lessonNoChallenges: {
+        defaultMessage: 'Choose at least one challenge for the lesson.',
+        description: 'Assignment editor error: a course is chosen but no challenge is selected',
+        id: 'gui.classroom.assignmentEditor.errorLessonNoChallenges',
     },
     templateOverwriteConfirm: {
         defaultMessage: 'Replace the current pages with the template?',
@@ -105,6 +122,12 @@ const useTeacherAssignment = ({
     // right after a save.
     const [savedStartFromPrevious, setSavedStartFromPrevious] = useState(false);
     const [savedPeerView, setSavedPeerView] = useState('none');
+    // Lesson settings (#1598): the editor draft (null = no lesson) and the
+    // stored `lesson` field, to mark unsaved changes and to send `lesson`
+    // only when it changed (an unchanged one — even of a course this version
+    // does not know — is kept by omitting it).
+    const [lessonDraft, setLessonDraft] = useState(null);
+    const [savedLesson, setSavedLesson] = useState(null);
 
     /** Release blob preview URLs to avoid leaking object URLs. */
     const releasePreviews = useCallback((pages) => {
@@ -135,6 +158,8 @@ const useTeacherAssignment = ({
             setPeerView(normalizePeerView(data.peerView));
             setSavedStartFromPrevious(data.startFromPrevious === true);
             setSavedPeerView(normalizePeerView(data.peerView));
+            setSavedLesson(data.lesson || null);
+            setLessonDraft(lessonDraftFromSaved(data.lesson || null));
         } catch (err) {
             if (err.status === 401) {
                 handleTeacher401();
@@ -280,6 +305,10 @@ const useTeacherAssignment = ({
         setMeshGroupLimit(normalizeMeshGroupLimit(value));
     }, []);
 
+    const handleChangeLesson = useCallback((draft) => {
+        setLessonDraft(draft || null);
+    }, []);
+
     const handleRemoveStarter = useCallback(() => {
         setStarterMode('none');
         setStarterSource(null);
@@ -293,6 +322,18 @@ const useTeacherAssignment = ({
                 intl.formatMessage(messages[validation.error], {
                     page: (validation.pageIndex ?? 0) + 1,
                 }),
+            );
+            return;
+        }
+        const lessonChanged = lessonChanges(lessonDraft, savedLesson).any;
+        const lessonError = lessonChanged
+            ? validateLessonDraft(lessonDraft, lessonDraft && findCourse(lessonDraft.courseId))
+            : null;
+        if (lessonError) {
+            showError(
+                intl.formatMessage(
+                    lessonError === 'unknownCourse' ? messages.lessonUnknownCourse : messages.lessonNoChallenges,
+                ),
             );
             return;
         }
@@ -316,6 +357,7 @@ const useTeacherAssignment = ({
             }
 
             const payload = buildAssignmentPayload(editorPages, starterMode, startFromPrevious, peerView);
+            if (lessonChanged) payload.lesson = buildLessonPayload(lessonDraft);
             const result = await classroomAPI.setAssignment(idToken, selectedClassroom.classroomId, payload);
 
             // Upload newly attached images / starter to the presigned URLs.
@@ -373,6 +415,8 @@ const useTeacherAssignment = ({
         startFromPrevious,
         peerView,
         meshGroupLimit,
+        lessonDraft,
+        savedLesson,
         vm,
         clearError,
         showError,
@@ -394,6 +438,8 @@ const useTeacherAssignment = ({
         peerView,
         meshGroupLimit,
         savedSettings,
+        lessonDraft,
+        savedLesson,
         loadAssignmentEditor,
         handleAddPage,
         handleRemovePage,
@@ -407,6 +453,7 @@ const useTeacherAssignment = ({
         handleChangeStartFromPrevious,
         handleChangePeerView,
         handleChangeMeshGroupLimit,
+        handleChangeLesson,
         handleSaveAssignment,
         handleApplyTemplate,
     };
