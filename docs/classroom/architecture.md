@@ -144,6 +144,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | **DynamoDB** | `ClassroomMemberships-{stage}` | メンバー (生徒) 情報（Streams: OLD_IMAGE） |
 | **DynamoDB** | `ClassroomSubmissions-{stage}` | 提出情報（Streams: OLD_IMAGE） |
 | **DynamoDB** | `ClassroomGroups-{stage}` | クラス（学級）情報（Streams: OLD_IMAGE） |
+| **DynamoDB** | `ClassroomLessonProgress-{stage}` | レッスンの進み具合（席 × 課題で 1 件・TTL は課題を写す・Streams: OLD_IMAGE） |
 | **DynamoDB** | `SharedAssignments-{stage}` | みんなの課題（TTL なし・prod RETAIN + PITR） |
 | **DynamoDB** | `SharedAssignmentReports-{stage}` | みんなの課題の通報（TTL 90日） |
 | **DynamoDB** | `ClassroomNotifications-{stage}` | お知らせ（EPIC #1111。TTL は書き手の admin スタックが付与・既定 180 日） |
@@ -197,13 +198,14 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `GET` | `/kick-requests/pending` | 先生に見える課題（`GET /classrooms` と同じ範囲）をまたいだ未処理の退室依頼。`?since=<ISO>` でそれ以降に作られた依頼だけ。各要素は `requestId, classroomId, className, assignmentName, groupId, seatNumber, reason, occupantName, createdAt`、ほかに `activeAssignmentCount`。下の「退室依頼の先生への通知」参照 |
 | `GET` | `/classrooms/{id}/submissions` | 提出一覧 (ダウンロード URL 付き)。各提出に `screenshotLabels`（スプライト名の配列。無い古い提出は `null`）と `hiddenFromPeers`（既定 false・Issue #1239）を含む |
 | `PATCH` | `/classrooms/{id}/submissions/{subId}` | 提出の返却・コメント。任意の `hiddenFromPeers`（boolean・Issue #1239）で、その提出を他者参照で「他の生徒に見せない」に切り替える |
-| `PUT` | `/classrooms/{id}/assignment` | 課題コンテンツの設定・更新（ページ + スターター。画像/スターターの Presigned upload URL を返す。空 body で削除）。任意の `startFromPrevious`（boolean・Issue #1202）で「前回の提出物から始めさせる」を設定する（送らなければ保存済みの値を変えない。課題コンテンツを空にしても設定は残る）。任意の `peerView`（`none` / `always` / `afterSubmit`・Issue #1239）で他者参照を設定する（扱いは `startFromPrevious` と同じ）。レスポンスに `startFromPrevious` と `peerView` を含む |
+| `PUT` | `/classrooms/{id}/assignment` | 課題コンテンツの設定・更新（ページ + スターター。画像/スターターの Presigned upload URL を返す。空 body で削除）。任意の `startFromPrevious`（boolean・Issue #1202）で「前回の提出物から始めさせる」を設定する（送らなければ保存済みの値を変えない。課題コンテンツを空にしても設定は残る）。任意の `peerView`（`none` / `always` / `afterSubmit`・Issue #1239）で他者参照を設定する（扱いは `startFromPrevious` と同じ）。レスポンスに `startFromPrevious` と `peerView` を含む。任意の `lesson`（下記「レッスンの設定」・EPIC #1592）でレッスンを紐付ける（送らなければ保存済みの値を変えない・`null` で外す・課題コンテンツを空にしても残る。不正な値は 400）。レスポンスに `lesson`（無ければ `null`）を含む |
 | `POST` | `/classroom-groups` | クラス（学級）の作成（name, year, 任意で studentCount / googleClassroomCourseId） |
 | `GET` | `/classroom-groups` | 自分のクラス一覧（active + archived、共同管理分は role=co-teacher で合流）。各要素に生成AI・ルビティーの設定 `genai` / `rubytee`（下記「クラス単位の AI 設定」。未設定は両方無効）を含む |
 | `PATCH` | `/classroom-groups/{groupId}` | クラスのリネーム・年度変更・人数・GC 紐づけ・共同管理者・アーカイブ/復帰・生成AI / ルビティーの設定（`genai` / `rubytee`。送った項目だけ保存済みの値に重ねる部分更新。条件を満たさない値は 400） |
 | `POST` | `/classroom-groups/migrate` | v1→v2 冪等 bulk migration（未所属課題のクラス自動作成・割当 + フィールド引き上げ） |
 | `PATCH` | `/classroom-groups/{groupId}/topics` | トピックの add / remove / rename（rename・remove は課題へ一括追従） |
 | `POST` | `/classrooms/{id}/duplicate` | 課題（1 授業）の複製。課題コンテンツの S3 オブジェクトもコピー。`groupId` / `className` / `assignmentName` を上書き可。メンバー・提出は複製しない。`meshGroupLimit` は元の保存値をそのまま写し（未設定なら未設定のまま）、レスポンスにも含む |
+| `GET` | `/classrooms/{id}/lesson-progress` | レッスンの進み具合（EPIC #1592）。`{lesson, progress: [{memberId, seatNumber, challenges, current, updatedAt}]}` を席番号順に返す（`lesson` は課題の設定・無ければ `null`。TTL 切れの行は除く）。形は下記「ClassroomLessonProgress テーブル」 |
 | `POST` | `/classrooms/{id}/evaluate` | AI 評価支援。静的解析結果（シグナル + 擬似コード）を Anthropic API にリレーし、`mode: grade` は S/A/B/C 案 + 根拠 + needsReview、`mode: comment` は生徒向けポジティブコメント下書きを返す。1リクエスト最大10提出（API GW の30秒制限対策、クライアントがチャンク分割）。先生ごとにレート制限（既定 60回/時） |
 | `GET` | `/notifications` | お知らせ一覧（EPIC #1111）。自分宛て（teacherSub）の直近 50 件 + `unreadCount` を返す。書き込みは admin スタックのみ（単一ライター） |
 | `POST` | `/notifications/mark-read` | お知らせ既読化。`{notificationIds?}` — 省略時は一覧窓（直近 50 件）の未読を全既読化（パネルを開いたらバッジが消える UX） |
@@ -229,6 +231,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 - データ: `SharedAssignments{suffix}`（**TTL なし・prod は RETAIN + PITR**。GSI: `status-createdAt-index` / `authorSub-createdAt-index` / `passcode-index`（合言葉ルックアップ・#1109））、`SharedAssignmentReports{suffix}`（TTL 90日）
 - ファイル: 専用バケット `smalruby-shared-assignments{suffix}`（**lifecycle なし = 永続**、`shared/{sharedId}/` プレフィックス）。課題側の保存期限と完全に分離
 - 共有/取り込みの実体は既存 duplicate と同じ S3 サーバー側コピー（クロスバケット）
+- **レッスンの設定（EPIC #1592）**: 共有すると課題の `lesson` を項目の `lesson` に写し（内容の再スナップショットでも写す。元の課題に無ければ消す）、取り込むと新しい課題に載る。詳細は `lesson`（無ければ `null`）、一覧・詳細の summary は `hasLesson` を返す。ページもスターターも無いレッスンだけの課題も共有できる（何も無い課題はいままでどおり 400）
 
 ### 生徒用 (認証不要 / Session Token)
 
@@ -240,8 +243,9 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401。`meshGroupLimit` / `genai` / `rubytee`（lookup と同じ。参加後に先生が変えた値もここで届く）を含む |
 | `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得)。課題が非 active なら 404。任意の `screenshotLabels`（各ブロック画像のスプライト名の配列・`screenshotCount` 以下・各100文字以内・Issue #1239）を保存する |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
-| `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。`startFromPrevious`（未設定は false）と `peerView`（未設定は `none`）も返す（`assignment: null` のときも）。lookup / join / verify-session は `hasAssignment` フラグを返す |
+| `GET` | `/classrooms/{id}/assignment` | Session Token または 先生 ID Token | 課題コンテンツ取得（ページ + 画像/スターターのダウンロード URL）。`startFromPrevious`（未設定は false）と `peerView`（未設定は `none`）も返す（`assignment: null` のときも）。lookup / join / verify-session は `hasAssignment` フラグを返す。`lesson`（レッスンの設定・無ければ `null`）も返す（ページもスターターも無いレッスンだけの課題でも返す）。課題一覧・課題詳細は `hasLesson` を返す |
 | `GET` | `/classrooms/{id}/continuable-submissions` | Session Token | 続きに使える提出物（Issue #1201）。`{current, previous, startFromPrevious}` を返す（`startFromPrevious` は課題の設定・Issue #1202）。`current` = この課題での自分の席の提出物、`previous` = 同じクラスのこの課題より前に作られた課題（最大3回分遡る）での同じ席番号の提出物。各要素は `{classroomId, assignmentName, projectName, submittedAt, projectUrl}`（`projectUrl` は project.sb3 の Presigned GET URL）か `null`。TTL 切れの提出物・課題、project.sb3 の無い記録は返さない。パスの課題とセッションの課題が違えば 401、課題が非 active なら 404 |
+| `PUT` | `/classrooms/{id}/lesson-progress` | Session Token | レッスンの進み具合を送る（EPIC #1592）。その席・その課題の 1 件をまとめて送る: `{challenges?: {<challengeId>: {completedAt, before?}}, current?: {challengeId, openedAt} \| null}`。サーバーはマージする — 課題の対象外のチャレンジは捨てる・保存済みの「できた」は消さず、時刻も `before` も変えない（あとから来た記録で上書きしない）・`current` は送ったときだけ変える（`null` で外す。対象外のチャレンジは無視）・未来の日時は今に丸める。変わらない送信は書き込まない（`{}` を送ると今の記録を返す）。レスポンスはマージ後の 1 件（`GET` の `progress` の要素と同じ形）。ID の形の違い・日時でない値・101 件以上は 400。席ごとに 1 分 20 回まで（超えると 400）。レッスンの無い課題は 400、非 active・TTL 切れは 404、パスの課題とセッションの課題が違えば 401。同じ席の同時送信は `version` で楽観ロックし、読み直して最大 3 回試す（だめなら 409） |
 | `GET` | `/classrooms/{id}/peer-submissions` | Session Token | 他者参照（Issue #1239）。同じ課題の提出済みクラスメイトを `{peerView, submissions: [{seatNumber, submittedAt, thumbnailUrl, screenshotUrls, screenshotLabels}]}` で席番号順に返す（URL は Presigned GET・`screenshotLabels` は無ければ `null`）。**`.sb3` の URL・ニックネーム・作品名・先生のコメントは返さない**。自分・先生が `hiddenFromPeers` にした提出・TTL 切れは除く。`peerView` が `none` なら 403 `{reason:'peer-view-off'}`、`afterSubmit` で自分が未提出なら 403 `{reason:'not-submitted'}`。パスの課題とセッションの課題が違えば 401、課題が非 active なら 404 |
 
 ### Google Classroom 連携 (ID Token + Access Token)
@@ -332,6 +336,7 @@ erDiagram
         map assignment "課題コンテンツ (任意): {pages: [{text, imageKey?}], starterKey?, updatedAt}"
         boolean startFromPrevious "前回の提出物から始めさせる (#1202, 任意・既定 false)。assignment の外に置くので課題コンテンツが空でも残る。再利用 (duplicate) で引き継ぐ"
         string peerView "他者参照 (#1239, 任意): none / always / afterSubmit。未設定は none。duplicate で引き継ぐ"
+        map lesson "レッスンの設定 (EPIC #1592, 任意): 下記「レッスンの設定」。無ければいままでの課題。assignment の外に置く。duplicate・みんなの課題の共有/取り込みで引き継ぐ"
         number meshGroupLimit "出席番号で作るメッシュのグループの人数の上限 (#1255, 任意): 6 / 0 (= 制限なし)。未設定 (#1255 より前の課題) は制限なしとして 0 を返す。新しく作る課題 (作成・Google Classroom 取り込み・みんなの課題の取り込み) は常に 6 を保存。duplicate は元の保存値をそのまま写す"
         string recommendedForSharingAt "共有推奨 (#1106, 任意)。書き込みは admin API のみ。先生側 API には boolean recommendedForSharing を投影"
         string recommendedForSharingBy "推奨した admin の email (内部用・先生側 API では返さない)"
@@ -476,6 +481,38 @@ erDiagram
 **GSI:**
 - `classroomId-memberId-index` — 生徒ごとの提出検索
 
+### ClassroomLessonProgress テーブル（レッスンの進み具合・EPIC #1592）
+
+```mermaid
+erDiagram
+    ClassroomLessonProgress {
+        string classroomId PK "課題の UUID"
+        string memberId SK "seat-NN"
+        map challenges "{<challengeId>: {completedAt: ISO8601, before: boolean}}。before = 課題の前から（端末の記録から）できていた"
+        map current "いまやっているチャレンジ {challengeId, openedAt} または null"
+        number version "楽観ロックの版（書くたびに +1）"
+        string updatedAt "ISO8601"
+        number ttl "課題（Classrooms）の ttl を写す"
+    }
+```
+
+- 席 × 課題で 1 件。生徒の 1 回の送信が 1 回の書き込みになる（D8: 40 人 × 11 チャレンジ × 2 回 ≒ 授業 1 回で 880 書き込みまで。変わらない送信は書かない）
+- 席が退出・kick されても消さない（提出と同じく課題に属する記録）。課題のアーカイブ中は送れない（読み出しは先生だけ）
+- 期限は課題の TTL を写すので、課題と一緒に消え、削除スナップショット・復元 CLI の対象にもなる
+
+### レッスンの設定（`lesson`）
+
+課題（Classrooms の item）に任意で持たせる。サーバーはコースの中身を知らないので、形と件数だけを確かめる。
+
+| 項目 | 型 | 検証 |
+|---|---|---|
+| `courseId` | string | 必須。`^[a-z0-9][a-z0-9_-]{0,63}$` |
+| `challengeIds` | string[] | 必須。レッスンの順。1〜100 件・同じ形・重複なし |
+| `requiredChallengeIds` | string[] | 任意（既定 `[]`）。`challengeIds` の中から・重複なし |
+| `completion` | `{type: 'all'}` \| `{type: 'count', count}` | 任意（既定 `all`）。`count` は整数で「必須の数（最低 1）〜`challengeIds` の数」 |
+| `submitWork` | boolean | 任意（既定 `false`）。レッスンのあとに作品の提出もする |
+| `scoring` | `{total, requiredPoints, optionalPoints}` \| null | 任意。`total`（満点）は 0 より大きく 1000 以下、`requiredPoints`（必須を全部こなしたときの点）・`optionalPoints`（必須でないものの合計点）は 0〜`total`。得点はサーバーでは計算しない（進み具合から画面が機械的に出す・D10） |
+
 ### ClassroomGroups テーブル（クラス（学級）。旧称: 組）
 
 ```mermaid
@@ -583,6 +620,7 @@ smalruby-classroom-submissions-{stage}/
 | 課題（`Classrooms`） | 90日 | 1日 |
 | メンバー | 課題と同じ | 課題と同じ |
 | 提出 | 課題と同じ | 課題と同じ |
+| レッスンの進み具合 | 課題の ttl を写す | 同左 |
 | S3 ファイル | `ARCHIVE_RETENTION_DAYS`（365日。ライフサイクルルール） | 同（stg は 30日） |
 
 ユーザーがアクセスできるのは **メタデータ（DynamoDB）が生きている TTL 期間内のみ**（presigned URL はメタデータからのみ発行される）。TTL 後〜`ARCHIVE_RETENTION_DAYS` の間は運用者のみが復元に使える（下記）。
@@ -591,12 +629,13 @@ smalruby-classroom-submissions-{stage}/
 
 「期限が切れたが、どうしても復元してほしい」という問い合わせに応えるための仕組み（EPIC #1049 D7）。
 
-- `Classrooms` / `ClassroomMemberships` / `ClassroomSubmissions` / `ClassroomGroups` に DynamoDB Streams（OLD_IMAGE）を有効化。`ClassroomKickRequests`（1時間 TTL の一時データ）は対象外
+- `Classrooms` / `ClassroomMemberships` / `ClassroomSubmissions` / `ClassroomGroups` / `ClassroomLessonProgress` に DynamoDB Streams（OLD_IMAGE）を有効化。`ClassroomKickRequests`（1時間 TTL の一時データ）は対象外
 - **`ClassroomArchiver-{stage}`** Lambda が REMOVE イベント（TTL 削除・明示削除の両方）を受け、削除されたアイテムを JSON で S3 に退避:
   - `ddb-archive/classrooms/{classroomId}.json`
   - `ddb-archive/memberships/{classroomId}/{memberId}.json`
   - `ddb-archive/submissions/{classroomId}/{submissionId}.json`
   - `ddb-archive/groups/{groupId}.json`
+  - `ddb-archive/lesson-progress/{classroomId}/{memberId}.json`
   - `eval-quota#` プレフィックスのカウンタ行はスキップ
 - イベントソースは REMOVE のみのフィルタ + `bisectBatchOnError` + 有限リトライ（不正レコード 1 件で shard が詰まらない設計。S3 書き込み失敗のみ throw して再試行）
 - S3 lifecycle は `ARCHIVE_RETENTION_DAYS`（既定 365 日、`CLASSROOM_TTL_DAYS` 以上必須 — スタックがガード）
@@ -620,6 +659,8 @@ smalruby-classroom-submissions-{stage}/
 | ウィンドウ | 60秒 | 30秒 |
 | 最大リクエスト数 | 50回 | 100回 |
 | 実装方式 | Lambda インメモリ Map | 同左 |
+
+レッスンの進み具合の送信（`PUT /classrooms/{id}/lesson-progress`）は席（課題 × 席）ごとに 60 秒 20 回まで（`LESSON_PROGRESS_RATE_LIMIT_WINDOW_SECONDS` / `LESSON_PROGRESS_RATE_LIMIT_MAX`・Lambda インメモリ Map）。
 
 ## メンバー一覧の `aiUsage`（ルビティーの上限）
 

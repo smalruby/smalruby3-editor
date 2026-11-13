@@ -28,11 +28,13 @@ export interface RestorePlanInput {
   classroom: Record<string, unknown>;
   memberships: Record<string, unknown>[];
   submissions: Record<string, unknown>[];
+  /** Seat × assignment lesson progress (#1597). Optional for snapshots taken before it existed. */
+  lessonProgress?: Record<string, unknown>[];
   group?: Record<string, unknown> | null;
 }
 
 export interface PlannedItem {
-  table: 'classrooms' | 'memberships' | 'submissions' | 'groups';
+  table: 'classrooms' | 'memberships' | 'submissions' | 'groups' | 'lesson-progress';
   item: Record<string, unknown>;
 }
 
@@ -152,6 +154,10 @@ export function buildRestorePlan(
   for (const submission of input.submissions) {
     plan.push({ table: 'submissions', item: { ...submission, ttl } });
   }
+  // Lesson progress copies the assignment's TTL, as the handler writes it.
+  for (const progress of input.lessonProgress || []) {
+    plan.push({ table: 'lesson-progress', item: { ...progress, ttl } });
+  }
   return plan;
 }
 
@@ -167,6 +173,7 @@ export function resourceNamesForStage(stage: string): {
   submissionsTable: string;
   groupsTable: string;
   coTeacherIndexTable: string;
+  lessonProgressTable: string;
   bucket: string;
 } {
   const suffix = stage === 'prod' ? '' : `-${stage}`;
@@ -176,6 +183,7 @@ export function resourceNamesForStage(stage: string): {
     submissionsTable: `ClassroomSubmissions${suffix}`,
     groupsTable: `ClassroomGroups${suffix}`,
     coTeacherIndexTable: `ClassroomCoTeacherIndex${suffix}`,
+    lessonProgressTable: `ClassroomLessonProgress${suffix}`,
     bucket: `smalruby-classroom-submissions${suffix}`,
   };
 }

@@ -123,6 +123,7 @@ const TABLE_FOR: Record<PlannedItem['table'], string> = {
   memberships: names.membershipsTable,
   submissions: names.submissionsTable,
   groups: names.groupsTable,
+  'lesson-progress': names.lessonProgressTable,
 };
 
 async function main(): Promise<number> {
@@ -150,6 +151,7 @@ async function main(): Promise<number> {
 
   const memberships = await collectChildren('memberships', classroomId);
   const submissions = await collectChildren('submissions', classroomId);
+  const lessonProgress = await collectChildren('lesson-progress', classroomId);
 
   // Restore the owning group too when it was swept.
   let group: Record<string, unknown> | null = null;
@@ -167,7 +169,7 @@ async function main(): Promise<number> {
     }
   }
 
-  const plan = buildRestorePlan({ classroom, memberships, submissions, group }, Date.now(), args.ttlDays, args.groupTtlDays);
+  const plan = buildRestorePlan({ classroom, memberships, submissions, lessonProgress, group }, Date.now(), args.ttlDays, args.groupTtlDays);
 
   // Verify the submission binaries still exist in S3.
   let missingFiles = 0;
@@ -187,6 +189,7 @@ async function main(): Promise<number> {
   console.log(`  - 所属クラス（group）: ${group ? `1 件（TTL +${args.groupTtlDays}日）` : '対象なし'}`);
   console.log(`  - メンバー: ${memberships.length} 件`);
   console.log(`  - 提出メタ: ${submissions.length} 件（S3 実体欠落 ${missingFiles} 件）`);
+  console.log(`  - レッスンの進み具合: ${lessonProgress.length} 件`);
 
   if (!args.apply) {
     console.log('dry-run のため書き込みは行いませんでした。実行するには --apply を付けてください。');

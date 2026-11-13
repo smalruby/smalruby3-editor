@@ -15,6 +15,7 @@
  *   ddb-archive/memberships/<classroomId>/<memberId>.json
  *   ddb-archive/submissions/<classroomId>/<submissionId>.json
  *   ddb-archive/groups/<groupId>.json
+ *   ddb-archive/lesson-progress/<classroomId>/<memberId>.json
  */
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
@@ -37,6 +38,8 @@ export const TABLE_SPECS: Record<string, TableSpec> = {
   ClassroomMemberships: { kind: 'memberships', pk: 'classroomId', sk: 'memberId' },
   ClassroomSubmissions: { kind: 'submissions', pk: 'classroomId', sk: 'submissionId' },
   ClassroomGroups: { kind: 'groups', pk: 'groupId' },
+  // Seat × assignment lesson progress (#1597).
+  ClassroomLessonProgress: { kind: 'lesson-progress', pk: 'classroomId', sk: 'memberId' },
 };
 
 /**
