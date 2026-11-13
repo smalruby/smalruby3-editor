@@ -268,9 +268,9 @@ const joinSeat = async (name, code, seat, opts) => {
     return page;
 };
 const studentJoinedChecks = async (page, name, submitWork) => {
-    // 課題のページがある課題では課題パネル（classroom-joined-next-steps ではない場所）に同じ説明が出る
+    // 課題のページがある課題では課題パネル（classroom-joined-lesson-notice ではない場所）に同じ説明が出る
     const next =
-        (await text(page, 'classroom-joined-next-steps')) ||
+        (await text(page, 'classroom-joined-lesson-notice')) ||
         (await page.$eval(tid('classroom-modal'), (el) => el.textContent).catch(() => null));
     const m = await scrollInfo(page);
     record(

@@ -9,6 +9,7 @@ import StudentJoinForm from './student-join-form.jsx';
 import StudentJoinedConfirmation from './student-joined-confirmation.jsx';
 import StudentSeatSelector from './student-seat-selector.jsx';
 import StudentStatusView from './student-status-view.jsx';
+import StudentStepBand from './student-step-band.jsx';
 import StudentSubmitConfirm from './student-submit-confirm.jsx';
 
 const messages = defineMessages({
@@ -71,6 +72,7 @@ const ClassroomModal = ({
     lessonStatus = null,
     studentLesson = null,
     onStartLesson,
+    assignmentReopened = false,
 }) => {
     const intl = useIntl();
 
@@ -82,6 +84,17 @@ const ClassroomModal = ({
             onRequestClose={onClose}
         >
             <Box className={`${styles.body} ${styles.studentBody}`} data-testid="classroom-modal">
+                {/* Where the student is (#1792): replaces the "what to do next" text. */}
+                <StudentStepBand
+                    assignmentReopened={assignmentReopened}
+                    lesson={
+                        studentLesson && lessonStatus
+                            ? { submitWork: !!studentLesson.submitWork, cleared: !!lessonStatus.cleared }
+                            : null
+                    }
+                    phase={phase}
+                    submissionStatus={classroomState?.submissionStatus ?? null}
+                />
                 {/* Phase: student-join */}
                 {phase === 'student-join' && (
                     <StudentJoinForm
@@ -206,6 +219,8 @@ const ClassroomModal = ({
 };
 
 ClassroomModal.propTypes = {
+    // the assignment panel was reopened from 「課題を見る」 (step band shows ④, #1792)
+    assignmentReopened: PropTypes.bool,
     // A lesson assignment without a starter: 「はじめる」 opens the lessons library (#1599)
     lessonStartOnly: PropTypes.bool,
     // assignmentProgress() of the joined lesson assignment (null when not a lesson assignment)

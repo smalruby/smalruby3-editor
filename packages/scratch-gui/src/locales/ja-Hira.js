@@ -193,9 +193,15 @@ export default {
     'gui.classroom.studentJoined.success': 'さんかしました！',
     'gui.classroom.studentJoined.seat': 'しゅっせきばんごう{seatNumber}',
     'gui.classroom.studentJoined.start': 'はじめる',
-    'gui.classroom.studentJoined.nextStepsTitle': 'つぎにやること',
-    'gui.classroom.studentJoined.nextSteps':
-        '1. このがめんをとじてプロジェクトをつくろう{br}2. できたら、メニューバーのかだいめいをおしてていしゅつしよう',
+    'gui.classroom.stepBand.label': 'すすむじゅん',
+    'gui.classroom.stepBand.join': '① さんか',
+    'gui.classroom.stepBand.seat': '② ばんごう',
+    'gui.classroom.stepBand.start': '③ はじめる',
+    'gui.classroom.stepBand.make': '④ つくる',
+    'gui.classroom.stepBand.submit': '⑤ ていしゅつ',
+    'gui.classroom.stepBand.stateDone': '（すみ）',
+    'gui.classroom.stepBand.stateNow': '（いま）',
+    'gui.classroom.stepBand.stateTodo': '（まだ）',
     'gui.classroom.studentStatus.submitHint':
         'プロジェクトがかんせいしたら「かだいをていしゅつする」をおしてください。',
     'gui.classroom.studentStatus.title': 'さんかしているかだい',

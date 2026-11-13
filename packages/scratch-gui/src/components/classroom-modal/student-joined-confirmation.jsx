@@ -8,7 +8,7 @@ import StudentContinueChoice from './student-continue-choice.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
 
 /**
- * 「つぎにやること」 of a lesson assignment (#1599): tell right after joining
+ * The one-line notice of a lesson assignment (#1599): tell right after joining
  * that it is a lesson assignment and when to submit, so students do not ask
  * "where is the submit button?".
  * @param {object} props - component props
@@ -98,6 +98,14 @@ const StudentJoinedConfirmation = ({
                 </div>
             )}
         </div>
+        {/* No "what to do next" text: the step band at the top tells where the
+            student is (#1792). A lesson assignment keeps its one-line notice of
+            when to submit (#1599). */}
+        {studentLesson && (
+            <div className={styles.joinHintText} data-testid="classroom-joined-lesson-notice">
+                <LessonNextSteps lesson={studentLesson} />
+            </div>
+        )}
         <StudentPreviousComment previousComment={joinedInfo.previousComment} />
         {/* Where to start: the starter and earlier submissions (#1201). Nothing
             is loaded until the student presses one. */}
@@ -116,27 +124,6 @@ const StudentJoinedConfirmation = ({
             />
         )}
         <ErrorDisplay error={error} errorTitle={errorTitle} />
-        <div className={styles.joinHintBox}>
-            <div className={styles.joinHintTitle}>
-                <FormattedMessage
-                    defaultMessage="What to do next"
-                    description="Next steps hint title after joining"
-                    id="gui.classroom.studentJoined.nextStepsTitle"
-                />
-            </div>
-            <div className={styles.joinHintText} data-testid="classroom-joined-next-steps">
-                {studentLesson ? (
-                    <LessonNextSteps lesson={studentLesson} />
-                ) : (
-                    <FormattedMessage
-                        defaultMessage="1. Close this dialog and create your project{br}2. When you're done, click the assignment name in the menu bar to submit"
-                        description="Next steps hint after joining"
-                        id="gui.classroom.studentJoined.nextSteps"
-                        values={{ br: <br /> }}
-                    />
-                )}
-            </div>
-        </div>
         {studentLesson && onStartLesson && <StartLessonButton onStartLesson={onStartLesson} />}
         {/* With choices, each choice starts (incl. "as it is"), so no separate Start button. */}
         {!studentLesson && !continueOptions && !startChoice?.showStarter && (
