@@ -1,5 +1,6 @@
 import {
     assignmentFolderNames,
+    assignmentZipPlan,
     buildSubmissionsCsv,
     sanitizeEntryName,
     submissionStatusLabel,
@@ -141,5 +142,17 @@ describe('buildSubmissionsCsv のレッスンの列（#1603）', () => {
             .slice(1)
             .split('\r\n')[1];
         expect(line).toBe('L,01,あ,,,未提出,,0,0,');
+    });
+});
+
+describe('assignmentZipPlan（課題の「全作品ダウンロード」・#1603）', () => {
+    test('レッスンの無い課題はいままでどおり（CSV なし・提出 0 件ならダウンロードしない）', () => {
+        expect(assignmentZipPlan(false, 3)).toEqual({ statusCsv: false });
+        expect(assignmentZipPlan(false, 0)).toBeNull();
+    });
+
+    test('レッスンの課題は提出 0 件でも 提出状況.csv の zip を作る', () => {
+        expect(assignmentZipPlan(true, 0)).toEqual({ statusCsv: true });
+        expect(assignmentZipPlan(true, 2)).toEqual({ statusCsv: true });
     });
 });

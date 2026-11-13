@@ -9,6 +9,7 @@
  *   - 検証用 CSV: per-submission audit sheet (signals + pseudocode + AI
  *     proposal) an IT engineer can review from a spreadsheet
  */
+import { csvField, csvLines } from '../classroom-download-utils.js';
 
 const GRADE_ORDER = ['C', 'B', 'A', 'S'];
 
@@ -32,24 +33,14 @@ const combineOverall = (grades) => {
 };
 
 /**
- * Escape one CSV field (quote when needed, double inner quotes).
- * @param {*} value - Cell value (null/undefined become empty)
- * @returns {string} Escaped field
- */
-const csvField = (value) => {
-    const text = value === null || typeof value === 'undefined' ? '' : String(value);
-    if (/[",\n\r]/.test(text)) {
-        return `"${text.replace(/"/g, '""')}"`;
-    }
-    return text;
-};
-
-/**
- * Render rows into CSV text with a BOM so Excel opens UTF-8 correctly.
+ * Render rows into CSV text with a BOM so Excel opens UTF-8 correctly. Uses the
+ * shared, formula-injection-safe writer of the other classroom CSVs (#1603):
+ * an assignment name or an AI reason starting with = + - @ is not run as a
+ * formula when the teacher opens the file.
  * @param {Array<Array>} rows - Rows of cell values
  * @returns {string} CSV text (U+FEFF prefix + CRLF rows)
  */
-const toCsv = (rows) => `${'\ufeff'}${rows.map((row) => row.map(csvField).join(',')).join('\r\n')}`;
+const toCsv = (rows) => csvLines(rows);
 
 /**
  * The columns of the grading table and CSV (#1603). Each assignment has a

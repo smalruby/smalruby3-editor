@@ -164,16 +164,19 @@ describe('lessonScoresBySeat', () => {
     });
 
     test('先生が決めた満点', () => {
-        const data = { ...progressData, lesson: { ...lesson, scoring: { total: 50, requiredPoints: 30, optionalPoints: 20 } } };
+        const data = {
+            ...progressData,
+            lesson: { ...lesson, scoring: { total: 50, requiredPoints: 30, optionalPoints: 20 } },
+        };
         const result = lessonScoresBySeat(data, course, NOW);
         expect(result.total).toBe(50);
         // 席 2: 10 + 15 + 15 = 40
         expect(result.scores[2]).toBe(40);
     });
 
-    test('採点できないときは null', () => {
+    test('設定が無ければ null・無いコースは点なしで submitWork だけ伝える（作品の列を正しく出すため）', () => {
         expect(lessonScoresBySeat(null, course, NOW)).toBeNull();
-        expect(lessonScoresBySeat(progressData, null, NOW)).toBeNull();
+        expect(lessonScoresBySeat(progressData, null, NOW)).toEqual({ total: null, submitWork: false, scores: {} });
     });
 });
 
@@ -189,7 +192,10 @@ describe('CSV の列', () => {
     });
 
     test('mergedChallengeColumns: 課題をまたいで重ねずに並べる', () => {
-        const other = lessonProgressContext({ ...lesson, challengeIds: ['b', 'x'], requiredChallengeIds: [] }, course);
+        const other = lessonProgressContext(
+            { ...lesson, challengeIds: ['b', 'x'], requiredChallengeIds: [] },
+            course,
+        );
         expect(mergedChallengeColumns([ctx, null, other]).map((c) => c.id)).toEqual(['a', 'b', 'd', 'e', 'x']);
     });
 });

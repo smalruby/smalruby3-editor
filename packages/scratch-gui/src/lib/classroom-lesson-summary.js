@@ -15,7 +15,6 @@
  * is passed in (null when this version does not have it).
  */
 import { submissionStatusLabel } from './classroom-download-utils.js';
-import { DEFAULT_LESSON_TOTAL, computeLessonScore } from './classroom-lesson-settings.js';
 import {
     CELL_KINDS,
     SEAT_STATES,
@@ -28,6 +27,7 @@ import {
     seatProgress,
     seatTile,
 } from './classroom-lesson-progress.js';
+import { DEFAULT_LESSON_TOTAL, computeLessonScore } from './classroom-lesson-settings.js';
 
 /**
  * The panel's lesson part: per seat tiles (same colours as the members tab),
@@ -175,15 +175,21 @@ export const mergedChallengeColumns = (contexts) => {
 
 /**
  * レッスンの点 of every seat with a record, for the 採点 screen.
- * @param {?object} progressData - GET lesson-progress response
+ * When the lesson cannot be scored (a course this version does not have),
+ * the result still says whether work is submitted, so the table keeps the
+ * right columns; every seat is then 「—」.
+ * @param {?object} progressData - GET lesson-progress response (or `{lesson, progress: []}`)
  * @param {?object} course - its course
  * @param {number} now - current time (ms epoch)
- * @returns {?{total: number, submitWork: boolean, scores: object}} seatNumber → score,
- *   or null when it cannot be scored (no lesson / unknown course)
+ * @returns {?{total: ?number, submitWork: boolean, scores: object}} seatNumber → score,
+ *   or null when there is no lesson setting at all
  */
 export const lessonScoresBySeat = (progressData, course, now) => {
-    const ctx = progressData ? lessonProgressContext(progressData.lesson, course) : null;
-    if (!ctx) return null;
+    const saved = progressData && progressData.lesson;
+    if (!saved) return null;
+    const submitWork = saved.submitWork === true;
+    const ctx = lessonProgressContext(saved, course);
+    if (!ctx) return { total: null, submitWork, scores: {} };
     const scores = {};
     for (const row of progressData.progress || []) {
         if (!row || !Number.isInteger(row.seatNumber)) continue;
@@ -191,7 +197,7 @@ export const lessonScoresBySeat = (progressData, course, now) => {
     }
     const scoring = ctx.lesson.scoring;
     const total = scoring && Number.isFinite(scoring.total) ? scoring.total : DEFAULT_LESSON_TOTAL;
-    return { total, submitWork: ctx.lesson.submitWork === true, scores };
+    return { total, submitWork, scores };
 };
 
 /**

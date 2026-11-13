@@ -39,6 +39,21 @@ export const assignmentFolderNames = (assignments) => {
 };
 
 /**
+ * What the 「全作品ダウンロード」 zip of one assignment holds (#1603).
+ * A lesson assignment always gets a zip with its 提出状況.csv (the progress
+ * is worth saving even when no work is submitted — submitWork=false);
+ * other assignments keep their old zip (seat folders only, none when nothing
+ * is submitted).
+ * @param {boolean} hasLesson - the assignment has a lesson
+ * @param {number} submittedCount - submissions with a project file
+ * @returns {?{statusCsv: boolean}} the plan, or null when there is nothing to download
+ */
+export const assignmentZipPlan = (hasLesson, submittedCount) => {
+    if (hasLesson) return { statusCsv: true };
+    return submittedCount > 0 ? { statusCsv: false } : null;
+};
+
+/**
  * Human-readable submission status for the CSV.
  * @param {object} member - enriched member row
  * @returns {string} Japanese status label
@@ -54,7 +69,7 @@ export const submissionStatusLabel = (member) => {
  * @param {*} value - cell value (null/undefined become empty)
  * @returns {string} escaped field
  */
-const csvField = (value) => {
+export const csvField = (value) => {
     let text = value === null || typeof value === 'undefined' ? '' : String(value);
     // Names are typed by students: a leading = + - @ (or tab / CR) would run
     // as a formula when the teacher opens the file in a spreadsheet.

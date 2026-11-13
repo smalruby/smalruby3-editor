@@ -645,9 +645,11 @@ const TeacherEvaluation = ({
                                             key={`${lesson.classroomId}:lesson`}
                                             title={intl.formatMessage(evalMessages.lessonHeadTitle, {
                                                 name: lesson.assignmentName,
-                                                total: lessonScores[lesson.classroomId]
-                                                    ? lessonScores[lesson.classroomId].total
-                                                    : '-',
+                                                total:
+                                                    lessonScores[lesson.classroomId] &&
+                                                    lessonScores[lesson.classroomId].total !== null
+                                                        ? lessonScores[lesson.classroomId].total
+                                                        : '-',
                                             })}
                                         >
                                             {intl.formatMessage(evalMessages.lessonHead)}

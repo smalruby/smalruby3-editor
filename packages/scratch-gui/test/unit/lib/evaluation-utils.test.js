@@ -37,6 +37,18 @@ describe('csvField', () => {
         expect(csvField('line1\nline2')).toBe('"line1\nline2"');
         expect(csvField(null)).toBe('');
     });
+
+    test('採点結果 CSV の課題名が = で始まっても数式にしない（#1603）', () => {
+        const csv = buildEvaluationCsv(
+            [{ classroomId: 'c1', assignmentName: '=1+1', hasLesson: true }],
+            [],
+            () => null,
+            {
+                c1: { total: 100, submitWork: false, scores: {} },
+            },
+        );
+        expect(csv.slice(1).split('\r\n')[0]).toBe("出席番号,'=1+1:レッスンの点,総合評価");
+    });
 });
 
 describe('buildEvaluationCsv', () => {
@@ -110,7 +122,12 @@ describe('レッスンの点の列（#1603）', () => {
         ]);
     });
 
-    test('採点できない（無いコース）ときは作品の列も残す', () => {
+    test('点を出せなくても作品を出さないと分かっていれば作品の列は出さない', () => {
+        const info = { c2: { total: null, submitWork: false, scores: {} } };
+        expect(evaluationColumns([lessons[1]], info).map((c) => c.kind)).toEqual(['lesson']);
+    });
+
+    test('採点できない（設定も読めない）ときは作品の列も残す', () => {
         expect(evaluationColumns([lessons[1]], { c2: null }).map((c) => c.kind)).toEqual(['work', 'lesson']);
     });
 

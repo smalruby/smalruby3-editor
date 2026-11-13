@@ -7,7 +7,12 @@
 import JSZip from 'jszip';
 import { useCallback, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
-import { assignmentFolderNames, buildSubmissionsCsv, sanitizeEntryName } from '../lib/classroom-download-utils.js';
+import {
+    assignmentFolderNames,
+    assignmentZipPlan,
+    buildSubmissionsCsv,
+    sanitizeEntryName,
+} from '../lib/classroom-download-utils.js';
 import { lessonProgressContext } from '../lib/classroom-lesson-progress.js';
 import { mergedChallengeColumns, submissionCsvRows } from '../lib/classroom-lesson-summary.js';
 import { findCourse } from '../lib/lessons/courses.js';
@@ -204,13 +209,13 @@ const useTeacherSubmissions = ({
     // --- Download all submissions as ZIP ---
 
     const handleDownloadAll = useCallback(async () => {
-        if (!selectedClassroom || !members || members.length === 0) return;
+        if (!selectedClassroom) return;
+        const submittedMembers = (members || []).filter((m) => m.hasSubmission && m.projectUrl);
+        const plan = assignmentZipPlan(!!selectedClassroom.hasLesson, submittedMembers.length);
+        if (!plan) return;
         clearError();
 
-        const submittedMembers = members.filter((m) => m.hasSubmission && m.projectUrl);
-        if (submittedMembers.length === 0) return;
-
-        setDownloadProgress({ current: 0, total: submittedMembers.length });
+        setDownloadProgress({ current: 0, total: Math.max(1, submittedMembers.length) });
 
         try {
             const zip = new JSZip();
@@ -257,19 +262,18 @@ const useTeacherSubmissions = ({
                 }
             }
 
-            // 提出状況.csv of this assignment, with the lesson columns (#1603).
-            const { progressData, ctx } = await loadLessonForCsv(idToken, selectedClassroom);
-            const csvRows = submissionCsvRows({
-                assignmentName: selectedClassroom.assignmentName || selectedClassroom.className,
-                members,
-                progressData,
-                ctx,
-                now: Date.now(),
-            });
-            zip.file(
-                '提出状況.csv',
-                buildSubmissionsCsv(csvRows, csvChallengeColumns([ctx], !!selectedClassroom.hasLesson, intl)),
-            );
+            // Lesson assignments only (#1603): 提出状況.csv with the lesson columns.
+            if (plan.statusCsv) {
+                const { progressData, ctx } = await loadLessonForCsv(idToken, selectedClassroom);
+                const csvRows = submissionCsvRows({
+                    assignmentName: selectedClassroom.assignmentName || selectedClassroom.className,
+                    members: members || [],
+                    progressData,
+                    ctx,
+                    now: Date.now(),
+                });
+                zip.file('提出状況.csv', buildSubmissionsCsv(csvRows, csvChallengeColumns([ctx], true, intl)));
+            }
 
             // Generate and download ZIP
             const blob = await zip.generateAsync({ type: 'blob' });

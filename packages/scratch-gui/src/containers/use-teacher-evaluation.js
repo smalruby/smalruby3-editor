@@ -119,13 +119,22 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                 setEvalProgress({ label: lesson.assignmentName, done, total: targets.length });
                 if (lesson.hasLesson) {
                     // The lesson score comes from the progress, not the work (#1603).
-                    // A failed fetch only leaves that column empty.
-                    const progressData = await classroomAPI
+                    // A failed fetch leaves the scores empty (「—」) but still reads the
+                    // setting, so an assignment without work keeps showing no work column.
+                    const notAuthorized = (err) => {
+                        if (err.status === 401) throw err;
+                        return null;
+                    };
+                    let progressData = await classroomAPI
                         .getLessonProgress(idToken, lesson.classroomId)
-                        .catch((err) => {
-                            if (err.status === 401) throw err;
-                            return null;
-                        });
+                        .catch(notAuthorized);
+                    if (!progressData) {
+                        const assignment = await classroomAPI
+                            .getAssignment(idToken, lesson.classroomId)
+                            .catch(notAuthorized);
+                        progressData =
+                            assignment && assignment.lesson ? { lesson: assignment.lesson, progress: [] } : null;
+                    }
                     const saved = progressData && progressData.lesson;
                     const scored = saved
                         ? lessonScoresBySeat(progressData, findCourse(saved.courseId), Date.now())
