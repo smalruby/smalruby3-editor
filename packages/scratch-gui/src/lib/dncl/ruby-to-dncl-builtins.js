@@ -231,13 +231,39 @@ const bracketOpenings = (text) => {
 
 const NUMBER_RE = /^\d+(\.\d+)?$/;
 const OPERAND_END_RE = new RegExp(`[${ID})\\]"']`);
+const LAST_WORD_RE = new RegExp(`(?<![${ID}@$.])[${ID}]+$`);
+
+/**
+ * Words after which an operand starts, so a `-` after them is unary
+ * (`@a && -5.abs` is `@a && (-5).abs`; `&&` / `||` are `かつ` / `または`
+ * here already).
+ */
+const OPERAND_START_WORDS = new Set([
+    'かつ',
+    'または',
+    'and',
+    'or',
+    'not',
+    'if',
+    'elsif',
+    'unless',
+    'while',
+    'until',
+    'when',
+    'case',
+    'in',
+    'then',
+    'do',
+    'return',
+    'yield',
+]);
 
 /**
  * Whether the `-` at `pos` is a unary minus that Ruby reads as part of the
  * number right after it (`-5.abs` is `(-5).abs`). It is when nothing that
  * ends an operand (a name, a number, `)`, `]`, a string) comes before it,
- * spaces skipped: `= -5`, `(-5`, `* -5`. `a -5` / `3 -5` are subtractions.
- * (Issue #1700)
+ * spaces skipped: `= -5`, `(-5`, `* -5`, or a keyword like `かつ` / `when`
+ * (`かつ -5`). `a -5` / `3 -5` are subtractions. (Issue #1700)
  * @param {string} text - The text.
  * @param {number} pos - The position of the `-`.
  * @returns {boolean} True if the `-` belongs to the number after it.
@@ -245,7 +271,9 @@ const OPERAND_END_RE = new RegExp(`[${ID})\\]"']`);
 const isNumberSign = (text, pos) => {
     let k = pos - 1;
     while (k >= 0 && text[k] === ' ') k--;
-    return k < 0 || !OPERAND_END_RE.test(text[k]);
+    if (k < 0 || !OPERAND_END_RE.test(text[k])) return true;
+    const word = text.substring(0, k + 1).match(LAST_WORD_RE);
+    return Boolean(word) && OPERAND_START_WORDS.has(word[0]);
 };
 
 /**

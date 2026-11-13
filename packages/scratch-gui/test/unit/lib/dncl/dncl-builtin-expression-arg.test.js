@@ -110,6 +110,9 @@ describe('Ruby → DNCL with a negative number receiver (Issue #1700)', () => {
         ['@b = 3 * -5.abs', 'b = 3 * 絶対値(-5)'],
         ['@b = (-5.abs + 1)', 'b = (絶対値(-5) + 1)'],
         ['puts(-1.to_s + "個")', '表示する(-1, "個")'],
+        ['@b = @a && -5.abs', 'b = a かつ 絶対値(-5)'],
+        ['@b = (@a > 0 || -1.to_s == "x")', 'b = (a > 0 または 文字列(-1) == "x")'],
+        ['@b = (@a > 0 and -5.abs > 1)', 'b = (a > 0 and 絶対値(-5) > 1)'],
     ])('%s → %s', (ruby, dncl) => {
         expect(toDncl(ruby)).toBe(dncl);
     });
