@@ -4,6 +4,8 @@
 
 export const ja = {
     'gui.lessons.course.kyou-kara-programmer.name': 'きょうからプログラマー',
+    'gui.lessons.course.kyou-kara-programmer.description':
+        'キーやクリックでネコを動かしたり、音を鳴らしたり、質問したりしながら、くり返し・もし〜なら・変数・メッセージ・リストといったプログラムの基本を学べるよ。',
     'gui.lessons.lesson.blocks-l1.name': 'うごかしてみよう',
     'gui.lessons.lesson.blocks-l2.name': 'えらんで たずねよう',
     'gui.lessons.lesson.blocks-l3.name': 'おぼえて つたえよう',
@@ -206,6 +208,8 @@ export const ja = {
 
 export const jaHira = {
     'gui.lessons.course.kyou-kara-programmer.name': 'きょうからプログラマー',
+    'gui.lessons.course.kyou-kara-programmer.description':
+        'キーや クリックで ネコを うごかしたり、おとを ならしたり、しつもんしたり しながら、くりかえし・もし〜なら・へんすう・メッセージ・リストといった プログラムの きほんを まなべるよ。',
     'gui.lessons.lesson.blocks-l1.name': 'うごかしてみよう',
     'gui.lessons.lesson.blocks-l2.name': 'えらんで たずねよう',
     'gui.lessons.lesson.blocks-l3.name': 'おぼえて つたえよう',
@@ -416,6 +420,8 @@ export const jaHira = {
 
 export const en = {
     'gui.lessons.course.kyou-kara-programmer.name': 'Programmer from Today',
+    'gui.lessons.course.kyou-kara-programmer.description':
+        'Move the cat with keys and clicks, play sounds and ask questions while you learn the basics of programming: repeat, if, variables, messages and lists.',
     'gui.lessons.lesson.blocks-l1.name': "Let's Move",
     'gui.lessons.lesson.blocks-l2.name': 'Choose and Ask',
     'gui.lessons.lesson.blocks-l3.name': 'Remember and Tell',

@@ -272,6 +272,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-lesson-missing-challenges` | p | 保存したチャレンジのうち、このスモウルビーのコースに無いものの警告（数えない・保存すると外れる） |
 | `classroom-lesson-panel` | div | 開いたレッスン欄（ページの列の上に重ねる・開いたときだけある。高さは中身に合わせる） |
 | `classroom-lesson-close` | button | 開いたレッスン欄の右上の ✕（`aria-label`「閉じる」。閉じたら開閉ボタンにフォーカスを戻す） |
+| `classroom-lesson-description-question` | div | 「ページの説明をレッスンの説明で上書きしますか？」（レッスン欄を閉じたとき、変えたレッスンの説明文と 1 ページめが違うときだけ） |
+| `classroom-lesson-description-yes` / `-no` | button | 上の［はい］（1 ページめの文を説明文にする）/［いいえ］（そのまま） |
 | `classroom-lesson-course` | select | コース（`""` = レッスンを使わない / コース id） |
 | `classroom-lesson-challenges` | div | レッスンとチャレンジの一覧の枠（この枠の中だけスクロールする） |
 | `classroom-lesson-lesson-{lessonId}` | input (checkbox) | レッスン（チェックで中のチャレンジが全部入る。一部だけなら indeterminate） |
@@ -388,6 +390,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-stream-empty` | p | ストリームが空のときの案内 |
 | `classroom-board-create-menu` | button | ［＋ 作成 ▾］（主ボタン）。開いた一覧は `classroom-board-create-menu-list`（`role="menu"`） |
 | `classroom-board-create` | button (menuitem) | 作成メニューの「課題」（課題の作成画面へ） |
+| `classroom-board-create-lesson` | button (menuitem) | 作成メニューの「レッスン」（「課題」のすぐ下。同じ作成画面へ。作ると説明タブでレッスン欄が開き、最初のコースの最初のレッスンが選ばれる） |
 | `classroom-board-create-topic` | button (menuitem) | 作成メニューの「トピック」（トピックを追加の小さな画面へ） |
 | `classroom-board-more-menu` | button | 右上の「…」（中に `classroom-board-download-class`） |
 | `classroom-board-empty` | p | ボードの空メッセージ |

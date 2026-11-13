@@ -338,6 +338,8 @@ export default {
     'gui.classroom.board.streamArchivedDateLabel': 'アーカイブした日',
     'gui.classroom.board.createMenu': '＋ 作成 ▾',
     'gui.classroom.board.createAssignmentItem': '課題',
+    'gui.classroom.board.createLessonItem': 'レッスン',
+    'gui.classroom.board.createLessonTitle': 'レッスンの課題を作成',
     'gui.classroom.board.moreMenu': 'その他',
     'gui.classroom.board.noTopicSection': 'トピックなし',
     'gui.classroom.board.topicRename': '名前を変更',
@@ -752,6 +754,9 @@ export default {
     'gui.classroom.lessonSettings.submit': '作品の提出',
     'gui.classroom.lessonSettings.submitNone': '提出しない（レッスンだけ）',
     'gui.classroom.lessonSettings.submitWork': '最後に作品も提出する',
+    'gui.classroom.lessonSettings.descriptionQuestion': 'ページの説明をレッスンの説明で上書きしますか？',
+    'gui.classroom.lessonSettings.descriptionYes': 'はい',
+    'gui.classroom.lessonSettings.descriptionNo': 'いいえ',
     'gui.classroom.lessonSettings.droppedNotice':
         '生徒がすでに送った進み具合は残りますが、選ばなくなったチャレンジは数えません。',
     'gui.classroom.lessonScoring.summary': 'レッスンの点: {total} 点（★ {required}）',

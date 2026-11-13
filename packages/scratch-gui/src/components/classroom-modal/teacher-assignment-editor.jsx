@@ -237,6 +237,11 @@ const TeacherAssignmentEditor = ({
     meshGroupLimit,
     lessonDraft,
     savedLesson,
+    lessonPanelAutoOpen,
+    descriptionQuestion,
+    onAnswerDescriptionQuestion,
+    onLessonPanelAutoOpened,
+    onLessonPanelClose,
     onAddPage,
     onAttachPageImage,
     onChangePageText,
@@ -346,6 +351,9 @@ const TeacherAssignmentEditor = ({
         [onChangePeerView],
     );
 
+    const handleDescriptionYes = useCallback(() => onAnswerDescriptionQuestion(true), [onAnswerDescriptionQuestion]);
+    const handleDescriptionNo = useCallback(() => onAnswerDescriptionQuestion(false), [onAnswerDescriptionQuestion]);
+
     const handleStarterFileClick = useCallback(() => starterFileInputRef.current?.click(), []);
     const handleStarterFileChange = useCallback(
         (e) => {
@@ -433,11 +441,55 @@ const TeacherAssignmentEditor = ({
                         no room left at 1300x600 (R6). */}
                     {onChangeLesson && (
                         <LessonSettingsField
+                            autoOpen={!!lessonPanelAutoOpen}
                             disabled={isSaving}
                             draft={lessonDraft}
                             saved={savedLesson}
+                            onAutoOpened={onLessonPanelAutoOpened}
                             onChange={onChangeLesson}
+                            onClose={onLessonPanelClose}
                         />
+                    )}
+                    {/* #1780: asked in the page (no confirm()) when the lesson
+                        changed and page 1 holds other text. */}
+                    {descriptionQuestion && onAnswerDescriptionQuestion && (
+                        <div
+                            className={styles.lessonDescriptionQuestion}
+                            data-testid="classroom-lesson-description-question"
+                            role="group"
+                        >
+                            <span>
+                                <FormattedMessage
+                                    defaultMessage="Replace the page text with the lesson description?"
+                                    description="Assignment editor: asked after the lesson panel closes when page 1 already has text"
+                                    id="gui.classroom.lessonSettings.descriptionQuestion"
+                                />
+                            </span>
+                            <button
+                                className={styles.lessonDescriptionAnswer}
+                                data-testid="classroom-lesson-description-yes"
+                                type="button"
+                                onClick={handleDescriptionYes}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Yes"
+                                    description="Assignment editor: replace the page text with the lesson description"
+                                    id="gui.classroom.lessonSettings.descriptionYes"
+                                />
+                            </button>
+                            <button
+                                className={styles.lessonDescriptionAnswer}
+                                data-testid="classroom-lesson-description-no"
+                                type="button"
+                                onClick={handleDescriptionNo}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="No"
+                                    description="Assignment editor: keep the page text as it is"
+                                    id="gui.classroom.lessonSettings.descriptionNo"
+                                />
+                            </button>
+                        </div>
                     )}
                     {/* The pages are a list whose length the teacher decides (up
                     to 10), so only this frame scrolls (R6 exception). */}
@@ -736,6 +788,13 @@ TeacherAssignmentEditor.propTypes = {
     // Lesson settings (#1598): the draft (null = no lesson) and the stored value.
     lessonDraft: PropTypes.object,
     savedLesson: PropTypes.object,
+    // #1780: open the lesson panel by itself once (［＋ 作成 ▾］→「レッスン」)
+    lessonPanelAutoOpen: PropTypes.bool,
+    // #1780: show「ページの説明をレッスンの説明で上書きしますか？」
+    descriptionQuestion: PropTypes.bool,
+    onAnswerDescriptionQuestion: PropTypes.func,
+    onLessonPanelAutoOpened: PropTypes.func,
+    onLessonPanelClose: PropTypes.func,
     onAddPage: PropTypes.func.isRequired,
     onAttachPageImage: PropTypes.func.isRequired,
     onChangePageText: PropTypes.func.isRequired,

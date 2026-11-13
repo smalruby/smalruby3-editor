@@ -717,6 +717,9 @@ const TeacherAssignmentBoard = ({
     );
     const [showTopicDialog, setShowTopicDialog] = useState(false);
     const [showInlineCreate, setShowInlineCreate] = useState(false);
+    // 「レッスン」(#1780) uses the same create screen; the new assignment then
+    // opens with the first lesson chosen.
+    const [createLesson, setCreateLesson] = useState(false);
     const [newAssignmentName, setNewAssignmentName] = useState('');
     const [showReuse, setShowReuse] = useState(false);
     const [reuseFilterGroupId, setReuseFilterGroupId] = useState('');
@@ -766,7 +769,14 @@ const TeacherAssignmentBoard = ({
     const handleToggleInlineCreate = useCallback(() => {
         resetSubViewForms();
         setShowReuse(false);
+        setCreateLesson(false);
         setShowInlineCreate((v) => !v);
+    }, [resetSubViewForms]);
+    const handleOpenLessonCreate = useCallback(() => {
+        resetSubViewForms();
+        setShowReuse(false);
+        setCreateLesson(true);
+        setShowInlineCreate(true);
     }, [resetSubViewForms]);
     const handleNewAssignmentNameChange = useCallback((e) => setNewAssignmentName(e.target.value), []);
     const handleSubmitInlineCreate = useCallback(
@@ -777,11 +787,15 @@ const TeacherAssignmentBoard = ({
             // C1 (#1303): the create screen asks only the name. New assignments
             // get the default mesh group size; it is changed later in the
             // description tab's advanced settings.
-            onCreateAssignmentInClass(group, trimmed, { meshGroupLimit: DEFAULT_MESH_GROUP_LIMIT });
+            onCreateAssignmentInClass(group, trimmed, {
+                meshGroupLimit: DEFAULT_MESH_GROUP_LIMIT,
+                ...(createLesson ? { lesson: true } : {}),
+            });
             resetSubViewForms();
+            setCreateLesson(false);
             setShowInlineCreate(false);
         },
-        [newAssignmentName, isLoading, onCreateAssignmentInClass, group, resetSubViewForms],
+        [newAssignmentName, isLoading, onCreateAssignmentInClass, group, resetSubViewForms, createLesson],
     );
     const handleToggleReuse = useCallback(() => {
         resetSubViewForms();
@@ -1032,6 +1046,17 @@ const TeacherAssignmentBoard = ({
                                         </BoardMenuItem>
                                         <BoardMenuItem
                                             close={close}
+                                            testId="classroom-board-create-lesson"
+                                            onSelect={handleOpenLessonCreate}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Lesson"
+                                                description="Create menu item: a new assignment with a lesson (the lesson panel opens)"
+                                                id="gui.classroom.board.createLessonItem"
+                                            />
+                                        </BoardMenuItem>
+                                        <BoardMenuItem
+                                            close={close}
                                             testId="classroom-board-reuse"
                                             onSelect={handleToggleReuse}
                                         >
@@ -1207,11 +1232,19 @@ const TeacherAssignmentBoard = ({
                     }
                     testId="classroom-board-create-view"
                     title={
-                        <FormattedMessage
-                            defaultMessage="Create an assignment"
-                            description="Button on the board to create a new assignment"
-                            id="gui.classroom.board.create"
-                        />
+                        createLesson ? (
+                            <FormattedMessage
+                                defaultMessage="Create a lesson assignment"
+                                description="Title of the create screen opened from the create menu's「Lesson」"
+                                id="gui.classroom.board.createLessonTitle"
+                            />
+                        ) : (
+                            <FormattedMessage
+                                defaultMessage="Create an assignment"
+                                description="Button on the board to create a new assignment"
+                                id="gui.classroom.board.create"
+                            />
+                        )
                     }
                     onSubmit={handleSubmitInlineCreate}
                 >

@@ -349,6 +349,7 @@ const useTeacherClassrooms = ({
      * @param {string} classroomId - assignment to open
      * @param {object} [options] - open options
      * @param {string} [options.tab] - force the tab it opens on ('members' | 'description')
+     * @returns {Promise<boolean>} whether the detail opened
      */
     const handleSelectClassroom = useCallback(
         async (classroomId, options = {}) => {
@@ -367,6 +368,7 @@ const useTeacherClassrooms = ({
                 setPhase('teacher-class-detail');
             }
             setIsLoading(false);
+            return success;
         },
         [clearError, loadClassroomDetail, setIsLoading, setPhase],
     );

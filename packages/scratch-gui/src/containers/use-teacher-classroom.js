@@ -237,6 +237,27 @@ const useTeacherClassroom = ({
         submissions.resetSubmissionDisplay();
     }, [classrooms, submissions]);
 
+    // ［＋ 作成 ▾］→「レッスン」(#1780): created like「課題」, then opened on the
+    // description tab with the first lesson chosen and the lesson panel open.
+    const { handleCreateAssignmentInClass: createAssignmentInClass } = groups;
+    const { requestLessonStart } = assignment;
+    const { handleSelectClassroom } = classrooms;
+    const handleCreateAssignmentInClass = useCallback(
+        async (group, assignmentName, options = {}) => {
+            const { lesson, ...rest } = options;
+            const created = await createAssignmentInClass(group, assignmentName, rest);
+            if (lesson && created && created.classroomId) {
+                requestLessonStart(created.classroomId);
+                const opened = await handleSelectClassroom(created.classroomId, { tab: 'description' });
+                // Not opened: drop the request so opening it later from the
+                // list is a plain open (#1785 FYI3).
+                if (!opened) requestLessonStart(null);
+            }
+            return created;
+        },
+        [createAssignmentInClass, requestLessonStart, handleSelectClassroom],
+    );
+
     const handleCreateClassroom = useCallback(
         async (formData) => {
             await classrooms.handleCreateClassroom(formData, google.selectedGoogleCourse?.courseId);
@@ -333,6 +354,11 @@ const useTeacherClassroom = ({
         handleAssignmentChangeLesson: assignment.handleChangeLesson,
         handleAssignmentSave: assignment.handleSaveAssignment,
         handleAssignmentApplyTemplate: assignment.handleApplyTemplate,
+        assignmentLessonPanelAutoOpen: assignment.lessonPanelAutoOpen,
+        assignmentDescriptionQuestion: assignment.descriptionQuestion,
+        handleAssignmentLessonPanelClose: assignment.handleLessonPanelClose,
+        handleAssignmentLessonPanelAutoOpened: assignment.handleLessonPanelAutoOpened,
+        handleAssignmentAnswerDescriptionQuestion: assignment.handleAnswerDescriptionQuestion,
 
         // Evaluation (期末評価)
         evaluation,
@@ -357,7 +383,7 @@ const useTeacherClassroom = ({
         handleShowClassList: groups.handleShowClassList,
         handleCreateClassWithAssignment: groups.handleCreateClassWithAssignment,
         handleUpdateGroupTopics: groups.handleUpdateGroupTopics,
-        handleCreateAssignmentInClass: groups.handleCreateAssignmentInClass,
+        handleCreateAssignmentInClass,
         handleReuseAssignment: groups.handleReuseAssignment,
         handleUpdateGroup: groups.handleUpdateGroup,
 

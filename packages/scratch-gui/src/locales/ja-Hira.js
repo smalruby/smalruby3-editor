@@ -344,6 +344,8 @@ export default {
     'gui.classroom.board.streamArchivedDateLabel': 'アーカイブしたひ',
     'gui.classroom.board.createMenu': '＋ さくせい ▾',
     'gui.classroom.board.createAssignmentItem': 'かだい',
+    'gui.classroom.board.createLessonItem': 'レッスン',
+    'gui.classroom.board.createLessonTitle': 'レッスンのかだいをさくせい',
     'gui.classroom.board.moreMenu': 'そのほか',
     'gui.classroom.board.noTopicSection': 'トピックなし',
     'gui.classroom.board.topicRename': 'なまえをへんこう',
@@ -772,6 +774,9 @@ export default {
     'gui.classroom.lessonSettings.submit': 'さくひんのていしゅつ',
     'gui.classroom.lessonSettings.submitNone': 'ていしゅつしない（レッスンだけ）',
     'gui.classroom.lessonSettings.submitWork': 'さいごにさくひんもていしゅつする',
+    'gui.classroom.lessonSettings.descriptionQuestion': 'ページのせつめいをレッスンのせつめいでうわがきしますか？',
+    'gui.classroom.lessonSettings.descriptionYes': 'はい',
+    'gui.classroom.lessonSettings.descriptionNo': 'いいえ',
     'gui.classroom.lessonSettings.droppedNotice':
         'せいとがすでにおくったすすみぐあいはのこりますが、えらばなくなったチャレンジはかぞえません。',
     'gui.classroom.lessonScoring.summary': 'レッスンのてん: {total} てん（★ {required}）',
