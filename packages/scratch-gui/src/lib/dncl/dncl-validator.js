@@ -432,6 +432,7 @@ const findDnclBlockErrors = (source) => {
 };
 
 export {
+    codeWithoutStrings,
     findDnclBlockErrors,
     findUnsupportedCommands,
     isDoBlockLine,
@@ -440,5 +441,6 @@ export {
     POST_TEST_LOOP_ERROR_ID,
     POST_TEST_LOOP_MESSAGE,
     UNSUPPORTED_COMMAND_ERROR_ID,
+    unsupportedCommandMessage,
     validateDncl,
 };
