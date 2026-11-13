@@ -41,6 +41,16 @@ export const lessonSeatMessages = defineMessages({
         description: 'Accessible label of the「done / condition」count on a lesson seat tile',
         id: 'gui.classroom.lessonSeat.progressLabel',
     },
+    loading: {
+        defaultMessage: 'Loading the lesson progress…',
+        description: 'Members / progress tab of a lesson assignment until the first progress fetch ends',
+        id: 'gui.classroom.lessonSeat.loading',
+    },
+    loadError: {
+        defaultMessage: "Couldn't load the lesson progress. It is reloaded every 30 seconds.",
+        description: 'Members / progress tab of a lesson assignment: the first progress fetch failed',
+        id: 'gui.classroom.lessonSeat.loadError',
+    },
     clearedSummary: {
         defaultMessage: 'Cleared {cleared} / Joined {joined}',
         description: 'Members tab of a lesson assignment: how many cleared out of the joined students',
@@ -84,7 +94,9 @@ const LessonSeatTile = ({ seatNumber, tile, presence, submission }) => {
                     <span aria-hidden="true" className={styles.lessonSeatMeter}>
                         <span
                             className={styles.lessonSeatMeterFill}
-                            style={{ width: `${Math.round((progress.shown / progress.target) * 100)}%` }}
+                            style={{
+                                width: `${progress.target > 0 ? Math.round((progress.shown / progress.target) * 100) : 0}%`,
+                            }}
                         />
                     </span>
                     {progress.requiredLeft > 0 ? (

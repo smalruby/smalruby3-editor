@@ -70,4 +70,24 @@ describe('useTeacherClassrooms — lesson progress (#1602)', () => {
         act(() => hook.result.current.setDetailTab('description'));
         expect(mockApi.getLessonProgress).toHaveBeenCalledTimes(2);
     });
+
+    test('取得に失敗しても前の進み具合を残す（#1767 M2）', async () => {
+        const hook = setup({ classroomId: 'c1', hasLesson: true, studentCount: 3 });
+        await waitFor(() => expect(hook.result.current.lessonProgress).not.toBeNull());
+        const first = hook.result.current.lessonProgress;
+        mockApi.getLessonProgress.mockRejectedValue(Object.assign(new Error('x'), { status: 503 }));
+        act(() => hook.result.current.setDetailTab('description'));
+        act(() => hook.result.current.setDetailTab('members'));
+        await waitFor(() => expect(mockApi.getLessonProgress).toHaveBeenCalledTimes(2));
+        await waitFor(() => expect(mockApi.listMembers).toHaveBeenCalledTimes(2));
+        await act(async () => {});
+        expect(hook.result.current.lessonProgress).toBe(first);
+    });
+
+    test('はじめの取得が失敗したら error の印を持つ（読み込み中のままにしない）', async () => {
+        mockApi.getLessonProgress.mockRejectedValue(Object.assign(new Error('x'), { status: 503 }));
+        const hook = setup({ classroomId: 'c1', hasLesson: true, studentCount: 3 });
+        await waitFor(() => expect(hook.result.current.lessonProgress).not.toBeNull());
+        expect(hook.result.current.lessonProgress).toEqual({ classroomId: 'c1', error: true });
+    });
 });

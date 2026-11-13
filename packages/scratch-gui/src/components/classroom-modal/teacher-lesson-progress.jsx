@@ -11,6 +11,7 @@ import {
 } from '../../lib/classroom-lesson-progress.js';
 import { DEFAULT_MODE, getColorsForMode } from '../../lib/settings/color-mode';
 import styles from './classroom-modal.css';
+import { lessonSeatMessages } from './lesson-seat-tile.jsx';
 
 const messages = defineMessages({
     done: {
@@ -19,12 +20,12 @@ const messages = defineMessages({
         id: 'gui.classroom.lessonProgress.legendDone',
     },
     before: {
-        defaultMessage: 'Done before the assignment',
+        defaultMessage: 'Done before',
         description: 'Lesson progress table legend:「前」= done before the assignment started',
         id: 'gui.classroom.lessonProgress.legendBefore',
     },
     current: {
-        defaultMessage: 'Working on it now',
+        defaultMessage: 'Now',
         description: 'Lesson progress table legend: ▶ = the student is on this challenge now',
         id: 'gui.classroom.lessonProgress.legendCurrent',
     },
@@ -39,7 +40,7 @@ const messages = defineMessages({
         id: 'gui.classroom.lessonProgress.legendTodo',
     },
     required: {
-        defaultMessage: '★ = required',
+        defaultMessage: '★ Required',
         description: 'Lesson progress table legend: ★ in a column header = a required challenge',
         id: 'gui.classroom.lessonProgress.legendRequired',
     },
@@ -84,7 +85,7 @@ const messages = defineMessages({
         id: 'gui.classroom.lessonProgress.totalsRow',
     },
     totalsTitle: {
-        defaultMessage: '{done} of {rows} did it · {current} on it now',
+        defaultMessage: '{done} of {rows} did it · {current} on it now (small blue number)',
         description: 'Tooltip of a cell of the「done by」row of the lesson progress table',
         id: 'gui.classroom.lessonProgress.totalsTitle',
     },
@@ -197,11 +198,13 @@ const STATE_MESSAGES = {
 
 /**
  * The 「進み具合」 tab of a lesson assignment (#1602): seat × challenge table.
- * The header (lesson row, vertical challenge names, colour band and the
- * 「できた人」 row) and the seat column stay fixed; only the seat rows scroll
- * inside the table frame.
+ * The header (vertical challenge names and the 「できた人」 row, whose top
+ * line is the challenge colour; lessons are separated by a line) and the seat
+ * column stay fixed; only the seat rows scroll inside the table frame. The
+ * header is kept low so 12+ seat rows show at 1300×600 (#1767 M1).
  * @param {object} props - component props
  * @param {?object} props.ctx - lessonProgressContext (null when the course is unknown here)
+ * @param {string} [props.status] - 'loading' | 'error' (first fetch) | 'ready'
  * @param {Array<object>} props.members - members of the assignment
  * @param {object} props.rowsByMember - progressRowsByMember of the fetched progress
  * @param {number} props.studentCount - number of seats
@@ -211,7 +214,16 @@ const STATE_MESSAGES = {
  * @param {number} [props.now] - current time (ms epoch; tests)
  * @returns {React.ReactElement} the tab
  */
-const TeacherLessonProgress = ({ ctx, members, rowsByMember, studentCount, selectedMember, onSelectSeat, now }) => {
+const TeacherLessonProgress = ({
+    ctx,
+    status,
+    members,
+    rowsByMember,
+    studentCount,
+    selectedMember,
+    onSelectSeat,
+    now,
+}) => {
     const intl = useIntl();
     const [order, setOrder] = useState('seat');
     const handleOrderChange = useCallback((e) => setOrder(e.target.value), []);
@@ -228,6 +240,14 @@ const TeacherLessonProgress = ({ ctx, members, rowsByMember, studentCount, selec
         [ctx, members, rowsByMember, studentCount, at],
     );
     const sorted = useMemo(() => sortProgressRows(rows, order), [rows, order]);
+
+    if (status === 'loading' || status === 'error') {
+        return (
+            <p className={styles.lessonProgressNotice} data-testid={`classroom-lesson-progress-${status}`}>
+                {intl.formatMessage(status === 'loading' ? lessonSeatMessages.loading : lessonSeatMessages.loadError)}
+            </p>
+        );
+    }
 
     if (!ctx) {
         return (
@@ -273,29 +293,20 @@ const TeacherLessonProgress = ({ ctx, members, rowsByMember, studentCount, selec
             <div className={styles.lessonProgressFrame} data-testid="classroom-lesson-progress-frame">
                 <table className={styles.lessonProgressTable}>
                     <thead>
-                        <tr className={styles.lessonProgressLessonRow}>
-                            <th className={styles.lessonProgressSeatCol} />
-                            {ctx.lessonGroups.map((group) => (
-                                <th
-                                    colSpan={group.span}
-                                    key={group.lesson.id}
-                                    title={intl.formatMessage(group.lesson.name)}
-                                >
-                                    <span className={styles.lessonProgressLessonName}>
-                                        {intl.formatMessage(messages.lessonLabel, { number: group.lessonIndex + 1 })}
-                                    </span>
-                                </th>
-                            ))}
-                            <th colSpan={extraColumns} />
-                        </tr>
                         <tr>
                             <th className={styles.lessonProgressSeatCol}>{intl.formatMessage(messages.seat)}</th>
                             {ctx.columns.map((column) => {
                                 const name = intl.formatMessage(column.challenge.name);
-                                const label = `${column.lessonIndex + 1}-${column.challenge.number} ${name}`;
+                                const lessonLabel = `${intl.formatMessage(messages.lessonLabel, {
+                                    number: column.lessonIndex + 1,
+                                })} ${intl.formatMessage(column.lesson.name)}`;
+                                const label = `${column.lessonIndex + 1}-${column.challenge.number} ${name}（${lessonLabel}）`;
                                 return (
                                     <th
-                                        className={styles.lessonProgressChallengeHead}
+                                        className={classNames(
+                                            styles.lessonProgressChallengeHead,
+                                            column.lessonStart && styles.lessonProgressLessonStart,
+                                        )}
                                         data-testid={`classroom-lesson-progress-head-${column.id}`}
                                         key={column.id}
                                         title={column.required ? `★ ${label}` : label}
@@ -316,41 +327,37 @@ const TeacherLessonProgress = ({ ctx, members, rowsByMember, studentCount, selec
                             </th>
                             <th className={styles.lessonProgressBottomHead}>{intl.formatMessage(messages.state)}</th>
                         </tr>
-                        <tr className={styles.lessonProgressBandRow}>
-                            <th className={styles.lessonProgressSeatCol} />
+                        <tr className={styles.lessonProgressTotalsRow} data-testid="classroom-lesson-progress-totals">
+                            <th className={styles.lessonProgressSeatCol}>{intl.formatMessage(messages.totalsRow)}</th>
                             {ctx.columns.map((column) => {
+                                // The challenge colour band is the line above this cell.
                                 const color = bandColor(column.challenge);
                                 return (
-                                    <th key={column.id}>
-                                        <span
-                                            className={styles.lessonProgressBand}
-                                            style={color ? { backgroundColor: color } : null}
-                                        />
+                                    <th
+                                        className={classNames(column.lessonStart && styles.lessonProgressLessonStart)}
+                                        data-testid={`classroom-lesson-progress-total-${column.id}`}
+                                        key={column.id}
+                                        style={color ? { borderTopColor: color } : null}
+                                        title={intl.formatMessage(messages.totalsTitle, {
+                                            done: totals[column.id].done,
+                                            rows: rows.length,
+                                            current: totals[column.id].current,
+                                        })}
+                                    >
+                                        <span className={styles.lessonProgressTotalDone}>
+                                            {totals[column.id].done}
+                                        </span>
+                                        {totals[column.id].current > 0 ? (
+                                            <sup
+                                                className={styles.lessonProgressTotalCurrent}
+                                                data-testid={`classroom-lesson-progress-current-${column.id}`}
+                                            >
+                                                {totals[column.id].current}
+                                            </sup>
+                                        ) : null}
                                     </th>
                                 );
                             })}
-                            <th colSpan={extraColumns} />
-                        </tr>
-                        <tr className={styles.lessonProgressTotalsRow} data-testid="classroom-lesson-progress-totals">
-                            <th className={styles.lessonProgressSeatCol}>{intl.formatMessage(messages.totalsRow)}</th>
-                            {ctx.columns.map((column) => (
-                                <th
-                                    data-testid={`classroom-lesson-progress-total-${column.id}`}
-                                    key={column.id}
-                                    title={intl.formatMessage(messages.totalsTitle, {
-                                        done: totals[column.id].done,
-                                        rows: rows.length,
-                                        current: totals[column.id].current,
-                                    })}
-                                >
-                                    <span className={styles.lessonProgressTotalDone}>{totals[column.id].done}</span>
-                                    {totals[column.id].current > 0 ? (
-                                        <span className={styles.lessonProgressTotalCurrent}>
-                                            {`▶${totals[column.id].current}`}
-                                        </span>
-                                    ) : null}
-                                </th>
-                            ))}
                             <th colSpan={extraColumns}>
                                 {intl.formatMessage(messages.clearedCount, { count: clearedCount })}
                             </th>
@@ -401,7 +408,12 @@ const TeacherLessonProgress = ({ ctx, members, rowsByMember, studentCount, selec
                                               })
                                             : null;
                                     return (
-                                        <td key={column.id}>
+                                        <td
+                                            className={classNames(
+                                                column.lessonStart && styles.lessonProgressLessonStart,
+                                            )}
+                                            key={column.id}
+                                        >
                                             <span
                                                 className={classNames(styles.lessonCell, styles[CELL_CLASSES[kind]])}
                                                 data-kind={kind}
@@ -437,6 +449,7 @@ const TeacherLessonProgress = ({ ctx, members, rowsByMember, studentCount, selec
 
 TeacherLessonProgress.propTypes = {
     ctx: PropTypes.object,
+    status: PropTypes.oneOf(['loading', 'error', 'ready']),
     members: PropTypes.arrayOf(PropTypes.object).isRequired,
     now: PropTypes.number,
     rowsByMember: PropTypes.object.isRequired,
@@ -445,4 +458,6 @@ TeacherLessonProgress.propTypes = {
     onSelectSeat: PropTypes.func,
 };
 
-export default TeacherLessonProgress;
+// The parent re-renders on every keystroke of the assignment name; the table
+// only changes with the fetched progress (#1767 FYI1).
+export default React.memo(TeacherLessonProgress);

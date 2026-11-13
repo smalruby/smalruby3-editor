@@ -79,3 +79,29 @@ describe('buildSubmissionsCsv', () => {
         expect(csv).toContain('"a,b",2,"say ""hi""",,,未提出');
     });
 });
+
+describe('CSV formula injection (#1767 M3)', () => {
+    test('prefixes cells that start with = + - @ tab or CR with a quote', () => {
+        const csv = buildSubmissionsCsv([
+            {
+                assignmentName: '=1+1',
+                seat: 1,
+                name: '+cmd|x',
+                projectName: '-2',
+                submittedAt: '@SUM(A1)',
+                status: '\tx',
+            },
+            { assignmentName: 'ふつう', seat: 2, name: '\rname', projectName: 'a=b', submittedAt: '', status: '' },
+        ]);
+        const lines = csv.replace(/^﻿/, '').split('\r\n');
+        expect(lines[1]).toBe("'=1+1,1,'+cmd|x,'-2,'@SUM(A1),'\tx");
+        expect(lines[2].startsWith('ふつう,2,"\'\rname",a=b,')).toBe(true);
+    });
+
+    test('numbers are not prefixed', () => {
+        const csv = buildSubmissionsCsv([
+            { assignmentName: 'x', seat: -1, name: 'n', projectName: '', submittedAt: '', status: '' },
+        ]);
+        expect(csv.split('\r\n')[1]).toBe('x,-1,n,,,');
+    });
+});

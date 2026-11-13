@@ -4936,6 +4936,38 @@
     line-height: 0;
 }
 
+/* Rows of the progress table: as low as the 16px cells allow (#1767 M1). */
+.lesson-progress-table tbody td,
+.lesson-progress-table tbody th {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.compact-header-title {
+    margin-bottom: 0.3rem;
+}
+
+.compact-code-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: #575e75;
+    margin-bottom: 0.25rem;
+}
+
+.compact-code-value {
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    color: #4c97ff;
+}
+
+.compact-code-row .join-code-action {
+    padding: 0 0.3rem;
+    min-height: 0;
+    line-height: 1.3;
+}
+
 .lesson-cleared-summary {
     white-space: nowrap;
     font-size: 0.8rem;
@@ -4965,13 +4997,14 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    flex-wrap: wrap;
 }
 
+/* Legend and sort share one line (#1767 M1). */
 .lesson-progress-legend {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.2rem 0.7rem;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    gap: 0.2rem 0.6rem;
     font-size: 0.75rem;
     color: #575e75;
 }
@@ -5009,6 +5042,7 @@
 .lesson-progress-table th,
 .lesson-progress-table td {
     padding: 1px 2px;
+    line-height: 1.2;
     text-align: center;
     white-space: nowrap;
     border-bottom: 1px solid #f0f1f5;
@@ -5028,18 +5062,8 @@
     vertical-align: bottom;
 }
 
-.lesson-progress-lesson-row th {
-    font-size: 0.65rem;
-    color: #8a90a6;
-    font-weight: normal;
-    border-left: 1px solid #eceef4;
-}
-
-.lesson-progress-lesson-name {
-    display: block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.lesson-progress-table .lesson-progress-lesson-start {
+    border-left: 2px solid #d5d8e3;
 }
 
 .lesson-progress-challenge-head {
@@ -5052,7 +5076,7 @@
     display: inline-block;
     writing-mode: vertical-rl;
     text-orientation: upright;
-    max-height: 4rem;
+    max-height: 3rem;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 0.7rem;
@@ -5069,33 +5093,26 @@
     padding: 0 6px;
 }
 
-.lesson-progress-band-row th {
-    padding: 0 2px 2px;
-}
-
-.lesson-progress-band {
-    display: block;
-    height: 4px;
-    border-radius: 2px;
-    background-color: #eceef4;
-}
-
+/* 「できた人」: one line. Its top line is the challenge colour band. */
 .lesson-progress-totals-row th {
+    border-top: 4px solid #eceef4;
     border-bottom: 2px solid #e3e6ee;
     font-size: 0.7rem;
-    line-height: 1.15;
-    vertical-align: top;
+    line-height: 1.2;
+    vertical-align: middle;
 }
 
 .lesson-progress-total-done {
-    display: block;
     font-variant-numeric: tabular-nums;
 }
 
+/* いまやっている人の数: small, at the top right of the number. */
 .lesson-progress-total-current {
-    display: block;
     color: #1e5fc2;
+    font-size: 0.55rem;
     font-weight: normal;
+    vertical-align: super;
+    line-height: 0;
 }
 
 /* Seat column stays on the left when scrolled sideways. */
@@ -5148,8 +5165,8 @@
 .lesson-cell {
     display: inline-grid;
     place-items: center;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border-radius: 4px;
     font-size: 0.65rem;
     font-weight: 800;

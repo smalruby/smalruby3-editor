@@ -11,6 +11,8 @@
 //   node verify-classroom-lesson-progress.mjs                 # headless, asserts
 //   DOCS_SHOTS=1 node verify-classroom-lesson-progress.mjs    # + docs/classroom/screenshots
 //   BASE=http://localhost:8611 node verify-classroom-lesson-progress.mjs
+//
+// The progress tab must show 12+ seat rows at 1300x600 (#1767 M1).
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -191,6 +193,8 @@ try {
     );
     record('cleared summary', (await text('classroom-lesson-cleared-summary')).includes(`参加 ${JOINED}`), await text('classroom-lesson-cleared-summary'));
     record('「!」on seat 4 (14 min)', !!(await page.$(tid('classroom-lesson-seat-stuck-4'))));
+    // #1767 Q1: seat 8 is cleared and 14 min on a further challenge — no「!」.
+    record('no「!」on a cleared seat (seat 8)', !(await page.$(tid('classroom-lesson-seat-stuck-8'))));
     record('count capped at the condition (seat 11: 11 done → 8 / 8)', (await text('classroom-lesson-seat-count-11')) === '8 / 8');
     await shot('members', '0247-detail-lesson-members.png');
 
@@ -203,7 +207,23 @@ try {
     const frameScrolls = await page.$eval(FRAME, (el) => el.scrollHeight > el.clientHeight);
     record('progress tab: R6 (only the table frame scrolls)', r6(m) && frameScrolls, describe(m, FRAME));
     const header = await page.$eval(`${FRAME} thead`, (el) => Math.round(el.getBoundingClientRect().height));
-    record('fixed header height', header <= 150, `thead=${header}px`);
+    record('fixed header height', header <= 90, `thead=${header}px`);
+    // #1767 M1: at 1300x600 at least 12 seat rows are fully visible under the fixed header.
+    const visibleRows = await page.$eval(FRAME, (frame) => {
+        const top = frame.querySelector('thead').getBoundingClientRect().bottom;
+        const bottom = frame.getBoundingClientRect().bottom;
+        return [...frame.querySelectorAll('tbody tr')].filter((tr) => {
+            const r = tr.getBoundingClientRect();
+            return r.top >= top - 1 && r.bottom <= bottom + 1;
+        }).length;
+    });
+    record('12+ seat rows visible at 1300x600', visibleRows >= 12, `visible rows=${visibleRows}`);
+    record(
+        'assignment name and retention line fold away, join code is one line',
+        !(await page.$(tid('classroom-detail-assignment-name'))) &&
+            !(await page.$(tid('classroom-detail-expires-at'))) &&
+            !!(await page.$(tid('classroom-detail-compact-code'))),
+    );
     await shot('progress', '0248-detail-lesson-progress.png');
     // Scroll the frame: header and the「できた人」row stay.
     const before = await page.$eval(tid('classroom-lesson-progress-totals'), (el) => Math.round(el.getBoundingClientRect().top));

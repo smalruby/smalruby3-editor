@@ -77,9 +77,17 @@ export const lessonProgressContext = (lesson, course) => {
         const chosen = courseLesson.challenges.filter((c) => selected.has(c.id));
         if (chosen.length === 0) return;
         lessonGroups.push({ lesson: courseLesson, lessonIndex, span: chosen.length });
-        for (const challenge of chosen) {
-            columns.push({ id: challenge.id, challenge, lessonIndex, required: required.has(challenge.id) });
-        }
+        chosen.forEach((challenge, i) => {
+            columns.push({
+                id: challenge.id,
+                challenge,
+                lesson: courseLesson,
+                lessonIndex,
+                // The first column of a lesson draws the lesson boundary.
+                lessonStart: i === 0,
+                required: required.has(challenge.id),
+            });
+        });
     });
     return {
         lesson,
@@ -141,7 +149,10 @@ export const seatProgress = (row, ctx, now) => {
     ) {
         const elapsedMs = Math.max(0, now - openedMs);
         current = { challengeId: cur.challengeId, openedAt: cur.openedAt, elapsedMs };
-        cells[cur.challengeId] = elapsedMs >= STUCK_THRESHOLD_MS ? CELL_KINDS.STUCK : CELL_KINDS.CURRENT;
+        // A cleared student on a further challenge is not someone to help:
+        // ▶ only, never 「!」 (#1767 Q1).
+        const stuck = !status.cleared && elapsedMs >= STUCK_THRESHOLD_MS;
+        cells[cur.challengeId] = stuck ? CELL_KINDS.STUCK : CELL_KINDS.CURRENT;
     }
 
     let state = SEAT_STATES.IN_PROGRESS;
@@ -160,7 +171,7 @@ export const seatProgress = (row, ctx, now) => {
         doneIds,
         cells,
         current,
-        stuck: Boolean(current && current.elapsedMs >= STUCK_THRESHOLD_MS),
+        stuck: Boolean(current && !cleared && current.elapsedMs >= STUCK_THRESHOLD_MS),
     };
 };
 
@@ -259,14 +270,15 @@ export const columnTotals = (rows, ctx) => {
 
 /**
  * 並べ方: 席 / 進んでいる順（できた数の多い順）/ 止まっている順（いまの
- * チャレンジにいる時間の長い順・いまやっていない席は後ろ）. Ties keep seat order.
+ * チャレンジにいる時間の長い順・いまやっていない席と課題クリアの席は後ろ）. Ties keep seat order.
  * @param {Array<object>} rows - progressTableRows
  * @param {string} order - 'seat' | 'progress' | 'stuck'
  * @returns {Array<object>} sorted copy
  */
 export const sortProgressRows = (rows, order) => {
     const bySeat = (a, b) => a.seatNumber - b.seatNumber;
-    const elapsed = (row) => (row.progress.current ? row.progress.current.elapsedMs : -1);
+    // Cleared seats go after everyone still working (#1767 Q1).
+    const elapsed = (row) => (row.progress.current && !row.progress.cleared ? row.progress.current.elapsedMs : -1);
     const sorted = [...rows];
     if (order === 'progress') sorted.sort((a, b) => b.progress.done - a.progress.done || bySeat(a, b));
     else if (order === 'stuck') sorted.sort((a, b) => elapsed(b) - elapsed(a) || bySeat(a, b));

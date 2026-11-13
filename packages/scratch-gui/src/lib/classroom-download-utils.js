@@ -49,12 +49,16 @@ export const submissionStatusLabel = (member) => {
 };
 
 /**
- * Escape one CSV field (quote when needed, double inner quotes).
+ * Escape one CSV field (quote when needed, double inner quotes, and keep a
+ * string from being read as a formula).
  * @param {*} value - cell value (null/undefined become empty)
  * @returns {string} escaped field
  */
 const csvField = (value) => {
-    const text = value === null || typeof value === 'undefined' ? '' : String(value);
+    let text = value === null || typeof value === 'undefined' ? '' : String(value);
+    // Names are typed by students: a leading = + - @ (or tab / CR) would run
+    // as a formula when the teacher opens the file in a spreadsheet.
+    if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
     if (/[",\n\r]/.test(text)) {
         return `"${text.replace(/"/g, '""')}"`;
     }

@@ -815,10 +815,59 @@ describe('TeacherClassDetail — lesson progress (#1602)', () => {
         expect(cell('blocks-l1-arrow-move')).toBe('!');
         expect(cell('blocks-l1-click-say')).toBe('・');
         expect(
-            document.querySelector('[data-testid="classroom-lesson-progress-total-blocks-l1-arrow-move"]')
+            document.querySelector('[data-testid="classroom-lesson-progress-current-blocks-l1-arrow-move"]')
                 .textContent,
-        ).toBe('0▶1');
+        ).toBe('1');
+        // #1767 M1: the assignment name field and the retention line fold away on this tab.
+        expect(document.querySelector('[data-testid="classroom-detail-assignment-name"]')).not.toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-detail-compact-code"]')).toBeInTheDocument();
         fireEvent.click(document.querySelector('[data-testid="classroom-lesson-progress-seat-seat-01"]'));
         expect(onSelectMember).toHaveBeenCalledWith('seat-01');
+    });
+
+    test('shows 読み込み中 until the first fetch instead of grey seats (#1767 M2)', () => {
+        const editor = { savedLesson: lesson, editorPages: [] };
+        renderDetail({ members, assignmentEditor: editor });
+        expect(document.querySelector('[data-testid="classroom-lesson-progress-loading"]')).toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-members-grid"]')).not.toBeInTheDocument();
+        fireEvent.click(document.querySelector('[data-testid="classroom-tab-progress"]'));
+        expect(document.querySelector('[data-testid="classroom-lesson-progress-loading"]')).toBeInTheDocument();
+    });
+
+    test('a failed first fetch shows the ordinary seats and a note (#1767 M2)', () => {
+        const editor = { savedLesson: lesson, editorPages: [] };
+        renderDetail({ members, assignmentEditor: editor, lessonProgress: { classroomId: 'c1', error: true } });
+        expect(document.querySelector('[data-testid="classroom-lesson-progress-error"]')).toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-members-grid"]')).toBeInTheDocument();
+        expect(
+            document.querySelector('[data-testid="classroom-member-seat-01"]').dataset.lessonState,
+        ).toBeUndefined();
+    });
+
+    test('a cleared seat on a further challenge gets no「!」(#1767 Q1)', () => {
+        const all = Object.fromEntries(lesson.challengeIds.map((id) => [id, { completedAt: recent, before: false }]));
+        const cleared = {
+            ...lessonProgress,
+            lesson: {
+                ...lesson,
+                challengeIds: [...lesson.challengeIds, 'blocks-l1-repeat'],
+                completion: { type: 'count', count: 3 },
+            },
+            progress: [
+                {
+                    ...lessonProgress.progress[0],
+                    challenges: all,
+                    current: {
+                        challengeId: 'blocks-l1-repeat',
+                        openedAt: new Date(Date.now() - 20 * 60000).toISOString(),
+                    },
+                },
+            ],
+        };
+        renderDetail({ lessonProgress: cleared, members });
+        expect(document.querySelector('[data-testid="classroom-member-seat-01"]').dataset.lessonState).toBe(
+            'cleared',
+        );
+        expect(document.querySelector('[data-testid="classroom-lesson-seat-stuck-1"]')).not.toBeInTheDocument();
     });
 });

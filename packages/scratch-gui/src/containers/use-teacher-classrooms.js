@@ -8,6 +8,8 @@ import classroomAPI from '../lib/classroom-api.js';
 import { summarizeAssignmentRow } from '../lib/classroom-assignment-utils.js';
 import translateError from './classroom-error-utils.js';
 
+// Marks a lesson progress fetch that failed (distinct from `null` = no lesson).
+const FETCH_FAILED = Symbol('fetch-failed');
 const REFRESH_INTERVAL_MS = parseInt(process.env.CLASSROOM_REFRESH_INTERVAL_MS || '30000', 10);
 
 /**
@@ -393,11 +395,23 @@ const useTeacherClassrooms = ({
                     classroomAPI.listSubmissions(idToken, classroomId),
                     classroomAPI.listKickRequests(idToken, classroomId).catch(() => ({ requests: [] })),
                     // Only lesson assignments have progress (the API answers 400 otherwise).
-                    withLesson ? classroomAPI.getLessonProgress(idToken, classroomId).catch(() => null) : null,
+                    // A failed fetch is FETCH_FAILED (keep what is shown) — not `null`.
+                    withLesson
+                        ? classroomAPI.getLessonProgress(idToken, classroomId).catch(() => FETCH_FAILED)
+                        : null,
                 ]);
                 setMembers(enrichMembers(membersData, submissionsData));
                 setKickRequestsBySeat(groupKickRequestsBySeat(kickRequestsData));
-                setLessonProgress(progressData && { ...progressData, classroomId });
+                if (progressData === FETCH_FAILED) {
+                    // A passing error (5xx, timeout) must not look like every seat was
+                    // reset (#1767 M2): keep the last progress until the next refresh.
+                    // Without one, mark the error so the screen stops showing 読み込み中.
+                    setLessonProgress((prev) =>
+                        prev && prev.classroomId === classroomId && !prev.error ? prev : { classroomId, error: true },
+                    );
+                } else {
+                    setLessonProgress(progressData && { ...progressData, classroomId });
+                }
             } catch (err) {
                 if (err.status === 401) {
                     await handleTeacher401();

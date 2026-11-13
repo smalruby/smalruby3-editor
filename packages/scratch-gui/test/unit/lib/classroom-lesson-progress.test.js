@@ -183,10 +183,58 @@ describe('座席のタイルと表の行', () => {
     test('並べ方: 進んでいる順・止まっている順（同じなら席の順）', () => {
         const rows = progressTableRows(members, byMember, 5, ctx, NOW);
         expect(sortProgressRows(rows, 'progress').map((r) => r.seatNumber)).toEqual([2, 1, 3]);
-        expect(sortProgressRows(rows, 'stuck').map((r) => r.seatNumber)).toEqual([2, 1, 3]);
+        // 2 はいまやっているが課題クリアなので後ろ（#1767 Q1）→ 全員同じで席の順
+        expect(sortProgressRows(rows, 'stuck').map((r) => r.seatNumber)).toEqual([1, 2, 3]);
         expect(sortProgressRows(sortProgressRows(rows, 'progress'), 'seat').map((r) => r.seatNumber)).toEqual([
             1, 2, 3,
         ]);
+    });
+});
+
+describe('課題クリアした子は止まっているにしない（#1767 Q1）', () => {
+    const row = {
+        challenges: { a: done(), b: done(), d: done() },
+        current: { challengeId: 'e', openedAt: minutesAgo(20) },
+        updatedAt: minutesAgo(1),
+    };
+
+    test('クリアした席は ! にせず ▶（何分いるかは残す）', () => {
+        const p = seatProgress(row, ctx, NOW);
+        expect(p.cleared).toBe(true);
+        expect(p.stuck).toBe(false);
+        expect(p.cells.e).toBe(CELL_KINDS.CURRENT);
+        expect(p.current.elapsedMs).toBe(20 * 60 * 1000);
+    });
+
+    test('止まっている順ではクリアした席を後ろに回す', () => {
+        const ms = [
+            { memberId: 'seat-01', displayName: 'あ' },
+            { memberId: 'seat-02', displayName: 'い' },
+        ];
+        const rows = progressTableRows(
+            ms,
+            {
+                'seat-01': { ...row, memberId: 'seat-01' },
+                'seat-02': {
+                    memberId: 'seat-02',
+                    challenges: {},
+                    current: { challengeId: 'a', openedAt: minutesAgo(3) },
+                    updatedAt: minutesAgo(1),
+                },
+            },
+            2,
+            ctx,
+            NOW,
+        );
+        expect(sortProgressRows(rows, 'stuck').map((r) => r.seatNumber)).toEqual([2, 1]);
+    });
+});
+
+describe('CSV の数式（#1767 M3）', () => {
+    test('名前が = で始まっても数式にしない', () => {
+        const rows = progressTableRows([{ memberId: 'seat-01', displayName: '=HYPERLINK("x")' }], {}, 1, ctx, NOW);
+        const csv = buildLessonProgressCsv(rows, {}, ctx, ['A', 'B', 'D', 'E']);
+        expect(csv.split('\r\n')[1]).toBe('01,"\'=HYPERLINK(""x"")",,0,,,,,0');
     });
 });
 

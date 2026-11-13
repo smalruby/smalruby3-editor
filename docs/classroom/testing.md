@@ -103,7 +103,11 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-lesson-progress-frame` | div | 表の枠（この枠の中だけスクロールする。見出しと席の列は固定） |
 | `classroom-lesson-progress-head-{challengeId}` | th | チャレンジの見出し（縦書き・`title` に全文） |
 | `classroom-lesson-progress-totals` | tr | 見出しの中の「できた人」の行 |
-| `classroom-lesson-progress-total-{challengeId}` | th | 列のできた人の数（いまやっている人がいれば「▶n」も） |
+| `classroom-lesson-progress-total-{challengeId}` | th | 列のできた人の数（上の線がチャレンジの色・`title` に詳しく） |
+| `classroom-lesson-progress-current-{challengeId}` | sup | 列のいまやっている人の数（右肩の青い数。いるときだけ） |
+| `classroom-lesson-progress-loading` | p | はじめの取得が終わるまでの「進み具合を読み込み中…」（メンバータブ・「進み具合」タブ） |
+| `classroom-lesson-progress-error` | p | はじめの取得から失敗したときの「進み具合を読み込めませんでした。…」 |
+| `classroom-detail-compact-code` | div | 「進み具合」タブでの小さな 1 行の参加コード（課題名の欄と保存期限の行の代わり） |
 | `classroom-lesson-progress-row-{memberId}` | tr | 席の行 |
 | `classroom-lesson-progress-seat-{memberId}` | button | 席番号（押すと右にメンバーの詳細） |
 | `classroom-lesson-progress-cell-{memberId}-{challengeId}` | span | セル（`data-kind` = `done` / `before` / `current` / `stuck` / `todo`） |
