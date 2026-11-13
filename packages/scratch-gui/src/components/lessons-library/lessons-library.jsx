@@ -317,6 +317,7 @@ const CourseSection = ({
     focusLessonId,
     nextChallengeId,
     requiredChallengeIds,
+    showProgress = true,
     onSelectChallenge,
 }) => {
     const intl = useIntl();
@@ -338,21 +339,24 @@ const CourseSection = ({
                     ) : null}
                     {intl.formatMessage(course.name)}
                 </h2>
-                <div className={styles.courseProgress} data-testid="lessons-library-course-progress">
-                    <div
-                        className={styles.progressBar}
-                        role="progressbar"
-                        aria-valuemin={0}
-                        aria-valuemax={total}
-                        aria-valuenow={completedCount}
-                        aria-label={intl.formatMessage(course.name)}
-                    >
-                        <div className={styles.progressBarValue} style={{ width: `${percent}%` }} />
+                {/* 課題のチャレンジだけのレッスン表では、課題の帯がコースの進み具合の役目をする（#1771） */}
+                {showProgress ? (
+                    <div className={styles.courseProgress} data-testid="lessons-library-course-progress">
+                        <div
+                            className={styles.progressBar}
+                            role="progressbar"
+                            aria-valuemin={0}
+                            aria-valuemax={total}
+                            aria-valuenow={completedCount}
+                            aria-label={intl.formatMessage(course.name)}
+                        >
+                            <div className={styles.progressBarValue} style={{ width: `${percent}%` }} />
+                        </div>
+                        <span className={styles.progressText} data-testid="lessons-library-course-progress-text">
+                            {intl.formatMessage(messages.courseProgress, { completed: completedCount, total })}
+                        </span>
                     </div>
-                    <span className={styles.progressText} data-testid="lessons-library-course-progress-text">
-                        {intl.formatMessage(messages.courseProgress, { completed: completedCount, total })}
-                    </span>
-                </div>
+                ) : null}
             </div>
             {status.lessons.map((lessonStatus) => (
                 <LessonSection
@@ -385,6 +389,8 @@ CourseSection.propTypes = {
     focusLessonId: PropTypes.string,
     nextChallengeId: PropTypes.string,
     requiredChallengeIds: PropTypes.arrayOf(PropTypes.string),
+    // コース名の横の進み具合（バーと「n / 全部」）を出すか。課題のチャレンジだけのときは出さない
+    showProgress: PropTypes.bool,
     onSelectChallenge: PropTypes.func.isRequired,
 };
 
@@ -495,6 +501,7 @@ const LessonsLibrary = ({
                                 focusLessonId={focusLessonId}
                                 nextChallengeId={nextChallengeId}
                                 requiredChallengeIds={requiredChallengeIds}
+                                showProgress={!assignmentChallengeIds}
                                 onSelectChallenge={onSelectChallenge}
                             />
                         ))

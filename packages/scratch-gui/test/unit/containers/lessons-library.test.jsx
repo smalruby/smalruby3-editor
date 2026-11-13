@@ -133,13 +133,21 @@ describe('LessonsLibrary container: class assignment (#1599)', () => {
         expect(getByTestId('lessons-library-challenge-blocks-l1-key-sound')).toHaveAttribute('data-next', 'true');
         expect(getByTestId('lessons-library-challenge-blocks-l1-if')).toHaveAttribute('data-required', 'true');
         expect(queryByTestId(`lessons-library-challenge-${CHALLENGE_ID}`)).toBeNull();
+        // #1771: the band does the job of the course progress, so the bar and「n / all」are hidden
+        expect(getByTestId('lessons-library-course-kyou-kara-programmer')).toBeInTheDocument();
+        expect(queryByTestId('lessons-library-course-progress')).toBeNull();
         fireEvent.click(getByTestId('lessons-library-challenge-blocks-l1-if'));
         expect(onStartChallenge).toHaveBeenCalledWith('blocks-l1-if', { fromAssignment: true });
     });
 
     test('from the menu the whole course is shown under the band', () => {
-        const { getByTestId, onStartChallenge } = renderUnconnected({ lesson, assignmentOnly: false });
+        const { getByTestId, getAllByTestId, onStartChallenge } = renderUnconnected({
+            lesson,
+            assignmentOnly: false,
+        });
         expect(getByTestId('lesson-assignment-band')).toBeInTheDocument();
+        // the whole course keeps its progress
+        expect(getAllByTestId('lessons-library-course-progress').length).toBeGreaterThan(0);
         fireEvent.click(getByTestId(`lessons-library-challenge-${CHALLENGE_ID}`));
         expect(onStartChallenge).toHaveBeenCalledWith(CHALLENGE_ID, { fromAssignment: false });
     });

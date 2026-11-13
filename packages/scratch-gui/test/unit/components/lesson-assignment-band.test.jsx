@@ -25,9 +25,9 @@ const renderBand = (props, { locale = 'en', messages = en } = {}) =>
     );
 
 describe('LessonAssignmentBand', () => {
-    test('shows the name, the condition, the dots (★ for required) and how many are left', () => {
+    test('one sentence: name, condition and「あと N つ（★ R つ）で課題クリア」, no circles (#1771)', () => {
         const l = lesson({ completion: { type: 'count', count: 3 } });
-        const { getByTestId, getAllByTestId } = renderBand(
+        const { getByTestId, queryAllByTestId } = renderBand(
             {
                 assignmentName: '第1回',
                 completionAll: false,
@@ -37,15 +37,25 @@ describe('LessonAssignmentBand', () => {
         );
         expect(getByTestId('lesson-assignment-band-name')).toHaveTextContent('第1回');
         expect(getByTestId('lesson-assignment-band-condition')).toHaveTextContent('条件: 3 つ（★ をふくむ）');
-        const dots = getAllByTestId('lesson-assignment-dot');
-        expect(dots.map((d) => [d.dataset.completed, d.dataset.required])).toEqual([
-            ['true', 'false'],
-            ['false', 'true'],
-            ['false', 'false'],
-            ['false', 'false'],
-        ]);
-        expect(getByTestId('lesson-assignment-remaining')).toHaveTextContent('あと 2 つで課題クリア');
-        expect(getByTestId('lesson-assignment-required-remaining')).toHaveTextContent('★ あと 1');
+        expect(queryAllByTestId('lesson-assignment-dot')).toHaveLength(0);
+        expect(getByTestId('lesson-assignment-remaining')).toHaveTextContent('あと 2 つ（★ 1 つ）で課題クリア');
+        expect(getByTestId('lesson-assignment-band')).toHaveTextContent(
+            '課題第1回条件: 3 つ（★ をふくむ）あと 2 つ（★ 1 つ）で課題クリア',
+        );
+    });
+
+    test('the ★ part is left out once no required challenge is left', () => {
+        const l = lesson({ completion: { type: 'count', count: 3 } });
+        const { getByTestId } = renderBand(
+            { status: assignmentProgress(l, progressOf('blocks-l1-arrow-move')) },
+            { locale: 'ja', messages: ja },
+        );
+        expect(getByTestId('lesson-assignment-remaining')).toHaveTextContent(/^あと 2 つで課題クリア$/);
+    });
+
+    test('English wording', () => {
+        const { getByTestId } = renderBand({ status: assignmentProgress(lesson(), progressOf()) });
+        expect(getByTestId('lesson-assignment-remaining')).toHaveTextContent('4 more (★ 1) to clear the assignment');
     });
 
     test('cleared: ✓ and, for a work-submit assignment, the guidance and the submit button', () => {
@@ -92,14 +102,24 @@ describe('LessonAssignmentBand', () => {
         expect(queryByTestId('lesson-assignment-band-submit')).toBeNull();
     });
 
-    test('compact: only the dots and what is left, in one line', () => {
-        const { getByTestId, queryByTestId } = renderBand({
-            status: assignmentProgress(lesson(), progressOf('blocks-l1-key-sound')),
-            variant: 'compact',
-        });
+    test('compact: only「あと N つ（★ R つ）」, no circles, in one line', () => {
+        const { getByTestId, queryByTestId, queryAllByTestId, rerender } = renderBand(
+            { status: assignmentProgress(lesson(), progressOf('blocks-l1-key-sound')), variant: 'compact' },
+            { locale: 'ja', messages: ja },
+        );
         expect(getByTestId('lesson-task-bar-assignment')).toBeInTheDocument();
-        expect(getByTestId('lesson-assignment-remaining')).toHaveTextContent('3 more to clear the assignment');
+        expect(getByTestId('lesson-assignment-remaining')).toHaveTextContent(/^あと 3 つ（★ 1 つ）$/);
+        expect(queryAllByTestId('lesson-assignment-dot')).toHaveLength(0);
         expect(queryByTestId('lesson-assignment-band-condition')).toBeNull();
+        rerender(
+            <IntlProvider locale="ja" messages={ja}>
+                <LessonAssignmentBand
+                    status={assignmentProgress(lesson(), progressOf('blocks-l1-key-sound', 'blocks-l1-arrow-move'))}
+                    variant="compact"
+                />
+            </IntlProvider>,
+        );
+        expect(getByTestId('lesson-assignment-remaining')).toHaveTextContent(/^あと 2 つ$/);
     });
 
     test('after the first submission the guidance and the button are hidden (like the class screen)', () => {
@@ -116,11 +136,11 @@ describe('LessonAssignmentBand', () => {
 
     test('challenges unknown to this build: a reload note, not counted', () => {
         const l = lesson({ challengeIds: ['blocks-l1-key-sound', 'not-in-this-build'], requiredChallengeIds: [] });
-        const { getByTestId, getAllByTestId } = renderBand(
+        const { getByTestId } = renderBand(
             { status: assignmentProgress(l, progressOf()) },
             { locale: 'ja', messages: ja },
         );
-        expect(getAllByTestId('lesson-assignment-dot')).toHaveLength(1);
+        expect(getByTestId('lesson-assignment-remaining')).toHaveTextContent('あと 1 つで課題クリア');
         expect(getByTestId('lesson-assignment-band-unknown')).toHaveTextContent('ページを読み込み直してね');
     });
 });

@@ -1,12 +1,16 @@
-// クラスの課題の帯（#1599）。課題名・条件・丸（チャレンジごと。★ は必須）・「あと n つで課題クリア」。
-// 課題クリアのあと、作品も提出する課題では、提出の案内と［課題を提出する］を出す。
+// クラスの課題の帯（#1599）。1 行の文「［課題］<課題名> 条件: 6 つ あと 5 つ（★ 5 つ）で課題クリア」（#1771）。
+// 課題クリアのあとは「✓ 課題クリア」。作品も提出する課題では、提出の案内と［課題を提出する］を出す。
+// どのチャレンジができたか・必須かはカードの ✓ と ★ で分かるので、帯にはチャレンジごとの丸を出さない。
 //   - variant="full": レッスン表の上（components/lessons-library）
-//   - variant="compact": チャレンジの中の課題バーの同じ行（高さを変えない・丸と「あと n つ」だけ）
-// 数え方は lib/lessons/assignment-progress.js（assignmentProgress の結果を `status` で受ける）。
+//   - variant="compact": チャレンジの中の課題バーの同じ行（高さを変えない・「あと 5 つ（★ 5 つ）」だけ）
+// 数え方は lib/lessons/assignment-progress.js（assignmentProgress の結果を `status` で受け、
+// 文の数は assignmentRemainingParts で決める）。
+// 丸（AssignmentDots）・AssignmentRemaining・AssignmentDoneCount はクラスの画面の「進み具合」で使う。
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, useIntl } from 'react-intl';
+import { assignmentRemainingParts } from '../../lib/lessons/assignment-progress';
 import styles from './lesson-assignment-band.css';
 
 const messages = defineMessages({
@@ -34,6 +38,25 @@ const messages = defineMessages({
         id: 'gui.lessons.assignment.remaining',
         description: 'How many more challenges are needed to clear the lesson assignment',
         defaultMessage: '{count} more to clear the assignment',
+    },
+    bandRemaining: {
+        id: 'gui.lessons.assignment.bandRemaining',
+        description:
+            'Lesson assignment band: how many more challenges clear the assignment, and how many of them ' +
+            'are required (★)',
+        defaultMessage: '{total} more (★ {required}) to clear the assignment',
+    },
+    bandRemainingShort: {
+        id: 'gui.lessons.assignment.bandRemainingShort',
+        description:
+            'Short form inside a challenge: how many more challenges clear the assignment, and how many ' +
+            'of them are required (★)',
+        defaultMessage: '{total} more (★ {required})',
+    },
+    bandRemainingShortNoRequired: {
+        id: 'gui.lessons.assignment.bandRemainingShortNoRequired',
+        description: 'Short form inside a challenge: how many more challenges clear the assignment (none required)',
+        defaultMessage: '{total} more',
     },
     requiredRemaining: {
         id: 'gui.lessons.assignment.requiredRemaining',
@@ -187,6 +210,48 @@ AssignmentRemaining.propTypes = {
 };
 
 /**
+ * 帯の文「あと 5 つ（★ 5 つ）で課題クリア」（short なら「あと 5 つ（★ 5 つ）」）または「✓ 課題クリア」。
+ * 残っている必須が 0 なら「（★ R つ）」を出さない。
+ * @param {object} props - props。
+ * @param {boolean} [props.short] - チャレンジの中の短い形か。
+ * @param {object} props.status - assignmentProgress の結果。
+ * @returns {React.ReactElement} 文。
+ */
+export const AssignmentBandRemaining = ({ short = false, status }) => {
+    const intl = useIntl();
+    const parts = assignmentRemainingParts(status);
+    if (!parts) {
+        return (
+            <span className={styles.cleared} data-testid="lesson-assignment-cleared">
+                {`✓ ${intl.formatMessage(messages.cleared)}`}
+            </span>
+        );
+    }
+    let message;
+    if (short) message = parts.required > 0 ? messages.bandRemainingShort : messages.bandRemainingShortNoRequired;
+    else message = parts.required > 0 ? messages.bandRemaining : messages.remaining;
+    return (
+        <span
+            className={styles.remaining}
+            data-testid="lesson-assignment-remaining"
+            data-count={parts.total}
+            data-required={parts.required}
+        >
+            {intl.formatMessage(message, { total: parts.total, required: parts.required, count: parts.total })}
+        </span>
+    );
+};
+
+AssignmentBandRemaining.propTypes = {
+    short: PropTypes.bool,
+    status: PropTypes.shape({
+        cleared: PropTypes.bool.isRequired,
+        remaining: PropTypes.number.isRequired,
+        requiredRemaining: PropTypes.number.isRequired,
+    }).isRequired,
+};
+
+/**
  * 「4 / 6 できた」（できた数は条件の数で止める）。
  * @param {object} props - props。
  * @param {object} props.status - assignmentProgress の結果。
@@ -248,8 +313,7 @@ const LessonAssignmentBand = ({
                 data-testid="lesson-task-bar-assignment"
                 data-cleared={status.cleared ? 'true' : 'false'}
             >
-                <AssignmentDots challenges={status.challenges} className={styles.compactDots} />
-                <AssignmentRemaining status={status} />
+                <AssignmentBandRemaining short status={status} />
             </span>
         );
     }
@@ -269,8 +333,7 @@ const LessonAssignmentBand = ({
                 <span className={styles.condition} data-testid="lesson-assignment-band-condition">
                     {conditionText(intl, status, completionAll)}
                 </span>
-                <AssignmentDots challenges={status.challenges} />
-                <AssignmentRemaining status={status} />
+                <AssignmentBandRemaining status={status} />
                 {status.unknownCount > 0 ? <UnknownChallengesNote testId="lesson-assignment-band-unknown" /> : null}
             </div>
             {showSubmit ? (
@@ -302,7 +365,6 @@ LessonAssignmentBand.propTypes = {
     onSubmit: PropTypes.func,
     // assignment-progress.js の assignmentProgress の結果
     status: PropTypes.shape({
-        challenges: PropTypes.array.isRequired,
         cleared: PropTypes.bool.isRequired,
         conditionCount: PropTypes.number.isRequired,
         requiredCount: PropTypes.number.isRequired,
