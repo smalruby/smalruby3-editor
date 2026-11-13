@@ -38,6 +38,7 @@ import {
   lessonSettingOf,
   mergeLessonProgress,
   validateLessonProgressInput,
+  validateLessonScoringUpdate,
   validateLessonSetting,
   type LessonProgress,
 } from './lesson-lib';
@@ -4457,6 +4458,61 @@ async function handleSetAssignment(
 }
 
 /**
+ * Update only `lesson.scoring` of an assignment (#1783).
+ *
+ * PUT /assignment rewrites the whole content (pages without `pages` are
+ * cleared, unreferenced images / starter are deleted), so saving points from
+ * the grading screen had to send back pages it had read moments earlier — a
+ * stale imageKey there deletes an image replaced in between. This route writes
+ * `lesson.scoring` (and `updatedAt`) and nothing else: no S3 cleanup, no
+ * pages / starter / other lesson fields. Same authorization as PUT /assignment.
+ */
+async function handleSetLessonScoring(
+  identity: TeacherIdentity, classroomId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const scoring = validateLessonScoringUpdate(body);
+  const classroomResult = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroomResult.Item || classroomResult.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+  if (!(await canManageViaGroup(classroomResult.Item, identity))) {
+    throw new AuthError('Not authorized to edit this classroom');
+  }
+  if (!lessonSettingOf(classroomResult.Item)) {
+    throw new ValidationError('This assignment has no lesson');
+  }
+
+  let updated: Record<string, unknown> | undefined;
+  try {
+    const result = await docClient.send(new UpdateCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId },
+      UpdateExpression: 'SET lesson.scoring = :scoring, updatedAt = :now',
+      // The lesson may have been removed (or the assignment archived) after the
+      // read: never write into a missing map nor revive an archived assignment.
+      ConditionExpression: 'attribute_exists(lesson.courseId) AND #status = :active',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: { ':scoring': scoring, ':now': new Date().toISOString(), ':active': 'active' },
+      ReturnValues: 'ALL_NEW',
+    }));
+    updated = result.Attributes;
+  } catch (err: unknown) {
+    if ((err as { name?: string })?.name === 'ConditionalCheckFailedException') {
+      throw new ValidationError('This assignment has no lesson');
+    }
+    throw err;
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ lesson: lessonSettingOf(updated) }),
+  };
+}
+
+/**
  * Read the assignment content with download URLs. Dual-auth: students use
  * their opaque session token (UUID — no dots) and may only read their own
  * classroom's assignment; teachers use a JWT ID token (contains dots) and
@@ -6333,6 +6389,13 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const identity = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleSetAssignment(identity, classroomId, body);
+
+    } else if (method === 'PATCH' && /^\/classrooms\/[^/]+\/assignment\/lesson-scoring$/.test(path)) {
+      // Teacher (ID token): update only lesson.scoring (#1783).
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleSetLessonScoring(identity, classroomId, body);
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+\/assignment$/.test(path)) {
       // Dual-auth (teacher ID token or student session token) — see handler.

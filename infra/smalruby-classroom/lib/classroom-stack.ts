@@ -841,6 +841,14 @@ export class ClassroomStack extends cdk.Stack {
       integration,
     });
 
+    // Lesson scoring only (#1783): teacher updates lesson.scoring without
+    // touching pages / starter (PUT /assignment rewrites the whole content).
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/assignment/lesson-scoring',
+      methods: [apigatewayv2.HttpMethod.PATCH],
+      integration,
+    });
+
     // Lesson progress (#1597): student upserts its seat (PUT, session token),
     // teacher lists every seat (GET, ID token).
     this.api.addRoutes({

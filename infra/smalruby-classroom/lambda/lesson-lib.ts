@@ -126,6 +126,20 @@ function validateScoring(value: unknown): LessonScoring | null {
   };
 }
 
+/**
+ * 点だけを更新する API（PATCH /classrooms/{id}/assignment/lesson-scoring・issue #1783）の
+ * `scoring` を検証する。検証は課題の保存の `lesson.scoring` と同じ。
+ * @param body - リクエスト本文
+ * @returns 正規化した点の設定。null = 既定（点の設定なし）に戻す
+ */
+export function validateLessonScoringUpdate(body: Record<string, unknown>): LessonScoring | null {
+  // 送り忘れを「既定に戻す」と取り違えないよう、null は明示して送らせる。
+  if (!Object.prototype.hasOwnProperty.call(body, 'scoring')) {
+    throw new LessonInputError('scoring is required (send null to reset to the default)');
+  }
+  return validateScoring(body.scoring);
+}
+
 function validateCompletion(value: unknown, challengeCount: number, requiredCount: number): LessonCompletion {
   if (value === undefined || value === null) return { type: 'all' };
   if (!isPlainObject(value) || !COMPLETION_TYPES.includes(value.type as typeof COMPLETION_TYPES[number])) {
