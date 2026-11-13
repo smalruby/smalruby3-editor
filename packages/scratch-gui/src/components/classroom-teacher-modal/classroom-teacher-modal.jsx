@@ -305,6 +305,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         evalLessons={evaluation.evalLessons}
                         evalProgress={evaluation.evalProgress}
                         getCell={evaluation.getCell}
+                        lessonScores={evaluation.lessonScores}
                         rubricAxes={evaluation.rubricAxes}
                         seats={evaluation.seats}
                         selectedLessonIds={evaluation.selectedLessonIds}

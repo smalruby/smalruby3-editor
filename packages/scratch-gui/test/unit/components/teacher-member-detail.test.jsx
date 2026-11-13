@@ -65,3 +65,77 @@ describe('TeacherMemberDetail — 他の生徒に見せない (#1208)', () => {
         expect(byTestId('classroom-member-detail-hide-from-peers')).not.toBeInTheDocument();
     });
 });
+
+describe('TeacherMemberDetail — レッスンの詳細 (#1603)', () => {
+    const NOW = new Date(2026, 10, 15, 10, 30).getTime();
+    const name = (id) => ({ id: `c.${id}`, defaultMessage: id.toUpperCase() });
+    const lessonDetail = {
+        progress: { cleared: false, shown: 2, target: 3, requiredLeft: 1 },
+        rows: [
+            {
+                id: 'a',
+                challenge: { name: name('a') },
+                kind: 'done',
+                completedAt: new Date(2026, 10, 15, 10, 23).toISOString(),
+                required: false,
+                lessonStart: true,
+            },
+            {
+                id: 'b',
+                challenge: { name: name('b') },
+                kind: 'before',
+                completedAt: new Date(2026, 10, 10, 9, 0).toISOString(),
+                required: true,
+                lessonStart: false,
+            },
+            {
+                id: 'c',
+                challenge: { name: name('c') },
+                kind: 'current',
+                elapsedMs: 12 * 60 * 1000,
+                required: false,
+                lessonStart: false,
+            },
+            { id: 'd', challenge: { name: name('d') }, kind: 'todo', required: true, lessonStart: true },
+        ],
+    };
+
+    test('チャレンジごとに、できた時刻・前からできた日・いまやっている（分）・まだ', () => {
+        renderDetail(member(), { lessonDetail, lessonNow: NOW });
+        expect(byTestId('classroom-member-lesson-detail-count')).toHaveTextContent('2 / 3');
+        expect(byTestId('classroom-member-lesson-detail-a')).toHaveTextContent(/10:23/);
+        expect(byTestId('classroom-member-lesson-detail-b')).toHaveTextContent('Before 11/10');
+        expect(byTestId('classroom-member-lesson-detail-c')).toHaveTextContent('▶ On it now (12 min)');
+        expect(byTestId('classroom-member-lesson-detail-d')).toHaveTextContent('・');
+    });
+
+    test('作品も提出する課題では、その下に作品の詳細が続く', () => {
+        renderDetail(member(), { lessonDetail, lessonNow: NOW });
+        expect(byTestId('classroom-member-detail-thumbnail')).toBeInTheDocument();
+    });
+
+    test('作品を出さない課題では、提出の印と作品の詳細を出さない', () => {
+        renderDetail(member({ hasSubmission: false }), { lessonDetail, lessonNow: NOW, showSubmission: false });
+        expect(byTestId('classroom-member-detail-not-submitted')).toBeNull();
+        expect(byTestId('classroom-member-lesson-detail')).toBeInTheDocument();
+    });
+
+    test('退出した席（メンバーがいない）でも記録を出す', () => {
+        render(
+            <IntlProvider locale="en">
+                <TeacherMemberDetail
+                    isLoading={false}
+                    lessonDetail={lessonDetail}
+                    lessonNow={NOW}
+                    memberMap={{}}
+                    members={[]}
+                    selectedMember="seat-05"
+                    onDeleteMember={jest.fn()}
+                    onOpenSubmission={jest.fn()}
+                    onReturnSubmission={jest.fn()}
+                />
+            </IntlProvider>,
+        );
+        expect(byTestId('classroom-member-lesson-detail')).toBeInTheDocument();
+    });
+});

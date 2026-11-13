@@ -20,6 +20,7 @@ import {
     seatMemberId,
     seatTile,
 } from '../../lib/classroom-lesson-progress.js';
+import { seatChallengeDetails } from '../../lib/classroom-lesson-summary.js';
 import { isMemberSeated } from '../../lib/classroom-presence.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
 import { findCourse } from '../../lib/lessons/courses.js';
@@ -391,6 +392,11 @@ const TeacherClassDetail = ({
     }, [lessonCtx, progressData, totalCount, memberMap, rowsByMember, progressNow]);
     const lessonSummary = lessonTiles ? clearedSummary(lessonTiles) : null;
     const submitsWork = Boolean(lesson && lesson.submitWork);
+    // The seat detail on the right (#1603): one row per challenge of the setting.
+    const lessonDetail =
+        lessonCtx && progressData && !progressError && selectedMember
+            ? seatChallengeDetails(rowsByMember[selectedMember] || null, lessonCtx, progressNow)
+            : null;
     const showProgressTab = Boolean(lesson);
     // The progress tab needs the height for the table (#1767 M1): the
     // assignment name (editable in the description tab) and the retention
@@ -399,10 +405,11 @@ const TeacherClassDetail = ({
 
     const handleDownloadProgressCsv = useCallback(() => {
         if (!lessonCtx || !progressData) return;
-        const rows = progressTableRows(members, rowsByMember, totalCount, lessonCtx, Date.now());
+        const now = Date.now();
+        const rows = progressTableRows(members, rowsByMember, totalCount, lessonCtx, now);
         const names = lessonCtx.columns.map((c) => intl.formatMessage(c.challenge.name));
         const name = sanitizeEntryName(selectedClassroom.assignmentName || selectedClassroom.className);
-        downloadCsv(buildLessonProgressCsv(rows, rowsByMember, lessonCtx, names), `進み具合_${name}.csv`);
+        downloadCsv(buildLessonProgressCsv(rows, rowsByMember, lessonCtx, names, now), `進み具合_${name}.csv`);
     }, [lessonCtx, progressData, members, rowsByMember, totalCount, intl, selectedClassroom]);
 
     return (
@@ -1399,9 +1406,12 @@ const TeacherClassDetail = ({
                                         if (!match) return [];
                                         return kickRequestsBySeat[parseInt(match[1], 10)] || [];
                                     })()}
+                                    lessonDetail={lessonDetail}
+                                    lessonNow={progressNow}
                                     memberMap={memberMap}
                                     members={members}
                                     selectedMember={selectedMember}
+                                    showSubmission={!lessonCtx || submitsWork}
                                     onApproveKickRequest={onApproveKickRequest}
                                     onDeleteMember={onDeleteMember}
                                     onOpenSubmission={onOpenSubmission}

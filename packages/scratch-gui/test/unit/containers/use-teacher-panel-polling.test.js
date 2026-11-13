@@ -8,11 +8,13 @@ import useTeacherPanelPolling from '../../../src/containers/use-teacher-panel-po
 
 const mockListMembers = jest.fn();
 const mockListSubmissions = jest.fn();
+const mockGetLessonProgress = jest.fn();
 jest.mock('../../../src/lib/classroom-api.js', () => ({
     __esModule: true,
     default: {
         listMembers: (...args) => mockListMembers(...args),
         listSubmissions: (...args) => mockListSubmissions(...args),
+        getLessonProgress: (...args) => mockGetLessonProgress(...args),
     },
 }));
 jest.mock('../../../src/containers/use-teacher-auth.js', () => ({
@@ -46,6 +48,8 @@ describe('useTeacherPanelPolling (#1203)', () => {
         jest.useFakeTimers();
         mockListMembers.mockReset();
         mockListSubmissions.mockReset();
+        mockGetLessonProgress.mockReset();
+        mockGetLessonProgress.mockResolvedValue({ lesson: { courseId: 'c' }, progress: [] });
         mockListMembers.mockResolvedValue({ members: [{ memberId: 'seat-01', nickname: 'a' }] });
         mockListSubmissions.mockResolvedValue({
             submissions: [{ memberId: 'seat-01', submissionId: 's1', submittedAt: '2026-10-25T00:00:00Z' }],
@@ -122,5 +126,34 @@ describe('useTeacherPanelPolling (#1203)', () => {
         expect(onMembers).not.toHaveBeenCalled();
         await advance(30000);
         expect(onMembers).toHaveBeenCalledTimes(1);
+    });
+
+    test('レッスンの課題は同じ周期で進み具合も取る（タイマーを増やさない・#1603）', async () => {
+        const onLessonProgress = jest.fn();
+        renderHook(() =>
+            useTeacherPanelPolling({ ...baseProps, onMembers: jest.fn(), withLesson: true, onLessonProgress }),
+        );
+        await flush();
+        expect(mockGetLessonProgress).toHaveBeenCalledWith('teacher-token', 'c1');
+        expect(onLessonProgress).toHaveBeenCalledWith('c1', { lesson: { courseId: 'c' }, progress: [] });
+        await advance(30000);
+        expect(mockGetLessonProgress).toHaveBeenCalledTimes(2);
+        expect(mockListMembers).toHaveBeenCalledTimes(2);
+    });
+
+    test('レッスンの無い課題は進み具合を取らない', async () => {
+        renderHook(() => useTeacherPanelPolling({ ...baseProps, onMembers: jest.fn(), onLessonProgress: jest.fn() }));
+        await flush();
+        expect(mockGetLessonProgress).not.toHaveBeenCalled();
+    });
+
+    test('進み具合の取得に失敗しても、メンバーは渡し、前の進み具合を残す（呼ばない）', async () => {
+        mockGetLessonProgress.mockRejectedValueOnce(new Error('503'));
+        const onMembers = jest.fn();
+        const onLessonProgress = jest.fn();
+        renderHook(() => useTeacherPanelPolling({ ...baseProps, onMembers, withLesson: true, onLessonProgress }));
+        await flush();
+        expect(onMembers).toHaveBeenCalledTimes(1);
+        expect(onLessonProgress).not.toHaveBeenCalled();
     });
 });

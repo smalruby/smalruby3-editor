@@ -15,12 +15,30 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
-import { GRADE_ORDER, combineOverall } from '../../lib/classroom-evaluation/evaluation-utils.js';
+import {
+    GRADE_ORDER,
+    combineOverall,
+    evaluationColumns,
+    lessonScoreOf,
+} from '../../lib/classroom-evaluation/evaluation-utils.js';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import { TeacherScreen } from './teacher-view-layout.jsx';
 
 const GRADES = [...GRADE_ORDER].reverse(); // S, A, B, C
+
+const evalMessages = defineMessages({
+    lessonHead: {
+        defaultMessage: 'Lesson',
+        description: 'Grading table: header of the lesson score column, next to the work column (EPIC #1592)',
+        id: 'gui.classroom.evaluation.lessonHead',
+    },
+    lessonHeadTitle: {
+        defaultMessage: '{name}: lesson score from the progress (out of {total})',
+        description: 'Grading table: tooltip of the lesson score column header (EPIC #1592)',
+        id: 'gui.classroom.evaluation.lessonHeadTitle',
+    },
+});
 
 /* 厳しさの選択肢。閉じた設定の 1 行でも、いまの値として同じ言葉を出す。 */
 const STRICTNESS_MESSAGES = defineMessages({
@@ -242,6 +260,8 @@ GradeCell.propTypes = {
     onSetComment: PropTypes.func.isRequired,
 };
 
+const EMPTY_LESSON_SCORES = {};
+
 const TeacherEvaluation = ({
     comments,
     error,
@@ -250,6 +270,7 @@ const TeacherEvaluation = ({
     evalLessons,
     evalProgress,
     getCell,
+    lessonScores = EMPTY_LESSON_SCORES,
     rubricAxes,
     seats,
     selectedLessonIds,
@@ -271,6 +292,8 @@ const TeacherEvaluation = ({
     const busy = !!evalProgress;
     const selectedLessons = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
     const loaded = seats.length > 0;
+    // 作品の点とレッスンの点は別の列（#1603・作品の列のすぐ横に「レッスン」）。
+    const columns = evaluationColumns(selectedLessons, lessonScores);
     const hasGrades = seats.some((seatNumber) =>
         selectedLessons.some((lesson) => {
             const cell = getCell(seatNumber, lesson.classroomId);
@@ -614,9 +637,27 @@ const TeacherEvaluation = ({
                                         id="gui.classroom.evaluation.seat"
                                     />
                                 </th>
-                                {selectedLessons.map((lesson) => (
-                                    <th key={lesson.classroomId}>{lesson.assignmentName}</th>
-                                ))}
+                                {columns.map(({ lesson, kind }) =>
+                                    kind === 'lesson' ? (
+                                        <th
+                                            className={styles.evalLessonHead}
+                                            data-testid={`classroom-eval-lesson-head-${lesson.classroomId}`}
+                                            key={`${lesson.classroomId}:lesson`}
+                                            title={intl.formatMessage(evalMessages.lessonHeadTitle, {
+                                                name: lesson.assignmentName,
+                                                total:
+                                                    lessonScores[lesson.classroomId] &&
+                                                    lessonScores[lesson.classroomId].total !== null
+                                                        ? lessonScores[lesson.classroomId].total
+                                                        : '-',
+                                            })}
+                                        >
+                                            {intl.formatMessage(evalMessages.lessonHead)}
+                                        </th>
+                                    ) : (
+                                        <th key={lesson.classroomId}>{lesson.assignmentName}</th>
+                                    ),
+                                )}
                                 <th>
                                     <FormattedMessage
                                         defaultMessage="Overall"
@@ -634,18 +675,35 @@ const TeacherEvaluation = ({
                                 return (
                                     <tr key={seatNumber}>
                                         <td className={styles.evalSeatCell}>{String(seatNumber).padStart(2, '0')}</td>
-                                        {selectedLessons.map((lesson) => (
-                                            <GradeCell
-                                                cell={getCell(seatNumber, lesson.classroomId)}
-                                                classroomId={lesson.classroomId}
-                                                comment={comments[`${seatNumber}:${lesson.classroomId}`]}
-                                                key={lesson.classroomId}
-                                                seatNumber={seatNumber}
-                                                onSetCellGrade={onSetCellGrade}
-                                                onSetCellReason={onSetCellReason}
-                                                onSetComment={onSetComment}
-                                            />
-                                        ))}
+                                        {columns.map(({ lesson, kind }) =>
+                                            kind === 'lesson' ? (
+                                                <td
+                                                    className={styles.evalLessonCell}
+                                                    data-testid={`classroom-eval-lesson-score-${seatNumber}-${lesson.classroomId}`}
+                                                    key={`${lesson.classroomId}:lesson`}
+                                                >
+                                                    {(() => {
+                                                        const score = lessonScoreOf(
+                                                            lessonScores,
+                                                            lesson.classroomId,
+                                                            seatNumber,
+                                                        );
+                                                        return score === null ? '—' : score;
+                                                    })()}
+                                                </td>
+                                            ) : (
+                                                <GradeCell
+                                                    cell={getCell(seatNumber, lesson.classroomId)}
+                                                    classroomId={lesson.classroomId}
+                                                    comment={comments[`${seatNumber}:${lesson.classroomId}`]}
+                                                    key={lesson.classroomId}
+                                                    seatNumber={seatNumber}
+                                                    onSetCellGrade={onSetCellGrade}
+                                                    onSetCellReason={onSetCellReason}
+                                                    onSetComment={onSetComment}
+                                                />
+                                            ),
+                                        )}
                                         <td
                                             className={styles.evalOverallCell}
                                             data-testid={`classroom-eval-overall-${seatNumber}`}
@@ -671,6 +729,7 @@ TeacherEvaluation.propTypes = {
     evalLessons: PropTypes.arrayOf(PropTypes.object).isRequired,
     evalProgress: PropTypes.object,
     getCell: PropTypes.func.isRequired,
+    lessonScores: PropTypes.object,
     rubricAxes: PropTypes.arrayOf(PropTypes.object).isRequired,
     seats: PropTypes.arrayOf(PropTypes.number).isRequired,
     selectedLessonIds: PropTypes.arrayOf(PropTypes.string).isRequired,

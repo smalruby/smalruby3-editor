@@ -233,7 +233,7 @@ describe('課題クリアした子は止まっているにしない（#1767 Q1�
 describe('CSV の数式（#1767 M3）', () => {
     test('名前が = で始まっても数式にしない', () => {
         const rows = progressTableRows([{ memberId: 'seat-01', displayName: '=HYPERLINK("x")' }], {}, 1, ctx, NOW);
-        const csv = buildLessonProgressCsv(rows, {}, ctx, ['A', 'B', 'D', 'E']);
+        const csv = buildLessonProgressCsv(rows, {}, ctx, ['A', 'B', 'D', 'E'], NOW);
         expect(csv.split('\r\n')[1]).toBe('01,"\'=HYPERLINK(""x"")",,0,,,,,0');
     });
 });
@@ -247,7 +247,7 @@ describe('CSV', () => {
 
     test('出席番号・名前・課題クリア・できた数・チャレンジごと・得点', () => {
         const rows = progressTableRows(members, byMember, 5, ctx, NOW);
-        const csv = buildLessonProgressCsv(rows, byMember, ctx, ['A', 'B', 'D', 'E']);
+        const csv = buildLessonProgressCsv(rows, byMember, ctx, ['A', 'B', 'D', 'E'], NOW);
         const lines = csv.replace(/^﻿/, '').split('\r\n');
         expect(lines[0]).toBe('出席番号,名前,課題クリア,できた数,A,B,D,E,得点');
         const time = formatCsvTime(minutesAgo(30));

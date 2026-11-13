@@ -133,6 +133,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-member-detail-comment` | textarea | コメント入力 |
 | `classroom-member-detail-hide-from-peers` | input (checkbox) | 他の生徒に見せない（提出があるときだけ・切り替えで即保存・Issue #1208） |
 | `classroom-member-remove` | button | メンバー削除 |
+| `classroom-member-lesson-detail` | div | レッスンの課題の席の詳細（チャレンジの一覧。#1603） |
+| `classroom-member-lesson-detail-count` | span | 「できた数 / 条件の数」（課題クリアなら「課題クリア」） |
+| `classroom-member-lesson-detail-list` | ul | チャレンジの一覧の枠（この枠の中だけスクロール） |
+| `classroom-member-lesson-detail-{challengeId}` | li | チャレンジ 1 行（`data-kind` = `done` / `before` / `current` / `stuck` / `todo`） |
 
 ### コード表示
 
@@ -405,6 +409,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-retention-{classroomId}` | span | 開いた中の灰色の保存期限（7 日より先） |
 | `classroom-board-row-description-{classroomId}` | p | 開いた中の説明の 1 行目（読み込み後・説明があるときだけ） |
 | `classroom-board-row-counts-{classroomId}` | span | 開いた中の「提出済み・参加済み（N 人中）」（開いたときに読み込む） |
+| `classroom-board-row-lesson-cleared-{classroomId}` | span | 開いた中の「課題クリア N」（レッスンの課題だけ・#1603） |
+| `classroom-board-lesson-mark-{classroomId}` | span | 閉じた行の「レッスン」の印（レッスンの課題だけ・#1603） |
 | `classroom-board-open-{classroomId}` | button | 開いた中の［課題を開く］（課題詳細へ） |
 | `classroom-board-archived-section` | div | アーカイブ済み課題セクション（1 件以上のとき表示） |
 | `classroom-board-archived-toggle` | button | 「アーカイブ済みの課題（{count}）」トグル |
@@ -502,6 +508,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-reason-{seat}-{classroomId}` | input | 根拠 |
 | `classroom-eval-comment-{seat}-{classroomId}` | textarea | 生徒向けコメント |
 | `classroom-eval-overall-{seat}` | td | 総合 |
+| `classroom-eval-lesson-head-{classroomId}` | th | 「レッスン」の列の見出し（レッスンの課題だけ・作品の列の右・#1603） |
+| `classroom-eval-lesson-score-{seat}-{classroomId}` | td | 席のレッスンの点（記録が無ければ「—」） |
 | `classroom-eval-steps` | div | フッターの手順（1〜4 のボタンと矢印） |
 | `classroom-eval-load` | button | 手順 1「提出を読み込む」（sb3 をブラウザ内で静的解析） |
 | `classroom-eval-run-grade` | button | 手順 2「AIで採点」 |
@@ -564,7 +572,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-teacher-panel` | div | パネル全体（ドラッグ可能） |
 | `classroom-teacher-panel-header` | div | ヘッダー（ドラッグハンドル） |
-| `classroom-teacher-panel-header-counts` | span | 最小化中の `着席/定員 · 提出/参加` |
+| `classroom-teacher-panel-header-counts` | span | 最小化中の `着席/定員 · 提出/参加`（レッスンの課題は `着席/定員 · ✓課題クリア/参加`） |
 | `classroom-teacher-panel-refresh` | button | 手動更新 |
 | `classroom-teacher-panel-minimize` | button | 最小化 / 元に戻す |
 | `classroom-teacher-panel-close` | button | 閉じる |
@@ -573,7 +581,15 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-teacher-panel-seated` | span | 着席（目安） N / 定員 |
 | `classroom-teacher-panel-submitted` | span | 提出 N / 参加数 |
 | `classroom-teacher-panel-grid` | div | 座席ミニグリッド |
-| `classroom-teacher-panel-seat-<N>` | button | 座席 N（`data-member-id`。押すとメンバー詳細へ） |
+| `classroom-teacher-panel-seat-<N>` | button | 座席 N（`data-member-id`。押すとメンバー詳細へ。レッスンの課題は `data-lesson-state`） |
+| `classroom-teacher-panel-seat-stuck-<N>` | span | 座席 N の「!」（同じチャレンジに 10 分以上・レッスンの課題だけ） |
+| `classroom-teacher-panel-lesson-summary` | div | レッスンの課題の 2 行目の数（#1603） |
+| `classroom-teacher-panel-lesson-cleared` | span | 課題クリア N / 参加 N |
+| `classroom-teacher-panel-lesson-stuck` | span | 止まっている N |
+| `classroom-teacher-panel-seat-legend` | div | 座席の色の凡例（まだ・とちゅう・課題クリア・!） |
+| `classroom-teacher-panel-lesson-bars` | div | チャレンジごとの横棒 |
+| `classroom-teacher-panel-bar-legend` | div | 横棒の凡例（できた・いまやっている） |
+| `classroom-teacher-panel-bar-{challengeId}` | div | チャレンジ 1 本の横棒（`title` に人数） |
 | `classroom-teacher-panel-kick-list` | div | この課題の未処理の退室依頼 |
 | `classroom-teacher-panel-kick-request` | div | 依頼 1 件（`data-request-id`） |
 | `classroom-teacher-panel-kick-approve` / `-kick-reject` | button | 承認 / 却下 |

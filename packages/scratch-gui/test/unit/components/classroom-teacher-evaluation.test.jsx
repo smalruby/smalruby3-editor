@@ -257,3 +257,29 @@ describe('TeacherEvaluation grading settings (R3 / R6)', () => {
         expect(handlers.onSetStrictness).toHaveBeenCalledWith('lenient');
     });
 });
+
+describe('レッスンの点の列（#1603）', () => {
+    test('作品の列の横に「Lesson」の列を出し、記録の無い席は —', () => {
+        const lessons = [{ classroomId: 'c1', assignmentName: '迷路', hasLesson: true }];
+        const { getByTestId } = renderEvaluation({
+            evalLessons: lessons,
+            seats: [1, 2],
+            lessonScores: { c1: { total: 100, submitWork: true, scores: { 1: 78 } } },
+        });
+        expect(getByTestId('classroom-eval-lesson-head-c1')).toHaveTextContent('Lesson');
+        expect(getByTestId('classroom-eval-lesson-score-1-c1')).toHaveTextContent('78');
+        expect(getByTestId('classroom-eval-lesson-score-2-c1')).toHaveTextContent('—');
+        expect(getByTestId('classroom-eval-cell-1-c1')).toBeInTheDocument();
+    });
+
+    test('作品を出さないレッスンの課題は作品の列を出さない', () => {
+        const lessons = [{ classroomId: 'c1', assignmentName: '迷路', hasLesson: true }];
+        const { queryByTestId } = renderEvaluation({
+            evalLessons: lessons,
+            seats: [1],
+            lessonScores: { c1: { total: 100, submitWork: false, scores: { 1: 100 } } },
+        });
+        expect(queryByTestId('classroom-eval-cell-1-c1')).toBeNull();
+        expect(queryByTestId('classroom-eval-lesson-score-1-c1')).toHaveTextContent('100');
+    });
+});
