@@ -63,7 +63,8 @@ const findMatchingClose = (text, openParenPos) => {
  * @param {string} name - Function name to match (e.g. `表示する`).
  * @param {Function} transform - Receives the raw args string (after
  *   recursive processing of any same-name calls inside) and returns the
- *   full replacement text.
+ *   full replacement text. Its second argument is the text before the
+ *   call, as already transformed (to look at a `-` before the call).
  * @returns {string} Text with all occurrences of `name(...)` transformed.
  */
 const replaceCall = (text, name, transform) => {
@@ -88,7 +89,7 @@ const replaceCall = (text, name, transform) => {
             const rawArgs = text.substring(openPos + 1, closePos);
             // Recursively process so nested same-name calls (f(f(x))) work.
             const args = replaceCall(rawArgs, name, transform);
-            result += transform(args);
+            result += transform(args, result);
             i = closePos + 1;
             continue;
         }

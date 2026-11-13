@@ -134,3 +134,73 @@ describe('Ruby → DNCL with a negative number receiver (Issue #1700)', () => {
         },
     );
 });
+
+/**
+ * A `-` before a built-in negates the result of the built-in (`-絶対値(5)` is
+ * -5). Ruby reads `-5.abs` as `(-5).abs` (5), so DNCL → Ruby puts the method
+ * call in parentheses (`-(5.abs)`), as the generator does for a unary minus.
+ * Ruby → DNCL drops them again. (Issue #1744)
+ */
+describe('DNCL → Ruby with a `-` before a built-in (Issue #1744)', () => {
+    const toDncl = (ruby) => rubyToDncl(ruby).dncl;
+    const toRuby = (dncl) => dnclToRuby(dncl).ruby;
+
+    test.each([
+        ['b = -絶対値(5)', '@b = -(5.abs)'],
+        ['b = -文字列(1)', '@b = -(1.to_s)'],
+        ['b = -四捨五入(2.5)', '@b = -(2.5.round)'],
+        ['b = -切り捨て(2.5)', '@b = -(2.5.floor)'],
+        ['b = -切り上げ(2.5)', '@b = -(2.5.ceil)'],
+        ['b = -整数(x)', '@b = -(@x.to_i)'],
+        ['b = -要素数(A)', '@b = -(@_array_A_.length)'],
+        ['b = -絶対値(a)', '@b = -(@a.abs)'],
+        ['b = -絶対値(a - c)', '@b = -((@a - @c).abs)'],
+        ['b = -絶対値(-5)', '@b = -(-5.abs)'],
+        ['b = 3 * -絶対値(5)', '@b = 3 * -(5.abs)'],
+        ['b = -絶対値(整数(x))', '@b = -(@x.to_i.abs)'],
+        ['表示する(-絶対値(5))', 'puts(-(5.abs))'],
+    ])('%s → %s', (dncl, ruby) => {
+        expect(toRuby(dncl)).toBe(ruby);
+    });
+
+    test.each([
+        ['b = a - 絶対値(5)', '@b = @a - 5.abs'],
+        ['b = a -絶対値(5)', '@b = @a -5.abs'],
+        ['b = -x', '@b = -@x'],
+        ['b = -(a + 1)', '@b = -(@a + 1)'],
+        ['b = 絶対値(-5)', '@b = -5.abs'],
+        ['b = -乱数(1..10)', '@b = -rand(1..10)'],
+        ['b = -平方根(4)', '@b = -Math.sqrt(4)'],
+    ])('other `-` are left as they are: %s', (dncl, ruby) => {
+        expect(toRuby(dncl)).toBe(ruby);
+    });
+
+    test.each([
+        'b = -絶対値(5)',
+        'b = -文字列(1)',
+        'b = -四捨五入(2.5)',
+        'b = -整数(x)',
+        'b = -要素数(A)',
+        'b = -絶対値(a - c)',
+        'b = 3 * -絶対値(5)',
+        'b = a - 絶対値(5)',
+        'b = 絶対値(-5)',
+        'b = -(a + 1)',
+    ])('DNCL → Ruby → DNCL: %s', (dncl) => {
+        expect(toDncl(toRuby(dncl))).toBe(dncl);
+    });
+
+    test.each([
+        '@b = -(5.abs)',
+        '@b = -5.abs',
+        '@b = -@a.abs',
+        '@b = -(@x.to_i)',
+        '@b = -(1.to_s)',
+        '@b = @a - 5.abs',
+        '@b = -(@a + 1)',
+    ])('Ruby → DNCL → Ruby keeps the value: %s', (ruby) => {
+        const back = toRuby(toDncl(ruby));
+        // `-@a.abs` and `-(@a.abs)` are the same in Ruby, so the text may differ.
+        expect(back.replace(/-\((@\w+\.\w+)\)/g, '-$1')).toBe(ruby.replace(/-\((@\w+\.\w+)\)/g, '-$1'));
+    });
+});
