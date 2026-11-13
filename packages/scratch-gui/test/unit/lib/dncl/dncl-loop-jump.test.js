@@ -79,4 +79,34 @@ describe('a variable named like the keyword (issue #1716)', () => {
         expect(ruby).toContain('@next = 1');
         expect(rubyToDncl(ruby).errors).toEqual([]);
     });
+
+    test('a variable named next at the head of a loop or a condition goes back and forth', () => {
+        const ruby = lines(
+            '@next = 1',
+            'while @next < 10',
+            '  @next += 1',
+            'end',
+            '@break = 1',
+            'while @break <= 3',
+            '  puts(@break)',
+            '  @break += 1',
+            'end',
+            '@next == 1',
+        );
+        const { dncl, errors } = rubyToDncl(ruby);
+        expect(errors).toEqual([]);
+        expect(dncl).toContain('next < 10 の間');
+        expect(dncl).toContain('break を 1 から 3 まで 1 ずつ増やしながら');
+        const back = dnclToRuby(dncl);
+        expect(back.errors).toEqual([]);
+        expect(back.ruby).toBe(ruby);
+    });
+
+    test('a variable named next as the condition of a loop', () => {
+        const { ruby, errors } = dnclToRuby(
+            lines('next = true', 'next かつ true の間:', '  next = false', 'を繰り返す'),
+        );
+        expect(errors).toEqual([]);
+        expect(ruby).toContain('while @next && true');
+    });
 });

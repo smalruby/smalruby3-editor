@@ -90,10 +90,12 @@ const unsupportedCommandMessage = (name) =>
  * `next`, `redo`, `retry`), alone or with a modifier (`break if i == 5`;
  * issue #1716). The Japanese mode has no such statement, and the keyword
  * would be taken for a variable (`@break if` in Ruby), which changes the
- * program. A variable with the name (`next = 1`, `next ← 1`, `next += 1`) is
- * not taken.
+ * program. A variable with the name is not taken: assigned (`next = 1`,
+ * `next ← 1`, `next += 1`), followed by an operator (`next < 10 の間`,
+ * `next == 1`, `next and x`, `next かつ x`) or counted by a loop (`next を 1 から …`).
  */
-const LOOP_JUMP_RE = /^(break|next|redo|retry)(?=$|\s+(?![-+*/]?=(?!=)|←))/;
+const LOOP_JUMP_RE =
+    /^(break|next|redo|retry)(?=$|\s+(?![-+*/%<>=!&|^]|←|を(?:\s|$)|(?:and|or|かつ|または)(?:\s|$)|の間$|でない(?:\s|$)))/;
 
 const IDENT_HEAD_RE = /[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
 const IDENT_TAIL_RE = /[a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
