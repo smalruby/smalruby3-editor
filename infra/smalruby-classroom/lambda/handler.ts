@@ -1804,6 +1804,9 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
       classroomId: classroom.classroomId,
       className: (lookupGroup && lookupGroup.name) || classroom.className,
       classYear: lookupGroup && typeof lookupGroup.year === 'number' ? lookupGroup.year : null,
+      // The class (group) the assignment belongs to, so the student can recall
+      // their seat number across assignments of the same class (issue #1800).
+      groupId: (lookupGroup && (lookupGroup.groupId as string)) || null,
       assignmentName: classroom.assignmentName || null,
       studentCount: seatCountFor(classroom, lookupGroup),
       takenSeats,

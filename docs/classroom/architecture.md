@@ -238,7 +238,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 
 | Method | Path | 認証 | 説明 |
 |--------|------|------|------|
-| `POST` | `/classrooms/lookup` | 不要 | 参加コードで課題を検索。`meshGroupLimit`（`6` / `0` = 制限なし。未設定の課題は `0`・Issue #1255）と、課題が属するクラスの `genai: {enabled, service, url}` / `rubytee: {enabled}`（`confirmed` は含めない。設定の無いクラス・クラスに属さない課題は両方無効）を含む |
+| `POST` | `/classrooms/lookup` | 不要 | 参加コードで課題を検索。課題が属するクラス（学級）の `groupId`（クラスに属さない課題・クラスが見つからない課題は `null`。同じ学級の別の課題で前回の番号を引くため）、`meshGroupLimit`（`6` / `0` = 制限なし。未設定の課題は `0`・Issue #1255）と、課題が属するクラスの `genai: {enabled, service, url}` / `rubytee: {enabled}`（`confirmed` は含めない。設定の無いクラス・クラスに属さない課題は両方無効）を含む |
 | `POST` | `/classrooms/lookup/kick-request` | 不要 | 「使用中の席」を空けてもらう依頼を先生に送信 (Issue #692) |
 | `POST` | `/classrooms/join` | 不要 | 課題に参加 (→ sessionToken 取得)。`meshGroupLimit` / `genai` / `rubytee`（lookup と同じ）を含む |
 | `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す。課題が非 active（アーカイブ/期限切れ）なら 401。`meshGroupLimit` / `genai` / `rubytee`（lookup と同じ。参加後に先生が変えた値もここで届く）を含む |
