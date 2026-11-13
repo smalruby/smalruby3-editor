@@ -139,6 +139,7 @@ CDK スタック定義。以下のリソースを作成:
 | `handleListSubmissions()` | 提出一覧 |
 | `handleUpdateSubmission()` | 提出更新 (返却・コメント) |
 | `handleSetAssignment()` | 課題コンテンツ設定 (ページ + スターター、Presigned URL 生成) |
+| `handleSetLessonScoring()` | レッスンの点（`lesson.scoring`）だけを条件付きで更新（ページ・スターターに触らない） |
 | `handleGetAssignment()` | 課題コンテンツ取得 (生徒 Session Token / 先生 ID Token 両対応) |
 | `handleListContinuableSubmissions()` | 生徒の続きに使える提出物（この課題の自分の席 + 同じクラスの前の課題の同じ席。Presigned GET URL 付き）と課題設定 `startFromPrevious` #1201 #1202 |
 | `validateStartFromPrevious()` / `startFromPreviousOf()` | 課題設定「前回の提出物から始めさせる」の検証（boolean・未送信は undefined）と読み出し #1202 |
