@@ -32,17 +32,16 @@ const KickRequestConfirmDialog = ({ seatNumber, isLoading, error, onCancel, onCo
             <h3 className={styles.kickRequestDialogTitle}>
                 <FormattedMessage
                     defaultMessage="Ask the teacher to free seat {seatNumber}?"
-                    description="Title of the dialog where the student requests the teacher kick the current seat occupant"
+                    description="Title of the dialog shown when the student presses an occupied seat, asking whether to have the teacher free it"
                     id="gui.classroom.kickRequest.title"
                     values={{ seatNumber: String(seatNumber).padStart(2, '0') }}
                 />
             </h3>
             <p className={styles.kickRequestDialogBody}>
                 <FormattedMessage
-                    defaultMessage="Use this when you think seat {seatNumber} is your seat but someone else picked it by mistake. Your teacher will check with you before freeing the seat."
+                    defaultMessage="Use this when someone else is using your own number. Your teacher will check before freeing the seat."
                     description="Explanatory body text in the kick-request dialog"
                     id="gui.classroom.kickRequest.body"
-                    values={{ seatNumber: String(seatNumber).padStart(2, '0') }}
                 />
             </p>
             <textarea
@@ -61,7 +60,7 @@ const KickRequestConfirmDialog = ({ seatNumber, isLoading, error, onCancel, onCo
             )}
             <div className={styles.kickRequestDialogButtons}>
                 <button
-                    className={styles.secondaryButton}
+                    className={styles.linkButton}
                     data-testid="kick-request-cancel"
                     disabled={isLoading}
                     onClick={onCancel}
@@ -81,8 +80,8 @@ const KickRequestConfirmDialog = ({ seatNumber, isLoading, error, onCancel, onCo
                     type="button"
                 >
                     <FormattedMessage
-                        defaultMessage="Send request"
-                        description="Submit button in the kick-request dialog"
+                        defaultMessage="Ask the teacher"
+                        description="Main button in the kick-request dialog that sends the request to the teacher"
                         id="gui.classroom.kickRequest.submit"
                     />
                 </button>
