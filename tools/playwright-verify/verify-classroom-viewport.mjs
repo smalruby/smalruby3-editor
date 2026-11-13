@@ -42,6 +42,8 @@ const DOC_SHOT_NAMES = {
     'student-assignment': ['0314-student-assignment-panel.png'],
     'student-status': ['0304-student-status.png'],
     'student-submit-confirm': ['0306-student-submit-confirm.png'],
+    'student-lesson-progress-confirm': ['0324-lesson-progress-confirm.png'],
+    'student-lesson-progress-confirm-clear': ['0325-lesson-progress-confirm-clear.png'],
     // みんなの作品パネル + ビューア (#1210) は peer viewer のブロックで撮る: 0318-student-peer-viewer.png
 };
 
@@ -156,6 +158,8 @@ const judge = async (page, { who, name, body = '[data-testid="classroom-modal"]'
 
 const browser = await chromium.launch({ headless: HEADLESS, channel: CHANNEL });
 
+// 参加した時刻は固定する (本人の確認の答えのキーに入るため・#1600)
+const SESSION_JOINED_AT = new Date().toISOString();
 const session = (extra = {}) => ({
     role: 'student',
     classroomId: 'c1',
@@ -165,7 +169,7 @@ const session = (extra = {}) => ({
     seatNumber: 7,
     memberId: 'seat-07',
     sessionToken: 'stub',
-    joinedAt: new Date().toISOString(),
+    joinedAt: SESSION_JOINED_AT,
     ...extra,
 });
 
@@ -189,6 +193,10 @@ const studentPage = async ({ storage = {}, routes } = {}) => {
     const ctx = await browser.newContext({ viewport: VIEWPORT });
     const page = await ctx.newPage();
     await page.route('**/classrooms/lookup', (r) => r.fulfill({ json: lookup() }));
+    // レッスンの進み具合の送信 (#1600)。stg に飛ばさない
+    await page.route('**/lesson-progress', (r) =>
+        r.fulfill({ json: { challenges: {}, current: null, updatedAt: null } }),
+    );
     if (routes) await routes(page);
     await page.addInitScript((s) => {
         if (window.sessionStorage.getItem('__seeded')) return;
@@ -498,6 +506,7 @@ const lessonRecords = (ids) => ({
         ids.map((id) => [id, { completedAt: '2026-11-15T01:00:00.000Z', courseId: 'kyou-kara-programmer', lessonId: 'x' }]),
     ),
 });
+const CONSENT_ANSWERED = { [`c1#7#j${SESSION_JOINED_AT}`]: { answer: 'mine', beforeIds: [], decidedAt: '2026-11-15T00:00:00.000Z' } };
 const routeLessonAssignment = (p) =>
     p.route('**/classrooms/c1/assignment', (r) => r.fulfill({ json: { assignment: null, lesson: LESSON } }));
 
@@ -558,6 +567,8 @@ for (const [label, done, primary, returned, lesson = LESSON] of [
         storage: {
             'smalruby:classroom': session({ submissionStatus: returned ? 'returned' : null, studentLesson: lesson }),
             'smalruby:lessonProgress': lessonRecords(done),
+            // 本人の確認 (#1600) は答えたことにする (下の別のブロックで測る)
+            'smalruby:lessonAssignmentConsent': CONSENT_ANSWERED,
         },
         routes: async (p) => {
             await routeContinuable(p);
@@ -578,6 +589,44 @@ for (const [label, done, primary, returned, lesson = LESSON] of [
         name: `student-status (lesson ${label} + continue choice)`,
         shot: `student-status-lesson-${label.replace(/[^a-z]+/g, '-')}`,
         primary: `[data-testid="${primary}"]`,
+    });
+    await ctx.close();
+}
+
+// 本人の確認 (#1600): 端末に課題のチャレンジの記録が 11 個全部あるとき (一覧が一番長い)。
+// クラスの画面を開くと、送る前に出る。1 つめ → ［ちがう（記録を消す）］→ 2 つめ。
+{
+    const { ctx, page } = await studentPage({
+        storage: {
+            'smalruby:classroom': session({ studentLesson: LESSON }),
+            'smalruby:lessonProgress': lessonRecords(LESSON_IDS),
+        },
+        routes: async (p) => {
+            await routeContinuable(p);
+            await routeLessonAssignment(p);
+            await p.route('**/classrooms/verify-session', (r) =>
+                r.fulfill({ json: { valid: true, hasAssignment: false, submission: null } }),
+            );
+        },
+    });
+    await page.locator('[data-testid="lesson-progress-confirm"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(500);
+    await judge(page, {
+        who: 'student',
+        name: 'lesson progress confirm (11 records)',
+        body: '[data-testid="lesson-progress-confirm"]',
+        shot: 'student-lesson-progress-confirm',
+        primary: '[data-testid="lesson-progress-confirm-mine"]',
+    });
+    await page.locator('[data-testid="lesson-progress-confirm-not-mine"]').click();
+    await page.locator('[data-testid="lesson-progress-confirm-clear"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(300);
+    await judge(page, {
+        who: 'student',
+        name: 'lesson progress confirm (clear, second step)',
+        body: '[data-testid="lesson-progress-confirm"]',
+        shot: 'student-lesson-progress-confirm-clear',
+        primary: '[data-testid="lesson-progress-confirm-clear"]',
     });
     await ctx.close();
 }

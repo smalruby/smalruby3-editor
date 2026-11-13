@@ -6,6 +6,7 @@
 //   → setup を適用 → openChallenge(id) でレッスンモードに入る
 import { findChallenge } from '../lib/lessons/courses';
 import {
+    emptyProgress,
     loadProgress,
     markChallengeCompleted as markProgress,
     mergeProgress,
@@ -24,6 +25,8 @@ const NEXT_HINT = 'scratch-gui/lesson-mode/NEXT_HINT';
 const PREV_HINT = 'scratch-gui/lesson-mode/PREV_HINT';
 const MARK_CHALLENGE_COMPLETED = 'scratch-gui/lesson-mode/MARK_CHALLENGE_COMPLETED';
 const RELOAD_PROGRESS = 'scratch-gui/lesson-mode/RELOAD_PROGRESS';
+const CLEAR_PROGRESS = 'scratch-gui/lesson-mode/CLEAR_PROGRESS';
+const REQUEST_PROGRESS_SEND = 'scratch-gui/lesson-mode/REQUEST_PROGRESS_SEND';
 const DISMISS_COMPLETED = 'scratch-gui/lesson-mode/DISMISS_COMPLETED';
 const FOCUS_LESSONS_LIBRARY = 'scratch-gui/lesson-mode/FOCUS_LESSONS_LIBRARY';
 const CLEAR_LESSONS_LIBRARY_FOCUS = 'scratch-gui/lesson-mode/CLEAR_LESSONS_LIBRARY_FOCUS';
@@ -78,6 +81,9 @@ const initialState = {
     // レッスン表を、クラスの課題のチャレンジだけで開くか（「はじめる」「レッスンを続ける」・#1599）。
     // メニューの「レッスン」から開くときは false（コース全体＋課題の帯）。レッスン表が閉じるときに消す
     libraryAssignmentOnly: false,
+    // クラスの課題へ進み具合を送ってほしい回数（クラスの画面を開いたとき・#1600）。
+    // containers/lesson-progress-sync.jsx が、増えたら送る（取りこぼしの追いつき）
+    progressSendRequest: 0,
 };
 
 const hintCount = (state) => {
@@ -190,6 +196,14 @@ const reducer = function (state, action) {
             return state.libraryAssignmentOnly === Boolean(action.assignmentOnly)
                 ? state
                 : { ...state, libraryAssignmentOnly: Boolean(action.assignmentOnly) };
+        case CLEAR_PROGRESS: {
+            // 本人の確認で「ちがう」→「消す」（#1600）。端末のレッスンの記録だけを空にする
+            const progress = emptyProgress();
+            saveProgress(progress);
+            return { ...state, progress, justCompletedId: null, justCompletedNew: false };
+        }
+        case REQUEST_PROGRESS_SEND:
+            return { ...state, progressSendRequest: (state.progressSendRequest || 0) + 1 };
         case RELOAD_PROGRESS: {
             // 別のタブが書いた分を写しに取り込む（レッスン表を開くときなど）。localStorage は書かない
             const progress = mergeProgress(state.progress, loadProgress());
@@ -244,6 +258,18 @@ const markChallengeCompleted = (challengeId, completedAt = new Date().toISOStrin
 });
 
 const reloadProgress = () => ({ type: RELOAD_PROGRESS });
+
+/**
+ * 端末のレッスンの記録を空にする（本人の確認で「消す」を選んだとき・#1600）。
+ * @returns {object} action。
+ */
+const clearProgress = () => ({ type: CLEAR_PROGRESS });
+
+/**
+ * クラスの課題へ進み具合を送ってもらう（クラスの画面を開いたとき・#1600）。
+ * @returns {object} action。
+ */
+const requestProgressSend = () => ({ type: REQUEST_PROGRESS_SEND });
 
 const dismissCompleted = () => ({ type: DISMISS_COMPLETED });
 
@@ -344,6 +370,8 @@ export {
     prevHint,
     markChallengeCompleted,
     reloadProgress,
+    clearProgress,
+    requestProgressSend,
     dismissCompleted,
     focusLessonsLibrary,
     clearLessonsLibraryFocus,

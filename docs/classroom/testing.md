@@ -196,6 +196,12 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-continue-lesson-button` | button | レッスンを続ける（レッスンの課題だけ。レッスン表を課題のチャレンジだけで開く） |
 | `classroom-status-lesson-submit-guide` | div | 作品も提出する課題で課題クリアのあと（または、この版に無いチャレンジがあるとき）の案内。はじめて提出するまで |
 | `classroom-status-lesson-unknown` | span | 「新しいレッスンがあります。ページを読み込み直してね」（この版のコースに無いチャレンジがあるとき） |
+| `lesson-progress-confirm` | div | 本人の確認の本文（レッスンの課題ではじめて送るとき、端末に課題のチャレンジの記録があれば出る。gui の直下・クラスの画面の上に重なる） |
+| `lesson-progress-confirm-list` | ul | 端末にある課題のチャレンジの記録の一覧（名前・できた日） |
+| `lesson-progress-confirm-mine` | button | 「わたしの記録です」（「前」として送る） |
+| `lesson-progress-confirm-not-mine` | button | 「ちがう（記録を消す）」（2 つめの確認へ） |
+| `lesson-progress-confirm-back` | button | 2 つめの確認の［戻る］（1 つめに戻る） |
+| `lesson-progress-confirm-clear` | button | 2 つめの確認の［消す］（送らずに端末のレッスンの記録を空にする） |
 | `classroom-leave` | button | 退出する |
 | `classroom-peer-view-button` | button | みんなの作品を見る（他者参照が有効なとき。押すとモーダルを閉じてパネルを開く・#1210） |
 | `classroom-peer-view-locked` | span | 「提出すると見られます」（`自分が提出したら` で未提出のとき。ボタンの代わり） |

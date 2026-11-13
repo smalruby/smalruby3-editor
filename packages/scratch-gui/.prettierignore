@@ -86,6 +86,8 @@ src/components/*
 !src/components/lesson-completed-toast/**
 !src/components/lesson-assignment-band/
 !src/components/lesson-assignment-band/**
+!src/components/lesson-progress-confirm/
+!src/components/lesson-progress-confirm/**
 !src/components/koshien-mock-panel/**
 !src/components/mesh-self-sensor-notice/
 !src/components/mesh-self-sensor-notice/**
@@ -194,6 +196,7 @@ src/containers/*
 !src/containers/koshien-mock-panel.jsx
 !src/containers/lesson-hint.jsx
 !src/containers/lesson-analytics.jsx
+!src/containers/lesson-progress-sync.jsx
 !src/containers/lesson-goal-watcher.jsx
 !src/containers/lesson-mode.jsx
 !src/containers/lessons-library.jsx
@@ -491,6 +494,7 @@ test/unit/components/*
 !test/unit/components/connected-step.test.jsx
 !test/unit/components/lesson-completed-toast.test.jsx
 !test/unit/components/lesson-assignment-band.test.jsx
+!test/unit/components/lesson-progress-confirm.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/mesh-v2-scanning-step-seats.test.jsx
 !test/unit/components/mesh-v2-seat-connect.test.jsx
@@ -533,6 +537,7 @@ test/unit/components/*
 test/unit/containers/*
 !test/unit/containers/ruby-tab/
 !test/unit/containers/lesson-analytics.test.jsx
+!test/unit/containers/lesson-progress-sync.test.jsx
 !test/unit/containers/lesson-goal-watcher.test.jsx
 !test/unit/containers/ruby-tab/**
 !test/unit/containers/backpack.test.jsx

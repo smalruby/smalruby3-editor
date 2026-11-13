@@ -187,6 +187,18 @@ export const ja = {
         'レッスンで学んだことをつかって、自由にプログラムをつくろう。できたら作品を提出しよう',
     'gui.lessons.assignment.submit': '課題を提出する',
     'gui.lessons.assignment.unknownChallenges': '新しいレッスンがあります。ページを読み込み直してね',
+    'gui.lessons.progressConfirm.title': 'このパソコンのレッスンの記録',
+    'gui.lessons.progressConfirm.question': 'あなたがやった記録ですか？',
+    'gui.lessons.progressConfirm.found':
+        'このパソコンには、この課題のチャレンジのうち {count} つが「できた」と記録されています。',
+    'gui.lessons.progressConfirm.mine': 'わたしの記録です',
+    'gui.lessons.progressConfirm.notMine': 'ちがう（記録を消す）',
+    'gui.lessons.progressConfirm.clearQuestion': 'レッスンの記録を消しますか？',
+    'gui.lessons.progressConfirm.clearHint':
+        '自分のパソコンなら、消さずに戻って「わたしの記録です」を選ぼう。みんなで使うパソコンなら、消そう。',
+    'gui.lessons.progressConfirm.clearNote': '消した記録は、もとにもどせません。',
+    'gui.lessons.progressConfirm.back': '戻る',
+    'gui.lessons.progressConfirm.clear': '消す',
 };
 
 export const jaHira = {
@@ -382,6 +394,18 @@ export const jaHira = {
         'レッスンで まなんだことを つかって、じゆうに プログラムを つくろう。できたら さくひんを ていしゅつしよう',
     'gui.lessons.assignment.submit': 'かだいを ていしゅつする',
     'gui.lessons.assignment.unknownChallenges': 'あたらしい レッスンが あります。ページを よみこみなおしてね',
+    'gui.lessons.progressConfirm.title': 'このパソコンの レッスンの きろく',
+    'gui.lessons.progressConfirm.question': 'あなたが やった きろくですか？',
+    'gui.lessons.progressConfirm.found':
+        'このパソコンには、この かだいの チャレンジのうち {count} つが「できた」と きろくされています。',
+    'gui.lessons.progressConfirm.mine': 'わたしの きろくです',
+    'gui.lessons.progressConfirm.notMine': 'ちがう（きろくを けす）',
+    'gui.lessons.progressConfirm.clearQuestion': 'レッスンの きろくを けしますか？',
+    'gui.lessons.progressConfirm.clearHint':
+        'じぶんの パソコンなら、けさずに もどって「わたしの きろくです」を えらぼう。みんなで つかう パソコンなら、けそう。',
+    'gui.lessons.progressConfirm.clearNote': 'けした きろくは、もとに もどせません。',
+    'gui.lessons.progressConfirm.back': 'もどる',
+    'gui.lessons.progressConfirm.clear': 'けす',
 };
 
 export const en = {
@@ -579,4 +603,16 @@ export const en = {
         'Use what you learned in the lessons to make your own program. When it is ready, submit it.',
     'gui.lessons.assignment.submit': 'Submit assignment',
     'gui.lessons.assignment.unknownChallenges': 'There are new lessons. Please reload the page.',
+    'gui.lessons.progressConfirm.title': 'Lesson records on this computer',
+    'gui.lessons.progressConfirm.question': 'Are these your records?',
+    'gui.lessons.progressConfirm.found':
+        'This computer has {count, plural, one {# challenge} other {# challenges}} of this assignment recorded as done.',
+    'gui.lessons.progressConfirm.mine': 'These are my records',
+    'gui.lessons.progressConfirm.notMine': 'Not mine (clear the records)',
+    'gui.lessons.progressConfirm.clearQuestion': 'Clear the lesson records?',
+    'gui.lessons.progressConfirm.clearHint':
+        "If this is your own computer, don't clear them: go back and choose “These are my records”. If everyone uses this computer, clear them.",
+    'gui.lessons.progressConfirm.clearNote': 'Cleared records cannot be brought back.',
+    'gui.lessons.progressConfirm.back': 'Back',
+    'gui.lessons.progressConfirm.clear': 'Clear',
 };

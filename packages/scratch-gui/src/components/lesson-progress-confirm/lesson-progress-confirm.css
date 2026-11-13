@@ -1,0 +1,108 @@
+@import '../../css/colors.css';
+
+/* 「消す」の赤。白地の上で WCAG AA（4.5:1）に届く濃さにする（#AD1F1F・約 7:1） */
+$clear-ink: hsla(0, 70%, 40%, 1);
+
+/* 本人の確認（#1600）。授業 PC の 1300×600 でスクロールせずに収まる大きさにする
+   （見出し 3.125rem + 本文。記録の一覧は 2 列で、課題のチャレンジが多いときだけ一覧の中を
+   スクロールする） */
+.modal-content {
+    width: 560px;
+    max-width: calc(100vw - 2rem);
+}
+
+/* 本文は不透明に（共有 Modal の本文は透明で、青いオーバーレイが透けるため・modals.md） */
+.body {
+    background-color: $ui-white;
+    padding: 1.25rem 1.5rem;
+    color: $text-primary;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.question {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: bold;
+}
+
+.text {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.list {
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem 1rem;
+    max-height: 12rem;
+    overflow-y: auto;
+    border: 1px solid $ui-black-transparent-10;
+    border-radius: 4px;
+    background: $ui-secondary;
+}
+
+.item {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.item-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.item-date {
+    flex-shrink: 0;
+    color: $text-primary-transparent;
+}
+
+.hint {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    background: $ui-secondary;
+    line-height: 1.5;
+}
+
+.buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button {
+    padding: 0.5rem 1.25rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.primary-button {
+    border: none;
+    background: $motion-primary;
+    color: $ui-white;
+}
+
+.secondary-button {
+    border: 1px solid $ui-black-transparent-10;
+    background: $ui-white;
+    color: $text-primary;
+}
+
+.danger-button {
+    border: 1px solid $clear-ink;
+    background: $ui-white;
+    color: $clear-ink;
+}

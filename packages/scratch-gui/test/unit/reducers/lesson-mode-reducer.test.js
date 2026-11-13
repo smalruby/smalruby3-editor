@@ -17,6 +17,8 @@ import reducer, {
     markChallengeCompleted,
     openChallenge,
     reloadProgress,
+    clearProgress,
+    requestProgressSend,
     startChallenge,
     cancelStartChallenge,
     showHint,
@@ -105,6 +107,24 @@ describe('lesson-mode reducer', () => {
         expect(Object.keys(saved.challenges)).toEqual(['blocks-l1-quiz']);
         // 変わらなければ同じ state
         expect(reducer(reloaded, reloadProgress())).toBe(reloaded);
+    });
+
+    test('clearProgress empties the lesson records on the device (本人の確認 #1600)', () => {
+        const state = reducer(
+            lessonModeInitialState,
+            markChallengeCompleted('blocks-l1-broadcast', '2026-11-10T00:00:00.000Z'),
+        );
+        const cleared = reducer(state, clearProgress());
+        expect(cleared.progress.challenges).toEqual({});
+        expect(cleared.justCompletedId).toBeNull();
+        const saved = JSON.parse(window.localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY));
+        expect(saved.challenges).toEqual({});
+    });
+
+    test('requestProgressSend counts the requests to send the progress to the class', () => {
+        const once = reducer(lessonModeInitialState, requestProgressSend());
+        expect(once.progressSendRequest).toBe(1);
+        expect(reducer(once, requestProgressSend()).progressSendRequest).toBe(2);
     });
 
     test('markChallengeCompleted shows "You did it!" for that challenge, even when already completed', () => {
