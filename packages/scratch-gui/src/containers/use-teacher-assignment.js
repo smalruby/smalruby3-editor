@@ -387,6 +387,14 @@ const useTeacherAssignment = ({
             }
             await Promise.all(uploads);
 
+            // The members / progress tabs fetch lesson progress only for lesson
+            // assignments (#1602): follow a lesson that was just added or removed.
+            if (lessonChanged && setSelectedClassroom) {
+                const hasLesson = Boolean(payload.lesson);
+                const { classroomId } = selectedClassroom;
+                setSelectedClassroom((c) => (c && c.classroomId === classroomId ? { ...c, hasLesson } : c));
+            }
+
             if (meshGroupLimit !== normalizeMeshGroupLimit(selectedClassroom.meshGroupLimit)) {
                 const { classroomId } = selectedClassroom;
                 await classroomAPI.updateClassroom(idToken, classroomId, { meshGroupLimit });

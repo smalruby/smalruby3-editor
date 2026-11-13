@@ -4832,6 +4832,396 @@
     color: hsla(225, 15%, 40%, 1);
 }
 
+/* --- Lesson progress (#1602) --- */
+
+/* Seat tile colours of a lesson assignment: grey = not started, blue = in
+   progress, green = cleared. A seat with no student is white with a dotted
+   border, since blue now means "in progress". */
+.lesson-seat {
+    justify-content: flex-start;
+    padding-top: clamp(3px, 6cqi, 10px);
+    gap: clamp(1px, 3cqi, 5px);
+}
+
+.lesson-seat-not-started {
+    background-color: #d9d9d9;
+    color: #575e75;
+}
+
+.lesson-seat-in-progress {
+    background-color: #4c97ff;
+    color: white;
+}
+
+.lesson-seat-cleared {
+    background-color: #0fbd8c;
+    color: white;
+}
+
+.lesson-seat-not-joined {
+    background-color: #fff;
+    color: #9aa1b8;
+    border: 1.5px dashed #c8cddb;
+    cursor: default;
+}
+
+.lesson-seat-head {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.lesson-seat-head svg {
+    width: clamp(10px, 16cqi, 24px);
+    height: clamp(10px, 16cqi, 24px);
+}
+
+.lesson-seat-count {
+    background-color: rgba(255, 255, 255, 0.92);
+    color: #575e75;
+    border-radius: 4px;
+    padding: 0 clamp(3px, 6cqi, 8px);
+    font-size: clamp(0.65rem, 13cqi, 1.1rem);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+}
+
+.lesson-seat-meter {
+    width: 78%;
+    height: clamp(3px, 5cqi, 6px);
+    border-radius: 3px;
+    background-color: rgba(255, 255, 255, 0.45);
+    overflow: hidden;
+}
+
+.lesson-seat-not-started .lesson-seat-meter {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.lesson-seat-meter-fill {
+    display: block;
+    height: 100%;
+    background-color: #fff;
+}
+
+.lesson-seat-required {
+    font-size: clamp(0.55rem, 11cqi, 0.9rem);
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+/* 「!」: top-left (the leave-request badge is top-right). */
+.lesson-seat-stuck,
+.lesson-seat-stuck-legend {
+    background-color: #ff8c1a;
+    color: #fff;
+    border-radius: 999px;
+    font-weight: 800;
+    line-height: 1.3;
+    padding: 0 5px;
+    font-size: 0.65rem;
+}
+
+.lesson-seat-stuck {
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    pointer-events: none;
+}
+
+.lesson-seat-submission {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    line-height: 0;
+}
+
+/* Rows of the progress table: as low as the 16px cells allow (#1767 M1). */
+.lesson-progress-table tbody td,
+.lesson-progress-table tbody th {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.compact-header-title {
+    margin-bottom: 0.3rem;
+}
+
+.compact-code-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: #575e75;
+    margin-bottom: 0.25rem;
+}
+
+.compact-code-value {
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    color: #4c97ff;
+}
+
+.compact-code-row .join-code-action {
+    padding: 0 0.3rem;
+    min-height: 0;
+    line-height: 1.3;
+}
+
+.lesson-cleared-summary {
+    white-space: nowrap;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #0b8e69;
+}
+
+.members-header-right .members-count {
+    white-space: nowrap;
+}
+
+/* Progress tab: toolbar + table frame (only the frame scrolls). */
+.lesson-progress {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 0.4rem;
+}
+
+.detail-left-pane > .lesson-progress {
+    flex-shrink: 1;
+}
+
+.lesson-progress-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+/* Legend and sort share one line (#1767 M1). */
+.lesson-progress-legend {
+    display: flex;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    gap: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    color: #575e75;
+}
+
+.lesson-progress-sort {
+    font-size: 0.8rem;
+    color: #575e75;
+    white-space: nowrap;
+}
+
+.lesson-progress-sort select {
+    font-size: 0.8rem;
+}
+
+.lesson-progress-notice {
+    font-size: 0.85rem;
+    color: #575e75;
+}
+
+.lesson-progress-frame {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    border: 1px solid #eceef4;
+    border-radius: 6px;
+}
+
+.lesson-progress-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.75rem;
+    color: #575e75;
+}
+
+.lesson-progress-table th,
+.lesson-progress-table td {
+    padding: 1px 2px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+    border-bottom: 1px solid #f0f1f5;
+    background-color: #fff;
+}
+
+/* The whole header stays on top; the seat rows scroll under it. */
+.lesson-progress-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.lesson-progress-table thead th {
+    border-bottom: 0;
+    font-weight: bold;
+    vertical-align: bottom;
+}
+
+.lesson-progress-table .lesson-progress-lesson-start {
+    border-left: 2px solid #d5d8e3;
+}
+
+.lesson-progress-challenge-head {
+    width: 22px;
+    max-width: 22px;
+}
+
+/* Vertical and short so the fixed header stays low (EPIC #1592 D6). */
+.lesson-progress-challenge-name {
+    display: inline-block;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    max-height: 3rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.7rem;
+    letter-spacing: 0;
+    line-height: 1.1;
+}
+
+.lesson-required-mark {
+    color: #c25e00;
+    font-weight: bold;
+}
+
+.lesson-progress-bottom-head {
+    padding: 0 6px;
+}
+
+/* 「できた人」: one line. Its top line is the challenge colour band. */
+.lesson-progress-totals-row th {
+    border-top: 4px solid #eceef4;
+    border-bottom: 2px solid #e3e6ee;
+    font-size: 0.7rem;
+    line-height: 1.2;
+    vertical-align: middle;
+}
+
+.lesson-progress-total-done {
+    font-variant-numeric: tabular-nums;
+}
+
+/* いまやっている人の数: small, at the top right of the number. */
+.lesson-progress-total-current {
+    color: #1e5fc2;
+    font-size: 0.55rem;
+    font-weight: normal;
+    vertical-align: super;
+    line-height: 0;
+}
+
+/* Seat column stays on the left when scrolled sideways. */
+.lesson-progress-table .lesson-progress-seat-col {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    text-align: left;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.lesson-progress-table thead .lesson-progress-seat-col {
+    z-index: 3;
+}
+
+.lesson-progress-seat-button {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    font-weight: bold;
+    color: #855cd6;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.lesson-progress-left {
+    margin-left: 3px;
+    font-size: 0.65rem;
+    font-weight: normal;
+    color: #8a90a6;
+}
+
+.lesson-progress-selected td,
+.lesson-progress-selected th {
+    background-color: #f1ecfb;
+}
+
+.lesson-progress-done-cell {
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+
+.lesson-progress-empty {
+    padding: 1rem;
+    color: #8a90a6;
+}
+
+.lesson-cell {
+    display: inline-grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.lesson-cell-done {
+    background-color: #0fbd8c;
+    color: #fff;
+}
+
+.lesson-cell-before {
+    background-color: #fff;
+    color: #0b8e69;
+    box-shadow: inset 0 0 0 2px #0fbd8c;
+}
+
+.lesson-cell-current {
+    background-color: #4c97ff;
+    color: #fff;
+}
+
+.lesson-cell-stuck {
+    background-color: #ff8c1a;
+    color: #fff;
+}
+
+.lesson-cell-todo {
+    background-color: #f0f1f5;
+    color: #b0b5c4;
+}
+
+.lesson-state-pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0 6px;
+    font-size: 0.65rem;
+    font-weight: bold;
+}
+
+.lesson-state-cleared {
+    background-color: #0fbd8c;
+    color: #fff;
+}
+
+.lesson-state-in-progress {
+    background-color: #e6f0ff;
+    color: #1e5fc2;
+}
+
+.lesson-state-not-started {
+    background-color: #eceef4;
+    color: #8a90a6;
+}
+
 /* メニューバーのレッスンの課題の印（○ / 2/4 / ✓・#1599）。青いメニューバーの上で読めるよう白地の丸角 */
 .menu-lesson-marks {
     display: inline-flex;

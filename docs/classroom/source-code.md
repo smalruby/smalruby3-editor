@@ -30,6 +30,8 @@ smalruby3-editor/
 │   │   │   │   ├── teacher-create-form.jsx ← 課題作成フォーム
 │   │   │   │   ├── teacher-assignment-editor.jsx ← 課題詳細の説明タブの編集フォーム（ページ + スターター + 詳しい設定）
 │   │   │   │   ├── lesson-settings-field.jsx ← 説明タブの「レッスン」欄（コース・チャレンジ・★・完了の条件・作品の提出）
+│   │   │   │   ├── lesson-seat-tile.jsx ← レッスンの課題の座席タイルの中身（できた数 / 条件の数・バー・★ あと n・「!」）
+│   │   │   │   ├── teacher-lesson-progress.jsx ← 「進み具合」タブ（席 × チャレンジの表・並べ方）
 │   │   │   │   ├── lesson-scoring-field.jsx ← 「詳しい設定」の中のレッスンの点（満点・必須の点）
 │   │   │   │   ├── lesson-number-input.jsx ← レッスン欄の数の欄（打っている途中は直さず、欄を出る・Enter で確定）
 │   │   │   │   ├── board-menu.jsx ← 小さなドロップダウン（［＋ 作成 ▾］・⋮・課題詳細の「…」で共用）
@@ -81,6 +83,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-teacher-reauth.js ← 先生ログインの有効期限切れ（401 判定・クリックからの再認証、純粋）#1250
 │   │   │   ├── classroom-assignment-utils.js ← 課題エディタの純粋ヘルパー
 │   │   │   ├── classroom-lesson-settings.js ← 課題のレッスンの設定の純粋ロジック（下書き ↔ API の lesson・完了の条件・採点の点）
+│   │   │   ├── classroom-lesson-progress.js ← 先生の進み具合の純粋ロジック（座席の色・表の記号・できた人・並べ方・CSV）
 │   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
 │   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）を組み立てる（純粋）
 │   │   │   ├── classroom-genai-settings.js ← クラスの生成AI・ルビティー設定の下書き・検証・PATCH 差分（純粋）#1277

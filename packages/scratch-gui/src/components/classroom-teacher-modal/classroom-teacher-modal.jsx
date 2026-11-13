@@ -124,6 +124,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onConfirmGoogleImport,
         onUpdateAssignmentName,
         kickRequestsBySeat,
+        lessonProgress,
         onApproveKickRequest,
         onRejectKickRequest,
         assignmentEditorPages,
@@ -385,6 +386,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         isLoading={isLoading}
                         isVerifyingGoogleCourseAccess={isVerifyingGoogleCourseAccess}
                         kickRequestsBySeat={kickRequestsBySeat}
+                        lessonProgress={lessonProgress}
                         members={members}
                         noBackButton
                         selectedClassroom={selectedClassroom}

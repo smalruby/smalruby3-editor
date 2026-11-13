@@ -301,6 +301,7 @@ const ClassroomTeacherModal = () => {
         onConfirmGoogleImport: teacher.handleConfirmGoogleImport,
         onUpdateAssignmentName: teacher.handleUpdateAssignmentName,
         kickRequestsBySeat: teacher.kickRequestsBySeat,
+        lessonProgress: teacher.lessonProgress,
         onApproveKickRequest: teacher.handleApproveKickRequest,
         onRejectKickRequest: teacher.handleRejectKickRequest,
         assignmentEditorPages: teacher.assignmentEditorPages,

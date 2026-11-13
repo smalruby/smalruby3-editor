@@ -49,17 +49,28 @@ export const submissionStatusLabel = (member) => {
 };
 
 /**
- * Escape one CSV field (quote when needed, double inner quotes).
+ * Escape one CSV field (quote when needed, double inner quotes, and keep a
+ * string from being read as a formula).
  * @param {*} value - cell value (null/undefined become empty)
  * @returns {string} escaped field
  */
 const csvField = (value) => {
-    const text = value === null || typeof value === 'undefined' ? '' : String(value);
+    let text = value === null || typeof value === 'undefined' ? '' : String(value);
+    // Names are typed by students: a leading = + - @ (or tab / CR) would run
+    // as a formula when the teacher opens the file in a spreadsheet.
+    if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
     if (/[",\n\r]/.test(text)) {
         return `"${text.replace(/"/g, '""')}"`;
     }
     return text;
 };
+
+/**
+ * Join rows into Excel-friendly CSV text.
+ * @param {Array<Array<*>>} lines - rows of cells (the first is the header)
+ * @returns {string} CSV text (U+FEFF BOM + CRLF rows)
+ */
+export const csvLines = (lines) => `${'\ufeff'}${lines.map((row) => row.map(csvField).join(',')).join('\r\n')}`;
 
 /**
  * Build the submission status CSV for the class-wide zip.
@@ -68,9 +79,8 @@ const csvField = (value) => {
  */
 export const buildSubmissionsCsv = (rows) => {
     const header = ['課題名', '出席番号', '名前', '作品名', '提出日時', '状態'];
-    const lines = [
+    return csvLines([
         header,
         ...(rows || []).map((r) => [r.assignmentName, r.seat, r.name, r.projectName, r.submittedAt, r.status]),
-    ];
-    return `${'\ufeff'}${lines.map((row) => row.map(csvField).join(',')).join('\r\n')}`;
+    ]);
 };
