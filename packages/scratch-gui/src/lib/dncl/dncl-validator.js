@@ -85,6 +85,18 @@ const unsupportedCommandMessage = (name) =>
         ? `「${name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。`
         : `「${name}」は定義されていない関数です。「関数 ${name}(…)」で定義してください。`;
 
+/**
+ * A line that starts with a Ruby keyword that jumps in a loop (`break`,
+ * `next`, `redo`, `retry`), alone or with a modifier (`break if i == 5`;
+ * issue #1716). The Japanese mode has no such statement, and the keyword
+ * would be taken for a variable (`@break if` in Ruby), which changes the
+ * program. A variable with the name is not taken: assigned (`next = 1`,
+ * `next ← 1`, `next += 1`), followed by an operator (`next < 10 の間`,
+ * `next == 1`, `next and x`, `next かつ x`) or counted by a loop (`next を 1 から …`).
+ */
+const LOOP_JUMP_RE =
+    /^(break|next|redo|retry)(?=$|\s+(?![-+*/%<>=!&|^]|←|を(?:\s|$)|(?:and|or|かつ|または)(?:\s|$)|の間$|でない(?:\s|$)))/;
+
 const IDENT_HEAD_RE = /[a-zA-Z_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
 const IDENT_TAIL_RE = /[a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
 // A trailing `?` / `!` is a Ruby predicate or bang method (`stop!`).
@@ -170,8 +182,9 @@ const findDeclaredNames = (source) => {
 /**
  * Find the Ruby commands and method calls the Japanese mode does not have
  * (issue #1679): a name called with `(` (not after `.`), a lowercase name
- * alone on a line that the source does not declare as a variable, and the
- * command of a `do` block. The names the Japanese mode has
+ * alone on a line that the source does not declare as a variable, the
+ * command of a `do` block, and a keyword that jumps in a loop at the head of a
+ * line (`break if i == 5`, issue #1716). The names the Japanese mode has
  * are the DNCL keywords and built-in functions, the Ruby names the converter
  * passes as they are (`puts`, `say`, `rand`, ...) and the functions the
  * source defines. A variable (a name not called) is not taken, so a
@@ -193,9 +206,13 @@ const findUnsupportedCommands = (source) => {
         const add = (name, index) => {
             if (!known(name)) found.push({ name, index });
         };
+        // A keyword that jumps in a loop is a command even with a modifier,
+        // and even when the source has a variable with its name.
+        const jump = trimmed.match(LOOP_JUMP_RE);
+        if (jump) add(jump[1], code.indexOf(trimmed));
         // A name alone on a line is a command without arguments, unless it
         // is a variable: an uppercase name, or one the source assigns.
-        if (LONE_IDENT_RE.test(trimmed) && /^[a-z_]/.test(trimmed) && !declared.has(trimmed)) {
+        if (!jump && LONE_IDENT_RE.test(trimmed) && /^[a-z_]/.test(trimmed) && !declared.has(trimmed)) {
             add(trimmed, code.indexOf(trimmed));
         }
         let i = 0;
