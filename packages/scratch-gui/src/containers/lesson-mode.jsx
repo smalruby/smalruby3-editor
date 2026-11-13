@@ -13,6 +13,7 @@ import { setupForChallenge } from '../lib/lessons/challenge-setup';
 import { findChallenge } from '../lib/lessons/courses';
 import sharedMessages from '../lib/shared-messages';
 import { closeCards } from '../reducers/cards';
+import { requestExternalExitDnclMode, setDnclMode } from '../reducers/dncl-mode';
 import { clearGoogleDriveFile } from '../reducers/google-drive-file';
 import {
     cancelStartChallenge,
@@ -37,6 +38,7 @@ import LessonHint from './lesson-hint.jsx';
 const LessonMode = ({
     current,
     dispatch,
+    dnclMode,
     hint,
     isAnyCreatingNewState,
     isShowingProject,
@@ -46,6 +48,7 @@ const LessonMode = ({
     onCloseLesson,
     onDismissCompleted,
     onEndLesson,
+    onExitDnclMode,
     onHideHint,
     onOpenChallenge,
     onRequestNewProject,
@@ -75,8 +78,21 @@ const LessonMode = ({
             onCancelStart();
             return;
         }
+        // 日本語モードのままだと、パレットが日本語で書けるブロックに絞られたうえにチャレンジの
+        // 絞り込みが重なり、チャレンジで使うブロックが出てこない（#1735）。レッスンに入ると決まって
+        // から（作品の置きかえを断ったときは変えない）、ふりがなモードに戻す
+        if (dnclMode) onExitDnclMode();
         onRequestNewProject();
-    }, [pendingChallengeId, isShowingProject, projectChanged, intl, onCancelStart, onRequestNewProject]);
+    }, [
+        pendingChallengeId,
+        isShowingProject,
+        projectChanged,
+        intl,
+        dnclMode,
+        onCancelStart,
+        onExitDnclMode,
+        onRequestNewProject,
+    ]);
 
     // 2. 新しい作品ができたら setup を適用してレッスンモードに入る（titled-hoc と同じ
     //    「作成中 → 表示中」の遷移で検出する）
@@ -163,6 +179,7 @@ LessonMode.propTypes = {
         challenge: PropTypes.object.isRequired,
     }),
     dispatch: PropTypes.func.isRequired,
+    dnclMode: PropTypes.bool,
     hint: PropTypes.shape({
         visible: PropTypes.bool.isRequired,
         index: PropTypes.number.isRequired,
@@ -177,6 +194,7 @@ LessonMode.propTypes = {
     onCloseLesson: PropTypes.func.isRequired,
     onDismissCompleted: PropTypes.func.isRequired,
     onEndLesson: PropTypes.func.isRequired,
+    onExitDnclMode: PropTypes.func.isRequired,
     onHideHint: PropTypes.func.isRequired,
     onOpenChallenge: PropTypes.func.isRequired,
     onRequestNewProject: PropTypes.func.isRequired,
@@ -192,6 +210,7 @@ const mapStateToProps = (state) => {
     const { loadingState } = state.scratchGui.projectState;
     return {
         current: getCurrentChallenge(state),
+        dnclMode: state.scratchGui.dnclMode.dnclMode,
         hint: getCurrentHint(state),
         isAnyCreatingNewState: getIsAnyCreatingNewState(loadingState),
         isShowingProject: getIsShowingProject(loadingState),
@@ -220,6 +239,12 @@ const mapDispatchToProps = (dispatch) => ({
     // 「レッスンをおえる」: レッスンから出るだけ（レッスン表は開かない・確認も出さない）。作品はそのまま残り、
     // パレットは getLessonAllowedBlocks が null になって全部のブロックにもどる
     onEndLesson: () => dispatch(closeLesson()),
+    // 日本語モードのバナーの「Rubyふりがなモードに戻す」と同じ（containers/gui.jsx）。ブロックはすぐ全部
+    // 戻し、次に Ruby タブを開いたときに日本語の表示に戻さないよう ruby-tab に知らせる
+    onExitDnclMode: () => {
+        dispatch(setDnclMode(false));
+        dispatch(requestExternalExitDnclMode());
+    },
     onHideHint: () => dispatch(hideHint()),
     onOpenChallenge: (challengeId) => dispatch(openChallenge(challengeId)),
     onRequestNewProject: () => {
