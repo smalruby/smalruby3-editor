@@ -4,7 +4,7 @@
 
 撮るときは、上流の値が見えるように 1366×1024 で開き、スモウルビーの吹き出しなどを隠すか、部品だけを切り抜く。
 
-見本は `tools/playwright-verify/capture-design-system.mjs` で撮る（`DOCS_SHOTS=1` で下の画像を撮り直す。使い方は [`../README.md`](../README.md) の「撮影スクリプトで値と見本を取る」）。
+見本は `tools/playwright-verify/capture-design-system.mjs` で撮る（`DOCS_SHOTS=1` で下の画像を撮り直す。使い方は [`../README.md`](../README.md) の「撮影スクリプトで値と見本を取る」）。ただし `06xx`（ブロック）は撮影スクリプトでは撮らない（色のモードを切りかえて撮る。撮り方は [`../blocks.md`](../blocks.md) の「見本の撮り方」）。
 
 | ファイル | 中身 |
 |---|---|
@@ -20,5 +20,8 @@
 | `0505-library-item-hover.png` | ライブラリの項目のホバー（[`../components/cards.md`](../components/cards.md)） |
 | `0506-context-menu.png` | 右クリックのメニュー（[`../components/menus.md`](../components/menus.md)） |
 | `0507-alerts.png` | アラート（注意・成功・お知らせ。[`../components/alerts.md`](../components/alerts.md)） |
+| `0601-blocks-default.png` | ブロック: オリジナルの色のモード（カテゴリの欄とブロックパレットの切り抜き。[`../blocks.md`](../blocks.md)） |
+| `0602-blocks-high-contrast.png` | ブロック: 高コントラスト |
+| `0603-blocks-dark.png` | ブロック: ダーク（画面からは選べない。Redux で切りかえて撮った） |
 
-番号の上 2 桁: 01 = メニューバー、02 = コードタブ、03 = 拡張機能・ライブラリ（空き）、04 = ダイアログ、05 = 共通部品の切り抜き。
+番号の上 2 桁: 01 = メニューバー、02 = コードタブ、03 = 拡張機能・ライブラリ（空き）、04 = ダイアログ、05 = 共通部品の切り抜き、06 = ブロック。
