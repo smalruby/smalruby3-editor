@@ -802,18 +802,20 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 | `kick_request` | 退室依頼 | `result`（`sent` / `error` / `canceled`（ダイアログの「やめる」）/ `approved` / `rejected`（却下・1 時間の期限切れ））・`seconds`（`sent` は番号選びを出してから。`approved` / `rejected` は送ってから。リロードをまたぐと無し） |
 | `start_view` | 始め方（参加完了・課題パネルの最後のページ）を出した | `main`（`current` / `previous` / `starter` / `keep` / `lesson`）・`others_count`（ほかの始め方の数） |
 | `start_choose` | 始め方を選んだ | `kind`（選んだ始め方）・`via`（`main` / `others`）・`others_opened`（「ほかの始め方」を開いたか）・`seconds`（始め方を出してから） |
-| `welcome_view` | おかえりなさいを出した（提出状況を確かめおわって主ボタンが決まってから 1 回） | `main`（`continue` / `this_submission` / `lesson`） |
+| `welcome_view` | おかえりなさいを出した（出したあとの状態の確かめが**成功してから** 1 回。主ボタンが決まってから。セッションが切れていた・退室させられていた・URL で入り直したときは送らない） | `main`（`continue` / `this_submission` / `lesson`） |
 | `welcome_action` | おかえりなさいで押した | `button`（`continue` / `continue_as_is` / `this_submission` / `lesson` / `assignment` / `peer` / `wrong_seat` / `reload` / `leave`）・`kind`（`reload` のとき開いたもの）・`main`・`seconds`（おかえりなさいを出してから） |
 | `leave_class` | 「クラスから出る」の確認 | `result`（`confirm` / `cancel`） |
 | `submit_open` | 提出の確認を開いた | `from`（`menu_bar` / `drawer` / `lessons_library` / `lesson_clear`）・`state`（`first` / `resubmit` / `returned`） |
 | `submit_result` | 提出の確認の結果 | `result`（`done` / `cancel` / `error` / `expired`（セッション切れ）/ `convert_error`（Ruby をブロックに直せなかった））・`seconds`（確認を開いてから） |
-| `session_end` | クラスの画面を開いたときに、セッションが切れていた・退室させられていた | `reason`（`expired` / `kicked`） |
-| `modal_close` | クラスの画面を ×・外側・Esc で閉じた（始め方を選んだ・「つづける」で閉じたときは送らない） | `step`（帯の段 `join` / `seat` / `start` / `make` / `submit`、全部すんだら `complete`） |
+| `session_end` | クラスの画面を開いたときに、セッションが切れていた・退室させられていた（`?classcode=` で同じ課題に戻って切れていたときも `expired`） | `reason`（`expired` / `kicked`） |
+| `modal_close` | クラスの画面を ×・外側・Esc で閉じた（始め方を選んだ・「つづける」で閉じたときは送らない。提出の確認を × で閉じたときは `submit_result` の `cancel` ではなく、これの `step=submit` になる） | `step`（帯の段 `join` / `seat` / `start` / `make` / `submit`、全部すんだら `complete`） |
 | `submit_reminder_shown` | 「提出しよう」の吹き出しを出した（**`resumed: false` だけ**。同じ回の出し直しは送らない） | `first`（この課題ではじめてか）・`minutes`（数え始めから何分後か） |
 | `submit_reminder_dismissed` | 吹き出しを消した | `reason`（`close` / `outside` / `submit`） |
 | `submit_reminder_submitted` | 吹き出しを出したあとで提出した | `minutes`（はじめて出してから何分後か） |
 
 - **秒（`seconds`）は、タブが裏にあった時間を引く**（レッスンと同じ `activeNow`）。整数に丸める。はじまりが分からないとき（リロードをまたいだなど）は `undefined`。
+- **画面を出したイベント（`seat_view` / `start_view` / `welcome_view`）は、クラスの画面を 1 回開いている間に、同じ画面について 1 回**。PC 表示とスマホ表示の切りかえや、課題パネルのページの行き来で部品がマウントし直されても送りなおさず、秒も最初に出したときから測る（「最後に出した画面」をモジュールに 1 つ持つ・`noteClassroomStudentView`）。ほかの画面へ移ってから戻ったとき（おかえりなさい → 「出席番号がちがう」→ 番号選び など）と、クラスの画面を閉じて開き直したときは、また送る。
+- **値も決まった値だけ**。文字列の項目は項目ごとに決めた値（`CLASSROOM_STUDENT_PARAM_VALUES`。上の表の値）だけを通し、知らない値は `other` にする。数・真偽の項目は、型が違えば送らない。
 - **送らないもの**: クラス・課題・席番号（前回の番号そのものもふくむ）・ニックネーム・参加コード・セッション・メンバーの id・入力した文字。送るのは段・種類・結果・秒・真偽だけ。決めた 18 個の項目のほかは、送る前に落とす（`buildClassroomStudentEvent`）。
 - **先生（ログイン中）からは送らない**（`state.scratchGui.classroom.teacherLoggedIn`。授業の準備で開くと数がゆがむため）。
 - 計測の失敗は握りつぶし、生徒の動きを止めない。
@@ -836,7 +838,7 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 - **始め方**: `start_choose` の `via=others` の割合。多ければ、主ボタンの始め方の決め方を見直す。
 - **提出**:
   - `submit_open` の `from`（どこから提出に来るか）。
-  - `submit_result` の `cancel` / `error` / `convert_error` の割合。
+  - `submit_result` の `cancel` / `error` / `convert_error` の割合。確認を × で閉じた分は `cancel` に入らず `modal_close` の `step=submit` に入るので、「やめた」は両方を足して見る。
   - `submit_reminder_shown` から `submit_reminder_submitted` までの割合。
 
 ### GA4 のファネルの組み方

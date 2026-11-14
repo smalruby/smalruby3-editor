@@ -10,6 +10,7 @@ import configureStore from 'redux-mock-store';
 import ClassroomKickRequestWatcher from '../../../src/containers/classroom-kick-request-watcher.jsx';
 import { savePendingKickRequest, clearPendingKickRequest } from '../../../src/lib/classroom-kick-request-storage.js';
 import { KICK_REQUEST_POLL_INTERVAL_MS } from '../../../src/lib/classroom-seat-selection.js';
+import { noteClassroomStudentView } from '../../../src/lib/classroom-student-analytics.js';
 
 const mockLookupClassroom = jest.fn();
 jest.mock('../../../src/lib/classroom-api.js', () => ({
@@ -41,6 +42,12 @@ describe('ClassroomKickRequestWatcher (#1198)', () => {
     afterEach(() => {
         clearPendingKickRequest();
         jest.useRealTimers();
+    });
+
+    test('forgets the GA screens of the last opening of the classroom modal (#1831)', () => {
+        noteClassroomStudentView('welcome', 1000);
+        renderWatcher({});
+        expect(noteClassroomStudentView('welcome', 2000)).toEqual({ send: true, at: 2000 });
     });
 
     test('should render without the classroom reducer', () => {

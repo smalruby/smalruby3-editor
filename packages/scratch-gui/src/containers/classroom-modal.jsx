@@ -17,6 +17,7 @@ import {
     CLASSROOM_STUDENT_EVENTS as GA,
     joinCodeResult,
     modalCloseStep,
+    noteClassroomStudentView,
     seatViewParams,
     secondsSince,
     sendClassroomStudentEvent,
@@ -299,9 +300,13 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             setTakenSeats(data.takenSeats || []);
             setSelectedSeat(null);
             setPhase('student-seat');
-            seatViewAtRef.current = activeNow();
-            seatGuideShownRef.current = false;
-            track(GA.SEAT_VIEW, seatViewParams(loadLastSeat(seatKey, data.studentCount), data.takenSeats));
+            // A remount (PC <-> mobile layout) looks the class up again: one view, timed from the first.
+            const seatView = noteClassroomStudentView('seat', activeNow());
+            seatViewAtRef.current = seatView.at;
+            if (seatView.send) {
+                seatGuideShownRef.current = false;
+                track(GA.SEAT_VIEW, seatViewParams(loadLastSeat(seatKey, data.studentCount), data.takenSeats));
+            }
             // Reopened while a request for this class is pending: the
             // answer may already be in this lookup.
             const pending = loadPendingKickRequest();
@@ -549,6 +554,9 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     );
     // The session was confirmed by the last check of the welcome back screen (#1825).
     const [sessionVerified, setSessionVerified] = useState(false);
+    // Grows each time the status check succeeds (GA, #1831): the welcome back screen sends
+    // welcome_view after one made since it came up, never for a session that turned out dead.
+    const [statusCheckedSeq, setStatusCheckedSeq] = useState(0);
 
     // The session token as of now. A verify answer for a token that is no
     // longer current (the student left, switched class or re-joined meanwhile)
@@ -587,6 +595,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             // not be pressable before we know.
             await studentAssignment.refreshContinueOptions();
             if (token !== sessionTokenRef.current) return;
+            setStatusCheckedSeq((n) => n + 1);
             // The lesson progress row is built from the device's lesson records
             // (#1599); take in what another tab wrote and re-read the lesson.
             // Opening this screen is also a moment to send the progress to the
@@ -610,10 +619,13 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 setKickedNotice(kick);
                 // The freed seat was not this student's (a kick request was approved
                 // for it), so do not offer it as the previous seat (#1796).
-                handleJoinWithCode(kick.joinCode, { forgetSeat: kick.seatNumber });
+                // Awaited so that the `finally` below does not end the loading while the
+                // lookup is still running (the welcome back screen would flash as ready).
+                await handleJoinWithCode(kick.joinCode, { forgetSeat: kick.seatNumber });
             } else if (rejoinCode) {
                 dispatch(clearClassroomSession());
-                handleJoinWithCode(rejoinCode);
+                track(GA.SESSION_END, { reason: 'expired' });
+                await handleJoinWithCode(rejoinCode);
             } else {
                 dispatch(clearClassroomSession());
                 track(GA.SESSION_END, { reason: 'expired' });
@@ -776,9 +788,6 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         handleJoinWithCode(code);
     }, []); // Run once on mount
 
-    // After a reload the project is the new one again: offer this assignment's
-    // submission as the main button of the welcome back screen (#1825). Blocks
-    // are read at render time; adding one also marks the project changed.
     // ×, the overlay or Escape (#1831): where the student left the modal. Choosing a start or
     // 「つづける」 also closes it but goes on to make the work, so those are not counted here.
     const handleDismiss = useCallback(() => {
@@ -796,6 +805,9 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         handleClose();
     }, [phase, classroomState.submissionStatus, assignmentReopened, studentLesson, lessonStatus, track, handleClose]);
 
+    // After a reload the project is the new one again: offer this assignment's
+    // submission as the main button of the welcome back screen (#1825). Blocks
+    // are read at render time; adding one also marks the project changed.
     const offerCurrentSubmission =
         phase === 'student-status' &&
         shouldOfferCurrentSubmission({
@@ -846,6 +858,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             submitProgress={submit.submitProgress}
             isSubmitting={submit.isSubmitting}
             submitStatusChecking={statusChecking}
+            statusCheckedSeq={statusCheckedSeq}
             takenSeats={takenSeats}
             teacherComment={studentTeacherComment}
             thumbnailDataUrl={submit.thumbnailDataUrl}

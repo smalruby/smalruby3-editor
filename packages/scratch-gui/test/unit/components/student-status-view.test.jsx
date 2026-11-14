@@ -10,6 +10,7 @@ import { IntlProvider } from 'react-intl';
 import { Provider } from 'react-redux';
 import { combineReducers, createStore } from 'redux';
 import StudentStatusView from '../../../src/components/classroom-modal/student-status-view.jsx';
+import { resetClassroomStudentViews } from '../../../src/lib/classroom-student-analytics.js';
 import classroomReducer, { openClassroomModal, setStudentPeerView } from '../../../src/reducers/classroom.js';
 
 const baseState = (extra = {}) => ({
@@ -269,7 +270,10 @@ describe('StudentStatusView: リロードしたあとに「この課題で出し
 });
 
 describe('StudentStatusView の GA (#1831)', () => {
-    const renderWithTrack = (props) => {
+    beforeEach(() => resetClassroomStudentViews());
+
+    // checked: 出したあとに状態の確かめが 1 回成功した（statusCheckedSeq が増えた）ところまで進める
+    const renderWithTrack = (props, { checked = true } = {}) => {
         const store = createStore(combineReducers({ scratchGui: combineReducers({ classroom: classroomReducer }) }));
         const handlers = {
             onContinue: jest.fn(),
@@ -284,27 +288,40 @@ describe('StudentStatusView の GA (#1831)', () => {
                 </IntlProvider>
             </Provider>
         );
-        const utils = render(ui());
-        return { ...handlers, rerender: (extra) => utils.rerender(ui(extra)) };
+        const utils = render(ui({ statusCheckedSeq: 0 }));
+        const rerender = (extra) => utils.rerender(ui({ statusCheckedSeq: checked ? 1 : 0, ...extra }));
+        if (checked) rerender();
+        return { ...handlers, rerender };
     };
 
-    test('状態を確かめおわってから welcome_view を 1 回だけ送る', () => {
+    test('出したあとの状態の確かめが成功してから welcome_view を 1 回だけ送る', () => {
         const onTrack = jest.fn();
-        const { rerender } = renderWithTrack({ isLoading: true, onTrack, now: () => 0 });
+        const { rerender } = renderWithTrack({ onTrack, now: () => 0 }, { checked: false });
         expect(onTrack).not.toHaveBeenCalled();
-        rerender({ isLoading: false });
-        expect(onTrack).toHaveBeenCalledWith('welcome_view', { main: 'continue' });
         rerender({ isLoading: true });
         rerender({ isLoading: false });
+        // 確かめが終わっても、成功していなければ（セッションが切れていたなど）送らない
+        expect(onTrack).not.toHaveBeenCalled();
+        rerender({ statusCheckedSeq: 1 });
+        expect(onTrack).toHaveBeenCalledWith('welcome_view', { main: 'continue' });
+        rerender({ statusCheckedSeq: 2 });
         expect(onTrack.mock.calls.filter(([a]) => a === 'welcome_view')).toHaveLength(1);
     });
 
-    test('提出状況を確かめている間（statusChecking）は welcome_view を待つ', () => {
+    test('読み込み中は、成功のあとでも待つ', () => {
         const onTrack = jest.fn();
-        const { rerender } = renderWithTrack({ statusChecking: true, onTrack, now: () => 0 });
+        const { rerender } = renderWithTrack({ onTrack, now: () => 0 }, { checked: false });
+        rerender({ statusCheckedSeq: 1, isLoading: true });
         expect(onTrack).not.toHaveBeenCalled();
-        rerender({ statusChecking: false });
+        rerender({ statusCheckedSeq: 1, isLoading: false });
         expect(onTrack).toHaveBeenCalledWith('welcome_view', { main: 'continue' });
+    });
+
+    test('マウントし直しても（PC とスマホの切りかえ）もう一度は送らない', () => {
+        const onTrack = jest.fn();
+        renderWithTrack({ onTrack, now: () => 0 });
+        renderWithTrack({ onTrack, now: () => 0 });
+        expect(onTrack.mock.calls.filter(([a]) => a === 'welcome_view')).toHaveLength(1);
     });
 
     test('「つづける」で welcome_action（button・主ボタン・秒）', () => {

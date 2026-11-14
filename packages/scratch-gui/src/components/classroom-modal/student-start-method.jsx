@@ -11,7 +11,11 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
-import { CLASSROOM_STUDENT_EVENTS, secondsSince } from '../../lib/classroom-student-analytics.js';
+import {
+    CLASSROOM_STUDENT_EVENTS,
+    noteClassroomStudentView,
+    secondsSince,
+} from '../../lib/classroom-student-analytics.js';
 import { activeNow } from '../../lib/lessons/lesson-analytics.js';
 import StudentMainButton from './student-main-button.jsx';
 import styles from './student-screen-parts.css';
@@ -134,10 +138,14 @@ const StudentStartMethod = ({
     const [othersOpen, setOthersOpen] = useState(false);
     const othersId = useId();
     // GA (#1831): start_view once when the choices come up, start_choose with the seconds since.
+    // Coming back to the last page of the assignment panel or switching between the PC and the
+    // mobile layout mounts this again: noteClassroomStudentView keeps it to one view (and its time).
     const shownAtRef = useRef(null);
     const othersOpenedRef = useRef(false);
     useEffect(() => {
-        shownAtRef.current = now();
+        const { send, at } = noteClassroomStudentView('start', now());
+        shownAtRef.current = at;
+        if (!send) return;
         onTrack?.(CLASSROOM_STUDENT_EVENTS.START_VIEW, {
             main: method.main,
             others_count: (method.others || []).length,

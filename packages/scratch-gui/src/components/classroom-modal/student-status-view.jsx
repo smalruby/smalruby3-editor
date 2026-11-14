@@ -13,7 +13,12 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { formatStudentClassName } from '../../lib/classroom-class-label.js';
-import { CLASSROOM_STUDENT_EVENTS, secondsSince, welcomeMain } from '../../lib/classroom-student-analytics.js';
+import {
+    CLASSROOM_STUDENT_EVENTS,
+    noteClassroomStudentView,
+    secondsSince,
+    welcomeMain,
+} from '../../lib/classroom-student-analytics.js';
 import { canSubmitAssignment } from '../../lib/lessons/assignment-progress.js';
 import { activeNow } from '../../lib/lessons/lesson-analytics.js';
 import {
@@ -390,7 +395,7 @@ const StudentStatusView = ({
     onStartLesson,
     onTrack,
     onWrongSeat,
-    statusChecking = false,
+    statusCheckedSeq = 0,
     now = activeNow,
 }) => {
     const intl = useIntl();
@@ -419,15 +424,20 @@ const StudentStatusView = ({
     const mainIsLesson = !!lesson && !lessonSubmitReady;
     // After a reload with the new project still open (#1825). A lesson assignment keeps its main button.
     const mainIsCurrent = offerCurrentSubmission && !lesson && !!continueOptions?.current;
-    // GA (#1831): welcome_view once the status check is done (the main button is then final),
-    // welcome_action with what was pressed and the seconds since.
+    // GA (#1831): welcome_view once a status check made after this screen came up has succeeded
+    // (statusCheckedSeq grew): the main button is then final, and a student whose session turned
+    // out dead (expired, removed, rejoining from a URL) never saw this screen. welcome_action
+    // sends what was pressed and the seconds since. A remount (PC <-> mobile layout) does not
+    // send it again (noteClassroomStudentView).
     const main = welcomeMain({ mainIsLesson, mainIsCurrent });
     const shownAtRef = useRef(null);
+    const mountSeqRef = useRef(statusCheckedSeq);
     useEffect(() => {
-        if (isLoading || statusChecking || shownAtRef.current !== null) return;
-        shownAtRef.current = now();
-        onTrack?.(CLASSROOM_STUDENT_EVENTS.WELCOME_VIEW, { main });
-    }, [isLoading, statusChecking]);
+        if (shownAtRef.current !== null || isLoading || statusCheckedSeq === mountSeqRef.current) return;
+        const { send, at } = noteClassroomStudentView('welcome', now());
+        shownAtRef.current = at;
+        if (send) onTrack?.(CLASSROOM_STUDENT_EVENTS.WELCOME_VIEW, { main });
+    }, [statusCheckedSeq, isLoading]);
     const trackAction = useCallback(
         (button, kind) =>
             onTrack?.(CLASSROOM_STUDENT_EVENTS.WELCOME_ACTION, {
@@ -663,8 +673,8 @@ StudentStatusView.propTypes = {
     onStartLesson: PropTypes.func,
     // sends a classroom_student GA event: (action, params) (#1831)
     onTrack: PropTypes.func,
-    // the submission status is being checked: welcome_view waits until the main button is final (#1831)
-    statusChecking: PropTypes.bool,
+    // grows each time a status check succeeds: welcome_view waits for one after this screen came up (#1831)
+    statusCheckedSeq: PropTypes.number,
     // テスト用: タブが裏にあった時間を引いた時計
     now: PropTypes.func,
     // 「出席番号がちがう」: いまの席を空けて同じ課題の番号選びへ

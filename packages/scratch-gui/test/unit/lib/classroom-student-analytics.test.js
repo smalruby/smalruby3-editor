@@ -6,9 +6,12 @@ import {
     CLASSROOM_STUDENT_CATEGORY,
     CLASSROOM_STUDENT_EVENTS,
     CLASSROOM_STUDENT_PARAM_KEYS,
+    CLASSROOM_STUDENT_PARAM_VALUES,
     buildClassroomStudentEvent,
     joinCodeResult,
     modalCloseStep,
+    noteClassroomStudentView,
+    resetClassroomStudentViews,
     seatViewParams,
     secondsSince,
     sendClassroomStudentEvent,
@@ -208,5 +211,62 @@ describe('submitReminderGaEvent', () => {
     test('知らない出来事は送らない', () => {
         expect(submitReminderGaEvent({ type: 'other' })).toBeNull();
         expect(submitReminderGaEvent(null)).toBeNull();
+    });
+});
+
+describe('項目ごとの値 (FYI2)', () => {
+    test('どの項目にも値の決まりがある', () => {
+        expect(Object.keys(CLASSROOM_STUDENT_PARAM_VALUES).sort()).toEqual([...CLASSROOM_STUDENT_PARAM_KEYS].sort());
+    });
+
+    test('知らない文字列は other にする（エラー文などをそのまま送らない）', () => {
+        const event = buildClassroomStudentEvent('session_end', { reason: 'Invalid or expired session for 1年1組' });
+        expect(event.reason).toBe('other');
+        expect(buildClassroomStudentEvent('join_code', { result: 'abc123' }).result).toBe('other');
+    });
+
+    test('決まった値はそのまま', () => {
+        expect(buildClassroomStudentEvent('submit_open', { from: 'drawer', state: 'returned' })).toMatchObject({
+            from: 'drawer',
+            state: 'returned',
+        });
+    });
+
+    test('数・真偽の項目は型が違えば送らない', () => {
+        const event = buildClassroomStudentEvent('seat_select', {
+            seconds: '12',
+            is_previous: 'yes',
+            after_guide: true,
+            others_count: Number.NaN,
+        });
+        expect(event.seconds).toBeUndefined();
+        expect(event.is_previous).toBeUndefined();
+        expect(event.after_guide).toBe(true);
+        expect(event.others_count).toBeUndefined();
+    });
+});
+
+describe('noteClassroomStudentView (FYI1)', () => {
+    beforeEach(() => resetClassroomStudentViews());
+
+    test('はじめて出した画面は送る', () => {
+        expect(noteClassroomStudentView('seat', 1000)).toEqual({ send: true, at: 1000 });
+    });
+
+    test('マウントし直して同じ画面がもう一度出ても送らず、最初の時刻を返す', () => {
+        noteClassroomStudentView('start', 1000);
+        expect(noteClassroomStudentView('start', 5000)).toEqual({ send: false, at: 1000 });
+    });
+
+    test('ほかの画面へ移ってから戻ったら、また送る', () => {
+        noteClassroomStudentView('welcome', 1000);
+        noteClassroomStudentView('seat', 2000);
+        expect(noteClassroomStudentView('welcome', 3000)).toEqual({ send: true, at: 3000 });
+    });
+
+    test('クラスの画面を閉じたら覚えを消す', () => {
+        noteClassroomStudentView('welcome', 1000);
+        resetClassroomStudentViews();
+        expect(noteClassroomStudentView('welcome', 9000)).toEqual({ send: true, at: 9000 });
     });
 });

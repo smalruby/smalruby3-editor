@@ -7,6 +7,7 @@ import { fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import StudentStartMethod from '../../../src/components/classroom-modal/student-start-method.jsx';
+import { resetClassroomStudentViews } from '../../../src/lib/classroom-student-analytics.js';
 
 const PREVIOUS = {
     assignmentName: 'ねこの迷路（第 1 回）',
@@ -131,6 +132,22 @@ describe('StudentStartMethod', () => {
 });
 
 describe('StudentStartMethod の GA (#1831)', () => {
+    beforeEach(() => resetClassroomStudentViews());
+
+    test('課題パネルのページを行き来してマウントし直しても start_view は 1 回、秒は最初から', () => {
+        const onTrack = jest.fn();
+        let t = 1000;
+        const props = { ...handlers(), method: { main: 'starter', others: [] }, now: () => t, onTrack };
+        const first = renderMethod(props);
+        first.unmount();
+        t = 4000;
+        const { getByTestId } = renderMethod(props);
+        expect(onTrack.mock.calls.filter(([a]) => a === 'start_view')).toHaveLength(1);
+        t = 11000;
+        fireEvent.click(getByTestId('classroom-start-main'));
+        expect(onTrack).toHaveBeenLastCalledWith('start_choose', expect.objectContaining({ seconds: 10 }));
+    });
+
     test('出したときに start_view（主ボタンとほかの始め方の数）を 1 回送る', () => {
         const onTrack = jest.fn();
         const { rerender } = renderMethod({

@@ -80,6 +80,7 @@ const ClassroomModal = ({
     assignmentReopened = false,
     isSubmitting = false,
     submitStatusChecking = false,
+    statusCheckedSeq = 0,
 }) => {
     const intl = useIntl();
 
@@ -207,7 +208,7 @@ const ClassroomModal = ({
                         onOpenAssignment={onOpenAssignment}
                         onRefreshStudentStatus={onRefreshStudentStatus}
                         onStartLesson={onStartLesson}
-                        statusChecking={submitStatusChecking}
+                        statusCheckedSeq={statusCheckedSeq}
                         onTrack={onTrack}
                         onWrongSeat={onWrongSeat}
                     />
@@ -313,6 +314,8 @@ ClassroomModal.propTypes = {
     onSeatIdleGuide: PropTypes.func,
     // sends a classroom_student GA event: (action, params) (#1831)
     onTrack: PropTypes.func,
+    // grows each time the welcome back screen's status check succeeds (GA welcome_view, #1831)
+    statusCheckedSeq: PropTypes.number,
     onConfirmJoin: PropTypes.func.isRequired,
     onConfirmKickRequest: PropTypes.func,
     onConfirmSubmit: PropTypes.func.isRequired,

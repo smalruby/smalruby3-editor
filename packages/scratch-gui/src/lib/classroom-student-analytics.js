@@ -59,10 +59,76 @@ const CLASSROOM_STUDENT_PARAM_KEYS = [
     'first',
 ];
 
-const isPlainValue = (value) => ['string', 'number', 'boolean'].includes(typeof value);
+// 項目ごとに送ってよい値。文字列の項目は決まった値だけを通し、知らない値は 'other' にする
+// （あとで誰かが err.message などを渡しても、そのまま GA に出ないように）。数・真偽の項目は型が違えば送らない。
+const NUMBER = 'number';
+const BOOLEAN = 'boolean';
+const CLASSROOM_STUDENT_PARAM_VALUES = {
+    result: [
+        'ok',
+        'not_found',
+        'closed',
+        'error',
+        'taken',
+        'sent',
+        'canceled',
+        'approved',
+        'rejected',
+        'confirm',
+        'cancel',
+        'done',
+        'expired',
+        'convert_error',
+    ],
+    seconds: NUMBER,
+    minutes: NUMBER,
+    previous_seat: BOOLEAN,
+    previous_taken: BOOLEAN,
+    is_previous: BOOLEAN,
+    after_guide: BOOLEAN,
+    main: ['current', 'previous', 'starter', 'keep', 'lesson', 'continue', 'this_submission'],
+    others_count: NUMBER,
+    kind: ['current', 'previous', 'starter', 'keep', 'lesson'],
+    via: ['main', 'others', 'grid', 'kick_approved'],
+    others_opened: BOOLEAN,
+    button: [
+        'continue',
+        'continue_as_is',
+        'this_submission',
+        'lesson',
+        'assignment',
+        'peer',
+        'wrong_seat',
+        'reload',
+        'leave',
+    ],
+    from: ['menu_bar', 'drawer', 'lessons_library', 'lesson_clear'],
+    state: ['first', 'resubmit', 'returned'],
+    reason: ['expired', 'kicked', 'close', 'outside', 'submit'],
+    step: ['join', 'seat', 'start', 'make', 'submit', 'complete'],
+    first: BOOLEAN,
+};
+
+// 知らない文字列の値の置きかえ
+const OTHER_VALUE = 'other';
+
+/**
+ * 1 つの項目の値を、送ってよい形にする。
+ * @param {string} key - 項目名。
+ * @param {*} value - 値。
+ * @returns {string|number|boolean|undefined} 送る値（送らないなら undefined）。
+ */
+const allowedValue = (key, value) => {
+    const allowed = CLASSROOM_STUDENT_PARAM_VALUES[key];
+    if (allowed === NUMBER) return typeof value === 'number' && Number.isFinite(value) ? value : undefined; // eslint-disable-line no-undefined
+    if (allowed === BOOLEAN) return typeof value === 'boolean' ? value : undefined; // eslint-disable-line no-undefined
+    if (typeof value !== 'string') return undefined; // eslint-disable-line no-undefined
+    return allowed.includes(value) ? value : OTHER_VALUE;
+};
 
 /**
  * GA に送るイベント（analytics.event に渡す形）。決めた項目だけを入れ、使わない項目は undefined にする。
+ * 値は項目ごとに決めた値だけを通す（CLASSROOM_STUDENT_PARAM_VALUES。知らない文字列は 'other'）。
  * @param {string} action - CLASSROOM_STUDENT_EVENTS の値。
  * @param {object} [params] - 項目（CLASSROOM_STUDENT_PARAM_KEYS のもの。ほかは落とす）。
  * @returns {object} イベント。
@@ -74,8 +140,7 @@ const buildClassroomStudentEvent = (action, params = {}) => {
         label: undefined, // eslint-disable-line no-undefined
     };
     CLASSROOM_STUDENT_PARAM_KEYS.forEach((key) => {
-        const value = params[key];
-        event[key] = isPlainValue(value) ? value : undefined; // eslint-disable-line no-undefined
+        event[key] = allowedValue(key, params[key]);
     });
     return event;
 };
@@ -194,13 +259,40 @@ const submitReminderGaEvent = (event) => {
     return null;
 };
 
+// --- 画面を出したイベントの重ね送りを防ぐ覚え ---
+// PC 表示とスマホ表示の切りかえ（<GUI> と <MobileGui> の入れかえ）や、課題パネルのページの行き来では、
+// クラスの画面のコンポーネントがマウントし直される。そのたびに seat_view / start_view / welcome_view を
+// 送ると数がふくらむので、「最後に出した画面」とその時刻をモジュールに 1 つ持つ（レッスンの計測と同じ考え）。
+// 同じ画面がもう一度出ても送らず、秒は最初に出した時刻から測る。クラスの画面を閉じたら覚えを消す。
+let lastView = null;
+
+/**
+ * 画面を出したことを覚える。直前に覚えた画面と同じなら、送らずに最初の時刻を返す。
+ * @param {string} view - 画面の名前（seat / start / welcome）。
+ * @param {number} now - 今の時刻（ms。activeNow の時計）。
+ * @returns {{send: boolean, at: number}} 送るか・その画面を出した時刻。
+ */
+const noteClassroomStudentView = (view, now) => {
+    if (lastView && lastView.view === view) return { send: false, at: lastView.at };
+    lastView = { view, at: now };
+    return { send: true, at: now };
+};
+
+/** クラスの画面を閉じた: 画面を出した覚えを消す（次に開いたら、また送る）。 */
+const resetClassroomStudentViews = () => {
+    lastView = null;
+};
+
 export {
     CLASSROOM_STUDENT_CATEGORY,
     CLASSROOM_STUDENT_EVENTS,
     CLASSROOM_STUDENT_PARAM_KEYS,
+    CLASSROOM_STUDENT_PARAM_VALUES,
     buildClassroomStudentEvent,
     joinCodeResult,
     modalCloseStep,
+    noteClassroomStudentView,
+    resetClassroomStudentViews,
     seatViewParams,
     secondsSince,
     sendClassroomStudentEvent,
