@@ -48,6 +48,10 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/modal/modal.css` | default modal background | `.modal-content` (非フルスクリーン) に既定背景 `$ui-white` を付与し、本文背景の設定漏れでも青いオーバーレイが透けないようにする (案X) |
 | `src/components/gui/gui.jsx` | meshV2 classroom binding | クラス状態に応じて Mesh v2 ドメインを参加コードに固定する常時マウントの binding |
 | `src/components/gui/gui.jsx` | meshV2 self-sensor notice | グローバル変数名と mesh センサーの値の重複を検出し初回のみ通知する常時マウントのバナー (Issue #707) の import と配置 |
+| `src/components/gui/gui.jsx` | mesh status popup | メッシュの「状態と履歴」ウィンドウ（`containers/mesh-status-popup.jsx`）の import と、エディターとプレイヤーのツリー（`StageWrapper` 内）への常時マウント（`docs/mesh-v2/README.md`） |
+| `src/components/stage-header/stage-header.jsx` | mesh status button | 緑の旗・停止（`Controls`）とメッシュのボタン（`MeshStatusButton`）を 1 つのまとまり（`controlsGroup`）に入れる。通常表示と全画面の 2 か所 + import |
+| `src/components/menu-bar/menu-bar.jsx` | mesh status popup | メッシュのメニューの「状態と履歴を見る」（`menu-bar-mesh-status`）と、`openMeshV2StatusPopup` の import・`onOpenMeshV2StatusPopup` の dispatch と propType |
+| `src/components/connection-modal/connected-step.jsx` | mesh status popup | メッシュの接続済み画面の［状態と履歴］ボタン（`mesh-v2-open-status`）の import と配置 |
 | `src/components/gui/gui.jsx` | lesson goal watcher | レッスンモードのあいだ VM を見張り、チャレンジの「できた」を判定して記録・「できた！」を出す常時マウントのコンテナ（`containers/lesson-goal-watcher.jsx`）の import と配置 |
 | `src/components/gui/gui.jsx` | welcome modal | 初回訪問者向けウェルカムモーダル HOC の import と配置、`onShowWelcomeModal` prop |
 | `src/containers/gui.jsx` | welcome modal | `onShowWelcomeModal` を Redux `openWelcomeModal()` にマップ |

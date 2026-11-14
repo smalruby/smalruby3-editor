@@ -56,6 +56,8 @@ const GroupLifecycleMixin = {
             this.lastFetchTime = new Date().toISOString();
             // issue #556: orderKey の連番をリセット
             this.eventSequence = 0;
+            // 新しいグループでは履歴を始めからにする (#1844)
+            this.clearMessageHistory();
             debug(() => `Mesh V2: Initialized lastFetchTime to ${this.lastFetchTime} (before createGroup)`);
             const result = await this.client.mutate({
                 mutation: CREATE_GROUP,
@@ -122,6 +124,8 @@ const GroupLifecycleMixin = {
             this.lastFetchTime = new Date().toISOString();
             // issue #556: orderKey の連番をリセット
             this.eventSequence = 0;
+            // 新しいグループでは履歴を始めからにする (#1844)
+            this.clearMessageHistory();
             debug(() => `Mesh V2: Initialized lastFetchTime to ${this.lastFetchTime} (before joinGroup)`);
             const result = await this.client.mutate({
                 mutation: JOIN_GROUP,

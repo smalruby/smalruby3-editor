@@ -37,6 +37,9 @@ const BroadcastReceiverMixin = {
             return 0;
         });
 
+        // 状態と履歴のポップアップ (#1844): 受け取ったものを残す（自分が送ったものは呼び出し元で除いてある）
+        this.recordReceivedEvents(sortedEvents);
+
         // 最初のイベントを基準にオフセットを計算
         const baseTime = new Date(sortedEvents[0].timestamp).getTime();
 

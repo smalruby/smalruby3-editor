@@ -17,6 +17,7 @@ const { DataSenderMixin } = require('./data-sender');
 const { BroadcastReceiverMixin } = require('./broadcast-receiver');
 const { EventSenderMixin } = require('./event-sender');
 const { GroupLifecycleMixin } = require('./group-lifecycle');
+const { StatusHistoryMixin } = require('./status-history');
 
 /**
  * Parses an environment variable as an integer with validation.
@@ -70,6 +71,13 @@ class MeshV2Service {
 
         // Data from other nodes: { nodeId: { key: { value: string, timestamp: number } } }
         this.remoteData = {};
+
+        // 状態と履歴のポップアップ (#1844): 送った・受け取ったメッセージ（新しい順・50 件まで）と、
+        // listNodesInGroup で知ったグループのノード一覧（30 秒に 1 回まで問い合わせる）
+        this.messageHistory = [];
+        this.groupNodeIds = null;
+        this.groupNodesFetchedAt = 0;
+        this._groupNodesRequest = null;
 
         // Rate limiters
         // Data update interval (default: 1000ms)
@@ -336,6 +344,7 @@ class MeshV2Service {
         this.expiresAt = null;
         this.isHost = false;
         this.remoteData = {};
+        this.forgetGroupNodes();
         this.lastSentData = {};
         this.latestQueuedData = {};
     }
@@ -353,5 +362,6 @@ Object.assign(MeshV2Service.prototype, DataSenderMixin);
 Object.assign(MeshV2Service.prototype, BroadcastReceiverMixin);
 Object.assign(MeshV2Service.prototype, EventSenderMixin);
 Object.assign(MeshV2Service.prototype, GroupLifecycleMixin);
+Object.assign(MeshV2Service.prototype, StatusHistoryMixin);
 
 module.exports = MeshV2Service;

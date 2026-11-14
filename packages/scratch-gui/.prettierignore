@@ -91,6 +91,10 @@ src/components/*
 !src/components/koshien-mock-panel/**
 !src/components/mesh-self-sensor-notice/
 !src/components/mesh-self-sensor-notice/**
+!src/components/mesh-status-button/
+!src/components/mesh-status-button/**
+!src/components/mesh-status-popup/
+!src/components/mesh-status-popup/**
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-bottom-tabs/**
 !src/components/mobile-drawer/
@@ -131,6 +135,7 @@ src/components/*
 src/components/connection-modal/*
 !src/components/connection-modal/mesh-v2-initial-step.css
 !src/components/connection-modal/mesh-v2-initial-step.jsx
+!src/components/connection-modal/mesh-v2-open-status-button.jsx
 !src/components/connection-modal/mesh-v2-network-filtered-step.jsx
 !src/components/connection-modal/mesh-v2-classic-methods.jsx
 !src/components/connection-modal/mesh-v2-seat-connect.css
@@ -201,6 +206,7 @@ src/containers/*
 !src/containers/lesson-mode.jsx
 !src/containers/lessons-library.jsx
 !src/containers/mesh-self-sensor-notice.jsx
+!src/containers/mesh-status-popup.jsx
 !src/containers/mesh-v2-seat-connect.jsx
 !src/containers/google-drive-saver-hoc.jsx
 !src/containers/ruby-downloader.jsx
@@ -286,6 +292,8 @@ src/lib/*
 !src/lib/mesh-v2-seat-label.js
 !src/lib/mesh-v2-seat-snapshot.js
 !src/lib/mesh-v2-sensor-collision.js
+!src/lib/mesh-v2-status.js
+!src/lib/use-mesh-v2-presence.js
 !src/lib/microsoft-auth.js
 !src/lib/microbit-more-update.js
 !src/lib/teacher-auth.js
@@ -500,6 +508,7 @@ test/unit/components/*
 !test/unit/components/lesson-assignment-band.test.jsx
 !test/unit/components/lesson-progress-confirm.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
+!test/unit/components/mesh-status-popup.test.jsx
 !test/unit/components/mesh-v2-scanning-step-seats.test.jsx
 !test/unit/components/mesh-v2-seat-connect.test.jsx
 !test/unit/components/student-assignment-panel.test.jsx
@@ -666,6 +675,7 @@ test/unit/lib/*
 !test/unit/lib/mesh-v2-classroom-binding.test.js
 !test/unit/lib/mesh-v2-seat-connect.test.js
 !test/unit/lib/mesh-v2-seat-label.test.js
+!test/unit/lib/mesh-v2-status.test.js
 !test/unit/lib/mesh-v2-sensor-collision.test.js
 !test/unit/lib/monaco-i18n-helper.test.js
 !test/unit/lib/display-mode-persistence.test.js

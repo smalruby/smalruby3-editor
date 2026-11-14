@@ -93,6 +93,8 @@ const EventSenderMixin = {
                     this.lastFetchTime = result.data.recordEventsByNode.nextSince;
                 }
             }
+            // 状態と履歴のポップアップ (#1844): 実際に送れたものだけを「送った」に残す
+            this.recordSentEvents(events);
         } catch (error) {
             log.error(`Mesh V2: Failed to fire batch events: ${error}`);
             const reason = this.shouldDisconnectOnError(error);

@@ -10,6 +10,9 @@ import classNames from 'classnames';
 // === Smalruby: Start of meshV2 seat connect feature ===
 import MeshV2SeatStatusLine from './mesh-v2-seat-status-line.jsx';
 // === Smalruby: End of meshV2 seat connect feature ===
+// === Smalruby: Start of mesh status popup ===
+import MeshV2OpenStatusButton from './mesh-v2-open-status-button.jsx';
+// === Smalruby: End of mesh status popup ===
 
 const ConnectedStep = props => (
     <Box className={styles.body}>
@@ -64,6 +67,11 @@ const ConnectedStep = props => (
                         id="gui.connection.disconnect"
                     />
                 </button>
+                {/* === Smalruby: Start of mesh status popup === */}
+                {props.extensionId === 'meshV2' && (
+                    <MeshV2OpenStatusButton onCloseModal={props.onCancel} />
+                )}
+                {/* === Smalruby: End of mesh status popup === */}
                 <button
                     className={styles.connectionButton}
                     onClick={props.onCancel}
