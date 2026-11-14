@@ -63,6 +63,7 @@ const LessonTaskBar = ({
     hintVisible,
     menuOpen,
     onEnd,
+    onCloseFullText,
     onHint,
     onOpenFullText,
     onQuit,
@@ -111,6 +112,14 @@ const LessonTaskBar = ({
         prevHintVisibleRef.current = Boolean(hintVisible);
     }, [hintVisible, clearHoverTimer]);
     useEffect(() => setPinned(false), [task]);
+    // タップで開いた全文が閉じたら知らせる（どう閉じても。隠していた「できた！」を出し直すため・#1639）
+    const prevPinnedRef = useRef(pinned);
+    const onCloseFullTextRef = useRef(onCloseFullText);
+    onCloseFullTextRef.current = onCloseFullText;
+    useEffect(() => {
+        if (prevPinnedRef.current && !pinned && onCloseFullTextRef.current) onCloseFullTextRef.current();
+        prevPinnedRef.current = pinned;
+    }, [pinned]);
 
     // タップで開いているあいだ、外を押す・Esc で閉じる
     useEffect(() => {
@@ -271,6 +280,8 @@ LessonTaskBar.propTypes = {
     // レッスンをおえる（レッスンから出て、いつもの画面にもどる。レッスン表は開かない）。無ければボタンを出さない
     onEnd: PropTypes.func,
     onHint: PropTypes.func.isRequired,
+    // タップで開いた全文のパネルが閉じたとき（クイズのある「できた！」を出し直す）
+    onCloseFullText: PropTypes.func,
     // タップで全文のパネルを開くとき（ヒントの吹き出し・「できた！」を閉じる）
     onOpenFullText: PropTypes.func,
     // ほかのチャレンジへ（いまのチャレンジを終えてレッスン表を開く）

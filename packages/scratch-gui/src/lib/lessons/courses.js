@@ -132,8 +132,13 @@ export const defineChallenge = (def) => ({
     // 答えのプログラム（code と spriteCodes）から描くアクティビティ図を、課題の全文とヒントの 1 ページ目に
     // 出すか（lib/lessons/activity-diagram/・docs/lessons/design.md の「アクティビティ図」）
     activityDiagram: false,
-    // メッシュの練習相手の定義（#1638）: {name, buttons, replies}。図では相手のスイムレーンになる。無ければ null
+    // メッシュの練習相手の定義（#1638）: {name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}]}
+    // （set = {variable, value}）。図では相手のスイムレーンになる。無ければ null
     partner: null,
+    // ふりかえりのクイズ（任意）: {question, choices: [3 つ], answer, explanation}。文言は message descriptor、
+    // answer は choices の何番目が正解か（0 から）。「できた！」の中に出す（「できた」の判定には入れない）。
+    // ふつうは challengeQuiz(id, answer) で書く。形は validateQuiz
+    quiz: null,
     ...def,
     // ヒント。title = 文言、target = 指す場所、blocks = 吹き出しに描くブロック、
     // spotlight = はじめて開いたチャレンジだけ周りを暗くして指す場所を照らす
@@ -178,6 +183,45 @@ export const defineCourse = ({ id, language, lessons }) => ({
 
 // チャレンジの文言（task / stepN / debugN）を id から引く
 const challengeMessage = (challengeId, field) => message(`gui.lessons.challenge.${challengeId}.${field}`);
+/** ふりかえりのクイズの選択肢の数（3 択）。 */
+export const QUIZ_CHOICE_COUNT = 3;
+
+/**
+ * ふりかえりのクイズ（#1639）を、文言の id の決まりどおりに作る。文言は
+ * `gui.lessons.challenge.<id>.quiz.question` / `.quiz.choice1`〜`3` / `.quiz.explanation`（en / ja / ja-Hira）。
+ * @param {string} challengeId - チャレンジ id。
+ * @param {number} answer - 正解の選択肢の何番目か（0 から。choice1 が 0）。
+ * @returns {{question: object, choices: Array<object>, answer: number, explanation: object}} クイズ。
+ */
+export const challengeQuiz = (challengeId, answer) => ({
+    question: challengeMessage(challengeId, 'quiz.question'),
+    choices: Array.from({ length: QUIZ_CHOICE_COUNT }, (_, i) =>
+        challengeMessage(challengeId, `quiz.choice${i + 1}`),
+    ),
+    answer,
+    explanation: challengeMessage(challengeId, 'quiz.explanation'),
+});
+
+const isMessage = (value) => Boolean(value) && typeof value === 'object' && typeof value.id === 'string';
+
+/**
+ * ふりかえりのクイズの形を確かめる（定義の誤りをテストで見つけるため。アプリでは投げない）。
+ * @param {*} quiz - チャレンジの `quiz`。
+ * @returns {Array<string>} 誤り（無ければ空）。
+ */
+export const validateQuiz = (quiz) => {
+    if (!quiz || typeof quiz !== 'object') return ['quiz must be an object'];
+    const errors = [];
+    if (!isMessage(quiz.question)) errors.push('question must be a message');
+    if (!Array.isArray(quiz.choices) || quiz.choices.length !== QUIZ_CHOICE_COUNT || !quiz.choices.every(isMessage)) {
+        errors.push(`choices must be ${QUIZ_CHOICE_COUNT} messages`);
+    }
+    if (!Number.isInteger(quiz.answer) || quiz.answer < 0 || quiz.answer >= QUIZ_CHOICE_COUNT) {
+        errors.push('answer must be 0, 1 or 2 (the index of choices)');
+    }
+    if (!isMessage(quiz.explanation)) errors.push('explanation must be a message');
+    return errors;
+};
 // ヒントの文言は並びの番号（step1, step2, ...）で引く
 const withTitles = (challengeId, steps) =>
     steps.map((step, i) => ({ ...step, title: challengeMessage(challengeId, `step${i + 1}`) }));

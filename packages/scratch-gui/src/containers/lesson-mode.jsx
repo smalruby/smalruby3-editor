@@ -28,8 +28,10 @@ import {
     dismissCompleted,
     getCurrentChallenge,
     getCurrentHint,
+    hideCompleted,
     hideHint,
     openChallenge,
+    showCompleted,
     showHint,
     startChallenge,
 } from '../reducers/lesson-mode';
@@ -44,6 +46,7 @@ import LessonHint from './lesson-hint.jsx';
 
 const LessonMode = ({
     assignmentLesson = null,
+    completedHidden = false,
     current,
     dispatch,
     dnclMode,
@@ -58,9 +61,11 @@ const LessonMode = ({
     onDismissCompleted,
     onEndLesson,
     onExitDnclMode,
+    onHideCompleted,
     onHideHint,
     onOpenChallenge,
     onRequestNewProject,
+    onShowCompleted,
     onShowHint,
     onStartChallenge,
     pendingChallengeId,
@@ -163,10 +168,17 @@ const LessonMode = ({
         else onShowHint();
     }, [hint, onHideHint, onShowHint]);
 
+    // タップで全文を開くときは、吹き出しと「できた！」に重ねない。クイズのある「できた！」は閉じずに
+    // 全文のあいだだけ隠し、全文を閉じたら出し直す（閉じるとクイズにもどれないため・#1639）
+    const quizToast = Boolean(toastVisible && current && current.challenge.quiz);
     const handleOpenFullText = useCallback(() => {
         if (hint && hint.visible) onHideHint();
-        if (toastVisible) onDismissCompleted();
-    }, [hint, onHideHint, toastVisible, onDismissCompleted]);
+        if (quizToast) onHideCompleted();
+        else if (toastVisible) onDismissCompleted();
+    }, [hint, onHideHint, quizToast, toastVisible, onHideCompleted, onDismissCompleted]);
+    const handleCloseFullText = useCallback(() => {
+        if (completedHidden) onShowCompleted();
+    }, [completedHidden, onShowCompleted]);
 
     // 課題バーのボタンの GA 計測（どのチャレンジで押したか。lib/lessons/lesson-analytics.js）
     // 課題のチャレンジからは、レッスン表を課題のチャレンジだけで開き直す（#1599）
@@ -200,6 +212,7 @@ const LessonMode = ({
                 hintVisible={Boolean(hint && hint.visible)}
                 menuOpen={menuOpen}
                 onEnd={handleEnd}
+                onCloseFullText={handleCloseFullText}
                 onHint={handleHint}
                 onOpenFullText={handleOpenFullText}
                 onQuit={handleQuit}
@@ -237,6 +250,11 @@ LessonMode.propTypes = {
     onCancelStart: PropTypes.func.isRequired,
     onCloseLesson: PropTypes.func.isRequired,
     onDismissCompleted: PropTypes.func.isRequired,
+    // クイズのある「できた！」を、全文のあいだだけ隠す・出し直す（#1639）
+    onHideCompleted: PropTypes.func.isRequired,
+    onShowCompleted: PropTypes.func.isRequired,
+    // 「できた！」をいっとき隠しているか（reducers/lesson-mode.js の completedHidden）
+    completedHidden: PropTypes.bool,
     onEndLesson: PropTypes.func.isRequired,
     onExitDnclMode: PropTypes.func.isRequired,
     onHideHint: PropTypes.func.isRequired,
@@ -277,10 +295,12 @@ const mapStateToProps = (state) => {
         projectChanged: state.scratchGui.projectChanged,
         rubyVersion: state.scratchGui.settings.rubyVersion,
         scratchBlocks: state.scratchGui.blockDisplay.scratchBlocks,
-        // lesson-goal-watcher.jsx が「できた！」の toast を出す条件と同じ
+        // lesson-goal-watcher.jsx が「できた！」の toast を出す条件と同じ（いっとき隠しているあいだは出ていない）
         toastVisible:
             state.scratchGui.lessonMode.challengeId !== null &&
-            state.scratchGui.lessonMode.justCompletedId === state.scratchGui.lessonMode.challengeId,
+            state.scratchGui.lessonMode.justCompletedId === state.scratchGui.lessonMode.challengeId &&
+            !state.scratchGui.lessonMode.completedHidden,
+        completedHidden: Boolean(state.scratchGui.lessonMode.completedHidden),
         vm: state.scratchGui.vm,
     };
 };
@@ -296,6 +316,8 @@ const mapDispatchToProps = (dispatch) => ({
         else dispatch(openLessonsLibrary());
     },
     onDismissCompleted: () => dispatch(dismissCompleted()),
+    onHideCompleted: () => dispatch(hideCompleted()),
+    onShowCompleted: () => dispatch(showCompleted()),
     // 「レッスンをおえる」: レッスンから出るだけ（レッスン表は開かない・確認も出さない）。作品はそのまま残り、
     // パレットは getLessonAllowedBlocks が null になって全部のブロックにもどる
     onEndLesson: () => dispatch(closeLesson()),

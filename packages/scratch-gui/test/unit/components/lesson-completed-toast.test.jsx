@@ -219,3 +219,61 @@ describe('LessonCompletedToast: assignment cleared (#1599)', () => {
         expect(queryByTestId('lesson-completed-toast-submit')).toBeNull();
     });
 });
+
+// ふりかえりのクイズ（#1639）: 定義に quiz があるチャレンジは「できた！」の中に 3 択を出す
+describe('LessonCompletedToast: reflection quiz (#1639)', () => {
+    const quiz = {
+        question: { id: 'test.quiz.question', defaultMessage: 'What is a protocol?' },
+        choices: [
+            { id: 'test.quiz.choice1', defaultMessage: 'A rule for talking' },
+            { id: 'test.quiz.choice2', defaultMessage: 'A cable' },
+            { id: 'test.quiz.choice3', defaultMessage: 'A sprite' },
+        ],
+        answer: 0,
+        explanation: { id: 'test.quiz.explanation', defaultMessage: 'Both sides follow the same rule.' },
+    };
+
+    test('without quiz there is no quiz', () => {
+        const { queryByTestId } = renderToast();
+        expect(queryByTestId('lesson-quiz')).toBeNull();
+    });
+
+    test.each([
+        ['You did it!', {}],
+        ['Lesson 1 complete!', { action: 'otherLessons', challenges: allDone }],
+        ['Assignment cleared!', { assignmentCleared: true, assignmentChallenges: allDone }],
+    ])('shows the quiz in "%s", and the buttons stay without answering', (title, props) => {
+        const onNextChallenge = jest.fn();
+        const onClose = jest.fn();
+        const { getByTestId, getAllByTestId } = renderToast({ quiz, onClose, onNextChallenge, ...props });
+        expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent(title);
+        // 選んでも閉じない・先へ進まない（FYI3）
+        getAllByTestId('lesson-quiz-choice').forEach((choice) => fireEvent.click(choice));
+        expect(onClose).not.toHaveBeenCalled();
+        expect(onNextChallenge).not.toHaveBeenCalled();
+        expect(getByTestId('lesson-completed-toast')).toBeInTheDocument();
+        expect(getByTestId('lesson-completed-toast')).toHaveAttribute('data-has-quiz', 'true');
+        expect(getByTestId('lesson-quiz-question')).toHaveTextContent('What is a protocol?');
+        // 答えなくても先へ進める（Q12）
+        fireEvent.click(getByTestId('lesson-completed-toast-next'));
+        expect(onNextChallenge).toHaveBeenCalledTimes(1);
+    });
+
+    test('the choice is reset when another challenge is done', () => {
+        const { getAllByTestId, queryByTestId, rerender } = renderToast({ quiz });
+        fireEvent.click(getAllByTestId('lesson-quiz-choice')[0]);
+        expect(queryByTestId('lesson-quiz-result')).not.toBeNull();
+        rerender(
+            <IntlProvider locale="en" messages={en}>
+                <LessonCompletedToast
+                    challengeId="c"
+                    challenges={midLesson}
+                    onClose={jest.fn()}
+                    onNextChallenge={jest.fn()}
+                    quiz={quiz}
+                />
+            </IntlProvider>,
+        );
+        expect(queryByTestId('lesson-quiz-result')).toBeNull();
+    });
+});

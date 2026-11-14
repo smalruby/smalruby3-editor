@@ -17,6 +17,13 @@ jest.mock('../../../src/lib/lessons/courses.js', () => {
         name: { id: 'gui.lessons.lesson.l.name', defaultMessage: 'Move it' },
         challenges: [makeChallenge('test-challenge', 'Test challenge'), makeChallenge('last-challenge', 'Last')],
     };
+    // ふりかえりのクイズ（#1639）を持つチャレンジ
+    lesson.challenges[1].quiz = {
+        question: { id: 'test.quiz.question', defaultMessage: 'Which one?' },
+        choices: ['A', 'B', 'C'].map((c) => ({ id: `test.quiz.${c}`, defaultMessage: c })),
+        answer: 2,
+        explanation: { id: 'test.quiz.explanation', defaultMessage: 'Because C.' },
+    };
     const course = {
         id: 'c',
         language: 'blocks',
@@ -212,5 +219,47 @@ describe('LessonGoalWatcher', () => {
         detach();
         unmount();
         expect(window.smalruby.lessonGoal).toBeUndefined();
+    });
+
+    // 全文を開いているあいだは隠すだけで、クイズで選んだものは消さない（#1639 Q1）
+    test('a hidden toast keeps the choice of the quiz and shows it again', () => {
+        const props = { vm: makeVm(), challengeId: 'last-challenge', justCompletedId: 'last-challenge' };
+        const { getAllByTestId, getByTestId, rerender } = renderWatcher(props);
+        fireEvent.click(getAllByTestId('lesson-quiz-choice')[2]);
+        const again = (completedHidden) =>
+            rerender(
+                <IntlProvider locale="en">
+                    <LessonGoalWatcher
+                        {...props}
+                        completedHidden={completedHidden}
+                        onCompleted={jest.fn()}
+                        onDismiss={jest.fn()}
+                        onNextChallenge={jest.fn()}
+                        onSubmitAssignment={jest.fn()}
+                        progress={noProgress}
+                    />
+                </IntlProvider>,
+            );
+        again(true);
+        expect(getByTestId('lesson-completed-toast')).not.toBeVisible();
+        again(false);
+        expect(getByTestId('lesson-completed-toast')).toBeVisible();
+        expect(getByTestId('lesson-quiz-result')).toHaveAttribute('data-correct', 'true');
+    });
+
+    test('passes the quiz of the challenge to the toast (#1639)', () => {
+        const withQuiz = renderWatcher({
+            vm: makeVm(),
+            challengeId: 'last-challenge',
+            justCompletedId: 'last-challenge',
+        });
+        expect(withQuiz.getByTestId('lesson-quiz-question')).toHaveTextContent('Which one?');
+        withQuiz.unmount();
+        const without = renderWatcher({
+            vm: makeVm(),
+            challengeId: 'test-challenge',
+            justCompletedId: 'test-challenge',
+        });
+        expect(without.queryByTestId('lesson-quiz')).toBeNull();
     });
 });

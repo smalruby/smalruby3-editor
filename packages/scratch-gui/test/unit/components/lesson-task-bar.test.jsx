@@ -238,6 +238,22 @@ describe('LessonTaskBar', () => {
             expect(task).toHaveAttribute('aria-expanded', 'false');
         });
 
+        // 全文を閉じたことを知らせる（クイズのある「できた！」を出し直すため・#1639）
+        test('tells when a tapped panel closes (tap, outside, Escape), not when it opens', () => {
+            const onCloseFullText = jest.fn();
+            const { getByTestId } = renderBar({ onCloseFullText });
+            tap(getByTestId('lesson-task-bar-task'));
+            expect(onCloseFullText).not.toHaveBeenCalled();
+            tap(getByTestId('lesson-task-bar-task'));
+            expect(onCloseFullText).toHaveBeenCalledTimes(1);
+            tap(getByTestId('lesson-task-bar-task'));
+            fireEvent.pointerDown(document.body);
+            expect(onCloseFullText).toHaveBeenCalledTimes(2);
+            tap(getByTestId('lesson-task-bar-task'));
+            fireEvent.keyDown(document, { key: 'Escape' });
+            expect(onCloseFullText).toHaveBeenCalledTimes(3);
+        });
+
         test('a tapped panel closes by pressing outside or Escape, not by pressing inside', () => {
             const { getByTestId, queryByTestId } = renderBar();
             tap(getByTestId('lesson-task-bar-task'));

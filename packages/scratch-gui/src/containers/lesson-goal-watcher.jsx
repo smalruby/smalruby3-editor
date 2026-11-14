@@ -18,6 +18,7 @@ const LessonGoalWatcher = ({
     vm,
     assignmentName = null,
     challengeId,
+    completedHidden = false,
     fromAssignment = false,
     justCompletedId,
     justCompletedNew = false,
@@ -97,10 +98,12 @@ const LessonGoalWatcher = ({
             }))}
             courseCompleted={courseProgress(course, progress).allCompleted}
             courseName={course.name}
+            hidden={completedHidden}
             lessonName={found.lesson.name}
             lessonNumber={course.lessons.indexOf(found.lesson) + 1}
             onClose={onDismiss}
             onNextChallenge={handleNextChallenge}
+            quiz={challenge.quiz || null}
         />
     );
 };
@@ -109,6 +112,9 @@ LessonGoalWatcher.propTypes = {
     // 参加している課題の名前（「課題クリア！」の 2 行目）
     assignmentName: PropTypes.string,
     challengeId: PropTypes.string,
+    // 「できた！」をいっとき隠しているか（課題バーの全文を開いているあいだ・#1639）。描いたまま隠すので、
+    // クイズで選んだものは残る
+    completedHidden: PropTypes.bool,
     // いまのチャレンジをクラスの課題から開いたか
     fromAssignment: PropTypes.bool,
     justCompletedId: PropTypes.string,
@@ -134,6 +140,7 @@ const mapStateToProps = (state) => ({
     vm: state.scratchGui.vm,
     assignmentName: state.scratchGui.classroom ? state.scratchGui.classroom.assignmentName : null,
     challengeId: state.scratchGui.lessonMode.challengeId,
+    completedHidden: Boolean(state.scratchGui.lessonMode.completedHidden),
     fromAssignment: Boolean(state.scratchGui.lessonMode.fromAssignment),
     justCompletedId: state.scratchGui.lessonMode.justCompletedId,
     justCompletedNew: Boolean(state.scratchGui.lessonMode.justCompletedNew),

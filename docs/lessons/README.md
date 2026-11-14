@@ -103,7 +103,8 @@
 | `spriteCodes` | `{sprite, code}`[] | [] | `code` のほかに、名前で決めたスプライトに入れるプログラム（2 つのスプライトでやりとりするチャレンジ用）。`sprite` はライブラリのスプライトの名前。`code` は `code` と同じく locale ごとにも書ける。下の「最後の手段」 |
 | `debug` | message[] | [] | うまく動かないときは |
 | `activityDiagram` | boolean | false | 答えのプログラム（`code` と `spriteCodes`）から描くアクティビティ図を、課題の全文とヒントの 1 ページ目に出すか。答えが無いチャレンジでは true でも出さない。描き方は下の「アクティビティ図（答えから描く）」 |
-| `partner` | object \| null | null | メッシュの練習相手の定義 `{name, buttons, replies}`（練習相手の実装で決める）。図では相手のスイムレーンになる。無ければ自分のプログラムだけを描く |
+| `partner` | object \| null | null | メッシュの練習相手の定義 `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}]}`（`set` = `{variable, value}`。形は `design.md` の「メッシュの練習相手」）。図では相手のスイムレーンになる。無ければ自分のプログラムだけを描く |
+| `quiz` | `{question, choices, answer, explanation}` \| null | null | ふりかえりのクイズ（3 択）。「できた！」の表示の中に出す（下の「ふりかえりのクイズ」）。`question` / `choices`（3 つ）/ `explanation` は message、`answer` は正解が `choices` の何番目か（0 から）。ふつうは `challengeQuiz(id, answer)` で書く |
 
 ヒント（`steps` の要素）。deck の step と同じ `title` を文言にし、吹き出しのための項目を足す。
 省いた項目は `defineChallenge` が既定値で埋める。
@@ -125,8 +126,9 @@
 開くときに照らす）。
 
 文言の message id の付け方: `gui.lessons.course.<id>.name`・`gui.lessons.lesson.<id>.name`・
-`gui.lessons.challenge.<id>.name`。`task` / `steps[].title` / `debug[]` も
-同じ `gui.lessons.` の下に置き、3 locale（en / ja / ja-Hira）にそろえる（テストが解決できることを確かめる）。
+`gui.lessons.challenge.<id>.name`。`task` / `steps[].title` / `debug[]` / `quiz` も
+同じ `gui.lessons.` の下に置き（`quiz` は `gui.lessons.challenge.<id>.quiz.question` / `.quiz.choice1`〜`3` /
+`.quiz.explanation`。`challengeQuiz` がこの id で作る）、3 locale（en / ja / ja-Hira）にそろえる（テストが解決できることを確かめる）。
 
 `defineCourse` / `defineLesson` / `defineChallenge` は export してあるので、コースやレッスンが増えて
 ファイルを分けるときも同じ形で定義できる。
@@ -503,6 +505,12 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `lesson-completed-toast-next` | button | 「次のチャレンジへ」／「次のレッスンへ」／「レッスン表へ」。`data-action` が `next` / `otherLessons` / `library`（`COMPLETED_ACTIONS`） |
 | `lesson-completed-toast-close` | button | 「もう少し見る」（閉じるだけ） |
 | `lesson-completed-toast-submit` | button | 「課題を提出する」（クラスの課題がはじめて課題クリアになり、作品も提出する課題のときだけ。主ボタン） |
+| `lesson-quiz` | div | ふりかえりのクイズ（チャレンジに `quiz` があるときだけ）。`lesson-completed-toast` の `data-has-quiz` が `true` / `false` |
+| `lesson-quiz-label` | div | 「ふりかえりクイズ」 |
+| `lesson-quiz-question` | div | 問い |
+| `lesson-quiz-choice` | button | 選択肢 1 つ（3 つ並ぶ・`role="radio"`）。`data-index` = 何番目か（0 から）、`aria-checked` = 選んでいるか、`data-result` = 選んでいるものだけ `correct` / `wrong` |
+| `lesson-quiz-result` | div | 「2: 正解！」／「3: はずれ。もう一度選んでみよう」（選んだあとだけ。前に選んだ番号）。`data-correct` が `true` / `false` |
+| `lesson-quiz-explanation` | div | 解説（選んだあとだけ。正解でもはずれでも出す） |
 
 クラスの課題に参加しているとき、その課題の条件をはじめて満たしたチャレンジでは、`lesson-completed-toast` の
 `data-assignment-cleared="true"` で、タイトルが「課題クリア！」、丸が課題のチャレンジ（★ は必須）になる
@@ -542,6 +550,40 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 ![レッスンのチャレンジが全部できたときの「できた！」（次のレッスンあり・1300×600）](screenshots/0103-completed-toast-lesson-1300x600.png)
 
 ![最後のレッスンのチャレンジが全部できたときの「できた！」（1300×600）](screenshots/0102-completed-toast-last-1300x600.png)
+
+#### ふりかえりのクイズ
+
+チャレンジの定義に `quiz` があれば、「できた！」の表示の中（丸の行とボタンのあいだ）に **3 択のクイズ**を出す
+（`components/lesson-completed-toast/lesson-completed-quiz.jsx`。方針は `design.md` の「ふりかえりのクイズ」）。
+`quiz` の無いチャレンジは、これまでどおりクイズを出さない。
+
+- 3 つの場面（`next` / `otherLessons` / `library`）でも「課題クリア！」でも同じように出す。
+- 選ぶと、選んだ選択肢に ○（正解）／×（はずれ）を付け、「正解！」／「はずれ。もう一度選んでみよう」と解説を出す。
+  **何度でも選び直せる**（正解のあとも）。選択肢の並びは定義のまま（混ぜない）。
+- 選んだものは記録しない（「できた」の判定にも記録にも入れない）。答えなくても「次のチャレンジへ」などで先へ進める。
+  別のチャレンジの「できた！」では選んだものを消す（`key` = チャレンジ id）。
+- **見られるのは「できた！」が出ているあいだだけ**。「もう少し見る」で閉じたら、そのチャレンジではクイズをもう出さない
+  （もう一度「できた」にすれば出る）。閉じるまでに生徒はクイズを見ている。
+- **課題バーの全文をタップで開いても閉じない**。全文を開いているあいだだけ隠し（`lessonMode.completedHidden`。
+  reducer の `hideCompleted` / `showCompleted`）、全文を閉じたら出し直す。toast は描いたまま `hidden` にするので、
+  選んだ答えは残る。隠しているあいだは、課題バーから見て toast は出ていない扱い（`toastVisible` が false）。
+  閉じる・チャレンジを開き直す・もう一度「できた」になると、隠したのは解ける。クイズの無い「できた！」は、全文を
+  開くとこれまでどおり閉じる。
+- 読み上げ: クイズは `role="radiogroup"`（問いを `aria-labelledby`）、選択肢は `role="radio"` + `aria-checked`。
+  結果の文の前に選んだ番号を付ける（「3: はずれ。もう一度選んでみよう」）ので、はずれを続けて選んでも字が変わって
+  読み上げられる。live region は toast の `role="status"` だけ（クイズの中には置かない）。
+- 文言は、クイズの部品の言葉（`gui.lessons.completed.quizLabel` / `quizCorrect` / `quizWrong`）と、チャレンジごとの
+  問い・選択肢・解説（上の「チャレンジ」の message id）。どれも en / ja / ja-Hira にそろえる（ja-Hira は漢字なし）。
+- クイズがあるときは toast の幅を 560px に決める（選んで解説が出ても横幅が変わらない）。**文言の長さの目安**は
+  問い 2 行・選択肢 1 行・解説 3 行（ja で問い 50 字・選択肢 20 字・解説 75 字くらいまで）。この長さで 1300×600 の
+  画面に収まる（解説まで出して toast の下の端が 560px くらい）。目安を超えたときだけ、画面の外に出さずに toast の
+  中をスクロールする（保険）。
+
+![クイズのある「できた！」（選ぶ前・1300×600）](screenshots/0104-completed-toast-quiz-1300x600.png)
+
+![はずれを選んだところ（解説が出る・選び直せる・1300×600）](screenshots/0105-completed-toast-quiz-wrong-1300x600.png)
+
+![「レッスン 1 ぜんぶできた！」の中で正解を選んだところ（1300×600）](screenshots/0106-completed-toast-quiz-lesson-correct-1300x600.png)
 
 デバッグ・テスト用に `window.smalruby.lessonGoal` を出している（integration テスト
 `test/integration/lesson-goal.test.js` と pw-check が使う。レッスン表・レッスンモードの UI ができるまでの入口）:
@@ -764,7 +806,9 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
     吹き出しを隠さない。乗せ直せばまた出る）。
   - **「できた！」・タップで開いたパネルは重ねない**: 「できた！」の toast が出ているあいだは、乗せても全文を
     出さない。タップで開いたまま（pinned）のパネルは、吹き出し・toast のどちらかが出ると閉じ、タップで開くと
-    その 2 つを閉じる（z-index は 470。toast の 480・吹き出しの 490 より下）。
+    その 2 つを閉じる（z-index は 470。toast の 480・吹き出しの 490 より下）。ただし**クイズのある「できた！」は
+    閉じずに隠す**（`hideCompleted`。toast は描いたまま `hidden`）。全文のパネルが閉じたら（タップ・外を押す・Esc・
+    吹き出しが出る、のどれでも。課題バーの `onCloseFullText`）、`showCompleted` で出し直す（下の「ふりかえりのクイズ」）。
 
   ![課題の全文（1300×600）](screenshots/0203-lesson-task-full-text-1300x600.png)
 
@@ -1038,6 +1082,9 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `screenshots/0101-completed-toast-1300x600.png` | 「できた！」（レッスンの途中。丸と「あと n つ」・次のチャレンジへ・もう少し見る） |
 | `screenshots/0102-completed-toast-last-1300x600.png` | 最後のレッスン（レッスン 3）のチャレンジが全部できたときの「レッスン 3 ぜんぶできた！」（コース名の行・レッスン表へ） |
 | `screenshots/0103-completed-toast-lesson-1300x600.png` | レッスン 1 のチャレンジが全部できたときの「レッスン 1 ぜんぶできた！」（レッスン名の行・次のレッスンへ） |
+| `screenshots/0104-completed-toast-quiz-1300x600.png` | ふりかえりのクイズのある「できた！」（選ぶ前）。撮影のため、チャレンジ 3 に見本のクイズを足して撮った（いまのコースのチャレンジはクイズを持たない） |
+| `screenshots/0105-completed-toast-quiz-wrong-1300x600.png` | 同じクイズで、はずれを選んだところ（×・「はずれ。もう一度選んでみよう」・解説） |
+| `screenshots/0106-completed-toast-quiz-lesson-correct-1300x600.png` | 「レッスン 1 ぜんぶできた！」の中のクイズで正解を選んだところ（○・「正解！」・解説） |
 | `screenshots/0305-lessons-library-next-1300x600.png` | 「次のチャレンジ」で開いたレッスン表（1〜3 ができていて、4 に「次はこれ！」） |
 | `screenshots/0501-challenge1-key-sound-hint1-1300x600.png` | チャレンジ 1「キーで音を鳴らそう」の最初のヒント（音タブを指す） |
 | `screenshots/0502-challenge2-arrow-move-hint1-1300x600.png` | チャレンジ 2「矢印キーで動かそう」の最初のヒント（パレットを指し、帽子のブロック「上向き矢印キーが押されたとき」を描く） |
@@ -1153,7 +1200,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 |---------|------|
 | `packages/scratch-gui/src/lib/lessons/images/` | チャレンジの `image` に使う画像（`courses.js` で import する） |
 | `packages/scratch-gui/src/lib/lessons/card-color.js` | レッスン表のカードの色の決め方（ブロックをなかまごとに数える・いちばん多いなかま、同数ならメイン） |
-| `packages/scratch-gui/src/lib/lessons/courses.js` | コース・レッスン・チャレンジのデータと検索。locale ごとの Ruby を選ぶ `localizeCode` / `challengeCodeFor` / `challengeCodeCandidates` |
+| `packages/scratch-gui/src/lib/lessons/courses.js` | コース・レッスン・チャレンジのデータと検索。locale ごとの Ruby を選ぶ `localizeCode` / `challengeCodeFor` / `challengeCodeCandidates`。ふりかえりのクイズを作る `challengeQuiz` と形を確かめる `validateQuiz` |
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/lesson-progress.js` | 端末への記録（いまの定義での読みかえ）・レッスン／コースの進み具合・「できた！」のボタンとレッスン表で見せるもの |
 | `packages/scratch-gui/src/lib/lessons/challenge-setup.js` | チャレンジを開くときの setup（言語の既定 + チャレンジの `setup`） |
@@ -1185,7 +1232,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/src/lib/lessons/vm-execution-hook.js` | ブロックの実行をスレッドつきで取るフック（runtime の `getOpcodeFunction` を包む） |
 | `packages/scratch-gui/src/lib/lessons/goal-monitor.js` | VM を見張って goal を判定する（`attachGoalMonitor` / `takeSnapshot`） |
 | `packages/scratch-gui/src/containers/lesson-goal-watcher.jsx` | レッスンモードのあいだ見張りをつなぎ、できたら記録して「できた！」を出す（gui.jsx に常時マウント） |
-| `packages/scratch-gui/src/components/lesson-completed-toast/` | 「できた！」の表示 |
+| `packages/scratch-gui/src/components/lesson-completed-toast/` | 「できた！」の表示（`lesson-completed-quiz.jsx` = その中のふりかえりのクイズ） |
 | `packages/scratch-gui/src/reducers/lesson-mode.js` | いま開いているチャレンジ・開こうとしているチャレンジ・ヒント・「できた！」・記録の写し |
 | `packages/scratch-gui/src/containers/lesson-mode.jsx` | チャレンジを開く流れ（新しい作品 → setup → レッスンモード）と課題バーのマウント。`gui.jsx` のエディタ列の先頭に常時マウント |
 | `packages/scratch-gui/src/components/lesson-task-bar/` | 課題バー（1 行・40px） |
@@ -1209,7 +1256,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/test/unit/lib/lesson-dynamic-categories-decks.test.js` | すべての deck・チャレンジのプログラムを変換し、使う変数・リスト・ブロック定義の opcode が `allowedBlocks` にあるか |
 | `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定・setup・できた の判定・見張り・カードの色の決め方（`card-color.test.js`）の unit テスト |
 | `packages/scratch-gui/test/unit/reducers/lesson-mode-reducer.test.js` | reducer の unit テスト |
-| `packages/scratch-gui/test/unit/components/lesson-completed-toast.test.jsx` / `test/unit/containers/lesson-goal-watcher.test.jsx` | 「できた！」と見張りのコンテナの unit テスト |
+| `packages/scratch-gui/test/unit/components/lesson-completed-toast.test.jsx` / `test/unit/components/lesson-completed-quiz.test.jsx` / `test/unit/containers/lesson-goal-watcher.test.jsx` | 「できた！」と見張りのコンテナの unit テスト |
 | `packages/scratch-gui/test/integration/lesson-goal.test.js` | 本物の VM に Ruby のプログラムを入れて動かし、判定が true になる integration テスト |
 | `packages/scratch-gui/src/components/menu-bar/menu-bar.jsx` | 「レッスン」ボタン（`lessons button` マーカー）、「?」メニューのチュートリアル / デバッグ項目（`help menu` マーカー） |
 | `packages/scratch-gui/src/containers/menu-bar-hoc.jsx` | `onOpenLessonsLibrary` / `lessonModeActive`（`lessons button` マーカー）と `onOpenTipsLibrary`（`help menu` マーカー）の供給 |
