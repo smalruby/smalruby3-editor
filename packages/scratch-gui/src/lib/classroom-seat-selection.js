@@ -204,6 +204,22 @@ const forgetSeatIn = (seats, key, seat) => {
     return next;
 };
 
+/**
+ * 「出席番号がちがう」 looks the class up before it leaves the seat (so a
+ * failed lookup keeps the session). That lookup still lists the seat the
+ * student is leaving as in use, so the seat screen would show the student's
+ * own just-freed seat as 「使用中」 (#1797). Drop it from the seats in use.
+ * @param {object} data - the lookup result (`takenSeats`).
+ * @param {?number} seat - the seat that was just freed.
+ * @returns {object} the lookup without that seat in `takenSeats` (the same object when nothing changes).
+ */
+const withSeatFreed = (data, seat) => {
+    const taken = data && data.takenSeats;
+    const freed = Number(seat);
+    if (!freed || !Array.isArray(taken) || !taken.some((s) => Number(s) === freed)) return data;
+    return { ...data, takenSeats: taken.filter((s) => Number(s) !== freed) };
+};
+
 export {
     KICK_REQUEST_POLL_INTERVAL_MS,
     SEAT_IDLE_HINT_MS,
@@ -218,4 +234,5 @@ export {
     rememberSeatIn,
     seatGuideFor,
     shouldPollKickRequest,
+    withSeatFreed,
 };

@@ -133,6 +133,28 @@ describe('ClassroomModal: wrong seat on the welcome back screen (#1794)', () => 
         expect(JSON.parse(window.localStorage.getItem(LAST_SEATS_STORAGE_KEY))).toEqual({ 'group:g2': 4 });
     });
 
+    test('leaves the welcome back screen when the session turns out dead (#1797)', async () => {
+        // A seat the teacher freed and another student took answers 401 (not 410 kicked):
+        // without a session the welcome back screen would read 「出席番号null」.
+        mockVerifySession.mockRejectedValue({ status: 401, body: {} });
+        const store = renderModal(SESSION);
+        await act(async () => {
+            for (let i = 0; i < 6; i++) await Promise.resolve();
+        });
+        expect(store.getActions().map((a) => a.type)).toContain('scratch-gui/classroom/CLEAR_SESSION');
+        expect(mockProps.phase).toBe('student-join');
+    });
+
+    test('does not show the seat it just freed as in use (#1797)', async () => {
+        mockLookupClassroom.mockResolvedValue({ ...lookup(), takenSeats: [3, 5] });
+        renderModal(SESSION);
+        await act(async () => {
+            await mockProps.onWrongSeat();
+        });
+        expect(mockProps.phase).toBe('student-seat');
+        expect(mockProps.takenSeats).toEqual([5]);
+    });
+
     test('a failed lookup keeps the session (looked up before leaving)', async () => {
         mockLookupClassroom.mockRejectedValue({ status: 0 });
         const store = renderModal(SESSION);

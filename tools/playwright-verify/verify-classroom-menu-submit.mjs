@@ -361,6 +361,78 @@ for (const [status, docName] of [
     await ctx.close();
 }
 
+// ---------- docs: 提出サムネイルの事前設定（0310〜0313）----------
+// ステージ右上の行だけを切り出す（未参加はボタンなし・参加中は ✓ アイコンのボタン）。
+// 0313 は「大きいネコを左上」で事前設定し、そのあと「小さいネコを右下」へ動かしてから提出確認を開く。
+if (DOCS_SHOTS) {
+    const stageRow = '[class*="stage-header_stage-size-row"]';
+    // React の Fiber から VM を取り出してスプライトを動かす（Ruby タブを開かずに済ませる）
+    const moveSprite = (page, x, y, size) =>
+        page.evaluate(
+            ([px, py, ps]) => {
+                const all = [document.body, ...document.body.querySelectorAll('*')];
+                let fiber = null;
+                for (const el of all) {
+                    const k = Object.keys(el).find((key) => key.startsWith('__reactContainer'));
+                    if (k) {
+                        fiber = el[k].stateNode.current;
+                        break;
+                    }
+                }
+                const stack = [fiber];
+                let store = null;
+                while (stack.length && !store) {
+                    const f = stack.pop();
+                    if (!f) continue;
+                    const pr = f.memoizedProps;
+                    if (pr?.store?.getState) store = pr.store;
+                    else if (pr?.value?.store?.getState) store = pr.value.store;
+                    if (f.child) stack.push(f.child);
+                    if (f.sibling) stack.push(f.sibling);
+                }
+                const t = store?.getState().scratchGui.vm.runtime.targets.find((tg) => !tg.isStage);
+                if (t) {
+                    t.setXY(px, py);
+                    t.setSize(ps);
+                }
+                return !!t;
+            },
+            [x, y, size],
+        );
+    const thumbButton = `${stageRow} [title="提出サムネイルを設定"], ${stageRow} img[alt="提出サムネイルを設定"]`;
+    {
+        const ctx = await browser.newContext({ viewport: PC });
+        const page = await ctx.newPage();
+        await page.goto(`${BASE}/?no_beforeunload=1&locale=ja`, { waitUntil: 'load' });
+        await page.locator(stageRow).waitFor({ timeout: 60000 });
+        await page.waitForTimeout(800);
+        await page.locator(stageRow).screenshot({ path: resolve(DOCS_DIR, '0310-submission-thumbnail-button-hidden.png') });
+        record((await page.locator(thumbButton).count()) === 0, 'thumbnail: no button before joining');
+        await ctx.close();
+    }
+    {
+        const { ctx, page } = await studentPage({ viewport: PC, locale: 'ja', status: null });
+        await page.locator(stageRow).waitFor({ timeout: 60000 });
+        record((await page.locator(thumbButton).count()) > 0, 'thumbnail: button while joined');
+        await page.locator(stageRow).screenshot({ path: resolve(DOCS_DIR, '0311-submission-thumbnail-button.png') });
+        // 大きいネコを左上にして、事前設定する
+        await moveSprite(page, -150, 110, 180);
+        await page.waitForTimeout(400);
+        await page.locator(thumbButton).first().click();
+        await page.waitForTimeout(500);
+        await page.screenshot({ path: resolve(DOCS_DIR, '0312-submission-thumbnail-confirm.png') });
+        await page.locator('[class*="confirmation-prompt"] button').last().click();
+        await page.waitForTimeout(1500);
+        await moveSprite(page, 170, -120, 60);
+        await page.waitForTimeout(400);
+        await page.locator('[data-testid="classroom-menu-submit"]').click();
+        await page.locator('[data-testid="classroom-submit-confirm"]').waitFor({ timeout: 10000 });
+        await page.waitForTimeout(1500);
+        await page.screenshot({ path: resolve(DOCS_DIR, '0313-submission-thumbnail-used-on-submit.png') });
+        await ctx.close();
+    }
+}
+
 // ---------- 3. 作品を提出しないレッスンの課題では出さない ----------
 {
     const lesson = {

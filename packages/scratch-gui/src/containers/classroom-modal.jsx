@@ -12,7 +12,7 @@ import {
 } from '../lib/classroom-kick-request-storage.js';
 import { clearLastSeat, loadLastSeat, saveLastSeat } from '../lib/classroom-last-seats-storage.js';
 import { submissionFromVerify } from '../lib/classroom-menu-submit.js';
-import { evaluateKickRequestPoll, lastSeatKeyFor } from '../lib/classroom-seat-selection.js';
+import { evaluateKickRequestPoll, lastSeatKeyFor, withSeatFreed } from '../lib/classroom-seat-selection.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
 import { assignmentProgress } from '../lib/lessons/assignment-progress.js';
 import { openAssignmentLessonsLibrary } from '../lib/lessons/open-lessons-library.js';
@@ -520,6 +520,10 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             } else {
                 dispatch(clearClassroomSession());
                 showSessionExpiredError(translateError(intl, { status: 401 }, 'session'));
+                // Without a session the welcome back screen has nothing to show
+                // (it read 「出席番号null」, #1797): go to the join screen, as the
+                // alert's 「参加しなおす」 does.
+                setPhase('student-join');
             }
         } finally {
             setIsLoading(false);
@@ -585,7 +589,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 }
             }
             dispatch(clearClassroomSession());
-            showSeatSelection(joinCode, data, { forgetSeat: seatNumber });
+            showSeatSelection(joinCode, withSeatFreed(data, seatNumber), { forgetSeat: seatNumber });
         };
         switchingSeatRef.current = true;
         setSwitchingSeat(true);
