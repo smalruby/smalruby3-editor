@@ -35,6 +35,21 @@ const SET_RUBYTEE_ENABLED = 'scratch-gui/classroom/SET_RUBYTEE_ENABLED';
 const SET_STUDENT_LESSON = 'scratch-gui/classroom/SET_STUDENT_LESSON';
 const REQUEST_STUDENT_SUBMIT = 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT';
 const CLEAR_STUDENT_SUBMIT_REQUEST = 'scratch-gui/classroom/CLEAR_STUDENT_SUBMIT_REQUEST';
+const SET_STUDENT_SUBMITTING = 'scratch-gui/classroom/SET_STUDENT_SUBMITTING';
+const MARK_STUDENT_PROJECT_LOADED = 'scratch-gui/classroom/MARK_STUDENT_PROJECT_LOADED';
+const SET_SUBMIT_REMINDER_VISIBLE = 'scratch-gui/classroom/SET_SUBMIT_REMINDER_VISIBLE';
+const DISMISS_SUBMIT_REMINDER = 'scratch-gui/classroom/DISMISS_SUBMIT_REMINDER';
+
+// Where the open project came from (#1825), read from actions of other reducers:
+// the new default project, or one opened from outside (a file, a URL, an id,
+// Google Drive). The welcome back screen offers this assignment's submission
+// only on the untouched new project.
+const PROJECT_FROM_DEFAULT_ACTIONS = ['scratch-gui/project-state/DONE_FETCHING_DEFAULT'];
+const PROJECT_FROM_OUTSIDE_ACTIONS = [
+    'scratch-gui/project-state/START_LOADING_VM_FILE_UPLOAD',
+    'scratch-gui/project-state/DONE_FETCHING_WITH_ID',
+    'googleDriveFile/SET_GOOGLE_DRIVE_FILE',
+];
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -106,6 +121,9 @@ const saveSession = (session) => {
         // only for the current submission; it must never be persisted to localStorage.
         const persistable = { ...session };
         delete persistable.submissionThumbnail;
+        // Kept in this tab only (#1825): a reload must forget them.
+        delete persistable.studentLoadedSubmission;
+        delete persistable.projectFromOutside;
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
     } catch {
         // Ignore storage errors
@@ -203,6 +221,27 @@ const initialState = {
     // 「課題を提出する」 on the lesson screens asks the classroom modal to go
     // straight to the submit confirmation; consumed by ClassroomModal.
     studentSubmitRequested: false,
+    // Where that request came from (menu_bar / drawer / lessons_library / lesson_clear), only
+    // for the GA count of where students open the submission (#1831). Not persisted.
+    studentSubmitFrom: null,
+    // A submission is being sent (#1795). The menu bar's submit button is
+    // disabled meanwhile so a second, concurrent submit cannot start. Not persisted.
+    studentSubmitting: false,
+    // The submission of this assignment loaded in this tab (submissionKey of
+    // classroom-welcome-back.js), so the welcome back screen does not offer it
+    // again (#1825). Memory only: never persisted, a reload forgets it.
+    studentLoadedSubmission: null,
+    // The open project was opened from outside instead of being the new
+    // default project (#1825). Memory only.
+    projectFromOutside: false,
+    // The 「提出しよう」 balloon under the menu bar's submit button is due (#1835).
+    // Decided by ClassroomSubmitReminder (lib/classroom-submit-reminder.js);
+    // the balloon, the drawer and the dot on ☰ only read it. Memory only.
+    submitReminderVisible: false,
+    // Each dismissal (×, a click outside, the submit button) bumps the count so
+    // ClassroomSubmitReminder records the time; the reason is for #1831's GA.
+    submitReminderDismissCount: 0,
+    submitReminderDismissReason: null,
 };
 
 const reducer = (state, action) => {
@@ -247,6 +286,11 @@ const reducer = (state, action) => {
                     studentPeerView: null,
                     studentPeerPanelOpen: false,
                     studentLesson: null,
+                    // The previous assignment's submission is not this one's (#1792):
+                    // the status is read again from the server for the new assignment.
+                    submissionStatus: null,
+                    lastSubmittedAt: null,
+                    studentLoadedSubmission: null,
                 };
             }
             return { ...state, ...session };
@@ -276,6 +320,10 @@ const reducer = (state, action) => {
                 studentGenai: normalizeStudentGenai(null),
                 studentLesson: null,
                 studentSubmitRequested: false,
+                studentSubmitFrom: null,
+                studentSubmitting: false,
+                studentLoadedSubmission: null,
+                submitReminderVisible: false,
             };
         case SET_SUBMISSION_THUMBNAIL:
             return { ...state, submissionThumbnail: action.submissionThumbnail };
@@ -284,7 +332,8 @@ const reducer = (state, action) => {
         case SET_SUBMISSION_STATUS: {
             const updates = {
                 submissionStatus: action.submissionStatus,
-                lastSubmittedAt: action.lastSubmittedAt || state.lastSubmittedAt,
+                // No submission (the server says none) has no submitted time either (#1795).
+                lastSubmittedAt: action.submissionStatus ? action.lastSubmittedAt || state.lastSubmittedAt : null,
             };
             // Persist to localStorage
             if (state.role === 'student' && state.sessionToken) {
@@ -385,10 +434,43 @@ const reducer = (state, action) => {
             return { ...state, studentLesson };
         }
         case REQUEST_STUDENT_SUBMIT:
-            return { ...state, modalVisible: true, studentSubmitRequested: true };
+            return {
+                ...state,
+                modalVisible: true,
+                studentSubmitRequested: true,
+                studentSubmitFrom: action.from || null,
+            };
         case CLEAR_STUDENT_SUBMIT_REQUEST:
-            return state.studentSubmitRequested ? { ...state, studentSubmitRequested: false } : state;
+            return state.studentSubmitRequested
+                ? { ...state, studentSubmitRequested: false, studentSubmitFrom: null }
+                : state;
+        case SET_STUDENT_SUBMITTING:
+            return { ...state, studentSubmitting: !!action.submitting };
+        case SET_SUBMIT_REMINDER_VISIBLE:
+            return state.submitReminderVisible === !!action.visible
+                ? state
+                : { ...state, submitReminderVisible: !!action.visible };
+        case DISMISS_SUBMIT_REMINDER:
+            if (!state.submitReminderVisible) return state;
+            return {
+                ...state,
+                submitReminderVisible: false,
+                submitReminderDismissCount: state.submitReminderDismissCount + 1,
+                submitReminderDismissReason: action.reason || null,
+            };
+        case MARK_STUDENT_PROJECT_LOADED:
+            return {
+                ...state,
+                projectFromOutside: true,
+                studentLoadedSubmission: action.submissionKey || state.studentLoadedSubmission,
+            };
         default:
+            if (PROJECT_FROM_DEFAULT_ACTIONS.includes(action.type)) {
+                return state.projectFromOutside ? { ...state, projectFromOutside: false } : state;
+            }
+            if (PROJECT_FROM_OUTSIDE_ACTIONS.includes(action.type)) {
+                return state.projectFromOutside ? state : { ...state, projectFromOutside: true };
+            }
             return state;
     }
 };
@@ -487,6 +569,12 @@ const setStudentPeerView = (peerView) => ({ type: SET_STUDENT_PEER_VIEW, peerVie
 const openStudentPeerPanel = () => ({ type: OPEN_STUDENT_PEER_PANEL });
 const closeStudentPeerPanel = () => ({ type: CLOSE_STUDENT_PEER_PANEL });
 const requestMeshConnect = () => ({ type: REQUEST_MESH_CONNECT });
+/**
+ * A class load (starter / submission) replaced the open project (#1825).
+ * @param {?string} submissionKey - key of this assignment's submission when it was the one loaded
+ * @returns {object} action
+ */
+const markStudentProjectLoaded = (submissionKey = null) => ({ type: MARK_STUDENT_PROJECT_LOADED, submissionKey });
 const clearMeshConnectRequest = () => ({ type: CLEAR_MESH_CONNECT_REQUEST });
 /**
  * @param {?object} genai - `genai` of the join / verify-session response (#1275)
@@ -511,10 +599,29 @@ const setStudentLesson = (lesson) => ({ type: SET_STUDENT_LESSON, lesson: lesson
 /**
  * 「課題を提出する」 from the lesson screens: open the classroom modal on the
  * submit confirmation (#1599).
+ * @param {?string} [from] - where it was pressed, for the GA count only (#1831):
+ *   menu_bar / drawer / lessons_library / lesson_clear
  * @returns {object} action
  */
-const requestStudentSubmit = () => ({ type: REQUEST_STUDENT_SUBMIT });
+const requestStudentSubmit = (from = null) => ({ type: REQUEST_STUDENT_SUBMIT, from });
 const clearStudentSubmitRequest = () => ({ type: CLEAR_STUDENT_SUBMIT_REQUEST });
+const setStudentSubmitting = (submitting) => ({ type: SET_STUDENT_SUBMITTING, submitting: !!submitting });
+
+/**
+ * Show or hide the 「提出しよう」 balloon (#1835). Only ClassroomSubmitReminder
+ * dispatches this; hiding it here is not a dismissal (e.g. a modal opened).
+ * @param {boolean} visible - whether the balloon is due
+ * @returns {object} action
+ */
+const setSubmitReminderVisible = (visible) => ({ type: SET_SUBMIT_REMINDER_VISIBLE, visible: !!visible });
+
+/**
+ * The student dismissed the 「提出しよう」 balloon (#1835): it comes back 10 minutes later.
+ * Ignored while the balloon is not shown.
+ * @param {string} reason - 'close' (×), 'outside' (another action) or 'submit' (the submit button)
+ * @returns {object} action
+ */
+const dismissSubmitReminder = (reason) => ({ type: DISMISS_SUBMIT_REMINDER, reason });
 
 /**
  * Rubytee is offered only to a student who has joined a class whose teacher
@@ -572,11 +679,15 @@ export {
     closeStudentPeerPanel,
     requestMeshConnect,
     clearMeshConnectRequest,
+    markStudentProjectLoaded,
     setStudentGenai,
     setRubyteeEnabled,
     setStudentLesson,
     requestStudentSubmit,
     clearStudentSubmitRequest,
+    setStudentSubmitting,
+    setSubmitReminderVisible,
+    dismissSubmitReminder,
     selectRubyteeAvailable,
     selectStudentLesson,
 };

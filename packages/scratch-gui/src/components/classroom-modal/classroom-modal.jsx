@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
+import { isResubmit } from '../../lib/classroom-menu-submit.js';
 import Box from '../box/box.jsx';
 import styles from './classroom-modal.css';
 import StudentAssignmentPanel from './student-assignment-panel.jsx';
@@ -9,7 +10,9 @@ import StudentJoinForm from './student-join-form.jsx';
 import StudentJoinedConfirmation from './student-joined-confirmation.jsx';
 import StudentSeatSelector from './student-seat-selector.jsx';
 import StudentStatusView from './student-status-view.jsx';
+import StudentStepBand from './student-step-band.jsx';
 import StudentSubmitConfirm from './student-submit-confirm.jsx';
+import StudentSubmitDone from './student-submit-done.jsx';
 
 const messages = defineMessages({
     title: {
@@ -21,6 +24,7 @@ const messages = defineMessages({
 
 const ClassroomModal = ({
     phase,
+    previousSeat,
     seatCount,
     takenSeats,
     selectedSeat,
@@ -41,13 +45,15 @@ const ClassroomModal = ({
     onSelectSeat,
     onConfirmJoin,
     onClose,
+    onDismiss,
+    onSeatIdleGuide,
+    onTrack,
     onDismissKickRequestRejectedNotice,
     onDismissKickedNotice,
     onRequestKick,
     onConfirmKickRequest,
     onCancelKickRequest,
     onLeaveClassroom,
-    onStartSubmit,
     onConfirmSubmit,
     onCancelSubmit,
     submitProgress,
@@ -59,18 +65,23 @@ const ClassroomModal = ({
     assignmentPageIndex,
     continueOptions,
     hasAssignment,
-    loadedChoice,
-    startChoice,
+    hasStarter = false,
+    onWrongSeat,
+    startMethod,
     onLoadSubmission,
     onOpenAssignment,
     onAssignmentPrevPage,
     onAssignmentNextPage,
-    onReloadStarter,
     onChooseStarter,
-    lessonStartOnly = false,
     lessonStatus = null,
+    offerCurrentSubmission = false,
+    offerStarter = false,
     studentLesson = null,
     onStartLesson,
+    assignmentReopened = false,
+    isSubmitting = false,
+    submitStatusChecking = false,
+    statusCheckedSeq = 0,
 }) => {
     const intl = useIntl();
 
@@ -79,9 +90,20 @@ const ClassroomModal = ({
             className={styles.modalContent}
             contentLabel={intl.formatMessage(messages.title)}
             id="classroomModal"
-            onRequestClose={onClose}
+            onRequestClose={onDismiss || onClose}
         >
             <Box className={`${styles.body} ${styles.studentBody}`} data-testid="classroom-modal">
+                {/* Where the student is (#1792): replaces the "what to do next" text. */}
+                <StudentStepBand
+                    assignmentReopened={assignmentReopened}
+                    lesson={
+                        studentLesson && lessonStatus
+                            ? { submitWork: !!studentLesson.submitWork, cleared: !!lessonStatus.cleared }
+                            : null
+                    }
+                    phase={phase}
+                    submissionStatus={classroomState?.submissionStatus ?? null}
+                />
                 {/* Phase: student-join */}
                 {phase === 'student-join' && (
                     <StudentJoinForm
@@ -108,6 +130,7 @@ const ClassroomModal = ({
                         kickRequestError={kickRequestError}
                         kickRequestPending={kickRequestPending}
                         kickRequestRejectedNotice={kickRequestRejectedNotice}
+                        previousSeat={previousSeat}
                         seatCount={seatCount}
                         selectedSeat={selectedSeat}
                         takenSeats={takenSeats}
@@ -117,6 +140,7 @@ const ClassroomModal = ({
                         onDismissKickRequestRejectedNotice={onDismissKickRequestRejectedNotice}
                         onDismissKickedNotice={onDismissKickedNotice}
                         onRequestKick={onRequestKick}
+                        onIdleGuide={onSeatIdleGuide}
                         onSelectSeat={onSelectSeat}
                     />
                 )}
@@ -129,14 +153,13 @@ const ClassroomModal = ({
                         errorTitle={errorTitle}
                         isLoading={isLoading}
                         joinedInfo={joinedInfo}
-                        loadedChoice={loadedChoice}
-                        startChoice={startChoice}
-                        lessonStartOnly={lessonStartOnly}
+                        startMethod={startMethod}
                         studentLesson={studentLesson}
                         onClose={onClose}
                         onLoadStarter={onChooseStarter}
                         onLoadSubmission={onLoadSubmission}
                         onStartLesson={onStartLesson}
+                        onTrack={onTrack}
                     />
                 )}
 
@@ -144,23 +167,22 @@ const ClassroomModal = ({
                 {phase === 'student-assignment' && (
                     <StudentAssignmentPanel
                         assignment={assignment}
+                        assignmentReopened={assignmentReopened}
                         continueOptions={continueOptions}
                         error={error}
                         errorTitle={errorTitle}
                         isLoading={isLoading}
                         joinedInfo={joinedInfo}
-                        loadedChoice={loadedChoice}
                         pageIndex={assignmentPageIndex}
-                        startChoice={startChoice}
+                        startMethod={startMethod}
                         onChooseStarter={onChooseStarter}
                         onClose={onClose}
                         onLoadSubmission={onLoadSubmission}
-                        lessonStartOnly={lessonStartOnly}
                         studentLesson={studentLesson}
                         onNextPage={onAssignmentNextPage}
                         onPrevPage={onAssignmentPrevPage}
-                        onReloadStarter={onReloadStarter}
                         onStartLesson={onStartLesson}
+                        onTrack={onTrack}
                     />
                 )}
 
@@ -174,61 +196,84 @@ const ClassroomModal = ({
                         errorActionLabel={errorActionLabel}
                         errorTitle={errorTitle}
                         hasAssignment={hasAssignment}
+                        hasStarter={hasStarter}
                         isLoading={isLoading}
-                        loadedChoice={loadedChoice}
                         lessonStatus={lessonStatus}
+                        offerCurrentSubmission={offerCurrentSubmission}
+                        offerStarter={offerStarter}
                         studentLesson={studentLesson}
                         teacherComment={teacherComment}
+                        onContinue={onClose}
                         onLeaveClassroom={onLeaveClassroom}
+                        onLoadStarter={onChooseStarter}
                         onLoadSubmission={onLoadSubmission}
                         onOpenAssignment={onOpenAssignment}
                         onRefreshStudentStatus={onRefreshStudentStatus}
                         onStartLesson={onStartLesson}
-                        onStartSubmit={onStartSubmit}
+                        statusCheckedSeq={statusCheckedSeq}
+                        onTrack={onTrack}
+                        onWrongSeat={onWrongSeat}
                     />
                 )}
 
                 {/* Phase: student-submit-confirm */}
                 {phase === 'student-submit-confirm' && (
                     <StudentSubmitConfirm
+                        checking={submitStatusChecking}
                         error={error}
                         errorTitle={errorTitle}
-                        isLoading={isLoading}
+                        isSubmitting={isSubmitting}
+                        resubmit={isResubmit(classroomState?.submissionStatus ?? null)}
                         submitProgress={submitProgress}
+                        teacherComment={
+                            classroomState?.submissionStatus === 'returned' ? teacherComment || null : null
+                        }
                         thumbnailDataUrl={thumbnailDataUrl}
                         onCancelSubmit={onCancelSubmit}
                         onConfirmSubmit={onConfirmSubmit}
                     />
                 )}
+
+                {/* Phase: student-submit-done (#1795) */}
+                {phase === 'student-submit-done' && <StudentSubmitDone onContinue={onClose} />}
             </Box>
         </Modal>
     );
 };
 
 ClassroomModal.propTypes = {
-    // A lesson assignment without a starter: 「はじめる」 opens the lessons library (#1599)
-    lessonStartOnly: PropTypes.bool,
+    // the submission is being sent (#1795): only then does the confirmation read 「提出中...」
+    isSubmitting: PropTypes.bool,
+    // the submission status is being checked (verify-session) while the confirmation is open (#1795)
+    submitStatusChecking: PropTypes.bool,
+    // the assignment panel was reopened from 「課題を見る」 (step band shows ④, #1792)
+    assignmentReopened: PropTypes.bool,
     // assignmentProgress() of the joined lesson assignment (null when not a lesson assignment)
     lessonStatus: PropTypes.object,
+    // おかえりなさいの主ボタンを「この課題で出した作品から続ける」にする (#1825)
+    offerCurrentSubmission: PropTypes.bool,
+    offerStarter: PropTypes.bool,
     // normalized lesson setting of the joined assignment (lib/lessons/assignment-progress.js)
     studentLesson: PropTypes.object,
     onStartLesson: PropTypes.func,
     assignment: PropTypes.object,
     assignmentPageIndex: PropTypes.number,
     continueOptions: PropTypes.object,
-    loadedChoice: PropTypes.string,
-    startChoice: PropTypes.shape({
-        showStarter: PropTypes.bool,
-        recommend: PropTypes.string,
-        notice: PropTypes.string,
+    // decideStartMethod の結果 (#1793): 参加したあとの主ボタンとほかの始め方
+    startMethod: PropTypes.shape({
+        main: PropTypes.string.isRequired,
+        others: PropTypes.arrayOf(PropTypes.string),
     }),
     onLoadSubmission: PropTypes.func,
     classroomState: PropTypes.object,
     hasAssignment: PropTypes.bool,
+    // 課題にスターターがある（おかえりなさいの「作品を読み込み直す」, #1794）
+    hasStarter: PropTypes.bool,
+    // おかえりなさいの「出席番号がちがう」(#1794)
+    onWrongSeat: PropTypes.func,
     onAssignmentNextPage: PropTypes.func,
     onAssignmentPrevPage: PropTypes.func,
     onOpenAssignment: PropTypes.func,
-    onReloadStarter: PropTypes.func,
     // choice row: open the starter and start (closes the modal)
     onChooseStarter: PropTypes.func,
     error: PropTypes.string,
@@ -266,6 +311,14 @@ ClassroomModal.propTypes = {
     onCancelKickRequest: PropTypes.func,
     onCancelSubmit: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
+    // ×, the overlay or Escape (sends the GA modal_close before closing, #1831); onClose when absent
+    onDismiss: PropTypes.func,
+    // the 30-second guide next to the seat grid came up (GA, #1831)
+    onSeatIdleGuide: PropTypes.func,
+    // sends a classroom_student GA event: (action, params) (#1831)
+    onTrack: PropTypes.func,
+    // grows each time the welcome back screen's status check succeeds (GA welcome_view, #1831)
+    statusCheckedSeq: PropTypes.number,
     onConfirmJoin: PropTypes.func.isRequired,
     onConfirmKickRequest: PropTypes.func,
     onConfirmSubmit: PropTypes.func.isRequired,
@@ -277,8 +330,8 @@ ClassroomModal.propTypes = {
     onRefreshStudentStatus: PropTypes.func.isRequired,
     onSelectSeat: PropTypes.func.isRequired,
     onSelectTeacher: PropTypes.func,
-    onStartSubmit: PropTypes.func.isRequired,
     phase: PropTypes.string.isRequired,
+    previousSeat: PropTypes.number,
     seatCount: PropTypes.number,
     selectedSeat: PropTypes.number,
     submitProgress: PropTypes.shape({

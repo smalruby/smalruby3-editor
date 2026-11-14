@@ -105,6 +105,8 @@ active 状態は `[data-active="true"]` 属性で表現される。
 | `mobile-drawer-ruby-version-${version}`    | button   | Ruby version 切替 (`1` / `2`)                            |
 | `mobile-drawer-switch-to-desktop`          | button   | PC モードに切り替える (表示モードを desktop に固定, #865) |
 
+クラスに参加中は、ドロワーのいちばん上に「提出する」(`classroom-menu-submit`・`data-placement="drawer"`) が出る（定義は [`docs/classroom/testing.md`](../classroom/testing.md) の「メニューバー」）。
+
 ### 3.3 MobileModeNotice (`mobile-mode-notice.jsx`)
 
 スマホモードで一度だけ表示される案内バー (#865)。「いまはスマホ用の画面である / PC とは違う / メニューから PC モードへ切り替えられる」ことを伝える。閉じると `localStorage['smalruby:mobileModeNoticeDismissed']='true'` に記録し以後出さない。レッスンモードに入ったときも同じく閉じて記録する（課題バーに重なるため）。

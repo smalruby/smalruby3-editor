@@ -177,6 +177,7 @@ src/containers/*
 !src/containers/classroom-modal.jsx
 !src/containers/classroom-kick-request-watcher.jsx
 !src/containers/classroom-mesh-connect-prompt.jsx
+!src/containers/classroom-submit-reminder.jsx
 !src/containers/use-kick-request-polling.js
 !src/containers/classroom-teacher-modal.jsx
 !src/containers/classroom-teacher-menu.jsx
@@ -189,6 +190,7 @@ src/containers/*
 !src/containers/use-student-class-settings-refresh.js
 !src/containers/use-student-assignment.js
 !src/containers/use-student-submit.js
+!src/containers/use-menu-submit-kind.js
 !src/containers/use-teacher-assignment.js
 !src/containers/use-teacher-auth.js
 !src/containers/use-teacher-classroom.js
@@ -249,6 +251,11 @@ src/lib/*
 !src/lib/classroom-lesson-progress.js
 !src/lib/classroom-lesson-summary.js
 !src/lib/classroom-lesson-description.js
+!src/lib/classroom-student-steps.js
+!src/lib/classroom-student-analytics.js
+!src/lib/classroom-menu-submit.js
+!src/lib/classroom-submit-reminder.js
+!src/lib/classroom-submit-reminder-events.js
 !src/lib/classroom-assignment-templates/
 !src/lib/classroom-assignment-templates/**
 !src/lib/classroom-evaluation/
@@ -264,8 +271,10 @@ src/lib/*
 !src/lib/shared-assignment-taxonomy.js
 !src/lib/shared-author-profile.js
 !src/lib/classroom-kick-request-storage.js
+!src/lib/classroom-last-seats-storage.js
 !src/lib/classroom-seat-selection.js
 !src/lib/classroom-continue-options.js
+!src/lib/classroom-welcome-back.js
 !src/lib/classroom-mesh-connect.js
 !src/lib/classroom-teacher-kick-alerts.js
 !src/lib/classroom-teacher-panel.js
@@ -513,7 +522,6 @@ test/unit/components/*
 !test/unit/components/mesh-v2-seat-connect.test.jsx
 !test/unit/components/student-assignment-panel.test.jsx
 !test/unit/components/lesson-number-input.test.jsx
-!test/unit/components/student-continue-choice.test.jsx
 !test/unit/components/teacher-class-detail.test.jsx
 !test/unit/components/teacher-lesson-progress.test.jsx
 !test/unit/components/student-peer-view-button.test.jsx
@@ -530,6 +538,12 @@ test/unit/components/*
 !test/unit/components/menu-bar-help-menu.test.jsx
 !test/unit/components/menu-bar-lessons.test.jsx
 !test/unit/components/student-seat-selector.test.jsx
+!test/unit/components/student-screen-parts.test.jsx
+!test/unit/components/classroom-menu-submit-button.test.jsx
+!test/unit/components/student-submit-confirm.test.jsx
+!test/unit/components/student-start-method.test.jsx
+!test/unit/components/student-status-view.test.jsx
+!test/unit/components/student-joined-confirmation.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
 !test/unit/components/mobile-mode-notice.test.jsx
@@ -564,6 +578,10 @@ test/unit/containers/*
 !test/unit/containers/classroom-teacher-menu.test.jsx
 !test/unit/containers/use-teacher-auth-restore.test.js
 !test/unit/containers/classroom-kick-request-watcher.test.jsx
+!test/unit/containers/classroom-modal-last-seat.test.jsx
+!test/unit/containers/classroom-modal-analytics.test.jsx
+!test/unit/containers/classroom-modal-submit.test.jsx
+!test/unit/containers/classroom-modal-welcome-back.test.jsx
 !test/unit/containers/classroom-teacher-kick-alerts.test.jsx
 !test/unit/containers/classroom-teacher-panel.test.jsx
 !test/unit/containers/use-teacher-kick-request-polling.test.js
@@ -571,6 +589,7 @@ test/unit/containers/*
 !test/unit/containers/classroom-peer-panel.test.jsx
 !test/unit/containers/use-kick-request-polling.test.js
 !test/unit/containers/classroom-mesh-connect-prompt.test.jsx
+!test/unit/containers/classroom-submit-reminder.test.jsx
 !test/unit/containers/use-student-class-settings-refresh.test.js
 !test/unit/containers/use-student-assignment.test.js
 !test/unit/containers/use-teacher-assignment.test.js
@@ -624,6 +643,10 @@ test/unit/lib/*
 !test/unit/lib/scratch-blocks-ime-patch.test.js
 !test/unit/lib/avatar-initials.test.js
 !test/unit/lib/classroom-api.test.js
+!test/unit/lib/classroom-student-steps.test.js
+!test/unit/lib/classroom-student-analytics.test.js
+!test/unit/lib/classroom-menu-submit.test.js
+!test/unit/lib/classroom-submit-reminder.test.js
 !test/unit/lib/classroom-teacher-session.test.js
 !test/unit/lib/classroom-teacher-kick-alerts.test.js
 !test/unit/lib/classroom-teacher-panel.test.js
@@ -648,8 +671,10 @@ test/unit/lib/*
 !test/unit/lib/evaluation-utils.test.js
 !test/unit/lib/sb3-analyzer.test.js
 !test/unit/lib/classroom-kick-request-storage.test.js
+!test/unit/lib/classroom-last-seats-storage.test.js
 !test/unit/lib/classroom-seat-selection.test.js
 !test/unit/lib/classroom-continue-options.test.js
+!test/unit/lib/classroom-welcome-back.test.js
 !test/unit/lib/classroom-mesh-connect.test.js
 !test/unit/lib/deck-setup.test.js
 !test/unit/lib/blocks-screenshot.test.js

@@ -126,6 +126,7 @@ import {isFirmwareFlashSupported} from '../../lib/smalrubot-firmware-flasher';
 import {openClassroomModal} from '../../reducers/classroom';
 import {isClassroomConfigured} from '../../lib/classroom-api';
 import ClassroomMenuStatus from '../classroom-modal/classroom-menu-status.jsx';
+import ClassroomMenuSubmitButton from '../classroom-modal/classroom-menu-submit-button.jsx';
 import ClassroomTeacherMenu from '../../containers/classroom-teacher-menu.jsx';
 // === Smalruby: End of classroom button ===
 import collectMetadata from '../../lib/collect-metadata';
@@ -667,8 +668,11 @@ class MenuBar extends React.Component {
                 {/* === Smalruby: Start of welcome tooltip === */}
                 {/* The balloon sits just left of "?", where the teacher menu is
                     while a teacher is logged in (#1299). It stays hidden in lesson
-                    mode, where it would cover the lesson task bar (#1498). */}
-                {this.props.classroomTeacherLoggedIn || this.props.lessonModeActive ? null : (
+                    mode, where it would cover the lesson task bar (#1498), and while
+                    a student is in a class, where it would cover 「提出する」 (#1795). */}
+                {this.props.classroomTeacherLoggedIn ||
+                this.props.lessonModeActive ||
+                (this.props.classroomClassName && this.props.classroomSeatNumber) ? null : (
                     <WelcomeTooltip onClick={this.handleClickWelcomeTooltip} />
                 )}
                 {/* === Smalruby: End of welcome tooltip === */}
@@ -1315,12 +1319,14 @@ class MenuBar extends React.Component {
                                     {this.props.classroomClassName && this.props.classroomSeatNumber ? (
                                         <span
                                             data-testid="classroom-menu-submission-status"
-                                            style={{display: 'inline-flex', marginLeft: '0.3rem'}}
+                                            style={{display: 'inline-flex'}}
                                         >
                                             <ClassroomMenuStatus />
                                         </span>
                                     ) : null}
                                 </div>
+                                {/* The always-visible submit entry while joined (#1795). */}
+                                <ClassroomMenuSubmitButton />
                             </React.Fragment>
                         )}
                         {/* === Smalruby: End of classroom button === */}

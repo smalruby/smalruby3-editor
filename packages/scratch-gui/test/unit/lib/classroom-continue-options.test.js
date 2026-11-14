@@ -4,7 +4,7 @@
  */
 import {
     CONTINUE_KINDS,
-    decideJoinStart,
+    decideStartMethod,
     normalizeContinueOptions,
 } from '../../../src/lib/classroom-continue-options.js';
 
@@ -38,47 +38,65 @@ describe('normalizeContinueOptions', () => {
     });
 });
 
-describe('decideJoinStart (#1202 前回の提出物から始めさせる)', () => {
+describe('decideStartMethod (#1793 始め方を 1 つに決める)', () => {
+    const none = null;
     const previousOnly = { current: null, previous: item() };
-    const withCurrent = { current: item(), previous: item() };
+    const currentOnly = { current: item(), previous: null };
+    const both = { current: item(), previous: item() };
+    const decide = (options, { hasStarter = false, lesson = false } = {}) =>
+        decideStartMethod({ options, hasStarter, lesson });
 
-    // 参加しただけでは何も読み込まない。生徒がボタンを押したときだけ読み込む
-    // （自動で読み込むと、同じものを押したときに上書き確認が出て 2 重に読み込む）。
-    test('設定 OFF: スターターがあれば選択肢に出す。おすすめ・案内は無い', () => {
-        expect(decideJoinStart(previousOnly, false, true)).toEqual({
-            showStarter: true,
-            recommend: null,
-            notice: null,
-        });
-        expect(decideJoinStart(null, false, false)).toEqual({ showStarter: false, recommend: null, notice: null });
-    });
-
-    test('設定 ON で前回の提出物があれば、それをおすすめにしてスターターは出さない（選び間違えない）', () => {
-        expect(decideJoinStart(previousOnly, true, true)).toEqual({
-            showStarter: false,
-            recommend: 'previous',
-            notice: 'recommendPrevious',
+    // 順番: この課題で提出済み → 前回の提出物 → スターター → いまの作品（ui-ux.md「始め方を決める順番」）
+    test('この課題で提出済みなら、それを主ボタンにする（前回・スターターより先）', () => {
+        expect(decide(both, { hasStarter: true })).toEqual({
+            main: 'current',
+            others: ['previous', 'starter', 'keep'],
         });
     });
 
-    test('設定 ON で前回の提出物が無ければ、スターターをおすすめにしてそのことを知らせる', () => {
-        expect(decideJoinStart(null, true, true)).toEqual({
-            showStarter: true,
-            recommend: 'starter',
-            notice: 'noPrevious',
-        });
-        expect(decideJoinStart({ current: null, previous: null }, true, false)).toEqual({
-            showStarter: false,
-            recommend: null,
-            notice: 'noPrevious',
+    test('この課題の提出が無く前回の提出物があれば、前回を主ボタンにする（スターターより先）', () => {
+        expect(decide(previousOnly, { hasStarter: true })).toEqual({
+            main: 'previous',
+            others: ['starter', 'keep'],
         });
     });
 
-    test('設定 ON でもこの課題で提出済みなら、おすすめせず選ばせる (今回の作業を前回で上書きしない)', () => {
-        expect(decideJoinStart(withCurrent, true, true)).toEqual({
-            showStarter: true,
-            recommend: null,
-            notice: null,
+    test('提出物が無くスターターがあれば、スターターを主ボタンにする', () => {
+        expect(decide(none, { hasStarter: true })).toEqual({ main: 'starter', others: ['keep'] });
+    });
+
+    test('どれも無ければ「はじめる」（いまの作品のまま）。ほかの始め方は出さない', () => {
+        expect(decide(none)).toEqual({ main: 'keep', others: [] });
+        expect(decide({ current: null, previous: null })).toEqual({ main: 'keep', others: [] });
+    });
+
+    test('ほかの始め方は、主ボタンにしなかった使えるものを順番どおりに並べ、最後に「いまの作品のまま」', () => {
+        expect(decide(currentOnly)).toEqual({ main: 'current', others: ['keep'] });
+        expect(decide(currentOnly, { hasStarter: true }).others).toEqual(['starter', 'keep']);
+    });
+
+    test('前回の提出物は「ほかの始め方」に残る', () => {
+        expect(decide(both).others).toContain('previous');
+    });
+
+    test('保存済みの「前回の提出物から始めさせる」(#1825 で廃止) が渡されても読まない', () => {
+        expect(decideStartMethod({ options: none, hasStarter: true, startFromPrevious: true })).toEqual({
+            main: 'starter',
+            others: ['keep'],
+        });
+    });
+
+    describe('レッスンの課題', () => {
+        test('主ボタンは「はじめる」（レッスン表）。スターターが無ければほかの始め方は出さない', () => {
+            expect(decide(both, { lesson: true })).toEqual({ main: 'lesson', others: [] });
+        });
+
+        test('スターターがあれば、ほかの始め方に使えるもの（この課題・前回・スターター）を入れる', () => {
+            expect(decide(both, { lesson: true, hasStarter: true })).toEqual({
+                main: 'lesson',
+                others: ['current', 'previous', 'starter'],
+            });
+            expect(decide(none, { lesson: true, hasStarter: true }).others).toEqual(['starter']);
         });
     });
 });

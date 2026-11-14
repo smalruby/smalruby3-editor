@@ -32,6 +32,7 @@ import {
 import { requestNewProject } from '../../reducers/project-state.js';
 import { setRubyVersion } from '../../reducers/settings.js';
 import { markTutorialSeen } from '../../reducers/tutorial-onboarding.js';
+import ClassroomMenuSubmitButton from '../classroom-modal/classroom-menu-submit-button.jsx';
 import closeIcon from './icon--close.svg';
 import styles from './mobile-drawer.css';
 
@@ -214,6 +215,7 @@ const hasV2Features = (vm) => {
  * MobileSideRail の ☰ から開閉する。Desktop メニューバーと同等の主要機能を
  * 折りたたみ可能なツリー形式で提供する:
  *
+ *   提出する / 提出済み ✓          (クラスに参加中のみ・#1795)
  *   ファイル
  *     ├ 新規作成...
  *     ├ 次から開く ▾ (Googleドライブ / デバイス / Scratch)
@@ -457,6 +459,21 @@ const MobileDrawerComponent = ({
                     </button>
                 </header>
                 <ul className={styles.menuList}>
+                    {/*
+                     * 参加中の「提出する」(#1795)。スマホにはメニューバーが無く、サイドレールには
+                     * 44px の高さを取る余りが無いので、ドロワーのいちばん上に置く（参加していない・
+                     * 作品を提出しないレッスンの課題では何も描かない）。押したらドロワーを閉じる。
+                     * 「提出しよう」の吹き出し (#1835) は、ドロワーを開いたときだけその下に出す。
+                     */}
+                    {classroomEnabled && (
+                        <li>
+                            <ClassroomMenuSubmitButton
+                                placement="drawer"
+                                reminderAllowed={open}
+                                onAfterClick={onClose}
+                            />
+                        </li>
+                    )}
                     {/* ===== ファイル ===== */}
                     <li className={styles.sectionTitle}>
                         <FormattedMessage {...messages.sectionFile} />

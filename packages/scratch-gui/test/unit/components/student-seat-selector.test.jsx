@@ -129,41 +129,6 @@ describe('StudentSeatSelector one way to pick a seat (#1305 S1)', () => {
 });
 
 describe('StudentSeatSelector guide and confirmation (#1198)', () => {
-    beforeEach(() => jest.useFakeTimers());
-    afterEach(() => jest.useRealTimers());
-
-    test('the guide is shown from the start and emphasized after 30 seconds idle', () => {
-        renderSelector();
-        const guide = screen.getByTestId('classroom-seat-guide');
-        expect(guide).toHaveAttribute('data-idle', '0');
-        act(() => {
-            jest.advanceTimersByTime(29000);
-        });
-        expect(guide).toHaveAttribute('data-idle', '0');
-        act(() => {
-            jest.advanceTimersByTime(1000);
-        });
-        expect(guide).toHaveAttribute('data-idle', '1');
-    });
-
-    test('no emphasis once a seat is selected', () => {
-        const { rerender } = renderSelector({ selectedSeat: 5 });
-        act(() => {
-            jest.advanceTimersByTime(60000);
-        });
-        rerender(
-            <IntlProvider locale="en">
-                <StudentSeatSelector
-                    seatCount={10}
-                    takenSeats={[3]}
-                    onConfirmJoin={jest.fn()}
-                    onSelectSeat={jest.fn()}
-                />
-            </IntlProvider>,
-        );
-        expect(screen.getByTestId('classroom-seat-guide')).toHaveAttribute('data-idle', '0');
-    });
-
     test('a selected seat shows the large confirmation', () => {
         renderSelector({ selectedSeat: 5 });
         expect(screen.getByTestId('classroom-seat-confirm-message')).toHaveTextContent('number 05');
@@ -183,11 +148,10 @@ describe('StudentSeatSelector guide and confirmation (#1198)', () => {
 describe('StudentSeatSelector two-column layout (#1221)', () => {
     const within = (columnId, testId) => screen.getByTestId(columnId).contains(screen.getByTestId(testId));
 
-    test('the number input, guide and grid sit in the main column', () => {
+    test('the number input and grid sit in the main column', () => {
         renderSelector();
         openNumberForm();
         expect(within('classroom-seat-main', 'classroom-seat-number-form')).toBe(true);
-        expect(within('classroom-seat-main', 'classroom-seat-guide')).toBe(true);
         expect(within('classroom-seat-main', 'classroom-seat-grid')).toBe(true);
     });
 
@@ -216,5 +180,147 @@ describe('StudentSeatSelector two-column layout (#1221)', () => {
         renderSelector({ selectedSeat: 5, error: 'Could not connect to the server.' });
         expect(within('classroom-seat-main', 'classroom-error')).toBe(true);
         expect(within('classroom-seat-notices', 'classroom-error')).toBe(false);
+    });
+});
+
+describe('StudentSeatSelector occupied seats and guide (#1796)', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    const rerenderWith = (rerender, props) =>
+        rerender(
+            <IntlProvider locale="en">
+                <StudentSeatSelector
+                    seatCount={10}
+                    takenSeats={[3]}
+                    onConfirmJoin={jest.fn()}
+                    onRequestKick={jest.fn()}
+                    onSelectSeat={jest.fn()}
+                    {...props}
+                />
+            </IntlProvider>,
+        );
+
+    const wait = (ms) =>
+        act(() => {
+            jest.advanceTimersByTime(ms);
+        });
+
+    test('no always-visible guide above the grid', () => {
+        renderSelector();
+        expect(screen.queryByTestId('classroom-seat-guide')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('classroom-seat-idle-guide')).not.toBeInTheDocument();
+    });
+
+    test('an occupied seat looks pressable and says it is in use', () => {
+        const { onRequestKick } = renderSelector();
+        const seat = screen.getByTestId('classroom-seat-3');
+        expect(seat).not.toBeDisabled();
+        expect(seat).toHaveAttribute('data-occupied', '1');
+        expect(seat).toHaveTextContent('In use');
+        fireEvent.click(seat);
+        expect(onRequestKick).toHaveBeenCalledWith(3);
+    });
+
+    test('after 30 seconds the guide appears on the right and occupied seats glow once', () => {
+        renderSelector();
+        wait(29000);
+        expect(screen.queryByTestId('classroom-seat-idle-guide')).not.toBeInTheDocument();
+        expect(screen.getByTestId('classroom-seat-3')).toHaveAttribute('data-flash', '0');
+        wait(1000);
+        const guide = screen.getByTestId('classroom-seat-idle-guide');
+        expect(guide).toHaveAttribute('data-variant', 'idle');
+        expect(screen.getByTestId('classroom-seat-notices')).toContainElement(guide);
+        expect(guide).toHaveTextContent('you can still press it');
+        expect(screen.getByTestId('classroom-seat-3')).toHaveAttribute('data-flash', '1');
+        expect(screen.getByTestId('classroom-seat-4')).toHaveAttribute('data-flash', '0');
+    });
+
+    test('the 30-second guide tells onIdleGuide once (GA, #1831)', () => {
+        const onIdleGuide = jest.fn();
+        renderSelector({ onIdleGuide });
+        wait(29000);
+        expect(onIdleGuide).not.toHaveBeenCalled();
+        wait(1000);
+        expect(onIdleGuide).toHaveBeenCalledTimes(1);
+        wait(30000);
+        expect(onIdleGuide).toHaveBeenCalledTimes(1);
+    });
+
+    test('no onIdleGuide when no seat is occupied (no guide comes up)', () => {
+        const onIdleGuide = jest.fn();
+        renderSelector({ takenSeats: [], onIdleGuide });
+        wait(31000);
+        expect(onIdleGuide).not.toHaveBeenCalled();
+    });
+
+    test('no guide when no seat is occupied', () => {
+        renderSelector({ takenSeats: [] });
+        wait(60000);
+        expect(screen.queryByTestId('classroom-seat-idle-guide')).not.toBeInTheDocument();
+    });
+
+    test('the count restarts when the grid comes back from the confirmation', () => {
+        const { rerender } = renderSelector();
+        wait(20000);
+        rerenderWith(rerender, { selectedSeat: 5 });
+        wait(20000);
+        rerenderWith(rerender, {});
+        wait(29000);
+        expect(screen.queryByTestId('classroom-seat-idle-guide')).not.toBeInTheDocument();
+        wait(1000);
+        expect(screen.getByTestId('classroom-seat-idle-guide')).toBeInTheDocument();
+    });
+
+    test('no guide while a kick request is pending', () => {
+        renderSelector({ kickRequestPending: { requestId: 'r1', joinCode: 'ABC', seatNumber: 3 } });
+        wait(60000);
+        expect(screen.queryByTestId('classroom-seat-idle-guide')).not.toBeInTheDocument();
+    });
+
+    test('the previous seat is highlighted next to the heading but not picked', () => {
+        const { onSelectSeat } = renderSelector({ previousSeat: 5 });
+        expect(screen.getByTestId('classroom-seat-previous')).toHaveTextContent('Last time you were number 05');
+        expect(screen.getByTestId('classroom-seat-heading')).toContainElement(
+            screen.getByTestId('classroom-seat-previous'),
+        );
+        expect(screen.getByTestId('classroom-seat-5')).toHaveAttribute('data-previous', '1');
+        expect(screen.getByTestId('classroom-seat-4')).toHaveAttribute('data-previous', '0');
+        expect(onSelectSeat).not.toHaveBeenCalled();
+        expect(screen.queryByTestId('classroom-seat-idle-guide')).not.toBeInTheDocument();
+    });
+
+    test('an occupied seat reads "In use" only once', () => {
+        renderSelector();
+        expect(screen.getByRole('button', { name: '3 In use' })).toBe(screen.getByTestId('classroom-seat-3'));
+    });
+
+    test('the previous seat button is described by the previous line', () => {
+        renderSelector({ previousSeat: 5 });
+        const note = screen.getByTestId('classroom-seat-previous');
+        expect(note.id).not.toBe('');
+        expect(screen.getByTestId('classroom-seat-5')).toHaveAttribute('aria-describedby', note.id);
+        expect(screen.getByTestId('classroom-seat-4')).not.toHaveAttribute('aria-describedby');
+    });
+
+    test('an occupied previous seat shows its guide at once', () => {
+        renderSelector({ previousSeat: 3 });
+        const guide = screen.getByTestId('classroom-seat-idle-guide');
+        expect(guide).toHaveAttribute('data-variant', 'previousTaken');
+        expect(guide).toHaveTextContent('Press it even if it is in use');
+    });
+
+    test('no previous line without a previous seat', () => {
+        renderSelector();
+        expect(screen.queryByTestId('classroom-seat-previous')).not.toBeInTheDocument();
+    });
+});
+
+describe('KickRequestConfirmDialog wording (#1796)', () => {
+    test('asks to free the seat with the teacher as the main button', () => {
+        renderSelector({ kickRequestDialogSeat: 3, onConfirmKickRequest: jest.fn(), onCancelKickRequest: jest.fn() });
+        expect(screen.getByTestId('kick-request-confirm-dialog')).toHaveTextContent('free seat 03');
+        expect(screen.getByTestId('kick-request-submit')).toHaveTextContent('Ask the teacher');
+        expect(screen.getByTestId('kick-request-cancel')).toHaveTextContent('Cancel');
     });
 });

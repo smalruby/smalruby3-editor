@@ -17,7 +17,6 @@ const defaultProps = () => ({
     onClose: jest.fn(),
     onNextPage: jest.fn(),
     onPrevPage: jest.fn(),
-    onReloadStarter: jest.fn(),
 });
 
 const renderPanel = (props) =>
@@ -75,20 +74,6 @@ describe('StudentAssignmentPanel', () => {
         expect(onPrevPage).toHaveBeenCalledTimes(1);
     });
 
-    test('starter button calls the handler', () => {
-        const onReloadStarter = jest.fn();
-        const { getByTestId } = renderPanel({ onReloadStarter });
-        fireEvent.click(getByTestId('classroom-assignment-reload-starter'));
-        expect(onReloadStarter).toHaveBeenCalledTimes(1);
-    });
-
-    test('starter button is hidden when there is no starter', () => {
-        const props = defaultProps();
-        props.assignment = { pages: [{ text: 'p' }], starterUrl: null };
-        const { queryByTestId } = renderPanel(props);
-        expect(queryByTestId('classroom-assignment-reload-starter')).not.toBeInTheDocument();
-    });
-
     test('joined notice appears when joinedInfo is given (zero-padded seat)', () => {
         const { getByTestId, queryByTestId, rerender } = renderPanel({ joinedInfo: { seatNumber: 3 } });
         expect(getByTestId('classroom-assignment-joined-notice')).toHaveTextContent('03');
@@ -100,87 +85,97 @@ describe('StudentAssignmentPanel', () => {
         expect(queryByTestId('classroom-assignment-joined-notice')).not.toBeInTheDocument();
     });
 
-    test('close button calls onClose', () => {
+    // 主ボタンは 1 つ (#1793): 最後のページまでは「つぎのページ」、最後のページで決めた始め方。
+    test('最後のページより前の主ボタンは「つぎのページ」', () => {
+        const onNextPage = jest.fn();
+        const { getByTestId, queryByTestId } = renderPanel({
+            joinedInfo: { seatNumber: 2 },
+            startMethod: { main: 'starter', others: ['keep'] },
+            onNextPage,
+        });
+        expect(queryByTestId('classroom-start-method')).not.toBeInTheDocument();
+        fireEvent.click(getByTestId('classroom-assignment-main-next'));
+        expect(onNextPage).toHaveBeenCalledTimes(1);
+    });
+
+    test('参加した直後は、最後のページで決めた始め方を主ボタンにする', () => {
+        const onChooseStarter = jest.fn();
         const onClose = jest.fn();
-        const { getByTestId } = renderPanel({ onClose });
+        const { getByTestId, queryByTestId } = renderPanel({
+            pageIndex: 1,
+            joinedInfo: { seatNumber: 2 },
+            startMethod: { main: 'starter', others: ['keep'] },
+            onChooseStarter,
+            onClose,
+        });
+        expect(queryByTestId('classroom-assignment-main-next')).not.toBeInTheDocument();
+        expect(queryByTestId('classroom-assignment-close')).not.toBeInTheDocument();
+        fireEvent.click(getByTestId('classroom-start-main'));
+        expect(onChooseStarter).toHaveBeenCalledTimes(1);
+        fireEvent.click(getByTestId('classroom-start-others-toggle'));
+        fireEvent.click(getByTestId('classroom-start-other-keep'));
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    test('ページが 1 つだけなら、はじめから決めた始め方を出す', () => {
+        const props = defaultProps();
+        props.assignment = { pages: [{ text: 'only' }], starterUrl: null };
+        const onLoadSubmission = jest.fn();
+        const { getByTestId } = renderPanel({
+            ...props,
+            joinedInfo: { seatNumber: 2 },
+            continueOptions: { previous: { assignmentName: '第1回', submittedAt: null }, current: null },
+            startMethod: { main: 'previous', others: ['keep'] },
+            onLoadSubmission,
+        });
+        fireEvent.click(getByTestId('classroom-start-main'));
+        expect(onLoadSubmission).toHaveBeenCalledWith('previous');
+    });
+
+    test('「課題を見る」から開き直したときは、最後のページの主ボタンを「とじる」にする（参加の情報が残っていても始め方は出さない）', () => {
+        const onClose = jest.fn();
+        const { getByTestId, queryByTestId } = renderPanel({
+            assignmentReopened: true,
+            joinedInfo: { seatNumber: 2 },
+            pageIndex: 1,
+            startMethod: { main: 'starter', others: ['keep'] },
+            onClose,
+        });
+        expect(queryByTestId('classroom-start-method')).not.toBeInTheDocument();
+        expect(queryByTestId('classroom-assignment-joined-notice')).not.toBeInTheDocument();
         fireEvent.click(getByTestId('classroom-assignment-close'));
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    // 参加直後 (joinedInfo あり) は「どこから始めるか」を選ぶ。何も自動では開かないので、
-    // スターターは選択肢の 1 つで、別の「開く」「はじめる！」ボタンは出さない。
-    const JOINED = { seatNumber: 2 };
-    const STARTER_CHOICE = { showStarter: true, recommend: null, notice: null };
-
-    test('参加直後でスターターがあれば、スターターと「いまの作品のまま」を選ばせる (はじめる！は出さない)', () => {
-        const onChooseStarter = jest.fn();
-        const onClose = jest.fn();
-        const { getByTestId, queryByTestId } = renderPanel({
-            joinedInfo: JOINED,
-            startChoice: STARTER_CHOICE,
-            onChooseStarter,
-            onClose,
-            onLoadSubmission: jest.fn(),
-        });
+    test('開き直したパネルにはスターターのリンクを出さない（おかえりなさいの「作品を読み込み直す」から開く）', () => {
+        const { queryByTestId } = renderPanel({ assignmentReopened: true, pageIndex: 1 });
+        expect(queryByTestId('classroom-assignment-close')).toBeInTheDocument();
         expect(queryByTestId('classroom-assignment-reload-starter')).not.toBeInTheDocument();
-        expect(queryByTestId('classroom-assignment-close')).not.toBeInTheDocument();
-        fireEvent.click(getByTestId('classroom-continue-starter'));
-        expect(onChooseStarter).toHaveBeenCalledTimes(1);
-        fireEvent.click(getByTestId('classroom-continue-keep'));
-        expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    test('参加直後でスターターも提出物も無ければ「はじめる！」だけ', () => {
-        const props = defaultProps();
-        props.assignment = { pages: [{ text: 'p' }], starterUrl: null };
-        const { getByTestId, queryByTestId } = renderPanel({
-            ...props,
-            joinedInfo: JOINED,
-            startChoice: { showStarter: false, recommend: null, notice: null },
+    test('レッスンの課題は、最後のページにお知らせと「はじめる」（レッスン表）を出す', () => {
+        const onStartLesson = jest.fn();
+        const { getByTestId, queryByTestId, rerender } = renderPanel({
+            joinedInfo: { seatNumber: 2 },
+            studentLesson: { submitWork: true },
+            startMethod: { main: 'lesson', others: [] },
+            onStartLesson,
         });
-        expect(getByTestId('classroom-assignment-close')).toBeInTheDocument();
-        expect(queryByTestId('classroom-continue-choice')).not.toBeInTheDocument();
-    });
-
-    test('続きに使える提出物があれば、スターターは選択肢の 1 つになる (#1201)', () => {
-        const onReloadStarter = jest.fn();
-        const onChooseStarter = jest.fn();
-        const onLoadSubmission = jest.fn();
-        const onClose = jest.fn();
-        const previous = {
-            assignmentName: '第1回',
-            submittedAt: '2026-10-01T10:00:00.000Z',
-            projectUrl: 'https://example.com/prev.sb3',
-        };
-        const { getByTestId, queryByTestId } = renderPanel({
-            joinedInfo: JOINED,
-            startChoice: STARTER_CHOICE,
-            continueOptions: { previous, current: null },
-            onReloadStarter,
-            onChooseStarter,
-            onLoadSubmission,
-            onClose,
-        });
-        expect(queryByTestId('classroom-assignment-reload-starter')).not.toBeInTheDocument();
-        fireEvent.click(getByTestId('classroom-continue-starter'));
-        fireEvent.click(getByTestId('classroom-continue-previous'));
-        expect(onChooseStarter).toHaveBeenCalledTimes(1);
-        expect(onReloadStarter).not.toHaveBeenCalled();
-        expect(onLoadSubmission).toHaveBeenCalledWith('previous');
-    });
-
-    test('選択肢があるときは「はじめる！」の代わりに「いまの作品のまま始める」を出す (#1201)', () => {
-        const onClose = jest.fn();
-        const previous = { assignmentName: '第1回', submittedAt: '2026-10-01T10:00:00.000Z' };
-        const { getByTestId, queryByTestId } = renderPanel({
-            joinedInfo: JOINED,
-            startChoice: STARTER_CHOICE,
-            continueOptions: { previous, current: null },
-            onClose,
-            onLoadSubmission: jest.fn(),
-        });
-        expect(queryByTestId('classroom-assignment-close')).not.toBeInTheDocument();
-        fireEvent.click(getByTestId('classroom-continue-keep'));
-        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(queryByTestId('classroom-assignment-lesson-notice')).not.toBeInTheDocument();
+        rerender(
+            <IntlProvider locale="en">
+                <StudentAssignmentPanel
+                    {...defaultProps()}
+                    joinedInfo={{ seatNumber: 2 }}
+                    pageIndex={1}
+                    startMethod={{ main: 'lesson', others: [] }}
+                    studentLesson={{ submitWork: true }}
+                    onStartLesson={onStartLesson}
+                />
+            </IntlProvider>,
+        );
+        expect(getByTestId('classroom-assignment-lesson-notice')).toBeInTheDocument();
+        fireEvent.click(getByTestId('classroom-start-main'));
+        expect(onStartLesson).toHaveBeenCalledTimes(1);
     });
 });

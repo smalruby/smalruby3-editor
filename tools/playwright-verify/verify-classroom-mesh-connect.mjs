@@ -146,7 +146,8 @@ const openStudent = async (joinCode, seat, label) => {
     await prepareStore(page);
     await page.click(`[data-testid="classroom-seat-${seat}"]`);
     await page.click('[data-testid="classroom-confirm-seat"]');
-    await page.waitForSelector('[data-testid="classroom-continue-starter"]', { timeout: 30000 });
+    // 主ボタンは決めた始め方 1 つ (#1793)。この席には提出物が無いのでスターター。
+    await page.waitForSelector('[data-testid="classroom-start-method"][data-main="starter"]', { timeout: 30000 });
     return page;
 };
 
@@ -213,7 +214,7 @@ try {
     let dialogAction = 'accept';
     s1.on('dialog', (d) => (dialogAction === 'accept' ? d.accept() : d.dismiss()));
     await shot(s1, 'seat1-choice');
-    await s1.click('[data-testid="classroom-continue-starter"]');
+    await s1.click('[data-testid="classroom-start-main"]');
     await waitConnectionModal(s1);
     let st = await modalState(s1);
     assert(st.connection && st.extensionId === 'meshV2', 'mesh connection modal opened');
@@ -228,25 +229,16 @@ try {
     st = await modalState(s1);
     assert(!st.connection && !st.pending, 'closing the connection modal does not bring it back');
 
-    // ---- 課題パネルの「スタータープロジェクトを開く」: パネルを閉じたら出す ----
-    log('student seat1: reopen the starter from the assignment panel');
+    // ---- おかえりなさいの「作品を読み込み直す」→ スターター: クラスの画面を閉じたら出す (#1794) ----
+    log('student seat1: reopen the starter from the welcome back screen');
     await s1.click('[data-testid="classroom-menu-button"]');
-    await s1.waitForSelector('[data-testid="classroom-view-assignment-button"]', { timeout: 20000 });
-    await s1.click('[data-testid="classroom-view-assignment-button"]');
-    await s1.waitForSelector('[data-testid="classroom-assignment-reload-starter"]', { timeout: 20000 });
-    await s1.click('[data-testid="classroom-assignment-reload-starter"]');
-    await s1.waitForFunction(() => window.__store.getState().scratchGui.classroom.meshConnectPending, null, {
-        timeout: 20000,
-    });
-    await sleep(1000);
-    st = await modalState(s1);
-    assert(st.classroom && !st.connection, 'while the panel stays open the connection modal waits');
-    await shot(s1, 'seat1-panel-open-waiting');
-    await s1.click('[data-testid="classroom-assignment-close"]');
+    await s1.waitForSelector('[data-testid="classroom-status-reload-toggle"]', { timeout: 20000 });
+    await s1.click('[data-testid="classroom-status-reload-toggle"]');
+    await s1.click('[data-testid="classroom-status-reload-starter"]');
     await waitConnectionModal(s1);
     st = await modalState(s1);
-    assert(st.connection && !st.classroom, 'connection modal opened after closing the panel');
-    await shot(s1, 'seat1-connection-modal-after-panel');
+    assert(st.connection && !st.classroom, 'connection modal opened after the welcome back screen closed');
+    await shot(s1, 'seat1-connection-modal-after-reload');
     await closeConnectionModal(s1);
 
     // ---- 上書き確認をキャンセル → 出さない ----
@@ -259,12 +251,12 @@ try {
     });
     dialogAction = 'dismiss';
     await s1.click('[data-testid="classroom-menu-button"]');
-    await s1.waitForSelector('[data-testid="classroom-view-assignment-button"]', { timeout: 20000 });
-    await s1.click('[data-testid="classroom-view-assignment-button"]');
-    await s1.waitForSelector('[data-testid="classroom-assignment-reload-starter"]', { timeout: 20000 });
-    await s1.click('[data-testid="classroom-assignment-reload-starter"]');
+    await s1.waitForSelector('[data-testid="classroom-status-reload-toggle"]', { timeout: 20000 });
+    await s1.click('[data-testid="classroom-status-reload-toggle"]');
+    await s1.click('[data-testid="classroom-status-reload-starter"]');
     await sleep(3000);
-    await s1.click('[data-testid="classroom-assignment-close"]');
+    // 断ったので読み込まず、クラスの画面は開いたまま。「つづける」で閉じる。
+    await s1.click('[data-testid="classroom-status-continue"]');
     await sleep(2500);
     st = await modalState(s1);
     assert(!st.connection && !st.pending, 'cancelled overwrite: no connection modal');
@@ -273,7 +265,7 @@ try {
     log('teacher: create assignment 2 with a starter without mesh');
     const code2 = await createAssignment(`メッシュなし-${stamp}`, { mesh: false });
     const s2 = await openStudent(code2, 2, 's2');
-    await s2.click('[data-testid="classroom-continue-starter"]');
+    await s2.click('[data-testid="classroom-start-main"]');
     await s2.waitForFunction(() => !window.__store.getState().scratchGui.classroom.modalVisible, null, {
         timeout: 30000,
     });

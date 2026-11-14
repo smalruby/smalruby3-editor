@@ -4,11 +4,11 @@ import { FormattedMessage } from 'react-intl';
 import { formatStudentClassName } from '../../lib/classroom-class-label.js';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
-import StudentContinueChoice from './student-continue-choice.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
+import StudentStartMethod from './student-start-method.jsx';
 
 /**
- * 「つぎにやること」 of a lesson assignment (#1599): tell right after joining
+ * The one-line notice of a lesson assignment (#1599): tell right after joining
  * that it is a lesson assignment and when to submit, so students do not ask
  * "where is the submit button?".
  * @param {object} props - component props
@@ -34,30 +34,7 @@ LessonNextSteps.propTypes = {
     lesson: PropTypes.shape({ submitWork: PropTypes.bool }).isRequired,
 };
 
-/**
- * 「はじめる」 of a lesson assignment: opens the lessons library with the
- * assignment's challenges only (#1599).
- * @param {object} props - component props
- * @param {Function} props.onStartLesson - opens the lessons library
- * @returns {React.ReactElement} the button row
- */
-const StartLessonButton = ({ onStartLesson }) => (
-    <div className={styles.buttonRow}>
-        <button className={styles.primaryButton} data-testid="classroom-joined-start-lesson" onClick={onStartLesson}>
-            <FormattedMessage
-                defaultMessage="Start"
-                description="Close button after joining"
-                id="gui.classroom.studentJoined.start"
-            />
-        </button>
-    </div>
-);
-
-StartLessonButton.propTypes = {
-    onStartLesson: PropTypes.func.isRequired,
-};
-
-export { LessonNextSteps, StartLessonButton };
+export { LessonNextSteps };
 
 const StudentJoinedConfirmation = ({
     continueOptions,
@@ -65,14 +42,13 @@ const StudentJoinedConfirmation = ({
     errorTitle,
     isLoading,
     joinedInfo,
-    lessonStartOnly = false,
-    loadedChoice,
-    startChoice,
+    startMethod,
     studentLesson = null,
     onClose,
     onLoadStarter,
     onLoadSubmission,
     onStartLesson,
+    onTrack,
 }) => (
     <div data-testid="classroom-phase-student-joined">
         <div className={styles.successArea}>
@@ -98,58 +74,29 @@ const StudentJoinedConfirmation = ({
                 </div>
             )}
         </div>
+        {/* No "what to do next" text: the step band at the top tells where the
+            student is (#1792). A lesson assignment keeps its one-line notice of
+            when to submit (#1599). */}
+        {studentLesson && (
+            <div className={styles.joinHintText} data-testid="classroom-joined-lesson-notice">
+                <LessonNextSteps lesson={studentLesson} />
+            </div>
+        )}
         <StudentPreviousComment previousComment={joinedInfo.previousComment} />
-        {/* Where to start: the starter and earlier submissions (#1201). Nothing
-            is loaded until the student presses one. */}
-        {/* A lesson assignment without a starter starts in the lessons library (#1599). */}
-        {!lessonStartOnly && (
-            <StudentContinueChoice
-                continueOptions={continueOptions}
-                isLoading={isLoading}
-                loadedChoice={loadedChoice}
-                recommend={startChoice?.recommend}
-                showStarter={!!startChoice?.showStarter}
-                startNotice={startChoice?.notice}
-                onKeepCurrent={onClose}
-                onLoadStarter={onLoadStarter}
-                onLoadSubmission={onLoadSubmission}
-            />
-        )}
         <ErrorDisplay error={error} errorTitle={errorTitle} />
-        <div className={styles.joinHintBox}>
-            <div className={styles.joinHintTitle}>
-                <FormattedMessage
-                    defaultMessage="What to do next"
-                    description="Next steps hint title after joining"
-                    id="gui.classroom.studentJoined.nextStepsTitle"
-                />
-            </div>
-            <div className={styles.joinHintText} data-testid="classroom-joined-next-steps">
-                {studentLesson ? (
-                    <LessonNextSteps lesson={studentLesson} />
-                ) : (
-                    <FormattedMessage
-                        defaultMessage="1. Close this dialog and create your project{br}2. When you're done, click the assignment name in the menu bar to submit"
-                        description="Next steps hint after joining"
-                        id="gui.classroom.studentJoined.nextSteps"
-                        values={{ br: <br /> }}
-                    />
-                )}
-            </div>
-        </div>
-        {studentLesson && onStartLesson && <StartLessonButton onStartLesson={onStartLesson} />}
-        {/* With choices, each choice starts (incl. "as it is"), so no separate Start button. */}
-        {!studentLesson && !continueOptions && !startChoice?.showStarter && (
-            <div className={styles.buttonRow}>
-                <button className={styles.primaryButton} data-testid="classroom-joined-close" onClick={onClose}>
-                    <FormattedMessage
-                        defaultMessage="Start"
-                        description="Close button after joining"
-                        id="gui.classroom.studentJoined.start"
-                    />
-                </button>
-            </div>
-        )}
+        {/* One main button: the way to start decided by decideStartMethod (#1793).
+            The other ways sit under 「ほかの始め方」. Nothing is loaded until the
+            student presses one. A lesson assignment starts in the lessons library. */}
+        <StudentStartMethod
+            continueOptions={continueOptions}
+            isLoading={isLoading}
+            method={startMethod}
+            onKeepCurrent={onClose}
+            onLoadStarter={onLoadStarter}
+            onLoadSubmission={onLoadSubmission}
+            onStartLesson={onStartLesson}
+            onTrack={onTrack}
+        />
     </div>
 );
 
@@ -165,20 +112,19 @@ StudentJoinedConfirmation.propTypes = {
         seatNumber: PropTypes.number,
         previousComment: PropTypes.object,
     }).isRequired,
-    // A lesson assignment without a starter: no start choices (#1599)
-    lessonStartOnly: PropTypes.bool,
-    loadedChoice: PropTypes.string,
     // normalized lesson setting of the joined assignment (null = not a lesson assignment)
     studentLesson: PropTypes.shape({ submitWork: PropTypes.bool }),
-    startChoice: PropTypes.shape({
-        showStarter: PropTypes.bool,
-        recommend: PropTypes.string,
-        notice: PropTypes.string,
-    }),
+    // decideStartMethod の結果 (#1793)
+    startMethod: PropTypes.shape({
+        main: PropTypes.string.isRequired,
+        others: PropTypes.arrayOf(PropTypes.string),
+    }).isRequired,
     onClose: PropTypes.func.isRequired,
     onLoadStarter: PropTypes.func,
     onLoadSubmission: PropTypes.func,
     onStartLesson: PropTypes.func,
+    // sends a classroom_student GA event (#1831)
+    onTrack: PropTypes.func,
 };
 
 export default StudentJoinedConfirmation;

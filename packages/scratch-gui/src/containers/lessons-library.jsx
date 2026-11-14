@@ -142,7 +142,7 @@ const mapDispatchToProps = (dispatch) => ({
         dispatch(clearLessonsLibraryFocus());
     },
     onStartChallenge: (challengeId, options) => dispatch(startChallenge(challengeId, options)),
-    onSubmitAssignment: () => dispatch(requestStudentSubmit()),
+    onSubmitAssignment: () => dispatch(requestStudentSubmit('lessons_library')),
 });
 
 export { LessonsLibrary };

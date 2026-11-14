@@ -3,8 +3,9 @@
  *
  * `GET /classrooms/{id}/continuable-submissions` returns the seat's own
  * submission in this assignment (`current`) and the same seat's submission
- * in the previous assignment of the same class (`previous`), plus the
- * assignment setting `startFromPrevious` (#1202).
+ * in the previous assignment of the same class (`previous`). The response
+ * also carries the old assignment setting `startFromPrevious` (#1202), which
+ * the GUI no longer reads (#1825).
  */
 
 /** Choice kinds other than the starter, in display order. */
@@ -25,34 +26,38 @@ export const normalizeContinueOptions = (data) => {
     return { current, previous };
 };
 
+/** 始め方（主ボタン・ほかの始め方）の種類。決める順番どおり（#1793）。 */
+export const START_METHODS = ['current', 'previous', 'starter', 'keep'];
+
 /**
- * Decide which start choices a student gets right after joining (#1202).
+ * 参加したあとの始め方を 1 つに決める（#1793・docs/classroom/ui-ux.md の「始め方を決める順番」）。
  *
- * Joining never loads a project by itself: the student loads one by pressing
- * a choice. Opening it automatically and still offering the same choice made
- * students unsure which button to press, and pressing it loaded the project a
- * second time behind an overwrite confirm.
+ * 上から順に見て最初に当てはまったものを主ボタンにする: この課題で提出済み → 前回の提出物 →
+ * スターター → いまの作品のまま（`keep`）。ほかの始め方は、主ボタンにしなかった使えるものを
+ * 同じ順に並べ、最後に「いまの作品のまま」を置く。主ボタンが `keep` なら使えるものは無いので、
+ * ほかの始め方は出さない（空）。
  *
- * With the teacher's "start from the previous submission" setting on, the
- * previous submission is the recommended choice and the starter is not
- * offered, so a follow-up lesson is not started from the starter by mistake.
- * Without a previous submission the starter is recommended instead and the
- * student is told why. A seat that already submitted for this assignment
- * still chooses freely — recommending last time's work would hide this
- * lesson's.
- * @param {?{current: ?object, previous: ?object}} options - normalized options
- * @param {boolean} startFromPrevious - the assignment setting
- * @param {boolean} hasStarter - whether the assignment has a starter project
- * @returns {{showStarter: boolean, recommend: ?string, notice: ?string}}
- *   recommend is 'previous', 'starter' or null; notice is
- *   'recommendPrevious', 'noPrevious' or null
+ * 先生の設定で順番は変えない（「前回の提出物から始めさせる」は #1825 で廃止。保存済みの値は読まない）。
+ *
+ * レッスンの課題では、主ボタンは「はじめる」（`lesson` = レッスン表を開く）。チャレンジは毎回
+ * 新しい作品から始まるので、始め方は課題クリアのあとの作品づくりにだけ使う。スターターのある
+ * 課題だけ、ほかの始め方に使えるもの（この課題・前回・スターター）を入れる。
+ * @param {object} input - 生徒の状態と先生の設定
+ * @param {?{current: ?object, previous: ?object}} input.options - normalizeContinueOptions の結果
+ * @param {boolean} [input.hasStarter] - 課題にスターターがある
+ * @param {boolean} [input.lesson] - レッスンの課題
+ * @returns {{main: string, others: Array<string>}} main は START_METHODS か 'lesson'
  */
-export const decideJoinStart = (options, startFromPrevious, hasStarter) => {
-    if (startFromPrevious && !options?.current) {
-        if (options?.previous) {
-            return { showStarter: false, recommend: 'previous', notice: 'recommendPrevious' };
-        }
-        return { showStarter: !!hasStarter, recommend: hasStarter ? 'starter' : null, notice: 'noPrevious' };
+export const decideStartMethod = ({ options, hasStarter = false, lesson = false }) => {
+    const usableKinds = [
+        options?.current ? 'current' : null,
+        options?.previous ? 'previous' : null,
+        hasStarter ? 'starter' : null,
+    ].filter(Boolean);
+    if (lesson) {
+        return { main: 'lesson', others: hasStarter ? usableKinds : [] };
     }
-    return { showStarter: !!hasStarter, recommend: null, notice: null };
+    const main = usableKinds[0] || 'keep';
+    const others = main === 'keep' ? [] : [...usableKinds.slice(1), 'keep'];
+    return { main, others };
 };

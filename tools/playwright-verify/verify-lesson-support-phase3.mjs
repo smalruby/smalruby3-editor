@@ -103,15 +103,16 @@ try {
     await studentPage.click('[data-testid="classroom-seat-1"]');
     await studentPage.click('[data-testid="classroom-confirm-seat"]');
     await studentPage.waitForSelector('[data-testid="classroom-phase-student-joined"]', { timeout: 30000 });
-    await studentPage.click('[data-testid="classroom-joined-close"]');
+    await studentPage.click('[data-testid="classroom-start-main"]');
     await sleep(500);
-    // Submit via the class menu (status view)
-    await studentPage.click('[data-testid="classroom-menu-button"]');
-    await studentPage.waitForSelector('[data-testid="classroom-submit-button"]', { timeout: 20000 });
-    await studentPage.click('[data-testid="classroom-submit-button"]');
+    // Submit via the menu bar 「提出する」 (the welcome back screen has no submit button: #1794 / #1795)
+    await studentPage.waitForSelector('[data-testid="classroom-menu-submit"]', { timeout: 20000 });
+    await studentPage.click('[data-testid="classroom-menu-submit"]');
     await studentPage.waitForSelector('[data-testid="classroom-submit-confirm"]', { timeout: 20000 });
     await studentPage.click('[data-testid="classroom-submit-confirm"]');
-    await studentPage.waitForSelector('[data-testid="classroom-submit-status"]', { timeout: 60000 });
+    // 提出できたら「提出できました ✓」(#1795)。「つづける」で閉じる。
+    await studentPage.waitForSelector('[data-testid="classroom-phase-submit-done"]', { timeout: 60000 });
+    await studentPage.click('[data-testid="classroom-submit-done-continue"]');
     assert(true, 'student submitted');
 
     // ---- Teacher: evaluation flow ----

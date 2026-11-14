@@ -44,19 +44,9 @@ const messages = defineMessages({
         id: 'gui.classroom.assignmentEditor.peerViewAfterSubmit',
     },
     advancedSummary: {
-        defaultMessage: 'From last time: {previous} · Peer view: {peerView} · Mesh: {mesh}',
+        defaultMessage: 'Peer view: {peerView} · Mesh: {mesh}',
         description: 'Assignment editor: current values shown on the folded advanced settings',
         id: 'gui.classroom.assignmentEditor.advancedSummary',
-    },
-    summaryOn: {
-        defaultMessage: 'Yes',
-        description: 'Assignment editor: advanced settings summary — start from the previous submission is on',
-        id: 'gui.classroom.assignmentEditor.summaryOn',
-    },
-    summaryOff: {
-        defaultMessage: 'No',
-        description: 'Assignment editor: advanced settings summary — start from the previous submission is off',
-        id: 'gui.classroom.assignmentEditor.summaryOff',
     },
 });
 
@@ -232,7 +222,6 @@ const TeacherAssignmentEditor = ({
     savedSettings,
     starterMode,
     starterSource,
-    startFromPrevious,
     peerView,
     meshGroupLimit,
     lessonDraft,
@@ -248,7 +237,6 @@ const TeacherAssignmentEditor = ({
     onChangeLesson,
     onChangeMeshGroupLimit,
     onChangePeerView,
-    onChangeStartFromPrevious,
     onMovePage,
     onRemovePage,
     onRemovePageImage,
@@ -290,7 +278,7 @@ const TeacherAssignmentEditor = ({
             document.removeEventListener('keydown', handleKey, true);
         };
     }, [showAdvanced, handleCloseAdvanced]);
-    const hasAdvanced = Boolean(onChangeStartFromPrevious || onChangePeerView || onChangeMeshGroupLimit);
+    const hasAdvanced = Boolean(onChangePeerView || onChangeMeshGroupLimit);
     // With many settings it is easy to lose track of which values are still
     // unsaved, so a value that differs from the saved one is coloured (in the
     // summary and in the panel) until［課題を保存］stores it (#1303 review Q1).
@@ -299,13 +287,12 @@ const TeacherAssignmentEditor = ({
     const hasLessonScoring = Boolean(onChangeLesson && lessonDraft && findCourse(lessonDraft.courseId));
     const changed = savedSettings
         ? {
-              previous: !!startFromPrevious !== !!savedSettings.startFromPrevious,
               peerView: (peerView || 'none') !== (savedSettings.peerView || 'none'),
               mesh: normalizeMeshGroupLimit(meshGroupLimit) !== normalizeMeshGroupLimit(savedSettings.meshGroupLimit),
               scoring: hasLessonScoring && lessonChanges(lessonDraft, savedLesson).scoring,
           }
-        : { previous: false, peerView: false, mesh: false, scoring: false };
-    const hasUnsaved = changed.previous || changed.peerView || changed.mesh || changed.scoring;
+        : { peerView: false, mesh: false, scoring: false };
+    const hasUnsaved = changed.peerView || changed.mesh || changed.scoring;
     const lessonScoring = hasLessonScoring ? effectiveScoring(lessonDraft) : null;
     const summaryValue = (key, text) => (
         <span
@@ -320,10 +307,6 @@ const TeacherAssignmentEditor = ({
         <FormattedMessage
             {...messages.advancedSummary}
             values={{
-                previous: summaryValue(
-                    'previous',
-                    intl.formatMessage(startFromPrevious ? messages.summaryOn : messages.summaryOff),
-                ),
                 peerView: summaryValue(
                     'peerView',
                     intl.formatMessage(PEER_VIEW_MESSAGES[peerView] || messages.peerViewNone),
@@ -340,11 +323,6 @@ const TeacherAssignmentEditor = ({
         />
     );
     const settingClass = (key) => (changed[key] ? styles.assignmentAdvancedSettingChanged : null);
-
-    const handleStartFromPreviousChange = useCallback(
-        (e) => onChangeStartFromPrevious && onChangeStartFromPrevious(e.target.checked),
-        [onChangeStartFromPrevious],
-    );
 
     const handlePeerViewChange = useCallback(
         (e) => onChangePeerView && onChangePeerView(e.target.value),
@@ -660,40 +638,6 @@ const TeacherAssignmentEditor = ({
                                         testId="classroom-assignment-advanced-close"
                                         onClick={handleCloseAdvanced}
                                     />
-                                    {/* Follow-up lessons (#1202): students open last time's work by
-                                        default instead of choosing (and mistaking) the starter. */}
-                                    {onChangeStartFromPrevious && (
-                                        <label
-                                            className={classNames(
-                                                styles.assignmentStartFromPrevious,
-                                                settingClass('previous'),
-                                            )}
-                                        >
-                                            <input
-                                                checked={startFromPrevious}
-                                                data-testid="classroom-assignment-start-from-previous"
-                                                disabled={isSaving}
-                                                type="checkbox"
-                                                onChange={handleStartFromPreviousChange}
-                                            />
-                                            <span>
-                                                <span className={styles.assignmentStartFromPreviousLabel}>
-                                                    <FormattedMessage
-                                                        defaultMessage="Start from the previous submission"
-                                                        description="Assignment editor: setting that opens the previous submission when students join"
-                                                        id="gui.classroom.assignmentEditor.startFromPrevious"
-                                                    />
-                                                </span>
-                                                <span className={styles.assignmentStartFromPreviousHint}>
-                                                    <FormattedMessage
-                                                        defaultMessage="For follow-up lessons: when students join, continuing from the project they submitted last time in this class is recommended (the starter is not offered). Students without one are told to start from the starter."
-                                                        description="Assignment editor: explanation of the start-from-previous setting"
-                                                        id="gui.classroom.assignmentEditor.startFromPreviousHint"
-                                                    />
-                                                </span>
-                                            </span>
-                                        </label>
-                                    )}
                                     {/* Peer view (#1208): students see classmates' submission
                                         images (never the .sb3) to learn from each other. */}
                                     {onChangePeerView && (
@@ -704,7 +648,7 @@ const TeacherAssignmentEditor = ({
                                             )}
                                         >
                                             <label className={styles.assignmentPeerViewRow}>
-                                                <span className={styles.assignmentStartFromPreviousLabel}>
+                                                <span className={styles.assignmentOptionLabel}>
                                                     <FormattedMessage
                                                         defaultMessage="Let students see classmates' work"
                                                         description="Assignment editor: label of the peer view setting"
@@ -729,7 +673,7 @@ const TeacherAssignmentEditor = ({
                                                     </option>
                                                 </select>
                                             </label>
-                                            <span className={styles.assignmentStartFromPreviousHint}>
+                                            <span className={styles.assignmentOptionHint}>
                                                 <FormattedMessage
                                                     defaultMessage="Students see only the stage image and block images of classmates' submissions (not the project file, names or your comments). Choose after submitting to have them try on their own first."
                                                     description="Assignment editor: explanation of the peer view setting"
@@ -776,13 +720,11 @@ TeacherAssignmentEditor.propTypes = {
     // The stored values of the advanced settings; a different current value
     // is shown as unsaved. Omit to show no unsaved marks.
     savedSettings: PropTypes.shape({
-        startFromPrevious: PropTypes.bool,
         peerView: PropTypes.oneOf(['none', 'always', 'afterSubmit']),
         meshGroupLimit: PropTypes.number,
     }),
     starterMode: PropTypes.oneOf(['none', 'keep', 'new']).isRequired,
     starterSource: PropTypes.object,
-    startFromPrevious: PropTypes.bool,
     peerView: PropTypes.oneOf(['none', 'always', 'afterSubmit']),
     meshGroupLimit: PropTypes.number,
     // Lesson settings (#1598): the draft (null = no lesson) and the stored value.
@@ -801,7 +743,6 @@ TeacherAssignmentEditor.propTypes = {
     onChangeLesson: PropTypes.func,
     onChangeMeshGroupLimit: PropTypes.func,
     onChangePeerView: PropTypes.func,
-    onChangeStartFromPrevious: PropTypes.func,
     onMovePage: PropTypes.func.isRequired,
     onRemovePage: PropTypes.func.isRequired,
     onRemovePageImage: PropTypes.func.isRequired,
