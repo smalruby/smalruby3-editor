@@ -148,6 +148,28 @@ describe('StudentStatusView: おかえりなさい (#1794)', () => {
         expect(h.onLeaveClassroom).not.toHaveBeenCalled();
     });
 
+    test('the confirm is named by its question, takes the focus, and gives it back on cancel', () => {
+        renderView();
+        fireEvent.click(screen.getByTestId('classroom-leave'));
+        const dialog = screen.getByTestId('classroom-leave-dialog');
+        expect(dialog).toHaveAccessibleName('Leave the class? The projects you submitted stay.');
+        expect(screen.getByTestId('classroom-leave-confirm')).toHaveFocus();
+        fireEvent.click(screen.getByTestId('classroom-leave-cancel'));
+        expect(screen.getByTestId('classroom-leave')).toHaveFocus();
+    });
+
+    test('Esc in the confirm cancels only the confirm (does not reach the modal)', () => {
+        const h = renderView();
+        const outer = jest.fn();
+        document.addEventListener('keydown', outer);
+        fireEvent.click(screen.getByTestId('classroom-leave'));
+        fireEvent.keyDown(screen.getByTestId('classroom-leave-confirm'), { key: 'Escape' });
+        document.removeEventListener('keydown', outer);
+        expect(screen.queryByTestId('classroom-leave-dialog')).toBeNull();
+        expect(outer).not.toHaveBeenCalled();
+        expect(h.onLeaveClassroom).not.toHaveBeenCalled();
+    });
+
     test('「出る」 in the confirm leaves the class', () => {
         const h = renderView();
         fireEvent.click(screen.getByTestId('classroom-leave'));

@@ -226,7 +226,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-status-reload-options` | div | 開いたときに並ぶリンクのまとまり（同じ行に並ぶ） |
 | `classroom-status-reload-{kind}` | button | 読み込めるもの（`kind` = `current` この課題で出した作品 / `previous` 前回の作品 / `starter` スターター。この順）。押すとその作品を開いてモーダルを閉じる（編集中は confirm） |
 | `classroom-leave` | button | 小さなリンク「クラスから出る」（右下。押すと確認） |
-| `classroom-leave-dialog` | div (`role="alertdialog"`) | 確認「クラスから出ますか？ 出ても、提出した作品は残ります。」（主ボタンとリンクの代わりに出る） |
+| `classroom-leave-dialog` | div (`role="alertdialog"`) | 確認「クラスから出ますか？ 出ても、提出した作品は残ります。」（主ボタンとリンクの代わりに出る。名前は質問の文（`aria-labelledby`）。開くとフォーカスは `classroom-leave-confirm`、Esc は確認だけを閉じる） |
 | `classroom-leave-confirm` | button | 確認の主ボタン「出る」（→ student-join） |
 | `classroom-leave-cancel` | button | 確認の小さなリンク「やめる」 |
 | `classroom-status-lesson-progress` | div | レッスンの課題の「進み具合」の行（丸は `lesson-assignment-dot`、`lesson-assignment-done-count`・`lesson-assignment-remaining`・`lesson-assignment-required-remaining`・`lesson-assignment-cleared`） |

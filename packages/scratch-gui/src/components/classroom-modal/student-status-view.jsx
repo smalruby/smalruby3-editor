@@ -8,7 +8,7 @@
  * この画面に置かない（メニューバーの「提出する」から。docs/classroom/ui-ux.md の 8.）。
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useId, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { formatStudentClassName } from '../../lib/classroom-class-label.js';
 import { canSubmitAssignment } from '../../lib/lessons/assignment-progress.js';
@@ -303,17 +303,42 @@ ReloadWork.propTypes = {
 
 /**
  * 「クラスから出る」の確認。確認の間は「出る」がこの画面のただ 1 つの主ボタン。
+ * 開いたら「出る」にフォーカスを移す（押したリンクが消えてフォーカスが迷子にならないように）。
+ * Esc は確認だけを閉じる（モーダルごと閉じない）。
  * @param {object} props - component props
  * @param {boolean} props.isLoading - 読み込み中
- * @param {Function} props.onCancel - 「やめる」
+ * @param {Function} props.onCancel - 「やめる」・Esc
  * @param {Function} props.onConfirm - 「出る」
  * @returns {React.ReactElement} the confirm
  */
 const LeaveConfirm = ({ isLoading, onCancel, onConfirm }) => {
     const intl = useIntl();
+    const questionId = useId();
+    const ref = useRef(null);
+    useEffect(() => {
+        ref.current?.querySelector('[data-testid="classroom-leave-confirm"]')?.focus();
+    }, []);
+    const handleKeyDown = useCallback(
+        (e) => {
+            if (e.key !== 'Escape') return;
+            // react-modal closes the whole modal on Esc from its content's onKeyDown.
+            e.stopPropagation();
+            onCancel();
+        },
+        [onCancel],
+    );
     return (
-        <div className={partStyles.welcomeLeaveDialog} data-testid="classroom-leave-dialog" role="alertdialog">
-            <div className={partStyles.welcomeLeaveQuestion}>{intl.formatMessage(messages.leaveQuestion)}</div>
+        <div
+            aria-labelledby={questionId}
+            className={partStyles.welcomeLeaveDialog}
+            data-testid="classroom-leave-dialog"
+            ref={ref}
+            role="alertdialog"
+            onKeyDown={handleKeyDown}
+        >
+            <div className={partStyles.welcomeLeaveQuestion} id={questionId}>
+                {intl.formatMessage(messages.leaveQuestion)}
+            </div>
             <StudentMainButton dataTestId="classroom-leave-confirm" disabled={isLoading} onClick={onConfirm}>
                 {intl.formatMessage(messages.leaveConfirm)}
             </StudentMainButton>
@@ -356,8 +381,19 @@ const StudentStatusView = ({
 }) => {
     const intl = useIntl();
     const [confirmingLeave, setConfirmingLeave] = useState(false);
+    // After 「やめる」 the focus goes back to 「クラスから出る」 (it was unmounted meanwhile).
+    const [refocusLeave, setRefocusLeave] = useState(false);
+    const leaveRef = useRef(null);
     const askLeave = useCallback(() => setConfirmingLeave(true), []);
-    const cancelLeave = useCallback(() => setConfirmingLeave(false), []);
+    const cancelLeave = useCallback(() => {
+        setConfirmingLeave(false);
+        setRefocusLeave(true);
+    }, []);
+    useEffect(() => {
+        if (!refocusLeave || confirmingLeave) return;
+        setRefocusLeave(false);
+        leaveRef.current?.querySelector('[data-testid="classroom-leave"]')?.focus();
+    }, [refocusLeave, confirmingLeave]);
     const lesson = lessonStatus && studentLesson ? studentLesson : null;
     // A lesson assignment shows its submission only when it also asks for a work (#1599).
     const showSubmission = !lesson || lesson.submitWork;
@@ -464,7 +500,7 @@ const StudentStatusView = ({
                         )}
                     </div>
                     {/* Away from the other links (right, bottom) so it is not pressed by mistake. */}
-                    <div className={partStyles.welcomeLeave}>
+                    <div className={partStyles.welcomeLeave} ref={leaveRef}>
                         <StudentTextLink dataTestId="classroom-leave" disabled={isLoading} onClick={askLeave}>
                             <FormattedMessage
                                 defaultMessage="Leave the class"

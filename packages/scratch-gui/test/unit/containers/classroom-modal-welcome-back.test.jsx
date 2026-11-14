@@ -133,12 +133,60 @@ describe('ClassroomModal: wrong seat on the welcome back screen (#1794)', () => 
         expect(JSON.parse(window.localStorage.getItem(LAST_SEATS_STORAGE_KEY))).toEqual({ 'group:g2': 4 });
     });
 
-    test('still reaches the seat selection when leaving fails', async () => {
-        mockLeaveClassroom.mockRejectedValue(new Error('network'));
-        renderModal(SESSION);
+    test('a failed lookup keeps the session (looked up before leaving)', async () => {
+        mockLookupClassroom.mockRejectedValue({ status: 0 });
+        const store = renderModal(SESSION);
         await act(async () => {
             await mockProps.onWrongSeat();
         });
+        expect(mockLeaveClassroom).not.toHaveBeenCalled();
+        expect(store.getActions().map((a) => a.type)).not.toContain('scratch-gui/classroom/CLEAR_SESSION');
+        expect(mockProps.phase).toBe('student-status');
+        expect(mockProps.error).toBeTruthy();
+        expect(mockProps.isLoading).toBe(false);
+    });
+
+    test('a failed leave keeps the session and the student can try again', async () => {
+        mockLeaveClassroom.mockRejectedValueOnce({ status: 0 });
+        const store = renderModal(SESSION);
+        await act(async () => {
+            await mockProps.onWrongSeat();
+        });
+        expect(store.getActions().map((a) => a.type)).not.toContain('scratch-gui/classroom/CLEAR_SESSION');
+        expect(mockProps.phase).toBe('student-status');
+        expect(mockProps.error).toBeTruthy();
+        // retry
+        await act(async () => {
+            await mockProps.onWrongSeat();
+        });
+        expect(mockLeaveClassroom).toHaveBeenCalledTimes(2);
         expect(mockProps.phase).toBe('student-seat');
+    });
+
+    test('the modal cannot be closed while switching the seat', async () => {
+        let finishLeave;
+        mockLeaveClassroom.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    finishLeave = resolve;
+                }),
+        );
+        const store = renderModal(SESSION);
+        let pending;
+        await act(async () => {
+            pending = mockProps.onWrongSeat();
+            for (let i = 0; i < 6; i++) await Promise.resolve();
+        });
+        expect(mockProps.isLoading).toBe(true);
+        act(() => mockProps.onClose());
+        expect(store.getActions().map((a) => a.type)).not.toContain('scratch-gui/classroom/CLOSE_MODAL');
+        await act(async () => {
+            finishLeave({});
+            await pending;
+        });
+        expect(mockProps.phase).toBe('student-seat');
+        expect(mockProps.isLoading).toBe(false);
+        act(() => mockProps.onClose());
+        expect(store.getActions().map((a) => a.type)).toContain('scratch-gui/classroom/CLOSE_MODAL');
     });
 });
