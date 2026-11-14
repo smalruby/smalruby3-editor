@@ -104,6 +104,12 @@ export default {
     'gui.classroom.submitReminder.text': 'Ready to hand in your work? You can send it again later.',
     'gui.classroom.submitReminder.close': 'Close',
     'gui.menuBar.aboutSmalruby': 'About Smalruby',
+    'gui.welcomeModal.startLessons': 'Start the lessons',
+    'gui.welcomeModal.courseGuideTitle': 'First step: the lesson “{course}”',
+    'gui.welcomeModal.courseGuideDetail':
+        '{lessonCount, plural, one {# lesson} other {# lessons}} · ' +
+        '{challengeCount, plural, one {# challenge} other {# challenges}}. ' +
+        'About 5 minutes each, with hints along the way.',
     'gui.menuBar.debug': 'Debug',
     'gui.classroom.management.title': 'Class Management',
     'gui.classroom.roleSelect.prompt': 'How do you use the classroom?',

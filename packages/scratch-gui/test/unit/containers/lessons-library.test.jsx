@@ -13,11 +13,15 @@ import { closeLessonsLibrary } from '../../../src/reducers/modals';
 
 const CHALLENGE_ID = 'blocks-l1-click-say';
 
-const buildStore = ({ visible, focus = null }) =>
+const buildStore = ({ visible, focus = null, startFocus = false }) =>
     configureStore()({
         locales: { isRtl: false },
         scratchGui: {
-            lessonMode: { progress: emptyProgress(), libraryFocusChallengeId: focus },
+            lessonMode: {
+                progress: emptyProgress(),
+                libraryFocusChallengeId: focus,
+                libraryStartFocus: startFocus,
+            },
             modals: { lessonsLibrary: visible },
             settings: { colorMode: 'default' },
         },
@@ -98,6 +102,43 @@ describe('LessonsLibrary container', () => {
         const next = lesson.querySelector('[data-next="true"]');
         expect(next).not.toBeNull();
         expect(next.getAttribute('data-testid')).not.toBe(`lessons-library-challenge-${CHALLENGE_ID}`);
+    });
+
+    test('opened from the welcome 「レッスンを始める」, marks the first challenge to do (#1888)', () => {
+        const { getByTestId } = renderUnconnected({ startFocus: true });
+        const lesson = getByTestId('lessons-library-lesson-blocks-l1');
+        expect(lesson).toHaveAttribute('data-focused', 'true');
+        const first = lesson.querySelector('[data-next="true"]');
+        expect(first.getAttribute('data-testid')).toBe('lessons-library-challenge-blocks-l1-key-sound');
+        expect(first).toContainElement(getByTestId('lessons-library-challenge-next'));
+    });
+
+    test('opened from the welcome after some are done, marks the next one (#1888)', () => {
+        const progress = {
+            ...emptyProgress(),
+            challenges: {
+                'blocks-l1-key-sound': {
+                    completedAt: '2026-11-10T00:00:00.000Z',
+                    courseId: 'kyou-kara-programmer',
+                    lessonId: 'blocks-l1',
+                },
+            },
+        };
+        const { getByTestId } = renderUnconnected({ startFocus: true, progress });
+        const next = getByTestId('lessons-library-lesson-blocks-l1').querySelector('[data-next="true"]');
+        expect(next.getAttribute('data-testid')).toBe('lessons-library-challenge-blocks-l1-arrow-move');
+    });
+
+    test('connected: reads the welcome start focus from the state (#1888)', () => {
+        const store = buildStore({ visible: true, startFocus: true });
+        const { getByTestId } = render(
+            <Provider store={store}>
+                <IntlProvider locale="en">
+                    <ConnectedLessonsLibrary />
+                </IntlProvider>
+            </Provider>,
+        );
+        expect(getByTestId('lessons-library-challenge-blocks-l1-key-sound')).toHaveAttribute('data-next', 'true');
     });
 
     test('connected: closing the library also clears the focus', () => {

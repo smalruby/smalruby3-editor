@@ -125,7 +125,10 @@ export default {
     'gui.welcomeModal.cardMeshTitle': '友達とつなぐ',
     'gui.welcomeModal.cardMeshDesc': 'メッシュ機能で複数の端末をつないで遊べます。',
     'gui.welcomeModal.cardMeshDescShort': '複数の端末をつないで遊べます。',
-    'gui.welcomeModal.startTutorial': '最初のチュートリアルを始める',
+    'gui.welcomeModal.startLessons': 'レッスンを始める',
+    'gui.welcomeModal.courseGuideTitle': 'はじめの一歩: レッスン『{course}』',
+    'gui.welcomeModal.courseGuideDetail':
+        '{lessonCount} つのレッスン・{challengeCount} のチャレンジ。1 つ 5 分。ヒントを見ながら進められます。',
     'gui.welcomeModal.learnMore': 'スモウルビーについて詳しく',
     'gui.welcomeModal.leadShort': 'ブロックから始めて、Rubyのコードまで挑戦できます。',
     'gui.welcomeModal.later': 'あとで見る',

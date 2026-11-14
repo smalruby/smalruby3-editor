@@ -3,9 +3,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import WelcomeModal from '../components/welcome-modal/welcome-modal.jsx';
 import analytics from '../lib/analytics';
+import { COURSES, courseSize } from '../lib/lessons/courses';
+import { openLessonsLibraryToStart } from '../lib/lessons/open-lessons-library';
 import { getUrlParams } from '../lib/url-params.js';
 import useIsNarrowScreen from '../lib/use-is-narrow-screen.js';
-import { closeWelcomeModal, openTipsLibrary, openWelcomeModal } from '../reducers/modals.js';
+import { closeWelcomeModal, openWelcomeModal } from '../reducers/modals.js';
 
 const sendModalEvent = (action, label) => {
     try {
@@ -14,6 +16,9 @@ const sendModalEvent = (action, label) => {
         // Swallow analytics failures so the editor never breaks.
     }
 };
+
+// コースの案内に出す、はじめの一歩のコース（並びの先頭）。数はコースのデータから出す
+const FIRST_COURSE = COURSES[0] ? { name: COURSES[0].name, ...courseSize(COURSES[0]) } : null;
 
 const PORTRAIT_QUERY = '(orientation: portrait)';
 
@@ -40,7 +45,7 @@ const usePortraitMatch = () => {
     return portrait;
 };
 
-const WelcomeModalContainer = ({ isOpen, onCloseWelcomeModal, onOpenTipsLibrary, onOpenWelcomeModal }) => {
+const WelcomeModalContainer = ({ isOpen, onCloseWelcomeModal, onOpenWelcomeModal, onStartLessons }) => {
     const isNarrow = useIsNarrowScreen();
     const portrait = usePortraitMatch();
 
@@ -58,11 +63,12 @@ const WelcomeModalContainer = ({ isOpen, onCloseWelcomeModal, onOpenTipsLibrary,
         if (isOpen) sendModalEvent('modal_shown', 'modal');
     }, [isOpen]);
 
-    const handleStartTutorial = useCallback(() => {
-        sendModalEvent('modal_action', 'start_tutorial');
+    // ウェルカムを閉じてレッスン表を開き、次にやるチャレンジに「次はこれ！」を付ける（#1888）
+    const handleStartLessons = useCallback(() => {
+        sendModalEvent('modal_action', 'start_lessons');
         onCloseWelcomeModal();
-        onOpenTipsLibrary();
-    }, [onCloseWelcomeModal, onOpenTipsLibrary]);
+        onStartLessons();
+    }, [onCloseWelcomeModal, onStartLessons]);
 
     const handleLearnMore = useCallback(() => {
         sendModalEvent('modal_action', 'learn_more');
@@ -85,10 +91,11 @@ const WelcomeModalContainer = ({ isOpen, onCloseWelcomeModal, onOpenTipsLibrary,
 
     return (
         <WelcomeModal
+            course={FIRST_COURSE}
             isNarrow={isNarrow}
             onLater={handleLater}
             onLearnMore={handleLearnMore}
-            onStartTutorial={handleStartTutorial}
+            onStartLessons={handleStartLessons}
         />
     );
 };
@@ -96,8 +103,8 @@ const WelcomeModalContainer = ({ isOpen, onCloseWelcomeModal, onOpenTipsLibrary,
 WelcomeModalContainer.propTypes = {
     isOpen: PropTypes.bool.isRequired,
     onCloseWelcomeModal: PropTypes.func.isRequired,
-    onOpenTipsLibrary: PropTypes.func.isRequired,
     onOpenWelcomeModal: PropTypes.func.isRequired,
+    onStartLessons: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = (state) => ({
@@ -107,7 +114,7 @@ const mapStateToProps = (state) => ({
 const mapDispatchToProps = (dispatch) => ({
     onOpenWelcomeModal: () => dispatch(openWelcomeModal()),
     onCloseWelcomeModal: () => dispatch(closeWelcomeModal()),
-    onOpenTipsLibrary: () => dispatch(openTipsLibrary()),
+    onStartLessons: () => openLessonsLibraryToStart(dispatch),
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(WelcomeModalContainer);

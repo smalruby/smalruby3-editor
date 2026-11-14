@@ -1,6 +1,6 @@
-@import '../../css/colors.css';
-@import '../../css/units.css';
-@import '../../css/z-index.css';
+/* 見た目は上流のモーダル（components/modal/modal.css）に合わせる（#1888）:
+   青い幕・白い 4px の縁と角丸・紫のヘッダー・紫の主ボタン。値はトークン（docs/design-system/tokens.md）。 */
+@import '../../css/smalruby-tokens.css';
 
 .overlay {
     position: fixed;
@@ -8,65 +8,82 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: $ui-black-transparent;
+    background-color: $color-overlay;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: $z-index-modal;
-    padding: 1rem;
+    padding: $space-large;
 }
 
 .dialog {
-    background: white;
-    border-radius: 12px;
+    /* モーダルの本文には必ず不透明な背景を付ける（.claude/rules/scratch-gui/modals.md） */
+    background-color: $color-surface;
+    border: 4px solid $ui-white-transparent;
+    border-radius: $radius-medium;
+    background-clip: padding-box;
     width: 640px;
     max-width: 100%;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 8px 32px $ui-black-transparent;
     overflow: hidden;
+    color: $color-text;
+}
+
+/* 上流の .header と同じ紫の帯（高さ・色・文字の大きさ） */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    height: $library-header-height;
+    padding: 0 $space-large;
+    background-color: $color-primary;
+}
+
+.title {
+    margin: 0;
+    /* 紫の上の文字は白（上流の .header-item と同じ $ui-white） */
+    color: $ui-white;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    letter-spacing: 0.4px;
+    text-align: center;
 }
 
 .dialog-body {
-    padding: 1.5rem 2rem 0;
+    padding: $space-large calc($space-large * 1.5) 0;
     overflow-y: auto;
     flex: 1 1 auto;
 }
 
-.title {
-    font-size: 1.5rem;
-    margin: 0 0 0.5rem 0;
-    color: $text-primary;
-    text-align: center;
-}
-
 .lead {
-    margin: 0 0 1.25rem 0;
-    color: $text-primary;
+    margin: 0 0 $space-large 0;
+    color: $color-text;
     text-align: center;
-    font-size: 0.95rem;
+    font-size: $font-size-dialog;
     line-height: 1.5;
 }
 
 .cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: $space-large;
+    margin-bottom: $space-large;
 }
 
 .card {
-    background: $ui-primary;
-    border-radius: 8px;
-    padding: 1rem;
+    background-color: $color-background;
+    border-radius: $radius-medium;
+    padding: $space-large;
     text-align: center;
 }
 
 .card-emoji {
     font-size: 2rem;
     line-height: 1;
-    margin-bottom: 0.5rem;
+    margin-bottom: $space-medium;
 }
 
 /* SVG icon used in place of an emoji (Ruby logo). Sized to visually match
@@ -75,71 +92,105 @@
     display: block;
     width: 2rem;
     height: 2rem;
-    margin: 0 auto 0.5rem;
+    margin: 0 auto $space-medium;
 }
 
 .card-title {
-    font-size: 0.95rem;
-    font-weight: bold;
-    margin: 0 0 0.25rem 0;
-    color: $text-primary;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+    margin: 0 0 $space-small 0;
+    color: $color-text;
 }
 
 .card-desc {
-    font-size: 0.8rem;
+    font-size: $font-size-small;
     margin: 0;
-    color: $text-primary;
+    color: $color-text;
     line-height: 1.4;
+}
+
+/* はじめの一歩のコースの案内（カードの下の 1 段） */
+.course-guide {
+    margin: 0 0 $space-large 0;
+    padding: $space-medium $space-large;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    text-align: center;
+}
+
+.course-guide-title {
+    margin: 0;
+    font-size: $font-size-dialog;
+    font-weight: $font-weight-bold;
+    line-height: 1.5;
+    color: $color-text;
+}
+
+.course-guide-detail {
+    margin: 0;
+    font-size: $font-size-small;
+    line-height: 1.5;
+    color: $color-text;
 }
 
 /* Sticky CTA area at the bottom of the dialog. */
 .buttons {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: $space-medium;
     align-items: stretch;
-    padding: 1rem 2rem 1.25rem;
-    background: white;
-    border-top: 1px solid $ui-black-transparent-10;
+    padding: $space-large calc($space-large * 1.5);
+    background-color: $color-surface;
+    border-top: 1px solid $color-border;
     flex-shrink: 0;
 }
 
+/* 主ボタン（docs/design-system/components/README.md の「主ボタン・副ボタン」）。
+   ホバーの見た目は付けない（上流のダイアログのボタンに合わせて cursor だけ）。押したときに濃くする */
 .primary-button {
-    padding: 0.75rem 1.25rem;
-    border: none;
-    border-radius: 8px;
-    background: $motion-primary;
-    color: white;
+    padding: 0.75rem $space-large;
+    border: 1px solid $color-primary;
+    border-radius: $radius-small;
+    background-color: $color-primary;
+    color: $ui-white;
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: bold;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
     min-height: 44px;
 }
 
-.primary-button:hover {
-    opacity: 0.9;
+.primary-button:active {
+    background-color: $color-primary-dark;
+    border-color: $color-primary-dark;
+}
+
+/* フォーカス: デザインシステムの形（2px の紫の線を 2px 外に） */
+.primary-button:focus-visible,
+.link-button:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
 }
 
 .secondary-buttons {
     display: flex;
-    gap: 0.5rem;
+    gap: $space-medium;
     justify-content: center;
     flex-wrap: wrap;
 }
 
 .link-button {
-    padding: 0.5rem 0.75rem;
+    padding: $space-medium 0.75rem;
     border: none;
     background: transparent;
-    color: $motion-primary;
+    color: $color-primary;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: $font-size-dialog;
     text-decoration: underline;
     min-height: 44px;
 }
 
-.link-button:hover {
-    opacity: 0.7;
+.link-button:active {
+    color: $color-primary-dark;
 }
 
 /* ============================================================
@@ -147,24 +198,37 @@
    ============================================================ */
 .dialog.narrow {
     max-height: 95vh;
-    border-radius: 8px;
+}
+
+/* スマホ横は縦が 320〜390px しか無いので、ヘッダーを上流の $library-header-height（3.125rem）より低くして
+   カードとボタンを画面に収める（2.5rem はライブラリの絞り込みの帯 $library-filter-bar-height と同じ高さ） */
+.dialog.narrow .header {
+    height: $library-filter-bar-height;
 }
 
 .dialog.narrow .dialog-body {
-    padding: 1.25rem 1rem 0.5rem;
-}
-
-.dialog.narrow .title {
-    font-size: 1.2rem;
+    padding: $space-medium $space-large $space-medium;
 }
 
 .dialog.narrow .lead {
-    font-size: 0.85rem;
-    margin-bottom: 0.75rem;
+    font-size: $font-size-small;
+    margin-bottom: $space-medium;
 }
 
 .dialog.narrow .buttons {
-    padding: 0.75rem 1rem 0.9rem;
+    flex-direction: row;
+    align-items: center;
+    padding: $space-medium $space-large;
+}
+
+.dialog.narrow .primary-button {
+    flex: 1 1 auto;
+    min-height: 40px;
+    padding: $space-medium $space-large;
+}
+
+.dialog.narrow .link-button {
+    min-height: 40px;
 }
 
 /* SP では 3 カードを横スクロール (scroll-snap) で並べ、縦領域を稼ぐ */
@@ -174,8 +238,8 @@
     gap: 0.75rem;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
-    margin: 0 -1rem 0.75rem;
-    padding: 0 1rem 0.5rem;
+    margin: 0 calc(-1 * $space-large) $space-medium;
+    padding: 0 $space-large $space-medium;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -183,7 +247,7 @@
     flex: 0 0 35%;
     max-width: 35%;
     scroll-snap-align: start;
-    padding: 0.75rem 0.5rem;
+    padding: 0.75rem $space-medium;
 }
 
 .dialog.narrow .card-emoji {
@@ -196,9 +260,9 @@
 }
 
 .dialog.narrow .card-title {
-    font-size: 0.85rem;
+    font-size: $font-size-small;
 }
 
 .dialog.narrow .card-desc {
-    font-size: 0.75rem;
+    font-size: $font-size-xsmall;
 }

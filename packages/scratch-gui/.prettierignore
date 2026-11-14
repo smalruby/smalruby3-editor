@@ -553,6 +553,7 @@ test/unit/components/*
 !test/unit/components/mobile-top-bar.test.jsx
 !test/unit/components/palette-toggle.test.jsx
 !test/unit/components/welcome-tooltip.test.jsx
+!test/unit/components/welcome-modal.test.jsx
 !test/unit/components/project-title-input.test.jsx
 !test/unit/components/ruby-toolbar-analytics.test.jsx
 !test/unit/components/ruby-toolbar-no-rubytee.test.jsx
@@ -573,6 +574,7 @@ test/unit/containers/*
 !test/unit/containers/lesson-mode.test.jsx
 !test/unit/containers/lesson-hint.test.jsx
 !test/unit/containers/lessons-library.test.jsx
+!test/unit/containers/welcome-modal-hoc.test.jsx
 !test/unit/containers/classroom-classcode-utils.test.js
 !test/unit/containers/classroom-error-utils.test.js
 !test/unit/containers/classroom-teacher-menu.test.jsx

@@ -128,7 +128,10 @@ export default {
     'gui.welcomeModal.cardMeshTitle': 'ともだちとつなぐ',
     'gui.welcomeModal.cardMeshDesc': 'メッシュきのうでふくすうのたんまつをつないであそべます。',
     'gui.welcomeModal.cardMeshDescShort': 'ふくすうのたんまつをつないであそべます。',
-    'gui.welcomeModal.startTutorial': 'さいしょのチュートリアルをはじめる',
+    'gui.welcomeModal.startLessons': 'レッスンをはじめる',
+    'gui.welcomeModal.courseGuideTitle': 'はじめのいっぽ: レッスン『{course}』',
+    'gui.welcomeModal.courseGuideDetail':
+        '{lessonCount} つのレッスン・{challengeCount} のチャレンジ。1 つ 5 ふん。ヒントをみながらすすめられます。',
     'gui.welcomeModal.learnMore': 'スモウルビーについてくわしく',
     'gui.welcomeModal.leadShort': 'ブロックからはじめて、Rubyのコードまでちょうせんできます。',
     'gui.welcomeModal.later': 'あとでみる',
