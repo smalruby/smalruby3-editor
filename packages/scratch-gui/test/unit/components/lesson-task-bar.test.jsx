@@ -187,6 +187,97 @@ describe('LessonTaskBar', () => {
             );
         });
 
+        const diagramLayout = (height) => ({
+            width: 200,
+            height,
+            shapes: [{ type: 'action', x: 10, y: 10, w: 100, h: 24, label: 'a', lines: ['a'] }],
+            edges: [],
+        });
+        const withWindow = (width, height, fn) => {
+            const saved = [window.innerWidth, window.innerHeight];
+            window.innerWidth = width;
+            window.innerHeight = height;
+            try {
+                fn();
+            } finally {
+                [window.innerWidth, window.innerHeight] = saved;
+            }
+        };
+
+        test('shows the activity diagram of the answer under the task text', () => {
+            withWindow(1300, 600, () => {
+                const { getByTestId, queryByTestId } = renderBar({ activityDiagram: diagramLayout(120) });
+                hover(getByTestId('lesson-task-bar'));
+                const wrapper = getByTestId('lesson-task-bar-full-text-diagram');
+                const svg = getByTestId('lesson-activity-diagram');
+                expect(wrapper).toContainElement(svg);
+                // 入るので縮めずに描く
+                expect(svg.style.width).toBe('200px');
+                expect(queryByTestId('lesson-task-bar-full-text-diagram-note')).toBeNull();
+                // 文の後ろ（下）に出す
+                expect(
+                    getByTestId('lesson-task-bar-full-text-text').compareDocumentPosition(wrapper) &
+                        Node.DOCUMENT_POSITION_FOLLOWING,
+                ).toBeTruthy();
+            });
+        });
+
+        test('shrinks a diagram a little too tall for the panel (1300×600)', () => {
+            withWindow(1300, 600, () => {
+                const { getByTestId } = renderBar({ activityDiagram: diagramLayout(240) });
+                hover(getByTestId('lesson-task-bar'));
+                // 60vh - 8.5rem = 224px に入るよう縮める
+                expect(parseFloat(getByTestId('lesson-activity-diagram').style.height)).toBeCloseTo(224);
+            });
+        });
+
+        test('shows a line pointing to the hint instead of a diagram too tall to read (1300×600)', () => {
+            withWindow(1300, 600, () => {
+                const { getByTestId, queryByTestId } = renderBar(
+                    { activityDiagram: diagramLayout(600) },
+                    { locale: 'ja', messages: ja },
+                );
+                hover(getByTestId('lesson-task-bar'));
+                expect(queryByTestId('lesson-activity-diagram')).toBeNull();
+                expect(getByTestId('lesson-task-bar-full-text-diagram-note')).toHaveTextContent(
+                    '図はヒントの 1 ページ目で見られます',
+                );
+            });
+        });
+
+        test('uses the measured height of the task text, not a guess', () => {
+            const spy = jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function () {
+                return this.dataset && this.dataset.testid === 'lesson-task-bar-full-text-text' ? 72 : 0;
+            });
+            try {
+                withWindow(1300, 600, () => {
+                    // 文が 72px なら 360 - 72 - 36 = 252px 使えるので、高さ 270 の図は読める大きさで入る
+                    // （2 行ぶんの見積もり 100px のままだと 224px しかなく、入らない）
+                    const { getByTestId } = renderBar({ activityDiagram: diagramLayout(270) });
+                    hover(getByTestId('lesson-task-bar'));
+                    expect(parseFloat(getByTestId('lesson-activity-diagram').style.height)).toBeCloseTo(252);
+                });
+            } finally {
+                spy.mockRestore();
+            }
+        });
+
+        test('the line pointing to the hint is in English too', () => {
+            withWindow(1300, 600, () => {
+                const { getByTestId } = renderBar({ activityDiagram: diagramLayout(600) });
+                hover(getByTestId('lesson-task-bar'));
+                expect(getByTestId('lesson-task-bar-full-text-diagram-note')).toHaveTextContent(
+                    'See the diagram on page 1 of the hint',
+                );
+            });
+        });
+
+        test('shows no activity diagram without one', () => {
+            const { getByTestId, queryByTestId } = renderBar();
+            hover(getByTestId('lesson-task-bar'));
+            expect(queryByTestId('lesson-task-bar-full-text-diagram')).toBeNull();
+        });
+
         test('shows no image for a challenge without one', () => {
             const { getByTestId, queryByTestId } = renderBar({ challengeId: 'blocks-l1-key-sound' });
             hover(getByTestId('lesson-task-bar'));

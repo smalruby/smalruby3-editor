@@ -18,7 +18,9 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
+import LessonActivityDiagram from '../components/lesson-activity-diagram/lesson-activity-diagram.jsx';
 import LessonHint from '../components/lesson-hint/lesson-hint.jsx';
+import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
 import { LANGUAGES, challengeCodeCandidates, localizeCode } from '../lib/lessons/courses';
 import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
 import { findCodeSprite, findSpriteByName, insertSpriteCodes } from '../lib/lessons/insert-sprite-code';
@@ -52,6 +54,11 @@ const LessonHintContainer = ({
     vm,
 }) => {
     const intl = useIntl();
+    // 答えのプログラムから描いたアクティビティ図。ヒントの 1 ページ目に出す（課題の全文と同じ図・変換は 1 回）
+    const activityDiagram = useChallengeActivityDiagram(current ? current.challenge : null, {
+        rubyVersion,
+        scratchBlocks,
+    });
     const blocks = hint && hint.visible && hint.step ? localizeCode(hint.step.blocks, intl.locale) : null;
     // 変換した XML は Ruby ごとに覚える（もどる・進めるで同じブロックを変換し直さない）。
     // 変換の結果は Ruby のバージョンでも変わるので、キーに含める
@@ -176,6 +183,7 @@ const LessonHintContainer = ({
         <LessonHint
             // チャレンジを開き直したら、ドラッグした位置や「置き換えますか？」を持ち越さない
             key={hint.session}
+            activityDiagram={activityDiagram ? <LessonActivityDiagram layout={activityDiagram} /> : null}
             blocksError={blocksReady && rendered.error}
             blocksXml={blocksReady ? rendered.xml : null}
             colorMode={colorMode}

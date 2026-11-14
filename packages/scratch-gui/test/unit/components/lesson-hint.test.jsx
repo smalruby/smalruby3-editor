@@ -95,6 +95,19 @@ describe('LessonHint', () => {
         expect(getByTestId('lesson-hint-prev')).toHaveTextContent('もどる');
     });
 
+    test('shows the activity diagram above the text on the first page only', () => {
+        const diagram = <svg data-testid="fake-diagram" />;
+        const { getByTestId, unmount } = renderHint({ index: 0, activityDiagram: diagram });
+        const wrapper = getByTestId('lesson-hint-activity-diagram');
+        expect(wrapper).toContainElement(getByTestId('fake-diagram'));
+        expect(
+            wrapper.compareDocumentPosition(getByTestId('lesson-hint-title')) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        unmount();
+        const second = renderHint({ index: 1, activityDiagram: diagram });
+        expect(second.queryByTestId('lesson-hint-activity-diagram')).toBeNull();
+    });
+
     test('back is disabled on the first hint and next on the last', () => {
         const first = renderHint({ index: 0 });
         expect(first.getByTestId('lesson-hint-prev')).toBeDisabled();

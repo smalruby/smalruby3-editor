@@ -74,6 +74,8 @@ src/components/*
 !src/components/lesson-task-bar/**
 !src/components/lesson-hint/
 !src/components/lesson-hint/**
+!src/components/lesson-activity-diagram/
+!src/components/lesson-activity-diagram/**
 !src/components/lessons-library/
 !src/components/lessons-library/**
 !src/components/dncl-mode-notice/**
@@ -492,6 +494,7 @@ test/unit/components/*
 !test/unit/components/balloon.test.jsx
 !test/unit/components/classroom-tutorial.test.jsx
 !test/unit/components/lessons-library.test.jsx
+!test/unit/components/lesson-activity-diagram.test.jsx
 !test/unit/components/genai-answer-steps-index-hints.test.jsx
 !test/unit/components/genai-answer-steps-words.test.jsx
 !test/unit/components/extension-button-dncl.test.jsx

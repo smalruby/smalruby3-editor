@@ -17,6 +17,15 @@
 }
 
 /*
+    アクティビティ図のある 1 ページ目は、図が字の読める大きさ（下限）のまま横に収まりやすいよう広げる
+    （分岐のある図で幅 420px ほど）。それでも入らなければ図の枠の中をスクロールする
+*/
+.balloon-wide {
+    composes: balloon;
+    max-width: min(30rem, calc(100vw - 1rem));
+}
+
+/*
     ヘッダー（色の帯）をドラッグの取っ手にする。touch-action: none でタッチのドラッグを
     ページのスクロールにとられないようにする（Pointer Events でマウスとタッチを同じに扱う）
 */
@@ -41,6 +50,22 @@
 
 .title:last-child {
     margin-bottom: 0;
+}
+
+/*
+    1 ページ目のアクティビティ図。吹き出しの幅（最大 22rem）と、1300×600 で吹き出しが画面に収まる高さまで
+    縦横の比のまま縮める。字が読める下限（lesson-activity-diagram.jsx の min-width / min-height）まで縮めても
+    入らないときは、図の枠の中をスクロールする
+*/
+.activity-diagram {
+    max-height: min(16rem, calc(100vh - 16rem));
+    margin: 0 0 0.5rem;
+    overflow: auto;
+}
+
+.activity-diagram > svg {
+    margin: 0 auto;
+    max-height: min(16rem, calc(100vh - 16rem));
 }
 
 /* 本物のブロックを描く Blockly の読み取り専用ワークスペース。大きさは描いた中身から決める */

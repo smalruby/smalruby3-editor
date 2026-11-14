@@ -129,6 +129,12 @@ export const defineChallenge = (def) => ({
     codeTarget: null,
     // うまく動かないときは: [message descriptor]
     debug: [],
+    // 答えのプログラム（code と spriteCodes）から描くアクティビティ図を、課題の全文とヒントの 1 ページ目に
+    // 出すか（lib/lessons/activity-diagram/・docs/lessons/design.md の「アクティビティ図」）
+    activityDiagram: false,
+    // メッシュの練習相手の定義（#1638）: {name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}]}
+    // （set = {variable, value}）。図では相手のスイムレーンになる。無ければ null
+    partner: null,
     // ふりかえりのクイズ（任意）: {question, choices: [3 つ], answer, explanation}。文言は message descriptor、
     // answer は choices の何番目が正解か（0 から）。「できた！」の中に出す（「できた」の判定には入れない）。
     // ふつうは challengeQuiz(id, answer) で書く。形は validateQuiz
