@@ -10,7 +10,8 @@ const { FIRE_EVENTS, RECORD_EVENTS } = require('./gql-operations');
  * 1 mutation でまとめて送信する。
  *
  * 重複/オーバーフロー保護:
- *   - 同じ eventName + payload はキュー内に重複させない
+ *   - 値なし: 同じ eventName はキュー内に重複させない
+ *   - 値つき (#1843): 同じ eventName の値つきは最後の値だけを残す（最後に送った位置へ）
  *   - キューが MAX_EVENT_QUEUE_SIZE (100) に達したら FIFO で古い方を破棄
  *
  * issue #556: orderKey を `YYYYMMDDHHMMSS-<7桁連番>` で付与し、サーバー側 SK
@@ -111,15 +112,29 @@ const EventSenderMixin = {
             return;
         }
 
-        // ステップ1: 重複チェック
-        const isDuplicate = this.eventQueue.some((item) => item.eventName === eventName && item.payload === payload);
+        if (payload) {
+            // ステップ1（値つき, #1843）: 同じ名前の値つきメッセージは、1 回のまとめ送り
+            // （eventBatchInterval）の中で最後の値だけを送る。受け取った側では同じメッセージが
+            // 続くとスクリプトがやり直しになり値も上書きされるので、見える結果はほぼ同じで
+            // 通信を減らせる。前の値は取りのぞき、最後に送った位置（下の push）に置く。
+            // 値なしの同じ名前のメッセージはそのまま残す。
+            const before = this.eventQueue.length;
+            this.eventQueue = this.eventQueue.filter((item) => !(item.eventName === eventName && item.payload));
+            if (this.eventQueue.length < before) {
+                this.eventQueueStats.valuesReplaced += before - this.eventQueue.length;
+                debug(() => `Mesh V2: Replaced queued value of event: ${eventName}`);
+            }
+        } else {
+            // ステップ1: 重複チェック（値なしはいまどおり、同じものは 1 つ）
+            const isDuplicate = this.eventQueue.some((item) => item.eventName === eventName && !item.payload);
 
-        if (isDuplicate) {
-            this.eventQueueStats.duplicatesSkipped++;
-            this.reportEventStatsIfNeeded();
+            if (isDuplicate) {
+                this.eventQueueStats.duplicatesSkipped++;
+                this.reportEventStatsIfNeeded();
 
-            debug(() => `Mesh V2: Event already in queue, skipping: ${eventName}`);
-            return;
+                debug(() => `Mesh V2: Event already in queue, skipping: ${eventName}`);
+                return;
+            }
         }
 
         // ステップ2: サイズ制限チェック（保険）
@@ -143,7 +158,7 @@ const EventSenderMixin = {
         const firedAt = new Date();
         this.eventQueue.push({
             eventName: eventName,
-            payload: payload,
+            payload: payload || '',
             firedAt: firedAt.toISOString(),
             // issue #556: 同一バッチ内のイベント順序保証用
             orderKey: this._generateOrderKey(firedAt),

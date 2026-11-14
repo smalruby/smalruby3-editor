@@ -110,6 +110,8 @@ class MeshV2Service {
         this.MAX_EVENT_QUEUE_SIZE = 100; // 最大100イベント
         this.eventQueueStats = {
             duplicatesSkipped: 0,
+            // 値つきメッセージで、同じ名前の前の値を最後の値に置きかえた数 (#1843)
+            valuesReplaced: 0,
             dropped: 0,
             lastReportTime: Date.now(),
         };
