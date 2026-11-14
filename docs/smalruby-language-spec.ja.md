@@ -6,6 +6,7 @@
 - English version: [smalruby-language-spec.md](./smalruby-language-spec.md)
 - 拡張機能メソッド: [smalruby-language-spec-extensions.ja.md](./smalruby-language-spec-extensions.ja.md)
 - Version 1 API との差分: [smalruby-language-spec-v1-diff.ja.md](./smalruby-language-spec-v1-diff.ja.md)
+- ブロックでの表し方（変換器・生成器を直す人向け）: [Ruby → Scratch 橋渡しパターン集](./ruby-editor/bridging-patterns.md)
 
 > **注意**: このドキュメントは **Version 2** API をベースに記載しています。Version 1 との差分は [v1 差分](./smalruby-language-spec-v1-diff.ja.md) を参照してください。
 
