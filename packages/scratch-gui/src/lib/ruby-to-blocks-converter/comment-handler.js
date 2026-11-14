@@ -1,5 +1,11 @@
 // === Smalruby: This file is Smalruby-specific (comment extraction and association for Ruby-to-blocks converter) ===
 
+/** The marker of a comment whose user lines are all the trailing comment of the line of the block. */
+const INLINE_MARKER = '@ruby:comment_position:inline';
+
+/** The marker of a comment whose last user line is the trailing comment, and the others are before. */
+const INLINE_LAST_MARKER = '@ruby:comment_position:inline:last';
+
 /**
  * Mixin methods for handling source comments in the Ruby-to-blocks converter.
  * These methods are mixed into RubyToBlocksConverter.prototype via Object.assign.
@@ -217,6 +223,12 @@ const CommentHandler = {
     /**
      * Merge a user comment with an existing block comment, or create a new one.
      * User comment text is placed before any `@ruby:` metadata lines.
+     *
+     * A block can have both a comment on the lines before it and a trailing comment on its own line
+     * (`# before\nmove(10) # after`). Then the text before comes first, the trailing text is the last
+     * user line, and `@ruby`:comment_position:inline:last tells the generator that only the last line
+     * is the trailing comment (issue #1838). With `@ruby`:comment_position:inline, all user lines are
+     * the trailing comment.
      * @param {string} blockId - The block ID to attach the comment to
      * @param {string} userText - The user comment text
      * @param {boolean} isInline - Whether this is an inline (trailing) comment
@@ -233,25 +245,39 @@ const CommentHandler = {
         // keeps that bar readable. The Ruby generator's scrub_() filters
         // by full-line equality / `startsWith('@ruby:')`, so line order
         // doesn't affect round-tripping. (See ruby-generator/scrub.js.)
-        const inlineMarker = isInline ? '@ruby:comment_position:inline' : '';
-
-        if (block.comment) {
-            // Block already has a comment - merge
-            const existingComment = this._context.comments[block.comment];
-            if (existingComment) {
-                const lines = existingComment.text.split('\n');
-                const metadataLines = lines.filter((l) => l.startsWith('@ruby:'));
-                if (isInline && !metadataLines.includes(inlineMarker)) {
-                    metadataLines.unshift(inlineMarker);
-                }
-                const trailing = metadataLines.length > 0 ? `\n${metadataLines.join('\n')}` : '';
-                existingComment.text = `${userText}${trailing}`;
-            }
-        } else {
-            // Create new comment for this block
-            const commentText = isInline ? `${userText}\n${inlineMarker}` : userText;
+        const existingComment = block.comment ? this._context.comments[block.comment] : null;
+        if (!existingComment) {
+            const commentText = isInline ? `${userText}\n${INLINE_MARKER}` : userText;
             block.comment = this._createComment(commentText, block.id);
+            return;
         }
+
+        const lines = existingComment.text.split('\n');
+        const userLines = lines.filter((l) => !l.startsWith('@ruby:'));
+        const metadataLines = lines.filter(
+            (l) => l.startsWith('@ruby:') && l !== INLINE_MARKER && l !== INLINE_LAST_MARKER,
+        );
+        let beforeLines = userLines;
+        let inlineText = null;
+        if (lines.includes(INLINE_LAST_MARKER)) {
+            beforeLines = userLines.slice(0, -1);
+            inlineText = userLines[userLines.length - 1];
+        } else if (lines.includes(INLINE_MARKER)) {
+            beforeLines = [];
+            inlineText = userLines.join(' ');
+        }
+        if (isInline) {
+            inlineText = userText;
+        } else {
+            beforeLines = [userText];
+        }
+
+        const textLines = [...beforeLines];
+        if (inlineText !== null) {
+            textLines.push(inlineText);
+            metadataLines.unshift(beforeLines.length > 0 ? INLINE_LAST_MARKER : INLINE_MARKER);
+        }
+        existingComment.text = [...textLines, ...metadataLines].join('\n');
     },
 };
 

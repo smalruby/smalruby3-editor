@@ -158,4 +158,30 @@ describe('Ruby Comment Round Trip', () => {
         // For full round-trip with class, a proper sprite target mock would be needed.
         // Here we verify the comment is preserved through the converter.
     });
+
+    describe('a block with both a comment before it and a trailing comment (issue #1838)', () => {
+        test('both comments are preserved', async () => {
+            await expectRoundTrip('# 前\nmove(10) # うしろ');
+        });
+
+        test('the example of the pattern collection (P14) is preserved', async () => {
+            await expectRoundTrip('# 前のコメント\nmove(10)\nmove(20) # うしろのコメント\n# 前\nmove(30) # うしろ');
+        });
+
+        test('several lines before and a trailing comment are preserved', async () => {
+            await expectRoundTrip('# first\n# second\nmove(10) # third\nmove(20)');
+        });
+
+        test('both comments on a block with its own metadata are preserved', async () => {
+            await expectRoundTrip('# 前\n@a = gets # うしろ');
+        });
+
+        test('the comment of the block keeps the text before first, then the trailing text', async () => {
+            await converter.targetCodeToBlocks(null, '# 前\nmove(10) # うしろ');
+            const block = Object.values(converter.blocks).find((b) => b.opcode === 'motion_movesteps');
+            expect(converter._context.comments[block.comment].text).toEqual(
+                '前\nうしろ\n@ruby:comment_position:inline:last',
+            );
+        });
+    });
 });
