@@ -9,7 +9,7 @@
 | 部分 | 値（上流） | トークン | 実測 |
 |---|---|---|---|
 | オーバーレイ（`.modal-overlay`） | 画面全体・地 `$ui-modal-overlay`・重なり `$z-index-modal` | `$color-overlay` | 一致（`rgba(77, 151, 255, 0.9)`） |
-| 枠（`.modal-content`） | 枠 `4px solid $ui-white-transparent`・角丸 `$space`（0.5rem）・上に 100px あけて中央・文字 `$text-primary`・Helvetica Neue・はみ出しを隠す。幅は使う側が決める（`prompt.css` は 360px） | `$radius-medium`・`$color-text` | 一致（4px・8px・360px） |
+| 枠（`.modal-content`） | 枠 `4px solid $ui-white-transparent`・角丸 `$space`（0.5rem）・上に 100px あけて中央・文字 `$text-primary`・Helvetica Neue・はみ出しを隠す。幅は使う側が決める（`prompt.css` は 360px） | `$radius-medium`・`$color-text` | 一致（4px・8px・360px）。ただしスモウルビーでは下の「枠の地」の白が枠の下まで塗るので、枠は不透明な白に見える（上流はオーバーレイが透けて淡い青） |
 | 枠の地 | 上流は**無い**（本文が透明だとオーバーレイが透ける）。スモウルビーはマーカー付きで `$ui-white` を足している | `$color-surface` | 白（スモウルビーの変更） |
 | フルスクリーン（`.modal-content.full-screen`） | 画面全体・地 `$ui-secondary`・枠と角丸なし（ライブラリで使う。[`../library.md`](../library.md)） | 別名なし | 一致（`rgb(233, 241, 252)`） |
 | ヘッダー（`.header`） | 高さ `$library-header-height`（3.125rem）・地 `$looks-secondary`・文字 1rem の太さふつう・白（`.header-item`）・余白 1rem | `$color-primary`・`$font-size-base` | 一致（50px） |

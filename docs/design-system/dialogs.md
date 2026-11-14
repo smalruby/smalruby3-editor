@@ -27,10 +27,12 @@
 
 ふつうのモーダル（変数・リスト・ブロックを作る）の色。ライブラリ（フルスクリーン）の色は [`library.md`](library.md) の「色」。
 
+「色」の列は `hsla(...)` から計算した 16 進（ブラウザが描く色で、実測と同じ）。上流の `colors.css` のコメントの 16 進は、計算と 1 ずれるものがある（`$ui-primary` のコメントは `#E5F0FF` など。[`tokens.md`](tokens.md) の「色」）。この表は計算の値。
+
 | 部分 | 上流の CSS（ファイル・セレクター） | 上流のトークン（値） | 色 | 別名 | 実測 |
 |---|---|---|---|---|---|
-| オーバーレイ | `modal/modal.css` `.modal-overlay` | `$ui-modal-overlay`（`hsla(215, 100%, 65%, 0.9)`） | `#4C97FF` × 0.9 | `$color-overlay` | 一致（`rgba(77, 151, 255, 0.9)`） |
-| 枠 | `modal/modal.css` `.modal-content` | `$ui-white-transparent`（`hsla(0, 100%, 100%, 0.25)`）の 4px | `#FFFFFF` × 0.25 | 別名なし | 一致（`4px solid rgba(255, 255, 255, 0.25)`） |
+| オーバーレイ | `modal/modal.css` `.modal-overlay` | `$ui-modal-overlay`（`hsla(215, 100%, 65%, 0.9)`） | `#4D97FF` × 0.9 | `$color-overlay` | 一致（`rgba(77, 151, 255, 0.9)`） |
+| 枠 | `modal/modal.css` `.modal-content` | `$ui-white-transparent`（`hsla(0, 100%, 100%, 0.25)`）の 4px | `#FFFFFF` × 0.25 | 別名なし | 値は一致（`4px solid rgba(255, 255, 255, 0.25)`）。ただし**見た目は白**（スモウルビーの既定の地が枠の下まで塗るため。上流はオーバーレイが透けて淡い青） |
 | ヘッダーの地 | `modal/modal.css` `.header` | `$looks-secondary` | `#855CD6` | `$color-primary` | 一致（`rgb(133, 92, 214)`） |
 | ヘッダーの文字 | `modal/modal.css` `.header-item` | `$ui-white` | `#FFFFFF` | `$color-surface` | 一致 |
 | 閉じるボタン | `close-button/close-button.css` `.close-button.large` | 地と輪 `$ui-black-transparent`・× は白 | `#000000` × 0.15 | `$color-border` | 一致（ホバーで `scale(1.1)`・輪 4px） |
@@ -40,7 +42,7 @@
 | 名前の入力欄の枠 | 同上 | `$ui-black-transparent` | `#000000` × 0.15 | `$color-border` | 一致 |
 | 主ボタン（OK） | `prompt/prompt.css`・`custom-procedures/custom-procedures.css` `.button-row button.ok-button` | 地 `$looks-secondary`・文字 `white`（直書き） | `#855CD6`・`#FFFFFF` | `$color-primary`・`$color-surface` | 一致 |
 | 副ボタン（キャンセル） | 同上 `.button-row button` | 地 `white`（直書き）・枠 `$ui-black-transparent`・文字の色は決めていない | `#FFFFFF`・`#000000` × 0.15・文字はブラウザの既定の黒 | `$color-surface`・`$color-border` | 一致（文字 `rgb(0, 0, 0)`） |
-| ブロックを作るの作業の場 | `custom-procedures/custom-procedures.css` `.workspace :global(.blocklySvg)` | `$ui-primary`（`hsla(215, 100%, 95%, 1)`） | `#E5F0FF` | `$color-background` | 一致（`rgb(230, 240, 255)`） |
+| ブロックを作るの作業の場 | `custom-procedures/custom-procedures.css` `.workspace :global(.blocklySvg)` | `$ui-primary`（`hsla(215, 100%, 95%, 1)`） | `#E6F0FF` | `$color-background` | 一致（`rgb(230, 240, 255)`） |
 | 選べるカード（ふつう） | `custom-procedures/custom-procedures.css` `.option-card` | 地 `white`（直書き）・枠 `$ui-black-transparent` | `#FFFFFF`・`#000000` × 0.15 | `$color-surface`・`$color-border` | 一致 |
 | 選べるカード（ホバー） | 同上 `.option-card:hover` | 枠 `$looks-secondary`・輪 `$looks-transparent` 4px | `#855CD6`・`#855CD6` × 0.35 | `$color-primary`・`$color-primary-transparent` | 一致 |
 | クラウド変数の区切り | `prompt/prompt.css` `.cloud-option` | `hsla(0, 0%, 0%, .25)` の点線（直書き） | `#000000` × 0.25 | 別名なし | （クラウド変数を使えるときだけ出る。撮っていない） |
@@ -53,7 +55,7 @@
 
 | 部分 | 値（上流） | トークン | 実測 |
 |---|---|---|---|
-| 枠（`.modal-content`） | 幅 360px（上に 100px あけて中央は共有の `Modal`） | | 一致（360×322px） |
+| 枠（`.modal-content`） | 幅 360px（上に 100px あけて中央は共有の `Modal`） | | 一致（360×322px。スプライトを選んでいるとき） |
 | 本文（`.body`） | 地 `$ui-white`・余白 `1.5rem 2.25rem` | `$color-surface` | 一致（24px 36px） |
 | ラベル（`.label`） | 太さ 500・下に 0.75rem。文字の大きさは決めていない（1rem） | | 一致（16px・500） |
 | 名前の入力欄 | [`components/inputs.md`](components/inputs.md) の「ダイアログの入力欄」（高さ 3rem・角丸 5px・`.875rem`・下に 1.5rem）。開くと自動でフォーカスされ、ブラウザの既定の輪が出る | | 一致（48px・5px・14px） |
@@ -112,7 +114,7 @@
 
 | 場所 | 中身 | 見た目への影響 |
 |---|---|---|
-| `modal/modal.css`（マーカー付き） | `.modal-content` に既定の白い地 | なし（どのダイアログも本文が白い地を持つ） |
+| `modal/modal.css`（マーカー付き） | `.modal-content` に既定の白い地（`background-clip` の指定なし） | 枠（白 25%）の下まで白く塗るので、**枠の下が白になり、枠が不透明な白に見える**（上流は枠からオーバーレイが透けて淡い青）。本文の地は上流でも白なので、ほかは変わらない |
 | `mobile-sprite-panel/mobile-sprite-panel.css` | すべてのモーダルのオーバーレイの重なりを 9999 に上げる（[`library.md`](library.md) の「スモウルビーの追加」） | 重なり順だけ |
 | `prompt/prompt.jsx`（マーカー付き）・`custom-procedures/custom-procedures.jsx`（マーカー無し） | モーダルに `id` を付けた | なし |
 | `containers/prompt.jsx`（マーカー付き） | 日本語の変換を決める Enter でダイアログを閉じない | なし（振る舞いだけ） |

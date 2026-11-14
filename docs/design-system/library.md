@@ -27,15 +27,17 @@
 2. **絞り込みの帯**（`.filter-bar`）: 左から、絞り込みの入力欄（`Filter`）・区切り（`Divider`）・タグボタンの並び（`.tag-wrapper`）。
 3. **項目の並び**（`.library-scroll-grid`）: 160px の項目を左から折り返して並べ、縦にスクロールする。読み込みの間は真ん中に大きいスピナーが出る。
 
-「メンバー」のタグ（`.membership-tag`・地 `$membership-blue`）は、メンバー専用の項目があるときだけ足される。上流のデータにも無いので出ない。
+「メンバー」のタグ（`.membership-tag`・地 `$membership-blue`）は、メンバー専用の項目があるときだけ足される。メンバー専用の項目は、エディターを組み込む側が GUI に `dynamicAssets`（実行時に足す項目）を渡し、その中に公開でない項目があるときにだけできる（`lib/merge-dynamic-assets.js`。4 つのライブラリとも `mergeDynamicAssets` を通す）。同梱の `sprites.json` などにはメンバー専用の項目が無く、スモウルビーの `playground/` は `dynamicAssets` を渡していないので、スモウルビーでは出ない。
 
 ## 色（デバッグなどほかのモーダルと比べるための表）
 
 ライブラリは**フルスクリーンのモーダル**。ふつうのモーダル（[`dialogs.md`](dialogs.md) の変数を作るなど）と違い、白い枠も白い本文も無く、淡い青の地の上に白い項目が並ぶ。
 
+「色」の列は `hsla(...)` から計算した 16 進（ブラウザが描く色で、実測と同じ）。上流の `colors.css` のコメントの 16 進は、計算と 1 ずれるものがある（`$ui-primary` のコメントは `#E5F0FF` など。[`tokens.md`](tokens.md) の「色」）。この表は計算の値。
+
 | 部分 | 上流の CSS（ファイル・セレクター） | 上流のトークン（値） | 色 | 別名 | 実測 |
 |---|---|---|---|---|---|
-| オーバーレイ | `modal/modal.css` `.modal-overlay` | `$ui-modal-overlay`（`hsla(215, 100%, 65%, 0.9)`） | `#4C97FF` × 0.9 | `$color-overlay` | 一致（`rgba(77, 151, 255, 0.9)`）。フルスクリーンでは中身が画面を覆うので見えない |
+| オーバーレイ | `modal/modal.css` `.modal-overlay` | `$ui-modal-overlay`（`hsla(215, 100%, 65%, 0.9)`） | `#4D97FF` × 0.9 | `$color-overlay` | 一致（`rgba(77, 151, 255, 0.9)`）。フルスクリーンでは中身が画面を覆うので見えない |
 | 地（モーダル全体） | `modal/modal.css` `.modal-content.full-screen` | `$ui-secondary`（`hsla(215, 75%, 95%, 1)`） | `#E9F1FC` | 別名なし | 一致（`rgb(233, 241, 252)`） |
 | ヘッダーの地 | `modal/modal.css` `.header` | `$looks-secondary`（`hsla(260, 60%, 60%, 1)`） | `#855CD6` | `$color-primary` | 一致（`rgb(133, 92, 214)`） |
 | ヘッダーの文字（題・戻る） | `modal/modal.css` `.header-item` | `$ui-white` | `#FFFFFF` | `$color-surface` | 一致 |
@@ -93,9 +95,11 @@
 |---|---|---|
 | `lib/libraries/sprites.json`・`costumes.json` | Scratch のキャラクター（Cat・Cat Flying・Giga・Giga Walking・Gobo・Nano・Pico・Pico Walking・Tera）を除き、スモウルビーのキャラクター（Shimacat・Shimaraby）を足した。背景・音の項目は上流と同じ | 項目の中身だけ。部品の値は変わらない |
 | `mobile-sprite-panel/mobile-sprite-panel.css` | `:global(.ReactModal__Overlay) { z-index: 9999 !important; }`。SP の画面の上にモーダルを出すため、**すべてのモーダル**の重なりを上流の `$z-index-modal`（510）から 9999 に上げている | 重なり順だけ（実測 9999） |
-| `modal/modal.jsx`・`modal.css`（マーカー付き） | 本文の既定の白い地（`.modal-content`）、ヘッダーの右のボタン置き場（`headerActions`・`.header-item-actions`）、ヘッダーの下の読み込み中の帯（`loading`・`.progress-bar`・`$control-primary`）、ヘッダーの絵の大きさ（`.header-image` 3rem まで） | 4 つのライブラリでは使わない（白い地はフルスクリーンの `$ui-secondary` が上書きする）。`headerActions` は拡張機能のライブラリが使う |
+| `modal/modal.css`（マーカー付き） | 本文の既定の白い地（`.modal-content` の `background-color: $ui-white`）。`modal.css` のマーカーはこの 1 か所だけ | 4 つのライブラリでは見えない（フルスクリーンの `$ui-secondary` が上書きする）。ふつうのモーダルでは枠の見た目が変わる（[`dialogs.md`](dialogs.md) の「スモウルビーの追加」） |
+| `modal/modal.css`（**マーカー無し**） | ヘッダーの絵の大きさ（`.header-image` 3rem まで）、ヘッダーの右のボタン置き場（`.header-item-actions`）、`.box { position: relative }`、ヘッダーの下の読み込み中の帯（`.progress-bar`・`.progress-bar-value` の地 `$control-primary`・`@keyframes indeterminate`） | 4 つのライブラリでは使わない（`.box` の `position: relative` は見た目を変えない） |
+| `modal/modal.jsx`（**マーカー無し**） | `Box` に `className={styles.box}`、`headerTitle`（題を `contentLabel` と別に出す）、`headerActions`（ヘッダーの右のボタン置き場）、`loading`（読み込み中の帯を出す） | 4 つのライブラリでは使わない。`headerTitle` は機器の接続のモーダル、`headerActions` は拡張機能のライブラリ（`library.jsx` が渡す）と甲子園のテストのモーダル、`loading` は甲子園のテストのモーダルが使う |
 | `library/library.css` | `.library-category { width: 100% }`（マーカー無し） | カテゴリ分けのあるライブラリ（チュートリアル）だけ。4 つのライブラリには出ない |
-| `library/library.jsx` | チュートリアルのカテゴリの名前の差し替え、拡張機能の項目のキー | 4 つのライブラリには出ない |
+| `library/library.jsx`（マーカー無し） | チュートリアルのカテゴリの名前の差し替え、拡張機能の項目のキー、`headerActions` を `Modal` に渡す | 4 つのライブラリには出ない |
 
 ## 独自の画面で使うとき
 

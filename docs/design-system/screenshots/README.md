@@ -17,10 +17,10 @@
 | `0205-monitor.png` | モニターのふつうの表示（「大」のステージ。[`../code-tab.md`](../code-tab.md)） |
 | `0301-library-header.png` | スプライトのライブラリのヘッダーと絞り込みの帯（「すべて」が選ばれた状態。[`../library.md`](../library.md)） |
 | `0302-sound-library-item.png` | 音のライブラリの項目のホバーと再生ボタン（[`../library.md`](../library.md)） |
-| `0401-variable-prompt.png` | 変数を作るモーダル |
+| `0401-variable-prompt.png` | 変数を作るモーダル（スモウルビーの既定の地のため、枠（白 25%）が不透明な白に写る。上流では淡い青） |
 | `0402-delete-sprite-confirm.png` | スプライトを削除するときの確認 |
-| `0403-variable-prompt-stage.png` | ステージを選んでいるときの変数を作るモーダル（範囲の選択肢の代わりにお知らせの文。開いたときに入力欄に入るフォーカスの既定の輪も写る。[`../dialogs.md`](../dialogs.md)） |
-| `0404-custom-procedures.png` | ブロックを作るモーダル（[`../dialogs.md`](../dialogs.md)） |
+| `0403-variable-prompt-stage.png` | ステージを選んでいるときの変数を作るモーダル（範囲の選択肢の代わりにお知らせの文。開いたときに入力欄に入るフォーカスの既定の輪も写る。スモウルビーの既定の地のため、枠（白 25%）が不透明な白に写る。上流では淡い青。[`../dialogs.md`](../dialogs.md)） |
+| `0404-custom-procedures.png` | ブロックを作るモーダル（開いた直後の状態。定義のブロックの名前の欄が選ばれていて、その上に消すためのオレンジのごみ箱が出ている（scratch-blocks の描き方）。スモウルビーの既定の地のため、枠（白 25%）が不透明な白に写る。上流では淡い青。[`../dialogs.md`](../dialogs.md)） |
 | `0501-tabs.png` | エディターのタブ（上流の 3 つだけ。[`../components/tabs.md`](../components/tabs.md)） |
 | `0502-toggle-buttons.png` | 切り替えボタン（ステージの大きさ。[`../components/buttons.md`](../components/buttons.md)） |
 | `0503-input-form.png` | 丸い小さい入力欄（スプライトの情報。[`../components/inputs.md`](../components/inputs.md)） |
