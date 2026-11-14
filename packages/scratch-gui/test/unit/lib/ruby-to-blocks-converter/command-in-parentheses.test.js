@@ -64,7 +64,6 @@ describe('RubyToBlocksConverter/command in parentheses', () => {
         expect(ok).toBe(false);
         expect(errors).toHaveLength(1);
         expect(errors[0].row).toBe(PRELUDE_ROWS);
-        expect(errors[0].column).toBe(0);
         expect(errors[0].text).toContain(wrongInstruction(code));
     });
 

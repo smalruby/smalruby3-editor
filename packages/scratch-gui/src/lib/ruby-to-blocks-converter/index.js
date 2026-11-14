@@ -210,12 +210,13 @@ class RubyToBlocksConverter extends Visitor {
                         this._context.comments[block.comment] &&
                         this._context.comments[block.comment].text.startsWith('@ruby:return');
                     if (!hasReturnComment) {
-                        // Name the whole statement, also when the expression is inside another (issue #1704)
-                        const statementNode = this._statementNodeOf(block.node);
+                        // Quote the statement on one line that holds the expression, also when the
+                        // expression is inside another; the marker stays on the expression (issue #1704)
+                        const sourceNode = this._sourceNodeForError(block.node);
                         throw new RubyToBlocksConverterError(
-                            statementNode,
+                            block.node,
                             this._translator(messages.wrongInstruction, {
-                                SOURCE: this._truncateSource(this._getSource(statementNode)),
+                                SOURCE: this._truncateSource(this._getSource(sourceNode)),
                             }),
                         );
                     }
