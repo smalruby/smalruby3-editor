@@ -23,6 +23,9 @@ describe('RubyToBlocksConverter/a symbol with an argument that is not a value', 
         // A value that could not be converted (a method that has no block) is what is wrong too.
         ['@h = {a: 1}', '@h[:a] = @x.bar'],
         ['', 'say(:a, @x.bar)'],
+        ['', 'say(foo.bar(:a))'],
+        ['', 'say((1..3).include?(:a))'],
+        ['', 'say(:a + foo(1))'],
         ['@b = [1]', '@b[0] = (@a = 1)'],
         ['@b = [1]', '@b.push(@a = 1)'],
         // The symbol is not what is wrong in these either.
@@ -44,6 +47,15 @@ describe('RubyToBlocksConverter/a symbol with an argument that is not a value', 
         ['say(:a + 1)', 'symbols cannot be used in arithmetic'],
         ['say(:a < 1)', 'can only be compared with other symbols'],
         ['say("x", :a)', 'symbols need .to_s'],
+        // The receiver of an extension or of another sprite is made as a `ruby_expression` on purpose:
+        // it is not a value that could not be converted.
+        ['text2speech.speak(:hello)', 'symbols need .to_s'],
+        ['koshien.move_to(:a)', 'symbols need .to_s'],
+        ['mesh.sensor_value(:a)', 'symbols need .to_s'],
+        ['say(mesh.sensor_value(:a))', 'symbols need .to_s'],
+        ['microbit_more.display_text(:a)', 'symbols need .to_s'],
+        ['say(sprite("Cat").foo(:a))', 'symbols need .to_s'],
+        ['say(stage.foo(:a))', 'symbols need .to_s'],
     ])('%s is the error of the symbol', async (code, text) => {
         const { ok, errors } = await convert(code);
         expect(ok).toBe(false);

@@ -278,15 +278,18 @@ const ExpressionHandlers = {
         }
 
         if (!block) {
+            // A receiver or an argument that is not a value (`@h[:a] = (@a = 1)`), or one that could not be
+            // converted (`@h[:a] = @x.bar`), is what is wrong: the symbol errors below would tell to change the
+            // symbol, which does not help. The wrong instruction is told instead (P17, issue #1884).
+            // Checked before the context is restored: the receiver of an extension is read from its blocks.
+            const hasUnconvertedOperand =
+                hasCommandValue ||
+                this._isUnconvertedValue(receiver) ||
+                args.some((a) => this._isUnconvertedValue(a));
             this._restoreContext(saved);
 
             const arithmeticOps = ['+', '-', '*', '/', '%', '**'];
             const comparisonOps = ['>', '<', '>=', '<='];
-            // A receiver or an argument that is not a value (`@h[:a] = (@a = 1)`), or one that could not be
-            // converted (`@h[:a] = @x.bar`), is what is wrong: the symbol errors below would tell to change the
-            // symbol, which does not help. The wrong instruction is told instead (P17, issue #1884).
-            const hasUnconvertedOperand =
-                hasCommandValue || this._isRubyBlock(receiver) || args.some((a) => this._isRubyBlock(a));
             const isSymReceiver = !hasUnconvertedOperand && this._isPrimitive(receiver) && receiver.type === 'sym';
             const symbolArg = hasUnconvertedOperand
                 ? null
