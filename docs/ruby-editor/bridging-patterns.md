@@ -676,6 +676,34 @@ foo.bar(1)
 - すべての注釈を読むところ: `src/lib/scratch-blocks-comment-icon-patch.js`（注釈だけのコメントのアイコンを隠す）、生成器 `scrub.js`（`#` のコメントから `@ruby:` の行を捨てる）、`scratch-vm/src/engine/comment.js`（注釈のコメントの位置）。
 - 一覧がそろっているかは `grep -rhoE "@ruby:[a-z_?-]+" packages/scratch-gui/src packages/scratch-vm/src | sort -u` で確かめる。
 
+## 表のテスト（ブロックの短い記法）
+
+パターンの往復は、ブロックと Ruby を 1 行ずつ並べた表で確かめる。1 行から「ブロック → Ruby」（生成）・「Ruby → ブロック」（変換）・往復の 3 つのテストができるので、新しい形は **先に表に 1 行足して落ちるのを見てから** 変換器・生成器を書く（手順は `.claude/rules/scratch-gui/testing.md` の「新しい opcode はブロック ⇔ Ruby の表から」）。
+
+```js
+// packages/scratch-gui/test/unit/lib/ruby-roundtrip/motion-table.test.js
+defineBlockRubyTable('Motion blocks ⇔ Ruby', [
+    { blocks: 'motion_movesteps(STEPS: 10)', ruby: 'move(10)' },
+    { blocks: 'motion_turnright(DEGREES: 10) #"@ruby:operator:+="', ruby: 'self.direction += 10' },
+    { blocks: 'data_setvariableto(VARIABLE = @_a_1_, VALUE: "1") #"@ruby:lvar:a:1"', ruby: 'a = 1' },
+]);
+```
+
+記法の要点（全部は `packages/scratch-gui/test/unit/helpers/block-notation.js` の冒頭）:
+
+| 書き方 | 意味 |
+|---|---|
+| `opcode(NAME: 値)` | 入力。値はブロック、数（`10`）、文字列（`"hi"`）、変数（`$x` / `@x`） |
+| `opcode(NAME = 値)` | フィールド（メニューの値・変数・リスト・メッセージ） |
+| `opcode(...) { ... } { ... }` | C 型のブロックの中身（`SUBSTACK`、`SUBSTACK2` の順。`{}` は空） |
+| `#"@ruby:..."` | 直前のブロックのコメント（注釈）。行の頭だけに書くとスプライトのコメント |
+| `$x` / `@x` | ステージの変数 / スプライトの変数（ローカル変数 `a` は `@_a_1_` と `@ruby:lvar`） |
+| 改行・`;` / 空行 | 同じスクリプトの次の文 / 次のスクリプト |
+| `math_angle(90)` / `text("hi")` | opcode まで比べる数・文字列（素の `10` はどの `math_*` とも一致） |
+| `noshadow <ブロック>` / `shadow <ブロック>` | 影かどうかがふつうと違うブロック（メニュー・数・文字列はふつう影） |
+
+比べないもの: ID、位置、ブロックの後ろに隠れた影、素の数の影の opcode の違い（`math_number` と `math_whole_number` など）。どのスクリプトからもつながらないブロックや、無い変数を指すフィールドがあると、変換の側のテストはその理由で落ちる。カスタムブロック（mutation を持つブロック）とエラーになる形は、いまは `test/helpers/expect-to-equal-blocks.js` で書く。
+
 ## 新しい橋渡しパターンを足すときのチェックリスト
 
 - [ ] **先にこの文書を読む**。似たパターンがあれば同じ形（名前・注釈・番号の付け方）にそろえる。
@@ -685,7 +713,7 @@ foo.bar(1)
 - [ ] **形が変わったら注釈を使わない**。利用者がブロックを書きかえたときは、ふつうのブロックとして書く（P2 の `nil`、P10 の `>=` のように、注釈を付けたときの値と比べる）。
 - [ ] **名前を予約するなら**: 利用者の名前とぶつからない形にし、この文書の「変換器が使う名前」に足す。変換器と生成器で同じ正規表現を 2 か所に持つときは両方を直す。
 - [ ] **できない形はその行のエラーにする**。`ruby_*` のブロックを残さない（P17）。黙って消さない。メッセージは英語と `src/locales/ja.js` の日本語の両方。
-- [ ] **テスト**: 往復（`test/unit/lib/ruby-roundtrip/`）と、変換器・生成器それぞれ（`test/unit/lib/ruby-to-blocks-converter/`・`ruby-generator/`）。エラーになる形もテストにする。
+- [ ] **テスト**: 先に表（`test/unit/lib/ruby-roundtrip/*-table.test.js`、→「[表のテスト](#表のテストブロックの短い記法)」）に 1 行足し、落ちるのを見てから実装する。表で書けないもの（mutation を持つブロック）は往復（`test/unit/lib/ruby-roundtrip/`）と、変換器・生成器それぞれ（`test/unit/lib/ruby-to-blocks-converter/`・`ruby-generator/`）。エラーになる形もテストにする。
 - [ ] **この文書を直す**: パターンを足す・変える・注釈を増やしたら、該当するパターンと「注釈の一覧」を直す。書けることが変わったら言語仕様（`docs/smalruby-language-spec.ja.md`）も直す。不具合を直したときも、考慮漏れだった点をパターンの「できないこと」や説明に足す。
 
 ## 日本語モード側の橋渡し
