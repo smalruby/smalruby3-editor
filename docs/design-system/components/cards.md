@@ -4,14 +4,14 @@
 
 ## ライブラリの項目（`library-item/library-item.css` の `.library-item`）
 
-スプライト・背景・コスチューム・音・拡張機能を選ぶモーダルの 1 つ分。見本: [`0505-library-item-hover.png`](../screenshots/0505-library-item-hover.png)（ホバー）。
+スプライト・背景・コスチューム・音・拡張機能を選ぶモーダルの 1 つ分（ライブラリ全体の並びと色は [`../library.md`](../library.md)）。見本: [`0505-library-item-hover.png`](../screenshots/0505-library-item-hover.png)（ホバー）。
 
 | 状態 | 値 | トークン | 実測（スプライト） |
 |---|---|---|---|
 | ふつう | 160×160px・まわりに `$space`・余白 `1rem 1rem 0`・地 白・枠 `2px solid $ui-black-transparent`・角丸 `$space`・文字 `$text-primary`・中央ぞろえ | `$color-surface`・`$color-border`・`$radius-medium`・`$color-text` | 一致（160×160・2px・8px） |
 | 名前（`.library-item-name`） | 幅 80%・上下 0.25rem・はみ出しは「…」 | | 一致 |
 | ホバー | 枠 `2px $looks-secondary` | `$color-primary` | 一致（`rgb(133, 92, 214)`） |
-| 押せない（`.disabled`） | 不透明度 .5・`cursor: auto`・ホバーでも枠は変わらない | | （撮っていない） |
+| 押せない（`.disabled`） | 不透明度 .5・`cursor: auto`・ホバーでも枠は変わらない。`library-item.jsx` が付けるのは拡張機能の大きいカード（`.featured-item`）だけ | | （撮っていない） |
 | 押した・選ばれた・フォーカス | — | | |
 | 拡張機能の大きいカード（`.featured-item`） | 幅 300px・高さ自由・余白なし・題は太字・説明は太さふつう・行の高さ 1.375rem・必要なもの/協力は 12px で不透明度 0.75 | | （撮っていない。見本の画像は大きいので置かない） |
 

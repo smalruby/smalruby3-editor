@@ -19,15 +19,17 @@
 
 ## 色（`colors.css`・上流 41 個）
 
-値の正は `hsla(...)`。16 進は上流のコメントにあるものを写した（コメントが無いものは計算した値）。不透明度が 1 でないものは、16 進の色をその不透明度で重ねる。
+値の正は `hsla(...)`。16 進は `hsla(...)` から計算した値（ブラウザが描く色で、撮影スクリプトの実測と同じ）。不透明度が 1 でないものは、16 進の色をその不透明度で重ねる。
+
+上流の `colors.css` のコメントにも 16 進が書いてあるが、6 つ（`$ui-primary`・`$ui-orange`・`$ui-alert-orange`・`$motion-primary`・`$looks-secondary-dark`・`$control-primary`）は計算と 1 ずれる（丸め方の違い）。この表は計算の値にそろえ、ずれるものはコメントの値を「メモ」に書いた。ほかの文書の 16 進も計算の値で書く（ブロックの色は JS に 16 進で書かれた値なので、そのまま写す。[`blocks.md`](blocks.md)）。
 
 | トークン | 値 | 16 進 | 使う CSS | メモ |
 |---|---|---|---|---|
-| `$ui-primary` | `hsla(215, 100%, 95%, 1)` | `#E5F0FF` | 7 | 画面の地の淡い青 |
+| `$ui-primary` | `hsla(215, 100%, 95%, 1)` | `#E6F0FF` | 7 | 画面の地の淡い青（コメントは `#E5F0FF`） |
 | `$ui-secondary` | `hsla(215, 75%, 95%, 1)` | `#E9F1FC` | 3 | フルスクリーンのモーダルの地 |
 | `$ui-tertiary` | `hsla(215, 50%, 90%, 1)` | `#D9E3F2` | 3 | |
-| `$ui-modal-overlay` | `hsla(215, 100%, 65%, 0.9)` | `#4C97FF` × 0.9 | 4 | モーダルの後ろ |
-| `$ui-alert-overlay` | `hsla(215, 100%, 65%, 0.4)` | `#4C97FF` × 0.4 | 1 | |
+| `$ui-modal-overlay` | `hsla(215, 100%, 65%, 0.9)` | `#4D97FF` × 0.9 | 4 | モーダルの後ろ |
+| `$ui-alert-overlay` | `hsla(215, 100%, 65%, 0.4)` | `#4D97FF` × 0.4 | 1 | |
 | `$ui-white` | `hsla(0, 100%, 100%, 1)` | `#FFFFFF` | 36 | |
 | `$ui-white-dim` | `hsla(0, 100%, 100%, 0.75)` | `#FFFFFF` × 0.75 | 2 | |
 | `$ui-white-transparent` | `hsla(0, 100%, 100%, 0.25)` | `#FFFFFF` × 0.25 | 7 | |
@@ -36,21 +38,21 @@
 | `$ui-black-transparent-10` | `hsla(0, 0%, 0%, 0.10)` | `#000000` × 0.1 | 2 | |
 | `$ui-green` | `hsla(163, 85%, 35%, 1)` | `#0DA57A` | 1 | |
 | `$ui-green-2` | `hsla(163, 85%, 40%, 1)` | `#0FBD8C` | 1 | |
-| `$ui-orange` | `hsla(37, 96%, 55%, 1)` | `#FAA51D` | 1 | |
-| `$ui-alert-orange` | `hsla(32, 100%, 94%, 1)` | `#FFF0DF` | 1 | 注意のアラートの地 |
+| `$ui-orange` | `hsla(37, 96%, 55%, 1)` | `#FAA61E` | 1 | コメントは `#FAA51D` |
+| `$ui-alert-orange` | `hsla(32, 100%, 94%, 1)` | `#FFF1E0` | 1 | 注意のアラートの地（コメントは `#FFF0DF`） |
 | `$text-primary` | `hsla(225, 15%, 40%, 1)` | `#575E75` | 20 | 本文の文字 |
 | `$text-primary-transparent` | `hsla(225, 15%, 40%, 0.75)` | `#575E75` × 0.75 | 3 | |
-| `$motion-primary` | `hsla(215, 100%, 65%, 1)` | `#4C97FF` | 6 | |
+| `$motion-primary` | `hsla(215, 100%, 65%, 1)` | `#4D97FF` | 6 | コメントは `#4C97FF`（ブロックの動きの色 `#4C97FF` とも 1 ずれる） |
 | `$motion-tertiary` | `hsla(215, 60%, 50%, 1)` | `#3373CC` | 0 | |
 | `$looks-secondary` | `hsla(260, 60%, 60%, 1)` | `#855CD6` | 38 | 主の色（メニューバー・主ボタン・選ばれた状態） |
 | `$looks-transparent` | `hsla(260, 60%, 60%, 0.35)` | `#855CD6` × 0.35 | 18 | フォーカスの輪・ホバーの枠 |
 | `$looks-light-transparent` | `hsla(260, 60%, 60%, 0.15)` | `#855CD6` × 0.15 | 6 | |
-| `$looks-secondary-dark` | `hsla(260, 42%, 51%, 1)` | `#714EB6` | 1 | |
+| `$looks-secondary-dark` | `hsla(260, 42%, 51%, 1)` | `#714EB7` | 1 | コメントは `#714EB6` |
 | `$red-primary` | `hsla(20, 100%, 55%, 1)` | `#FF661A` | 3 | |
 | `$red-tertiary` | `hsla(20, 100%, 45%, 1)` | `#E64D00` | 2 | |
 | `$sound-primary` | `hsla(300, 53%, 60%, 1)` | `#CF63CF` | 1 | |
 | `$sound-tertiary` | `hsla(300, 48%, 50%, 1)` | `#BD42BD` | 1 | |
-| `$control-primary` | `hsla(38, 100%, 55%, 1)` | `#FFAB19` | 2 | |
+| `$control-primary` | `hsla(38, 100%, 55%, 1)` | `#FFAB1A` | 2 | コメントは `#FFAB19` |
 | `$data-primary` | `hsla(30, 100%, 55%, 1)` | `#FF8C1A` | 7 | 注意のアラートの枠 |
 | `$pen-primary` | `hsla(163, 85%, 40%, 1)` | `#0FBD8C` | 3 | |
 | `$pen-transparent` | `hsla(163, 85%, 40%, 0.25)` | `#0FBD8C` × 0.25 | 1 | |
@@ -143,7 +145,7 @@
 | 文字の大きさ | `0.75rem` | 14 / 10 | `$font-size-small`（= `$menu-bar-standard-font-size`） |
 | 文字の大きさ | `1rem` | 7 / 6 | `$font-size-base` |
 | 文字の太さ | `bold`（ほかに書き方ゆれの `bolder` 8 / 8・`700` 8 / 5・`600` 6 / 5・`500` 5 / 5） | 39 / 26 | `$font-weight-bold` |
-| 影 | `0 0 .5rem hsla(0, 0%, 0%, .25)` | 3 / 2（library-item・action-menu） | `$shadow-raised` |
+| 影 | `0 0 .5rem hsla(0, 0%, 0%, .25)` | 3 / 2（library-item の「近日公開」の札 `.coming-soon-text`・action-menu の吹き出し `.tooltip`） | `$shadow-raised` |
 | 動き | `all 0.25s ease` | 7 / 6 | `$transition-standard` |
 | 動き | `all 0.15s ease-out` | 4 / 3 | （まだ付けない） |
 | 余白 | `0.25rem`・`0.5rem`・`1rem`（`$space` があるのに直書き。`margin`・`padding`） | 46 / 17・78 / 28・50 / 23 | `$space-small`・`$space-medium`・`$space-large` |
@@ -183,7 +185,7 @@
 | `$font-size-base` | `1rem` | 本文 |
 | `$font-size-heading` | `1.5rem` | 見出し |
 | `$font-weight-bold` | `bold` | 太字 |
-| `$shadow-raised` | `0 0 0.5rem hsla(0, 0%, 0%, 0.25)` | 浮いたカード |
+| `$shadow-raised` | `0 0 0.5rem hsla(0, 0%, 0%, 0.25)` | 浮いたもの（札・吹き出し） |
 | `$transition-standard` | `all 0.25s ease` | ホバー・選択の切り替え |
 
 重なり順は別名を作らない。独自のモーダルやメニューは上流の `$z-index-modal` などをそのまま使う。
