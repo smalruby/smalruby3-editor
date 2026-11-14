@@ -1,5 +1,7 @@
+import { Visitor } from '@ruby/prism/src/visitor.js';
 import _ from 'lodash';
 import { defineMessages } from 'react-intl';
+import { messages as converterMessages } from '../converter-errors';
 import { RubyToBlocksConverterError } from '../errors';
 import { isKnownListReceiver } from '../variable-hash-ops';
 
@@ -134,6 +136,35 @@ const CoreHandlers = {
         }
     },
 
+    /**
+     * Throw the error of a wrong instruction for a statement that has no block (`alias`, `undef`,
+     * `for`, ...): the converter has no handler for it, so it gave nothing, and was then an internal
+     * error ("invalid block: undefined") or was dropped in a block body (issue #1814).
+     * It comes after the other checks of a statement, which tell more about some of them
+     * (e.g. `"#{x}"` on a line by itself).
+     * @param {object} node - The prism node of the statement.
+     * @param {*} result - What visiting the statement gave.
+     * @param {object} [message] - The message of the error.
+     */
+    _checkStatementHasHandler(node, result, message = converterMessages.wrongInstruction) {
+        if (typeof result !== 'undefined' || this._hasOwnHandler(node)) return;
+        throw new RubyToBlocksConverterError(
+            node,
+            this._translator(message, { SOURCE: this._truncateSource(this._getSource(node)) }),
+        );
+    },
+
+    /**
+     * Whether the converter has a handler of its own for a node: the handlers that `Visitor` of
+     * `@ruby/prism` has only visit the children and give nothing.
+     * @param {object} node - A prism node.
+     * @returns {boolean} true if the converter handles the node.
+     */
+    _hasOwnHandler(node) {
+        const handlerName = `visit${this._getNodeTypeName(node)}`;
+        return typeof this[handlerName] === 'function' && this[handlerName] !== Visitor.prototype[handlerName];
+    },
+
     visitStatementsNode(node) {
         const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
         this._context.inMyBlockDefinition = false;
@@ -162,6 +193,7 @@ const CoreHandlers = {
             if (bodyKind) {
                 this._checkStatementInBody(childNode, block, bodyKind, index === node.body.length - 1);
             }
+            this._checkStatementHasHandler(childNode, block);
             if (_.isArray(block)) {
                 block.forEach((b) => {
                     blocks.push(b);
