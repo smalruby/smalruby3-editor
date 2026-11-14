@@ -42,6 +42,8 @@
 
 これらは**トークンを使う側**。このデザインシステムに合わせて作る。
 
+クラス管理は、UI 部品の形をこのデザインシステムに合わせ、ページの構成・言葉・操作の置き場所は Google Classroom に合わせる（[`../classroom/google-classroom-reference.md`](../classroom/google-classroom-reference.md)）。
+
 ## 文書の地図
 
 | ファイル | 中身 |
