@@ -37,6 +37,7 @@ const StudentAssignmentPanel = ({
     onNextPage,
     onPrevPage,
     onStartLesson,
+    onTrack,
 }) => {
     const pages = assignment?.pages || [];
     const page = pages[pageIndex] || null;
@@ -153,6 +154,7 @@ const StudentAssignmentPanel = ({
                     onLoadStarter={onChooseStarter}
                     onLoadSubmission={onLoadSubmission}
                     onStartLesson={onStartLesson}
+                    onTrack={onTrack}
                 />
             )}
             {isLastPage && !showStart && (
@@ -202,6 +204,8 @@ StudentAssignmentPanel.propTypes = {
     onNextPage: PropTypes.func.isRequired,
     onPrevPage: PropTypes.func.isRequired,
     onStartLesson: PropTypes.func,
+    // sends a classroom_student GA event (#1831)
+    onTrack: PropTypes.func,
     // normalized lesson setting of the joined assignment (null = not a lesson assignment)
     studentLesson: PropTypes.shape({ submitWork: PropTypes.bool }),
 };

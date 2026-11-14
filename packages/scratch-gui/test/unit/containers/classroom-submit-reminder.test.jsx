@@ -10,6 +10,7 @@ import { Provider } from 'react-redux';
 import { combineReducers, createStore } from 'redux';
 import ClassroomMenuSubmitButton from '../../../src/components/classroom-modal/classroom-menu-submit-button.jsx';
 import ClassroomSubmitReminder, { STORAGE_KEY } from '../../../src/containers/classroom-submit-reminder.jsx';
+import analytics from '../../../src/lib/analytics';
 import { addSubmitReminderListener } from '../../../src/lib/classroom-submit-reminder-events.js';
 import classroomReducer, {
     clearClassroomSession,
@@ -18,6 +19,7 @@ import classroomReducer, {
     openClassroomModal,
     setClassroomSession,
     setSubmissionStatus,
+    setTeacherLoggedIn,
 } from '../../../src/reducers/classroom.js';
 
 const MIN = 60 * 1000;
@@ -395,5 +397,32 @@ describe('ClassroomSubmitReminder (#1835)', () => {
             expect(events.filter((e) => e.type === 'dismissed')).toEqual([{ type: 'dismissed', reason: 'submit' }]);
             expect(events.filter((e) => e.type === 'shown').map((e) => e.resumed)).toEqual([false, false]);
         });
+    });
+});
+
+describe('ClassroomSubmitReminder の GA (#1831)', () => {
+    let gaEvents;
+    let spy;
+    beforeEach(() => {
+        gaEvents = [];
+        spy = jest.spyOn(analytics, 'event').mockImplementation((e) => gaEvents.push(e));
+    });
+    afterEach(() => spy.mockRestore());
+
+    test('出したら submit_reminder_shown（はじめてか・何分後か）を送る', () => {
+        const store = makeStore();
+        mount(store, {});
+        advance(25 * MIN);
+        const shown = gaEvents.filter((e) => e.action === 'submit_reminder_shown');
+        expect(shown).toHaveLength(1);
+        expect(shown[0]).toMatchObject({ category: 'classroom_student', first: true, minutes: 25 });
+    });
+
+    test('先生がログイン中なら送らない', () => {
+        const store = makeStore();
+        store.dispatch(setTeacherLoggedIn(true));
+        mount(store, {});
+        advance(25 * MIN);
+        expect(gaEvents.filter((e) => e.category === 'classroom_student')).toEqual([]);
     });
 });

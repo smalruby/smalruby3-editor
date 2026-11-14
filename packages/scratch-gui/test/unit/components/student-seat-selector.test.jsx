@@ -236,6 +236,24 @@ describe('StudentSeatSelector occupied seats and guide (#1796)', () => {
         expect(screen.getByTestId('classroom-seat-4')).toHaveAttribute('data-flash', '0');
     });
 
+    test('the 30-second guide tells onIdleGuide once (GA, #1831)', () => {
+        const onIdleGuide = jest.fn();
+        renderSelector({ onIdleGuide });
+        wait(29000);
+        expect(onIdleGuide).not.toHaveBeenCalled();
+        wait(1000);
+        expect(onIdleGuide).toHaveBeenCalledTimes(1);
+        wait(30000);
+        expect(onIdleGuide).toHaveBeenCalledTimes(1);
+    });
+
+    test('no onIdleGuide when no seat is occupied (no guide comes up)', () => {
+        const onIdleGuide = jest.fn();
+        renderSelector({ takenSeats: [], onIdleGuide });
+        wait(31000);
+        expect(onIdleGuide).not.toHaveBeenCalled();
+    });
+
     test('no guide when no seat is occupied', () => {
         renderSelector({ takenSeats: [] });
         wait(60000);

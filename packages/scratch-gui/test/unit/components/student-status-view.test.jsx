@@ -10,6 +10,7 @@ import { IntlProvider } from 'react-intl';
 import { Provider } from 'react-redux';
 import { combineReducers, createStore } from 'redux';
 import StudentStatusView from '../../../src/components/classroom-modal/student-status-view.jsx';
+import { resetClassroomStudentViews } from '../../../src/lib/classroom-student-analytics.js';
 import classroomReducer, { openClassroomModal, setStudentPeerView } from '../../../src/reducers/classroom.js';
 
 const baseState = (extra = {}) => ({
@@ -265,5 +266,97 @@ describe('StudentStatusView: リロードしたあとに「この課題で出し
         expect(main).toBeDisabled();
         fireEvent.click(main);
         expect(h.onContinue).not.toHaveBeenCalled();
+    });
+});
+
+describe('StudentStatusView の GA (#1831)', () => {
+    beforeEach(() => resetClassroomStudentViews());
+
+    // checked: 出したあとに状態の確かめが 1 回成功した（statusCheckedSeq が増えた）ところまで進める
+    const renderWithTrack = (props, { checked = true } = {}) => {
+        const store = createStore(combineReducers({ scratchGui: combineReducers({ classroom: classroomReducer }) }));
+        const handlers = {
+            onContinue: jest.fn(),
+            onLeaveClassroom: jest.fn(),
+            onRefreshStudentStatus: jest.fn(),
+            onWrongSeat: jest.fn(),
+        };
+        const ui = (extra) => (
+            <Provider store={store}>
+                <IntlProvider locale="en">
+                    <StudentStatusView classroomState={baseState()} {...handlers} {...props} {...extra} />
+                </IntlProvider>
+            </Provider>
+        );
+        const utils = render(ui({ statusCheckedSeq: 0 }));
+        const rerender = (extra) => utils.rerender(ui({ statusCheckedSeq: checked ? 1 : 0, ...extra }));
+        if (checked) rerender();
+        return { ...handlers, rerender };
+    };
+
+    test('出したあとの状態の確かめが成功してから welcome_view を 1 回だけ送る', () => {
+        const onTrack = jest.fn();
+        const { rerender } = renderWithTrack({ onTrack, now: () => 0 }, { checked: false });
+        expect(onTrack).not.toHaveBeenCalled();
+        rerender({ isLoading: true });
+        rerender({ isLoading: false });
+        // 確かめが終わっても、成功していなければ（セッションが切れていたなど）送らない
+        expect(onTrack).not.toHaveBeenCalled();
+        rerender({ statusCheckedSeq: 1 });
+        expect(onTrack).toHaveBeenCalledWith('welcome_view', { main: 'continue' });
+        rerender({ statusCheckedSeq: 2 });
+        expect(onTrack.mock.calls.filter(([a]) => a === 'welcome_view')).toHaveLength(1);
+    });
+
+    test('読み込み中は、成功のあとでも待つ', () => {
+        const onTrack = jest.fn();
+        const { rerender } = renderWithTrack({ onTrack, now: () => 0 }, { checked: false });
+        rerender({ statusCheckedSeq: 1, isLoading: true });
+        expect(onTrack).not.toHaveBeenCalled();
+        rerender({ statusCheckedSeq: 1, isLoading: false });
+        expect(onTrack).toHaveBeenCalledWith('welcome_view', { main: 'continue' });
+    });
+
+    test('マウントし直しても（PC とスマホの切りかえ）もう一度は送らない', () => {
+        const onTrack = jest.fn();
+        renderWithTrack({ onTrack, now: () => 0 });
+        renderWithTrack({ onTrack, now: () => 0 });
+        expect(onTrack.mock.calls.filter(([a]) => a === 'welcome_view')).toHaveLength(1);
+    });
+
+    test('「つづける」で welcome_action（button・主ボタン・秒）', () => {
+        const onTrack = jest.fn();
+        let t = 2000;
+        const { onContinue } = renderWithTrack({ onTrack, now: () => t });
+        t = 9600;
+        fireEvent.click(screen.getByTestId('classroom-status-continue'));
+        expect(onTrack).toHaveBeenLastCalledWith('welcome_action', {
+            button: 'continue',
+            kind: undefined, // eslint-disable-line no-undefined
+            main: 'continue',
+            seconds: 8,
+        });
+        expect(onContinue).toHaveBeenCalled();
+    });
+
+    test('「出席番号がちがう」は wrong_seat', () => {
+        const onTrack = jest.fn();
+        const { onWrongSeat } = renderWithTrack({ onTrack, now: () => 0 });
+        fireEvent.click(screen.getByTestId('classroom-status-wrong-seat'));
+        expect(onTrack).toHaveBeenLastCalledWith('welcome_action', expect.objectContaining({ button: 'wrong_seat' }));
+        expect(onWrongSeat).toHaveBeenCalled();
+    });
+
+    test('クラスから出る: leave → leave_class cancel / confirm', () => {
+        const onTrack = jest.fn();
+        const { onLeaveClassroom } = renderWithTrack({ onTrack, now: () => 0 });
+        fireEvent.click(screen.getByTestId('classroom-leave'));
+        expect(onTrack).toHaveBeenLastCalledWith('welcome_action', expect.objectContaining({ button: 'leave' }));
+        fireEvent.click(screen.getByTestId('classroom-leave-cancel'));
+        expect(onTrack).toHaveBeenLastCalledWith('leave_class', { result: 'cancel' });
+        fireEvent.click(screen.getByTestId('classroom-leave'));
+        fireEvent.click(screen.getByTestId('classroom-leave-confirm'));
+        expect(onTrack).toHaveBeenLastCalledWith('leave_class', { result: 'confirm' });
+        expect(onLeaveClassroom).toHaveBeenCalled();
     });
 });

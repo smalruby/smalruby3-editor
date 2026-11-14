@@ -45,6 +45,9 @@ const ClassroomModal = ({
     onSelectSeat,
     onConfirmJoin,
     onClose,
+    onDismiss,
+    onSeatIdleGuide,
+    onTrack,
     onDismissKickRequestRejectedNotice,
     onDismissKickedNotice,
     onRequestKick,
@@ -77,6 +80,7 @@ const ClassroomModal = ({
     assignmentReopened = false,
     isSubmitting = false,
     submitStatusChecking = false,
+    statusCheckedSeq = 0,
 }) => {
     const intl = useIntl();
 
@@ -85,7 +89,7 @@ const ClassroomModal = ({
             className={styles.modalContent}
             contentLabel={intl.formatMessage(messages.title)}
             id="classroomModal"
-            onRequestClose={onClose}
+            onRequestClose={onDismiss || onClose}
         >
             <Box className={`${styles.body} ${styles.studentBody}`} data-testid="classroom-modal">
                 {/* Where the student is (#1792): replaces the "what to do next" text. */}
@@ -135,6 +139,7 @@ const ClassroomModal = ({
                         onDismissKickRequestRejectedNotice={onDismissKickRequestRejectedNotice}
                         onDismissKickedNotice={onDismissKickedNotice}
                         onRequestKick={onRequestKick}
+                        onIdleGuide={onSeatIdleGuide}
                         onSelectSeat={onSelectSeat}
                     />
                 )}
@@ -153,6 +158,7 @@ const ClassroomModal = ({
                         onLoadStarter={onChooseStarter}
                         onLoadSubmission={onLoadSubmission}
                         onStartLesson={onStartLesson}
+                        onTrack={onTrack}
                     />
                 )}
 
@@ -175,6 +181,7 @@ const ClassroomModal = ({
                         onNextPage={onAssignmentNextPage}
                         onPrevPage={onAssignmentPrevPage}
                         onStartLesson={onStartLesson}
+                        onTrack={onTrack}
                     />
                 )}
 
@@ -201,6 +208,8 @@ const ClassroomModal = ({
                         onOpenAssignment={onOpenAssignment}
                         onRefreshStudentStatus={onRefreshStudentStatus}
                         onStartLesson={onStartLesson}
+                        statusCheckedSeq={statusCheckedSeq}
+                        onTrack={onTrack}
                         onWrongSeat={onWrongSeat}
                     />
                 )}
@@ -299,6 +308,14 @@ ClassroomModal.propTypes = {
     onCancelKickRequest: PropTypes.func,
     onCancelSubmit: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
+    // ×, the overlay or Escape (sends the GA modal_close before closing, #1831); onClose when absent
+    onDismiss: PropTypes.func,
+    // the 30-second guide next to the seat grid came up (GA, #1831)
+    onSeatIdleGuide: PropTypes.func,
+    // sends a classroom_student GA event: (action, params) (#1831)
+    onTrack: PropTypes.func,
+    // grows each time the welcome back screen's status check succeeds (GA welcome_view, #1831)
+    statusCheckedSeq: PropTypes.number,
     onConfirmJoin: PropTypes.func.isRequired,
     onConfirmKickRequest: PropTypes.func,
     onConfirmSubmit: PropTypes.func.isRequired,

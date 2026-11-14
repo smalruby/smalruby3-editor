@@ -13,7 +13,14 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { formatStudentClassName } from '../../lib/classroom-class-label.js';
+import {
+    CLASSROOM_STUDENT_EVENTS,
+    noteClassroomStudentView,
+    secondsSince,
+    welcomeMain,
+} from '../../lib/classroom-student-analytics.js';
 import { canSubmitAssignment } from '../../lib/lessons/assignment-progress.js';
+import { activeNow } from '../../lib/lessons/lesson-analytics.js';
 import {
     AssignmentDoneCount,
     AssignmentDots,
@@ -386,7 +393,10 @@ const StudentStatusView = ({
     onOpenAssignment,
     onRefreshStudentStatus,
     onStartLesson,
+    onTrack,
     onWrongSeat,
+    statusCheckedSeq = 0,
+    now = activeNow,
 }) => {
     const intl = useIntl();
     const [confirmingLeave, setConfirmingLeave] = useState(false);
@@ -414,17 +424,80 @@ const StudentStatusView = ({
     const mainIsLesson = !!lesson && !lessonSubmitReady;
     // After a reload with the new project still open (#1825). A lesson assignment keeps its main button.
     const mainIsCurrent = offerCurrentSubmission && !lesson && !!continueOptions?.current;
+    // GA (#1831): welcome_view once a status check made after this screen came up has succeeded
+    // (statusCheckedSeq grew): the main button is then final, and a student whose session turned
+    // out dead (expired, removed, rejoining from a URL) never saw this screen. welcome_action
+    // sends what was pressed and the seconds since. A remount (PC <-> mobile layout) does not
+    // send it again (noteClassroomStudentView).
+    const main = welcomeMain({ mainIsLesson, mainIsCurrent });
+    const shownAtRef = useRef(null);
+    const mountSeqRef = useRef(statusCheckedSeq);
+    useEffect(() => {
+        if (shownAtRef.current !== null || isLoading || statusCheckedSeq === mountSeqRef.current) return;
+        const { send, at } = noteClassroomStudentView('welcome', now());
+        shownAtRef.current = at;
+        if (send) onTrack?.(CLASSROOM_STUDENT_EVENTS.WELCOME_VIEW, { main });
+    }, [statusCheckedSeq, isLoading]);
+    const trackAction = useCallback(
+        (button, kind) =>
+            onTrack?.(CLASSROOM_STUDENT_EVENTS.WELCOME_ACTION, {
+                button,
+                kind,
+                main,
+                seconds: secondsSince(shownAtRef.current, now()),
+            }),
+        [onTrack, main, now],
+    );
+    const handleContinue = useCallback(() => {
+        trackAction('continue');
+        onContinue();
+    }, [trackAction, onContinue]);
+    const handleContinueAsIs = useCallback(() => {
+        trackAction('continue_as_is');
+        onContinue();
+    }, [trackAction, onContinue]);
+    const handleStartLesson = useCallback(() => {
+        trackAction('lesson');
+        onStartLesson?.();
+    }, [trackAction, onStartLesson]);
+    const handleOpenAssignment = useCallback(() => {
+        trackAction('assignment');
+        return onOpenAssignment?.();
+    }, [trackAction, onOpenAssignment]);
+    const handleWrongSeat = useCallback(() => {
+        trackAction('wrong_seat');
+        return onWrongSeat();
+    }, [trackAction, onWrongSeat]);
+    const handlePeer = useCallback(() => trackAction('peer'), [trackAction]);
+    const handleAskLeave = useCallback(() => {
+        trackAction('leave');
+        askLeave();
+    }, [trackAction, askLeave]);
+    const handleConfirmLeave = useCallback(() => {
+        onTrack?.(CLASSROOM_STUDENT_EVENTS.LEAVE_CLASS, { result: 'confirm' });
+        return onLeaveClassroom();
+    }, [onTrack, onLeaveClassroom]);
+    const handleCancelLeave = useCallback(() => {
+        onTrack?.(CLASSROOM_STUDENT_EVENTS.LEAVE_CLASS, { result: 'cancel' });
+        cancelLeave();
+    }, [onTrack, cancelLeave]);
     const reloadKinds = RELOAD_KINDS.filter((kind) => {
         if (kind === 'starter') return hasStarter;
         // The main button already opens it.
         if (kind === 'current' && mainIsCurrent) return false;
         return !!continueOptions?.[kind];
     });
-    const handleLoadCurrent = useCallback(() => onLoadSubmission?.('current'), [onLoadSubmission]);
+    const handleLoadCurrent = useCallback(() => {
+        trackAction('this_submission');
+        onLoadSubmission?.('current');
+    }, [trackAction, onLoadSubmission]);
     const currentDate = mainIsCurrent ? formatSubmittedAt(continueOptions.current.submittedAt, intl.locale) : '';
     const handleReload = useCallback(
-        (kind) => (kind === 'starter' ? onLoadStarter?.() : onLoadSubmission?.(kind)),
-        [onLoadStarter, onLoadSubmission],
+        (kind) => {
+            trackAction('reload', kind);
+            return kind === 'starter' ? onLoadStarter?.() : onLoadSubmission?.(kind);
+        },
+        [trackAction, onLoadStarter, onLoadSubmission],
     );
     return (
         <div data-testid="classroom-phase-student-status">
@@ -461,14 +534,14 @@ const StudentStatusView = ({
                 </div>
             )}
             {confirmingLeave ? (
-                <LeaveConfirm isLoading={isLoading} onCancel={cancelLeave} onConfirm={onLeaveClassroom} />
+                <LeaveConfirm isLoading={isLoading} onCancel={handleCancelLeave} onConfirm={handleConfirmLeave} />
             ) : (
                 <div className={partStyles.welcomeMain}>
                     {mainIsLesson && (
                         <StudentMainButton
                             dataTestId="classroom-continue-lesson-button"
                             disabled={isLoading}
-                            onClick={onStartLesson}
+                            onClick={handleStartLesson}
                         >
                             {continueLessonLabel}
                         </StudentMainButton>
@@ -492,7 +565,7 @@ const StudentStatusView = ({
                             dataTestId="classroom-status-continue"
                             disabled={isLoading}
                             note={intl.formatMessage(messages.continueNote)}
-                            onClick={onContinue}
+                            onClick={handleContinue}
                         >
                             {intl.formatMessage(messages.continue)}
                         </StudentMainButton>
@@ -502,7 +575,7 @@ const StudentStatusView = ({
                             <StudentTextLink
                                 dataTestId="classroom-status-continue-as-is"
                                 disabled={isLoading}
-                                onClick={onContinue}
+                                onClick={handleContinueAsIs}
                             >
                                 {intl.formatMessage(messages.continueAsIs)}
                             </StudentTextLink>
@@ -511,7 +584,7 @@ const StudentStatusView = ({
                             <StudentTextLink
                                 dataTestId="classroom-continue-lesson-button"
                                 disabled={isLoading}
-                                onClick={onStartLesson}
+                                onClick={handleStartLesson}
                             >
                                 {continueLessonLabel}
                             </StudentTextLink>
@@ -520,7 +593,7 @@ const StudentStatusView = ({
                             <StudentTextLink
                                 dataTestId="classroom-view-assignment-button"
                                 disabled={isLoading}
-                                onClick={onOpenAssignment}
+                                onClick={handleOpenAssignment}
                             >
                                 <FormattedMessage
                                     defaultMessage="View Assignment"
@@ -529,11 +602,11 @@ const StudentStatusView = ({
                                 />
                             </StudentTextLink>
                         )}
-                        <StudentPeerViewButton disabled={isLoading} />
+                        <StudentPeerViewButton disabled={isLoading} onOpen={handlePeer} />
                         <StudentTextLink
                             dataTestId="classroom-status-wrong-seat"
                             disabled={isLoading}
-                            onClick={onWrongSeat}
+                            onClick={handleWrongSeat}
                         >
                             {intl.formatMessage(messages.wrongSeat)}
                         </StudentTextLink>
@@ -543,7 +616,7 @@ const StudentStatusView = ({
                     </div>
                     {/* Away from the other links (right, bottom) so it is not pressed by mistake. */}
                     <div className={partStyles.welcomeLeave} ref={leaveRef}>
-                        <StudentTextLink dataTestId="classroom-leave" disabled={isLoading} onClick={askLeave}>
+                        <StudentTextLink dataTestId="classroom-leave" disabled={isLoading} onClick={handleAskLeave}>
                             <FormattedMessage
                                 defaultMessage="Leave the class"
                                 description="Small link on the welcome back screen; asks before leaving"
@@ -598,6 +671,12 @@ StudentStatusView.propTypes = {
     onOpenAssignment: PropTypes.func,
     onRefreshStudentStatus: PropTypes.func.isRequired,
     onStartLesson: PropTypes.func,
+    // sends a classroom_student GA event: (action, params) (#1831)
+    onTrack: PropTypes.func,
+    // grows each time a status check succeeds: welcome_view waits for one after this screen came up (#1831)
+    statusCheckedSeq: PropTypes.number,
+    // テスト用: タブが裏にあった時間を引いた時計
+    now: PropTypes.func,
     // 「出席番号がちがう」: いまの席を空けて同じ課題の番号選びへ
     onWrongSeat: PropTypes.func.isRequired,
 };

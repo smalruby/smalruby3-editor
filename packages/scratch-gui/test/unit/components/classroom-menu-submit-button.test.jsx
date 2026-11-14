@@ -114,7 +114,9 @@ describe('ClassroomMenuSubmitButton (connected)', () => {
         const { getByTestId } = renderWith(store);
         expect(getByTestId('classroom-menu-submit')).toHaveAttribute('data-kind', 'submit');
         fireEvent.click(getByTestId('classroom-menu-submit'));
-        expect(store.getActions()).toEqual([{ type: 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT' }]);
+        expect(store.getActions()).toEqual([
+            { type: 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT', from: 'menu_bar' },
+        ]);
     });
 
     test('送信中 (studentSubmitting) は押せない', () => {
@@ -136,7 +138,9 @@ describe('ClassroomMenuSubmitButton (connected)', () => {
             </Provider>,
         );
         fireEvent.click(getByTestId('classroom-menu-submit'));
-        expect(store.getActions()).toEqual([{ type: 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT' }]);
+        expect(store.getActions()).toEqual([
+            { type: 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT', from: 'drawer' },
+        ]);
         expect(onAfterClick).toHaveBeenCalledTimes(1);
     });
 
@@ -265,7 +269,7 @@ describe('ClassroomMenuSubmitButton — 「提出しよう」の吹き出し', (
         fireEvent.click(getByTestId('classroom-menu-submit'));
         expect(store.getActions()).toEqual([
             { type: DISMISS, reason: 'submit' },
-            { type: 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT' },
+            { type: 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT', from: 'menu_bar' },
         ]);
     });
 
@@ -273,7 +277,9 @@ describe('ClassroomMenuSubmitButton — 「提出しよう」の吹き出し', (
         const store = buildStore({ submitReminderVisible: false });
         const { getByTestId } = renderWith(store);
         fireEvent.click(getByTestId('classroom-menu-submit'));
-        expect(store.getActions()).toEqual([{ type: 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT' }]);
+        expect(store.getActions()).toEqual([
+            { type: 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT', from: 'menu_bar' },
+        ]);
     });
 
     test('下へ 56px ずらしても操作に重なるなら、吹き出しの代わりに「提出する」の右上へ点を出す', () => {

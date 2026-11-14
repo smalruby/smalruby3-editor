@@ -113,9 +113,9 @@ const ClassroomMenuSubmitButton = ({ placement = 'menu-bar', onAfterClick, remin
         // 吹き出しが出ているときに「提出する」を押したら「消した」にする（キーボードの Enter / Space も同じ。
         // マウスでは先に pointerdown でも消しているが、出ていない間の dismiss は reducer が無視する）。
         if (reminderVisible) dispatch(dismissSubmitReminder('submit'));
-        dispatch(requestStudentSubmit());
+        dispatch(requestStudentSubmit(placement === 'drawer' ? 'drawer' : 'menu_bar'));
         if (onAfterClick) onAfterClick();
-    }, [dispatch, onAfterClick, reminderVisible]);
+    }, [dispatch, onAfterClick, placement, reminderVisible]);
     if (!kind) return null;
     return (
         <div

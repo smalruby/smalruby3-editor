@@ -101,6 +101,7 @@ const StudentSeatSelector = ({
     onRequestKick,
     onConfirmKickRequest,
     onCancelKickRequest,
+    onIdleGuide,
 }) => {
     const intl = useIntl();
     const [seatInput, setSeatInput] = useState('');
@@ -111,6 +112,10 @@ const StudentSeatSelector = ({
     const counting = isSeatIdleCounting({ selectedSeat, kickRequestDialogSeat, kickRequestPending });
     const idle = useSeatIdleHint(counting);
     const { guide, flashTaken } = seatGuideFor({ previousSeat, takenSeats, idle, counting });
+    // The 30-second guide came up (the occupied seats glow): tell the GA count once each time (#1831).
+    useEffect(() => {
+        if (flashTaken) onIdleGuide?.();
+    }, [flashTaken]);
 
     const inUseLabel = intl.formatMessage(messages.inUse);
     // Screen readers learn which seat was used last time from the heading line.
@@ -491,6 +496,8 @@ StudentSeatSelector.propTypes = {
         seatNumber: PropTypes.number,
     }),
     onCancelKickRequest: PropTypes.func,
+    // the 30-second guide came up (the GA seat_idle_guide, #1831)
+    onIdleGuide: PropTypes.func,
     onConfirmJoin: PropTypes.func.isRequired,
     onConfirmKickRequest: PropTypes.func,
     onDismissKickRequestRejectedNotice: PropTypes.func,

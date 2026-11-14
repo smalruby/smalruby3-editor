@@ -48,6 +48,7 @@ const StudentJoinedConfirmation = ({
     onLoadStarter,
     onLoadSubmission,
     onStartLesson,
+    onTrack,
 }) => (
     <div data-testid="classroom-phase-student-joined">
         <div className={styles.successArea}>
@@ -94,6 +95,7 @@ const StudentJoinedConfirmation = ({
             onLoadStarter={onLoadStarter}
             onLoadSubmission={onLoadSubmission}
             onStartLesson={onStartLesson}
+            onTrack={onTrack}
         />
     </div>
 );
@@ -121,6 +123,8 @@ StudentJoinedConfirmation.propTypes = {
     onLoadStarter: PropTypes.func,
     onLoadSubmission: PropTypes.func,
     onStartLesson: PropTypes.func,
+    // sends a classroom_student GA event (#1831)
+    onTrack: PropTypes.func,
 };
 
 export default StudentJoinedConfirmation;

@@ -13,9 +13,20 @@ import {
 import { clearLastSeat, loadLastSeat, saveLastSeat } from '../lib/classroom-last-seats-storage.js';
 import { submissionFromVerify } from '../lib/classroom-menu-submit.js';
 import { evaluateKickRequestPoll, lastSeatKeyFor, withSeatFreed } from '../lib/classroom-seat-selection.js';
+import {
+    CLASSROOM_STUDENT_EVENTS as GA,
+    joinCodeResult,
+    modalCloseStep,
+    noteClassroomStudentView,
+    seatViewParams,
+    secondsSince,
+    sendClassroomStudentEvent,
+    submitOpenState,
+} from '../lib/classroom-student-analytics.js';
 import { projectHasBlocks, shouldOfferCurrentSubmission } from '../lib/classroom-welcome-back.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
 import { assignmentProgress } from '../lib/lessons/assignment-progress.js';
+import { activeNow, installVisibilityTracking } from '../lib/lessons/lesson-analytics.js';
 import { openAssignmentLessonsLibrary } from '../lib/lessons/open-lessons-library.js';
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import { getUrlParams, clearClasscode } from '../lib/url-params.js';
@@ -57,6 +68,24 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     // Determine initial phase from persisted session (a `?classcode=` URL for
     // another class skips verifying the old session; see initialStudentPhase)
     const getInitialPhase = () => initialStudentPhase(classroomState, getUrlParams().classcode);
+
+    // GA of the student's flow (#1831, docs/classroom/ui-ux.md 「GA の計測」). Nothing is sent
+    // while a teacher is logged in; failures are swallowed. Seconds leave out hidden-tab time.
+    const teacherLoggedIn = !!classroomState.teacherLoggedIn;
+    const track = useCallback(
+        (action, params) => sendClassroomStudentEvent(action, params, { teacherLoggedIn }),
+        [teacherLoggedIn],
+    );
+    const trackRef = useRef(track);
+    trackRef.current = track;
+    useEffect(() => {
+        installVisibilityTracking();
+    }, []);
+    // When the seat selection was shown, whether its 30-second guide came up, and when the
+    // kick request was sent (activeNow clock).
+    const seatViewAtRef = useRef(null);
+    const seatGuideShownRef = useRef(false);
+    const kickSentAtRef = useRef(null);
 
     // UI state
     const [phase, setPhase] = useState(getInitialPhase);
@@ -101,6 +130,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         setIsLoading,
         setPhase,
         targetCodeToBlocks,
+        track,
     });
 
     // Set while 「出席番号がちがう」 moves the student to another seat (#1794).
@@ -216,6 +246,13 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     const applyKickRequestOutcome = useCallback((outcome, data, pending) => {
         if (data) setTakenSeats(data.takenSeats || []);
         if (!outcome || outcome === 'waiting') return;
+        if (outcome === 'approved' || outcome === 'rejected') {
+            trackRef.current(GA.KICK_REQUEST, {
+                result: outcome,
+                seconds: secondsSince(kickSentAtRef.current, activeNow()),
+            });
+            kickSentAtRef.current = null;
+        }
         clearPendingKickRequest();
         setKickRequestPending(null);
         if (outcome === 'approved') {
@@ -263,6 +300,13 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             setTakenSeats(data.takenSeats || []);
             setSelectedSeat(null);
             setPhase('student-seat');
+            // A remount (PC <-> mobile layout) looks the class up again: one view, timed from the first.
+            const seatView = noteClassroomStudentView('seat', activeNow());
+            seatViewAtRef.current = seatView.at;
+            if (seatView.send) {
+                seatGuideShownRef.current = false;
+                track(GA.SEAT_VIEW, seatViewParams(loadLastSeat(seatKey, data.studentCount), data.takenSeats));
+            }
             // Reopened while a request for this class is pending: the
             // answer may already be in this lookup.
             const pending = loadPendingKickRequest();
@@ -270,7 +314,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 applyKickRequestOutcome(evaluateKickRequestPoll(pending, data), data, pending);
             }
         },
-        [applyKickRequestOutcome],
+        [applyKickRequestOutcome, track],
     );
 
     const handleJoinWithCode = useCallback(
@@ -279,15 +323,30 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             setIsLoading(true);
             try {
                 const data = await classroomAPI.lookupClassroom(joinCode);
+                if (options && options.fromForm) track(GA.JOIN_CODE, { result: joinCodeResult(null) });
                 showSeatSelection(joinCode, data, options);
             } catch (err) {
+                if (options && options.fromForm) track(GA.JOIN_CODE, { result: joinCodeResult(err) });
                 showError(translateError(intl, err, 'join'), joinErrorTitle());
             } finally {
                 setIsLoading(false);
             }
         },
-        [clearError, showError, intl, joinErrorTitle, showSeatSelection],
+        [clearError, showError, intl, joinErrorTitle, showSeatSelection, track],
     );
+
+    // A join code the student sent from the join screen (#1831 counts only these, not the
+    // automatic lookups after a kick or a `?classcode=` URL).
+    const handleJoinFromForm = useCallback(
+        (joinCode) => handleJoinWithCode(joinCode, { fromForm: true }),
+        [handleJoinWithCode],
+    );
+
+    // The 30-second guide next to the seat grid came up (#1831).
+    const handleSeatIdleGuide = useCallback(() => {
+        seatGuideShownRef.current = true;
+        track(GA.SEAT_IDLE_GUIDE);
+    }, [track]);
 
     // The only error on the seat screen is the last failed join. Once the
     // student picks (or re-picks) a seat it no longer applies, and left as is
@@ -316,7 +375,8 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     const handleCancelKickRequest = useCallback(() => {
         setKickRequestDialogSeat(null);
         setKickRequestError(null);
-    }, []);
+        track(GA.KICK_REQUEST, { result: 'canceled' });
+    }, [track]);
 
     const handleConfirmKickRequest = useCallback(
         async (reason) => {
@@ -335,13 +395,19 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 savePendingKickRequest(record);
                 setKickRequestPending(record);
                 setKickRequestDialogSeat(null);
+                kickSentAtRef.current = activeNow();
+                track(GA.KICK_REQUEST, {
+                    result: 'sent',
+                    seconds: secondsSince(seatViewAtRef.current, kickSentAtRef.current),
+                });
             } catch (err) {
+                track(GA.KICK_REQUEST, { result: 'error' });
                 setKickRequestError(translateError(intl, err));
             } finally {
                 setIsLoading(false);
             }
         },
-        [pendingJoinCode, kickRequestDialogSeat, intl],
+        [pendingJoinCode, kickRequestDialogSeat, intl, track],
     );
 
     // Polling: while in student-seat with a pending kick request for this
@@ -359,13 +425,26 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
 
     // --- Confirm join ---
 
+    // `via`: 'grid' when the student pressed 「参加する」, 'kick_approved' when the seat freed by
+    // the teacher's approval is joined without picking it again (#1831).
     const joinSeat = useCallback(
-        async (seatNumber) => {
+        async (seatNumber, via = 'grid') => {
             if (!pendingJoinCode || !seatNumber) return;
             clearError();
             setIsLoading(true);
+            const seatSelect = (result) =>
+                track(GA.SEAT_SELECT, {
+                    result,
+                    via,
+                    seconds: secondsSince(seatViewAtRef.current, activeNow()),
+                    is_previous: previousSeat === seatNumber,
+                    after_guide: seatGuideShownRef.current,
+                });
+            let joined = false;
             try {
                 const data = await classroomAPI.joinClassroom(pendingJoinCode, seatNumber);
+                joined = true;
+                seatSelect('ok');
                 dispatch(
                     setClassroomSession({
                         role: 'student',
@@ -425,6 +504,8 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 );
                 setPhase(nextPhase || 'student-joined');
             } catch (err) {
+                // Only the join itself: once joined, later failures are not the seat's.
+                if (!joined) seatSelect(err.status === 409 ? 'taken' : 'error');
                 if (err.status === 409) {
                     setTakenSeats((prev) => [...prev, seatNumber]);
                     setSelectedSeat(null);
@@ -434,7 +515,17 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 setIsLoading(false);
             }
         },
-        [dispatch, pendingJoinCode, pendingClassroomInfo, clearError, showError, intl, studentAssignment],
+        [
+            dispatch,
+            pendingJoinCode,
+            pendingClassroomInfo,
+            previousSeat,
+            clearError,
+            showError,
+            intl,
+            studentAssignment,
+            track,
+        ],
     );
 
     const { handleOpenAssignment } = studentAssignment;
@@ -448,7 +539,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     useEffect(() => {
         if (!autoJoinSeat) return;
         setAutoJoinSeat(null);
-        joinSeat(autoJoinSeat);
+        joinSeat(autoJoinSeat, 'kick_approved');
     }, [autoJoinSeat, joinSeat]);
 
     // --- Verify session + fetch submission status ---
@@ -463,6 +554,9 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     );
     // The session was confirmed by the last check of the welcome back screen (#1825).
     const [sessionVerified, setSessionVerified] = useState(false);
+    // Grows each time the status check succeeds (GA, #1831): the welcome back screen sends
+    // welcome_view after one made since it came up, never for a session that turned out dead.
+    const [statusCheckedSeq, setStatusCheckedSeq] = useState(0);
 
     // The session token as of now. A verify answer for a token that is no
     // longer current (the student left, switched class or re-joined meanwhile)
@@ -501,6 +595,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             // not be pressable before we know.
             await studentAssignment.refreshContinueOptions();
             if (token !== sessionTokenRef.current) return;
+            setStatusCheckedSeq((n) => n + 1);
             // The lesson progress row is built from the device's lesson records
             // (#1599); take in what another tab wrote and re-read the lesson.
             // Opening this screen is also a moment to send the progress to the
@@ -520,15 +615,20 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 // student knows what happened instead of seeing the generic
                 // "session expired" alert.
                 dispatch(clearClassroomSession());
+                track(GA.SESSION_END, { reason: 'kicked' });
                 setKickedNotice(kick);
                 // The freed seat was not this student's (a kick request was approved
                 // for it), so do not offer it as the previous seat (#1796).
-                handleJoinWithCode(kick.joinCode, { forgetSeat: kick.seatNumber });
+                // Awaited so that the `finally` below does not end the loading while the
+                // lookup is still running (the welcome back screen would flash as ready).
+                await handleJoinWithCode(kick.joinCode, { forgetSeat: kick.seatNumber });
             } else if (rejoinCode) {
                 dispatch(clearClassroomSession());
-                handleJoinWithCode(rejoinCode);
+                track(GA.SESSION_END, { reason: 'expired' });
+                await handleJoinWithCode(rejoinCode);
             } else {
                 dispatch(clearClassroomSession());
+                track(GA.SESSION_END, { reason: 'expired' });
                 showSessionExpiredError(translateError(intl, { status: 401 }, 'session'));
                 // Without a session the welcome back screen has nothing to show
                 // (it read 「出席番号null」, #1797): go to the join screen, as the
@@ -539,7 +639,15 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             setIsLoading(false);
             setStatusChecking(false);
         }
-    }, [classroomState.sessionToken, dispatch, showSessionExpiredError, intl, handleJoinWithCode, studentAssignment]);
+    }, [
+        classroomState.sessionToken,
+        dispatch,
+        showSessionExpiredError,
+        intl,
+        handleJoinWithCode,
+        studentAssignment,
+        track,
+    ]);
 
     useEffect(() => {
         if (phase === 'student-status' && classroomState.sessionToken) {
@@ -552,8 +660,23 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     useEffect(() => {
         if (!classroomState.studentSubmitRequested) return;
         dispatch(clearStudentSubmitRequest());
-        if (phase === 'student-status' && classroomState.sessionToken) submit.handleStartSubmit();
-    }, [classroomState.studentSubmitRequested, classroomState.sessionToken, phase, dispatch, submit]);
+        if (phase === 'student-status' && classroomState.sessionToken) {
+            track(GA.SUBMIT_OPEN, {
+                from: classroomState.studentSubmitFrom || undefined, // eslint-disable-line no-undefined
+                state: submitOpenState(classroomState.submissionStatus),
+            });
+            submit.handleStartSubmit();
+        }
+    }, [
+        classroomState.studentSubmitRequested,
+        classroomState.studentSubmitFrom,
+        classroomState.submissionStatus,
+        classroomState.sessionToken,
+        phase,
+        dispatch,
+        submit,
+        track,
+    ]);
 
     // --- Leave classroom ---
 
@@ -665,6 +788,23 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         handleJoinWithCode(code);
     }, []); // Run once on mount
 
+    // ×, the overlay or Escape (#1831): where the student left the modal. Choosing a start or
+    // 「つづける」 also closes it but goes on to make the work, so those are not counted here.
+    const handleDismiss = useCallback(() => {
+        if (submittingRef.current || switchingSeatRef.current) return;
+        const step = modalCloseStep({
+            phase,
+            submissionStatus: classroomState.submissionStatus ?? null,
+            assignmentReopened,
+            lesson:
+                studentLesson && lessonStatus
+                    ? { submitWork: !!studentLesson.submitWork, cleared: !!lessonStatus.cleared }
+                    : null,
+        });
+        if (step) track(GA.MODAL_CLOSE, { step });
+        handleClose();
+    }, [phase, classroomState.submissionStatus, assignmentReopened, studentLesson, lessonStatus, track, handleClose]);
+
     // After a reload the project is the new one again: offer this assignment's
     // submission as the main button of the welcome back screen (#1825). Blocks
     // are read at render time; adding one also marks the project changed.
@@ -718,18 +858,22 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             submitProgress={submit.submitProgress}
             isSubmitting={submit.isSubmitting}
             submitStatusChecking={statusChecking}
+            statusCheckedSeq={statusCheckedSeq}
             takenSeats={takenSeats}
             teacherComment={studentTeacherComment}
             thumbnailDataUrl={submit.thumbnailDataUrl}
             onCancelKickRequest={handleCancelKickRequest}
             onCancelSubmit={submit.handleCancelSubmit}
             onClose={handleClose}
+            onDismiss={handleDismiss}
+            onSeatIdleGuide={handleSeatIdleGuide}
+            onTrack={track}
             onConfirmJoin={handleConfirmJoin}
             onConfirmKickRequest={handleConfirmKickRequest}
             onConfirmSubmit={submit.handleConfirmSubmit}
             onDismissKickRequestRejectedNotice={handleDismissKickRequestRejectedNotice}
             onDismissKickedNotice={handleDismissKickedNotice}
-            onJoinWithCode={handleJoinWithCode}
+            onJoinWithCode={handleJoinFromForm}
             onLeaveClassroom={handleLeaveClassroom}
             onRefreshStudentStatus={refreshStudentStatus}
             onRequestKick={handleRequestKick}

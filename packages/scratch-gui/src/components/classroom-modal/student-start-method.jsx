@@ -9,8 +9,14 @@
  * 参加しただけでは何も読み込まない（押したときに 1 回だけ読み込む）。
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useId, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
+import {
+    CLASSROOM_STUDENT_EVENTS,
+    noteClassroomStudentView,
+    secondsSince,
+} from '../../lib/classroom-student-analytics.js';
+import { activeNow } from '../../lib/lessons/lesson-analytics.js';
 import StudentMainButton from './student-main-button.jsx';
 import styles from './student-screen-parts.css';
 import StudentTextLink from './student-text-link.jsx';
@@ -125,21 +131,47 @@ const StudentStartMethod = ({
     onLoadStarter,
     onLoadSubmission,
     onStartLesson,
+    onTrack,
+    now = activeNow,
 }) => {
     const intl = useIntl();
     const [othersOpen, setOthersOpen] = useState(false);
     const othersId = useId();
+    // GA (#1831): start_view once when the choices come up, start_choose with the seconds since.
+    // Coming back to the last page of the assignment panel or switching between the PC and the
+    // mobile layout mounts this again: noteClassroomStudentView keeps it to one view (and its time).
+    const shownAtRef = useRef(null);
+    const othersOpenedRef = useRef(false);
+    useEffect(() => {
+        const { send, at } = noteClassroomStudentView('start', now());
+        shownAtRef.current = at;
+        if (!send) return;
+        onTrack?.(CLASSROOM_STUDENT_EVENTS.START_VIEW, {
+            main: method.main,
+            others_count: (method.others || []).length,
+        });
+        // Only when it comes up, not on every change of the props.
+    }, []);
     const start = useCallback(
-        (kind) => {
+        (kind, via = 'main') => {
+            onTrack?.(CLASSROOM_STUDENT_EVENTS.START_CHOOSE, {
+                kind,
+                via,
+                others_opened: othersOpenedRef.current,
+                seconds: secondsSince(shownAtRef.current, now()),
+            });
             if (kind === 'starter') onLoadStarter?.();
             else if (kind === 'previous' || kind === 'current') onLoadSubmission?.(kind);
             else if (kind === 'lesson') onStartLesson?.();
             else onKeepCurrent?.();
         },
-        [onKeepCurrent, onLoadStarter, onLoadSubmission, onStartLesson],
+        [onKeepCurrent, onLoadStarter, onLoadSubmission, onStartLesson, onTrack, now],
     );
     const handleMain = useCallback(() => start(method.main), [start, method.main]);
-    const toggleOthers = useCallback(() => setOthersOpen((open) => !open), []);
+    const toggleOthers = useCallback(() => {
+        othersOpenedRef.current = true;
+        setOthersOpen((open) => !open);
+    }, []);
     const others = method.others || [];
     return (
         <div className={styles.startMethod} data-main={method.main} data-testid="classroom-start-method">
@@ -173,7 +205,7 @@ const StudentStartMethod = ({
                                     disabled={isLoading}
                                     key={kind}
                                     // eslint-disable-next-line react/jsx-no-bind
-                                    onClick={() => start(kind)}
+                                    onClick={() => start(kind, 'others')}
                                 >
                                     {labelFor(intl, kind, true)}
                                 </StudentTextLink>
@@ -206,6 +238,10 @@ StudentStartMethod.propTypes = {
     onLoadStarter: PropTypes.func,
     onLoadSubmission: PropTypes.func,
     onStartLesson: PropTypes.func,
+    // sends a classroom_student GA event: (action, params) (#1831)
+    onTrack: PropTypes.func,
+    // テスト用: タブが裏にあった時間を引いた時計
+    now: PropTypes.func,
 };
 
 export { formatSubmittedAt, messages };

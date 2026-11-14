@@ -224,3 +224,62 @@ describe('useStudentSubmit — Ruby をブロックに直してから提出す�
         expect(hook.result.current.isSubmitting).toBe(false);
     });
 });
+
+// 提出を押した結果の GA (#1831)。秒は確認を開いてから（タブが裏の時間を除く時計）。
+describe('useStudentSubmit — GA の submit_result (#1831)', () => {
+    let now;
+    beforeEach(() => {
+        jest.useFakeTimers();
+        global.requestAnimationFrame = (cb) => cb();
+        mockCreateSubmission.mockReset();
+        mockUpload.mockReset();
+        mockRender.mockReset();
+        mockCreateSubmission.mockResolvedValue({ uploadUrl: 'u', screenshotUploadUrls: ['s0'] });
+        mockUpload.mockResolvedValue();
+        mockRender.mockResolvedValue(canvas);
+        now = 50000;
+        jest.spyOn(Date, 'now').mockImplementation(() => now);
+    });
+    afterEach(() => {
+        Date.now.mockRestore();
+        jest.useRealTimers();
+    });
+
+    const confirm = async (hook) => {
+        await act(async () => {
+            const done = hook.result.current.handleConfirmSubmit();
+            for (let i = 0; i < 10; i++) {
+                jest.runAllTimers();
+                await Promise.resolve();
+            }
+            await done;
+        });
+    };
+
+    test('提出できたら done と確認を開いてからの秒', async () => {
+        const track = jest.fn();
+        const hook = setup([target('t0', 'ねこ')], { track });
+        act(() => hook.result.current.handleStartSubmit());
+        now += 7000;
+        await confirm(hook);
+        expect(track).toHaveBeenCalledWith('submit_result', { result: 'done', seconds: 7 });
+    });
+
+    test('失敗したら error', async () => {
+        mockCreateSubmission.mockRejectedValue({ status: 500, message: 'x' });
+        const track = jest.fn();
+        const hook = setup([target('t0', 'ねこ')], { track });
+        act(() => hook.result.current.handleStartSubmit());
+        await confirm(hook);
+        expect(track).toHaveBeenCalledWith('submit_result', expect.objectContaining({ result: 'error' }));
+    });
+
+    test('「やめる」は cancel', () => {
+        const track = jest.fn();
+        const hook = setup([target('t0', 'ねこ')], { track });
+        act(() => hook.result.current.handleStartSubmit());
+        now += 3000;
+        act(() => hook.result.current.handleCancelSubmit());
+        expect(track).toHaveBeenCalledWith('submit_result', { result: 'cancel', seconds: 3 });
+    });
+});
