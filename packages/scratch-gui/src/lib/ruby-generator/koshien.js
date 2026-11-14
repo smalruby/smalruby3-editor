@@ -40,7 +40,7 @@ export default function (Generator) {
 
     Generator.koshien_map = function (block) {
         const position = Generator.valueToCode(block, 'POSITION', Generator.ORDER_NONE) || Generator.quote_('0:0');
-        return [`koshien.map(${position})`];
+        return [`koshien.map(${position})`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.koshien_moveTo = function (block) {
@@ -84,11 +84,11 @@ export default function (Generator) {
             Generator.getFieldValue(block, 'MAP', Generator.ORDER_NONE),
         );
         const map = mapVariableName ? mapVariableName : 'nil';
-        return [`koshien.map_from(${position}, ${map})`];
+        return [`koshien.map_from(${position}, ${map})`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.koshien_mapAll = function () {
-        return ['koshien.map_all'];
+        return ['koshien.map_all', Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.koshien_locateObjects = function (block) {
@@ -107,9 +107,9 @@ export default function (Generator) {
         const target = Generator.getFieldValue(block, 'TARGET') || 'player';
         const coordinate = Generator.getFieldValue(block, 'COORDINATE') || 'position';
         if (coordinate === 'position') {
-            return [`koshien.${target}`];
+            return [`koshien.${target}`, Generator.ORDER_FUNCTION_CALL];
         }
-        return [`koshien.${target}_${coordinate}`];
+        return [`koshien.${target}_${coordinate}`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.koshien_turnOver = function () {
@@ -119,18 +119,18 @@ export default function (Generator) {
     Generator.koshien_position = function (block) {
         const x = Generator.valueToCode(block, 'X', Generator.ORDER_NONE) || 0;
         const y = Generator.valueToCode(block, 'Y', Generator.ORDER_NONE) || 0;
-        return [`koshien.position(${x}, ${y})`];
+        return [`koshien.position(${x}, ${y})`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.koshien_positionOf = function (block) {
         const position = Generator.valueToCode(block, 'POSITION', Generator.ORDER_NONE) || Generator.quote_('0:0');
         const coordinate = Generator.getFieldValue(block, 'COORDINATE') || 'x';
-        return [`koshien.position_of_${coordinate}(${position})`];
+        return [`koshien.position_of_${coordinate}(${position})`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.koshien_object = function (block) {
         const object = Generator.quote_(Generator.getFieldValue(block, 'OBJECT') || 'unknown');
-        return [`koshien.object(${object})`];
+        return [`koshien.object(${object})`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.koshien_setMessage = function (block) {
