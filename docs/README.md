@@ -81,6 +81,7 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 | [`settings/`](settings/) — Ruby バージョン切替・各種設定永続化 | 🔧 改良 | ✅ |
 | [`screenshot/`](screenshot/) — blocks-screenshot・ruby-screenshot | 🆕 独自 | ✅ |
 | [`design-system/`](design-system/) — 上流の GUI のデザイントークン・部品の形と、独自の画面のための別名（`smalruby-tokens.css`） | 🔧 改良 | ✏️ |
+| [`analytics/`](analytics/) — GA の計測（GTM / GA4 の設定のいまの状態・新しい計測を足す手順） | 🔧 改良 | ✅ |
 
 ### F. 開発者向け（パッケージ内部仕様 / インフラ）
 

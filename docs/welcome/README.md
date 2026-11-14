@@ -122,6 +122,8 @@ SP ではメニューバーが表示されないため、`☰` から開く Mobi
 
 すべて `category: 'welcome'` で `window.dataLayer.push` される。
 
+GTM・GA4 の設定は [`docs/analytics/README.md`](../analytics/README.md)。GA4 ではイベント名 `welcome`、パラメータ `action` / `label` で見る。
+
 | action | label | 発火タイミング |
 |---|---|---|
 | `balloon_shown` | `balloon` | バルーンを初回表示したとき（`firstShownAt` を記録した瞬間） |

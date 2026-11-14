@@ -784,6 +784,8 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 
 ## GA の計測（生徒の参加〜提出）
 
+GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム定義・下のファネルの探索）は [`docs/analytics/README.md`](../analytics/README.md)。
+
 生徒の流れ（① 参加 → ② 番号 → ③ はじめる → ④ つくる → ⑤ 提出）を GA で計測し、**生徒がどの段でつまずいているか・どこを直すとよいか**を数で見る。
 
 仕組みはレッスンの計測（[`docs/lessons/README.md`](../lessons/README.md) の「GA の計測」）と同じ `lib/analytics.js`（GTM の `dataLayer` に push）。
