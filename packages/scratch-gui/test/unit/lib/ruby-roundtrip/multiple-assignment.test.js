@@ -145,12 +145,27 @@ describe('Ruby to blocks: a statement that has no block (issue #1814)', () => {
         ['undef', 'undef foo'],
         ['for', 'for i in 1..3\n  move(10)\nend'],
         ['BEGIN', 'BEGIN { move(10) }'],
+        ['END', 'END { move(10) }'],
     ])('%s is the error of a wrong instruction on its line', async (_name, code) => {
         const result = await converter.targetCodeToBlocks(target, `move(10)\n${code}`);
         expect(result).toBe(false);
         expect(converter.errors).toHaveLength(1);
         expect(converter.errors[0].row).toBe(1);
         expect(converter.errors[0].text).toMatch(/is the wrong instruction/);
+    });
+
+    // These were dropped silently, and the rest of the code was converted.
+    test.each([
+        ['`x ||= 1` in an event', 'when_flag_clicked do\n  x ||= 1\n  move(x)\nend', 'x ||= 1'],
+        ['`x ||= 1` in a method', 'def a\n  x ||= 1\nend', 'x ||= 1'],
+        ['`@a &&= 1` in an event', 'when_flag_clicked do\n  @a &&= 1\nend', '@a &&= 1'],
+        ['`@a[0] += 1` in an event', 'when_flag_clicked do\n  @a[0] += 1\nend', '@a[0] += 1'],
+        ['`yield` in a method', 'def a\n  yield\nend', 'yield'],
+        ['`FOO = 1` in an event', 'when_flag_clicked do\n  FOO = 1\nend', 'FOO = 1'],
+    ])('%s is the error of a wrong instruction, not dropped', async (_name, code, source) => {
+        const result = await converter.targetCodeToBlocks(target, code);
+        expect(result).toBe(false);
+        expect(converter.errors.map((e) => [e.row, e.text])).toEqual([[1, wrongInstruction(source)]]);
     });
 
     test('in an event, it is not dropped', async () => {
