@@ -2,8 +2,8 @@
  * スモウルビー独自の画面のためのデザイントークン（意味の名前の別名）。
  *
  * - 上流（Scratch）のトークン（colors.css・units.css・z-index.css）をそのまま読み込み、
- *   上流の名前を残したまま、意味の名前の別名を足す（EPIC #1809 の Q1・Q2）。
- * - 値の正は上流 scratch-editor v13.7.2 の CSS（Q3）。上流のファイルは変えない。
+ *   上流の名前を残したまま、意味の名前の別名を足す。
+ * - 値の正は上流 scratch-editor v13.7.2 の CSS。上流のファイルは変えない。
  * - 上流で直書きがくり返し出る値（角丸・文字の大きさなど）だけ、ここで値を持つ。
  * - 一覧と使い方は docs/design-system/tokens.md と README.md。別名を足したら tokens.md も直す。
  *
@@ -21,7 +21,7 @@
 $color-primary: $looks-secondary;
 /* 主の色の濃いほう: 主の色の上の枠や、押したときの塗り */
 $color-primary-dark: $looks-secondary-dark;
-/* 主の色の淡いほう: フォーカスの輪・ホバーの枠（上流で 18 ファイルが使う） */
+/* 主の色の淡いほう: フォーカスの輪・ホバーの枠 */
 $color-primary-transparent: $looks-transparent;
 /* 本文の文字の色 */
 $color-text: $text-primary;
@@ -31,7 +31,7 @@ $color-text-muted: $text-primary-transparent;
 $color-surface: $ui-white;
 /* 画面の地の色（淡い青） */
 $color-background: $ui-primary;
-/* 枠線・区切り線（上流で 36 ファイルが使う） */
+/* 枠線・区切り線 */
 $color-border: $ui-black-transparent;
 /* モーダルの後ろのオーバーレイ */
 $color-overlay: $ui-modal-overlay;
@@ -56,20 +56,20 @@ $space-large: calc($space * 2);
 
 /* ---- 角丸 ---- */
 
-/* 小さい角丸 0.25rem: ボタン・入力欄（上流で直書きが 13 ファイル） */
+/* 小さい角丸 0.25rem: ボタン・入力欄 */
 $radius-small: $form-radius;
-/* 中くらいの角丸 0.5rem: カード・ライブラリの項目・吹き出し（上流で直書きが 9 ファイル） */
+/* 中くらいの角丸 0.5rem: カード・ライブラリの項目・吹き出し */
 $radius-medium: 0.5rem;
 /* 丸: 丸いアイコンボタン・アバター */
 $radius-round: 50%;
 
 /* ---- 文字 ---- */
 
-/* いちばん小さい文字 0.625rem: 入力欄のラベル・バッジ（上流で直書きが 8 ファイル） */
+/* いちばん小さい文字 0.625rem: 入力欄のラベル・バッジ */
 $font-size-xsmall: 0.625rem;
 /* 小さい文字 0.75rem: メニューバー・タブ（上流の $menu-bar-standard-font-size） */
 $font-size-small: $menu-bar-standard-font-size;
-/* ダイアログの文字 0.85rem: ダイアログの本文・ボタン（上流で最も多い直書き・10 ファイル） */
+/* ダイアログの文字 0.85rem: ダイアログの本文・ボタン */
 $font-size-dialog: 0.85rem;
 /* やや小さい文字 0.875rem: ライブラリ・フィルタ（上流の $menu-bar-large-font-size） */
 $font-size-medium: $menu-bar-large-font-size;
@@ -77,12 +77,12 @@ $font-size-medium: $menu-bar-large-font-size;
 $font-size-base: 1rem;
 /* 見出しの文字 1.5rem（typography.css の h2） */
 $font-size-heading: 1.5rem;
-/* 太字（上流で 26 ファイル。700 などの書き方ゆれは bold にそろえる） */
+/* 太字（700 などの書き方ゆれは bold にそろえる） */
 $font-weight-bold: bold;
 
 /* ---- 影・動き ---- */
 
 /* 浮いたカードの影: ホバーしたライブラリの項目・アクションメニュー */
 $shadow-raised: 0 0 0.5rem hsla(0, 0%, 0%, 0.25);
-/* ふつうの動き: ホバー・選択の切り替え（上流で 5 ファイル） */
+/* ふつうの動き: ホバー・選択の切り替え */
 $transition-standard: all 0.25s ease;

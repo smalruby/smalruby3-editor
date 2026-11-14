@@ -468,6 +468,7 @@ test/integration/*
 test/unit/*
 !test/unit/components/
 !test/unit/containers/
+!test/unit/css/
 !test/unit/helpers/
 !test/unit/helpers/**
 !test/unit/lib/

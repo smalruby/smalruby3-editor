@@ -128,27 +128,29 @@
 
 ## くり返し出る直書きの値（トークンの候補）
 
-上流でも、部品の CSS にはトークンを使わない直書きの値が多い（EPIC の対象の上流 CSS 約 70 ファイルで約 980 件）。そのうち、くり返し出るものをトークンの候補にした。「別名」の列は `smalruby-tokens.css` で名前を付けたもの。
+上流でも、部品の CSS にはトークンを使わない直書きの値が多い。そのうち、くり返し出るものをトークンの候補にした。「別名」の列は `smalruby-tokens.css` で名前を付けたもの。
+
+数え方: tag `v13.7.2` の `packages/scratch-gui/src/` の CSS（`src/css/` を除く 88 ファイル）で、コメントを除き、その値を使うプロパティ（角丸は `border-radius`、文字の大きさは `font-size` など。色はどのプロパティでも）の値の中に出る回数と、出るファイルの数を数えた。`.5rem` のように先頭の 0 を省いた書き方も同じ値として数え、`0.5rem 0.5rem 0 0` のように 1 つの宣言に 2 回出るものは 2 回と数える。
 
 | 種類 | 値 | 出る数（回 / ファイル） | 別名 |
 |---|---|---|---|
-| 角丸 | `0.25rem`（= `$form-radius`） | 16 / 13 | `$radius-small` |
-| 角丸 | `0.5rem` | 10 / 9 | `$radius-medium` |
+| 角丸 | `0.25rem`（= `$form-radius`） | 19 / 15 | `$radius-small` |
+| 角丸 | `0.5rem` | 11 / 10 | `$radius-medium` |
 | 角丸 | `50%`・`100%`（丸） | 8 / 6・12 / 7 | `$radius-round` |
 | 文字の大きさ | `0.85rem` | 13 / 10 | `$font-size-dialog` |
 | 文字の大きさ | `0.625rem` | 12 / 8 | `$font-size-xsmall` |
-| 文字の大きさ | `0.875rem`（`.875rem` の書き方ゆれを含む） | 15 / 12 | `$font-size-medium`（= `$menu-bar-large-font-size`） |
-| 文字の大きさ | `0.75rem`（`.75rem` を含む） | 14 / 10 | `$font-size-small`（= `$menu-bar-standard-font-size`） |
-| 文字の大きさ | `1rem` | 6 / 5 | `$font-size-base` |
-| 文字の太さ | `bold`（ほかに `bolder`・`700`・`600`・`500` の書き方ゆれ） | 39 / 26 | `$font-weight-bold` |
+| 文字の大きさ | `0.875rem` | 15 / 12 | `$font-size-medium`（= `$menu-bar-large-font-size`） |
+| 文字の大きさ | `0.75rem` | 14 / 10 | `$font-size-small`（= `$menu-bar-standard-font-size`） |
+| 文字の大きさ | `1rem` | 7 / 6 | `$font-size-base` |
+| 文字の太さ | `bold`（ほかに書き方ゆれの `bolder` 8 / 8・`700` 8 / 5・`600` 6 / 5・`500` 5 / 5） | 39 / 26 | `$font-weight-bold` |
 | 影 | `0 0 .5rem hsla(0, 0%, 0%, .25)` | 3 / 2（library-item・action-menu） | `$shadow-raised` |
-| 動き | `all 0.25s ease` | 6 / 5 | `$transition-standard` |
+| 動き | `all 0.25s ease` | 7 / 6 | `$transition-standard` |
 | 動き | `all 0.15s ease-out` | 4 / 3 | （まだ付けない） |
-| 余白 | `0.25rem`・`0.5rem`・`1rem`（`$space` があるのに直書き） | 多い | `$space-small`・`$space-medium`・`$space-large` |
+| 余白 | `0.25rem`・`0.5rem`・`1rem`（`$space` があるのに直書き。`margin`・`padding`） | 46 / 17・78 / 28・50 / 23 | `$space-small`・`$space-medium`・`$space-large` |
 | 色 | `hsla(0, 0%, 0%, .25)` | 4 / 3 | （まだ付けない。影の中で使う） |
 | 色 | `hsla(0, 0%, 0%, .1)`（= `$ui-black-transparent-10`） | 5 / 2 | （上流の名前を使う） |
 | 色 | `#7fff1e`（ドラッグ中の光る枠） | 4 / 2（sprite-selector・stage-selector） | （まだ付けない） |
-| 色 | `rgb(232, 237, 241)`（= ペイントの `$ui-background-blue`） | 2 / 2 | （まだ付けない。[`paint.md`](paint.md)） |
+| 色 | `rgb(232, 237, 241)`（= ペイントの `$ui-background-blue`） | 1 / 1（stage-header） | （まだ付けない。[`paint.md`](paint.md)） |
 
 その画面だけの値（meter の 6 色、waveform の色、debug-modal の `24px`・`16px`、close-button のオレンジの影、alert の `#555` など）はトークンにしない。各画面の文書に書く。
 

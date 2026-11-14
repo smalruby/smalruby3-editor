@@ -90,6 +90,7 @@
 
 - `packages/scratch-gui/src/css/colors.css`・`units.css`・`typography.css`・`z-index.css` — 上流のトークン（変えない）
 - `packages/scratch-gui/src/css/smalruby-tokens.css` — スモウルビーの別名（独自のファイル。Prettier の対象）
+- `packages/scratch-gui/test/unit/css/smalruby-tokens.test.js` — `smalruby-tokens.css` をビルドと同じ PostCSS のプラグインでコンパイルし、未定義の変数が無いことを確かめるテスト（上流でトークンが消えたら落ちる）
 - `packages/scratch-gui/src/lib/settings/color-mode/` — ブロックの 3 つの色のモード（[`blocks.md`](blocks.md)）
 
 ## 文書を新しく保つ

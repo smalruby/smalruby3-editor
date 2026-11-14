@@ -1,6 +1,6 @@
 # ペイントエディター
 
-> **まだ書いていない。** 下の中身を、後の sub-issue（#1873）で書く。
+> **まだ書いていない。**
 
 - scratch-paint（v13.7.2 と同じ版）の `src/css/colors.css`・`units.css` の値。
 - GUI の `colors.css`・`units.css` との食い違い（`$sound-tertiary`・`$library-header-height`・`$full-size-paint` など）と、ペイントだけの変数（`$ui-pane-border`・`$ui-background-blue` など）。
