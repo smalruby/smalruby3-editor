@@ -179,29 +179,38 @@ const ControlFlowHandlers = {
     },
 
     /**
-     * Reject a command (`@a = "abc"`, `move(1)`) as the subject of `case` or the value of `when`.
-     * It is not a value, so it cannot be an input of the `==` block: it came back as `when @`
-     * (issue #1818). It is the error of a wrong instruction on the head of `case` / `when`, as a
-     * command in an argument (`say(@a = 1)`). A call of a method that returns a value is a value: the
-     * subject and the values are visited as values (`_visitAsValue`).
+     * Reject a subject of `case` or a value of `when` that the `==` block cannot hold. A command
+     * (`@a = "abc"`, `move(1)`) came back as `when @` (issue #1818); a symbol, `nil`, an array, a hash
+     * or `self` came back as a bare `when`, and as the subject it was compared as `0` or `""` (issue
+     * #1878). It is the error of a wrong instruction on the head of `case` / `when`, as a command in an
+     * argument (`say(@a = 1)`). A number, a string and a block with a value are taken; a call of a method
+     * that returns a value is a value: the subject and the values are visited as values (`_visitAsValue`).
      * @param {*} value - The value of the subject or of the `when`.
      * @param {object} lineNode - The CaseNode or the WhenNode.
      * @param {object} valueNode - The node of the value.
      */
-    _rejectCommandInCase(value, lineNode, valueNode) {
-        if (!this._isBlock(value) || this._isValueBlock(value)) {
+    _rejectNonValueInCase(value, lineNode, valueNode) {
+        if (this._isNumber(value) || this._isString(value) || this._isValueBlock(value)) {
             return;
         }
         throw this._caseHeadError(lineNode, valueNode);
     },
 
     visitCaseNode(node) {
+        const subjectNode = node.predicate;
+        if (!subjectNode) {
+            // A `case` without a subject (`case` / `when @a > 1`) has no value to compare: the `==` block
+            // got no input and the conversion stopped with "Cannot set properties of null" (issue #1878).
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(converterMessages.wrongInstruction, { SOURCE: 'case' }),
+            );
+        }
         const saved = this._saveContext();
 
-        const subjectNode = node.predicate;
         const subjectResult = this._visitAsValue(subjectNode);
         const subjectSplit = this._splitPreBlocksAndValue(subjectResult);
-        this._rejectCommandInCase(subjectSplit.value, node, subjectNode);
+        this._rejectNonValueInCase(subjectSplit.value, node, subjectNode);
         const preBlocks = subjectSplit.preBlocks;
         // Each `when` visits the subject again (a block can be used only once), so drop this one.
         if (this._isBlock(subjectSplit.value)) {
@@ -242,7 +251,7 @@ const ControlFlowHandlers = {
             const rhResult = this._visitAsValue(conditionNode);
             const rhSplit = this._splitPreBlocksAndValue(rhResult);
             const currentRh = rhSplit.value;
-            this._rejectCommandInCase(currentRh, whenNode, conditionNode);
+            this._rejectNonValueInCase(currentRh, whenNode, conditionNode);
             preBlocks.push(...rhSplit.preBlocks);
 
             const body = this._processStatement(whenNode.statements);
