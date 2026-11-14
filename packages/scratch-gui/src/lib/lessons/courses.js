@@ -129,6 +129,9 @@ export const defineChallenge = (def) => ({
     codeTarget: null,
     // うまく動かないときは: [message descriptor]
     debug: [],
+    // メッシュの練習相手（データだけ）: {name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set,
+    // broadcast}]}。形は lib/lessons/practice-partner.js と docs/lessons/README.md。無ければ null（パネルを出さない）
+    partner: null,
     // ふりかえりのクイズ（任意）: {question, choices: [3 つ], answer, explanation}。文言は message descriptor、
     // answer は choices の何番目が正解か（0 から）。「できた！」の中に出す（「できた」の判定には入れない）。
     // ふつうは challengeQuiz(id, answer) で書く。形は validateQuiz
