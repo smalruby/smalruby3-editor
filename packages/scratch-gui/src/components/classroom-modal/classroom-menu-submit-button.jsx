@@ -7,7 +7,7 @@
  * 作品を提出しないレッスンの課題では出さない（menuSubmitKind）。
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import useMenuSubmitKind from '../../containers/use-menu-submit-kind.js';
@@ -103,7 +103,6 @@ ClassroomMenuSubmitButtonView.propTypes = {
  * @returns {?React.ReactElement} the button
  */
 const ClassroomMenuSubmitButton = ({ placement = 'menu-bar', onAfterClick, reminderAllowed = true }) => {
-    const wrapRef = useRef(null);
     const dispatch = useDispatch();
     const classroom = useSelector((state) => state.scratchGui.classroom);
     const kind = useMenuSubmitKind();
@@ -111,13 +110,15 @@ const ClassroomMenuSubmitButton = ({ placement = 'menu-bar', onAfterClick, remin
         reminderAllowed && !!(classroom && classroom.submitReminderVisible) && kind === MENU_SUBMIT_KINDS.SUBMIT;
     const handleDismissReminder = useCallback((reason) => dispatch(dismissSubmitReminder(reason)), [dispatch]);
     const handleClick = useCallback(() => {
+        // 吹き出しが出ているときに「提出する」を押したら「消した」にする（キーボードの Enter / Space も同じ。
+        // マウスでは先に pointerdown でも消しているが、出ていない間の dismiss は reducer が無視する）。
+        if (reminderVisible) dispatch(dismissSubmitReminder('submit'));
         dispatch(requestStudentSubmit());
         if (onAfterClick) onAfterClick();
-    }, [dispatch, onAfterClick]);
+    }, [dispatch, onAfterClick, reminderVisible]);
     if (!kind) return null;
     return (
         <div
-            ref={wrapRef}
             className={
                 placement === 'drawer'
                     ? `${styles.menuSubmitWrap} ${styles.menuSubmitWrapDrawer}`
@@ -131,11 +132,7 @@ const ClassroomMenuSubmitButton = ({ placement = 'menu-bar', onAfterClick, remin
                 onClick={handleClick}
             />
             {reminderVisible ? (
-                <ClassroomSubmitReminderBalloon
-                    anchorRef={wrapRef}
-                    placement={placement}
-                    onDismiss={handleDismissReminder}
-                />
+                <ClassroomSubmitReminderBalloon placement={placement} onDismiss={handleDismissReminder} />
             ) : null}
         </div>
     );

@@ -3,7 +3,10 @@
  *
  * GA の計測（#1831）はここに聞き手を足すだけで済むようにしておく（ここでは何も送らない）。
  * 出来事は次の 3 つ:
- * - `{type: 'shown', first, minutesSinceStart}`: 吹き出しを出した（first = この課題ではじめて）
+ * - `{type: 'shown', first, resumed, minutesSinceStart}`: 吹き出しを出した
+ *   - first: この課題ではじめて出した（セッションが切れて同じ課題に入り直しても、もう true にしない）
+ *   - resumed: 同じ回の出し直し（モーダルを閉じた・リロードした）。「出した回数」には resumed でないものだけを数える
+ *   - minutesSinceStart: 数え始めから何分後か
  * - `{type: 'dismissed', reason}`: 消した（reason = 'close'（×）/ 'outside'（ほかの操作）/ 'submit'（「提出する」））
  * - `{type: 'submitted_after_shown', minutesSinceShown}`: 吹き出しを出したあとで提出した
  */

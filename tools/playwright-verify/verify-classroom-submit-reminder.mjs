@@ -5,7 +5,9 @@
  *      ほかの見えている操作（ボタン・タブ・入力欄・メニューバーの項目）と重ならないか（3 言語）
  *   2. スマホ: ☰ に点が出て、☰ を開くとドロワーの「提出する」の下に吹き出しが出て、
  *      ドロワーのほかの項目と重ならないか
- *   3. × で消すと、吹き出し（と ☰ の点）が消えるか
+ *   3. メニューバーでは、しっぽの先と「提出する」の下端の縦の距離・横のずれを出す
+ *      （下へずらすのは 56px まで。置けないときは吹き出しの代わりに「提出する」の右上の点）
+ *   4. × で消すと、吹き出し（と ☰ の点）が消えるか
  *
  * 参加して 30 分たった状態を sessionStorage（smalruby:classroomSubmitReminder）と
  * localStorage（smalruby:classroom の joinedAt）に入れて開く。classroom API はスタブ（dev server だけが前提）。
@@ -38,6 +40,7 @@ const VIEWPORTS = [
 const LOCALES = ['ja', 'ja-Hira', 'en'];
 
 const rows = [];
+const tails = [];
 const record = (ok, name, note = '') => {
     rows.push({ ok, name });
     console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${note ? ` — ${note}` : ''}`);
@@ -103,7 +106,12 @@ const measureBalloon = (page) =>
         const el = [...document.querySelectorAll('[data-testid="classroom-submit-reminder"]')].find(
             (x) => x.getClientRects().length > 0,
         );
-        if (!el) return { missing: true };
+        if (!el) {
+            const dot = [...document.querySelectorAll('[data-testid="classroom-submit-reminder-dot"]')].find(
+                (x) => x.getClientRects().length > 0,
+            );
+            return dot ? { compact: true } : { missing: true };
+        }
         const r = el.getBoundingClientRect();
         const overlaps = (a, b) =>
             a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
@@ -127,7 +135,12 @@ const measureBalloon = (page) =>
             (x) => x.getClientRects().length > 0,
         );
         const bb = btn && btn.getBoundingClientRect();
+        const arrow = el.querySelector('[data-balloon-arrow]');
+        const ab = arrow && arrow.getBoundingClientRect();
         return {
+            // しっぽの先（回した四角のいちばん上）と「提出する」の下端の距離、しっぽの中心と「提出する」の中心の横のずれ
+            tailGap: bb && ab ? Math.round(ab.top - bb.bottom) : null,
+            tailOffsetX: bb && ab ? Math.round((ab.left + ab.right) / 2 - (bb.left + bb.right) / 2) : null,
             box: `${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}`,
             inView: r.left >= 0 && r.top >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight,
             below: !!bb && r.top >= bb.bottom - 1,
@@ -163,16 +176,32 @@ for (const vp of VIEWPORTS) {
         const m = await measureBalloon(page);
         if (m.missing) {
             record(false, name, 'balloon not found');
+        } else if (m.compact) {
+            // 置ける場所が無いときは点だけ（スマホでは起きない）
+            record(!vp.phone, name, 'compact (dot on the submit button)');
+            tails.push({ name, tailGap: 'dot', tailOffsetX: '-' });
         } else {
             const ok = m.inView && m.below && m.hits.length === 0 && !m.pageScrollX && m.inDrawer === !!vp.phone;
-            record(ok, name, `box=${m.box} below=${m.below} hits=${JSON.stringify(m.hits)} text=${m.text}`);
+            record(
+                ok,
+                name,
+                `box=${m.box} below=${m.below} tailGap=${m.tailGap} tailOffsetX=${m.tailOffsetX} ` +
+                    `hits=${JSON.stringify(m.hits)} text=${m.text}`,
+            );
+            tails.push({ name, tailGap: m.tailGap, tailOffsetX: m.tailOffsetX });
         }
         await page.screenshot({ path: resolve(SHOT_DIR, `classroom-submit-reminder-${vp.name}-${locale}.png`) });
         if (DOCS_SHOTS && DOCS[name]) await page.screenshot({ path: resolve(DOCS_DIR, DOCS[name]) });
         // × で消す
-        await page.locator('[data-testid="classroom-submit-reminder-close"]:visible').first().click();
+        if (m.compact) {
+            await page.mouse.click(5, vp.height - 5);
+        } else {
+            await page.locator('[data-testid="classroom-submit-reminder-close"]:visible').first().click();
+        }
         await page.waitForTimeout(200);
-        const left = await visibleCount(page, 'classroom-submit-reminder');
+        const left =
+            (await visibleCount(page, 'classroom-submit-reminder')) +
+            (await visibleCount(page, 'classroom-submit-reminder-dot'));
         const dots = await visibleCount(page, 'mobile-side-rail-menu-dot');
         record(left === 0 && dots === 0, `${name} close`, `balloons=${left} dots=${dots}`);
         await ctx.close();
@@ -180,6 +209,8 @@ for (const vp of VIEWPORTS) {
 }
 
 await browser.close();
+console.log('\nしっぽの先と「提出する」の下端の距離（px）・横のずれ（px）');
+tails.forEach((t) => console.log(`  ${t.name}: gap=${t.tailGap} offsetX=${t.tailOffsetX}`));
 const failed = rows.filter((r) => !r.ok);
 console.log(`\n${rows.length - failed.length}/${rows.length} passed`);
 process.exit(failed.length ? 1 : 0);

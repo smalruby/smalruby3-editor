@@ -7,6 +7,7 @@ import {
     HIDDEN_RESTART_MS,
     REPEAT_REMINDER_MS,
     clockForAssignment,
+    firstShownAtOf,
     isSubmitReminderDue,
     isSubmitReminderEligible,
     markSubmitReminderDismissed,
@@ -16,6 +17,7 @@ import {
     placeReminderBalloon,
     submitReminderCountFrom,
     submitReminderDueAt,
+    submitReminderShowing,
 } from '../../../src/lib/classroom-submit-reminder.js';
 
 const MIN = 60 * 1000;
@@ -107,13 +109,64 @@ describe('clockForAssignment — 課題がかわったら課題ごとの記録�
         lastVisibleAt: T0,
         assignmentKey: 'c1',
         dismissedAt: T0 + 30 * MIN,
-        firstShownAt: T0 + 25 * MIN,
+        shownDueAt: T0 + 25 * MIN,
+        firstShown: { c1: T0 + 25 * MIN },
     };
     test('同じ課題ならそのまま', () => {
         expect(clockForAssignment(clock, 'c1')).toBe(clock);
     });
-    test('別の課題なら消した時刻・出した時刻を忘れる（タブの始まりは残す）', () => {
-        expect(clockForAssignment(clock, 'c2')).toEqual({ tabStartedAt: T0, lastVisibleAt: T0, assignmentKey: 'c2' });
+    test('別の課題なら消した時刻・出している回を忘れる（タブの始まりと課題ごとのはじめての時刻は残す）', () => {
+        expect(clockForAssignment(clock, 'c2')).toEqual({
+            tabStartedAt: T0,
+            lastVisibleAt: T0,
+            assignmentKey: 'c2',
+            firstShown: { c1: T0 + 25 * MIN },
+        });
+    });
+    test('参加していない間（null）は何も忘れない', () => {
+        expect(clockForAssignment(clock, null)).toBe(clock);
+    });
+    test('別の課題から戻っても、その課題ではじめて出した時刻は覚えている', () => {
+        const back = clockForAssignment(clockForAssignment(clock, 'c2'), 'c1');
+        expect(firstShownAtOf(back)).toBe(T0 + 25 * MIN);
+        expect(back.dismissedAt).toBeUndefined();
+    });
+});
+
+describe('submitReminderShowing — 新しく出す回か、同じ回の出し直しか', () => {
+    const base = { eligible: true, joinedAt: new Date(T0).toISOString() };
+    test('はじめて出す時は resumed でない', () => {
+        const clock = { tabStartedAt: T0, assignmentKey: 'c1' };
+        expect(submitReminderShowing({ ...base, now: T0 + 25 * MIN, clock })).toEqual({
+            due: true,
+            dueAt: T0 + 25 * MIN,
+            resumed: false,
+        });
+    });
+    test('同じ回を出したあと（モーダルを閉じた・リロードした）は resumed', () => {
+        const clock = markSubmitReminderShown(
+            { tabStartedAt: T0, assignmentKey: 'c1' },
+            T0 + 25 * MIN,
+            T0 + 25 * MIN,
+        );
+        expect(submitReminderShowing({ ...base, now: T0 + 27 * MIN, clock }).resumed).toBe(true);
+    });
+    test('消して 10 分たった次の回は resumed でない', () => {
+        let clock = markSubmitReminderShown({ tabStartedAt: T0, assignmentKey: 'c1' }, T0 + 25 * MIN, T0 + 25 * MIN);
+        clock = markSubmitReminderDismissed(clock, T0 + 26 * MIN);
+        expect(submitReminderShowing({ ...base, now: T0 + 36 * MIN, clock })).toEqual({
+            due: true,
+            dueAt: T0 + 36 * MIN,
+            resumed: false,
+        });
+    });
+    test('出す時でなければ due も resumed も false', () => {
+        const clock = { tabStartedAt: T0, assignmentKey: 'c1' };
+        expect(submitReminderShowing({ ...base, now: T0 + MIN, clock })).toMatchObject({
+            due: false,
+            resumed: false,
+        });
+        expect(submitReminderShowing({ ...base, eligible: false, now: T0 + 30 * MIN, clock }).due).toBe(false);
     });
 });
 
@@ -238,9 +291,28 @@ describe('submitReminderDueAt / isSubmitReminderDue — 回数', () => {
 
 describe('markSubmitReminderShown / markSubmitReminderDismissed', () => {
     test('はじめて出した時刻は最初の 1 回だけ覚える', () => {
-        let clock = markSubmitReminderShown({ assignmentKey: 'c1' }, T0);
-        clock = markSubmitReminderShown(clock, T0 + 10 * MIN);
-        expect(clock.firstShownAt).toBe(T0);
+        let clock = markSubmitReminderShown({ assignmentKey: 'c1' }, T0, T0);
+        clock = markSubmitReminderShown(clock, T0 + 10 * MIN, T0 + 10 * MIN);
+        expect(firstShownAtOf(clock)).toBe(T0);
+        expect(clock.shownDueAt).toBe(T0 + 10 * MIN);
+    });
+    test('はじめて出した時刻は課題ごと（ほかの課題の時刻を消さない）', () => {
+        let clock = markSubmitReminderShown({ assignmentKey: 'c1' }, T0, T0);
+        clock = markSubmitReminderShown(clockForAssignment(clock, 'c2'), T0 + MIN, T0 + MIN);
+        expect(clock.firstShown).toEqual({ c1: T0, c2: T0 + MIN });
+    });
+    test('覚える課題は 20 個まで（古いものから忘れる）', () => {
+        let clock = {};
+        for (let i = 0; i < 25; i++) {
+            clock = markSubmitReminderShown(clockForAssignment(clock, `c${i}`), T0 + i, T0 + i);
+        }
+        expect(Object.keys(clock.firstShown)).toHaveLength(20);
+        expect(clock.firstShown.c0).toBeUndefined();
+        expect(clock.firstShown.c24).toBe(T0 + 24);
+    });
+    test('sessionStorage から課題ごとの時刻を読む（数でないものは捨てる）', () => {
+        const raw = JSON.stringify({ assignmentKey: 'c1', shownDueAt: T0, firstShown: { c1: T0, c2: 'x' } });
+        expect(parseReminderClock(raw)).toEqual({ assignmentKey: 'c1', shownDueAt: T0, firstShown: { c1: T0 } });
     });
     test('消した時刻は毎回あたらしくする', () => {
         let clock = markSubmitReminderDismissed({ assignmentKey: 'c1' }, T0);
@@ -267,15 +339,33 @@ describe('placeReminderBalloon — メニューバーの吹き出しを置く場
         ];
         expect(placeReminderBalloon({ anchor, start: 48, size, obstacles, viewport }).top).toBe(84);
     });
-    test('ずらした先でも重なれば、さらに下へ', () => {
+    test('ずらした先でも重なれば、上限（56px）の中でさらに下へ', () => {
         const obstacles = [
             { left: 600, right: 700, top: 54, bottom: 76 },
-            { left: 900, right: 940, top: 90, bottom: 120 },
+            { left: 900, right: 940, top: 86, bottom: 96 },
         ];
-        expect(placeReminderBalloon({ anchor, start: 48, size, obstacles, viewport }).top).toBe(128);
+        expect(placeReminderBalloon({ anchor, start: 48, size, obstacles, viewport }).top).toBe(104);
     });
-    test('下に置ける場所が無ければ、いちばん上に置く', () => {
+    test('上限ちょうどの位置が空いていれば、そこに置く', () => {
+        const obstacles = [
+            { left: 600, right: 700, top: 54, bottom: 76 },
+            { left: 900, right: 940, top: 80, bottom: 150 },
+            { left: 660, right: 700, top: 100, bottom: 108 },
+        ];
+        // 56 は 1 つめ、84 は 2 つめに重なる。158 は上限（56 + 56 = 112）を超えるので試さない。
+        expect(placeReminderBalloon({ anchor, start: 48, size, obstacles, viewport })).toBeNull();
+        const freeAtCap = [
+            { left: 600, right: 700, top: 54, bottom: 76 },
+            { left: 900, right: 940, top: 80, bottom: 110 },
+        ];
+        expect(placeReminderBalloon({ anchor, start: 48, size, obstacles: freeAtCap, viewport }).top).toBe(112);
+    });
+    test('上限の中に置ける場所が無ければ null（吹き出しの代わりに点を出す）', () => {
         const obstacles = [{ left: 0, right: 1300, top: 50, bottom: 590 }];
+        expect(placeReminderBalloon({ anchor, start: 48, size, obstacles, viewport })).toBeNull();
+    });
+    test('列の外の操作は気にしない', () => {
+        const obstacles = [{ left: 0, right: 600, top: 50, bottom: 590 }];
         expect(placeReminderBalloon({ anchor, start: 48, size, obstacles, viewport }).top).toBe(56);
     });
     test('画面の左端からはみ出さない', () => {

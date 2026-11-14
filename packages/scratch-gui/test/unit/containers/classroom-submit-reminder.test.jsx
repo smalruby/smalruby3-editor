@@ -3,10 +3,12 @@
  * 「提出しよう」の吹き出し (#1835) を出す・しまう時を決めるコンテナ。時計は sessionStorage、
  * 結果は Redux の submitReminderVisible。GA（#1831）の口に出来事を渡す。
  */
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import React from 'react';
+import { IntlProvider } from 'react-intl';
 import { Provider } from 'react-redux';
 import { combineReducers, createStore } from 'redux';
+import ClassroomMenuSubmitButton from '../../../src/components/classroom-modal/classroom-menu-submit-button.jsx';
 import ClassroomSubmitReminder, { STORAGE_KEY } from '../../../src/containers/classroom-submit-reminder.jsx';
 import { addSubmitReminderListener } from '../../../src/lib/classroom-submit-reminder-events.js';
 import classroomReducer, {
@@ -106,7 +108,7 @@ describe('ClassroomSubmitReminder (#1835)', () => {
         expect(visible(store)).toBe(false);
         advance(1 * MIN);
         expect(visible(store)).toBe(true);
-        expect(events).toEqual([{ type: 'shown', first: true, minutesSinceStart: 25 }]);
+        expect(events).toEqual([{ type: 'shown', first: true, resumed: false, minutesSinceStart: 25 }]);
     });
 
     test('参加していなければ出さない', () => {
@@ -154,7 +156,7 @@ describe('ClassroomSubmitReminder (#1835)', () => {
         expect(visible(store)).toBe(false);
         advance(1 * MIN);
         expect(visible(store)).toBe(true);
-        expect(events[2]).toMatchObject({ type: 'shown', first: false });
+        expect(events[2]).toMatchObject({ type: 'shown', first: false, resumed: false });
     });
 
     test('提出したらしまい、その課題ではもう出さない。出したあとで提出したことを知らせる', () => {
@@ -271,5 +273,127 @@ describe('ClassroomSubmitReminder (#1835)', () => {
         expect(visible(store)).toBe(false);
         advance(1 * MIN);
         expect(visible(store)).toBe(true);
+    });
+
+    // Q2: 同じ回の出し直しは「新しく出した」と数えない（#1831 の回数を正しくする）。
+    describe('出した回数の数え方', () => {
+        const shownEvents = () => events.filter((e) => e.type === 'shown');
+
+        test('モーダルを開いて閉じて出し直したときは resumed: true（新しく出したとは数えない）', () => {
+            const store = makeStore();
+            mount(store, {});
+            advance(25 * MIN);
+            for (let i = 0; i < 3; i++) {
+                act(() => {
+                    store.dispatch(openClassroomModal());
+                });
+                act(() => {
+                    store.dispatch(closeClassroomModal());
+                });
+            }
+            expect(visible(store)).toBe(true);
+            expect(shownEvents().map((e) => e.resumed)).toEqual([false, true, true, true]);
+            expect(shownEvents().filter((e) => !e.resumed)).toHaveLength(1);
+        });
+
+        test('出したあとにリロードしても、同じ回は resumed: true', () => {
+            const store = makeStore();
+            const view = mount(store, {});
+            advance(25 * MIN);
+            view.unmount();
+            act(() => {
+                store.dispatch({ type: 'scratch-gui/classroom/SET_SUBMIT_REMINDER_VISIBLE', visible: false });
+            });
+            advance(1 * MIN);
+            mount(store, null);
+            expect(visible(store)).toBe(true);
+            expect(shownEvents()).toEqual([
+                { type: 'shown', first: true, resumed: false, minutesSinceStart: 25 },
+                { type: 'shown', first: false, resumed: true, minutesSinceStart: 26 },
+            ]);
+        });
+
+        test('セッションが切れて同じ課題に入り直しても、first: true をもう一度出さない', () => {
+            const store = makeStore();
+            mount(store, {});
+            advance(25 * MIN);
+            act(() => {
+                store.dispatch(clearClassroomSession());
+            });
+            act(() => {
+                store.dispatch(setClassroomSession(student({ joinedAt: new Date().toISOString() })));
+            });
+            advance(25 * MIN);
+            expect(shownEvents().map((e) => e.first)).toEqual([true, false]);
+        });
+
+        test('別の課題では first: true になる', () => {
+            const store = makeStore();
+            mount(store, {});
+            advance(25 * MIN);
+            act(() => {
+                store.dispatch(clearClassroomSession());
+                store.dispatch(
+                    setClassroomSession(student({ classroomId: 'class-2', joinedAt: new Date().toISOString() })),
+                );
+            });
+            advance(25 * MIN);
+            expect(shownEvents().map((e) => e.first)).toEqual([true, true]);
+        });
+    });
+
+    // Q1: 「提出する」→「やめる」のあとは、マウスでもキーボードでも 10 分たつまで出さない。
+    describe('「提出する」を押して「やめる」', () => {
+        let rects;
+        let box;
+        beforeEach(() => {
+            rects = jest.spyOn(Element.prototype, 'getClientRects').mockReturnValue([{}]);
+            box = jest
+                .spyOn(Element.prototype, 'getBoundingClientRect')
+                .mockReturnValue({ left: 10, right: 100, top: 8, bottom: 40, width: 90, height: 32 });
+        });
+        afterEach(() => {
+            rects.mockRestore();
+            box.mockRestore();
+        });
+
+        const mountWithButton = (store) => {
+            store.dispatch(setClassroomSession(student()));
+            return render(
+                <Provider store={store}>
+                    <IntlProvider locale="en">
+                        <ClassroomSubmitReminder />
+                        <ClassroomMenuSubmitButton />
+                    </IntlProvider>
+                </Provider>,
+            );
+        };
+
+        test.each([
+            ['マウス', true],
+            ['キーボード（Enter / Space は pointerdown 無しの click）', false],
+        ])('%s: 押す → やめる → 10 分たつまで出さない', (_label, withPointer) => {
+            const store = makeStore();
+            const { getByTestId, queryByTestId } = mountWithButton(store);
+            advance(25 * MIN);
+            expect(queryByTestId('classroom-submit-reminder')).not.toBeNull();
+            const button = getByTestId('classroom-menu-submit');
+            if (withPointer) fireEvent.pointerDown(button);
+            fireEvent.click(button);
+            expect(store.getState().scratchGui.classroom.modalVisible).toBe(true);
+            expect(store.getState().scratchGui.classroom.submitReminderDismissCount).toBe(1);
+            expect(store.getState().scratchGui.classroom.submitReminderDismissReason).toBe('submit');
+            // 提出確認の「やめる」
+            act(() => {
+                store.dispatch(closeClassroomModal());
+            });
+            expect(visible(store)).toBe(false);
+            advance(9 * MIN);
+            expect(visible(store)).toBe(false);
+            advance(1 * MIN);
+            expect(visible(store)).toBe(true);
+            expect(events.filter((e) => e.type === 'dismissed')).toEqual([{ type: 'dismissed', reason: 'submit' }]);
+            expect(events.filter((e) => e.type === 'shown').map((e) => e.resumed)).toEqual([false, false]);
+        });
     });
 });

@@ -579,6 +579,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-menu-submit` | button | 参加中はいつも出す提出のボタン。`data-kind` = `submit`（オレンジ「提出する」）/ `submitted`（緑「提出済み ✓」）/ `returned`（緑「返却済み ✓」）。押すと提出確認を開く。送信中は disabled の「提出中...」（`aria-busy="true"`）。作品を提出しないレッスンの課題・条件をまだ満たしていないレッスンの課題では描画しない。`data-placement` = `menu-bar`（PC・iPad）/ `drawer`（スマホ。ドロワー `mobile-drawer` のいちばん上に同じ data-testid で出る・高さ 48px） |
 | `classroom-submit-reminder` | div | 「提出しよう」の吹き出し（未提出のまま 25 分たったとき。消したら 10 分ごと）。`data-placement` = `menu-bar`（メニューバーの「提出する」の下に浮かべる）/ `drawer`（スマホのドロワーの「提出する」の下。ドロワーを開いているときだけ） |
 | `classroom-submit-reminder-close` | button | 吹き出しの ×（消す。10 分後にもう一度出る） |
+| `classroom-submit-reminder-dot` | span | メニューバーで、下へ 56px ずらしても操作に重なって吹き出しを置けないときの代わりの点（「提出する」の右上。読み上げ用に同じ文言を持つ） |
 | `mobile-side-rail-menu-dot` | span | スマホのサイドレールの ☰ の右上の点（吹き出しを出す時だけ） |
 | `classroom-menu-lesson-mark` | span | レッスンの課題の進み具合の印（`data-kind` = `notStarted` ○ / `inProgress` 「2/4」 / `cleared` ✓）。作品も提出する課題で提出したら横に `classroom-status-icon-submitted` |
 

@@ -252,15 +252,53 @@ describe('ClassroomMenuSubmitButton — 「提出しよう」の吹き出し', (
         expect(store.getActions()).toEqual([{ type: DISMISS, reason: 'outside' }]);
     });
 
-    test('「提出する」を押すと、消して提出確認を開く', () => {
+    test('「提出する」をマウスで押すと、pointerdown の時点で「提出する」を理由に消す', () => {
         const store = buildStore({});
         const { getByTestId } = renderWith(store);
         fireEvent.pointerDown(getByTestId('classroom-menu-submit'));
+        expect(store.getActions()).toEqual([{ type: DISMISS, reason: 'submit' }]);
+    });
+
+    test('「提出する」をキーボードで押しても（pointerdown 無し）、消して提出確認を開く', () => {
+        const store = buildStore({});
+        const { getByTestId } = renderWith(store);
         fireEvent.click(getByTestId('classroom-menu-submit'));
         expect(store.getActions()).toEqual([
             { type: DISMISS, reason: 'submit' },
             { type: 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT' },
         ]);
+    });
+
+    test('吹き出しが出ていないときに「提出する」を押しても、消したことにはしない', () => {
+        const store = buildStore({ submitReminderVisible: false });
+        const { getByTestId } = renderWith(store);
+        fireEvent.click(getByTestId('classroom-menu-submit'));
+        expect(store.getActions()).toEqual([{ type: 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT' }]);
+    });
+
+    test('下へ 56px ずらしても操作に重なるなら、吹き出しの代わりに「提出する」の右上へ点を出す', () => {
+        box.mockImplementation(function () {
+            if (this.getAttribute('data-testid') === 'elsewhere') {
+                return { left: 0, right: 1300, top: 40, bottom: 600, width: 1300, height: 560 };
+            }
+            return { left: 10, right: 100, top: 8, bottom: 40, width: 90, height: 32 };
+        });
+        // 吹き出しを置く範囲を調べる elementsFromPoint は、どの点でも「ほかの場所」のボタンを返す。
+        const original = document.elementsFromPoint;
+        document.elementsFromPoint = () => [document.querySelector('[data-testid="elsewhere"]')].filter(Boolean);
+        const store = buildStore({});
+        let rendered;
+        try {
+            rendered = renderWith(store);
+        } finally {
+            document.elementsFromPoint = original;
+        }
+        const { getByTestId, queryByTestId } = rendered;
+        expect(queryByTestId('classroom-submit-reminder')).toBeNull();
+        const dot = getByTestId('classroom-submit-reminder-dot');
+        expect(dot).toHaveTextContent('Ready to hand in your work? You can send it again later.');
+        fireEvent.pointerDown(getByTestId('elsewhere'));
+        expect(store.getActions()).toEqual([{ type: DISMISS, reason: 'outside' }]);
     });
 
     test('吹き出しの中を押しても消さない', () => {

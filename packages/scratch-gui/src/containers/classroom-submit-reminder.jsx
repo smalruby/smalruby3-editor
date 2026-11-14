@@ -10,13 +10,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { emitSubmitReminderEvent } from '../lib/classroom-submit-reminder-events.js';
 import {
     clockForAssignment,
-    isSubmitReminderDue,
+    firstShownAtOf,
     isSubmitReminderEligible,
     markSubmitReminderDismissed,
     markSubmitReminderShown,
     observeTabVisible,
     parseReminderClock,
     submitReminderCountFrom,
+    submitReminderShowing,
 } from '../lib/classroom-submit-reminder.js';
 import { setSubmitReminderVisible } from '../reducers/classroom.js';
 import useMenuSubmitKind from './use-menu-submit-kind.js';
@@ -82,14 +83,22 @@ const ClassroomSubmitReminder = () => {
         const now = Date.now();
         const { eligible: canShow, assignmentKey: key, joinedAt: joinedTime, visible: shown } = latest.current;
         let clock = clockForAssignment(observeTabVisible(loadClock(), now), key);
-        const due = isSubmitReminderDue({ now, eligible: canShow, clock, joinedAt: joinedTime });
+        const { due, dueAt, resumed } = submitReminderShowing({
+            now,
+            eligible: canShow,
+            clock,
+            joinedAt: joinedTime,
+        });
         if (due && !shown) {
-            const first = typeof clock.firstShownAt !== 'number';
-            clock = markSubmitReminderShown(clock, now);
+            // 同じ回の出し直し（モーダルを閉じた・リロードした）は resumed: true で知らせる。
+            // #1831 は resumed でないものだけを「出した回数」に数える（docs/classroom/ui-ux.md）。
+            const first = !resumed && firstShownAtOf(clock) === null;
+            if (!resumed) clock = markSubmitReminderShown(clock, now, dueAt);
             const countFrom = submitReminderCountFrom({ clock, joinedAt: joinedTime });
             emitSubmitReminderEvent({
                 type: 'shown',
                 first,
+                resumed,
                 minutesSinceStart: Math.round((now - countFrom) / MINUTE_MS),
             });
         }
@@ -140,11 +149,11 @@ const ClassroomSubmitReminder = () => {
         const before = wasSubmitted.current;
         wasSubmitted.current = submitted;
         if (before || !submitted) return;
-        const clock = clockForAssignment(loadClock(), latest.current.assignmentKey);
-        if (typeof clock.firstShownAt !== 'number') return;
+        const firstShownAt = firstShownAtOf(clockForAssignment(loadClock(), latest.current.assignmentKey));
+        if (firstShownAt === null) return;
         emitSubmitReminderEvent({
             type: 'submitted_after_shown',
-            minutesSinceShown: Math.round((Date.now() - clock.firstShownAt) / MINUTE_MS),
+            minutesSinceShown: Math.round((Date.now() - firstShownAt) / MINUTE_MS),
         });
     }, [submitted, loadClock]);
 

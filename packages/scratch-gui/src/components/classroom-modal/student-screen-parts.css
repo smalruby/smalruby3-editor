@@ -402,3 +402,22 @@
     word-break: keep-all;
     overflow-wrap: anywhere;
 }
+
+/* 置ける場所が無いとき（下へ 56px ずらしても操作に重なる）は吹き出しを見せず、
+   「提出する」の右上に小さな点だけを出す（測り直せるよう、吹き出しは画面の外に残す）。 */
+.submit-reminder.submit-reminder-hidden {
+    top: -100vh;
+    visibility: hidden;
+}
+
+.submit-reminder-dot {
+    position: absolute;
+    top: 4px;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    background-color: #1f5fbf;
+    pointer-events: none;
+}
