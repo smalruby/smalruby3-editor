@@ -101,6 +101,36 @@ describe('Ruby Roundtrip: a comment stays on its line (issue #1864)', () => {
     });
 });
 
+describe('Ruby Roundtrip: comments on the first and the last line of a block (issue #1864)', () => {
+    test.each([
+        ['the end of an if in a loop', 'loop do\n  if @a > 1\n    move(10)\n  end # c\nend'],
+        ['the end of a loop in an if', 'if @a > 1\n  loop do\n    move(10)\n  end # c\n  move(1)\nend'],
+        ['the end of times in a loop', 'loop do\n  3.times do\n    move(1)\n  end # c\nend'],
+        ['the end of begin ... end while', 'begin\n  move(10)\nend while @a < 1 # c'],
+        ['a modifier while', 'move(10) while @a < 1 # c', 'while @a < 1 # c\n  move(10)\nend'],
+        ['the head of a while', 'while @a < 1 # c\n  move(1)\nend'],
+        ['the head of times', '3.times do # c\n  move(1)\nend'],
+        ['the end of a while', 'while @a < 1\n  move(1)\nend # c'],
+        ['both lines of an if', 'if @a > 1 # a\n  move(1)\nend # b', '# a\nif @a > 1\n  move(1)\nend # b'],
+        [
+            'before, the head and the end of a case',
+            '# a\ncase @a # b\nwhen 1\n  move(1)\nend # h',
+            '# a\n# b\ncase @a\nwhen 1\n  move(1)\nend # h',
+        ],
+        ['the comment before a case of 2 whens', '# c\ncase @a\nwhen 1\n  move(1)\nwhen 2\n  move(2)\nend'],
+        ['the head of a case of 2 whens', 'case @a # c\nwhen 1\n  move(1)\nwhen 2\n  move(2)\nend'],
+        [
+            'the comments of a case of 3 whens',
+            '# a\ncase @a # b\nwhen 1\n  move(1)\n# c\nwhen 2 # d\n  move(2)\nwhen 3\n  move(3)\nend # e',
+            '# a\n# b\ncase @a\nwhen 1\n  move(1)\n# c\nwhen 2 # d\n  move(2)\nwhen 3\n  move(3)\nend # e',
+        ],
+    ])('%s', async (_name, code, expected = code) => {
+        const first = (await roundTrip(code)).ruby;
+        expect(first).toBe(expected);
+        expect((await roundTrip(first)).ruby).toBe(first);
+    });
+});
+
 describe('Ruby to blocks: the block a comment goes to (issue #1864)', () => {
     /**
      * The opcode of the block whose comment has the text `c`.

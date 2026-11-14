@@ -1,4 +1,4 @@
-import { beginLoopBodyOf, isLoopConditionCall, userCommentParts, withTrailingComment } from './scrub.js';
+import { beginLoopBodyOf, caseInfoOf, isLoopConditionCall, userCommentParts, withTrailingComment } from './scrub.js';
 
 /**
  * Define Ruby code generator for Control Blocks
@@ -68,24 +68,10 @@ export default function (Generator) {
         return `${beforeCode}${inline.trim() ? withTrailingComment(line, inline) : line}`;
     };
 
-    const getCaseInfo = function (block) {
-        const marker = Generator.findRubyMarker(block, '@ruby:syntax:case:');
-        const match = marker ? marker.match(/^@ruby:syntax:case:(.+):(\d+)$/) : null;
-        if (match) {
-            return {
-                subject: match[1],
-                id: match[2],
-            };
-        }
-        return null;
-    };
+    const getCaseInfo = (block) => caseInfoOf(Generator, block);
 
     const controlCaseInternal = function (block, caseInfo) {
-        const condBlockId = block.inputs.CONDITION ? block.inputs.CONDITION.block : null;
-        const condBlock = condBlockId ? Generator.getBlock(condBlockId) : null;
-        if (!condBlock || condBlock.opcode !== 'operator_equals') {
-            return '';
-        }
+        const condBlock = caseInfo.condBlock;
         const rh = Generator.valueToCode(condBlock, 'OPERAND2', Generator.ORDER_NONE);
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
 
@@ -98,7 +84,7 @@ export default function (Generator) {
                 const nextBlock = Generator.getBlock(substack2.block);
                 const nextCaseInfo = nextBlock ? getCaseInfo(nextBlock) : null;
                 if (nextCaseInfo && nextCaseInfo.subject === caseInfo.subject && nextCaseInfo.id === caseInfo.id) {
-                    result += controlCaseInternal(nextBlock, caseInfo);
+                    result += controlCaseInternal(nextBlock, nextCaseInfo);
                 } else {
                     const elseBranch = Generator.statementToCode(block, 'SUBSTACK2') || '';
                     if (elseBranch) {

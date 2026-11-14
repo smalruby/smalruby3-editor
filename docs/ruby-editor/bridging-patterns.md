@@ -573,12 +573,18 @@ end
 - 1 つのブロックに前のコメントとうしろのコメントの両方があるときは、前のコメントの行のあとにうしろのコメントを 1 行で置き、`@ruby:comment_position:inline:last` を足す（`前\nうしろ\n@ruby:comment_position:inline:last`）。生成器は利用者の文の最後の行だけを行の最後に書き、それより前の行は前の行に `# ...` と書く。`inline` だけのときは利用者の文がすべてうしろのコメント。
 - class / module の前のコメントはスプライトのコメントにする。module のときは `@ruby:module:<module 名>` を足し、生成器はそのコメントを module の前に書く（`code-finisher.js`）。
 - コメントを付けるのは、その行を Ruby に書くブロック。その行で始まるいちばん狭いノードのブロックから、次のように移す（`comment-handler.js` の `_commentAnchorOf`）。
-  - 値のブロックは、それを入力に持つブロックへ上がる（`a += 1` は代入のブロック、`case @a` は `case` の if のブロック）。
+  - 値のブロックは、それを入力に持つブロックへ上がる（`a += 1` は代入のブロック）。
   - 前のブロックが書くブロックは、前のブロックへ戻る。配列・ハッシュのリテラルの要素を足すブロック（`@ruby:array:literal:element` / `@ruby:hash:literal:*` / `@ruby:hash:set:push:*`）、`return` の止めるブロック（`@ruby:syntax:return`）、メソッドの最初で戻り値を初めにするブロック（`@ruby:return:<メソッド>:initialize`）。
   - `def` の行は procedures_definition。値だけの行（P18）は、その代入のブロック。ブロックの無いノードで始まる行（メソッドの最後の `1`、何行にもわたる配列の要素）は、それを囲むいちばん狭いノードのブロック。
+  - `case` の行は、`case` のいちばん外の if のブロック（`when` ごとに比べる値のブロックを作り直すので、比べる値のノードは最後の `when` のブロックを指す）。
   - `when` の行は、その `when` の `==` のブロック。生成器はこのコメントを `when` の行に書き、`case` の前には書かない（`control.js`）。`elsif` の行は `elsif` の if のブロックで、生成器はそのコメントと条件の中のコメントを `elsif` の行に書く。
-- 中に命令を入れるブロック（`loop do` / `if` / `case`）と `def` のうしろのコメントは、最初の行の最後に書く（`loop do # y`）。ほかのブロックは最後の行。値だけの行（`@a # c`）も行の最後に書く（`scrub.js`）。
-- 何行にもわたるブロックの最後の行のうしろのコメント（`end # c`）は、`@ruby:comment_position:end` を足す。生成器はこの注釈があると最後の行に書く。
+- うしろのコメントは、生成器がブロックのコードの最後の行に書く（`end # c`）。保存済みのプロジェクトの、中に命令を入れるブロックの `inline` のコメントは `end # c` から作られたものなので、この既定は変えない。
+  - 中に命令を入れるブロック（`loop do` / `if` / `while` / `case` など）の最初の行のうしろのコメントは、変換器が `@ruby:comment_position:start` を足す。生成器はこの注釈があると最初の行に書く（`loop do # c`）。
+  - `def` は注釈が無くても最初の行に書く（`def foo # c`）。
+  - 値だけの行（`@a # c`）も行の最後に書く（`scrub.js`）。
+- 何行にもわたるノードの最後の行のうしろのコメント（`end # c`、`end while @a < 1 # c`）は、その行で終わるいちばん狭いノードのブロックに付ける。`else` と `elsif` のノードは使わない（`end` は外の if の行）。
+- 1 つのブロックの最初の行と最後の行の両方にうしろのコメントがあると（`if @a > 1 # a` … `end # b`）、最初の行のコメントはブロックの前の行に移す。ブロックが持てるうしろのコメントは 1 つだけ。
+- `case` の注釈を持つ if の条件が `==` でないとき（ブロックの画面で替えたとき）は、生成器はふつうの if として書き、条件のコメントは if の前に書く（`scrub.js` の `caseInfoOf` が `case` で書けるかを決めるただ 1 つの関数）。
 
 **往復の例**:
 
@@ -595,8 +601,8 @@ move(30) # うしろ
 **できないこと**:
 
 - 何行にもわたる式の中の行のコメントは、その式の 1 行のうしろ・前に出る（生成器は式を 1 行に書く）。`@a = [\n  1, # c\n  2\n]` は `@a = [1, 2] # c`。
-- `else` の行のうしろのコメントは、`else` の中の最初の命令のうしろに移る。`def` / `when_flag_clicked do` の `end` のうしろのコメントは、`def` の前・`do` のうしろに移る（その行を書くブロックが無い）。
-- 1 つのブロックの最初の行と最後の行の両方にうしろのコメントがあると、最後の行のコメントだけが残る。
+- `else` の行のうしろのコメントは、`else` の中の最初の命令のうしろに移る（その行を書くブロックが無い）。
+- `def` の `end` のうしろのコメントは `def` の行に、`when_flag_clicked do` などのスクリプトの `end` のうしろのコメントは `do` の行に移る（生成器は `def` とスクリプトのうしろのコメントを最初の行に書く）。
 - 空行で離れた前のコメントは消える。`# a\n\n# b\nmove(10)` の `# a` は残らない。
 
 **テスト**: `ruby-to-blocks-converter/comments.test.js`、`comment-round-trip.test.js`、`ruby-generator/scrub.test.js`、`ruby-generator/ruby-markers.test.js`、`module-sync.test.js`、`ruby-roundtrip/comment-markers-table.test.js`（注釈のあるブロックに利用者のコメントがあるとき）、`ruby-roundtrip/comment-placement.test.js`（コメントを付けるブロックと、元の行に戻ること）。
@@ -734,7 +740,7 @@ foo.bar(1)
 | `@ruby:loop_condition_call` | `@ruby:loop_condition_call` | 変換器 `ast-handlers/control-flow.js` | 生成器 `scrub.js` | `while bar(@a) < 3` | P12 |
 | `@ruby:begin_loop_body` | `,@ruby:begin_loop_body`（ほかの注釈に足す） | 変換器 `ast-handlers/control-flow.js` | 生成器 `scrub.js` | `begin ... end while` | P12 |
 | `@ruby:block_param` | `@ruby:block_param:<番号>:<名前>`（1 行に 1 つ） | 変換器 `smalruby-ruby.js` / `control.js` | 生成器 `smalruby-ruby.js` | `@ruby:block_param:1:i` | P13 |
-| `@ruby:comment_position` | `<利用者の文>\n@ruby:comment_position:inline`、`<前の文>\n<うしろの文>\n@ruby:comment_position:inline:last`、最後の行なら `@ruby:comment_position:end` を足す | 変換器 `comment-handler.js` | 生成器 `scrub.js` / `control.js`（`when` / `elsif`）、`src/lib/scratch-blocks-comment-icon-patch.js` | `move(10) # ...` | P14 |
+| `@ruby:comment_position` | `<利用者の文>\n@ruby:comment_position:inline`、`<前の文>\n<うしろの文>\n@ruby:comment_position:inline:last`、中に命令を入れるブロックの最初の行なら `@ruby:comment_position:start` を足す | 変換器 `comment-handler.js` | 生成器 `scrub.js` / `control.js`（`when` / `elsif`）、`src/lib/scratch-blocks-comment-icon-patch.js` | `move(10) # ...` | P14 |
 
 - すべての注釈を読むところ: `src/lib/ruby-markers.js`（ブロックの注釈を読むただ 1 つの関数。生成器・`module-sync.js`・`settings-menu.jsx`・`mobile-drawer.jsx` の「読む」はみなこれを通す。スプライトのコメントの `@ruby:class` / `@ruby:initialize` / `@ruby:module` は生成器がコメント全体の形で読む）、`src/lib/scratch-blocks-comment-icon-patch.js`（注釈だけのコメントのアイコンを隠す）、生成器 `scrub.js`（`#` のコメントから `@ruby:` の行を捨てる）、`scratch-vm/src/engine/comment.js`（注釈のコメントの位置）。
 - 一覧がそろっているかは `grep -rhoE "@ruby:[a-z_?-]+" packages/scratch-gui/src packages/scratch-vm/src | sort -u` で確かめる。
