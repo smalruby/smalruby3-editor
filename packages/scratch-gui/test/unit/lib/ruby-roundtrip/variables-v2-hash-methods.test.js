@@ -5,6 +5,7 @@
  * (issues #1652 / #1654).
  */
 import dedent from 'dedent';
+import RubyGenerator from '../../../../src/lib/ruby-generator';
 import {
     makeSpriteTarget,
     makeConverter,
@@ -50,6 +51,49 @@ describe('Ruby Roundtrip: V2 hash methods (#1652)', () => {
             target,
             inFlag([`${name} = {a: 1}`, `${name}.each do |k, v|`, '  say(k)', '  say(v)', 'end']),
         );
+    });
+
+    // `each` of a hash with no block parameter repeats as many times as the hash has pairs, as the block
+    // of a hash does: it is that block with the lists of the hash (issue #1911).
+    test.each(['@h', '$h', 'h'])('%s.each do round-trips as each of the hash', async (name) => {
+        const code = inFlag([`${name} = {a: 1}`, `${name}.each do`, '  say("a")', 'end']);
+        await expectRoundTrip(converter, target, code);
+        const each = Object.values(converter._context.blocks).find((b) => b.opcode.endsWith('MethodWithBlock'));
+        expect(each.opcode).toBe('smalrubyRuby_hashMethodWithBlock');
+        const comment = converter._context.comments[each.comment].text;
+        expect(comment).toContain(`@ruby:list_ref:KEYS:`);
+        expect(comment).toContain(`@ruby:list_ref:VALUES:`);
+    });
+
+    test('@h.each { ... } becomes each of the hash with do', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            inFlag(['@h = {a: 1}', '@h.each { say("a") }']),
+            inFlag(['@h = {a: 1}', '@h.each do', '  say("a")', 'end']),
+        );
+    });
+
+    // A block of `each` of a hash without its comment (put from the palette, or its comment deleted) is
+    // written as `@h.each do`. It comes back to the block of the hash, with the lists of the hash again.
+    test('a block of each of a hash without its comment comes back to the blocks', async () => {
+        await rubyToBlocksToRuby(
+            converter,
+            target,
+            inFlag(['@h = {a: 1}', '@h.each do |k, v|', '  say("a")', 'end']),
+        );
+        const each = Object.values(target.blocks._blocks).find(
+            (b) => b.opcode === 'smalrubyRuby_hashMethodWithBlock',
+        );
+        delete target.comments[each.comment];
+        each.comment = null;
+        const code = RubyGenerator.targetToCode(target, { version: '2' }).trim();
+        expect(code).toBe(inFlag(['@h = {a: 1}', '@h.each do', '  say("a")', 'end']));
+        const fresh = makeSpriteTarget();
+        await expectRoundTrip(makeConverter(fresh.target, fresh.runtime, { version: '2' }), fresh.target, code);
+        const back = Object.values(fresh.target.blocks._blocks).find((b) => b.opcode.endsWith('MethodWithBlock'));
+        expect(back.opcode).toBe('smalrubyRuby_hashMethodWithBlock');
+        expect(fresh.target.comments[back.comment].text).toContain('@ruby:list_ref:KEYS:');
     });
 
     test('keys and values in a condition and as an argument', async () => {
@@ -129,6 +173,24 @@ describe('Ruby Roundtrip: V2 hash methods (#1652)', () => {
         const lengths = Object.values(converter._context.blocks).filter((b) => b.opcode === 'data_lengthoflist');
         expect(lengths.map((b) => b.fields.LIST.value)).toEqual(['_hash_h_keys_', '_hash_h_keys_']);
         await expectRoundTrip(makeConverter(target, runtime, { version: '2' }), target, code);
+    });
+
+    // `each` of a hash of the stage takes the key and the value too: `do |k|` is the wrong instruction on
+    // its line, not `each` of an empty list named `h` (issue #1911).
+    test('each of a hash of the stage, read in a sprite, takes the key and the value', async () => {
+        const stage = runtime.getTargetForStage();
+        const stageConverter = makeConverter(stage, runtime, { version: '2' });
+        expect(await stageConverter.targetCodeToBlocks(stage, inFlag(['$h = {a: 1}']))).toBe(true);
+        await stageConverter.applyTargetBlocks(stage);
+
+        expect(await converter.targetCodeToBlocks(target, inFlag(['$h.each do |k|', '  say(k)', 'end']))).toBe(false);
+        expect(converter.errors.map((e) => e.row)).toEqual([1]);
+        expect(converter.errors[0].text).toContain('"$h.each do |k|..." is the wrong instruction.');
+        await expectRoundTrip(
+            makeConverter(target, runtime, { version: '2' }),
+            target,
+            inFlag(['$h.each do |k, v|', '  say(k)', 'end']),
+        );
     });
 
     test('a string whose name has a list named like the lists of a hash is still a string', async () => {

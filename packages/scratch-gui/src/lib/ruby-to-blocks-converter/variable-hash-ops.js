@@ -414,7 +414,7 @@ export const hashListsOfReceiver = function (converter, receiver, assumeHash = f
     const keysListName = converter._hashKeysListName(rubyName);
     if (!assumeHash) {
         const uses = converter._variableUsesOf(variable);
-        const setToHash = Boolean(uses) && uses.hash && !uses.list;
+        const setToHash = Boolean(uses) && uses.hash && !uses.list && !uses.scalar;
         // The lists are kept under the bare name (`_hash_h_keys_`) with their scope. A hash of the
         // project (`$h = {...}` in the stage, read in a sprite) is one only when this code does not
         // set the name to something else.
