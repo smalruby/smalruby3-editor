@@ -104,6 +104,15 @@ describe('snapshotPlanForRecord', () => {
     expect(plan).toBeNull();
   });
 
+  test('skips kick markers in the Memberships table (issue #1821)', () => {
+    const plan = snapshotPlanForRecord(removeRecord('ClassroomMemberships-stg', {
+      classroomId: { S: 'kicked#c1' },
+      memberId: { S: 'seat-03#0123456789abcdef' },
+      kicked: { BOOL: true },
+    }) as never);
+    expect(plan).toBeNull();
+  });
+
   test('skips non-REMOVE events, unknown tables, and missing images', () => {
     const insert = { ...removeRecord('Classrooms-stg', classroomImage), eventName: 'INSERT' as const };
     expect(snapshotPlanForRecord(insert as never)).toBeNull();
