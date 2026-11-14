@@ -150,7 +150,7 @@ const mapDispatchToProps = (dispatch) => ({
             : openLessonsLibraryAt(dispatch, challengeId),
     onOpenChallenge: (challengeId) => dispatch(openChallenge(challengeId)),
     onCloseLesson: () => dispatch(closeLesson()),
-    onSubmitAssignment: () => dispatch(requestStudentSubmit()),
+    onSubmitAssignment: () => dispatch(requestStudentSubmit('lesson_clear')),
 });
 
 export { LessonGoalWatcher };

@@ -14,17 +14,19 @@ import StudentTextLink from './student-text-link.jsx';
  * screen so the floating panel sits next to the student's own blocks.
  * @param {object} props - component props
  * @param {boolean} props.disabled - the class screen is busy
+ * @param {Function} [props.onOpen] - called when it opens the panel (GA, #1831)
  * @returns {?React.ReactElement} the button, or null when hidden
  */
-const StudentPeerViewButton = ({ disabled }) => {
+const StudentPeerViewButton = ({ disabled, onOpen }) => {
     const dispatch = useDispatch();
     const peerView = useSelector((state) => state.scratchGui.classroom?.studentPeerView || null);
     const hasSubmitted = useSelector((state) => !!state.scratchGui.classroom?.submissionStatus);
     const entry = peerViewEntryState(peerView, hasSubmitted);
     const handleClick = useCallback(() => {
+        onOpen?.();
         dispatch(openStudentPeerPanel());
         dispatch(closeClassroomModal());
-    }, [dispatch]);
+    }, [dispatch, onOpen]);
 
     if (entry === 'hidden') return null;
     if (entry === 'locked') {
@@ -51,6 +53,7 @@ const StudentPeerViewButton = ({ disabled }) => {
 
 StudentPeerViewButton.propTypes = {
     disabled: PropTypes.bool,
+    onOpen: PropTypes.func,
 };
 
 export default StudentPeerViewButton;

@@ -267,3 +267,79 @@ describe('StudentStatusView: リロードしたあとに「この課題で出し
         expect(h.onContinue).not.toHaveBeenCalled();
     });
 });
+
+describe('StudentStatusView の GA (#1831)', () => {
+    const renderWithTrack = (props) => {
+        const store = createStore(combineReducers({ scratchGui: combineReducers({ classroom: classroomReducer }) }));
+        const handlers = {
+            onContinue: jest.fn(),
+            onLeaveClassroom: jest.fn(),
+            onRefreshStudentStatus: jest.fn(),
+            onWrongSeat: jest.fn(),
+        };
+        const ui = (extra) => (
+            <Provider store={store}>
+                <IntlProvider locale="en">
+                    <StudentStatusView classroomState={baseState()} {...handlers} {...props} {...extra} />
+                </IntlProvider>
+            </Provider>
+        );
+        const utils = render(ui());
+        return { ...handlers, rerender: (extra) => utils.rerender(ui(extra)) };
+    };
+
+    test('状態を確かめおわってから welcome_view を 1 回だけ送る', () => {
+        const onTrack = jest.fn();
+        const { rerender } = renderWithTrack({ isLoading: true, onTrack, now: () => 0 });
+        expect(onTrack).not.toHaveBeenCalled();
+        rerender({ isLoading: false });
+        expect(onTrack).toHaveBeenCalledWith('welcome_view', { main: 'continue' });
+        rerender({ isLoading: true });
+        rerender({ isLoading: false });
+        expect(onTrack.mock.calls.filter(([a]) => a === 'welcome_view')).toHaveLength(1);
+    });
+
+    test('提出状況を確かめている間（statusChecking）は welcome_view を待つ', () => {
+        const onTrack = jest.fn();
+        const { rerender } = renderWithTrack({ statusChecking: true, onTrack, now: () => 0 });
+        expect(onTrack).not.toHaveBeenCalled();
+        rerender({ statusChecking: false });
+        expect(onTrack).toHaveBeenCalledWith('welcome_view', { main: 'continue' });
+    });
+
+    test('「つづける」で welcome_action（button・主ボタン・秒）', () => {
+        const onTrack = jest.fn();
+        let t = 2000;
+        const { onContinue } = renderWithTrack({ onTrack, now: () => t });
+        t = 9600;
+        fireEvent.click(screen.getByTestId('classroom-status-continue'));
+        expect(onTrack).toHaveBeenLastCalledWith('welcome_action', {
+            button: 'continue',
+            kind: undefined, // eslint-disable-line no-undefined
+            main: 'continue',
+            seconds: 8,
+        });
+        expect(onContinue).toHaveBeenCalled();
+    });
+
+    test('「出席番号がちがう」は wrong_seat', () => {
+        const onTrack = jest.fn();
+        const { onWrongSeat } = renderWithTrack({ onTrack, now: () => 0 });
+        fireEvent.click(screen.getByTestId('classroom-status-wrong-seat'));
+        expect(onTrack).toHaveBeenLastCalledWith('welcome_action', expect.objectContaining({ button: 'wrong_seat' }));
+        expect(onWrongSeat).toHaveBeenCalled();
+    });
+
+    test('クラスから出る: leave → leave_class cancel / confirm', () => {
+        const onTrack = jest.fn();
+        const { onLeaveClassroom } = renderWithTrack({ onTrack, now: () => 0 });
+        fireEvent.click(screen.getByTestId('classroom-leave'));
+        expect(onTrack).toHaveBeenLastCalledWith('welcome_action', expect.objectContaining({ button: 'leave' }));
+        fireEvent.click(screen.getByTestId('classroom-leave-cancel'));
+        expect(onTrack).toHaveBeenLastCalledWith('leave_class', { result: 'cancel' });
+        fireEvent.click(screen.getByTestId('classroom-leave'));
+        fireEvent.click(screen.getByTestId('classroom-leave-confirm'));
+        expect(onTrack).toHaveBeenLastCalledWith('leave_class', { result: 'confirm' });
+        expect(onLeaveClassroom).toHaveBeenCalled();
+    });
+});

@@ -221,6 +221,9 @@ const initialState = {
     // 「課題を提出する」 on the lesson screens asks the classroom modal to go
     // straight to the submit confirmation; consumed by ClassroomModal.
     studentSubmitRequested: false,
+    // Where that request came from (menu_bar / drawer / lessons_library / lesson_clear), only
+    // for the GA count of where students open the submission (#1831). Not persisted.
+    studentSubmitFrom: null,
     // A submission is being sent (#1795). The menu bar's submit button is
     // disabled meanwhile so a second, concurrent submit cannot start. Not persisted.
     studentSubmitting: false,
@@ -317,6 +320,7 @@ const reducer = (state, action) => {
                 studentGenai: normalizeStudentGenai(null),
                 studentLesson: null,
                 studentSubmitRequested: false,
+                studentSubmitFrom: null,
                 studentSubmitting: false,
                 studentLoadedSubmission: null,
                 submitReminderVisible: false,
@@ -430,9 +434,16 @@ const reducer = (state, action) => {
             return { ...state, studentLesson };
         }
         case REQUEST_STUDENT_SUBMIT:
-            return { ...state, modalVisible: true, studentSubmitRequested: true };
+            return {
+                ...state,
+                modalVisible: true,
+                studentSubmitRequested: true,
+                studentSubmitFrom: action.from || null,
+            };
         case CLEAR_STUDENT_SUBMIT_REQUEST:
-            return state.studentSubmitRequested ? { ...state, studentSubmitRequested: false } : state;
+            return state.studentSubmitRequested
+                ? { ...state, studentSubmitRequested: false, studentSubmitFrom: null }
+                : state;
         case SET_STUDENT_SUBMITTING:
             return { ...state, studentSubmitting: !!action.submitting };
         case SET_SUBMIT_REMINDER_VISIBLE:
@@ -588,9 +599,11 @@ const setStudentLesson = (lesson) => ({ type: SET_STUDENT_LESSON, lesson: lesson
 /**
  * 「課題を提出する」 from the lesson screens: open the classroom modal on the
  * submit confirmation (#1599).
+ * @param {?string} [from] - where it was pressed, for the GA count only (#1831):
+ *   menu_bar / drawer / lessons_library / lesson_clear
  * @returns {object} action
  */
-const requestStudentSubmit = () => ({ type: REQUEST_STUDENT_SUBMIT });
+const requestStudentSubmit = (from = null) => ({ type: REQUEST_STUDENT_SUBMIT, from });
 const clearStudentSubmitRequest = () => ({ type: CLEAR_STUDENT_SUBMIT_REQUEST });
 const setStudentSubmitting = (submitting) => ({ type: SET_STUDENT_SUBMITTING, submitting: !!submitting });
 

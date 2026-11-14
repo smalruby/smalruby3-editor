@@ -129,3 +129,70 @@ describe('StudentStartMethod', () => {
         expect(getByTestId('classroom-start-others-toggle')).toBeDisabled();
     });
 });
+
+describe('StudentStartMethod の GA (#1831)', () => {
+    test('出したときに start_view（主ボタンとほかの始め方の数）を 1 回送る', () => {
+        const onTrack = jest.fn();
+        const { rerender } = renderMethod({
+            ...handlers(),
+            method: { main: 'previous', others: ['starter', 'keep'] },
+            onTrack,
+        });
+        expect(onTrack).toHaveBeenCalledTimes(1);
+        expect(onTrack).toHaveBeenCalledWith('start_view', { main: 'previous', others_count: 2 });
+        rerender(
+            <IntlProvider locale="en">
+                <StudentStartMethod
+                    {...handlers()}
+                    method={{ main: 'previous', others: ['starter'] }}
+                    onTrack={onTrack}
+                />
+            </IntlProvider>,
+        );
+        expect(onTrack).toHaveBeenCalledTimes(1);
+    });
+
+    test('主ボタンで選ぶと start_choose（via=main・秒）', () => {
+        const onTrack = jest.fn();
+        let t = 1000;
+        const { getByTestId } = renderMethod({
+            ...handlers(),
+            method: { main: 'starter', others: ['keep'] },
+            now: () => t,
+            onTrack,
+        });
+        t = 13400;
+        fireEvent.click(getByTestId('classroom-start-main'));
+        expect(onTrack).toHaveBeenLastCalledWith('start_choose', {
+            kind: 'starter',
+            via: 'main',
+            others_opened: false,
+            seconds: 12,
+        });
+    });
+
+    test('ほかの始め方から選ぶと via=others・others_opened=true', () => {
+        const onTrack = jest.fn();
+        const { getByTestId } = renderMethod({
+            ...handlers(),
+            method: { main: 'starter', others: ['keep'] },
+            now: () => 0,
+            onTrack,
+        });
+        fireEvent.click(getByTestId('classroom-start-others-toggle'));
+        fireEvent.click(getByTestId('classroom-start-other-keep'));
+        expect(onTrack).toHaveBeenLastCalledWith('start_choose', {
+            kind: 'keep',
+            via: 'others',
+            others_opened: true,
+            seconds: 0,
+        });
+    });
+
+    test('onTrack が無くても動く', () => {
+        const h = handlers();
+        const { getByTestId } = renderMethod({ ...h, method: { main: 'keep', others: [] } });
+        fireEvent.click(getByTestId('classroom-start-main'));
+        expect(h.onKeepCurrent).toHaveBeenCalled();
+    });
+});

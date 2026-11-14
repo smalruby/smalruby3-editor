@@ -3,11 +3,13 @@
  *
  * 判断は lib/classroom-submit-reminder.js の純粋関数。ここは時計を sessionStorage に置き、
  * タブが見えている間だけ定期に確かめ、結果を Redux（submitReminderVisible）に書く。
- * 吹き出し・ドロワー・☰ の点はその値を読むだけ。GA の口は lib/classroom-submit-reminder-events.js。
+ * 吹き出し・ドロワー・☰ の点はその値を読むだけ。GA の口は lib/classroom-submit-reminder-events.js で、
+ * その出来事を classroom_student の GA イベントとして送るのもここ（#1831。先生のログイン中は送らない）。
  */
 import { useCallback, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { emitSubmitReminderEvent } from '../lib/classroom-submit-reminder-events.js';
+import { sendClassroomStudentEvent, submitReminderGaEvent } from '../lib/classroom-student-analytics.js';
+import { addSubmitReminderListener, emitSubmitReminderEvent } from '../lib/classroom-submit-reminder-events.js';
 import {
     clockForAssignment,
     firstShownAtOf,
@@ -77,6 +79,18 @@ const ClassroomSubmitReminder = () => {
 
     const latest = useRef({});
     latest.current = { eligible, assignmentKey, joinedAt, visible };
+
+    // 吹き出しの出来事を GA に送る（#1831）。出し直し（resumed）は「出した」に数えない。
+    const teacherLoggedIn = useRef(false);
+    teacherLoggedIn.current = !!classroom.teacherLoggedIn;
+    useEffect(
+        () =>
+            addSubmitReminderListener((event) => {
+                const ga = submitReminderGaEvent(event);
+                if (ga) sendClassroomStudentEvent(ga.action, ga.params, { teacherLoggedIn: teacherLoggedIn.current });
+            }),
+        [],
+    );
 
     const evaluate = useCallback(() => {
         if (isHidden()) return;

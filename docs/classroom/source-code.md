@@ -102,6 +102,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-seat-selection.js ← 席選択の純粋ロジック（番号入力の検証・ポーリング判定・定数）
 │   │   │   ├── classroom-continue-options.js ← 続きに使える提出物の正規化・参加したあとの始め方を 1 つに決める decideStartMethod（純粋）#1201 #1202 #1793
 │   │   │   ├── classroom-student-steps.js ← 進む順の帯の状態（画面と提出状況からいまの段を決める・純粋）
+│   │   │   ├── classroom-student-analytics.js ← 生徒の参加〜提出の GA の計測（イベントの形・送らない項目・結果の分け方・秒。純粋）#1831
 │   │   │   ├── classroom-mesh-connect.js ← メッシュの接続モーダルを出すか / いま出せるかの判定（純粋）#1251
 │   │   │   ├── classroom-submit-reminder.js ← 「提出しよう」の吹き出しの判断（出す条件・数え方・くり返し・置き場所。純粋）#1835
 │   │   │   ├── classroom-submit-reminder-events.js ← 吹き出しの出来事（出した・消した・出したあとに提出）を聞き手に渡す口（GA 用）

@@ -142,7 +142,7 @@ stateDiagram-v2
 
 ![スマホのドロワーの「提出しよう」の吹き出し](screenshots/0347-mobile-drawer-submit-reminder.png)
 
-判断は `src/lib/classroom-submit-reminder.js` の純粋関数（時刻を引数で受ける）、出す・しまうは `src/containers/classroom-submit-reminder.jsx`。出した・消した・出したあとに提出した、は `src/lib/classroom-submit-reminder-events.js` の聞き手に渡す（GA の計測はここに足す）。
+判断は `src/lib/classroom-submit-reminder.js` の純粋関数（時刻を引数で受ける）、出す・しまうは `src/containers/classroom-submit-reminder.jsx`。出した・消した・出したあとに提出した、は `src/lib/classroom-submit-reminder-events.js` の聞き手に渡す（GA では `submit_reminder_*` として送る。[GA の計測](#ga-の計測生徒の参加提出)）。
 
 **出来事（計測の数え方）**:
 
@@ -781,6 +781,80 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 参加中は、メニューバーにいつも「提出する」ボタンを出す（[メニューバー](#メニューバー)）。提出の入口は、このボタンと、レッスン表・「課題クリア！」の［課題を提出する］だけにする（クラスの画面には提出のボタンを置かない）。
 
 ---
+
+## GA の計測（生徒の参加〜提出）
+
+生徒の流れ（① 参加 → ② 番号 → ③ はじめる → ④ つくる → ⑤ 提出）を GA で計測し、**生徒がどの段でつまずいているか・どこを直すとよいか**を数で見る。
+
+仕組みはレッスンの計測（[`docs/lessons/README.md`](../lessons/README.md) の「GA の計測」）と同じ `lib/analytics.js`（GTM の `dataLayer` に push）。
+
+- `category` はすべて **`classroom_student`**。`action` がイベントの名前。`label` は使わない（`undefined`）。
+- いまの `classroom` / `join`・`classroom` / `submit` はそのまま残す。
+- 数を見る項目は `label` に詰めずに **dataLayer の項目**として同じ push に入れる（`analytics.js` の Smalruby マーカー `extra GA params`）。GA4 で見るには、GTM でデータレイヤー変数を作る。
+- **`classroom_student` のイベントは、いつも同じ 18 個の項目を全部入れ、使わない項目は `undefined` にする**。項目は `result`・`seconds`・`minutes`・`previous_seat`・`previous_taken`・`is_previous`・`after_guide`・`main`・`others_count`・`kind`・`via`・`others_opened`・`button`・`from`・`state`・`reason`・`step`・`first`。前のイベントの値が次のイベントに残らないようにするため（レッスンと同じ理由）。
+
+| `action` | いつ | 項目 |
+|---|---|---|
+| `join_code` | 参加コードの画面で参加コードを送った（キックや `?classcode=` の自動の問い合わせは数えない） | `result`（`ok` / `not_found` / `closed` / `error`） |
+| `seat_view` | 番号選びを出した | `previous_seat`（この PC に前回の番号があるか）・`previous_taken`（それが使用中か） |
+| `seat_idle_guide` | 30 秒たっても選ばれず、案内が出た（使用中の番号が光る） | — |
+| `seat_select` | 番号で参加しようとした結果 | `result`（`ok` / `taken` / `error`）・`via`（`grid` = 自分で選んだ / `kick_approved` = 退室依頼の承認で自動で入った）・`seconds`（番号選びを出してから）・`is_previous`（前回の番号か）・`after_guide`（30 秒の案内のあとか） |
+| `kick_request` | 退室依頼 | `result`（`sent` / `error` / `canceled`（ダイアログの「やめる」）/ `approved` / `rejected`（却下・1 時間の期限切れ））・`seconds`（`sent` は番号選びを出してから。`approved` / `rejected` は送ってから。リロードをまたぐと無し） |
+| `start_view` | 始め方（参加完了・課題パネルの最後のページ）を出した | `main`（`current` / `previous` / `starter` / `keep` / `lesson`）・`others_count`（ほかの始め方の数） |
+| `start_choose` | 始め方を選んだ | `kind`（選んだ始め方）・`via`（`main` / `others`）・`others_opened`（「ほかの始め方」を開いたか）・`seconds`（始め方を出してから） |
+| `welcome_view` | おかえりなさいを出した（提出状況を確かめおわって主ボタンが決まってから 1 回） | `main`（`continue` / `this_submission` / `lesson`） |
+| `welcome_action` | おかえりなさいで押した | `button`（`continue` / `continue_as_is` / `this_submission` / `lesson` / `assignment` / `peer` / `wrong_seat` / `reload` / `leave`）・`kind`（`reload` のとき開いたもの）・`main`・`seconds`（おかえりなさいを出してから） |
+| `leave_class` | 「クラスから出る」の確認 | `result`（`confirm` / `cancel`） |
+| `submit_open` | 提出の確認を開いた | `from`（`menu_bar` / `drawer` / `lessons_library` / `lesson_clear`）・`state`（`first` / `resubmit` / `returned`） |
+| `submit_result` | 提出の確認の結果 | `result`（`done` / `cancel` / `error` / `expired`（セッション切れ）/ `convert_error`（Ruby をブロックに直せなかった））・`seconds`（確認を開いてから） |
+| `session_end` | クラスの画面を開いたときに、セッションが切れていた・退室させられていた | `reason`（`expired` / `kicked`） |
+| `modal_close` | クラスの画面を ×・外側・Esc で閉じた（始め方を選んだ・「つづける」で閉じたときは送らない） | `step`（帯の段 `join` / `seat` / `start` / `make` / `submit`、全部すんだら `complete`） |
+| `submit_reminder_shown` | 「提出しよう」の吹き出しを出した（**`resumed: false` だけ**。同じ回の出し直しは送らない） | `first`（この課題ではじめてか）・`minutes`（数え始めから何分後か） |
+| `submit_reminder_dismissed` | 吹き出しを消した | `reason`（`close` / `outside` / `submit`） |
+| `submit_reminder_submitted` | 吹き出しを出したあとで提出した | `minutes`（はじめて出してから何分後か） |
+
+- **秒（`seconds`）は、タブが裏にあった時間を引く**（レッスンと同じ `activeNow`）。整数に丸める。はじまりが分からないとき（リロードをまたいだなど）は `undefined`。
+- **送らないもの**: クラス・課題・席番号（前回の番号そのものもふくむ）・ニックネーム・参加コード・セッション・メンバーの id・入力した文字。送るのは段・種類・結果・秒・真偽だけ。決めた 18 個の項目のほかは、送る前に落とす（`buildClassroomStudentEvent`）。
+- **先生（ログイン中）からは送らない**（`state.scratchGui.classroom.teacherLoggedIn`。授業の準備で開くと数がゆがむため）。
+- 計測の失敗は握りつぶし、生徒の動きを止めない。
+- 判断は純粋関数 `src/lib/classroom-student-analytics.js`（イベントの形・送らない項目・結果の分け方・秒）。
+- 送るのは次の 3 か所。
+  - `src/containers/classroom-modal.jsx`（参加・番号・退室依頼・セッション・閉じた・提出を開いた）。
+  - `src/containers/use-student-submit.js`（提出の結果）。
+  - `src/containers/classroom-submit-reminder.jsx`（吹き出しの出来事）。
+- 画面の中で決まるもの（始め方・おかえりなさい・30 秒の案内）は、コンポーネントが `onTrack` / `onIdleGuide` でコンテナに伝える。
+
+### つまずきの見方
+
+- **段ごとの離脱**: `modal_close` の `step` ごとの数。どの段で画面を閉じてしまうかがわかる。
+- **段ごとの時間**: `seat_select` / `start_choose` / `welcome_action` / `submit_result` の `seconds` の中央値。長い段は、迷っている段。
+- **番号選び**:
+  - `seat_select` の `result=taken` の割合。
+  - `after_guide=true` の割合（30 秒の案内が要った生徒）。
+  - `is_previous=true` の割合（前回の番号が役に立ったか）。
+  - `kick_request` の `rejected` / `canceled` の数。
+- **始め方**: `start_choose` の `via=others` の割合。多ければ、主ボタンの始め方の決め方を見直す。
+- **提出**:
+  - `submit_open` の `from`（どこから提出に来るか）。
+  - `submit_result` の `cancel` / `error` / `convert_error` の割合。
+  - `submit_reminder_shown` から `submit_reminder_submitted` までの割合。
+
+### GA4 のファネルの組み方
+
+GTM のタグが、dataLayer の `event`（= `classroom_student`）を GA4 のイベント名にし、`action` などをイベントのパラメータ（GA4 のカスタムディメンション）にしている前提で書く（レッスンの計測と同じ設定）。GA4 の［探索］→［ファネルデータ探索］で、次のステップを作る。
+
+1. `action = join_code` かつ `result = ok`
+2. `action = seat_view`
+3. `action = seat_select` かつ `result = ok`
+4. `action = start_view`
+5. `action = start_choose`
+6. `action = submit_open`
+7. `action = submit_result` かつ `result = done`
+
+- 「オープンファネル」にすると、入り直した生徒（おかえりなさいから始まる生徒）も途中のステップから数えられる。
+- ステップ間の［経過時間］を出すと、段ごとの時間が見られる。
+- 内訳に `step`（`modal_close`）や `from`（`submit_open`）を入れると、どこで離れたか・どこから来たかが分かれて見える。
+- おかえりなさいの流れは、`welcome_view` → `welcome_action` → `submit_open` → `submit_result` の別のファネルにする。
 
 ## 5. 生徒: 参加コード入力 (`student-join`)
 

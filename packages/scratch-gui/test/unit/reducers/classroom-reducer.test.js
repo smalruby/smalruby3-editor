@@ -747,6 +747,14 @@ describe('classroom reducer', () => {
             state = reducer(state, clearStudentSubmitRequest());
             expect(state.studentSubmitRequested).toBe(false);
         });
+
+        test('requestStudentSubmit keeps where it was pressed until consumed (GA, #1831)', () => {
+            let state = reducer(classroomInitialState, requestStudentSubmit('drawer'));
+            expect(state.studentSubmitFrom).toBe('drawer');
+            state = reducer(state, clearStudentSubmitRequest());
+            expect(state.studentSubmitFrom).toBeNull();
+            expect(reducer(classroomInitialState, requestStudentSubmit()).studentSubmitFrom).toBeNull();
+        });
     });
     describe('このタブで開いた作品の出どころ (#1825)', () => {
         const student = {
