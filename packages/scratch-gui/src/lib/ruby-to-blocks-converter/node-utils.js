@@ -194,6 +194,46 @@ const NodeUtils = {
         return this._context.sourceCode.slice(startChar, endChar);
     },
 
+    /**
+     * The statement that holds the node, to name in an error about the node.
+     * An expression that is not converted becomes a `ruby_*` block, and a call that takes it as its
+     * receiver (`wait(1).to_s`) stays a block: the error then named only the inner expression, while a
+     * call that does not take it (`say(foo.bar)`) became a `ruby_*` block itself and was named as the
+     * whole statement. Naming the statement gives the same error either way (issue #1704).
+     * The statements inside parentheses (`(move(10); a)`) are parts of an expression, not statements.
+     * @param {object} node - The node of the expression.
+     * @returns {object} The statement node that holds it, or the node itself when there is none.
+     */
+    _statementNodeOf(node) {
+        const root = this._context.rootNode;
+        if (!root || !node || !node.location) {
+            return node;
+        }
+        const startOffset = node.location.startOffset;
+        const endOffset = startOffset + node.location.length;
+        const contains = (n) =>
+            n &&
+            n.location &&
+            n.location.startOffset <= startOffset &&
+            n.location.startOffset + n.location.length >= endOffset;
+        let statement = null;
+        let current = root;
+        let parentType = null;
+        while (current && current !== node) {
+            const type = this._getNodeTypeName(current);
+            const next = current.compactChildNodes().find(contains);
+            if (!next) {
+                break;
+            }
+            if (type === 'StatementsNode' && parentType !== 'ParenthesesNode') {
+                statement = next;
+            }
+            parentType = type;
+            current = next;
+        }
+        return statement || node;
+    },
+
     _truncateSource(src, maxLength = 40) {
         if (!src) return src;
         const newlineIndex = src.indexOf('\n');
