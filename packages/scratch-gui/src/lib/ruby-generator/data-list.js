@@ -228,8 +228,24 @@ export default function (Generator) {
         const list = getListName(block);
         const listExpr = renderList(list);
 
-        // Check for round-trip comments (stored as block comments, not inline)
-        if (comment && comment.includes('@ruby:array:delete_at:last')) {
+        // "delete (length of the list) of the list" deletes the last item: `delete_at(-1)` (issue #1840).
+        // With `@ruby`:array:delete_at:last, an index of 1 is the old form of the converter: the
+        // index is kept only when the user put another one.
+        const indexInput = block.inputs && block.inputs.INDEX;
+        const indexBlock = indexInput && Generator.getBlock(indexInput.block);
+        const isLengthOfTheList =
+            !!indexBlock &&
+            indexBlock.opcode === 'data_lengthoflist' &&
+            Generator.getFieldId(indexBlock, 'LIST') === Generator.getFieldId(block, 'LIST');
+        const isOldLast =
+            !!comment &&
+            comment.includes('@ruby:array:delete_at:last') &&
+            !!indexBlock &&
+            indexBlock.opcode === 'math_integer' &&
+            indexBlock.fields &&
+            indexBlock.fields.NUM &&
+            String(indexBlock.fields.NUM.value) === '1';
+        if (isLengthOfTheList || isOldLast) {
             return `${listExpr}.delete_at(-1)\n`;
         }
         if (comment && comment.includes('@ruby:array:delete_at:random')) {
