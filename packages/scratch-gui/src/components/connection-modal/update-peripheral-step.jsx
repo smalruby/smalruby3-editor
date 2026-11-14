@@ -194,8 +194,8 @@ class UpdatePeripheralStep extends React.Component {
                         // === Smalruby: Start of upstream warning fixes ===
                         // React warns about children in a textarea; use value instead
                         value={this.state.err.message}
-                        // === Smalruby: End of upstream warning fixes ===
                     />
+                    {/* === Smalruby: End of upstream warning fixes === */}
                 </Box>
             );
         }
