@@ -150,6 +150,8 @@ Allow users to interact over a computer network. (Requires internet connection)
 | Method | Description | Example |
 |---|---|---|
 | `mesh.sensor_value(name)` | Get sensor value by name | `mesh.sensor_value("score")` |
+| `mesh.broadcast(message, value)` | Broadcast a message with a value (local receivers run too; the value is sent as a string, up to 1,000 characters) | `mesh.broadcast("chat", "hello")` |
+| `mesh.message_value` | Value of the message that started this script (elsewhere, the last value received) | `say(mesh.message_value)` |
 
 ---
 

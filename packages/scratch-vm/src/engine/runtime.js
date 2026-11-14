@@ -107,6 +107,19 @@ const ArgumentTypeMap = (() => {
         // They are more analagous to the label on a block.
         fieldType: 'field_image'
     };
+    // === Smalruby: Start of broadcast argument type ===
+    // Lets an extension block use the standard message dropdown
+    // (event_broadcast_menu), e.g. Mesh v2 "broadcast [message1] with ( )".
+    // Name the placeholder BROADCAST_INPUT so execute.js passes
+    // args.BROADCAST_OPTION = {id, name} as it does for event_broadcast.
+    // No fieldName: scratch-blocks picks the default message, as in the
+    // event category's toolbox XML.
+    map.broadcast = {
+        shadow: {
+            type: 'event_broadcast_menu'
+        }
+    };
+    // === Smalruby: End of broadcast argument type ===
     return map;
 })();
 

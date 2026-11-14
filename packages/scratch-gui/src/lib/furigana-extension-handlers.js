@@ -292,9 +292,13 @@ const extensionHandlers = {
     },
 
     _annotateMeshV2Method(node, name) {
-        if (name === 'sensor_value') {
-            this._addAnnotation(node.messageLoc, 'センサーの値');
-        }
+        const labels = {
+            sensor_value: 'センサーの値',
+            broadcast: 'といっしょに送る',
+            message_value: 'メッセージの値',
+        };
+        const label = labels[name];
+        if (label) this._addAnnotation(node.messageLoc, label);
     },
 
     _annotateSmalrubotS1Method(node, name) {

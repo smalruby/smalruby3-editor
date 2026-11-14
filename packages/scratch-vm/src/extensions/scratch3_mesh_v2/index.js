@@ -12,6 +12,7 @@ const { hiraganaToHex } = require('./name-search-utils');
 const { createClient } = require('./mesh-client');
 const MeshV2Service = require('./mesh-service');
 const { TEACHER_HOST, buildGroupName, parseGroupName, parseNodeSeat, withSeatSuffix } = require('./seat-naming');
+const { THREAD_MESSAGE_VALUE_KEY, toMessageValue } = require('./message-value');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -71,6 +72,9 @@ class Scratch3MeshV2Blocks {
         this.seatGroupSeats = null;
         this.connectionState = 'disconnected';
         this.isExplicitDisconnect = false;
+        // 「メッセージの値」を、受け取りのスクリプトの外で読んだときの値 (#1843)。
+        // 最後に受け取った値つきメッセージの値。値なしのメッセージでは変えない。
+        this.lastMessageValue = '';
 
         try {
             createClient();
@@ -94,6 +98,14 @@ class Scratch3MeshV2Blocks {
             log.info(`Mesh V2: Initialized with domain ${this.domain || 'null (auto)'} and nodeId ${this.nodeId}`);
         } catch (error) {
             log.error(`Failed to initialize Mesh V2: ${error}`);
+        }
+
+        // Like the sensing "answer": forget the last value when the project is
+        // replaced (loadProject disposes the runtime but keeps this extension).
+        if (typeof this.runtime.on === 'function') {
+            this.runtime.on('RUNTIME_DISPOSED', () => {
+                this.lastMessageValue = '';
+            });
         }
 
         this.runtime.registerPeripheralExtension(Scratch3MeshV2Blocks.EXTENSION_ID, this);
@@ -305,6 +317,40 @@ class Scratch3MeshV2Blocks {
                         },
                     },
                 },
+                '---',
+                {
+                    opcode: 'broadcastWithValue',
+                    text: formatMessage({
+                        id: 'mesh.broadcastWithValue',
+                        default: 'broadcast [BROADCAST_INPUT] with [VALUE]',
+                        description: 'Broadcast a message with a value to this project and the mesh',
+                    }),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        // 'broadcast' is a Smalruby argument type (runtime.js): the
+                        // standard message dropdown. The name must be BROADCAST_INPUT.
+                        BROADCAST_INPUT: {
+                            type: 'broadcast',
+                        },
+                        VALUE: {
+                            type: ArgumentType.STRING,
+                            defaultValue: formatMessage({
+                                id: 'mesh.broadcastWithValueDefault',
+                                default: 'hello',
+                                description: 'Default value of the broadcast with value block',
+                            }),
+                        },
+                    },
+                },
+                {
+                    opcode: 'messageValue',
+                    text: formatMessage({
+                        id: 'mesh.messageValue',
+                        default: 'message value',
+                        description: 'Value of the message that started this script',
+                    }),
+                    blockType: BlockType.REPORTER,
+                },
             ],
             menus: {
                 variableNames: {
@@ -319,6 +365,75 @@ class Scratch3MeshV2Blocks {
     getSensorValue(args) {
         if (!this.meshService) return '';
         return this.meshService.getRemoteVariable(args.NAME) || '';
+    }
+
+    /**
+     * 「(メッセージ1 ▼) といっしょに ( ) を送る」(#1843)。
+     * つないでいなくても自分の中の「受け取ったとき」を動かし（ふつうの「送る」と同じ）、
+     * つないでいればメッシュにも値つきで送る。
+     * @param {object} args - BROADCAST_OPTION ({id, name}) and VALUE.
+     * @param {object} util - block utility.
+     */
+    broadcastWithValue(args, util) {
+        const option = args.BROADCAST_OPTION || {};
+        const value = toMessageValue(args.VALUE);
+        this.startMessageHats(option.name, value, util, option.id);
+        if (this.meshService && option.name) {
+            this.meshService.fireEvent(option.name, value);
+        }
+    }
+
+    /**
+     * Start "when I receive" scripts of a message and give each started thread
+     * the value, so 「メッセージの値」 reads it per script. Mirrors
+     * event_broadcast, which does not return the started threads.
+     * A restarted thread is a new Thread object, so it gets the new value.
+     * @param {string} name - message name.
+     * @param {string} value - message value (already a string).
+     * @param {object} util - block utility.
+     * @param {?string} id - broadcast message id, if known.
+     * @returns {Array} started threads.
+     */
+    startMessageHats(name, value, util, id = null) {
+        // An empty value is the same as a message without a value: it does not
+        // change the last value (the receivers get it as a payload-less event).
+        if (value !== '') this.lastMessageValue = value;
+        if (!name || !util) return [];
+        const stage = this.runtime.getTargetForStage();
+        const broadcastVar = stage && stage.lookupBroadcastMsg(id, name);
+        if (!broadcastVar) return [];
+        const threads =
+            util.startHats('event_whenbroadcastreceived', {
+                BROADCAST_OPTION: broadcastVar.name,
+            }) || [];
+        threads.forEach((thread) => {
+            thread[THREAD_MESSAGE_VALUE_KEY] = value;
+        });
+        return threads;
+    }
+
+    /**
+     * 「メッセージの値」(#1843): in a script started by a message, the value of
+     * that message ('' for a message without a value); elsewhere the last value
+     * received.
+     * @param {object} args - no arguments.
+     * @param {object} util - block utility.
+     * @returns {string} the value.
+     */
+    messageValue(args, util) {
+        const thread = util && util.thread;
+        if (thread) {
+            if (Object.prototype.hasOwnProperty.call(thread, THREAD_MESSAGE_VALUE_KEY)) {
+                return thread[THREAD_MESSAGE_VALUE_KEY];
+            }
+            if (!thread.stackClick && thread.blockContainer && thread.topBlock) {
+                // Started by a payload-less broadcast (a normal 「送る」 or a mesh
+                // event without a value): the value is empty.
+                const top = thread.blockContainer.getBlock(thread.topBlock);
+                if (top && top.opcode === 'event_whenbroadcastreceived') return '';
+            }
+        }
+        return this.lastMessageValue;
     }
 
     /* istanbul ignore next */

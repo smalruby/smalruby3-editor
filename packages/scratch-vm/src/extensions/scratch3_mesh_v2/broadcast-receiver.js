@@ -157,6 +157,12 @@ const BroadcastReceiverMixin = {
                 if (!util.sequencer) {
                     util.sequencer = this.runtime.sequencer;
                 }
+                if (event.payload && typeof this.blocks.startMessageHats === 'function') {
+                    // 値つきメッセージ (#1843): 動き出したスクリプトに値を持たせる
+                    debug(() => `Mesh V2: Starting hats with value: ${event.name}`);
+                    this.blocks.startMessageHats(event.name, String(event.payload), util);
+                    return;
+                }
                 debug(() => `Mesh V2: Triggering event_broadcast: ${event.name}`);
                 this.blocks.opcodeFunctions.event_broadcast(args, util);
             } else {
