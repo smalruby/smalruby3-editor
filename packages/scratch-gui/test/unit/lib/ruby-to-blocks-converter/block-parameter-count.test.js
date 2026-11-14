@@ -108,6 +108,51 @@ describe('RubyToBlocksConverter/the number of block parameters', () => {
         expect(errors[0].text).toContain('is used as a list on line 3 and as a variable on line 2');
     });
 
+    // A block argument (`&:x` / `&blk`) has no place in the blocks: `each`, a loop or a hat with it became
+    // the block with an empty body and the argument was dropped without an error (issue #1913).
+    test.each([
+        ['@a = [1]\n@a.each(&:x)', 1, '@a.each(&:x)'],
+        ['@a = [1]\n@a.each(&blk)', 1, '@a.each(&blk)'],
+        ['@a = [1]\n@a.each(&nil)', 1, '@a.each(&nil)'],
+        ['$a = [1]\n$a.each(&:x)', 1, '$a.each(&:x)'],
+        ['a = [1]\na.each(&blk)', 1, 'a.each(&blk)'],
+        ['3.times(&:x)', 0, '3.times(&:x)'],
+        ['3.times(&blk)', 0, '3.times(&blk)'],
+        ['loop(&blk)', 0, 'loop(&blk)'],
+        ['repeat(3, &blk)', 0, 'repeat(3, &blk)'],
+        ['with_screen_refresh(&blk)', 0, 'with_screen_refresh(&blk)'],
+        ['when_flag_clicked(&blk)', 0, 'when_flag_clicked(&blk)'],
+        ['when_key_pressed("a", &blk)', 0, 'when_key_pressed("a", &blk)'],
+        ['self.when(:flag_clicked, &blk)', 0, 'self.when(:flag_clicked, &blk)'],
+        ['when_flag_clicked do\n  @a = [1]\n  @a.each(&:x)\nend', 2, '@a.each(&:x)'],
+    ])('%s with a block argument is the wrong instruction', async (code, row, source) => {
+        const { ok, errors } = await convert(code);
+        expect(ok).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].row).toBe(row);
+        expect(errors[0].text).toContain(wrongInstruction(source));
+    });
+
+    // An argument of a My Block may hold a hash, a list or a value: the code does not tell. Its `each` is
+    // `each` of a list, which takes no block parameter or one (issue #1913).
+    test('each of an argument of a My Block is each of a list', async () => {
+        const converter = new RubyToBlocksConverter(null, { version: '2' });
+        const ok = await converter.targetCodeToBlocks(null, 'def foo(h)\n  h.each do |x|\n    say(x)\n  end\nend');
+        expect(converter.errors).toEqual([]);
+        expect(ok).toBe(true);
+        const opcodes = Object.values(converter._context.blocks).map((b) => b.opcode);
+        expect(opcodes).toContain('smalrubyRuby_arrayMethodWithBlock');
+        expect(opcodes).not.toContain('smalrubyRuby_hashMethodWithBlock');
+    });
+
+    test('each of an argument of a My Block with two block parameters is the wrong instruction', async () => {
+        const { ok, errors } = await convert('def foo(h)\n  h.each do |k, v|\n    say(k)\n  end\nend');
+        expect(ok).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].row).toBe(1);
+        expect(errors[0].text).toContain(wrongInstruction('h.each do |k, v|...'));
+    });
+
     // The numbers of block parameters the calls take stay as they are.
     test.each([
         ['when_key_pressed("a") do\n  say(1)\nend'],

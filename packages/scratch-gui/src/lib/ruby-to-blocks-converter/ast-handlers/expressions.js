@@ -103,6 +103,11 @@ const ExpressionHandlers = {
 
     visitCallNode(node) {
         this._rejectVisibilityModifier(node);
+        // A block argument (`@a.each(&:x)`, `3.times(&blk)`, `when_flag_clicked(&blk)`) has no place in the
+        // blocks: the call became its block with an empty body and the argument was dropped (P17, issue #1913).
+        if (node.block && this._prismNodeType(node.block) === 'BlockArgumentNode') {
+            throw this._wrongInstructionError(node);
+        }
 
         // === Smalruby: Start of attr_accessor getter/setter resolution ===
         const attrAccessors = this._context.attrAccessors;
