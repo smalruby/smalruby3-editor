@@ -101,4 +101,83 @@ describe('Ruby Roundtrip: attr_accessor', () => {
         `;
         expect(result).toBe(expected.trim());
     });
+
+    describe('def initialize sets a variable of attr_accessor (issue #1839)', () => {
+        test('@hp = 3 in initialize is kept', async () => {
+            const input = dedent`
+                class Sprite1
+                  attr_accessor :hp
+
+                  def initialize
+                    @hp = 3
+                  end
+
+                  when_flag_clicked do
+                    say(hp)
+                  end
+                end
+            `;
+            const result = await classRoundTrip(converter, target, input);
+            expect(result).toBe(input.trim());
+        });
+
+        test('only the variables set in initialize are written there', async () => {
+            const input = dedent`
+                class Sprite1
+                  attr_accessor :hp, :mp
+                  attr_reader :name
+
+                  def initialize
+                    @hp = 3
+                    @name = "hero"
+                    @x = 1
+                  end
+
+                  when_flag_clicked do
+                    self.mp = 5
+                    say(hp + mp + @x)
+                  end
+                end
+            `;
+            const result = await classRoundTrip(converter, target, input);
+            expect(result).toBe(input.trim());
+        });
+
+        test('initialize with arguments and super keeps @hp = 3', async () => {
+            const input = dedent`
+                class Sprite1
+                  attr_accessor :hp
+
+                  def initialize(a)
+                    super
+                    @hp = 3
+                  end
+
+                  when_flag_clicked do
+                    say(hp)
+                  end
+                end
+            `;
+            const result = await classRoundTrip(converter, target, input);
+            expect(result).toBe(input.trim());
+        });
+
+        test('a variable of attr_accessor named like super is not taken as super', async () => {
+            const input = dedent`
+                class Sprite1
+                  attr_accessor :superpower
+
+                  def initialize
+                    @superpower = 3
+                  end
+
+                  when_flag_clicked do
+                    say(superpower)
+                  end
+                end
+            `;
+            const result = await classRoundTrip(converter, target, input);
+            expect(result).toBe(input.trim());
+        });
+    });
 });

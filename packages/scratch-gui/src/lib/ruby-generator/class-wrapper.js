@@ -149,7 +149,8 @@ export default function (Generator) {
                 const kind = attrMatch[1];
                 const names = attrMatch[2].split('+');
                 const syms = names.map((n) => `:${n}`).join(', ');
-                attrLines.push(`attr_${kind} ${syms}`);
+                // The loop goes backwards to splice; unshift keeps the order of the source
+                attrLines.unshift(`attr_${kind} ${syms}`);
                 allowedAttributes.splice(i, 1);
             }
         }
@@ -208,7 +209,8 @@ export default function (Generator) {
             code = this.prefixLines(code, this.INDENT);
         }
         // Build the inner class content with separators
-        const innerParts = [setCode, initCode, includeCode, attrAccessorCode, code].filter((p) => p.length > 0);
+        // include and attr_accessor come before def initialize, as in Ruby (issue #1839)
+        const innerParts = [setCode, includeCode, attrAccessorCode, initCode, code].filter((p) => p.length > 0);
         const innerCode = innerParts.join('\n');
         let inheritance = '';
         if (superclassPath) {
@@ -272,6 +274,12 @@ export default function (Generator) {
         const LOCAL_PATTERN = /^_(?![A-Z])[\p{L}_][\p{L}\p{N}_]*_\d+_$/u;
         const RETURN_PATTERN = /^_return_/;
 
+        const initComment = commentTexts.find((c) => c.startsWith('@ruby:initialize:'));
+        const initParts = initComment ? initComment.slice('@ruby:initialize:'.length) : '';
+        // The variables of attr_accessor set in initialize (issue #1839): `attr=hp+mp`.
+        const attrMatch = initParts.match(/(?:^|,)attr=([^,]+)/);
+        const initializedAttrNames = new Set(attrMatch ? attrMatch[1].split('+') : []);
+
         // Collect variable/list assignments
         const assignments = [];
         for (const varId in target.variables) {
@@ -284,8 +292,15 @@ export default function (Generator) {
             if (RETURN_PATTERN.test(variable.name)) continue;
             if (LOCAL_PATTERN.test(variable.name)) continue;
 
-            // Skip attr_accessor variables (managed by accessor, not initialize)
-            if (this._attrAccessorNames && this._attrAccessorNames.has(variable.name)) continue;
+            // Skip attr_accessor variables (managed by accessor, not initialize), unless they are set in
+            // initialize
+            if (
+                this._attrAccessorNames &&
+                this._attrAccessorNames.has(variable.name) &&
+                !initializedAttrNames.has(variable.name)
+            ) {
+                continue;
+            }
 
             const isList = variable.type === 'list';
             let valueCode;
@@ -304,8 +319,7 @@ export default function (Generator) {
 
         if (assignments.length === 0) {
             // Check if there's an @ruby:initialize comment (args/super without variables)
-            const initComment = commentTexts.find((c) => c.startsWith('@ruby:initialize'));
-            if (!initComment) return [];
+            if (!commentTexts.some((c) => c.startsWith('@ruby:initialize'))) return [];
         }
 
         // Sort alphabetically
@@ -314,16 +328,16 @@ export default function (Generator) {
         // Parse @ruby:initialize comment for args and super
         let args = '';
         let superCall = '';
-        const initComment = commentTexts.find((c) => c.startsWith('@ruby:initialize:'));
         if (initComment) {
-            const parts = initComment.slice('@ruby:initialize:'.length);
+            const parts = initParts;
             // Parse comma-separated key=value pairs, but handle super=(...)
-            const argsMatch = parts.match(/args=(\([^)]*\)|[^,]*)/);
+            const argsMatch = parts.match(/(?:^|,)args=(\([^)]*\)|[^,]*)/);
             if (argsMatch) {
                 const argsValue = argsMatch[1];
                 args = argsValue.startsWith('(') ? argsValue : `(${argsValue})`;
             }
-            const superMatch = parts.match(/super(?:=(\([^)]*\)))?/);
+            // Only the part `super` / `super=(...)`, not a name in `attr=` that has `super` in it
+            const superMatch = parts.match(/(?:^|,)super(?:=(\([^)]*\)))?(?=,|$)/);
             if (superMatch) {
                 superCall = superMatch[1] ? `  super${superMatch[1]}` : '  super';
             }

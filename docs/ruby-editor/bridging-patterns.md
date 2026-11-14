@@ -273,6 +273,8 @@ say(@h.length)
   - 何も無いときは `@ruby:class` だけ。
 - **attr_accessor**: 生成器は注釈の名前を `_attrAccessorNames` に入れ、`@hp` を `hp`、`@hp = 1` を `self.hp = 1` と書く。
 - **initialize**: 中の `@x = 10`（ステージは `$x`）は、ブロックではなく変数の初期値になる（`initialize-handler.js`）。引数と `super` はスプライトのコメント `@ruby:initialize:args=(a, b),super` / `super=(1, 2)` に残す。
+  - attr_accessor（`attr_reader` / `attr_writer`）の変数は、initialize に書かなくても変数ができるので、生成器はふだん initialize に書かない。initialize で値を入れた attr_accessor の変数だけ、名前を `@ruby:initialize:attr=hp+mp` に残し、生成器はその変数を initialize に書く。
+  - 生成器は class の中を `set_xxx`・`include`・`attr_accessor`・`def initialize`・スクリプトの順に書く。
 - **module**: module のメソッドは、include したスプライトの定義ブロックとして作り、`@ruby:module_source:<module 名>` を付ける。生成器はこの注釈の定義ブロックを `module ... end` にまとめて書く。ほかのスプライトの同じ module は `module-sync.js` が同じ内容にそろえる。module の前の `#` コメントは、スプライトのコメントに `\n@ruby:module:<module 名>` を付けて残す。
 - **super**: スプライトのメソッドが module の同じ名前のメソッドを `super` で呼ぶとき、module 側の定義を `_super_<メソッド>_<番号>_` に名前を変えて作り、`@ruby:module_source:<module 名>:super_of:<元の名前>` を付ける。`super` はその定義の呼び出しブロックになり、`@ruby:super`（引数あり）か `@ruby:super:forwarding`（引数なし）を付ける。値として使う `super` は `,@ruby:return:<名前>` も付く（→ P2）。
 - **Ruby v1 に戻せない**: `@ruby:class` / `@ruby:module_source` があるプロジェクトは、設定で Ruby v1 に切りかえられない（`settings-menu.jsx` / `mobile-drawer.jsx`）。
@@ -311,6 +313,22 @@ end
 ```
 
 - 変数 `hp` の初期値が 3 になり、同じコードに戻る。
+
+```ruby
+class Sprite1
+  attr_accessor :hp
+
+  def initialize
+    @hp = 3
+  end
+
+  when_flag_clicked do
+    say(hp)
+  end
+end
+```
+
+- スプライトのコメントは `@ruby:class:attr_accessor=hp` と `@ruby:initialize:attr=hp`。変数 `hp` の初期値が 3 になり、同じコードに戻る。
 
 **できないこと**（エラーになる形）: class の中に直接書いた命令（`wrongInstructionInClass`）、ステージの class に別の親クラス（`invalidStageSuperclass`）、`initialize` の中の代入以外の文（`invalidInitializeBody`）、スプライトの `initialize` での `$x =`（`wrongVariableScopeInInitialize`）、入れ子の module、module の中の `def` 以外、`module_function`、`extend`、ステージでの module / include、Ruby v1 での class / module。
 
@@ -655,7 +673,7 @@ foo.bar(1)
 | `@ruby:list_ref` | `@ruby:list_ref:KEYS\|VALUES:<リストの ID>:<名前>` | 変換器 `smalruby-ruby.js` | VM `scratch-vm/src/extensions/smalruby_ruby/block-method-executors.js` | `@ruby:list_ref:KEYS:abc:_hash_h_keys_` | P13 |
 | `@ruby:hash` | `literal:<組の数>` / `literal:values` / `literal:key:sym\|str` / `literal:value` / `get:sym\|str` / `set:sym\|str` / `set:delete:key` / `set:push:key` / `set:push:value` / `length` / `key?[:sym\|:str]` | 変換器 `variables.js` / `variable-hash-ops.js` / `variable-list-ops.js` | 生成器 `data-list.js` | `@ruby:hash:get:sym` | P5 |
 | `@ruby:class` | `@ruby:class` / `@ruby:class:<部分>,...`（`<=親`・`name=`・属性名・`attr_accessor=a+b`・`include=M`） | 変換器 `class-visitor.js`（スプライトのコメント） | 生成器 `index.js` / `class-wrapper.js` / `code-finisher.js`、GUI `settings-menu.jsx` / `mobile-drawer.jsx` | `@ruby:class:<=//Smalruby3/Sprite,name=Cat` | P6 |
-| `@ruby:initialize` | `@ruby:initialize:args=(<引数>),super` / `super=(<引数>)` | 変換器 `initialize-handler.js`（スプライトのコメント） | 生成器 `class-wrapper.js` / `code-finisher.js` | `@ruby:initialize:args=(a),super` | P6 |
+| `@ruby:initialize` | `@ruby:initialize:args=(<引数>),super` / `super=(<引数>)` / `attr=<名前>+<名前>`（initialize で値を入れた attr_accessor の変数） | 変換器 `initialize-handler.js`（スプライトのコメント） | 生成器 `class-wrapper.js` / `code-finisher.js` | `@ruby:initialize:args=(a),super` | P6 |
 | `@ruby:module_source` | `@ruby:module_source:<module>`、`:super_of:<元の名前>` | 変換器 `class-visitor.js` | 生成器 `procedure.js`、`src/lib/module-sync.js`、変換器 `module-visitor.js`、GUI `settings-menu.jsx` / `mobile-drawer.jsx` | `@ruby:module_source:Walk` | P6 |
 | `@ruby:module` | `<利用者の文>\n@ruby:module:<module>` | 変換器 `comment-handler.js`（スプライトのコメント） | 生成器 `code-finisher.js` | `@ruby:module:Walk` | P6・P14 |
 | `@ruby:super` | `@ruby:super` / `@ruby:super:forwarding`（値なら `,@ruby:return:<名前>`） | 変換器 `ast-handlers/expressions.js` | 生成器 `procedure.js` / `control.js` | `@ruby:super:forwarding` | P6 |
