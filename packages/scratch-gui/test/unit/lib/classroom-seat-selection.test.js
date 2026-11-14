@@ -13,6 +13,7 @@ import {
     rememberSeatIn,
     seatGuideFor,
     shouldPollKickRequest,
+    withSeatFreed,
 } from '../../../src/lib/classroom-seat-selection.js';
 
 describe('constants (#1198)', () => {
@@ -266,5 +267,29 @@ describe('seatGuideFor (#1796)', () => {
             guide: null,
             flashTaken: false,
         });
+    });
+});
+
+describe('withSeatFreed (#1797)', () => {
+    test('drops the seat the student just left from the looked-up seats in use', () => {
+        const data = { className: 'A', studentCount: 5, takenSeats: [2, 3, 5] };
+        expect(withSeatFreed(data, 2)).toEqual({ className: 'A', studentCount: 5, takenSeats: [3, 5] });
+    });
+
+    test('keeps the lookup as it is when the seat was not in use', () => {
+        const data = { takenSeats: [3] };
+        expect(withSeatFreed(data, 2)).toBe(data);
+    });
+
+    test('handles a lookup without seats in use or without a seat', () => {
+        expect(withSeatFreed({ studentCount: 5 }, 2)).toEqual({ studentCount: 5 });
+        const data = { takenSeats: [2] };
+        expect(withSeatFreed(data, null)).toBe(data);
+    });
+
+    test('does not change the given lookup', () => {
+        const data = { takenSeats: [2, 3] };
+        withSeatFreed(data, 2);
+        expect(data.takenSeats).toEqual([2, 3]);
     });
 });
