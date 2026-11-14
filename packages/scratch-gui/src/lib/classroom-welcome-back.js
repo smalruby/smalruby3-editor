@@ -69,3 +69,42 @@ export const shouldOfferCurrentSubmission = ({
     const key = submissionKey(current);
     return !key || key !== loadedSubmission;
 };
+
+/**
+ * 「スタータープロジェクトから始める」を主ボタンにするか。読み込み直したあと、まだ提出して
+ * いない課題で、作品が新しい作品のまま（空）のときは、そのまま「つづける」を押すと空の作品で
+ * 作り直すことになる。先生が用意したスタータープロジェクトがあるなら、そこから始めるのが
+ * 主ボタン。shouldOfferCurrentSubmission との違いは、この課題で出した作品が無いことだけ。
+ * すべて満たすときだけ true:
+ * 1. クラスに参加中で、セッションを確かめられた
+ * 2. いまの作品が新しい作品のまま（ブロックが無い・変更が無い・ファイルなどから開いていない）
+ * 3. この課題で出した作品が無い（あれば shouldOfferCurrentSubmission の主ボタン）。提出の状態
+ *    （ページを開いたときの確認の結果）でも未提出であること。出した作品の問い合わせに失敗して
+ *    current が無いだけのときに、スターターを主ボタンにしないため。
+ * 4. 課題にスタータープロジェクトがある
+ * レッスンの課題では出さない（いまの主ボタンのまま）。
+ * @param {object} input - 判断の材料（shouldOfferCurrentSubmission と同じ名前）
+ * @param {boolean} [input.sessionVerified] - セッションを確かめられた
+ * @param {boolean} [input.lesson] - レッスンの課題
+ * @param {boolean} [input.projectChanged] - 開いてから変更があった
+ * @param {boolean} [input.projectFromOutside] - ファイル・Google ドライブ・提出物などから開いた作品
+ * @param {boolean} [input.hasBlocks] - ブロックがある（projectHasBlocks）
+ * @param {?object} [input.current] - この課題で出した作品（normalizeContinueOptions の current）
+ * @param {?string} [input.submissionStatus] - 提出の状態（未提出は null）
+ * @param {boolean} [input.hasStarter] - 課題にスタータープロジェクトがある
+ * @returns {boolean} 主ボタンにするとき true
+ */
+export const shouldOfferStarter = ({
+    sessionVerified = false,
+    lesson = false,
+    projectChanged = false,
+    projectFromOutside = false,
+    hasBlocks = true,
+    current = null,
+    submissionStatus = null,
+    hasStarter = false,
+}) => {
+    if (!sessionVerified || lesson || !hasStarter) return false;
+    if (projectChanged || projectFromOutside || hasBlocks) return false;
+    return !current && !submissionStatus;
+};

@@ -269,6 +269,54 @@ describe('StudentStatusView: リロードしたあとに「この課題で出し
     });
 });
 
+describe('StudentStatusView: リロードしたあと、未提出でスターターがあれば「スタータープロジェクトから始める」', () => {
+    test('主ボタンがスターターで、「このまま つづける」は小さなリンク。「作品を読み込み直す」には重ねない', () => {
+        const h = renderView({ continueOptions: null, hasStarter: true, offerStarter: true });
+        const main = screen.getByTestId('classroom-status-start-starter');
+        expect(main).toHaveTextContent('Start from the starter');
+        expect(screen.queryByTestId('classroom-status-continue')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('classroom-status-reload-toggle')).not.toBeInTheDocument();
+        fireEvent.click(main);
+        expect(h.onLoadStarter).toHaveBeenCalledTimes(1);
+        fireEvent.click(screen.getByTestId('classroom-status-continue-as-is'));
+        expect(h.onContinue).toHaveBeenCalledTimes(1);
+    });
+
+    test('スターターが無ければいつもの「つづける」', () => {
+        renderView({ continueOptions: null, hasStarter: false, offerStarter: true });
+        expect(screen.getByTestId('classroom-status-continue')).toBeInTheDocument();
+        expect(screen.queryByTestId('classroom-status-start-starter')).not.toBeInTheDocument();
+    });
+
+    test('出した作品から続けるときは、そちらを主ボタンにする', () => {
+        renderView({
+            continueOptions: {
+                current: {
+                    classroomId: 'c1',
+                    submittedAt: '2026-11-10T01:00:00.000Z',
+                    projectUrl: 'https://signed.example/cur.sb3',
+                },
+                previous: null,
+            },
+            hasStarter: true,
+            offerCurrentSubmission: true,
+            offerStarter: true,
+        });
+        expect(screen.getByTestId('classroom-status-continue-current')).toBeInTheDocument();
+        expect(screen.queryByTestId('classroom-status-start-starter')).not.toBeInTheDocument();
+    });
+
+    test('レッスンの課題では出さない', () => {
+        renderView({
+            hasStarter: true,
+            offerStarter: true,
+            lessonStatus: LESSON_STATUS,
+            studentLesson: { submitWork: true, challengeIds: ['a', 'b'] },
+        });
+        expect(screen.queryByTestId('classroom-status-start-starter')).not.toBeInTheDocument();
+    });
+});
+
 describe('StudentStatusView の GA (#1831)', () => {
     beforeEach(() => resetClassroomStudentViews());
 

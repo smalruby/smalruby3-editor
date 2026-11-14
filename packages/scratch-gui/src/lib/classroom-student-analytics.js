@@ -95,6 +95,7 @@ const CLASSROOM_STUDENT_PARAM_VALUES = {
         'continue',
         'continue_as_is',
         'this_submission',
+        'starter',
         'lesson',
         'assignment',
         'peer',
@@ -217,11 +218,13 @@ const submitOpenState = (submissionStatus) => {
  * @param {object} input - 主ボタンの決め方（student-status-view.jsx と同じ）。
  * @param {boolean} [input.mainIsLesson] - 「レッスンを続ける」
  * @param {boolean} [input.mainIsCurrent] - 「この課題で出した作品から続ける」
- * @returns {string} lesson / this_submission / continue
+ * @param {boolean} [input.mainIsStarter] - 「スタータープロジェクトから始める」
+ * @returns {string} lesson / this_submission / starter / continue
  */
-const welcomeMain = ({ mainIsLesson = false, mainIsCurrent = false } = {}) => {
+const welcomeMain = ({ mainIsLesson = false, mainIsCurrent = false, mainIsStarter = false } = {}) => {
     if (mainIsLesson) return 'lesson';
     if (mainIsCurrent) return 'this_submission';
+    if (mainIsStarter) return 'starter';
     return 'continue';
 };
 

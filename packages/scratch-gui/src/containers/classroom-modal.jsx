@@ -23,7 +23,7 @@ import {
     sendClassroomStudentEvent,
     submitOpenState,
 } from '../lib/classroom-student-analytics.js';
-import { projectHasBlocks, shouldOfferCurrentSubmission } from '../lib/classroom-welcome-back.js';
+import { projectHasBlocks, shouldOfferCurrentSubmission, shouldOfferStarter } from '../lib/classroom-welcome-back.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
 import { assignmentProgress } from '../lib/lessons/assignment-progress.js';
 import { activeNow, installVisibilityTracking } from '../lib/lessons/lesson-analytics.js';
@@ -808,16 +808,28 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     // After a reload the project is the new one again: offer this assignment's
     // submission as the main button of the welcome back screen (#1825). Blocks
     // are read at render time; adding one also marks the project changed.
+    const welcomeBackInput = {
+        sessionVerified: sessionVerified && !!classroomState.sessionToken,
+        lesson: !!studentLesson,
+        projectChanged,
+        projectFromOutside: classroomState.projectFromOutside,
+        hasBlocks: projectHasBlocks(vm?.runtime?.targets),
+        current: studentAssignment.continueOptions?.current,
+    };
     const offerCurrentSubmission =
         phase === 'student-status' &&
         shouldOfferCurrentSubmission({
-            sessionVerified: sessionVerified && !!classroomState.sessionToken,
-            lesson: !!studentLesson,
-            projectChanged,
-            projectFromOutside: classroomState.projectFromOutside,
-            hasBlocks: projectHasBlocks(vm?.runtime?.targets),
-            current: studentAssignment.continueOptions?.current,
+            ...welcomeBackInput,
             loadedSubmission: classroomState.studentLoadedSubmission,
+        });
+    // Not submitted yet: the starter is the main button instead (shouldOfferStarter).
+    const offerStarter =
+        phase === 'student-status' &&
+        !offerCurrentSubmission &&
+        shouldOfferStarter({
+            ...welcomeBackInput,
+            submissionStatus: classroomState.submissionStatus,
+            hasStarter: studentAssignment.hasStarter,
         });
 
     return (
@@ -832,6 +844,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             hasStarter={studentAssignment.hasStarter}
             lessonStatus={lessonStatus}
             offerCurrentSubmission={offerCurrentSubmission}
+            offerStarter={offerStarter}
             studentLesson={studentLesson}
             onStartLesson={handleStartLesson}
             startMethod={studentAssignment.startMethod}

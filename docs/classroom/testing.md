@@ -213,7 +213,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-status-teacher-comment` | div | 先生からのコメント（返却済みのときだけ） |
 | `classroom-status-continue` | button | 主ボタン「つづける」（何も読み込まずに閉じる。説明の行は `classroom-status-continue-note`）。レッスンの課題では、作品も提出する課題で条件を満たしたあとだけ |
 | `classroom-status-continue-current` | button | 主ボタン「この課題で出した作品から続ける」（リロードしたあと、作品が新しい作品のまま・この課題で出した作品がある・このタブでまだ読み込んでいないときだけ。`classroom-status-continue` の代わりに出す）。押すとその提出物を読み込んで閉じる（確認は出さない） |
-| `classroom-status-continue-as-is` | button | 小さなリンク「このまま つづける」（`classroom-status-continue-current` を出すときだけ）。何も読み込まずに閉じる |
+| `classroom-status-start-starter` | button | 主ボタン「スターターから始める」（リロードしたあと、作品が新しい作品のまま・未提出・課題にスターターがあるときだけ。`classroom-status-continue` の代わりに出す）。押すとスターターを読み込んで閉じる |
+| `classroom-status-continue-as-is` | button | 小さなリンク「このまま つづける」（`classroom-status-continue-current` か `classroom-status-start-starter` を出すときだけ）。何も読み込まずに閉じる |
 | `classroom-continue-lesson-button` | button | 「レッスンを続ける」（レッスンの課題だけ。レッスン表を課題のチャレンジだけで開く）。条件を満たすまでは主ボタン、作品も提出する課題で条件を満たしたあとは小さなリンク |
 | `classroom-view-assignment-button` | button | 小さなリンク「課題を見る」（hasAssignment 時のみ） |
 | `classroom-peer-view-button` | button | 小さなリンク「みんなの作品を見る」（他者参照が有効なとき。押すとモーダルを閉じてパネルを開く） |
