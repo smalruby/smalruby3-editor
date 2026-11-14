@@ -35,6 +35,16 @@ $celebrate-light: hsla(45, 100%, 98%, 1); /* #FFFDF6 */
     --accent-on: $ui-white;
 }
 
+/* クイズがあるとき: 幅を決めておく（選んで解説が出ても横幅が変わらない）。文言の長さの目安（問い 2 行・
+   選択肢 1 行・解説 3 行）なら 1300×600 で画面に収まる。目安を超えたときだけ、画面の外へ出さずに
+   toast の中をスクロールする（保険） */
+.with-quiz {
+    width: min(92vw, 560px);
+    max-height: calc(100vh - 3rem - 2.5rem - 1rem);
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
 .lesson-done {
     border-color: $celebrate;
     background-color: $celebrate-light;

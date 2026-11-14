@@ -18,8 +18,10 @@ import {
     findCourse,
     challengeCodeCandidates,
     challengeCodeFor,
+    challengeQuiz,
     findLesson,
     localizeCode,
+    validateQuiz,
 } from '../../../../src/lib/lessons/courses';
 import { validateGoal } from '../../../../src/lib/lessons/goal';
 import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
@@ -73,11 +75,51 @@ const collectMessages = () => {
                 if (challenge.task) messages.push(challenge.task);
                 challenge.steps.forEach((step) => step.title && messages.push(step.title));
                 challenge.debug.forEach((tip) => messages.push(tip));
+                // ふりかえりのクイズ（#1639）
+                if (challenge.quiz) {
+                    messages.push(challenge.quiz.question, ...challenge.quiz.choices, challenge.quiz.explanation);
+                }
             });
         });
     });
     return messages;
 };
+
+describe('reflection quiz (#1639)', () => {
+    test('a challenge has no quiz unless its definition has one', () => {
+        expect(defineChallenge({ id: 'x' }).quiz).toBeNull();
+    });
+
+    test('challengeQuiz makes the message ids of the question, the 3 choices and the explanation', () => {
+        const quiz = challengeQuiz('chat-l1-x', 2);
+        expect(quiz.question.id).toBe('gui.lessons.challenge.chat-l1-x.quiz.question');
+        expect(quiz.choices.map((c) => c.id)).toEqual([
+            'gui.lessons.challenge.chat-l1-x.quiz.choice1',
+            'gui.lessons.challenge.chat-l1-x.quiz.choice2',
+            'gui.lessons.challenge.chat-l1-x.quiz.choice3',
+        ]);
+        expect(quiz.answer).toBe(2);
+        expect(quiz.explanation.id).toBe('gui.lessons.challenge.chat-l1-x.quiz.explanation');
+        expect(validateQuiz(quiz)).toEqual([]);
+        expect(defineChallenge({ id: 'chat-l1-x', quiz }).quiz).toBe(quiz);
+    });
+
+    test('validateQuiz finds what is wrong with a quiz', () => {
+        const ok = challengeQuiz('y', 0);
+        expect(validateQuiz(null)).toEqual(['quiz must be an object']);
+        expect(validateQuiz({ ...ok, question: null })).toEqual(['question must be a message']);
+        expect(validateQuiz({ ...ok, choices: ok.choices.slice(0, 2) })).toEqual(['choices must be 3 messages']);
+        expect(validateQuiz({ ...ok, answer: 3 })).toEqual(['answer must be 0, 1 or 2 (the index of choices)']);
+        expect(validateQuiz({ ...ok, answer: '1' })).toEqual(['answer must be 0, 1 or 2 (the index of choices)']);
+        expect(validateQuiz({ ...ok, explanation: undefined })).toEqual(['explanation must be a message']);
+    });
+
+    test('every quiz of the courses is valid', () => {
+        allChallenges()
+            .filter((c) => c.quiz)
+            .forEach((c) => expect({ id: c.id, errors: validateQuiz(c.quiz) }).toEqual({ id: c.id, errors: [] }));
+    });
+});
 
 describe('lesson courses', () => {
     test('the first course is the blocks course "きょうからプログラマー"', () => {
@@ -215,6 +257,7 @@ describe('lesson courses', () => {
             code: null,
             codeTarget: null,
             debug: [],
+            quiz: null,
             steps: [
                 { title: null, target: 'palette', blocks: null, spotlight: true },
                 { title: null, target: null, blocks: 'move(10)', spotlight: false },

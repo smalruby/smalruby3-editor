@@ -17,6 +17,13 @@ jest.mock('../../../src/lib/lessons/courses.js', () => {
         name: { id: 'gui.lessons.lesson.l.name', defaultMessage: 'Move it' },
         challenges: [makeChallenge('test-challenge', 'Test challenge'), makeChallenge('last-challenge', 'Last')],
     };
+    // ふりかえりのクイズ（#1639）を持つチャレンジ
+    lesson.challenges[1].quiz = {
+        question: { id: 'test.quiz.question', defaultMessage: 'Which one?' },
+        choices: ['A', 'B', 'C'].map((c) => ({ id: `test.quiz.${c}`, defaultMessage: c })),
+        answer: 2,
+        explanation: { id: 'test.quiz.explanation', defaultMessage: 'Because C.' },
+    };
     const course = {
         id: 'c',
         language: 'blocks',
@@ -212,5 +219,21 @@ describe('LessonGoalWatcher', () => {
         detach();
         unmount();
         expect(window.smalruby.lessonGoal).toBeUndefined();
+    });
+
+    test('passes the quiz of the challenge to the toast (#1639)', () => {
+        const withQuiz = renderWatcher({
+            vm: makeVm(),
+            challengeId: 'last-challenge',
+            justCompletedId: 'last-challenge',
+        });
+        expect(withQuiz.getByTestId('lesson-quiz-question')).toHaveTextContent('Which one?');
+        withQuiz.unmount();
+        const without = renderWatcher({
+            vm: makeVm(),
+            challengeId: 'test-challenge',
+            justCompletedId: 'test-challenge',
+        });
+        expect(without.queryByTestId('lesson-quiz')).toBeNull();
     });
 });

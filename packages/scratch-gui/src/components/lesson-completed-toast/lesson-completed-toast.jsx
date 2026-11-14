@@ -5,6 +5,7 @@ import { defineMessages, injectIntl } from 'react-intl';
 import intlShape from '../../lib/intlShape.js';
 import { COMPLETED_ACTIONS } from '../../lib/lessons/lesson-progress.js';
 import { messages as bandMessages } from '../lesson-assignment-band/lesson-assignment-band.jsx';
+import LessonCompletedQuiz from './lesson-completed-quiz.jsx';
 import styles from './lesson-completed-toast.css';
 
 const messages = defineMessages({
@@ -111,6 +112,7 @@ const BUTTON_MESSAGES = {
  * @param {object} props.lessonName - レッスン名（message descriptor）。
  * @param {Function} props.onClose - 「もう少し見る」（閉じる）。
  * @param {Function} props.onNextChallenge - 「次のチャレンジへ」など（レッスン表を開く）。
+ * @param {?object} props.quiz - できたチャレンジのふりかえりのクイズ（#1639。無ければ出さない）。
  * @param {object} props.intl - react-intl。
  * @returns {React.ReactElement} toast。
  */
@@ -128,6 +130,7 @@ const LessonCompletedToast = ({
     lessonNumber,
     onClose,
     onNextChallenge,
+    quiz = null,
     intl,
 }) => {
     // 課題クリア（#1599）: 段 1 の「レッスン n ぜんぶできた！」より優先。同じお祝いの形で、丸は課題のチャレンジ
@@ -149,12 +152,13 @@ const LessonCompletedToast = ({
     }
     return (
         <div
-            className={classNames(styles.toast, { [styles.lessonDone]: lessonDone })}
+            className={classNames(styles.toast, { [styles.lessonDone]: lessonDone, [styles.withQuiz]: quiz })}
             role="status"
             data-testid="lesson-completed-toast"
             data-action={action}
             data-assignment-cleared={assignmentCleared ? 'true' : 'false'}
             data-challenge-id={challengeId}
+            data-has-quiz={quiz ? 'true' : 'false'}
         >
             <span className={styles.icon} aria-hidden="true">
                 {lessonDone ? '🏆' : '🎉'}
@@ -199,6 +203,9 @@ const LessonCompletedToast = ({
                               </span>
                           )}
                 </div>
+                {/* ふりかえりのクイズ（#1639）: どの場面（できた！／レッスン n ぜんぶできた！／課題クリア！）でも出す。
+                    答えなくてもボタンで先へ進める。チャレンジが変わったら選んだものを消す（key） */}
+                {quiz && <LessonCompletedQuiz key={challengeId} quiz={quiz} />}
                 <div className={styles.actions}>
                     {assignmentCleared && onSubmitAssignment ? (
                         <button
@@ -268,6 +275,13 @@ LessonCompletedToast.propTypes = {
     onClose: PropTypes.func.isRequired,
     // 「次のチャレンジへ」など。レッスン表を開く。無ければボタンを出さない
     onNextChallenge: PropTypes.func,
+    // ふりかえりのクイズ（courses.js の challengeQuiz の形）。無ければ出さない
+    quiz: PropTypes.shape({
+        question: PropTypes.object.isRequired,
+        choices: PropTypes.arrayOf(PropTypes.object).isRequired,
+        answer: PropTypes.number.isRequired,
+        explanation: PropTypes.object.isRequired,
+    }),
 };
 
 export { messages };

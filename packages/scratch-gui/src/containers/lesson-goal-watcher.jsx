@@ -101,6 +101,7 @@ const LessonGoalWatcher = ({
             lessonNumber={course.lessons.indexOf(found.lesson) + 1}
             onClose={onDismiss}
             onNextChallenge={handleNextChallenge}
+            quiz={challenge.quiz || null}
         />
     );
 };
