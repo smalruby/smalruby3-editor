@@ -95,11 +95,11 @@
 |---|---|---|
 | `lib/libraries/sprites.json`・`costumes.json` | Scratch のキャラクター（Cat・Cat Flying・Giga・Giga Walking・Gobo・Nano・Pico・Pico Walking・Tera）を除き、スモウルビーのキャラクター（Shimacat・Shimaraby）を足した。背景・音の項目は上流と同じ | 項目の中身だけ。部品の値は変わらない |
 | `mobile-sprite-panel/mobile-sprite-panel.css` | `:global(.ReactModal__Overlay) { z-index: 9999 !important; }`。SP の画面の上にモーダルを出すため、**すべてのモーダル**の重なりを上流の `$z-index-modal`（510）から 9999 に上げている | 重なり順だけ（実測 9999） |
-| `modal/modal.css`（マーカー付き） | 本文の既定の白い地（`.modal-content` の `background-color: $ui-white`）。`modal.css` のマーカーはこの 1 か所だけ | 4 つのライブラリでは見えない（フルスクリーンの `$ui-secondary` が上書きする）。ふつうのモーダルでは枠の見た目が変わる（[`dialogs.md`](dialogs.md) の「スモウルビーの追加」） |
-| `modal/modal.css`（**マーカー無し**） | ヘッダーの絵の大きさ（`.header-image` 3rem まで）、ヘッダーの右のボタン置き場（`.header-item-actions`）、`.box { position: relative }`、ヘッダーの下の読み込み中の帯（`.progress-bar`・`.progress-bar-value` の地 `$control-primary`・`@keyframes indeterminate`） | 4 つのライブラリでは使わない（`.box` の `position: relative` は見た目を変えない） |
-| `modal/modal.jsx`（**マーカー無し**） | `Box` に `className={styles.box}`、`headerTitle`（題を `contentLabel` と別に出す）、`headerActions`（ヘッダーの右のボタン置き場）、`loading`（読み込み中の帯を出す） | 4 つのライブラリでは使わない。`headerTitle` は機器の接続のモーダル、`headerActions` は拡張機能のライブラリ（`library.jsx` が渡す）と甲子園のテストのモーダル、`loading` は甲子園のテストのモーダルが使う |
-| `library/library.css` | `.library-category { width: 100% }`（マーカー無し） | カテゴリ分けのあるライブラリ（チュートリアル）だけ。4 つのライブラリには出ない |
-| `library/library.jsx`（マーカー無し） | チュートリアルのカテゴリの名前の差し替え、拡張機能の項目のキー、`headerActions` を `Modal` に渡す | 4 つのライブラリには出ない |
+| `modal/modal.css`（マーカー付き） | 本文の既定の白い地（`.modal-content` の `background-color: $ui-white`。マーカー `default modal background`） | 4 つのライブラリでは見えない（フルスクリーンの `$ui-secondary` が上書きする）。ふつうのモーダルでは枠の見た目が変わる（[`dialogs.md`](dialogs.md) の「スモウルビーの追加」） |
+| `modal/modal.css`（マーカー付き） | ヘッダーの絵の大きさ（`.header-image` 3rem まで）、ヘッダーの右のボタン置き場（`.header-item-actions`）、`.box { position: relative }`、ヘッダーの下の読み込み中の帯（`.progress-bar`・`.progress-bar-value` の地 `$control-primary`・`@keyframes indeterminate`）。マーカーは `modal header image size`・`modal header actions`・`modal loading bar` | 4 つのライブラリでは使わない（`.box` の `position: relative` は見た目を変えない） |
+| `modal/modal.jsx`（マーカー付き） | `Box` に `className={styles.box}`、`headerTitle`（題を `contentLabel` と別に出す）、`headerActions`（ヘッダーの右のボタン置き場）、`loading`（読み込み中の帯を出す）。マーカーは `modal header title`・`modal header actions`・`modal loading bar` | 4 つのライブラリでは使わない。`headerTitle` は機器の接続のモーダル、`headerActions` は拡張機能のライブラリ（`library.jsx` が渡す）と甲子園のテストのモーダル、`loading` は甲子園のテストのモーダルが使う |
+| `library/library.css` | `.library-category { width: 100% }`（マーカー `tutorial library category full width`） | カテゴリ分けのあるライブラリ（チュートリアル）だけ。4 つのライブラリには出ない |
+| `library/library.jsx`（マーカー付き） | チュートリアルのカテゴリの名前の差し替え（`tutorial categories`）、拡張機能の項目のキー（`extension library key`）、`headerActions` を `Modal` に渡す（`modal header actions`） | 4 つのライブラリには出ない |
 
 ## 独自の画面で使うとき
 

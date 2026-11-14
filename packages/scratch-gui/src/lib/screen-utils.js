@@ -29,9 +29,11 @@ const resolveStageSize = (stageSizeMode, isFullSize) => {
     if (stageSizeMode === STAGE_SIZE_MODES.small) {
         return STAGE_DISPLAY_SIZES.small;
     }
+    // === Smalruby: Start of middle stage size ===
     if (stageSizeMode === STAGE_SIZE_MODES.middle) {
         return STAGE_DISPLAY_SIZES.middle;
     }
+    // === Smalruby: End of middle stage size ===
     if (isFullSize) {
         return STAGE_DISPLAY_SIZES.large;
     }

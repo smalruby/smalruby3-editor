@@ -13,9 +13,7 @@
 | トークン | 上流 v13.7.2 | スモウルビー | マーカー | わけ |
 |---|---|---|---|---|
 | `$z-index-alerts` | `490` | `520` | あり（`=== Smalruby: alerts above modals so session-expired is visible ===`） | クラスのセッション切れのアラートを、モーダルより上に出す |
-| `$ui-red` | （無い） | `hsla(0, 100%, 50%, 1)`（`#FF0000`） | **無い** | microbitMore のファームウェア更新の UI（`connection-modal.css`）が 1 か所使う |
-
-`$ui-red` のマーカーの付け忘れは、デザインシステムの文書とは別の小さな Issue で直す。
+| `$ui-red` | （無い） | `hsla(0, 100%, 50%, 1)`（`#FF0000`） | あり（`microbitMore firmware update`） | microbitMore のファームウェア更新の UI（`connection-modal.css`）が 1 か所使う |
 
 ## 色（`colors.css`・上流 41 個）
 

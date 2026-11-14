@@ -299,11 +299,13 @@
     vertical-align: middle;
 }
 
+/* === Smalruby: Start of meshV2 menu === */
 .mesh-icon {
     width: 21px;
     height: 21px;
     margin-right: 0.5rem;
 }
+/* === Smalruby: End of meshV2 menu === */
 
 .collapsible-label {
     margin: 0 .5rem 0 .25rem;
@@ -314,15 +316,19 @@
 }
 
 @media only screen and (max-width: 1024px) {
+    /* === Smalruby: Start of lessons button === */
+    /* upstream: .tutorials-label (the lessons button replaces the tutorials button) */
     .learn-label, .collapsible-label, .debug-label{
         display: none;
     }
+    /* === Smalruby: End of lessons button === */
 
     .help-icon {
         margin-right: 0;
     }
 }
 
+/* === Smalruby: Start of Google Drive save status === */
 .save-status {
     display: flex;
     align-items: center;
@@ -337,6 +343,7 @@
 .save-status-spinner {
     flex-shrink: 0;
 }
+/* === Smalruby: End of Google Drive save status === */
 
 /* === Smalruby: Start of improved auth_error UX === */
 .save-directly-button-auth-error {
@@ -350,6 +357,7 @@
 }
 /* === Smalruby: End of improved auth_error UX === */
 
+/* === Smalruby: Start of meshV2 menu === */
 .mesh-v2-domain {
     display: inline-block;
     vertical-align: bottom;
@@ -370,3 +378,4 @@
     font-size: 0.75rem;
     line-height: 1.5rem;
 }
+/* === Smalruby: End of meshV2 menu === */

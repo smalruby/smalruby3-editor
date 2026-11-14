@@ -22,7 +22,10 @@
 .library-category {
   display: flex;
   flex-direction: column;
+  /* === Smalruby: Start of tutorial library category full width === */
+  /* keep each tutorial category on its own row */
   width: 100%;
+  /* === Smalruby: End of tutorial library category full width === */
 }
 
 .library-category-title {

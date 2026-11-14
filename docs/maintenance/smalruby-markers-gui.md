@@ -174,6 +174,39 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/menu-bar/project-title-input.css` | read-only project title for Google Drive | 同機能のスタイル |
 | `src/components/cards/card.css` | insert-code button overlay / tutorial glow animation | チュートリアルカードの「コードを挿入」ボタンのオーバーレイとハイライトアニメーションのスタイル |
 | `test/helpers/selenium-helper.js` | getLogs SEVERE filter | `getLogs()` が SEVERE を返さなかった不具合（`entry.level` は `logging.Level` のオブジェクト）を直し、絞り込みと既知の無害なログの一覧を `test/helpers/ignorable-severe-logs.js` の `filterBrowserLogs` に任せる（import と本体の 2 ペア）。他の Smalruby マーカー（extra helpers / no-sandbox など）は従来どおり |
+| `src/components/blocks/blocks.css` | palette toggle position | `.blocks` に `position: relative`（ブロックのパレットの ◀ / ▶ のボタンをこの箱に対して置く） |
+| `src/components/blocks/blocks.css` | show whole block shape on flyout hover | フライアウトにマウスを乗せている間、長いブロックが右へはみ出して見えるようにする（`clip-path`・RTL 対応）。スクロールバーを左に 4px 離し、ホバー中のスクロールバーの地を不透明度 0.4 にする |
+| `src/components/blocks/blocks.css` | v2 toolbox category label selector | カテゴリ名を 0.65rem に縮める規則のクラス名を、scratch-blocks v2.1.19 が描く `.blocklyToolboxCategoryLabel` にする（上流は v1 の `.scratchCategoryMenuItemLabel` のままで効かない） |
+| `src/components/library/library.css` | tutorial library category full width | `.library-category` を幅いっぱいにして、チュートリアルのカテゴリが横に並ばないようにする |
+| `src/components/library/library.jsx` | tutorial categories | チュートリアルのカテゴリを `lib/libraries/tutorial-tags` から読み、カテゴリの名前（ブロックのきほん・通信入門 ①〜③・Ruby のきほん など）に差し替える |
+| `src/components/library/library.jsx` | extension library key | 拡張機能の項目のキーに `extensionId` を使う |
+| `src/components/library/library.jsx` | modal header actions | `headerActions` を `Modal` に渡す（prop と propType） |
+| `src/components/modal/modal.jsx` | modal header actions | ヘッダーの右のボタン置き場 `headerActions`（拡張機能のライブラリ・甲子園のテストのモーダルが使う）。描画と propType |
+| `src/components/modal/modal.css` | modal header actions | `.header-item-actions`（`headerActions` の置き場。LTR / RTL の余白） |
+| `src/components/modal/modal.jsx` | modal header title | `headerTitle` があれば `contentLabel` の代わりに題に出す（機器の接続のモーダルが使う）。描画と propType |
+| `src/components/modal/modal.jsx` | modal loading bar | `loading` のときヘッダーの下に読み込み中の帯を出す。`Box` に `styles.box` を付ける。描画と propType |
+| `src/components/modal/modal.css` | modal loading bar | `.box { position: relative }`・`.progress-bar`・`.progress-bar-value`・`@keyframes indeterminate` |
+| `src/components/modal/modal.css` | modal header image size | `.header-image` を 3rem までに抑える（大きな拡張機能・機器のアイコンでヘッダーが伸びないように） |
+| `src/components/custom-procedures/custom-procedures.jsx` | upstream warning fixes | `Modal` に必須の `id`（`customProceduresModal`）を渡す |
+| `src/components/connection-modal/update-peripheral-step.jsx` | upstream warning fixes | エラーの `textarea` に子でなく `value` を渡す（React の警告を消す） |
+| `src/components/connection-modal/update-peripheral-step.jsx` | microbitMore firmware update | microbitMore の更新が終わったときの文言と「micro:bit を傾けて 25 個の LED を点ける」案内、`extensionId` の propType |
+| `src/components/connection-modal/connection-modal.css` | microbitMore firmware update | 上の案内の `.important-instruction`（太字・`$ui-red`） |
+| `src/css/colors.css` | microbitMore firmware update | `$ui-red`（`.important-instruction` だけが使う） |
+| `src/components/menu-bar/menu-bar.css` | meshV2 menu | メッシュのメニューのアイコン `.mesh-icon` と、状態の表示 `.mesh-v2-domain`・`.mesh-v2-status-multiline`・`.mesh-v2-status-line`（2 か所） |
+| `src/components/menu-bar/menu-bar.css` | lessons button | 幅 1024px 以下で文字を消す規則の `.tutorials-label` を、レッスンのボタンの `.learn-label` にする |
+| `src/components/menu-bar/menu-bar.css` | Google Drive save status | Google ドライブへの保存の状態 `.save-status`・`.save-status-spinner` |
+| `src/components/gui/gui.css` | Ruby tab list container | Ruby タブを含むタブの並びと右のリンクを包む `.tab-list-container` |
+| `src/components/gui/gui.css` | legal links | タブの右のプライバシーポリシー・フィードバック・不具合の報告のリンク（`.legal-links`・`.privacy-link`・`.link-separator`・`.feedback-link`、幅 743px 以下でフィードバックを消す規則） |
+| `src/components/cards/card.css` | tutorial card layout | チュートリアルのカードの幅を 500px までにし、長い題を折り返す（2 か所） |
+| `src/components/cards/card.css` | step pip selector | 手順の点の規則のクラス名 `.inactiveStepPip` を `.inactive-step-pip` にする |
+| `src/components/cards/card.css` | tutorial insert-code button | チュートリアルのカードの「コードを入れる」ボタン `.insert-code-button`（地 `$ui-green`・ホバー `$ui-green-2`） |
+| `src/lib/layout-constants.js` | middle stage size | 「中」のステージ: `STAGE_SIZE_MODES.middle`・`STAGE_DISPLAY_SIZES.middle`・倍率 0.75（3 か所） |
+| `src/lib/screen-utils.js` | middle stage size | `resolveStageSize` が「中」を返す |
+| `src/reducers/stage-size.js` | middle stage size | ステージの大きさの既定を「中」にする（上流は「大」） |
+| `src/components/stage-header/stage-header.jsx` | middle stage size | 「中」のボタンのアイコン・文言・`onSetStageMiddle`（分割代入と propType）・3 つのボタンを `.stage-size-toggle-group` で包む |
+| `src/containers/stage-header.jsx` | middle stage size | `onSetStageMiddle` を `setStageSize(STAGE_SIZE_MODES.middle)` にマップ |
+| `src/components/sprite-info/sprite-info.jsx` | compact middle sprite info | 「中」のとき x / y のラベルを上に置く `above`（2 か所。ほかの「中」の詰めた並びも同じマーカー） |
+| `src/components/stage-header/stage-header.jsx` | Hatti logo | ステージのヘッダーのロゴをハッチにする |
 
 > 注: `src/lib/url-params.js` は Smalruby 固有ファイル（`.prettierignore` ホワイトリスト対象）の
 > ため本表の対象外（旧エントリは削除済み。固有ファイル内のマーカーは取り外し可能拡張の
