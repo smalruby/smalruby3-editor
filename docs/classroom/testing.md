@@ -148,13 +148,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-code-display-shrink` | button | 全画面解除 |
 | `classroom-code-display-close` | button | コード表示を閉じる |
 
-### 生徒の画面の作り直し（参加から提出まで）
-
-生徒の参加から提出までの画面は、[ui-ux.md の「生徒の画面の決まり」](ui-ux.md#生徒の画面の決まり参加から提出まで)と 5〜9 の仕様で作り直す（主ボタンは 1 つ・進む順の帯・始め方を 1 つに決める・おかえりなさい・メニューバーの「提出する」）。下の表のうち、次のものは新しい画面に置きかわる。新しい画面の data-testid は**実装の sub-issue で確定**し、そのときにこの一覧を書きかえる（ここでは名前を先に決めない）。
-
-- 「生徒: ステータス」の `classroom-leave`（「退出する」）→ 確認つきの小さなリンク「クラスから出る」。提出のボタン → メニューバーの「提出する」
-- 「生徒: ステータス」の「提出した作品を読み込む」（`classroom-continue-*`）→ 小さなリンク「作品を読み込み直す」
-
 ### 生徒: 共通の部品（進む順の帯・主ボタン・小さなリンク）
 
 [ui-ux.md の「生徒の画面の決まり」](ui-ux.md#生徒の画面の決まり参加から提出まで)の部品。帯は生徒の画面（`classroom-modal`）のいちばん上に出る。
@@ -204,20 +197,34 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-joined-assignment` | div | 課題名（課題名がある場合のみ） |
 | `classroom-joined-lesson-notice` | div | レッスンの課題の 1 行のお知らせ（レッスンの課題であることと提出のタイミング。レッスンの課題のときだけ） |
 
-### 生徒: ステータス
+### 生徒: ステータス（おかえりなさい）
+
+参加中にクラスの画面を開いたとき（同じクラスに入り直したときもふくむ）の画面。主ボタンは 1 つ（`classroom-status-continue`、レッスンの課題のとちゅうは `classroom-continue-lesson-button`）。提出のボタンは無い（メニューバーの `classroom-menu-submit` から）。
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-status-class-name` | span | クラス（学級）名 |
-| `classroom-status-seat-number` | span | 出席番号（0埋め2桁） |
-| `classroom-status-assignment` | span | 課題名 |
-| `classroom-status-joined-at` | span | 参加日時（秒なし） |
-| `classroom-submit-status` | span | 提出状況 |
-| `classroom-status-teacher-comment` | div | 先生からのコメント |
+| `classroom-status-title` | div | 見出し「おかえりなさい」 |
+| `classroom-status-info` | div | 1 行の情報（クラス ・ 出席番号 ・ 課題 ・ 提出状況 ・ ↻）。長いクラス名・課題名は「…」で切る |
+| `classroom-status-class-name` | span | クラス（学級）名（`title` に全体） |
+| `classroom-status-seat-number` | span | 「出席番号03」（0埋め2桁） |
+| `classroom-status-assignment` | span | 課題名（`title` に全体） |
+| `classroom-submit-status` | span | 提出状況（未提出 / ✓ 提出済み (時刻) / ↩ 返却済み (時刻)）。作品を提出しないレッスンの課題では出さない |
 | `classroom-student-refresh` | button | 更新 (↻) |
-| `classroom-submit-button` | button | 課題を提出する / 課題を再提出する（レッスンの課題では、作品も提出する課題で課題クリアのあとだけ） |
+| `classroom-status-teacher-comment` | div | 先生からのコメント（返却済みのときだけ） |
+| `classroom-status-continue` | button | 主ボタン「つづける」（何も読み込まずに閉じる。説明の行は `classroom-status-continue-note`）。レッスンの課題では、作品も提出する課題で条件を満たしたあとだけ |
+| `classroom-continue-lesson-button` | button | 「レッスンを続ける」（レッスンの課題だけ。レッスン表を課題のチャレンジだけで開く）。条件を満たすまでは主ボタン、作品も提出する課題で条件を満たしたあとは小さなリンク |
+| `classroom-view-assignment-button` | button | 小さなリンク「課題を見る」（hasAssignment 時のみ） |
+| `classroom-peer-view-button` | button | 小さなリンク「みんなの作品を見る」（他者参照が有効なとき。押すとモーダルを閉じてパネルを開く） |
+| `classroom-peer-view-locked` | span | 「提出すると見られます」（`自分が提出したら` で未提出のとき。リンクの代わりの押せない文字） |
+| `classroom-status-wrong-seat` | button | 小さなリンク「出席番号がちがう」（いまの席を空けて同じ課題の番号選びへ。空けた番号は前回の番号として残さない） |
+| `classroom-status-reload-toggle` | button | 小さなリンク「作品を読み込み直す ▾」（読み込めるものが 1 つ以上あるときだけ。`aria-expanded`） |
+| `classroom-status-reload-options` | div | 開いたときに並ぶリンクのまとまり（同じ行に並ぶ） |
+| `classroom-status-reload-{kind}` | button | 読み込めるもの（`kind` = `current` この課題で出した作品 / `previous` 前回の作品 / `starter` スターター。この順）。押すとその作品を開いてモーダルを閉じる（編集中は confirm） |
+| `classroom-leave` | button | 小さなリンク「クラスから出る」（右下。押すと確認） |
+| `classroom-leave-dialog` | div (`role="alertdialog"`) | 確認「クラスから出ますか？ 出ても、提出した作品は残ります。」（主ボタンとリンクの代わりに出る。名前は質問の文（`aria-labelledby`）。開くとフォーカスは `classroom-leave-confirm`、Esc は確認だけを閉じる） |
+| `classroom-leave-confirm` | button | 確認の主ボタン「出る」（→ student-join） |
+| `classroom-leave-cancel` | button | 確認の小さなリンク「やめる」 |
 | `classroom-status-lesson-progress` | div | レッスンの課題の「進み具合」の行（丸は `lesson-assignment-dot`、`lesson-assignment-done-count`・`lesson-assignment-remaining`・`lesson-assignment-required-remaining`・`lesson-assignment-cleared`） |
-| `classroom-continue-lesson-button` | button | レッスンを続ける（レッスンの課題だけ。レッスン表を課題のチャレンジだけで開く） |
 | `classroom-status-lesson-submit-guide` | div | 作品も提出する課題で課題クリアのあと（または、この版に無いチャレンジがあるとき）の案内。はじめて提出するまで |
 | `classroom-status-lesson-unknown` | span | 「新しいレッスンがあります。ページを読み込み直してね」（この版のコースに無いチャレンジがあるとき） |
 | `lesson-progress-confirm` | div | 本人の確認の本文（レッスンの課題ではじめて送るとき、端末に課題のチャレンジの記録があれば出る。gui の直下・クラスの画面の上に重なる） |
@@ -226,10 +233,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `lesson-progress-confirm-not-mine` | button | 「ちがう（記録を消す）」（2 つめの確認へ） |
 | `lesson-progress-confirm-back` | button | 2 つめの確認の［戻る］（1 つめに戻る） |
 | `lesson-progress-confirm-clear` | button | 2 つめの確認の［消す］（送らずに端末のレッスンの記録を空にする） |
-| `classroom-leave` | button | 退出する |
-| `classroom-peer-view-button` | button | みんなの作品を見る（他者参照が有効なとき。押すとモーダルを閉じてパネルを開く・#1210） |
-| `classroom-peer-view-locked` | span | 「提出すると見られます」（`自分が提出したら` で未提出のとき。ボタンの代わり） |
 | `classroom-error-action` | button | セッション切れ時のアクションリンク |
+
+1300×600 の収まりは `tools/playwright-verify/verify-classroom-viewport.mjs` が、返却のコメントと長い名前の状態・「作品を読み込み直す」を開いた状態・「クラスから出る」の確認・提出済み・レッスンの課題（「作品を読み込み直す」を開いた状態）で測る（`LOCALE=ja-Hira` でひらがなでも測れる）。
 
 ### 生徒: 提出確認
 
@@ -344,23 +350,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-page-indicator` | span | ページ位置（`1 / 3`） |
 | `classroom-assignment-main-next` | button | 主ボタン「つぎのページ」（最後のページより前） |
 | `classroom-assignment-close` | button | 主ボタン「とじる」（「課題を見る」から開き直したときの最後のページ。始め方は出さない） |
-| `classroom-assignment-reload-starter` | button | 小さなリンク「スタータープロジェクトを開く」（開き直したパネルの最後のページで、課題にスターターがあるときだけ。押すとスターターを開き、パネルは閉じない。編集中は confirm） |
 | `classroom-assignment-lesson-notice` | div | レッスンの課題の説明（参加直後の最後のページのみ） |
-| `classroom-view-assignment-button` | button | ステータス画面の「課題を見る」（hasAssignment 時のみ） |
-
-### どこから始めるかの選択（生徒・Issue #1201）
-
-> 参加完了・課題パネルは主ボタン 1 つと「ほかの始め方」（上の「生徒: 始め方」）に置きかわった。この節はステータス（`student-status`）の「提出した作品を読み込む」だけに残っていて、「作品を読み込み直す」に置きかわる（上の「生徒の画面の作り直し」）。
-
-ステータス（`student-status`）で、続きに使える提出物があるときだけ表示。
-
-| data-testid | 要素 | 説明 |
-|------------|------|------|
-| `classroom-continue-choice` | div | 選択肢のまとまり（続きに使える提出物が無いときは描画しない） |
-| `classroom-continue-previous` | button | 前回の提出物から続ける（同じクラスの前の課題・同じ席の提出物があるとき） |
-| `classroom-continue-current` | button | この課題で提出した作品を読み込む（この課題で提出済みのとき） |
-
-開いたボタンは `aria-pressed="true"`。1300×600 の収まりは `tools/playwright-verify/verify-classroom-viewport.mjs` が「参加完了 / 課題パネル」の「ほかの始め方」を開いた状態と、ステータスの選択肢つきの状態で測る（`LOCALE=ja-Hira` でひらがなでも測れる）。
 
 ### 組（グループ）管理
 

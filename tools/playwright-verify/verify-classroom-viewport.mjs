@@ -48,6 +48,10 @@ const DOC_SHOT_NAMES = {
     'student-assignment-last': ['0330-student-assignment-last-page.png'],
     'student-assignment-reopened': ['0331-student-assignment-reopened.png'],
     'student-status': ['0304-student-status.png'],
+    'student-status-submitted': ['0305-student-submitted.png'],
+    'student-status-reload': ['0335-student-welcome-reload.png'],
+    'student-status-leave': ['0336-student-welcome-leave-confirm.png'],
+    'student-status-lesson-in-progress': ['0320-student-status-lesson.png'],
     'student-submit-confirm': ['0306-student-submit-confirm.png'],
     'student-lesson-progress-confirm': ['0324-lesson-progress-confirm.png'],
     'student-lesson-progress-confirm-clear': ['0325-lesson-progress-confirm-clear.png'],
@@ -574,47 +578,98 @@ for (const [label, continuable, startFromPrevious, shots] of [
     await openModal(page);
     await page.locator('[data-testid="classroom-view-assignment-button"]').click();
     await page.locator('[data-testid="classroom-assignment-main-next"]').click();
-    await page.locator('[data-testid="classroom-assignment-reload-starter"]').waitFor({ timeout: 10000 });
+    await page.locator('[data-testid="classroom-assignment-close"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(500);
     await judge(page, {
         who: 'student',
-        name: 'student-assignment (reopened, last page: long page + image + close + open the starter)',
+        name: 'student-assignment (reopened, last page: long page + image + close)',
         shot: 'student-assignment-reopened',
-        primary: '[data-testid="classroom-assignment-reload-starter"]',
+        primary: '[data-testid="classroom-assignment-close"]',
     });
     await ctx.close();
 }
 
-// ---------- student-status (返却済み + 長いコメント) → submit-confirm ----------
+// ---------- おかえりなさい (#1794): 返却済み + 長いコメント + 長い名前 ----------
+// 一番長い状態: 返却のコメント・「作品を読み込み直す」を開いた (この課題・前回・スターター)・
+// 「みんなの作品を見る」。続けて「クラスから出る」の確認、メニューバーの「提出する」→ 提出確認。
+const routeWelcomeBack = (submission) => async (p) => {
+    await routeContinuable(p);
+    await p.route('**/classrooms/c1/assignment', (r) =>
+        r.fulfill({
+            json: {
+                assignment: { pages: [{ text: 'x' }], starterUrl: 'https://example.invalid/starter.sb3' },
+                peerView: 'always',
+            },
+        }),
+    );
+    await p.route('**/classrooms/verify-session', (r) =>
+        r.fulfill({ json: { valid: true, hasAssignment: true, submission } }),
+    );
+};
 {
     const { ctx, page } = await studentPage({
         storage: { 'smalruby:classroom': session({ submissionStatus: 'returned' }) },
-        routes: async (p) => {
-            await routeContinuable(p);
-            await p.route('**/classrooms/verify-session', (r) =>
-                r.fulfill({
-                    json: {
-                        valid: true,
-                        hasAssignment: true,
-                        submission: { status: 'returned', submittedAt: new Date().toISOString(), teacherComment: LONG_COMMENT },
-                    },
-                }),
-            );
-        },
+        routes: routeWelcomeBack({
+            status: 'returned',
+            submittedAt: new Date().toISOString(),
+            teacherComment: LONG_COMMENT,
+        }),
     });
     await openModal(page);
     await page.locator('[data-testid="classroom-phase-student-status"]').waitFor({ timeout: 10000 });
-    await page.locator('[data-testid="classroom-continue-choice"]').waitFor({ timeout: 10000 });
+    await page.locator('[data-testid="classroom-status-reload-toggle"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(800);
     await judge(page, {
         who: 'student',
-        name: 'student-status (returned + long comment + continue choice)',
+        name: 'student-status (welcome back: returned + long comment + long names)',
         shot: 'student-status',
+        primary: '[data-testid="classroom-status-continue"]',
     });
-    await page.locator('[data-testid="classroom-submit-button"]').click();
+    await page.locator('[data-testid="classroom-status-reload-toggle"]').click();
+    await page.locator('[data-testid="classroom-status-reload-starter"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(300);
+    await judge(page, {
+        who: 'student',
+        name: 'student-status (welcome back: reload open — this assignment, last time, starter)',
+        shot: 'student-status-reload',
+        primary: '[data-testid="classroom-leave"]',
+    });
+    await page.locator('[data-testid="classroom-leave"]').click();
+    await page.locator('[data-testid="classroom-leave-dialog"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(300);
+    await judge(page, {
+        who: 'student',
+        name: 'student-status (welcome back: leave confirm)',
+        shot: 'student-status-leave',
+        primary: '[data-testid="classroom-leave-confirm"]',
+    });
+    await page.locator('[data-testid="classroom-leave-cancel"]').click();
+    // 提出はメニューバーの「提出する」から (#1795)。この画面には提出のボタンが無い。
+    if (await page.locator('[data-testid="classroom-submit-button"]').count()) {
+        record({ who: 'student', name: 'student-status has no submit button', ok: false, modal: '-', body: '-', page: '-' });
+    }
+    await page.$eval('[data-testid="classroom-menu-submit"]', (el) => el.click());
     await page.locator('[data-testid="classroom-phase-submit-confirm"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(1500);
     await judge(page, { who: 'student', name: 'submit-confirm', shot: 'student-submit-confirm' });
+    await ctx.close();
+}
+
+// おかえりなさい (提出済み・帯は全部緑)
+{
+    const { ctx, page } = await studentPage({
+        storage: { 'smalruby:classroom': session({ submissionStatus: 'submitted' }) },
+        routes: routeWelcomeBack({ status: 'submitted', submittedAt: new Date().toISOString() }),
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-phase-student-status"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(800);
+    await judge(page, {
+        who: 'student',
+        name: 'student-status (welcome back: submitted)',
+        shot: 'student-status-submitted',
+        primary: '[data-testid="classroom-status-continue"]',
+    });
     await ctx.close();
 }
 
@@ -737,16 +792,17 @@ const routeLessonAssignment = (p) =>
     await ctx.close();
 }
 
-// クラスの画面: 進み具合 (とちゅう・★ 残り / 課題クリア) + 提出状況 + 続きの選択肢。
-// 返却 + 長いコメントのときと、まだ提出していない (提出の案内が出る) とき。
-// 新しい版のチャレンジがある課題 (#1599 M1): 読み込み直しの一言 + 提出の案内 + 提出ボタン。
+// おかえりなさい: 進み具合 (とちゅう・★ 残り / 課題クリア) + 提出状況 +「作品を読み込み直す」を開いた状態。
+// 返却 + 長いコメントのときと、まだ提出していない (提出の案内が出る) とき。主ボタンは、とちゅうは
+// 「レッスンを続ける」、課題クリアのあとは「つづける」(#1794)。
+// 新しい版のチャレンジがある課題 (#1599 M1): 読み込み直しの一言 + 提出の案内。
 const LESSON_WITH_UNKNOWN = { ...LESSON, challengeIds: [...LESSON_IDS, 'not-in-this-build'] };
 for (const [label, done, primary, returned, lesson = LESSON] of [
     ['in progress', LESSON_IDS.slice(0, 6), 'classroom-continue-lesson-button', true],
-    ['cleared + returned', LESSON_IDS.slice(0, 9), 'classroom-submit-button', true],
-    ['cleared + submit guide', LESSON_IDS.slice(0, 9), 'classroom-submit-button', false],
-    ['unknown challenge + submit guide', LESSON_IDS.slice(0, 3), 'classroom-submit-button', false, LESSON_WITH_UNKNOWN],
-    ['unknown challenge + returned', LESSON_IDS.slice(0, 3), 'classroom-submit-button', true, LESSON_WITH_UNKNOWN],
+    ['cleared + returned', LESSON_IDS.slice(0, 9), 'classroom-status-continue', true],
+    ['cleared + submit guide', LESSON_IDS.slice(0, 9), 'classroom-status-continue', false],
+    ['unknown challenge + submit guide', LESSON_IDS.slice(0, 3), 'classroom-status-continue', false, LESSON_WITH_UNKNOWN],
+    ['unknown challenge + returned', LESSON_IDS.slice(0, 3), 'classroom-status-continue', true, LESSON_WITH_UNKNOWN],
 ]) {
     const submission = returned
         ? { status: 'returned', submittedAt: new Date().toISOString(), teacherComment: LONG_COMMENT }
@@ -770,11 +826,12 @@ for (const [label, done, primary, returned, lesson = LESSON] of [
     });
     await openModal(page);
     await page.locator('[data-testid="classroom-status-lesson-progress"]').waitFor({ timeout: 10000 });
-    await page.locator('[data-testid="classroom-continue-choice"]').waitFor({ timeout: 10000 });
+    // 「作品を読み込み直す」を開いた一番長い状態で測る
+    await page.locator('[data-testid="classroom-status-reload-toggle"]').click();
     await page.waitForTimeout(800);
     await judge(page, {
         who: 'student',
-        name: `student-status (lesson ${label} + continue choice)`,
+        name: `student-status (lesson ${label} + reload open)`,
         shot: `student-status-lesson-${label.replace(/[^a-z]+/g, '-')}`,
         primary: `[data-testid="${primary}"]`,
     });

@@ -122,6 +122,10 @@ const useStudentAssignment = ({
     // join / verify-session responses so the status view can offer the
     // "View Assignment" button without an extra request.
     const [hasAssignment, setHasAssignment] = useState(false);
+    // Whether the assignment has a starter project: the welcome back screen
+    // offers it under 「作品を読み込み直す」 (#1794). Learned from the assignment
+    // responses already fetched (join / status view), no extra request.
+    const [hasStarter, setHasStarter] = useState(false);
 
     // Submissions to continue from ({current, previous}) or null when there
     // are none, and which choice was last loaded ('starter' | 'previous' |
@@ -217,6 +221,7 @@ const useStudentAssignment = ({
             setStartMethod(NO_START_METHOD);
             setContinueOptions(null);
             setHasAssignment(false);
+            setHasStarter(false);
             // Fetched even without `hasAssignment`: a lesson-only assignment has
             // no pages or starter but still a lesson (#1599).
             const [assignmentData, { options, startFromPrevious }] = await Promise.all([
@@ -228,6 +233,7 @@ const useStudentAssignment = ({
             rememberPeerView(assignmentData);
             const joinedAssignment = withAssignment ? assignmentData?.assignment || null : null;
             setAssignment(joinedAssignment);
+            setHasStarter(!!joinedAssignment?.starterUrl);
             setAssignmentPageIndex(0);
             const hasLesson = !!normalizeAssignmentLesson(assignmentData?.lesson);
             setStartMethod(
@@ -267,6 +273,7 @@ const useStudentAssignment = ({
             // an answer for an old session must not land in the new one (#1599 FYI1).
             if (token !== sessionTokenRef.current) return;
             rememberPeerView(data);
+            setHasStarter(!!data?.assignment?.starterUrl);
         } catch {
             // keep what we have
         }
@@ -334,6 +341,7 @@ const useStudentAssignment = ({
         try {
             const data = await classroomAPI.getAssignment(classroomState.sessionToken, classroomState.classroomId);
             rememberPeerView(data);
+            setHasStarter(!!data?.assignment?.starterUrl);
             if (!data.assignment) {
                 setHasAssignment(false);
                 return;
@@ -358,57 +366,50 @@ const useStudentAssignment = ({
     ]);
 
     /**
-     * Open the starter from the assignment panel / choice row. The starter URL
+     * "Start from the starter" (the assignment panel / 「ほかの始め方」 /
+     * 「作品を読み込み直す」): load the starter and start working. The starter URL
      * is fetched again right before loading, like the submissions: the URL
      * from the join may have expired while the student read the assignment.
-     * @param {boolean} start - true from the choice row: the work starts
-     *     (onStarted) once the starter has loaded
+     * On the welcome back screen the assignment is not in memory yet, so the
+     * fresh fetch is the only source there (#1794).
      */
-    const openStarter = useCallback(
-        async (start) => {
-            if (!assignment) return;
-            clearError();
-            setIsLoading(true);
-            try {
-                let starterAssignment = assignment;
-                if (classroomState.sessionToken && classroomState.classroomId) {
-                    const data = await classroomAPI.getAssignment(
-                        classroomState.sessionToken,
-                        classroomState.classroomId,
-                    );
-                    starterAssignment = data.assignment;
-                }
-                if (!starterAssignment?.starterUrl) {
-                    showError(intl.formatMessage(messages.starterLoadFailed));
-                    return;
-                }
-                if ((await loadStarter(starterAssignment)) && start && onStarted) {
-                    onStarted();
-                }
-            } catch {
-                showError(intl.formatMessage(messages.starterLoadFailed));
-            } finally {
-                setIsLoading(false);
+    const handleChooseStarter = useCallback(async () => {
+        const canFetch = !!(classroomState.sessionToken && classroomState.classroomId);
+        if (!assignment && !canFetch) return;
+        clearError();
+        setIsLoading(true);
+        try {
+            let starterAssignment = assignment;
+            if (canFetch) {
+                const data = await classroomAPI.getAssignment(
+                    classroomState.sessionToken,
+                    classroomState.classroomId,
+                );
+                starterAssignment = data.assignment;
             }
-        },
-        [
-            assignment,
-            classroomState.sessionToken,
-            classroomState.classroomId,
-            loadStarter,
-            onStarted,
-            clearError,
-            showError,
-            intl,
-            setIsLoading,
-        ],
-    );
-
-    /** "Open the Starter Project" button (no choices): reload and stay on the panel. */
-    const handleReloadStarter = useCallback(() => openStarter(false), [openStarter]);
-
-    /** "Start from the starter" choice: load the starter and start working. */
-    const handleChooseStarter = useCallback(() => openStarter(true), [openStarter]);
+            if (!starterAssignment?.starterUrl) {
+                showError(intl.formatMessage(messages.starterLoadFailed));
+                return;
+            }
+            if ((await loadStarter(starterAssignment)) && onStarted) {
+                onStarted();
+            }
+        } catch {
+            showError(intl.formatMessage(messages.starterLoadFailed));
+        } finally {
+            setIsLoading(false);
+        }
+    }, [
+        assignment,
+        classroomState.sessionToken,
+        classroomState.classroomId,
+        loadStarter,
+        onStarted,
+        clearError,
+        showError,
+        intl,
+        setIsLoading,
+    ]);
 
     const handleAssignmentPrevPage = useCallback(() => {
         setAssignmentPageIndex((i) => Math.max(0, i - 1));
@@ -423,13 +424,13 @@ const useStudentAssignment = ({
         assignmentPageIndex,
         continueOptions,
         hasAssignment,
+        hasStarter,
         loadedChoice,
         startMethod,
         setHasAssignment,
         handleJoined,
         handleLoadSubmission,
         handleOpenAssignment,
-        handleReloadStarter,
         handleChooseStarter,
         refreshContinueOptions,
         refreshLesson,

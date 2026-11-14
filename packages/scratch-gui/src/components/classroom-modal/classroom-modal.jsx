@@ -51,7 +51,6 @@ const ClassroomModal = ({
     onConfirmKickRequest,
     onCancelKickRequest,
     onLeaveClassroom,
-    onStartSubmit,
     onConfirmSubmit,
     onCancelSubmit,
     submitProgress,
@@ -63,14 +62,14 @@ const ClassroomModal = ({
     assignmentPageIndex,
     continueOptions,
     hasAssignment,
-    loadedChoice,
+    hasStarter = false,
+    onWrongSeat,
     startMethod,
     onLoadSubmission,
     onOpenAssignment,
     onAssignmentPrevPage,
     onAssignmentNextPage,
     onChooseStarter,
-    onReloadStarter,
     lessonStatus = null,
     studentLesson = null,
     onStartLesson,
@@ -174,7 +173,6 @@ const ClassroomModal = ({
                         studentLesson={studentLesson}
                         onNextPage={onAssignmentNextPage}
                         onPrevPage={onAssignmentPrevPage}
-                        onReloadStarter={onReloadStarter}
                         onStartLesson={onStartLesson}
                     />
                 )}
@@ -189,17 +187,19 @@ const ClassroomModal = ({
                         errorActionLabel={errorActionLabel}
                         errorTitle={errorTitle}
                         hasAssignment={hasAssignment}
+                        hasStarter={hasStarter}
                         isLoading={isLoading}
-                        loadedChoice={loadedChoice}
                         lessonStatus={lessonStatus}
                         studentLesson={studentLesson}
                         teacherComment={teacherComment}
+                        onContinue={onClose}
                         onLeaveClassroom={onLeaveClassroom}
+                        onLoadStarter={onChooseStarter}
                         onLoadSubmission={onLoadSubmission}
                         onOpenAssignment={onOpenAssignment}
                         onRefreshStudentStatus={onRefreshStudentStatus}
                         onStartLesson={onStartLesson}
-                        onStartSubmit={onStartSubmit}
+                        onWrongSeat={onWrongSeat}
                     />
                 )}
 
@@ -243,7 +243,6 @@ ClassroomModal.propTypes = {
     assignment: PropTypes.object,
     assignmentPageIndex: PropTypes.number,
     continueOptions: PropTypes.object,
-    loadedChoice: PropTypes.string,
     // decideStartMethod の結果 (#1793): 参加したあとの主ボタンとほかの始め方
     startMethod: PropTypes.shape({
         main: PropTypes.string.isRequired,
@@ -253,13 +252,15 @@ ClassroomModal.propTypes = {
     onLoadSubmission: PropTypes.func,
     classroomState: PropTypes.object,
     hasAssignment: PropTypes.bool,
+    // 課題にスターターがある（おかえりなさいの「作品を読み込み直す」, #1794）
+    hasStarter: PropTypes.bool,
+    // おかえりなさいの「出席番号がちがう」(#1794)
+    onWrongSeat: PropTypes.func,
     onAssignmentNextPage: PropTypes.func,
     onAssignmentPrevPage: PropTypes.func,
     onOpenAssignment: PropTypes.func,
     // choice row: open the starter and start (closes the modal)
     onChooseStarter: PropTypes.func,
-    // reopened assignment panel: open the starter (keeps the modal open)
-    onReloadStarter: PropTypes.func,
     error: PropTypes.string,
     errorActionHandler: PropTypes.func,
     errorActionLabel: PropTypes.string,
@@ -306,7 +307,6 @@ ClassroomModal.propTypes = {
     onRefreshStudentStatus: PropTypes.func.isRequired,
     onSelectSeat: PropTypes.func.isRequired,
     onSelectTeacher: PropTypes.func,
-    onStartSubmit: PropTypes.func.isRequired,
     phase: PropTypes.string.isRequired,
     previousSeat: PropTypes.number,
     seatCount: PropTypes.number,

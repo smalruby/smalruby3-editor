@@ -105,10 +105,9 @@ try {
     await studentPage.waitForSelector('[data-testid="classroom-phase-student-joined"]', { timeout: 30000 });
     await studentPage.click('[data-testid="classroom-start-main"]');
     await sleep(500);
-    // Submit via the class menu (status view)
-    await studentPage.click('[data-testid="classroom-menu-button"]');
-    await studentPage.waitForSelector('[data-testid="classroom-submit-button"]', { timeout: 20000 });
-    await studentPage.click('[data-testid="classroom-submit-button"]');
+    // Submit via the menu bar 「提出する」 (the welcome back screen has no submit button: #1794 / #1795)
+    await studentPage.waitForSelector('[data-testid="classroom-menu-submit"]', { timeout: 20000 });
+    await studentPage.click('[data-testid="classroom-menu-submit"]');
     await studentPage.waitForSelector('[data-testid="classroom-submit-confirm"]', { timeout: 20000 });
     await studentPage.click('[data-testid="classroom-submit-confirm"]');
     // 提出できたら「提出できました ✓」(#1795)。「つづける」で閉じる。

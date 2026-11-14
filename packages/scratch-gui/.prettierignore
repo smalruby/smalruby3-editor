@@ -507,7 +507,6 @@ test/unit/components/*
 !test/unit/components/mesh-v2-seat-connect.test.jsx
 !test/unit/components/student-assignment-panel.test.jsx
 !test/unit/components/lesson-number-input.test.jsx
-!test/unit/components/student-continue-choice.test.jsx
 !test/unit/components/teacher-class-detail.test.jsx
 !test/unit/components/teacher-lesson-progress.test.jsx
 !test/unit/components/student-peer-view-button.test.jsx
@@ -528,6 +527,7 @@ test/unit/components/*
 !test/unit/components/classroom-menu-submit-button.test.jsx
 !test/unit/components/student-submit-confirm.test.jsx
 !test/unit/components/student-start-method.test.jsx
+!test/unit/components/student-status-view.test.jsx
 !test/unit/components/student-joined-confirmation.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
@@ -565,6 +565,7 @@ test/unit/containers/*
 !test/unit/containers/classroom-kick-request-watcher.test.jsx
 !test/unit/containers/classroom-modal-last-seat.test.jsx
 !test/unit/containers/classroom-modal-submit.test.jsx
+!test/unit/containers/classroom-modal-welcome-back.test.jsx
 !test/unit/containers/classroom-teacher-kick-alerts.test.jsx
 !test/unit/containers/classroom-teacher-panel.test.jsx
 !test/unit/containers/use-teacher-kick-request-polling.test.js

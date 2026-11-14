@@ -101,13 +101,22 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         targetCodeToBlocks,
     });
 
+    // Set while 「出席番号がちがう」 moves the student to another seat (#1794).
+    // Closing mid-way would unmount this container between leaving the seat
+    // and showing the seat selection, and the student would silently end up
+    // out of the class; so the modal stays open until it is done.
+    const switchingSeatRef = useRef(false);
+    // The same as state, so the screen stays busy even when another request
+    // (the status check on opening) finishes in the meantime.
+    const [switchingSeat, setSwitchingSeat] = useState(false);
+
     // While the submission is being sent the modal stays open (#1795): closing it
     // would hide 「提出できました ✓」 (or the error) and invite a second submit.
     // Covers the × button, the overlay and Escape (all go through onRequestClose).
     const submittingRef = useRef(false);
     submittingRef.current = submit.isSubmitting;
     const handleClose = useCallback(() => {
-        if (submittingRef.current) return;
+        if (submittingRef.current || switchingSeatRef.current) return;
         dispatch(closeClassroomModal());
     }, [dispatch]);
 
@@ -221,48 +230,61 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
 
     // --- Join with code ---
 
+    const joinErrorTitle = useCallback(
+        () =>
+            intl.formatMessage({
+                defaultMessage: 'An error occurred',
+                description: 'Error dialog title',
+                id: 'gui.classroom.error.title',
+            }),
+        [intl],
+    );
+
+    // Show the seat selection for a looked-up class. `options.forgetSeat`: the
+    // seat the student just freed with "wrong number", so it is not offered
+    // as the previous seat again (#1796).
+    const showSeatSelection = useCallback(
+        (joinCode, data, options) => {
+            setPendingJoinCode(joinCode);
+            // The class (group) from the lookup lets the seat screen recall
+            // the number this PC joined the same class with (#1796).
+            const seatKey = lastSeatKeyFor(data);
+            if (options && options.forgetSeat) clearLastSeat(seatKey, options.forgetSeat);
+            setPendingClassroomInfo({
+                className: data.className || '',
+                assignmentName: data.assignmentName || '',
+                expiresAt: data.expiresAt || null,
+                lastSeatKey: seatKey,
+            });
+            setPreviousSeat(loadLastSeat(seatKey, data.studentCount));
+            setSeatCount(data.studentCount);
+            setTakenSeats(data.takenSeats || []);
+            setSelectedSeat(null);
+            setPhase('student-seat');
+            // Reopened while a request for this class is pending: the
+            // answer may already be in this lookup.
+            const pending = loadPendingKickRequest();
+            if (pending && pending.joinCode === joinCode) {
+                applyKickRequestOutcome(evaluateKickRequestPoll(pending, data), data, pending);
+            }
+        },
+        [applyKickRequestOutcome],
+    );
+
     const handleJoinWithCode = useCallback(
-        // `options.forgetSeat`: the seat the student just freed with "wrong
-        // number", so it is not offered as the previous seat again (#1796).
         async (joinCode, options) => {
             clearError();
             setIsLoading(true);
             try {
                 const data = await classroomAPI.lookupClassroom(joinCode);
-                setPendingJoinCode(joinCode);
-                // The class (group) from the lookup lets the seat screen recall
-                // the number this PC joined the same class with (#1796).
-                const seatKey = lastSeatKeyFor(data);
-                if (options && options.forgetSeat) clearLastSeat(seatKey, options.forgetSeat);
-                setPendingClassroomInfo({
-                    className: data.className || '',
-                    assignmentName: data.assignmentName || '',
-                    expiresAt: data.expiresAt || null,
-                    lastSeatKey: seatKey,
-                });
-                setPreviousSeat(loadLastSeat(seatKey, data.studentCount));
-                setSeatCount(data.studentCount);
-                setTakenSeats(data.takenSeats || []);
-                setSelectedSeat(null);
-                setPhase('student-seat');
-                // Reopened while a request for this class is pending: the
-                // answer may already be in this lookup.
-                const pending = loadPendingKickRequest();
-                if (pending && pending.joinCode === joinCode) {
-                    applyKickRequestOutcome(evaluateKickRequestPoll(pending, data), data, pending);
-                }
+                showSeatSelection(joinCode, data, options);
             } catch (err) {
-                const title = intl.formatMessage({
-                    defaultMessage: 'An error occurred',
-                    description: 'Error dialog title',
-                    id: 'gui.classroom.error.title',
-                });
-                showError(translateError(intl, err, 'join'), title);
+                showError(translateError(intl, err, 'join'), joinErrorTitle());
             } finally {
                 setIsLoading(false);
             }
         },
-        [clearError, showError, intl, applyKickRequestOutcome],
+        [clearError, showError, intl, joinErrorTitle, showSeatSelection],
     );
 
     // The only error on the seat screen is the last failed join. Once the
@@ -533,6 +555,47 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         setPhase('student-join');
     }, [classroomState.sessionToken, classroomState.classroomId, dispatch]);
 
+    // 「出席番号がちがう」 on the welcome back screen (#1794): a shared PC may
+    // still hold the previous student's join. Go to the same assignment's
+    // seat selection (no join code to type again) and free this seat. The
+    // freed seat was not this student's, so it is not offered as the
+    // previous seat (#1796).
+    // Order matters: look the class up first and only then leave. If the
+    // lookup or the leave fails, the session stays and the student sees an
+    // error on the welcome back screen and can try again (never a screen
+    // with the session gone). Busy for the whole flow: the other links, the
+    // main button and closing the modal wait.
+    const handleWrongSeat = useCallback(() => {
+        const { joinCode, seatNumber, sessionToken, classroomId } = classroomState;
+        if (!joinCode || switchingSeatRef.current) return Promise.resolve();
+        const switchSeat = async () => {
+            let data;
+            try {
+                data = await classroomAPI.lookupClassroom(joinCode);
+            } catch (err) {
+                showError(translateError(intl, err, 'join'), joinErrorTitle());
+                return;
+            }
+            if (sessionToken && classroomId) {
+                try {
+                    await classroomAPI.leaveClassroom(sessionToken, classroomId);
+                } catch (err) {
+                    showError(translateError(intl, err), joinErrorTitle());
+                    return;
+                }
+            }
+            dispatch(clearClassroomSession());
+            showSeatSelection(joinCode, data, { forgetSeat: seatNumber });
+        };
+        switchingSeatRef.current = true;
+        setSwitchingSeat(true);
+        clearError();
+        return switchSeat().finally(() => {
+            switchingSeatRef.current = false;
+            setSwitchingSeat(false);
+        });
+    }, [classroomState, clearError, showError, intl, joinErrorTitle, dispatch, showSeatSelection]);
+
     // --- Auto-join: classcode URL parameter / teacher's selected assignment ---
     useEffect(() => {
         const classcodeParams = getUrlParams();
@@ -597,21 +660,20 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             continueOptions={studentAssignment.continueOptions}
             error={error}
             hasAssignment={studentAssignment.hasAssignment}
+            hasStarter={studentAssignment.hasStarter}
             lessonStatus={lessonStatus}
             studentLesson={studentLesson}
             onStartLesson={handleStartLesson}
-            loadedChoice={studentAssignment.loadedChoice}
             startMethod={studentAssignment.startMethod}
             onLoadSubmission={studentAssignment.handleLoadSubmission}
             onAssignmentNextPage={studentAssignment.handleAssignmentNextPage}
             onAssignmentPrevPage={studentAssignment.handleAssignmentPrevPage}
             onOpenAssignment={handleReopenAssignment}
             onChooseStarter={studentAssignment.handleChooseStarter}
-            onReloadStarter={studentAssignment.handleReloadStarter}
             errorActionHandler={errorActionHandler}
             errorActionLabel={errorActionLabel}
             errorTitle={errorTitle}
-            isLoading={isLoading}
+            isLoading={isLoading || switchingSeat}
             joinCodeHistory={joinCodeHistory}
             joinedInfo={joinedInfo}
             kickedNotice={kickedNotice}
@@ -643,7 +705,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             onRequestKick={handleRequestKick}
             onSelectSeat={handleSelectSeat}
             onSelectTeacher={handleSelectTeacher}
-            onStartSubmit={submit.handleStartSubmit}
+            onWrongSeat={handleWrongSeat}
         />
     );
 };

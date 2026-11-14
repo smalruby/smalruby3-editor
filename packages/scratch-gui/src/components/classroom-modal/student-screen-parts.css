@@ -259,3 +259,82 @@
     font-size: 0.9rem;
     text-align: center;
 }
+
+/* 「おかえりなさい」(#1794): 帯 → 見出し → 1 行の情報 → コメント → 主ボタン → 小さなリンク 1 行。
+   「クラスから出る」だけ右下に離す。1300x600 でスクロールなし。 */
+.welcome-info {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+    margin-bottom: 0.5rem;
+    color: #3a4560;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+/* 長いクラス名・課題名は「…」で切って 1 行に収める（全体は title で読める）。 */
+.welcome-info-text {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: bold;
+}
+
+.welcome-info-fixed {
+    flex: none;
+}
+
+.welcome-info-separator {
+    flex: none;
+    color: #b0b5c6;
+}
+
+.welcome-main {
+    margin-top: 0.6rem;
+}
+
+.welcome-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.25rem 1rem;
+    margin-top: 0.3rem;
+}
+
+/* 「作品を読み込み直す」を開いたら、開けるものを同じ行に並べる（高さを増やさない）。 */
+.welcome-reload-list {
+    display: contents;
+}
+
+.welcome-leave {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.4rem;
+}
+
+.welcome-leave-dialog {
+    margin-top: 0.6rem;
+    padding: 0.75rem;
+    border: 1px solid #dfe3ec;
+    border-radius: 10px;
+    background-color: #f7f8fb;
+}
+
+.welcome-leave-question {
+    margin-bottom: 0.5rem;
+    color: #3a4560;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* 押せないリンクの代わりの案内（「提出すると見られます」）。リンクと同じ大きさで、下線を引かない。 */
+.text-link-locked {
+    padding: 0.2rem;
+    color: #6b7489;
+    font-size: 0.8rem;
+}

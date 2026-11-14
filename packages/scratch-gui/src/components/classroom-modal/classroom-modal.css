@@ -236,14 +236,6 @@
     cursor: not-allowed;
 }
 
-.status-card {
-    background-color: #f2f2f2;
-    border-radius: 8px;
-    /* Tighter than other cards so the step band above still fits 1300x600 (#1792). */
-    padding: 0.6rem 1rem;
-    margin: 0.5rem 0 0.6rem;
-}
-
 .status-row {
     display: flex;
     justify-content: space-between;
@@ -1280,20 +1272,6 @@
     margin-top: 0.3rem;
     font-size: 1.15rem;
     font-weight: bold;
-}
-
-.status-footer {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 1rem;
-}
-
-/* "提出すると見られます" in place of the peer view button (#1210). */
-.peer-view-locked {
-    display: inline-flex;
-    align-items: center;
-    color: #575e75;
-    font-size: 0.75rem;
 }
 
 .loading {
@@ -2760,11 +2738,6 @@
     margin-top: 0.6rem;
 }
 
-.assignment-main-links {
-    margin-top: 0.3rem;
-    text-align: center;
-}
-
 .assignment-pager {
     display: flex;
     align-items: center;
@@ -2883,100 +2856,6 @@
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
-}
-
-/* --- Where to start: starter / last time's / this assignment's submission (#1201) ---
-   One horizontal row: the classroom PC is 1300x600, so the choices go side by
-   side instead of stacking (#1221). */
-
-/* "Where to start" choices (#1201). Each choice is a start action, styled as a
-   button (blue outline + bottom shadow) so it does not read as a text field or
-   an info box. "As it is" (load nothing) is the plain gray variant. */
-.continue-choice {
-    margin-top: 0.75rem;
-}
-
-.continue-choice-title {
-    color: #575e75;
-    font-size: 0.8rem;
-    font-weight: bold;
-    margin-bottom: 0.4rem;
-}
-
-.continue-choice-row {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.continue-choice-button {
-    flex: 1 1 0;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background-color: #fff;
-    color: #4c97ff;
-    border: 2px solid #4c97ff;
-    border-radius: 0.5rem;
-    box-shadow: 0 2px 0 #3373cc;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.9rem;
-    font-weight: bold;
-    text-align: left;
-    cursor: pointer;
-}
-
-.continue-choice-button:hover {
-    background-color: #e9f1fc;
-}
-
-.continue-choice-button:active {
-    box-shadow: none;
-    transform: translateY(2px);
-}
-
-.continue-choice-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.continue-choice-button[aria-pressed='true'] {
-    border-color: #0b8e69;
-    box-shadow: 0 2px 0 #0b8e69;
-    background-color: #e6f4ea;
-}
-
-.continue-choice-icon {
-    flex: none;
-    width: 1.5rem;
-    height: 1.5rem;
-}
-
-.continue-choice-check {
-    flex: none;
-    margin-left: auto;
-    color: #0b8e69;
-    font-weight: bold;
-}
-
-.continue-choice-text {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-/* the label wraps instead of being cut: with four choices it must stay readable */
-.continue-choice-label {
-    line-height: 1.25;
-}
-
-.continue-choice-detail {
-    color: #5a8fd8;
-    font-size: 0.75rem;
-    font-weight: normal;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 /* --- Term-end evaluation (teacher) --- */

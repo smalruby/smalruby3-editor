@@ -225,8 +225,8 @@ try {
     await shot(s1a, 'a1-seat1-joined');
     await closeJoined(s1a);
     await renameFirstSprite(s1a, MARKER);
-    await openStatus(s1a);
-    await s1a.click('[data-testid="classroom-submit-button"]');
+    // 提出はメニューバーの「提出する」から（おかえりなさいには提出のボタンが無い・#1794 / #1795）
+    await s1a.click('[data-testid="classroom-menu-submit"]');
     await s1a.waitForSelector('[data-testid="classroom-submit-confirm"]', { timeout: 20000 });
     await s1a.click('[data-testid="classroom-submit-confirm"]');
     // 提出できたら「提出できました ✓」(#1795)。
@@ -244,9 +244,12 @@ try {
     } else {
         await openStatus(s1a);
     }
-    await s1a.waitForSelector('[data-testid="classroom-continue-current"]', { timeout: 20000 });
+    // おかえりなさいの「作品を読み込み直す」→「この課題で出した作品から続ける」(#1794)
+    await s1a.waitForSelector('[data-testid="classroom-status-reload-toggle"]', { timeout: 20000 });
+    await s1a.click('[data-testid="classroom-status-reload-toggle"]');
+    await s1a.waitForSelector('[data-testid="classroom-status-reload-current"]', { timeout: 20000 });
     await shot(s1a, 'a1-seat1-status-open-submitted');
-    await s1a.click('[data-testid="classroom-continue-current"]');
+    await s1a.click('[data-testid="classroom-status-reload-current"]');
     await waitSprite(s1a, MARKER);
     assert(true, `current submission reloaded (sprite "${MARKER}")`);
 
