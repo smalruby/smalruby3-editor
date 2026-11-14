@@ -23,7 +23,7 @@ import {
     sendClassroomStudentEvent,
     submitOpenState,
 } from '../lib/classroom-student-analytics.js';
-import { projectHasBlocks, shouldOfferCurrentSubmission } from '../lib/classroom-welcome-back.js';
+import { projectHasBlocks, shouldOfferCurrentSubmission, shouldOfferStarter } from '../lib/classroom-welcome-back.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
 import { assignmentProgress } from '../lib/lessons/assignment-progress.js';
 import { activeNow, installVisibilityTracking } from '../lib/lessons/lesson-analytics.js';
@@ -590,19 +590,20 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 setStudentTeacherComment(submission.teacherComment);
             }
             studentAssignment.setHasAssignment(!!result.hasAssignment);
-            // Stay busy until the submissions answer too (#1825 review M1): the main
-            // button may turn into 「この課題で出した作品から続ける」, so 「つづける」 must
-            // not be pressable before we know.
-            await studentAssignment.refreshContinueOptions();
+            // Stay busy until the submissions and the assignment (its starter) answer too
+            // (#1825 review M1): the main button may turn into 「この課題で出した作品から続ける」
+            // or 「スターターから始める」, so 「つづける」 must not be pressable before we know.
+            // Both are best-effort: a failure goes on as before (no submission, no starter).
+            await Promise.all([studentAssignment.refreshContinueOptions(), studentAssignment.refreshLesson()]);
             if (token !== sessionTokenRef.current) return;
             setStatusCheckedSeq((n) => n + 1);
             // The lesson progress row is built from the device's lesson records
-            // (#1599); take in what another tab wrote and re-read the lesson.
-            // Opening this screen is also a moment to send the progress to the
-            // class (#1600): catches up what failed to send earlier. Asked after
-            // the lesson is re-read so a changed lesson is sent as it is now.
+            // (#1599); take in what another tab wrote. Opening this screen is also
+            // a moment to send the progress to the class (#1600): catches up what
+            // failed to send earlier. Asked after the lesson is re-read so a changed
+            // lesson is sent as it is now.
             dispatch(reloadProgress());
-            studentAssignment.refreshLesson().then(() => dispatch(requestProgressSend()));
+            dispatch(requestProgressSend());
         } catch (err) {
             if (token !== sessionTokenRef.current) return;
             const kick = extractKickReason(err);
@@ -808,16 +809,28 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     // After a reload the project is the new one again: offer this assignment's
     // submission as the main button of the welcome back screen (#1825). Blocks
     // are read at render time; adding one also marks the project changed.
+    const welcomeBackInput = {
+        sessionVerified: sessionVerified && !!classroomState.sessionToken,
+        lesson: !!studentLesson,
+        projectChanged,
+        projectFromOutside: classroomState.projectFromOutside,
+        hasBlocks: projectHasBlocks(vm?.runtime?.targets),
+        current: studentAssignment.continueOptions?.current,
+    };
     const offerCurrentSubmission =
         phase === 'student-status' &&
         shouldOfferCurrentSubmission({
-            sessionVerified: sessionVerified && !!classroomState.sessionToken,
-            lesson: !!studentLesson,
-            projectChanged,
-            projectFromOutside: classroomState.projectFromOutside,
-            hasBlocks: projectHasBlocks(vm?.runtime?.targets),
-            current: studentAssignment.continueOptions?.current,
+            ...welcomeBackInput,
             loadedSubmission: classroomState.studentLoadedSubmission,
+        });
+    // Not submitted yet: the starter is the main button instead (shouldOfferStarter).
+    const offerStarter =
+        phase === 'student-status' &&
+        !offerCurrentSubmission &&
+        shouldOfferStarter({
+            ...welcomeBackInput,
+            submissionStatus: classroomState.submissionStatus,
+            hasStarter: studentAssignment.hasStarter,
         });
 
     return (
@@ -832,6 +845,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             hasStarter={studentAssignment.hasStarter}
             lessonStatus={lessonStatus}
             offerCurrentSubmission={offerCurrentSubmission}
+            offerStarter={offerStarter}
             studentLesson={studentLesson}
             onStartLesson={handleStartLesson}
             startMethod={studentAssignment.startMethod}

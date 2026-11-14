@@ -48,12 +48,15 @@ jest.mock('../../../src/containers/use-kick-request-polling.js', () => ({ __esMo
 jest.mock('../../../src/containers/use-student-submit.js', () => ({ __esModule: true, default: () => ({}) }));
 let mockContinueOptions = null;
 let mockRefreshContinueOptions = () => Promise.resolve();
+let mockHasStarter = false;
+let mockRefreshLesson = () => Promise.resolve();
 jest.mock('../../../src/containers/use-student-assignment.js', () => ({
     __esModule: true,
     default: () => ({
         continueOptions: mockContinueOptions,
+        hasStarter: mockHasStarter,
         handleJoined: () => Promise.resolve('student-joined'),
-        refreshLesson: () => Promise.resolve(),
+        refreshLesson: () => mockRefreshLesson(),
         refreshContinueOptions: () => mockRefreshContinueOptions(),
         setHasAssignment: () => {},
     }),
@@ -284,5 +287,56 @@ describe("ClassroomModal: offer this assignment's submission after a reload (#18
         });
         expect(mockProps.isLoading).toBe(false);
         expect(mockProps.offerCurrentSubmission).toBe(true);
+    });
+});
+
+describe('ClassroomModal: start from the starter after a reload, not submitted yet', () => {
+    const emptyVm = { runtime: { targets: [{ blocks: { _blocks: {} } }, { blocks: { _blocks: {} } }] } };
+
+    beforeEach(() => {
+        mockProps = null;
+        mockVerifySession.mockReset();
+        mockVerifySession.mockResolvedValue({ valid: true, hasAssignment: true, submission: null });
+        mockContinueOptions = null;
+        mockRefreshContinueOptions = () => Promise.resolve();
+        mockHasStarter = false;
+        mockRefreshLesson = () => Promise.resolve();
+        window.localStorage.clear();
+        clearPendingKickRequest();
+    });
+
+    afterEach(() => {
+        mockHasStarter = false;
+        mockRefreshLesson = () => Promise.resolve();
+    });
+
+    test('stays busy until the assignment (its starter) answers, then the main button is the starter', async () => {
+        let answer;
+        mockRefreshLesson = () =>
+            new Promise((resolve) => {
+                answer = () => {
+                    // the hook learns of the starter from the assignment answer
+                    mockHasStarter = true;
+                    resolve();
+                };
+            });
+        renderModal(SESSION, { vm: emptyVm, projectChanged: false });
+        await act(async () => {
+            for (let i = 0; i < 6; i++) await Promise.resolve();
+        });
+        // verify-session and the submissions have answered, the assignment has not:
+        // 「つづける」 must not be pressable, and the screen is not yet counted as checked (GA).
+        expect(answer).toEqual(expect.any(Function));
+        expect(mockProps.isLoading).toBe(true);
+        expect(mockProps.statusCheckedSeq).toBe(0);
+        expect(mockProps.offerStarter).toBe(false);
+        await act(async () => {
+            answer();
+            for (let i = 0; i < 6; i++) await Promise.resolve();
+        });
+        expect(mockProps.isLoading).toBe(false);
+        expect(mockProps.statusCheckedSeq).toBe(1);
+        expect(mockProps.offerStarter).toBe(true);
+        expect(mockProps.offerCurrentSubmission).toBe(false);
     });
 });

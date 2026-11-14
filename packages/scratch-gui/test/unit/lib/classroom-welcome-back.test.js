@@ -5,6 +5,7 @@
 import {
     projectHasBlocks,
     shouldOfferCurrentSubmission,
+    shouldOfferStarter,
     submissionKey,
 } from '../../../src/lib/classroom-welcome-back.js';
 
@@ -113,5 +114,54 @@ describe('shouldOfferCurrentSubmission', () => {
 
     test('引数が無くても落ちずに出さない', () => {
         expect(shouldOfferCurrentSubmission({})).toBe(false);
+    });
+});
+
+describe('shouldOfferStarter', () => {
+    // 未提出・スターターありの課題を、読み込み直した直後（新しい作品のまま）。
+    const starterOk = (over = {}) => ({
+        sessionVerified: true,
+        lesson: false,
+        projectChanged: false,
+        projectFromOutside: false,
+        hasBlocks: false,
+        current: null,
+        hasStarter: true,
+        ...over,
+    });
+
+    test('未提出でスターターがあり、作品が新しい作品のままなら出す', () => {
+        expect(shouldOfferStarter(starterOk())).toBe(true);
+    });
+
+    test('この課題で出した作品があれば出さない（出した作品から続けるほうが主ボタン）', () => {
+        expect(shouldOfferStarter(starterOk({ current: CURRENT }))).toBe(false);
+    });
+
+    test('提出の状態が提出済み・返却済みなら出さない（出した作品の問い合わせに失敗したときも）', () => {
+        expect(shouldOfferStarter(starterOk({ submissionStatus: 'submitted' }))).toBe(false);
+        expect(shouldOfferStarter(starterOk({ submissionStatus: 'returned' }))).toBe(false);
+    });
+
+    test('スターターが無ければ出さない', () => {
+        expect(shouldOfferStarter(starterOk({ hasStarter: false }))).toBe(false);
+    });
+
+    test('セッションを確かめられていなければ出さない', () => {
+        expect(shouldOfferStarter(starterOk({ sessionVerified: false }))).toBe(false);
+    });
+
+    test('作品にブロック・変更があるか、ほかから開いた作品なら出さない', () => {
+        expect(shouldOfferStarter(starterOk({ hasBlocks: true }))).toBe(false);
+        expect(shouldOfferStarter(starterOk({ projectChanged: true }))).toBe(false);
+        expect(shouldOfferStarter(starterOk({ projectFromOutside: true }))).toBe(false);
+    });
+
+    test('レッスンの課題では出さない', () => {
+        expect(shouldOfferStarter(starterOk({ lesson: true }))).toBe(false);
+    });
+
+    test('決められない値が無いとき（既定）は出さない', () => {
+        expect(shouldOfferStarter({})).toBe(false);
     });
 });

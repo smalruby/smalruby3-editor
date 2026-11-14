@@ -75,6 +75,7 @@ const ClassroomModal = ({
     onChooseStarter,
     lessonStatus = null,
     offerCurrentSubmission = false,
+    offerStarter = false,
     studentLesson = null,
     onStartLesson,
     assignmentReopened = false,
@@ -199,6 +200,7 @@ const ClassroomModal = ({
                         isLoading={isLoading}
                         lessonStatus={lessonStatus}
                         offerCurrentSubmission={offerCurrentSubmission}
+                        offerStarter={offerStarter}
                         studentLesson={studentLesson}
                         teacherComment={teacherComment}
                         onContinue={onClose}
@@ -250,6 +252,7 @@ ClassroomModal.propTypes = {
     lessonStatus: PropTypes.object,
     // おかえりなさいの主ボタンを「この課題で出した作品から続ける」にする (#1825)
     offerCurrentSubmission: PropTypes.bool,
+    offerStarter: PropTypes.bool,
     // normalized lesson setting of the joined assignment (lib/lessons/assignment-progress.js)
     studentLesson: PropTypes.object,
     onStartLesson: PropTypes.func,
