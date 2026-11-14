@@ -754,7 +754,8 @@ The following Ruby syntax is **NOT supported** in Smalruby:
 - `require` / `require_relative`
 - String interpolation (`"Hello #{name}"`)
 - Multiple assignment (`a, b = 1, 2`)
-- Splat arguments (`*args`)
+- Arguments other than plain ones (a default value of `def foo(a = 1)`, `*args`, keyword arguments `a:` / `a: 1`, `**opts`, `&blk`, `...`, `3.times do |i = 1|` and `do |i; j|`; converting to blocks gives an error that tells the line)
+- A range whose end is not a number or a value (`rand(self..2)`, `rand(1..:a)`, `rand("a".."z")`, ...; converting to blocks gives an error that tells the line)
 - Iterators with a block other than `each` (`map` / `select` / `each_with_index`, ...; `each` and `N.times do |i|` can be used)
 - Procs / Lambdas
 - `yield`

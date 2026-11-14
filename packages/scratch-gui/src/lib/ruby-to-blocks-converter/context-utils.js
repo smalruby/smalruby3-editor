@@ -35,6 +35,9 @@ const ContextUtils = {
             // the numbers of `@_retN` the code already uses (issue #1725), found when first needed
             returnValueTempsInSource: null,
             literalCallIndices: {},
+            // ids of the range blocks with an end that is not a number or a value (issue #1906):
+            // `rand` does not take them, and they are left as the error of a wrong instruction
+            rangesWithWrongEnd: new Set(),
             elsifCounter: 0,
             caseCounter: 0,
             isValue: false,

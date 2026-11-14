@@ -120,9 +120,31 @@ const ExpressionsLiterals = {
         const opcode = node.isExcludeEnd() ? 'ruby_exclude_range' : 'ruby_range';
         const block = this._createBlock(opcode, 'value_boolean');
         block.node = node;
+        // The ends go in the number inputs of "pick random": an end that is not a number or a value
+        // (`self..2`, `1..:a`, `(@a = 1)..2`) was put there as something else (issue #1906). `rand`
+        // does not take such a range; the range is left and told as a wrong instruction at the end,
+        // after a `when` has told its own line (`when 1..` with the next line as the end).
+        if (!this._isRangeEnd(node.left, left) || !this._isRangeEnd(node.right, right)) {
+            this._context.rangesWithWrongEnd.add(block.id);
+        }
         this._addNumberInput(block, 'FROM', 'math_number', left, 1);
         this._addNumberInput(block, 'TO', 'math_number', right, 10);
         return block;
+    },
+
+    /**
+     * Whether an end of a range can go in a number input: a number or a value block. An end in
+     * parentheses (`1..(@a + 1)`) comes as the statements in them.
+     * @param {object} node - The node of the end.
+     * @param {*} value - What visiting the node returned.
+     * @returns {boolean} Whether the end is a number or a value block.
+     */
+    _isRangeEnd(node, value) {
+        let end = value;
+        if (this._getNodeTypeName(node) === 'ParenthesesNode' && Array.isArray(end) && end.length === 1) {
+            end = end[0];
+        }
+        return !this._isTrue(end) && !this._isFalse(end) && this._isNumberOrBlock(end);
     },
 
     visitConstantReadNode(node) {

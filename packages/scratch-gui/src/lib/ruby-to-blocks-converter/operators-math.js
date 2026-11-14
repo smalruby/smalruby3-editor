@@ -40,6 +40,7 @@ const OperatorsMath = {
         converter.registerOnSend('self', 'rand', 1, (params) => {
             const { args } = params;
             if (!converter._isBlock(args[0]) || args[0].opcode !== 'ruby_range') return null;
+            if (converter._context.rangesWithWrongEnd.has(args[0].id)) return null;
 
             return converter._changeBlock(args[0], 'operator_random', 'value');
         });
