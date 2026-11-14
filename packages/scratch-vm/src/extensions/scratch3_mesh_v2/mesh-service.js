@@ -78,6 +78,8 @@ class MeshV2Service {
         this.groupNodeIds = null;
         this.groupNodesFetchedAt = 0;
         this._groupNodesRequest = null;
+        // ホストのノード ID（サーバーが記録した hostId）。listNodesInGroup はホストを返さない (#1844)
+        this.groupHostId = null;
 
         // Rate limiters
         // Data update interval (default: 1000ms)
@@ -343,6 +345,7 @@ class MeshV2Service {
         this.groupName = null;
         this.expiresAt = null;
         this.isHost = false;
+        this.groupHostId = null;
         this.remoteData = {};
         this.forgetGroupNodes();
         this.lastSentData = {};

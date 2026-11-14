@@ -29,6 +29,31 @@ const assignPeerNumbers = (prev, ids, selfId, inClassroom = false) => {
 };
 
 /**
+ * 「相手 N」の番号を、スナップショットを読むたびに更新する。
+ * - 同じグループの間は一度付けた番号を変えない。
+ * - グループが変わったとき・抜けたとき（groupId が変わる）は 1 から付け直す。
+ * - 番号は初めて見えた順: ノードの並び（VM が最初の値が届いた順に並べる）→ 履歴の古い順。
+ * @param {{groupId: ?string, peers: object}} prev - これまでの番号。
+ * @param {?object} snapshot - VM の getStatusSnapshot()。
+ * @returns {{groupId: ?string, peers: object}} 新しい番号（変わらなければ prev そのもの）。
+ */
+const updatePeerNumbers = (prev, snapshot) => {
+    const groupId = (snapshot && snapshot.groupId) || null;
+    const base = prev && prev.groupId === groupId ? prev : { groupId, peers: {} };
+    if (!snapshot) return base;
+    const ids = snapshot.nodes
+        .map((node) => node.id)
+        .concat(
+            snapshot.history
+                .slice()
+                .reverse()
+                .map((item) => item.nodeId),
+        );
+    const peers = assignPeerNumbers(base.peers, ids, snapshot.selfId, snapshot.inClassroom);
+    return peers === base.peers ? base : { groupId, peers };
+};
+
+/**
  * ノードの見せ方（EPIC #1842 Q2）。名前は集めない。
  * - クラスに参加中で出席番号があれば「03 番」（自分なら「（あなた）」を足す）。
  * - それ以外は自分が「あなた」、ほかは「相手 1」「相手 2」…。
@@ -70,5 +95,6 @@ export {
     assignPeerNumbers,
     describeNode,
     formatClock,
+    updatePeerNumbers,
     visibleHistory,
 };

@@ -159,6 +159,53 @@ describe('MeshStatusPopup (#1844)', () => {
     });
 });
 
+describe('MeshStatusPopup keyboard and focus (#1844 review FYI1)', () => {
+    test('Escape closes the window', () => {
+        const onClose = jest.fn();
+        const { getByTestId } = renderIntl(
+            <MeshStatusPopup onClose={onClose} peers={{}} snapshot={connectedSnapshot()} />,
+        );
+        fireEvent.keyDown(getByTestId('mesh-status-tab-status'), { key: 'Escape' });
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    test('focus moves into the window on open and back to the opener on close', () => {
+        const opener = document.createElement('button');
+        document.body.appendChild(opener);
+        opener.focus();
+        const { getByTestId, unmount } = renderIntl(
+            <MeshStatusPopup onClose={jest.fn()} peers={{}} snapshot={connectedSnapshot()} />,
+        );
+        expect(getByTestId('mesh-status-popup')).toHaveFocus();
+        unmount();
+        expect(opener).toHaveFocus();
+        opener.remove();
+    });
+
+    test('tabs follow the tabs pattern and the arrow keys switch them', () => {
+        const { getByTestId } = renderIntl(
+            <MeshStatusPopup onClose={jest.fn()} peers={{}} snapshot={connectedSnapshot()} />,
+        );
+        const statusTab = getByTestId('mesh-status-tab-status');
+        const historyTab = getByTestId('mesh-status-tab-history');
+        const panel = getByTestId('mesh-status-panel');
+        expect(statusTab).toHaveAttribute('role', 'tab');
+        expect(statusTab).toHaveAttribute('aria-controls', panel.id);
+        expect(historyTab).toHaveAttribute('aria-controls', panel.id);
+        expect(panel).toHaveAttribute('role', 'tabpanel');
+        expect(panel).toHaveAttribute('aria-labelledby', statusTab.id);
+        expect(statusTab).toHaveAttribute('tabindex', '0');
+        expect(historyTab).toHaveAttribute('tabindex', '-1');
+        fireEvent.keyDown(statusTab, { key: 'ArrowRight' });
+        expect(historyTab).toHaveAttribute('aria-selected', 'true');
+        expect(historyTab).toHaveFocus();
+        expect(panel).toHaveAttribute('aria-labelledby', historyTab.id);
+        fireEvent.keyDown(historyTab, { key: 'ArrowLeft' });
+        expect(statusTab).toHaveAttribute('aria-selected', 'true');
+        expect(statusTab).toHaveFocus();
+    });
+});
+
 describe('MeshStatusButton (#1844)', () => {
     const makeVm = (loaded, state = 'disconnected') => {
         const vm = new EventEmitter();

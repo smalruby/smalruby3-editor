@@ -21,6 +21,11 @@
     overflow: hidden;
 }
 
+/* The window itself only takes the focus to pass it on (no ring around the whole window). */
+.popup:focus {
+    outline: none;
+}
+
 .above-stage {
     z-index: $z-index-context-menu; /* above the full-screen stage overlay */
 }

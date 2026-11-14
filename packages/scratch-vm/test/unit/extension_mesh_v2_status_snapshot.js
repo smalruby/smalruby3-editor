@@ -105,8 +105,9 @@ test('the node list from the server decides who is shown and the count (#1844)',
             ['aaas07', 7],
             ['ddds03', 3],
             ['bbbs12', 12],
-            ['ccc', null],
+            // a value arrived from newcomer; ccc has sent nothing yet
             ['newcomer', null],
+            ['ccc', null],
         ],
     );
     t.end();
@@ -132,6 +133,49 @@ test('a member also shows the host from the head of the group name (#1844)', (t)
     // a name that is not a node id (e.g. a test group) adds nothing
     service.groupName = 'ws-grp-1';
     t.equal(buildStatusSnapshot({ connectionState: 'connected', service }).nodeCount, 1);
+    t.end();
+});
+
+test('a member uses the hostId the server recorded before the group name (#1844 review Q1)', (t) => {
+    const service = makeService('bbbbbbbbs12');
+    service.groupId = 'g';
+    service.isHost = false;
+    // a group joined by id (not in the discovered list): the name is the server's group id
+    service.groupName = '3f1c2a9e-7d4b-4e1a-9a3b-1c2d3e4f5a6b';
+    service.groupHostId = 'cafebabe01';
+    service.groupNodeIds = ['bbbbbbbbs12'];
+    service.groupNodesFetchedAt = 1000;
+    let snap = buildStatusSnapshot({ connectionState: 'connected', service });
+    t.same(
+        snap.nodes.map((n) => n.id),
+        ['bbbbbbbbs12', 'cafebabe01'],
+    );
+    // a name made by another client cannot override the recorded host
+    service.groupName = 'deadbeef99|host=3';
+    snap = buildStatusSnapshot({ connectionState: 'connected', service });
+    t.same(
+        snap.nodes.map((n) => n.id),
+        ['bbbbbbbbs12', 'cafebabe01'],
+    );
+    t.end();
+});
+
+test('peers are ordered by first appearance, not by node id (#1844 review Q2)', (t) => {
+    const service = makeService('self');
+    service.groupId = 'g7';
+    service.remoteData = {};
+    service.remoteData.zzz = { v: { value: '1', timestamp: 1 } };
+    service.remoteData.aaa = { v: { value: '2', timestamp: 2 } };
+    // the server lists members by node id
+    service.groupNodeIds = ['aaa', 'mmm', 'zzz'];
+    service.groupNodesFetchedAt = 1;
+    const snap = buildStatusSnapshot({ connectionState: 'connected', service });
+    t.same(
+        snap.nodes.map((n) => n.id),
+        ['self', 'zzz', 'aaa', 'mmm'],
+    );
+    t.equal(snap.groupId, 'g7');
+    t.equal(buildStatusSnapshot({ connectionState: 'disconnected', service }).groupId, null);
     t.end();
 });
 

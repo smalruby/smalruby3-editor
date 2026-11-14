@@ -590,6 +590,7 @@ test/unit/containers/*
 !test/unit/containers/ruby-downloader.test.jsx
 !test/unit/containers/ruby-tab-project-changed.test.js
 !test/unit/containers/stage-header.test.jsx
+!test/unit/containers/mesh-status-popup.test.jsx
 
 # Level 3: test/unit/helpers/* — Smalruby-only (whole directory via `/**`)
 

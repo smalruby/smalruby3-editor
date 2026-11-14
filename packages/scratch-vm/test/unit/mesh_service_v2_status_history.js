@@ -122,9 +122,12 @@ test('history is cleared when a new group starts (#1844)', async (t) => {
     service.startEventBatchTimer = () => {};
     service.sendAllGlobalVariables = () => Promise.resolve();
     service.fetchAllNodesData = () => Promise.resolve();
-    await service.joinGroup('g2', 'domain1', 'name');
+    await service.joinGroup('g2', 'domain1', 'name', 'hostnode1');
     t.same(service.getMessageHistory(), []);
+    // the server-recorded host is remembered for the status window (review Q1)
+    t.equal(service.groupHostId, 'hostnode1');
     service.cleanup();
+    t.equal(service.groupHostId, null);
     t.end();
 });
 
@@ -178,5 +181,54 @@ test('refreshGroupNodes shares one request while it is in flight (#1844)', async
     t.same(a, ['a']);
     t.same(b, ['a']);
     t.equal(calls, 1);
+    t.end();
+});
+
+test('a throwing history recorder never breaks receiving (#1844 review M1)', (t) => {
+    const service = makeService();
+    service.recordReceivedEvents = () => {
+        throw new Error('recorder broke');
+    };
+    t.doesNotThrow(() =>
+        service._queueEventsForPlayback([
+            { name: 'a', firedByNodeId: 'n1', payload: 'v', timestamp: '2026-11-14T00:00:01.000Z' },
+            { name: 'b', firedByNodeId: 'n1', payload: '', timestamp: '2026-11-14T00:00:02.000Z' },
+        ]),
+    );
+    t.same(
+        service.pendingBroadcasts.map((p) => p.event.name),
+        ['a', 'b'],
+    );
+    t.end();
+});
+
+test('a throwing history recorder never disconnects the sender (#1844 review M1)', async (t) => {
+    const service = makeService();
+    service.groupId = 'g1';
+    let mutations = 0;
+    service.client = {
+        mutate: () => {
+            mutations++;
+            return Promise.resolve({ data: {} });
+        },
+    };
+    service.recordSentEvents = () => {
+        throw new Error('group not found in recorder');
+    };
+    let disconnectChecks = 0;
+    service.shouldDisconnectOnError = () => {
+        disconnectChecks++;
+        return 'GroupNotFound';
+    };
+    let disconnected = false;
+    service.cleanupAndDisconnect = () => {
+        disconnected = true;
+    };
+    service.fireEvent('a', 'x');
+    await service.processBatchEvents();
+    t.equal(mutations, 1);
+    t.equal(disconnectChecks, 0);
+    t.equal(disconnected, false);
+    t.equal(service.groupId, 'g1');
     t.end();
 });

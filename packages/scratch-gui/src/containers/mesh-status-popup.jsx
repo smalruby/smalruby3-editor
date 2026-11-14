@@ -2,10 +2,11 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 import MeshStatusPopup from '../components/mesh-status-popup/mesh-status-popup.jsx';
-import { assignPeerNumbers } from '../lib/mesh-v2-status.js';
+import { updatePeerNumbers } from '../lib/mesh-v2-status.js';
 import { setConnectionModalExtensionId } from '../reducers/connection-modal.js';
 import { closeMeshV2StatusPopup } from '../reducers/mesh-v2.js';
 import { openConnectionModal } from '../reducers/modals.js';
+import { setFullScreen } from '../reducers/mode.js';
 
 // 画面は VM の手元の値（getStatusSnapshot）を 1 秒ごとに読み直すだけ。サーバーには問い合わせない。
 const SNAPSHOT_INTERVAL_MS = 1000;
@@ -34,17 +35,14 @@ const readSnapshot = (vm) => {
  */
 const MeshStatusPopupContainer = ({ isFullScreen, isOpen, onClose, onOpenConnection, vm }) => {
     const [snapshot, setSnapshot] = useState(null);
-    const [peers, setPeers] = useState({});
+    const [peerState, setPeerState] = useState({ groupId: null, peers: {} });
 
     useEffect(() => {
         if (!isOpen || !vm) return () => {};
         const update = () => {
             const next = readSnapshot(vm);
             setSnapshot(next);
-            if (next) {
-                const ids = next.nodes.map((n) => n.id).concat(next.history.map((h) => h.nodeId));
-                setPeers((prev) => assignPeerNumbers(prev, ids, next.selfId, next.inClassroom));
-            }
+            if (next) setPeerState((prev) => updatePeerNumbers(prev, next));
         };
         const refreshNodes = () => {
             const extension = getExtension(vm);
@@ -81,7 +79,7 @@ const MeshStatusPopupContainer = ({ isFullScreen, isOpen, onClose, onOpenConnect
             aboveStage={isFullScreen}
             onClose={onClose}
             onConnect={handleConnect}
-            peers={peers}
+            peers={peerState.peers}
             snapshot={snapshot}
         />
     );
@@ -104,9 +102,13 @@ const mapStateToProps = (state) => ({
 const mapDispatchToProps = (dispatch) => ({
     onClose: () => dispatch(closeMeshV2StatusPopup()),
     onOpenConnection: () => {
+        // The connection modal sits below the full-screen stage, so leave full screen
+        // first (#1844 review FYI2). Outside full screen this does nothing.
+        dispatch(setFullScreen(false));
         dispatch(setConnectionModalExtensionId('meshV2'));
         dispatch(openConnectionModal());
     },
 });
 
+export { MeshStatusPopupContainer };
 export default connect(mapStateToProps, mapDispatchToProps)(MeshStatusPopupContainer);

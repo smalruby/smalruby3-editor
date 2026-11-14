@@ -53,6 +53,8 @@ WebSocket / Polling の判定は `testWebSocket()` で行い、`useWebSocket: fa
 | `rate-limiter.js` | ~220 | `sendData` の rate limit + マージ |
 | `utils.js` | ~70 | URL パラメータパース, ドメイン localStorage |
 | `name-search-utils.js` | ~55 | グループ名検索のひらがな→hex 変換 |
+| `status-history.js` | ~130 | 状態と履歴のウィンドウ用: 送った・受け取ったメッセージの履歴（メモリに 50 件）と、30 秒に 1 回までの `listNodesInGroup`（#1844）。記録は送受信の try の外・失敗しても送受信に影響させない |
+| `status-snapshot.js` | ~100 | 状態と履歴のウィンドウに渡す値を手元の値だけで作る（通信しない）。ホストは `listNodesInGroup` に入らないので `groupHostId`（サーバーの `hostId`）から足す |
 
 mesh-service.js は **mixin パターン** で各 manager を `Object.assign(MeshV2Service.prototype, XxxMixin)` として集約している (issue #566)。`this.X` 参照はすべて MeshV2Service インスタンスを指すため、外部 API は単一のクラスに見える。
 

@@ -600,8 +600,9 @@ class Scratch3MeshV2Blocks {
 
             const domain = group ? group.domain : null;
             const groupName = group ? group.name : id;
+            const hostId = group ? group.hostId || null : null;
             this.meshService
-                .joinGroup(id, domain, groupName)
+                .joinGroup(id, domain, groupName, hostId)
                 .then(() => {
                     this.setConnectionState('connected');
                 })

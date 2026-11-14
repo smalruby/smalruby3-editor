@@ -136,6 +136,8 @@ const messages = defineMessages({
 
 const TAB_STATUS = 'status';
 const TAB_HISTORY = 'history';
+const TAB_IDS = { [TAB_STATUS]: 'mesh-status-tab-status', [TAB_HISTORY]: 'mesh-status-tab-history' };
+const PANEL_ID = 'mesh-status-panel';
 const POPUP_WIDTH = 320;
 const MARGIN = 8;
 
@@ -369,6 +371,46 @@ const MeshStatusPopup = ({ aboveStage, peers, snapshot, onClose, onConnect }) =>
 
     const selectStatus = useCallback(() => setTab(TAB_STATUS), []);
     const selectHistory = useCallback(() => setTab(TAB_HISTORY), []);
+    const statusTabRef = useRef(null);
+    const historyTabRef = useRef(null);
+
+    // Not a modal: no focus trap. Move the focus in when it opens and give it back to
+    // whatever opened it when it closes (#1844 review FYI1).
+    useEffect(() => {
+        const opener = document.activeElement;
+        if (rootRef.current) rootRef.current.focus();
+        return () => {
+            if (opener && opener !== document.body && document.contains(opener) && opener.focus) {
+                opener.focus();
+                return;
+            }
+            const button = document.querySelector('[data-testid="mesh-status-button"]');
+            if (button) button.focus();
+        };
+    }, []);
+
+    const handleKeyDown = useCallback(
+        (e) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                onClose();
+            }
+        },
+        [onClose],
+    );
+
+    // Left / right arrows switch the tabs (WAI-ARIA tabs pattern, automatic activation).
+    const handleTabKeyDown = useCallback(
+        (e) => {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            e.preventDefault();
+            const next = tab === TAB_STATUS ? TAB_HISTORY : TAB_STATUS;
+            setTab(next);
+            const ref = next === TAB_STATUS ? statusTabRef : historyTabRef;
+            if (ref.current) ref.current.focus();
+        },
+        [tab],
+    );
 
     const labelCtx = {
         selfId: snapshot ? snapshot.selfId : '',
@@ -382,8 +424,10 @@ const MeshStatusPopup = ({ aboveStage, peers, snapshot, onClose, onConnect }) =>
             aria-label={intl.formatMessage(messages.title)}
             className={classNames(styles.popup, { [styles.aboveStage]: aboveStage })}
             data-testid="mesh-status-popup"
+            onKeyDown={handleKeyDown}
             ref={rootRef}
             role="dialog"
+            tabIndex={-1}
             style={{
                 left: position.left,
                 top: position.top,
@@ -407,28 +451,42 @@ const MeshStatusPopup = ({ aboveStage, peers, snapshot, onClose, onConnect }) =>
                     {'×'}
                 </button>
             </div>
-            <div className={styles.tabs} role="tablist">
+            <div className={styles.tabs} onKeyDown={handleTabKeyDown} role="tablist">
                 <button
+                    aria-controls={PANEL_ID}
                     aria-selected={tab === TAB_STATUS}
                     className={classNames(styles.tab, { [styles.tabActive]: tab === TAB_STATUS })}
                     data-testid="mesh-status-tab-status"
+                    id={TAB_IDS[TAB_STATUS]}
                     onClick={selectStatus}
+                    ref={statusTabRef}
                     role="tab"
+                    tabIndex={tab === TAB_STATUS ? 0 : -1}
                 >
                     <FormattedMessage {...messages.tabStatus} />
                 </button>
                 <button
+                    aria-controls={PANEL_ID}
                     aria-selected={tab === TAB_HISTORY}
                     className={classNames(styles.tab, { [styles.tabActive]: tab === TAB_HISTORY })}
                     data-testid="mesh-status-tab-history"
+                    id={TAB_IDS[TAB_HISTORY]}
                     onClick={selectHistory}
+                    ref={historyTabRef}
                     role="tab"
+                    tabIndex={tab === TAB_HISTORY ? 0 : -1}
                 >
                     <FormattedMessage {...messages.tabHistory} />
                     {history.length > 0 && <span className={styles.badge}>{history.length}</span>}
                 </button>
             </div>
-            <div className={styles.body}>
+            <div
+                aria-labelledby={TAB_IDS[tab]}
+                className={styles.body}
+                data-testid="mesh-status-panel"
+                id={PANEL_ID}
+                role="tabpanel"
+            >
                 {tab === TAB_STATUS ? (
                     <StatusTab intl={intl} labelCtx={labelCtx} onConnect={onConnect} snapshot={snapshot} />
                 ) : (
