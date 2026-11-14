@@ -35,6 +35,11 @@ $celebrate-light: hsla(45, 100%, 98%, 1); /* #FFFDF6 */
     --accent-on: $ui-white;
 }
 
+/* いっとき隠す（hidden 属性。.toast の display: flex が UA の display: none より強いので書く） */
+.toast[hidden] {
+    display: none;
+}
+
 /* クイズがあるとき: 幅を決めておく（選んで解説が出ても横幅が変わらない）。文言の長さの目安（問い 2 行・
    選択肢 1 行・解説 3 行）なら 1300×600 で画面に収まる。目安を超えたときだけ、画面の外へ出さずに
    toast の中をスクロールする（保険） */

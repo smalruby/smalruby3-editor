@@ -112,6 +112,7 @@ const BUTTON_MESSAGES = {
  * @param {object} props.lessonName - レッスン名（message descriptor）。
  * @param {Function} props.onClose - 「もう少し見る」（閉じる）。
  * @param {Function} props.onNextChallenge - 「次のチャレンジへ」など（レッスン表を開く）。
+ * @param {boolean} props.hidden - いっとき隠すか（描いたまま見えなくする。クイズで選んだものを残す・#1639）。
  * @param {?object} props.quiz - できたチャレンジのふりかえりのクイズ（#1639。無ければ出さない）。
  * @param {object} props.intl - react-intl。
  * @returns {React.ReactElement} toast。
@@ -126,6 +127,7 @@ const LessonCompletedToast = ({
     challenges = [],
     courseCompleted = false,
     courseName,
+    hidden = false,
     lessonName,
     lessonNumber,
     onClose,
@@ -154,6 +156,7 @@ const LessonCompletedToast = ({
         <div
             className={classNames(styles.toast, { [styles.lessonDone]: lessonDone, [styles.withQuiz]: quiz })}
             role="status"
+            hidden={hidden}
             data-testid="lesson-completed-toast"
             data-action={action}
             data-assignment-cleared={assignmentCleared ? 'true' : 'false'}
@@ -269,6 +272,8 @@ LessonCompletedToast.propTypes = {
     // コースのチャレンジが全部できたか。library のとき、true なら「これで全部です」、false ならレッスン名の行
     courseCompleted: PropTypes.bool,
     courseName: PropTypes.object,
+    // いっとき隠す（課題バーの全文を開いているあいだ）。閉じたのとちがい、クイズで選んだものは残る
+    hidden: PropTypes.bool,
     intl: intlShape.isRequired,
     lessonName: PropTypes.object,
     lessonNumber: PropTypes.number,

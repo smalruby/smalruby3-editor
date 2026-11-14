@@ -244,8 +244,14 @@ describe('LessonCompletedToast: reflection quiz (#1639)', () => {
         ['Assignment cleared!', { assignmentCleared: true, assignmentChallenges: allDone }],
     ])('shows the quiz in "%s", and the buttons stay without answering', (title, props) => {
         const onNextChallenge = jest.fn();
-        const { getByTestId } = renderToast({ quiz, onNextChallenge, ...props });
+        const onClose = jest.fn();
+        const { getByTestId, getAllByTestId } = renderToast({ quiz, onClose, onNextChallenge, ...props });
         expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent(title);
+        // 選んでも閉じない・先へ進まない（FYI3）
+        getAllByTestId('lesson-quiz-choice').forEach((choice) => fireEvent.click(choice));
+        expect(onClose).not.toHaveBeenCalled();
+        expect(onNextChallenge).not.toHaveBeenCalled();
+        expect(getByTestId('lesson-completed-toast')).toBeInTheDocument();
         expect(getByTestId('lesson-completed-toast')).toHaveAttribute('data-has-quiz', 'true');
         expect(getByTestId('lesson-quiz-question')).toHaveTextContent('What is a protocol?');
         // 答えなくても先へ進める（Q12）

@@ -114,6 +114,19 @@ describe('reflection quiz (#1639)', () => {
         expect(validateQuiz({ ...ok, explanation: undefined })).toEqual(['explanation must be a message']);
     });
 
+    // ja-Hira の問い・選択肢・解説に漢字を残さない（FYI2。クイズのあるチャレンジ全部）
+    test('the ja-Hira words of every quiz have no kanji', () => {
+        Object.keys(jaHira)
+            .filter((id) => /^gui\.lessons\.challenge\.[^.]+\.quiz\./.test(id))
+            .forEach((id) =>
+                expect({ id, text: jaHira[id] }).toEqual({ id, text: expect.not.stringMatching(/\p{Script=Han}/u) }),
+            );
+        allChallenges()
+            .filter((c) => c.quiz)
+            .flatMap((c) => [c.quiz.question, ...c.quiz.choices, c.quiz.explanation])
+            .forEach(({ id }) => expect(jaHira[id]).not.toMatch(/\p{Script=Han}/u));
+    });
+
     test('every quiz of the courses is valid', () => {
         allChallenges()
             .filter((c) => c.quiz)

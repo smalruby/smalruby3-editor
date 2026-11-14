@@ -506,8 +506,8 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `lesson-quiz` | div | ふりかえりのクイズ（チャレンジに `quiz` があるときだけ）。`lesson-completed-toast` の `data-has-quiz` が `true` / `false` |
 | `lesson-quiz-label` | div | 「ふりかえりクイズ」 |
 | `lesson-quiz-question` | div | 問い |
-| `lesson-quiz-choice` | button | 選択肢 1 つ（3 つ並ぶ）。`data-index` = 何番目か（0 から）、`aria-pressed` = 選んでいるか、`data-result` = 選んでいるものだけ `correct` / `wrong` |
-| `lesson-quiz-result` | div | 「正解！」／「はずれ。もう一度選んでみよう」（選んだあとだけ）。`data-correct` が `true` / `false` |
+| `lesson-quiz-choice` | button | 選択肢 1 つ（3 つ並ぶ・`role="radio"`）。`data-index` = 何番目か（0 から）、`aria-checked` = 選んでいるか、`data-result` = 選んでいるものだけ `correct` / `wrong` |
+| `lesson-quiz-result` | div | 「2: 正解！」／「3: はずれ。もう一度選んでみよう」（選んだあとだけ。前に選んだ番号）。`data-correct` が `true` / `false` |
 | `lesson-quiz-explanation` | div | 解説（選んだあとだけ。正解でもはずれでも出す） |
 
 クラスの課題に参加しているとき、その課題の条件をはじめて満たしたチャレンジでは、`lesson-completed-toast` の
@@ -560,6 +560,16 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   **何度でも選び直せる**（正解のあとも）。選択肢の並びは定義のまま（混ぜない）。
 - 選んだものは記録しない（「できた」の判定にも記録にも入れない）。答えなくても「次のチャレンジへ」などで先へ進める。
   別のチャレンジの「できた！」では選んだものを消す（`key` = チャレンジ id）。
+- **見られるのは「できた！」が出ているあいだだけ**。「もう少し見る」で閉じたら、そのチャレンジではクイズをもう出さない
+  （もう一度「できた」にすれば出る）。閉じるまでに生徒はクイズを見ている。
+- **課題バーの全文をタップで開いても閉じない**。全文を開いているあいだだけ隠し（`lessonMode.completedHidden`。
+  reducer の `hideCompleted` / `showCompleted`）、全文を閉じたら出し直す。toast は描いたまま `hidden` にするので、
+  選んだ答えは残る。隠しているあいだは、課題バーから見て toast は出ていない扱い（`toastVisible` が false）。
+  閉じる・チャレンジを開き直す・もう一度「できた」になると、隠したのは解ける。クイズの無い「できた！」は、全文を
+  開くとこれまでどおり閉じる。
+- 読み上げ: クイズは `role="radiogroup"`（問いを `aria-labelledby`）、選択肢は `role="radio"` + `aria-checked`。
+  結果の文の前に選んだ番号を付ける（「3: はずれ。もう一度選んでみよう」）ので、はずれを続けて選んでも字が変わって
+  読み上げられる。live region は toast の `role="status"` だけ（クイズの中には置かない）。
 - 文言は、クイズの部品の言葉（`gui.lessons.completed.quizLabel` / `quizCorrect` / `quizWrong`）と、チャレンジごとの
   問い・選択肢・解説（上の「チャレンジ」の message id）。どれも en / ja / ja-Hira にそろえる（ja-Hira は漢字なし）。
 - クイズがあるときは toast の幅を 560px に決める（選んで解説が出ても横幅が変わらない）。**文言の長さの目安**は
@@ -794,7 +804,9 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
     吹き出しを隠さない。乗せ直せばまた出る）。
   - **「できた！」・タップで開いたパネルは重ねない**: 「できた！」の toast が出ているあいだは、乗せても全文を
     出さない。タップで開いたまま（pinned）のパネルは、吹き出し・toast のどちらかが出ると閉じ、タップで開くと
-    その 2 つを閉じる（z-index は 470。toast の 480・吹き出しの 490 より下）。
+    その 2 つを閉じる（z-index は 470。toast の 480・吹き出しの 490 より下）。ただし**クイズのある「できた！」は
+    閉じずに隠す**（`hideCompleted`。toast は描いたまま `hidden`）。全文のパネルが閉じたら（タップ・外を押す・Esc・
+    吹き出しが出る、のどれでも。課題バーの `onCloseFullText`）、`showCompleted` で出し直す（下の「ふりかえりのクイズ」）。
 
   ![課題の全文（1300×600）](screenshots/0203-lesson-task-full-text-1300x600.png)
 

@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useId, useState } from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
 import intlShape from '../../lib/intlShape.js';
 import styles from './lesson-completed-quiz.css';
@@ -27,6 +27,9 @@ const messages = defineMessages({
  * ふりかえりのクイズ（#1639）。「できた！」の表示の中に出す 3 択。選ぶと正解／はずれと解説を出し、
  * 何度でも選び直せる。「できた」の判定には関係しない（選んだものは記録しない）。
  * 選んだものは、この部品の中だけに持つ（別のチャレンジの「できた！」では key で作り直す）。
+ * 読み上げ: 3 つから 1 つを選ぶので radiogroup / radio。結果の読み上げは toast（外側の role="status"）に
+ * 任せ、ここには live region を置かない（入れ子にしない）。はずれを続けて選んでも字が変わるように、
+ * 結果の文の前に選んだ番号を付ける（「3: はずれ…」）。
  * @param {object} props - props。
  * @param {object} props.quiz - チャレンジの `quiz`（courses.js の `challengeQuiz`）。
  * @param {object} props.intl - react-intl。
@@ -37,12 +40,13 @@ const LessonCompletedQuiz = ({ quiz, intl }) => {
     const handleChoose = useCallback((event) => setSelected(Number(event.currentTarget.dataset.index)), []);
     const answered = selected !== null;
     const correct = answered && selected === quiz.answer;
+    const questionId = useId();
     return (
-        <div className={styles.quiz} data-testid="lesson-quiz">
+        <div className={styles.quiz} role="radiogroup" aria-labelledby={questionId} data-testid="lesson-quiz">
             <div className={styles.label} data-testid="lesson-quiz-label">
                 {intl.formatMessage(messages.label)}
             </div>
-            <div className={styles.question} data-testid="lesson-quiz-question">
+            <div className={styles.question} id={questionId} data-testid="lesson-quiz-question">
                 {intl.formatMessage(quiz.question)}
             </div>
             <div className={styles.choices}>
@@ -58,7 +62,8 @@ const LessonCompletedQuiz = ({ quiz, intl }) => {
                                 [styles.choiceCorrect]: result === 'correct',
                                 [styles.choiceWrong]: result === 'wrong',
                             })}
-                            aria-pressed={isSelected ? 'true' : 'false'}
+                            role="radio"
+                            aria-checked={isSelected ? 'true' : 'false'}
                             onClick={handleChoose}
                             data-testid="lesson-quiz-choice"
                             data-index={index}
@@ -73,13 +78,13 @@ const LessonCompletedQuiz = ({ quiz, intl }) => {
                 })}
             </div>
             {answered && (
-                <div className={styles.feedback} role="status">
+                <div className={styles.feedback}>
                     <div
                         className={classNames(styles.result, correct ? styles.resultCorrect : styles.resultWrong)}
                         data-testid="lesson-quiz-result"
                         data-correct={correct ? 'true' : 'false'}
                     >
-                        {intl.formatMessage(correct ? messages.correct : messages.wrong)}
+                        {`${selected + 1}: ${intl.formatMessage(correct ? messages.correct : messages.wrong)}`}
                     </div>
                     <div className={styles.explanation} data-testid="lesson-quiz-explanation">
                         {intl.formatMessage(quiz.explanation)}
