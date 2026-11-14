@@ -68,6 +68,8 @@ describe('RubyToBlocksConverter: the code inside case / when (issue #1813)', () 
             await expectRoundTrip(converter, target, code);
         });
 
+        // The assignment in the condition of a `when` is the error of a wrong instruction
+        // (issue #1818), but `@a` is still not taken for a list: the error is not that one.
         test('a string set in the condition of a when is not taken for a list', async () => {
             const code = dedent`
                 when_flag_clicked do
@@ -80,8 +82,10 @@ describe('RubyToBlocksConverter: the code inside case / when (issue #1813)', () 
                 end
             `;
             const result = await converter.targetCodeToBlocks(target, code);
-            expect(converter.errors).toEqual([]);
-            expect(result).toBeTruthy();
+            expect(result).toBeFalsy();
+            expect(converter.errors.map((e) => e.text)).toEqual([
+                '"when (@a = "abc")" is the wrong instruction.\nCheck the spelling or use a supported block.',
+            ]);
             expect(converter._context.variableUses['@a']).toEqual(
                 expect.objectContaining({ list: false, scalar: true, string: true }),
             );

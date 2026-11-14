@@ -11,8 +11,7 @@ export default function (Generator) {
 
     Generator.motion_turnright = function (block) {
         const degrees = Generator.valueToCode(block, 'DEGREES', Generator.ORDER_NONE) || 0;
-        const comment = Generator.getCommentText(block);
-        if (comment && comment.includes('@ruby:operator:+=')) {
+        if (Generator.hasRubyMarker(block, '@ruby:operator:+=')) {
             return `self.direction += ${degrees}\n`;
         }
         return `turn_right(${degrees})\n`;
@@ -20,8 +19,7 @@ export default function (Generator) {
 
     Generator.motion_turnleft = function (block) {
         const degrees = Generator.valueToCode(block, 'DEGREES', Generator.ORDER_NONE) || 0;
-        const comment = Generator.getCommentText(block);
-        if (comment && comment.includes('@ruby:operator:-=')) {
+        if (Generator.hasRubyMarker(block, '@ruby:operator:-=')) {
             return `self.direction -= ${degrees}\n`;
         }
         return `turn_left(${degrees})\n`;
