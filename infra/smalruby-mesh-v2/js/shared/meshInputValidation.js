@@ -18,6 +18,9 @@ const MESH_GROUP_NAME_MAX_LENGTH = 1024;
 
 // イベントの payload の上限（GUI の上限と同じ 1000 文字。issue #1846）。
 // 費用と悪用を防ぐため、GUI だけでなくサーバーでも守る。payload が無い（null）イベントは検査しない。
+// 文字数は UTF-16 のコード単位（JS の String#length。絵文字は 2）で数え、GUI の `.length` と一致させる。
+// コードポイントで数えようとしても、本番の APPSYNC_JS は単独のサロゲートを比較で見分けられず
+// （evaluate-code とは振る舞いが違った。stg で確認）、Ruby 側をこちらに合わせている。
 const MESH_PAYLOAD_MAX_LENGTH = 1000;
 
 // APPSYNC_JS は正規表現リテラルを受け付けない（デプロイ時に "The code contains one or more
@@ -69,26 +72,13 @@ function meshGroupNameError(field, value) {
   return null;
 }
 
-// 文字数（コードポイント単位）。Ruby の String#length と同じ数え方にして、
-// 絵文字などのサロゲートペアで JS（fireEventsByNode）と Ruby（recordEventsByNode）の判定がずれないようにする。
-// APPSYNC_JS の for...of は文字列を UTF-16 のコード単位で回す（Node はコードポイントで回す）ことを
-// stg で確かめた。どちらでも同じ数になるよう、単独の下位サロゲート（U+DC00〜U+DFFF）は数えない
-// （Node ではペアが 1 つの文字列 "😀" で来るので、先頭が上位サロゲートのため数えられる）。
-function meshCharCount(text) {
-  let count = 0;
-  for (const ch of text) {
-    if (!(ch >= '\uDC00' && ch <= '\uDFFF')) count += 1;
-  }
-  return count;
-}
-
 // APPSYNC_JS は `for (;;)` と `continue` を受け付けないので、for...of と if で書く。
 function meshEventsError(events) {
   if (!Array.isArray(events)) return null;
   let index = 0;
   for (const event of events) {
     const payload = event ? event.payload : null;
-    if (payload !== undefined && payload !== null && meshCharCount(`${payload}`) > MESH_PAYLOAD_MAX_LENGTH) {
+    if (payload !== undefined && payload !== null && `${payload}`.length > MESH_PAYLOAD_MAX_LENGTH) {
       return `events[${index}].payload must be ${MESH_PAYLOAD_MAX_LENGTH} characters or less`;
     }
     index += 1;

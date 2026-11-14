@@ -58,10 +58,10 @@ RSpec.describe "Mesh event payload limit", type: :request do
       expect_validation_error(response)
     end
 
-    # APPSYNC_JS は文字列を UTF-16 のコード単位で回すので、絵文字を 2 文字と数えないことを確かめる
-    it "絵文字 1000 個の payload は通る（コードポイントで数える）" do
-      response = execute_graphql(fire_events_query, args.merge(events: [event("😀" * 1000)]))
-      expect(response["errors"]).to be_nil
+    # 文字数は UTF-16 のコード単位（絵文字は 2）。2 つの経路で同じ数え方になることを確かめる
+    it "絵文字 500 個は通り、501 個は ValidationError" do
+      expect(execute_graphql(fire_events_query, args.merge(events: [event("😀" * 500)]))["errors"]).to be_nil
+      expect_validation_error(execute_graphql(fire_events_query, args.merge(events: [event("😀" * 501)]), suppress_errors: true))
     end
 
     it "payload が無いイベントは今までどおり通る" do
@@ -83,9 +83,9 @@ RSpec.describe "Mesh event payload limit", type: :request do
       expect_validation_error(response)
     end
 
-    it "絵文字 1000 個の payload は記録される（コードポイントで数える）" do
-      response = execute_graphql(record_events_query, args.merge(events: [event("😀" * 1000)]))
-      expect(response["errors"]).to be_nil
+    it "絵文字 500 個は記録され、501 個は ValidationError" do
+      expect(execute_graphql(record_events_query, args.merge(events: [event("😀" * 500)]))["errors"]).to be_nil
+      expect_validation_error(execute_graphql(record_events_query, args.merge(events: [event("😀" * 501)]), suppress_errors: true))
     end
 
     it "payload が無いイベントは今までどおり記録される" do

@@ -112,6 +112,12 @@ RSpec.describe MeshInput do
         .to raise_error(MeshInput::ValidationError, /payload must be 1000 characters or less/)
     end
 
+    it "絵文字は UTF-16 のコード単位で 2 と数える（AppSync JS・GUI の length と同じ。500 個は通し、501 個は拒否する）" do
+      expect { described_class.validate_events!([event("😀" * 500)]) }.not_to raise_error
+      expect { described_class.validate_events!([event("😀" * 501)]) }
+        .to raise_error(MeshInput::ValidationError, /payload must be 1000 characters or less/)
+    end
+
     it "シンボルのキーでも検査する" do
       expect { described_class.validate_events!([{payload: "a" * 1001}]) }
         .to raise_error(MeshInput::ValidationError, /payload/)

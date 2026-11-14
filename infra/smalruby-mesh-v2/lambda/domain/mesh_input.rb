@@ -18,7 +18,8 @@ module MeshInput
 
   # イベントの payload の上限（GUI の上限と同じ 1000 文字。issue #1846）。
   # 費用と悪用を防ぐため、GUI だけでなくサーバーでも守る。payload が無い（nil）イベントは検査しない。
-  # String#length はコードポイント単位。JS 側も同じ数え方にしている。
+  # 文字数は UTF-16 のコード単位（絵文字は 2）で数える。GUI と AppSync JS リゾルバの String#length に
+  # そろえるため（Ruby の String#length はコードポイント単位なので使わない）。
   PAYLOAD_MAX_LENGTH = 1000
 
   module_function
@@ -43,9 +44,13 @@ module MeshInput
       next unless event.is_a?(Hash)
       payload = event.key?("payload") ? event["payload"] : event[:payload]
       next if payload.nil?
-      if payload.to_s.length > PAYLOAD_MAX_LENGTH
+      if utf16_length(payload.to_s) > PAYLOAD_MAX_LENGTH
         raise ValidationError, "events[#{index}].payload must be #{PAYLOAD_MAX_LENGTH} characters or less"
       end
     end
+  end
+
+  def utf16_length(text)
+    text.encode("UTF-16LE", invalid: :replace, undef: :replace).bytesize / 2
   end
 end

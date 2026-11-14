@@ -393,7 +393,8 @@ query PollGroupData($groupId: ID!, $domain: String!, $since: String!) {
   末尾 `s<2〜3 桁>`（例 `…s07`）。グループ名はクライアントが 512 文字以内で作る。上限はそれぞれに
   余裕を持たせている（ハイフン入りの旧形式・テスト用 ID も通る）。
 - `payload` の上限は GUI の上限と同じ 1000 文字。費用と悪用を防ぐため、サーバーでも守る。文字数は
-  コードポイント単位で数える（絵文字 1 つも 1 文字。JS と Ruby で数え方をそろえている）。1 件でも
+  UTF-16 のコード単位（JavaScript の `String#length`）で数える。日本語の 1 文字は 1、絵文字は多くが 2 に
+  なる。GUI の `.length` と AppSync JS リゾルバの判定に合わせ、Ruby Lambda も同じ数え方にしている。1 件でも
   上限を超えるとバッチ全体を拒否し、エラーメッセージで何番目のイベントか（`events[1].payload must be
   1000 characters or less`）を返す。`payload` の無いイベントは今までどおり通る。
 - DynamoDB のキー区切りに使う `#` や、グループ名の区切り `|` は ID に使えない。

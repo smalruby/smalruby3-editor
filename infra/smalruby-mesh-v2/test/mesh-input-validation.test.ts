@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import { meshInputValidatedSource } from '../lib/appsync-code';
 
@@ -157,33 +156,13 @@ describe('checkGroupExists のイベント payload の上限（fireEventsByNode�
     );
   });
 
-  test('文字数はコードポイント単位で数える（絵文字 1000 個は通し、1001 個は拒否する）', () => {
-    expect(fn.request(ctxWith({ ...base, events: [event('😀'.repeat(1000))] }))).toHaveProperty(
-      'operation',
-      'GetItem',
-    );
+  test('文字数は UTF-16 のコード単位で数える（あ 1000 文字は通す・絵文字は 2 と数え 500 個は通し 501 個は拒否する）', () => {
+    expect(fn.request(ctxWith({ ...base, events: [event('あ'.repeat(1000))] }))).toHaveProperty('operation', 'GetItem');
+    expect(fn.request(ctxWith({ ...base, events: [event('😀'.repeat(500))] }))).toHaveProperty('operation', 'GetItem');
     expectValidationError(
-      () => fn.request(ctxWith({ ...base, events: [event('😀'.repeat(1001))] })),
+      () => fn.request(ctxWith({ ...base, events: [event('😀'.repeat(501))] })),
       /events\[0\]\.payload must be 1000 characters or less/,
     );
   });
 });
 
-// APPSYNC_JS の for...of は文字列を UTF-16 のコード単位で回す（stg で確認）。Node はコードポイントで回すので、
-// コード単位の配列を渡して APPSYNC_JS の回り方を再現し、どちらでも同じ数になることを確かめる。
-describe('meshCharCount（APPSYNC_JS と Node で同じ数え方）', () => {
-  const source = fs.readFileSync(path.join(__dirname, '../js/shared/meshInputValidation.js'), 'utf8');
-  // eslint-disable-next-line @typescript-eslint/no-implied-eval
-  const meshCharCount = new Function(`${source}\nreturn meshCharCount;`)() as (text: Iterable<string>) => number;
-  const codeUnits = (text: string) => text.split('');
-
-  test.each([
-    ['a'.repeat(1000), 1000],
-    ['あいう', 3],
-    ['😀😀', 2],
-    ['a😀b', 3],
-  ])('%j は %i 文字（コードポイントで回しても、コード単位で回しても）', (text, expected) => {
-    expect(meshCharCount(text)).toBe(expected);
-    expect(meshCharCount(codeUnits(text))).toBe(expected);
-  });
-});
