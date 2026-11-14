@@ -2,6 +2,7 @@
 // 課題バーの「ほかのチャレンジへ」が同じ動きをするので、ここにまとめる。
 import { focusLessonsLibrary, focusLessonsLibraryStart, setLibraryAssignmentOnly } from '../../reducers/lesson-mode';
 import { openLessonsLibrary } from '../../reducers/modals';
+import { markTutorialSeen } from '../../reducers/tutorial-onboarding';
 
 /**
  * レッスン表を開き、`challengeId` のレッスンへスクロールして、次のまだできていない
@@ -17,9 +18,11 @@ export const openLessonsLibraryAt = (dispatch, challengeId) => {
 /**
  * レッスン表を開き、記録から次にやるチャレンジ（まだ何もしていなければレッスン 1 の最初のチャレンジ）を
  * 目立たせる（ウェルカムの「レッスンを始める」・#1888。決め方は lesson-progress.js の startLessonsFocus）。
+ * メニュー・ドロワーの「レッスン」と同じく、レッスン表を見たことを記録する（markTutorialSeen）。
  * @param {Function} dispatch - Redux の dispatch。
  */
 export const openLessonsLibraryToStart = (dispatch) => {
+    dispatch(markTutorialSeen());
     dispatch(focusLessonsLibraryStart());
     dispatch(openLessonsLibrary());
 };

@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { defineMessages, FormattedMessage } from 'react-intl';
 import rubyIcon from './icon-ruby.svg';
@@ -148,9 +148,59 @@ CourseGuide.propTypes = {
 
 // The primary CTA is 「レッスンを始める」 on every screen (#1888). The lessons library works on
 // narrow screens too. On narrow screens the course guide is left out to save height.
+// ダイアログの中で Tab が回る相手（押せるもの）
+const FOCUSABLE = 'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Tab / Shift+Tab でダイアログの外へ出ないように、端で反対の端へ回す。
+ * @param {KeyboardEvent} event - キーの event。
+ * @param {HTMLElement} container - ダイアログ。
+ */
+const trapTab = (event, container) => {
+    const items = Array.from(container.querySelectorAll(FOCUSABLE));
+    if (items.length === 0) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+    const inside = container.contains(active);
+    if (event.shiftKey && (active === first || !inside)) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && (active === last || !inside)) {
+        event.preventDefault();
+        first.focus();
+    }
+};
+
 const WelcomeModal = ({ course, isNarrow, onStartLessons, onLearnMore, onLater }) => {
+    const dialogRef = useRef(null);
+    const primaryRef = useRef(null);
+
+    // body の最後に出すので、開いたら主ボタンへフォーカスを移す（Tab で何度も押さなくても届くように）
+    useEffect(() => {
+        if (primaryRef.current) primaryRef.current.focus();
+    }, []);
+
+    // Esc は「あとで見る」と同じ。Tab はダイアログの中を回す
+    const handleKeyDown = useCallback(
+        (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onLater();
+            } else if (event.key === 'Tab' && dialogRef.current) {
+                trapTab(event, dialogRef.current);
+            }
+        },
+        [onLater],
+    );
+
     const primary = (
-        <button className={styles.primaryButton} onClick={onStartLessons} data-testid="welcome-modal-start-lessons">
+        <button
+            className={styles.primaryButton}
+            onClick={onStartLessons}
+            ref={primaryRef}
+            data-testid="welcome-modal-start-lessons"
+        >
             <FormattedMessage {...messages.startLessons} />
         </button>
     );
@@ -158,6 +208,8 @@ const WelcomeModal = ({ course, isNarrow, onStartLessons, onLearnMore, onLater }
     const dialog = (
         <div
             className={styles.overlay}
+            onKeyDown={handleKeyDown}
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="welcome-modal-title"

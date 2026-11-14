@@ -45,7 +45,13 @@ CTA:
 
 #### 見た目
 
-上流のモーダル（`components/modal/modal.css`）に合わせる: 青い幕（`$color-overlay`）、白い 4px の縁と角丸（`$radius-medium`）、紫のヘッダー（`.header` と同じ高さ `$library-header-height`・`$color-primary`）、紫の主ボタン（`$color-primary`、ホバーで `$color-primary-dark`。上流のプロンプトの OK ボタンと同じ形）。角丸・文字・余白は `smalruby-tokens.css` のトークンで書く（[`docs/design-system/tokens.md`](../design-system/tokens.md)）。
+上流のモーダル（`components/modal/modal.css`）に合わせる: 青い幕（`$color-overlay`）、白い 4px の縁と角丸（`$radius-medium`）、紫のヘッダー（`.header` と同じ高さ `$library-header-height`・`$color-primary`）、紫の主ボタン（`$color-primary`・枠 `1px solid $color-primary`・文字 `$ui-white`。ホバーの見た目は付けず、押したときに `$color-primary-dark`）。ボタンの形とフォーカス（`:focus-visible` で 2px の紫の線を 2px 外に）は [`docs/design-system/components/README.md`](../design-system/components/README.md) の「独自の画面で使う形」に合わせる。角丸・文字・余白は `smalruby-tokens.css` のトークンで書く（[`docs/design-system/tokens.md`](../design-system/tokens.md)）。
+
+#### キーボード
+
+- 開いたら主ボタン（レッスンを始める）にフォーカスを移す（ダイアログは `document.body` の最後に出すので、そのままだと Tab で届くのが遅いため）。
+- Tab / Shift+Tab はダイアログの中を回る（端で反対の端へ）。
+- Esc は「あとで見る」と同じ（GA も `later`）。
 
 ### ウェルカムモーダル (SP 横持ち)
 
@@ -56,7 +62,7 @@ SP では `useIsNarrowScreen` で narrow 判定し、レイアウトを切り替
 - 3 カードを横スクロール（`scroll-snap-type: x mandatory`）にして縦領域を節約
 - Primary CTA は PC と同じ「レッスンを始める」（レッスン表は SP でも使える）。CTA は 1 行に並べる
 - コースの案内は出さない（縦が足りないため）
-- CTA を `position: sticky; bottom: 0` で常に画面内に表示
+- ダイアログを縦の flex にし、本文（`.dialog-body`）だけをスクロールさせ、CTA の段（`.buttons`）は `flex-shrink: 0` で縮めずに下に置くので、CTA はいつも画面内に見える。スマホ横はヘッダーを `$library-filter-bar-height`（2.5rem）に低くする
 - ダイアログは `document.body` の直下に出し（portal）、SP では幕の重なり順を共有のモーダルと同じく底上げする（`mobile-gui.css`。左のレールやお知らせの帯の下に隠れないため）
 
 縦持ちスマホでは `MobileOrientationGate` が優先するため、ウェルカムモーダルは描画されない（横向きに回転すると自動的に表示される）。

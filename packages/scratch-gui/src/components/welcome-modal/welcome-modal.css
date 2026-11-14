@@ -44,7 +44,8 @@
 
 .title {
     margin: 0;
-    color: $color-surface;
+    /* 紫の上の文字は白（上流の .header-item と同じ $ui-white） */
+    color: $ui-white;
     font-size: $font-size-base;
     font-weight: $font-weight-bold;
     letter-spacing: 0.4px;
@@ -144,29 +145,30 @@
     flex-shrink: 0;
 }
 
-/* 上流のプロンプトの OK ボタン（prompt.css の .ok-button）と同じ紫の主ボタン */
+/* 主ボタン（docs/design-system/components/README.md の「主ボタン・副ボタン」）。
+   ホバーの見た目は付けない（上流のダイアログのボタンに合わせて cursor だけ）。押したときに濃くする */
 .primary-button {
     padding: 0.75rem $space-large;
     border: 1px solid $color-primary;
     border-radius: $radius-small;
     background-color: $color-primary;
-    color: $color-surface;
+    color: $ui-white;
     cursor: pointer;
     font-size: $font-size-base;
     font-weight: $font-weight-bold;
     min-height: 44px;
-    transition: $transition-standard;
 }
 
-.primary-button:hover,
 .primary-button:active {
     background-color: $color-primary-dark;
     border-color: $color-primary-dark;
 }
 
-.primary-button:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 0.25rem $color-primary-transparent;
+/* フォーカス: デザインシステムの形（2px の紫の線を 2px 外に） */
+.primary-button:focus-visible,
+.link-button:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
 }
 
 .secondary-buttons {
@@ -187,7 +189,7 @@
     min-height: 44px;
 }
 
-.link-button:hover {
+.link-button:active {
     color: $color-primary-dark;
 }
 
@@ -198,8 +200,10 @@
     max-height: 95vh;
 }
 
+/* スマホ横は縦が 320〜390px しか無いので、ヘッダーを上流の $library-header-height（3.125rem）より低くして
+   カードとボタンを画面に収める（2.5rem はライブラリの絞り込みの帯 $library-filter-bar-height と同じ高さ） */
 .dialog.narrow .header {
-    height: 2.5rem;
+    height: $library-filter-bar-height;
 }
 
 .dialog.narrow .dialog-body {

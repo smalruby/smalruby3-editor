@@ -477,6 +477,35 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
         );
     });
 
+    test('when the latest one is the last of another lesson, wraps around in that lesson', () => {
+        // レッスン 1 は途中（1 だけ）。いちばん最近できたのはレッスン 2 の最後（7）
+        expect(startLessonsFocus(doneInOrder(1, 7))).toEqual(
+            expect.objectContaining({ lessonId: 'blocks-l2', nextChallengeId: challengeId(5) }),
+        );
+    });
+
+    test('when the first course is all done, moves to the next course', () => {
+        const courses = [
+            defineCourse({
+                id: 'first',
+                language: 'blocks',
+                lessons: [defineLesson({ id: 'f1', challenges: [{ id: 'fa' }, { id: 'fb' }] })],
+            }),
+            defineCourse({
+                id: 'second',
+                language: 'ruby',
+                lessons: [defineLesson({ id: 's1', challenges: [{ id: 'sa' }, { id: 'sb' }] })],
+            }),
+        ];
+        const progress = ['fa', 'fb'].reduce((p, id) => markChallengeCompleted(p, id, NOW, courses), emptyProgress());
+        expect(startLessonsFocus(progress, courses)).toEqual({
+            language: 'ruby',
+            courseId: 'second',
+            lessonId: 's1',
+            nextChallengeId: 'sa',
+        });
+    });
+
     test('when everything is done, opens like the menu (null)', () => {
         expect(startLessonsFocus(completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))).toBeNull();
     });

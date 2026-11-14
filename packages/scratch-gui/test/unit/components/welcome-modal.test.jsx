@@ -68,4 +68,34 @@ describe('WelcomeModal (#1888)', () => {
         expect(getByTestId('welcome-modal-later')).toBeInTheDocument();
         expect(queryByTestId('welcome-modal-course-guide')).not.toBeInTheDocument();
     });
+
+    test('moves the focus to the primary button when it opens', () => {
+        const { getByTestId } = renderModal();
+        expect(getByTestId('welcome-modal-start-lessons')).toHaveFocus();
+    });
+
+    test('Esc does the same as 「あとで見る」', () => {
+        const { getByTestId, onLater } = renderModal();
+        fireEvent.keyDown(getByTestId('welcome-modal-start-lessons'), { key: 'Escape' });
+        expect(onLater).toHaveBeenCalledTimes(1);
+    });
+
+    test('Tab and Shift+Tab go around inside the dialog', () => {
+        const { getByTestId } = renderModal();
+        const primary = getByTestId('welcome-modal-start-lessons');
+        const later = getByTestId('welcome-modal-later');
+        later.focus();
+        fireEvent.keyDown(later, { key: 'Tab' });
+        expect(primary).toHaveFocus();
+        fireEvent.keyDown(primary, { key: 'Tab', shiftKey: true });
+        expect(later).toHaveFocus();
+    });
+
+    test('Tab in the middle of the dialog is left to the browser', () => {
+        const { getByTestId } = renderModal();
+        const primary = getByTestId('welcome-modal-start-lessons');
+        const event = fireEvent.keyDown(primary, { key: 'Tab' });
+        // fireEvent は preventDefault されたら false を返す
+        expect(event).toBe(true);
+    });
 });
