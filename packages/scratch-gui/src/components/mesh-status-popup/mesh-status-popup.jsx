@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import meshIcon from '../../lib/libraries/extensions/mesh_v2/mesh-small.png';
 import { describeNode, formatClock, HISTORY_COLLAPSED_COUNT, visibleHistory } from '../../lib/mesh-v2-status.js';
+import MeshPracticePartner from '../mesh-practice-partner/mesh-practice-partner.jsx';
 import styles from './mesh-status-popup.css';
 
 const messages = defineMessages({
@@ -26,6 +27,26 @@ const messages = defineMessages({
         id: 'gui.meshStatus.tabHistory',
         defaultMessage: 'History',
         description: 'Tab that shows sent and received mesh messages',
+    },
+    tabPractice: {
+        id: 'gui.meshStatus.tabPractice',
+        defaultMessage: 'Practice partner',
+        description: 'Tab of the practice partner that works without connecting (#1845)',
+    },
+    practicing: {
+        id: 'gui.meshStatus.practicing',
+        defaultMessage: 'Not connected (practicing with the practice partner)',
+        description: 'Mesh is not connected and the practice partner is on',
+    },
+    practicingShort: {
+        id: 'gui.meshStatus.practicingShort',
+        defaultMessage: 'practicing',
+        description: 'Accessible name of the dot on the practice partner tab while it is on',
+    },
+    practicePeer: {
+        id: 'gui.meshStatus.practicePeer',
+        defaultMessage: 'Partner (practice partner)',
+        description: 'Label of the practice partner in the mesh status and history',
     },
     connectedWebSocket: {
         id: 'gui.meshStatus.connectedWebSocket',
@@ -136,7 +157,13 @@ const messages = defineMessages({
 
 const TAB_STATUS = 'status';
 const TAB_HISTORY = 'history';
-const TAB_IDS = { [TAB_STATUS]: 'mesh-status-tab-status', [TAB_HISTORY]: 'mesh-status-tab-history' };
+const TAB_PRACTICE = 'practice';
+const TABS = [TAB_STATUS, TAB_HISTORY, TAB_PRACTICE];
+const TAB_IDS = {
+    [TAB_STATUS]: 'mesh-status-tab-status',
+    [TAB_HISTORY]: 'mesh-status-tab-history',
+    [TAB_PRACTICE]: 'mesh-status-tab-practice',
+};
 const PANEL_ID = 'mesh-status-panel';
 const POPUP_WIDTH = 320;
 const MARGIN = 8;
@@ -153,6 +180,7 @@ const nodeLabel = (intl, descriptor) => {
         return intl.formatMessage(descriptor.self ? messages.seatSelf : messages.seat, { seat: descriptor.seat });
     }
     if (descriptor.kind === 'self') return intl.formatMessage(messages.self);
+    if (descriptor.kind === 'practice') return intl.formatMessage(messages.practicePeer);
     if (descriptor.number === null) return intl.formatMessage(messages.peerUnknown);
     return intl.formatMessage(messages.peer, { number: descriptor.number });
 };
@@ -171,7 +199,8 @@ const initialPosition = () => {
 
 const StatusTab = ({ snapshot, labelCtx, intl, onConnect }) => {
     const connected = snapshot && snapshot.connected;
-    let connection = intl.formatMessage(messages.notConnected);
+    const practicing = !connected && !!(snapshot && snapshot.practice);
+    let connection = intl.formatMessage(practicing ? messages.practicing : messages.notConnected);
     if (connected) {
         connection = intl.formatMessage(
             snapshot.useWebSocket ? messages.connectedWebSocket : messages.connectedPolling,
@@ -207,7 +236,7 @@ const StatusTab = ({ snapshot, labelCtx, intl, onConnect }) => {
                     <FormattedMessage {...messages.connect} />
                 </button>
             )}
-            {connected && (
+            {(connected || practicing) && (
                 <ul className={styles.nodes} data-testid="mesh-status-nodes">
                     {snapshot.nodes.map((node) => (
                         <li className={styles.node} data-testid="mesh-status-node" key={node.id}>
@@ -314,13 +343,25 @@ HistoryTab.propTypes = {
  * 動かせる。見出しをドラッグして動かせる（画面の外には出さない）。
  * @param {object} props - props.
  * @param {boolean} props.aboveStage - show above the full-screen stage.
+ * @param {Array<string>} [props.messageNames] - message names of the project (practice tab).
  * @param {object} props.peers - {nodeId: number} for 「相手 N」.
+ * @param {?object} [props.practice] - useMeshPracticePartner() result; no practice tab without it.
+ * @param {Array<string>} [props.projectVariables] - stage variable names (practice tab).
  * @param {object} props.snapshot - getStatusSnapshot() of the VM.
  * @param {Function} props.onClose - closes the window.
  * @param {Function} props.onConnect - opens the connection modal.
  * @returns {React.ReactElement} the window.
  */
-const MeshStatusPopup = ({ aboveStage, peers, snapshot, onClose, onConnect }) => {
+const MeshStatusPopup = ({
+    aboveStage,
+    messageNames = [],
+    peers,
+    practice = null,
+    projectVariables = [],
+    snapshot,
+    onClose,
+    onConnect,
+}) => {
     const intl = useIntl();
     const [tab, setTab] = useState(TAB_STATUS);
     const [position, setPosition] = useState(initialPosition);
@@ -371,8 +412,10 @@ const MeshStatusPopup = ({ aboveStage, peers, snapshot, onClose, onConnect }) =>
 
     const selectStatus = useCallback(() => setTab(TAB_STATUS), []);
     const selectHistory = useCallback(() => setTab(TAB_HISTORY), []);
+    const selectPractice = useCallback(() => setTab(TAB_PRACTICE), []);
     const statusTabRef = useRef(null);
     const historyTabRef = useRef(null);
+    const practiceTabRef = useRef(null);
 
     // Not a modal: no focus trap. Move the focus in when it opens and give it back to
     // whatever opened it when it closes (#1844 review FYI1).
@@ -404,12 +447,14 @@ const MeshStatusPopup = ({ aboveStage, peers, snapshot, onClose, onConnect }) =>
         (e) => {
             if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
             e.preventDefault();
-            const next = tab === TAB_STATUS ? TAB_HISTORY : TAB_STATUS;
+            const tabs = practice ? TABS : [TAB_STATUS, TAB_HISTORY];
+            const step = e.key === 'ArrowRight' ? 1 : -1;
+            const next = tabs[(tabs.indexOf(tab) + step + tabs.length) % tabs.length];
             setTab(next);
-            const ref = next === TAB_STATUS ? statusTabRef : historyTabRef;
-            if (ref.current) ref.current.focus();
+            const refs = { [TAB_STATUS]: statusTabRef, [TAB_HISTORY]: historyTabRef, [TAB_PRACTICE]: practiceTabRef };
+            if (refs[next].current) refs[next].current.focus();
         },
-        [tab],
+        [tab, practice],
     );
 
     const labelCtx = {
@@ -479,6 +524,29 @@ const MeshStatusPopup = ({ aboveStage, peers, snapshot, onClose, onConnect }) =>
                     <FormattedMessage {...messages.tabHistory} />
                     {history.length > 0 && <span className={styles.badge}>{history.length}</span>}
                 </button>
+                {practice && (
+                    <button
+                        aria-controls={PANEL_ID}
+                        aria-selected={tab === TAB_PRACTICE}
+                        className={classNames(styles.tab, { [styles.tabActive]: tab === TAB_PRACTICE })}
+                        data-testid="mesh-status-tab-practice"
+                        id={TAB_IDS[TAB_PRACTICE]}
+                        onClick={selectPractice}
+                        ref={practiceTabRef}
+                        role="tab"
+                        tabIndex={tab === TAB_PRACTICE ? 0 : -1}
+                    >
+                        <FormattedMessage {...messages.tabPractice} />
+                        {practice.active && (
+                            <span
+                                aria-label={intl.formatMessage(messages.practicingShort)}
+                                className={styles.practiceDot}
+                                role="img"
+                                title={intl.formatMessage(messages.practicingShort)}
+                            />
+                        )}
+                    </button>
+                )}
             </div>
             <div
                 aria-labelledby={TAB_IDS[tab]}
@@ -487,10 +555,16 @@ const MeshStatusPopup = ({ aboveStage, peers, snapshot, onClose, onConnect }) =>
                 id={PANEL_ID}
                 role="tabpanel"
             >
-                {tab === TAB_STATUS ? (
+                {tab === TAB_STATUS && (
                     <StatusTab intl={intl} labelCtx={labelCtx} onConnect={onConnect} snapshot={snapshot} />
-                ) : (
-                    <HistoryTab history={history} intl={intl} labelCtx={labelCtx} />
+                )}
+                {tab === TAB_HISTORY && <HistoryTab history={history} intl={intl} labelCtx={labelCtx} />}
+                {tab === TAB_PRACTICE && practice && (
+                    <MeshPracticePartner
+                        messageNames={messageNames}
+                        practice={practice}
+                        projectVariables={projectVariables}
+                    />
                 )}
             </div>
         </div>
@@ -499,9 +573,14 @@ const MeshStatusPopup = ({ aboveStage, peers, snapshot, onClose, onConnect }) =>
 
 MeshStatusPopup.propTypes = {
     aboveStage: PropTypes.bool,
+    // 作品のメッセージ・ステージの変数の名前（練習相手のタブに並べる #1845）
+    messageNames: PropTypes.arrayOf(PropTypes.string),
     onClose: PropTypes.func.isRequired,
     onConnect: PropTypes.func,
     peers: PropTypes.object.isRequired,
+    // useMeshPracticePartner() の結果。無ければ「練習相手」のタブを出さない
+    practice: PropTypes.object,
+    projectVariables: PropTypes.arrayOf(PropTypes.string),
     snapshot: PropTypes.object,
 };
 

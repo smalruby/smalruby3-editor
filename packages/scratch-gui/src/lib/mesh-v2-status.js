@@ -1,6 +1,7 @@
 // メッシュの「状態と履歴」ポップアップ (#1844) の表示の決まり（純粋関数）。
 // データは VM の getStatusSnapshot()（scratch3_mesh_v2/status-snapshot.js）が作る。
 import { parseNodeSeat } from '@smalruby/scratch-vm/src/extensions/scratch3_mesh_v2/seat-naming';
+import { MESH_PRACTICE_PARTNER_NODE_ID } from './mesh-practice/partner';
 
 // 履歴は見るのが生徒なので、ふだんは 3 件だけ。開くと VM が持っている 50 件まで。
 const HISTORY_COLLAPSED_COUNT = 3;
@@ -19,7 +20,8 @@ const assignPeerNumbers = (prev, ids, selfId, inClassroom = false) => {
     let next = prev;
     let max = Object.values(prev).reduce((m, n) => Math.max(m, n), 0);
     ids.forEach((id) => {
-        if (!id || id === selfId || Object.prototype.hasOwnProperty.call(next, id)) return;
+        if (!id || id === selfId || id === MESH_PRACTICE_PARTNER_NODE_ID) return;
+        if (Object.prototype.hasOwnProperty.call(next, id)) return;
         if (inClassroom && parseNodeSeat(id) !== null) return;
         if (next === prev) next = { ...prev };
         max += 1;
@@ -57,6 +59,7 @@ const updatePeerNumbers = (prev, snapshot) => {
  * ノードの見せ方（EPIC #1842 Q2）。名前は集めない。
  * - クラスに参加中で出席番号があれば「03 番」（自分なら「（あなた）」を足す）。
  * - それ以外は自分が「あなた」、ほかは「相手 1」「相手 2」…。
+ * - 練習相手（#1845）は「相手（練習相手）」（番号を使わない）。
  * @param {string} id - ノード id。
  * @param {{selfId: string, inClassroom: boolean, peers: object}} ctx - 表示の文脈。
  * @returns {{kind: string, seat?: string, self?: boolean, number?: ?number}} 見せ方。
@@ -67,6 +70,7 @@ const describeNode = (id, { selfId, inClassroom, peers }) => {
         if (seat !== null) return { kind: 'seat', seat: String(seat).padStart(2, '0'), self: id === selfId };
     }
     if (id === selfId) return { kind: 'self' };
+    if (id === MESH_PRACTICE_PARTNER_NODE_ID) return { kind: 'practice' };
     const number = peers && Object.prototype.hasOwnProperty.call(peers, id) ? peers[id] : null;
     return { kind: 'peer', number };
 };

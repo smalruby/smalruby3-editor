@@ -95,6 +95,8 @@ src/components/*
 !src/components/mesh-status-button/**
 !src/components/mesh-status-popup/
 !src/components/mesh-status-popup/**
+!src/components/mesh-practice-partner/
+!src/components/mesh-practice-partner/**
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-bottom-tabs/**
 !src/components/mobile-drawer/
@@ -293,6 +295,8 @@ src/lib/*
 !src/lib/mesh-v2-seat-snapshot.js
 !src/lib/mesh-v2-sensor-collision.js
 !src/lib/mesh-v2-status.js
+!src/lib/mesh-practice/
+!src/lib/mesh-practice/**
 !src/lib/use-mesh-v2-presence.js
 !src/lib/microsoft-auth.js
 !src/lib/microbit-more-update.js
@@ -509,6 +513,7 @@ test/unit/components/*
 !test/unit/components/lesson-progress-confirm.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/mesh-status-popup.test.jsx
+!test/unit/components/mesh-status-button.test.jsx
 !test/unit/components/mesh-v2-scanning-step-seats.test.jsx
 !test/unit/components/mesh-v2-seat-connect.test.jsx
 !test/unit/components/student-assignment-panel.test.jsx
@@ -591,6 +596,7 @@ test/unit/containers/*
 !test/unit/containers/ruby-tab-project-changed.test.js
 !test/unit/containers/stage-header.test.jsx
 !test/unit/containers/mesh-status-popup.test.jsx
+!test/unit/containers/mesh-practice-partner.test.jsx
 
 # Level 3: test/unit/helpers/* — Smalruby-only (whole directory via `/**`)
 
@@ -600,6 +606,8 @@ test/unit/lib/*
 !test/unit/lib/dncl/
 !test/unit/lib/lessons/
 !test/unit/lib/lessons/**
+!test/unit/lib/mesh-practice/
+!test/unit/lib/mesh-practice/**
 !test/unit/lib/dncl/**
 !test/unit/lib/libraries/
 !test/unit/lib/libraries/**

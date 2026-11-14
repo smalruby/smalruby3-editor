@@ -3,6 +3,7 @@ const SHOW_SELF_SENSOR_NOTICE = 'scratch-gui/mesh-v2/SHOW_SELF_SENSOR_NOTICE';
 const HIDE_SELF_SENSOR_NOTICE = 'scratch-gui/mesh-v2/HIDE_SELF_SENSOR_NOTICE';
 const OPEN_STATUS_POPUP = 'scratch-gui/mesh-v2/OPEN_STATUS_POPUP';
 const CLOSE_STATUS_POPUP = 'scratch-gui/mesh-v2/CLOSE_STATUS_POPUP';
+const SET_PRACTICE_ACTIVE = 'scratch-gui/mesh-v2/SET_PRACTICE_ACTIVE';
 
 const initialState = {
     domain: null,
@@ -11,6 +12,8 @@ const initialState = {
     selfSensorNoticeVisible: false,
     // Issue #1844: the movable "mesh status and history" window (not a modal).
     statusPopupOpen: false,
+    // Issue #1845: the standalone practice partner is on (shown on the stage-top mesh button).
+    practiceActive: false,
 };
 
 const reducer = function (state, action) {
@@ -35,6 +38,11 @@ const reducer = function (state, action) {
         case CLOSE_STATUS_POPUP:
             return Object.assign({}, state, {
                 statusPopupOpen: false,
+            });
+        case SET_PRACTICE_ACTIVE:
+            if (state.practiceActive === action.active) return state;
+            return Object.assign({}, state, {
+                practiceActive: action.active,
             });
         default:
             return state;
@@ -64,6 +72,10 @@ const closeMeshV2StatusPopup = function () {
     return { type: CLOSE_STATUS_POPUP };
 };
 
+const setMeshV2PracticeActive = function (active) {
+    return { type: SET_PRACTICE_ACTIVE, active: !!active };
+};
+
 export {
     reducer as default,
     initialState as meshV2InitialState,
@@ -72,4 +84,5 @@ export {
     hideMeshV2SelfSensorNotice,
     openMeshV2StatusPopup,
     closeMeshV2StatusPopup,
+    setMeshV2PracticeActive,
 };
