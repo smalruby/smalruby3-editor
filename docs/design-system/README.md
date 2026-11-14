@@ -86,12 +86,31 @@
 - `colors.css` などをほかに読み込んでいても、いっしょに読み込んでよい。
 - 直書きの値を足したくなったら、まず [`tokens.md`](tokens.md) にトークンが無いか見る。無くて、ほかの画面でもくり返し使うなら別名を足す（下の「文書を新しく保つ」）。
 
+## 撮影スクリプトで値と見本を取る
+
+`tools/playwright-verify/capture-design-system.mjs` は、対象の画面（メニューバー・コードタブ・コスチュームタブ・音タブ・拡張機能・ライブラリ・チュートリアル・デバッグ・削除の確認・変数／リスト／ブロックを作る・機器との接続）を 1 つずつ開き、部品ごとの計算済みのスタイルとホバーしたときの値、スクリーンショットを取る。dev server だけあれば動く（stg・ログインは不要）。
+
+```bash
+# dev server を起動しておく（ほかの人と重ならないポートでもよい）
+cd tools/playwright-verify
+BASE=http://localhost:8601 node capture-design-system.mjs   # 全部の画面
+LIST=1 node capture-design-system.mjs                        # 画面の id の一覧
+ONLY=menu-bar,variable-prompt node capture-design-system.mjs # 一部の画面だけ
+DOCS_SHOTS=1 node capture-design-system.mjs                  # screenshots/ の見本も撮り直す
+```
+
+- 出力は `tmp/design-system/`（git に入れない）。`<番号>-<画面>.png`、部品ごとの値の `styles.json`（ホバーで変わる値は `hover` に差分だけ）、scratch-blocks がページに書き出す `--colour-*` の `block-colours.json`。
+- 画面は **1366×1024** で開く。高さが低いと、スモウルビーの「低い画面での圧縮」でメニューバーが 48px から縮む（縮んでいると警告を出す）。スモウルビーの吹き出し（ようこそ・レッスンのヒントなど）は隠す。
+- **値の正は上流の CSS**。取った値は、文書の表の値が実際の画面と合っているかの確かめと、見本の画像に使う。メニューバーの「レッスン」「クラス」や Ruby タブ、スモウルビーの拡張機能などスモウルビーの変更も写るので、文書には上流の部分だけを書く。
+- `screenshots/` に置く見本は少数だけ（`DOCS_SHOTS=1` で撮り直す画面はスクリプトの `DOC_SHOT_NAMES`）。ほかの画像は `tmp/` で見て、必要な部品だけを切り抜いて足す。
+
 ## 主要ファイル
 
 - `packages/scratch-gui/src/css/colors.css`・`units.css`・`typography.css`・`z-index.css` — 上流のトークン（変えない）
 - `packages/scratch-gui/src/css/smalruby-tokens.css` — スモウルビーの別名（独自のファイル。Prettier の対象）
 - `packages/scratch-gui/test/unit/css/smalruby-tokens.test.js` — `smalruby-tokens.css` をビルドと同じ PostCSS のプラグインでコンパイルし、未定義の変数が無いことを確かめるテスト（上流でトークンが消えたら落ちる）
 - `packages/scratch-gui/src/lib/settings/color-mode/` — ブロックの 3 つの色のモード（[`blocks.md`](blocks.md)）
+- `tools/playwright-verify/capture-design-system.mjs` — 対象の画面を headless で開き、計算済みのスタイル・ホバーの値・スクリーンショットを取る撮影スクリプト（下の「撮影スクリプトで値と見本を取る」）
 
 ## 文書を新しく保つ
 
