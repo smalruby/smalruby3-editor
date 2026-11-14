@@ -133,4 +133,19 @@ describe('Ruby Roundtrip: Koshien extension blocks', () => {
             errorSpy.mockRestore();
         }
     });
+
+    // A block that puts its argument inside its own parentheses asks for it with ORDER_NONE, so a value
+    // of the order of a method call (a koshien value, `$a.round`) gets no second pair of parentheses.
+    test.each([
+        ['say(distance(koshien.player_x))'],
+        ['say(distance(koshien.goal))'],
+        ['say(touching?(koshien.map_all))'],
+        ['say(touching_color?(koshien.map("1:1")))'],
+        ['say(color_is_touching_color?(koshien.object("wall"), koshien.map("1:1")))'],
+        ['say(Keyboard.pressed?(koshien.player_x))'],
+        ['say(distance($a.round))'],
+        ['say(touching?($a.round))'],
+    ])('%s keeps no extra parentheses', async (code) => {
+        await expectRoundTrip(converter, target, code);
+    });
 });
