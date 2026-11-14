@@ -242,6 +242,7 @@ src/lib/*
 !src/lib/classroom-lesson-summary.js
 !src/lib/classroom-lesson-description.js
 !src/lib/classroom-student-steps.js
+!src/lib/classroom-menu-submit.js
 !src/lib/classroom-assignment-templates/
 !src/lib/classroom-assignment-templates/**
 !src/lib/classroom-evaluation/
@@ -523,6 +524,8 @@ test/unit/components/*
 !test/unit/components/menu-bar-lessons.test.jsx
 !test/unit/components/student-seat-selector.test.jsx
 !test/unit/components/student-screen-parts.test.jsx
+!test/unit/components/classroom-menu-submit-button.test.jsx
+!test/unit/components/student-submit-confirm.test.jsx
 !test/unit/components/student-start-method.test.jsx
 !test/unit/components/student-status-view.test.jsx
 !test/unit/components/student-joined-confirmation.test.jsx
@@ -561,6 +564,7 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-auth-restore.test.js
 !test/unit/containers/classroom-kick-request-watcher.test.jsx
 !test/unit/containers/classroom-modal-last-seat.test.jsx
+!test/unit/containers/classroom-modal-submit.test.jsx
 !test/unit/containers/classroom-modal-welcome-back.test.jsx
 !test/unit/containers/classroom-teacher-kick-alerts.test.jsx
 !test/unit/containers/classroom-teacher-panel.test.jsx
@@ -623,6 +627,7 @@ test/unit/lib/*
 !test/unit/lib/avatar-initials.test.js
 !test/unit/lib/classroom-api.test.js
 !test/unit/lib/classroom-student-steps.test.js
+!test/unit/lib/classroom-menu-submit.test.js
 !test/unit/lib/classroom-teacher-session.test.js
 !test/unit/lib/classroom-teacher-kick-alerts.test.js
 !test/unit/lib/classroom-teacher-panel.test.js

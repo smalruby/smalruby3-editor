@@ -24,6 +24,9 @@ describe('studentCurrentStep', () => {
         ['student-status', { submissionStatus: 'not_submitted' }, 'make'],
         ['student-submit-confirm', {}, 'submit'],
         ['student-submit-confirm', { submissionStatus: 'submitted' }, 'submit'],
+        // 提出できました (#1795) は全部すんだ。
+        ['student-submit-done', {}, 'complete'],
+        ['student-submit-done', { submissionStatus: 'submitted' }, 'complete'],
     ])('%s %o → %s', (phase, extra, expected) => {
         expect(studentCurrentStep({ phase, ...extra })).toBe(expected);
     });

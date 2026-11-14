@@ -36,6 +36,7 @@ import {
     requestMeshConnect,
     setStudentLesson,
     setStudentPeerView,
+    setSubmissionStatus,
 } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
@@ -243,11 +244,19 @@ const useStudentAssignment = ({
                     lesson: hasLesson,
                 }),
             );
+            // Joining resets the submission status (another assignment, #1792). A
+            // submission of this seat in this assignment (submitted on another PC
+            // or before re-joining) is already in the answer above, so the menu
+            // bar shows 「提出済み ✓」 without another request (#1795). Whether it
+            // was returned is read by the next verify-session.
+            if (options && options.current) {
+                dispatch(setSubmissionStatus('submitted', options.current.submittedAt || null));
+            }
             if (!joinedAssignment) return null;
             setHasAssignment(true);
             return (joinedAssignment.pages || []).length > 0 ? 'student-assignment' : null;
         },
-        [fetchContinueOptions, rememberPeerView],
+        [dispatch, fetchContinueOptions, rememberPeerView],
     );
 
     /**

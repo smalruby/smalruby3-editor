@@ -184,13 +184,14 @@ for (const [status, expected] of [
         );
     }, status);
     await p.goto(`${BASE}/?no_beforeunload=1&locale=ja`, { waitUntil: 'load' });
-    await p.locator('[data-testid="classroom-menu-submission-status"]').waitFor({ state: 'visible', timeout: 20000 });
+    // ふつうの課題の提出状態は、メニューバーの「提出する」ボタンの色と字で出す (#1795)。
+    const kind = { notSubmitted: 'submit', submitted: 'submitted', returned: 'returned' }[expected];
+    await p.locator('[data-testid="classroom-menu-submit"]').waitFor({ state: 'visible', timeout: 20000 });
     check(
         `menu bar shows ${expected}`,
-        await p.locator(`[data-testid="classroom-menu-submission-status"] [data-status="${expected}"]`).isVisible(),
+        (await p.locator('[data-testid="classroom-menu-submit"]').getAttribute('data-kind')) === kind,
     );
     await p.locator('[data-testid="classroom-menu-button"]').screenshot({ path: resolve(SHOT_DIR, `status-icons-menu-${expected}.png`) });
-    if (expected === 'submitted') await docShot(p, '0103-menu-bar-joined.png');
     await ctx.close();
 }
 

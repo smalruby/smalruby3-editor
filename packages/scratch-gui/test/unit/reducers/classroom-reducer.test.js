@@ -5,6 +5,7 @@ import reducer, {
     setClassroomSession,
     clearClassroomSession,
     setSubmissionStatus,
+    setStudentSubmitting,
     setSubmissionThumbnail,
     clearSubmissionThumbnail,
     setTeacherSelection,
@@ -136,6 +137,21 @@ describe('classroom reducer', () => {
         const state = reducer(withSubmission, clearClassroomSession());
         expect(state.submissionStatus).toBeNull();
         expect(state.lastSubmittedAt).toBeNull();
+    });
+
+    // #1795: the server says there is no submission (another seat holder, a new device).
+    test('SET_SUBMISSION_STATUS with null clears the submitted time too', () => {
+        const submitted = reducer(classroomInitialState, setSubmissionStatus('submitted', '2026-04-04T10:00:00Z'));
+        const state = reducer(submitted, setSubmissionStatus(null, null));
+        expect(state.submissionStatus).toBeNull();
+        expect(state.lastSubmittedAt).toBeNull();
+    });
+
+    test('SET_STUDENT_SUBMITTING toggles studentSubmitting, CLEAR_SESSION resets it (#1795)', () => {
+        const on = reducer(classroomInitialState, setStudentSubmitting(true));
+        expect(on.studentSubmitting).toBe(true);
+        expect(reducer(on, setStudentSubmitting(false)).studentSubmitting).toBe(false);
+        expect(reducer(on, clearClassroomSession()).studentSubmitting).toBe(false);
     });
 
     describe('submission thumbnail', () => {

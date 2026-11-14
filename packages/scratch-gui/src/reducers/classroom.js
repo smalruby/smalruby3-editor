@@ -35,6 +35,7 @@ const SET_RUBYTEE_ENABLED = 'scratch-gui/classroom/SET_RUBYTEE_ENABLED';
 const SET_STUDENT_LESSON = 'scratch-gui/classroom/SET_STUDENT_LESSON';
 const REQUEST_STUDENT_SUBMIT = 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT';
 const CLEAR_STUDENT_SUBMIT_REQUEST = 'scratch-gui/classroom/CLEAR_STUDENT_SUBMIT_REQUEST';
+const SET_STUDENT_SUBMITTING = 'scratch-gui/classroom/SET_STUDENT_SUBMITTING';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -203,6 +204,9 @@ const initialState = {
     // 「課題を提出する」 on the lesson screens asks the classroom modal to go
     // straight to the submit confirmation; consumed by ClassroomModal.
     studentSubmitRequested: false,
+    // A submission is being sent (#1795). The menu bar's submit button is
+    // disabled meanwhile so a second, concurrent submit cannot start. Not persisted.
+    studentSubmitting: false,
 };
 
 const reducer = (state, action) => {
@@ -280,6 +284,7 @@ const reducer = (state, action) => {
                 studentGenai: normalizeStudentGenai(null),
                 studentLesson: null,
                 studentSubmitRequested: false,
+                studentSubmitting: false,
             };
         case SET_SUBMISSION_THUMBNAIL:
             return { ...state, submissionThumbnail: action.submissionThumbnail };
@@ -288,7 +293,8 @@ const reducer = (state, action) => {
         case SET_SUBMISSION_STATUS: {
             const updates = {
                 submissionStatus: action.submissionStatus,
-                lastSubmittedAt: action.lastSubmittedAt || state.lastSubmittedAt,
+                // No submission (the server says none) has no submitted time either (#1795).
+                lastSubmittedAt: action.submissionStatus ? action.lastSubmittedAt || state.lastSubmittedAt : null,
             };
             // Persist to localStorage
             if (state.role === 'student' && state.sessionToken) {
@@ -392,6 +398,8 @@ const reducer = (state, action) => {
             return { ...state, modalVisible: true, studentSubmitRequested: true };
         case CLEAR_STUDENT_SUBMIT_REQUEST:
             return state.studentSubmitRequested ? { ...state, studentSubmitRequested: false } : state;
+        case SET_STUDENT_SUBMITTING:
+            return { ...state, studentSubmitting: !!action.submitting };
         default:
             return state;
     }
@@ -519,6 +527,7 @@ const setStudentLesson = (lesson) => ({ type: SET_STUDENT_LESSON, lesson: lesson
  */
 const requestStudentSubmit = () => ({ type: REQUEST_STUDENT_SUBMIT });
 const clearStudentSubmitRequest = () => ({ type: CLEAR_STUDENT_SUBMIT_REQUEST });
+const setStudentSubmitting = (submitting) => ({ type: SET_STUDENT_SUBMITTING, submitting: !!submitting });
 
 /**
  * Rubytee is offered only to a student who has joined a class whose teacher
@@ -581,6 +590,7 @@ export {
     setStudentLesson,
     requestStudentSubmit,
     clearStudentSubmitRequest,
+    setStudentSubmitting,
     selectRubyteeAvailable,
     selectStudentLesson,
 };

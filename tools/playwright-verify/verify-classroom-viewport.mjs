@@ -648,14 +648,10 @@ const routeWelcomeBack = (submission) => async (p) => {
     if (await page.locator('[data-testid="classroom-submit-button"]').count()) {
         record({ who: 'student', name: 'student-status has no submit button', ok: false, modal: '-', body: '-', page: '-' });
     }
-    if (await page.locator('[data-testid="classroom-menu-submit"]').count()) {
-        await page.$eval('[data-testid="classroom-menu-submit"]', (el) => el.click());
-        await page.locator('[data-testid="classroom-phase-submit-confirm"]').waitFor({ timeout: 10000 });
-        await page.waitForTimeout(1500);
-        await judge(page, { who: 'student', name: 'submit-confirm', shot: 'student-submit-confirm' });
-    } else {
-        console.log('SKIP [student] submit-confirm — no classroom-menu-submit in this build (#1795)');
-    }
+    await page.$eval('[data-testid="classroom-menu-submit"]', (el) => el.click());
+    await page.locator('[data-testid="classroom-phase-submit-confirm"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(1500);
+    await judge(page, { who: 'student', name: 'submit-confirm', shot: 'student-submit-confirm' });
     await ctx.close();
 }
 

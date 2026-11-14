@@ -532,3 +532,44 @@ describe('useStudentAssignment — レッスンの設定を読み直す (#1599)'
         expect(mockDispatch).not.toHaveBeenCalled();
     });
 });
+
+// #1795 Q2: 別の PC で出した課題に入り直したら、メニューバーを「提出済み ✓」にする。
+// 参加のときに取る続きの提出物の答えを使うので、通信は増えない。
+describe('useStudentAssignment — 参加したときの提出状況 (#1795)', () => {
+    const submissionActions = () =>
+        mockDispatch.mock.calls
+            .map(([a]) => a)
+            .filter((a) => a.type === 'scratch-gui/classroom/SET_SUBMISSION_STATUS');
+
+    beforeEach(() => {
+        mockGetAssignment.mockReset();
+        mockGetContinuable.mockReset();
+        mockDispatch.mockReset();
+    });
+
+    test('この課題に自分の席の提出物があれば、提出済みにする', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: null });
+        mockGetContinuable.mockResolvedValue({
+            current: { ...PREVIOUS, classroomId: 'c-now', submittedAt: '2026-10-08T10:00:00.000Z' },
+            previous: null,
+        });
+        const { hook } = setup();
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', false);
+        });
+        expect(submissionActions()).toEqual([
+            expect.objectContaining({ submissionStatus: 'submitted', lastSubmittedAt: '2026-10-08T10:00:00.000Z' }),
+        ]);
+        expect(mockGetContinuable).toHaveBeenCalledTimes(1);
+    });
+
+    test('この課題の提出物が無ければ、提出状況は変えない', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: null });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS });
+        const { hook } = setup();
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', false);
+        });
+        expect(submissionActions()).toEqual([]);
+    });
+});

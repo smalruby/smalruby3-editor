@@ -225,12 +225,12 @@ try {
     await shot(s1a, 'a1-seat1-joined');
     await closeJoined(s1a);
     await renameFirstSprite(s1a, MARKER);
-    await openStatus(s1a);
     // 提出はメニューバーの「提出する」から（おかえりなさいには提出のボタンが無い・#1794 / #1795）
-    await s1a.$eval('[data-testid="classroom-menu-submit"]', (el) => el.click());
+    await s1a.click('[data-testid="classroom-menu-submit"]');
     await s1a.waitForSelector('[data-testid="classroom-submit-confirm"]', { timeout: 20000 });
     await s1a.click('[data-testid="classroom-submit-confirm"]');
-    await s1a.waitForSelector('[data-testid="classroom-submit-status"]', { timeout: 60000 });
+    // 提出できたら「提出できました ✓」(#1795)。
+    await s1a.waitForSelector('[data-testid="classroom-phase-submit-done"]', { timeout: 60000 });
     assert(true, 'seat 1 submitted assignment 1');
     await shot(s1a, 'a1-seat1-submitted');
 
