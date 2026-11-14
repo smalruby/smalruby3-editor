@@ -77,7 +77,6 @@
     "@tensorflow-models/speech-commands": "0.5.4",
     "@tensorflow/tfjs": "4.22.0",
     "@vernier/godirect": "1.8.3",
-    "apollo-link": "1.2.5",
     "arraybuffer-loader": "1.0.8",
     "atob": "2.1.2",
     "aws-appsync": "^4.1.10",

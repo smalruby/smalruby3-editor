@@ -2,6 +2,7 @@
 const log = require('../../util/log');
 const debugLogger = require('../../util/debug-logger');
 const debug = debugLogger(process.env.DEBUG);
+// apollo-link は aws-appsync が 1.2.5 に固定して持ち込む依存（package.json には書かず、同じ実体を使う）。
 const { execute } = require('apollo-link');
 const { ON_MESSAGE_IN_GROUP } = require('./gql-operations');
 
