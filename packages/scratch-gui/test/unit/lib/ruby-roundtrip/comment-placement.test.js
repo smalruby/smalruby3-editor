@@ -157,3 +157,17 @@ describe('Ruby to blocks: the block a comment goes to (issue #1864)', () => {
         expect(commentedOpcodes(target)).toEqual([opcode]);
     });
 });
+
+describe('Ruby to blocks: a comment before a block that comes later keeps the lines before (issue #1864)', () => {
+    test('the comment of the first line moved before the block is kept', async () => {
+        const { target, runtime } = makeSpriteTarget();
+        setupRubyGenerator();
+        const converter = makeConverter(target, runtime, { version: '2' });
+        await converter.targetCodeToBlocks(target, 'if @a > 1 # a\n  move(1)\nend # b');
+        const block = Object.values(converter.blocks).find((b) => b.opcode === 'control_if');
+        converter._mergeUserComment(block.id, 'z', false);
+        expect(converter._context.comments[block.comment].text).toEqual(
+            'a\nz\nb\n@ruby:comment_position:inline:last',
+        );
+    });
+});

@@ -603,6 +603,7 @@ move(30) # うしろ
 - 何行にもわたる式の中の行のコメントは、その式の 1 行のうしろ・前に出る（生成器は式を 1 行に書く）。`@a = [\n  1, # c\n  2\n]` は `@a = [1, 2] # c`。
 - `else` の行のうしろのコメントは、`else` の中の最初の命令のうしろに移る（その行を書くブロックが無い）。
 - `def` の `end` のうしろのコメントは `def` の行に、`when_flag_clicked do` などのスクリプトの `end` のうしろのコメントは `do` の行に移る（生成器は `def` とスクリプトのうしろのコメントを最初の行に書く）。
+- 1 行に書いた C ブロック（中に命令を入れるブロック）は 1 行の形には戻らず、うしろのコメントの行き先も変わる。`if @a > 1 then move(1) end # c` は `if @a > 1 # c` の行に、`3.times { move(1) } # c` / `loop { move(1) } # c` は中の `move(1) # c` に移る。
 - 空行で離れた前のコメントは消える。`# a\n\n# b\nmove(10)` の `# a` は残らない。
 
 **テスト**: `ruby-to-blocks-converter/comments.test.js`、`comment-round-trip.test.js`、`ruby-generator/scrub.test.js`、`ruby-generator/ruby-markers.test.js`、`module-sync.test.js`、`ruby-roundtrip/comment-markers-table.test.js`（注釈のあるブロックに利用者のコメントがあるとき）、`ruby-roundtrip/comment-placement.test.js`（コメントを付けるブロックと、元の行に戻ること）。

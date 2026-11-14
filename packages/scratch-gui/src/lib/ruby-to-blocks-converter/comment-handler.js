@@ -503,7 +503,8 @@ const CommentHandler = {
             inlineText = userText;
             start = atStart;
         } else {
-            beforeLines = [userText];
+            // Keep the lines before that are there (a trailing comment of the first line moved before).
+            beforeLines = [...beforeLines, userText];
         }
 
         const textLines = [...beforeLines];
