@@ -527,6 +527,8 @@ test/unit/components/*
 !test/unit/components/student-screen-parts.test.jsx
 !test/unit/components/classroom-menu-submit-button.test.jsx
 !test/unit/components/student-submit-confirm.test.jsx
+!test/unit/components/student-start-method.test.jsx
+!test/unit/components/student-joined-confirmation.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
 !test/unit/components/mobile-mode-notice.test.jsx

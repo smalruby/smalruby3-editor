@@ -219,3 +219,30 @@
     font-weight: bold;
     text-align: center;
 }
+
+/* 参加したあとの始め方 (#1793): お知らせ 1 行 → 主ボタン（横幅いっぱい）→ 「ほかの始め方」。 */
+.start-method {
+    margin-top: 0.6rem;
+}
+
+.start-notice {
+    margin-bottom: 0.35rem;
+    color: #2d7a43;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+.start-others {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.25rem 1rem;
+    margin-top: 0.3rem;
+}
+
+/* 開いたら、残りの始め方を「ほかの始め方」と同じ行に並べる（1300x600 で高さを増やさない）。 */
+.start-others-list {
+    display: contents;
+}

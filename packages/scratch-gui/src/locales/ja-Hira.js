@@ -499,12 +499,20 @@ export default {
     'gui.classroom.studentAssignment.prevPage': '← まえへ',
     'gui.classroom.studentAssignment.nextPage': 'つぎへ →',
     'gui.classroom.studentAssignment.reloadStarter': 'スタータープロジェクトをひらく',
-    'gui.classroom.studentAssignment.close': 'はじめる！',
+    'gui.classroom.startMethod.current': 'このかだいでだしたさくひんからつづける',
+    'gui.classroom.startMethod.previous': 'ぜんかいのさくひんからつづける',
+    'gui.classroom.startMethod.currentNote': '{date} にだしたもの',
+    'gui.classroom.startMethod.previousNote': '『{assignmentName}』{date} にだしたもの',
+    'gui.classroom.startMethod.keepNote': 'いまのさくひんのままつくる',
+    'gui.classroom.startMethod.noticePreviousAlsoAvailable':
+        'せんせいのせっていで、ぜんかいのさくひんからもはじめられます（ほかのはじめかた）',
+    'gui.classroom.startMethod.others': 'ほかのはじめかた',
+    'gui.classroom.studentAssignment.mainNextPage': 'つぎのページ',
+    'gui.classroom.studentAssignment.closeReopened': 'とじる',
     'gui.classroom.studentAssignment.viewButton': 'かだいをみる',
     'gui.classroom.studentAssignment.overwriteConfirm':
         'かだいのスタータープロジェクトをひらきますか？ いまつくっているプロジェクトはおきかわります。',
     'gui.classroom.studentAssignment.starterLoadFailed': 'スタータープロジェクトをひらけませんでした',
-    'gui.classroom.continueChoice.title': 'どこからはじめますか？',
     'gui.classroom.continueChoice.loadTitle': 'ていしゅつしたさくひんをよみこむ',
     'gui.classroom.continueChoice.starter': 'スターターからはじめる',
     'gui.classroom.continueChoice.previous': 'ぜんかいのていしゅつぶつからつづける',
@@ -515,7 +523,6 @@ export default {
         'せんせいのおすすめ: ぜんかいのていしゅつぶつからつづけよう',
     'gui.classroom.continueChoice.noticeNoPreviousUseStarter':
         'ぜんかいのていしゅつぶつがみつからなかったので、スターターからはじめよう',
-    'gui.classroom.continueChoice.recommended': 'おすすめ',
     'gui.classroom.continueChoice.noticeNoPrevious': 'ぜんかいのていしゅつぶつがみつかりませんでした',
     'gui.classroom.assignmentEditor.startFromPrevious': 'ぜんかいのていしゅつぶつからはじめさせる',
     'gui.classroom.assignmentEditor.startFromPreviousHint':
@@ -539,7 +546,6 @@ export default {
         'さんかしたとき: いまのさくひんのままはじめます（ぜんかいのていしゅつぶつがあるせいとは、どこからはじめるかえらびます）',
     'gui.classroom.continueChoice.starterDetail': 'せんせいがよういしたさくひんからつくる',
     'gui.classroom.continueChoice.keep': 'いまのさくひんのままはじめる',
-    'gui.classroom.continueChoice.keepDetail': 'なにもよみこまずにつくる',
     'gui.classroom.continueChoice.confirmPrevious':
         'ぜんかいのていしゅつぶつをひらきますか？ いまつくっているプロジェクトはおきかわります。',
     'gui.classroom.continueChoice.confirmCurrent':

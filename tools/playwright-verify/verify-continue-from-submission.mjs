@@ -10,13 +10,12 @@
 //   生徒(席1): 課題1 に参加 → スプライト名を目印に変えて提出 → 名前を変える →
 //              「クラス」メニューの「提出した作品を読み込む」で、この課題の提出物（current）に戻る
 //   先生: 同じクラスに課題2（設定 OFF・スターターあり）を作る
-//   生徒(席1): 課題2 に参加 → 何も読み込まれず、スターター / 前回 / いまのまま の選択肢 →
-//              「前回の提出物から続ける」を押すと目印のスプライトが読み込まれる
-//   生徒(席2): 課題2 に参加 → スターター / いまのまま の選択肢（「はじめる！」は出ない）→
-//              スターターを押すとスターターが読み込まれる
+//   生徒(席1): 課題2 に参加 → 何も読み込まれず、主ボタンは「前回の作品から続ける」・
+//              「ほかの始め方」にスターター / いまのまま (#1793) → 主ボタンで目印のスプライトが読み込まれる
+//   生徒(席2): 課題2 に参加 → 主ボタンは「スターターから始める」→ 押すとスターターが読み込まれる
 //   先生: 課題3 を作り「前回の提出物から始めさせる」を ON にして保存
-//   生徒(席1): 課題3 に参加 → 何も読み込まれず、前回の提出物が「おすすめ」→ 押すと読み込まれる
-//   生徒(席2): 課題3 に参加 → 前回が無い旨の案内と「はじめる」
+//   生徒(席1): 課題3 に参加 → 何も読み込まれず、主ボタンは前回 + 先生のおすすめのお知らせ → 押すと読み込まれる
+//   生徒(席2): 課題3 に参加 → 前回が無い旨のお知らせと主ボタン
 //
 // 生徒の画面は授業 PC の 1300×600。スクショは tmp/verify-continue-from-submission/。
 import { chromium } from 'playwright';
@@ -149,7 +148,7 @@ const openStudent = async (joinCode, seat, label) => {
 
 // 選択肢を押すとモーダルは自動で閉じる（開始ボタンとして振る舞う）ので、残っているときだけ閉じる
 const closeJoined = async (page) => {
-    const close = await page.$('[data-testid="classroom-joined-close"]');
+    const close = await page.$('[data-testid="classroom-start-main"]');
     if (close) await close.click();
     await sleep(500);
 };
@@ -220,8 +219,8 @@ try {
     log('student seat1: join assignment 1 and submit');
     const s1a = await openStudent(code1, 1, 's1-a1');
     assert(
-        !(await s1a.$('[data-testid="classroom-continue-choice"]')),
-        'first lesson: no continue choice (nothing submitted yet)',
+        await s1a.$('[data-testid="classroom-start-method"][data-main="keep"]'),
+        'first lesson: the main button is "start" (nothing submitted yet)',
     );
     await shot(s1a, 'a1-seat1-joined');
     await closeJoined(s1a);
@@ -266,21 +265,18 @@ try {
 
     log('student seat1: join assignment 2 → choose to continue from previous');
     const s1b = await openStudent(code2, 1, 's1-a2');
-    await s1b.waitForSelector('[data-testid="classroom-continue-previous"]', { timeout: 20000 });
-    assert(await s1b.$('[data-testid="classroom-continue-starter"]'), 'assignment 2: the starter is a choice');
-    assert(await s1b.$('[data-testid="classroom-continue-keep"]'), 'assignment 2: "as it is" is a choice');
+    await s1b.waitForSelector('[data-testid="classroom-start-method"][data-main="previous"]', { timeout: 20000 });
+    await s1b.click('[data-testid="classroom-start-others-toggle"]');
+    assert(await s1b.$('[data-testid="classroom-start-other-starter"]'), 'assignment 2: the starter is another way');
+    assert(await s1b.$('[data-testid="classroom-start-other-keep"]'), 'assignment 2: "as it is" is another way');
     assert(
-        !(await s1b.$('[data-testid="classroom-continue-current"]')),
-        'assignment 2: no "this assignment" choice before submitting',
+        !(await s1b.$('[data-testid="classroom-start-other-current"]')),
+        'assignment 2: no "this assignment" way before submitting',
     );
-    assert(
-        !(await s1b.$('[data-testid="classroom-assignment-reload-starter"]')) &&
-            !(await s1b.$('[data-testid="classroom-assignment-close"]')),
-        'assignment 2: no separate open-starter / start buttons',
-    );
+    assert(!(await s1b.$('[data-testid="classroom-assignment-close"]')), 'assignment 2: no separate start button');
     await noAutoLoad(s1b, 'seat 1');
     await shot(s1b, 'a2-seat1-choice');
-    await s1b.click('[data-testid="classroom-continue-previous"]');
+    await s1b.click('[data-testid="classroom-start-main"]');
     await waitSprite(s1b, MARKER);
     assert(true, 'previous submission loaded into assignment 2');
     noDialog(s1b, 'seat 1');
@@ -292,13 +288,12 @@ try {
 
     log('student seat2: join assignment 2 → starter or as it is');
     const s2b = await openStudent(code2, 2, 's2-a2');
-    await s2b.waitForSelector('[data-testid="classroom-continue-starter"]', { timeout: 20000 });
-    assert(!(await s2b.$('[data-testid="classroom-continue-previous"]')), 'seat 2: no previous choice');
-    assert(!(await s2b.$('[data-testid="classroom-continue-notice"]')), 'seat 2: no notice (setting off)');
+    await s2b.waitForSelector('[data-testid="classroom-start-method"][data-main="starter"]', { timeout: 20000 });
+    assert(!(await s2b.$('[data-testid="classroom-start-notice"]')), 'seat 2: no notice (setting off)');
     assert(!(await s2b.$('[data-testid="classroom-assignment-close"]')), 'seat 2: no separate start button');
     await noAutoLoad(s2b, 'seat 2');
     await shot(s2b, 'a2-seat2-choice');
-    await s2b.click('[data-testid="classroom-continue-starter"]');
+    await s2b.click('[data-testid="classroom-start-main"]');
     await waitSprite(s2b, STARTER_MARKER);
     assert(true, 'starter loaded when pressed');
     noDialog(s2b, 'seat 2');
@@ -327,14 +322,13 @@ try {
     );
     await shot(teacher, 'a3-teacher-setting-saved');
 
-    log('student seat1: join assignment 3 → previous is recommended (not loaded)');
+    log('student seat1: join assignment 3 → previous is the main button with the notice (not loaded)');
     const s1c = await openStudent(code3, 1, 's1-a3');
-    await s1c.waitForSelector('[data-testid="classroom-continue-previous-recommended"]', { timeout: 20000 });
-    assert(!(await s1c.$('[data-testid="classroom-continue-starter"]')), 'setting on: no starter choice');
+    await s1c.waitForSelector('[data-testid="classroom-start-method"][data-main="previous"]', { timeout: 20000 });
     await noAutoLoad(s1c, 'seat 1 (setting on)');
-    log('  notice:', (await s1c.textContent('[data-testid="classroom-continue-notice"]')).trim());
+    log('  notice:', (await s1c.textContent('[data-testid="classroom-start-notice"]')).trim());
     await shot(s1c, 'a3-seat1-recommended');
-    await s1c.click('[data-testid="classroom-continue-previous"]');
+    await s1c.click('[data-testid="classroom-start-main"]');
     await waitSprite(s1c, MARKER);
     assert(true, 'recommended previous submission loaded when pressed');
     noDialog(s1c, 'seat 1 (setting on)');
@@ -342,8 +336,8 @@ try {
 
     log('student seat2: join assignment 3 → told there is no previous');
     const s2c = await openStudent(code3, 2, 's2-a3');
-    await s2c.waitForSelector('[data-testid="classroom-continue-notice"]', { timeout: 10000 });
-    log('  notice:', (await s2c.textContent('[data-testid="classroom-continue-notice"]')).trim());
+    await s2c.waitForSelector('[data-testid="classroom-start-notice"]', { timeout: 10000 });
+    log('  notice:', (await s2c.textContent('[data-testid="classroom-start-notice"]')).trim());
     assert(!(await spriteNames(s2c)).includes(MARKER), "seat 2 does not get seat 1's project");
     noDialog(s2c, 'seat 2 (setting on)');
     await shot(s2c, 'a3-seat2-no-previous');
