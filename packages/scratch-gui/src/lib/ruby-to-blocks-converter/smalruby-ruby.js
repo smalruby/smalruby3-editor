@@ -267,10 +267,16 @@ const SmalrubyRubyConverter = {
         const createArrayMethodWithBlock = (method, receiver, rubyBlock, rubyBlockArgs, node) => {
             if (typeof rubyBlock === 'undefined') return null;
             rejectArrayLiteralReceiver(method, receiver);
-            // `each` of a hash takes the key and the value (`do |k, v|`, below). With no block parameter or
-            // one, it became `each` of an empty list named after the hash, and in Ruby `|k|` is given the pair
-            // `[key, value]`: the line is the wrong instruction instead (P17, issue #1911).
+            // `each` of a hash takes the key and the value (`do |k, v|`, below) or nothing. With one block
+            // parameter or a block argument (`&:x`), it became `each` of an empty list named after the hash,
+            // and in Ruby `|k|` is given the pair `[key, value]`: the line is the wrong instruction instead
+            // (P17, issue #1911). With nothing (`do`), it repeats as many times as the hash has pairs, as the
+            // block of a hash does, and the generator writes that block without its comment this way.
             if (hashListsOfReceiver(converter, receiver)) {
+                const noParameters = !(rubyBlockArgs && rubyBlockArgs.length > 0);
+                if (noParameters && converter._prismNodeType(node.block) === 'BlockNode') {
+                    return createHashMethodWithBlock(method, receiver, rubyBlock, null);
+                }
                 throw converter._wrongInstructionError(node);
             }
             // Convert data_variable to data_listcontents for list variables

@@ -75,19 +75,16 @@ describe('RubyToBlocksConverter/the number of block parameters', () => {
         expect(errors[0].text).toContain(wrongInstruction(source));
     });
 
-    // `each` of a hash takes the key and the value (`do |k, v|`). With no block parameter or with one, it
-    // was taken as `each` of an empty list named after the hash: nothing ran, and in Ruby `|k|` is given the
-    // pair `[key, value]` (issue #1911). A hash set in this code or a hash of the project, of any scope.
+    // `each` of a hash takes the key and the value (`do |k, v|`) or nothing (`do`). With one block parameter
+    // or a block argument, it was taken as `each` of an empty list named after the hash: nothing ran, and in
+    // Ruby `|k|` is given the pair `[key, value]` (issue #1911). A hash set in this code, of any scope.
     test.each([
         ['@h = {a: 1}\n@h.each do |k|\n  say(k)\nend', 1, '@h.each do |k|...'],
-        ['@h = {a: 1}\n@h.each do\n  say(1)\nend', 1, '@h.each do...'],
         ['@h = {a: 1}\n@h.each { |k| say(k) }', 1, '@h.each { |k| say(k) }'],
-        ['@h = {a: 1}\n@h.each { say(1) }', 1, '@h.each { say(1) }'],
         ['@h = {a: 1}\n@h.each(&:x)', 1, '@h.each(&:x)'],
+        ['@h = {a: 1}\n@h.each(&blk)', 1, '@h.each(&blk)'],
         ['$h = {a: 1}\n$h.each do |k|\n  say(k)\nend', 1, '$h.each do |k|...'],
-        ['$h = {a: 1}\n$h.each do\n  say(1)\nend', 1, '$h.each do...'],
         ['h = {a: 1}\nh.each do |k|\n  say(k)\nend', 1, 'h.each do |k|...'],
-        ['h = {a: 1}\nh.each do\n  say(1)\nend', 1, 'h.each do...'],
         ['@h = {a: 1}\nwhen_flag_clicked do\n  @h.each do |k|\n    say(k)\n  end\nend', 2, '@h.each do |k|...'],
         ['@h = {a: 1}\n@h.each_pair do |k, v|\n  say(k)\nend', 1, '@h.each_pair do |k, v|...'],
         ['@h = {a: 1}\n@h.each_pair do |k|\n  say(k)\nend', 1, '@h.each_pair do |k|...'],
@@ -100,6 +97,15 @@ describe('RubyToBlocksConverter/the number of block parameters', () => {
         expect(errors).toHaveLength(1);
         expect(errors[0].row).toBe(row);
         expect(errors[0].text).toContain(wrongInstruction(source));
+    });
+
+    // Set to a number after the hash, `@h` is not a hash, as a hash of the project is not: `each` of it is
+    // `each` of a list, and the error is that the name is a variable and a list, not the wrong instruction.
+    test('each of a hash variable set to a number too is not each of a hash', async () => {
+        const { ok, errors } = await convert('@h = {a: 1}\n@h = 0\n@h.each do |x|\n  say(x)\nend');
+        expect(ok).toBe(false);
+        expect(errors.map((e) => e.text).join('\n')).not.toContain('is the wrong instruction');
+        expect(errors[0].text).toContain('is used as a list on line 3 and as a variable on line 2');
     });
 
     // The numbers of block parameters the calls take stay as they are.
