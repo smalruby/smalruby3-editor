@@ -27,4 +27,4 @@
 
 - 取り消せない操作の確認は、この吹き出し（`ConfirmationPrompt`）か、ふつうのモーダル + 主ボタン・副ボタン（[`README.md`](README.md) の「独自の画面で使う形」）にする。
 - 紫の地の上のボタンは、決める方を白い地・紫の文字、やめる方を白い枠・白い文字にする（共通の `confirmation-prompt.css` の形）。削除の確認のように同じ見た目にはしない。
-- フォーカスは紫の地の上なので、紫の輪ではなく白い輪 `0 0 0 0.25rem $ui-white-transparent`（プロジェクトの題名の欄と同じ）にする。
+- フォーカスは紫の地の上なので、白い線 `outline: 2px solid $color-surface; outline-offset: 2px;` を `:focus-visible` で引く（白は紫に対して 4.7:1。上流のプロジェクトの題名の欄の白 25% の輪は 1.56:1 で足りないので使わない。[`README.md`](README.md) の「フォーカス」）。

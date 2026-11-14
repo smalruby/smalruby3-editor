@@ -28,13 +28,13 @@
 
 ## アイコンボタン（`icon-button/icon-button.css` の `.container`）
 
-アイコンの下に文字が付く縦長のボタン。音のエディターの効果のボタンなど。
+アイコンの下に文字が付く縦長のボタン。音のエディターの道具のボタン（コピー・貼り付けなど。`.tool-button`）と効果のボタン（速く・遅くなど。`.effect-button`）が使う。どちらも `sound-editor/sound-editor.css` で文字の色と大きさを上書きしている。
 
-| 状態 | 値 | トークン | 実測（音のエディターの効果のボタン） |
+| 状態 | 値（`icon-button.css`） | トークン | 実測（音のエディターの効果のボタン `.effect-button`） |
 |---|---|---|---|
-| ふつう | 文字 `$looks-secondary`・0.75rem・角丸 0.5rem・地と枠なし・ボタンの間 1.25rem | `$color-primary`・`$font-size-small`・`$radius-medium` | 文字 `rgb(87, 94, 117)`・10px（`sound-editor.css` の `.effect-button` が `$text-primary`・0.625rem に上書きしている） |
+| ふつう | 文字 `$looks-secondary`・0.75rem・角丸 0.5rem・地と枠なし・ボタンの間 1.25rem | `$color-primary`・`$font-size-small`・`$radius-medium` | 文字 `rgb(87, 94, 117)`・10px・余白 `4px 0`・60×44px（`.effect-button` が `$text-primary`・0.625rem・余白 `0.25rem 0` に上書き） |
 | ホバー | — | | 変化なし |
-| 押した | 地 `$looks-light-transparent` | 別名なし | `rgba(133, 92, 214, 0.15)`（手で一度確かめた。押すと音に効果がかかるので、撮影スクリプトでは読まない） |
+| 押した | 地 `$looks-light-transparent` | 別名なし | 一致（`rgba(133, 92, 214, 0.15)`） |
 | 選ばれた | — | | |
 | 押せない | `.disabled`: 不透明度 0.5・`pointer-events: none` | | （撮っていない） |
 | フォーカス | — | | |

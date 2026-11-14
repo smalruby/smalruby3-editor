@@ -218,7 +218,7 @@ const menuParts = [
  *          focus: true でフォーカスしたときの値、focusSelector でほかの要素にフォーカスしたときの値、
  *          active: true でマウスを押している間の値、blurFirst: true は自動でフォーカスされる部品の
  *          ふつうの値を読むために先にフォーカスを外す。pseudo: '::before' は疑似要素の値を読む)
- * - crops: 部品だけを切り抜いて撮る ({ name, selector, hover, first: N で先頭 N 個を囲む })
+ * - crops: 部品だけを切り抜いて撮る ({ name, selector, hover, first: N で先頭 N 個を囲む, padRight })
  * - close: 次の画面のために閉じる手順 (無ければページを開き直す)
  */
 const SCENES = [
@@ -287,7 +287,8 @@ const SCENES = [
         ],
         crops: [
             // 上流のタブ (コード・コスチューム・音) だけを囲んで撮る。4 つめの Ruby タブはスモウルビーの追加
-            { name: 'tabs', selector: cls('gui', 'tab'), first: 3 },
+            // 右は余白をつけない (4 つめの Ruby タブの端が写らないように)
+            { name: 'tabs', selector: cls('gui', 'tab'), first: 3, padRight: 0 },
             { name: 'toggle-buttons', selector: cls('toggle-buttons', 'row') },
             { name: 'sprite-info', selector: cls('sprite-info', 'sprite-info') },
         ],
@@ -315,8 +316,8 @@ const SCENES = [
         parts: [
             { name: 'sound-editor', selector: cls('sound-editor', 'editor-container') },
             { name: 'round-button', selector: cls('sound-editor', 'round-button') },
-            // active は読まない: 押したまま外へ動かしても、音に効果がかかって画面が崩れることがある
-            { name: 'effect-button', selector: cls('icon-button', 'container'), hover: true },
+            // 効果のボタン (速く・遅く…)。icon-button の .container を sound-editor の .effect-button で上書きしている
+            { name: 'effect-button', selector: cls('sound-editor', 'effect-button'), hover: true, active: true },
             { name: 'waveform-container', selector: cls('sound-editor', 'waveform-container') },
             { name: 'waveform-path', selector: `${cls('waveform', 'container')} path` },
         ],
@@ -651,9 +652,11 @@ const measureActive = async (page, part, style, entry) => {
         entry.active = diff(style, await readStyle(page, part.selector, part.pseudo));
     } catch (e) {
         entry.active = { error: e.message.split('\n')[0] };
+    } finally {
+        // 途中で失敗しても押したままにしない。部品の外へ動かしてから離すので、クリックにはならない
+        await releaseMouse(page).catch(() => {});
+        await page.mouse.up().catch(() => {});
     }
-    await releaseMouse(page);
-    await page.mouse.up();
     // 押すとフォーカスも移るので外す (次の部品のふつうの値に混ざらないように)
     await page.evaluate(() => document.activeElement && document.activeElement.blur());
     await page.waitForTimeout(HOVER_SETTLE_MS);
@@ -766,19 +769,19 @@ const main = async () => {
                         await page.waitForTimeout(HOVER_SETTLE_MS);
                     }
                     if (crop.first) {
-                        // 先頭 N 個の部品を囲む四角を撮る (まわりを 4px あける)
+                        // 先頭 N 個の部品を囲む四角を撮る (まわりを 4px あける。右は padRight)
                         const clip = await page.evaluate(
-                            ({ selector, n }) => {
+                            ({ selector, n, padRight }) => {
                                 const rects = [...document.querySelectorAll(selector)]
                                     .slice(0, n)
                                     .map((e) => e.getBoundingClientRect());
                                 const x = Math.max(0, Math.min(...rects.map((r) => r.left)) - 4);
                                 const y = Math.max(0, Math.min(...rects.map((r) => r.top)) - 4);
-                                const right = Math.max(...rects.map((r) => r.right)) + 4;
+                                const right = Math.max(...rects.map((r) => r.right)) + padRight;
                                 const bottom = Math.max(...rects.map((r) => r.bottom)) + 4;
                                 return { x, y, width: right - x, height: bottom - y };
                             },
-                            { selector: crop.selector, n: crop.first },
+                            { selector: crop.selector, n: crop.first, padRight: crop.padRight ?? 4 },
                         );
                         await page.screenshot({ path: cropPath, clip });
                     } else {

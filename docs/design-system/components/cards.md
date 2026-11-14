@@ -26,7 +26,7 @@
 | 選ばれた（`.is-selected`） | 枠 `2px $looks-secondary`・輪 `0 0 0 4px $looks-transparent`・地 `$ui-white`・名前の帯が紫（`.sprite-info` の地 `$looks-secondary`） | `$color-primary`・`$color-primary-transparent` | 一致（64×64・輪 4px） |
 | 押した・押せない・フォーカス | — | | |
 
-選ばれたスプライトの紫の輪（`0 0 0 4px $looks-transparent`）は、入力欄のフォーカスの輪と同じ形。独自の画面のカードで「選ばれた」を表すときもこの形にする（枠 `$color-primary` + 輪 `$color-primary-transparent`）。
+選ばれたスプライトの紫の輪（`0 0 0 4px $looks-transparent`）は、入力欄のフォーカスの輪と同じ形。独自の画面のカードで「選ばれた」を表すときもこの形にする（枠 `$color-primary` + 輪 `$color-primary-transparent`。選ばれたことは紫の枠で分かる）。フォーカスはこれと別に、[`README.md`](README.md) の「フォーカス」の `outline` で描く（淡い輪だけではコントラストが足りない）。
 
 ## 選べるカード（`custom-procedures/custom-procedures.css` の `.option-card`）
 

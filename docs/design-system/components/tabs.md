@@ -16,4 +16,4 @@
 
 注: スモウルビーは `.tab-list-container` を足して Ruby タブを並べ、低い画面ではタブを 36px に縮める（`gui.css` のマーカーの中）。値は上流の CSS を正にする。
 
-独自の画面でタブを作るときは、この形（白い選ばれたタブ・紫の文字・淡い青のホバー）に合わせる。フォーカスは消さずに [`README.md`](README.md) の紫の輪を `:focus-visible` で付ける。
+独自の画面でタブを作るときは、この形（白い選ばれたタブ・紫の文字・淡い青のホバー）に合わせる。フォーカスは消さずに、[`README.md`](README.md) の「フォーカス」の形（`:focus-visible` で `outline: 2px solid $color-primary; outline-offset: 2px;`）で付ける。

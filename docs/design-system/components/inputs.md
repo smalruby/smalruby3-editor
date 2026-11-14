@@ -14,7 +14,7 @@
 | フォーカス | 枠 `$looks-secondary`・輪 `0 0 0 0.25rem $looks-transparent` | `$color-primary`・`$color-primary-transparent` | 一致（輪 `rgba(133, 92, 214, 0.35) 0 0 0 4px`） |
 | 押した・選ばれた・押せない | — | | |
 
-独自の画面の入力欄は、この形（ホバーとフォーカスの紫の枠と輪）を基準にする。角丸は用途で選ぶ（画面の中の小さい欄は 2rem、ダイアログの中の大きい欄は `$radius-small`）。
+独自の画面の入力欄は、この形（ホバーとフォーカスの紫の枠と輪）を基準にし、`:focus` で `outline: 2px solid transparent` を残す（上流の `outline: none` のままだと、強制カラーモードで輪の `box-shadow` が消えてフォーカスが見えない。[`README.md`](README.md) の「フォーカス」）。フォーカスが分かるのは枠の色の変化（白に対して 1.4:1 → 4.7:1）による。角丸は用途で選ぶ（画面の中の小さい欄は 2rem、ダイアログの中の大きい欄は `$radius-small`）。
 
 ## ダイアログの入力欄（`prompt/prompt.css` の `.variable-name-text-input`）
 
@@ -38,6 +38,7 @@
 |---|---|---|---|
 | ふつう（枠 `.filter`） | 地 白・角丸 10rem・高さ `$library-filter-bar-height`（2.5rem） | `$color-surface` | 一致（160px・40px） |
 | ふつう（入力 `.filter-input`） | 地と枠なし・文字 0.75rem `$text-primary`・余白 `.625rem 2rem .625rem 3rem`（左に虫めがね）。プレースホルダーは 0.875rem・不透明度 0.5 | `$font-size-small`・`$color-text` | 一致（12px・10px 32px 10px 48px） |
-| フォーカス | `.filter:focus-within`: 輪 `0 0 0 .25rem $looks-transparent`。`library/library.css` で幅が 11.5rem → 18.75rem に広がる（`transition: .2s`） | `$color-primary-transparent` | 一致（輪 4px・幅 184px → 300px） |
+| フォーカス | `.filter:focus-within`: 輪 `0 0 0 .25rem $looks-transparent` | `$color-primary-transparent` | 一致（輪 4px） |
+| フォーカス・入力あり（`library/library.css`） | `.filter-input:focus` と `.filter-input:not([value=""])`: 入力欄の幅が 11.5rem → 18.75rem に広がる（`transition: .2s`）。枠 `.filter` もいっしょに広がる | | 一致（184px → 300px） |
 | 入力あり（`.is-active`） | 右の × のボタンが出る（`opacity: 1`）。× はホバーで `scale(1.2)` | | （撮っていない） |
 | ホバー・押した・押せない | — | | |
