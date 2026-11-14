@@ -152,7 +152,7 @@ end
 - **呼び出し側**: 値として使う呼び出しは、呼び出しのブロック（`procedures_call`）を文の前に置き、値の場所では変数 `_return_foo_` を読む。両方に `@ruby:return:foo` を付ける。
 - **同じ行で 2 回以上呼ぶとき**（`foo(1) + foo(2)`）: 先の呼び出しの値はあとの呼び出しで上書きされるので、`_return_foo_1_ = _return_foo_` のブロックで控えておき、控えを読む。最後の 1 回より前の呼び出しは `@ruby:return:foo:<番号>` になる。
 - **呼び出しのキャッシュ（生成器）**: 生成器は `@ruby:return:foo` の `procedures_call` を書くとき、出力せずに `Generator.returnCallCache_['foo']` へ `foo(3)` を入れる。あとで同じ注釈の変数ブロック（`data_variable`）を書くときにキャッシュから取り出し、変数の代わりに `foo(3)` を書く（`procedure.js` / `data.js`）。控えのブロック（`@ruby:return:foo:1`）と初期化のブロック（`:initialize`）は何も書かない。
-- **`nil` / シンボル / 引数なしの `return` / かっこ**: ブロックに無い値は文字列にして、`,@ruby:nil` / `,@ruby:symbol:a` / `,@ruby:return-bare` / `,@ruby:return-paren` を `@ruby:return` に足す。
+- **`nil` / シンボル / 引数なしの `return` / かっこ**: ブロックに無い値は文字列（入力の文字そのもの。文字列のブロックを別に作らない）にして、`,@ruby:nil` / `,@ruby:symbol:a` / `,@ruby:return-bare` / `,@ruby:return-paren` を `@ruby:return` に足す。
 
 **往復の例**:
 
@@ -174,7 +174,7 @@ end
 - 同じ行で値を控えたあとに、メソッドがそのメソッド自身を呼ぶ形（`return fib(n - 1) + fib(n - 2)`）。中の呼び出しが控えを上書きするので、Ruby と同じ値にならない。
 - 1 行の中で値として使う `super` が 2 つ以上ある形。
 
-**テスト**: `ruby-to-blocks-converter/method-return/method-return1.test.js`〜`method-return5.test.js`、`ruby-generator/method-return.test.js`、`ruby-roundtrip/my_blocks.test.js`、`ruby-roundtrip/method-return-value-shapes.test.js`、`ruby-roundtrip/return-value-used-twice.test.js`、`ruby-roundtrip/return-call-paren-list-and-self-line.test.js`。
+**テスト**: `ruby-to-blocks-converter/method-return/method-return1.test.js`〜`method-return5.test.js`、`ruby-generator/method-return.test.js`、`ruby-roundtrip/my_blocks.test.js`、`ruby-roundtrip/method-return-value-shapes.test.js`、`ruby-roundtrip/return-literal-no-orphan.test.js`、`ruby-roundtrip/return-value-used-twice.test.js`、`ruby-roundtrip/return-call-paren-list-and-self-line.test.js`。
 
 ### P3. メソッドブロックの戻り値（文字列・配列・ハッシュのメソッド）
 
@@ -248,9 +248,9 @@ say(@_a_list_[0])
 
 - 「a の（a の長さ）番目を削除する」になり、動かすと `a` は `1, 2` になる。同じコードに戻る。
 
-**できないこと**: 1 つの名前を変数とリストの両方に使う形（`@a = 0` と `@a.push(1)`）はエラー（`variableAndListSameName`）。配列リテラルに直接メソッドを使う形もエラー（`arrayLiteralReceiver`）。保存済みのプロジェクトの前の形（添字 `1` に `@ruby:array:delete_at:last`）は、読みこんでもブロックは直らず、動かすと 1 番目の項目が消える（Ruby に戻すと `delete_at(-1)` なので、Ruby とブロックの動きが合わない）。Ruby タブで変換し直すと「（リストの長さ）番目」になる。`-1` 以外の負の添字（`@a[-1]`、`@a.delete_at(-2)`）は「`-1 + 1` 番目」のように数えるので、往復はするが、ブロックとして動かすと Ruby と同じ項目にならない。
+**できないこと**: 1 つの名前を変数とリストの両方に使う形（`@a = 0` と `@a.push(1)`）はエラー（`variableAndListSameName`）。配列リテラルに直接メソッドを使う形もエラー（`arrayLiteralReceiver`）。要素は数・文字列（式展開の文字列 `"a#{@x}"` は除く）・値のブロック（`@x`、`1 + 2`、`true` など）だけで、ほかの要素（代入などの命令 `[(@a = 1)]`、シンボル・`nil`・配列・ハッシュ・`self`、値を返すメソッドの呼び出し `[foo(1)]`）はその行の「命令がまちがっています」のエラー（`wrongInstruction`）。リストに入れられないので、黙って `0` にしない。保存済みのプロジェクトの前の形（添字 `1` に `@ruby:array:delete_at:last`）は、読みこんでもブロックは直らず、動かすと 1 番目の項目が消える（Ruby に戻すと `delete_at(-1)` なので、Ruby とブロックの動きが合わない）。Ruby タブで変換し直すと「（リストの長さ）番目」になる。`-1` 以外の負の添字（`@a[-1]`、`@a.delete_at(-2)`）は「`-1 + 1` 番目」のように数えるので、往復はするが、ブロックとして動かすと Ruby と同じ項目にならない。
 
-**テスト**: `ruby-to-blocks-converter/variables/variables-array-global.test.js`、`variables-array-local.test.js`、`ruby-roundtrip/variables-v2-array.test.js`、`ruby-roundtrip/list-index-parens.test.js`、`ruby-roundtrip/list-as-argument.test.js`、`ruby-roundtrip/variable-and-list-same-name.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-roundtrip/string-letter-index.test.js`、`ruby-roundtrip/list-delete-at-last-vm.test.js`、`ruby-generator/data.test.js`。
+**テスト**: `ruby-to-blocks-converter/literal-element-not-a-value.test.js`、`ruby-to-blocks-converter/variables/variables-array-global.test.js`、`variables-array-local.test.js`、`ruby-roundtrip/variables-v2-array.test.js`、`ruby-roundtrip/list-index-parens.test.js`、`ruby-roundtrip/list-as-argument.test.js`、`ruby-roundtrip/variable-and-list-same-name.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-roundtrip/string-letter-index.test.js`、`ruby-roundtrip/list-delete-at-last-vm.test.js`、`ruby-generator/data.test.js`。
 
 ### P5. ハッシュ
 
@@ -280,7 +280,7 @@ say(@h.length)
 
 - 同じコードに戻る。
 
-**できないこと**（エラーになる形）: キーがシンボルでも文字列でもない（`hashKeyNotSupported`）、値がハッシュ・配列・`nil`（`@h = {a: {b: 1}}`、`hashValueNotSupported`）、ハッシュのリテラルに直接メソッドを使う（`{a: 1}.keys`、`hashLiteralReceiver`）。
+**できないこと**（エラーになる形）: キーがシンボルでも文字列でもない（`hashKeyNotSupported`）、値がハッシュ・配列・`nil`（`@h = {a: {b: 1}}`、`hashValueNotSupported`）、ハッシュのリテラルに直接メソッドを使う（`{a: 1}.keys`、`hashLiteralReceiver`）。値が代入などの命令（`{a: (@a = 1)}`）や値を返すメソッドの呼び出し（`{a: foo(1)}`）のときは、配列の要素と同じく「命令がまちがっています」のエラー（`wrongInstruction`）。
 
 **テスト**: `ruby-to-blocks-converter/variables/variables-hash-global.test.js`、`ruby-roundtrip/variables-v2-hash.test.js`、`variables-v2-hash-methods.test.js`、`variables-v2-hash-methods-vm.test.js`、`variables-v2-hash-unused-variable.test.js`。
 
@@ -696,9 +696,9 @@ foo.bar(1)
 
 - 同じコードに戻る。
 
-**できないこと**: シンボルだけの行はエラー（P17）。
+**できないこと**: シンボルだけの行はエラー（P17）。配列だけの行の要素は数・文字列（式展開の文字列は除く）・値のブロック（`[@x, 1 + 2]`）だけで、ほかの要素（`[(@a = 1)]`、`[:a]`、`[nil]`）はその行の「命令がまちがっています」のエラー。
 
-**テスト**: `ruby-to-blocks-converter/index.test.js`、`ruby-to-blocks-converter/orphan-blocks.test.js`。
+**テスト**: `ruby-to-blocks-converter/index.test.js`、`ruby-to-blocks-converter/orphan-blocks.test.js`、`ruby-to-blocks-converter/literal-element-not-a-value.test.js`。
 
 ## 注釈 `@ruby:*` の一覧（仕様）
 

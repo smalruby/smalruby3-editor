@@ -293,6 +293,10 @@ const VariablesConverter = {
                     );
                 }
                 const elements = rh.value;
+                // An element that is not a value (`[(@a = 1)]`, `[:a]`, `[nil]`, `[[1]]`, `[foo(1)]`)
+                // has no place in a list: it used to become `0`, with its blocks left behind. Leave the
+                // assignment to the error of a wrong instruction, as `say(@a = 1)` (issue #1865).
+                if (!elements.every((elem) => converter._isNumberOrStringOrBlock(elem))) return null;
                 let prefixedName;
                 if (variable.scope === 'global') {
                     prefixedName = `$${variable.name}`;
@@ -360,8 +364,21 @@ const VariablesConverter = {
                 }
                 const hashEntries = rh.value; // Map<Primitive, Primitive>
                 // Check every entry before making blocks, so that nothing is lost silently (#1654).
+                // The keys first: the error of a key that is not a symbol or a string tells more than
+                // the error of a wrong instruction (`@h = {1 => (@a = 1)}`).
                 hashEntries.forEach((value, key) => {
                     rejectHashKeyThatIsNotSymbolOrString(converter, messages, key);
+                });
+                // A value that is a command or a call before its value (`{a: (@a = 1)}`, `{a: foo(1)}`)
+                // is the error of a wrong instruction, as an element of an array is (issue #1865).
+                if (
+                    Array.from(hashEntries.values()).some(
+                        (value) => !converter._isPrimitive(value) && !converter._isNumberOrStringOrBlock(value),
+                    )
+                ) {
+                    return null;
+                }
+                hashEntries.forEach((value) => {
                     rejectHashValueThatIsNotABlock(converter, messages, value);
                 });
                 let prefixedName;
