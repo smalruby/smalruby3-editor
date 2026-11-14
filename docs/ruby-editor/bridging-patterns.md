@@ -274,7 +274,8 @@ say(@h.length)
 - **attr_accessor**: 生成器は注釈の名前を `_attrAccessorNames` に入れ、`@hp` を `hp`、`@hp = 1` を `self.hp = 1` と書く。
 - **initialize**: 中の `@x = 10`（ステージは `$x`）は、ブロックではなく変数の初期値になる（`initialize-handler.js`）。引数と `super` はスプライトのコメント `@ruby:initialize:args=(a, b),super` / `super=(1, 2)` に残す。
   - attr_accessor（`attr_reader` / `attr_writer`）の変数は、initialize に書かなくても変数ができるので、生成器はふだん initialize に書かない。initialize で値を入れた attr_accessor の変数だけ、名前を `@ruby:initialize:attr=hp+mp` に残し、生成器はその変数を initialize に書く。
-  - 生成器は class の中を `set_xxx`・`include`・`attr_accessor`・`def initialize`・スクリプトの順に書く。
+  - 注釈の部分は、かっこの外の `,` で区切って読む（`super=(foo(1)),attr=hp` の `super(foo(1))` もそのまま戻る）。
+- **class の中の順**: 生成器は class の中を `set_xxx`・`def initialize`・`include`・`attr_accessor`・スクリプトの順に書く。変換器は書いた順を持たないので、ほかの順に書いたコード（`attr_accessor` を `def initialize` より先に書くなど）は、往復するとこの順になる。この順に書いたコードは同じコードに戻る。
 - **module**: module のメソッドは、include したスプライトの定義ブロックとして作り、`@ruby:module_source:<module 名>` を付ける。生成器はこの注釈の定義ブロックを `module ... end` にまとめて書く。ほかのスプライトの同じ module は `module-sync.js` が同じ内容にそろえる。module の前の `#` コメントは、スプライトのコメントに `\n@ruby:module:<module 名>` を付けて残す。
 - **super**: スプライトのメソッドが module の同じ名前のメソッドを `super` で呼ぶとき、module 側の定義を `_super_<メソッド>_<番号>_` に名前を変えて作り、`@ruby:module_source:<module 名>:super_of:<元の名前>` を付ける。`super` はその定義の呼び出しブロックになり、`@ruby:super`（引数あり）か `@ruby:super:forwarding`（引数なし）を付ける。値として使う `super` は `,@ruby:return:<名前>` も付く（→ P2）。
 - **Ruby v1 に戻せない**: `@ruby:class` / `@ruby:module_source` があるプロジェクトは、設定で Ruby v1 に切りかえられない（`settings-menu.jsx` / `mobile-drawer.jsx`）。
@@ -316,11 +317,11 @@ end
 
 ```ruby
 class Sprite1
-  attr_accessor :hp
-
   def initialize
     @hp = 3
   end
+
+  attr_accessor :hp
 
   when_flag_clicked do
     say(hp)
@@ -328,7 +329,7 @@ class Sprite1
 end
 ```
 
-- スプライトのコメントは `@ruby:class:attr_accessor=hp` と `@ruby:initialize:attr=hp`。変数 `hp` の初期値が 3 になり、同じコードに戻る。
+- スプライトのコメントは `@ruby:class:attr_accessor=hp` と `@ruby:initialize:attr=hp`。変数 `hp` の初期値が 3 になり、同じコードに戻る。`attr_accessor :hp` を `def initialize` より先に書いても `@hp = 3` は残るが、戻すと上の順になる。
 
 **できないこと**（エラーになる形）: class の中に直接書いた命令（`wrongInstructionInClass`）、ステージの class に別の親クラス（`invalidStageSuperclass`）、`initialize` の中の代入以外の文（`invalidInitializeBody`）、スプライトの `initialize` での `$x =`（`wrongVariableScopeInInitialize`）、入れ子の module、module の中の `def` 以外、`module_function`、`extend`、ステージでの module / include、Ruby v1 での class / module。
 

@@ -1,6 +1,39 @@
 // === Smalruby: This file is Smalruby-specific (class definition wrapping for RubyGenerator) ===
 
 /**
+ * Split the parts of an `@ruby`:initialize: comment (`args=(a, b),super=(foo(1)),attr=hp`) at the
+ * commas outside of parentheses, so that `super=(foo(1))` and `args=(a, b)` are read whole.
+ * @param {string} text - The text after `@ruby`:initialize:.
+ * @returns {object} The parts by name (`args` / `super` / `attr`); `super` is '' without arguments.
+ */
+const parseInitializeParts = function (text) {
+    const tokens = [];
+    let depth = 0;
+    let start = 0;
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '(') {
+            depth++;
+        } else if (ch === ')') {
+            depth = Math.max(0, depth - 1);
+        } else if (ch === ',' && depth === 0) {
+            tokens.push(text.slice(start, i));
+            start = i + 1;
+        }
+    }
+    tokens.push(text.slice(start));
+    const parts = {};
+    for (const token of tokens) {
+        const eq = token.indexOf('=');
+        const name = eq < 0 ? token : token.slice(0, eq);
+        if (name === 'args' || name === 'super' || name === 'attr') {
+            parts[name] = eq < 0 ? '' : token.slice(eq + 1);
+        }
+    }
+    return parts;
+};
+
+/**
  * Register class wrapping and set_xxx generation methods on the RubyGenerator.
  * Handles: _wrapWithClass, _isValidClassName, _generateSetXxx, _generateStageSetXxx.
  * @param {object} Generator - The RubyGenerator instance.
@@ -209,8 +242,7 @@ export default function (Generator) {
             code = this.prefixLines(code, this.INDENT);
         }
         // Build the inner class content with separators
-        // include and attr_accessor come before def initialize, as in Ruby (issue #1839)
-        const innerParts = [setCode, includeCode, attrAccessorCode, initCode, code].filter((p) => p.length > 0);
+        const innerParts = [setCode, initCode, includeCode, attrAccessorCode, code].filter((p) => p.length > 0);
         const innerCode = innerParts.join('\n');
         let inheritance = '';
         if (superclassPath) {
@@ -275,10 +307,9 @@ export default function (Generator) {
         const RETURN_PATTERN = /^_return_/;
 
         const initComment = commentTexts.find((c) => c.startsWith('@ruby:initialize:'));
-        const initParts = initComment ? initComment.slice('@ruby:initialize:'.length) : '';
+        const initParts = initComment ? parseInitializeParts(initComment.slice('@ruby:initialize:'.length)) : {};
         // The variables of attr_accessor set in initialize (issue #1839): `attr=hp+mp`.
-        const attrMatch = initParts.match(/(?:^|,)attr=([^,]+)/);
-        const initializedAttrNames = new Set(attrMatch ? attrMatch[1].split('+') : []);
+        const initializedAttrNames = new Set(initParts.attr ? initParts.attr.split('+') : []);
 
         // Collect variable/list assignments
         const assignments = [];
@@ -328,19 +359,12 @@ export default function (Generator) {
         // Parse @ruby:initialize comment for args and super
         let args = '';
         let superCall = '';
-        if (initComment) {
-            const parts = initParts;
-            // Parse comma-separated key=value pairs, but handle super=(...)
-            const argsMatch = parts.match(/(?:^|,)args=(\([^)]*\)|[^,]*)/);
-            if (argsMatch) {
-                const argsValue = argsMatch[1];
-                args = argsValue.startsWith('(') ? argsValue : `(${argsValue})`;
-            }
-            // Only the part `super` / `super=(...)`, not a name in `attr=` that has `super` in it
-            const superMatch = parts.match(/(?:^|,)super(?:=(\([^)]*\)))?(?=,|$)/);
-            if (superMatch) {
-                superCall = superMatch[1] ? `  super${superMatch[1]}` : '  super';
-            }
+        if (Object.prototype.hasOwnProperty.call(initParts, 'args')) {
+            const argsValue = initParts.args;
+            args = argsValue.startsWith('(') ? argsValue : `(${argsValue})`;
+        }
+        if (Object.prototype.hasOwnProperty.call(initParts, 'super')) {
+            superCall = initParts.super ? `  super${initParts.super}` : '  super';
         }
 
         const lines = [`def initialize${args}`];
