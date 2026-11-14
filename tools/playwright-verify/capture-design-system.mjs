@@ -97,6 +97,10 @@ const DOC_SHOT_NAMES = {
     'menu-bar': '0101-menu-bar.png',
     'menu-file': '0102-menu-file.png',
     'code-tab': '0201-code-tab-1366x1024.png',
+    'code-tab-large-stage/stage-header': '0202-stage-header.png',
+    'code-tab-large-stage/target-pane': '0203-target-pane.png',
+    'code-tab/category-menu': '0204-category-menu.png',
+    'monitor': '0205-monitor.png',
     'variable-prompt': '0401-variable-prompt.png',
     'delete-sprite-confirm': '0402-delete-sprite-confirm.png',
     'code-tab/tabs': '0501-tabs.png',
@@ -203,6 +207,9 @@ const openMenuBarMenu = async (page, label) => {
         .click();
     await page.waitForSelector(cls('menu', 'menu'));
 };
+// ステージの大きさのボタン (小・中・大)。中はスモウルビーの追加で、既定も中。
+// 上流の既定 (大) の画面を撮るときは、最後の「大」を押す。
+const STAGE_SIZE_BUTTON = `${cls('stage-header', 'stage-size-toggle-group')} ${cls('toggle-buttons', 'button')}`;
 const menuParts = [
     { name: 'menu', selector: cls('menu', 'menu') },
     { name: 'menu-item', selector: `${cls('menu', 'menu')} ${cls('menu', 'menu-item')}`, hover: true },
@@ -229,7 +236,17 @@ const SCENES = [
         parts: [
             { name: 'menu-bar', selector: cls('menu-bar', 'menu-bar') },
             { name: 'menu-bar-item', selector: `${cls('menu-bar', 'file-group')} ${cls('menu-bar', 'hoverable')}`, hover: true },
-            { name: 'project-title-input', selector: cls('project-title-input', 'title-field') },
+            { name: 'logo', selector: '#logo_img' },
+            { name: 'divider', selector: cls('divider', 'divider') },
+            // 「?」の項目 (上流の about のメニュー。スモウルビーはチュートリアル・デバッグをこの中に移した)
+            { name: 'about-item', selector: '[data-testid="menu-bar-about"]', hover: true },
+            { name: 'about-icon', selector: cls('menu-bar', 'about-icon') },
+            {
+                name: 'project-title-input',
+                selector: cls('project-title-input', 'title-field'),
+                hover: true,
+                focus: true,
+            },
         ],
     },
     {
@@ -247,6 +264,16 @@ const SCENES = [
         id: 'menu-edit',
         title: '編集のメニュー',
         setup: (page) => openMenuBarMenu(page, '編集'),
+        shot: cls('menu', 'menu'),
+        parts: menuParts,
+    },
+    {
+        id: 'menu-help',
+        title: '「?」のメニュー (チュートリアル・デバッグ。上流はメニューバーに並べる)',
+        setup: async (page) => {
+            await page.locator('[data-testid="menu-bar-about"]').click();
+            await page.waitForSelector(cls('menu', 'menu'));
+        },
         shot: cls('menu', 'menu'),
         parts: menuParts,
     },
@@ -284,13 +311,83 @@ const SCENES = [
             { name: 'stage-selector', selector: cls('stage-selector', 'stage-selector') },
             { name: 'action-menu-button', selector: cls('action-menu', 'main-button'), hover: true },
             { name: 'extension-button', selector: cls('extension-button', 'extension-button'), focus: true },
+            { name: 'extension-button-container', selector: cls('extension-button', 'extension-button-container') },
+            // ブロックのパレット・カテゴリ・スクリプトエリア (scratch-blocks の DOM と blocks.css)
+            { name: 'blocks-frame', selector: '.injectionDiv' },
+            { name: 'category-item', selector: '.blocklyToolboxCategory', hover: true },
+            { name: 'category-bubble', selector: '.categoryBubble' },
+            { name: 'flyout-label', selector: '.blocklyFlyoutLabelText' },
+            { name: 'flyout-button', selector: '.blocklyFlyoutButtonBackground' },
+            { name: 'flyout-checkbox', selector: '.blocklyFlyoutCheckbox' },
+            { name: 'zoom-control', selector: '.blocklyZoom > image', hover: true },
+            // ステージの上の段 (緑の旗・止める・全画面)
+            { name: 'green-flag', selector: cls('green-flag', 'green-flag'), hover: true },
+            { name: 'stop-all', selector: cls('stop-all', 'stop-all'), hover: true },
+            { name: 'full-screen-button', selector: cls('stage-header', 'stage-button'), active: true },
+            { name: 'stage', selector: cls('stage', 'stage') },
+            { name: 'input-label', selector: cls('label', 'input-label') },
         ],
         crops: [
+            // カテゴリの一覧 (上流の 9 つのカテゴリ。拡張機能のカテゴリは足していない)
+            { name: 'category-menu', selector: '.blocklyToolboxCategory', first: 9 },
             // 上流のタブ (コード・コスチューム・音) だけを囲んで撮る。4 つめの Ruby タブはスモウルビーの追加
             // 右は余白をつけない (4 つめの Ruby タブの端が写らないように)
             { name: 'tabs', selector: cls('gui', 'tab'), first: 3, padRight: 0 },
             { name: 'toggle-buttons', selector: cls('toggle-buttons', 'row') },
             { name: 'sprite-info', selector: cls('sprite-info', 'sprite-info') },
+        ],
+    },
+    {
+        // スモウルビーの既定は「中」のステージ。上流の既定 (大・480×360) に切りかえて、
+        // ステージ・スプライトの情報・ターゲットの一覧を上流の並びで撮る。
+        id: 'code-tab-large-stage',
+        title: 'コードタブ (大きいステージ。上流の既定)',
+        setup: async (page) => {
+            await page.locator(STAGE_SIZE_BUTTON).last().click();
+            // カテゴリを 1 つ選んでおく (選ばれたカテゴリの値を読むため)
+            await page.locator('.blocklyToolboxCategory').first().click();
+            await page.waitForTimeout(600);
+        },
+        waitFor: cls('stage-selector', 'header'),
+        parts: [
+            { name: 'stage', selector: cls('stage', 'stage') },
+            { name: 'stage-menu', selector: cls('stage-header', 'stage-menu-wrapper') },
+            { name: 'target-wrapper', selector: cls('gui', 'target-wrapper') },
+            { name: 'sprite-info', selector: cls('sprite-info', 'sprite-info') },
+            { name: 'sprite-selector', selector: cls('sprite-selector', 'sprite-selector') },
+            { name: 'sprite-wrapper', selector: cls('sprite-selector', 'sprite-wrapper') },
+            { name: 'stage-selector', selector: cls('stage-selector', 'stage-selector'), hover: true },
+            { name: 'stage-selector-header', selector: cls('stage-selector', 'header') },
+            { name: 'stage-selector-header-title', selector: cls('stage-selector', 'header-title') },
+            { name: 'stage-selector-label', selector: cls('stage-selector', 'label') },
+            { name: 'stage-selector-count', selector: cls('stage-selector', 'count') },
+            { name: 'stage-selector-costume', selector: cls('stage-selector', 'costume-canvas') },
+            { name: 'category-item-selected', selector: '.blocklyToolboxSelected' },
+        ],
+        crops: [
+            { name: 'stage-header', selector: cls('stage-header', 'stage-menu-wrapper') },
+            { name: 'target-pane', selector: cls('target-pane', 'target-pane') },
+        ],
+    },
+    {
+        id: 'monitor',
+        title: 'モニター (x座標)',
+        // 動きのカテゴリの「x座標」のチェックボックスを押すと、ステージにモニターが出る
+        // (SVG の上に透明な当たりの要素が重なっていて locator.click が待ち続けるので、位置を押す)
+        // ステージは上流の既定の「大」にする (中・小ではモニターも縮んで写る)
+        setup: async (page) => {
+            await page.locator(STAGE_SIZE_BUTTON).last().click();
+            await page.waitForTimeout(600);
+            const box = await page.locator('.blocklyFlyoutCheckbox').first().boundingBox();
+            if (!box) throw new Error('チェックボックスが見えない');
+            await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+        },
+        waitFor: cls('monitor', 'monitor-container'),
+        shot: cls('monitor', 'monitor-container'),
+        parts: [
+            { name: 'monitor', selector: cls('monitor', 'monitor-container') },
+            { name: 'monitor-label', selector: cls('monitor', 'label') },
+            { name: 'monitor-value', selector: cls('monitor', 'value') },
         ],
     },
     {
