@@ -468,10 +468,15 @@ const MobileDrawerComponent = ({
                      * 参加中の「提出する」(#1795)。スマホにはメニューバーが無く、サイドレールには
                      * 44px の高さを取る余りが無いので、ドロワーのいちばん上に置く（参加していない・
                      * 作品を提出しないレッスンの課題では何も描かない）。押したらドロワーを閉じる。
+                     * 「提出しよう」の吹き出し (#1835) は、ドロワーを開いたときだけその下に出す。
                      */}
                     {classroomEnabled && (
                         <li>
-                            <ClassroomMenuSubmitButton placement="drawer" onAfterClick={onClose} />
+                            <ClassroomMenuSubmitButton
+                                placement="drawer"
+                                reminderAllowed={open}
+                                onAfterClick={onClose}
+                            />
                         </li>
                     )}
                     {/* ===== ファイル ===== */}

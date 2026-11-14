@@ -34,6 +34,8 @@ import reducer, {
     clearStudentSubmitRequest,
     selectStudentLesson,
     markStudentProjectLoaded,
+    setSubmitReminderVisible,
+    dismissSubmitReminder,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -804,6 +806,39 @@ describe('classroom reducer', () => {
             expect(stored.submissionStatus).toBe('submitted');
             expect(stored).not.toHaveProperty('studentLoadedSubmission');
             expect(stored).not.toHaveProperty('projectFromOutside');
+        });
+    });
+
+    describe('「提出しよう」の吹き出し (#1835)', () => {
+        test('はじめは出していない', () => {
+            expect(classroomInitialState.submitReminderVisible).toBe(false);
+            expect(classroomInitialState.submitReminderDismissCount).toBe(0);
+        });
+
+        test('出す・しまう（しまうのは「消した」ではない）', () => {
+            let state = reducer(classroomInitialState, setSubmitReminderVisible(true));
+            expect(state.submitReminderVisible).toBe(true);
+            expect(reducer(state, setSubmitReminderVisible(true))).toBe(state);
+            state = reducer(state, setSubmitReminderVisible(false));
+            expect(state.submitReminderVisible).toBe(false);
+            expect(state.submitReminderDismissCount).toBe(0);
+        });
+
+        test('消すと数が増え、理由を覚える', () => {
+            let state = reducer(classroomInitialState, setSubmitReminderVisible(true));
+            state = reducer(state, dismissSubmitReminder('close'));
+            expect(state.submitReminderVisible).toBe(false);
+            expect(state.submitReminderDismissCount).toBe(1);
+            expect(state.submitReminderDismissReason).toBe('close');
+        });
+
+        test('出ていないときに消しても何もしない（二重に数えない）', () => {
+            expect(reducer(classroomInitialState, dismissSubmitReminder('outside'))).toBe(classroomInitialState);
+        });
+
+        test('クラスから出るとしまう', () => {
+            const state = reducer(classroomInitialState, setSubmitReminderVisible(true));
+            expect(reducer(state, clearClassroomSession()).submitReminderVisible).toBe(false);
         });
     });
 });

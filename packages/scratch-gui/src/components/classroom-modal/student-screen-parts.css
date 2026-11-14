@@ -352,3 +352,72 @@
     color: #6b7489;
     font-size: 0.8rem;
 }
+
+/* 「提出する」と「提出しよう」の吹き出し (#1835) を入れる枠。メニューバーでは高さいっぱいに
+   のばし、吹き出しをメニューバーのすぐ下に浮かべる（メニューバーの中の部品に重ねない）。 */
+.menu-submit-wrap {
+    position: relative;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    align-self: stretch;
+}
+
+.menu-submit-wrap.menu-submit-wrap-drawer {
+    display: block;
+}
+
+/* 置き場所（left / top）は、ほかの操作に重ならないよう画面から測って決める
+   （classroom-submit-reminder-balloon.jsx）。測る前は画面の外に置いて見せない。 */
+.submit-reminder-menu-bar {
+    position: fixed;
+    top: -100vh;
+    left: 0;
+    z-index: 500;
+    width: max-content;
+    max-width: 16rem;
+}
+
+/* スマホのドロワーでは、ボタンのすぐ下に並べる（下のメニューを押し下げ、重ねない）。 */
+.submit-reminder-drawer {
+    margin: 0.6rem 1rem 0.5rem;
+}
+
+/* 地の色は「提出する」の字と同じ濃い青（白い字に 6.1:1）。motion の明るい青は白い字が読みにくい。
+   音も動きも付けない（#1835: 揺らさない）。 */
+.submit-reminder .submit-reminder-balloon {
+    position: relative;
+    align-items: flex-start;
+    padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+    background-color: #1f5fbf;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    white-space: normal;
+    cursor: default;
+}
+
+/* 言葉の切れ目（ひらがなの画面の空白・「（」の前）で折り返す。それでも入らない語だけ途中で折る。 */
+.submit-reminder-text {
+    flex: 1 1 auto;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+/* 置ける場所が無いとき（下へ 56px ずらしても操作に重なる）は吹き出しを見せず、
+   「提出する」の右上に小さな点だけを出す（測り直せるよう、吹き出しは画面の外に残す）。 */
+.submit-reminder.submit-reminder-hidden {
+    top: -100vh;
+    visibility: hidden;
+}
+
+.submit-reminder-dot {
+    position: absolute;
+    top: 4px;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    background-color: #1f5fbf;
+    pointer-events: none;
+}

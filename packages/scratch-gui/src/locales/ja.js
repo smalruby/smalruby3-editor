@@ -107,6 +107,8 @@ export default {
     'gui.menuBar.classroomReturned': '返却済み ✓',
     'gui.menuBar.classroomSubmitAgain': 'もう一度提出する',
     'gui.menuBar.classroomSubmitting': '提出中...',
+    'gui.classroom.submitReminder.text': 'そろそろ作品を提出してみよう（途中でも出し直せるよ）',
+    'gui.classroom.submitReminder.close': '閉じる',
     'gui.menuBar.aboutSmalruby': 'スモウルビーについて',
     'gui.menuBar.debug': 'デバッグ',
     'gui.menuBar.showWelcomeAgain': 'ウェルカムをもう一度見る',

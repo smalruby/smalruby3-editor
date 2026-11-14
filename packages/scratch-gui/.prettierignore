@@ -170,6 +170,7 @@ src/containers/*
 !src/containers/classroom-modal.jsx
 !src/containers/classroom-kick-request-watcher.jsx
 !src/containers/classroom-mesh-connect-prompt.jsx
+!src/containers/classroom-submit-reminder.jsx
 !src/containers/use-kick-request-polling.js
 !src/containers/classroom-teacher-modal.jsx
 !src/containers/classroom-teacher-menu.jsx
@@ -182,6 +183,7 @@ src/containers/*
 !src/containers/use-student-class-settings-refresh.js
 !src/containers/use-student-assignment.js
 !src/containers/use-student-submit.js
+!src/containers/use-menu-submit-kind.js
 !src/containers/use-teacher-assignment.js
 !src/containers/use-teacher-auth.js
 !src/containers/use-teacher-classroom.js
@@ -243,6 +245,8 @@ src/lib/*
 !src/lib/classroom-lesson-description.js
 !src/lib/classroom-student-steps.js
 !src/lib/classroom-menu-submit.js
+!src/lib/classroom-submit-reminder.js
+!src/lib/classroom-submit-reminder-events.js
 !src/lib/classroom-assignment-templates/
 !src/lib/classroom-assignment-templates/**
 !src/lib/classroom-evaluation/
@@ -574,6 +578,7 @@ test/unit/containers/*
 !test/unit/containers/classroom-peer-panel.test.jsx
 !test/unit/containers/use-kick-request-polling.test.js
 !test/unit/containers/classroom-mesh-connect-prompt.test.jsx
+!test/unit/containers/classroom-submit-reminder.test.jsx
 !test/unit/containers/use-student-class-settings-refresh.test.js
 !test/unit/containers/use-student-assignment.test.js
 !test/unit/containers/use-teacher-assignment.test.js
@@ -629,6 +634,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-api.test.js
 !test/unit/lib/classroom-student-steps.test.js
 !test/unit/lib/classroom-menu-submit.test.js
+!test/unit/lib/classroom-submit-reminder.test.js
 !test/unit/lib/classroom-teacher-session.test.js
 !test/unit/lib/classroom-teacher-kick-alerts.test.js
 !test/unit/lib/classroom-teacher-panel.test.js
