@@ -124,11 +124,9 @@ const ContextUtils = {
                     counts[name] = (counts[name] || 0) + 1;
                 }
             }
-            if (ast.compactChildNodes) {
-                ast.compactChildNodes().forEach((child) => {
-                    queue.push(child);
-                });
-            }
+            this._childNodesOf(ast).forEach((child) => {
+                queue.push(child);
+            });
         }
         return counts;
     },
