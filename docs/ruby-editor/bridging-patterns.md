@@ -198,7 +198,7 @@ say(@_ret1.length + @_ret2.length)
 
 - **配列リテラルの代入**: 「すべて削除」（`@ruby:array:literal:<個数>`）と「追加する」を要素の数だけ（`@ruby:array:literal:element`）。生成器は `@ruby:array:literal:<個数>` から先の個数の「追加する」をまとめて `@a = [1, 2, 3]` に戻す。
 - **添字**: Ruby は 0 から、Scratch は 1 から数える。`@a[i]` は「`i + 1` 番目」にし、足し算に `@ruby:array:index` を付ける。生成器は `+ 1` を消して `@a[i]` に戻す。文字の位置（`"abc"[i]`）も同じ。
-- **`delete_at(-1)`**: 「（リストの長さ）番目を削除する」にし、`@ruby:array:delete_at:last` を付ける。添字が「リストの長さ」なので、ブロックとして動かしても最後の項目が消える。生成器は、添字が同じリストの長さのブロックなら注釈が無くても `delete_at(-1)` と書く。注釈があって添字が `1` のもの（前の変換器が作った形）も `delete_at(-1)` と書く。利用者が添字をほかの数に書きかえたら、ふつうの `delete_at` として書く。
+- **`delete_at(-1)`**: 「（リストの長さ）番目を削除する」にし、`@ruby:array:delete_at:last` を付ける。添字が「リストの長さ」なので、ブロックとして動かしても最後の項目が消える。生成器は、添字が同じリストの長さのブロックなら注釈が無くても `delete_at(-1)` と書く。注釈があって添字が `1` のもの（前の変換器が作った形）も `delete_at(-1)` と書く。利用者が添字をほかの数に書きかえたら、ふつうの `delete_at` として書く。Ruby v1（`list("$a").delete_at(-1)`）も同じで、v1 の `list("$a").delete_at(list("$a").length)` も `delete_at(-1)` に戻る（意味は同じ）。
 - **変数とリストが同じ名前のとき**: Scratch では変数 `a` とリスト `a` を同時に持てるが、Ruby の `@a` は 1 つ。生成器はリストの方を `@_a_list_`（それも使われていれば `@_a_list2_` ...）と書き、変換器は `@_a_list_` をリスト `a` に読む（`_listNameOfAlias`）。
 - **ブロック付きのメソッド**（`@a.each do |x|`）: `smalrubyRuby_arrayMethodWithBlock`。リストの ID と名前を隠しフィールド `LIST_ID` / `LIST_NAME` に持たせる（→ P13）。
 
@@ -229,7 +229,7 @@ say(@_a_list_[0])
 
 - 「a の（a の長さ）番目を削除する」になり、動かすと `a` は `1, 2` になる。同じコードに戻る。
 
-**できないこと**: 1 つの名前を変数とリストの両方に使う形（`@a = 0` と `@a.push(1)`）はエラー（`variableAndListSameName`）。配列リテラルに直接メソッドを使う形もエラー（`arrayLiteralReceiver`）。`-1` 以外の負の添字（`@a[-1]`、`@a.delete_at(-2)`）は「`-1 + 1` 番目」のように数えるので、往復はするが、ブロックとして動かすと Ruby と同じ項目にならない。
+**できないこと**: 1 つの名前を変数とリストの両方に使う形（`@a = 0` と `@a.push(1)`）はエラー（`variableAndListSameName`）。配列リテラルに直接メソッドを使う形もエラー（`arrayLiteralReceiver`）。保存済みのプロジェクトの前の形（添字 `1` に `@ruby:array:delete_at:last`）は、読みこんでもブロックは直らず、動かすと 1 番目の項目が消える（Ruby に戻すと `delete_at(-1)` なので、Ruby とブロックの動きが合わない）。Ruby タブで変換し直すと「（リストの長さ）番目」になる。`-1` 以外の負の添字（`@a[-1]`、`@a.delete_at(-2)`）は「`-1 + 1` 番目」のように数えるので、往復はするが、ブロックとして動かすと Ruby と同じ項目にならない。
 
 **テスト**: `ruby-to-blocks-converter/variables/variables-array-global.test.js`、`variables-array-local.test.js`、`ruby-roundtrip/variables-v2-array.test.js`、`ruby-roundtrip/list-index-parens.test.js`、`ruby-roundtrip/list-as-argument.test.js`、`ruby-roundtrip/variable-and-list-same-name.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-roundtrip/string-letter-index.test.js`、`ruby-roundtrip/list-delete-at-last-vm.test.js`、`ruby-generator/data.test.js`。
 
