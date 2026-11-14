@@ -4,6 +4,7 @@ import {
     normalizeBlockNotation,
     parseBlockNotation,
     printBlockNotation,
+    printBlockNotationLike,
     readBlocks,
 } from './block-notation';
 import { makeSpriteTarget, makeStageTarget } from './ruby-roundtrip-helper';
@@ -133,8 +134,31 @@ describe('block notation', () => {
             ['motion_setx(X = motion_xposition)', /field X needs/],
             ['looks_hide }', /unexpected `}`/],
             ['looks_hide #hi', /`#` must be followed by a string/],
+            ['motion_movesteps(STEPS: 1, STEPS: 2)', /STEPS is given twice/],
+            ['motion_setx(X = "a", X: 1)', /X is given twice/],
+            [
+                'control_if(SUBSTACK: { looks_hide }) { looks_show }',
+                /SUBSTACK is given twice \(by name and by `\{\}`\)/,
+            ],
+            ['control_if_else(SUBSTACK2: { looks_hide }) {} {}', /SUBSTACK2 is given twice/],
+            ['looks_say(MESSAGE: "it\\\'s")', /a string must be a JSON string/],
+            ['looks_say(MESSAGE: "a\tb")', /a string must be a JSON string/],
         ])('reports a mistake in %s', (source, message) => {
             expect(() => parseBlockNotation(source)).toThrow(message);
+        });
+
+        test('a mistake names its line and column and points at it', () => {
+            expect(() => parseBlockNotation('looks_show\nmotion_movesteps(STEPS 10)')).toThrow(
+                'block notation: expected `:` (input) or `=` (field) after STEPS at line 2, column 24:\n' +
+                    'motion_movesteps(STEPS 10)\n' +
+                    '                       ^',
+            );
+        });
+
+        test('the caret keeps the tabs of the line', () => {
+            expect(() => parseBlockNotation('control_forever {\n\tlooks_say(MESSAGE: "a\tb")\n}')).toThrow(
+                'at line 2, column 21:\n\tlooks_say(MESSAGE: "a\tb")\n\t' + ' '.repeat(19) + '^',
+            );
         });
     });
 
@@ -148,14 +172,45 @@ describe('block notation', () => {
             `);
         });
 
-        test('number shadows of every math opcode print as the number', () => {
-            const parsed = parseBlockNotation('control_repeat(TIMES: math_whole_number(NUM = 3))');
-            expect(printBlockNotation(parsed)).toBe('control_repeat(TIMES: 3)');
+        test('a stated literal opcode is kept, in the short form', () => {
+            expect(normalizeBlockNotation('control_repeat(TIMES: math_whole_number(NUM = 3))')).toBe(
+                'control_repeat(TIMES: math_whole_number(3))',
+            );
+            expect(normalizeBlockNotation('motion_pointindirection(DIRECTION: math_angle(90))')).toBe(
+                'motion_pointindirection(DIRECTION: math_angle(90))',
+            );
+            expect(normalizeBlockNotation('looks_say(MESSAGE: text("hi"))')).toBe('looks_say(MESSAGE: text("hi"))');
         });
 
-        test('a number shadow without a number prints in full', () => {
+        test('number shadows read from blocks print as the bare number, whatever the math opcode', () => {
+            const { target, stage } = makeSpriteTarget();
+            buildBlocks('control_repeat(TIMES: math_whole_number(3))', target, stage);
+            expect(printBlockNotation(readBlocks(target, stage))).toBe('control_repeat(TIMES: 3)');
+        });
+
+        test('a number shadow without a number always states its opcode', () => {
             expect(normalizeBlockNotation('motion_movesteps(STEPS: math_number(NUM = ""))')).toBe(
-                'motion_movesteps(STEPS: math_number(NUM = ""))',
+                'motion_movesteps(STEPS: math_number(""))',
+            );
+        });
+
+        test('numbers: exponents and a leading dot', () => {
+            expect(parseBlockNotation('motion_movesteps(STEPS: 1e3)').scripts[0].inputs.STEPS).toEqual(num('1e3'));
+            expect(parseBlockNotation('motion_movesteps(STEPS: -.5)').scripts[0].inputs.STEPS).toEqual(num('-.5'));
+            expect(normalizeBlockNotation('motion_movesteps(STEPS: .5)')).toBe('motion_movesteps(STEPS: .5)');
+        });
+
+        test('shadows that are not the default are marked', () => {
+            const parsed = parseBlockNotation(
+                'motion_goto(TO: noshadow motion_goto_menu(TO = "_mouse_"))\nmotion_movesteps(STEPS: shadow motion_xposition)',
+            );
+            expect(parsed.scripts[0].inputs.TO.shadow).toBe(false);
+            expect(parsed.scripts[0].next.inputs.STEPS.shadow).toBe(true);
+            expect(printBlockNotation(parsed)).toBe(
+                'motion_goto(TO: noshadow motion_goto_menu(TO = "_mouse_"))\nmotion_movesteps(STEPS: shadow motion_xposition)',
+            );
+            expect(normalizeBlockNotation('motion_goto(TO: motion_goto_menu(TO = "_mouse_"))')).toBe(
+                'motion_goto(TO: motion_goto_menu(TO = "_mouse_"))',
             );
         });
 
@@ -251,6 +306,118 @@ describe('block notation', () => {
             const move = blocks.find((b) => b.opcode === 'motion_movesteps');
             expect(target.blocks.getBlock(move.inputs.STEPS.block).shadow).toBe(false);
             expect(move.inputs.STEPS.shadow).toBe(null);
+        });
+
+        test('a menu that is not a shadow is marked, and compared', () => {
+            const { target, stage } = makeSpriteTarget();
+            buildBlocks('motion_goto(TO: noshadow motion_goto_menu(TO = "_mouse_"))', target, stage);
+            const printed = printBlockNotation(readBlocks(target, stage));
+            expect(printed).toBe('motion_goto(TO: noshadow motion_goto_menu(TO = "_mouse_"))');
+            expect(printed).not.toBe(normalizeBlockNotation('motion_goto(TO: motion_goto_menu(TO = "_mouse_"))'));
+        });
+
+        describe('printBlockNotationLike', () => {
+            const read = (source) => {
+                const { target, stage } = makeSpriteTarget();
+                buildBlocks(source, target, stage);
+                return readBlocks(target, stage);
+            };
+
+            test('a bare number matches any math opcode', () => {
+                const { actual, expected } = printBlockNotationLike(
+                    read('motion_pointindirection(DIRECTION: math_angle(90))'),
+                    'motion_pointindirection(DIRECTION: 90)',
+                );
+                expect(actual).toBe(expected);
+            });
+
+            test('a stated opcode must match', () => {
+                const { actual, expected } = printBlockNotationLike(
+                    read('motion_pointindirection(DIRECTION: math_number(90))'),
+                    'motion_pointindirection(DIRECTION: math_angle(90))',
+                );
+                expect(actual).toBe('motion_pointindirection(DIRECTION: math_number(90))');
+                expect(expected).toBe('motion_pointindirection(DIRECTION: math_angle(90))');
+            });
+
+            test('it follows substacks and the next blocks', () => {
+                const { actual, expected } = printBlockNotationLike(
+                    read('control_repeat(TIMES: 2) { looks_hide; motion_turnright(DEGREES: math_angle(15)) }'),
+                    'control_repeat(TIMES: 2) { looks_hide; motion_turnright(DEGREES: math_angle(15)) }',
+                );
+                expect(actual).toBe(expected);
+            });
+        });
+
+        describe('readBlocks fails on what the notation cannot show', () => {
+            const built = (source) => {
+                const { target, stage } = makeSpriteTarget();
+                buildBlocks(source, target, stage);
+                const find = (opcode) => Object.values(target.blocks._blocks).find((b) => b.opcode === opcode);
+                return { target, stage, find };
+            };
+
+            test('a block that no script reaches', () => {
+                const { target, stage } = built('motion_movesteps(STEPS: 10)');
+                target.blocks.createBlock({
+                    id: 'lost',
+                    opcode: 'looks_say',
+                    inputs: {},
+                    fields: {},
+                    next: null,
+                    parent: 'nowhere',
+                    topLevel: false,
+                    shadow: false,
+                });
+                expect(() => readBlocks(target, stage)).toThrow('blocks that no script reaches: looks_say (lost)');
+            });
+
+            test('a shadow hidden behind a block is reached', () => {
+                const { target, stage, find } = built('motion_movesteps(STEPS: motion_xposition)');
+                const move = find('motion_movesteps');
+                target.blocks.createBlock({
+                    id: 'hidden',
+                    opcode: 'math_number',
+                    inputs: {},
+                    fields: { NUM: { name: 'NUM', value: '10' } },
+                    next: null,
+                    parent: move.id,
+                    topLevel: false,
+                    shadow: true,
+                });
+                move.inputs.STEPS.shadow = 'hidden';
+                expect(printBlockNotation(readBlocks(target, stage))).toBe(
+                    'motion_movesteps(STEPS: motion_xposition)',
+                );
+            });
+
+            test('a field pointing at a variable that does not exist', () => {
+                const { target, stage } = built('data_setvariableto(VARIABLE = $x, VALUE: 1)');
+                stage.variables = {};
+                expect(() => readBlocks(target, stage)).toThrow(
+                    /field VARIABLE points to variable .* \(x\), which does not exist/,
+                );
+            });
+
+            test("a field whose name is not the variable's", () => {
+                const { target, stage } = built('data_addtolist(LIST = @l, ITEM: 1)');
+                Object.values(target.variables)[0].name = 'm';
+                expect(() => readBlocks(target, stage)).toThrow(/field LIST says "l" but variable .* is named "m"/);
+            });
+
+            test("a field whose type is not the variable's", () => {
+                const { target, stage } = built('data_addtolist(LIST = @l, ITEM: 1)');
+                Object.values(target.variables)[0].type = '';
+                expect(() => readBlocks(target, stage)).toThrow(
+                    /field LIST is of type "list" but the variable is ""/,
+                );
+            });
+
+            test('an input holding a shadow block that is not its shadow', () => {
+                const { target, stage, find } = built('motion_goto(TO: motion_goto_menu(TO = "_mouse_"))');
+                find('motion_goto').inputs.TO.shadow = null;
+                expect(() => readBlocks(target, stage)).toThrow(/input TO holds the shadow motion_goto_menu/);
+            });
         });
 
         test('on the stage every variable is `$`', () => {

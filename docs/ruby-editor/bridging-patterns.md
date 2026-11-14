@@ -699,8 +699,10 @@ defineBlockRubyTable('Motion blocks ⇔ Ruby', [
 | `#"@ruby:..."` | 直前のブロックのコメント（注釈）。行の頭だけに書くとスプライトのコメント |
 | `$x` / `@x` | ステージの変数 / スプライトの変数（ローカル変数 `a` は `@_a_1_` と `@ruby:lvar`） |
 | 改行・`;` / 空行 | 同じスクリプトの次の文 / 次のスクリプト |
+| `math_angle(90)` / `text("hi")` | opcode まで比べる数・文字列（素の `10` はどの `math_*` とも一致） |
+| `noshadow <ブロック>` / `shadow <ブロック>` | 影かどうかがふつうと違うブロック（メニュー・数・文字列はふつう影） |
 
-比べないもの: ID、位置、影（shadow）の印、ブロックの後ろに隠れた影、数の影の opcode の違い（`math_number` と `math_whole_number` など）。カスタムブロック（mutation を持つブロック）とエラーになる形は、いまは `test/helpers/expect-to-equal-blocks.js` で書く。
+比べないもの: ID、位置、ブロックの後ろに隠れた影、素の数の影の opcode の違い（`math_number` と `math_whole_number` など）。どのスクリプトからもつながらないブロックや、無い変数を指すフィールドがあると、変換の側のテストはその理由で落ちる。カスタムブロック（mutation を持つブロック）とエラーになる形は、いまは `test/helpers/expect-to-equal-blocks.js` で書く。
 
 ## 新しい橋渡しパターンを足すときのチェックリスト
 

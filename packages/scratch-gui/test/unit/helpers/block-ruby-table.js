@@ -20,10 +20,15 @@
  *
  * `only: 'toRuby'` / `only: 'toBlocks'` runs that direction alone (for shapes that do not come
  * back the same way). `name` names the row; by default it is the first line of `ruby`.
+ * `versions: ['2']` on a row overrides the Ruby versions of the table for that row.
+ *
+ * Multi-line Ruby: start a template literal with a new line and indent it as you like; it is
+ * dedented. A string that starts on its first line is used as it is (only trimmed), so
+ * `'3.times do\n  say("hi")\nend'` keeps its indentation.
  */
 import dedent from 'dedent';
 import RubyGenerator from '../../../src/lib/ruby-generator';
-import { buildBlocks, normalizeBlockNotation, printBlockNotation, readBlocks } from './block-notation';
+import { buildBlocks, printBlockNotationLike, readBlocks } from './block-notation';
 import {
     makeConverter,
     makeSpriteTarget,
@@ -32,7 +37,12 @@ import {
     setupRubyGenerator,
 } from './ruby-roundtrip-helper';
 
-const clean = (text) => dedent(text).trim();
+/**
+ * The Ruby of a row: dedented when it starts with a new line (a template literal), else as it is.
+ * @param {string} text - The Ruby of the row.
+ * @returns {string} The Ruby, trimmed.
+ */
+const cleanRuby = (text) => (text.startsWith('\n') ? dedent(text) : text).trim();
 
 const makeTarget = (stage) => (stage ? makeStageTarget() : makeSpriteTarget());
 
@@ -51,10 +61,10 @@ const blocksToRuby = (blocks, { version, stage }) => {
 };
 
 /**
- * Convert Ruby and print the resulting blocks in the canonical notation.
+ * Convert Ruby and read the resulting blocks back as notation nodes.
  * @param {string} ruby - The Ruby code.
  * @param {{version: string, stage: boolean}} options - The Ruby version and whether the code is the stage's.
- * @returns {Promise<string>} The canonical notation of the blocks.
+ * @returns {Promise<object>} The blocks, as `readBlocks` returns them.
  */
 const rubyToBlocks = async (ruby, { version, stage }) => {
     const { target, stage: stageTarget, runtime } = makeTarget(stage);
@@ -65,47 +75,63 @@ const rubyToBlocks = async (ruby, { version, stage }) => {
         throw new Error(`Ruby could not be converted:\n${ruby}\nerrors: ${JSON.stringify(converter.errors)}`);
     }
     await converter.applyTargetBlocks(target);
-    return printBlockNotation(readBlocks(target, stageTarget));
+    return readBlocks(target, stageTarget);
+};
+
+const defineRowTests = (row, ruby, opts) => {
+    if (row.only !== 'toBlocks') {
+        test('toRuby', () => {
+            expect(blocksToRuby(row.blocks, opts)).toBe(ruby);
+        });
+    }
+    if (row.only !== 'toRuby') {
+        test('toBlocks', async () => {
+            const { actual, expected } = printBlockNotationLike(await rubyToBlocks(ruby, opts), row.blocks);
+            expect(actual).toBe(expected);
+        });
+    }
+    if (!row.only) {
+        test('roundTrip', async () => {
+            const { target, runtime } = makeTarget(opts.stage);
+            setupRubyGenerator();
+            const converter = makeConverter(target, runtime, { version: opts.version });
+            expect(await rubyToBlocksToRuby(converter, target, ruby)).toBe(ruby);
+        });
+    }
 };
 
 /**
  * Define the tests of a table.
  * @param {string} name - The name of the table (the describe block).
- * @param {Array<{blocks: string, ruby: string, only?: string, name?: string}>} rows - The rows.
- * @param {{version?: string, stage?: boolean}} [options] - Ruby version (default `'2'`) and whether
- *     the code belongs to the stage (default a sprite).
+ * @param {Array<{blocks: string, ruby: string, only?: string, name?: string, versions?: Array<string>}>} rows
+ *     - The rows.
+ * @param {{versions?: Array<string>, version?: string, stage?: boolean}} [options] - The Ruby
+ *     versions to run every row with (default `['2']`; `version: '1'` is the same as `versions: ['1']`)
+ *     and whether the code belongs to the stage (default a sprite).
  */
 const defineBlockRubyTable = (name, rows, options = {}) => {
-    const opts = { version: options.version || '2', stage: options.stage === true };
+    const tableVersions = options.versions || [options.version || '2'];
+    const stage = options.stage === true;
     describe(name, () => {
         rows.forEach((row, i) => {
             if (row.only && row.only !== 'toRuby' && row.only !== 'toBlocks') {
                 throw new Error(`row ${i}: only must be 'toRuby' or 'toBlocks', not ${row.only}`);
             }
-            const ruby = clean(row.ruby);
+            const ruby = cleanRuby(row.ruby);
             const rowName = row.name || `${i + 1}: ${ruby.split('\n')[0]}`;
+            const versions = row.versions || tableVersions;
             describe(rowName, () => {
-                if (row.only !== 'toBlocks') {
-                    test('toRuby', () => {
-                        expect(blocksToRuby(row.blocks, opts)).toBe(ruby);
-                    });
-                }
-                if (row.only !== 'toRuby') {
-                    test('toBlocks', async () => {
-                        expect(await rubyToBlocks(ruby, opts)).toBe(normalizeBlockNotation(row.blocks));
-                    });
-                }
-                if (!row.only) {
-                    test('roundTrip', async () => {
-                        const { target, runtime } = makeTarget(opts.stage);
-                        setupRubyGenerator();
-                        const converter = makeConverter(target, runtime, { version: opts.version });
-                        expect(await rubyToBlocksToRuby(converter, target, ruby)).toBe(ruby);
-                    });
-                }
+                versions.forEach((version) => {
+                    const opts = { version: String(version), stage };
+                    if (versions.length > 1) {
+                        describe(`v${version}`, () => defineRowTests(row, ruby, opts));
+                    } else {
+                        defineRowTests(row, ruby, opts);
+                    }
+                });
             });
         });
     });
 };
 
-export { defineBlockRubyTable, blocksToRuby, rubyToBlocks };
+export { defineBlockRubyTable, blocksToRuby, rubyToBlocks, cleanRuby };

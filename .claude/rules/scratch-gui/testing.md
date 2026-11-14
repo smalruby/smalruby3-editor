@@ -84,8 +84,10 @@ Use integration tests **only** for behavior that cannot be tested in unit tests:
 
 ### Test Structure Example（実際の converter テストの形）
 
-converter テストは **`test/helpers/expect-to-equal-blocks.js` のヘルパー経由**が正典
-（20 以上のテストファイルが使用）。describe 名は `'RubyToBlocksConverter/<Category>'`、
+ブロックと Ruby の対応を新しく書くときの既定は、下の「ブロック ⇔ Ruby の表」。
+表の記法で書けないもの（カスタムブロックなど mutation を持つブロック、エラーになる形）の converter テストは
+**`test/helpers/expect-to-equal-blocks.js` のヘルパー経由**で書く（既存の 20 以上のテストファイルもこの形）。
+describe 名は `'RubyToBlocksConverter/<Category>'`、
 `beforeEach` で `new RubyToBlocksConverter(null, {version: '2'})`、テストは async:
 
 ```javascript
@@ -127,7 +129,18 @@ describe('RubyToBlocksConverter/Event', () => {
 4. 注釈 `@ruby:*` を使う形は、ブロックの記法に `#"@ruby:..."` を書いて表に入れる
    （`docs/ruby-editor/bridging-patterns.md` の「表のテスト」）。
 
-既存のヘルパーとの使い分け: ブロックと Ruby の対応は表に書く。`expect-to-equal-blocks.js` は、表で書けないもの
+- 表の指定: `defineBlockRubyTable(name, rows, { versions: ['1', '2'], stage: true })`。`versions` は流す
+  Ruby のバージョン（既定 `['2']`。`version: '1'` も可）、`stage: true` はステージのコードとして流す。
+  v1 と v2 で同じになる表は両方で流し、違う行（ハットなど）だけ行に `versions: ['2']` を付ける。
+- 複数行の Ruby は、改行で始まるテンプレートリテラルで書く（字下げを外す）。1 行目から始まる文字列は
+  そのまま使う（`'3.times do\n  say("hi")\nend'` も書ける）。
+- 影（shadow）と数・文字列の opcode: メニューと数・文字列が影かどうかは比べる（影でないメニューは
+  `noshadow motion_goto_menu(...)` と出る）。素の `10` はどの `math_*` の影とも一致し、opcode が大事なときだけ
+  `math_angle(90)` / `math_whole_number(3)` / `text("hi")` と書いて opcode も比べる。
+- 変換の結果に、どのスクリプトからもつながらないブロックや、無い変数・名前の違う変数を指すフィールドがあると、
+  `toBlocks` はその理由で落ちる（`readBlocks`）。
+
+既存のヘルパーとの使い分け: 新しい対応は表に書くのが既定。`expect-to-equal-blocks.js` は、表の記法で書けないもの
 （カスタムブロックなど mutation を持つブロック、エラーになる形の `convertAndExpectRubyBlockError`）に使う。
 既存のテストを全部移す必要はなく、触ったところから表へ移す。
 

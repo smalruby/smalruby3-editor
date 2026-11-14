@@ -13,33 +13,71 @@
  * ```
  *
  * - `opcode(...)`: a block. The parentheses can be left out when there is nothing in them.
- * - `NAME: value`: an input. The value is a block, a number (`10`, a number shadow), a string
- *   (`"hi"`, a text shadow), or a variable (`$x` / `@x`, the `data_variable` reporter).
+ * - `NAME: value`: an input. The value is a block, a number (`10`, `1e3`, `.5`: a number shadow), a
+ *   string (`"hi"`, a text shadow), or a variable (`$x` / `@x`, the `data_variable` reporter).
  * - `NAME = value`: a field. The value is a string, a number, or a variable (`$x` is a variable of
  *   the stage, `@x` of the sprite; `$"my var"` for names with spaces). Fields named `LIST` hold a
  *   list and `BROADCAST_OPTION` a message; the other variable fields hold a variable.
  * - `{ ... }` after a block: its C-shaped substacks, in order `SUBSTACK`, `SUBSTACK2`, ... (if/else
  *   is `control_if_else(...) { ... } { ... }`). `{}` is an empty substack. `NAME: { ... }` puts a
- *   stack in any other input.
+ *   stack in any other input. Giving an input twice (also `SUBSTACK: ...` together with `{}`) is an
+ *   error.
  * - Statements of one script are separated by a new line or `;`. A blank line starts the next script.
  * - `#"text"` right after a block is the block's comment (where the `@ruby:*` annotations live).
  *   `#"text"` alone on a line at the top is a comment of the sprite, not of a block.
  *
- * What is compared (see `printBlockNotation`): opcodes, fields, inputs, substacks, the order of
- * scripts and comments. Not compared: ids, positions, the shadow flag, the shadow hidden behind a
- * block in an input, and which `math_*` opcode holds a number (`10` matches `math_number`,
- * `math_whole_number`, ...). Mutations (custom blocks, `procedures_*`) are not supported yet; use
- * `test/helpers/expect-to-equal-blocks.js` for them.
+ * Shadows and literal opcodes:
+ *
+ * - Numbers, strings, and blocks whose opcode is `text`, `math_*` or contains `menu` are shadows;
+ *   every other block is not. This is compared: a menu that came out as a normal block prints as
+ *   `noshadow motion_goto_menu(...)`, and `shadow <block>` / `noshadow <block>` states the other case.
+ * - A bare `10` matches a number shadow of any `math_*` opcode, and `"hi"` a `text` shadow. When the
+ *   opcode matters, write it: `math_angle(90)`, `math_whole_number(3)`, `text("hi")` (or
+ *   `math_angle(NUM = 90)`). Then the opcode is compared too.
+ *
+ * What is compared (see `printBlockNotation` and `printBlockNotationLike`): opcodes, fields
+ * (variables by name and by where they live), inputs, substacks, shadows, the order of scripts and
+ * comments. Not compared: ids, positions, the shadow hidden behind a block in an input, and the
+ * `math_*` opcode of a bare number. `readBlocks` fails on what the notation cannot show: blocks no
+ * script reaches, fields pointing at a variable that does not exist or has another name, and an
+ * input whose shadow block is not its `shadow`. Mutations (custom blocks, `procedures_*`) are not
+ * supported yet; use `test/helpers/expect-to-equal-blocks.js` for them.
  */
 
 const NUMBER_OPCODES = ['math_number', 'math_integer', 'math_whole_number', 'math_positive_number', 'math_angle'];
-const NUMBER_RE = /^-?\d+(\.\d+)?$/;
+const NUMBER_SOURCE = '-?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:[eE][+-]?\\d+)?';
+const NUMBER_RE = new RegExp(`^${NUMBER_SOURCE}$`);
+const NUMBER_PREFIX_RE = new RegExp(`^${NUMBER_SOURCE}`);
 const IDENT_RE = /^[\p{L}_][\p{L}\p{N}_]*$/u;
 const SUBSTACK_RE = /^SUBSTACK(\d*)$/;
 
 const substackName = (index) => (index === 0 ? 'SUBSTACK' : `SUBSTACK${index + 1}`);
 
-const isShadowOpcode = (opcode) => opcode === 'text' || NUMBER_OPCODES.includes(opcode) || /menu/i.test(opcode);
+const LITERAL_FIELD = { text: 'TEXT' };
+NUMBER_OPCODES.forEach((opcode) => {
+    LITERAL_FIELD[opcode] = 'NUM';
+});
+
+const isShadowOpcode = (opcode) => Object.hasOwn(LITERAL_FIELD, opcode) || /menu/i.test(opcode);
+
+/**
+ * Where a message about the notation points: the line, the column and a caret under it.
+ * @param {string} text - The whole notation.
+ * @param {number} index - The offset of the mistake.
+ * @returns {string} `at line L, column C:` and the line with a caret.
+ */
+const whereIn = (text, index) => {
+    const lineStart = text.lastIndexOf('\n', index - 1) + 1;
+    let lineEnd = text.indexOf('\n', index);
+    if (lineEnd < 0) lineEnd = text.length;
+    const lineText = text.slice(lineStart, lineEnd);
+    const line = text.slice(0, lineStart).split('\n').length;
+    // Keep the tabs before the caret, so it lines up under the mistake.
+    const pad = lineText.slice(0, index - lineStart).replace(/[^\t]/g, ' ');
+    return `at line ${line}, column ${index - lineStart + 1}:\n${lineText}\n${pad}^`;
+};
+
+const notationError = (text, index, message) => new Error(`block notation: ${message} ${whereIn(text, index)}`);
 
 const variableTypeOfField = (fieldName) => {
     if (fieldName === 'LIST') return 'list';
@@ -52,39 +90,45 @@ const variableTypeOfField = (fieldName) => {
 const tokenize = (text) => {
     const tokens = [];
     let i = 0;
-    let line = 1;
-    const fail = (message) => {
-        throw new Error(`block notation: ${message} at line ${line}: ${text.split('\n')[line - 1]}`);
+    const fail = (message, at = i) => {
+        throw notationError(text, at, message);
     };
     const readString = () => {
+        const start = i;
         let j = i + 1;
         while (j < text.length && text[j] !== '"') {
             if (text[j] === '\\') j++;
-            if (text[j] === '\n') fail('unterminated string');
+            if (text[j] === '\n') fail('unterminated string', start);
             j++;
         }
-        if (j >= text.length) fail('unterminated string');
-        const value = JSON.parse(text.slice(i, j + 1));
+        if (j >= text.length) fail('unterminated string', start);
+        let value;
+        try {
+            value = JSON.parse(text.slice(i, j + 1));
+        } catch (e) {
+            fail(`a string must be a JSON string (no raw tabs, no \\'): ${e.message}`, start);
+        }
         i = j + 1;
         return value;
     };
+    const push = (token, at) => tokens.push({ ...token, index: at });
     while (i < text.length) {
         const c = text[i];
+        const at = i;
         if (c === '\n') {
-            tokens.push({ type: 'newline', line });
-            line++;
+            push({ type: 'newline' }, at);
             i++;
         } else if (c === ' ' || c === '\t' || c === '\r') {
             i++;
         } else if ('(){},:=;'.includes(c)) {
-            tokens.push({ type: c, line });
+            push({ type: c }, at);
             i++;
         } else if (c === '#') {
             i++;
-            if (text[i] !== '"') fail('`#` must be followed by a string');
-            tokens.push({ type: 'comment', value: readString(), line });
+            if (text[i] !== '"') fail('`#` must be followed by a string', at);
+            push({ type: 'comment', value: readString() }, at);
         } else if (c === '"') {
-            tokens.push({ type: 'string', value: readString(), line });
+            push({ type: 'string', value: readString() }, at);
         } else if (c === '$' || c === '@') {
             i++;
             let name;
@@ -92,25 +136,25 @@ const tokenize = (text) => {
                 name = readString();
             } else {
                 const m = text.slice(i).match(/^[\p{L}\p{N}_]+/u);
-                if (!m) fail(`a variable name must follow \`${c}\``);
+                if (!m) fail(`a variable name must follow \`${c}\``, at);
                 name = m[0];
                 i += name.length;
             }
-            tokens.push({ type: 'variable', scope: c, name, line });
+            push({ type: 'variable', scope: c, name }, at);
         } else {
-            const num = text.slice(i).match(/^-?\d+(\.\d+)?/);
+            const num = text.slice(i).match(NUMBER_PREFIX_RE);
             if (num) {
-                tokens.push({ type: 'number', value: num[0], line });
+                push({ type: 'number', value: num[0] }, at);
                 i += num[0].length;
                 continue;
             }
             const ident = text.slice(i).match(/^[A-Za-z_][\w]*/);
-            if (!ident) fail(`unexpected character \`${c}\``);
-            tokens.push({ type: 'ident', value: ident[0], line });
+            if (!ident) fail(`unexpected character \`${c}\``, at);
+            push({ type: 'ident', value: ident[0] }, at);
             i += ident[0].length;
         }
     }
-    tokens.push({ type: 'eof', line });
+    push({ type: 'eof' }, text.length);
     return tokens;
 };
 
@@ -135,9 +179,8 @@ const parseBlockNotation = (text) => {
     let pos = 0;
     const peek = () => tokens[pos];
     const next = () => tokens[pos++];
-    const fail = (message) => {
-        const t = peek();
-        throw new Error(`block notation: ${message} at line ${t.line}: ${text.split('\n')[t.line - 1]}`);
+    const fail = (message, token = peek()) => {
+        throw notationError(text, token.index, message);
     };
     const expect = (type) => {
         if (peek().type !== type) fail(`expected \`${type}\` but got \`${peek().type}\``);
@@ -156,52 +199,71 @@ const parseBlockNotation = (text) => {
     };
 
     const parseBlock = () => {
-        const opcode = expect('ident').value;
+        const opcodeToken = expect('ident');
+        const opcode = opcodeToken.value;
         const node = { opcode, fields: {}, inputs: {} };
         if (isShadowOpcode(opcode)) node.shadow = true;
+        if (Object.hasOwn(LITERAL_FIELD, opcode)) node.explicitOpcode = true;
+        const given = new Set();
+        const claim = (name, token) => {
+            if (given.has(name)) fail(`${name} is given twice`, token);
+            given.add(name);
+        };
         if (peek().type === '(') {
             next();
             skipNewlines();
-            while (peek().type !== ')') {
-                const name = expect('ident').value;
-                const sep = next();
+            // `math_angle(90)` / `text("hi")`: the value of a literal without its field name.
+            const first = peek();
+            if (Object.hasOwn(LITERAL_FIELD, opcode) && (first.type === 'number' || first.type === 'string')) {
+                next();
+                node.fields[LITERAL_FIELD[opcode]] = { value: first.value };
                 skipNewlines();
-                if (sep.type === '=') {
-                    const t = next();
-                    if (t.type === 'string' || t.type === 'number') {
-                        node.fields[name] = { value: t.value };
-                    } else if (t.type === 'variable') {
-                        node.fields[name] = { variable: { scope: t.scope, name: t.name } };
-                    } else {
-                        pos--;
-                        fail(`field ${name} needs a string, a number or a variable`);
-                    }
-                } else if (sep.type === ':') {
-                    if (peek().type === '{') {
-                        const stack = parseStack();
-                        if (stack) node.inputs[name] = stack;
-                    } else {
-                        // eslint-disable-next-line no-use-before-define
-                        node.inputs[name] = parseTerm();
-                    }
-                } else {
-                    pos--;
-                    fail(`expected \`:\` (input) or \`=\` (field) after ${name}`);
-                }
-                skipNewlines();
-                if (peek().type === ',') {
-                    next();
+                expect(')');
+            } else {
+                while (peek().type !== ')') {
+                    const nameToken = expect('ident');
+                    const name = nameToken.value;
+                    claim(name, nameToken);
+                    const sep = next();
                     skipNewlines();
-                } else if (peek().type !== ')') {
-                    fail('expected `,` or `)`');
+                    if (sep.type === '=') {
+                        const t = next();
+                        if (t.type === 'string' || t.type === 'number') {
+                            node.fields[name] = { value: t.value };
+                        } else if (t.type === 'variable') {
+                            node.fields[name] = { variable: { scope: t.scope, name: t.name } };
+                        } else {
+                            fail(`field ${name} needs a string, a number or a variable`, t);
+                        }
+                    } else if (sep.type === ':') {
+                        if (peek().type === '{') {
+                            const stack = parseStack();
+                            if (stack) node.inputs[name] = stack;
+                        } else {
+                            // eslint-disable-next-line no-use-before-define
+                            node.inputs[name] = parseTerm();
+                        }
+                    } else {
+                        fail(`expected \`:\` (input) or \`=\` (field) after ${name}`, sep);
+                    }
+                    skipNewlines();
+                    if (peek().type === ',') {
+                        next();
+                        skipNewlines();
+                    } else if (peek().type !== ')') {
+                        fail('expected `,` or `)`');
+                    }
                 }
+                next();
             }
-            next();
         }
         let index = 0;
         while (peek().type === '{') {
+            const name = substackName(index);
+            if (given.has(name)) fail(`${name} is given twice (by name and by \`{}\`)`);
+            given.add(name);
             const stack = parseStack();
-            if (stack) node.inputs[substackName(index)] = stack;
+            if (stack) node.inputs[name] = stack;
             index++;
         }
         return node;
@@ -219,6 +281,11 @@ const parseBlockNotation = (text) => {
         } else if (t.type === 'variable') {
             next();
             node = variableNode({ scope: t.scope, name: t.name });
+        } else if (t.type === 'ident' && (t.value === 'shadow' || t.value === 'noshadow')) {
+            next();
+            node = parseTerm();
+            node.shadow = t.value === 'shadow';
+            return node;
         } else if (t.type === 'ident') {
             node = parseBlock();
         } else {
@@ -283,18 +350,21 @@ const quote = (s) => JSON.stringify(s);
 const printVariable = ({ scope, name }) => `${scope}${IDENT_RE.test(name) ? name : quote(name)}`;
 const printFieldValue = (field) => (field.variable ? printVariable(field.variable) : quote(field.value));
 
+// A literal: `math_*` / `text` with only its value field (and no variable in it).
+const isLiteral = (node) => {
+    const field = LITERAL_FIELD[node.opcode];
+    return (
+        Boolean(field) &&
+        Object.keys(node.fields).length === 1 &&
+        Boolean(node.fields[field]) &&
+        !node.fields[field].variable &&
+        Object.keys(node.inputs).length === 0
+    );
+};
 const isNumberLiteral = (node) =>
-    NUMBER_OPCODES.includes(node.opcode) &&
-    Object.keys(node.fields).length === 1 &&
-    node.fields.NUM &&
-    NUMBER_RE.test(node.fields.NUM.value) &&
-    Object.keys(node.inputs).length === 0;
-const isTextLiteral = (node) =>
-    node.opcode === 'text' &&
-    Object.keys(node.fields).length === 1 &&
-    node.fields.TEXT &&
-    !node.fields.TEXT.variable &&
-    Object.keys(node.inputs).length === 0;
+    isLiteral(node) && LITERAL_FIELD[node.opcode] === 'NUM' && NUMBER_RE.test(node.fields.NUM.value);
+const isTextLiteral = (node) => isLiteral(node) && node.opcode === 'text';
+const defaultShadow = (node) => isShadowOpcode(node.opcode);
 const isVariableShorthand = (node) =>
     node.opcode === 'data_variable' &&
     Object.keys(node.fields).length === 1 &&
@@ -320,7 +390,11 @@ let printStack; // eslint-disable-line prefer-const
  */
 const printNode = (node) => {
     let head;
-    if (isNumberLiteral(node)) {
+    if (isLiteral(node) && (node.explicitOpcode || !(isNumberLiteral(node) || isTextLiteral(node)))) {
+        // The opcode is stated, or the value is no number (`math_number("")`): `math_angle(90)`.
+        const value = node.fields[LITERAL_FIELD[node.opcode]].value;
+        head = `${node.opcode}(${isNumberLiteral(node) ? value : quote(value)})`;
+    } else if (isNumberLiteral(node)) {
         head = node.fields.NUM.value;
     } else if (isTextLiteral(node)) {
         head = quote(node.fields.TEXT.value);
@@ -350,6 +424,8 @@ const printNode = (node) => {
             head += substacks[i] ? ` {\n${indentLines(printStack(substacks[i]), '  ')}\n}` : ' {}';
         }
     }
+    const shadow = node.shadow === true;
+    if (shadow !== defaultShadow(node)) head = `${shadow ? 'shadow' : 'noshadow'} ${head}`;
     return head + printComment(node);
 };
 
@@ -379,6 +455,35 @@ const printBlockNotation = (parsed) => {
  * @returns {string} The canonical notation.
  */
 const normalizeBlockNotation = (text) => printBlockNotation(parseBlockNotation(text));
+
+/**
+ * Copy which literals state their opcode from `expected` to the same places in `actual`, so a bare
+ * `10` in the expectation matches any `math_*` opcode and `math_angle(90)` matches only that one.
+ * @param {object} actual - Nodes read from blocks (`readBlocks`); changed in place.
+ * @param {object} expected - Nodes parsed from the expected notation.
+ */
+const alignExplicitOpcodes = (actual, expected) => {
+    const align = (a, e) => {
+        for (; a && e; a = a.next, e = e.next) {
+            if (e.explicitOpcode) a.explicitOpcode = true;
+            Object.keys(a.inputs).forEach((name) => align(a.inputs[name], e.inputs[name]));
+        }
+    };
+    actual.scripts.forEach((script, i) => align(script, expected.scripts[i]));
+};
+
+/**
+ * Print `actual` and `expected` for comparison: both canonical, with `actual`'s literals stating
+ * their opcode where `expected` does.
+ * @param {object} actual - Nodes read from blocks.
+ * @param {string} expectedText - The expected notation.
+ * @returns {{actual: string, expected: string}} The two canonical notations.
+ */
+const printBlockNotationLike = (actual, expectedText) => {
+    const expected = parseBlockNotation(expectedText);
+    alignExplicitOpcodes(actual, expected);
+    return { actual: printBlockNotation(actual), expected: printBlockNotation(expected) };
+};
 
 // --- to and from the VM blocks -----------------------------------------------------------------
 
@@ -464,31 +569,50 @@ const buildBlocks = (notation, target, stage) => {
  */
 const readBlocks = (target, stage) => {
     const blocks = target.blocks._blocks;
-    const scopeOf = (id, name, type) => {
-        if (target.isStage) return '$';
-        if (target.variables[id]) return '@';
-        if (stage && stage.variables[id]) return '$';
-        const onStage = stage && Object.values(stage.variables).some((v) => v.name === name && v.type === type);
-        return onStage ? '$' : '@';
+    const reached = new Set();
+    const fail = (block, message) => {
+        throw new Error(`readBlocks: ${block.opcode} (${block.id}): ${message}`);
+    };
+    const variableOf = (block, field) => {
+        const own = target.variables[field.id];
+        const v = own || (stage && stage.variables[field.id]);
+        if (!v)
+            fail(block, `field ${field.name} points to variable ${field.id} (${field.value}), which does not exist`);
+        if (v.name !== field.value) {
+            fail(block, `field ${field.name} says "${field.value}" but variable ${field.id} is named "${v.name}"`);
+        }
+        if (field.variableType !== undefined && v.type !== field.variableType) {
+            fail(block, `field ${field.name} is of type "${field.variableType}" but the variable is "${v.type}"`);
+        }
+        return { variable: v, onStage: target.isStage || !own };
     };
     const read = (id) => {
         const block = blocks[id];
         if (!block) return null;
+        reached.add(id);
         const node = { opcode: block.opcode, fields: {}, inputs: {} };
         if (block.shadow) node.shadow = true;
         Object.keys(block.fields || {}).forEach((name) => {
             const field = block.fields[name];
-            if (field.id && field.variableType !== 'broadcast_msg') {
-                node.fields[name] = {
-                    variable: { scope: scopeOf(field.id, field.value, field.variableType), name: field.value },
-                };
+            if (field.id) {
+                const { onStage } = variableOf(block, field);
+                node.fields[name] =
+                    field.variableType === 'broadcast_msg'
+                        ? { value: String(field.value) }
+                        : { variable: { scope: onStage ? '$' : '@', name: field.value } };
             } else {
                 node.fields[name] = { value: String(field.value) };
             }
         });
         Object.keys(block.inputs || {}).forEach((name) => {
-            const child = read(block.inputs[name].block);
-            if (child) node.inputs[name] = child;
+            const input = block.inputs[name];
+            const child = read(input.block);
+            if (input.shadow && blocks[input.shadow]) reached.add(input.shadow);
+            if (!child) return;
+            if (child.shadow && input.shadow !== input.block) {
+                fail(block, `input ${name} holds the shadow ${child.opcode} but its shadow is ${input.shadow}`);
+            }
+            node.inputs[name] = child;
         });
         if (block.comment && target.comments[block.comment]) node.comment = target.comments[block.comment].text;
         const nextNode = read(block.next);
@@ -498,10 +622,22 @@ const readBlocks = (target, stage) => {
     const scripts = Object.keys(blocks)
         .filter((id) => blocks[id].topLevel && !blocks[id].shadow)
         .map(read);
+    const lost = Object.keys(blocks).filter((id) => !reached.has(id));
+    if (lost.length) {
+        const list = lost.map((id) => `${blocks[id].opcode} (${id})`).join(', ');
+        throw new Error(`readBlocks: blocks that no script reaches: ${list}`);
+    }
     const targetComments = Object.values(target.comments)
         .filter((c) => !c.blockId)
         .map((c) => c.text);
     return { scripts, targetComments };
 };
 
-export { parseBlockNotation, printBlockNotation, normalizeBlockNotation, buildBlocks, readBlocks };
+export {
+    parseBlockNotation,
+    printBlockNotation,
+    printBlockNotationLike,
+    normalizeBlockNotation,
+    buildBlocks,
+    readBlocks,
+};
