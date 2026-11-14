@@ -225,7 +225,7 @@ const NodeUtils = {
         let parentType = null;
         while (current && current !== node) {
             const type = this._getNodeTypeName(current);
-            const next = current.childNodes().filter(Boolean).find(contains);
+            const next = this._childNodesOf(current).find(contains);
             if (!next) {
                 break;
             }

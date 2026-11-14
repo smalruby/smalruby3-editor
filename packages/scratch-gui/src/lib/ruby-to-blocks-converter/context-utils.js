@@ -108,29 +108,6 @@ const ContextUtils = {
         });
     },
 
-    _countMethodCalls(node) {
-        const counts = {};
-        if (!node) return counts;
-
-        const queue = [node];
-        while (queue.length > 0) {
-            const ast = queue.shift();
-            if (!ast) continue;
-
-            if (this._prismNodeType(ast) === 'CallNode') {
-                const name = ast.name;
-                const procedure = this._lookupProcedure(name);
-                if (procedure && procedure.hasReturnValue) {
-                    counts[name] = (counts[name] || 0) + 1;
-                }
-            }
-            this._childNodesOf(ast).forEach((child) => {
-                queue.push(child);
-            });
-        }
-        return counts;
-    },
-
     _saveContext() {
         const includes = [
             'blocks',
