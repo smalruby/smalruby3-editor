@@ -418,14 +418,31 @@ class RubyToBlocksConverter extends Visitor {
 
             const addBlocks = [];
             const items = primitive.value;
+            // An item that is not a number, a string or a value (`[(@a = 1)]`, `[:a]`) used to be put in
+            // the list as its text ("[object Object]", "a"): the error of a wrong instruction instead (#1865).
+            const notAValue = items.find(
+                (item) => !this._isNumber(item) && !this._isString(item) && !this._isValueBlock(item),
+            );
+            if (typeof notAValue !== 'undefined') {
+                throw new RubyToBlocksConverterError(
+                    primitive.node,
+                    this._translator(messages.wrongInstruction, {
+                        SOURCE: this._truncateSource(this._getSource(primitive.node)),
+                    }),
+                );
+            }
             items.forEach((item) => {
                 const addBlock = this._createBlock('data_addtolist', 'statement');
                 addBlock.node = primitive.node;
                 addBlock.fields = {
                     LIST: { name: 'LIST', id: listVar.id, value: listVar.name, variableType: listVar.type },
                 };
-                const val = this._isPrimitive(item) ? item.value : item;
-                this._addTextInput(addBlock, 'ITEM', String(val), '');
+                if (this._isValueBlock(item)) {
+                    this._addTextInput(addBlock, 'ITEM', item, '');
+                } else {
+                    const val = this._isPrimitive(item) ? item.value : item;
+                    this._addTextInput(addBlock, 'ITEM', String(val), '');
+                }
                 addBlocks.push(addBlock);
             });
 
