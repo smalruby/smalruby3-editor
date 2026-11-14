@@ -61,6 +61,26 @@ describe('RubyGenerator scrub_', () => {
         expect(result).toEqual('# visible comment\ncode\n');
     });
 
+    describe('a saved comment with both the text before and the trailing text (issue #1838)', () => {
+        const scrubWithComment = (text) => {
+            const block = { id: 'b1', inputs: {}, parent: null, next: null };
+            const comments = { c1: { blockId: 'b1', text } };
+            RubyGenerator.currentTarget = createMockTarget({ b1: block }, comments);
+            return RubyGenerator.scrub_(block, 'move(10)\n');
+        };
+
+        test.each([
+            ['前\nうしろ\n@ruby:comment_position:inline:last', '# 前\nmove(10) # うしろ\n'],
+            ['a\nb\nc\n@ruby:comment_position:inline:last', '# a\n# b\nmove(10) # c\n'],
+            ['うしろ\n@ruby:comment_position:inline:last', 'move(10) # うしろ\n'],
+            ['前\nうしろ\n@ruby:comment_position:inline:last\n@ruby:method:clone', '# 前\nmove(10) # うしろ\n'],
+            ['うしろ\n@ruby:comment_position:inline', 'move(10) # うしろ\n'],
+            ['@ruby:comment_position:inline\nうしろ', 'move(10) # うしろ\n'],
+        ])('%j is written as %j', (text, expected) => {
+            expect(scrubWithComment(text)).toEqual(expected);
+        });
+    });
+
     test('adds end and indents next for isStatement blocks', () => {
         const nextBlock = { id: 'b2', opcode: 'motion_movesteps', inputs: {}, parent: 'b1', next: null };
         const block = { id: 'b1', inputs: {}, parent: null, next: 'b2', isStatement: true };
