@@ -4,31 +4,34 @@ import { FormattedMessage } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import { peerViewEntryState } from '../../lib/classroom-peer-view.js';
 import { closeClassroomModal, openStudentPeerPanel } from '../../reducers/classroom.js';
-import styles from './classroom-modal.css';
+import styles from './student-screen-parts.css';
+import StudentTextLink from './student-text-link.jsx';
 
 /**
- * "みんなの作品を見る" in the student's class screen (#1210). Hidden when the
+ * "みんなの作品を見る" in the student's class screen (#1210): a small link (#1794). Hidden when the
  * assignment does not show classmates' work; with "after submitting" and no
  * submission yet it says so instead of opening. Opening closes the class
  * screen so the floating panel sits next to the student's own blocks.
  * @param {object} props - component props
  * @param {boolean} props.disabled - the class screen is busy
+ * @param {Function} [props.onOpen] - called when it opens the panel (GA, #1831)
  * @returns {?React.ReactElement} the button, or null when hidden
  */
-const StudentPeerViewButton = ({ disabled }) => {
+const StudentPeerViewButton = ({ disabled, onOpen }) => {
     const dispatch = useDispatch();
     const peerView = useSelector((state) => state.scratchGui.classroom?.studentPeerView || null);
     const hasSubmitted = useSelector((state) => !!state.scratchGui.classroom?.submissionStatus);
     const entry = peerViewEntryState(peerView, hasSubmitted);
     const handleClick = useCallback(() => {
+        onOpen?.();
         dispatch(openStudentPeerPanel());
         dispatch(closeClassroomModal());
-    }, [dispatch]);
+    }, [dispatch, onOpen]);
 
     if (entry === 'hidden') return null;
     if (entry === 'locked') {
         return (
-            <span className={styles.peerViewLocked} data-testid="classroom-peer-view-locked">
+            <span className={styles.textLinkLocked} data-testid="classroom-peer-view-locked">
                 <FormattedMessage
                     defaultMessage="Submit to see classmates' work"
                     description="Student status: peer view opens after submitting (#1210)"
@@ -38,23 +41,19 @@ const StudentPeerViewButton = ({ disabled }) => {
         );
     }
     return (
-        <button
-            className={styles.secondaryButton}
-            data-testid="classroom-peer-view-button"
-            disabled={disabled}
-            onClick={handleClick}
-        >
+        <StudentTextLink dataTestId="classroom-peer-view-button" disabled={disabled} onClick={handleClick}>
             <FormattedMessage
                 defaultMessage="See classmates' work"
                 description="Student status: open the peer view panel (#1210)"
                 id="gui.classroom.studentStatus.peerView"
             />
-        </button>
+        </StudentTextLink>
     );
 };
 
 StudentPeerViewButton.propTypes = {
     disabled: PropTypes.bool,
+    onOpen: PropTypes.func,
 };
 
 export default StudentPeerViewButton;

@@ -279,3 +279,50 @@ export const lessonsLibraryFocus = (challengeId, progress, courses = COURSES) =>
         nextChallengeId: next ? next.id : null,
     };
 };
+
+/**
+ * コースのチャレンジのうち、いちばん最近できたもの（できた日時が同じならコースの並び順で後ろのもの）。
+ * @param {object} course - コース。
+ * @param {object} progress - 記録。
+ * @returns {?object} チャレンジ。1 つもできていなければ null。
+ */
+const latestCompletedChallenge = (course, progress) => {
+    let latest = null;
+    let latestAt = '';
+    course.lessons.forEach((lesson) =>
+        lesson.challenges.forEach((challenge) => {
+            const record = progress.challenges[challenge.id];
+            if (record && record.completedAt >= latestAt) {
+                latest = challenge;
+                latestAt = record.completedAt;
+            }
+        }),
+    );
+    return latest;
+};
+
+/**
+ * ウェルカムの「レッスンを始める」でレッスン表を開くとき、どのレッスンを見せて、どのチャレンジに
+ * 「次はこれ！」を付けるか（#1888）。見せ方は「できた！」の「次のチャレンジへ」（lessonsLibraryFocus）と同じ:
+ *   - まだ全部はできていない最初のコースを見る。全部できていれば null（メニューから開いたときと同じ）。
+ *   - そのコースで 1 つもできていない: 最初のまだできていないチャレンジ（= レッスン 1 の最初のチャレンジ）。
+ *   - 途中: いちばん最近できたチャレンジを「いまのチャレンジ」として lessonsLibraryFocus で決める。
+ *     それで印が付かない（後ろのレッスンが全部できていて、前のレッスンが残っている）ときは、
+ *     コースの並び順で最初のまだできていないチャレンジに付ける。
+ * @param {object} progress - 記録。
+ * @param {Array} [courses] - コース（テスト用）。
+ * @returns {?{language: string, courseId: string, lessonId: string, nextChallengeId: string}} 全部できていれば null。
+ */
+export const startLessonsFocus = (progress, courses = COURSES) => {
+    const course = courses.find((c) => !courseProgress(c, progress).allCompleted && c.lessons.length > 0);
+    if (!course) return null;
+    const latest = latestCompletedChallenge(course, progress);
+    if (latest) {
+        const focus = lessonsLibraryFocus(latest.id, progress, courses);
+        if (focus && focus.nextChallengeId) return focus;
+    }
+    const lesson = course.lessons.find((l) => !isLessonAllCompleted(l, progress));
+    const next = lesson ? nextIncompleteChallenge(lesson, progress, null) : null;
+    if (!next) return null;
+    return { language: course.language, courseId: course.id, lessonId: lesson.id, nextChallengeId: next.id };
+};

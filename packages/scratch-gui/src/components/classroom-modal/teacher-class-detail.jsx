@@ -146,7 +146,6 @@ const TeacherClassDetail = ({
     const handleDescRemovePage = descEditor.onRemovePage;
     const handleDescRemovePageImage = descEditor.onRemovePageImage;
     const handleDescRemoveStarter = descEditor.onRemoveStarter;
-    const handleDescChangeStartFromPrevious = descEditor.onChangeStartFromPrevious;
     const handleDescChangePeerView = descEditor.onChangePeerView;
     const handleDescChangeMeshGroupLimit = descEditor.onChangeMeshGroupLimit;
     const handleDescChangeLesson = descEditor.onChangeLesson;
@@ -963,7 +962,6 @@ const TeacherClassDetail = ({
                                     savedSettings={descEditor.savedSettings}
                                     starterMode={descEditor.starterMode}
                                     starterSource={descEditor.starterSource}
-                                    startFromPrevious={!!descEditor.startFromPrevious}
                                     peerView={descEditor.peerView || 'none'}
                                     meshGroupLimit={descEditor.meshGroupLimit}
                                     lessonDraft={descEditor.lessonDraft || null}
@@ -980,7 +978,6 @@ const TeacherClassDetail = ({
                                     onMovePage={handleDescMovePage}
                                     onRemovePage={handleDescRemovePage}
                                     onRemovePageImage={handleDescRemovePageImage}
-                                    onChangeStartFromPrevious={handleDescChangeStartFromPrevious}
                                     onChangePeerView={handleDescChangePeerView}
                                     onChangeMeshGroupLimit={handleDescChangeMeshGroupLimit}
                                     onRemoveStarter={handleDescRemoveStarter}
@@ -1339,15 +1336,6 @@ const TeacherClassDetail = ({
                                                     data-testid="classroom-description-preview-start"
                                                 >
                                                     {(() => {
-                                                        if (descEditor.startFromPrevious) {
-                                                            return (
-                                                                <FormattedMessage
-                                                                    defaultMessage="On join: continuing from last time's submission is recommended (the starter if there is none)"
-                                                                    description="Student-view preview: start-from-previous setting is on"
-                                                                    id="gui.classroom.teacherDetail.previewStartPrevious"
-                                                                />
-                                                            );
-                                                        }
                                                         if (
                                                             descEditor.starterMode &&
                                                             descEditor.starterMode !== 'none'
@@ -1355,7 +1343,7 @@ const TeacherClassDetail = ({
                                                             return (
                                                                 <FormattedMessage
                                                                     defaultMessage="On join: students start from the starter with a button (students with an earlier submission choose where to start)"
-                                                                    description="Student-view preview: setting off, assignment has a starter"
+                                                                    description="Student-view preview: the assignment has a starter"
                                                                     id="gui.classroom.teacherDetail.previewStartStarter"
                                                                 />
                                                             );
@@ -1363,7 +1351,7 @@ const TeacherClassDetail = ({
                                                         return (
                                                             <FormattedMessage
                                                                 defaultMessage="On join: students start with the open project (students with an earlier submission choose where to start)"
-                                                                description="Student-view preview: setting off, no starter"
+                                                                description="Student-view preview: the assignment has no starter"
                                                                 id="gui.classroom.teacherDetail.previewStartNone"
                                                             />
                                                         );

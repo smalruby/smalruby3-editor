@@ -1,6 +1,19 @@
 // === Smalruby: This file is Smalruby-specific (module sync across sprites) ===
 import RubyGenerator from './ruby-generator';
+import { rubyMarkerValueOf } from './ruby-markers';
 import { targetCodeToBlocks } from './ruby-to-blocks-converter';
+
+/**
+ * The module of a method from the comment of its definition: `@ruby`:module_source:<module>, or
+ * `@ruby`:module_source:<module>:super_of:<name> for a method renamed for `super`. The comment of the
+ * user comes before the marker (issue #1857).
+ * @param {?string} text - The comment text.
+ * @returns {?string} The module name, or null.
+ */
+const moduleNameOfComment = (text) => {
+    const value = rubyMarkerValueOf(text, '@ruby:module_source:');
+    return value === null ? null : value.replace(/:super_of:.*$/, '');
+};
 
 /**
  * Get module names from a target's procedure block comments.
@@ -13,9 +26,9 @@ export const getModuleNamesFromTarget = (target) => {
 
     for (const commentId in target.comments) {
         const comment = target.comments[commentId];
-        const match = comment.text && comment.text.match(/^@ruby:module_source:(.+)$/);
-        if (match) {
-            moduleNames.add(match[1]);
+        const moduleName = moduleNameOfComment(comment.text);
+        if (moduleName !== null) {
+            moduleNames.add(moduleName);
         }
     }
     return moduleNames;
@@ -36,7 +49,7 @@ export const findTargetsWithModule = (vm, moduleName, excludeTargetId) => {
 
         for (const commentId in target.comments) {
             const comment = target.comments[commentId];
-            if (comment.text === `@ruby:module_source:${moduleName}`) {
+            if (moduleNameOfComment(comment.text) === moduleName) {
                 targets.push(target);
                 break;
             }

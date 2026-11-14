@@ -21,7 +21,7 @@ const registerLeftAssocOverride = (Generator, outerOrder, innerOrder) => {
  */
 export default function (Generator) {
     Generator.operator_add = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment === '@ruby:method:to_i') {
             const value = Generator.valueToCode(block, 'NUM1', Generator.ORDER_RECEIVER) || 0;
             return [`${value}.to_i`, Generator.ORDER_FUNCTION_CALL];
@@ -36,7 +36,7 @@ export default function (Generator) {
     };
 
     Generator.operator_subtract = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment && comment.includes('@ruby:array:index')) {
             // Round-trip pattern: subtract(itemnumoflist, 1) -> pass through .index() result.
             // Hand back NUM1 with its own order and let the outer block decide on parentheses:
@@ -136,7 +136,7 @@ export default function (Generator) {
             numOrder = Generator.ORDER_NONE;
         }
         const num = Generator.valueToCode(block, 'NUM', numOrder) || '0';
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         switch (operator) {
             case 'abs':
                 return [`${num}.abs`, order];

@@ -1,6 +1,39 @@
 // === Smalruby: This file is Smalruby-specific (class definition wrapping for RubyGenerator) ===
 
 /**
+ * Split the parts of an `@ruby`:initialize: comment (`args=(a, b),super=(foo(1)),attr=hp`) at the
+ * commas outside of parentheses, so that `super=(foo(1))` and `args=(a, b)` are read whole.
+ * @param {string} text - The text after `@ruby`:initialize:.
+ * @returns {object} The parts by name (`args` / `super` / `attr`); `super` is '' without arguments.
+ */
+const parseInitializeParts = function (text) {
+    const tokens = [];
+    let depth = 0;
+    let start = 0;
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '(') {
+            depth++;
+        } else if (ch === ')') {
+            depth = Math.max(0, depth - 1);
+        } else if (ch === ',' && depth === 0) {
+            tokens.push(text.slice(start, i));
+            start = i + 1;
+        }
+    }
+    tokens.push(text.slice(start));
+    const parts = {};
+    for (const token of tokens) {
+        const eq = token.indexOf('=');
+        const name = eq < 0 ? token : token.slice(0, eq);
+        if (name === 'args' || name === 'super' || name === 'attr') {
+            parts[name] = eq < 0 ? '' : token.slice(eq + 1);
+        }
+    }
+    return parts;
+};
+
+/**
  * Register class wrapping and set_xxx generation methods on the RubyGenerator.
  * Handles: _wrapWithClass, _isValidClassName, _generateSetXxx, _generateStageSetXxx.
  * @param {object} Generator - The RubyGenerator instance.
@@ -149,7 +182,8 @@ export default function (Generator) {
                 const kind = attrMatch[1];
                 const names = attrMatch[2].split('+');
                 const syms = names.map((n) => `:${n}`).join(', ');
-                attrLines.push(`attr_${kind} ${syms}`);
+                // The loop goes backwards to splice; unshift keeps the order of the source
+                attrLines.unshift(`attr_${kind} ${syms}`);
                 allowedAttributes.splice(i, 1);
             }
         }
@@ -272,6 +306,11 @@ export default function (Generator) {
         const LOCAL_PATTERN = /^_(?![A-Z])[\p{L}_][\p{L}\p{N}_]*_\d+_$/u;
         const RETURN_PATTERN = /^_return_/;
 
+        const initComment = commentTexts.find((c) => c.startsWith('@ruby:initialize:'));
+        const initParts = initComment ? parseInitializeParts(initComment.slice('@ruby:initialize:'.length)) : {};
+        // The variables of attr_accessor set in initialize (issue #1839): `attr=hp+mp`.
+        const initializedAttrNames = new Set(initParts.attr ? initParts.attr.split('+') : []);
+
         // Collect variable/list assignments
         const assignments = [];
         for (const varId in target.variables) {
@@ -284,8 +323,15 @@ export default function (Generator) {
             if (RETURN_PATTERN.test(variable.name)) continue;
             if (LOCAL_PATTERN.test(variable.name)) continue;
 
-            // Skip attr_accessor variables (managed by accessor, not initialize)
-            if (this._attrAccessorNames && this._attrAccessorNames.has(variable.name)) continue;
+            // Skip attr_accessor variables (managed by accessor, not initialize), unless they are set in
+            // initialize
+            if (
+                this._attrAccessorNames &&
+                this._attrAccessorNames.has(variable.name) &&
+                !initializedAttrNames.has(variable.name)
+            ) {
+                continue;
+            }
 
             const isList = variable.type === 'list';
             let valueCode;
@@ -304,8 +350,7 @@ export default function (Generator) {
 
         if (assignments.length === 0) {
             // Check if there's an @ruby:initialize comment (args/super without variables)
-            const initComment = commentTexts.find((c) => c.startsWith('@ruby:initialize'));
-            if (!initComment) return [];
+            if (!commentTexts.some((c) => c.startsWith('@ruby:initialize'))) return [];
         }
 
         // Sort alphabetically
@@ -314,19 +359,12 @@ export default function (Generator) {
         // Parse @ruby:initialize comment for args and super
         let args = '';
         let superCall = '';
-        const initComment = commentTexts.find((c) => c.startsWith('@ruby:initialize:'));
-        if (initComment) {
-            const parts = initComment.slice('@ruby:initialize:'.length);
-            // Parse comma-separated key=value pairs, but handle super=(...)
-            const argsMatch = parts.match(/args=(\([^)]*\)|[^,]*)/);
-            if (argsMatch) {
-                const argsValue = argsMatch[1];
-                args = argsValue.startsWith('(') ? argsValue : `(${argsValue})`;
-            }
-            const superMatch = parts.match(/super(?:=(\([^)]*\)))?/);
-            if (superMatch) {
-                superCall = superMatch[1] ? `  super${superMatch[1]}` : '  super';
-            }
+        if (Object.prototype.hasOwnProperty.call(initParts, 'args')) {
+            const argsValue = initParts.args;
+            args = argsValue.startsWith('(') ? argsValue : `(${argsValue})`;
+        }
+        if (Object.prototype.hasOwnProperty.call(initParts, 'super')) {
+            superCall = initParts.super ? `  super${initParts.super}` : '  super';
         }
 
         const lines = [`def initialize${args}`];

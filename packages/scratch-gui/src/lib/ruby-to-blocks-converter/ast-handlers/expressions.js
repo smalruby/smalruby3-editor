@@ -431,7 +431,9 @@ const ExpressionHandlers = {
             if (isNil || !/[\r\n]/.test(returnValue.value)) {
                 literalMarker = isNil ? ',@ruby:nil' : `,@ruby:symbol:${returnValue.value}`;
             }
-            returnValue = this._createTextBlock(isNil ? '' : returnValue.value.toString());
+            // The text itself goes in the input, as `return ""` does: a text block put there got a `0`
+            // shadow behind it, which no script reached (issue #1866).
+            returnValue = isNil ? '' : returnValue.value.toString();
         }
         assignBlock.comment = this._createComment(
             `@ruby:syntax:return @ruby:return:${procedureName}${parenMarker}${literalMarker}`,

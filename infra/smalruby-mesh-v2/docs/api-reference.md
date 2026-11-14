@@ -378,8 +378,8 @@ query PollGroupData($groupId: ID!, $domain: String!, $since: String!) {
 
 ## 入力の上限
 
-サーバーはクライアントから受け取る ID・グループ名について、**長さと使える文字の上限だけ**を検査する。
-外れた値は DB に触る前に `ValidationError` になる。グループ名の中身（`<hostId>|host=7` や
+サーバーはクライアントから受け取る ID・グループ名・イベントの `payload` について、**長さと使える文字の上限だけ**を検査する。
+外れた値は DB に触る前に `ValidationError` になる（切り詰めはしない。クライアントが気づけるように拒否する）。グループ名・`payload` の中身（`<hostId>|host=7` や
 `<hostId>|seats=3,7,12|host=3` などの書式）はクライアント間の約束なので、サーバーでは検査しない。
 
 | 引数 | 長さ | 使える文字 | 対象 mutation |
@@ -387,10 +387,16 @@ query PollGroupData($groupId: ID!, $domain: String!, $since: String!) {
 | `hostId` / `nodeId` | 1〜128 文字 | `A-Z` `a-z` `0-9` `_` `-` のみ | `createGroup` / `joinGroup` / `leaveGroup` / `dissolveGroup` / `renewHeartbeat` / `sendMemberHeartbeat` / `reportDataByNode` / `fireEventsByNode` / `recordEventsByNode` |
 | `name`（グループ名） | 1〜1024 文字 | 制御文字（U+0000〜U+001F, U+007F）以外 | `createGroup` |
 | `domain` | 最大 256 文字 | （検査なし） | `createGroup` |
+| `events[].payload`（イベントの payload） | 0〜1000 文字（省略・`null` も可） | （検査なし） | `fireEventsByNode` / `recordEventsByNode` |
 
 - 今のクライアントの ID は 32 桁の 16 進（`uuidv4` からハイフンを除いたもの）+ 任意で出席番号の
   末尾 `s<2〜3 桁>`（例 `…s07`）。グループ名はクライアントが 512 文字以内で作る。上限はそれぞれに
   余裕を持たせている（ハイフン入りの旧形式・テスト用 ID も通る）。
+- `payload` の上限は GUI の上限と同じ 1000 文字。費用と悪用を防ぐため、サーバーでも守る。文字数は
+  UTF-16 のコード単位（JavaScript の `String#length`）で数える。日本語の 1 文字は 1、絵文字は多くが 2 に
+  なる。GUI の `.length` と AppSync JS リゾルバの判定に合わせ、Ruby Lambda も同じ数え方にしている。1 件でも
+  上限を超えるとバッチ全体を拒否し、エラーメッセージで何番目のイベントか（`events[1].payload must be
+  1000 characters or less`）を返す。`payload` の無いイベントは今までどおり通る。
 - DynamoDB のキー区切りに使う `#` や、グループ名の区切り `|` は ID に使えない。
 - 上限は 2 か所に同じ値で持つ。変えるときは対で更新する:
   - AppSync JS リゾルバ: `js/shared/meshInputValidation.js`（CDK が `checkExistingGroup` /
@@ -897,7 +903,7 @@ Mesh V2 バックエンドは以下の GraphQL エラー型を返します。
 | `GroupNotFound` | グループが存在しない、期限切れ、またはホストのハートビートがタイムアウトした | **即座に切断** | `js/functions/checkGroupExists.js` |
 | `Unauthorized` | 認可されていないノードが操作を試みた（例：非ホストがグループのハートビートを更新しようとした） | **即座に切断** | `js/functions/renewHeartbeatFunction.js` |
 | `NodeNotFound` | 指定されたノード（クライアント）がグループに存在しない | **即座に切断** | `js/functions/updateNodeTTL.js` |
-| `ValidationError` | 提供されたパラメータが検証に失敗した（例：ドメイン文字列が長すぎる、ID・グループ名が[入力の上限](#入力の上限)を外れた） | エラーをログに記録して続行（切断**しない**） | 各種リゾルバー / `js/shared/meshInputValidation.js` / `lambda/domain/mesh_input.rb` |
+| `ValidationError` | 提供されたパラメータが検証に失敗した（例：ドメイン文字列が長すぎる、ID・グループ名・イベントの payload が[入力の上限](#入力の上限)を外れた） | エラーをログに記録して続行（切断**しない**） | 各種リゾルバー / `js/shared/meshInputValidation.js` / `lambda/domain/mesh_input.rb` |
 
 ### クライアント実装の詳細
 

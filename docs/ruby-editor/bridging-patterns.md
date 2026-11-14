@@ -48,12 +48,31 @@ Scratch のブロックだけでは元の Ruby の形がわからないことが
 ### 書き方
 
 - 形は `@ruby:<種類>[:<値>...]`。値の区切りは `:`。
-- 1 つのブロックに注釈が 2 つ以上あるときは `,` でつなぐ（例: `@ruby:lvar:a:1,@ruby:syntax:+=`）。生成器は `comment.split(/,(?=@ruby:)/)` か `includes` で探す。
+- 1 つのブロックに注釈が 2 つ以上あるときは `,` でつなぐ（例: `@ruby:lvar:a:1,@ruby:syntax:+=`）。
   - 例外: 明示の `return` だけは空白でつなぐ（`@ruby:syntax:return @ruby:return:foo`）。
   - `@ruby:list_ref` / `@ruby:block_param` は 1 行に 1 つ（`\n` でつなぐ）。
 - 利用者のコメント（`# ...`）があるブロックでは、**利用者の文を先の行に、注釈をそのあとの行に**置く（`comment-handler.js` の `_mergeUserComment`）。たたんだコメントは 1 行目しか見えないので、利用者の文が見えるようにするため。
 - 注釈だけのコメントはブロックのコメントのアイコンを出さない（`src/lib/scratch-blocks-comment-icon-patch.js`。空でない行がすべて `@ruby:` で始まるとき）。
 - 生成器は `#` のコメントを書くとき `@ruby:` で始まる行を捨てる（`ruby-generator/scrub.js`）。
+
+### 読み方（生成器）
+
+ブロックの注釈を読むのは `src/lib/ruby-markers.js` の `rubyMarkersOf` だけ（生成器のほか、`module-sync.js` と、Ruby v1 に戻せるかを見る `settings-menu.jsx` / `mobile-drawer.jsx` も使う）。`@ruby:` で始まる行を注釈の行とし、行の中は `,` か空白のすぐあとに `@ruby:` が続くところで分ける。利用者のコメントがどこにあっても（前の行・行末・複数行）、注釈が先でも後でも同じ注釈の並びになる。
+
+- 値の中の `,`（`@ruby:class:<=X,name=Cat`）は、すぐあとが `@ruby:` でなければ分けない。
+- 値がプログラムの文字（`@ruby:syntax:case` の式、`@ruby:symbol` の名前、`@ruby:module_source` の module 名）の注釈は、行の終わりまでを値にする。`case "a @ruby:b"` の式の中の `@ruby:` で切らないため。ただし、変換器がそのあとに足す注釈（`,@ruby:method:puts`、`,@ruby:begin_loop_body`、ループの注釈）は分ける。
+- 同じ種類の注釈が 2 つあるときは、あとのものを使う。変換器は利用者の文のあとに注釈を置くので、利用者が `@ruby:` で始まる行を書いても変換器の注釈が勝つ。
+
+生成器のブロックごとの読み取りは、`scrub.js` が `Generator` に足す次のメソッドを使う。どれも `@ruby:comment_position:*`（利用者のコメントの位置）を除いた注釈を見るので、利用者がコメントを足しても「このブロックの注釈はこれだけ」が変わらない。
+
+| メソッド | 返すもの |
+|---|---|
+| `getRubyMarkers(block)` | 注釈の配列 |
+| `hasRubyMarker(block, '@ruby:method:clone')` | その注釈があるか |
+| `findRubyMarker(block, '@ruby:syntax:case:')` / `rubyMarkerValue(block, '@ruby:symbol:')` | その形で始まる最初の注釈 / そのあとの値 |
+| `getRubyMarkerText(block)` | 注釈を `,` でつないだ文字列（注釈の組み合わせ全体を正規表現で見る古い読み方のため） |
+
+`getCommentText(block)` の文字列を `startsWith` / `===` / `split` で直接読まない。利用者の文が先に来ると注釈を見落とす。
 
 ### 注釈は「形が同じなら戻す」ための手がかり
 
@@ -133,7 +152,7 @@ end
 - **呼び出し側**: 値として使う呼び出しは、呼び出しのブロック（`procedures_call`）を文の前に置き、値の場所では変数 `_return_foo_` を読む。両方に `@ruby:return:foo` を付ける。
 - **同じ行で 2 回以上呼ぶとき**（`foo(1) + foo(2)`）: 先の呼び出しの値はあとの呼び出しで上書きされるので、`_return_foo_1_ = _return_foo_` のブロックで控えておき、控えを読む。最後の 1 回より前の呼び出しは `@ruby:return:foo:<番号>` になる。
 - **呼び出しのキャッシュ（生成器）**: 生成器は `@ruby:return:foo` の `procedures_call` を書くとき、出力せずに `Generator.returnCallCache_['foo']` へ `foo(3)` を入れる。あとで同じ注釈の変数ブロック（`data_variable`）を書くときにキャッシュから取り出し、変数の代わりに `foo(3)` を書く（`procedure.js` / `data.js`）。控えのブロック（`@ruby:return:foo:1`）と初期化のブロック（`:initialize`）は何も書かない。
-- **`nil` / シンボル / 引数なしの `return` / かっこ**: ブロックに無い値は文字列にして、`,@ruby:nil` / `,@ruby:symbol:a` / `,@ruby:return-bare` / `,@ruby:return-paren` を `@ruby:return` に足す。
+- **`nil` / シンボル / 引数なしの `return` / かっこ**: ブロックに無い値は文字列（入力の文字そのもの。文字列のブロックを別に作らない）にして、`,@ruby:nil` / `,@ruby:symbol:a` / `,@ruby:return-bare` / `,@ruby:return-paren` を `@ruby:return` に足す。
 
 **往復の例**:
 
@@ -155,7 +174,7 @@ end
 - 同じ行で値を控えたあとに、メソッドがそのメソッド自身を呼ぶ形（`return fib(n - 1) + fib(n - 2)`）。中の呼び出しが控えを上書きするので、Ruby と同じ値にならない。
 - 1 行の中で値として使う `super` が 2 つ以上ある形。
 
-**テスト**: `ruby-to-blocks-converter/method-return/method-return1.test.js`〜`method-return5.test.js`、`ruby-generator/method-return.test.js`、`ruby-roundtrip/my_blocks.test.js`、`ruby-roundtrip/method-return-value-shapes.test.js`、`ruby-roundtrip/return-value-used-twice.test.js`、`ruby-roundtrip/return-call-paren-list-and-self-line.test.js`。
+**テスト**: `ruby-to-blocks-converter/method-return/method-return1.test.js`〜`method-return5.test.js`、`ruby-generator/method-return.test.js`、`ruby-roundtrip/my_blocks.test.js`、`ruby-roundtrip/method-return-value-shapes.test.js`、`ruby-roundtrip/return-literal-no-orphan.test.js`、`ruby-roundtrip/return-value-used-twice.test.js`、`ruby-roundtrip/return-call-paren-list-and-self-line.test.js`。
 
 ### P3. メソッドブロックの戻り値（文字列・配列・ハッシュのメソッド）
 
@@ -198,7 +217,7 @@ say(@_ret1.length + @_ret2.length)
 
 - **配列リテラルの代入**: 「すべて削除」（`@ruby:array:literal:<個数>`）と「追加する」を要素の数だけ（`@ruby:array:literal:element`）。生成器は `@ruby:array:literal:<個数>` から先の個数の「追加する」をまとめて `@a = [1, 2, 3]` に戻す。
 - **添字**: Ruby は 0 から、Scratch は 1 から数える。`@a[i]` は「`i + 1` 番目」にし、足し算に `@ruby:array:index` を付ける。生成器は `+ 1` を消して `@a[i]` に戻す。文字の位置（`"abc"[i]`）も同じ。
-- **`delete_at(-1)`**: `@ruby:array:delete_at:last` を付ける。
+- **`delete_at(-1)`**: 「（リストの長さ）番目を削除する」にし、`@ruby:array:delete_at:last` を付ける。添字が「リストの長さ」なので、ブロックとして動かしても最後の項目が消える。生成器は、添字が同じリストの長さのブロックなら注釈が無くても `delete_at(-1)` と書く。注釈があって添字が `1` のもの（前の変換器が作った形）も `delete_at(-1)` と書く。利用者が添字をほかの数に書きかえたら、ふつうの `delete_at` として書く。Ruby v1（`list("$a").delete_at(-1)`）も同じで、v1 の `list("$a").delete_at(list("$a").length)` も `delete_at(-1)` に戻る（意味は同じ）。
 - **変数とリストが同じ名前のとき**: Scratch では変数 `a` とリスト `a` を同時に持てるが、Ruby の `@a` は 1 つ。生成器はリストの方を `@_a_list_`（それも使われていれば `@_a_list2_` ...）と書き、変換器は `@_a_list_` をリスト `a` に読む（`_listNameOfAlias`）。
 - **ブロック付きのメソッド**（`@a.each do |x|`）: `smalrubyRuby_arrayMethodWithBlock`。リストの ID と名前を隠しフィールド `LIST_ID` / `LIST_NAME` に持たせる（→ P13）。
 
@@ -222,9 +241,16 @@ say(@_a_list_[0])
 
 - スプライトには変数 `a` とリスト `a` ができ、同じコードに戻る。
 
-**できないこと**: 1 つの名前を変数とリストの両方に使う形（`@a = 0` と `@a.push(1)`）はエラー（`variableAndListSameName`）。配列リテラルに直接メソッドを使う形もエラー（`arrayLiteralReceiver`）。
+```ruby
+@a = [1, 2, 3]
+@a.delete_at(-1)
+```
 
-**テスト**: `ruby-to-blocks-converter/variables/variables-array-global.test.js`、`variables-array-local.test.js`、`ruby-roundtrip/variables-v2-array.test.js`、`ruby-roundtrip/list-index-parens.test.js`、`ruby-roundtrip/list-as-argument.test.js`、`ruby-roundtrip/variable-and-list-same-name.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-roundtrip/string-letter-index.test.js`、`ruby-generator/data.test.js`。
+- 「a の（a の長さ）番目を削除する」になり、動かすと `a` は `1, 2` になる。同じコードに戻る。
+
+**できないこと**: 1 つの名前を変数とリストの両方に使う形（`@a = 0` と `@a.push(1)`）はエラー（`variableAndListSameName`）。配列リテラルに直接メソッドを使う形もエラー（`arrayLiteralReceiver`）。要素は数・文字列（式展開の文字列 `"a#{@x}"` は除く）・値のブロック（`@x`、`1 + 2`、`true` など）だけで、ほかの要素（代入などの命令 `[(@a = 1)]`、シンボル・`nil`・配列・ハッシュ・`self`、値を返すメソッドの呼び出し `[foo(1)]`）はその行の「命令がまちがっています」のエラー（`wrongInstruction`）。リストに入れられないので、黙って `0` にしない。保存済みのプロジェクトの前の形（添字 `1` に `@ruby:array:delete_at:last`）は、読みこんでもブロックは直らず、動かすと 1 番目の項目が消える（Ruby に戻すと `delete_at(-1)` なので、Ruby とブロックの動きが合わない）。Ruby タブで変換し直すと「（リストの長さ）番目」になる。`-1` 以外の負の添字（`@a[-1]`、`@a.delete_at(-2)`）は「`-1 + 1` 番目」のように数えるので、往復はするが、ブロックとして動かすと Ruby と同じ項目にならない。
+
+**テスト**: `ruby-to-blocks-converter/literal-element-not-a-value.test.js`、`ruby-to-blocks-converter/variables/variables-array-global.test.js`、`variables-array-local.test.js`、`ruby-roundtrip/variables-v2-array.test.js`、`ruby-roundtrip/list-index-parens.test.js`、`ruby-roundtrip/list-as-argument.test.js`、`ruby-roundtrip/variable-and-list-same-name.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-roundtrip/string-letter-index.test.js`、`ruby-roundtrip/list-delete-at-last-vm.test.js`、`ruby-generator/data.test.js`。
 
 ### P5. ハッシュ
 
@@ -254,7 +280,7 @@ say(@h.length)
 
 - 同じコードに戻る。
 
-**できないこと**（エラーになる形）: キーがシンボルでも文字列でもない（`hashKeyNotSupported`）、値がハッシュ・配列・`nil`（`@h = {a: {b: 1}}`、`hashValueNotSupported`）、ハッシュのリテラルに直接メソッドを使う（`{a: 1}.keys`、`hashLiteralReceiver`）。
+**できないこと**（エラーになる形）: キーがシンボルでも文字列でもない（`hashKeyNotSupported`）、値がハッシュ・配列・`nil`（`@h = {a: {b: 1}}`、`hashValueNotSupported`）、ハッシュのリテラルに直接メソッドを使う（`{a: 1}.keys`、`hashLiteralReceiver`）。値が代入などの命令（`{a: (@a = 1)}`）や値を返すメソッドの呼び出し（`{a: foo(1)}`）のときは、配列の要素と同じく「命令がまちがっています」のエラー（`wrongInstruction`）。
 
 **テスト**: `ruby-to-blocks-converter/variables/variables-hash-global.test.js`、`ruby-roundtrip/variables-v2-hash.test.js`、`variables-v2-hash-methods.test.js`、`variables-v2-hash-methods-vm.test.js`、`variables-v2-hash-unused-variable.test.js`。
 
@@ -273,6 +299,9 @@ say(@h.length)
   - 何も無いときは `@ruby:class` だけ。
 - **attr_accessor**: 生成器は注釈の名前を `_attrAccessorNames` に入れ、`@hp` を `hp`、`@hp = 1` を `self.hp = 1` と書く。
 - **initialize**: 中の `@x = 10`（ステージは `$x`）は、ブロックではなく変数の初期値になる（`initialize-handler.js`）。引数と `super` はスプライトのコメント `@ruby:initialize:args=(a, b),super` / `super=(1, 2)` に残す。
+  - attr_accessor（`attr_reader` / `attr_writer`）の変数は、initialize に書かなくても変数ができるので、生成器はふだん initialize に書かない。initialize で値を入れた attr_accessor の変数だけ、名前を `@ruby:initialize:attr=hp+mp` に残し、生成器はその変数を initialize に書く。
+  - 注釈の部分は、かっこの外の `,` で区切って読む（`super=(foo(1)),attr=hp` の `super(foo(1))` もそのまま戻る）。
+- **class の中の順**: 生成器は class の中を `set_xxx`・`def initialize`・`include`・`attr_accessor`・スクリプトの順に書く。変換器は書いた順を持たないので、ほかの順に書いたコード（`attr_accessor` を `def initialize` より先に書くなど）は、往復するとこの順になる。この順に書いたコードは同じコードに戻る。
 - **module**: module のメソッドは、include したスプライトの定義ブロックとして作り、`@ruby:module_source:<module 名>` を付ける。生成器はこの注釈の定義ブロックを `module ... end` にまとめて書く。ほかのスプライトの同じ module は `module-sync.js` が同じ内容にそろえる。module の前の `#` コメントは、スプライトのコメントに `\n@ruby:module:<module 名>` を付けて残す。
 - **super**: スプライトのメソッドが module の同じ名前のメソッドを `super` で呼ぶとき、module 側の定義を `_super_<メソッド>_<番号>_` に名前を変えて作り、`@ruby:module_source:<module 名>:super_of:<元の名前>` を付ける。`super` はその定義の呼び出しブロックになり、`@ruby:super`（引数あり）か `@ruby:super:forwarding`（引数なし）を付ける。値として使う `super` は `,@ruby:return:<名前>` も付く（→ P2）。
 - **Ruby v1 に戻せない**: `@ruby:class` / `@ruby:module_source` があるプロジェクトは、設定で Ruby v1 に切りかえられない（`settings-menu.jsx` / `mobile-drawer.jsx`）。
@@ -311,6 +340,22 @@ end
 ```
 
 - 変数 `hp` の初期値が 3 になり、同じコードに戻る。
+
+```ruby
+class Sprite1
+  def initialize
+    @hp = 3
+  end
+
+  attr_accessor :hp
+
+  when_flag_clicked do
+    say(hp)
+  end
+end
+```
+
+- スプライトのコメントは `@ruby:class:attr_accessor=hp` と `@ruby:initialize:attr=hp`。変数 `hp` の初期値が 3 になり、同じコードに戻る。`attr_accessor :hp` を `def initialize` より先に書いても `@hp = 3` は残るが、戻すと上の順になる。
 
 **できないこと**（エラーになる形）: class の中に直接書いた命令（`wrongInstructionInClass`）、ステージの class に別の親クラス（`invalidStageSuperclass`）、`initialize` の中の代入以外の文（`invalidInitializeBody`）、スプライトの `initialize` での `$x =`（`wrongVariableScopeInInitialize`）、入れ子の module、module の中の `def` 以外、`module_function`、`extend`、ステージでの module / include、Ruby v1 での class / module。
 
@@ -467,6 +512,9 @@ puts("a")
 
 - **ループの条件の中のメソッド呼び出し**（`while bar(@a) < 3`）: 条件の値を作るために、呼び出しを最初の 1 回はループの前、2 回目からはループの中身の最後に置く。中身の最後の分には `@ruby:loop_condition_call` を付け、生成器は書かない（`scrub.js`）。
 - **`begin ... end while`**: 前に置いた中身がループの中身と同じときだけ、生成器はそれを書かない。違っていれば（利用者が片方を書きかえた）両方を書く。
+- **`case` の式と `when` の値は値だけ**: 比べるブロック（`=`）の入力に入れるので、引数と同じく値として変換する（`_visitAsValue`）。値を返すメソッドの呼び出し（`case foo(1)` / `when foo(1)`）は、呼び出しと戻り値の変数になる（P2）。代入（`when (@a = "abc")`）や命令（`case move(1)`、値を返さないメソッド）は、`case` / `when` から値の終わりまでを 1 行にして示す「命令がまちがっています」のエラーにする（`control-flow.js` の `_rejectNonValueInCase`）。入力に命令のブロックを入れると、生成器が `when @` のような壊れた Ruby を書いていた。
+- **`when` の値は 1 つだけ**: `when 1, 2` は同じエラーにする。2 つ目より後の `when` で起きたときも、その `when` から先を黙って捨てない。
+- **できないこと**（エラーになる形）: 比べるブロックの入力に入れられるのは数・文字列（式展開を除く）・値のブロック（`@x`、`1 + 2`、`true` など）だけ。シンボル・`nil`・配列・ハッシュ・`self`・式展開の文字列・正規表現・定数を `when` の値や `case` の式に書く形（`when :sym`、`when nil`、`when [1, 2]`、`when "a#{@x}"`、`when /a/`、`when Integer`、`case :a`）は、`case` / `when` の行の「命令がまちがっています」のエラー。主語の無い `case`（`case` / `when @a > 1`）も、`case` の行の同じエラー（比べる値が無い。`if` / `elsif` で書く）。
 
 **往復の例**:
 
@@ -489,7 +537,7 @@ end while @a < 3
 
 - 同じコードに戻る。
 
-**テスト**: `ruby-to-blocks-converter/control/`、`case-when-children.test.js`、`ruby-generator/control/`、`ruby-roundtrip/control_if.test.js`、`elsif-condition-call.test.js`、`while-and-conditions.test.js`、`loop-condition-call.test.js`、`begin-end-while.test.js`、`until-while-empty-and-wait.test.js`、`empty-loop-body.test.js`。
+**テスト**: `ruby-to-blocks-converter/control/`、`case-when-children.test.js`、`case-when-command.test.js`、`case-when-values.test.js`、`ruby-generator/control/`、`ruby-roundtrip/control_if.test.js`、`elsif-condition-call.test.js`、`while-and-conditions.test.js`、`loop-condition-call.test.js`、`begin-end-while.test.js`、`until-while-empty-and-wait.test.js`、`empty-loop-body.test.js`。
 
 ### P13. ブロック引数
 
@@ -522,6 +570,7 @@ end
 
 - 前の行のコメントは次の行のブロックに付ける。続けて書いた行は 1 つにまとめる。
 - うしろのコメントは同じ行のブロックに付け、`@ruby:comment_position:inline` を足す。生成器はこの注釈があると行の最後に `# ...` と書く。
+- 1 つのブロックに前のコメントとうしろのコメントの両方があるときは、前のコメントの行のあとにうしろのコメントを 1 行で置き、`@ruby:comment_position:inline:last` を足す（`前\nうしろ\n@ruby:comment_position:inline:last`）。生成器は利用者の文の最後の行だけを行の最後に書き、それより前の行は前の行に `# ...` と書く。`inline` だけのときは利用者の文がすべてうしろのコメント。
 - class / module の前のコメントはスプライトのコメントにする。module のときは `@ruby:module:<module 名>` を足し、生成器はそのコメントを module の前に書く（`code-finisher.js`）。
 
 **往復の例**:
@@ -530,13 +579,24 @@ end
 # 前のコメント
 move(10)
 move(20) # うしろのコメント
+# 前
+move(30) # うしろ
 ```
 
-- 同じコードに戻る。
+- 同じコードに戻る。`move(30)` のコメントは `前\nうしろ\n@ruby:comment_position:inline:last`。
 
-**できないこと**: 1 つのブロックに前のコメントとうしろのコメントの両方を付けると、いまは前のコメントが残らない（`_mergeUserComment` がうしろのコメントで上書きする）。
+**できないこと**:
 
-**テスト**: `ruby-to-blocks-converter/comments.test.js`、`comment-round-trip.test.js`、`ruby-generator/scrub.test.js`。
+- 利用者のコメントが、Ruby に書かれないブロックや、行の中の値のブロックに付くことがある（変換器がコメントを付けるブロックを、行の始まりの位置で選ぶため）。
+  - 配列・ハッシュのリテラルの行末のコメントは消える。`@a = [1, 2] # c` の `# c` は最後の要素を足すブロックに付く。前の行のコメントは代入のうしろに移る。
+  - `a += 1 # c` は `# c` が前の行に移る（足し算のブロックに付く）。
+  - 値だけの行（P18）のコメントはスプライトのコメントになり、離れた場所に出る。`"Jimmy" # c` は `# c` と `"Jimmy"` が別の段落になる。
+  - 明示の `return` のコメントは止めるブロックに付く。行末のコメントは消え、前の行のコメントは `return` のうしろに移る。
+  - `case` の前のコメントは比べる値のブロックに付き、`when` の前のコメントは中の最初の命令に付く。
+- C ブロック（`loop do` / `if` など、中に命令を入れるブロック）の行末のコメントは、元の行に戻らない。`loop do # y` は `end # y` になる（コメントが `end` の行に移る）。`if touching?("_edge_") # c` は前の行の `# c` になる（コメントが条件のブロックに付くため）。
+- 空行で離れた前のコメントは消える。`# a\n\n# b\nmove(10)` の `# a` は残らない。
+
+**テスト**: `ruby-to-blocks-converter/comments.test.js`、`comment-round-trip.test.js`、`ruby-generator/scrub.test.js`、`ruby-generator/ruby-markers.test.js`、`module-sync.test.js`、`ruby-roundtrip/comment-markers-table.test.js`（注釈のあるブロックに利用者のコメントがあるとき）。
 
 ### P15. 変数の種類と置き場所
 
@@ -636,9 +696,9 @@ foo.bar(1)
 
 - 同じコードに戻る。
 
-**できないこと**: シンボルだけの行はエラー（P17）。
+**できないこと**: シンボルだけの行はエラー（P17）。配列だけの行の要素は数・文字列（式展開の文字列は除く）・値のブロック（`[@x, 1 + 2]`）だけで、ほかの要素（`[(@a = 1)]`、`[:a]`、`[nil]`）はその行の「命令がまちがっています」のエラー。
 
-**テスト**: `ruby-to-blocks-converter/index.test.js`、`ruby-to-blocks-converter/orphan-blocks.test.js`。
+**テスト**: `ruby-to-blocks-converter/index.test.js`、`ruby-to-blocks-converter/orphan-blocks.test.js`、`ruby-to-blocks-converter/literal-element-not-a-value.test.js`。
 
 ### P19. 拡張機能のメソッドと、標準のブロックの部品を使う引数（メッシュの値つきメッセージ）
 
@@ -679,7 +739,7 @@ say(mesh.message_value)
 | `@ruby:list_ref` | `@ruby:list_ref:KEYS\|VALUES:<リストの ID>:<名前>` | 変換器 `smalruby-ruby.js` | VM `scratch-vm/src/extensions/smalruby_ruby/block-method-executors.js` | `@ruby:list_ref:KEYS:abc:_hash_h_keys_` | P13 |
 | `@ruby:hash` | `literal:<組の数>` / `literal:values` / `literal:key:sym\|str` / `literal:value` / `get:sym\|str` / `set:sym\|str` / `set:delete:key` / `set:push:key` / `set:push:value` / `length` / `key?[:sym\|:str]` | 変換器 `variables.js` / `variable-hash-ops.js` / `variable-list-ops.js` | 生成器 `data-list.js` | `@ruby:hash:get:sym` | P5 |
 | `@ruby:class` | `@ruby:class` / `@ruby:class:<部分>,...`（`<=親`・`name=`・属性名・`attr_accessor=a+b`・`include=M`） | 変換器 `class-visitor.js`（スプライトのコメント） | 生成器 `index.js` / `class-wrapper.js` / `code-finisher.js`、GUI `settings-menu.jsx` / `mobile-drawer.jsx` | `@ruby:class:<=//Smalruby3/Sprite,name=Cat` | P6 |
-| `@ruby:initialize` | `@ruby:initialize:args=(<引数>),super` / `super=(<引数>)` | 変換器 `initialize-handler.js`（スプライトのコメント） | 生成器 `class-wrapper.js` / `code-finisher.js` | `@ruby:initialize:args=(a),super` | P6 |
+| `@ruby:initialize` | `@ruby:initialize:args=(<引数>),super` / `super=(<引数>)` / `attr=<名前>+<名前>`（initialize で値を入れた attr_accessor の変数） | 変換器 `initialize-handler.js`（スプライトのコメント） | 生成器 `class-wrapper.js` / `code-finisher.js` | `@ruby:initialize:args=(a),super` | P6 |
 | `@ruby:module_source` | `@ruby:module_source:<module>`、`:super_of:<元の名前>` | 変換器 `class-visitor.js` | 生成器 `procedure.js`、`src/lib/module-sync.js`、変換器 `module-visitor.js`、GUI `settings-menu.jsx` / `mobile-drawer.jsx` | `@ruby:module_source:Walk` | P6 |
 | `@ruby:module` | `<利用者の文>\n@ruby:module:<module>` | 変換器 `comment-handler.js`（スプライトのコメント） | 生成器 `code-finisher.js` | `@ruby:module:Walk` | P6・P14 |
 | `@ruby:super` | `@ruby:super` / `@ruby:super:forwarding`（値なら `,@ruby:return:<名前>`） | 変換器 `ast-handlers/expressions.js` | 生成器 `procedure.js` / `control.js` | `@ruby:super:forwarding` | P6 |
@@ -695,21 +755,49 @@ say(mesh.message_value)
 | `@ruby:loop_condition_call` | `@ruby:loop_condition_call` | 変換器 `ast-handlers/control-flow.js` | 生成器 `scrub.js` | `while bar(@a) < 3` | P12 |
 | `@ruby:begin_loop_body` | `,@ruby:begin_loop_body`（ほかの注釈に足す） | 変換器 `ast-handlers/control-flow.js` | 生成器 `scrub.js` | `begin ... end while` | P12 |
 | `@ruby:block_param` | `@ruby:block_param:<番号>:<名前>`（1 行に 1 つ） | 変換器 `smalruby-ruby.js` / `control.js` | 生成器 `smalruby-ruby.js` | `@ruby:block_param:1:i` | P13 |
-| `@ruby:comment_position` | `<利用者の文>\n@ruby:comment_position:inline` | 変換器 `comment-handler.js` | 生成器 `scrub.js`、`src/lib/scratch-blocks-comment-icon-patch.js` | `move(10) # ...` | P14 |
+| `@ruby:comment_position` | `<利用者の文>\n@ruby:comment_position:inline`、`<前の文>\n<うしろの文>\n@ruby:comment_position:inline:last` | 変換器 `comment-handler.js` | 生成器 `scrub.js`、`src/lib/scratch-blocks-comment-icon-patch.js` | `move(10) # ...` | P14 |
 
-- すべての注釈を読むところ: `src/lib/scratch-blocks-comment-icon-patch.js`（注釈だけのコメントのアイコンを隠す）、生成器 `scrub.js`（`#` のコメントから `@ruby:` の行を捨てる）、`scratch-vm/src/engine/comment.js`（注釈のコメントの位置）。
+- すべての注釈を読むところ: `src/lib/ruby-markers.js`（ブロックの注釈を読むただ 1 つの関数。生成器・`module-sync.js`・`settings-menu.jsx`・`mobile-drawer.jsx` の「読む」はみなこれを通す。スプライトのコメントの `@ruby:class` / `@ruby:initialize` / `@ruby:module` は生成器がコメント全体の形で読む）、`src/lib/scratch-blocks-comment-icon-patch.js`（注釈だけのコメントのアイコンを隠す）、生成器 `scrub.js`（`#` のコメントから `@ruby:` の行を捨てる）、`scratch-vm/src/engine/comment.js`（注釈のコメントの位置）。
 - 一覧がそろっているかは `grep -rhoE "@ruby:[a-z_?-]+" packages/scratch-gui/src packages/scratch-vm/src | sort -u` で確かめる。
+
+## 表のテスト（ブロックの短い記法）
+
+パターンの往復は、ブロックと Ruby を 1 行ずつ並べた表で確かめる。1 行から「ブロック → Ruby」（生成）・「Ruby → ブロック」（変換）・往復の 3 つのテストができるので、新しい形は **先に表に 1 行足して落ちるのを見てから** 変換器・生成器を書く（手順は `.claude/rules/scratch-gui/testing.md` の「新しい opcode はブロック ⇔ Ruby の表から」）。
+
+```js
+// packages/scratch-gui/test/unit/lib/ruby-roundtrip/motion-table.test.js
+defineBlockRubyTable('Motion blocks ⇔ Ruby', [
+    { blocks: 'motion_movesteps(STEPS: 10)', ruby: 'move(10)' },
+    { blocks: 'motion_turnright(DEGREES: 10) #"@ruby:operator:+="', ruby: 'self.direction += 10' },
+    { blocks: 'data_setvariableto(VARIABLE = @_a_1_, VALUE: "1") #"@ruby:lvar:a:1"', ruby: 'a = 1' },
+]);
+```
+
+記法の要点（全部は `packages/scratch-gui/test/unit/helpers/block-notation.js` の冒頭）:
+
+| 書き方 | 意味 |
+|---|---|
+| `opcode(NAME: 値)` | 入力。値はブロック、数（`10`）、文字列（`"hi"`）、変数（`$x` / `@x`） |
+| `opcode(NAME = 値)` | フィールド（メニューの値・変数・リスト・メッセージ） |
+| `opcode(...) { ... } { ... }` | C 型のブロックの中身（`SUBSTACK`、`SUBSTACK2` の順。`{}` は空） |
+| `#"@ruby:..."` | 直前のブロックのコメント（注釈）。行の頭だけに書くとスプライトのコメント |
+| `$x` / `@x` | ステージの変数 / スプライトの変数（ローカル変数 `a` は `@_a_1_` と `@ruby:lvar`） |
+| 改行・`;` / 空行 | 同じスクリプトの次の文 / 次のスクリプト |
+| `math_angle(90)` / `text("hi")` | opcode まで比べる数・文字列（素の `10` はどの `math_*` とも一致） |
+| `noshadow <ブロック>` / `shadow <ブロック>` | 影かどうかがふつうと違うブロック（メニュー・数・文字列はふつう影） |
+
+比べないもの: ID、位置、ブロックの後ろに隠れた影、素の数の影の opcode の違い（`math_number` と `math_whole_number` など）。どのスクリプトからもつながらないブロックや、無い変数を指すフィールドがあると、変換の側のテストはその理由で落ちる。カスタムブロック（mutation を持つブロック）とエラーになる形は、いまは `test/helpers/expect-to-equal-blocks.js` で書く。
 
 ## 新しい橋渡しパターンを足すときのチェックリスト
 
 - [ ] **先にこの文書を読む**。似たパターンがあれば同じ形（名前・注釈・番号の付け方）にそろえる。
 - [ ] **変換器と生成器を対にする**。注釈を書くなら、それを読む生成器を同じ変更で足す。片方だけだと往復が壊れる（`.claude/rules/scratch-gui/ruby-mode.md` の「converter ⇔ generator の対称性」）。
 - [ ] **注釈の名前**: `@ruby:<種類>:<値>`。既存の種類に入るなら新しい種類を作らない（例: 演算子は `@ruby:operator`、メソッドは `@ruby:method`、構文は `@ruby:syntax`）。同じ形が 1 つのスプライトに何度も出て区別が要るなら `:<番号>` を付ける。
-- [ ] **読む側は注釈を探す**。コメントの先頭に利用者の文が来ることがあり、ほかの注釈が `,` で続くこともある。`comment === '...'` や `startsWith` だけに頼らず、`split(/,(?=@ruby:)/)` や行ごとに探す。
+- [ ] **読む側は `ruby-markers.js` を通す**。コメントの先頭に利用者の文が来ることがあり、ほかの注釈が `,` や空白で続くこともある。生成器は `getCommentText` の文字列を `===` / `startsWith` / `split` で直接読まず、`hasRubyMarker` / `rubyMarkerValue` などで読む（→「[読み方（生成器）](#読み方生成器)」）。表のテストに利用者のコメント付きの行も足す。
 - [ ] **形が変わったら注釈を使わない**。利用者がブロックを書きかえたときは、ふつうのブロックとして書く（P2 の `nil`、P10 の `>=` のように、注釈を付けたときの値と比べる）。
 - [ ] **名前を予約するなら**: 利用者の名前とぶつからない形にし、この文書の「変換器が使う名前」に足す。変換器と生成器で同じ正規表現を 2 か所に持つときは両方を直す。
 - [ ] **できない形はその行のエラーにする**。`ruby_*` のブロックを残さない（P17）。黙って消さない。メッセージは英語と `src/locales/ja.js` の日本語の両方。
-- [ ] **テスト**: 往復（`test/unit/lib/ruby-roundtrip/`）と、変換器・生成器それぞれ（`test/unit/lib/ruby-to-blocks-converter/`・`ruby-generator/`）。エラーになる形もテストにする。
+- [ ] **テスト**: 先に表（`test/unit/lib/ruby-roundtrip/*-table.test.js`、→「[表のテスト](#表のテストブロックの短い記法)」）に 1 行足し、落ちるのを見てから実装する。表で書けないもの（mutation を持つブロック）は往復（`test/unit/lib/ruby-roundtrip/`）と、変換器・生成器それぞれ（`test/unit/lib/ruby-to-blocks-converter/`・`ruby-generator/`）。エラーになる形もテストにする。
 - [ ] **この文書を直す**: パターンを足す・変える・注釈を増やしたら、該当するパターンと「注釈の一覧」を直す。書けることが変わったら言語仕様（`docs/smalruby-language-spec.ja.md`）も直す。不具合を直したときも、考慮漏れだった点をパターンの「できないこと」や説明に足す。
 
 ## 日本語モード側の橋渡し

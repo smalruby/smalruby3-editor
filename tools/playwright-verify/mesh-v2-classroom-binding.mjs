@@ -299,7 +299,7 @@ await student.waitForSelector('[data-testid="classroom-phase-student-joined"]', 
 log('student joined.');
 
 // Close student joined modal
-await student.click('[data-testid="classroom-joined-close"]').catch(() => {});
+await student.click('[data-testid="classroom-start-main"]').catch(() => {});
 await sleep(500);
 
 // Verify student mesh domain

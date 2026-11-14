@@ -86,7 +86,7 @@ const LessonScoringField = ({ className, disabled, draft, savesRightAway, title,
 
     return (
         <div className={className || styles.assignmentPeerView} data-testid="classroom-lesson-scoring">
-            <span className={styles.assignmentStartFromPreviousLabel}>
+            <span className={styles.assignmentOptionLabel}>
                 {title || (
                     <FormattedMessage
                         defaultMessage="Lesson points"
@@ -132,14 +132,14 @@ const LessonScoringField = ({ className, disabled, draft, savesRightAway, title,
                 />
                 {unusedReason && (
                     <span
-                        className={styles.assignmentStartFromPreviousHint}
+                        className={styles.assignmentOptionHint}
                         data-testid="classroom-lesson-scoring-required-unused"
                     >
                         {intl.formatMessage(lessonScoringMessages[unusedReason])}
                     </span>
                 )}
             </label>
-            <span className={styles.assignmentStartFromPreviousHint} data-testid="classroom-lesson-scoring-each">
+            <span className={styles.assignmentOptionHint} data-testid="classroom-lesson-scoring-each">
                 {perChallenge}{' '}
                 {intl.formatMessage({
                     defaultMessage: '(the score is the total of completed ones, rounded up)',

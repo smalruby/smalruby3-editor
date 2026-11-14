@@ -11,16 +11,12 @@ export default function (Generator) {
         return `sleep(${secs})\n`;
     };
 
-    const getComment = function (block) {
-        return Generator.getCommentText(block) || '';
-    };
-
     const hasWaitComment = function (block) {
-        return getComment(block).includes('@ruby:method:wait');
+        return Generator.hasRubyMarker(block, '@ruby:method:wait');
     };
 
     const hasWithScreenRefreshComment = function (block) {
-        return getComment(block).includes('@ruby:method:with_screen_refresh');
+        return Generator.hasRubyMarker(block, '@ruby:method:with_screen_refresh');
     };
 
     const forSave = function () {
@@ -50,8 +46,8 @@ export default function (Generator) {
     };
 
     const getCaseInfo = function (block) {
-        const comment = Generator.getCommentText(block);
-        const match = comment ? comment.match(/^@ruby:syntax:case:(.+):(\d+)$/) : null;
+        const marker = Generator.findRubyMarker(block, '@ruby:syntax:case:');
+        const match = marker ? marker.match(/^@ruby:syntax:case:(.+):(\d+)$/) : null;
         if (match) {
             return {
                 subject: match[1],
@@ -91,16 +87,13 @@ export default function (Generator) {
     };
 
     const getUnlessInfo = function (block) {
-        const comment = Generator.getCommentText(block);
-        if (!comment) return null;
-        // Check more specific patterns first to avoid substring conflicts
-        if (comment.includes('@ruby:syntax:unless_else')) {
+        if (Generator.hasRubyMarker(block, '@ruby:syntax:unless_else')) {
             return { hasElse: true };
         }
-        if (comment.includes('@ruby:syntax:unless_modifier')) {
+        if (Generator.hasRubyMarker(block, '@ruby:syntax:unless_modifier')) {
             return { isModifier: true };
         }
-        if (comment.includes('@ruby:syntax:unless')) {
+        if (Generator.hasRubyMarker(block, '@ruby:syntax:unless')) {
             return { hasElse: false };
         }
         return null;
@@ -120,8 +113,7 @@ export default function (Generator) {
     };
 
     const getModifierInfo = function (block) {
-        const comment = Generator.getCommentText(block);
-        if (comment && comment.includes('@ruby:syntax:if_modifier')) {
+        if (Generator.hasRubyMarker(block, '@ruby:syntax:if_modifier')) {
             return 'if';
         }
         return null;
@@ -155,12 +147,20 @@ export default function (Generator) {
         return `if ${operator}\n${branch}end\n`;
     };
 
-    const ELSIF_PATTERN = /^@ruby:syntax:elsif:(\d+)$/;
+    /**
+     * The number of the `@ruby`:syntax:elsif marker of a block.
+     * @param {object} block - The block.
+     * @returns {?string} The number, or null.
+     */
+    const elsifGroupOf = function (block) {
+        const value = Generator.rubyMarkerValue(block, '@ruby:syntax:elsif:');
+        return value !== null && /^\d+$/.test(value) ? value : null;
+    };
 
     // A block in `else` before the `if` of `elsif` that calls a method of its condition: the call
     // and the block that keeps its value for a later call of the same method (issue #1615).
     const isElsifConditionCall = function (block) {
-        const comment = getComment(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (block.opcode === 'procedures_call') {
             return /^(?:@ruby:super(?::forwarding)?,)?@ruby:return:\S+$/.test(comment);
         }
@@ -187,8 +187,7 @@ export default function (Generator) {
         if (!nextBlock || (nextBlock.opcode !== 'control_if' && nextBlock.opcode !== 'control_if_else')) {
             return null;
         }
-        const nextMatch = getComment(nextBlock).match(ELSIF_PATTERN);
-        if (!nextMatch || nextMatch[1] !== elsifGroup) return null;
+        if (elsifGroupOf(nextBlock) !== elsifGroup) return null;
         // Blocks after the `if` would be lost in `elsif`.
         if (nextBlock.next) return null;
         if (calls.length === 0) return nextBlock;
@@ -202,8 +201,7 @@ export default function (Generator) {
     };
 
     const controlIfElseInternal = function (block, isTopLevel) {
-        const match = getComment(block).match(ELSIF_PATTERN);
-        const elsifGroup = match ? match[1] : null;
+        const elsifGroup = elsifGroupOf(block);
 
         const nextBlock = elsifGroup ? elsifBlockOf(block, elsifGroup) : null;
         if (nextBlock) {
@@ -282,15 +280,14 @@ export default function (Generator) {
     };
 
     Generator.control_repeat_until = function (block) {
-        const comment = Generator.getCommentText(block);
         // `wait until bar(a) == 0`: a loop whose body only calls the methods of the condition again (issue #1606).
         // A block put in the body on the blocks screen is written, as `until ... end`.
-        if (comment && comment.split(',').includes('@ruby:syntax:wait_until') && hasOnlyConditionCalls(block)) {
+        if (Generator.hasRubyMarker(block, '@ruby:syntax:wait_until') && hasOnlyConditionCalls(block)) {
             return Generator.control_wait_until(block);
         }
         const useScreenRefresh = needsWithScreenRefresh(block);
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
-        const isWhile = !!comment && comment.includes('@ruby:syntax:while');
+        const isWhile = Generator.hasRubyMarker(block, '@ruby:syntax:while');
         let operator;
         if (isWhile) {
             operator = getWhileCondition(block);
@@ -315,8 +312,7 @@ export default function (Generator) {
     };
 
     Generator.control_stop = function (block) {
-        const comment = Generator.getCommentText(block);
-        if (comment && comment.includes('@ruby:syntax:return')) {
+        if (Generator.hasRubyMarker(block, '@ruby:syntax:return')) {
             return '';
         }
         const target = Generator.quote_(Generator.getFieldValue(block, 'STOP_OPTION') || 'all');
@@ -332,8 +328,7 @@ export default function (Generator) {
     };
 
     Generator.control_create_clone_of = function (block) {
-        const comment = Generator.getCommentText(block);
-        if (comment && comment.includes('@ruby:method:clone')) {
+        if (Generator.hasRubyMarker(block, '@ruby:method:clone')) {
             return `clone\n`;
         }
         const target = Generator.valueToCode(block, 'CLONE_OPTION', Generator.ORDER_NONE);

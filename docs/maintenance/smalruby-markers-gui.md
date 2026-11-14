@@ -52,6 +52,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/stage-header/stage-header.jsx` | mesh status button | 緑の旗・停止（`Controls`）とメッシュのボタン（`MeshStatusButton`）を 1 つのまとまり（`controlsGroup`）に入れる。通常表示と全画面の 2 か所 + import |
 | `src/components/menu-bar/menu-bar.jsx` | mesh status popup | メッシュのメニューの「状態と履歴を見る」（`menu-bar-mesh-status`）と、`openMeshV2StatusPopup` の import・`onOpenMeshV2StatusPopup` の dispatch と propType |
 | `src/components/connection-modal/connected-step.jsx` | mesh status popup | メッシュの接続済み画面の［状態と履歴］ボタン（`mesh-v2-open-status`）の import と配置 |
+| `src/components/connection-modal/connection-modal.jsx` | mesh header design system | メッシュの接続のモーダルだけ、ヘッダーの題を太字 1.2rem にし（`.mesh-v2-header-title`）、ヘルプをヘッダーに置かず、どの画面でも本文の下に `MeshV2HelpRow`（`mesh-v2-help-row.jsx`・`meshV2-help`）を出す。その import と `extensionId` の propType（`docs/design-system/components/modal.md` の「つなぐ画面」） |
 | `src/components/gui/gui.jsx` | lesson goal watcher | レッスンモードのあいだ VM を見張り、チャレンジの「できた」を判定して記録・「できた！」を出す常時マウントのコンテナ（`containers/lesson-goal-watcher.jsx`）の import と配置 |
 | `src/components/gui/gui.jsx` | welcome modal | 初回訪問者向けウェルカムモーダル HOC の import と配置、`onShowWelcomeModal` prop |
 | `src/containers/gui.jsx` | welcome modal | `onShowWelcomeModal` を Redux `openWelcomeModal()` にマップ |
@@ -77,15 +78,16 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダル state マッピング |
 | `src/containers/gui.jsx` | classroom modal | クラスルームモーダル state マッピング |
 | `src/containers/gui.jsx` | classcode auto-open | クラスコード URL パラメーターによるモーダル自動オープン |
-| `src/components/menu-bar/menu-bar.jsx` | classroom button | クラスルームボタンの import、レンダリング、Redux 接続。ラベルの横の印は `ClassroomMenuStatus`（提出状態、レッスンの課題では進み具合の ○ / 2/4 / ✓） |
+| `src/components/menu-bar/menu-bar.jsx` | classroom button | クラスルームボタンの import、レンダリング、Redux 接続。ラベルの横の印は `ClassroomMenuStatus`（レッスンの課題の進み具合の ○ / 2/4 / ✓ だけ。ふつうの課題では何も出さない）。その右に参加中はいつも `ClassroomMenuSubmitButton`（「提出する」/「提出済み ✓」/「返却済み ✓」。提出の状態はこのボタンで表す） |
 | `src/components/menu-bar/menu-bar.jsx` | classroom teacher menu | 先生用「クラス管理」メニューを右端（? の左）に置く。先生ログイン中はウェルカムの吹き出しを出さない（welcome tooltip マーカー内）・`classroomTeacherLoggedIn` の Redux 接続 |
-| `src/components/menu-bar/menu-bar.jsx` | welcome tooltip | About (`?`) ボタンの左隣にウェルカムバルーンを描画。`buildAboutMenu` 内に `WelcomeTooltip` 配置 + `position: relative` 化、`handleClickWelcomeTooltip` ハンドラ追加、`onShowWelcomeModal` 用 mapDispatchToProps 追加 |
+| `src/components/menu-bar/menu-bar.jsx` | welcome tooltip | About (`?`) ボタンの左隣にウェルカムバルーンを描画。`buildAboutMenu` 内に `WelcomeTooltip` 配置 + `position: relative` 化、`handleClickWelcomeTooltip` ハンドラ追加、`onShowWelcomeModal` 用 mapDispatchToProps 追加。先生ログイン中・レッスンモード中・生徒がクラスに参加中は吹き出しを出さない（参加中は iPad の幅で「提出する」を覆うため） |
 | `src/components/menu-bar/menu-bar.jsx` | help menu | 「チュートリアル」「デバッグ」をメニューバーのボタンから「?」メニューの項目へ移す。`buildAboutMenu` 内に `MenuSection`（`menu-bar-help-tutorials` / `menu-bar-help-debug`）を追加し、upstream の about 項目（`onClickAbout`）も `MenuSection` で囲んで区切り線を入れる、`?` の div に `data-testid="menu-bar-about"`、upstream のボタン群（と先頭の `Divider`）・`helpIcon` / `debugIcon` import を削除 |
 | `src/components/menu/menu.jsx` | menu item data-testid | `MenuItem` が `data-testid` prop を `<li>` に渡す（props の分割代入・`<li>` の属性・propTypes の 3 箇所）。integration テスト / Playwright がメニュー項目を直接指せるようにする |
 | `src/containers/menu-bar-hoc.jsx` | help menu | 「?」メニューのチュートリアル項目用に `onOpenTipsLibrary` を mapDispatchToProps で供給（upstream は menu-bar.jsx 側で直接 dispatch）。`openLessonsLibrary` の import も同じ行（同一モジュールの二重 import を eslint が禁じるため） |
 | `src/components/menu-bar/menu-bar.jsx` | lessons button | upstream の「チュートリアル」ボタンがあった場所（区切り線の間）に「レッスン」ボタン（`menu-bar-lessons`。`lessonsIcon` = `icon--tutorials.svg`）を置く（吹き出しは出さない）。`ariaMessages.lessons`、`onOpenLessonsLibrary` / `lessonModeActive` の propTypes |
 | `src/containers/menu-bar-hoc.jsx` | lessons button | `lessonModeActive`（`isLessonMode`。レッスンモード中はウェルカムバルーンを出さない）と `onOpenLessonsLibrary`（`markTutorialSeen` + `openLessonsLibrary`）を供給 |
 | `src/components/menu-bar/settings-menu.jsx` | classroom management menu | クラス管理メニューアイテムの import、レンダリング、Redux 接続 |
+| `src/components/menu-bar/settings-menu.jsx` | v1 switch prevention | module / class（`@ruby:module_source` / `@ruby:class`）を使っているとき Ruby v1 へ切りかえさせない。注釈は `src/lib/ruby-markers.js` の `isRubyV2Comment` で読む（import とハンドラの 2 箇所） |
 | `src/components/menu-bar/settings-menu.jsx` | display mode menu | 表示モード (自動/PC/スマホ) 切替。テーマ/Ruby と同じ `PreferenceMenu` サブメニュー形式 + 専用アイコン。`useDisplayMode` hook + `persistDisplayMode` の import、ハンドラ、Redux (open/close) 接続、レンダリング (Issue #865) |
 | `src/reducers/menus.js` | display mode menu | `PreferenceMenu` サブメニューの開閉用 Redux state (`displayModeMenu`)。定数/rootMenu への登録/initialState/open・close・selector の追加 (Issue #865) |
 | `webpack.config.js` | classroom API | CLASSROOM_API_ENDPOINT 環境変数注入 |
@@ -171,6 +173,8 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/alert.jsx` | classroom session expired | セッション失効アラートのコンテナ側（3 ペア） |
 | `src/lib/libraries/extensions/index.jsx` | TM2Scratch extension / AkaDako extension / Ruby String extension | 拡張機能ライブラリへの Smalruby 拡張エントリ（各 2 ペア。取り外し可能拡張の分離マーカーと同名系列） |
 | `src/components/connection-modal/connection-modal.css` | meshV2 name search / network filter detection feature | mesh v2 グループ名検索 UI とネットワークフィルター検出表示のスタイル |
+| `src/components/connection-modal/connection-modal.css` | mesh header design system | メッシュの接続のモーダルの題（太字 1.2rem。本文のヘルプの CSS は独自ファイル `mesh-v2-help-row.css`） |
+| `src/components/menu-bar/menu-bar.css` | mesh menu icon design system | メッシュのメニューのアイコンの余白を上流の `.help-icon` とそろえる（右から左の言葉も） |
 | `src/containers/scanning-step.jsx` | meshV2 name search / meshV2 scanning step / meshV2 seat numbers | mesh v2 のグループ名検索とスキャンステップの拡張、出席番号の受け渡し（計 6 ペア） |
 | `src/components/connection-modal/peripheral-tile.jsx` | customizable name label | ペリフェラルタイルの名前ラベルのカスタマイズ対応（2 ペア） |
 | `src/components/menu-bar/project-title-input.jsx` | read-only project title for Google Drive | Google Drive の閲覧専用プロジェクトでタイトル入力を read-only 化（4 ペア） |

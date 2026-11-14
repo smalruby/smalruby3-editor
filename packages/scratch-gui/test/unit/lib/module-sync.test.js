@@ -4,6 +4,7 @@ import {
     extractModuleCode,
     replaceModuleCode,
 } from '../../../src/lib/module-sync';
+import { makeConverter, makeSpriteTarget, setupRubyGenerator } from '../helpers/ruby-roundtrip-helper';
 
 describe('module-sync', () => {
     describe('getModuleNamesFromTarget', () => {
@@ -29,6 +30,39 @@ describe('module-sync', () => {
             expect(result).toEqual(new Set(['Utils', 'Helpers']));
         });
 
+        // A comment of the user before `def` comes before the marker (issue #1857).
+        test('finds a module name after a comment of the user', () => {
+            const target = {
+                comments: {
+                    c1: { text: 'メモ\n@ruby:module_source:Utils', blockId: 'b1' },
+                    c2: { text: '@ruby:module_source:Helpers:super_of:greet', blockId: 'b2' },
+                },
+            };
+            expect(getModuleNamesFromTarget(target)).toEqual(new Set(['Utils', 'Helpers']));
+        });
+
+        test('finds the module of a converted method with a comment before def', async () => {
+            const { target, runtime } = makeSpriteTarget();
+            setupRubyGenerator();
+            const converter = makeConverter(target, runtime, { version: '2' });
+            const code = [
+                'module Walk',
+                '  # メモ',
+                '  def step',
+                '    move(10)',
+                '  end',
+                'end',
+                '',
+                'class Sprite1 < ::Smalruby3::Sprite',
+                '  include Walk',
+                'end',
+            ].join('\n');
+            expect(await converter.targetCodeToBlocks(target, code)).toBeTruthy();
+            await converter.applyTargetBlocks(target);
+            expect(Object.values(target.comments).map((c) => c.text)).toContain('メモ\n@ruby:module_source:Walk');
+            expect(getModuleNamesFromTarget(target)).toEqual(new Set(['Walk']));
+        });
+
         test('deduplicates module names', () => {
             const target = {
                 comments: {
@@ -42,6 +76,16 @@ describe('module-sync', () => {
     });
 
     describe('findTargetsWithModule', () => {
+        test('finds a target whose method has a comment of the user', () => {
+            const sprite1 = { id: 'sprite1', comments: {} };
+            const sprite2 = {
+                id: 'sprite2',
+                comments: { c1: { text: 'メモ\n@ruby:module_source:Utils', blockId: 'b1' } },
+            };
+            const vm = { runtime: { targets: [sprite1, sprite2] } };
+            expect(findTargetsWithModule(vm, 'Utils', 'sprite1')).toEqual([sprite2]);
+        });
+
         test('finds targets with matching module comments', () => {
             const sprite1 = {
                 id: 'sprite1',

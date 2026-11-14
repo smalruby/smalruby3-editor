@@ -817,6 +817,16 @@ export const COURSES = [
 ];
 
 /**
+ * コースの大きさ（レッスンの数・チャレンジの数）。ウェルカムのコースの案内に出す（#1888。数を直書きしない）。
+ * @param {object} course - コース。
+ * @returns {{lessonCount: number, challengeCount: number}} 数。
+ */
+export const courseSize = (course) => ({
+    lessonCount: course.lessons.length,
+    challengeCount: course.lessons.reduce((sum, lesson) => sum + lesson.challenges.length, 0),
+});
+
+/**
  * @param {string} courseId - コース id。
  * @param {Array} [courses] - 探すコース（テスト用）。
  * @returns {?object} コース。無ければ null。
