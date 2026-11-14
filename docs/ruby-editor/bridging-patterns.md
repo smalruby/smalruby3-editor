@@ -248,9 +248,9 @@ say(@_a_list_[0])
 
 - 「a の（a の長さ）番目を削除する」になり、動かすと `a` は `1, 2` になる。同じコードに戻る。
 
-**できないこと**: 1 つの名前を変数とリストの両方に使う形（`@a = 0` と `@a.push(1)`）はエラー（`variableAndListSameName`）。配列リテラルに直接メソッドを使う形もエラー（`arrayLiteralReceiver`）。保存済みのプロジェクトの前の形（添字 `1` に `@ruby:array:delete_at:last`）は、読みこんでもブロックは直らず、動かすと 1 番目の項目が消える（Ruby に戻すと `delete_at(-1)` なので、Ruby とブロックの動きが合わない）。Ruby タブで変換し直すと「（リストの長さ）番目」になる。`-1` 以外の負の添字（`@a[-1]`、`@a.delete_at(-2)`）は「`-1 + 1` 番目」のように数えるので、往復はするが、ブロックとして動かすと Ruby と同じ項目にならない。
+**できないこと**: 1 つの名前を変数とリストの両方に使う形（`@a = 0` と `@a.push(1)`）はエラー（`variableAndListSameName`）。配列リテラルに直接メソッドを使う形もエラー（`arrayLiteralReceiver`）。要素は数・文字列（式展開の文字列 `"a#{@x}"` は除く）・値のブロック（`@x`、`1 + 2`、`true` など）だけで、ほかの要素（代入などの命令 `[(@a = 1)]`、シンボル・`nil`・配列・ハッシュ・`self`、値を返すメソッドの呼び出し `[foo(1)]`）はその行の「命令がまちがっています」のエラー（`wrongInstruction`）。リストに入れられないので、黙って `0` にしない。保存済みのプロジェクトの前の形（添字 `1` に `@ruby:array:delete_at:last`）は、読みこんでもブロックは直らず、動かすと 1 番目の項目が消える（Ruby に戻すと `delete_at(-1)` なので、Ruby とブロックの動きが合わない）。Ruby タブで変換し直すと「（リストの長さ）番目」になる。`-1` 以外の負の添字（`@a[-1]`、`@a.delete_at(-2)`）は「`-1 + 1` 番目」のように数えるので、往復はするが、ブロックとして動かすと Ruby と同じ項目にならない。
 
-**テスト**: `ruby-to-blocks-converter/variables/variables-array-global.test.js`、`variables-array-local.test.js`、`ruby-roundtrip/variables-v2-array.test.js`、`ruby-roundtrip/list-index-parens.test.js`、`ruby-roundtrip/list-as-argument.test.js`、`ruby-roundtrip/variable-and-list-same-name.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-roundtrip/string-letter-index.test.js`、`ruby-roundtrip/list-delete-at-last-vm.test.js`、`ruby-generator/data.test.js`。
+**テスト**: `ruby-to-blocks-converter/literal-element-not-a-value.test.js`、`ruby-to-blocks-converter/variables/variables-array-global.test.js`、`variables-array-local.test.js`、`ruby-roundtrip/variables-v2-array.test.js`、`ruby-roundtrip/list-index-parens.test.js`、`ruby-roundtrip/list-as-argument.test.js`、`ruby-roundtrip/variable-and-list-same-name.test.js`、`ruby-roundtrip/variable-or-list-kind.test.js`、`ruby-roundtrip/string-letter-index.test.js`、`ruby-roundtrip/list-delete-at-last-vm.test.js`、`ruby-generator/data.test.js`。
 
 ### P5. ハッシュ
 
@@ -280,7 +280,7 @@ say(@h.length)
 
 - 同じコードに戻る。
 
-**できないこと**（エラーになる形）: キーがシンボルでも文字列でもない（`hashKeyNotSupported`）、値がハッシュ・配列・`nil`（`@h = {a: {b: 1}}`、`hashValueNotSupported`）、ハッシュのリテラルに直接メソッドを使う（`{a: 1}.keys`、`hashLiteralReceiver`）。
+**できないこと**（エラーになる形）: キーがシンボルでも文字列でもない（`hashKeyNotSupported`）、値がハッシュ・配列・`nil`（`@h = {a: {b: 1}}`、`hashValueNotSupported`）、ハッシュのリテラルに直接メソッドを使う（`{a: 1}.keys`、`hashLiteralReceiver`）。値が代入などの命令（`{a: (@a = 1)}`）や値を返すメソッドの呼び出し（`{a: foo(1)}`）のときは、配列の要素と同じく「命令がまちがっています」のエラー（`wrongInstruction`）。
 
 **テスト**: `ruby-to-blocks-converter/variables/variables-hash-global.test.js`、`ruby-roundtrip/variables-v2-hash.test.js`、`variables-v2-hash-methods.test.js`、`variables-v2-hash-methods-vm.test.js`、`variables-v2-hash-unused-variable.test.js`。
 
@@ -696,9 +696,9 @@ foo.bar(1)
 
 - 同じコードに戻る。
 
-**できないこと**: シンボルだけの行はエラー（P17）。
+**できないこと**: シンボルだけの行はエラー（P17）。配列だけの行の要素は数・文字列（式展開の文字列は除く）・値のブロック（`[@x, 1 + 2]`）だけで、ほかの要素（`[(@a = 1)]`、`[:a]`、`[nil]`）はその行の「命令がまちがっています」のエラー。
 
-**テスト**: `ruby-to-blocks-converter/index.test.js`、`ruby-to-blocks-converter/orphan-blocks.test.js`。
+**テスト**: `ruby-to-blocks-converter/index.test.js`、`ruby-to-blocks-converter/orphan-blocks.test.js`、`ruby-to-blocks-converter/literal-element-not-a-value.test.js`。
 
 ## 注釈 `@ruby:*` の一覧（仕様）
 
