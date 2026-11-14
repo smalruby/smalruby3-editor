@@ -406,12 +406,13 @@ const CoreHandlers = {
     },
 
     /**
-     * Whether an operand came to nothing: its node has no visitor (a string, a symbol or a regular
-     * expression with `#{...}`), or it is not written (the end of `1..`). Put in an input, it stopped the
-     * conversion with a JavaScript error (`@b == "a#{@x}"`, issue #1885).
+     * Whether an operand came to nothing: it is not written (the end of `1..`), or visiting its node
+     * returned `undefined` (a node with no visitor, such as a string, a symbol or a regular expression
+     * with `#{...}`). Put in an input, it stopped the conversion with a JavaScript error
+     * (`@b == "a#{@x}"`, issue #1885).
      * @param {object} node - The node of the operand, or null when it is not written.
      * @param {*} value - What visiting the node returned.
-     * @returns {boolean} Whether the operand is nothing.
+     * @returns {boolean} Whether the node is null or the value is `undefined`.
      */
     _isMissingOperand(node, value) {
         return !node || typeof value === 'undefined';

@@ -623,7 +623,14 @@ const ExpressionHandlers = {
             // Explicit arguments from super(a, b, ...)
             const savedIsValue = this._context.isValue;
             this._context.isValue = true;
-            args = (node.arguments_ ? node.arguments_.arguments_ : []).map((childNode) => this.visit(childNode));
+            args = (node.arguments_ ? node.arguments_.arguments_ : []).map((childNode) => {
+                const result = this.visit(childNode);
+                // `super("a#{@x}")`: put in an input, nothing stopped with a JavaScript error (issue #1885).
+                if (this._isMissingOperand(childNode, result)) {
+                    throw this._wrongInstructionError(node);
+                }
+                return result;
+            });
             this._context.isValue = savedIsValue;
         }
 

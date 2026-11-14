@@ -190,7 +190,12 @@ const ControlFlowHandlers = {
      * @param {object} valueNode - The node of the value.
      */
     _rejectNonValueInCase(value, lineNode, valueNode) {
-        if (this._isNumber(value) || this._isString(value) || this._isValueBlock(value)) {
+        // A `ruby_*` block (a range `1..6`) is a value block but no block of Scratch: told later, it quoted
+        // the value alone, and a range over more lines (`when 1..` and the next line) came out as `1.....`.
+        if (
+            (this._isNumber(value) || this._isString(value) || this._isValueBlock(value)) &&
+            !this._isRubyBlock(value)
+        ) {
             return;
         }
         throw this._caseHeadError(lineNode, valueNode);

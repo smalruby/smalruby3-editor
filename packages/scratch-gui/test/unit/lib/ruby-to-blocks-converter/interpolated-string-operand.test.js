@@ -70,6 +70,42 @@ describe('RubyToBlocksConverter/a string with #{} as an operand', () => {
         expect(errors[0].text).toContain(wrongInstruction(source));
     });
 
+    // The argument of a call of a My Block or of `super`: put in an input, it stopped with the error too.
+    test.each([
+        ['def foo(a)\n  say(a)\nend\n', `foo(${S})`, 3],
+        [
+            'module M\n  def foo(a)\n    say(a)\n  end\nend\nclass S < ::Smalruby3::Sprite\n  include M\n  def foo(a)\n',
+            `    super(${S})`,
+            8,
+            '  end\nend\n',
+        ],
+    ])('%s%s is the wrong instruction', async (before, line, row, after = '') => {
+        const { ok, errors } = await convert(`${before}${line}\n${after}`);
+        expect(ok).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].row).toBe(row);
+        expect(errors[0].text).toContain(wrongInstruction(line.trim()));
+    });
+
+    // A statement inside a body: the error is on its own line.
+    test('say(@b == "a#{@x}") in if is the wrong instruction on its line', async () => {
+        const { ok, errors } = await convert(`if @a\n  say(@b == ${S})\nend`);
+        expect(ok).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].row).toBe(1);
+        expect(errors[0].text).toContain(wrongInstruction(`say(@b == ${S})`));
+    });
+
+    // `when 1..` at the end of a line: Ruby takes the next line as the end of the range (`1..say(1)`).
+    // A range is no value of `==`; the message quotes the head on one line, not the range cut as `1.....`.
+    test('when 1.. is the wrong instruction', async () => {
+        const { ok, errors } = await convert('case @a\nwhen 1..\n  say(1)\nend');
+        expect(ok).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].row).toBe(1);
+        expect(errors[0].text).toContain(wrongInstruction('when 1.. say(1)'));
+    });
+
     // A string without `#{}` and the values a comparison can hold are kept.
     test.each([
         ['say(@b == "a")'],
