@@ -491,9 +491,7 @@ const VariableUtils = {
                     mark(node.receiver.name, 'list', unit, node);
                 }
             }
-            if (typeof node.compactChildNodes === 'function') {
-                node.compactChildNodes().forEach((child) => queue.push([child, unit]));
-            }
+            this._childNodesOf(node).forEach((child) => queue.push([child, unit]));
         }
 
         // A local that the script outside the blocks does not use, and that its blocks use as
