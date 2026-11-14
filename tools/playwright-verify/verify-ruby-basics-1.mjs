@@ -5,7 +5,8 @@
 //   4) Stepping through advances the title text
 import { chromium } from 'playwright';
 
-const URL = 'http://localhost:8601/?no_beforeunload=1&welcome=1';
+// The welcome CTA now opens the lessons library, so open the tutorials list directly.
+const URL = 'http://localhost:8601/?no_beforeunload=1&tutorial=all';
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
@@ -21,8 +22,7 @@ await page.evaluate(() => localStorage.clear());
 await page.reload();
 await page.waitForTimeout(800);
 
-// Open tipsLibrary via welcome CTA.
-await page.locator('[data-testid="welcome-modal-start-tutorial"]').click();
+// tipsLibrary opens from ?tutorial=all.
 await page.waitForTimeout(1500);
 
 // Check the new category title exists.

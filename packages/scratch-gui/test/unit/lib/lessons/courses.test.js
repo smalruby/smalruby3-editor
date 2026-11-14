@@ -18,6 +18,7 @@ import {
     findCourse,
     challengeCodeCandidates,
     challengeCodeFor,
+    courseSize,
     findLesson,
     localizeCode,
 } from '../../../../src/lib/lessons/courses';
@@ -1052,5 +1053,16 @@ describe('lesson courses', () => {
             const jaResult = await rubyToBlocksXml(vm, cat, localizeCode(c.code, 'ja'), null, options);
             expect(jaResult.errors).toEqual([]);
         });
+    });
+});
+
+describe('courseSize (#1888)', () => {
+    test('counts the lessons and the challenges of a course from its data', () => {
+        const course = findCourse('kyou-kara-programmer');
+        expect(courseSize(course)).toEqual({
+            lessonCount: course.lessons.length,
+            challengeCount: course.lessons.reduce((sum, lesson) => sum + lesson.challenges.length, 0),
+        });
+        expect(courseSize(course)).toEqual({ lessonCount: 3, challengeCount: 11 });
     });
 });

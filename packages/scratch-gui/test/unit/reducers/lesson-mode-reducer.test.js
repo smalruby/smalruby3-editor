@@ -11,6 +11,7 @@ import reducer, {
     closeLesson,
     dismissCompleted,
     focusLessonsLibrary,
+    focusLessonsLibraryStart,
     getCurrentChallenge,
     isLessonMode,
     lessonModeInitialState,
@@ -504,6 +505,15 @@ describe('lesson-mode reducer: lessons library focus', () => {
 
     test('ignores an unknown challenge', () => {
         expect(reducer(lessonModeInitialState, focusLessonsLibrary('no-such'))).toBe(lessonModeInitialState);
+    });
+
+    test('focusLessonsLibraryStart marks the library to open at the next challenge to do (#1888)', () => {
+        expect(lessonModeInitialState.libraryStartFocus).toBe(false);
+        const started = reducer(lessonModeInitialState, focusLessonsLibraryStart());
+        expect(started.libraryStartFocus).toBe(true);
+        expect(reducer(started, focusLessonsLibraryStart())).toBe(started);
+        const cleared = reducer(started, clearLessonsLibraryFocus());
+        expect(cleared.libraryStartFocus).toBe(false);
     });
 
     test('closing the lesson keeps the focus (the library clears it when it closes)', () => {

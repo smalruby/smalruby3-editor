@@ -565,6 +565,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `progress` | 記録の写し（起動時に localStorage から読む） |
 | `justCompletedId` | 「できた！」を出しているチャレンジ id（null なら出していない） |
 | `libraryFocusChallengeId` | レッスン表を開いたときに見せるチャレンジ（「次のチャレンジ」で開いたとき）。レッスン表はこれから見せるレッスンと次のチャレンジを決める（`lessonsLibraryFocus`）。レッスンを閉じても消さず、レッスン表が閉じるときに消す |
+| `libraryStartFocus` | レッスン表を、ウェルカムの「レッスンを始める」で開いたか。レッスン表は記録から次にやるチャレンジを決める（`startLessonsFocus`）。レッスン表が閉じるときに消す |
 
 | action / selector | 説明 |
 |------|------|
@@ -576,6 +577,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `finishHint()` | 「おわり」で閉じる（次に開くときは 1 ページ目から） |
 | `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない）。`justCompletedId` をそのチャレンジにする（すでにできていても）。いま開いているチャレンジなら、ヒントの吹き出しを閉じる（ページは保つ） |
 | `dismissCompleted()` | 「できた！」を閉じる |
+| `focusLessonsLibraryStart()` | レッスン表を開いたときに、記録から次にやるチャレンジを目立たせる（ウェルカムの「レッスンを始める」）。2 つをまとめて出すのは `openLessonsLibraryToStart(dispatch)` |
 | `focusLessonsLibrary(challengeId)` / `clearLessonsLibraryFocus()` | レッスン表で見せるチャレンジを入れる / 消す（知らない id は無視）。開くのは modals の `openLessonsLibrary`。2 つをまとめて出すのは `openLessonsLibraryAt(dispatch, challengeId)` |
 | `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
@@ -652,6 +654,10 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
   そのレッスンの言語を選び、レッスンへスクロールして（`scrollIntoView`）薄い紫で囲み
   （`data-focused="true"`）、次のチャレンジのカードをオレンジの太い枠と右下の「次はこれ！」で目立たせる
   （`data-next="true"`・`lessons-library-challenge-next`）。メニューから開いたときは、どれも付けない。
+- **ウェルカムの「レッスンを始める」で開く**: 同じ見せ方で、記録から次にやるチャレンジに「次はこれ！」を付ける
+  （`startLessonsFocus(progress)`）。まだ何もしていなければレッスン 1 の最初のチャレンジ、途中ならいちばん最近できた
+  チャレンジを「いまのチャレンジ」として `lessonsLibraryFocus` と同じ決め方、全部できていればメニューから開いたときと同じ
+  （詳しくは [`docs/welcome/README.md`](../welcome/README.md)）。
 
   ![次のチャレンジで開いたレッスン表（1300×600）](screenshots/0305-lessons-library-next-1300x600.png)
 - **はじめての人向けの吹き出しは出さない**: 「レッスン」ボタンの下に吹き出しで誘うことはしない（どの端末でも）。
@@ -1065,7 +1071,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 
 | `action` | いつ | `label` | 項目 |
 |---|---|---|---|
-| `library_open` | レッスン表を開いた（メニュー・SP のドロワー・「ほかのチャレンジへ」・「できた！」の「次のチャレンジへ」） | `menu`（ふつうに開いた）／`next`（「次のチャレンジへ」で、いまのレッスンを見せて開いた） | — |
+| `library_open` | レッスン表を開いた（メニュー・SP のドロワー・「ほかのチャレンジへ」・「できた！」の「次のチャレンジへ」・ウェルカムの「レッスンを始める」） | `menu`（ふつうに開いた。ウェルカムから開いたときもこれ）／`next`（「次のチャレンジへ」で、いまのレッスンを見せて開いた） | — |
 | `challenge_open` | チャレンジを開いた（レッスンモードに入った。同じチャレンジを開き直しても送る） | チャレンジ id | `course_id`・`lesson_id`・`challenge_id`・`from_assignment` |
 | `challenge_complete` | 「できた！」になった（もう一度できたときも送る） | チャレンジ id | 上の 4 つ + `seconds`（チャレンジを開いてから「できた！」まで） |
 | `hint_view` | ヒントの 1 ページを見おわった（下の「ヒントの滞在時間」） | チャレンジ id | 上の 4 つ + `page`（1 から。最後の手段のページもふくむ）・`seconds` |
