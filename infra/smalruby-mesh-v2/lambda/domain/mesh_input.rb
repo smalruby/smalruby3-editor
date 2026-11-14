@@ -1,7 +1,7 @@
-# MeshInput - クライアントから受け取る ID・グループ名の入力上限 (issue #1267)
+# MeshInput - クライアントから受け取る ID・グループ名・イベントの payload の入力上限 (issue #1267 / #1846)
 #
 # サーバーはクライアントを信じすぎないよう、長さと使える文字の上限だけを持つ。
-# グループ名の中身（`|host=` などの書式）はクライアント間の約束なので検査しない。
+# グループ名・payload の中身（`|host=` などの書式）はクライアント間の約束なので検査しない。
 # 同じ上限を AppSync JS リゾルバ側（js/shared/meshInputValidation.js）にも持つ。対で更新すること。
 module MeshInput
   # ArgumentError の一種にして、既存の `raise_error(ArgumentError)` 期待や rescue と互換にする
@@ -15,6 +15,11 @@ module MeshInput
   # クライアントは 512 文字以内で作る。余裕を持って 2 倍。
   GROUP_NAME_MAX_LENGTH = 1024
   CONTROL_CHAR_PATTERN = /[\u0000-\u001f\u007f]/
+
+  # イベントの payload の上限（GUI の上限と同じ 1000 文字。issue #1846）。
+  # 費用と悪用を防ぐため、GUI だけでなくサーバーでも守る。payload が無い（nil）イベントは検査しない。
+  # String#length はコードポイント単位。JS 側も同じ数え方にしている。
+  PAYLOAD_MAX_LENGTH = 1000
 
   module_function
 
@@ -30,5 +35,17 @@ module MeshInput
     value = value.to_s
     raise ValidationError, "#{field} must be #{GROUP_NAME_MAX_LENGTH} characters or less" if value.length > GROUP_NAME_MAX_LENGTH
     raise ValidationError, "#{field} contains control characters" if CONTROL_CHAR_PATTERN.match?(value)
+  end
+
+  def validate_events!(events)
+    return unless events.is_a?(Array)
+    events.each_with_index do |event, index|
+      next unless event.is_a?(Hash)
+      payload = event.key?("payload") ? event["payload"] : event[:payload]
+      next if payload.nil?
+      if payload.to_s.length > PAYLOAD_MAX_LENGTH
+        raise ValidationError, "events[#{index}].payload must be #{PAYLOAD_MAX_LENGTH} characters or less"
+      end
+    end
   end
 end
