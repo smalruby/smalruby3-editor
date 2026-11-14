@@ -2,6 +2,7 @@
  * Unit test replacing test/integration/ruby-tab/extension_koshien.test.js
  */
 import dedent from 'dedent';
+import log from '../../../../src/lib/log';
 import {
     makeSpriteTarget,
     makeConverter,
@@ -103,5 +104,33 @@ describe('Ruby Roundtrip: Koshien extension blocks', () => {
             koshien.object("bomb")
         `,
         );
+    });
+
+    // Issue #1722: the value blocks return ORDER_FUNCTION_CALL, so putting one into another block's
+    // input logs no "Expecting valid order" error, and an index or a receiver gets no extra parentheses.
+    test('value blocks inside other blocks keep the Ruby and log no order error', async () => {
+        const errorSpy = jest.spyOn(log, 'error').mockImplementation(() => {});
+        try {
+            await expectRoundTrip(
+                converter,
+                target,
+                dedent`
+                $a = koshien.map(koshien.position(1, 2))
+                $b = koshien.position_of_x(koshien.goal) + koshien.player_x
+                say(koshien.object("wall"))
+                $c = koshien.map_all[0]
+                $d = koshien.map_from(koshien.enemy, $b)
+                $e = koshien.player_y.to_s
+                $f = -koshien.player_x
+                $g = koshien.map_all.length
+                `,
+            );
+            const orderErrors = errorSpy.mock.calls.filter(([message]) =>
+                String(message).includes('Expecting valid order'),
+            );
+            expect(orderErrors).toEqual([]);
+        } finally {
+            errorSpy.mockRestore();
+        }
     });
 });
