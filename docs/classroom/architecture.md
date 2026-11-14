@@ -191,7 +191,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | `POST` | `/classrooms/{id}/co-teachers` | 共同管理者を email で招待 (`{email}`)。冪等・最大10・email 形式検証 |
 | `DELETE` | `/classrooms/{id}/co-teachers/{email}` | 共同管理者を解除 |
 | `GET` | `/classrooms/{id}/members` | メンバー一覧 (kicked 行は除外)。各メンバーに任意の `aiUsage`（ルビティーの上限と今日の回数。下記） |
-| `DELETE` | `/classrooms/{id}/members/{memberId}` | メンバー削除 = ソフト kick (1h tombstone を残し、`kicked: true` をマーク)。verify-session が 410 reason='kicked' を返せるようにするための仕様。lookup の takenSeats も即座に空く |
+| `DELETE` | `/classrooms/{id}/members/{memberId}` | メンバー削除 = ソフト kick (1h tombstone を残し、`kicked: true` をマーク)。verify-session が 410 reason='kicked' を返せるようにするための仕様。席が別の生徒に使われても 410 を返せるよう、kick marker の行も書く（下記）。lookup の takenSeats も即座に空く |
 | `GET` | `/classrooms/{id}/kick-requests` | 退室リクエスト一覧 (Issue #692) |
 | `POST` | `/classrooms/{id}/kick-requests/{requestId}/approve` | 承認 = `handleDeleteMember` (= kick) + 同席への全リクエスト削除 |
 | `DELETE` | `/classrooms/{id}/kick-requests/{requestId}` | 却下 = リクエストのみ削除、メンバーは残る |
@@ -421,6 +421,23 @@ erDiagram
 - `listMembers` / `lookup takenSeats` は `FilterExpression: attribute_not_exists(kicked) OR kicked <> :true` で tombstone を除外
 - `joinClassroom` の `ConditionExpression: attribute_not_exists(memberId) OR kicked = :true` で新生徒が kicked 行を上書き可能 (tombstone はその時点で消滅)
 
+### Memberships の kick marker（席が使われても 410 を返す）
+
+tombstone は席（`seat-NN`）がキーなので、退室依頼を承認したあと依頼した生徒がすぐその席に参加すると上書きされ、kick された生徒の verify-session が 401 になってしまう（Issue #1821）。そこで kick のとき、同じ表に**席の行とは別の印の行**も書く:
+
+| 属性 | 値 |
+|---|---|
+| `classroomId` (PK) | `kicked#<classroomId>`（別の区画。課題ごとの Query — メンバー一覧・lookup・管理画面の件数・学習の進み具合 — には出ない） |
+| `memberId` (SK) | `<seat-NN>#<sha256(sessionToken) の先頭16桁>`（kick したセッションごとに 1 行） |
+| `sessionToken` | kick された生徒のセッショントークン（既存の GSI `sessionToken-index` で引ける） |
+| `kicked` / `kickedAt` / `kickJoinCode` / `kickClassName` / `kickSeatNumber` / `ttl` | tombstone と同じ値（TTL 1 時間） |
+
+- `verifySessionToken` は GSI で印の行を見つけると、tombstone と同じく 410 reason='kicked' を返す。新しい表・GSI は使わない。
+- 同じ生徒がもう一度参加すると新しいセッショントークンになるので、印の行は新しいセッションに影響しない（古いトークンだけが 410 のまま）。
+- 印の書き込みは付随的なもので、失敗してもログに残すだけで kick そのものは成功させる（その場合は席が使われるまで tombstone が 410 を返す）。
+- rubytee relay の席の確かめ（GSI で引く）は `kicked: true` の行を席として数えないので、印の行も数えない。
+- 削除スナップショット（archiver）は `kicked#` の区画をスキップする。
+
 ### ClassroomNotifications テーブル（お知らせ・EPIC #1111）
 
 ```mermaid
@@ -640,7 +657,7 @@ smalruby-classroom-submissions-{stage}/
   - `ddb-archive/submissions/{classroomId}/{submissionId}.json`
   - `ddb-archive/groups/{groupId}.json`
   - `ddb-archive/lesson-progress/{classroomId}/{memberId}.json`
-  - `eval-quota#` プレフィックスのカウンタ行はスキップ
+  - `eval-quota#` プレフィックスのカウンタ行と、Memberships の `kicked#` 区画（kick marker）はスキップ
 - イベントソースは REMOVE のみのフィルタ + `bisectBatchOnError` + 有限リトライ（不正レコード 1 件で shard が詰まらない設計。S3 書き込み失敗のみ throw して再試行）
 - S3 lifecycle は `ARCHIVE_RETENTION_DAYS`（既定 365 日、`CLASSROOM_TTL_DAYS` 以上必須 — スタックがガード）
 - 復元手順は `docs/classroom/operations.md`（運用者向け）
