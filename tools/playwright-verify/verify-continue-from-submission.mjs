@@ -226,7 +226,8 @@ try {
     await closeJoined(s1a);
     await renameFirstSprite(s1a, MARKER);
     await openStatus(s1a);
-    await s1a.click('[data-testid="classroom-submit-button"]');
+    // 提出はメニューバーの「提出する」から（おかえりなさいには提出のボタンが無い・#1794 / #1795）
+    await s1a.$eval('[data-testid="classroom-menu-submit"]', (el) => el.click());
     await s1a.waitForSelector('[data-testid="classroom-submit-confirm"]', { timeout: 20000 });
     await s1a.click('[data-testid="classroom-submit-confirm"]');
     await s1a.waitForSelector('[data-testid="classroom-submit-status"]', { timeout: 60000 });

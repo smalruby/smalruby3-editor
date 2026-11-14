@@ -457,7 +457,7 @@ try {
     m = await scrollInfo(sa);
     record('studentA: クラスの画面の進み具合（✓ 課題クリア）', /課題クリア/.test(rowA || ''), `${rowA} page=${m.page}`);
     record('studentA: クラスの画面 1300×600 でスクロールなし', m.pageOk && m.clipped.length === 0, JSON.stringify(m));
-    record('studentA: 提出しない課題に［課題を提出する］が無い', !(await exists(sa, 'classroom-submit-button')));
+    record('studentA: 提出しない課題に［課題を提出する］が無い', !(await exists(sa, 'classroom-menu-submit')));
     await shot(sa, 'studentA-status');
     await closeStudentModal(sa);
 
