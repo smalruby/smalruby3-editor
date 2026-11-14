@@ -10,6 +10,8 @@ import reducer, {
     clearLessonsLibraryFocus,
     closeLesson,
     dismissCompleted,
+    hideCompleted,
+    showCompleted,
     focusLessonsLibrary,
     getCurrentChallenge,
     isLessonMode,
@@ -119,6 +121,29 @@ describe('lesson-mode reducer', () => {
         expect(cleared.justCompletedId).toBeNull();
         const saved = JSON.parse(window.localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY));
         expect(saved.challenges).toEqual({});
+    });
+
+    // 課題バーの全文を開くあいだだけ、クイズのある「できた！」を隠して、閉じたら出し直す（#1639 Q1）
+    test('hideCompleted / showCompleted hide the "You did it!" toast for a while without dismissing it', () => {
+        const opened = reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz'));
+        expect(opened.completedHidden).toBe(false);
+        // 「できた！」が出ていなければ何もしない
+        expect(reducer(opened, hideCompleted())).toBe(opened);
+        const done = reducer(opened, markChallengeCompleted('blocks-l1-quiz', '2026-11-10T00:00:00.000Z'));
+        const hidden = reducer(done, hideCompleted());
+        expect(hidden.completedHidden).toBe(true);
+        expect(hidden.justCompletedId).toBe('blocks-l1-quiz');
+        expect(reducer(hidden, hideCompleted())).toBe(hidden);
+        const shown = reducer(hidden, showCompleted());
+        expect(shown.completedHidden).toBe(false);
+        expect(shown.justCompletedId).toBe('blocks-l1-quiz');
+        expect(reducer(shown, showCompleted())).toBe(shown);
+        // 閉じる・チャレンジを開き直す・もう一度できたときは、隠したのを解く
+        expect(reducer(hidden, dismissCompleted()).completedHidden).toBe(false);
+        expect(reducer(hidden, openChallenge('blocks-l1-quiz')).completedHidden).toBe(false);
+        expect(
+            reducer(hidden, markChallengeCompleted('blocks-l1-quiz', '2026-11-11T00:00:00.000Z')).completedHidden,
+        ).toBe(false);
     });
 
     test('requestProgressSend counts the requests to send the progress to the class', () => {

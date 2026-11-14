@@ -28,6 +28,8 @@ const RELOAD_PROGRESS = 'scratch-gui/lesson-mode/RELOAD_PROGRESS';
 const CLEAR_PROGRESS = 'scratch-gui/lesson-mode/CLEAR_PROGRESS';
 const REQUEST_PROGRESS_SEND = 'scratch-gui/lesson-mode/REQUEST_PROGRESS_SEND';
 const DISMISS_COMPLETED = 'scratch-gui/lesson-mode/DISMISS_COMPLETED';
+const HIDE_COMPLETED = 'scratch-gui/lesson-mode/HIDE_COMPLETED';
+const SHOW_COMPLETED = 'scratch-gui/lesson-mode/SHOW_COMPLETED';
 const FOCUS_LESSONS_LIBRARY = 'scratch-gui/lesson-mode/FOCUS_LESSONS_LIBRARY';
 const CLEAR_LESSONS_LIBRARY_FOCUS = 'scratch-gui/lesson-mode/CLEAR_LESSONS_LIBRARY_FOCUS';
 const SET_LIBRARY_ASSIGNMENT_ONLY = 'scratch-gui/lesson-mode/SET_LIBRARY_ASSIGNMENT_ONLY';
@@ -65,6 +67,9 @@ const closedState = {
     // false）。「課題クリア！」を 1 回だけ出すのに使う（lib/lessons/assignment-progress.js の
     // isAssignmentJustCleared）
     justCompletedNew: false,
+    // 「できた！」を閉じずに、いっとき隠しているか（#1639）。クイズのある「できた！」は、課題バーの全文を
+    // タップで開いているあいだだけ隠し、全文を閉じたら出し直す（閉じるとクイズにもどれないため）
+    completedHidden: false,
 };
 
 const initialState = {
@@ -131,6 +136,7 @@ const reducer = function (state, action) {
                 hintSpotlight,
                 justCompletedId: null,
                 justCompletedNew: false,
+                completedHidden: false,
             };
         }
         case CLOSE_LESSON:
@@ -169,20 +175,29 @@ const reducer = function (state, action) {
             const hintVisible = action.challengeId === state.challengeId ? false : state.hintVisible;
             const justCompletedNew =
                 justCompletedId === action.challengeId ? progress !== latest : state.justCompletedNew;
+            // 「できた！」を出し直すときは、隠していたのを解く
+            const completedHidden = justCompletedId === action.challengeId ? false : state.completedHidden;
             if (
                 progress === state.progress &&
                 justCompletedId === state.justCompletedId &&
                 hintVisible === state.hintVisible &&
-                justCompletedNew === state.justCompletedNew
+                justCompletedNew === state.justCompletedNew &&
+                completedHidden === state.completedHidden
             ) {
                 return state;
             }
-            return { ...state, progress, justCompletedId, hintVisible, justCompletedNew };
+            return { ...state, progress, justCompletedId, hintVisible, justCompletedNew, completedHidden };
         }
         case DISMISS_COMPLETED:
             return state.justCompletedId === null
                 ? state
-                : { ...state, justCompletedId: null, justCompletedNew: false };
+                : { ...state, justCompletedId: null, justCompletedNew: false, completedHidden: false };
+        case HIDE_COMPLETED:
+            return state.justCompletedId === null || state.completedHidden
+                ? state
+                : { ...state, completedHidden: true };
+        case SHOW_COMPLETED:
+            return state.completedHidden ? { ...state, completedHidden: false } : state;
         case FOCUS_LESSONS_LIBRARY:
             if (!findChallenge(action.challengeId) || state.libraryFocusChallengeId === action.challengeId) {
                 return state;
@@ -200,7 +215,7 @@ const reducer = function (state, action) {
             // 本人の確認で「ちがう」→「消す」（#1600）。端末のレッスンの記録だけを空にする
             const progress = emptyProgress();
             saveProgress(progress);
-            return { ...state, progress, justCompletedId: null, justCompletedNew: false };
+            return { ...state, progress, justCompletedId: null, justCompletedNew: false, completedHidden: false };
         }
         case REQUEST_PROGRESS_SEND:
             return { ...state, progressSendRequest: (state.progressSendRequest || 0) + 1 };
@@ -272,6 +287,19 @@ const clearProgress = () => ({ type: CLEAR_PROGRESS });
 const requestProgressSend = () => ({ type: REQUEST_PROGRESS_SEND });
 
 const dismissCompleted = () => ({ type: DISMISS_COMPLETED });
+
+/**
+ * 「できた！」を閉じずに、いっとき隠す（課題バーの全文をタップで開いているあいだ・#1639）。
+ * 選んだクイズの答えは残る（toast は描いたまま見えなくするだけ）。
+ * @returns {object} action。
+ */
+const hideCompleted = () => ({ type: HIDE_COMPLETED });
+
+/**
+ * hideCompleted で隠した「できた！」を出し直す（全文を閉じたとき）。
+ * @returns {object} action。
+ */
+const showCompleted = () => ({ type: SHOW_COMPLETED });
 
 /**
  * レッスン表を開いたときに、このチャレンジのレッスンを見せて、その次のまだできていない
@@ -373,6 +401,8 @@ export {
     clearProgress,
     requestProgressSend,
     dismissCompleted,
+    hideCompleted,
+    showCompleted,
     focusLessonsLibrary,
     clearLessonsLibraryFocus,
     setLibraryAssignmentOnly,

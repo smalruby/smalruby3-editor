@@ -30,7 +30,9 @@ const baseProps = () => ({
     onDismissCompleted: jest.fn(),
     onEndLesson: jest.fn(),
     onExitDnclMode: jest.fn(),
+    onHideCompleted: jest.fn(),
     onHideHint: jest.fn(),
+    onShowCompleted: jest.fn(),
     onOpenChallenge: jest.fn(),
     onRequestNewProject: jest.fn(),
     onShowHint: jest.fn(),
@@ -163,6 +165,63 @@ describe('LessonMode container', () => {
         fireEvent.click(getByTestId('lesson-task-bar-task'));
         expect(props.onHideHint).toHaveBeenCalledTimes(1);
         expect(props.onDismissCompleted).toHaveBeenCalledTimes(1);
+    });
+
+    // クイズのある「できた！」は、全文を開いても閉じない。全文のあいだだけ隠し、全文を閉じたら出し直す（#1639 Q1）
+    test('the full text hides a toast with a quiz while it is open, and shows it again after', () => {
+        const quiz = { question: {}, choices: [], answer: 0, explanation: {} };
+        const found = findChallenge(CHALLENGE_ID);
+        const onHideCompleted = jest.fn();
+        const onShowCompleted = jest.fn();
+        const onDismissCompleted = jest.fn();
+        // Redux の代わり: completedHidden を持ち、toastVisible はいっとき隠しているあいだ false（mapStateToProps）
+        const Harness = () => {
+            const [completedHidden, setHidden] = React.useState(false);
+            return (
+                <IntlProvider locale="en">
+                    <LessonMode
+                        {...baseProps()}
+                        completedHidden={completedHidden}
+                        current={{ ...found, challenge: { ...found.challenge, quiz } }}
+                        hint={{ visible: false, index: 0, count: 2, step: {} }}
+                        onDismissCompleted={onDismissCompleted}
+                        onHideCompleted={() => {
+                            onHideCompleted();
+                            setHidden(true);
+                        }}
+                        onShowCompleted={() => {
+                            onShowCompleted();
+                            setHidden(false);
+                        }}
+                        toastVisible={!completedHidden}
+                    />
+                </IntlProvider>
+            );
+        };
+        const { getByTestId, queryByTestId } = render(<Harness />);
+        fireEvent.click(getByTestId('lesson-task-bar-task'));
+        // 「できた！」は閉じずに隠すだけ。全文は開いたまま
+        expect(onDismissCompleted).not.toHaveBeenCalled();
+        expect(onHideCompleted).toHaveBeenCalledTimes(1);
+        expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
+        expect(onShowCompleted).not.toHaveBeenCalled();
+        // 全文を閉じると「できた！」を出し直す
+        fireEvent.keyDown(document, { key: 'Escape' });
+        expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
+        expect(onShowCompleted).toHaveBeenCalledTimes(1);
+    });
+
+    test('closing the full text does not show a toast that was not hidden', () => {
+        const props = {
+            ...baseProps(),
+            current: findChallenge(CHALLENGE_ID),
+            hint: { visible: false, index: 0, count: 2, step: {} },
+            toastVisible: false,
+        };
+        const { getByTestId } = renderLessonMode(props);
+        fireEvent.click(getByTestId('lesson-task-bar-task'));
+        fireEvent.keyDown(document, { key: 'Escape' });
+        expect(props.onShowCompleted).not.toHaveBeenCalled();
     });
 
     test('opening the full text leaves a hidden hint and no toast alone', () => {
