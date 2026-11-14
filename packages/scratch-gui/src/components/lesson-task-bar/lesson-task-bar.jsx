@@ -1,7 +1,7 @@
 // レッスンモードでメニューバーの下に画面の幅いっぱいで出す課題バー（1 行）。
 // 「何個め / 全部で何個」・課題の 1 行・ヒント・ほかのチャレンジへ・レッスンをおえる。見た目の高さは 40px に収め、
 // 1300×600 の授業のパソコンでコードエリアを圧迫しない。
-// 課題の全文（チャレンジの定義の改行つき・画像があれば画像も）は、バーにマウスを乗せているあいだ
+// 課題の全文（チャレンジの定義の改行つき・アクティビティ図や画像があればそれも）は、バーにマウスを乗せているあいだ
 // バーの下に大きめの字で出す（先生がプロジェクターに映して説明する場面のため。課題が短くても出す。
 // 横切っただけでちらつかないよう、乗せてから少し待って出す）。
 // タッチ（SP）では課題の文のタップで開き、もう一度のタップで閉じる。パネルは absolute なので、
@@ -55,6 +55,7 @@ const toOneLine = (text) =>
     );
 
 const LessonTaskBar = ({
+    activityDiagram = null,
     assignmentBand = null,
     challenge,
     challengeCount,
@@ -226,6 +227,11 @@ const LessonTaskBar = ({
                     <p className={styles.fullTextText} data-testid="lesson-task-bar-full-text-text">
                         {task}
                     </p>
+                    {activityDiagram && (
+                        <div className={styles.fullTextDiagram} data-testid="lesson-task-bar-full-text-diagram">
+                            {activityDiagram}
+                        </div>
+                    )}
                     {image && (
                         <img
                             className={styles.fullTextImage}
@@ -241,6 +247,9 @@ const LessonTaskBar = ({
 };
 
 LessonTaskBar.propTypes = {
+    // 答えのプログラムから描いたアクティビティ図（components/lesson-activity-diagram）。全文の文の下に出す。
+    // 図を出さないチャレンジでは null
+    activityDiagram: PropTypes.node,
     // クラスの課題の小さな帯（lesson-assignment-band の compact）。位置の右に出す。課題のチャレンジでなければ null
     assignmentBand: PropTypes.node,
     // courses.js の defineChallenge が返す形（number / name / task / image）

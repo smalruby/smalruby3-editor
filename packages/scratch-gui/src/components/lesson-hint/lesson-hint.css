@@ -43,6 +43,20 @@
     margin-bottom: 0;
 }
 
+/*
+    1 ページ目のアクティビティ図。吹き出しの幅（最大 22rem）に収め、縦は 1300×600 で吹き出しが画面に収まる
+    高さまで（SVG は縦横の比のまま縮む）
+*/
+.activity-diagram {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 0.5rem;
+}
+
+.activity-diagram > svg {
+    max-height: min(16rem, calc(100vh - 16rem));
+}
+
 /* 本物のブロックを描く Blockly の読み取り専用ワークスペース。大きさは描いた中身から決める */
 .blocks {
     position: relative;

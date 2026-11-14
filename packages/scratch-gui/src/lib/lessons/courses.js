@@ -129,6 +129,11 @@ export const defineChallenge = (def) => ({
     codeTarget: null,
     // うまく動かないときは: [message descriptor]
     debug: [],
+    // 答えのプログラム（code と spriteCodes）から描くアクティビティ図を、課題の全文とヒントの 1 ページ目に
+    // 出すか（lib/lessons/activity-diagram/・docs/lessons/design.md の「アクティビティ図」）
+    activityDiagram: false,
+    // メッシュの練習相手の定義（#1638）: {name, buttons, replies}。図では相手のスイムレーンになる。無ければ null
+    partner: null,
     ...def,
     // ヒント。title = 文言、target = 指す場所、blocks = 吹き出しに描くブロック、
     // spotlight = はじめて開いたチャレンジだけ周りを暗くして指す場所を照らす

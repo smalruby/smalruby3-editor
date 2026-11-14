@@ -187,6 +187,26 @@ describe('LessonTaskBar', () => {
             );
         });
 
+        test('shows the activity diagram of the answer under the task text', () => {
+            const { getByTestId } = renderBar({
+                activityDiagram: <svg data-testid="fake-diagram" />,
+            });
+            hover(getByTestId('lesson-task-bar'));
+            const wrapper = getByTestId('lesson-task-bar-full-text-diagram');
+            expect(wrapper).toContainElement(getByTestId('fake-diagram'));
+            // 文の後ろ（下）に出す
+            expect(
+                getByTestId('lesson-task-bar-full-text-text').compareDocumentPosition(wrapper) &
+                    Node.DOCUMENT_POSITION_FOLLOWING,
+            ).toBeTruthy();
+        });
+
+        test('shows no activity diagram without one', () => {
+            const { getByTestId, queryByTestId } = renderBar();
+            hover(getByTestId('lesson-task-bar'));
+            expect(queryByTestId('lesson-task-bar-full-text-diagram')).toBeNull();
+        });
+
         test('shows no image for a challenge without one', () => {
             const { getByTestId, queryByTestId } = renderBar({ challengeId: 'blocks-l1-key-sound' });
             hover(getByTestId('lesson-task-bar'));

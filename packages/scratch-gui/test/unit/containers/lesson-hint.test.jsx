@@ -28,6 +28,12 @@ jest.mock('../../../src/lib/ruby-to-blocks-converter', () => ({
     ),
 }));
 
+// 図の変換（本物は Ruby → ブロック）は lib のテストで確かめるので、ここでは置き方を返すだけにする
+jest.mock('../../../src/lib/lessons/activity-diagram/use-challenge-activity-diagram', () => ({
+    useChallengeActivityDiagram: (challenge) =>
+        challenge && challenge.activityDiagram ? { width: 40, height: 30, shapes: [], edges: [] } : null,
+}));
+
 const CHALLENGE_ID = 'blocks-l1-click-say';
 
 const hintFor = (index, overrides = {}) => {
@@ -88,6 +94,24 @@ describe('LessonHint container', () => {
         hidden.unmount();
         const outside = renderContainer({ ...baseProps(), current: null, hint: null });
         expect(outside.queryByTestId('lesson-hint')).not.toBeInTheDocument();
+    });
+
+    test('shows the activity diagram on the first page of a challenge that asks for it', async () => {
+        const found = findChallenge(CHALLENGE_ID);
+        const current = { ...found, challenge: { ...found.challenge, activityDiagram: true } };
+        const first = renderContainer({ ...baseProps(), current, hint: hintFor(0) });
+        await flush();
+        expect(first.getByTestId('lesson-hint-activity-diagram')).toContainElement(
+            first.getByTestId('lesson-activity-diagram'),
+        );
+        first.unmount();
+        const second = renderContainer({ ...baseProps(), current, hint: hintFor(1) });
+        await flush();
+        expect(second.queryByTestId('lesson-hint-activity-diagram')).toBeNull();
+        second.unmount();
+        const off = renderContainer({ ...baseProps(), hint: hintFor(0) });
+        await flush();
+        expect(off.queryByTestId('lesson-hint-activity-diagram')).toBeNull();
     });
 
     test('opening the challenge again drops what was going on in the balloon (the confirmation)', async () => {
