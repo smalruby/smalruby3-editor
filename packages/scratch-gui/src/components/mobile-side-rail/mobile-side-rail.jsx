@@ -50,6 +50,8 @@ const SPRITE_KEY = 'sprite';
  * @param {Function} props.onSpriteTabActiveChange - スプライトタブ active 切替
  * @param {boolean} props.backpackOpen - バックパックパネルが開いているか (親管理)
  * @param {Function} props.onToggleBackpack - バックパックパネル開閉切替 (親管理)
+ * @param {boolean} [props.submitReminderDue] - 「提出しよう」の吹き出しを出す時か (#1835)。
+ *   スマホでは「提出する」が ☰ のドロワーの中にあるので、☰ に小さな点を出して知らせる
  * @returns {JSX.Element|null} portal で document.body 直下にレンダリング
  */
 const MobileSideRailComponent = ({
@@ -58,6 +60,7 @@ const MobileSideRailComponent = ({
     isStarted,
     activeTabIndex,
     spriteTabActive,
+    submitReminderDue = false,
     onSetFullScreen,
     onActivateTab,
     onOpenDrawer,
@@ -195,6 +198,9 @@ const MobileSideRailComponent = ({
                 aria-label="menu"
             >
                 <img alt="" aria-hidden="true" className={styles.icon} draggable={false} src={hamburgerIcon} />
+                {submitReminderDue ? (
+                    <span aria-hidden="true" className={styles.reminderDot} data-testid="mobile-side-rail-menu-dot" />
+                ) : null}
             </button>
             <button
                 type="button"
@@ -270,6 +276,7 @@ MobileSideRailComponent.propTypes = {
     onSpriteTabActiveChange: PropTypes.func.isRequired,
     backpackOpen: PropTypes.bool.isRequired,
     onToggleBackpack: PropTypes.func.isRequired,
+    submitReminderDue: PropTypes.bool,
 };
 
 const mapStateToProps = (state) => ({
@@ -277,6 +284,7 @@ const mapStateToProps = (state) => ({
     isFullScreen: state.scratchGui.mode.isFullScreen,
     isStarted: state.scratchGui.vmStatus.started,
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
+    submitReminderDue: !!state.scratchGui.classroom?.submitReminderVisible,
 });
 
 const mapDispatchToProps = (dispatch) => ({

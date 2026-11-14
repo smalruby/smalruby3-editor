@@ -334,18 +334,16 @@ describe('TeacherClassDetail — entry tab (teacher review on #1199)', () => {
     });
 });
 
-describe('TeacherClassDetail — 前回の提出物から始めさせる (#1202)', () => {
+describe('TeacherClassDetail — 前回の提出物から始めさせる (#1202 → #1825 で廃止)', () => {
     const editor = (over = {}) => ({
         editorPages: [{ text: '続きを作ろう' }],
         starterMode: 'keep',
         starterSource: null,
         hasExistingStarter: true,
         isSaving: false,
-        startFromPrevious: false,
         onAddPage: jest.fn(),
         onAttachPageImage: jest.fn(),
         onChangePageText: jest.fn(),
-        onChangeStartFromPrevious: jest.fn(),
         onMovePage: jest.fn(),
         onRemovePage: jest.fn(),
         onRemovePageImage: jest.fn(),
@@ -359,26 +357,18 @@ describe('TeacherClassDetail — 前回の提出物から始めさせる (#1202)
         renderDetail({ assignmentEditor: editor(over), detailEntry: { tab: 'description', seq: 1 } });
     const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
 
-    test('説明タブに設定のチェックボックス (既定 OFF) を出し、切り替えを伝える', () => {
-        const onChangeStartFromPrevious = jest.fn();
-        renderDescription({ onChangeStartFromPrevious });
+    test('「前回の提出物から始めさせる」の設定は出さない（#1825 で廃止）', () => {
+        renderDescription({ startFromPrevious: true, onChangePeerView: jest.fn() });
         openAdvanced();
-        const checkbox = byTestId('classroom-assignment-start-from-previous');
-        expect(checkbox).not.toBeChecked();
-        fireEvent.click(checkbox);
-        expect(onChangeStartFromPrevious).toHaveBeenCalledWith(true);
-    });
-
-    test('ON のときはチェックされ、生徒視点プレビューに「前回の提出物から続けるのがおすすめ」と出す', () => {
-        renderDescription({ startFromPrevious: true });
-        openAdvanced();
-        expect(byTestId('classroom-assignment-start-from-previous')).toBeChecked();
+        expect(byTestId('classroom-assignment-start-from-previous')).not.toBeInTheDocument();
+        expect(byTestId('classroom-assignment-advanced-summary-previous')).not.toBeInTheDocument();
+        // 保存済みの値が ON でもプレビューはスターターで始まると出す
         expect(byTestId('classroom-description-preview-start')).toHaveTextContent(
-            "continuing from last time's submission is recommended",
+            'start from the starter with a button',
         );
     });
 
-    test('OFF のときプレビューはスターター (無ければいまの作品) で始まると出す', () => {
+    test('プレビューはスターター (無ければいまの作品) で始まると出す', () => {
         renderDescription();
         expect(byTestId('classroom-description-preview-start')).toHaveTextContent(
             'start from the starter with a button',
@@ -396,12 +386,10 @@ describe('TeacherClassDetail — 他者参照 (#1208)', () => {
         starterSource: null,
         hasExistingStarter: false,
         isSaving: false,
-        startFromPrevious: false,
         peerView: 'none',
         onAddPage: jest.fn(),
         onAttachPageImage: jest.fn(),
         onChangePageText: jest.fn(),
-        onChangeStartFromPrevious: jest.fn(),
         onChangePeerView: jest.fn(),
         onMovePage: jest.fn(),
         onRemovePage: jest.fn(),
@@ -445,14 +433,12 @@ describe('TeacherClassDetail — メッシュのグループの人数 (#1257)', 
         starterSource: null,
         hasExistingStarter: false,
         isSaving: false,
-        startFromPrevious: false,
         peerView: 'none',
         meshGroupLimit: 0,
         onChangeMeshGroupLimit: jest.fn(),
         onAddPage: jest.fn(),
         onAttachPageImage: jest.fn(),
         onChangePageText: jest.fn(),
-        onChangeStartFromPrevious: jest.fn(),
         onChangePeerView: jest.fn(),
         onMovePage: jest.fn(),
         onRemovePage: jest.fn(),
@@ -497,7 +483,6 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
         starterSource: null,
         hasExistingStarter: false,
         isSaving: false,
-        startFromPrevious: false,
         peerView: 'none',
         meshGroupLimit: 6,
         onAddPage: jest.fn(),
@@ -505,7 +490,6 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
         onChangeMeshGroupLimit: jest.fn(),
         onChangePageText: jest.fn(),
         onChangePeerView: jest.fn(),
-        onChangeStartFromPrevious: jest.fn(),
         onMovePage: jest.fn(),
         onRemovePage: jest.fn(),
         onRemovePageImage: jest.fn(),
@@ -683,24 +667,22 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
 
     test('E2: 詳しい設定は畳まれていて、閉じたままでも現在の値が分かる', () => {
         renderDescription();
-        expect(byTestId('classroom-assignment-start-from-previous')).not.toBeInTheDocument();
         expect(byTestId('classroom-assignment-peer-view')).not.toBeInTheDocument();
         expect(byTestId('classroom-assignment-mesh-group-limit')).not.toBeInTheDocument();
         expect(byTestId('classroom-assignment-advanced-summary').textContent).toBe(
-            "From last time: No · Peer view: Don't show · Mesh: Up to 6",
+            "Peer view: Don't show · Mesh: Up to 6",
         );
 
         fireEvent.click(byTestId('classroom-assignment-advanced-toggle'));
         expect(byTestId('classroom-assignment-advanced-toggle')).toHaveAttribute('aria-expanded', 'true');
-        expect(byTestId('classroom-assignment-start-from-previous')).toBeInTheDocument();
         expect(byTestId('classroom-assignment-peer-view')).toBeInTheDocument();
         expect(byTestId('classroom-assignment-mesh-group-limit')).toBeInTheDocument();
     });
 
     test('E2: 要約は保存前の選択も反映する', () => {
-        renderDescription({ startFromPrevious: true, peerView: 'afterSubmit', meshGroupLimit: 0 });
+        renderDescription({ peerView: 'afterSubmit', meshGroupLimit: 0 });
         expect(byTestId('classroom-assignment-advanced-summary').textContent).toBe(
-            'From last time: Yes · Peer view: After submitting their own · Mesh: No limit',
+            'Peer view: After submitting their own · Mesh: No limit',
         );
     });
 
@@ -715,10 +697,9 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
 
     test('E2: 保存した値と同じなら「保存していません」も色も出さない', () => {
         renderDescription({
-            startFromPrevious: false,
             peerView: 'none',
             meshGroupLimit: 6,
-            savedSettings: { startFromPrevious: false, peerView: 'none', meshGroupLimit: 6 },
+            savedSettings: { peerView: 'none', meshGroupLimit: 6 },
         });
         expect(byTestId('classroom-assignment-advanced-unsaved')).not.toBeInTheDocument();
         expect(document.querySelector('[data-changed="true"]')).not.toBeInTheDocument();
@@ -726,18 +707,16 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
 
     test('E2: 保存した値から変えた設定だけ色を付け、「保存していません」を出す', () => {
         renderDescription({
-            startFromPrevious: false,
             peerView: 'always',
             meshGroupLimit: 6,
-            savedSettings: { startFromPrevious: false, peerView: 'none', meshGroupLimit: 6 },
+            savedSettings: { peerView: 'none', meshGroupLimit: 6 },
         });
         expect(byTestId('classroom-assignment-advanced-unsaved').textContent).toBe('Not saved yet');
         expect(byTestId('classroom-assignment-advanced-summary-peerView')).toHaveAttribute('data-changed', 'true');
-        expect(byTestId('classroom-assignment-advanced-summary-previous')).not.toHaveAttribute('data-changed');
         expect(byTestId('classroom-assignment-advanced-summary-mesh')).not.toHaveAttribute('data-changed');
         // The summary text itself is unchanged (the mark is a separate element).
         expect(byTestId('classroom-assignment-advanced-summary').textContent).toBe(
-            'From last time: No · Peer view: Anytime · Mesh: Up to 6',
+            'Peer view: Anytime · Mesh: Up to 6',
         );
     });
 

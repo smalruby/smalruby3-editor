@@ -40,8 +40,7 @@ export default function (Generator) {
     };
 
     Generator.sensing_askandwait = function (block) {
-        const comment = Generator.getCommentText(block);
-        if (comment && comment.startsWith('@ruby:method:gets')) {
+        if (Generator.hasRubyMarker(block, '@ruby:method:gets')) {
             return '';
         }
         const question = Generator.valueToCode(block, 'QUESTION', Generator.ORDER_NONE) || null;
@@ -49,8 +48,7 @@ export default function (Generator) {
     };
 
     Generator.sensing_answer = function (block) {
-        const comment = Generator.getCommentText(block);
-        if (comment && comment.startsWith('@ruby:method:gets')) {
+        if (Generator.hasRubyMarker(block, '@ruby:method:gets')) {
             return ['gets', Generator.ORDER_ATOMIC];
         }
         return ['answer', Generator.ORDER_ATOMIC];

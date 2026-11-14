@@ -329,7 +329,7 @@ const LessonSettingsField = ({ autoOpen, disabled, draft, saved, onAutoOpened, o
                 <div className={styles.lessonPanel} data-testid="classroom-lesson-panel" style={placement}>
                     <PanelCloseButton testId="classroom-lesson-close" onClick={handleClose} />
                     <label className={classNames(styles.lessonCourseRow, settingClass('course'))}>
-                        <span className={styles.assignmentStartFromPreviousLabel}>
+                        <span className={styles.assignmentOptionLabel}>
                             <FormattedMessage
                                 defaultMessage="Course"
                                 description="Assignment editor: label of the lesson course select"
@@ -440,7 +440,7 @@ const LessonSettingsField = ({ autoOpen, disabled, draft, saved, onAutoOpened, o
                                 })}
                             </div>
                             <div className={classNames(styles.lessonOptionRow, settingClass('completion'))}>
-                                <span className={styles.assignmentStartFromPreviousLabel}>
+                                <span className={styles.assignmentOptionLabel}>
                                     <FormattedMessage
                                         defaultMessage="Completion condition"
                                         description="Assignment editor: label of the lesson completion condition"
@@ -503,7 +503,7 @@ const LessonSettingsField = ({ autoOpen, disabled, draft, saved, onAutoOpened, o
                                 </span>
                             </div>
                             <div className={classNames(styles.lessonOptionRow, settingClass('submit'))}>
-                                <span className={styles.assignmentStartFromPreviousLabel}>
+                                <span className={styles.assignmentOptionLabel}>
                                     <FormattedMessage
                                         defaultMessage="Submitting work"
                                         description="Assignment editor: label of whether students also submit work after the lesson"

@@ -263,19 +263,19 @@ const joinSeat = async (name, code, seat, opts) => {
     await page.click(tid('classroom-confirm-seat'));
     // 課題のページがある課題は課題パネル、無ければ参加完了。どちらにも「はじめる」が出る。
     // 本人の確認がその上に重なることがあるので、attached で待つ
-    await page.waitForSelector(tid('classroom-joined-start-lesson'), { state: 'attached', timeout: 30000 });
+    await page.waitForSelector(tid('classroom-start-main'), { state: 'attached', timeout: 30000 });
     await sleep(800);
     return page;
 };
 const studentJoinedChecks = async (page, name, submitWork) => {
-    // 課題のページがある課題では課題パネル（classroom-joined-next-steps ではない場所）に同じ説明が出る
+    // 課題のページがある課題では課題パネル（classroom-joined-lesson-notice ではない場所）に同じ説明が出る
     const next =
-        (await text(page, 'classroom-joined-next-steps')) ||
+        (await text(page, 'classroom-joined-lesson-notice')) ||
         (await page.$eval(tid('classroom-modal'), (el) => el.textContent).catch(() => null));
     const m = await scrollInfo(page);
     record(
         `${name}: 参加完了にレッスンの課題の説明と「はじめる」`,
-        (await exists(page, 'classroom-joined-start-lesson')) &&
+        (await exists(page, 'classroom-start-main')) &&
             /レッスンの課題/.test(next || '') &&
             (submitWork ? /作品を提出/.test(next) : /課題クリア/.test(next)),
         `${(next || '').match(/この課題はレッスンの課題[^。]*。?[^。]*/)?.[0] || next} page=${m.page}`,
@@ -284,7 +284,7 @@ const studentJoinedChecks = async (page, name, submitWork) => {
     await shot(page, `${name}-joined`);
 };
 const startLesson = async (page, name, expected) => {
-    await clickTid(page, 'classroom-joined-start-lesson');
+    await clickTid(page, 'classroom-start-main');
     await page.waitForSelector(tid('lessons-library'), { timeout: 15000 });
     await sleep(800);
     const ids = await page.$$eval('[data-testid^="lessons-library-challenge-blocks"]', (els) =>
@@ -457,7 +457,7 @@ try {
     m = await scrollInfo(sa);
     record('studentA: クラスの画面の進み具合（✓ 課題クリア）', /課題クリア/.test(rowA || ''), `${rowA} page=${m.page}`);
     record('studentA: クラスの画面 1300×600 でスクロールなし', m.pageOk && m.clipped.length === 0, JSON.stringify(m));
-    record('studentA: 提出しない課題に［課題を提出する］が無い', !(await exists(sa, 'classroom-submit-button')));
+    record('studentA: 提出しない課題に［課題を提出する］が無い', !(await exists(sa, 'classroom-menu-submit')));
     await shot(sa, 'studentA-status');
     await closeStudentModal(sa);
 
@@ -513,9 +513,10 @@ try {
     record('studentC: 提出の確認 1300×600 でスクロールなし', m.pageOk, JSON.stringify(m));
     await shot(sc, 'studentC-submit-confirm');
     await sc.locator(tid('classroom-submit-confirm')).click();
-    await sc.waitForSelector(tid('classroom-phase-student-status'), { timeout: 60000 });
-    await sleep(2500);
-    record('studentC: 提出した', /提出/.test((await text(sc, 'classroom-submit-status')) || ''), await text(sc, 'classroom-submit-status'));
+    // 提出できたら「提出できました ✓」、メニューバーは緑の「提出済み ✓」(#1795)。
+    await sc.waitForSelector(tid('classroom-phase-submit-done'), { timeout: 60000 });
+    await sleep(1000);
+    record('studentC: 提出した', /提出/.test((await text(sc, 'classroom-submit-done-title')) || ''), await text(sc, 'classroom-submit-done-title'));
     await shot(sc, 'studentC-status-submitted');
     await closeStudentModal(sc);
     await sleep(500);

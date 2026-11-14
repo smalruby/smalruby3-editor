@@ -23,7 +23,12 @@ smalruby3-editor/
 │   │   │   │   ├── google-course-list.jsx ← GC コースタイルグリッド
 │   │   │   │   ├── kick-request-confirm-dialog.jsx ← 退室依頼ダイアログ (#692)
 │   │   │   │   ├── student-seat-selector.jsx ← 生徒の席選択（番号入力・案内・参加確認・依頼中表示）
-│   │   │   │   ├── student-continue-choice.jsx ← 「どこから始めますか？」（スターター / 前回 / この課題の提出物）#1201
+│   │   │   │   ├── student-step-band.jsx ← 生徒の画面の上の進む順の帯（① 参加〜⑤ 提出・済み/いま/まだ）
+│   │   │   │   ├── student-main-button.jsx ← 生徒の画面の主ボタン（大きい青・説明の小さい字つき・画面に 1 つ）
+│   │   │   │   ├── student-text-link.jsx ← 生徒の画面の小さな文字のリンク（主ボタン以外の操作）
+│   │   │   │   ├── student-screen-parts.css ← 上の 3 つの部品のスタイル
+│   │   │   │   ├── student-status-view.jsx ← おかえりなさいの画面（主ボタン「つづける」・小さなリンク・「作品を読み込み直す」・「クラスから出る」の確認）
+│   │   │   │   ├── student-start-method.jsx ← 参加したあとの始め方（主ボタン 1 つ + 「ほかの始め方」）#1793
 │   │   │   │   ├── teacher-class-detail.jsx ← 先生の課題詳細 (退室リクエストバッジ + 退室通知バナー)
 │   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
 │   │   │   │   ├── lesson-member-detail.jsx ← 席の詳細のレッスンの部分（チャレンジごとの時刻・前・いま）
@@ -69,6 +74,8 @@ smalruby3-editor/
 │   │   │   ├── use-kick-request-polling.js ← 退室依頼の承認待ちポーリング（依頼中・タブ表示中・未参加のみ）
 │   │   │   ├── classroom-kick-request-watcher.jsx ← モーダルを閉じている間の承認待ち見張り
 │   │   │   ├── classroom-mesh-connect-prompt.jsx ← メッシュ作品の読み込み後、クラスのモーダルが閉じたら接続モーダルを開く #1251
+│   │   │   ├── classroom-submit-reminder.jsx ← 「提出しよう」の吹き出しを出す・しまう時を決める（時計は sessionStorage・GUI 全体で 1 つ）#1835
+│   │   │   ├── use-menu-submit-kind.js ← メニューバーの「提出する」の種類（ボタンと吹き出しで共有）
 │   │   │   ├── classroom-teacher-kick-alerts.jsx ← 先生の未処理退室依頼の見張り + トースト（GUI 全体で 1 つ）#1200
 │   │   │   ├── use-teacher-kick-request-polling.js ← 先生の退室依頼ポーリング（10 秒・タブ表示中・バックオフ）
 │   │   │   ├── classroom-teacher-panel.jsx ← 「いまの課題の状況」パネルのコンテナ（GUI 全体で 1 つ）#1203
@@ -93,8 +100,12 @@ smalruby3-editor/
 │   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）
 │   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── classroom-seat-selection.js ← 席選択の純粋ロジック（番号入力の検証・ポーリング判定・定数）
-│   │   │   ├── classroom-continue-options.js ← 続きに使える提出物の正規化・参加直後にどこから始めるかの判定 decideJoinStart（純粋）#1201 #1202
+│   │   │   ├── classroom-continue-options.js ← 続きに使える提出物の正規化・参加したあとの始め方を 1 つに決める decideStartMethod（純粋）#1201 #1202 #1793
+│   │   │   ├── classroom-student-steps.js ← 進む順の帯の状態（画面と提出状況からいまの段を決める・純粋）
+│   │   │   ├── classroom-student-analytics.js ← 生徒の参加〜提出の GA の計測（イベントの形・送らない項目・結果の分け方・秒。純粋）#1831
 │   │   │   ├── classroom-mesh-connect.js ← メッシュの接続モーダルを出すか / いま出せるかの判定（純粋）#1251
+│   │   │   ├── classroom-submit-reminder.js ← 「提出しよう」の吹き出しの判断（出す条件・数え方・くり返し・置き場所。純粋）#1835
+│   │   │   ├── classroom-submit-reminder-events.js ← 吹き出しの出来事（出した・消した・出したあとに提出）を聞き手に渡す口（GA 用）
 │   │   │   ├── classroom-teacher-kick-alerts.js ← 先生の退室依頼通知の純粋ロジック（間隔・バックオフ・要約）
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
 │   │   │   └── alerts/index.jsx       ← Alert 定義（classroomSessionExpired 追加）

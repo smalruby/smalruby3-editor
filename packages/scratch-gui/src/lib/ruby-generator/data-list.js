@@ -6,7 +6,7 @@
  */
 export default function (Generator) {
     const getListName = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment) {
             const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+)/);
             if (lvarMatch) {
@@ -30,7 +30,7 @@ export default function (Generator) {
         if (indexBlockId) {
             const indexBlock = Generator.getBlock(indexBlockId);
             if (indexBlock && indexBlock.opcode === 'operator_add') {
-                const comment = Generator.getCommentText(indexBlock);
+                const comment = Generator.getRubyMarkerText(indexBlock);
                 if (comment && comment.includes('@ruby:array:index')) {
                     // Use NUM1 directly (the original 0-indexed value)
                     return Generator.valueToCode(indexBlock, 'NUM1', Generator.ORDER_NONE) || 0;
@@ -135,7 +135,7 @@ export default function (Generator) {
      * @returns {?string} The Ruby name of the hash, or null.
      */
     Generator.hashVariableOfListBlock = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         const lvarMatch = comment && comment.match(/@ruby:lvar:([^:,\s]+)/);
         const listName = Generator.listName(Generator.getFieldId(block, 'LIST'));
         const hash = Generator.hashVariableOfList(listName);
@@ -152,7 +152,7 @@ export default function (Generator) {
             return '';
         }
         // === Smalruby: End of bare literal suppression ===
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment && comment.includes('@ruby:array:literal:element')) {
             // Suppressed: handled by data_deletealloflist array literal pattern
             return '';
@@ -175,7 +175,7 @@ export default function (Generator) {
     };
 
     Generator.data_deleteoflist = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
 
         // Hash set: delete+push pattern
         if (comment && comment.includes('@ruby:hash:set:')) {
@@ -228,8 +228,24 @@ export default function (Generator) {
         const list = getListName(block);
         const listExpr = renderList(list);
 
-        // Check for round-trip comments (stored as block comments, not inline)
-        if (comment && comment.includes('@ruby:array:delete_at:last')) {
+        // "delete (length of the list) of the list" deletes the last item: `delete_at(-1)` (issue #1840).
+        // With `@ruby`:array:delete_at:last, an index of 1 is the old form of the converter: the
+        // index is kept only when the user put another one.
+        const indexInput = block.inputs && block.inputs.INDEX;
+        const indexBlock = indexInput && Generator.getBlock(indexInput.block);
+        const isLengthOfTheList =
+            !!indexBlock &&
+            indexBlock.opcode === 'data_lengthoflist' &&
+            Generator.getFieldId(indexBlock, 'LIST') === Generator.getFieldId(block, 'LIST');
+        const isOldLast =
+            !!comment &&
+            comment.includes('@ruby:array:delete_at:last') &&
+            !!indexBlock &&
+            indexBlock.opcode === 'math_integer' &&
+            indexBlock.fields &&
+            indexBlock.fields.NUM &&
+            String(indexBlock.fields.NUM.value) === '1';
+        if (isLengthOfTheList || isOldLast) {
             return `${listExpr}.delete_at(-1)\n`;
         }
         if (comment && comment.includes('@ruby:array:delete_at:random')) {
@@ -250,7 +266,7 @@ export default function (Generator) {
     Generator.data_deletealloflist = function (block) {
         const list = getListName(block);
 
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
 
         // === Smalruby: Start of bare array literal ===
         if (comment && comment === '@ruby:literal:array') {
@@ -302,7 +318,7 @@ export default function (Generator) {
             for (let i = 0; i < count; i++) {
                 // Read key block - get raw text value from ITEM input
                 const keyBlock = Generator.getBlock(nextId);
-                const keyComment = Generator.getCommentText(keyBlock);
+                const keyComment = Generator.getRubyMarkerText(keyBlock);
                 const rawKey = getTextInputValue(keyBlock, 'ITEM');
                 nextId = keyBlock.next;
 
@@ -333,7 +349,7 @@ export default function (Generator) {
     Generator.data_insertatlist = function (block) {
         const list = getListName(block);
         const listExpr = renderList(list);
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
 
         // Check for round-trip comments (stored as block comments, not inline)
         if (comment && comment.includes('@ruby:array:insert:last')) {
@@ -367,7 +383,7 @@ export default function (Generator) {
     };
 
     Generator.data_itemoflist = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment === '@ruby:symbol:var') {
             const index = Generator.valueToCode(block, 'INDEX', Generator.ORDER_NONE);
             return [index, Generator.ORDER_ATOMIC];
@@ -408,7 +424,7 @@ export default function (Generator) {
     };
 
     Generator.data_itemnumoflist = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment && comment.startsWith('@ruby:symbol:')) {
             const symbolName = comment.slice('@ruby:symbol:'.length);
             return [`:${symbolName}`, Generator.ORDER_ATOMIC];
@@ -420,7 +436,7 @@ export default function (Generator) {
 
     Generator.data_lengthoflist = function (block) {
         const list = getListName(block);
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         // `@h.length` / `@h.empty?` read the keys list of the hash. Only the blocks that the
         // converter marked: a list that the user named `@_hash_x_keys_` keeps its own name.
         const isHashLength = Boolean(comment) && comment.includes('@ruby:hash:length');
@@ -439,7 +455,7 @@ export default function (Generator) {
 
     Generator.data_listcontainsitem = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         const keyMatch = comment && comment.match(/@ruby:hash:key\?(?::(sym|str))?/);
         const hash = keyMatch && Generator.hashVariableOfListBlock(block);
         if (hash) {

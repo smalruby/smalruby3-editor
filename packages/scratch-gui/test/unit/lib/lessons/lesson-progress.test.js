@@ -13,6 +13,7 @@ import {
     markChallengeCompleted,
     mergeProgress,
     saveProgress,
+    startLessonsFocus,
 } from '../../../../src/lib/lessons/lesson-progress';
 
 const makeStorage = (initial = {}) => {
@@ -430,5 +431,88 @@ describe('lessonsLibraryFocus', () => {
 
     test('is null for an unknown challenge', () => {
         expect(lessonsLibraryFocus('no-such-challenge', emptyProgress())).toBeNull();
+    });
+});
+
+describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () => {
+    // できた日時を通し番号の順にずらす（あとに書いた番号ほど新しい）
+    const doneInOrder = (...numbers) =>
+        numbers.reduce(
+            (progress, n, i) =>
+                markChallengeCompleted(progress, challengeId(n), `2026-11-1${i % 10}T00:00:0${i % 10}.000Z`),
+            emptyProgress(),
+        );
+
+    test('before anything is done, marks the first challenge of lesson 1', () => {
+        expect(startLessonsFocus(emptyProgress())).toEqual({
+            language: 'blocks',
+            courseId: 'kyou-kara-programmer',
+            lessonId: 'blocks-l1',
+            nextChallengeId: challengeId(1),
+        });
+    });
+
+    test('in the middle, marks the same challenge as 「次のチャレンジへ」 after the latest one done', () => {
+        const progress = doneInOrder(1, 2);
+        expect(startLessonsFocus(progress)).toEqual(lessonsLibraryFocus(challengeId(2), progress));
+        expect(startLessonsFocus(progress).nextChallengeId).toBe(challengeId(3));
+    });
+
+    test('uses the latest done challenge, not the last one in the course order', () => {
+        const progress = doneInOrder(5, 1);
+        expect(startLessonsFocus(progress)).toEqual(
+            expect.objectContaining({ lessonId: 'blocks-l1', nextChallengeId: challengeId(2) }),
+        );
+    });
+
+    test('moves to the next lesson when the lesson of the latest one is all done', () => {
+        expect(startLessonsFocus(doneInOrder(1, 2, 3, 4))).toEqual(
+            expect.objectContaining({ lessonId: 'blocks-l2', nextChallengeId: challengeId(5) }),
+        );
+    });
+
+    test('when the later lessons are done but an earlier one is not, still marks a challenge not done', () => {
+        expect(startLessonsFocus(doneInOrder(8, 9, 10, 11))).toEqual(
+            expect.objectContaining({ lessonId: 'blocks-l1', nextChallengeId: challengeId(1) }),
+        );
+    });
+
+    test('when the latest one is the last of another lesson, wraps around in that lesson', () => {
+        // レッスン 1 は途中（1 だけ）。いちばん最近できたのはレッスン 2 の最後（7）
+        expect(startLessonsFocus(doneInOrder(1, 7))).toEqual(
+            expect.objectContaining({ lessonId: 'blocks-l2', nextChallengeId: challengeId(5) }),
+        );
+    });
+
+    test('when the first course is all done, moves to the next course', () => {
+        const courses = [
+            defineCourse({
+                id: 'first',
+                language: 'blocks',
+                lessons: [defineLesson({ id: 'f1', challenges: [{ id: 'fa' }, { id: 'fb' }] })],
+            }),
+            defineCourse({
+                id: 'second',
+                language: 'ruby',
+                lessons: [defineLesson({ id: 's1', challenges: [{ id: 'sa' }, { id: 'sb' }] })],
+            }),
+        ];
+        const progress = ['fa', 'fb'].reduce((p, id) => markChallengeCompleted(p, id, NOW, courses), emptyProgress());
+        expect(startLessonsFocus(progress, courses)).toEqual({
+            language: 'ruby',
+            courseId: 'second',
+            lessonId: 's1',
+            nextChallengeId: 'sa',
+        });
+    });
+
+    test('when everything is done, opens like the menu (null)', () => {
+        expect(startLessonsFocus(completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))).toBeNull();
+    });
+
+    test('ignores records of challenges that are not in the courses', () => {
+        const progress = emptyProgress();
+        progress.challenges['no-such'] = { completedAt: LATER, courseId: 'x', lessonId: 'y' };
+        expect(startLessonsFocus(progress).nextChallengeId).toBe(challengeId(1));
     });
 });

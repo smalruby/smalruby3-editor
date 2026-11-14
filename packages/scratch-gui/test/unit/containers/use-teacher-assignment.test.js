@@ -1,6 +1,6 @@
 /* eslint-env jest */
 /**
- * 課題設定「前回の提出物から始めさせる」(#1202) の読み込みと保存。
+ * 課題設定の読み込みと保存（他者参照・保存済みの値。廃止した「前回の提出物から始めさせる」は送らない）。
  */
 import { act, renderHook } from '@testing-library/react';
 import useTeacherAssignment from '../../../src/containers/use-teacher-assignment.js';
@@ -35,38 +35,24 @@ const setup = (overrides = {}) => {
     return renderHook(() => useTeacherAssignment(deps));
 };
 
-describe('useTeacherAssignment — startFromPrevious (#1202)', () => {
+describe('useTeacherAssignment — 廃止した startFromPrevious (#1825)', () => {
     beforeEach(() => {
         mockGetAssignment.mockReset();
         mockSetAssignment.mockReset();
         mockSetAssignment.mockResolvedValue({ imageUploadUrls: [], starterUploadUrl: null });
     });
 
-    test('既定は OFF、保存済みの値を読み込む (課題の中身が無くても)', async () => {
-        mockGetAssignment.mockResolvedValue({ assignment: null, startFromPrevious: true });
+    test('保存済みの値は読まず、保存の PUT にも載せない（サーバーは送らなければ値を変えない）', async () => {
+        mockGetAssignment.mockResolvedValue({ assignment: { pages: [{ text: 'p' }] }, startFromPrevious: true });
         const hook = setup();
         await act(async () => {});
-        expect(hook.result.current.startFromPrevious).toBe(true);
-
-        mockGetAssignment.mockResolvedValue({ assignment: null });
-        const off = setup();
-        await act(async () => {});
-        expect(off.result.current.startFromPrevious).toBe(false);
-    });
-
-    test('切り替えた値を保存の PUT に載せる', async () => {
-        mockGetAssignment.mockResolvedValue({ assignment: { pages: [{ text: 'p' }] }, startFromPrevious: false });
-        const hook = setup();
-        await act(async () => {});
-        act(() => hook.result.current.handleChangeStartFromPrevious(true));
+        expect(hook.result.current).not.toHaveProperty('startFromPrevious');
+        expect(hook.result.current).not.toHaveProperty('handleChangeStartFromPrevious');
         await act(async () => {
             await hook.result.current.handleSaveAssignment();
         });
-        expect(mockSetAssignment).toHaveBeenCalledWith(
-            'id-token',
-            'c1',
-            expect.objectContaining({ startFromPrevious: true }),
-        );
+        expect(mockSetAssignment).toHaveBeenCalledTimes(1);
+        expect(mockSetAssignment.mock.calls[0][2]).not.toHaveProperty('startFromPrevious');
     });
 });
 
@@ -115,13 +101,11 @@ describe('useTeacherAssignment — savedSettings (#1303)', () => {
     test('保存済みの値を持ち、保存するまで変更中の値には追従しない', async () => {
         mockGetAssignment.mockResolvedValue({
             assignment: { pages: [{ text: 'p' }] },
-            startFromPrevious: false,
             peerView: 'none',
         });
         const hook = setup({ selectedClassroom: { classroomId: 'c1', meshGroupLimit: 6 } });
         await act(async () => {});
         expect(hook.result.current.savedSettings).toEqual({
-            startFromPrevious: false,
             peerView: 'none',
             meshGroupLimit: 6,
         });
@@ -133,7 +117,6 @@ describe('useTeacherAssignment — savedSettings (#1303)', () => {
         // After the save the editor reloads the stored values.
         mockGetAssignment.mockResolvedValue({
             assignment: { pages: [{ text: 'p' }] },
-            startFromPrevious: false,
             peerView: 'always',
         });
         await act(async () => {

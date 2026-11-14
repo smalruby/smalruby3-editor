@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { loadPendingKickRequest } from '../lib/classroom-kick-request-storage.js';
+import { resetClassroomStudentViews } from '../lib/classroom-student-analytics.js';
 import { openClassroomModal } from '../reducers/classroom.js';
 import useKickRequestPolling from './use-kick-request-polling.js';
 
@@ -18,6 +19,11 @@ const ClassroomKickRequestWatcher = () => {
     // the classroom reducer.
     const hasSession = useSelector((state) => !!state.scratchGui.classroom?.sessionToken);
     const [pending, setPending] = useState(() => loadPendingKickRequest());
+    // Mounted exactly while the classroom modal is closed (gui.jsx), so this is where the GA
+    // forgets the screens shown in the last opening: the next opening counts them again (#1831).
+    useEffect(() => {
+        resetClassroomStudentViews();
+    }, []);
 
     const handleResult = useCallback(
         (outcome) => {

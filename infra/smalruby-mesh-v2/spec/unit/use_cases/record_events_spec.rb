@@ -29,4 +29,30 @@ RSpec.describe RecordEventsUseCase do
       use_case.execute(group_id: group_id, domain: domain, node_id: "node|1", events: events)
     }.to raise_error(MeshInput::ValidationError, /nodeId/)
   end
+
+  # issue #1846: payload は 1000 文字まで
+  it "payload ちょうど 1000 文字は記録する" do
+    allow(repository).to receive(:find_group).and_return(double("Group"))
+    allow(repository).to receive(:record_events).and_return({success: true, recordedCount: 1, last_sk: "EVENT#x"})
+    result = use_case.execute(group_id: group_id, domain: domain, node_id: "node-1",
+      events: [{"eventName" => "a", "payload" => "a" * 1000}])
+    expect(result[:success]).to be true
+  end
+
+  it "payload が無いイベントは記録する" do
+    allow(repository).to receive(:find_group).and_return(double("Group"))
+    allow(repository).to receive(:record_events).and_return({success: true, recordedCount: 1, last_sk: "EVENT#x"})
+    result = use_case.execute(group_id: group_id, domain: domain, node_id: "node-1",
+      events: [{"eventName" => "a"}])
+    expect(result[:success]).to be true
+  end
+
+  it "payload 1001 文字は ValidationError（DB に触らない）" do
+    expect(repository).not_to receive(:find_group)
+    expect(repository).not_to receive(:record_events)
+    expect {
+      use_case.execute(group_id: group_id, domain: domain, node_id: "node-1",
+        events: [{"eventName" => "a", "payload" => "a" * 1001}])
+    }.to raise_error(MeshInput::ValidationError, /payload must be 1000 characters or less/)
+  end
 end
