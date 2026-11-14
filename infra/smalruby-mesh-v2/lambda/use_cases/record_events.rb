@@ -9,6 +9,7 @@ class RecordEventsUseCase
 
   def execute(group_id:, domain:, node_id:, events:, ttl_seconds: 10)
     MeshInput.validate_id!(node_id, "nodeId")
+    MeshInput.validate_events!(events)
 
     # 1. グループの存在確認
     group = @repository.find_group(group_id, domain)
