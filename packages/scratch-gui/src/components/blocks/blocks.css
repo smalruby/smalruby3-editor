@@ -4,7 +4,10 @@
 
 .blocks {
     height: 100%;
+    /* === Smalruby: Start of palette toggle position === */
+    /* the palette toggle button is positioned against this box */
     position: relative;
+    /* === Smalruby: End of palette toggle position === */
 }
 
 .drag-over:after {
@@ -82,6 +85,8 @@
     border-left: 1px solid $ui-black-transparent;
 }
 
+/* === Smalruby: Start of show whole block shape on flyout hover === */
+/* While hovered, let long blocks in the flyout show past its right edge. */
 .blocks :global(.blocklyFlyout:hover) {
     overflow: visible;
     clip-path: inset(0 -100vw 0 0);
@@ -105,6 +110,7 @@
 .blocks :global(.blocklyFlyout .blocklyFlyoutScrollbar) {
     margin-left: 4px;
 }
+/* === Smalruby: End of show whole block shape on flyout hover === */
 
 
 .blocks :global(.blocklyBlockDragSurface) {
@@ -116,9 +122,13 @@
     Probably will need different solutions for language support later, so
     make the change here instead of in scratch-blocks.
 */
+/* === Smalruby: Start of v2 toolbox category label selector === */
+/* upstream targets the scratch-blocks v1 name .scratchCategoryMenuItemLabel,
+   which v2.1.19 no longer renders; use the v2 name so the override applies. */
 .blocks :global(.blocklyToolboxCategoryLabel) {
     font-size: 0.65rem;
 }
+/* === Smalruby: End of v2 toolbox category label selector === */
 
 .blocks :global(.blocklyMinimalBody) {
     min-width: auto;

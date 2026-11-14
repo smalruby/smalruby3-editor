@@ -115,11 +115,11 @@
 | ロゴ | 画像をスモウルビーのロゴに替える（大きさは上流のまま）。日付でロゴを替える上流の仕組みを止める | `menu-bar.jsx` | `replace Scratch logos with Smalruby logo`・`remove time-travel logo switching` |
 | 設定の中身 | クラス管理・表示モード・v1 への切り替えなど | `settings-menu.jsx` | `classroom management menu`・`display mode menu`・`v1 switch prevention` |
 | チュートリアル・デバッグの場所 | メニューバーに並べず、「?」のメニューの先頭に入れる（上流の about の項目とは区切りで分ける）。「?」はいつも出す | `menu-bar.jsx`・`gui.jsx` | `help menu`・`about menu` |
-| レッスン | 上流のチュートリアルの場所（区切りの間）に、同じ形（`.menu-bar-item.no-offset.hoverable` + `.help-icon`）で置く。文字のクラスは `.learn-label`（上流の `.tutorials-label` の名前を変えたもの。`@media (max-width: 1024px)` の規則も同じ） | `menu-bar.jsx`・`menu-bar.css` | `lessons button`（`.learn-label` の名前の変更はマーカー無し） |
+| レッスン | 上流のチュートリアルの場所（区切りの間）に、同じ形（`.menu-bar-item.no-offset.hoverable` + `.help-icon`）で置く。文字のクラスは `.learn-label`（上流の `.tutorials-label` の名前を変えたもの。`@media (max-width: 1024px)` の規則も同じ） | `menu-bar.jsx`・`menu-bar.css` | `lessons button` |
 | 2 本目の区切りと右のまとまり | レッスンのあとに 2 本目の `Divider` を置き、その後ろに新しい `.file-group` を作って、下のメッシュ・smalrubot・クラス・甲子園を並べる | `menu-bar.jsx` | マーカー無し |
-| メッシュ | メッシュの拡張を読み込んだときだけ出るメニュー。2 本目の区切りのあとの `.file-group` に、チュートリアル・デバッグと同じ `.menu-bar-item.no-offset.hoverable`（余白 `0 0.25rem`）で置く（`.mesh-icon` 21px・`.mesh-v2-domain` など） | `menu-bar.jsx`・`menu-bar.css` | マーカー無し |
+| メッシュ | メッシュの拡張を読み込んだときだけ出るメニュー。2 本目の区切りのあとの `.file-group` に、チュートリアル・デバッグと同じ `.menu-bar-item.no-offset.hoverable`（余白 `0 0.25rem`）で置く（`.mesh-icon` 21px・`.mesh-v2-domain` など） | `menu-bar.jsx`・`menu-bar.css` | `meshV2 menu`（`menu-bar.css`。`menu-bar.jsx` はマーカー無し） |
 | クラス・先生のメニュー | クラスのボタン（同じ `.file-group` の中の `.menu-bar-item.hoverable`。`.no-offset` が無いので余白 `0 0.75rem` で、となりのメッシュ・smalrubot と余白がそろっていない）と、先生がログインしているときのメニュー（`.teacher-menu`: 外の余白 `0 .25rem`・余白 `0 0.5rem`） | `menu-bar.jsx`・`menu-bar.css` | `classroom button`・`classroom teacher menu` |
-| 保存の状態 | `.save-status`（0.75rem・白・不透明度 0.9）。Google ドライブの保存の失敗は `.save-directly-button-auth-error`（オレンジで点滅） | `menu-bar.css` | `improved auth_error UX`（`.save-status` はマーカー無し） |
+| 保存の状態 | `.save-status`（0.75rem・白・不透明度 0.9）。Google ドライブの保存の失敗は `.save-directly-button-auth-error`（オレンジで点滅） | `menu-bar.css` | `Google Drive save status`・`improved auth_error UX` |
 | 読み取り専用の題 | Google ドライブの読み取り専用のプロジェクトでは題を押せない（`.title-field:disabled`: 枠を実線・不透明度 0.7） | `project-title-input.css` | `read-only project title for Google Drive` |
 | 新しい版のお知らせ | 緑の吹き出し（`.update-tooltip`: 地 `$ui-green`・ホバー `$ui-green-2`・角丸 0.5rem） | `menu-bar.css` | `version update notification` |
 | smalrubot | ファームウェアを書きこむメニュー（2 本目の区切りのあとの `.file-group` に `.no-offset` で置く） | `menu-bar.jsx` | `smalrubot firmware menu` |

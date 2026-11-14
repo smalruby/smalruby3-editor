@@ -221,23 +221,21 @@
 
 ## スモウルビーの追加
 
-上流の値とは分けて記録する。マーカーは `=== Smalruby: ... ===`（一覧は [`../maintenance/smalruby-markers-gui.md`](../maintenance/smalruby-markers-gui.md)）。「マーカー無し」は、上流のファイルにマーカーを付けずに足した変更。
+上流の値とは分けて記録する。マーカーは `=== Smalruby: ... ===`（一覧は [`../maintenance/smalruby-markers-gui.md`](../maintenance/smalruby-markers-gui.md)）。
 
 | 追加 | 中身 | ファイル | マーカー |
 |---|---|---|---|
-| Ruby タブ | 4 つめのタブ。タブの並びを `.tab-list-container` で包む | `gui.jsx`・`gui.css` | `.tab-list-container` はマーカー無し |
-| タブの右のリンク | プライバシーポリシー・フィードバック・不具合の報告（`.legal-links`・`.privacy-link`・`.feedback-link`: 0.65rem・`$text-primary-transparent`、ホバーで `$text-primary` と下線） | `gui.jsx`・`gui.css` | `gui.css` の規則はマーカー無し（不具合の報告のリンクは `bug report modal`、iPad の縦向きで消す規則は `iPad portrait legal links cleanup`） |
-| 「中」のステージ | 0.75 倍（360 × 270）の大きさを足し、既定にする。大きさのボタンが 3 つになる | `layout-constants.js`・`screen-utils.js`・`stage-header.jsx`・`reducers/stage-size.js` | マーカー無し |
+| Ruby タブ | 4 つめのタブ。タブの並びを `.tab-list-container` で包む | `gui.jsx`・`gui.css` | `Ruby tab list container`（`gui.css`） |
+| タブの右のリンク | プライバシーポリシー・フィードバック・不具合の報告（`.legal-links`・`.privacy-link`・`.feedback-link`: 0.65rem・`$text-primary-transparent`、ホバーで `$text-primary` と下線） | `gui.jsx`・`gui.css` | `legal links`（`gui.css`。不具合の報告のリンクは `bug report modal`、iPad の縦向きで消す規則は `iPad portrait legal links cleanup`） |
+| 「中」のステージ | 0.75 倍（360 × 270）の大きさを足し、既定にする。大きさのボタンが 3 つになる | `layout-constants.js`・`screen-utils.js`・`stage-header.jsx`・`containers/stage-header.jsx`・`reducers/stage-size.js` | `middle stage size` |
 | 「中」のときの詰めた並び | スプライトの情報を 2 段に詰める（`.compact`）。ステージの欄の見出しを出さない（`.no-header`） | `sprite-info.css`・`stage-selector.css` ほか | `compact middle sprite info`・`middle stage selector without header` |
 | パレットの ◀ のボタン | ブロックのパレットを閉じる・開く | `containers/blocks.jsx` ほか | `palette-toggle initial render` ほか |
-| ブロックのパレットまわりの `blocks.css` の変更 | ①ホバーの間、ブロックがフライアウトの右へはみ出して見えるようにする（`clip-path`）②カテゴリの名前の規則のクラス名を `.blocklyToolboxCategoryLabel` に変える ③`.blocks` に `position: relative` ④フライアウトのスクロールバーを左に 4px 離す（`margin-left: 4px`）⑤ホバー中のフライアウトで、スクロールバーの地にマウスを乗せたら不透明度 0.4 | `blocks.css` | マーカー無し（5 つとも） |
+| ブロックのパレットまわりの `blocks.css` の変更 | ①ホバーの間、ブロックがフライアウトの右へはみ出して見えるようにする（`clip-path`）②カテゴリの名前の規則のクラス名を `.blocklyToolboxCategoryLabel` に変える ③`.blocks` に `position: relative` ④フライアウトのスクロールバーを左に 4px 離す（`margin-left: 4px`）⑤ホバー中のフライアウトで、スクロールバーの地にマウスを乗せたら不透明度 0.4 | `blocks.css` | ①④⑤ `show whole block shape on flyout hover`・② `v2 toolbox category label selector`・③ `palette toggle position` |
 | 拡張機能のボタンの押せない見た目 | 日本語（DNCL）モードのとき（`.extension-button-disabled`: 不透明度 0.5・`cursor: not-allowed`）。押せなく見えるが、押すと確認が出て、「OK」でふりがなモードに戻してから拡張機能のモーダルを開く | `extension-button.css`・`extension-button.jsx` | `DNCL extension disabled`・`DNCL extension confirm` |
 | 低い画面での圧縮 | 高さ 800px 以下で、タブの並びを 2.25rem（36px）に縮める | `gui.css` | `narrow-height vertical chrome compression` |
 | iPad の縦向き | 幅 744〜1023px でエディターの列を縮められるようにし、ステージを「小」にする | `gui.css`・`gui.jsx` | `iPad portrait narrow desktop layout` ほか |
 | レッスンの課題バー | メニューバーの下に 2.5rem の帯を出し、本体をその分縮める | `gui.css` | `lesson mode` |
 | アラートの重なり順 | `$z-index-alerts` を 490 → 520 にして、アラート（`.alerts-container`）をモーダル（510）より上に出す（クラスのセッション切れを見せるため。[`tokens.md`](tokens.md) の「スモウルビーとの差」） | `css/z-index.css` | `alerts above modals so session-expired is visible` |
-
-ほかに、`gui.css` に `extension-button.css` と同じ規則（`.extension-button-container` など）がマーカー無しで写されている。
 
 ## 独自の画面で使う形
 
