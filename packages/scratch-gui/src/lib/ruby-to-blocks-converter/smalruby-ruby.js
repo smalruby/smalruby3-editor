@@ -10,7 +10,7 @@ import {
     hashMethodArgs,
     hashMethodMenuItems,
 } from './smalruby-ruby-definitions';
-import { convertToListBlock, isKnownListReceiver } from './variable-hash-ops';
+import { convertToListBlock, hashListsOfReceiver, isKnownListReceiver } from './variable-hash-ops';
 
 // Set of all registered method names per class
 const STRING_METHODS = new Set(Object.keys(stringMethodArgs));
@@ -264,9 +264,15 @@ const SmalrubyRubyConverter = {
         registerHashMethod('values');
 
         // --- Helper: create arrayMethodWithBlock ---
-        const createArrayMethodWithBlock = (method, receiver, rubyBlock, rubyBlockArgs) => {
+        const createArrayMethodWithBlock = (method, receiver, rubyBlock, rubyBlockArgs, node) => {
             if (typeof rubyBlock === 'undefined') return null;
             rejectArrayLiteralReceiver(method, receiver);
+            // `each` of a hash takes the key and the value (`do |k, v|`, below). With no block parameter or
+            // one, it became `each` of an empty list named after the hash, and in Ruby `|k|` is given the pair
+            // `[key, value]`: the line is the wrong instruction instead (P17, issue #1911).
+            if (hashListsOfReceiver(converter, receiver)) {
+                throw converter._wrongInstructionError(node);
+            }
             // Convert data_variable to data_listcontents for list variables
             const result = convertToListBlock(converter, messages, receiver);
             if (result.converted) {
@@ -370,15 +376,14 @@ const SmalrubyRubyConverter = {
         // --- Register array method with block (each, etc.) ---
         // Without block params: ticket.each do ... end
         converter.registerOnSendWithBlock(['string', 'block', 'variable', 'array'], 'each', 0, 0, (params) => {
-            const { receiver } = params;
-            const { rubyBlock } = params;
-            return createArrayMethodWithBlock('each', receiver, rubyBlock, null);
+            const { receiver, rubyBlock, node } = params;
+            return createArrayMethodWithBlock('each', receiver, rubyBlock, null, node);
         });
 
         // With block params: ticket.each do |item| ... end
         converter.registerOnSendWithBlock(['string', 'block', 'variable', 'array'], 'each', 0, 1, (params) => {
-            const { receiver, rubyBlockArgs, rubyBlock } = params;
-            return createArrayMethodWithBlock('each', receiver, rubyBlock, rubyBlockArgs);
+            const { receiver, rubyBlockArgs, rubyBlock, node } = params;
+            return createArrayMethodWithBlock('each', receiver, rubyBlock, rubyBlockArgs, node);
         });
 
         // --- Helper: resolve prefixed name from a variable receiver ---

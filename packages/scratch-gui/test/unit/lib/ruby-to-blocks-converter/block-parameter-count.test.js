@@ -75,6 +75,33 @@ describe('RubyToBlocksConverter/the number of block parameters', () => {
         expect(errors[0].text).toContain(wrongInstruction(source));
     });
 
+    // `each` of a hash takes the key and the value (`do |k, v|`). With no block parameter or with one, it
+    // was taken as `each` of an empty list named after the hash: nothing ran, and in Ruby `|k|` is given the
+    // pair `[key, value]` (issue #1911). A hash set in this code or a hash of the project, of any scope.
+    test.each([
+        ['@h = {a: 1}\n@h.each do |k|\n  say(k)\nend', 1, '@h.each do |k|...'],
+        ['@h = {a: 1}\n@h.each do\n  say(1)\nend', 1, '@h.each do...'],
+        ['@h = {a: 1}\n@h.each { |k| say(k) }', 1, '@h.each { |k| say(k) }'],
+        ['@h = {a: 1}\n@h.each { say(1) }', 1, '@h.each { say(1) }'],
+        ['@h = {a: 1}\n@h.each(&:x)', 1, '@h.each(&:x)'],
+        ['$h = {a: 1}\n$h.each do |k|\n  say(k)\nend', 1, '$h.each do |k|...'],
+        ['$h = {a: 1}\n$h.each do\n  say(1)\nend', 1, '$h.each do...'],
+        ['h = {a: 1}\nh.each do |k|\n  say(k)\nend', 1, 'h.each do |k|...'],
+        ['h = {a: 1}\nh.each do\n  say(1)\nend', 1, 'h.each do...'],
+        ['@h = {a: 1}\nwhen_flag_clicked do\n  @h.each do |k|\n    say(k)\n  end\nend', 2, '@h.each do |k|...'],
+        ['@h = {a: 1}\n@h.each_pair do |k, v|\n  say(k)\nend', 1, '@h.each_pair do |k, v|...'],
+        ['@h = {a: 1}\n@h.each_pair do |k|\n  say(k)\nend', 1, '@h.each_pair do |k|...'],
+        ['@h = {a: 1}\n@h.each_with_index do |k, i|\n  say(k)\nend', 1, '@h.each_with_index do |k, i|...'],
+        ['@h = {a: 1}\n@h.each_key do |k|\n  say(k)\nend', 1, '@h.each_key do |k|...'],
+        ['@h = {a: 1}\n@h.map do |k, v|\n  say(k)\nend', 1, '@h.map do |k, v|...'],
+    ])('%s of a hash is the wrong instruction', async (code, row, source) => {
+        const { ok, errors } = await convert(code);
+        expect(ok).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].row).toBe(row);
+        expect(errors[0].text).toContain(wrongInstruction(source));
+    });
+
     // The numbers of block parameters the calls take stay as they are.
     test.each([
         ['when_key_pressed("a") do\n  say(1)\nend'],
@@ -85,6 +112,11 @@ describe('RubyToBlocksConverter/the number of block parameters', () => {
         ['3.times do |i|\n  say(i)\nend'],
         ['@a = [1]\n@a.each do |x|\n  say(x)\nend'],
         ['@h = {a: 1}\n@h.each do |k, v|\n  say(k)\nend'],
+        ['$h = {a: 1}\n$h.each do |k, v|\n  say(v)\nend'],
+        ['h = {a: 1}\nh.each do |k, v|\n  say(v)\nend'],
+        ['@h = {a: 1}\n@h.keys.each do |k|\n  say(k)\nend'],
+        ['@a = [1]\n@a.each do\n  say(1)\nend'],
+        ['@a = [1]\n@a.each { |x| say(x) }'],
         ['makey.when_key_pressed("SPACE") do\n  say(1)\nend'],
         ['makey.when_pressed_in_oder("LEFT UP RIGHT") do\n  say(1)\nend'],
         ['self.when(:makey_key_pressed, "SPACE") do\n  say(1)\nend'],

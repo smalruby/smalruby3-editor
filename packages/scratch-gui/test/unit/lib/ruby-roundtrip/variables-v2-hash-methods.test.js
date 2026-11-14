@@ -131,6 +131,24 @@ describe('Ruby Roundtrip: V2 hash methods (#1652)', () => {
         await expectRoundTrip(makeConverter(target, runtime, { version: '2' }), target, code);
     });
 
+    // `each` of a hash of the stage takes the key and the value too: `do |k|` is the wrong instruction on
+    // its line, not `each` of an empty list named `h` (issue #1911).
+    test('each of a hash of the stage, read in a sprite, takes the key and the value', async () => {
+        const stage = runtime.getTargetForStage();
+        const stageConverter = makeConverter(stage, runtime, { version: '2' });
+        expect(await stageConverter.targetCodeToBlocks(stage, inFlag(['$h = {a: 1}']))).toBe(true);
+        await stageConverter.applyTargetBlocks(stage);
+
+        expect(await converter.targetCodeToBlocks(target, inFlag(['$h.each do |k|', '  say(k)', 'end']))).toBe(false);
+        expect(converter.errors.map((e) => e.row)).toEqual([1]);
+        expect(converter.errors[0].text).toContain('"$h.each do |k|..." is the wrong instruction.');
+        await expectRoundTrip(
+            makeConverter(target, runtime, { version: '2' }),
+            target,
+            inFlag(['$h.each do |k, v|', '  say(k)', 'end']),
+        );
+    });
+
     test('a string whose name has a list named like the lists of a hash is still a string', async () => {
         const code = inFlag(['@_hash_s_keys_ = [1]', '@s = "ab"', 'say(@s.length)']);
         expect(await converter.targetCodeToBlocks(target, code)).toBe(true);
