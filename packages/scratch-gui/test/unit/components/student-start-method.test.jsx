@@ -35,7 +35,7 @@ describe('StudentStartMethod', () => {
         const { getByTestId, getAllByRole } = renderMethod({
             ...h,
             continueOptions: { previous: PREVIOUS, current: null },
-            method: { main: 'previous', others: ['starter', 'keep'], notice: null },
+            method: { main: 'previous', others: ['starter', 'keep'] },
         });
         expect(getByTestId('classroom-start-main')).toHaveTextContent("Continue from last time's work");
         expect(getByTestId('classroom-start-main-note')).toHaveTextContent('ねこの迷路（第 1 回）');
@@ -53,7 +53,7 @@ describe('StudentStartMethod', () => {
         const { getByTestId, queryByTestId } = renderMethod({
             ...h,
             continueOptions: { previous: PREVIOUS, current: CURRENT },
-            method: { main: 'current', others: ['previous', 'starter', 'keep'], notice: null },
+            method: { main: 'current', others: ['previous', 'starter', 'keep'] },
         });
         expect(queryByTestId('classroom-start-others')).not.toBeInTheDocument();
         const toggle = getByTestId('classroom-start-others-toggle');
@@ -72,7 +72,7 @@ describe('StudentStartMethod', () => {
         const h = handlers();
         const { getByTestId, queryByTestId } = renderMethod({
             ...h,
-            method: { main: 'keep', others: [], notice: null },
+            method: { main: 'keep', others: [] },
         });
         expect(getByTestId('classroom-start-main')).toHaveTextContent('Start');
         expect(getByTestId('classroom-start-main-note')).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe('StudentStartMethod', () => {
 
     test('スターターが主ボタンなら押すとスターターを開く', () => {
         const h = handlers();
-        const { getByTestId } = renderMethod({ ...h, method: { main: 'starter', others: ['keep'], notice: null } });
+        const { getByTestId } = renderMethod({ ...h, method: { main: 'starter', others: ['keep'] } });
         expect(getByTestId('classroom-start-main')).toHaveTextContent('Start from the starter');
         fireEvent.click(getByTestId('classroom-start-main'));
         expect(h.onLoadStarter).toHaveBeenCalledTimes(1);
@@ -91,42 +91,27 @@ describe('StudentStartMethod', () => {
 
     test('レッスンの課題は「はじめる」でレッスン表を開く', () => {
         const h = handlers();
-        const { getByTestId } = renderMethod({ ...h, method: { main: 'lesson', others: [], notice: null } });
+        const { getByTestId } = renderMethod({ ...h, method: { main: 'lesson', others: [] } });
         expect(getByTestId('classroom-start-method')).toHaveAttribute('data-main', 'lesson');
         fireEvent.click(getByTestId('classroom-start-main'));
         expect(h.onStartLesson).toHaveBeenCalledTimes(1);
         expect(h.onKeepCurrent).not.toHaveBeenCalled();
     });
 
-    test('先生の設定のお知らせを 1 行で出す', () => {
-        const { getByTestId, queryByTestId, rerender } = renderMethod({
-            ...handlers(),
-            continueOptions: { previous: PREVIOUS, current: null },
-            method: { main: 'previous', others: ['keep'], notice: 'recommendPrevious' },
-        });
-        expect(getByTestId('classroom-start-notice')).toHaveTextContent('Your teacher recommends');
-        rerender(
-            <IntlProvider locale="en">
-                <StudentStartMethod {...handlers()} method={{ main: 'keep', others: [], notice: null }} />
-            </IntlProvider>,
-        );
-        expect(queryByTestId('classroom-start-notice')).not.toBeInTheDocument();
-    });
-
-    test('先生の設定が ON でこの課題に提出済みなら、前回からも始められることを 1 行で知らせる', () => {
-        const { getByTestId } = renderMethod({
+    test('先生の設定のお知らせは出さない（「前回の提出物から始めさせる」は廃止）', () => {
+        const { getByTestId, queryByTestId } = renderMethod({
             ...handlers(),
             continueOptions: { previous: PREVIOUS, current: CURRENT },
-            method: { main: 'current', others: ['previous', 'keep'], notice: 'previousAlsoAvailable' },
+            method: { main: 'current', others: ['previous', 'keep'] },
         });
-        expect(getByTestId('classroom-start-notice')).toHaveTextContent("also start from last time's work");
+        expect(queryByTestId('classroom-start-notice')).not.toBeInTheDocument();
         expect(getByTestId('classroom-start-main')).toHaveTextContent('Continue from what you submitted');
     });
 
     test('「ほかの始め方」は aria-controls で一覧を指し、矢印は読み上げない', () => {
         const { getByTestId } = renderMethod({
             ...handlers(),
-            method: { main: 'starter', others: ['keep'], notice: null },
+            method: { main: 'starter', others: ['keep'] },
         });
         const toggle = getByTestId('classroom-start-others-toggle');
         fireEvent.click(toggle);
@@ -138,7 +123,7 @@ describe('StudentStartMethod', () => {
         const { getByTestId } = renderMethod({
             ...handlers(),
             isLoading: true,
-            method: { main: 'starter', others: ['keep'], notice: null },
+            method: { main: 'starter', others: ['keep'] },
         });
         expect(getByTestId('classroom-start-main')).toBeDisabled();
         expect(getByTestId('classroom-start-others-toggle')).toBeDisabled();

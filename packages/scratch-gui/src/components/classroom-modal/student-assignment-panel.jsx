@@ -194,7 +194,6 @@ StudentAssignmentPanel.propTypes = {
     // decideStartMethod の結果 (#1793)。参加した直後だけ使う
     startMethod: PropTypes.shape({
         main: PropTypes.string.isRequired,
-        notice: PropTypes.string,
         others: PropTypes.arrayOf(PropTypes.string),
     }),
     onChooseStarter: PropTypes.func,

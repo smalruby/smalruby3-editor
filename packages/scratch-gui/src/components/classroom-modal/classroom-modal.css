@@ -2615,26 +2615,15 @@
     font-size: 0.8rem;
 }
 
-.assignment-start-from-previous {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-    cursor: pointer;
-}
-
-.assignment-start-from-previous input {
-    margin-top: 0.2rem;
-}
-
-.assignment-start-from-previous-label {
+/* Label and hint of one assignment setting (peer view, mesh, lesson). */
+.assignment-option-label {
     display: block;
     color: #575e75;
     font-size: 0.9rem;
     font-weight: bold;
 }
 
-.assignment-start-from-previous-hint {
+.assignment-option-hint {
     display: block;
     color: #575e75;
     font-size: 0.8rem;

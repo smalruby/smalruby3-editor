@@ -120,18 +120,20 @@
     border: 0;
 }
 
-/* メニューバーの「提出する」(#1795)。未提出はオレンジ・提出済み / 返却済みは緑。
-   青いメニューバーから浮くよう白い枠を付け、白い字とのコントラスト比は 4.5:1 以上にする
-   （オレンジ #c25400 = 4.6・緑 #117a4f = 5.4）。返却の色のオレンジは使わない（未提出と見分けにくい）。 */
+/* メニューバーの「提出する」(#1795)。色はこの 1 か所で決める（#1825）。
+   - 未提出: 白地に青い字（#ffffff / #1f5fbf = 6.1:1）。塗りの色で急かさず、押せるボタンだと分かる形にする。
+     紫のメニューバー（#855cd6）の上でボタンの形が見えるよう白い枠を付ける（白と紫 = 4.7:1）。
+   - 提出済み / 返却済み: 緑で塗って白い字（#117a4f = 5.4:1）。返却の色のオレンジは使わない。
+   - hover は同じ色から作る（未提出は薄い青 #e8f0fc・緑は濃い緑 #0d6641）。focus-visible は下の 2 重の輪。 */
 .menu-submit-button {
     flex: 0 0 auto;
     align-self: center;
     margin: 0 0.25rem;
     padding: 0.2rem 0.75rem;
-    border: 2px solid white;
+    border: 2px solid #ffffff;
     border-radius: 999px;
-    background-color: #c25400;
-    color: white;
+    background-color: #ffffff;
+    color: #1f5fbf;
     font-size: 0.8rem;
     font-weight: bold;
     line-height: 1.2;
@@ -140,12 +142,13 @@
 }
 
 .menu-submit-button:hover {
-    background-color: #a84900;
+    background-color: #e8f0fc;
 }
 
 .menu-submit-button[data-kind='submitted'],
 .menu-submit-button[data-kind='returned'] {
     background-color: #117a4f;
+    color: #ffffff;
 }
 
 .menu-submit-button[data-kind='submitted']:hover,
@@ -153,9 +156,14 @@
     background-color: #0d6641;
 }
 
+/* キーボードで選んだときの輪は 2 重にする（#1825 FYI1）。内側の白い輪（box-shadow）がボタンとの
+   すき間を埋め、外側の濃い輪 #232036 が周りと分ける。濃い輪は白いドロワーに 15.8:1・紫のメニュー
+   バー #855cd6 に 3.4:1、白い輪は紫に 4.7:1（どれも非テキストの 3:1 以上）。黄色 #ffbf00 は白に
+   1.65:1・紫に 2.8:1 で足りなかった。 */
 .menu-submit-button:focus-visible {
-    outline: 2px solid #ffbf00;
-    outline-offset: 1px;
+    outline: 2px solid #232036;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px #ffffff;
 }
 
 /* iPad の縦向き（幅 1023px 以下）はメニューバーに余りが無いので、ひらがなの長い字でも
@@ -184,7 +192,8 @@
 
 /* スマホ（メニューバーの無い画面）はドロワーのいちばん上に置く (#1795)。サイドレールには
    44px の高さを取る余りが無い（高さ 360〜390px の横向きで 0〜25px）ため。
-   タッチの規約に合わせて高さ 48px・横幅いっぱい。白地なので白い枠は消す。
+   タッチの規約に合わせて高さ 48px・横幅いっぱい。ドロワーは白地なので、未提出は青い枠で形を見せる
+   （提出済み / 返却済みは緑の塗りで分かるので枠を緑にそろえる）。
    幅の media query より強くするため、クラスを 2 つ重ねる。 */
 .menu-submit-button.menu-submit-button-drawer {
     display: block;
@@ -192,10 +201,15 @@
     min-height: 48px;
     margin: 0.75rem 1rem 0.25rem;
     padding: 0.5rem 1rem;
-    border: none;
+    border: 2px solid #1f5fbf;
     border-radius: 10px;
     font-size: 1rem;
     white-space: normal;
+}
+
+.menu-submit-button.menu-submit-button-drawer[data-kind='submitted'],
+.menu-submit-button.menu-submit-button-drawer[data-kind='returned'] {
+    border-color: #117a4f;
 }
 
 /* 提出確認の下の段 (#1795): 「やめる」（左の小さなリンク）と主ボタン（右）。 */

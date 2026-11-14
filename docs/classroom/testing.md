@@ -212,6 +212,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-student-refresh` | button | 更新 (↻) |
 | `classroom-status-teacher-comment` | div | 先生からのコメント（返却済みのときだけ） |
 | `classroom-status-continue` | button | 主ボタン「つづける」（何も読み込まずに閉じる。説明の行は `classroom-status-continue-note`）。レッスンの課題では、作品も提出する課題で条件を満たしたあとだけ |
+| `classroom-status-continue-current` | button | 主ボタン「この課題で出した作品から続ける」（リロードしたあと、作品が新しい作品のまま・この課題で出した作品がある・このタブでまだ読み込んでいないときだけ。`classroom-status-continue` の代わりに出す）。押すとその提出物を読み込んで閉じる（確認は出さない） |
+| `classroom-status-continue-as-is` | button | 小さなリンク「このまま つづける」（`classroom-status-continue-current` を出すときだけ）。何も読み込まずに閉じる |
 | `classroom-continue-lesson-button` | button | 「レッスンを続ける」（レッスンの課題だけ。レッスン表を課題のチャレンジだけで開く）。条件を満たすまでは主ボタン、作品も提出する課題で条件を満たしたあとは小さなリンク |
 | `classroom-view-assignment-button` | button | 小さなリンク「課題を見る」（hasAssignment 時のみ） |
 | `classroom-peer-view-button` | button | 小さなリンク「みんなの作品を見る」（他者参照が有効なとき。押すとモーダルを閉じてパネルを開く） |
@@ -235,7 +237,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `lesson-progress-confirm-clear` | button | 2 つめの確認の［消す］（送らずに端末のレッスンの記録を空にする） |
 | `classroom-error-action` | button | セッション切れ時のアクションリンク |
 
-1300×600 の収まりは `tools/playwright-verify/verify-classroom-viewport.mjs` が、返却のコメントと長い名前の状態・「作品を読み込み直す」を開いた状態・「クラスから出る」の確認・提出済み・レッスンの課題（「作品を読み込み直す」を開いた状態）で測る（`LOCALE=ja-Hira` でひらがなでも測れる）。
+1300×600 の収まりは `tools/playwright-verify/verify-classroom-viewport.mjs` が、返却のコメントと長い名前の状態・「作品を読み込み直す」を開いた状態・「クラスから出る」の確認・提出済み・リロードしたあとの「この課題で出した作品から続ける」・レッスンの課題（「作品を読み込み直す」を開いた状態）で測る（`LOCALE=ja-Hira` でひらがなでも測れる）。
 
 ### 生徒: 提出確認
 
@@ -291,7 +293,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-advanced-unsaved` | span | 「保存していません」（保存した値から変えた設定があるときだけ） |
 | `classroom-assignment-advanced-panel` | div | 開いた「詳しい設定」（下の 3 つの設定はこの中・開いたときだけある） |
 | `classroom-assignment-advanced-close` | button | 開いた「詳しい設定」の右上の ✕（`aria-label`「閉じる」。閉じたら開閉ボタンにフォーカスを戻す） |
-| `classroom-assignment-start-from-previous` | input (checkbox) | 「前回の提出物から始めさせる」（既定 OFF・保存で反映・Issue #1202） |
 | `classroom-assignment-peer-view` | select | 「他者参照」（`none` = しない（既定） / `always` = いつでも見られる / `afterSubmit` = 自分が提出したら見られる・保存で反映・Issue #1208） |
 | `classroom-assignment-mesh-group-limit` | select | 「メッシュのグループの人数」（`6` = 6人まで / `0` = 制限なし（この設定より前の課題の表示）・保存で反映・Issue #1257） |
 | `classroom-assignment-advanced-summary-scoring` | span | 要約の「レッスンの点: 100 点（★ 70）」（レッスンを紐付けた課題だけ・変えたら `data-changed="true"`） |
@@ -332,7 +333,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-start-method` | div | 始め方のまとまり。`data-main` = 決めた始め方（`current` この課題で出した作品 / `previous` 前回の作品 / `starter` スターター / `keep` いまの作品のまま / `lesson` レッスン表を開く） |
 | `classroom-start-main` | button | 主ボタン（決めた始め方 1 つ）。押すとその作品で始める（読み込んでモーダルを閉じる。`keep` は何も読み込まずに閉じる・`lesson` はレッスン表を開く） |
 | `classroom-start-main-note` | small | 主ボタンの 2 行目（何を開くか。提出日時・前回の課題名など） |
-| `classroom-start-notice` | div | 先生の「前回の提出物から始めさせる」の 1 行のお知らせ（設定が ON のときだけ。この課題で提出済みのときは、前回の提出物があれば「前回の作品からも始められます」） |
 | `classroom-start-others-toggle` | button | 小さなリンク「ほかの始め方」（`aria-expanded`）。ほかに始め方が無いときは描画しない |
 | `classroom-start-others` | div | 開いたときに同じ行に並ぶ残りの始め方 |
 | `classroom-start-other-{kind}` | button | 残りの始め方の小さなリンク（`kind` = `current` / `previous` / `starter` / `keep`） |
@@ -516,7 +516,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-description-preview-body` | div | プレビュー本文（テキスト+画像） |
 | `classroom-description-preview-empty` | p | どのページも空のときの 1 行「ページを書くとここに出ます」（本文・ページ送り・「参加したとき」の代わり） |
 | `classroom-description-preview-prev` / `-next` | button | プレビューのページ送り |
-| `classroom-description-preview-start` | div | プレビュー下の「参加したとき: …」（設定「前回の提出物から始めさせる」とスターターの有無で文言が変わる・Issue #1202） |
+| `classroom-description-preview-start` | div | プレビュー下の「参加したとき: …」（スターターの有無で文言が変わる） |
 | `classroom-description-preview-lesson` | div | プレビュー下の「レッスン: 6 つのうち 4 つ（★ 2 つをふくむ）」と丸（★ = 必須）（レッスンを紐付けたときだけ） |
 | `classroom-avatar-email` | span | アカウントメニュー内のユーザーメール（OIDC トークンに email がある場合のみ。旧 `classroom-teacher-email` は廃止） |
 | `classroom-board-create-cancel` / `classroom-board-reuse-cancel` | button | インラインフォームのキャンセル |
@@ -759,10 +759,10 @@ SKIP_IDLE=1 BASE=... node verify-classroom-student-flow-e2e.mjs   # 30 秒待つ
 ```
 
 - 前提: `.env` の `DEV_BYPASS_TOKEN`（スクリプトが読み、ログに出さない）。headless・同梱の chromium で動く（Playwright MCP は使わない）。
-- 見るもの: 各画面の帯の段・主ボタンが 1 つ・1300×600 でページとクラスの画面がスクロールしないこと、メニューバーの「提出する」→「提出済み ✓」→「返却済み ✓」、始め方の主ボタン（いまのまま・前回・スターター・レッスン、先生の「前回の提出物から始めさせる」の ON / OFF）、前回の番号・30 秒の案内・退室依頼と承認、クラスから出る、出席番号がちがう、en / ja-Hira、スマホのドロワー。
+- 見るもの: 各画面の帯の段・主ボタンが 1 つ・1300×600 でページとクラスの画面がスクロールしないこと、メニューバーの「提出する」→「提出済み ✓」→「返却済み ✓」、始め方の主ボタン（いまのまま・前回・スターター・レッスン）、前回の番号・30 秒の案内・退室依頼と承認、クラスから出る、出席番号がちがう、en / ja-Hira、スマホのドロワー。
 - 片付け: 作ったクラス（「段2.5検証-」）と課題はアーカイブする。途中で落ちて残ったクラスも次の実行で片付く。
 - 結果は `tmp/verify-classroom-student-flow-e2e/results.json`（手順ごとの PASS / FAIL と測った値）とスクショ。
-- docs のスクリーンショット（0301〜0344 の生徒の画面）は API をスタブするスクリプトで撮る: `DOCS_SHOTS=1 node verify-classroom-viewport.mjs`（番号選び・参加完了・課題パネル・おかえりなさい）と `DOCS_SHOTS=1 node verify-classroom-menu-submit.mjs`（メニューバー・提出確認・提出できました・提出サムネイルの事前設定）。`BASE` にはプレビューの URL も使える。
+- docs のスクリーンショット（0301〜0345 の生徒の画面）は API をスタブするスクリプトで撮る: `DOCS_SHOTS=1 node verify-classroom-viewport.mjs`（番号選び・参加完了・課題パネル・おかえりなさい）と `DOCS_SHOTS=1 node verify-classroom-menu-submit.mjs`（メニューバー・提出確認・提出できました・提出サムネイルの事前設定）。`BASE` にはプレビューの URL も使える。
 
 ### data-testid を使ったテスト例
 

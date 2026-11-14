@@ -1,7 +1,6 @@
-// 提出物から続ける（EPIC #1195 課題 C: #1201 生徒側 / #1202 課題設定）の通し確認。
+// 提出物から続ける（EPIC #1195 課題 C: #1201 生徒側）の通し確認。
 //
-// stg の classroom API（`GET /classrooms/{id}/continuable-submissions` と課題の
-// `startFromPrevious`）が必要。dev server は stg を向けて起動する（プレビュー URL は本番 API）。
+// stg の classroom API（`GET /classrooms/{id}/continuable-submissions`）が必要。dev server は stg を向けて起動する（プレビュー URL は本番 API）。
 //
 // 参加しただけでは何も読み込まない。生徒が選択肢を押したときだけ 1 回読み込み、上書き確認
 // （window.confirm）も出ない — を各場面で確かめる。
@@ -9,13 +8,10 @@
 //   先生: クラス + 課題1 を作る
 //   生徒(席1): 課題1 に参加 → スプライト名を目印に変えて提出 → 名前を変える →
 //              「クラス」メニューの「提出した作品を読み込む」で、この課題の提出物（current）に戻る
-//   先生: 同じクラスに課題2（設定 OFF・スターターあり）を作る
+//   先生: 同じクラスに課題2（スターターあり）を作る
 //   生徒(席1): 課題2 に参加 → 何も読み込まれず、主ボタンは「前回の作品から続ける」・
 //              「ほかの始め方」にスターター / いまのまま (#1793) → 主ボタンで目印のスプライトが読み込まれる
 //   生徒(席2): 課題2 に参加 → 主ボタンは「スターターから始める」→ 押すとスターターが読み込まれる
-//   先生: 課題3 を作り「前回の提出物から始めさせる」を ON にして保存
-//   生徒(席1): 課題3 に参加 → 何も読み込まれず、主ボタンは前回 + 先生のおすすめのお知らせ → 押すと読み込まれる
-//   生徒(席2): 課題3 に参加 → 前回が無い旨のお知らせと主ボタン
 //
 // 生徒の画面は授業 PC の 1300×600。スクショは tmp/verify-continue-from-submission/。
 import { chromium } from 'playwright';
@@ -292,7 +288,7 @@ try {
     log('student seat2: join assignment 2 → starter or as it is');
     const s2b = await openStudent(code2, 2, 's2-a2');
     await s2b.waitForSelector('[data-testid="classroom-start-method"][data-main="starter"]', { timeout: 20000 });
-    assert(!(await s2b.$('[data-testid="classroom-start-notice"]')), 'seat 2: no notice (setting off)');
+    assert(!(await s2b.$('[data-testid="classroom-start-notice"]')), 'seat 2: no notice');
     assert(!(await s2b.$('[data-testid="classroom-assignment-close"]')), 'seat 2: no separate start button');
     await noAutoLoad(s2b, 'seat 2');
     await shot(s2b, 'a2-seat2-choice');
@@ -302,48 +298,6 @@ try {
     noDialog(s2b, 'seat 2');
     assert(!(await spriteNames(s2b)).includes(MARKER), "seat 2 does not get seat 1's project");
     await shot(s2b, 'a2-seat2-starter-loaded');
-
-    // ---- 先生: 課題3（設定 ON）----
-    log('teacher: create assignment 3 and turn on "start from previous"');
-    const code3 = await createAssignmentInClass(`第3回-${stamp}`);
-    await teacher.click('[data-testid="classroom-tab-description"]');
-    // The setting is folded in「詳しい設定」(#1303).
-    await teacher.click('[data-testid="classroom-assignment-advanced-toggle"]');
-    await teacher.waitForSelector('[data-testid="classroom-assignment-start-from-previous"]', { timeout: 20000 });
-    await teacher.check('[data-testid="classroom-assignment-start-from-previous"]');
-    await shot(teacher, 'a3-teacher-setting-on');
-    await teacher.click('[data-testid="classroom-assignment-save"]');
-    await sleep(3000);
-    // 開き直して保存されたことを確かめる
-    await teacher.click('[data-testid="classroom-tab-members"]');
-    await sleep(500);
-    await teacher.click('[data-testid="classroom-tab-description"]');
-    await sleep(2000);
-    assert(
-        await teacher.isChecked('[data-testid="classroom-assignment-start-from-previous"]'),
-        'setting persisted after save',
-    );
-    await shot(teacher, 'a3-teacher-setting-saved');
-
-    log('student seat1: join assignment 3 → previous is the main button with the notice (not loaded)');
-    const s1c = await openStudent(code3, 1, 's1-a3');
-    await s1c.waitForSelector('[data-testid="classroom-start-method"][data-main="previous"]', { timeout: 20000 });
-    await noAutoLoad(s1c, 'seat 1 (setting on)');
-    log('  notice:', (await s1c.textContent('[data-testid="classroom-start-notice"]')).trim());
-    await shot(s1c, 'a3-seat1-recommended');
-    await s1c.click('[data-testid="classroom-start-main"]');
-    await waitSprite(s1c, MARKER);
-    assert(true, 'recommended previous submission loaded when pressed');
-    noDialog(s1c, 'seat 1 (setting on)');
-    await shot(s1c, 'a3-seat1-previous-loaded');
-
-    log('student seat2: join assignment 3 → told there is no previous');
-    const s2c = await openStudent(code3, 2, 's2-a3');
-    await s2c.waitForSelector('[data-testid="classroom-start-notice"]', { timeout: 10000 });
-    log('  notice:', (await s2c.textContent('[data-testid="classroom-start-notice"]')).trim());
-    assert(!(await spriteNames(s2c)).includes(MARKER), "seat 2 does not get seat 1's project");
-    noDialog(s2c, 'seat 2 (setting on)');
-    await shot(s2c, 'a3-seat2-no-previous');
 
     ok = true;
     log('PASS');

@@ -6,9 +6,7 @@
  * from (#1201) — this assignment's or the previous assignment's of the same
  * class. Joining never loads a project by itself; the student's choice does
  * (an automatic load plus the same choice on screen made students unsure
- * what to press and loaded the project twice). With the teacher's "start
- * from the previous submission" setting (#1202) the previous submission is
- * the recommended choice. Nothing clobbers work silently: when the open
+ * what to press and loaded the project twice). Nothing clobbers work silently: when the open
  * project has unsaved changes the student is asked first. A loaded project
  * that uses mesh asks for the mesh connection modal (#1251).
  *
@@ -29,10 +27,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import classroomAPI from '../lib/classroom-api.js';
 import { decideStartMethod, normalizeContinueOptions } from '../lib/classroom-continue-options.js';
 import { readMeshState, shouldPromptMeshConnect } from '../lib/classroom-mesh-connect.js';
+import { submissionKey } from '../lib/classroom-welcome-back.js';
 import { normalizeAssignmentLesson } from '../lib/lessons/assignment-progress.js';
 import { loadProjectWithChecks } from '../lib/project-loader-utils.js';
 import {
     clearMeshConnectRequest,
+    markStudentProjectLoaded,
     requestMeshConnect,
     setStudentLesson,
     setStudentPeerView,
@@ -40,7 +40,7 @@ import {
 } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
-const NO_START_METHOD = { main: 'keep', others: [], notice: null };
+const NO_START_METHOD = { main: 'keep', others: [] };
 
 const messages = defineMessages({
     overwriteConfirm: {
@@ -133,8 +133,8 @@ const useStudentAssignment = ({
     const [continueOptions, setContinueOptions] = useState(null);
     const [loadedChoice, setLoadedChoice] = useState(null);
     // How to start right after joining (decideStartMethod, #1793): the main
-    // button, the other ways under 「ほかの始め方」 and the one-line notice of
-    // the teacher's setting (#1202). 'lesson' opens the lessons library (#1599).
+    // button and the other ways under 「ほかの始め方」. 'lesson' opens the
+    // lessons library (#1599).
     const [startMethod, setStartMethod] = useState(NO_START_METHOD);
 
     /**
@@ -145,10 +145,12 @@ const useStudentAssignment = ({
      * @param {string} url - presigned download URL
      * @param {object} confirmMessage - confirm text naming what replaces the project
      * @param {string} source - which choice is loaded ('starter' | 'previous' | 'current')
+     * @param {?object} [submission] - the submission loaded (this assignment's is remembered
+     *   in this tab so the welcome back screen does not offer it again, #1825)
      * @returns {Promise<boolean>} true when the project was loaded
      */
     const loadProjectFromUrl = useCallback(
-        async (url, confirmMessage, source) => {
+        async (url, confirmMessage, source, submission = null) => {
             if (projectChanged) {
                 // eslint-disable-next-line no-alert
                 if (!window.confirm(intl.formatMessage(confirmMessage))) {
@@ -161,6 +163,7 @@ const useStudentAssignment = ({
             }
             const projectData = await response.arrayBuffer();
             await loadProjectWithChecks(vm, intl, projectData);
+            dispatch(markStudentProjectLoaded(source === 'current' ? submissionKey(submission) : null));
             const prompt = shouldPromptMeshConnect({ source, ...readMeshState(vm) });
             dispatch(prompt ? requestMeshConnect() : clearMeshConnectRequest());
             return true;
@@ -188,17 +191,19 @@ const useStudentAssignment = ({
      * "nothing to offer" so the join / status view keeps working.
      * @param {string} sessionToken - student session token
      * @param {string} classroomId - joined classroom ID
-     * @returns {Promise<{options: ?object, startFromPrevious: boolean}>}
-     *   normalized options (null when none) and the assignment setting
+     * @returns {Promise<?object>} normalized options (null when none). The
+     *   old `startFromPrevious` setting in the answer is not read (#1825).
      */
     const fetchContinueOptions = useCallback(async (sessionToken, classroomId) => {
         try {
             const data = await classroomAPI.getContinuableSubmissions(sessionToken, classroomId);
             const options = normalizeContinueOptions(data);
             setContinueOptions(options);
-            return { options, startFromPrevious: data?.startFromPrevious === true };
+            return options;
         } catch {
-            return { options: null, startFromPrevious: false };
+            // Could not check: offer nothing rather than an old answer (#1825).
+            setContinueOptions(null);
+            return null;
         }
     }, []);
 
@@ -224,7 +229,7 @@ const useStudentAssignment = ({
             setHasStarter(false);
             // Fetched even without `hasAssignment`: a lesson-only assignment has
             // no pages or starter but still a lesson (#1599).
-            const [assignmentData, { options, startFromPrevious }] = await Promise.all([
+            const [assignmentData, options] = await Promise.all([
                 Promise.resolve()
                     .then(() => classroomAPI.getAssignment(sessionToken, classroomId))
                     .catch(() => null),
@@ -239,7 +244,6 @@ const useStudentAssignment = ({
             setStartMethod(
                 decideStartMethod({
                     options,
-                    startFromPrevious,
                     hasStarter: !!joinedAssignment?.starterUrl,
                     lesson: hasLesson,
                 }),
@@ -311,7 +315,7 @@ const useStudentAssignment = ({
                 }
                 const confirmMessage =
                     kind === 'previous' ? messages.overwriteConfirmPrevious : messages.overwriteConfirmCurrent;
-                if (await loadProjectFromUrl(target.projectUrl, confirmMessage, kind)) {
+                if (await loadProjectFromUrl(target.projectUrl, confirmMessage, kind, target)) {
                     setLoadedChoice(kind);
                     if (onStarted) onStarted();
                 }

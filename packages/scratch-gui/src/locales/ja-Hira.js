@@ -214,6 +214,7 @@ export default {
     'gui.classroom.studentStatus.title': 'おかえりなさい',
     'gui.classroom.studentStatus.seatLabel': 'しゅっせきばんごう{seatNumber}',
     'gui.classroom.studentStatus.continue': 'つづける',
+    'gui.classroom.studentStatus.continueAsIs': 'このまま つづける',
     'gui.classroom.studentStatus.continueNote': 'いまのさくひんのまま、つづきをつくる',
     'gui.classroom.studentStatus.wrongSeat': 'しゅっせきばんごうがちがう',
     'gui.classroom.studentStatus.reload': 'さくひんをよみこみなおす',
@@ -505,8 +506,6 @@ export default {
     'gui.classroom.startMethod.currentNote': '{date} にだしたもの',
     'gui.classroom.startMethod.previousNote': '『{assignmentName}』{date} にだしたもの',
     'gui.classroom.startMethod.keepNote': 'いまのさくひんのままつくる',
-    'gui.classroom.startMethod.noticePreviousAlsoAvailable':
-        'せんせいのせっていで、ぜんかいのさくひんからもはじめられます（ほかのはじめかた）',
     'gui.classroom.startMethod.others': 'ほかのはじめかた',
     'gui.classroom.studentAssignment.mainNextPage': 'つぎのページ',
     'gui.classroom.studentAssignment.closeReopened': 'とじる',
@@ -517,14 +516,6 @@ export default {
     'gui.classroom.continueChoice.starter': 'スターターからはじめる',
     'gui.classroom.continueChoice.loadFailed': 'ていしゅつしたさくひんをひらけませんでした',
     'gui.classroom.continueChoice.gone': 'そのていしゅつぶつはもうよみこめません（きげんぎれか、けされました）',
-    'gui.classroom.continueChoice.noticeRecommendPrevious':
-        'せんせいのおすすめ: ぜんかいのていしゅつぶつからつづけよう',
-    'gui.classroom.continueChoice.noticeNoPreviousUseStarter':
-        'ぜんかいのていしゅつぶつがみつからなかったので、スターターからはじめよう',
-    'gui.classroom.continueChoice.noticeNoPrevious': 'ぜんかいのていしゅつぶつがみつかりませんでした',
-    'gui.classroom.assignmentEditor.startFromPrevious': 'ぜんかいのていしゅつぶつからはじめさせる',
-    'gui.classroom.assignmentEditor.startFromPreviousHint':
-        'つづきのじゅぎょうむけ: せいとがさんかすると、このクラスのまえのかだいでていしゅつしたさくひんからつづけるボタンを「おすすめ」としてだします（スターターはだしません）。ぜんかいのていしゅつぶつがないせいとにはスターターからはじめるようあんないします。',
     'gui.classroom.assignmentEditor.peerView': 'たしゃさんしょう',
     'gui.classroom.assignmentEditor.peerViewNone': 'しない',
     'gui.classroom.assignmentEditor.peerViewAlways': 'いつでもみられる',
@@ -536,8 +527,6 @@ export default {
     'gui.classroom.assignmentEditor.meshGroupLimitNone': 'せいげんなし',
     'gui.classroom.assignmentEditor.meshGroupLimitHint':
         '「せいげんなし」にすると、クラスぜんいんを 1 つのグループにできます。せんせいが「ホストになる」と「せんせいのグループ」になり、せいとはそこへ 1 タップではいれます。',
-    'gui.classroom.teacherDetail.previewStartPrevious':
-        'さんかしたとき: ぜんかいのていしゅつぶつからつづけるのがおすすめ（ないせいとはスターター）',
     'gui.classroom.teacherDetail.previewStartStarter':
         'さんかしたとき: ボタンでスターターからはじめます（ぜんかいのていしゅつぶつがあるせいとは、どこからはじめるかえらびます）',
     'gui.classroom.teacherDetail.previewStartNone':
@@ -879,10 +868,7 @@ export default {
     'gui.classroom.assignmentEditor.errorLessonUnknownCourse':
         'レッスンのコースがみつかりません。べつのコースか「レッスンをつかわない」をえらんでください。',
     'gui.classroom.assignmentEditor.errorLessonNoChallenges': 'レッスンのチャレンジを 1 ついじょうえらんでください。',
-    'gui.classroom.assignmentEditor.advancedSummary':
-        'ぜんかいから: {previous}・たしゃさんしょう: {peerView}・メッシュ: {mesh}',
-    'gui.classroom.assignmentEditor.summaryOn': 'する',
-    'gui.classroom.assignmentEditor.summaryOff': 'しない',
+    'gui.classroom.assignmentEditor.advancedSummary': 'たしゃさんしょう: {peerView}・メッシュ: {mesh}',
     'gui.classroom.teacherCreate.assignmentNameHint': 'にんずうとかだいめいはいつでもへんこうできます。',
     'gui.classroom.carousel.submitTitle': 'せいとがかだいをていしゅつできる',
     'gui.classroom.carousel.submitDesc':

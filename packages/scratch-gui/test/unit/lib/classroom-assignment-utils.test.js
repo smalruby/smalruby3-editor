@@ -14,23 +14,19 @@ import {
 } from '../../../src/lib/classroom-assignment-utils';
 
 describe('buildAssignmentPayload', () => {
-    test('includes startFromPrevious only when given (#1202)', () => {
-        expect(buildAssignmentPayload([{ text: 'p' }], 'keep', true)).toEqual({
+    test('never sends the removed startFromPrevious setting (#1825; the server keeps the stored value)', () => {
+        expect(buildAssignmentPayload([{ text: 'p' }], 'keep')).toEqual({
             pages: [{ text: 'p' }],
             keepStarter: true,
-            startFromPrevious: true,
         });
-        expect(buildAssignmentPayload([{ text: 'p' }], 'none', false).startFromPrevious).toBe(false);
-        expect(buildAssignmentPayload([{ text: 'p' }], 'none')).not.toHaveProperty('startFromPrevious');
     });
 
     test('includes peerView only when given (#1208)', () => {
-        expect(buildAssignmentPayload([{ text: 'p' }], 'none', false, 'afterSubmit')).toEqual({
+        expect(buildAssignmentPayload([{ text: 'p' }], 'none', 'afterSubmit')).toEqual({
             pages: [{ text: 'p' }],
-            startFromPrevious: false,
             peerView: 'afterSubmit',
         });
-        expect(buildAssignmentPayload([{ text: 'p' }], 'none', false)).not.toHaveProperty('peerView');
+        expect(buildAssignmentPayload([{ text: 'p' }], 'none')).not.toHaveProperty('peerView');
     });
 
     test('maps text-only pages', () => {

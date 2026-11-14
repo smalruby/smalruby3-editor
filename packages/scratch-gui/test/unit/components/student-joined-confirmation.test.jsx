@@ -15,7 +15,7 @@ const renderJoined = (props) =>
         <IntlProvider locale="en">
             <StudentJoinedConfirmation
                 joinedInfo={JOINED}
-                startMethod={{ main: 'keep', others: [], notice: null }}
+                startMethod={{ main: 'keep', others: [] }}
                 onClose={jest.fn()}
                 {...props}
             />
@@ -27,13 +27,13 @@ describe('StudentJoinedConfirmation', () => {
         const onLoadSubmission = jest.fn();
         const { getAllByRole, getByTestId, queryByTestId } = renderJoined({
             continueOptions: { previous: { assignmentName: '第1回', submittedAt: null }, current: null },
-            startMethod: { main: 'previous', others: ['starter', 'keep'], notice: 'recommendPrevious' },
+            startMethod: { main: 'previous', others: ['starter', 'keep'] },
             onLoadSubmission,
             onLoadStarter: jest.fn(),
         });
         expect(getAllByRole('button')).toHaveLength(2);
         expect(queryByTestId('classroom-continue-choice')).not.toBeInTheDocument();
-        expect(getByTestId('classroom-start-notice')).toBeInTheDocument();
+        expect(queryByTestId('classroom-start-notice')).not.toBeInTheDocument();
         fireEvent.click(getByTestId('classroom-start-main'));
         expect(onLoadSubmission).toHaveBeenCalledWith('previous');
     });
@@ -51,7 +51,7 @@ describe('StudentJoinedConfirmation', () => {
         const onClose = jest.fn();
         const { getByTestId } = renderJoined({
             studentLesson: { submitWork: false },
-            startMethod: { main: 'lesson', others: [], notice: null },
+            startMethod: { main: 'lesson', others: [] },
             onClose,
             onStartLesson,
         });

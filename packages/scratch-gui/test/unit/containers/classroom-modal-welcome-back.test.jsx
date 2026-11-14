@@ -46,12 +46,15 @@ jest.mock('../../../src/lib/analytics', () => ({ __esModule: true, default: { ev
 jest.mock('../../../src/lib/lessons/open-lessons-library.js', () => ({ openAssignmentLessonsLibrary: () => {} }));
 jest.mock('../../../src/containers/use-kick-request-polling.js', () => ({ __esModule: true, default: () => {} }));
 jest.mock('../../../src/containers/use-student-submit.js', () => ({ __esModule: true, default: () => ({}) }));
+let mockContinueOptions = null;
+let mockRefreshContinueOptions = () => Promise.resolve();
 jest.mock('../../../src/containers/use-student-assignment.js', () => ({
     __esModule: true,
     default: () => ({
+        continueOptions: mockContinueOptions,
         handleJoined: () => Promise.resolve('student-joined'),
         refreshLesson: () => Promise.resolve(),
-        refreshContinueOptions: () => Promise.resolve(),
+        refreshContinueOptions: () => mockRefreshContinueOptions(),
         setHasAssignment: () => {},
     }),
 }));
@@ -67,13 +70,14 @@ const SESSION = {
     className: '1年1組',
 };
 
-const renderModal = (classroom) => {
+const renderModal = (classroom, gui = {}) => {
     const store = mockStore({
         scratchGui: {
             classroom: { role: null, sessionToken: null, ...classroom },
             vm: null,
             projectTitle: '',
             lessonMode: { progress: {} },
+            ...gui,
         },
     });
     render(
@@ -210,5 +214,75 @@ describe('ClassroomModal: wrong seat on the welcome back screen (#1794)', () => 
         expect(mockProps.isLoading).toBe(false);
         act(() => mockProps.onClose());
         expect(store.getActions().map((a) => a.type)).toContain('scratch-gui/classroom/CLOSE_MODAL');
+    });
+});
+
+describe("ClassroomModal: offer this assignment's submission after a reload (#1825)", () => {
+    const CURRENT = { classroomId: 'c1', submittedAt: '2026-11-10T01:00:00.000Z', projectUrl: 'https://x/cur.sb3' };
+    const emptyVm = { runtime: { targets: [{ blocks: { _blocks: {} } }, { blocks: { _blocks: {} } }] } };
+    const settle = () =>
+        act(async () => {
+            for (let i = 0; i < 6; i++) await Promise.resolve();
+        });
+
+    beforeEach(() => {
+        mockProps = null;
+        mockVerifySession.mockReset();
+        mockVerifySession.mockResolvedValue({ valid: true, hasAssignment: true, submission: null });
+        mockContinueOptions = { current: CURRENT, previous: null };
+        mockRefreshContinueOptions = () => Promise.resolve();
+        window.localStorage.clear();
+        clearPendingKickRequest();
+    });
+
+    test('offers it once the session is confirmed on the untouched new project', async () => {
+        renderModal(SESSION, { vm: emptyVm, projectChanged: false });
+        await settle();
+        expect(mockProps.offerCurrentSubmission).toBe(true);
+    });
+
+    test.each([
+        ['has blocks', {}, { vm: { runtime: { targets: [{ blocks: { _blocks: { a: {} } } }] } } }],
+        ['was changed', {}, { projectChanged: true }],
+        ['came from outside', { projectFromOutside: true }, {}],
+    ])('does not offer it when the project %s', async (_label, classroom, gui) => {
+        renderModal({ ...SESSION, ...classroom }, { vm: emptyVm, projectChanged: false, ...gui });
+        await settle();
+        expect(mockProps.offerCurrentSubmission).toBe(false);
+    });
+
+    test('does not offer the submission already loaded in this tab', async () => {
+        renderModal(
+            { ...SESSION, studentLoadedSubmission: 'c1:2026-11-10T01:00:00.000Z' },
+            { vm: emptyVm, projectChanged: false },
+        );
+        await settle();
+        expect(mockProps.offerCurrentSubmission).toBe(false);
+    });
+
+    test('does not offer it when the session check fails', async () => {
+        mockVerifySession.mockRejectedValue({ status: 500, body: {} });
+        renderModal(SESSION, { vm: emptyVm, projectChanged: false });
+        await settle();
+        expect(mockProps.offerCurrentSubmission).toBeFalsy();
+    });
+    test('keeps the screen busy (main button not pressable) until the submissions answer arrives', async () => {
+        let answer;
+        mockRefreshContinueOptions = () =>
+            new Promise((resolve) => {
+                answer = resolve;
+            });
+        renderModal(SESSION, { vm: emptyVm, projectChanged: false });
+        await settle();
+        // verify-session has answered, the submissions have not: 「つづける」 must not be pressable yet.
+        expect(mockVerifySession).toHaveBeenCalled();
+        expect(answer).toEqual(expect.any(Function));
+        expect(mockProps.isLoading).toBe(true);
+        await act(async () => {
+            answer();
+            for (let i = 0; i < 6; i++) await Promise.resolve();
+        });
+        expect(mockProps.isLoading).toBe(false);
+        expect(mockProps.offerCurrentSubmission).toBe(true);
     });
 });

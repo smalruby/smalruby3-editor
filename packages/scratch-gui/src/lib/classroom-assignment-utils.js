@@ -42,11 +42,10 @@ const normalizeMeshGroupLimit = (value) => {
  * Build the PUT /classrooms/{id}/assignment payload from editor state.
  * @param {Array<object>} editorPages - Editor page objects
  * @param {string} starterMode - 'none' | 'keep' | 'new'
- * @param {boolean} [startFromPrevious] - "start from the previous submission" setting
  * @param {string} [peerView] - "peer view" setting (one of PEER_VIEW_VALUES)
- * @returns {object} Request payload {pages, newStarter?, keepStarter?, startFromPrevious?, peerView?}
+ * @returns {object} Request payload {pages, newStarter?, keepStarter?, peerView?}
  */
-const buildAssignmentPayload = (editorPages, starterMode, startFromPrevious, peerView) => {
+const buildAssignmentPayload = (editorPages, starterMode, peerView) => {
     const pages = (editorPages || []).map((page) => {
         if (page.newImageType) {
             return { text: page.text, newImage: page.newImageType };
@@ -62,10 +61,9 @@ const buildAssignmentPayload = (editorPages, starterMode, startFromPrevious, pee
     } else if (starterMode === 'keep') {
         payload.keepStarter = true;
     }
-    // Omitted unless given so the server keeps the stored value (#1202).
-    if (typeof startFromPrevious === 'boolean') {
-        payload.startFromPrevious = startFromPrevious;
-    }
+    // The old "start from the previous submission" setting (#1202) is no
+    // longer sent: the server keeps the stored value when it is omitted, and
+    // the GUI does not read it any more (#1825).
     if (PEER_VIEW_VALUES.includes(peerView)) {
         payload.peerView = peerView;
     }

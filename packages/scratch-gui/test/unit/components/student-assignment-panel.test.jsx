@@ -90,7 +90,7 @@ describe('StudentAssignmentPanel', () => {
         const onNextPage = jest.fn();
         const { getByTestId, queryByTestId } = renderPanel({
             joinedInfo: { seatNumber: 2 },
-            startMethod: { main: 'starter', others: ['keep'], notice: null },
+            startMethod: { main: 'starter', others: ['keep'] },
             onNextPage,
         });
         expect(queryByTestId('classroom-start-method')).not.toBeInTheDocument();
@@ -104,7 +104,7 @@ describe('StudentAssignmentPanel', () => {
         const { getByTestId, queryByTestId } = renderPanel({
             pageIndex: 1,
             joinedInfo: { seatNumber: 2 },
-            startMethod: { main: 'starter', others: ['keep'], notice: null },
+            startMethod: { main: 'starter', others: ['keep'] },
             onChooseStarter,
             onClose,
         });
@@ -125,7 +125,7 @@ describe('StudentAssignmentPanel', () => {
             ...props,
             joinedInfo: { seatNumber: 2 },
             continueOptions: { previous: { assignmentName: '第1回', submittedAt: null }, current: null },
-            startMethod: { main: 'previous', others: ['keep'], notice: null },
+            startMethod: { main: 'previous', others: ['keep'] },
             onLoadSubmission,
         });
         fireEvent.click(getByTestId('classroom-start-main'));
@@ -138,7 +138,7 @@ describe('StudentAssignmentPanel', () => {
             assignmentReopened: true,
             joinedInfo: { seatNumber: 2 },
             pageIndex: 1,
-            startMethod: { main: 'starter', others: ['keep'], notice: null },
+            startMethod: { main: 'starter', others: ['keep'] },
             onClose,
         });
         expect(queryByTestId('classroom-start-method')).not.toBeInTheDocument();
@@ -158,7 +158,7 @@ describe('StudentAssignmentPanel', () => {
         const { getByTestId, queryByTestId, rerender } = renderPanel({
             joinedInfo: { seatNumber: 2 },
             studentLesson: { submitWork: true },
-            startMethod: { main: 'lesson', others: [], notice: null },
+            startMethod: { main: 'lesson', others: [] },
             onStartLesson,
         });
         expect(queryByTestId('classroom-assignment-lesson-notice')).not.toBeInTheDocument();
@@ -168,7 +168,7 @@ describe('StudentAssignmentPanel', () => {
                     {...defaultProps()}
                     joinedInfo={{ seatNumber: 2 }}
                     pageIndex={1}
-                    startMethod={{ main: 'lesson', others: [], notice: null }}
+                    startMethod={{ main: 'lesson', others: [] }}
                     studentLesson={{ submitWork: true }}
                     onStartLesson={onStartLesson}
                 />
