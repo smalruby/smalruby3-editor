@@ -197,19 +197,24 @@ export default function (Generator) {
         }
 
         let commentCode = '';
-        let isInlineComment = false;
+        let inlineComment = '';
         if (!this.isConnectedValue(block)) {
             let comment = this.getCommentText(block);
             if (comment) {
-                isInlineComment = comment.split('\n').some((line) => line === '@ruby:comment_position:inline');
-                const filteredComment = comment
-                    .split('\n')
-                    .filter((line) => !line.startsWith('@ruby:'))
-                    .join('\n');
+                const lines = comment.split('\n');
+                const userLines = lines.filter((line) => !line.startsWith('@ruby:'));
+                let beforeLines = userLines;
+                if (lines.includes('@ruby:comment_position:inline:last')) {
+                    // The last user line is the trailing comment, the others are before (issue #1838).
+                    beforeLines = userLines.slice(0, -1);
+                    inlineComment = userLines.length > 0 ? userLines[userLines.length - 1] : '';
+                } else if (lines.includes('@ruby:comment_position:inline')) {
+                    beforeLines = [];
+                    inlineComment = userLines.join(' ');
+                }
+                const filteredComment = beforeLines.join('\n');
                 if (filteredComment.trim().length > 0) {
-                    if (!isInlineComment) {
-                        commentCode += `${this.prefixLines(filteredComment, '# ')}\n`;
-                    }
+                    commentCode += `${this.prefixLines(filteredComment, '# ')}\n`;
                 }
             }
             const inputs = this.getInputs(block);
@@ -249,14 +254,8 @@ export default function (Generator) {
             endCode = 'end\n';
             delete block.isStatement;
         }
-        if (isInlineComment && !this.isConnectedValue(block)) {
-            const inlineComment = this.getCommentText(block)
-                .split('\n')
-                .filter((line) => !line.startsWith('@ruby:'))
-                .join(' ');
-            if (inlineComment.trim().length > 0 && code.endsWith('\n')) {
-                code = `${code.slice(0, -1)} # ${inlineComment.trim()}\n`;
-            }
+        if (inlineComment.trim().length > 0 && code.endsWith('\n')) {
+            code = `${code.slice(0, -1)} # ${inlineComment.trim()}\n`;
         }
         return commentCode + code + nextCode + endCode;
     };

@@ -522,6 +522,7 @@ end
 
 - 前の行のコメントは次の行のブロックに付ける。続けて書いた行は 1 つにまとめる。
 - うしろのコメントは同じ行のブロックに付け、`@ruby:comment_position:inline` を足す。生成器はこの注釈があると行の最後に `# ...` と書く。
+- 1 つのブロックに前のコメントとうしろのコメントの両方があるときは、前のコメントの行のあとにうしろのコメントを 1 行で置き、`@ruby:comment_position:inline:last` を足す（`前\nうしろ\n@ruby:comment_position:inline:last`）。生成器は利用者の文の最後の行だけを行の最後に書き、それより前の行は前の行に `# ...` と書く。`inline` だけのときは利用者の文がすべてうしろのコメント。
 - class / module の前のコメントはスプライトのコメントにする。module のときは `@ruby:module:<module 名>` を足し、生成器はそのコメントを module の前に書く（`code-finisher.js`）。
 
 **往復の例**:
@@ -530,11 +531,13 @@ end
 # 前のコメント
 move(10)
 move(20) # うしろのコメント
+# 前
+move(30) # うしろ
 ```
 
-- 同じコードに戻る。
+- 同じコードに戻る。`move(30)` のコメントは `前\nうしろ\n@ruby:comment_position:inline:last`。
 
-**できないこと**: 1 つのブロックに前のコメントとうしろのコメントの両方を付けると、いまは前のコメントが残らない（`_mergeUserComment` がうしろのコメントで上書きする）。
+**できないこと**: 注釈で元の形を戻すブロック（`puts` や `say(:hello)`、ローカル変数の代入など）に利用者のコメントを付けると、いまは元の形に戻らないことがある（`say("1", 1)` になる、など）。生成器の一部が、コメントの先頭が注釈であることや、注釈が `,` だけでつながっていることを前提に読んでいるため。
 
 **テスト**: `ruby-to-blocks-converter/comments.test.js`、`comment-round-trip.test.js`、`ruby-generator/scrub.test.js`。
 
@@ -671,7 +674,7 @@ foo.bar(1)
 | `@ruby:loop_condition_call` | `@ruby:loop_condition_call` | 変換器 `ast-handlers/control-flow.js` | 生成器 `scrub.js` | `while bar(@a) < 3` | P12 |
 | `@ruby:begin_loop_body` | `,@ruby:begin_loop_body`（ほかの注釈に足す） | 変換器 `ast-handlers/control-flow.js` | 生成器 `scrub.js` | `begin ... end while` | P12 |
 | `@ruby:block_param` | `@ruby:block_param:<番号>:<名前>`（1 行に 1 つ） | 変換器 `smalruby-ruby.js` / `control.js` | 生成器 `smalruby-ruby.js` | `@ruby:block_param:1:i` | P13 |
-| `@ruby:comment_position` | `<利用者の文>\n@ruby:comment_position:inline` | 変換器 `comment-handler.js` | 生成器 `scrub.js`、`src/lib/scratch-blocks-comment-icon-patch.js` | `move(10) # ...` | P14 |
+| `@ruby:comment_position` | `<利用者の文>\n@ruby:comment_position:inline`、`<前の文>\n<うしろの文>\n@ruby:comment_position:inline:last` | 変換器 `comment-handler.js` | 生成器 `scrub.js`、`src/lib/scratch-blocks-comment-icon-patch.js` | `move(10) # ...` | P14 |
 
 - すべての注釈を読むところ: `src/lib/scratch-blocks-comment-icon-patch.js`（注釈だけのコメントのアイコンを隠す）、生成器 `scrub.js`（`#` のコメントから `@ruby:` の行を捨てる）、`scratch-vm/src/engine/comment.js`（注釈のコメントの位置）。
 - 一覧がそろっているかは `grep -rhoE "@ruby:[a-z_?-]+" packages/scratch-gui/src packages/scratch-vm/src | sort -u` で確かめる。
