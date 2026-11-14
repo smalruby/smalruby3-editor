@@ -1,4 +1,8 @@
 // === Smalruby: This file is Smalruby-specific (comment/block-chain scrub handler for RubyGenerator) ===
+import { registerRubyMarkers, rubyMarkersOf } from './ruby-markers.js';
+
+const INLINE_MARKER = '@ruby:comment_position:inline';
+const INLINE_LAST_MARKER = '@ruby:comment_position:inline:last';
 
 /**
  * Whether a comment marks a block that calls a method of the condition of a loop again
@@ -6,10 +10,9 @@
  * @param {?string} comment - The comment text of the block.
  * @returns {boolean} True if it is the marker.
  */
-export const isLoopConditionCall = (comment) =>
-    !!comment && comment.split(/[,\s]/).includes('@ruby:loop_condition_call');
+export const isLoopConditionCall = (comment) => rubyMarkersOf(comment).includes('@ruby:loop_condition_call');
 
-const hasMarker = (comment, marker) => !!comment && comment.split(/[,\s]/).includes(marker);
+const hasMarker = (comment, marker) => rubyMarkersOf(comment).includes(marker);
 
 /**
  * Whether a comment marks a block of the body of `begin ... end while cond` put once before the
@@ -177,6 +180,7 @@ export default function (Generator) {
     Generator.getCommentText = function (block) {
         return withoutBeginLoopBody(rawCommentText(this, block));
     };
+    registerRubyMarkers(Generator);
 
     Generator.scrub_ = function (block, code) {
         if (code === null) {
@@ -201,14 +205,14 @@ export default function (Generator) {
         if (!this.isConnectedValue(block)) {
             let comment = this.getCommentText(block);
             if (comment) {
-                const lines = comment.split('\n');
-                const userLines = lines.filter((line) => !line.startsWith('@ruby:'));
+                const markers = rubyMarkersOf(comment);
+                const userLines = comment.split('\n').filter((line) => !line.startsWith('@ruby:'));
                 let beforeLines = userLines;
-                if (lines.includes('@ruby:comment_position:inline:last')) {
+                if (markers.includes(INLINE_LAST_MARKER)) {
                     // The last user line is the trailing comment, the others are before (issue #1838).
                     beforeLines = userLines.slice(0, -1);
                     inlineComment = userLines.length > 0 ? userLines[userLines.length - 1] : '';
-                } else if (lines.includes('@ruby:comment_position:inline')) {
+                } else if (markers.includes(INLINE_MARKER)) {
                     beforeLines = [];
                     inlineComment = userLines.join(' ');
                 }
