@@ -52,17 +52,19 @@ describe('RubyToBlocksConverter/command in parentheses', () => {
         expect(errors[0].text).toContain(wrongInstruction('l.push((a = 2))'));
     });
 
+    // Nested deeper, the error names the whole statement too, not the expression inside it (issue #1704).
     test.each([
-        ['say(((a > 1 ? 1 : 2)).to_s)', 'say(((a > 1 ? 1 : 2)).to_s)'],
-        ['say(((a; b)).to_s)', 'say(((a; b)).to_s)'],
-        ['say(((a = 2) + 1).to_s)', '(a = 2) + 1'],
-        ['say((a = 2).to_s.length)', '(a = 2).to_s'],
-    ])('nested: %s is an error on its line', async (code, source) => {
+        ['say(((a > 1 ? 1 : 2)).to_s)'],
+        ['say(((a; b)).to_s)'],
+        ['say(((a = 2) + 1).to_s)'],
+        ['say((a = 2).to_s.length)'],
+        ['say(wait(1).to_s)'],
+    ])('nested: %s is the wrong instruction', async (code) => {
         const { ok, errors } = await convert(code);
         expect(ok).toBe(false);
         expect(errors).toHaveLength(1);
         expect(errors[0].row).toBe(PRELUDE_ROWS);
-        expect(errors[0].text).toContain(wrongInstruction(source));
+        expect(errors[0].text).toContain(wrongInstruction(code));
     });
 
     test.each([
