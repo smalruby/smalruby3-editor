@@ -15,10 +15,12 @@ const STAGE_SIZE_MODES = keyMirror({
      */
     small: null,
 
+    // === Smalruby: Start of middle stage size ===
     /**
      * The "middle stage" button is pressed; the user would like a middle stage.
      */
     middle: null
+    // === Smalruby: End of middle stage size ===
 });
 
 /**
@@ -41,10 +43,12 @@ const STAGE_DISPLAY_SIZES = keyMirror({
      */
     small: null,
 
+    // === Smalruby: Start of middle stage size ===
     /**
      * Middle stage
      */
     middle: null
+    // === Smalruby: End of middle stage size ===
 });
 
 // zoom level to start with
@@ -54,7 +58,9 @@ const STAGE_DISPLAY_SCALES = {};
 STAGE_DISPLAY_SCALES[STAGE_DISPLAY_SIZES.large] = 1; // large mode, wide browser (standard)
 STAGE_DISPLAY_SCALES[STAGE_DISPLAY_SIZES.largeConstrained] = 0.85; // large mode but narrow browser
 STAGE_DISPLAY_SCALES[STAGE_DISPLAY_SIZES.small] = 0.5; // small mode, regardless of browser size
+// === Smalruby: Start of middle stage size ===
 STAGE_DISPLAY_SCALES[STAGE_DISPLAY_SIZES.middle] = 0.75; // middle mode, regardless of browser size
+// === Smalruby: End of middle stage size ===
 
 export default {
     standardStageWidth: 480,

@@ -12,7 +12,9 @@ import Filter from '../filter/filter.jsx';
 import TagButton from '../../containers/tag-button.jsx';
 import {legacyConfig} from '../../legacy-config';
 import Spinner from '../spinner/spinner.jsx';
+// === Smalruby: Start of tutorial categories ===
 import {CATEGORIES} from '../../lib/libraries/tutorial-tags';
+// === Smalruby: End of tutorial categories ===
 
 import styles from './library.css';
 import {ModalFocusContext} from '../../contexts/modal-focus-context.jsx';
@@ -35,6 +37,7 @@ const messages = defineMessages({
         defaultMessage: 'Getting Started',
         description: 'Label for getting started category'
     },
+    // === Smalruby: Start of tutorial categories ===
     [CATEGORIES.blockBasics]: {
         id: `gui.library.blockBasics`,
         defaultMessage: 'ブロックのきほん：はじめての操作',
@@ -65,6 +68,7 @@ const messages = defineMessages({
         defaultMessage: 'Ruby のきほん',
         description: 'Label for Ruby Basics tutorial category — TryRuby-inspired puts-centric series'
     },
+    // === Smalruby: End of tutorial categories ===
     membershipTag: {
         defaultMessage: 'Membership',
         description: 'Tag for filtering a library for member only assets',
@@ -279,7 +283,9 @@ class LibraryComponent extends React.Component {
         ));
     }
     constructKey (data) {
+        // === Smalruby: Start of extension library key ===
         if (data.extensionId) return data.extensionId;
+        // === Smalruby: End of extension library key ===
         return typeof data.name === 'string' ? data.name : data.rawURL;
     }
     scrollToTop () {
@@ -351,7 +357,9 @@ class LibraryComponent extends React.Component {
             <Modal
                 fullScreen
                 contentLabel={this.props.title}
+                // === Smalruby: Start of modal header actions ===
                 headerActions={this.props.headerActions}
+                // === Smalruby: End of modal header actions ===
                 id={this.props.id}
                 onRequestClose={this.handleClose}
             >
@@ -429,7 +437,9 @@ LibraryComponent.propTypes = {
 
     ),
     filterable: PropTypes.bool,
+    // === Smalruby: Start of modal header actions ===
     headerActions: PropTypes.node,
+    // === Smalruby: End of modal header actions ===
     withCategories: PropTypes.bool,
     id: PropTypes.string.isRequired,
     intl: intlShape.isRequired,

@@ -233,8 +233,6 @@ src/lib/*
 !src/lib/ruby-to-blocks-converter/
 !src/lib/ruby-to-blocks-converter/**
 !src/lib/settings/
-!src/lib/themes/
-!src/lib/themes/**
 # Mixed directory
 !src/lib/libraries/
 # Individual Smalruby files

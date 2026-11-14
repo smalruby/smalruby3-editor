@@ -26,7 +26,9 @@ const ModalComponent = props => (
         onRequestClose={props.onRequestClose}
     >
         <Box
+            // === Smalruby: Start of modal loading bar ===
             className={styles.box}
+            // === Smalruby: End of modal loading bar ===
             dir={props.isRtl ? 'rtl' : 'ltr'}
             direction="column"
             grow={1}
@@ -64,8 +66,11 @@ const ModalComponent = props => (
                             src={props.headerImage}
                         />
                     ) : null}
+                    {/* === Smalruby: Start of modal header title === */}
                     {props.headerTitle || props.contentLabel}
+                    {/* === Smalruby: End of modal header title === */}
                 </div>
+                {/* === Smalruby: Start of modal header actions === */}
                 {props.headerActions ? (
                     <div
                         className={classNames(
@@ -76,6 +81,7 @@ const ModalComponent = props => (
                         {props.headerActions}
                     </div>
                 ) : null}
+                {/* === Smalruby: End of modal header actions === */}
                 <div
                     className={classNames(
                         styles.headerItem,
@@ -102,11 +108,13 @@ const ModalComponent = props => (
                     )}
                 </div>
             </div>
+            {/* === Smalruby: Start of modal loading bar === */}
             {props.loading ? (
                 <div className={styles.progressBar}>
                     <div className={styles.progressBarValue} />
                 </div>
             ) : null}
+            {/* === Smalruby: End of modal loading bar === */}
             {props.children}
         </Box>
     </ReactModal>
@@ -120,12 +128,18 @@ ModalComponent.propTypes = {
         PropTypes.object
     ]).isRequired,
     fullScreen: PropTypes.bool,
+    // === Smalruby: Start of modal header actions ===
     headerActions: PropTypes.node,
+    // === Smalruby: End of modal header actions ===
     headerClassName: PropTypes.string,
     headerImage: PropTypes.string,
+    // === Smalruby: Start of modal header title ===
     headerTitle: PropTypes.node,
+    // === Smalruby: End of modal header title ===
     isRtl: PropTypes.bool,
+    // === Smalruby: Start of modal loading bar ===
     loading: PropTypes.bool,
+    // === Smalruby: End of modal loading bar ===
     onHelp: PropTypes.func,
     onRequestClose: PropTypes.func
 };

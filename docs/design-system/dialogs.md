@@ -116,7 +116,7 @@
 |---|---|---|
 | `modal/modal.css`（マーカー付き） | `.modal-content` に既定の白い地（`background-clip` の指定なし） | 枠（白 25%）の下まで白く塗るので、**枠の下が白になり、枠が不透明な白に見える**（上流は枠からオーバーレイが透けて淡い青）。本文の地は上流でも白なので、ほかは変わらない |
 | `mobile-sprite-panel/mobile-sprite-panel.css` | すべてのモーダルのオーバーレイの重なりを 9999 に上げる（[`library.md`](library.md) の「スモウルビーの追加」） | 重なり順だけ |
-| `prompt/prompt.jsx`（マーカー付き）・`custom-procedures/custom-procedures.jsx`（マーカー無し） | モーダルに `id` を付けた | なし |
+| `prompt/prompt.jsx`・`custom-procedures/custom-procedures.jsx`（どちらもマーカー `upstream warning fixes`） | モーダルに `id` を付けた | なし |
 | `containers/prompt.jsx`（マーカー付き） | 日本語の変換を決める Enter でダイアログを閉じない | なし（振る舞いだけ） |
 | `containers/custom-procedures.jsx`（マーカー付き） | 作業の場のブロックを、メインのコードエリアと同じテーマ（`catblocks` / `classic`）で描く | 定義のブロックの形（テーマ）だけ。色は上流と同じ色のモード |
 

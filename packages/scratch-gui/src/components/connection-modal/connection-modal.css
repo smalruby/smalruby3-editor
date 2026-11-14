@@ -500,10 +500,12 @@
 }
 /* === Smalruby: End of network filter detection feature === */
 
+/* === Smalruby: Start of microbitMore firmware update === */
 .important-instruction {
     font-weight: bold;
     color: $ui-red;
 }
+/* === Smalruby: End of microbitMore firmware update === */
 
 /* === Smalruby: Start of meshV2 name search === */
 .name-search-section {

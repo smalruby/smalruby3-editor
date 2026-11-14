@@ -136,6 +136,7 @@ class UpdatePeripheralStep extends React.Component {
     renderResults () {
         let resultsContent;
         if (this.state.err === null) {
+            // === Smalruby: Start of microbitMore firmware update ===
             if (this.props.extensionId === 'microbitMore') {
                 resultsContent = (
                     <Box>
@@ -160,6 +161,7 @@ class UpdatePeripheralStep extends React.Component {
                     id="gui.connection.updatePeripheral.updateSuccessful"
                 />);
             }
+            // === Smalruby: End of microbitMore firmware update ===
         } else if (this.state.err.message === 'No valid interfaces found.') {
             // this is a special case where the micro:bit's communication firmware is too old to support WebUSB
             resultsContent = (<BalancedFormattedMessage
@@ -189,7 +191,10 @@ class UpdatePeripheralStep extends React.Component {
                     <textarea
                         className={styles.scratchLinkErrorDetails}
                         readOnly
+                        // === Smalruby: Start of upstream warning fixes ===
+                        // React warns about children in a textarea; use value instead
                         value={this.state.err.message}
+                        // === Smalruby: End of upstream warning fixes ===
                     />
                 </Box>
             );
@@ -273,7 +278,9 @@ class UpdatePeripheralStep extends React.Component {
 
 UpdatePeripheralStep.propTypes = {
     connectionSmallIconURL: PropTypes.string,
+    // === Smalruby: Start of microbitMore firmware update ===
     extensionId: PropTypes.string,
+    // === Smalruby: End of microbitMore firmware update ===
     name: PropTypes.string.isRequired,
     onScanning: PropTypes.func.isRequired,
     onSendPeripheralUpdate: PropTypes.func.isRequired
