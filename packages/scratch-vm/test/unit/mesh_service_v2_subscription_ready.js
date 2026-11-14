@@ -9,10 +9,14 @@ minilog.suggest.deny('vm', 'error');
 // Force network filter test mode disabled
 process.env.MESH_NETWORK_FILTER = 'false';
 
+const { Observable } = require('apollo-link');
+const log = require('../../src/util/log');
 const MeshV2Service = require('../../src/extensions/scratch3_mesh_v2/mesh-service');
 const {
     CREATE_GROUP,
     JOIN_GROUP,
+    LEAVE_GROUP,
+    DISSOLVE_GROUP,
     ON_MESSAGE_IN_GROUP,
 } = require('../../src/extensions/scratch3_mesh_v2/gql-operations');
 
@@ -78,31 +82,33 @@ const flush = () => new Promise((resolve) => setImmediate(resolve));
 const createLinkClient = ({ groupUsesWebSocket = true } = {}) => {
     const handle = {
         operations: [],
+        observers: [],
         observer: null,
         unsubscribed: false,
         calls: [],
+        mutations: [],
     };
     const client = {
         cache: { name: 'mock-cache' },
         link: {
+            // Like the real realtime link: an apollo-link Observable, so `next`
+            // after unsubscribe (cleanup) is dropped.
             request: (operation) => {
                 handle.operations.push(operation);
-                return {
-                    subscribe: (observer) => {
-                        handle.observer = observer;
-                        return {
-                            unsubscribe: () => {
-                                handle.unsubscribed = true;
-                            },
-                        };
-                    },
-                };
+                return new Observable((observer) => {
+                    handle.observer = observer;
+                    handle.observers.push(observer);
+                    return () => {
+                        handle.unsubscribed = true;
+                    };
+                });
             },
         },
         subscribe: () => {
             throw new Error('client.subscribe must not be used when client.link is available');
         },
         mutate: ({ mutation }) => {
+            handle.mutations.push(mutation);
             if (mutation === CREATE_GROUP) {
                 return Promise.resolve({
                     data: {
@@ -281,22 +287,29 @@ test('issue #1859: wait for subscription start_ack before "connected"', (t) => {
         st.end();
     });
 
-    t.test('joinGroup continues when start_ack does not arrive in time', async (st) => {
+    t.test('joinGroup retries the subscription once when start_ack does not arrive in time', async (st) => {
         const { client, handle } = createLinkClient();
         const service = createService(client);
         service.forcePolling = false;
         service.useWebSocket = true;
         service.subscriptionReadyTimeoutMs = 20;
 
-        await service.joinGroup('g1', 'domain1', 'G');
-        st.ok(handle.observer, 'subscription has been started');
-        st.equal(service.groupId, 'g1', 'still joined after the timeout');
+        const joinPromise = service.joinGroup('g1', 'domain1', 'G');
+        // wait for the first attempt to time out and the retry to start
+        for (let i = 0; i < 50 && handle.operations.length < 2; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+        st.equal(handle.operations.length, 2, 'subscribed again');
+        handle.observer.next(CONNECTED_CONTROL_MESSAGE);
+        await joinPromise;
+        st.equal(service.groupId, 'g1', 'joined after the retry succeeded');
+        st.equal(service.subscriptions.length, 1, 'the timed-out subscription was stopped');
         st.ok(service.heartbeatTimer, 'heartbeat started');
         service.cleanup();
         st.end();
     });
 
-    t.test('joinGroup rejects when disconnected while waiting for start_ack', async (st) => {
+    t.test('joinGroup retries once after a subscription error, then succeeds', async (st) => {
         const { client, handle } = createLinkClient();
         const service = createService(client);
         service.forcePolling = false;
@@ -305,13 +318,116 @@ test('issue #1859: wait for subscription start_ack before "connected"', (t) => {
         const joinPromise = service.joinGroup('g1', 'domain1', 'G');
         await flush();
         await flush();
+        handle.observer.error(new Error('GQL_ERROR'));
+        for (let i = 0; i < 10 && handle.operations.length < 2; i++) await flush();
+        st.equal(handle.operations.length, 2, 'subscribed again');
+        handle.observer.next(CONNECTED_CONTROL_MESSAGE);
+        await joinPromise;
+        st.equal(service.groupId, 'g1');
         service.cleanup();
+        st.end();
+    });
+
+    t.test('joinGroup disconnects (subscriptionFailed) when the retry also fails', async (st) => {
+        const { client, handle } = createLinkClient();
+        const service = createService(client);
+        service.forcePolling = false;
+        service.useWebSocket = true;
+        service.subscriptionReadyTimeoutMs = 20;
+        const reasons = [];
+        service.setDisconnectCallback((reason) => reasons.push(reason));
+
+        await st.rejects(service.joinGroup('g1', 'domain1', 'G'), /subscription/i);
+        st.equal(handle.operations.length, 2, 'tried twice');
+        st.same(reasons, ['subscriptionFailed']);
+        st.equal(service.groupId, null, 'not joined');
+        st.ok(handle.mutations.includes(LEAVE_GROUP), 'left the group on the server');
+        st.notOk(service.heartbeatTimer, 'no heartbeat');
+        st.notOk(service.dataSyncTimer, 'no periodic sync');
+        st.notOk(service.eventBatchTimer, 'no event batch timer');
+        st.end();
+    });
+
+    t.test('createGroup dissolves the group when the subscription cannot start', async (st) => {
+        const { client, handle } = createLinkClient();
+        const service = createService(client);
+        service.forcePolling = false;
+        service.subscriptionReadyTimeoutMs = 20;
+        const reasons = [];
+        service.setDisconnectCallback((reason) => reasons.push(reason));
+
+        await st.rejects(service.createGroup('G'), /subscription/i);
+        st.same(reasons, ['subscriptionFailed']);
+        st.ok(handle.mutations.includes(DISSOLVE_GROUP), 'dissolved the group on the server');
+        st.equal(service.groupId, null);
+        st.end();
+    });
+
+    t.test('joinGroup rejects right away when disconnected while waiting for start_ack', async (st) => {
+        const { client, handle } = createLinkClient();
+        const service = createService(client);
+        service.forcePolling = false;
+        service.useWebSocket = true;
+        service.subscriptionReadyTimeoutMs = 60000;
+
+        const joinPromise = service.joinGroup('g1', 'domain1', 'G');
+        await flush();
+        await flush();
+        const started = Date.now();
+        service.cleanup();
+        // dropped by the closed Observable, like the real link
         handle.observer.next(CONNECTED_CONTROL_MESSAGE);
 
         await st.rejects(joinPromise, /disconnected/i);
+        st.ok(Date.now() - started < 1000, 'does not wait for the timeout');
+        st.equal(handle.operations.length, 1, 'does not retry after a disconnect');
         st.notOk(service.heartbeatTimer, 'no heartbeat after disconnect');
         st.notOk(service.dataSyncTimer, 'no periodic sync after disconnect');
         st.notOk(service.eventBatchTimer, 'no event batch timer after disconnect');
+        st.end();
+    });
+
+    t.test('an old join does not continue after reconnecting to the same group', async (st) => {
+        const { client, handle } = createLinkClient();
+        const service = createService(client);
+        service.forcePolling = false;
+        service.useWebSocket = true;
+        service.subscriptionReadyTimeoutMs = 60000;
+
+        const firstJoin = service.joinGroup('g1', 'domain1', 'G');
+        await flush();
+        await flush();
+        const firstObserver = handle.observer;
+        service.cleanup();
+        const secondJoin = service.joinGroup('g1', 'domain1', 'G');
+        await st.rejects(firstJoin, /disconnected/i);
+        await flush();
+        await flush();
+        st.not(handle.observer, firstObserver, 'the second join has its own subscription');
+        handle.observer.next(CONNECTED_CONTROL_MESSAGE);
+        await secondJoin;
+        st.equal(service.groupId, 'g1');
+        st.equal(service.subscriptions.length, 1);
+        service.cleanup();
+        st.end();
+    });
+
+    t.test('GraphQL errors in subscription results are logged', async (st) => {
+        const { client, handle } = createLinkClient();
+        const service = createService(client);
+        service.groupId = 'g1';
+        const errors = [];
+        const originalError = log.error;
+        log.error = (message) => errors.push(String(message));
+        try {
+            service.startSubscriptions();
+            handle.observer.next({ data: null, errors: [{ message: 'Unauthorized' }] });
+        } finally {
+            log.error = originalError;
+        }
+        st.equal(errors.length, 1);
+        st.match(errors[0], /Unauthorized/);
+        service.cleanup();
         st.end();
     });
 

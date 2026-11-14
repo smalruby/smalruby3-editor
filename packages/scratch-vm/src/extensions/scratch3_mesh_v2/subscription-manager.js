@@ -51,8 +51,12 @@ const SubscriptionManagerMixin = {
         const settle = (value) => {
             if (settled) return;
             settled = true;
+            this._pendingReadySettles = this._pendingReadySettles.filter((fn) => fn !== settle);
             resolveReady(value);
         };
+        // 待っている間に stopSubscriptions (cleanup) されると、閉じた Observable は
+        // そのあとの next を捨てるので、ここで決めないと上限まで待ち続けてしまう。
+        this._pendingReadySettles.push(settle);
 
         const { observable, reportsReady } = this._subscribeToGroup(variables);
         const messageSub = observable.subscribe({
@@ -64,6 +68,12 @@ const SubscriptionManagerMixin = {
                         settle(true);
                     }
                     return;
+                }
+
+                if (result && result.errors && result.errors.length > 0) {
+                    log.error(
+                        `Mesh V2: Subscription returned errors: ${result.errors.map((e) => e.message).join(', ')}`,
+                    );
                 }
 
                 const message = result && result.data && result.data.onMessageInGroup;
@@ -94,8 +104,8 @@ const SubscriptionManagerMixin = {
 
         this.subscriptions.push(messageSub);
 
-        // 準備の合図を出せないクライアント (テストの代役など) は、従来どおりすぐに
-        // つながったとみなす。
+        // client.link を持たないのはテストの代役 (client.subscribe だけのモック) のため。
+        // 準備の合図を出せないので、従来どおりすぐにつながったとみなす。
         if (!reportsReady) settle(true);
 
         return ready;
@@ -125,6 +135,7 @@ const SubscriptionManagerMixin = {
                 reportsReady: true,
             };
         }
+        // テストの代役 (client.link の無いモック) のための分岐。本物の AWSAppSyncClient は必ず link を持つ。
         return {
             observable: this.client.subscribe({
                 query: ON_MESSAGE_IN_GROUP,
@@ -165,6 +176,10 @@ const SubscriptionManagerMixin = {
     stopSubscriptions() {
         this.subscriptions.forEach((sub) => sub.unsubscribe());
         this.subscriptions = [];
+        // 準備を待っている呼び出し側を、上限まで待たせずにすぐ返す。
+        const pending = this._pendingReadySettles;
+        this._pendingReadySettles = [];
+        pending.forEach((settle) => settle(false));
     },
 
     handleDataUpdate(nodeStatus) {

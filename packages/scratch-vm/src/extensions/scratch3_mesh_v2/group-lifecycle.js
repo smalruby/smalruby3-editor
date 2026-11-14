@@ -37,6 +37,9 @@ const GroupLifecycleMixin = {
         if (!this.client) throw new Error('Client not initialized');
 
         try {
+            // issue #1859: この参加の世代番号。待つ間に切断・繋ぎ直しがあれば変わる。
+            const connectionSeq = ++this._connectionSeq;
+
             // Simulate network filter (503) for testing when MESH_NETWORK_FILTER=true
             this._checkSimulateNetworkFilter();
 
@@ -85,8 +88,7 @@ const GroupLifecycleMixin = {
             if (this.useWebSocket) {
                 // issue #1859: 購読の準備ができる前に「つながった」にすると、その間に
                 // 届いたほかの人のメッセージを取りこぼす。準備 (start_ack) を待つ。
-                await this.waitForSubscriptionReady(this.startSubscriptions());
-                this._ensureStillInGroup(group.id);
+                await this._startSubscriptionsAndWaitReady(connectionSeq);
                 // WebSocket モードは subscription でデータ更新をリアルタイム取得し、
                 // 念のため 15 秒ごとの fallback 同期を実行
                 this.startPeriodicDataSync();
@@ -118,6 +120,9 @@ const GroupLifecycleMixin = {
         if (!this.client) throw new Error('Client not initialized');
 
         try {
+            // issue #1859: この参加の世代番号。待つ間に切断・繋ぎ直しがあれば変わる。
+            const connectionSeq = ++this._connectionSeq;
+
             // Simulate network filter (503) for testing when MESH_NETWORK_FILTER=true
             this._checkSimulateNetworkFilter();
 
@@ -154,8 +159,7 @@ const GroupLifecycleMixin = {
             if (this.useWebSocket) {
                 // issue #1859: 購読の準備 (start_ack) を待ってから先へ進む。
                 // fetchAllNodesData もこの後なので、待つ間の変数の更新も取り直せる。
-                await this.waitForSubscriptionReady(this.startSubscriptions());
-                this._ensureStillInGroup(groupId);
+                await this._startSubscriptionsAndWaitReady(connectionSeq);
                 // WebSocket モードは 15 秒ごとの fallback 同期を実行
                 this.startPeriodicDataSync();
             } else {
@@ -184,18 +188,52 @@ const GroupLifecycleMixin = {
     },
 
     /**
-     * Throw when the group was left (cleanup) while we were waiting.
-     * 待つ間に切断されたら、タイマーを動かさずに参加を失敗させる。
-     * @param {string} groupId - The group being created or joined.
+     * Start the subscription and wait for start_ack, retrying once.
+     *
+     * issue #1859: start_ack が来ない (上限切れ) か購読がエラーのまま「つながった」に
+     * すると、realtime link の start_ack 待ち (15 秒) で購読が死に、つながった表示なのに
+     * メッセージが来なくなる。1 回だけ張り直し、それでもだめなら切断して参加を失敗させる。
+     * @param {number} connectionSeq - Generation number of this create/join.
+     * @returns {Promise<void>} Resolves when the subscription is ready.
      * @private
      */
-    _ensureStillInGroup(groupId) {
-        if (this.groupId !== groupId) {
+    async _startSubscriptionsAndWaitReady(connectionSeq) {
+        const maxAttempts = 2;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            const ready = await this.waitForSubscriptionReady(this.startSubscriptions());
+            this._ensureStillInGroup(connectionSeq);
+            if (ready) return;
+            // 上限切れ・エラーの購読を閉じてから張り直す (二重に購読しない)。
+            this.stopSubscriptions();
+            if (attempt < maxAttempts) {
+                log.warn('Mesh V2: Retrying the subscription');
+            }
+        }
+        log.error('Mesh V2: Subscription could not be started; disconnecting');
+        await this.leaveGroup('subscriptionFailed');
+        throw new Error('Mesh V2: Subscription could not be started');
+    },
+
+    /**
+     * Throw when this create/join is no longer the current connection.
+     * 待つ間に切断 (cleanup) や繋ぎ直しがあったら、タイマーを動かさずに参加を失敗させる。
+     * groupId ではなく世代番号で比べるのは、同じグループへすぐ繋ぎ直したときに
+     * 古い参加が続かないようにするため。
+     * @param {number} connectionSeq - Generation number of this create/join.
+     * @private
+     */
+    _ensureStillInGroup(connectionSeq) {
+        if (this._connectionSeq !== connectionSeq || !this.groupId) {
             throw new Error('Mesh V2: Disconnected while waiting for the subscription');
         }
     },
 
-    async leaveGroup() {
+    /**
+     * Leave (member) or dissolve (host) the current group.
+     * @param {string} reason - Disconnect reason passed to the disconnect callback.
+     * @returns {Promise<void>} Resolves after the leave/dissolve request.
+     */
+    async leaveGroup(reason = 'unknown') {
         if (!this.groupId) return;
 
         const groupId = this.groupId;
@@ -208,7 +246,7 @@ const GroupLifecycleMixin = {
         this.costTracking.mutationCount++;
         this.costTracking.leaveCount++;
 
-        this.cleanupAndDisconnect();
+        this.cleanupAndDisconnect(reason);
 
         if (!this.client) return;
 
