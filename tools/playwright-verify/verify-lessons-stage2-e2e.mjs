@@ -513,9 +513,10 @@ try {
     record('studentC: 提出の確認 1300×600 でスクロールなし', m.pageOk, JSON.stringify(m));
     await shot(sc, 'studentC-submit-confirm');
     await sc.locator(tid('classroom-submit-confirm')).click();
-    await sc.waitForSelector(tid('classroom-phase-student-status'), { timeout: 60000 });
-    await sleep(2500);
-    record('studentC: 提出した', /提出/.test((await text(sc, 'classroom-submit-status')) || ''), await text(sc, 'classroom-submit-status'));
+    // 提出できたら「提出できました ✓」、メニューバーは緑の「提出済み ✓」(#1795)。
+    await sc.waitForSelector(tid('classroom-phase-submit-done'), { timeout: 60000 });
+    await sleep(1000);
+    record('studentC: 提出した', /提出/.test((await text(sc, 'classroom-submit-done-title')) || ''), await text(sc, 'classroom-submit-done-title'));
     await shot(sc, 'studentC-status-submitted');
     await closeStudentModal(sc);
     await sleep(500);

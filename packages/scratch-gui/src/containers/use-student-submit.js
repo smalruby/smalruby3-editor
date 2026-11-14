@@ -195,7 +195,8 @@ const useStudentSubmit = ({
             // The manually picked thumbnail is consumed by this submission. Clear it so a
             // later submit auto-captures the then-current stage frame unless re-picked (#631).
             dispatch(clearSubmissionThumbnail());
-            setPhase('student-status');
+            // A big 「提出できました ✓」 (#1795); the menu bar turns green 「提出済み ✓」.
+            setPhase('student-submit-done');
             try {
                 analytics.event({
                     category: 'classroom',
@@ -232,9 +233,11 @@ const useStudentSubmit = ({
         setPhase,
     ]);
 
+    // The confirmation is opened from the menu bar's 「提出する」 (#1795), so
+    // 「やめる」 goes back to the work rather than to the status view.
     const handleCancelSubmit = useCallback(() => {
-        setPhase('student-status');
-    }, [setPhase]);
+        dispatch(closeClassroomModal());
+    }, [dispatch]);
 
     return {
         thumbnailDataUrl,

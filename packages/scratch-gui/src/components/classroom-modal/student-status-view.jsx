@@ -258,15 +258,6 @@ const StudentStatusView = ({
                     {intl.formatMessage(bandMessages.submitGuide)}
                 </div>
             )}
-            {!lesson && !classroomState.submissionStatus && (
-                <div className={styles.formFieldHint}>
-                    <FormattedMessage
-                        defaultMessage="Click 'Submit Assignment' when your project is ready."
-                        description="Hint for students who haven't submitted yet"
-                        id="gui.classroom.studentStatus.submitHint"
-                    />
-                </div>
-            )}
             {/* Load a submitted project later on (#1201); the starter lives in "View Assignment". */}
             <StudentContinueChoice
                 continueOptions={continueOptions}

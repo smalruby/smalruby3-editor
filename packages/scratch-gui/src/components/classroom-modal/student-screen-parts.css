@@ -119,3 +119,82 @@
     white-space: nowrap;
     border: 0;
 }
+
+/* メニューバーの「提出する」(#1795)。未提出はオレンジ・提出済み / 返却済みは緑。
+   青いメニューバーから浮くよう白い枠を付け、白い字とのコントラスト比は 4.5:1 以上にする
+   （オレンジ #c25400 = 4.6・緑 #117a4f = 5.4）。返却の色のオレンジは使わない（未提出と見分けにくい）。 */
+.menu-submit-button {
+    flex: 0 0 auto;
+    align-self: center;
+    margin: 0 0.25rem;
+    padding: 0.2rem 0.75rem;
+    border: 2px solid white;
+    border-radius: 999px;
+    background-color: #c25400;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.menu-submit-button:hover {
+    background-color: #a84900;
+}
+
+.menu-submit-button[data-kind='submitted'],
+.menu-submit-button[data-kind='returned'] {
+    background-color: #117a4f;
+}
+
+.menu-submit-button[data-kind='submitted']:hover,
+.menu-submit-button[data-kind='returned']:hover {
+    background-color: #0d6641;
+}
+
+.menu-submit-button:focus-visible {
+    outline: 2px solid #ffbf00;
+    outline-offset: 1px;
+}
+
+/* スマホのサイドレール（幅 56px・白地）に置く小さい版。白い枠は見えないので消し、
+   ひらがなの長い字（「ていしゅつずみ ✓」）は 2 行に折り返す。 */
+.menu-submit-button-compact {
+    width: 48px;
+    margin: 2px 4px 4px;
+    padding: 6px 2px;
+    border: none;
+    border-radius: 8px;
+    font-size: 9px;
+    line-height: 1.15;
+    white-space: normal;
+    word-break: break-all;
+}
+
+/* 提出確認の下の段 (#1795): 「やめる」（左の小さなリンク）と主ボタン（右）。 */
+.submit-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.submit-actions-main {
+    flex: 1 1 auto;
+}
+
+/* 提出できました (#1795): 大きく ✓ を出す。 */
+.submit-done {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.5rem 0 0.5rem;
+}
+
+.submit-done-title {
+    color: #17663f;
+    font-size: 1.8rem;
+    font-weight: bold;
+    text-align: center;
+}

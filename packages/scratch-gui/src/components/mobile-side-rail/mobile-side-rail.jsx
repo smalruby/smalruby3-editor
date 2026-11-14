@@ -11,6 +11,7 @@ import {
     SOUNDS_TAB_INDEX,
 } from '../../reducers/editor-tab.js';
 import { setFullScreen } from '../../reducers/mode.js';
+import ClassroomMenuSubmitButton from '../classroom-modal/classroom-menu-submit-button.jsx';
 import codeIcon from '../gui/icon--code.svg';
 import costumesIcon from '../gui/icon--costumes.svg';
 import rubyIcon from '../gui/icon--ruby.svg';
@@ -50,6 +51,8 @@ const SPRITE_KEY = 'sprite';
  * @param {Function} props.onSpriteTabActiveChange - スプライトタブ active 切替
  * @param {boolean} props.backpackOpen - バックパックパネルが開いているか (親管理)
  * @param {Function} props.onToggleBackpack - バックパックパネル開閉切替 (親管理)
+ * @param {React.ReactNode} [props.classroomSubmit] - クラスに参加中の「提出する」(#1795)。
+ *   スマホにはメニューバーが無いので、提出の入口をバックパックの上に置く
  * @returns {JSX.Element|null} portal で document.body 直下にレンダリング
  */
 const MobileSideRailComponent = ({
@@ -64,6 +67,7 @@ const MobileSideRailComponent = ({
     onSpriteTabActiveChange,
     backpackOpen,
     onToggleBackpack,
+    classroomSubmit = null,
 }) => {
     const handlePlayClick = useCallback(
         (e) => {
@@ -228,6 +232,7 @@ const MobileSideRailComponent = ({
                 </button>
             ))}
             <div className={styles.spacer} />
+            {classroomSubmit}
             {/*
              * 一番下に「バックパック」トグル。タブとは別カテゴリなので spacer の
              * 後ろに配置して下端に貼り付ける。toggle 状態は MobileGui (親) で管理。
@@ -270,6 +275,7 @@ MobileSideRailComponent.propTypes = {
     onSpriteTabActiveChange: PropTypes.func.isRequired,
     backpackOpen: PropTypes.bool.isRequired,
     onToggleBackpack: PropTypes.func.isRequired,
+    classroomSubmit: PropTypes.node,
 };
 
 const mapStateToProps = (state) => ({
@@ -284,7 +290,13 @@ const mapDispatchToProps = (dispatch) => ({
     onActivateTab: (tabIndex) => dispatch(activateTab(tabIndex)),
 });
 
-const MobileSideRail = connect(mapStateToProps, mapDispatchToProps)(MobileSideRailComponent);
+const ConnectedMobileSideRail = connect(mapStateToProps, mapDispatchToProps)(MobileSideRailComponent);
+
+// The submit button reads the classroom state itself, so the bare component
+// stays renderable without a store (tests).
+const MobileSideRail = (props) => (
+    <ConnectedMobileSideRail classroomSubmit={<ClassroomMenuSubmitButton compact />} {...props} />
+);
 
 export default MobileSideRail;
 export { MobileSideRailComponent, SPRITE_KEY };

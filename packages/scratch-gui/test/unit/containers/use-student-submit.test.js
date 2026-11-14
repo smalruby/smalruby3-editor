@@ -149,7 +149,7 @@ describe('useStudentSubmit — Ruby をブロックに直してから提出す�
         expect(targetCodeToBlocks).toHaveBeenCalledWith(hookDeps.intl);
         expect(order).toEqual(['apply', 'screenshot', 'sb3']);
         expect(mockCreateSubmission).toHaveBeenCalled();
-        expect(hookDeps.setPhase).toHaveBeenCalledWith('student-status');
+        expect(hookDeps.setPhase).toHaveBeenCalledWith('student-submit-done');
     });
 
     test('変換に失敗したら提出せずにモーダルを閉じる', async () => {
@@ -165,5 +165,15 @@ describe('useStudentSubmit — Ruby をブロックに直してから提出す�
             expect.objectContaining({ type: 'scratch-gui/classroom/CLOSE_MODAL' }),
         );
         expect(hookDeps.setIsLoading).toHaveBeenLastCalledWith(false);
+    });
+
+    // メニューバーの「提出する」から開くので、「やめる」はモーダルを閉じる (#1795)。
+    test('「やめる」はモーダルを閉じる', () => {
+        const hook = setup([target('t0', 'ねこ')]);
+        act(() => hook.result.current.handleCancelSubmit());
+        expect(hookDeps.dispatch).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'scratch-gui/classroom/CLOSE_MODAL' }),
+        );
+        expect(hookDeps.setPhase).not.toHaveBeenCalled();
     });
 });

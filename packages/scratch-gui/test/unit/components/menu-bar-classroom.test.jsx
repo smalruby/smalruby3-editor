@@ -105,4 +105,25 @@ describe('MenuBar classroom entries (#1199)', () => {
         const teacher = renderMenuBar({ teacherLoggedIn: true }, { onClickAbout: aboutItems });
         expect(teacher.container.textContent).not.toContain('Welcome to Smalruby');
     });
+
+    // #1795: 参加中はいつも「提出する」を出す。ラベル（クラスの画面を開く）とは別のボタン。
+    test('shows the submit button next to the class label while the student is joined', () => {
+        const { container } = renderMenuBar({
+            role: 'student',
+            sessionToken: 'tok',
+            className: '8年1組',
+            seatNumber: 3,
+            submissionStatus: null,
+        });
+        const submit = container.querySelector('[data-testid="classroom-menu-submit"]');
+        const label = container.querySelector('[data-testid="classroom-menu-button"]');
+        expect(submit).toBeTruthy();
+        expect(label.contains(submit)).toBe(false);
+        expect(label.compareDocumentPosition(submit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    test('does not show the submit button before joining', () => {
+        const { container } = renderMenuBar({});
+        expect(container.querySelector('[data-testid="classroom-menu-submit"]')).toBeFalsy();
+    });
 });

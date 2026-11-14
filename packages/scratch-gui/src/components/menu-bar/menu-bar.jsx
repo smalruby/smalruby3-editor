@@ -126,6 +126,7 @@ import {isFirmwareFlashSupported} from '../../lib/smalrubot-firmware-flasher';
 import {openClassroomModal} from '../../reducers/classroom';
 import {isClassroomConfigured} from '../../lib/classroom-api';
 import ClassroomMenuStatus from '../classroom-modal/classroom-menu-status.jsx';
+import ClassroomMenuSubmitButton from '../classroom-modal/classroom-menu-submit-button.jsx';
 import ClassroomTeacherMenu from '../../containers/classroom-teacher-menu.jsx';
 // === Smalruby: End of classroom button ===
 import collectMetadata from '../../lib/collect-metadata';
@@ -1321,6 +1322,8 @@ class MenuBar extends React.Component {
                                         </span>
                                     ) : null}
                                 </div>
+                                {/* The always-visible submit entry while joined (#1795). */}
+                                <ClassroomMenuSubmitButton />
                             </React.Fragment>
                         )}
                         {/* === Smalruby: End of classroom button === */}
