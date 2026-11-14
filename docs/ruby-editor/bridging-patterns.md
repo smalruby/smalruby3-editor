@@ -48,12 +48,31 @@ Scratch のブロックだけでは元の Ruby の形がわからないことが
 ### 書き方
 
 - 形は `@ruby:<種類>[:<値>...]`。値の区切りは `:`。
-- 1 つのブロックに注釈が 2 つ以上あるときは `,` でつなぐ（例: `@ruby:lvar:a:1,@ruby:syntax:+=`）。生成器は `comment.split(/,(?=@ruby:)/)` か `includes` で探す。
+- 1 つのブロックに注釈が 2 つ以上あるときは `,` でつなぐ（例: `@ruby:lvar:a:1,@ruby:syntax:+=`）。
   - 例外: 明示の `return` だけは空白でつなぐ（`@ruby:syntax:return @ruby:return:foo`）。
   - `@ruby:list_ref` / `@ruby:block_param` は 1 行に 1 つ（`\n` でつなぐ）。
 - 利用者のコメント（`# ...`）があるブロックでは、**利用者の文を先の行に、注釈をそのあとの行に**置く（`comment-handler.js` の `_mergeUserComment`）。たたんだコメントは 1 行目しか見えないので、利用者の文が見えるようにするため。
 - 注釈だけのコメントはブロックのコメントのアイコンを出さない（`src/lib/scratch-blocks-comment-icon-patch.js`。空でない行がすべて `@ruby:` で始まるとき）。
 - 生成器は `#` のコメントを書くとき `@ruby:` で始まる行を捨てる（`ruby-generator/scrub.js`）。
+
+### 読み方（生成器）
+
+ブロックの注釈を読むのは `src/lib/ruby-markers.js` の `rubyMarkersOf` だけ（生成器のほか、`module-sync.js` と、Ruby v1 に戻せるかを見る `settings-menu.jsx` / `mobile-drawer.jsx` も使う）。`@ruby:` で始まる行を注釈の行とし、行の中は `,` か空白のすぐあとに `@ruby:` が続くところで分ける。利用者のコメントがどこにあっても（前の行・行末・複数行）、注釈が先でも後でも同じ注釈の並びになる。
+
+- 値の中の `,`（`@ruby:class:<=X,name=Cat`）は、すぐあとが `@ruby:` でなければ分けない。
+- 値がプログラムの文字（`@ruby:syntax:case` の式、`@ruby:symbol` の名前、`@ruby:module_source` の module 名）の注釈は、行の終わりまでを値にする。`case "a @ruby:b"` の式の中の `@ruby:` で切らないため。ただし、変換器がそのあとに足す注釈（`,@ruby:method:puts`、`,@ruby:begin_loop_body`、ループの注釈）は分ける。
+- 同じ種類の注釈が 2 つあるときは、あとのものを使う。変換器は利用者の文のあとに注釈を置くので、利用者が `@ruby:` で始まる行を書いても変換器の注釈が勝つ。
+
+生成器のブロックごとの読み取りは、`scrub.js` が `Generator` に足す次のメソッドを使う。どれも `@ruby:comment_position:*`（利用者のコメントの位置）を除いた注釈を見るので、利用者がコメントを足しても「このブロックの注釈はこれだけ」が変わらない。
+
+| メソッド | 返すもの |
+|---|---|
+| `getRubyMarkers(block)` | 注釈の配列 |
+| `hasRubyMarker(block, '@ruby:method:clone')` | その注釈があるか |
+| `findRubyMarker(block, '@ruby:syntax:case:')` / `rubyMarkerValue(block, '@ruby:symbol:')` | その形で始まる最初の注釈 / そのあとの値 |
+| `getRubyMarkerText(block)` | 注釈を `,` でつないだ文字列（注釈の組み合わせ全体を正規表現で見る古い読み方のため） |
+
+`getCommentText(block)` の文字列を `startsWith` / `===` / `split` で直接読まない。利用者の文が先に来ると注釈を見落とす。
 
 ### 注釈は「形が同じなら戻す」ための手がかり
 
@@ -568,11 +587,16 @@ move(30) # うしろ
 
 **できないこと**:
 
-- 注釈で元の形を戻すブロック（`puts` や `say(:hello)`、ローカル変数の代入など）に利用者のコメントを付けると、いまは元の形に戻らないことがある（`say("1", 1)` になる、など）。生成器の一部が、コメントの先頭が注釈であることや、注釈が `,` だけでつながっていることを前提に読んでいるため。
+- 利用者のコメントが、Ruby に書かれないブロックや、行の中の値のブロックに付くことがある（変換器がコメントを付けるブロックを、行の始まりの位置で選ぶため）。
+  - 配列・ハッシュのリテラルの行末のコメントは消える。`@a = [1, 2] # c` の `# c` は最後の要素を足すブロックに付く。前の行のコメントは代入のうしろに移る。
+  - `a += 1 # c` は `# c` が前の行に移る（足し算のブロックに付く）。
+  - 値だけの行（P18）のコメントはスプライトのコメントになり、離れた場所に出る。`"Jimmy" # c` は `# c` と `"Jimmy"` が別の段落になる。
+  - 明示の `return` のコメントは止めるブロックに付く。行末のコメントは消え、前の行のコメントは `return` のうしろに移る。
+  - `case` の前のコメントは比べる値のブロックに付き、`when` の前のコメントは中の最初の命令に付く。
 - C ブロック（`loop do` / `if` など、中に命令を入れるブロック）の行末のコメントは、元の行に戻らない。`loop do # y` は `end # y` になる（コメントが `end` の行に移る）。`if touching?("_edge_") # c` は前の行の `# c` になる（コメントが条件のブロックに付くため）。
 - 空行で離れた前のコメントは消える。`# a\n\n# b\nmove(10)` の `# a` は残らない。
 
-**テスト**: `ruby-to-blocks-converter/comments.test.js`、`comment-round-trip.test.js`、`ruby-generator/scrub.test.js`。
+**テスト**: `ruby-to-blocks-converter/comments.test.js`、`comment-round-trip.test.js`、`ruby-generator/scrub.test.js`、`ruby-generator/ruby-markers.test.js`、`module-sync.test.js`、`ruby-roundtrip/comment-markers-table.test.js`（注釈のあるブロックに利用者のコメントがあるとき）。
 
 ### P15. 変数の種類と置き場所
 
@@ -709,7 +733,7 @@ foo.bar(1)
 | `@ruby:block_param` | `@ruby:block_param:<番号>:<名前>`（1 行に 1 つ） | 変換器 `smalruby-ruby.js` / `control.js` | 生成器 `smalruby-ruby.js` | `@ruby:block_param:1:i` | P13 |
 | `@ruby:comment_position` | `<利用者の文>\n@ruby:comment_position:inline`、`<前の文>\n<うしろの文>\n@ruby:comment_position:inline:last` | 変換器 `comment-handler.js` | 生成器 `scrub.js`、`src/lib/scratch-blocks-comment-icon-patch.js` | `move(10) # ...` | P14 |
 
-- すべての注釈を読むところ: `src/lib/scratch-blocks-comment-icon-patch.js`（注釈だけのコメントのアイコンを隠す）、生成器 `scrub.js`（`#` のコメントから `@ruby:` の行を捨てる）、`scratch-vm/src/engine/comment.js`（注釈のコメントの位置）。
+- すべての注釈を読むところ: `src/lib/ruby-markers.js`（ブロックの注釈を読むただ 1 つの関数。生成器・`module-sync.js`・`settings-menu.jsx`・`mobile-drawer.jsx` の「読む」はみなこれを通す。スプライトのコメントの `@ruby:class` / `@ruby:initialize` / `@ruby:module` は生成器がコメント全体の形で読む）、`src/lib/scratch-blocks-comment-icon-patch.js`（注釈だけのコメントのアイコンを隠す）、生成器 `scrub.js`（`#` のコメントから `@ruby:` の行を捨てる）、`scratch-vm/src/engine/comment.js`（注釈のコメントの位置）。
 - 一覧がそろっているかは `grep -rhoE "@ruby:[a-z_?-]+" packages/scratch-gui/src packages/scratch-vm/src | sort -u` で確かめる。
 
 ## 表のテスト（ブロックの短い記法）
@@ -745,7 +769,7 @@ defineBlockRubyTable('Motion blocks ⇔ Ruby', [
 - [ ] **先にこの文書を読む**。似たパターンがあれば同じ形（名前・注釈・番号の付け方）にそろえる。
 - [ ] **変換器と生成器を対にする**。注釈を書くなら、それを読む生成器を同じ変更で足す。片方だけだと往復が壊れる（`.claude/rules/scratch-gui/ruby-mode.md` の「converter ⇔ generator の対称性」）。
 - [ ] **注釈の名前**: `@ruby:<種類>:<値>`。既存の種類に入るなら新しい種類を作らない（例: 演算子は `@ruby:operator`、メソッドは `@ruby:method`、構文は `@ruby:syntax`）。同じ形が 1 つのスプライトに何度も出て区別が要るなら `:<番号>` を付ける。
-- [ ] **読む側は注釈を探す**。コメントの先頭に利用者の文が来ることがあり、ほかの注釈が `,` で続くこともある。`comment === '...'` や `startsWith` だけに頼らず、`split(/,(?=@ruby:)/)` や行ごとに探す。
+- [ ] **読む側は `ruby-markers.js` を通す**。コメントの先頭に利用者の文が来ることがあり、ほかの注釈が `,` や空白で続くこともある。生成器は `getCommentText` の文字列を `===` / `startsWith` / `split` で直接読まず、`hasRubyMarker` / `rubyMarkerValue` などで読む（→「[読み方（生成器）](#読み方生成器)」）。表のテストに利用者のコメント付きの行も足す。
 - [ ] **形が変わったら注釈を使わない**。利用者がブロックを書きかえたときは、ふつうのブロックとして書く（P2 の `nil`、P10 の `>=` のように、注釈を付けたときの値と比べる）。
 - [ ] **名前を予約するなら**: 利用者の名前とぶつからない形にし、この文書の「変換器が使う名前」に足す。変換器と生成器で同じ正規表現を 2 か所に持つときは両方を直す。
 - [ ] **できない形はその行のエラーにする**。`ruby_*` のブロックを残さない（P17）。黙って消さない。メッセージは英語と `src/locales/ja.js` の日本語の両方。

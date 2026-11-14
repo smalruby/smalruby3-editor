@@ -12,6 +12,7 @@ import TurboMode from '../../containers/turbo-mode.jsx';
 import { isBugReportConfigured } from '../../lib/bug-report-api.js';
 import { isClassroomConfigured } from '../../lib/classroom-api';
 import intlShape from '../../lib/intlShape';
+import { isRubyV2Comment } from '../../lib/ruby-markers.js';
 import SBFileUploaderHOC from '../../lib/sb-file-uploader-hoc.jsx';
 import { DISPLAY_MODE_DESKTOP } from '../../lib/settings/display-mode/index.js';
 import { persistDisplayMode } from '../../lib/settings/display-mode/persistence.js';
@@ -203,13 +204,7 @@ const hasV2Features = (vm) => {
     if (!vm?.runtime?.targets) return false;
     return vm.runtime.targets.some((target) => {
         if (!target.comments) return false;
-        return Object.values(target.comments).some(
-            (comment) =>
-                comment.text &&
-                (comment.text.startsWith('@ruby:module_source:') ||
-                    comment.text === '@ruby:class' ||
-                    comment.text.startsWith('@ruby:class:')),
-        );
+        return Object.values(target.comments).some((comment) => isRubyV2Comment(comment.text));
     });
 };
 

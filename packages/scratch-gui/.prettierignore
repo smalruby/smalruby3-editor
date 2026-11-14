@@ -219,6 +219,7 @@ src/lib/*
 !src/lib/lessons/
 !src/lib/lessons/**
 !src/lib/lesson-dynamic-categories.js
+!src/lib/ruby-markers.js
 !src/lib/dncl/**
 !src/lib/ruby-to-blocks-converter/
 !src/lib/ruby-to-blocks-converter/**
