@@ -13,7 +13,7 @@ const MakeyMakeyConverter = {
             return converter.createRubyExpressionBlock(Makey, node);
         });
 
-        converter.registerOnSendWithBlock(Makey, 'when_key_pressed', 1, 'any', (params) => {
+        converter.registerOnSendWithBlock(Makey, 'when_key_pressed', 1, 0, (params) => {
             const { receiver, args, rubyBlock } = params;
             if (!converter.isStringOrBlock(args[0])) return null;
 
@@ -23,7 +23,7 @@ const MakeyMakeyConverter = {
             return block;
         });
 
-        converter.registerOnSendWithBlock(Makey, 'when_pressed_in_oder', 1, 'any', (params) => {
+        converter.registerOnSendWithBlock(Makey, 'when_pressed_in_oder', 1, 0, (params) => {
             const { receiver, args, rubyBlock } = params;
             if (!converter.isStringOrBlock(args[0])) return null;
 
@@ -45,7 +45,9 @@ const MakeyMakeyConverter = {
             this._isSelf(receiver) &&
             args.length === 2 &&
             this._isSymbol(args[0]) &&
-            hasRubyBlock
+            hasRubyBlock &&
+            // The hats take no block parameters (`do |x|` was dropped without an error, issue #1909).
+            !(rubyBlockArgs && rubyBlockArgs.length > 0)
         ) {
             switch (this._getSymbolValue(args[0])) {
                 case 'makey_key_pressed':

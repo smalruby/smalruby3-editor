@@ -670,6 +670,7 @@ $a += 1
 - **値だけの行**: 数・文字列・配列だけの行は代入に変える（→ P18）。シンボルだけの行は「命令ではない」エラー。それ以外の値だけの行は `couldNotConvertPrimitive`。
 - **特別な文で知らせるもの**: シンボルの計算・比べる（P7）、配列・ハッシュのリテラルへのメソッド（P4・P5）、戻り値（P2）、変数とリストの名前（P4）、変数の種類（P15）、class / module（P6）、`with_screen_refresh` の場所、v1 で使えない構文など。メッセージは `converter-errors.js` と各変換器ファイルの `defineMessages`、日本語は `src/locales/ja.js`。
 - **引数の形**: My Block（`def foo(a)`）とブロック引数（`3.times do |i|`）は、ふつうの引数だけ。既定値（`a = 1`）・`*a` / `*`・キーワード（`a:` / `a: 1`）・`**h`・`&blk`・`...`・分けて受ける形（`(a, b)`）・ブロックの中だけの変数（`|i; j|`）・`|i,|` は、書いた値や引数がブロックに残らないので、その引数の行の「命令がまちがっています」にする（`_rejectParameterShape`。`def foo(a = 1)` なら「「def foo(a = 1)」は命令がまちがっています。」）。`initialize` の引数は書いたままスプライトのコメントに残すので対象外（P6）。
+- **ブロック引数の数**: ブロックを受ける呼び出しは、受けるブロック引数の数が決まっている。ハット（`when_flag_clicked do`・`when_key_pressed("a") do`・拡張機能のハット）と `loop` / `repeat` / `with_screen_refresh` は 0、`N.times do |i|`・`@a.each do |x|` は 0 か 1、`@h.each do |k, v|` は 0 か 2。ほかの数（`when_key_pressed("a") do |k|`・`3.times do |i, j|`）は、引数を入れる場所がブロックに無いので、呼び出しの行の「命令がまちがっています」にする（シンボルの `.to_s` の案内にはしない。`self.when(:key_pressed, "a") do |x|` も同じ）。My Block の呼び出しはブロックを受けない（`foo(1) do ... end` もエラー）。ラムダ（`->(a = 1) {}`）と `define_method` はブロックにならないので、引数の形にかかわらずその行のエラー。
 - **ブロックにできない構文の例**: `for`、`break` / `next` / `redo` / `retry`、`rescue` / `ensure`、`alias` / `undef` / `BEGIN` / `END`、`||=` / `&&=`、文字列の式展開 `"#{@a}"`、`private` など。一覧は言語仕様の「サポートされていないRuby構文」。
 - **ブロックにならない値を演算に使う**: 式展開の文字列・シンボル・正規表現（`"a#{@x}"`、`:"a#{@x}"`、`/a#{@x}/`）は値にならない。比べる式（`@b == "a#{@x}"`）やほかの演算・メソッド・My Block の呼び出し・`super(...)` の相手や引数に使うと、入力に置く前にその文の「命令がまちがっています」にする（`visitCallNode`・`_handleSuper`）。終わりの無い範囲（`1..`・`..2`）も同じ（`visitRangeNode`）。範囲の端は「乱数」の数の入力に入るので、数か値のブロック（`@a`・`@a + 1`）だけ。かっこで囲んだ端（`1..(@a + 1)`・`1..((2))`）は、中の 1 つの値を入力に入れる（生成器はかっこを付けずに `1..@a + 1` と書く）。前に置くブロックが要る値（`gets.to_i`・値を返す My Block `foo(3)`）も端にできず、その文のエラーになる。先に変数に入れる（`@n = gets.to_i` のあと `rand(1..@n)`）。端がそれ以外（`rand(self..2)`・`rand(1..:a)`・`rand(nil..2)`・`rand(true..2)`・`rand("a".."z")`・`rand([1]..2)`・`rand((@a = 1)..2)`）の範囲は「乱数」にせず、その文の「命令がまちがっています」にする（`_rangeEndValue`・`_isRangeEnd`）。範囲は `when` の値にもできず、`when` の行の「命令がまちがっています」になる（行の終わりの `when 1..` は、次の行までが範囲になる）。
 
@@ -681,7 +682,7 @@ foo.bar(1)
 
 - エラー: 「「foo.bar(1)」は命令がまちがっています。」
 
-**テスト**: `ruby-to-blocks-converter/error-message-hints.test.js`、`interpolated-string-operand.test.js`、`parameter-shape.test.js`、`range-end.test.js`、`nested-error-statement.test.js`、`orphan-blocks.test.js`、`visibility-modifiers.test.js`、`ruby.test.js`、`ruby-roundtrip/break-next-redo-retry.test.js`、`begin-rescue.test.js`、`multiple-assignment.test.js`。
+**テスト**: `ruby-to-blocks-converter/error-message-hints.test.js`、`interpolated-string-operand.test.js`、`parameter-shape.test.js`、`block-parameter-count.test.js`、`range-end.test.js`、`nested-error-statement.test.js`、`orphan-blocks.test.js`、`visibility-modifiers.test.js`、`ruby.test.js`、`ruby-roundtrip/break-next-redo-retry.test.js`、`begin-rescue.test.js`、`multiple-assignment.test.js`。
 
 ### P18. 値だけの行（素のリテラル）を代入に変える
 
