@@ -1,6 +1,7 @@
 import { DnclSourceMap } from '../../../../src/lib/dncl/dncl-source-map';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { dnclV2PreprocessWithLineMap } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
+import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 
 /**
  * 1-based number of the only Ruby line that contains `text`.
@@ -210,6 +211,20 @@ describe('DnclSourceMap', () => {
             ]);
             // The input errors are not modified.
             expect(errors[0]).toEqual({ row: 1, column: 4, source: 'answer', text: 'e1' });
+        });
+
+        // The converter keeps the error of an `elsif` condition on the `elsif` line (issue #1704),
+        // so the mark is on the line of そうでなくもし, not on the line of もし above it.
+        test('an error in the condition of そうでなくもし lands on its line', async () => {
+            const dncl = 'a = 1\nもし a > 0 ならば\n  b = 1\nそうでなくもし a.foo > 5 ならば\n  b = 2\nを実行する';
+            const { ruby, sourceMap } = dnclToRuby(dncl);
+            const converter = new RubyToBlocksConverter(null, { version: '2' });
+
+            expect(await converter.targetCodeToBlocks(null, ruby)).toBe(false);
+            const errors = sourceMap.rubyErrorsToDncl(converter.errors);
+            expect(errors).toHaveLength(1);
+            expect(errors[0].row).toBe(3);
+            expect(errors[0].text).toContain('"@a.foo" is the wrong instruction.');
         });
 
         test('an error after the last Ruby line lands on the last DNCL line', () => {
