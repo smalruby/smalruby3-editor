@@ -746,6 +746,24 @@ http://localhost:8601?no_beforeunload=1&devlogin=<DEV_BYPASS_TOKEN>
 
 スクリプトを書く際の落とし穴と対処は `tools/playwright-verify/README.md` を参照してください（ログインバイパスの方法、Redux store の取り出し方、サイドバー testid、tutorial overlay の dismiss 等）。
 
+#### 生徒の参加から提出までの通し（stg・ブランチプレビュー）
+
+生徒の画面（参加 → 番号 → はじめる → つくる → 提出・入り直し・共用の PC・使用中の番号）を、stg の API で先生 1・生徒 3 の通しで確かめるのが `tools/playwright-verify/verify-classroom-student-flow-e2e.mjs` です。
+
+```bash
+# 確かめるブランチのプレビュー（stg の API を見る）がブランチの先頭から作られていることを先に確かめる
+git ls-remote origin refs/heads/<branch>          # PR の preview-deploy のコメント・CI の run と見比べる
+cd tools/playwright-verify
+BASE=https://preview.smalruby.app/<slug>/ node verify-classroom-student-flow-e2e.mjs
+SKIP_IDLE=1 BASE=... node verify-classroom-student-flow-e2e.mjs   # 30 秒待つ確認を飛ばす
+```
+
+- 前提: `.env` の `DEV_BYPASS_TOKEN`（スクリプトが読み、ログに出さない）。headless・同梱の chromium で動く（Playwright MCP は使わない）。
+- 見るもの: 各画面の帯の段・主ボタンが 1 つ・1300×600 でページとクラスの画面がスクロールしないこと、メニューバーの「提出する」→「提出済み ✓」→「返却済み ✓」、始め方の主ボタン（いまのまま・前回・スターター・レッスン、先生の「前回の提出物から始めさせる」の ON / OFF）、前回の番号・30 秒の案内・退室依頼と承認、クラスから出る、出席番号がちがう、en / ja-Hira、スマホのドロワー。
+- 片付け: 作ったクラス（「段2.5検証-」）と課題はアーカイブする。途中で落ちて残ったクラスも次の実行で片付く。
+- 結果は `tmp/verify-classroom-student-flow-e2e/results.json`（手順ごとの PASS / FAIL と測った値）とスクショ。
+- docs のスクリーンショット（0301〜0344 の生徒の画面）は API をスタブするスクリプトで撮る: `DOCS_SHOTS=1 node verify-classroom-viewport.mjs`（番号選び・参加完了・課題パネル・おかえりなさい）と `DOCS_SHOTS=1 node verify-classroom-menu-submit.mjs`（メニューバー・提出確認・提出できました・提出サムネイルの事前設定）。`BASE` にはプレビューの URL も使える。
+
 ### data-testid を使ったテスト例
 
 ```javascript
