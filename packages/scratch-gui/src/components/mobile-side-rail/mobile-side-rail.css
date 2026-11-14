@@ -32,6 +32,7 @@
 }
 
 .button {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -111,4 +112,18 @@
     width: 32px;
     height: 32px;
     object-fit: contain;
+}
+
+/* 「提出しよう」の吹き出しを出す時の小さな点 (#1835)。「提出する」は ☰ のドロワーの中なので、
+   ☰ の右上に出して知らせる（揺らさない・数字を出さない）。白い縁でアイコンと分ける。 */
+.reminder-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    background-color: #1f5fbf;
+    pointer-events: none;
 }

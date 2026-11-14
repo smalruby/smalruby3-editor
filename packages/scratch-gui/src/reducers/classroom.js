@@ -37,6 +37,8 @@ const REQUEST_STUDENT_SUBMIT = 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT';
 const CLEAR_STUDENT_SUBMIT_REQUEST = 'scratch-gui/classroom/CLEAR_STUDENT_SUBMIT_REQUEST';
 const SET_STUDENT_SUBMITTING = 'scratch-gui/classroom/SET_STUDENT_SUBMITTING';
 const MARK_STUDENT_PROJECT_LOADED = 'scratch-gui/classroom/MARK_STUDENT_PROJECT_LOADED';
+const SET_SUBMIT_REMINDER_VISIBLE = 'scratch-gui/classroom/SET_SUBMIT_REMINDER_VISIBLE';
+const DISMISS_SUBMIT_REMINDER = 'scratch-gui/classroom/DISMISS_SUBMIT_REMINDER';
 
 // Where the open project came from (#1825), read from actions of other reducers:
 // the new default project, or one opened from outside (a file, a URL, an id,
@@ -229,6 +231,14 @@ const initialState = {
     // The open project was opened from outside instead of being the new
     // default project (#1825). Memory only.
     projectFromOutside: false,
+    // The 「提出しよう」 balloon under the menu bar's submit button is due (#1835).
+    // Decided by ClassroomSubmitReminder (lib/classroom-submit-reminder.js);
+    // the balloon, the drawer and the dot on ☰ only read it. Memory only.
+    submitReminderVisible: false,
+    // Each dismissal (×, a click outside, the submit button) bumps the count so
+    // ClassroomSubmitReminder records the time; the reason is for #1831's GA.
+    submitReminderDismissCount: 0,
+    submitReminderDismissReason: null,
 };
 
 const reducer = (state, action) => {
@@ -309,6 +319,7 @@ const reducer = (state, action) => {
                 studentSubmitRequested: false,
                 studentSubmitting: false,
                 studentLoadedSubmission: null,
+                submitReminderVisible: false,
             };
         case SET_SUBMISSION_THUMBNAIL:
             return { ...state, submissionThumbnail: action.submissionThumbnail };
@@ -424,6 +435,18 @@ const reducer = (state, action) => {
             return state.studentSubmitRequested ? { ...state, studentSubmitRequested: false } : state;
         case SET_STUDENT_SUBMITTING:
             return { ...state, studentSubmitting: !!action.submitting };
+        case SET_SUBMIT_REMINDER_VISIBLE:
+            return state.submitReminderVisible === !!action.visible
+                ? state
+                : { ...state, submitReminderVisible: !!action.visible };
+        case DISMISS_SUBMIT_REMINDER:
+            if (!state.submitReminderVisible) return state;
+            return {
+                ...state,
+                submitReminderVisible: false,
+                submitReminderDismissCount: state.submitReminderDismissCount + 1,
+                submitReminderDismissReason: action.reason || null,
+            };
         case MARK_STUDENT_PROJECT_LOADED:
             return {
                 ...state,
@@ -572,6 +595,22 @@ const clearStudentSubmitRequest = () => ({ type: CLEAR_STUDENT_SUBMIT_REQUEST })
 const setStudentSubmitting = (submitting) => ({ type: SET_STUDENT_SUBMITTING, submitting: !!submitting });
 
 /**
+ * Show or hide the 「提出しよう」 balloon (#1835). Only ClassroomSubmitReminder
+ * dispatches this; hiding it here is not a dismissal (e.g. a modal opened).
+ * @param {boolean} visible - whether the balloon is due
+ * @returns {object} action
+ */
+const setSubmitReminderVisible = (visible) => ({ type: SET_SUBMIT_REMINDER_VISIBLE, visible: !!visible });
+
+/**
+ * The student dismissed the 「提出しよう」 balloon (#1835): it comes back 10 minutes later.
+ * Ignored while the balloon is not shown.
+ * @param {string} reason - 'close' (×), 'outside' (another action) or 'submit' (the submit button)
+ * @returns {object} action
+ */
+const dismissSubmitReminder = (reason) => ({ type: DISMISS_SUBMIT_REMINDER, reason });
+
+/**
  * Rubytee is offered only to a student who has joined a class whose teacher
  * turned it on (#1278). A teacher who has a class open is not offered it:
  * requests are recorded per seat and a teacher has none — to see what the
@@ -634,6 +673,8 @@ export {
     requestStudentSubmit,
     clearStudentSubmitRequest,
     setStudentSubmitting,
+    setSubmitReminderVisible,
+    dismissSubmitReminder,
     selectRubyteeAvailable,
     selectStudentLesson,
 };

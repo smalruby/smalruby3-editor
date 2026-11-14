@@ -157,3 +157,149 @@ describe('ClassroomMenuSubmitButton (connected)', () => {
         expect(queryByTestId('classroom-menu-submit')).toBeNull();
     });
 });
+
+// #1835: 時間がたっても出していない生徒に「提出しよう」の吹き出しを出す。
+describe('ClassroomMenuSubmitButton — 「提出しよう」の吹き出し', () => {
+    const DISMISS = 'scratch-gui/classroom/DISMISS_SUBMIT_REMINDER';
+    const buildStore = (classroom) =>
+        configureStore()({
+            scratchGui: {
+                classroom: {
+                    role: 'student',
+                    sessionToken: 'tok',
+                    seatNumber: 3,
+                    submissionStatus: null,
+                    studentLesson: null,
+                    submitReminderVisible: true,
+                    ...classroom,
+                },
+                lessonMode: { progress: {} },
+            },
+        });
+    const renderWith = (store, placement = 'menu-bar') =>
+        render(
+            <Provider store={store}>
+                <IntlProvider locale="en">
+                    <div>
+                        <ClassroomMenuSubmitButton placement={placement} />
+                        <button data-testid="elsewhere" type="button">
+                            other
+                        </button>
+                    </div>
+                </IntlProvider>
+            </Provider>,
+        );
+
+    // jsdom は配置を持たないので、吹き出しが見えている（箱がある）ことにする。
+    let rects;
+    let box;
+    beforeEach(() => {
+        rects = jest.spyOn(Element.prototype, 'getClientRects').mockReturnValue([{}]);
+        box = jest
+            .spyOn(Element.prototype, 'getBoundingClientRect')
+            .mockReturnValue({ left: 10, right: 100, top: 60, bottom: 100, width: 90, height: 40 });
+    });
+    afterEach(() => {
+        rects.mockRestore();
+        box.mockRestore();
+    });
+
+    test('出す時なら「提出する」の下に文言と × を出す', () => {
+        const { getByTestId } = renderWith(buildStore({}));
+        const balloon = getByTestId('classroom-submit-reminder');
+        expect(balloon).toHaveTextContent('Ready to hand in your work? You can send it again later.');
+        expect(balloon).toHaveAttribute('data-placement', 'menu-bar');
+        expect(getByTestId('classroom-submit-reminder-close')).toHaveAttribute('aria-label', 'Close');
+    });
+
+    test('出す時でなければ出さない', () => {
+        const { queryByTestId } = renderWith(buildStore({ submitReminderVisible: false }));
+        expect(queryByTestId('classroom-submit-reminder')).toBeNull();
+    });
+
+    test.each(['submitted', 'returned'])('提出済み・返却済み（%s）では出さない', (submissionStatus) => {
+        const { queryByTestId } = renderWith(buildStore({ submissionStatus }));
+        expect(queryByTestId('classroom-submit-reminder')).toBeNull();
+    });
+
+    test('作品を出さないレッスンの課題ではボタンも吹き出しも出さない', () => {
+        const { queryByTestId } = renderWith(
+            buildStore({
+                studentLesson: {
+                    courseId: 'c',
+                    challengeIds: [],
+                    requiredChallengeIds: [],
+                    completion: { type: 'all', count: 0 },
+                    submitWork: false,
+                },
+            }),
+        );
+        expect(queryByTestId('classroom-menu-submit')).toBeNull();
+        expect(queryByTestId('classroom-submit-reminder')).toBeNull();
+    });
+
+    test('× で消す（クラスの画面は開かない）', () => {
+        const store = buildStore({});
+        const { getByTestId } = renderWith(store);
+        fireEvent.click(getByTestId('classroom-submit-reminder-close'));
+        expect(store.getActions()).toEqual([{ type: DISMISS, reason: 'close' }]);
+    });
+
+    test('ほかの場所を押すと消す', () => {
+        const store = buildStore({});
+        const { getByTestId } = renderWith(store);
+        fireEvent.pointerDown(getByTestId('elsewhere'));
+        expect(store.getActions()).toEqual([{ type: DISMISS, reason: 'outside' }]);
+    });
+
+    test('「提出する」を押すと、消して提出確認を開く', () => {
+        const store = buildStore({});
+        const { getByTestId } = renderWith(store);
+        fireEvent.pointerDown(getByTestId('classroom-menu-submit'));
+        fireEvent.click(getByTestId('classroom-menu-submit'));
+        expect(store.getActions()).toEqual([
+            { type: DISMISS, reason: 'submit' },
+            { type: 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT' },
+        ]);
+    });
+
+    test('吹き出しの中を押しても消さない', () => {
+        const store = buildStore({});
+        const { getByTestId } = renderWith(store);
+        fireEvent.pointerDown(getByTestId('classroom-submit-reminder'));
+        expect(store.getActions()).toEqual([]);
+    });
+
+    test('見えていない吹き出し（スマホで隠れたメニューバー側）は、外を押しても何もしない', () => {
+        rects.mockReturnValue([]);
+        const store = buildStore({});
+        const { getByTestId } = renderWith(store);
+        fireEvent.pointerDown(getByTestId('elsewhere'));
+        expect(store.getActions()).toEqual([]);
+    });
+
+    test('画面の外にある吹き出し（閉じたドロワーの中など）は、外を押しても何もしない', () => {
+        box.mockReturnValue({ left: -320, right: -10, top: 60, bottom: 100, width: 310, height: 40 });
+        const store = buildStore({});
+        const { getByTestId } = renderWith(store);
+        fireEvent.pointerDown(getByTestId('elsewhere'));
+        expect(store.getActions()).toEqual([]);
+    });
+
+    test('ドロワーが閉じている（reminderAllowed=false）ときは吹き出しを描かない', () => {
+        const { queryByTestId } = render(
+            <Provider store={buildStore({})}>
+                <IntlProvider locale="en">
+                    <ClassroomMenuSubmitButton placement="drawer" reminderAllowed={false} />
+                </IntlProvider>
+            </Provider>,
+        );
+        expect(queryByTestId('classroom-menu-submit')).not.toBeNull();
+        expect(queryByTestId('classroom-submit-reminder')).toBeNull();
+    });
+
+    test('スマホのドロワーでは data-placement="drawer" で出す', () => {
+        const { getByTestId } = renderWith(buildStore({}), 'drawer');
+        expect(getByTestId('classroom-submit-reminder')).toHaveAttribute('data-placement', 'drawer');
+    });
+});

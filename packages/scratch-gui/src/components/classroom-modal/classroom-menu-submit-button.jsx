@@ -7,12 +7,13 @@
  * 作品を提出しないレッスンの課題では出さない（menuSubmitKind）。
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
-import { MENU_SUBMIT_KINDS, menuSubmitKind } from '../../lib/classroom-menu-submit.js';
-import { assignmentProgress } from '../../lib/lessons/assignment-progress.js';
-import { requestStudentSubmit, selectStudentLesson } from '../../reducers/classroom.js';
+import useMenuSubmitKind from '../../containers/use-menu-submit-kind.js';
+import { MENU_SUBMIT_KINDS } from '../../lib/classroom-menu-submit.js';
+import { dismissSubmitReminder, requestStudentSubmit } from '../../reducers/classroom.js';
+import ClassroomSubmitReminderBalloon from './classroom-submit-reminder-balloon.jsx';
 import styles from './student-screen-parts.css';
 
 const messages = defineMessages({
@@ -93,41 +94,56 @@ ClassroomMenuSubmitButtonView.propTypes = {
 
 /**
  * 参加中の生徒の状態から出し分ける版。参加していないときは何も描かない。
+ * 「提出しよう」の吹き出し (#1835) が出る時は、ボタンの下に出す（スマホのドロワーは開いたときだけ
+ * ここが描かれるので、☰ を開いたときに出る）。
  * @param {object} props - component props
  * @param {string} [props.placement] - 'menu-bar' か 'drawer'
  * @param {Function} [props.onAfterClick] - 押したあと（ドロワーを閉じる）
+ * @param {boolean} [props.reminderAllowed] - 吹き出しを出してよいか（ドロワーは開いているときだけ）
  * @returns {?React.ReactElement} the button
  */
-const ClassroomMenuSubmitButton = ({ placement = 'menu-bar', onAfterClick }) => {
+const ClassroomMenuSubmitButton = ({ placement = 'menu-bar', onAfterClick, reminderAllowed = true }) => {
+    const wrapRef = useRef(null);
     const dispatch = useDispatch();
     const classroom = useSelector((state) => state.scratchGui.classroom);
-    const lesson = useSelector(selectStudentLesson);
-    const records = useSelector((state) => state.scratchGui.lessonMode.progress);
-    const lessonStatus = useMemo(() => assignmentProgress(lesson, records), [lesson, records]);
-    const joined = !!(classroom && classroom.role === 'student' && classroom.sessionToken && classroom.seatNumber);
-    const kind = menuSubmitKind({
-        joined,
-        submissionStatus: classroom ? classroom.submissionStatus : null,
-        lesson,
-        lessonStatus,
-    });
+    const kind = useMenuSubmitKind();
+    const reminderVisible =
+        reminderAllowed && !!(classroom && classroom.submitReminderVisible) && kind === MENU_SUBMIT_KINDS.SUBMIT;
+    const handleDismissReminder = useCallback((reason) => dispatch(dismissSubmitReminder(reason)), [dispatch]);
     const handleClick = useCallback(() => {
         dispatch(requestStudentSubmit());
         if (onAfterClick) onAfterClick();
     }, [dispatch, onAfterClick]);
     if (!kind) return null;
     return (
-        <ClassroomMenuSubmitButtonView
-            kind={kind}
-            placement={placement}
-            submitting={!!(classroom && classroom.studentSubmitting)}
-            onClick={handleClick}
-        />
+        <div
+            ref={wrapRef}
+            className={
+                placement === 'drawer'
+                    ? `${styles.menuSubmitWrap} ${styles.menuSubmitWrapDrawer}`
+                    : styles.menuSubmitWrap
+            }
+        >
+            <ClassroomMenuSubmitButtonView
+                kind={kind}
+                placement={placement}
+                submitting={!!(classroom && classroom.studentSubmitting)}
+                onClick={handleClick}
+            />
+            {reminderVisible ? (
+                <ClassroomSubmitReminderBalloon
+                    anchorRef={wrapRef}
+                    placement={placement}
+                    onDismiss={handleDismissReminder}
+                />
+            ) : null}
+        </div>
     );
 };
 
 ClassroomMenuSubmitButton.propTypes = {
     onAfterClick: PropTypes.func,
+    reminderAllowed: PropTypes.bool,
     placement: PropTypes.oneOf(['menu-bar', 'drawer']),
 };
 

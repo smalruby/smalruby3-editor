@@ -101,6 +101,8 @@ export default {
     'gui.menuBar.classroomReturned': 'Returned ✓',
     'gui.menuBar.classroomSubmitAgain': 'Submit again',
     'gui.menuBar.classroomSubmitting': 'Submitting...',
+    'gui.classroom.submitReminder.text': 'Ready to hand in your work? You can send it again later.',
+    'gui.classroom.submitReminder.close': 'Close',
     'gui.menuBar.aboutSmalruby': 'About Smalruby',
     'gui.menuBar.debug': 'Debug',
     'gui.classroom.management.title': 'Class Management',

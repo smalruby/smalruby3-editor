@@ -74,6 +74,8 @@ smalruby3-editor/
 │   │   │   ├── use-kick-request-polling.js ← 退室依頼の承認待ちポーリング（依頼中・タブ表示中・未参加のみ）
 │   │   │   ├── classroom-kick-request-watcher.jsx ← モーダルを閉じている間の承認待ち見張り
 │   │   │   ├── classroom-mesh-connect-prompt.jsx ← メッシュ作品の読み込み後、クラスのモーダルが閉じたら接続モーダルを開く #1251
+│   │   │   ├── classroom-submit-reminder.jsx ← 「提出しよう」の吹き出しを出す・しまう時を決める（時計は sessionStorage・GUI 全体で 1 つ）#1835
+│   │   │   ├── use-menu-submit-kind.js ← メニューバーの「提出する」の種類（ボタンと吹き出しで共有）
 │   │   │   ├── classroom-teacher-kick-alerts.jsx ← 先生の未処理退室依頼の見張り + トースト（GUI 全体で 1 つ）#1200
 │   │   │   ├── use-teacher-kick-request-polling.js ← 先生の退室依頼ポーリング（10 秒・タブ表示中・バックオフ）
 │   │   │   ├── classroom-teacher-panel.jsx ← 「いまの課題の状況」パネルのコンテナ（GUI 全体で 1 つ）#1203
@@ -101,6 +103,8 @@ smalruby3-editor/
 │   │   │   ├── classroom-continue-options.js ← 続きに使える提出物の正規化・参加したあとの始め方を 1 つに決める decideStartMethod（純粋）#1201 #1202 #1793
 │   │   │   ├── classroom-student-steps.js ← 進む順の帯の状態（画面と提出状況からいまの段を決める・純粋）
 │   │   │   ├── classroom-mesh-connect.js ← メッシュの接続モーダルを出すか / いま出せるかの判定（純粋）#1251
+│   │   │   ├── classroom-submit-reminder.js ← 「提出しよう」の吹き出しの判断（出す条件・数え方・くり返し・置き場所。純粋）#1835
+│   │   │   ├── classroom-submit-reminder-events.js ← 吹き出しの出来事（出した・消した・出したあとに提出）を聞き手に渡す口（GA 用）
 │   │   │   ├── classroom-teacher-kick-alerts.js ← 先生の退室依頼通知の純粋ロジック（間隔・バックオフ・要約）
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
 │   │   │   └── alerts/index.jsx       ← Alert 定義（classroomSessionExpired 追加）

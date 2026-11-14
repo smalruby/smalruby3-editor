@@ -109,6 +109,8 @@ export default {
     'gui.menuBar.classroomReturned': 'へんきゃくずみ ✓',
     'gui.menuBar.classroomSubmitAgain': 'もういちどていしゅつする',
     'gui.menuBar.classroomSubmitting': 'ていしゅつちゅう...',
+    'gui.classroom.submitReminder.text': 'そろそろ さくひんを ていしゅつして みよう（とちゅうでも だしなおせるよ）',
+    'gui.classroom.submitReminder.close': 'とじる',
     'gui.menuBar.aboutSmalruby': 'スモウルビーについて',
     'gui.menuBar.debug': 'デバッグ',
     'gui.menuBar.tutorials': 'チュートリアル',
