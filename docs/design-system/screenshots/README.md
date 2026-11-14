@@ -8,9 +8,13 @@
 
 | ファイル | 中身 |
 |---|---|
-| `0101-menu-bar.png` | メニューバー（「レッスン」「クラス」はスモウルビーの追加。「設定」の中身もスモウルビーで変えている） |
+| `0101-menu-bar.png` | メニューバー（「レッスン」「クラス」はスモウルビーの追加。「設定」の中身もスモウルビーで変えている。[`../menu-bar.md`](../menu-bar.md)） |
 | `0102-menu-file.png` | ファイルのメニュー（[`../components/menus.md`](../components/menus.md)） |
 | `0201-code-tab-1366x1024.png` | コードタブの画面全体（Ruby タブはスモウルビーの追加） |
+| `0202-stage-header.png` | ステージの上の段（「大」のステージ。大きさのボタンの真ん中「中」はスモウルビーの追加。[`../code-tab.md`](../code-tab.md)） |
+| `0203-target-pane.png` | スプライトの情報・スプライトの一覧・ステージの欄（「大」のステージ。[`../code-tab.md`](../code-tab.md)） |
+| `0204-category-menu.png` | ブロックのカテゴリの一覧（上流の 9 つ。[`../code-tab.md`](../code-tab.md)） |
+| `0205-monitor.png` | モニターのふつうの表示（「大」のステージ。[`../code-tab.md`](../code-tab.md)） |
 | `0301-library-header.png` | スプライトのライブラリのヘッダーと絞り込みの帯（「すべて」が選ばれた状態。[`../library.md`](../library.md)） |
 | `0302-sound-library-item.png` | 音のライブラリの項目のホバーと再生ボタン（[`../library.md`](../library.md)） |
 | `0401-variable-prompt.png` | 変数を作るモーダル |
