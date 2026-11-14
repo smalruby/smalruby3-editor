@@ -152,7 +152,7 @@ end
 - **呼び出し側**: 値として使う呼び出しは、呼び出しのブロック（`procedures_call`）を文の前に置き、値の場所では変数 `_return_foo_` を読む。両方に `@ruby:return:foo` を付ける。
 - **同じ行で 2 回以上呼ぶとき**（`foo(1) + foo(2)`）: 先の呼び出しの値はあとの呼び出しで上書きされるので、`_return_foo_1_ = _return_foo_` のブロックで控えておき、控えを読む。最後の 1 回より前の呼び出しは `@ruby:return:foo:<番号>` になる。
 - **呼び出しのキャッシュ（生成器）**: 生成器は `@ruby:return:foo` の `procedures_call` を書くとき、出力せずに `Generator.returnCallCache_['foo']` へ `foo(3)` を入れる。あとで同じ注釈の変数ブロック（`data_variable`）を書くときにキャッシュから取り出し、変数の代わりに `foo(3)` を書く（`procedure.js` / `data.js`）。控えのブロック（`@ruby:return:foo:1`）と初期化のブロック（`:initialize`）は何も書かない。
-- **`nil` / シンボル / 引数なしの `return` / かっこ**: ブロックに無い値は文字列にして、`,@ruby:nil` / `,@ruby:symbol:a` / `,@ruby:return-bare` / `,@ruby:return-paren` を `@ruby:return` に足す。
+- **`nil` / シンボル / 引数なしの `return` / かっこ**: ブロックに無い値は文字列（入力の文字そのもの。文字列のブロックを別に作らない）にして、`,@ruby:nil` / `,@ruby:symbol:a` / `,@ruby:return-bare` / `,@ruby:return-paren` を `@ruby:return` に足す。
 
 **往復の例**:
 
@@ -174,7 +174,7 @@ end
 - 同じ行で値を控えたあとに、メソッドがそのメソッド自身を呼ぶ形（`return fib(n - 1) + fib(n - 2)`）。中の呼び出しが控えを上書きするので、Ruby と同じ値にならない。
 - 1 行の中で値として使う `super` が 2 つ以上ある形。
 
-**テスト**: `ruby-to-blocks-converter/method-return/method-return1.test.js`〜`method-return5.test.js`、`ruby-generator/method-return.test.js`、`ruby-roundtrip/my_blocks.test.js`、`ruby-roundtrip/method-return-value-shapes.test.js`、`ruby-roundtrip/return-value-used-twice.test.js`、`ruby-roundtrip/return-call-paren-list-and-self-line.test.js`。
+**テスト**: `ruby-to-blocks-converter/method-return/method-return1.test.js`〜`method-return5.test.js`、`ruby-generator/method-return.test.js`、`ruby-roundtrip/my_blocks.test.js`、`ruby-roundtrip/method-return-value-shapes.test.js`、`ruby-roundtrip/return-literal-no-orphan.test.js`、`ruby-roundtrip/return-value-used-twice.test.js`、`ruby-roundtrip/return-call-paren-list-and-self-line.test.js`。
 
 ### P3. メソッドブロックの戻り値（文字列・配列・ハッシュのメソッド）
 
