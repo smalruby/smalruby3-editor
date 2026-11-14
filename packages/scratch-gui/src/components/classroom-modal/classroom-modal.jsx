@@ -68,6 +68,7 @@ const ClassroomModal = ({
     onAssignmentPrevPage,
     onAssignmentNextPage,
     onChooseStarter,
+    onReloadStarter,
     lessonStatus = null,
     studentLesson = null,
     onStartLesson,
@@ -155,6 +156,7 @@ const ClassroomModal = ({
                 {phase === 'student-assignment' && (
                     <StudentAssignmentPanel
                         assignment={assignment}
+                        assignmentReopened={assignmentReopened}
                         continueOptions={continueOptions}
                         error={error}
                         errorTitle={errorTitle}
@@ -168,6 +170,7 @@ const ClassroomModal = ({
                         studentLesson={studentLesson}
                         onNextPage={onAssignmentNextPage}
                         onPrevPage={onAssignmentPrevPage}
+                        onReloadStarter={onReloadStarter}
                         onStartLesson={onStartLesson}
                     />
                 )}
@@ -239,6 +242,8 @@ ClassroomModal.propTypes = {
     onOpenAssignment: PropTypes.func,
     // choice row: open the starter and start (closes the modal)
     onChooseStarter: PropTypes.func,
+    // reopened assignment panel: open the starter (keeps the modal open)
+    onReloadStarter: PropTypes.func,
     error: PropTypes.string,
     errorActionHandler: PropTypes.func,
     errorActionLabel: PropTypes.string,

@@ -132,13 +132,49 @@ describe('StudentAssignmentPanel', () => {
         expect(onLoadSubmission).toHaveBeenCalledWith('previous');
     });
 
-    test('「課題を見る」から開き直したときは、最後のページの主ボタンを「とじる」にする（始め方は出さない）', () => {
+    test('「課題を見る」から開き直したときは、最後のページの主ボタンを「とじる」にする（参加の情報が残っていても始め方は出さない）', () => {
         const onClose = jest.fn();
-        const { getByTestId, queryByTestId } = renderPanel({ pageIndex: 1, onClose });
+        const { getByTestId, queryByTestId } = renderPanel({
+            assignmentReopened: true,
+            joinedInfo: { seatNumber: 2 },
+            pageIndex: 1,
+            startMethod: { main: 'starter', others: ['keep'], notice: null },
+            onClose,
+        });
         expect(queryByTestId('classroom-start-method')).not.toBeInTheDocument();
-        expect(queryByTestId('classroom-assignment-reload-starter')).not.toBeInTheDocument();
+        expect(queryByTestId('classroom-assignment-joined-notice')).not.toBeInTheDocument();
         fireEvent.click(getByTestId('classroom-assignment-close'));
         expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    test('開き直したパネルの最後のページには、スターターがあるときだけ小さなリンク「スタータープロジェクトを開く」', () => {
+        const onReloadStarter = jest.fn();
+        const { getByTestId, queryByTestId, rerender } = renderPanel({
+            assignmentReopened: true,
+            pageIndex: 0,
+            onReloadStarter,
+        });
+        expect(queryByTestId('classroom-assignment-reload-starter')).not.toBeInTheDocument();
+        rerender(
+            <IntlProvider locale="en">
+                <StudentAssignmentPanel
+                    {...defaultProps()}
+                    assignmentReopened
+                    pageIndex={1}
+                    onReloadStarter={onReloadStarter}
+                />
+            </IntlProvider>,
+        );
+        fireEvent.click(getByTestId('classroom-assignment-reload-starter'));
+        expect(onReloadStarter).toHaveBeenCalledTimes(1);
+        const props = defaultProps();
+        props.assignment = { pages: [{ text: 'only' }], starterUrl: null };
+        rerender(
+            <IntlProvider locale="en">
+                <StudentAssignmentPanel {...props} assignmentReopened onReloadStarter={onReloadStarter} />
+            </IntlProvider>,
+        );
+        expect(queryByTestId('classroom-assignment-reload-starter')).not.toBeInTheDocument();
     });
 
     test('レッスンの課題は、最後のページにお知らせと「はじめる」（レッスン表）を出す', () => {

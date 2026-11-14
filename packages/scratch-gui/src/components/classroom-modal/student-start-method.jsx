@@ -9,7 +9,7 @@
  * 参加しただけでは何も読み込まない（押したときに 1 回だけ読み込む）。
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useId, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import StudentMainButton from './student-main-button.jsx';
 import styles from './student-screen-parts.css';
@@ -76,6 +76,12 @@ const messages = defineMessages({
         description:
             "Notice: the teacher's setting wanted the previous submission but there was none; the starter is recommended",
         id: 'gui.classroom.continueChoice.noticeNoPreviousUseStarter',
+    },
+    previousAlsoAvailable: {
+        defaultMessage: "Your teacher's setting: you can also start from last time's work (other ways to start).",
+        description:
+            "Notice: the teacher's setting wants the previous submission, but the student already submitted for this assignment",
+        id: 'gui.classroom.startMethod.noticePreviousAlsoAvailable',
     },
     noPrevious: {
         defaultMessage: 'There was no submission from last time.',
@@ -145,6 +151,7 @@ const StudentStartMethod = ({
 }) => {
     const intl = useIntl();
     const [othersOpen, setOthersOpen] = useState(false);
+    const othersId = useId();
     const start = useCallback(
         (kind) => {
             if (kind === 'starter') onLoadStarter?.();
@@ -175,6 +182,7 @@ const StudentStartMethod = ({
             {others.length > 0 && (
                 <div className={styles.startOthers}>
                     <button
+                        aria-controls={othersId}
                         aria-expanded={othersOpen}
                         className={styles.textLink}
                         data-testid="classroom-start-others-toggle"
@@ -183,10 +191,10 @@ const StudentStartMethod = ({
                         onClick={toggleOthers}
                     >
                         {intl.formatMessage(messages.others)}
-                        {othersOpen ? ' ▴' : ' ▾'}
+                        <span aria-hidden="true">{othersOpen ? ' ▴' : ' ▾'}</span>
                     </button>
                     {othersOpen && (
-                        <div className={styles.startOthersList} data-testid="classroom-start-others">
+                        <div className={styles.startOthersList} data-testid="classroom-start-others" id={othersId}>
                             {others.map((kind) => (
                                 <StudentTextLink
                                     dataTestId={`classroom-start-other-${kind}`}
@@ -220,7 +228,7 @@ StudentStartMethod.propTypes = {
     // decideStartMethod の結果
     method: PropTypes.shape({
         main: PropTypes.oneOf(['current', 'previous', 'starter', 'keep', 'lesson']).isRequired,
-        notice: PropTypes.oneOf(['recommendPrevious', 'noPreviousUseStarter', 'noPrevious']),
+        notice: PropTypes.oneOf(['recommendPrevious', 'noPreviousUseStarter', 'noPrevious', 'previousAlsoAvailable']),
         others: PropTypes.arrayOf(PropTypes.oneOf(['current', 'previous', 'starter', 'keep'])),
     }).isRequired,
     onKeepCurrent: PropTypes.func,

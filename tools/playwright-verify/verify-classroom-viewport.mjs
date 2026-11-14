@@ -46,6 +46,7 @@ const DOC_SHOT_NAMES = {
     'student-joined-others': ['0329-student-joined-other-ways.png'],
     'student-assignment': ['0314-student-assignment-panel.png'],
     'student-assignment-last': ['0330-student-assignment-last-page.png'],
+    'student-assignment-reopened': ['0331-student-assignment-reopened.png'],
     'student-status': ['0304-student-status.png'],
     'student-submit-confirm': ['0306-student-submit-confirm.png'],
     'student-lesson-progress-confirm': ['0324-lesson-progress-confirm.png'],
@@ -421,6 +422,8 @@ const kickedRoutes = (activeIds) => async (p) => {
 for (const [label, continuable, startFromPrevious, shots] of [
     ['all ways', CONTINUABLE, false, ['student-joined', 'student-joined-others']],
     ['teacher setting on + notice', { ...CONTINUABLE, current: null }, true, ['student-joined-notice', 'student-joined-notice-others']],
+    // 先生の設定が ON でこの課題に提出済み: 主ボタンは変えず「前回の作品からも始められます」と知らせる
+    ['teacher setting on + already submitted', CONTINUABLE, true, ['student-joined-submitted-notice', 'student-joined-submitted-notice-others']],
 ]) {
     const { ctx, page } = await studentPage({
         routes: async (p) => {
@@ -536,6 +539,48 @@ for (const [label, continuable, startFromPrevious, shots] of [
         name: 'student-assignment (last page: long page + image + main button + other ways open)',
         shot: 'student-assignment-last',
         primary: '[data-testid="classroom-start-other-keep"]',
+    });
+    await ctx.close();
+}
+
+// ---------- 「課題を見る」から開き直した課題パネル (#1793): 最後のページの「とじる」+「スタータープロジェクトを開く」 ----------
+{
+    const LONG_PAGE = `${'ねこを矢印キーで動かして、迷路の壁に当たったらはじめの場所にもどるようにしよう。'.repeat(6)}`;
+    const IMAGE = `data:image/svg+xml,${encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="#cde"/></svg>',
+    )}`;
+    const { ctx, page } = await studentPage({
+        storage: { 'smalruby:classroom': session() },
+        routes: async (p) => {
+            await routeContinuable(p);
+            await p.route('**/classrooms/c1/assignment', (r) =>
+                r.fulfill({
+                    json: {
+                        assignment: {
+                            pages: [
+                                { text: LONG_PAGE, imageUrl: IMAGE },
+                                { text: LONG_PAGE, imageUrl: IMAGE },
+                            ],
+                            starterUrl: 'https://example.invalid/starter.sb3',
+                        },
+                    },
+                }),
+            );
+            await p.route('**/classrooms/verify-session', (r) =>
+                r.fulfill({ json: { valid: true, hasAssignment: true, submission: null } }),
+            );
+        },
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-view-assignment-button"]').click();
+    await page.locator('[data-testid="classroom-assignment-main-next"]').click();
+    await page.locator('[data-testid="classroom-assignment-reload-starter"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(500);
+    await judge(page, {
+        who: 'student',
+        name: 'student-assignment (reopened, last page: long page + image + close + open the starter)',
+        shot: 'student-assignment-reopened',
+        primary: '[data-testid="classroom-assignment-reload-starter"]',
     });
     await ctx.close();
 }

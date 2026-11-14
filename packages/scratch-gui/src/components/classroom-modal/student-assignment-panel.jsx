@@ -19,9 +19,11 @@ import { LessonNextSteps } from './student-joined-confirmation.jsx';
 import StudentMainButton from './student-main-button.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
 import StudentStartMethod from './student-start-method.jsx';
+import StudentTextLink from './student-text-link.jsx';
 
 const StudentAssignmentPanel = ({
     assignment,
+    assignmentReopened = false,
     continueOptions,
     error,
     errorTitle,
@@ -35,14 +37,17 @@ const StudentAssignmentPanel = ({
     onLoadSubmission,
     onNextPage,
     onPrevPage,
+    onReloadStarter,
     onStartLesson,
 }) => {
     const pages = assignment?.pages || [];
     const page = pages[pageIndex] || null;
     // Read first, then start: the start method waits for the last page (#1793).
     const isLastPage = pageIndex >= pages.length - 1;
-    // Just joined: the way to start. Reopened from the status view: 「とじる」.
-    const showStart = isLastPage && !!joinedInfo && !!startMethod;
+    // Just joined: the way to start. Reopened from 「課題を見る」 (the container's
+    // assignmentReopened; joinedInfo stays set once joined): 「とじる」.
+    const justJoined = !assignmentReopened && !!joinedInfo;
+    const showStart = isLastPage && justJoined && !!startMethod;
     const lessonNotice = showStart && !!studentLesson;
 
     return (
@@ -57,7 +62,7 @@ const StudentAssignmentPanel = ({
                         id="gui.classroom.studentAssignment.title"
                     />
                 </h2>
-                {joinedInfo && (
+                {justJoined && (
                     <div className={styles.assignmentJoinedNotice} data-testid="classroom-assignment-joined-notice">
                         <FormattedMessage
                             defaultMessage="Joined! Seat {seatNumber}"
@@ -104,7 +109,7 @@ const StudentAssignmentPanel = ({
                     </div>
                 )}
             </div>
-            {joinedInfo && <StudentPreviousComment previousComment={joinedInfo.previousComment} />}
+            {justJoined && <StudentPreviousComment previousComment={joinedInfo.previousComment} />}
 
             <ErrorDisplay error={error} errorTitle={errorTitle} />
 
@@ -161,6 +166,22 @@ const StudentAssignmentPanel = ({
                             id="gui.classroom.studentAssignment.closeReopened"
                         />
                     </StudentMainButton>
+                    {/* Until 「作品を読み込み直す」 (#1794), the starter can be reopened here. */}
+                    {assignmentReopened && assignment?.starterUrl && onReloadStarter && (
+                        <div className={styles.assignmentMainLinks}>
+                            <StudentTextLink
+                                dataTestId="classroom-assignment-reload-starter"
+                                disabled={isLoading}
+                                onClick={onReloadStarter}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Open the Starter Project"
+                                    description="Assignment panel: (re)open the starter project"
+                                    id="gui.classroom.studentAssignment.reloadStarter"
+                                />
+                            </StudentTextLink>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -168,6 +189,8 @@ const StudentAssignmentPanel = ({
 };
 
 StudentAssignmentPanel.propTypes = {
+    // 「課題を見る」から開き直した（始め方は出さず、最後のページは「とじる」）
+    assignmentReopened: PropTypes.bool,
     assignment: PropTypes.shape({
         pages: PropTypes.arrayOf(
             PropTypes.shape({
@@ -197,6 +220,8 @@ StudentAssignmentPanel.propTypes = {
     onLoadSubmission: PropTypes.func,
     onNextPage: PropTypes.func.isRequired,
     onPrevPage: PropTypes.func.isRequired,
+    // 開き直したときにスターターを開く（モーダルは閉じない）
+    onReloadStarter: PropTypes.func,
     onStartLesson: PropTypes.func,
     // normalized lesson setting of the joined assignment (null = not a lesson assignment)
     studentLesson: PropTypes.shape({ submitWork: PropTypes.bool }),

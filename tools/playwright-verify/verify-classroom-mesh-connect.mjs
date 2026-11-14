@@ -151,6 +151,15 @@ const openStudent = async (joinCode, seat, label) => {
     return page;
 };
 
+// 開き直した課題パネルは最後のページに「とじる」と「スタータープロジェクトを開く」を出す (#1793)
+const toLastPage = async (page) => {
+    await page.waitForSelector('[data-testid="classroom-phase-student-assignment"]', { timeout: 20000 });
+    while (await page.$('[data-testid="classroom-assignment-main-next"]')) {
+        await page.click('[data-testid="classroom-assignment-main-next"]');
+        await sleep(200);
+    }
+};
+
 const createAssignment = async (name, { mesh }) => {
     await teacher.click('[data-testid="classroom-breadcrumb-assignments"]');
     await teacher.waitForSelector('[data-testid="classroom-board"]', { timeout: 20000 });
@@ -229,8 +238,48 @@ try {
     st = await modalState(s1);
     assert(!st.connection && !st.pending, 'closing the connection modal does not bring it back');
 
-    // 課題パネルの「スタータープロジェクトを開く」は無くなった (#1793。開き直したパネルの主ボタンは「とじる」)。
-    // スターターを開き直す経路 (おかえりなさいの「作品を読み込み直す」・上書き確認のキャンセル) は #1794 で足す。
+    // ---- 課題パネルの「スタータープロジェクトを開く」: パネルを閉じたら出す ----
+    log('student seat1: reopen the starter from the assignment panel');
+    await s1.click('[data-testid="classroom-menu-button"]');
+    await s1.waitForSelector('[data-testid="classroom-view-assignment-button"]', { timeout: 20000 });
+    await s1.click('[data-testid="classroom-view-assignment-button"]');
+    await toLastPage(s1);
+    await s1.waitForSelector('[data-testid="classroom-assignment-reload-starter"]', { timeout: 20000 });
+    await s1.click('[data-testid="classroom-assignment-reload-starter"]');
+    await s1.waitForFunction(() => window.__store.getState().scratchGui.classroom.meshConnectPending, null, {
+        timeout: 20000,
+    });
+    await sleep(1000);
+    st = await modalState(s1);
+    assert(st.classroom && !st.connection, 'while the panel stays open the connection modal waits');
+    await shot(s1, 'seat1-panel-open-waiting');
+    await s1.click('[data-testid="classroom-assignment-close"]');
+    await waitConnectionModal(s1);
+    st = await modalState(s1);
+    assert(st.connection && !st.classroom, 'connection modal opened after closing the panel');
+    await shot(s1, 'seat1-connection-modal-after-panel');
+    await closeConnectionModal(s1);
+
+    // ---- 上書き確認をキャンセル → 出さない ----
+    log('student seat1: cancel the overwrite confirm');
+    await s1.evaluate(() => {
+        const vm = window.__store.getState().scratchGui.vm;
+        const target = vm.runtime.targets.find((t) => !t.isStage);
+        vm.renameSprite(target.id, 'かえた名前');
+        window.__store.dispatch({ type: 'scratch-gui/project-changed/SET_PROJECT_CHANGED', changed: true });
+    });
+    dialogAction = 'dismiss';
+    await s1.click('[data-testid="classroom-menu-button"]');
+    await s1.waitForSelector('[data-testid="classroom-view-assignment-button"]', { timeout: 20000 });
+    await s1.click('[data-testid="classroom-view-assignment-button"]');
+    await toLastPage(s1);
+    await s1.waitForSelector('[data-testid="classroom-assignment-reload-starter"]', { timeout: 20000 });
+    await s1.click('[data-testid="classroom-assignment-reload-starter"]');
+    await sleep(3000);
+    await s1.click('[data-testid="classroom-assignment-close"]');
+    await sleep(2500);
+    st = await modalState(s1);
+    assert(!st.connection && !st.pending, 'cancelled overwrite: no connection modal');
 
     // ---- 先生: 課題2（メッシュを使わないスターター）→ 生徒(席2) ----
     log('teacher: create assignment 2 with a starter without mesh');

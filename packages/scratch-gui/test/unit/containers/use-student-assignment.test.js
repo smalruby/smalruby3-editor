@@ -306,7 +306,7 @@ describe('useStudentAssignment — 前回の提出物から始めさせる (#120
         });
     };
 
-    test('設定 ON: 前回の提出物は自動で開かず「おすすめ」にし、スターターは出さない', async () => {
+    test('設定 ON: 前回の提出物は自動で開かず主ボタンにしておすすめを知らせ、スターターはほかの始め方に残す', async () => {
         mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: true });
         mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS, startFromPrevious: true });
         const { hook, deps } = setup();
@@ -337,7 +337,7 @@ describe('useStudentAssignment — 前回の提出物から始めさせる (#120
         expect(deps.onStarted).toHaveBeenCalledTimes(1);
     });
 
-    test('設定 ON で前回の提出物が無ければ、スターターを「おすすめ」にしてそのことを知らせる', async () => {
+    test('設定 ON で前回の提出物が無ければ、スターターを主ボタンにしてそのことを知らせる', async () => {
         mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT, startFromPrevious: true });
         mockGetContinuable.mockResolvedValue({ current: null, previous: null, startFromPrevious: true });
         const { hook } = setup();

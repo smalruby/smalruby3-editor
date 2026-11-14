@@ -78,10 +78,18 @@ describe('decideStartMethod (#1793 始め方を 1 つに決める)', () => {
     });
 
     describe('先生の「前回の提出物から始めさせる」が ON', () => {
-        test('この課題で提出済みなら主ボタンは変えず、お知らせも出さない（今日の作業を前回で上書きしない）', () => {
+        test('この課題で提出済みなら主ボタンは変えず、前回からも始められることを知らせる（今日の作業を前回で上書きしない）', () => {
             expect(decide(both, { startFromPrevious: true, hasStarter: true })).toEqual({
                 main: 'current',
                 others: ['previous', 'starter', 'keep'],
+                notice: 'previousAlsoAvailable',
+            });
+        });
+
+        test('この課題で提出済みで前回の提出物が無ければ、お知らせは出さない', () => {
+            expect(decide(currentOnly, { startFromPrevious: true, hasStarter: true })).toEqual({
+                main: 'current',
+                others: ['starter', 'keep'],
                 notice: null,
             });
         });

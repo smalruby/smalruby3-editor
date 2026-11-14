@@ -184,6 +184,10 @@ try {
     // 開き直したパネルの最後のページの主ボタンは「とじる」 (#1793)
     await studentPage.click('[data-testid="classroom-assignment-main-next"]');
     assert(await studentPage.$('[data-testid="classroom-assignment-close"]'), 'reopened panel: last page closes');
+    assert(
+        await studentPage.$('[data-testid="classroom-assignment-reload-starter"]'),
+        'reopened panel offers reopening the starter (small link)',
+    );
     await studentPage.screenshot({ path: resolve(SHOTS, 'lesson-support-4-student-reopen.png') });
 
     ok = true;

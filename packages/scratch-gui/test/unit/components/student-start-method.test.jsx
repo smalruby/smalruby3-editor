@@ -113,6 +113,27 @@ describe('StudentStartMethod', () => {
         expect(queryByTestId('classroom-start-notice')).not.toBeInTheDocument();
     });
 
+    test('先生の設定が ON でこの課題に提出済みなら、前回からも始められることを 1 行で知らせる', () => {
+        const { getByTestId } = renderMethod({
+            ...handlers(),
+            continueOptions: { previous: PREVIOUS, current: CURRENT },
+            method: { main: 'current', others: ['previous', 'keep'], notice: 'previousAlsoAvailable' },
+        });
+        expect(getByTestId('classroom-start-notice')).toHaveTextContent("also start from last time's work");
+        expect(getByTestId('classroom-start-main')).toHaveTextContent('Continue from what you submitted');
+    });
+
+    test('「ほかの始め方」は aria-controls で一覧を指し、矢印は読み上げない', () => {
+        const { getByTestId } = renderMethod({
+            ...handlers(),
+            method: { main: 'starter', others: ['keep'], notice: null },
+        });
+        const toggle = getByTestId('classroom-start-others-toggle');
+        fireEvent.click(toggle);
+        expect(getByTestId('classroom-start-others').id).toBe(toggle.getAttribute('aria-controls'));
+        expect(toggle.querySelector('[aria-hidden="true"]')).toHaveTextContent('▴');
+    });
+
     test('読み込み中は押せない', () => {
         const { getByTestId } = renderMethod({
             ...handlers(),

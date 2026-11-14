@@ -38,7 +38,8 @@ export const START_METHODS = ['current', 'previous', 'starter', 'keep'];
  *
  * 先生の「前回の提出物から始めさせる」が ON でも順番は変えない。この課題で提出済みのときに
  * 前回を先にすると今日の作業を前回の作品で上書きしてしまうため。ふだんでも前回はスターターより
- * 先なので、ON で増えるのは 1 行のお知らせだけ（提出済みのときは出さない）。
+ * 先なので、ON で増えるのは 1 行のお知らせだけ。提出済みで前回の提出物もあるときは、先生の
+ * 意図が見えるよう「前回の作品からも始められます（ほかの始め方）」と知らせる。
  *
  * レッスンの課題では、主ボタンは「はじめる」（`lesson` = レッスン表を開く）。チャレンジは毎回
  * 新しい作品から始まるので、始め方は課題クリアのあとの作品づくりにだけ使う。スターターのある
@@ -49,7 +50,8 @@ export const START_METHODS = ['current', 'previous', 'starter', 'keep'];
  * @param {boolean} [input.hasStarter] - 課題にスターターがある
  * @param {boolean} [input.lesson] - レッスンの課題
  * @returns {{main: string, others: Array<string>, notice: ?string}} main は START_METHODS か
- *   'lesson'。notice は 'recommendPrevious' / 'noPreviousUseStarter' / 'noPrevious' / null
+ *   'lesson'。notice は 'recommendPrevious' / 'noPreviousUseStarter' / 'noPrevious' /
+ *   'previousAlsoAvailable' / null
  */
 export const decideStartMethod = ({ options, startFromPrevious = false, hasStarter = false, lesson = false }) => {
     const usableKinds = [
@@ -63,8 +65,9 @@ export const decideStartMethod = ({ options, startFromPrevious = false, hasStart
     const main = usableKinds[0] || 'keep';
     const others = main === 'keep' ? [] : [...usableKinds.slice(1), 'keep'];
     let notice = null;
-    if (startFromPrevious && main !== 'current') {
-        if (main === 'previous') notice = 'recommendPrevious';
+    if (startFromPrevious) {
+        if (main === 'current') notice = options?.previous ? 'previousAlsoAvailable' : null;
+        else if (main === 'previous') notice = 'recommendPrevious';
         else if (main === 'starter') notice = 'noPreviousUseStarter';
         else notice = 'noPrevious';
     }

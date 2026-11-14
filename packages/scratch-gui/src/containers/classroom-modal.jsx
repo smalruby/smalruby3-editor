@@ -589,6 +589,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             onAssignmentPrevPage={studentAssignment.handleAssignmentPrevPage}
             onOpenAssignment={handleReopenAssignment}
             onChooseStarter={studentAssignment.handleChooseStarter}
+            onReloadStarter={studentAssignment.handleReloadStarter}
             errorActionHandler={errorActionHandler}
             errorActionLabel={errorActionLabel}
             errorTitle={errorTitle}

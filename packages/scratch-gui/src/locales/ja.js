@@ -485,15 +485,15 @@ export default {
     'gui.classroom.startMethod.currentNote': '{date} に出したもの',
     'gui.classroom.startMethod.previousNote': '『{assignmentName}』{date} に出したもの',
     'gui.classroom.startMethod.keepNote': 'いまの作品のまま作る',
+    'gui.classroom.startMethod.noticePreviousAlsoAvailable':
+        '先生の設定で、前回の作品からも始められます（ほかの始め方）',
     'gui.classroom.startMethod.others': 'ほかの始め方',
     'gui.classroom.studentAssignment.mainNextPage': '次のページ',
     'gui.classroom.studentAssignment.closeReopened': '閉じる',
-    'gui.classroom.studentAssignment.close': 'はじめる！',
     'gui.classroom.studentAssignment.viewButton': '課題を見る',
     'gui.classroom.studentAssignment.overwriteConfirm':
         '課題のスタータープロジェクトを開きますか？ 今つくっているプロジェクトは置きかわります。',
     'gui.classroom.studentAssignment.starterLoadFailed': 'スタータープロジェクトを開けませんでした',
-    'gui.classroom.continueChoice.title': 'どこから始めますか？',
     'gui.classroom.continueChoice.loadTitle': '提出した作品を読み込む',
     'gui.classroom.continueChoice.starter': 'スターターから始める',
     'gui.classroom.continueChoice.previous': '前回の提出物から続ける',
@@ -503,7 +503,6 @@ export default {
     'gui.classroom.continueChoice.noticeRecommendPrevious': '先生のおすすめ: 前回の提出物から続けよう',
     'gui.classroom.continueChoice.noticeNoPreviousUseStarter':
         '前回の提出物が見つからなかったので、スターターから始めよう',
-    'gui.classroom.continueChoice.recommended': 'おすすめ',
     'gui.classroom.continueChoice.noticeNoPrevious': '前回の提出物が見つかりませんでした',
     'gui.classroom.assignmentEditor.startFromPrevious': '前回の提出物から始めさせる',
     'gui.classroom.assignmentEditor.startFromPreviousHint':
@@ -527,7 +526,6 @@ export default {
         '参加したとき: いまの作品のまま始めます（前回の提出物がある生徒は、どこから始めるか選びます）',
     'gui.classroom.continueChoice.starterDetail': '先生が用意した作品から作る',
     'gui.classroom.continueChoice.keep': 'いまの作品のまま始める',
-    'gui.classroom.continueChoice.keepDetail': '何も読み込まずに作る',
     'gui.classroom.continueChoice.confirmPrevious':
         '前回の提出物を開きますか？ 今つくっているプロジェクトは置きかわります。',
     'gui.classroom.continueChoice.confirmCurrent':

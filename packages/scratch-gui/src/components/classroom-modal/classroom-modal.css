@@ -2760,6 +2760,11 @@
     margin-top: 0.6rem;
 }
 
+.assignment-main-links {
+    margin-top: 0.3rem;
+    text-align: center;
+}
+
 .assignment-pager {
     display: flex;
     align-items: center;
@@ -2898,18 +2903,6 @@
     margin-bottom: 0.4rem;
 }
 
-.continue-choice-notice {
-    margin-left: 0.5rem;
-    color: #0b8e69;
-    font-weight: normal;
-}
-
-/* Alone (no choices to offer): no left gap to keep it aligned. */
-.continue-choice > .continue-choice-notice {
-    margin-left: 0;
-    font-size: 0.8rem;
-}
-
 .continue-choice-row {
     display: flex;
     gap: 0.5rem;
@@ -2953,41 +2946,6 @@
     background-color: #e6f4ea;
 }
 
-/* The choice the teacher's setting recommends (#1202): filled so it stands
-   out from the others without loading anything by itself. */
-.continue-choice-recommended {
-    background-color: #4c97ff;
-    color: #fff;
-}
-
-.continue-choice-recommended:hover {
-    background-color: #3d86ed;
-}
-
-.continue-choice-recommended .continue-choice-detail {
-    color: #e9f1fc;
-}
-
-.continue-choice-badge {
-    flex: none;
-    margin-left: auto;
-    padding: 0.1rem 0.4rem;
-    border-radius: 0.75rem;
-    background-color: #fff;
-    color: #3373cc;
-    font-size: 0.7rem;
-}
-
-.continue-choice-plain {
-    color: #575e75;
-    border-color: #b8b8b8;
-    box-shadow: 0 2px 0 #8a8fa3;
-}
-
-.continue-choice-plain:hover {
-    background-color: #f0f0f0;
-}
-
 .continue-choice-icon {
     flex: none;
     width: 1.5rem;
@@ -3019,10 +2977,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.continue-choice-plain .continue-choice-detail {
-    color: #8a8fa3;
 }
 
 /* --- Term-end evaluation (teacher) --- */
