@@ -40,6 +40,8 @@ const DOC_SHOT_NAMES = {
     'student-seat-confirm': ['0315-student-seat-confirm.png'],
     'student-seat-pending': ['0308-student-kick-request-pending.png'],
     'student-seat-rejected': ['0307-student-kicked-banner.png', '0309-student-kick-request-rejected.png'],
+    'student-seat-previous-taken': ['0327-student-seat-previous-taken.png'],
+    'student-kick-dialog': ['0328-student-kick-request-dialog.png'],
     'student-joined': ['0303-student-joined.png'],
     'student-joined-others': ['0329-student-joined-other-ways.png'],
     'student-assignment': ['0314-student-assignment-panel.png'],
@@ -180,6 +182,8 @@ const session = (extra = {}) => ({
 });
 
 const lookup = (activeKickRequestIds = []) => ({
+    classroomId: 'c1',
+    groupId: 'g1',
     className: LONG_CLASS,
     assignmentName: LONG_ASSIGNMENT,
     studentCount: SEATS,
@@ -193,9 +197,10 @@ const lookup = (activeKickRequestIds = []) => ({
  * @param {object} opts - options
  * @param {object} [opts.storage] - localStorage に入れる key → value
  * @param {Function} [opts.routes] - 追加の route 設定
+ * @param {string} [opts.locale] - 表示の言語 (既定は env LOCALE か ja)
  * @returns {Promise<{ctx: object, page: import('playwright').Page}>} context と page
  */
-const studentPage = async ({ storage = {}, routes } = {}) => {
+const studentPage = async ({ storage = {}, routes, locale = LOCALE } = {}) => {
     const ctx = await browser.newContext({ viewport: VIEWPORT });
     const page = await ctx.newPage();
     await page.route('**/classrooms/lookup', (r) => r.fulfill({ json: lookup() }));
@@ -209,7 +214,7 @@ const studentPage = async ({ storage = {}, routes } = {}) => {
         window.sessionStorage.setItem('__seeded', '1');
         for (const [k, v] of Object.entries(s)) window.localStorage.setItem(k, JSON.stringify(v));
     }, storage);
-    await page.goto(`${BASE}/?no_beforeunload=1&locale=${LOCALE}`, { waitUntil: 'load' });
+    await page.goto(`${BASE}/?no_beforeunload=1&locale=${locale}`, { waitUntil: 'load' });
     // PC はメニューバーの「クラス」、スマホ (MobileGui) はサイドレール ☰ のドロワーから開く。
     await page
         .locator('[data-testid="classroom-menu-button"]:visible, [data-testid="mobile-side-rail-menu"]:visible')
@@ -336,10 +341,57 @@ const kickedRoutes = (activeIds) => async (p) => {
     await page.locator('[data-testid="classroom-seat-number-input"]').fill('99');
     await page.locator('[data-testid="classroom-seat-number-submit"]').click();
     if (!SKIP_IDLE) {
-        await page.locator('[data-testid="classroom-seat-guide"][data-idle="1"]').waitFor({ timeout: 40000 });
+        await page.locator('[data-testid="classroom-seat-idle-guide"][data-variant="idle"]').waitFor({ timeout: 40000 });
     }
     await page.waitForTimeout(500);
     await judge(page, { who: 'student', name: 'student-seat (kicked + rejected + idle + input error)', shot: 'student-seat-rejected' });
+    await ctx.close();
+}
+
+// ---------- student-seat: 前回の番号が使用中 (すぐ出る案内の枠) + kicked + 退室依頼の待機中 (#1796) ----------
+{
+    const { ctx, page } = await studentPage({
+        storage: {
+            'smalruby:classroom': session(),
+            'smalruby:classroom:lastSeats': { 'group:g1': 9 },
+        },
+        routes: kickedRoutes([]),
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-seat-grid"]').waitFor({ state: 'visible', timeout: 10000 });
+    await page.locator('[data-testid="classroom-seat-idle-guide"][data-variant="previousTaken"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(300);
+    await judge(page, { who: 'student', name: 'student-seat (previous seat in use + kicked)', shot: 'student-seat-previous-taken' });
+    await ctx.close();
+}
+
+// ---------- student-seat (ひらがな): 「しようちゅう」が席のボタンに収まるか (#1796) ----------
+{
+    const { ctx, page } = await studentPage({
+        locale: 'ja-Hira',
+        storage: { 'smalruby:classroom:lastSeats': { 'group:g1': 9 } },
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-join-code-input"]').fill('abc234');
+    await page.locator('[data-testid="classroom-join-submit"]').click();
+    await page.locator('[data-testid="classroom-seat-grid"]').waitFor({ state: 'visible', timeout: 10000 });
+    await page.waitForTimeout(300);
+    // 使用中の字がボタンの外にはみ出した席の番号。
+    const overflowing = await page.evaluate(() =>
+        [...document.querySelectorAll('[data-testid^="classroom-seat-"][data-occupied="1"]')]
+            .filter((b) => {
+                const r = b.getBoundingClientRect();
+                return [...b.querySelectorAll('span')].some((el) => {
+                    const e = el.getBoundingClientRect();
+                    return e.left < r.left || e.right > r.right || e.top < r.top || e.bottom > r.bottom;
+                });
+            })
+            .map((b) => b.dataset.seat),
+    );
+    if (overflowing.length > 0) {
+        record({ who: 'student', name: 'student-seat (ja-Hira) label overflow', ok: false, modal: '-', body: '-', page: '-', note: `seats ${overflowing.join(',')}` });
+    }
+    await judge(page, { who: 'student', name: 'student-seat (ja-Hira, 40 seats, previous seat in use)', shot: 'student-seat-ja-hira' });
     await ctx.close();
 }
 

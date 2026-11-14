@@ -814,6 +814,8 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 | 主ボタン | 「先生にお願いする」 |
 | リンク | 「やめる」 |
 
+![退室依頼ダイアログ](screenshots/0328-student-kick-request-dialog.png)
+
 ### 前回の番号（この PC で前に入った番号）
 
 この PC で同じクラス（学級）の課題に前に入ったことがあれば、そのときの出席番号のボタンを光らせ、見出しと同じ行に「前回は 03 番でした」と出します（グリッドの上に行を足さない。40 席でも 1300×600 に収めるため）。**自動では選びません**（共用の PC では、前に使った別の生徒の番号のことがあるため）。
@@ -821,6 +823,8 @@ owner または co-teacher が、別の先生を **email で招待**して共同
 - **記録のキー**: 番号は参加したときに localStorage `smalruby:classroom:lastSeats` に残す。キーは、課題がクラス（学級）に入っていれば `group:<groupId>`、入っていなければ `assignment:<classroomId>`（その課題だけで覚える）。値は出席番号。
 - **`groupId` の取り出し元**: 番号選びは参加の前なので、参加コードを確かめる `POST /classrooms/lookup` の応答の `groupId` を使う（クラスに入っていない課題では `null`）。この項目は応答に足す後方互換な追加で、infra の Issue #1800 で入れる。
 - **前回の番号が使用中のとき**は、30 秒待たずに、開いた時点ですぐ右側の案内の枠に「使用中でも押してください。先生に席を空けてもらえます」と出します（前の時間の自分の席が残っていることが多いため）。番号は見出しの行に出ているので、枠では番号をくり返しません。
+
+![前回の番号が使用中のとき](screenshots/0327-student-seat-previous-taken.png)
 
 ### 30 秒たっても席が選ばれないとき
 
@@ -1572,7 +1576,7 @@ Google Classroom にリンクしたクラス（学級）の課題で、課題リ
 | キー | 内容 |
 |------|------|
 | `smalruby:classroom` | 生徒のセッション情報 (JSON) |
-| `smalruby:classroom:lastSeats` | この PC で前に入った出席番号。キーは `group:<groupId>`（クラス（学級）に入っている課題。`groupId` は `POST /classrooms/lookup` の応答）か `assignment:<classroomId>`（クラスに入っていない課題）、値は出席番号。番号選びの「前回は NN 番でした」に使う。「出席番号がちがう」で空けた番号は消す |
+| `smalruby:classroom:lastSeats` | この PC で前に入った出席番号。キーは `group:<groupId>`（クラス（学級）に入っている課題。`groupId` は `POST /classrooms/lookup` の応答）か `assignment:<classroomId>`（クラスに入っていない課題）、値は出席番号。番号選びの「前回は NN 番でした」に使う。「出席番号がちがう」で空けた番号と、先生に退室させられた番号は消す（自分の番号ではなかったため） |
 | `smalruby:classroom:kickRequest` | 退室依頼の中身（`joinCode`・`seatNumber`・`requestId`・`createdAt`）。依頼が生きている間（最長 1 時間）だけ残し、モーダルを閉じても承認・却下を見張るのに使う |
 
 生徒が課題に参加すると、以下の情報が localStorage に保存されます:
