@@ -19,6 +19,12 @@ import { hookOpcodeExecution, resetExecuteCaches } from './vm-execution-hook';
 /** 自動の返事を返すまでの間（ms）。本物のメッシュの遅れ（およそ 1 秒）より短く、合図の順が分かる長さ。 */
 export const REPLY_DELAY_MS = 500;
 
+/**
+ * 待っている返事（合図の名前ごとに 1 つ）の上限。本物のメッシュの送るキューの上限
+ * （mesh-service.js の MAX_EVENT_QUEUE_SIZE = 100）に合わせる。
+ */
+export const MAX_PENDING_REPLIES = 100;
+
 const SCALAR_TYPE = '';
 const BROADCAST_OPCODES = new Set(['event_broadcast', 'event_broadcastandwait']);
 const VARIABLE_OPCODES = new Set(['data_setvariableto', 'data_changevariableby']);
@@ -56,8 +62,12 @@ export const attachPracticeLoopback = ({
     },
 }) => {
     const runtime = vm.runtime;
-    const pending = new Set();
-    // 自分のノードに入れた値（外すときに、まだ同じものだけを消す）
+    // 待っている返事: 合図の名前（大文字）→ タイマー。本物のメッシュの fireEvent が、まだ送っていない同じ合図を
+    // まとめる（event-sender.js の duplicatesSkipped）のに合わせ、同じ合図の返事は待っているあいだ 1 つだけにする。
+    // 「ずっと『メッセージ』を送る」でも、返事の合図が毎フレーム受け取りのスクリプトを動かし直さないように
+    const pending = new Map();
+    // 自分のノードに入れた値: `ノード ID + 名前` → {nodeId, name, entry}。meshId は、つながっていないあいだにも
+    // 出席番号で変わる（setClassroomSeat）ので、書いたときのノード ID を覚えて、そこから消す
     const ownSeeds = new Map();
     let attached = true;
 
@@ -90,19 +100,24 @@ export const attachPracticeLoopback = ({
 
     // ボタン・自動の返事のどちらも、set → broadcast の順
     const act = (action) => {
-        if (!allowed()) return;
+        if (!allowed()) {
+            // つなぎ始めたあとに押された・返事のタイマーが来たときは何もせず、入れた値も残さない
+            if (attached) purge();
+            return;
+        }
         setPartnerVariables(action.set);
         if (action.broadcast) receiveBroadcast(action.broadcast);
     };
 
     const scheduleReplies = (messageName) => {
-        repliesFor(partner, messageName).forEach((reply) => {
-            const id = timers.setTimeout(() => {
-                pending.delete(id);
-                act(reply);
-            }, replyDelayMs);
-            pending.add(id);
-        });
+        const replies = repliesFor(partner, messageName);
+        const key = messageName.toUpperCase();
+        if (replies.length === 0 || pending.has(key) || pending.size >= MAX_PENDING_REPLIES) return;
+        const id = timers.setTimeout(() => {
+            pending.delete(key);
+            replies.forEach(act);
+        }, replyDelayMs);
+        pending.set(key, id);
     };
 
     const seedOwnVariable = (args) => {
@@ -136,15 +151,42 @@ export const attachPracticeLoopback = ({
                     ? String(args.VALUE)
                     : String(toNumber(variable.value) + toNumber(args.VALUE));
             const svc = service();
-            if (!svc.remoteData[svc.meshId]) svc.remoteData[svc.meshId] = {};
+            const nodeId = svc.meshId;
+            if (!svc.remoteData[nodeId]) svc.remoteData[nodeId] = {};
             const entry = { value, timestamp: now() };
-            svc.remoteData[svc.meshId][variable.name] = entry;
-            ownSeeds.set(variable.name, entry);
+            svc.remoteData[nodeId][variable.name] = entry;
+            ownSeeds.set(`${nodeId}\u0000${variable.name}`, { nodeId, name: variable.name, entry });
         }
+    };
+
+    // 入れた値を remoteData から消す（あとから本物のメッシュが同じ名前に入れた値は消さない）
+    const purge = () => {
+        const svc = service();
+        if (!svc) return;
+        delete svc.remoteData[PRACTICE_PARTNER_NODE_ID];
+        ownSeeds.forEach(({ nodeId, name, entry }) => {
+            const node = svc.remoteData[nodeId];
+            if (!node) return;
+            if (node[name] === entry) delete node[name];
+            if (Object.keys(node).length === 0) delete svc.remoteData[nodeId];
+        });
+        ownSeeds.clear();
+    };
+
+    const hasPartnerNode = () => {
+        const svc = service();
+        return Boolean(svc && svc.remoteData[PRACTICE_PARTNER_NODE_ID]);
+    };
+
+    // メッシュの拡張は「つないでいる途中」になったことを知らせない。毎フレームの最初（スクリプトが動く前）に
+    // 見て、本物のメッシュでつなぎ始めたら、その場で入れた値を消す（「〜のセンサー値」が練習の値を読まないように）
+    const onBeforeStep = () => {
+        if (attached && !allowed() && (ownSeeds.size > 0 || hasPartnerNode())) purge();
     };
 
     const unhook = hookOpcodeExecution(runtime, listener);
     resetExecuteCaches(runtime);
+    runtime.on('BEFORE_STEP', onBeforeStep);
 
     return {
         press: (index) => {
@@ -155,19 +197,10 @@ export const attachPracticeLoopback = ({
             if (!attached) return;
             attached = false;
             unhook();
+            runtime.removeListener('BEFORE_STEP', onBeforeStep);
             pending.forEach((id) => timers.clearTimeout(id));
             pending.clear();
-            const svc = service();
-            if (!svc) return;
-            delete svc.remoteData[PRACTICE_PARTNER_NODE_ID];
-            const own = svc.remoteData[svc.meshId];
-            if (own) {
-                ownSeeds.forEach((entry, name) => {
-                    if (own[name] === entry) delete own[name];
-                });
-                if (Object.keys(own).length === 0) delete svc.remoteData[svc.meshId];
-            }
-            ownSeeds.clear();
+            purge();
         },
     };
 };

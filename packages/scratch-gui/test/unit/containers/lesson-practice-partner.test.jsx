@@ -72,6 +72,18 @@ describe('LessonPracticePartner container', () => {
         expect(screen.getByTestId('lesson-practice-partner')).toBeInTheDocument();
     });
 
+    test('focus moves to the open button when closed and to the first partner button when opened', () => {
+        renderContainer({ vm: makeVm() });
+        // 最初の描画ではフォーカスを奪わない
+        expect(document.activeElement).toBe(document.body);
+        const close = screen.getByTestId('lesson-practice-partner-close');
+        close.focus();
+        fireEvent.click(close);
+        expect(document.activeElement).toBe(screen.getByTestId('lesson-practice-partner-open'));
+        fireEvent.click(screen.getByTestId('lesson-practice-partner-open'));
+        expect(document.activeElement).toBe(screen.getAllByTestId('lesson-practice-partner-button')[0]);
+    });
+
     test('nothing is shown while the real mesh is connected, and connecting closes it', () => {
         const connected = makeVm('connected');
         const { unmount } = renderContainer({ vm: connected });

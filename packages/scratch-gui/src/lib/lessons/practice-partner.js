@@ -72,13 +72,6 @@ export const normalizePartner = (partner, locale) => {
     return { name: localizeText(partner.name, locale) || '', buttons, replies };
 };
 
-/**
- * チャレンジに練習相手がいるか（練習相手のパネルを出すか）。
- * @param {?object} challenge - チャレンジ。
- * @returns {boolean} いれば true。
- */
-export const hasPracticePartner = (challenge) => Boolean(challenge && normalizePartner(challenge.partner, 'ja'));
-
 // 合図の名前は Scratch と同じく大文字小文字を区別しない
 const sameMessage = (a, b) => String(a).toUpperCase() === String(b).toUpperCase();
 

@@ -7,7 +7,6 @@
 import EventEmitter from 'events';
 import { attachPracticeLoopback } from '../../../../src/lib/lessons/practice-loopback';
 import {
-    hasPracticePartner,
     normalizePartner,
     PRACTICE_PARTNER_NODE_ID,
     practiceAllowed,
@@ -64,8 +63,6 @@ describe('normalizePartner', () => {
         expect(normalizePartner(null, 'ja')).toBeNull();
         expect(normalizePartner({ name: 'ロボ' }, 'ja')).toBeNull();
         expect(normalizePartner({ name: 'ロボ', replies: [{ onBroadcast: 'x' }] }, 'ja')).toBeNull();
-        expect(hasPracticePartner({ partner: null })).toBe(false);
-        expect(hasPracticePartner({ partner: PARTNER })).toBe(true);
     });
 
     test('replies match the message name without case', () => {
@@ -185,6 +182,21 @@ describe('attachPracticeLoopback', () => {
         loop.detach();
     });
 
+    test('sending the same message again while its reply waits does not queue another (like real mesh)', () => {
+        // 「ずっと『メッセージ』を送る」: 毎フレーム送っても、返事は待っているあいだ 1 つだけ。本物のメッシュの
+        // fireEvent も、まだ送っていない同じ合図はまとめる。返事の合図が受け取りのスクリプトを毎フレーム動かし直さない
+        const { loop, runtime, timers } = setup();
+        const args = { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } };
+        for (let i = 0; i < 30; i++) exec(runtime, 'event_broadcast', args);
+        expect(timers.size()).toBe(1);
+        timers.flush();
+        expect(runtime.startHats).toHaveBeenCalledTimes(1);
+        // 返事が済んだら、次の合図にはまた返事をする
+        exec(runtime, 'event_broadcast', args);
+        expect(timers.size()).toBe(1);
+        loop.detach();
+    });
+
     test('broadcast and wait replies only on its first run', () => {
         const { loop, runtime, timers } = setup();
         const args = { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } };
@@ -216,6 +228,44 @@ describe('attachPracticeLoopback', () => {
         loop.press(0);
         expect(timers.size()).toBe(0);
         expect(runtime.startHats).not.toHaveBeenCalled();
+    });
+
+    test('detach removes own values from the node they were written under, even if meshId changed', () => {
+        // つながっていないあいだに出席番号が決まると meshId が変わる（setClassroomSeat）
+        const { loop, meshService, runtime } = setup();
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 1 });
+        meshService.meshId = 'me-s12';
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 2 });
+        expect(Object.keys(meshService.remoteData).sort()).toEqual(['me', 'me-s12']);
+        loop.detach();
+        expect(meshService.remoteData).toEqual({});
+    });
+
+    test('a reply timer that fires after connecting started does nothing and leaves nothing', () => {
+        ['connecting', 'connected'].forEach((state) => {
+            const { loop, meshService, runtime, timers } = setup();
+            loop.press(0);
+            runtime.startHats.mockClear();
+            exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+            runtime.peripheralExtensions.meshV2.connectionState = state;
+            timers.flush();
+            expect(runtime.startHats).not.toHaveBeenCalled();
+            expect(meshService.remoteData).toEqual({});
+            loop.detach();
+        });
+    });
+
+    test('values are removed at the next step once connecting starts (before any script reads them)', () => {
+        const { loop, meshService, runtime } = setup();
+        loop.press(0);
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 1 });
+        runtime.emit('BEFORE_STEP');
+        expect(meshService.remoteData[PRACTICE_PARTNER_NODE_ID]).toBeDefined();
+        runtime.peripheralExtensions.meshV2.connectionState = 'connecting';
+        runtime.emit('BEFORE_STEP');
+        expect(meshService.remoteData).toEqual({});
+        loop.detach();
+        expect(runtime.listenerCount('BEFORE_STEP')).toBe(0);
     });
 
     test('detach keeps values that someone else wrote after it', () => {

@@ -3,7 +3,7 @@
 // （ペア）で同じチャレンジができ、小さな「練習相手」のボタンでもう一度出せる。本物のメッシュで
 // つながっているあいだは、どちらも出さない（コンテナが決める）。
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import styles from './lesson-practice-partner.css';
 
@@ -33,12 +33,32 @@ const messages = defineMessages({
 
 const LessonPracticePartner = ({ buttons, name, onClose, onOpen, onPress, open, position }) => {
     const intl = useIntl();
+    // 閉じたら「練習相手」のボタンへ、開いたら最初のボタン（無ければ ×）へフォーカスを移す。押したボタンが
+    // 消えてフォーカスが body に落ちると、キーボードで操作している人がどこにいるか分からなくなるため。
+    // チャレンジを開いたとき（最初の描画）は動かさない（作業中のフォーカスを奪わない）
+    const openButtonRef = useRef(null);
+    const panelRef = useRef(null);
+    const wasOpenRef = useRef(open);
+    useEffect(() => {
+        if (wasOpenRef.current === open) return;
+        wasOpenRef.current = open;
+        if (!open) {
+            if (openButtonRef.current) openButtonRef.current.focus();
+            return;
+        }
+        const panel = panelRef.current;
+        const first =
+            panel &&
+            (panel.querySelector('[data-testid="lesson-practice-partner-button"]') || panel.querySelector('button'));
+        if (first) first.focus();
+    }, [open]);
     if (!open) {
         return (
             <button
                 className={styles.open}
                 data-testid="lesson-practice-partner-open"
                 onClick={onOpen}
+                ref={openButtonRef}
                 style={position}
                 type="button"
             >
@@ -48,7 +68,13 @@ const LessonPracticePartner = ({ buttons, name, onClose, onOpen, onPress, open, 
     }
     const title = intl.formatMessage(messages.title, { name });
     return (
-        <section aria-label={title} className={styles.panel} data-testid="lesson-practice-partner" style={position}>
+        <section
+            aria-label={title}
+            className={styles.panel}
+            data-testid="lesson-practice-partner"
+            ref={panelRef}
+            style={position}
+        >
             <div className={styles.header}>
                 <span className={styles.title} data-testid="lesson-practice-partner-name" title={title}>
                     {title}
