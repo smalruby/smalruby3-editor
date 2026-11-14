@@ -10,17 +10,6 @@ import {
 } from './variable-hash-ops';
 import { registerListOperations } from './variable-list-ops';
 
-/**
- * Whether a converted value can be put in a list as an item: a number, a string, or a block that has
- * a value. A command block, a primitive the list cannot hold (a symbol, `nil`, an array, a hash,
- * `self`) and blocks with a call before the value (an array of blocks) cannot.
- * @param {object} converter - The converter instance.
- * @param {*} value - The converted value.
- * @returns {boolean} True when the value can be an item.
- */
-const isListItemValue = (converter, value) =>
-    converter._isNumber(value) || converter._isString(value) || converter._isValueBlock(value);
-
 const messages = defineMessages({
     arraySyntaxNotAvailableInV1: {
         defaultMessage:
@@ -307,7 +296,7 @@ const VariablesConverter = {
                 // An element that is not a value (`[(@a = 1)]`, `[:a]`, `[nil]`, `[[1]]`, `[foo(1)]`)
                 // has no place in a list: it used to become `0`, with its blocks left behind. Leave the
                 // assignment to the error of a wrong instruction, as `say(@a = 1)` (issue #1865).
-                if (!elements.every((elem) => isListItemValue(converter, elem))) return null;
+                if (!elements.every((elem) => converter._isNumberOrStringOrBlock(elem))) return null;
                 let prefixedName;
                 if (variable.scope === 'global') {
                     prefixedName = `$${variable.name}`;
@@ -374,18 +363,22 @@ const VariablesConverter = {
                     );
                 }
                 const hashEntries = rh.value; // Map<Primitive, Primitive>
+                // Check every entry before making blocks, so that nothing is lost silently (#1654).
+                // The keys first: the error of a key that is not a symbol or a string tells more than
+                // the error of a wrong instruction (`@h = {1 => (@a = 1)}`).
+                hashEntries.forEach((value, key) => {
+                    rejectHashKeyThatIsNotSymbolOrString(converter, messages, key);
+                });
                 // A value that is a command or a call before its value (`{a: (@a = 1)}`, `{a: foo(1)}`)
                 // is the error of a wrong instruction, as an element of an array is (issue #1865).
                 if (
                     Array.from(hashEntries.values()).some(
-                        (value) => !converter._isPrimitive(value) && !isListItemValue(converter, value),
+                        (value) => !converter._isPrimitive(value) && !converter._isNumberOrStringOrBlock(value),
                     )
                 ) {
                     return null;
                 }
-                // Check every entry before making blocks, so that nothing is lost silently (#1654).
-                hashEntries.forEach((value, key) => {
-                    rejectHashKeyThatIsNotSymbolOrString(converter, messages, key);
+                hashEntries.forEach((value) => {
                     rejectHashValueThatIsNotABlock(converter, messages, value);
                 });
                 let prefixedName;

@@ -57,6 +57,14 @@ describe('RubyToBlocksConverter/an element of a literal that is not a value', ()
         expect(errors[0].text).toContain(wrongInstruction(code));
     });
 
+    // A key that is not a symbol or a string is told first, even when a value is not a value either.
+    test('@h = {1 => (@a = 1)} is the error of the key', async () => {
+        const { ok, errors } = await convert('@h = {1 => (@a = 1)}');
+        expect(ok).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].text).toContain('"1" cannot be a key of a hash.');
+    });
+
     // The values a list can hold are kept, and no block is left behind.
     test.each([
         ['@b = [1, "x", 2.5, -1]'],
@@ -65,6 +73,8 @@ describe('RubyToBlocksConverter/an element of a literal that is not a value', ()
         ['@h = {a: 1.5, b: "s", c: @x, d: false, e: :f}'],
         ['[1, "x", -2.5]'],
         ['[@x, 1 + 2]'],
+        ['[true]'],
+        ['[false]'],
     ])('%s comes back the same', async (code) => {
         const { target, stage, runtime } = makeSpriteTarget();
         setupRubyGenerator();
