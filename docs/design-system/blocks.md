@@ -3,7 +3,7 @@
 ブロックのカテゴリ（なかま）の色を 3 つの色のモードごとに、ブロックのまわり（カテゴリの欄・ブロックパレット・数字パッドなど）の色、ブロックの形の寸法をまとめる。
 
 - **値の正**: 色は上流 scratch-editor tag `v13.7.2` の `packages/scratch-gui/src/lib/settings/color-mode/{default,high-contrast,dark}/index.js`。形と文字は scratch-blocks `2.1.19`（tag `v13.7.2` の `package.json` と同じ版）と、それが引き継ぐ Blockly `12.4.1` の zelos レンダラー。基準は `.claude/rules/upstream-tracking.md`（develop ではなくタグで見る）。
-- **スモウルビーとの差**: `color-mode/` の 6 つのファイル（`index.js`・`blockHelpers.js`・`persistence.js`・3 つのモードの `index.js`）は tag `v13.7.2` と同じ。スモウルビーはカテゴリを足しておらず、カテゴリの色も変えていない（下の「スモウルビーの拡張機能の色」）。
+- **スモウルビーとの差**: `packages/scratch-gui/src/lib/settings/color-mode/` の 6 つのファイル（`index.js`・`blockHelpers.js`・`persistence.js`・3 つのモードの `index.js`）は tag `v13.7.2` と同じ。スモウルビーはカテゴリを足しておらず、カテゴリの色も変えていない（下の「スモウルビーの拡張機能の色」）。
 - **確かめ方**: 下の値は、ソースを読んだうえで、dev server を headless で開き、3 つのモードに切りかえて実際のブロックの `fill`・`stroke`、`--colour-*`、レンダラーの定数（`getRenderer().getConstants()`）を読んで合わせた（カテゴリの色・`--colour-*`・形の定数は、実行中の値とすべて一致した）。ソースからは分からず実行中に読んだ値には「実測」と書いた。
 
 ## 3 つの色のモード
@@ -14,10 +14,10 @@
 | 高コントラスト | `high-contrast` | 選べる | `blocks-media/high-contrast`（黒いアイコン） | すべて `pen` の色。上流の 6 つの拡張機能（音楽・ペン・音声合成・翻訳・ビデオモーション・顔の検出）はアイコンも高コントラスト用にかわる |
 | ダーク | `dark` | **選べない**（定義だけある） | `blocks-media/default` | すべて `pen` の色 |
 
-- 設定メニューの「色のモード」が出すのは**オリジナルと高コントラストの 2 つだけ**（`settings-menu.jsx` の `enabledColorModes`）。ダークは上流でもまだ使えない（`persistence.js` のコメント「Dark mode isn't enabled yet」）。
+- 設定メニューの「色のモード」が出すのは**オリジナルと高コントラストの 2 つだけ**（`packages/scratch-gui/src/components/menu-bar/settings-menu.jsx` の `enabledColorModes`）。ダークは上流でもまだ使えない（`packages/scratch-gui/src/lib/settings/color-mode/persistence.js` のコメント「Dark mode isn't enabled yet」）。
 - 選んだモードはクッキー `scratchtheme` に 1 年残る。クッキーが無いときは OS の設定に従い、`(prefers-contrast: more)` なら高コントラストになる。
 - 色のモードが変えるのは**ブロックとそのまわりだけ**。メニューバー・モーダルなど GUI の枠は変わらない（[`README.md`](README.md) の「方針」）。
-- 高コントラスト・ダークの値は、書いていない項目をオリジナルの値で埋めてから使う（`index.js` の `mergeWithDefaults` = `lodash.defaultsdeep`）。下の表はその埋めたあとの値。
+- 高コントラスト・ダークの値は、書いていない項目をオリジナルの値で埋めてから使う（`packages/scratch-gui/src/lib/settings/color-mode/index.js` の `mergeWithDefaults` = `lodash.defaultsdeep`）。下の表はその埋めたあとの値。
 
 ## 4 つの色の役目
 
@@ -26,9 +26,9 @@
 | 名前 | どこに使うか |
 |---|---|
 | `colourPrimary` | ブロックの地。カテゴリの欄の丸の地（どちらも実測） |
-| `colourSecondary` | ブロックの中のドロップダウン（「どこかの場所 ▼」のような、まわりと同じなかまの影のブロック）の地（実測）。ブロック定義の「定義」の中の見本のブロックの地（scratch-blocks の `path_object.ts`） |
+| `colourSecondary` | ブロックの中のドロップダウン（「どこかの場所 ▼」のような、まわりと同じなかまの影のブロック）の地（実測）。ブロック定義の「定義」の中の見本のブロックの地（`scratch-blocks/src/renderer/path_object.ts`） |
 | `colourTertiary` | ブロックの縁（`stroke`）。中の白い入力欄の縁。空いている六角形の入力の地。カテゴリの欄の丸の縁（どれも実測） |
-| `colourQuaternary` | ドロップダウンを開いている間の、ドロップダウンの地（scratch-blocks の `scratch_field_dropdown.ts` が `<なかま>_selected` のスタイルに一時的にかえる） |
+| `colourQuaternary` | ドロップダウンを開いている間の、ドロップダウンの地（`scratch-blocks/src/fields/scratch_field_dropdown.ts` が `<なかま>_selected` のスタイルに一時的にかえる。実測: オリジナルの動きで `#4280D7` → 開いている間 `#3373CC`） |
 
 白い入力欄（数・文字）の地は、どのモードでも実測 `#fff`。文字は下の「文字」。
 
@@ -94,13 +94,13 @@
 | `more` | ブロック定義 | `#331419` | `#4C4C4C` | `#FF6680` | `#FF3355` |
 | `pen` | （拡張機能） | `#03251C` | `#4C4C4C` | `#0fBD8C` | `#0B8E69` |
 
-- 上流のダークは 4 つめを `colorQuaternary`（`u` が無い）と書いていて、Blockly はこの名前を読まない。そのため `colourQuaternary` はオリジナルの値で埋まり、上の表の値（オリジナルの Quaternary）が効く。ソースに書いてある値（Tertiary と同じ色）は使われていない。
+- 上流のダークは 4 つめを `colorQuaternary`（`u` が無い）と書いていて、scratch-blocks（と GUI）はこの名前を読まない。そのため `colourQuaternary` はオリジナルの値で埋まり、上の表の値（オリジナルの Quaternary）が効く。ソースに書いてある値（Tertiary と同じ色）は使われていない。
 - 見本: [`0603-blocks-dark.png`](screenshots/0603-blocks-dark.png)（ダークは画面から選べないので、Redux の `scratch-gui/settings/SET_COLOR_MODE` で切りかえて撮った）
 
 ## 拡張機能の色
 
-- **オリジナル**: 拡張機能が `getInfo()` で `color1`〜`color3` を返せばその色、返さなければ scratch-vm の既定 `#0FBD8C`・`#0DA57A`・`#0B8E69`（`engine/runtime.js` の `defaultExtensionColors`）。ブロックは Primary = `color1`、Secondary = `color2`、Tertiary と Quaternary = `color3`。上流の拡張機能（ペン・音楽・micro:bit など）はどれも `color1` を返さないので、すべて既定の緑。
-- **高コントラスト・ダーク**: どの拡張機能も、そのモードの `pen` の 4 色になる（`blockHelpers.js` の `getExtensionColors`。拡張機能が返した色は使わない）。丸の縁は `pen` の Tertiary。
+- **オリジナル**: 拡張機能が `getInfo()` で `color1`〜`color3` を返せばその色、返さなければ scratch-vm の既定 `#0FBD8C`・`#0DA57A`・`#0B8E69`（`packages/scratch-vm/src/engine/runtime.js` の `defaultExtensionColors`）。ブロックは Primary = `color1`、Secondary = `color2`、Tertiary と Quaternary = `color3`。上流の拡張機能（ペン・音楽・micro:bit など）はどれも `color1` を返さないので、すべて既定の緑。
+- **高コントラスト・ダーク**: どの拡張機能も、そのモードの `pen` の 4 色になる（`packages/scratch-gui/src/lib/settings/color-mode/blockHelpers.js` の `getExtensionColors`。拡張機能が返した色は使わない）。丸の縁は `pen` の Tertiary。
 - カテゴリの欄では、拡張機能がアイコン（`menuIconURI`、無ければ `blockIconURI`）を持っていると、色の丸の代わりにアイコン（`categoryIconBubble`・20px）を出す。アイコンが無いときの丸は、ソースでは地が `color1`、縁が `color2`（オリジナルのとき。ほかのカテゴリの縁は Tertiary）。読み込んで確かめた拡張機能（ペン・音楽と下のスモウルビーの拡張機能）は、どれもアイコンを出した。
 
 ### スモウルビーの拡張機能の色
@@ -109,56 +109,82 @@
 
 ## 独自の画面でブロックの色を使う
 
-- ブロックのなかまの色を独自の画面で使うときは、16 進を書き写さず、`getColorsForMode(colorMode)[<キー>]` から取る（`src/lib/settings/color-mode/index.js`）。色のモードを変えたときも合う。
-- 白い地の上に色の帯・印を置くときは、オリジナル・高コントラストは `colourPrimary`、ダークは `colourTertiary` を使う（ダークの Primary はほぼ黒で、どのなかまも同じに見える）。例: レッスンの一覧のカードの左の帯（`components/lessons-library/lessons-library.jsx` の `CardBand`）。
-- 上流のモニター（`components/monitor/monitor.jsx`）は、なかまの `colourPrimary` を地に、`text` を文字にしている。
+- ブロックのなかまの色を独自の画面で使うときは、16 進を書き写さず、`getColorsForMode(colorMode)[<キー>]` から取る（`packages/scratch-gui/src/lib/settings/color-mode/index.js`）。色のモードを変えたときも合う。
+- 白い地の上に色の帯・印を置くときは、オリジナル・高コントラストは `colourPrimary`、ダークは `colourTertiary` を使う（ダークの Primary はほぼ黒で、どのなかまも同じに見える）。例: レッスンの一覧のカードの左の帯（`packages/scratch-gui/src/components/lessons-library/lessons-library.jsx` の `CardBand`）。
+- 上流のモニター（`packages/scratch-gui/src/components/monitor/monitor.jsx`）は、なかまの `colourPrimary` を地に、`text` を文字にしている。
 
 ## ブロックのまわりの色
 
-カテゴリ以外のキー。scratch-blocks はテーマを当てるとき、オブジェクトでないキーを `--colour-<キー>` として `document.documentElement` の `style` に書く（`src/renderer/constants.ts` の `setTheme`）。scratch-blocks 自身の既定値（`src/colours.ts`）も `:root` の `--colour-*` として入っているので、GUI が渡さないキー（`contextualMenuHover`）はその既定値のまま。
+カテゴリ以外のキー。scratch-blocks はテーマを当てるとき、オブジェクトでないキーを `--colour-<キー>` として `document.documentElement` の `style` に書く（`scratch-blocks/src/renderer/constants.ts` の `setTheme`）。scratch-blocks 自身の既定値（`scratch-blocks/src/colours.ts` の `Colours`）も `:root` の `--colour-*` として入っているので、GUI が渡さないキー（`contextualMenuHover`）はその既定値のまま。
+
+ただし、GUI が渡したキーがすべて画面に効くわけではない。キーは次の 3 種類に分かれる。
+
+- **CSS 変数として読まれる**: 色のモードの値が画面に出る。
+- **どこからも読まれない**: `--colour-*` は書かれるが、それを読む CSS も JS も無い。**GUI の値は使われない**（いまは同じ値）。
+- **scratch-blocks の固定値から読まれる**: scratch-blocks が `Colours`（`colours.ts`）の値を直接使う。**GUI の値は使われない**（いまは同じ値）。
+
+### CSS 変数として読まれるキー
 
 | キー | オリジナル | 高コントラスト | ダーク | 使うところ |
 |---|---|---|---|---|
-| `text` | `#FFFFFF` | `#000000` | `rgba(255, 255, 255, .7)` | ブロックの上の文字（`.blocklyText`）、ドロップダウンの項目の文字 |
+| `text` | `#FFFFFF` | `#000000` | `rgba(255, 255, 255, .7)` | ドロップダウンを開いたときの項目の文字（実測: ダークで `rgba(255, 255, 255, 0.7)`）、角度の入力の線と目盛り。**ブロックの上の文字には効かない**（下の「文字」） |
 | `workspace` | `#F9F9F9` | `#F9F9F9` | `#121212` | スクリプトエリアの地（`.blocklySvg`） |
 | `toolbox` | `#FFFFFF` | `#FFFFFF` | `#121212` | カテゴリの欄の地 |
 | `toolboxText` | `#575E75` | `#000000` | `#E5E5E5` | カテゴリの欄の文字 |
-| `toolboxHover` | `#4C97FF` | `#3373CC` | `#4C97FF` | カテゴリにマウスを乗せたときの文字 |
+| `toolboxHover` | `#4C97FF` | `#3373CC` | `#4C97FF` | カテゴリにマウスを乗せたときの文字。ブロックパレットのチェックボックス（モニターを出す）の、チェックしたときの地 |
 | `toolboxSelected` | `#E9EEF2` | `#E9EEF2` | `#4C4C4C` | 選ばれたカテゴリの地 |
 | `flyout` | `#F9F9F9` | `#F9F9F9` | `#121212` | ブロックパレットの地 |
 | `scrollbar` | `#CECDCE` | `#CECDCE` | `#CECDCE` | スクロールバー |
 | `scrollbarHover` | `#CECDCE` | `#CECDCE` | `#CECDCE` | スクロールバーのホバー |
-| `textField` | `#FFFFFF` | `#FFFFFF` | `#4C4C4C` | 入力欄の色として渡しているが、実測ではどのモードも入力欄の地は `#fff` |
-| `textFieldText` | `#575E75` | `#000000` | `#E5E5E5` | 入力欄で編集中の文字・値の吹き出しの文字。ブロックの入力欄の文字は実測でオリジナル・ダークとも `#575E75`、高コントラストは `#000000` |
-| `insertionMarker` | `#000000` | `#000000` | `#000000` | ブロックを落とす先の影 |
-| `insertionMarkerOpacity` | `0.2` | `0.2` | `0.2` | 同じ影の不透明度 |
-| `dragShadowOpacity` | `0.6` | `0.6` | `0.6` | ドラッグ中の影の不透明度 |
-| `stackGlow` | `#FFF200` | `#FFF200` | `#FFF200` | 動いているスクリプトの光（`stackGlowSize` 4・`stackGlowOpacity` 1。scratch-blocks の既定値を使う） |
-| `replacementGlow` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | ブロックを入れかえる先の光（`replacementGlowSize` 2・`replacementGlowOpacity` 1） |
-| `colourPickerStroke` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | 色の入力欄の縁 |
+| `textFieldText` | `#575E75` | `#000000` | `#E5E5E5` | 値を出す吹き出しの文字（`.valueReportBox`）、音の高さの入力の鍵盤の名前、オリジナル・高コントラストのときのブロックパレットのボタン（「変数を作る」など）の文字。**ブロックの入力欄の文字・編集中の文字には効かない**（下の「文字」） |
 | `fieldShadow` | `rgba(255, 255, 255, 0.3)` | 同じ | 同じ | ドロップダウンの中のボタン（`.blocklyDropDownButton`）のホバー・押したときの影（scratch-blocks の既定は `rgba(0,0,0,0.1)` で、GUI が上書きしている） |
 | `dropDownShadow` | `rgba(0, 0, 0, .3)` | 同じ | 同じ | ドロップダウンの影 |
 | `menuHover` | `rgba(0, 0, 0, 0.2)` | `rgba(255, 255, 255, 0.3)` | `rgba(255, 255, 255, 0.3)` | ドロップダウンの項目のホバー |
 | `numPadBackground` | `#547AB2` | 同じ | 同じ | 数字パッド（タッチのとき）の地 |
 | `numPadBorder` | `#435F91` | 同じ | 同じ | 数字パッドのボタンの縁 |
 | `numPadActiveBackground` | `#435F91` | 同じ | 同じ | 数字パッドのボタンを押したとき |
-| `numPadText` | `white` | 同じ | 同じ | 数字パッドの文字（data URI の SVG に入れるので 16 進にしない） |
-| `valueReportBackground` | `#FFFFFF` | 同じ | 同じ | ブロックを押したときに値を出す吹き出しの地 |
-| `valueReportBorder` | `#AAAAAA` | 同じ | 同じ | 同じ吹き出しの縁 |
+| `numPadText` | `white` | 同じ | 同じ | 数字パッドのボタンの文字（CSS 変数）。消すボタンのアイコンの色は `Colours` の固定値を data URI の SVG に入れる（`scratch-blocks/src/fields/scratch_field_number.ts`）ので、そこには GUI の値は使われない。16 進にしないのはこのため |
 | `contextualMenuHover` | `rgba(77, 151, 255, .25)` | 同じ | 同じ | 右クリックのメニューの項目のホバー（GUI は渡さない。scratch-blocks の既定値） |
 
-ほかに scratch-blocks の CSS（`src/css.ts`）に直書きの色がある。例: カテゴリの欄の右の線 `#ddd`、ブロックのコメントの地 `#fef49c`、コメントの文字 `#575e75`、ブロックパレットの見出し（「動き」）の文字 `#575E75`。スクリプトエリアの方眼は 40 ごとの `#ddd`（GUI の `Blocks.defaultOptions` の `grid`）。
+ドロップダウンを開いたときの箱（`.blocklyDropDownDiv`）の地と縁は、キーではなくブロックのなかまの色で決まる（実測: 地は Primary、縁は Tertiary）。
+
+### どこからも読まれないキー（GUI の値は使われない。いまは同じ値）
+
+| キー | オリジナル | 高コントラスト | ダーク | 実際に使われる値 |
+|---|---|---|---|---|
+| `textField` | `#FFFFFF` | `#FFFFFF` | `#4C4C4C` | 入力欄の地は実測でどのモードも `#fff`（ダークの `#4C4C4C` は出ない） |
+| `insertionMarker` | `#000000` | `#000000` | `#000000` | 落とす先の影は Blockly の `INSERTION_MARKER_COLOUR`（`#000000`） |
+| `insertionMarkerOpacity` | `0.2` | `0.2` | `0.2` | 同じく `INSERTION_MARKER_OPACITY`（0.2） |
+| `replacementGlow` / `replacementGlowSize` / `replacementGlowOpacity` | `#FFFFFF` / `2` / `1` | 同じ | 同じ | 入れかえる先の光は `scratch-blocks/src/renderer/constants.ts` の固定値 `REPLACEMENT_GLOW_COLOUR`（`#ffffff`）と zelos の `REPLACEMENT_GLOW_SIZE`（2） |
+| `colourPickerStroke` | `#FFFFFF` | 同じ | 同じ | 読むところが無い |
+
+### scratch-blocks の固定値から読まれるキー（GUI の値は使われない。いまは同じ値）
+
+| キー | 値（GUI・`Colours` とも） | 使うところ |
+|---|---|---|
+| `stackGlow` / `stackGlowSize` / `stackGlowOpacity` | `#FFF200` / `4` / `1` | 動いているスクリプトの光（`scratch-blocks/src/glows.ts`） |
+| `valueReportBackground` / `valueReportBorder` | `#FFFFFF` / `#AAAAAA` | ブロックを押したときに値を出す吹き出しの地と縁（`scratch-blocks/src/block_reporting.ts`） |
+| `dragShadowOpacity` | `0.6` | ドラッグ中のブロックの影（`scratch-blocks/src/css.ts` に CSS を書くときに埋めこむ） |
+
+ほかに scratch-blocks の CSS（`scratch-blocks/src/css.ts`）に直書きの色がある。例: カテゴリの欄の右の線 `#ddd`、ブロックパレットのチェックボックスの縁 `#c8c8c8`。スクリプトエリアの方眼は 40 ごとの `#ddd`（GUI の `Blocks.defaultOptions` の `grid`）。
 
 ## 文字
 
-| 対象 | 値 | 元 |
-|---|---|---|
-| ブロックの文字 | `"Helvetica Neue", "Segoe UI", Helvetica, sans-serif`・12pt（実測 16px）・太さ 500 | zelos の `FIELD_TEXT_FONTFAMILY` / `FIELD_TEXT_FONTSIZE`。太さは scratch-blocks の CSS が `default-theme` と `high-contrast-theme` だけ 500 にする |
-| ダークのときのブロックの文字の太さ | bold（実測 700） | `dark-theme` には 500 の規則が無く、zelos の `FIELD_TEXT_FONTWEIGHT`（bold）のまま |
-| 高コントラストのブロックの文字 | `#000`（`!important`）。ドロップダウンの矢印の画像は色を反転 | scratch-blocks の CSS |
-| ブロックパレットの見出し（「動き」など） | 14pt・bold・`#575E75` | scratch-blocks の CSS |
-| カテゴリの欄の名前 | 0.65rem（実測 10.4px）・太さ 400・幅 60px・中央ぞろえ | scratch-blocks の CSS |
-| カテゴリの欄の丸 | 1.25rem（20px）の円・縁 1px | `@blockly/continuous-toolbox` 7.0.8 の CSS。地と縁の色は上の「4 つの色の役目」 |
+ブロックの文字は、Blockly の zelos が出す CSS（`.scratch-renderer.<モード>-theme` の下に書かれる。どのモードにも当たる）と、scratch-blocks の CSS（オリジナルと高コントラストのときだけ当たる規則がある）が重なって決まる。下の「実測」は 3 つのモードで計算済みのスタイルを読んだ値。
+
+| 対象 | オリジナル | 高コントラスト | ダーク | 元 |
+|---|---|---|---|---|
+| ブロックの文字の書体・大きさ | `"Helvetica Neue", "Segoe UI", Helvetica, sans-serif`・12pt（実測 16px） | 同じ | 同じ | zelos の `font`（`FIELD_TEXT_FONTFAMILY`・`FIELD_TEXT_FONTSIZE`） |
+| ブロックの文字の太さ | 500 | 500 | bold（実測 700） | zelos は bold（`FIELD_TEXT_FONTWEIGHT`）。scratch-blocks の `.scratch-renderer.default-theme .blocklyText` と `.scratch-renderer.high-contrast-theme .blocklyText` が 500 にする。ダークにはこの規則が無い |
+| ブロックの上の文字の色 | `#fff` | `#000` | `#fff`（実測） | zelos の `.blocklyText { fill: #fff }`。高コントラストは scratch-blocks の `#000 !important`。`--colour-text` の `.blocklyText` の規則は zelos の規則に負けるので、ダークの `rgba(255, 255, 255, .7)` は効かない |
+| 入力欄（数・文字）の文字の色 | `#575E75` | `#000` | `#575E75`（実測） | zelos の `.blocklyEditableField>text { fill: #575E75 }`。`--colour-textFieldText` を読む scratch-blocks の規則は古いクラス名（`.blocklyEditableText>text`）で、いまの入力欄には当たらないので、ダークの `#E5E5E5` は効かない |
+| 入力欄を編集しているときの文字の色 | `#575E75` | `#575E75` | `#575E75` | zelos の `.blocklyHtmlInput { color: #575E75 }`（scratch-blocks の `--colour-textFieldText` の規則より強い） |
+| ドロップダウンの文字の色 | `#fff` | `#000` | `#fff`（実測） | zelos の `.blocklyDropdownText { fill: #fff !important }`。高コントラストは scratch-blocks の `#000 !important`（こちらの方が強い）。高コントラストではドロップダウンの矢印の画像の色も反転する |
+| ドロップダウンを開いたときの項目の文字 | `#FFFFFF` | `#000000` | `rgba(255, 255, 255, .7)`（実測） | `--colour-text` |
+| ブロックパレットの見出し（「動き」など） | 14pt（実測 18.67px）・bold・`#575E75` | 同じ | 12pt（実測 16px）・bold・`#575E75` | オリジナル・高コントラストは scratch-blocks の CSS。ダークにはこの規則が無く、zelos の 12pt bold のまま |
+| ブロックのコメント | 地 `#fef49c`・文字 `#575e75`・12pt・太さ 400 | 同じ | 規則が無い（zelos・Blockly の既定のまま） | scratch-blocks の CSS（オリジナル・高コントラストのときだけ当たる） |
+| カテゴリの欄の名前 | 0.65rem（実測 10.4px）・太さ 400・幅 60px・中央ぞろえ | 同じ | 同じ | scratch-blocks の CSS |
+| カテゴリの欄の丸 | 1.25rem（20px）の円・縁 1px | 同じ | 同じ | `@blockly/continuous-toolbox` 7.0.8 の CSS。地と縁の色は上の「4 つの色の役目」 |
 
 ## 形の寸法
 
@@ -180,8 +206,8 @@ scratch-blocks の `scratch_classic` レンダラー（Blockly の zelos を継�
 | `BOWLER_HAT_HEIGHT` | 20 | ブロック定義の「定義」の丸い帽子の高さ（scratch-blocks が足した定数。角は半径 20 の円弧） |
 | `EMPTY_INLINE_INPUT_HEIGHT` | 32 | 空いている入力の高さ |
 | `EMPTY_INLINE_INPUT_PADDING` | 16 | 空いている入力の左右の余白 |
-| `FIELD_BORDER_RECT_HEIGHT` | 31 | 入力欄の枠の高さ |
-| `FIELD_DROPDOWN_BORDER_RECT_HEIGHT` | 31 | ドロップダウンの枠の高さ |
+| `FIELD_BORDER_RECT_HEIGHT` | 31 | 入力欄の枠の高さ（`init()` で文字の大きさを測って決まるので、フォントによって ±1 変わることがある） |
+| `FIELD_DROPDOWN_BORDER_RECT_HEIGHT` | 31 | ドロップダウンの枠の高さ（同じく ±1 変わることがある） |
 | `FIELD_BORDER_RECT_RADIUS` | 4 | 入力欄の枠の角丸 |
 | `FIELD_BORDER_RECT_X_PADDING` | 8 | 入力欄の左右の余白 |
 | `FIELD_DROPDOWN_SVG_ARROW_SIZE` | 12 | ドロップダウンの矢印の大きさ |
@@ -195,7 +221,7 @@ scratch-blocks の `scratch_classic` レンダラー（Blockly の zelos を継�
 | `BOTTOM_ROW_AFTER_STATEMENT_MIN_HEIGHT` | 24 | C の形の下の段の最小の高さ |
 | `DUMMY_INPUT_MIN_HEIGHT` | 32 | 入力の無い段の最小の高さ |
 | `MAX_DYNAMIC_CONNECTION_SHAPE_WIDTH` | 48 | 丸・六角形の端の最大の幅 |
-| `SELECTED_GLOW_COLOUR` / `SELECTED_GLOW_SIZE` | `#ffffff` / 0.5 | 選んだブロックの光（scratch-blocks が白に上書き） |
+| `SELECTED_GLOW_COLOUR` / `SELECTED_GLOW_SIZE` | `#ffffff` / 0.5 | 選んだブロックの光（scratch-blocks が白に上書き）。ただし scratch-blocks の `createDom` が `selectedGlowFilterId` を空にするので、**選んだブロックの光は出ない**。この色は、ブロックを入力に入れようとしたときの入力の強調の線（`.blocklyHighlightedConnectionPath`）にだけ使われる |
 | `REPLACEMENT_GLOW_COLOUR` / `REPLACEMENT_GLOW_SIZE` | `#ffffff` / 2 | 入れかえる先の光（scratch-blocks が白に上書き） |
 | `INSERTION_MARKER_COLOUR` / `INSERTION_MARKER_OPACITY` | `#000000` / 0.2 | 落とす先の影 |
 | `CURSOR_COLOUR` | `#ffa200` | キーボードで操作するときのカーソル |
@@ -206,11 +232,11 @@ scratch-blocks の `scratch_classic` レンダラー（Blockly の zelos を継�
 |---|---|---|
 | 六角形（`OUTPUT_SHAPE_HEXAGONAL` = 1） | 真か偽を返すブロック、それを受ける入力 | とがった端（端の幅は高さの半分。最大 48） |
 | 丸（`OUTPUT_SHAPE_ROUND` = 2） | 数・文字を返すブロック、それを受ける入力 | 半円（端の幅は高さの半分。最大 48） |
-| 四角（3） | 決まった形を持たない入力など | 端の幅 4（角丸 4） |
+| 四角（`OUTPUT_SHAPE_SQUARE` = 3） | レポーターを受けない拡張機能のメニュー（`acceptReporters` が false。`packages/scratch-vm/src/engine/runtime.js` の `_buildMenuForScratchBlocks`） | 端の幅 4（角丸 4） |
 
 ### 実際の大きさ（例）
 
-ブロックパレットのブロックの外形の高さ（ワークスペースの単位。`svgPath.getBBox()`）。
+ブロックパレットのブロックの外形の高さ（ワークスペースの単位。`svgPath.getBBox()`）。入力欄の高さはフォントの測り方で ±1 変わることがあるので、入力を持つブロックの高さも同じだけ変わりうる。
 
 | ブロック | 高さ | 内わけ |
 |---|---|---|
@@ -224,8 +250,8 @@ scratch-blocks の `scratch_classic` レンダラー（Blockly の zelos を継�
 
 ### そのほか
 
-- スクロールバーの太さは 11（タッチの端末では 14）。scratch-blocks の `index.ts` で決めている。
-- 「ねこブロック」（`scratchTheme: 'catblocks'`）は別のレンダラーで、帽子ブロックにねこの顔を描く。この表のレンダラーを継ぎ、帽子の高さだけ変える（`START_HAT_HEIGHT` 31.5・`BOWLER_HAT_HEIGHT` 35。`src/renderer/cat/constants.ts`）。ふだんは使わない（GUI の `useCatBlocks`。タイムトラベルの日・ねこのテーマのときだけ）。
+- スクロールバーの太さは 11（タッチの端末では 14）。`scratch-blocks/src/index.ts` で決めている。
+- 「ねこブロック」（`scratchTheme: 'catblocks'`）は別のレンダラーで、帽子ブロックにねこの顔を描く。この表のレンダラーを継ぎ、帽子の高さだけ変える（`START_HAT_HEIGHT` 31.5・`BOWLER_HAT_HEIGHT` 35。`scratch-blocks/src/renderer/cat/constants.ts`）。ふだんは使わない。使うのは GUI の `useCatBlocks` が真のとき＝タイムトラベルで 2020 年にいるとき（`packages/scratch-gui/src/reducers/time-travel.js` の `isTimeTravel2020`）か、テーマが「ねこブロック」のとき（設定メニューに出るのは `hasActiveMembership` のときだけ。`packages/scratch-gui/src/lib/settings/theme/index.js`）。
 
 ## 見本の撮り方
 
