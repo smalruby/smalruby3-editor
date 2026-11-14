@@ -49,6 +49,7 @@ const baseProps = () => ({
     onOpenClassroomModal: jest.fn(),
     onOpenTeacherModal: jest.fn(),
     onOpenMeshModal: jest.fn(),
+    onOpenMeshStatus: jest.fn(),
     onStartSelectingFileUpload: jest.fn(),
     onStartSelectingGoogleDrive: jest.fn(),
     onSaveDirectlyToGoogleDrive: jest.fn(),
@@ -231,6 +232,18 @@ describe('MobileDrawer', () => {
     test('mesh is hidden when meshV2 extension is not loaded', () => {
         const { queryByTestId } = renderWithIntl();
         expect(queryByTestId('mobile-drawer-mesh')).toBeNull();
+        expect(queryByTestId('mobile-drawer-mesh-status')).toBeNull();
+    });
+
+    test('mesh status is shown with meshV2 and opens the status window (#1844)', () => {
+        const vm = {
+            runtime: { targets: [] },
+            extensionManager: { isExtensionLoaded: (id) => id === 'meshV2' },
+        };
+        const { getByTestId, props } = renderWithIntl({ vm });
+        fireEvent.click(getByTestId('mobile-drawer-mesh-status'));
+        expect(props.onOpenMeshStatus).toHaveBeenCalledTimes(1);
+        expect(props.onClose).toHaveBeenCalledTimes(1);
     });
 
     test('mesh is shown and clicking it calls onOpenMeshModal("meshV2")', () => {

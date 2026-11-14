@@ -7,6 +7,10 @@ import Box from '../box/box.jsx';
 import Button from '../button/button.jsx';
 import ToggleButtons from '../toggle-buttons/toggle-buttons.jsx';
 import Controls from '../../containers/controls.jsx';
+// === Smalruby: Start of mesh status button ===
+import MeshStatusButton from '../mesh-status-button/mesh-status-button.jsx';
+import meshStatusButtonStyles from '../mesh-status-button/mesh-status-button.css';
+// === Smalruby: End of mesh status button ===
 import {getStageDimensions} from '../../lib/screen-utils';
 import {STAGE_SIZE_MODES} from '../../lib/layout-constants';
 
@@ -233,7 +237,12 @@ const StageHeaderComponent = function (props) {
                     className={styles.stageMenuWrapper}
                     style={{width: stageDimensions.width}}
                 >
-                    <Controls vm={vm} />
+                    {/* === Smalruby: Start of mesh status button === */}
+                    <div className={meshStatusButtonStyles.controlsGroup}>
+                        <Controls vm={vm} />
+                        <MeshStatusButton vm={vm} />
+                    </div>
+                    {/* === Smalruby: End of mesh status button === */}
                     {stageButton}
                 </Box>
             </Box>
@@ -274,7 +283,12 @@ const StageHeaderComponent = function (props) {
         header = (
             <Box className={styles.stageHeaderWrapper}>
                 <Box className={styles.stageMenuWrapper}>
-                    <Controls vm={vm} />
+                    {/* === Smalruby: Start of mesh status button === */}
+                    <div className={meshStatusButtonStyles.controlsGroup}>
+                        <Controls vm={vm} />
+                        <MeshStatusButton vm={vm} />
+                    </div>
+                    {/* === Smalruby: End of mesh status button === */}
                     <div className={styles.stageSizeRow}>
                         <FeatureCalloutPopover
                             isOpen={isThumbnailTooltipOpen}

@@ -1,0 +1,280 @@
+@import '../../css/colors.css';
+@import '../../css/z-index.css';
+
+/* A movable window, not a modal: the project keeps running and stays clickable.
+   Below the menu-bar menus and modals (the connection modal can be opened from here),
+   above the stage and monitors. In full-screen stage mode it goes above the stage overlay. */
+.popup {
+    position: fixed;
+    z-index: $z-index-tooltip; /* just below $z-index-menu-bar */
+    display: flex;
+    flex-direction: column;
+    width: 320px;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+    background-color: $ui-white;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 8px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+    color: $text-primary;
+    font-size: 0.8125rem;
+    overflow: hidden;
+}
+
+/* The window itself only takes the focus to pass it on (no ring around the whole window). */
+.popup:focus {
+    outline: none;
+}
+
+.above-stage {
+    z-index: $z-index-context-menu; /* above the full-screen stage overlay */
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 4px 4px 10px;
+    background-color: $ui-green;
+    color: $ui-white;
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+}
+
+.header-icon {
+    width: 20px;
+    height: 20px;
+    background-color: $ui-white;
+    border-radius: 4px;
+}
+
+.title {
+    flex: 1;
+    font-weight: bold;
+}
+
+.close-button {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: $ui-white;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.close-button:hover {
+    background-color: $ui-white-transparent;
+}
+
+.tabs {
+    display: flex;
+    border-bottom: 1px solid $ui-black-transparent;
+    background-color: $ui-secondary;
+}
+
+.tab {
+    flex: 1;
+    min-height: 36px;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    color: $text-primary;
+    font-size: 0.8125rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.tab-active {
+    border-bottom-color: $ui-green;
+    background-color: $ui-white;
+}
+
+.badge {
+    display: inline-block;
+    min-width: 1.25rem;
+    margin-left: 4px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background-color: $ui-green;
+    color: $ui-white;
+    font-size: 0.6875rem;
+    line-height: 1.25rem;
+}
+
+.body {
+    overflow-y: auto;
+    background-color: $ui-white;
+}
+
+.tab-body {
+    padding: 8px 10px 10px;
+}
+
+.summary {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 10px;
+    margin: 0;
+}
+
+.summary dt {
+    color: $text-primary-transparent;
+}
+
+.summary dd {
+    margin: 0;
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+.dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background-color: $ui-black-transparent;
+    vertical-align: middle;
+}
+
+.dot-on {
+    background-color: $ui-green-2;
+}
+
+.connect-button,
+.expand-button {
+    min-height: 36px;
+    margin-top: 8px;
+    padding: 0 12px;
+    border: 1px solid $ui-green;
+    border-radius: 6px;
+    background-color: $ui-white;
+    color: $ui-green;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.expand-button {
+    width: 100%;
+}
+
+.nodes {
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.node {
+    margin-top: 6px;
+    padding: 6px 8px;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 6px;
+}
+
+.node-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.node-label {
+    font-weight: bold;
+}
+
+.node-time,
+.history-time {
+    color: $text-primary-transparent;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.variables {
+    width: 100%;
+    margin-top: 4px;
+    border-collapse: collapse;
+}
+
+.variables th,
+.variables td {
+    padding: 2px 4px;
+    border-top: 1px solid $ui-black-transparent-10;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-all;
+}
+
+.variables th {
+    width: 40%;
+    font-weight: normal;
+    color: $text-primary-transparent;
+}
+
+.muted {
+    color: $text-primary-transparent;
+}
+
+.history {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.history-item {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas:
+        'time direction who'
+        'name name name'
+        'value value value';
+    gap: 2px 6px;
+    padding: 6px 0;
+    border-bottom: 1px solid $ui-black-transparent-10;
+}
+
+.history-time {
+    grid-area: time;
+}
+
+.direction {
+    grid-area: direction;
+    padding: 0 6px;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: bold;
+    line-height: 1.25rem;
+}
+
+.sent {
+    background-color: $ui-secondary;
+    color: $motion-primary;
+}
+
+.received {
+    background-color: $ui-alert-orange;
+    color: $data-primary;
+}
+
+.history-who {
+    grid-area: who;
+    font-weight: bold;
+}
+
+.history-name {
+    grid-area: name;
+    font-weight: bold;
+    word-break: break-all;
+}
+
+.history-value {
+    grid-area: value;
+    word-break: break-all;
+    white-space: pre-wrap;
+    max-height: 4.5em;
+    overflow-y: auto;
+}

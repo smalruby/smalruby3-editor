@@ -99,6 +99,15 @@ const EventSenderMixin = {
             if (reason) {
                 this.cleanupAndDisconnect(reason);
             }
+            return;
+        }
+
+        // 状態と履歴のポップアップ (#1844): 実際に送れたものだけを「送った」に残す。
+        // 送信の try の外に置き、記録の失敗が切断の判定（shouldDisconnectOnError）に届かないようにする。
+        try {
+            this.recordSentEvents(events);
+        } catch (error) {
+            log.warn(`Mesh V2: Failed to record sent events: ${error}`);
         }
     },
 

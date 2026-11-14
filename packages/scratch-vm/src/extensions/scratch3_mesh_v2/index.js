@@ -13,6 +13,7 @@ const { createClient } = require('./mesh-client');
 const MeshV2Service = require('./mesh-service');
 const { TEACHER_HOST, buildGroupName, parseGroupName, parseNodeSeat, withSeatSuffix } = require('./seat-naming');
 const { THREAD_MESSAGE_VALUE_KEY, toMessageValue } = require('./message-value');
+const { buildStatusSnapshot } = require('./status-snapshot');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -252,6 +253,31 @@ class Scratch3MeshV2Blocks {
      */
     getConnectedGroupId() {
         return (this.meshService && this.meshService.groupId) || null;
+    }
+
+    /**
+     * Read-only snapshot for the mesh status popup (#1844). No network access.
+     * @returns {?object} snapshot, or null when the mesh service is not available.
+     */
+    getStatusSnapshot() {
+        if (!this.meshService) return null;
+        return buildStatusSnapshot({
+            connectionState: this.connectionState,
+            service: this.meshService,
+            domain: this.domain,
+            groupLabel: this.makeMeshIdLabel(this.meshService.groupName),
+            inClassroom: !!this.classroomSeat,
+        });
+    }
+
+    /**
+     * Refresh the node list of the joined group for the status popup (#1844).
+     * The service asks the server at most once per 30 seconds.
+     * @returns {Promise<?Array<string>>} node ids, or null.
+     */
+    refreshGroupNodes() {
+        if (!this.meshService) return Promise.resolve(null);
+        return this.meshService.refreshGroupNodes();
     }
 
     /**
@@ -574,8 +600,9 @@ class Scratch3MeshV2Blocks {
 
             const domain = group ? group.domain : null;
             const groupName = group ? group.name : id;
+            const hostId = group ? group.hostId || null : null;
             this.meshService
-                .joinGroup(id, domain, groupName)
+                .joinGroup(id, domain, groupName, hostId)
                 .then(() => {
                     this.setConnectionState('connected');
                 })
