@@ -150,6 +150,8 @@
 | メソッド | 説明 | 例 |
 |---|---|---|
 | `mesh.sensor_value(名前)` | センサー値を取得 | `mesh.sensor_value("score")` |
+| `mesh.broadcast(メッセージ, 値)` | 値といっしょにメッセージを送る（自分の中の「受け取ったとき」も動く。値は文字列にして 1,000 文字まで） | `mesh.broadcast("chat", "hello")` |
+| `mesh.message_value` | そのスクリプトを動かしたメッセージの値（受け取りのスクリプトの外では最後に受け取った値） | `say(mesh.message_value)` |
 
 ---
 

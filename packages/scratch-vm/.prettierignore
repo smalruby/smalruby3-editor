@@ -81,6 +81,7 @@ test/integration/extensions/*
 !test/integration/extensions/mesh-v1-migration.test.js
 !test/integration/extensions/mesh-v2-data-merge.test.js
 !test/integration/extensions/mesh-v2-variable-sync.test.js
+!test/integration/extensions/mesh-v2-message-value.test.js
 
 # Level 2: test/load-test/* — Smalruby-only (whole directory via `/**`)
 
@@ -102,6 +103,8 @@ test/unit/*
 !test/unit/extension_mesh_v2.js
 !test/unit/extension_mesh_v2_classroom_seat.js
 !test/unit/extension_mesh_v2_seat_naming.js
+!test/unit/extension_mesh_v2_message_value.js
+!test/unit/extension_mesh_v2_status_snapshot.js
 !test/unit/extension_smalrubot_s1.js
 !test/unit/extension_translate_proxy.js
 !test/unit/extension_text2speech_proxy.js
@@ -114,6 +117,7 @@ test/unit/*
 !test/unit/mesh_service_v2_order_key.js
 !test/unit/mesh_service_v2_poll_group_data.js
 !test/unit/mesh_service_v2_polling.js
+!test/unit/mesh_service_v2_status_history.js
 !test/unit/mesh_service_v2_subscription.js
 !test/unit/mesh_service_v2_timestamp.js
 !test/unit/mesh_service_v2.js

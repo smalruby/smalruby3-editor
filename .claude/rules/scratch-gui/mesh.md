@@ -12,6 +12,8 @@ mesh は **最重要機能** のため、関連コードを変更したときは
 | Global variable (scalar) | ステージのグローバル変数を 1 秒ごとに rate-limit してデルタ送信 | `sendData([{key, value}])` |
 | Sensor value (read) | 他ノードから受信した変数を最新タイムスタンプ優先で読む | `mesh.sensor_value(name)` (Ruby) / `meshV2_getSensorValue` (block) |
 
+`fireEvent` のまとめ方 (#1843): 1 秒のまとめ送りの中で、同じ名前のメッセージは値があってもなくても最後に送ったものだけを、最後に送った位置に残す（payload は 1,000 (`String#length`) で切る）。
+
 ### 通信モード (host / member の両方が同じモードで動く)
 
 | モード | リアルタイム配信 | 1 秒未満の遅延 | 環境制約 |
@@ -51,6 +53,8 @@ WebSocket / Polling の判定は `testWebSocket()` で行い、`useWebSocket: fa
 | `rate-limiter.js` | ~220 | `sendData` の rate limit + マージ |
 | `utils.js` | ~70 | URL パラメータパース, ドメイン localStorage |
 | `name-search-utils.js` | ~55 | グループ名検索のひらがな→hex 変換 |
+| `status-history.js` | ~130 | 状態と履歴のウィンドウ用: 送った・受け取ったメッセージの履歴（メモリに 50 件）と、30 秒に 1 回までの `listNodesInGroup`（#1844）。記録は送受信の try の外・失敗しても送受信に影響させない |
+| `status-snapshot.js` | ~100 | 状態と履歴のウィンドウに渡す値を手元の値だけで作る（通信しない）。ホストは `listNodesInGroup` に入らないので `groupHostId`（サーバーの `hostId`）から足す |
 
 mesh-service.js は **mixin パターン** で各 manager を `Object.assign(MeshV2Service.prototype, XxxMixin)` として集約している (issue #566)。`this.X` 参照はすべて MeshV2Service インスタンスを指すため、外部 API は単一のクラスに見える。
 
@@ -210,8 +214,11 @@ await node.joinGroup(host.groupId, host.domain, `ws-grp-${ts}`);
 // データ同期: host が REPORT_DATA mutate → node.remoteData[hostId] に反映 (subscription 経由)
 // 期待: 4 秒以内に node.remoteData[hostId].score?.value === '42'
 
-// イベント配信: node.broadcastEvent をフックしてから host.fireEvent('a', '1') ×3
+// イベント配信: node.broadcastEvent をフックしてから、ちがう名前で
+//   host.fireEvent('a', '1'); host.fireEvent('b', '2'); host.fireEvent('c', '3');
 // 期待: broadcastCalls の長さ 3、name/payload/orderKey が送信順と一致
+// 同じ名前のまとめ (#1843): 1 秒以内に host.fireEvent('a', '1'); ('a', '2'); ('a', '3')
+// 期待: broadcastCalls の長さ 1、payload は '3'（同じ名前は最後に送ったものだけ送る）
 
 host.cleanup(); node.cleanup();
 ```
@@ -239,9 +246,12 @@ await node.joinGroup(host.groupId, host.domain, `pl-grp-${ts2}`);
 // データ同期: host が REPORT_DATA mutate → node が pollGroupData で取得 (最大 2s 遅延)
 // 期待: 6 秒以内に node.remoteData[hostId].kp1?.value === '999'
 
-// イベント配信: node.broadcastEvent をフックしてから host.fireEvent('alpha', '11') ×3
+// イベント配信: node.broadcastEvent をフックしてから、ちがう名前で
+//   host.fireEvent('alpha', '11'); host.fireEvent('beta', '12'); host.fireEvent('gamma', '13');
 // fireEventsBatch は polling 時は RECORD_EVENTS を使う、node は pollGroupData の events で受け取る
 // 期待: broadcastCalls の長さ 3、順序が送信順と一致
+// 同じ名前のまとめ (#1843): 1 秒以内に host.fireEvent('alpha', '11'); ('alpha', '12')
+// 期待: broadcastCalls の長さ 1、payload は '12'
 
 host.cleanup(); node.cleanup();
 ```

@@ -17,6 +17,7 @@ const { DataSenderMixin } = require('./data-sender');
 const { BroadcastReceiverMixin } = require('./broadcast-receiver');
 const { EventSenderMixin } = require('./event-sender');
 const { GroupLifecycleMixin } = require('./group-lifecycle');
+const { StatusHistoryMixin } = require('./status-history');
 
 /**
  * Parses an environment variable as an integer with validation.
@@ -71,6 +72,15 @@ class MeshV2Service {
         // Data from other nodes: { nodeId: { key: { value: string, timestamp: number } } }
         this.remoteData = {};
 
+        // 状態と履歴のポップアップ (#1844): 送った・受け取ったメッセージ（新しい順・50 件まで）と、
+        // listNodesInGroup で知ったグループのノード一覧（30 秒に 1 回まで問い合わせる）
+        this.messageHistory = [];
+        this.groupNodeIds = null;
+        this.groupNodesFetchedAt = 0;
+        this._groupNodesRequest = null;
+        // ホストのノード ID（サーバーが記録した hostId）。listNodesInGroup はホストを返さない (#1844)
+        this.groupHostId = null;
+
         // Rate limiters
         // Data update interval (default: 1000ms)
         const dataInterval = parseEnvInt(
@@ -110,6 +120,8 @@ class MeshV2Service {
         this.MAX_EVENT_QUEUE_SIZE = 100; // 最大100イベント
         this.eventQueueStats = {
             duplicatesSkipped: 0,
+            // 同じ名前の値つきメッセージ（どちらかに値がある）を、最後に送ったものに置きかえた数 (#1843)
+            valuesReplaced: 0,
             dropped: 0,
             lastReportTime: Date.now(),
         };
@@ -305,12 +317,15 @@ class MeshV2Service {
         // 統計情報を出力
         if (
             this.eventQueueStats &&
-            (this.eventQueueStats.duplicatesSkipped > 0 || this.eventQueueStats.dropped > 0)
+            (this.eventQueueStats.duplicatesSkipped > 0 ||
+                this.eventQueueStats.valuesReplaced > 0 ||
+                this.eventQueueStats.dropped > 0)
         ) {
             debug(
                 () =>
                     `Mesh V2: Final Event Queue Stats: ` +
                     `duplicates skipped=${this.eventQueueStats.duplicatesSkipped}, ` +
+                    `values replaced=${this.eventQueueStats.valuesReplaced}, ` +
                     `dropped=${this.eventQueueStats.dropped}`,
             );
         }
@@ -330,7 +345,9 @@ class MeshV2Service {
         this.groupName = null;
         this.expiresAt = null;
         this.isHost = false;
+        this.groupHostId = null;
         this.remoteData = {};
+        this.forgetGroupNodes();
         this.lastSentData = {};
         this.latestQueuedData = {};
     }
@@ -348,5 +365,6 @@ Object.assign(MeshV2Service.prototype, DataSenderMixin);
 Object.assign(MeshV2Service.prototype, BroadcastReceiverMixin);
 Object.assign(MeshV2Service.prototype, EventSenderMixin);
 Object.assign(MeshV2Service.prototype, GroupLifecycleMixin);
+Object.assign(MeshV2Service.prototype, StatusHistoryMixin);
 
 module.exports = MeshV2Service;

@@ -52,7 +52,10 @@ import {
     // === Smalruby: End of welcome tooltip ===
 } from '../../reducers/modals';
 import {
-    setDomain as setMeshV2Domain
+    setDomain as setMeshV2Domain,
+    // === Smalruby: Start of mesh status popup ===
+    openMeshV2StatusPopup
+    // === Smalruby: End of mesh status popup ===
 } from '../../reducers/mesh-v2';
 import {setConnectionModalExtensionId} from '../../reducers/connection-modal';
 import {openBlockDisplayModal} from '../../reducers/block-display';
@@ -1229,6 +1232,18 @@ class MenuBar extends React.Component {
                                                     meshV2Status.message
                                                 )}
                                             </MenuItem>
+                                            {/* === Smalruby: Start of mesh status popup === */}
+                                            <MenuItem
+                                                data-testid="menu-bar-mesh-status"
+                                                onClick={this.props.onOpenMeshV2StatusPopup}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Show status and history"
+                                                    description="Mesh menu item that opens the mesh status window"
+                                                    id="gui.menuBar.meshV2Status"
+                                                />
+                                            </MenuItem>
+                                            {/* === Smalruby: End of mesh status popup === */}
                                         </MenuSection>
                                     </MenuBarMenu>
                                 </div>
@@ -1804,6 +1819,9 @@ MenuBar.propTypes = {
     onActivateRubyTab: PropTypes.func,
     onShowWelcomeModal: PropTypes.func, // === Smalruby: welcome tooltip ===
     onClickMeshV2: PropTypes.func,
+    // === Smalruby: Start of mesh status popup ===
+    onOpenMeshV2StatusPopup: PropTypes.func,
+    // === Smalruby: End of mesh status popup ===
     onClickSmalrubotS1: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onClickMode: PropTypes.func,
     onClickNew: PropTypes.func,
@@ -1963,6 +1981,12 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     onRequestCloseKoshien: () => dispatch(closeKoshienMenu()),
     onClickMeshV2: () => dispatch(openMeshV2Menu()),
     onRequestCloseMeshV2: () => dispatch(closeMeshV2Menu()),
+    // === Smalruby: Start of mesh status popup ===
+    onOpenMeshV2StatusPopup: () => {
+        dispatch(closeMeshV2Menu());
+        dispatch(openMeshV2StatusPopup());
+    },
+    // === Smalruby: End of mesh status popup ===
     // === Smalruby: Start of smalrubot firmware menu ===
     onClickSmalrubotS1: () => dispatch(openSmalrubotS1Menu()),
     onRequestCloseSmalrubotS1: () => dispatch(closeSmalrubotS1Menu()),

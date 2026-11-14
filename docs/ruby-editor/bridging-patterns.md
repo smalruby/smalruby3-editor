@@ -673,6 +673,30 @@ foo.bar(1)
 
 **テスト**: `ruby-to-blocks-converter/index.test.js`、`ruby-to-blocks-converter/orphan-blocks.test.js`。
 
+### P19. 拡張機能のメソッドと、標準のブロックの部品を使う引数（メッシュの値つきメッセージ）
+
+**Ruby で書きたいこと**: 拡張機能のブロック。例: `mesh.broadcast("chat", "hello")`（値といっしょにメッセージを送る）と `mesh.message_value`（メッセージの値）。
+
+**Scratch での表し方**: 拡張機能は事前定義レシーバー（`mesh` など。`.claude/rules/scratch-gui/extension-ruby-policy.md`）のメソッドにする。レシーバーは変数ではなく、レシーバーなしの呼び出し `mesh` として構文木に現れ、いったん `ruby_expression` のブロックになる。メソッドの変換器がそれを拡張機能のブロックに変える（`changeRubyExpressionBlock`）。
+
+- **メッセージの引数**: 「(メッセージ1 ▼) といっしょに ( ) を送る」のメッセージは、標準の「送る」と同じ `event_broadcast_menu` の影（フィールド `BROADCAST_OPTION`）にする。VM の拡張機能の引数の型 `broadcast`（Smalruby が `runtime.js` に足したもの）で、引数名を `BROADCAST_INPUT` にする。変換器は `event.js` の `broadcast` と同じように、文字列ならメッセージを探す（無ければ作る）、ブロックならそのブロックを差しこむ。生成器は `event_broadcast_menu` の生成器をそのまま使う。
+- **値の引数**: 値は文字列にして送るので、テキストの入力にする。数（`mesh.broadcast("a", 42)`）は数字の文字列 `"42"` のテキストにする。受け取った側は Scratch の値の扱いで数として読めるので、計算はそのまま動く。
+- **注釈は使わない**: ブロックとメソッドが 1 対 1 なので、注釈なしで戻る。
+
+**往復の例**:
+
+```ruby
+mesh.broadcast("chat", "hello")
+mesh.broadcast("chat", mesh.sensor_value("score"))
+say(mesh.message_value)
+```
+
+- 同じコードに戻る。
+
+**できないこと**: `mesh.broadcast("chat", 42)` は `mesh.broadcast("chat", "42")` に戻る（値は文字列で送るため）。引数の数がちがう（`mesh.broadcast("chat")`）、メッセージが数（`mesh.broadcast(1, "x")`）はエラー（P17）。
+
+**テスト**: `ruby-to-blocks-converter/mesh_v2.test.js`、`ruby-roundtrip/extension_mesh.test.js`、`furigana-annotator.test.js`。
+
 ## 注釈 `@ruby:*` の一覧（仕様）
 
 「書く」はその注釈を作るところ、「読む」は使うところ。変換器・生成器は `packages/scratch-gui/src/lib/` の `ruby-to-blocks-converter/` と `ruby-generator/` のこと。

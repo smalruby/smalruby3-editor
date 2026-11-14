@@ -1,0 +1,64 @@
+@import '../../css/colors.css';
+
+/* Same size and feel as the green flag / stop buttons (controls), placed right after them. */
+.button {
+    position: relative;
+    width: 2rem;
+    height: 2rem;
+    margin-left: 0.25rem;
+    padding: 0.25rem;
+    border: none;
+    border-radius: 0.25rem;
+    background: transparent;
+    cursor: pointer;
+    user-select: none;
+}
+
+.button:hover,
+.is-open {
+    background-color: $looks-light-transparent;
+}
+
+.icon {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.dot {
+    position: absolute;
+    right: 1px;
+    bottom: 1px;
+    width: 9px;
+    height: 9px;
+    border: 1.5px solid $ui-white;
+    border-radius: 50%;
+    background-color: $text-primary-transparent;
+}
+
+.dot-on {
+    background-color: $ui-green-2;
+}
+
+/* 練習相手が動いているしるし（色だけにしない。文字で「練習」 #1845） */
+.practice-badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    padding: 0 3px;
+    border: 1px solid $ui-white;
+    border-radius: 4px;
+    background-color: $data-primary;
+    color: $ui-white;
+    font-size: 0.5625rem;
+    font-weight: bold;
+    line-height: 0.875rem;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* Keep the flag, stop and mesh buttons together on the left of the stage header. */
+.controls-group {
+    display: flex;
+    align-items: center;
+}
