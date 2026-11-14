@@ -119,11 +119,24 @@ describe('MenuBar classroom entries (#1199)', () => {
         const label = container.querySelector('[data-testid="classroom-menu-button"]');
         expect(submit).toBeTruthy();
         expect(label.contains(submit)).toBe(false);
-        expect(label.compareDocumentPosition(submit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(label.compareDocumentPosition(submit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy(); // The button carries the state, so no status icon repeats it next to the label.
+        const mark = container.querySelector('[data-testid="classroom-menu-submission-status"]');
+        expect(mark.querySelector('[data-status]')).toBeNull();
     });
 
     test('does not show the submit button before joining', () => {
         const { container } = renderMenuBar({});
         expect(container.querySelector('[data-testid="classroom-menu-submit"]')).toBeFalsy();
+    });
+
+    // #1795: the balloon would cover 「提出する」 on narrow menu bars (iPad).
+    test('hides the welcome balloon while a student is joined', () => {
+        const aboutItems = [{ title: 'About', onClick: jest.fn() }];
+        window.localStorage.clear();
+        const { container } = renderMenuBar(
+            { role: 'student', sessionToken: 'tok', className: '8年1組', seatNumber: 3 },
+            { onClickAbout: aboutItems },
+        );
+        expect(container.textContent).not.toContain('Welcome to Smalruby');
     });
 });

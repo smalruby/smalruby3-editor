@@ -25,6 +25,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-phase-student-joined` | 生徒: 参加完了 |
 | `classroom-phase-student-status` | 生徒: ステータス |
 | `classroom-phase-submit-confirm` | 生徒: 提出確認 |
+| `classroom-phase-submit-done` | 生徒: 提出できました |
 
 ### 操作ボタン
 
@@ -154,7 +155,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 - 「生徒: 参加完了」の `classroom-joined-close` → 決めた始め方の主ボタン（「つぎにやること」の `classroom-joined-next-steps` は帯にかわってなくなった）
 - 「生徒: ステータス」の `classroom-leave`（「退出する」）→ 確認つきの小さなリンク「クラスから出る」。提出のボタン → メニューバーの「提出する」
 - 「どこから始めるかの選択」の `classroom-continue-*`（横に並ぶ選択肢）と `classroom-continue-*-recommended`（おすすめのバッジ）→ 主ボタン 1 つと「ほかの始め方」
-- 「メニューバー」→ 「提出する」/「提出済み ✓」/「返却済み ✓」のボタンが加わる
 
 ### 生徒: 共通の部品（進む順の帯・主ボタン・小さなリンク）
 
@@ -238,9 +238,21 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
+メニューバーの「提出する」/「提出済み ✓」/「返却済み ✓」（`classroom-menu-submit`）から開く。提出済み・返却済みからは再提出の文言になる。
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
 | `classroom-submit-preview` | img | サムネイルプレビュー |
-| `classroom-submit-cancel` | button | キャンセル |
-| `classroom-submit-confirm` | button | 提出する |
+| `classroom-submit-teacher-comment` | div | 先生のコメント（返却済みからの再提出のときだけ） |
+| `classroom-submit-cancel` | button | 「やめる」（小さなリンク。モーダルを閉じる） |
+| `classroom-submit-confirm` | button | 主ボタン「提出する」（再提出では「もう一度提出する」。送信中は押せない） |
+
+### 生徒: 提出できました
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-submit-done-title` | div | 大きな「提出できました ✓」 |
+| `classroom-submit-done-continue` | button | 主ボタン「つづける」（モーダルを閉じる） |
 
 ### 課題配信
 
@@ -567,8 +579,11 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-menu-button` | div | クラスボタン（コンテナ） |
 | `classroom-menu-label` | span | メニューバーのクラス表示テキスト全体（参加中は「クラス:出席番号NN」、未参加時は「クラス」）|
 | `classroom-menu-seat-number` | span | 出席番号（0埋め2桁、参加中のみレンダリングされる） |
-| `classroom-menu-submission-status` | span | 自分の提出状態アイコン（未提出 / 提出済み / 返却済み。参加中のみ）。レッスンの課題では中に進み具合の印 |
+| `classroom-menu-submission-status` | span | ラベルの横の印の入れ物（参加中のみ）。レッスンの課題では中に進み具合の印。ふつうの課題では空（提出の状態は `classroom-menu-submit` が表す） |
+| `classroom-menu-submit` | button | 参加中はいつも出す提出のボタン。`data-kind` = `submit`（オレンジ「提出する」）/ `submitted`（緑「提出済み ✓」）/ `returned`（緑「返却済み ✓」）。押すと提出確認を開く。作品を提出しないレッスンの課題・条件をまだ満たしていないレッスンの課題では描画しない。スマホではサイドレール（`mobile-side-rail`）のバックパックの上に同じ data-testid で出る |
 | `classroom-menu-lesson-mark` | span | レッスンの課題の進み具合の印（`data-kind` = `notStarted` ○ / `inProgress` 「2/4」 / `cleared` ✓）。作品も提出する課題で提出したら横に `classroom-status-icon-submitted` |
+
+「提出する」の収まり（1300×600・iPad・スマホのサイドレール・3 言語）と提出の流れは `tools/playwright-verify/verify-classroom-menu-submit.mjs` が測る。
 
 #### 先生メニュー（先生ログイン中のみ）
 

@@ -158,16 +158,37 @@
     outline-offset: 1px;
 }
 
-/* スマホのサイドレール（幅 56px・白地）に置く小さい版。白い枠は見えないので消し、
-   ひらがなの長い字（「ていしゅつずみ ✓」）は 2 行に折り返す。 */
+/* iPad の縦向き（幅 1023px 以下）はメニューバーに余りが無いので、ひらがなの長い字でも
+   右端の「?」を押し出さないよう少し詰める。 */
+@media (max-width: 1023px) {
+    .menu-submit-button {
+        margin: 0 0.15rem;
+        padding: 0.2rem 0.4rem;
+        font-size: 0.72rem;
+    }
+}
+
+/* iPad mini の縦向き（幅 767px 以下）はさらに詰める。 */
+@media (max-width: 767px) {
+    .menu-submit-button {
+        padding: 0.2rem 0.3rem;
+        font-size: 0.66rem;
+    }
+}
+
+/* スマホのサイドレール（幅 56px・白地・縦 390px）に置く小さい版。白い枠は見えないので消す。
+   レールに余りは 26px ほどしか無いので、タブの字（7px）に近い 8px にし、ひらがなの長い字
+   （「ていしゅつずみ ✓」）は 2 行に折り返しても下のバックパックを押し出さない高さにする。 */
 .menu-submit-button-compact {
     width: 48px;
-    margin: 2px 4px 4px;
-    padding: 6px 2px;
+    /* 押しやすいよう 1 行のときも高さを取る（レールの余りの中で）。 */
+    min-height: 20px;
+    margin: 2px 4px;
+    padding: 2px;
     border: none;
-    border-radius: 8px;
-    font-size: 9px;
-    line-height: 1.15;
+    border-radius: 6px;
+    font-size: 8px;
+    line-height: 1.05;
     white-space: normal;
     word-break: break-all;
 }

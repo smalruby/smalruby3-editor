@@ -1,7 +1,8 @@
 /**
  * The mark next to the student's class label in the menu bar.
  *
- * An ordinary assignment shows the submission state icon. A lesson
+ * An ordinary assignment shows nothing here: the submit button next to the
+ * label carries its state (#1795). A lesson
  * assignment (EPIC #1592 / #1599) shows the lesson progress instead:
  * ○ (nothing done yet), "2/4" (done / condition, capped) or ✓ (cleared).
  * When it also asks for a work submission and the work was submitted, the
@@ -77,7 +78,10 @@ const ClassroomMenuStatus = () => {
     );
     const submission = getSubmissionStatus(submissionStatus);
     const status = useMemo(() => assignmentProgress(lesson, records), [lesson, records]);
-    if (!status) return <ClassroomStatusIcon badge status={submission || 'notSubmitted'} />;
+    // An ordinary assignment shows its state on the 「提出する」/「提出済み ✓」 button
+    // right next to it (#1795), so the icon would only repeat it (and take the
+    // room the button needs on an iPad menu bar).
+    if (!status) return null;
     const mark = assignmentMenuMark(status, {
         submitted: lesson.submitWork && (submission === 'submitted' || submission === 'returned'),
     });

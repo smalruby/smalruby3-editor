@@ -5437,6 +5437,8 @@
     display: inline-flex;
     align-items: center;
     gap: 2px;
+    /* The gap after the class label (ordinary assignments show no mark here, #1795). */
+    margin-left: 0.3rem;
 }
 
 .menu-lesson-mark {
