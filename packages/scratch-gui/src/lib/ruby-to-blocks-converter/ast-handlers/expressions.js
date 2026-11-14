@@ -291,8 +291,12 @@ const ExpressionHandlers = {
             // converted (`@h[:a] = @x.bar`), is what is wrong: the symbol errors below would tell to change the
             // symbol, which does not help. The wrong instruction is told instead (P17, issue #1884).
             // Checked before the context is restored: the receiver of an extension is read from its blocks.
+            // Block parameters no converter took (`self.when(:key_pressed, "a") do |x|`) are what is wrong too:
+            // the call has no place for them (issue #1909). No converter takes both a symbol argument and block
+            // parameters, so `.to_s` would not make the call convert (`mesh.when_receive(:a) do |x|`).
             const hasUnconvertedOperand =
                 hasCommandValue ||
+                (rubyBlockArgs && rubyBlockArgs.length > 0) ||
                 this._isUnconvertedValue(receiver) ||
                 args.some((a) => this._isUnconvertedValue(a));
             this._restoreContext(saved);

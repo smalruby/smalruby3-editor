@@ -30,9 +30,11 @@ const MyBlocksConverter = {
     register: function (converter) {
         // Register my-block handler for procedure calls
         converter.registerOnSendMyBlock('self', (params) => {
-            const { name, args, procedure } = params;
+            const { name, args, procedure, rubyBlock } = params;
 
             if (procedure.argumentIds.length !== args.length) return null;
+            // A My Block has no place for a block (`foo(1) do ... end`): it was dropped without an error (issue #1909).
+            if (typeof rubyBlock !== 'undefined') return null;
 
             const block = converter._createBlock('procedures_call', 'statement', {
                 mutation: {
