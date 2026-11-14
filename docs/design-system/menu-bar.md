@@ -42,10 +42,11 @@
 
 | 場所 | 値 | トークン | 実測 |
 |---|---|---|---|
-| ふつう | 高さ `$menu-bar-height`・余白 `0 0.25rem`・文字 白・折り返さない・縦の中央 | `$space-small` | 一致（「?」: 余白 0 4px・48px） |
-| `.file-group` の中 | 外の余白 `0 .25rem`・余白 `0 0.75rem` | | 一致（「ファイル」: 外 0 4px・余白 0 12px・88px 幅） |
-| `.file-group` の中の `.no-offset`（チュートリアル・デバッグ） | 外の余白 `0 .25rem`・余白 `0 0.25rem` | | （上流の並びはスモウルビーに無いので撮っていない） |
-| アイコンと文字（`.collapsible-label`） | 文字の外の余白 `0 .5rem 0 .25rem`。右に下向きの三角（`dropdown-caret.svg` をクラス無しで置く） | | |
+| ふつう・`.file-group` の中 | 高さ `$menu-bar-height`・文字 白・折り返さない・縦の中央。余白は [`components/menus.md`](components/menus.md) の「メニューバーの項目」 | | （menus.md） |
+| `.file-group` の中の `.no-offset`（チュートリアル・デバッグ） | 外の余白 `0 .25rem`・余白 `0 0.25rem`（`.file-group` のふつうの項目より狭い） | `$space-small` | 一致（同じ形のスモウルビーの「レッスン」: 外 0 4px・余白 0 4px・48px） |
+| 右のまとまりの中（`.account-info-group .menu-bar-item`） | 外の余白 `0 .25rem`・余白 `0 0.75rem`（`.file-group` の中と同じ） | | （スモウルビーには出ない） |
+| アイコンと文字（`.collapsible-label`） | 文字の外の余白 `0 .5rem 0 .25rem`。ファイル・編集の右の下向きの三角は `dropdown-caret.svg` をクラス無しで置く | | |
+| アカウントのメニューの三角（`.dropdown-caret-icon`） | 0.5rem 四方・左に 0.5rem（右から左の言葉では右に） | | （スモウルビーには出ない） |
 | チュートリアル・デバッグのアイコン（`.help-icon`） | 外の余白 `0 .25rem 0 0` | | |
 | 幅 1024px 以下 | 文字（`.collapsible-label`・`.tutorials-label`・`.debug-label`）を消してアイコンだけにする | | |
 | ホバー・開いている・押せない | [`components/menus.md`](components/menus.md) の「メニューバーの項目」 | | |
@@ -56,7 +57,7 @@
 |---|---|
 | 高さ 1.6rem・`vertical-align: middle`。押せるとき（`onClickLogo` があるとき）は `cursor: pointer` | 一致（25.6px） |
 
-上流の画像は Scratch のロゴ（`scratch-logo.svg`。Android では別の画像）。スモウルビーは画像だけを自分のロゴに替えている（大きさは同じクラス）。
+上流の画像は Scratch のロゴ（`scratch-logo.svg`。Android では別の画像）。スモウルビーは画像だけを自分のロゴに替えている（大きさは同じクラス）。上流は日付によってロゴを替える（エイプリルフールの「time-travel」）が、スモウルビーはこれを止めている。
 
 ## プロジェクトの題（`menu-bar/project-title-input.css`）
 
@@ -111,16 +112,18 @@
 
 | 追加 | 中身 | ファイル | マーカー |
 |---|---|---|---|
-| ロゴ | 画像をスモウルビーのロゴに替える（大きさは上流のまま） | `menu-bar.jsx` | `replace Scratch logos with Smalruby logo` |
+| ロゴ | 画像をスモウルビーのロゴに替える（大きさは上流のまま）。日付でロゴを替える上流の仕組みを止める | `menu-bar.jsx` | `replace Scratch logos with Smalruby logo`・`remove time-travel logo switching` |
 | 設定の中身 | クラス管理・表示モード・v1 への切り替えなど | `settings-menu.jsx` | `classroom management menu`・`display mode menu`・`v1 switch prevention` |
 | チュートリアル・デバッグの場所 | メニューバーに並べず、「?」のメニューの先頭に入れる（上流の about の項目とは区切りで分ける）。「?」はいつも出す | `menu-bar.jsx`・`gui.jsx` | `help menu`・`about menu` |
 | レッスン | 上流のチュートリアルの場所（区切りの間）に、同じ形（`.menu-bar-item.no-offset.hoverable` + `.help-icon`）で置く。文字のクラスは `.learn-label`（上流の `.tutorials-label` の名前を変えたもの。`@media (max-width: 1024px)` の規則も同じ） | `menu-bar.jsx`・`menu-bar.css` | `lessons button`（`.learn-label` の名前の変更はマーカー無し） |
-| クラス・先生のメニュー | クラスのボタンと、先生がログインしているときのメニュー（`.teacher-menu`: 外の余白 `0 .25rem`・余白 `0 0.5rem`） | `menu-bar.jsx`・`menu-bar.css` | `classroom button`・`classroom teacher menu` |
-| メッシュ | メッシュの拡張を読み込んだときだけ出るメニュー（`.mesh-icon` 21px・`.mesh-v2-domain` など） | `menu-bar.jsx`・`menu-bar.css` | マーカー無し |
+| 2 本目の区切りと右のまとまり | レッスンのあとに 2 本目の `Divider` を置き、その後ろに新しい `.file-group` を作って、下のメッシュ・smalrubot・クラス・甲子園を並べる | `menu-bar.jsx` | マーカー無し |
+| メッシュ | メッシュの拡張を読み込んだときだけ出るメニュー。2 本目の区切りのあとの `.file-group` に、チュートリアル・デバッグと同じ `.menu-bar-item.no-offset.hoverable`（余白 `0 0.25rem`）で置く（`.mesh-icon` 21px・`.mesh-v2-domain` など） | `menu-bar.jsx`・`menu-bar.css` | マーカー無し |
+| クラス・先生のメニュー | クラスのボタン（同じ `.file-group` の中の `.menu-bar-item.hoverable`。`.no-offset` が無いので余白 `0 0.75rem` で、となりのメッシュ・smalrubot と余白がそろっていない）と、先生がログインしているときのメニュー（`.teacher-menu`: 外の余白 `0 .25rem`・余白 `0 0.5rem`） | `menu-bar.jsx`・`menu-bar.css` | `classroom button`・`classroom teacher menu` |
 | 保存の状態 | `.save-status`（0.75rem・白・不透明度 0.9）。Google ドライブの保存の失敗は `.save-directly-button-auth-error`（オレンジで点滅） | `menu-bar.css` | `improved auth_error UX`（`.save-status` はマーカー無し） |
 | 読み取り専用の題 | Google ドライブの読み取り専用のプロジェクトでは題を押せない（`.title-field:disabled`: 枠を実線・不透明度 0.7） | `project-title-input.css` | `read-only project title for Google Drive` |
 | 新しい版のお知らせ | 緑の吹き出し（`.update-tooltip`: 地 `$ui-green`・ホバー `$ui-green-2`・角丸 0.5rem） | `menu-bar.css` | `version update notification` |
-| smalrubot | ファームウェアを書きこむメニュー | `menu-bar.jsx` | `smalrubot firmware menu` |
+| smalrubot | ファームウェアを書きこむメニュー（2 本目の区切りのあとの `.file-group` に `.no-offset` で置く） | `menu-bar.jsx` | `smalrubot firmware menu` |
+| 甲子園 | 甲子園の拡張を読み込んだときだけ出るメニュー（同じ `.file-group` に `.no-offset` で置く） | `menu-bar.jsx` | マーカー無し |
 | ようこそ | 「?」の左の吹き出し | `menu-bar.jsx` | `welcome tooltip` |
 | 低い画面での圧縮 | 高さ 800px 以下で、メニューバーと項目を 2.5rem（40px）に縮める | `menu-bar.css`・`gui.css` | `narrow-height menu bar compression`（`menu-bar.css`）・`narrow-height vertical chrome compression`（`gui.css`） |
 
@@ -128,8 +131,8 @@
 
 メニューバーに独自の項目（メッシュなど）を足すときは、上流の項目の形をそのまま使う。値を書き写さない。
 
-- 項目は `.menu-bar-item` + `.hoverable`（開いている間は `.active`）にし、`.file-group` に入れる。アイコンと文字は `<img>` + `.collapsible-label`（幅 1024px 以下で文字が消える）、メニューを開く項目は右に `dropdown-caret.svg`。
+- 項目は、**上流のチュートリアル・デバッグと同じ `.menu-bar-item` + `.no-offset` + `.hoverable`**（開いている間は `.active`）にし、2 本目の区切りのあとの `.file-group` に入れる（メッシュ・smalrubot と同じ）。`.no-offset` を付けないと余白が `0 0.75rem` になり、となりとそろわない。アイコンと文字は `<img>` + `.collapsible-label`（幅 1024px 以下で文字が消える）、メニューを開く項目は右に `dropdown-caret.svg`。
 - メニューは `MenuBarMenu` + `MenuSection` / `MenuItem`（`menu/menu.css`）を使う。見た目は [`components/menus.md`](components/menus.md)。
 - 高さを `48px` や `3rem` と書かない。`$menu-bar-height` を使う（スモウルビーは低い画面で 40px に縮めるので、項目は `height` を親に合わせる）。
 - まとまりの間は `Divider` で区切る。
-- 色は `smalruby-tokens.css` の別名で書く（地 `$color-primary`、ホバー・開いているときの重ね `$color-border` と同じ値の `$ui-black-transparent`、文字 `$color-surface`）。紫の地の上のフォーカスは白い線にする（[`components/README.md`](components/README.md) の「フォーカス」）。上流のメニューバーの項目にはフォーカスの書き方が無い。
+- 色は `smalruby-tokens.css` の別名で書く（地 `$color-primary`）。別名が無いもの・別名と意味が違うものは上流の名前を使う（ホバー・開いているときの重ねは `$ui-black-transparent`、`$looks-light-transparent` など）。紫の地の上の白い文字は `$color-surface`（白い面の意味）ではなく `$ui-white` で書く。紫の地の上のフォーカスは白い線にする（[`components/README.md`](components/README.md) の「フォーカス」）。上流のメニューバーの項目にはフォーカスの書き方が無い。

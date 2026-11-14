@@ -230,20 +230,21 @@
 | 「中」のステージ | 0.75 倍（360 × 270）の大きさを足し、既定にする。大きさのボタンが 3 つになる | `layout-constants.js`・`screen-utils.js`・`stage-header.jsx`・`reducers/stage-size.js` | マーカー無し |
 | 「中」のときの詰めた並び | スプライトの情報を 2 段に詰める（`.compact`）。ステージの欄の見出しを出さない（`.no-header`） | `sprite-info.css`・`stage-selector.css` ほか | `compact middle sprite info`・`middle stage selector without header` |
 | パレットの ◀ のボタン | ブロックのパレットを閉じる・開く | `containers/blocks.jsx` ほか | `palette-toggle initial render` ほか |
-| フライアウトのホバー | ホバーの間、ブロックがフライアウトの右へはみ出して見えるようにする（`clip-path`）。カテゴリの名前の規則のクラス名を `.blocklyToolboxCategoryLabel` に変える | `blocks.css` | マーカー無し |
-| 拡張機能のボタンの押せない状態 | 日本語（DNCL）モードのとき（`.extension-button-disabled`: 不透明度 0.5・`cursor: not-allowed`） | `extension-button.css` | `DNCL extension disabled` |
+| ブロックのパレットまわりの `blocks.css` の変更 | ①ホバーの間、ブロックがフライアウトの右へはみ出して見えるようにする（`clip-path`）②カテゴリの名前の規則のクラス名を `.blocklyToolboxCategoryLabel` に変える ③`.blocks` に `position: relative` ④フライアウトのスクロールバーを左に 4px 離す（`margin-left: 4px`）⑤ホバー中のフライアウトで、スクロールバーの地にマウスを乗せたら不透明度 0.4 | `blocks.css` | マーカー無し（5 つとも） |
+| 拡張機能のボタンの押せない見た目 | 日本語（DNCL）モードのとき（`.extension-button-disabled`: 不透明度 0.5・`cursor: not-allowed`）。押せなく見えるが、押すと確認が出て、「OK」でふりがなモードに戻してから拡張機能のモーダルを開く | `extension-button.css`・`extension-button.jsx` | `DNCL extension disabled`・`DNCL extension confirm` |
 | 低い画面での圧縮 | 高さ 800px 以下で、タブの並びを 2.25rem（36px）に縮める | `gui.css` | `narrow-height vertical chrome compression` |
 | iPad の縦向き | 幅 744〜1023px でエディターの列を縮められるようにし、ステージを「小」にする | `gui.css`・`gui.jsx` | `iPad portrait narrow desktop layout` ほか |
 | レッスンの課題バー | メニューバーの下に 2.5rem の帯を出し、本体をその分縮める | `gui.css` | `lesson mode` |
+| アラートの重なり順 | `$z-index-alerts` を 490 → 520 にして、アラート（`.alerts-container`）をモーダル（510）より上に出す（クラスのセッション切れを見せるため。[`tokens.md`](tokens.md) の「スモウルビーとの差」） | `css/z-index.css` | `alerts above modals so session-expired is visible` |
 
 ほかに、`gui.css` に `extension-button.css` と同じ規則（`.extension-button-container` など）がマーカー無しで写されている。
 
 ## 独自の画面で使う形
 
-コードタブの上に独自の部品（メッシュの状態の窓など）を置くときは、次の形にそろえる。値は `smalruby-tokens.css` の別名で書く。
+コードタブの上に独自の部品（メッシュの状態の窓など）を置くときは、次の形にそろえる。値は `smalruby-tokens.css` の別名で書く。別名が無いもの（`$looks-light-transparent`・`$ui-secondary` など）は上流の名前を使う。紫の地の上の白い文字は `$color-surface`（白い面の意味）ではなく `$ui-white` で書く。
 
 - **白い欄**（スプライトの情報・ステージの欄の形）: 地 `$color-surface`・枠 `1px solid $color-border`・角丸 `$radius-medium`（画面の端につながる辺は 0）・中の余白 0.75rem か `$space-large`。
 - **選ばれた欄・項目**: 枠 `$color-primary` + 輪 `0 0 0 4px $color-primary-transparent`（ステージの欄・スプライトの項目と同じ。[`components/cards.md`](components/cards.md)）。フォーカスはこれと別に `outline` で描く（[`components/README.md`](components/README.md) の「フォーカス」）。
-- **小さいアイコンのボタン**（緑の旗の形）: 2rem・余白 0.375rem・角丸 `$radius-small`・ホバーの地 `$looks-light-transparent`・押している間（動いている間）の地 `$color-primary-transparent`。
-- **画面の上に浮かぶ小さい箱**（モニターの形）: 地 `$color-background`・枠 `1px solid $color-border`・角丸 `$radius-small`・文字 `$font-size-small`。重なり順は上流の `z-index.css` の名前を使う（ステージの上なら `$z-index-monitor` の近く、モーダルより下）。
+- **小さいアイコンのボタン**（緑の旗の形）: 2rem・余白 0.375rem・角丸 `$radius-small`・ホバーの地 `$looks-light-transparent`・押している間（動いている間）の地 `$color-primary-transparent`。上流の旗・止めるにはフォーカスの書き方が無いので、[`components/README.md`](components/README.md) の「フォーカス」の形（`:focus-visible` で `outline: 2px solid $color-primary; outline-offset: 2px;`）を足す。
+- **画面の上に浮かぶ小さい箱**（モニターの形）: 地 `$color-background`・枠 `1px solid $color-border`・角丸 `$radius-small`・文字 `$font-size-small`。重なり順は上流の `z-index.css` の名前を使う（ステージの上なら `$z-index-monitor` の近く、モーダル（`$z-index-modal` 510）より下）。モーダルより上に出すのはアラートだけ（スモウルビーは `$z-index-alerts` を 520 にしている）。
 - ステージの大きさを決め打ちしない。スモウルビーの既定は「中」で、上流の既定は「大」。

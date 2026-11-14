@@ -210,6 +210,21 @@ const openMenuBarMenu = async (page, label) => {
 // ステージの大きさのボタン (小・中・大)。中はスモウルビーの追加で、既定も中。
 // 上流の既定 (大) の画面を撮るときは、最後の「大」を押す。
 const STAGE_SIZE_BUTTON = `${cls('stage-header', 'stage-size-toggle-group')} ${cls('toggle-buttons', 'button')}`;
+// 「大」のステージの幅 (lib/layout-constants.js: 画面の幅が 1096px 以上なら 480px、狭ければ 0.85 倍の 408px)。
+const LARGE_STAGE_WIDTH = VW >= 1096 ? 480 : 408;
+// 最後のボタンを押して「大」にする。ボタンの題は言葉で変わるので並び順で選び、
+// 並びが変わって別の大きさを押したときに気づけるように、ステージの幅で確かめる。
+const setLargeStage = async (page) => {
+    await page.locator(STAGE_SIZE_BUTTON).last().click();
+    await page.waitForTimeout(600);
+    const width = await page.evaluate((sel) => {
+        const el = document.querySelector(sel);
+        return el ? el.clientWidth : null;
+    }, cls('stage', 'stage'));
+    if (width !== LARGE_STAGE_WIDTH) {
+        throw new Error(`「大」のステージにならない (幅 ${width}px。上流の「大」は ${LARGE_STAGE_WIDTH}px)`);
+    }
+};
 const menuParts = [
     { name: 'menu', selector: cls('menu', 'menu') },
     { name: 'menu-item', selector: `${cls('menu', 'menu')} ${cls('menu', 'menu-item')}`, hover: true },
@@ -236,6 +251,8 @@ const SCENES = [
         parts: [
             { name: 'menu-bar', selector: cls('menu-bar', 'menu-bar') },
             { name: 'menu-bar-item', selector: `${cls('menu-bar', 'file-group')} ${cls('menu-bar', 'hoverable')}`, hover: true },
+            // .no-offset の項目 (上流のチュートリアル・デバッグと同じ形。スモウルビーではレッスン)
+            { name: 'menu-bar-item-no-offset', selector: '[data-testid="menu-bar-lessons"]' },
             { name: 'logo', selector: '#logo_img' },
             { name: 'divider', selector: cls('divider', 'divider') },
             // 「?」の項目 (上流の about のメニュー。スモウルビーはチュートリアル・デバッグをこの中に移した)
@@ -343,7 +360,7 @@ const SCENES = [
         id: 'code-tab-large-stage',
         title: 'コードタブ (大きいステージ。上流の既定)',
         setup: async (page) => {
-            await page.locator(STAGE_SIZE_BUTTON).last().click();
+            await setLargeStage(page);
             // カテゴリを 1 つ選んでおく (選ばれたカテゴリの値を読むため)
             await page.locator('.blocklyToolboxCategory').first().click();
             await page.waitForTimeout(600);
@@ -373,14 +390,13 @@ const SCENES = [
         id: 'monitor',
         title: 'モニター (x座標)',
         // 動きのカテゴリの「x座標」のチェックボックスを押すと、ステージにモニターが出る
-        // (SVG の上に透明な当たりの要素が重なっていて locator.click が待ち続けるので、位置を押す)
+        // 前提: 動きのカテゴリが先頭で、最初のチェックボックスが「x座標」。
+        // チェックボックスの上に Blockly の透明な当たりの要素が重なっていて、ふつうの click は
+        // 「ほかの要素が受け取る」と待ち続けるので、force で要素の中央を押す (当たりの要素が受け取って同じ動きになる)。
         // ステージは上流の既定の「大」にする (中・小ではモニターも縮んで写る)
         setup: async (page) => {
-            await page.locator(STAGE_SIZE_BUTTON).last().click();
-            await page.waitForTimeout(600);
-            const box = await page.locator('.blocklyFlyoutCheckbox').first().boundingBox();
-            if (!box) throw new Error('チェックボックスが見えない');
-            await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+            await setLargeStage(page);
+            await page.locator('.blocklyFlyoutCheckbox').first().click({ force: true });
         },
         waitFor: cls('monitor', 'monitor-container'),
         shot: cls('monitor', 'monitor-container'),
