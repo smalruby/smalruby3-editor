@@ -282,8 +282,15 @@ const ExpressionHandlers = {
 
             const arithmeticOps = ['+', '-', '*', '/', '%', '**'];
             const comparisonOps = ['>', '<', '>=', '<='];
-            const isSymReceiver = this._isPrimitive(receiver) && receiver.type === 'sym';
-            const symbolArg = args.find((a) => this._isPrimitive(a) && a.type === 'sym');
+            // A receiver or an argument that is not a value (`@h[:a] = (@a = 1)`), or one that could not be
+            // converted (`@h[:a] = @x.bar`), is what is wrong: the symbol errors below would tell to change the
+            // symbol, which does not help. The wrong instruction is told instead (P17, issue #1884).
+            const hasUnconvertedOperand =
+                hasCommandValue || this._isRubyBlock(receiver) || args.some((a) => this._isRubyBlock(a));
+            const isSymReceiver = !hasUnconvertedOperand && this._isPrimitive(receiver) && receiver.type === 'sym';
+            const symbolArg = hasUnconvertedOperand
+                ? null
+                : args.find((a) => this._isPrimitive(a) && a.type === 'sym');
 
             // Symbol in arithmetic → specific error
             if (arithmeticOps.indexOf(name) >= 0 && (isSymReceiver || symbolArg)) {
