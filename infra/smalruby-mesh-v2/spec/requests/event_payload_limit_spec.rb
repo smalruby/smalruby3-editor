@@ -58,6 +58,12 @@ RSpec.describe "Mesh event payload limit", type: :request do
       expect_validation_error(response)
     end
 
+    # APPSYNC_JS は文字列を UTF-16 のコード単位で回すので、絵文字を 2 文字と数えないことを確かめる
+    it "絵文字 1000 個の payload は通る（コードポイントで数える）" do
+      response = execute_graphql(fire_events_query, args.merge(events: [event("😀" * 1000)]))
+      expect(response["errors"]).to be_nil
+    end
+
     it "payload が無いイベントは今までどおり通る" do
       response = execute_graphql(fire_events_query, args.merge(events: [event]))
       expect(response["errors"]).to be_nil
@@ -75,6 +81,11 @@ RSpec.describe "Mesh event payload limit", type: :request do
     it "payload 1001 文字は ValidationError" do
       response = execute_graphql(record_events_query, args.merge(events: [event("a" * 1001)]), suppress_errors: true)
       expect_validation_error(response)
+    end
+
+    it "絵文字 1000 個の payload は記録される（コードポイントで数える）" do
+      response = execute_graphql(record_events_query, args.merge(events: [event("😀" * 1000)]))
+      expect(response["errors"]).to be_nil
     end
 
     it "payload が無いイベントは今までどおり記録される" do

@@ -71,11 +71,13 @@ function meshGroupNameError(field, value) {
 
 // 文字数（コードポイント単位）。Ruby の String#length と同じ数え方にして、
 // 絵文字などのサロゲートペアで JS（fireEventsByNode）と Ruby（recordEventsByNode）の判定がずれないようにする。
+// APPSYNC_JS の for...of は文字列を UTF-16 のコード単位で回す（Node はコードポイントで回す）ことを
+// stg で確かめた。どちらでも同じ数になるよう、単独の下位サロゲート（U+DC00〜U+DFFF）は数えない
+// （Node ではペアが 1 つの文字列 "😀" で来るので、先頭が上位サロゲートのため数えられる）。
 function meshCharCount(text) {
   let count = 0;
   for (const ch of text) {
-    // ch は常に 1 文字以上（未使用の変数を残さないため条件に使う）
-    if (ch !== '') count += 1;
+    if (!(ch >= '\uDC00' && ch <= '\uDFFF')) count += 1;
   }
   return count;
 }
