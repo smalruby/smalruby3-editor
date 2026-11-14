@@ -103,7 +103,7 @@ try {
     await studentPage.click('[data-testid="classroom-seat-1"]');
     await studentPage.click('[data-testid="classroom-confirm-seat"]');
     await studentPage.waitForSelector('[data-testid="classroom-phase-student-joined"]', { timeout: 30000 });
-    await studentPage.click('[data-testid="classroom-joined-close"]');
+    await studentPage.click('[data-testid="classroom-start-main"]');
     await sleep(500);
     // Submit via the class menu (status view)
     await studentPage.click('[data-testid="classroom-menu-button"]');

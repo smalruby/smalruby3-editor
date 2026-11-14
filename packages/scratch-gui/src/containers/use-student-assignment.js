@@ -17,14 +17,17 @@
  * joining (join / verify-session only tell `hasAssignment`, which is false
  * for a lesson-only assignment). The lesson goes to Redux
  * (classroom.studentLesson) for the lessons library, the class screen and
- * the menu-bar mark. Without a starter, a lesson assignment starts in the
- * lessons library (「はじめる」) instead of the start choices.
+ * the menu-bar mark. A lesson assignment starts in the lessons library
+ * (「はじめる」); its starter and submissions go under 「ほかの始め方」.
+ *
+ * The way to start is decided as one main button (#1793, decideStartMethod):
+ * this assignment's submission → last time's → the starter → as it is.
  */
 import { useCallback, useRef, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import classroomAPI from '../lib/classroom-api.js';
-import { decideJoinStart, normalizeContinueOptions } from '../lib/classroom-continue-options.js';
+import { decideStartMethod, normalizeContinueOptions } from '../lib/classroom-continue-options.js';
 import { readMeshState, shouldPromptMeshConnect } from '../lib/classroom-mesh-connect.js';
 import { normalizeAssignmentLesson } from '../lib/lessons/assignment-progress.js';
 import { loadProjectWithChecks } from '../lib/project-loader-utils.js';
@@ -36,7 +39,7 @@ import {
 } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
-const NO_START_CHOICE = { showStarter: false, recommend: null, notice: null };
+const NO_START_METHOD = { main: 'keep', others: [], notice: null };
 
 const messages = defineMessages({
     overwriteConfirm: {
@@ -124,13 +127,10 @@ const useStudentAssignment = ({
     // 'current') so the choice row can mark it.
     const [continueOptions, setContinueOptions] = useState(null);
     const [loadedChoice, setLoadedChoice] = useState(null);
-    // Start choices right after joining (decideJoinStart): whether the starter
-    // is offered, which choice is recommended by the teacher's setting
-    // (#1202) and the notice explaining it.
-    const [startChoice, setStartChoice] = useState(NO_START_CHOICE);
-    // A lesson assignment without a starter: right after joining, 「はじめる」
-    // opens the lessons library and the start choices are not shown (#1599).
-    const [lessonStartOnly, setLessonStartOnly] = useState(false);
+    // How to start right after joining (decideStartMethod, #1793): the main
+    // button, the other ways under 「ほかの始め方」 and the one-line notice of
+    // the teacher's setting (#1202). 'lesson' opens the lessons library (#1599).
+    const [startMethod, setStartMethod] = useState(NO_START_METHOD);
 
     /**
      * Download an sb3 and load it into the VM. Asks for confirmation when the
@@ -200,7 +200,7 @@ const useStudentAssignment = ({
     /**
      * Called right after a successful join: fetch the assignment content (when
      * the classroom has one) and the submissions to continue from, decide the
-     * start choices (decideJoinStart) and return the phase the container
+     * way to start (decideStartMethod) and return the phase the container
      * should switch to ('student-assignment' when there are pages to read,
      * null to fall back to the joined confirmation). Nothing is loaded here.
      * Failures fall back gracefully — joining must never be blocked by
@@ -213,10 +213,9 @@ const useStudentAssignment = ({
     const handleJoined = useCallback(
         async (sessionToken, classroomId, withAssignment) => {
             setLoadedChoice(null);
-            setStartChoice(NO_START_CHOICE);
+            setStartMethod(NO_START_METHOD);
             setContinueOptions(null);
             setHasAssignment(false);
-            setLessonStartOnly(false);
             // Fetched even without `hasAssignment`: a lesson-only assignment has
             // no pages or starter but still a lesson (#1599).
             const [assignmentData, { options, startFromPrevious }] = await Promise.all([
@@ -230,12 +229,14 @@ const useStudentAssignment = ({
             setAssignment(joinedAssignment);
             setAssignmentPageIndex(0);
             const hasLesson = !!normalizeAssignmentLesson(assignmentData?.lesson);
-            if (hasLesson && !joinedAssignment?.starterUrl) {
-                setLessonStartOnly(true);
-                setStartChoice(NO_START_CHOICE);
-            } else {
-                setStartChoice(decideJoinStart(options, startFromPrevious, !!joinedAssignment?.starterUrl));
-            }
+            setStartMethod(
+                decideStartMethod({
+                    options,
+                    startFromPrevious,
+                    hasStarter: !!joinedAssignment?.starterUrl,
+                    lesson: hasLesson,
+                }),
+            );
             if (!joinedAssignment) return null;
             setHasAssignment(true);
             return (joinedAssignment.pages || []).length > 0 ? 'student-assignment' : null;
@@ -413,9 +414,8 @@ const useStudentAssignment = ({
         assignmentPageIndex,
         continueOptions,
         hasAssignment,
-        lessonStartOnly,
         loadedChoice,
-        startChoice,
+        startMethod,
         setHasAssignment,
         handleJoined,
         handleLoadSubmission,

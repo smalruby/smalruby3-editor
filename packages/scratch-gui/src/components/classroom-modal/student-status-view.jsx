@@ -272,7 +272,6 @@ const StudentStatusView = ({
                 continueOptions={continueOptions}
                 isLoading={isLoading}
                 loadedChoice={loadedChoice}
-                titleKind="load"
                 onLoadSubmission={onLoadSubmission}
             />
             <div className={styles.statusFooter}>

@@ -151,9 +151,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 生徒の参加から提出までの画面は、[ui-ux.md の「生徒の画面の決まり」](ui-ux.md#生徒の画面の決まり参加から提出まで)と 5〜9 の仕様で作り直す（主ボタンは 1 つ・進む順の帯・始め方を 1 つに決める・おかえりなさい・メニューバーの「提出する」）。下の表のうち、次のものは新しい画面に置きかわる。新しい画面の data-testid は**実装の sub-issue で確定**し、そのときにこの一覧を書きかえる（ここでは名前を先に決めない）。
 
-- 「生徒: 参加完了」の `classroom-joined-close` → 決めた始め方の主ボタン（「つぎにやること」の `classroom-joined-next-steps` は帯にかわってなくなった）
 - 「生徒: ステータス」の `classroom-leave`（「退出する」）→ 確認つきの小さなリンク「クラスから出る」。提出のボタン → メニューバーの「提出する」
-- 「どこから始めるかの選択」の `classroom-continue-*`（横に並ぶ選択肢）と `classroom-continue-*-recommended`（おすすめのバッジ）→ 主ボタン 1 つと「ほかの始め方」
+- 「生徒: ステータス」の「提出した作品を読み込む」（`classroom-continue-*`）→ 小さなリンク「作品を読み込み直す」
 - 「メニューバー」→ 「提出する」/「提出済み ✓」/「返却済み ✓」のボタンが加わる
 
 ### 生徒: 共通の部品（進む順の帯・主ボタン・小さなリンク）
@@ -203,8 +202,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-joined-class-name` | span | クラス（学級）名 |
 | `classroom-joined-seat-number` | span | 出席番号（0埋め2桁） |
 | `classroom-joined-assignment` | div | 課題名（課題名がある場合のみ） |
-| `classroom-joined-close` | button | はじめる（「どこから始めますか？」の選択肢を出しているときと、レッスンの課題では描画しない） |
-| `classroom-joined-start-lesson` | button | レッスンの課題の「はじめる」（レッスン表を課題のチャレンジだけで開く・課題パネルにも出す） |
 | `classroom-joined-lesson-notice` | div | レッスンの課題の 1 行のお知らせ（レッスンの課題であることと提出のタイミング。レッスンの課題のときだけ） |
 
 ### 生徒: ステータス
@@ -309,6 +306,20 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-lesson-dropped-notice` | p | 保存したチャレンジを外したときの注意（送られた進み具合は残るが数えない） |
 | `classroom-assignment-save` | button | 課題を保存（フォームの最上段） |
 
+### 生徒: 始め方（主ボタン・ほかの始め方）
+
+参加完了（`student-joined`）と、参加した直後の課題パネルの最後のページに出す（[ui-ux.md の「始め方を決める順番」](ui-ux.md#始め方を決める順番)）。
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-start-method` | div | 始め方のまとまり。`data-main` = 決めた始め方（`current` この課題で出した作品 / `previous` 前回の作品 / `starter` スターター / `keep` いまの作品のまま / `lesson` レッスン表を開く） |
+| `classroom-start-main` | button | 主ボタン（決めた始め方 1 つ）。押すとその作品で始める（読み込んでモーダルを閉じる。`keep` は何も読み込まずに閉じる・`lesson` はレッスン表を開く） |
+| `classroom-start-main-note` | small | 主ボタンの 2 行目（何を開くか。提出日時・前回の課題名など） |
+| `classroom-start-notice` | div | 先生の「前回の提出物から始めさせる」の 1 行のお知らせ（設定が ON のときだけ。この課題で提出済みのときは、前回の提出物があれば「前回の作品からも始められます」） |
+| `classroom-start-others-toggle` | button | 小さなリンク「ほかの始め方」（`aria-expanded`）。ほかに始め方が無いときは描画しない |
+| `classroom-start-others` | div | 開いたときに同じ行に並ぶ残りの始め方 |
+| `classroom-start-other-{kind}` | button | 残りの始め方の小さなリンク（`kind` = `current` / `previous` / `starter` / `keep`） |
+
 ### 課題パネル（生徒）
 
 | data-testid | 要素 | 説明 |
@@ -320,29 +331,25 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-assignment-view-image` | img | ページ画像 |
 | `classroom-assignment-prev-page` / `classroom-assignment-next-page` | button | ページ送り |
 | `classroom-assignment-page-indicator` | span | ページ位置（`1 / 3`） |
-| `classroom-assignment-reload-starter` | button | スタータープロジェクトを開く（編集中は confirm）。「課題を見る」から開き直したときだけ（参加直後はスターターも選択肢の 1 つ） |
-| `classroom-assignment-close` | button | はじめる！（モーダルを閉じる。選択肢を出しているときと、レッスンの課題では描画しない） |
-| `classroom-assignment-lesson-notice` | div | レッスンの課題の説明（参加直後のみ） |
+| `classroom-assignment-main-next` | button | 主ボタン「つぎのページ」（最後のページより前） |
+| `classroom-assignment-close` | button | 主ボタン「とじる」（「課題を見る」から開き直したときの最後のページ。始め方は出さない） |
+| `classroom-assignment-reload-starter` | button | 小さなリンク「スタータープロジェクトを開く」（開き直したパネルの最後のページで、課題にスターターがあるときだけ。押すとスターターを開き、パネルは閉じない。編集中は confirm） |
+| `classroom-assignment-lesson-notice` | div | レッスンの課題の説明（参加直後の最後のページのみ） |
 | `classroom-view-assignment-button` | button | ステータス画面の「課題を見る」（hasAssignment 時のみ） |
 
 ### どこから始めるかの選択（生徒・Issue #1201）
 
-> この節は主ボタン 1 つと「ほかの始め方」に置きかわる（上の「生徒の画面の作り直し」）。新しい data-testid は実装の sub-issue で確定。
+> 参加完了・課題パネルは主ボタン 1 つと「ほかの始め方」（上の「生徒: 始め方」）に置きかわった。この節はステータス（`student-status`）の「提出した作品を読み込む」だけに残っていて、「作品を読み込み直す」に置きかわる（上の「生徒の画面の作り直し」）。
 
-参加完了（`student-joined`）・課題パネル（`student-assignment`）は、スターターか続きに使える提出物があるときに表示（参加しただけでは何も読み込まない）。ステータス（`student-status`）は続きに使える提出物があるときだけ。
+ステータス（`student-status`）で、続きに使える提出物があるときだけ表示。
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-continue-choice` | div | 選択肢のまとまり（スターターも続きに使える提出物も無いときは描画しない） |
-| `classroom-continue-starter` | button | スターターから始める（スターターがあるとき。設定「前回の提出物から始めさせる」で前回の提出物があるときは出さない。ステータス画面には出さない） |
-| `classroom-continue-starter-recommended` / `classroom-continue-previous-recommended` | span | 先生の設定でおすすめにした選択肢の「おすすめ」バッジ（Issue #1202） |
+| `classroom-continue-choice` | div | 選択肢のまとまり（続きに使える提出物が無いときは描画しない） |
 | `classroom-continue-previous` | button | 前回の提出物から続ける（同じクラスの前の課題・同じ席の提出物があるとき） |
 | `classroom-continue-current` | button | この課題で提出した作品を読み込む（この課題で提出済みのとき） |
-| `classroom-continue-keep` | button | いまの作品のまま始める（何も読み込まずにモーダルを閉じる。参加完了画面・課題パネルのみ。ステータス画面には出さない） |
 
-| `classroom-continue-notice` | span | 先生の設定「前回の提出物から始めさせる」のお知らせ（Issue #1202。前回の提出物がおすすめ / 無かったのでスターターから / 無かった）。選択肢が無いときも単独で出す |
-
-開いたボタンは `aria-pressed="true"`。1300×600 の収まりは `tools/playwright-verify/verify-classroom-viewport.mjs` が「参加完了 / 課題パネル / ステータス」の選択肢つきの状態で測る。
+開いたボタンは `aria-pressed="true"`。1300×600 の収まりは `tools/playwright-verify/verify-classroom-viewport.mjs` が「参加完了 / 課題パネル」の「ほかの始め方」を開いた状態と、ステータスの選択肢つきの状態で測る（`LOCALE=ja-Hira` でひらがなでも測れる）。
 
 ### 組（グループ）管理
 

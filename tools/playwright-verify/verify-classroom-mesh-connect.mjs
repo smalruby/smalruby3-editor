@@ -146,8 +146,18 @@ const openStudent = async (joinCode, seat, label) => {
     await prepareStore(page);
     await page.click(`[data-testid="classroom-seat-${seat}"]`);
     await page.click('[data-testid="classroom-confirm-seat"]');
-    await page.waitForSelector('[data-testid="classroom-continue-starter"]', { timeout: 30000 });
+    // 主ボタンは決めた始め方 1 つ (#1793)。この席には提出物が無いのでスターター。
+    await page.waitForSelector('[data-testid="classroom-start-method"][data-main="starter"]', { timeout: 30000 });
     return page;
+};
+
+// 開き直した課題パネルは最後のページに「とじる」と「スタータープロジェクトを開く」を出す (#1793)
+const toLastPage = async (page) => {
+    await page.waitForSelector('[data-testid="classroom-phase-student-assignment"]', { timeout: 20000 });
+    while (await page.$('[data-testid="classroom-assignment-main-next"]')) {
+        await page.click('[data-testid="classroom-assignment-main-next"]');
+        await sleep(200);
+    }
 };
 
 const createAssignment = async (name, { mesh }) => {
@@ -213,7 +223,7 @@ try {
     let dialogAction = 'accept';
     s1.on('dialog', (d) => (dialogAction === 'accept' ? d.accept() : d.dismiss()));
     await shot(s1, 'seat1-choice');
-    await s1.click('[data-testid="classroom-continue-starter"]');
+    await s1.click('[data-testid="classroom-start-main"]');
     await waitConnectionModal(s1);
     let st = await modalState(s1);
     assert(st.connection && st.extensionId === 'meshV2', 'mesh connection modal opened');
@@ -233,6 +243,7 @@ try {
     await s1.click('[data-testid="classroom-menu-button"]');
     await s1.waitForSelector('[data-testid="classroom-view-assignment-button"]', { timeout: 20000 });
     await s1.click('[data-testid="classroom-view-assignment-button"]');
+    await toLastPage(s1);
     await s1.waitForSelector('[data-testid="classroom-assignment-reload-starter"]', { timeout: 20000 });
     await s1.click('[data-testid="classroom-assignment-reload-starter"]');
     await s1.waitForFunction(() => window.__store.getState().scratchGui.classroom.meshConnectPending, null, {
@@ -261,6 +272,7 @@ try {
     await s1.click('[data-testid="classroom-menu-button"]');
     await s1.waitForSelector('[data-testid="classroom-view-assignment-button"]', { timeout: 20000 });
     await s1.click('[data-testid="classroom-view-assignment-button"]');
+    await toLastPage(s1);
     await s1.waitForSelector('[data-testid="classroom-assignment-reload-starter"]', { timeout: 20000 });
     await s1.click('[data-testid="classroom-assignment-reload-starter"]');
     await sleep(3000);
@@ -273,7 +285,7 @@ try {
     log('teacher: create assignment 2 with a starter without mesh');
     const code2 = await createAssignment(`メッシュなし-${stamp}`, { mesh: false });
     const s2 = await openStudent(code2, 2, 's2');
-    await s2.click('[data-testid="classroom-continue-starter"]');
+    await s2.click('[data-testid="classroom-start-main"]');
     await s2.waitForFunction(() => !window.__store.getState().scratchGui.classroom.modalVisible, null, {
         timeout: 30000,
     });

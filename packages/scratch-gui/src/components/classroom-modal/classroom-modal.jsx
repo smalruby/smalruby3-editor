@@ -62,14 +62,13 @@ const ClassroomModal = ({
     continueOptions,
     hasAssignment,
     loadedChoice,
-    startChoice,
+    startMethod,
     onLoadSubmission,
     onOpenAssignment,
     onAssignmentPrevPage,
     onAssignmentNextPage,
-    onReloadStarter,
     onChooseStarter,
-    lessonStartOnly = false,
+    onReloadStarter,
     lessonStatus = null,
     studentLesson = null,
     onStartLesson,
@@ -144,9 +143,7 @@ const ClassroomModal = ({
                         errorTitle={errorTitle}
                         isLoading={isLoading}
                         joinedInfo={joinedInfo}
-                        loadedChoice={loadedChoice}
-                        startChoice={startChoice}
-                        lessonStartOnly={lessonStartOnly}
+                        startMethod={startMethod}
                         studentLesson={studentLesson}
                         onClose={onClose}
                         onLoadStarter={onChooseStarter}
@@ -159,18 +156,17 @@ const ClassroomModal = ({
                 {phase === 'student-assignment' && (
                     <StudentAssignmentPanel
                         assignment={assignment}
+                        assignmentReopened={assignmentReopened}
                         continueOptions={continueOptions}
                         error={error}
                         errorTitle={errorTitle}
                         isLoading={isLoading}
                         joinedInfo={joinedInfo}
-                        loadedChoice={loadedChoice}
                         pageIndex={assignmentPageIndex}
-                        startChoice={startChoice}
+                        startMethod={startMethod}
                         onChooseStarter={onChooseStarter}
                         onClose={onClose}
                         onLoadSubmission={onLoadSubmission}
-                        lessonStartOnly={lessonStartOnly}
                         studentLesson={studentLesson}
                         onNextPage={onAssignmentNextPage}
                         onPrevPage={onAssignmentPrevPage}
@@ -223,8 +219,6 @@ const ClassroomModal = ({
 ClassroomModal.propTypes = {
     // the assignment panel was reopened from 「課題を見る」 (step band shows ④, #1792)
     assignmentReopened: PropTypes.bool,
-    // A lesson assignment without a starter: 「はじめる」 opens the lessons library (#1599)
-    lessonStartOnly: PropTypes.bool,
     // assignmentProgress() of the joined lesson assignment (null when not a lesson assignment)
     lessonStatus: PropTypes.object,
     // normalized lesson setting of the joined assignment (lib/lessons/assignment-progress.js)
@@ -234,10 +228,11 @@ ClassroomModal.propTypes = {
     assignmentPageIndex: PropTypes.number,
     continueOptions: PropTypes.object,
     loadedChoice: PropTypes.string,
-    startChoice: PropTypes.shape({
-        showStarter: PropTypes.bool,
-        recommend: PropTypes.string,
+    // decideStartMethod の結果 (#1793): 参加したあとの主ボタンとほかの始め方
+    startMethod: PropTypes.shape({
+        main: PropTypes.string.isRequired,
         notice: PropTypes.string,
+        others: PropTypes.arrayOf(PropTypes.string),
     }),
     onLoadSubmission: PropTypes.func,
     classroomState: PropTypes.object,
@@ -245,9 +240,10 @@ ClassroomModal.propTypes = {
     onAssignmentNextPage: PropTypes.func,
     onAssignmentPrevPage: PropTypes.func,
     onOpenAssignment: PropTypes.func,
-    onReloadStarter: PropTypes.func,
     // choice row: open the starter and start (closes the modal)
     onChooseStarter: PropTypes.func,
+    // reopened assignment panel: open the starter (keeps the modal open)
+    onReloadStarter: PropTypes.func,
     error: PropTypes.string,
     errorActionHandler: PropTypes.func,
     errorActionLabel: PropTypes.string,

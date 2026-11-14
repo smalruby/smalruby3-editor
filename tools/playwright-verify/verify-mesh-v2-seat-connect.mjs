@@ -141,13 +141,8 @@ const openStudent = async (joinCode, seat) => {
     await prepareStore(page);
     await page.click(`[data-testid="classroom-seat-${seat}"]`);
     await page.click('[data-testid="classroom-confirm-seat"]');
-    // 課題にスターターが無いので「はじめる」（または出てきた続けかた）で始める
-    const choice = page
-        .locator(
-            '[data-testid="classroom-continue-starter"], [data-testid="classroom-continue-current"], ' +
-                '[data-testid="classroom-continue-keep"], [data-testid="classroom-joined-close"]',
-        )
-        .first();
+    // 主ボタン（決めた始め方 1 つ）で始める
+    const choice = page.locator('[data-testid="classroom-start-main"]').first();
     await choice.waitFor({ timeout: 30000 });
     await choice.click();
     await sleep(1500);
