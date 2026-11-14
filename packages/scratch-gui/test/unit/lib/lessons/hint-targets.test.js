@@ -265,6 +265,18 @@ describe('hint targets: the SP side rail is above the balloon', () => {
         expect(hintViewport(document, win)).toEqual({ left: 0, top: 80, width: 1300, height: 600 });
     });
 
+    test('with no target, the balloon is centered in the area below the task bar', () => {
+        const placed = computeHintPlacement({
+            target: null,
+            balloon: { width: 300, height: 200 },
+            viewport: { left: 0, top: 80, width: 1300, height: 600 },
+        });
+        expect(placed.side).toBe(HINT_SIDES.CENTER);
+        // 横は (1300 - 300) / 2、縦はバーの下（80〜600）の真ん中 80 + (520 - 200) / 2
+        expect(placed.left).toBe(500);
+        expect(placed.top).toBe(240);
+    });
+
     test('placement and dragging keep a tall balloon below the task bar', () => {
         const viewport = { left: 0, top: 80, width: 1300, height: 600 };
         const balloon = { width: 352, height: 480 };

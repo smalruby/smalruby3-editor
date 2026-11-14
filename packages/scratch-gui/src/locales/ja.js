@@ -1782,6 +1782,7 @@ export default {
         '図と説明を読んで、自分でプログラムを作ろう。答えはヒントの最後のページにあるよ。',
     'gui.lessonHint.readDiagram.try':
         'できたら、動かして試そう。図のとおりに動くかな？ ちがったら、図をもう一度読んで直そう。答えは次のページで見られるよ。',
+    'gui.lessonHint.readDiagram.answerOf': '{name}のプログラム',
     'gui.lessonHint.readDiagram.answer':
         'これが答えのプログラムだよ。自分のプログラムと見くらべよう。あなたのプログラムはそのままだよ。',
     'gui.menuBar.lessons': 'レッスン',

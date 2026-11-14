@@ -209,10 +209,12 @@ export const computeHintPlacement = ({ target, balloon, viewport, sides, gap = 1
         return { left: l, top: t, side, arrow };
     };
     if (!target) {
+        // 横も縦も、使える範囲（サイドレールの右・課題バーの下）の真ん中に置く
         const areaLeft = viewport.left || 0;
+        const areaTop = viewport.top || 0;
         return settle(
             areaLeft + (viewport.width - areaLeft - balloon.width) / 2,
-            (viewport.height - balloon.height) / 2,
+            areaTop + (viewport.height - areaTop - balloon.height) / 2,
             HINT_SIDES.CENTER,
         );
     }

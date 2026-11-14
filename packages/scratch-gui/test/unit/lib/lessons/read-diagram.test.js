@@ -5,7 +5,9 @@ import {
     CHALLENGE_MODES,
     READ_DIAGRAM_HINT_PAGES,
     applyChallengeMode,
+    hasAnswerProgram,
     isReadDiagram,
+    readDiagramAnswer,
     readDiagramMessages,
     readDiagramSteps,
 } from '../../../../src/lib/lessons/read-diagram';
@@ -106,5 +108,85 @@ describe('read-diagram (読んで作るチャレンジ)', () => {
         expect(challenge.mode).toBeNull();
         expect(challenge.explanation).toBeNull();
         expect(challenge.steps).toEqual([{ title: TASK, target: null, blocks: null, spotlight: false }]);
+    });
+
+    describe('the answer page with more than one script (Q1)', () => {
+        const PENGUIN = { sprite: 'Penguin 2', code: 'when_flag_clicked do\n  say("P")\nend\n' };
+        const OWL = { sprite: 'Owl', code: 'when_flag_clicked do\n  say("O")\nend\n' };
+
+        test('draws code with no label when it is the only script', () => {
+            expect(readDiagramAnswer({ code: 'x' })).toEqual({ blocks: 'x', label: null });
+        });
+
+        test('draws code and names the cat when spriteCodes are there too', () => {
+            const { blocks, label } = readDiagramAnswer({ code: 'x', spriteCodes: [PENGUIN] });
+            expect(blocks).toBe('x');
+            expect(label.message).toBe(readDiagramMessages.answerOf);
+            expect(label.name).toEqual(expect.objectContaining({ id: 'gui.lessons.activityDiagram.codeSprite' }));
+        });
+
+        test('names the stage when the code is the stage program', () => {
+            const { label } = readDiagramAnswer({ code: 'x', codeTarget: 'stage', spriteCodes: [PENGUIN] });
+            expect(label.name).toEqual(expect.objectContaining({ id: 'gui.lessons.activityDiagram.stage' }));
+        });
+
+        test('draws the first spriteCodes entry when there is no code', () => {
+            expect(readDiagramAnswer({ spriteCodes: [PENGUIN] })).toEqual({ blocks: PENGUIN.code, label: null });
+            const two = readDiagramAnswer({ spriteCodes: [PENGUIN, OWL] });
+            expect(two.blocks).toBe(PENGUIN.code);
+            expect(two.label).toEqual({ message: readDiagramMessages.answerOf, name: 'Penguin 2' });
+        });
+
+        test('the answer step carries the blocks and the label', () => {
+            const steps = readDiagramSteps({ task: TASK, spriteCodes: [PENGUIN, OWL] });
+            expect(steps[2].blocks).toBe(PENGUIN.code);
+            expect(steps[2].label.name).toBe('Penguin 2');
+            expect(steps[0].label).toBeNull();
+            expect(steps[1].label).toBeNull();
+        });
+
+        test('the answerOf message has a name placeholder', () => {
+            expect(readDiagramMessages.answerOf.defaultMessage).toContain('{name}');
+        });
+    });
+
+    describe('a read-and-build challenge with no answer program (Q2)', () => {
+        let warn;
+        beforeEach(() => {
+            warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        });
+        afterEach(() => {
+            warn.mockRestore();
+        });
+
+        test('hasAnswerProgram looks at code and spriteCodes', () => {
+            expect(hasAnswerProgram({ code: 'x' })).toBe(true);
+            expect(hasAnswerProgram({ code: null, spriteCodes: [{ sprite: 'Owl', code: 'x' }] })).toBe(true);
+            expect(hasAnswerProgram({ code: null, spriteCodes: [] })).toBe(false);
+            expect(hasAnswerProgram({ code: null, spriteCodes: [{ sprite: 'Owl', code: null }] })).toBe(false);
+        });
+
+        test('warns in development but still makes the challenge (never throws)', () => {
+            const challenge = defineChallenge({ id: 'test-no-answer', mode: 'readDiagram', task: TASK });
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('test-no-answer'));
+            expect(challenge.steps).toHaveLength(READ_DIAGRAM_HINT_PAGES);
+        });
+
+        test('does not warn in production', () => {
+            const env = process.env.NODE_ENV;
+            process.env.NODE_ENV = 'production';
+            try {
+                expect(() => defineChallenge({ id: 'test-no-answer-prod', mode: 'readDiagram' })).not.toThrow();
+                expect(warn).not.toHaveBeenCalled();
+            } finally {
+                process.env.NODE_ENV = env;
+            }
+        });
+
+        test('does not warn for a challenge with an answer or an ordinary challenge', () => {
+            defineChallenge({ id: 'test-answer', mode: 'readDiagram', code: 'x' });
+            defineChallenge({ id: 'test-ordinary-no-code' });
+            expect(warn).not.toHaveBeenCalled();
+        });
     });
 });

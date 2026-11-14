@@ -1840,6 +1840,7 @@ export default {
         'ずとせつめいをよんで、じぶんでプログラムをつくろう。こたえはヒントのさいごのページにあるよ。',
     'gui.lessonHint.readDiagram.try':
         'できたら、うごかしてためそう。ずのとおりにうごくかな？ ちがったら、ずをもういちどよんでなおそう。こたえはつぎのページでみられるよ。',
+    'gui.lessonHint.readDiagram.answerOf': '{name}のプログラム',
     'gui.lessonHint.readDiagram.answer':
         'これがこたえのプログラムだよ。じぶんのプログラムとみくらべよう。あなたのプログラムはそのままだよ。',
     'gui.menuBar.lessons': 'レッスン',

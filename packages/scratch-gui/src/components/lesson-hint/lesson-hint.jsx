@@ -267,6 +267,7 @@ const LessonHint = ({
     hasCode = false,
     index,
     insertErrors = [],
+    label = null,
     lastResort = false,
     mediaPath = './static/blocks-media/default/',
     onClose,
@@ -454,6 +455,16 @@ const LessonHint = ({
                                     {intl.formatMessage(note)}
                                 </p>
                             ) : null}
+                            {label && (blocksXml || blocksError) ? (
+                                <p className={styles.blocksLabel} data-testid="lesson-hint-blocks-label">
+                                    {intl.formatMessage(label.message, {
+                                        name:
+                                            typeof label.name === 'string'
+                                                ? label.name
+                                                : intl.formatMessage(label.name),
+                                    })}
+                                </p>
+                            ) : null}
                             {blocksXml ? (
                                 <LessonHintBlocks
                                     scratchBlocks={scratchBlocks}
@@ -506,6 +517,12 @@ LessonHint.propTypes = {
     index: PropTypes.number.isRequired,
     // 「プログラムを入れる」を試して失敗したときのわけ（変換のエラーの文言）
     insertErrors: PropTypes.arrayOf(PropTypes.string),
+    // 描いたブロックの見出し（読んで作るチャレンジの答えのページで、プログラムが 2 つ以上あるとき「ネコのプログラム」）。
+    // `message` は `{name}` を持つ message descriptor、`name` はスプライトの名前か message descriptor
+    label: PropTypes.shape({
+        message: PropTypes.object.isRequired,
+        name: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
+    }),
     lastResort: PropTypes.bool,
     mediaPath: PropTypes.string,
     // 文言の下に添える一言（message descriptor）。読んで作るチャレンジの 1 ページ目の「答えは最後のページ」など

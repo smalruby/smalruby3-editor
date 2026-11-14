@@ -26,6 +26,7 @@ import {
 import { validateGoal } from '../../../../src/lib/lessons/goal';
 import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
+import { hasAnswerProgram, isReadDiagram } from '../../../../src/lib/lessons/read-diagram';
 import en from '../../../../src/locales/en';
 import ja from '../../../../src/locales/ja';
 import jaHira from '../../../../src/locales/ja-Hira';
@@ -1112,5 +1113,14 @@ describe('lesson courses', () => {
             const jaResult = await rubyToBlocksXml(vm, cat, localizeCode(c.code, 'ja'), null, options);
             expect(jaResult.errors).toEqual([]);
         });
+    });
+
+    test('every read-and-build challenge (mode readDiagram) has an answer program (code or spriteCodes)', () => {
+        // 答えが無いと、図も答えのページの絵も出ない（読んで作るチャレンジは図と答えだけで指示する）
+        const missing = allChallenges()
+            .filter(isReadDiagram)
+            .filter((challenge) => !hasAnswerProgram(challenge))
+            .map((challenge) => challenge.id);
+        expect(missing).toEqual([]);
     });
 });

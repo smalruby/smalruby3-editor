@@ -80,6 +80,14 @@
     max-height: min(16rem, calc(100vh - 16rem));
 }
 
+/* 描いたブロックの見出し（読んで作るチャレンジの答えのページ「ネコのプログラム」） */
+.blocks-label {
+    margin: 0 0 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: bold;
+    color: $text-primary-transparent;
+}
+
 /* 本物のブロックを描く Blockly の読み取り専用ワークスペース。大きさは描いた中身から決める */
 .blocks {
     position: relative;

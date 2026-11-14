@@ -192,6 +192,7 @@ const LessonHintContainer = ({
             hasCode={Boolean(hint.code)}
             index={hint.index}
             insertErrors={insertErrors}
+            label={step ? step.label || null : null}
             lastResort={hint.lastResort}
             mediaPath={`./static/${colorModeMap[colorMode].blocksMediaFolder}/`}
             onClose={onHideHint}

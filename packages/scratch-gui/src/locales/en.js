@@ -1449,6 +1449,7 @@ export default {
         'Read the diagram and the explanation, and make the program yourself. The answer is on the last page of the hint.',
     'gui.lessonHint.readDiagram.try':
         'When you have made it, run it and try it. Does it work like the diagram? If not, read the diagram again and fix it. You can see the answer on the next page.',
+    'gui.lessonHint.readDiagram.answerOf': 'Program of {name}',
     'gui.lessonHint.readDiagram.answer':
         'This is the answer. Compare it with your program. Your program stays as it is.',
     'gui.menuBar.lessons': 'Lessons',

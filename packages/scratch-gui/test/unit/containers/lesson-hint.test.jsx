@@ -526,6 +526,38 @@ describe('LessonHint container', () => {
             expect(getByTestId('lesson-hint-note')).toHaveTextContent('The answer is on the last page');
         });
 
+        test('page 3 names whose program it draws when there is more than one script', async () => {
+            const found = findChallenge(CHALLENGE_ID);
+            const current = {
+                ...found,
+                challenge: defineChallenge({
+                    id: found.challenge.id,
+                    number: found.challenge.number,
+                    mode: 'readDiagram',
+                    task: found.challenge.task,
+                    code: ANSWER,
+                    spriteCodes: [{ sprite: 'Penguin 2', code: 'when_flag_clicked do\n  say("P")\nend\n' }],
+                }),
+            };
+            const { getByTestId } = renderContainer({ ...baseProps(), current, hint: readHint(current, 2) });
+            await flush();
+            expect(getByTestId('lesson-hint-blocks-label')).toHaveTextContent('Program of Cat');
+            expect(rubyToBlocksXml).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.anything(),
+                ANSWER,
+                expect.anything(),
+                expect.anything(),
+            );
+        });
+
+        test('page 3 has no label when the answer is one script', async () => {
+            const current = readCurrent();
+            const { queryByTestId } = renderContainer({ ...baseProps(), current, hint: readHint(current, 2) });
+            await flush();
+            expect(queryByTestId('lesson-hint-blocks-label')).toBeNull();
+        });
+
         test('page 3 draws the whole answer in the balloon and offers no replacing', async () => {
             const current = readCurrent();
             const props = baseProps();
