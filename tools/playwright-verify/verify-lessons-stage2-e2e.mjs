@@ -263,7 +263,7 @@ const joinSeat = async (name, code, seat, opts) => {
     await page.click(tid('classroom-confirm-seat'));
     // 課題のページがある課題は課題パネル、無ければ参加完了。どちらにも「はじめる」が出る。
     // 本人の確認がその上に重なることがあるので、attached で待つ
-    await page.waitForSelector(tid('classroom-joined-start-lesson'), { state: 'attached', timeout: 30000 });
+    await page.waitForSelector(tid('classroom-start-main'), { state: 'attached', timeout: 30000 });
     await sleep(800);
     return page;
 };
@@ -275,7 +275,7 @@ const studentJoinedChecks = async (page, name, submitWork) => {
     const m = await scrollInfo(page);
     record(
         `${name}: 参加完了にレッスンの課題の説明と「はじめる」`,
-        (await exists(page, 'classroom-joined-start-lesson')) &&
+        (await exists(page, 'classroom-start-main')) &&
             /レッスンの課題/.test(next || '') &&
             (submitWork ? /作品を提出/.test(next) : /課題クリア/.test(next)),
         `${(next || '').match(/この課題はレッスンの課題[^。]*。?[^。]*/)?.[0] || next} page=${m.page}`,
@@ -284,7 +284,7 @@ const studentJoinedChecks = async (page, name, submitWork) => {
     await shot(page, `${name}-joined`);
 };
 const startLesson = async (page, name, expected) => {
-    await clickTid(page, 'classroom-joined-start-lesson');
+    await clickTid(page, 'classroom-start-main');
     await page.waitForSelector(tid('lessons-library'), { timeout: 15000 });
     await sleep(800);
     const ids = await page.$$eval('[data-testid^="lessons-library-challenge-blocks"]', (els) =>

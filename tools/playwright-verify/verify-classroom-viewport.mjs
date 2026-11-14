@@ -16,6 +16,7 @@
  *   SKIP_IDLE=1 node verify-classroom-viewport.mjs          # 30 秒待ちの強調表示を省く
  *   HEADLESS=false CHANNEL=chrome node verify-classroom-viewport.mjs
  *   DOCS_SHOTS=1 node verify-classroom-viewport.mjs        # docs/classroom/screenshots の生徒画面も撮り直す
+ *   LOCALE=ja-Hira node verify-classroom-viewport.mjs       # ひらがなで測る (既定は ja)
  */
 import { chromium } from 'playwright';
 import { dirname, resolve } from 'node:path';
@@ -31,6 +32,7 @@ const SKIP_IDLE = process.env.SKIP_IDLE === '1';
 const [VW, VH] = (process.env.VIEWPORT || '1300x600').split('x').map(Number);
 const VIEWPORT = { width: VW, height: VH };
 const DOCS_SHOTS = process.env.DOCS_SHOTS === '1';
+const LOCALE = process.env.LOCALE || 'ja';
 // 測定した画面 → docs/classroom/screenshots の撮り直し先 (ファイル名は変えない)。
 const DOC_SHOT_NAMES = {
     'student-join': ['0301-student-join.png'],
@@ -39,7 +41,9 @@ const DOC_SHOT_NAMES = {
     'student-seat-pending': ['0308-student-kick-request-pending.png'],
     'student-seat-rejected': ['0307-student-kicked-banner.png', '0309-student-kick-request-rejected.png'],
     'student-joined': ['0303-student-joined.png'],
+    'student-joined-others': ['0329-student-joined-other-ways.png'],
     'student-assignment': ['0314-student-assignment-panel.png'],
+    'student-assignment-last': ['0330-student-assignment-last-page.png'],
     'student-status': ['0304-student-status.png'],
     'student-submit-confirm': ['0306-student-submit-confirm.png'],
     'student-lesson-progress-confirm': ['0324-lesson-progress-confirm.png'],
@@ -205,7 +209,7 @@ const studentPage = async ({ storage = {}, routes } = {}) => {
         window.sessionStorage.setItem('__seeded', '1');
         for (const [k, v] of Object.entries(s)) window.localStorage.setItem(k, JSON.stringify(v));
     }, storage);
-    await page.goto(`${BASE}/?no_beforeunload=1&locale=ja`, { waitUntil: 'load' });
+    await page.goto(`${BASE}/?no_beforeunload=1&locale=${LOCALE}`, { waitUntil: 'load' });
     // PC はメニューバーの「クラス」、スマホ (MobileGui) はサイドレール ☰ のドロワーから開く。
     await page
         .locator('[data-testid="classroom-menu-button"]:visible, [data-testid="mobile-side-rail-menu"]:visible')
@@ -358,14 +362,22 @@ const kickedRoutes = (activeIds) => async (p) => {
     await ctx.close();
 }
 
-// ---------- student-joined (長い名前 + 前回のコメント + 続きの選択肢 3 つ) ----------
-{
+// ---------- student-joined (長い名前 + 前回のコメント + 主ボタン + ほかの始め方 3 つ・#1793) ----------
+// この課題の提出・前回の提出物・スターターが全部ある → 主ボタンは「この課題で出した作品から続ける」で、
+// 「ほかの始め方」を開くと 3 つ (前回・スターター・いまの作品のまま) が並ぶ。閉じた状態と開いた状態を測る。
+// 続けて先生の「前回の提出物から始めさせる」が ON (この課題の提出なし) → 1 行のお知らせも出る状態を測る。
+for (const [label, continuable, startFromPrevious, shots] of [
+    ['all ways', CONTINUABLE, false, ['student-joined', 'student-joined-others']],
+    ['teacher setting on + notice', { ...CONTINUABLE, current: null }, true, ['student-joined-notice', 'student-joined-notice-others']],
+]) {
     const { ctx, page } = await studentPage({
         routes: async (p) => {
-            await routeContinuable(p);
-            // ページなし・スターターだけの課題 → 参加完了画面に 3 つの選択肢が並ぶ。
+            await p.route('**/continuable-submissions', (r) => r.fulfill({ json: { ...continuable, startFromPrevious } }));
+            // ページなし・スターターだけの課題 → 参加完了画面に主ボタンと「ほかの始め方」。
             await p.route('**/classrooms/c1/assignment', (r) =>
-                r.fulfill({ json: { assignment: { pages: [], starterUrl: 'https://example.invalid/starter.sb3' } } }),
+                r.fulfill({
+                    json: { assignment: { pages: [], starterUrl: 'https://example.invalid/starter.sb3' }, startFromPrevious },
+                }),
             );
             await p.route('**/classrooms/join', (r) =>
                 r.fulfill({
@@ -390,17 +402,28 @@ const kickedRoutes = (activeIds) => async (p) => {
     await page.locator('[data-testid="classroom-seat-3"]').click();
     await page.locator('[data-testid="classroom-confirm-seat"]').click();
     await page.locator('[data-testid="classroom-phase-student-joined"]').waitFor({ timeout: 10000 });
+    await page.locator('[data-testid="classroom-start-others-toggle"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(500);
-    await page.locator('[data-testid="classroom-continue-choice"]').waitFor({ timeout: 10000 });
     await judge(page, {
         who: 'student',
-        name: 'student-joined (long names + previous comment + continue choice)',
-        shot: 'student-joined',
+        name: `student-joined (${label}: long names + previous comment + main button)`,
+        shot: shots[0],
+        primary: '[data-testid="classroom-start-main"]',
+    });
+    await page.locator('[data-testid="classroom-start-others-toggle"]').click();
+    await page.locator('[data-testid="classroom-start-others"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(300);
+    await judge(page, {
+        who: 'student',
+        name: `student-joined (${label}: other ways open)`,
+        shot: shots[1],
+        primary: '[data-testid="classroom-start-other-keep"]',
     });
     await ctx.close();
 }
 
-// ---------- student-assignment (長いページ + 画像 + 前回のコメント + 続きの選択肢 3 つ) ----------
+// ---------- student-assignment (長いページ + 画像 + 前回のコメント・#1793) ----------
+// 最初のページの主ボタンは「つぎのページ」。最後のページ (これも長い) で決めた始め方 + 「ほかの始め方」を開いた状態を測る。
 {
     const LONG_PAGE = `${'ねこを矢印キーで動かして、迷路の壁に当たったらはじめの場所にもどるようにしよう。'.repeat(6)}`;
     const IMAGE = `data:image/svg+xml,${encodeURIComponent(
@@ -415,7 +438,7 @@ const kickedRoutes = (activeIds) => async (p) => {
                         assignment: {
                             pages: [
                                 { text: LONG_PAGE, imageUrl: IMAGE },
-                                { text: '2', imageUrl: null },
+                                { text: LONG_PAGE, imageUrl: IMAGE },
                             ],
                             starterUrl: 'https://example.invalid/starter.sb3',
                         },
@@ -444,12 +467,23 @@ const kickedRoutes = (activeIds) => async (p) => {
     await page.locator('[data-testid="classroom-join-submit"]').click();
     await page.locator('[data-testid="classroom-seat-3"]').click();
     await page.locator('[data-testid="classroom-confirm-seat"]').click();
-    await page.locator('[data-testid="classroom-continue-choice"]').waitFor({ timeout: 10000 });
+    await page.locator('[data-testid="classroom-assignment-main-next"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(500);
     await judge(page, {
         who: 'student',
-        name: 'student-assignment (long page + image + previous comment + continue choice)',
+        name: 'student-assignment (first page: long page + image + previous comment + next page)',
         shot: 'student-assignment',
+        primary: '[data-testid="classroom-assignment-main-next"]',
+    });
+    await page.locator('[data-testid="classroom-assignment-main-next"]').click();
+    await page.locator('[data-testid="classroom-start-others-toggle"]').click();
+    await page.locator('[data-testid="classroom-start-others"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(300);
+    await judge(page, {
+        who: 'student',
+        name: 'student-assignment (last page: long page + image + main button + other ways open)',
+        shot: 'student-assignment-last',
+        primary: '[data-testid="classroom-start-other-keep"]',
     });
     await ctx.close();
 }
@@ -540,13 +574,68 @@ const routeLessonAssignment = (p) =>
     await page.locator('[data-testid="classroom-join-submit"]').click();
     await page.locator('[data-testid="classroom-seat-3"]').click();
     await page.locator('[data-testid="classroom-confirm-seat"]').click();
-    await page.locator('[data-testid="classroom-joined-start-lesson"]').waitFor({ timeout: 10000 });
+    await page.locator('[data-testid="classroom-start-main"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(500);
     await judge(page, {
         who: 'student',
         name: 'student-joined (lesson assignment + previous comment)',
         shot: 'student-joined-lesson',
-        primary: '[data-testid="classroom-joined-start-lesson"]',
+        primary: '[data-testid="classroom-start-main"]',
+    });
+    await ctx.close();
+}
+
+// 課題のページとスターターがあるレッスンの課題 (#1793): 最後のページにレッスンの説明 +「はじめる」+
+// 「ほかの始め方」(この課題・前回・スターター) を開いた状態。ページも長くして一番長い状態にする。
+{
+    const LONG_PAGE = `${'ねこを矢印キーで動かして、迷路の壁に当たったらはじめの場所にもどるようにしよう。'.repeat(6)}`;
+    const IMAGE = `data:image/svg+xml,${encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="#cde"/></svg>',
+    )}`;
+    const { ctx, page } = await studentPage({
+        routes: async (p) => {
+            await routeContinuable(p);
+            await p.route('**/classrooms/c1/assignment', (r) =>
+                r.fulfill({
+                    json: {
+                        assignment: {
+                            pages: [{ text: LONG_PAGE, imageUrl: IMAGE }],
+                            starterUrl: 'https://example.invalid/starter.sb3',
+                        },
+                        lesson: LESSON,
+                    },
+                }),
+            );
+            await p.route('**/classrooms/join', (r) =>
+                r.fulfill({
+                    json: {
+                        classroomId: 'c1',
+                        className: LONG_CLASS,
+                        classYear: 2026,
+                        assignmentName: LONG_ASSIGNMENT,
+                        seatNumber: 3,
+                        memberId: 'seat-03',
+                        sessionToken: 'stub',
+                        hasAssignment: true,
+                        previousComment: { assignmentName: LONG_ASSIGNMENT, teacherComment: LONG_COMMENT, status: 'returned' },
+                    },
+                }),
+            );
+        },
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-join-code-input"]').fill('abc234');
+    await page.locator('[data-testid="classroom-join-submit"]').click();
+    await page.locator('[data-testid="classroom-seat-3"]').click();
+    await page.locator('[data-testid="classroom-confirm-seat"]').click();
+    await page.locator('[data-testid="classroom-start-others-toggle"]').click();
+    await page.locator('[data-testid="classroom-start-others"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(500);
+    await judge(page, {
+        who: 'student',
+        name: 'student-assignment (lesson + starter: long page + image + lesson notice + other ways open)',
+        shot: 'student-assignment-lesson',
+        primary: '[data-testid="classroom-start-other-starter"]',
     });
     await ctx.close();
 }

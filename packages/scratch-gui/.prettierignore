@@ -523,6 +523,8 @@ test/unit/components/*
 !test/unit/components/menu-bar-lessons.test.jsx
 !test/unit/components/student-seat-selector.test.jsx
 !test/unit/components/student-screen-parts.test.jsx
+!test/unit/components/student-start-method.test.jsx
+!test/unit/components/student-joined-confirmation.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
 !test/unit/components/mobile-mode-notice.test.jsx

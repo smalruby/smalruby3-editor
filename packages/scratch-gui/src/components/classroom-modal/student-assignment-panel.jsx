@@ -4,18 +4,21 @@
  * Shows the assignment pages (short text + optional image) with a pager.
  * Opens automatically right after joining a classroom that carries an
  * assignment, and any time from the status view via "View Assignment".
- * Right after joining, the footer offers where to start (nothing is loaded
- * until the student presses a choice); reopened later, it offers reopening
- * the starter and going back to work.
+ * One main button (#1793): 「つぎのページ」 until the last page, then — right
+ * after joining — the way to start decided by decideStartMethod (nothing is
+ * loaded until the student presses it), with the other ways under
+ * 「ほかの始め方」. Reopened later from 「課題を見る」, the last page's main
+ * button is 「とじる」 (no start method: the student is already working).
  */
 import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
-import StudentContinueChoice from './student-continue-choice.jsx';
-import { LessonNextSteps, StartLessonButton } from './student-joined-confirmation.jsx';
+import { LessonNextSteps } from './student-joined-confirmation.jsx';
+import StudentMainButton from './student-main-button.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
+import StudentStartMethod from './student-start-method.jsx';
 
 const StudentAssignmentPanel = ({
     assignment,
@@ -24,27 +27,23 @@ const StudentAssignmentPanel = ({
     errorTitle,
     isLoading,
     joinedInfo,
-    lessonStartOnly = false,
-    loadedChoice,
     pageIndex,
-    startChoice,
+    startMethod,
     studentLesson = null,
     onChooseStarter,
     onClose,
     onLoadSubmission,
     onNextPage,
     onPrevPage,
-    onReloadStarter,
     onStartLesson,
 }) => {
     const pages = assignment?.pages || [];
     const page = pages[pageIndex] || null;
-    // Just joined: the start choices. Reopened from the status view: no choices.
-    const showStarterChoice = !!joinedInfo && !!startChoice?.showStarter;
-    // A lesson assignment without a starter starts in the lessons library (#1599)
-    const showChoices = !!joinedInfo && !lessonStartOnly;
-    const hasChoices = showChoices && (showStarterChoice || !!continueOptions);
-    const lessonStart = !!joinedInfo && !!studentLesson && !!onStartLesson;
+    // Read first, then start: the start method waits for the last page (#1793).
+    const isLastPage = pageIndex >= pages.length - 1;
+    // Just joined: the way to start. Reopened from the status view: 「とじる」.
+    const showStart = isLastPage && !!joinedInfo && !!startMethod;
+    const lessonNotice = showStart && !!studentLesson;
 
     return (
         <div data-testid="classroom-phase-student-assignment">
@@ -125,63 +124,45 @@ const StudentAssignmentPanel = ({
                 </div>
             )}
 
-            {lessonStart && (
+            {lessonNotice && (
                 <div className={styles.joinHintText} data-testid="classroom-assignment-lesson-notice">
                     <LessonNextSteps lesson={studentLesson} />
                 </div>
             )}
 
-            {/* Choice and the close button side by side (one row at 1300x600). */}
-            <div className={styles.assignmentFooter}>
-                {/* Right after joining, each choice starts (the starter, earlier
-                    submissions #1201, or as it is), so there is no separate Start
-                    button and nothing to reload. */}
-                {showChoices && (
-                    <StudentContinueChoice
-                        continueOptions={continueOptions}
-                        isLoading={isLoading}
-                        loadedChoice={loadedChoice}
-                        recommend={startChoice?.recommend}
-                        showStarter={showStarterChoice}
-                        startNotice={startChoice?.notice}
-                        onKeepCurrent={onClose}
-                        onLoadStarter={onChooseStarter}
-                        onLoadSubmission={onLoadSubmission}
-                    />
-                )}
-
-                {lessonStart && <StartLessonButton onStartLesson={onStartLesson} />}
-
-                {!hasChoices && !lessonStart && (
-                    <div className={styles.buttonRow}>
-                        {!joinedInfo && assignment?.starterUrl && (
-                            <button
-                                className={styles.secondaryButton}
-                                data-testid="classroom-assignment-reload-starter"
-                                disabled={isLoading}
-                                onClick={onReloadStarter}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Open the Starter Project"
-                                    description="Assignment panel: (re)open the starter project"
-                                    id="gui.classroom.studentAssignment.reloadStarter"
-                                />
-                            </button>
-                        )}
-                        <button
-                            className={styles.primaryButton}
-                            data-testid="classroom-assignment-close"
-                            onClick={onClose}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Start Working!"
-                                description="Assignment panel: close and start working"
-                                id="gui.classroom.studentAssignment.close"
-                            />
-                        </button>
-                    </div>
-                )}
-            </div>
+            {!isLastPage && (
+                <div className={styles.assignmentMain}>
+                    <StudentMainButton dataTestId="classroom-assignment-main-next" onClick={onNextPage}>
+                        <FormattedMessage
+                            defaultMessage="Next page"
+                            description="Assignment panel: the main button before the last page"
+                            id="gui.classroom.studentAssignment.mainNextPage"
+                        />
+                    </StudentMainButton>
+                </div>
+            )}
+            {showStart && (
+                <StudentStartMethod
+                    continueOptions={continueOptions}
+                    isLoading={isLoading}
+                    method={startMethod}
+                    onKeepCurrent={onClose}
+                    onLoadStarter={onChooseStarter}
+                    onLoadSubmission={onLoadSubmission}
+                    onStartLesson={onStartLesson}
+                />
+            )}
+            {isLastPage && !showStart && (
+                <div className={styles.assignmentMain}>
+                    <StudentMainButton dataTestId="classroom-assignment-close" onClick={onClose}>
+                        <FormattedMessage
+                            defaultMessage="Close"
+                            description="Assignment panel reopened while working: the main button on the last page"
+                            id="gui.classroom.studentAssignment.closeReopened"
+                        />
+                    </StudentMainButton>
+                </div>
+            )}
         </div>
     );
 };
@@ -204,21 +185,18 @@ StudentAssignmentPanel.propTypes = {
         seatNumber: PropTypes.number,
         previousComment: PropTypes.object,
     }),
-    // A lesson assignment without a starter: no start choices (#1599)
-    lessonStartOnly: PropTypes.bool,
-    loadedChoice: PropTypes.string,
     pageIndex: PropTypes.number.isRequired,
-    startChoice: PropTypes.shape({
-        showStarter: PropTypes.bool,
-        recommend: PropTypes.string,
+    // decideStartMethod の結果 (#1793)。参加した直後だけ使う
+    startMethod: PropTypes.shape({
+        main: PropTypes.string.isRequired,
         notice: PropTypes.string,
+        others: PropTypes.arrayOf(PropTypes.string),
     }),
     onChooseStarter: PropTypes.func,
     onClose: PropTypes.func.isRequired,
     onLoadSubmission: PropTypes.func,
     onNextPage: PropTypes.func.isRequired,
     onPrevPage: PropTypes.func.isRequired,
-    onReloadStarter: PropTypes.func.isRequired,
     onStartLesson: PropTypes.func,
     // normalized lesson setting of the joined assignment (null = not a lesson assignment)
     studentLesson: PropTypes.shape({ submitWork: PropTypes.bool }),

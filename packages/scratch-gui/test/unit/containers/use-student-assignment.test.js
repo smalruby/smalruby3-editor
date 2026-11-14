@@ -79,7 +79,7 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         expect(mockLoadProject).not.toHaveBeenCalled();
         expect(hook.result.current.continueOptions).toBeNull();
         expect(hook.result.current.loadedChoice).toBeNull();
-        expect(hook.result.current.startChoice).toEqual({ showStarter: true, recommend: null, notice: null });
+        expect(hook.result.current.startMethod).toEqual({ main: 'starter', others: ['keep'], notice: null });
     });
 
     test('スターターも提出物も無ければ、選択肢は無い (「はじめる」だけ)', async () => {
@@ -89,7 +89,7 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         await act(async () => {
             await hook.result.current.handleJoined('st', 'c-now', true);
         });
-        expect(hook.result.current.startChoice.showStarter).toBe(false);
+        expect(hook.result.current.startMethod).toEqual({ main: 'keep', others: [], notice: null });
         expect(hook.result.current.continueOptions).toBeNull();
     });
 
@@ -118,7 +118,7 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         });
         expect(next).toBeNull();
         expect(mockGetAssignment).toHaveBeenCalledWith('st', 'c-now');
-        expect(hook.result.current.lessonStartOnly).toBe(false);
+        expect(hook.result.current.startMethod.main).toBe('previous');
         expect(hook.result.current.hasAssignment).toBe(false);
         expect(hook.result.current.continueOptions.previous).toEqual(PREVIOUS);
     });
@@ -133,8 +133,24 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         await act(async () => {
             await hook.result.current.handleJoined('st', 'c-now', false);
         });
-        expect(hook.result.current.lessonStartOnly).toBe(true);
-        expect(hook.result.current.startChoice.showStarter).toBe(false);
+        expect(hook.result.current.startMethod).toEqual({ main: 'lesson', others: [], notice: null });
+    });
+
+    test('スターターのあるレッスンの課題は「はじめる」のまま、ほかの始め方にスターターなどを入れる (#1793)', async () => {
+        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS });
+        mockGetAssignment.mockResolvedValue({
+            assignment: ASSIGNMENT,
+            lesson: { courseId: 'kyou-kara-programmer', challengeIds: ['blocks-l1-key-sound'] },
+        });
+        const { hook } = setup();
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', true);
+        });
+        expect(hook.result.current.startMethod).toEqual({
+            main: 'lesson',
+            others: ['previous', 'starter'],
+            notice: null,
+        });
     });
 
     test('提出物の取得に失敗しても参加は止めず、スターターを選択肢に出す', async () => {
@@ -146,7 +162,7 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         });
         expect(mockLoadProject).not.toHaveBeenCalled();
         expect(hook.result.current.continueOptions).toBeNull();
-        expect(hook.result.current.startChoice.showStarter).toBe(true);
+        expect(hook.result.current.startMethod.main).toBe('starter');
     });
 
     test('「前回の提出物から続ける」は URL を取り直してから読み込む', async () => {
@@ -298,9 +314,9 @@ describe('useStudentAssignment — 前回の提出物から始めさせる (#120
         expect(global.fetch).not.toHaveBeenCalled();
         expect(mockLoadProject).not.toHaveBeenCalled();
         expect(hook.result.current.loadedChoice).toBeNull();
-        expect(hook.result.current.startChoice).toEqual({
-            showStarter: false,
-            recommend: 'previous',
+        expect(hook.result.current.startMethod).toEqual({
+            main: 'previous',
+            others: ['starter', 'keep'],
             notice: 'recommendPrevious',
         });
         expect(hook.result.current.continueOptions.previous).toEqual(PREVIOUS);
@@ -327,10 +343,10 @@ describe('useStudentAssignment — 前回の提出物から始めさせる (#120
         const { hook } = setup();
         await join(hook);
         expect(mockLoadProject).not.toHaveBeenCalled();
-        expect(hook.result.current.startChoice).toEqual({
-            showStarter: true,
-            recommend: 'starter',
-            notice: 'noPrevious',
+        expect(hook.result.current.startMethod).toEqual({
+            main: 'starter',
+            others: ['keep'],
+            notice: 'noPreviousUseStarter',
         });
     });
 
@@ -340,7 +356,11 @@ describe('useStudentAssignment — 前回の提出物から始めさせる (#120
         const { hook } = setup();
         await join(hook);
         expect(mockLoadProject).not.toHaveBeenCalled();
-        expect(hook.result.current.startChoice).toEqual({ showStarter: true, recommend: null, notice: null });
+        expect(hook.result.current.startMethod).toEqual({
+            main: 'previous',
+            others: ['starter', 'keep'],
+            notice: null,
+        });
     });
 });
 

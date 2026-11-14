@@ -2738,23 +2738,9 @@
     word-break: break-word;
 }
 
-.assignment-footer {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.75rem;
-    margin-top: 0.75rem;
-}
-
-.assignment-footer .continue-choice {
-    flex: 1 1 auto;
-    min-width: 0;
-    margin-top: 0;
-}
-
-.assignment-footer .button-row {
-    margin-top: 0;
-    margin-left: auto;
-    white-space: nowrap;
+/* The one main button under the page (「つぎのページ」 / 「とじる」, #1793). */
+.assignment-main {
+    margin-top: 0.6rem;
 }
 
 .assignment-pager {

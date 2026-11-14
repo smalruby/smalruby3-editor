@@ -155,19 +155,21 @@ try {
     const indicator = await studentPage.textContent('[data-testid="classroom-assignment-page-indicator"]');
     assert(indicator.replace(/\s/g, '') === '2/2', 'page indicator 2/2');
 
-    log('student: the starter is a start choice (nothing loaded by joining)...');
-    assert(await studentPage.$('[data-testid="classroom-continue-starter"]'), 'starter choice present');
+    log('student: the last page has the starter as the main button (nothing loaded by joining)...');
     assert(
-        !(await studentPage.$('[data-testid="classroom-assignment-reload-starter"]')) &&
-            !(await studentPage.$('[data-testid="classroom-assignment-close"]')),
-        'no separate open-starter / start buttons right after joining',
+        await studentPage.$('[data-testid="classroom-start-method"][data-main="starter"]'),
+        'starter is the main button on the last page',
+    );
+    assert(
+        !(await studentPage.$('[data-testid="classroom-assignment-close"]')),
+        'no separate start button right after joining',
     );
     const dialogs = [];
     studentPage.on('dialog', (d) => {
         dialogs.push(d.message());
         d.accept();
     });
-    await studentPage.click('[data-testid="classroom-continue-starter"]');
+    await studentPage.click('[data-testid="classroom-start-main"]');
     await studentPage.waitForSelector('[data-testid="classroom-modal"]', { state: 'detached', timeout: 20000 });
     assert(dialogs.length === 0, 'starter loaded without an overwrite confirm');
     assert(true, 'panel closed (student lands in editor)');
@@ -179,10 +181,9 @@ try {
     await studentPage.click('[data-testid="classroom-view-assignment-button"]');
     await studentPage.waitForSelector('[data-testid="classroom-phase-student-assignment"]', { timeout: 20000 });
     assert(true, 'assignment reopened from status view');
-    assert(
-        await studentPage.$('[data-testid="classroom-assignment-reload-starter"]'),
-        'reopened panel offers reopening the starter',
-    );
+    // 開き直したパネルの最後のページの主ボタンは「とじる」 (#1793)
+    await studentPage.click('[data-testid="classroom-assignment-main-next"]');
+    assert(await studentPage.$('[data-testid="classroom-assignment-close"]'), 'reopened panel: last page closes');
     await studentPage.screenshot({ path: resolve(SHOTS, 'lesson-support-4-student-reopen.png') });
 
     ok = true;
