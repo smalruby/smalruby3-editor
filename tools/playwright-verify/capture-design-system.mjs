@@ -26,7 +26,8 @@
  *   tmp/design-system/<番号>-<画面>.png        スクリーンショット
  *   tmp/design-system/styles.json              画面 → 部品 → スタイル (と hover) の値
  *   tmp/design-system/block-colours.json       `--colour-*` の値
- * 1 つでも開けなかった画面があれば exit 1。
+ * 開けなかった画面・切り抜けなかった画面・必須の部品が見つからない画面が 1 つでもあれば exit 1。
+ * DOCS_SHOTS=1 は 1366×1024 でメニューバーが 48px のときだけ (それ以外は撮る前に止める)。
  */
 import { chromium } from 'playwright';
 import { copyFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -78,7 +79,9 @@ const PROPS = [
 ];
 
 // CSS Modules の名前 (`<ファイル>_<クラス>_<ハッシュ>`) から部品を選ぶ。
-const cls = (file, name) => `[class*="${file}_${name}_"]`;
+// クラス名の先頭に固定する (`modal_header_` が `connection-modal_header_` に当たらないように)。
+// 組み合わせて使う (`${cls(a)}${cls(b)}` や `:not(${cls(a)})`) ので、カンマの並びではなく :is() で包む。
+const cls = (file, name) => `:is([class^="${file}_${name}_"], [class*=" ${file}_${name}_"])`;
 
 // docs/design-system/screenshots に置く見本 (少数だけ)。画面 id → ファイル名。
 // ファイル名は撮り直しても変えない (docs/_screenshot-guidelines.md)。
@@ -88,6 +91,24 @@ const DOC_SHOT_NAMES = {
     'variable-prompt': '0401-variable-prompt.png',
     'delete-sprite-confirm': '0402-delete-sprite-confirm.png',
 };
+
+// 見本 (DOCS_SHOTS=1) を撮ってよい viewport。上流の値が見える大きさに固定する。
+const DOCS_VIEWPORT = { width: 1366, height: 1024 };
+// 上流のメニューバーの高さ ($menu-bar-height = 3rem)。
+const UPSTREAM_MENU_BAR_HEIGHT = '48px';
+
+// ホバーを外すときにマウスを置く候補。ボタンなどの上でなく、ホバーで見た目が変わらない所
+// (メニューバーの右の空き・画面の上の端・左の端) を順に試す。どこに置いたかは styles.json に残す。
+const NEUTRAL_POINTS = [
+    [1000, 24],
+    [VW / 2, 1],
+    [1, VH / 2],
+];
+const HOVER_SETTLE_MS = 700;
+const RELEASE_WAIT_MS = 2100;
+// ホバーを外したあと、閉じる動き (action-menu の max-height 1s など) が終わってから撮る。
+const SHOT_SETTLE_MS = 1500;
+const INTERACTIVE = 'button, a, input, select, textarea, [role="button"], [role="menuitem"], [class*="hoverable"]';
 
 // ---- 画面を開く手順の部品 ----
 
@@ -146,6 +167,8 @@ const LIBRARY_ITEM = cls('library-item', 'library-item');
 
 // ライブラリ (拡張機能・スプライト・背景・コスチューム・音・チュートリアル) に共通の部品。
 // 拡張機能とチュートリアルには絞り込みが無いので、filter と tag は見つからなくてよい。
+// 絞り込みの部品。拡張機能のライブラリには無いので、そこでは optional にする。
+const FILTER_PARTS = ['filter-input', 'tag-button', 'tag-button-active'];
 const libraryParts = [
     { name: 'modal-header', selector: cls('modal', 'header') },
     { name: 'back-button', selector: cls('modal', 'back-button'), hover: true },
@@ -156,11 +179,26 @@ const libraryParts = [
     { name: 'library-item-name', selector: cls('library-item', 'library-item-name') },
 ];
 
+// メニューバーのメニュー (ファイル・編集) を開く。
+const openMenuBarMenu = async (page, label) => {
+    await page
+        .locator(`${cls('menu-bar', 'menu-bar-item')}`, { hasText: label })
+        .first()
+        .click();
+    await page.waitForSelector(cls('menu', 'menu'));
+};
+const menuParts = [
+    { name: 'menu', selector: cls('menu', 'menu') },
+    { name: 'menu-item', selector: `${cls('menu', 'menu')} ${cls('menu', 'menu-item')}`, hover: true },
+    { name: 'menu-section', selector: cls('menu', 'menu-section') },
+];
+
 /**
  * 撮る画面の一覧。上流 (Scratch) 由来の画面だけ (EPIC #1809 の「対象」)。
  * - setup: 画面を開く手順
  * - shot: 切り抜く部品 (無ければ画面全体)
- * - parts: スタイルを読む部品 (hover: true でホバーしたときの値も読む)
+ * - parts: スタイルを読む部品 (hover: true でホバーしたときの値も読む。
+ *          optional: true は無くてもよい部品。それ以外が見つからなければその画面は失敗)
  * - close: 次の画面のために閉じる手順 (無ければページを開き直す)
  */
 const SCENES = [
@@ -177,16 +215,16 @@ const SCENES = [
     {
         id: 'menu-file',
         title: 'ファイルのメニュー',
-        setup: async (page) => {
-            await page.locator(`${cls('menu-bar', 'file-group')} ${cls('menu-bar', 'menu-bar-item')}`, { hasText: 'ファイル' }).first().click();
-            await page.waitForSelector(cls('menu', 'menu'));
-        },
+        setup: (page) => openMenuBarMenu(page, 'ファイル'),
         shot: cls('menu', 'menu'),
-        parts: [
-            { name: 'menu', selector: cls('menu', 'menu') },
-            { name: 'menu-item', selector: `${cls('menu', 'menu')} ${cls('menu', 'menu-item')}`, hover: true },
-            { name: 'menu-section', selector: cls('menu', 'menu-section') },
-        ],
+        parts: menuParts,
+    },
+    {
+        id: 'menu-edit',
+        title: '編集のメニュー',
+        setup: (page) => openMenuBarMenu(page, '編集'),
+        shot: cls('menu', 'menu'),
+        parts: menuParts,
     },
     {
         id: 'code-tab',
@@ -247,7 +285,7 @@ const SCENES = [
         parts: [
             { name: 'modal-overlay', selector: cls('modal', 'modal-overlay') },
             { name: 'modal-content', selector: MODAL },
-            ...libraryParts,
+            ...libraryParts.map((p) => (FILTER_PARTS.includes(p.name) ? { ...p, optional: true } : p)),
         ],
     },
     {
@@ -440,6 +478,25 @@ const readBlockColours = (page) =>
         return out;
     });
 
+// ホバーを外すためにマウスを置く場所を選ぶ。ボタンなどの上でない所を返す。
+const neutralPoint = (page) =>
+    page.evaluate(
+        ({ points, interactive }) => {
+            for (const [x, y] of points) {
+                const el = document.elementFromPoint(x, y);
+                if (el && !el.closest(interactive)) return [x, y];
+            }
+            return points[0];
+        },
+        { points: NEUTRAL_POINTS, interactive: INTERACTIVE },
+    );
+
+const readMenuBarHeight = (page) =>
+    page.evaluate((sel) => {
+        const el = document.querySelector(sel);
+        return el ? getComputedStyle(el).height : null;
+    }, cls('menu-bar', 'menu-bar'));
+
 const openGui = async (page) => {
     await page.goto(`${BASE}/?no_beforeunload=1`, { waitUntil: 'load' });
     await page.waitForSelector('.blocklyWorkspace', { timeout: 90000 });
@@ -478,13 +535,24 @@ const main = async () => {
         page.on('dialog', (d) => d.dismiss().catch(() => {}));
         await openGui(page);
 
+        // 見本は上流の値が見える条件でだけ撮る (docs の画像を別の条件で上書きしない)。
+        if (DOCS_SHOTS) {
+            if (VIEWPORT.width !== DOCS_VIEWPORT.width || VIEWPORT.height !== DOCS_VIEWPORT.height) {
+                throw new Error(`DOCS_SHOTS=1 は ${DOCS_VIEWPORT.width}x${DOCS_VIEWPORT.height} のときだけ (いまは ${VW}x${VH})`);
+            }
+            const height = await readMenuBarHeight(page);
+            if (height !== UPSTREAM_MENU_BAR_HEIGHT) {
+                throw new Error(`DOCS_SHOTS=1 はメニューバーが ${UPSTREAM_MENU_BAR_HEIGHT} のときだけ (いまは ${height})`);
+            }
+        }
+
         const colours = await readBlockColours(page);
         writeFileSync(resolve(OUT_DIR, 'block-colours.json'), `${JSON.stringify(colours, null, 2)}\n`);
 
         for (const scene of scenes) {
             const num = String(SCENES.indexOf(scene) + 1).padStart(2, '0');
             const file = `${num}-${scene.id}.png`;
-            const row = { id: scene.id, title: scene.title, file, parts: 0, missing: [], error: null };
+            const row = { id: scene.id, title: scene.title, file, parts: 0, missing: [], optionalMissing: [], error: null };
             const data = { title: scene.title, screenshot: file, parts: {} };
             const errorShot = resolve(OUT_DIR, `${num}-${scene.id}-error.png`);
             rmSync(errorShot, { force: true }); // 前の実行で失敗したときの画像を残さない
@@ -496,30 +564,51 @@ const main = async () => {
                 for (const part of scene.parts) {
                     const style = await readStyle(page, part.selector);
                     if (!style) {
-                        row.missing.push(part.name);
-                        data.parts[part.name] = { selector: part.selector, found: false };
+                        (part.optional ? row.optionalMissing : row.missing).push(part.name);
+                        data.parts[part.name] = { selector: part.selector, found: false, optional: Boolean(part.optional) };
                         continue;
                     }
                     const entry = { selector: part.selector, found: true, style };
                     if (part.hover) {
                         try {
                             await page.locator(part.selector).first().hover({ timeout: 3000 });
-                            await page.waitForTimeout(400); // transition が終わるのを待つ
+                            // transition が終わるのを待つ (上流で一番長いのは action-menu の 0.5s)
+                            await page.waitForTimeout(HOVER_SETTLE_MS);
                             entry.hover = diff(style, await readStyle(page, part.selector));
                         } catch (e) {
                             entry.hover = { error: e.message.split('\n')[0] };
                         }
-                        await page.mouse.move(VIEWPORT.width - 2, VIEWPORT.height - 2);
-                        await page.waitForTimeout(300);
+                        const [x, y] = await neutralPoint(page);
+                        await page.mouse.move(x, y);
+                        entry.hoverReleasedAt = [x, y];
+                        // マウスを離したら元の値に戻ったか (置いた場所がホバーを起こしていないか) を確かめる。
+                        // 閉じるまで遅れる部品 (action-menu) があるので、少しのあいだ待ちながら見る。
+                        let back = {};
+                        for (let waited = 0; waited <= RELEASE_WAIT_MS; waited += HOVER_SETTLE_MS) {
+                            await page.waitForTimeout(HOVER_SETTLE_MS);
+                            back = diff(style, await readStyle(page, part.selector));
+                            if (!Object.keys(back).length) break;
+                        }
+                        if (Object.keys(back).length) {
+                            entry.hoverNotReleased = back;
+                            console.warn(`注意: ${scene.id}/${part.name} がホバーを外しても戻らない: ${JSON.stringify(back)}`);
+                        }
                     }
                     data.parts[part.name] = entry;
                     row.parts++;
                 }
 
+                if (scene.parts.some((p) => p.hover)) await page.waitForTimeout(SHOT_SETTLE_MS);
                 const path = resolve(OUT_DIR, file);
-                const target = scene.shot ? page.locator(scene.shot).first() : null;
-                if (target && (await target.count())) await target.screenshot({ path });
-                else await page.screenshot({ path });
+                if (scene.shot) {
+                    const target = page.locator(scene.shot).first();
+                    // 切り抜く部品が無いのに画面全体を撮ると、見本を別の画像で上書きしてしまう。
+                    if ((await target.count()) === 0) throw new Error(`切り抜く部品が見つからない: ${scene.shot}`);
+                    await target.screenshot({ path });
+                } else {
+                    await page.screenshot({ path });
+                }
+                if (row.missing.length) throw new Error(`必須の部品が見つからない: ${row.missing.join(', ')}`);
                 if (DOCS_SHOTS && DOC_SHOT_NAMES[scene.id]) {
                     copyFileSync(path, resolve(DOCS_DIR, DOC_SHOT_NAMES[scene.id]));
                 }
@@ -532,8 +621,16 @@ const main = async () => {
             rows.push(row);
 
             // 次の画面のために元に戻す。閉じ方の決まっていない画面はページを開き直す。
-            if (scene.close) await scene.close(page);
-            else if (scene.setup) await openGui(page);
+            // 戻せなかったらその画面の失敗にして、ページを開き直してから次へ進む。
+            try {
+                if (scene.close) await scene.close(page);
+                else if (scene.setup) await openGui(page);
+            } catch (e) {
+                const msg = `元に戻せない: ${e.message.split('\n')[0]}`;
+                row.error = row.error ? `${row.error} / ${msg}` : msg;
+                data.error = row.error;
+                await openGui(page);
+            }
         }
 
         // メニューバーが上流の高さ (3rem = 48px) か。違えばスモウルビーの「低い画面での圧縮」が効いている。
@@ -543,18 +640,21 @@ const main = async () => {
         }
     } finally {
         await browser.close();
+        // 途中で止まっても、そこまでに取れた値は残す。
+        writeFileSync(resolve(OUT_DIR, 'styles.json'), `${JSON.stringify(results, null, 2)}\n`);
     }
-
-    writeFileSync(resolve(OUT_DIR, 'styles.json'), `${JSON.stringify(results, null, 2)}\n`);
 
     console.log(`\n撮影: ${BASE} ${VIEWPORT.width}x${VIEWPORT.height} → ${OUT_DIR}`);
     for (const r of rows) {
         const mark = r.error ? 'NG' : 'OK';
-        const missing = r.missing.length ? ` (見つからない部品: ${r.missing.join(', ')})` : '';
-        console.log(`${mark} ${r.file}\t${r.title}\t部品 ${r.parts}${missing}${r.error ? `\n   ${r.error}` : ''}`);
+        const optional = r.optionalMissing.length ? ` (無くてよい部品で無かったもの: ${r.optionalMissing.join(', ')})` : '';
+        console.log(`${mark} ${r.file}\t${r.title}\t部品 ${r.parts}${optional}${r.error ? `\n   ${r.error}` : ''}`);
     }
     const failed = rows.filter((r) => r.error);
+    const missingRequired = rows.reduce((n, r) => n + r.missing.length, 0);
+    const missingOptional = rows.reduce((n, r) => n + r.optionalMissing.length, 0);
     console.log(`\n${rows.length - failed.length}/${rows.length} 画面を撮れた`);
+    console.log(`見つからない部品: 必須 ${missingRequired} / 無くてよい ${missingOptional}`);
     return failed.length ? 1 : 0;
 };
 
