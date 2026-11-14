@@ -17,10 +17,11 @@ Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual p
 
 - Class definitions are limited (only for sprite configuration)
 - **`module` and `include` ARE supported** — use to share `def` methods across sprites
-- Loops use `loop do...end`, `N.times do...end`, `while...end`, `until...end` (no `for`/`each`)
+- Loops use `loop do...end`, `N.times do...end`, `while...end`, `until...end`, and `each do |x|...end` on a variable that holds an array or a hash (no `for`)
 - Variables: instance (`@score`), global (`$score`), local (`score`)
 - String interpolation (`"#{var}"`) is NOT supported
-- `require`, `puts`/`print`/`p`, exception handling (`begin/rescue`) are NOT supported
+- `require`, exception handling (`begin/rescue`) are NOT supported
+- `puts`/`print`/`p` become the "say (value) for 1 second" block
 - Compound assignment operators `+=`, `-=`, `*=`, `/=`, `%=` ARE supported
 - Recursion is NOT supported
 
@@ -302,6 +303,17 @@ end
   turn_right(36)
 end
 
+# Each item of a variable that holds an array or a hash
+@items = ["apple", "banana"]
+@items.each do |item|
+  say(item)
+end
+
+@scores = {a: 1, b: 2}
+@scores.each do |key, value|
+  say(key)
+end
+
 # While loop
 i = 0
 while i < 5
@@ -319,7 +331,7 @@ end
 
 A loop with nothing in it: `wait until condition` and `until condition` / `end` (without `do`) become "wait until"; `until condition do` / `end` (or `until condition` with only `with_screen_refresh do` / `end` in it) becomes an empty "repeat until", and blocks → Ruby writes an empty "repeat until" that way, so the round trip keeps the kind of block. The same goes for `while`. `wait` in the body of `until` / `while` ... `end` (also inside `with_screen_refresh do ... end`) stays: the loop gets the comment marker `@ruby:method:wait` (with `@ruby:method:with_screen_refresh` when both are written) and blocks → Ruby writes `wait` back at the end of the body.
 
-**Note**: `for` and `each` loops are NOT supported.
+**Note**: `for` loops are NOT supported. `each` can be used on a variable that holds an array or a hash (calling it directly on an array literal, such as `[1, 2].each`, is an error; put the array in a variable first).
 
 **Important — Loop auto-wait**: `loop do...end`, `N.times do...end`, `while...end`, and `until...end` automatically wait 1 frame (~33ms, 30fps) at each iteration end. Do NOT add `sleep()` for animation speed control. Only use `sleep()` for explicit long waits (0.5s or more).
 
@@ -390,7 +402,7 @@ greet("hello")
 - Keyword arguments are not supported (`def foo(name:)` is invalid)
 - Arguments cannot be assigned to (`name = "x"` and `name += 1` are errors; copy the argument to another variable and change that one)
 - Class methods (`def self.method`) cannot be defined
-- `attr_accessor`/`attr_reader`/`attr_writer` are not supported
+- `attr_accessor`/`attr_reader`/`attr_writer` can be used in a class definition (after `attr_accessor :hp`, read it with `hp` and set it with `self.hp = 1`)
 - Method overloading is not supported
 - Recursion is not supported
 
@@ -525,6 +537,7 @@ The value of `super` can be used like any other value, as in `return super`, `re
 |---|---|---|
 | `say(message)` | Speech bubble | `say("hello")` |
 | `say(message, seconds)` | Speech bubble for seconds | `say("hi", 2)` |
+| `puts(value)` / `print(value)` / `p(value)` | Same as "say (value) for 1 second". Back in Ruby, the method name comes back | `puts(1)` |
 | `think(message)` | Thought bubble | `think("hmm")` |
 | `think(message, seconds)` | Thought bubble for seconds | `think("hmm", 2)` |
 | `switch_costume("name")` | Switch costume | `switch_costume("costume2")` |
@@ -734,7 +747,7 @@ One name cannot be both a variable and a list (Scratch can have a variable and a
 The following Ruby syntax is **NOT supported** in Smalruby:
 
 - `for` loops
-- `each` method (calling `each` / `first` / `last` / `max` / `min` / `sort` / `reverse` / `join` directly on an array literal, such as `[1, 2].each do |i|` or `[1, 2].first`, is an error that shows the line when converting to blocks. Put the array in a variable first: `@a = [1, 2]` → `@a.first`)
+- Methods called directly on an array literal (calling `each` / `first` / `last` / `max` / `min` / `sort` / `reverse` / `join` directly on an array literal, such as `[1, 2].each do |i|` or `[1, 2].first`, is an error that shows the line when converting to blocks. Put the array in a variable first: `@a = [1, 2]` → `@a.first`, `@a.each do |i|`)
 - `rescue` / `else` / `ensure` (exception handling, including `def ... rescue ... end`, `do ... rescue ... end` and the modifier `x rescue y`. It is an error that shows the line of the clause when converting to blocks. `begin ... end` with no clause, and `begin ... end while`, can be used)
 - `module_function`, `extend` (`module` and `include` are supported)
 - `private` / `protected` / `public` (including `private :foo` and `private def foo ... end`; they are an error wherever they are written, so delete them. For `private def foo ... end`, delete `private` and `def foo ... end` can be used. Calling a method you defined yourself as `def private ... end` is not an error)
@@ -742,11 +755,10 @@ The following Ruby syntax is **NOT supported** in Smalruby:
 - String interpolation (`"Hello #{name}"`)
 - Multiple assignment (`a, b = 1, 2`)
 - Splat arguments (`*args`)
-- Block-argument iterators (`each { |x| ... }`)
+- Iterators with a block other than `each` (`map` / `select` / `each_with_index`, ...; `each` and `N.times do |i|` can be used)
 - Procs / Lambdas
 - `yield`
 - `open` / File I/O
-- `puts` / `print` / `p` (use `say()` instead)
 
 ## 6. Common Mistakes
 
@@ -829,13 +841,14 @@ self.size += 10
 ```
 
 ```ruby
-# ❌ each is not supported
+# ❌ each cannot be used directly on an array literal
 [1, 2, 3].each do |n|
   say(n)
 end
 
-# ✅ Use times
-3.times do
-  say("hello")
+# ✅ Put the array in a variable first, then use each
+@numbers = [1, 2, 3]
+@numbers.each do |n|
+  say(n)
 end
 ```
