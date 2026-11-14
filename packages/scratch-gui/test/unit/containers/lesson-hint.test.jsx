@@ -31,7 +31,9 @@ jest.mock('../../../src/lib/ruby-to-blocks-converter', () => ({
 // 図の変換（本物は Ruby → ブロック）は lib のテストで確かめるので、ここでは置き方を返すだけにする
 jest.mock('../../../src/lib/lessons/activity-diagram/use-challenge-activity-diagram', () => ({
     useChallengeActivityDiagram: (challenge) =>
-        challenge && challenge.activityDiagram ? { width: 40, height: 30, shapes: [], edges: [] } : null,
+        challenge && challenge.activityDiagram
+            ? { width: 40, height: 30, shapes: [{ type: 'end', x: 0, y: 0, w: 16, h: 16 }], edges: [] }
+            : null,
 }));
 
 const CHALLENGE_ID = 'blocks-l1-click-say';

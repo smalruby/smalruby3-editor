@@ -339,7 +339,8 @@ const LessonHint = ({
                 variant={BALLOON_VARIANTS.PANEL}
                 arrowSide={arrow ? side : null}
                 arrowStyle={arrowStyle}
-                className={styles.balloon}
+                // 図のあるページは、図が字の読める大きさのまま収まるよう吹き出しを少し広げる
+                className={hasDiagram ? styles.balloonWide : styles.balloon}
                 data-testid="lesson-hint"
                 data-side={side}
                 data-target={target || ''}

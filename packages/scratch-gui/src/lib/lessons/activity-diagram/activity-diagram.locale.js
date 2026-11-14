@@ -6,6 +6,7 @@ const P = 'gui.lessons.activityDiagram.';
 
 export const ja = {
     [`${P}ariaLabel`]: 'アクティビティ図',
+    [`${P}seeHint`]: '図はヒントの 1 ページ目で見られます',
     [`${P}literal`]: '「{text}」',
     [`${P}empty`]: '◯',
     [`${P}yes`]: 'はい',
@@ -58,6 +59,7 @@ export const ja = {
 
 export const jaHira = {
     [`${P}ariaLabel`]: 'アクティビティず',
+    [`${P}seeHint`]: 'ずはヒントの 1 ページめでみられます',
     [`${P}literal`]: '「{text}」',
     [`${P}empty`]: '◯',
     [`${P}yes`]: 'はい',
@@ -110,6 +112,7 @@ export const jaHira = {
 
 export const en = {
     [`${P}ariaLabel`]: 'Activity diagram',
+    [`${P}seeHint`]: 'See the diagram on page 1 of the hint',
     [`${P}literal`]: '"{text}"',
     [`${P}empty`]: '( )',
     [`${P}yes`]: 'yes',

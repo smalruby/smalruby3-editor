@@ -29,7 +29,7 @@ const START_R = 7;
 const END_R = 8;
 const ACTION_PAD_X = 10;
 const ACTION_PAD_Y = 5;
-const ACTION_MAX_TEXT = 170;
+const ACTION_MAX_TEXT = 192;
 const DECISION_MAX_TEXT = 120;
 const MERGE_SIZE = 14;
 const COL_GAP = 20;
@@ -308,15 +308,21 @@ const placeLoop = (node, cx, y, out) => {
 
 const startLabel = (script) => (script.start ? wrapText(script.start, ACTION_MAX_TEXT, SMALL_FONT_SIZE) : []);
 
+// 最後が「ずっと」のスクリプトは終わらないので、終了の記号とそこへの矢印を描かない
+const endsForever = (script) => {
+    const last = script.body[script.body.length - 1];
+    return Boolean(last && last.kind === NODE_KINDS.LOOP && last.forever);
+};
+
 const measureScript = (script) => {
     const body = measureSeq(script.body);
     const lines = startLabel(script);
     const labelRight = lines.length > 0 ? START_R + 6 + linesWidth(lines, SMALL_FONT_SIZE) : START_R;
-    const bodyH = body.h === 0 ? 0 : body.h + GAP;
+    const end = endsForever(script) ? 0 : END_R * 2 + (body.h === 0 ? 0 : GAP);
     return {
         left: Math.max(body.left, END_R, START_R),
         right: Math.max(body.right, END_R, labelRight),
-        h: START_R * 2 + GAP + bodyH + END_R * 2,
+        h: START_R * 2 + GAP + body.h + end,
         lines,
     };
 };
@@ -340,6 +346,7 @@ const placeScript = (script, cx, y, out) => {
     top += GAP;
     if (script.body.length > 0) {
         top = placeSeq(script.body, cx, top, out);
+        if (endsForever(script)) return;
         addEdge(out, [
             [cx, top],
             [cx, top + GAP],
@@ -386,6 +393,23 @@ const measureLane = (lane) => {
         w: targets.reduce((sum, t) => sum + t.w, 0) + SCRIPT_GAP * Math.max(0, targets.length - 1),
         h: Math.max(0, ...targets.map((t) => t.h)),
     };
+};
+
+// 縮めてよい下限。いちばん小さい字（11）が 10px より小さくならないところまで
+export const MIN_DIAGRAM_SCALE = 10 / SMALL_FONT_SIZE;
+
+/**
+ * 図を、決まった幅・高さの中にどれだけ縮めて描くか。縮めるのは下限（`MIN_DIAGRAM_SCALE`）まで。
+ * 下限まで縮めても入らないときは `fits: false`（呼ぶ側が、枠の中をスクロールさせるか、図の代わりに案内を出す）。
+ * @param {{width: number, height: number}} layout - 置き方。
+ * @param {object} box - 入れる場所。
+ * @param {number} box.maxWidth - 幅の上限（px）。
+ * @param {number} box.maxHeight - 高さの上限（px）。
+ * @returns {{scale: number, fits: boolean}} 倍率（1 を超えない）と、下限までで入るか。
+ */
+export const diagramScaleFor = (layout, { maxWidth, maxHeight }) => {
+    const want = Math.min(1, maxWidth / layout.width, maxHeight / layout.height);
+    return { scale: Math.max(want, MIN_DIAGRAM_SCALE), fits: want >= MIN_DIAGRAM_SCALE };
 };
 
 /**

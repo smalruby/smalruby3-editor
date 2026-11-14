@@ -4,7 +4,7 @@ import { render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import LessonActivityDiagram from '../../../src/components/lesson-activity-diagram/lesson-activity-diagram.jsx';
-import { layoutActivityDiagram } from '../../../src/lib/lessons/activity-diagram/layout';
+import { layoutActivityDiagram, MIN_DIAGRAM_SCALE } from '../../../src/lib/lessons/activity-diagram/layout';
 import { NODE_KINDS } from '../../../src/lib/lessons/activity-diagram/model';
 import ja from '../../../src/locales/ja';
 
@@ -27,10 +27,10 @@ const quiz = [
     },
 ];
 
-const renderDiagram = (layout) =>
+const renderDiagram = (layout, props = {}) =>
     render(
         <IntlProvider locale="ja" messages={ja}>
-            <LessonActivityDiagram layout={layout} />
+            <LessonActivityDiagram layout={layout} {...props} />
         </IntlProvider>,
     );
 
@@ -44,7 +44,8 @@ describe('LessonActivityDiagram', () => {
         expect(svg.getAttribute('aria-label')).toBe('アクティビティ図');
         const count = (shape) => container.querySelectorAll(`[data-shape="${shape}"]`).length;
         expect(count('start')).toBe(1);
-        expect(count('end')).toBe(1);
+        // 最後が「ずっと」なので終了は描かない
+        expect(count('end')).toBe(0);
         expect(count('action')).toBe(3);
         expect(count('decision')).toBe(1);
         expect(count('merge')).toBe(1);
@@ -74,8 +75,30 @@ describe('LessonActivityDiagram', () => {
         expect(getByTestId('lesson-activity-diagram').textContent).toContain('ロボ');
     });
 
-    test('draws nothing without a layout', () => {
-        const { container } = renderDiagram(null);
-        expect(container.querySelector('svg')).toBeNull();
+    test('draws nothing without a layout or without any script', () => {
+        expect(renderDiagram(null).container.querySelector('svg')).toBeNull();
+        const empty = layoutActivityDiagram(model([lane(null, [])]));
+        expect(renderDiagram(empty).container.querySelector('svg')).toBeNull();
+    });
+
+    test('has a title and a text alternative that describes the flow', () => {
+        const layout = { ...layoutActivityDiagram(model([lane(null, quiz)])), description: '旗が押されたとき → a' };
+        const { getByTestId } = renderDiagram(layout);
+        const svg = getByTestId('lesson-activity-diagram');
+        expect(svg.querySelector('title').textContent).toBe('アクティビティ図');
+        const desc = svg.querySelector('desc');
+        expect(desc.textContent).toBe('旗が押されたとき → a');
+        expect(svg.getAttribute('aria-describedby')).toBe(desc.id);
+    });
+
+    test('does not shrink below the readable scale, and draws at the given scale', () => {
+        const layout = layoutActivityDiagram(model([lane(null, quiz)]));
+        const first = renderDiagram(layout);
+        const free = first.getByTestId('lesson-activity-diagram');
+        expect(parseFloat(free.style.minHeight)).toBeCloseTo(layout.height * MIN_DIAGRAM_SCALE);
+        expect(parseFloat(free.style.minWidth)).toBeCloseTo(layout.width * MIN_DIAGRAM_SCALE);
+        first.unmount();
+        const fixed = renderDiagram(layout, { scale: 0.95 }).getByTestId('lesson-activity-diagram');
+        expect(parseFloat(fixed.style.height)).toBeCloseTo(layout.height * 0.95);
     });
 });

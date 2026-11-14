@@ -10,8 +10,20 @@ import {
     showsActivityDiagram,
 } from '../../../../src/lib/lessons/activity-diagram/challenge-diagram';
 import { formatFromTable } from '../../../../src/lib/lessons/activity-diagram/labels';
-import { DIAGRAM_SHAPES, layoutActivityDiagram } from '../../../../src/lib/lessons/activity-diagram/layout';
-import { buildActivityModel, NODE_KINDS, partnerLane } from '../../../../src/lib/lessons/activity-diagram/model';
+import {
+    DIAGRAM_SHAPES,
+    diagramScaleFor,
+    FONT_SIZE,
+    layoutActivityDiagram,
+    MIN_DIAGRAM_SCALE,
+    SMALL_FONT_SIZE,
+} from '../../../../src/lib/lessons/activity-diagram/layout';
+import {
+    buildActivityModel,
+    describeActivityModel,
+    NODE_KINDS,
+    partnerLane,
+} from '../../../../src/lib/lessons/activity-diagram/model';
 import { defineChallenge, findChallenge } from '../../../../src/lib/lessons/courses';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 
@@ -145,8 +157,15 @@ describe('partnerLane', () => {
         const lane = partnerLane(
             {
                 name: 'ロボ',
-                buttons: [{ label: 'あいさつ', send: 'こんにちは' }],
-                replies: [{ receive: 'こんにちは', send: 'やあ' }],
+                buttons: [
+                    {
+                        label: 'あいさつ',
+                        set: { variable: 'メッセージ', value: 'こんにちは' },
+                        broadcast: 'とどいた',
+                    },
+                    { label: '3 にする', set: { variable: '点数', value: 3 } },
+                ],
+                replies: [{ onBroadcast: 'こんにちは', broadcast: 'やあ' }],
             },
             { format: formatJa },
         );
@@ -154,8 +173,16 @@ describe('partnerLane', () => {
         const scripts = lane.targets[0].scripts;
         expect(scripts).toEqual([
             {
+                // set（共有する変数を変える）→ broadcast（合図を送る）の順
                 start: '「あいさつ」ボタンを押したとき',
-                body: [{ kind: NODE_KINDS.ACTION, label: '「こんにちは」を送る' }],
+                body: [
+                    { kind: NODE_KINDS.ACTION, label: 'メッセージを「こんにちは」にする' },
+                    { kind: NODE_KINDS.ACTION, label: '「とどいた」を送る' },
+                ],
+            },
+            {
+                start: '「3 にする」ボタンを押したとき',
+                body: [{ kind: NODE_KINDS.ACTION, label: '点数を3にする' }],
             },
             {
                 start: '「こんにちは」を受け取ったとき',
@@ -164,10 +191,27 @@ describe('partnerLane', () => {
         ]);
     });
 
+    test('a reply can change a shared variable too', () => {
+        const lane = partnerLane(
+            { name: 'ロボ', replies: [{ onBroadcast: 'ping', set: [{ variable: 'へんじ', value: 'pong' }] }] },
+            { format: formatJa },
+        );
+        expect(lane.targets[0].scripts).toEqual([
+            {
+                start: '「ping」を受け取ったとき',
+                body: [{ kind: NODE_KINDS.ACTION, label: 'へんじを「pong」にする' }],
+            },
+        ]);
+    });
+
     test('no partner (or a partner without anything to draw) gives no lane', () => {
         expect(partnerLane(null, { format: formatJa })).toBeNull();
         expect(partnerLane(undefined, { format: formatJa })).toBeNull();
         expect(partnerLane({ name: 'ロボ' }, { format: formatJa })).toBeNull();
+        // 形の合わない項目（ラベルの無いボタン・onBroadcast の無い返事）は描かない
+        expect(
+            partnerLane({ name: 'ロボ', buttons: [{}], replies: [{ broadcast: 'x' }] }, { format: formatJa }),
+        ).toBeNull();
     });
 });
 
@@ -234,7 +278,7 @@ describe('layoutActivityDiagram', () => {
         const action = layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.ACTION);
         expect(action.lines.length).toBeGreaterThan(1);
         expect(action.lines.join('')).toBe(`「${long}」と言う`);
-        expect(action.w).toBeLessThanOrEqual(200);
+        expect(action.w).toBeLessThanOrEqual(212);
     });
 
     test('scripts sit side by side; lanes get a header and a separator only when there are 2 or more', async () => {
@@ -248,7 +292,7 @@ describe('layoutActivityDiagram', () => {
         expect(single.shapes.filter((s) => s.type === DIAGRAM_SHAPES.LANE)).toHaveLength(0);
 
         const partner = partnerLane(
-            { name: 'ロボ', replies: [{ receive: 'あいさつ', send: 'やあ' }] },
+            { name: 'ロボ', replies: [{ onBroadcast: 'あいさつ', broadcast: 'やあ' }] },
             { format: formatJa },
         );
         const swim = layoutActivityDiagram({ lanes: [{ ...own, label: 'あなた' }, partner] });
@@ -344,7 +388,7 @@ describe('challenge definition', () => {
             id: 'x',
             activityDiagram: true,
             code: 'when_flag_clicked do\n  broadcast("あいさつ")\nend\n',
-            partner: { name: 'ロボ', replies: [{ receive: 'あいさつ', send: 'やあ' }] },
+            partner: { name: 'ロボ', replies: [{ onBroadcast: 'あいさつ', broadcast: 'やあ' }] },
         });
         const diagram = await challengeActivityDiagram(challenge, {
             locale: 'ja',
@@ -362,5 +406,141 @@ describe('challenge definition', () => {
             { locale: 'ja', format: formatJa, toBlocks: () => Promise.resolve(null) },
         );
         expect(broken).toBeNull();
+    });
+});
+
+describe('more shapes', () => {
+    test('repeat until is a loop with its condition', async () => {
+        const script = onlyScript(
+            await modelOf('when_flag_clicked do\n  until answer == "おわり"\n    ask("なに？")\n  end\nend\n'),
+        );
+        expect(script.body).toEqual([
+            {
+                kind: NODE_KINDS.LOOP,
+                label: '答え = 「おわり」までくり返す',
+                forever: false,
+                body: [{ kind: NODE_KINDS.ACTION, label: '「なに？」と聞いて待つ' }],
+            },
+        ]);
+    });
+
+    test('nested if / else in a loop and a loop in a branch do not overlap', async () => {
+        const model = await modelOf(
+            'when_flag_clicked do\n  loop do\n    if answer == 1\n      3.times do\n        say("とても長いセリフを言います")\n' +
+                '      end\n    else\n      if answer == 2\n        say("に")\n      else\n        say("ほか")\n      end\n' +
+                '    end\n  end\nend\n',
+        );
+        const [outer] = onlyScript(model).body;
+        expect(outer.kind).toBe(NODE_KINDS.LOOP);
+        const [decision] = outer.body;
+        expect(decision.kind).toBe(NODE_KINDS.DECISION);
+        expect(decision.yes[0].kind).toBe(NODE_KINDS.LOOP);
+        expect(decision.no[0].kind).toBe(NODE_KINDS.DECISION);
+        const layout = layoutActivityDiagram(model);
+        const frames = layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.LOOP);
+        const [outerFrame, innerFrame] = frames;
+        const said = (label) => layout.shapes.find((s) => s.label === label);
+        // はいの枝（くり返しの枠）が、いいえの枝（入れ子の分岐とその箱）より左にあって重ならない
+        const noShapes = [said('「に」と言う'), said('「ほか」と言う')];
+        noShapes.forEach((shape) => expect(innerFrame.x + innerFrame.w).toBeLessThanOrEqual(shape.x));
+        // どれも外の枠の中
+        layout.shapes
+            .filter((s) => s !== outerFrame && s.type !== DIAGRAM_SHAPES.START && s.type !== DIAGRAM_SHAPES.GUARD)
+            .forEach((s) => {
+                expect(s.x).toBeGreaterThanOrEqual(outerFrame.x);
+                expect(s.x + s.w).toBeLessThanOrEqual(outerFrame.x + outerFrame.w);
+            });
+    });
+
+    test('a script that ends with forever has no end symbol', async () => {
+        const layout = layoutActivityDiagram(
+            await modelOf('when_flag_clicked do\n  loop do\n    say("a")\n  end\nend\n'),
+        );
+        expect(layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.END)).toHaveLength(0);
+        const frame = layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.LOOP);
+        // 枠の下から先へ出る矢印も無い
+        expect(layout.edges.every((e) => e.points.every(([, y]) => y <= frame.y + frame.h))).toBe(true);
+        // ずっとのあとに続きがあるとき（ずっとが最後でない）は終了を描く
+        const repeat = layoutActivityDiagram(
+            await modelOf('when_flag_clicked do\n  3.times do\n    say("a")\n  end\nend\n'),
+        );
+        expect(repeat.shapes.filter((s) => s.type === DIAGRAM_SHAPES.END)).toHaveLength(1);
+    });
+
+    test('an answer without scripts gives no diagram', async () => {
+        const diagram = await challengeActivityDiagram(
+            defineChallenge({ id: 'x', activityDiagram: true, code: '# メモだけ\n' }),
+            { locale: 'ja', format: formatJa, toBlocks: (source) => toBlocks(source.code) },
+        );
+        expect(diagram).toBeNull();
+    });
+});
+
+describe('describeActivityModel', () => {
+    test('writes the flow as text (for screen readers)', async () => {
+        const { challenge } = findChallenge('blocks-l1-quiz');
+        const text = describeActivityModel(await modelOf(challenge.code.ja), { yes: 'はい', no: 'いいえ' });
+        expect(text).toBe(
+            'このスプライトが押されたとき → 「4+3=?」と聞いて待つ → 答え = 7？' +
+                '（はい: 「正解です」と2秒言う / いいえ: 「ちがいます」と2秒言う）',
+        );
+    });
+
+    test('the diagram of a challenge carries the text', async () => {
+        const challenge = defineChallenge({
+            id: 'x',
+            activityDiagram: true,
+            code: 'when_flag_clicked do\n  loop do\n    say("a")\n  end\nend\n',
+            partner: { name: 'ロボ', replies: [{ onBroadcast: 'あ', broadcast: 'い' }] },
+        });
+        const diagram = await challengeActivityDiagram(challenge, {
+            locale: 'ja',
+            format: formatJa,
+            toBlocks: (source) => toBlocks(source.code),
+        });
+        expect(diagram.layout.description.split('\n')).toEqual([
+            'あなた: 旗が押されたとき → ずっとくり返す（「a」と言う）',
+            'ロボ: 「あ」を受け取ったとき → 「い」を送る',
+        ]);
+    });
+});
+
+describe('diagramScaleFor (the smallest scale keeps the text readable)', () => {
+    // 1300×600 の課題の全文のパネルで図に使える大きさ（lesson-task-bar.jsx と同じ式）
+    const FULL_TEXT = { maxWidth: 1300 - 36, maxHeight: 600 * 0.6 - 136 };
+
+    test('the smallest scale keeps every text 10px or larger', () => {
+        expect(SMALL_FONT_SIZE * MIN_DIAGRAM_SCALE).toBeGreaterThanOrEqual(10);
+        expect(FONT_SIZE * MIN_DIAGRAM_SCALE).toBeGreaterThanOrEqual(10);
+    });
+
+    test('a small diagram is drawn as it is', () => {
+        expect(diagramScaleFor({ width: 200, height: 100 }, FULL_TEXT)).toEqual({ scale: 1, fits: true });
+    });
+
+    test('a diagram a little too tall shrinks, down to the smallest scale', () => {
+        const { scale, fits } = diagramScaleFor({ width: 200, height: 240 }, FULL_TEXT);
+        expect(fits).toBe(true);
+        expect(scale).toBeCloseTo(224 / 240);
+    });
+
+    test('a diagram too tall even at the smallest scale does not fit and stays at the smallest scale', () => {
+        expect(diagramScaleFor({ width: 200, height: 600 }, FULL_TEXT)).toEqual({
+            scale: MIN_DIAGRAM_SCALE,
+            fits: false,
+        });
+    });
+
+    test('a chat answer of about 8 blocks does not fit the full text at 1300×600 (it shows on the hint instead)', async () => {
+        const layout = layoutActivityDiagram(
+            await modelOf(
+                'when_receive("とどいた") do\n  ask("メッセージは？")\n  $メッセージ = answer\n  broadcast("おくる")\n' +
+                    '  say($メッセージ, 2)\n  $回数 += 1\n  sleep(1)\n  say("おくったよ")\nend\n',
+            ),
+        );
+        expect(diagramScaleFor(layout, FULL_TEXT).fits).toBe(false);
+        // 1 本の短い答え（4 ブロック）は入る
+        const { challenge } = findChallenge('blocks-l1-quiz');
+        expect(diagramScaleFor(layoutActivityDiagram(await modelOf(challenge.code.ja)), FULL_TEXT).fits).toBe(true);
     });
 });

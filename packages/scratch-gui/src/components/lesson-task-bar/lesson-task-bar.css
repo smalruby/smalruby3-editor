@@ -159,15 +159,16 @@
 }
 
 /*
-    答えのプログラムから描いたアクティビティ図。1300×600 では全文のパネル（最大 60vh = 360px）に、2〜3 行の
-    課題の文といっしょにスクロールなしで収まるよう、縦は 60vh から文の分を引いた高さまで（SVG は縦横の比のまま
-    縮む）。マウスで乗せて出すパネルは中をスクロールできない（pointer-events: none）ので、はみ出させない
+    答えのプログラムから描いたアクティビティ図。大きさは lesson-task-bar.jsx が決める（パネルの 60vh から文の分を
+    引いた高さまで縮め、字が読める下限より小さくしない。入らなければ図の代わりに案内の 1 行を出す）。マウスで
+    乗せて出すパネルは中をスクロールできない（pointer-events: none）ので、はみ出させない
 */
 .full-text-diagram {
     display: flex;
     max-width: 100%;
 }
 
-.full-text-diagram > svg {
-    max-height: calc(60vh - 8.5rem);
+.full-text-diagram-note {
+    margin: 0;
+    font-size: 1rem;
 }

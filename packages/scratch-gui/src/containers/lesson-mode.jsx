@@ -7,7 +7,6 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
-import LessonActivityDiagram from '../components/lesson-activity-diagram/lesson-activity-diagram.jsx';
 import LessonAssignmentBand from '../components/lesson-assignment-band/lesson-assignment-band.jsx';
 import LessonTaskBar from '../components/lesson-task-bar/lesson-task-bar.jsx';
 import { applyDeckSetup } from '../lib/deck-setup';
@@ -202,7 +201,7 @@ const LessonMode = ({
     return (
         <>
             <LessonTaskBar
-                activityDiagram={activityDiagram ? <LessonActivityDiagram layout={activityDiagram} /> : null}
+                activityDiagram={activityDiagram}
                 assignmentBand={
                     assignmentStatus ? <LessonAssignmentBand status={assignmentStatus} variant="compact" /> : null
                 }

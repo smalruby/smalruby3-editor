@@ -5,7 +5,7 @@
 // 練習相手の定義（`partner`）があれば、自分と相手のスイムレーンにする。
 import { localizeCode } from '../courses';
 import { layoutActivityDiagram } from './layout';
-import { buildActivityModel, partnerLane } from './model';
+import { buildActivityModel, countScripts, describeActivityModel, partnerLane } from './model';
 
 const P = 'gui.lessons.activityDiagram.';
 
@@ -45,7 +45,8 @@ export const activityDiagramLanes = (challenge, locale) => {
 };
 
 /**
- * チャレンジのアクティビティ図を作る。出さないチャレンジ・変換できなかったときは null。
+ * チャレンジのアクティビティ図を作る。出さないチャレンジ・変換できなかったとき・スクリプトが無いときは null。
+ * 置き方（layout）には、流れを文にした代わりの文（`description`）も付ける。
  * @param {object} challenge - チャレンジ。
  * @param {object} options - 作り方。
  * @param {string} options.locale - いまの locale。
@@ -79,6 +80,10 @@ export const challengeActivityDiagram = async (
     }
     const model = buildActivityModel({ lanes }, { format, blockName });
     if (partner) model.lanes.push(partner);
-    const layout = layoutActivityDiagram(model, { yes: format(`${P}yes`), no: format(`${P}no`) });
+    // 答えにスクリプトが無い（コメントだけなど）ときは、空の枠を出さない
+    if (countScripts(model) === 0) return null;
+    const guards = { yes: format(`${P}yes`), no: format(`${P}no`) };
+    // 代わりの文（流れを文にしたもの）は置き方といっしょに描く側へ渡す
+    const layout = { ...layoutActivityDiagram(model, guards), description: describeActivityModel(model, guards) };
     return { model, layout };
 };

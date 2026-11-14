@@ -5,7 +5,12 @@
 import PropTypes from 'prop-types';
 import React, { useId } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
-import { DIAGRAM_SHAPES, FONT_SIZE, SMALL_FONT_SIZE } from '../../lib/lessons/activity-diagram/layout';
+import {
+    DIAGRAM_SHAPES,
+    FONT_SIZE,
+    MIN_DIAGRAM_SCALE,
+    SMALL_FONT_SIZE,
+} from '../../lib/lessons/activity-diagram/layout';
 import styles from './lesson-activity-diagram.css';
 
 const messages = defineMessages({
@@ -141,11 +146,20 @@ Shape.propTypes = {
     }).isRequired,
 };
 
-const LessonActivityDiagram = ({ className = null, layout }) => {
+const LessonActivityDiagram = ({ className = null, layout, scale = null }) => {
     const intl = useIntl();
-    // 課題の全文とヒントで同時に描くことがあるので、矢じりの id はコンポーネントごとに分ける
-    const markerId = `lesson-activity-diagram-arrow-${useId().replace(/:/g, '')}`;
-    if (!layout) return null;
+    // 課題の全文とヒントで同時に描くことがあるので、矢じりなどの id はコンポーネントごとに分ける
+    const idBase = `lesson-activity-diagram-${useId().replace(/:/g, '')}`;
+    const markerId = `${idBase}-arrow`;
+    const descId = `${idBase}-desc`;
+    // スクリプトが 1 つも無い図（空の枠）は描かない
+    if (!layout || layout.shapes.length === 0) return null;
+    // scale があればその大きさで描く。無ければ入れる場所の CSS（max-width / max-height）で縮み、
+    // 字が読めなくならないよう下限（MIN_DIAGRAM_SCALE）より小さくはしない（入らなければ入れる側がスクロールさせる）
+    const sizeStyle =
+        scale === null
+            ? { minWidth: layout.width * MIN_DIAGRAM_SCALE, minHeight: layout.height * MIN_DIAGRAM_SCALE }
+            : { width: layout.width * scale, height: layout.height * scale, maxWidth: 'none', maxHeight: 'none' };
     // レーンの枠 → 矢印 → 記号の順に描く（記号の白で線の端が隠れるように）
     const lanes = layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.LANE);
     const others = layout.shapes.filter((s) => s.type !== DIAGRAM_SHAPES.LANE);
@@ -155,13 +169,18 @@ const LessonActivityDiagram = ({ className = null, layout }) => {
             data-testid="lesson-activity-diagram"
             role="img"
             aria-label={intl.formatMessage(messages.ariaLabel)}
+            aria-describedby={layout.description ? descId : null}
             viewBox={`0 0 ${layout.width} ${layout.height}`}
             width={layout.width}
             height={layout.height}
             // 縦の上限で縮んだときも左上にそろえる（幅だけ残って真ん中に寄らないように）
             preserveAspectRatio="xMinYMin meet"
+            style={sizeStyle}
             xmlns="http://www.w3.org/2000/svg"
         >
+            <title>{intl.formatMessage(messages.ariaLabel)}</title>
+            {/* 流れを文にした代わりの文（スクリーンリーダー向け。「読んで作る」は図だけで指示するため） */}
+            {layout.description ? <desc id={descId}>{layout.description}</desc> : null}
             <defs>
                 <marker
                     id={markerId}
@@ -202,7 +221,11 @@ LessonActivityDiagram.propTypes = {
         height: PropTypes.number.isRequired,
         shapes: PropTypes.arrayOf(PropTypes.object).isRequired,
         edges: PropTypes.arrayOf(PropTypes.object).isRequired,
+        // 流れを文にした代わりの文（challenge-diagram.js が付ける）
+        description: PropTypes.string,
     }),
+    // 描く倍率（課題の全文のように、入れる側が大きさを決めるとき）。無ければ CSS で縮み、下限で止まる
+    scale: PropTypes.number,
 };
 
 export default LessonActivityDiagram;

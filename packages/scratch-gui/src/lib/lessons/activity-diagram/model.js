@@ -119,9 +119,13 @@ export const buildActivityModel = ({ lanes }, options) => {
 const textOf = (value) => (typeof value === 'string' || typeof value === 'number' ? String(value) : null);
 
 /**
- * 練習相手の定義（チャレンジの `partner`。#1638）から相手のレーンを作る。定義はデータだけ:
- * `{name, buttons: [{label, send}], replies: [{receive, send}]}`。ボタンを押したとき・合図を受け取ったときに
- * 合図を送る、の 2 種類だけを描く。描くものが無い・定義が無いときは null（自分のレーンだけを描く）。
+ * 練習相手の定義（チャレンジの `partner`。#1638・docs/lessons/design.md の「メッシュの練習相手」）から相手の
+ * レーンを作る。定義はデータだけ:
+ * `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}]}`。
+ * `set` は共有する変数を変える `{variable, value}`（複数なら配列）、`broadcast` は送る合図の名前。
+ * ボタンは「〜」ボタンを押したとき、自動の返事は `onBroadcast` の合図を受け取ったときを開始にし、
+ * `set`（〜を〜にする）→ `broadcast`（〜を送る）の順の処理にする。描くものが無い・定義が無いときは null
+ * （自分のレーンだけを描く）。
  * @param {?object} partner - 練習相手の定義。
  * @param {object} options - 文の作り方。
  * @param {function(string, object=): string} options.format - 文言を引く関数。
@@ -131,21 +135,36 @@ export const partnerLane = (partner, { format }) => {
     if (!partner || typeof partner !== 'object') return null;
     const l = createBlockLabeler({ format });
     const quote = (text) => l.format('literal', { text });
-    const sendActions = (send) =>
-        textOf(send) === null
+    // 値は、数ならそのまま、文字なら「」で囲む（ブロックの値の書き方と同じ）
+    const valueText = (value) => {
+        const text = textOf(value);
+        if (text === null || text === '') return l.format('empty');
+        return /^-?\d+(\.\d+)?$/.test(text) ? text : quote(text);
+    };
+    const setActions = (set) =>
+        (Array.isArray(set) ? set : [set])
+            .filter((one) => one && typeof one === 'object' && textOf(one.variable) !== null)
+            .map((one) => ({
+                kind: NODE_KINDS.ACTION,
+                label: l.format('setVariable', { variable: textOf(one.variable), value: valueText(one.value) }),
+            }));
+    const actionsOf = (rule) => [
+        ...setActions(rule.set),
+        ...(textOf(rule.broadcast) === null
             ? []
-            : [{ kind: NODE_KINDS.ACTION, label: l.format('broadcast', { name: quote(send) }) }];
+            : [{ kind: NODE_KINDS.ACTION, label: l.format('broadcast', { name: quote(textOf(rule.broadcast)) }) }]),
+    ];
     const buttons = (Array.isArray(partner.buttons) ? partner.buttons : [])
         .filter((button) => button && textOf(button.label) !== null)
         .map((button) => ({
             start: l.format('hat.partnerButton', { label: textOf(button.label) }),
-            body: sendActions(button.send),
+            body: actionsOf(button),
         }));
     const replies = (Array.isArray(partner.replies) ? partner.replies : [])
-        .filter((reply) => reply && textOf(reply.receive) !== null)
+        .filter((reply) => reply && textOf(reply.onBroadcast) !== null)
         .map((reply) => ({
-            start: l.format('hat.receive', { name: quote(textOf(reply.receive)) }),
-            body: sendActions(reply.send),
+            start: l.format('hat.receive', { name: quote(textOf(reply.onBroadcast)) }),
+            body: actionsOf(reply),
         }));
     const scripts = [...buttons, ...replies];
     if (scripts.length === 0) return null;
@@ -155,3 +174,49 @@ export const partnerLane = (partner, { format }) => {
         targets: [{ name: null, scripts }],
     };
 };
+
+const describeNodes = (nodes, guards) =>
+    nodes
+        .map((node) => {
+            if (node.kind === NODE_KINDS.DECISION) {
+                const branch = (label, body) => `${label}: ${body.length > 0 ? describeNodes(body, guards) : '-'}`;
+                return `${node.label}（${branch(guards.yes, node.yes)} / ${branch(guards.no, node.no)}）`;
+            }
+            if (node.kind === NODE_KINDS.LOOP) {
+                return node.body.length > 0 ? `${node.label}（${describeNodes(node.body, guards)}）` : node.label;
+            }
+            return node.label;
+        })
+        .join(' → ');
+
+/**
+ * 図の流れを文にする（スクリーンリーダー向けの代わりの文。SVG の `<desc>`）。スクリプトごとに 1 行で、
+ * 「開始の文 → 処理 → …」。分岐は「条件（はい: … / いいえ: …）」、くり返しは「くり返しの文（…）」。
+ * レーンの名前と（スプライトが 2 つ以上なら）スプライトの名前を行の頭に書く。
+ * @param {object} model - `buildActivityModel` の戻り値。
+ * @param {object} guards - 分岐の文言 `{yes, no}`。
+ * @returns {string} 代わりの文（行は改行で区切る）。
+ */
+export const describeActivityModel = (model, guards) =>
+    model.lanes
+        .flatMap((lane) =>
+            lane.targets.flatMap((target) =>
+                target.scripts.map((script) => {
+                    // スプライトの名前は、図と同じくスプライトが 2 つ以上のときだけ書く
+                    const head = [lane.label, lane.targets.length > 1 ? target.name : null]
+                        .filter(Boolean)
+                        .join(' / ');
+                    const steps = [script.start, describeNodes(script.body, guards)].filter(Boolean).join(' → ');
+                    return head ? `${head}: ${steps}` : steps;
+                }),
+            ),
+        )
+        .join('\n');
+
+/**
+ * モデルのスクリプトの数（0 なら図を描かない）。
+ * @param {object} model - `buildActivityModel` の戻り値。
+ * @returns {number} スクリプトの数。
+ */
+export const countScripts = (model) =>
+    model.lanes.reduce((sum, lane) => sum + lane.targets.reduce((n, t) => n + t.scripts.length, 0), 0);
