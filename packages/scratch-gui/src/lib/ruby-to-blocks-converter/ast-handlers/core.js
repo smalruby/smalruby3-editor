@@ -406,6 +406,31 @@ const CoreHandlers = {
     },
 
     /**
+     * Whether an operand came to nothing: its node has no visitor (a string, a symbol or a regular
+     * expression with `#{...}`), or it is not written (the end of `1..`). Put in an input, it stopped the
+     * conversion with a JavaScript error (`@b == "a#{@x}"`, issue #1885).
+     * @param {object} node - The node of the operand, or null when it is not written.
+     * @param {*} value - What visiting the node returned.
+     * @returns {boolean} Whether the operand is nothing.
+     */
+    _isMissingOperand(node, value) {
+        return !node || typeof value === 'undefined';
+    },
+
+    /**
+     * The error of a wrong instruction on the statement that holds the node (P17).
+     * @param {object} node - The node of the expression that cannot be converted.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _wrongInstructionError(node) {
+        const source = this._truncateSource(this._getSource(this._sourceNodeForError(node)));
+        return new RubyToBlocksConverterError(
+            node,
+            this._translator(converterMessages.wrongInstruction, { SOURCE: source }),
+        );
+    },
+
+    /**
      * Whether a receiver is a loop made to be chained (issue #1691): `loop` and `N.times` without a block
      * come as the loop block (`control_forever` / `control_repeat`) for `.with_screen_refresh do ... end`,
      * which puts its body into it. That is the only method that takes a command as its receiver.

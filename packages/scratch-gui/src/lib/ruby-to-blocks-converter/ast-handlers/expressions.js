@@ -198,6 +198,11 @@ const ExpressionHandlers = {
         } finally {
             this._context.isValue = savedIsValueForReceiver;
         }
+        // A receiver or an argument that came to nothing (`"a#{@x}"`) cannot be put in an input; checked
+        // before the converters, as some of them put any operand in an input (`@b == "a#{@x}"`, issue #1885).
+        if (node.receiver && this._isMissingOperand(node.receiver, receiver)) {
+            throw this._wrongInstructionError(node);
+        }
         const split = this._splitPreBlocksAndValue(receiver);
         receiver = split.value;
         preBlocks.push(...split.preBlocks);
@@ -207,6 +212,9 @@ const ExpressionHandlers = {
         this._context.isValue = true;
         const args = (node.arguments_ ? node.arguments_.arguments_ : []).map((childNode) => {
             const result = this.visit(childNode);
+            if (this._isMissingOperand(childNode, result)) {
+                throw this._wrongInstructionError(node);
+            }
             const s = this._splitPreBlocksAndValue(result);
             preBlocks.push(...s.preBlocks);
             return s.value;

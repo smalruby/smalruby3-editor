@@ -669,6 +669,7 @@ $a += 1
 - **値だけの行**: 数・文字列・配列だけの行は代入に変える（→ P18）。シンボルだけの行は「命令ではない」エラー。それ以外の値だけの行は `couldNotConvertPrimitive`。
 - **特別な文で知らせるもの**: シンボルの計算・比べる（P7）、配列・ハッシュのリテラルへのメソッド（P4・P5）、戻り値（P2）、変数とリストの名前（P4）、変数の種類（P15）、class / module（P6）、`with_screen_refresh` の場所、v1 で使えない構文など。メッセージは `converter-errors.js` と各変換器ファイルの `defineMessages`、日本語は `src/locales/ja.js`。
 - **ブロックにできない構文の例**: `for`、`break` / `next` / `redo` / `retry`、`rescue` / `ensure`、`alias` / `undef` / `BEGIN` / `END`、`||=` / `&&=`、文字列の式展開 `"#{@a}"`、`private` など。一覧は言語仕様の「サポートされていないRuby構文」。
+- **ブロックにならない値を演算に使う**: 式展開の文字列・シンボル・正規表現（`"a#{@x}"`、`:"a#{@x}"`、`/a#{@x}/`）は値にならない。比べる式（`@b == "a#{@x}"`）やほかの演算・メソッドの呼び出しの相手や引数に使うと、入力に置く前にその文の「命令がまちがっています」にする（`visitCallNode`）。終わりの無い範囲（`1..`・`..2`）も同じ（`visitRangeNode`）。
 
 **往復の例**: なし（エラーになり、ブロックは作られない）。
 
@@ -678,7 +679,7 @@ foo.bar(1)
 
 - エラー: 「「foo.bar(1)」は命令がまちがっています。」
 
-**テスト**: `ruby-to-blocks-converter/error-message-hints.test.js`、`nested-error-statement.test.js`、`orphan-blocks.test.js`、`visibility-modifiers.test.js`、`ruby.test.js`、`ruby-roundtrip/break-next-redo-retry.test.js`、`begin-rescue.test.js`、`multiple-assignment.test.js`。
+**テスト**: `ruby-to-blocks-converter/error-message-hints.test.js`、`interpolated-string-operand.test.js`、`nested-error-statement.test.js`、`orphan-blocks.test.js`、`visibility-modifiers.test.js`、`ruby.test.js`、`ruby-roundtrip/break-next-redo-retry.test.js`、`begin-rescue.test.js`、`multiple-assignment.test.js`。
 
 ### P18. 値だけの行（素のリテラル）を代入に変える
 
