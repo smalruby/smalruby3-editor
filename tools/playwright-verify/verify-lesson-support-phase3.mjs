@@ -111,7 +111,9 @@ try {
     await studentPage.click('[data-testid="classroom-submit-button"]');
     await studentPage.waitForSelector('[data-testid="classroom-submit-confirm"]', { timeout: 20000 });
     await studentPage.click('[data-testid="classroom-submit-confirm"]');
-    await studentPage.waitForSelector('[data-testid="classroom-submit-status"]', { timeout: 60000 });
+    // 提出できたら「提出できました ✓」(#1795)。「つづける」で閉じる。
+    await studentPage.waitForSelector('[data-testid="classroom-phase-submit-done"]', { timeout: 60000 });
+    await studentPage.click('[data-testid="classroom-submit-done-continue"]');
     assert(true, 'student submitted');
 
     // ---- Teacher: evaluation flow ----

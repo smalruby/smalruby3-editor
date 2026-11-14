@@ -18,6 +18,8 @@ const PHASE_STEP = {
     'student-assignment': 'start',
     'student-status': 'make',
     'student-submit-confirm': 'submit',
+    // 提出できました (#1795): 全部すんだ。
+    'student-submit-done': STEPS_COMPLETE,
 };
 
 const isSubmitted = (submissionStatus) => submissionStatus === 'submitted' || submissionStatus === 'returned';
@@ -34,6 +36,7 @@ const isSubmitted = (submissionStatus) => submissionStatus === 'submitted' || su
 const studentCurrentStep = ({ phase, submissionStatus = null, assignmentReopened = false, lesson = null } = {}) => {
     const step = PHASE_STEP[phase];
     if (!step) return null;
+    if (step === STEPS_COMPLETE) return STEPS_COMPLETE;
     // 提出してから開いた画面（提出できました・おかえりなさい・「課題を見る」から開いた課題パネル）は
     // 全部すんだ。参加完了・参加した直後の課題パネルと提出確認は、提出済みでもその段にいる
     // （入り直し・再提出の途中のため。ui-ux.md の帯の表）。

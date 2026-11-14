@@ -149,7 +149,7 @@ describe('useStudentSubmit — Ruby をブロックに直してから提出す�
         expect(targetCodeToBlocks).toHaveBeenCalledWith(hookDeps.intl);
         expect(order).toEqual(['apply', 'screenshot', 'sb3']);
         expect(mockCreateSubmission).toHaveBeenCalled();
-        expect(hookDeps.setPhase).toHaveBeenCalledWith('student-status');
+        expect(hookDeps.setPhase).toHaveBeenCalledWith('student-submit-done');
     });
 
     test('変換に失敗したら提出せずにモーダルを閉じる', async () => {
@@ -165,5 +165,62 @@ describe('useStudentSubmit — Ruby をブロックに直してから提出す�
             expect.objectContaining({ type: 'scratch-gui/classroom/CLOSE_MODAL' }),
         );
         expect(hookDeps.setIsLoading).toHaveBeenLastCalledWith(false);
+    });
+
+    // メニューバーの「提出する」から開くので、「やめる」はモーダルを閉じる (#1795)。
+    test('「やめる」はモーダルを閉じる', () => {
+        const hook = setup([target('t0', 'ねこ')]);
+        act(() => hook.result.current.handleCancelSubmit());
+        expect(hookDeps.dispatch).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'scratch-gui/classroom/CLOSE_MODAL' }),
+        );
+        expect(hookDeps.setPhase).not.toHaveBeenCalled();
+    });
+
+    // #1795 M1/Q1: the send has its own flag (verify-session also sets isLoading),
+    // and the menu bar's button is disabled through Redux while it runs.
+    test('送信中だけ isSubmitting と studentSubmitting が立ち、終わったら戻る', async () => {
+        let release;
+        mockCreateSubmission.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    release = () => resolve({ uploadUrl: 'u', screenshotUploadUrls: [] });
+                }),
+        );
+        mockRender.mockResolvedValue(canvas);
+        const hook = setup([target('t0', 'ねこ')]);
+        expect(hook.result.current.isSubmitting).toBe(false);
+        let done;
+        await act(async () => {
+            done = hook.result.current.handleConfirmSubmit();
+            for (let i = 0; i < 10; i++) {
+                jest.runAllTimers();
+                await Promise.resolve();
+            }
+        });
+        expect(hook.result.current.isSubmitting).toBe(true);
+        expect(hookDeps.dispatch).toHaveBeenCalledWith({
+            type: 'scratch-gui/classroom/SET_STUDENT_SUBMITTING',
+            submitting: true,
+        });
+        await act(async () => {
+            release();
+            for (let i = 0; i < 10; i++) {
+                jest.runAllTimers();
+                await Promise.resolve();
+            }
+            await done;
+        });
+        expect(hook.result.current.isSubmitting).toBe(false);
+        expect(hookDeps.dispatch).toHaveBeenLastCalledWith({
+            type: 'scratch-gui/classroom/SET_STUDENT_SUBMITTING',
+            submitting: false,
+        });
+    });
+
+    test('verify の読み込み (isLoading) だけでは isSubmitting にならない', () => {
+        const hook = setup([target('t0', 'ねこ')]);
+        act(() => hook.result.current.handleStartSubmit());
+        expect(hook.result.current.isSubmitting).toBe(false);
     });
 });

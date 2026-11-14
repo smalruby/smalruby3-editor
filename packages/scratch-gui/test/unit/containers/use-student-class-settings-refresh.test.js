@@ -66,4 +66,31 @@ describe('useStudentClassSettingsRefresh', () => {
         await new Promise((r) => setTimeout(r, 0));
         expect(dispatch).not.toHaveBeenCalled();
     });
+
+    // #1795: the same answer carries this assignment's submission, so the menu
+    // bar's submit button is not left stale (returned by the teacher, submitted
+    // on another PC, or none) — without another request.
+    const submissionOf = (dispatch) =>
+        dispatch.mock.calls.map(([a]) => a).find((a) => a.type === 'scratch-gui/classroom/SET_SUBMISSION_STATUS');
+
+    test.each([
+        ['returned', { status: 'returned', submittedAt: 't1', teacherComment: 'c' }, 'returned', 't1'],
+        ['submitted elsewhere', { status: 'submitted', submittedAt: 't2' }, 'submitted', 't2'],
+        ['none', null, null, null],
+    ])('should apply the submission (%s)', async (_label, submission, status, submittedAt) => {
+        mockVerifySession.mockResolvedValue({ genai: null, submission });
+        const dispatch = jest.fn();
+        renderHook(() => useStudentClassSettingsRefresh({ role: 'student', sessionToken: 's1', dispatch }));
+        await waitFor(() => expect(submissionOf(dispatch)).toBeTruthy());
+        expect(submissionOf(dispatch)).toMatchObject({ submissionStatus: status, lastSubmittedAt: submittedAt });
+        expect(mockVerifySession).toHaveBeenCalledTimes(1);
+    });
+
+    test('should keep the submission when the answer does not carry it', async () => {
+        mockVerifySession.mockResolvedValue({ genai: null });
+        const dispatch = jest.fn();
+        renderHook(() => useStudentClassSettingsRefresh({ role: 'student', sessionToken: 's1', dispatch }));
+        await waitFor(() => expect(genaiOf(dispatch)).toBeTruthy());
+        expect(submissionOf(dispatch)).toBeUndefined();
+    });
 });

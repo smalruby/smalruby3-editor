@@ -229,7 +229,8 @@ try {
     await s1a.click('[data-testid="classroom-submit-button"]');
     await s1a.waitForSelector('[data-testid="classroom-submit-confirm"]', { timeout: 20000 });
     await s1a.click('[data-testid="classroom-submit-confirm"]');
-    await s1a.waitForSelector('[data-testid="classroom-submit-status"]', { timeout: 60000 });
+    // 提出できたら「提出できました ✓」(#1795)。
+    await s1a.waitForSelector('[data-testid="classroom-phase-submit-done"]', { timeout: 60000 });
     assert(true, 'seat 1 submitted assignment 1');
     await shot(s1a, 'a1-seat1-submitted');
 

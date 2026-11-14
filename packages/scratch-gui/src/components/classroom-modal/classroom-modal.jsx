@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
+import { isResubmit } from '../../lib/classroom-menu-submit.js';
 import Box from '../box/box.jsx';
 import styles from './classroom-modal.css';
 import StudentAssignmentPanel from './student-assignment-panel.jsx';
@@ -11,6 +12,7 @@ import StudentSeatSelector from './student-seat-selector.jsx';
 import StudentStatusView from './student-status-view.jsx';
 import StudentStepBand from './student-step-band.jsx';
 import StudentSubmitConfirm from './student-submit-confirm.jsx';
+import StudentSubmitDone from './student-submit-done.jsx';
 
 const messages = defineMessages({
     title: {
@@ -73,6 +75,8 @@ const ClassroomModal = ({
     studentLesson = null,
     onStartLesson,
     assignmentReopened = false,
+    isSubmitting = false,
+    submitStatusChecking = false,
 }) => {
     const intl = useIntl();
 
@@ -202,21 +206,33 @@ const ClassroomModal = ({
                 {/* Phase: student-submit-confirm */}
                 {phase === 'student-submit-confirm' && (
                     <StudentSubmitConfirm
+                        checking={submitStatusChecking}
                         error={error}
                         errorTitle={errorTitle}
-                        isLoading={isLoading}
+                        isSubmitting={isSubmitting}
+                        resubmit={isResubmit(classroomState?.submissionStatus ?? null)}
                         submitProgress={submitProgress}
+                        teacherComment={
+                            classroomState?.submissionStatus === 'returned' ? teacherComment || null : null
+                        }
                         thumbnailDataUrl={thumbnailDataUrl}
                         onCancelSubmit={onCancelSubmit}
                         onConfirmSubmit={onConfirmSubmit}
                     />
                 )}
+
+                {/* Phase: student-submit-done (#1795) */}
+                {phase === 'student-submit-done' && <StudentSubmitDone onContinue={onClose} />}
             </Box>
         </Modal>
     );
 };
 
 ClassroomModal.propTypes = {
+    // the submission is being sent (#1795): only then does the confirmation read 「提出中...」
+    isSubmitting: PropTypes.bool,
+    // the submission status is being checked (verify-session) while the confirmation is open (#1795)
+    submitStatusChecking: PropTypes.bool,
     // the assignment panel was reopened from 「課題を見る」 (step band shows ④, #1792)
     assignmentReopened: PropTypes.bool,
     // assignmentProgress() of the joined lesson assignment (null when not a lesson assignment)

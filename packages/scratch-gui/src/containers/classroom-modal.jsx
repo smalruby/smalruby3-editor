@@ -11,6 +11,7 @@ import {
     clearPendingKickRequest,
 } from '../lib/classroom-kick-request-storage.js';
 import { clearLastSeat, loadLastSeat, saveLastSeat } from '../lib/classroom-last-seats-storage.js';
+import { submissionFromVerify } from '../lib/classroom-menu-submit.js';
 import { evaluateKickRequestPoll, lastSeatKeyFor } from '../lib/classroom-seat-selection.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
 import { assignmentProgress } from '../lib/lessons/assignment-progress.js';
@@ -100,7 +101,13 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         targetCodeToBlocks,
     });
 
+    // While the submission is being sent the modal stays open (#1795): closing it
+    // would hide 「提出できました ✓」 (or the error) and invite a second submit.
+    // Covers the × button, the overlay and Escape (all go through onRequestClose).
+    const submittingRef = useRef(false);
+    submittingRef.current = submit.isSubmitting;
     const handleClose = useCallback(() => {
+        if (submittingRef.current) return;
         dispatch(closeClassroomModal());
     }, [dispatch]);
 
@@ -423,6 +430,13 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     // --- Verify session + fetch submission status ---
 
     const [studentTeacherComment, setStudentTeacherComment] = useState(null);
+    // Whether the submission status is still being checked (#1795). A joined
+    // student's modal starts at student-status, whose effect below verifies the
+    // session right away; the confirmation opened from the menu bar waits for
+    // the answer so its title does not flip to 「もう一度提出します」 later.
+    const [statusChecking, setStatusChecking] = useState(
+        () => phase === 'student-status' && !!classroomState.sessionToken,
+    );
 
     // The session token as of now. A verify answer for a token that is no
     // longer current (the student left, switched class or re-joined meanwhile)
@@ -438,6 +452,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         const token = classroomState.sessionToken;
         if (!token) return;
         setIsLoading(true);
+        setStatusChecking(true);
         try {
             const result = await classroomAPI.verifySession(token);
             if (token !== sessionTokenRef.current) return;
@@ -446,9 +461,11 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             dispatch(setStudentGenai(result.genai));
             // The teacher may turn Rubytee on or off after the student joined (#1278).
             dispatch(setRubyteeEnabled(!!(result.rubytee && result.rubytee.enabled === true)));
-            if (result.submission) {
-                dispatch(setSubmissionStatus(result.submission.status, result.submission.submittedAt));
-                setStudentTeacherComment(result.submission.teacherComment || null);
+            // Also clears a stale status when the server has none (#1795).
+            const submission = submissionFromVerify(result);
+            if (submission) {
+                dispatch(setSubmissionStatus(submission.status, submission.submittedAt));
+                setStudentTeacherComment(submission.teacherComment);
             }
             studentAssignment.setHasAssignment(!!result.hasAssignment);
             studentAssignment.refreshContinueOptions();
@@ -484,6 +501,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             }
         } finally {
             setIsLoading(false);
+            setStatusChecking(false);
         }
     }, [classroomState.sessionToken, dispatch, showSessionExpiredError, intl, handleJoinWithCode, studentAssignment]);
 
@@ -606,6 +624,8 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             seatCount={seatCount}
             selectedSeat={selectedSeat}
             submitProgress={submit.submitProgress}
+            isSubmitting={submit.isSubmitting}
+            submitStatusChecking={statusChecking}
             takenSeats={takenSeats}
             teacherComment={studentTeacherComment}
             thumbnailDataUrl={submit.thumbnailDataUrl}
