@@ -31,7 +31,7 @@
 
 scratch-paint の `src/css/colors.css`（13 個）と `src/css/units.css`（10 個）は、ファイルの先頭に「DO NOT EDIT / GUI からの写し」と書かれた **GUI の `colors.css`・`units.css` の古い写し**で、いまの GUI と値がずれているものがある。値はどちらも 16 進か Sass の式のまま写した。
 
-「paint で使う CSS」は、scratch-paint 4.1.50 の `src/` の CSS（`css/` と `playground/` を除く 21 ファイル）のうち、その変数を使うファイルの数。
+「paint で使う CSS」は、scratch-paint 4.1.50 の `src/` の CSS（`css/` と `playground/` を除く 19 ファイル）のうち、その変数を使うファイルの数。
 
 ### 色（`src/css/colors.css`）
 
@@ -79,8 +79,8 @@ GUI の `units.css` の残りの 8 個（`$library-filter-bar-height`・`$stage-
 | しきい値 | どこ | 狭いとき |
 |---|---|---|
 | 幅 1249px 以下 | GUI の `selector.css`（`$full-size-paint` = 1249px） | 左の一覧の幅 150px → 80px |
-| 幅 1256px 以下 | scratch-paint の `paint-editor.css`・`label.css`・`tool-select-base.css`（paint の `$full-size-paint` = 1256px） | エディターの左右の余白・道具のボタンのまわりを詰め、道具を 1 列にし、ラベルを入力欄の上に置く |
-| 幅 1274px より狭い | scratch-paint の `lib/layout-constants.js` の `fullSizeEditorMinWidth`（`fixed-tools.jsx` の `MediaQuery`） | 上の段のグループ化・手前に出すなどのボタンを「その他」のドロップダウンにまとめる |
+| 幅 1256px 以下 | scratch-paint の `paint-editor.css`・`label.css`・`tool-select-base.css`（paint の `$full-size-paint` = 1256px） | エディターの左右の余白・道具のボタンのまわりを詰め、道具を 1 列にし、ラベルを入力欄の上に置く（`label.css`。この幅ではコスチュームの名前のラベルはもう消えているので、効くのは塗りつぶしと枠線のラベルだけ） |
+| 幅 1274px より狭い | scratch-paint の `lib/layout-constants.js` の `fullSizeEditorMinWidth`（`fixed-tools.jsx` の `MediaQuery`） | 上の段のグループ化・手前に出すなどのボタンを「その他」のドロップダウンにまとめる。コスチュームの名前のラベル（「コスチューム」）も消す |
 
 GUI の `lib/layout-constants.js` の `fullSizePaintMinWidth` は 1250（CSS の 1249px は「1px 引いた値」）で、paint の 1256px・1274px とそろっていない。幅 1250〜1273px では、左の一覧は広いのに、エディターは詰めた並び（1256px 以下）や「その他」のドロップダウン（1274px 未満）になる。
 
@@ -119,13 +119,15 @@ GUI の `lib/layout-constants.js` の `fullSizePaintMinWidth` は 1250（CSS の
 | 名前の付いたアイコンのボタン（グループ化・手前に出すなど。`.mod-edit-field`） | 地と枠なし・余白 `.25rem .325rem`・角丸 0.25rem・幅 3rem 以上・アイコン 1.5rem。名前（`.edit-field-title`）は 0.625rem・上に .125rem（日本語では出さない） | `labeled-icon-button/labeled-icon-button.css` | 一致（48×32px・4px） |
 | ボタンの押した（`button.css` の `.button:active`） | 地 `$looks-transparent` | `button/button.css` | 一致（`rgba(133, 92, 214, 0.35)`） |
 | ボタンの押せない（`.mod-disabled`） | 不透明度 .5・`cursor: auto`・押しても地が変わらない | `button/button.css` | 一致（0.5） |
+| ボタンの選ばれた（`.highlighted.button`） | 地 `$looks-transparent`（ビットマップの四角・円の道具の「塗る」「線だけ」のうち選んでいるほう。`mode-tools.jsx` の `highlighted`） | `button/button.css` | （撮っていない） |
+| 色・枠線・太さの押せない（`input-group.css` の `.disabled`） | 不透明度 0.3・`pointer-events: none`（塗りつぶしは直線の道具のとき、枠線の色と太さは筆・文字・塗りつぶしの道具のとき） | `input-group/input-group.css` | （撮っていない） |
 | 色のボタン（塗りつぶし・枠線。`.color-button`） | 3rem × 2rem。左の色の見本（`.color-button-swatch`: 2rem）と右の ▾（`.color-button-arrow`: 1rem・文字 `#575e75` 0.75rem）。枠 `1px solid rgba(0, 0, 0, 0.25)`・外側の角だけ 4px の角丸 | `color-button/color-button.css` | 一致（32×32px・16×32px） |
 | 枠線の太さ（`.input-small-range`） | 幅 4rem・中央ぞろえ（入力欄の形はコスチュームの名前と同じ） | `forms/input.css` | 一致（64×32px） |
 | 道具ごとの操作の段（`.mode-tools`） | 高さ 3rem 以上。アイコン 2rem | `mode-tools/mode-tools.css` | 一致（48px） |
 | 「その他」・文字の書体のドロップダウン（`.dropdown`） | 枠 `1px solid $form-border`・角丸 5px・幅 3.5rem 以上・文字 `$looks-secondary`・余白 .5rem。開いている間（`.mod-open`）は地 `$form-border` | `dropdown/dropdown.css` | （撮っていない。「その他」は幅 1274px 未満で出る。書体は文字の道具で出る） |
 | 「その他」の項目（`.mod-menu-item`） | 余白 0.75rem・幅 6.25rem 以上・動き `0.1s ease`・ホバーで地 `$looks-transparent`。区切り（`.mod-top-divider`）は上に `1px solid $ui-pane-border` | `fixed-tools/fixed-tools.css` | （撮っていない） |
 | 書体の項目（`font-dropdown.css` の `.mod-menu-item`） | 幅 8.5rem・ホバーで地 `$looks-secondary`・文字 白 | `font-dropdown/font-dropdown.css` | （撮っていない） |
-| フォーカス | ボタンの並び・道具のボタン・名前の付いたボタンは `outline: none`（フォーカスの見た目を消している） | | |
+| フォーカス | ボタンの並び・道具のボタン・名前の付いたボタン・ビットマップに変換は、`button/button.jsx` の `<span role="button">` で `tabIndex` が無く、**キーボードでフォーカスできない**（キーボードでは押せない）。CSS の `outline: none` は効く場面が無い | `button/button.jsx` | （フォーカスできない） |
 
 ### 道具のボタン（`tool-select-base/tool-select-base.css`）
 
@@ -137,7 +139,7 @@ GUI の `lib/layout-constants.js` の `fullSizePaintMinWidth` は 1250（CSS の
 | ホバー | — | | 変化なし |
 | 押した | 地 `$looks-transparent`（`button.css`） | `$color-primary-transparent` | 一致（`rgba(133, 92, 214, 0.35)`） |
 | 選ばれた（`.is-selected`） | 地 `$looks-secondary`・アイコンを白に（`filter: brightness(0) invert(1)`） | `$color-primary` | 一致（`rgb(133, 92, 214)`・`brightness(0) invert(1)`） |
-| フォーカス | `outline: none`（消している） | | 変化なし |
+| フォーカス | `<span role="button">`（`button/button.jsx`）で `tabIndex` が無く、キーボードでフォーカスできない。`outline: none` は効く場面が無い | | 変化なし（フォーカスできないので `focus()` しても何も変わらない） |
 | 押せない | — | | |
 
 ### キャンバスとその下
@@ -163,7 +165,7 @@ GUI の `lib/layout-constants.js` の `fullSizePaintMinWidth` は 1250（CSS の
 | 吹き出し（`:global(.Popover-body)`） | 地 白・枠 `1px solid #ddd`・余白 4px・角丸 4px・影 `0px 0px 8px 1px rgba(0, 0, 0, .3)` | 一致（176×273px） |
 | 吹き出しの三角（`:global(.Popover-tipShape)`） | 塗り 白・線 `#ddd` | |
 | 見出し（色・鮮やかさ・明るさ。`.row-header`） | 0.65rem・`#575E75`・まわり 8px。名前（`.label-name`）は太字、値（`.label-readout`）は左に 10px | 一致（10.4px） |
-| スライダー（`.container`） | 150 × 22px・角丸 11px・まわり 8px（下 20px）。地のグラデーションは JS で付ける（`slider.jsx` の `backgroundImage`） | 一致（150×22px・11px） |
+| スライダー（`.container`） | 150 × 22px・角丸 11px・まわり 8px（下 20px。最後のスライダー（`.last`）は下 4px）。地のグラデーションは JS で付ける（`slider.jsx` の `backgroundImage`） | 一致（150×22px・11px） |
 | スライダーのつまみ（`.handle`） | 26px の丸・地 白・輪 `0 0 0 4px rgba(0, 0, 0, 0.15)` | 一致 |
 | 区切り（`.divider`） | 上に `1px solid #ddd`・まわり 8px | 一致 |
 | 見本（塗りの種類・塗りなし・スポイト。`.swatch`） | 1.5rem の正方形・枠 `1px solid #ddd`・角丸 4px | 一致（26×26px・4px） |
@@ -186,7 +188,10 @@ scratch-paint の CSS で、変数を使わずに書いている色は次のと�
 | `#D9E3F2` | キャンバスの地 | `$ui-tertiary` |
 | `rgba(190, 190, 190, 0.8)` | スクロールバー | （無い） |
 | `#222` | 色を拾う虫眼鏡の枠 | （無い） |
-| `white` | 吹き出しの地・ビットマップに変換の文字・つまみ | `$ui-white` |
+| `white` | 吹き出しの地・吹き出しの三角の塗り（`.Popover-tipShape`）・ビットマップに変換の文字・つまみ・枠線の色の見本の中の白い四角（`color-button.css` の `.outline-swatch:after`） | `$ui-white` |
+| `rgba(0, 0, 0, .3)` | 色を選ぶ吹き出しの影（`0px 0px 8px 1px`） | （無い。黒 30%） |
+| `hsla(0, 0%, 0%, .1)` | 「近日公開」の吹き出しの枠（`coming-soon.css`） | `$ui-black-transparent-10` |
+| `hsla(0, 0%, 0%, .25)` | 「近日公開」の吹き出しの影（`coming-soon.css`） | （無い。黒 25%） |
 
 ## スモウルビーの追加
 
@@ -199,5 +204,6 @@ scratch-paint の CSS で、変数を使わずに書いている色は次のと�
 ## 独自の画面で使う形
 
 - **scratch-paint の写しの値を使わない**。独自の画面は GUI のトークン（`smalruby-tokens.css`）で書く。とくに入力欄は GUI の形（文字 0.625rem・枠 `$color-border`・ホバーで紫の枠。[`components/inputs.md`](components/inputs.md)）にし、paint の `$form-border` の枠にしない。
-- **道具を選ぶボタン**（いくつかの中から 1 つを選ぶアイコンのボタン）は、ペイントエディターの道具のボタンの形にそろえる: 角丸 `$radius-small`・選ばれたら地 `$color-primary` でアイコンを白に・押している間の地 `$color-primary-transparent`。上流は `outline: none` でフォーカスを消しているので、独自の画面では [`components/README.md`](components/README.md) の「フォーカス」の形（`:focus-visible` で `outline: 2px solid $color-primary; outline-offset: 2px;`）を足す。
+- **ボタンは `<button>` 要素で作る**（paint の `<span role="button">` をまねない。span ではキーボードでフォーカスも操作もできない）。
+- **道具を選ぶボタン**（いくつかの中から 1 つを選ぶアイコンのボタン）は、ペイントエディターの道具のボタンの形にそろえる（表示の切り替えの淡い地の形との使い分けは [`components/README.md`](components/README.md) の「選ぶボタン（2 つの形の使い分け）」）: 角丸 `$radius-small`・選ばれたら地 `$color-primary` でアイコンを白に・押している間の地 `$color-primary-transparent`。上流は `outline: none` でフォーカスを消しているので、独自の画面では [`components/README.md`](components/README.md) の「フォーカス」の形（`:focus-visible` で `outline: 2px solid $color-primary; outline-offset: 2px;`）を足す。
 - **区切りの点線**（ボタンのまとまりの間）は、ペイントの `$ui-pane-border`（`#D9D9D9`）ではなく、音のエディターと同じ `1px dashed $color-border` にする（GUI のトークンにそろえる）。

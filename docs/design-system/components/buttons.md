@@ -36,12 +36,12 @@
 | ホバー | — | | 変化なし |
 | 押した | 地 `$looks-light-transparent` | 別名なし | 一致（`rgba(133, 92, 214, 0.15)`） |
 | 選ばれた | — | | |
-| 押せない | `.disabled`: 不透明度 0.5・`pointer-events: none` | | （撮っていない） |
+| 押せない | `.disabled`: 不透明度 0.5・`pointer-events: none` | | 一致（0.5。音のエディターの道具のボタン。[`../sound-editor.md`](../sound-editor.md)） |
 | フォーカス | — | | |
 
 ## 切り替えボタン（`toggle-buttons/toggle-buttons.css`）
 
-横に並んだ四角いボタン。ステージの大きさ・スプライトの表示の切り替え。見本: [`0502-toggle-buttons.png`](../screenshots/0502-toggle-buttons.png)。
+横に並んだ四角いボタン。ステージの大きさ・スプライトの表示の切り替え。表示の切り替えに使う形で、道具・モードの切り替えには使わない（[`README.md`](README.md) の「選ぶボタン（2 つの形の使い分け）」）。見本: [`0502-toggle-buttons.png`](../screenshots/0502-toggle-buttons.png)。
 
 | 状態 | 値 | トークン | 実測 |
 |---|---|---|---|
@@ -50,7 +50,7 @@
 | 押した | 地 `$looks-transparent` | `$color-primary-transparent` | 一致（`rgba(133, 92, 214, 0.35)`） |
 | 選ばれた | `[aria-pressed='true']`: 地 `$looks-light-transparent`・アイコンの色が戻る | 別名なし | 一致（`rgba(133, 92, 214, 0.15)`） |
 | 押せない | `.disabled .button`: `cursor: default` だけ | | |
-| フォーカス | `:focus::before` に `1px solid $looks-secondary` の枠（ボタンの外側 1px）。`outline: none` | `$color-primary` | 一致（`::before` の枠 `1px solid rgb(133, 92, 214)`） |
+| フォーカス | `:focus::before` に `1px solid $looks-secondary` の枠（`top`〜`left` を `-1px` にして、ボタンの枠に重ねて紫に塗り替える。外に足すのではない）。`outline: none` | `$color-primary` | 一致（`::before` の枠 `1px solid rgb(133, 92, 214)`） |
 
 ## タグボタン（`tag-button/tag-button.css`）
 

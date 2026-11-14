@@ -43,7 +43,7 @@ GUI の丸い小さい入力欄（`forms/input.css` の `.input-form`。[`compon
 | 押した | 地 `$looks-transparent` | `$color-primary-transparent` | 一致（`rgba(133, 92, 214, 0.35)`） |
 | 選ばれた | — | | |
 | 押せない（`:disabled`） | アイコンの不透明度 0.25 だけ（ボタンの地と枠は変わらない） | | 一致（0.25） |
-| フォーカス | `:focus::before` に `1px solid $looks-secondary` の枠（ボタンの外側 1px。角丸は並びの位置に合わせる） | `$color-primary` | 一致（`::before` の枠 `1px solid rgb(133, 92, 214)`・`4px 0 0 4px`） |
+| フォーカス | `:focus::before` に `1px solid $looks-secondary` の枠（`top`〜`left` を `-1px` にして、ボタンの枠に重ねて紫に塗り替える。外に足すのではない。角丸は並びの位置に合わせる） | `$color-primary` | 一致（`::before` の枠 `1px solid rgb(133, 92, 214)`・`4px 0 0 4px`） |
 
 形は切り替えボタン（[`components/buttons.md`](components/buttons.md) の「切り替えボタン」）と同じ考え方で、フォーカスも同じ `::before` の枠で描く。
 
@@ -58,7 +58,7 @@ GUI の丸い小さい入力欄（`forms/input.css` の `.input-form`。[`compon
 | 名前（`icon-button.css` の `.title`） | 上に 0.5rem・中央 | 同じ | 一致（上 8px） |
 | ホバー | — | — | 変化なし |
 | 押した | 地 `$looks-light-transparent`（`icon-button.css`） | 同じ | 一致（`rgba(133, 92, 214, 0.15)`） |
-| 押せない（`.disabled`） | 不透明度 0.5・`pointer-events: none`（貼り付けは何もコピーしていないとき、削除は範囲を選んでいないとき） | — | 一致（0.5） |
+| 押せない（`.disabled`） | 不透明度 0.5・`pointer-events: none`（貼り付けは何もコピーしていないとき、削除は範囲を選んでいないとき） | 道具のボタンと同じ値（「大きく」は音がもう大きすぎるとき。`sound-editor.jsx` の `tooLoud`） | 一致（0.5。道具のボタン） |
 | フォーカス | — | — | |
 
 道具のボタンのアイコンの幅（4rem）が基準の幅（60px）より大きいので、道具のボタンは 64px に広がる。
@@ -104,6 +104,7 @@ GUI の丸い小さい入力欄（`forms/input.css` の `.input-form`。[`compon
 |---|---|---|---|
 | 箱（`.modal-content`） | 幅 600px | | 一致（600px） |
 | 本文（`.body`） | 地 `$ui-white`・余白 `1.5rem 2.25rem` | `$color-surface` | 一致（`24px 36px`） |
+| 箱の地 | 実測で白なのは、共通のモーダルの `.modal-content` にスモウルビーが足した既定の白い地（[`components/modal.md`](components/modal.md)）。上流では本文の外（枠の白 25% の下）が淡い青に透ける | | 一致（`rgb(255, 255, 255)`） |
 | 音量のメーターと波形の枠（`.meter-container`・`.waveform-container`） | 地 `$ui-primary`・枠 `1px solid $ui-black-transparent`・角丸 5px・余白 3px・高さ 180px。メーターの右に 5px | `$color-background`・`$color-border` | 一致（`rgb(230, 240, 255)`・5px・180px） |
 | 音量のメーター（`meter.css`） | 下から緑 11・黄 5・赤 3 の段（`meter.jsx`）。緑 塗り `rgb(171, 220, 170)`・線 `rgb(174, 211, 168)`、黄 塗り `rgb(251, 219, 130)`・線 `rgb(239, 212, 134)`、赤 塗り `rgb(251, 194, 142)`・線 `rgb(235, 189, 142)`。音量より上の段に `$ui-primary` を不透明度 0.75 で重ねる（`.mask`） | 直書き（その画面だけの値） | 一致（緑） |
 | 説明の文字（`.help-text`） | `rgb(167, 170, 181)`（直書き）・0.95rem・太さ 500・上に 10px | | 一致（15.2px・500） |

@@ -152,14 +152,6 @@ const dispatch = (page, action) => page.evaluate((a) => window.__store.dispatch(
 const openModal = (page, modal) => dispatch(page, { type: 'scratch-gui/modals/OPEN_MODAL', modal });
 const activateTab = (page, tab) => dispatch(page, { type: 'scratch-gui/navigation/ACTIVATE_TAB', activeTabIndex: tab });
 
-// コードタブに戻したあと Blockly の文字が乱れるのを避ける (e2e-test.md の「文字化け回避」)。
-const backToCodeTab = async (page) => {
-    await activateTab(page, 0);
-    await page.waitForTimeout(500);
-    await page.evaluate(() => window.dispatchEvent(new Event('resize')));
-    await page.waitForTimeout(500);
-};
-
 // コスチューム・音を 1 つ複製して、左の一覧に「選ばれていない項目」を作る (既定のスプライトは 1 つずつしか持たない)。
 const duplicateAsset = (page, kind) =>
     page.evaluate(async (k) => {
@@ -513,7 +505,7 @@ const SCENES = [
             { name: 'editor-top', selector: cls('paint-editor', 'editor-container-top') },
             { name: 'mode-selector', selector: cls('paint-editor', 'mode-selector') },
         ],
-        close: backToCodeTab,
+        // コスチュームを複製したので、閉じずにページを開き直す (ONLY で一部だけ流しても変更を残さない)
     },
     {
         id: 'paint-color-picker',
@@ -576,7 +568,7 @@ const SCENES = [
             { name: 'asset-panel', selector: cls('asset-panel', 'wrapper') },
             { name: 'effect-buttons', selector: cls('sound-editor', 'effect-button'), first: 9 },
         ],
-        close: backToCodeTab,
+        // 音を複製したので、閉じずにページを開き直す
     },
     {
         // 効果を 1 つかけて (元に戻すが押せるようにする)、波形の上をドラッグして範囲を選ぶ
@@ -617,7 +609,7 @@ const SCENES = [
         ],
         // 範囲の持ち手は波形の枠の上下にはみ出すので、枠を含む段 (2 段目の .row) ごと撮る
         crops: [{ name: 'waveform', selector: `${SOUND_EDITOR} > ${cls('sound-editor', 'row')}:nth-child(2)` }],
-        close: backToCodeTab,
+        // 効果をかけて音を変えたので、閉じずにページを開き直す
     },
     {
         id: 'record-modal',
@@ -636,7 +628,7 @@ const SCENES = [
             { name: 'record-button', selector: `${cls('record-modal', 'main-button-row')} button`, hover: true, active: true },
             { name: 'record-button-circle', selector: cls('record-modal', 'record-button-circle') },
             { name: 'record-button-outline', selector: cls('record-modal', 'record-button-circle-outline') },
-            { name: 'meter-green', selector: cls('meter', 'green'), optional: true },
+            { name: 'meter-green', selector: cls('meter', 'green') },
         ],
     },
     {
