@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { defineMessages } from 'react-intl';
+import { messages as converterMessages } from '../converter-errors';
 import { RubyToBlocksConverterError } from '../errors';
 import Primitive from '../primitive';
 import ExpressionsLiterals from './expressions-literals';
@@ -489,11 +490,54 @@ const ExpressionHandlers = {
 
     visitParametersNode(node) {
         // Used for method definition parameters: def foo(arg1, arg2)
+        this._rejectParameterShape(node);
         return (node.requireds || []).map((childNode) => this.visit(childNode));
     },
 
     visitBlockParametersNode(node) {
+        if (node.locals && node.locals.length > 0) {
+            throw this._wrongParameterError(node.locals[0]);
+        }
+        if (node.parameters) {
+            this._rejectParameterShape(node.parameters);
+        }
         return (node.parameters ? node.parameters.requireds : []).map((childNode) => this.visit(childNode));
+    },
+
+    /**
+     * A My Block and a block of `3.times do |i|` take only required arguments (issue #1906).
+     * A default value (`a = 1`), `*a`, a keyword (`a:`), `**h`, `&blk`, `...` and a destructured argument
+     * (`(a, b)`) were dropped without an error, so the value or the argument was lost.
+     * @param {object} node - The `ParametersNode`.
+     */
+    _rejectParameterShape(node) {
+        const others = [
+            ...(node.requireds || []).filter((n) => this._getNodeTypeName(n) !== 'RequiredParameterNode'),
+            ...(node.optionals || []),
+            node.rest,
+            ...(node.posts || []),
+            ...(node.keywords || []),
+            node.keywordRest,
+            node.block,
+        ].filter((n) => n);
+        if (others.length > 0) {
+            throw this._wrongParameterError(others[0]);
+        }
+    },
+
+    /**
+     * The error of a wrong instruction on the line of an argument (P17). The `def` or the call with the block
+     * goes on over more lines, so the line of the argument is quoted: `def foo(a = 1)`.
+     * @param {object} node - The node of the argument.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _wrongParameterError(node) {
+        return new RubyToBlocksConverterError(
+            node,
+            this._translator(converterMessages.wrongInstruction, {
+                SOURCE: this._truncateSource(this._lineSourceOf(node)),
+            }),
+        );
     },
 
     visitRequiredParameterNode(node) {

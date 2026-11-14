@@ -547,6 +547,7 @@ end while @a < 3
 
 - 引数の名前は `@ruby:block_param:<番号>:<名前>` で残す（1 行に 1 つ）。
 - 生成器はブロック引数を `_bp_<番号>_` と書き、最後に注釈の名前へ置きかえて `do |i|` を付ける。
+- ふつうの引数（`|i|`・`|k, v|`）だけ。既定値（`|i = 1|`）・`|*i|`・`|i; j|` などはエラー（P17 の「引数の形」）。
 - ハッシュの `each` は、キーと値のリストの ID と名前を `@ruby:list_ref:KEYS:<ID>:<名前>` / `@ruby:list_ref:VALUES:<ID>:<名前>` に残す。隠しフィールド（`KEYS_LIST_ID` など）はワークスペースの XML を通ると消えるので、VM（`scratch-vm/src/extensions/smalruby_ruby/block-method-executors.js`）はコメントからリストを探す。
 
 **往復の例**:
@@ -668,8 +669,9 @@ $a += 1
 - **エラーの文**: 「`「{ SOURCE }」は命令がまちがっています。`」（`wrongInstruction`）。`SOURCE` は、式がほかの式の中にあっても、その式を含む 1 行の文（`_sourceNodeForError`）。
 - **値だけの行**: 数・文字列・配列だけの行は代入に変える（→ P18）。シンボルだけの行は「命令ではない」エラー。それ以外の値だけの行は `couldNotConvertPrimitive`。
 - **特別な文で知らせるもの**: シンボルの計算・比べる（P7）、配列・ハッシュのリテラルへのメソッド（P4・P5）、戻り値（P2）、変数とリストの名前（P4）、変数の種類（P15）、class / module（P6）、`with_screen_refresh` の場所、v1 で使えない構文など。メッセージは `converter-errors.js` と各変換器ファイルの `defineMessages`、日本語は `src/locales/ja.js`。
+- **引数の形**: My Block（`def foo(a)`）とブロック引数（`3.times do |i|`）は、ふつうの引数だけ。既定値（`a = 1`）・`*a` / `*`・キーワード（`a:` / `a: 1`）・`**h`・`&blk`・`...`・分けて受ける形（`(a, b)`）・ブロックの中だけの変数（`|i; j|`）・`|i,|` は、書いた値や引数がブロックに残らないので、その引数の行の「命令がまちがっています」にする（`_rejectParameterShape`。`def foo(a = 1)` なら「「def foo(a = 1)」は命令がまちがっています。」）。`initialize` の引数は書いたままスプライトのコメントに残すので対象外（P6）。
 - **ブロックにできない構文の例**: `for`、`break` / `next` / `redo` / `retry`、`rescue` / `ensure`、`alias` / `undef` / `BEGIN` / `END`、`||=` / `&&=`、文字列の式展開 `"#{@a}"`、`private` など。一覧は言語仕様の「サポートされていないRuby構文」。
-- **ブロックにならない値を演算に使う**: 式展開の文字列・シンボル・正規表現（`"a#{@x}"`、`:"a#{@x}"`、`/a#{@x}/`）は値にならない。比べる式（`@b == "a#{@x}"`）やほかの演算・メソッド・My Block の呼び出し・`super(...)` の相手や引数に使うと、入力に置く前にその文の「命令がまちがっています」にする（`visitCallNode`・`_handleSuper`）。終わりの無い範囲（`1..`・`..2`）も同じ（`visitRangeNode`）。範囲は `when` の値にもできず、`when` の行の「命令がまちがっています」になる（行の終わりの `when 1..` は、次の行までが範囲になる）。
+- **ブロックにならない値を演算に使う**: 式展開の文字列・シンボル・正規表現（`"a#{@x}"`、`:"a#{@x}"`、`/a#{@x}/`）は値にならない。比べる式（`@b == "a#{@x}"`）やほかの演算・メソッド・My Block の呼び出し・`super(...)` の相手や引数に使うと、入力に置く前にその文の「命令がまちがっています」にする（`visitCallNode`・`_handleSuper`）。終わりの無い範囲（`1..`・`..2`）も同じ（`visitRangeNode`）。範囲の端は「乱数」の数の入力に入るので、数か値のブロック（`@a`・`@a + 1`）だけ。かっこで囲んだ端（`1..(@a + 1)`・`1..((2))`）は、中の 1 つの値を入力に入れる（生成器はかっこを付けずに `1..@a + 1` と書く）。前に置くブロックが要る値（`gets.to_i`・値を返す My Block `foo(3)`）も端にできず、その文のエラーになる。先に変数に入れる（`@n = gets.to_i` のあと `rand(1..@n)`）。端がそれ以外（`rand(self..2)`・`rand(1..:a)`・`rand(nil..2)`・`rand(true..2)`・`rand("a".."z")`・`rand([1]..2)`・`rand((@a = 1)..2)`）の範囲は「乱数」にせず、その文の「命令がまちがっています」にする（`_rangeEndValue`・`_isRangeEnd`）。範囲は `when` の値にもできず、`when` の行の「命令がまちがっています」になる（行の終わりの `when 1..` は、次の行までが範囲になる）。
 
 **往復の例**: なし（エラーになり、ブロックは作られない）。
 
@@ -679,7 +681,7 @@ foo.bar(1)
 
 - エラー: 「「foo.bar(1)」は命令がまちがっています。」
 
-**テスト**: `ruby-to-blocks-converter/error-message-hints.test.js`、`interpolated-string-operand.test.js`、`nested-error-statement.test.js`、`orphan-blocks.test.js`、`visibility-modifiers.test.js`、`ruby.test.js`、`ruby-roundtrip/break-next-redo-retry.test.js`、`begin-rescue.test.js`、`multiple-assignment.test.js`。
+**テスト**: `ruby-to-blocks-converter/error-message-hints.test.js`、`interpolated-string-operand.test.js`、`parameter-shape.test.js`、`range-end.test.js`、`nested-error-statement.test.js`、`orphan-blocks.test.js`、`visibility-modifiers.test.js`、`ruby.test.js`、`ruby-roundtrip/break-next-redo-retry.test.js`、`begin-rescue.test.js`、`multiple-assignment.test.js`。
 
 ### P18. 値だけの行（素のリテラル）を代入に変える
 
