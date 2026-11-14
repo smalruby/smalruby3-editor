@@ -1,0 +1,88 @@
+/*
+ * スモウルビー独自の画面のためのデザイントークン（意味の名前の別名）。
+ *
+ * - 上流（Scratch）のトークン（colors.css・units.css・z-index.css）をそのまま読み込み、
+ *   上流の名前を残したまま、意味の名前の別名を足す（EPIC #1809 の Q1・Q2）。
+ * - 値の正は上流 scratch-editor v13.7.2 の CSS（Q3）。上流のファイルは変えない。
+ * - 上流で直書きがくり返し出る値（角丸・文字の大きさなど）だけ、ここで値を持つ。
+ * - 一覧と使い方は docs/design-system/tokens.md と README.md。別名を足したら tokens.md も直す。
+ *
+ * 使い方（独自の画面の CSS の先頭で）:
+ *   @import '../../css/smalruby-tokens.css';
+ */
+
+@import './colors.css';
+@import './units.css';
+@import './z-index.css';
+
+/* ---- 色 ---- */
+
+/* 主の色: 主ボタンの塗り・選ばれた状態・メニューバーの背景 */
+$color-primary: $looks-secondary;
+/* 主の色の濃いほう: 主の色の上の枠や、押したときの塗り */
+$color-primary-dark: $looks-secondary-dark;
+/* 主の色の淡いほう: フォーカスの輪・ホバーの枠（上流で 18 ファイルが使う） */
+$color-primary-transparent: $looks-transparent;
+/* 本文の文字の色 */
+$color-text: $text-primary;
+/* 補助の文字の色（説明・プレースホルダー） */
+$color-text-muted: $text-primary-transparent;
+/* 本文・カード・モーダルの本文の背景（モーダルの本文には必ず付ける） */
+$color-surface: $ui-white;
+/* 画面の地の色（淡い青） */
+$color-background: $ui-primary;
+/* 枠線・区切り線（上流で 36 ファイルが使う） */
+$color-border: $ui-black-transparent;
+/* モーダルの後ろのオーバーレイ */
+$color-overlay: $ui-modal-overlay;
+/* 注意のアラートの枠と背景（alerts/alert.css の .warn） */
+$color-warning: $data-primary;
+$color-warning-background: $ui-alert-orange;
+/* 成功のアラートの枠と背景（alerts/alert.css の .success） */
+$color-success: $extensions-tertiary;
+$color-success-background: $extensions-light;
+/* お知らせのアラートの枠と背景（alerts/alert.css の .info-blue） */
+$color-info: $motion-primary;
+$color-info-background: $ui-primary;
+
+/* ---- 余白 ---- */
+
+/* 小さい余白 0.25rem（アイコンと文字のすき間など） */
+$space-small: calc($space / 2);
+/* ふつうの余白 0.5rem（上流の $space） */
+$space-medium: $space;
+/* 大きい余白 1rem（モーダルの本文の内側など） */
+$space-large: calc($space * 2);
+
+/* ---- 角丸 ---- */
+
+/* 小さい角丸 0.25rem: ボタン・入力欄（上流で直書きが 13 ファイル） */
+$radius-small: $form-radius;
+/* 中くらいの角丸 0.5rem: カード・ライブラリの項目・吹き出し（上流で直書きが 9 ファイル） */
+$radius-medium: 0.5rem;
+/* 丸: 丸いアイコンボタン・アバター */
+$radius-round: 50%;
+
+/* ---- 文字 ---- */
+
+/* いちばん小さい文字 0.625rem: 入力欄のラベル・バッジ（上流で直書きが 8 ファイル） */
+$font-size-xsmall: 0.625rem;
+/* 小さい文字 0.75rem: メニューバー・タブ（上流の $menu-bar-standard-font-size） */
+$font-size-small: $menu-bar-standard-font-size;
+/* ダイアログの文字 0.85rem: ダイアログの本文・ボタン（上流で最も多い直書き・10 ファイル） */
+$font-size-dialog: 0.85rem;
+/* やや小さい文字 0.875rem: ライブラリ・フィルタ（上流の $menu-bar-large-font-size） */
+$font-size-medium: $menu-bar-large-font-size;
+/* 本文の文字 1rem（typography.css の p） */
+$font-size-base: 1rem;
+/* 見出しの文字 1.5rem（typography.css の h2） */
+$font-size-heading: 1.5rem;
+/* 太字（上流で 26 ファイル。700 などの書き方ゆれは bold にそろえる） */
+$font-weight-bold: bold;
+
+/* ---- 影・動き ---- */
+
+/* 浮いたカードの影: ホバーしたライブラリの項目・アクションメニュー */
+$shadow-raised: 0 0 0.5rem hsla(0, 0%, 0%, 0.25);
+/* ふつうの動き: ホバー・選択の切り替え（上流で 5 ファイル） */
+$transition-standard: all 0.25s ease;

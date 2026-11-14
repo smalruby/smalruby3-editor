@@ -26,9 +26,16 @@
 src/*
 !src/components/
 !src/containers/
+!src/css/
 !src/lib/
 !src/locales/
 !src/reducers/
+
+# ============================================================
+# Level 2: src/css/* — upstream tokens stay ignored
+# ============================================================
+src/css/*
+!src/css/smalruby-tokens.css
 
 # ============================================================
 # Level 2: src/components/*
