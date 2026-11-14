@@ -74,6 +74,8 @@ src/components/*
 !src/components/lesson-task-bar/**
 !src/components/lesson-hint/
 !src/components/lesson-hint/**
+!src/components/lesson-practice-partner/
+!src/components/lesson-practice-partner/**
 !src/components/lesson-activity-diagram/
 !src/components/lesson-activity-diagram/**
 !src/components/lessons-library/
@@ -197,6 +199,7 @@ src/containers/*
 !src/containers/google-drive-loader-hoc.jsx
 !src/containers/koshien-mock-panel.jsx
 !src/containers/lesson-hint.jsx
+!src/containers/lesson-practice-partner.jsx
 !src/containers/lesson-analytics.jsx
 !src/containers/lesson-progress-sync.jsx
 !src/containers/lesson-goal-watcher.jsx
@@ -491,6 +494,7 @@ test/unit/components/*
 !test/unit/components/sprite-info-compact.test.jsx
 !test/unit/components/stage-selector-compact.test.jsx
 !test/unit/components/lesson-hint.test.jsx
+!test/unit/containers/lesson-practice-partner.test.jsx
 !test/unit/components/balloon.test.jsx
 !test/unit/components/classroom-tutorial.test.jsx
 !test/unit/components/lessons-library.test.jsx

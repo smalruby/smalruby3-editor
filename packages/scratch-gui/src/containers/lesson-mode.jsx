@@ -42,6 +42,7 @@ import {
     requestNewProject,
 } from '../reducers/project-state';
 import LessonHint from './lesson-hint.jsx';
+import LessonPracticePartner from './lesson-practice-partner.jsx';
 
 const LessonMode = ({
     assignmentLesson = null,
@@ -218,6 +219,8 @@ const LessonMode = ({
                 toastVisible={toastVisible}
             />
             <LessonHint />
+            {/* メッシュの練習相手（チャレンジに partner があるときだけ。これも document.body への portal） */}
+            <LessonPracticePartner />
         </>
     );
 };

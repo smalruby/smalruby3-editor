@@ -14,6 +14,7 @@ jest.mock('../../../src/lib/deck-setup', () => ({
 }));
 // 吹き出しのコンテナは Redux の store が要るので、ここでは出さない（containers/lesson-hint.test.jsx で確かめる）
 jest.mock('../../../src/containers/lesson-hint.jsx', () => () => null);
+jest.mock('../../../src/containers/lesson-practice-partner.jsx', () => () => null);
 
 const CHALLENGE_ID = 'blocks-l1-click-say';
 

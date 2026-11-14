@@ -103,7 +103,7 @@
 | `spriteCodes` | `{sprite, code}`[] | [] | `code` のほかに、名前で決めたスプライトに入れるプログラム（2 つのスプライトでやりとりするチャレンジ用）。`sprite` はライブラリのスプライトの名前。`code` は `code` と同じく locale ごとにも書ける。下の「最後の手段」 |
 | `debug` | message[] | [] | うまく動かないときは |
 | `activityDiagram` | boolean | false | 答えのプログラム（`code` と `spriteCodes`）から描くアクティビティ図を、課題の全文とヒントの 1 ページ目に出すか。答えが無いチャレンジでは true でも出さない。描き方は下の「アクティビティ図（答えから描く）」 |
-| `partner` | object \| null | null | メッシュの練習相手の定義 `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}]}`（`set` = `{variable, value}`。形は `design.md` の「メッシュの練習相手」）。図では相手のスイムレーンになる。無ければ自分のプログラムだけを描く |
+| `partner` | object \| null | null | メッシュの練習相手の定義 `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}]}`（`set` = `{variable, value}` か、その配列）。あればチャレンジ中に練習相手のパネルを出す（下の「メッシュの練習相手」）。図では相手のスイムレーンになる。無ければ自分のプログラムだけを描く |
 | `quiz` | `{question, choices, answer, explanation}` \| null | null | ふりかえりのクイズ（3 択）。「できた！」の表示の中に出す（下の「ふりかえりのクイズ」）。`question` / `choices`（3 つ）/ `explanation` は message、`answer` は正解が `choices` の何番目か（0 から）。ふつうは `challengeQuiz(id, answer)` で書く |
 
 ヒント（`steps` の要素）。deck の step と同じ `title` を文言にし、吹き出しのための項目を足す。
@@ -594,6 +594,82 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `evaluateGoal` / `validateGoal` | goal.js の関数そのもの |
 | `openChallenge(id)` / `closeLesson()` | チャレンジを開く / レッスンモードを抜ける（Redux の action） |
 | `markCompleted(id)` | 「できた」にする（記録 + 「できた！」） |
+
+## メッシュの練習相手
+
+> 方針は [design.md の「メッシュの練習相手」](design.md#メッシュの練習相手)。ここは定義の形と動き方。
+
+メッシュのチャレンジをひとりでもできるように、チャレンジの `partner` に相手を**データだけ**で書く。チャレンジごとに
+コードは書かない。
+
+```js
+partner: {
+    name: 'ロボ',
+    buttons: [
+        // パネルのボタン。押すと set → broadcast の順に起きる
+        { label: 'あいさつする', set: { variable: 'へんじ', value: 'こんにちは' }, broadcast: 'へんじ' },
+    ],
+    replies: [
+        // 自動の返事。生徒の作品が onBroadcast の合図を送ったら、少しあと（0.5 秒）に set → broadcast
+        { onBroadcast: 'メッセージ', set: [{ variable: 'へんじ', value: 'やあ' }], broadcast: 'へんじ' },
+    ],
+}
+```
+
+- `set` は共有する変数を変える `{ variable, value }`（複数なら配列）。`broadcast` / `onBroadcast` は合図の名前
+  （大文字小文字は区別しない）。`name` / `label` / `variable` / `broadcast` / `onBroadcast` は、作品の中の名前が
+  locale で変わるときは `code` と同じく `{ja, 'ja-Hira', en}` でも書ける。
+- アクティビティ図（相手のスイムレーン）も同じ定義から描く。
+
+### 動き方（ブラウザの中で折り返す・scratch-vm は変えない）
+
+`lib/lessons/practice-loopback.js` が、メッシュの拡張の受け取り口に、相手の分を入れる。サーバーには何も出さない。
+
+| 向き | 本物のメッシュ | 練習相手 |
+|---|---|---|
+| 相手の変数 → 生徒 | ほかのノードの値を `meshService.remoteData[ノード]` に入れ、「〜のセンサー値」が読む | 同じ置き場の `remoteData['smalruby-lesson-practice-partner']` に入れる |
+| 相手の合図 → 生徒 | 「〜を受け取ったとき」のハットを動かす（作品にその合図が無ければ何もしない） | 同じ（`runtime.startHats`） |
+| 生徒の合図 → 相手 | サーバーへ送る | 「〜を送る」「〜を送って待つ」が動いたのを `vm-execution-hook.js` で見て、自動の返事を返す |
+| 生徒の変数 | 自分のノードの値として `remoteData[自分]` にも入れる（自分の変数の「〜のセンサー値」も読める） | 同じ（ブロックで変えたときに入れる） |
+
+- 「できた」の判定（`goal`）は変えない。相手の合図で動いたスクリプトは、本物のメッシュで受け取ったときと同じ事実
+  （「〜を受け取ったとき」から始まった）として数える。どちらも届いた合図の送り手は記録しないので、メッシュの合図を
+  受け取るスクリプトの条件に `sentBy` を使わない（design.md の「メッシュの練習相手」）。
+- 自動の返事は、同じ合図の返事が待っているあいだは新しく積まない（本物のメッシュの `fireEvent` が、まだ送っていない
+  同じ合図をまとめるのと同じ）。「ずっと『メッセージ』を送る」でも、返事は 0.5 秒ごとに 1 回まで。待っている返事は
+  合図の名前ごとに 1 つで、全部で 100 まで（本物のメッシュの送るキューの上限と同じ）。
+- **本物のメッシュでつながっている・つなごうとしているあいだは何もしない**（`practiceAllowed`）。つながるとパネルを
+  閉じ、切れたら小さな「練習相手」のボタンを出す（自分で開き直す）。
+  - メッシュの拡張は「つないでいる途中」になったことを知らせないので、折り返しは毎フレームの最初（`BEFORE_STEP`。
+    スクリプトが動く前）に接続のようすを見て、つなぎ始めていたら入れた値をその場で消す。そのあとに押されたボタン・
+    発火した返事のタイマーは何もしない。
+- パネルを閉じる・チャレンジを変える・レッスンを出ると、折り返しを外し、入れた値を `remoteData` から消す
+  （あとから本物のメッシュが入れた値は消さない）。自分の変数の値は、書いたときのノード ID から消す（つながっていない
+  あいだにも出席番号で `meshId` が変わるため）。
+- × で閉じると「練習相手」のボタンへ、開き直すと最初のボタンへフォーカスを移す（チャレンジを開いたときは動かさない）。
+- チャレンジを開くとパネルは開いた状態で出る（本物のメッシュでつながっていれば出さない）。
+- 置き場所はコードエリアの右上（ステージの列のすぐ左。`stage_stage-wrapper_` の位置から測り、window の resize と
+  ステージの列の大きさの変化で測り直す）。ステージの列は動かさない。
+
+### data-testid（練習相手）
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `lesson-practice-partner` | section | 練習相手のパネル（開いているときだけある） |
+| `lesson-practice-partner-name` | span | 「練習相手: 名前」 |
+| `lesson-practice-partner-button` | button | 相手のボタン（`data-index` = 定義の何番目か） |
+| `lesson-practice-partner-note` | p | 「ペアでやるときは、閉じて本物のメッシュでつなごう。」 |
+| `lesson-practice-partner-close` | button | パネルを閉じる（本物のメッシュに切りかえる） |
+| `lesson-practice-partner-open` | button | 閉じたあとの小さな「練習相手」ボタン（押すとパネルをもう一度出す） |
+
+### スクリーンショット（練習相手）
+
+コースにはまだ練習相手のあるチャレンジが無いので、チャレンジ 9 に仮の `partner` を実行時に足して撮った。
+
+| ファイル | 説明 |
+|---------|------|
+| `screenshots/0601-practice-partner-1300x600.png` | 1300×600 で、パネルの「あいさつする」を押し、ネコが相手の変数（センサー値）を言ったところ |
+| `screenshots/0602-practice-partner-closed-1300x600.png` | パネルを閉じたところ（小さな「練習相手」のボタンだけ残る） |
 
 ## 状態（Redux）
 
@@ -1246,6 +1322,11 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 | `packages/scratch-gui/test/integration/smalruby-lesson1-challenges-5-8.test.js` | チャレンジ 5〜8 を開く → プログラムを入れる → 旗・マウス・ネコを押す・答えを入力する →「できた！」（Selenium・1300×600） |
 | `packages/scratch-gui/test/integration/smalruby-lesson1-challenges-9-11.test.js` | チャレンジ 9〜11 を開く → ペンギン・リストを足す → プログラムを入れる → ネコを押す・旗・答えを入力する →「できた！」（Selenium・1300×600） |
 | `packages/scratch-gui/test/integration/smalruby-lesson1-clear.test.js` | コースの全体: レッスン表から 11 個すべてが開ける（課題バーはレッスンの中の番号）→ レッスン 1・2 を 1 つのレッスンだったころの記録で入れ、レッスン 3 の 4 つを「プログラムを入れる」→ 操作 →「できた！」→ コースの進み具合とコース名の前の ✓（Selenium・1300×600） |
+| `packages/scratch-gui/src/lib/lessons/practice-partner.js` | 練習相手の定義を読む純粋関数（`normalizePartner`・`repliesFor`・`practiceAllowed`） |
+| `packages/scratch-gui/src/lib/lessons/practice-loopback.js` | 練習相手のブラウザの中での折り返し（`attachPracticeLoopback`） |
+| `packages/scratch-gui/src/components/lesson-practice-partner/` | 練習相手のパネル |
+| `packages/scratch-gui/src/containers/lesson-practice-partner.jsx` | 練習相手のコンテナ（開閉・本物のメッシュのつながりを見る・置き場所を測る）。`lesson-mode.jsx` からマウント |
+| `packages/scratch-gui/test/unit/lib/lessons/practice-partner.test.js` / `test/unit/containers/lesson-practice-partner.test.jsx` | 練習相手の unit テスト |
 | `packages/scratch-gui/src/lib/lessons/goal.js` | できた の判定（`goal` の形・事実の記録・判定の純粋関数・`validateGoal`） |
 | `packages/scratch-gui/src/lib/lessons/vm-execution-hook.js` | ブロックの実行をスレッドつきで取るフック（runtime の `getOpcodeFunction` を包む） |
 | `packages/scratch-gui/src/lib/lessons/goal-monitor.js` | VM を見張って goal を判定する（`attachGoalMonitor` / `takeSnapshot`） |
