@@ -1,0 +1,28 @@
+/* === Smalruby: This file is Smalruby-specific (MeshV2 help in the body) === */
+@import '../../css/smalruby-tokens.css';
+
+/* Under every mesh step, on the body's white (the header is dark green, so no small text there). */
+.row {
+    display: flex;
+    justify-content: center;
+    padding: 0 0 $space-medium;
+    background-color: $color-surface;
+}
+
+/* A text button; at least 44px tall so it is easy to tap. */
+.button {
+    min-height: 2.75rem;
+    padding: 0 $space-large;
+    border: none;
+    border-radius: $radius-small;
+    background: transparent;
+    color: $color-text;
+    font-size: $font-size-dialog;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.button:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+}

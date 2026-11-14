@@ -21,6 +21,9 @@ import MeshV2InitialStep from './mesh-v2-initial-step.jsx';
 // === Smalruby: Start of meshV2 seat connect feature ===
 import MeshV2SeatConnect from '../../containers/mesh-v2-seat-connect.jsx';
 // === Smalruby: End of meshV2 seat connect feature ===
+// === Smalruby: Start of mesh header design system ===
+import MeshV2HelpRow from './mesh-v2-help-row.jsx';
+// === Smalruby: End of mesh header design system ===
 // === Smalruby: Start of smalrubotS1 dedicated flow ===
 import SmalrubotS1InitialStep from './smalrubot-s1-initial-step.jsx';
 import SmalrubotS1UnsupportedStep from './smalrubot-s1-unsupported-step.jsx';
@@ -126,6 +129,9 @@ const ConnectionModalComponent = props => {
             {props.phase === PHASES.smalrubotS1Error && <SmalrubotS1ErrorStep {...props} />}
             {/* === Smalruby: End of smalrubotS1 dedicated flow === */}
             {props.phase === PHASES.updatePeripheral && <UpdatePeripheralStep {...props} />}
+            {/* === Smalruby: Start of mesh header design system === */}
+            {isMeshV2 && <MeshV2HelpRow onHelp={props.onHelp} />}
+            {/* === Smalruby: End of mesh header design system === */}
         </Box>
     </Modal>);
 };

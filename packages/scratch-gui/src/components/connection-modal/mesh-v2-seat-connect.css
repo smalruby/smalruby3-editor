@@ -208,12 +208,23 @@
     column-gap: 0.75rem;
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 2px solid $color-primary;
-    border-radius: 0.75rem;
-    background: $looks-light-transparent;
+    border: 2px solid $color-border;
+    border-radius: $radius-medium;
+    background: $color-surface;
     color: $text-primary;
     text-align: left;
     cursor: pointer;
+}
+
+/* The entry cards are "selectable cards" (docs/design-system/components/cards.md): grey border,
+   purple border and ring on hover. Only selected things (the seat buttons) get the purple ground. */
+.entry {
+    transition: $transition-standard;
+}
+
+.entry:hover {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 0.25rem $color-primary-transparent;
 }
 
 .entry-row {

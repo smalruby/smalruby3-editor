@@ -95,7 +95,8 @@
     border: none;
     border-bottom: 3px solid transparent;
     background: transparent;
-    color: $color-text-muted;
+    /* Not the muted grey: unselected tab text needs 4.5:1 on the pale tab strip. */
+    color: $color-text;
     font-size: $font-size-dialog;
     font-weight: $font-weight-bold;
     cursor: pointer;

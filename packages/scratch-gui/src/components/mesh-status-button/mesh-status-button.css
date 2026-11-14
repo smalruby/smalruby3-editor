@@ -6,7 +6,7 @@
     width: 2rem;
     height: 2rem;
     margin-left: $space-small;
-    padding: $space-small;
+    padding: 0.375rem;
     border: none;
     border-radius: $radius-small;
     background: transparent;
@@ -14,11 +14,16 @@
     user-select: none;
 }
 
-/* Opens / closes a window = a display toggle, so the selected look is the pale ground
-   (docs/design-system/components/README.md「選ぶボタン」), like the green flag's hover. */
-.button:hover,
-.is-open {
+/* The small icon button next to the green flag (docs/design-system/code-tab.md「小さいアイコンのボタン」):
+   pale purple on hover, a deeper purple while the window is open (the flag's "running" look),
+   so hover and open can be told apart. */
+.button:hover {
     background-color: $looks-light-transparent;
+}
+
+.is-open,
+.is-open:hover {
+    background-color: $color-primary-transparent;
 }
 
 .button:focus-visible {

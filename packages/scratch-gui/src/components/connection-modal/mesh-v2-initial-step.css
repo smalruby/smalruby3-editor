@@ -21,7 +21,7 @@
     border: 2px solid $color-border;
     border-radius: $radius-medium;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: $transition-standard;
     max-width: 250px;
 }
 
