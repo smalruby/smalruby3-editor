@@ -280,7 +280,7 @@ say(@h.length)
 
 - 同じコードに戻る。
 
-**できないこと**（エラーになる形）: キーがシンボルでも文字列でもない（`hashKeyNotSupported`）、値がハッシュ・配列・`nil`（`@h = {a: {b: 1}}`、`hashValueNotSupported`）、ハッシュのリテラルに直接メソッドを使う（`{a: 1}.keys`、`hashLiteralReceiver`）。値が代入などの命令（`{a: (@a = 1)}`）や値を返すメソッドの呼び出し（`{a: foo(1)}`）のときは、配列の要素と同じく「命令がまちがっています」のエラー（`wrongInstruction`）。
+**できないこと**（エラーになる形）: キーがシンボルでも文字列でもない（`hashKeyNotSupported`）、値がハッシュ・配列・`nil`（`@h = {a: {b: 1}}`、`hashValueNotSupported`）、ハッシュのリテラルに直接メソッドを使う（`{a: 1}.keys`、`hashLiteralReceiver`）。値が代入などの命令（`{a: (@a = 1)}`）や値を返すメソッドの呼び出し（`{a: foo(1)}`）のときは、配列の要素と同じく「命令がまちがっています」のエラー（`wrongInstruction`）。`@h[:a] = (@a = 1)` のように、代入する値が命令やブロックにできない呼び出し（`@h[:a] = @x.bar`）のときも、キーのシンボルではなく、その行の「命令がまちがっています」のエラー。
 
 **テスト**: `ruby-to-blocks-converter/variables/variables-hash-global.test.js`、`ruby-roundtrip/variables-v2-hash.test.js`、`variables-v2-hash-methods.test.js`、`variables-v2-hash-methods-vm.test.js`、`variables-v2-hash-unused-variable.test.js`。
 
@@ -381,9 +381,9 @@ say(@s)
 
 - 同じコードに戻る。ステージにリスト `_symbols_` ができる。
 
-**できないこと**（エラーになる形）: シンボルの計算（`:a + 1`、`symbolCannotArithmetic`）・比べる（`symbolCannotCompare`）・文字列として使う（`symbolNeedsToS`。`:a.to_s` と書く）、シンボルだけの行（命令ではない）。
+**できないこと**（エラーになる形）: シンボルの計算（`:a + 1`、`symbolCannotArithmetic`）・比べる（`symbolCannotCompare`）・文字列として使う（`symbolNeedsToS`。`:a.to_s` と書く）、シンボルだけの行（命令ではない）。同じ呼び出しのほかの相手や引数が値でない（`(@a = 1)`）、またはブロックにできない（`@x.bar`）ときは、シンボルの案内ではなく、その行の「命令がまちがっています」のエラー（P17）。案内が変わる境目は次のとおり。`say(:a, (@a = 1))`・`@h[:a] = @x.bar`・`say(foo.bar(:a))`・`say((1..3).include?(:a))`・`say(:a + foo(1))` は「命令がまちがっています」。拡張機能やほかのスプライトの受け手（`text2speech.speak(:hello)`・`koshien.move_to(:a)`・`say(mesh.sensor_value(:a))`・`microbit_more.display_text(:a)`・`say(sprite("Cat").foo(:a))`・`say(stage.foo(:a))`）は、変換器が受け手として作る `ruby_expression` なので「変換できなかった値」とみなさず、シンボルの案内（`symbolNeedsToS`）のまま（`_isUnconvertedValue`）。
 
-**テスト**: `ruby-to-blocks-converter/looks/symbol-implicit.test.js`、`operators/symbol-arithmetic.test.js`、`operators/symbol-error.test.js`、`operators/symbol-to-s.test.js`、`variables/variables-symbol-list.test.js`、`variables-symbol-ref.test.js`、`variables-symbol-var-say.test.js`、`ruby-generator/symbol-generator.test.js`。
+**テスト**: `ruby-to-blocks-converter/looks/symbol-implicit.test.js`、`operators/symbol-arithmetic.test.js`、`operators/symbol-error.test.js`、`operators/symbol-to-s.test.js`、`symbol-with-command-argument.test.js`、`variables/variables-symbol-list.test.js`、`variables-symbol-ref.test.js`、`variables-symbol-var-say.test.js`、`ruby-generator/symbol-generator.test.js`。
 
 ### P8. 正規表現
 

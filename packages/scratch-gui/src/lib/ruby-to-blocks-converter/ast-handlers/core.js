@@ -406,6 +406,22 @@ const CoreHandlers = {
     },
 
     /**
+     * Whether a receiver or an argument is a `ruby_*` block left by a call that could not be converted,
+     * such as `foo.bar` of `say(:a, foo.bar)` (issue #1884). The receiver of an extension or of another sprite
+     * (`koshien`, `mesh`, `sprite("Cat")`, `stage`) is made as a `ruby_expression` on purpose for the
+     * converters registered on its name, so it is not one.
+     * @param {*} value - The value of the receiver or the argument.
+     * @returns {boolean} Whether the value is a `ruby_*` block no converter takes as a receiver.
+     */
+    _isUnconvertedValue(value) {
+        if (!this._isRubyBlock(value)) {
+            return false;
+        }
+        const receiverName = value.opcode === 'ruby_expression' ? this._getReceiverName(value) : null;
+        return !(receiverName && this._receiverToMethods[receiverName]);
+    },
+
+    /**
      * Whether an operand came to nothing: it is not written (the end of `1..`), or visiting its node
      * returned `undefined` (a node with no visitor, such as a string, a symbol or a regular expression
      * with `#{...}`). Put in an input, it stopped the conversion with a JavaScript error
