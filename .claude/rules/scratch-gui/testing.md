@@ -114,6 +114,23 @@ describe('RubyToBlocksConverter/Event', () => {
 });
 ```
 
+### 新しい opcode はブロック ⇔ Ruby の表から（テストファースト）
+
+ブロック ⇔ Ruby の変換を足す・直すときは、**先に表に 1 行足して落ちるのを見てから**変換器・生成器を書く。
+
+1. `test/unit/lib/ruby-roundtrip/<category>-table.test.js`（無ければ作る）の `defineBlockRubyTable` に
+   `{ blocks: 'motion_movesteps(STEPS: 10)', ruby: 'move(10)' }` を足す。ブロックは短い記法
+   （`test/unit/helpers/block-notation.js` の冒頭に書き方）で書く。
+2. 流す（`npm exec jest test/unit/lib/ruby-roundtrip/<category>-table.test.js`）。1 行から
+   `toRuby`（生成）・`toBlocks`（変換）・`roundTrip`（往復）の 3 つのテストができ、落ちたところが実装する側。
+3. 生成器・変換器を書き、3 つとも通す。片方向だけの形は `only: 'toRuby'` / `only: 'toBlocks'`。
+4. 注釈 `@ruby:*` を使う形は、ブロックの記法に `#"@ruby:..."` を書いて表に入れる
+   （`docs/ruby-editor/bridging-patterns.md` の「表のテスト」）。
+
+既存のヘルパーとの使い分け: ブロックと Ruby の対応は表に書く。`expect-to-equal-blocks.js` は、表で書けないもの
+（カスタムブロックなど mutation を持つブロック、エラーになる形の `convertAndExpectRubyBlockError`）に使う。
+既存のテストを全部移す必要はなく、触ったところから表へ移す。
+
 補助ヘルパー: `test/helpers/`（`ruby-helper.js` / `smalruby-mock-state.js`（VM モック状態）/
 `intl-helpers.jsx` / `selenium-helper.js`）。round-trip 系は `test/unit/lib/ruby-roundtrip/`。
 
