@@ -36,12 +36,13 @@
 | ヘッダーの文字（題・戻る） | `modal/modal.css` `.header-item` | `$ui-white` | `#FFFFFF` | `$color-surface` | 一致 |
 | カードの地・枠・文字 | `library-item/library-item.css` `.library-item` | `white`・`2px solid $ui-black-transparent`・`$text-primary` | `#FFFFFF`・`#000000` × 0.15・`#575E75` | `$color-surface`・`$color-border`・`$color-text` | 一致 |
 | カードのホバー | `library-item/library-item.css` `.library-item:hover` | 枠 `$looks-secondary` | `#855CD6` | `$color-primary` | 一致（枠の色だけ変わる） |
+| 左下のアイコンの台（`.library-item-inset-image-container`） | `library-item/library-item.css` `.library-item-inset-image-container` | 地 `$pen-primary`・枠 `0.25rem solid $ui-white` | `#0FBD8C`・`#FFFFFF` | 別名なし | 一致（音楽・ペンなどのカードの左下の緑の四角） |
 | 必要なもの・協力の文字 | `library-item/library-item.css` `.featured-extension-metadata` | `$text-primary` に不透明度 0.75 | `#575E75` × 0.75 | `$color-text` | 一致 |
 | 「近日公開」の札 | `library-item/library-item.css` `.coming-soon-text` | 地 `$data-primary`・文字 `$ui-white`・影 `0 0 .5rem hsla(0, 0%, 0%, .25)` | `#FF8C1A` | 影は `$shadow-raised` | （スモウルビーの一覧には近日公開の拡張機能が無いので出ない） |
 | 押せないカード | `library-item/library-item.css` `.library-item.disabled` | 不透明度 0.5・ホバーで枠が変わらない | | | （同上） |
 | 選ばれた | —（選ぶとモーダルが閉じる） | | | | |
 
-色はライブラリと同じ（紫のヘッダー・淡い青の地・白いカード）。**拡張機能の緑（`$extensions-primary`）はモーダルには使っていない**。緑は、ブロックのカテゴリと、カードの左下のアイコンの絵（SVG の中の色）にだけ出る。
+色はライブラリと同じ（紫のヘッダー・淡い青の地・白いカード）。**モーダルの枠・ヘッダー・地には緑を使っていない**。緑は、ブロックのカテゴリと、カードの左下のアイコンの台（`$pen-primary`）に出る。
 
 ### 大きさと形
 
@@ -53,6 +54,7 @@
 | 名前（`.featured-text`） | 太字・余白 10px（拡張機能は左 1.25rem・左ぞろえ）。文字の大きさは決めていない（`<button>` の既定の 13.33px） | | 一致（13.33px・700） |
 | 説明（`.featured-description`） | 太さふつう・行の高さ 1.375rem・上 .3125rem・下 .25rem | | 一致（22px） |
 | 必要なもの・協力（`.featured-extension-metadata`） | 12px・不透明度 0.75・余白 `0 1.25rem 1rem`。見出しの下の値は太字（`.featured-extension-metadata-detail`） | | 一致 |
+| 左下のアイコンの台 | 3.5rem の四角・角丸 0.5rem・白い枠 0.25rem・絵の下に 2.5rem 重ねる・左 1rem。中のアイコンは 2.5rem | `$radius-medium` | 一致 |
 | 「近日公開」の札 | 角丸 1rem・余白 `.5rem 1rem`・`.875rem` 太字・絵の左上から `2 * $space` ずらす | `$font-size-medium` | （出ない） |
 
 ### 状態
@@ -84,7 +86,7 @@
 | オーバーレイ | `modal/modal.css` `.modal-overlay` | `$ui-modal-overlay` | `#4D97FF` × 0.9 | `$color-overlay` | 一致（`rgba(77, 151, 255, 0.9)`） |
 | 枠 | `modal/modal.css` `.modal-content` | `$ui-white-transparent` の 4px | `#FFFFFF` × 0.25 | 別名なし | 値は一致。見た目は白（スモウルビーの既定の地。[`components/modal.md`](components/modal.md)） |
 | **ヘッダーの地** | `connection-modal/connection-modal.css` `.header` | **`$pen-tertiary`**（`hsla(163, 86%, 30%, 1)`） | `#0B8E69` | 別名なし（`$extensions-tertiary` とほぼ同じ値。下の注） | 一致（`rgb(11, 142, 105)`） |
-| ヘッダーの文字（題・ヘルプ） | `modal/modal.css` `.header-item` | `$ui-white` | `#FFFFFF` | `$color-surface` | 一致 |
+| ヘッダーの文字（題・ヘルプ） | `modal/modal.css` `.header-item` | `$ui-white` | `#FFFFFF` | `$color-surface` | 一致。濃い緑の上の白は **4.1:1** で、WCAG の AA（ふつうの文字 4.5:1）に届かない。題は 1rem の太さふつう、ヘルプは 0.75rem で、どちらもWCAG の「大きい文字」（太字 14pt＝約 1.17rem 以上・ふつう 18pt＝1.5rem 以上。3:1 でよい）にも当たらない |
 | 閉じるボタン | `close-button/close-button.css` `.close-button.large` | 地と輪 `$ui-black-transparent` | `#000000` × 0.15 | `$color-border` | 一致（28px・輪 2px） |
 | 本文の地 | `connection-modal.css` `.body`・`.bottom-area` | `$ui-white` | `#FFFFFF` | `$color-surface` | 一致 |
 | 上の帯の地 | `connection-modal.css` `.activityArea` | `$looks-light-transparent`（`hsla(260, 60%, 60%, 0.15)`） | `#855CD6` × 0.15 | 別名なし | 一致（`rgba(133, 92, 214, 0.15)`） |
@@ -144,6 +146,6 @@
 
 ## 独自の画面で使うとき
 
-- 拡張機能・機器・ネットワーク（メッシュなど）と**つなぐ**画面は、この接続のモーダルの形（緑のヘッダー・淡い紫の帯・白い下の欄・紫のボタン）にする。色の選び方は [`components/modal.md`](components/modal.md) の「独自の画面での色の使い分け」。
+- 拡張機能・機器・ネットワーク（メッシュなど）と**つなぐ**画面は、この接続のモーダルの色と並び（濃い緑のヘッダー・淡い紫の帯・白い下の欄・紫のボタン）にする。ただし**ヘッダーの文字は上流と変える**: 題は太字 1.2rem 以上にし、ヘルプのような小さい文字はヘッダーに置かず本文へ移す（上流の形のままだと白い文字が AA に届かない）。くわしくは [`components/modal.md`](components/modal.md) の「独自の画面での色の使い分け」。
 - 進み具合を点で見せるときは、接続のモーダルの点（`.dots-holder`）の色にそろえる（進行中は紫、成功は緑、失敗はオレンジ）。
 - 一覧から拡張機能のようなものを選ぶ画面は、ライブラリの形（[`library.md`](library.md)）を使う。
