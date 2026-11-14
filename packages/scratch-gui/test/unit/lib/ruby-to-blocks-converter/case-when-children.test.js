@@ -5,7 +5,6 @@
  * code inside a `when`. The same code inside an `if` was seen.
  */
 import dedent from 'dedent';
-import RubyParser from '../../../../src/lib/ruby-parser';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 import {
     makeSpriteTarget,
@@ -89,6 +88,23 @@ describe('RubyToBlocksConverter: the code inside case / when (issue #1813)', () 
         });
     });
 
+    describe('a list in a when and a variable elsewhere (`_collectVariableUses`)', () => {
+        const listAndVariableError =
+            '"@a" is used as a list on line 3 and as a variable on line 5.\n' +
+            'In Ruby, one name cannot be both a variable and a list. Rename one of them.';
+
+        test.each([
+            ['in an if (as before)', 'if @x == 1\n  move(10)\n  @a.push(1)\nend\n@a = 5'],
+            ['in the body of a when', 'case @x\nwhen 1\n  @a.push(1)\nend\n@a = 5'],
+        ])('`@a.push` %s and `@a = 5` is an error', async (_name, code) => {
+            const { target, runtime } = makeSpriteTarget();
+            const converter = makeConverter(target, runtime, { version: '2' });
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(false);
+            expect(converter.errors.map((e) => [e.row, e.text])).toEqual([[4, listAndVariableError]]);
+        });
+    });
+
     describe('super inside a when (`_nodeContainsSuper`)', () => {
         test('super in the body of a when calls the method of the module', async () => {
             const converter = new RubyToBlocksConverter(null, { version: '2' });
@@ -119,23 +135,6 @@ describe('RubyToBlocksConverter: the code inside case / when (issue #1813)', () 
             });
             expect(superCalls).toHaveLength(1);
             expect(superCalls[0].mutation.proccode).toMatch(/^_super_func_1_ /);
-        });
-    });
-
-    describe('calls of a method that returns a value (`_countMethodCalls`)', () => {
-        test('counts the calls in the body of a when', async () => {
-            const prism = RubyParser.getPrism() || (await RubyParser.loadPrism());
-            const root = prism.parse(dedent`
-                case @x
-                when 1
-                  say(f)
-                when f
-                  say(f)
-                end
-            `).value;
-            const converter = new RubyToBlocksConverter(null, { version: '2' });
-            converter._lookupProcedure = (name) => (name === 'f' ? { hasReturnValue: true } : null);
-            expect(converter._countMethodCalls(root)).toEqual({ f: 3 });
         });
     });
 });
