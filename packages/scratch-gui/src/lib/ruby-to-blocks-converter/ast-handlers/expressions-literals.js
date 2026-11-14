@@ -110,13 +110,15 @@ const ExpressionsLiterals = {
     },
 
     visitRangeNode(node) {
-        const left = this.visit(node.left);
-        const right = this.visit(node.right);
+        const visitedLeft = this.visit(node.left);
+        const visitedRight = this.visit(node.right);
         // A range without an end (`1..`) or with a string with `#{...}` stopped the conversion with
         // a JavaScript error (issue #1885).
-        if (this._isMissingOperand(node.left, left) || this._isMissingOperand(node.right, right)) {
+        if (this._isMissingOperand(node.left, visitedLeft) || this._isMissingOperand(node.right, visitedRight)) {
             throw this._wrongInstructionError(node);
         }
+        const left = this._rangeEndValue(node.left, visitedLeft);
+        const right = this._rangeEndValue(node.right, visitedRight);
         const opcode = node.isExcludeEnd() ? 'ruby_exclude_range' : 'ruby_range';
         const block = this._createBlock(opcode, 'value_boolean');
         block.node = node;
@@ -124,7 +126,7 @@ const ExpressionsLiterals = {
         // (`self..2`, `1..:a`, `(@a = 1)..2`) was put there as something else (issue #1906). `rand`
         // does not take such a range; the range is left and told as a wrong instruction at the end,
         // after a `when` has told its own line (`when 1..` with the next line as the end).
-        if (!this._isRangeEnd(node.left, left) || !this._isRangeEnd(node.right, right)) {
+        if (!this._isRangeEnd(left) || !this._isRangeEnd(right)) {
             this._context.rangesWithWrongEnd.add(block.id);
         }
         this._addNumberInput(block, 'FROM', 'math_number', left, 1);
@@ -133,18 +135,30 @@ const ExpressionsLiterals = {
     },
 
     /**
-     * Whether an end of a range can go in a number input: a number or a value block. An end in
-     * parentheses (`1..(@a + 1)`) comes as the statements in them.
+     * The value of an end of a range. An end in parentheses (`1..(@a + 1)`, `1..((2))`) comes as the
+     * statements in them; the one statement is the value. Put in the input as the statements, the end
+     * came back as the default value of the input (issue #1906).
      * @param {object} node - The node of the end.
      * @param {*} value - What visiting the node returned.
+     * @returns {*} The value of the end.
+     */
+    _rangeEndValue(node, value) {
+        const statements = this._getNodeTypeName(node) === 'ParenthesesNode' && node.body ? node.body.body : null;
+        if (statements && statements.length === 1 && Array.isArray(value) && value.length === 1) {
+            return this._rangeEndValue(statements[0], value[0]);
+        }
+        return value;
+    },
+
+    /**
+     * Whether the value of an end of a range can go in a number input: a number or a value block.
+     * `true` / `false` are left out: they come as the block `1 == 1` / `0 == 1` marked as a literal,
+     * which is a value block.
+     * @param {*} value - The value of the end.
      * @returns {boolean} Whether the end is a number or a value block.
      */
-    _isRangeEnd(node, value) {
-        let end = value;
-        if (this._getNodeTypeName(node) === 'ParenthesesNode' && Array.isArray(end) && end.length === 1) {
-            end = end[0];
-        }
-        return !this._isTrue(end) && !this._isFalse(end) && this._isNumberOrBlock(end);
+    _isRangeEnd(value) {
+        return !this._isTrue(value) && !this._isFalse(value) && this._isNumberOrBlock(value);
     },
 
     visitConstantReadNode(node) {

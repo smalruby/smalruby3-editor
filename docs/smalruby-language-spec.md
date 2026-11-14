@@ -399,7 +399,7 @@ greet("hello")
 ```
 
 **Restrictions**:
-- Keyword arguments are not supported (`def foo(name:)` is invalid)
+- Only plain arguments (`def foo(a, b)`) are supported. Keyword arguments (`def foo(name:)`), default values (`def foo(a = 1)`), `*args`, `**opts`, `&blk` and `...` are errors (the error tells the line)
 - Arguments cannot be assigned to (`name = "x"` and `name += 1` are errors; copy the argument to another variable and change that one)
 - Class methods (`def self.method`) cannot be defined
 - `attr_accessor`/`attr_reader`/`attr_writer` can be used in a class definition (after `attr_accessor :hp`, read it with `hp` and set it with `self.hp = 1`)
@@ -755,7 +755,7 @@ The following Ruby syntax is **NOT supported** in Smalruby:
 - String interpolation (`"Hello #{name}"`)
 - Multiple assignment (`a, b = 1, 2`)
 - Arguments other than plain ones (a default value of `def foo(a = 1)`, `*args`, keyword arguments `a:` / `a: 1`, `**opts`, `&blk`, `...`, `3.times do |i = 1|` and `do |i; j|`; converting to blocks gives an error that tells the line)
-- A range whose end is not a number or a value (`rand(self..2)`, `rand(1..:a)`, `rand("a".."z")`, ...; converting to blocks gives an error that tells the line)
+- A range whose end is not a number or a value (`rand(self..2)`, `rand(1..:a)`, `rand("a".."z")`, ...; converting to blocks gives an error that tells the line. To use `gets` or a method that returns a value as an end, put it in a variable first: `@n = gets.to_i` → `rand(1..@n)`)
 - Iterators with a block other than `each` (`map` / `select` / `each_with_index`, ...; `each` and `N.times do |i|` can be used)
 - Procs / Lambdas
 - `yield`
