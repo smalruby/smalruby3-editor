@@ -1,5 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (comment/block-chain scrub handler for RubyGenerator) ===
-import { registerRubyMarkers, rubyMarkersOf } from './ruby-markers.js';
+import { registerRubyMarkers, rubyMarkersOf } from '../ruby-markers.js';
 
 const INLINE_MARKER = '@ruby:comment_position:inline';
 const INLINE_LAST_MARKER = '@ruby:comment_position:inline:last';

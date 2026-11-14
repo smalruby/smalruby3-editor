@@ -1,5 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (Ruby variable name helpers for RubyGenerator) ===
-import { rubyMarkersOf } from './ruby-markers.js';
+import { rubyMarkersOf } from '../ruby-markers.js';
 
 const SCALAR_TYPE = '';
 const LIST_TYPE = 'list';
