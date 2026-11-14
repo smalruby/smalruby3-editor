@@ -237,4 +237,5 @@ StudentStartMethod.propTypes = {
     onStartLesson: PropTypes.func,
 };
 
+export { messages };
 export default StudentStartMethod;

@@ -240,7 +240,7 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
             assignment: { ...ASSIGNMENT, starterUrl: 'https://signed.example/fresh-starter.sb3' },
         });
         await act(async () => {
-            await hook.result.current.handleReloadStarter();
+            await hook.result.current.handleChooseStarter();
         });
         expect(mockGetAssignment).toHaveBeenLastCalledWith('st', 'c-now');
         expect(global.fetch).toHaveBeenCalledWith('https://signed.example/fresh-starter.sb3');
@@ -248,21 +248,31 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         expect(hook.result.current.loadedChoice).toBe('starter');
     });
 
-    test('選択肢の「スターターから始める」は読み込んだら始め、パネルの「開く」ボタンは開いたまま', async () => {
+    test('おかえりなさい（課題をまだ読んでいない）でも、スターターを取り直して読み込み、始める (#1794)', async () => {
         mockGetAssignment.mockResolvedValue({ assignment: ASSIGNMENT });
-        mockGetContinuable.mockResolvedValue({ current: null, previous: PREVIOUS });
         const { hook, deps } = setup();
-        await act(async () => {
-            await hook.result.current.handleJoined('st', 'c-now', true);
-        });
-        await act(async () => {
-            await hook.result.current.handleReloadStarter();
-        });
-        expect(deps.onStarted).not.toHaveBeenCalled();
         await act(async () => {
             await hook.result.current.handleChooseStarter();
         });
+        expect(mockGetAssignment).toHaveBeenCalledWith('st', 'c-now');
+        expect(global.fetch).toHaveBeenCalledWith(ASSIGNMENT.starterUrl);
         expect(deps.onStarted).toHaveBeenCalledTimes(1);
+    });
+
+    test('スターターがあるかは、読んだ課題の応答から覚える（通信は増やさない・#1794）', async () => {
+        mockGetAssignment.mockResolvedValueOnce({ assignment: ASSIGNMENT });
+        mockGetContinuable.mockResolvedValue({ current: null, previous: null });
+        const { hook } = setup();
+        expect(hook.result.current.hasStarter).toBe(false);
+        await act(async () => {
+            await hook.result.current.handleJoined('st', 'c-now', true);
+        });
+        expect(hook.result.current.hasStarter).toBe(true);
+        mockGetAssignment.mockResolvedValueOnce({ assignment: { ...ASSIGNMENT, starterUrl: null } });
+        await act(async () => {
+            await hook.result.current.refreshLesson();
+        });
+        expect(hook.result.current.hasStarter).toBe(false);
     });
 
     test('取り直したらスターターが無くなっていたときはエラーを出す', async () => {
@@ -274,7 +284,7 @@ describe('useStudentAssignment — 続きから始める (#1201)', () => {
         });
         mockGetAssignment.mockResolvedValueOnce({ assignment: null });
         await act(async () => {
-            await hook.result.current.handleReloadStarter();
+            await hook.result.current.handleChooseStarter();
         });
         expect(mockLoadProject).not.toHaveBeenCalled();
         expect(deps.showError).toHaveBeenCalled();
@@ -429,7 +439,6 @@ describe('useStudentAssignment — メッシュの接続モーダルを出す (#
 
     test.each([
         ['スターターから始める', 'handleChooseStarter', []],
-        ['パネルの「スタータープロジェクトを開く」', 'handleReloadStarter', []],
         ['前回の提出物から続ける', 'handleLoadSubmission', ['previous']],
         ['この課題の提出物から続ける', 'handleLoadSubmission', ['current']],
     ])('%s でメッシュの作品を読み込んだら 1 回だけ依頼する', async (_label, handler, args) => {

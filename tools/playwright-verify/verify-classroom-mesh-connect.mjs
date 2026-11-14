@@ -151,15 +151,6 @@ const openStudent = async (joinCode, seat, label) => {
     return page;
 };
 
-// 開き直した課題パネルは最後のページに「とじる」と「スタータープロジェクトを開く」を出す (#1793)
-const toLastPage = async (page) => {
-    await page.waitForSelector('[data-testid="classroom-phase-student-assignment"]', { timeout: 20000 });
-    while (await page.$('[data-testid="classroom-assignment-main-next"]')) {
-        await page.click('[data-testid="classroom-assignment-main-next"]');
-        await sleep(200);
-    }
-};
-
 const createAssignment = async (name, { mesh }) => {
     await teacher.click('[data-testid="classroom-breadcrumb-assignments"]');
     await teacher.waitForSelector('[data-testid="classroom-board"]', { timeout: 20000 });
@@ -238,26 +229,16 @@ try {
     st = await modalState(s1);
     assert(!st.connection && !st.pending, 'closing the connection modal does not bring it back');
 
-    // ---- 課題パネルの「スタータープロジェクトを開く」: パネルを閉じたら出す ----
-    log('student seat1: reopen the starter from the assignment panel');
+    // ---- おかえりなさいの「作品を読み込み直す」→ スターター: クラスの画面を閉じたら出す (#1794) ----
+    log('student seat1: reopen the starter from the welcome back screen');
     await s1.click('[data-testid="classroom-menu-button"]');
-    await s1.waitForSelector('[data-testid="classroom-view-assignment-button"]', { timeout: 20000 });
-    await s1.click('[data-testid="classroom-view-assignment-button"]');
-    await toLastPage(s1);
-    await s1.waitForSelector('[data-testid="classroom-assignment-reload-starter"]', { timeout: 20000 });
-    await s1.click('[data-testid="classroom-assignment-reload-starter"]');
-    await s1.waitForFunction(() => window.__store.getState().scratchGui.classroom.meshConnectPending, null, {
-        timeout: 20000,
-    });
-    await sleep(1000);
-    st = await modalState(s1);
-    assert(st.classroom && !st.connection, 'while the panel stays open the connection modal waits');
-    await shot(s1, 'seat1-panel-open-waiting');
-    await s1.click('[data-testid="classroom-assignment-close"]');
+    await s1.waitForSelector('[data-testid="classroom-status-reload-toggle"]', { timeout: 20000 });
+    await s1.click('[data-testid="classroom-status-reload-toggle"]');
+    await s1.click('[data-testid="classroom-status-reload-starter"]');
     await waitConnectionModal(s1);
     st = await modalState(s1);
-    assert(st.connection && !st.classroom, 'connection modal opened after closing the panel');
-    await shot(s1, 'seat1-connection-modal-after-panel');
+    assert(st.connection && !st.classroom, 'connection modal opened after the welcome back screen closed');
+    await shot(s1, 'seat1-connection-modal-after-reload');
     await closeConnectionModal(s1);
 
     // ---- 上書き確認をキャンセル → 出さない ----
@@ -270,13 +251,12 @@ try {
     });
     dialogAction = 'dismiss';
     await s1.click('[data-testid="classroom-menu-button"]');
-    await s1.waitForSelector('[data-testid="classroom-view-assignment-button"]', { timeout: 20000 });
-    await s1.click('[data-testid="classroom-view-assignment-button"]');
-    await toLastPage(s1);
-    await s1.waitForSelector('[data-testid="classroom-assignment-reload-starter"]', { timeout: 20000 });
-    await s1.click('[data-testid="classroom-assignment-reload-starter"]');
+    await s1.waitForSelector('[data-testid="classroom-status-reload-toggle"]', { timeout: 20000 });
+    await s1.click('[data-testid="classroom-status-reload-toggle"]');
+    await s1.click('[data-testid="classroom-status-reload-starter"]');
     await sleep(3000);
-    await s1.click('[data-testid="classroom-assignment-close"]');
+    // 断ったので読み込まず、クラスの画面は開いたまま。「つづける」で閉じる。
+    await s1.click('[data-testid="classroom-status-continue"]');
     await sleep(2500);
     st = await modalState(s1);
     assert(!st.connection && !st.pending, 'cancelled overwrite: no connection modal');

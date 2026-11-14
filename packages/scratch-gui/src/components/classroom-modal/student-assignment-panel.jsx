@@ -19,7 +19,6 @@ import { LessonNextSteps } from './student-joined-confirmation.jsx';
 import StudentMainButton from './student-main-button.jsx';
 import StudentPreviousComment from './student-previous-comment.jsx';
 import StudentStartMethod from './student-start-method.jsx';
-import StudentTextLink from './student-text-link.jsx';
 
 const StudentAssignmentPanel = ({
     assignment,
@@ -37,7 +36,6 @@ const StudentAssignmentPanel = ({
     onLoadSubmission,
     onNextPage,
     onPrevPage,
-    onReloadStarter,
     onStartLesson,
 }) => {
     const pages = assignment?.pages || [];
@@ -166,22 +164,6 @@ const StudentAssignmentPanel = ({
                             id="gui.classroom.studentAssignment.closeReopened"
                         />
                     </StudentMainButton>
-                    {/* Until 「作品を読み込み直す」 (#1794), the starter can be reopened here. */}
-                    {assignmentReopened && assignment?.starterUrl && onReloadStarter && (
-                        <div className={styles.assignmentMainLinks}>
-                            <StudentTextLink
-                                dataTestId="classroom-assignment-reload-starter"
-                                disabled={isLoading}
-                                onClick={onReloadStarter}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Open the Starter Project"
-                                    description="Assignment panel: (re)open the starter project"
-                                    id="gui.classroom.studentAssignment.reloadStarter"
-                                />
-                            </StudentTextLink>
-                        </div>
-                    )}
                 </div>
             )}
         </div>
@@ -220,8 +202,6 @@ StudentAssignmentPanel.propTypes = {
     onLoadSubmission: PropTypes.func,
     onNextPage: PropTypes.func.isRequired,
     onPrevPage: PropTypes.func.isRequired,
-    // 開き直したときにスターターを開く（モーダルは閉じない）
-    onReloadStarter: PropTypes.func,
     onStartLesson: PropTypes.func,
     // normalized lesson setting of the joined assignment (null = not a lesson assignment)
     studentLesson: PropTypes.shape({ submitWork: PropTypes.bool }),

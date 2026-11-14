@@ -515,6 +515,26 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         setPhase('student-join');
     }, [classroomState.sessionToken, classroomState.classroomId, dispatch]);
 
+    // 「出席番号がちがう」 on the welcome back screen (#1794): a shared PC may
+    // still hold the previous student's join. Free this seat and go to the
+    // same assignment's seat selection (no join code to type again). The
+    // freed seat was not this student's, so it is not offered as the
+    // previous seat (#1796).
+    const handleWrongSeat = useCallback(async () => {
+        const { joinCode, seatNumber, sessionToken, classroomId } = classroomState;
+        if (!joinCode) return;
+        if (sessionToken && classroomId) {
+            try {
+                await classroomAPI.leaveClassroom(sessionToken, classroomId);
+            } catch {
+                // The seat frees itself later even if this fails; the student
+                // must still reach the seat screen.
+            }
+        }
+        dispatch(clearClassroomSession());
+        await handleJoinWithCode(joinCode, { forgetSeat: seatNumber });
+    }, [classroomState, dispatch, handleJoinWithCode]);
+
     // --- Auto-join: classcode URL parameter / teacher's selected assignment ---
     useEffect(() => {
         const classcodeParams = getUrlParams();
@@ -579,17 +599,16 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             continueOptions={studentAssignment.continueOptions}
             error={error}
             hasAssignment={studentAssignment.hasAssignment}
+            hasStarter={studentAssignment.hasStarter}
             lessonStatus={lessonStatus}
             studentLesson={studentLesson}
             onStartLesson={handleStartLesson}
-            loadedChoice={studentAssignment.loadedChoice}
             startMethod={studentAssignment.startMethod}
             onLoadSubmission={studentAssignment.handleLoadSubmission}
             onAssignmentNextPage={studentAssignment.handleAssignmentNextPage}
             onAssignmentPrevPage={studentAssignment.handleAssignmentPrevPage}
             onOpenAssignment={handleReopenAssignment}
             onChooseStarter={studentAssignment.handleChooseStarter}
-            onReloadStarter={studentAssignment.handleReloadStarter}
             errorActionHandler={errorActionHandler}
             errorActionLabel={errorActionLabel}
             errorTitle={errorTitle}
@@ -623,7 +642,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             onRequestKick={handleRequestKick}
             onSelectSeat={handleSelectSeat}
             onSelectTeacher={handleSelectTeacher}
-            onStartSubmit={submit.handleStartSubmit}
+            onWrongSeat={handleWrongSeat}
         />
     );
 };

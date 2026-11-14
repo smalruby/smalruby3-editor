@@ -147,33 +147,9 @@ describe('StudentAssignmentPanel', () => {
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    test('開き直したパネルの最後のページには、スターターがあるときだけ小さなリンク「スタータープロジェクトを開く」', () => {
-        const onReloadStarter = jest.fn();
-        const { getByTestId, queryByTestId, rerender } = renderPanel({
-            assignmentReopened: true,
-            pageIndex: 0,
-            onReloadStarter,
-        });
-        expect(queryByTestId('classroom-assignment-reload-starter')).not.toBeInTheDocument();
-        rerender(
-            <IntlProvider locale="en">
-                <StudentAssignmentPanel
-                    {...defaultProps()}
-                    assignmentReopened
-                    pageIndex={1}
-                    onReloadStarter={onReloadStarter}
-                />
-            </IntlProvider>,
-        );
-        fireEvent.click(getByTestId('classroom-assignment-reload-starter'));
-        expect(onReloadStarter).toHaveBeenCalledTimes(1);
-        const props = defaultProps();
-        props.assignment = { pages: [{ text: 'only' }], starterUrl: null };
-        rerender(
-            <IntlProvider locale="en">
-                <StudentAssignmentPanel {...props} assignmentReopened onReloadStarter={onReloadStarter} />
-            </IntlProvider>,
-        );
+    test('開き直したパネルにはスターターのリンクを出さない（おかえりなさいの「作品を読み込み直す」から開く）', () => {
+        const { queryByTestId } = renderPanel({ assignmentReopened: true, pageIndex: 1 });
+        expect(queryByTestId('classroom-assignment-close')).toBeInTheDocument();
         expect(queryByTestId('classroom-assignment-reload-starter')).not.toBeInTheDocument();
     });
 

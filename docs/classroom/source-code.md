@@ -27,7 +27,7 @@ smalruby3-editor/
 │   │   │   │   ├── student-main-button.jsx ← 生徒の画面の主ボタン（大きい青・説明の小さい字つき・画面に 1 つ）
 │   │   │   │   ├── student-text-link.jsx ← 生徒の画面の小さな文字のリンク（主ボタン以外の操作）
 │   │   │   │   ├── student-screen-parts.css ← 上の 3 つの部品のスタイル
-│   │   │   │   ├── student-continue-choice.jsx ← ステータス画面の「提出した作品を読み込む」（前回 / この課題の提出物）#1201
+│   │   │   │   ├── student-status-view.jsx ← おかえりなさいの画面（主ボタン「つづける」・小さなリンク・「作品を読み込み直す」・「クラスから出る」の確認）
 │   │   │   │   ├── student-start-method.jsx ← 参加したあとの始め方（主ボタン 1 つ + 「ほかの始め方」）#1793
 │   │   │   │   ├── teacher-class-detail.jsx ← 先生の課題詳細 (退室リクエストバッジ + 退室通知バナー)
 │   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
