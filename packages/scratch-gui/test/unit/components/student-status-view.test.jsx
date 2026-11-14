@@ -269,7 +269,7 @@ describe('StudentStatusView: リロードしたあとに「この課題で出し
     });
 });
 
-describe('StudentStatusView: リロードしたあと、未提出でスターターがあれば「スタータープロジェクトから始める」', () => {
+describe('StudentStatusView: リロードしたあと、未提出でスターターがあれば「スターターから始める」', () => {
     test('主ボタンがスターターで、「このまま つづける」は小さなリンク。「作品を読み込み直す」には重ねない', () => {
         const h = renderView({ continueOptions: null, hasStarter: true, offerStarter: true });
         const main = screen.getByTestId('classroom-status-start-starter');
@@ -314,6 +314,14 @@ describe('StudentStatusView: リロードしたあと、未提出でスタータ
             studentLesson: { submitWork: true, challengeIds: ['a', 'b'] },
         });
         expect(screen.queryByTestId('classroom-status-start-starter')).not.toBeInTheDocument();
+    });
+
+    test('読み込み中（スターターの有無を確かめている間）は主ボタンを押せない', () => {
+        const h = renderView({ continueOptions: null, hasStarter: true, offerStarter: true, isLoading: true });
+        const main = screen.getByTestId('classroom-status-start-starter');
+        expect(main).toBeDisabled();
+        fireEvent.click(main);
+        expect(h.onLoadStarter).not.toHaveBeenCalled();
     });
 });
 
@@ -385,6 +393,19 @@ describe('StudentStatusView の GA (#1831)', () => {
             seconds: 8,
         });
         expect(onContinue).toHaveBeenCalled();
+    });
+
+    test('主ボタンがスターターなら welcome_view の main は starter、押すと welcome_action の button も starter', () => {
+        const onTrack = jest.fn();
+        const onLoadStarter = jest.fn();
+        renderWithTrack({ onTrack, onLoadStarter, hasStarter: true, offerStarter: true, now: () => 0 });
+        expect(onTrack).toHaveBeenCalledWith('welcome_view', { main: 'starter' });
+        fireEvent.click(screen.getByTestId('classroom-status-start-starter'));
+        expect(onTrack).toHaveBeenLastCalledWith(
+            'welcome_action',
+            expect.objectContaining({ button: 'starter', main: 'starter' }),
+        );
+        expect(onLoadStarter).toHaveBeenCalled();
     });
 
     test('「出席番号がちがう」は wrong_seat', () => {

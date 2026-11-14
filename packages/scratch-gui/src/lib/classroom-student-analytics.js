@@ -218,7 +218,7 @@ const submitOpenState = (submissionStatus) => {
  * @param {object} input - 主ボタンの決め方（student-status-view.jsx と同じ）。
  * @param {boolean} [input.mainIsLesson] - 「レッスンを続ける」
  * @param {boolean} [input.mainIsCurrent] - 「この課題で出した作品から続ける」
- * @param {boolean} [input.mainIsStarter] - 「スタータープロジェクトから始める」
+ * @param {boolean} [input.mainIsStarter] - 「スターターから始める」
  * @returns {string} lesson / this_submission / starter / continue
  */
 const welcomeMain = ({ mainIsLesson = false, mainIsCurrent = false, mainIsStarter = false } = {}) => {

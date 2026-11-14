@@ -678,7 +678,7 @@ StudentStatusView.propTypes = {
     lessonStatus: PropTypes.object,
     // 主ボタンを「この課題で出した作品から続ける」にする（shouldOfferCurrentSubmission の結果・#1825）
     offerCurrentSubmission: PropTypes.bool,
-    // 主ボタンを「スタータープロジェクトから始める」にする（shouldOfferStarter の結果）
+    // 主ボタンを「スターターから始める」にする（shouldOfferStarter の結果）
     offerStarter: PropTypes.bool,
     // normalized lesson setting of the joined assignment
     studentLesson: PropTypes.shape({ submitWork: PropTypes.bool }),

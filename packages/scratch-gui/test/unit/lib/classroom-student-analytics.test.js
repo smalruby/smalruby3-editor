@@ -166,6 +166,7 @@ describe('welcomeMain', () => {
     test.each([
         [{ mainIsLesson: true }, 'lesson'],
         [{ mainIsCurrent: true }, 'this_submission'],
+        [{ mainIsStarter: true }, 'starter'],
         [{}, 'continue'],
     ])('%o → %s', (input, expected) => {
         expect(welcomeMain(input)).toBe(expected);

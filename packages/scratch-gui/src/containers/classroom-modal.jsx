@@ -590,19 +590,20 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 setStudentTeacherComment(submission.teacherComment);
             }
             studentAssignment.setHasAssignment(!!result.hasAssignment);
-            // Stay busy until the submissions answer too (#1825 review M1): the main
-            // button may turn into 「この課題で出した作品から続ける」, so 「つづける」 must
-            // not be pressable before we know.
-            await studentAssignment.refreshContinueOptions();
+            // Stay busy until the submissions and the assignment (its starter) answer too
+            // (#1825 review M1): the main button may turn into 「この課題で出した作品から続ける」
+            // or 「スターターから始める」, so 「つづける」 must not be pressable before we know.
+            // Both are best-effort: a failure goes on as before (no submission, no starter).
+            await Promise.all([studentAssignment.refreshContinueOptions(), studentAssignment.refreshLesson()]);
             if (token !== sessionTokenRef.current) return;
             setStatusCheckedSeq((n) => n + 1);
             // The lesson progress row is built from the device's lesson records
-            // (#1599); take in what another tab wrote and re-read the lesson.
-            // Opening this screen is also a moment to send the progress to the
-            // class (#1600): catches up what failed to send earlier. Asked after
-            // the lesson is re-read so a changed lesson is sent as it is now.
+            // (#1599); take in what another tab wrote. Opening this screen is also
+            // a moment to send the progress to the class (#1600): catches up what
+            // failed to send earlier. Asked after the lesson is re-read so a changed
+            // lesson is sent as it is now.
             dispatch(reloadProgress());
-            studentAssignment.refreshLesson().then(() => dispatch(requestProgressSend()));
+            dispatch(requestProgressSend());
         } catch (err) {
             if (token !== sessionTokenRef.current) return;
             const kick = extractKickReason(err);
