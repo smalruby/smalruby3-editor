@@ -443,6 +443,8 @@ const ClassVisitor = {
                 this._context.methodCallIndices = {};
                 this._context.savedReturnValueInStatement = false;
                 const block = this.visit(stmt);
+                // A statement that has no block (`alias`, `undef`, ...) was dropped (issue #1814).
+                this._checkStatementHasHandler(stmt, block, messages.wrongInstructionInClass);
                 if (Array.isArray(block)) {
                     block.forEach((b) => {
                         blocks.push(b);
@@ -529,14 +531,7 @@ const ClassVisitor = {
         if (typeName === 'SuperNode' || typeName === 'ForwardingSuperNode') {
             return true;
         }
-        if (node.compactChildNodes) {
-            for (const child of node.compactChildNodes()) {
-                if (this._nodeContainsSuper(child)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return this._childNodesOf(node).some((child) => this._nodeContainsSuper(child));
     },
 };
 

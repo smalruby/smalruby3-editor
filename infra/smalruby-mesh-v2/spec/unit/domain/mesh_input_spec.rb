@@ -84,4 +84,48 @@ RSpec.describe MeshInput do
       end
     end
   end
+
+  # issue #1846: イベントの payload は 1000 文字まで
+  describe ".validate_events!" do
+    def event(payload = :none)
+      e = {"eventName" => "evt", "firedAt" => "2026-11-14T00:00:00.000Z"}
+      e["payload"] = payload unless payload == :none
+      e
+    end
+
+    it "payload ちょうど 1000 文字は通す" do
+      expect { described_class.validate_events!([event("a" * 1000)]) }.not_to raise_error
+    end
+
+    it "payload が無い・nil のイベントは通す（今の GUI の形）" do
+      expect { described_class.validate_events!([event, event(nil)]) }.not_to raise_error
+    end
+
+    it "payload 1001 文字は ValidationError（何番目のイベントかを返す）" do
+      expect { described_class.validate_events!([event("1"), event("a" * 1001)]) }
+        .to raise_error(MeshInput::ValidationError, /events\[1\]\.payload must be 1000 characters or less/)
+    end
+
+    it "マルチバイト文字も 1 文字として数える（あ 1000 文字は通し、1001 文字は拒否する）" do
+      expect { described_class.validate_events!([event("あ" * 1000)]) }.not_to raise_error
+      expect { described_class.validate_events!([event("あ" * 1001)]) }
+        .to raise_error(MeshInput::ValidationError, /payload must be 1000 characters or less/)
+    end
+
+    it "絵文字は UTF-16 のコード単位で 2 と数える（AppSync JS・GUI の length と同じ。500 個は通し、501 個は拒否する）" do
+      expect { described_class.validate_events!([event("😀" * 500)]) }.not_to raise_error
+      expect { described_class.validate_events!([event("😀" * 501)]) }
+        .to raise_error(MeshInput::ValidationError, /payload must be 1000 characters or less/)
+    end
+
+    it "シンボルのキーでも検査する" do
+      expect { described_class.validate_events!([{payload: "a" * 1001}]) }
+        .to raise_error(MeshInput::ValidationError, /payload/)
+    end
+
+    it "空の配列・nil は何もしない" do
+      expect { described_class.validate_events!([]) }.not_to raise_error
+      expect { described_class.validate_events!(nil) }.not_to raise_error
+    end
+  end
 end

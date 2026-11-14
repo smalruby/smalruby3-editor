@@ -6,6 +6,7 @@
 - English version: [smalruby-language-spec.md](./smalruby-language-spec.md)
 - 拡張機能メソッド: [smalruby-language-spec-extensions.ja.md](./smalruby-language-spec-extensions.ja.md)
 - Version 1 API との差分: [smalruby-language-spec-v1-diff.ja.md](./smalruby-language-spec-v1-diff.ja.md)
+- ブロックでの表し方（変換器・生成器を直す人向け）: [Ruby → Scratch 橋渡しパターン集](./ruby-editor/bridging-patterns.md)
 
 > **注意**: このドキュメントは **Version 2** API をベースに記載しています。Version 1 との差分は [v1 差分](./smalruby-language-spec-v1-diff.ja.md) を参照してください。
 
@@ -19,10 +20,11 @@ smalrubyはRubyのサブセットで、MIT Scratch 3.0のビジュアルプロ�
 
 - クラス定義は限定的（スプライトの設定にのみ使用）
 - **`module` と `include` に対応** — `def` メソッドを複数のスプライトで共有可能
-- ループは `loop do...end`、`N.times do...end`、`while...end`、`until...end`（`for`/`each` は不可）
+- ループは `loop do...end`、`N.times do...end`、`while...end`、`until...end`、配列・ハッシュの変数の `each do |x|...end`（`for` は不可）
 - 変数: インスタンス変数（`@score`）、グローバル変数（`$score`）、ローカル変数（`score`）
 - 文字列の式展開（`"#{var}"`）は不可
-- `require`、`puts`/`print`/`p`、例外処理（`begin/rescue`）は不可
+- `require`、例外処理（`begin/rescue`）は不可
+- `puts`/`print`/`p` は「（値）と 1 秒言う」ブロックになる
 - 複合代入演算子 `+=`, `-=`, `*=`, `/=`, `%=` に対応
 - 再帰呼び出しは不可
 
@@ -87,7 +89,7 @@ end
 
 - クラス名に名前空間は指定できません（`Foo::Bar` は不可）
 - クラス継承 (`class Foo < Bar`) は構文上は許容されますが、親クラスは無視されます
-- class定義のトップレベルに置けるのは、**イベントハンドラ**（`when_xxx`）、**メソッド定義**（`def`）、**`include`** のみです
+- class定義のトップレベルに置けるのは、**イベントハンドラ**（`when_xxx`）、**メソッド定義**（`def`）、**`include`**、**`attr_accessor` / `attr_reader` / `attr_writer`**、**`set_xxx`**（「class定義のみで使えるメソッド」）のみです
 
 ### ブロックの中に書けないもの
 
@@ -261,6 +263,8 @@ count += 1
 | `/=` | `@score /= 2` | 変数の値を除算 |
 | `%=` | `@score %= 3` | 変数の値の剰余 |
 
+多重代入は、`=` の右に数・文字列・`true` / `false` を変数と同じ数だけ書いた形（`@a, @b = 1, "x"`）だけが使える。ブロックにすると、1 つずつの代入（`@a = 1` と `@b = "x"`）になり、Ruby に戻しても 1 つずつの代入のまま。入れかえ（`@a, @b = @b, @a`）のように右に変数・式・メソッドの呼び出しがある形や、数が合わない形・`*` を使う形・配列（`[1, 2]`）を書いた形は、ブロックに変えるときにどの行かがわかるエラーになる（Ruby は右の値をすべて求めてから入れるので、1 つずつ入れると結果が変わることがあるため）。
+
 ### 条件分岐
 
 ```ruby
@@ -305,6 +309,8 @@ move(10) if keyboard.pressed?("space")
 say("セーフ") unless touching?("_edge_")
 ```
 
+`case` の式と `when` の値には、値を書きます（値を返すメソッドの呼び出し `when foo(1)` も書けます）。代入（`when (@a = "abc")`）や命令（`when move(1)`）は値ではないので、その行の「命令がまちがっています」のエラーになります。`when` に 2 つ以上の値を書く形（`when 1, 2`）も使えません。
+
 条件には変数だけを書くこともできます（`if @flag`・`while a < 3 && @x`・`until @done || a > 3`・`!@x` など）。Ruby と同じく、変数が `false` のときだけ偽で、`0` や空の文字列は真です（ただし Scratch の `=` は文字を大文字・小文字を区別せずに比べるので、文字の `"false"` / `"FALSE"` も偽になります）。ブロックでは「(変数) = (false)」ではない、になり、この「ではない」ブロックにはコメントの印（`@ruby:variable_condition`）が付きます。ブロック → Ruby では変数だけに戻すので、往復しても書いたとおりに戻ります。
 
 ### ループ
@@ -319,6 +325,17 @@ end
 10.times do
   move(10)
   turn_right(36)
+end
+
+# 配列・ハッシュの変数の項目ごとのループ
+@items = ["りんご", "バナナ"]
+@items.each do |item|
+  say(item)
+end
+
+@scores = {a: 1, b: 2}
+@scores.each do |key, value|
+  say(key)
 end
 
 # 条件ループ（条件が真である限り繰り返す）
@@ -338,7 +355,7 @@ end
 
 中が空のループ: `wait until 条件` と `do` の無い `until 条件` / `end` は「〜まで待つ」になります。`until 条件 do` / `end`（または中が `with_screen_refresh do` / `end` だけの `until 条件`）は中が空の「〜まで繰り返す」になり、ブロック → Ruby でも中が空の「〜まで繰り返す」はこの形で書くので、往復してもブロックの種類は変わりません。`while` も同じです。`until` / `while` ... `end` の中（`with_screen_refresh do ... end` の中も）の `wait` は消えません。ループにコメントの印 `@ruby:method:wait`（両方書いたときは `@ruby:method:with_screen_refresh` も）が付き、ブロック → Ruby で中の最後に `wait` を書き戻します。
 
-**注意**: `for`, `each` ループはサポートされていません。ループの途中で抜ける `break`・残りを飛ばす `next` も使えません（エラーになります）。条件ループの条件で止めてください。
+**注意**: `for` ループはサポートされていません。`each` は配列・ハッシュを入れた変数に使えます（`[1, 2].each` のように配列 `[...]` に直接使うとエラーになります。先に変数に入れてください）。ループの途中で抜ける `break`・残りを飛ばす `next` も使えません（エラーになります）。条件ループの条件で止めてください。
 
 **重要 — ループの自動1フレーム待機**:
 `loop do...end`、`N.times do...end`、`while...end`、`until...end` はすべて、**毎ループ終端で自動的に1フレーム（約33ms、30fps相当）待機**します。
@@ -414,7 +431,7 @@ greet("こんにちは")
 - キーワード引数には対応していません（`def foo(name:)` は不可）
 - 引数には代入できません（`name = "x"` や `name += 1` はエラー。ほかの変数に写してから変えてください）
 - クラスメソッド（`def self.method`）は定義できません
-- `attr_accessor`/`attr_reader`/`attr_writer` は使えません
+- `attr_accessor`/`attr_reader`/`attr_writer` は class 定義の中で使えます（`attr_accessor :hp` のあと、`hp` で読み、`self.hp = 1` で入れる）
 - メソッドのオーバーロードはできません
 - 再帰呼び出しはできません
 
@@ -554,6 +571,7 @@ end
 |---|---|---|
 | `say(メッセージ)` | 吹き出しでメッセージを表示 | `say("こんにちは")` |
 | `say(メッセージ, 秒数)` | 秒数だけ吹き出しを表示 | `say("やあ", 2)` |
+| `puts(値)` / `print(値)` / `p(値)` | 「（値）と 1 秒言う」と同じ。Ruby に戻すと元のメソッド名に戻る | `puts(1)` |
 | `think(メッセージ)` | 考え中の吹き出しを表示 | `think("うーん")` |
 | `think(メッセージ, 秒数)` | 秒数だけ考え中の吹き出しを表示 | `think("うーん", 2)` |
 | `switch_costume("名前")` | 指定のコスチュームに変更 | `switch_costume("costume2")` |
@@ -771,20 +789,23 @@ say(@items)                    # リストそのもの（「リスト items」�
 以下のRuby構文はsmalrubyでは**使用できません**:
 
 - `for` ループ
-- `each` メソッド（`[1, 2].each do |i|` や `[1, 2].first` のように、配列 `[...]` に直接 `each` / `first` / `last` / `max` / `min` / `sort` / `reverse` / `join` を使うと、ブロックに変えるときにどの行かがわかるエラーになる。先に配列を変数に入れる: `@a = [1, 2]` → `@a.first`）
+- 配列 `[...]` に直接使うメソッド（`[1, 2].each do |i|` や `[1, 2].first` のように、配列 `[...]` に直接 `each` / `first` / `last` / `max` / `min` / `sort` / `reverse` / `join` を使うと、ブロックに変えるときにどの行かがわかるエラーになる。先に配列を変数に入れる: `@a = [1, 2]` → `@a.first`・`@a.each do |i|`）
 - `break` / `next` / `redo` / `retry`（Scratch に当たるブロックがないので、ブロックに変えるときにどの行かがわかるエラーになる。くり返しは `until x > 3 ... end`（「〜まで繰り返す」）の条件で止め、残りを飛ばしたいときは `if` で囲む）
 - `rescue` / `else` / `ensure`（例外処理。`def ... rescue ... end`・`do ... rescue ... end`・修飾子の `x rescue y` も含む。ブロックに変えるときに、その節の行がわかるエラーになる。節の無い `begin ... end` と `begin ... end while` は使える）
 - `module_function`, `extend`（`module` と `include` はサポート）
 - `private` / `protected` / `public`（`private :foo` や `private def foo ... end` の形も含む。どこに書いてもエラーになるので消す。`private def foo ... end` は `private` を消せば `def foo ... end` として使える。自分で `def private ... end` と定義したメソッドを呼ぶのはエラーにならない）
 - `require` / `require_relative`
 - 文字列の式展開 (`"Hello #{name}"`)
-- 多重代入 (`a, b = 1, 2`)
+- 多重代入のうち、右に変数・式・メソッドの呼び出しがある形（`a, b = b, a` など。右が数・文字列・`true` / `false` だけの `a, b = 1, 2` は使える。「代入演算子」を参照）
+- `alias` / `undef` / `BEGIN` / `END`（ブロックに変えるときにどの行かがわかるエラーになる）
+- `||=` / `&&=`（`@a ||= 0` など。ブロックに変えるときにどの行かがわかるエラーになる。先に `@a = 0` と入れておく）
+- 定数への代入（`FOO = 1`。ブロックに変えるときにどの行かがわかるエラーになる。変数 `@foo = 1` を使う）
+- リストの要素への代入演算子（`@a[0] += 1` など。ブロックに変えるときにどの行かがわかるエラーになる。`@a[0] = @a[0] + 1` と書く）
 - スプラット引数 (`*args`)
-- ブロック引数付きのイテレータ（`each { |x| ... }` など）
+- `each` 以外のブロック付きのイテレータ（`map` / `select` / `each_with_index` など。`each` と `N.times do |i|` は使える）
 - プロック / ラムダ
 - `yield`
 - `open` / ファイルI/O
-- `puts` / `print` / `p`（直接は使えません。代わりに `say()` を使ってください）
 
 ## 6. よくある間違い
 
@@ -867,13 +888,14 @@ self.size += 10
 ```
 
 ```ruby
-# ❌ each は使えません
+# ❌ 配列 [...] に直接 each は使えません
 [1, 2, 3].each do |n|
   say(n)
 end
 
-# ✅ times を使います
-3.times do
-  say("hello")
+# ✅ 先に配列を変数に入れてから each を使います
+@numbers = [1, 2, 3]
+@numbers.each do |n|
+  say(n)
 end
 ```

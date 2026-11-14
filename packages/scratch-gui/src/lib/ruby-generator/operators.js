@@ -10,7 +10,7 @@ export default function (Generator) {
     OperatorsMathGenBlocks(Generator);
 
     Generator.operator_gt = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment) {
             const commentParts = comment.split(/,(?=@ruby:)/);
             for (const part of commentParts) {
@@ -35,7 +35,7 @@ export default function (Generator) {
     };
 
     Generator.operator_lt = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment) {
             const commentParts = comment.split(/,(?=@ruby:)/);
             for (const part of commentParts) {
@@ -63,7 +63,7 @@ export default function (Generator) {
     };
 
     Generator.operator_equals = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment) {
             const commentParts = comment.split(/,(?=@ruby:)/);
             let methodName = null;
@@ -141,7 +141,7 @@ export default function (Generator) {
     };
 
     Generator.operator_or = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment) {
             const commentParts = comment.split(/,(?=@ruby:)/);
             for (const part of commentParts) {
@@ -188,7 +188,7 @@ export default function (Generator) {
             return input && input.block ? Generator.getBlock(input.block) : null;
         };
         const eqBlock = inputBlock(block, 'OPERAND');
-        if (!eqBlock || eqBlock.opcode !== 'operator_equals' || Generator.getCommentText(eqBlock)) return null;
+        if (!eqBlock || eqBlock.opcode !== 'operator_equals' || Generator.getRubyMarkerText(eqBlock)) return null;
         const varBlock = inputBlock(eqBlock, 'OPERAND1');
         const rhBlock = inputBlock(eqBlock, 'OPERAND2');
         if (!varBlock || varBlock.opcode !== 'data_variable' || !rhBlock) return null;
@@ -200,7 +200,7 @@ export default function (Generator) {
         if (
             !comment &&
             rhBlock.opcode === 'operator_lt' &&
-            !Generator.getCommentText(rhBlock) &&
+            !Generator.getRubyMarkerText(rhBlock) &&
             isText(inputBlock(rhBlock, 'OPERAND1'), '0') &&
             isText(inputBlock(rhBlock, 'OPERAND2'), '0')
         ) {
@@ -210,7 +210,7 @@ export default function (Generator) {
     };
 
     Generator.operator_not = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         const conditionBlock = variableConditionOf(block, comment);
         if (conditionBlock) {
             return [
@@ -256,7 +256,7 @@ export default function (Generator) {
     };
 
     Generator.operator_join = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment && comment.startsWith('@ruby:symbol:')) {
             const symbolName = comment.slice('@ruby:symbol:'.length);
             return [`:${symbolName}.to_s`, Generator.ORDER_FUNCTION_CALL];
@@ -291,7 +291,7 @@ export default function (Generator) {
         const indexBlockId = block.inputs && block.inputs.LETTER && block.inputs.LETTER.block;
         const indexBlock = indexBlockId && Generator.getBlock(indexBlockId);
         if (indexBlock && indexBlock.opcode === 'operator_add') {
-            const comment = Generator.getCommentText(indexBlock);
+            const comment = Generator.getRubyMarkerText(indexBlock);
             if (comment && comment.includes('@ruby:array:index')) {
                 return Generator.valueToCode(indexBlock, 'NUM1', Generator.ORDER_NONE) || 0;
             }
@@ -313,7 +313,7 @@ export default function (Generator) {
     };
 
     Generator.operator_length = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment) {
             const commentParts = comment.split(/,(?=@ruby:)/);
             let methodName = null;
@@ -358,7 +358,7 @@ export default function (Generator) {
     };
 
     Generator.operator_contains = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment) {
             const commentParts = comment.split(/,(?=@ruby:)/);
             for (const part of commentParts) {

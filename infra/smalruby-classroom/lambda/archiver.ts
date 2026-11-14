@@ -81,6 +81,10 @@ export function snapshotPlanForRecord(record: DynamoDBRecord): { key: string; bo
   // The Classrooms table reuses its key-space for eval-quota counters
   // (classroomId = "eval-quota#<sub>#<day>") — operational data, skip.
   if (pkValue.startsWith('eval-quota#')) return null;
+  // The Memberships table keeps short-lived kick markers in their own
+  // partition (classroomId = "kicked#<classroomId>", issue #1821) — they only
+  // carry the kick banner for 1h and hold a session token, skip.
+  if (spec.kind === 'memberships' && pkValue.startsWith('kicked#')) return null;
 
   let key: string;
   if (spec.sk) {

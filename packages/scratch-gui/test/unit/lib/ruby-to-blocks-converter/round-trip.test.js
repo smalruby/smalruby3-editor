@@ -535,6 +535,27 @@ end
             await expectRoundTrip('$a.delete_at(-1)');
         });
 
+        test('delete_at(-1) of an instance variable and of a local variable round-trips (issue #1840)', async () => {
+            await expectRoundTrip('@a = [1, 2]\n@a.delete_at(-1)');
+            await expectRoundTrip('a = [1, 2]\na.delete_at(-1)\nsay(a.length)');
+        });
+
+        test('delete_at(-1) is "delete (length of the list) of the list" (issue #1840)', async () => {
+            await converter.targetCodeToBlocks(null, '@a = [1, 2]\n@a.delete_at(-1)');
+            const blocks = Object.values(converter.blocks);
+            const deleteBlock = blocks.find((b) => b.opcode === 'data_deleteoflist');
+            const indexBlock = converter.blocks[deleteBlock.inputs.INDEX.block];
+            expect(indexBlock.opcode).toBe('data_lengthoflist');
+            expect(indexBlock.fields.LIST.id).toBe(deleteBlock.fields.LIST.id);
+            const shadowBlock = converter.blocks[deleteBlock.inputs.INDEX.shadow];
+            expect(shadowBlock).toMatchObject({ opcode: 'math_integer', shadow: true });
+            expect(converter._context.comments[deleteBlock.comment].text).toBe('@ruby:array:delete_at:last');
+        });
+
+        test('delete_at with another index is not "last" (issue #1840)', async () => {
+            await expectRoundTrip('@a = [1, 2]\n@a.delete_at(0)\n@a.delete_at(@a.length - 1)');
+        });
+
         test('empty? method', async () => {
             await expectRoundTrip('$a.empty?');
         });

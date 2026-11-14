@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (Ruby variable name helpers for RubyGenerator) ===
+import { rubyMarkersOf } from '../ruby-markers.js';
 
 const SCALAR_TYPE = '';
 const LIST_TYPE = 'list';
@@ -124,12 +125,9 @@ export default function (Generator) {
      * @returns {boolean} True if such a comment exists.
      */
     Generator.hasLocalVariableComment = function (name, scopeIndex) {
-        // `name` matches LOCAL_VARIABLE_PATTERN (identifier characters only), so it needs no escaping.
-        const token = new RegExp(`(?:^|[,\\s])@ruby:lvar:${name}:${scopeIndex}(?=$|[,\\s])`, 'u');
+        const marker = `@ruby:lvar:${name}:${scopeIndex}`;
         const comments = (this.cache_ && this.cache_.comments) || {};
-        return Object.values(comments).some(
-            (comment) => typeof comment.text === 'string' && token.test(comment.text),
-        );
+        return Object.values(comments).some((comment) => rubyMarkersOf(comment.text).includes(marker));
     };
 
     Generator.variableNameByName = function (name, type = SCALAR_TYPE) {

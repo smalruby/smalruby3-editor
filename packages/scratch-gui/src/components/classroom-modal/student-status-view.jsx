@@ -65,7 +65,7 @@ const messages = defineMessages({
     continueAsIs: {
         defaultMessage: 'Continue as it is',
         description:
-            'Welcome back screen: small link that closes without loading anything, when the main button opens the submission',
+            'Welcome back screen: small link that closes without loading anything, when the main button opens the submission or the starter',
         id: 'gui.classroom.studentStatus.continueAsIs',
     },
     leaveQuestion: {
@@ -379,6 +379,7 @@ const StudentStatusView = ({
     hasStarter = false,
     lessonStatus = null,
     offerCurrentSubmission = false,
+    offerStarter = false,
     studentLesson = null,
     teacherComment = null,
     isLoading = false,
@@ -424,12 +425,14 @@ const StudentStatusView = ({
     const mainIsLesson = !!lesson && !lessonSubmitReady;
     // After a reload with the new project still open (#1825). A lesson assignment keeps its main button.
     const mainIsCurrent = offerCurrentSubmission && !lesson && !!continueOptions?.current;
+    // Not submitted yet and the project is the new one again: start from the starter (shouldOfferStarter).
+    const mainIsStarter = !mainIsCurrent && offerStarter && !lesson && hasStarter;
     // GA (#1831): welcome_view once a status check made after this screen came up has succeeded
     // (statusCheckedSeq grew): the main button is then final, and a student whose session turned
     // out dead (expired, removed, rejoining from a URL) never saw this screen. welcome_action
     // sends what was pressed and the seconds since. A remount (PC <-> mobile layout) does not
     // send it again (noteClassroomStudentView).
-    const main = welcomeMain({ mainIsLesson, mainIsCurrent });
+    const main = welcomeMain({ mainIsLesson, mainIsCurrent, mainIsStarter });
     const shownAtRef = useRef(null);
     const mountSeqRef = useRef(statusCheckedSeq);
     useEffect(() => {
@@ -482,7 +485,8 @@ const StudentStatusView = ({
         cancelLeave();
     }, [onTrack, cancelLeave]);
     const reloadKinds = RELOAD_KINDS.filter((kind) => {
-        if (kind === 'starter') return hasStarter;
+        // The main button already opens it.
+        if (kind === 'starter') return hasStarter && !mainIsStarter;
         // The main button already opens it.
         if (kind === 'current' && mainIsCurrent) return false;
         return !!continueOptions?.[kind];
@@ -491,6 +495,10 @@ const StudentStatusView = ({
         trackAction('this_submission');
         onLoadSubmission?.('current');
     }, [trackAction, onLoadSubmission]);
+    const handleLoadStarterMain = useCallback(() => {
+        trackAction('starter');
+        return onLoadStarter?.();
+    }, [trackAction, onLoadStarter]);
     const currentDate = mainIsCurrent ? formatSubmittedAt(continueOptions.current.submittedAt, intl.locale) : '';
     const handleReload = useCallback(
         (kind) => {
@@ -560,7 +568,17 @@ const StudentStatusView = ({
                             {intl.formatMessage(startMessages.current)}
                         </StudentMainButton>
                     )}
-                    {!mainIsLesson && !mainIsCurrent && (
+                    {mainIsStarter && (
+                        <StudentMainButton
+                            dataTestId="classroom-status-start-starter"
+                            disabled={isLoading}
+                            note={intl.formatMessage(startMessages.starterNote)}
+                            onClick={handleLoadStarterMain}
+                        >
+                            {intl.formatMessage(startMessages.starter)}
+                        </StudentMainButton>
+                    )}
+                    {!mainIsLesson && !mainIsCurrent && !mainIsStarter && (
                         <StudentMainButton
                             dataTestId="classroom-status-continue"
                             disabled={isLoading}
@@ -571,7 +589,7 @@ const StudentStatusView = ({
                         </StudentMainButton>
                     )}
                     <div className={partStyles.welcomeLinks}>
-                        {mainIsCurrent && (
+                        {(mainIsCurrent || mainIsStarter) && (
                             <StudentTextLink
                                 dataTestId="classroom-status-continue-as-is"
                                 disabled={isLoading}
@@ -660,6 +678,8 @@ StudentStatusView.propTypes = {
     lessonStatus: PropTypes.object,
     // 主ボタンを「この課題で出した作品から続ける」にする（shouldOfferCurrentSubmission の結果・#1825）
     offerCurrentSubmission: PropTypes.bool,
+    // 主ボタンを「スターターから始める」にする（shouldOfferStarter の結果）
+    offerStarter: PropTypes.bool,
     // normalized lesson setting of the joined assignment
     studentLesson: PropTypes.shape({ submitWork: PropTypes.bool }),
     teacherComment: PropTypes.string,

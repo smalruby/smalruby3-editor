@@ -194,6 +194,71 @@ const NodeUtils = {
         return this._context.sourceCode.slice(startChar, endChar);
     },
 
+    /**
+     * The statement that holds the node, to name in an error about the node.
+     * An expression that is not converted becomes a `ruby_*` block, and a call that takes it as its
+     * receiver (`wait(1).to_s`) stays a block: the error then named only the inner expression, while a
+     * call that does not take it (`say(foo.bar)`) became a `ruby_*` block itself and was named as the
+     * whole statement. Naming the statement gives the same error either way (issue #1704).
+     * A statement is a child of a `StatementsNode`, an `elsif` (an `IfNode` after an `if`) or a `when`
+     * / `in` of a `case`, so an error in the condition of `elsif` / `when` stays on its line.
+     * The statements inside parentheses (`(move(10); a)`) are parts of an expression, not statements.
+     * `childNodes()` is used, not `compactChildNodes()`: in `@ruby/prism` 1.9.0 the latter drops the
+     * children in arrays (the `when`s of a `case`, the exceptions of a `rescue`, ...).
+     * @param {object} node - The node of the expression.
+     * @returns {object} The statement node that holds it, or the node itself when there is none.
+     */
+    _statementNodeOf(node) {
+        const root = this._context.rootNode;
+        if (!root || !node || !node.location) {
+            return node;
+        }
+        const startOffset = node.location.startOffset;
+        const endOffset = startOffset + node.location.length;
+        const contains = (n) =>
+            n &&
+            n.location &&
+            n.location.startOffset <= startOffset &&
+            n.location.startOffset + n.location.length >= endOffset;
+        let statement = null;
+        let current = root;
+        let parentType = null;
+        while (current && current !== node) {
+            const type = this._getNodeTypeName(current);
+            const next = this._childNodesOf(current).find(contains);
+            if (!next) {
+                break;
+            }
+            const nextType = this._getNodeTypeName(next);
+            if (
+                (type === 'StatementsNode' && parentType !== 'ParenthesesNode') ||
+                (type === 'IfNode' && nextType === 'IfNode' && next === current.subsequent) ||
+                nextType === 'WhenNode' ||
+                nextType === 'InNode'
+            ) {
+                statement = next;
+            }
+            parentType = type;
+            current = next;
+        }
+        return statement || node;
+    },
+
+    /**
+     * The node whose source an error about the node quotes: the statement that holds it when the
+     * statement is on one line, or the node itself. Quoting the first line of a statement that goes on
+     * over more lines (`say(`, `if a == 1`) would lose the expression that failed (issue #1704).
+     * @param {object} node - The node of the expression.
+     * @returns {object} The node to quote.
+     */
+    _sourceNodeForError(node) {
+        const statement = this._statementNodeOf(node);
+        if (statement !== node && this._getSource(statement).includes('\n')) {
+            return node;
+        }
+        return statement;
+    },
+
     _truncateSource(src, maxLength = 40) {
         if (!src) return src;
         const newlineIndex = src.indexOf('\n');

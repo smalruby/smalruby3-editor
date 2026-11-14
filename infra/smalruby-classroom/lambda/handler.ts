@@ -446,6 +446,27 @@ class KickedError extends Error {
 // student joins the seat.
 const KICK_TOMBSTONE_TTL_SECONDS = parseInt(process.env.KICK_TOMBSTONE_TTL_SECONDS || '3600', 10);
 
+// Kick marker (issue #1821): the seat tombstone above is keyed by seat
+// (`seat-NN`), so a student who joins that seat right after the kick — the
+// usual flow after a kick request is approved — overwrites it, and the kicked
+// student's next verify-session fell through to 401 instead of 410. The kick
+// is therefore also recorded in a separate item of the memberships table that
+// nobody overwrites:
+//   classroomId = `kicked#<classroomId>` (own partition: every per-classroom
+//   Query — members, lookup, admin counts, lesson progress — never sees it)
+//   memberId    = `<seat-NN>#<sha256(sessionToken) prefix>` (one per kicked session)
+// It carries the kicked session's `sessionToken`, so verifySessionToken finds
+// it through the existing sessionToken-index GSI (no new table or GSI), plus
+// `kicked: true` and the same kick* attributes as the tombstone. A student who
+// joins again gets a new sessionToken, so the marker never affects them.
+export const KICK_MARKER_PARTITION_PREFIX = 'kicked#';
+
+/** Key of the kick marker for one kicked session (issue #1821). */
+export function kickMarkerKey(classroomId: string, memberId: string, sessionToken: string): { classroomId: string; memberId: string } {
+  const digest = crypto.createHash('sha256').update(sessionToken).digest('hex').slice(0, 16);
+  return { classroomId: `${KICK_MARKER_PARTITION_PREFIX}${classroomId}`, memberId: `${memberId}#${digest}` };
+}
+
 // --- Google Classroom API proxy ---
 
 /** Max length of a Google error message we keep (logs + API response). */
@@ -1514,9 +1535,10 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
   // Atomic put with condition to prevent race condition on seat assignment.
   // We allow overwriting a row that the teacher previously kicked (kicked=true)
   // so the seat opens up immediately after a kick — the tombstone is consumed
-  // here. The new row deliberately omits the kick attributes; verifying the
-  // old session token afterwards will fall through to the standard 401 path
-  // because the row no longer matches that sessionToken in the GSI.
+  // here. The new row deliberately omits the kick attributes; the kicked
+  // student's old session token still resolves to the separate kick marker
+  // (issue #1821, see kickMarkerKey), so their verify-session keeps returning
+  // 410 reason='kicked' after the seat is reused.
   try {
     await docClient.send(new PutCommand({
       TableName: MEMBERSHIPS_TABLE,
@@ -1804,6 +1826,9 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
       classroomId: classroom.classroomId,
       className: (lookupGroup && lookupGroup.name) || classroom.className,
       classYear: lookupGroup && typeof lookupGroup.year === 'number' ? lookupGroup.year : null,
+      // The class (group) the assignment belongs to, so the student can recall
+      // their seat number across assignments of the same class (issue #1800).
+      groupId: (lookupGroup && (lookupGroup.groupId as string)) || null,
       assignmentName: classroom.assignmentName || null,
       studentCount: seatCountFor(classroom, lookupGroup),
       takenSeats,
@@ -1835,8 +1860,11 @@ async function handleDeleteMember(identity: TeacherIdentity, classroomId: string
   // `kicked === true` as "gone".
   const seatMatch = memberId.match(/^seat-(\d+)$/);
   const seatNumber = seatMatch ? parseInt(seatMatch[1], 10) : 0;
+  const kickedAt = new Date().toISOString();
+  const kickTtl = Math.floor(Date.now() / 1000) + KICK_TOMBSTONE_TTL_SECONDS;
+  let kickedRow: Record<string, unknown> | undefined;
   try {
-    await docClient.send(new UpdateCommand({
+    const updated = await docClient.send(new UpdateCommand({
       TableName: MEMBERSHIPS_TABLE,
       Key: { classroomId, memberId },
       UpdateExpression:
@@ -1845,13 +1873,16 @@ async function handleDeleteMember(identity: TeacherIdentity, classroomId: string
       ExpressionAttributeNames: { '#ttl': 'ttl' },
       ExpressionAttributeValues: {
         ':true': true,
-        ':now': new Date().toISOString(),
+        ':now': kickedAt,
         ':jc': classroom.Item.joinCode,
         ':cn': classroom.Item.className,
         ':sn': seatNumber,
-        ':ttl': Math.floor(Date.now() / 1000) + KICK_TOMBSTONE_TTL_SECONDS,
+        ':ttl': kickTtl,
       },
+      // The kicked session's token is needed for the kick marker below.
+      ReturnValues: 'ALL_NEW',
     }));
+    kickedRow = updated?.Attributes;
   } catch (err: unknown) {
     // If the row was already gone (e.g. student left first), nothing to do.
     if (
@@ -1863,6 +1894,31 @@ async function handleDeleteMember(identity: TeacherIdentity, classroomId: string
       return { statusCode: 204, body: '' };
     }
     throw err;
+  }
+
+  // Keep the kick on a marker that a new join on the seat cannot overwrite
+  // (issue #1821). Best-effort: the seat tombstone already answers 410 until
+  // someone else takes the seat, so a failed marker write only loses the
+  // banner in that case — the kick itself must not fail on it.
+  const kickedToken = kickedRow?.sessionToken;
+  if (typeof kickedToken === 'string' && kickedToken.length > 0) {
+    try {
+      await docClient.send(new PutCommand({
+        TableName: MEMBERSHIPS_TABLE,
+        Item: {
+          ...kickMarkerKey(classroomId, memberId, kickedToken),
+          sessionToken: kickedToken,
+          kicked: true,
+          kickedAt,
+          kickJoinCode: classroom.Item.joinCode,
+          kickClassName: classroom.Item.className,
+          kickSeatNumber: seatNumber,
+          ttl: kickTtl,
+        },
+      }));
+    } catch (err) {
+      console.error('kick marker write failed (ignored):', err);
+    }
   }
 
   return { statusCode: 204, body: '' };
@@ -2167,7 +2223,7 @@ export async function verifySessionToken(
   }
 
   const item = result.Items[0];
-  // Surface kick tombstones as a distinct error so callers can return 410
+  // Surface kick tombstones (and kick markers, issue #1821) as a distinct error so callers can return 410
   // with the reason. Non-verify-session callers (e.g. submission endpoints)
   // also benefit: a kicked student shouldn't be able to submit any more.
   if (item.kicked === true) {

@@ -210,10 +210,13 @@ class RubyToBlocksConverter extends Visitor {
                         this._context.comments[block.comment] &&
                         this._context.comments[block.comment].text.startsWith('@ruby:return');
                     if (!hasReturnComment) {
+                        // Quote the statement on one line that holds the expression, also when the
+                        // expression is inside another; the marker stays on the expression (issue #1704)
+                        const sourceNode = this._sourceNodeForError(block.node);
                         throw new RubyToBlocksConverterError(
                             block.node,
                             this._translator(messages.wrongInstruction, {
-                                SOURCE: this._truncateSource(this._getSource(block.node)),
+                                SOURCE: this._truncateSource(this._getSource(sourceNode)),
                             }),
                         );
                     }
@@ -398,6 +401,18 @@ class RubyToBlocksConverter extends Visitor {
      * @returns {object|Array} The assignment block(s).
      */
     _convertBareLiteralToAssignment(primitive) {
+        const items = primitive.type === 'array' ? primitive.value : null;
+        // An item that is not a number, a string or a value (`[(@a = 1)]`, `[:a]`) used to be put in
+        // the list as its text ("[object Object]", "a"): the error of a wrong instruction instead (#1865).
+        // Check before the list is made and the number of `_lit_` goes on.
+        if (items && !items.every((item) => this._isNumberOrStringOrBlock(item))) {
+            throw new RubyToBlocksConverterError(
+                primitive.node,
+                this._translator(messages.wrongInstruction, {
+                    SOURCE: this._truncateSource(this._getSource(primitive.node)),
+                }),
+            );
+        }
         const index = (this._context.literalCallIndices._lit_ || 0) + 1;
         this._context.literalCallIndices._lit_ = index;
         const varName = `_lit_${index}_`;
@@ -414,15 +429,18 @@ class RubyToBlocksConverter extends Visitor {
             clearBlock.comment = this._createComment(`@ruby:literal:array`, clearBlock.id);
 
             const addBlocks = [];
-            const items = primitive.value;
             items.forEach((item) => {
                 const addBlock = this._createBlock('data_addtolist', 'statement');
                 addBlock.node = primitive.node;
                 addBlock.fields = {
                     LIST: { name: 'LIST', id: listVar.id, value: listVar.name, variableType: listVar.type },
                 };
-                const val = this._isPrimitive(item) ? item.value : item;
-                this._addTextInput(addBlock, 'ITEM', String(val), '');
+                if (this._isValueBlock(item)) {
+                    this._addTextInput(addBlock, 'ITEM', item, '');
+                } else {
+                    const val = this._isPrimitive(item) ? item.value : item;
+                    this._addTextInput(addBlock, 'ITEM', String(val), '');
+                }
                 addBlocks.push(addBlock);
             });
 

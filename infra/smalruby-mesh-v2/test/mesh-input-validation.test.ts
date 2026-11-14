@@ -127,3 +127,42 @@ describe('checkGroupExists（joinGroup / renewHeartbeat / sendMemberHeartbeat / 
     );
   });
 });
+
+// issue #1846: イベントの payload は 1000 文字まで（fireEventsByNode は checkGroupExists で検査する）
+describe('checkGroupExists のイベント payload の上限（fireEventsByNode）', () => {
+  const fn = loadFunction('checkGroupExists.js');
+  const base = { groupId: 'group-1', domain: 'example.com', nodeId: HEX_ID };
+  const event = (payload?: unknown) => ({
+    eventName: 'evt',
+    firedAt: '2026-11-14T00:00:00.000Z',
+    ...(payload === undefined ? {} : { payload }),
+  });
+
+  test('payload ちょうど 1000 文字は通す', () => {
+    expect(fn.request(ctxWith({ ...base, events: [event('a'.repeat(1000))] }))).toHaveProperty(
+      'operation',
+      'GetItem',
+    );
+  });
+
+  test('payload が無い・null のイベントは通す（今の GUI の形）', () => {
+    expect(fn.request(ctxWith({ ...base, events: [event(), event(null)] }))).toHaveProperty('operation', 'GetItem');
+  });
+
+  test('payload 1001 文字は ValidationError（何番目のイベントかを返す）', () => {
+    expectValidationError(
+      () => fn.request(ctxWith({ ...base, events: [event('1'), event('a'.repeat(1001))] })),
+      /events\[1\]\.payload must be 1000 characters or less/,
+    );
+  });
+
+  test('文字数は UTF-16 のコード単位で数える（あ 1000 文字は通す・絵文字は 2 と数え 500 個は通し 501 個は拒否する）', () => {
+    expect(fn.request(ctxWith({ ...base, events: [event('あ'.repeat(1000))] }))).toHaveProperty('operation', 'GetItem');
+    expect(fn.request(ctxWith({ ...base, events: [event('😀'.repeat(500))] }))).toHaveProperty('operation', 'GetItem');
+    expectValidationError(
+      () => fn.request(ctxWith({ ...base, events: [event('😀'.repeat(501))] })),
+      /events\[0\]\.payload must be 1000 characters or less/,
+    );
+  });
+});
+

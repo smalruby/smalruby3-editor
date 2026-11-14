@@ -52,6 +52,7 @@ const DOC_SHOT_NAMES = {
     'student-status-reload': ['0335-student-welcome-reload.png'],
     'student-status-leave': ['0336-student-welcome-leave-confirm.png'],
     'student-status-continue-submission': ['0345-student-welcome-continue-submission.png'],
+    'student-status-start-starter': ['0346-student-welcome-start-starter.png'],
     'student-status-lesson-in-progress': ['0320-student-status-lesson.png'],
     'student-submit-confirm': ['0306-student-submit-confirm.png'],
     'student-lesson-progress-confirm': ['0324-lesson-progress-confirm.png'],
@@ -718,6 +719,35 @@ const routeWelcomeBack = (submission) => async (p) => {
         name: 'student-status (welcome back after a reload: continue from this assignment)',
         shot: 'student-status-continue-submission',
         primary: '[data-testid="classroom-status-continue-current"]',
+    });
+    await ctx.close();
+}
+
+// おかえりなさい (リロードしたあと・未提出): 作品は新しい作品のまま + この課題の提出物が無い +
+// 課題にスターターがある → 主ボタンは「スターターから始める」、「このまま つづける」は小さなリンク。
+{
+    const { ctx, page } = await studentPage({
+        storage: { 'smalruby:classroom': session() },
+        routes: async (p) => {
+            await routeWelcomeBack(null)(p);
+            // 後から張った route が先に当たる: この課題の提出物は無い (前回の提出物はある)
+            await p.route('**/continuable-submissions', (r) => r.fulfill({ json: { ...CONTINUABLE, current: null } }));
+        },
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-status-start-starter"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(800);
+    if (!(await page.locator('[data-testid="classroom-status-continue-as-is"]').count())) {
+        record({ who: 'student', name: 'welcome back: 「このまま つづける」 link (starter)', ok: false, modal: '-', body: '-', page: '-' });
+    }
+    if (await page.locator('[data-testid="classroom-status-start-starter"]').isDisabled()) {
+        record({ who: 'student', name: 'welcome back: starter main button enabled', ok: false, modal: '-', body: '-', page: '-' });
+    }
+    await judge(page, {
+        who: 'student',
+        name: 'student-status (welcome back after a reload, not submitted: start from the starter)',
+        shot: 'student-status-start-starter',
+        primary: '[data-testid="classroom-status-start-starter"]',
     });
     await ctx.close();
 }

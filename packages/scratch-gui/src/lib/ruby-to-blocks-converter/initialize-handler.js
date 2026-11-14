@@ -57,6 +57,10 @@ const InitializeHandler = {
 
         // Process body statements (variable/list assignments only)
         const initializeValues = {};
+        // The variables of attr_accessor / attr_reader / attr_writer set here. The generator does not
+        // write those variables in initialize unless they are named in the comment (issue #1839).
+        const attrAccessors = this._context.attrAccessors || {};
+        const attrNames = [];
         for (let i = startIndex; i < bodyStmts.length; i++) {
             const stmt = bodyStmts[i];
             const stmtType = this._getNodeTypeName(stmt);
@@ -73,6 +77,9 @@ const InitializeHandler = {
                     );
                 }
                 const varName = stmt.name.replace(/^@/, '');
+                if (Object.prototype.hasOwnProperty.call(attrAccessors, varName) && !attrNames.includes(varName)) {
+                    attrNames.push(varName);
+                }
                 const value = this._extractInitializeValue(stmt.value);
                 if (value === null) {
                     throw new RubyToBlocksConverterError(
@@ -129,6 +136,9 @@ const InitializeHandler = {
         }
 
         this._context.initializeValues = initializeValues;
+        if (attrNames.length > 0) {
+            commentParts.push(`attr=${attrNames.join('+')}`);
+        }
 
         // Create comment for round-trip
         if (commentParts.length > 0) {
