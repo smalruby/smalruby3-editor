@@ -112,6 +112,11 @@ const ExpressionsLiterals = {
     visitRangeNode(node) {
         const left = this.visit(node.left);
         const right = this.visit(node.right);
+        // A range without an end (`1..`) or with a string with `#{...}` stopped the conversion with
+        // a JavaScript error (issue #1885).
+        if (this._isMissingOperand(node.left, left) || this._isMissingOperand(node.right, right)) {
+            throw this._wrongInstructionError(node);
+        }
         const opcode = node.isExcludeEnd() ? 'ruby_exclude_range' : 'ruby_range';
         const block = this._createBlock(opcode, 'value_boolean');
         block.node = node;
