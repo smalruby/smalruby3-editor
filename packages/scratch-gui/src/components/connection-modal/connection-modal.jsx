@@ -72,14 +72,28 @@ const ConnectionModalComponent = props => {
             AutoScanningStep :
             ScanningStep
     );
+    // === Smalruby: Start of mesh header design system ===
+    // Mesh follows the design system's "connect" screens (docs/design-system/components/modal.md):
+    // white text on the dark green header is only AA as large text, so the title is bold 1.2rem
+    // and the small "Help" moves from the header into the mesh steps' body.
+    const isMeshV2 = props.extensionId === 'meshV2';
+    const headerTitle = isMeshV2 ?
+        <span className={styles.meshV2HeaderTitle}>{props.name}</span> :
+        props.name;
+    const headerOnHelp = isMeshV2 ? null : props.onHelp;
+    // === Smalruby: End of mesh header design system ===
     return (<Modal
         className={styles.modalContent}
         contentLabel={typeof props.name === 'string' ? props.name : props.title}
-        headerTitle={props.name}
+        // === Smalruby: Start of mesh header design system ===
+        headerTitle={headerTitle}
+        // === Smalruby: End of mesh header design system ===
         headerClassName={styles.header}
         headerImage={props.connectionSmallIconURL}
         id="connectionModal"
-        onHelp={props.onHelp}
+        // === Smalruby: Start of mesh header design system ===
+        onHelp={headerOnHelp}
+        // === Smalruby: End of mesh header design system ===
         onRequestClose={props.onCancel}
     >
         <Box className={styles.body}>
@@ -121,6 +135,9 @@ ConnectionModalComponent.propTypes = {
     connectionIconURL: PropTypes.string,
     connectionSmallIconURL: PropTypes.string,
     connectionTipIconURL: PropTypes.string,
+    // === Smalruby: Start of mesh header design system ===
+    extensionId: PropTypes.string,
+    // === Smalruby: End of mesh header design system ===
     name: PropTypes.node,
     // === Smalruby: Start of meshV2 seat connect feature ===
     meshV2Seat: PropTypes.shape({

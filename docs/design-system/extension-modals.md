@@ -139,7 +139,8 @@
 | `library/library.jsx`・`containers/extension-library.jsx` | 拡張機能のライブラリのヘッダーの右に「すべての拡張機能を表示」のチェック（`headerActions`。スモウルビーの拡張機能の絞り込み） | ヘッダーの右に白い文字のチェックが出る（見本 `0303` にも写る） |
 | `lib/libraries/extensions/` | スモウルビーの拡張機能（甲子園・micro:bit More・メッシュ・smalrubot など）のカード | カードの中身だけ。部品の値は変わらない |
 | `connection-modal/*.jsx`（マーカー付き） | メッシュの接続（`mesh-v2-*`）・smalrubot S1 の接続（`smalrubot-s1-*`）の手順、ネットワークの制限の見つけ方、機器の名前のラベル | 独自の手順の画面。上流の手順の値は変わらない |
-| `connection-modal/connection-modal.css`（マーカー付き） | ネットワークの制限の表示（`.network-info`・`.copy-button` の緑 `#4CAF50`）、メッシュのひらがなの名前さがし（`.hiragana-*`） | 独自の手順だけ |
+| `connection-modal/connection-modal.css`（マーカー付き） | ネットワークの制限の表示（`.network-info`・`.copy-button` の紫の主ボタン）、メッシュのひらがなの名前さがし（`.hiragana-*`）、メッシュのヘッダーの題（太字 1.2rem）と本文のヘルプ | 独自の手順だけ |
+| `connection-modal/connection-modal.jsx`（マーカー付き） | メッシュの接続のモーダルだけ、題を太字 1.2rem にし、ヘルプをヘッダーから本文（最初の画面の下）へ移す | 上流の機器の接続のモーダルは変えない |
 | `connection-modal/connection-modal.css`（**マーカー無し**） | `.important-instruction`（太字・`$ui-red`） | micro:bit More のファームウェア更新の説明だけ |
 | `connection-modal/unavailable-step.jsx`・`update-peripheral-step.jsx`（**マーカー無し**） | 見つからないときの「機器を更新する」の説明とボタン、更新の手順の変更 | 見本 `0304` の「アップデート」のボタンと、その上の説明の文はスモウルビーの追加 |
 | `modal/modal.css`（マーカー付き） | 本文の既定の白い地 | 枠が不透明な白に見える（上流は淡い青が透ける） |

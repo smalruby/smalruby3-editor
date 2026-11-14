@@ -452,9 +452,9 @@
 .network-info {
     margin: 0.4rem 0;
     padding: 0.4rem;
-    background-color: #f5f5f5;
+    background-color: $ui-primary;
     border-radius: 0.5rem;
-    border: 1px solid #ddd;
+    border: 1px solid $ui-black-transparent;
     width: 90%;
 }
 
@@ -464,8 +464,8 @@
     white-space: pre-wrap;
     margin: 0 0 0.4rem 0;
     padding: 0.5rem;
-    background-color: white;
-    border: 1px solid #e0e0e0;
+    background-color: $ui-white;
+    border: 1px solid $ui-black-transparent;
     border-radius: 0.25rem;
     overflow-x: auto;
     text-align: left;
@@ -476,22 +476,24 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
+    background-color: $looks-secondary;
+    color: $ui-white;
+    border: 1px solid $looks-secondary;
     border-radius: 0.25rem;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    font-weight: bold;
     font-family: inherit;
-    transition: background-color 0.2s;
-}
-
-.copy-button:hover {
-    background-color: #45a049;
 }
 
 .copy-button:active {
-    background-color: #3d8b40;
+    background-color: $looks-secondary-dark;
+    border-color: $looks-secondary-dark;
+}
+
+.copy-button:focus-visible {
+    outline: 2px solid $looks-secondary;
+    outline-offset: 2px;
 }
 
 .copy-button img {
@@ -551,6 +553,12 @@
     background: $looks-light-transparent;
 }
 
+.hiragana-button:focus-visible,
+.hiragana-clear-button:focus-visible {
+    outline: 2px solid $looks-secondary;
+    outline-offset: 2px;
+}
+
 .hiragana-button:disabled {
     opacity: 0.4;
     cursor: default;
@@ -567,7 +575,7 @@
 .hiragana-input-text {
     font-size: 1.1rem;
     font-weight: 600;
-    color: $looks-secondary;
+    color: $text-primary;
     letter-spacing: 0.15em;
 }
 
@@ -595,3 +603,34 @@
     color: $text-primary;
 }
 /* === Smalruby: End of meshV2 name search === */
+
+/* === Smalruby: Start of mesh header design system === */
+/* The dark green connection header: bold 1.2rem so white text is WCAG large text (AA). */
+.mesh-v2-header-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* "Help" moved from the header into the body of the mesh steps. */
+.mesh-v2-help-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.mesh-v2-help-button {
+    padding: 0.25rem 0.5rem;
+    border: none;
+    border-radius: 0.25rem;
+    background: transparent;
+    color: $text-primary;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.mesh-v2-help-button:focus-visible {
+    outline: 2px solid $looks-secondary;
+    outline-offset: 2px;
+}
+/* === Smalruby: End of mesh header design system === */

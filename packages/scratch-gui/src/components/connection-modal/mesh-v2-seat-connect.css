@@ -1,4 +1,4 @@
-@import '../../css/colors.css';
+@import '../../css/smalruby-tokens.css';
 
 /* The shared modal body has no background (.claude/rules/scratch-gui/modals.md). */
 .body {
@@ -26,9 +26,9 @@
     align-items: center;
     padding: 0.25rem 0;
     min-height: 2.75rem;
-    background: $ui-white;
-    border: 2px solid $ui-black-transparent;
-    border-radius: 0.5rem;
+    background: $color-surface;
+    border: 2px solid $color-border;
+    border-radius: $radius-medium;
     cursor: pointer;
     color: $text-primary;
 }
@@ -49,15 +49,15 @@
 }
 
 .seat-chosen {
-    border-color: $motion-primary;
-    background: hsla(215, 100%, 65%, 0.15);
+    border-color: $color-primary;
+    background: $looks-light-transparent;
 }
 
 .seat-me,
 .seat-me:disabled {
     opacity: 1;
-    border-color: $motion-primary;
-    background: $motion-primary;
+    border-color: $color-primary;
+    background: $color-primary;
     color: $ui-white;
 }
 
@@ -77,7 +77,7 @@
     align-items: center;
     margin-top: 0.5rem;
     padding: 0.5rem;
-    border-radius: 0.5rem;
+    border-radius: $radius-medium;
     background: $ui-secondary;
 }
 
@@ -94,28 +94,40 @@
 }
 
 .limit {
-    margin-left: 0.5rem;
-    color: $error-primary;
+    margin-left: $space-medium;
+    color: $color-text;
+    font-weight: $font-weight-bold;
 }
 
+/* The design system's primary (purple) and secondary buttons. */
 .primary,
 .secondary {
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    font-weight: bold;
+    padding: $space-medium 1rem;
+    border-radius: $radius-small;
+    font-size: $font-size-dialog;
+    font-weight: $font-weight-bold;
     cursor: pointer;
 }
 
 .primary {
-    border: none;
-    background: $motion-primary;
+    border: 1px solid $color-primary;
+    background: $color-primary;
     color: $ui-white;
 }
 
+.primary:active:not(:disabled) {
+    background: $color-primary-dark;
+    border-color: $color-primary-dark;
+}
+
 .secondary {
-    border: 1px solid $ui-black-transparent;
-    background: $ui-white;
-    color: $text-primary;
+    border: 1px solid $color-border;
+    background: $color-surface;
+    color: $color-text;
+}
+
+.secondary:active {
+    background: $color-background;
 }
 
 .sub {
@@ -135,7 +147,7 @@
     grid-template-columns: 1.5rem 3rem 1fr;
     align-items: center;
     padding: 0.4rem 0.6rem;
-    border-radius: 0.5rem;
+    border-radius: $radius-medium;
     background: $ui-secondary;
     font-size: 0.8125rem;
 }
@@ -150,7 +162,7 @@
 
 .member-joined .member-mark,
 .member-me .member-mark {
-    color: $motion-primary;
+    color: $color-primary;
 }
 
 .member-absent {
@@ -160,7 +172,7 @@
 }
 
 .member-elsewhere {
-    color: $error-primary;
+    font-weight: $font-weight-bold;
 }
 
 .warning-actions {
@@ -172,9 +184,10 @@
 .arrived {
     margin-top: 0.5rem;
     padding: 0.5rem;
-    border-radius: 0.5rem;
-    background: hsla(163, 85%, 40%, 0.15);
-    font-weight: bold;
+    border: 1px solid $color-success;
+    border-radius: $radius-medium;
+    background: $color-success-background;
+    font-weight: $font-weight-bold;
     text-align: center;
 }
 
@@ -183,7 +196,8 @@
 }
 
 .primary:disabled {
-    opacity: 0.5;
+    background: $color-primary-transparent;
+    border-color: transparent;
     cursor: default;
 }
 
@@ -194,9 +208,9 @@
     column-gap: 0.75rem;
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 2px solid $motion-primary;
+    border: 2px solid $color-primary;
     border-radius: 0.75rem;
-    background: hsla(215, 100%, 65%, 0.1);
+    background: $looks-light-transparent;
     color: $text-primary;
     text-align: left;
     cursor: pointer;
@@ -231,7 +245,7 @@
     width: 2.75rem;
     height: 2.75rem;
     border-radius: 0.625rem;
-    background: $motion-primary;
+    background: $color-primary;
     color: $ui-white;
     font-size: 1.375rem;
     font-weight: bold;
@@ -279,7 +293,7 @@
 
 .tag-joined,
 .tag-me {
-    background: hsla(163, 85%, 40%, 0.15);
+    background: $color-success-background;
 }
 
 .tag-absent {
@@ -358,7 +372,7 @@
     width: 2.25rem;
     height: 2.25rem;
     object-fit: cover;
-    border-radius: 0.5rem;
+    border-radius: $radius-medium;
 }
 
 .classic-text {
@@ -387,8 +401,8 @@
 }
 
 .member-invited {
-    border: 2px solid $motion-primary;
-    background: hsla(215, 100%, 65%, 0.15);
+    border: 2px solid $color-primary;
+    background: $looks-light-transparent;
     font-weight: bold;
 }
 
@@ -409,8 +423,20 @@
     padding: 0.375rem 0.75rem;
     border: none;
     background: transparent;
-    color: $motion-primary;
+    color: $color-text;
     font-size: 0.8125rem;
     text-decoration: underline;
     cursor: pointer;
+}
+
+/* Focus: the design system's 2px purple line, 2px outside (docs/design-system/components/README.md). */
+.seat:focus-visible,
+.primary:focus-visible,
+.secondary:focus-visible,
+.entry:focus-visible,
+.classic-toggle:focus-visible,
+.classic-button:focus-visible,
+.invite-skip:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
 }

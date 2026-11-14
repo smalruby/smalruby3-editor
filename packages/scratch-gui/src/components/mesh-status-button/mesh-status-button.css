@@ -1,22 +1,29 @@
-@import '../../css/colors.css';
+@import '../../css/smalruby-tokens.css';
 
 /* Same size and feel as the green flag / stop buttons (controls), placed right after them. */
 .button {
     position: relative;
     width: 2rem;
     height: 2rem;
-    margin-left: 0.25rem;
-    padding: 0.25rem;
+    margin-left: $space-small;
+    padding: $space-small;
     border: none;
-    border-radius: 0.25rem;
+    border-radius: $radius-small;
     background: transparent;
     cursor: pointer;
     user-select: none;
 }
 
+/* Opens / closes a window = a display toggle, so the selected look is the pale ground
+   (docs/design-system/components/README.md「選ぶボタン」), like the green flag's hover. */
 .button:hover,
 .is-open {
     background-color: $looks-light-transparent;
+}
+
+.button:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
 }
 
 .icon {
@@ -32,26 +39,28 @@
     width: 9px;
     height: 9px;
     border: 1.5px solid $ui-white;
-    border-radius: 50%;
-    background-color: $text-primary-transparent;
+    border-radius: $radius-round;
+    background-color: $color-text-muted;
 }
 
+/* Connected: the success green of the connection modal's progress dots. */
 .dot-on {
-    background-color: $ui-green-2;
+    background-color: $pen-primary;
 }
 
-/* 練習相手が動いているしるし（色だけにしない。文字で「練習」 #1845） */
+/* 練習相手が動いているしるし（色だけにしない。文字で「練習」 #1845）。
+   白い文字が読める紫の地にする（オレンジの地では 2.3:1 で足りない）。 */
 .practice-badge {
     position: absolute;
     top: -4px;
     right: -6px;
     padding: 0 3px;
     border: 1px solid $ui-white;
-    border-radius: 4px;
-    background-color: $data-primary;
+    border-radius: $radius-small;
+    background-color: $color-primary;
     color: $ui-white;
     font-size: 0.5625rem;
-    font-weight: bold;
+    font-weight: $font-weight-bold;
     line-height: 0.875rem;
     white-space: nowrap;
     pointer-events: none;

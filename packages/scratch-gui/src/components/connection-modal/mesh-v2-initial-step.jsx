@@ -232,6 +232,23 @@ const MeshV2InitialStep = (props) => {
                         )}
                     </div>
                 </Box>
+                {/* ヘルプはヘッダーに置かず本文に置く（濃い緑の上の小さい文字は読みにくい。デザインシステムの「つなぐ画面」） */}
+                {props.onHelp && (
+                    <div className={styles.meshV2HelpRow}>
+                        <button
+                            className={styles.meshV2HelpButton}
+                            data-testid="meshV2-help"
+                            onClick={props.onHelp}
+                            type="button"
+                        >
+                            <FormattedMessage
+                                defaultMessage="Help"
+                                description="Help button in modal"
+                                id="gui.modal.help"
+                            />
+                        </button>
+                    </div>
+                )}
             </Box>
         </Box>
     );
@@ -248,6 +265,7 @@ MeshV2InitialStep.propTypes = {
     }),
     onCreateGroup: PropTypes.func.isRequired,
     onDomainChange: PropTypes.func.isRequired,
+    onHelp: PropTypes.func,
     onJoinGroup: PropTypes.func.isRequired,
     onJoinSeatGroup: PropTypes.func,
     onSeatConnect: PropTypes.func,
