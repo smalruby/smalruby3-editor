@@ -493,6 +493,7 @@ puts("a")
 
 - **ループの条件の中のメソッド呼び出し**（`while bar(@a) < 3`）: 条件の値を作るために、呼び出しを最初の 1 回はループの前、2 回目からはループの中身の最後に置く。中身の最後の分には `@ruby:loop_condition_call` を付け、生成器は書かない（`scrub.js`）。
 - **`begin ... end while`**: 前に置いた中身がループの中身と同じときだけ、生成器はそれを書かない。違っていれば（利用者が片方を書きかえた）両方を書く。
+- **`case` の式と `when` の値は値だけ**: 比べるブロック（`=`）の入力に入れるので、代入（`when (@a = "abc")`）や命令（`case move(1)`）は、`case` / `when` の行の「命令がまちがっています」のエラーにする（`control-flow.js` の `_rejectCommandInCase`）。入力に命令のブロックを入れると、生成器が `when @` のような壊れた Ruby を書いていた。
 
 **往復の例**:
 
@@ -515,7 +516,7 @@ end while @a < 3
 
 - 同じコードに戻る。
 
-**テスト**: `ruby-to-blocks-converter/control/`、`case-when-children.test.js`、`ruby-generator/control/`、`ruby-roundtrip/control_if.test.js`、`elsif-condition-call.test.js`、`while-and-conditions.test.js`、`loop-condition-call.test.js`、`begin-end-while.test.js`、`until-while-empty-and-wait.test.js`、`empty-loop-body.test.js`。
+**テスト**: `ruby-to-blocks-converter/control/`、`case-when-children.test.js`、`case-when-command.test.js`、`ruby-generator/control/`、`ruby-roundtrip/control_if.test.js`、`elsif-condition-call.test.js`、`while-and-conditions.test.js`、`loop-condition-call.test.js`、`begin-end-while.test.js`、`until-while-empty-and-wait.test.js`、`empty-loop-body.test.js`。
 
 ### P13. ブロック引数
 

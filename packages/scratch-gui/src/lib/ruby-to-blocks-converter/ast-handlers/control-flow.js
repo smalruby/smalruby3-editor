@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { defineMessages } from 'react-intl';
+import { messages as converterMessages } from '../converter-errors';
 import { RubyToBlocksConverterError } from '../errors';
 import ControlFlowDef from './control-flow-def';
 
@@ -139,12 +140,33 @@ const ControlFlowHandlers = {
         return elseBlock;
     },
 
+    /**
+     * Reject a command (`@a = "abc"`, `move(1)`) as the subject of `case` or the value of `when`.
+     * It is not a value, so it cannot be an input of the `==` block: it came back as `when @`
+     * (issue #1818). It is the error of a wrong instruction on the line of `case` / `when`, as a
+     * command in an argument (`say(@a = 1)`).
+     * @param {*} value - The value of the subject or of the `when`.
+     * @param {object} lineNode - The CaseNode or the WhenNode, whose first line the error shows.
+     */
+    _rejectCommandInCase(value, lineNode) {
+        if (!this._isBlock(value) || this._isValueBlock(value)) {
+            return;
+        }
+        throw new RubyToBlocksConverterError(
+            lineNode,
+            this._translator(converterMessages.wrongInstruction, {
+                SOURCE: this._truncateSource(this._firstLineSource(lineNode)),
+            }),
+        );
+    },
+
     visitCaseNode(node) {
         const saved = this._saveContext();
 
         const subjectNode = node.predicate;
         const subjectResult = this.visit(subjectNode);
         const subjectSplit = this._splitPreBlocksAndValue(subjectResult);
+        this._rejectCommandInCase(subjectSplit.value, node);
         const preBlocks = subjectSplit.preBlocks;
         // Each `when` visits the subject again (a block can be used only once), so drop this one.
         if (this._isBlock(subjectSplit.value)) {
@@ -184,6 +206,7 @@ const ControlFlowHandlers = {
             const rhResult = this.visit(conditionNode);
             const rhSplit = this._splitPreBlocksAndValue(rhResult);
             const currentRh = rhSplit.value;
+            this._rejectCommandInCase(currentRh, whenNode);
             preBlocks.push(...rhSplit.preBlocks);
 
             const body = this._processStatement(whenNode.statements);
