@@ -2615,16 +2615,15 @@
     font-size: 0.8rem;
 }
 
-/* Shared by the advanced settings (peer view, mesh, lesson): the old
-   start-from-previous checkbox that named them is gone. */
-.assignment-start-from-previous-label {
+/* Label and hint of one assignment setting (peer view, mesh, lesson). */
+.assignment-option-label {
     display: block;
     color: #575e75;
     font-size: 0.9rem;
     font-weight: bold;
 }
 
-.assignment-start-from-previous-hint {
+.assignment-option-hint {
     display: block;
     color: #575e75;
     font-size: 0.8rem;

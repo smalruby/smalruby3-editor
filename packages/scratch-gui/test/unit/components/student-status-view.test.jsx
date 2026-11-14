@@ -259,4 +259,11 @@ describe('StudentStatusView: リロードしたあとに「この課題で出し
         });
         expect(screen.queryByTestId('classroom-status-continue-current')).not.toBeInTheDocument();
     });
+    test('読み込み中（提出物を確かめている間）は主ボタンを押せない', () => {
+        const h = renderView({ continueOptions: null, isLoading: true });
+        const main = screen.getByTestId('classroom-status-continue');
+        expect(main).toBeDisabled();
+        fireEvent.click(main);
+        expect(h.onContinue).not.toHaveBeenCalled();
+    });
 });

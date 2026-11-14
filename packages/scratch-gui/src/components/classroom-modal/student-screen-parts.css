@@ -124,7 +124,7 @@
    - 未提出: 白地に青い字（#ffffff / #1f5fbf = 6.1:1）。塗りの色で急かさず、押せるボタンだと分かる形にする。
      紫のメニューバー（#855cd6）の上でボタンの形が見えるよう白い枠を付ける（白と紫 = 4.7:1）。
    - 提出済み / 返却済み: 緑で塗って白い字（#117a4f = 5.4:1）。返却の色のオレンジは使わない。
-   - hover は同じ色から作る（未提出は薄い青 #e8f0fc・緑は濃い緑 #0d6641）。focus-visible は黄色の輪。 */
+   - hover は同じ色から作る（未提出は薄い青 #e8f0fc・緑は濃い緑 #0d6641）。focus-visible は下の 2 重の輪。 */
 .menu-submit-button {
     flex: 0 0 auto;
     align-self: center;
@@ -156,9 +156,14 @@
     background-color: #0d6641;
 }
 
+/* キーボードで選んだときの輪は 2 重にする（#1825 FYI1）。内側の白い輪（box-shadow）がボタンとの
+   すき間を埋め、外側の濃い輪 #232036 が周りと分ける。濃い輪は白いドロワーに 15.8:1・紫のメニュー
+   バー #855cd6 に 3.4:1、白い輪は紫に 4.7:1（どれも非テキストの 3:1 以上）。黄色 #ffbf00 は白に
+   1.65:1・紫に 2.8:1 で足りなかった。 */
 .menu-submit-button:focus-visible {
-    outline: 2px solid #ffbf00;
-    outline-offset: 1px;
+    outline: 2px solid #232036;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px #ffffff;
 }
 
 /* iPad の縦向き（幅 1023px 以下）はメニューバーに余りが無いので、ひらがなの長い字でも

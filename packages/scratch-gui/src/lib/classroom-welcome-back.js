@@ -21,13 +21,15 @@ export const submissionKey = (submission) =>
     submission && submission.submittedAt ? `${submission.classroomId || ''}:${submission.submittedAt}` : null;
 
 /**
- * どれかの target（スプライト・ステージ）にブロックがあるか。読めない target はブロックがある
- * とみなす（迷ったら「つづける」）。
+ * どれかの target（スプライト・ステージ）にブロックがあるか。target がまだ無いときや、読めない
+ * target があるときはブロックがあるとみなす（迷ったら「つづける」）。
  * @param {?Array<object>} targets - vm.runtime.targets
  * @returns {boolean} ブロックがあるとき true
  */
 export const projectHasBlocks = (targets) => {
-    if (!Array.isArray(targets)) return true;
+    // No targets yet (before the first load or while one project replaces
+    // another) is "not sure", not "empty" (#1825 review FYI2).
+    if (!Array.isArray(targets) || targets.length === 0) return true;
     return targets.some((target) => {
         const blocks = target && target.blocks && target.blocks._blocks;
         if (!blocks || typeof blocks !== 'object') return true;

@@ -648,7 +648,7 @@ const TeacherAssignmentEditor = ({
                                             )}
                                         >
                                             <label className={styles.assignmentPeerViewRow}>
-                                                <span className={styles.assignmentStartFromPreviousLabel}>
+                                                <span className={styles.assignmentOptionLabel}>
                                                     <FormattedMessage
                                                         defaultMessage="Let students see classmates' work"
                                                         description="Assignment editor: label of the peer view setting"
@@ -673,7 +673,7 @@ const TeacherAssignmentEditor = ({
                                                     </option>
                                                 </select>
                                             </label>
-                                            <span className={styles.assignmentStartFromPreviousHint}>
+                                            <span className={styles.assignmentOptionHint}>
                                                 <FormattedMessage
                                                     defaultMessage="Students see only the stage image and block images of classmates' submissions (not the project file, names or your comments). Choose after submitting to have them try on their own first."
                                                     description="Assignment editor: explanation of the peer view setting"

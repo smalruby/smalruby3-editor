@@ -496,7 +496,11 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 setStudentTeacherComment(submission.teacherComment);
             }
             studentAssignment.setHasAssignment(!!result.hasAssignment);
-            studentAssignment.refreshContinueOptions();
+            // Stay busy until the submissions answer too (#1825 review M1): the main
+            // button may turn into 「この課題で出した作品から続ける」, so 「つづける」 must
+            // not be pressable before we know.
+            await studentAssignment.refreshContinueOptions();
+            if (token !== sessionTokenRef.current) return;
             // The lesson progress row is built from the device's lesson records
             // (#1599); take in what another tab wrote and re-read the lesson.
             // Opening this screen is also a moment to send the progress to the

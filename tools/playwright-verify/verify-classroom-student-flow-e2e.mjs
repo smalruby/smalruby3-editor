@@ -487,7 +487,7 @@ try {
         await p.context().close();
     }
 
-    // === 課題 2（スターターあり・前回から OFF）===
+    // === 課題 2（スターターあり）===
     await reopenTeacherModal().catch(() => {});
     await renameFirstSprite(teacher, STARTER_MARKER);
     const a2 = await createAssignment(`第2回-${stamp}`);

@@ -47,13 +47,14 @@ jest.mock('../../../src/lib/lessons/open-lessons-library.js', () => ({ openAssig
 jest.mock('../../../src/containers/use-kick-request-polling.js', () => ({ __esModule: true, default: () => {} }));
 jest.mock('../../../src/containers/use-student-submit.js', () => ({ __esModule: true, default: () => ({}) }));
 let mockContinueOptions = null;
+let mockRefreshContinueOptions = () => Promise.resolve();
 jest.mock('../../../src/containers/use-student-assignment.js', () => ({
     __esModule: true,
     default: () => ({
         continueOptions: mockContinueOptions,
         handleJoined: () => Promise.resolve('student-joined'),
         refreshLesson: () => Promise.resolve(),
-        refreshContinueOptions: () => Promise.resolve(),
+        refreshContinueOptions: () => mockRefreshContinueOptions(),
         setHasAssignment: () => {},
     }),
 }));
@@ -229,6 +230,7 @@ describe("ClassroomModal: offer this assignment's submission after a reload (#18
         mockVerifySession.mockReset();
         mockVerifySession.mockResolvedValue({ valid: true, hasAssignment: true, submission: null });
         mockContinueOptions = { current: CURRENT, previous: null };
+        mockRefreshContinueOptions = () => Promise.resolve();
         window.localStorage.clear();
         clearPendingKickRequest();
     });
@@ -263,5 +265,24 @@ describe("ClassroomModal: offer this assignment's submission after a reload (#18
         renderModal(SESSION, { vm: emptyVm, projectChanged: false });
         await settle();
         expect(mockProps.offerCurrentSubmission).toBeFalsy();
+    });
+    test('keeps the screen busy (main button not pressable) until the submissions answer arrives', async () => {
+        let answer;
+        mockRefreshContinueOptions = () =>
+            new Promise((resolve) => {
+                answer = resolve;
+            });
+        renderModal(SESSION, { vm: emptyVm, projectChanged: false });
+        await settle();
+        // verify-session has answered, the submissions have not: 「つづける」 must not be pressable yet.
+        expect(mockVerifySession).toHaveBeenCalled();
+        expect(answer).toEqual(expect.any(Function));
+        expect(mockProps.isLoading).toBe(true);
+        await act(async () => {
+            answer();
+            for (let i = 0; i < 6; i++) await Promise.resolve();
+        });
+        expect(mockProps.isLoading).toBe(false);
+        expect(mockProps.offerCurrentSubmission).toBe(true);
     });
 });

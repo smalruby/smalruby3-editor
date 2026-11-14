@@ -48,12 +48,15 @@ describe('projectHasBlocks', () => {
 
     test('どのスプライトにもステージにもブロックが無ければ false', () => {
         expect(projectHasBlocks([target([]), target([])])).toBe(false);
-        expect(projectHasBlocks([])).toBe(false);
     });
 
     test('どれか 1 つにでもブロックがあれば true（ステージもふくむ）', () => {
         expect(projectHasBlocks([target([]), target(['a'])])).toBe(true);
         expect(projectHasBlocks([target(['s']), target([])])).toBe(true);
+    });
+
+    test('target がまだ無い（作品を読み込む前・入れかえの途中）ときは「ブロックがある」とみなす', () => {
+        expect(projectHasBlocks([])).toBe(true);
     });
 
     test('読めない target は「ブロックがある」とみなす（迷ったら「つづける」）', () => {
