@@ -1,14 +1,16 @@
 // レッスンモードでメニューバーの下に画面の幅いっぱいで出す課題バー（1 行）。
 // 「何個め / 全部で何個」・課題の 1 行・ヒント・ほかのチャレンジへ・レッスンをおえる。見た目の高さは 40px に収め、
 // 1300×600 の授業のパソコンでコードエリアを圧迫しない。
-// 課題の全文（チャレンジの定義の改行つき・画像があれば画像も）は、バーにマウスを乗せているあいだ
+// 課題の全文（チャレンジの定義の改行つき・アクティビティ図や画像があればそれも）は、バーにマウスを乗せているあいだ
 // バーの下に大きめの字で出す（先生がプロジェクターに映して説明する場面のため。課題が短くても出す。
 // 横切っただけでちらつかないよう、乗せてから少し待って出す）。
 // タッチ（SP）では課題の文のタップで開き、もう一度のタップで閉じる。パネルは absolute なので、
 // エディタの列・ステージの列の幅も高さも変えない。
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
+import { diagramScaleFor } from '../../lib/lessons/activity-diagram/layout';
+import LessonActivityDiagram from '../lesson-activity-diagram/lesson-activity-diagram.jsx';
 import styles from './lesson-task-bar.css';
 
 const messages = defineMessages({
@@ -43,6 +45,29 @@ const messages = defineMessages({
 
 const FULL_TEXT_ID = 'lesson-task-bar-full-text';
 
+const diagramMessages = defineMessages({
+    seeHint: {
+        id: 'gui.lessons.activityDiagram.seeHint',
+        description:
+            'Shown in the full task text instead of the activity diagram when the diagram is too tall to read there',
+        defaultMessage: 'See the diagram on page 1 of the hint',
+    },
+});
+
+// 全文のパネルの中で図に使える大きさ（px）。パネルは最大 60vh で、マウスで乗せて出すときは中をスクロール
+// できない。課題の文の高さ（測れないうちは 2 行ぶんの 6.25rem）と、上下の余白・すき間・枠（2.25rem）を
+// 引いた残りを図に使う
+const REM = 16;
+const FALLBACK_TEXT_HEIGHT = 6.25 * REM;
+const PANEL_CHROME = 2.25 * REM;
+const fullTextDiagramBox = (textHeight) => ({
+    maxWidth: (typeof window === 'undefined' ? 1300 : window.innerWidth) - PANEL_CHROME,
+    maxHeight:
+        (typeof window === 'undefined' ? 600 : window.innerHeight) * 0.6 -
+        (textHeight || FALLBACK_TEXT_HEIGHT) -
+        PANEL_CHROME,
+});
+
 // マウスを乗せてから全文を出すまでの間（ms）。バーはタブとコードエリアのあいだにあるので、
 // タブへ動かす途中にバーを横切っただけで大きなパネルがちらつかないようにする。離したらすぐ消す
 export const HOVER_DELAY_MS = 300;
@@ -54,7 +79,32 @@ const toOneLine = (text) =>
         HALF_WIDTH.test(whole.charAt(offset - 1)) && HALF_WIDTH.test(whole.charAt(offset + match.length)) ? ' ' : '',
     );
 
+// 全文の中のアクティビティ図。字が読める下限まで縮めても入らないときは、図の代わりに「ヒントの 1 ページ目で
+// 見られます」を出す（ヒントの吹き出しの中は図の枠をスクロールできる）
+const FullTextDiagram = ({ layout, textHeight }) => {
+    const intl = useIntl();
+    const { scale, fits } = diagramScaleFor(layout, fullTextDiagramBox(textHeight));
+    return (
+        <div className={styles.fullTextDiagram} data-testid="lesson-task-bar-full-text-diagram">
+            {fits ? (
+                <LessonActivityDiagram layout={layout} scale={scale} />
+            ) : (
+                <p className={styles.fullTextDiagramNote} data-testid="lesson-task-bar-full-text-diagram-note">
+                    {intl.formatMessage(diagramMessages.seeHint)}
+                </p>
+            )}
+        </div>
+    );
+};
+
+FullTextDiagram.propTypes = {
+    layout: PropTypes.shape({ width: PropTypes.number.isRequired, height: PropTypes.number.isRequired }).isRequired,
+    // 課題の文の高さ（px）。測れていなければ null（2 行ぶんとみなす）
+    textHeight: PropTypes.number,
+};
+
 const LessonTaskBar = ({
+    activityDiagram = null,
     assignmentBand = null,
     challenge,
     challengeCount,
@@ -96,6 +146,14 @@ const LessonTaskBar = ({
     const pinCovered = Boolean(hintVisible || toastVisible);
     const pinOpen = pinned && !pinCovered;
     const open = pinOpen || hoverOpen;
+
+    // 全文の文の高さを測り、残りを図に使う（図が入るかは文の行数で変わる）。開いたとき・課題が変わったときに測る
+    const textRef = useRef(null);
+    const [textHeight, setTextHeight] = useState(null);
+    const measureText = Boolean(open && activityDiagram);
+    useLayoutEffect(() => {
+        if (measureText && textRef.current) setTextHeight(textRef.current.offsetHeight || null);
+    }, [measureText, task]);
 
     useEffect(() => {
         if (pinCovered) setPinned(false);
@@ -232,9 +290,10 @@ const LessonTaskBar = ({
                     data-testid="lesson-task-bar-full-text"
                     id={FULL_TEXT_ID}
                 >
-                    <p className={styles.fullTextText} data-testid="lesson-task-bar-full-text-text">
+                    <p className={styles.fullTextText} data-testid="lesson-task-bar-full-text-text" ref={textRef}>
                         {task}
                     </p>
+                    {activityDiagram && <FullTextDiagram layout={activityDiagram} textHeight={textHeight} />}
                     {image && (
                         <img
                             className={styles.fullTextImage}
@@ -250,6 +309,14 @@ const LessonTaskBar = ({
 };
 
 LessonTaskBar.propTypes = {
+    // 答えのプログラムから描いたアクティビティ図の置き方（lib/lessons/activity-diagram の layout）。全文の文の下に
+    // 描く。図を出さないチャレンジでは null
+    activityDiagram: PropTypes.shape({
+        width: PropTypes.number.isRequired,
+        height: PropTypes.number.isRequired,
+        shapes: PropTypes.arrayOf(PropTypes.object).isRequired,
+        edges: PropTypes.arrayOf(PropTypes.object).isRequired,
+    }),
     // クラスの課題の小さな帯（lesson-assignment-band の compact）。位置の右に出す。課題のチャレンジでなければ null
     assignmentBand: PropTypes.node,
     // courses.js の defineChallenge が返す形（number / name / task / image）

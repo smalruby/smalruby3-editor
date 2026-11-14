@@ -102,8 +102,9 @@
 | `codeTarget` | `'stage'` \| null | null | `code` を入れる相手。null はいま編集中のスプライト。`'stage'` はステージのプログラムのチャレンジ（入れる前にステージをえらぶ） |
 | `spriteCodes` | `{sprite, code}`[] | [] | `code` のほかに、名前で決めたスプライトに入れるプログラム（2 つのスプライトでやりとりするチャレンジ用）。`sprite` はライブラリのスプライトの名前。`code` は `code` と同じく locale ごとにも書ける。下の「最後の手段」 |
 | `debug` | message[] | [] | うまく動かないときは |
+| `activityDiagram` | boolean | false | 答えのプログラム（`code` と `spriteCodes`）から描くアクティビティ図を、課題の全文とヒントの 1 ページ目に出すか。答えが無いチャレンジでは true でも出さない。描き方は下の「アクティビティ図（答えから描く）」 |
+| `partner` | object \| null | null | メッシュの練習相手の定義 `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}]}`（`set` = `{variable, value}` か、その配列）。あればチャレンジ中に練習相手のパネルを出す（下の「メッシュの練習相手」）。図では相手のスイムレーンになる。無ければ自分のプログラムだけを描く |
 | `quiz` | `{question, choices, answer, explanation}` \| null | null | ふりかえりのクイズ（3 択）。「できた！」の表示の中に出す（下の「ふりかえりのクイズ」）。`question` / `choices`（3 つ）/ `explanation` は message、`answer` は正解が `choices` の何番目か（0 から）。ふつうは `challengeQuiz(id, answer)` で書く |
-| `partner` | `{name, buttons, replies}` \| null | null | メッシュの練習相手（データだけ）。あればチャレンジ中に練習相手のパネルを出す（下の「メッシュの練習相手」） |
 
 ヒント（`steps` の要素）。deck の step と同じ `title` を文言にし、吹き出しのための項目を足す。
 省いた項目は `defineChallenge` が既定値で埋める。
@@ -1032,6 +1033,55 @@ partner: {
   に対して行い、1 つでも失敗したら何も入れない（まだいないスプライトは target なしで確かめる）。
 - **文言**: `gui.lessonHint.*`（`src/locales/{en,ja,ja-Hira}.js`）。
 
+### アクティビティ図（答えから描く）
+
+チャレンジの定義で `activityDiagram: true` にすると、答えのプログラムから描いたアクティビティ図を、**課題の全文**
+（課題バーにマウスを乗せたとき・タップしたとき。文の下）と**ヒントの 1 ページ目**（文言の上）に出す。ヒントの
+ほかのページには出さない。方針は [`design.md` の「アクティビティ図」](design.md#アクティビティ図)。
+
+- **図のもと**: 答えの Ruby（`code` と `spriteCodes`、いまの locale のもの）を、ヒントの絵と同じ Ruby → ブロック変換に
+  かけたブロック。変換は VM も target も使わない（図に要るのはブロックの形と文だけ。まだ足していないスプライトや音の
+  名前で迷わないように）。変換の結果はチャレンジ・locale・Ruby のバージョンごとに覚え、全文とヒントで同じ図を使う。
+  作品には入れない。答えが変換できないときは図を出さない（全文・ヒントはそのまま）。
+- **描き方**（`layout.js`）: 上から下へ流す。帽子のブロックは開始（黒丸）の横の文、つながったブロックは処理（角の丸い箱）、
+  最後に終了（二重丸）。最後が「ずっと」のスクリプトは終わらないので、終了の記号とそこへの矢印を描かない。
+  「もし〜なら」は分岐のひし形から「はい」を左・「いいえ」を右へ分け、下の小さなひし形（合流）で
+  まとめる（「でなければ」が無いときは右はそのまま合流へ）。「くり返す」「ずっと」「〜までくり返す」は、ワークシートと同じ
+  点線の枠に、左上へ「3回くり返す」などを書く。スクリプトは横に並べる。答えにスクリプトが 1 つも無い（コメントだけ
+  など）ときは図を出さない。
+- **対応するブロック**: 順次・くり返し・もし・聞いて待つ・言う / 考える・待つ・変数（〜にする・〜ずつ変える）・
+  メッセージ（送る・受け取ったとき）・メッシュ（センサー値）と、その中の値（答え・タイマー・比べる・かつ / または・
+  つなぐ・乱数・触れた など）。**対応していないブロック**は処理の箱に、ブロックの文（scratch-blocks の文言の
+  テンプレート「背景を %1 にする」に値を入れたもの）を書く。文言が引けないときは opcode を書く。
+- **スプライトが 2 つ以上**（`spriteCodes` がある）のときは、スプライトごとに名前（`code` の分は「ネコ」、ステージの
+  プログラムは「ステージ」、ほかは `sprite` の名前）を上に書く。
+- **練習相手**（`partner`）があるときは、「あなた」と相手の名前の**スイムレーン**にする。相手のレーンは、練習相手の
+  定義（形は [`design.md` の「メッシュの練習相手」](design.md#メッシュの練習相手)）から描く:
+  - ボタン `buttons: [{label, set, broadcast}]` → 開始「「〜」ボタンを押したとき」。
+  - 自動の返事 `replies: [{onBroadcast, set, broadcast}]` → 開始「「〜」を受け取ったとき」（`onBroadcast` の合図）。
+  - どちらも `set`（共有する変数を変える `{variable, value}`。複数なら配列）を「〈変数〉を〈値〉にする」、`broadcast` を
+    「「〜」を送る」の処理にし、`set` → `broadcast` の順に並べる。
+  - 定義が無い・描くものが無い（ラベルの無いボタン・`onBroadcast` の無い返事だけ）ときは自分のレーンだけ（見出しも描かない）。
+- **大きさ**: 置き方は字の大きさ 12 の単位で作り、SVG は縦横の比のまま縮める。**縮めるのは、いちばん小さい字（11）が
+  10px になるところ（`MIN_DIAGRAM_SCALE` = 10/11 ≒ 0.91）まで**（`diagramScaleFor`）。それより小さくすると読めないため。
+  - 課題の全文: 図に使えるのは、縦は 60vh から課題の文の高さ（開いたときに測る。測れないうちは 2 行ぶんの 6.25rem）と
+    余白・すき間・枠の 2.25rem を引いた残り、横はパネルの幅（`lesson-task-bar.jsx`）。下限まで縮めても入らないときは
+    図を出さず、代わりに「図はヒントの 1 ページ目で見られます」の 1 行を出す（マウスで乗せて出すパネルは中を
+    スクロールできないため）。1300×600 で課題の文が 2 行なら、図に使えるのは約 250px（置き方の高さで約 275 まで）。
+    チャットの答えのような 8 ブロックほどの 1 本のスクリプトは入らず、案内の 1 行になる。
+  - ヒントの 1 ページ目: 図のあるページは吹き出しを最大 30rem に広げ（分岐のある図が下限の大きさのまま横に入るように）、
+    縦 `min(16rem, 100vh − 16rem)`・幅は吹き出しの幅まで縮める。下限まで縮めても入らないときは、図の枠の中を
+    スクロールする。
+- **代わりの文**: SVG に `<title>`（「アクティビティ図」）と、流れを文にした `<desc>`（`aria-describedby`）を付ける
+  （`describeActivityModel`。例「このスプライトが押されたとき → 「4+3=?」と聞いて待つ → 答え = 7？（はい: … / いいえ: …）」）。
+  スクリーンリーダーでも流れがわかるように（「読んで作る」は図だけで指示するため）。
+
+![課題の全文のアクティビティ図（1300×600）](screenshots/0207-lesson-task-full-text-activity-diagram-1300x600.png)
+
+![練習相手があるときのスイムレーン（1300×600）](screenshots/0208-lesson-task-full-text-activity-diagram-swimlane-1300x600.png)
+
+![ヒントの 1 ページ目のアクティビティ図（1300×600）](screenshots/0409-lesson-hint-activity-diagram-1300x600.png)
+
 ### 吹き出しの共通の土台
 
 吹き出し・ツールチップ・はじめての案内の**見た目**（枠・角丸・影・しっぽの向きと位置・色・閉じるボタン・ボタン・文字）は
@@ -1063,6 +1113,9 @@ partner: {
 | `lesson-task-bar-full-text` | div | 課題の全文のパネル（マウスを乗せているあいだ・タップで開いているあいだだけある） |
 | `lesson-task-bar-full-text-text` | p | パネルの課題の文（改行つき） |
 | `lesson-task-bar-full-text-image` | img | パネルの画像（チャレンジに `image` があるときだけ） |
+| `lesson-task-bar-full-text-diagram` | div | パネルのアクティビティ図（チャレンジの `activityDiagram` が true のときだけ。文の下） |
+| `lesson-task-bar-full-text-diagram-note` | p | 図が大きくて全文に入らないときの「図はヒントの 1 ページ目で見られます」（図の代わり） |
+| `lesson-activity-diagram` | svg | アクティビティ図の SVG（全文のパネルとヒントの 1 ページ目）。記号は `[data-shape]`（`start` / `end` / `action` / `decision` / `merge` / `loop` / `guard` / `lane` / `caption`）、矢印は `[data-edge]` |
 | `lesson-task-bar-hint` | button | ヒントの吹き出しの出し入れ（ヒントが無ければ disabled） |
 | `lesson-task-bar-quit` | button | ほかのチャレンジへ（いまのチャレンジを終えてレッスン表を開く。白地で目立たせる） |
 | `lesson-task-bar-end` | button | レッスンをおえる（右端。レッスンから出て、いつもの画面にもどる。レッスン表は開かない） |
@@ -1070,6 +1123,7 @@ partner: {
 | `lesson-hint-spotlight` | div | スポットライトの穴（照らしているときだけある） |
 | `lesson-hint-position` | span | 「ヒント n / N」 |
 | `lesson-hint-title` | p | ヒントの文言 |
+| `lesson-hint-activity-diagram` | div | ヒントの 1 ページ目のアクティビティ図（文言の上。チャレンジの `activityDiagram` が true のときだけ） |
 | `lesson-hint-blocks` | div | 本物のブロックを描く読み取り専用ワークスペース（`.blocklyBlockCanvas g[data-id]` がブロック） |
 | `lesson-hint-blocks-error` | p | ブロックを描けなかったときの注意 |
 | `lesson-hint-debug-title` / `lesson-hint-debug` | div / ul | 「うまく動かないときは」と箇条書き（最後のページ） |
@@ -1091,6 +1145,10 @@ partner: {
 | `screenshots/0204-lesson-task-full-text-667x375.png` | SP 横（MobileGui）で同じ課題の文をタップして全文を開いたところ |
 | `screenshots/0206-lesson-task-bar-end-1300x600.png` | 課題バーの右端の「レッスンをおえる」（「ほかのチャレンジへ」は白地、「レッスンをおえる」は透明地に白い枠） |
 | `screenshots/0205-lesson-task-full-text-image-1300x600.png` | 1300×600 でチャレンジ 2「矢印キーで動かそう」の全文（画像つき）を出したところ |
+| `screenshots/0207-lesson-task-full-text-activity-diagram-1300x600.png` | 1300×600 で全文にアクティビティ図を出したところ（「もし〜なら」を `activityDiagram: true` にして撮影。ずっと・分岐・合流） |
+| `screenshots/0208-lesson-task-full-text-activity-diagram-swimlane-1300x600.png` | 練習相手の定義があるときのスイムレーン（「クイズを作ろう」にテスト用の `partner`（ボタンで変数を変えて合図を送る・合図を受け取ったら返す）を足して撮影） |
+| `screenshots/0209-lesson-task-full-text-activity-diagram-too-tall-1300x600.png` | 図が大きくて全文に入らないときの案内の 1 行（テスト用の 8 ブロックの答えで撮影） |
+| `screenshots/0410-lesson-hint-activity-diagram-scroll-1300x600.png` | 同じ大きい図をヒントの 1 ページ目で出したところ（下限の大きさで、図の枠の中をスクロールできる） |
 | `screenshots/0401-lesson-hint-1300x600.png` | ヒント 2（パレットを指す・はじめてなのでスポットライト・本物のブロック）を 1300×600 で開いたところ |
 | `screenshots/0402-lesson-hint-667x375.png` | 同じヒントを SP 横（667×375）で開いたところ（パレットの右に収まる） |
 | `screenshots/0403-lesson-hint-375x667.png` | 同じヒントを SP 縦（375×667。縦持ちゲートを閉じたあと）で開いたところ（収まらないのでパレットの中） |
@@ -1099,6 +1157,7 @@ partner: {
 | `screenshots/0406-lesson-hint-auto-open-1300x600.png` | チャレンジを始めたら自動で開いたヒントの 1 ページ目（1300×600） |
 | `screenshots/0407-lesson-hint-dragged-667x375.png` | SP 横でヘッダーをタッチでドラッグして動かしたところ（しっぽは消える） |
 | `screenshots/0408-lesson-hint-auto-open-375x667.png` | SP 縦（縦持ちの案内を閉じたあと）で自動で開いたヒント（サイドレールの右に置く） |
+| `screenshots/0409-lesson-hint-activity-diagram-1300x600.png` | ヒントの 1 ページ目にアクティビティ図を出したところ（1300×600。図・文言・ブロックの順） |
 | `screenshots/0301-lessons-button-1300x600.png` | メニューバーの「レッスン」ボタン（1300×600。はじめての人にも吹き出しは出ない） |
 | `screenshots/0302-lessons-library-1300x600.png` | レッスン表（1300×600）。3 つのレッスンで、いくつかできた状態 |
 | `screenshots/0303-lessons-library-375x667.png` | レッスン表（SP 縦 375×667。カード 2 列） |
@@ -1235,6 +1294,9 @@ partner: {
 | `packages/scratch-gui/src/containers/lesson-hint.jsx` | 吹き出しのコンテナ（`getCurrentHint` を読み、`blocks` を XML にし、「プログラムを入れる」を dispatch） |
 | `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・DOM の探し方・置き方・ドラッグした位置を画面に収める（`clampHintPosition`）・置いてよい範囲（`hintViewport`。SP のサイドレールの右）（純粋関数） |
 | `packages/scratch-gui/src/lib/lessons/hint-blocks.js` / `blocks-xml.js` | Ruby → ブロック → Blockly の XML |
+| `packages/scratch-gui/src/lib/lessons/activity-diagram/` | アクティビティ図。`labels.js`（ブロックの文）・`model.js`（ブロック → 記号の木・練習相手のレーン）・`layout.js`（置き方）は純粋関数。`challenge-diagram.js` がチャレンジの定義から図を作り、`use-challenge-activity-diagram.js` がいまのチャレンジの図を返す hook（変換の結果を覚える）。文言は `activity-diagram.locale.js`（`src/locales/*.js` に spread） |
+| `packages/scratch-gui/src/components/lesson-activity-diagram/` | 置き方を SVG に描く部品（課題の全文・ヒントの 1 ページ目） |
+| `packages/scratch-gui/test/unit/lib/lessons/activity-diagram.test.js` / `test/unit/components/lesson-activity-diagram.test.jsx` | アクティビティ図の unit テスト（本物の変換でモデル・置き方を確かめる） |
 | `packages/scratch-gui/src/lib/lessons/insert-sprite-code.js` | 「プログラムを入れる」で `spriteCodes` をそれぞれのスプライトに入れる（いなければライブラリから足す） |
 | `packages/scratch-gui/src/lib/lessons/lesson-analytics.js` | GA の計測の判断（`stepLessonAnalytics`。前の状態・今の状態・時刻から送るイベントを決める純粋関数）と、ボタンで決まるイベントを送る `sendLessonEvent`（上の「GA の計測」） |
 | `packages/scratch-gui/src/containers/lesson-analytics.jsx` | GA の計測のコンテナ（描画しない。state を渡して `analytics.event` に送る）。`gui.jsx` のマーカー `lesson mode` の中に常時マウント |

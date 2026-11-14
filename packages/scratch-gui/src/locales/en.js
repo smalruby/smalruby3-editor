@@ -1,5 +1,6 @@
 // Tutorial category locale strings are split into per-category modules
 // (issue #932) so tutorial categories can be developed independently.
+import { en as activityDiagramMessages } from '../lib/lessons/activity-diagram/activity-diagram.locale.js';
 import { en as lessonsMessages } from '../lib/lessons/lessons.locale.js';
 import { en as blockSeriesHowtos } from '../lib/libraries/decks/categories/block-series.locale.js';
 import { en as dnclHowtos } from '../lib/libraries/decks/categories/dncl.locale.js';
@@ -1418,6 +1419,7 @@ export default {
     'gui.library.rubyBasics': 'Ruby Basics',
     ...rubyBasicsHowtos,
     ...lessonsMessages,
+    ...activityDiagramMessages,
     'gui.lessonTaskBar.ariaLabel': 'Lesson task',
     'gui.lessonTaskBar.position': '{number} of {count}',
     'gui.lessonTaskBar.hint': 'Hint',

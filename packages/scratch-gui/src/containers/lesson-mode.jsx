@@ -10,6 +10,7 @@ import { connect } from 'react-redux';
 import LessonAssignmentBand from '../components/lesson-assignment-band/lesson-assignment-band.jsx';
 import LessonTaskBar from '../components/lesson-task-bar/lesson-task-bar.jsx';
 import { applyDeckSetup } from '../lib/deck-setup';
+import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
 import { assignmentProgress, isAssignmentChallenge } from '../lib/lessons/assignment-progress';
 import { setupForChallenge } from '../lib/lessons/challenge-setup';
 import { findChallenge } from '../lib/lessons/courses';
@@ -70,11 +71,18 @@ const LessonMode = ({
     pendingChallengeId,
     progress,
     projectChanged,
+    rubyVersion,
+    scratchBlocks = null,
     teacherLoggedIn = false,
     toastVisible,
     vm,
 }) => {
     const intl = useIntl();
+    // 答えのプログラムから描いたアクティビティ図（チャレンジの定義が出すとしたときだけ）。課題の全文の中に出す
+    const activityDiagram = useChallengeActivityDiagram(current ? current.challenge : null, {
+        rubyVersion,
+        scratchBlocks,
+    });
 
     // 1. 開こうとしているチャレンジがあれば、新しい作品にする（いまの作品に変更が
     //    あればメニューの「新規」と同じ確認）。新しい作品を頼んだことを ref で覚え、
@@ -194,6 +202,7 @@ const LessonMode = ({
     return (
         <>
             <LessonTaskBar
+                activityDiagram={activityDiagram}
                 assignmentBand={
                     assignmentStatus ? <LessonAssignmentBand status={assignmentStatus} variant="compact" /> : null
                 }
@@ -259,6 +268,9 @@ LessonMode.propTypes = {
     // lesson-progress.js の記録（課題の帯の数）
     progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }),
     projectChanged: PropTypes.bool.isRequired,
+    rubyVersion: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    // 対応していないブロックの名前を図に書くときの Msg（reducers/block-display）
+    scratchBlocks: PropTypes.object,
     // 先生（クラス管理にログイン中）か（GA に送らない）
     teacherLoggedIn: PropTypes.bool,
     toastVisible: PropTypes.bool,
@@ -283,6 +295,8 @@ const mapStateToProps = (state) => {
         pendingChallengeId: state.scratchGui.lessonMode.pendingChallengeId,
         progress: state.scratchGui.lessonMode.progress,
         projectChanged: state.scratchGui.projectChanged,
+        rubyVersion: state.scratchGui.settings.rubyVersion,
+        scratchBlocks: state.scratchGui.blockDisplay.scratchBlocks,
         // lesson-goal-watcher.jsx が「できた！」の toast を出す条件と同じ（いっとき隠しているあいだは出ていない）
         toastVisible:
             state.scratchGui.lessonMode.challengeId !== null &&

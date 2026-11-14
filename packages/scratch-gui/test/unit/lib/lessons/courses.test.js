@@ -270,8 +270,9 @@ describe('lesson courses', () => {
             code: null,
             codeTarget: null,
             debug: [],
-            partner: null,
             quiz: null,
+            activityDiagram: false,
+            partner: null,
             steps: [
                 { title: null, target: 'palette', blocks: null, spotlight: true },
                 { title: null, target: null, blocks: 'move(10)', spotlight: false },

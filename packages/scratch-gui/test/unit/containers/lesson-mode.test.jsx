@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { act, fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonMode } from '../../../src/containers/lesson-mode.jsx';
@@ -85,6 +85,43 @@ describe('LessonMode container', () => {
         expect(getByTestId('lesson-task-bar-position')).toHaveTextContent('3 of 4');
         fireEvent.click(getByTestId('lesson-task-bar-quit'));
         expect(props.onCloseLesson).toHaveBeenCalledTimes(1);
+    });
+
+    test('shows the activity diagram of the answer in the full text when the challenge asks for it', async () => {
+        const found = findChallenge('blocks-l1-quiz');
+        const props = {
+            ...baseProps(),
+            current: { ...found, challenge: { ...found.challenge, activityDiagram: true } },
+            hint: { visible: false, index: 0, count: 0, step: null },
+        };
+        const { getByTestId } = renderLessonMode(props);
+        const event = new MouseEvent('pointerover', { bubbles: true });
+        Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+        act(() => {
+            getByTestId('lesson-task-bar').dispatchEvent(event);
+        });
+        await waitFor(() => expect(getByTestId('lesson-task-bar-full-text-diagram')).toBeInTheDocument(), {
+            timeout: 5000,
+        });
+        const svg = getByTestId('lesson-activity-diagram');
+        expect(svg.querySelectorAll('[data-shape="decision"]')).toHaveLength(1);
+        expect(svg.textContent).toContain('ask "4+3=?" and wait');
+    });
+
+    test('shows no activity diagram for a challenge that does not ask for it', async () => {
+        const props = {
+            ...baseProps(),
+            current: findChallenge('blocks-l1-quiz'),
+            hint: { visible: false, index: 0, count: 0, step: null },
+        };
+        const { getByTestId, queryByTestId } = renderLessonMode(props);
+        const event = new MouseEvent('pointerover', { bubbles: true });
+        Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+        act(() => {
+            getByTestId('lesson-task-bar').dispatchEvent(event);
+        });
+        await waitFor(() => expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument());
+        expect(queryByTestId('lesson-task-bar-full-text-diagram')).toBeNull();
     });
 
     test('"End lesson" leaves the lesson without opening the lessons library', () => {

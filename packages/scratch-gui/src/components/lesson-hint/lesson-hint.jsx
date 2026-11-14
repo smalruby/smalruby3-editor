@@ -253,6 +253,7 @@ const useHintDrag = (balloonRef, deps) => {
 };
 
 const LessonHint = ({
+    activityDiagram = null,
     blocksError = false,
     blocksXml,
     colorMode,
@@ -277,12 +278,22 @@ const LessonHint = ({
     const balloonRef = useRef(null);
     const [renderedTick, setRenderedTick] = useState(0);
     const handleRendered = useCallback(() => setRenderedTick((t) => t + 1), []);
-    const { targetRect, placement } = useHintPlacement(target, balloonRef, [index, blocksXml, renderedTick]);
+    // アクティビティ図は 1 ページ目だけ（毎ページ描くと情報が多すぎる・docs/lessons/design.md の「アクティビティ図」）
+    const diagram = index === 0 && !lastResort ? activityDiagram : null;
+    // 置き方の測り直しは、図が出た・消えたときだけ（図の要素は描くたびに作り直されるので、要素では見ない）
+    const hasDiagram = Boolean(diagram);
+    const { targetRect, placement } = useHintPlacement(target, balloonRef, [
+        index,
+        blocksXml,
+        renderedTick,
+        hasDiagram,
+    ]);
     const { position: dragged, onPointerDown } = useHintDrag(balloonRef, [
         index,
         blocksXml,
         renderedTick,
         lastResort,
+        hasDiagram,
     ]);
     // 「正解のプログラムを確認する」を押して、置き換えてよいかを確かめているところか（ページが変わったらやめる）
     const [confirming, setConfirming] = useState(false);
@@ -328,7 +339,8 @@ const LessonHint = ({
                 variant={BALLOON_VARIANTS.PANEL}
                 arrowSide={arrow ? side : null}
                 arrowStyle={arrowStyle}
-                className={styles.balloon}
+                // 図のあるページは、図が字の読める大きさのまま収まるよう吹き出しを少し広げる
+                className={hasDiagram ? styles.balloonWide : styles.balloon}
                 data-testid="lesson-hint"
                 data-side={side}
                 data-target={target || ''}
@@ -417,6 +429,11 @@ const LessonHint = ({
                         </>
                     ) : (
                         <>
+                            {diagram ? (
+                                <div className={styles.activityDiagram} data-testid="lesson-hint-activity-diagram">
+                                    {diagram}
+                                </div>
+                            ) : null}
                             {title ? (
                                 <p className={styles.title} data-testid="lesson-hint-title">
                                     {intl.formatMessage(title)}
@@ -462,6 +479,8 @@ const LessonHint = ({
 };
 
 LessonHint.propTypes = {
+    // 答えのプログラムから描いたアクティビティ図（components/lesson-activity-diagram）。1 ページ目の文の上に出す
+    activityDiagram: PropTypes.node,
     blocksError: PropTypes.bool,
     blocksXml: PropTypes.string,
     colorMode: PropTypes.string,

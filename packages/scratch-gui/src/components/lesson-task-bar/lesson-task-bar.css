@@ -157,3 +157,18 @@
     max-height: 10rem;
     object-fit: contain;
 }
+
+/*
+    答えのプログラムから描いたアクティビティ図。大きさは lesson-task-bar.jsx が決める（パネルの 60vh から文の分を
+    引いた高さまで縮め、字が読める下限より小さくしない。入らなければ図の代わりに案内の 1 行を出す）。マウスで
+    乗せて出すパネルは中をスクロールできない（pointer-events: none）ので、はみ出させない
+*/
+.full-text-diagram {
+    display: flex;
+    max-width: 100%;
+}
+
+.full-text-diagram-note {
+    margin: 0;
+    font-size: 1rem;
+}
