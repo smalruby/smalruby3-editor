@@ -38,6 +38,7 @@ describe('RubyToBlocksConverter/the number of block parameters', () => {
         ['self.when(:makey_key_pressed, "SPACE") do |x|', 'self.when(:makey_key_pressed, "SPACE") d...'],
         ['self.when(:makey_pressed_in_oder, "LEFT") do |x|', 'self.when(:makey_pressed_in_oder, "LEFT"...'],
         ['define_method(:foo) do |a|', 'define_method(:foo) do |a|...'],
+        ['mesh.when_receive(:a) do |x|', 'mesh.when_receive(:a) do |x|...'],
     ])('%s is the wrong instruction', async (line, source) => {
         const { ok, errors } = await convert(`@a = [1]\n@h = {a: 1}\n${line}\n  say(1)\nend`);
         expect(ok).toBe(false);
@@ -51,6 +52,8 @@ describe('RubyToBlocksConverter/the number of block parameters', () => {
         ['foo(1) do |x|\n  say(x)\nend', 'foo(1) do |x|...'],
         ['foo(1) do\n  say(2)\nend', 'foo(1) do...'],
         ['foo(1) { say(2) }', 'foo(1) { say(2) }'],
+        ['foo(1, &blk)', 'foo(1, &blk)'],
+        ['foo(1, &:x)', 'foo(1, &:x)'],
     ])('%s of a My Block is the wrong instruction', async (call, source) => {
         const { ok, errors } = await convert(`def foo(a)\n  say(a)\nend\n${call}`);
         expect(ok).toBe(false);
