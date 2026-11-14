@@ -38,6 +38,11 @@ const messages = defineMessages({
         defaultMessage: 'Not connected (practicing with the practice partner)',
         description: 'Mesh is not connected and the practice partner is on',
     },
+    practicingShort: {
+        id: 'gui.meshStatus.practicingShort',
+        defaultMessage: 'practicing',
+        description: 'Accessible name of the dot on the practice partner tab while it is on',
+    },
     practicePeer: {
         id: 'gui.meshStatus.practicePeer',
         defaultMessage: 'Partner (practice partner)',
@@ -532,7 +537,14 @@ const MeshStatusPopup = ({
                         tabIndex={tab === TAB_PRACTICE ? 0 : -1}
                     >
                         <FormattedMessage {...messages.tabPractice} />
-                        {practice.active && <span className={styles.practiceDot} />}
+                        {practice.active && (
+                            <span
+                                aria-label={intl.formatMessage(messages.practicingShort)}
+                                className={styles.practiceDot}
+                                role="img"
+                                title={intl.formatMessage(messages.practicingShort)}
+                            />
+                        )}
                     </button>
                 )}
             </div>

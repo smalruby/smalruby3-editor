@@ -40,6 +40,23 @@
     background-color: $ui-green-2;
 }
 
+/* 練習相手が動いているしるし（色だけにしない。文字で「練習」 #1845） */
+.practice-badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    padding: 0 3px;
+    border: 1px solid $ui-white;
+    border-radius: 4px;
+    background-color: $data-primary;
+    color: $ui-white;
+    font-size: 0.5625rem;
+    font-weight: bold;
+    line-height: 0.875rem;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
 /* Keep the flag, stop and mesh buttons together on the left of the stage header. */
 .controls-group {
     display: flex;

@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import { withReply, withVariable, emptySettings } from '../../../../src/lib/mesh-practice/partner';
+import { emptySettings, withReply, withVariable } from '../../../../src/lib/mesh-practice/partner';
 import {
     loadPartnerSettings,
     MAX_PROJECTS,
@@ -18,54 +18,63 @@ const memoryStorage = () => {
         },
     };
 };
+const memoryStores = () => ({ local: memoryStorage(), session: memoryStorage() });
 
 describe('mesh practice partner: browser storage (#1845)', () => {
     test('the key uses the smalruby: prefix', () => {
         expect(STORAGE_KEY).toBe('smalruby:meshPracticePartner');
     });
 
-    test('the project key is the project id, else the title, else none', () => {
+    test('the project key is the project id only (never the title)', () => {
         expect(projectKeyOf({ projectId: '123', projectTitle: 't' })).toBe('id:123');
-        expect(projectKeyOf({ projectId: '0', projectTitle: ' My game ' })).toBe('title:My game');
-        expect(projectKeyOf({ projectId: null, projectTitle: '' })).toBeNull();
+        expect(projectKeyOf({ projectId: '0', projectTitle: 'My game' })).toBeNull();
+        expect(projectKeyOf({ projectId: null })).toBeNull();
         expect(projectKeyOf()).toBeNull();
     });
 
-    test('settings are kept per project, and the last settings are used for a project without its own', () => {
-        const storage = memoryStorage();
+    test('projects with an id are kept per id in localStorage', () => {
+        const stores = memoryStores();
         const a = withVariable(emptySettings(), 'x', '1');
         const b = withReply(emptySettings(), { onBroadcast: 'p', broadcast: 'q', value: '' });
-        expect(savePartnerSettings('title:A', a, storage)).toBe(true);
-        expect(savePartnerSettings('title:B', b, storage)).toBe(true);
-        expect(loadPartnerSettings('title:A', storage)).toEqual(a);
-        expect(loadPartnerSettings('title:B', storage)).toEqual(b);
-        // unknown project or no key: the last settings
-        expect(loadPartnerSettings('title:C', storage)).toEqual(b);
-        expect(loadPartnerSettings(null, storage)).toEqual(b);
+        expect(savePartnerSettings('id:A', a, stores)).toBe(true);
+        expect(savePartnerSettings('id:B', b, stores)).toBe(true);
+        expect(loadPartnerSettings('id:A', stores)).toEqual(a);
+        expect(loadPartnerSettings('id:B', stores)).toEqual(b);
+        expect(loadPartnerSettings('id:C', stores)).toBeNull();
+        expect(stores.session.data[STORAGE_KEY]).toBeUndefined();
+    });
+
+    test('projects without an id are kept for this tab only (sessionStorage)', () => {
+        const stores = memoryStores();
+        const a = withVariable(emptySettings(), 'x', '1');
+        expect(loadPartnerSettings(null, stores)).toBeNull();
+        expect(savePartnerSettings(null, a, stores)).toBe(true);
+        expect(loadPartnerSettings(null, stores)).toEqual(a);
+        expect(stores.local.data[STORAGE_KEY]).toBeUndefined();
     });
 
     test('only the last MAX_PROJECTS projects are kept', () => {
-        const storage = memoryStorage();
+        const stores = memoryStores();
         for (let i = 0; i < MAX_PROJECTS + 5; i++) {
-            savePartnerSettings(`title:${i}`, withVariable(emptySettings(), `v${i}`, ''), storage);
+            savePartnerSettings(`id:${i}`, withVariable(emptySettings(), `v${i}`, ''), stores);
         }
-        const all = JSON.parse(storage.data[STORAGE_KEY]);
+        const all = JSON.parse(stores.local.data[STORAGE_KEY]);
         expect(Object.keys(all.projects)).toHaveLength(MAX_PROJECTS);
-        expect(all.projects['title:0']).toBeUndefined();
+        expect(all.projects['id:0']).toBeUndefined();
     });
 
     test('broken or missing storage does not throw', () => {
-        const storage = memoryStorage();
-        storage.data[STORAGE_KEY] = '{not json';
-        expect(loadPartnerSettings('title:A', storage)).toEqual(emptySettings());
-        expect(loadPartnerSettings('title:A', null)).toEqual(emptySettings());
-        expect(savePartnerSettings('title:A', emptySettings(), null)).toBe(false);
+        const stores = memoryStores();
+        stores.local.data[STORAGE_KEY] = '{not json';
+        expect(loadPartnerSettings('id:A', stores)).toBeNull();
+        expect(loadPartnerSettings('id:A', { local: null, session: null })).toBeNull();
+        expect(savePartnerSettings('id:A', emptySettings(), { local: null, session: null })).toBe(false);
         const full = {
             getItem: () => null,
             setItem: () => {
                 throw new Error('QuotaExceeded');
             },
         };
-        expect(savePartnerSettings('title:A', emptySettings(), full)).toBe(false);
+        expect(savePartnerSettings('id:A', emptySettings(), { local: full, session: full })).toBe(false);
     });
 });

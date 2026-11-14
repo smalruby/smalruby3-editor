@@ -45,6 +45,25 @@ const messageNameOf = (option) => {
     return typeof option === 'string' ? option : null;
 };
 
+// 1 つの runtime につなげる折り返しは 1 つだけ（レッスンの練習相手とひとりで使う練習相手が両方つながると、
+// 見張りが 2 つになり、返事も 2 回動く）。だれがつないでいるかを runtime ごとに覚える
+const owners = new WeakMap();
+
+/** つないでいる折り返しが変わったときに runtime が出すイベント。 */
+export const PRACTICE_OWNER_CHANGED = 'MESH_PRACTICE_OWNER_CHANGED';
+
+/**
+ * @param {object} runtime - VM の runtime。
+ * @returns {?string} いま折り返しをつないでいるもの（`owner`）。無ければ null。
+ */
+export const practiceLoopbackOwner = (runtime) => (runtime && owners.get(runtime)) || null;
+
+const setOwner = (runtime, owner) => {
+    if (owner) owners.set(runtime, owner);
+    else owners.delete(runtime);
+    if (typeof runtime.emit === 'function') runtime.emit(PRACTICE_OWNER_CHANGED, owner);
+};
+
 /**
  * 練習相手の折り返しをつなぐ。
  * @param {object} options - 設定。
@@ -56,7 +75,11 @@ const messageNameOf = (option) => {
  * @param {number} [options.replyDelayMs] - 自動の返事までの間。
  * @param {function(): number} [options.now] - 時刻（テスト用）。
  * @param {object} [options.timers] - `{setTimeout, clearTimeout}`（テスト用）。
- * @returns {object} `{press, act, setVariable, syncVariables, detach, isActive}`。
+ * @param {string} [options.owner] - つなぐもの（'lesson' / 'standalone' など）。ほかのものがつないでいれば
+ *   つながない（null を返す）。
+ * @param {function(): void} [options.onSuspend] - 本物のメッシュでつなぎ始めて、練習を止めたときに 1 回呼ぶ
+ *   （呼んだ側は「使う」を切る。つなぐのに失敗して切れたあとも、勝手に動き出さないように）。
+ * @returns {?object} `{press, act, setVariable, syncVariables, detach, isActive}`（つなげなければ null）。
  */
 export const attachPracticeLoopback = ({
     vm,
@@ -70,8 +93,12 @@ export const attachPracticeLoopback = ({
         setTimeout: globalThis.setTimeout.bind(globalThis),
         clearTimeout: globalThis.clearTimeout.bind(globalThis),
     },
+    owner = 'standalone',
+    onSuspend = () => {},
 }) => {
     const runtime = vm.runtime;
+    if (owners.has(runtime)) return null;
+    setOwner(runtime, owner);
     // 待っている返事: メッセージの名前（大文字）→ タイマー。本物のメッシュの fireEvent が、まだ送っていない
     // 同じメッセージをまとめるのに合わせ、同じメッセージの返事は待っているあいだ 1 つだけにする
     const pending = new Map();
@@ -81,6 +108,7 @@ export const attachPracticeLoopback = ({
     // 履歴に入れたもの（消すときに、本物のメッシュの履歴を消さないように、入れたものだけを見分ける）
     const historyEntries = new Set();
     let attached = true;
+    let suspended = false;
 
     const extension = () => (runtime.peripheralExtensions && runtime.peripheralExtensions.meshV2) || null;
     const service = () => {
@@ -112,6 +140,13 @@ export const attachPracticeLoopback = ({
         }
         svc.recordMessage({ direction, name, value, nodeId: from, at });
         if (svc.messageHistory[0]) historyEntries.add(svc.messageHistory[0]);
+        // 履歴（50 件まで）から押し出されたものは忘れる（ずっと送り続けても増え続けない）
+        if (historyEntries.size > svc.messageHistory.length) {
+            const kept = new Set(svc.messageHistory);
+            historyEntries.forEach((entry) => {
+                if (!kept.has(entry)) historyEntries.delete(entry);
+            });
+        }
     };
 
     const partnerNode = (create) => {
@@ -165,12 +200,20 @@ export const attachPracticeLoopback = ({
         historyEntries.clear();
     };
 
+    // 本物のメッシュでつなぎ始めた: 入れた値と履歴を消し、呼んだ側に 1 回だけ知らせる
+    const suspend = () => {
+        purge();
+        if (suspended) return;
+        suspended = true;
+        onSuspend();
+    };
+
     // ボタン・自動の返事のどちらも、set → broadcast の順
     const act = (action) => {
         if (!action) return;
         if (!allowed()) {
             // つなぎ始めたあとに押された・返事のタイマーが来たときは何もせず、入れた値も残さない
-            if (attached) purge();
+            if (attached) suspend();
             return;
         }
         setPartnerVariables(action.set);
@@ -239,7 +282,8 @@ export const attachPracticeLoopback = ({
     // メッシュの拡張は「つないでいる途中」になったことを知らせない。毎フレームの最初（スクリプトが動く前）に
     // 見て、本物のメッシュでつなぎ始めたら、その場で入れた値を消す（「センサーの値」が練習の値を読まないように）
     const onBeforeStep = () => {
-        if (attached && !allowed() && hasLeftovers()) purge();
+        if (!attached || allowed()) return;
+        if (hasLeftovers() || !suspended) suspend();
     };
 
     const unhook = hookOpcodeExecution(runtime, listener);
@@ -290,6 +334,7 @@ export const attachPracticeLoopback = ({
             pending.forEach((id) => timers.clearTimeout(id));
             pending.clear();
             purge();
+            if (owners.get(runtime) === owner) setOwner(runtime, null);
         },
     };
 };

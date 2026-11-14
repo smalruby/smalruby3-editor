@@ -28,6 +28,16 @@ const messages = defineMessages({
         defaultMessage: 'The practice partner rests while mesh is connected.',
         description: 'Shown while mesh is connected, when the practice partner cannot be used',
     },
+    blocked: {
+        id: 'gui.meshPractice.blocked',
+        defaultMessage: 'The lesson practice partner is working now, so this practice partner rests.',
+        description: 'Shown while the lesson practice partner is active',
+    },
+    activeLabel: {
+        id: 'gui.meshPractice.activeLabel',
+        defaultMessage: 'Practicing',
+        description: 'Accessible name of the mark shown while the practice partner is on',
+    },
     sendTitle: {
         id: 'gui.meshPractice.sendTitle',
         defaultMessage: 'Send a message',
@@ -321,9 +331,23 @@ ReplyForm.propTypes = {
 const MeshPracticePartner = ({ messageNames, practice, projectVariables }) => {
     const intl = useIntl();
     const [newName, setNewName] = useState('');
-    const { allowed, enabled, settings } = practice;
+    const { allowed, blocked, enabled, loadCount = 0, settings } = practice;
     const rows = partnerVariableRows(settings, projectVariables);
-    const disabled = !allowed;
+    const disabled = !allowed || !!blocked;
+    let notice = null;
+    if (blocked) {
+        notice = (
+            <p className={styles.paused} data-testid="mesh-practice-blocked">
+                <FormattedMessage {...messages.blocked} />
+            </p>
+        );
+    } else if (!allowed) {
+        notice = (
+            <p className={styles.paused} data-testid="mesh-practice-paused">
+                <FormattedMessage {...messages.paused} />
+            </p>
+        );
+    }
 
     const handleUse = useCallback((e) => practice.setUse(e.target.checked), [practice]);
     const handleNewName = useCallback((e) => setNewName(e.target.value), []);
@@ -351,13 +375,13 @@ const MeshPracticePartner = ({ messageNames, practice, projectVariables }) => {
                     type="checkbox"
                 />
                 <FormattedMessage {...messages.use} />
-                <span className={classNames(styles.dot, { [styles.dotOn]: practice.active })} />
+                {practice.active && (
+                    <span className={styles.activeMark} data-testid="mesh-practice-active">
+                        <FormattedMessage {...messages.activeLabel} />
+                    </span>
+                )}
             </label>
-            {disabled ? (
-                <p className={styles.paused} data-testid="mesh-practice-paused">
-                    <FormattedMessage {...messages.paused} />
-                </p>
-            ) : (
+            {notice || (
                 <p className={styles.note}>
                     <FormattedMessage {...messages.note} />
                 </p>
@@ -376,7 +400,8 @@ const MeshPracticePartner = ({ messageNames, practice, projectVariables }) => {
                             <MessageRow
                                 initialValue={buttonValueFor(settings, name)}
                                 intl={intl}
-                                key={name}
+                                // 設定を読み直したら欄も作り直す
+                                key={`${loadCount}:${name}`}
                                 name={name}
                                 onSend={handleSend}
                             />
@@ -391,7 +416,7 @@ const MeshPracticePartner = ({ messageNames, practice, projectVariables }) => {
                     {rows.map((row) => (
                         <VariableRow
                             intl={intl}
-                            key={`${row.created ? 'c' : 'p'}:${row.name}`}
+                            key={`${loadCount}:${row.created ? 'c' : 'p'}:${row.name}`}
                             onRemove={handleRemoveVariable}
                             onSet={handleSetVariable}
                             row={row}
@@ -442,7 +467,8 @@ const MeshPracticePartner = ({ messageNames, practice, projectVariables }) => {
                                 <li
                                     className={styles.replyRow}
                                     data-testid="mesh-practice-reply"
-                                    key={`${reply.onBroadcast}-${reply.broadcast}-${reply.value}`}
+                                    // 返事は並びの番号で区別する（名前に区切りの文字が入ってもぶつからない）
+                                    key={`${loadCount}:${index}`}
                                 >
                                     <span className={styles.replyText}>{text}</span>
                                     <button
@@ -473,7 +499,9 @@ MeshPracticePartner.propTypes = {
         addReply: PropTypes.func,
         addVariable: PropTypes.func,
         allowed: PropTypes.bool,
+        blocked: PropTypes.bool,
         enabled: PropTypes.bool,
+        loadCount: PropTypes.number,
         removeReply: PropTypes.func,
         removeVariable: PropTypes.func,
         send: PropTypes.func,

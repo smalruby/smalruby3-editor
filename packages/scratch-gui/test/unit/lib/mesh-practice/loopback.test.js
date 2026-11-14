@@ -1,7 +1,11 @@
 /* eslint-env jest */
 // ブラウザの中での折り返し（lib/mesh-practice/loopback.js）。VM は EventEmitter のにせもの。
 import EventEmitter from 'events';
-import { attachPracticeLoopback } from '../../../../src/lib/mesh-practice/loopback';
+import {
+    attachPracticeLoopback,
+    PRACTICE_OWNER_CHANGED,
+    practiceLoopbackOwner,
+} from '../../../../src/lib/mesh-practice/loopback';
 import {
     MAX_PENDING_REPLIES,
     MESH_PRACTICE_PARTNER_NODE_ID as PARTNER,
@@ -166,5 +170,55 @@ describe('mesh practice partner: loopback (#1845)', () => {
         expect(loop.isActive()).toBe(false);
         loop.detach();
         expect(vm.runtime.listenerCount('BEFORE_STEP')).toBe(0);
+    });
+
+    test('a failed connect (connecting → error) suspends it once, and the caller is told', () => {
+        const vm = makeVm();
+        const onSuspend = jest.fn();
+        const loop = attachPracticeLoopback({ vm, onSuspend });
+        loop.setVariable('hp', '3');
+        vm.ext.connectionState = 'connecting';
+        vm.runtime.emit('BEFORE_STEP');
+        vm.runtime.emit('BEFORE_STEP');
+        expect(onSuspend).toHaveBeenCalledTimes(1);
+        expect(vm.service.remoteData[PARTNER]).toBeUndefined();
+        vm.ext.connectionState = 'error';
+        vm.runtime.emit('BEFORE_STEP');
+        expect(onSuspend).toHaveBeenCalledTimes(1);
+        loop.detach();
+    });
+
+    test('only one loopback per runtime (a lesson partner and the standalone one never both attach)', () => {
+        const vm = makeVm();
+        const changes = [];
+        vm.runtime.on(PRACTICE_OWNER_CHANGED, (owner) => changes.push(owner));
+        const lesson = attachPracticeLoopback({ vm, owner: 'lesson' });
+        expect(practiceLoopbackOwner(vm.runtime)).toBe('lesson');
+        expect(attachPracticeLoopback({ vm, owner: 'standalone' })).toBeNull();
+        lesson.detach();
+        expect(practiceLoopbackOwner(vm.runtime)).toBeNull();
+        const standalone = attachPracticeLoopback({ vm, owner: 'standalone' });
+        expect(standalone).not.toBeNull();
+        standalone.detach();
+        expect(changes).toEqual(['lesson', null, 'standalone', null]);
+    });
+
+    test('remembered history entries do not grow past the history (50)', () => {
+        const vm = makeVm();
+        // keep the history at 50 like the VM
+        const record = vm.service.recordMessage.bind(vm.service);
+        vm.service.recordMessage = (entry) => {
+            record(entry);
+            vm.service.messageHistory.length = Math.min(vm.service.messageHistory.length, 50);
+        };
+        vm.service.recordMessage({ direction: 'received', name: 'real', value: '', nodeId: 'x', at: 1 });
+        const loop = attachPracticeLoopback({ vm });
+        for (let i = 0; i < 200; i++) {
+            run(vm, 'event_broadcast', { BROADCAST_OPTION: { name: i % 2 ? 'a' : 'b' } });
+        }
+        expect(vm.service.messageHistory).toHaveLength(50);
+        loop.detach();
+        // everything this loopback put in is gone, and the real entry had been pushed out
+        expect(vm.service.messageHistory).toHaveLength(0);
     });
 });

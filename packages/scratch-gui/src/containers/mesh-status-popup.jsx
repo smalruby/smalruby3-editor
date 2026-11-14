@@ -7,7 +7,8 @@ import { projectKeyOf } from '../lib/mesh-practice/storage';
 import { useMeshPracticePartner } from '../lib/mesh-practice/use-mesh-practice-partner';
 import { updatePeerNumbers } from '../lib/mesh-v2-status.js';
 import { setConnectionModalExtensionId } from '../reducers/connection-modal.js';
-import { closeMeshV2StatusPopup } from '../reducers/mesh-v2.js';
+import { getCurrentChallenge } from '../reducers/lesson-mode';
+import { closeMeshV2StatusPopup, setMeshV2PracticeActive } from '../reducers/mesh-v2.js';
 import { openConnectionModal } from '../reducers/modals.js';
 import { setFullScreen } from '../reducers/mode.js';
 
@@ -55,19 +56,35 @@ const withPractice = (vm, snapshot) => {
  * @param {boolean} props.isFullScreen - full-screen stage.
  * @param {boolean} props.isOpen - whether the window is open.
  * @param {Function} props.onClose - closes the window.
+ * @param {boolean} props.lessonPartnerActive - a lesson challenge with a practice partner is open.
  * @param {Function} props.onOpenConnection - opens the connection modal.
+ * @param {Function} props.onPracticeActive - tells whether the practice partner is on.
  * @param {?string} props.projectKey - key of the project for the practice partner settings.
  * @param {object} props.vm - the VM.
  * @returns {?React.ReactElement} the window, or null when closed.
  */
-const MeshStatusPopupContainer = ({ isFullScreen, isOpen, onClose, onOpenConnection, projectKey = null, vm }) => {
+const MeshStatusPopupContainer = ({
+    isFullScreen,
+    isOpen,
+    lessonPartnerActive = false,
+    onClose,
+    onOpenConnection,
+    onPracticeActive = () => {},
+    projectKey = null,
+    vm,
+}) => {
     const [snapshot, setSnapshot] = useState(null);
     const [peerState, setPeerState] = useState({ groupId: null, peers: {} });
     const [items, setItems] = useState(EMPTY_ITEMS);
     // 練習相手 (#1845) はウィンドウを閉じても動き続けるので、開いているかどうかに関わらず呼ぶ
-    const practice = useMeshPracticePartner({ vm, projectKey });
+    const practice = useMeshPracticePartner({ vm, projectKey, lessonPartnerActive });
     const practiceActiveRef = useRef(practice.active);
     practiceActiveRef.current = practice.active;
+
+    // ステージの上のボタンに「練習」のしるしを出す
+    useEffect(() => {
+        onPracticeActive(practice.active);
+    }, [practice.active, onPracticeActive]);
 
     useEffect(() => {
         if (!isOpen || !vm) return () => {};
@@ -136,8 +153,11 @@ const MeshStatusPopupContainer = ({ isFullScreen, isOpen, onClose, onOpenConnect
 MeshStatusPopupContainer.propTypes = {
     isFullScreen: PropTypes.bool,
     isOpen: PropTypes.bool.isRequired,
+    // レッスンの練習相手があるチャレンジを開いている（ひとりで使う練習相手は休む #1845）
+    lessonPartnerActive: PropTypes.bool,
     onClose: PropTypes.func.isRequired,
     onOpenConnection: PropTypes.func.isRequired,
+    onPracticeActive: PropTypes.func,
     // 練習相手の設定をブラウザに覚えるときの作品のキー (#1845)
     projectKey: PropTypes.string,
     vm: PropTypes.object,
@@ -146,15 +166,19 @@ MeshStatusPopupContainer.propTypes = {
 const mapStateToProps = (state) => ({
     isFullScreen: !!state.scratchGui.mode.isFullScreen,
     isOpen: !!(state.scratchGui.meshV2 && state.scratchGui.meshV2.statusPopupOpen),
+    lessonPartnerActive: (() => {
+        const current = state.scratchGui.lessonMode ? getCurrentChallenge(state) : null;
+        return !!(current && current.challenge && current.challenge.partner);
+    })(),
     projectKey: projectKeyOf({
         projectId: state.scratchGui.projectState && state.scratchGui.projectState.projectId,
-        projectTitle: state.scratchGui.projectTitle,
     }),
     vm: state.scratchGui.vm,
 });
 
 const mapDispatchToProps = (dispatch) => ({
     onClose: () => dispatch(closeMeshV2StatusPopup()),
+    onPracticeActive: (active) => dispatch(setMeshV2PracticeActive(active)),
     onOpenConnection: () => {
         // The connection modal sits below the full-screen stage, so leave full screen
         // first (#1844 review FYI2). Outside full screen this does nothing.

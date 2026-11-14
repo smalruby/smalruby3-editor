@@ -513,6 +513,7 @@ test/unit/components/*
 !test/unit/components/lesson-progress-confirm.test.jsx
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/mesh-status-popup.test.jsx
+!test/unit/components/mesh-status-button.test.jsx
 !test/unit/components/mesh-v2-scanning-step-seats.test.jsx
 !test/unit/components/mesh-v2-seat-connect.test.jsx
 !test/unit/components/student-assignment-panel.test.jsx

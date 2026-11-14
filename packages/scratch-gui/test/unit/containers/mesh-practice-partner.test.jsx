@@ -7,6 +7,7 @@ import { EventEmitter } from 'events';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { MeshStatusPopupContainer } from '../../../src/containers/mesh-status-popup.jsx';
+import { attachPracticeLoopback } from '../../../src/lib/mesh-practice/loopback';
 import { MESH_PRACTICE_PARTNER_NODE_ID as PARTNER } from '../../../src/lib/mesh-practice/partner';
 import { STORAGE_KEY } from '../../../src/lib/mesh-practice/storage';
 import en from '../../../src/locales/en';
@@ -63,21 +64,27 @@ const makeVm = () => {
     return { vm, ext, service, runtime };
 };
 
-const renderOpen = (vm, projectKey = 'title:game') =>
-    render(
+const renderOpen = (vm, projectKey = 'id:game', extra = {}) => {
+    const props = { isOpen: true, onClose: jest.fn(), onOpenConnection: jest.fn(), projectKey, vm, ...extra };
+    const utils = render(
         <IntlProvider locale="en" messages={en}>
-            <MeshStatusPopupContainer
-                isOpen
-                onClose={jest.fn()}
-                onOpenConnection={jest.fn()}
-                projectKey={projectKey}
-                vm={vm}
-            />
+            <MeshStatusPopupContainer {...props} />
         </IntlProvider>,
     );
+    const rerender = (next) =>
+        utils.rerender(
+            <IntlProvider locale="en" messages={en}>
+                <MeshStatusPopupContainer {...props} {...next} />
+            </IntlProvider>,
+        );
+    return { ...utils, rerender };
+};
 
 describe('mesh practice partner tab (#1845)', () => {
-    beforeEach(() => window.localStorage.clear());
+    beforeEach(() => {
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+    });
 
     test('lists the messages and variables of the project; sending turns the partner on', () => {
         const fake = makeVm();
@@ -111,7 +118,7 @@ describe('mesh practice partner tab (#1845)', () => {
         fireEvent.click(within(made).getByTestId('mesh-practice-variable-set'));
         expect(fake.service.remoteData[PARTNER].合図.value).toBe('42');
         const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
-        expect(saved.projects['title:game'].variables).toEqual([{ name: '合図', value: '42' }]);
+        expect(saved.projects['id:game'].variables).toEqual([{ name: '合図', value: '42' }]);
         // the project itself is never touched
         expect(Object.keys(fake.runtime.targets[0].variables)).toEqual(['m1', 'm2', 'v1']);
 
@@ -161,8 +168,116 @@ describe('mesh practice partner tab (#1845)', () => {
         expect(screen.getByTestId('mesh-practice-paused')).toBeInTheDocument();
     });
 
+    test('M1: a failed connect (connecting → error) leaves 「使う」 off; it does not start again by itself', () => {
+        const fake = makeVm();
+        renderOpen(fake.vm);
+        fireEvent.click(screen.getByTestId('mesh-status-tab-practice'));
+        fireEvent.click(screen.getAllByTestId('mesh-practice-variable-set')[0]);
+        expect(screen.getByTestId('mesh-practice-use')).toBeChecked();
+        // connecting emits no event; the loopback finds it at the next frame
+        act(() => {
+            fake.ext.connectionState = 'connecting';
+            fake.runtime.emit('BEFORE_STEP');
+        });
+        expect(screen.getByTestId('mesh-practice-use')).not.toBeChecked();
+        // the connect fails (WebSocket blocked etc.)
+        act(() => {
+            fake.ext.connectionState = 'error';
+            fake.runtime.emit('PERIPHERAL_DISCONNECTED');
+            fake.runtime.emit('BEFORE_STEP');
+        });
+        expect(screen.getByTestId('mesh-practice-use')).not.toBeChecked();
+        expect(screen.getByTestId('mesh-practice-use')).not.toBeDisabled();
+        expect(fake.service.remoteData[PARTNER]).toBeUndefined();
+        expect(fake.runtime.listenerCount('BEFORE_STEP')).toBe(0);
+        // the student turns it on again
+        fireEvent.click(screen.getByTestId('mesh-practice-use'));
+        expect(screen.getByTestId('mesh-practice-use')).toBeChecked();
+        expect(fake.service.remoteData[PARTNER].score.value).toBe('');
+    });
+
+    test('M2: opening the page or changing the project writes nothing; only changing the settings writes', () => {
+        const fake = makeVm();
+        const { rerender } = renderOpen(fake.vm, null);
+        rerender({ projectKey: 'id:other' });
+        rerender({ projectKey: 'id:third' });
+        expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+        expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+        fireEvent.click(screen.getByTestId('mesh-status-tab-practice'));
+        fireEvent.change(screen.getByTestId('mesh-practice-new-variable'), { target: { value: 'v' } });
+        fireEvent.click(screen.getByTestId('mesh-practice-add-variable'));
+        expect(Object.keys(JSON.parse(window.localStorage.getItem(STORAGE_KEY)).projects)).toEqual(['id:third']);
+    });
+
+    test('Q1: a project without an id keeps the settings in this tab only, and a saved project reloads its own', () => {
+        const fake = makeVm();
+        const { rerender } = renderOpen(fake.vm, null);
+        fireEvent.click(screen.getByTestId('mesh-status-tab-practice'));
+        fireEvent.change(screen.getByTestId('mesh-practice-new-variable'), { target: { value: 'tabOnly' } });
+        fireEvent.click(screen.getByTestId('mesh-practice-add-variable'));
+        expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+        expect(window.sessionStorage.getItem(STORAGE_KEY)).toContain('tabOnly');
+        // a project with saved settings: they are loaded and the fields are made again
+        window.localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ version: 1, projects: { 'id:p1': { variables: [{ name: 'score', value: '7' }] } } }),
+        );
+        rerender({ projectKey: 'id:p1' });
+        const score = screen.getAllByTestId('mesh-practice-variable')[0];
+        expect(within(score).getByTestId('mesh-practice-variable-value')).toHaveValue('7');
+        expect(screen.queryByText('tabOnly')).toBeNull();
+    });
+
+    test('Q2: the practice state is passed up (for the badge on the stage-top button)', () => {
+        const fake = makeVm();
+        const onPracticeActive = jest.fn();
+        renderOpen(fake.vm, 'id:game', { onPracticeActive });
+        expect(onPracticeActive).toHaveBeenLastCalledWith(false);
+        fireEvent.click(screen.getByTestId('mesh-status-tab-practice'));
+        fireEvent.click(screen.getByTestId('mesh-practice-use'));
+        expect(onPracticeActive).toHaveBeenLastCalledWith(true);
+        expect(screen.getByTestId('mesh-practice-active')).toHaveTextContent('Practicing');
+    });
+
+    test('Q3: while a lesson practice partner is active, the standalone one stays detached with a note', () => {
+        const fake = makeVm();
+        const { rerender } = renderOpen(fake.vm, 'id:game', { lessonPartnerActive: true });
+        fireEvent.click(screen.getByTestId('mesh-status-tab-practice'));
+        expect(screen.getByTestId('mesh-practice-blocked')).toBeInTheDocument();
+        expect(screen.getByTestId('mesh-practice-use')).toBeDisabled();
+        fireEvent.click(screen.getAllByTestId('mesh-practice-variable-set')[0]);
+        expect(fake.service.remoteData[PARTNER]).toBeUndefined();
+        rerender({ lessonPartnerActive: false });
+        expect(screen.getByTestId('mesh-practice-use')).not.toBeDisabled();
+    });
+
+    test('Q3: another loopback (e.g. the lesson one) attached to the runtime blocks it, and turns it off', () => {
+        const fake = makeVm();
+        renderOpen(fake.vm);
+        fireEvent.click(screen.getByTestId('mesh-status-tab-practice'));
+        fireEvent.click(screen.getByTestId('mesh-practice-use'));
+        expect(screen.getByTestId('mesh-practice-use')).toBeChecked();
+        // the standalone one holds the runtime, so a lesson one cannot attach
+        expect(attachPracticeLoopback({ vm: fake.vm, owner: 'lesson' })).toBeNull();
+        fireEvent.click(screen.getByTestId('mesh-practice-use'));
+        let lesson;
+        act(() => {
+            lesson = attachPracticeLoopback({ vm: fake.vm, owner: 'lesson' });
+        });
+        expect(lesson).not.toBeNull();
+        expect(screen.getByTestId('mesh-practice-blocked')).toBeInTheDocument();
+        expect(screen.getByTestId('mesh-practice-use')).toBeDisabled();
+        act(() => lesson.detach());
+        expect(screen.getByTestId('mesh-practice-use')).not.toBeDisabled();
+    });
+
     test('strings exist in en / ja / ja-Hira', () => {
         const ids = [
+            'gui.meshStatus.buttonPracticing',
+            'gui.meshStatus.practiceBadge',
+            'gui.meshStatus.practicingShort',
+            'gui.meshPractice.blocked',
+            'gui.meshPractice.activeLabel',
             'gui.meshStatus.tabPractice',
             'gui.meshStatus.practicing',
             'gui.meshStatus.practicePeer',

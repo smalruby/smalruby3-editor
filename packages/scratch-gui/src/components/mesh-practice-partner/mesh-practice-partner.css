@@ -22,17 +22,15 @@
     margin: 0;
 }
 
-.dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
+/* 動いているしるし（色だけにしない。文字で「練習中」） */
+.active-mark {
     margin-left: auto;
-    border-radius: 50%;
-    background-color: $ui-black-transparent;
-}
-
-.dot-on {
+    padding: 0 6px;
+    border-radius: 999px;
     background-color: $ui-green-2;
+    color: $ui-white;
+    font-size: 0.6875rem;
+    line-height: 1.25rem;
 }
 
 .note,
