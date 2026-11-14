@@ -16,6 +16,8 @@
 
 独自の画面の入力欄は、この形（ホバーとフォーカスの紫の枠と輪）を基準にし、`:focus` で `outline: 2px solid transparent` を残す（上流の `outline: none` のままだと、強制カラーモードで輪の `box-shadow` が消えてフォーカスが見えない。[`README.md`](README.md) の「フォーカス」）。フォーカスが分かるのは枠の色の変化（白に対して 1.4:1 → 4.7:1）による。角丸は用途で選ぶ（画面の中の小さい欄は 2rem、ダイアログの中の大きい欄は `$radius-small`）。
 
+コスチュームタブ（ペイントエディター）の入力欄は、scratch-paint が持つこの CSS の古い写しで、文字の大きさ・枠の色が違い、ホバーの紫の枠が無い（[`../paint.md`](../paint.md) の「写しの部品」）。独自の画面は、こちらの GUI の形にそろえる。
+
 ## ダイアログの入力欄（`prompt/prompt.css` の `.variable-name-text-input`）
 
 変数・リストを作るときの名前の欄。見本: [`0401-variable-prompt.png`](../screenshots/0401-variable-prompt.png)。

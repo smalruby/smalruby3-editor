@@ -28,7 +28,7 @@
 
 ## アイコンボタン（`icon-button/icon-button.css` の `.container`）
 
-アイコンの下に文字が付く縦長のボタン。音のエディターの道具のボタン（コピー・貼り付けなど。`.tool-button`）と効果のボタン（速く・遅くなど。`.effect-button`）が使う。どちらも `sound-editor/sound-editor.css` で文字の色と大きさを上書きしている。
+アイコンの下に文字が付く縦長のボタン。音のエディターの道具のボタン（コピー・貼り付けなど。`.tool-button`）と効果のボタン（速く・遅くなど。`.effect-button`）が使う。どちらも `sound-editor/sound-editor.css` で文字の色と大きさを上書きしている（2 つの違いと押せない状態は [`../sound-editor.md`](../sound-editor.md) の「道具のボタン・効果のボタン」）。
 
 | 状態 | 値（`icon-button.css`） | トークン | 実測（音のエディターの効果のボタン `.effect-button`） |
 |---|---|---|---|

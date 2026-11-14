@@ -64,6 +64,11 @@ const PROPS = [
     'border-top-color',
     'border-top-width',
     'border-top-style',
+    // 区切りの点線 (ペイント・音のエディター) は右と下に引く
+    'border-right-color',
+    'border-right-style',
+    'border-bottom-color',
+    'border-bottom-style',
     'border-radius',
     'box-shadow',
     // フォーカスの書き方は部品ごとに違う (outline・box-shadow・::before の枠)。outline も読む
@@ -80,6 +85,11 @@ const PROPS = [
     'width',
     'height',
     'opacity',
+    // アイコンの色を filter で変える部品がある (ペイントの選ばれた道具・切り替えボタン)
+    'filter',
+    // SVG の部品 (音の波形・録音のボタン・音量のメーター) は fill と stroke で色を付ける
+    'fill',
+    'stroke',
     // ホバーで大きくなる部品 (閉じるボタンの scale(1.1)) がある
     'transform',
     'transition',
@@ -110,6 +120,12 @@ const DOC_SHOT_NAMES = {
     'sprite-library/library-item-hover': '0505-library-item-hover.png',
     'context-menu': '0506-context-menu.png',
     'alerts': '0507-alerts.png',
+    'costumes-tab/asset-panel': '0701-costumes-tab.png',
+    'paint-color-picker': '0702-paint-color-picker.png',
+    'sounds-tab/asset-panel': '0801-sounds-tab.png',
+    'sound-selection/waveform': '0802-sound-selection.png',
+    'record-modal': '0803-record-modal.png',
+    'record-modal-playback': '0804-record-modal-playback.png',
 };
 
 // 見本 (DOCS_SHOTS=1) を撮ってよい viewport。上流の値が見える大きさに固定する。
@@ -142,6 +158,23 @@ const backToCodeTab = async (page) => {
     await page.waitForTimeout(500);
     await page.evaluate(() => window.dispatchEvent(new Event('resize')));
     await page.waitForTimeout(500);
+};
+
+// コスチューム・音を 1 つ複製して、左の一覧に「選ばれていない項目」を作る (既定のスプライトは 1 つずつしか持たない)。
+const duplicateAsset = (page, kind) =>
+    page.evaluate(async (k) => {
+        const vm = window.__store.getState().scratchGui.vm;
+        await (k === 'costume' ? vm.duplicateCostume(0) : vm.duplicateSound(0));
+    }, kind);
+
+// 録音のモーダルを開く。マイクを使うには AudioContext が要り、SharedAudioContext は
+// ユーザーの操作のあとでしか作られないので、先に音のエディターのラベルを押してから開く。
+const openRecorder = async (page) => {
+    await activateTab(page, 2);
+    await page.waitForSelector(SOUND_EDITOR);
+    await page.locator(`${SOUND_EDITOR} ${cls('label', 'input-label')}`).first().click();
+    await openModal(page, 'soundRecorder');
+    await page.waitForSelector(cls('record-modal', 'record-button-circle'));
 };
 
 // カテゴリを選んでフライアウトのボタン (変数を作る など) を押す。
@@ -184,6 +217,27 @@ const findStore = (page) =>
 
 const MODAL = cls('modal', 'modal-content');
 const LIBRARY_ITEM = cls('library-item', 'library-item');
+const PAINT = cls('paint-editor', 'editor-container');
+const SOUND_EDITOR = cls('sound-editor', 'editor-container');
+
+// コスチュームタブと音タブの左の一覧 (asset-panel/selector.css と sprite-selector-item.css)。
+const ASSET_ITEM = `${cls('selector', 'list-area')} ${cls('sprite-selector-item', 'sprite-selector-item')}`;
+const assetPanelParts = [
+    { name: 'asset-panel', selector: cls('asset-panel', 'wrapper') },
+    { name: 'detail-area', selector: cls('asset-panel', 'detail-area') },
+    { name: 'asset-list', selector: cls('selector', 'wrapper') },
+    // 一覧の下の、項目をうすく消す帯 (.new-buttons:before)
+    { name: 'asset-list-fade', selector: cls('selector', 'new-buttons'), pseudo: '::before' },
+    { name: 'asset-item', selector: `${ASSET_ITEM}:not(${cls('sprite-selector-item', 'is-selected')})`, hover: true },
+    { name: 'asset-item-selected', selector: `${ASSET_ITEM}${cls('sprite-selector-item', 'is-selected')}` },
+    { name: 'asset-item-number', selector: `${ASSET_ITEM} ${cls('sprite-selector-item', 'number')}` },
+    { name: 'asset-item-details', selector: `${ASSET_ITEM} ${cls('sprite-selector-item', 'sprite-details')}` },
+    {
+        name: 'asset-add-button',
+        selector: `${cls('selector', 'new-buttons')} ${cls('action-menu', 'main-button')}`,
+        hover: true,
+    },
+];
 
 // ライブラリ (拡張機能・スプライト・背景・コスチューム・音・チュートリアル) に共通の部品。
 // 拡張機能とチュートリアルには絞り込みが無いので、filter と tag は見つからなくてよい。
@@ -409,32 +463,218 @@ const SCENES = [
     {
         id: 'costumes-tab',
         title: 'コスチュームタブ (ペイントエディター)',
-        setup: (page) => activateTab(page, 1),
-        waitFor: cls('paint-editor', 'editor-container'),
+        setup: async (page) => {
+            await duplicateAsset(page, 'costume');
+            await activateTab(page, 1);
+        },
+        waitFor: PAINT,
         parts: [
-            { name: 'asset-selector-item-selected', selector: cls('sprite-selector-item', 'is-selected') },
-            { name: 'paint-editor', selector: cls('paint-editor', 'editor-container') },
-            { name: 'mode-tool-button', selector: cls('tool-select-base', 'mod-tool-select') },
-            { name: 'mode-tool-button-selected', selector: cls('tool-select-base', 'is-selected') },
-            { name: 'input', selector: `${cls('paint-editor', 'editor-container')} input` },
+            // 左のコスチュームの一覧 (asset-panel・selector は GUI、中の項目は sprite-selector-item)
+            ...assetPanelParts,
+            // ペイントエディター (scratch-paint)。GUI と同じ名前の CSS (input・label・button) があるので PAINT の中に限る
+            { name: 'paint-editor', selector: PAINT },
+            { name: 'editor-top', selector: cls('paint-editor', 'editor-container-top') },
+            { name: 'dashed-border', selector: cls('fixed-tools', 'mod-dashed-border') },
+            { name: 'costume-input', selector: cls('fixed-tools', 'costume-input'), hover: true, focus: true },
+            { name: 'input-label', selector: `${PAINT} ${cls('label', 'input-label')}` },
+            // 元に戻す・やり直す (はじめは押せない)
+            { name: 'undo-button', selector: cls('fixed-tools', 'button-group-button') },
+            // グループにする・手前に出す… (何も選んでいないときは押せない)
+            { name: 'labeled-icon-button', selector: cls('labeled-icon-button', 'mod-edit-field') },
+            { name: 'labeled-icon-title', selector: cls('labeled-icon-button', 'edit-field-title'), optional: true },
+            { name: 'color-button-swatch', selector: cls('color-button', 'color-button-swatch') },
+            { name: 'color-button-arrow', selector: cls('color-button', 'color-button-arrow') },
+            // 枠線の太さ (paint の forms/input.css の .input-small-range)
+            {
+                name: 'stroke-width-input',
+                selector: `${PAINT} ${cls('input', 'input-small-range')}`,
+                hover: true,
+                focus: true,
+            },
+            { name: 'mode-tools', selector: cls('mode-tools', 'mode-tools') },
+            {
+                name: 'tool-button',
+                selector: `${cls('tool-select-base', 'mod-tool-select')}:not(${cls('tool-select-base', 'is-selected')})`,
+                hover: true,
+                focus: true,
+                active: true,
+            },
+            { name: 'tool-button-selected', selector: cls('tool-select-base', 'is-selected') },
+            { name: 'tool-button-selected-icon', selector: `${cls('tool-select-base', 'is-selected')} img` },
             { name: 'canvas-container', selector: cls('paint-editor', 'canvas-container') },
+            { name: 'paper-canvas', selector: cls('paper-canvas', 'paper-canvas') },
+            { name: 'scrollbar', selector: cls('scrollable-canvas', 'vertical-scrollbar') },
+            { name: 'bitmap-button', selector: cls('paint-editor', 'bitmap-button'), hover: true, active: true },
+            { name: 'zoom-button', selector: cls('paint-editor', 'button-group-button'), hover: true, active: true },
+        ],
+        crops: [
+            // コスチュームタブ全体 (左の一覧 + ペイントエディター)
+            { name: 'asset-panel', selector: cls('asset-panel', 'wrapper') },
+            { name: 'editor-top', selector: cls('paint-editor', 'editor-container-top') },
+            { name: 'mode-selector', selector: cls('paint-editor', 'mode-selector') },
         ],
         close: backToCodeTab,
     },
     {
+        id: 'paint-color-picker',
+        title: 'ペイントエディターの色を選ぶ吹き出し (塗りつぶし)',
+        setup: async (page) => {
+            await activateTab(page, 1);
+            await page.waitForSelector(PAINT);
+            await page.locator(cls('color-button', 'color-button-swatch')).first().click();
+        },
+        waitFor: '.Popover-body',
+        shot: '.Popover-body',
+        parts: [
+            { name: 'popover-body', selector: '.Popover-body' },
+            { name: 'popover-tip', selector: '.Popover-tipShape' },
+            { name: 'row-header', selector: cls('color-picker', 'row-header') },
+            { name: 'label-name', selector: cls('color-picker', 'label-name') },
+            { name: 'slider', selector: cls('slider', 'container') },
+            { name: 'slider-handle', selector: cls('slider', 'handle') },
+            { name: 'divider', selector: cls('color-picker', 'divider') },
+            { name: 'swatch', selector: `${cls('color-picker', 'swatch')}:not(${cls('color-picker', 'active-swatch')})` },
+            // 選ばれた見本 (塗りなし・スポイト・グラデーションの種類)。単色の塗りでは無い
+            { name: 'swatch-active', selector: cls('color-picker', 'active-swatch'), optional: true },
+        ],
+    },
+    {
         id: 'sounds-tab',
         title: '音タブ (音のエディター)',
-        setup: (page) => activateTab(page, 2),
-        waitFor: cls('sound-editor', 'editor-container'),
+        setup: async (page) => {
+            await duplicateAsset(page, 'sound');
+            await activateTab(page, 2);
+        },
+        waitFor: SOUND_EDITOR,
         parts: [
-            { name: 'sound-editor', selector: cls('sound-editor', 'editor-container') },
-            { name: 'round-button', selector: cls('sound-editor', 'round-button') },
+            ...assetPanelParts,
+            { name: 'sound-editor', selector: SOUND_EDITOR },
+            { name: 'input-group', selector: cls('sound-editor', 'input-group') },
+            { name: 'sound-name-input', selector: `${SOUND_EDITOR} ${cls('input', 'input-form')}`, hover: true, focus: true },
+            { name: 'input-label', selector: `${SOUND_EDITOR} ${cls('label', 'input-label')}` },
+            // 元に戻す・やり直す (はじめは押せない。押せるときの値は sound-selection で読む)
+            { name: 'undo-button', selector: `${cls('sound-editor', 'button-group')} ${cls('sound-editor', 'button')}` },
+            { name: 'undo-button-icon', selector: `${cls('sound-editor', 'button-group')} ${cls('sound-editor', 'button')} img` },
+            // 道具のボタン (コピー・貼り付け・新しい音にコピー・削除)。icon-button の .container を .tool-button で上書き
+            {
+                name: 'tool-button',
+                selector: `${cls('sound-editor', 'tool-button')}:not(${cls('icon-button', 'disabled')})`,
+                hover: true,
+                active: true,
+            },
+            { name: 'tool-button-disabled', selector: `${cls('sound-editor', 'tool-button')}${cls('icon-button', 'disabled')}` },
+            { name: 'icon-button-title', selector: `${cls('sound-editor', 'tool-button')} ${cls('icon-button', 'title')}` },
+            { name: 'round-button', selector: cls('sound-editor', 'round-button'), hover: true, active: true },
             // 効果のボタン (速く・遅く…)。icon-button の .container を sound-editor の .effect-button で上書きしている
             { name: 'effect-button', selector: cls('sound-editor', 'effect-button'), hover: true, active: true },
+            { name: 'effect-button-icon', selector: `${cls('sound-editor', 'effect-button')} img` },
             { name: 'waveform-container', selector: cls('sound-editor', 'waveform-container') },
-            { name: 'waveform-path', selector: `${cls('waveform', 'container')} path` },
+            { name: 'waveform-path', selector: cls('waveform', 'waveform-path') },
+        ],
+        crops: [
+            // 音タブ全体 (左の一覧 + 音のエディター)
+            { name: 'asset-panel', selector: cls('asset-panel', 'wrapper') },
+            { name: 'effect-buttons', selector: cls('sound-editor', 'effect-button'), first: 9 },
         ],
         close: backToCodeTab,
+    },
+    {
+        // 効果を 1 つかけて (元に戻すが押せるようにする)、波形の上をドラッグして範囲を選ぶ
+        id: 'sound-selection',
+        title: '音のエディターで範囲を選んだところ',
+        setup: async (page) => {
+            await activateTab(page, 2);
+            await page.waitForSelector(SOUND_EDITOR);
+            await page.locator(cls('sound-editor', 'effect-button')).first().click();
+            await page.waitForTimeout(800);
+            const box = await page.locator(cls('sound-editor', 'waveform-container')).boundingBox();
+            await page.mouse.move(box.x + box.width * 0.3, box.y + box.height / 2);
+            await page.mouse.down();
+            await page.mouse.move(box.x + box.width * 0.6, box.y + box.height / 2, { steps: 8 });
+            await page.mouse.up();
+        },
+        waitFor: cls('audio-trimmer', 'selection-background'),
+        parts: [
+            { name: 'selection-background', selector: cls('audio-trimmer', 'selection-background') },
+            { name: 'selection-line', selector: `${cls('audio-trimmer', 'selector')} ${cls('audio-trimmer', 'trim-line')}` },
+            { name: 'selection-handle', selector: `${cls('audio-trimmer', 'selector')} ${cls('audio-trimmer', 'trim-handle')}` },
+            { name: 'selection-handle-icon', selector: `${cls('audio-trimmer', 'selector')} ${cls('audio-trimmer', 'trim-handle')} img` },
+            {
+                name: 'undo-button',
+                selector: `${cls('sound-editor', 'button-group')} ${cls('sound-editor', 'button')}:not(:disabled)`,
+                hover: true,
+                focus: true,
+                active: true,
+            },
+            // 並びのボタンのフォーカスは ::before の枠で描く (sound-editor.css の .button:focus::before)
+            {
+                name: 'undo-button-focus-ring',
+                selector: `${cls('sound-editor', 'button-group')} ${cls('sound-editor', 'button')}:not(:disabled)`,
+                pseudo: '::before',
+                focus: true,
+            },
+            { name: 'tool-button-delete', selector: `${cls('sound-editor', 'tool-button')}:not(${cls('icon-button', 'disabled')})` },
+        ],
+        // 範囲の持ち手は波形の枠の上下にはみ出すので、枠を含む段 (2 段目の .row) ごと撮る
+        crops: [{ name: 'waveform', selector: `${SOUND_EDITOR} > ${cls('sound-editor', 'row')}:nth-child(2)` }],
+        close: backToCodeTab,
+    },
+    {
+        id: 'record-modal',
+        title: '音を録音するモーダル (録音の前)',
+        // 録音のモーダルは音タブの中で描かれるので、先に音タブを開く。マイクは起動時の引数の偽の機器を使う
+        setup: openRecorder,
+        waitFor: cls('record-modal', 'record-button-circle'),
+        shot: MODAL,
+        parts: [
+            { name: 'modal-content', selector: MODAL },
+            { name: 'modal-header', selector: cls('modal', 'header') },
+            { name: 'body', selector: cls('record-modal', 'body') },
+            { name: 'meter-container', selector: cls('record-modal', 'meter-container') },
+            { name: 'waveform-container', selector: cls('record-modal', 'waveform-container') },
+            { name: 'help-text', selector: cls('record-modal', 'help-text') },
+            { name: 'record-button', selector: `${cls('record-modal', 'main-button-row')} button`, hover: true, active: true },
+            { name: 'record-button-circle', selector: cls('record-modal', 'record-button-circle') },
+            { name: 'record-button-outline', selector: cls('record-modal', 'record-button-circle-outline') },
+            { name: 'meter-green', selector: cls('meter', 'green'), optional: true },
+        ],
+    },
+    {
+        id: 'record-modal-playback',
+        title: '音を録音するモーダル (録音のあと)',
+        // 1.5 秒録音して止め、始まりの持ち手を右へ動かして、切り落とす部分 (赤い斜線) を出す
+        setup: async (page) => {
+            await openRecorder(page);
+            const button = page.locator(`${cls('record-modal', 'main-button-row')} button`).first();
+            await page.waitForTimeout(1000);
+            await button.click();
+            await page.waitForTimeout(1500);
+            await button.click();
+            await page.waitForSelector(cls('record-modal', 'button-row'), { timeout: 15000 });
+            const box = await page.locator(cls('record-modal', 'waveform-container')).boundingBox();
+            const handle = await page.locator(`${cls('audio-trimmer', 'trimmer')} ${cls('audio-trimmer', 'trim-handle')}`).first().boundingBox();
+            await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+            await page.mouse.down();
+            await page.mouse.move(handle.x + handle.width / 2 + box.width * 0.2, handle.y + handle.height / 2, { steps: 8 });
+            await page.mouse.up();
+        },
+        waitFor: cls('audio-trimmer', 'trim-background-mask'),
+        shot: MODAL,
+        parts: [
+            { name: 'button-row', selector: cls('record-modal', 'button-row') },
+            {
+                name: 'rerecord-button',
+                selector: `${cls('record-modal', 'button-row')} button:not(${cls('record-modal', 'ok-button')})`,
+                hover: true,
+            },
+            { name: 'ok-button', selector: cls('record-modal', 'ok-button'), hover: true },
+            { name: 'play-button', selector: `${cls('record-modal', 'main-button-row')} button`, hover: true },
+            { name: 'trim-line', selector: `${cls('audio-trimmer', 'trimmer')} ${cls('audio-trimmer', 'trim-line')}` },
+            { name: 'trim-handle', selector: `${cls('audio-trimmer', 'trimmer')} ${cls('audio-trimmer', 'trim-handle')}` },
+            { name: 'trim-background-mask', selector: cls('audio-trimmer', 'trim-background-mask') },
+            { name: 'playing-text', selector: cls('record-modal', 'playing-text'), optional: true },
+            { name: 'waveform-path', selector: `${cls('record-modal', 'waveform-container')} ${cls('waveform', 'waveform-path')}` },
+        ],
     },
     {
         id: 'extension-library',
@@ -797,7 +1037,12 @@ const main = async () => {
     }
     mkdirSync(OUT_DIR, { recursive: true });
 
-    const browser = await chromium.launch({ headless: HEADLESS, channel: CHANNEL });
+    // 録音のモーダル (record-modal) のために、偽のマイクを許可なしで使う
+    const browser = await chromium.launch({
+        headless: HEADLESS,
+        channel: CHANNEL,
+        args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+    });
     const results = { base: BASE, viewport: VIEWPORT, locale: LOCALE, capturedAt: new Date().toISOString(), scenes: {} };
     const rows = [];
     try {
