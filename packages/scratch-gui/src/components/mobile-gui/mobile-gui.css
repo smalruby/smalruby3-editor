@@ -398,8 +398,10 @@
  * モーダル overlay も z-index を底上げして MobileSideRail (z 9000) より
  * 上に乗るようにし、モーダル open 中はサイドレールがクリックされても
  * 反応しないようにする (誤タップでドロワー開閉してしまうのを防ぐ)。
+ * ウェルカム (共有の Modal を使わない独自のダイアログ) も同じ重なりにする。
  */
-:global(body.smalruby-mobile-mode [class*='modal_modal-overlay']) {
+:global(body.smalruby-mobile-mode [class*='modal_modal-overlay']),
+:global(body.smalruby-mobile-mode [class*='welcome-modal_overlay']) {
     z-index: 10000 !important;
 }
 

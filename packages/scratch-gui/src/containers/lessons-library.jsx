@@ -5,6 +5,8 @@
 //     → レッスン表を閉じる
 //   - 「できた！」の「次のチャレンジ」で開いたとき（lessonMode.libraryFocusChallengeId・#1520）は、
 //     そのレッスンへスクロールし、次のまだできていないチャレンジを目立たせる。閉じるときに消す
+//   - ウェルカムの「レッスンを始める」で開いたとき（lessonMode.libraryStartFocus・#1888）は、記録から次にやる
+//     チャレンジを決めて同じように目立たせる（全部できていればメニューから開いたときと同じ）
 //   - クラスのレッスンの課題に参加しているとき（classroom.studentLesson・#1599）は、上に課題の帯を出し、
 //     先生が必須にしたチャレンジに ★ を付ける。「はじめる」「レッスンを続ける」で開いたとき
 //     （lessonMode.libraryAssignmentOnly）は、課題のコースの課題のチャレンジだけを出し、次にやる課題の
@@ -21,7 +23,7 @@ import {
     isAssignmentChallenge,
 } from '../lib/lessons/assignment-progress';
 import { COURSES, findCourse } from '../lib/lessons/courses';
-import { lessonsLibraryFocus } from '../lib/lessons/lesson-progress';
+import { lessonsLibraryFocus, startLessonsFocus } from '../lib/lessons/lesson-progress';
 import { requestStudentSubmit, selectStudentLesson } from '../reducers/classroom';
 import { clearLessonsLibraryFocus, reloadProgress, startChallenge } from '../reducers/lesson-mode';
 import { closeLessonsLibrary } from '../reducers/modals';
@@ -37,6 +39,7 @@ const LessonsLibrary = ({
     onStartChallenge,
     onSubmitAssignment,
     progress,
+    startFocus = false,
     submitted = false,
     visible,
 }) => {
@@ -49,8 +52,9 @@ const LessonsLibrary = ({
     const restricted = assignmentOnly && Boolean(assignmentCourse);
     const focus = useMemo(() => {
         if (restricted) return assignmentLibraryFocus(lesson, progress, focusChallengeId);
-        return focusChallengeId === null ? null : lessonsLibraryFocus(focusChallengeId, progress);
-    }, [restricted, lesson, focusChallengeId, progress]);
+        if (focusChallengeId !== null) return lessonsLibraryFocus(focusChallengeId, progress);
+        return startFocus ? startLessonsFocus(progress) : null;
+    }, [restricted, lesson, focusChallengeId, startFocus, progress]);
     const status = useMemo(() => assignmentProgress(lesson, progress), [lesson, progress]);
     const courses = useMemo(() => (restricted ? [assignmentCourse] : COURSES), [restricted, assignmentCourse]);
 
@@ -119,6 +123,8 @@ LessonsLibrary.propTypes = {
     onStartChallenge: PropTypes.func.isRequired,
     onSubmitAssignment: PropTypes.func.isRequired,
     progress: PropTypes.shape({ challenges: PropTypes.object.isRequired }).isRequired,
+    // ウェルカムの「レッスンを始める」で開いたか（記録から次にやるチャレンジを目立たせる）
+    startFocus: PropTypes.bool,
     // 作品をもう提出したか（帯の提出の案内はクラスの画面と同じく、はじめて提出するまで）
     submitted: PropTypes.bool,
     visible: PropTypes.bool.isRequired,
@@ -132,6 +138,7 @@ const mapStateToProps = (state) => ({
     colorMode: state.scratchGui.settings.colorMode,
     focusChallengeId: state.scratchGui.lessonMode.libraryFocusChallengeId,
     progress: state.scratchGui.lessonMode.progress,
+    startFocus: Boolean(state.scratchGui.lessonMode.libraryStartFocus),
     visible: state.scratchGui.modals.lessonsLibrary,
 });
 
