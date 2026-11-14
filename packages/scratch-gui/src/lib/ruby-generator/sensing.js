@@ -6,7 +6,7 @@
 export default function (Generator) {
     Generator.sensing_touchingobject = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const object = Generator.valueToCode(block, 'TOUCHINGOBJECTMENU', order) || null;
+        const object = Generator.valueToCode(block, 'TOUCHINGOBJECTMENU', Generator.ORDER_NONE) || null;
         return [`touching?(${object})`, order];
     };
 
@@ -17,20 +17,20 @@ export default function (Generator) {
 
     Generator.sensing_touchingcolor = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const color = Generator.valueToCode(block, 'COLOR', order) || null;
+        const color = Generator.valueToCode(block, 'COLOR', Generator.ORDER_NONE) || null;
         return [`touching_color?(${color})`, order];
     };
 
     Generator.sensing_coloristouchingcolor = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const color = Generator.valueToCode(block, 'COLOR', order) || null;
-        const color2 = Generator.valueToCode(block, 'COLOR2', order) || null;
+        const color = Generator.valueToCode(block, 'COLOR', Generator.ORDER_NONE) || null;
+        const color2 = Generator.valueToCode(block, 'COLOR2', Generator.ORDER_NONE) || null;
         return [`color_is_touching_color?(${color}, ${color2})`, order];
     };
 
     Generator.sensing_distanceto = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const object = Generator.valueToCode(block, 'DISTANCETOMENU', order) || null;
+        const object = Generator.valueToCode(block, 'DISTANCETOMENU', Generator.ORDER_NONE) || null;
         return [`distance(${object})`, order];
     };
 
@@ -58,7 +58,7 @@ export default function (Generator) {
 
     Generator.sensing_keypressed = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const key = Generator.valueToCode(block, 'KEY_OPTION', order) || null;
+        const key = Generator.valueToCode(block, 'KEY_OPTION', Generator.ORDER_NONE) || null;
         const receiver = String(Generator.version) === '2' ? 'keyboard' : 'Keyboard';
         return [`${receiver}.pressed?(${key})`, order];
     };
