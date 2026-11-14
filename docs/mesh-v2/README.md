@@ -187,12 +187,52 @@ end-to-end 動作確認: [`tools/playwright-verify/verify-classroom-mesh-connect
 | `mobile-drawer-mesh-status` | スマホのドロワーの項目 |
 | `mesh-status-popup` / `mesh-status-drag-handle` / `mesh-status-close` | ウィンドウ / 見出し（ドラッグ） / 閉じる |
 | `mesh-status-panel` | タブの中身（`tabpanel`） |
-| `mesh-status-tab-status` / `mesh-status-tab-history` | タブ |
+| `mesh-status-tab-status` / `mesh-status-tab-history` / `mesh-status-tab-practice` | タブ |
 | `mesh-status-connection` / `mesh-status-group` / `mesh-status-count` / `mesh-status-connect` | 接続 / グループ / 人数 / ［つなぐ…］ |
 | `mesh-status-nodes` / `mesh-status-node` | 相手の一覧 / 1 人ぶん |
 | `mesh-status-history` / `mesh-status-history-item` / `mesh-status-history-expand` / `mesh-status-history-empty` | 履歴 / 1 件 / もっと見る・たたむ / まだ無い |
 
 実装: VM = `scratch3_mesh_v2/status-history.js`（履歴とノード一覧の問い合わせ）・`status-snapshot.js`（ウィンドウに渡す値）・`index.js` の `getStatusSnapshot()` / `refreshGroupNodes()`、画面 = `src/components/mesh-status-popup/`・`src/containers/mesh-status-popup.jsx`・`src/components/mesh-status-button/`、表示の決まり = `src/lib/mesh-v2-status.js`、拡張の有無 = `src/lib/use-mesh-v2-presence.js`、開閉 = Redux `meshV2.statusPopupOpen`。
+
+### ひとりで使える練習相手
+
+ペアが休み・学校に来られないなど、ひとりでメッシュのプログラムを作ってデバッグする生徒のための、ブラウザの中だけで動く「相手」。メッシュのウィンドウの「練習相手」のタブで使う。
+
+![練習相手のタブ](screenshots/0206-practice-tab-1300x600.png)
+
+- **並ぶもの**: 作品にあるメッセージと、ステージの（すべてのスプライト用の）変数を自動で並べる（1 秒ごとに読み直す）。
+  - **メッセージを送る**: 値の欄（なくてもよい）と［送る］。相手が送ったのと同じように「〜を受け取ったとき」が動き、値つきなら「メッセージの値」がその値になる（スクリプトごと）。
+  - **相手の変数**: 作品の変数と、ここで作った変数。値を入れて［入れる］と、相手がその値を持つ（「センサーの値」で読める）。新しい名前で［作る］と相手の変数ができ、メッシュの「センサーの値」のドロップダウンに出る。作った変数は × で消せる（作品の変数は消せない）。
+  - **自動の返事**: 「X を受け取ったら Y（値）を送り返す」。生徒の作品が X を送る（「送る」「送って待つ」「といっしょに送る」）と、0.5 秒あとに Y を送り返す。
+- **入れる・切る**: 「練習相手を使う」は、開いたとき（ページを開いた・作品を読み込んだ）は切れている。チェックを入れるか、［送る］［入れる］［作る］［足す］を押すと入る。入っている間はタブと「使う」の横に緑の点が付き、ウィンドウを閉じても動き続ける。
+- **状態と履歴**: 入っている間、状態のタブは「つながっていません（練習相手と練習中）」になり、「あなた」（作品の変数）と「相手（練習相手）」（相手の変数）を出す。練習相手が送ったもの・生徒の作品が送ったものは、本物のメッシュと同じ履歴に出る（同じものが 1 秒の間に続いたときは 1 つだけ）。
+
+  ![練習中の状態のタブ](screenshots/0207-status-practice-1300x600.png)
+
+**本物のメッシュと混ぜない**:
+
+- 動くのはメッシュにつないでいないときだけ。サーバーには何も送らない（ブラウザの中で折り返す）。
+- つなぎ始めると（つないでいる途中も含む）、その場で練習相手の値と、練習で残した履歴を消し、「使う」を切る。つないでいる間はタブを休ませる。切れたあとは、もう一度入れれば使える。
+- 待っている自動の返事は、メッセージの名前ごとに 1 つ、全部で 100 まで（本物のメッシュの送るキューの上限と同じ）。値は 1,000 文字（JavaScript の `length`）までに切る（本物のメッシュとサーバーの上限と同じ）。
+- 練習相手のノード ID は `smalruby-mesh-practice-partner`（本物のノード ID と重ならない）。
+
+**設定は作品に入れない**: 相手の変数と値・メッセージごとの値・自動の返事は、作品ではなくこのブラウザ（localStorage）に覚える。提出した作品に練習の設定は混ざらない。作品ごと（作品の ID、無ければ作品の名前）に 20 作品まで覚え、覚えていない作品では最後に使った設定から始める。作品の名前を変えても設定はそのまま新しい名前で覚え直す。
+
+**レッスンの練習相手との関係**: 仕組み（ブラウザの中で折り返す・つないでいないときだけ・相手の値はノード ID ごと・返事の数の上限・つないだら外す）は、レッスンの練習相手と同じ。共通の部品は `src/lib/mesh-practice/`（`partner.js` = データの形と決まり、`loopback.js` = 折り返し）に置き、練習相手の形はレッスンと同じ `{name, buttons, replies}`（`set` / `broadcast` に、値つきメッセージの `value` を足したもの）。レッスンの練習相手は、あとからこの部品に乗り換えられる。
+
+**data-testid**:
+
+| data-testid | 要素 |
+|---|---|
+| `mesh-practice` | 練習相手のタブの中身 |
+| `mesh-practice-use` / `mesh-practice-paused` | 「練習相手を使う」 / つないでいる間の「休みます」 |
+| `mesh-practice-message` / `mesh-practice-message-value` / `mesh-practice-send` | メッセージの行 / 値 / ［送る］ |
+| `mesh-practice-variable` / `mesh-practice-variable-value` / `mesh-practice-variable-set` / `mesh-practice-variable-remove` | 相手の変数の行 / 値 / ［入れる］ / × |
+| `mesh-practice-new-variable` / `mesh-practice-add-variable` | 新しい変数の名前 / ［作る］ |
+| `mesh-practice-reply` / `mesh-practice-reply-remove` | 自動の返事 / × |
+| `mesh-practice-reply-form` / `mesh-practice-reply-on` / `mesh-practice-reply-send` / `mesh-practice-reply-value` / `mesh-practice-add-reply` | 返事を足す欄 / 受け取ったら / 送り返す / 値 / ［足す］ |
+
+実装: 決まり = `src/lib/mesh-practice/partner.js`、折り返し = `src/lib/mesh-practice/loopback.js`（VM は変えない。`remoteData`・`recordMessage`・`startMessageHats`・`startHats` と、ブロックの実行を見る `src/lib/lessons/vm-execution-hook.js` を使う）、ブラウザに覚える = `src/lib/mesh-practice/storage.js`、状態と操作 = `src/lib/mesh-practice/use-mesh-practice-partner.js`（`src/containers/mesh-status-popup.jsx` がいつも呼ぶ）、画面 = `src/components/mesh-practice-partner/`。
 
 ## 主要ファイル
 
@@ -209,6 +249,7 @@ end-to-end 動作確認: [`tools/playwright-verify/verify-classroom-mesh-connect
 - **出席番号でつながるの決まりとデータ**: `packages/scratch-gui/src/lib/mesh-v2-seat-connect.js`（純粋関数）、`packages/scratch-gui/src/lib/mesh-v2-seat-snapshot.js`（照会と一覧の読み直し）
 - **状態管理**: `packages/scratch-gui/src/reducers/mesh-v2.js`
 - **状態と履歴のウィンドウ**: `packages/scratch-gui/src/components/mesh-status-popup/`、`packages/scratch-gui/src/containers/mesh-status-popup.jsx`、`packages/scratch-gui/src/components/mesh-status-button/`、`packages/scratch-gui/src/components/connection-modal/mesh-v2-open-status-button.jsx`、`packages/scratch-gui/src/lib/mesh-v2-status.js`、`packages/scratch-gui/src/lib/use-mesh-v2-presence.js`
+- **ひとりで使える練習相手**: `packages/scratch-gui/src/lib/mesh-practice/`（`partner.js` / `loopback.js` / `storage.js` / `use-mesh-practice-partner.js`）、`packages/scratch-gui/src/components/mesh-practice-partner/`
 - **Ruby 連携**:
   - `packages/scratch-gui/src/lib/ruby-generator/mesh_v2.js` — Ruby コード → mesh ブロック変換
   - `packages/scratch-gui/src/lib/ruby-to-blocks-converter/mesh_v2.js` — mesh ブロック → Ruby コード
@@ -275,6 +316,7 @@ Mesh 拡張機能のブロックは「メッセージ送信」「他ノードの
 ### localStorage
 
 - `meshV2:domain` — ユーザー固有のドメイン名（CRC32 ハッシュベース）
+- `smalruby:meshPracticePartner` — ひとりで使える練習相手の設定（`{version: 1, projects: {作品のキー: 設定}, last: 設定}`。作品のキーは `id:<作品 ID>` か `title:<作品の名前>`、20 作品まで）。作品には入れない
 
 ### URL パラメータ
 

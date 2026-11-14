@@ -1,0 +1,186 @@
+@import '../../css/colors.css';
+
+/* The 「練習相手」 tab of the mesh window. The window is 320px wide (narrower on phones),
+   so each row is name / input / button and the input shrinks first. */
+.practice {
+    padding: 8px 10px 10px;
+    background-color: $ui-white;
+}
+
+.use {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.use input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+.dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-left: auto;
+    border-radius: 50%;
+    background-color: $ui-black-transparent;
+}
+
+.dot-on {
+    background-color: $ui-green-2;
+}
+
+.note,
+.paused,
+.muted {
+    margin: 2px 0 6px;
+    color: $text-primary-transparent;
+    font-size: 0.75rem;
+}
+
+.paused {
+    color: $error-primary;
+    font-weight: bold;
+}
+
+.sections {
+    margin: 0;
+    padding: 0;
+    border: none;
+    min-width: 0;
+}
+
+.sections:disabled {
+    opacity: 0.5;
+}
+
+.heading {
+    margin: 10px 0 4px;
+    font-size: 0.8125rem;
+}
+
+.list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 0;
+}
+
+.name {
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.created {
+    color: $data-primary;
+}
+
+.input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 32px;
+    padding: 2px 6px;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 4px;
+    background-color: $ui-white;
+    color: $text-primary;
+    font-size: 0.8125rem;
+}
+
+.actions {
+    display: flex;
+    gap: 2px;
+    /* 「入れる」と「×」の幅をいつも取り、作品の変数と作った変数で欄の幅をそろえる */
+    min-width: 80px;
+}
+
+.button {
+    min-width: 44px;
+    min-height: 32px;
+    padding: 0 8px;
+    border: 1px solid $ui-green;
+    border-radius: 6px;
+    background-color: $ui-white;
+    color: $ui-green;
+    font-weight: bold;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+    background-color: $ui-green;
+    color: $ui-white;
+}
+
+.button:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.remove-button {
+    min-width: 32px;
+    min-height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: $text-primary-transparent;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.remove-button:hover {
+    background-color: $ui-black-transparent-10;
+}
+
+.add-row,
+.reply-value-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.reply-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 0;
+    border-bottom: 1px solid $ui-black-transparent-10;
+}
+
+.reply-text {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.reply-form {
+    margin-top: 6px;
+    padding: 6px;
+    border: 1px dashed $ui-black-transparent;
+    border-radius: 6px;
+}
+
+.reply-field {
+    display: grid;
+    grid-template-columns: 7em minmax(0, 1fr);
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+    font-size: 0.75rem;
+}

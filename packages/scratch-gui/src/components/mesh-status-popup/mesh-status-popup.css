@@ -278,3 +278,14 @@
     max-height: 4.5em;
     overflow-y: auto;
 }
+
+/* 練習相手が動いているしるし (#1845) */
+.practice-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-left: 4px;
+    border-radius: 50%;
+    background-color: $ui-green-2;
+    vertical-align: middle;
+}
