@@ -23,7 +23,7 @@ import { LANGUAGES, challengeCodeCandidates, localizeCode } from '../lib/lessons
 import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
 import { findCodeSprite, findSpriteByName, insertSpriteCodes } from '../lib/lessons/insert-sprite-code';
 import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics';
-import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
+import { targetCodeToBlocks } from '../lib/ruby-bundle';
 import { colorModeMap } from '../lib/settings/color-mode';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
 import {

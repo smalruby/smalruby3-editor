@@ -1,7 +1,7 @@
 // ヒントの吹き出しに描くブロックを、Ruby（チャレンジの `steps[].blocks`）から作る。
 // 変換はいまの `code` と同じ Ruby → ブロック変換（ruby-to-blocks-converter）で、作った
 // ブロックは VM の target には入れず、Blockly の XML にして読み取り専用ワークスペースに描く。
-import RubyToBlocksConverter from '../ruby-to-blocks-converter';
+import { loadRubyBundle } from '../ruby-bundle';
 import { blocksToXml } from './blocks-xml';
 
 /**
@@ -17,6 +17,8 @@ import { blocksToXml } from './blocks-xml';
  * @returns {Promise<{xml: ?string, errors: Array<object>}>} 変換できたら `xml`、できなければ `errors`。
  */
 export const rubyToBlocksXml = async (vm, target, code, intl, options = { version: '2' }) => {
+    // 変換器は Ruby の束にある（ruby-bundle.js）。読み込んでから使う
+    const { RubyToBlocksConverter } = await loadRubyBundle();
     const converter = new RubyToBlocksConverter(vm, { validateAssets: false, ...options });
     if (intl) converter.setTranslatorFunction(intl.formatMessage);
     const ok = await converter.targetCodeToBlocks(target, code);

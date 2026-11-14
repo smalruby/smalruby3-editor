@@ -25,6 +25,11 @@ export default {
     'gui.smalruby3.SpriteInfo.sizeIcon': 'Size (%)',
     'gui.smalruby3.SpriteInfo.directionIcon': 'Direction (degrees)',
     'gui.rubyTab.paste': 'Paste',
+    'gui.rubyTabLoader.loading': 'Loading the Ruby tab...',
+    'gui.rubyTabLoader.failed':
+        'The Ruby tab could not be loaded. Check the internet connection and press "Try again". If it still fails, reload the page.',
+    'gui.rubyTabLoader.retry': 'Try again',
+    'gui.rubyTabLoader.reload': 'Reload the page',
     'gui.smalruby3.previewInfo.betawelcome': 'Welcome to the Smalruby 3.0 Beta',
     'gui.smalruby3.previewInfo.label': 'Try Smalruby 3.0',
     'gui.smalruby3.previewInfo.invitation':

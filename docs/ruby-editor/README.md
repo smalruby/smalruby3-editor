@@ -84,11 +84,34 @@ Scratch に無い Ruby の考え方（ローカル変数・戻り値・ハッシ
 | `packages/scratch-gui/src/lib/prism-parser.js` | `@ruby/prism` (WebAssembly) ローダ、prism インスタンスのキャッシュ |
 | `packages/scratch-gui/src/lib/ruby-parser.js` | prism-parser を高レベル API でラップ |
 
+#### Ruby の束（別の束にして先読みする）
+
+Ruby タブ・生成器・変換器・prism の JS は、本体の束（`gui.<hash>.js`）とは別の束 `chunks/ruby.<hash>.js` に入れてある。Ruby タブを使わない人の起動を軽くするため。
+
+| ファイル | 役割 |
+|---|---|
+| `packages/scratch-gui/src/lib/ruby-bundle-entry.js` | 束の中身（`RubyTab`・`RubyGenerator`・`targetCodeToBlocks`・`RubyToBlocksConverter`・`generateProjectCode`・`loadPrism`）。**本体の束から直接 import しない**（静的に import すると本体に戻ってしまう） |
+| `packages/scratch-gui/src/lib/ruby-bundle.js` | 束を読む: `loadRubyBundle()`（1 回だけ読む・失敗したら 1 秒・3 秒あけて試し直す・全部失敗したら次の呼び出しで最初から）、`getRubyBundle()` / `requireRubyBundle()`（待てない所用）、`targetCodeToBlocks()`（束を読んでから変換）、`generateTargetCode()`（reducer 用。読む前は `''`）、`whenIdle()` |
+| `packages/scratch-gui/src/containers/ruby-tab-loader.jsx` | `gui.jsx` に置く Ruby タブ。起動後の空いた時間（`requestIdleCallback`、無ければ 2 秒後）に束を読み、続けて prism.wasm を読む。Ruby タブを先に開いたらすぐ読む。読む間は「読み込んでいます」、失敗したら［もう一度］［ページを読み込み直す］を出す（`data-testid`: `ruby-tab-loader-loading` / `ruby-tab-loader-error` / `ruby-tab-loader-retry` / `ruby-tab-loader-reload`） |
+| `packages/scratch-gui/src/lib/ruby-to-blocks-converter/null-converter.js` | 「変換するものが無い」ときの変換器。本体の束（HOC）から使うので別のファイル |
+
+決まり:
+
+- 束の中のもの（生成器・変換器・`ruby-script-preview.js`）を本体の束から使うときは、`ruby-bundle.js` を通す。変換は `await targetCodeToBlocks(...)`、生成は `await loadRubyBundle()` のあと `requireRubyBundle().RubyGenerator` など。
+- `RubyTab` は、束を読んだあと**一度隠れた状態で描いてから**見える状態にする。RubyTab は「見えるようになった」ことを見てコードを作る・フォーカスするため（はじめから見える状態で描くと、コードが作られない）。
+- `prism-parser.js` は読み込みに失敗したらそれを覚えない（次の呼び出しで読み直す）。
+- `targetCodeToBlocks()` は、束を読んだあとは束の関数をそのまま呼ぶ（`await` をはさまない）。Ruby タブのタブ切り替えの処理は、ほかの非同期の処理（スプライトを足すとコードタブが開く）と順番を争っているので、待ちが 1 つ増えるだけで結果が変わる。
+
+PWA:
+
+- Workbox が作る `service-worker.js` のプリキャッシュは書き出したファイルを全部入れるので、`chunks/ruby.<hash>.js` と `static/assets/prism.<hash>.wasm` も入る（service worker を登録すれば、オフラインで Ruby タブを開いて変換できる）。なお、いまの `index.html` は service worker を登録していない（`service-worker.js` は書き出すが、読み込む所が無い）。
+- 束の名前にはハッシュが付くので、新しい本体が古い束を読むことは無い。古い本体のページを開いたまま新しい版が出て古い束が消えたときは、束の読み込みが失敗し、Ruby タブに［ページを読み込み直す］が出る（ふつうは起動直後に束を読み終えているので起きない）。
+
 #### Monaco Editor 統合
 
 | ファイル | 役割 |
 |---|---|
-| `packages/scratch-gui/src/containers/ruby-tab.jsx` | Ruby タブのメインコンテナ。Monaco 初期化、モード切替、debounce、永続化 |
+| `packages/scratch-gui/src/containers/ruby-tab.jsx` | Ruby タブのメインコンテナ。Monaco 初期化、モード切替、debounce、永続化（Ruby の束に入る。`gui.jsx` からは `ruby-tab-loader.jsx` 経由） |
 | `packages/scratch-gui/src/containers/ruby-tab/editor-setup.js` | Monaco Editor の初期設定 |
 | `packages/scratch-gui/src/containers/ruby-tab/smalruby-mode.js` | Monaco の Smalruby 言語定義 |
 | `packages/scratch-gui/src/containers/ruby-tab/dncl-mode.js` | Monaco の DNCL 言語定義 |
@@ -262,7 +285,8 @@ debounceMs = Math.max(50, lastRenderMs * 2);
 
 ## テスト
 
-- 単体テスト: `packages/scratch-gui/test/unit/lib/ruby-to-blocks-converter/`, `test/unit/lib/ruby-generator/`, `test/unit/lib/ruby-roundtrip-*.test.js`
+- 単体テスト: `packages/scratch-gui/test/unit/lib/ruby-to-blocks-converter/`, `test/unit/lib/ruby-generator/`, `test/unit/lib/ruby-roundtrip-*.test.js`、Ruby の束の読み込みは `test/unit/lib/ruby-bundle.test.js` と `test/unit/containers/ruby-tab-loader.test.jsx`
+- 本物の束を使う単体テスト（ヒントの絵・レッスンなど）は、`beforeAll(() => loadRubyBundle(), 60000)` で先に読む（はじめのテストが動的 import の時間で時間切れにならないように）
 - 結合テスト: `packages/scratch-gui/test/integration/ruby-tab*.test.js`
 
 詳細は `.claude/rules/scratch-gui/testing.md` の "Testing Philosophy for Ruby ↔ Blocks Conversion" を参照。

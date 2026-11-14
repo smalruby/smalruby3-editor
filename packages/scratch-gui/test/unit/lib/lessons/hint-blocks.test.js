@@ -4,6 +4,7 @@
  */
 import { COURSES, localizeCode } from '../../../../src/lib/lessons/courses';
 import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
+import { loadRubyBundle } from '../../../../src/lib/ruby-bundle';
 
 // code / blocks は locale ごとに持てる（courses.js の localizeCode）ので、UI の 3 つの locale で確かめる
 const LOCALES = ['ja', 'ja-Hira', 'en'];
@@ -18,6 +19,10 @@ const allSteps = () =>
     );
 
 describe('rubyToBlocksXml', () => {
+    // The converter is in the Ruby bundle (read with a dynamic import). Read it once before the
+    // tests, so the first test does not spend its time limit on reading it.
+    beforeAll(() => loadRubyBundle(), 60000);
+
     test('converts a hat block with a stack into Blockly XML', async () => {
         const { xml, errors } = await rubyToBlocksXml(null, null, 'when_clicked do\n  say("こんにちは！", 2)\nend\n');
         expect(errors).toEqual([]);

@@ -3,6 +3,7 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import RubyDownloader from '../../../src/containers/ruby-downloader';
+import { loadRubyBundle } from '../../../src/lib/ruby-bundle';
 import _RubyGenerator from '../../../src/lib/ruby-generator';
 import { targetCodeToBlocks as _targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';
 
@@ -18,6 +19,10 @@ jest.mock('../../../src/lib/ruby-to-blocks-converter', () => ({
 const mockTargetCodeToBlocks = _targetCodeToBlocks;
 
 describe('RubyDownloader Container', () => {
+    // The converter is in the Ruby bundle (read with a dynamic import). Read it once before the
+    // tests, so the first test does not spend its time limit on reading it.
+    beforeAll(() => loadRubyBundle(), 60000);
+
     const mockStore = configureStore();
     let store;
     let vm;

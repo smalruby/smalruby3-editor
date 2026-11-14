@@ -4,8 +4,7 @@ import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
-import { generateProjectCode } from '../lib/ruby-script-preview';
-import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
+import { loadRubyBundle, requireRubyBundle, targetCodeToBlocks } from '../lib/ruby-bundle';
 import { setKoshienFileHandle, clearKoshienFileHandle } from '../reducers/koshien-file';
 import { projectTitleInitialState } from '../reducers/project-title';
 import { rubyCodeShape, convertedRubyCode } from '../reducers/ruby-code';
@@ -61,7 +60,7 @@ class RubyDownloader extends React.Component {
         // After validateAndConvert, blocks are already applied and
         // rubyCode.modified is reset, so the pending-code injection inside
         // generateProjectCode is a no-op; it remains for non-validated paths.
-        const code = generateProjectCode(this.props.vm, {
+        const code = requireRubyBundle().generateProjectCode(this.props.vm, {
             stage: this.props.stage,
             sprites: this.props.sprites,
             version: this.props.rubyVersion,
@@ -113,6 +112,16 @@ class RubyDownloader extends React.Component {
         }
     }
     async downloadProject() {
+        // The generator and the converter are in the Ruby bundle (lib/ruby-bundle.js)
+        try {
+            await loadRubyBundle();
+        } catch (err) {
+            console.error('Failed to load the Ruby bundle:', err);
+            if (this.props.onSaveError) {
+                this.props.onSaveError(err);
+            }
+            return;
+        }
         // Validate and convert Ruby code to blocks before saving
         const valid = await this.validateAndConvert();
         if (!valid) return;

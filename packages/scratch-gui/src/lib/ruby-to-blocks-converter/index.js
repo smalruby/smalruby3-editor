@@ -22,6 +22,7 @@ import InitializeHandler from './initialize-handler';
 import LineMappingUtils from './line-mapping';
 import ModuleVisitor from './module-visitor';
 import NodeUtils from './node-utils';
+import NullRubyToBlocksConverter from './null-converter';
 import PrismErrorTranslator from './prism-error-translator';
 import registerConverters from './register-converters';
 import ReturnValueTemps from './return-value-temps';
@@ -495,11 +496,6 @@ Object.assign(RubyToBlocksConverter.prototype, ModuleVisitor);
 /**
  * Null of RubyToBlocksConverter
  */
-const NullRubyToBlocksConverter = {
-    result: true,
-    errors: [],
-    apply: () => Promise.resolve(),
-};
 
 const targetCodeToBlocks = async function (vm, target, code, intl, options) {
     const converter = new RubyToBlocksConverter(vm, options);

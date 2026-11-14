@@ -214,6 +214,8 @@ src/containers/*
 !src/containers/google-drive-saver-hoc.jsx
 !src/containers/ruby-downloader.jsx
 !src/containers/ruby-tab.jsx
+!src/containers/ruby-tab-loader.jsx
+!src/containers/ruby-tab-loader.css
 !src/containers/smalrubot-firmware-modal.jsx
 !src/containers/welcome-modal-hoc.jsx
 
@@ -307,6 +309,8 @@ src/lib/*
 !src/lib/module-sync.js
 !src/lib/monaco-i18n-helper.js
 !src/lib/prism-parser.js
+!src/lib/ruby-bundle.js
+!src/lib/ruby-bundle-entry.js
 !src/lib/project-loader-utils.js
 !src/lib/responsive-gui.jsx
 !src/lib/ruby-parser.js
@@ -608,6 +612,7 @@ test/unit/containers/*
 !test/unit/containers/google-drive-state-management.test.jsx
 !test/unit/containers/ruby-downloader.test.jsx
 !test/unit/containers/ruby-tab-project-changed.test.js
+!test/unit/containers/ruby-tab-loader.test.jsx
 !test/unit/containers/stage-header.test.jsx
 
 # Level 3: test/unit/helpers/* — Smalruby-only (whole directory via `/**`)
@@ -708,6 +713,7 @@ test/unit/lib/*
 !test/unit/lib/use-is-narrow-screen.test.js
 !test/unit/lib/module-sync.test.js
 !test/unit/lib/prism-parser.test.js
+!test/unit/lib/ruby-bundle.test.js
 !test/unit/lib/removed-trademarks.test.js
 !test/unit/lib/ruby-generator-procedure-arguments.test.js
 !test/unit/lib/ruby-generator-version.test.jsx

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import RubyGenerator from '../lib/ruby-generator';
+import { generateTargetCode } from '../lib/ruby-bundle';
 
 const UPDATE_RUBYCODE = 'smalruby3-gui/ruby-code/UPDATE_RUBYCODE';
 const UPDATE_RUBYCODE_TARGET = 'smalruby3-gui/ruby-code/UPDATE_RUBYCODE_TARGET';
@@ -63,7 +63,9 @@ const reducer = function (state, action) {
             return Object.assign({}, state, {
                 modified: false,
                 target: action.target,
-                code: RubyGenerator.targetToCode(action.target, { version: action.version }),
+                // The generator is in the Ruby bundle: whoever dispatches this reads it first
+                // (the Ruby tab is in the bundle itself). Until then the code is ''.
+                code: generateTargetCode(action.target, { version: action.version }),
                 errors: [],
                 markers: [],
             });

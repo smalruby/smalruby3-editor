@@ -25,6 +25,7 @@ import {
 import { validateGoal } from '../../../../src/lib/lessons/goal';
 import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
+import { loadRubyBundle } from '../../../../src/lib/ruby-bundle';
 import en from '../../../../src/locales/en';
 import ja from '../../../../src/locales/ja';
 import jaHira from '../../../../src/locales/ja-Hira';
@@ -81,6 +82,10 @@ const collectMessages = () => {
 };
 
 describe('lesson courses', () => {
+    // The converter is in the Ruby bundle (read with a dynamic import). Read it once before the
+    // tests, so the first test does not spend its time limit on reading it.
+    beforeAll(() => loadRubyBundle(), 60000);
+
     test('the first course is the blocks course "きょうからプログラマー"', () => {
         const course = findCourse('kyou-kara-programmer');
         expect(course).toBeTruthy();

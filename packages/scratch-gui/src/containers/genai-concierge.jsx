@@ -34,6 +34,7 @@ import {
     shouldNudge,
 } from '../lib/genai-concierge-state.js';
 import { PROBLEM_KINDS } from '../lib/genai-prompt.js';
+import { loadRubyBundle } from '../lib/ruby-bundle.js';
 import { getUrlParams } from '../lib/url-params.js';
 import { selectRubyteeAvailable } from '../reducers/classroom.js';
 import useStudentClassSettingsRefresh from './use-student-class-settings-refresh.js';
@@ -143,6 +144,16 @@ const GenaiConcierge = ({
     runningRef.current = running;
 
     const target = resolveGenaiTarget({ classGenai, devChoice });
+
+    // The code tab's adapter reads the project as Ruby with the generator in the Ruby bundle
+    // (lib/ruby-bundle.js): read it as soon as the face can be used.
+    useEffect(() => {
+        if (!available) return;
+        loadRubyBundle().catch((error) => {
+            // eslint-disable-next-line no-console
+            console.warn('Failed to load the Ruby bundle:', error);
+        });
+    }, [available]);
 
     useEffect(() => {
         if (!available) return;

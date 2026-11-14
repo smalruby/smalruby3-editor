@@ -21,9 +21,14 @@ jest.mock('../../../src/containers/modal.jsx', () => {
 // short AI (URL path) vs. a large AI (download fallback). It generates the
 // whole project (all targets), not just the editing target.
 const mockGenerateProjectCode = jest.fn();
-jest.mock('../../../src/lib/ruby-script-preview', () => ({
-    generateProjectCode: (...args) => mockGenerateProjectCode(...args),
-}));
+// generateProjectCode is in the Ruby bundle (lib/ruby-bundle.js): here it is already read.
+jest.mock('../../../src/lib/ruby-bundle', () => {
+    const bundle = { generateProjectCode: (...args) => mockGenerateProjectCode(...args) };
+    return {
+        getRubyBundle: () => bundle,
+        loadRubyBundle: () => Promise.resolve(bundle),
+    };
+});
 
 const mockDownloadBlob = jest.fn();
 jest.mock('../../../src/lib/download-blob', () => ({

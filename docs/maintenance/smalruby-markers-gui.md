@@ -50,6 +50,8 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/gui/gui.jsx` | meshV2 self-sensor notice | グローバル変数名と mesh センサーの値の重複を検出し初回のみ通知する常時マウントのバナー (Issue #707) の import と配置 |
 | `src/components/gui/gui.jsx` | lesson goal watcher | レッスンモードのあいだ VM を見張り、チャレンジの「できた」を判定して記録・「できた！」を出す常時マウントのコンテナ（`containers/lesson-goal-watcher.jsx`）の import と配置 |
 | `src/components/gui/gui.jsx` | welcome modal | 初回訪問者向けウェルカムモーダル HOC の import と配置、`onShowWelcomeModal` prop |
+| `src/components/gui/gui.jsx` | lazy Ruby bundle | Ruby タブを Ruby の束から読むローダー（`containers/ruby-tab-loader.jsx`）に差し替える import |
+| `src/components/menu-bar/menu-bar.jsx` | lazy Ruby bundle | 「コードから Ruby を作る」の前に Ruby の束（`lib/ruby-bundle.js`）を読む |
 | `src/containers/gui.jsx` | welcome modal | `onShowWelcomeModal` を Redux `openWelcomeModal()` にマップ |
 | `src/components/gui/gui.jsx` | DNCL mode notice | DnclModeNotice コンポーネントの import・配置・`onRequestExitDnclMode` prop |
 | `src/components/gui/gui.jsx` | lesson mode | レッスンモードのコンテナ `LessonMode`（課題バー + チャレンジを開く流れ）と GA 計測のコンテナ `LessonAnalytics`（描画しない）、クラスの課題へ進み具合を送るコンテナ `LessonProgressSync`（本人の確認のダイアログだけ描画する）の import と、メニューバーと本体（`flexWrapper`）のあいだへの常時マウント（課題バーを画面の幅いっぱいに出す）。`lessonTaskBarVisible` の destructure・propType と、本体に `bodyWrapperWithLessonTaskBar` を付ける classNames（`docs/lessons/README.md`） |

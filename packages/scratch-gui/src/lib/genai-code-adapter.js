@@ -49,8 +49,7 @@ import { describeChanges, diffBlocks } from './genai-block-diff.js';
 import { afterBlocksRender, scrollToShowBlocks, showInEditor } from './genai-concierge-state.js';
 import { CODE_TAB_KINDS, buildGenaiPrompt } from './genai-prompt.js';
 import { buildTakeoverMessage } from './genai-takeover.js';
-import RubyGenerator from './ruby-generator';
-import { targetCodeToBlocks } from './ruby-to-blocks-converter';
+import { requireRubyBundle, targetCodeToBlocks } from './ruby-bundle';
 
 /** The classes the marks in the editor get (styled in genai-concierge.css). */
 export const MARK_CLASSES = { added: 'genaiMarkAdded', changed: 'genaiMarkChanged' };
@@ -156,7 +155,9 @@ const measureScriptArea = (root) => {
  * @returns {object} the adapter (the points are described at the top of this file)
  */
 export const createCodeTabAdapter = ({ vm, intl, rubyVersion, scratchBlocks, deps = {} }) => {
-    const toCode = deps.toCode || ((target) => RubyGenerator.targetToCode(target, { version: rubyVersion }));
+    // The generator is in the Ruby bundle: the panel reads it before it opens (genai-concierge.jsx).
+    const toCode =
+        deps.toCode || ((target) => requireRubyBundle().RubyGenerator.targetToCode(target, { version: rubyVersion }));
     const toBlocks =
         deps.toBlocks || ((target, code) => targetCodeToBlocks(vm, target, code, intl, { version: rubyVersion }));
     const workspaceOf = () => scratchBlocks && scratchBlocks.getMainWorkspace && scratchBlocks.getMainWorkspace();

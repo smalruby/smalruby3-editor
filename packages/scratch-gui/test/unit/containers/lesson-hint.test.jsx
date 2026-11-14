@@ -7,6 +7,7 @@ import { LessonHint } from '../../../src/containers/lesson-hint.jsx';
 import analytics from '../../../src/lib/analytics';
 import { challengeCodeFor, findChallenge, localizeCode } from '../../../src/lib/lessons/courses';
 import { rubyToBlocksXml } from '../../../src/lib/lessons/hint-blocks';
+import { loadRubyBundle } from '../../../src/lib/ruby-bundle';
 import { targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';
 
 jest.mock('../../../src/lib/analytics', () => ({ event: jest.fn() }));
@@ -76,6 +77,10 @@ const insertWithConfirm = (getByTestId) => {
 };
 
 describe('LessonHint container', () => {
+    // The converter is in the Ruby bundle (read with a dynamic import). Read it once before the
+    // tests, so the first test does not spend its time limit on reading it.
+    beforeAll(() => loadRubyBundle(), 60000);
+
     beforeEach(() => {
         rubyToBlocksXml.mockClear();
         targetCodeToBlocks.mockClear();

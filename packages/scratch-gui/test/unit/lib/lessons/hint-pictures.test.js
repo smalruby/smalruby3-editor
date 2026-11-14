@@ -9,6 +9,7 @@ import * as prismNodes from '@ruby/prism/src/nodes.js';
 import { COURSES, findChallenge, localizeCode } from '../../../../src/lib/lessons/courses';
 import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 import { ja } from '../../../../src/lib/lessons/lessons.locale';
+import { loadRubyBundle } from '../../../../src/lib/ruby-bundle';
 
 const LOCALES = ['ja', 'ja-Hira', 'en'];
 
@@ -73,6 +74,10 @@ const hintOf = (drawn, id, step, locale = 'ja') =>
     drawn.find((d) => d.id === id && d.step === step && d.locale === locale);
 
 describe('hint pictures', () => {
+    // The converter is in the Ruby bundle (read with a dynamic import). Read it once before the
+    // tests, so the first test does not spend its time limit on reading it.
+    beforeAll(() => loadRubyBundle(), 60000);
+
     let drawn;
     let drawnInProduction;
 

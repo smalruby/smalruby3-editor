@@ -80,7 +80,10 @@ import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
 import KoshienSettingsModal from '../koshien-settings-modal/koshien-settings-modal.jsx';
 import KoshienMockPanel from '../../containers/koshien-mock-panel.jsx';
-import RubyTab from '../../containers/ruby-tab.jsx';
+// === Smalruby: Start of lazy Ruby bundle ===
+// The Ruby tab is in the Ruby bundle (lib/ruby-bundle.js); the loader reads it after the start.
+import RubyTab from '../../containers/ruby-tab-loader.jsx';
+// === Smalruby: End of lazy Ruby bundle ===
 
 import layout, {STAGE_DISPLAY_SIZES, STAGE_SIZE_MODES} from '../../lib/layout-constants';
 import {resolveStageSize} from '../../lib/screen-utils';

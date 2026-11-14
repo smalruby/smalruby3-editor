@@ -115,6 +115,9 @@ import {
 } from '../../reducers/menus';
 
 import {updateRubyCodeTarget, updateRubyCodeErrors} from '../../reducers/ruby-code';
+// === Smalruby: Start of lazy Ruby bundle ===
+import {loadRubyBundle} from '../../lib/ruby-bundle';
+// === Smalruby: End of lazy Ruby bundle ===
 import {activateTab, RUBY_TAB_INDEX} from '../../reducers/editor-tab';
 import {showAlertWithTimeout} from '../../reducers/alerts';
 
@@ -542,7 +545,14 @@ class MenuBar extends React.Component {
         this.props.onSaveDirectlyToGoogleDrive(true);
     }
     handleClickGenerateRubyFromCode () {
-        this.props.updateRubyCodeTargetState(this.props.vm.editingTarget);
+        // === Smalruby: Start of lazy Ruby bundle ===
+        // The generator is in the Ruby bundle (lib/ruby-bundle.js): read it before generating.
+        const target = this.props.vm.editingTarget;
+        loadRubyBundle().then(
+            () => this.props.updateRubyCodeTargetState(target),
+            error => console.error('Failed to load the Ruby bundle:', error) // eslint-disable-line no-console
+        );
+        // === Smalruby: End of lazy Ruby bundle ===
     }
     handleExtensionAdded () {
         // Dispatch Redux action to trigger re-render

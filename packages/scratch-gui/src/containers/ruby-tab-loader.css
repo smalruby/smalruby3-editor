@@ -1,0 +1,41 @@
+@import '../css/smalruby-tokens.css';
+
+/* The place of the Ruby tab while its bundle is read (or failed to be read). */
+.placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: $space-large;
+    height: 100%;
+    padding: $space-large;
+    background-color: $color-surface;
+    color: $color-text;
+    font-size: $font-size-dialog;
+    text-align: center;
+}
+
+.buttons {
+    display: flex;
+    gap: $space-medium;
+}
+
+.button {
+    padding: 0.75rem 1rem;
+    border-radius: $radius-small;
+    font-size: $font-size-dialog;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.primary {
+    border: none;
+    background-color: $color-primary;
+    color: $color-surface;
+}
+
+.secondary {
+    border: 1px solid $color-border;
+    background-color: $color-surface;
+    color: $color-text;
+}

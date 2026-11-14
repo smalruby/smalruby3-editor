@@ -80,10 +80,18 @@ export const loadPrism = () => {
         return Promise.resolve(prismInstance);
     }
     if (!prismLoadingPromise) {
-        prismLoadingPromise = _doLoadPrism().then((instance) => {
-            prismInstance = instance;
-            return instance;
-        });
+        prismLoadingPromise = _doLoadPrism().then(
+            (instance) => {
+                prismInstance = instance;
+                return instance;
+            },
+            (error) => {
+                // Forget the failure so the next call fetches prism.wasm again (a network hiccup
+                // or a cache replaced by a new version must not break the Ruby tab for good).
+                prismLoadingPromise = null;
+                throw error;
+            },
+        );
     }
     return prismLoadingPromise;
 };

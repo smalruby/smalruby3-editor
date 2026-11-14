@@ -8,7 +8,7 @@ import reloadIcon from '../../lib/assets/icon--reload.svg';
 import downloadBlob from '../../lib/download-blob';
 import intlShape from '../../lib/intlShape.js';
 import { buildKoshienTestPlan } from '../../lib/koshien-test-url';
-import { generateProjectCode } from '../../lib/ruby-script-preview';
+import { getRubyBundle, loadRubyBundle } from '../../lib/ruby-bundle';
 import Box from '../box/box.jsx';
 import Button from '../button/button.jsx';
 import stopIcon from '../close-button/icon--close.svg';
@@ -38,6 +38,23 @@ export const KoshienTestModal = (props) => {
     const { intl, onRequestClose, vm, rubyVersion, stage, sprites, rubyCode } = props;
     const [iframeKey, setIframeKey] = React.useState(0);
     const [loading, setLoading] = React.useState(true);
+    // The generator is in the Ruby bundle (lib/ruby-bundle.js): generate again once it is read.
+    const [rubyBundle, setRubyBundle] = React.useState(getRubyBundle);
+    React.useEffect(() => {
+        let alive = !rubyBundle;
+        if (!alive) return;
+        loadRubyBundle().then(
+            (loaded) => {
+                if (alive) setRubyBundle(loaded);
+            },
+            () => {
+                // Falls back to the default AI below; reopening the modal tries again.
+            },
+        );
+        return () => {
+            alive = false;
+        };
+    }, [rubyBundle]);
 
     // Generate the WHOLE project's AI program (stage + every sprite, plus any
     // unsaved Ruby-tab edits) — the same code "Save AI" writes. Testing the
@@ -52,14 +69,16 @@ export const KoshienTestModal = (props) => {
     const { iframeSrc, code, tooLong } = React.useMemo(() => {
         let generated = '';
         try {
-            generated = generateProjectCode(vm, { stage, sprites, version: rubyVersion, rubyCode }) || '';
+            generated = rubyBundle
+                ? rubyBundle.generateProjectCode(vm, { stage, sprites, version: rubyVersion, rubyCode }) || ''
+                : '';
         } catch (e) {
             generated = '';
         }
         const plan = buildKoshienTestPlan(generated);
         return { iframeSrc: plan.url, code: generated, tooLong: plan.tooLong };
         // iframeKey is intentionally included so Reload re-reads the latest code.
-    }, [vm, stage, sprites, rubyCode, rubyVersion, iframeKey]);
+    }, [vm, stage, sprites, rubyCode, rubyVersion, iframeKey, rubyBundle]);
 
     const handleDownloadAi = React.useCallback(() => {
         downloadBlob(aiFilename(vm), new Blob([code], { type: 'text/plain' }));

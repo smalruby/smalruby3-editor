@@ -15,6 +15,11 @@ export default {
     'gui.menuBar.colorMode': 'カラーモード',
     'gui.menuBar.rubyVersion': 'ルビー',
     'gui.rubyTab.paste': 'はりつけ',
+    'gui.rubyTabLoader.loading': 'Ruby タブをよみこんでいます…',
+    'gui.rubyTabLoader.failed':
+        'Ruby タブをよみこめませんでした。インターネットへのつながりをたしかめて［もういちど］をおしてください。なおらないときは、ページをよみこみなおしてください。',
+    'gui.rubyTabLoader.retry': 'もういちど',
+    'gui.rubyTabLoader.reload': 'ページをよみこみなおす',
     'gui.rubyTab.v1CodeDetected':
         'Rubyのバージョンを「v1」にかえますか？\n\n' +
         'にゅうりょくされたコードは、しょせき（きょうかしょ）で' +

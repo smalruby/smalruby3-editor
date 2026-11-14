@@ -15,6 +15,11 @@ export default {
     'gui.menuBar.colorMode': 'カラーモード',
     'gui.menuBar.rubyVersion': 'ルビー',
     'gui.rubyTab.paste': '貼り付け',
+    'gui.rubyTabLoader.loading': 'Ruby タブを読み込んでいます…',
+    'gui.rubyTabLoader.failed':
+        'Ruby タブを読み込めませんでした。インターネットへのつながりを確かめて［もう一度］を押してください。直らないときは、ページを読み込み直してください。',
+    'gui.rubyTabLoader.retry': 'もう一度',
+    'gui.rubyTabLoader.reload': 'ページを読み込み直す',
     'gui.rubyTab.v1CodeDetected':
         'Rubyのバージョンを「v1」に変えますか？\n\n' +
         '入力されたコードは、書籍（教科書）で使われている' +
