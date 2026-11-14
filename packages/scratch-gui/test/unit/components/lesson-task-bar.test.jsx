@@ -448,4 +448,15 @@ describe('LessonTaskBar', () => {
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
         });
     });
+
+    test('shows the read-and-build tag only for a challenge with mode readDiagram', () => {
+        const { challenge } = findChallenge('blocks-l1-click-say');
+        const plain = renderBar();
+        expect(plain.queryByTestId('lesson-task-bar-read-diagram')).toBeNull();
+        plain.unmount();
+        const read = renderBar({ challenge: { ...challenge, mode: 'readDiagram' } }, { locale: 'ja', messages: ja });
+        expect(read.getByTestId('lesson-task-bar-read-diagram')).toHaveTextContent('読んで作る');
+        // 課題の 1 行はそのまま出す
+        expect(read.getByTestId('lesson-task-bar-task')).toBeInTheDocument();
+    });
 });

@@ -524,4 +524,53 @@ describe('LessonHint', () => {
         expect(getByTestId('lesson-hint-blocks-error')).toBeInTheDocument();
         expect(queryByTestId('lesson-hint-blocks')).not.toBeInTheDocument();
     });
+
+    test('shows the note under the title when given (the read-and-build first page)', () => {
+        const note = { id: 'gui.lessonHint.readDiagram.answerAtEnd', defaultMessage: 'x' };
+        const { getByTestId, unmount } = renderHint({ index: 0, note }, { locale: 'ja', messages: ja });
+        expect(getByTestId('lesson-hint-note')).toHaveTextContent('答えはヒントの最後のページにあるよ');
+        unmount();
+        const { queryByTestId } = renderHint();
+        expect(queryByTestId('lesson-hint-note')).toBeNull();
+    });
+
+    test('keeps its height below the lesson task bar (inline max-height only when the bar is there)', () => {
+        const without = renderHint();
+        expect(without.getByTestId('lesson-hint').style.maxHeight).toBe('');
+        without.unmount();
+        const bar = addTarget('bar', { left: 0, top: 40, right: 1024, bottom: 80 });
+        bar.setAttribute('data-testid', 'lesson-task-bar');
+        const { getByTestId } = renderHint();
+        // 画面の高さ（jsdom は 768）からバーの下端（80）と上下の余白（8 × 2）を引いた高さ
+        expect(getByTestId('lesson-hint').style.maxHeight).toBe(`${window.innerHeight - 80 - 16}px`);
+    });
+
+    test('shows the label above the blocks naming whose program it is (read-and-build answer page)', () => {
+        const label = {
+            message: { id: 'gui.lessonHint.readDiagram.answerOf', defaultMessage: 'Program of {name}' },
+            name: { id: 'gui.lessons.activityDiagram.codeSprite', defaultMessage: 'Cat' },
+        };
+        const sb = makeScratchBlocks();
+        const shown = renderHint(
+            { index: 2, count: 3, label, blocksXml: '<xml></xml>', scratchBlocks: sb },
+            { locale: 'ja', messages: ja },
+        );
+        expect(shown.getByTestId('lesson-hint-blocks-label')).toHaveTextContent('ネコのプログラム');
+        shown.unmount();
+        const sprite = renderHint({
+            index: 2,
+            count: 3,
+            label: { ...label, name: 'Penguin 2' },
+            blocksXml: '<xml></xml>',
+            scratchBlocks: makeScratchBlocks(),
+        });
+        expect(sprite.getByTestId('lesson-hint-blocks-label')).toHaveTextContent('Program of Penguin 2');
+        sprite.unmount();
+        // ブロックが無いページ・見出しの無いページには出さない
+        const none = renderHint({ index: 2, count: 3, label });
+        expect(none.queryByTestId('lesson-hint-blocks-label')).toBeNull();
+        none.unmount();
+        const plain = renderHint({ blocksXml: '<xml></xml>', scratchBlocks: makeScratchBlocks() });
+        expect(plain.queryByTestId('lesson-hint-blocks-label')).toBeNull();
+    });
 });

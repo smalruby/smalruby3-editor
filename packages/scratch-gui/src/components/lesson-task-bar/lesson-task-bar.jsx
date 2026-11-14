@@ -10,6 +10,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { diagramScaleFor } from '../../lib/lessons/activity-diagram/layout';
+import { isReadDiagram } from '../../lib/lessons/read-diagram';
 import LessonActivityDiagram from '../lesson-activity-diagram/lesson-activity-diagram.jsx';
 import styles from './lesson-task-bar.css';
 
@@ -40,6 +41,13 @@ const messages = defineMessages({
             'Button at the right end of the lesson task bar that leaves the lesson and goes back to the usual ' +
             'editor (the program stays, every block can be used again)',
         defaultMessage: 'End lesson',
+    },
+    readDiagram: {
+        id: 'gui.lessonTaskBar.readDiagram',
+        description:
+            'Tag in the lesson task bar for a challenge that is given only by an explanation and an activity ' +
+            'diagram (the student reads them and makes the program)',
+        defaultMessage: 'Read and build',
     },
 });
 
@@ -122,6 +130,7 @@ const LessonTaskBar = ({
     // 課題の 1 行が無いチャレンジ（中身がまだのもの）は名前を出す
     const task = intl.formatMessage(challenge.task || challenge.name);
     const image = challenge.image || null;
+    const readDiagram = isReadDiagram(challenge);
     const wrapperRef = useRef(null);
     // マウスを乗せているあいだだけ開く（hovered）と、タップ・キーボードで開いたまま（pinned）
     const [hovered, setHovered] = useState(false);
@@ -245,6 +254,12 @@ const LessonTaskBar = ({
                     {intl.formatMessage(messages.position, { number: challenge.number, count: challengeCount })}
                 </span>
                 {assignmentBand}
+                {/* 読んで作るチャレンジの印（説明と図だけで指示する形だと、始める前にわかるように） */}
+                {readDiagram && (
+                    <span className={styles.mode} data-testid="lesson-task-bar-read-diagram">
+                        {intl.formatMessage(messages.readDiagram)}
+                    </span>
+                )}
                 <button
                     type="button"
                     className={styles.task}
@@ -319,8 +334,10 @@ LessonTaskBar.propTypes = {
     }),
     // クラスの課題の小さな帯（lesson-assignment-band の compact）。位置の右に出す。課題のチャレンジでなければ null
     assignmentBand: PropTypes.node,
-    // courses.js の defineChallenge が返す形（number / name / task / image）
+    // courses.js の defineChallenge が返す形（number / name / task / image / mode）
     challenge: PropTypes.shape({
+        // 'readDiagram' = 読んで作るチャレンジ（バーに印を出す）
+        mode: PropTypes.string,
         number: PropTypes.number.isRequired,
         name: PropTypes.object.isRequired,
         task: PropTypes.object,

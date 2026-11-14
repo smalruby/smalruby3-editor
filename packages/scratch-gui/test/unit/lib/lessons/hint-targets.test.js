@@ -254,9 +254,44 @@ describe('hint targets: the SP side rail is above the balloon', () => {
 
     test('hintViewport starts right of the side rail, and is the whole screen without it', () => {
         const win = { innerWidth: 375, innerHeight: 667 };
-        expect(hintViewport(document, win)).toEqual({ left: 0, width: 375, height: 667 });
+        expect(hintViewport(document, win)).toEqual({ left: 0, top: 0, width: 375, height: 667 });
         addEl('rail', rect(0, 0, 56, 667), { 'data-testid': 'mobile-side-rail' });
-        expect(hintViewport(document, win)).toEqual({ left: 56, width: 375, height: 667 });
+        expect(hintViewport(document, win)).toEqual({ left: 56, top: 0, width: 375, height: 667 });
+    });
+
+    test('hintViewport starts below the lesson task bar (the bar is drawn above the balloon)', () => {
+        const win = { innerWidth: 1300, innerHeight: 600 };
+        addEl('bar', rect(0, 40, 1300, 80), { 'data-testid': 'lesson-task-bar' });
+        expect(hintViewport(document, win)).toEqual({ left: 0, top: 80, width: 1300, height: 600 });
+    });
+
+    test('with no target, the balloon is centered in the area below the task bar', () => {
+        const placed = computeHintPlacement({
+            target: null,
+            balloon: { width: 300, height: 200 },
+            viewport: { left: 0, top: 80, width: 1300, height: 600 },
+        });
+        expect(placed.side).toBe(HINT_SIDES.CENTER);
+        // 横は (1300 - 300) / 2、縦はバーの下（80〜600）の真ん中 80 + (520 - 200) / 2
+        expect(placed.left).toBe(500);
+        expect(placed.top).toBe(240);
+    });
+
+    test('placement and dragging keep a tall balloon below the task bar', () => {
+        const viewport = { left: 0, top: 80, width: 1300, height: 600 };
+        const balloon = { width: 352, height: 480 };
+        // ステージ（y = 125〜395）の左に置くと、真ん中に合わせた上の端がバーの下にもぐる
+        const placed = computeHintPlacement({
+            target: rect(930, 125, 1290, 395),
+            balloon,
+            viewport,
+            sides: [HINT_SIDES.LEFT],
+        });
+        expect(placed.side).toBe(HINT_SIDES.LEFT);
+        expect(placed.top).toBe(88);
+        expect(clampHintPosition({ left: 100, top: 10 }, balloon, viewport).top).toBe(88);
+        // 収まらないほど高いときは、下を切っても上（ヘッダーと閉じる）を見せる
+        expect(clampHintPosition({ left: 100, top: 10 }, { width: 352, height: 700 }, viewport).top).toBe(88);
     });
 
     test('placement and dragging keep the balloon right of the rail', () => {

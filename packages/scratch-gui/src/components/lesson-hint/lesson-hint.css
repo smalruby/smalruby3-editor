@@ -52,6 +52,18 @@
     margin-bottom: 0;
 }
 
+/* 文言の下の一言（読んで作るチャレンジの「答えは最後のページ」など）。文言より控えめにする */
+.note {
+    margin: 0 0 0.5rem;
+    font-size: 0.8125rem;
+    color: $text-primary-transparent;
+    white-space: pre-line;
+}
+
+.note:last-child {
+    margin-bottom: 0;
+}
+
 /*
     1 ページ目のアクティビティ図。吹き出しの幅（最大 22rem）と、1300×600 で吹き出しが画面に収まる高さまで
     縦横の比のまま縮める。字が読める下限（lesson-activity-diagram.jsx の min-width / min-height）まで縮めても
@@ -66,6 +78,14 @@
 .activity-diagram > svg {
     margin: 0 auto;
     max-height: min(16rem, calc(100vh - 16rem));
+}
+
+/* 描いたブロックの見出し（読んで作るチャレンジの答えのページ「ネコのプログラム」） */
+.blocks-label {
+    margin: 0 0 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: bold;
+    color: $text-primary-transparent;
 }
 
 /* 本物のブロックを描く Blockly の読み取り専用ワークスペース。大きさは描いた中身から決める */

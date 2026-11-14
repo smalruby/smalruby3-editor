@@ -1816,6 +1816,7 @@ export default {
     'gui.lessonTaskBar.hint': 'ヒント',
     'gui.lessonTaskBar.another': 'ほかのチャレンジへ',
     'gui.lessonTaskBar.end': 'レッスンをおえる',
+    'gui.lessonTaskBar.readDiagram': 'よんでつくる',
     'gui.lessonPracticePartner.title': 'れんしゅうあいて: {name}',
     'gui.lessonPracticePartner.note': 'ペアでやるときは、とじて ほんもののメッシュで つなごう。',
     'gui.lessonPracticePartner.close': 'れんしゅうあいてを とじる',
@@ -1835,6 +1836,13 @@ export default {
     'gui.lessonHint.dragLabel': 'ドラッグでうごかせます',
     'gui.lessonHint.insertCodeError': 'まだプログラムをいれられないよ。さきにヒントのとおりにたそう。',
     'gui.lessonHint.blocksError': '（このブロックはかけませんでした）',
+    'gui.lessonHint.readDiagram.answerAtEnd':
+        'ずとせつめいをよんで、じぶんでプログラムをつくろう。こたえはヒントのさいごのページにあるよ。',
+    'gui.lessonHint.readDiagram.try':
+        'できたら、うごかしてためそう。ずのとおりにうごくかな？ ちがったら、ずをもういちどよんでなおそう。こたえはつぎのページでみられるよ。',
+    'gui.lessonHint.readDiagram.answerOf': '{name}のプログラム',
+    'gui.lessonHint.readDiagram.answer':
+        'これがこたえのプログラムだよ。じぶんのプログラムとみくらべよう。あなたのプログラムはそのままだよ。',
     'gui.menuBar.lessons': 'レッスン',
     'gui.lessonsLibrary.title': 'レッスンをえらぶ',
     'gui.lessonsLibrary.search': 'けんさく',
