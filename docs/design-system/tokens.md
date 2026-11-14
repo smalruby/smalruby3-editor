@@ -143,7 +143,7 @@
 | 文字の大きさ | `0.75rem` | 14 / 10 | `$font-size-small`（= `$menu-bar-standard-font-size`） |
 | 文字の大きさ | `1rem` | 7 / 6 | `$font-size-base` |
 | 文字の太さ | `bold`（ほかに書き方ゆれの `bolder` 8 / 8・`700` 8 / 5・`600` 6 / 5・`500` 5 / 5） | 39 / 26 | `$font-weight-bold` |
-| 影 | `0 0 .5rem hsla(0, 0%, 0%, .25)` | 3 / 2（library-item・action-menu） | `$shadow-raised` |
+| 影 | `0 0 .5rem hsla(0, 0%, 0%, .25)` | 3 / 2（library-item の「近日公開」の札 `.coming-soon-text`・action-menu の吹き出し `.tooltip`） | `$shadow-raised` |
 | 動き | `all 0.25s ease` | 7 / 6 | `$transition-standard` |
 | 動き | `all 0.15s ease-out` | 4 / 3 | （まだ付けない） |
 | 余白 | `0.25rem`・`0.5rem`・`1rem`（`$space` があるのに直書き。`margin`・`padding`） | 46 / 17・78 / 28・50 / 23 | `$space-small`・`$space-medium`・`$space-large` |

@@ -49,6 +49,8 @@
 | [`tokens.md`](tokens.md) | 上流のトークン（色・大きさ・文字・重なり順）の一覧、くり返し出る直書きの値、意味の名前の別名 |
 | [`blocks.md`](blocks.md) | ブロックのカテゴリの色（3 つの色のモード）と形の寸法 |
 | [`paint.md`](paint.md) | ペイントエディター（scratch-paint）の値と、GUI との食い違い |
+| [`library.md`](library.md) | スプライト・背景・コスチューム・音を選ぶライブラリ（フルスクリーンのモーダル）の並び・色・値、スモウルビーの追加 |
+| [`dialogs.md`](dialogs.md) | 変数・リスト・ブロックを作るダイアログと削除の確認の並び・色・値、スモウルビーの追加 |
 | [`components/`](components/) | 共通部品（ボタン・入力欄・メニュー・モーダル・タブ・カード・確認・アラート）の状態の表と、独自の画面で使うボタン・フォーカスの形 |
 | [`screenshots/`](screenshots/) | 見本の画像（名前の付け方は [`../_screenshot-guidelines.md`](../_screenshot-guidelines.md)） |
 
@@ -115,7 +117,7 @@ DOCS_SHOTS=1 node capture-design-system.mjs                  # screenshots/ の�
 
 ## 文書を新しく保つ
 
-- **upstream のマージのとき**: `src/css/` の 4 つのファイルが変わったら、[`tokens.md`](tokens.md) の表と基準のタグ（このページと `tokens.md` の `v13.7.2`）を直す。部品の CSS が変わったら、`components/` と各画面の文書を見直す。
+- **upstream のマージのとき**: `src/css/` の 4 つのファイルが変わったら、[`tokens.md`](tokens.md) の表と基準のタグ（このページと `tokens.md` の `v13.7.2`）を直す。部品の CSS が変わったら、`components/` と各画面の文書（`library.md`・`dialogs.md` など）を見直す。
 - **別名を足す・変えるとき**: `smalruby-tokens.css` に 1 行のコメント付きで足し、`tokens.md` の「意味の名前の別名」の表にも足す（両方をいっしょに直す）。上流にトークンがあるときは、それを指す別名にする（値を写さない）。
 - **上流のトークンのファイルを変えるとき**: 原則として変えない。どうしても変えるときは、マーカーを付けて `docs/maintenance/smalruby-markers-gui.md` に載せ、`tokens.md` の「スモウルビーとの差」にも書く。
 - **スクリーンショット**: 上流の値の見本なので、スモウルビーの吹き出しなどが写らないようにして撮る。撮り直しはファイル名を変えない（[`../_screenshot-guidelines.md`](../_screenshot-guidelines.md)）。

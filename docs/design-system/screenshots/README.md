@@ -11,8 +11,12 @@
 | `0101-menu-bar.png` | メニューバー（「レッスン」「クラス」はスモウルビーの追加。「設定」の中身もスモウルビーで変えている） |
 | `0102-menu-file.png` | ファイルのメニュー（[`../components/menus.md`](../components/menus.md)） |
 | `0201-code-tab-1366x1024.png` | コードタブの画面全体（Ruby タブはスモウルビーの追加） |
+| `0301-library-header.png` | スプライトのライブラリのヘッダーと絞り込みの帯（「すべて」が選ばれた状態。[`../library.md`](../library.md)） |
+| `0302-sound-library-item.png` | 音のライブラリの項目のホバーと再生ボタン（[`../library.md`](../library.md)） |
 | `0401-variable-prompt.png` | 変数を作るモーダル |
 | `0402-delete-sprite-confirm.png` | スプライトを削除するときの確認 |
+| `0403-variable-prompt-stage.png` | ステージを選んでいるときの変数を作るモーダル（範囲の選択肢の代わりにお知らせの文。開いたときに入力欄に入るフォーカスの既定の輪も写る。[`../dialogs.md`](../dialogs.md)） |
+| `0404-custom-procedures.png` | ブロックを作るモーダル（[`../dialogs.md`](../dialogs.md)） |
 | `0501-tabs.png` | エディターのタブ（上流の 3 つだけ。[`../components/tabs.md`](../components/tabs.md)） |
 | `0502-toggle-buttons.png` | 切り替えボタン（ステージの大きさ。[`../components/buttons.md`](../components/buttons.md)） |
 | `0503-input-form.png` | 丸い小さい入力欄（スプライトの情報。[`../components/inputs.md`](../components/inputs.md)） |
@@ -24,4 +28,4 @@
 | `0602-blocks-high-contrast.png` | ブロック: 高コントラスト |
 | `0603-blocks-dark.png` | ブロック: ダーク（画面からは選べない。Redux で切りかえて撮った） |
 
-番号の上 2 桁: 01 = メニューバー、02 = コードタブ、03 = 拡張機能・ライブラリ（空き）、04 = ダイアログ、05 = 共通部品の切り抜き、06 = ブロック。
+番号の上 2 桁: 01 = メニューバー、02 = コードタブ、03 = 拡張機能・ライブラリ、04 = ダイアログ、05 = 共通部品の切り抜き、06 = ブロック。
