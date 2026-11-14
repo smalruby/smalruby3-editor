@@ -153,6 +153,18 @@ end-to-end 動作確認: [`tools/playwright-verify/verify-mesh-v2-seat-connect.m
 
 end-to-end 動作確認: [`tools/playwright-verify/verify-classroom-mesh-connect.mjs`](../../tools/playwright-verify/README.md)。
 
+### レッスンの練習相手（ブラウザの中で折り返す）
+
+レッスンのメッシュのチャレンジでは、ひとりでも練習できるように「練習相手」を出せる（詳しくは
+[`docs/lessons/README.md` の「メッシュの練習相手」](../lessons/README.md#メッシュの練習相手)）。メッシュの拡張は変えず、
+レッスンの側が拡張の受け取り口（`meshService.remoteData` の `smalruby-lesson-practice-partner`）と `runtime.startHats`
+だけを使う。**本物のメッシュでつながっている・つなごうとしているあいだは何もしない**ので、本物のメッシュの動きは変わらない。
+
+チャレンジを変えても（新しい作品を読み込んでも）メッシュのグループのつながりは保たれる（拡張と `meshService` は
+作品の読み込みで消えない）。ただし、つながったあとに作品を読み込むと、ステージに付けた変数の見張り
+（`setVariableFunctionHOC`）が新しいステージに付かないため、「変数を作る」で作った変数・モニターのスライダーで変えた
+値はすぐには送られない（ブロックで値を変えたときは送られる）。
+
 ## 主要ファイル
 
 ### scratch-gui
