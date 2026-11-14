@@ -208,6 +208,7 @@ export default {
     'gui.classroom.studentStatus.title': 'おかえりなさい',
     'gui.classroom.studentStatus.seatLabel': '出席番号{seatNumber}',
     'gui.classroom.studentStatus.continue': 'つづける',
+    'gui.classroom.studentStatus.continueAsIs': 'このまま つづける',
     'gui.classroom.studentStatus.continueNote': 'いまの作品のまま、つづきを作る',
     'gui.classroom.studentStatus.wrongSeat': '出席番号がちがう',
     'gui.classroom.studentStatus.reload': '作品を読み込み直す',
@@ -494,8 +495,6 @@ export default {
     'gui.classroom.startMethod.currentNote': '{date} に出したもの',
     'gui.classroom.startMethod.previousNote': '『{assignmentName}』{date} に出したもの',
     'gui.classroom.startMethod.keepNote': 'いまの作品のまま作る',
-    'gui.classroom.startMethod.noticePreviousAlsoAvailable':
-        '先生の設定で、前回の作品からも始められます（ほかの始め方）',
     'gui.classroom.startMethod.others': 'ほかの始め方',
     'gui.classroom.studentAssignment.mainNextPage': '次のページ',
     'gui.classroom.studentAssignment.closeReopened': '閉じる',
@@ -506,13 +505,6 @@ export default {
     'gui.classroom.continueChoice.starter': 'スターターから始める',
     'gui.classroom.continueChoice.loadFailed': '提出した作品を開けませんでした',
     'gui.classroom.continueChoice.gone': 'その提出物はもう読み込めません（期限切れか削除されました）',
-    'gui.classroom.continueChoice.noticeRecommendPrevious': '先生のおすすめ: 前回の提出物から続けよう',
-    'gui.classroom.continueChoice.noticeNoPreviousUseStarter':
-        '前回の提出物が見つからなかったので、スターターから始めよう',
-    'gui.classroom.continueChoice.noticeNoPrevious': '前回の提出物が見つかりませんでした',
-    'gui.classroom.assignmentEditor.startFromPrevious': '前回の提出物から始めさせる',
-    'gui.classroom.assignmentEditor.startFromPreviousHint':
-        '続きの授業向け: 生徒が参加すると、このクラスの前の課題で提出した作品から続けるボタンを「おすすめ」として出します（スターターは出しません）。前回の提出物が無い生徒にはスターターから始めるよう案内します。',
     'gui.classroom.assignmentEditor.peerView': '他者参照',
     'gui.classroom.assignmentEditor.peerViewNone': 'しない',
     'gui.classroom.assignmentEditor.peerViewAlways': 'いつでも見られる',
@@ -524,8 +516,6 @@ export default {
     'gui.classroom.assignmentEditor.meshGroupLimitNone': '制限なし',
     'gui.classroom.assignmentEditor.meshGroupLimitHint':
         '「制限なし」にすると、クラス全員を 1 つのグループにできます。先生が「ホストになる」と「先生のグループ」になり、生徒はそこへ 1 タップで入れます。',
-    'gui.classroom.teacherDetail.previewStartPrevious':
-        '参加したとき: 前回の提出物から続けるのがおすすめ（無い生徒はスターター）',
     'gui.classroom.teacherDetail.previewStartStarter':
         '参加したとき: ボタンでスターターから始めます（前回の提出物がある生徒は、どこから始めるか選びます）',
     'gui.classroom.teacherDetail.previewStartNone':
@@ -859,9 +849,7 @@ export default {
     'gui.classroom.assignmentEditor.errorLessonUnknownCourse':
         'レッスンのコースが見つかりません。別のコースか「レッスンを使わない」を選んでください。',
     'gui.classroom.assignmentEditor.errorLessonNoChallenges': 'レッスンのチャレンジを 1 つ以上選んでください。',
-    'gui.classroom.assignmentEditor.advancedSummary': '前回から: {previous}・他者参照: {peerView}・メッシュ: {mesh}',
-    'gui.classroom.assignmentEditor.summaryOn': 'する',
-    'gui.classroom.assignmentEditor.summaryOff': 'しない',
+    'gui.classroom.assignmentEditor.advancedSummary': '他者参照: {peerView}・メッシュ: {mesh}',
     'gui.classroom.teacherCreate.assignmentNameHint': '人数と課題名はいつでも変更できます。',
     'gui.classroom.carousel.submitTitle': '生徒が課題を提出できる',
     'gui.classroom.carousel.submitDesc': '参加コードでクラスに参加して、ワンクリックで作品を提出できます。',

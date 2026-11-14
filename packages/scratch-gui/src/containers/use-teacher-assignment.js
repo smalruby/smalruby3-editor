@@ -114,9 +114,6 @@ const useTeacherAssignment = ({
     // {source: 'current-project'} | {source: 'file', blob, name}
     const [starterSource, setStarterSource] = useState(null);
     const [hasExistingStarter, setHasExistingStarter] = useState(false);
-    // "Start from the previous submission" (#1202): students open the same
-    // seat's submission from the previous assignment right after joining.
-    const [startFromPrevious, setStartFromPrevious] = useState(false);
     // "Peer view" (#1208): 'none' | 'always' | 'afterSubmit'.
     const [peerView, setPeerView] = useState('none');
     // Mesh group size limit (#1257): lives on the classroom item (PATCH
@@ -125,10 +122,9 @@ const useTeacherAssignment = ({
         normalizeMeshGroupLimit(selectedClassroom && selectedClassroom.meshGroupLimit),
     );
     const [isSaving, setIsSaving] = useState(false);
-    // The stored start-from-previous / peer view, so the editor can mark an
+    // The stored peer view, so the editor can mark an
     // unsaved choice (#1303 review Q1). Updated on each (re)load, i.e. also
     // right after a save.
-    const [savedStartFromPrevious, setSavedStartFromPrevious] = useState(false);
     const [savedPeerView, setSavedPeerView] = useState('none');
     // Lesson settings (#1598): the editor draft (null = no lesson) and the
     // stored `lesson` field, to mark unsaved changes and to send `lesson`
@@ -182,9 +178,7 @@ const useTeacherAssignment = ({
             setHasExistingStarter(hasStarter);
             setStarterMode(hasStarter ? 'keep' : 'none');
             setStarterSource(null);
-            setStartFromPrevious(data.startFromPrevious === true);
             setPeerView(normalizePeerView(data.peerView));
-            setSavedStartFromPrevious(data.startFromPrevious === true);
             setSavedPeerView(normalizePeerView(data.peerView));
             setSavedLesson(data.lesson || null);
             // Challenges the course no longer has are left out (#1765 FYI2).
@@ -237,11 +231,10 @@ const useTeacherAssignment = ({
 
     const savedSettings = useMemo(
         () => ({
-            startFromPrevious: savedStartFromPrevious,
             peerView: savedPeerView,
             meshGroupLimit: storedMeshGroupLimit,
         }),
-        [savedStartFromPrevious, savedPeerView, storedMeshGroupLimit],
+        [savedPeerView, storedMeshGroupLimit],
     );
 
     const handleAddPage = useCallback(() => {
@@ -336,10 +329,6 @@ const useTeacherAssignment = ({
         },
         [clearError],
     );
-
-    const handleChangeStartFromPrevious = useCallback((value) => {
-        setStartFromPrevious(!!value);
-    }, []);
 
     const handleChangePeerView = useCallback((value) => {
         setPeerView(normalizePeerView(value));
@@ -447,7 +436,7 @@ const useTeacherAssignment = ({
                 }
             }
 
-            const payload = buildAssignmentPayload(editorPages, starterMode, startFromPrevious, peerView);
+            const payload = buildAssignmentPayload(editorPages, starterMode, peerView);
             if (lessonChanged) payload.lesson = buildLessonPayload(lessonDraft);
             const result = await classroomAPI.setAssignment(idToken, selectedClassroom.classroomId, payload);
 
@@ -511,7 +500,6 @@ const useTeacherAssignment = ({
         editorPages,
         starterMode,
         starterSource,
-        startFromPrevious,
         peerView,
         meshGroupLimit,
         lessonDraft,
@@ -533,7 +521,6 @@ const useTeacherAssignment = ({
         starterSource,
         hasExistingStarter,
         isSaving,
-        startFromPrevious,
         peerView,
         meshGroupLimit,
         savedSettings,
@@ -549,7 +536,6 @@ const useTeacherAssignment = ({
         handleUseCurrentProjectAsStarter,
         handleUseFileAsStarter,
         handleRemoveStarter,
-        handleChangeStartFromPrevious,
         handleChangePeerView,
         handleChangeMeshGroupLimit,
         handleChangeLesson,

@@ -51,6 +51,7 @@ const DOC_SHOT_NAMES = {
     'student-status-submitted': ['0305-student-submitted.png'],
     'student-status-reload': ['0335-student-welcome-reload.png'],
     'student-status-leave': ['0336-student-welcome-leave-confirm.png'],
+    'student-status-continue-submission': ['0345-student-welcome-continue-submission.png'],
     'student-status-lesson-in-progress': ['0320-student-status-lesson.png'],
     'student-submit-confirm': ['0306-student-submit-confirm.png'],
     'student-lesson-progress-confirm': ['0324-lesson-progress-confirm.png'],
@@ -240,6 +241,32 @@ const openModal = async (page) => {
     await page.waitForTimeout(600);
 };
 
+/**
+ * いまの作品にブロックを 1 つ置く（作りかけの作品）。リロードしたあとの新しい作品のままだと、
+ * おかえりなさいの主ボタンが「この課題で出した作品から続ける」になるため (#1825)。
+ * @param {import('playwright').Page} page - 対象ページ
+ * @returns {Promise<void>}
+ */
+const addBlock = async (page) => {
+    await page.waitForFunction(() => window.smalruby && window.smalruby.vm, { timeout: 30000 });
+    await page.evaluate(() => {
+        const vm = window.smalruby.vm;
+        const target = vm.editingTarget || vm.runtime.targets[vm.runtime.targets.length - 1];
+        target.blocks.createBlock({
+            id: 'viewport-block',
+            opcode: 'motion_movesteps',
+            inputs: {},
+            fields: {},
+            next: null,
+            parent: null,
+            shadow: false,
+            topLevel: true,
+            x: 0,
+            y: 0,
+        });
+    });
+};
+
 const history = Array.from({ length: 5 }, (_, i) => ({
     joinCode: `abc23${i}`,
     className: `${LONG_CLASS} ${i + 1}`,
@@ -422,20 +449,18 @@ const kickedRoutes = (activeIds) => async (p) => {
 // ---------- student-joined (長い名前 + 前回のコメント + 主ボタン + ほかの始め方 3 つ・#1793) ----------
 // この課題の提出・前回の提出物・スターターが全部ある → 主ボタンは「この課題で出した作品から続ける」で、
 // 「ほかの始め方」を開くと 3 つ (前回・スターター・いまの作品のまま) が並ぶ。閉じた状態と開いた状態を測る。
-// 続けて先生の「前回の提出物から始めさせる」が ON (この課題の提出なし) → 1 行のお知らせも出る状態を測る。
-for (const [label, continuable, startFromPrevious, shots] of [
-    ['all ways', CONTINUABLE, false, ['student-joined', 'student-joined-others']],
-    ['teacher setting on + notice', { ...CONTINUABLE, current: null }, true, ['student-joined-notice', 'student-joined-notice-others']],
-    // 先生の設定が ON でこの課題に提出済み: 主ボタンは変えず「前回の作品からも始められます」と知らせる
-    ['teacher setting on + already submitted', CONTINUABLE, true, ['student-joined-submitted-notice', 'student-joined-submitted-notice-others']],
+// 続けてこの課題の提出が無い (主ボタンは前回の作品) 状態も測る。
+for (const [label, continuable, shots] of [
+    ['all ways', CONTINUABLE, ['student-joined', 'student-joined-others']],
+    ['previous first', { ...CONTINUABLE, current: null }, ['student-joined-previous', 'student-joined-previous-others']],
 ]) {
     const { ctx, page } = await studentPage({
         routes: async (p) => {
-            await p.route('**/continuable-submissions', (r) => r.fulfill({ json: { ...continuable, startFromPrevious } }));
+            await p.route('**/continuable-submissions', (r) => r.fulfill({ json: continuable }));
             // ページなし・スターターだけの課題 → 参加完了画面に主ボタンと「ほかの始め方」。
             await p.route('**/classrooms/c1/assignment', (r) =>
                 r.fulfill({
-                    json: { assignment: { pages: [], starterUrl: 'https://example.invalid/starter.sb3' }, startFromPrevious },
+                    json: { assignment: { pages: [], starterUrl: 'https://example.invalid/starter.sb3' } },
                 }),
             );
             await p.route('**/classrooms/join', (r) =>
@@ -615,6 +640,7 @@ const routeWelcomeBack = (submission) => async (p) => {
             teacherComment: LONG_COMMENT,
         }),
     });
+    await addBlock(page);
     await openModal(page);
     await page.locator('[data-testid="classroom-phase-student-status"]').waitFor({ timeout: 10000 });
     await page.locator('[data-testid="classroom-status-reload-toggle"]').waitFor({ timeout: 10000 });
@@ -661,6 +687,7 @@ const routeWelcomeBack = (submission) => async (p) => {
         storage: { 'smalruby:classroom': session({ submissionStatus: 'submitted' }) },
         routes: routeWelcomeBack({ status: 'submitted', submittedAt: new Date().toISOString() }),
     });
+    await addBlock(page);
     await openModal(page);
     await page.locator('[data-testid="classroom-phase-student-status"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(800);
@@ -669,6 +696,28 @@ const routeWelcomeBack = (submission) => async (p) => {
         name: 'student-status (welcome back: submitted)',
         shot: 'student-status-submitted',
         primary: '[data-testid="classroom-status-continue"]',
+    });
+    await ctx.close();
+}
+
+// おかえりなさい (リロードしたあと・#1825): 作品は新しい作品のまま + この課題の提出物がある →
+// 主ボタンは「この課題で出した作品から続ける」、「このまま つづける」は小さなリンク。
+{
+    const { ctx, page } = await studentPage({
+        storage: { 'smalruby:classroom': session({ submissionStatus: 'submitted' }) },
+        routes: routeWelcomeBack({ status: 'submitted', submittedAt: new Date().toISOString() }),
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-status-continue-current"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(800);
+    if (!(await page.locator('[data-testid="classroom-status-continue-as-is"]').count())) {
+        record({ who: 'student', name: 'welcome back: 「このまま つづける」 link', ok: false, modal: '-', body: '-', page: '-' });
+    }
+    await judge(page, {
+        who: 'student',
+        name: 'student-status (welcome back after a reload: continue from this assignment)',
+        shot: 'student-status-continue-submission',
+        primary: '[data-testid="classroom-status-continue-current"]',
     });
     await ctx.close();
 }

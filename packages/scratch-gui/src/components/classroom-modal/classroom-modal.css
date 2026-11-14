@@ -2615,18 +2615,8 @@
     font-size: 0.8rem;
 }
 
-.assignment-start-from-previous {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-    cursor: pointer;
-}
-
-.assignment-start-from-previous input {
-    margin-top: 0.2rem;
-}
-
+/* Shared by the advanced settings (peer view, mesh, lesson): the old
+   start-from-previous checkbox that named them is gone. */
 .assignment-start-from-previous-label {
     display: block;
     color: #575e75;

@@ -210,3 +210,53 @@ describe('StudentStatusView: おかえりなさい (#1794)', () => {
         expect(screen.getByTestId('classroom-student-refresh')).toBeInTheDocument();
     });
 });
+
+describe('StudentStatusView: リロードしたあとに「この課題で出した作品から続ける」 (#1825)', () => {
+    const CURRENT = {
+        classroomId: 'c1',
+        submittedAt: '2026-11-10T01:00:00.000Z',
+        projectUrl: 'https://signed.example/cur.sb3',
+    };
+
+    test('出すときは主ボタンが「この課題で出した作品から続ける」で、「このまま つづける」は小さなリンク', () => {
+        const h = renderView({ continueOptions: { current: CURRENT, previous: null }, offerCurrentSubmission: true });
+        const main = screen.getByTestId('classroom-status-continue-current');
+        expect(main).toHaveTextContent('Continue from what you submitted for this assignment');
+        expect(screen.queryByTestId('classroom-status-continue')).not.toBeInTheDocument();
+        const keep = screen.getByTestId('classroom-status-continue-as-is');
+        expect(keep).toHaveTextContent('Continue as it is');
+        fireEvent.click(main);
+        expect(h.onLoadSubmission).toHaveBeenCalledWith('current');
+        fireEvent.click(keep);
+        expect(h.onContinue).toHaveBeenCalledTimes(1);
+    });
+
+    test('出すときは「作品を読み込み直す」に同じ提出物を重ねて出さない', () => {
+        renderView({
+            continueOptions: { current: CURRENT, previous: CURRENT },
+            hasStarter: true,
+            offerCurrentSubmission: true,
+        });
+        fireEvent.click(screen.getByTestId('classroom-status-reload-toggle'));
+        expect(screen.queryByTestId('classroom-status-reload-current')).not.toBeInTheDocument();
+        expect(screen.getByTestId('classroom-status-reload-previous')).toBeInTheDocument();
+        expect(screen.getByTestId('classroom-status-reload-starter')).toBeInTheDocument();
+    });
+
+    test('出さないときはいつもの「つづける」', () => {
+        renderView({ continueOptions: { current: CURRENT, previous: null } });
+        expect(screen.getByTestId('classroom-status-continue')).toBeInTheDocument();
+        expect(screen.queryByTestId('classroom-status-continue-current')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('classroom-status-continue-as-is')).not.toBeInTheDocument();
+    });
+
+    test('レッスンの課題では、いまの主ボタン（レッスンを続ける）を優先する', () => {
+        renderView({
+            continueOptions: { current: CURRENT, previous: null },
+            offerCurrentSubmission: true,
+            lessonStatus: LESSON_STATUS,
+            studentLesson: { submitWork: true, challengeIds: ['a', 'b'] },
+        });
+        expect(screen.queryByTestId('classroom-status-continue-current')).not.toBeInTheDocument();
+    });
+});

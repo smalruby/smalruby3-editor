@@ -36,6 +36,18 @@ const SET_STUDENT_LESSON = 'scratch-gui/classroom/SET_STUDENT_LESSON';
 const REQUEST_STUDENT_SUBMIT = 'scratch-gui/classroom/REQUEST_STUDENT_SUBMIT';
 const CLEAR_STUDENT_SUBMIT_REQUEST = 'scratch-gui/classroom/CLEAR_STUDENT_SUBMIT_REQUEST';
 const SET_STUDENT_SUBMITTING = 'scratch-gui/classroom/SET_STUDENT_SUBMITTING';
+const MARK_STUDENT_PROJECT_LOADED = 'scratch-gui/classroom/MARK_STUDENT_PROJECT_LOADED';
+
+// Where the open project came from (#1825), read from actions of other reducers:
+// the new default project, or one opened from outside (a file, a URL, an id,
+// Google Drive). The welcome back screen offers this assignment's submission
+// only on the untouched new project.
+const PROJECT_FROM_DEFAULT_ACTIONS = ['scratch-gui/project-state/DONE_FETCHING_DEFAULT'];
+const PROJECT_FROM_OUTSIDE_ACTIONS = [
+    'scratch-gui/project-state/START_LOADING_VM_FILE_UPLOAD',
+    'scratch-gui/project-state/DONE_FETCHING_WITH_ID',
+    'googleDriveFile/SET_GOOGLE_DRIVE_FILE',
+];
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -107,6 +119,9 @@ const saveSession = (session) => {
         // only for the current submission; it must never be persisted to localStorage.
         const persistable = { ...session };
         delete persistable.submissionThumbnail;
+        // Kept in this tab only (#1825): a reload must forget them.
+        delete persistable.studentLoadedSubmission;
+        delete persistable.projectFromOutside;
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
     } catch {
         // Ignore storage errors
@@ -207,6 +222,13 @@ const initialState = {
     // A submission is being sent (#1795). The menu bar's submit button is
     // disabled meanwhile so a second, concurrent submit cannot start. Not persisted.
     studentSubmitting: false,
+    // The submission of this assignment loaded in this tab (submissionKey of
+    // classroom-welcome-back.js), so the welcome back screen does not offer it
+    // again (#1825). Memory only: never persisted, a reload forgets it.
+    studentLoadedSubmission: null,
+    // The open project was opened from outside instead of being the new
+    // default project (#1825). Memory only.
+    projectFromOutside: false,
 };
 
 const reducer = (state, action) => {
@@ -255,6 +277,7 @@ const reducer = (state, action) => {
                     // the status is read again from the server for the new assignment.
                     submissionStatus: null,
                     lastSubmittedAt: null,
+                    studentLoadedSubmission: null,
                 };
             }
             return { ...state, ...session };
@@ -285,6 +308,7 @@ const reducer = (state, action) => {
                 studentLesson: null,
                 studentSubmitRequested: false,
                 studentSubmitting: false,
+                studentLoadedSubmission: null,
             };
         case SET_SUBMISSION_THUMBNAIL:
             return { ...state, submissionThumbnail: action.submissionThumbnail };
@@ -400,7 +424,19 @@ const reducer = (state, action) => {
             return state.studentSubmitRequested ? { ...state, studentSubmitRequested: false } : state;
         case SET_STUDENT_SUBMITTING:
             return { ...state, studentSubmitting: !!action.submitting };
+        case MARK_STUDENT_PROJECT_LOADED:
+            return {
+                ...state,
+                projectFromOutside: true,
+                studentLoadedSubmission: action.submissionKey || state.studentLoadedSubmission,
+            };
         default:
+            if (PROJECT_FROM_DEFAULT_ACTIONS.includes(action.type)) {
+                return state.projectFromOutside ? { ...state, projectFromOutside: false } : state;
+            }
+            if (PROJECT_FROM_OUTSIDE_ACTIONS.includes(action.type)) {
+                return state.projectFromOutside ? state : { ...state, projectFromOutside: true };
+            }
             return state;
     }
 };
@@ -499,6 +535,12 @@ const setStudentPeerView = (peerView) => ({ type: SET_STUDENT_PEER_VIEW, peerVie
 const openStudentPeerPanel = () => ({ type: OPEN_STUDENT_PEER_PANEL });
 const closeStudentPeerPanel = () => ({ type: CLOSE_STUDENT_PEER_PANEL });
 const requestMeshConnect = () => ({ type: REQUEST_MESH_CONNECT });
+/**
+ * A class load (starter / submission) replaced the open project (#1825).
+ * @param {?string} submissionKey - key of this assignment's submission when it was the one loaded
+ * @returns {object} action
+ */
+const markStudentProjectLoaded = (submissionKey = null) => ({ type: MARK_STUDENT_PROJECT_LOADED, submissionKey });
 const clearMeshConnectRequest = () => ({ type: CLEAR_MESH_CONNECT_REQUEST });
 /**
  * @param {?object} genai - `genai` of the join / verify-session response (#1275)
@@ -585,6 +627,7 @@ export {
     closeStudentPeerPanel,
     requestMeshConnect,
     clearMeshConnectRequest,
+    markStudentProjectLoaded,
     setStudentGenai,
     setRubyteeEnabled,
     setStudentLesson,

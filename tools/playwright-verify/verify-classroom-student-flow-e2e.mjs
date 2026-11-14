@@ -3,11 +3,11 @@
 //   課題 1（ふつう）: 参加 → 番号 → はじめる → つくる → メニューバーの「提出する」→ 提出できました ✓
 //                     → 提出済み ✓ → 再提出 → 先生が返却 → 返却済み ✓・先生のコメント
 //                     → 入り直し（おかえりなさい → つづける）
-//   課題 2（スターターあり・前回から OFF）: 前回の番号が光る（自動では選ばない）→ 前回の作品から続ける
+//   課題 2（スターターあり）: 前回の番号が光る（自動では選ばない）→ 前回の作品から続ける
 //                     / スターターから始める → 作品を読み込み直す（この課題・前回・スターター）
 //                     → クラスから出る（確認）→ 共用の PC で別の生徒 → 出席番号がちがう（前回の番号を忘れる）
-//   課題 3（前回から ON）: 前回の番号が使用中 → すぐ案内 → 退室依頼 → 先生が承認 → その席で参加
-//                     / 30 秒たつと案内の枠と光る使用中の席 / 先生のおすすめのお知らせ
+//   課題 3: 前回の番号が使用中 → すぐ案内 → 退室依頼 → 先生が承認 → その席で参加
+//                     / 30 秒たつと案内の枠と光る使用中の席
 //   課題 4（レッスン）: 「はじめる」でレッスン表・条件を満たすまで「提出する」が出ない
 //   en / ja-Hira: 番号 → 参加完了 → 提出確認 → 提出できました がスクロールしない
 //   スマホ（667×375）: ☰ のドロワーのいちばん上に「提出する」
@@ -508,7 +508,7 @@ try {
     await shot(s1, 's1-a2-seat-previous');
     await pickSeat(s1, 1);
     record('s1 課題 2: 主ボタンは「前回の作品から続ける」', (await attr(s1, 'classroom-start-method', 'data-main')) === 'previous', await text(s1, 'classroom-start-main'));
-    record('s1 課題 2: 先生の設定が OFF なのでお知らせなし', !(await exists(s1, 'classroom-start-notice')));
+    record('s1 課題 2: お知らせなし', !(await exists(s1, 'classroom-start-notice')));
     await clickTid(s1, 'classroom-start-others-toggle');
     await sleep(300);
     const others = await s1.$$eval('[data-testid^="classroom-start-other-"]', (els) => els.map((e) => e.dataset.testid.replace('classroom-start-other-', '')).filter((k) => k !== 's'));
@@ -601,14 +601,8 @@ try {
     await clickTid(s2, 'classroom-start-main');
     await sleep(600);
 
-    // === 課題 3（前回から ON）===
+    // === 課題 3 ===
     const a3 = await createAssignment(`第3回-${stamp}`);
-    await teacher.click(tid('classroom-tab-description'));
-    await teacher.click(tid('classroom-assignment-advanced-toggle'));
-    await waitTid(teacher, 'classroom-assignment-start-from-previous');
-    await teacher.check(tid('classroom-assignment-start-from-previous'));
-    await teacher.keyboard.press('Escape');
-    record('先生: 課題 3 で「前回の提出物から始めさせる」を ON にして保存', await saveAssignment());
     log('assignment 3', a3.id);
 
     // 生徒 3: 課題 3 の席 4 を先に取る（s2 の前回の番号）
@@ -650,9 +644,9 @@ try {
         await sleep(2500);
         record('使用中: 承認されると、その席で自動で参加', auto && /04/.test((await text(s2, 'classroom-menu-seat-number')) || ''), await text(s2, 'classroom-menu-label'));
         record(
-            '課題 3（ON）: 前回の提出物が無い席 4 →「前回の提出物が見つかりませんでした」',
-            /見つかりません/.test((await text(s2, 'classroom-start-notice')) || ''),
-            `${await attr(s2, 'classroom-start-method', 'data-main')} / ${await text(s2, 'classroom-start-notice')}`,
+            '課題 3: 前回の提出物もスターターも無い席 4 →「はじめる」（お知らせは無い）',
+            (await attr(s2, 'classroom-start-method', 'data-main')) === 'keep' && !(await exists(s2, 'classroom-start-notice')),
+            `${await attr(s2, 'classroom-start-method', 'data-main')} / ${await text(s2, 'classroom-start-main')}`,
         );
         await shot(s2, 's2-a3-joined');
         await closeModal(s2);
@@ -678,7 +672,7 @@ try {
     await shot(s3, 's3-kicked');
     await s3.context().close();
 
-    // 生徒 1（共用の PC・前回は席 3）: 課題 3 → 30 秒で案内の枠・使用中の席が光る → 席 1 →（ON）先生のおすすめ
+    // 生徒 1（共用の PC・前回は席 3）: 課題 3 → 30 秒で案内の枠・使用中の席が光る → 席 1 → 前回の作品
     await goto(s1, studentUrl(a3.code));
     await waitTid(s1, 'classroom-phase-student-seat', 30000);
     await sleep(1000);
@@ -696,14 +690,14 @@ try {
     }
     await pickSeat(s1, 1);
     record(
-        '課題 3（ON）: 前回の提出物がある席 1 → 主ボタン「前回の作品から続ける」+ 先生のおすすめ',
-        (await attr(s1, 'classroom-start-method', 'data-main')) === 'previous' && /おすすめ/.test((await text(s1, 'classroom-start-notice')) || ''),
-        `${await text(s1, 'classroom-start-main')} / ${await text(s1, 'classroom-start-notice')}`,
+        '課題 3: 前回の提出物がある席 1 → 主ボタン「前回の作品から続ける」（お知らせは無い）',
+        (await attr(s1, 'classroom-start-method', 'data-main')) === 'previous' && !(await exists(s1, 'classroom-start-notice')),
+        await text(s1, 'classroom-start-main'),
     );
-    await checkFit(s1, 's1 課題 3 参加完了（ON）');
+    await checkFit(s1, 's1 課題 3 参加完了');
     await shot(s1, 's1-a3-joined-recommended');
     await clickTid(s1, 'classroom-start-main');
-    record('課題 3（ON）: 押すと前回の作品（席 1 の課題 2 の提出）が読み込まれる', await waitSprite(s1, MARKER));
+    record('課題 3: 押すと前回の作品（席 1 の課題 2 の提出）が読み込まれる', await waitSprite(s1, MARKER));
 
     // === 課題 4（レッスン・作品も提出する）===
     await s2.context().close();

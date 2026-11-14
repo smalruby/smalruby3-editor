@@ -183,6 +183,7 @@ export default {
     'gui.classroom.studentStatus.title': 'Welcome back',
     'gui.classroom.studentStatus.seatLabel': 'Seat {seatNumber}',
     'gui.classroom.studentStatus.continue': 'Continue',
+    'gui.classroom.studentStatus.continueAsIs': 'Continue as it is',
     'gui.classroom.studentStatus.continueNote': 'Keep making the project you have open',
     'gui.classroom.studentStatus.wrongSeat': 'Wrong seat number',
     'gui.classroom.studentStatus.reload': 'Open a project again',
@@ -442,8 +443,6 @@ export default {
     'gui.classroom.startMethod.currentNote': 'Submitted {date}',
     'gui.classroom.startMethod.previousNote': '“{assignmentName}” submitted {date}',
     'gui.classroom.startMethod.keepNote': 'Keep making the project you have open',
-    'gui.classroom.startMethod.noticePreviousAlsoAvailable':
-        "Your teacher's setting: you can also start from last time's work (other ways to start).",
     'gui.classroom.startMethod.others': 'Other ways to start',
     'gui.classroom.studentAssignment.mainNextPage': 'Next page',
     'gui.classroom.studentAssignment.closeReopened': 'Close',
@@ -454,14 +453,6 @@ export default {
     'gui.classroom.continueChoice.starter': 'Start from the starter',
     'gui.classroom.continueChoice.loadFailed': 'Failed to open the submitted project',
     'gui.classroom.continueChoice.gone': 'That submitted project is no longer available',
-    'gui.classroom.continueChoice.noticeRecommendPrevious':
-        "Your teacher recommends continuing from last time's submission.",
-    'gui.classroom.continueChoice.noticeNoPreviousUseStarter':
-        'There was no submission from last time. Start from the starter.',
-    'gui.classroom.continueChoice.noticeNoPrevious': 'There was no submission from last time.',
-    'gui.classroom.assignmentEditor.startFromPrevious': 'Start from the previous submission',
-    'gui.classroom.assignmentEditor.startFromPreviousHint':
-        'For follow-up lessons: when students join, continuing from the project they submitted last time in this class is recommended (the starter is not offered). Students without one are told to start from the starter.',
     'gui.classroom.assignmentEditor.peerView': "Let students see classmates' work",
     'gui.classroom.assignmentEditor.peerViewNone': "Don't show",
     'gui.classroom.assignmentEditor.peerViewAlways': 'Anytime',
@@ -473,8 +464,6 @@ export default {
     'gui.classroom.assignmentEditor.meshGroupLimitNone': 'No limit',
     'gui.classroom.assignmentEditor.meshGroupLimitHint':
         'With "No limit" the whole class can be one group: when you press "Become host", it becomes the teacher\'s group, and students join it with one tap.',
-    'gui.classroom.teacherDetail.previewStartPrevious':
-        "On join: continuing from last time's submission is recommended (the starter if there is none)",
     'gui.classroom.teacherDetail.previewStartStarter':
         'On join: students start from the starter with a button (students with an earlier submission choose where to start)',
     'gui.classroom.teacherDetail.previewStartNone':
@@ -764,10 +753,7 @@ export default {
     'gui.classroom.assignmentEditor.errorLessonUnknownCourse':
         'The course of the lesson is not available. Choose another course or "Don\'t use lessons".',
     'gui.classroom.assignmentEditor.errorLessonNoChallenges': 'Choose at least one challenge for the lesson.',
-    'gui.classroom.assignmentEditor.advancedSummary':
-        'From last time: {previous} · Peer view: {peerView} · Mesh: {mesh}',
-    'gui.classroom.assignmentEditor.summaryOn': 'Yes',
-    'gui.classroom.assignmentEditor.summaryOff': 'No',
+    'gui.classroom.assignmentEditor.advancedSummary': 'Peer view: {peerView} · Mesh: {mesh}',
     'gui.classroom.teacherCreate.assignmentNameHint': 'You can change the student count and assignment name anytime.',
     'gui.classroom.carousel.submitTitle': 'Students can submit assignments',
     'gui.classroom.carousel.submitDesc': 'Students join with a code and submit their work with one click.',

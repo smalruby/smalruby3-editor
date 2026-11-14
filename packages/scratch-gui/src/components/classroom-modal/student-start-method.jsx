@@ -66,29 +66,6 @@ const messages = defineMessages({
         description: 'Small link that shows the other ways to start under the main button',
         id: 'gui.classroom.startMethod.others',
     },
-    recommendPrevious: {
-        defaultMessage: "Your teacher recommends continuing from last time's submission.",
-        description: "Notice: the teacher's setting recommends the previous submission",
-        id: 'gui.classroom.continueChoice.noticeRecommendPrevious',
-    },
-    noPreviousUseStarter: {
-        defaultMessage: 'There was no submission from last time. Start from the starter.',
-        description:
-            "Notice: the teacher's setting wanted the previous submission but there was none; the starter is recommended",
-        id: 'gui.classroom.continueChoice.noticeNoPreviousUseStarter',
-    },
-    previousAlsoAvailable: {
-        defaultMessage: "Your teacher's setting: you can also start from last time's work (other ways to start).",
-        description:
-            "Notice: the teacher's setting wants the previous submission, but the student already submitted for this assignment",
-        id: 'gui.classroom.startMethod.noticePreviousAlsoAvailable',
-    },
-    noPrevious: {
-        defaultMessage: 'There was no submission from last time.',
-        description:
-            "Notice: the teacher's setting wanted the previous submission but there was none (no starter either)",
-        id: 'gui.classroom.continueChoice.noticeNoPrevious',
-    },
 });
 
 // 生徒が選んだ言語で日時を書く（ブラウザの言語ではなく。英語の PC でも「10:00」と出す）。
@@ -166,11 +143,6 @@ const StudentStartMethod = ({
     const others = method.others || [];
     return (
         <div className={styles.startMethod} data-main={method.main} data-testid="classroom-start-method">
-            {method.notice && (
-                <div className={styles.startNotice} data-testid="classroom-start-notice">
-                    {intl.formatMessage(messages[method.notice])}
-                </div>
-            )}
             <StudentMainButton
                 dataTestId="classroom-start-main"
                 disabled={isLoading}
@@ -228,7 +200,6 @@ StudentStartMethod.propTypes = {
     // decideStartMethod の結果
     method: PropTypes.shape({
         main: PropTypes.oneOf(['current', 'previous', 'starter', 'keep', 'lesson']).isRequired,
-        notice: PropTypes.oneOf(['recommendPrevious', 'noPreviousUseStarter', 'noPrevious', 'previousAlsoAvailable']),
         others: PropTypes.arrayOf(PropTypes.oneOf(['current', 'previous', 'starter', 'keep'])),
     }).isRequired,
     onKeepCurrent: PropTypes.func,
@@ -237,5 +208,5 @@ StudentStartMethod.propTypes = {
     onStartLesson: PropTypes.func,
 };
 
-export { messages };
+export { formatSubmittedAt, messages };
 export default StudentStartMethod;

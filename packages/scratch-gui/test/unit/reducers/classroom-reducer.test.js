@@ -33,6 +33,7 @@ import reducer, {
     requestStudentSubmit,
     clearStudentSubmitRequest,
     selectStudentLesson,
+    markStudentProjectLoaded,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -743,6 +744,66 @@ describe('classroom reducer', () => {
             expect(state.studentSubmitRequested).toBe(true);
             state = reducer(state, clearStudentSubmitRequest());
             expect(state.studentSubmitRequested).toBe(false);
+        });
+    });
+    describe('このタブで開いた作品の出どころ (#1825)', () => {
+        const student = {
+            role: 'student',
+            classroomId: 'class-123',
+            className: '2年A組',
+            joinCode: 'ABC234',
+            seatNumber: 5,
+            memberId: 'seat-05',
+            sessionToken: 'token-abc',
+        };
+
+        test('既定は新しい作品で、読み込んだ提出物も無い', () => {
+            expect(classroomInitialState.projectFromOutside).toBe(false);
+            expect(classroomInitialState.studentLoadedSubmission).toBeNull();
+        });
+
+        test('ファイル・ID・Google ドライブから開くと「外から開いた」、新しい作品で元に戻る', () => {
+            for (const type of [
+                'scratch-gui/project-state/START_LOADING_VM_FILE_UPLOAD',
+                'scratch-gui/project-state/DONE_FETCHING_WITH_ID',
+                'googleDriveFile/SET_GOOGLE_DRIVE_FILE',
+            ]) {
+                const opened = reducer(classroomInitialState, { type });
+                expect(opened.projectFromOutside).toBe(true);
+                expect(
+                    reducer(opened, { type: 'scratch-gui/project-state/DONE_FETCHING_DEFAULT' }).projectFromOutside,
+                ).toBe(false);
+            }
+        });
+
+        test('クラスから読み込むと外から開いた扱いになり、この課題の提出物ならキーを覚える', () => {
+            let state = reducer(classroomInitialState, markStudentProjectLoaded());
+            expect(state.projectFromOutside).toBe(true);
+            expect(state.studentLoadedSubmission).toBeNull();
+            state = reducer(state, markStudentProjectLoaded('class-123:2026-11-10T01:00:00.000Z'));
+            expect(state.studentLoadedSubmission).toBe('class-123:2026-11-10T01:00:00.000Z');
+            // スターターを読み込んでも、覚えた提出物は消えない
+            state = reducer(state, markStudentProjectLoaded());
+            expect(state.studentLoadedSubmission).toBe('class-123:2026-11-10T01:00:00.000Z');
+        });
+
+        test('別のクラスに入る・クラスから出ると、読み込んだ提出物を忘れる', () => {
+            let state = reducer(classroomInitialState, setClassroomSession(student));
+            state = reducer(state, markStudentProjectLoaded('k'));
+            expect(
+                reducer(state, setClassroomSession({ ...student, classroomId: 'other' })).studentLoadedSubmission,
+            ).toBeNull();
+            expect(reducer(state, clearClassroomSession()).studentLoadedSubmission).toBeNull();
+        });
+
+        test('どちらも localStorage に保存しない（読み込み直すと忘れる）', () => {
+            let state = reducer(classroomInitialState, setClassroomSession(student));
+            state = reducer(state, markStudentProjectLoaded('k'));
+            reducer(state, setSubmissionStatus('submitted', '2026-11-10T01:00:00.000Z'));
+            const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
+            expect(stored.submissionStatus).toBe('submitted');
+            expect(stored).not.toHaveProperty('studentLoadedSubmission');
+            expect(stored).not.toHaveProperty('projectFromOutside');
         });
     });
 });

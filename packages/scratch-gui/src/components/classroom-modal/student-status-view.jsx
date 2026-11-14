@@ -3,6 +3,8 @@
  * 入り直したときもふくむ）に出す。番号選びは飛ばす。
  *
  * 主ボタンは「つづける」1 つ（何も読み込まずに閉じる。レッスンの課題では「レッスンを続ける」）。
+ * リロードしたあとで作品が新しい作品のままなら、主ボタンを「この課題で出した作品から続ける」にし、
+ * 「このまま つづける」を小さなリンクにする（#1825・決めるのは classroom-welcome-back.js）。
  * ほかの操作は小さなリンク: 「課題を見る」「みんなの作品を見る」「出席番号がちがう」
  * 「作品を読み込み直す」、右下に離して「クラスから出る」（確認を挟む）。提出のボタンは
  * この画面に置かない（メニューバーの「提出する」から。docs/classroom/ui-ux.md の 8.）。
@@ -24,7 +26,7 @@ import ErrorDisplay from './error-display.jsx';
 import StudentMainButton from './student-main-button.jsx';
 import StudentPeerViewButton from './student-peer-view-button.jsx';
 import partStyles from './student-screen-parts.css';
-import { messages as startMessages } from './student-start-method.jsx';
+import { formatSubmittedAt, messages as startMessages } from './student-start-method.jsx';
 import StudentTextLink from './student-text-link.jsx';
 
 const messages = defineMessages({
@@ -52,6 +54,12 @@ const messages = defineMessages({
         defaultMessage: 'Open a project again',
         description: 'Welcome back screen: small link that lists the projects that can be opened',
         id: 'gui.classroom.studentStatus.reload',
+    },
+    continueAsIs: {
+        defaultMessage: 'Continue as it is',
+        description:
+            'Welcome back screen: small link that closes without loading anything, when the main button opens the submission',
+        id: 'gui.classroom.studentStatus.continueAsIs',
     },
     leaveQuestion: {
         defaultMessage: 'Leave the class? The projects you submitted stay.',
@@ -363,6 +371,7 @@ const StudentStatusView = ({
     hasAssignment = false,
     hasStarter = false,
     lessonStatus = null,
+    offerCurrentSubmission = false,
     studentLesson = null,
     teacherComment = null,
     isLoading = false,
@@ -403,7 +412,16 @@ const StudentStatusView = ({
     // The main button: 「レッスンを続ける」 until the lesson's goal is met, then 「つづける」
     // (make a work of one's own). The lesson stays reachable as a small link.
     const mainIsLesson = !!lesson && !lessonSubmitReady;
-    const reloadKinds = RELOAD_KINDS.filter((kind) => (kind === 'starter' ? hasStarter : !!continueOptions?.[kind]));
+    // After a reload with the new project still open (#1825). A lesson assignment keeps its main button.
+    const mainIsCurrent = offerCurrentSubmission && !lesson && !!continueOptions?.current;
+    const reloadKinds = RELOAD_KINDS.filter((kind) => {
+        if (kind === 'starter') return hasStarter;
+        // The main button already opens it.
+        if (kind === 'current' && mainIsCurrent) return false;
+        return !!continueOptions?.[kind];
+    });
+    const handleLoadCurrent = useCallback(() => onLoadSubmission?.('current'), [onLoadSubmission]);
+    const currentDate = mainIsCurrent ? formatSubmittedAt(continueOptions.current.submittedAt, intl.locale) : '';
     const handleReload = useCallback(
         (kind) => (kind === 'starter' ? onLoadStarter?.() : onLoadSubmission?.(kind)),
         [onLoadStarter, onLoadSubmission],
@@ -446,7 +464,7 @@ const StudentStatusView = ({
                 <LeaveConfirm isLoading={isLoading} onCancel={cancelLeave} onConfirm={onLeaveClassroom} />
             ) : (
                 <div className={partStyles.welcomeMain}>
-                    {mainIsLesson ? (
+                    {mainIsLesson && (
                         <StudentMainButton
                             dataTestId="classroom-continue-lesson-button"
                             disabled={isLoading}
@@ -454,7 +472,22 @@ const StudentStatusView = ({
                         >
                             {continueLessonLabel}
                         </StudentMainButton>
-                    ) : (
+                    )}
+                    {mainIsCurrent && (
+                        <StudentMainButton
+                            dataTestId="classroom-status-continue-current"
+                            disabled={isLoading}
+                            note={
+                                currentDate
+                                    ? intl.formatMessage(startMessages.currentNote, { date: currentDate })
+                                    : null
+                            }
+                            onClick={handleLoadCurrent}
+                        >
+                            {intl.formatMessage(startMessages.current)}
+                        </StudentMainButton>
+                    )}
+                    {!mainIsLesson && !mainIsCurrent && (
                         <StudentMainButton
                             dataTestId="classroom-status-continue"
                             disabled={isLoading}
@@ -465,6 +498,15 @@ const StudentStatusView = ({
                         </StudentMainButton>
                     )}
                     <div className={partStyles.welcomeLinks}>
+                        {mainIsCurrent && (
+                            <StudentTextLink
+                                dataTestId="classroom-status-continue-as-is"
+                                disabled={isLoading}
+                                onClick={onContinue}
+                            >
+                                {intl.formatMessage(messages.continueAsIs)}
+                            </StudentTextLink>
+                        )}
                         {lesson && !mainIsLesson && (
                             <StudentTextLink
                                 dataTestId="classroom-continue-lesson-button"
@@ -543,6 +585,8 @@ StudentStatusView.propTypes = {
     isLoading: PropTypes.bool,
     // assignmentProgress() of the joined lesson assignment (null when not a lesson assignment)
     lessonStatus: PropTypes.object,
+    // 主ボタンを「この課題で出した作品から続ける」にする（shouldOfferCurrentSubmission の結果・#1825）
+    offerCurrentSubmission: PropTypes.bool,
     // normalized lesson setting of the joined assignment
     studentLesson: PropTypes.shape({ submitWork: PropTypes.bool }),
     teacherComment: PropTypes.string,

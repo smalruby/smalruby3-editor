@@ -115,7 +115,6 @@ StudentJoinedConfirmation.propTypes = {
     // decideStartMethod の結果 (#1793)
     startMethod: PropTypes.shape({
         main: PropTypes.string.isRequired,
-        notice: PropTypes.string,
         others: PropTypes.arrayOf(PropTypes.string),
     }).isRequired,
     onClose: PropTypes.func.isRequired,

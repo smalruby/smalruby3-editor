@@ -13,6 +13,7 @@ import {
 import { clearLastSeat, loadLastSeat, saveLastSeat } from '../lib/classroom-last-seats-storage.js';
 import { submissionFromVerify } from '../lib/classroom-menu-submit.js';
 import { evaluateKickRequestPoll, lastSeatKeyFor, withSeatFreed } from '../lib/classroom-seat-selection.js';
+import { projectHasBlocks, shouldOfferCurrentSubmission } from '../lib/classroom-welcome-back.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
 import { assignmentProgress } from '../lib/lessons/assignment-progress.js';
 import { openAssignmentLessonsLibrary } from '../lib/lessons/open-lessons-library.js';
@@ -46,6 +47,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     const scratchBlocks = useSelector((state) => state.scratchGui.blockDisplay?.scratchBlocks);
     // The lesson assignment's progress (#1599), built from the device's lesson records.
     const lessonRecords = useSelector((state) => state.scratchGui.lessonMode.progress);
+    const projectChanged = useSelector((state) => state.scratchGui.projectChanged);
     const studentLesson = classroomState.studentLesson || null;
     const lessonStatus = useMemo(
         () => assignmentProgress(studentLesson, lessonRecords),
@@ -459,6 +461,8 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
     const [statusChecking, setStatusChecking] = useState(
         () => phase === 'student-status' && !!classroomState.sessionToken,
     );
+    // The session was confirmed by the last check of the welcome back screen (#1825).
+    const [sessionVerified, setSessionVerified] = useState(false);
 
     // The session token as of now. A verify answer for a token that is no
     // longer current (the student left, switched class or re-joined meanwhile)
@@ -475,10 +479,12 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         if (!token) return;
         setIsLoading(true);
         setStatusChecking(true);
+        setSessionVerified(false);
         try {
             const result = await classroomAPI.verifySession(token);
             if (token !== sessionTokenRef.current) return;
             urlRejoinCodeRef.current = null;
+            setSessionVerified(true);
             // The teacher may turn the class's generative AI on or off after the student joined.
             dispatch(setStudentGenai(result.genai));
             // The teacher may turn Rubytee on or off after the student joined (#1278).
@@ -655,6 +661,21 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
         handleJoinWithCode(code);
     }, []); // Run once on mount
 
+    // After a reload the project is the new one again: offer this assignment's
+    // submission as the main button of the welcome back screen (#1825). Blocks
+    // are read at render time; adding one also marks the project changed.
+    const offerCurrentSubmission =
+        phase === 'student-status' &&
+        shouldOfferCurrentSubmission({
+            sessionVerified: sessionVerified && !!classroomState.sessionToken,
+            lesson: !!studentLesson,
+            projectChanged,
+            projectFromOutside: classroomState.projectFromOutside,
+            hasBlocks: projectHasBlocks(vm?.runtime?.targets),
+            current: studentAssignment.continueOptions?.current,
+            loadedSubmission: classroomState.studentLoadedSubmission,
+        });
+
     return (
         <ClassroomModalComponent
             assignment={studentAssignment.assignment}
@@ -666,6 +687,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             hasAssignment={studentAssignment.hasAssignment}
             hasStarter={studentAssignment.hasStarter}
             lessonStatus={lessonStatus}
+            offerCurrentSubmission={offerCurrentSubmission}
             studentLesson={studentLesson}
             onStartLesson={handleStartLesson}
             startMethod={studentAssignment.startMethod}
