@@ -83,7 +83,10 @@ const GroupLifecycleMixin = {
 
             this.costTracking.connectionStartTime = Date.now();
             if (this.useWebSocket) {
-                this.startSubscriptions();
+                // issue #1859: 購読の準備ができる前に「つながった」にすると、その間に
+                // 届いたほかの人のメッセージを取りこぼす。準備 (start_ack) を待つ。
+                await this.waitForSubscriptionReady(this.startSubscriptions());
+                this._ensureStillInGroup(group.id);
                 // WebSocket モードは subscription でデータ更新をリアルタイム取得し、
                 // 念のため 15 秒ごとの fallback 同期を実行
                 this.startPeriodicDataSync();
@@ -149,7 +152,10 @@ const GroupLifecycleMixin = {
 
             this.costTracking.connectionStartTime = Date.now();
             if (this.useWebSocket) {
-                this.startSubscriptions();
+                // issue #1859: 購読の準備 (start_ack) を待ってから先へ進む。
+                // fetchAllNodesData もこの後なので、待つ間の変数の更新も取り直せる。
+                await this.waitForSubscriptionReady(this.startSubscriptions());
+                this._ensureStillInGroup(groupId);
                 // WebSocket モードは 15 秒ごとの fallback 同期を実行
                 this.startPeriodicDataSync();
             } else {
@@ -174,6 +180,18 @@ const GroupLifecycleMixin = {
             // Store error for network filter detection
             this.lastError = error;
             throw error;
+        }
+    },
+
+    /**
+     * Throw when the group was left (cleanup) while we were waiting.
+     * 待つ間に切断されたら、タイマーを動かさずに参加を失敗させる。
+     * @param {string} groupId - The group being created or joined.
+     * @private
+     */
+    _ensureStillInGroup(groupId) {
+        if (this.groupId !== groupId) {
+            throw new Error('Mesh V2: Disconnected while waiting for the subscription');
         }
     },
 

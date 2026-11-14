@@ -78,6 +78,7 @@
     "@tensorflow/tfjs": "4.22.0",
     "@vernier/godirect": "1.8.3",
     "arraybuffer-loader": "1.0.8",
+    "apollo-link": "1.2.5",
     "atob": "2.1.2",
     "aws-appsync": "^4.1.10",
     "btoa": "1.2.1",

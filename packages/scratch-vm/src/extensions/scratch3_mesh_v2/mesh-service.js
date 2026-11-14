@@ -57,6 +57,8 @@ class MeshV2Service {
         this.lastFetchTime = '';
 
         this.subscriptions = [];
+        // issue #1859: 購読の準備 (start_ack) を待つ上限。これを過ぎたら待たずに進む。
+        this.subscriptionReadyTimeoutMs = 10000;
         this.connectionTimer = null;
         this.heartbeatTimer = null;
         this.dataSyncTimer = null;
