@@ -89,7 +89,7 @@ end
 
 - クラス名に名前空間は指定できません（`Foo::Bar` は不可）
 - クラス継承 (`class Foo < Bar`) は構文上は許容されますが、親クラスは無視されます
-- class定義のトップレベルに置けるのは、**イベントハンドラ**（`when_xxx`）、**メソッド定義**（`def`）、**`include`**、**`attr_accessor` / `attr_reader` / `attr_writer`** のみです
+- class定義のトップレベルに置けるのは、**イベントハンドラ**（`when_xxx`）、**メソッド定義**（`def`）、**`include`**、**`attr_accessor` / `attr_reader` / `attr_writer`**、**`set_xxx`**（「class定義のみで使えるメソッド」）のみです
 
 ### ブロックの中に書けないもの
 

@@ -85,7 +85,7 @@ end
 
 - Namespaced class names are not allowed (`Foo::Bar` is invalid)
 - Class inheritance (`class Foo < Bar`) is syntactically accepted but the superclass is ignored
-- Only **event handlers** (`when_xxx`), **method definitions** (`def`), and **`include`** are allowed at the class top-level
+- Only **event handlers** (`when_xxx`), **method definitions** (`def`), **`include`**, **`attr_accessor` / `attr_reader` / `attr_writer`**, and **`set_xxx`** (see "Class-Only Configuration Methods") are allowed at the class top-level
 
 ### What Cannot Be Written Inside a Block
 
