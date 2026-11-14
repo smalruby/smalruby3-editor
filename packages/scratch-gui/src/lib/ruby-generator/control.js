@@ -1,4 +1,4 @@
-import { beginLoopBodyOf, isLoopConditionCall } from './scrub.js';
+import { beginLoopBodyOf, isLoopConditionCall, userCommentParts, withTrailingComment } from './scrub.js';
 
 /**
  * Define Ruby code generator for Control Blocks
@@ -45,6 +45,29 @@ export default function (Generator) {
         return `loop${suffix} do\n${branch}${wait}end\n`;
     };
 
+    /**
+     * The user lines of comments, without the `@ruby:` lines.
+     * @param {?string} text - The comments.
+     * @returns {Array<string>} The lines.
+     */
+    const userLinesOf = (text) =>
+        (text || '').split('\n').filter((line) => line.trim() && !line.startsWith('@ruby:'));
+
+    /**
+     * A line of a part of a block that is not written by the generic scrub (`when`, `elsif`) with the
+     * comment of the block: the lines before it, and the trailing comment at its end.
+     * @param {?object} block - The block whose comment is the comment of the line.
+     * @param {string} line - The line, ending with a line break.
+     * @param {Array<string>} moreBefore - More lines to write before it (the comments in the condition).
+     * @returns {string} The code.
+     */
+    const lineWithComment = function (block, line, moreBefore = []) {
+        const { before, inline } = userCommentParts(block ? Generator.getCommentText(block) : null);
+        const beforeLines = [...moreBefore, ...before];
+        const beforeCode = beforeLines.length > 0 ? `${Generator.prefixLines(beforeLines.join('\n'), '# ')}\n` : '';
+        return `${beforeCode}${inline.trim() ? withTrailingComment(line, inline) : line}`;
+    };
+
     const getCaseInfo = function (block) {
         const marker = Generator.findRubyMarker(block, '@ruby:syntax:case:');
         const match = marker ? marker.match(/^@ruby:syntax:case:(.+):(\d+)$/) : null;
@@ -66,7 +89,8 @@ export default function (Generator) {
         const rh = Generator.valueToCode(condBlock, 'OPERAND2', Generator.ORDER_NONE);
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
 
-        let result = `when ${Generator.nosToCode(rh)}\n${branch}`;
+        // The comment of the `==` block is the comment of the line of the `when`.
+        let result = `${lineWithComment(condBlock, `when ${Generator.nosToCode(rh)}\n`)}${branch}`;
 
         if (block.opcode === 'control_if_else') {
             const substack2 = block.inputs.SUBSTACK2;
@@ -211,7 +235,11 @@ export default function (Generator) {
             if (nextBlock.opcode === 'control_if_else') {
                 nextBranch2 = controlIfElseInternal(nextBlock, false);
             }
-            return `elsif ${nextOperator}\n${nextBranch}${nextBranch2}`;
+            // The block of `elsif` is not written by itself: its comment is the comment of the line.
+            const condition = nextBlock.inputs.CONDITION && Generator.getBlock(nextBlock.inputs.CONDITION.block);
+            const conditionComments = condition ? userLinesOf(Generator.allNestedComments(condition)) : [];
+            const elsifLine = lineWithComment(nextBlock, `elsif ${nextOperator}\n`, conditionComments);
+            return `${elsifLine}${nextBranch}${nextBranch2}`;
         }
 
         const branch2 = Generator.statementToCode(block, 'SUBSTACK2') || '';

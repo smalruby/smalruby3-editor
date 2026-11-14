@@ -6,6 +6,22 @@ const INLINE_MARKER = '@ruby:comment_position:inline';
 /** The marker of a comment whose last user line is the trailing comment, and the others are before. */
 const INLINE_LAST_MARKER = '@ruby:comment_position:inline:last';
 
+/** The marker of a trailing comment on the last line of a block over more lines (`end # c`). */
+const END_MARKER = '@ruby:comment_position:end';
+
+/**
+ * The markers of the blocks that the block before them writes in Ruby (see `_isWrittenByPreviousBlock`).
+ * @type {Array<RegExp>}
+ */
+const WRITTEN_BY_PREVIOUS_MARKERS = [
+    /^@ruby:array:literal:element$/,
+    /^@ruby:hash:literal:values$/,
+    /^@ruby:hash:literal:key:/,
+    /^@ruby:hash:literal:value$/,
+    /^@ruby:hash:set:push:/,
+    /^@ruby:return:[^:]+:initialize$/,
+];
+
 /**
  * Mixin methods for handling source comments in the Ruby-to-blocks converter.
  * These methods are mixed into RubyToBlocksConverter.prototype via Object.assign.
@@ -91,34 +107,7 @@ const CommentHandler = {
             return;
         }
 
-        // Build a map from start line to block ID.
-        // Unlike lineToNodeMap (which uses a range/shallowest strategy), this maps only
-        // lines where a node actually STARTS, preferring the most specific (smallest range) node.
-        // This ensures "# comment\nloop do" attaches to the loop block, not a parent block.
-        // Among blocks with equal range, prefer statement blocks over input (value) blocks,
-        // so that "# comment\ngreet(name)" attaches to the procedures_call, not data_variable.
-        const inputBlockIds = new Set();
-        for (const block of Object.values(this._context.blocks)) {
-            if (block.inputs) {
-                for (const input of Object.values(block.inputs)) {
-                    if (input.block) inputBlockIds.add(input.block);
-                }
-            }
-        }
-
-        const lineStartBlockMap = new Map();
-        for (const [node, blockId] of this._context.nodeToBlockMap.entries()) {
-            const startLine = this._getNodeStartLine(node);
-            if (startLine === null) continue;
-            const endLine = this._getNodeEndLine(node) || startLine;
-            const range = endLine - startLine;
-            const isInput = inputBlockIds.has(blockId);
-            const existing = lineStartBlockMap.get(startLine);
-            if (!existing || range < existing.range || (range === existing.range && !isInput && existing.isInput)) {
-                lineStartBlockMap.set(startLine, { blockId, range, isInput });
-            }
-        }
-
+        const lineStartBlockMap = this._commentLineStartBlockMap(parseResult.value);
         const findBlockForLine = (line) => {
             const entry = lineStartBlockMap.get(line);
             return entry ? entry.blockId : null;
@@ -148,9 +137,19 @@ const CommentHandler = {
             if (group.isTrailing) {
                 // Trailing (inline) comment: attach to block on the same line
                 const comment = group.comments[0];
-                const blockId = findBlockForLine(comment.line) || this._findBlockIdForLine(comment.line);
+                let blockId = findBlockForLine(comment.line);
+                // A comment on the last line of a node over more lines (`end # c`) stays on that line.
+                let atEnd = false;
+                if (!blockId) {
+                    const entry = this._context.lineToNodeMap.get(comment.line);
+                    blockId = this._commentAnchorOf(this._findBlockIdForLine(comment.line));
+                    atEnd =
+                        !!entry &&
+                        this._getNodeStartLine(entry.node) !== comment.line &&
+                        this._getNodeEndLine(entry.node) === comment.line;
+                }
                 if (blockId) {
-                    this._mergeUserComment(blockId, text, true);
+                    this._mergeUserComment(blockId, text, true, atEnd);
                 } else {
                     this._createComment(text, null);
                 }
@@ -188,7 +187,9 @@ const CommentHandler = {
                                     (r.type === 'ClassNode' || r.type === 'ModuleNode' || r.type === 'DefNode'),
                             );
                             if (hitContainer) break;
-                            const scanBlockId = findBlockForLine(scanLine) || this._findBlockIdForLine(scanLine);
+                            const scanBlockId =
+                                findBlockForLine(scanLine) ||
+                                this._commentAnchorOf(this._findBlockIdForLine(scanLine));
                             if (scanBlockId) {
                                 this._mergeUserComment(scanBlockId, text, false);
                                 found = true;
@@ -203,6 +204,159 @@ const CommentHandler = {
                 }
             }
         }
+    },
+
+    /**
+     * The block a comment of each line goes to, by the line where it starts.
+     *
+     * The comment goes to the block that writes the line in Ruby: the block of the node that starts on
+     * the line is changed to its anchor (`_commentAnchorOf`), so a comment does not go to a value in the
+     * line (`a += 1`, the subject of `case`) or to a block that is not written (the blocks that add the
+     * elements of `[1, 2]`, the block that stops the method for `return`). Among the nodes that start on
+     * the line, the smallest one wins, so "# comment\nloop do" goes to the loop, not to a block around
+     * it. The blocks that have a node but are not in the map of nodes (the assignment of a value-only
+     * line `"Jimmy"`) are looked at too. The line of a `when` goes to the `==` block of the `when`: the
+     * generator writes its comment on that line.
+     * @param {?object} rootNode - The ProgramNode of the parse result.
+     * @returns {Map<number, {blockId: string, range: number}>} The block of each line.
+     */
+    _commentLineStartBlockMap(rootNode) {
+        const map = new Map();
+        const consider = (node, blockId) => {
+            const type = this._getNodeTypeName(node);
+            // The block of a list of statements is only the first block of its first statement.
+            if (type === 'ProgramNode' || type === 'StatementsNode') return;
+            const startLine = this._getNodeStartLine(node);
+            if (startLine === null) return;
+            const anchorId = type === 'DefNode' ? this._definitionBlockOf(blockId) : this._commentAnchorOf(blockId);
+            if (!anchorId) return;
+            const range = (this._getNodeEndLine(node) || startLine) - startLine;
+            const existing = map.get(startLine);
+            if (!existing || range < existing.range) {
+                map.set(startLine, { blockId: anchorId, range });
+            }
+        };
+        const nodeBlocks = new Map(this._context.nodeToBlockMap);
+        for (const block of Object.values(this._context.blocks)) {
+            if (block.node && block.node.location && !nodeBlocks.has(block.node)) {
+                nodeBlocks.set(block.node, block.id);
+            }
+        }
+        for (const [node, blockId] of nodeBlocks.entries()) {
+            consider(node, blockId);
+        }
+        // A line that starts with a node that has no block (the `1` of `def foo\n  1\nend`, an element
+        // of an array literal over more lines) goes to the block of the smallest node around it.
+        const fill = (node, outerBlockId) => {
+            const type = this._getNodeTypeName(node);
+            const own = type === 'ProgramNode' || type === 'StatementsNode' ? null : nodeBlocks.get(node);
+            const blockId = own || outerBlockId;
+            const line = this._getNodeStartLine(node);
+            if (!own && blockId && line !== null && !map.has(line)) {
+                const anchorId = this._commentAnchorOf(blockId);
+                if (anchorId) map.set(line, { blockId: anchorId, range: Infinity });
+            }
+            for (const child of this._childNodesOf(node).flat()) {
+                if (child && child.location) fill(child, blockId);
+            }
+        };
+        if (rootNode) fill(rootNode, null);
+        for (const [node, blockId] of nodeBlocks.entries()) {
+            if (this._getNodeTypeName(node) !== 'CaseNode') continue;
+            this._caseWhenConditions(node, blockId).forEach(({ whenNode, condId }) => {
+                const line = this._getNodeStartLine(whenNode);
+                if (line !== null) map.set(line, { blockId: condId, range: -1 });
+            });
+        }
+        return map;
+    },
+
+    /**
+     * The `==` blocks of the `when`s of a `case`, in order. The `case` is a chain of if blocks with the
+     * same `@ruby`:syntax:case marker: the first one has the first `when`, and the if block in its else
+     * has the next one.
+     * @param {object} caseNode - The CaseNode.
+     * @param {string} blockId - The if block of the `case`.
+     * @returns {Array<{whenNode: object, condId: string}>} The `when` nodes and their `==` blocks.
+     */
+    _caseWhenConditions(caseNode, blockId) {
+        const blocks = this._context.blocks;
+        const caseMarker = (block) => {
+            const comment = block && block.comment && this._context.comments[block.comment];
+            const match = comment && comment.text.match(/^@ruby:syntax:case:.*$/m);
+            return match ? match[0] : null;
+        };
+        const marker = caseMarker(blocks[blockId]);
+        const result = [];
+        let block = blocks[blockId];
+        for (const whenNode of caseNode.conditions || []) {
+            if (!block || !marker || caseMarker(block) !== marker) break;
+            const condId = block.inputs.CONDITION && block.inputs.CONDITION.block;
+            if (condId && blocks[condId]) result.push({ whenNode, condId });
+            const elseId = block.inputs.SUBSTACK2 && block.inputs.SUBSTACK2.block;
+            block = elseId ? blocks[elseId] : null;
+        }
+        return result;
+    },
+
+    /**
+     * The block that writes in Ruby the line of a block, to put a comment of the line on.
+     *
+     * - A value block goes up to the block that has it in an input (`a += 1` is the assignment, not the
+     *   block that adds; the subject of `case` is the `case`).
+     * - A block that the block before it writes goes back to that block: the blocks that add the elements
+     *   or the pairs of a literal (`@a = [1, 2]`, `@h = {a: 1}`), the block that stops the method for
+     *   `return` (`@ruby`:syntax:return), and the block that sets the return value first in a method
+     *   (`@ruby`:return:<method>:initialize, after the definition). The generator does not write them, so
+     *   a comment on them was lost or moved to the next line.
+     * @param {?string} blockId - The block ID.
+     * @returns {?string} The block ID to put the comment on, or null.
+     */
+    _commentAnchorOf(blockId) {
+        const blocks = this._context.blocks;
+        let block = blockId ? blocks[blockId] : null;
+        for (let guard = 0; block && guard < 1000; guard++) {
+            const parent = block.parent ? blocks[block.parent] : null;
+            if (!parent) break;
+            const isPrevious = parent.next === block.id;
+            if (!isPrevious && this._isValueBlock(block)) {
+                block = parent;
+            } else if (isPrevious && this._isWrittenByPreviousBlock(block)) {
+                block = parent;
+            } else {
+                break;
+            }
+        }
+        return block ? block.id : null;
+    },
+
+    /**
+     * The procedures_definition block of a method. The node of the method can have a block in its body
+     * (the block that sets the return value), and a comment of the line of `def` goes to the definition.
+     * @param {string} blockId - A block of the method.
+     * @returns {?string} The procedures_definition block ID, or the anchor of the block if there is none.
+     */
+    _definitionBlockOf(blockId) {
+        const blocks = this._context.blocks;
+        let block = blocks[blockId];
+        while (block && block.parent && blocks[block.parent]) {
+            block = blocks[block.parent];
+        }
+        return block && block.opcode === 'procedures_definition' ? block.id : this._commentAnchorOf(blockId);
+    },
+
+    /**
+     * Whether a block is written in Ruby by the block before it (see `_commentAnchorOf`).
+     * @param {object} block - The block.
+     * @returns {boolean} True if the block before it writes it.
+     */
+    _isWrittenByPreviousBlock(block) {
+        const comment = block.comment ? this._context.comments[block.comment] : null;
+        const markers = comment ? comment.text.split(/[\n,\s]+/).filter((m) => m.startsWith('@ruby:')) : [];
+        if (block.opcode === 'control_stop') {
+            return markers.includes('@ruby:syntax:return');
+        }
+        return markers.some((m) => WRITTEN_BY_PREVIOUS_MARKERS.some((re) => re.test(m)));
     },
 
     /**
@@ -232,8 +386,11 @@ const CommentHandler = {
      * @param {string} blockId - The block ID to attach the comment to
      * @param {string} userText - The user comment text
      * @param {boolean} isInline - Whether this is an inline (trailing) comment
+     * @param {boolean} atEnd - Whether the trailing comment is on the last line of the block (`end # c`):
+     *     `@ruby`:comment_position:end is added. Without it, the generator writes the trailing comment of
+     *     a block with commands in it on its first line (`loop do # c`).
      */
-    _mergeUserComment(blockId, userText, isInline) {
+    _mergeUserComment(blockId, userText, isInline, atEnd = false) {
         const block = this._context.blocks[blockId];
         if (!block) {
             return;
@@ -247,7 +404,9 @@ const CommentHandler = {
         // doesn't affect round-tripping. (See ruby-generator/scrub.js.)
         const existingComment = block.comment ? this._context.comments[block.comment] : null;
         if (!existingComment) {
-            const commentText = isInline ? `${userText}\n${INLINE_MARKER}` : userText;
+            const commentText = isInline
+                ? `${userText}\n${INLINE_MARKER}${atEnd ? `\n${END_MARKER}` : ''}`
+                : userText;
             block.comment = this._createComment(commentText, block.id);
             return;
         }
@@ -272,6 +431,9 @@ const CommentHandler = {
             beforeLines = [userText];
         }
 
+        if (isInline && atEnd && !metadataLines.includes(END_MARKER)) {
+            metadataLines.unshift(END_MARKER);
+        }
         const textLines = [...beforeLines];
         if (inlineText !== null) {
             textLines.push(inlineText);

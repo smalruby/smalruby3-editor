@@ -84,8 +84,7 @@ defineBlockRubyTable('A comment of the user on a block with markers', [
             a = 1
         `,
     },
-    // `case` / `when` kept in @ruby:syntax:case (control.js). Only toRuby: a comment before `case`
-    // goes to the block of the subject when converted (P14).
+    // `case` / `when` kept in @ruby:syntax:case (control.js).
     {
         blocks: `control_if(CONDITION: operator_equals(OPERAND1: @a, OPERAND2: "1") #"@ruby:syntax:case:@a:1") {
             looks_say(MESSAGE: "1")
@@ -97,7 +96,6 @@ defineBlockRubyTable('A comment of the user on a block with markers', [
               say("1")
             end
         `,
-        only: 'toRuby',
     },
     // The markers of the converter that are read anywhere already keep working.
     {
@@ -209,13 +207,12 @@ defineBlockRubyTable('A comment of the user on a block with markers', [
     {
         blocks: `control_if_else(CONDITION: operator_not(OPERAND: ${EDGE})) { motion_movesteps(STEPS: 1) } { motion_movesteps(STEPS: 2) } ${c(`うしろ\n${INLINE}\n@ruby:syntax:unless_else`)}`,
         ruby: `
-            unless touching?("_edge_")
+            unless touching?("_edge_") # うしろ
               move(1)
             else
               move(2)
-            end # うしろ
+            end
         `,
-        only: 'toRuby',
     },
     {
         blocks: `control_if(CONDITION: operator_not(OPERAND: ${EDGE})) { motion_movesteps(STEPS: 10) } ${c(`うしろ\n${INLINE}\n@ruby:syntax:unless_modifier`)}`,
@@ -245,6 +242,7 @@ defineBlockRubyTable('A comment of the user on a block with markers', [
             # 前
             if @a == 1
               move(1)
+            # メモ
             elsif @a == 2
               move(2)
             end
