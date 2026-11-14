@@ -3,6 +3,12 @@
 // the error of a wrong instruction on that line, as a command in an argument (`say(@a = 1)`).
 import dedent from 'dedent';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
+import {
+    makeConverter,
+    makeSpriteTarget,
+    rubyToBlocksToRuby,
+    setupRubyGenerator,
+} from '../../helpers/ruby-roundtrip-helper';
 
 const convert = async (code) => {
     const converter = new RubyToBlocksConverter(null, { version: '2' });
@@ -48,6 +54,30 @@ describe('RubyToBlocksConverter/a command in case / when', () => {
         expect(errors[0].text).toContain(wrongInstruction('when (@a = 2)'));
     });
 
+    // A value over more lines is quoted on one line (review of #1862, FYI3).
+    test('a command over more lines', async () => {
+        const code = 'case @b\nwhen (\n  @a = "abc"\n)\n  say(1)\nend';
+        const { ok, errors } = await convert(code);
+        expect(ok).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].row).toBe(1);
+        expect(errors[0].text).toContain(wrongInstruction('when (@a = "abc")'));
+    });
+
+    // More than one value in a `when` has no block. A later `when` was dropped with the code after it
+    // without an error (review of #1862, FYI1).
+    test.each([
+        ['the first when', 'case @b\nwhen 1, 2\n  say(1)\nend', 1, 'when 1, 2'],
+        ['a later when', 'case @b\nwhen 1\n  say(1)\nwhen (@a = 2), 3\n  say(2)\nend', 3, 'when (@a = 2), 3'],
+        ['a later when with values', 'case @b\nwhen 1\n  say(1)\nwhen 2, 3\n  say(2)\nend', 3, 'when 2, 3'],
+    ])('more than one value in %s is the wrong instruction', async (_name, code, row, source) => {
+        const { ok, errors } = await convert(code);
+        expect(ok).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].row).toBe(row);
+        expect(errors[0].text).toContain(wrongInstruction(source));
+    });
+
     test.each([['case (@a = "abc")'], ['case move(1)']])('`%s` is the wrong instruction', async (caseLine) => {
         const code = dedent`
             ${caseLine}
@@ -70,5 +100,70 @@ describe('RubyToBlocksConverter/a command in case / when', () => {
         const { ok, errors } = await convert(code);
         expect(errors).toEqual([]);
         expect(ok).toBe(true);
+    });
+
+    // A call of a method that returns a value is a value, as in `say(foo(1))` (review of #1862, M1).
+    describe('a call of a method with a return value', () => {
+        const FOO = dedent`
+            def foo(n)
+              return n + 1
+            end
+        `;
+
+        test.each([
+            [
+                'the subject',
+                dedent`
+                    case foo(1)
+                    when 2
+                      move(10)
+                    end
+                `,
+            ],
+            [
+                'a when',
+                dedent`
+                    case @b
+                    when foo(1)
+                      move(10)
+                    end
+                `,
+            ],
+            [
+                'a later when',
+                dedent`
+                    case @b
+                    when 1
+                      move(1)
+                    when foo(1)
+                      move(10)
+                    end
+                `,
+            ],
+        ])('as %s comes back the same', async (_name, caseCode) => {
+            const code = `${FOO}\n\n${caseCode}`;
+            const { target, runtime } = makeSpriteTarget();
+            setupRubyGenerator();
+            const converter = makeConverter(target, runtime, { version: '2' });
+            expect(await rubyToBlocksToRuby(converter, target, code)).toBe(code);
+        });
+
+        test('a call of a method without a return value is the wrong instruction', async () => {
+            const code = dedent`
+                def bar(n)
+                  move(n)
+                end
+
+                case @b
+                when bar(1)
+                  move(10)
+                end
+            `;
+            const { ok, errors } = await convert(code);
+            expect(ok).toBe(false);
+            expect(errors).toHaveLength(1);
+            expect(errors[0].row).toBe(5);
+            expect(errors[0].text).toContain(wrongInstruction('when bar(1)'));
+        });
     });
 });

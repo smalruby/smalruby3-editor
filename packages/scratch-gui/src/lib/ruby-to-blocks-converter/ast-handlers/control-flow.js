@@ -141,32 +141,67 @@ const ControlFlowHandlers = {
     },
 
     /**
+     * Visit a node as a value, like an argument of `say(...)`: a call of a method that returns a value
+     * (`case foo(1)`, `when foo(1)`) becomes the call followed by its return variable (#1818).
+     * @param {object} node - The node.
+     * @returns {*} The result of the visit.
+     */
+    _visitAsValue(node) {
+        const savedIsValue = this._context.isValue;
+        this._context.isValue = true;
+        try {
+            return this.visit(node);
+        } finally {
+            this._context.isValue = savedIsValue;
+        }
+    },
+
+    /**
+     * The error of a wrong instruction on the head of `case` / `when`: from `case` / `when` to the end
+     * of its values (`when (@a = "abc")`, `when 1, 2`). A value over more lines is put on one line
+     * before the usual truncation, so the message does not stop at `when (`.
+     * @param {object} lineNode - The CaseNode or the WhenNode.
+     * @param {object} lastNode - The last node of the head (the subject, the last value of `when`).
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _caseHeadError(lineNode, lastNode) {
+        const start = this._byteOffsetToCharOffset(lineNode.location.startOffset);
+        const end = this._byteOffsetToCharOffset(lastNode.location.startOffset + lastNode.location.length);
+        const head = this._context.sourceCode
+            .slice(start, end)
+            .replace(/\s*\n\s*/g, ' ')
+            .replace(/\(\s+/g, '(')
+            .replace(/\s+\)/g, ')');
+        return new RubyToBlocksConverterError(
+            lineNode,
+            this._translator(converterMessages.wrongInstruction, { SOURCE: this._truncateSource(head) }),
+        );
+    },
+
+    /**
      * Reject a command (`@a = "abc"`, `move(1)`) as the subject of `case` or the value of `when`.
      * It is not a value, so it cannot be an input of the `==` block: it came back as `when @`
-     * (issue #1818). It is the error of a wrong instruction on the line of `case` / `when`, as a
-     * command in an argument (`say(@a = 1)`).
+     * (issue #1818). It is the error of a wrong instruction on the head of `case` / `when`, as a
+     * command in an argument (`say(@a = 1)`). A call of a method that returns a value is a value: the
+     * subject and the values are visited as values (`_visitAsValue`).
      * @param {*} value - The value of the subject or of the `when`.
-     * @param {object} lineNode - The CaseNode or the WhenNode, whose first line the error shows.
+     * @param {object} lineNode - The CaseNode or the WhenNode.
+     * @param {object} valueNode - The node of the value.
      */
-    _rejectCommandInCase(value, lineNode) {
+    _rejectCommandInCase(value, lineNode, valueNode) {
         if (!this._isBlock(value) || this._isValueBlock(value)) {
             return;
         }
-        throw new RubyToBlocksConverterError(
-            lineNode,
-            this._translator(converterMessages.wrongInstruction, {
-                SOURCE: this._truncateSource(this._firstLineSource(lineNode)),
-            }),
-        );
+        throw this._caseHeadError(lineNode, valueNode);
     },
 
     visitCaseNode(node) {
         const saved = this._saveContext();
 
         const subjectNode = node.predicate;
-        const subjectResult = this.visit(subjectNode);
+        const subjectResult = this._visitAsValue(subjectNode);
         const subjectSplit = this._splitPreBlocksAndValue(subjectResult);
-        this._rejectCommandInCase(subjectSplit.value, node);
+        this._rejectCommandInCase(subjectSplit.value, node, subjectNode);
         const preBlocks = subjectSplit.preBlocks;
         // Each `when` visits the subject again (a block can be used only once), so drop this one.
         if (this._isBlock(subjectSplit.value)) {
@@ -192,21 +227,22 @@ const ControlFlowHandlers = {
 
             const whenNode = whenNodes[index];
             if (whenNode.conditions.length !== 1) {
-                // More than one condition in 'when' is not supported yet
-                return null;
+                // More than one value in `when` has no block. It is the error of a wrong instruction:
+                // returning null here dropped a later `when` and the code after it silently (#1818).
+                throw this._caseHeadError(whenNode, whenNode.conditions[whenNode.conditions.length - 1]);
             }
 
             // Re-process subject for each 'when' to avoid reusing the same block
-            const currentSubjectResult = this.visit(subjectNode);
+            const currentSubjectResult = this._visitAsValue(subjectNode);
             const currentSubjectSplit = this._splitPreBlocksAndValue(currentSubjectResult);
             const currentSubject = currentSubjectSplit.value;
             preBlocks.push(...currentSubjectSplit.preBlocks);
 
             const conditionNode = whenNode.conditions[0];
-            const rhResult = this.visit(conditionNode);
+            const rhResult = this._visitAsValue(conditionNode);
             const rhSplit = this._splitPreBlocksAndValue(rhResult);
             const currentRh = rhSplit.value;
-            this._rejectCommandInCase(currentRh, whenNode);
+            this._rejectCommandInCase(currentRh, whenNode, conditionNode);
             preBlocks.push(...rhSplit.preBlocks);
 
             const body = this._processStatement(whenNode.statements);
