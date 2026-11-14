@@ -37,7 +37,10 @@ const VIEWPORTS = [
     { name: 'ipad-landscape-1024x768', width: 1024, height: 768 },
     { name: 'ipad-portrait-768x1024', width: 768, height: 1024 },
     { name: 'ipad-mini-744x1133', width: 744, height: 1133 },
-    { name: 'phone-844x390', width: 844, height: 390 },
+    // スマホ（メニューバーが無い）はドロワーのいちばん上。低い横向きも測る（レビュー M2）。
+    { name: 'phone-844x390', width: 844, height: 390, phone: true },
+    { name: 'phone-667x375', width: 667, height: 375, phone: true },
+    { name: 'phone-740x360', width: 740, height: 360, phone: true },
 ];
 const LOCALES = ['ja', 'ja-Hira', 'en'];
 const KINDS = [
@@ -75,23 +78,28 @@ const session = (submissionStatus) => ({
  * @param {string} opts.locale - 表示の言語
  * @param {?string} opts.status - 提出状況（null = 未提出）
  * @param {?object} [opts.lesson] - レッスンの課題の設定（null = ふつうの課題）
+ * @param {number} [opts.verifyDelay] - verify-session を返すまでの ms（遅い Wi-Fi の再現）
+ * @param {number} [opts.submitDelay] - 提出の API を返すまでの ms（送信中の操作の確認）
  * @returns {Promise<{ctx: object, page: import('playwright').Page, submits: Array}>} context と page
  */
-const studentPage = async ({ viewport, locale, status, lesson = null }) => {
+const studentPage = async ({ viewport, locale, status, lesson = null, verifyDelay = 0, submitDelay = 0 }) => {
     const ctx = await browser.newContext({ viewport });
     const page = await ctx.newPage();
     const submits = [];
     const submission = status
         ? { status, submittedAt: '2026-11-14T01:00:00.000Z', teacherComment: status === 'returned' ? LONG_COMMENT : null }
         : null;
-    await page.route('**/classrooms/verify-session', (r) =>
-        r.fulfill({ json: { valid: true, hasAssignment: false, submission } }),
-    );
+    const later = (ms) => new Promise((done) => setTimeout(done, ms));
+    await page.route('**/classrooms/verify-session', async (r) => {
+        if (verifyDelay) await later(verifyDelay);
+        await r.fulfill({ json: { valid: true, hasAssignment: false, submission } }).catch(() => {});
+    });
     await page.route('**/continuable-submissions', (r) => r.fulfill({ json: {} }));
     await page.route('**/classrooms/c1/assignment', (r) => r.fulfill({ json: { assignment: null, lesson } }));
     await page.route('**/lesson-progress', (r) => r.fulfill({ json: { challenges: {}, current: null, updatedAt: null } }));
-    await page.route('**/classrooms/c1/submissions', (r) => {
+    await page.route('**/classrooms/c1/submissions', async (r) => {
         submits.push(r.request().method());
+        if (submitDelay) await later(submitDelay);
         return r.fulfill({
             json: {
                 uploadUrl: 'https://upload.invalid/project',
@@ -121,7 +129,8 @@ const studentPage = async ({ viewport, locale, status, lesson = null }) => {
 
 /**
  * 「提出する」のボタンが、画面の中にあって、ほかの見えている項目と重ならないかを測る。
- * PC・iPad はメニューバーの項目、スマホはサイドレールのボタンと比べる。
+ * PC・iPad はメニューバーの項目、スマホはドロワーのほかの項目と比べ、スマホでは押せる大きさ
+ * （44×44px 以上）と、サイドレール（バックパック）がはみ出さないことも見る。
  * @param {import('playwright').Page} page - 対象ページ
  * @returns {Promise<object>} 測定値
  */
@@ -134,10 +143,11 @@ const measureButton = (page) =>
         const r = btn.getBoundingClientRect();
         const box = (x) => ({ l: Math.round(x.left), r: Math.round(x.right), t: Math.round(x.top), b: Math.round(x.bottom) });
         const overlaps = (a, b) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
-        const rail = btn.closest('[data-testid="mobile-side-rail"]');
+        const drawer = btn.closest('[data-testid="mobile-drawer"]');
+        const rail = document.querySelector('[data-testid="mobile-side-rail"]');
         let neighbours;
-        if (rail) {
-            neighbours = [...rail.children].filter((el) => el !== btn);
+        if (drawer) {
+            neighbours = [...drawer.querySelectorAll('button')].filter((el) => el !== btn);
         } else {
             // メニューバーの段（btn の親）に並ぶ兄弟と、そのほかの段の項目
             const bar = btn.closest('[class*="menu-bar_menu-bar"]') || btn.parentElement;
@@ -160,8 +170,11 @@ const measureButton = (page) =>
             pageScrollX: se.scrollWidth > se.clientWidth,
             pageScrollY: se.scrollHeight > se.clientHeight,
             bg: getComputedStyle(btn).backgroundColor,
-            // スマホのレールは縦 390px に余りが少ない。下のバックパックを押し出さないか。
-            railOverflow: rail ? rail.scrollHeight > rail.clientHeight : false,
+            inDrawer: !!drawer,
+            touchOk: !drawer || (r.height >= 44 && r.width >= 44),
+            size: `${Math.round(r.width)}x${Math.round(r.height)}`,
+            // スマホのレールは縦の余りが少ない。下のバックパックが画面から出ていないか。
+            railOverflow: rail && rail.getClientRects().length > 0 ? rail.scrollHeight > rail.clientHeight : false,
         };
     });
 
@@ -170,17 +183,30 @@ for (const vp of VIEWPORTS) {
     for (const locale of LOCALES) {
         for (const { kind, status } of KINDS) {
             const { ctx, page } = await studentPage({ viewport: vp, locale, status });
+            if (vp.phone) {
+                await page.locator('[data-testid="mobile-side-rail-menu"]').click();
+                await page.locator('[data-testid="mobile-drawer"][data-state="open"]').waitFor({ timeout: 10000 });
+                await page.waitForTimeout(400);
+            }
             const m = await measureButton(page);
             const name = `${vp.name} ${locale} ${kind}`;
             if (m.missing) {
                 record(false, name, 'button not found');
             } else {
                 const ok =
-                    m.inView && m.hits.length === 0 && m.kind === kind && !m.pageScrollX && !m.pageScrollY && !m.railOverflow;
+                    m.inView &&
+                    m.hits.length === 0 &&
+                    m.kind === kind &&
+                    !m.pageScrollX &&
+                    !m.pageScrollY &&
+                    !m.railOverflow &&
+                    m.touchOk &&
+                    m.inDrawer === !!vp.phone;
                 record(
                     ok,
                     name,
-                    `"${m.text}" ${JSON.stringify(m.box)} bg ${m.bg}` +
+                    `"${m.text}" ${m.size} ${JSON.stringify(m.box)} bg ${m.bg}` +
+                        (m.touchOk ? '' : ' smaller than 44x44') +
                         (m.hits.length ? ` overlaps ${m.hits.join(',')}` : '') +
                         (m.pageScrollX || m.pageScrollY ? ' page scrolls' : '') +
                         (m.railOverflow ? ' side rail overflows' : ''),
@@ -252,6 +278,57 @@ const shotBoth = async (page, tmpName, docName) => {
     const kind = await page.locator('[data-testid="classroom-menu-submit"]').getAttribute('data-kind');
     record(kind === 'submitted', 'after continue: menu bar is 「提出済み ✓」', kind);
     await shotBoth(page, 'flow-menu-submitted', '0341-menu-bar-submitted.png');
+    await ctx.close();
+}
+
+// 遅い Wi-Fi (verify-session が 2.5 秒): 確かめ中は「提出中...」も見出しも出さず、
+// 確かめ終わったら見出しが切りかわらずに「もう一度提出します」で出る（レビュー M1）。
+{
+    const { ctx, page } = await studentPage({ viewport: PC, locale: 'ja', status: 'submitted', verifyDelay: 2500 });
+    await page.locator('[data-testid="classroom-menu-submit"]').click();
+    await page.locator('[data-testid="classroom-phase-submit-confirm"]').waitFor({ timeout: 10000 });
+    const during = await page.locator('[data-testid="classroom-phase-submit-confirm"]').textContent();
+    const checking = await page.locator('[data-testid="classroom-submit-checking"]').count();
+    record(checking === 1 && !/提出中/.test(during) && !/提出します/.test(during), 'slow verify: quiet checking line only', during);
+    await shotBoth(page, 'flow-checking', null);
+    await page.locator('[data-testid="classroom-submit-confirm"]').waitFor({ timeout: 10000 });
+    const after = await page.locator('[data-testid="classroom-phase-submit-confirm"]').textContent();
+    const enabled = await page.locator('[data-testid="classroom-submit-confirm"]').isEnabled();
+    record(/もう一度提出します/.test(after) && enabled && !/提出中/.test(after), 'slow verify: then the resubmit confirmation', after.slice(0, 40));
+    await ctx.close();
+}
+
+// 送信中は閉じられず (Escape・×・外)、メニューバーのボタンも押せない（レビュー Q1）。
+{
+    const { ctx, page, submits } = await studentPage({ viewport: PC, locale: 'ja', status: null, submitDelay: 3000 });
+    await page.locator('[data-testid="classroom-menu-submit"]').click();
+    await page.locator('[data-testid="classroom-submit-confirm"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(800);
+    await page.locator('[data-testid="classroom-submit-confirm"]').click();
+    await page.waitForFunction(() => {
+        const b = document.querySelector('[data-testid="classroom-menu-submit"]');
+        return b && b.disabled;
+    }, null, { timeout: 10000 });
+    record(true, 'submitting: menu bar button disabled');
+    await page.keyboard.press('Escape');
+    await page.mouse.click(5, 590);
+    await page.waitForTimeout(300);
+    record((await page.locator('[data-testid="classroom-modal"]').count()) === 1, 'submitting: Escape / outside click do not close');
+    await page.locator('[data-testid="classroom-phase-submit-done"]').waitFor({ timeout: 60000 });
+    record(submits.filter((m) => m === 'POST').length === 1, 'submitting: one submission only');
+    await ctx.close();
+}
+
+// スマホ: ドロワーの「提出する」→ 提出確認（レビュー M2）
+{
+    const { ctx, page } = await studentPage({ viewport: VIEWPORTS.find((v) => v.name === 'phone-667x375'), locale: 'ja', status: null });
+    await page.locator('[data-testid="mobile-side-rail-menu"]').click();
+    await page.locator('[data-testid="mobile-drawer"][data-state="open"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(400);
+    await shotBoth(page, 'phone-drawer', '0344-mobile-drawer-submit.png');
+    await page.locator('[data-testid="mobile-drawer"] [data-testid="classroom-menu-submit"]').click();
+    await page.locator('[data-testid="classroom-submit-confirm"]').waitFor({ timeout: 10000 });
+    record((await page.locator('[data-testid="mobile-drawer"][data-state="closed"]').count()) === 1, 'phone: drawer closes and the confirmation opens');
     await ctx.close();
 }
 

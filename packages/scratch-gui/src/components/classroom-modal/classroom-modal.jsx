@@ -75,6 +75,8 @@ const ClassroomModal = ({
     studentLesson = null,
     onStartLesson,
     assignmentReopened = false,
+    isSubmitting = false,
+    submitStatusChecking = false,
 }) => {
     const intl = useIntl();
 
@@ -204,9 +206,10 @@ const ClassroomModal = ({
                 {/* Phase: student-submit-confirm */}
                 {phase === 'student-submit-confirm' && (
                     <StudentSubmitConfirm
+                        checking={submitStatusChecking}
                         error={error}
                         errorTitle={errorTitle}
-                        isLoading={isLoading}
+                        isSubmitting={isSubmitting}
                         resubmit={isResubmit(classroomState?.submissionStatus ?? null)}
                         submitProgress={submitProgress}
                         teacherComment={
@@ -226,6 +229,10 @@ const ClassroomModal = ({
 };
 
 ClassroomModal.propTypes = {
+    // the submission is being sent (#1795): only then does the confirmation read 「提出中...」
+    isSubmitting: PropTypes.bool,
+    // the submission status is being checked (verify-session) while the confirmation is open (#1795)
+    submitStatusChecking: PropTypes.bool,
     // the assignment panel was reopened from 「課題を見る」 (step band shows ④, #1792)
     assignmentReopened: PropTypes.bool,
     // assignmentProgress() of the joined lesson assignment (null when not a lesson assignment)

@@ -31,6 +31,16 @@ jest.mock('../../../src/lib/classroom-api', () => ({
 }));
 const { isClassroomConfigured } = jest.requireMock('../../../src/lib/classroom-api');
 
+// 参加中の「提出する」(#1795) は store を読むので、受け取った props を見るスタブにする。
+const mockSubmitButtonProps = [];
+jest.mock('../../../src/components/classroom-modal/classroom-menu-submit-button.jsx', () => ({
+    __esModule: true,
+    default: (props) => {
+        mockSubmitButtonProps.push(props);
+        return <button data-testid="classroom-menu-submit" type="button" onClick={props.onAfterClick} />;
+    },
+}));
+
 const fakeIntl = {
     locale: 'en',
     formatMessage: (descriptor) => descriptor.defaultMessage,
@@ -349,5 +359,25 @@ describe('MobileDrawer', () => {
             expect(props.onOpenTeacherModal).toHaveBeenCalledTimes(1);
             expect(props.onClose).toHaveBeenCalledTimes(1);
         });
+    });
+
+    // #1795: スマホにはメニューバーが無いので、参加中の「提出する」をドロワーのいちばん上に置く。
+    test('puts the classroom submit button at the top of the drawer when classroom is configured', () => {
+        isClassroomConfigured.mockReturnValue(true);
+        mockSubmitButtonProps.length = 0;
+        const { getByTestId, props } = renderWithIntl();
+        const submit = getByTestId('classroom-menu-submit');
+        expect(mockSubmitButtonProps[0].placement).toBe('drawer');
+        expect(
+            submit.compareDocumentPosition(getByTestId('mobile-drawer-new')) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        fireEvent.click(submit);
+        expect(props.onClose).toHaveBeenCalled();
+    });
+
+    test('does not render the submit slot without classroom', () => {
+        isClassroomConfigured.mockReturnValue(false);
+        const { queryByTestId } = renderWithIntl();
+        expect(queryByTestId('classroom-menu-submit')).toBeNull();
     });
 });

@@ -2,7 +2,7 @@
 /**
  * メニューバーの「提出する」ボタン (#1795)。決まりは docs/classroom/ui-ux.md の「メニューバー」。
  */
-import { isResubmit, menuSubmitKind } from '../../../src/lib/classroom-menu-submit.js';
+import { isResubmit, menuSubmitKind, submissionFromVerify } from '../../../src/lib/classroom-menu-submit.js';
 
 const lesson = (submitWork) => ({ submitWork, challengeIds: ['a'], requiredChallengeIds: [] });
 const notCleared = { cleared: false, unknownCount: 0 };
@@ -53,5 +53,37 @@ describe('isResubmit', () => {
         ['returned', true],
     ])('%s → %s', (status, expected) => {
         expect(isResubmit(status)).toBe(expected);
+    });
+});
+
+describe('submissionFromVerify', () => {
+    test('返却済み: 状態・時刻・先生のコメントを読む', () => {
+        const result = { submission: { status: 'returned', submittedAt: 't1', teacherComment: 'よい' } };
+        expect(submissionFromVerify(result)).toEqual({
+            status: 'returned',
+            submittedAt: 't1',
+            teacherComment: 'よい',
+        });
+    });
+
+    test('別の PC で出した: 提出済み', () => {
+        expect(submissionFromVerify({ submission: { status: 'submitted', submittedAt: 't2' } })).toEqual({
+            status: 'submitted',
+            submittedAt: 't2',
+            teacherComment: null,
+        });
+    });
+
+    test('まだ出していない (submission: null): 状態を null に戻す', () => {
+        expect(submissionFromVerify({ valid: true, submission: null })).toEqual({
+            status: null,
+            submittedAt: null,
+            teacherComment: null,
+        });
+    });
+
+    test('submission の無い応答は、いまの状態を変えない (null)', () => {
+        expect(submissionFromVerify({ valid: true })).toBeNull();
+        expect(submissionFromVerify(null)).toBeNull();
     });
 });

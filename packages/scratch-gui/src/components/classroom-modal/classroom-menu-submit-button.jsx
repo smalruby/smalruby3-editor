@@ -31,6 +31,11 @@ const messages = defineMessages({
         description: 'Menu bar button of a student whose work the teacher returned: pressing it submits again',
         id: 'gui.menuBar.classroomReturned',
     },
+    submitting: {
+        defaultMessage: 'Submitting...',
+        description: 'Menu bar submit button while the submission is being sent (disabled meanwhile)',
+        id: 'gui.menuBar.classroomSubmitting',
+    },
     submitAgain: {
         defaultMessage: 'Submit again',
         description: 'Tooltip of the submitted / returned menu bar button: pressing it submits the project again',
@@ -39,14 +44,15 @@ const messages = defineMessages({
 });
 
 /**
- * ボタンの見た目だけ（テスト・スマホの上部バー用に状態を外から渡せる）。
+ * ボタンの見た目だけ（テスト用に状態を外から渡せる）。
  * @param {object} props - component props
  * @param {string} props.kind - MENU_SUBMIT_KINDS のどれか
- * @param {boolean} [props.compact] - スマホの上部バーに置く小さい版
+ * @param {string} [props.placement] - 'menu-bar'（PC・iPad）か 'drawer'（スマホのドロワーの先頭・高さ 44px 以上）
+ * @param {boolean} [props.submitting] - 送信中。押せなくし、字を「提出中...」にする（二重の提出を防ぐ）
  * @param {Function} props.onClick - 押したとき
  * @returns {React.ReactElement} the button
  */
-const ClassroomMenuSubmitButtonView = ({ kind, compact = false, onClick }) => {
+const ClassroomMenuSubmitButtonView = ({ kind, placement = 'menu-bar', submitting = false, onClick }) => {
     const intl = useIntl();
     const handleClick = useCallback(
         (e) => {
@@ -59,33 +65,40 @@ const ClassroomMenuSubmitButtonView = ({ kind, compact = false, onClick }) => {
     const again = kind !== MENU_SUBMIT_KINDS.SUBMIT;
     return (
         <button
+            aria-busy={submitting ? 'true' : null}
             className={
-                compact ? `${styles.menuSubmitButton} ${styles.menuSubmitButtonCompact}` : styles.menuSubmitButton
+                placement === 'drawer'
+                    ? `${styles.menuSubmitButton} ${styles.menuSubmitButtonDrawer}`
+                    : styles.menuSubmitButton
             }
             data-kind={kind}
+            data-placement={placement}
             data-testid="classroom-menu-submit"
-            title={again ? intl.formatMessage(messages.submitAgain) : null}
+            disabled={submitting}
+            title={again && !submitting ? intl.formatMessage(messages.submitAgain) : null}
             type="button"
             onClick={handleClick}
         >
-            {intl.formatMessage(messages[kind])}
+            {intl.formatMessage(submitting ? messages.submitting : messages[kind])}
         </button>
     );
 };
 
 ClassroomMenuSubmitButtonView.propTypes = {
-    compact: PropTypes.bool,
     kind: PropTypes.oneOf(Object.values(MENU_SUBMIT_KINDS)).isRequired,
     onClick: PropTypes.func.isRequired,
+    placement: PropTypes.oneOf(['menu-bar', 'drawer']),
+    submitting: PropTypes.bool,
 };
 
 /**
  * 参加中の生徒の状態から出し分ける版。参加していないときは何も描かない。
  * @param {object} props - component props
- * @param {boolean} [props.compact] - スマホの上部バーに置く小さい版
+ * @param {string} [props.placement] - 'menu-bar' か 'drawer'
+ * @param {Function} [props.onAfterClick] - 押したあと（ドロワーを閉じる）
  * @returns {?React.ReactElement} the button
  */
-const ClassroomMenuSubmitButton = ({ compact = false }) => {
+const ClassroomMenuSubmitButton = ({ placement = 'menu-bar', onAfterClick }) => {
     const dispatch = useDispatch();
     const classroom = useSelector((state) => state.scratchGui.classroom);
     const lesson = useSelector(selectStudentLesson);
@@ -98,13 +111,24 @@ const ClassroomMenuSubmitButton = ({ compact = false }) => {
         lesson,
         lessonStatus,
     });
-    const handleClick = useCallback(() => dispatch(requestStudentSubmit()), [dispatch]);
+    const handleClick = useCallback(() => {
+        dispatch(requestStudentSubmit());
+        if (onAfterClick) onAfterClick();
+    }, [dispatch, onAfterClick]);
     if (!kind) return null;
-    return <ClassroomMenuSubmitButtonView compact={compact} kind={kind} onClick={handleClick} />;
+    return (
+        <ClassroomMenuSubmitButtonView
+            kind={kind}
+            placement={placement}
+            submitting={!!(classroom && classroom.studentSubmitting)}
+            onClick={handleClick}
+        />
+    );
 };
 
 ClassroomMenuSubmitButton.propTypes = {
-    compact: PropTypes.bool,
+    onAfterClick: PropTypes.func,
+    placement: PropTypes.oneOf(['menu-bar', 'drawer']),
 };
 
 export default ClassroomMenuSubmitButton;

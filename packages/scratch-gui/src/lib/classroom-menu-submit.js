@@ -40,4 +40,25 @@ const menuSubmitKind = ({ joined, submissionStatus = null, lesson = null, lesson
     return MENU_SUBMIT_KINDS.SUBMIT;
 };
 
-export { MENU_SUBMIT_KINDS, isResubmit, menuSubmitKind };
+/**
+ * verify-session の応答から、この課題の提出状況を読む (#1795)。
+ *
+ * 応答はいつも `submission` を持つ（無ければ null = まだ出していない）。ページを開いたとき・
+ * クラスの画面を開いたときの確かめで、メニューバーのボタンを古いままにしないために使う。
+ * 別の PC で出した・先生が返却した、もこれで反映される。
+ * @param {?object} result - verify-session の応答
+ * @returns {?{status: ?string, submittedAt: ?string, teacherComment: ?string}} 提出状況。
+ *   応答に `submission` が無い（古いサーバーなど）ときは null（いまの値を変えない）
+ */
+const submissionFromVerify = (result) => {
+    if (!result || typeof result !== 'object' || !('submission' in result)) return null;
+    const sub = result.submission;
+    if (!sub) return { status: null, submittedAt: null, teacherComment: null };
+    return {
+        status: sub.status || 'submitted',
+        submittedAt: sub.submittedAt || null,
+        teacherComment: sub.teacherComment || null,
+    };
+};
+
+export { MENU_SUBMIT_KINDS, isResubmit, menuSubmitKind, submissionFromVerify };

@@ -130,13 +130,4 @@ describe('MobileSideRail', () => {
         expect(getByTestId('mobile-side-rail-backpack')).toHaveAttribute('data-active', 'true');
         expect(getByTestId('mobile-side-rail-backpack')).toHaveAttribute('aria-pressed', 'true');
     });
-
-    // #1795: スマホにはメニューバーが無いので、クラスに参加中の「提出する」をバックパックの上に出す。
-    test('renders the classroom submit slot just above the backpack button', () => {
-        const { getByTestId } = renderWithIntl({
-            classroomSubmit: <button data-testid="slot-submit" type="button" />,
-        });
-        const slot = getByTestId('slot-submit');
-        expect(slot.nextElementSibling).toBe(getByTestId('mobile-side-rail-backpack'));
-    });
 });

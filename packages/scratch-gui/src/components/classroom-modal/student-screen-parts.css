@@ -176,21 +176,26 @@
     }
 }
 
-/* スマホのサイドレール（幅 56px・白地・縦 390px）に置く小さい版。白い枠は見えないので消す。
-   レールに余りは 26px ほどしか無いので、タブの字（7px）に近い 8px にし、ひらがなの長い字
-   （「ていしゅつずみ ✓」）は 2 行に折り返しても下のバックパックを押し出さない高さにする。 */
-.menu-submit-button-compact {
-    width: 48px;
-    /* 押しやすいよう 1 行のときも高さを取る（レールの余りの中で）。 */
-    min-height: 20px;
-    margin: 2px 4px;
-    padding: 2px;
+/* 送信中は押せない (#1795)。二重の提出を防ぐ。 */
+.menu-submit-button:disabled {
+    opacity: 0.75;
+    cursor: wait;
+}
+
+/* スマホ（メニューバーの無い画面）はドロワーのいちばん上に置く (#1795)。サイドレールには
+   44px の高さを取る余りが無い（高さ 360〜390px の横向きで 0〜25px）ため。
+   タッチの規約に合わせて高さ 48px・横幅いっぱい。白地なので白い枠は消す。
+   幅の media query より強くするため、クラスを 2 つ重ねる。 */
+.menu-submit-button.menu-submit-button-drawer {
+    display: block;
+    width: calc(100% - 2rem);
+    min-height: 48px;
+    margin: 0.75rem 1rem 0.25rem;
+    padding: 0.5rem 1rem;
     border: none;
-    border-radius: 6px;
-    font-size: 8px;
-    line-height: 1.05;
+    border-radius: 10px;
+    font-size: 1rem;
     white-space: normal;
-    word-break: break-all;
 }
 
 /* 提出確認の下の段 (#1795): 「やめる」（左の小さなリンク）と主ボタン（右）。 */
@@ -245,4 +250,12 @@
 /* 開いたら、残りの始め方を「ほかの始め方」と同じ行に並べる（1300x600 で高さを増やさない）。 */
 .start-others-list {
     display: contents;
+}
+
+/* 提出確認で、提出の状態を確かめている途中の 1 行 (#1795)。目立たせない。 */
+.submit-checking {
+    padding: 1.25rem 0 0.25rem;
+    color: #5f6b8a;
+    font-size: 0.9rem;
+    text-align: center;
 }

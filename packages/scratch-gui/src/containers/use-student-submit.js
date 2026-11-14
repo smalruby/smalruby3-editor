@@ -13,6 +13,7 @@ import {
     clearClassroomSession,
     clearSubmissionThumbnail,
     closeClassroomModal,
+    setStudentSubmitting,
     setSubmissionStatus,
 } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
@@ -53,6 +54,10 @@ const useStudentSubmit = ({
 }) => {
     const [thumbnailDataUrl, setThumbnailDataUrl] = useState(null);
     const [submitProgress, setSubmitProgress] = useState(null);
+    // Sending the submission (#1795). Kept apart from the modal's isLoading,
+    // which verify-session also sets: the confirmation opened from the menu bar
+    // must not read 「提出中...」 before the student has confirmed.
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleStartSubmit = useCallback(() => {
         clearError();
@@ -129,6 +134,9 @@ const useStudentSubmit = ({
         if (!classroomState.sessionToken || !classroomState.classroomId) return;
         clearError();
         setIsLoading(true);
+        setIsSubmitting(true);
+        // The menu bar's button is disabled meanwhile: no second, concurrent submit.
+        dispatch(setStudentSubmitting(true));
         try {
             // Code edited in the Ruby tab is not blocks yet; submitting it as-is
             // sent a project without those blocks (#1449). Convert first, like
@@ -138,6 +146,7 @@ const useStudentSubmit = ({
                 if (!converter.result) {
                     // The HOC already opened the Ruby tab with the error; close
                     // the modal so the student can see it.
+                    dispatch(setStudentSubmitting(false));
                     dispatch(closeClassroomModal());
                     return;
                 }
@@ -216,6 +225,8 @@ const useStudentSubmit = ({
             }
         } finally {
             setIsLoading(false);
+            setIsSubmitting(false);
+            dispatch(setStudentSubmitting(false));
         }
     }, [
         classroomState,
@@ -242,6 +253,7 @@ const useStudentSubmit = ({
     return {
         thumbnailDataUrl,
         submitProgress,
+        isSubmitting,
         handleStartSubmit,
         handleConfirmSubmit,
         handleCancelSubmit,

@@ -100,6 +100,7 @@ export default {
     'gui.menuBar.classroomSubmitted': 'Submitted ✓',
     'gui.menuBar.classroomReturned': 'Returned ✓',
     'gui.menuBar.classroomSubmitAgain': 'Submit again',
+    'gui.menuBar.classroomSubmitting': 'Submitting...',
     'gui.menuBar.aboutSmalruby': 'About Smalruby',
     'gui.menuBar.debug': 'Debug',
     'gui.classroom.management.title': 'Class Management',
@@ -196,6 +197,7 @@ export default {
     'gui.classroom.submitConfirm.cancel': 'Cancel',
     'gui.classroom.submitConfirm.submit': 'Submit',
     'gui.classroom.submitConfirm.submitting': 'Submitting...',
+    'gui.classroom.submitConfirm.checking': 'Checking your submission...',
     'gui.classroom.submitConfirm.resubmitTitle': 'Submit again',
     'gui.classroom.submitConfirm.resubmitMessage':
         'The project you submitted before will be replaced with your current project.',

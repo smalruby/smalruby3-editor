@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
-import { setRubyteeEnabled, setStudentGenai } from '../reducers/classroom.js';
+import { submissionFromVerify } from '../lib/classroom-menu-submit.js';
+import { setRubyteeEnabled, setStudentGenai, setSubmissionStatus } from '../reducers/classroom.js';
 
 /**
- * Read the class's AI settings (generative AI #1279, Rubytee #1278) again once
- * when the page opens. They are kept with the session in localStorage, so
+ * Read the class's AI settings (generative AI #1279, Rubytee #1278) and this
+ * assignment's submission (#1795) again once when the page opens. They are kept with the session in localStorage, so
  * without this a teacher turning them off reached the student only when the
  * classroom modal ran verify-session, and reloading the page kept the old value.
  *
@@ -31,6 +32,11 @@ const useStudentClassSettingsRefresh = ({ role, sessionToken, dispatch }) => {
                 if (token !== tokenRef.current) return;
                 dispatch(setStudentGenai(result.genai));
                 dispatch(setRubyteeEnabled(!!(result.rubytee && result.rubytee.enabled === true)));
+                // The same answer carries this assignment's submission (#1795): keep
+                // the menu bar's submit button right after a reload (returned by the
+                // teacher, submitted on another PC, or none).
+                const submission = submissionFromVerify(result);
+                if (submission) dispatch(setSubmissionStatus(submission.status, submission.submittedAt));
             })
             .catch((err) => {
                 if (token !== tokenRef.current) return;
