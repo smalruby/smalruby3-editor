@@ -9,7 +9,7 @@ const { MAX_MESSAGE_VALUE_LENGTH } = require('../../../src/extensions/scratch3_m
 // Issue #1843: 「(メッセージ1 ▼) といっしょに ( ) を送る」と「メッセージの値」。
 // 実際の VM でプロジェクトを動かし、値がスクリプトごとに読めることを確かめる。
 
-const VARS = ['got1', 'got2', 'got3', 'gotOther', 'gotAfter'];
+const VARS = ['got1', 'got2', 'got3', 'gotOther', 'gotAfter', 'count'];
 const MESSAGES = ['m1', 'm2', 'm3'];
 
 /**
@@ -27,8 +27,8 @@ class ScriptBuilder {
         return `b${this.count}`;
     }
 
-    // A reporter block plugged into an input. Returns [3, id, [10, '']].
-    reporter(opcode, parent, inputs = {}) {
+    // A reporter block plugged into an input. Returns [3, id, shadow].
+    reporter(opcode, parent, inputs = {}, shadow = [10, '']) {
         const id = this.id();
         this.blocks[id] = {
             opcode,
@@ -39,7 +39,22 @@ class ScriptBuilder {
             shadow: false,
             topLevel: false,
         };
-        return [3, id, [10, '']];
+        return [3, id, shadow];
+    }
+
+    // A menu shadow block (e.g. control_create_clone_of_menu). Returns [1, id].
+    menu(opcode, parent, field, value) {
+        const id = this.id();
+        this.blocks[id] = {
+            opcode,
+            next: null,
+            parent,
+            inputs: {},
+            fields: { [field]: [value, null] },
+            shadow: true,
+            topLevel: false,
+        };
+        return [1, id];
     }
 
     inputs(id, inputs) {
@@ -47,7 +62,9 @@ class ScriptBuilder {
         Object.keys(inputs).forEach((name) => {
             const v = inputs[name];
             if (v && v.reporter) {
-                out[name] = this.reporter(v.reporter, id, v.inputs);
+                out[name] = this.reporter(v.reporter, id, v.inputs, v.shadow);
+            } else if (v && v.menu) {
+                out[name] = this.menu(v.menu, id, v.field, v.value);
             } else if (v && v.message) {
                 out[name] = [1, [11, v.message, `${v.message}-id`]];
             } else {
@@ -87,6 +104,11 @@ const send = (message, value) => ['meshV2_broadcastWithValue', { BROADCAST_INPUT
 const broadcast = (message) => ['event_broadcast', { BROADCAST_INPUT: { message } }];
 const setVar = (name, value) => ['data_setvariableto', { VALUE: value }, { VARIABLE: [name, `${name}-id`] }];
 const messageValue = { reporter: 'meshV2_messageValue' };
+const changeVar = (name, value) => ['data_changevariableby', { VALUE: value }, { VARIABLE: [name, `${name}-id`] }];
+const cloneMyself = () => [
+    'control_create_clone_of',
+    { CLONE_OPTION: { menu: 'control_create_clone_of_menu', field: 'CLONE_OPTION', value: '_myself_' } },
+];
 
 // 中身は読まない（storage を付けないので VM は読み込みを飛ばす）。sb3 の形として 1 つ要る。
 const COSTUME = {
@@ -98,9 +120,12 @@ const COSTUME = {
     rotationCenterY: 0,
 };
 
-const makeProject = (scripts) => {
+const makeProject = (scripts, stageScripts = []) => {
     const builder = new ScriptBuilder();
     scripts.forEach((steps) => builder.script(steps));
+    const stageBuilder = new ScriptBuilder();
+    stageBuilder.count = 1000; // ids must not clash with the sprite's
+    stageScripts.forEach((steps) => stageBuilder.script(steps));
     const variables = {};
     VARS.forEach((name) => {
         variables[`${name}-id`] = [name, 'unset'];
@@ -117,7 +142,7 @@ const makeProject = (scripts) => {
                 variables,
                 lists: {},
                 broadcasts,
-                blocks: {},
+                blocks: stageBuilder.blocks,
                 comments: {},
                 currentCostume: 0,
                 costumes: [COSTUME],
@@ -157,7 +182,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const runProject = async (scripts, options = {}) => {
     const vm = new VirtualMachine();
-    await vm.loadProject(JSON.stringify(makeProject(scripts)));
+    await vm.loadProject(options.json || JSON.stringify(makeProject(scripts, options.stageScripts)));
     const ext = vm.runtime.peripheralExtensions.meshV2;
     if (ext.meshService) {
         ext.meshService.stopEventBatchTimer();
@@ -181,7 +206,7 @@ const runProject = async (scripts, options = {}) => {
         ext.meshService.groupId = null;
         ext.meshService.cleanup();
     }
-    return { values, ext };
+    return { values, ext, vm };
 };
 
 test('mesh v2 message value (#1843)', async (t) => {
@@ -280,6 +305,102 @@ test('mesh v2 message value (#1843)', async (t) => {
         );
         st.equal(values.got1, 'remote');
         st.equal(values.got3, '');
+        st.end();
+    });
+
+    t.test('an empty value does not change the last value received (M1)', async (st) => {
+        const { values, ext } = await runProject([
+            [flag(), send('m1', 'hi'), wait(0.05), send('m1', ''), wait(0.1), setVar('gotOther', messageValue)],
+            // やり直しで値が空になったスクリプトでは空
+            [when('m1'), wait(0.02), setVar('got1', messageValue)],
+        ]);
+        st.equal(values.got1, '');
+        st.equal(values.gotOther, 'hi');
+        st.equal(ext.lastMessageValue, 'hi');
+        st.end();
+    });
+
+    t.test('an empty value is queued like a message without a value (M1)', async (st) => {
+        let queued = null;
+        await runProject([[flag(), send('m1', '')]], {
+            connected: true,
+            afterRun: (vm, ext) => {
+                queued = ext.meshService.eventQueue.map((e) => [e.eventName, e.payload]);
+            },
+        });
+        st.same(queued, [['m1', '']]);
+        st.end();
+    });
+
+    t.test('loading another project forgets the last value (FYI1)', async (st) => {
+        const vm = new VirtualMachine();
+        await vm.loadProject(JSON.stringify(makeProject([[flag(), send('m1', 'old')]])));
+        const ext = vm.runtime.peripheralExtensions.meshV2;
+        ext.meshService.stopEventBatchTimer();
+        vm.start();
+        vm.greenFlag();
+        await sleep(200);
+        st.equal(ext.lastMessageValue, 'old');
+        await vm.loadProject(JSON.stringify(makeProject([])));
+        st.equal(vm.runtime.peripheralExtensions.meshV2, ext);
+        st.equal(ext.lastMessageValue, '');
+        vm.quit();
+        ext.meshService.cleanup();
+        st.end();
+    });
+
+    t.test('a project saved with the block loads and runs again (FYI4)', async (st) => {
+        const vm = new VirtualMachine();
+        await vm.loadProject(
+            JSON.stringify(
+                makeProject([
+                    [flag(), send('m1', 'saved')],
+                    [when('m1'), setVar('got1', messageValue)],
+                ]),
+            ),
+        );
+        const saved = JSON.parse(vm.toJSON());
+        vm.runtime.peripheralExtensions.meshV2.meshService.cleanup();
+        vm.quit();
+        const sprite = saved.targets.find((target) => !target.isStage);
+        const block = Object.values(sprite.blocks).find((b) => b.opcode === 'meshV2_broadcastWithValue');
+        st.same(block.inputs.BROADCAST_INPUT, [1, [11, 'm1', 'm1-id']]);
+        st.ok(saved.extensions.includes('meshV2'));
+
+        const { values } = await runProject(null, { json: JSON.stringify(saved) });
+        st.equal(values.got1, 'saved');
+        st.end();
+    });
+
+    t.test('the stage and clones receive the value (FYI4)', async (st) => {
+        const { values } = await runProject(
+            [
+                [flag(), cloneMyself(), wait(0.05), send('m1', '1')],
+                // 本体とクローンの両方で、値の 1 を足す → 2
+                [when('m1'), changeVar('count', messageValue)],
+            ],
+            {
+                stageScripts: [[when('m1'), setVar('got3', messageValue)]],
+            },
+        );
+        st.equal(values.count, 2);
+        st.equal(values.got3, '1');
+        st.end();
+    });
+
+    t.test('a reporter plugged into the message slot (FYI4)', async (st) => {
+        const joined = {
+            reporter: 'operator_join',
+            inputs: { STRING1: 'm', STRING2: '1' },
+            shadow: [11, 'm3', 'm3-id'],
+        };
+        const { values } = await runProject([
+            [flag(), ['meshV2_broadcastWithValue', { BROADCAST_INPUT: joined, VALUE: 'joined' }]],
+            [when('m1'), setVar('got1', messageValue)],
+            [when('m3'), setVar('got3', messageValue)],
+        ]);
+        st.equal(values.got1, 'joined');
+        st.equal(values.got3, 'unset');
         st.end();
     });
 

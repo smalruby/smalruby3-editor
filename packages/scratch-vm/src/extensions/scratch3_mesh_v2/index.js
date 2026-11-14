@@ -100,6 +100,14 @@ class Scratch3MeshV2Blocks {
             log.error(`Failed to initialize Mesh V2: ${error}`);
         }
 
+        // Like the sensing "answer": forget the last value when the project is
+        // replaced (loadProject disposes the runtime but keeps this extension).
+        if (typeof this.runtime.on === 'function') {
+            this.runtime.on('RUNTIME_DISPOSED', () => {
+                this.lastMessageValue = '';
+            });
+        }
+
         this.runtime.registerPeripheralExtension(Scratch3MeshV2Blocks.EXTENSION_ID, this);
     }
 
@@ -387,7 +395,9 @@ class Scratch3MeshV2Blocks {
      * @returns {Array} started threads.
      */
     startMessageHats(name, value, util, id = null) {
-        this.lastMessageValue = value;
+        // An empty value is the same as a message without a value: it does not
+        // change the last value (the receivers get it as a payload-less event).
+        if (value !== '') this.lastMessageValue = value;
         if (!name || !util) return [];
         const stage = this.runtime.getTargetForStage();
         const broadcastVar = stage && stage.lookupBroadcastMsg(id, name);

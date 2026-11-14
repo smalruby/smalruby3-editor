@@ -11,8 +11,7 @@ const { toMessageValue } = require('./message-value');
  * 1 mutation でまとめて送信する。
  *
  * 重複/オーバーフロー保護:
- *   - 値なし: 同じ eventName はキュー内に重複させない
- *   - 値つき (#1843): 同じ eventName の値つきは最後の値だけを残す（最後に送った位置へ）
+ *   - 同じ eventName は、値があってもなくても、最後に送ったものだけを残す（最後に送った位置へ, #1843）
  *   - キューが MAX_EVENT_QUEUE_SIZE (100) に達したら FIFO で古い方を破棄
  *
  * issue #556: orderKey を `YYYYMMDDHHMMSS-<7桁連番>` で付与し、サーバー側 SK
@@ -116,29 +115,27 @@ const EventSenderMixin = {
             return;
         }
 
-        if (payload) {
-            // ステップ1（値つき, #1843）: 同じ名前の値つきメッセージは、1 回のまとめ送り
-            // （eventBatchInterval）の中で最後の値だけを送る。受け取った側では同じメッセージが
-            // 続くとスクリプトがやり直しになり値も上書きされるので、見える結果はほぼ同じで
-            // 通信を減らせる。前の値は取りのぞき、最後に送った位置（下の push）に置く。
-            // 値なしの同じ名前のメッセージはそのまま残す。
-            const before = this.eventQueue.length;
-            this.eventQueue = this.eventQueue.filter((item) => !(item.eventName === eventName && item.payload));
-            if (this.eventQueue.length < before) {
-                this.eventQueueStats.valuesReplaced += before - this.eventQueue.length;
-                debug(() => `Mesh V2: Replaced queued value of event: ${eventName}`);
+        // ステップ1 (#1843): 1 回のまとめ送り（eventBatchInterval）の中で、同じ名前のメッセージは
+        // 値があってもなくても、最後に送ったものだけを、最後に送った位置（下の push）に残す。
+        // 受け取った側では同じメッセージが続くとスクリプトがやり直しになり値も上書きされるので、
+        // 見える結果は最後のものとほぼ同じで、通信を減らせる。値なしと値つきを同じに数えるので、
+        // 自分の中と相手とで最後の状態がずれない（chat → chat("x") → chat なら、どちらも値なし）。
+        const before = this.eventQueue.length;
+        let replacedValue = false;
+        this.eventQueue = this.eventQueue.filter((item) => {
+            if (item.eventName !== eventName) return true;
+            if (item.payload || payload) replacedValue = true;
+            return false;
+        });
+        const removed = before - this.eventQueue.length;
+        if (removed > 0) {
+            if (replacedValue) {
+                this.eventQueueStats.valuesReplaced += removed;
+            } else {
+                this.eventQueueStats.duplicatesSkipped += removed;
             }
-        } else {
-            // ステップ1: 重複チェック（値なしはいまどおり、同じものは 1 つ）
-            const isDuplicate = this.eventQueue.some((item) => item.eventName === eventName && !item.payload);
-
-            if (isDuplicate) {
-                this.eventQueueStats.duplicatesSkipped++;
-                this.reportEventStatsIfNeeded();
-
-                debug(() => `Mesh V2: Event already in queue, skipping: ${eventName}`);
-                return;
-            }
+            this.reportEventStatsIfNeeded();
+            debug(() => `Mesh V2: Replaced queued event with the latest send: ${eventName}`);
         }
 
         // ステップ2: サイズ制限チェック（保険）
@@ -208,16 +205,19 @@ const EventSenderMixin = {
         const now = Date.now();
         const elapsed = now - this.eventQueueStats.lastReportTime;
 
-        if (elapsed >= 10000 && (this.eventQueueStats.duplicatesSkipped > 0 || this.eventQueueStats.dropped > 0)) {
+        const stats = this.eventQueueStats;
+        if (elapsed >= 10000 && (stats.duplicatesSkipped > 0 || stats.valuesReplaced > 0 || stats.dropped > 0)) {
             debug(
                 () =>
                     `Mesh V2: Event Queue Stats (last ${(elapsed / 1000).toFixed(1)}s): ` +
                     `duplicates skipped=${this.eventQueueStats.duplicatesSkipped}, ` +
+                    `values replaced=${this.eventQueueStats.valuesReplaced}, ` +
                     `dropped=${this.eventQueueStats.dropped}, ` +
                     `current queue size=${this.eventQueue.length}`,
             );
 
             this.eventQueueStats.duplicatesSkipped = 0;
+            this.eventQueueStats.valuesReplaced = 0;
             this.eventQueueStats.dropped = 0;
             this.eventQueueStats.lastReportTime = now;
         }

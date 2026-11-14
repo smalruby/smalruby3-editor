@@ -86,23 +86,41 @@ test('MeshV2Service Batch Events', (t) => {
         st.end();
     });
 
-    t.test('fireEvent with a value does not drop a queued payload-less event', (st) => {
+    t.test('fireEvent keeps only the last send of a name, with or without a value (#1843)', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.client = { mutate: () => Promise.resolve({}) };
         service.groupId = 'group1';
 
+        // chat → chat("x") → chat: 自分の中でも相手でも、最後は値なしの chat
         service.fireEvent('chat');
         service.fireEvent('chat', 'x');
         service.fireEvent('chat');
 
         st.same(
             service.eventQueue.map((e) => [e.eventName, e.payload]),
-            [
-                ['chat', ''],
-                ['chat', 'x'],
-            ],
+            [['chat', '']],
         );
+        st.equal(service.eventQueueStats.valuesReplaced, 2);
+        st.end();
+    });
+
+    t.test('fireEvent puts a repeated payload-less send at the position of the last send (#1843)', (st) => {
+        const blocks = createMockBlocks();
+        const service = new MeshV2Service(blocks, 'node1', 'domain1');
+        service.client = { mutate: () => Promise.resolve({}) };
+        service.groupId = 'group1';
+
+        service.fireEvent('a');
+        service.fireEvent('b');
+        service.fireEvent('a');
+
+        st.same(
+            service.eventQueue.map((e) => e.eventName),
+            ['b', 'a'],
+        );
+        st.equal(service.eventQueueStats.duplicatesSkipped, 1);
+        st.equal(service.eventQueueStats.valuesReplaced, 0);
         st.end();
     });
 
@@ -439,6 +457,7 @@ test('MeshV2Service Batch Events', (t) => {
 
         try {
             service.eventQueueStats.duplicatesSkipped = 5;
+            service.eventQueueStats.valuesReplaced = 3;
             service.eventQueueStats.dropped = 2;
             service.eventQueueStats.lastReportTime = currentTime;
 
@@ -451,6 +470,7 @@ test('MeshV2Service Batch Events', (t) => {
             currentTime += 5001;
             service.reportEventStatsIfNeeded();
             st.equal(service.eventQueueStats.duplicatesSkipped, 0);
+            st.equal(service.eventQueueStats.valuesReplaced, 0);
             st.equal(service.eventQueueStats.dropped, 0);
             st.equal(service.eventQueueStats.lastReportTime, currentTime);
         } finally {

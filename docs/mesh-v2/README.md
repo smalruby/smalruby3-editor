@@ -215,7 +215,7 @@ Mesh 拡張機能のブロックは「メッセージ送信」「他ノードの
 | `meshV2_broadcastAndWait` | イベント送信して受信側の処理完了を待つ |
 | `meshV2_whenIReceive` | イベント受信時の Hat ブロック |
 | `meshV2_getSensorValue` | 他ノードのグローバル変数を読み取り |
-| `meshV2_broadcastWithValue` | 値といっしょにメッセージを送る（同じ名前は 1 秒の間の最後の値だけ送る。詳細は [`docs/extension-mesh-v2/`](../extension-mesh-v2/README.md#値つきメッセージといっしょに送るとメッセージの値)） |
+| `meshV2_broadcastWithValue` | 値といっしょにメッセージを送る（同じ名前は、値があってもなくても 1 秒の間で最後に送ったものだけ送る。詳細は [`docs/extension-mesh-v2/`](../extension-mesh-v2/README.md#値つきメッセージといっしょに送るとメッセージの値)） |
 | `meshV2_messageValue` | そのスクリプトを動かしたメッセージの値 |
 
 > 各ブロックの詳細仕様は [`docs/smalruby-language-spec-extensions.ja.md`](../smalruby-language-spec-extensions.ja.md) を参照。

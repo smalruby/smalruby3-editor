@@ -110,7 +110,7 @@ class MeshV2Service {
         this.MAX_EVENT_QUEUE_SIZE = 100; // 最大100イベント
         this.eventQueueStats = {
             duplicatesSkipped: 0,
-            // 値つきメッセージで、同じ名前の前の値を最後の値に置きかえた数 (#1843)
+            // 同じ名前の値つきメッセージ（どちらかに値がある）を、最後に送ったものに置きかえた数 (#1843)
             valuesReplaced: 0,
             dropped: 0,
             lastReportTime: Date.now(),
@@ -307,12 +307,15 @@ class MeshV2Service {
         // 統計情報を出力
         if (
             this.eventQueueStats &&
-            (this.eventQueueStats.duplicatesSkipped > 0 || this.eventQueueStats.dropped > 0)
+            (this.eventQueueStats.duplicatesSkipped > 0 ||
+                this.eventQueueStats.valuesReplaced > 0 ||
+                this.eventQueueStats.dropped > 0)
         ) {
             debug(
                 () =>
                     `Mesh V2: Final Event Queue Stats: ` +
                     `duplicates skipped=${this.eventQueueStats.duplicatesSkipped}, ` +
+                    `values replaced=${this.eventQueueStats.valuesReplaced}, ` +
                     `dropped=${this.eventQueueStats.dropped}`,
             );
         }
