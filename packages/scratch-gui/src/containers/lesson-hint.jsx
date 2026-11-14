@@ -197,6 +197,7 @@ const LessonHintContainer = ({
             onClose={onHideHint}
             onFinish={onFinishHint}
             onInsertCode={handleInsertCode}
+            note={step ? step.note || null : null}
             onNext={onNextHint}
             onPrev={onPrevHint}
             scratchBlocks={scratchBlocks}

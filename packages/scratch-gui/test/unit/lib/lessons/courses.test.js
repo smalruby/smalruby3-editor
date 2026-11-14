@@ -273,6 +273,8 @@ describe('lesson courses', () => {
             quiz: null,
             activityDiagram: false,
             partner: null,
+            mode: null,
+            explanation: null,
             steps: [
                 { title: null, target: 'palette', blocks: null, spotlight: true },
                 { title: null, target: null, blocks: 'move(10)', spotlight: false },

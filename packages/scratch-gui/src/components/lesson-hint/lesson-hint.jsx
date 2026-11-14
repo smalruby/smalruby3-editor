@@ -3,6 +3,8 @@
 // 最後のページは「うまく動かないときは」と「正解のプログラムを確認する」（最後の手段）。押すと吹き出しの中で
 // 「置き換えますか？」を確かめ、はいで正解のプログラムを入れる（onInsertCode）。最後のページの「進める」は「おわり」
 // （押すと閉じる）。
+// 読んで作るチャレンジ（`mode: 'readDiagram'`）は最後の手段のページを持たず、3 ページ目の答えをブロックで描くだけ
+// （lib/lessons/read-diagram.js。ページは steps と同じ形なので、この部品は文言の下の一言 `note` を出すだけ）。
 // ヘッダー（色の帯）をドラッグすると吹き出しを動かせる（マウス・タッチ。Pointer Events）。動かした位置は
 // ページを進めても保ち（じゃまだから動かした場所に、また戻ってこないように）、吹き出しを閉じると元の置き方に戻る。
 // 動かしたあとは指す場所から離れるので、しっぽは消す（スポットライトは指す場所を照らし続ける）。
@@ -152,6 +154,9 @@ const useHintPlacement = (target, balloonRef, deps) => {
 
 const viewportSize = () => hintViewport(document, window);
 
+// 画面の端から空ける幅（px。hint-targets.js の置き方の margin と同じ）
+const VIEWPORT_MARGIN = 8;
+
 // ドラッグとみなすまでに動かす距離（px）。ヘッダーを押しただけの手ぶれで吹き出しを動かさない
 const DRAG_THRESHOLD = 4;
 
@@ -268,6 +273,7 @@ const LessonHint = ({
     onFinish,
     onInsertCode,
     onNext,
+    note = null,
     onPrev,
     scratchBlocks,
     spotlight = false,
@@ -314,6 +320,10 @@ const LessonHint = ({
     let balloonStyle = { visibility: 'hidden' };
     if (dragged) balloonStyle = { left: dragged.left, top: dragged.top };
     else if (placement) balloonStyle = { left: placement.left, top: placement.top };
+    // 課題バーの下から画面の下までに収める（CSS の max-height は画面の高さだけを見るので、高い吹き出しの
+    // 下の端が画面の外に出る。上の端は hintViewport の top でバーの下にそろえる）
+    const viewport = viewportSize();
+    if (viewport.top > 0) balloonStyle.maxHeight = viewport.height - viewport.top - 2 * VIEWPORT_MARGIN;
     const arrowStyle = arrow
         ? side === HINT_SIDES.RIGHT || side === HINT_SIDES.LEFT
             ? { top: arrow.y }
@@ -439,6 +449,11 @@ const LessonHint = ({
                                     {intl.formatMessage(title)}
                                 </p>
                             ) : null}
+                            {note ? (
+                                <p className={styles.note} data-testid="lesson-hint-note">
+                                    {intl.formatMessage(note)}
+                                </p>
+                            ) : null}
                             {blocksXml ? (
                                 <LessonHintBlocks
                                     scratchBlocks={scratchBlocks}
@@ -493,6 +508,8 @@ LessonHint.propTypes = {
     insertErrors: PropTypes.arrayOf(PropTypes.string),
     lastResort: PropTypes.bool,
     mediaPath: PropTypes.string,
+    // 文言の下に添える一言（message descriptor）。読んで作るチャレンジの 1 ページ目の「答えは最後のページ」など
+    note: PropTypes.object,
     onClose: PropTypes.func.isRequired,
     // 「おわり」で閉じる（無ければ onClose）
     onFinish: PropTypes.func,

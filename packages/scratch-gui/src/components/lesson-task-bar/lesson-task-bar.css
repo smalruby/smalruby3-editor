@@ -37,6 +37,17 @@
     white-space: nowrap;
 }
 
+/* 読んで作るチャレンジの印。位置の丸と並べ、白い枠だけにして位置より目立たせない */
+.mode {
+    flex-shrink: 0;
+    padding: 0.125rem 0.5rem;
+    border: 1px solid $ui-white;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
 .task {
     /*
         width: 0 で、課題の文の長さをバーの最小幅に入れない（入れると長い課題で

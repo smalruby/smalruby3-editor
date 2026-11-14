@@ -5,7 +5,7 @@ import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonHint } from '../../../src/containers/lesson-hint.jsx';
 import analytics from '../../../src/lib/analytics';
-import { challengeCodeFor, findChallenge, localizeCode } from '../../../src/lib/lessons/courses';
+import { challengeCodeFor, defineChallenge, findChallenge, localizeCode } from '../../../src/lib/lessons/courses';
 import { rubyToBlocksXml } from '../../../src/lib/lessons/hint-blocks';
 import { targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';
 
@@ -487,5 +487,64 @@ describe('LessonHint container', () => {
         expect(props.onNextHint).toHaveBeenCalledTimes(1);
         expect(props.onPrevHint).toHaveBeenCalledTimes(1);
         expect(props.onHideHint).toHaveBeenCalledTimes(1);
+    });
+
+    describe('read-and-build challenge (mode readDiagram)', () => {
+        const ANSWER = 'when_flag_clicked do\n  say("Hi")\nend\n';
+        const readCurrent = () => {
+            const found = findChallenge(CHALLENGE_ID);
+            return {
+                ...found,
+                challenge: defineChallenge({
+                    id: found.challenge.id,
+                    number: found.challenge.number,
+                    mode: 'readDiagram',
+                    task: found.challenge.task,
+                    code: ANSWER,
+                    debug: found.challenge.debug,
+                }),
+            };
+        };
+        const readHint = (current, index) => ({
+            visible: true,
+            index,
+            count: 3,
+            step: current.challenge.steps[index],
+            spotlight: false,
+            lastResort: false,
+            debug: current.challenge.debug,
+            code: current.challenge.code,
+            session: 1,
+        });
+
+        test('page 1 shows the diagram, the explanation and that the answer is on the last page', async () => {
+            const current = readCurrent();
+            const { getByTestId } = renderContainer({ ...baseProps(), current, hint: readHint(current, 0) });
+            await flush();
+            expect(getByTestId('lesson-hint-position')).toHaveTextContent('Hint 1 of 3');
+            expect(getByTestId('lesson-hint-activity-diagram')).toBeInTheDocument();
+            expect(getByTestId('lesson-hint-note')).toHaveTextContent('The answer is on the last page');
+        });
+
+        test('page 3 draws the whole answer in the balloon and offers no replacing', async () => {
+            const current = readCurrent();
+            const props = baseProps();
+            const { getByTestId, queryByTestId } = renderContainer({ ...props, current, hint: readHint(current, 2) });
+            await flush();
+            expect(rubyToBlocksXml).toHaveBeenCalledWith(
+                props.vm,
+                props.vm.editingTarget,
+                ANSWER,
+                expect.anything(),
+                expect.objectContaining({ version: '2' }),
+            );
+            expect(getByTestId('lesson-hint-title')).toHaveTextContent('This is the answer');
+            expect(queryByTestId('lesson-hint-activity-diagram')).toBeNull();
+            expect(queryByTestId('lesson-hint-insert-code')).toBeNull();
+            expect(queryByTestId('lesson-hint-debug')).toBeNull();
+            expect(props.onInsertCode).not.toHaveBeenCalled();
+            // 最後のページなので「おわり」
+            expect(getByTestId('lesson-hint-finish')).toBeInTheDocument();
+        });
     });
 });

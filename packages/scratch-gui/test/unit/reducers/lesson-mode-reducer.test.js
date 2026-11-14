@@ -563,3 +563,56 @@ describe('lesson-mode reducer: lessons library focus', () => {
         });
     });
 });
+
+describe('lesson-mode reducer: read-and-build challenge (mode readDiagram)', () => {
+    // いまのコースに読んで作るチャレンジは無いので、テスト用の定義に見せかける
+    const CHALLENGE_ID = 'blocks-l1-click-say';
+    let findChallengeSpy;
+
+    beforeEach(() => {
+        window.localStorage.clear();
+        const courses = require('../../../src/lib/lessons/courses');
+        const real = courses.findChallenge;
+        findChallengeSpy = jest.spyOn(courses, 'findChallenge').mockImplementation((id) => {
+            const found = real(id);
+            if (!found) return found;
+            return {
+                ...found,
+                challenge: courses.defineChallenge({
+                    id: found.challenge.id,
+                    number: found.challenge.number,
+                    mode: 'readDiagram',
+                    task: found.challenge.task,
+                    code: 'when_flag_clicked do\n  say("Hi")\nend\n',
+                    // ふつうのチャレンジなら最後の手段のページが付く
+                    debug: [{ id: 'x.debug1' }],
+                    steps: [{ title: 'ignored' }, { title: 'ignored' }],
+                }),
+            };
+        });
+    });
+
+    afterEach(() => {
+        findChallengeSpy.mockRestore();
+    });
+
+    test('has only 3 hint pages and no last-resort page (no replacing with the answer)', () => {
+        let state = reducer(lessonModeInitialState, openChallenge(CHALLENGE_ID));
+        // 始めたら 1 ページ目（図と説明）が自動で開く
+        let hint = getCurrentHint(wrap(state));
+        expect(hint.visible).toBe(true);
+        expect(hint.count).toBe(3);
+        expect(hint.step.kind).toBe('read');
+        expect(hint.lastResort).toBe(false);
+        state = reducer(state, nextHint());
+        expect(getCurrentHint(wrap(state)).step.kind).toBe('try');
+        state = reducer(state, nextHint());
+        hint = getCurrentHint(wrap(state));
+        expect(hint.step.kind).toBe('answer');
+        expect(hint.step.blocks).toContain('say("Hi")');
+        expect(hint.lastResort).toBe(false);
+        // 3 ページ目が最後（その先は無い）
+        state = reducer(state, nextHint());
+        expect(getCurrentHint(wrap(state)).index).toBe(2);
+    });
+});

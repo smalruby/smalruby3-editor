@@ -144,30 +144,38 @@ const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
  * ドラッグ中だけでなく、ページが変わって大きさが変わったとき・画面の大きさが変わったときにも使う。
  * @param {{left: number, top: number}} position - 吹き出しの左上（viewport 座標）。
  * @param {{width: number, height: number}} balloon - 吹き出しの大きさ。
- * @param {{width: number, height: number, left: ?number}} viewport - 画面の大きさ（`left` は左の使えない幅）。
+ * @param {{width: number, height: number, left: ?number, top: ?number}} viewport - 画面の大きさ（`left` / `top` は
+ *   左・上の使えない幅）。
  * @param {number} [margin] - 画面の端から空ける幅。
  * @returns {{left: number, top: number}} 収めた左上。
  */
 export const clampHintPosition = (position, balloon, viewport, margin = 8) => {
     const minLeft = (viewport.left || 0) + margin;
+    const minTop = (viewport.top || 0) + margin;
     return {
         left: clamp(position.left, minLeft, Math.max(minLeft, viewport.width - balloon.width - margin)),
-        top: clamp(position.top, margin, Math.max(margin, viewport.height - balloon.height - margin)),
+        top: clamp(position.top, minTop, Math.max(minTop, viewport.height - balloon.height - margin)),
     };
 };
 
 /**
  * 吹き出しを置いてよい画面の範囲。SP のサイドレール（`mobile-side-rail`）は吹き出しより上の層に
  * あるので、その右から置く（レールの下に吹き出しが隠れ、取っ手やボタンを押せなくなるのを防ぐ）。
+ * 課題バー（`lesson-task-bar`。メニューバーと同じ層）も吹き出しより上に描かれるので、その下から置く
+ * （高い吹き出し — 図のある 1 ページ目・答えのページ — のヘッダーと閉じるがバーの下に隠れないように）。
  * @param {Document} doc - document。
  * @param {{innerWidth: number, innerHeight: number}} win - window。
- * @returns {{left: number, width: number, height: number}} 画面の大きさと、左の使えない幅。
+ * @returns {{left: number, top: number, width: number, height: number}} 画面の大きさと、左・上の使えない幅。
  */
 export const hintViewport = (doc, win) => {
+    const visible = (r) => r && r.right - r.left > 0 && r.bottom - r.top > 0;
     const rail = doc.querySelector('[data-testid="mobile-side-rail"]');
     const r = rail ? rail.getBoundingClientRect() : null;
-    const left = r && r.right > 0 && r.bottom - r.top > 0 ? r.right : 0;
-    return { left, width: win.innerWidth, height: win.innerHeight };
+    const left = visible(r) && r.right > 0 ? r.right : 0;
+    const bar = doc.querySelector('[data-testid="lesson-task-bar"]');
+    const b = bar ? bar.getBoundingClientRect() : null;
+    const top = visible(b) && b.bottom > 0 ? b.bottom : 0;
+    return { left, top, width: win.innerWidth, height: win.innerHeight };
 };
 
 /**
@@ -186,11 +194,12 @@ export const hintViewport = (doc, win) => {
  */
 export const computeHintPlacement = ({ target, balloon, viewport, sides, gap = 12, margin = 8 }) => {
     const minLeft = (viewport.left || 0) + margin;
+    const minTop = (viewport.top || 0) + margin;
     const maxLeft = Math.max(minLeft, viewport.width - balloon.width - margin);
-    const maxTop = Math.max(margin, viewport.height - balloon.height - margin);
+    const maxTop = Math.max(minTop, viewport.height - balloon.height - margin);
     const settle = (left, top, side, anchor) => {
         const l = clamp(left, minLeft, maxLeft);
-        const t = clamp(top, margin, maxTop);
+        const t = clamp(top, minTop, maxTop);
         const arrow = anchor
             ? {
                   x: clamp(anchor.x - l, 12, Math.max(12, balloon.width - 12)),
@@ -235,7 +244,7 @@ export const computeHintPlacement = ({ target, balloon, viewport, sides, gap = 1
         [HINT_SIDES.TOP]: () => ({
             left: cx - balloon.width / 2,
             top: target.top - gap - balloon.height,
-            fits: target.top - gap - balloon.height >= margin,
+            fits: target.top - gap - balloon.height >= minTop,
             anchor: { x: cx, y: target.top },
         }),
         [HINT_SIDES.INSIDE]: () => ({ left: target.left + gap, top: target.top + gap, fits: true, anchor: null }),

@@ -4,6 +4,7 @@
 import { HINT_TARGETS } from './hint-targets';
 import arrowKeysImage from './images/arrow-keys.svg';
 import { ja } from './lessons.locale';
+import { applyChallengeMode } from './read-diagram';
 
 /** コースの言語。言語の中にコースが並ぶ。 */
 export const LANGUAGES = Object.freeze({
@@ -98,53 +99,66 @@ export const challengeCodeCandidates = (challenge, locale) => {
  * @param {object} def - チャレンジの定義（id は必須。number は defineLesson が付ける）。
  * @returns {object} 正規化したチャレンジ。
  */
-export const defineChallenge = (def) => ({
-    name: message(`gui.lessons.challenge.${def.id}.name`),
-    // 課題の 1 行（message descriptor）。課題バーの下に出す全文では改行（\n）をそのまま出すので、
-    // 長い課題は読みやすいところで改行しておく（バーの 1 行では改行を取ってつなぐ）
-    task: null,
-    // 課題の全文といっしょに出す画像（任意）: {src, alt}。src は import した画像の URL
-    // （webpack の asset。チュートリアルの deck の画像と同じ扱い）、alt は message descriptor
-    image: null,
-    // レッスン表のカード: {category, main}。category = カードの左の帯の色（なかま。`CATEGORIES` の値）、
-    // main = そのチャレンジで覚えるメインのなかま。category は「できあがりのプログラム（code と
-    // spriteCodes）でいちばん多いなかま、同じ数なら main」（card-color.js・docs/lessons/design.md の「カード」）。
-    // 決め方どおりかは test/unit/lib/lessons/card-color.test.js が本物の変換で数えて確かめる。
-    // 無ければ null（レッスン表は色無しで出す）
-    card: null,
-    // できた の判定: 条件の配列（全部を満たしたら「できた」）。形は goal.js と
-    // docs/lessons/README.md。null ならそのチャレンジは判定しない
-    goal: null,
-    // code のほかに、名前で決めたスプライトに入れるプログラム: [{sprite, code}]（`sprite` はライブラリの
-    // スプライトの名前。いなければライブラリから足す）。このときの code は残りのスプライト（ネコ）に入る
-    spriteCodes: [],
-    allowedBlocks: null,
-    setup: null,
-    // 最後の手段の「プログラムを入れる」（いまの deck の code）。Ruby の文字列か、作品の中の名前が
-    // locale で変わるときは locale ごとの `{ja, 'ja-Hira', en}`（`localizeCode`）。spriteCodes の code と
-    // ヒントの blocks も同じ
-    code: null,
-    // code を入れる相手。null = いま編集中のスプライト、'stage' = ステージ（ステージのプログラムの
-    // チャレンジ。入れる前にステージをえらぶ）
-    codeTarget: null,
-    // うまく動かないときは: [message descriptor]
-    debug: [],
-    // 答えのプログラム（code と spriteCodes）から描くアクティビティ図を、課題の全文とヒントの 1 ページ目に
-    // 出すか（lib/lessons/activity-diagram/・docs/lessons/design.md の「アクティビティ図」）
-    activityDiagram: false,
-    // メッシュの練習相手（データだけ）: {name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set,
-    // broadcast}]}（set = {variable, value} か、その配列）。チャレンジ中に練習相手のパネルを出し
-    // （lib/lessons/practice-partner.js）、図では相手のスイムレーンになる。無ければ null
-    partner: null,
-    // ふりかえりのクイズ（任意）: {question, choices: [3 つ], answer, explanation}。文言は message descriptor、
-    // answer は choices の何番目が正解か（0 から）。「できた！」の中に出す（「できた」の判定には入れない）。
-    // ふつうは challengeQuiz(id, answer) で書く。形は validateQuiz
-    quiz: null,
-    ...def,
-    // ヒント。title = 文言、target = 指す場所、blocks = 吹き出しに描くブロック、
-    // spotlight = はじめて開いたチャレンジだけ周りを暗くして指す場所を照らす
-    steps: (def.steps || []).map((step) => ({ title: null, target: null, blocks: null, spotlight: false, ...step })),
-});
+export const defineChallenge = (def) =>
+    applyChallengeMode({
+        name: message(`gui.lessons.challenge.${def.id}.name`),
+        // 課題の 1 行（message descriptor）。課題バーの下に出す全文では改行（\n）をそのまま出すので、
+        // 長い課題は読みやすいところで改行しておく（バーの 1 行では改行を取ってつなぐ）
+        task: null,
+        // 課題の全文といっしょに出す画像（任意）: {src, alt}。src は import した画像の URL
+        // （webpack の asset。チュートリアルの deck の画像と同じ扱い）、alt は message descriptor
+        image: null,
+        // レッスン表のカード: {category, main}。category = カードの左の帯の色（なかま。`CATEGORIES` の値）、
+        // main = そのチャレンジで覚えるメインのなかま。category は「できあがりのプログラム（code と
+        // spriteCodes）でいちばん多いなかま、同じ数なら main」（card-color.js・docs/lessons/design.md の「カード」）。
+        // 決め方どおりかは test/unit/lib/lessons/card-color.test.js が本物の変換で数えて確かめる。
+        // 無ければ null（レッスン表は色無しで出す）
+        card: null,
+        // できた の判定: 条件の配列（全部を満たしたら「できた」）。形は goal.js と
+        // docs/lessons/README.md。null ならそのチャレンジは判定しない
+        goal: null,
+        // code のほかに、名前で決めたスプライトに入れるプログラム: [{sprite, code}]（`sprite` はライブラリの
+        // スプライトの名前。いなければライブラリから足す）。このときの code は残りのスプライト（ネコ）に入る
+        spriteCodes: [],
+        allowedBlocks: null,
+        setup: null,
+        // 最後の手段の「プログラムを入れる」（いまの deck の code）。Ruby の文字列か、作品の中の名前が
+        // locale で変わるときは locale ごとの `{ja, 'ja-Hira', en}`（`localizeCode`）。spriteCodes の code と
+        // ヒントの blocks も同じ
+        code: null,
+        // code を入れる相手。null = いま編集中のスプライト、'stage' = ステージ（ステージのプログラムの
+        // チャレンジ。入れる前にステージをえらぶ）
+        codeTarget: null,
+        // うまく動かないときは: [message descriptor]
+        debug: [],
+        // 答えのプログラム（code と spriteCodes）から描くアクティビティ図を、課題の全文とヒントの 1 ページ目に
+        // 出すか（lib/lessons/activity-diagram/・docs/lessons/design.md の「アクティビティ図」）
+        activityDiagram: false,
+        // メッシュの練習相手（データだけ）: {name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set,
+        // broadcast}]}（set = {variable, value} か、その配列）。チャレンジ中に練習相手のパネルを出し
+        // （lib/lessons/practice-partner.js）、図では相手のスイムレーンになる。無ければ null
+        partner: null,
+        // ふりかえりのクイズ（任意）: {question, choices: [3 つ], answer, explanation}。文言は message descriptor、
+        // answer は choices の何番目が正解か（0 から）。「できた！」の中に出す（「できた」の判定には入れない）。
+        // ふつうは challengeQuiz(id, answer) で書く。形は validateQuiz
+        quiz: null,
+        // チャレンジの形。null = ふつう、'readDiagram' = 読んで作る（説明とアクティビティ図だけで指示する。
+        // 図は必ず出し、ヒントは「図と説明 → 試す → 答えを見る」の 3 ページに置き換える。`steps` は使わない。
+        // 「正解のプログラムを確認する」（置き換え）は置かない。lib/lessons/read-diagram.js）
+        mode: null,
+        // 読んで作るチャレンジのヒントの 1 ページ目の説明（message descriptor）。無ければ task を出す
+        explanation: null,
+        ...def,
+        // ヒント。title = 文言、target = 指す場所、blocks = 吹き出しに描くブロック、
+        // spotlight = はじめて開いたチャレンジだけ周りを暗くして指す場所を照らす
+        steps: (def.steps || []).map((step) => ({
+            title: null,
+            target: null,
+            blocks: null,
+            spotlight: false,
+            ...step,
+        })),
+    });
 
 /**
  * レッスンを定義する。何個めか（`number`。レッスンの中の番号）は並びから付ける（並びを

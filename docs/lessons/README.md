@@ -105,6 +105,8 @@
 | `activityDiagram` | boolean | false | 答えのプログラム（`code` と `spriteCodes`）から描くアクティビティ図を、課題の全文とヒントの 1 ページ目に出すか。答えが無いチャレンジでは true でも出さない。描き方は下の「アクティビティ図（答えから描く）」 |
 | `partner` | object \| null | null | メッシュの練習相手の定義 `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}]}`（`set` = `{variable, value}` か、その配列）。あればチャレンジ中に練習相手のパネルを出す（下の「メッシュの練習相手」）。図では相手のスイムレーンになる。無ければ自分のプログラムだけを描く |
 | `quiz` | `{question, choices, answer, explanation}` \| null | null | ふりかえりのクイズ（3 択）。「できた！」の表示の中に出す（下の「ふりかえりのクイズ」）。`question` / `choices`（3 つ）/ `explanation` は message、`answer` は正解が `choices` の何番目か（0 から）。ふつうは `challengeQuiz(id, answer)` で書く |
+| `mode` | `'readDiagram'` \| null | null | チャレンジの形。null = ふつう。`'readDiagram'` = **読んで作る**（説明とアクティビティ図だけで指示する）。図を必ず出し（`activityDiagram` は true になる）、ヒントを 3 ページ（図と説明 → 試す → 答えを見る）に置き換える（`steps` は使わない）。最後の手段のページ（「正解のプログラムを確認する」）は付かない。答えは `code`。下の「読んで作るチャレンジ」 |
+| `explanation` | message \| null | null | 読んで作るチャレンジのヒントの 1 ページ目の説明。無ければ `task` を出す |
 
 ヒント（`steps` の要素）。deck の step と同じ `title` を文言にし、吹き出しのための項目を足す。
 省いた項目は `defineChallenge` が既定値で埋める。
@@ -1019,6 +1021,10 @@ partner: {
   - **SP のサイドレールの右に置く**: サイドレール（`mobile-side-rail`。z-index 9200）は吹き出し（490）より上の層なので、
     吹き出しの置き方・ドラッグの範囲はレールの右からにする（`hintViewport`）。レールの下に吹き出しの左側が
     隠れて、取っ手や「もどる」を押せなくなるのを防ぐ。
+  - **課題バーの下に置く**: 課題バー（`lesson-task-bar`）もメニューバーと同じ層で吹き出しより上に描かれるので、
+    置き方・ドラッグの範囲は課題バーの下からにする（`hintViewport` の `top`）。吹き出しの高さ（`max-height`）も
+    課題バーの下から画面の下までに収める。高い吹き出し（図のある 1 ページ目・読んで作るチャレンジの答えのページ）を
+    ステージの横に出すと、上の端がバーの下にもぐってヘッダーと閉じるが隠れるのを防ぐ。
 - **最後の手段**: 最後のページは「うまく動かないときは」（`debug` の箇条書き）と**「正解のプログラムを確認する」**
   （`code`。`lesson-hint-insert-code`）。「プログラムを入れる」では、なぜあるのか生徒にわからなかったため。押すと
   吹き出しの中に確認（`lesson-hint-insert-code-confirm`）「正解のプログラムで置き換えますか？あなたが作成したプログラムは
@@ -1041,6 +1047,40 @@ partner: {
   そのスプライトにしてから `code` を入れる。入れる前の確かめ（`validateAssets: true`）は `spriteCodes` の全部と `code`
   に対して行い、1 つでも失敗したら何も入れない（まだいないスプライトは target なしで確かめる）。
 - **文言**: `gui.lessonHint.*`（`src/locales/{en,ja,ja-Hira}.js`）。
+
+### 読んで作るチャレンジ（`mode: 'readDiagram'`）
+
+**説明とアクティビティ図だけで指示する**チャレンジの形。生徒はやれるだけやってみて、最後に自分のプログラムと答えを
+見くらべて確かめる。方針は [`design.md` の「アクティビティ図」](design.md#アクティビティ図)の「読んで作る」。
+
+- **定義**: ふつうのチャレンジに `mode: 'readDiagram'` を足す。答えは `code`（と `spriteCodes`）、判定は `goal`
+  （`uses` / `result`。ほかのチャレンジと同じ）、パレットは `allowedBlocks`（ふつうと同じ）。1 ページ目の説明を
+  課題の 1 行と変えたいときは `explanation` に書く。`steps` / `debug` は使わない（書いても無視する）。
+  決まりを当てはめるのは `defineChallenge`（`lib/lessons/read-diagram.js` の `applyChallengeMode`）。
+- **図**: 必ず出す（`activityDiagram` を true にする）。課題の全文とヒントの 1 ページ目（下の「アクティビティ図（答えから描く）」）。
+- **課題バー**: 位置の丸の右に「読んで作る」の印（`lesson-task-bar-read-diagram`）を出す。始める前に、説明と図だけの
+  チャレンジだとわかるように。
+- **ヒントは 3 ページだけ**（`readDiagramSteps`）。どのページもステージの左（コードエリアの右側）に出す（パレットと、
+  組み立てているコードエリアの左側を隠さない）。スポットライトは使わない。
+  1. **図と説明**: チャレンジを始めたら自動で開く。図・説明（`explanation` か `task`）・「答えはヒントの最後の
+     ページにあるよ」（文言の下の一言 `note`。`lesson-hint-note`）。
+  2. **試す**: 動かして図のとおりか試す・ちがったら図を読み直す、と、答えは次のページにあること。答えを見る前に
+     試してもらうため、答えのページの手前に置く。
+  3. **答えを見る**: 答えのプログラム（`code` のいまの locale のもの）を、ヒントの絵と同じ描き方で吹き出しの中に
+     **スクリプト全体**描く（「描くのは相手と置くブロックまで」の例外）。**生徒のプログラムは置き換えない**。
+     「正解のプログラムを確認する」は置かない（置き換えると、そのまま動かすだけで「できた」になるため）。最後の
+     ページなので「おわり」。
+- **当てはめないヒントの決まり**: 帽子のブロックを置く手順を抜かさない・絵は置いてほしいブロックを並びのまま描く・
+  つなげる相手もいっしょに描く、は手順のページの決まりで、読んで作るチャレンジは手順のページを持たない。
+- **`spriteCodes` があるとき**: 3 ページ目に描くのは `code`（残りのスプライト = ネコ）の分だけ。ほかのスプライトの
+  答えは図（スプライトごとに名前を書く）で見る。
+- **吹き出しの高さ**: 図のある 1 ページ目と答えのページは高くなるので、吹き出しは課題バーの下から置き
+  （`hintViewport` の `top`）、高さも課題バーの下から画面の下までに収める。1300×600 で見本（クリック → 聞く →
+  もし〜でなければ・言う 2 つ）の 1 ページ目・答えのページとも、中をスクロールせずに収まることを確かめた。
+
+![読んで作る: 図と説明（1 ページ目・1300×600）](screenshots/0411-lesson-hint-read-diagram-page1-1300x600.png)
+
+![読んで作る: 答えを見るページ（1300×600）](screenshots/0413-lesson-hint-read-diagram-answer-1300x600.png)
 
 ### アクティビティ図（答えから描く）
 
@@ -1118,6 +1158,7 @@ partner: {
 |------------|------|------|
 | `lesson-task-bar` | div | 課題バー全体（レッスンモードのときだけある） |
 | `lesson-task-bar-position` | span | 「何個め / レッスンの中の数」（例: 「3 / 4」。en は "3 of 4"） |
+| `lesson-task-bar-read-diagram` | span | 「読んで作る」の印（チャレンジの `mode` が `'readDiagram'` のときだけ） |
 | `lesson-task-bar-task` | button | 課題の 1 行（長いときは省略記号）。タップ・キーボードで全文のパネルを開閉する（`aria-expanded` / `aria-controls`） |
 | `lesson-task-bar-full-text` | div | 課題の全文のパネル（マウスを乗せているあいだ・タップで開いているあいだだけある） |
 | `lesson-task-bar-full-text-text` | p | パネルの課題の文（改行つき） |
@@ -1132,6 +1173,7 @@ partner: {
 | `lesson-hint-spotlight` | div | スポットライトの穴（照らしているときだけある） |
 | `lesson-hint-position` | span | 「ヒント n / N」 |
 | `lesson-hint-title` | p | ヒントの文言 |
+| `lesson-hint-note` | p | 文言の下の一言（読んで作るチャレンジの 1 ページ目の「答えは最後のページ」） |
 | `lesson-hint-activity-diagram` | div | ヒントの 1 ページ目のアクティビティ図（文言の上。チャレンジの `activityDiagram` が true のときだけ） |
 | `lesson-hint-blocks` | div | 本物のブロックを描く読み取り専用ワークスペース（`.blocklyBlockCanvas g[data-id]` がブロック） |
 | `lesson-hint-blocks-error` | p | ブロックを描けなかったときの注意 |
@@ -1157,7 +1199,11 @@ partner: {
 | `screenshots/0207-lesson-task-full-text-activity-diagram-1300x600.png` | 1300×600 で全文にアクティビティ図を出したところ（「もし〜なら」を `activityDiagram: true` にして撮影。ずっと・分岐・合流） |
 | `screenshots/0208-lesson-task-full-text-activity-diagram-swimlane-1300x600.png` | 練習相手の定義があるときのスイムレーン（「クイズを作ろう」にテスト用の `partner`（ボタンで変数を変えて合図を送る・合図を受け取ったら返す）を足して撮影） |
 | `screenshots/0209-lesson-task-full-text-activity-diagram-too-tall-1300x600.png` | 図が大きくて全文に入らないときの案内の 1 行（テスト用の 8 ブロックの答えで撮影） |
+| `screenshots/0210-lesson-task-full-text-read-diagram-1300x600.png` | 読んで作るチャレンジの課題バー（「読んで作る」の印）と全文の図（撮影のため、「クイズを作ろう」を見本の読んで作るチャレンジに実行時に差し替えた。いまのコースに読んで作るチャレンジは無い） |
 | `screenshots/0410-lesson-hint-activity-diagram-scroll-1300x600.png` | 同じ大きい図をヒントの 1 ページ目で出したところ（下限の大きさで、図の枠の中をスクロールできる） |
+| `screenshots/0411-lesson-hint-read-diagram-page1-1300x600.png` | 読んで作るチャレンジのヒント 1 ページ目（自動で開く。図・説明・答えは最後のページ）。見本は 0210 と同じ |
+| `screenshots/0412-lesson-hint-read-diagram-page2-1300x600.png` | 同じチャレンジの 2 ページ目（試す） |
+| `screenshots/0413-lesson-hint-read-diagram-answer-1300x600.png` | 同じチャレンジの 3 ページ目（答えのプログラム全体をブロックで描く。置き換えのボタンは無い・おわり） |
 | `screenshots/0401-lesson-hint-1300x600.png` | ヒント 2（パレットを指す・はじめてなのでスポットライト・本物のブロック）を 1300×600 で開いたところ |
 | `screenshots/0402-lesson-hint-667x375.png` | 同じヒントを SP 横（667×375）で開いたところ（パレットの右に収まる） |
 | `screenshots/0403-lesson-hint-375x667.png` | 同じヒントを SP 縦（375×667。縦持ちゲートを閉じたあと）で開いたところ（収まらないのでパレットの中） |
@@ -1301,7 +1347,9 @@ partner: {
 | `packages/scratch-gui/src/components/balloon/` | 吹き出し・ツールチップの見た目の土台（`Balloon` / `BalloonHeader` / `BalloonCloseButton` / `BalloonButton` / `balloon-tokens.css`。上の「吹き出しの共通の土台」） |
 | `packages/scratch-gui/src/components/lesson-hint/` | ヒントの吹き出し（`lesson-hint.jsx` = 中身・置き方・スポットライト・ドラッグ・正解のプログラムの確認（枠は `balloon/`）、`lesson-hint-blocks.jsx` = 読み取り専用ワークスペースに本物のブロックを描く） |
 | `packages/scratch-gui/src/containers/lesson-hint.jsx` | 吹き出しのコンテナ（`getCurrentHint` を読み、`blocks` を XML にし、「プログラムを入れる」を dispatch） |
-| `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・DOM の探し方・置き方・ドラッグした位置を画面に収める（`clampHintPosition`）・置いてよい範囲（`hintViewport`。SP のサイドレールの右）（純粋関数） |
+| `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・DOM の探し方・置き方・ドラッグした位置を画面に収める（`clampHintPosition`）・置いてよい範囲（`hintViewport`。SP のサイドレールの右・課題バーの下）（純粋関数） |
+| `packages/scratch-gui/src/lib/lessons/read-diagram.js` | 読んで作るチャレンジ（`mode: 'readDiagram'`）のヒントの 3 ページを作る・定義に決まりを当てはめる（`readDiagramSteps`・`applyChallengeMode`。純粋関数） |
+| `packages/scratch-gui/test/unit/lib/lessons/read-diagram.test.js` | 読んで作るチャレンジの unit テスト |
 | `packages/scratch-gui/src/lib/lessons/hint-blocks.js` / `blocks-xml.js` | Ruby → ブロック → Blockly の XML |
 | `packages/scratch-gui/src/lib/lessons/activity-diagram/` | アクティビティ図。`labels.js`（ブロックの文）・`model.js`（ブロック → 記号の木・練習相手のレーン）・`layout.js`（置き方）は純粋関数。`challenge-diagram.js` がチャレンジの定義から図を作り、`use-challenge-activity-diagram.js` がいまのチャレンジの図を返す hook（変換の結果を覚える）。文言は `activity-diagram.locale.js`（`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/components/lesson-activity-diagram/` | 置き方を SVG に描く部品（課題の全文・ヒントの 1 ページ目） |

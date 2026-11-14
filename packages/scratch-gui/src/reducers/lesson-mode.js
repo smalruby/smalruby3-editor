@@ -12,6 +12,7 @@ import {
     mergeProgress,
     saveProgress,
 } from '../lib/lessons/lesson-progress';
+import { isReadDiagram } from '../lib/lessons/read-diagram';
 import { isSpotlightSeen, markSpotlightSeen } from '../lib/lessons/spotlight-seen';
 
 const START_CHALLENGE = 'scratch-gui/lesson-mode/START_CHALLENGE';
@@ -44,8 +45,11 @@ const hintClosedState = {
 };
 
 // ヒントのページ数。steps の後ろに「うまく動かないときは」と「プログラムを入れる」の
-// 最後の手段のページが 1 つ付く（debug も code も無いチャレンジでは付かない）
-const hasLastResort = (challenge) => challenge.debug.length > 0 || Boolean(challenge.code);
+// 最後の手段のページが 1 つ付く（debug も code も無いチャレンジでは付かない）。
+// 読んで作るチャレンジには付けない（「正解のプログラムを確認する」で置き換えると、そのまま動かすだけで
+// 「できた」になるため。答えは 3 ページ目に描くだけ・lib/lessons/read-diagram.js）
+const hasLastResort = (challenge) =>
+    !isReadDiagram(challenge) && (challenge.debug.length > 0 || Boolean(challenge.code));
 const hintPageCount = (challenge) => challenge.steps.length + (hasLastResort(challenge) ? 1 : 0);
 
 const closedState = {

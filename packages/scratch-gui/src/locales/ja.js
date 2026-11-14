@@ -1759,6 +1759,7 @@ export default {
     'gui.lessonTaskBar.hint': 'ヒント',
     'gui.lessonTaskBar.another': 'ほかのチャレンジへ',
     'gui.lessonTaskBar.end': 'レッスンをおえる',
+    'gui.lessonTaskBar.readDiagram': '読んで作る',
     'gui.lessonPracticePartner.title': '練習相手: {name}',
     'gui.lessonPracticePartner.note': 'ペアでやるときは、閉じて本物のメッシュでつなごう。',
     'gui.lessonPracticePartner.close': '練習相手を閉じる',
@@ -1777,6 +1778,12 @@ export default {
     'gui.lessonHint.dragLabel': 'ドラッグで動かせます',
     'gui.lessonHint.insertCodeError': 'まだプログラムを入れられないよ。先にヒントのとおりに足そう。',
     'gui.lessonHint.blocksError': '（このブロックは描けませんでした）',
+    'gui.lessonHint.readDiagram.answerAtEnd':
+        '図と説明を読んで、自分でプログラムを作ろう。答えはヒントの最後のページにあるよ。',
+    'gui.lessonHint.readDiagram.try':
+        'できたら、動かして試そう。図のとおりに動くかな？ ちがったら、図をもう一度読んで直そう。答えは次のページで見られるよ。',
+    'gui.lessonHint.readDiagram.answer':
+        'これが答えのプログラムだよ。自分のプログラムと見くらべよう。あなたのプログラムはそのままだよ。',
     'gui.menuBar.lessons': 'レッスン',
     'gui.lessonsLibrary.title': 'レッスンを選ぶ',
     'gui.lessonsLibrary.search': '検索',

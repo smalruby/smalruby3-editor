@@ -1425,6 +1425,7 @@ export default {
     'gui.lessonTaskBar.hint': 'Hint',
     'gui.lessonTaskBar.another': 'Try another challenge',
     'gui.lessonTaskBar.end': 'End lesson',
+    'gui.lessonTaskBar.readDiagram': 'Read and build',
     'gui.lessonPracticePartner.title': 'Practice partner: {name}',
     'gui.lessonPracticePartner.note': 'With a partner, close this and connect with Mesh.',
     'gui.lessonPracticePartner.close': 'Close the practice partner',
@@ -1444,6 +1445,12 @@ export default {
     'gui.lessonHint.dragLabel': 'Drag to move',
     'gui.lessonHint.insertCodeError': 'The program cannot be inserted yet. Do the earlier hints first.',
     'gui.lessonHint.blocksError': '(These blocks could not be drawn.)',
+    'gui.lessonHint.readDiagram.answerAtEnd':
+        'Read the diagram and the explanation, and make the program yourself. The answer is on the last page of the hint.',
+    'gui.lessonHint.readDiagram.try':
+        'When you have made it, run it and try it. Does it work like the diagram? If not, read the diagram again and fix it. You can see the answer on the next page.',
+    'gui.lessonHint.readDiagram.answer':
+        'This is the answer. Compare it with your program. Your program stays as it is.',
     'gui.menuBar.lessons': 'Lessons',
     'gui.lessonsLibrary.title': 'Choose a Lesson',
     'gui.lessonsLibrary.search': 'Search',

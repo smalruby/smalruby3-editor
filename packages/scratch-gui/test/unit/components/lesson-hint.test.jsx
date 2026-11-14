@@ -524,4 +524,13 @@ describe('LessonHint', () => {
         expect(getByTestId('lesson-hint-blocks-error')).toBeInTheDocument();
         expect(queryByTestId('lesson-hint-blocks')).not.toBeInTheDocument();
     });
+
+    test('shows the note under the title when given (the read-and-build first page)', () => {
+        const note = { id: 'gui.lessonHint.readDiagram.answerAtEnd', defaultMessage: 'x' };
+        const { getByTestId, unmount } = renderHint({ index: 0, note }, { locale: 'ja', messages: ja });
+        expect(getByTestId('lesson-hint-note')).toHaveTextContent('答えはヒントの最後のページにあるよ');
+        unmount();
+        const { queryByTestId } = renderHint();
+        expect(queryByTestId('lesson-hint-note')).toBeNull();
+    });
 });
