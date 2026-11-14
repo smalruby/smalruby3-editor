@@ -3,6 +3,7 @@ const log = require('../../util/log');
 const debugLogger = require('../../util/debug-logger');
 const debug = debugLogger(process.env.DEBUG);
 const { FIRE_EVENTS, RECORD_EVENTS } = require('./gql-operations');
+const { toMessageValue } = require('./message-value');
 
 /**
  * Outgoing event sender. Scratch の broadcast を mesh 経由で他ノードへ送る。
@@ -103,6 +104,9 @@ const EventSenderMixin = {
     },
 
     fireEvent(eventName, payload = '') {
+        // サーバー (#1846) は 1 件でも payload が 1,000 (String#length) をこえるとまとめ全体を
+        // 拒否する。ほかのイベントを巻きこまないよう、キューに入れる前に必ず切り詰める。
+        payload = toMessageValue(payload);
         if (!this.groupId || !this.client) {
             if (this.groupId) {
                 log.warn(`Mesh V2: Cannot fire event ${eventName} - client not available`);

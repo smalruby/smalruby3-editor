@@ -19,6 +19,13 @@ test('toMessageValue (#1843)', (t) => {
     // サロゲートペアを途中で切らない（999 文字 + 絵文字 → 999 文字）
     const cut = toMessageValue(`${'a'.repeat(999)}😀`);
     t.equal(cut, 'a'.repeat(999));
+    // 絵文字は String#length で 2 と数える（サーバーと同じ数え方）
+    const emoji500 = '😀'.repeat(500);
+    t.equal(emoji500.length, 1000);
+    t.equal(toMessageValue(emoji500), emoji500);
+    t.equal(toMessageValue('😀'.repeat(501)), emoji500);
+    t.ok(toMessageValue(`a${'😀'.repeat(600)}`).length <= MAX_MESSAGE_VALUE_LENGTH);
+    t.equal(toMessageValue(`a${'😀'.repeat(600)}`), `a${'😀'.repeat(499)}`);
     t.end();
 });
 
@@ -84,4 +91,24 @@ test('the broadcast argument type uses the standard message dropdown (#1843)', (
             },
         ],
     });
+});
+
+test('fireEvent never queues a payload longer than the server cap (#1843, #1846)', (t) => {
+    const blocks = { runtime: { sequencer: {}, emit: () => {}, on: () => {}, off: () => {} } };
+    const service = new MeshV2Service(blocks, 'node1', 'domain1');
+    service.stopEventBatchTimer();
+    service.client = { mutate: () => Promise.resolve({}) };
+    service.groupId = 'group1';
+
+    service.fireEvent('ok', 'short');
+    service.fireEvent('long', '😀'.repeat(700));
+    service.fireEvent('edge', `x${'😀'.repeat(500)}`);
+
+    service.eventQueue.forEach((e) => t.ok(e.payload.length <= MAX_MESSAGE_VALUE_LENGTH, e.eventName));
+    t.equal(service.eventQueue[1].payload, '😀'.repeat(500));
+    t.equal(service.eventQueue[2].payload, `x${'😀'.repeat(499)}`);
+    t.equal(service.eventQueue[0].payload, 'short');
+    service.groupId = null;
+    service.cleanup();
+    t.end();
 });
