@@ -9,6 +9,16 @@
 | ファイル | 中身 |
 |---|---|
 | `0101-menu-bar.png` | メニューバー（「レッスン」「クラス」はスモウルビーの追加。「設定」の中身もスモウルビーで変えている） |
+| `0102-menu-file.png` | ファイルのメニュー（[`../components/menus.md`](../components/menus.md)） |
 | `0201-code-tab-1366x1024.png` | コードタブの画面全体（Ruby タブはスモウルビーの追加） |
 | `0401-variable-prompt.png` | 変数を作るモーダル |
 | `0402-delete-sprite-confirm.png` | スプライトを削除するときの確認 |
+| `0501-tabs.png` | エディターのタブ（上流の 3 つだけ。[`../components/tabs.md`](../components/tabs.md)） |
+| `0502-toggle-buttons.png` | 切り替えボタン（ステージの大きさ。[`../components/buttons.md`](../components/buttons.md)） |
+| `0503-input-form.png` | 丸い小さい入力欄（スプライトの情報。[`../components/inputs.md`](../components/inputs.md)） |
+| `0504-library-filter-bar.png` | ライブラリの絞り込みとタグボタン（「すべて」が選ばれた状態） |
+| `0505-library-item-hover.png` | ライブラリの項目のホバー（[`../components/cards.md`](../components/cards.md)） |
+| `0506-context-menu.png` | 右クリックのメニュー（[`../components/menus.md`](../components/menus.md)） |
+| `0507-alerts.png` | アラート（注意・成功・お知らせ。[`../components/alerts.md`](../components/alerts.md)） |
+
+番号の上 2 桁: 01 = メニューバー、02 = コードタブ、03 = 拡張機能・ライブラリ（空き）、04 = ダイアログ、05 = 共通部品の切り抜き。

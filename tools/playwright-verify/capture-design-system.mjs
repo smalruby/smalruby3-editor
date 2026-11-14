@@ -24,6 +24,7 @@
  *
  * 出力:
  *   tmp/design-system/<番号>-<画面>.png        スクリーンショット
+ *   tmp/design-system/<番号>-<画面>-<切り抜き>.png  部品だけの切り抜き (crops)
  *   tmp/design-system/styles.json              画面 → 部品 → スタイル (と hover) の値
  *   tmp/design-system/block-colours.json       `--colour-*` の値
  * 開けなかった画面・切り抜けなかった画面・必須の部品が見つからない画面が 1 つでもあれば exit 1。
@@ -65,6 +66,11 @@ const PROPS = [
     'border-top-style',
     'border-radius',
     'box-shadow',
+    // フォーカスの書き方は部品ごとに違う (outline・box-shadow・::before の枠)。outline も読む
+    'outline-color',
+    'outline-style',
+    'outline-width',
+    'outline-offset',
     'font-family',
     'font-size',
     'font-weight',
@@ -74,6 +80,8 @@ const PROPS = [
     'width',
     'height',
     'opacity',
+    // ホバーで大きくなる部品 (閉じるボタンの scale(1.1)) がある
+    'transform',
     'transition',
     'z-index',
 ];
@@ -83,13 +91,21 @@ const PROPS = [
 // 組み合わせて使う (`${cls(a)}${cls(b)}` や `:not(${cls(a)})`) ので、カンマの並びではなく :is() で包む。
 const cls = (file, name) => `:is([class^="${file}_${name}_"], [class*=" ${file}_${name}_"])`;
 
-// docs/design-system/screenshots に置く見本 (少数だけ)。画面 id → ファイル名。
+// docs/design-system/screenshots に置く見本 (少数だけ)。画面 id (切り抜きは `画面 id/切り抜き`) → ファイル名。
 // ファイル名は撮り直しても変えない (docs/_screenshot-guidelines.md)。
 const DOC_SHOT_NAMES = {
     'menu-bar': '0101-menu-bar.png',
+    'menu-file': '0102-menu-file.png',
     'code-tab': '0201-code-tab-1366x1024.png',
     'variable-prompt': '0401-variable-prompt.png',
     'delete-sprite-confirm': '0402-delete-sprite-confirm.png',
+    'code-tab/tabs': '0501-tabs.png',
+    'code-tab/toggle-buttons': '0502-toggle-buttons.png',
+    'code-tab/sprite-info': '0503-input-form.png',
+    'sprite-library/filter-bar': '0504-library-filter-bar.png',
+    'sprite-library/library-item-hover': '0505-library-item-hover.png',
+    'context-menu': '0506-context-menu.png',
+    'alerts': '0507-alerts.png',
 };
 
 // 見本 (DOCS_SHOTS=1) を撮ってよい viewport。上流の値が見える大きさに固定する。
@@ -198,7 +214,11 @@ const menuParts = [
  * - setup: 画面を開く手順
  * - shot: 切り抜く部品 (無ければ画面全体)
  * - parts: スタイルを読む部品 (hover: true でホバーしたときの値も読む。
- *          optional: true は無くてもよい部品。それ以外が見つからなければその画面は失敗)
+ *          optional: true は無くてよい部品。それ以外が見つからなければその画面は失敗。
+ *          focus: true でフォーカスしたときの値、focusSelector でほかの要素にフォーカスしたときの値、
+ *          active: true でマウスを押している間の値、blurFirst: true は自動でフォーカスされる部品の
+ *          ふつうの値を読むために先にフォーカスを外す。pseudo: '::before' は疑似要素の値を読む)
+ * - crops: 部品だけを切り抜いて撮る ({ name, selector, hover, first: N で先頭 N 個を囲む })
  * - close: 次の画面のために閉じる手順 (無ければページを開き直す)
  */
 const SCENES = [
@@ -217,7 +237,11 @@ const SCENES = [
         title: 'ファイルのメニュー',
         setup: (page) => openMenuBarMenu(page, 'ファイル'),
         shot: cls('menu', 'menu'),
-        parts: menuParts,
+        parts: [
+            ...menuParts,
+            // メニューを開いている間のメニューバーの項目 (.menu-bar-item.active)
+            { name: 'menu-bar-item-active', selector: `${cls('menu-bar', 'menu-bar-item')}${cls('menu-bar', 'active')}` },
+        ],
     },
     {
         id: 'menu-edit',
@@ -238,13 +262,34 @@ const SCENES = [
             { name: 'workspace', selector: '.blocklyMainBackground' },
             { name: 'stage-header', selector: cls('stage-header', 'stage-header-wrapper') },
             { name: 'stage-size-button', selector: cls('toggle-buttons', 'button') },
+            { name: 'toggle-button-selected', selector: `${cls('toggle-buttons', 'button')}[aria-pressed="true"]` },
+            {
+                name: 'toggle-button',
+                selector: `${cls('toggle-buttons', 'button')}[aria-pressed="false"]`,
+                hover: true,
+                focus: true,
+                active: true,
+            },
+            // 切り替えボタンのフォーカスは ::before の枠で描く (toggle-buttons.css の .button:focus::before)
+            {
+                name: 'toggle-button-focus-ring',
+                selector: `${cls('toggle-buttons', 'button')}[aria-pressed="false"]`,
+                pseudo: '::before',
+                focus: true,
+            },
             { name: 'sprite-info', selector: cls('sprite-info', 'sprite-info') },
-            { name: 'sprite-info-input', selector: cls('sprite-info', 'sprite-input') },
+            { name: 'sprite-info-input', selector: cls('sprite-info', 'sprite-input'), hover: true, focus: true },
             { name: 'sprite-selector', selector: cls('sprite-selector', 'sprite-selector') },
             { name: 'sprite-selector-item-selected', selector: cls('sprite-selector-item', 'is-selected') },
             { name: 'stage-selector', selector: cls('stage-selector', 'stage-selector') },
             { name: 'action-menu-button', selector: cls('action-menu', 'main-button'), hover: true },
-            { name: 'extension-button', selector: cls('extension-button', 'extension-button') },
+            { name: 'extension-button', selector: cls('extension-button', 'extension-button'), focus: true },
+        ],
+        crops: [
+            // 上流のタブ (コード・コスチューム・音) だけを囲んで撮る。4 つめの Ruby タブはスモウルビーの追加
+            { name: 'tabs', selector: cls('gui', 'tab'), first: 3 },
+            { name: 'toggle-buttons', selector: cls('toggle-buttons', 'row') },
+            { name: 'sprite-info', selector: cls('sprite-info', 'sprite-info') },
         ],
     },
     {
@@ -270,6 +315,7 @@ const SCENES = [
         parts: [
             { name: 'sound-editor', selector: cls('sound-editor', 'editor-container') },
             { name: 'round-button', selector: cls('sound-editor', 'round-button') },
+            // active は読まない: 押したまま外へ動かしても、音に効果がかかって画面が崩れることがある
             { name: 'effect-button', selector: cls('icon-button', 'container'), hover: true },
             { name: 'waveform-container', selector: cls('sound-editor', 'waveform-container') },
             { name: 'waveform-path', selector: `${cls('waveform', 'container')} path` },
@@ -293,7 +339,19 @@ const SCENES = [
         title: 'スプライトを選ぶ',
         setup: (page) => openModal(page, 'spriteLibrary'),
         waitFor: LIBRARY_ITEM,
-        parts: libraryParts,
+        parts: [
+            ...libraryParts.map((p) =>
+                p.name === 'tag-button'
+                    ? { ...p, selector: `${p.selector}:not(${cls('tag-button', 'active')})`, hover: true, focus: true }
+                    : p,
+            ),
+            // 絞り込みの入力欄の枠 (.filter)。入力欄にフォーカスすると :focus-within で輪が付く
+            { name: 'filter', selector: cls('filter', 'filter'), focusSelector: cls('filter', 'filter-input') },
+        ],
+        crops: [
+            { name: 'filter-bar', selector: cls('library', 'filter-bar') },
+            { name: 'library-item-hover', selector: LIBRARY_ITEM, hover: true },
+        ],
     },
     {
         id: 'backdrop-library',
@@ -354,7 +412,7 @@ const SCENES = [
         parts: [
             { name: 'prompt', selector: cls('confirmation-prompt', 'modal-container') },
             { name: 'label', selector: cls('confirmation-prompt', 'label') },
-            { name: 'confirm-button', selector: cls('confirmation-prompt', 'confirm-button'), hover: true },
+            { name: 'confirm-button', selector: cls('confirmation-prompt', 'confirm-button'), hover: true, focus: true },
             { name: 'cancel-button', selector: cls('confirmation-prompt', 'cancel-button'), hover: true },
         ],
     },
@@ -365,12 +423,15 @@ const SCENES = [
         waitFor: cls('prompt', 'body'),
         shot: MODAL,
         parts: [
+            { name: 'modal-overlay', selector: cls('modal', 'modal-overlay') },
+            { name: 'modal-content', selector: MODAL },
             { name: 'modal-header', selector: cls('modal', 'header') },
             { name: 'body', selector: cls('prompt', 'body') },
             { name: 'label', selector: cls('prompt', 'label') },
-            { name: 'variable-name-input', selector: cls('prompt', 'variable-name-text-input') },
+            // 開くと自動でフォーカスされるので、先に外してふつうの値を読み、フォーカスの値は別に読む
+            { name: 'variable-name-input', selector: cls('prompt', 'variable-name-text-input'), blurFirst: true, focus: true },
             { name: 'option-radio-label', selector: cls('prompt', 'options-row') },
-            { name: 'ok-button', selector: cls('prompt', 'ok-button'), hover: true },
+            { name: 'ok-button', selector: cls('prompt', 'ok-button'), hover: true, focus: true },
             // 取り消しのボタンは CSS のクラスを持たない (.button-row button で書かれている)
             { name: 'cancel-button', selector: `${cls('prompt', 'button-row')} button:not(${cls('prompt', 'ok-button')})`, hover: true },
             { name: 'close-button', selector: `${cls('modal', 'header-item-close')} ${cls('close-button', 'close-button')}`, hover: true },
@@ -426,23 +487,61 @@ const SCENES = [
             { name: 'close-button', selector: cls('close-button', 'close-button'), hover: true },
         ],
     },
+    {
+        id: 'context-menu',
+        title: '右クリックのメニュー (スプライト)',
+        setup: async (page) => {
+            await page.locator(cls('sprite-selector-item', 'sprite-selector-item')).first().click({ button: 'right' });
+        },
+        waitFor: cls('context-menu', 'context-menu-content'),
+        shot: cls('context-menu', 'context-menu-content'),
+        parts: [
+            { name: 'context-menu', selector: cls('context-menu', 'context-menu-content') },
+            // ホバーすると Radix が data-highlighted を付ける
+            { name: 'menu-item', selector: cls('context-menu', 'menu-item'), hover: true },
+            { name: 'menu-item-bordered', selector: cls('context-menu', 'menu-item-bordered') },
+        ],
+    },
+    {
+        id: 'alerts',
+        title: 'アラート (注意・成功・お知らせ)',
+        // 上流のアラートを 1 つずつ出す: creatingError = warn、createSuccess = success、settingThumbnail = info-blue
+        setup: async (page) => {
+            for (const alertId of ['creatingError', 'createSuccess', 'settingThumbnail']) {
+                await dispatch(page, { type: 'scratch-gui/alerts/SHOW_ALERT', alertId });
+            }
+        },
+        waitFor: `${cls('alert', 'alert')}${cls('alert', 'info-blue')}`,
+        shot: cls('alerts', 'alerts-inner-container'),
+        parts: [
+            { name: 'alert-warn', selector: `${cls('alert', 'alert')}${cls('alert', 'warn')}` },
+            { name: 'alert-success', selector: `${cls('alert', 'alert')}${cls('alert', 'success')}` },
+            { name: 'alert-info-blue', selector: `${cls('alert', 'alert')}${cls('alert', 'info-blue')}` },
+            { name: 'alert-message', selector: cls('alert', 'alert-message') },
+            {
+                name: 'alert-close-button',
+                selector: `${cls('alert', 'alert')} ${cls('close-button', 'close-button')}`,
+                hover: true,
+            },
+        ],
+    },
 ];
 
 // ---- 読み取り ----
 
-const readStyle = (page, selector) =>
+const readStyle = (page, selector, pseudo = null) =>
     page.evaluate(
-        ({ selector, props }) => {
+        ({ selector, props, pseudo }) => {
             const el = document.querySelector(selector);
             if (!el) return null;
-            const cs = getComputedStyle(el);
+            const cs = getComputedStyle(el, pseudo);
             const out = {};
             for (const p of props) out[p] = cs.getPropertyValue(p);
             const r = el.getBoundingClientRect();
             out['@rect'] = { width: Math.round(r.width), height: Math.round(r.height) };
             return out;
         },
-        { selector, props: PROPS },
+        { selector, props: PROPS, pseudo },
     );
 
 // ホバー前と値が違うものだけを返す (ホバーで変わる値が見やすいように)。
@@ -496,6 +595,69 @@ const readMenuBarHeight = (page) =>
         const el = document.querySelector(sel);
         return el ? getComputedStyle(el).height : null;
     }, cls('menu-bar', 'menu-bar'));
+
+// ホバー・フォーカス・押した状態の値を読む (ふつうの値との差だけ)。
+const releaseMouse = async (page) => {
+    const [x, y] = await neutralPoint(page);
+    await page.mouse.move(x, y);
+    return [x, y];
+};
+
+const measureHover = async (page, scene, part, style, entry) => {
+    try {
+        await page.locator(part.selector).first().hover({ timeout: 3000 });
+        // transition が終わるのを待つ (上流で一番長いのは action-menu の 0.5s)
+        await page.waitForTimeout(HOVER_SETTLE_MS);
+        entry.hover = diff(style, await readStyle(page, part.selector, part.pseudo));
+    } catch (e) {
+        entry.hover = { error: e.message.split('\n')[0] };
+    }
+    entry.hoverReleasedAt = await releaseMouse(page);
+    // マウスを離したら元の値に戻ったか (置いた場所がホバーを起こしていないか) を確かめる。
+    // 閉じるまで遅れる部品 (action-menu) があるので、少しのあいだ待ちながら見る。
+    let back = {};
+    for (let waited = 0; waited <= RELEASE_WAIT_MS; waited += HOVER_SETTLE_MS) {
+        await page.waitForTimeout(HOVER_SETTLE_MS);
+        back = diff(style, await readStyle(page, part.selector, part.pseudo));
+        if (!Object.keys(back).length) break;
+    }
+    if (Object.keys(back).length) {
+        entry.hoverNotReleased = back;
+        console.warn(`注意: ${scene.id}/${part.name} がホバーを外しても戻らない: ${JSON.stringify(back)}`);
+    }
+};
+
+// キーボードで操作したときのフォーカス (:focus-visible) を読むため、先にキーを 1 つ押してから
+// プログラムでフォーカスする (Chromium はキー操作のあとのフォーカスを focus-visible として扱う)。
+const measureFocus = async (page, part, style, entry) => {
+    try {
+        await page.keyboard.press('Shift');
+        await page.locator(part.focusSelector || part.selector).first().focus({ timeout: 3000 });
+        await page.waitForTimeout(HOVER_SETTLE_MS);
+        entry.focus = diff(style, await readStyle(page, part.selector, part.pseudo));
+    } catch (e) {
+        entry.focus = { error: e.message.split('\n')[0] };
+    }
+    await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    await page.waitForTimeout(HOVER_SETTLE_MS);
+};
+
+// 押している間 (:active) の値。部品の上で押して、離す前に外へ動かすのでクリックにはならない。
+const measureActive = async (page, part, style, entry) => {
+    try {
+        await page.locator(part.selector).first().hover({ timeout: 3000 });
+        await page.mouse.down();
+        await page.waitForTimeout(300);
+        entry.active = diff(style, await readStyle(page, part.selector, part.pseudo));
+    } catch (e) {
+        entry.active = { error: e.message.split('\n')[0] };
+    }
+    await releaseMouse(page);
+    await page.mouse.up();
+    // 押すとフォーカスも移るので外す (次の部品のふつうの値に混ざらないように)
+    await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    await page.waitForTimeout(HOVER_SETTLE_MS);
+};
 
 const openGui = async (page) => {
     await page.goto(`${BASE}/?no_beforeunload=1`, { waitUntil: 'load' });
@@ -562,38 +724,20 @@ const main = async () => {
                 await page.waitForTimeout(800);
 
                 for (const part of scene.parts) {
-                    const style = await readStyle(page, part.selector);
+                    if (part.blurFirst) {
+                        await page.evaluate(() => document.activeElement && document.activeElement.blur());
+                        await page.waitForTimeout(HOVER_SETTLE_MS);
+                    }
+                    const style = await readStyle(page, part.selector, part.pseudo);
                     if (!style) {
                         (part.optional ? row.optionalMissing : row.missing).push(part.name);
                         data.parts[part.name] = { selector: part.selector, found: false, optional: Boolean(part.optional) };
                         continue;
                     }
                     const entry = { selector: part.selector, found: true, style };
-                    if (part.hover) {
-                        try {
-                            await page.locator(part.selector).first().hover({ timeout: 3000 });
-                            // transition が終わるのを待つ (上流で一番長いのは action-menu の 0.5s)
-                            await page.waitForTimeout(HOVER_SETTLE_MS);
-                            entry.hover = diff(style, await readStyle(page, part.selector));
-                        } catch (e) {
-                            entry.hover = { error: e.message.split('\n')[0] };
-                        }
-                        const [x, y] = await neutralPoint(page);
-                        await page.mouse.move(x, y);
-                        entry.hoverReleasedAt = [x, y];
-                        // マウスを離したら元の値に戻ったか (置いた場所がホバーを起こしていないか) を確かめる。
-                        // 閉じるまで遅れる部品 (action-menu) があるので、少しのあいだ待ちながら見る。
-                        let back = {};
-                        for (let waited = 0; waited <= RELEASE_WAIT_MS; waited += HOVER_SETTLE_MS) {
-                            await page.waitForTimeout(HOVER_SETTLE_MS);
-                            back = diff(style, await readStyle(page, part.selector));
-                            if (!Object.keys(back).length) break;
-                        }
-                        if (Object.keys(back).length) {
-                            entry.hoverNotReleased = back;
-                            console.warn(`注意: ${scene.id}/${part.name} がホバーを外しても戻らない: ${JSON.stringify(back)}`);
-                        }
-                    }
+                    if (part.hover) await measureHover(page, scene, part, style, entry);
+                    if (part.focus || part.focusSelector) await measureFocus(page, part, style, entry);
+                    if (part.active) await measureActive(page, part, style, entry);
                     data.parts[part.name] = entry;
                     row.parts++;
                 }
@@ -611,6 +755,39 @@ const main = async () => {
                 if (row.missing.length) throw new Error(`必須の部品が見つからない: ${row.missing.join(', ')}`);
                 if (DOCS_SHOTS && DOC_SHOT_NAMES[scene.id]) {
                     copyFileSync(path, resolve(DOCS_DIR, DOC_SHOT_NAMES[scene.id]));
+                }
+                for (const crop of scene.crops || []) {
+                    const target = page.locator(crop.selector).first();
+                    if ((await target.count()) === 0) throw new Error(`切り抜く部品が見つからない: ${crop.name}`);
+                    const cropFile = `${num}-${scene.id}-${crop.name}.png`;
+                    const cropPath = resolve(OUT_DIR, cropFile);
+                    if (crop.hover) {
+                        await target.hover();
+                        await page.waitForTimeout(HOVER_SETTLE_MS);
+                    }
+                    if (crop.first) {
+                        // 先頭 N 個の部品を囲む四角を撮る (まわりを 4px あける)
+                        const clip = await page.evaluate(
+                            ({ selector, n }) => {
+                                const rects = [...document.querySelectorAll(selector)]
+                                    .slice(0, n)
+                                    .map((e) => e.getBoundingClientRect());
+                                const x = Math.max(0, Math.min(...rects.map((r) => r.left)) - 4);
+                                const y = Math.max(0, Math.min(...rects.map((r) => r.top)) - 4);
+                                const right = Math.max(...rects.map((r) => r.right)) + 4;
+                                const bottom = Math.max(...rects.map((r) => r.bottom)) + 4;
+                                return { x, y, width: right - x, height: bottom - y };
+                            },
+                            { selector: crop.selector, n: crop.first },
+                        );
+                        await page.screenshot({ path: cropPath, clip });
+                    } else {
+                        await target.screenshot({ path: cropPath });
+                    }
+                    if (crop.hover) await releaseMouse(page);
+                    data.crops = { ...data.crops, [crop.name]: cropFile };
+                    const docName = DOC_SHOT_NAMES[`${scene.id}/${crop.name}`];
+                    if (DOCS_SHOTS && docName) copyFileSync(cropPath, resolve(DOCS_DIR, docName));
                 }
             } catch (e) {
                 row.error = e.message.split('\n')[0];
