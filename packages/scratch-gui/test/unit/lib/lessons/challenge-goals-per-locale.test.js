@@ -10,6 +10,8 @@
 import VM from '@smalruby/scratch-vm';
 import { findChallenge, localizeCode } from '../../../../src/lib/lessons/courses';
 import { attachGoalMonitor } from '../../../../src/lib/lessons/goal-monitor';
+import { attachPracticeLoopback } from '../../../../src/lib/lessons/practice-loopback';
+import { normalizePartner } from '../../../../src/lib/lessons/practice-partner';
 import { targetCodeToBlocks } from '../../../../src/lib/ruby-to-blocks-converter';
 
 // jsdom の performance に mark / measure が無い（scratch-vm が読み込み時に呼ぶ）
@@ -58,8 +60,8 @@ const sprite = (name, sounds) => ({
     layerOrder: 1,
 });
 
-// その locale の新しい作品に、チャレンジで足すもの（Owl・Canyon / Arctic・ペンギン）を足した状態
-const projectFor = (locale, { penguin }) => ({
+// その locale の新しい作品に、チャレンジで足すもの（Owl・Canyon / Arctic・spriteCodes のスプライト）を足した状態
+const projectFor = (locale, { sprites }) => ({
     targets: [
         {
             isStage: true,
@@ -76,7 +78,7 @@ const projectFor = (locale, { penguin }) => ({
             layerOrder: 0,
         },
         sprite('Sprite1', [CAT_SOUND[locale], 'Owl']),
-        ...(penguin ? [sprite('Penguin', [])] : []),
+        ...sprites.map((name) => sprite(name, [])),
     ],
     monitors: [],
     extensions: [],
@@ -84,6 +86,36 @@ const projectFor = (locale, { penguin }) => ({
 });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// メッシュの拡張は jest ではサーバーにつなぐ部品（Apollo のクライアント）を作れず meshService が無いので、
+// つないでいないときの受信の置き場（remoteData）と読み方（data-sender.js の getRemoteVariable: いちばん新しい
+// 値）だけを持つ代わりを入れる。練習相手（practice-loopback.js）はこの置き場に相手の値を入れる
+const fakeMeshService = () => ({
+    meshId: 'me',
+    groupId: null,
+    remoteData: {},
+    getRemoteVariable(name) {
+        let latest = null;
+        let latestTimestamp = 0;
+        Object.values(this.remoteData).forEach((node) => {
+            if (Object.prototype.hasOwnProperty.call(node, name) && node[name].timestamp > latestTimestamp) {
+                latestTimestamp = node[name].timestamp;
+                latest = node[name].value;
+            }
+        });
+        return latest;
+    },
+    getGlobalVariables: () => [],
+    fireEvent: () => {},
+    sendData: async () => {},
+});
+
+const loadExtension = async (vm, id) => {
+    if (vm.extensionManager.isExtensionLoaded(id)) return;
+    await vm.extensionManager.loadExtensionURL(id);
+    const ext = id === 'meshV2' ? vm.runtime.peripheralExtensions.meshV2 : null;
+    if (ext && !ext.meshService) ext.meshService = fakeMeshService();
+};
 
 const until = async (predicate, timeout) => {
     const end = Date.now() + timeout;
@@ -204,17 +236,50 @@ const OPERATIONS = {
         await click();
         await answer('0'); // 手 = 1 → 勝負あり
     },
+    // レッスン 3（#1643）。シマラビ（code）はネコに、シマネコは spriteCodes で入れる
+    'chat-l3-local-message': async ({ vm, answer }) => {
+        vm.greenFlag();
+        await answer('hello');
+    },
+    // 拡張機能「メッシュ」を足してスペースキー（自分の送ったメッセージは自分にも届く）。練習相手の「てをふる」も押す
+    'chat-l3-mesh-signal': async ({ press, addExtension, partnerPress, isSatisfied }) => {
+        await press(' ');
+        await sleep(100);
+        // メッシュを足すまでは「できた」にならない
+        expect(isSatisfied()).toBe(false);
+        await addExtension('meshV2');
+        await partnerPress(0);
+        await press(' ');
+    },
+    // 1・2 のキーで自分の気分を変え、練習相手の「うれしい」を押してからシマネコを押す
+    'chat-l3-mesh-variable': async ({ press, partnerPress, clickSprite, isSatisfied }) => {
+        await press('1');
+        await press('2');
+        // 相手の気分がまだ届いていないので、シマネコは何も言わない
+        await clickSprite('Shimacat');
+        await sleep(100);
+        expect(isSatisfied()).toBe(false);
+        await partnerPress(0);
+        await clickSprite('Shimacat');
+    },
 };
 
 // ステージのプログラムのチャレンジ 4 は 1 秒の待ちが 6 回ある
 const WAIT_FOR_GOAL_MS = 9000;
 
 // チャレンジの code（または codeOverride）をその locale の新しい作品に入れ、goal の見張りを付けて動かす準備をする。
+// codeOverride は code の Ruby か、ほかのスプライトにも入れるときは `{code, sprites: {名前: Ruby}}`。
 // 戻り値の ctx でチャレンジの操作をし、isSatisfied() で「できた」かを見る
-const prepareRun = async (id, locale, codeOverride = null) => {
+const prepareRun = async (id, locale, override = null) => {
+    const codeOverride = override !== null && typeof override === 'object' ? override.code : override;
+    const spriteOverrides = override !== null && typeof override === 'object' ? override.sprites || {} : {};
     const { challenge } = findChallenge(id);
     const vm = new VM();
-    await vm.loadProject(projectFor(locale, { penguin: challenge.spriteCodes.length > 0 }));
+    await vm.loadProject(projectFor(locale, { sprites: challenge.spriteCodes.map((s) => s.sprite) }));
+    // 始めるときに読み込む拡張機能（3-3 のメッシュ）。プログラムを入れる前に読み込む
+    for (const id of (challenge.setup && challenge.setup.extensions) || []) {
+        await loadExtension(vm, id);
+    }
     const stage = vm.runtime.getTargetForStage();
     const cat = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === 'Sprite1');
     vm.setEditingTarget(cat.id);
@@ -224,6 +289,10 @@ const prepareRun = async (id, locale, codeOverride = null) => {
             const target = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === name);
             await insert(vm, target, localizeCode(code, locale));
         }
+    }
+    for (const [name, code] of Object.entries(spriteOverrides)) {
+        const target = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === name);
+        await insert(vm, target, code);
     }
     await insert(
         vm,
@@ -243,6 +312,9 @@ const prepareRun = async (id, locale, codeOverride = null) => {
     vm.runtime.on('QUESTION', (q) => {
         if (q !== null) questions += 1;
     });
+    // 練習相手（ひとりのとき）。ボタンは ctx.partnerPress で押す
+    const partner = normalizePartner(challenge.partner, locale);
+    const loop = partner ? attachPracticeLoopback({ vm, partner }) : null;
     let satisfied = false;
     attachGoalMonitor(vm, challenge.goal, () => {
         satisfied = true;
@@ -255,6 +327,19 @@ const prepareRun = async (id, locale, codeOverride = null) => {
         cat,
         stage,
         isSatisfied: () => satisfied,
+        // 拡張機能を足す（課題で生徒が足す）
+        addExtension: (id) => loadExtension(vm, id),
+        // 練習相手のパネルのボタンを押す（何番目か）
+        partnerPress: async (index) => {
+            loop.press(index);
+            await sleep(50);
+        },
+        // シマネコ（spriteCodes のスプライト）を押す
+        clickSprite: async (name) => {
+            const target = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === name);
+            vm.runtime.startHats('event_whenthisspriteclicked', null, target);
+            await sleep(50);
+        },
         // 作品のタイマー（「タイマー」ブロックの値）を進める
         skipSeconds: (seconds) => {
             vm.runtime.ioDevices.clock._projectTimer.startTime -= seconds * 1000;
@@ -510,4 +595,258 @@ describe('the chat lesson 2 goals are not met by programs that skip the task (#1
         },
         20000,
     );
+});
+
+// 「チャットをつくろう」レッスン 3（#1643）の goal が、課題をやっていないプログラム（ずる）では満たされないこと
+const L3_ASK = 'when_flag_clicked do\n  ask("メッセージを入力")\n';
+const CHEATS_L3 = [
+    // 3-1: シマラビが自分で変数を言い、受け取ったシマネコは別のことを言う
+    [
+        'chat-l3-local-message (Shimaraby says it and Shimacat says something else)',
+        'chat-l3-local-message',
+        {
+            code: `${L3_ASK}  $シマラビのメッセージ = answer\n  say($シマラビのメッセージ)\n  broadcast("シマラビのメッセージ")\nend\n`,
+            sprites: { Shimacat: 'when_receive("シマラビのメッセージ") do\n  say("やあ")\nend\n' },
+        },
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('hello');
+            await sleep(300);
+        },
+    ],
+    // 3-1: 変数に入れずに送り、受け取ったシマネコが (答え) を言う（変数は作ってあるが入れない）
+    [
+        'chat-l3-local-message (Shimacat says the answer, not the variable)',
+        'chat-l3-local-message',
+        {
+            code: `${L3_ASK}  broadcast("シマラビのメッセージ")\nend\n\nwhen_key_pressed("x") do\n  $シマラビのメッセージ = 0\nend\n`,
+            sprites: { Shimacat: 'when_receive("シマラビのメッセージ") do\n  say(answer)\nend\n' },
+        },
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('hello');
+            await sleep(300);
+        },
+    ],
+    // 3-1: シマラビが送って、シマラビ自身が受け取って言う（シマネコは何もしない）
+    [
+        'chat-l3-local-message (Shimaraby receives its own message)',
+        'chat-l3-local-message',
+        `${L3_ASK}  $シマラビのメッセージ = answer\n  broadcast("シマラビのメッセージ")\nend\n\n` +
+            'when_receive("シマラビのメッセージ") do\n  say($シマラビのメッセージ)\nend\n',
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('hello');
+            await sleep(300);
+        },
+    ],
+    // 3-1: 変数に入れたうえで、受け取ったシマネコは (答え) を言う（変数を読んでいない）
+    [
+        'chat-l3-local-message (puts the answer into the variable, but Shimacat says the answer)',
+        'chat-l3-local-message',
+        {
+            code: `${L3_ASK}  $シマラビのメッセージ = answer\n  broadcast("シマラビのメッセージ")\nend\n`,
+            sprites: { Shimacat: 'when_receive("シマラビのメッセージ") do\n  say(answer, 3)\nend\n' },
+        },
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('hello');
+            await sleep(300);
+        },
+    ],
+    // 3-2: 答えのとおりでも、拡張機能「メッシュ」を足していない
+    [
+        'chat-l3-mesh-signal (without the mesh extension)',
+        'chat-l3-mesh-signal',
+        {
+            code: 'when_key_pressed("space") do\n  broadcast("てをふる")\nend\n',
+            sprites: { Shimacat: 'when_receive("てをふる") do\n  say("やあ！")\nend\n' },
+        },
+        async ({ press }) => {
+            await press(' ');
+            await sleep(300);
+        },
+    ],
+    // 3-2: スペースキーではメッセージを送らずに言うだけ（練習相手の「てをふる」で受け取ってはいる）
+    [
+        'chat-l3-mesh-signal (the space key says without broadcasting)',
+        'chat-l3-mesh-signal',
+        {
+            code: 'when_key_pressed("space") do\n  say("やあ！")\nend\n',
+            sprites: { Shimacat: 'when_receive("てをふる") do\n  say("やあ！")\nend\n' },
+        },
+        async ({ press, addExtension, partnerPress }) => {
+            await addExtension('meshV2');
+            await partnerPress(0);
+            await press(' ');
+            await sleep(300);
+        },
+    ],
+    // 3-2: 「てをふる」ではないメッセージを送り、受け取る
+    [
+        'chat-l3-mesh-signal (another message)',
+        'chat-l3-mesh-signal',
+        {
+            code: 'when_key_pressed("space") do\n  broadcast("あいさつ")\nend\n',
+            sprites: { Shimacat: 'when_receive("あいさつ") do\n  say("やあ！")\nend\n' },
+        },
+        async ({ press, addExtension }) => {
+            await addExtension('meshV2');
+            await press(' ');
+            await sleep(300);
+        },
+    ],
+    // 3-3: 気分を「このスプライトのみ」の変数に入れる（メッシュで共有されない）
+    [
+        'chat-l3-mesh-variable (the mood is a variable for this sprite only)',
+        'chat-l3-mesh-variable',
+        {
+            code: 'when_key_pressed("1") do\n  @シマラビのきぶん = "うれしい"\nend\n\nwhen_key_pressed("2") do\n  @シマラビのきぶん = "ねむい"\nend\n',
+            sprites: { Shimacat: 'when_clicked do\n  say(mesh.sensor_value("シマネコのきぶん"))\nend\n' },
+        },
+        async ({ press, partnerPress, clickSprite }) => {
+            await press('1');
+            await press('2');
+            await partnerPress(0);
+            await clickSprite('Shimacat');
+            await sleep(300);
+        },
+    ],
+    // 3-3: センサーの値を読まずに「うれしい」と言う
+    [
+        'chat-l3-mesh-variable (says "うれしい" without the sensor value)',
+        'chat-l3-mesh-variable',
+        {
+            code: 'when_key_pressed("1") do\n  $シマラビのきぶん = "うれしい"\nend\n\nwhen_key_pressed("2") do\n  $シマラビのきぶん = "ねむい"\nend\n',
+            sprites: { Shimacat: 'when_clicked do\n  say("うれしい")\nend\n' },
+        },
+        async ({ press, partnerPress, clickSprite }) => {
+            await press('1');
+            await press('2');
+            await partnerPress(0);
+            await clickSprite('Shimacat');
+            await sleep(300);
+        },
+    ],
+    // 3-3: 2 のキーのスクリプトが無い（作っただけの変数・1 のキーだけ）
+    [
+        'chat-l3-mesh-variable (only the 1 key changes the mood)',
+        'chat-l3-mesh-variable',
+        {
+            code: 'when_key_pressed("1") do\n  $シマラビのきぶん = "うれしい"\nend\n',
+            sprites: { Shimacat: 'when_clicked do\n  say(mesh.sensor_value("シマネコのきぶん"))\nend\n' },
+        },
+        async ({ press, partnerPress, clickSprite }) => {
+            await press('1');
+            await press('2');
+            await partnerPress(0);
+            await clickSprite('Shimacat');
+            await sleep(300);
+        },
+    ],
+    // 3-3: 自分の気分のセンサーの値を言う（練習相手の「うれしい」も押してある。自分の気分は「ねむい」）
+    [
+        'chat-l3-mesh-variable (says the sensor value of its own mood)',
+        'chat-l3-mesh-variable',
+        {
+            code: 'when_key_pressed("1") do\n  $シマラビのきぶん = "うれしい"\nend\n\nwhen_key_pressed("2") do\n  $シマラビのきぶん = "ねむい"\nend\n',
+            sprites: { Shimacat: 'when_clicked do\n  say(mesh.sensor_value("シマラビのきぶん"))\nend\n' },
+        },
+        async ({ press, partnerPress, clickSprite }) => {
+            await press('1');
+            await press('2');
+            await partnerPress(0);
+            await clickSprite('Shimacat');
+            await sleep(300);
+        },
+    ],
+    // 3-3: 押したスクリプトでセンサーの値を読んだあと、自分の気分の変数を言う（相手の気分はまだ届いていない）
+    [
+        'chat-l3-mesh-variable (reads the sensor value, then says its own mood variable)',
+        'chat-l3-mesh-variable',
+        {
+            code: 'when_key_pressed("1") do\n  $シマラビのきぶん = "うれしい"\nend\n\nwhen_key_pressed("2") do\n  $シマラビのきぶん = "ねむい"\nend\n',
+            sprites: {
+                Shimacat:
+                    'when_clicked do\n  say(mesh.sensor_value("シマネコのきぶん"))\n  say($シマラビのきぶん)\nend\n',
+            },
+        },
+        async ({ press, clickSprite }) => {
+            await press('1');
+            await press('2');
+            await clickSprite('Shimacat');
+            await sleep(300);
+        },
+    ],
+    // 3-3: 相手の気分が届く前に押す（センサーの値が空なので何も言わない）
+    [
+        'chat-l3-mesh-variable (clicks Shimacat before the mood of the partner arrives)',
+        'chat-l3-mesh-variable',
+        null,
+        async ({ press, clickSprite }) => {
+            await press('1');
+            await press('2');
+            await clickSprite('Shimacat');
+            await sleep(300);
+        },
+    ],
+];
+
+describe('the chat lesson 3 goals are not met by programs that skip the task (#1643)', () => {
+    let vm;
+
+    afterEach(() => {
+        quitVm(vm);
+        vm = null;
+    });
+
+    test.each(CHEATS_L3)(
+        '%s',
+        async (_name, id, code, operation) => {
+            const run = await prepareRun(id, 'ja', code);
+            vm = run.vm;
+            await operation(run.ctx);
+            expect(await until(run.isSatisfied, 1500)).toBe(false);
+        },
+        20000,
+    );
+});
+
+// ペアでシマネコの役の人は、シマラビとシマネコを入れかえて作る（判定は両方の名前を通す・#1643）。
+// 相手（シマラビの役）の気分は、本物のメッシュでほかのノードから届いた値として remoteData に入れる
+describe('the chat lesson 3 goals also pass for the other ways to do the task (#1643)', () => {
+    let vm;
+
+    afterEach(() => {
+        quitVm(vm);
+        vm = null;
+    });
+
+    test('3-2 also passes when the space key sends "てをふる" with a value', async () => {
+        const run = await prepareRun('chat-l3-mesh-signal', 'ja', {
+            code: 'when_key_pressed("space") do\n  mesh.broadcast("てをふる", "やっほー")\nend\n',
+            sprites: { Shimacat: 'when_receive("てをふる") do\n  say("やあ！", 2)\nend\n' },
+        });
+        vm = run.vm;
+        await run.ctx.addExtension('meshV2');
+        await run.ctx.press(' ');
+        expect(await until(run.isSatisfied, 1500)).toBe(true);
+    }, 20000);
+
+    test('swapped names, with the mood of the pair from another node', async () => {
+        const run = await prepareRun('chat-l3-mesh-variable', 'ja', {
+            code:
+                'when_key_pressed("1") do\n  $シマネコのきぶん = "うれしい"\nend\n\n' +
+                'when_key_pressed("2") do\n  $シマネコのきぶん = "ねむい"\nend\n',
+            sprites: { Shimacat: 'when_clicked do\n  say(mesh.sensor_value("シマラビのきぶん"), 2)\nend\n' },
+        });
+        vm = run.vm;
+        await run.ctx.press('1');
+        await run.ctx.press('2');
+        vm.runtime.peripheralExtensions.meshV2.meshService.remoteData.pair = {
+            シマラビのきぶん: { value: 'ねむい', timestamp: Date.now() },
+        };
+        await run.ctx.clickSprite('Shimacat');
+        expect(await until(run.isSatisfied, 1500)).toBe(true);
+    }, 20000);
 });

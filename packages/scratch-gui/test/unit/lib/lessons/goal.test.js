@@ -546,6 +546,87 @@ describe('variable names given as a list (ja-Hira writes 「かいすう」)', (
     });
 });
 
+describe('said.trigger and variable.target (#1643)', () => {
+    test('said.trigger needs the line to be said by a script started by that trigger', () => {
+        const facts = createFacts();
+        const send = run(facts, flag, [['event_broadcast', { BROADCAST_OPTION: 'm' }]], { targetId: 'rabbit' });
+        const got = run(facts, received('m'), [['looks_sayforsecs']], { targetId: 'cat' });
+        const goal = [
+            { type: 'said', text: 'hello', trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' } },
+        ];
+        // 送った側が自分で言っても通らない
+        recordSay(facts, { targetId: 'rabbit', text: 'hello', run: send });
+        expect(satisfied(goal, facts)).toBe(false);
+        // 言ったスクリプトが分からない（run が無い）ときも通らない
+        recordSay(facts, { targetId: 'cat', text: 'hello' });
+        expect(satisfied(goal, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: 'hello', run: got });
+        expect(satisfied(goal, facts)).toBe(true);
+    });
+
+    test('variable.target "stage" looks only at the variables for all sprites', () => {
+        const goal = [{ type: 'variable', name: ['気分', 'mood'], target: 'stage', value: /^うれしい$/ }];
+        const local = { name: '気分', type: '', value: 'うれしい', isStage: false };
+        const global = { name: 'mood', type: '', value: 'うれしい', isStage: true };
+        expect(satisfied(goal, createFacts(), snapshot({ variables: [local] }))).toBe(false);
+        expect(satisfied(goal, createFacts(), snapshot({ variables: [local, global] }))).toBe(true);
+        const spriteGoal = [{ ...goal[0], target: 'sprite' }];
+        expect(satisfied(spriteGoal, createFacts(), snapshot({ variables: [local] }))).toBe(true);
+    });
+
+    test('validateGoal checks said.trigger and variable.target', () => {
+        expect(validateGoal([{ type: 'said', text: 'a', trigger: { sentBy: 'me' } }])).toEqual([
+            "goal[0]: trigger.sentBy must be 'other'",
+        ]);
+        expect(validateGoal([{ type: 'variable', name: 'a', target: 'all' }])).toEqual([
+            "goal[0]: variable.target must be 'stage' or 'sprite'",
+        ]);
+        expect(
+            validateGoal([
+                { type: 'said', text: 'a', trigger: { hat: 'event_whenbroadcastreceived', message: ['x'] } },
+                { type: 'variable', name: 'a', target: 'stage' },
+            ]),
+        ).toEqual([]);
+    });
+});
+
+describe('an opcode list and said.remoteValue (#1643)', () => {
+    test('a block entry may be any of a list of opcodes', () => {
+        const facts = createFacts();
+        const goal = [
+            {
+                type: 'uses',
+                trigger: { hat: 'event_whenkeypressed', key: 'space' },
+                blocks: [
+                    { opcode: ['event_broadcast', 'meshV2_broadcastWithValue'], args: { BROADCAST_OPTION: 'a' } },
+                ],
+            },
+        ];
+        run(facts, key('space'), [['event_broadcast', { BROADCAST_OPTION: 'b' }]]);
+        expect(satisfied(goal, facts)).toBe(false);
+        run(facts, key('space'), [['meshV2_broadcastWithValue', { BROADCAST_OPTION: 'a', VALUE: 'x' }]]);
+        expect(satisfied(goal, facts)).toBe(true);
+        expect(validateGoal(goal)).toEqual([]);
+        expect(validateGoal([{ type: 'uses', blocks: [{ opcode: [] }] }])).toEqual([
+            'goal[0].blocks[0]: opcode is required',
+        ]);
+    });
+
+    test('said.remoteValue needs the line to be a value that came from another node', () => {
+        const facts = createFacts();
+        const goal = [{ type: 'said', text: /^(うれしい|ねむい)$/, remoteValue: true }];
+        recordSay(facts, { targetId: 'cat', text: 'ねむい', remoteValues: ['うれしい'] });
+        expect(satisfied(goal, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: 'うれしい' });
+        expect(satisfied(goal, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: 'うれしい', remoteValues: ['ねむい', 'うれしい'] });
+        expect(satisfied(goal, facts)).toBe(true);
+        expect(validateGoal([{ type: 'said', text: 'a', remoteValue: 'yes' }])).toEqual([
+            'goal[0]: said.remoteValue must be true or false',
+        ]);
+    });
+});
+
 describe('validateGoal', () => {
     test('accepts well-formed goals', () => {
         expect(

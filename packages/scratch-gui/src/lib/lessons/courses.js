@@ -1334,6 +1334,303 @@ const chatLesson2 = defineLesson({
     ],
 });
 
+// レッスン 3「メッシュでつながろう」（#1643）: メッセージ（知らせ）と変数（中身）を分けて送るしくみを、同じ
+// コンピューターの中 → メッシュのメッセージ → メッシュの共有する変数、の順に学ぶ。ペアが基本で、ひとりのときは
+// 練習相手の「シマネコ」とやる（partner。ペアでシマネコの役の人はシマラビとシマネコを入れかえて作るので、判定は
+// 両方の名前を通す）。変数とメッセージは同じ名前にする（教科書の形）。拡張機能「メッシュ」は 3-2 で生徒が足し、
+// 3-3 は setup で読み込んでおく。メッシュで相手に届く名前（メッセージ・共有する変数）は ja と ja-Hira で同じにする
+// （漢字を使わない形。ja と ja-Hira の生徒がペアになっても届くように）。en は別の名前（en と ja のペアは考えない）
+const CHAT_PAIR_START = { sprites: ['Shimaraby', 'Shimacat'] };
+const CHAT_L3_WORDS = {
+    ja: {
+        v: '$シマラビのメッセージ',
+        message: 'シマラビのメッセージ',
+        ask: CHAT_ASK.ja,
+        wave: 'てをふる',
+        hi: 'やあ！',
+        myMood: '$シマラビのきぶん',
+        myMoodName: 'シマラビのきぶん',
+        partnerMood: 'シマネコのきぶん',
+        happy: 'うれしい',
+        sleepy: 'ねむい',
+        partner: 'シマネコ',
+    },
+    'ja-Hira': {
+        v: '$シマラビのメッセージ',
+        message: 'シマラビのメッセージ',
+        ask: CHAT_ASK['ja-Hira'],
+        wave: 'てをふる',
+        hi: 'やあ！',
+        myMood: '$シマラビのきぶん',
+        myMoodName: 'シマラビのきぶん',
+        partnerMood: 'シマネコのきぶん',
+        happy: 'うれしい',
+        sleepy: 'ねむい',
+        partner: 'シマネコ',
+    },
+    en: {
+        v: '$shimaraby_message',
+        message: 'shimaraby_message',
+        ask: CHAT_ASK.en,
+        wave: 'wave',
+        hi: 'Hi!',
+        myMood: '$shimaraby_mood',
+        myMoodName: 'shimaraby_mood',
+        partnerMood: 'shimacat_mood',
+        happy: 'happy',
+        sleepy: 'sleepy',
+        partner: 'Shimacat',
+    },
+};
+const chatL3Code = (make) =>
+    Object.fromEntries(Object.entries(CHAT_L3_WORDS).map(([locale, words]) => [locale, make(words)]));
+const chatL3Text = (key) =>
+    Object.fromEntries(Object.entries(CHAT_L3_WORDS).map(([locale, words]) => [locale, words[key]]));
+const CHAT_WAVE_MESSAGE = ['てをふる', 'wave'];
+// メッセージの名前のどれかに合う（Scratch と同じく大文字小文字を区別しない）
+const messageMatcher = (names) => new RegExp(`^(${names.join('|')})$`, 'i');
+// 気分の変数（シマラビの役・シマネコの役のどちらの名前も、どの locale の名前も）
+const CHAT_MOOD_VARIABLE = ['シマラビのきぶん', 'シマネコのきぶん', 'shimaraby_mood', 'shimacat_mood'];
+// 3-1 の変数（受け取った側が読む）の名前
+const CHAT_MESSAGE_NAME = new RegExp(`^(${CHAT_MESSAGE_VARIABLE.join('|')})$`);
+// 合図を送るブロック（「送る」「送って待つ」「値つきで送る」のどれで送ってもよい）
+const CHAT_SEND_OPCODES = ['event_broadcast', 'event_broadcastandwait', 'meshV2_broadcastWithValue'];
+const CHAT_MOOD_NAME = new RegExp(`^(${CHAT_MOOD_VARIABLE.join('|')})$`);
+const CHAT_HAPPY = /^(うれしい|happy)$/i;
+const CHAT_SLEEPY = /^(ねむい|sleepy)$/i;
+const CHAT_MOOD = /^(うれしい|ねむい|happy|sleepy)$/i;
+
+const chatLesson3 = defineLesson({
+    id: 'chat-l3',
+    challenges: [
+        // 1 メッセージと変数を分けて送ろう（同じコンピューターの中）: シマラビが聞いた答えを変数に入れてメッセージを送り、
+        // 受け取ったシマネコがその変数を言う。メッセージは「送ったよ」の知らせだけで、中身は変数に入れておく
+        {
+            id: 'chat-l3-local-message',
+            card: { category: CATEGORIES.EVENTS, main: CATEGORIES.EVENTS },
+            task: challengeMessage('chat-l3-local-message', 'task'),
+            // シマネコは生徒がライブラリから足す
+            setup: CHAT_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: CHAT_ASK } }, 'sensing_answer'],
+                data: ['data_setvariableto', 'data_variable'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: { SECS: 3 } }],
+            },
+            steps: withTitles('chat-l3-local-message', [
+                { target: HINT_TARGETS.SPRITE_LIST, spotlight: true },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL3Code((w) => `when_flag_clicked do\n  ask("${w.ask}")\n  ${w.v} = answer\nend\n`),
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL3Code((w) => `${w.v} = answer\nbroadcast("${w.message}")\n`),
+                },
+                {
+                    target: HINT_TARGETS.SPRITE_LIST,
+                    blocks: chatL3Code((w) => `when_receive("${w.message}") do\n  say(${w.v}, 3)\nend\n`),
+                },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('chat-l3-local-message', 2),
+            // シマラビの旗のスクリプトで 聞く → 変数に入れる → 送る の順に動き、ほかのスプライト（シマネコ）が受け取った
+            // スクリプトで、答えを入れた変数を言った（said の trigger で「受け取ったスクリプトで言った」ことを見る。
+            // シマラビが自分で言うだけ・受け取った側が別のことを言うプログラムは通らない）
+            goal: [
+                { type: 'sprites', min: 2 },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: ['sensing_askandwait', 'data_setvariableto', 'event_broadcast'],
+                    order: ['sensing_askandwait', 'data_setvariableto', 'event_broadcast'],
+                },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' },
+                    // 受け取ったスクリプトで変数を読んで言った（(答え) を言うだけでは通さない）
+                    blocks: ['looks_sayforsecs', { opcode: 'data_variable', args: { VARIABLE: CHAT_MESSAGE_NAME } }],
+                },
+                {
+                    type: 'said',
+                    trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' },
+                    equalsAnswer: true,
+                    equalsVariable: CHAT_MESSAGE_VARIABLE,
+                },
+            ],
+            quiz: challengeQuiz('chat-l3-local-message', 0),
+            code: chatL3Code(
+                (w) =>
+                    `when_flag_clicked do\n  ask("${w.ask}")\n  ${w.v} = answer\n  broadcast("${w.message}")\nend\n`,
+            ),
+            spriteCodes: [
+                {
+                    sprite: 'Shimacat',
+                    code: chatL3Code((w) => `when_receive("${w.message}") do\n  say(${w.v}, 3)\nend\n`),
+                },
+            ],
+        },
+        // 2 メッシュでメッセージを送り合おう: 拡張機能「メッシュ」を足し、ペアならホストがグループを作って相手が参加する
+        // （ひとりなら練習相手）。スペースキーでシマラビが「手をふる」を送り、受け取ったらシマネコが「やあ！」と言う
+        {
+            id: 'chat-l3-mesh-signal',
+            card: { category: CATEGORIES.EVENTS, main: CATEGORIES.EXTENSIONS },
+            task: challengeMessage('chat-l3-mesh-signal', 'task'),
+            // 拡張機能は子どもがヒント 1 で足す（setup.extensions では入れない）
+            setup: CHAT_PAIR_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: [
+                    { opcode: 'event_whenkeypressed', fields: { KEY_OPTION: 'space' } },
+                    'event_broadcast',
+                    'event_whenbroadcastreceived',
+                ],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: { MESSAGE: chatL3Text('hi'), SECS: 2 } }],
+            },
+            partner: {
+                name: chatL3Text('partner'),
+                buttons: [{ label: chatL3Text('wave'), broadcast: chatL3Text('wave') }],
+                replies: [],
+            },
+            steps: withTitles('chat-l3-mesh-signal', [
+                { target: HINT_TARGETS.EXTENSION_BUTTON, spotlight: true },
+                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL3Code((w) => `when_key_pressed("space") do\n  broadcast("${w.wave}")\nend\n`),
+                },
+                {
+                    target: HINT_TARGETS.SPRITE_LIST,
+                    blocks: chatL3Code((w) => `when_receive("${w.wave}") do\n  say("${w.hi}", 2)\nend\n`),
+                },
+                { target: HINT_TARGETS.KEYBOARD },
+            ]),
+            debug: debugTips('chat-l3-mesh-signal', 2),
+            // メッシュを読み込み、スペースキーのスクリプトで「手をふる」を送り、「手をふる」を受け取ったスクリプトで言った。
+            // 自分の送ったメッセージも自分に届くので、ひとりでも「できた」になる。メッシュで届いた合図は送り手を記録しない
+            // ので sentBy は使わない（docs/lessons/README.md の「メッシュの練習相手」）
+            goal: [
+                { type: 'extension', id: 'meshV2' },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenkeypressed', key: 'space' },
+                    blocks: [
+                        { opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: messageMatcher(CHAT_WAVE_MESSAGE) } },
+                    ],
+                },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', message: CHAT_WAVE_MESSAGE },
+                    blocks: ['looks_sayforsecs'],
+                },
+            ],
+            quiz: challengeQuiz('chat-l3-mesh-signal', 2),
+            code: chatL3Code((w) => `when_key_pressed("space") do\n  broadcast("${w.wave}")\nend\n`),
+            spriteCodes: [
+                {
+                    sprite: 'Shimacat',
+                    code: chatL3Code((w) => `when_receive("${w.wave}") do\n  say("${w.hi}", 2)\nend\n`),
+                },
+            ],
+        },
+        // 3 変数を共有しよう: 1・2 のキーで変数「シマラビの気分」を変え（メッシュの共有する変数）、シマネコを押したら
+        // 相手の気分（「シマネコの気分」のセンサーの値）を言う。自分の気分は練習相手のパネルの「届いた」に出る（watch）
+        {
+            id: 'chat-l3-mesh-variable',
+            card: { category: CATEGORIES.EVENTS, main: CATEGORIES.EXTENSIONS },
+            task: challengeMessage('chat-l3-mesh-variable', 'task'),
+            setup: { ...CHAT_PAIR_START, extensions: ['meshV2'] },
+            activityDiagram: true,
+            allowedBlocks: {
+                event: [
+                    { opcode: 'event_whenkeypressed', fields: { KEY_OPTION: '1' } },
+                    'event_whenthisspriteclicked',
+                ],
+                data: [{ opcode: 'data_setvariableto', inputs: { VALUE: chatL3Text('happy') } }, 'data_variable'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: { SECS: 2 } }],
+                // 拡張機能のカテゴリはパレットを絞っても全部出る（make-toolbox-xml）。ここは使うブロックの記録
+                meshV2: ['meshV2_getSensorValue'],
+            },
+            partner: {
+                name: chatL3Text('partner'),
+                buttons: [
+                    {
+                        label: chatL3Text('happy'),
+                        set: { variable: chatL3Text('partnerMood'), value: chatL3Text('happy') },
+                    },
+                    {
+                        label: chatL3Text('sleepy'),
+                        set: { variable: chatL3Text('partnerMood'), value: chatL3Text('sleepy') },
+                    },
+                ],
+                replies: [],
+                // 相手は読まないが、1・2 のキーで変えた自分の気分を、ひとりのときもパネルの「届いた」に出す
+                watch: [chatL3Text('myMoodName')],
+            },
+            steps: withTitles('chat-l3-mesh-variable', [
+                { target: HINT_TARGETS.PALETTE },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL3Code((w) => `when_key_pressed("1") do\n  ${w.myMood} = "${w.happy}"\nend\n`),
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL3Code((w) => `when_key_pressed("2") do\n  ${w.myMood} = "${w.sleepy}"\nend\n`),
+                },
+                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                {
+                    target: HINT_TARGETS.SPRITE_LIST,
+                    blocks: chatL3Code(
+                        (w) => `when_clicked do\n  say(mesh.sensor_value("${w.partnerMood}"), 2)\nend\n`,
+                    ),
+                },
+                { target: HINT_TARGETS.STAGE },
+            ]),
+            debug: debugTips('chat-l3-mesh-variable', 3),
+            // 1 のキーで気分の変数を「うれしい」、2 のキーで「ねむい」にし（ステージの変数 = メッシュで共有される変数）、
+            // 押したスクリプトで気分のセンサーの値を読んで、届いた気分を言った（センサーに値が届いていないと何も言わない
+            // ので、相手が気分を変えてから押したことになる）。作っただけの変数（0）では通らない
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenkeypressed', key: '1' },
+                    blocks: [{ opcode: 'data_setvariableto', args: { VARIABLE: CHAT_MOOD_NAME, VALUE: CHAT_HAPPY } }],
+                },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenkeypressed', key: '2' },
+                    blocks: [
+                        { opcode: 'data_setvariableto', args: { VARIABLE: CHAT_MOOD_NAME, VALUE: CHAT_SLEEPY } },
+                    ],
+                },
+                { type: 'variable', name: CHAT_MOOD_VARIABLE, target: 'stage', value: CHAT_MOOD },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    blocks: [{ opcode: 'meshV2_getSensorValue', args: { NAME: CHAT_MOOD_NAME } }, 'looks_sayforsecs'],
+                },
+                // 言ったのは、ほかのノード（練習相手・ペアの相手）から届いた値（自分の気分のセンサーの値では通さない）
+                { type: 'said', trigger: { hat: 'event_whenthisspriteclicked' }, text: CHAT_MOOD, remoteValue: true },
+            ],
+            quiz: challengeQuiz('chat-l3-mesh-variable', 1),
+            code: chatL3Code(
+                (w) =>
+                    `when_key_pressed("1") do\n  ${w.myMood} = "${w.happy}"\nend\n\n` +
+                    `when_key_pressed("2") do\n  ${w.myMood} = "${w.sleepy}"\nend\n`,
+            ),
+            spriteCodes: [
+                {
+                    sprite: 'Shimacat',
+                    code: chatL3Code(
+                        (w) => `when_clicked do\n  say(mesh.sensor_value("${w.partnerMood}"), 2)\nend\n`,
+                    ),
+                },
+            ],
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
@@ -1343,7 +1640,7 @@ export const COURSES = [
     defineCourse({
         id: 'chat-wo-tsukurou',
         language: LANGUAGES.BLOCKS,
-        lessons: [chatLesson1, chatLesson2],
+        lessons: [chatLesson1, chatLesson2, chatLesson3],
     }),
 ];
 

@@ -216,6 +216,56 @@ describe('attachGoalMonitor', () => {
         expect(onSatisfied).toHaveBeenCalledTimes(1);
     });
 
+    test('said: a line said inside a block remembers the script that said it (said.trigger, #1643)', () => {
+        const onSatisfied = jest.fn();
+        const goal = [{ type: 'said', text: 'やあ', trigger: { hat: 'event_whenthisspriteclicked' } }];
+        // 「言う」は見張りのすぐあとに、同じブロックの中で SAY を出す
+        runtime._primitives.looks_say = (args, util) => runtime.emit('SAY', util.target, 'say', args.MESSAGE);
+        attachGoalMonitor(vm, goal, onSatisfied);
+        exec(runtime, hatThread(cat, 'spaceHat'), 'looks_say', { MESSAGE: 'やあ' });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+        // ほかのスプライトの SAY（ブロックの外から出たもの）は、最後に動いたスクリプトのものにしない
+        runtime.emit('SAY', stage, 'say', 'やあ');
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+        exec(runtime, hatThread(cat, 'clickHat'), 'looks_say', { MESSAGE: 'やあ' });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).toHaveBeenCalledTimes(1);
+    });
+
+    test('said: the script is used for one SAY only, and the values from other mesh nodes are kept (#1643)', () => {
+        const onSatisfied = jest.fn();
+        const goal = [{ type: 'said', text: 'うれしい', trigger: { hat: 'event_whenthisspriteclicked' } }];
+        runtime._primitives.looks_say = (args, util) => runtime.emit('SAY', util.target, 'say', args.MESSAGE);
+        attachGoalMonitor(vm, goal, onSatisfied);
+        exec(runtime, hatThread(cat, 'clickHat'), 'looks_say', { MESSAGE: '' });
+        // 同じスプライトから、ブロックの外で出た 2 回目の SAY は、押したスクリプトのものにしない
+        runtime.emit('SAY', cat, 'say', 'うれしい');
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+
+        const remote = jest.fn();
+        const goal2 = [{ type: 'said', text: 'うれしい', remoteValue: true }];
+        runtime.peripheralExtensions = {
+            meshV2: {
+                meshService: {
+                    meshId: 'me',
+                    remoteData: { me: { 気分: { value: 'うれしい' } }, other: { 気分: { value: 'ねむい' } } },
+                },
+            },
+        };
+        attachGoalMonitor(vm, goal2, remote);
+        runtime.emit('SAY', cat, 'say', 'うれしい');
+        runtime.emit('BEFORE_STEP');
+        // 自分のノードの値（自分の変数のセンサーの値）は入れない
+        expect(remote).not.toHaveBeenCalled();
+        runtime.peripheralExtensions.meshV2.meshService.remoteData.other.気分.value = 'うれしい';
+        runtime.emit('SAY', cat, 'say', 'うれしい');
+        runtime.emit('BEFORE_STEP');
+        expect(remote).toHaveBeenCalledTimes(1);
+    });
+
     test('result goals re-evaluate when the project changes (costumes, sprites, extensions)', () => {
         const onSatisfied = jest.fn();
         const goal = [

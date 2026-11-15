@@ -7,6 +7,7 @@ import {
     HINT_TARGETS,
     clampHintPosition,
     computeHintPlacement,
+    findHintAvoidRects,
     findHintTargetRect,
     hintViewport,
     preferredSides,
@@ -122,6 +123,16 @@ describe('findHintTargetRect', () => {
         });
         expect(findHintTargetRect(HINT_TARGETS.EXTENSION_BUTTON, document)).toEqual(rect(0, 540, 60, 600));
     });
+
+    test('the practice partner panel (or its open button) is found and is avoided (#1643)', () => {
+        expect(findHintAvoidRects(document)).toEqual([]);
+        addEl('', rect(1180, 540, 1260, 570), { 'data-testid': 'lesson-practice-partner-open' });
+        expect(findHintTargetRect(HINT_TARGETS.PRACTICE_PARTNER, document)).toEqual(rect(1180, 540, 1260, 570));
+        expect(findHintAvoidRects(document)).toEqual([]);
+        addEl('', rect(746, 132, 922, 331), { 'data-testid': 'lesson-practice-partner' });
+        expect(findHintTargetRect(HINT_TARGETS.PRACTICE_PARTNER, document)).toEqual(rect(746, 132, 922, 331));
+        expect(findHintAvoidRects(document)).toEqual([rect(746, 132, 922, 331)]);
+    });
 });
 
 // upstream の部品は data-testid を持たないので CSS Modules のクラス名の接頭辞（`<css ファイル名>_<クラス名>_`）で
@@ -212,6 +223,70 @@ describe('computeHintPlacement', () => {
         expect(below.top).toBe(92);
         expect(below.left).toBe(8);
         expect(below.arrow).toEqual({ x: 142, y: 12 });
+    });
+
+    // 1300×600 のチャットのレッスン 3: 練習相手のパネル（コードエリアの右上）に吹き出しをかぶせない（#1643）
+    describe('with the practice partner panel to avoid (#1643)', () => {
+        const panel = rect(746, 132, 922, 331);
+        const vp = { width: 1300, height: 600, top: 80 };
+        const overlaps = (p, b, r) =>
+            p.left < r.right && p.left + b.width > r.left && p.top < r.bottom && p.top + b.height > r.top;
+
+        test('a wide balloon right of the palette slides left a little over the palette rather than the panel', () => {
+            const palette = rect(0, 117, 311, 563);
+            const big = { width: 480, height: 374 };
+            const placed = computeHintPlacement({
+                target: palette,
+                balloon: big,
+                viewport: vp,
+                sides: preferredSides('palette'),
+                avoid: [panel],
+            });
+            expect(overlaps(placed, big, panel)).toBe(false);
+            expect(placed.side).toBe(HINT_SIDES.RIGHT);
+            expect(placed.left).toBe(746 - 12 - 480);
+        });
+
+        test('a balloon left of the sprite list moves left of the panel', () => {
+            const sprites = rect(930, 404, 1212, 600);
+            const b = { width: 352, height: 312 };
+            const placed = computeHintPlacement({
+                target: sprites,
+                balloon: b,
+                viewport: vp,
+                sides: preferredSides('sprite-list'),
+                avoid: [panel],
+            });
+            expect(overlaps(placed, b, panel)).toBe(false);
+            expect(placed.side).toBe(HINT_SIDES.LEFT);
+            expect(placed.left + b.width).toBeLessThanOrEqual(746);
+        });
+
+        test('pointing at the panel puts the balloon to its left, not over it', () => {
+            const placed = computeHintPlacement({
+                target: panel,
+                balloon,
+                viewport: vp,
+                sides: preferredSides(HINT_TARGETS.PRACTICE_PARTNER),
+                avoid: [panel],
+            });
+            expect(placed.side).toBe(HINT_SIDES.LEFT);
+            expect(overlaps(placed, balloon, panel)).toBe(false);
+        });
+
+        test('a balloon without a target (centered) moves off the panel too', () => {
+            const b = { width: 352, height: 212 };
+            const placed = computeHintPlacement({ target: null, balloon: b, viewport: vp, avoid: [panel] });
+            expect(placed.side).toBe(HINT_SIDES.CENTER);
+            expect(overlaps(placed, b, panel)).toBe(false);
+        });
+
+        test('without anything to avoid the placement is as before', () => {
+            const target = rect(0, 100, 310, 600);
+            expect(computeHintPlacement({ target, balloon, viewport, avoid: [] })).toEqual(
+                computeHintPlacement({ target, balloon, viewport }),
+            );
+        });
     });
 
     test('the default order is right, left, bottom, top', () => {

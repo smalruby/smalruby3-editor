@@ -13,8 +13,14 @@ export const HINT_TARGETS = Object.freeze({
     BACKDROP: 'backdrop',
     EXTENSION_BUTTON: 'extension-button',
     GREEN_FLAG: 'green-flag',
+    // メッシュの練習相手のパネル（閉じているときは小さな「練習相手」のボタン）
+    PRACTICE_PARTNER: 'practice-partner',
     KEYBOARD: 'keyboard',
 });
+
+// 吹き出しをかぶせない部品（出ているときだけ）。練習相手のパネルはボタンを押しながらヒントを読むので、
+// 吹き出しで隠さない（#1643）
+const AVOID_SELECTORS = ['[data-testid="lesson-practice-partner"]'];
 
 /** 吹き出しを置く側。`inside` は指す場所の中、`center` は画面の真ん中（矢印なし）。 */
 export const HINT_SIDES = Object.freeze({
@@ -77,6 +83,10 @@ const TARGET_SPECS = {
         selectors: ['[data-testid="mobile-side-rail-play"]', '[class*="green-flag_green-flag_"]'],
         sides: [HINT_SIDES.BOTTOM, HINT_SIDES.LEFT],
     },
+    [HINT_TARGETS.PRACTICE_PARTNER]: {
+        selectors: ['[data-testid="lesson-practice-partner"]', '[data-testid="lesson-practice-partner-open"]'],
+        sides: [HINT_SIDES.LEFT, HINT_SIDES.BOTTOM, HINT_SIDES.INSIDE],
+    },
     [HINT_TARGETS.KEYBOARD]: { selectors: [], sides: [] },
 };
 
@@ -129,6 +139,13 @@ export const findHintTargetRect = (target, doc) => {
     }
     return rect && isVisibleRect(rect) ? rect : null;
 };
+
+/**
+ * 吹き出しをかぶせない部品の矩形（viewport 座標。出ているものだけ）。
+ * @param {Document} doc - 探す document。
+ * @returns {Array<{left: number, top: number, right: number, bottom: number}>} 矩形。
+ */
+export const findHintAvoidRects = (doc) => (doc ? visibleRects(doc, AVOID_SELECTORS) : []);
 
 /**
  * 指す場所ごとの、吹き出しを置く側の候補（先に書いたものを優先）。
@@ -187,12 +204,16 @@ export const hintViewport = (doc, win) => {
  * @param {{width: number, height: number}} args.balloon - 吹き出しの大きさ。
  * @param {{width: number, height: number, left: ?number}} args.viewport - 画面の大きさ（`left` は左の使えない幅。`hintViewport`）。
  * @param {Array<string>} [args.sides] - 置く側の候補（既定は右 → 左 → 下 → 上 → 中）。
+ * @param {Array<object>} [args.avoid] - かぶせない矩形（練習相手のパネル。`findHintAvoidRects`）。かぶる置き方は、
+ *   縦（横に置くとき）・横（縦に置くとき）にずらし、それでもかぶれば指す場所から離す方向にずらす。指す場所に
+ *   かからない置き方を先に選び、無ければ指す場所にかかる面積がいちばん小さいもの、それも無ければ、かぶせない
+ *   ことはあきらめて今までどおりに置く。指す場所が無い（真ん中に置く）ときも、かぶれば横・縦にずらす。
  * @param {number} [args.gap] - 指す場所と吹き出しのすき間。
  * @param {number} [args.margin] - 画面の端から空ける幅。
  * @returns {{left: number, top: number, side: string, arrow: ?{x: number, y: number}}}
  *   吹き出しの左上（viewport 座標）・置いた側・矢印の位置（吹き出しの左上からの相対。無ければ null）。
  */
-export const computeHintPlacement = ({ target, balloon, viewport, sides, gap = 12, margin = 8 }) => {
+export const computeHintPlacement = ({ target, balloon, viewport, sides, avoid = [], gap = 12, margin = 8 }) => {
     const minLeft = (viewport.left || 0) + margin;
     const minTop = (viewport.top || 0) + margin;
     const maxLeft = Math.max(minLeft, viewport.width - balloon.width - margin);
@@ -208,15 +229,44 @@ export const computeHintPlacement = ({ target, balloon, viewport, sides, gap = 1
             : null;
         return { left: l, top: t, side, arrow };
     };
+    const boxOf = (p) => ({
+        left: p.left,
+        top: p.top,
+        right: p.left + balloon.width,
+        bottom: p.top + balloon.height,
+    });
+    const overlapArea = (a, b) =>
+        Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
+        Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+    const clearOfAvoid = (p) => avoid.every((a) => overlapArea(boxOf(p), a) === 0);
+    // かぶせない部品をよける置き方の候補（ずらす向きの順。`vertical` なら縦を先に）
+    const shifts = (base, vertical) => {
+        const tries = [base];
+        avoid.forEach((a) => {
+            const v = [
+                { left: base.left, top: a.bottom + gap },
+                { left: base.left, top: a.top - gap - balloon.height },
+            ];
+            const h = [
+                { left: a.left - gap - balloon.width, top: base.top },
+                { left: a.right + gap, top: base.top },
+            ];
+            tries.push(...(vertical ? [...v, ...h] : [...h, ...v]));
+        });
+        return tries;
+    };
     if (!target) {
         // 横も縦も、使える範囲（サイドレールの右・課題バーの下）の真ん中に置く
         const areaLeft = viewport.left || 0;
         const areaTop = viewport.top || 0;
-        return settle(
-            areaLeft + (viewport.width - areaLeft - balloon.width) / 2,
-            areaTop + (viewport.height - areaTop - balloon.height) / 2,
-            HINT_SIDES.CENTER,
-        );
+        const center = {
+            left: areaLeft + (viewport.width - areaLeft - balloon.width) / 2,
+            top: areaTop + (viewport.height - areaTop - balloon.height) / 2,
+        };
+        const placed = shifts(center, false)
+            .map((t) => settle(t.left, t.top, HINT_SIDES.CENTER))
+            .find(clearOfAvoid);
+        return placed || settle(center.left, center.top, HINT_SIDES.CENTER);
     }
     const cx = (target.left + target.right) / 2;
     const cy = (target.top + target.bottom) / 2;
@@ -251,6 +301,25 @@ export const computeHintPlacement = ({ target, balloon, viewport, sides, gap = 1
         }),
         [HINT_SIDES.INSIDE]: () => ({ left: target.left + gap, top: target.top + gap, fits: true, anchor: null }),
     };
+    if (avoid.length > 0) {
+        // かぶせない部品があるとき: 候補ごとに、そのままの置き方とずらした置き方を試す
+        let best = null;
+        for (const side of order) {
+            const make = candidates[side];
+            if (!make) continue;
+            const c = make();
+            if (!c.fits) continue;
+            const sideways = side === HINT_SIDES.TOP || side === HINT_SIDES.BOTTOM;
+            for (const t of shifts({ left: c.left, top: c.top }, !sideways)) {
+                const p = settle(t.left, t.top, side, c.anchor);
+                if (!clearOfAvoid(p)) continue;
+                const cost = side === HINT_SIDES.INSIDE ? Infinity : overlapArea(boxOf(p), target);
+                if (cost === 0) return p;
+                if (!best || cost < best.cost) best = { cost, p };
+            }
+        }
+        if (best) return best.p;
+    }
     for (const side of order) {
         const make = candidates[side];
         if (!make) continue;
