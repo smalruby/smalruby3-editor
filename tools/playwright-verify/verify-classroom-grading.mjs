@@ -370,8 +370,8 @@ const entries = [
                 },
             ];
             await page.waitForSelector('[data-testid="classroom-teacher-kick-toast-open"]', { timeout: 30000 });
-            // 1300×600 の採点の画面では、トーストの上に採点の手順の行が重なるので、ボタンを直接押す。
-            await page.$eval('[data-testid="classroom-teacher-kick-toast-open"]', (el) => el.click());
+            // 本物のクリックで押す (#1952)。トーストがモーダルの下にあると、採点の手順の行に取られて止まる。
+            await page.locator('[data-testid="classroom-teacher-kick-toast-open"]').click({ timeout: 5000 });
             pendingKicks = [];
         },
         yes: /離れる|はなれる/,

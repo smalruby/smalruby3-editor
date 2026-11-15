@@ -142,7 +142,7 @@
 | `menu-bar/menu-bar.jsx` | チュートリアルとデバッグを「?」のメニューの中へ移した（[`menu-bar.md`](menu-bar.md)） | 開く場所だけ |
 | `lib/libraries/decks/` | スモウルビーのチュートリアル（Ruby の書き方など）とカテゴリの名前 | カードの中身だけ |
 | `cards/cards.jsx`・`card.css`（マーカー付き） | 手順の絵の上の「ルビーを入力する」などのボタン（`.insert-code-button-overlay`）、次へ進む丸と押すボタンが黄色く光る演出（`.right-button-glow` など）、「チュートリアルを始める」・外のサイトを開くボタン | 見本 `0902` では光る演出を止めて撮った |
-| `cards/card.css`（**マーカー無し**） | カードの幅を 500px まで（`max-width`）、題の折り返し（`word-break`）、点のクラス名を `.inactive-step-pip` に変えた、`.insert-code-button`（地 `$ui-green`・ホバー `$ui-green-2`。白い文字は 3.1:1 で、ホバーの明るい緑の上では 2.4:1） | カードの幅 498px（上流は中身で決まり 468px 以上）。手順の絵は 480×360px まで（マーカーの中） |
+| `cards/card.css`（マーカー付き） | カードの幅を 500px まで（`max-width`）、題の折り返し（`word-break`）、点のクラス名を `.inactive-step-pip` に変えた、`.insert-code-button`（地 `$extensions-tertiary`（`#0B8E69`）・太字の白い文字で 4.15:1・ホバー `$ui-green`（`#0DA57A`）。緑 = 手引き の意味を残して濃くした取りいそぎの修正で、チュートリアルを上流に戻す EPIC #1935 で revert する） | カードの幅 498px（上流は中身で決まり 468px 以上）。手順の絵は 480×360px まで（マーカーの中） |
 | `debug-modal/sections/messages.js`（**マーカー無し**） | 長い文の上の `// eslint-disable-next-line @stylistic/max-len` のコメントを消した（空白だけの行が残っている）。ほかの `debug-modal/` のファイルは変えていない | 見た目への影響は無い |
 
 ## 独自の画面で使うとき

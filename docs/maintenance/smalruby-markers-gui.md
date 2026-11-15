@@ -45,7 +45,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/gui/gui.jsx` | classroom modal | クラスルームモーダルの import と配置（モーダル非表示中は退室依頼の見張り `ClassroomKickRequestWatcher` を代わりにマウント） |
 | `src/components/gui/gui.jsx` | bug report modal | プログラム不具合報告モーダルの import、`legalLinks` の「不具合を報告」リンク、`<BugReportModal />` 配置、`handleBugReportClick` ハンドラ、`onOpenBugReportModal` prop/propType、props 伝播防止リスト |
 | `src/containers/gui.jsx` | bug report modal | `openBugReportModal` の import、`onOpenBugReportModal` を Redux `openBugReportModal()` にマップ |
-| `src/components/modal/modal.css` | default modal background | `.modal-content` (非フルスクリーン) に既定背景 `$ui-white` を付与し、本文背景の設定漏れでも青いオーバーレイが透けないようにする (案X) |
+| `src/components/modal/modal.css` | default modal background | `.modal-content` (非フルスクリーン) に既定背景 `$ui-white` を付与し、本文背景の設定漏れでも青いオーバーレイが透けないようにする (案X)。`background-clip: padding-box` で枠（白 25%）の下は塗らず、枠は上流と同じ淡い青に見せる |
 | `src/components/gui/gui.jsx` | meshV2 classroom binding | クラス状態に応じて Mesh v2 ドメインを参加コードに固定する常時マウントの binding |
 | `src/components/gui/gui.jsx` | meshV2 self-sensor notice | グローバル変数名と mesh センサーの値の重複を検出し初回のみ通知する常時マウントのバナー (Issue #707) の import と配置 |
 | `src/components/gui/gui.jsx` | mesh status popup | メッシュの「状態と履歴」ウィンドウ（`containers/mesh-status-popup.jsx`）の import と、エディターとプレイヤーのツリー（`StageWrapper` 内）への常時マウント（`docs/mesh-v2/README.md`） |
@@ -206,7 +206,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/gui/gui.css` | legal links | タブの右のプライバシーポリシー・フィードバック・不具合の報告のリンク（`.legal-links`・`.privacy-link`・`.link-separator`・`.feedback-link`、幅 743px 以下でフィードバックを消す規則） |
 | `src/components/cards/card.css` | tutorial card layout | チュートリアルのカードの幅を 500px までにし、長い題を折り返す（2 か所） |
 | `src/components/cards/card.css` | step pip selector | 手順の点の規則のクラス名 `.inactiveStepPip` を `.inactive-step-pip` にする |
-| `src/components/cards/card.css` | tutorial insert-code button | チュートリアルのカードの「コードを入れる」ボタン `.insert-code-button`（地 `$ui-green`・ホバー `$ui-green-2`） |
+| `src/components/cards/card.css` | tutorial insert-code button | チュートリアルのカードの「コードを入れる」ボタン `.insert-code-button`（地 `$extensions-tertiary`（#0B8E69。白い文字 4.15:1）・太字・ホバー `$ui-green`）。地と太字は取りいそぎの修正で、チュートリアルを上流に戻す EPIC #1935 で revert する |
 | `src/lib/layout-constants.js` | middle stage size | 「中」のステージ: `STAGE_SIZE_MODES.middle`・`STAGE_DISPLAY_SIZES.middle`・倍率 0.75（3 か所） |
 | `src/lib/screen-utils.js` | middle stage size | `resolveStageSize` が「中」を返す |
 | `src/reducers/stage-size.js` | middle stage size | ステージの大きさの既定を「中」にする（上流は「大」） |

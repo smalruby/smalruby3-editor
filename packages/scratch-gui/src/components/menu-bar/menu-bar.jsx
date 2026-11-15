@@ -1305,7 +1305,7 @@ class MenuBar extends React.Component {
                         {isClassroomConfigured() && (
                             <React.Fragment>
                                 <div
-                                    className={classNames(styles.menuBarItem, styles.hoverable)}
+                                    className={classNames(styles.menuBarItem, styles.noOffset, styles.hoverable)}
                                     data-testid="classroom-menu-button"
                                     onClick={this.props.onOpenClassroomModal}
                                 >
