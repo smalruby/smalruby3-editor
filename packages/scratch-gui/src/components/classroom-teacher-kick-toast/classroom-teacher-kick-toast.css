@@ -1,11 +1,16 @@
 @import '../../css/smalruby-tokens.css';
+@import '../../css/z-index.css';
 
-/* Bottom of the screen, above the editor. Kept compact for 1300x600 class PCs. */
+/*
+ * Bottom of the screen, above the editor. Kept compact for 1300x600 class PCs.
+ * Above every modal too: a teacher grading in the full-screen class management modal must still
+ * be able to press the toast's buttons (the modal overlays are lifted to 9999 / 10000, #1952).
+ */
 .toast {
     position: fixed;
     bottom: 1rem;
     left: 50%;
-    z-index: 600;
+    z-index: $z-index-notice-over-modals;
     display: flex;
     flex-direction: column;
     width: min(26rem, calc(100vw - 2rem));

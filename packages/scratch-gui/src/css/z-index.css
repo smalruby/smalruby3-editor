@@ -33,3 +33,13 @@ $z-index-stage-wrapper-overlay: 5000;
 
 /* in most interfaces, the context menu is always on top */
 $z-index-context-menu: 10000;
+
+/* === Smalruby: Start of notices above every modal === */
+/*
+    Smalruby lifts every react-modal overlay to 9999 (mobile-sprite-panel.css; 10000 in mobile
+    mode, mobile-gui.css) so modals sit over the mobile UI. That overrides $z-index-modal, so a
+    notice that must stay clickable while a full-screen modal is open (the teacher's kick-request
+    toast over the grading screen, #1952) has to sit above those overlays and the context menu.
+*/
+$z-index-notice-over-modals: 10100;
+/* === Smalruby: End of notices above every modal === */
