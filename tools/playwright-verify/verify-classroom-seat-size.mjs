@@ -1,15 +1,20 @@
-// The size of the teacher's seat tiles (#1925 C13) at the lesson PC size
-// (1300x600): 40 seats = 4 rows of 10 must fit in the members grid frame
+// The size of the teacher's seat tiles (#1925 C13). At the lesson PC size
+// (1300x600) 40 seats = 4 rows of 10 must fit in the members grid frame
 // without scrolling, for an ordinary assignment and a lesson assignment.
-// The classroom API is stubbed with page.route (dev server only).
+// On the iPad sizes (1024x768, 768x1024) the 10 columns must fit the frame's
+// width (no sideways scroll). The classroom API is stubbed with page.route
+// (dev server only).
 //
-// Prints, per assignment kind: tile width x height, rows x columns, the grid
-// frame's scrollHeight / clientHeight, the last tile's bottom vs the frame's
-// bottom, and whether the page / modal body scroll (R6).
+// Prints, per viewport and assignment kind: tile width x height, rows x
+// columns, the grid frame's scrollHeight / clientHeight and scrollWidth /
+// clientWidth, the last tile's bottom vs the frame's bottom, whether the
+// page / modal body scroll (R6, checked at 1300x600 only), content that
+// leaves a tile and「★ あと N」overlapping the submission badge.
 //
 //   node verify-classroom-seat-size.mjs                 # headless, ja
 //   LOCALE=ja-Hira node verify-classroom-seat-size.mjs
 //   BASE=http://localhost:8625 node verify-classroom-seat-size.mjs
+//   VIEWPORTS=1300x600 node verify-classroom-seat-size.mjs   # default: 1300x600,1024x768,768x1024
 //   MAX_TILE=58 node verify-classroom-seat-size.mjs     # the upper bound to check (px)
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
@@ -21,7 +26,12 @@ const LOCALE = process.env.LOCALE || "ja";
 const MAX_TILE = Number(process.env.MAX_TILE || 58);
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SHOT_DIR = process.env.SHOT_DIR || resolve(REPO_ROOT, "tmp");
-const VIEWPORT = { width: 1300, height: 600 };
+const VIEWPORTS = (process.env.VIEWPORTS || "1300x600,1024x768,768x1024")
+    .split(",")
+    .map((v) => {
+        const [width, height] = v.split("x").map(Number);
+        return { width, height, name: v, lessonPc: v === "1300x600" };
+    });
 const SEATS = 40;
 mkdirSync(SHOT_DIR, { recursive: true });
 
@@ -117,68 +127,82 @@ const browser = await chromium.launch({
     headless: process.env.HEADLESS !== "false",
     args: ["--disable-dev-shm-usage"],
 });
-const ctx = await browser.newContext({
-    viewport: VIEWPORT,
-    deviceScaleFactor: 2,
-    locale: "ja-JP",
-});
-const page = await ctx.newPage();
-page.on("pageerror", (e) => console.log("[pageerror]", e.message));
-await page.route("**/notifications", (r) =>
-    r.fulfill({ json: { notifications: [], unreadCount: 0 } }),
-);
-await page.route(/\/kick-requests/, (r) =>
-    r.fulfill({ json: { requests: [] } }),
-);
-await page.route("**/classroom-groups", (r) =>
-    r.fulfill({
-        json: {
-            groups: [
-                {
-                    groupId: "g1",
-                    name: "技術",
-                    year: 2026,
-                    section: "2年1組",
-                    status: "active",
-                    schemaVersion: 2,
-                    topics: [],
-                },
-            ],
-        },
-    }),
-);
-await page.route("**/classroom-groups/migrate", (r) =>
-    r.fulfill({ json: { migrated: 0 } }),
-);
-await page.route("**/classrooms?**", (r) =>
-    r.fulfill({ json: { classrooms } }),
-);
-await page.route(/\/classrooms$/, (r) => r.fulfill({ json: { classrooms } }));
-await page.route(/\/classrooms\/c\d$/, (r) => {
-    const id = r
-        .request()
-        .url()
-        .match(/\/classrooms\/(c\d)$/)[1];
-    return r.fulfill({ json: classrooms.find((c) => c.classroomId === id) });
-});
-await page.route(/\/classrooms\/c\d\/members$/, (r) =>
-    r.fulfill({ json: { members } }),
-);
-await page.route(/\/classrooms\/c\d\/submissions$/, (r) =>
-    r.fulfill({ json: { submissions } }),
-);
-await page.route(/\/classrooms\/c\d\/lesson-progress$/, (r) =>
-    r.fulfill({ json: { lesson, progress } }),
-);
-await page.route(/\/classrooms\/c\d\/assignment$/, (r) => {
-    const isLesson = r.request().url().includes("/c2/");
-    return r.fulfill({
-        json: {
-            assignment: { pages: [{ text: "説明" }] },
-            ...(isLesson ? { lesson } : {}),
-        },
+let page;
+
+/**
+ * Opens a context at one viewport with the stubbed classroom API.
+ * @param {object} vp - viewport ({width, height})
+ * @returns {Promise<import('playwright').BrowserContext>} the context
+ */
+const openContext = async (vp) => {
+    const ctx = await browser.newContext({
+        viewport: { width: vp.width, height: vp.height },
+        deviceScaleFactor: 2,
+        locale: "ja-JP",
     });
-});
+    page = await ctx.newPage();
+    page.on("pageerror", (e) => console.log("[pageerror]", e.message));
+    await page.route("**/notifications", (r) =>
+        r.fulfill({ json: { notifications: [], unreadCount: 0 } }),
+    );
+    await page.route(/\/kick-requests/, (r) =>
+        r.fulfill({ json: { requests: [] } }),
+    );
+    await page.route("**/classroom-groups", (r) =>
+        r.fulfill({
+            json: {
+                groups: [
+                    {
+                        groupId: "g1",
+                        name: "技術",
+                        year: 2026,
+                        section: "2年1組",
+                        status: "active",
+                        schemaVersion: 2,
+                        topics: [],
+                    },
+                ],
+            },
+        }),
+    );
+    await page.route("**/classroom-groups/migrate", (r) =>
+        r.fulfill({ json: { migrated: 0 } }),
+    );
+    await page.route("**/classrooms?**", (r) =>
+        r.fulfill({ json: { classrooms } }),
+    );
+    await page.route(/\/classrooms$/, (r) =>
+        r.fulfill({ json: { classrooms } }),
+    );
+    await page.route(/\/classrooms\/c\d$/, (r) => {
+        const id = r
+            .request()
+            .url()
+            .match(/\/classrooms\/(c\d)$/)[1];
+        return r.fulfill({
+            json: classrooms.find((c) => c.classroomId === id),
+        });
+    });
+    await page.route(/\/classrooms\/c\d\/members$/, (r) =>
+        r.fulfill({ json: { members } }),
+    );
+    await page.route(/\/classrooms\/c\d\/submissions$/, (r) =>
+        r.fulfill({ json: { submissions } }),
+    );
+    await page.route(/\/classrooms\/c\d\/lesson-progress$/, (r) =>
+        r.fulfill({ json: { lesson, progress } }),
+    );
+    await page.route(/\/classrooms\/c\d\/assignment$/, (r) => {
+        const isLesson = r.request().url().includes("/c2/");
+        return r.fulfill({
+            json: {
+                assignment: { pages: [{ text: "説明" }] },
+                ...(isLesson ? { lesson } : {}),
+            },
+        });
+    });
+    return ctx;
+};
 
 const measure = () =>
     page.evaluate(
@@ -228,7 +252,14 @@ const measure = () =>
                 if (req && sub) {
                     const a = req.getBoundingClientRect();
                     const b = sub.getBoundingClientRect();
-                    if (a.right > b.left && a.bottom > b.top) underBadge += 1;
+                    if (
+                        a.right > b.left &&
+                        a.left < b.right &&
+                        a.bottom > b.top &&
+                        a.top < b.bottom
+                    ) {
+                        underBadge += 1;
+                    }
                 }
             }
             return {
@@ -240,6 +271,9 @@ const measure = () =>
                 rows: tops.length,
                 cols: lefts.length,
                 grid: `${grid.scrollHeight}/${grid.clientHeight}`,
+                gridX: `${grid.scrollWidth}/${grid.clientWidth}`,
+                gridXOk: grid.scrollWidth <= grid.clientWidth,
+                pageXOk: se.scrollWidth <= se.clientWidth,
                 gridOk: grid.scrollHeight <= grid.clientHeight,
                 gridBottom: Math.round(g.bottom),
                 lastBottom: Math.round(last.bottom),
@@ -275,70 +309,87 @@ const openAssignment = async (id) => {
 };
 
 try {
-    await page.goto(
-        `${BASE}/?no_beforeunload=1&locale=${LOCALE}&devlogin=stub-token`,
-        { waitUntil: "load" },
-    );
-    await page.waitForTimeout(3000);
-    await page.addStyleTag({
-        content:
-            "#webpack-dev-server-client-overlay { display: none !important; }",
-    });
-    for (const [kind, id] of [
-        ["assignment", "c1"],
-        ["lesson", "c2"],
-    ]) {
-        await openAssignment(id);
-        if (kind === "lesson")
-            await page.waitForSelector(tid("classroom-lesson-seat-legend"), {
-                timeout: 10000,
-            });
-        const m = await measure();
-        const ok =
-            m.tiles === SEATS &&
-            m.rows === 4 &&
-            m.cols === 10 &&
-            m.tileW <= MAX_TILE + 0.5 &&
-            m.gridOk &&
-            m.lastBottom <= m.gridBottom &&
-            m.bodyOk &&
-            m.pageOk &&
-            m.outside === 0 &&
-            m.underBadge === 0;
-        results.push({ kind, ok, ...m });
-        console.log(
-            `${ok ? "PASS" : "FAIL"} [${LOCALE}] ${kind}`,
-            JSON.stringify(m),
+    for (const vp of VIEWPORTS) {
+        const ctx = await openContext(vp);
+        await page.goto(
+            `${BASE}/?no_beforeunload=1&locale=${LOCALE}&devlogin=stub-token`,
+            { waitUntil: "load" },
         );
-        await page.screenshot({
-            path: resolve(SHOT_DIR, `issue-1925-seats-${kind}-${LOCALE}.png`),
+        await page.waitForTimeout(3000);
+        await page.addStyleTag({
+            content:
+                "#webpack-dev-server-client-overlay { display: none !important; }",
         });
-        // The grid alone (2x) to check the text in the tiles by eye.
-        const grid = await page.$(GRID);
-        await grid.screenshot({
-            path: resolve(
-                SHOT_DIR,
-                `issue-1925-seats-${kind}-${LOCALE}-grid.png`,
-            ),
-        });
-        await page.keyboard.press("Escape");
-        await page.waitForTimeout(500);
-        // Close the modal before opening the next assignment from the menu.
-        const close = await page.$(tid("classroom-teacher-modal-close"));
-        if (close) await close.click();
-        await page.waitForTimeout(500);
+        for (const [kind, id] of [
+            ["assignment", "c1"],
+            ["lesson", "c2"],
+        ]) {
+            await openAssignment(id);
+            if (kind === "lesson")
+                await page.waitForSelector(
+                    tid("classroom-lesson-seat-legend"),
+                    {
+                        timeout: 10000,
+                    },
+                );
+            const m = await measure();
+            // Everywhere: 10 columns, no sideways scroll. At 1300x600 and the
+            // iPad landscape also「★ あと N」clear of the submission badge; at
+            // 1300x600 also 4 rows fit the frame, the body and page do not
+            // scroll (R6) and nothing leaves a tile. On the iPad portrait the
+            // seat pane is about 280-420px wide (the 380px detail pane stays on
+            // the right), too narrow for a tile's content: reported, not failed.
+            const ok =
+                m.tiles === SEATS &&
+                m.cols === 10 &&
+                m.tileW <= MAX_TILE + 0.5 &&
+                m.tileH <= MAX_TILE + 0.5 &&
+                m.gridXOk &&
+                m.pageXOk &&
+                (vp.width < 1024 || m.underBadge === 0) &&
+                (!vp.lessonPc ||
+                    (m.rows === 4 &&
+                        m.gridOk &&
+                        m.lastBottom <= m.gridBottom &&
+                        m.bodyOk &&
+                        m.pageOk &&
+                        m.outside === 0));
+            results.push({ vp: vp.name, kind, ok, ...m });
+            console.log(
+                `${ok ? "PASS" : "FAIL"} [${LOCALE} ${vp.name}] ${kind}`,
+                JSON.stringify(m),
+            );
+            const name = `issue-1925-seats-${kind}-${LOCALE}-${vp.name}`;
+            await page.screenshot({ path: resolve(SHOT_DIR, `${name}.png`) });
+            // The grid alone (2x) to check the text in the tiles by eye.
+            const grid = await page.$(GRID);
+            await grid.screenshot({
+                path: resolve(SHOT_DIR, `${name}-grid.png`),
+            });
+            await page.keyboard.press("Escape");
+            await page.waitForTimeout(500);
+            // Close the modal before opening the next assignment from the menu.
+            const close = await page.$(tid("classroom-teacher-modal-close"));
+            if (close) await close.click();
+            await page.waitForTimeout(500);
+        }
+        await ctx.close();
     }
 } finally {
     await browser.close();
 }
 
 console.log(
-    `\n| locale | kind | tile (w×h) | rows×cols | grid ${GRID} scroll/client | last tile bottom / grid bottom | body ${BODY} | page | content outside / under badge | result |`,
+    `\n| locale | viewport | kind | tile (w×h) | rows×cols | grid ${GRID} scroll/client (height) | (width) | last tile bottom / grid bottom | body ${BODY} | page | content outside / under badge | result |`,
 );
-console.log("|---|---|---|---|---|---|---|---|---|---|");
+console.log("|---|---|---|---|---|---|---|---|---|---|---|---|");
 for (const r of results) {
     console.log(
-        `| ${LOCALE} | ${r.kind} | ${r.tileW}×${r.tileH} | ${r.rows}×${r.cols} | ${r.grid} | ${r.lastBottom} / ${r.gridBottom} | ${r.body} | ${r.pageOk ? "no scroll" : "SCROLLS"} | ${r.outside} / ${r.underBadge} | ${r.ok ? "PASS" : "FAIL"} |`,
+        `| ${LOCALE} | ${r.vp} | ${r.kind} | ${r.tileW}×${r.tileH} | ${r.rows}×${r.cols} | ${r.grid} | ${r.gridX} | ${r.lastBottom} / ${r.gridBottom} | ${r.body} | ${r.pageOk ? "no scroll" : "scrolls"}${r.pageXOk ? "" : " SIDEWAYS"} | ${r.outside} / ${r.underBadge} | ${r.ok ? "PASS" : "FAIL"} |`,
     );
 }
-process.exit(results.length === 2 && results.every((r) => r.ok) ? 0 : 1);
+process.exit(
+    results.length === VIEWPORTS.length * 2 && results.every((r) => r.ok)
+        ? 0
+        : 1,
+);

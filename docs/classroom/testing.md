@@ -99,7 +99,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-lesson-seat-cleared-{n}` | span | 課題クリアした席の ★ |
 | `classroom-lesson-cleared-summary` | span | 「クリア N / 参加 N」 |
 | `classroom-lesson-seat-count-{seat}` | span[role=img] | タイルの「できた数 / 条件の数」（できた数は条件の数で止める） |
-| `classroom-lesson-seat-required-{seat}` | span | タイルの「★ あと n」（必須が残っているときだけ） |
+| `classroom-lesson-seat-required-{seat}` | span | タイルの「★ あと n」（必須が残っているときだけ。`role="img"`・`aria-label` は「★ あと n」。中に下の 2 つがあり、CSS がどちらかを出す） |
+| `classroom-lesson-seat-required-full-{seat}` | span | 「★ あと n」（ふつうの高さのタイル） |
+| `classroom-lesson-seat-required-short-{seat}` | span | 「★n」（高さ 52px 以下のタイル。1300×600 で 40 席を 4 行に収めたとき） |
 | `classroom-lesson-seat-stuck-{seat}` | span[role=img] | タイルの「!」（同じチャレンジに 10 分以上・最後の送信から 35 分未満のときだけ） |
 | `classroom-lesson-progress` | div | 「進み具合」タブの中身 |
 | `classroom-lesson-progress-legend` | div | 記号の凡例（✓・前・▶・!・・・★） |

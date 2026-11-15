@@ -698,6 +698,7 @@ export default {
     'gui.classroom.lessonSeat.notJoined': 'Not joined yet',
     'gui.classroom.lessonSeat.stuck': '10+ min on the same challenge',
     'gui.classroom.lessonSeat.requiredLeft': '★ {count} left',
+    'gui.classroom.lessonSeat.requiredLeftShort': '★{count}',
     'gui.classroom.lessonSeat.progressLabel': '{done} of {target} done',
     'gui.classroom.lessonSeat.loading': 'Loading the lesson progress…',
     'gui.classroom.lessonSeat.loadError': "Couldn't load the lesson progress. It is reloaded every 30 seconds.",

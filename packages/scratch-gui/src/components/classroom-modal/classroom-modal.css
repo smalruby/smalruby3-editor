@@ -1379,18 +1379,19 @@
     font-size: 0.75rem;
 }
 
-/* The side of a seat tile in the members tab (#1925): at most 58px so that
-   40 seats read as one block (like the status panel), at least 36px (the
-   number and the status icons stay readable; below that the frame scrolls). */
+/* The seat tiles in the members tab (#1925): at most 58px wide and high so
+   that 40 seats read as one block (like the status panel); at least 36px
+   high (the number and the status icons stay readable; below that the frame
+   scrolls down). The width has no lower bound (no sideways scroll). */
 $seat-tile-max: 58px;
 $seat-tile-min: 36px;
 
 .members-grid {
     display: grid;
-    /* minmax(0, …): the lesson tiles' min-content must not widen the modal past
-       1300px and push the seat detail on the right off screen (#1603). */
     /* The tiles set the column width (.member-cell below), so the columns are
-       as wide as the tiles and the row stays packed to the left. */
+       as wide as the tiles and the row stays packed to the left. The tile
+       width has no lower bound, so 10 columns never widen the frame (no
+       sideways scroll on an iPad, #1925) nor the modal past 1300px (#1603). */
     grid-template-columns: repeat(10, auto);
     justify-content: start;
     gap: 4px;
@@ -1416,13 +1417,17 @@ $seat-tile-min: 36px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    /* At most the max size, square (40 seats read as one block, like the
-       status panel, instead of 78px tiles), narrow enough that 10 columns fit
-       the frame's width and low enough that 4 rows fit its height (then the
-       tile is wider than tall), never below the min size (then the frame
-       scrolls). 36px = 9 gaps between 10 columns, 12px = 3 gaps between
-       4 rows (#1925). */
-    width: max($seat-tile-min, min($seat-tile-max, calc((100cqw - 36px) / 10)));
+    /* Width: at most the max size, and narrow enough that 10 columns fit the
+       frame (no lower bound: on a narrow screen the tiles get narrower
+       rather than the frame scrolling sideways). Height: also at most the
+       width and low enough that 4 rows fit the frame's height (then the tile
+       is wider than tall), never below the min size (then the frame scrolls
+       down). 36px = 9 gaps between 10 columns, 12px = 3 gaps between
+       4 rows (#1925). The first pair is for browsers without container
+       queries (cqw / cqh), which drop the second pair. */
+    width: 58px;
+    height: 46px;
+    width: min($seat-tile-max, calc((100cqw - 36px) / 10));
     height: max($seat-tile-min, min($seat-tile-max, calc((100cqw - 36px) / 10), calc((100cqh - 12px) / 4)));
     /* Size the number / status icons relative to the cell (#1196). The cell's
        size is set above, so size containment is safe and lets low tiles
@@ -5086,9 +5091,15 @@ $seat-tile-min: 36px;
     line-height: 0;
 }
 
+/* 「★ あと 1」, or「★1」on a low tile (below). */
+.lesson-seat-required-short {
+    display: none;
+}
+
 /* Low tiles (1300x600 fits 4 rows at about 40-47px high, #1925): the bar repeats
    「できた数 / 条件の数」, so drop it and tighten the lines so the number, the
-   count and ★ の残り still fit. */
+   count and ★ の残り (as「★1」) still fit. The text stays at least
+   0.625rem (the xsmall font size token). */
 @container (max-height: 52px) {
     .lesson-seat-meter {
         display: none;
@@ -5099,18 +5110,26 @@ $seat-tile-min: 36px;
     }
 
     .lesson-seat-count {
-        font-size: 0.6rem;
+        font-size: $font-size-xsmall;
         line-height: 1.2;
         padding: 0 2px;
     }
 
     /* It shares the bottom line with the submission badge (bottom right):
-       start it at the left so the two do not overlap. */
+       the short form, started at the left, so the two do not overlap. */
     .lesson-seat-required {
         align-self: flex-start;
         padding-left: 3px;
-        font-size: 0.5rem;
+        font-size: $font-size-xsmall;
         line-height: 1;
+    }
+
+    .lesson-seat-required-full {
+        display: none;
+    }
+
+    .lesson-seat-required-short {
+        display: inline;
     }
 }
 
