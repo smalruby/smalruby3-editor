@@ -51,13 +51,30 @@ export const isReadDiagram = (challenge) => Boolean(challenge && challenge.mode 
 const CODE_SPRITE_NAME = { id: 'gui.lessons.activityDiagram.codeSprite', defaultMessage: 'Cat' };
 const STAGE_NAME = { id: 'gui.lessons.activityDiagram.stage', defaultMessage: 'Stage' };
 
+// 画面に出すときに名前を訳すライブラリのスプライト（このコースのキャラクター）。課題の文の「シマラビ」と
+// そろえる。スプライトの名前そのもの（作品の中・spriteCodes・判定）は変えない
+const TRANSLATED_SPRITES = Object.freeze(['Shimaraby', 'Shimacat']);
+
+/**
+ * 図・読んで作るの見出しに出すスプライトの名前。訳のあるキャラクターは message descriptor
+ * （`gui.lessons.activityDiagram.sprite.<名前>`）、ほかは名前の文字列のまま。
+ * @param {string} name - スプライトの名前（ライブラリの名前）。
+ * @returns {(string|{id: string, defaultMessage: string})} 名前か message descriptor。
+ */
+export const spriteDisplayName = (name) =>
+    TRANSLATED_SPRITES.includes(name)
+        ? { id: `gui.lessons.activityDiagram.sprite.${name}`, defaultMessage: name }
+        : name;
+
 /**
  * `code` の入るスプライトの名前（始めるときにネコを置きかえたチャレンジの `setup.sprites` の 1 つめ）。
  * @param {?object} setup - チャレンジの setup。
- * @returns {?string} 名前。ネコのままなら null。
+ * @returns {?(string|object)} 見出しの名前（`spriteDisplayName`）。ネコのままなら null。
  */
 export const codeSpriteName = (setup) =>
-    (setup && Array.isArray(setup.sprites) && typeof setup.sprites[0] === 'string' && setup.sprites[0]) || null;
+    setup && Array.isArray(setup.sprites) && typeof setup.sprites[0] === 'string' && setup.sprites[0]
+        ? spriteDisplayName(setup.sprites[0])
+        : null;
 
 /**
  * 答えのプログラムがあるか（`code` か `spriteCodes` のどちらか）。無いと、図も答えのページの絵も出ない。
@@ -89,7 +106,7 @@ export const readDiagramAnswer = ({ code = null, codeTarget = null, spriteCodes 
         name = codeTarget === 'stage' ? STAGE_NAME : codeSpriteName(setup) || CODE_SPRITE_NAME;
     } else if (sprites.length > 0) {
         blocks = sprites[0].code;
-        name = sprites[0].sprite;
+        name = spriteDisplayName(sprites[0].sprite);
     }
     return { blocks, label: sources > 1 ? { message: readDiagramMessages.answerOf, name } : null };
 };

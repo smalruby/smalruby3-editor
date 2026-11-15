@@ -9,7 +9,7 @@ import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import LessonAssignmentBand from '../components/lesson-assignment-band/lesson-assignment-band.jsx';
 import LessonTaskBar from '../components/lesson-task-bar/lesson-task-bar.jsx';
-import { applyDeckSetup } from '../lib/deck-setup';
+import { applyDeckSetup, normalizeRubyVersion } from '../lib/deck-setup';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
 import { assignmentProgress, isAssignmentChallenge } from '../lib/lessons/assignment-progress';
 import { setupForChallenge } from '../lib/lessons/challenge-setup';
@@ -37,6 +37,7 @@ import {
     startChallenge,
 } from '../reducers/lesson-mode';
 import { openLessonsLibrary } from '../reducers/modals';
+import { setProjectUnchanged } from '../reducers/project-changed';
 import {
     getIsAnyCreatingNewState,
     getIsShowingProject,
@@ -136,23 +137,39 @@ const LessonMode = ({
         if (!found) return;
         const challengeId = pendingChallengeId;
         const setup = setupForChallenge(found.course, found.challenge);
-        const { intl: convertIntl, rubyVersion: version } = convertRef.current;
+        const { intl: convertIntl, rubyVersion: currentVersion } = convertRef.current;
+        // setup で Ruby のバージョンを決めるチャレンジは、その版で答えを変換する
+        const version = normalizeRubyVersion(setup.rubyVersion) || currentVersion;
+        // 準備のあいだに、ほかのチャレンジ・ほかの作品に変わったら止める（作品が差しかわるとステージも変わる）
+        const stageOf = () =>
+            vm && vm.runtime && vm.runtime.getTargetForStage ? vm.runtime.getTargetForStage() : null;
+        const startStage = stageOf();
+        const isCurrent = () => pendingRef.current === challengeId && stageOf() === startStage;
         applyDeckSetup(setup, dispatch, vm)
+            .catch((err) => {
+                // setup が失敗してもチャレンジは開く（拡張機能などは手で足せる）
+                // eslint-disable-next-line no-console
+                console.warn('[lesson-mode] setup failed:', err);
+            })
             // 拡張機能を読み込んだあとで、ネコの置きかえと前の段の答えを入れる（lib/lessons/challenge-start.js）
             .then(() =>
                 applyChallengeStart(vm, setup, {
                     locale: convertIntl.locale,
                     toBlocks: (target, code) => targetCodeToBlocks(vm, target, code, convertIntl, { version }),
+                    isCurrent,
                 }),
             )
             .then((changed) => {
+                if (!changed) return;
                 // Ruby タブは編集中のスプライトが変わったときにしかプログラムを作り直さないので、入れた答えを出し直す
-                if (changed && vm.editingTarget) dispatch(updateRubyCodeTarget(vm.editingTarget, version));
+                if (vm.editingTarget) dispatch(updateRubyCodeTarget(vm.editingTarget, version));
+                // 準備で変えたのは生徒の変更ではない。「変更あり」のままだと、チャレンジを選び直すだけで
+                // 「作品を置きかえますか」の確認やページを離れるときの確認が出てしまう
+                dispatch(setProjectUnchanged());
             })
             .catch((err) => {
-                // setup が失敗してもチャレンジは開く（拡張機能などは手で足せる）
                 // eslint-disable-next-line no-console
-                console.warn('[lesson-mode] setup failed:', err);
+                console.warn('[lesson-mode] the start of the challenge failed:', err);
             })
             .then(() => {
                 // 途中で取り消された・別のチャレンジに変わったときは開かない

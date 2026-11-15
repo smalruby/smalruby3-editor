@@ -10,8 +10,8 @@ import { localizeCode } from './courses';
 import {
     ADDED_SPRITE_POSITION,
     addLibrarySprite,
-    findSpriteByName,
     insertSpriteCodes,
+    resolveCodeSprite,
     spritesOf,
 } from './insert-sprite-code';
 
@@ -37,40 +37,54 @@ export const hasChallengeStart = (setup) =>
             (Array.isArray(setup.spriteCodes) && setup.spriteCodes.length > 0)),
     );
 
+const isAlive = (isCurrent) => !isCurrent || isCurrent();
+
 /**
- * 作品のスプライト（新しい作品ならネコ）を、ライブラリのスプライトに置きかえる。ライブラリに 1 つも
- * 見つからないときは何もしない（ネコを消して空の作品にしない）。
+ * 作品のスプライト（新しい作品ならネコ）を、ライブラリのスプライトに置きかえる。ライブラリに無い・足すのに
+ * 失敗したスプライトはとばして（警告）続ける。1 つも足せなかったときはネコを残す（空の作品にしない）。
  * @param {object} vm - Scratch VM。
  * @param {Array<string>} names - ライブラリのスプライトの名前（並び順）。
- * @param {object} [options] - ライブラリ。
+ * @param {object} [options] - ライブラリと中断。
  * @param {Array<object>} [options.library] - スプライトのライブラリ（テスト用。既定は sprites.json）。
+ * @param {?function(): boolean} [options.isCurrent] - まだ同じチャレンジ・同じ作品か（false なら止める）。
  * @returns {Promise<Array<object>>} 足したスプライト（並び順）。
  */
-export const replaceStartSprites = async (vm, names, { library = spriteLibraryContent } = {}) => {
+export const replaceStartSprites = async (vm, names, { library = spriteLibraryContent, isCurrent = null } = {}) => {
     const before = spritesOf(vm);
     const first = before[0];
     const home = first ? { x: first.x || 0, y: first.y || 0 } : { x: 0, y: 0 };
     const added = [];
     for (const name of names) {
+        if (!isAlive(isCurrent)) return added;
         const index = added.length;
         const position =
             index === 0
                 ? home
                 : { x: ADDED_SPRITE_POSITION.x, y: ADDED_SPRITE_POSITION.y - NEXT_SPRITE_GAP_Y * (index - 1) };
-        const target = await addLibrarySprite(vm, name, library, position);
-        if (target) added.push(target);
-        else warn(`the sprite "${name}" is not in the library`);
+        try {
+            const target = await addLibrarySprite(vm, name, library, position);
+            if (target) added.push(target);
+            else warn(`the sprite "${name}" is not in the library`);
+        } catch (err) {
+            warn(`could not add the sprite "${name}":`, err);
+        }
     }
-    if (added.length === 0) return added;
+    if (added.length === 0 || !isAlive(isCurrent)) return added;
     for (const target of before) {
-        if (!added.includes(target)) vm.deleteSprite(target.id);
+        if (added.includes(target)) continue;
+        try {
+            vm.deleteSprite(target.id);
+        } catch (err) {
+            warn(`could not delete the sprite "${target.getName()}":`, err);
+        }
     }
     vm.setEditingTarget(added[0].id);
     return added;
 };
 
 /**
- * 1 つのプログラムを変換して入れる。変換できなければ入れない（ほかのプログラムは入れ続ける）。
+ * 1 つのプログラムを変換して入れる。変換できない・入れるのに失敗したときは入れずに警告する（ほかのプログラムは
+ * 入れ続ける）。
  * @param {object} target - 入れる相手。
  * @param {?string} code - Ruby。
  * @param {Function} toBlocks - `(target, code) => Promise<converter>`（targetCodeToBlocks）。
@@ -78,39 +92,62 @@ export const replaceStartSprites = async (vm, names, { library = spriteLibraryCo
  */
 const insertCode = async (target, code, toBlocks) => {
     if (!target || !code) return;
-    const converter = await toBlocks(target, code);
-    if (converter.result) await converter.apply();
-    else warn(`the starting code for "${target.getName()}" did not convert:`, converter.errors);
+    try {
+        const converter = await toBlocks(target, code);
+        if (converter.result) await converter.apply();
+        else warn(`the starting code for "${target.getName()}" did not convert:`, converter.errors);
+    } catch (err) {
+        warn(`could not put the starting code into "${target.getName()}":`, err);
+    }
 };
 
 /**
  * チャレンジを始めるときの作品の準備をする（新しい作品ができて、deck-setup のあと）。
  * スプライトを置きかえてから、ステージ → `spriteCodes` → `code` の順にプログラムを入れ、
- * `code` を入れたスプライト（`sprites` の 1 つめ）を編集中にする。
+ * `code` を入れたスプライト（`sprites` の 1 つめ）を編集中にする。途中で失敗したものはとばして続ける。
+ * 段ごとに `isCurrent` を確かめ、ほかのチャレンジ・ほかの作品に変わっていたら止める（変わったあとの作品に
+ * 手を入れない）。
  * @param {object} vm - Scratch VM。
  * @param {?object} setup - チャレンジの setup。
  * @param {object} options - 変換と locale。
  * @param {Function} options.toBlocks - `(target, code) => Promise<converter>`（targetCodeToBlocks）。
  * @param {string} options.locale - いまの locale（locale ごとに書いたプログラムを選ぶ）。
  * @param {Array<object>} [options.library] - スプライトのライブラリ（テスト用）。
- * @returns {Promise<boolean>} 作品を変えたら true（Ruby タブのプログラムを作り直すため）。
+ * @param {?function(): boolean} [options.isCurrent] - まだ同じチャレンジ・同じ作品か。
+ * @returns {Promise<boolean>} 作品を変えて最後まで済ませたら true（Ruby タブの出し直しと「変更なし」に
+ *   もどすため）。何もしない setup・途中で止めたときは false。
  */
-export const applyChallengeStart = async (vm, setup, { toBlocks, locale, library = spriteLibraryContent }) => {
+export const applyChallengeStart = async (
+    vm,
+    setup,
+    { toBlocks, locale, library = spriteLibraryContent, isCurrent = null },
+) => {
     if (!vm || !vm.runtime || !hasChallengeStart(setup)) return false;
     const names = Array.isArray(setup.sprites) ? setup.sprites : [];
-    if (names.length > 0) await replaceStartSprites(vm, names, { library });
-    const preferred = names[0] || null;
-    const codeSprite = (preferred && findSpriteByName(vm, preferred)) || vm.editingTarget || spritesOf(vm)[0];
+    if (names.length > 0) await replaceStartSprites(vm, names, { library, isCurrent });
+    if (!isAlive(isCurrent)) return false;
 
     await insertCode(vm.runtime.getTargetForStage(), localizeCode(setup.stageCode, locale), toBlocks);
+    if (!isAlive(isCurrent)) return false;
     const spriteCodes = (setup.spriteCodes || [])
         .map(({ sprite, code }) => ({
             sprite,
             code: localizeCode(code, locale),
         }))
         .filter((s) => s.code);
-    if (spriteCodes.length > 0) await insertSpriteCodes(vm, spriteCodes, { toBlocks, library, preferred });
+    const preferred = names[0] || null;
+    if (spriteCodes.length > 0) {
+        try {
+            await insertSpriteCodes(vm, spriteCodes, { toBlocks, library, preferred });
+        } catch (err) {
+            warn('could not put the starting code into the other sprites:', err);
+        }
+        if (!isAlive(isCurrent)) return false;
+    }
+    // 「プログラムを入れる」と同じ決め方（insert-sprite-code.js の resolveCodeSprite）。無ければ編集中のスプライト
+    const codeSprite = resolveCodeSprite(vm, spriteCodes, preferred) || vm.editingTarget || spritesOf(vm)[0];
     await insertCode(codeSprite, localizeCode(setup.code, locale), toBlocks);
+    if (!isAlive(isCurrent)) return false;
     if (codeSprite) vm.setEditingTarget(codeSprite.id);
     return true;
 };

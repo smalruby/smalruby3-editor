@@ -4,7 +4,7 @@
 // （GUI もテストも VM なしの RubyToBlocksConverter。use-challenge-activity-diagram.js）。
 // 練習相手の定義（`partner`）があれば、自分と相手のスイムレーンにする。
 import { localizeCode } from '../courses';
-import { codeSpriteName } from '../read-diagram';
+import { codeSpriteName, spriteDisplayName } from '../read-diagram';
 import { layoutActivityDiagram } from './layout';
 import { buildActivityModel, countScripts, describeActivityModel, partnerLane } from './model';
 
@@ -65,6 +65,9 @@ export const challengeActivityDiagram = async (
     { locale, format, toBlocks, blockName = null, codeName = null },
 ) => {
     if (!showsActivityDiagram(challenge)) return null;
+    // 訳のあるキャラクター（シマラビ・シマネコ）は locale の名前で書く
+    const displayed = (name) => (typeof name === 'string' ? name : format(name.id));
+    const setupSprite = codeSpriteName(challenge.setup);
     const partner = partnerLane(challenge.partner, { format });
     const lanes = [];
     for (const lane of activityDiagramLanes(challenge, locale)) {
@@ -77,8 +80,10 @@ export const challengeActivityDiagram = async (
                     ? codeName ||
                       (challenge.codeTarget === 'stage'
                           ? format(`${P}stage`)
-                          : codeSpriteName(challenge.setup) || format(`${P}codeSprite`))
-                    : source.name;
+                          : setupSprite
+                            ? displayed(setupSprite)
+                            : format(`${P}codeSprite`))
+                    : displayed(spriteDisplayName(source.name));
             targets.push({ name, blocks });
         }
         lanes.push({ id: lane.id, label: partner ? format(`${P}ownLane`) : null, targets });

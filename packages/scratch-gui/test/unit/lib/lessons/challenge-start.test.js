@@ -89,6 +89,41 @@ describe('replaceStartSprites', () => {
         console.warn.mockRestore();
     });
 
+    test('skips only the sprites missing from the library', async () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const vm = makeVm([stageTarget(), sprite('cat', 'Sprite1', 10, 20)]);
+        const added = await replaceStartSprites(vm, ['Nobody', 'Shimacat'], { library: LIBRARY });
+        expect(added.map((t) => t.getName())).toEqual(['Shimacat']);
+        // 足せた 1 つめがネコの場所に入る
+        expect(JSON.parse(vm.addSprite.mock.calls[0][0])).toMatchObject({ name: 'Shimacat', x: 10, y: 20 });
+        expect(names(vm)).toEqual(['Shimacat']);
+        console.warn.mockRestore();
+    });
+
+    test('a sprite that fails to be added is skipped and the next one still goes in', async () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const vm = makeVm([stageTarget(), sprite('cat', 'Sprite1')]);
+        const addSprite = vm.addSprite;
+        vm.addSprite = jest.fn((json) =>
+            JSON.parse(json).name === 'Shimaraby' ? Promise.reject(new Error('boom')) : addSprite(json),
+        );
+        const added = await replaceStartSprites(vm, ['Shimaraby', 'Shimacat'], { library: LIBRARY });
+        expect(added.map((t) => t.getName())).toEqual(['Shimacat']);
+        expect(vm.editingTarget.getName()).toBe('Shimacat');
+        console.warn.mockRestore();
+    });
+
+    test('takes the added sprite by what is new, even when a sprite of the same name was there', async () => {
+        const old = sprite('old', 'Shimaraby');
+        const vm = makeVm([stageTarget(), old]);
+        const addSprite = vm.addSprite;
+        // VM は同じ名前のスプライトを足すと名前を変える
+        vm.addSprite = jest.fn((json) => addSprite(JSON.stringify({ ...JSON.parse(json), name: 'Shimaraby2' })));
+        const added = await replaceStartSprites(vm, ['Shimaraby'], { library: LIBRARY });
+        expect(added.map((t) => t.id)).toEqual(['added-Shimaraby2']);
+        expect(vm.deleteSprite).toHaveBeenCalledWith('old');
+    });
+
     test('the real library has Shimaraby and Shimacat', () => {
         // eslint-disable-next-line global-require
         const library = require('../../../../src/lib/libraries/sprites.json');
@@ -138,6 +173,51 @@ describe('applyChallengeStart', () => {
         ).toBe(true);
         expect(applied).toEqual([{ id: 'cat', code: 'cat-code' }]);
         expect(vm.addSprite).not.toHaveBeenCalled();
+    });
+
+    test('a program that throws is skipped and the rest still happens', async () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const vm = makeVm([stageTarget(), sprite('cat', 'Sprite1')]);
+        const { toBlocks: ok, applied } = makeToBlocks();
+        const toBlocks = jest.fn((target, code) =>
+            code === 'boom' ? Promise.reject(new Error('x')) : ok(target, code),
+        );
+        const changed = await applyChallengeStart(
+            vm,
+            {
+                sprites: ['Shimaraby', 'Shimacat'],
+                stageCode: 'boom',
+                spriteCodes: [{ sprite: 'Shimacat', code: 'boom' }],
+                code: 'ok',
+            },
+            { toBlocks, locale: 'ja', library: LIBRARY },
+        );
+        expect(changed).toBe(true);
+        expect(applied).toEqual([{ id: 'added-Shimaraby', code: 'ok' }]);
+        expect(vm.editingTarget.getName()).toBe('Shimaraby');
+        console.warn.mockRestore();
+    });
+
+    test('stops when the challenge or the project changes on the way', async () => {
+        const vm = makeVm([stageTarget(), sprite('cat', 'Sprite1')]);
+        const { toBlocks, applied } = makeToBlocks();
+        let current = true;
+        // 1 つめのスプライトを足したところで、ほかの作品に変わった
+        const addSprite = vm.addSprite;
+        vm.addSprite = jest.fn((json) => {
+            current = false;
+            return addSprite(json);
+        });
+        const changed = await applyChallengeStart(
+            vm,
+            { sprites: ['Shimaraby', 'Shimacat'], code: 'ok', stageCode: 'stage' },
+            { toBlocks, locale: 'ja', library: LIBRARY, isCurrent: () => current },
+        );
+        expect(changed).toBe(false);
+        expect(vm.addSprite).toHaveBeenCalledTimes(1);
+        // ネコも消さず、プログラムも入れない
+        expect(vm.deleteSprite).not.toHaveBeenCalled();
+        expect(applied).toEqual([]);
     });
 
     test('a program that does not convert is skipped and the others still go in', async () => {

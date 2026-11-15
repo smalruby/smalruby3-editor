@@ -23,7 +23,7 @@ import LessonHint from '../components/lesson-hint/lesson-hint.jsx';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
 import { LANGUAGES, challengeCodeCandidates, localizeCode } from '../lib/lessons/courses';
 import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
-import { findCodeSprite, findSpriteByName, insertSpriteCodes } from '../lib/lessons/insert-sprite-code';
+import { findSpriteByName, insertSpriteCodes, resolveCodeSprite } from '../lib/lessons/insert-sprite-code';
 import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { colorModeMap } from '../lib/settings/color-mode';
@@ -113,14 +113,13 @@ const LessonHintContainer = ({
         // （生徒がもう 1 つのスプライトを選んでいても、答えはシマラビの役の形で入る）
         const startSprites = (challenge.setup && challenge.setup.sprites) || [];
         const preferred = hasVm && startSprites.length > 0 ? startSprites[0] : null;
-        const preferredSprite = preferred ? findSpriteByName(vm, preferred) : null;
         // 確かめる組: [target, code]。まだいないスプライト（これから足すペンギン）は target なしで確かめる
         // （target が無いと音・コスチュームは確かめない。足すのはライブラリのままのスプライトなので足りる）
         const checksFor = (candidate) => {
             const spriteCodes = hasVm ? candidate.spriteCodes : [];
             // code を入れる相手: ステージのプログラムはステージ、setup.sprites があればその 1 つめ、spriteCodes が
             // あれば残りのスプライト（ネコ）。どれでもなければ null（いま編集中のスプライトに入れる）
-            const codeSprite = spriteCodes.length > 0 ? findCodeSprite(vm, spriteCodes, preferred) : preferredSprite;
+            const codeSprite = hasVm ? resolveCodeSprite(vm, spriteCodes, preferred) : null;
             return [
                 ...spriteCodes.map(({ sprite, code }) => [findSpriteByName(vm, sprite), code]),
                 [stage || codeSprite || editing, candidate.code],
@@ -158,7 +157,7 @@ const LessonHintContainer = ({
         }
         setInsertErrors([]);
         const spriteCodes = hasVm ? chosen.spriteCodes : [];
-        let target = stage || preferredSprite;
+        let target = stage || (hasVm ? resolveCodeSprite(vm, [], preferred) : null);
         if (spriteCodes.length > 0) {
             // ほかのスプライト（ペンギン）のプログラムを先に入れ、code はネコに入れる
             target = await insertSpriteCodes(vm, spriteCodes, {

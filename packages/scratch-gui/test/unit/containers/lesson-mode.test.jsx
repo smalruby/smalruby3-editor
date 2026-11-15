@@ -7,11 +7,19 @@ import { LessonMode } from '../../../src/containers/lesson-mode.jsx';
 import analytics from '../../../src/lib/analytics';
 import { applyDeckSetup } from '../../../src/lib/deck-setup';
 import { applyChallengeStart } from '../../../src/lib/lessons/challenge-start';
+import * as courses from '../../../src/lib/lessons/courses';
 import { findChallenge } from '../../../src/lib/lessons/courses';
+import { targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';
 
 jest.mock('../../../src/lib/analytics', () => ({ event: jest.fn() }));
 jest.mock('../../../src/lib/deck-setup', () => ({
+    ...jest.requireActual('../../../src/lib/deck-setup'),
     applyDeckSetup: jest.fn(() => Promise.resolve()),
+}));
+jest.mock('../../../src/lib/ruby-to-blocks-converter', () => ({
+    __esModule: true,
+    ...jest.requireActual('../../../src/lib/ruby-to-blocks-converter'),
+    targetCodeToBlocks: jest.fn(() => Promise.resolve({ result: true })),
 }));
 jest.mock('../../../src/lib/lessons/challenge-start', () => ({
     applyChallengeStart: jest.fn(() => Promise.resolve()),
@@ -386,26 +394,93 @@ describe('LessonMode container', () => {
         expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
     });
 
-    test('redraws the Ruby code of the edited sprite when the start changed the project', async () => {
+    const startedProps = (overrides = {}) => ({
+        ...baseProps(),
+        pendingChallengeId: CHALLENGE_ID,
+        isAnyCreatingNewState: true,
+        isShowingProject: false,
+        isShowingWithoutId: false,
+        ...overrides,
+    });
+    const finishCreating = (rerender, props) =>
+        rerender({ ...props, isAnyCreatingNewState: false, isShowingProject: true, isShowingWithoutId: true });
+
+    test('after the start changed the project, redraws the Ruby code and marks the project unchanged', async () => {
         applyChallengeStart.mockImplementationOnce(() => Promise.resolve(true));
         const shimaraby = { id: 'r' };
-        const props = {
-            ...baseProps(),
-            vm: { id: 'vm', editingTarget: shimaraby },
-            rubyVersion: '2',
-            pendingChallengeId: CHALLENGE_ID,
-            isAnyCreatingNewState: true,
-            isShowingProject: false,
-            isShowingWithoutId: false,
-        };
+        const props = startedProps({ vm: { id: 'vm', editingTarget: shimaraby }, rubyVersion: '2' });
         const { rerender } = renderLessonMode(props);
-        rerender({ ...props, isAnyCreatingNewState: false, isShowingProject: true, isShowingWithoutId: true });
+        finishCreating(rerender, props);
         await flush();
         await flush();
         expect(props.dispatch).toHaveBeenCalledWith(
             expect.objectContaining({ type: expect.stringContaining('RUBYCODE_TARGET'), target: shimaraby }),
         );
+        // 準備で変えた分は生徒の変更ではない（選び直しで「置きかえますか」を出さない）
+        expect(props.dispatch).toHaveBeenCalledWith({
+            type: 'scratch-gui/project-changed/SET_PROJECT_CHANGED',
+            changed: false,
+        });
         expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
+    });
+
+    test('does not mark the project unchanged when the start changed nothing', async () => {
+        const props = startedProps();
+        const { rerender } = renderLessonMode(props);
+        finishCreating(rerender, props);
+        await flush();
+        await flush();
+        expect(props.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ changed: false }));
+        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
+    });
+
+    test('opens the challenge even when the start fails', async () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        applyChallengeStart.mockImplementationOnce(() => Promise.reject(new Error('boom')));
+        const props = startedProps();
+        const { rerender } = renderLessonMode(props);
+        finishCreating(rerender, props);
+        await flush();
+        await flush();
+        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
+    });
+
+    test('converts the starting answer in the Ruby version of the setup, or the current one', async () => {
+        const props = startedProps({ rubyVersion: '1' });
+        const { rerender } = renderLessonMode(props);
+        finishCreating(rerender, props);
+        await flush();
+        await applyChallengeStart.mock.calls[0][2].toBlocks({ id: 't' }, 'x');
+        expect(targetCodeToBlocks.mock.calls[0][4]).toEqual({ version: '1' });
+
+        applyChallengeStart.mockClear();
+        targetCodeToBlocks.mockClear();
+        const found = findChallenge(CHALLENGE_ID);
+        const spy = jest.spyOn(courses, 'findChallenge').mockReturnValue({
+            ...found,
+            challenge: { ...found.challenge, setup: { rubyVersion: 2 } },
+        });
+        const next = startedProps({ rubyVersion: '1' });
+        const second = renderLessonMode(next);
+        finishCreating(second.rerender, next);
+        await flush();
+        await applyChallengeStart.mock.calls[0][2].toBlocks({ id: 't' }, 'x');
+        expect(targetCodeToBlocks.mock.calls[0][4]).toEqual({ version: '2' });
+        spy.mockRestore();
+    });
+
+    test('the start stops once another challenge or another project takes over', async () => {
+        const stageA = { id: 'a' };
+        const vm = { id: 'vm', runtime: { getTargetForStage: jest.fn(() => stageA) } };
+        const props = startedProps({ vm });
+        const { rerender } = renderLessonMode(props);
+        finishCreating(rerender, props);
+        await flush();
+        const { isCurrent } = applyChallengeStart.mock.calls[0][2];
+        expect(isCurrent()).toBe(true);
+        // 作品が差しかわるとステージも変わる
+        vm.runtime.getTargetForStage.mockReturnValue({ id: 'b' });
+        expect(isCurrent()).toBe(false);
     });
 
     test('does not open the challenge when it was cancelled during the setup', async () => {
