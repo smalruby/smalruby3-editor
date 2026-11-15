@@ -4,7 +4,8 @@
 // goal-monitor.js。goal の書き方は docs/lessons/README.md。
 //
 // goal は条件の配列で、全部を満たしたら「できた」。条件の `type`:
-//   uses      決めたきっかけ（trigger）から始まったスクリプトで、決めたブロックが動いた
+//   uses      決めたきっかけ（trigger）から始まったスクリプトで、決めたブロックが動いた（`not: true` なら、
+//             そう動いたことが一度も無い）
 //   said      言った（考えた）文字
 //   variable  変数の値
 //   list      リストの中身
@@ -225,6 +226,10 @@ const triggerMatches = (trigger, run) => {
     if (trigger.target === 'stage' && !run.isStage) return false;
     if (trigger.target === 'sprite' && run.isStage) return false;
     if (trigger.sentBy === 'other' && !(run.broadcaster !== null && run.broadcaster !== run.targetId)) return false;
+    // この作品のスクリプトが送っていない合図（メッシュでほかのノード・練習相手から届いた）。メッシュで届いた合図は
+    // 「送る」のブロックを通らないので送り手が記録されない（broadcaster が null）。自分で一度でも送った名前は、
+    // あとで相手から届いても「この作品が送った」とみなす（#1645）
+    if (trigger.sentBy === 'remote' && run.broadcaster !== null) return false;
     return true;
 };
 
@@ -268,7 +273,9 @@ const orderSatisfiedByRun = (order, run) => {
     return true;
 };
 
-const evaluateUses = (condition, facts) => {
+// `not: true` の uses は「そう動いたことが一度も無い」（NG ワードを変数に入れて送った、など・#1645）。
+// 事実は消えないので、一度そう動いたらそのチャレンジのあいだは満たさない
+const evaluateUsesOnce = (condition, facts) => {
     const runs = facts.runs.filter((run) => triggerMatches(condition.trigger, run));
     if (runs.length === 0) return false;
     const entries = (condition.blocks || []).map(normalizeBlockEntry);
@@ -277,6 +284,11 @@ const evaluateUses = (condition, facts) => {
         return runs.some((run) => orderSatisfiedByRun(condition.order, run));
     }
     return true;
+};
+
+const evaluateUses = (condition, facts) => {
+    const used = evaluateUsesOnce(condition, facts);
+    return condition.not ? !used : used;
 };
 
 // 変数名の条件（文字列か文字列の配列）を配列にする
@@ -459,8 +471,8 @@ const validateTrigger = (trigger, at) => {
     if (!isUnset(trigger.target) && !['stage', 'sprite'].includes(trigger.target)) {
         errors.push(`${at}: trigger.target must be 'stage' or 'sprite'`);
     }
-    if (!isUnset(trigger.sentBy) && trigger.sentBy !== 'other') {
-        errors.push(`${at}: trigger.sentBy must be 'other'`);
+    if (!isUnset(trigger.sentBy) && !['other', 'remote'].includes(trigger.sentBy)) {
+        errors.push(`${at}: trigger.sentBy must be 'other' or 'remote'`);
     }
     if (!isUnset(trigger.message) && !isVariableName(trigger.message)) {
         errors.push(`${at}: trigger.message must be a message name or an array of names`);
@@ -517,6 +529,9 @@ export const validateGoal = (goal) => {
                 });
                 if (!isUnset(condition.order) && !Array.isArray(condition.order)) {
                     errors.push(`${at}: order must be an array of opcodes`);
+                }
+                if (!isUnset(condition.not) && typeof condition.not !== 'boolean') {
+                    errors.push(`${at}: uses.not must be true or false`);
                 }
                 errors.push(...validateTrigger(condition.trigger, at));
                 break;

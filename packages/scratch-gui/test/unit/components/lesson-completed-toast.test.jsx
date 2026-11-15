@@ -122,6 +122,33 @@ describe('LessonCompletedToast', () => {
         });
     });
 
+    // テーマを選ぶレッスン（「チャットをつくろう」のレッスン 5・requiredCount 1）は 1 つで ✓。「全部」とは言わない（#1645）
+    describe('a lesson that needs only some of its challenges is done', () => {
+        const props = { action: 'library', challenges: midLesson, challengeId: 'b', lessonNumber: 5 };
+
+        test('says how many are done instead of "all"', () => {
+            const { getByTestId, queryByTestId } = renderToast(props);
+            expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('Lesson 5 complete!');
+            expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent(
+                `You finished 2 of the challenges of "Let's Move". That is enough for this lesson.`,
+            );
+            expect(queryByTestId('lesson-completed-toast-remaining')).not.toBeInTheDocument();
+        });
+
+        test('uses the Japanese and hiragana strings', () => {
+            expect(
+                renderToast(props, { locale: 'ja', messages: ja }).getByTestId('lesson-completed-toast-detail'),
+            ).toHaveTextContent('「うごかしてみよう」は 2 つできました。このレッスンはこれでクリア');
+        });
+
+        test('uses the hiragana strings', () => {
+            const { getByTestId } = renderToast(props, { locale: 'ja-Hira', messages: jaHira });
+            expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent(
+                'は 2 つ できました。この レッスンは これで クリア',
+            );
+        });
+    });
+
     describe('every challenge of the lesson is done and no lesson is left', () => {
         const props = {
             action: 'library',

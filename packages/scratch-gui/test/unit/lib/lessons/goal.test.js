@@ -220,6 +220,51 @@ describe('uses', () => {
         expect(satisfied(goal, facts)).toBe(true);
     });
 
+    // メッシュでほかのノード（練習相手）から届いた合図は「送る」のブロックを通らないので、送り手が記録されない（#1645）
+    test('sentBy remote requires a message that no script of this project sent', () => {
+        const goal = [
+            {
+                type: 'uses',
+                trigger: { hat: 'event_whenbroadcastreceived', message: 'シマネコがよんだ', sentBy: 'remote' },
+                blocks: ['looks_sayforsecs'],
+            },
+        ];
+        const facts = createFacts();
+        run(facts, clicked, [['event_broadcast', { BROADCAST_OPTION: 'シマネコがよんだ' }]], {
+            targetId: 'shimacat',
+            isStage: false,
+        });
+        run(facts, received('シマネコがよんだ'), [['looks_sayforsecs', { MESSAGE: '既読', SECS: 2 }]], {
+            targetId: 'shimaraby',
+            isStage: false,
+        });
+        expect(satisfied(goal, facts)).toBe(false);
+        const fromPartner = createFacts();
+        run(fromPartner, received('シマネコがよんだ'), [['looks_sayforsecs', { MESSAGE: '既読', SECS: 2 }]], {
+            targetId: 'shimaraby',
+            isStage: false,
+        });
+        expect(satisfied(goal, fromPartner)).toBe(true);
+    });
+
+    test('uses with not is met only while the blocks have never run that way (#1645)', () => {
+        const goal = [
+            {
+                type: 'uses',
+                not: true,
+                trigger: { hat: 'event_whenflagclicked' },
+                blocks: [{ opcode: 'data_setvariableto', args: { VALUE: /^ばか$/ } }],
+            },
+        ];
+        const facts = createFacts();
+        expect(satisfied(goal, facts)).toBe(true);
+        run(facts, flag, [['data_setvariableto', { VARIABLE: 'シマラビのメッセージ', VALUE: 'こんにちは' }]]);
+        expect(satisfied(goal, facts)).toBe(true);
+        run(facts, flag, [['data_setvariableto', { VARIABLE: 'シマラビのメッセージ', VALUE: 'ばか' }]]);
+        expect(satisfied(goal, facts)).toBe(false);
+        expect(validateGoal([{ ...goal[0], not: 'yes' }])).toEqual(['goal[0]: uses.not must be true or false']);
+    });
+
     test('sentBy other also counts the mesh broadcast-with-value block as the sender', () => {
         const goal = [
             {
@@ -576,7 +621,7 @@ describe('said.trigger and variable.target (#1643)', () => {
 
     test('validateGoal checks said.trigger and variable.target', () => {
         expect(validateGoal([{ type: 'said', text: 'a', trigger: { sentBy: 'me' } }])).toEqual([
-            "goal[0]: trigger.sentBy must be 'other'",
+            "goal[0]: trigger.sentBy must be 'other' or 'remote'",
         ]);
         expect(validateGoal([{ type: 'variable', name: 'a', target: 'all' }])).toEqual([
             "goal[0]: variable.target must be 'stage' or 'sprite'",

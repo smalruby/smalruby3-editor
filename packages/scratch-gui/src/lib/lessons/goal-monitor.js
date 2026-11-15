@@ -109,6 +109,22 @@ const describeThread = (thread) => {
     };
 };
 
+// メッセージを送るブロック（goal.js の BROADCAST_OPCODES と同じ）
+const BROADCAST_OPCODES = new Set(['event_broadcast', 'event_broadcastandwait', 'meshV2_broadcastWithValue']);
+
+// メッシュの拡張は、ほかのノードから届いた合図を「送る」の関数（つないだときに取った関数 = 見張りの包み）を直接
+// 呼んで流す（broadcast-receiver.js）。そのときの util は最後に使われたもので、スレッドは「送る」を動かしていない。
+// それを「このスレッドが送った」と記録すると、届いた合図の送り手がこの作品のスプライトになる（`sentBy: 'remote'`
+// が通らない・送っていないスクリプトの「送る」が数えられる）ので、スレッドがいま送るブロックにいるときだけ記録する。
+// スタックの分からないスレッド（テストの作り物）は記録する（#1645）
+const isSendingThread = (thread) => {
+    if (typeof thread.peekStack !== 'function') return true;
+    const container = thread.blockContainer || (thread.target && thread.target.blocks);
+    const block =
+        container && typeof container.getBlock === 'function' ? container.getBlock(thread.peekStack()) : null;
+    return Boolean(block) && BROADCAST_OPCODES.has(block.opcode);
+};
+
 // execute.js は引数のオブジェクトを使い回すので、記録する分は写す。
 // BROADCAST_OPTION は `{id, name}` なのでメッセージ名だけにする。
 const copyArgs = (args) => {
@@ -155,6 +171,7 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
         const thread = util && util.thread;
         // モニター（ステージの表示）のスレッドはプログラムではない
         if (!thread || thread.updateMonitor) return;
+        if (BROADCAST_OPCODES.has(opcode) && !isSendingThread(thread)) return;
         const run = runFor(thread);
         recordExecution(facts, run, opcode, copyArgs(args));
         lastRun = run;

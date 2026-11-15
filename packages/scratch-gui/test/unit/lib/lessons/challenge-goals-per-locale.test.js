@@ -38,7 +38,10 @@ const sound = (name) => ({
     rate: 48000,
     sampleCount: 1,
 });
-const sprite = (name, sounds) => ({
+// ライブラリのスプライト（spriteCodes で足すもの）のコスチューム・音（sprites.json と同じ名前。レッスン 5 の
+// 「Meow の音を鳴らす」「コスチュームを shimacat-b にする」のため）
+const LIBRARY_SPRITES = { Shimacat: { costumes: ['shimacat-a', 'shimacat-b'], sounds: ['Meow'] } };
+const sprite = (name, sounds, costumes = ['costume1']) => ({
     isStage: false,
     name,
     variables: {},
@@ -46,7 +49,7 @@ const sprite = (name, sounds) => ({
     broadcasts: {},
     blocks: {},
     comments: {},
-    costumes: [costume('costume1')],
+    costumes: costumes.map(costume),
     sounds: sounds.map(sound),
     visible: true,
     x: 0,
@@ -78,7 +81,11 @@ const projectFor = (locale, { sprites }) => ({
             layerOrder: 0,
         },
         sprite('Sprite1', [CAT_SOUND[locale], 'Owl']),
-        ...sprites.map((name) => sprite(name, [])),
+        ...sprites.map((name) =>
+            LIBRARY_SPRITES[name]
+                ? sprite(name, LIBRARY_SPRITES[name].sounds, LIBRARY_SPRITES[name].costumes)
+                : sprite(name, []),
+        ),
     ],
     monitors: [],
     extensions: [],
@@ -299,7 +306,53 @@ const OPERATIONS = {
         expect(isSatisfied()).toBe(false);
         await partnerPress(0);
     },
+    // レッスン 5（#1645）。4-3 の答えに足した形。練習相手のボタンは課題ごと
+    // 5-1: 練習相手の「発言する」→ 音。シマネコを押す → 「既読にする」→ シマラビが「既読」
+    'chat-l5-read-receipt': async ({ partnerPress, clickSprite, isSatisfied }) => {
+        await partnerPress(0);
+        await sleep(100);
+        await clickSprite('Shimacat');
+        await sleep(100);
+        // 相手から既読がまだ届いていない
+        expect(isSatisfied()).toBe(false);
+        await partnerPress(1);
+    },
+    // 5-2: NG ワードを入力すると注意される（送らない）。そのあとふつうの言葉を送る
+    'chat-l5-ng-word': async ({ vm, locale, answer, isSatisfied }) => {
+        vm.greenFlag();
+        await answer(L5_NG_WORD[locale]);
+        await sleep(2200);
+        expect(isSatisfied()).toBe(false);
+        await answer('hello');
+    },
+    // 5-3: 昼（12 時）は自動返信しない。夜（23 時）に練習相手の「こんにちは」で自動返信する
+    'chat-l5-auto-reply': async ({ hour, partnerPress, isSatisfied }) => {
+        hour(12);
+        await partnerPress(0);
+        await sleep(200);
+        expect(isSatisfied()).toBe(false);
+        hour(23);
+        await partnerPress(0);
+    },
+    // 5-4: ちがう合言葉で注意される。旗を押し直して合言葉を入れ、メッセージを送る
+    'chat-l5-password': async ({ vm, locale, answer, isSatisfied }) => {
+        vm.greenFlag();
+        await answer('sakura');
+        await sleep(2200);
+        expect(isSatisfied()).toBe(false);
+        vm.greenFlag();
+        await answer(L5_PASSWORD[locale]);
+        await answer('hello');
+    },
+    // 5-5: シマラビを押すとスタンプを送り、練習相手がスタンプを返す（シマネコのコスチュームが 2 秒かわる）
+    'chat-l5-stamp': async ({ click }) => {
+        await click();
+    },
 };
+
+// レッスン 5 の 5-2 の NG ワード・5-4 の合言葉（locale ごと）
+const L5_NG_WORD = { ja: 'ばか', 'ja-Hira': 'ばか', en: 'stupid' };
+const L5_PASSWORD = { ja: 'もみじ', 'ja-Hira': 'もみじ', en: 'maple' };
 
 // ステージのプログラムのチャレンジ 4 は 1 秒の待ちが 6 回ある
 const WAIT_FOR_GOAL_MS = 9000;
@@ -321,6 +374,10 @@ const prepareRun = async (id, locale, override = null) => {
     const cat = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === 'Sprite1');
     vm.setEditingTarget(cat.id);
 
+    // 始めるときにステージに入れるプログラム（5-2 のリスト「NGワード」の用意）。答えのプログラムはそのリストを使う
+    if (challenge.setup && challenge.setup.stageCode) {
+        await insert(vm, stage, localizeCode(challenge.setup.stageCode, locale));
+    }
     if (codeOverride === null) {
         for (const { sprite: name, code } of challenge.spriteCodes) {
             const target = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === name);
@@ -390,6 +447,13 @@ const prepareRun = async (id, locale, override = null) => {
                 i += 1;
                 return value;
             };
+            vm.runtime.targets.forEach((target) => target.blocks.resetCache());
+        },
+        // 「現在の (時)」が返す時を決める（5-3 の夜の自動返信。ほかの「現在の」はそのまま）
+        hour: (value) => {
+            const original = vm.runtime._primitives.sensing_current;
+            vm.runtime._primitives.sensing_current = (args, util) =>
+                String(args.CURRENTMENU).toLowerCase() === 'hour' ? value : original(args, util);
             vm.runtime.targets.forEach((target) => target.blocks.resetCache());
         },
         touch: (value) => {
@@ -1187,5 +1251,392 @@ describe('the chat lesson 4 goals also pass for the one who plays Shimacat in a 
         await run.ctx.answer('hello');
         await fromPair(run, 'シマラビのメッセージ', 'やっほー');
         expect(await until(run.isSatisfied, 1500)).toBe(true);
+    }, 20000);
+});
+
+// 「チャットをつくろう」レッスン 5（#1645）の goal が、課題をやっていないプログラム（ずる）では満たされないこと。
+// どのテーマも 4-3 の答え（L4_SEND_REPEAT・L4_RECEIVE_SAY）に足した形
+const L4_RECEIVE_SAY =
+    'when_receive("シマネコのメッセージ") do\n  say(mesh.sensor_value("シマネコのメッセージ"))\nend\n';
+const L5_RECEIVE_PLAY =
+    'when_receive("シマネコのメッセージ") do\n  say(mesh.sensor_value("シマネコのメッセージ"))\n' +
+    '  play("Meow")\nend\n';
+const l5Ng = (body) =>
+    'when_flag_clicked do\n  ask("メッセージを入力")\n  loop do\n' +
+    body +
+    '    ask($シマラビのメッセージ)\n  end\nend\n';
+const l5Password = (inside, otherwise = '    say("合言葉がちがいます", 2)\n') =>
+    `when_flag_clicked do\n  ask("合言葉は？")\n  if answer == "もみじ"\n${inside}  else\n${otherwise}  end\nend\n`;
+const L5_CHAT_LOOP =
+    '    loop do\n      $シマラビのメッセージ = answer\n      broadcast("シマラビのメッセージ")\n' +
+    '      ask($シマラビのメッセージ)\n    end\n';
+const readReceipt = async ({ partnerPress, clickSprite }) => {
+    await partnerPress(0);
+    await clickSprite('Shimacat');
+    await partnerPress(1);
+    await sleep(300);
+};
+const ngWord = async ({ vm, answer }) => {
+    vm.greenFlag();
+    await answer('こんにちは');
+    await answer('ばか');
+    await sleep(2200);
+    await answer('またね');
+    await sleep(300);
+};
+const password = async ({ vm, answer }) => {
+    vm.greenFlag();
+    await answer('さくら');
+    await sleep(2200);
+    vm.greenFlag();
+    await answer('もみじ');
+    await answer('こんにちは');
+    await sleep(300);
+};
+const autoReplyAtNight = async ({ vm, hour, answer, partnerPress }) => {
+    hour(23);
+    vm.greenFlag();
+    await answer('こんにちは');
+    await partnerPress(0);
+    await sleep(300);
+};
+const stamp = async ({ click, partnerPress }) => {
+    await click();
+    await partnerPress(0);
+    await sleep(2800);
+};
+const CHEATS_L5 = [
+    // 5-1: シマネコを押して送るのを、シマラビが受け取る名前（シマネコがよんだ）と同じにする（自分の画面だけで既読）
+    [
+        'chat-l5-read-receipt (Shimacat sends the name Shimaraby receives, so it reads its own receipt)',
+        'chat-l5-read-receipt',
+        {
+            code: `${L4_SEND_REPEAT}\nwhen_receive("シマネコがよんだ") do\n  say("既読", 2)\nend\n`,
+            sprites: {
+                Shimacat: `${L5_RECEIVE_PLAY}\nwhen_clicked do\n  broadcast("シマネコがよんだ")\nend\n`,
+            },
+        },
+        async ({ partnerPress, clickSprite }) => {
+            await partnerPress(0);
+            await clickSprite('Shimacat');
+            await sleep(300);
+        },
+    ],
+    // 5-1: 音を、受け取ったときではなく押したときに鳴らす
+    [
+        'chat-l5-read-receipt (plays the sound when clicked, not when the message arrives)',
+        'chat-l5-read-receipt',
+        {
+            code: `${L4_SEND_REPEAT}\nwhen_receive("シマネコがよんだ") do\n  say("既読", 2)\nend\n`,
+            sprites: {
+                Shimacat: `${L4_RECEIVE_SAY}\nwhen_clicked do\n  play("Meow")\n  broadcast("シマラビがよんだ")\nend\n`,
+            },
+        },
+        readReceipt,
+    ],
+    // 5-1: シマラビが、相手のメッセージが届いたときに「既読」と言う（既読の合図を受け取らない）
+    [
+        'chat-l5-read-receipt (Shimaraby says "既読" when a message arrives, without the receipt)',
+        'chat-l5-read-receipt',
+        {
+            code: `${L4_SEND_REPEAT}\nwhen_receive("シマネコのメッセージ") do\n  say("既読", 2)\nend\n`,
+            sprites: { Shimacat: `${L5_RECEIVE_PLAY}\nwhen_clicked do\n  broadcast("シマラビがよんだ")\nend\n` },
+        },
+        readReceipt,
+    ],
+    // 5-2: 「もし〜なら」だけで注意し、そのあとに送る（「でなければ」が無いので NG ワードも送られる）
+    [
+        'chat-l5-ng-word (warns with "if" only and then sends the NG word too)',
+        'chat-l5-ng-word',
+        {
+            code: l5Ng(
+                '    if $NGワード.include?(answer)\n      say("その言葉は送れません", 2)\n    end\n' +
+                    '    $シマラビのメッセージ = answer\n    broadcast("シマラビのメッセージ")\n',
+            ),
+            sprites: { Shimacat: L4_RECEIVE_SAY },
+        },
+        ngWord,
+    ],
+    // 5-2: 「でなければ」はあるが、その外で送る（NG ワードを入れたあとに送る）
+    [
+        'chat-l5-ng-word (has "else" but sends outside it, after the NG word)',
+        'chat-l5-ng-word',
+        {
+            code: l5Ng(
+                '    if $NGワード.include?(answer)\n      say("その言葉は送れません", 2)\n    else\n' +
+                    '      sleep(0.1)\n    end\n    $シマラビのメッセージ = answer\n    broadcast("シマラビのメッセージ")\n',
+            ),
+            sprites: { Shimacat: L4_RECEIVE_SAY },
+        },
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('ばか');
+            await sleep(2200);
+            await answer('またね');
+            await sleep(300);
+        },
+    ],
+    // 5-2: リストを使わず、決まった言葉と比べる
+    [
+        'chat-l5-ng-word (compares with a fixed word instead of the list)',
+        'chat-l5-ng-word',
+        {
+            code: l5Ng(
+                '    if answer == "ばか"\n      say("その言葉は送れません", 2)\n    else\n' +
+                    '      $シマラビのメッセージ = answer\n      broadcast("シマラビのメッセージ")\n    end\n',
+            ),
+            sprites: { Shimacat: L4_RECEIVE_SAY },
+        },
+        ngWord,
+    ],
+    // 5-2: NG ワードを入れたが、ふつうの言葉は送っていない
+    [
+        'chat-l5-ng-word (only the NG word is typed)',
+        'chat-l5-ng-word',
+        null,
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('ばか');
+            await sleep(2500);
+        },
+    ],
+    // 5-3: 自分のメッセージを受け取って返事する（相手のメッセージではない）
+    [
+        'chat-l5-auto-reply (replies to its own message)',
+        'chat-l5-auto-reply',
+        {
+            code:
+                `${L4_SEND_REPEAT}\nwhen_receive("シマラビのメッセージ") do\n  if Time.now.hour > 21\n` +
+                '    $シマラビのメッセージ = "もう寝ています"\n    broadcast("シマラビのメッセージ")\n  end\nend\n',
+            sprites: { Shimacat: L4_RECEIVE_SAY },
+        },
+        autoReplyAtNight,
+    ],
+    // 5-3: 「もし」の中に何も入れない（時を調べるだけで返事しない）
+    [
+        'chat-l5-auto-reply (checks the hour but replies nothing)',
+        'chat-l5-auto-reply',
+        {
+            code: `${L4_SEND_REPEAT}\nwhen_receive("シマネコのメッセージ") do\n  if Time.now.hour > 21\n  end\nend\n`,
+            sprites: { Shimacat: L4_RECEIVE_SAY },
+        },
+        autoReplyAtNight,
+    ],
+    // 5-3: 時を調べずに、いつも返事する
+    [
+        'chat-l5-auto-reply (always replies without checking the hour)',
+        'chat-l5-auto-reply',
+        {
+            code:
+                `${L4_SEND_REPEAT}\nwhen_receive("シマネコのメッセージ") do\n` +
+                '  $シマラビのメッセージ = "もう寝ています"\n  broadcast("シマラビのメッセージ")\nend\n',
+            sprites: { Shimacat: L4_RECEIVE_SAY },
+        },
+        autoReplyAtNight,
+    ],
+    // 5-3: 答えのとおりでも、昼（21 のまま）は返事が出ないので、まだ「できた」にならない
+    [
+        'chat-l5-auto-reply (the answer in the daytime, with 21 as it is)',
+        'chat-l5-auto-reply',
+        null,
+        async ({ hour, partnerPress }) => {
+            hour(13);
+            await partnerPress(0);
+            await partnerPress(1);
+            await sleep(300);
+        },
+    ],
+    // 5-4: 合言葉を確かめずに、注意してからチャットを始める
+    [
+        'chat-l5-password (says the warning and starts the chat without checking)',
+        'chat-l5-password',
+        {
+            code:
+                'when_flag_clicked do\n  ask("合言葉は？")\n  say("合言葉がちがいます", 2)\n  ask("メッセージを入力")\n' +
+                L5_CHAT_LOOP.replace(/^ {2}/gm, '') +
+                'end\n',
+            sprites: { Shimacat: L4_RECEIVE_SAY },
+        },
+        password,
+    ],
+    // 5-4: 合言葉のあとすぐ「ずっと」に入り、合言葉をそのまま送る
+    [
+        'chat-l5-password (sends the password itself)',
+        'chat-l5-password',
+        { code: l5Password(L5_CHAT_LOOP), sprites: { Shimacat: L4_RECEIVE_SAY } },
+        password,
+    ],
+    // 5-4: ちがう合言葉で注意されただけで、チャットを始めていない
+    [
+        'chat-l5-password (only a wrong password is typed)',
+        'chat-l5-password',
+        null,
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('さくら');
+            await sleep(2500);
+        },
+    ],
+    // 5-5: シマラビを押して送るのを、シマネコが受け取る名前（シマネコのスタンプ）と同じにする（自分の画面だけ）
+    [
+        'chat-l5-stamp (Shimaraby sends the name Shimacat receives, so it gets its own stamp)',
+        'chat-l5-stamp',
+        {
+            code: `${L4_SEND_REPEAT}\nwhen_clicked do\n  broadcast("シマネコのスタンプ")\nend\n`,
+            sprites: {
+                Shimacat:
+                    `${L4_RECEIVE_SAY}\nwhen_receive("シマネコのスタンプ") do\n  switch_costume("shimacat-b")\n` +
+                    '  sleep(2)\n  switch_costume("shimacat-a")\nend\n',
+            },
+        },
+        async ({ click }) => {
+            await click();
+            await sleep(2800);
+        },
+    ],
+    // 5-5: コスチュームをかえたまま、もどさない
+    [
+        'chat-l5-stamp (switches the costume and does not switch it back)',
+        'chat-l5-stamp',
+        {
+            code: `${L4_SEND_REPEAT}\nwhen_clicked do\n  broadcast("シマラビのスタンプ")\nend\n`,
+            sprites: {
+                Shimacat: `${L4_RECEIVE_SAY}\nwhen_receive("シマネコのスタンプ") do\n  switch_costume("shimacat-b")\n  sleep(2)\nend\n`,
+            },
+        },
+        stamp,
+    ],
+    // 5-5: 待たずに、2 回かえる（見えないうちにもどる）
+    [
+        'chat-l5-stamp (switches twice without waiting)',
+        'chat-l5-stamp',
+        {
+            code: `${L4_SEND_REPEAT}\nwhen_clicked do\n  broadcast("シマラビのスタンプ")\nend\n`,
+            sprites: {
+                Shimacat:
+                    `${L4_RECEIVE_SAY}\nwhen_receive("シマネコのスタンプ") do\n  switch_costume("shimacat-b")\n` +
+                    '  switch_costume("shimacat-a")\nend\n',
+            },
+        },
+        stamp,
+    ],
+];
+
+describe('the chat lesson 5 goals are not met by programs that skip the task (#1645)', () => {
+    let vm;
+
+    afterEach(() => {
+        quitVm(vm);
+        vm = null;
+    });
+
+    test.each(CHEATS_L5)(
+        '%s',
+        async (_name, id, code, operation) => {
+            const run = await prepareRun(id, 'ja', code);
+            vm = run.vm;
+            await operation(run.ctx);
+            expect(await until(run.isSatisfied, 1500)).toBe(false);
+        },
+        20000,
+    );
+});
+
+// ペアでシマネコの役の人は、名前と受け持ちを入れかえて作る（#1645）。相手（シマラビの役）の合図・値は、本物の
+// メッシュでほかのノードから届いたものとして remoteData に入れて合図を流す
+describe('the chat lesson 5 goals also pass for the one who plays Shimacat in a pair (#1645)', () => {
+    let vm;
+
+    afterEach(() => {
+        quitVm(vm);
+        vm = null;
+    });
+
+    const fromPair = async (run, name, value = null) => {
+        if (value !== null) {
+            run.vm.runtime.peripheralExtensions.meshV2.meshService.remoteData.pair = {
+                [name]: { value, timestamp: Date.now() },
+            };
+        }
+        run.vm.runtime.startHats('event_whenbroadcastreceived', { BROADCAST_OPTION: name });
+        await sleep(100);
+    };
+    const SEND_AS_SHIMACAT =
+        'when_flag_clicked do\n  ask("メッセージを入力")\n  loop do\n    $シマネコのメッセージ = answer\n' +
+        '    broadcast("シマネコのメッセージ")\n    ask($シマネコのメッセージ)\n  end\nend\n';
+    const RECEIVE_FROM_SHIMARABY =
+        'when_receive("シマラビのメッセージ") do\n  say(mesh.sensor_value("シマラビのメッセージ"))\n';
+
+    test('5-1 with the names swapped', async () => {
+        const run = await prepareRun('chat-l5-read-receipt', 'ja', {
+            code: `${SEND_AS_SHIMACAT}\nwhen_receive("シマラビがよんだ") do\n  say("既読", 2)\nend\n`,
+            sprites: {
+                Shimacat: `${RECEIVE_FROM_SHIMARABY}  play("Meow")\nend\n\nwhen_clicked do\n  broadcast("シマネコがよんだ")\nend\n`,
+            },
+        });
+        vm = run.vm;
+        await fromPair(run, 'シマラビのメッセージ', 'やっほー');
+        await run.ctx.clickSprite('Shimacat');
+        await fromPair(run, 'シマラビがよんだ');
+        expect(await until(run.isSatisfied, 1500)).toBe(true);
+    }, 20000);
+
+    test('5-2 with the names swapped', async () => {
+        const run = await prepareRun('chat-l5-ng-word', 'ja', {
+            code: SEND_AS_SHIMACAT.replace(
+                '    $シマネコのメッセージ = answer\n    broadcast("シマネコのメッセージ")\n',
+                '    if $NGワード.include?(answer)\n      say("その言葉は送れません", 2)\n    else\n' +
+                    '      $シマネコのメッセージ = answer\n      broadcast("シマネコのメッセージ")\n    end\n',
+            ),
+            sprites: { Shimacat: `${RECEIVE_FROM_SHIMARABY}end\n` },
+        });
+        vm = run.vm;
+        vm.greenFlag();
+        await run.ctx.answer('きらい');
+        await sleep(2200);
+        await run.ctx.answer('こんにちは');
+        expect(await until(run.isSatisfied, 1500)).toBe(true);
+    }, 20000);
+
+    test('5-3 with the names swapped', async () => {
+        const run = await prepareRun('chat-l5-auto-reply', 'ja', {
+            code:
+                `${SEND_AS_SHIMACAT}\nwhen_receive("シマラビのメッセージ") do\n  if Time.now.hour > 21\n` +
+                '    $シマネコのメッセージ = "もう寝ています。朝に返事します"\n    broadcast("シマネコのメッセージ")\n' +
+                '  end\nend\n',
+            sprites: { Shimacat: `${RECEIVE_FROM_SHIMARABY}end\n` },
+        });
+        vm = run.vm;
+        run.ctx.hour(22);
+        await fromPair(run, 'シマラビのメッセージ', 'おやすみ');
+        expect(await until(run.isSatisfied, 1500)).toBe(true);
+    }, 20000);
+
+    test('5-4 with the names swapped', async () => {
+        const run = await prepareRun('chat-l5-password', 'ja', {
+            code: l5Password(
+                '    ask("メッセージを入力")\n' +
+                    L5_CHAT_LOOP.replace(/シマラビのメッセージ/g, 'シマネコのメッセージ'),
+            ),
+            sprites: { Shimacat: `${RECEIVE_FROM_SHIMARABY}end\n` },
+        });
+        vm = run.vm;
+        await password(run.ctx);
+        expect(await until(run.isSatisfied, 1500)).toBe(true);
+    }, 20000);
+
+    test('5-5 with the names swapped', async () => {
+        const run = await prepareRun('chat-l5-stamp', 'ja', {
+            code: `${SEND_AS_SHIMACAT}\nwhen_clicked do\n  broadcast("シマネコのスタンプ")\nend\n`,
+            sprites: {
+                Shimacat:
+                    `${RECEIVE_FROM_SHIMARABY}end\n\nwhen_receive("シマラビのスタンプ") do\n` +
+                    '  switch_costume("shimacat-b")\n  sleep(2)\n  switch_costume("shimacat-a")\nend\n',
+            },
+        });
+        vm = run.vm;
+        await run.ctx.click();
+        await fromPair(run, 'シマラビのスタンプ');
+        expect(await until(run.isSatisfied, 4000)).toBe(true);
     }, 20000);
 });

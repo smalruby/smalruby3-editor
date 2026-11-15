@@ -135,24 +135,28 @@ export const markChallengeCompleted = (progress, challengeId, completedAt, cours
 export const isChallengeCompleted = (progress, challengeId) => Boolean(progress.challenges[challengeId]);
 
 /**
- * レッスンの進み具合（できた数・全部の数・全部できたか）。段 1 にクリア条件（n 個・必須）は無い。
+ * レッスンの進み具合（できた数・全部の数・全部できたか）。「全部できた」（✓）は、レッスンの `requiredCount`
+ * （ふつうはチャレンジの数。テーマを選ぶレッスンは 1）だけできたとき。
  * @param {object} lesson - レッスン。
  * @param {object} progress - 記録。
- * @returns {{completedCount: number, total: number, allCompleted: boolean}} 進み具合。
+ * @returns {{completedCount: number, total: number, requiredCount: number, allCompleted: boolean}} 進み具合。
  */
 export const lessonProgress = (lesson, progress) => {
     const completedCount = lesson.challenges.filter((c) => isChallengeCompleted(progress, c.id)).length;
     const total = lesson.challenges.length;
-    return { completedCount, total, allCompleted: total > 0 && completedCount === total };
+    const requiredCount = Number.isInteger(lesson.requiredCount) ? Math.min(lesson.requiredCount, total) : total;
+    return { completedCount, total, requiredCount, allCompleted: total > 0 && completedCount >= requiredCount };
 };
 
 /**
  * コースの進み具合と、レッスンごとの進み具合・チャレンジ（レッスン表が見せるもの）。
- * コースの「全部できた」（クリアの印）は、コースのチャレンジが全部できたとき。
+ * コースの「全部できた」（クリアの印）は、コースのレッスンが全部「全部できた」になったとき。コース全体の数
+ * （進み具合のバー）は、レッスンごとに `requiredCount` までを数える（テーマを選ぶレッスンで、バーがいっぱいに
+ * なるのと ✓ がつくのをそろえる）。`requiredCount` を書いていないコースでは、チャレンジの数と同じ。
  * @param {object} course - コース。
  * @param {object} progress - 記録。
  * @returns {{completedCount: number, total: number, allCompleted: boolean, lessons: Array<object>}}
- *   コース全体の数と、`lessons`（並び順に `{lesson, number, completedCount, total, allCompleted,
+ *   コース全体の数と、`lessons`（並び順に `{lesson, number, completedCount, total, requiredCount, allCompleted,
  *   challenges: [{challenge, completed}]}`。`number` はコースの中のレッスンの番号）。
  */
 export const courseProgress = (course, progress) => {
@@ -165,10 +169,10 @@ export const courseProgress = (course, progress) => {
             completed: isChallengeCompleted(progress, challenge.id),
         })),
     }));
-    const completedCount = lessons.reduce((sum, l) => sum + l.completedCount, 0);
-    const total = lessons.reduce((sum, l) => sum + l.total, 0);
+    const completedCount = lessons.reduce((sum, l) => sum + Math.min(l.completedCount, l.requiredCount), 0);
+    const total = lessons.reduce((sum, l) => sum + l.requiredCount, 0);
     // チャレンジがまだ無いコースを「全部できた」にしない
-    return { completedCount, total, allCompleted: total > 0 && completedCount === total, lessons };
+    return { completedCount, total, allCompleted: total > 0 && lessons.every((l) => l.allCompleted), lessons };
 };
 
 /**

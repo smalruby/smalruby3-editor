@@ -118,11 +118,13 @@ describe('lesson progress', () => {
             expect(lessonProgress(lesson1, emptyProgress())).toEqual({
                 completedCount: 0,
                 total: 4,
+                requiredCount: 4,
                 allCompleted: false,
             });
             expect(lessonProgress(lesson1, completeAll([1, 3, 5]))).toEqual({
                 completedCount: 2,
                 total: 4,
+                requiredCount: 4,
                 allCompleted: false,
             });
         });
@@ -136,6 +138,36 @@ describe('lesson progress', () => {
             const progress = completeAll([1, 2]);
             progress.challenges['other-lesson-challenge'] = { completedAt: NOW, courseId: 'x', lessonId: 'other' };
             expect(lessonProgress(lesson1, progress).completedCount).toBe(2);
+        });
+
+        // テーマを選ぶレッスン（「チャットをつくろう」のレッスン 5）は、requiredCount だけできれば ✓（#1645）
+        test('a lesson with requiredCount is all completed when that many challenges are done', () => {
+            const themes = defineLesson({
+                id: 'themes',
+                requiredCount: 1,
+                challenges: [{ id: 'theme-a' }, { id: 'theme-b' }, { id: 'theme-c' }],
+            });
+            expect(themes.requiredCount).toBe(1);
+            expect(lessonProgress(themes, emptyProgress()).allCompleted).toBe(false);
+            const one = emptyProgress();
+            one.challenges['theme-b'] = { completedAt: NOW, courseId: 'c', lessonId: 'themes' };
+            expect(lessonProgress(themes, one)).toEqual({
+                completedCount: 1,
+                total: 3,
+                requiredCount: 1,
+                allCompleted: true,
+            });
+            // 書いていなければ全部
+            expect(defineLesson({ id: 'all', challenges: [{ id: 'x' }, { id: 'y' }] }).requiredCount).toBe(2);
+        });
+
+        test('the chat lesson 5 is all completed with one theme (#1616 Q17)', () => {
+            const chat = findCourse('chat-wo-tsukurou');
+            const lesson5 = chat.lessons[4];
+            expect(lesson5.requiredCount).toBe(1);
+            const progress = emptyProgress();
+            progress.challenges['chat-l5-stamp'] = { completedAt: NOW, courseId: chat.id, lessonId: lesson5.id };
+            expect(lessonProgress(lesson5, progress).allCompleted).toBe(true);
         });
 
         test('a lesson with no challenges is not all completed', () => {
@@ -165,6 +197,30 @@ describe('lesson progress', () => {
         test('the course is all completed only when every challenge of the course is done', () => {
             expect(courseProgress(course, completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])).allCompleted).toBe(false);
             expect(courseProgress(course, completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])).allCompleted).toBe(true);
+        });
+
+        // コースの数（バー）は、レッスンごとに requiredCount までを数え、✓ はレッスンが全部 ✓ のとき（#1645）
+        test('a course with a theme lesson counts that lesson up to its requiredCount', () => {
+            const basics = defineLesson({ id: 'basics', challenges: [{ id: 'b1' }, { id: 'b2' }] });
+            const themes = defineLesson({
+                id: 'themes',
+                requiredCount: 1,
+                challenges: [{ id: 't1' }, { id: 't2' }, { id: 't3' }],
+            });
+            const themed = defineCourse({ id: 'themed', language: 'blocks', lessons: [basics, themes] });
+            const done = (ids) => {
+                const progress = emptyProgress();
+                ids.forEach((id) => {
+                    progress.challenges[id] = { completedAt: NOW, courseId: 'themed', lessonId: 'x' };
+                });
+                return progress;
+            };
+            expect(courseProgress(themed, done(['t1', 't2']))).toEqual(
+                expect.objectContaining({ completedCount: 1, total: 3, allCompleted: false }),
+            );
+            expect(courseProgress(themed, done(['b1', 'b2', 't3']))).toEqual(
+                expect.objectContaining({ completedCount: 3, total: 3, allCompleted: true }),
+            );
         });
 
         test('a course with no lessons is not all completed', () => {

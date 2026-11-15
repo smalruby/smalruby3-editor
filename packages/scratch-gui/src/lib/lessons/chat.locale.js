@@ -339,6 +339,131 @@ export const ja = {
     [`${C}chat-l4-dm.quiz.choice3`]: '可用性',
     [`${C}chat-l4-dm.quiz.explanation`]:
         'このダイレクトメッセージは全員に届き、見せるかどうかを受け取った側が決めているだけ。プログラムを変えれば読めてしまうので、機密性を守るしくみとしては弱いよ。',
+
+    'gui.lessons.lesson.chat-l5.name': 'チャットを改良しよう',
+
+    [`${C}chat-l5-read-receipt.name`]: '通知と既読をつけよう',
+    [`${C}chat-l5-read-receipt.task`]:
+        '相手のメッセージが届いたら音で知らせ、読んだことを相手に伝えよう。シマネコは、相手のメッセージを言ったあと「Meow の音を鳴らす」。シマネコを押したらメッセージ「シマラビがよんだ」を送り、シマラビは「シマネコがよんだ」を受け取ったら「既読」と 2 秒言う。\nさらに工夫するなら: 既読に時こくをつける・まだ読んでいないメッセージの数を出す。',
+    [`${C}chat-l5-read-receipt.step1`]:
+        'シマネコをえらぼう。最初から入っている「シマネコのメッセージを受け取ったとき」の「言う」の下に、ピンクの「音」の「Meow の音を鳴らす」をつなげよう。',
+    [`${C}chat-l5-read-receipt.step2`]:
+        'シマネコに、黄色い「イベント」の「このスプライトが押されたとき」を置き、「〜を送る」をつなげて、▼ の「新しいメッセージ」で「シマラビがよんだ」を作ろう。',
+    [`${C}chat-l5-read-receipt.step3`]:
+        'シマラビをえらんで、「〜を受け取ったとき」を置き、▼ の「新しいメッセージ」で「シマネコがよんだ」を作ろう。その下に紫の「見た目」の「既読 と 2 秒言う」をつなげる。',
+    [`${C}chat-l5-read-receipt.step4`]:
+        'ひとりなら、練習相手のパネルの「発言する」を押そう。音が鳴ったらシマネコを押す（パネルの「届いた」に「シマラビがよんだ」が出る）。パネルの「既読にする」を押すと、シマラビが「既読」と言う。ペアなら、おたがいに送って押してみよう。',
+    [`${C}chat-l5-read-receipt.step5`]:
+        '旗を押すと、今までどおりシマラビから送れる（4-3 のプログラムのまま）。ふだんのやりとりの中でも、音・既読が動くか見よう。',
+    [`${C}chat-l5-read-receipt.debug1`]:
+        '音が鳴らないときは、「Meow の音を鳴らす」が「シマネコのメッセージを受け取ったとき」の下にあるか見よう。',
+    [`${C}chat-l5-read-receipt.debug2`]:
+        '「既読」と出ないときは、シマネコを押して送るのが「シマラビがよんだ」、シマラビが受け取るのが「シマネコがよんだ」か見よう。同じ名前にすると、自分の画面だけで「既読」になってしまう。',
+    [`${C}chat-l5-read-receipt.quiz.question`]:
+        '使う人の働きかけ（入力）に応じて、応答（出力）が返ってくる機能を何という？',
+    [`${C}chat-l5-read-receipt.quiz.choice1`]: '双方向性',
+    [`${C}chat-l5-read-receipt.quiz.choice2`]: '順次処理',
+    [`${C}chat-l5-read-receipt.quiz.choice3`]: '暗号化',
+    [`${C}chat-l5-read-receipt.quiz.explanation`]:
+        'シマネコを押すという働きかけに応じて、相手の画面に「既読」と出る。チャットは、双方向性のあるコンテンツの代表だよ。',
+
+    [`${C}chat-l5-ng-word.name`]: 'わるい言葉を送らせない',
+    [`${C}chat-l5-ng-word.task`]:
+        '入力した言葉がリスト「NGワード」に入っていたら、送らずに「その言葉は送れません」と言おう。入っていなければ、今までどおり送る。リストは、ステージのプログラムで旗を押すと用意される。\nさらに工夫するなら: 「ばかやろう」も止める（リストの言葉を 1 つずつ、入力した言葉に含まれるか調べる）。',
+    [`${C}chat-l5-ng-word.step1`]:
+        '最初から入っているのは 4-3 のチャット。シマラビが聞いて送り、シマネコが相手のメッセージを言う（右下でシマネコをえらぶと見られる）。',
+    [`${C}chat-l5-ng-word.step2`]:
+        'ステージには、旗を押すとリスト「NGワード」を空にして「ばか」「きらい」を入れるプログラムが入っている（右下でステージをえらぶと見られる）。',
+    [`${C}chat-l5-ng-word.step3`]:
+        'シマラビをえらんで、黄色い「制御」の「もし〜なら でなければ」を「ずっと」の中の上に入れよう。条件には、オレンジの「変数」の「(NGワード) に (答え) が含まれる」を入れ、「もし」の中に「その言葉は送れません と 2 秒言う」を入れる。',
+    [`${C}chat-l5-ng-word.step4`]:
+        '「シマラビのメッセージを (答え) にする」と「送る」を「でなければ」の中へ動かそう。「(シマラビのメッセージ) と聞いて待つ」は、「もし」の下（「ずっと」の中）に残す。',
+    [`${C}chat-l5-ng-word.step5`]:
+        '旗を押して、「ばか」と、ふつうの言葉を入力しよう。「ばか」は送られず、ふつうの言葉は練習相手のパネルの「届いた」（ペアなら相手の画面）に出るか見よう。',
+    [`${C}chat-l5-ng-word.debug1`]:
+        '「ばか」も送られてしまうときは、「送る」が「でなければ」の中にあるか見よう。「もし」の外にあると、注意したあとに送ってしまう。',
+    [`${C}chat-l5-ng-word.debug2`]:
+        'ふつうの言葉も送れないときは、「〜が含まれる」のリストが「NGワード」か、右の白いところに (答え) が入っているか見よう。',
+    [`${C}chat-l5-ng-word.quiz.question`]: '決めた条件で、受け取る・見る・送るものを制限するしくみを何という？',
+    [`${C}chat-l5-ng-word.quiz.choice1`]: 'フィルタリング',
+    [`${C}chat-l5-ng-word.quiz.choice2`]: '暗号化',
+    [`${C}chat-l5-ng-word.quiz.choice3`]: 'バックアップ',
+    [`${C}chat-l5-ng-word.quiz.explanation`]:
+        'NG ワードはフィルタリングの 1 つ。いやな思いをしにくくなる一方で、止めすぎると伝えたいことまで伝わらなくなるよ。',
+
+    [`${C}chat-l5-auto-reply.name`]: '時間で自動返信しよう',
+    [`${C}chat-l5-auto-reply.task`]:
+        '夜にメッセージが来たら、自動で返事をしよう。シマラビが「シマネコのメッセージ」を受け取ったとき、現在の時が 21 より大きければ、変数「シマラビのメッセージ」を「もう寝ています。朝に返事します」にして、メッセージ「シマラビのメッセージ」を送る。\n昼に試すときは、21 を今の時より小さい数にして動きを確かめ、確かめたら 21 にもどそう。\nさらに工夫するなら: 朝 7 時より前も返信する（「または」を使う）・使いすぎを知らせるタイマー（レッスン 2-2）を入れる。',
+    [`${C}chat-l5-auto-reply.step1`]:
+        '最初から入っているのは 4-3 のチャット。シマラビが聞いて送り、シマネコが相手のメッセージを言う（右下でシマネコをえらぶと見られる）。',
+    [`${C}chat-l5-auto-reply.step2`]:
+        'シマラビをえらんで、黄色い「イベント」の「〜を受け取ったとき」を置き、▼ で「シマネコのメッセージ」をえらぼう。',
+    [`${C}chat-l5-auto-reply.step3`]:
+        '黄色い「制御」の「もし〜なら」をつなげよう。条件には緑の「演算」の「(　) > (21)」を入れ、左に水色の「調べる」の「現在の (時)」を入れる。',
+    [`${C}chat-l5-auto-reply.step4`]:
+        '「もし」の中に「シマラビのメッセージを (もう寝ています。朝に返事します) にする」と「シマラビのメッセージを送る」を入れよう。',
+    [`${C}chat-l5-auto-reply.step5`]:
+        '昼なら、21 を今の時より小さい数（たとえば 0）にしよう。練習相手のパネルの「こんにちは」を押すと、パネルの「届いた」に自動の返事が出る。確かめたら 21 にもどそう。ペアで試すときは、どちらか 1 人だけ数を小さくする。',
+    [`${C}chat-l5-auto-reply.step6`]:
+        '旗を押すと、今までどおり自分からも送れる。夜（または数を小さくしたとき）は、相手のメッセージに自動で返事が出るか見よう。',
+    [`${C}chat-l5-auto-reply.debug1`]:
+        '返事が来ないときは、「もし」の数が今の時より小さいか、「受け取ったとき」の ▼ が「シマネコのメッセージ」か見よう。',
+    [`${C}chat-l5-auto-reply.debug2`]:
+        '返事がずっと続くときは、ペアの 2 人とも自動返信が動いている。どちらか 1 人の数を 21 にもどそう。',
+    [`${C}chat-l5-auto-reply.quiz.question`]:
+        '朝 8 時より前「または」夕方 5 時より後に自動返信したいのに、2 つの条件を「かつ」でつなぐとどうなる？',
+    [`${C}chat-l5-auto-reply.quiz.choice1`]: '一度も返信しない',
+    [`${C}chat-l5-auto-reply.quiz.choice2`]: 'いつも返信する',
+    [`${C}chat-l5-auto-reply.quiz.choice3`]: '夜だけ返信する',
+    [`${C}chat-l5-auto-reply.quiz.explanation`]:
+        '「かつ」は両方が同時に成り立つときだけ。8 時より前で 5 時より後の時こくは無いので、一度も動かない。このような誤りをバグ、見つけて直すことをデバッグというよ。',
+
+    [`${C}chat-l5-password.name`]: '合言葉で入ろう',
+    [`${C}chat-l5-password.task`]:
+        '合言葉を知っている人だけがチャットできるようにしよう。旗を押したら「合言葉は？」と聞く。答えが「もみじ」なら、これまでのチャットを始め、ちがえば「合言葉がちがいます」と言う。\nさらに工夫するなら: 3 回までためせるようにする・見破られにくい合言葉にする。',
+    [`${C}chat-l5-password.step1`]:
+        '最初から入っているのは 4-3 のチャット。シマラビが聞いて送り、シマネコが相手のメッセージを言う（右下でシマネコをえらぶと見られる）。',
+    [`${C}chat-l5-password.step2`]:
+        'シマラビの「旗が押されたとき」のすぐ下に、水色の「調べる」の「合言葉は？と聞いて待つ」を入れよう。',
+    [`${C}chat-l5-password.step3`]:
+        'その下に黄色い「制御」の「もし〜なら でなければ」をつなげよう。条件には緑の「演算」の「(答え) = (もみじ)」を入れ、「でなければ」に「合言葉がちがいます と 2 秒言う」を入れる。',
+    [`${C}chat-l5-password.step4`]: '「メッセージを入力と聞いて待つ」と「ずっと」を、「もし」の中へ動かそう。',
+    [`${C}chat-l5-password.step5`]:
+        '旗を押して、ちがう言葉を入れてみよう。「合言葉がちがいます」と言うか見たら、もう一度旗を押して「もみじ」を入れ、メッセージを送ってみよう。',
+    [`${C}chat-l5-password.debug1`]:
+        '「もみじ」でも入れないときは、= の右が「もみじ」か（空白が入っていないか）見よう。',
+    [`${C}chat-l5-password.debug2`]:
+        '合言葉がそのまま送られてしまうときは、「もし」の中で「メッセージを入力と聞いて待つ」が「ずっと」より上にあるか見よう。',
+    [`${C}chat-l5-password.quiz.question`]: 'ID やパスワードで、使ってよい本人かどうかを確かめるしくみを何という？',
+    [`${C}chat-l5-password.quiz.choice1`]: '認証システム',
+    [`${C}chat-l5-password.quiz.choice2`]: 'フィルタリング',
+    [`${C}chat-l5-password.quiz.choice3`]: '暗号化通信',
+    [`${C}chat-l5-password.quiz.explanation`]:
+        'パスワードが見破られると悪用されるので、見破られにくく覚えやすいものにする。プログラムに書いた合言葉は、プログラムを開けば読めてしまうよ。',
+
+    [`${C}chat-l5-stamp.name`]: 'スタンプを送ろう',
+    [`${C}chat-l5-stamp.task`]:
+        '絵で気持ちを伝えよう。シマラビを押したらメッセージ「シマラビのスタンプ」を送る。「シマネコのスタンプ」を受け取ったら、シマネコのコスチュームを「shimacat-b」にして 2 秒待ち、「shimacat-a」にもどす。\n変数は使わず、メッセージだけで送れる。\nさらに工夫するなら: 2 つのスタンプから選んで送る（番号を変数で送る）。',
+    [`${C}chat-l5-stamp.step1`]:
+        '最初から入っているのは 4-3 のチャット。シマラビが聞いて送り、シマネコが相手のメッセージを言う（右下でシマネコをえらぶと見られる）。',
+    [`${C}chat-l5-stamp.step2`]:
+        'シマラビに、黄色い「イベント」の「このスプライトが押されたとき」を置き、「〜を送る」をつなげて、▼ の「新しいメッセージ」で「シマラビのスタンプ」を作ろう。',
+    [`${C}chat-l5-stamp.step3`]:
+        'シマネコをえらんで、「〜を受け取ったとき」を置き、▼ の「新しいメッセージ」で「シマネコのスタンプ」を作ろう。その下に紫の「見た目」の「コスチュームを shimacat-b にする」、黄色い「制御」の「2 秒待つ」、「コスチュームを shimacat-a にする」をつなげる。',
+    [`${C}chat-l5-stamp.step4`]:
+        'ひとりなら、シマラビを押そう（練習相手がスタンプを返してくれる）。パネルの「スタンプを送る」を押しても、シマネコのコスチュームが 2 秒かわる。ペアなら、おたがいに押してみよう。',
+    [`${C}chat-l5-stamp.step5`]:
+        '旗を押して、メッセージとスタンプの両方を送ってみよう。メッセージは今までどおりシマラビから送れる。',
+    [`${C}chat-l5-stamp.debug1`]:
+        'シマネコがかわらないときは、「受け取ったとき」の ▼ が「シマネコのスタンプ」か、送るのが「シマラビのスタンプ」か見よう。',
+    [`${C}chat-l5-stamp.debug2`]:
+        'かわったまま、もどらないときは、「2 秒待つ」の下に「コスチュームを shimacat-a にする」があるか見よう。',
+    [`${C}chat-l5-stamp.quiz.question`]: '言葉で説明しにくいようすを、見たままに伝えやすいメディアは？',
+    [`${C}chat-l5-stamp.quiz.choice1`]: '音声',
+    [`${C}chat-l5-stamp.quiz.choice2`]: '静止画',
+    [`${C}chat-l5-stamp.quiz.choice3`]: '文字',
+    [`${C}chat-l5-stamp.quiz.explanation`]:
+        'スタンプは絵（静止画）。文字だけより気持ちが伝わりやすい。ただし、目で見えにくい人には伝わりにくいこともあるよ。',
 };
 
 export const jaHira = {
@@ -680,6 +805,134 @@ export const jaHira = {
     [`${C}chat-l4-dm.quiz.choice3`]: 'かようせい',
     [`${C}chat-l4-dm.quiz.explanation`]:
         'この ダイレクトメッセージは ぜんいんに とどき、みせるか どうかを うけとった がわが きめているだけ。プログラムを かえれば よめてしまうので、きみつせいを まもる しくみとしては よわいよ。',
+
+    'gui.lessons.lesson.chat-l5.name': 'チャットを かいりょう しよう',
+
+    [`${C}chat-l5-read-receipt.name`]: 'つうちと きどくを つけよう',
+    [`${C}chat-l5-read-receipt.task`]:
+        'あいての メッセージが とどいたら おとで しらせ、よんだ ことを あいてに つたえよう。シマネコは、あいての メッセージを いった あと「Meow の おとを ならす」。シマネコを おしたら メッセージ「シマラビがよんだ」を おくり、シマラビは「シマネコがよんだ」を うけとったら「きどく」と 2 びょう いう。\nさらに くふう するなら: きどくに じこくを つける・まだ よんでいない メッセージの かずを だす。',
+    [`${C}chat-l5-read-receipt.step1`]:
+        'シマネコを えらぼう。さいしょから はいっている「シマネコのメッセージを うけとったとき」の「いう」の したに、ピンクの「おと」の「Meow の おとを ならす」を つなげよう。',
+    [`${C}chat-l5-read-receipt.step2`]:
+        'シマネコに、きいろい「イベント」の「このスプライトが おされたとき」を おき、「〜を おくる」を つなげて、▼ の「あたらしいメッセージ」で「シマラビがよんだ」を つくろう。',
+    [`${C}chat-l5-read-receipt.step3`]:
+        'シマラビを えらんで、「〜を うけとったとき」を おき、▼ の「あたらしいメッセージ」で「シマネコがよんだ」を つくろう。その したに むらさきの「みため」の「きどく と 2 びょう いう」を つなげる。',
+    [`${C}chat-l5-read-receipt.step4`]:
+        'ひとりなら、れんしゅうあいての パネルの「はつげんする」を おそう。おとが なったら シマネコを おす（パネルの「とどいた」に「シマラビがよんだ」が でる）。パネルの「きどくにする」を おすと、シマラビが「きどく」と いう。ペアなら、おたがいに おくって おしてみよう。',
+    [`${C}chat-l5-read-receipt.step5`]:
+        'はたを おすと、いままで どおり シマラビから おくれる（4-3 の プログラムの まま）。ふだんの やりとりの なかでも、おと・きどくが うごくか みよう。',
+    [`${C}chat-l5-read-receipt.debug1`]:
+        'おとが ならない ときは、「Meow の おとを ならす」が「シマネコのメッセージを うけとったとき」の したに あるか みよう。',
+    [`${C}chat-l5-read-receipt.debug2`]:
+        '「きどく」と でない ときは、シマネコを おして おくるのが「シマラビがよんだ」、シマラビが うけとるのが「シマネコがよんだ」か みよう。おなじ なまえに すると、じぶんの がめんだけで「きどく」に なってしまう。',
+    [`${C}chat-l5-read-receipt.quiz.question`]:
+        'つかう ひとの はたらきかけ（にゅうりょく）に おうじて、おうとう（しゅつりょく）が かえってくる きのうを なんという？',
+    [`${C}chat-l5-read-receipt.quiz.choice1`]: 'そうほうこうせい',
+    [`${C}chat-l5-read-receipt.quiz.choice2`]: 'じゅんじしょり',
+    [`${C}chat-l5-read-receipt.quiz.choice3`]: 'あんごうか',
+    [`${C}chat-l5-read-receipt.quiz.explanation`]:
+        'シマネコを おすという はたらきかけに おうじて、あいての がめんに「きどく」と でる。チャットは、そうほうこうせいの ある コンテンツの だいひょうだよ。',
+
+    [`${C}chat-l5-ng-word.name`]: 'わるい ことばを おくらせない',
+    [`${C}chat-l5-ng-word.task`]:
+        'にゅうりょくした ことばが リスト「NGワード」に はいっていたら、おくらずに「その ことばは おくれません」と いおう。はいっていなければ、いままで どおり おくる。リストは、ステージの プログラムで はたを おすと よういされる。\nさらに くふう するなら: 「ばかやろう」も とめる（リストの ことばを 1 つずつ、にゅうりょくした ことばに ふくまれるか しらべる）。',
+    [`${C}chat-l5-ng-word.step1`]:
+        'さいしょから はいっているのは 4-3 の チャット。シマラビが きいて おくり、シマネコが あいての メッセージを いう（みぎしたで シマネコを えらぶと みられる）。',
+    [`${C}chat-l5-ng-word.step2`]:
+        'ステージには、はたを おすと リスト「NGワード」を からにして「ばか」「きらい」を いれる プログラムが はいっている（みぎしたで ステージを えらぶと みられる）。',
+    [`${C}chat-l5-ng-word.step3`]:
+        'シマラビを えらんで、きいろい「せいぎょ」の「もし 〜 なら でなければ」を「ずっと」の なかの うえに いれよう。じょうけんには、オレンジの「へんすう」の「(NGワード) に (こたえ) が ふくまれる」を いれ、「もし」の なかに「その ことばは おくれません と 2 びょう いう」を いれる。',
+    [`${C}chat-l5-ng-word.step4`]:
+        '「シマラビのメッセージを (こたえ) にする」と「おくる」を「でなければ」の なかへ うごかそう。「(シマラビのメッセージ) と きいてまつ」は、「もし」の した（「ずっと」の なか）に のこす。',
+    [`${C}chat-l5-ng-word.step5`]:
+        'はたを おして、「ばか」と、ふつうの ことばを にゅうりょくしよう。「ばか」は おくられず、ふつうの ことばは れんしゅうあいての パネルの「とどいた」（ペアなら あいての がめん）に でるか みよう。',
+    [`${C}chat-l5-ng-word.debug1`]:
+        '「ばか」も おくられてしまう ときは、「おくる」が「でなければ」の なかに あるか みよう。「もし」の そとに あると、ちゅういした あとに おくってしまう。',
+    [`${C}chat-l5-ng-word.debug2`]:
+        'ふつうの ことばも おくれない ときは、「〜が ふくまれる」の リストが「NGワード」か、みぎの しろいところに (こたえ) が はいっているか みよう。',
+    [`${C}chat-l5-ng-word.quiz.question`]:
+        'きめた じょうけんで、うけとる・みる・おくる ものを せいげんする しくみを なんという？',
+    [`${C}chat-l5-ng-word.quiz.choice1`]: 'フィルタリング',
+    [`${C}chat-l5-ng-word.quiz.choice2`]: 'あんごうか',
+    [`${C}chat-l5-ng-word.quiz.choice3`]: 'バックアップ',
+    [`${C}chat-l5-ng-word.quiz.explanation`]:
+        'NG ワードは フィルタリングの 1 つ。いやな おもいを しにくく なる いっぽうで、とめすぎると つたえたい ことまで つたわらなく なるよ。',
+
+    [`${C}chat-l5-auto-reply.name`]: 'じかんで じどうへんしん しよう',
+    [`${C}chat-l5-auto-reply.task`]:
+        'よるに メッセージが きたら、じどうで へんじを しよう。シマラビが「シマネコのメッセージ」を うけとったとき、げんざいの じが 21 より おおきければ、へんすう「シマラビのメッセージ」を「もう ねています。あさに へんじします」にして、メッセージ「シマラビのメッセージ」を おくる。\nひるに ためす ときは、21 を いまの じより ちいさい かずに して うごきを たしかめ、たしかめたら 21 に もどそう。\nさらに くふう するなら: あさ 7 じより まえも へんしんする（「または」を つかう）・つかいすぎを しらせる タイマー（レッスン 2-2）を いれる。',
+    [`${C}chat-l5-auto-reply.step1`]:
+        'さいしょから はいっているのは 4-3 の チャット。シマラビが きいて おくり、シマネコが あいての メッセージを いう（みぎしたで シマネコを えらぶと みられる）。',
+    [`${C}chat-l5-auto-reply.step2`]:
+        'シマラビを えらんで、きいろい「イベント」の「〜を うけとったとき」を おき、▼ で「シマネコのメッセージ」を えらぼう。',
+    [`${C}chat-l5-auto-reply.step3`]:
+        'きいろい「せいぎょ」の「もし 〜 なら」を つなげよう。じょうけんには みどりの「えんざん」の「(　) > (21)」を いれ、ひだりに みずいろの「しらべる」の「げんざいの (じ)」を いれる。',
+    [`${C}chat-l5-auto-reply.step4`]:
+        '「もし」の なかに「シマラビのメッセージを (もう ねています。あさに へんじします) にする」と「シマラビのメッセージを おくる」を いれよう。',
+    [`${C}chat-l5-auto-reply.step5`]:
+        'ひるなら、21 を いまの じより ちいさい かず（たとえば 0）に しよう。れんしゅうあいての パネルの「こんにちは」を おすと、パネルの「とどいた」に じどうの へんじが でる。たしかめたら 21 に もどそう。ペアで ためす ときは、どちらか 1 にんだけ かずを ちいさくする。',
+    [`${C}chat-l5-auto-reply.step6`]:
+        'はたを おすと、いままで どおり じぶんからも おくれる。よる（または かずを ちいさく したとき）は、あいての メッセージに じどうで へんじが でるか みよう。',
+    [`${C}chat-l5-auto-reply.debug1`]:
+        'へんじが こない ときは、「もし」の かずが いまの じより ちいさいか、「うけとったとき」の ▼ が「シマネコのメッセージ」か みよう。',
+    [`${C}chat-l5-auto-reply.debug2`]:
+        'へんじが ずっと つづく ときは、ペアの 2 にんとも じどうへんしんが うごいている。どちらか 1 にんの かずを 21 に もどそう。',
+    [`${C}chat-l5-auto-reply.quiz.question`]:
+        'あさ 8 じより まえ「または」ゆうがた 5 じより あとに じどうへんしん したいのに、2 つの じょうけんを「かつ」で つなぐと どうなる？',
+    [`${C}chat-l5-auto-reply.quiz.choice1`]: 'いちども へんしん しない',
+    [`${C}chat-l5-auto-reply.quiz.choice2`]: 'いつも へんしん する',
+    [`${C}chat-l5-auto-reply.quiz.choice3`]: 'よるだけ へんしん する',
+    [`${C}chat-l5-auto-reply.quiz.explanation`]:
+        '「かつ」は りょうほうが どうじに なりたつ ときだけ。8 じより まえで 5 じより あとの じこくは ないので、いちども うごかない。このような あやまりを バグ、みつけて なおす ことを デバッグと いうよ。',
+
+    [`${C}chat-l5-password.name`]: 'あいことばで はいろう',
+    [`${C}chat-l5-password.task`]:
+        'あいことばを しっている ひとだけが チャットできる ように しよう。はたを おしたら「あいことばは？」と きく。こたえが「もみじ」なら、これまでの チャットを はじめ、ちがえば「あいことばが ちがいます」と いう。\nさらに くふう するなら: 3 かいまで ためせる ように する・みやぶられにくい あいことばに する。',
+    [`${C}chat-l5-password.step1`]:
+        'さいしょから はいっているのは 4-3 の チャット。シマラビが きいて おくり、シマネコが あいての メッセージを いう（みぎしたで シマネコを えらぶと みられる）。',
+    [`${C}chat-l5-password.step2`]:
+        'シマラビの「はたがおされたとき」の すぐ したに、みずいろの「しらべる」の「あいことばは？ と きいてまつ」を いれよう。',
+    [`${C}chat-l5-password.step3`]:
+        'その したに きいろい「せいぎょ」の「もし 〜 なら でなければ」を つなげよう。じょうけんには みどりの「えんざん」の「(こたえ) = (もみじ)」を いれ、「でなければ」に「あいことばが ちがいます と 2 びょう いう」を いれる。',
+    [`${C}chat-l5-password.step4`]:
+        '「メッセージを にゅうりょく と きいてまつ」と「ずっと」を、「もし」の なかへ うごかそう。',
+    [`${C}chat-l5-password.step5`]:
+        'はたを おして、ちがう ことばを いれてみよう。「あいことばが ちがいます」と いうか みたら、もう いちど はたを おして「もみじ」を いれ、メッセージを おくってみよう。',
+    [`${C}chat-l5-password.debug1`]:
+        '「もみじ」でも はいれない ときは、= の みぎが「もみじ」か（くうはくが はいっていないか）みよう。',
+    [`${C}chat-l5-password.debug2`]:
+        'あいことばが そのまま おくられてしまう ときは、「もし」の なかで「メッセージを にゅうりょく と きいてまつ」が「ずっと」より うえに あるか みよう。',
+    [`${C}chat-l5-password.quiz.question`]:
+        'ID や パスワードで、つかって よい ほんにんか どうかを たしかめる しくみを なんという？',
+    [`${C}chat-l5-password.quiz.choice1`]: 'にんしょうシステム',
+    [`${C}chat-l5-password.quiz.choice2`]: 'フィルタリング',
+    [`${C}chat-l5-password.quiz.choice3`]: 'あんごうか つうしん',
+    [`${C}chat-l5-password.quiz.explanation`]:
+        'パスワードが みやぶられると わるく つかわれるので、みやぶられにくく おぼえやすい ものに する。プログラムに かいた あいことばは、プログラムを ひらけば よめてしまうよ。',
+
+    [`${C}chat-l5-stamp.name`]: 'スタンプを おくろう',
+    [`${C}chat-l5-stamp.task`]:
+        'えで きもちを つたえよう。シマラビを おしたら メッセージ「シマラビのスタンプ」を おくる。「シマネコのスタンプ」を うけとったら、シマネコの コスチュームを「shimacat-b」に して 2 びょう まち、「shimacat-a」に もどす。\nへんすうは つかわず、メッセージだけで おくれる。\nさらに くふう するなら: 2 つの スタンプから えらんで おくる（ばんごうを へんすうで おくる）。',
+    [`${C}chat-l5-stamp.step1`]:
+        'さいしょから はいっているのは 4-3 の チャット。シマラビが きいて おくり、シマネコが あいての メッセージを いう（みぎしたで シマネコを えらぶと みられる）。',
+    [`${C}chat-l5-stamp.step2`]:
+        'シマラビに、きいろい「イベント」の「このスプライトが おされたとき」を おき、「〜を おくる」を つなげて、▼ の「あたらしいメッセージ」で「シマラビのスタンプ」を つくろう。',
+    [`${C}chat-l5-stamp.step3`]:
+        'シマネコを えらんで、「〜を うけとったとき」を おき、▼ の「あたらしいメッセージ」で「シマネコのスタンプ」を つくろう。その したに むらさきの「みため」の「コスチュームを shimacat-b にする」、きいろい「せいぎょ」の「2 びょう まつ」、「コスチュームを shimacat-a にする」を つなげる。',
+    [`${C}chat-l5-stamp.step4`]:
+        'ひとりなら、シマラビを おそう（れんしゅうあいてが スタンプを かえしてくれる）。パネルの「スタンプを おくる」を おしても、シマネコの コスチュームが 2 びょう かわる。ペアなら、おたがいに おしてみよう。',
+    [`${C}chat-l5-stamp.step5`]:
+        'はたを おして、メッセージと スタンプの りょうほうを おくってみよう。メッセージは いままで どおり シマラビから おくれる。',
+    [`${C}chat-l5-stamp.debug1`]:
+        'シマネコが かわらない ときは、「うけとったとき」の ▼ が「シマネコのスタンプ」か、おくるのが「シマラビのスタンプ」か みよう。',
+    [`${C}chat-l5-stamp.debug2`]:
+        'かわった まま もどらない ときは、「2 びょう まつ」の したに「コスチュームを shimacat-a にする」が あるか みよう。',
+    [`${C}chat-l5-stamp.quiz.question`]: 'ことばで せつめい しにくい ようすを、みた ままに つたえやすい メディアは？',
+    [`${C}chat-l5-stamp.quiz.choice1`]: 'おんせい',
+    [`${C}chat-l5-stamp.quiz.choice2`]: 'せいしが',
+    [`${C}chat-l5-stamp.quiz.choice3`]: 'もじ',
+    [`${C}chat-l5-stamp.quiz.explanation`]:
+        'スタンプは え（せいしが）。もじだけより きもちが つたわりやすい。ただし、めで みえにくい ひとには つたわりにくい ことも あるよ。',
 };
 
 export const en = {
@@ -1019,4 +1272,132 @@ export const en = {
     [`${C}chat-l4-dm.quiz.choice3`]: 'Availability',
     [`${C}chat-l4-dm.quiz.explanation`]:
         'This direct message reaches everyone, and the receiver only decides whether to show it. Anyone can read it by changing the program, so it is weak at keeping confidentiality.',
+
+    'gui.lessons.lesson.chat-l5.name': 'Improve the Chat',
+
+    [`${C}chat-l5-read-receipt.name`]: 'Notify and Mark as Read',
+    [`${C}chat-l5-read-receipt.task`]:
+        'Let a sound tell you that a message has arrived, and tell the other side that you have read it. Shimacat plays the sound "Meow" after saying the message of the other side. When Shimacat is clicked, it broadcasts the message "shimaraby_read". When Shimaraby receives "shimacat_read", it says "Read" for 2 seconds.\nTo go further: add the time to "Read", or show how many messages are not read yet.',
+    [`${C}chat-l5-read-receipt.step1`]:
+        'Select Shimacat. Under "say" in "when I receive shimacat_message" that is already there, attach the pink Sound block "start sound Meow".',
+    [`${C}chat-l5-read-receipt.step2`]:
+        'Give Shimacat the yellow Events block "when this sprite clicked", attach "broadcast", and make "shimaraby_read" with "New message" in its ▼.',
+    [`${C}chat-l5-read-receipt.step3`]:
+        'Select Shimaraby, place "when I receive", and make "shimacat_read" with "New message" in its ▼. Under it, attach the purple Looks block "say Read for 2 seconds".',
+    [`${C}chat-l5-read-receipt.step4`]:
+        'On your own, click "Say something" on the practice partner panel. When the sound plays, click Shimacat ("shimaraby_read" appears in "Received" on the panel). Click "Mark as read" on the panel, and Shimaraby says "Read". In a pair, send to each other and click.',
+    [`${C}chat-l5-read-receipt.step5`]:
+        'Click the flag, and Shimaraby sends messages as before (the program of 4-3). Check that the sound and "Read" work while you chat.',
+    [`${C}chat-l5-read-receipt.debug1`]:
+        'If no sound plays, check that "start sound Meow" is under "when I receive shimacat_message".',
+    [`${C}chat-l5-read-receipt.debug2`]:
+        'If "Read" does not appear, check that clicking Shimacat broadcasts "shimaraby_read" and Shimaraby receives "shimacat_read". With the same name, "Read" appears only on your own screen.',
+    [`${C}chat-l5-read-receipt.quiz.question`]:
+        'What do we call the feature that gives a response (output) to what the user does (input)?',
+    [`${C}chat-l5-read-receipt.quiz.choice1`]: 'Interactivity',
+    [`${C}chat-l5-read-receipt.quiz.choice2`]: 'Sequence',
+    [`${C}chat-l5-read-receipt.quiz.choice3`]: 'Encryption',
+    [`${C}chat-l5-read-receipt.quiz.explanation`]:
+        'When you click Shimacat, "Read" appears on the screen of the other side as a response. A chat is a typical interactive content.',
+
+    [`${C}chat-l5-ng-word.name`]: "Don't Send Bad Words",
+    [`${C}chat-l5-ng-word.task`]:
+        'If the word you typed is in the list "ng_words", do not send it and say "You can\'t send that word". If it is not, send it as before. The program of the stage prepares the list when the flag is clicked.\nTo go further: also stop "you stupid thing" (check each word of the list against what you typed).',
+    [`${C}chat-l5-ng-word.step1`]:
+        'What is already there is the chat of 4-3: Shimaraby asks and sends, and Shimacat says the message of the other side (select Shimacat at the bottom right to see it).',
+    [`${C}chat-l5-ng-word.step2`]:
+        'The stage has a program that empties the list "ng_words" and adds "stupid" and "idiot" when the flag is clicked (select the stage at the bottom right to see it).',
+    [`${C}chat-l5-ng-word.step3`]:
+        'Select Shimaraby and put the yellow Control block "if then else" at the top inside "forever". Put the orange Variables block "(ng_words) contains (answer)?" into the condition, and put "say You can\'t send that word for 2 seconds" into "if".',
+    [`${C}chat-l5-ng-word.step4`]:
+        'Move "set shimaraby_message to (answer)" and "broadcast" into "else". Keep "ask (shimaraby_message) and wait" under "if" (inside "forever").',
+    [`${C}chat-l5-ng-word.step5`]:
+        'Click the flag and type "stupid" and an ordinary word. Check that "stupid" is not sent and the ordinary word appears in "Received" on the practice partner panel (in a pair, on the screen of your pair).',
+    [`${C}chat-l5-ng-word.debug1`]:
+        'If "stupid" is sent too, check that "broadcast" is inside "else". Outside "if", it sends after the warning.',
+    [`${C}chat-l5-ng-word.debug2`]:
+        'If ordinary words are not sent either, check that the list of "contains" is "ng_words" and (answer) is in its white space.',
+    [`${C}chat-l5-ng-word.quiz.question`]:
+        'What do we call limiting what we receive, see or send with rules we decide?',
+    [`${C}chat-l5-ng-word.quiz.choice1`]: 'Filtering',
+    [`${C}chat-l5-ng-word.quiz.choice2`]: 'Encryption',
+    [`${C}chat-l5-ng-word.quiz.choice3`]: 'Backup',
+    [`${C}chat-l5-ng-word.quiz.explanation`]:
+        'An NG word list is a kind of filtering. It keeps unpleasant words away, but if it stops too much, what you want to say does not get through either.',
+
+    [`${C}chat-l5-auto-reply.name`]: 'Reply Automatically at Night',
+    [`${C}chat-l5-auto-reply.task`]:
+        'When a message comes at night, reply automatically. When Shimaraby receives "shimacat_message" and the current hour is greater than 21, set the variable "shimaraby_message" to "I am sleeping now. I will reply in the morning" and broadcast the message "shimaraby_message".\nTo try it in the daytime, change 21 to a number smaller than the hour now, check how it works, and then change it back to 21.\nTo go further: also reply before 7 in the morning (use "or"), or add the timer that tells you that you are using it too long (lesson 2-2).',
+    [`${C}chat-l5-auto-reply.step1`]:
+        'What is already there is the chat of 4-3: Shimaraby asks and sends, and Shimacat says the message of the other side (select Shimacat at the bottom right to see it).',
+    [`${C}chat-l5-auto-reply.step2`]:
+        'Select Shimaraby, place the yellow Events block "when I receive" and choose "shimacat_message" in its ▼.',
+    [`${C}chat-l5-auto-reply.step3`]:
+        'Attach the yellow Control block "if then". Put the green Operators block "(　) > (21)" into the condition, and put the light blue Sensing block "current (hour)" on its left.',
+    [`${C}chat-l5-auto-reply.step4`]:
+        'Put "set shimaraby_message to (I am sleeping now. I will reply in the morning)" and "broadcast shimaraby_message" into "if".',
+    [`${C}chat-l5-auto-reply.step5`]:
+        'In the daytime, change 21 to a number smaller than the hour now (for example 0). Click "Hello" on the practice partner panel, and the automatic reply appears in "Received" on the panel. Then change it back to 21. In a pair, only one of you makes the number smaller.',
+    [`${C}chat-l5-auto-reply.step6`]:
+        'Click the flag, and you can send messages yourself as before. At night (or when the number is smaller), check that a reply goes back automatically to the message of the other side.',
+    [`${C}chat-l5-auto-reply.debug1`]:
+        'If no reply comes, check that the number in "if" is smaller than the hour now and the ▼ of "when I receive" is "shimacat_message".',
+    [`${C}chat-l5-auto-reply.debug2`]:
+        'If the replies never stop, the automatic replies of both of the pair are working. One of you changes the number back to 21.',
+    [`${C}chat-l5-auto-reply.quiz.question`]:
+        'You want to reply automatically before 8 in the morning "or" after 5 in the evening, but you join the two conditions with "and". What happens?',
+    [`${C}chat-l5-auto-reply.quiz.choice1`]: 'It never replies',
+    [`${C}chat-l5-auto-reply.quiz.choice2`]: 'It always replies',
+    [`${C}chat-l5-auto-reply.quiz.choice3`]: 'It replies only at night',
+    [`${C}chat-l5-auto-reply.quiz.explanation`]:
+        '"And" is true only when both are true at the same time. No time is both before 8 and after 5, so it never works. A mistake like this is a bug, and finding and fixing it is debugging.',
+
+    [`${C}chat-l5-password.name`]: 'Enter with a Password',
+    [`${C}chat-l5-password.task`]:
+        'Let only the people who know the password chat. When the flag is clicked, ask "Password?". If the answer is "maple", start the chat as before. If not, say "Wrong password".\nTo go further: allow up to 3 tries, or use a password that is hard to guess.',
+    [`${C}chat-l5-password.step1`]:
+        'What is already there is the chat of 4-3: Shimaraby asks and sends, and Shimacat says the message of the other side (select Shimacat at the bottom right to see it).',
+    [`${C}chat-l5-password.step2`]:
+        'Right under "when flag clicked" of Shimaraby, put the light blue Sensing block "ask Password? and wait".',
+    [`${C}chat-l5-password.step3`]:
+        'Under it, attach the yellow Control block "if then else". Put the green Operators block "(answer) = (maple)" into the condition, and put "say Wrong password for 2 seconds" into "else".',
+    [`${C}chat-l5-password.step4`]: 'Move "ask Enter a message and wait" and "forever" into "if".',
+    [`${C}chat-l5-password.step5`]:
+        'Click the flag and type a wrong word. After checking that it says "Wrong password", click the flag again, type "maple" and send a message.',
+    [`${C}chat-l5-password.debug1`]:
+        'If "maple" does not let you in, check that the right side of = is "maple" (with no spaces).',
+    [`${C}chat-l5-password.debug2`]:
+        'If the password itself is sent, check that "ask Enter a message and wait" is above "forever" inside "if".',
+    [`${C}chat-l5-password.quiz.question`]:
+        'What do we call the system that checks with an ID or a password that you are the person allowed to use it?',
+    [`${C}chat-l5-password.quiz.choice1`]: 'Authentication system',
+    [`${C}chat-l5-password.quiz.choice2`]: 'Filtering',
+    [`${C}chat-l5-password.quiz.choice3`]: 'Encrypted communication',
+    [`${C}chat-l5-password.quiz.explanation`]:
+        'A guessed password can be misused, so choose one that is hard to guess and easy to remember. A password written in a program can be read by anyone who opens the program.',
+
+    [`${C}chat-l5-stamp.name`]: 'Send a Stamp',
+    [`${C}chat-l5-stamp.task`]:
+        'Tell your feelings with a picture. When Shimaraby is clicked, broadcast the message "shimaraby_stamp". When "shimacat_stamp" is received, switch the costume of Shimacat to "shimacat-b", wait 2 seconds and switch it back to "shimacat-a".\nYou can send it with a message only, without a variable.\nTo go further: choose one of two stamps to send (send its number in a variable).',
+    [`${C}chat-l5-stamp.step1`]:
+        'What is already there is the chat of 4-3: Shimaraby asks and sends, and Shimacat says the message of the other side (select Shimacat at the bottom right to see it).',
+    [`${C}chat-l5-stamp.step2`]:
+        'Give Shimaraby the yellow Events block "when this sprite clicked", attach "broadcast", and make "shimaraby_stamp" with "New message" in its ▼.',
+    [`${C}chat-l5-stamp.step3`]:
+        'Select Shimacat, place "when I receive", and make "shimacat_stamp" with "New message" in its ▼. Under it, attach the purple Looks block "switch costume to shimacat-b", the yellow Control block "wait 2 seconds" and "switch costume to shimacat-a".',
+    [`${C}chat-l5-stamp.step4`]:
+        'On your own, click Shimaraby (the practice partner sends a stamp back). Clicking "Send a stamp" on the panel also changes the costume of Shimacat for 2 seconds. In a pair, click on both sides.',
+    [`${C}chat-l5-stamp.step5`]:
+        'Click the flag and send both messages and stamps. Shimaraby sends messages as before.',
+    [`${C}chat-l5-stamp.debug1`]:
+        'If Shimacat does not change, check that the ▼ of "when I receive" is "shimacat_stamp" and you broadcast "shimaraby_stamp".',
+    [`${C}chat-l5-stamp.debug2`]:
+        'If it changes and does not come back, check that "switch costume to shimacat-a" is under "wait 2 seconds".',
+    [`${C}chat-l5-stamp.quiz.question`]:
+        'Which media makes it easy to show something hard to explain in words, just as it looks?',
+    [`${C}chat-l5-stamp.quiz.choice1`]: 'Sound',
+    [`${C}chat-l5-stamp.quiz.choice2`]: 'Still image',
+    [`${C}chat-l5-stamp.quiz.choice3`]: 'Text',
+    [`${C}chat-l5-stamp.quiz.explanation`]:
+        'A stamp is a picture (a still image). It tells feelings better than text alone, but it may be hard to understand for people who cannot see well.',
 };
