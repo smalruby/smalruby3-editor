@@ -182,7 +182,7 @@
 | `$color-seat-returned` / `$color-seat-returned-text` | `#ffe1bf` / `#7a3e00` | 座席: 返却済み（↩）。文字は地に 6.7:1 |
 | `$color-seat-not-started` / `$color-seat-not-started-text` | `#eceef3` / `$text-primary` | 座席: レッスンを始めていない。文字は地に 5.5:1 |
 | `$color-disabled` / `$color-disabled-text` | `#eceef3` / `#9ca0ad` | クラス管理の押せないボタン（主・副・テキストとも同じ）。押せない部品は WCAG 1.4.3 の対象外なので、はっきり淡くする（文字は地に 2.3:1） |
-| （クラスの色） | JS の `CLASS_COLORS`（`src/lib/classroom-class-color.js`） | クラス管理のクラスの色の帯。クラスの id から画面の側で選ぶので CSS のトークンにはしない。8 色・どれも白に 4.5:1 以上。決め方は [`../classroom/ui-ux.md`](../classroom/ui-ux.md) の「共通: クラスの色」 |
+| （クラスの色） | JS の `CLASS_COLORS`（`src/lib/classroom-class-color.js`） | クラス管理のクラスの色の帯。その先生のクラスの一覧から画面の側で選ぶので CSS のトークンにはしない。8 色・どれも白に 4.5:1 以上。決め方は [`../classroom/ui-ux.md`](../classroom/ui-ux.md) の「共通: クラスの色」 |
 | `$space-small` / `$space-medium` / `$space-large` | `calc($space / 2)` / `$space` / `calc($space * 2)` | 余白 0.25rem / 0.5rem / 1rem |
 | `$radius-small` | `$form-radius` | ボタン・入力欄 |
 | `$radius-medium` | `0.5rem` | カード・ライブラリの項目・吹き出し |

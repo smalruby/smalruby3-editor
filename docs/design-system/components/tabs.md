@@ -30,3 +30,5 @@
 | 選ばれた（`.tab-selected`・`aria-selected="true"`） | 文字と下の 3px の線を `$color-action` に（並びの 1px の線に重ねる） | `$color-action`・`$size-tab-indicator` |
 | フォーカス | `:focus-visible` で `outline: 2px solid $color-action; outline-offset: -2px`（並びの線と重ならないよう内側） | |
 | 押した・押せない | — | |
+
+キーボード: Tab で入るのは選ばれたタブだけ（ほかは `tabIndex=-1` のロービング）。左右の矢印で同じ並びのタブへフォーカスが動き（端で反対側へ回る）、Home・End で最初・最後へ。選ぶのは Enter / Space（手動で選ぶ方式。タブを選ぶとメンバーの取得などが始まる画面があるので、矢印だけでは選ばない）。並びの中のタブではないボタン（⋮ など）は矢印では飛ばす。

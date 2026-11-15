@@ -193,6 +193,7 @@
     font-size: $font-size-medium;
     font-weight: $font-weight-bold;
     line-height: 1.2;
+    white-space: nowrap;
     cursor: pointer;
     text-decoration: none;
 }
@@ -224,9 +225,11 @@
     color: $color-action;
 }
 
+/* ホバー・押したときの淡い青の地の上では、$color-action（4.1:1）では足りないので濃い青（4.6:1）にする */
 .secondary-button:hover,
 .secondary-button:active {
     background-color: $color-background;
+    color: $color-action-dark;
 }
 
 /* テキストボタン: カードの下の「採点」「設定」のような軽い操作。左右の余白を詰める */
@@ -239,14 +242,21 @@
 .text-button:hover,
 .text-button:active {
     background-color: $color-background;
+    color: $color-action-dark;
 }
 
-/* 押せない: 3 種とも淡い灰色の地と文字にそろえる（押せない部品はコントラストの対象外） */
+/* 押せない: 主・副は淡い灰色の地と文字にそろえる（押せない部品はコントラストの対象外）。
+   テキストボタンは箱にせず、文字だけを灰色にする */
 .primary-button:disabled,
-.secondary-button:disabled,
-.text-button:disabled {
+.secondary-button:disabled {
     background-color: $color-disabled;
     border-color: transparent;
+    color: $color-disabled-text;
+    cursor: not-allowed;
+}
+
+.text-button:disabled {
+    background-color: transparent;
     color: $color-disabled-text;
     cursor: not-allowed;
 }

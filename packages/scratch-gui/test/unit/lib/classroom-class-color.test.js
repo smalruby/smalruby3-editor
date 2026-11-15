@@ -4,6 +4,7 @@ import {
     classColorEntryFor,
     classColorFor,
     classColorStyle,
+    classOrderIndex,
     hashString,
 } from '../../../src/lib/classroom-class-color.js';
 import { getColorsForMode } from '../../../src/lib/settings/color-mode/index.js';
@@ -67,26 +68,80 @@ describe('classroom class color', () => {
         expect(keys).not.toContain('data_lists');
     });
 
-    test('the same class id always gives the same color', () => {
-        expect(classColorFor('g-abc123')).toBe(classColorFor('g-abc123'));
-        expect(classColorEntryFor('g-abc123')).toBe(classColorEntryFor('g-abc123'));
+    test('the palette is pinned in the order it is handed out', () => {
+        expect(CLASS_COLORS.map((entry) => entry.color)).toEqual([
+            '#3373CC',
+            '#774DCB',
+            '#0A8562',
+            '#B941B9',
+            '#B75C00',
+            '#287DA2',
+            '#328532',
+            '#9D6911',
+        ]);
     });
 
-    test('pins the color for known ids so the order of CLASS_COLORS stays stable', () => {
+    const groupsOf = (n) =>
+        Array.from({ length: n }, (_, i) => ({
+            groupId: `g-${String.fromCharCode(122 - i)}`,
+            createdAt: new Date(Date.UTC(2026, 3, 1 + i)).toISOString(),
+        }));
+
+    test('hands out the colors by creation date, oldest first', () => {
+        const groups = groupsOf(8).reverse(); // order of the list does not matter
+        expect(classColorFor('g-z', groups)).toBe('#3373CC');
+        expect(classColorFor('g-y', groups)).toBe('#774DCB');
+        expect(classColorFor('g-x', groups)).toBe('#0A8562');
+        expect(classColorFor('g-w', groups)).toBe('#B941B9');
+        expect(classColorFor('g-v', groups)).toBe('#B75C00');
+        expect(classColorFor('g-u', groups)).toBe('#287DA2');
+        expect(classColorFor('g-t', groups)).toBe('#328532');
+        expect(classColorFor('g-s', groups)).toBe('#9D6911');
+    });
+
+    test('8 classes never share a color, the 9th starts over', () => {
+        const groups = groupsOf(9);
+        const colors = groups.slice(0, 8).map((group) => classColorFor(group.groupId, groups));
+        expect(new Set(colors).size).toBe(8);
+        expect(classColorFor('g-r', groups)).toBe('#3373CC');
+    });
+
+    test('the same creation date is ordered by id', () => {
+        const groups = [
+            { groupId: 'b', createdAt: '2026-04-01T00:00:00.000Z' },
+            { groupId: 'a', createdAt: '2026-04-01T00:00:00.000Z' },
+        ];
+        expect(classOrderIndex('a', groups)).toBe(0);
+        expect(classColorFor('b', groups)).toBe('#774DCB');
+    });
+
+    test('a new class does not change the colors of the older ones', () => {
+        const groups = groupsOf(3);
+        const before = groups.map((group) => classColorFor(group.groupId, groups));
+        const more = [...groups, { groupId: 'g-new', createdAt: '2026-05-01T00:00:00.000Z' }];
+        expect(groups.map((group) => classColorFor(group.groupId, more))).toEqual(before);
+        expect(classColorFor('g-new', more)).toBe('#B941B9');
+    });
+
+    test('archived classes keep their place in the order', () => {
+        const groups = groupsOf(3);
+        groups[0].status = 'archived';
+        expect(classColorFor('g-y', groups)).toBe('#774DCB');
+    });
+
+    test('falls back to a hash of the id when the creation date is missing', () => {
         expect(hashString('')).toBe(0x811c9dc5);
         expect(hashString('a')).toBe(0xe40c292c);
-        const id = 'class-1';
-        expect(classColorFor(id)).toBe(CLASS_COLORS[hashString(id) % CLASS_COLORS.length].color);
-    });
-
-    test('spreads ids over several colors', () => {
-        const used = new Set();
-        for (let i = 0; i < 64; i++) used.add(classColorFor(`group-${i}`));
-        expect(used.size).toBeGreaterThanOrEqual(CLASS_COLORS.length - 1);
+        // 'g-abc123' hashes to 0x2862b9f1 (index 1), 'class-1' to 0x22b907e5 (index 5)
+        expect(classColorFor('g-abc123')).toBe('#774DCB');
+        expect(classColorFor('class-1', [{ groupId: 'class-1' }])).toBe('#287DA2');
+        expect(classColorFor('class-1', [{ groupId: 'class-1', createdAt: 'not a date' }])).toBe('#287DA2');
+        expect(classColorFor('g-abc123', groupsOf(2))).toBe('#774DCB');
     });
 
     test('number ids give the same color as their string form', () => {
-        expect(classColorFor(42)).toBe(classColorFor('42'));
+        expect(classColorFor(42)).toBe('#B941B9');
+        expect(classColorFor('42')).toBe('#B941B9');
     });
 
     test('a missing id falls back to the first color (the action blue)', () => {
@@ -96,6 +151,6 @@ describe('classroom class color', () => {
     });
 
     test('classColorStyle gives the background and white text', () => {
-        expect(classColorStyle('g-1')).toEqual({ backgroundColor: classColorFor('g-1'), color: '#FFFFFF' });
+        expect(classColorStyle('g-y', groupsOf(2))).toEqual({ backgroundColor: '#774DCB', color: '#FFFFFF' });
     });
 });

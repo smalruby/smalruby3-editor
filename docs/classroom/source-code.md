@@ -94,7 +94,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-lesson-settings.js ← 課題のレッスンの設定の純粋ロジック（下書き ↔ API の lesson・完了の条件・採点の点）
 │   │   │   ├── classroom-lesson-progress.js ← 先生の進み具合の純粋ロジック（座席の色・表の記号・できた人・並べ方・CSV）
 │   │   │   ├── classroom-lesson-summary.js ← パネル・席の詳細・［授業］の行・採点・提出状況.csv のレッスンの要約（純粋ロジック）
-│   │   │   ├── classroom-class-color.js ← クラスの色（帯）をクラスの id から選ぶ純粋関数
+│   │   │   ├── classroom-class-color.js ← クラスの色（帯）を先生のクラスの作成日の順から選ぶ純粋関数
 │   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
 │   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）を組み立てる（純粋）
 │   │   │   ├── classroom-genai-settings.js ← クラスの生成AI・ルビティー設定の下書き・検証・PATCH 差分（純粋）#1277
@@ -252,7 +252,7 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 | `classroom-modal/class-ai-student-preview.jsx` | クラス設定フォームの右に出す「生徒の画面はこうなります」の見本（CSS だけで描く）。未保存の入力に合わせて、コード・Ruby 両方の「AI に相談」の顔と、顔のパネルの［ルビティーにまかせる］の有無を変える。幅 1100px 未満では出さない |
 | `classroom-modal/classroom-button.jsx` | `ClassroomButton`（`variant="primary" / "secondary" / "text" / "danger"`）。ボタンの見た目はここだけが持つ（Scratch の形・高さ 36px。[`../design-system/components/buttons.md`](../design-system/components/buttons.md) の「クラス管理のボタン」） |
 | `classroom-modal/classroom-tab.jsx` | `ClassroomTab`（下に線のタブ。選ばれたら主の色の文字と 3px の線）。並びは `styles.tabList` の `role="tablist"` で包む（[`../design-system/components/tabs.md`](../design-system/components/tabs.md) の「クラス管理のタブ」） |
-| `lib/classroom-class-color.js` | クラスの色（帯の色）をクラスの id から選ぶ純粋関数 `classColorFor` / `classColorStyle` と色の一覧 `CLASS_COLORS`（[`ui-ux.md`](ui-ux.md) の「共通: クラスの色」） |
+| `lib/classroom-class-color.js` | クラスの色（帯の色）を先生のクラスの一覧の作成日の順（取れなければ id のハッシュ）から選ぶ純粋関数 `classColorFor` / `classColorStyle` と色の一覧 `CLASS_COLORS`（[`ui-ux.md`](ui-ux.md) の「共通: クラスの色」） |
 
 画面側で `<h2 className={styles.xxxTitle}>` やボタンのクラスを書き起こさないこと
 （それが #1121 / #1122 のズレの発生源だった）。フッターは `footer` スロットに
