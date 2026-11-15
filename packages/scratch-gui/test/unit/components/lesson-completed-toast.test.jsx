@@ -135,13 +135,12 @@ describe('LessonCompletedToast', () => {
             expect(queryByTestId('lesson-completed-toast-remaining')).not.toBeInTheDocument();
         });
 
-        test('uses the Japanese and hiragana strings', () => {
-            expect(
-                renderToast(props, { locale: 'ja', messages: ja }).getByTestId('lesson-completed-toast-title'),
-            ).toHaveTextContent('レッスン 5 クリア！');
-            expect(
-                renderToast(props, { locale: 'ja', messages: ja }).getByTestId('lesson-completed-toast-detail'),
-            ).toHaveTextContent('「うごかしてみよう」は 2 つできました。このレッスンはこれでクリア');
+        test('uses the Japanese strings', () => {
+            const { getByTestId } = renderToast(props, { locale: 'ja', messages: ja });
+            expect(getByTestId('lesson-completed-toast-title')).toHaveTextContent('レッスン 5 クリア！');
+            expect(getByTestId('lesson-completed-toast-detail')).toHaveTextContent(
+                '「うごかしてみよう」は 2 つできました。このレッスンはこれでクリア',
+            );
         });
 
         test('uses the hiragana strings', () => {
