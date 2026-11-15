@@ -1,3 +1,7 @@
+/* 色はデザインシステムのトークン（docs/design-system/tokens.md）。主ボタン・文字リンクの青は
+   $color-action（白に 4.5:1 以上の濃い青・#1922）。 */
+@import '../../css/smalruby-tokens.css';
+
 /* The student modal targets the 1300x600 classroom PC (#1221): it is wide so
    guidance and actions sit side by side, and it sits near the top so the body
    gets most of the 600px height without scrolling. */
@@ -125,9 +129,9 @@
 }
 
 .input:focus {
-    outline: none;
-    border-color: #4c97ff;
-    box-shadow: 0 0 0 2px rgba(76, 151, 255, 0.2);
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 .button-row {
@@ -145,7 +149,7 @@
 .link-button {
     background: none;
     border: none;
-    color: #4c97ff;
+    color: $color-action;
     cursor: pointer;
     font-size: 1rem;
     text-decoration: underline;
@@ -153,7 +157,7 @@
 }
 
 .link-button:hover {
-    color: #3373cc;
+    color: $membership-blue;
 }
 
 .link-button:disabled {
@@ -172,7 +176,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    background-color: #4c97ff;
+    background-color: $color-action;
     color: white;
     border: none;
     border-radius: 4px;
@@ -184,7 +188,7 @@
 }
 
 .primary-button:hover {
-    background-color: #3d89f0;
+    background-color: $membership-blue;
 }
 
 .primary-button:disabled {
@@ -292,8 +296,9 @@
 }
 
 .assignment-name-input:focus {
-    border-color: #4c97ff;
-    outline: none;
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 .join-code-display {
@@ -437,7 +442,7 @@
 .join-code-action-gc {
     border-color: #4c97ff;
     background-color: #e5f0ff;
-    color: #3373cc;
+    color: $color-action;
     font-weight: bold;
 }
 
@@ -472,7 +477,7 @@
     border: 1px solid #c3cad8;
     border-radius: 0.5rem;
     background-color: #fff;
-    color: #4c97ff;
+    color: $color-action;
     font-size: 0.75rem;
     cursor: pointer;
 }
@@ -505,7 +510,7 @@
     font-weight: bold;
     font-family: monospace;
     letter-spacing: 0.15em;
-    color: #4c97ff;
+    color: $color-action;
     user-select: text;
     cursor: text;
 }
@@ -762,7 +767,7 @@
     padding: 0;
     border: none;
     background: none;
-    color: #4c97ff;
+    color: $color-action;
     font-size: inherit;
     text-decoration: underline;
     cursor: pointer;
@@ -835,7 +840,7 @@
     font-size: 1.6rem;
     font-weight: bold;
     letter-spacing: 0.2em;
-    color: #3373cc;
+    color: $color-action;
     user-select: text;
     cursor: text;
 }
@@ -870,7 +875,7 @@
 .class-item-code {
     font-family: monospace;
     font-size: 1.1rem;
-    color: #4c97ff;
+    color: $color-action;
     letter-spacing: 0.1em;
     user-select: text;
     cursor: text;
@@ -1232,7 +1237,7 @@
 .error-action-link {
     background: none;
     border: none;
-    color: #4c97ff;
+    color: $color-action;
     cursor: pointer;
     font-size: 0.85rem;
     text-decoration: underline;
@@ -1242,7 +1247,7 @@
 }
 
 .error-action-link:hover {
-    color: #3373cc;
+    color: $membership-blue;
 }
 
 .success-area {
@@ -1315,6 +1320,9 @@
        1300px and push the seat detail on the right off screen (#1603). */
     grid-template-columns: repeat(10, minmax(0, 1fr));
     gap: 4px;
+    /* The selected seat's ring sits outside the tile: keep room so the frame
+       (overflow) does not clip it on the first row / column (#1922). */
+    padding: 4px;
     margin: 0.5rem 0;
     /* The seats (up to 40) are a list: only this frame scrolls (R6 exception). */
     flex: 1 1 auto;
@@ -1366,9 +1374,13 @@
     cursor: default;
 }
 
-.member-cell-selected {
-    outline: 3px solid #0fbd8c;
-    outline-offset: -1px;
+/* 選んだ席とキーボードのフォーカスは、DS のフォーカスの形（主の色の 2px の線を
+   2px 外に + 淡い輪）。外に引くので、緑・オレンジ・青どの色のタイルの上でも見える（#1922）。 */
+.member-cell-selected,
+.member-cell:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
 }
 
 .member-cell-seated {
@@ -1412,7 +1424,7 @@
 }
 
 .seated-badge {
-    color: #4c97ff;
+    color: $color-action;
     font-size: 0.7rem;
     margin-left: 0.5rem;
     font-weight: bold;
@@ -1485,8 +1497,9 @@
 }
 
 .comment-input:focus {
-    outline: none;
-    border-color: #4c97ff;
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 .return-button {
@@ -1639,7 +1652,7 @@
 .back-link {
     background: none;
     border: none;
-    color: #4c97ff;
+    color: $color-action;
     cursor: pointer;
     font-size: 0.85rem;
     padding: 0;
@@ -1739,7 +1752,7 @@
     gap: 0.3rem;
     background: none;
     border: none;
-    color: #4c97ff;
+    color: $color-action;
     cursor: pointer;
     font-size: 0.8rem;
     padding: 0.3rem 0.5rem;
@@ -1924,7 +1937,7 @@
     margin-top: 0.5rem;
     background: none;
     border: none;
-    color: #4c97ff;
+    color: $color-action;
     font-size: 0.8rem;
     cursor: pointer;
     text-decoration: underline;
@@ -1932,7 +1945,7 @@
 }
 
 .teacher-link:hover {
-    color: #3373cc;
+    color: $membership-blue;
 }
 
 .history-select {
@@ -1951,15 +1964,16 @@
 }
 
 .history-select:focus {
-    outline: none;
-    border-color: #4c97ff;
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 .student-count-button {
     background: none;
-    border: 1px solid #4c97ff;
+    border: 1px solid $color-action;
     border-radius: 4px;
-    color: #4c97ff;
+    color: $color-action;
     font-size: inherit;
     font-weight: bold;
     padding: 0 0.3rem;
@@ -1969,7 +1983,7 @@
 }
 
 .student-count-button:hover {
-    background-color: #4c97ff;
+    background-color: $color-action;
     color: white;
 }
 
@@ -2017,7 +2031,7 @@
 }
 
 .student-count-increment {
-    background: #4c97ff;
+    background: $color-action;
     color: white;
     border: none;
     border-radius: 4px;
@@ -2032,7 +2046,7 @@
 }
 
 .student-count-increment:hover {
-    background: #3373cc;
+    background: $membership-blue;
 }
 
 .student-count-dialog-hint {
@@ -2062,13 +2076,14 @@
 }
 
 .detail-tab:hover {
-    color: #855cd6;
+    color: $color-action;
 }
 
+/* ［ストリーム］［授業］のタブ（.board-tab-active）と同じ色（#1922）。 */
 .detail-tab-active {
-    color: #855cd6;
+    color: $color-action;
     font-weight: bold;
-    border-bottom-color: #855cd6;
+    border-bottom-color: $color-action;
 }
 
 /* --- Co-teachers (shared classroom management) --- */
@@ -2143,8 +2158,9 @@
 }
 
 .co-teacher-invite-input:focus {
-    border-color: #4c97ff;
-    outline: none;
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 /* --- Assignment editor (teacher) --- */
@@ -2347,7 +2363,7 @@
 }
 
 .panel-close-button:focus-visible {
-    outline: 2px solid #4c97ff;
+    outline: 2px solid $color-action;
     outline-offset: 2px;
 }
 
@@ -2555,8 +2571,9 @@
 }
 
 .assignment-page-textarea:focus {
-    border-color: #4c97ff;
-    outline: none;
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 .assignment-page-char-count {
@@ -2767,8 +2784,9 @@
 }
 
 .group-row-name-input:focus {
-    border-color: #4c97ff;
-    outline: none;
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 .group-create-year-input {
@@ -2968,7 +2986,7 @@
     background-color: #e9f1fc;
     border: 1px solid #b5cff5;
     border-radius: 0.4rem;
-    color: #3373cc;
+    color: $color-action;
     font-size: 0.9rem;
     padding: 0.4rem 0.75rem;
     margin-bottom: 0.75rem;
@@ -3491,13 +3509,13 @@
 
 /* プライマリは評価画面と同じ青塗りに統一（#1122）。 */
 .shared-form-submit {
-    border-color: #4c97ff !important;
-    background: #4c97ff !important;
+    border-color: $color-action !important;
+    background: $color-action !important;
     color: white;
 }
 
 .shared-form-submit:hover {
-    background: #3d89f0 !important;
+    background: $membership-blue !important;
 }
 
 .shared-form-submit:disabled {
@@ -3810,7 +3828,7 @@
 
 /* プライマリ = 青塗り（評価画面に統一・#1122）。 */
 .board-create-button {
-    background: #4c97ff;
+    background: $color-action;
     color: white;
     border: none;
     border-radius: 0.5rem;
@@ -3820,7 +3838,7 @@
 }
 
 .board-create-button:hover {
-    background: #3d89f0;
+    background: $membership-blue;
 }
 
 .board-create-button:disabled {
@@ -3848,8 +3866,8 @@
 }
 
 .board-tab-active {
-    border-bottom-color: #4c97ff;
-    color: #3373cc;
+    border-bottom-color: $color-action;
+    color: $color-action;
     font-weight: bold;
 }
 
@@ -4285,6 +4303,14 @@
 
 .class-field input {
     min-width: 0;
+}
+
+/* クラスを作成・クラス設定の入力欄も、ほかの入力欄と同じフォーカスの形（#1922）。 */
+.class-field input:focus,
+.class-settings-co-teachers input:focus {
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 /* 設定画面で 4 つを 1 行に並べるとき、クラス名だけ広くする。 */
@@ -4977,7 +5003,7 @@
 .compact-code-value {
     font-weight: bold;
     letter-spacing: 0.05em;
-    color: #4c97ff;
+    color: $color-action;
 }
 
 .compact-code-row .join-code-action {

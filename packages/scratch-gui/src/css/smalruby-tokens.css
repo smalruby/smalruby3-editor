@@ -23,6 +23,9 @@ $color-primary: $looks-secondary;
 $color-primary-dark: $looks-secondary-dark;
 /* 主の色の淡いほう: フォーカスの輪・ホバーの枠 */
 $color-primary-transparent: $looks-transparent;
+/* 操作の青: クラス管理など青を主の色にしている独自の画面の主ボタン・文字リンク・選ばれたタブ・
+   フォーカス。上流の青 $motion-primary（白に 2.9:1）は白い文字が読めないので、濃いほう（白に 4.7:1） */
+$color-action: $motion-tertiary;
 /* 本文の文字の色 */
 $color-text: $text-primary;
 /* 補助の文字の色（説明・プレースホルダー） */

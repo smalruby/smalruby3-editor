@@ -839,8 +839,10 @@ const TeacherClassDetail = ({
                                         styles.detailTab,
                                         activeTab === 'description' && styles.detailTabActive,
                                     )}
+                                    aria-selected={activeTab === 'description'}
                                     data-tab="description"
                                     data-testid="classroom-tab-description"
+                                    role="tab"
                                     onClick={handleTabClick}
                                 >
                                     <FormattedMessage
@@ -854,8 +856,10 @@ const TeacherClassDetail = ({
                                         styles.detailTab,
                                         activeTab === 'members' && styles.detailTabActive,
                                     )}
+                                    aria-selected={activeTab === 'members'}
                                     data-tab="members"
                                     data-testid="classroom-tab-members"
+                                    role="tab"
                                     onClick={handleTabClick}
                                 >
                                     <FormattedMessage
@@ -870,8 +874,10 @@ const TeacherClassDetail = ({
                                             styles.detailTab,
                                             activeTab === 'progress' && styles.detailTabActive,
                                         )}
+                                        aria-selected={activeTab === 'progress'}
                                         data-tab="progress"
                                         data-testid="classroom-tab-progress"
+                                        role="tab"
                                         onClick={handleTabClick}
                                     >
                                         <FormattedMessage

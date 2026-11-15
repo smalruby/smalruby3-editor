@@ -176,6 +176,14 @@ describe('SharedAssignmentCatalog (issue #1070)', () => {
         expect(shared.handleCloseCatalog).toHaveBeenCalled();
     });
 
+    test('the catalog tabs are role="tab" and mark the selected one (#1922)', () => {
+        renderCatalog(sharedState({ catalogTab: 'mine' }));
+        expect(byTestId('shared-catalog-tab-all')).toHaveAttribute('role', 'tab');
+        expect(byTestId('shared-catalog-tab-all')).toHaveAttribute('aria-selected', 'false');
+        expect(byTestId('shared-catalog-tab-mine')).toHaveAttribute('role', 'tab');
+        expect(byTestId('shared-catalog-tab-mine')).toHaveAttribute('aria-selected', 'true');
+    });
+
     test('the mine tab hides the filters and marks unlisted items', () => {
         renderCatalog(sharedState({
             catalogTab: 'mine',
