@@ -27,6 +27,7 @@ import {
 import { validateGoal } from '../../../../src/lib/lessons/goal';
 import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
+import { normalizePartner } from '../../../../src/lib/lessons/practice-partner';
 import { hasAnswerProgram, isReadDiagram } from '../../../../src/lib/lessons/read-diagram';
 import en from '../../../../src/locales/en';
 import ja from '../../../../src/locales/ja';
@@ -1435,20 +1436,31 @@ describe('chat course lesson 3 "メッシュでつながろう" (#1643)', () => 
             name: { ja: 'シマネコ', 'ja-Hira': 'シマネコ', en: 'Shimacat' },
             buttons: [
                 {
-                    label: { ja: '手をふる', 'ja-Hira': 'てをふる', en: 'wave' },
-                    broadcast: { ja: '手をふる', 'ja-Hira': 'てをふる', en: 'wave' },
+                    label: { ja: 'てをふる', 'ja-Hira': 'てをふる', en: 'wave' },
+                    broadcast: { ja: 'てをふる', 'ja-Hira': 'てをふる', en: 'wave' },
                 },
             ],
             replies: [],
         });
         const partner = challenge('chat-l3-mesh-variable').partner;
         expect(partner.buttons.map((b) => [b.label.ja, b.set.variable.ja, b.set.value.ja])).toEqual([
-            ['うれしい', 'シマネコの気分', 'うれしい'],
-            ['ねむい', 'シマネコの気分', 'ねむい'],
+            ['うれしい', 'シマネコのきぶん', 'うれしい'],
+            ['ねむい', 'シマネコのきぶん', 'ねむい'],
         ]);
         expect(partner.watch).toEqual([
-            { ja: 'シマラビの気分', 'ja-Hira': 'シマラビのきぶん', en: 'shimaraby_mood' },
+            { ja: 'シマラビのきぶん', 'ja-Hira': 'シマラビのきぶん', en: 'shimaraby_mood' },
         ]);
+    });
+
+    test('the names that reach the other side over the mesh are the same in ja and ja-Hira', () => {
+        ['chat-l3-mesh-signal', 'chat-l3-mesh-variable'].forEach((id) => {
+            const c = challenge(id);
+            expect(localizeCode(c.code, 'ja')).toBe(localizeCode(c.code, 'ja-Hira'));
+            c.spriteCodes.forEach((s) => expect(localizeCode(s.code, 'ja')).toBe(localizeCode(s.code, 'ja-Hira')));
+            expect(JSON.stringify(normalizePartner(c.partner, 'ja'))).toBe(
+                JSON.stringify(normalizePartner(c.partner, 'ja-Hira')),
+            );
+        });
     });
 
     test('the ja-Hira strings and code of lesson 3 have no kanji', () => {
@@ -1469,7 +1481,7 @@ describe('chat course lesson 3 "メッシュでつながろう" (#1643)', () => 
 
     test.each(['ja', 'ja-Hira', 'en'])('the code (%s) uses the names the task of that locale writes', (locale) => {
         const names = {
-            ja: { wave: '手をふる', mood: 'シマラビの気分', partnerMood: 'シマネコの気分' },
+            ja: { wave: 'てをふる', mood: 'シマラビのきぶん', partnerMood: 'シマネコのきぶん' },
             'ja-Hira': { wave: 'てをふる', mood: 'シマラビのきぶん', partnerMood: 'シマネコのきぶん' },
             en: { wave: 'wave', mood: 'shimaraby_mood', partnerMood: 'shimacat_mood' },
         }[locale];

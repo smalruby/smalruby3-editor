@@ -173,9 +173,10 @@ export const recordExecution = (facts, run, opcode, args) => {
 /**
  * 言った（考えた）文字を記録する。空の文字（吹き出しを消す）は記録しない。
  * @param {object} facts - facts。
- * @param {object} say - `{targetId, isStage, text, variables, run}`。`variables` は言った時点の
+ * @param {object} say - `{targetId, isStage, text, variables, run, remoteValues}`。`variables` は言った時点の
  *   変数名 → 値（`equalsVariable` の判定用）。`run` は言ったスクリプトの run（startRun の戻り値。
- *   分からなければ省く。said の `trigger` の判定用）。
+ *   分からなければ省く。said の `trigger` の判定用）。`remoteValues` は言った時点で、メッシュで自分以外の
+ *   ノード（練習相手を含む）から届いていた変数の値（said の `remoteValue` の判定用）。
  */
 export const recordSay = (facts, say) => {
     const text = isUnset(say.text) ? '' : String(say.text);
@@ -188,6 +189,7 @@ export const recordSay = (facts, say) => {
         answer: facts.answers.length > 0 ? facts.answers[facts.answers.length - 1] : null,
         variables: say.variables || {},
         run: say.run || null,
+        remoteValues: Array.isArray(say.remoteValues) ? say.remoteValues : [],
     });
     if (facts.says.length > MAX_SAYS) facts.says.shift();
 };
@@ -231,23 +233,30 @@ const normalizeBlockEntry = (entry) => (typeof entry === 'string' ? { opcode: en
 const argsMatch = (matchers, args) =>
     Object.entries(matchers).every(([name, matcher]) => matchValue(matcher, args[name]));
 
+// opcode は 1 つか、どれでもよい opcode の配列（「送る」「送って待つ」「値つきで送る」のどれで送ってもよい、など）
+const entryOpcodes = (entry) => (Array.isArray(entry.opcode) ? entry.opcode : [entry.opcode]);
+
 const blockEntrySatisfiedByRun = (entry, run) => {
-    const op = run.ops[entry.opcode];
-    if (!op) return false;
+    const ops = entryOpcodes(entry)
+        .map((opcode) => run.ops[opcode])
+        .filter(Boolean);
+    if (ops.length === 0) return false;
     const need = entry.count || 1;
     if (entry.distinct) {
         const values = new Set();
-        op.argsSeen.forEach(({ args }) => values.add(String(args[entry.distinct])));
+        ops.forEach((op) => op.argsSeen.forEach(({ args }) => values.add(String(args[entry.distinct]))));
         return values.size >= need;
     }
     if (entry.args) {
         let count = 0;
-        op.argsSeen.forEach((seen) => {
-            if (argsMatch(entry.args, seen.args)) count += seen.count;
-        });
+        ops.forEach((op) =>
+            op.argsSeen.forEach((seen) => {
+                if (argsMatch(entry.args, seen.args)) count += seen.count;
+            }),
+        );
         return count >= need;
     }
-    return op.count >= need;
+    return ops.reduce((sum, op) => sum + op.count, 0) >= need;
 };
 
 const orderSatisfiedByRun = (order, run) => {
@@ -291,6 +300,13 @@ const evaluateSaid = (condition, facts) =>
         if (condition.target === 'stage' && !say.isStage) return false;
         // 言ったスクリプトのきっかけ（「受け取ったとき」のスクリプトで言った、など。uses の trigger と同じ形）
         if (!isUnset(condition.trigger) && !(say.run && triggerMatches(condition.trigger, say.run))) return false;
+        // ほかのノードから届いた値を言った（自分の変数のセンサーの値を読んだだけでは通さない・#1643）
+        if (
+            condition.remoteValue &&
+            !(say.remoteValues || []).some((value) => compareValues(say.text, value) === 0)
+        ) {
+            return false;
+        }
         if (condition.target === 'sprite' && say.isStage) return false;
         if (!isUnset(condition.text) && !matchValue(condition.text, say.text)) return false;
         if (condition.equalsAnswer && (isUnset(say.answer) || compareValues(say.text, say.answer) !== 0)) {
@@ -461,7 +477,13 @@ export const validateGoal = (goal) => {
                 }
                 blocks.forEach((entry, i) => {
                     const e = normalizeBlockEntry(entry);
-                    if (!e || typeof e.opcode !== 'string' || e.opcode === '') {
+                    const opcodeOk =
+                        e &&
+                        ((typeof e.opcode === 'string' && e.opcode !== '') ||
+                            (Array.isArray(e.opcode) &&
+                                e.opcode.length > 0 &&
+                                e.opcode.every((o) => typeof o === 'string' && o !== '')));
+                    if (!opcodeOk) {
                         errors.push(`${at}.blocks[${i}]: opcode is required`);
                         return;
                     }
@@ -497,6 +519,9 @@ export const validateGoal = (goal) => {
                     isUnset(condition.variable)
                 ) {
                     errors.push(`${at}: said needs text, equalsAnswer, equalsVariable, answer or variable`);
+                }
+                if (!isUnset(condition.remoteValue) && typeof condition.remoteValue !== 'boolean') {
+                    errors.push(`${at}: said.remoteValue must be true or false`);
                 }
                 if (!isUnset(condition.equalsVariable) && !isVariableName(condition.equalsVariable)) {
                     errors.push(`${at}: said.equalsVariable must be a variable name or an array of names`);

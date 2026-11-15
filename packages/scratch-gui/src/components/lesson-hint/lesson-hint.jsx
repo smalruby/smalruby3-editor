@@ -18,6 +18,7 @@ import {
     HINT_SIDES,
     clampHintPosition,
     computeHintPlacement,
+    findHintAvoidRects,
     findHintTargetRect,
     hintViewport,
     preferredSides,
@@ -126,6 +127,7 @@ const useHintPlacement = (target, balloonRef, deps) => {
             balloon: { width: size.width, height: size.height },
             viewport: viewportSize(),
             sides: preferredSides(target),
+            avoid: findHintAvoidRects(document),
         });
         setState((prev) =>
             sameRect(prev.targetRect, targetRect) &&

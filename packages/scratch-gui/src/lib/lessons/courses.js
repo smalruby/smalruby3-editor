@@ -1338,18 +1338,19 @@ const chatLesson2 = defineLesson({
 // コンピューターの中 → メッシュのメッセージ → メッシュの共有する変数、の順に学ぶ。ペアが基本で、ひとりのときは
 // 練習相手の「シマネコ」とやる（partner。ペアでシマネコの役の人はシマラビとシマネコを入れかえて作るので、判定は
 // 両方の名前を通す）。変数とメッセージは同じ名前にする（教科書の形）。拡張機能「メッシュ」は 3-2 で生徒が足し、
-// 3-3 は setup で読み込んでおく
+// 3-3 は setup で読み込んでおく。メッシュで相手に届く名前（メッセージ・共有する変数）は ja と ja-Hira で同じにする
+// （漢字を使わない形。ja と ja-Hira の生徒がペアになっても届くように）。en は別の名前（en と ja のペアは考えない）
 const CHAT_PAIR_START = { sprites: ['Shimaraby', 'Shimacat'] };
 const CHAT_L3_WORDS = {
     ja: {
         v: '$シマラビのメッセージ',
         message: 'シマラビのメッセージ',
         ask: CHAT_ASK.ja,
-        wave: '手をふる',
+        wave: 'てをふる',
         hi: 'やあ！',
-        myMood: '$シマラビの気分',
-        myMoodName: 'シマラビの気分',
-        partnerMood: 'シマネコの気分',
+        myMood: '$シマラビのきぶん',
+        myMoodName: 'シマラビのきぶん',
+        partnerMood: 'シマネコのきぶん',
         happy: 'うれしい',
         sleepy: 'ねむい',
         partner: 'シマネコ',
@@ -1385,18 +1386,15 @@ const chatL3Code = (make) =>
     Object.fromEntries(Object.entries(CHAT_L3_WORDS).map(([locale, words]) => [locale, make(words)]));
 const chatL3Text = (key) =>
     Object.fromEntries(Object.entries(CHAT_L3_WORDS).map(([locale, words]) => [locale, words[key]]));
-const CHAT_WAVE_MESSAGE = ['手をふる', 'てをふる', 'wave'];
+const CHAT_WAVE_MESSAGE = ['てをふる', 'wave'];
 // メッセージの名前のどれかに合う（Scratch と同じく大文字小文字を区別しない）
 const messageMatcher = (names) => new RegExp(`^(${names.join('|')})$`, 'i');
 // 気分の変数（シマラビの役・シマネコの役のどちらの名前も、どの locale の名前も）
-const CHAT_MOOD_VARIABLE = [
-    'シマラビの気分',
-    'シマネコの気分',
-    'シマラビのきぶん',
-    'シマネコのきぶん',
-    'shimaraby_mood',
-    'shimacat_mood',
-];
+const CHAT_MOOD_VARIABLE = ['シマラビのきぶん', 'シマネコのきぶん', 'shimaraby_mood', 'shimacat_mood'];
+// 3-1 の変数（受け取った側が読む）の名前
+const CHAT_MESSAGE_NAME = new RegExp(`^(${CHAT_MESSAGE_VARIABLE.join('|')})$`);
+// 合図を送るブロック（「送る」「送って待つ」「値つきで送る」のどれで送ってもよい）
+const CHAT_SEND_OPCODES = ['event_broadcast', 'event_broadcastandwait', 'meshV2_broadcastWithValue'];
 const CHAT_MOOD_NAME = new RegExp(`^(${CHAT_MOOD_VARIABLE.join('|')})$`);
 const CHAT_HAPPY = /^(うれしい|happy)$/i;
 const CHAT_SLEEPY = /^(ねむい|sleepy)$/i;
@@ -1451,7 +1449,8 @@ const chatLesson3 = defineLesson({
                 {
                     type: 'uses',
                     trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' },
-                    blocks: ['looks_sayforsecs'],
+                    // 受け取ったスクリプトで変数を読んで言った（(答え) を言うだけでは通さない）
+                    blocks: ['looks_sayforsecs', { opcode: 'data_variable', args: { VARIABLE: CHAT_MESSAGE_NAME } }],
                 },
                 {
                     type: 'said',
@@ -1496,7 +1495,7 @@ const chatLesson3 = defineLesson({
             },
             steps: withTitles('chat-l3-mesh-signal', [
                 { target: HINT_TARGETS.EXTENSION_BUTTON, spotlight: true },
-                { target: HINT_TARGETS.PALETTE },
+                { target: HINT_TARGETS.PRACTICE_PARTNER },
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL3Code((w) => `when_key_pressed("space") do\n  broadcast("${w.wave}")\nend\n`),
@@ -1517,7 +1516,7 @@ const chatLesson3 = defineLesson({
                     type: 'uses',
                     trigger: { hat: 'event_whenkeypressed', key: 'space' },
                     blocks: [
-                        { opcode: 'event_broadcast', args: { BROADCAST_OPTION: messageMatcher(CHAT_WAVE_MESSAGE) } },
+                        { opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: messageMatcher(CHAT_WAVE_MESSAGE) } },
                     ],
                 },
                 {
@@ -1579,7 +1578,7 @@ const chatLesson3 = defineLesson({
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL3Code((w) => `when_key_pressed("2") do\n  ${w.myMood} = "${w.sleepy}"\nend\n`),
                 },
-                { target: HINT_TARGETS.CODE_AREA },
+                { target: HINT_TARGETS.PRACTICE_PARTNER },
                 {
                     target: HINT_TARGETS.SPRITE_LIST,
                     blocks: chatL3Code(
@@ -1588,7 +1587,7 @@ const chatLesson3 = defineLesson({
                 },
                 { target: HINT_TARGETS.STAGE },
             ]),
-            debug: debugTips('chat-l3-mesh-variable', 2),
+            debug: debugTips('chat-l3-mesh-variable', 3),
             // 1 のキーで気分の変数を「うれしい」、2 のキーで「ねむい」にし（ステージの変数 = メッシュで共有される変数）、
             // 押したスクリプトで気分のセンサーの値を読んで、届いた気分を言った（センサーに値が届いていないと何も言わない
             // ので、相手が気分を変えてから押したことになる）。作っただけの変数（0）では通らない
@@ -1611,7 +1610,8 @@ const chatLesson3 = defineLesson({
                     trigger: { hat: 'event_whenthisspriteclicked' },
                     blocks: [{ opcode: 'meshV2_getSensorValue', args: { NAME: CHAT_MOOD_NAME } }, 'looks_sayforsecs'],
                 },
-                { type: 'said', trigger: { hat: 'event_whenthisspriteclicked' }, text: CHAT_MOOD },
+                // 言ったのは、ほかのノード（練習相手・ペアの相手）から届いた値（自分の気分のセンサーの値では通さない）
+                { type: 'said', trigger: { hat: 'event_whenthisspriteclicked' }, text: CHAT_MOOD, remoteValue: true },
             ],
             quiz: challengeQuiz('chat-l3-mesh-variable', 1),
             code: chatL3Code(

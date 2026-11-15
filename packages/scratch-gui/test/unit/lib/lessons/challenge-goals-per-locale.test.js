@@ -241,7 +241,7 @@ const OPERATIONS = {
         vm.greenFlag();
         await answer('hello');
     },
-    // 拡張機能「メッシュ」を足してスペースキー（自分の送ったメッセージは自分にも届く）。練習相手の「手をふる」も押す
+    // 拡張機能「メッシュ」を足してスペースキー（自分の送ったメッセージは自分にも届く）。練習相手の「てをふる」も押す
     'chat-l3-mesh-signal': async ({ press, addExtension, partnerPress, isSatisfied }) => {
         await press(' ');
         await sleep(100);
@@ -640,26 +640,40 @@ const CHEATS_L3 = [
             await sleep(300);
         },
     ],
+    // 3-1: 変数に入れたうえで、受け取ったシマネコは (答え) を言う（変数を読んでいない）
+    [
+        'chat-l3-local-message (puts the answer into the variable, but Shimacat says the answer)',
+        'chat-l3-local-message',
+        {
+            code: `${L3_ASK}  $シマラビのメッセージ = answer\n  broadcast("シマラビのメッセージ")\nend\n`,
+            sprites: { Shimacat: 'when_receive("シマラビのメッセージ") do\n  say(answer, 3)\nend\n' },
+        },
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('hello');
+            await sleep(300);
+        },
+    ],
     // 3-2: 答えのとおりでも、拡張機能「メッシュ」を足していない
     [
         'chat-l3-mesh-signal (without the mesh extension)',
         'chat-l3-mesh-signal',
         {
-            code: 'when_key_pressed("space") do\n  broadcast("手をふる")\nend\n',
-            sprites: { Shimacat: 'when_receive("手をふる") do\n  say("やあ！")\nend\n' },
+            code: 'when_key_pressed("space") do\n  broadcast("てをふる")\nend\n',
+            sprites: { Shimacat: 'when_receive("てをふる") do\n  say("やあ！")\nend\n' },
         },
         async ({ press }) => {
             await press(' ');
             await sleep(300);
         },
     ],
-    // 3-2: スペースキーではメッセージを送らずに言うだけ（練習相手の「手をふる」で受け取ってはいる）
+    // 3-2: スペースキーではメッセージを送らずに言うだけ（練習相手の「てをふる」で受け取ってはいる）
     [
         'chat-l3-mesh-signal (the space key says without broadcasting)',
         'chat-l3-mesh-signal',
         {
             code: 'when_key_pressed("space") do\n  say("やあ！")\nend\n',
-            sprites: { Shimacat: 'when_receive("手をふる") do\n  say("やあ！")\nend\n' },
+            sprites: { Shimacat: 'when_receive("てをふる") do\n  say("やあ！")\nend\n' },
         },
         async ({ press, addExtension, partnerPress }) => {
             await addExtension('meshV2');
@@ -668,7 +682,7 @@ const CHEATS_L3 = [
             await sleep(300);
         },
     ],
-    // 3-2: 「手をふる」ではないメッセージを送り、受け取る
+    // 3-2: 「てをふる」ではないメッセージを送り、受け取る
     [
         'chat-l3-mesh-signal (another message)',
         'chat-l3-mesh-signal',
@@ -687,8 +701,8 @@ const CHEATS_L3 = [
         'chat-l3-mesh-variable (the mood is a variable for this sprite only)',
         'chat-l3-mesh-variable',
         {
-            code: 'when_key_pressed("1") do\n  @シマラビの気分 = "うれしい"\nend\n\nwhen_key_pressed("2") do\n  @シマラビの気分 = "ねむい"\nend\n',
-            sprites: { Shimacat: 'when_clicked do\n  say(mesh.sensor_value("シマネコの気分"))\nend\n' },
+            code: 'when_key_pressed("1") do\n  @シマラビのきぶん = "うれしい"\nend\n\nwhen_key_pressed("2") do\n  @シマラビのきぶん = "ねむい"\nend\n',
+            sprites: { Shimacat: 'when_clicked do\n  say(mesh.sensor_value("シマネコのきぶん"))\nend\n' },
         },
         async ({ press, partnerPress, clickSprite }) => {
             await press('1');
@@ -703,7 +717,7 @@ const CHEATS_L3 = [
         'chat-l3-mesh-variable (says "うれしい" without the sensor value)',
         'chat-l3-mesh-variable',
         {
-            code: 'when_key_pressed("1") do\n  $シマラビの気分 = "うれしい"\nend\n\nwhen_key_pressed("2") do\n  $シマラビの気分 = "ねむい"\nend\n',
+            code: 'when_key_pressed("1") do\n  $シマラビのきぶん = "うれしい"\nend\n\nwhen_key_pressed("2") do\n  $シマラビのきぶん = "ねむい"\nend\n',
             sprites: { Shimacat: 'when_clicked do\n  say("うれしい")\nend\n' },
         },
         async ({ press, partnerPress, clickSprite }) => {
@@ -719,13 +733,47 @@ const CHEATS_L3 = [
         'chat-l3-mesh-variable (only the 1 key changes the mood)',
         'chat-l3-mesh-variable',
         {
-            code: 'when_key_pressed("1") do\n  $シマラビの気分 = "うれしい"\nend\n',
-            sprites: { Shimacat: 'when_clicked do\n  say(mesh.sensor_value("シマネコの気分"))\nend\n' },
+            code: 'when_key_pressed("1") do\n  $シマラビのきぶん = "うれしい"\nend\n',
+            sprites: { Shimacat: 'when_clicked do\n  say(mesh.sensor_value("シマネコのきぶん"))\nend\n' },
         },
         async ({ press, partnerPress, clickSprite }) => {
             await press('1');
             await press('2');
             await partnerPress(0);
+            await clickSprite('Shimacat');
+            await sleep(300);
+        },
+    ],
+    // 3-3: 自分の気分のセンサーの値を言う（練習相手の「うれしい」も押してある。自分の気分は「ねむい」）
+    [
+        'chat-l3-mesh-variable (says the sensor value of its own mood)',
+        'chat-l3-mesh-variable',
+        {
+            code: 'when_key_pressed("1") do\n  $シマラビのきぶん = "うれしい"\nend\n\nwhen_key_pressed("2") do\n  $シマラビのきぶん = "ねむい"\nend\n',
+            sprites: { Shimacat: 'when_clicked do\n  say(mesh.sensor_value("シマラビのきぶん"))\nend\n' },
+        },
+        async ({ press, partnerPress, clickSprite }) => {
+            await press('1');
+            await press('2');
+            await partnerPress(0);
+            await clickSprite('Shimacat');
+            await sleep(300);
+        },
+    ],
+    // 3-3: 押したスクリプトでセンサーの値を読んだあと、自分の気分の変数を言う（相手の気分はまだ届いていない）
+    [
+        'chat-l3-mesh-variable (reads the sensor value, then says its own mood variable)',
+        'chat-l3-mesh-variable',
+        {
+            code: 'when_key_pressed("1") do\n  $シマラビのきぶん = "うれしい"\nend\n\nwhen_key_pressed("2") do\n  $シマラビのきぶん = "ねむい"\nend\n',
+            sprites: {
+                Shimacat:
+                    'when_clicked do\n  say(mesh.sensor_value("シマネコのきぶん"))\n  say($シマラビのきぶん)\nend\n',
+            },
+        },
+        async ({ press, clickSprite }) => {
+            await press('1');
+            await press('2');
             await clickSprite('Shimacat');
             await sleep(300);
         },
@@ -766,7 +814,7 @@ describe('the chat lesson 3 goals are not met by programs that skip the task (#1
 
 // ペアでシマネコの役の人は、シマラビとシマネコを入れかえて作る（判定は両方の名前を通す・#1643）。
 // 相手（シマラビの役）の気分は、本物のメッシュでほかのノードから届いた値として remoteData に入れる
-describe('the chat lesson 3-3 goal also passes for the one who plays Shimacat in a pair (#1643)', () => {
+describe('the chat lesson 3 goals also pass for the other ways to do the task (#1643)', () => {
     let vm;
 
     afterEach(() => {
@@ -774,18 +822,29 @@ describe('the chat lesson 3-3 goal also passes for the one who plays Shimacat in
         vm = null;
     });
 
+    test('3-2 also passes when the space key sends "てをふる" with a value', async () => {
+        const run = await prepareRun('chat-l3-mesh-signal', 'ja', {
+            code: 'when_key_pressed("space") do\n  mesh.broadcast("てをふる", "やっほー")\nend\n',
+            sprites: { Shimacat: 'when_receive("てをふる") do\n  say("やあ！", 2)\nend\n' },
+        });
+        vm = run.vm;
+        await run.ctx.addExtension('meshV2');
+        await run.ctx.press(' ');
+        expect(await until(run.isSatisfied, 1500)).toBe(true);
+    }, 20000);
+
     test('swapped names, with the mood of the pair from another node', async () => {
         const run = await prepareRun('chat-l3-mesh-variable', 'ja', {
             code:
-                'when_key_pressed("1") do\n  $シマネコの気分 = "うれしい"\nend\n\n' +
-                'when_key_pressed("2") do\n  $シマネコの気分 = "ねむい"\nend\n',
-            sprites: { Shimacat: 'when_clicked do\n  say(mesh.sensor_value("シマラビの気分"), 2)\nend\n' },
+                'when_key_pressed("1") do\n  $シマネコのきぶん = "うれしい"\nend\n\n' +
+                'when_key_pressed("2") do\n  $シマネコのきぶん = "ねむい"\nend\n',
+            sprites: { Shimacat: 'when_clicked do\n  say(mesh.sensor_value("シマラビのきぶん"), 2)\nend\n' },
         });
         vm = run.vm;
         await run.ctx.press('1');
         await run.ctx.press('2');
         vm.runtime.peripheralExtensions.meshV2.meshService.remoteData.pair = {
-            シマラビの気分: { value: 'ねむい', timestamp: Date.now() },
+            シマラビのきぶん: { value: 'ねむい', timestamp: Date.now() },
         };
         await run.ctx.clickSprite('Shimacat');
         expect(await until(run.isSatisfied, 1500)).toBe(true);

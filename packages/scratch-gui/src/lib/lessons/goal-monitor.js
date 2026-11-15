@@ -76,6 +76,22 @@ const readScalarVariables = (runtime, target) => {
     return values;
 };
 
+// メッシュで自分以外のノード（練習相手を含む）から届いている変数の値。自分の値（`remoteData[meshId]`。
+// 自分の変数の「センサーの値」用）は入れない。メッシュの拡張が無ければ空
+const readRemoteValues = (runtime) => {
+    const ext = runtime.peripheralExtensions && runtime.peripheralExtensions.meshV2;
+    const service = ext && ext.meshService;
+    if (!service || !service.remoteData) return [];
+    const values = [];
+    Object.entries(service.remoteData).forEach(([nodeId, node]) => {
+        if (nodeId === service.meshId || !node) return;
+        Object.values(node).forEach((entry) => {
+            if (entry && typeof entry.value !== 'undefined') values.push(String(entry.value));
+        });
+    });
+    return values;
+};
+
 // スレッドの始まり（ハット）を run の形にする
 const describeThread = (thread) => {
     const container = thread.blockContainer || (thread.target && thread.target.blocks);
@@ -153,7 +169,10 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
             variables: readScalarVariables(runtime, target),
             // ちがうスプライトの run なら、言ったスクリプトは分からない（ブロックの外から出た 'SAY'）
             run: lastRun && target && lastRun.targetId === target.id ? lastRun : null,
+            remoteValues: readRemoteValues(runtime),
         });
+        // 1 つのブロックが出す SAY は 1 回だけ。あとから出た SAY（「秒言う」の終わりの消去など）に使わない
+        lastRun = null;
         dirty = true;
     };
 
