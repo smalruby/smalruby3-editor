@@ -42,7 +42,10 @@ const conditionFailed = () => Object.assign(new Error('The conditional request f
  * 課題・メンバー・提出の表を手元で持つ。ReturnValues（ALL_OLD / UPDATED_OLD）と
  * 条件付き書き込みは実 DynamoDB と同じ意味で返す。
  */
-const useTables = (classroomOverrides: Row = {}, opts: { failCounter?: boolean } = {}) => {
+const useTables = (
+  classroomOverrides: Row = {},
+  opts: { failCounter?: boolean; beforeSubmissionUpdate?: (subs: Map<string, Row>) => void } = {},
+) => {
   const classrooms = new Map<string, Row>();
   const members = new Map<string, Row>();
   const subs = new Map<string, Row>();
@@ -117,11 +120,16 @@ const useTables = (classroomOverrides: Row = {}, opts: { failCounter?: boolean }
       }
       if (name === 'GetCommand') return Promise.resolve({ Item: subs.get(input.Key.submissionId) });
       if (name === 'UpdateCommand') {
-        const row = subs.get(input.Key.submissionId)!;
-        const old = { status: row.status };
+        opts.beforeSubmissionUpdate?.(subs);
+        const existing = subs.get(input.Key.submissionId);
+        // 実 DynamoDB と同じく、条件の無い Update は行が無ければ作る。
+        // そのとき UPDATED_OLD は Attributes を返さない。
+        const row = existing || { ...input.Key };
+        if (!existing) subs.set(input.Key.submissionId, row);
+        const old = existing ? { status: existing.status } : undefined;
         if (values[':st']) row.status = values[':st'];
         if (values[':tc'] !== undefined) row.teacherComment = values[':tc'];
-        return Promise.resolve(input.ReturnValues === 'UPDATED_OLD' ? { Attributes: old } : {});
+        return Promise.resolve(input.ReturnValues === 'UPDATED_OLD' && old ? { Attributes: old } : {});
       }
       if (name === 'QueryCommand') {
         let rows = [...subs.values()].filter(s => s.classroomId === values[':cid']);
@@ -239,6 +247,28 @@ describe('GET /classrooms の unreturnedCount (issue #1972)', () => {
     await giveBack(c.classroomId, sub1);
     await giveBack(c.classroomId, sub1);
     expect((await listed(c.classroomId)).unreturnedCount).toBe(1);
+  });
+
+  test('読み直したあとに出し直されて Update が行を作っても、数は減らさない', async () => {
+    let resubmitted = false;
+    let pending: string | null = null;
+    const { classrooms } = useTables({}, {
+      beforeSubmissionUpdate: (subs) => {
+        // GetItem と Update の間に、同じ席の生徒が出し直した（前の提出の行が消えた）。
+        if (pending && !resubmitted) {
+          resubmitted = true;
+          subs.delete(pending);
+        }
+      },
+    });
+    const c = await createClassroom();
+    const s1 = await join(c.joinCode, 1);
+    pending = await submit(c.classroomId, s1);
+    // 出し直しの数え方（前の提出が未返却 → ±0）はそのまま 1 のはずなので、ここでは数だけを見る。
+    expect(classrooms.get(c.classroomId)!.unreturnedCount).toBe(1);
+    await giveBack(c.classroomId, pending);
+    expect(resubmitted).toBe(true);
+    expect(classrooms.get(c.classroomId)!.unreturnedCount).toBe(1);
   });
 
   test('自分で退室した席の提出は数えず、同じ席に次の生徒が入るとまた数える', async () => {

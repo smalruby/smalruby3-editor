@@ -90,11 +90,14 @@ npx ts-node bin/backfill-unreturned-count.ts --apply
 
 # 数を持っている課題も数え直して上書きする（ずれを直したいとき）
 npx ts-node bin/backfill-unreturned-count.ts --apply --recount
+
+# 書いたあとに確かめる（書かない。持っている数と数え直した数が食い違う課題だけを表示）
+npx ts-node bin/backfill-unreturned-count.ts --verify
 ```
 
 - 対象は active / archived の課題。数え方は Lambda と同じ（`lambda/unreturned-count-lib.ts`）。
 - 読み込み: Classrooms の Scan 1 回 + 対象の課題ごとに Memberships・Submissions の Query 1 回ずつ。
-- `--recount` は数えている間の提出・返却のぶんだけずれうるので、**授業の無い時間に**流す。
+- **どのモードも授業の無い時間に流す**。数えてから書くまでの間に提出・返却・退室があると、そのぶんずれた数を書きうる（既定のモードでも、数えている間の提出は数に入らない）。`--apply` のあとに `--verify` を流し、食い違いが出たら `--apply --recount` で直す。
 - Lambda を反映（deploy）したあとに流す。前に流すと、deploy までの間の提出が数に入らない。
 - ステージは `.env` の symlink で切り替える（`.claude/rules/infra/development.md`）。
 

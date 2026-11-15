@@ -1186,7 +1186,7 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
 }
 
 /**
- * 一覧・詳細の応答に足す `unreturnedCount`（#1972）。出さないときは空のオブジェクト。
+ * 一覧（`GET /classrooms`）の応答に足す `unreturnedCount`（#1972）。出さないときは空のオブジェクト。
  * @param item - Classrooms の item
  */
 function unreturnedCountFieldOf(item: Record<string, unknown>): { unreturnedCount?: number } {
@@ -2877,8 +2877,12 @@ async function handleUpdateSubmission(
   }));
 
   if (updates.status === 'returned') {
-    const oldStatus = updated?.Attributes ? updated.Attributes.status : submission.Item.status;
-    if (oldStatus !== 'returned') {
+    // Only the value returned atomically by this write counts. If the student
+    // resubmitted between the GetItem above and this Update, the Update has
+    // just recreated the deleted row and UPDATED_OLD carries no status — the
+    // re-read status must not stand in for it, or the count drifts (#1972).
+    const oldStatus = updated?.Attributes?.status;
+    if (oldStatus !== undefined && oldStatus !== 'returned') {
       try {
         const membership = await docClient.send(new GetCommand({
           TableName: MEMBERSHIPS_TABLE,

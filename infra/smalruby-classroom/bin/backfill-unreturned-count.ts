@@ -14,7 +14,11 @@
  * - 既定: 数を持っていない active / archived の課題だけを埋める
  *   （`attribute_not_exists` の条件付きで書くので、その間に Lambda が数を作った課題は上書きしない）。
  * - `--recount`: 数を持っている課題も数え直して上書きする（ずれを直したいとき）。
- *   数えている間に提出・返却があると、その分だけずれうるので、授業の無い時間に流す。
+ * - `--verify`: 書かない。数を持っている課題を数え直し、持っている数と食い違う課題だけを表示する
+ *   （`--apply` のあとに流して、書いた数が正しいかを確かめる）。
+ *
+ * **どのモードも授業の無い時間に流す**。数えてから書くまでの間に提出・返却・退室があると、
+ * その分だけずれた数を書きうる（既定のモードでも、数えている間の提出は数に入らない）。
  *
  * 読み込み: Classrooms を 1 回 Scan（運用作業なので Scan でよい）+ 対象の課題ごとに
  * Memberships と Submissions を Query 1 回ずつ。
@@ -23,6 +27,7 @@
  *   npx ts-node bin/backfill-unreturned-count.ts                 # dry-run（既定）
  *   npx ts-node bin/backfill-unreturned-count.ts --apply         # 書く
  *   npx ts-node bin/backfill-unreturned-count.ts --apply --recount
+ *   npx ts-node bin/backfill-unreturned-count.ts --verify        # 食い違いの表示だけ
  *
  * The stage comes from the .env symlink (STAGE), same as cdk deploy.
  * Runbook: docs/classroom/operations.md
@@ -35,7 +40,9 @@ import {
   countUnreturnedSubmissions,
   isSeatOccupied,
   needsUnreturnedBackfill,
+  needsUnreturnedVerify,
   parseUnreturnedBackfillArgs,
+  unreturnedCountOf,
 } from '../lambda/unreturned-count-lib';
 
 const stage = process.env.STAGE || 'stg';
@@ -69,9 +76,39 @@ async function queryByClassroom(tableName: string, classroomId: string): Promise
   return items;
 }
 
+/** 課題 1 つの数を、メンバーと提出から数え直す（handler と同じ数え方）。 */
+async function recountOf(classroomId: string): Promise<number> {
+  const [memberships, submissions] = await Promise.all([
+    queryByClassroom(names.membershipsTable, classroomId),
+    queryByClassroom(names.submissionsTable, classroomId),
+  ]);
+  const occupied = new Set(memberships.filter(m => isSeatOccupied(m)).map(m => String(m.memberId)));
+  return countUnreturnedSubmissions(submissions, occupied);
+}
+
+async function verify(): Promise<void> {
+  const classrooms = (await scanEverything(names.classroomsTable)).filter(needsUnreturnedVerify);
+  console.log(`verify: ${classrooms.length} assignments with a count`);
+  let mismatches = 0;
+  for (const item of classrooms) {
+    const stored = unreturnedCountOf(item);
+    const actual = await recountOf(String(item.classroomId));
+    if (stored !== actual) {
+      mismatches++;
+      console.log(`  MISMATCH ${item.classroomId} (${item.status}) stored=${stored} actual=${actual}`);
+    }
+  }
+  console.log(`verify: ${mismatches} mismatches (fix with --apply --recount)`);
+}
+
 async function main(): Promise<void> {
-  const { apply, recount } = parseUnreturnedBackfillArgs(process.argv.slice(2));
-  console.log(`stage=${stage} table=${names.classroomsTable} mode=${apply ? 'APPLY' : 'dry-run'}${recount ? ' recount' : ''}`);
+  const { apply, recount, verify: verifyOnly } = parseUnreturnedBackfillArgs(process.argv.slice(2));
+  const mode = verifyOnly ? 'verify' : `${apply ? 'APPLY' : 'dry-run'}${recount ? ' recount' : ''}`;
+  console.log(`stage=${stage} table=${names.classroomsTable} mode=${mode}`);
+  if (verifyOnly) {
+    await verify();
+    return;
+  }
 
   const classrooms = (await scanEverything(names.classroomsTable)).filter(item => needsUnreturnedBackfill(item, recount));
   console.log(`targets: ${classrooms.length} assignments`);
@@ -80,12 +117,7 @@ async function main(): Promise<void> {
   let skipped = 0;
   for (const item of classrooms) {
     const classroomId = String(item.classroomId);
-    const [memberships, submissions] = await Promise.all([
-      queryByClassroom(names.membershipsTable, classroomId),
-      queryByClassroom(names.submissionsTable, classroomId),
-    ]);
-    const occupied = new Set(memberships.filter(m => isSeatOccupied(m)).map(m => String(m.memberId)));
-    const count = countUnreturnedSubmissions(submissions, occupied);
+    const count = await recountOf(classroomId);
     console.log(`  ${classroomId} (${item.status}) → ${count}`);
     if (!apply) continue;
     try {
@@ -111,6 +143,7 @@ async function main(): Promise<void> {
     return;
   }
   console.log(`wrote ${written} assignments (skipped ${skipped}: deleted or already counted meanwhile)`);
+  console.log('check the result with --verify');
 }
 
 main().catch(err => {

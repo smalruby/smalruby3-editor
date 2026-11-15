@@ -129,8 +129,10 @@ export function unreturnedCountOf(item: Record<string, unknown> | undefined): nu
 /** バックフィルの引数。 */
 export interface UnreturnedBackfillArgs {
   apply: boolean;
-  /** 数を既に持っている課題も数え直して上書きする。 */
+  /** 数を持っている課題も数え直して上書きする。 */
   recount: boolean;
+  /** 書かずに、持っている数と数え直した数の食い違いだけを表示する。 */
+  verify: boolean;
 }
 
 /**
@@ -139,11 +141,15 @@ export interface UnreturnedBackfillArgs {
  * @returns 引数
  */
 export function parseUnreturnedBackfillArgs(argv: string[]): UnreturnedBackfillArgs {
-  const args: UnreturnedBackfillArgs = { apply: false, recount: false };
+  const args: UnreturnedBackfillArgs = { apply: false, recount: false, verify: false };
   for (const arg of argv) {
     if (arg === '--apply') args.apply = true;
     else if (arg === '--recount') args.recount = true;
+    else if (arg === '--verify') args.verify = true;
     else throw new Error(`unknown argument: ${arg}`);
+  }
+  if (args.verify && (args.apply || args.recount)) {
+    throw new Error('--verify only reads; do not combine it with --apply / --recount');
   }
   return args;
 }
@@ -159,4 +165,15 @@ export function needsUnreturnedBackfill(item: Record<string, unknown>, recount: 
   if (!item.classroomId) return false;
   if (item.status !== 'active' && item.status !== 'archived') return false;
   return recount || unreturnedCountOf(item) === undefined;
+}
+
+/**
+ * `--verify` で食い違いを確かめる課題か（数を持っている active / archived の課題）。
+ * @param item - Classrooms の item
+ * @returns 確かめるなら true
+ */
+export function needsUnreturnedVerify(item: Record<string, unknown>): boolean {
+  if (!item.classroomId) return false;
+  if (item.status !== 'active' && item.status !== 'archived') return false;
+  return unreturnedCountOf(item) !== undefined;
 }

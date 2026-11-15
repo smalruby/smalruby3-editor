@@ -3,6 +3,7 @@ import {
   hasUnreturnedSubmission,
   isSeatOccupied,
   needsUnreturnedBackfill,
+  needsUnreturnedVerify,
   parseUnreturnedBackfillArgs,
   unreturnedCountOf,
   unreturnedDeltaOnOccupancy,
@@ -88,8 +89,10 @@ describe('unreturnedCountOf', () => {
 
 describe('バックフィル', () => {
   test('引数', () => {
-    expect(parseUnreturnedBackfillArgs([])).toEqual({ apply: false, recount: false });
-    expect(parseUnreturnedBackfillArgs(['--apply', '--recount'])).toEqual({ apply: true, recount: true });
+    expect(parseUnreturnedBackfillArgs([])).toEqual({ apply: false, recount: false, verify: false });
+    expect(parseUnreturnedBackfillArgs(['--apply', '--recount'])).toEqual({ apply: true, recount: true, verify: false });
+    expect(parseUnreturnedBackfillArgs(['--verify'])).toEqual({ apply: false, recount: false, verify: true });
+    expect(() => parseUnreturnedBackfillArgs(['--verify', '--apply'])).toThrow();
     expect(() => parseUnreturnedBackfillArgs(['--force'])).toThrow();
   });
 
@@ -99,5 +102,11 @@ describe('バックフィル', () => {
     expect(needsUnreturnedBackfill({ classroomId: 'c', status: 'deleted' }, false)).toBe(false);
     expect(needsUnreturnedBackfill({ classroomId: 'c', status: 'active', unreturnedCount: 2 }, false)).toBe(false);
     expect(needsUnreturnedBackfill({ classroomId: 'c', status: 'active', unreturnedCount: 2 }, true)).toBe(true);
+  });
+
+  test('--verify は数を持っている active / archived の課題だけを確かめる', () => {
+    expect(needsUnreturnedVerify({ classroomId: 'c', status: 'active', unreturnedCount: 0 })).toBe(true);
+    expect(needsUnreturnedVerify({ classroomId: 'c', status: 'active' })).toBe(false);
+    expect(needsUnreturnedVerify({ classroomId: 'c', status: 'deleted', unreturnedCount: 1 })).toBe(false);
   });
 });
