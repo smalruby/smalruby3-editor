@@ -35,6 +35,7 @@ import ClassroomStatusIcon, {
     getPresenceStatus,
     getSubmissionStatus,
 } from './classroom-status-icon.jsx';
+import ClassroomTab from './classroom-tab.jsx';
 import ErrorDisplay from './error-display.jsx';
 import LessonSeatTile, { lessonSeatMessages } from './lesson-seat-tile.jsx';
 import { formatCompletionSentence } from './lesson-settings-field.jsx';
@@ -846,16 +847,11 @@ const TeacherClassDetail = ({
                                 )}
 
                             {/* Tabs: Description (default) / Members */}
-                            <div className={styles.detailTabs} role="tablist">
-                                <button
-                                    className={classNames(
-                                        styles.detailTab,
-                                        activeTab === 'description' && styles.detailTabActive,
-                                    )}
-                                    aria-selected={activeTab === 'description'}
-                                    data-tab="description"
-                                    data-testid="classroom-tab-description"
-                                    role="tab"
+                            <div className={styles.tabList} role="tablist">
+                                <ClassroomTab
+                                    dataTab="description"
+                                    dataTestId="classroom-tab-description"
+                                    selected={activeTab === 'description'}
                                     onClick={handleTabClick}
                                 >
                                     <FormattedMessage
@@ -863,16 +859,11 @@ const TeacherClassDetail = ({
                                         description="Assignment description tab label"
                                         id="gui.classroom.teacherDetail.descriptionTab"
                                     />
-                                </button>
-                                <button
-                                    className={classNames(
-                                        styles.detailTab,
-                                        activeTab === 'members' && styles.detailTabActive,
-                                    )}
-                                    aria-selected={activeTab === 'members'}
-                                    data-tab="members"
-                                    data-testid="classroom-tab-members"
-                                    role="tab"
+                                </ClassroomTab>
+                                <ClassroomTab
+                                    dataTab="members"
+                                    dataTestId="classroom-tab-members"
+                                    selected={activeTab === 'members'}
                                     onClick={handleTabClick}
                                 >
                                     <FormattedMessage
@@ -880,17 +871,12 @@ const TeacherClassDetail = ({
                                         description="Members list title"
                                         id="gui.classroom.members.title"
                                     />
-                                </button>
+                                </ClassroomTab>
                                 {showProgressTab && (
-                                    <button
-                                        className={classNames(
-                                            styles.detailTab,
-                                            activeTab === 'progress' && styles.detailTabActive,
-                                        )}
-                                        aria-selected={activeTab === 'progress'}
-                                        data-tab="progress"
-                                        data-testid="classroom-tab-progress"
-                                        role="tab"
+                                    <ClassroomTab
+                                        dataTab="progress"
+                                        dataTestId="classroom-tab-progress"
+                                        selected={activeTab === 'progress'}
                                         onClick={handleTabClick}
                                     >
                                         <FormattedMessage
@@ -898,7 +884,7 @@ const TeacherClassDetail = ({
                                             description="Tab of a lesson assignment: the seat × challenge progress table"
                                             id="gui.classroom.teacherDetail.progressTab"
                                         />
-                                    </button>
+                                    </ClassroomTab>
                                 )}
                                 {/* まれな操作は⋮の中（R2・#1303 D1）。ダウンロード中は
                                     メニューが閉じるので、進み具合は⋮の横に出す。 */}

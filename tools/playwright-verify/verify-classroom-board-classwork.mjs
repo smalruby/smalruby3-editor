@@ -8,6 +8,7 @@
 //
 //   node verify-classroom-board-classwork.mjs                 # headless, asserts
 //   DOCS_SHOTS=1 node verify-classroom-board-classwork.mjs    # + docs/classroom/screenshots
+//   LOCALE=ja-Hira node verify-classroom-board-classwork.mjs  # ひらがなで測る (既定は ja。DOCS_SHOTS は ja のときだけ)
 //   BASE=http://localhost:8621 node verify-classroom-board-classwork.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -18,7 +19,8 @@ const BASE = process.env.BASE || 'http://localhost:8601';
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SHOT_DIR = process.env.SHOT_DIR || resolve(REPO_ROOT, 'tmp');
 const DOCS_DIR = resolve(REPO_ROOT, 'docs/classroom/screenshots');
-const DOCS_SHOTS = process.env.DOCS_SHOTS === '1';
+const LOCALE = process.env.LOCALE || 'ja';
+const DOCS_SHOTS = process.env.DOCS_SHOTS === '1' && LOCALE === 'ja';
 const VIEWPORT = { width: 1300, height: 600 };
 mkdirSync(SHOT_DIR, { recursive: true });
 
@@ -100,7 +102,7 @@ await page.route(/\/classrooms\/c\d\/assignment$/, (r) =>
 
 const tid = (id) => `[data-testid="${id}"]`;
 const shot = async (name, docsName) => {
-    await page.screenshot({ path: resolve(SHOT_DIR, `issue-1301-${name}.png`) });
+    await page.screenshot({ path: resolve(SHOT_DIR, `issue-1301-${name}${LOCALE === 'ja' ? '' : `-${LOCALE}`}.png`) });
     if (DOCS_SHOTS && docsName) await page.screenshot({ path: resolve(DOCS_DIR, docsName) });
 };
 const measureStream = () =>
@@ -136,7 +138,7 @@ const measure = () =>
     });
 
 try {
-    await page.goto(`${BASE}/?no_beforeunload=1&locale=ja&devlogin=stub-token`, { waitUntil: 'load' });
+    await page.goto(`${BASE}/?no_beforeunload=1&locale=${LOCALE}&devlogin=stub-token`, { waitUntil: 'load' });
     await page.waitForTimeout(3000);
     // The dev server's warning overlay would swallow the clicks.
     await page.addStyleTag({ content: '#webpack-dev-server-client-overlay { display: none !important; }' });
@@ -166,14 +168,22 @@ try {
 
     await page.locator(tid('classroom-board-create-menu')).click();
     await page.waitForTimeout(300);
+    // 並びは data-testid で比べる (言葉は LOCALE で変わるので、表示の文字は報告にだけ出す)。
     const items = await page.$$eval('[data-testid="classroom-board-create-menu-list"] [role="menuitem"]', (els) =>
-        els.map((e) => e.textContent.trim()),
+        els.map((e) => ({ id: e.getAttribute('data-testid'), text: e.textContent.trim() })),
     );
-    const CREATE_MENU = ['課題', 'レッスン', '課題を再利用', 'みんなの課題からさがす', '合言葉で取り込み', 'トピック'];
+    const CREATE_MENU = [
+        'classroom-board-create',
+        'classroom-board-create-lesson',
+        'classroom-board-reuse',
+        'classroom-board-shared-catalog',
+        'classroom-board-passcode-import',
+        'classroom-board-create-topic',
+    ];
     record(
         'create menu items',
-        items.length === CREATE_MENU.length && CREATE_MENU.every((label, i) => items[i] === label),
-        items.join(' / '),
+        items.length === CREATE_MENU.length && CREATE_MENU.every((id, i) => items[i].id === id),
+        items.map((item) => `${item.text} (${item.id})`).join(' / '),
     );
     await shot('create-menu', '0224-board-create-menu.png');
 
@@ -222,5 +232,5 @@ try {
     await browser.close();
 }
 const failed = results.filter((r) => !r.ok);
-console.log(`\n${results.length - failed.length}/${results.length} checks passed at ${VIEWPORT.width}x${VIEWPORT.height}`);
+console.log(`\n${results.length - failed.length}/${results.length} checks passed at ${VIEWPORT.width}x${VIEWPORT.height} (${LOCALE})`);
 process.exit(failed.length ? 1 : 0);

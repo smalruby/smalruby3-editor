@@ -94,6 +94,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-lesson-settings.js ← 課題のレッスンの設定の純粋ロジック（下書き ↔ API の lesson・完了の条件・採点の点）
 │   │   │   ├── classroom-lesson-progress.js ← 先生の進み具合の純粋ロジック（座席の色・表の記号・できた人・並べ方・CSV）
 │   │   │   ├── classroom-lesson-summary.js ← パネル・席の詳細・［授業］の行・採点・提出状況.csv のレッスンの要約（純粋ロジック）
+│   │   │   ├── classroom-class-color.js ← クラスの色（帯）を先生のクラスの作成日の順から選ぶ純粋関数
 │   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
 │   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）を組み立てる（純粋）
 │   │   │   ├── classroom-genai-settings.js ← クラスの生成AI・ルビティー設定の下書き・検証・PATCH 差分（純粋）#1277
@@ -249,7 +250,9 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 | `classroom-modal/teacher-view-layout.jsx` | `TeacherScreen`（パンくずを持つトップレベル画面）と `TeacherSubView`（パネル内サブ画面。`as="form"` で `<form>` になる）。パンくず → タイトル → 説明 → エラー → 本文 → フッター の順を固定する |
 | `classroom-modal/class-ai-settings.jsx` | クラス設定の「このクラスで使う AI」欄。「学校の生成AI に相談」（使わない / Gemini / ChatGPT / その他）とルビティー（トグル）の 2 行に、それぞれ生徒の画面に起こることを書く。生成AI を選ぶとその行の下に条件・必須の確認・URL を、ルビティーをオンにするとその行の下に条件・必須の確認を開く。下書きは親のクラス設定フォームが持ち、「保存」で変わった項目だけ送る |
 | `classroom-modal/class-ai-student-preview.jsx` | クラス設定フォームの右に出す「生徒の画面はこうなります」の見本（CSS だけで描く）。未保存の入力に合わせて、コード・Ruby 両方の「AI に相談」の顔と、顔のパネルの［ルビティーにまかせる］の有無を変える。幅 1100px 未満では出さない |
-| `classroom-modal/classroom-button.jsx` | `ClassroomButton`（`variant="primary" / "secondary" / "danger"`）。ボタンの見た目はここだけが持つ |
+| `classroom-modal/classroom-button.jsx` | `ClassroomButton`（`variant="primary" / "secondary" / "text" / "danger"`）。ボタンの見た目はここだけが持つ（Scratch の形・高さ 36px。[`../design-system/components/buttons.md`](../design-system/components/buttons.md) の「クラス管理のボタン」） |
+| `classroom-modal/classroom-tab.jsx` | `ClassroomTab`（下に線のタブ。選ばれたら主の色の文字と 3px の線）。並びは `styles.tabList` の `role="tablist"` で包む（[`../design-system/components/tabs.md`](../design-system/components/tabs.md) の「クラス管理のタブ」） |
+| `lib/classroom-class-color.js` | クラスの色（帯の色）を先生のクラスの一覧の作成日の順（取れなければ id のハッシュ）から選ぶ純粋関数 `classColorFor` / `classColorStyle` と色の一覧 `CLASS_COLORS`（[`ui-ux.md`](ui-ux.md) の「共通: クラスの色」） |
 
 画面側で `<h2 className={styles.xxxTitle}>` やボタンのクラスを書き起こさないこと
 （それが #1121 / #1122 のズレの発生源だった）。フッターは `footer` スロットに

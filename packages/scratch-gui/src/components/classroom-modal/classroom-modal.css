@@ -172,63 +172,100 @@
     margin-right: 0.3rem;
 }
 
+/* クラス管理のボタン（#1956 Q6）: Scratch のダイアログのボタンの形（角丸 4px・太字）で、高さは 36px に
+   そろえる。主（青の塗り）・副（白地に枠・青の文字）・テキスト（地も枠も無い青の文字）の 3 種。
+   ClassroomButton の variant が選ぶ。形の決まりは docs/design-system/components/buttons.md の
+   「クラス管理のボタン」。 */
+.primary-button,
+.secondary-button,
+.text-button,
+.danger-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: $space-small;
+    box-sizing: border-box;
+    min-height: $size-button-height;
+    padding: 0 1rem;
+    border: 1px solid transparent;
+    border-radius: $radius-small;
+    font-family: inherit;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.text-button:focus-visible,
+.danger-button:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 2px;
+}
+
+/* 主ボタン: 1 つの画面に 1 つ（R2） */
 .primary-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
     background-color: $color-action;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-    font-weight: bold;
-    text-decoration: none;
+    border-color: $color-action-dark;
+    color: $color-surface;
 }
 
-.primary-button:hover {
-    background-color: $membership-blue;
+.primary-button:hover,
+.primary-button:active {
+    background-color: $color-action-dark;
 }
 
-.primary-button:disabled {
-    background-color: #d9d9d9;
-    cursor: not-allowed;
-}
-
-/* セカンダリボタン（#1125: 同名定義が 2 つあり後勝ちで実効値が混ざっていたのを、
-   その実効値どおりに 1 つへ統合した）。 */
+/* 副ボタン: やめる・戻る・ほかの操作 */
 .secondary-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    background-color: #fff;
-    color: #575e75;
-    border: 1px solid #b8b8b8;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-    text-decoration: none;
+    background-color: $color-surface;
+    border-color: $color-border;
+    color: $color-action;
 }
 
-.secondary-button:hover {
-    background-color: #f0f0f0;
+/* ホバー・押したときの淡い青の地の上では、$color-action（4.1:1）では足りないので濃い青（4.6:1）にする */
+.secondary-button:hover,
+.secondary-button:active {
+    background-color: $color-background;
+    color: $color-action-dark;
 }
 
+/* テキストボタン: カードの下の「採点」「設定」のような軽い操作。左右の余白を詰める */
+.text-button {
+    padding: 0 0.625rem;
+    background-color: transparent;
+    color: $color-action;
+}
+
+.text-button:hover,
+.text-button:active {
+    background-color: $color-background;
+    color: $color-action-dark;
+}
+
+/* 押せない: 主・副は淡い灰色の地と文字にそろえる（押せない部品はコントラストの対象外）。
+   テキストボタンは箱にせず、文字だけを灰色にする */
+.primary-button:disabled,
 .secondary-button:disabled {
-    opacity: 0.5;
+    background-color: $color-disabled;
+    border-color: transparent;
+    color: $color-disabled-text;
     cursor: not-allowed;
 }
 
+.text-button:disabled {
+    background-color: transparent;
+    color: $color-disabled-text;
+    cursor: not-allowed;
+}
+
+/* 取り消せない操作の確認（採点を離れる）。色は画面ごとの Issue で R4 に合わせて見直す */
 .danger-button {
     background-color: white;
     color: #ff6680;
-    border: 1px solid #ff6680;
-    border-radius: 4px;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.85rem;
-    cursor: pointer;
+    border-color: #ff6680;
 }
 
 .danger-button:hover {
@@ -2181,34 +2218,43 @@ $seat-tile-min: 36px;
     margin-bottom: 1rem;
 }
 
-/* --- Class detail tabs (Members / Co-teachers) --- */
+/* --- クラス管理のタブ（#1956 Q7・ClassroomTab）: 下に線。選ばれたら主の色の文字と 3px の線 ---
+   クラスの中の［ストリーム］［授業］、課題の［説明］［メンバー］［進み具合］、みんなの課題の
+   ［すべて］［自分の投稿］が使う。形の決まりは docs/design-system/components/tabs.md の
+   「クラス管理のタブ」。 */
 
-.detail-tabs {
+.tab-list {
     display: flex;
+    align-items: flex-end;
     gap: 0.25rem;
-    border-bottom: 1px solid #e9edf2;
+    border-bottom: 1px solid $color-border;
     margin-bottom: 0.75rem;
 }
 
-.detail-tab {
+.tab {
     background: none;
     border: none;
-    border-bottom: 3px solid transparent;
+    border-bottom: $size-tab-indicator solid transparent;
     margin-bottom: -1px;
-    padding: 0.5rem 0.9rem;
-    font-size: 0.95rem;
-    color: #575e75;
+    padding: 0.5rem 1rem;
+    font-family: inherit;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+    color: $color-text;
     cursor: pointer;
 }
 
-.detail-tab:hover {
+.tab:hover {
     color: $color-action;
 }
 
-/* ［ストリーム］［授業］のタブ（.board-tab-active）と同じ色（#1922）。 */
-.detail-tab-active {
+.tab:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: -2px;
+}
+
+.tab-selected {
     color: $color-action;
-    font-weight: bold;
     border-bottom-color: $color-action;
 }
 
@@ -3958,51 +4004,6 @@ $seat-tile-min: 36px;
     font-size: 0.8rem;
     font-weight: normal;
     color: hsla(225, 15%, 40%, 1);
-}
-
-/* プライマリ = 青塗り（評価画面に統一・#1122）。 */
-.board-create-button {
-    background: $color-action;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1.25rem;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.board-create-button:hover {
-    background: $membership-blue;
-}
-
-.board-create-button:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
-/* ［ストリーム］［授業］のタブ（Google Classroom と同じ並び）。 */
-.board-tabs {
-    display: flex;
-    gap: 0.25rem;
-    border-bottom: 1px solid hsla(0, 0%, 0%, 0.12);
-    margin-bottom: 0.75rem;
-}
-
-.board-tab,
-.board-tab-active {
-    border: none;
-    border-bottom: 3px solid transparent;
-    background: transparent;
-    padding: 0.4rem 1rem;
-    font-size: 0.95rem;
-    color: #575e75;
-    cursor: pointer;
-}
-
-.board-tab-active {
-    border-bottom-color: $color-action;
-    color: $color-action;
-    font-weight: bold;
 }
 
 .board-header-end {

@@ -164,6 +164,7 @@
 | `$color-primary-dark` | `$looks-secondary-dark` | 主の色の上の枠・押したときの塗り |
 | `$color-primary-transparent` | `$looks-transparent` | フォーカスの輪・ホバーの枠 |
 | `$color-action` | `$motion-tertiary` | 青を主の色にしている独自の画面（クラス管理）の主ボタン・文字リンク・選ばれたタブ・フォーカス。白に 4.7:1（上流の `$motion-primary` は 2.9:1 で白い文字が読めない）。ホバー・押したときは `$membership-blue` |
+| `$color-action-dark` | `$membership-blue`（`#2F6ABC`） | 操作の青の濃いほう: クラス管理の主ボタンの枠・ホバー・押したとき。白に 5.4:1 |
 | `$color-text` | `$text-primary` | 本文の文字 |
 | `$color-text-muted` | `$text-primary-transparent` | 補助の文字 |
 | `$color-surface` | `$ui-white` | 本文・カード・モーダルの本文の背景 |
@@ -180,16 +181,22 @@
 | `$color-seat-submitted` / `$color-seat-submitted-text` | `#0a7d5c` / `$ui-white` | 座席: 提出済み（✓）・レッスンのクリア（★）。白い文字は 5.1:1。状況のパネルの席番号は小さな文字（0.625rem）なので 4.5:1 が要り、上流の `$pen-tertiary`（`#0B8E69`・4.1:1）では足りないため、ここで値を持つ |
 | `$color-seat-returned` / `$color-seat-returned-text` | `#ffe1bf` / `#7a3e00` | 座席: 返却済み（↩）。文字は地に 6.7:1 |
 | `$color-seat-not-started` / `$color-seat-not-started-text` | `#eceef3` / `$text-primary` | 座席: レッスンを始めていない。文字は地に 5.5:1 |
+| `$color-disabled` / `$color-disabled-text` | `#eceef3` / `#9ca0ad` | クラス管理の押せないボタン（主・副・テキストとも同じ）。押せない部品は WCAG 1.4.3 の対象外なので、はっきり淡くする（文字は地に 2.3:1） |
+| （クラスの色） | JS の `CLASS_COLORS`（`src/lib/classroom-class-color.js`） | クラス管理のクラスの色の帯。その先生のクラスの一覧から画面の側で選ぶので CSS のトークンにはしない。8 色・どれも白に 4.5:1 以上。決め方は [`../classroom/ui-ux.md`](../classroom/ui-ux.md) の「共通: クラスの色」 |
 | `$space-small` / `$space-medium` / `$space-large` | `calc($space / 2)` / `$space` / `calc($space * 2)` | 余白 0.25rem / 0.5rem / 1rem |
 | `$radius-small` | `$form-radius` | ボタン・入力欄 |
 | `$radius-medium` | `0.5rem` | カード・ライブラリの項目・吹き出し |
 | `$radius-round` | `50%` | 丸いアイコンボタン・アバター |
+| `$size-button-height` / `$size-button-height-small` | `2.25rem`（36px）/ `1.875rem`（30px） | クラス管理のボタンの高さ（`min-height`）。小さいほうはカードの下の文字のボタンなど |
+| `$size-tab-indicator` | `3px` | クラス管理の選ばれたタブの下の線 |
 | `$font-size-xsmall` | `0.625rem` | 入力欄のラベル・バッジ |
 | `$font-size-small` | `$menu-bar-standard-font-size` | メニューバー・タブ |
 | `$font-size-dialog` | `0.85rem` | ダイアログの本文・ボタン |
 | `$font-size-medium` | `$menu-bar-large-font-size` | ライブラリ・フィルタ |
 | `$font-size-base` | `1rem` | 本文 |
 | `$font-size-heading` | `1.5rem` | 見出し |
+| `$font-size-heading-small` / `-medium` / `-large` | `1.0625rem`（17px）/ `1.25rem`（20px）/ `1.375rem`（22px） | クラス管理の見出し（カード・右の列 / 生徒の画面 / 画面の見出し）。クラス管理の本文は `$font-size-medium`（14px）、ラベルは `$font-size-small`（12px） |
+| `$font-size-projection-heading` / `-body` / `-code` | `2rem`（32px）/ `1.5rem`（24px）/ `10rem`（160px） | クラス管理の「映す」画面（プロジェクターに映す）だけの大きい文字。参加コードは `min(15vw, $font-size-projection-code)` のように狭い画面ではみ出さないようにして使う |
 | `$font-weight-bold` | `bold` | 太字 |
 | `$shadow-raised` | `0 0 0.5rem hsla(0, 0%, 0%, 0.25)` | 浮いたもの（札・吹き出し） |
 | `$transition-standard` | `all 0.25s ease` | ホバー・選択の切り替え |
@@ -198,7 +205,7 @@
 
 ### 名前の付け方のきまり
 
-- `<種類>-<意味>`。種類は `color`・`space`・`radius`・`font-size`・`font-weight`・`shadow`・`transition`。
+- `<種類>-<意味>`。種類は `color`・`space`・`size`・`radius`・`font-size`・`font-weight`・`shadow`・`transition`。`size` は部品の高さ・線の太さなど、余白ではない大きさ。
 - 大きさの段階は `xsmall`・`small`・`medium`・`large`。用途で決まるものは用途の名前（`dialog`・`heading`）。
 - 上流にトークンがあるときは、別名はそれを指す（値を写さない）。上流で直書きのときだけ、ここで値を持つ。
 - 上流の名前（`$looks-secondary` など）と、すでにある名前（部品の中だけの `$main-button-size` など）にぶつけない。

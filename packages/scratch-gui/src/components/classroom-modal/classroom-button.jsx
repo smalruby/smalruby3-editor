@@ -5,8 +5,9 @@
  * 新しい画面を足すたびに枠線・角丸・並び順がずれていた (#1121 / #1122)。ボタンは
  * この 1 コンポーネントに集約し、見た目のバリエーションは variant だけで表す。
  *
- * 新しい画面でも `<ClassroomButton variant="primary">` / `variant="secondary"` を
- * 使えば自動的にスタイルがそろう。並び (セカンダリ左・プライマリ右) は
+ * 新しい画面でも `<ClassroomButton variant="primary">` / `variant="secondary"` /
+ * `variant="text"` を使えば自動的にスタイルがそろう（形は Scratch のボタン・高さ 36px・#1956 Q6。
+ * 決まりは docs/design-system/components/buttons.md の「クラス管理のボタン」）。並び (セカンダリ左・プライマリ右) は
  * `TeacherScreen` / `TeacherSubView` の footer スロットが担当する。
  */
 import classNames from 'classnames';
@@ -22,6 +23,7 @@ export const BUTTON_VARIANT_STYLE_KEYS = {
     danger: 'dangerButton',
     primary: 'primaryButton',
     secondary: 'secondaryButton',
+    text: 'textButton',
 };
 
 const ClassroomButton = ({

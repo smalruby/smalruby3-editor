@@ -26,6 +26,8 @@ $color-primary-transparent: $looks-transparent;
 /* 操作の青: クラス管理など青を主の色にしている独自の画面の主ボタン・文字リンク・選ばれたタブ・
    フォーカス。上流の青 $motion-primary（白に 2.9:1）は白い文字が読めないので、濃いほう（白に 4.7:1） */
 $color-action: $motion-tertiary;
+/* 操作の青の濃いほう: 操作の青のボタンの枠・ホバー・押したとき（上流の $membership-blue・白に 5.4:1） */
+$color-action-dark: $membership-blue;
 /* 本文の文字の色 */
 $color-text: $text-primary;
 /* 補助の文字の色（説明・プレースホルダー） */
@@ -78,6 +80,14 @@ $color-seat-returned-text: #7a3e00;
 $color-seat-not-started: #eceef3;
 $color-seat-not-started-text: $text-primary;
 
+/* 押せないボタンの地と文字（クラス管理のボタン）。押せない部品は WCAG 1.4.3 の対象外なので、
+   はっきり淡くして「押せない」ことを示す */
+$color-disabled: #eceef3;
+$color-disabled-text: #9ca0ad;
+
+/* クラスの色の帯（クラス管理のカード・クラスの見出し）は、クラスごとに画面の側で決める。
+   値は JS（src/lib/classroom-class-color.js の CLASS_COLORS）が正。CSS には置かない */
+
 /* ---- 余白 ---- */
 
 /* 小さい余白 0.25rem（アイコンと文字のすき間など） */
@@ -96,6 +106,15 @@ $radius-medium: 0.5rem;
 /* 丸: 丸いアイコンボタン・アバター */
 $radius-round: 50%;
 
+/* ---- 大きさ ---- */
+
+/* ボタンの高さ 36px（クラス管理のボタン。#1956 Q6） */
+$size-button-height: 2.25rem;
+/* 小さいボタンの高さ 30px（カードの下の文字のボタンなど） */
+$size-button-height-small: 1.875rem;
+/* 選ばれたタブの下の線の太さ（クラス管理のタブ。#1956 Q7） */
+$size-tab-indicator: 3px;
+
 /* ---- 文字 ---- */
 
 /* いちばん小さい文字 0.625rem: 入力欄のラベル・バッジ */
@@ -110,6 +129,21 @@ $font-size-medium: $menu-bar-large-font-size;
 $font-size-base: 1rem;
 /* 見出しの文字 1.5rem（typography.css の h2） */
 $font-size-heading: 1.5rem;
+/* クラス管理の文字（#1956 Q13）: 本文は $font-size-medium（14px）、ラベルは $font-size-small（12px）。
+   見出しは 17〜22px の 3 段 */
+/* 小さい見出し 17px: カードの見出し・右の列の見出し */
+$font-size-heading-small: 1.0625rem;
+/* 中くらいの見出し 20px: 生徒の画面の見出し（「参加コードを入力」など） */
+$font-size-heading-medium: 1.25rem;
+/* 大きい見出し 22px: 画面の見出し（クラス名など） */
+$font-size-heading-large: 1.375rem;
+/* 「映す」画面（プロジェクターに映す）の文字。教室の後ろから読める大きさ */
+/* 映す画面の見出し 32px: クラス名・課題名 */
+$font-size-projection-heading: 2rem;
+/* 映す画面の本文 24px: 座席の番号・数・説明 */
+$font-size-projection-body: 1.5rem;
+/* 映す画面の参加コード 160px（使う側で min(15vw, …) と組み合わせて、狭い画面ではみ出さないようにする） */
+$font-size-projection-code: 10rem;
 /* 太字（700 などの書き方ゆれは bold にそろえる） */
 $font-weight-bold: bold;
 

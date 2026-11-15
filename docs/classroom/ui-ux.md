@@ -310,6 +310,43 @@ stateDiagram-v2
 - 確認はブラウザの `confirm()` を使わず、**ページの中**に淡いオレンジの枠（`.confirm-note`・トークン `$color-confirm-background` / `$color-confirm-text`）で出す。
 - 退室依頼の［承認］は、生徒の依頼に応える操作なので**確認を挟まずに**退室させる（席を空ける前に教室で本人に確かめる前提。トースト・状況のパネル・メンバー詳細とも同じ）。色は白い文字が読める濃いオレンジ（`$color-attention-action`）。
 
+## 共通: 部品と文字の大きさ
+
+クラス管理（先生）と生徒の「クラス」は、どの画面も同じ部品で作る。値はトークン（`packages/scratch-gui/src/css/smalruby-tokens.css`。一覧は [`../design-system/tokens.md`](../design-system/tokens.md)）で書き、16 進や px を画面ごとに書き起こさない。
+
+| 部品・値 | 決まり | 使うもの |
+|---|---|---|
+| 主の色 | Scratch の濃い青 `#3373CC`（`$color-action`）。紫（`$color-primary`）はモーダルのヘッダーだけ | — |
+| ボタン | Scratch の形（角丸 4px・太字・14px）で高さ 36px。主（青の塗り）・副（白地に枠・青の文字）・テキスト（地も枠も無い青の文字）の 3 種。主ボタンは 1 画面に 1 つ（R2） | `ClassroomButton` の `variant="primary" / "secondary" / "text"`（[`../design-system/components/buttons.md`](../design-system/components/buttons.md) の「クラス管理のボタン」） |
+| タブ | 下に線。選ばれたタブは主の色の文字と 3px の線 | `ClassroomTab` を `styles.tabList`（`role="tablist"`）で包む（[`../design-system/components/tabs.md`](../design-system/components/tabs.md) の「クラス管理のタブ」） |
+| 文字の大きさ | ふだんは小さめ: 本文 14px（`$font-size-medium`）・ラベル 12px（`$font-size-small`）・見出し 17 / 20 / 22px（`$font-size-heading-small` / `-medium` / `-large`） | — |
+| 「映す」画面の文字 | プロジェクターに映す画面だけ大きくする: 見出し 32px・本文（座席の番号・数）24px・参加コード 160px（`$font-size-projection-heading` / `-body` / `-code`。参加コードは `min(15vw, …)` と組み合わせる） | — |
+
+## 共通: クラスの色
+
+クラスの一覧のカードとクラスの画面の見出しには、クラスごとの**色の帯**を付けて見分けやすくする（Google Classroom のクラスの色にあたる）。
+
+- **色は画面の側で決める**。API・データに色の項目は無い。その先生のクラスの一覧（`GET /classroom-groups` の `groups`。**アーカイブ済みも含む**）を**作成日（`createdAt`）の古い順**（同じなら `groupId` 順）に並べ、その番号で下の表の色を上から順に割り当てる。
+  - **8 クラスまでは色が重ならない**。9 つめからは表の頭に戻る。
+  - クラスを作っても前のクラスの色は変わらない（新しいクラスはいつも最後に並ぶ）。アーカイブ済みも並べるので、アーカイブ・復元でもほかのクラスの色はずれない。
+  - 一覧は先生ごとなので、共同管理のクラスは、オーナーと共同管理者で色が違うことがある。
+  - 作成日が取れないクラス（一覧に無い・日付が読めない）は、`groupId` のハッシュ（FNV-1a）で選ぶ。
+- 色は Scratch のブロックのなかまの濃い色（`colourTertiary`。[`../design-system/blocks.md`](../design-system/blocks.md)）から取る。帯の文字は白なので、**白に 4.5:1 以上の色だけ**を使う。そのままでは足りないなかまは、色相と彩度を変えずに明るさだけを下げた色にした。
+- 赤に近いなかま（ブロック定義・リスト）は使わない（赤は「いま対処が必要」なときだけ・R4）。イベントは暗くすると制御と見分けにくいので使わない。
+- 色は見分けの手がかりで、クラスは名前で見分ける（R5: 色だけで区別しない）。
+- 実装: `packages/scratch-gui/src/lib/classroom-class-color.js` の `classColorFor(groupId, groups)`（色）・`classColorStyle(groupId, groups)`（帯に渡す style）。`groups` には `listGroups` の `groups` をそのまま渡す。表の並びを変えると既存のクラスの色が変わるので、色を足すときは末尾に足す。
+
+| 順 / なかま | もとの色（Tertiary） | 帯の色 | 白の文字との比 |
+|---|---|---|---|
+| 1. 動き `motion` | `#3373CC` | `#3373CC` | 4.7 |
+| 2. 見た目 `looks` | `#774DCB` | `#774DCB` | 5.7 |
+| 3. 拡張機能 `pen` | `#0B8E69` | `#0A8562` | 4.6 |
+| 4. 音 `sounds` | `#BD42BD` | `#B941B9` | 4.7 |
+| 5. 変数 `data` | `#DB6E00` | `#B75C00` | 4.6 |
+| 6. 調べる `sensing` | `#2E8EB8` | `#287DA2` | 4.6 |
+| 7. 演算 `operators` | `#389438` | `#328532` | 4.6 |
+| 8. 制御 `control` | `#CF8B17` | `#9D6911` | 4.7 |
+
 ---
 
 ## 1. 先生: ログイン (`teacher-login`)
