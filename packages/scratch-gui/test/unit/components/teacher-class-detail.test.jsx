@@ -316,6 +316,18 @@ describe('TeacherClassDetail — entry tab (teacher review on #1199)', () => {
         expect(onDetailTabChange).toHaveBeenLastCalledWith('description');
     });
 
+    test('the tabs are role="tab" and only the shown one is aria-selected (#1922)', () => {
+        renderDetail({});
+        const tab = (name) => document.querySelector(`[data-testid="classroom-tab-${name}"]`);
+        expect(tab('description')).toHaveAttribute('role', 'tab');
+        expect(tab('members')).toHaveAttribute('role', 'tab');
+        expect(tab('members')).toHaveAttribute('aria-selected', 'true');
+        expect(tab('description')).toHaveAttribute('aria-selected', 'false');
+        fireEvent.click(tab('description'));
+        expect(tab('description')).toHaveAttribute('aria-selected', 'true');
+        expect(tab('members')).toHaveAttribute('aria-selected', 'false');
+    });
+
     test('reopening the assignment on screen resets the tab', () => {
         const onDetailTabChange = jest.fn();
         const props = { ...defaultProps(), onDetailTabChange, detailEntry: { tab: 'description', seq: 1 } };

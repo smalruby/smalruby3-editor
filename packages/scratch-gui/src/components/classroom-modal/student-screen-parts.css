@@ -1,3 +1,6 @@
+/* 主ボタン・文字リンクの青は $color-action（docs/design-system/tokens.md・#1922）。 */
+@import '../../css/smalruby-tokens.css';
+
 /* 生徒の画面の共通部品 (#1792)。決まりは docs/classroom/ui-ux.md の「生徒の画面の決まり」。
    主ボタンは画面に 1 つだけ。ほかの操作は小さな文字のリンクにして主ボタンと同じ重さに見せない。 */
 
@@ -7,8 +10,8 @@
     padding: 0.75rem 1rem;
     border: none;
     border-radius: 10px;
-    background-color: #4c97ff;
-    box-shadow: 0 3px 0 #2f6fd6;
+    background-color: $color-action;
+    box-shadow: 0 3px 0 $membership-blue;
     color: white;
     font-size: 1.05rem;
     font-weight: bold;
@@ -17,7 +20,7 @@
 }
 
 .main-button:hover {
-    background-color: #3d89f0;
+    background-color: $membership-blue;
 }
 
 .main-button:disabled {

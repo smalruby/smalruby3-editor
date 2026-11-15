@@ -163,6 +163,7 @@
 | `$color-primary` | `$looks-secondary` | 主ボタンの塗り・選ばれた状態・メニューバー |
 | `$color-primary-dark` | `$looks-secondary-dark` | 主の色の上の枠・押したときの塗り |
 | `$color-primary-transparent` | `$looks-transparent` | フォーカスの輪・ホバーの枠 |
+| `$color-action` | `$motion-tertiary` | 青を主の色にしている独自の画面（クラス管理）の主ボタン・文字リンク・選ばれたタブ・フォーカス。白に 4.7:1（上流の `$motion-primary` は 2.9:1 で白い文字が読めない）。ホバー・押したときは `$membership-blue` |
 | `$color-text` | `$text-primary` | 本文の文字 |
 | `$color-text-muted` | `$text-primary-transparent` | 補助の文字 |
 | `$color-surface` | `$ui-white` | 本文・カード・モーダルの本文の背景 |
