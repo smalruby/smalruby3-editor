@@ -36,6 +36,23 @@ import { TeacherScreen } from './teacher-view-layout.jsx';
 const GRADES = [...GRADE_ORDER].reverse(); // S, A, B, C
 
 const evalMessages = defineMessages({
+    // The three fields stacked in each grade cell (#1924 C5・R1). Named in the
+    // column heading (visible) and on each field (screen readers).
+    fieldGrade: {
+        defaultMessage: 'Grade',
+        description: 'Grading table: name of the grade (S/A/B/C) field in a cell',
+        id: 'gui.classroom.evaluation.fieldGrade',
+    },
+    fieldReason: {
+        defaultMessage: 'Reason (teacher only)',
+        description: 'Grading table: name of the reason field in a cell (the student does not see it)',
+        id: 'gui.classroom.evaluation.fieldReason',
+    },
+    fieldComment: {
+        defaultMessage: 'Comment to the student',
+        description: 'Grading table: name of the comment field in a cell (returned to the student)',
+        id: 'gui.classroom.evaluation.fieldComment',
+    },
     lessonHead: {
         defaultMessage: 'Lesson (auto)',
         description:
@@ -218,6 +235,7 @@ ExportMenu.propTypes = {
 };
 
 const GradeCell = ({ cell, classroomId, comment, seatNumber, onSetCellGrade, onSetCellReason, onSetComment }) => {
+    const intl = useIntl();
     const handleGradeChange = useCallback(
         (e) => onSetCellGrade(seatNumber, classroomId, e.target.value),
         [onSetCellGrade, seatNumber, classroomId],
@@ -245,6 +263,7 @@ const GradeCell = ({ cell, classroomId, comment, seatNumber, onSetCellGrade, onS
         >
             <div className={styles.evalCellRow}>
                 <select
+                    aria-label={intl.formatMessage(evalMessages.fieldGrade)}
                     className={styles.evalGradeSelect}
                     data-testid={`classroom-eval-grade-${seatNumber}-${classroomId}`}
                     value={cell.grade || ''}
@@ -265,17 +284,17 @@ const GradeCell = ({ cell, classroomId, comment, seatNumber, onSetCellGrade, onS
                 {cell.returned && <span className={styles.evalReturnedBadge}>{'返却済'}</span>}
             </div>
             <input
+                aria-label={intl.formatMessage(evalMessages.fieldReason)}
                 className={styles.evalReasonInput}
                 data-testid={`classroom-eval-reason-${seatNumber}-${classroomId}`}
-                placeholder="根拠"
                 type="text"
                 value={cell.reason || ''}
                 onChange={handleReasonChange}
             />
             <textarea
+                aria-label={intl.formatMessage(evalMessages.fieldComment)}
                 className={styles.evalCommentInput}
                 data-testid={`classroom-eval-comment-${seatNumber}-${classroomId}`}
-                placeholder="生徒向けコメント"
                 rows={2}
                 value={comment || ''}
                 onChange={handleCommentChange}
@@ -827,7 +846,20 @@ const TeacherEvaluation = ({
                                                 : intl.formatMessage(evalMessages.lessonHead)}
                                         </th>
                                     ) : (
-                                        <th key={lesson.classroomId}>{lesson.assignmentName}</th>
+                                        <th key={lesson.classroomId}>
+                                            {lesson.assignmentName}
+                                            {/* R1: the cell's three fields, top to bottom (#1924 C5) */}
+                                            <span
+                                                className={styles.evalHeadFields}
+                                                data-testid={`classroom-eval-head-fields-${lesson.classroomId}`}
+                                            >
+                                                {[
+                                                    intl.formatMessage(evalMessages.fieldGrade),
+                                                    intl.formatMessage(evalMessages.fieldReason),
+                                                    intl.formatMessage(evalMessages.fieldComment),
+                                                ].join(' / ')}
+                                            </span>
+                                        </th>
                                     ),
                                 )}
                                 {/* 総合は作品の評価だけから出すので、AI を使わない流れでは出さない（#1778） */}

@@ -429,3 +429,12 @@ describe('StudentStatusView の GA (#1831)', () => {
         expect(onLeaveClassroom).toHaveBeenCalled();
     });
 });
+
+describe('StudentStatusView: ↻ の名前 (#1924 C11)', () => {
+    test('↻ に「読み込み直す」の名前がある', () => {
+        renderView();
+        const button = screen.getByTestId('classroom-student-refresh');
+        expect(button).toHaveAttribute('aria-label', 'Reload');
+        expect(button).toHaveAttribute('title', 'Reload');
+    });
+});

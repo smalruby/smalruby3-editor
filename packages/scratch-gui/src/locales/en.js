@@ -224,8 +224,16 @@ export default {
     'gui.classroom.teacherDetail.studentCountHint':
         'You can increase the number of seats. Decreasing is not allowed.',
     'gui.classroom.teacherDetail.cancelStudentCount': 'Cancel',
+    'gui.classroom.refresh': 'Reload',
+    'gui.classroom.joinCode.fullscreenShort': 'Full screen',
+    'gui.classroom.evaluation.fieldGrade': 'Grade',
+    'gui.classroom.evaluation.fieldReason': 'Reason (teacher only)',
+    'gui.classroom.evaluation.fieldComment': 'Comment to the student',
+    'gui.classroom.teacherDetail.commentLabel': 'Comment to the student (sent when you return it)',
     'gui.classroom.error.title': 'An error occurred',
-    'gui.classroom.error.invalidJoinCode': 'Could not join the classroom. Please check the join code and try again.',
+    'gui.classroom.error.invalidJoinCode':
+        'That join code was not found. Enter the code your teacher showed you again.',
+    'gui.classroom.error.joinTitle': 'Could not join',
     'gui.classroom.error.seatTaken': 'This seat is already taken. Please choose a different seat.',
     'gui.classroom.error.sessionExpired': 'Your session has expired. Please rejoin the classroom.',
     'gui.classroom.sessionExpiredBanner': 'Session expired.',

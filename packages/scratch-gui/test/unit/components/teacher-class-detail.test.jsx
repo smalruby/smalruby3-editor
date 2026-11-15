@@ -909,3 +909,18 @@ describe('TeacherClassDetail — lesson progress (#1602)', () => {
         expect(document.querySelector('[data-testid="classroom-lesson-seat-stuck-1"]')).not.toBeInTheDocument();
     });
 });
+
+describe('TeacherClassDetail — アイコンだけのボタンに名前 (#1924 C11)', () => {
+    test('メンバータブの ↻ に「読み込み直す」の名前がある', () => {
+        renderDetail();
+        const button = document.querySelector('[data-testid="classroom-refresh"]');
+        expect(button.getAttribute('aria-label')).toBe('Reload');
+        expect(button.getAttribute('title')).toBe('Reload');
+    });
+
+    test('参加コードの ⛶ の横に「全画面」の文字を出す', () => {
+        renderDetail();
+        const button = document.querySelector('[data-testid="classroom-detail-expand-code"]');
+        expect(button.textContent).toContain('Full screen');
+    });
+});

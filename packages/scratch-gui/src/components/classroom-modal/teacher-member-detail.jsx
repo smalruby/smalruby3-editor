@@ -6,6 +6,9 @@ import styles from './classroom-modal.css';
 import ClassroomStatusIcon from './classroom-status-icon.jsx';
 import LessonMemberDetail from './lesson-member-detail.jsx';
 
+// Only one member detail is open at a time, so a fixed id is unique.
+const COMMENT_INPUT_ID = 'classroom-member-detail-comment-input';
+
 // 提出時刻は日付つきで書く（別の日の提出と見分けるため）。値が無い・読めないときは何も出さない
 // （そのまま Date にすると「Invalid Date」や 1970 年の時刻が出てしまう）。
 const formatSubmittedAt = (iso, locale) => {
@@ -360,11 +363,23 @@ const TeacherMemberDetail = ({
                         )}
                         {/* Comment + Return */}
                         <div className={styles.commentSection}>
+                            {/* R1: a visible label, not「...」in the field (#1924 C5) */}
+                            <label
+                                className={styles.commentLabel}
+                                data-testid="classroom-member-detail-comment-label"
+                                htmlFor={COMMENT_INPUT_ID}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Comment to the student (sent when you return it)"
+                                    description="Member detail: label above the comment field"
+                                    id="gui.classroom.teacherDetail.commentLabel"
+                                />
+                            </label>
                             <textarea
                                 className={styles.commentInput}
                                 data-testid="classroom-member-detail-comment"
+                                id={COMMENT_INPUT_ID}
                                 maxLength={500}
-                                placeholder={selectedMemberData.isReturned ? '' : '...'}
                                 value={commentText}
                                 onChange={handleCommentChange}
                             />

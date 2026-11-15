@@ -44,7 +44,10 @@ import {
 import { reloadProgress, requestProgressSend } from '../reducers/lesson-mode.js';
 import { setProjectTitle } from '../reducers/project-title.js';
 import { decideClasscodeAction, initialStudentPhase, resolveAutoJoinCode } from './classroom-classcode-utils.js';
-import translateError, { extractKickReason } from './classroom-error-utils.js';
+import translateError, {
+    extractKickReason,
+    joinErrorTitle as formatJoinErrorTitle,
+} from './classroom-error-utils.js';
 import useKickRequestPolling from './use-kick-request-polling.js';
 import useStudentAssignment from './use-student-assignment.js';
 import useStudentSubmit from './use-student-submit.js';
@@ -269,7 +272,9 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
 
     // --- Join with code ---
 
-    const joinErrorTitle = useCallback(
+    const joinErrorTitle = useCallback(() => formatJoinErrorTitle(intl), [intl]);
+    // Leaving the old seat failed (「出席番号がちがう」): not a join failure.
+    const genericErrorTitle = useCallback(
         () =>
             intl.formatMessage({
                 defaultMessage: 'An error occurred',
@@ -718,7 +723,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                 try {
                     await classroomAPI.leaveClassroom(sessionToken, classroomId);
                 } catch (err) {
-                    showError(translateError(intl, err), joinErrorTitle());
+                    showError(translateError(intl, err), genericErrorTitle());
                     return;
                 }
             }
@@ -732,7 +737,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             switchingSeatRef.current = false;
             setSwitchingSeat(false);
         });
-    }, [classroomState, clearError, showError, intl, joinErrorTitle, dispatch, showSeatSelection]);
+    }, [classroomState, clearError, showError, intl, joinErrorTitle, genericErrorTitle, dispatch, showSeatSelection]);
 
     // --- Auto-join: classcode URL parameter / teacher's selected assignment ---
     useEffect(() => {

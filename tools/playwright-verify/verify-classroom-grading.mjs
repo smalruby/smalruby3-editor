@@ -15,6 +15,7 @@
  *   BASE=http://localhost:8624 node verify-classroom-grading.mjs
  *   DOCS_SHOTS=1 node verify-classroom-grading.mjs          # docs/classroom/screenshots も撮り直す
  *   BEFORE=1 node verify-classroom-grading.mjs              # 直す前の画面 (手順のボタンが無い) を撮るだけ
+ *   LOCALE=ja-Hira node verify-classroom-grading.mjs        # ひらがなで測る (既定は ja。DOCS_SHOTS は ja のときだけ)
  */
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
@@ -29,7 +30,8 @@ const CHANNEL = process.env.CHANNEL || undefined;
 const BASE = process.env.BASE || 'http://localhost:8601';
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SHOT_DIR = process.env.SHOT_DIR || resolve(REPO_ROOT, 'tmp');
-const DOCS_SHOTS = process.env.DOCS_SHOTS === '1';
+const LOCALE = process.env.LOCALE || 'ja';
+const DOCS_SHOTS = process.env.DOCS_SHOTS === '1' && LOCALE === 'ja';
 const BEFORE = process.env.BEFORE === '1';
 const VIEWPORT = { width: 1300, height: 600 };
 const SEATS = 40;
@@ -139,7 +141,7 @@ const measure = (page) =>
     );
 
 const shoot = async (page, shot) => {
-    await page.screenshot({ path: resolve(SHOT_DIR, `classroom-grading-${BEFORE ? 'before-' : ''}${shot}.png`) });
+    await page.screenshot({ path: resolve(SHOT_DIR, `classroom-grading-${BEFORE ? 'before-' : ''}${shot}${LOCALE === 'ja' ? '' : `-${LOCALE}`}.png`) });
     if (DOCS_SHOTS && !BEFORE && DOC_SHOT_NAMES[shot]) {
         await page.screenshot({ path: resolve(REPO_ROOT, 'docs', 'classroom', 'screenshots', DOC_SHOT_NAMES[shot]) });
     }
@@ -207,7 +209,7 @@ await page.route('https://example.invalid/**', (r) =>
     r.fulfill({ status: 200, body: sb3, headers: { 'content-type': 'application/octet-stream' } }),
 );
 
-await page.goto(`${BASE}/?no_beforeunload=1&locale=ja&devlogin=stub-token`, { waitUntil: 'load' });
+await page.goto(`${BASE}/?no_beforeunload=1&locale=${LOCALE}&devlogin=stub-token`, { waitUntil: 'load' });
 await page.waitForTimeout(3000);
 await page.locator('[data-testid="settings-menu"]').click();
 await page.locator('[data-testid="settings-classroom-management"]').click();

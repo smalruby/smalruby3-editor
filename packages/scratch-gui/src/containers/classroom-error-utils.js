@@ -115,7 +115,9 @@ const translateError = (intl, err, context = 'general') => {
 
     if (context === 'join' && (status === 404 || msg.includes('Invalid join code'))) {
         return intl.formatMessage({
-            defaultMessage: 'Could not join the classroom. Please check the join code and try again.',
+            // Say what happened and what to do (#1924 C12): the code was not
+            // found, so enter the one the teacher showed again.
+            defaultMessage: 'That join code was not found. Enter the code your teacher showed you again.',
             description: 'Error when join code is invalid',
             id: 'gui.classroom.error.invalidJoinCode',
         });
@@ -152,6 +154,20 @@ const translateError = (intl, err, context = 'general') => {
 };
 
 /**
+ * Title of the error shown when a student could not join (the join code was
+ * not found, or the class could not be looked up). Says what failed instead
+ * of「エラーが発生しました」(#1924 C12).
+ * @param {object} intl - react-intl intl object
+ * @returns {string} Localized title
+ */
+const joinErrorTitle = (intl) =>
+    intl.formatMessage({
+        defaultMessage: 'Could not join',
+        description: 'Title of the error shown when a student could not join an assignment',
+        id: 'gui.classroom.error.joinTitle',
+    });
+
+/**
  * If the error represents a kick (verify-session returned 410 with
  * reason='kicked'), return the kick context so the UI can navigate the
  * student back into seat selection for the same classroom. Returns null
@@ -172,5 +188,5 @@ const extractKickReason = (err) => {
     };
 };
 
-export { translateError, extractKickReason };
+export { translateError, extractKickReason, joinErrorTitle };
 export default translateError;

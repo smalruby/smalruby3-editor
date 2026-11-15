@@ -16,7 +16,7 @@
  *   SKIP_IDLE=1 node verify-classroom-viewport.mjs          # 30 秒待ちの強調表示を省く
  *   HEADLESS=false CHANNEL=chrome node verify-classroom-viewport.mjs
  *   DOCS_SHOTS=1 node verify-classroom-viewport.mjs        # docs/classroom/screenshots の生徒画面も撮り直す
- *   LOCALE=ja-Hira node verify-classroom-viewport.mjs       # ひらがなで測る (既定は ja)
+ *   LOCALE=ja-Hira node verify-classroom-viewport.mjs       # ひらがなで測る (既定は ja。先生の画面も)
  */
 import { chromium } from 'playwright';
 import { dirname, resolve } from 'node:path';
@@ -1223,7 +1223,7 @@ for (const [label, done, shot] of [
     await page.route('**/classrooms/c1/assignment', (r) =>
         r.fulfill({ json: { pages: [{ text: LONG_COMMENT.repeat(4), imageUrl: null }], starterUrl: null } }),
     );
-    await page.goto(`${BASE}/?no_beforeunload=1&locale=ja&devlogin=stub-token`, { waitUntil: 'load' });
+    await page.goto(`${BASE}/?no_beforeunload=1&locale=${LOCALE}&devlogin=stub-token`, { waitUntil: 'load' });
     await page.waitForTimeout(3000);
 
     // 先生メニュー (メニューバー)

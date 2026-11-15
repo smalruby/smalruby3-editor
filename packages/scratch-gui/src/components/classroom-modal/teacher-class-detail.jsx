@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import { sanitizeEntryName } from '../../lib/classroom-download-utils.js';
 import {
@@ -46,6 +46,20 @@ import SeatColorLegend, {
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherLessonProgress from './teacher-lesson-progress.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
+
+// Names of the icon buttons (#1924 C11): ↻ gets a name, ⛶ gets a word next to it.
+const detailIconMessages = defineMessages({
+    refresh: {
+        defaultMessage: 'Reload',
+        description: 'Name of the ↻ button that reloads the class status',
+        id: 'gui.classroom.refresh',
+    },
+    fullscreen: {
+        defaultMessage: 'Full screen',
+        description: 'Text next to the ⛶ icon of the button that shows the join code full screen',
+        id: 'gui.classroom.joinCode.fullscreenShort',
+    },
+});
 
 // Lesson assignments (#1602): the seat colour shows the lesson progress, so
 // the legend lists presence and leave requests (+ submission when work is
@@ -494,7 +508,10 @@ const TeacherClassDetail = ({
                                         type="button"
                                         onClick={handleShowCode}
                                     >
-                                        <span className={styles.joinCodeIcon}>{'⛶'}</span>
+                                        <span aria-hidden="true" className={styles.joinCodeIcon}>
+                                            {'⛶'}
+                                        </span>
+                                        {intl.formatMessage(detailIconMessages.fullscreen)}
                                     </button>
                                 </div>
                             ) : (
@@ -586,7 +603,7 @@ const TeacherClassDetail = ({
                                                 {selectedClassroom.joinCode.toLowerCase()}
                                             </span>
                                         </span>
-                                        {/* 全画面表示: 幅に関わらずアイコンのみ（tooltip でラベル補足） */}
+                                        {/* 全画面表示: アイコンの横に「全画面」の文字（#1924 C11） */}
                                         <button
                                             className={styles.joinCodeAction}
                                             data-testid="classroom-detail-expand-code"
@@ -598,7 +615,10 @@ const TeacherClassDetail = ({
                                             type="button"
                                             onClick={handleShowCode}
                                         >
-                                            <span className={styles.joinCodeIcon}>{'⛶'}</span>
+                                            <span aria-hidden="true" className={styles.joinCodeIcon}>
+                                                {'⛶'}
+                                            </span>
+                                            {intl.formatMessage(detailIconMessages.fullscreen)}
                                         </button>
                                         {/* 招待リンクをコピー: アイコンのみ。クリックすると
                                             アイコンがチェックに変わり、コピー完了を示す。 */}
@@ -1054,9 +1074,11 @@ const TeacherClassDetail = ({
                                                 {totalCount}
                                             </span>
                                             <button
+                                                aria-label={intl.formatMessage(detailIconMessages.refresh)}
                                                 className={styles.refreshButton}
                                                 data-testid="classroom-refresh"
                                                 disabled={isLoading}
+                                                title={intl.formatMessage(detailIconMessages.refresh)}
                                                 onClick={onRefresh}
                                             >
                                                 {'↻'}

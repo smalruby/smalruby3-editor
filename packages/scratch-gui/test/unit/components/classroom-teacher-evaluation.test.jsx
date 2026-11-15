@@ -372,3 +372,24 @@ describe('レッスンの課題の採点の流れ (#1778)', () => {
         expect(getByTestId('classroom-lesson-scoring-required')).toBeDisabled();
     });
 });
+
+describe('採点の表のラベル (#1924 C5・R1)', () => {
+    const cell = { submitted: true, grade: 'A', reason: '旗で動く' };
+    test('課題の列の見出しに、セルの中の 3 つの欄の名前を出す', () => {
+        const { getByTestId } = renderEvaluation({ seats: [1], getCell: () => cell });
+        expect(getByTestId('classroom-eval-head-fields-c1').textContent).toBe(
+            'Grade / Reason (teacher only) / Comment to the student',
+        );
+    });
+
+    test('セルの 3 つの欄に名前があり、プレースホルダーを名前の代わりにしない', () => {
+        const { getByTestId } = renderEvaluation({ seats: [1], getCell: () => cell });
+        expect(getByTestId('classroom-eval-grade-1-c1').getAttribute('aria-label')).toBe('Grade');
+        const reason = getByTestId('classroom-eval-reason-1-c1');
+        expect(reason.getAttribute('aria-label')).toBe('Reason (teacher only)');
+        expect(reason.getAttribute('placeholder')).toBeFalsy();
+        const comment = getByTestId('classroom-eval-comment-1-c1');
+        expect(comment.getAttribute('aria-label')).toBe('Comment to the student');
+        expect(comment.getAttribute('placeholder')).toBeFalsy();
+    });
+});

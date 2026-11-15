@@ -1577,6 +1577,12 @@ $seat-tile-min: 36px;
     gap: 0.25rem;
 }
 
+.comment-label {
+    font-size: $font-size-small;
+    font-weight: bold;
+    color: #575e75;
+}
+
 .comment-input {
     width: 100%;
     min-height: 60px;
@@ -1731,6 +1737,12 @@ $seat-tile-min: 36px;
     font-size: 1rem;
     padding: 0.1rem 0.4rem;
     color: #575e75;
+    /* 押せる大きさは 32px 以上（#1924 C11） */
+    min-width: 2rem;
+    min-height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .refresh-button:hover {
@@ -3111,6 +3123,15 @@ $seat-tile-min: 36px;
     padding: 0.4rem 0.5rem;
     text-align: left;
     white-space: nowrap;
+}
+
+/* 課題の列の見出しの右に、セルの中の 3 つの欄の名前を上から順に（R1・#1924 C5）。
+   同じ行に置くので見出しの行は高くならない。 */
+.eval-head-fields {
+    margin-left: 0.75rem;
+    font-size: $font-size-small;
+    font-weight: normal;
+    color: #575e75;
 }
 
 .eval-matrix td {
