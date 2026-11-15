@@ -22,8 +22,9 @@ export const lessonSeatMessages = defineMessages({
         id: 'gui.classroom.lessonSeat.cleared',
     },
     notJoined: {
-        defaultMessage: 'Not joined yet',
-        description: 'Lesson seat colour legend: white with a dotted border = no student in the seat',
+        defaultMessage: 'Empty',
+        description:
+            'Lesson seat colour legend: white with a dotted border = no student in the seat (#1956 Q12: 空席)',
         id: 'gui.classroom.lessonSeat.notJoined',
     },
     stuck: {

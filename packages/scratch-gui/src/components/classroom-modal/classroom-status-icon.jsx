@@ -23,8 +23,8 @@ const messages = defineMessages({
         id: 'gui.classroom.statusIcon.notSeated',
     },
     notJoined: {
-        defaultMessage: 'Not joined',
-        description: 'Status icon label: no student has joined this seat',
+        defaultMessage: 'Empty',
+        description: 'Status icon label: no student has joined this seat (#1956 Q12: 空席)',
         id: 'gui.classroom.statusIcon.notJoined',
     },
     submitted: {
