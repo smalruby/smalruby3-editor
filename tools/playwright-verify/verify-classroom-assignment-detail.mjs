@@ -58,6 +58,14 @@ const classrooms = [
         expiresAt: iso(now + 5 * DAY),
     }),
     assignment({ classroomId: 'c3', assignmentName: 'まだ書いていない課題', joinCode: 'q8wz3e', sortDate: iso(now - 20 * DAY), hasAssignment: false }),
+    // 運営が共有をすすめた課題（共有推奨バナー・#1106）
+    assignment({
+        classroomId: 'c4',
+        assignmentName: 'ねこ迷路ゲーム',
+        joinCode: 'm4zq8t',
+        sortDate: iso(now - 30 * DAY),
+        recommendedForSharing: true,
+    }),
 ];
 const members = Array.from({ length: 24 }, (_, i) => ({
     memberId: `seat-${String(i + 1).padStart(2, '0')}`,
@@ -309,6 +317,10 @@ try {
         const changedCount = await page.$$eval('[data-changed="true"]', (els) => els.length);
         record('changed setting is marked unsaved', !!unsaved && changedCount === 1, `changed=${changedCount}`);
         await shot('description-advanced-unsaved', '0239-detail-advanced-unsaved.png');
+        // 他者参照の選択肢（「自分が提出したら見られる」を選んだところ）
+        await page.selectOption(tid('classroom-assignment-peer-view'), 'afterSubmit');
+        await page.waitForTimeout(200);
+        await shot('description-peer-view', '0222-teacher-description-peer-view.png');
 
         // Escape closes only the panel, not the whole modal.
         await page.keyboard.press('Escape');
@@ -334,6 +346,13 @@ try {
     m = await measure(tid('classroom-assignment-save'), BODY);
     record('empty description preview (E3)', !!empty && m.bottom !== null && m.bottom <= m.vh && m.pageOk && m.bodyOk, `save ${describe(m)}`);
     await shot('description-empty', '0233-detail-description-empty.png');
+
+    // Share suggestion banner (#1106) on the detail of a recommended assignment.
+    await backToBoard();
+    await openDetail('c4');
+    const banner = await page.$(tid('classroom-share-suggestion-banner'));
+    record('share suggestion banner', !!banner, '');
+    await shot('share-suggestion', '0219-share-suggestion-banner.png');
 } finally {
     await browser.close();
 }

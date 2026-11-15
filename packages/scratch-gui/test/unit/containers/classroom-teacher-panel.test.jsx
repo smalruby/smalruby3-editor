@@ -55,7 +55,7 @@ const flush = async () => {
     });
 };
 
-const renderPanel = () => {
+const renderPanel = (extraState = {}) => {
     const store = createStore(combineReducers({ scratchGui: combineReducers({ classroom: classroomReducer }) }), {
         scratchGui: {
             classroom: {
@@ -63,6 +63,7 @@ const renderPanel = () => {
                 teacherLoggedIn: true,
                 teacherPanelOpen: true,
                 teacherLastSelection: { classroomId: 'c1', groupId: 'g1' },
+                ...extraState,
             },
         },
     });
@@ -320,5 +321,24 @@ describe('ClassroomTeacherPanel の座席の色 (#1926)', () => {
         // 凡例は座席のすぐ下
         const grid = screen.getByTestId('classroom-teacher-panel-grid');
         expect(grid.nextElementSibling).toBe(legend);
+        // 空席の言葉はメンバータブと同じ「空席」（#1956 Q12）
+        expect(screen.getByTestId('classroom-teacher-panel-seat-color-legend-empty').textContent).toContain('Empty');
+        // 退室依頼が無いときは数の札を出さない
+        expect(screen.queryByTestId('classroom-teacher-panel-kick-count')).toBeNull();
+    });
+
+    test('退室依頼があると、数の札を着席・提出の札と並べて出す (#1964)', async () => {
+        renderPanel({
+            teacherKickRequests: [
+                { requestId: 'r1', classroomId: 'c1', seatNumber: 1, occupantName: 'a' },
+                { requestId: 'r2', classroomId: 'c1', seatNumber: 2, occupantName: 'b' },
+                { requestId: 'r3', classroomId: 'other', seatNumber: 3, occupantName: 'c' },
+            ],
+        });
+        await flush();
+        await flush();
+        const tag = screen.getByTestId('classroom-teacher-panel-kick-count');
+        expect(tag.textContent).toBe('Kick requests 2');
+        expect(tag.parentElement).toBe(screen.getByTestId('classroom-teacher-panel-seated').parentElement);
     });
 });

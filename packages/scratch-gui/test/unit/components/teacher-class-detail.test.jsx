@@ -548,7 +548,7 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
             el.dataset.testid.replace('classroom-seat-color-legend-', ''),
         );
         expect(kinds).toEqual(['empty', 'joined', 'submitted', 'returned']);
-        expect(byTestId('classroom-seat-color-legend-empty').textContent).toContain('Not joined yet');
+        expect(byTestId('classroom-seat-color-legend-empty').textContent).toContain('Empty');
         expect(byTestId('classroom-seat-color-legend-joined').textContent).toContain('Joined');
         expect(byTestId('classroom-seat-color-legend-submitted').textContent).toContain('Submitted');
         expect(byTestId('classroom-seat-color-legend-submitted').textContent).toContain('✓');

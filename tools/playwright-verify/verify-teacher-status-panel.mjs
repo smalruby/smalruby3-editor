@@ -26,8 +26,9 @@ if (!API) throw new Error('CLASSROOM_API_ENDPOINT missing in .env');
 const BASE = process.env.BASE_URL || 'http://localhost:8601/';
 const HEADLESS = process.env.HEADLESS !== 'false';
 const LOCALE = process.env.LOCALE || 'ja';
-// 授業 PC のビューポート（#1221）
-const VIEWPORT = { width: 1300, height: 600 };
+// 授業 PC のビューポート（#1221）。VIEWPORT=1920x1080 で大きい画面でも測れる（#1964）
+const [VW, VH] = (process.env.VIEWPORT || '1300x600').split('x').map(Number);
+const VIEWPORT = { width: VW, height: VH };
 const SEATS = 40;
 
 // --- スタブデータ ---
@@ -140,8 +141,12 @@ if (LOCALE === 'ja') {
     await check(
         (await page.textContent('[data-testid="classroom-teacher-panel-submitted"]')).includes('提出 12 / 36'),
         'submitted / joined count');
+    await check(
+        (await page.textContent('[data-testid="classroom-teacher-panel-kick-count"]')).includes('退室依頼 3'),
+        'kick request count tag');
 }
-await shot(LOCALE === 'ja' ? '01-panel-1300x600' : `01-panel-1300x600-${LOCALE}`);
+const vpName = `${VIEWPORT.width}x${VIEWPORT.height}`;
+await shot(LOCALE === 'ja' ? `01-panel-${vpName}` : `01-panel-${vpName}-${LOCALE}`);
 
 // パネル表示中にブロックをドラッグできる
 const countBlocks = () =>

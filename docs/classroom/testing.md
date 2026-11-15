@@ -94,7 +94,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-tab-progress` | button | 「進み具合」タブ（レッスンを紐付けた課題だけ） |
 | `classroom-member-{memberId}` | button | 座席。`data-seat-color` = `empty` / `joined` / `submitted` / `returned`（レッスンの課題では代わりに `data-lesson-state` = `notJoined` / `notStarted` / `inProgress` / `cleared`） |
-| `classroom-lesson-seat-legend` | div | 座席の色の凡例（未参加・まだ・とちゅう・課題クリア ★・「!」）。レッスンの課題では `classroom-seat-color-legend` の代わりに出る |
+| `classroom-lesson-seat-legend` | div | 座席の色の凡例（空席・まだ・とちゅう・課題クリア ★・「!」）。レッスンの課題では `classroom-seat-color-legend` の代わりに出る |
 | `classroom-lesson-seat-legend-{kind}` | span | 凡例の 1 項目（`kind` = `empty` / `notStarted` / `inProgress` / `cleared`） |
 | `classroom-lesson-seat-cleared-{n}` | span | 課題クリアした席の ★ |
 | `classroom-lesson-cleared-summary` | span | 「クリア N / 参加 N」 |
@@ -707,14 +707,15 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-teacher-panel-assignment` | select | 課題の切り替え |
 | `classroom-teacher-panel-seated` | span | 着席（目安） N / 定員 |
 | `classroom-teacher-panel-submitted` | span | 提出 N / 参加数 |
+| `classroom-teacher-panel-kick-count` | span | 退室依頼 N（この課題の退室依頼があるときだけ。数の札の行） |
 | `classroom-teacher-panel-grid` | div | 座席ミニグリッド |
 | `classroom-teacher-panel-seat-<N>` | button | 座席 N（`data-member-id`。押すとメンバー詳細へ。色は `data-seat-color`、レッスンの課題は `data-lesson-state`） |
 | `classroom-teacher-panel-seat-stuck-<N>` | span | 座席 N の「!」（同じチャレンジに 10 分以上・レッスンの課題だけ） |
 | `classroom-teacher-panel-lesson-summary` | div | レッスンの課題の 2 行目の数（#1603） |
 | `classroom-teacher-panel-lesson-cleared` | span | 課題クリア N / 参加 N |
 | `classroom-teacher-panel-lesson-stuck` | span | 止まっている N |
-| `classroom-teacher-panel-seat-legend` | div | レッスンの課題の座席の色の凡例（未参加・まだ・とちゅう・課題クリア ★・!）。項目は `classroom-teacher-panel-seat-legend-{kind}` |
-| `classroom-teacher-panel-seat-color-legend` | div | ふつうの課題の座席の色の凡例（未参加・参加済み・提出済み ✓・返却済み ↩）。座席のすぐ下。項目は `classroom-teacher-panel-seat-color-legend-{kind}` |
+| `classroom-teacher-panel-seat-legend` | div | レッスンの課題の座席の色の凡例（空席・まだ・とちゅう・課題クリア ★・!）。項目は `classroom-teacher-panel-seat-legend-{kind}` |
+| `classroom-teacher-panel-seat-color-legend` | div | ふつうの課題の座席の色の凡例（空席・参加済み・提出済み ✓・返却済み ↩）。座席のすぐ下。項目は `classroom-teacher-panel-seat-color-legend-{kind}` |
 | `classroom-teacher-panel-lesson-bars` | div | チャレンジごとの横棒 |
 | `classroom-teacher-panel-bar-legend` | div | 横棒の凡例（できた・いまやっている） |
 | `classroom-teacher-panel-bar-{challengeId}` | div | チャレンジ 1 本の横棒（`title` に人数） |
