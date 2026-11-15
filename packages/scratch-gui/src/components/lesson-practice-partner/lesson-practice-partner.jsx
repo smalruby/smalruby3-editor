@@ -43,7 +43,17 @@ const messages = defineMessages({
     },
 });
 
-const LessonPracticePartner = ({ buttons, name, onClose, onOpen, onPress, open, position, received = null }) => {
+const LessonPracticePartner = ({
+    announcement = '',
+    buttons,
+    name,
+    onClose,
+    onOpen,
+    onPress,
+    open,
+    position,
+    received = null,
+}) => {
     const intl = useIntl();
     // 閉じたら「練習相手」のボタンへ、開いたら最初のボタン（無ければ ×）へフォーカスを移す。押したボタンが
     // 消えてフォーカスが body に落ちると、キーボードで操作している人がどこにいるか分からなくなるため。
@@ -121,14 +131,17 @@ const LessonPracticePartner = ({ buttons, name, onClose, onOpen, onPress, open, 
                         {button.label}
                     </button>
                 ))}
-                <p
-                    aria-live="polite"
-                    className={styles.received}
-                    data-testid="lesson-practice-partner-received"
-                    title={receivedText}
-                >
+                <p className={styles.received} data-testid="lesson-practice-partner-received" title={receivedText}>
                     <span className={styles.receivedText}>{receivedText}</span>
                 </p>
+                {/* 読み上げは合図が届いたときだけ（変数が変わるたびに読み上げない） */}
+                <span
+                    aria-live="polite"
+                    className={styles.visuallyHidden}
+                    data-testid="lesson-practice-partner-announcement"
+                >
+                    {announcement ? intl.formatMessage(messages.received, { what: announcement }) : ''}
+                </span>
                 <p className={styles.note} data-testid="lesson-practice-partner-note">
                     {intl.formatMessage(messages.note)}
                 </p>
@@ -146,8 +159,10 @@ LessonPracticePartner.propTypes = {
     open: PropTypes.bool.isRequired,
     // 置く場所（fixed の top / right。コンテナがステージの列から測る）
     position: PropTypes.shape({ top: PropTypes.number, right: PropTypes.number }),
-    // 相手に届いたものの 1 行（「名前 = 値」か合図の名前）。まだ何も届いていなければ null
+    // 相手に届いたもの（2 行まで。「名前 = 値」か合図の名前）。まだ何も届いていなければ null
     received: PropTypes.string,
+    // 読み上げる文（合図が届いて変わったときだけ変わる）
+    announcement: PropTypes.string,
 };
 
 export default LessonPracticePartner;

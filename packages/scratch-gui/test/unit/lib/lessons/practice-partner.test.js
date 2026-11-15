@@ -9,6 +9,8 @@ import { attachPracticeLoopback } from '../../../../src/lib/lessons/practice-loo
 import {
     normalizePartner,
     PRACTICE_PARTNER_NODE_ID,
+    findName,
+    partnerNames,
     practiceAllowed,
     receivedSummary,
     repliesFor,
@@ -157,6 +159,34 @@ const exec = (runtime, opcode, args, util = {}) => {
     return runtime.getOpcodeFunction(opcode)(args, util);
 };
 
+describe('partnerNames / findName', () => {
+    test('the names the partner uses: set variables, fromVariable and messages', () => {
+        const partner = normalizePartner(
+            {
+                buttons: [
+                    {
+                        label: 'x',
+                        set: [{ variable: 'あて先', value: { fromVariable: '名前' } }],
+                        broadcast: 'メッセージ',
+                    },
+                ],
+                replies: [{ onBroadcast: 'シマラビのメッセージ', set: { variable: 'へんじ', value: 'a' } }],
+            },
+            'ja',
+        );
+        expect(partnerNames(partner).sort()).toEqual(
+            ['あて先', 'へんじ', 'シマラビのメッセージ', 'メッセージ', '名前'].sort(),
+        );
+        expect(partnerNames(null)).toEqual([]);
+    });
+
+    test('finds the exact name first, then without case', () => {
+        expect(findName(['Hello', 'hello'], 'hello')).toBe('hello');
+        expect(findName(['Hello'], 'HELLO')).toBe('Hello');
+        expect(findName(['Hello'], 'bye')).toBeNull();
+    });
+});
+
 describe('receivedSummary', () => {
     test('a message shows with the value of the variable of the same name (the course names them alike)', () => {
         expect(
@@ -169,6 +199,10 @@ describe('receivedSummary', () => {
             'Hello = hi',
         );
         expect(receivedSummary({ last: { kind: 'message', name: '手をふる' }, values: {} })).toBe('手をふる');
+        // 大文字小文字まで一致する変数を先に使う
+        expect(
+            receivedSummary({ last: { kind: 'message', name: 'hello' }, values: { Hello: 'A', hello: 'b' } }),
+        ).toBe('hello = b');
     });
 
     test('a variable alone shows its value', () => {
@@ -326,27 +360,73 @@ describe('attachPracticeLoopback', () => {
         expect(meshService.remoteData.me.count.value).toBe('9');
     });
 
-    test('tells what reached the partner: the last message and the shared variable values (D3)', () => {
+    const watch = (partnerDef = PARTNER) => {
         const fake = makeVm();
         const onReceived = jest.fn();
         const loop = attachPracticeLoopback({
             vm: fake.vm,
-            partner: normalizePartner(PARTNER, 'ja'),
+            partner: normalizePartner(partnerDef, 'ja'),
             now: () => 1000,
             timers: makeTimers(),
             onReceived,
         });
-        exec(fake.runtime, 'data_setvariableto', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 'hi' });
-        expect(onReceived).toHaveBeenLastCalledWith('count = hi');
-        exec(fake.runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
-        expect(onReceived).toHaveBeenLastCalledWith('メッセージ');
-        // 同じ内容なら知らせ直さない（ずっと同じ値にするスクリプトでも描き直さない）
-        const calls = onReceived.mock.calls.length;
-        exec(fake.runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
-        expect(onReceived).toHaveBeenCalledTimes(calls);
+        const step = () => fake.runtime.emit('BEFORE_STEP');
+        return { ...fake, loop, onReceived, step };
+    };
+
+    test('tells what reached the partner once per frame: the last message, with the value of the same name (D3)', () => {
+        const { loop, onReceived, runtime, step } = watch();
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 'hi' });
+        // フレームの最初にまとめて知らせる
+        expect(onReceived).not.toHaveBeenCalled();
+        step();
+        // count は相手の使う名前ではないので、行の主役にしない
+        expect(onReceived).not.toHaveBeenCalled();
+        exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        step();
+        expect(onReceived).toHaveBeenLastCalledWith('メッセージ', { announce: true });
+        // 同じ内容なら知らせ直さない
+        exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        step();
+        expect(onReceived).toHaveBeenCalledTimes(1);
         // ボタン（相手から生徒へ）は相手に届いたものではない
         loop.press(0);
-        expect(onReceived).toHaveBeenCalledTimes(calls);
+        step();
+        expect(onReceived).toHaveBeenCalledTimes(1);
+        loop.detach();
+    });
+
+    test('a variable the partner uses shows "name = value", and is not read aloud', () => {
+        const { loop, onReceived, runtime, step } = watch();
+        runtime.targets[0].variables.v3 = { id: 'v3', name: 'へんじ', type: '', value: '' };
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v3', name: 'へんじ' }, VALUE: 'おはよう' });
+        step();
+        expect(onReceived).toHaveBeenLastCalledWith('へんじ = おはよう', { announce: false });
+        loop.detach();
+    });
+
+    test('a script that changes an unrelated variable every frame does not change the line nor redraw it', () => {
+        const { loop, onReceived, runtime, step } = watch();
+        exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        step();
+        for (let i = 0; i < 30; i++) {
+            exec(runtime, 'data_changevariableby', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 1 });
+            step();
+        }
+        expect(onReceived).toHaveBeenCalledTimes(1);
+        expect(onReceived).toHaveBeenLastCalledWith('メッセージ', { announce: true });
+        loop.detach();
+    });
+
+    test('several changes in one frame are told once', () => {
+        const { loop, onReceived, runtime, step } = watch();
+        runtime.targets[0].variables.v4 = { id: 'v4', name: 'メッセージ', type: '', value: '' };
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v4', name: 'メッセージ' }, VALUE: 'a' });
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v4', name: 'メッセージ' }, VALUE: 'b' });
+        exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        step();
+        expect(onReceived).toHaveBeenCalledTimes(1);
+        expect(onReceived).toHaveBeenLastCalledWith('メッセージ = b', { announce: true });
         loop.detach();
     });
 

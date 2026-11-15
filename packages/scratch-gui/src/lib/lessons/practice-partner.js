@@ -108,18 +108,49 @@ export const repliesFor = (normalized, messageName) => {
 };
 
 /**
- * 練習相手のパネルに出す「相手に届いたもの」の 1 行（D3）。最後に届いたのが合図なら合図の名前（同じ名前の
+ * 練習相手が使う名前（D3 のパネルに出す変数を絞るため）。`set` の変数・`fromVariable` の変数と、相手が
+ * 受け取る・送る合図の名前（このコースは変数と合図に同じ名前を使うので、合図と同じ名前の共有する変数も出す）。
+ * ずっと得点を変えるような、相手に関係の無い変数で行が変わり続けないようにする。
+ * @param {?object} normalized - `normalizePartner` の結果。
+ * @returns {Array<string>} 名前。
+ */
+export const partnerNames = (normalized) => {
+    if (!normalized) return [];
+    const actions = [...normalized.buttons, ...normalized.replies];
+    const names = [
+        ...actions.flatMap((action) => action.set.flatMap((one) => [one.name, one.fromVariable])),
+        ...actions.map((action) => action.broadcast),
+        ...normalized.replies.map((reply) => reply.onBroadcast),
+    ];
+    return [...new Set(names.filter((name) => typeof name === 'string' && name !== ''))];
+};
+
+/**
+ * 名前の一覧から探す。まず大文字小文字まで一致するもの、無いときだけ区別なしで探す（Scratch の合図は大文字
+ * 小文字を区別しないが、変数は区別するため、同じ読みの変数が 2 つあるときは一致するほうを選ぶ）。
+ * @param {Array<string>} names - 探す先。
+ * @param {string} name - 探す名前。
+ * @returns {?string} 見つかった名前。無ければ null。
+ */
+export const findName = (names, name) => {
+    if (names.includes(name)) return name;
+    const found = names.find((one) => sameMessage(one, name));
+    return typeof found === 'string' ? found : null;
+};
+
+/**
+ * 練習相手のパネルに出す「相手に届いたもの」（2 行まで。D3）。最後に届いたのが合図なら合図の名前（同じ名前の
  * 共有する変数があれば、その値も。このコースは変数と合図に同じ名前を使う）、変数なら「名前 = 値」。
  * @param {?{last: ?{kind: string, name: string}, values: object}} received - 届いたもの。`last` は最後に
  *   届いたもの（`kind` = 'message' / 'variable'）、`values` は共有する変数の名前 → 最後の値。
- * @returns {?string} 1 行。まだ何も届いていなければ null。
+ * @returns {?string} 出す文。まだ何も届いていなければ null。
  */
 export const receivedSummary = (received) => {
     if (!received || !received.last) return null;
     const { last, values = {} } = received;
     if (last.kind === 'variable') return `${last.name} = ${values[last.name] ?? ''}`;
-    const sameName = Object.keys(values).find((name) => sameMessage(name, last.name));
-    return typeof sameName === 'string' ? `${last.name} = ${values[sameName]}` : last.name;
+    const sameName = findName(Object.keys(values), last.name);
+    return sameName === null ? last.name : `${last.name} = ${values[sameName]}`;
 };
 
 /**

@@ -10,12 +10,20 @@
 //   生徒 → 相手: 生徒の作品が動かした「〜を送る」を vm-execution-hook.js で見て、自動の返事を返す。
 //                生徒のグローバル変数の値は、本物のメッシュの #713 と同じく自分のノードの値として
 //                `remoteData[meshId]` にも入れる（自分の変数の「〜のセンサー値」が本物と同じに読めるように）。
-//                相手に届いたもの（最後の合図・共有する変数の値）は `onReceived` でパネルに 1 行で知らせる（D3）。
+//                相手に届いたもの（最後の合図・相手が使う名前の共有する変数の値）は、フレームに 1 回までに
+//                まとめて `onReceived` でパネルに知らせる（D3。パネルは 2 行まで出す）。
 //   相手の値に `{fromVariable}` があれば、押したとき（返事のとき）の生徒の変数の値を使う（D4）。
 //
 // 本物のメッシュでつながっている・つなごうとしているあいだは何もしない（practiceAllowed）。
 // 外す（detach）と、入れた値を remoteData から消し、見張りも外す。外したあとは本物のメッシュに何も残らない。
-import { PRACTICE_PARTNER_NODE_ID, practiceAllowed, receivedSummary, repliesFor } from './practice-partner';
+import {
+    PRACTICE_PARTNER_NODE_ID,
+    findName,
+    partnerNames,
+    practiceAllowed,
+    receivedSummary,
+    repliesFor,
+} from './practice-partner';
 import { hookOpcodeExecution, resetExecuteCaches } from './vm-execution-hook';
 
 /** 自動の返事を返すまでの間（ms）。本物のメッシュの遅れ（およそ 1 秒）より短く、合図の順が分かる長さ。 */
@@ -51,8 +59,9 @@ const messageNameOf = (option) => {
  * @param {number} [options.replyDelayMs] - 自動の返事までの間。
  * @param {function(): number} [options.now] - 時刻（テスト用）。
  * @param {object} [options.timers] - `{setTimeout, clearTimeout}`（テスト用）。
- * @param {?function(?string): void} [options.onReceived] - 相手に届いたものの 1 行（`receivedSummary`）が
- *   変わったときに呼ぶ。
+ * @param {?function(?string, {announce: boolean}): void} [options.onReceived] - 相手に届いたもの
+ *   （`receivedSummary`。パネルに 2 行まで出す）が変わったときに、フレームに 1 回まで呼ぶ。`announce` は
+ *   合図が届いて変わったとき true（読み上げは合図のときだけにする）。
  * @returns {{press: function(number): void, detach: function(): void}} ボタンを押す・外す。
  */
 export const attachPracticeLoopback = ({
@@ -75,14 +84,23 @@ export const attachPracticeLoopback = ({
     // 出席番号で変わる（setClassroomSeat）ので、書いたときのノード ID を覚えて、そこから消す
     const ownSeeds = new Map();
     let attached = true;
-    // 相手に届いたもの（D3）: 最後に届いたもの（合図か変数）と、共有する変数の名前 → 最後の値
+    // 相手に届いたもの（D3）: 最後に届いたもの（合図か、相手が使う名前の変数）と、共有する変数の名前 → 最後の値。
+    // 知らせるのはフレームの最初（BEFORE_STEP）にまとめて 1 回まで（ずっと変数を変えるスクリプトでも、
+    // パネルを毎回描き直さない）
+    const names = partnerNames(partner);
     const received = { last: null, values: {} };
     let receivedLine = null;
-    const notifyReceived = () => {
+    let receivedDirty = false;
+    let messageArrived = false;
+    const flushReceived = () => {
+        if (!receivedDirty) return;
+        receivedDirty = false;
+        const announce = messageArrived;
+        messageArrived = false;
         const line = receivedSummary(received);
         if (line === receivedLine) return;
         receivedLine = line;
-        if (onReceived) onReceived(line);
+        if (onReceived) onReceived(line, { announce });
     };
 
     const extension = () => (runtime.peripheralExtensions && runtime.peripheralExtensions.meshV2) || null;
@@ -169,7 +187,8 @@ export const attachPracticeLoopback = ({
             const name = messageNameOf(args.BROADCAST_OPTION);
             if (name) {
                 received.last = { kind: 'message', name };
-                notifyReceived();
+                receivedDirty = true;
+                messageArrived = true;
                 scheduleReplies(name);
             }
             return;
@@ -182,9 +201,10 @@ export const attachPracticeLoopback = ({
                 opcode === 'data_setvariableto'
                     ? String(args.VALUE)
                     : String(toNumber(variable.value) + toNumber(args.VALUE));
-            received.last = { kind: 'variable', name: variable.name };
+            // 値はいつも覚える（合図と同じ名前の変数の値として出すため）。行の主役にするのは相手が使う名前だけ
             received.values[variable.name] = value;
-            notifyReceived();
+            if (findName(names, variable.name) !== null) received.last = { kind: 'variable', name: variable.name };
+            receivedDirty = true;
             const svc = service();
             if (!svc) return;
             const nodeId = svc.meshId;
@@ -218,6 +238,7 @@ export const attachPracticeLoopback = ({
     // 見て、本物のメッシュでつなぎ始めたら、その場で入れた値を消す（「〜のセンサー値」が練習の値を読まないように）
     const onBeforeStep = () => {
         if (attached && !allowed() && (ownSeeds.size > 0 || hasPartnerNode())) purge();
+        if (attached) flushReceived();
     };
 
     const unhook = hookOpcodeExecution(runtime, listener);

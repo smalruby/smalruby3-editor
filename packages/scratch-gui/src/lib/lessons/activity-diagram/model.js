@@ -9,6 +9,7 @@
 //     {kind: 'decision', label, yes: [...], no: [...]}   （もし〜なら・もし〜なら〜でなければ。合流は描く側が足す）
 //     {kind: 'loop', label, forever, body: [...]}       （くり返し・ずっと・〜までくり返す）
 //   lane = スイムレーン（label が null なら見出しを描かない）。target = スプライトごとのプログラム。
+import { normalizePartner } from '../practice-partner';
 import { createBlockLabeler } from './labels';
 
 export const NODE_KINDS = Object.freeze({
@@ -116,74 +117,58 @@ export const buildActivityModel = ({ lanes }, options) => {
     };
 };
 
-const textOf = (value) => (typeof value === 'string' || typeof value === 'number' ? String(value) : null);
-
 /**
  * 練習相手の定義（チャレンジの `partner`。#1638・docs/lessons/design.md の「メッシュの練習相手」）から相手の
  * レーンを作る。定義はデータだけ:
  * `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}]}`。
  * `set` は共有する変数を変える `{variable, value}`（複数なら配列。`value` が `{fromVariable}` なら「(名前)の値」と
  * 書く）、`broadcast` は送る合図の名前。
+ * 定義は動かすとき（練習のパネル）と同じ `normalizePartner` で読む。locale ごとの書き方（`{ja, 'ja-Hira', en}`）も
+ * 同じ選び方で選び、動かすときに使わない行（ラベルの無いボタン、名前の無い変数・`fromVariable`、何もしない返事）は
+ * 図にも描かない。
  * ボタンは「〜」ボタンを押したとき、自動の返事は `onBroadcast` の合図を受け取ったときを開始にし、
  * `set`（〜を〜にする）→ `broadcast`（〜を送る）の順の処理にする。描くものが無い・定義が無いときは null
  * （自分のレーンだけを描く）。
  * @param {?object} partner - 練習相手の定義。
  * @param {object} options - 文の作り方。
  * @param {function(string, object=): string} options.format - 文言を引く関数。
- * @param {?string} [options.locale] - いまの locale（locale ごとに書いた `fromVariable` の名前を選ぶ）。
+ * @param {?string} [options.locale] - いまの locale（locale ごとに書いた名前を選ぶ）。
  * @returns {?object} レーン（`{id: 'partner', label, targets}`）。
  */
 export const partnerLane = (partner, { format, locale = null }) => {
-    if (!partner || typeof partner !== 'object') return null;
+    const normalized = normalizePartner(partner, locale);
+    if (!normalized) return null;
     const l = createBlockLabeler({ format });
     const quote = (text) => l.format('literal', { text });
-    // `{fromVariable}`（生徒の変数の値）の変数の名前。locale ごとの名前ならいまの locale（無ければ en → ja）
-    const fromVariableName = (value) => {
-        const name = value.fromVariable;
-        if (typeof name === 'string') return name || null;
-        if (!name || typeof name !== 'object') return null;
-        return [locale, 'en', 'ja'].map((key) => name[key]).find((n) => typeof n === 'string' && n) || null;
-    };
     // 値は、数ならそのまま、文字なら「」で囲む（ブロックの値の書き方と同じ）。生徒の変数の値は「(名前)の値」
-    const valueText = (value) => {
-        if (value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'fromVariable')) {
-            const name = fromVariableName(value);
-            return name === null ? l.format('empty') : l.format('variableValue', { name });
-        }
-        const text = textOf(value);
-        if (text === null || text === '') return l.format('empty');
+    const valueText = (one) => {
+        if (typeof one.fromVariable === 'string') return l.format('variableValue', { name: one.fromVariable });
+        const text = one.value;
+        if (text === '') return l.format('empty');
         return /^-?\d+(\.\d+)?$/.test(text) ? text : quote(text);
     };
-    const setActions = (set) =>
-        (Array.isArray(set) ? set : [set])
-            .filter((one) => one && typeof one === 'object' && textOf(one.variable) !== null)
-            .map((one) => ({
-                kind: NODE_KINDS.ACTION,
-                label: l.format('setVariable', { variable: textOf(one.variable), value: valueText(one.value) }),
-            }));
     const actionsOf = (rule) => [
-        ...setActions(rule.set),
-        ...(textOf(rule.broadcast) === null
+        ...rule.set.map((one) => ({
+            kind: NODE_KINDS.ACTION,
+            label: l.format('setVariable', { variable: one.name, value: valueText(one) }),
+        })),
+        ...(rule.broadcast === null
             ? []
-            : [{ kind: NODE_KINDS.ACTION, label: l.format('broadcast', { name: quote(textOf(rule.broadcast)) }) }]),
+            : [{ kind: NODE_KINDS.ACTION, label: l.format('broadcast', { name: quote(rule.broadcast) }) }]),
     ];
-    const buttons = (Array.isArray(partner.buttons) ? partner.buttons : [])
-        .filter((button) => button && textOf(button.label) !== null)
-        .map((button) => ({
-            start: l.format('hat.partnerButton', { label: textOf(button.label) }),
+    const scripts = [
+        ...normalized.buttons.map((button) => ({
+            start: l.format('hat.partnerButton', { label: button.label }),
             body: actionsOf(button),
-        }));
-    const replies = (Array.isArray(partner.replies) ? partner.replies : [])
-        .filter((reply) => reply && textOf(reply.onBroadcast) !== null)
-        .map((reply) => ({
-            start: l.format('hat.receive', { name: quote(textOf(reply.onBroadcast)) }),
+        })),
+        ...normalized.replies.map((reply) => ({
+            start: l.format('hat.receive', { name: quote(reply.onBroadcast) }),
             body: actionsOf(reply),
-        }));
-    const scripts = [...buttons, ...replies];
-    if (scripts.length === 0) return null;
+        })),
+    ];
     return {
         id: 'partner',
-        label: textOf(partner.name) || '',
+        label: normalized.name,
         targets: [{ name: null, scripts }],
     };
 };
