@@ -394,3 +394,53 @@ describe('採点の表のラベル (#1924 C5・R1)', () => {
         expect(comment.getAttribute('placeholder')).toBeFalsy();
     });
 });
+
+describe('採点を離れるときの確認 (#1923 C4)', () => {
+    const GRADED = { seats: [1], getCell: () => ({ submitted: true, grade: 'A', returned: false }) };
+    const message = 'Grades and comments you have not returned will be lost. Go back?';
+    const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+
+    test.each(['classroom-evaluation-cancel', 'classroom-breadcrumb-class-list'])(
+        '返却していない採点が無ければ、%s ですぐ戻る',
+        (id) => {
+            const { handlers } = renderEvaluation({ seats: [1], getCell: () => ({ submitted: true, grade: null }) });
+            fireEvent.click(byTestId(id));
+            expect(handlers.onBack).toHaveBeenCalledTimes(1);
+            expect(byTestId('classroom-eval-leave-confirm-message')).not.toBeInTheDocument();
+        },
+    );
+
+    test.each(['classroom-evaluation-cancel', 'classroom-breadcrumb-class-list'])(
+        '返却していない採点があれば、%s で確かめ、［戻る］で戻る',
+        (id) => {
+            const { handlers } = renderEvaluation(GRADED);
+            fireEvent.click(byTestId(id));
+            expect(handlers.onBack).not.toHaveBeenCalled();
+            expect(byTestId('classroom-eval-leave-confirm-message').textContent).toBe(message);
+            // 確かめている間は手順のボタンを出さない（押し間違えない）
+            expect(byTestId('classroom-eval-steps')).not.toBeInTheDocument();
+            fireEvent.click(byTestId('classroom-eval-leave-confirm'));
+            expect(handlers.onBack).toHaveBeenCalledTimes(1);
+        },
+    );
+
+    test('［採点を続ける］で確認を閉じ、戻らない', () => {
+        const { handlers } = renderEvaluation(GRADED);
+        fireEvent.click(byTestId('classroom-evaluation-cancel'));
+        fireEvent.click(byTestId('classroom-eval-leave-cancel'));
+        expect(handlers.onBack).not.toHaveBeenCalled();
+        expect(byTestId('classroom-eval-leave-confirm-message')).not.toBeInTheDocument();
+        expect(byTestId('classroom-eval-steps')).toBeInTheDocument();
+    });
+
+    test('返却していないコメントの下書きだけでも確かめる', () => {
+        const { handlers } = renderEvaluation({
+            seats: [1],
+            getCell: () => ({ submitted: true, grade: null }),
+            comments: { '1:c1': 'よくできました' },
+        });
+        fireEvent.click(byTestId('classroom-evaluation-cancel'));
+        expect(handlers.onBack).not.toHaveBeenCalled();
+        expect(byTestId('classroom-eval-leave-confirm-message')).toBeInTheDocument();
+    });
+});

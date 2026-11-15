@@ -6,7 +6,8 @@
  *   - 主ボタンの下端が 600 以下か (縦スクロールせずに押せるか・R6)
  *   - 画面 ([data-testid="classroom-phase-teacher-evaluation"]) とページがスクロールしないか
  *     (40 人の表は一覧の例外として表の枠 .eval-matrix-wrapper の中だけスクロール可)
- * を一覧で出す。1 つでも外れたら exit 1。
+ * を一覧で出す。返却していない採点があるときのキャンセル・パンくずの確認 (#1923 C4) で、
+ * 確認の［戻る］が見えるかも測る。1 つでも外れたら exit 1。
  *
  * classroom API は route interception でスタブするので stg デプロイ不要 (dev server だけが前提)。
  * スクショは tmp/classroom-grading-*.png。
@@ -47,6 +48,7 @@ const DOC_SHOT_NAMES = {
     'export-menu': '0236-teacher-grading-export-menu.png',
     'hint-open': '0237-teacher-grading-hint-detail.png',
     'settings-open': '0238-teacher-grading-settings.png',
+    'leave-confirm': '0259-teacher-grading-leave-confirm.png',
 };
 
 const LONG_CLASS = '3年2組 技術・家庭科（情報の技術）';
@@ -294,6 +296,50 @@ const menu = await page.evaluate(() => {
 const menuOk = menu.length === 2 && menu.every((m) => m.top >= 0 && m.bottom <= VIEWPORT.height);
 record({ name: 'export menu open', ok: menuOk, detail: JSON.stringify(menu) });
 await shoot(page, 'export-menu');
+// Escape はクラス管理のモーダルごと閉じるので、メニューはボタンでもう一度押して閉じる。
+await page.click('[data-testid="classroom-eval-export-menu"]');
+await page.waitForTimeout(200);
+
+// 離れる確認 (#1923 C4): 採点とコメントの下書きを返却せずにキャンセル・パンくずを押すと、
+// すぐには戻らず、手順の行が確認に変わる。確認の［戻る］が 1300×600 で見えるか。
+const leaveState = () =>
+    page.evaluate((root) => {
+        const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+        const el = document.querySelector(root);
+        const yes = q('classroom-eval-leave-confirm');
+        const se = document.scrollingElement;
+        return {
+            message: q('classroom-eval-leave-confirm-message')?.textContent ?? null,
+            yesBottom: yes ? Math.round(yes.getBoundingClientRect().bottom) : null,
+            stay: !!q('classroom-eval-leave-cancel'),
+            steps: !!q('classroom-eval-steps'),
+            screenOk: el ? el.scrollHeight <= el.clientHeight : false,
+            screen: el ? `${el.scrollHeight}/${el.clientHeight}` : null,
+            pageOk: se.scrollHeight <= se.clientHeight,
+            vh: window.innerHeight,
+        };
+    }, ROOT);
+for (const via of ['classroom-evaluation-cancel', 'classroom-breadcrumb-class-list']) {
+    await page.click(`[data-testid="${via}"]`);
+    await page.waitForTimeout(200);
+    const st = await leaveState();
+    record({
+        name: `leave confirm via ${via} ([戻る] visible, no scroll)`,
+        ok: !!st.message && st.stay && !st.steps && st.yesBottom !== null && st.yesBottom <= st.vh && st.screenOk && st.pageOk,
+        detail:
+            `message "${st.message}" · [data-testid="classroom-eval-leave-confirm"] bottom ${st.yesBottom}/${st.vh}` +
+            ` · screen ${ROOT} ${st.screen} · page ${st.pageOk ? 'OK' : 'NG'} · steps hidden ${!st.steps}`,
+    });
+    if (via === 'classroom-evaluation-cancel') await shoot(page, 'leave-confirm');
+    await page.click('[data-testid="classroom-eval-leave-cancel"]');
+    await page.waitForTimeout(200);
+    const back = await leaveState();
+    record({
+        name: `[採点を続ける] after ${via} keeps the grading screen`,
+        ok: back.message === null && back.steps && !!(await page.$(ROOT)),
+        detail: `steps ${back.steps} · message ${back.message}`,
+    });
+}
 
 await browser.close();
 const failed = rows.filter((r) => !r.ok);

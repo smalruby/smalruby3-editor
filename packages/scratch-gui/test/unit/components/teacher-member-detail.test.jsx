@@ -140,13 +140,58 @@ describe('TeacherMemberDetail — レッスンの詳細 (#1603)', () => {
     });
 });
 
-describe('TeacherMemberDetail — ［削除］と提出時刻 (#1919)', () => {
-    test('［削除］を押すと、選んでいるメンバーの ID を渡す（クリックのイベントではなく）', () => {
+describe('TeacherMemberDetail — ［退室させる］と提出時刻 (#1919 / #1923 C3)', () => {
+    test('［退室させる］は ⋮ のメニューの中にあり、確認で［退室させる］を押すとメンバーの ID を渡す', () => {
+        const onDeleteMember = jest.fn();
+        renderDetail(member({ memberId: 'seat-04' }), { onDeleteMember });
+        // 見出しの行には出さない（⋮ を開くまで無い）
+        expect(byTestId('classroom-member-remove')).not.toBeInTheDocument();
+        fireEvent.click(byTestId('classroom-member-more-menu'));
+        fireEvent.click(byTestId('classroom-member-remove'));
+        // まだ退室させない: 確認を 1 段挟む
+        expect(onDeleteMember).not.toHaveBeenCalled();
+        const confirm = byTestId('classroom-member-remove-confirm-message');
+        expect(confirm.textContent).toBe('Remove the student at seat 4 from the assignment? (Their work is kept.)');
+        fireEvent.click(byTestId('classroom-member-remove-confirm'));
+        expect(onDeleteMember).toHaveBeenCalledTimes(1);
+        expect(onDeleteMember).toHaveBeenCalledWith('seat-04');
+    });
+
+    test('確認で［キャンセル］を押すと退室させず、確認を閉じる', () => {
         const onDeleteMember = jest.fn();
         renderDetail(member(), { onDeleteMember });
+        fireEvent.click(byTestId('classroom-member-more-menu'));
         fireEvent.click(byTestId('classroom-member-remove'));
-        expect(onDeleteMember).toHaveBeenCalledTimes(1);
-        expect(onDeleteMember).toHaveBeenCalledWith('seat-3');
+        fireEvent.click(byTestId('classroom-member-remove-cancel'));
+        expect(onDeleteMember).not.toHaveBeenCalled();
+        expect(byTestId('classroom-member-remove-confirm-message')).not.toBeInTheDocument();
+    });
+
+    test('ほかのメンバーを選ぶと、開いていた確認は閉じる', () => {
+        const a = member({ memberId: 'seat-01' });
+        const b = member({ memberId: 'seat-02' });
+        const props = {
+            isLoading: false,
+            memberMap: { 'seat-01': a, 'seat-02': b },
+            members: [a, b],
+            onDeleteMember: jest.fn(),
+            onOpenSubmission: jest.fn(),
+            onReturnSubmission: jest.fn(),
+        };
+        const { rerender } = render(
+            <IntlProvider locale="en">
+                <TeacherMemberDetail {...props} selectedMember="seat-01" />
+            </IntlProvider>,
+        );
+        fireEvent.click(byTestId('classroom-member-more-menu'));
+        fireEvent.click(byTestId('classroom-member-remove'));
+        expect(byTestId('classroom-member-remove-confirm-message')).toBeInTheDocument();
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherMemberDetail {...props} selectedMember="seat-02" />
+            </IntlProvider>,
+        );
+        expect(byTestId('classroom-member-remove-confirm-message')).not.toBeInTheDocument();
     });
 
     test('提出時刻は日付つきで出す', () => {

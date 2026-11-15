@@ -90,6 +90,29 @@ const currentLessonOnlyStep = ({ loaded, checked }) => {
 };
 
 /**
+ * Whether leaving the grading screen would lose work (#1923 C4): a grade or a
+ * comment draft on the table whose submission has not been returned. Grades
+ * and drafts live only on this screen, so the cancel button and the
+ * breadcrumb ask first. A returned cell is done (its comment reached the
+ * student and its grade went with it).
+ * @param {object} state - the table
+ * @param {Array<number>} state.seats - seats on the table
+ * @param {Array<string>} state.lessonIds - the selected assignments
+ * @param {Function} state.getCell - (seatNumber, classroomId) => cell or null
+ * @param {object} state.comments - `${seat}:${classroomId}` → comment draft
+ * @returns {boolean} whether something would be lost
+ */
+const hasUnreturnedEvaluation = ({ seats, lessonIds, getCell, comments }) =>
+    (seats || []).some((seatNumber) =>
+        (lessonIds || []).some((classroomId) => {
+            const cell = getCell(seatNumber, classroomId);
+            if (cell && cell.returned) return false;
+            const comment = ((comments || {})[`${seatNumber}:${classroomId}`] || '').trim();
+            return !!((cell && cell.grade) || comment);
+        }),
+    );
+
+/**
  * The columns of the grading table and CSV (#1603). Each assignment has a
  * work column (the AI-assisted grade), and a lesson assignment also has a
  * 「レッスン」 column (the machine score from its progress) right after it.
@@ -221,6 +244,7 @@ export {
     currentLessonOnlyStep,
     evaluationColumns,
     evaluationFlowMode,
+    hasUnreturnedEvaluation,
     isLessonOnlyAssignment,
     lessonScoreOf,
     buildAuditCsv,

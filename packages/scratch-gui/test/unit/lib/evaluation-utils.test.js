@@ -7,6 +7,7 @@ import {
     currentLessonOnlyStep,
     evaluationColumns,
     evaluationFlowMode,
+    hasUnreturnedEvaluation,
     isLessonOnlyAssignment,
 } from '../../../src/lib/classroom-evaluation/evaluation-utils';
 
@@ -179,5 +180,41 @@ describe('採点の流れ（#1778）', () => {
         expect(currentLessonOnlyStep({ loaded: false, checked: true })).toBe('load');
         expect(currentLessonOnlyStep({ loaded: true, checked: false })).toBe('check');
         expect(currentLessonOnlyStep({ loaded: true, checked: true })).toBe('export');
+    });
+});
+
+describe('hasUnreturnedEvaluation (#1923 C4)', () => {
+    const run = (cells, comments = {}, seats = [1, 2], lessonIds = ['c1']) =>
+        hasUnreturnedEvaluation({
+            seats,
+            lessonIds,
+            getCell: (seat, id) => cells[`${seat}:${id}`] || null,
+            comments,
+        });
+
+    test('nothing graded or drafted: nothing is lost', () => {
+        expect(run({ '1:c1': { submitted: true, grade: null } })).toBe(false);
+    });
+
+    test('a grade that is not returned is lost', () => {
+        expect(run({ '1:c1': { submitted: true, grade: 'A', returned: false } })).toBe(true);
+    });
+
+    test('a comment draft that is not returned is lost (even without a cell)', () => {
+        expect(run({}, { '2:c1': 'よくできました' })).toBe(true);
+    });
+
+    test('blank comment drafts do not count', () => {
+        expect(run({}, { '1:c1': '   ' })).toBe(false);
+    });
+
+    test('returned cells are done: their grade and comment do not count', () => {
+        expect(run({ '1:c1': { submitted: true, grade: 'A', returned: true } }, { '1:c1': 'よくできました' })).toBe(
+            false,
+        );
+    });
+
+    test('only the seats and assignments on the table count', () => {
+        expect(run({ '9:c1': { grade: 'A' }, '1:c2': { grade: 'A' } }, { '9:c1': 'x', '1:c2': 'y' })).toBe(false);
     });
 });

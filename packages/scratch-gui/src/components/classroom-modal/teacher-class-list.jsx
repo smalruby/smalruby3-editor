@@ -403,7 +403,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                             <ClassroomButton
                                 dataTestId="classroom-class-settings-archive"
                                 disabled={isLoading}
-                                variant="danger"
+                                variant="primary"
                                 onClick={handleToggleArchive}
                             >
                                 <FormattedMessage

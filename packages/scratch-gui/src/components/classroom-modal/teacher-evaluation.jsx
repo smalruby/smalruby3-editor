@@ -23,6 +23,7 @@ import {
     currentLessonOnlyStep,
     evaluationColumns,
     evaluationFlowMode,
+    hasUnreturnedEvaluation,
     isLessonOnlyAssignment,
     lessonScoreOf,
 } from '../../lib/classroom-evaluation/evaluation-utils.js';
@@ -437,13 +438,61 @@ const TeacherEvaluation = ({
             ),
         [onChangeRubricAxis],
     );
+    // Leaving drops the grades and comment drafts that are not returned (they
+    // live only on this screen): ask first, in the page (#1923 C4).
+    const unreturned = hasUnreturnedEvaluation({
+        seats,
+        lessonIds: selectedLessons.map((lesson) => lesson.classroomId),
+        getCell,
+        comments,
+    });
+    const [confirmingLeave, setConfirmingLeave] = useState(false);
+    const handleLeave = useCallback(() => {
+        if (unreturned) setConfirmingLeave(true);
+        else onBack();
+    }, [unreturned, onBack]);
+    const handleStay = useCallback(() => setConfirmingLeave(false), []);
     const handleRunGrade = useCallback(() => onRunAi('grade'), [onRunAi]);
     const handleRunComment = useCallback(() => onRunAi('comment'), [onRunAi]);
 
-    /* キャンセルは左端。右に「書き出し ▾」と 1〜4 の手順（いまの手順だけ主ボタン）。 */
-    const footer = (
+    /* 離れる確認（#1923 C4）: 手順のボタンの代わりに、確認の文と［採点を続ける］［戻る］だけを出す。
+       戻ると採点が消えて取り消せないので、［戻る］は赤（R4）。 */
+    const leaveFooter = (
         <>
-            <ClassroomButton className={styles.evalCancel} dataTestId="classroom-evaluation-cancel" onClick={onBack}>
+            <ClassroomButton autoFocus dataTestId="classroom-eval-leave-cancel" onClick={handleStay}>
+                <FormattedMessage
+                    defaultMessage="Keep grading"
+                    description="Grading screen: button that closes the leave confirmation and stays (#1923)"
+                    id="gui.classroom.evaluation.leaveCancel"
+                />
+            </ClassroomButton>
+            <p className={styles.evalLeaveConfirm} data-testid="classroom-eval-leave-confirm-message" role="alert">
+                <FormattedMessage
+                    defaultMessage="Grades and comments you have not returned will be lost. Go back?"
+                    description="Grading screen: shown when leaving with grades or comment drafts that are not returned (#1923)"
+                    id="gui.classroom.evaluation.leaveConfirm"
+                />
+            </p>
+            <ClassroomButton dataTestId="classroom-eval-leave-confirm" variant="danger" onClick={onBack}>
+                <FormattedMessage
+                    defaultMessage="Go back"
+                    description="Grading screen: button that leaves and drops the grades and comments not returned (#1923)"
+                    id="gui.classroom.evaluation.leaveConfirmYes"
+                />
+            </ClassroomButton>
+        </>
+    );
+
+    /* キャンセルは左端。右に「書き出し ▾」と 1〜4 の手順（いまの手順だけ主ボタン）。 */
+    const footer = confirmingLeave ? (
+        leaveFooter
+    ) : (
+        <>
+            <ClassroomButton
+                className={styles.evalCancel}
+                dataTestId="classroom-evaluation-cancel"
+                onClick={handleLeave}
+            >
                 <FormattedMessage
                     defaultMessage="Cancel"
                     description="Cancel button of the evaluation screen (returns to the class list)"
@@ -584,7 +633,7 @@ const TeacherEvaluation = ({
                             id="gui.classroom.breadcrumbs.classList"
                         />
                     ),
-                    onClick: onBack,
+                    onClick: handleLeave,
                     testId: 'classroom-breadcrumb-class-list',
                 },
                 {

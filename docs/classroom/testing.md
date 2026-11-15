@@ -139,7 +139,12 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-member-detail-comment-label` | label | コメント欄の上のラベル「生徒へのコメント（返却で届きます）」 |
 | `classroom-member-detail-comment` | textarea | コメント入力 |
 | `classroom-member-detail-hide-from-peers` | input (checkbox) | 他の生徒に見せない（提出があるときだけ・切り替えで即保存・Issue #1208） |
-| `classroom-member-remove` | button | メンバー削除 |
+| `classroom-member-more-menu` | button | メンバー詳細の見出しの右端の ⋮（開くと `classroom-member-more-menu-list`） |
+| `classroom-member-remove` | button | ⋮ の中の「退室させる」。押すと確認を開く（すぐには退室させない） |
+| `classroom-member-remove-confirm-box` | div | 「退室させますか？」の確認（見出しの下・淡いオレンジ） |
+| `classroom-member-remove-confirm-message` | p | 「出席番号 N の生徒を課題から退室させますか？（作品は残ります）」 |
+| `classroom-member-remove-cancel` | button | 確認の［キャンセル］ |
+| `classroom-member-remove-confirm` | button | 確認の［退室させる］（主ボタン。押すとメンバーを退室させる） |
 | `classroom-member-lesson-detail` | div | レッスンの課題の席の詳細（チャレンジの一覧。#1603） |
 | `classroom-member-lesson-detail-count` | span | 「できた数 / 条件の数」（課題クリアなら「課題クリア」） |
 | `classroom-member-lesson-detail-list` | ul | チャレンジの一覧の枠（この枠の中だけスクロール） |
@@ -570,11 +575,14 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-return-comments` | button | 手順 4「コメントを返却」 |
 | `classroom-eval-export-menu` | button | 「書き出し ▾」（`aria-expanded`。読み込む前は押せない） |
 | `classroom-eval-export` / `classroom-eval-export-audit` | button | 書き出しメニューの「採点結果（CSV）」/「検証用データ（CSV）」 |
-| `classroom-evaluation-cancel` | button | キャンセル（クラス一覧へ戻る） |
+| `classroom-evaluation-cancel` | button | キャンセル（クラス一覧へ戻る。返却していない採点・コメントがあるときは先に確認を出す） |
+| `classroom-eval-leave-confirm-message` | p | 離れる確認「返却していない採点とコメントは消えます。戻りますか？」（キャンセル・パンくずの「クラス一覧」で、返却していない採点・コメントがあるときだけ。出ている間は手順のボタンと書き出しを隠す） |
+| `classroom-eval-leave-cancel` | button | 離れる確認の［採点を続ける］ |
+| `classroom-eval-leave-confirm` | button | 離れる確認の［戻る］（採点とコメントを捨ててクラス一覧へ・赤） |
 
 手順のボタンのうち、いまの手順だけが `aria-current="step"`（主ボタン）。読み込む前 → 1、読み込んだら → 2、
 採点が 1 つでも入ったら → 3、コメントの下書きが 1 つでもあれば → 4（`currentEvalStep`）。
-1300×600 の収まりと手順の移り方は `tools/playwright-verify/verify-classroom-grading.mjs` が測る。
+1300×600 の収まりと手順の移り方は `tools/playwright-verify/verify-classroom-grading.mjs` が測る（離れる確認の［戻る］が見えることも測る）。
 
 ### メニューバー
 
@@ -698,7 +706,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-seat-kick-request-{seatNumber}` | span | 先生の課題詳細の座席グリッドに表示する退室依頼アイコン（`classroom-status-icon-kickRequested`）のバッジ |
 | `classroom-member-kick-request-panel` | div | 先生メンバー詳細パネルに表示される依頼一覧 |
 | `classroom-kick-request-row-{requestId}` | div | 1 リクエストの行 |
-| `classroom-kick-request-approve-{requestId}` | button | 承認（kick + リクエスト削除）|
+| `classroom-kick-request-approve-{requestId}` | button | 承認（kick + リクエスト削除）。色はトースト・状況のパネルの［承認］と同じオレンジ（`$error-primary`） |
 | `classroom-kick-request-reject-{requestId}` | button | 却下（リクエストのみ削除）|
 
 ### お知らせセンター (先生)

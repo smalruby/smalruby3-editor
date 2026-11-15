@@ -1208,8 +1208,9 @@ const TeacherClassDetail = ({
                                                         id="gui.classroom.teacherDetail.archiveCancel"
                                                     />
                                                 </button>
+                                                {/* 戻せる操作なので赤にしない（R4・#1923 C2）。 */}
                                                 <button
-                                                    className={styles.dangerButton}
+                                                    className={styles.primaryButton}
                                                     data-testid="classroom-delete-confirm"
                                                     onClick={handleDeleteConfirm}
                                                 >

@@ -701,6 +701,18 @@
     margin-right: auto;
 }
 
+/* 採点を離れる確認（#1923 C4）。手順のボタンの行に、［採点を続ける］・文・［戻る］を並べる。
+   色はクラス設定のアーカイブの確認と同じ淡いオレンジ。 */
+.eval-leave-confirm {
+    flex: 1;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    background: hsla(35, 90%, 55%, 0.12);
+    color: hsla(30, 60%, 30%, 1);
+    font-size: 0.875rem;
+}
+
 /* 採点の手順（1 読み込む → 2 AIで採点 → 3 コメント → 4 返却・#1304 V1）。
    いまの手順だけ主ボタン。番号は丸で囲み、手順のあいだに矢印を置く。 */
 .eval-steps {
@@ -1058,9 +1070,10 @@
     flex-wrap: wrap;
 }
 
+/* 承認は、退室依頼のトースト・状況のパネルの［承認］と同じオレンジ（$error-primary・#1923 C14）。 */
 .kick-request-approve-button {
-    background-color: #d32f2f;
-    color: #fff;
+    background-color: $error-primary;
+    color: $ui-white;
     border: none;
     border-radius: 4px;
     padding: 0.4rem 0.8rem;
@@ -1068,8 +1081,8 @@
     cursor: pointer;
 }
 
-.kick-request-approve-button:hover {
-    background-color: #b71c1c;
+.kick-request-approve-button:hover:not(:disabled) {
+    filter: brightness(0.92);
 }
 
 .kick-request-approve-button:disabled {
@@ -1698,19 +1711,6 @@ $seat-tile-min: 36px;
     border-radius: 4px;
 }
 
-.delete-button {
-    background: none;
-    border: none;
-    color: #ff6680;
-    cursor: pointer;
-    font-size: 0.8rem;
-    padding: 0.2rem 0.5rem;
-}
-
-.delete-button:hover {
-    text-decoration: underline;
-}
-
 .members-header {
     display: flex;
     justify-content: space-between;
@@ -1776,16 +1776,17 @@ $seat-tile-min: 36px;
     border-top: 1px solid #e0e0e0;
 }
 
+/* 課題をアーカイブする確認。戻せる操作なので赤にしない（R4・#1923 C2）。
+   色はクラス設定のアーカイブの確認と同じ淡いオレンジ。 */
 .delete-confirm-box {
-    background-color: #fff0f3;
-    border: 1px solid #ff6680;
+    background-color: hsla(35, 90%, 55%, 0.12);
     border-radius: 8px;
     padding: 1rem;
     margin-top: 0.5rem;
 }
 
 .delete-confirm-message {
-    color: #575e75;
+    color: hsla(30, 60%, 30%, 1);
     font-size: 0.85rem;
     margin-bottom: 0.5rem;
 }
@@ -1990,6 +1991,30 @@ $seat-tile-min: 36px;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #e0e0e0;
     margin-bottom: 0.5rem;
+}
+
+/* メンバー詳細の見出しの右端の ⋮（退室させる・#1923 C3）。 */
+.member-detail-more {
+    margin-left: auto;
+}
+
+/* 「退室させますか？」の確認。取り消せる操作なので赤にしない（R4）。
+   色はクラス設定のアーカイブの確認と同じ淡いオレンジ。 */
+.member-remove-confirm {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    background: hsla(35, 90%, 55%, 0.12);
+}
+
+.member-remove-confirm .button-row {
+    margin-top: 0.5rem;
+}
+
+.member-remove-confirm-message {
+    margin: 0;
+    color: hsla(30, 60%, 30%, 1);
+    font-size: 0.875rem;
 }
 
 .member-detail-body {
