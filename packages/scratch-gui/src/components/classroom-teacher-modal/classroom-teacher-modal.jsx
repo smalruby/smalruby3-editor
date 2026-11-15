@@ -316,6 +316,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         seats={evaluation.seats}
                         selectedLessonIds={evaluation.selectedLessonIds}
                         strictness={evaluation.strictness}
+                        unsavedWork={evaluation.unsavedWork}
                         onBack={evaluation.handleBackFromEvaluation}
                         onCancelLeave={evaluation.handleCancelLeave}
                         onConfirmLeave={evaluation.handleConfirmLeave}

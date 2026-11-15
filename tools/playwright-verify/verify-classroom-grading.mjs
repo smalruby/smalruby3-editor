@@ -177,7 +177,11 @@ const ctx = await browser.newContext({ viewport: VIEWPORT, locale: 'ja-JP' });
 const page = await ctx.newPage();
 
 await page.route('**/notifications', (r) => r.fulfill({ json: { notifications: [], unreadCount: 0 } }));
-await page.route('**/kick-requests/pending', (r) => r.fulfill({ json: { requests: [] } }));
+// 退室依頼のトーストの「課題を開く」からの移動も確かめる (#1923)。途中で 1 件だけ返す。
+let pendingKicks = [];
+await page.route('**/kick-requests/pending**', (r) =>
+    r.fulfill({ json: { requests: pendingKicks, activeAssignmentCount: ASSIGNMENTS } }),
+);
 await page.route('**/classroom-groups', (r) =>
     r.fulfill({ json: { groups: [{ groupId: 'g1', name: LONG_CLASS, year: 2026, status: 'active', schemaVersion: 2, topics: [] }] } }),
 );
@@ -311,6 +315,7 @@ const leaveState = () =>
         const se = document.scrollingElement;
         return {
             message: q('classroom-eval-leave-confirm-message')?.textContent ?? null,
+            lost: q('classroom-eval-leave-confirm-message')?.getAttribute('data-lost') ?? null,
             yes: yes ? yes.textContent : null,
             yesBottom: yes ? Math.round(yes.getBoundingClientRect().bottom) : null,
             exportBottom: exp ? Math.round(exp.getBoundingClientRect().bottom) : null,
@@ -348,7 +353,35 @@ const entries = [
         },
         yes: /離れる|はなれる/,
     },
-    { name: 'load again', run: () => page.click('[data-testid="classroom-eval-load"]'), yes: /読み込み直す|よみこみなおす/ },
+    {
+        name: 'kick toast "open the assignment"',
+        run: async () => {
+            pendingKicks = [
+                {
+                    requestId: 'k1',
+                    classroomId: LESSONS[0].classroomId,
+                    groupId: 'g1',
+                    className: LONG_CLASS,
+                    assignmentName: LESSONS[0].assignmentName,
+                    seatNumber: 3,
+                    occupantName: 'せいと3',
+                    reason: '席を間違えました',
+                    createdAt: new Date().toISOString(),
+                },
+            ];
+            await page.waitForSelector('[data-testid="classroom-teacher-kick-toast-open"]', { timeout: 30000 });
+            // 1300×600 の採点の画面では、トーストの上に採点の手順の行が重なるので、ボタンを直接押す。
+            await page.$eval('[data-testid="classroom-teacher-kick-toast-open"]', (el) => el.click());
+            pendingKicks = [];
+        },
+        yes: /離れる|はなれる/,
+    },
+    {
+        name: 'load again',
+        run: () => page.click('[data-testid="classroom-eval-load"]'),
+        yes: /読み込み直す|よみこみなおす/,
+        lost: 'grades',
+    },
 ];
 for (const entry of entries) {
     await entry.run();
@@ -360,6 +393,7 @@ for (const entry of entries) {
             st.onScreen &&
             !!st.message &&
             entry.yes.test(st.yes || '') &&
+            st.lost === (entry.lost || 'grades comments') &&
             !st.steps &&
             st.yesBottom !== null &&
             st.yesBottom <= st.vh &&
@@ -390,9 +424,9 @@ await page.click('[data-testid="classroom-eval-leave-export"]');
 await page.waitForTimeout(200);
 const afterExport = await leaveState();
 record({
-    name: 'after [書き出す] the comments not returned still ask',
-    ok: !!afterExport.message,
-    detail: `"${afterExport.message}"`,
+    name: 'after [書き出す] the question follows: only the comments not returned are lost',
+    ok: !!afterExport.message && afterExport.lost === 'comments',
+    detail: `"${afterExport.message}" lost=${afterExport.lost}`,
 });
 await page.click('[data-testid="classroom-eval-leave-cancel"]');
 await page.waitForTimeout(200);

@@ -95,7 +95,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     const [scoringSavingId, setScoringSavingId] = useState(null);
     // evaluationSnapshot of the matrix at the last 「採点結果」 export (#1923 C4)
     const [exported, setExported] = useState({});
-    // A leave waiting for the teacher's answer: {kind: 'back'|'leave'|'reload', busy, action} (#1923 C4)
+    // A leave waiting for the teacher's answer: {kind: 'back'|'leave'|'reload', action} (#1923 C4)
     const [leaveRequest, setLeaveRequest] = useState(null);
     // Settings fetched for a group that is no longer shown are dropped.
     const shownGroupRef = useRef(null);
@@ -516,25 +516,20 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         }
     }, [idToken, selectedLessons, seats, comments, matrix, clearError, showError, intl, handleTeacher401]);
 
-    const unsaved = useMemo(
-        () =>
-            unsavedEvaluation({
-                seats,
-                lessonIds: selectedLessonIds,
-                getCell,
-                comments,
-                exported,
-            }),
-        [seats, selectedLessonIds, getCell, comments, exported],
-    );
+    const unsaved = useMemo(() => unsavedEvaluation({ matrix, comments, exported }), [matrix, comments, exported]);
     const hasUnsavedWork = unsaved.grades || unsaved.comments;
     const busy = !!evalProgress;
+    // Loading again on confirm uses the selection at that time (#1923 FYI1).
+    const loadRef = useRef(handleLoadSubmissions);
+    loadRef.current = handleLoadSubmissions;
 
     /**
      * Leave the grading screen, or re-load the table, only after asking when
      * work would be lost (#1923 C4): grades not exported, comments not
      * returned, or the AI still running. Every way out goes through here
-     * (cancel, breadcrumb, the modal's close, notifications, logout, load).
+     * (cancel, breadcrumb, the modal's close, notifications, logout, the
+     * menu bar and the kick toast's links, load). What is lost is shown from
+     * `unsavedWork` as it is when drawn, not as it was when asked.
      * @param {Function} action - what to do once it is fine to leave
      * @param {'back'|'leave'|'reload'} [kind] - which question to ask
      */
@@ -543,7 +538,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
             // Loading again keeps the comment drafts: only the grades are lost.
             const lost = kind === 'reload' ? unsaved.grades : hasUnsavedWork;
             const waitsForAi = busy && kind !== 'reload';
-            if (lost || waitsForAi) setLeaveRequest({ kind, busy: waitsForAi, action });
+            if (lost || waitsForAi) setLeaveRequest({ kind, action });
             else action();
         },
         [unsaved.grades, hasUnsavedWork, busy],
@@ -551,7 +546,9 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     const confirmLeave = useCallback(() => {
         const request = leaveRequest;
         setLeaveRequest(null);
-        if (request) request.action();
+        if (!request) return;
+        if (request.kind === 'reload') loadRef.current();
+        else request.action();
     }, [leaveRequest]);
     const cancelLeave = useCallback(() => setLeaveRequest(null), []);
 
@@ -585,6 +582,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         handleExportAuditCsv,
         handleReturnComments,
         hasUnsavedWork,
+        unsavedWork: unsaved,
         leaveRequest,
         handleRequestLeave: requestLeave,
         handleConfirmLeave: confirmLeave,

@@ -439,7 +439,8 @@ describe('採点を離れるときの確認 (#1923 C4)', () => {
         const { handlers } = renderEvaluation({
             seats: [1],
             getCell: () => ({ submitted: true, grade: 'A' }),
-            leaveRequest: { kind: 'back', busy: false },
+            leaveRequest: { kind: 'back' },
+            unsavedWork: { grades: true, comments: true },
             onCancelLeave,
             onConfirmLeave,
         });
@@ -457,27 +458,69 @@ describe('採点を離れるときの確認 (#1923 C4)', () => {
         expect(handlers.onBack).not.toHaveBeenCalled();
     });
 
-    test('✕・ログアウト・お知らせから離れるとき（leave）と、AI の途中（busy）', () => {
-        renderEvaluation({
-            seats: [1],
-            getCell: () => ({ submitted: true, grade: 'A' }),
-            leaveRequest: { kind: 'leave', busy: true },
-        });
-        expect(byTestId('classroom-eval-leave-confirm-message').textContent).toBe(
+    // 文は中身に合わせる（レビュー Q1）: 採点だけ／コメントだけ／両方／AI の途中だけ。
+    test.each([
+        [{ grades: true, comments: false }, null, 'back', 'Grades you have not exported will be lost. Go back?'],
+        [
+            { grades: false, comments: true },
+            null,
+            'leave',
+            'Comments you have not returned will be lost. Leave this screen?',
+        ],
+        [
+            { grades: true, comments: true },
+            { label: 'AI', done: 0, total: 1 },
+            'leave',
             'The AI is still working. Grades you have not exported and comments you have not returned will be lost. ' +
                 'Leave this screen?',
-        );
-        expect(byTestId('classroom-eval-leave-confirm').textContent).toBe('Leave');
-    });
-
-    test('読み込み直し（reload）', () => {
+        ],
+        [
+            { grades: false, comments: false },
+            { label: 'AI', done: 0, total: 1 },
+            'back',
+            'The AI is still working. Go back?',
+        ],
+        // 読み込み直してもコメントの下書きは残るので、採点だけを言う
+        [{ grades: true, comments: true }, null, 'reload', 'Grades you have not exported will be lost. Load again?'],
+    ])('unsaved %j, busy %j, %s', (unsavedWork, evalProgress, kind, text) => {
         renderEvaluation({
             seats: [1],
             getCell: () => ({ submitted: true, grade: 'A' }),
-            leaveRequest: { kind: 'reload', busy: false },
+            evalProgress,
+            leaveRequest: { kind },
+            unsavedWork,
         });
-        expect(byTestId('classroom-eval-leave-confirm-message').textContent).toBe(
-            'Grades you have not exported will be lost. Load again?',
+        expect(byTestId('classroom-eval-leave-confirm-message').textContent).toBe(text);
+    });
+
+    test('確定のボタンは入口に合わせる（離れる・読み込み直す）', () => {
+        const { rerender } = renderEvaluation({ seats: [1], leaveRequest: { kind: 'leave' } });
+        expect(byTestId('classroom-eval-leave-confirm').textContent).toBe('Leave');
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherEvaluation
+                    comments={{}}
+                    evalLessons={LESSONS}
+                    getCell={() => null}
+                    leaveRequest={{ kind: 'reload' }}
+                    rubricAxes={[]}
+                    seats={[1]}
+                    selectedLessonIds={['c1']}
+                    strictness="standard"
+                    onBack={jest.fn()}
+                    onChangeRubricAxis={jest.fn()}
+                    onExportAuditCsv={jest.fn()}
+                    onExportEvaluationCsv={jest.fn()}
+                    onLoadSubmissions={jest.fn()}
+                    onReturnComments={jest.fn()}
+                    onRunAi={jest.fn()}
+                    onSetCellGrade={jest.fn()}
+                    onSetCellReason={jest.fn()}
+                    onSetComment={jest.fn()}
+                    onSetStrictness={jest.fn()}
+                    onToggleLesson={jest.fn()}
+                />
+            </IntlProvider>,
         );
         expect(byTestId('classroom-eval-leave-confirm').textContent).toBe('Load again');
     });

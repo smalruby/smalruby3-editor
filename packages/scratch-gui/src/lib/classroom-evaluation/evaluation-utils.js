@@ -104,46 +104,35 @@ const evaluationSnapshot = (matrix) =>
     Object.fromEntries(Object.entries(matrix || {}).map(([key, cell]) => [key, gradeOf(cell)]));
 
 /**
- * Whether leaving the grading screen would lose work (#1923 C4). Grades and
- * comment drafts live only on this screen:
+ * What leaving the grading screen would lose (#1923 C4). Grades and comment
+ * drafts live only on this screen:
  * - a grade or a reason is kept only by the 「採点結果」 CSV (returning does
  *   not save grades on the server), so one that differs from the last export
- *   is lost;
+ *   is lost. "Exported" means the download started: a cancelled download
+ *   cannot be told apart;
  * - a comment is kept only when it was returned as it is now (a comment
  *   edited or redrafted by the AI after the return is lost).
- * Only the seats on the table and the selected assignments count.
- * @param {object} state - the table
- * @param {Array<number>} state.seats - seats on the table
- * @param {Array<string>} state.lessonIds - the selected assignments
- * @param {Function} state.getCell - (seatNumber, classroomId) => cell or null
+ * Every assignment in the table counts, also one unselected after grading
+ * (it is still dropped on leaving or on loading again).
+ * @param {object} state - the grading state
+ * @param {object} state.matrix - `${seat}:${classroomId}` → cell
  * @param {object} state.comments - `${seat}:${classroomId}` → comment draft
- * @param {object} [state.exported] - evaluationSnapshot at the last export
+ * @param {object} [state.exported] - evaluationSnapshot of what was exported
  * @returns {{grades: boolean, comments: boolean}} what would be lost
  */
-const unsavedEvaluation = ({ seats, lessonIds, getCell, comments, exported = {} }) => {
+const unsavedEvaluation = ({ matrix, comments, exported = {} }) => {
+    const cells = matrix || {};
+    const drafts = comments || {};
     const result = { grades: false, comments: false };
-    for (const seatNumber of seats || []) {
-        for (const classroomId of lessonIds || []) {
-            const key = `${seatNumber}:${classroomId}`;
-            const cell = getCell(seatNumber, classroomId);
-            const now = gradeOf(cell);
-            const was = (exported || {})[key] || gradeOf(null);
-            if (now.grade !== was.grade || now.reason !== was.reason) result.grades = true;
-            const comment = ((comments || {})[key] || '').trim();
-            if (comment && !(cell && cell.returned && cell.returnedComment === comment)) result.comments = true;
-        }
+    for (const key of new Set([...Object.keys(cells), ...Object.keys(drafts)])) {
+        const cell = cells[key] || null;
+        const now = gradeOf(cell);
+        const was = (exported || {})[key] || gradeOf(null);
+        if (now.grade !== was.grade || now.reason !== was.reason) result.grades = true;
+        const comment = (drafts[key] || '').trim();
+        if (comment && !(cell && cell.returned && cell.returnedComment === comment)) result.comments = true;
     }
     return result;
-};
-
-/**
- * Whether anything would be lost (see unsavedEvaluation).
- * @param {object} state - same as unsavedEvaluation
- * @returns {boolean} whether grades or comments would be lost
- */
-const hasUnsavedEvaluation = (state) => {
-    const unsaved = unsavedEvaluation(state);
-    return unsaved.grades || unsaved.comments;
 };
 
 /**
@@ -279,7 +268,6 @@ export {
     evaluationColumns,
     evaluationFlowMode,
     evaluationSnapshot,
-    hasUnsavedEvaluation,
     unsavedEvaluation,
     isLessonOnlyAssignment,
     lessonScoreOf,

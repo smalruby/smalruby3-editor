@@ -36,34 +36,43 @@ import { TeacherScreen } from './teacher-view-layout.jsx';
 const GRADES = [...GRADE_ORDER].reverse(); // S, A, B, C
 
 const evalMessages = defineMessages({
-    // Asking before work is lost (#1923 C4).
-    leaveConfirm: {
-        defaultMessage: 'Grades you have not exported and comments you have not returned will be lost. {action}?',
+    // Asking before work is lost (#1923 C4). Separate sentences: what is
+    // lost (grades / comments / both), the AI still working, then the question.
+    lostGrades: {
+        defaultMessage: 'Grades you have not exported will be lost.',
+        description: 'Grading screen: leave question — only grades not exported (CSV) would be lost (#1923)',
+        id: 'gui.classroom.evaluation.lostGrades',
+    },
+    lostComments: {
+        defaultMessage: 'Comments you have not returned will be lost.',
+        description: 'Grading screen: leave question — only comment drafts not returned would be lost (#1923)',
+        id: 'gui.classroom.evaluation.lostComments',
+    },
+    lostBoth: {
+        defaultMessage: 'Grades you have not exported and comments you have not returned will be lost.',
         description:
-            'Grading screen: asked before leaving when grades are not exported (CSV) or comments are not returned; ' +
-            '{action} is "Go back" or "Leave this screen" (#1923)',
-        id: 'gui.classroom.evaluation.leaveConfirm',
-    },
-    reloadConfirm: {
-        defaultMessage: 'Grades you have not exported will be lost. Load again?',
-        description: 'Grading screen: asked before loading the submissions again over grades not exported (#1923)',
-        id: 'gui.classroom.evaluation.reloadConfirm',
-    },
-    backVerb: {
-        defaultMessage: 'Go back',
-        description: 'Grading screen: {action} of the leave question when going back to the class list (#1923)',
-        id: 'gui.classroom.evaluation.leaveBackVerb',
-    },
-    leaveVerb: {
-        defaultMessage: 'Leave this screen',
-        description:
-            'Grading screen: {action} of the leave question when closing, logging out or opening a notification (#1923)',
-        id: 'gui.classroom.evaluation.leaveLeaveVerb',
+            'Grading screen: leave question — grades not exported and comments not returned would be lost (#1923)',
+        id: 'gui.classroom.evaluation.lostBoth',
     },
     leaveBusy: {
         defaultMessage: 'The AI is still working.',
-        description: 'Grading screen: added before the leave question while the AI is grading or drafting (#1923)',
+        description: 'Grading screen: leave question while the AI is grading or drafting (#1923)',
         id: 'gui.classroom.evaluation.leaveBusy',
+    },
+    askBack: {
+        defaultMessage: 'Go back?',
+        description: 'Grading screen: leave question when going back to the class list (#1923)',
+        id: 'gui.classroom.evaluation.askBack',
+    },
+    askLeave: {
+        defaultMessage: 'Leave this screen?',
+        description: 'Grading screen: leave question when closing, logging out or going elsewhere (#1923)',
+        id: 'gui.classroom.evaluation.askLeave',
+    },
+    askReload: {
+        defaultMessage: 'Load again?',
+        description: 'Grading screen: question before loading the submissions again over grades not exported (#1923)',
+        id: 'gui.classroom.evaluation.askReload',
     },
     leaveStay: {
         defaultMessage: 'Keep grading',
@@ -409,6 +418,7 @@ LessonScoringPanel.propTypes = {
 
 const EMPTY_LESSON_SCORES = {};
 const runAction = (action) => action();
+const NOTHING_UNSAVED = { grades: false, comments: false };
 
 const TeacherEvaluation = ({
     comments,
@@ -426,6 +436,7 @@ const TeacherEvaluation = ({
     selectedLessonIds,
     strictness,
     leaveRequest = null,
+    unsavedWork = NOTHING_UNSAVED,
     onBack,
     onCancelLeave,
     onChangeLessonScoring,
@@ -512,6 +523,22 @@ const TeacherEvaluation = ({
        ［戻る］を出す。採点は書き出した CSV にしか残らないので、ここでも書き出せる。
        離れると消えて取り消せないので、確定のボタンは赤（R4）。 */
     const leaveKind = leaveRequest ? leaveRequest.kind : null;
+    // What is lost now (not when asked: an export or the AI may have finished since, #1923 FYI1).
+    // Loading again keeps the comment drafts.
+    const lostGrades = unsavedWork.grades;
+    const lostComments = leaveKind !== 'reload' && unsavedWork.comments;
+    let lostMessage = null;
+    if (lostGrades && lostComments) lostMessage = evalMessages.lostBoth;
+    else if (lostGrades) lostMessage = evalMessages.lostGrades;
+    else if (lostComments) lostMessage = evalMessages.lostComments;
+    const leaveSentences = [
+        busy && leaveKind !== 'reload' ? evalMessages.leaveBusy : null,
+        lostMessage,
+        { back: evalMessages.askBack, leave: evalMessages.askLeave, reload: evalMessages.askReload }[leaveKind] ||
+            evalMessages.askBack,
+    ].filter(Boolean);
+    // Japanese sentences follow each other without a space.
+    const sentenceGap = /^ja/.test(intl.locale || '') ? '' : ' ';
     const leaveFooter = leaveRequest ? (
         <>
             <ClassroomButton autoFocus dataTestId="classroom-eval-leave-cancel" onClick={onCancelLeave}>
@@ -519,15 +546,12 @@ const TeacherEvaluation = ({
             </ClassroomButton>
             <p
                 className={classNames(styles.confirmNote, styles.evalLeaveConfirm)}
+                data-kind={leaveKind}
+                data-lost={[lostGrades && 'grades', lostComments && 'comments'].filter(Boolean).join(' ')}
                 data-testid="classroom-eval-leave-confirm-message"
                 role="alert"
             >
-                {leaveRequest.busy ? `${intl.formatMessage(evalMessages.leaveBusy)} ` : null}
-                {intl.formatMessage(leaveKind === 'reload' ? evalMessages.reloadConfirm : evalMessages.leaveConfirm, {
-                    action: intl.formatMessage(
-                        leaveKind === 'leave' ? evalMessages.leaveVerb : evalMessages.backVerb,
-                    ),
-                })}
+                {leaveSentences.map((message) => intl.formatMessage(message)).join(sentenceGap)}
             </p>
             <ClassroomButton
                 dataTestId="classroom-eval-leave-export"
@@ -1058,9 +1082,8 @@ TeacherEvaluation.propTypes = {
     evalLessons: PropTypes.arrayOf(PropTypes.object).isRequired,
     evalProgress: PropTypes.object,
     getCell: PropTypes.func.isRequired,
-    /** A leave waiting for the teacher's answer (#1923 C4): {kind: 'back'|'leave'|'reload', busy}. */
+    /** A leave waiting for the teacher's answer (#1923 C4): {kind: 'back'|'leave'|'reload'}. */
     leaveRequest: PropTypes.shape({
-        busy: PropTypes.bool,
         kind: PropTypes.oneOf(['back', 'leave', 'reload']),
     }),
     lessonScores: PropTypes.object,
@@ -1070,6 +1093,11 @@ TeacherEvaluation.propTypes = {
     seats: PropTypes.arrayOf(PropTypes.number).isRequired,
     selectedLessonIds: PropTypes.arrayOf(PropTypes.string).isRequired,
     strictness: PropTypes.string.isRequired,
+    /** What leaving would lose now (#1923 C4): {grades, comments}. */
+    unsavedWork: PropTypes.shape({
+        comments: PropTypes.bool,
+        grades: PropTypes.bool,
+    }),
     onBack: PropTypes.func.isRequired,
     onCancelLeave: PropTypes.func,
     onChangeLessonScoring: PropTypes.func,

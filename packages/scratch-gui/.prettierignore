@@ -624,6 +624,7 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-notifications.test.js
 !test/unit/containers/use-teacher-evaluation-leave.test.js
 !test/unit/containers/use-before-unload-while.test.js
+!test/unit/containers/classroom-teacher-modal-leave.test.jsx
 !test/unit/containers/google-drive-saver-hoc.test.jsx
 !test/unit/containers/google-drive-state-management.test.jsx
 !test/unit/containers/ruby-downloader.test.jsx

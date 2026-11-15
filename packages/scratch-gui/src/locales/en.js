@@ -134,11 +134,13 @@ export default {
         'Remove the student at seat {number} from the assignment? (Their work is kept.)',
     'gui.classroom.members.removeCancel': 'Cancel',
     'gui.classroom.members.removeConfirmYes': 'Remove from the assignment',
-    'gui.classroom.evaluation.leaveConfirm':
-        'Grades you have not exported and comments you have not returned will be lost. {action}?',
-    'gui.classroom.evaluation.reloadConfirm': 'Grades you have not exported will be lost. Load again?',
-    'gui.classroom.evaluation.leaveBackVerb': 'Go back',
-    'gui.classroom.evaluation.leaveLeaveVerb': 'Leave this screen',
+    'gui.classroom.evaluation.lostGrades': 'Grades you have not exported will be lost.',
+    'gui.classroom.evaluation.lostComments': 'Comments you have not returned will be lost.',
+    'gui.classroom.evaluation.lostBoth':
+        'Grades you have not exported and comments you have not returned will be lost.',
+    'gui.classroom.evaluation.askBack': 'Go back?',
+    'gui.classroom.evaluation.askLeave': 'Leave this screen?',
+    'gui.classroom.evaluation.askReload': 'Load again?',
     'gui.classroom.evaluation.leaveBusy': 'The AI is still working.',
     'gui.classroom.evaluation.leaveCancel': 'Keep grading',
     'gui.classroom.evaluation.leaveExport': 'Export grades (CSV)',

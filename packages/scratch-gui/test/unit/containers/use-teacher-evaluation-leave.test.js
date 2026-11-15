@@ -30,10 +30,10 @@ const submissions = [1, 2].map((n) => ({
     projectUrl: `https://example.invalid/${n}.sb3`,
 }));
 
-const setup = async () => {
+const setup = async (classrooms = [{ classroomId: 'c1', groupId: 'g1', assignmentName: '迷路' }]) => {
     const deps = {
         idToken: 'id-token',
-        classrooms: [{ classroomId: 'c1', groupId: 'g1', assignmentName: '迷路' }],
+        classrooms,
         handleTeacher401: jest.fn(),
         clearError: jest.fn(),
         showError: jest.fn(),
@@ -98,7 +98,7 @@ describe('useTeacherEvaluation — 離れる前の確認 (#1923 C4)', () => {
         const action = jest.fn();
         act(() => hook.result.current.handleRequestLeave(action));
         expect(action).not.toHaveBeenCalled();
-        expect(hook.result.current.leaveRequest).toMatchObject({ kind: 'back', busy: false });
+        expect(hook.result.current.leaveRequest).toMatchObject({ kind: 'back' });
         act(() => hook.result.current.handleConfirmLeave());
         expect(action).toHaveBeenCalledTimes(1);
         expect(hook.result.current.leaveRequest).toBeNull();
@@ -172,10 +172,48 @@ describe('useTeacherEvaluation — 離れる前の確認 (#1923 C4)', () => {
         const action = jest.fn();
         act(() => hook.result.current.handleRequestLeave(action));
         expect(action).not.toHaveBeenCalled();
-        expect(hook.result.current.leaveRequest).toMatchObject({ kind: 'back', busy: true });
+        expect(hook.result.current.leaveRequest).toMatchObject({ kind: 'back' });
+        expect(hook.result.current.unsavedWork).toEqual({ grades: false, comments: false });
+        expect(hook.result.current.evalProgress).not.toBeNull();
         await act(async () => {
             finish({ results: [] });
             await running;
         });
+    });
+
+    test('選択を外した課題の採点も数える: 離れる・読み込み直すと確かめる（レビュー M2）', async () => {
+        const hook = await setup([
+            { classroomId: 'c1', groupId: 'g1', assignmentName: '迷路' },
+            { classroomId: 'c2', groupId: 'g1', assignmentName: 'ボール' },
+        ]);
+        await runAi(hook, 'grade');
+        act(() => hook.result.current.handleToggleLesson('c2'));
+        expect(hook.result.current.selectedLessonIds).toEqual(['c1']);
+        // c1 だけ書き出しても、c2 の採点は書き出していない
+        act(() => hook.result.current.handleExportEvaluationCsv());
+        expect(hook.result.current.unsavedWork).toEqual({ grades: true, comments: false });
+        const leave = jest.fn();
+        act(() => hook.result.current.handleRequestLeave(leave, 'leave'));
+        expect(leave).not.toHaveBeenCalled();
+        act(() => hook.result.current.handleCancelLeave());
+        const reload = jest.fn();
+        act(() => hook.result.current.handleRequestLeave(reload, 'reload'));
+        expect(reload).not.toHaveBeenCalled();
+        expect(hook.result.current.leaveRequest).toMatchObject({ kind: 'reload' });
+    });
+
+    test('読み込み直しの確認で［読み込み直す］を押すと、その時の選択で読み込む（FYI1）', async () => {
+        const hook = await setup([
+            { classroomId: 'c1', groupId: 'g1', assignmentName: '迷路' },
+            { classroomId: 'c2', groupId: 'g1', assignmentName: 'ボール' },
+        ]);
+        await runAi(hook, 'grade');
+        act(() => hook.result.current.handleRequestLeave(hook.result.current.handleLoadSubmissions, 'reload'));
+        act(() => hook.result.current.handleToggleLesson('c2'));
+        mockListSubmissions.mockClear();
+        await act(async () => {
+            hook.result.current.handleConfirmLeave();
+        });
+        expect(mockListSubmissions.mock.calls.map((call) => call[1])).toEqual(['c1']);
     });
 });
