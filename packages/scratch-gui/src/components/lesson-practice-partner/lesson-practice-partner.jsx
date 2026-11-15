@@ -27,9 +27,9 @@ const messages = defineMessages({
     received: {
         id: 'gui.lessonPracticePartner.received',
         description:
-            'One line in the practice partner panel: what last reached the partner from the student project ' +
-            '({name} = the partner name, {what} = a message name, or "variable = value")',
-        defaultMessage: 'To {name}: {what}',
+            'Line in the practice partner panel: what last reached the partner from the student project ' +
+            '({what} = a message name, or "variable = value")',
+        defaultMessage: 'Received: {what}',
     },
     nothingReceived: {
         id: 'gui.lessonPracticePartner.nothingReceived',
@@ -79,10 +79,9 @@ const LessonPracticePartner = ({ buttons, name, onClose, onOpen, onPress, open, 
         );
     }
     const title = intl.formatMessage(messages.title, { name });
-    // 相手に届いたもの（1 行。長いときは省略し、全文は title で見る）。何も届いていなくても行を出して、
-    // パネルの高さを変えない
+    // 相手に届いたもの（2 行まで。はみ出しは省略し、全文は title で見る）。何も届いていなくても出して、
+    // パネルの高さを変えない（高さは 2 行ぶんで固定）
     const receivedText = intl.formatMessage(messages.received, {
-        name,
         what: received === null ? intl.formatMessage(messages.nothingReceived) : received,
     });
     return (
@@ -128,7 +127,7 @@ const LessonPracticePartner = ({ buttons, name, onClose, onOpen, onPress, open, 
                     data-testid="lesson-practice-partner-received"
                     title={receivedText}
                 >
-                    {receivedText}
+                    <span className={styles.receivedText}>{receivedText}</span>
                 </p>
                 <p className={styles.note} data-testid="lesson-practice-partner-note">
                     {intl.formatMessage(messages.note)}

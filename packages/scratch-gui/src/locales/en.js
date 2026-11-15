@@ -1429,7 +1429,7 @@ export default {
     'gui.lessonPracticePartner.title': 'Practice partner: {name}',
     'gui.lessonPracticePartner.note': 'With a partner, close this and connect with Mesh.',
     'gui.lessonPracticePartner.close': 'Close the practice partner',
-    'gui.lessonPracticePartner.received': 'To {name}: {what}',
+    'gui.lessonPracticePartner.received': 'Received: {what}',
     'gui.lessonPracticePartner.nothingReceived': '(nothing yet)',
     'gui.lessonPracticePartner.open': 'Practice partner',
     'gui.lessonHint.ariaLabel': 'Hint',

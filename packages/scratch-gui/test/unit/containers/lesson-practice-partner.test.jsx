@@ -135,7 +135,7 @@ describe('LessonPracticePartner container', () => {
         renderContainer({ vm });
         const line = screen.getByTestId('lesson-practice-partner-received');
         // 何も届いていなくても行を出す（パネルの高さを変えない）
-        expect(line).toHaveTextContent('To ロボ: (nothing yet)');
+        expect(line).toHaveTextContent('Received: (nothing yet)');
         const exec = (opcode, args) => {
             vm.runtime._primitives[opcode] = vm.runtime._primitives[opcode] || jest.fn();
             act(() => {
@@ -143,13 +143,13 @@ describe('LessonPracticePartner container', () => {
             });
         };
         exec('data_setvariableto', { VARIABLE: { id: 'v', name: 'メッセージ' }, VALUE: 'こんにちは' });
-        expect(line).toHaveTextContent('To ロボ: メッセージ = こんにちは');
+        expect(line).toHaveTextContent('Received: メッセージ = こんにちは');
         exec('event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
-        expect(line).toHaveTextContent('To ロボ: メッセージ = こんにちは');
-        expect(line).toHaveAttribute('title', 'To ロボ: メッセージ = こんにちは');
+        expect(line).toHaveTextContent('Received: メッセージ = こんにちは');
+        expect(line).toHaveAttribute('title', 'Received: メッセージ = こんにちは');
         // 相手のボタン（相手から生徒へ）は相手に届いたものではない
         fireEvent.click(screen.getAllByTestId('lesson-practice-partner-button')[1]);
-        expect(line).toHaveTextContent('To ロボ: メッセージ = こんにちは');
+        expect(line).toHaveTextContent('Received: メッセージ = こんにちは');
     });
 
     test('the line starts over when the challenge changes', () => {
@@ -159,13 +159,13 @@ describe('LessonPracticePartner container', () => {
         act(() => {
             vm.runtime.getOpcodeFunction('event_broadcast')({ BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } }, {});
         });
-        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('To ロボ: メッセージ');
+        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('Received: メッセージ');
         rerender(
             <IntlProvider locale="en" messages={en}>
                 <LessonPracticePartnerContainer challengeId="c2" locale="ja" partnerDef={PARTNER} vm={vm} />
             </IntlProvider>,
         );
-        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('To ロボ: (nothing yet)');
+        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('Received: (nothing yet)');
     });
 
     test('strings exist in en / ja / ja-Hira', () => {
