@@ -38,11 +38,21 @@ const LessonPracticePartnerContainer = ({ challengeId = null, locale, partnerDef
     const [open, setOpen] = useState(true);
     const [meshFree, setMeshFree] = useState(() => practiceAllowed(meshConnectionState(vm)));
     const [position, setPosition] = useState(null);
+    // 相手に届いたもの（D3。2 行まで出す。practice-loopback.js の onReceived）と、読み上げる文（合図が届いて
+    // 変わったときだけ更新する）。チャレンジが変わったら消す
+    const [received, setReceived] = useState(null);
+    const [announcement, setAnnouncement] = useState('');
+    const handleReceived = useCallback((line, { announce }) => {
+        setReceived(line);
+        if (announce && line) setAnnouncement(line);
+    }, []);
     const loopRef = useRef(null);
 
     // チャレンジが変わったら開いた状態にもどす（本物のメッシュでつながっていれば閉じて出す）
     useEffect(() => {
         setOpen(practiceAllowed(meshConnectionState(vm)));
+        setReceived(null);
+        setAnnouncement('');
     }, [challengeId, vm]);
 
     // 本物のメッシュのつながり。つながったらパネルを閉じる
@@ -64,16 +74,17 @@ const LessonPracticePartnerContainer = ({ challengeId = null, locale, partnerDef
 
     const active = Boolean(partner && open && meshFree && vm);
 
-    // 折り返しをつなぐ・外す
+    // 折り返しをつなぐ・外す。同じ練習相手を使うチャレンジ（4-1〜4-3）に移ったときも、チャレンジごとにつなぎ
+    // 直す（前のチャレンジで届いたもの・覚えた値を持ち越さない）
     useEffect(() => {
         if (!active) return () => {};
-        const loop = attachPracticeLoopback({ vm, partner });
+        const loop = attachPracticeLoopback({ vm, partner, onReceived: handleReceived });
         loopRef.current = loop;
         return () => {
             loop.detach();
             if (loopRef.current === loop) loopRef.current = null;
         };
-    }, [active, partner, vm]);
+    }, [active, challengeId, handleReceived, partner, vm]);
 
     // 置く場所（ステージの大きさを変えると列の左端が動くので、resize と列の大きさの変化で測り直す）
     useEffect(() => {
@@ -106,6 +117,8 @@ const LessonPracticePartnerContainer = ({ challengeId = null, locale, partnerDef
             onPress={handlePress}
             open={open}
             position={position}
+            announcement={announcement}
+            received={received}
         />,
         document.body,
     );

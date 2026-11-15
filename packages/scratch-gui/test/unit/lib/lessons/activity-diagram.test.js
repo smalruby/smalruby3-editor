@@ -204,6 +204,55 @@ describe('partnerLane', () => {
         ]);
     });
 
+    test('a value from a variable of the student is drawn as "(name の値)" (D4)', () => {
+        const partner = {
+            name: 'シマネコ',
+            buttons: [
+                {
+                    label: 'あなたに DM',
+                    set: [
+                        { variable: 'あて先', value: { fromVariable: { ja: '名前', en: 'name' } } },
+                        { variable: 'x', value: { fromVariable: '' } },
+                    ],
+                },
+            ],
+        };
+        const ja = partnerLane(partner, { format: formatJa, locale: 'ja' });
+        // 名前の無い fromVariable の行は、動かすとき（normalizePartner）と同じく描かない
+        expect(ja.targets[0].scripts[0].body.map((n) => n.label)).toEqual(['あて先を(名前の値)にする']);
+        const enLane = partnerLane(partner, { format: formatEn, locale: 'en' });
+        expect(enLane.targets[0].scripts[0].body[0].label).toBe('set あて先 to (value of name)');
+    });
+
+    test('names, labels, variables and messages may be written per locale, read like the practice panel (Q3)', () => {
+        const partner = {
+            name: { ja: 'シマネコ', en: 'Shimacat' },
+            buttons: [
+                {
+                    label: { ja: 'こんにちは', en: 'Hello' },
+                    set: { variable: { ja: 'シマネコのメッセージ', en: 'shimacat_message' }, value: { ja: 'x' } },
+                    broadcast: { ja: 'シマネコのメッセージ', en: 'shimacat_message' },
+                },
+            ],
+            replies: [{ onBroadcast: { ja: 'シマラビのメッセージ', en: 'shimaraby_message' }, broadcast: 'ok' }],
+        };
+        const enLane = partnerLane(partner, { format: formatEn, locale: 'en' });
+        expect(enLane.label).toBe('Shimacat');
+        expect(enLane.targets[0].scripts.map((s) => s.start)).toEqual([
+            'when the "Hello" button is pressed',
+            expect.stringContaining('shimaraby_message'),
+        ]);
+        // 値の locale ごとの書き方は動かすときも使わない（文字か数だけ）ので、その行は描かない
+        expect(enLane.targets[0].scripts[0].body.map((n) => n.label)).toEqual([
+            expect.stringContaining('shimacat_message'),
+        ]);
+        // locale のキーが無いときは、動かすときと同じく en → ja の順
+        const jaHira = partnerLane(partner, { format: formatJa, locale: 'ja-Hira' });
+        expect(jaHira.label).toBe('Shimacat');
+        // 何もしない返事は、動かすときと同じく描かない
+        expect(partnerLane({ name: 'ロボ', replies: [{ onBroadcast: 'x' }] }, { format: formatJa })).toBeNull();
+    });
+
     test('no partner (or a partner without anything to draw) gives no lane', () => {
         expect(partnerLane(null, { format: formatJa })).toBeNull();
         expect(partnerLane(undefined, { format: formatJa })).toBeNull();

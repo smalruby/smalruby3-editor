@@ -24,6 +24,18 @@ const messages = defineMessages({
         description: 'Accessible name of the button that closes the practice partner panel',
         defaultMessage: 'Close the practice partner',
     },
+    received: {
+        id: 'gui.lessonPracticePartner.received',
+        description:
+            'Line in the practice partner panel: what last reached the partner from the student project ' +
+            '({what} = a message name, or "variable = value")',
+        defaultMessage: 'Received: {what}',
+    },
+    nothingReceived: {
+        id: 'gui.lessonPracticePartner.nothingReceived',
+        description: 'Shown in the practice partner panel before anything reached the partner',
+        defaultMessage: '(nothing yet)',
+    },
     open: {
         id: 'gui.lessonPracticePartner.open',
         description: 'Button that shows the practice partner panel again after it was closed',
@@ -31,7 +43,17 @@ const messages = defineMessages({
     },
 });
 
-const LessonPracticePartner = ({ buttons, name, onClose, onOpen, onPress, open, position }) => {
+const LessonPracticePartner = ({
+    announcement = '',
+    buttons,
+    name,
+    onClose,
+    onOpen,
+    onPress,
+    open,
+    position,
+    received = null,
+}) => {
     const intl = useIntl();
     // 閉じたら「練習相手」のボタンへ、開いたら最初のボタン（無ければ ×）へフォーカスを移す。押したボタンが
     // 消えてフォーカスが body に落ちると、キーボードで操作している人がどこにいるか分からなくなるため。
@@ -67,6 +89,11 @@ const LessonPracticePartner = ({ buttons, name, onClose, onOpen, onPress, open, 
         );
     }
     const title = intl.formatMessage(messages.title, { name });
+    // 相手に届いたもの（2 行まで。はみ出しは省略し、全文は title で見る）。何も届いていなくても出して、
+    // パネルの高さを変えない（高さは 2 行ぶんで固定）
+    const receivedText = intl.formatMessage(messages.received, {
+        what: received === null ? intl.formatMessage(messages.nothingReceived) : received,
+    });
     return (
         <section
             aria-label={title}
@@ -104,6 +131,17 @@ const LessonPracticePartner = ({ buttons, name, onClose, onOpen, onPress, open, 
                         {button.label}
                     </button>
                 ))}
+                <p className={styles.received} data-testid="lesson-practice-partner-received" title={receivedText}>
+                    <span className={styles.receivedText}>{receivedText}</span>
+                </p>
+                {/* 読み上げは合図が届いたときだけ（変数が変わるたびに読み上げない） */}
+                <span
+                    aria-live="polite"
+                    className={styles.visuallyHidden}
+                    data-testid="lesson-practice-partner-announcement"
+                >
+                    {announcement ? intl.formatMessage(messages.received, { what: announcement }) : ''}
+                </span>
                 <p className={styles.note} data-testid="lesson-practice-partner-note">
                     {intl.formatMessage(messages.note)}
                 </p>
@@ -121,6 +159,10 @@ LessonPracticePartner.propTypes = {
     open: PropTypes.bool.isRequired,
     // 置く場所（fixed の top / right。コンテナがステージの列から測る）
     position: PropTypes.shape({ top: PropTypes.number, right: PropTypes.number }),
+    // 相手に届いたもの（2 行まで。「名前 = 値」か合図の名前）。まだ何も届いていなければ null
+    received: PropTypes.string,
+    // 読み上げる文（合図が届いて変わったときだけ変わる）
+    announcement: PropTypes.string,
 };
 
 export default LessonPracticePartner;

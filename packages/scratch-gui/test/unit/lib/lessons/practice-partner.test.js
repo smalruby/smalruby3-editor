@@ -9,7 +9,10 @@ import { attachPracticeLoopback } from '../../../../src/lib/lessons/practice-loo
 import {
     normalizePartner,
     PRACTICE_PARTNER_NODE_ID,
+    findName,
+    partnerNames,
     practiceAllowed,
+    receivedSummary,
     repliesFor,
 } from '../../../../src/lib/lessons/practice-partner';
 
@@ -44,6 +47,7 @@ describe('normalizePartner', () => {
                 },
             ],
             replies: [{ onBroadcast: 'メッセージ', set: [{ name: 'へんじ', value: 'やあ' }], broadcast: 'へんじ' }],
+            watch: [],
         });
     });
 
@@ -69,6 +73,26 @@ describe('normalizePartner', () => {
         const partner = normalizePartner({ replies: [{ onBroadcast: 'Hello', broadcast: 'hi' }] }, 'en');
         expect(repliesFor(partner, 'HELLO')).toHaveLength(1);
         expect(repliesFor(partner, 'bye')).toHaveLength(0);
+    });
+
+    test('a value may be the value of a variable of the student (fromVariable, per locale)', () => {
+        const partner = normalizePartner(
+            {
+                buttons: [
+                    {
+                        label: 'DM',
+                        set: [
+                            { variable: 'あて先', value: { fromVariable: { ja: '名前', en: 'name' } } },
+                            { variable: 'x', value: { fromVariable: '' } },
+                            { variable: 'y', value: { other: 1 } },
+                        ],
+                    },
+                ],
+            },
+            'en',
+        );
+        // 名前の無い fromVariable・知らない形の値は使わない
+        expect(partner.buttons[0].set).toEqual([{ name: 'あて先', fromVariable: 'name' }]);
     });
 
     test('practice runs only while the real mesh is not connected', () => {
@@ -135,6 +159,78 @@ const exec = (runtime, opcode, args, util = {}) => {
     runtime._primitives[opcode] = runtime._primitives[opcode] || jest.fn();
     return runtime.getOpcodeFunction(opcode)(args, util);
 };
+
+describe('partnerNames / findName', () => {
+    test('the names the partner uses: set variables, fromVariable and messages', () => {
+        const partner = normalizePartner(
+            {
+                buttons: [
+                    {
+                        label: 'x',
+                        set: [{ variable: 'あて先', value: { fromVariable: '名前' } }],
+                        broadcast: 'メッセージ',
+                    },
+                ],
+                replies: [{ onBroadcast: 'シマラビのメッセージ', set: { variable: 'へんじ', value: 'a' } }],
+            },
+            'ja',
+        );
+        expect(partnerNames(partner).sort()).toEqual(
+            ['あて先', 'へんじ', 'シマラビのメッセージ', 'メッセージ', '名前'].sort(),
+        );
+        expect(partnerNames(null)).toEqual([]);
+    });
+
+    test('watch adds names of student variables to show, per locale too (3-3: the own mood)', () => {
+        const def = {
+            buttons: [{ label: 'うれしい', set: { variable: 'シマネコの気分', value: 'うれしい' } }],
+            watch: [{ ja: 'シマラビの気分', en: 'shimaraby_mood' }, 'x', '', 3, null],
+        };
+        expect(normalizePartner(def, 'en').watch).toEqual(['shimaraby_mood', 'x', '3']);
+        expect(partnerNames(normalizePartner(def, 'ja'))).toContain('シマラビの気分');
+        // watch だけでは練習相手にならない（ボタンも返事も無ければ null）
+        expect(normalizePartner({ watch: ['a'] }, 'ja')).toBeNull();
+    });
+
+    test('finds the exact name first, then without case', () => {
+        expect(findName(['Hello', 'hello'], 'hello')).toBe('hello');
+        expect(findName(['Hello'], 'HELLO')).toBe('Hello');
+        expect(findName(['Hello'], 'bye')).toBeNull();
+    });
+});
+
+describe('receivedSummary', () => {
+    test('a message shows with the value of the variable of the same name (the course names them alike)', () => {
+        expect(
+            receivedSummary({
+                last: { kind: 'message', name: 'シマラビのメッセージ' },
+                values: { シマラビのメッセージ: 'こんにちは' },
+            }),
+        ).toBe('シマラビのメッセージ = こんにちは');
+        expect(receivedSummary({ last: { kind: 'message', name: 'Hello' }, values: { hello: 'hi' } })).toBe(
+            'Hello = hi',
+        );
+        expect(receivedSummary({ last: { kind: 'message', name: '手をふる' }, values: {} })).toBe('手をふる');
+        // 大文字小文字まで一致する変数を先に使う
+        expect(
+            receivedSummary({ last: { kind: 'message', name: 'hello' }, values: { Hello: 'A', hello: 'b' } }),
+        ).toBe('hello = b');
+    });
+
+    test('a variable alone shows its value', () => {
+        expect(
+            receivedSummary({
+                last: { kind: 'variable', name: 'シマラビの気分' },
+                values: { シマラビの気分: 'ねむい' },
+            }),
+        ).toBe('シマラビの気分 = ねむい');
+    });
+
+    test('nothing yet gives null', () => {
+        expect(receivedSummary(null)).toBeNull();
+        expect(receivedSummary({ last: null, values: {} })).toBeNull();
+    });
+});
 
 describe('attachPracticeLoopback', () => {
     const setup = (vmOptions) => {
@@ -274,6 +370,108 @@ describe('attachPracticeLoopback', () => {
         meshService.remoteData.me.count = { value: '9', timestamp: 2000 };
         loop.detach();
         expect(meshService.remoteData.me.count.value).toBe('9');
+    });
+
+    const watch = (partnerDef = PARTNER) => {
+        const fake = makeVm();
+        const onReceived = jest.fn();
+        const loop = attachPracticeLoopback({
+            vm: fake.vm,
+            partner: normalizePartner(partnerDef, 'ja'),
+            now: () => 1000,
+            timers: makeTimers(),
+            onReceived,
+        });
+        const step = () => fake.runtime.emit('BEFORE_STEP');
+        return { ...fake, loop, onReceived, step };
+    };
+
+    test('tells what reached the partner once per frame: the last message, with the value of the same name (D3)', () => {
+        const { loop, onReceived, runtime, step } = watch();
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 'hi' });
+        // フレームの最初にまとめて知らせる
+        expect(onReceived).not.toHaveBeenCalled();
+        step();
+        // count は相手の使う名前ではないので、行の主役にしない
+        expect(onReceived).not.toHaveBeenCalled();
+        exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        step();
+        expect(onReceived).toHaveBeenLastCalledWith('メッセージ', { announce: true });
+        // 同じ内容なら知らせ直さない
+        exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        step();
+        expect(onReceived).toHaveBeenCalledTimes(1);
+        // ボタン（相手から生徒へ）は相手に届いたものではない
+        loop.press(0);
+        step();
+        expect(onReceived).toHaveBeenCalledTimes(1);
+        loop.detach();
+    });
+
+    test('a variable the partner uses shows "name = value", and is not read aloud', () => {
+        const { loop, onReceived, runtime, step } = watch();
+        runtime.targets[0].variables.v3 = { id: 'v3', name: 'へんじ', type: '', value: '' };
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v3', name: 'へんじ' }, VALUE: 'おはよう' });
+        step();
+        expect(onReceived).toHaveBeenLastCalledWith('へんじ = おはよう', { announce: false });
+        loop.detach();
+    });
+
+    test('a variable listed in watch shows even though the partner does not use it', () => {
+        const { loop, onReceived, runtime, step } = watch({ ...PARTNER, watch: ['count'] });
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 'ねむい' });
+        step();
+        expect(onReceived).toHaveBeenLastCalledWith('count = ねむい', { announce: false });
+        loop.detach();
+    });
+
+    test('a script that changes an unrelated variable every frame does not change the line nor redraw it', () => {
+        const { loop, onReceived, runtime, step } = watch();
+        exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        step();
+        for (let i = 0; i < 30; i++) {
+            exec(runtime, 'data_changevariableby', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 1 });
+            step();
+        }
+        expect(onReceived).toHaveBeenCalledTimes(1);
+        expect(onReceived).toHaveBeenLastCalledWith('メッセージ', { announce: true });
+        loop.detach();
+    });
+
+    test('several changes in one frame are told once', () => {
+        const { loop, onReceived, runtime, step } = watch();
+        runtime.targets[0].variables.v4 = { id: 'v4', name: 'メッセージ', type: '', value: '' };
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v4', name: 'メッセージ' }, VALUE: 'a' });
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v4', name: 'メッセージ' }, VALUE: 'b' });
+        exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        step();
+        expect(onReceived).toHaveBeenCalledTimes(1);
+        expect(onReceived).toHaveBeenLastCalledWith('メッセージ = b', { announce: true });
+        loop.detach();
+    });
+
+    test('a value fromVariable is the value of the student variable, or empty without it (D4)', () => {
+        const fake = makeVm();
+        fake.runtime.targets[0].variables.v2 = { id: 'v2', name: '名前', type: '', value: 'たろう' };
+        const loop = attachPracticeLoopback({
+            vm: fake.vm,
+            partner: normalizePartner(
+                {
+                    buttons: [
+                        { label: 'DM', set: { variable: 'あて先', value: { fromVariable: '名前' } } },
+                        { label: 'none', set: { variable: 'あて先', value: { fromVariable: 'ない' } } },
+                    ],
+                },
+                'ja',
+            ),
+            now: () => 1000,
+            timers: makeTimers(),
+        });
+        loop.press(0);
+        expect(fake.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].あて先.value).toBe('たろう');
+        loop.press(1);
+        expect(fake.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].あて先.value).toBe('');
+        loop.detach();
     });
 
     test('does nothing while the real mesh is connected', () => {

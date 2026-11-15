@@ -23,9 +23,17 @@ const PARTNER = {
 
 const makeVm = (connectionState = 'disconnected') => {
     const runtime = new EventEmitter();
+    const variables = {
+        m: { id: 'm', name: 'メッセージ', type: 'broadcast_msg' },
+        v: { id: 'v', name: 'メッセージ', type: '', value: '' },
+    };
     const stage = {
-        variables: { m: { id: 'm', name: 'メッセージ', type: 'broadcast_msg' } },
+        isStage: true,
+        variables,
         blocks: { resetCache: jest.fn() },
+        lookupVariableById: (id) => variables[id],
+        lookupVariableByNameAndType: (name, type) =>
+            Object.values(variables).find((v) => v.name === name && v.type === type),
         lookupBroadcastMsg: (id, name) => (name === 'メッセージ' ? { name: 'メッセージ' } : undefined),
     };
     runtime.targets = [stage];
@@ -122,8 +130,68 @@ describe('LessonPracticePartner container', () => {
         expect(vm.ext.meshService.remoteData).toEqual({});
     });
 
+    // 生徒の作品のブロックを 1 つ動かして、次のフレームの最初（BEFORE_STEP）まで進める
+    const run = (vm, opcode, args) => {
+        vm.runtime._primitives[opcode] = vm.runtime._primitives[opcode] || jest.fn();
+        act(() => {
+            vm.runtime.getOpcodeFunction(opcode)(args, {});
+            vm.runtime.emit('BEFORE_STEP');
+        });
+    };
+    const rerenderWith = (rerender, vm, challengeId) =>
+        rerender(
+            <IntlProvider locale="en" messages={en}>
+                <LessonPracticePartnerContainer challengeId={challengeId} locale="ja" partnerDef={PARTNER} vm={vm} />
+            </IntlProvider>,
+        );
+
+    test('shows what reached the partner, up to two lines (the last message, with the value of that name)', () => {
+        const vm = makeVm();
+        renderContainer({ vm });
+        const line = screen.getByTestId('lesson-practice-partner-received');
+        // 何も届いていなくても出す（パネルの高さを変えない）
+        expect(line).toHaveTextContent('Received: (nothing yet)');
+        run(vm, 'data_setvariableto', { VARIABLE: { id: 'v', name: 'メッセージ' }, VALUE: 'こんにちは' });
+        expect(line).toHaveTextContent('Received: メッセージ = こんにちは');
+        // 変数が変わっただけでは読み上げない
+        expect(screen.getByTestId('lesson-practice-partner-announcement')).toHaveTextContent('');
+        run(vm, 'event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
+        expect(line).toHaveTextContent('Received: メッセージ = こんにちは');
+        expect(line).toHaveAttribute('title', 'Received: メッセージ = こんにちは');
+        // 相手のボタン（相手から生徒へ）は相手に届いたものではない
+        fireEvent.click(screen.getAllByTestId('lesson-practice-partner-button')[1]);
+        expect(line).toHaveTextContent('Received: メッセージ = こんにちは');
+    });
+
+    test('reads aloud only when a message reached the partner', () => {
+        const vm = makeVm();
+        renderContainer({ vm });
+        const live = screen.getByTestId('lesson-practice-partner-announcement');
+        expect(live).toHaveAttribute('aria-live', 'polite');
+        expect(screen.getByTestId('lesson-practice-partner-received')).not.toHaveAttribute('aria-live');
+        run(vm, 'event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
+        expect(live).toHaveTextContent('Received: メッセージ');
+    });
+
+    test('moving to another challenge with the same partner starts over and still shows what reaches it', () => {
+        const vm = makeVm();
+        const { rerender } = renderContainer({ vm });
+        run(vm, 'data_setvariableto', { VARIABLE: { id: 'v', name: 'メッセージ' }, VALUE: 'こんにちは' });
+        run(vm, 'event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
+        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent(
+            'Received: メッセージ = こんにちは',
+        );
+        rerenderWith(rerender, vm, 'c2');
+        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('Received: (nothing yet)');
+        // 同じ内容を送っても行が出る（前のチャレンジの行を持ち越して「変わっていない」とみなさない）
+        run(vm, 'event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
+        // 前のチャレンジで覚えた値（メッセージ = こんにちは）も持ち越さない
+        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('Received: メッセージ');
+        expect(screen.getByTestId('lesson-practice-partner-received')).not.toHaveTextContent('こんにちは');
+    });
+
     test('strings exist in en / ja / ja-Hira', () => {
-        ['title', 'note', 'close', 'open'].forEach((key) => {
+        ['title', 'note', 'close', 'open', 'received', 'nothingReceived'].forEach((key) => {
             const id = `gui.lessonPracticePartner.${key}`;
             [en, ja, jaHira].forEach((messages) => expect(typeof messages[id]).toBe('string'));
         });
