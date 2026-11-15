@@ -407,5 +407,5 @@ ClassCard.propTypes = {
     onShowSettings: PropTypes.func.isRequired,
 };
 
-export { ArchiveClassDialog };
+export { ArchiveClassDialog, yearSectionLine };
 export default ClassCard;

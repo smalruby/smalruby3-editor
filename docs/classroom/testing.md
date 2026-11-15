@@ -450,8 +450,20 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-tab-stream` / `classroom-board-tab-classwork` / `classroom-board-tab-grading` | button (tab) | クラスの中の［ストリーム］［授業］［採点］タブ（`aria-selected`。最初は［ストリーム］。採点の画面では［採点］が選ばれる。採点の画面からほかのタブへ移るときは離れる確認を通る） |
 | `classroom-board-class-settings` | button | タブの行の右端の［⚙ クラスの設定］（ストリーム・授業のとき） |
 | `classroom-board-settings-view` | div | クラスの中で開いたクラスの設定の画面（中のフォームは `classroom-class-settings-{groupId}`） |
-| `classroom-board-stream` | div | ［ストリーム］の枠（件数が多いときはこの中だけスクロール） |
-| `classroom-board-stream-item-{type}-{classroomId}` | button | ストリームの 1 行。`{type}` は `created`（作成）/ `archived`（アーカイブ）/ `expiring`（残り 7 日以内の自動削除の予定）。押すと［授業］でその課題へ |
+| `classroom-board-stream-band` | div | ［ストリーム］の上のクラスの色の帯（クラス名・年度・セクション・人数） |
+| `classroom-board-current` | section | ストリームの左の「いまの課題」カード（授業日が今日の課題、無ければ授業日がいちばん近い課題） |
+| `classroom-board-current-name` | button | いまの課題の名前（押すと課題詳細へ） |
+| `classroom-board-current-date` | span | いまの課題の「授業日」（ラベル付き） |
+| `classroom-board-current-code` | span | いまの課題の参加コード（大きく） |
+| `classroom-board-current-fullscreen` | button | ［⛶ 全画面で映す］（ストリームの主ボタン。参加コードの全画面表示 = `classroom-code-display-close` で閉じる） |
+| `classroom-board-current-counts-{classroomId}` | span | いまの課題の「参加 N / N・提出 N」（レッスンの課題は「クリア N」）。読み込み中は「読み込み中…」、失敗は「-」 |
+| `classroom-board-current-empty` | p | 課題が無いクラスのいまの課題カードの案内 |
+| `classroom-board-retention-card` | section | ストリームの左の「保存期限」カード。`data-urgent="true"` は 7 日以内に消える課題があるとき（赤） |
+| `classroom-board-retention-card-item-{classroomId}` | button | 7 日以内に消える課題（押すとストリームの行と同じく［授業］でその課題へ） |
+| `classroom-board-retention-card-none` | p | 「7 日以内に消える課題はありません。」（灰色） |
+| `classroom-board-retention-card-next` | p | 次の保存期限（灰色。7 日以内のものが無いとき） |
+| `classroom-board-stream` | div | ［ストリーム］の右の記録の枠（件数が多いときはこの中だけスクロール） |
+| `classroom-board-stream-item-{type}-{classroomId}` | button | ストリームの 1 行。`{type}` は `created`（作成）/ `archived`（アーカイブ）/ `expiring`（残り 7 日以内の自動削除の予定。ほかの行と同じ灰色・赤い警告は `classroom-board-retention-card`）。押すと［授業］でその課題へ |
 | `classroom-board-stream-date-{type}-{classroomId}` | span | ストリームの行の右端の日付とラベル（「作成日」／「アーカイブした日」）。`expiring` の行には無い（日付は文中） |
 | `classroom-board-stream-empty` | p | ストリームが空のときの案内 |
 | `classroom-board-create-menu` | button | ［＋ 作成 ▾］（主ボタン）。開いた一覧は `classroom-board-create-menu-list`（`role="menu"`） |
@@ -471,7 +483,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-topic-add-cancel` / `classroom-topic-add` | button | ［キャンセル］［追加］ |
 | `classroom-board-row-{classroomId}` | li | 課題行 |
 | `classroom-board-row-toggle-{classroomId}` | button | 課題行本体（押すとその場で開く・`aria-expanded`。開く行は 1 つだけ） |
-| `classroom-board-row-date-{classroomId}` | span | 閉じた行の「授業日」（ラベル付き） |
+| `classroom-board-row-date-{classroomId}` | span | 閉じた行の「授業日」（ラベル付き。利用者の時間帯の日付） |
+| `classroom-board-row-tags-{classroomId}` | span | 行の数の札のまとまり（出す札が無い行には無い） |
+| `classroom-board-row-tag-joined-{classroomId}` / `classroom-board-row-tag-submitted-{classroomId}` / `classroom-board-row-tag-cleared-{classroomId}` | span | 「参加 N/N」「提出 N」（レッスンの課題は「クリア N」）。行を開いたか、いまの課題カードで数を読み込んだ課題だけ |
+| `classroom-board-row-tag-unreturned-{classroomId}` | span | 「返却していない N」（課題の一覧の `unreturnedCount` が 1 以上の課題） |
 | `classroom-board-expiry-mark-{classroomId}` | span | 閉じた行の小さな赤い印（⚠ +「保存期限: 日付」。保存期限 7 日以内のときだけ） |
 | `classroom-board-row-menu-{classroomId}` | button | 課題行の ⋮（中にトピック・授業日・共有） |
 | `classroom-board-topic-{classroomId}` | select | ⋮ の「トピック」 |

@@ -5,21 +5,29 @@
  * (sortDate) first. Rows open in place (one at a time); their ⋮ edits the
  * topic / sort date, and a topic heading's ⋮ renames or removes the topic
  * (cascading to the assignments on the server).
+ *
+ * The stream (#1960・Q8) opens with the class's color band, then two columns: on the
+ * left the「いまの課題」card (the join code to show the class, with the full-screen
+ * display) and the deadline card; on the right the record of the class.
  */
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { DEFAULT_MESH_GROUP_LIMIT } from '../../lib/classroom-assignment-utils.js';
+import { classColorStyle } from '../../lib/classroom-class-color.js';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import { currentAssignmentFor, lessonDateKey } from '../../lib/classroom-class-list-summary.js';
 import { buildAssignmentSections } from '../../lib/classroom-group-utils.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
-import { buildStreamEvents } from '../../lib/classroom-stream.js';
+import { buildStreamEvents, retentionSummary } from '../../lib/classroom-stream.js';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
+import ClassCodeDisplay from './class-code-display.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import SharedAssignmentCatalog from './shared-assignment-catalog.jsx';
 import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
+import { yearSectionLine } from './teacher-class-card.jsx';
 import { ClassSettingsForm } from './teacher-class-list.jsx';
 import TeacherClassTabs, { classTabMessages } from './teacher-class-tabs.jsx';
 import TeacherPasscodeImport from './teacher-passcode-import.jsx';
@@ -243,6 +251,105 @@ TopicAddDialog.propTypes = {
 };
 
 const formatShortDate = (intl, iso) => intl.formatDate(new Date(iso), { month: 'numeric', day: 'numeric' });
+// A lesson date key (`YYYY-MM-DD`, the user's time zone) as「11/5」. Read as local midnight, so
+// the day does not move in Japan time (#1960).
+const formatDateKey = (intl, key) => formatShortDate(intl, `${key}T00:00:00`);
+
+/**
+ * The small count tags of an assignment row (#1960): joined / submitted / cleared from the
+ * row's summary once it has been loaded (opening the row or the stream card; no extra
+ * request for the list), and the not-returned count that the list already has
+ * (`unreturnedCount`). A number that is not known is not shown.
+ * @param {object} props - component props
+ * @param {object} props.classroom - the assignment
+ * @param {?object} props.data - the loaded summary (`{joined, capacity, submitted, lessonCleared}`)
+ * @returns {?React.ReactElement} the tags, or null when there is nothing to show
+ */
+const RowCountTags = ({ classroom, data }) => {
+    const id = classroom.classroomId;
+    const tags = [];
+    if (data) {
+        tags.push(
+            <span
+                key="joined"
+                className={styles.boardRowTagJoined}
+                data-testid={`classroom-board-row-tag-joined-${id}`}
+            >
+                <FormattedMessage
+                    defaultMessage="Joined {joined}/{capacity}"
+                    description="Count tag on an assignment row: students who joined, of the seats"
+                    id="gui.classroom.board.tagJoined"
+                    values={{ joined: data.joined, capacity: data.capacity }}
+                />
+            </span>,
+        );
+        if (classroom.hasLesson) {
+            if (typeof data.lessonCleared === 'number') {
+                tags.push(
+                    <span
+                        key="cleared"
+                        className={styles.boardRowTagDone}
+                        data-testid={`classroom-board-row-tag-cleared-${id}`}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Cleared {cleared}"
+                            description="Count tag on a lesson assignment row: students who cleared it"
+                            id="gui.classroom.board.tagCleared"
+                            values={{ cleared: data.lessonCleared }}
+                        />
+                    </span>,
+                );
+            }
+        } else {
+            tags.push(
+                <span
+                    key="submitted"
+                    className={styles.boardRowTagDone}
+                    data-testid={`classroom-board-row-tag-submitted-${id}`}
+                >
+                    <FormattedMessage
+                        defaultMessage="Submitted {submitted}"
+                        description="Count tag on an assignment row: students who submitted"
+                        id="gui.classroom.board.tagSubmitted"
+                        values={{ submitted: data.submitted }}
+                    />
+                </span>,
+            );
+        }
+    }
+    if (Number.isInteger(classroom.unreturnedCount) && classroom.unreturnedCount > 0) {
+        tags.push(
+            <span
+                key="unreturned"
+                className={styles.boardRowTagUnreturned}
+                data-testid={`classroom-board-row-tag-unreturned-${id}`}
+            >
+                <FormattedMessage
+                    defaultMessage="Not returned {count}"
+                    description="Count tag on an assignment row: submissions not returned yet"
+                    id="gui.classroom.board.tagUnreturned"
+                    values={{ count: classroom.unreturnedCount }}
+                />
+            </span>,
+        );
+    }
+    if (tags.length === 0) return null;
+    return (
+        <span className={styles.boardRowTags} data-testid={`classroom-board-row-tags-${id}`}>
+            {tags}
+        </span>
+    );
+};
+
+RowCountTags.propTypes = {
+    classroom: PropTypes.object.isRequired,
+    data: PropTypes.shape({
+        capacity: PropTypes.number,
+        joined: PropTypes.number,
+        lessonCleared: PropTypes.number,
+        submitted: PropTypes.number,
+    }),
+};
 
 const AssignmentRow = ({
     classroom,
@@ -284,8 +391,9 @@ const AssignmentRow = ({
     );
 
     const id = classroom.classroomId;
-    const dateIso = classroom.sortDate || classroom.createdAt || '';
-    const dateValue = dateIso.slice(0, 10);
+    // The lesson date in the user's time zone: a lesson stored as local midnight would be the
+    // day before in UTC, so the first 10 characters of the ISO time are not used (#1960).
+    const dateValue = lessonDateKey(classroom) || '';
     // Red only when the teacher must act now (R4・B4): 7 days or less left.
     // Further deadlines are a grey line inside the opened row.
     const urgent = retentionLevel(classroom.expiresAt) === 'warning';
@@ -332,6 +440,7 @@ const AssignmentRow = ({
                     {/* Trailing items stay at the right end whether or not the red
                         mark is shown, so the lesson date does not jump between rows. */}
                     <span className={styles.boardRowTrailing}>
+                        <RowCountTags classroom={classroom} data={loaded ? summary.data : null} />
                         {urgent ? (
                             // R5: the mark carries a visible label, not only a tooltip.
                             <span
@@ -356,7 +465,7 @@ const AssignmentRow = ({
                                         id="gui.classroom.board.lessonDateLabel"
                                     />
                                 </span>
-                                {formatShortDate(intl, dateIso)}
+                                {formatDateKey(intl, dateValue)}
                             </span>
                         ) : null}
                     </span>
@@ -640,13 +749,13 @@ const StreamItem = ({ event, onOpen }) => {
     return (
         <li>
             <button
-                className={event.type === 'expiring' ? styles.streamItemUrgent : styles.streamItem}
+                className={styles.streamItem}
                 data-testid={`classroom-board-stream-item-${event.key}`}
                 type="button"
                 onClick={handleClick}
             >
-                {/* R4: red only for the entry the teacher has to act on now. */}
-                {event.type === 'expiring' ? <span className={styles.streamItemMark}>{'⚠'}</span> : null}
+                {/* The warning itself is on the deadline card at the left (#1960, R4): the
+                    expiring entry stays in the record in the record's own grey. */}
                 <span className={styles.streamItemText}>{text}</span>
                 {/* R1: the date says what it is (the expiring entry has it in its text). */}
                 {event.type === 'expiring' ? null : (
@@ -684,6 +793,237 @@ StreamItem.propTypes = {
     onOpen: PropTypes.func.isRequired,
 };
 
+/**
+ * The「いまの課題」card of the stream (#1960・Q8): the assignment of today's lesson, or of
+ * the nearest lesson date (`currentAssignmentFor`). Its join code is large, so the teacher
+ * can read it out or put it on the screen with［⛶ 全画面で映す］(the existing full-screen
+ * display). Joined / submitted come from the same summary as the opened row.
+ * @param {object} props - component props
+ * @param {?{classroom: object, date: string}} props.current - the current assignment
+ * @param {Function} props.onOpen - (classroomId) => void, opens the assignment
+ * @param {?Function} props.onShowFullscreen - (classroom) => void; null hides the button
+ * @param {?object} props.summary - its summary (`{data}` / `{failed}` / `{loading}`)
+ * @returns {React.ReactElement} the card
+ */
+const CurrentAssignmentCard = ({ current, onOpen, onShowFullscreen, summary }) => {
+    const intl = useIntl();
+    const classroom = current ? current.classroom : null;
+    const handleOpen = useCallback(() => onOpen(classroom.classroomId), [onOpen, classroom]);
+    const handleFullscreen = useCallback(() => onShowFullscreen(classroom), [onShowFullscreen, classroom]);
+    const title = (
+        <h3 className={styles.streamCardTitle}>
+            <FormattedMessage
+                defaultMessage="Current assignment"
+                description="Title of the stream card with the assignment of today's (or the nearest) lesson"
+                id="gui.classroom.board.currentTitle"
+            />
+        </h3>
+    );
+    if (!classroom) {
+        return (
+            <section className={styles.streamCard} data-testid="classroom-board-current">
+                {title}
+                <p className={styles.streamCardMuted} data-testid="classroom-board-current-empty">
+                    <FormattedMessage
+                        defaultMessage={'No assignments yet. Create one with "+ Create" on the Classwork tab.'}
+                        description="Stream card when the class has no assignment"
+                        id="gui.classroom.board.currentEmpty"
+                    />
+                </p>
+            </section>
+        );
+    }
+    const id = classroom.classroomId;
+    const data = summary && summary.data;
+    let counts;
+    if (data) {
+        counts = classroom.hasLesson ? (
+            <FormattedMessage
+                defaultMessage="Joined {joined} of {capacity} · Cleared {cleared}"
+                description="Counts on the stream card of a lesson assignment"
+                id="gui.classroom.board.currentCountsLesson"
+                values={{
+                    joined: data.joined,
+                    capacity: data.capacity,
+                    cleared: typeof data.lessonCleared === 'number' ? data.lessonCleared : '-',
+                }}
+            />
+        ) : (
+            <FormattedMessage
+                defaultMessage="Joined {joined} of {capacity} · Submitted {submitted}"
+                description="Counts on the stream card: students who joined (of the seats) and submitted"
+                id="gui.classroom.board.currentCounts"
+                values={{ joined: data.joined, capacity: data.capacity, submitted: data.submitted }}
+            />
+        );
+    } else if (summary && summary.failed) {
+        counts = '-';
+    } else {
+        counts = (
+            <FormattedMessage
+                defaultMessage="Loading…"
+                description="Shown while the counts of an opened assignment row load"
+                id="gui.classroom.board.rowLoading"
+            />
+        );
+    }
+    return (
+        <section className={styles.streamCard} data-testid="classroom-board-current">
+            {title}
+            <div className={styles.streamCardLine}>
+                <button
+                    className={styles.streamCardName}
+                    data-testid="classroom-board-current-name"
+                    title={classroom.assignmentName || classroom.className}
+                    type="button"
+                    onClick={handleOpen}
+                >
+                    {classroom.assignmentName || classroom.className}
+                </button>
+                <span className={styles.boardRowMeta} data-testid="classroom-board-current-date">
+                    <span className={styles.boardRowMetaLabel}>
+                        <FormattedMessage
+                            defaultMessage="Lesson date"
+                            description="Label of the lesson date on an assignment row"
+                            id="gui.classroom.board.lessonDateLabel"
+                        />
+                    </span>
+                    {formatDateKey(intl, current.date)}
+                </span>
+            </div>
+            <span className={styles.boardRowMetaLabel}>
+                <FormattedMessage
+                    defaultMessage="Join code"
+                    description="Label of the join code inside an opened assignment row"
+                    id="gui.classroom.board.joinCodeLabel"
+                />
+            </span>
+            <span className={styles.streamCardCode} data-testid="classroom-board-current-code">
+                {String(classroom.joinCode || '').toLowerCase()}
+            </span>
+            {onShowFullscreen ? (
+                <ClassroomButton
+                    className={styles.streamCardButton}
+                    dataTestId="classroom-board-current-fullscreen"
+                    variant="primary"
+                    onClick={handleFullscreen}
+                >
+                    <span aria-hidden="true">{'⛶ '}</span>
+                    <FormattedMessage
+                        defaultMessage="Show on the full screen"
+                        description="Stream card button: shows the join code on the full screen for the class"
+                        id="gui.classroom.board.currentFullscreen"
+                    />
+                </ClassroomButton>
+            ) : null}
+            <span className={styles.streamCardMuted} data-testid={`classroom-board-current-counts-${id}`}>
+                {counts}
+            </span>
+        </section>
+    );
+};
+
+CurrentAssignmentCard.propTypes = {
+    current: PropTypes.shape({ classroom: PropTypes.object.isRequired, date: PropTypes.string.isRequired }),
+    onOpen: PropTypes.func.isRequired,
+    onShowFullscreen: PropTypes.func,
+    summary: PropTypes.object,
+};
+
+/**
+ * The deadline card of the stream (#1960・R4): red only when an assignment is deleted
+ * within 7 days (each one opens like its stream entry); otherwise a grey line with the
+ * next deadline.
+ * @param {object} props - component props
+ * @param {Function} props.onOpen - ({classroom, archived}) => void
+ * @param {{expiring: Array<object>, next: ?object}} props.retention - from retentionSummary
+ * @returns {React.ReactElement} the card
+ */
+const RetentionCard = ({ onOpen, retention }) => {
+    const intl = useIntl();
+    const handleOpen = useCallback(
+        (e) => {
+            const entry = retention.expiring[Number(e.currentTarget.dataset.index)];
+            if (entry) onOpen(entry);
+        },
+        [onOpen, retention],
+    );
+    const urgent = retention.expiring.length > 0;
+    return (
+        <section
+            className={urgent ? styles.streamCardUrgent : styles.streamCard}
+            data-testid="classroom-board-retention-card"
+            data-urgent={urgent ? 'true' : 'false'}
+        >
+            <h3 className={styles.streamCardTitle}>
+                {urgent ? <span aria-hidden="true">{'⚠ '}</span> : null}
+                <FormattedMessage
+                    defaultMessage="Retention"
+                    description="Title of the stream card about assignments deleted automatically"
+                    id="gui.classroom.board.retentionTitle"
+                />
+            </h3>
+            {urgent ? (
+                <ul className={styles.streamCardList}>
+                    {retention.expiring.map((entry, index) => (
+                        <li key={entry.classroom.classroomId}>
+                            <button
+                                className={styles.streamCardUrgentItem}
+                                data-index={index}
+                                data-testid={`classroom-board-retention-card-item-${entry.classroom.classroomId}`}
+                                type="button"
+                                onClick={handleOpen}
+                            >
+                                <FormattedMessage
+                                    defaultMessage={'"{name}" is deleted on {date}'}
+                                    description="Stream deadline card: an assignment deleted automatically within 7 days"
+                                    id="gui.classroom.board.retentionItem"
+                                    values={{
+                                        name: entry.classroom.assignmentName || entry.classroom.className,
+                                        date: formatShortDate(intl, entry.classroom.expiresAt),
+                                    }}
+                                />
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <React.Fragment>
+                    <p className={styles.streamCardMuted} data-testid="classroom-board-retention-card-none">
+                        <FormattedMessage
+                            defaultMessage="No assignment is deleted within 7 days."
+                            description="Stream deadline card when no assignment is deleted within 7 days"
+                            id="gui.classroom.board.retentionNone"
+                        />
+                    </p>
+                    {retention.next ? (
+                        <p className={styles.streamCardMuted} data-testid="classroom-board-retention-card-next">
+                            <FormattedMessage
+                                defaultMessage={'Next: "{name}" on {date}'}
+                                description="Stream deadline card: the next assignment deleted automatically (grey)"
+                                id="gui.classroom.board.retentionNext"
+                                values={{
+                                    name:
+                                        retention.next.classroom.assignmentName || retention.next.classroom.className,
+                                    date: formatShortDate(intl, retention.next.classroom.expiresAt),
+                                }}
+                            />
+                        </p>
+                    ) : null}
+                </React.Fragment>
+            )}
+        </section>
+    );
+};
+
+RetentionCard.propTypes = {
+    onOpen: PropTypes.func.isRequired,
+    retention: PropTypes.shape({
+        expiring: PropTypes.arrayOf(PropTypes.object).isRequired,
+        next: PropTypes.object,
+    }).isRequired,
+};
+
 const TeacherAssignmentBoard = ({
     allClassrooms,
     allGroups,
@@ -697,6 +1037,7 @@ const TeacherAssignmentBoard = ({
     isLoading,
     onCreateAssignmentInClass,
     onDownloadClassAll,
+    onCopyInviteLink,
     onLoadAssignmentSummary,
     onRestoreClassroom,
     onReuseAssignment,
@@ -893,13 +1234,14 @@ const TeacherAssignmentBoard = ({
     const [summaries, setSummaries] = useState({});
     const summariesRef = useRef(summaries);
     summariesRef.current = summaries;
-    const handleToggleRow = useCallback(
+    // Load a row's summary once (the opened row and the stream card share it), but retry
+    // one whose last load failed ("-").
+    const ensureSummary = useCallback(
         (classroom) => {
             const id = classroom.classroomId;
-            setOpenId((current) => (current === id ? null : id));
-            // Load once per row, but retry a row whose last load failed ("-").
             const known = summariesRef.current[id];
             if (!onLoadAssignmentSummary || (known && !known.failed)) return;
+            summariesRef.current = { ...summariesRef.current, [id]: { loading: true } };
             setSummaries((prev) => ({ ...prev, [id]: { loading: true } }));
             Promise.resolve(onLoadAssignmentSummary(classroom))
                 .then((data) => setSummaries((prev) => ({ ...prev, [id]: data ? { data } : { failed: true } })))
@@ -907,9 +1249,28 @@ const TeacherAssignmentBoard = ({
         },
         [onLoadAssignmentSummary],
     );
+    const handleToggleRow = useCallback(
+        (classroom) => {
+            const id = classroom.classroomId;
+            setOpenId((current) => (current === id ? null : id));
+            ensureSummary(classroom);
+        },
+        [ensureSummary],
+    );
     // Stream entries open their assignment on［授業］: an active one as the open
     // row, an archived one in the expanded archived section (its［復元］).
     const streamEvents = tab === 'stream' ? buildStreamEvents(classrooms, archivedClassrooms) : [];
+    // The stream's left column (#1960): the current assignment and the deadlines.
+    const current = tab === 'stream' ? currentAssignmentFor(classrooms, Date.now()) : null;
+    const currentId = current ? current.classroom.classroomId : null;
+    const retention = tab === 'stream' ? retentionSummary(classrooms, archivedClassrooms) : null;
+    useEffect(() => {
+        if (current) ensureSummary(current.classroom);
+        // Only when the current assignment changes, not on every render.
+    }, [currentId, ensureSummary]);
+    // ［⛶ 全画面で映す］shows the existing full-screen join code over everything.
+    const [fullscreenClassroom, setFullscreenClassroom] = useState(null);
+    const handleCloseFullscreen = useCallback(() => setFullscreenClassroom(null), []);
     const [scrollTargetId, setScrollTargetId] = useState(null);
     const handleOpenStreamEvent = useCallback(
         (event) => {
@@ -924,6 +1285,10 @@ const TeacherAssignmentBoard = ({
             }
         },
         [setTab, openId, handleToggleRow],
+    );
+    const handleOpenRetentionEntry = useCallback(
+        (entry) => handleOpenStreamEvent({ classroom: entry.classroom, archived: entry.archived }),
+        [handleOpenStreamEvent],
     );
     useEffect(() => {
         if (!scrollTargetId) return;
@@ -1069,6 +1434,9 @@ const TeacherAssignmentBoard = ({
                                             testId="classroom-board-create"
                                             onSelect={handleToggleInlineCreate}
                                         >
+                                            <span aria-hidden="true" className={styles.boardMenuIcon}>
+                                                {'✎'}
+                                            </span>
                                             <FormattedMessage
                                                 defaultMessage="Assignment"
                                                 description="Create menu item: a new assignment"
@@ -1080,6 +1448,9 @@ const TeacherAssignmentBoard = ({
                                             testId="classroom-board-create-lesson"
                                             onSelect={handleOpenLessonCreate}
                                         >
+                                            <span aria-hidden="true" className={styles.boardMenuIcon}>
+                                                {'★'}
+                                            </span>
                                             <FormattedMessage
                                                 defaultMessage="Lesson"
                                                 description="Create menu item: a new assignment with a lesson (the lesson panel opens)"
@@ -1091,6 +1462,9 @@ const TeacherAssignmentBoard = ({
                                             testId="classroom-board-reuse"
                                             onSelect={handleToggleReuse}
                                         >
+                                            <span aria-hidden="true" className={styles.boardMenuIcon}>
+                                                {'⇄'}
+                                            </span>
                                             <FormattedMessage
                                                 defaultMessage="Reuse an assignment"
                                                 description="Button on the board to reuse (duplicate) an existing assignment"
@@ -1103,6 +1477,9 @@ const TeacherAssignmentBoard = ({
                                                 testId="classroom-board-shared-catalog"
                                                 onSelect={shared.handleOpenCatalog}
                                             >
+                                                <span aria-hidden="true" className={styles.boardMenuIcon}>
+                                                    {'⌕'}
+                                                </span>
                                                 <FormattedMessage
                                                     defaultMessage="Find in みんなの課題"
                                                     description="Button that opens the shared assignment catalog"
@@ -1116,6 +1493,9 @@ const TeacherAssignmentBoard = ({
                                                 testId="classroom-board-passcode-import"
                                                 onSelect={shared.handleOpenPasscodeImport}
                                             >
+                                                <span aria-hidden="true" className={styles.boardMenuIcon}>
+                                                    {'#'}
+                                                </span>
                                                 <FormattedMessage
                                                     defaultMessage="Import by passcode"
                                                     description="Button that opens the passcode import step"
@@ -1123,12 +1503,16 @@ const TeacherAssignmentBoard = ({
                                                 />
                                             </BoardMenuItem>
                                         ) : null}
+                                        {/* 作り方｜トピック を線で 2 つに分ける（Q8・#1960）。 */}
                                         <hr className={styles.boardMenuSeparator} />
                                         <BoardMenuItem
                                             close={close}
                                             testId="classroom-board-create-topic"
                                             onSelect={handleOpenTopicDialog}
                                         >
+                                            <span aria-hidden="true" className={styles.boardMenuIcon}>
+                                                {'≡'}
+                                            </span>
                                             <FormattedMessage
                                                 defaultMessage="Topic"
                                                 description="Label of the topic selector on an assignment row"
@@ -1177,25 +1561,68 @@ const TeacherAssignmentBoard = ({
                 </React.Fragment>
             )}
             {!subView && tab === 'stream' ? (
-                // R6 exception: no main action here, so only this frame scrolls when
-                // the class has many entries.
-                <div className={styles.boardList} data-testid="classroom-board-stream">
-                    {streamEvents.length === 0 ? (
-                        <p className={styles.boardEmpty} data-testid="classroom-board-stream-empty">
-                            <FormattedMessage
-                                defaultMessage="Nothing here yet. Assignments you create are listed here."
-                                description="Empty state of the stream tab of a class"
-                                id="gui.classroom.board.streamEmpty"
+                <div className={styles.streamLayout}>
+                    {/* クラスの色の帯（Q8・Q5）: 名前と、年度・セクション・人数。 */}
+                    <div
+                        className={styles.streamBand}
+                        data-testid="classroom-board-stream-band"
+                        style={classColorStyle(group.groupId, allGroups && allGroups.length ? allGroups : [group])}
+                    >
+                        <span className={styles.streamBandName}>{group.name}</span>
+                        <span className={styles.streamBandLine}>
+                            {yearSectionLine(intl, group)}
+                            {typeof group.studentCount === 'number'
+                                ? `・${intl.formatMessage(
+                                      {
+                                          defaultMessage: '{count} students',
+                                          description: 'Student count (seat numbers) on a class card',
+                                          id: 'gui.classroom.classList.studentCount',
+                                      },
+                                      { count: group.studentCount },
+                                  )}`
+                                : null}
+                        </span>
+                    </div>
+                    <div className={styles.streamColumns}>
+                        <div className={styles.streamSide}>
+                            <CurrentAssignmentCard
+                                current={current}
+                                summary={current ? summaries[current.classroom.classroomId] : null}
+                                onOpen={onSelectClassroom}
+                                onShowFullscreen={onCopyInviteLink ? setFullscreenClassroom : null}
                             />
-                        </p>
-                    ) : (
-                        <ul className={styles.streamItems}>
-                            {streamEvents.map((event) => (
-                                <StreamItem key={event.key} event={event} onOpen={handleOpenStreamEvent} />
-                            ))}
-                        </ul>
-                    )}
+                            <RetentionCard retention={retention} onOpen={handleOpenRetentionEntry} />
+                        </div>
+                        {/* R6 exception: no main action here, so only this frame scrolls when
+                            the class has many entries. */}
+                        <div className={styles.boardList} data-testid="classroom-board-stream">
+                            {streamEvents.length === 0 ? (
+                                <p className={styles.boardEmpty} data-testid="classroom-board-stream-empty">
+                                    <FormattedMessage
+                                        defaultMessage="Nothing here yet. Assignments you create are listed here."
+                                        description="Empty state of the stream tab of a class"
+                                        id="gui.classroom.board.streamEmpty"
+                                    />
+                                </p>
+                            ) : (
+                                <ul className={styles.streamItems}>
+                                    {streamEvents.map((event) => (
+                                        <StreamItem key={event.key} event={event} onOpen={handleOpenStreamEvent} />
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
                 </div>
+            ) : null}
+            {fullscreenClassroom && onCopyInviteLink ? (
+                <ClassCodeDisplay
+                    isFullscreen
+                    classroom={fullscreenClassroom}
+                    onClose={handleCloseFullscreen}
+                    onCopyInviteLink={onCopyInviteLink}
+                    onToggleFullscreen={handleCloseFullscreen}
+                />
             ) : null}
             {showTopicDialog ? (
                 <TopicAddDialog isLoading={isLoading} onAdd={handleAddTopic} onCancel={handleCloseTopicDialog} />
@@ -1518,6 +1945,8 @@ TeacherAssignmentBoard.propTypes = {
     isLoading: PropTypes.bool,
     onCreateAssignmentInClass: PropTypes.func.isRequired,
     onDownloadClassAll: PropTypes.func,
+    /** 全画面の参加コードの［招待リンクをコピー］。渡さなければ［⛶ 全画面で映す］を出さない。 */
+    onCopyInviteLink: PropTypes.func,
     onLoadAssignmentSummary: PropTypes.func,
     onRestoreClassroom: PropTypes.func,
     onReuseAssignment: PropTypes.func.isRequired,

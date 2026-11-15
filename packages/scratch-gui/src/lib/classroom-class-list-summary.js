@@ -111,4 +111,44 @@ const reviewItems = (classrooms, groups) => {
         .map(({ classroom, group, count }) => ({ classroom, group, count }));
 };
 
-export { lessonDateKey, localDateKey, nextLessonFor, reviewItems };
+/**
+ * 日付（`YYYY-MM-DD`）の通し番号（日）。2 つの日付の差を、時間帯や夏時間に左右されずに数えるため。
+ * @param {string} key - 日付
+ * @returns {number} 1970-01-01 からの日数
+ */
+const dayNumber = (key) => {
+    const [y, m, d] = key.split('-').map(Number);
+    return Math.round(Date.UTC(y, m - 1, d) / (24 * 60 * 60 * 1000));
+};
+
+/**
+ * ストリームの「いまの課題」（#1960・Q8）。そのクラスの active な課題のうち、
+ * 1. 授業日（無ければ作成日）が今日のもの。
+ * 2. 無ければ、授業日がいちばん近いもの（前でも後でも日数の差が小さいもの。差が同じなら
+ *    これからの授業を先にする）。
+ * 同じ日の課題が複数あれば名前順で先のもの。日付は利用者の時間帯で数える（`lessonDateKey`）。
+ * @param {Array<object>} classrooms - そのクラスの課題の一覧
+ * @param {number} now - いまの時刻（ms epoch）
+ * @returns {{classroom: object, date: string, isToday: boolean}|null} 課題と授業日。無ければ null
+ */
+const currentAssignmentFor = (classrooms, now) => {
+    const today = dayNumber(localDateKey(now));
+    let best = null;
+    for (const c of classrooms || []) {
+        if (!isActive(c)) continue;
+        const date = lessonDateKey(c);
+        if (!date) continue;
+        const diff = dayNumber(date) - today;
+        // 並べる順: 日数の差 → これからの授業を先 → 名前。
+        const rank = [Math.abs(diff), diff < 0 ? 1 : 0, c.assignmentName || c.className || ''];
+        const better =
+            !best ||
+            rank[0] < best.rank[0] ||
+            (rank[0] === best.rank[0] &&
+                (rank[1] < best.rank[1] || (rank[1] === best.rank[1] && rank[2] < best.rank[2])));
+        if (better) best = { classroom: c, date, rank };
+    }
+    return best ? { classroom: best.classroom, date: best.date, isToday: best.rank[0] === 0 } : null;
+};
+
+export { currentAssignmentFor, lessonDateKey, localDateKey, nextLessonFor, reviewItems };

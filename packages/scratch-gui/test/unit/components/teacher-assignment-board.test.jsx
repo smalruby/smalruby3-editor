@@ -42,8 +42,9 @@ const renderStream = (props) =>
             <TeacherAssignmentBoard {...defaultProps()} {...props} />
         </IntlProvider>,
     );
+// It opens on［授業］directly so the stream card does not load a summary first.
 const renderBoard = (props) => {
-    const result = renderStream(props);
+    const result = renderStream({ initialTab: 'classwork', ...props });
     // A sub view (e.g. the share step) hides the tabs.
     const classworkTab = byTestId('classroom-board-tab-classwork');
     if (classworkTab) fireEvent.click(classworkTab);
@@ -543,6 +544,9 @@ describe('TeacherAssignmentBoard — stream entries (B5)', () => {
         expect(byTestId('classroom-board-stream-date-created-a').textContent).toMatch(/^Created\s*\d/);
         expect(byTestId('classroom-board-stream-date-archived-x').textContent).toMatch(/^Archived\s*\d/);
         expect(byTestId('classroom-board-stream-date-expiring-b')).not.toBeInTheDocument();
+        // The warning is on the deadline card (#1960): the record's entry has no ⚠ mark.
+        expect(byTestId('classroom-board-stream-item-expiring-b').textContent).not.toContain('⚠');
+        expect(byTestId('classroom-board-retention-card')).toHaveAttribute('data-urgent', 'true');
     });
 
     test('an empty class shows the empty message', () => {
@@ -747,5 +751,136 @@ describe('TeacherAssignmentBoard — rows open in place (B3・B7)', () => {
         expect(props.onUpdateAssignmentMeta).toHaveBeenCalledWith('c1', {
             sortDate: new Date('2026-07-10T00:00:00').toISOString(),
         });
+    });
+});
+
+describe('TeacherAssignmentBoard — the stream cards (#1960・Q8)', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const localNoon = (days) => {
+        const d = new Date();
+        d.setHours(12, 0, 0, 0);
+        return new Date(d.getTime() + days * DAY).toISOString();
+    };
+    const summary = { submitted: 12, joined: 24, capacity: 40, descriptionLine: '' };
+
+    test('the color band says the class name, year, section and the number of students', () => {
+        renderStream({
+            group: { groupId: 'g1', name: '技術', year: 2026, section: '2年1組', studentCount: 40, topics: [] },
+            allGroups: [{ groupId: 'g1', name: '技術', year: 2026 }],
+        });
+        const band = byTestId('classroom-board-stream-band');
+        expect(band.textContent).toContain('技術');
+        expect(band.textContent).toContain('2026');
+        expect(band.textContent).toContain('2年1組');
+        expect(band.textContent).toContain('40 students');
+        expect(band.style.backgroundColor).not.toBe('');
+    });
+
+    test('the current assignment is today\'s lesson, with its join code and counts', async () => {
+        const onLoadAssignmentSummary = jest.fn().mockResolvedValue(summary);
+        const props = defaultProps();
+        renderStream({
+            onLoadAssignmentSummary,
+            onCopyInviteLink: jest.fn(),
+            classrooms: [
+                classroom({ classroomId: 'past', assignmentName: '前の課題', joinCode: 'zzz999', sortDate: localNoon(-1) }),
+                classroom({ classroomId: 'today', assignmentName: 'ねこを動かそう', joinCode: 'ABC234', sortDate: localNoon(0) }),
+            ],
+            onSelectClassroom: props.onSelectClassroom,
+        });
+        expect(byTestId('classroom-board-current-name').textContent).toBe('ねこを動かそう');
+        expect(byTestId('classroom-board-current-code').textContent).toBe('abc234');
+        await waitFor(() => expect(byTestId('classroom-board-current-counts-today').textContent).toContain('24'));
+        expect(byTestId('classroom-board-current-counts-today').textContent).toContain('40');
+        expect(byTestId('classroom-board-current-counts-today').textContent).toContain('12');
+        expect(onLoadAssignmentSummary).toHaveBeenCalledTimes(1);
+        expect(onLoadAssignmentSummary).toHaveBeenCalledWith(expect.objectContaining({ classroomId: 'today' }));
+
+        fireEvent.click(byTestId('classroom-board-current-name'));
+        expect(props.onSelectClassroom).toHaveBeenCalledWith('today');
+    });
+
+    test('［⛶ 全画面で映す］ shows the full-screen join code, and ✕ closes it', async () => {
+        renderStream({
+            onCopyInviteLink: jest.fn(),
+            onLoadAssignmentSummary: jest.fn().mockResolvedValue(summary),
+            classrooms: [classroom({ sortDate: localNoon(0) })],
+        });
+        await waitFor(() => expect(byTestId('classroom-board-current-counts-c1').textContent).toContain('24'));
+        fireEvent.click(byTestId('classroom-board-current-fullscreen'));
+        expect(byTestId('classroom-code-display-close')).toBeInTheDocument();
+        fireEvent.click(byTestId('classroom-code-display-close'));
+        expect(byTestId('classroom-code-display-close')).not.toBeInTheDocument();
+    });
+
+    test('a class without assignments says so; without onCopyInviteLink there is no full-screen button', () => {
+        renderStream({ classrooms: [] });
+        expect(byTestId('classroom-board-current-empty')).toBeInTheDocument();
+        expect(byTestId('classroom-board-current-fullscreen')).not.toBeInTheDocument();
+    });
+
+    test('the deadline card is red only within 7 days; otherwise a grey line with the next one', () => {
+        const { unmount } = renderStream({
+            classrooms: [classroom({ assignmentName: 'ずっと先', expiresAt: new Date(Date.now() + 30 * DAY).toISOString() })],
+        });
+        expect(byTestId('classroom-board-retention-card')).toHaveAttribute('data-urgent', 'false');
+        expect(byTestId('classroom-board-retention-card-none')).toBeInTheDocument();
+        expect(byTestId('classroom-board-retention-card-next').textContent).toContain('ずっと先');
+        unmount();
+
+        renderStream({
+            classrooms: [classroom({ assignmentName: 'もうすぐ', expiresAt: new Date(Date.now() + 3 * DAY).toISOString() })],
+        });
+        expect(byTestId('classroom-board-retention-card')).toHaveAttribute('data-urgent', 'true');
+        expect(byTestId('classroom-board-retention-card-none')).not.toBeInTheDocument();
+        fireEvent.click(byTestId('classroom-board-retention-card-item-c1'));
+        expect(byTestId('classroom-board-tab-classwork')).toHaveAttribute('aria-selected', 'true');
+    });
+});
+
+describe('TeacherAssignmentBoard — count tags on the rows (#1960)', () => {
+    test('a closed row shows only the not-returned count from the list', () => {
+        renderBoard({ classrooms: [classroom({ unreturnedCount: 3 }), classroom({ classroomId: 'c2', unreturnedCount: 0 })] });
+        expect(byTestId('classroom-board-row-tag-unreturned-c1').textContent).toContain('3');
+        expect(byTestId('classroom-board-row-tag-joined-c1')).not.toBeInTheDocument();
+        expect(byTestId('classroom-board-row-tags-c2')).not.toBeInTheDocument();
+    });
+
+    test('after the summary is loaded, joined and submitted (cleared for a lesson) show on the row', async () => {
+        const onLoadAssignmentSummary = jest
+            .fn()
+            .mockResolvedValueOnce({ submitted: 12, joined: 24, capacity: 40 })
+            .mockResolvedValueOnce({ submitted: 0, joined: 30, capacity: 40, lessonCleared: 31 });
+        renderBoard({
+            onLoadAssignmentSummary,
+            classrooms: [classroom(), classroom({ classroomId: 'c2', hasLesson: true })],
+        });
+        openRow('c1');
+        await waitFor(() => expect(byTestId('classroom-board-row-tag-joined-c1').textContent).toContain('24/40'));
+        expect(byTestId('classroom-board-row-tag-submitted-c1').textContent).toContain('12');
+        openRow('c2');
+        await waitFor(() => expect(byTestId('classroom-board-row-tag-cleared-c2').textContent).toContain('31'));
+        expect(byTestId('classroom-board-row-tag-submitted-c2')).not.toBeInTheDocument();
+    });
+
+    test('the lesson date is the local day, not the first 10 characters of the UTC time', () => {
+        // The date input stores local midnight, which is the day before in UTC east of Greenwich.
+        const sortDate = new Date(2026, 10, 5, 0, 0, 0).toISOString();
+        renderBoard({ classrooms: [classroom({ sortDate })] });
+        fireEvent.click(byTestId('classroom-board-row-menu-c1'));
+        expect(byTestId('classroom-board-date-c1').value).toBe('2026-11-05');
+        expect(byTestId('classroom-board-row-date-c1').textContent).toContain('11/5');
+    });
+});
+
+describe('TeacherAssignmentBoard — the create menu has an icon on each item (#1960)', () => {
+    test('every item starts with an icon, and a line separates「トピック」', () => {
+        renderBoard({ shared: { handleOpenCatalog: jest.fn(), handleOpenPasscodeImport: jest.fn() } });
+        openCreateMenu();
+        const list = byTestId('classroom-board-create-menu-list');
+        const items = Array.from(list.querySelectorAll('[role="menuitem"]'));
+        expect(items.every((el) => el.querySelector('[aria-hidden="true"]'))).toBe(true);
+        const hr = list.querySelector('hr');
+        expect(hr.nextElementSibling.getAttribute('data-testid')).toBe('classroom-board-create-topic');
     });
 });

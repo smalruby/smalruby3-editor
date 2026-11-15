@@ -96,7 +96,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-lesson-summary.js ← パネル・席の詳細・［授業］の行・採点・提出状況.csv のレッスンの要約（純粋ロジック）
 │   │   │   ├── classroom-class-color.js ← クラスの色（帯）を先生のクラスの作成日の順から選ぶ純粋関数
 │   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
-│   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）を組み立てる（純粋）
+│   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）と保存期限のカード `retentionSummary` を組み立てる（純粋）
 │   │   │   ├── classroom-genai-settings.js ← クラスの生成AI・ルビティー設定の下書き・検証・PATCH 差分（純粋）#1277
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
 │   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）
@@ -257,7 +257,7 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 | `classroom-modal/classroom-tab.jsx` | `ClassroomTab`（下に線のタブ。選ばれたら主の色の文字と 3px の線）。並びは `styles.tabList` の `role="tablist"` で包み、右端のボタンは tablist の外の同じ行に置く（[`../design-system/components/tabs.md`](../design-system/components/tabs.md) の「クラス管理のタブ」） |
 | `classroom-modal/teacher-class-card.jsx` | クラス一覧のカード `ClassCard`（色の帯・要約・次の授業日・札、下に［採点］［⚙ 設定］⋮）と、⋮ の「アーカイブ」の確認 `ArchiveClassDialog` |
 | `classroom-modal/teacher-review-band.jsx` | クラス一覧の上の「確認が必要な課題」`TeacherReviewBand`。課題の一覧の各課題の `unreturnedCount` を読み、返却していない提出がある課題を最大 3 件出す（提出の一覧は問い合わせない） |
-| `lib/classroom-class-list-summary.js` | クラス一覧の要約の純粋関数: 授業日 `lessonDateKey`（UTC の ISO を利用者の時間帯の日付に直す）、次の授業日 `nextLessonFor`、「確認が必要な課題」`reviewItems`（`unreturnedCount` を読む。数がそろわなければ null） |
+| `lib/classroom-class-list-summary.js` | クラス一覧の要約の純粋関数: 授業日 `lessonDateKey`（UTC の ISO を利用者の時間帯の日付に直す）、次の授業日 `nextLessonFor`、「確認が必要な課題」`reviewItems`（`unreturnedCount` を読む。数がそろわなければ null）、ストリームの「いまの課題」`currentAssignmentFor`（授業日が今日、無ければいちばん近い授業日） |
 | `lib/classroom-class-color.js` | クラスの色（帯の色）を先生のクラスの一覧の作成日の順（取れなければ id のハッシュ）から選ぶ純粋関数 `classColorFor` / `classColorStyle` と色の一覧 `CLASS_COLORS`（[`ui-ux.md`](ui-ux.md) の「共通: クラスの色」） |
 
 画面側で `<h2 className={styles.xxxTitle}>` やボタンのクラスを書き起こさないこと
