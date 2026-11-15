@@ -187,10 +187,14 @@ const OPERATIONS = {
         await sleep(2200);
         await click(); // くじ = 2 → 小吉
     },
-    // タイマーは本当に 10 秒待つ（課題の全文の「本当なら 600 秒」は試しやすいように 10 秒にしてある）
-    'chat-l2-timer': async ({ vm }) => {
+    // タイマーの 10 秒は、リセットのあとで作品のタイマーを 10 秒進めて飛ばす
+    'chat-l2-timer': async ({ vm, skipSeconds, isSatisfied }) => {
         vm.greenFlag();
-        await sleep(10600);
+        await sleep(300);
+        // まだ 10 秒たっていないので、言っていない
+        expect(isSatisfied()).toBe(false);
+        skipSeconds(10);
+        await sleep(300);
     },
     'chat-l2-janken': async ({ click, answer, randoms }) => {
         randoms([0, 1]);
@@ -251,6 +255,10 @@ const prepareRun = async (id, locale, codeOverride = null) => {
         cat,
         stage,
         isSatisfied: () => satisfied,
+        // 作品のタイマー（「タイマー」ブロックの値）を進める
+        skipSeconds: (seconds) => {
+            vm.runtime.ioDevices.clock._projectTimer.startTime -= seconds * 1000;
+        },
         // 「乱数」ブロックが返す数を、決めた数のくり返しにする（Math.random はほかでも呼ばれるので、ブロックの
         // 関数を差しかえる。見張りは差しかえた関数も包むので、引数 FROM / TO は記録される）
         randoms: (values) => {
@@ -312,8 +320,7 @@ describe('the code of every locale satisfies the goal when run in a new project 
             await OPERATIONS[id](run.ctx);
             expect(await until(run.isSatisfied, WAIT_FOR_GOAL_MS)).toBe(true);
         },
-        // レッスン 2 のタイマーは 10 秒待つ
-        30000,
+        20000,
     );
 });
 
@@ -390,33 +397,35 @@ describe('the chat lesson 1 goals are not met by programs that skip the task (#1
 });
 
 // 「チャットをつくろう」レッスン 2（#1642）の goal が、課題をやっていないプログラム（ずる）では満たされないこと。
-// 乱数を決めて、ずるのプログラムでも「大吉と小吉」「あいこと勝負あり」の両方を言う場面を作る
+// 乱数を決めて、ずるのプログラムでも「大吉と小吉」「あいこと勝負あり」の両方を言う場面を作る。
+// くじを見ずに別の乱数で分ける・答えを決まった数と比べるプログラムは、本当の乱数なら出方しだいで通ることがある
+// （判定は動いた結果を見る）。ここでは、乱数を決めた場合に通らないことだけを確かめる
 const CHEATS_L2 = [
     // 2-1: 分岐を使わずに、押すたびに大吉と小吉の両方を言う（くじが 1 のときに大吉、2 のときに小吉は言っている）
     [
         'chat-l2-omikuji (both lines without the branch)',
         'chat-l2-omikuji',
-        'when_clicked do\n  $くじ = rand(1..3)\n  say("大吉", 2)\n  say("小吉", 2)\nend\n',
+        'when_clicked do\n  $くじ = rand(1..3)\n  say("大吉")\n  say("小吉")\nend\n',
         async ({ click, randoms }) => {
             randoms([1, 2]);
             await click();
-            await sleep(4200);
+            await sleep(300);
             await click();
-            await sleep(4200);
+            await sleep(300);
         },
     ],
-    // 2-1: くじを見ずに、別の乱数で分ける（くじに入れた数と、言ったことが合わない）
+    // 2-1: くじを見ずに、別の乱数で分ける（乱数を決めた場合。くじに入れた数と、言ったことが合わない）
     [
-        'chat-l2-omikuji (branch on another random number, not on くじ)',
+        'chat-l2-omikuji (branch on another random number, with fixed random numbers)',
         'chat-l2-omikuji',
-        'when_clicked do\n  $くじ = rand(1..3)\n  if rand(1..3) == 1\n    say("大吉", 2)\n  else\n' +
-            '    say("小吉", 2)\n  end\nend\n',
+        'when_clicked do\n  $くじ = rand(1..3)\n  if rand(1..3) == 1\n    say("大吉")\n  else\n' +
+            '    say("小吉")\n  end\nend\n',
         async ({ click, randoms }) => {
             // 押すたびに (くじ, 条件の乱数) = (1, 2) (3, 1) (2, 3) (1, 2)
             randoms([1, 2, 3]);
             for (let i = 0; i < 4; i += 1) {
                 await click();
-                await sleep(2200);
+                await sleep(300);
             }
         },
     ],
@@ -425,42 +434,60 @@ const CHEATS_L2 = [
         'chat-l2-timer (waits until the timer is greater than 1)',
         'chat-l2-timer',
         'when_flag_clicked do\n  timer.reset\n  wait until timer.value > 1\n  say("10秒たったよ")\nend\n',
-        async ({ vm }) => {
+        async ({ vm, skipSeconds }) => {
             vm.greenFlag();
-            await sleep(1600);
+            await sleep(300);
+            skipSeconds(2);
+            await sleep(300);
+        },
+    ],
+    // 2-2: 右に数でない文字（「10秒」）を入れる。Scratch は文字として比べるので 2 秒ほどで成り立つ
+    [
+        'chat-l2-timer (compares the timer with the text "10秒")',
+        'chat-l2-timer',
+        'when_flag_clicked do\n  timer.reset\n  wait until timer.value > "10秒"\n  say("10秒たったよ")\nend\n',
+        async ({ vm, skipSeconds }) => {
+            const said = [];
+            vm.runtime.on('SAY', (target, type, text) => said.push(text));
+            vm.greenFlag();
+            await sleep(300);
+            skipSeconds(3);
+            await sleep(300);
+            // 3 秒で言ってはいる（判定の右が数でないので通らない）
+            expect(said).toContain('10秒たったよ');
         },
     ],
     // 2-3: 分岐を使わずに、あいこと勝負ありの両方を言う
     [
         'chat-l2-janken (both lines without the branch)',
         'chat-l2-janken',
-        'when_clicked do\n  ask("0:グー 1:チョキ 2:パー")\n  $手 = rand(0..2)\n  say("あいこ", 2)\n' +
-            '  say("勝負あり", 2)\nend\n',
+        'when_clicked do\n  ask("0:グー 1:チョキ 2:パー")\n  $手 = rand(0..2)\n  say("あいこ")\n' +
+            '  say("勝負あり")\nend\n',
         async ({ click, answer, randoms }) => {
             randoms([0, 1]);
             await click();
             await answer('0');
-            await sleep(4200);
+            await sleep(300);
             await click();
             await answer('0');
-            await sleep(4200);
+            await sleep(300);
         },
     ],
-    // 2-3: 答えをコンピューターの手ではなく、決まった数（0）と比べる
+    // 2-3: 答えをコンピューターの手ではなく、決まった数（0）と比べる（乱数を決めた場合）
     [
-        'chat-l2-janken (compares the answer with 0, not with 手)',
+        'chat-l2-janken (compares the answer with 0, not with 手, with fixed random numbers)',
         'chat-l2-janken',
         'when_clicked do\n  ask("0:グー 1:チョキ 2:パー")\n  $手 = rand(0..2)\n  if answer == 0\n' +
-            '    say("あいこ", 2)\n  else\n    say("勝負あり", 2)\n  end\nend\n',
+            '    say("あいこ")\n  else\n    say("勝負あり")\n  end\nend\n',
         async ({ click, answer, randoms }) => {
             // 手はいつも 1
             randoms([1]);
             await click();
             await answer('0'); // 手とちがうのに「あいこ」
-            await sleep(2200);
+            await sleep(300);
             await click();
             await answer('1'); // 手と同じなのに「勝負あり」
-            await sleep(2200);
+            await sleep(300);
         },
     ],
 ];

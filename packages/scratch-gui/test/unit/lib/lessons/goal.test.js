@@ -386,6 +386,9 @@ describe('said', () => {
             [],
         );
         expect(validateGoal([{ type: 'said', variable: { name: '手', equalsAnswer: false } }])).toEqual([]);
+        expect(validateGoal([{ type: 'said', variable: { name: '手' } }])).toEqual([
+            'goal[0]: said.variable needs value or equalsAnswer',
+        ]);
         expect(validateGoal([{ type: 'said', variable: { value: 1 } }])).toEqual([
             'goal[0]: said.variable needs a variable name or an array of names',
         ]);

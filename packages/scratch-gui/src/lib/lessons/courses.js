@@ -1173,7 +1173,8 @@ const chatLesson2 = defineLesson({
             ]),
             debug: debugTips('chat-l2-omikuji', 1),
             // 乱数を「くじ」に入れて、分岐で言い分けた: 大吉は「くじ」が 1 のとき、小吉は 1 でないときに言った
-            // （分岐を使わずに両方を言うプログラム・くじを見ずに分けるプログラムでは通らない）
+            // （分岐を使わずに両方を言うプログラムは通らない。くじを見ずに別の乱数で分けるプログラムは、乱数の出方しだいで
+            // 何回か押すうちに通ることがある。判定は動いた結果を見るので、そこまでは見分けない）
             goal: [
                 {
                     type: 'uses',
@@ -1229,9 +1230,11 @@ const chatLesson2 = defineLesson({
             ]),
             debug: debugTips('chat-l2-timer', 1),
             // リセット → 待つ → 言う の順に動き、待つの条件が「(タイマー) > 10」（本当の 600 でもよい）だった。
-            // 同じスレッドの「言う」は待つが終わってから動くので、order で「10 秒たってから言った」ことになる
-            // （「> 0」や「> 1」のように早く終わる条件、待つ前に言うプログラムでは通らない）。
-            // 左の値（タイマー）は毎回ちがい、記録する引数の種類に上限があるので（goal.js の MAX_ARGS_SEEN）条件にしない
+            // 同じスレッドの「言う」は待つが終わってから動くので、order で「待ったあとに言った」ことになる
+            // （order は、それぞれのブロックが最初に動いた順だけを見る）。「> 0」「> 1」のように早く終わる条件、
+            // 待つ前に言うプログラムは通らない。右は数に限る（「10秒」のような文字だと Scratch は文字として比べ、
+            // 2 秒ほどで成り立ってしまう）。左の値（タイマー）は毎回ちがい、記録する引数の種類に上限があるので
+            // （goal.js の MAX_ARGS_SEEN）条件にしない
             goal: [
                 {
                     type: 'uses',
@@ -1240,7 +1243,10 @@ const chatLesson2 = defineLesson({
                         'sensing_resettimer',
                         'control_wait_until',
                         'sensing_timer',
-                        { opcode: 'operator_gt', args: { OPERAND2: { gte: CHAT_TIMER_SECS } } },
+                        {
+                            opcode: 'operator_gt',
+                            args: { OPERAND2: { gte: CHAT_TIMER_SECS, matches: /^\s*\d+(\.\d+)?\s*$/ } },
+                        },
                     ],
                     order: ['sensing_resettimer', 'control_wait_until', 'looks_say'],
                 },
@@ -1294,7 +1300,8 @@ const chatLesson2 = defineLesson({
             ]),
             debug: debugTips('chat-l2-janken', 1),
             // 乱数を「手」に入れて、答えと比べて言い分けた: あいこは「手」と答えが同じとき、勝負ありはちがうときに
-            // 言った（分岐を使わずに両方を言う・答えを決まった数と比べるプログラムでは通らない）
+            // 言った（分岐を使わずに両方を言うプログラムは通らない。答えを決まった数と比べるプログラムは、乱数の出方しだいで
+            // 何回か試すうちに通ることがある。判定は動いた結果を見るので、そこまでは見分けない）
             goal: [
                 {
                     type: 'uses',

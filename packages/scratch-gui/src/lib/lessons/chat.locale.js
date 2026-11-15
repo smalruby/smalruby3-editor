@@ -114,7 +114,8 @@ export const ja = {
         '「〜まで待つ」の穴に緑の「演算」の「( ) > 10」を入れて、左に水色の (タイマー) を入れよう。',
     [`${C}chat-l2-timer.step4`]: 'その下に、紫の「見た目」の「10秒たったよ と言う」をつなげよう。',
     [`${C}chat-l2-timer.step5`]: '旗を押して、10 秒待とう。10 秒たってから言うか見よう。',
-    [`${C}chat-l2-timer.debug1`]: 'すぐに言ってしまうときは、「>」の右が 10 か、左に (タイマー) を入れたか見よう。',
+    [`${C}chat-l2-timer.debug1`]:
+        'すぐに言ってしまうときは、「>」の右が 10 か、左に (タイマー) を入れたか見よう。右には「10秒」のように文字を付けず、数字だけを入れよう。',
     [`${C}chat-l2-timer.quiz.question`]:
         '使いすぎを知らせる機能は、情報の技術を使うときの、どんな注意すべき点への対策？',
     [`${C}chat-l2-timer.quiz.choice1`]: '使う時間を自分で制御できなくなる',
@@ -258,7 +259,7 @@ export const jaHira = {
     [`${C}chat-l2-timer.step4`]: 'そのしたに、むらさきの「みため」の「10びょう たったよ という」をつなげよう。',
     [`${C}chat-l2-timer.step5`]: 'はたをおして、10 びょう まとう。10 びょう たってから いうか みよう。',
     [`${C}chat-l2-timer.debug1`]:
-        'すぐに いってしまうときは、「>」の みぎが 10 か、ひだりに (タイマー) をいれたか みよう。',
+        'すぐに いってしまうときは、「>」の みぎが 10 か、ひだりに (タイマー) をいれたか みよう。みぎには「10びょう」のように もじを つけず、すうじだけを いれよう。',
     [`${C}chat-l2-timer.quiz.question`]:
         'つかいすぎを しらせる きのうは、じょうほうの ぎじゅつを つかうときの、どんな ちゅういすべき てんへの たいさく？',
     [`${C}chat-l2-timer.quiz.choice1`]: 'つかう じかんを じぶんで せいぎょ できなくなる',
@@ -402,7 +403,7 @@ export const en = {
     [`${C}chat-l2-timer.step4`]: 'Under it, attach the purple Looks block "say 10 seconds passed".',
     [`${C}chat-l2-timer.step5`]: 'Click the flag and wait 10 seconds. Check that it says it after 10 seconds.',
     [`${C}chat-l2-timer.debug1`]:
-        'If it says it right away, check that the right side of ">" is 10 and that (timer) is on the left.',
+        'If it says it right away, check that the right side of ">" is 10 and that (timer) is on the left. Put only a number on the right, not words like "10 seconds".',
     [`${C}chat-l2-timer.quiz.question`]:
         'A feature that tells you that you have used it too long is a measure against which point to be careful about when using information technology?',
     [`${C}chat-l2-timer.quiz.choice1`]: 'You can no longer control how long you use it by yourself',

@@ -487,6 +487,9 @@ export const validateGoal = (goal) => {
                     if (typeof spec !== 'object' || !isVariableName(spec.name)) {
                         errors.push(`${at}: said.variable needs a variable name or an array of names`);
                     } else {
+                        if (isUnset(spec.value) && isUnset(spec.equalsAnswer)) {
+                            errors.push(`${at}: said.variable needs value or equalsAnswer`);
+                        }
                         if (!isMatcher(spec.value)) errors.push(`${at}: said.variable.value must be a matcher`);
                         if (!isUnset(spec.equalsAnswer) && typeof spec.equalsAnswer !== 'boolean') {
                             errors.push(`${at}: said.variable.equalsAnswer must be true or false`);
