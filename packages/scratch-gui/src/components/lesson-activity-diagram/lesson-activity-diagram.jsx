@@ -1,6 +1,8 @@
 // 答えのプログラムから描いたアクティビティ図（lib/lessons/activity-diagram の置き方）を SVG にする。
-// 記号は docs/lessons/design.md の「アクティビティ図」: 開始（黒丸）・終了（二重丸）・処理（角の丸い箱）・
-// 分岐（ひし形）・合流（小さなひし形）・くり返し（点線の枠）。スクリーンショットは使わない。
+// 記号は教科書のアクティビティ図にそろえる（docs/lessons/design.md の「アクティビティ図」）: 開始（黒丸）・
+// 終了（二重丸）・処理（角の丸い箱）・分岐と合流（中に字の無いひし形。条件は枝の「[条件]」）・送信（相手の
+// 向きがとがった五角形）・受信（送り手の向きがへこんだ箱）。くり返しはひし形の合流と戻る線（置き方が線で描く）。
+// スクリーンショットは使わない。
 // 課題の全文（lesson-task-bar）とヒントの 1 ページ目（lesson-hint）で使う。
 import PropTypes from 'prop-types';
 import React, { useId } from 'react';
@@ -9,6 +11,8 @@ import {
     DIAGRAM_SHAPES,
     FONT_SIZE,
     MIN_DIAGRAM_SCALE,
+    RECEIVE_NOTCH,
+    SEND_TIP,
     SMALL_FONT_SIZE,
 } from '../../lib/lessons/activity-diagram/layout';
 import styles from './lesson-activity-diagram.css';
@@ -50,6 +54,49 @@ Lines.propTypes = {
 
 const diamond = ({ x, y, w, h }) => `${x + w / 2},${y} ${x + w},${y + h / 2} ${x + w / 2},${y + h} ${x},${y + h / 2}`;
 
+// 送信: とがった側（direction）を相手に向けた五角形。相手が両側にいれば両側がとがった六角形
+const sendOutline = ({ x, y, w, h, direction }) => {
+    const left = direction === 'left' || direction === 'both';
+    const right = direction !== 'left';
+    const l = left ? SEND_TIP : 0;
+    const r = right ? SEND_TIP : 0;
+    return [
+        `${x + l},${y}`,
+        `${x + w - r},${y}`,
+        ...(right ? [`${x + w},${y + h / 2}`] : []),
+        `${x + w - r},${y + h}`,
+        `${x + l},${y + h}`,
+        ...(left ? [`${x},${y + h / 2}`] : []),
+    ].join(' ');
+};
+
+// 受信: 送り手の側（notch）が内へへこんだ箱。送り手が両側にいれば両側がへこむ
+const receiveOutline = ({ x, y, w, h, notch }) => {
+    const left = notch !== 'right';
+    const right = notch === 'right' || notch === 'both';
+    return [
+        `${x},${y}`,
+        `${x + w},${y}`,
+        ...(right ? [`${x + w - RECEIVE_NOTCH},${y + h / 2}`] : []),
+        `${x + w},${y + h}`,
+        `${x},${y + h}`,
+        ...(left ? [`${x + RECEIVE_NOTCH},${y + h / 2}`] : []),
+    ].join(' ');
+};
+
+// 字を記号の中の真ん中に置く（片側だけのとがり・へこみのぶんだけ寄せる）
+const textCenterX = ({ type, x, w, direction, notch }) => {
+    if (type === DIAGRAM_SHAPES.SEND) {
+        if (direction === 'both') return x + w / 2;
+        return x + w / 2 + (direction === 'left' ? SEND_TIP : -SEND_TIP) / 2;
+    }
+    if (type === DIAGRAM_SHAPES.RECEIVE) {
+        if (notch === 'both') return x + w / 2;
+        return x + w / 2 + (notch === 'right' ? -RECEIVE_NOTCH : RECEIVE_NOTCH) / 2;
+    }
+    return x + w / 2;
+};
+
 const Shape = ({ shape }) => {
     const { type, x, y, w, h } = shape;
     const cx = x + w / 2;
@@ -78,35 +125,35 @@ const Shape = ({ shape }) => {
                     <Lines lines={shape.lines} x={cx} cy={cy} />
                 </g>
             );
+        case DIAGRAM_SHAPES.SEND:
+            return (
+                <g data-shape={type} data-direction={shape.direction}>
+                    <polygon className={styles.shape} points={sendOutline(shape)} />
+                    <Lines lines={shape.lines} x={textCenterX(shape)} cy={cy} />
+                </g>
+            );
+        case DIAGRAM_SHAPES.RECEIVE:
+            return (
+                <g data-shape={type} data-notch={shape.notch}>
+                    <polygon className={styles.shape} points={receiveOutline(shape)} />
+                    <Lines lines={shape.lines} x={textCenterX(shape)} cy={cy} />
+                </g>
+            );
         case DIAGRAM_SHAPES.DECISION:
-            return (
-                <g data-shape={type}>
-                    <polygon className={styles.shape} points={diamond(shape)} />
-                    <Lines lines={shape.lines} x={cx} cy={cy} />
-                </g>
-            );
         case DIAGRAM_SHAPES.MERGE:
+            // 教科書と同じく、ひし形の中には字を書かない（条件は枝のガード）
             return <polygon data-shape={type} className={styles.shape} points={diamond(shape)} />;
-        case DIAGRAM_SHAPES.LOOP:
-            return (
-                <g data-shape={type}>
-                    <rect className={styles.loop} x={x} y={y} width={w} height={h} rx={4} />
-                    <text className={styles.smallText} x={x + 6} y={y + 14}>
-                        {shape.label}
-                    </text>
-                </g>
-            );
         case DIAGRAM_SHAPES.GUARD:
             return (
-                <text
-                    data-shape={type}
-                    className={styles.smallText}
-                    x={shape.anchor === 'end' ? x + w : x}
-                    y={y + h - 3}
-                    textAnchor={shape.anchor}
-                >
-                    {shape.label}
-                </text>
+                <g data-shape={type}>
+                    <Lines
+                        lines={shape.lines}
+                        x={shape.anchor === 'end' ? x + w : x}
+                        cy={cy}
+                        anchor={shape.anchor}
+                        small
+                    />
+                </g>
             );
         case DIAGRAM_SHAPES.LANE:
             return (
@@ -136,11 +183,14 @@ Shape.propTypes = {
         y: PropTypes.number.isRequired,
         w: PropTypes.number.isRequired,
         h: PropTypes.number.isRequired,
-        // 箱・ひし形・開始の文の行
+        // 箱・開始・ガードの文の行
         lines: PropTypes.arrayOf(PropTypes.string),
         label: PropTypes.string,
-        // 分岐の「はい」「いいえ」の寄せ方（start / end）
+        // ガードの寄せ方（start / end）
         anchor: PropTypes.string,
+        // 送信のとがった向き・受信のへこみの側（left / right / both）
+        direction: PropTypes.string,
+        notch: PropTypes.string,
         // レーンの見出しの高さ
         headerH: PropTypes.number,
     }).isRequired,

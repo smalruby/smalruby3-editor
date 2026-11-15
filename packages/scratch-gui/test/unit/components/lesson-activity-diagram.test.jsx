@@ -19,10 +19,20 @@ const quiz = [
             {
                 kind: NODE_KINDS.DECISION,
                 label: '答え = 7？',
+                yesGuard: '[答え = 7]',
+                noGuard: '[それ以外]',
                 yes: [{ kind: NODE_KINDS.ACTION, label: '「正解です」と2秒言う' }],
                 no: [{ kind: NODE_KINDS.ACTION, label: '「ちがいます」と2秒言う' }],
             },
-            { kind: NODE_KINDS.LOOP, label: 'ずっとくり返す', forever: true, body: [] },
+            { kind: NODE_KINDS.SEND, label: '「あいさつ」を送る', message: 'あいさつ' },
+            {
+                kind: NODE_KINDS.LOOP,
+                label: 'ずっとくり返す',
+                forever: true,
+                continueGuard: null,
+                exitGuard: null,
+                body: [{ kind: NODE_KINDS.ACTION, label: '「a」と言う' }],
+            },
         ],
     },
 ];
@@ -46,33 +56,45 @@ describe('LessonActivityDiagram', () => {
         expect(count('start')).toBe(1);
         // 最後が「ずっと」なので終了は描かない
         expect(count('end')).toBe(0);
-        expect(count('action')).toBe(3);
+        expect(count('action')).toBe(4);
+        expect(count('send')).toBe(1);
         expect(count('decision')).toBe(1);
-        expect(count('merge')).toBe(1);
-        expect(count('loop')).toBe(1);
+        // 分岐の合流と、ずっとの合流
+        expect(count('merge')).toBe(2);
+        // くり返しは枠でなく、ひし形と戻る線で描く
+        expect(count('loop')).toBe(0);
         expect(count('lane')).toBe(0);
         expect(container.querySelectorAll('[data-edge]').length).toBe(layout.edges.length);
         [
             'このスプライトが押されたとき',
             '「4+3=?」と聞いて待つ',
-            '答え = 7？',
-            'はい',
-            'いいえ',
-            'ずっとくり返す',
+            '[答え = 7]',
+            '[それ以外]',
+            '「あいさつ」を送る',
         ].forEach((text) => expect(svg.textContent).toContain(text));
+        // ひし形の中には字を書かない（教科書の形）
+        expect(svg.textContent).not.toContain('答え = 7？');
+        expect(svg.textContent).not.toContain('ずっとくり返す');
     });
 
     test('draws swimlanes with their names when there are 2 lanes', () => {
         const partner = [
             {
                 start: '「あいさつ」を受け取ったとき',
-                body: [{ kind: NODE_KINDS.ACTION, label: '「やあ」を送る' }],
+                receive: 'あいさつ',
+                body: [{ kind: NODE_KINDS.SEND, label: '「やあ」を送る', message: 'やあ' }],
             },
         ];
         const layout = layoutActivityDiagram(model([lane('あなた', quiz), lane('ロボ', partner)]));
         const { container, getByTestId } = renderDiagram(layout);
         expect(container.querySelectorAll('[data-shape="lane"]').length).toBe(2);
         expect(getByTestId('lesson-activity-diagram').textContent).toContain('ロボ');
+        // 受信の記号は、送り手（左のレーン）の側がへこむ。送信から受信へ矢印を引く
+        const receive = container.querySelector('[data-shape="receive"]');
+        expect(receive.getAttribute('data-notch')).toBe('left');
+        expect(receive.textContent).toBe('「あいさつ」を受け取ったとき');
+        expect(container.querySelector('[data-shape="send"]').getAttribute('data-direction')).toBe('right');
+        expect(layout.edges.filter((e) => e.message)).toHaveLength(1);
     });
 
     test('draws nothing without a layout or without any script', () => {
