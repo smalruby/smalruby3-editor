@@ -151,6 +151,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onReuseAssignment,
         onDetailTabChange,
         detailEntry,
+        onProjectEntryUsed,
         onBackFromGroupManage,
         onCreateGroup,
         onUpdateGroup,
@@ -449,6 +450,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onDeleteClassroom={onDeleteClassroom}
                         onDeleteMember={onDeleteMember}
                         detailEntry={detailEntry}
+                        onBackToBoard={onBackToDashboard}
+                        onProjectEntryUsed={onProjectEntryUsed}
                         onDetailTabChange={onDetailTabChange}
                         onDownloadAll={onDownloadAll}
                         onOpenSubmission={onOpenSubmission}

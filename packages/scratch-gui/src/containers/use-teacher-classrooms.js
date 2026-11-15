@@ -375,6 +375,14 @@ const useTeacherClassrooms = ({
         [clearError, loadClassroomDetail, setIsLoading, setPhase],
     );
 
+    // The stream's［⛶ 全画面で映す］request is used once (#1961 M1): the detail calls this
+    // after opening the screen, so a later remount of the detail (back from posting to
+    // Google Classroom, etc.) does not open it again. The seq stays, so the detail's
+    // entry effect does not run again.
+    const consumeDetailProject = useCallback(() => {
+        setDetailEntry((prev) => (prev.project ? { ...prev, project: false } : prev));
+    }, []);
+
     /**
      * Restore an archived assignment (issue #1051): flips status back to
      * active and refreshes the list so it moves from the archived section
@@ -710,6 +718,7 @@ const useTeacherClassrooms = ({
         detailTab,
         setDetailTab,
         detailEntry,
+        consumeDetailProject,
         markClassroomCreated,
         handleUpdateAssignmentMeta,
         loadAssignmentSummary,

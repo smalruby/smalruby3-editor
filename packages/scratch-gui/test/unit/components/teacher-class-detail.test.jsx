@@ -799,6 +799,28 @@ describe('TeacherClassDetail — lesson progress (#1602)', () => {
     };
     const members = [{ memberId: 'seat-01', displayName: 'あ', lastActiveAt: recent }];
 
+    test('the［⛶ 映す］screen of a lesson before its progress arrives: lesson legend, seats loading (FYI3)', () => {
+        renderDetail({ members, assignmentEditor: { savedLesson: lessonProgress.lesson, editorPages: [] } });
+        fireEvent.click(document.querySelector('[data-testid="classroom-detail-project"]'));
+        const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+        expect(q('classroom-projection-seat-1').dataset.seatColor).toBe('loading');
+        expect(q('classroom-projection-lesson-loading')).not.toBeNull();
+        expect(q('classroom-projection-legend-cleared')).not.toBeNull();
+        expect(q('classroom-projection-cleared').textContent).toBe('Cleared -');
+    });
+
+    test('the［⛶ 映す］screen of a lesson whose progress failed: a short notice, not ordinary seats (FYI3)', () => {
+        renderDetail({
+            members,
+            lessonProgress: { classroomId: 'c1', error: true },
+            assignmentEditor: { savedLesson: lessonProgress.lesson, editorPages: [] },
+        });
+        fireEvent.click(document.querySelector('[data-testid="classroom-detail-project"]'));
+        const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+        expect(q('classroom-projection-lesson-error')).not.toBeNull();
+        expect(q('classroom-projection-seats')).toBeNull();
+    });
+
     test('the［⛶ 映す］screen colours the seats by progress and counts the cleared (#1961)', () => {
         renderDetail({ lessonProgress, members });
         fireEvent.click(document.querySelector('[data-testid="classroom-detail-project"]'));
@@ -985,18 +1007,71 @@ describe('TeacherClassDetail — ［⛶ 映す］ (#1961)', () => {
         expect(byTestId('classroom-projection')).toBeNull();
     });
 
-    test('projecting from the description tab switches to the members tab (its refresh moves the seats)', () => {
+    test('projecting from the description tab keeps that tab; only the refresh runs meanwhile (Q2)', () => {
         const onDetailTabChange = jest.fn();
         renderDetail({ detailEntry: { tab: 'description', seq: 1 }, onDetailTabChange });
         onDetailTabChange.mockClear();
         fireEvent.click(byTestId('classroom-detail-project'));
-        expect(onDetailTabChange).toHaveBeenCalledWith('members');
-        expect(byTestId('classroom-tab-members').getAttribute('aria-selected')).toBe('true');
+        expect(onDetailTabChange).toHaveBeenLastCalledWith('members');
+        expect(byTestId('classroom-tab-description').getAttribute('aria-selected')).toBe('true');
+        fireEvent.click(byTestId('classroom-projection-close'));
+        expect(onDetailTabChange).toHaveBeenLastCalledWith('description');
+        expect(byTestId('classroom-tab-description').getAttribute('aria-selected')).toBe('true');
     });
 
-    test('opens on the projector screen when the stream asks for it (detailEntry.project)', () => {
-        renderDetail({ detailEntry: { tab: 'members', project: true, seq: 2 } });
+    test('closing gives the focus back to the button that opened it (FYI1)', () => {
+        jest.useFakeTimers();
+        try {
+            renderDetail();
+            const button = byTestId('classroom-detail-expand-code');
+            button.focus();
+            fireEvent.click(button);
+            expect(document.activeElement).toBe(byTestId('classroom-projection-close'));
+            fireEvent.keyDown(document, { key: 'Escape' });
+            act(() => jest.runAllTimers());
+            expect(document.activeElement).toBe(button);
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('Esc stops at the projector screen (nothing else hears it)', () => {
+        renderDetail();
+        fireEvent.click(byTestId('classroom-detail-project'));
+        const other = jest.fn();
+        document.addEventListener('keydown', other, true);
+        try {
+            fireEvent.keyDown(document, { key: 'Escape' });
+        } finally {
+            document.removeEventListener('keydown', other, true);
+        }
+        expect(other).not.toHaveBeenCalled();
+    });
+
+    test('from the stream: opens once, and closing goes back to the stream (M1・Q1)', () => {
+        const onProjectEntryUsed = jest.fn();
+        const onBackToBoard = jest.fn();
+        const entry = { tab: 'members', project: true, seq: 2 };
+        const { unmount } = renderDetail({ detailEntry: entry, onBackToBoard, onProjectEntryUsed });
         expect(byTestId('classroom-projection')).not.toBeNull();
+        expect(onProjectEntryUsed).toHaveBeenCalledTimes(1);
+        fireEvent.click(byTestId('classroom-projection-close'));
+        expect(onBackToBoard).toHaveBeenCalledTimes(1);
+        unmount();
+        // The container forgot the request (consumeDetailProject): the detail mounted again
+        // (back from posting to Google Classroom) does not open the screen by itself.
+        renderDetail({ detailEntry: { ...entry, project: false }, onBackToBoard, onProjectEntryUsed });
+        expect(byTestId('classroom-projection')).toBeNull();
+        expect(onProjectEntryUsed).toHaveBeenCalledTimes(1);
+    });
+
+    test('from the detail: closing stays on the detail (Q1)', () => {
+        const onBackToBoard = jest.fn();
+        renderDetail({ onBackToBoard });
+        fireEvent.click(byTestId('classroom-detail-project'));
+        fireEvent.click(byTestId('classroom-projection-close'));
+        expect(onBackToBoard).not.toHaveBeenCalled();
+        expect(byTestId('classroom-phase-teacher-detail')).not.toBeNull();
     });
 
     test('the seats update while it is open', () => {

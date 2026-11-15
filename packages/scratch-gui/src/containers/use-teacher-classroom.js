@@ -301,6 +301,7 @@ const useTeacherClassroom = ({
         loadAssignmentSummary: classrooms.loadAssignmentSummary,
         setDetailTab: classrooms.setDetailTab,
         detailEntry: classrooms.detailEntry,
+        consumeDetailProject: classrooms.consumeDetailProject,
 
         // Kick requests (Phase 4-6)
         kickRequestsBySeat: classrooms.kickRequestsBySeat,

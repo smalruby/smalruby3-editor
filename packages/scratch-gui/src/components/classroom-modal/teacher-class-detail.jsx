@@ -132,6 +132,8 @@ const TeacherClassDetail = ({
     onRejectKickRequest,
     onDetailTabChange,
     detailEntry,
+    onBackToBoard,
+    onProjectEntryUsed,
     onOpenShareSuggestion,
     assignmentEditor,
     group,
@@ -161,9 +163,13 @@ const TeacherClassDetail = ({
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const deleteConfirmRef = useRef(null);
     // The［⛶ 映す］screen (#1961): drawn over the page while this detail stays
-    // mounted, so the members refresh keeps changing its seats. The stream's
-    // ［⛶ 全画面で映す］opens the detail with it (detailEntry.project).
-    const [projecting, setProjecting] = useState(Boolean(detailEntry && detailEntry.project));
+    // mounted, so the members refresh keeps changing its seats. `projection` is
+    // where it was opened from, which is where closing goes back to: 'detail'
+    // (［⛶ 映す］/［⛶ 全画面］here) or 'stream' (the stream's［⛶ 全画面で映す］opens the
+    // detail with detailEntry.project, used once — see the entry effect).
+    const [projection, setProjection] = useState(null); // null | 'detail' | 'stream'
+    // The button that opened it here, to give the focus back on close.
+    const projectButtonRef = useRef(null);
     // The members tab is the entry view; the description tab only on the
     // first open of a just-created assignment (pickDetailEntryTab, #1199).
     const entryTab = (detailEntry && detailEntry.tab) || 'members';
@@ -194,7 +200,12 @@ const TeacherClassDetail = ({
         clearNameSavedTimer();
         setNameSaveStatus(null);
         setShowDeleteConfirm(false);
-        setProjecting(Boolean(detailEntry && detailEntry.project));
+        // The stream's request is used once: the container forgets it, so the detail
+        // mounted again later (e.g. back from posting to Google Classroom) does not
+        // reopen the screen.
+        const fromStream = Boolean(detailEntry && detailEntry.project);
+        setProjection(fromStream ? 'stream' : null);
+        if (fromStream && onProjectEntryUsed) onProjectEntryUsed();
         setActiveTab(entryTab);
         setPreviewPage(0);
         if (onDetailTabChange) onDetailTabChange(entryTab);
@@ -348,14 +359,31 @@ const TeacherClassDetail = ({
         if (onVerifyGoogleCourseAccess) onVerifyGoogleCourseAccess(group);
     }, [onVerifyGoogleCourseAccess, group]);
 
-    // The seats come from the members tab's refresh (every 30 s while it is shown),
-    // so projecting shows the members tab underneath.
-    const handleProject = useCallback(() => {
-        setActiveTab('members');
-        if (onDetailTabChange) onDetailTabChange('members');
-        setProjecting(true);
-    }, [onDetailTabChange]);
-    const handleCloseProjection = useCallback(() => setProjecting(false), []);
+    // The seats come from the refresh that runs on the members / progress tabs (every 30 s).
+    // The tab shown underneath stays as it was; only the refresh is asked for while
+    // projecting from the description tab, and given back on close.
+    const handleProject = useCallback(
+        (e) => {
+            projectButtonRef.current = e && e.currentTarget ? e.currentTarget : null;
+            if (onDetailTabChange && activeTab === 'description') onDetailTabChange('members');
+            setProjection('detail');
+        },
+        [onDetailTabChange, activeTab],
+    );
+    const handleCloseProjection = useCallback(() => {
+        if (projection === 'stream' && onBackToBoard) {
+            // Opened from the stream's「いまの課題」card: back to the stream.
+            setProjection(null);
+            onBackToBoard();
+            return;
+        }
+        setProjection(null);
+        if (onDetailTabChange && activeTab === 'description') onDetailTabChange(activeTab);
+        const button = projectButtonRef.current;
+        projectButtonRef.current = null;
+        // After the screen is gone, so the focus lands on the page again.
+        if (button) setTimeout(() => button.isConnected && button.focus(), 0);
+    }, [projection, onBackToBoard, onDetailTabChange, activeTab]);
 
     const [inviteCopied, setInviteCopied] = useState(false);
     const handleCopyInvite = useCallback(() => {
@@ -421,10 +449,11 @@ const TeacherClassDetail = ({
 
     return (
         <div className={styles.detailLayout} data-testid="classroom-phase-teacher-detail">
-            {projecting ? (
+            {projection ? (
                 <TeacherProjectionView
                     classroom={selectedClassroom}
                     group={group}
+                    lessonStatus={lesson ? (progressError ? 'error' : progressData ? 'ready' : 'loading') : null}
                     lessonTiles={lessonTiles}
                     members={members}
                     submitsWork={submitsWork}
@@ -1356,9 +1385,13 @@ TeacherClassDetail.propTypes = {
     detailEntry: PropTypes.shape({
         tab: PropTypes.oneOf(['members', 'description', 'progress']),
         seq: PropTypes.number,
-        /** Open on the［⛶ 映す］screen (the stream's［⛶ 全画面で映す］). */
+        /** Open on the［⛶ 映す］screen (the stream's［⛶ 全画面で映す］); used once. */
         project: PropTypes.bool,
     }),
+    /** Back to the class (the stream): closing the［⛶ 映す］screen opened from the stream. */
+    onBackToBoard: PropTypes.func,
+    /** Called when `detailEntry.project` was used, so the container forgets it. */
+    onProjectEntryUsed: PropTypes.func,
     onOpenShareSuggestion: PropTypes.func,
     assignmentEditor: PropTypes.object,
     group: PropTypes.object,

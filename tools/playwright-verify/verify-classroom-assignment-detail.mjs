@@ -257,7 +257,12 @@ try {
     await page.waitForTimeout(300);
     const projGone = !(await page.$(tid('classroom-projection')));
     const stillDetail = !!(await page.$(tid('classroom-phase-teacher-detail')));
-    record('Esc closes the projection only (#1961)', projGone && stillDetail, `gone=${projGone} detail=${stillDetail}`);
+    const focusBack = await page.evaluate(() => document.activeElement && document.activeElement.dataset.testid);
+    record(
+        'Esc closes the projection only, focus back on［⛶ 映す］(#1961)',
+        projGone && stillDetail && focusBack === 'classroom-detail-project',
+        `gone=${projGone} detail=${stillDetail} focus=${focusBack}`,
+    );
 
     // #1388: no「名前を変える」. While the name field is focused it says how
     // the name is saved; after saving,「✓ 保存しました」shows for a moment.

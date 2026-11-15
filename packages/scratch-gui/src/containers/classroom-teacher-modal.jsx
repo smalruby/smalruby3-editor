@@ -376,6 +376,7 @@ const ClassroomTeacherModal = () => {
         onCreateAssignmentInClass: teacher.handleCreateAssignmentInClass,
         onDetailTabChange: teacher.setDetailTab,
         detailEntry: teacher.detailEntry,
+        onProjectEntryUsed: teacher.consumeDetailProject,
         onReuseAssignment: teacher.handleReuseAssignment,
         onUpdateGroup: teacher.handleUpdateGroup,
         evaluation: teacher.evaluation,

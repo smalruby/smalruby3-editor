@@ -338,15 +338,6 @@
     outline: 2px solid transparent;
 }
 
-.join-code-display {
-    background-color: #f2f2f2;
-    border: 2px dashed #d9d9d9;
-    border-radius: 8px;
-    padding: 0.3rem;
-    text-align: center;
-    margin: 0.3rem 0;
-}
-
 /* 課題名（左）と参加コード（右）を均等幅 2 カラムに分ける。両カラムは
    stretch で高さが揃うので、課題名入力の高さは参加コードカードに一致する。
    幅が足りず参加コードカードが 340px を割り込むと、行が折り返して参加コード
@@ -1951,6 +1942,24 @@ $seat-tile-min: 36px;
 .projection-seat-returned {
     background-color: $color-seat-returned;
     color: $color-seat-returned-text;
+}
+
+/* A lesson seat before its progress is read: grey, no colour meaning yet. */
+.projection-seat-loading {
+    background-color: $color-seat-not-started;
+    color: $color-text-muted;
+}
+
+.projection-notice {
+    color: $color-text-muted;
+}
+
+/* Shown instead of the seats when the lesson progress could not be read. */
+.projection-error {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: $font-size-projection-body;
+    color: $color-text-muted;
 }
 
 .projection-seat-not-started {

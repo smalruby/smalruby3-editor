@@ -409,6 +409,8 @@ export default {
     'gui.classroom.projection.joined': 'さんか {joined} / {capacity}',
     'gui.classroom.projection.submitted': 'ていしゅつ {count}',
     'gui.classroom.projection.cleared': 'クリア {count}',
+    'gui.classroom.projection.lessonLoading': 'よみこみちゅう…',
+    'gui.classroom.projection.lessonError': 'すすみぐあいをよみこめませんでした',
     'gui.classroom.board.retentionTitle': 'ほぞんきげん',
     'gui.classroom.board.retentionItem': '「{name}」は {date} にじどうでさくじょされます',
     'gui.classroom.board.retentionNone': '7 にちいないにきえるかだいはありません。',
@@ -767,7 +769,6 @@ export default {
     'gui.classroom.teacherDetail.retentionInline':
         'ほぞんきげんをすぎるとこのかだいとていしゅつぶつはじどうさくじょされます。',
     'gui.classroom.teacherDetail.retentionInlineHint': 'ダウンロードしてほぞんしてください。',
-    'gui.classroom.codeDisplay.title': 'さんかコード',
     'gui.classroom.codeDisplay.copyLink': 'しょうたいリンクをコピー',
     'gui.classroom.codeDisplay.copied': 'コピーしました',
     'gui.classroom.teacherDetail.selectMember': 'しゅっせきばんごうをクリックしてせいとのしょうさいをみる',

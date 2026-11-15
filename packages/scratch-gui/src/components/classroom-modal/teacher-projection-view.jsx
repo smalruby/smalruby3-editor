@@ -58,6 +58,17 @@ export const projectionMessages = defineMessages({
         description: 'Projector screen: students who submitted',
         id: 'gui.classroom.projection.submitted',
     },
+    lessonLoading: {
+        defaultMessage: 'Loading…',
+        description: 'Projector screen of a lesson assignment until its progress has been read',
+        id: 'gui.classroom.projection.lessonLoading',
+    },
+    lessonError: {
+        defaultMessage: "Couldn't load the lesson progress",
+        description:
+            'Projector screen of a lesson assignment when its progress could not be read (shown instead of the seats)',
+        id: 'gui.classroom.projection.lessonError',
+    },
     cleared: {
         defaultMessage: 'Cleared {count}',
         description: 'Projector screen of a lesson assignment: students who cleared the lesson',
@@ -76,6 +87,7 @@ const SEAT_CLASSES = {
     notStarted: 'projectionSeatNotStarted',
     inProgress: 'projectionSeatJoined',
     cleared: 'projectionSeatSubmitted',
+    loading: 'projectionSeatLoading',
 };
 
 /**
@@ -84,23 +96,28 @@ const SEAT_CLASSES = {
  * @param {number} params.studentCount - the number of seats
  * @param {object} params.memberMap - memberId → member record
  * @param {?Array<object>} params.lessonTiles - lesson seat tiles (lesson assignments), else null
+ * @param {?string} params.lessonStatus - a lesson assignment: 'loading' | 'ready' | 'error'; null otherwise
  * @returns {Array<{number: number, kind: string}>} the seats in order
  */
-const projectionSeats = ({ studentCount, memberMap, lessonTiles }) =>
-    Array.from({ length: studentCount }, (_, i) => ({
-        number: i + 1,
-        kind:
-            lessonTiles && lessonTiles[i]
-                ? lessonSeatKind(lessonTiles[i])
-                : memberSeatColorKind(memberMap[seatMemberId(i + 1)] || null),
-    }));
+const projectionSeats = ({ studentCount, memberMap, lessonTiles, lessonStatus = null }) =>
+    Array.from({ length: studentCount }, (_, i) => {
+        let kind;
+        // A lesson seat is never drawn as an ordinary one: until the progress is read
+        // it is「loading」(grey, no meaning in the legend).
+        if (lessonStatus) kind = lessonTiles && lessonTiles[i] ? lessonSeatKind(lessonTiles[i]) : 'loading';
+        else kind = memberSeatColorKind(memberMap[seatMemberId(i + 1)] || null);
+        return { number: i + 1, kind };
+    });
 
-const TeacherProjectionView = ({ classroom, group, lessonTiles, members, submitsWork, onClose }) => {
+const TeacherProjectionView = ({ classroom, group, lessonStatus, lessonTiles, members, submitsWork, onClose }) => {
     const intl = useIntl();
     // Esc goes back to the assignment only (stopped here so it does not close the modal too).
     useEffect(() => {
         const handleKey = (e) => {
             if (e.key !== 'Escape') return;
+            // Capture on document + stopImmediatePropagation: nothing else (the modal,
+            // another document listener) sees this Escape.
+            e.stopImmediatePropagation();
             e.stopPropagation();
             e.preventDefault();
             onClose();
@@ -115,10 +132,19 @@ const TeacherProjectionView = ({ classroom, group, lessonTiles, members, submits
         return map;
     }, [members]);
     const studentCount = classroom.studentCount || 0;
-    const seats = projectionSeats({ studentCount, memberMap, lessonTiles });
+    // A lesson assignment is decided by `lessonStatus` (it has a lesson), not by whether
+    // its progress has arrived yet.
+    const isLesson = Boolean(lessonStatus);
+    const tilesReady = isLesson && lessonStatus === 'ready' && Boolean(lessonTiles);
+    const seats = projectionSeats({
+        studentCount,
+        memberMap,
+        lessonTiles: tilesReady ? lessonTiles : null,
+        lessonStatus,
+    });
     const summary = summarizeAssignmentRow({ members, studentCount });
-    const cleared = lessonTiles ? clearedSummary(lessonTiles).cleared : null;
-    const showSubmitted = !lessonTiles || submitsWork;
+    const cleared = tilesReady ? clearedSummary(lessonTiles).cleared : '-';
+    const showSubmitted = !isLesson || submitsWork;
     const className = group ? formatClassLabel(group) : classroom.className;
 
     return ReactDOM.createPortal(
@@ -164,7 +190,7 @@ const TeacherProjectionView = ({ classroom, group, lessonTiles, members, submits
                             values={{ joined: summary.joined, capacity: summary.capacity }}
                         />
                     </span>
-                    {lessonTiles ? (
+                    {isLesson ? (
                         <span
                             className={classNames(styles.projectionCount, styles.projectionCountDone)}
                             data-testid="classroom-projection-cleared"
@@ -187,30 +213,42 @@ const TeacherProjectionView = ({ classroom, group, lessonTiles, members, submits
             </div>
             <SeatColorLegend
                 className={styles.projectionLegend}
-                items={lessonTiles ? LESSON_SEAT_COLOR_ITEMS : MEMBER_SEAT_COLOR_ITEMS}
+                items={isLesson ? LESSON_SEAT_COLOR_ITEMS : MEMBER_SEAT_COLOR_ITEMS}
                 testId="classroom-projection-legend"
-            />
-            <div
-                className={styles.projectionSeats}
-                data-testid="classroom-projection-seats"
-                style={{ gridTemplateRows: `repeat(${Math.max(1, Math.ceil(studentCount / 10))}, 1fr)` }}
             >
-                {seats.map((seat) => (
-                    <span
-                        className={classNames(styles.projectionSeat, styles[SEAT_CLASSES[seat.kind]])}
-                        data-seat-color={seat.kind}
-                        data-testid={`classroom-projection-seat-${seat.number}`}
-                        key={seat.number}
-                    >
-                        {seat.number}
-                        {SEAT_COLOR_MARKS[seat.kind] ? (
-                            <span aria-hidden="true" className={styles.projectionSeatMark}>
-                                {SEAT_COLOR_MARKS[seat.kind]}
-                            </span>
-                        ) : null}
+                {lessonStatus === 'loading' ? (
+                    <span className={styles.projectionNotice} data-testid="classroom-projection-lesson-loading">
+                        <FormattedMessage {...projectionMessages.lessonLoading} />
                     </span>
-                ))}
-            </div>
+                ) : null}
+            </SeatColorLegend>
+            {lessonStatus === 'error' ? (
+                <p className={styles.projectionError} data-testid="classroom-projection-lesson-error" role="alert">
+                    <FormattedMessage {...projectionMessages.lessonError} />
+                </p>
+            ) : (
+                <div
+                    className={styles.projectionSeats}
+                    data-testid="classroom-projection-seats"
+                    style={{ gridTemplateRows: `repeat(${Math.max(1, Math.ceil(studentCount / 10))}, 1fr)` }}
+                >
+                    {seats.map((seat) => (
+                        <span
+                            className={classNames(styles.projectionSeat, styles[SEAT_CLASSES[seat.kind]])}
+                            data-seat-color={seat.kind}
+                            data-testid={`classroom-projection-seat-${seat.number}`}
+                            key={seat.number}
+                        >
+                            {seat.number}
+                            {SEAT_COLOR_MARKS[seat.kind] ? (
+                                <span aria-hidden="true" className={styles.projectionSeatMark}>
+                                    {SEAT_COLOR_MARKS[seat.kind]}
+                                </span>
+                            ) : null}
+                        </span>
+                    ))}
+                </div>
+            )}
         </div>,
         document.body,
     );
@@ -221,7 +259,9 @@ TeacherProjectionView.propTypes = {
     classroom: PropTypes.object.isRequired,
     /** The class it belongs to (for「技術 2026年度 2年1組」); null for old data. */
     group: PropTypes.object,
-    /** Lesson seat tiles (`seatTile`) of a lesson assignment; null for an ordinary one. */
+    /** A lesson assignment: whether its progress is 'loading' / 'ready' / 'error'; null for an ordinary one. */
+    lessonStatus: PropTypes.oneOf(['loading', 'ready', 'error']),
+    /** Lesson seat tiles (`seatTile`) once the progress is read; null otherwise. */
     lessonTiles: PropTypes.arrayOf(PropTypes.shape({ state: PropTypes.string.isRequired })),
     members: PropTypes.arrayOf(PropTypes.object).isRequired,
     /** A lesson assignment that also takes the work (shows「提出」too). */
