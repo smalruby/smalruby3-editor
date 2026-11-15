@@ -74,6 +74,33 @@ npx ts-node bin/restore-classroom.ts --classroom-id <uuid> --apply
 - 提出ファイル（S3 実体）の存在確認を行い、欠落があれば dry-run 時に警告表示
 - 課題本体の書き込みは `attribute_not_exists` 条件付き（復元の競合で生きているデータを上書きしない）
 
+## 返却していない提出の数のバックフィル `bin/backfill-unreturned-count.ts`
+
+`GET /classrooms` の `unreturnedCount`（`docs/classroom/architecture.md` の「返却していない提出の数」）は、
+**数を持っている課題だけ**を Lambda が増減する。この項目より前に作った課題は数を持たず、一覧に項目が
+出ない（GUI は「確認が必要な課題」の帯を出さない）。埋めるときにこのスクリプトを流す（**人間の指示で**）。
+埋めなくても壊れはしない（古い課題の帯が出ないだけで、新しい課題は 0 から数える）。
+
+```bash
+# デフォルトは dry-run（課題ごとの数を表示するだけ）
+npx ts-node bin/backfill-unreturned-count.ts
+
+# 数を持っていない課題に書く（その間に Lambda が数を作った課題は上書きしない）
+npx ts-node bin/backfill-unreturned-count.ts --apply
+
+# 数を持っている課題も数え直して上書きする（ずれを直したいとき）
+npx ts-node bin/backfill-unreturned-count.ts --apply --recount
+
+# 書いたあとに確かめる（書かない。持っている数と数え直した数が食い違う課題だけを表示）
+npx ts-node bin/backfill-unreturned-count.ts --verify
+```
+
+- 対象は active / archived の課題。数え方は Lambda と同じ（`lambda/unreturned-count-lib.ts`）。
+- 読み込み: Classrooms の Scan 1 回 + 対象の課題ごとに Memberships・Submissions の Query 1 回ずつ。
+- **どのモードも授業の無い時間に流す**。数えてから書くまでの間に提出・返却・退室があると、そのぶんずれた数を書きうる（既定のモードでも、数えている間の提出は数に入らない）。`--apply` のあとに `--verify` を流し、食い違いが出たら `--apply --recount` で直す。
+- Lambda を反映（deploy）したあとに流す。前に流すと、deploy までの間の提出が数に入らない。
+- ステージは `.env` の symlink で切り替える（`.claude/rules/infra/development.md`）。
+
 ## 共同管理者の逆引き索引バックフィル `bin/backfill-coteacher-index.ts`
 
 `GET /classrooms` は共同管理の課題・クラスを **逆引き索引** `ClassroomCoTeacherIndex{suffix}`

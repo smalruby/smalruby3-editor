@@ -183,7 +183,7 @@ One Tap が表示できない環境（Windows や Playwright では毎回）で�
 | Method | Path | 説明 |
 |--------|------|------|
 | `POST` | `/classrooms` | 課題作成。任意の `meshGroupLimit`（`6` / `0`・Issue #1255）でメッシュのグループの人数の上限を設定する（`0` = 制限なし。送らなくても `6` を必ず保存する。それ以外の値は 400）。レスポンスに `meshGroupLimit` を含む |
-| `GET` | `/classrooms` | 課題一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` と `meshGroupLimit`（未設定は `0` = 制限なし）、`archivedAt`（アーカイブした日時。active は `null`、日時を持たない古いアーカイブ済み課題は `updatedAt`）を含む） |
+| `GET` | `/classrooms` | 課題一覧（既定は active のみ。`?includeArchived=1` でアーカイブ済みも返す。各要素に `status` と `meshGroupLimit`（未設定は `0` = 制限なし）、`archivedAt`（アーカイブした日時。active は `null`、日時を持たない古いアーカイブ済み課題は `updatedAt`）を含む。任意の `unreturnedCount` = 返却していない提出の数。下の「返却していない提出の数」参照） |
 | `GET` | `/classrooms/{id}` | 課題詳細（`archivedAt`（active なので常に `null`）と `meshGroupLimit` を含む。未設定は `0` = 制限なし） |
 | `PATCH` | `/classrooms/{id}` | 課題更新。`{status: 'active'}` でアーカイブ済み課題の復元も行う。任意の `meshGroupLimit`（`6` / `0`）を受け付ける（送らなければ保存済みの値を変えない。それ以外の値は 400）。レスポンスに `meshGroupLimit` と `archivedAt` を含む。archived にすると `archivedAt` を記録し、active に戻すと消す |
 | `DELETE` | `/classrooms/{id}` | 課題削除 (アーカイブ)。`archivedAt` を記録する。soft-delete でメンバー・提出メタ・S3 は保持され、PATCH で復元可能。生徒の遮断は status ガード（join / lookup / verify-session / 提出がすべて非 active を拒否） |
@@ -371,6 +371,37 @@ erDiagram
 - **`ClassroomCoTeacherIndex` テーブル（逆引き索引）**: PK `coTeacherEmail` / SK `resourceKey`（`assignment#<classroomId>` または `group#<groupId>`）。`coTeacherEmails` はリスト属性なので GSI のキーにできず、逆引きは別テーブルになる。行は `syncCoTeacherIndex()` が**差分だけ**書き（課題の共同管理者 追加/削除、組の `coTeacherEmails` 更新、v2 移行での組への引き上げ — この 4 経路すべてが書き手）、資源の `ttl` を写すので資源と一緒に消える。
   - **認可は索引を見ない**。`canManageClassroom` / `canManageGroup` は今も item 上の `coTeacherEmails` を読む。索引は「一覧に出す候補を集める」ためだけのもので、読み取り側は引いた資源のリストで再確認する（索引が遅れても権限は落ちず、一覧に出るのが遅れるだけ）。
   - **既存データにはバックフィルが必要**（索引は後付けなので、それ以前の共同管理者の行が存在しない）。`bin/backfill-coteacher-index.ts`（既定 dry-run・冪等）を**読み取りを索引に切り替えた Lambda を反映する前に**実行する。デプロイ順と手順は `docs/classroom/operations.md`。
+
+### 返却していない提出の数（`unreturnedCount`）
+
+`GET /classrooms` の各課題に付く任意の数。クラス一覧の「確認が必要な課題」に使う。一覧のたびに課題ごとの提出を読み直さないよう、**数は課題の item（Classrooms）に持ち、書き込みのときに増減する**（実装: `lambda/unreturned-count-lib.ts` が判断、`handler.ts` の `adjustUnreturnedCount` が書く）。
+
+**数え方**（GUI の課題ボード `enrichMembers` + `summarizeAssignmentRow` と同じ見方）:
+
+- 席（`memberId`）ごとに**いちばん新しい提出**だけを見る（出し直しを 2 回数えない）。
+- `status` が `returned` でないものを数える。
+- **退室した席の提出は数えない**。退室 = その席にメンバーの行が無い（自分で退室した）か、先生が退室させた（`kicked: true` の墓標）。同じ席に次の生徒が入ると、その席の提出（前の生徒が出したもの）はまた数える。課題ボードもその席のメンバーに提出を結びつけて数えるので、それに合わせている（次の生徒が出し直すと置きかわる）。
+
+**項目を出さないとき**（GUI は項目が無い課題を「確認が必要な課題」に数えない）:
+
+- **数を持っていない課題**（この項目より前に作った課題）。数を持っていない課題には増減もしない（すでにある提出のぶんずれた数ができるため）。`bin/backfill-unreturned-count.ts` で埋める（`docs/classroom/operations.md`）。
+- **レッスンの課題**（`hasLesson`。提出・返却の流れが無い）。
+
+**数が動くとき**（どれも 1 回の条件付き `UpdateItem`。数を持っていない課題は条件で弾く。0 より下にはしない）:
+
+| 操作 | 増減 | 判断に使う読み込み |
+|---|---|---|
+| 課題の作成・複製・GC から作成・みんなの課題から取り込み | `0` で作る | なし |
+| 提出（`POST /classrooms/{id}/submissions`） | +1。同じ席の前の提出が返却していないものなら ±0 | 前の提出の削除を `ReturnValues: ALL_OLD` で返させる（追加の読み込みなし） |
+| 返却（`PATCH .../submissions/{id}` の `status: returned`） | 在席の席の、返却していないものを返却したときだけ -1。同じ提出の 2 回目の返却・コメントだけの更新は ±0 | 更新の `ReturnValues: UPDATED_OLD`（前の status）+ 席のメンバーの `GetItem` 1 回 |
+| 自分で退室（`DELETE .../members/me`）・先生が退室させる（`DELETE .../members/{id}`・退室依頼の承認） | その席に返却していない提出があれば -1。もう空いていた席なら ±0 | 削除・更新の `ReturnValues: ALL_OLD`（前に在席だったか）+ その席の提出の Query 1 回（GSI `classroomId-memberId-index`） |
+| 空いた席への参加（`POST /classrooms/join`） | その席に返却していない提出があれば +1 | その席の提出の Query 1 回 |
+| アーカイブ・復元（`PATCH status`） | ±0（数はそのまま残る） | なし |
+| 運用の復元（`bin/restore-classroom.ts`） | 復元するメンバーと提出から数え直す | なし（スナップショットから数える） |
+
+一覧の取得（`GET /classrooms`）での追加の読み込みは**無い**（課題の item の項目を返すだけ）。
+
+**付随的な集計なので fail-open**: 数の書き込みや判断の読み込みに失敗しても、提出・返却・退室・参加そのものは成功させる（`.claude/rules/infra/development.md` の「混雑・障害時の劣化」）。ずれうるのは、書き込みの失敗と、同じ席への同時の書き込み（例: 同じ席の同時の提出で提出が 2 件残る、参加と退室させるのが同時）のときと、**退室直後の提出**（セッションの確認は結果整合の GSI を読むので、退室した直後の生徒の提出が通ると、空いた席の提出を数えてしまう）のとき。ずれは `bin/backfill-unreturned-count.ts --recount` で直す。課題・提出・メンバーの TTL はどれも課題の TTL とそろうので、TTL での削除ではずれない。
 
 ### ClassroomMemberships テーブル
 
