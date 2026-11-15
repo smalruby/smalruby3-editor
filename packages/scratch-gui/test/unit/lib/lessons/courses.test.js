@@ -1158,12 +1158,12 @@ describe('chat course lesson 1 "手順を図にしよう" (#1641)', () => {
         expect(COURSES[1]).toBe(course);
         expect(course.language).toBe(LANGUAGES.BLOCKS);
         expect(ja[course.name.id]).toBe('チャットをつくろう');
-        expect(course.lessons.map((l) => l.id)).toEqual(['chat-l1', 'chat-l2', 'chat-l3', 'chat-l4']);
+        expect(course.lessons.map((l) => l.id)).toEqual(['chat-l1', 'chat-l2', 'chat-l3', 'chat-l4', 'chat-l5']);
         const lesson = findLesson('chat-l1');
         expect(ja[lesson.name.id]).toBe('手順を図にしよう');
         expect(lesson.allowDnclMode).toBe(false);
         expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(CHAT_L1.map((id, i) => `${i + 1} ${id}`));
-        expect(courseSize(course)).toEqual({ lessonCount: 4, challengeCount: 15 });
+        expect(courseSize(course)).toEqual({ lessonCount: 5, challengeCount: 20 });
     });
 
     test('every challenge starts with Shimaraby instead of the cat, shows the diagram and has a quiz', () => {
@@ -1699,6 +1699,204 @@ describe('chat course lesson 4 "チャットを作ろう" (#1644)', () => {
             `if mesh.sensor_value("${names.to}") == $${names.name}`,
         );
         expect(messages[challenge('chat-l4-dm').task.id]).toContain(names.to);
+    });
+});
+
+describe('chat course lesson 5 "チャットを改良しよう" (#1645)', () => {
+    const CHAT_L5 = [
+        'chat-l5-read-receipt',
+        'chat-l5-ng-word',
+        'chat-l5-auto-reply',
+        'chat-l5-password',
+        'chat-l5-stamp',
+    ];
+    const challenge = (id) => findChallenge(id).challenge;
+
+    test('the lesson 5 has the 5 themes in order, and one theme is enough for its ✓', () => {
+        const lesson = findLesson('chat-l5');
+        expect(findCourse('chat-wo-tsukurou').lessons[4]).toBe(lesson);
+        expect(ja[lesson.name.id]).toBe('チャットを改良しよう');
+        expect(jaHira[lesson.name.id]).toBe('チャットを かいりょう しよう');
+        expect(en[lesson.name.id]).toBe('Improve the Chat');
+        expect(lesson.allowDnclMode).toBe(false);
+        expect(lesson.checkCount).toBe(1);
+        expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(CHAT_L5.map((id, i) => `${i + 1} ${id}`));
+        // ほかのレッスンは全部できたら ✓
+        findCourse('chat-wo-tsukurou')
+            .lessons.slice(0, 4)
+            .forEach((l) =>
+                expect({ id: l.id, required: l.checkCount }).toEqual({ id: l.id, required: l.challenges.length }),
+            );
+    });
+
+    test('every theme starts from the answer of 4-3 (the chat of two), with both sprites and the mesh', () => {
+        const both = challenge('chat-l4-both-ways');
+        CHAT_L5.map(challenge).forEach((c) => {
+            expect({ id: c.id, sprites: c.setup.sprites, extensions: c.setup.extensions }).toEqual({
+                id: c.id,
+                sprites: ['Shimaraby', 'Shimacat'],
+                extensions: ['meshV2'],
+            });
+            expect({ id: c.id, code: c.setup.code, spriteCodes: c.setup.spriteCodes }).toEqual({
+                id: c.id,
+                code: both.code,
+                spriteCodes: both.spriteCodes,
+            });
+            expect({ id: c.id, diagram: c.activityDiagram }).toEqual({ id: c.id, diagram: true });
+            expect({ id: c.id, errors: validateQuiz(c.quiz) }).toEqual({ id: c.id, errors: [] });
+            expect({ id: c.id, errors: validateGoal(c.goal) }).toEqual({ id: c.id, errors: [] });
+            expect(isReadDiagram(c)).toBe(false);
+            expect(c.partner).not.toBeNull();
+            // どのテーマも、課題の全文の最後に「さらに工夫するなら」（判定しない）
+            ['ja', 'ja-Hira', 'en'].forEach((locale) =>
+                expect(LOCALES[locale][c.task.id]).toMatch(
+                    /\n(さらに工夫するなら|さらに くふう するなら|To go further): [^\n]+$/,
+                ),
+            );
+        });
+        // 5-2 だけ、ステージにリスト「NGワード」を用意するプログラムを入れて始める
+        expect(CHAT_L5.filter((id) => challenge(id).setup.stageCode)).toEqual(['chat-l5-ng-word']);
+        expect(localizeCode(challenge('chat-l5-ng-word').setup.stageCode, 'ja')).toBe(
+            'when_flag_clicked do\n  $NGワード.clear\n  $NGワード.push("ばか")\n  $NGワード.push("きらい")\nend\n',
+        );
+        // 答えは 4-3 の答えに足した形（シマラビの送る側はどのテーマにも入っている）
+        CHAT_L5.forEach((id) =>
+            ['ja', 'ja-Hira', 'en'].forEach((locale) =>
+                expect(localizeCode(challenge(id).code, locale)).toContain(
+                    locale === 'en' ? 'broadcast("shimaraby_message")' : 'broadcast("シマラビのメッセージ")',
+                ),
+            ),
+        );
+        // クイズの正解は教科書の用語
+        expect(CHAT_L5.map((id) => ja[challenge(id).quiz.choices[challenge(id).quiz.answer].id])).toEqual([
+            '双方向性',
+            'フィルタリング',
+            '一度も返信しない',
+            '認証システム',
+            '静止画',
+        ]);
+    });
+
+    test('the sound and costumes of the answers are the real ones of the library Shimacat', () => {
+        const spritesJson = require('../../../../src/lib/libraries/sprites.json');
+        const shimacat = spritesJson.find((sprite) => sprite.name === 'Shimacat');
+        ['ja', 'ja-Hira', 'en'].forEach((locale) => {
+            const read = localizeCode(challenge('chat-l5-read-receipt').spriteCodes[0].code, locale);
+            expect(read).toContain('play("Meow")');
+            expect(shimacat.sounds.map((sound) => sound.name)).toContain('Meow');
+            const stamp = localizeCode(challenge('chat-l5-stamp').spriteCodes[0].code, locale);
+            ['shimacat-a', 'shimacat-b'].forEach((name) => {
+                expect(stamp).toContain(`switch_costume("${name}")`);
+                expect(shimacat.costumes.map((costume) => costume.name)).toContain(name);
+            });
+        });
+    });
+
+    test('the practice partners: 5-1 talks and reads, 5-3 has no automatic reply, 5-5 sends stamps', () => {
+        const pair = normalizePartner(challenge('chat-l4-both-ways').partner, 'ja');
+        ['chat-l5-ng-word', 'chat-l5-password'].forEach((id) =>
+            expect(normalizePartner(challenge(id).partner, 'ja')).toEqual(pair),
+        );
+        const read = normalizePartner(challenge('chat-l5-read-receipt').partner, 'ja');
+        expect(read.buttons.map((b) => [b.label, b.set, b.broadcast])).toEqual([
+            ['発言する', [{ name: 'シマネコのメッセージ', value: '明日の持ち物は？' }], 'シマネコのメッセージ'],
+            ['既読にする', [], 'シマネコがよんだ'],
+        ]);
+        expect(read.replies).toEqual(pair.replies);
+        // 自動返信どうしが行き来し続けないように、練習相手は自動の返事をしない
+        const auto = normalizePartner(challenge('chat-l5-auto-reply').partner, 'ja');
+        expect(auto.buttons).toEqual(pair.buttons);
+        expect(auto.replies).toEqual([]);
+        const stamp = normalizePartner(challenge('chat-l5-stamp').partner, 'ja');
+        expect(stamp.buttons.map((b) => [b.label, b.broadcast])).toEqual([['スタンプを送る', 'シマネコのスタンプ']]);
+        expect(stamp.replies.map((r) => [r.onBroadcast, r.broadcast])).toEqual([
+            ['シマラビのスタンプ', 'シマネコのスタンプ'],
+        ]);
+    });
+
+    test('the names that reach the other side over the mesh are the same in ja and ja-Hira', () => {
+        CHAT_L5.forEach((id) => {
+            const c = challenge(id);
+            const names = (code) =>
+                [...code.matchAll(/(?:\$|broadcast\("|when_receive\("|sensor_value\(")([^\s"=)]+)/g)].map(
+                    (m) => m[1],
+                );
+            expect(names(localizeCode(c.code, 'ja'))).toEqual(names(localizeCode(c.code, 'ja-Hira')));
+            c.spriteCodes.forEach((s) =>
+                expect(names(localizeCode(s.code, 'ja'))).toEqual(names(localizeCode(s.code, 'ja-Hira'))),
+            );
+            const partnerNamesOf = (locale) => {
+                const p = normalizePartner(c.partner, locale);
+                return [...p.buttons, ...p.replies].map((a) => [
+                    a.broadcast,
+                    a.onBroadcast,
+                    a.set.map((x) => x.name),
+                ]);
+            };
+            expect(partnerNamesOf('ja')).toEqual(partnerNamesOf('ja-Hira'));
+        });
+    });
+
+    test('the ja-Hira strings and code of lesson 5 have no kanji', () => {
+        Object.keys(jaHira)
+            .filter((id) => /^gui\.lessons\.(lesson\.chat-l5|challenge\.chat-l5-)/.test(id))
+            .forEach((id) =>
+                expect({ id, text: jaHira[id] }).not.toEqual({ id, text: expect.stringMatching(/\p{Script=Han}/u) }),
+            );
+        CHAT_L5.forEach((id) => {
+            const c = challenge(id);
+            expect(localizeCode(c.code, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u);
+            c.spriteCodes.forEach((s) => expect(localizeCode(s.code, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u));
+            expect(localizeCode(c.setup.stageCode, 'ja-Hira') || '').not.toMatch(/\p{Script=Han}/u);
+            c.steps.forEach((step) =>
+                expect(localizeCode(step.blocks, 'ja-Hira') || '').not.toMatch(/\p{Script=Han}/u),
+            );
+            expect(JSON.stringify(normalizePartner(c.partner, 'ja-Hira'))).not.toMatch(/\p{Script=Han}/u);
+        });
+    });
+
+    test('the hint pages that point at the practice partner panel target it', () => {
+        // パネルを押すページは practice-partner を指す（ヒントの吹き出しがパネルにかからないように）
+        CHAT_L5.forEach((id) => {
+            const c = challenge(id);
+            c.steps.forEach((step, i) => {
+                const text = ja[step.title.id];
+                if (/練習相手のパネル/.test(text) && step.target !== HINT_TARGETS.GREEN_FLAG) {
+                    expect({ id, step: i + 1, target: step.target }).toEqual({
+                        id,
+                        step: i + 1,
+                        target: HINT_TARGETS.PRACTICE_PARTNER,
+                    });
+                }
+            });
+        });
+    });
+
+    test.each(['ja', 'ja-Hira', 'en'])('the code (%s) uses the names the task of that locale writes', (locale) => {
+        const names = {
+            ja: { read: 'シマラビがよんだ', list: 'NGワード', password: 'もみじ', stamp: 'シマラビのスタンプ' },
+            'ja-Hira': {
+                read: 'シマラビがよんだ',
+                list: 'NGワード',
+                password: 'もみじ',
+                stamp: 'シマラビのスタンプ',
+            },
+            en: { read: 'shimaraby_read', list: 'ng_words', password: 'maple', stamp: 'shimaraby_stamp' },
+        }[locale];
+        const messages = LOCALES[locale];
+        const code = (id) => localizeCode(challenge(id).code, locale);
+        expect(localizeCode(challenge('chat-l5-read-receipt').spriteCodes[0].code, locale)).toContain(
+            `broadcast("${names.read}")`,
+        );
+        expect(messages[challenge('chat-l5-read-receipt').task.id]).toContain(names.read);
+        expect(code('chat-l5-ng-word')).toContain(`$${names.list}.include?(answer)`);
+        expect(messages[challenge('chat-l5-ng-word').task.id]).toContain(names.list);
+        expect(code('chat-l5-auto-reply')).toContain('if Time.now.hour > 21');
+        expect(messages[challenge('chat-l5-auto-reply').task.id]).toContain('21');
+        expect(code('chat-l5-password')).toContain(`if answer == "${names.password}"`);
+        expect(messages[challenge('chat-l5-password').task.id]).toContain(names.password);
+        expect(code('chat-l5-stamp')).toContain(`broadcast("${names.stamp}")`);
+        expect(messages[challenge('chat-l5-stamp').task.id]).toContain(names.stamp);
     });
 });
 

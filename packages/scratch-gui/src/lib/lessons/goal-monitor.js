@@ -109,6 +109,39 @@ const describeThread = (thread) => {
     };
 };
 
+// メッセージを送るブロック（goal.js の BROADCAST_OPCODES と同じ）
+const BROADCAST_OPCODES = new Set(['event_broadcast', 'event_broadcastandwait', 'meshV2_broadcastWithValue']);
+
+// ブロックの「送る」メッセージの名前（▼ の影ブロックの BROADCAST_OPTION）。レポーターを入れているなど
+// 分からないときは null
+const blockMessageName = (container, block) => {
+    if (block.fields && block.fields.BROADCAST_OPTION) return block.fields.BROADCAST_OPTION.value;
+    const input = block.inputs && block.inputs.BROADCAST_INPUT;
+    if (!input || input.block !== input.shadow) return null;
+    const shadow = container.getBlock(input.shadow);
+    const field = shadow && shadow.fields && shadow.fields.BROADCAST_OPTION;
+    return field ? field.value : null;
+};
+
+// メッシュの拡張は、ほかのノードから届いた合図を「送る」の関数（つないだときに取った関数 = 見張りの包み）を直接
+// 呼んで流す（broadcast-receiver.js）。そのときの util は最後に使われたもので、スレッドは「送る」を動かしていない。
+// それを「このスレッドが送った」と記録すると、届いた合図の送り手がこの作品のスプライトになる（`sentBy: 'remote'`
+// が通らない・送っていないスクリプトの「送る」が数えられる）ので、スレッドがいま送るブロックにいて、そのブロックの
+// メッセージが送る名前と同じときだけ記録する（たまたま別の「送る」で止まっているスレッドに数えない）。
+// スタックの分からないスレッド（テストの作り物）は記録する（#1645）
+const isSendingThread = (thread, args) => {
+    if (typeof thread.peekStack !== 'function') return true;
+    const container = thread.blockContainer || (thread.target && thread.target.blocks);
+    const block =
+        container && typeof container.getBlock === 'function' ? container.getBlock(thread.peekStack()) : null;
+    if (!block || !BROADCAST_OPCODES.has(block.opcode)) return false;
+    const option = args && args.BROADCAST_OPTION;
+    const sent = option && typeof option === 'object' ? option.name : option;
+    const name = blockMessageName(container, block);
+    if (name === null || sent === null || typeof sent === 'undefined') return true;
+    return String(name).toUpperCase() === String(sent).toUpperCase();
+};
+
 // execute.js は引数のオブジェクトを使い回すので、記録する分は写す。
 // BROADCAST_OPTION は `{id, name}` なのでメッセージ名だけにする。
 const copyArgs = (args) => {
@@ -155,6 +188,7 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
         const thread = util && util.thread;
         // モニター（ステージの表示）のスレッドはプログラムではない
         if (!thread || thread.updateMonitor) return;
+        if (BROADCAST_OPCODES.has(opcode) && !isSendingThread(thread, args)) return;
         const run = runFor(thread);
         recordExecution(facts, run, opcode, copyArgs(args));
         lastRun = run;

@@ -162,21 +162,25 @@ export const defineChallenge = (def) =>
 
 /**
  * レッスンを定義する。何個めか（`number`。レッスンの中の番号）は並びから付ける（並びを
- * 変えたときに番号がずれないように、定義には書かない）。クリア条件（n 個・必須）は持たない:
- * 段 1 では、レッスンやコースの「全部できた」はチャレンジが全部できたとき（lesson-progress.js）。
- * 先生が必須にするチャレンジは段 2 でクラス管理の課題の側に持つ（#1529）。
+ * 変えたときに番号がずれないように、定義には書かない）。レッスンの「全部できた」（✓）は、ふつうは
+ * チャレンジが全部できたとき（lesson-progress.js）。テーマを選んでやるレッスン（「チャットをつくろう」の
+ * レッスン 5）だけ `checkCount` で数を決める。先生が必須にするチャレンジは段 2 でクラス管理の課題の
+ * 側に持つ（#1529）。
  * @param {object} def - レッスンの定義。
  * @param {string} def.id - レッスン id。
  * @param {Array<object>} def.challenges - チャレンジの定義（並び順）。
  * @param {boolean} [def.allowDnclMode] - レッスンのあいだ Ruby タブを日本語モードに切りかえてよいか。
  *   書いていなければ不可（日本語モードのパレットの絞り込みがチャレンジの絞り込みに重なり、チャレンジの
  *   ブロックが出なくなるため・#1741）。setup で日本語モードにするレッスン（DNCL のコースなど）は true にする。
+ * @param {number} [def.checkCount] - レッスンの ✓ に要るできた数。書いていなければチャレンジの数（全部）。
+ *   テーマを 1 つ以上選んでやるレッスンは 1（#1616 の Q17）。
  * @returns {object} レッスン。
  */
-export const defineLesson = ({ id, challenges, allowDnclMode = false }) => ({
+export const defineLesson = ({ id, challenges, allowDnclMode = false, checkCount = null }) => ({
     id,
     name: message(`gui.lessons.lesson.${id}.name`),
     allowDnclMode: Boolean(allowDnclMode),
+    checkCount: checkCount === null ? challenges.length : Math.min(checkCount, challenges.length),
     challenges: challenges.map((def, index) => defineChallenge({ ...def, number: index + 1 })),
 });
 
@@ -2113,6 +2117,478 @@ const chatLesson4 = defineLesson({
     ],
 });
 
+// レッスン 5「チャットを改良しよう」（#1645）: 改良のテーマを 1 つずつチャレンジにする（通知と既読・NG ワード・時間で
+// 自動返信・合言葉・スタンプ）。どのテーマも 4-3 の答え（シマラビの役の 2 人のチャット）を setup で入れて始め、
+// 最低限の機能を足すところまでを「できた」にする（その先の工夫は判定せず、提出した作品で先生が見る）。レッスンの ✓ は
+// テーマを 1 つ「できた」にすればつく（checkCount: 1・#1616 の Q17）。メッシュで相手に届く名前は、レッスン 4 と
+// 同じく ja と ja-Hira で同じ（漢字を使わない形）。en は別の名前
+const CHAT_L5_WORDS = {
+    ja: {
+        ...CHAT_L4_WORDS.ja,
+        talk: '発言する',
+        question: '明日の持ち物は？',
+        myRead: 'シマラビがよんだ',
+        partnerRead: 'シマネコがよんだ',
+        markRead: '既読にする',
+        read: '既読',
+        meow: 'Meow',
+        ng: '$NGワード',
+        ngWords: ['ばか', 'きらい'],
+        cannotSend: 'その言葉は送れません',
+        autoReply: 'もう寝ています。朝に返事します',
+        askPassword: '合言葉は？',
+        password: 'もみじ',
+        wrongPassword: '合言葉がちがいます',
+        myStamp: 'シマラビのスタンプ',
+        partnerStamp: 'シマネコのスタンプ',
+        sendStamp: 'スタンプを送る',
+    },
+    'ja-Hira': {
+        ...CHAT_L4_WORDS['ja-Hira'],
+        talk: 'はつげんする',
+        question: 'あしたの もちものは？',
+        myRead: 'シマラビがよんだ',
+        partnerRead: 'シマネコがよんだ',
+        markRead: 'きどくにする',
+        read: 'きどく',
+        meow: 'Meow',
+        ng: '$NGワード',
+        ngWords: ['ばか', 'きらい'],
+        cannotSend: 'その ことばは おくれません',
+        autoReply: 'もう ねています。あさに へんじします',
+        askPassword: 'あいことばは？',
+        password: 'もみじ',
+        wrongPassword: 'あいことばが ちがいます',
+        myStamp: 'シマラビのスタンプ',
+        partnerStamp: 'シマネコのスタンプ',
+        sendStamp: 'スタンプを おくる',
+    },
+    en: {
+        ...CHAT_L4_WORDS.en,
+        talk: 'Say something',
+        question: 'What should I bring tomorrow?',
+        myRead: 'shimaraby_read',
+        partnerRead: 'shimacat_read',
+        markRead: 'Mark as read',
+        read: 'Read',
+        meow: 'Meow',
+        ng: '$ng_words',
+        ngWords: ['stupid', 'idiot'],
+        cannotSend: "You can't send that word",
+        autoReply: 'I am sleeping now. I will reply in the morning',
+        askPassword: 'Password?',
+        password: 'maple',
+        wrongPassword: 'Wrong password',
+        myStamp: 'shimaraby_stamp',
+        partnerStamp: 'shimacat_stamp',
+        sendStamp: 'Send a stamp',
+    },
+};
+const chatL5Code = (make) =>
+    Object.fromEntries(Object.entries(CHAT_L5_WORDS).map(([locale, words]) => [locale, make(words)]));
+const chatL5Text = (key) =>
+    Object.fromEntries(Object.entries(CHAT_L5_WORDS).map(([locale, words]) => [locale, words[key]]));
+const chatL5AskBlock = (key) => ({ opcode: 'sensing_askandwait', inputs: { QUESTION: chatL5Text(key) } });
+// どの locale の値でも（判定の名前・文字は、locale をまたいだ作品のためにどれでも通す）
+const chatL5Values = (key) => [...new Set(Object.values(CHAT_L5_WORDS).flatMap((words) => [].concat(words[key])))];
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const anyOf = (values) => values.map(escapeRegExp).join('|');
+
+// 土台（4-3 の答え）: シマラビが聞いて送り、シマネコが相手のメッセージを言う
+const CHAT_L5_BASE = {
+    ...CHAT_L4_START,
+    code: chatL4SendRepeat,
+    spriteCodes: [{ sprite: 'Shimacat', code: chatL4ReceiveSay }],
+};
+// 練習相手は 4-1〜4-3 と同じ（テーマで書きかえるものだけ変える）
+const chatL5Partner = (change = {}) => ({ ...chatL4PairPartner(), ...change });
+// 相手（シマネコの役）のメッセージを受け取ったスクリプト。この作品のスクリプトが送った合図では動いたことにしない
+// （`sentBy: 'remote'`。受け取る ▼ を自分のメッセージにしたプログラム・自分で相手の名前を送るプログラムを通さない）
+const fromPartner = (names) => ({ hat: 'event_whenbroadcastreceived', message: names, sentBy: 'remote' });
+const CHAT_READ_MESSAGE = chatL5Values('myRead').concat(chatL5Values('partnerRead'));
+const CHAT_STAMP_MESSAGE = chatL5Values('myStamp').concat(chatL5Values('partnerStamp'));
+// 5-2・5-4 で、送ったメッセージが NG ワード・合言葉ではない（入力したふつうの言葉が届いた）
+const notOneOf = (values) => new RegExp(`^(?!(${anyOf(values)})$)`, 'i');
+const oneOf = (values) => new RegExp(`^(${anyOf(values)})$`, 'i');
+
+// いちばん新しい旗のスクリプトの実行で、自分のメッセージの変数をこの値にしていない（`uses` の `not`。
+// 直して旗を押し直せば通る）
+const neverSets = (value) => ({
+    type: 'uses',
+    not: true,
+    trigger: { hat: 'event_whenflagclicked' },
+    blocks: [{ opcode: 'data_setvariableto', args: { VARIABLE: CHAT_PAIR_MESSAGE_NAME, VALUE: value } }],
+});
+
+// 5-1 の答え（足す分）
+const chatL5ReadReceive = chatL5Code(
+    (w) =>
+        `when_receive("${w.partnerMessage}") do\n  say(mesh.sensor_value("${w.partnerMessage}"))\n` +
+        `  play("${w.meow}")\nend\n\nwhen_clicked do\n  broadcast("${w.myRead}")\nend\n`,
+);
+const chatL5ReadSay = chatL5Code((w) => `when_receive("${w.partnerRead}") do\n  say("${w.read}", 2)\nend\n`);
+// 5-2 の答え（シマラビの「ずっと」の中を、もし〜なら でなければ にする）
+const chatL5NgLoop = chatL5Code(
+    (w) =>
+        `loop do\n  if ${w.ng}.include?(answer)\n    say("${w.cannotSend}", 2)\n  else\n    ${w.v} = answer\n` +
+        `    broadcast("${w.message}")\n  end\n  ask(${w.v})\nend\n`,
+);
+const chatL5Ng = chatL5Code(
+    (w) =>
+        `when_flag_clicked do\n  ask("${w.ask}")\n  loop do\n    if ${w.ng}.include?(answer)\n` +
+        `      say("${w.cannotSend}", 2)\n    else\n      ${w.v} = answer\n      broadcast("${w.message}")\n` +
+        `    end\n    ask(${w.v})\n  end\nend\n`,
+);
+// 5-2 の準備: ステージの旗で、リスト「NGワード」を空にして 2 つの言葉を入れる
+const chatL5NgStage = chatL5Code(
+    (w) =>
+        `when_flag_clicked do\n  ${w.ng}.clear\n${w.ngWords.map((word) => `  ${w.ng}.push("${word}")\n`).join('')}end\n`,
+);
+// 5-3 の答え（シマラビに足す）
+const chatL5AutoReply = chatL5Code(
+    (w) =>
+        `when_receive("${w.partnerMessage}") do\n  if Time.now.hour > 21\n    ${w.v} = "${w.autoReply}"\n` +
+        `    broadcast("${w.message}")\n  end\nend\n`,
+);
+// 5-4 の答え（シマラビ）
+const chatL5Password = chatL5Code(
+    (w) =>
+        `when_flag_clicked do\n  ask("${w.askPassword}")\n  if answer == "${w.password}"\n    ask("${w.ask}")\n` +
+        `    loop do\n      ${w.v} = answer\n      broadcast("${w.message}")\n      ask(${w.v})\n    end\n` +
+        `  else\n    say("${w.wrongPassword}", 2)\n  end\nend\n`,
+);
+// 5-5 の答え（足す分）
+const chatL5StampSend = chatL5Code((w) => `when_clicked do\n  broadcast("${w.myStamp}")\nend\n`);
+const chatL5StampReceive = chatL5Code(
+    (w) =>
+        `when_receive("${w.partnerStamp}") do\n  switch_costume("shimacat-b")\n  sleep(2)\n` +
+        `  switch_costume("shimacat-a")\nend\n`,
+);
+// 土台のプログラムに足したもの（locale ごとに 2 つの Ruby をつなぐ）
+const joinCode = (...codes) =>
+    Object.fromEntries(Object.keys(CHAT_L5_WORDS).map((locale) => [locale, codes.map((c) => c[locale]).join('\n')]));
+
+const chatLesson5 = defineLesson({
+    id: 'chat-l5',
+    // テーマは生徒が選ぶので、1 つ「できた」でレッスンの ✓（#1616 の Q17）
+    checkCount: 1,
+    challenges: [
+        // 1 通知と既読: 相手のメッセージが届いたらシマネコが音を鳴らし、シマネコを押すと「シマラビがよんだ」を送る。
+        // シマラビは「シマネコがよんだ」を受け取ったら「既読」と言う
+        {
+            id: 'chat-l5-read-receipt',
+            card: { category: CATEGORIES.EVENTS, main: CATEGORIES.SOUND },
+            task: challengeMessage('chat-l5-read-receipt', 'task'),
+            setup: CHAT_L5_BASE,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: [
+                    'event_whenflagclicked',
+                    'event_whenbroadcastreceived',
+                    'event_whenthisspriteclicked',
+                    'event_broadcast',
+                ],
+                sound: ['sound_play'],
+                // 変数のカテゴリはこの絞りで出す（最初から入っている 4-3 のプログラムが使う）
+                data: ['data_setvariableto', 'data_variable'],
+                looks: [
+                    'looks_say',
+                    { opcode: 'looks_sayforsecs', inputs: { MESSAGE: chatL5Text('read'), SECS: 2 } },
+                ],
+                meshV2: ['meshV2_getSensorValue'],
+            },
+            partner: chatL5Partner({
+                buttons: [
+                    {
+                        label: chatL5Text('talk'),
+                        set: { variable: chatL5Text('partnerMessage'), value: chatL5Text('question') },
+                        broadcast: chatL5Text('partnerMessage'),
+                    },
+                    { label: chatL5Text('markRead'), broadcast: chatL5Text('partnerRead') },
+                ],
+            }),
+            steps: withTitles('chat-l5-read-receipt', [
+                {
+                    target: HINT_TARGETS.SPRITE_LIST,
+                    blocks: chatL5Code(
+                        (w) =>
+                            `when_receive("${w.partnerMessage}") do\n  say(mesh.sensor_value("${w.partnerMessage}"))\n` +
+                            `  play("${w.meow}")\nend\n`,
+                    ),
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL5Code((w) => `when_clicked do\n  broadcast("${w.myRead}")\nend\n`),
+                },
+                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL5ReadSay },
+                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                // 送る側（シマラビ）のプログラムは 4-3 の答えのまま
+                { target: HINT_TARGETS.GREEN_FLAG, blocks: chatL4SendRepeat },
+            ]),
+            debug: debugTips('chat-l5-read-receipt', 2),
+            // 相手のメッセージを受け取ったスクリプトで音を鳴らした ＋ 押したスクリプトで既読の合図を送った ＋ 相手から届いた
+            // 既読の合図を受け取ったスクリプトで「既読」と言った。押して送る名前と受け取る名前を同じにする（自分の画面だけで
+            // 既読になる）プログラムは、自分で送った合図なので通らない
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: fromPartner(CHAT_PAIR_MESSAGE),
+                    blocks: [{ opcode: ['sound_play', 'sound_playuntildone'] }],
+                },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    blocks: [
+                        { opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: messageMatcher(CHAT_READ_MESSAGE) } },
+                    ],
+                },
+                {
+                    type: 'said',
+                    trigger: fromPartner(CHAT_READ_MESSAGE),
+                    text: new RegExp(anyOf(chatL5Values('read')), 'i'),
+                },
+            ],
+            quiz: challengeQuiz('chat-l5-read-receipt', 0),
+            code: joinCode(chatL4SendRepeat, chatL5ReadSay),
+            spriteCodes: [{ sprite: 'Shimacat', code: chatL5ReadReceive }],
+        },
+        // 2 わるい言葉を送らせない（NG ワード）: 入力した言葉がリスト「NGワード」（ステージのプログラムで用意する）に
+        // 入っていたら、送らずに注意する
+        {
+            id: 'chat-l5-ng-word',
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.LISTS },
+            task: challengeMessage('chat-l5-ng-word', 'task'),
+            setup: { ...CHAT_L5_BASE, stageCode: chatL5NgStage },
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_broadcast'],
+                control: ['control_forever', 'control_if_else'],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: CHAT_ASK } }, 'sensing_answer'],
+                // ステージのリストの準備（空にする・足す）も、変数のカテゴリに出す
+                data: [
+                    'data_setvariableto',
+                    'data_variable',
+                    'data_deletealloflist',
+                    'data_addtolist',
+                    'data_listcontainsitem',
+                ],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: { MESSAGE: chatL5Text('cannotSend'), SECS: 2 } }],
+            },
+            partner: chatL5Partner(),
+            steps: withTitles('chat-l5-ng-word', [
+                // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
+                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
+                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL5NgStage },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL5Code(
+                        (w) => `if ${w.ng}.include?(answer)\n  say("${w.cannotSend}", 2)\nelse\nend\n`,
+                    ),
+                },
+                { target: HINT_TARGETS.CODE_AREA, blocks: chatL5NgLoop },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('chat-l5-ng-word', 2),
+            // 旗のスクリプトで「(NGワード) に (答え) が含まれる」「もし〜なら でなければ」「送る」が動いた ＋ NG ワードを入力
+            // したときに旗のスクリプトで注意を言った ＋ 自分のメッセージの変数（ステージの変数）に、入力したふつうの言葉が
+            // 入っている。「もし」の外で送る（注意してから送ってしまう）プログラムは「でなければ」が無いので通らない
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        'data_listcontainsitem',
+                        'control_if_else',
+                        { opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: CHAT_PAIR_MESSAGE_NAME } },
+                    ],
+                },
+                {
+                    type: 'said',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    text: /送れません|おくれません|can't send|cannot send/i,
+                    answer: oneOf(chatL5Values('ngWords')),
+                },
+                { ...CHAT_L4_SENT_ANSWER, value: notOneOf(chatL5Values('ngWords')) },
+                // いちばん新しい旗の実行で、NG ワードを自分のメッセージの変数に入れていない（注意したあとに
+                // 送ってしまうプログラムを通さない）
+                neverSets(oneOf(chatL5Values('ngWords'))),
+            ],
+            quiz: challengeQuiz('chat-l5-ng-word', 0),
+            code: chatL5Ng,
+            spriteCodes: [{ sprite: 'Shimacat', code: chatL4ReceiveSay }],
+        },
+        // 3 時間で自動返信する: 夜（現在の時が 21 より大きい）に相手のメッセージが届いたら、決まった文を自動で送り返す。
+        // 昼に試すときは 21 を小さい数にして確かめる
+        {
+            id: 'chat-l5-auto-reply',
+            card: { category: CATEGORIES.EVENTS, main: CATEGORIES.SENSING },
+            task: challengeMessage('chat-l5-auto-reply', 'task'),
+            setup: CHAT_L5_BASE,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
+                control: ['control_if'],
+                sensing: [{ opcode: 'sensing_current', fields: { CURRENTMENU: 'HOUR' } }],
+                operators: [{ opcode: 'operator_gt', inputs: { OPERAND2: 21 } }],
+                data: [{ opcode: 'data_setvariableto', inputs: { VALUE: chatL5Text('autoReply') } }, 'data_variable'],
+            },
+            // 自動の返事（「とどいたよ」）は持たない。自動返信どうしが行き来し続けないように
+            partner: chatL5Partner({ replies: [] }),
+            steps: withTitles('chat-l5-auto-reply', [
+                // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
+                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL5Code((w) => `when_receive("${w.partnerMessage}") do\nend\n`),
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL5Code(
+                        (w) => `when_receive("${w.partnerMessage}") do\n  if Time.now.hour > 21\n  end\nend\n`,
+                    ),
+                },
+                { target: HINT_TARGETS.CODE_AREA, blocks: chatL5AutoReply },
+                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                { target: HINT_TARGETS.GREEN_FLAG, blocks: chatL4SendRepeat },
+            ]),
+            debug: debugTips('chat-l5-auto-reply', 2),
+            // 相手から届いたメッセージを受け取ったスクリプトで、もし・「現在の時」・比べる が動き、もしの中で自分のメッセージの
+            // 変数に入れて送った（自動返信が送られた。昼は 21 を小さい数にして確かめる）。自分の送ったメッセージを受け取る
+            // プログラムは、自分で送った合図なので通らない
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: fromPartner(CHAT_PAIR_MESSAGE),
+                    blocks: [
+                        { opcode: ['control_if', 'control_if_else'] },
+                        { opcode: 'sensing_current', args: { CURRENTMENU: 'HOUR' } },
+                        { opcode: ['operator_gt', 'operator_lt'] },
+                        { opcode: 'data_setvariableto', args: { VARIABLE: CHAT_PAIR_MESSAGE_NAME } },
+                        { opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: CHAT_PAIR_MESSAGE_NAME } },
+                    ],
+                },
+            ],
+            quiz: challengeQuiz('chat-l5-auto-reply', 0),
+            code: joinCode(chatL4SendRepeat, chatL5AutoReply),
+            spriteCodes: [{ sprite: 'Shimacat', code: chatL4ReceiveSay }],
+        },
+        // 4 合言葉で入る（パスワード）: はじめに合言葉を聞き、合っていればチャットを始め、ちがえば注意する
+        {
+            id: 'chat-l5-password',
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.OPERATORS },
+            task: challengeMessage('chat-l5-password', 'task'),
+            setup: CHAT_L5_BASE,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_broadcast'],
+                control: ['control_forever', 'control_if_else'],
+                sensing: [chatL5AskBlock('askPassword'), 'sensing_answer'],
+                operators: [{ opcode: 'operator_equals', inputs: { OPERAND2: chatL5Text('password') } }],
+                data: ['data_setvariableto', 'data_variable'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: { MESSAGE: chatL5Text('wrongPassword'), SECS: 2 } }],
+            },
+            partner: chatL5Partner(),
+            steps: withTitles('chat-l5-password', [
+                // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
+                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL5Code((w) => `when_flag_clicked do\n  ask("${w.askPassword}")\nend\n`),
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL5Code(
+                        (w) => `if answer == "${w.password}"\nelse\n  say("${w.wrongPassword}", 2)\nend\n`,
+                    ),
+                },
+                { target: HINT_TARGETS.CODE_AREA, blocks: chatL5Password },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('chat-l5-password', 2),
+            // 旗のスクリプトで =・もし〜なら でなければ・送る が動いた ＋ 合言葉でない答えのときに旗のスクリプトで「ちがいます」
+            // と言った ＋ 自分のメッセージの変数（ステージの変数）に、合言葉のあとに入力したメッセージ（合言葉ではない）が入って
+            // いる。合言葉を確かめないプログラム、合言葉をそのまま送ってしまうプログラムは通らない
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        'operator_equals',
+                        'control_if_else',
+                        { opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: CHAT_PAIR_MESSAGE_NAME } },
+                    ],
+                },
+                {
+                    type: 'said',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    text: /ちがいます|wrong/i,
+                    answer: notOneOf(chatL5Values('password')),
+                },
+                { ...CHAT_L4_SENT_ANSWER, value: notOneOf(chatL5Values('password')) },
+                // いちばん新しい旗の実行で、合言葉を自分のメッセージの変数に入れていない（合言葉をそのまま
+                // 送ってしまうプログラムを通さない）
+                neverSets(oneOf(chatL5Values('password'))),
+            ],
+            quiz: challengeQuiz('chat-l5-password', 0),
+            code: chatL5Password,
+            spriteCodes: [{ sprite: 'Shimacat', code: chatL4ReceiveSay }],
+        },
+        // 5 スタンプを送る（静止画）: シマラビを押すとメッセージ「シマラビのスタンプ」を送り、「シマネコのスタンプ」を
+        // 受け取ったらシマネコのコスチュームを 2 秒かえる。変数は使わず、メッセージだけで送れる
+        {
+            id: 'chat-l5-stamp',
+            card: { category: CATEGORIES.EVENTS, main: CATEGORIES.LOOKS },
+            task: challengeMessage('chat-l5-stamp', 'task'),
+            setup: CHAT_L5_BASE,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: [
+                    'event_whenflagclicked',
+                    'event_whenthisspriteclicked',
+                    'event_broadcast',
+                    'event_whenbroadcastreceived',
+                ],
+                control: [{ opcode: 'control_wait', inputs: { DURATION: 2 } }],
+                looks: ['looks_switchcostumeto'],
+                data: ['data_setvariableto', 'data_variable'],
+            },
+            partner: chatL5Partner({
+                buttons: [{ label: chatL5Text('sendStamp'), broadcast: chatL5Text('partnerStamp') }],
+                replies: [{ onBroadcast: chatL5Text('myStamp'), broadcast: chatL5Text('partnerStamp') }],
+            }),
+            steps: withTitles('chat-l5-stamp', [
+                // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
+                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
+                { target: HINT_TARGETS.PALETTE, blocks: chatL5StampSend },
+                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL5StampReceive },
+                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                { target: HINT_TARGETS.GREEN_FLAG, blocks: chatL4SendRepeat },
+            ]),
+            debug: debugTips('chat-l5-stamp', 2),
+            // 押したスクリプトでスタンプのメッセージを送った ＋ 相手から届いたスタンプのメッセージを受け取ったスクリプトで、
+            // ちがう 2 つのコスチュームにかえて、待った。押して送る名前と受け取る名前を同じにするプログラムは、自分で送った
+            // 合図なので通らない
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    blocks: [
+                        { opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: messageMatcher(CHAT_STAMP_MESSAGE) } },
+                    ],
+                },
+                {
+                    type: 'uses',
+                    trigger: fromPartner(CHAT_STAMP_MESSAGE),
+                    blocks: [{ opcode: 'looks_switchcostumeto', count: 2, distinct: 'COSTUME' }, 'control_wait'],
+                },
+            ],
+            quiz: challengeQuiz('chat-l5-stamp', 1),
+            code: joinCode(chatL4SendRepeat, chatL5StampSend),
+            spriteCodes: [{ sprite: 'Shimacat', code: joinCode(chatL4ReceiveSay, chatL5StampReceive) }],
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
@@ -2122,7 +2598,7 @@ export const COURSES = [
     defineCourse({
         id: 'chat-wo-tsukurou',
         language: LANGUAGES.BLOCKS,
-        lessons: [chatLesson1, chatLesson2, chatLesson3, chatLesson4],
+        lessons: [chatLesson1, chatLesson2, chatLesson3, chatLesson4, chatLesson5],
     }),
 ];
 

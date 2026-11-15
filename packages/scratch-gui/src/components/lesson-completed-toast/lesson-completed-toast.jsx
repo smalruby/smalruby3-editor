@@ -31,6 +31,20 @@ const messages = defineMessages({
             'Second line of the completed toast when every challenge of the lesson is done and the course has ' +
             'another lesson to do. {name} is the lesson name, {count} the number of its challenges',
     },
+    lessonTitleSome: {
+        id: 'gui.lessons.completed.lessonTitleSome',
+        defaultMessage: 'Lesson {number} cleared!',
+        description:
+            'Title of the completed toast when a lesson needs only some of its challenges (the themes to choose ' +
+            'from) and that many are done, but not all',
+    },
+    lessonDetailSome: {
+        id: 'gui.lessons.completed.lessonDetailSome',
+        defaultMessage: 'You finished {count} of the challenges of "{name}". That is enough for this lesson.',
+        description:
+            'Second line of the completed toast when a lesson needs only some of its challenges (the themes to ' +
+            'choose from) and that many are done. {name} is the lesson name, {count} the number done',
+    },
     courseDetail: {
         id: 'gui.lessons.completed.courseDetail',
         defaultMessage: 'That was every lesson in "{course}".',
@@ -149,6 +163,12 @@ const LessonCompletedToast = ({
         else detail = intl.formatMessage(messages.assignmentDetailNoName);
     } else if (action === COMPLETED_ACTIONS.LIBRARY && courseCompleted && courseName) {
         detail = intl.formatMessage(messages.courseDetail, { course: intl.formatMessage(courseName) });
+    } else if (lessonDone && lessonName && remaining > 0) {
+        // テーマを選ぶレッスン（checkCount がチャレンジの数より少ない）: できた数だけ書く（「全部」と言わない）
+        detail = intl.formatMessage(messages.lessonDetailSome, {
+            name: intl.formatMessage(lessonName),
+            count: total - remaining,
+        });
     } else if (lessonDone && lessonName) {
         detail = intl.formatMessage(messages.lessonDetail, { name: intl.formatMessage(lessonName), count: total });
     }
@@ -171,7 +191,11 @@ const LessonCompletedToast = ({
                     {assignmentCleared
                         ? intl.formatMessage(messages.assignmentTitle)
                         : lessonDone
-                          ? intl.formatMessage(messages.lessonTitle, { number: lessonNumber })
+                          ? intl.formatMessage(
+                                // テーマを選ぶレッスンで残りがあるときは「ぜんぶ」と言わない
+                                remaining > 0 ? messages.lessonTitleSome : messages.lessonTitle,
+                                { number: lessonNumber },
+                            )
                           : intl.formatMessage(messages.title)}
                 </div>
                 <div className={styles.progress}>
