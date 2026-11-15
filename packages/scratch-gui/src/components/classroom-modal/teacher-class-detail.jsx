@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import { sanitizeEntryName } from '../../lib/classroom-download-utils.js';
 import {
@@ -27,6 +27,7 @@ import { findCourse } from '../../lib/lessons/courses.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
 import ClassCodeDisplay from './class-code-display.jsx';
+import classroomIconMessages from './classroom-icon-messages.js';
 import styles from './classroom-modal.css';
 import ClassroomStatusIcon, {
     ClassroomStatusIcons,
@@ -46,20 +47,6 @@ import SeatColorLegend, {
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherLessonProgress from './teacher-lesson-progress.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
-
-// Names of the icon buttons (#1924 C11): ↻ gets a name, ⛶ gets a word next to it.
-const detailIconMessages = defineMessages({
-    refresh: {
-        defaultMessage: 'Reload',
-        description: 'Name of the ↻ button that reloads the class status',
-        id: 'gui.classroom.refresh',
-    },
-    fullscreen: {
-        defaultMessage: 'Full screen',
-        description: 'Text next to the ⛶ icon of the button that shows the join code full screen',
-        id: 'gui.classroom.joinCode.fullscreenShort',
-    },
-});
 
 // Lesson assignments (#1602): the seat colour shows the lesson progress, so
 // the legend lists presence and leave requests (+ submission when work is
@@ -511,7 +498,7 @@ const TeacherClassDetail = ({
                                         <span aria-hidden="true" className={styles.joinCodeIcon}>
                                             {'⛶'}
                                         </span>
-                                        {intl.formatMessage(detailIconMessages.fullscreen)}
+                                        {intl.formatMessage(classroomIconMessages.fullscreen)}
                                     </button>
                                 </div>
                             ) : (
@@ -618,7 +605,7 @@ const TeacherClassDetail = ({
                                             <span aria-hidden="true" className={styles.joinCodeIcon}>
                                                 {'⛶'}
                                             </span>
-                                            {intl.formatMessage(detailIconMessages.fullscreen)}
+                                            {intl.formatMessage(classroomIconMessages.fullscreen)}
                                         </button>
                                         {/* 招待リンクをコピー: アイコンのみ。クリックすると
                                             アイコンがチェックに変わり、コピー完了を示す。 */}
@@ -1074,11 +1061,11 @@ const TeacherClassDetail = ({
                                                 {totalCount}
                                             </span>
                                             <button
-                                                aria-label={intl.formatMessage(detailIconMessages.refresh)}
+                                                aria-label={intl.formatMessage(classroomIconMessages.refresh)}
                                                 className={styles.refreshButton}
                                                 data-testid="classroom-refresh"
                                                 disabled={isLoading}
-                                                title={intl.formatMessage(detailIconMessages.refresh)}
+                                                title={intl.formatMessage(classroomIconMessages.refresh)}
                                                 onClick={onRefresh}
                                             >
                                                 {'↻'}

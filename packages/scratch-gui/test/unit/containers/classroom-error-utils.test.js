@@ -177,6 +177,12 @@ describe('参加のエラー (#1924 C12)', () => {
         );
     });
 
+    test('終わった（アーカイブした）課題は「参加コードが見つからない」と言わない (#1924 M1)', () => {
+        const err = new Error('This classroom is no longer active');
+        err.status = 404;
+        expect(translateError(intlMock, err, 'join')).toBe('This assignment is no longer active.');
+    });
+
     test('見出しは「参加できませんでした」', () => {
         expect(joinErrorTitle(intlMock)).toBe('Could not join');
     });

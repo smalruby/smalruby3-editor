@@ -384,12 +384,13 @@ describe('採点の表のラベル (#1924 C5・R1)', () => {
 
     test('セルの 3 つの欄に名前があり、プレースホルダーを名前の代わりにしない', () => {
         const { getByTestId } = renderEvaluation({ seats: [1], getCell: () => cell });
-        expect(getByTestId('classroom-eval-grade-1-c1').getAttribute('aria-label')).toBe('Grade');
+        // The seat is in the name: 40 rows have the same three fields (#1924 FYI2).
+        expect(getByTestId('classroom-eval-grade-1-c1').getAttribute('aria-label')).toBe('Seat 1: Grade');
         const reason = getByTestId('classroom-eval-reason-1-c1');
-        expect(reason.getAttribute('aria-label')).toBe('Reason (teacher only)');
+        expect(reason.getAttribute('aria-label')).toBe('Seat 1: Reason (teacher only)');
         expect(reason.getAttribute('placeholder')).toBeFalsy();
         const comment = getByTestId('classroom-eval-comment-1-c1');
-        expect(comment.getAttribute('aria-label')).toBe('Comment to the student');
+        expect(comment.getAttribute('aria-label')).toBe('Seat 1: Comment to the student');
         expect(comment.getAttribute('placeholder')).toBeFalsy();
     });
 });

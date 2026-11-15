@@ -924,3 +924,13 @@ describe('TeacherClassDetail — アイコンだけのボタンに名前 (#1924 
         expect(button.textContent).toContain('Full screen');
     });
 });
+
+describe('TeacherClassDetail — 参加コードの全画面表示の ⛶ (#1924 Q2)', () => {
+    test('全画面表示の ⛶ にも「全画面」の文字がある', () => {
+        renderDetail();
+        fireEvent.click(document.querySelector('[data-testid="classroom-detail-expand-code"]'));
+        const button = document.querySelector('[data-testid="classroom-code-display-expand"]');
+        expect(button).not.toBeNull();
+        expect(button.textContent).toContain('Full screen');
+    });
+});

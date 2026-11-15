@@ -53,6 +53,12 @@ const evalMessages = defineMessages({
         description: 'Grading table: name of the comment field in a cell (returned to the student)',
         id: 'gui.classroom.evaluation.fieldComment',
     },
+    // 40 rows have the same three fields: the name says whose (#1924 FYI2).
+    fieldOfSeat: {
+        defaultMessage: 'Seat {seat}: {field}',
+        description: 'Grading table: accessible name of a field in a cell, e.g. "Seat 4: Grade"',
+        id: 'gui.classroom.evaluation.fieldOfSeat',
+    },
     lessonHead: {
         defaultMessage: 'Lesson (auto)',
         description:
@@ -236,6 +242,8 @@ ExportMenu.propTypes = {
 
 const GradeCell = ({ cell, classroomId, comment, seatNumber, onSetCellGrade, onSetCellReason, onSetComment }) => {
     const intl = useIntl();
+    const nameOf = (field) =>
+        intl.formatMessage(evalMessages.fieldOfSeat, { seat: seatNumber, field: intl.formatMessage(field) });
     const handleGradeChange = useCallback(
         (e) => onSetCellGrade(seatNumber, classroomId, e.target.value),
         [onSetCellGrade, seatNumber, classroomId],
@@ -263,7 +271,7 @@ const GradeCell = ({ cell, classroomId, comment, seatNumber, onSetCellGrade, onS
         >
             <div className={styles.evalCellRow}>
                 <select
-                    aria-label={intl.formatMessage(evalMessages.fieldGrade)}
+                    aria-label={nameOf(evalMessages.fieldGrade)}
                     className={styles.evalGradeSelect}
                     data-testid={`classroom-eval-grade-${seatNumber}-${classroomId}`}
                     value={cell.grade || ''}
@@ -284,7 +292,7 @@ const GradeCell = ({ cell, classroomId, comment, seatNumber, onSetCellGrade, onS
                 {cell.returned && <span className={styles.evalReturnedBadge}>{'返却済'}</span>}
             </div>
             <input
-                aria-label={intl.formatMessage(evalMessages.fieldReason)}
+                aria-label={nameOf(evalMessages.fieldReason)}
                 className={styles.evalReasonInput}
                 data-testid={`classroom-eval-reason-${seatNumber}-${classroomId}`}
                 type="text"
@@ -292,7 +300,7 @@ const GradeCell = ({ cell, classroomId, comment, seatNumber, onSetCellGrade, onS
                 onChange={handleReasonChange}
             />
             <textarea
-                aria-label={intl.formatMessage(evalMessages.fieldComment)}
+                aria-label={nameOf(evalMessages.fieldComment)}
                 className={styles.evalCommentInput}
                 data-testid={`classroom-eval-comment-${seatNumber}-${classroomId}`}
                 rows={2}

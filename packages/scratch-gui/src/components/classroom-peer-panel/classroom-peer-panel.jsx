@@ -4,6 +4,7 @@ import React, { useCallback } from 'react';
 import Draggable from 'react-draggable';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import { isPeerSeatSelectable } from '../../lib/classroom-peer-view.js';
+import classroomIconMessages from '../classroom-modal/classroom-icon-messages.js';
 import ClassroomStatusIcon from '../classroom-modal/classroom-status-icon.jsx';
 // The floating frame (overlay / header / buttons / seat grid) is shared with
 // the teacher's status panel (#1203) so both panels look and behave alike.
@@ -26,11 +27,6 @@ const messages = defineMessages({
         defaultMessage: 'Close',
         description: 'Peer view panel / viewer: close button (#1210)',
         id: 'gui.classroomPeerPanel.close',
-    },
-    refresh: {
-        defaultMessage: 'Refresh',
-        description: 'Peer view panel: refresh button (#1210)',
-        id: 'gui.classroomPeerPanel.refresh',
     },
     openSeat: {
         defaultMessage: 'Seat {seatNumber}: see the work',
@@ -174,7 +170,7 @@ const ClassroomPeerPanel = ({
                         </span>
                         <HeaderButton
                             disabled={loading}
-                            label={intl.formatMessage(messages.refresh)}
+                            label={intl.formatMessage(classroomIconMessages.refresh)}
                             testId="classroom-peer-panel-refresh"
                             onClick={onRefresh}
                         >

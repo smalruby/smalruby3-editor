@@ -3125,10 +3125,11 @@ $seat-tile-min: 36px;
     white-space: nowrap;
 }
 
-/* 課題の列の見出しの右に、セルの中の 3 つの欄の名前を上から順に（R1・#1924 C5）。
-   同じ行に置くので見出しの行は高くならない。 */
+/* 課題の列の見出しの下の行に、セルの中の 3 つの欄の名前を上から順に（R1・#1924 C5）。
+   見出しの nowrap を外して折り返すので、課題が多い表でも列が広がらない。 */
 .eval-head-fields {
-    margin-left: 0.75rem;
+    display: block;
+    white-space: normal;
     font-size: $font-size-small;
     font-weight: normal;
     color: #575e75;

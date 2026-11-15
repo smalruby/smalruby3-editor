@@ -113,6 +113,15 @@ const translateError = (intl, err, context = 'general') => {
     const googleMessage = translateGoogleClassroomError(intl, err);
     if (googleMessage) return googleMessage;
 
+    // An archived assignment also answers 404 on lookup: say it has ended
+    // instead of「the join code was not found」(#1924 M1).
+    if (msg.includes('no longer active')) {
+        return intl.formatMessage({
+            defaultMessage: 'This assignment is no longer active.',
+            description: 'Error when classroom is archived',
+            id: 'gui.classroom.error.classroomInactive',
+        });
+    }
     if (context === 'join' && (status === 404 || msg.includes('Invalid join code'))) {
         return intl.formatMessage({
             // Say what happened and what to do (#1924 C12): the code was not
@@ -134,13 +143,6 @@ const translateError = (intl, err, context = 'general') => {
             defaultMessage: 'Your session has expired. Please rejoin the classroom.',
             description: 'Error when session token is invalid',
             id: 'gui.classroom.error.sessionExpired',
-        });
-    }
-    if (msg.includes('no longer active')) {
-        return intl.formatMessage({
-            defaultMessage: 'This assignment is no longer active.',
-            description: 'Error when classroom is archived',
-            id: 'gui.classroom.error.classroomInactive',
         });
     }
     return (
@@ -168,6 +170,20 @@ const joinErrorTitle = (intl) =>
     });
 
 /**
+ * Title of the error shown when a joined student could not switch to another
+ * seat (「出席番号がちがう」): they are still joined, so not「参加できませんでした」
+ * (#1924 Q1).
+ * @param {object} intl - react-intl intl object
+ * @returns {string} Localized title
+ */
+const switchSeatErrorTitle = (intl) =>
+    intl.formatMessage({
+        defaultMessage: 'Could not switch seats',
+        description: 'Title of the error shown when a joined student could not switch to another seat',
+        id: 'gui.classroom.error.switchSeatTitle',
+    });
+
+/**
  * If the error represents a kick (verify-session returned 410 with
  * reason='kicked'), return the kick context so the UI can navigate the
  * student back into seat selection for the same classroom. Returns null
@@ -188,5 +204,5 @@ const extractKickReason = (err) => {
     };
 };
 
-export { translateError, extractKickReason, joinErrorTitle };
+export { translateError, extractKickReason, joinErrorTitle, switchSeatErrorTitle };
 export default translateError;

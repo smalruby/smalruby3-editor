@@ -16,6 +16,7 @@
  *   DOCS_SHOTS=1 node verify-classroom-grading.mjs          # docs/classroom/screenshots も撮り直す
  *   BEFORE=1 node verify-classroom-grading.mjs              # 直す前の画面 (手順のボタンが無い) を撮るだけ
  *   LOCALE=ja-Hira node verify-classroom-grading.mjs        # ひらがなで測る (既定は ja。DOCS_SHOTS は ja のときだけ)
+ *   ASSIGNMENTS=6 node verify-classroom-grading.mjs         # 課題 6 つの表 (列の見出しの欄名で表が横に広がらないかも測る)
  */
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
@@ -31,7 +32,7 @@ const BASE = process.env.BASE || 'http://localhost:8601';
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SHOT_DIR = process.env.SHOT_DIR || resolve(REPO_ROOT, 'tmp');
 const LOCALE = process.env.LOCALE || 'ja';
-const DOCS_SHOTS = process.env.DOCS_SHOTS === '1' && LOCALE === 'ja';
+const DOCS_SHOTS = process.env.DOCS_SHOTS === '1' && LOCALE === 'ja' && !process.env.ASSIGNMENTS;
 const BEFORE = process.env.BEFORE === '1';
 const VIEWPORT = { width: 1300, height: 600 };
 const SEATS = 40;
@@ -49,10 +50,12 @@ const DOC_SHOT_NAMES = {
 };
 
 const LONG_CLASS = '3年2組 技術・家庭科（情報の技術）';
-const LESSONS = [
-    { classroomId: 'c1', assignmentName: '迷路ゲームを作ろう' },
-    { classroomId: 'c2', assignmentName: 'ボールをよけよう' },
-];
+const ASSIGNMENTS = Number(process.env.ASSIGNMENTS || 2);
+const NAMES = ['迷路ゲームを作ろう', 'ボールをよけよう', 'ねこを動かそう', '音を鳴らそう', 'クイズを作ろう', '数を数えよう'];
+const LESSONS = Array.from({ length: ASSIGNMENTS }, (_, i) => ({
+    classroomId: `c${i + 1}`,
+    assignmentName: NAMES[i % NAMES.length],
+}));
 const seatId = (n) => `seat-${String(n).padStart(2, '0')}`;
 
 const summary = (lesson) => ({
@@ -141,7 +144,7 @@ const measure = (page) =>
     );
 
 const shoot = async (page, shot) => {
-    await page.screenshot({ path: resolve(SHOT_DIR, `classroom-grading-${BEFORE ? 'before-' : ''}${shot}${LOCALE === 'ja' ? '' : `-${LOCALE}`}.png`) });
+    await page.screenshot({ path: resolve(SHOT_DIR, `classroom-grading-${BEFORE ? 'before-' : ''}${shot}${LOCALE === 'ja' ? '' : `-${LOCALE}`}${process.env.ASSIGNMENTS ? `-${process.env.ASSIGNMENTS}` : ''}.png`) });
     if (DOCS_SHOTS && !BEFORE && DOC_SHOT_NAMES[shot]) {
         await page.screenshot({ path: resolve(REPO_ROOT, 'docs', 'classroom', 'screenshots', DOC_SHOT_NAMES[shot]) });
     }
@@ -248,6 +251,24 @@ await page.click('[data-testid="classroom-eval-load"]');
 await page.waitForSelector('[data-testid="classroom-eval-matrix"]', { timeout: 30000 });
 await page.waitForTimeout(500);
 await judge(page, { name: '2 loaded (40 seats)', expected: 'classroom-eval-run-grade', shot: 'step2-grade' });
+
+// 列の見出しの下の欄名（#1924 C5）で表が横に広がらないか: 欄名を消した表と横幅を比べる。
+const tableWidth = () =>
+    page.evaluate((matrix) => {
+        const m = document.querySelector(matrix);
+        return { scroll: m.scrollWidth, client: m.clientWidth };
+    }, MATRIX);
+const withFields = await tableWidth();
+await page.addStyleTag({ content: '[data-testid^="classroom-eval-head-fields-"] { display: none !important; }' });
+await page.waitForTimeout(200);
+const withoutFields = await tableWidth();
+await page.addStyleTag({ content: '[data-testid^="classroom-eval-head-fields-"] { display: block !important; }' });
+await page.waitForTimeout(200);
+record({
+    name: `table width with the field names under the headings (${ASSIGNMENTS} assignments)`,
+    ok: withFields.scroll <= withoutFields.scroll,
+    detail: `matrix frame scrollWidth/clientWidth with ${withFields.scroll}/${withFields.client} · without ${withoutFields.scroll}/${withoutFields.client}`,
+});
 
 await page.click('[data-testid="classroom-eval-settings-toggle"]');
 await page.waitForTimeout(200);

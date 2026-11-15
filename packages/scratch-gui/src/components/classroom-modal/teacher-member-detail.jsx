@@ -1,13 +1,10 @@
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { isMemberSeated } from '../../lib/classroom-presence.js';
 import styles from './classroom-modal.css';
 import ClassroomStatusIcon from './classroom-status-icon.jsx';
 import LessonMemberDetail from './lesson-member-detail.jsx';
-
-// Only one member detail is open at a time, so a fixed id is unique.
-const COMMENT_INPUT_ID = 'classroom-member-detail-comment-input';
 
 // 提出時刻は日付つきで書く（別の日の提出と見分けるため）。値が無い・読めないときは何も出さない
 // （そのまま Date にすると「Invalid Date」や 1970 年の時刻が出てしまう）。
@@ -40,6 +37,8 @@ const TeacherMemberDetail = ({
     showSubmission = true,
 }) => {
     const intl = useIntl();
+    // Ties the visible label to the comment field (R1)
+    const commentInputId = useId();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [commentText, setCommentText] = useState('');
 
@@ -367,7 +366,7 @@ const TeacherMemberDetail = ({
                             <label
                                 className={styles.commentLabel}
                                 data-testid="classroom-member-detail-comment-label"
-                                htmlFor={COMMENT_INPUT_ID}
+                                htmlFor={commentInputId}
                             >
                                 <FormattedMessage
                                     defaultMessage="Comment to the student (sent when you return it)"
@@ -378,7 +377,7 @@ const TeacherMemberDetail = ({
                             <textarea
                                 className={styles.commentInput}
                                 data-testid="classroom-member-detail-comment"
-                                id={COMMENT_INPUT_ID}
+                                id={commentInputId}
                                 maxLength={500}
                                 value={commentText}
                                 onChange={handleCommentChange}

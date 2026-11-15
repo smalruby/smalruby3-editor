@@ -28,6 +28,7 @@ import {
     UnknownChallengesNote,
     messages as bandMessages,
 } from '../lesson-assignment-band/lesson-assignment-band.jsx';
+import classroomIconMessages from './classroom-icon-messages.js';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import StudentMainButton from './student-main-button.jsx';
@@ -78,11 +79,6 @@ const messages = defineMessages({
         description: 'Welcome back screen: confirm button that leaves the class',
         id: 'gui.classroom.studentStatus.leaveConfirm',
     },
-    refresh: {
-        defaultMessage: 'Reload',
-        description: 'Name of the ↻ button that reloads the class status',
-        id: 'gui.classroom.refresh',
-    },
     leaveCancel: {
         defaultMessage: 'Cancel',
         description: 'Welcome back screen: small link that keeps the student in the class',
@@ -96,7 +92,7 @@ const formatTime = (iso, locale) =>
 // ↻ alone has no name: give it one, also as a tooltip (#1924 C11).
 const RefreshButton = ({ isLoading, onRefreshStudentStatus }) => {
     const intl = useIntl();
-    const label = intl.formatMessage(messages.refresh);
+    const label = intl.formatMessage(classroomIconMessages.refresh);
     return (
         <button
             aria-label={label}

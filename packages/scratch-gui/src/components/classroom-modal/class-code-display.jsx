@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { FormattedMessage } from 'react-intl';
+import classroomIconMessages from './classroom-icon-messages.js';
 import styles from './classroom-modal.css';
 
 const ClassCodeDisplay = ({ classroom, isFullscreen, onClose, onCopyInviteLink, onToggleFullscreen }) => {
@@ -141,12 +142,14 @@ const ClassCodeDisplay = ({ classroom, isFullscreen, onClose, onCopyInviteLink, 
                             />
                         )}
                     </button>
+                    {/* ⛶ alone had no name:「全画面」next to it (#1924 Q2) */}
                     <button
                         className={styles.expandIconButton}
                         data-testid="classroom-code-display-expand"
                         onClick={onToggleFullscreen}
                     >
-                        {'⛶'}
+                        <span aria-hidden="true">{'⛶'}</span>{' '}
+                        <FormattedMessage {...classroomIconMessages.fullscreen} />
                     </button>
                 </div>
             </div>

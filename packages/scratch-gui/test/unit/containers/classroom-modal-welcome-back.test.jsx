@@ -173,6 +173,8 @@ describe('ClassroomModal: wrong seat on the welcome back screen (#1794)', () => 
         expect(mockProps.phase).toBe('student-status');
         expect(mockProps.error).toBeTruthy();
         expect(mockProps.isLoading).toBe(false);
+        // Already joined: the seat could not be switched (#1924 Q1), not「参加できませんでした」.
+        expect(mockProps.errorTitle).toBe('Could not switch seats');
     });
 
     test('a failed leave keeps the session and the student can try again', async () => {
@@ -184,6 +186,7 @@ describe('ClassroomModal: wrong seat on the welcome back screen (#1794)', () => 
         expect(store.getActions().map((a) => a.type)).not.toContain('scratch-gui/classroom/CLEAR_SESSION');
         expect(mockProps.phase).toBe('student-status');
         expect(mockProps.error).toBeTruthy();
+        expect(mockProps.errorTitle).toBe('Could not switch seats');
         // retry
         await act(async () => {
             await mockProps.onWrongSeat();

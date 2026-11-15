@@ -150,6 +150,21 @@ describe('ClassroomModal previous seat (#1796)', () => {
         expect(storedSeats()).toEqual({ 'group:g1': 5 });
     });
 
+    test('a failed join says「参加できませんでした」(#1924 FYI5)', async () => {
+        mockLookupClassroom.mockResolvedValue(lookup());
+        mockJoinClassroom.mockRejectedValue(Object.assign(new Error('already taken'), { status: 409 }));
+        renderModal();
+        await act(async () => {
+            await mockProps.onJoinWithCode('ABC123');
+        });
+        act(() => mockProps.onSelectSeat(5));
+        await act(async () => {
+            await mockProps.onConfirmJoin();
+        });
+        expect(mockProps.error).toBe('This seat is already taken. Please choose a different seat.');
+        expect(mockProps.errorTitle).toBe('Could not join');
+    });
+
     test('the automatic join after an approved kick request saves the seat too', async () => {
         savePendingKickRequest({
             requestId: 'r1',

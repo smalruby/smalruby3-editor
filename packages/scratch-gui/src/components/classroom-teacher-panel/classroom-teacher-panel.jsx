@@ -5,6 +5,7 @@ import Draggable from 'react-draggable';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import { SEAT_STATES } from '../../lib/classroom-lesson-progress.js';
 import { barWidths } from '../../lib/classroom-lesson-summary.js';
+import classroomIconMessages from '../classroom-modal/classroom-icon-messages.js';
 import ClassroomStatusIcon, { ClassroomStatusIcons } from '../classroom-modal/classroom-status-icon.jsx';
 import { lessonSeatMessages } from '../classroom-modal/lesson-seat-tile.jsx';
 import SeatColorLegend, {
@@ -35,11 +36,6 @@ const messages = defineMessages({
         defaultMessage: 'Close',
         description: 'Teacher status panel: close button (#1203)',
         id: 'gui.classroomTeacherPanel.close',
-    },
-    refresh: {
-        defaultMessage: 'Refresh',
-        description: 'Teacher status panel: refresh now (#1203)',
-        id: 'gui.classroomTeacherPanel.refresh',
     },
     openSeat: {
         defaultMessage: 'Seat {seatNumber}: open the details',
@@ -324,11 +320,11 @@ const ClassroomTeacherPanel = ({
                         </span>
                         {minimized ? counts : null}
                         <button
-                            aria-label={intl.formatMessage(messages.refresh)}
+                            aria-label={intl.formatMessage(classroomIconMessages.refresh)}
                             className={styles.headerButton}
                             data-testid="classroom-teacher-panel-refresh"
                             disabled={loading}
-                            title={intl.formatMessage(messages.refresh)}
+                            title={intl.formatMessage(classroomIconMessages.refresh)}
                             onClick={onRefresh}
                         >
                             {'↻'}

@@ -150,7 +150,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-code-display-copy-link` | button | 招待リンクをコピー |
-| `classroom-code-display-expand` | button | 全画面表示 |
+| `classroom-code-display-expand` | button | 全画面表示（⛶ + 「全画面」） |
 | `classroom-code-display-shrink` | button | 全画面解除 |
 | `classroom-code-display-close` | button | コード表示を閉じる |
 
@@ -554,10 +554,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-progress` | div | 進捗表示 |
 | `classroom-eval-matrix` | table | 席 × 課題の表（表の枠の中だけスクロール） |
 | `classroom-eval-cell-{seat}-{classroomId}` | td | セル（未提出は ×、要確認はオレンジ） |
-| `classroom-eval-head-fields-{classroomId}` | span | 課題の列の見出しの右の「点 / 根拠（先生だけ） / 生徒へのコメント」 |
-| `classroom-eval-grade-{seat}-{classroomId}` | select | 採点（S/A/B/C。手動変更は較正サンプルになる）。`aria-label` は「点」 |
-| `classroom-eval-reason-{seat}-{classroomId}` | input | 根拠（先生だけ）。`aria-label` も同じ |
-| `classroom-eval-comment-{seat}-{classroomId}` | textarea | 生徒へのコメント。`aria-label` も同じ |
+| `classroom-eval-head-fields-{classroomId}` | span | 課題の列の見出しの下の行の「点 / 根拠（先生だけ） / 生徒へのコメント」 |
+| `classroom-eval-grade-{seat}-{classroomId}` | select | 採点（S/A/B/C。手動変更は較正サンプルになる）。`aria-label` は「出席番号 N の点」 |
+| `classroom-eval-reason-{seat}-{classroomId}` | input | 根拠（先生だけ）。`aria-label` は「出席番号 N の根拠（先生だけ）」 |
+| `classroom-eval-comment-{seat}-{classroomId}` | textarea | 生徒へのコメント。`aria-label` は「出席番号 N の生徒へのコメント」 |
 | `classroom-eval-overall-{seat}` | td | 総合 |
 | `classroom-eval-lesson-head-{classroomId}` | th | 「レッスン」の列の見出し（レッスンの課題だけ・作品の列の右・#1603） |
 | `classroom-eval-lesson-score-{seat}-{classroomId}` | td | 席のレッスンの点（記録が無ければ「—」） |
@@ -633,7 +633,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-teacher-panel` | div | パネル全体（ドラッグ可能） |
 | `classroom-teacher-panel-header` | div | ヘッダー（ドラッグハンドル） |
 | `classroom-teacher-panel-header-counts` | span | 最小化中の `着席/定員 · 提出/参加`（レッスンの課題は `着席/定員 · ✓課題クリア/参加`） |
-| `classroom-teacher-panel-refresh` | button | 手動更新 |
+| `classroom-teacher-panel-refresh` | button | 手動更新（↻。`aria-label` / `title` は「読み込み直す」） |
 | `classroom-teacher-panel-minimize` | button | 最小化 / 元に戻す |
 | `classroom-teacher-panel-close` | button | 閉じる |
 | `classroom-teacher-panel-body` | div | 本文（最小化中は無い） |
@@ -665,7 +665,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-peer-panel` | div | パネル全体（ドラッグ可能・非モーダル） |
-| `classroom-peer-panel-refresh` | button | 手動更新（一覧と画像 URL を取り直す） |
+| `classroom-peer-panel-refresh` | button | 手動更新（一覧と画像 URL を取り直す。↻ の名前は「読み込み直す」） |
 | `classroom-peer-panel-minimize` | button | 最小化 / 元に戻す |
 | `classroom-peer-panel-close` | button | 閉じる |
 | `classroom-peer-panel-body` | div | 本文（最小化中は無い） |
