@@ -799,7 +799,7 @@ export default {
         'まずは「クラス」を作りましょう！\nクラス（例: 技術 2026年度）を作って、その中に「第3回 チャットアプリを作ろう」のような課題を追加します。\n「クラスを作成」ボタンを押してください。',
     'gui.classroom.statusIcon.seated': '着席中',
     'gui.classroom.statusIcon.notSeated': '未着席',
-    'gui.classroom.statusIcon.notJoined': '未参加',
+    'gui.classroom.statusIcon.notJoined': '空席',
     'gui.classroom.statusIcon.submitted': '提出済み',
     'gui.classroom.statusIcon.notSubmitted': '未提出',
     'gui.classroom.statusIcon.returned': '返却済み',

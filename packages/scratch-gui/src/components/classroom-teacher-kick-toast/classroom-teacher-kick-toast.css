@@ -11,19 +11,20 @@
     width: min(26rem, calc(100vw - 2rem));
     max-height: calc(100vh - 6rem);
     transform: translateX(-50%);
-    border: 2px solid $error-primary;
-    border-radius: 0.5rem;
-    background-color: $ui-white;
+    /* 枠と帯は白い文字が読める濃いオレンジ（$error-primary は白に 2.3:1・#1964） */
+    border: 2px solid $color-attention-action;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
     box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.3);
-    color: $text-primary;
+    color: $color-text;
     font-size: 0.8125rem;
 }
 
 .header {
     padding: 0.4rem 0.75rem;
-    background-color: $error-primary;
-    color: $ui-white;
-    font-weight: bold;
+    background-color: $color-attention-action;
+    color: $color-surface;
+    font-weight: $font-weight-bold;
 }
 
 .body {
@@ -32,16 +33,16 @@
 
 .row {
     padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid $ui-black-transparent;
+    border-bottom: 1px solid $color-border;
 }
 
 .title {
-    font-weight: bold;
+    font-weight: $font-weight-bold;
 }
 
 .meta {
-    color: $text-primary-transparent;
-    font-size: 0.75rem;
+    color: $color-text-muted;
+    font-size: $font-size-small;
 }
 
 .reason {
@@ -50,8 +51,8 @@
 }
 
 .note {
-    color: $error-primary;
-    font-size: 0.75rem;
+    color: $color-attention-action;
+    font-size: $font-size-small;
 }
 
 .actions,
@@ -68,28 +69,53 @@
     padding: 0.4rem 0.75rem;
 }
 
+/* 状況のパネルの［承認］［却下］と同じ部品: Scratch の形（角丸 4px・太字）で高さ 30px。
+   ［却下］［あとで］は副ボタンと同じ白地に青の文字（#1964） */
 .button,
 .approve {
-    padding: 0.25rem 0.75rem;
-    border: 1px solid $ui-black-transparent;
-    border-radius: 0.25rem;
-    background-color: $ui-white;
-    color: $text-primary;
-    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: $size-button-height-small;
+    padding: 0 0.75rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    background-color: $color-surface;
+    color: $color-action;
+    font-family: inherit;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
     cursor: pointer;
+}
+
+.button:hover {
+    background-color: $color-background;
+    color: $color-action-dark;
+}
+
+.button:focus-visible,
+.approve:focus-visible,
+.link:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 2px;
 }
 
 .approve {
     /* 白い文字が読める濃いオレンジ（$error-primary は白に 2.3:1・#1923） */
     border-color: $color-attention-action;
     background-color: $color-attention-action;
-    color: $ui-white;
+    color: $color-surface;
 }
 
+/* 押せないボタンはクラス管理のボタンと同じ淡い灰色 */
 .button:disabled,
 .approve:disabled {
-    opacity: 0.5;
-    cursor: default;
+    border-color: transparent;
+    background-color: $color-disabled;
+    color: $color-disabled-text;
+    cursor: not-allowed;
 }
 
 .link {
@@ -97,14 +123,15 @@
     padding: 0;
     border: none;
     background: none;
-    color: $motion-primary;
-    font-size: 0.75rem;
+    color: $color-action;
+    font-family: inherit;
+    font-size: $font-size-small;
     text-decoration: underline;
     cursor: pointer;
 }
 
 .error {
     padding: 0.25rem 0.75rem;
-    color: $error-primary;
-    font-size: 0.75rem;
+    color: $color-attention-action;
+    font-size: $font-size-small;
 }

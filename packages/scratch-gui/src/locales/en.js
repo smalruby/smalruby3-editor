@@ -710,7 +710,7 @@ export default {
         'Let\'s start by creating a "Class"!\nCreate one class per lesson, e.g. "Lesson 3: Make a Chat App".\nClick the "Create a class" button.',
     'gui.classroom.statusIcon.seated': 'Seated',
     'gui.classroom.statusIcon.notSeated': 'Not seated',
-    'gui.classroom.statusIcon.notJoined': 'Not joined',
+    'gui.classroom.statusIcon.notJoined': 'Empty',
     'gui.classroom.statusIcon.submitted': 'Submitted',
     'gui.classroom.statusIcon.notSubmitted': 'Not submitted',
     'gui.classroom.statusIcon.returned': 'Returned',

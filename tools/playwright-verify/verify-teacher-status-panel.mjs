@@ -27,8 +27,12 @@ const BASE = process.env.BASE_URL || 'http://localhost:8601/';
 const HEADLESS = process.env.HEADLESS !== 'false';
 const LOCALE = process.env.LOCALE || 'ja';
 // 授業 PC のビューポート（#1221）。VIEWPORT=1920x1080 で大きい画面でも測れる（#1964）
-const [VW, VH] = (process.env.VIEWPORT || '1300x600').split('x').map(Number);
-const VIEWPORT = { width: VW, height: VH };
+const viewportMatch = (process.env.VIEWPORT || '1300x600').match(/^(\d+)[xX](\d+)$/);
+if (!viewportMatch) {
+    console.error(`usage: VIEWPORT=<width>x<height> (例: 1300x600, 1920x1080)。受け取った値: ${process.env.VIEWPORT}`);
+    process.exit(2);
+}
+const VIEWPORT = { width: Number(viewportMatch[1]), height: Number(viewportMatch[2]) };
 const SEATS = 40;
 
 // --- スタブデータ ---
@@ -59,6 +63,8 @@ let kickRequests = [5, 12, 27].map((seat, i) => ({
     createdAt: iso(now - (3 - i) * 60000),
 }));
 const calls = [];
+// 退室依頼は、パネルが座席を読み込んで右下に置かれたあとで届く（#1964 Q1: 伸びても画面の中に戻すか）
+let kicksArrived = false;
 
 const browser = await chromium.launch({ headless: HEADLESS });
 const ctx = await browser.newContext({ viewport: VIEWPORT, locale: 'ja-JP' });
@@ -78,7 +84,7 @@ await page.route(`${API}/**`, async (route) => {
         });
     }
     if (path === '/classrooms') return json({ classrooms });
-    if (path === '/kick-requests/pending') return json({ requests: kickRequests, activeAssignmentCount: 2 });
+    if (path === '/kick-requests/pending') return json({ requests: kicksArrived ? kickRequests : [], activeAssignmentCount: 2 });
     const approve = path.match(/^\/classrooms\/(\w+)\/kick-requests\/(\w+)\/approve$/);
     if (approve) {
         const r = kickRequests.find((k) => k.requestId === approve[2]);
@@ -118,8 +124,23 @@ await page.waitForSelector('[data-testid="classroom-teacher-panel"]');
 // 最初は課題が未選択 → 課題を選ぶ
 await page.selectOption('[data-testid="classroom-teacher-panel-assignment"]', 'c1');
 await page.waitForSelector('[data-testid="classroom-teacher-panel-seat-40"]');
+await sleep(1000);
+// パネルを画面の下いっぱいまでドラッグしておき、あとから退室依頼が届いて伸びても
+// 画面の中に戻るかを見る（#1964 Q1）
+{
+    const hb0 = await (await page.$('[data-testid="classroom-teacher-panel-header"]')).boundingBox();
+    await page.mouse.move(hb0.x + 40, hb0.y + hb0.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(hb0.x + 40, hb0.y + VIEWPORT.height, { steps: 10 });
+    await page.mouse.up();
+    await sleep(300);
+}
+const bottomBefore = await page.$eval('[data-testid="classroom-teacher-panel"]', (el) => el.getBoundingClientRect().bottom);
+log('panel bottom before the kick requests', bottomBefore);
+kicksArrived = true;
+// 退室依頼の見張りは 10 秒ごと
 await page.waitForFunction(() =>
-    document.querySelectorAll('[data-testid="classroom-teacher-panel-kick-request"]').length === 3);
+    document.querySelectorAll('[data-testid="classroom-teacher-panel-kick-request"]').length === 3, null, { timeout: 30000 });
 await page.waitForFunction(() =>
     /27/.test(document.querySelector('[data-testid="classroom-teacher-panel-seated"]')?.textContent || ''));
 await sleep(500);
@@ -134,6 +155,13 @@ await check(rect.top >= 0 && rect.left >= 0 && rect.bottom <= VIEWPORT.height &&
     `40 seats + 3 kick requests fit in ${VIEWPORT.width}x${VIEWPORT.height}`);
 const bodyScroll = await page.$eval('[data-testid="classroom-teacher-panel-body"]', (el) => el.scrollHeight - el.clientHeight);
 log('panel body overflow px', bodyScroll);
+// 最初の退室依頼の［承認］が、スクロールせずに画面の中に見える（#1964 FYI2）
+const approve = await page.$eval('[data-testid="classroom-teacher-panel-kick-approve"]', (el) => {
+    const r = el.getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom };
+});
+log('first approve button', JSON.stringify(approve));
+await check(approve.top >= 0 && approve.bottom <= VIEWPORT.height, `the first［承認］is visible (bottom ${approve.bottom})`);
 if (LOCALE === 'ja') {
     await check(
         (await page.textContent('[data-testid="classroom-teacher-panel-seated"]')).includes('着席（目安） 27 / 40'),

@@ -818,7 +818,7 @@ export default {
         'まずは「クラス」をつくりましょう！\nクラス（れい: ぎじゅつ 2026ねんど）をつくって、そのなかに「だい3かい チャットアプリをつくろう」のようなかだいをついかします。\n「クラスをさくせい」ボタンをおしてください。',
     'gui.classroom.statusIcon.seated': 'ちゃくせきちゅう',
     'gui.classroom.statusIcon.notSeated': 'みちゃくせき',
-    'gui.classroom.statusIcon.notJoined': 'みさんか',
+    'gui.classroom.statusIcon.notJoined': 'くうせき',
     'gui.classroom.statusIcon.submitted': 'ていしゅつずみ',
     'gui.classroom.statusIcon.notSubmitted': 'みていしゅつ',
     'gui.classroom.statusIcon.returned': 'へんきゃくずみ',

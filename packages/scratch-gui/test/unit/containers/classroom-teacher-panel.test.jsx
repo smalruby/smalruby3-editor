@@ -341,4 +341,41 @@ describe('ClassroomTeacherPanel の座席の色 (#1926)', () => {
         expect(tag.textContent).toBe('Kick requests 2');
         expect(tag.parentElement).toBe(screen.getByTestId('classroom-teacher-panel-seated').parentElement);
     });
+
+    test('読み込んだあとに退室依頼が届いて伸びても、パネルを画面の中に戻す (#1964 Q1)', async () => {
+        const original = HTMLElement.prototype.getBoundingClientRect;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        window.innerWidth = 1300;
+        window.innerHeight = 600;
+        window.localStorage.setItem('smalruby:classroomTeacherPanelPosition', JSON.stringify({ x: 1000, y: 280 }));
+        // 退室依頼 1 件ごとに 80px 伸びるパネル
+        HTMLElement.prototype.getBoundingClientRect = function () {
+            if (this.getAttribute('data-testid') !== 'classroom-teacher-panel') return original.call(this);
+            const kicks = this.querySelectorAll('[data-testid="classroom-teacher-panel-kick-request"]').length;
+            const h = 300 + 80 * kicks;
+            return { width: 280, height: h, top: 0, left: 0, right: 280, bottom: h, x: 0, y: 0 };
+        };
+        try {
+            const store = renderPanel();
+            await flush();
+            await flush();
+            const panel = screen.getByTestId('classroom-teacher-panel');
+            expect(panel.style.transform).toBe('translate(1000px,280px)');
+            await act(async () => {
+                store.dispatch({
+                    type: 'scratch-gui/classroom/SET_TEACHER_KICK_REQUESTS',
+                    requests: [1, 2, 3].map((n) => ({ requestId: `r${n}`, classroomId: 'c1', seatNumber: n })),
+                });
+            });
+            await flush();
+            // 300 + 80 * 3 = 540px の高さ → 下端が 600 を越えないよう上へ
+            expect(panel.style.transform).toBe('translate(1000px,60px)');
+        } finally {
+            HTMLElement.prototype.getBoundingClientRect = original;
+            window.innerWidth = width;
+            window.innerHeight = height;
+            window.localStorage.removeItem('smalruby:classroomTeacherPanelPosition');
+        }
+    });
 });

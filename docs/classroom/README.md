@@ -14,7 +14,7 @@ Smalruby Classroom は、日本の学校の授業で Smalruby を使うための
 | [システム構成](architecture.md) | AWS / GCP / Azure サービス、API ルート、データモデル |
 | [ユーザーストーリー](user-stories.md) | 先生・生徒それぞれの利用フロー |
 | [UI/UX](ui-ux.md) | 画面遷移、各フェーズの説明 |
-| [先生向けの案内](teacher-guide.md) | 作り替えた画面のどこが変わったか・変わらないこと（先生に配る短い案内） |
+| [先生向けの手引き](teacher-guide.md) | クラス管理のどこで何をするか（先生に配る短い手引き） |
 | [Google Classroom の画面（参考）](google-classroom-reference.md) | お手本にしている Google Classroom（先生の画面）の構成・言葉・操作の置き場所・見た目の値 |
 | [費用見積もり](cost-estimate.md) | AWS / GCP の想定費用 |
 | [ソースコード](source-code.md) | 関連ファイル一覧 |
