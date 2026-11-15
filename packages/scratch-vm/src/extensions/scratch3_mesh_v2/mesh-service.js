@@ -58,6 +58,13 @@ class MeshV2Service {
         this.lastFetchTime = '';
 
         this.subscriptions = [];
+        // issue #1859: 購読の準備 (start_ack) を待つ上限。これを過ぎたら待たずに進む。
+        this.subscriptionReadyTimeoutMs = 10000;
+        // 準備を待っている startSubscriptions の settle (stopSubscriptions ですぐ決める)。
+        this._pendingReadySettles = [];
+        // 参加 (createGroup / joinGroup) ごとの世代番号。cleanup でも進める。
+        // 待っている間に切断・繋ぎ直しがあったら、古い参加を続けないために比べる。
+        this._connectionSeq = 0;
         this.connectionTimer = null;
         this.heartbeatTimer = null;
         this.dataSyncTimer = null;
@@ -335,6 +342,7 @@ class MeshV2Service {
         this.batchStartTime = null;
         this.lastBroadcastOffset = 0;
 
+        this._connectionSeq++;
         this.stopSubscriptions();
         this.stopPolling();
         this.stopHeartbeat();

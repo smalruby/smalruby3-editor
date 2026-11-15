@@ -3,6 +3,7 @@ import { registerRubyMarkers, rubyMarkersOf } from '../ruby-markers.js';
 
 const INLINE_MARKER = '@ruby:comment_position:inline';
 const INLINE_LAST_MARKER = '@ruby:comment_position:inline:last';
+const START_MARKER = '@ruby:comment_position:start';
 
 /**
  * Whether a comment marks a block that calls a method of the condition of a loop again
@@ -171,6 +172,87 @@ const isSkippedBeginLoopBody = (Generator, block) => {
 };
 
 /**
+ * The user lines of a comment of a block: the lines written before the line of the block, and the
+ * trailing comment written at the end of the line (`@ruby`:comment_position:inline / inline:last).
+ * @param {?string} comment - The comment text of the block.
+ * @returns {{before: Array<string>, inline: string}} The lines before and the trailing comment.
+ */
+export const userCommentParts = (comment) => {
+    if (!comment) {
+        return { before: [], inline: '' };
+    }
+    const markers = rubyMarkersOf(comment);
+    const userLines = comment.split('\n').filter((line) => !line.startsWith('@ruby:'));
+    if (markers.includes(INLINE_LAST_MARKER)) {
+        // The last user line is the trailing comment, the others are before (issue #1838).
+        return {
+            before: userLines.slice(0, -1),
+            inline: userLines.length > 0 ? userLines[userLines.length - 1] : '',
+        };
+    }
+    if (markers.includes(INLINE_MARKER)) {
+        return { before: [], inline: userLines.join(' ') };
+    }
+    return { before: userLines, inline: '' };
+};
+
+/**
+ * Whether the trailing comment of a block goes on the first line of its code: the definition of a method
+ * (`def foo # c`), and a block whose comment has `@ruby`:comment_position:start (`loop do # c`). Else it
+ * goes on the last line (`end # c`): a block with commands in it saved before the marker was added has
+ * its trailing comment on `end`.
+ * @param {object} block - The block.
+ * @param {?string} comment - The comment text of the block.
+ * @returns {boolean} True for the first line.
+ */
+const trailingCommentOnFirstLine = (block, comment) =>
+    block.opcode === 'procedures_definition' || rubyMarkersOf(comment).includes(START_MARKER);
+
+/**
+ * The code with the trailing comment at the end of its first line or of its last line.
+ * @param {string} code - The code of the block, ending with a line break.
+ * @param {string} inlineComment - The trailing comment.
+ * @param {boolean} onFirstLine - Whether to put it on the first line.
+ * @returns {string} The code with the comment.
+ */
+export const withTrailingComment = (code, inlineComment, onFirstLine = false) => {
+    const index = onFirstLine ? code.indexOf('\n') : code.length - 1;
+    return `${code.slice(0, index)} # ${inlineComment.trim()}${code.slice(index)}`;
+};
+
+/**
+ * The `case` that an if block is written as (`@ruby`:syntax:case:<subject>:<number>), or null when it is
+ * written as an if: it has no marker, or its condition is not a `==` block (changed on the blocks screen).
+ * The generator of the if (control.js) and the comments of its condition (scrub_) both use it.
+ * @param {object} Generator - The RubyGenerator.
+ * @param {?object} block - The if block.
+ * @returns {?{subject: string, id: string, condBlock: object}} The subject, the number and the `==` block.
+ */
+export const caseInfoOf = (Generator, block) => {
+    if (!block) return null;
+    const marker = Generator.findRubyMarker(block, '@ruby:syntax:case:');
+    const match = marker ? marker.match(/^@ruby:syntax:case:(.+):(\d+)$/) : null;
+    if (!match) return null;
+    const condId = block.inputs && block.inputs.CONDITION ? block.inputs.CONDITION.block : null;
+    const condBlock = condId ? Generator.getBlock(condId) : null;
+    if (!condBlock || condBlock.opcode !== 'operator_equals') return null;
+    return { subject: match[1], id: match[2], condBlock };
+};
+
+/**
+ * The comments of the blocks in the inputs of a block, without the comment of the block itself.
+ * @param {object} Generator - The RubyGenerator.
+ * @param {object} block - The block.
+ * @returns {string} The comments, as `allNestedComments`.
+ */
+const nestedCommentsBelow = (Generator, block) =>
+    Object.values(Generator.getInputs(block))
+        .map((input) => Generator.getBlock(input.block))
+        .filter(Boolean)
+        .map((child) => Generator.allNestedComments(child))
+        .join('');
+
+/**
  * Register the scrub_ method on the RubyGenerator.
  * Handles comment output, block chaining (next), isStatement end, and inline comments.
  * @param {object} Generator - The RubyGenerator instance.
@@ -205,18 +287,9 @@ export default function (Generator) {
         if (!this.isConnectedValue(block)) {
             let comment = this.getCommentText(block);
             if (comment) {
-                const markers = rubyMarkersOf(comment);
-                const userLines = comment.split('\n').filter((line) => !line.startsWith('@ruby:'));
-                let beforeLines = userLines;
-                if (markers.includes(INLINE_LAST_MARKER)) {
-                    // The last user line is the trailing comment, the others are before (issue #1838).
-                    beforeLines = userLines.slice(0, -1);
-                    inlineComment = userLines.length > 0 ? userLines[userLines.length - 1] : '';
-                } else if (markers.includes(INLINE_MARKER)) {
-                    beforeLines = [];
-                    inlineComment = userLines.join(' ');
-                }
-                const filteredComment = beforeLines.join('\n');
+                const parts = userCommentParts(comment);
+                inlineComment = parts.inline;
+                const filteredComment = parts.before.join('\n');
                 if (filteredComment.trim().length > 0) {
                     commentCode += `${this.prefixLines(filteredComment, '# ')}\n`;
                 }
@@ -226,7 +299,12 @@ export default function (Generator) {
                 const input = inputs[name];
                 const childBlock = this.getBlock(input.block);
                 if (childBlock) {
-                    comment = this.allNestedComments(childBlock);
+                    // The comment of the `==` block of the first `when` of a `case` is written on the line
+                    // of the `when` (control.js), not before the `case`.
+                    comment =
+                        name === 'CONDITION' && caseInfoOf(this, block)
+                            ? nestedCommentsBelow(this, childBlock)
+                            : this.allNestedComments(childBlock);
                     if (comment) {
                         const filteredComment = comment
                             .split('\n')
@@ -259,7 +337,11 @@ export default function (Generator) {
             delete block.isStatement;
         }
         if (inlineComment.trim().length > 0 && code.endsWith('\n')) {
-            code = `${code.slice(0, -1)} # ${inlineComment.trim()}\n`;
+            const onFirstLine = trailingCommentOnFirstLine(block, this.getCommentText(block));
+            code = withTrailingComment(code, inlineComment, onFirstLine);
+        } else if (inlineComment.trim().length > 0 && code.trim() !== '' && !this.isConnectedValue(block)) {
+            // A value-only line (`@a # c`) is a value block by itself: its code has no line break.
+            code = `${code} # ${inlineComment.trim()}`;
         }
         return commentCode + code + nextCode + endCode;
     };

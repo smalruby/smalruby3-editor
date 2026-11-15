@@ -16,12 +16,16 @@ import {STAGE_SIZE_MODES} from '../../lib/layout-constants';
 
 import fullScreenIcon from './icon--fullscreen.svg';
 import largeStageIcon from './icon--large-stage.svg';
+// === Smalruby: Start of middle stage size ===
 import middleStageIcon from './icon--middle-stage.svg';
+// === Smalruby: End of middle stage size ===
 import smallStageIcon from './icon--small-stage.svg';
 import unFullScreenIcon from './icon--unfullscreen.svg';
 
-// === Smalruby: Use Hatti logo instead of Scratch logo ===
+// === Smalruby: Start of Hatti logo ===
+// Use Hatti logo instead of Scratch logo
 import scratchLogo from '../menu-bar/hatti.svg';
+// === Smalruby: End of Hatti logo ===
 import styles from './stage-header.css';
 import {storeProjectThumbnail} from '../../lib/store-project-thumbnail.js';
 import dataURItoBlob from '../../lib/data-uri-to-blob.js';
@@ -46,11 +50,13 @@ const messages = defineMessages({
         description: 'Button to change stage size to small',
         id: 'gui.stageHeader.stageSizeSmall'
     },
+    // === Smalruby: Start of middle stage size ===
     middleStageSizeMessage: {
         defaultMessage: 'Switch to middle stage',
         description: 'Button to change stage size to middle',
         id: 'gui.stageHeader.stageSizeMiddle'
     },
+    // === Smalruby: End of middle stage size ===
     fullStageSizeMessage: {
         defaultMessage: 'Enter full screen mode',
         description: 'Button to change stage size to full screen',
@@ -100,7 +106,9 @@ const StageHeaderComponent = function (props) {
         onKeyPress,
         onSetStageLarge,
         onSetStageSmall,
+        // === Smalruby: Start of middle stage size ===
         onSetStageMiddle,
+        // === Smalruby: End of middle stage size ===
         onSetStageFull,
         onSetStageUnFull,
         onUpdateProjectThumbnail,
@@ -252,6 +260,8 @@ const StageHeaderComponent = function (props) {
             isPlayerOnly ? (
                 []
             ) : (
+                // === Smalruby: Start of middle stage size ===
+                // a third "middle" button between small and large
                 <div className={styles.stageSizeToggleGroup}>
                     <ToggleButtons
                         buttons={[
@@ -279,6 +289,7 @@ const StageHeaderComponent = function (props) {
                         ]}
                     />
                 </div>
+                // === Smalruby: End of middle stage size ===
             );
         header = (
             <Box className={styles.stageHeaderWrapper}>
@@ -369,7 +380,9 @@ StageHeaderComponent.propTypes = {
     onSetStageFull: PropTypes.func.isRequired,
     onSetStageLarge: PropTypes.func.isRequired,
     onSetStageSmall: PropTypes.func.isRequired,
+    // === Smalruby: Start of middle stage size ===
     onSetStageMiddle: PropTypes.func.isRequired,
+    // === Smalruby: End of middle stage size ===
     onSetStageUnFull: PropTypes.func.isRequired,
     onUpdateProjectThumbnail: PropTypes.func,
     projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,

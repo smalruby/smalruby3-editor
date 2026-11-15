@@ -15,6 +15,7 @@ import {
 const PUTS = '@ruby:method:puts,@ruby:argument:1:type:Integer';
 const INLINE = '@ruby:comment_position:inline';
 const INLINE_LAST = '@ruby:comment_position:inline:last';
+const START = '@ruby:comment_position:start';
 const EDGE = 'sensing_touchingobject(TOUCHINGOBJECTMENU: sensing_touchingobjectmenu(TOUCHINGOBJECTMENU = "_edge_"))';
 
 /**
@@ -84,8 +85,7 @@ defineBlockRubyTable('A comment of the user on a block with markers', [
             a = 1
         `,
     },
-    // `case` / `when` kept in @ruby:syntax:case (control.js). Only toRuby: a comment before `case`
-    // goes to the block of the subject when converted (P14).
+    // `case` / `when` kept in @ruby:syntax:case (control.js).
     {
         blocks: `control_if(CONDITION: operator_equals(OPERAND1: @a, OPERAND2: "1") #"@ruby:syntax:case:@a:1") {
             looks_say(MESSAGE: "1")
@@ -97,11 +97,56 @@ defineBlockRubyTable('A comment of the user on a block with markers', [
               say("1")
             end
         `,
+    },
+    // A trailing comment of a block with commands in it is on the last line (`end # c`), as the comments
+    // of the projects saved before; `@ruby:comment_position:start` puts it on the first line (issue #1864).
+    {
+        blocks: `control_if(CONDITION: ${EDGE}) { motion_movesteps(STEPS: 10) } ${c(`うしろ\n${INLINE}`)}`,
+        ruby: `
+            if touching?("_edge_")
+              move(10)
+            end # うしろ
+        `,
+    },
+    {
+        blocks: `control_forever { motion_movesteps(STEPS: 10) } ${c(`前\nうしろ\n${INLINE_LAST}`)}`,
+        ruby: `
+            # 前
+            loop do
+              move(10)
+            end # うしろ
+        `,
+    },
+    {
+        blocks: `control_forever { motion_movesteps(STEPS: 10) } ${c(`うしろ\n${INLINE}\n${START}`)}`,
+        ruby: `
+            loop do # うしろ
+              move(10)
+            end
+        `,
+    },
+    {
+        blocks: `control_if(CONDITION: ${EDGE}) { motion_movesteps(STEPS: 10) } ${c(`前\nうしろ\n${INLINE_LAST}\n${START}`)}`,
+        ruby: `
+            # 前
+            if touching?("_edge_") # うしろ
+              move(10)
+            end
+        `,
+    },
+    {
+        blocks: `control_if(CONDITION: operator_gt(OPERAND1: @a, OPERAND2: 1) #"gt") { looks_say(MESSAGE: "1") } #"@ruby:syntax:case:@a:1"`,
+        ruby: `
+            # gt
+            if @a > 1
+              say("1")
+            end
+        `,
         only: 'toRuby',
     },
     // The markers of the converter that are read anywhere already keep working.
     {
-        blocks: `control_if(CONDITION: ${EDGE}) { motion_movesteps(STEPS: 10) } ${c(`うしろ\n${INLINE}\n@ruby:syntax:if_modifier`)}`,
+        blocks: `control_if(CONDITION: ${EDGE}) { motion_movesteps(STEPS: 10) } ${c(`うしろ\n${INLINE}\n${START}\n@ruby:syntax:if_modifier`)}`,
         ruby: 'move(10) if touching?("_edge_") # うしろ',
     },
     {
@@ -207,18 +252,17 @@ defineBlockRubyTable('A comment of the user on a block with markers', [
         only: 'toRuby',
     },
     {
-        blocks: `control_if_else(CONDITION: operator_not(OPERAND: ${EDGE})) { motion_movesteps(STEPS: 1) } { motion_movesteps(STEPS: 2) } ${c(`うしろ\n${INLINE}\n@ruby:syntax:unless_else`)}`,
+        blocks: `control_if_else(CONDITION: operator_not(OPERAND: ${EDGE})) { motion_movesteps(STEPS: 1) } { motion_movesteps(STEPS: 2) } ${c(`うしろ\n${INLINE}\n${START}\n@ruby:syntax:unless_else`)}`,
         ruby: `
-            unless touching?("_edge_")
+            unless touching?("_edge_") # うしろ
               move(1)
             else
               move(2)
-            end # うしろ
+            end
         `,
-        only: 'toRuby',
     },
     {
-        blocks: `control_if(CONDITION: operator_not(OPERAND: ${EDGE})) { motion_movesteps(STEPS: 10) } ${c(`うしろ\n${INLINE}\n@ruby:syntax:unless_modifier`)}`,
+        blocks: `control_if(CONDITION: operator_not(OPERAND: ${EDGE})) { motion_movesteps(STEPS: 10) } ${c(`うしろ\n${INLINE}\n${START}\n@ruby:syntax:unless_modifier`)}`,
         ruby: 'move(10) unless touching?("_edge_") # うしろ',
     },
     {
@@ -245,6 +289,7 @@ defineBlockRubyTable('A comment of the user on a block with markers', [
             # 前
             if @a == 1
               move(1)
+            # メモ
             elsif @a == 2
               move(2)
             end

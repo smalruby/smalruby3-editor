@@ -134,7 +134,9 @@ class SpriteInfo extends React.Component {
                 }
                 <Label
                     text="x"
+                    // === Smalruby: Start of compact middle sprite info ===
                     above={stageSize === STAGE_DISPLAY_SIZES.middle}
+                    // === Smalruby: End of compact middle sprite info ===
                 >
                     <BufferedInput
                         small
@@ -164,7 +166,9 @@ class SpriteInfo extends React.Component {
                 }
                 <Label
                     text="y"
+                    // === Smalruby: Start of compact middle sprite info ===
                     above={stageSize === STAGE_DISPLAY_SIZES.middle}
+                    // === Smalruby: End of compact middle sprite info ===
                 >
                     <BufferedInput
                         small

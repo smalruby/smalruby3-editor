@@ -399,7 +399,7 @@ greet("hello")
 ```
 
 **Restrictions**:
-- Keyword arguments are not supported (`def foo(name:)` is invalid)
+- Only plain arguments (`def foo(a, b)`) are supported. Keyword arguments (`def foo(name:)`), default values (`def foo(a = 1)`), `*args`, `**opts`, `&blk` and `...` are errors (the error tells the line)
 - Arguments cannot be assigned to (`name = "x"` and `name += 1` are errors; copy the argument to another variable and change that one)
 - Class methods (`def self.method`) cannot be defined
 - `attr_accessor`/`attr_reader`/`attr_writer` can be used in a class definition (after `attr_accessor :hp`, read it with `hp` and set it with `self.hp = 1`)
@@ -754,7 +754,10 @@ The following Ruby syntax is **NOT supported** in Smalruby:
 - `require` / `require_relative`
 - String interpolation (`"Hello #{name}"`)
 - Multiple assignment (`a, b = 1, 2`)
-- Splat arguments (`*args`)
+- Arguments other than plain ones (a default value of `def foo(a = 1)`, `*args`, keyword arguments `a:` / `a: 1`, `**opts`, `&blk`, `...`, `3.times do |i = 1|` and `do |i; j|`; converting to blocks gives an error that tells the line)
+- A number of block parameters the call does not take (`when_key_pressed("a") do |k|`, `loop do |x|`, `3.times do |i, j|`, ...; a hat and `loop` take none, `N.times` and `each` of an array take none or one, `each` of a hash takes none or two (`do |k, v|`; `do` repeats as many times as the hash has pairs, and `@h.each do |k|` is an error), and a call of a My Block takes no block; converting to blocks gives an error that tells the line)
+- A call that passes a value with `&` instead of a block (`@a.each(&:x)`, `@a.each(&blk)`, `3.times(&blk)`, ...; converting to blocks gives an error that tells the line. Write the block with `do ... end`, as in `@a.each do |x|`)
+- A range whose end is not a number or a value (`rand(self..2)`, `rand(1..:a)`, `rand("a".."z")`, ...; converting to blocks gives an error that tells the line. To use `gets` or a method that returns a value as an end, put it in a variable first: `@n = gets.to_i` → `rand(1..@n)`)
 - Iterators with a block other than `each` (`map` / `select` / `each_with_index`, ...; `each` and `N.times do |i|` can be used)
 - Procs / Lambdas
 - `yield`

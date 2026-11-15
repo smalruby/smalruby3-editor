@@ -280,7 +280,7 @@ say(@h.length)
 
 - 同じコードに戻る。
 
-**できないこと**（エラーになる形）: キーがシンボルでも文字列でもない（`hashKeyNotSupported`）、値がハッシュ・配列・`nil`（`@h = {a: {b: 1}}`、`hashValueNotSupported`）、ハッシュのリテラルに直接メソッドを使う（`{a: 1}.keys`、`hashLiteralReceiver`）。値が代入などの命令（`{a: (@a = 1)}`）や値を返すメソッドの呼び出し（`{a: foo(1)}`）のときは、配列の要素と同じく「命令がまちがっています」のエラー（`wrongInstruction`）。
+**できないこと**（エラーになる形）: キーがシンボルでも文字列でもない（`hashKeyNotSupported`）、値がハッシュ・配列・`nil`（`@h = {a: {b: 1}}`、`hashValueNotSupported`）、ハッシュのリテラルに直接メソッドを使う（`{a: 1}.keys`、`hashLiteralReceiver`）。値が代入などの命令（`{a: (@a = 1)}`）や値を返すメソッドの呼び出し（`{a: foo(1)}`）のときは、配列の要素と同じく「命令がまちがっています」のエラー（`wrongInstruction`）。`@h[:a] = (@a = 1)` のように、代入する値が命令やブロックにできない呼び出し（`@h[:a] = @x.bar`）のときも、キーのシンボルではなく、その行の「命令がまちがっています」のエラー。
 
 **テスト**: `ruby-to-blocks-converter/variables/variables-hash-global.test.js`、`ruby-roundtrip/variables-v2-hash.test.js`、`variables-v2-hash-methods.test.js`、`variables-v2-hash-methods-vm.test.js`、`variables-v2-hash-unused-variable.test.js`。
 
@@ -381,9 +381,9 @@ say(@s)
 
 - 同じコードに戻る。ステージにリスト `_symbols_` ができる。
 
-**できないこと**（エラーになる形）: シンボルの計算（`:a + 1`、`symbolCannotArithmetic`）・比べる（`symbolCannotCompare`）・文字列として使う（`symbolNeedsToS`。`:a.to_s` と書く）、シンボルだけの行（命令ではない）。
+**できないこと**（エラーになる形）: シンボルの計算（`:a + 1`、`symbolCannotArithmetic`）・比べる（`symbolCannotCompare`）・文字列として使う（`symbolNeedsToS`。`:a.to_s` と書く）、シンボルだけの行（命令ではない）。同じ呼び出しのほかの相手や引数が値でない（`(@a = 1)`）、またはブロックにできない（`@x.bar`）ときは、シンボルの案内ではなく、その行の「命令がまちがっています」のエラー（P17）。案内が変わる境目は次のとおり。`say(:a, (@a = 1))`・`@h[:a] = @x.bar`・`say(foo.bar(:a))`・`say((1..3).include?(:a))`・`say(:a + foo(1))` は「命令がまちがっています」。ブロック引数がある呼び出し（`mesh.when_receive(:a) do |x|`・`self.when(:key_pressed, "a") do |x|`）も、引数とブロック引数を両方受ける変換器が無く `.to_s` にしても変換できないので、P17 の「命令がまちがっています」（「ブロック引数の数」）。拡張機能やほかのスプライトの受け手（`text2speech.speak(:hello)`・`koshien.move_to(:a)`・`say(mesh.sensor_value(:a))`・`microbit_more.display_text(:a)`・`say(sprite("Cat").foo(:a))`・`say(stage.foo(:a))`）は、変換器が受け手として作る `ruby_expression` なので「変換できなかった値」とみなさず、シンボルの案内（`symbolNeedsToS`）のまま（`_isUnconvertedValue`）。
 
-**テスト**: `ruby-to-blocks-converter/looks/symbol-implicit.test.js`、`operators/symbol-arithmetic.test.js`、`operators/symbol-error.test.js`、`operators/symbol-to-s.test.js`、`variables/variables-symbol-list.test.js`、`variables-symbol-ref.test.js`、`variables-symbol-var-say.test.js`、`ruby-generator/symbol-generator.test.js`。
+**テスト**: `ruby-to-blocks-converter/looks/symbol-implicit.test.js`、`operators/symbol-arithmetic.test.js`、`operators/symbol-error.test.js`、`operators/symbol-to-s.test.js`、`symbol-with-command-argument.test.js`、`variables/variables-symbol-list.test.js`、`variables-symbol-ref.test.js`、`variables-symbol-var-say.test.js`、`ruby-generator/symbol-generator.test.js`。
 
 ### P8. 正規表現
 
@@ -547,6 +547,8 @@ end while @a < 3
 
 - 引数の名前は `@ruby:block_param:<番号>:<名前>` で残す（1 行に 1 つ）。
 - 生成器はブロック引数を `_bp_<番号>_` と書き、最後に注釈の名前へ置きかえて `do |i|` を付ける。
+- ふつうの引数（`|i|`・`|k, v|`）だけ。既定値（`|i = 1|`）・`|*i|`・`|i; j|` などはエラー（P17 の「引数の形」）。
+- ハッシュの `each` のブロック引数は 0 個か 2 個（`|k, v|`）。0 個（`@h.each do`）も同じブロックにし、ハッシュの組の数だけくり返す（キーと値のリストの注釈も付ける）。コメントの無いブロック（パレットから置いた・コメントを消した）は生成器が `@h.each do` と書くので、変換し直すと注釈付きのブロックに戻る。1 個（`@h.each do |k|`）はその行のエラー（P17 の「ブロック引数の数」）。
 - ハッシュの `each` は、キーと値のリストの ID と名前を `@ruby:list_ref:KEYS:<ID>:<名前>` / `@ruby:list_ref:VALUES:<ID>:<名前>` に残す。隠しフィールド（`KEYS_LIST_ID` など）はワークスペースの XML を通ると消えるので、VM（`scratch-vm/src/extensions/smalruby_ruby/block-method-executors.js`）はコメントからリストを探す。
 
 **往復の例**:
@@ -572,6 +574,19 @@ end
 - うしろのコメントは同じ行のブロックに付け、`@ruby:comment_position:inline` を足す。生成器はこの注釈があると行の最後に `# ...` と書く。
 - 1 つのブロックに前のコメントとうしろのコメントの両方があるときは、前のコメントの行のあとにうしろのコメントを 1 行で置き、`@ruby:comment_position:inline:last` を足す（`前\nうしろ\n@ruby:comment_position:inline:last`）。生成器は利用者の文の最後の行だけを行の最後に書き、それより前の行は前の行に `# ...` と書く。`inline` だけのときは利用者の文がすべてうしろのコメント。
 - class / module の前のコメントはスプライトのコメントにする。module のときは `@ruby:module:<module 名>` を足し、生成器はそのコメントを module の前に書く（`code-finisher.js`）。
+- コメントを付けるのは、その行を Ruby に書くブロック。その行で始まるいちばん狭いノードのブロックから、次のように移す（`comment-handler.js` の `_commentAnchorOf`）。
+  - 値のブロックは、それを入力に持つブロックへ上がる（`a += 1` は代入のブロック）。
+  - 前のブロックが書くブロックは、前のブロックへ戻る。配列・ハッシュのリテラルの要素を足すブロック（`@ruby:array:literal:element` / `@ruby:hash:literal:*` / `@ruby:hash:set:push:*`）、`return` の止めるブロック（`@ruby:syntax:return`）、メソッドの最初で戻り値を初めにするブロック（`@ruby:return:<メソッド>:initialize`）。
+  - `def` の行は procedures_definition。値だけの行（P18）は、その代入のブロック。ブロックの無いノードで始まる行（メソッドの最後の `1`、何行にもわたる配列の要素）は、それを囲むいちばん狭いノードのブロック。
+  - `case` の行は、`case` のいちばん外の if のブロック（`when` ごとに比べる値のブロックを作り直すので、比べる値のノードは最後の `when` のブロックを指す）。
+  - `when` の行は、その `when` の `==` のブロック。生成器はこのコメントを `when` の行に書き、`case` の前には書かない（`control.js`）。`elsif` の行は `elsif` の if のブロックで、生成器はそのコメントと条件の中のコメントを `elsif` の行に書く。
+- うしろのコメントは、生成器がブロックのコードの最後の行に書く（`end # c`）。保存済みのプロジェクトの、中に命令を入れるブロックの `inline` のコメントは `end # c` から作られたものなので、この既定は変えない。
+  - 中に命令を入れるブロック（`loop do` / `if` / `while` / `case` など）の最初の行のうしろのコメントは、変換器が `@ruby:comment_position:start` を足す。生成器はこの注釈があると最初の行に書く（`loop do # c`）。
+  - `def` は注釈が無くても最初の行に書く（`def foo # c`）。
+  - 値だけの行（`@a # c`）も行の最後に書く（`scrub.js`）。
+- 何行にもわたるノードの最後の行のうしろのコメント（`end # c`、`end while @a < 1 # c`）は、その行で終わるいちばん狭いノードのブロックに付ける。`else` と `elsif` のノードは使わない（`end` は外の if の行）。
+- 1 つのブロックの最初の行と最後の行の両方にうしろのコメントがあると（`if @a > 1 # a` … `end # b`）、最初の行のコメントはブロックの前の行に移す。ブロックが持てるうしろのコメントは 1 つだけ。
+- `case` の注釈を持つ if の条件が `==` でないとき（ブロックの画面で替えたとき）は、生成器はふつうの if として書き、条件のコメントは if の前に書く（`scrub.js` の `caseInfoOf` が `case` で書けるかを決めるただ 1 つの関数）。
 
 **往復の例**:
 
@@ -587,16 +602,13 @@ move(30) # うしろ
 
 **できないこと**:
 
-- 利用者のコメントが、Ruby に書かれないブロックや、行の中の値のブロックに付くことがある（変換器がコメントを付けるブロックを、行の始まりの位置で選ぶため）。
-  - 配列・ハッシュのリテラルの行末のコメントは消える。`@a = [1, 2] # c` の `# c` は最後の要素を足すブロックに付く。前の行のコメントは代入のうしろに移る。
-  - `a += 1 # c` は `# c` が前の行に移る（足し算のブロックに付く）。
-  - 値だけの行（P18）のコメントはスプライトのコメントになり、離れた場所に出る。`"Jimmy" # c` は `# c` と `"Jimmy"` が別の段落になる。
-  - 明示の `return` のコメントは止めるブロックに付く。行末のコメントは消え、前の行のコメントは `return` のうしろに移る。
-  - `case` の前のコメントは比べる値のブロックに付き、`when` の前のコメントは中の最初の命令に付く。
-- C ブロック（`loop do` / `if` など、中に命令を入れるブロック）の行末のコメントは、元の行に戻らない。`loop do # y` は `end # y` になる（コメントが `end` の行に移る）。`if touching?("_edge_") # c` は前の行の `# c` になる（コメントが条件のブロックに付くため）。
+- 何行にもわたる式の中の行のコメントは、その式の 1 行のうしろ・前に出る（生成器は式を 1 行に書く）。`@a = [\n  1, # c\n  2\n]` は `@a = [1, 2] # c`。
+- `else` の行のうしろのコメントは、`else` の中の最初の命令のうしろに移る（その行を書くブロックが無い）。
+- `def` の `end` のうしろのコメントは `def` の行に、`when_flag_clicked do` などのスクリプトの `end` のうしろのコメントは `do` の行に移る（生成器は `def` とスクリプトのうしろのコメントを最初の行に書く）。
+- 1 行に書いた C ブロック（中に命令を入れるブロック）は 1 行の形には戻らず、うしろのコメントの行き先も変わる。`if @a > 1 then move(1) end # c` は `if @a > 1 # c` の行に、`3.times { move(1) } # c` / `loop { move(1) } # c` は中の `move(1) # c` に移る。
 - 空行で離れた前のコメントは消える。`# a\n\n# b\nmove(10)` の `# a` は残らない。
 
-**テスト**: `ruby-to-blocks-converter/comments.test.js`、`comment-round-trip.test.js`、`ruby-generator/scrub.test.js`、`ruby-generator/ruby-markers.test.js`、`module-sync.test.js`、`ruby-roundtrip/comment-markers-table.test.js`（注釈のあるブロックに利用者のコメントがあるとき）。
+**テスト**: `ruby-to-blocks-converter/comments.test.js`、`comment-round-trip.test.js`、`ruby-generator/scrub.test.js`、`ruby-generator/ruby-markers.test.js`、`module-sync.test.js`、`ruby-roundtrip/comment-markers-table.test.js`（注釈のあるブロックに利用者のコメントがあるとき）、`ruby-roundtrip/comment-placement.test.js`（コメントを付けるブロックと、元の行に戻ること）。
 
 ### P15. 変数の種類と置き場所
 
@@ -668,7 +680,10 @@ $a += 1
 - **エラーの文**: 「`「{ SOURCE }」は命令がまちがっています。`」（`wrongInstruction`）。`SOURCE` は、式がほかの式の中にあっても、その式を含む 1 行の文（`_sourceNodeForError`）。
 - **値だけの行**: 数・文字列・配列だけの行は代入に変える（→ P18）。シンボルだけの行は「命令ではない」エラー。それ以外の値だけの行は `couldNotConvertPrimitive`。
 - **特別な文で知らせるもの**: シンボルの計算・比べる（P7）、配列・ハッシュのリテラルへのメソッド（P4・P5）、戻り値（P2）、変数とリストの名前（P4）、変数の種類（P15）、class / module（P6）、`with_screen_refresh` の場所、v1 で使えない構文など。メッセージは `converter-errors.js` と各変換器ファイルの `defineMessages`、日本語は `src/locales/ja.js`。
+- **引数の形**: My Block（`def foo(a)`）とブロック引数（`3.times do |i|`）は、ふつうの引数だけ。既定値（`a = 1`）・`*a` / `*`・キーワード（`a:` / `a: 1`）・`**h`・`&blk`・`...`・分けて受ける形（`(a, b)`）・ブロックの中だけの変数（`|i; j|`）・`|i,|` は、書いた値や引数がブロックに残らないので、その引数の行の「命令がまちがっています」にする（`_rejectParameterShape`。`def foo(a = 1)` なら「「def foo(a = 1)」は命令がまちがっています。」）。`initialize` の引数は書いたままスプライトのコメントに残すので対象外（P6）。
+- **ブロック引数の数**: ブロックを受ける呼び出しは、受けるブロック引数の数が決まっている。ハット（`when_flag_clicked do`・`when_key_pressed("a") do`・拡張機能のハット）と `loop` / `repeat` / `with_screen_refresh` は 0、`N.times do |i|`・`@a.each do |x|` は 0 か 1、ハッシュの `each`（`@h.each do |k, v|`）は 0 か 2（0 個は組の数だけくり返す）。ほかの数（`when_key_pressed("a") do |k|`・`3.times do |i, j|`）は、引数を入れる場所がブロックに無いので、呼び出しの行の「命令がまちがっています」にする（シンボルの `.to_s` の案内にはしない。`self.when(:key_pressed, "a") do |x|` も同じ）。ハッシュと分かっている変数（このコードでハッシュを入れた `@h` / `$h` / `h`、またはプロジェクトにハッシュのリストがある変数。どちらも、ハッシュ以外の値（`@h = 0` など）も入れる変数は除く。`hashListsOfReceiver`）の `@h.each do |k|`・`@h.each { |k| ... }`・`@h.each(&:x)`・`@h.each(&blk)` も、その行の「命令がまちがっています」にする。配列の `each` として変換すると、ハッシュの名前の空のリストをくり返して何も起きず、Ruby では `|k|` に `[キー, 値]` の組が入るので動きが合わないため。`each_pair`・`each_key`・`each_with_index`・`map` などほかのくり返しは、ハッシュにも配列にも当たるブロックが無いので同じエラー。My Block の引数（`def foo(h)` の `h`）は、ハッシュかリストか値かをコードから決められないので、`h.each do |x|` は配列（リスト）の `each` として変換する（`h.each do |k, v|` は、ブロック引数が 2 個の配列の `each` になる変換器が無いのでエラー）。ブロックの代わりに渡す値（`@a.each(&:x)`・`@a.each(&blk)`・`3.times(&blk)`・`loop(&blk)`・`when_flag_clicked(&blk)`）は、ブロックに入れる場所が無いので、どの呼び出しでもその行の「命令がまちがっています」にする（中身の無いブロックにして `&:x` を黙って捨てない。`visitCallNode`）。My Block の呼び出しはブロックを受けない（`foo(1) do ... end`・`foo(1, &blk)`・`foo(1, &:x)` もエラー）。ラムダ（`->(a = 1) {}`）と `define_method` はブロックにならないので、引数の形にかかわらずその行のエラー。
 - **ブロックにできない構文の例**: `for`、`break` / `next` / `redo` / `retry`、`rescue` / `ensure`、`alias` / `undef` / `BEGIN` / `END`、`||=` / `&&=`、文字列の式展開 `"#{@a}"`、`private` など。一覧は言語仕様の「サポートされていないRuby構文」。
+- **ブロックにならない値を演算に使う**: 式展開の文字列・シンボル・正規表現（`"a#{@x}"`、`:"a#{@x}"`、`/a#{@x}/`）は値にならない。比べる式（`@b == "a#{@x}"`）やほかの演算・メソッド・My Block の呼び出し・`super(...)` の相手や引数に使うと、入力に置く前にその文の「命令がまちがっています」にする（`visitCallNode`・`_handleSuper`）。終わりの無い範囲（`1..`・`..2`）も同じ（`visitRangeNode`）。範囲の端は「乱数」の数の入力に入るので、数か値のブロック（`@a`・`@a + 1`）だけ。かっこで囲んだ端（`1..(@a + 1)`・`1..((2))`）は、中の 1 つの値を入力に入れる（生成器はかっこを付けずに `1..@a + 1` と書く）。前に置くブロックが要る値（`gets.to_i`・値を返す My Block `foo(3)`）も端にできず、その文のエラーになる。先に変数に入れる（`@n = gets.to_i` のあと `rand(1..@n)`）。端がそれ以外（`rand(self..2)`・`rand(1..:a)`・`rand(nil..2)`・`rand(true..2)`・`rand("a".."z")`・`rand([1]..2)`・`rand((@a = 1)..2)`）の範囲は「乱数」にせず、その文の「命令がまちがっています」にする（`_rangeEndValue`・`_isRangeEnd`）。範囲は `when` の値にもできず、`when` の行の「命令がまちがっています」になる（行の終わりの `when 1..` は、次の行までが範囲になる）。
 
 **往復の例**: なし（エラーになり、ブロックは作られない）。
 
@@ -678,7 +693,7 @@ foo.bar(1)
 
 - エラー: 「「foo.bar(1)」は命令がまちがっています。」
 
-**テスト**: `ruby-to-blocks-converter/error-message-hints.test.js`、`nested-error-statement.test.js`、`orphan-blocks.test.js`、`visibility-modifiers.test.js`、`ruby.test.js`、`ruby-roundtrip/break-next-redo-retry.test.js`、`begin-rescue.test.js`、`multiple-assignment.test.js`。
+**テスト**: `ruby-to-blocks-converter/error-message-hints.test.js`、`interpolated-string-operand.test.js`、`parameter-shape.test.js`、`block-parameter-count.test.js`、`range-end.test.js`、`nested-error-statement.test.js`、`orphan-blocks.test.js`、`visibility-modifiers.test.js`、`ruby.test.js`、`ruby-roundtrip/break-next-redo-retry.test.js`、`begin-rescue.test.js`、`multiple-assignment.test.js`。
 
 ### P18. 値だけの行（素のリテラル）を代入に変える
 
@@ -755,7 +770,7 @@ say(mesh.message_value)
 | `@ruby:loop_condition_call` | `@ruby:loop_condition_call` | 変換器 `ast-handlers/control-flow.js` | 生成器 `scrub.js` | `while bar(@a) < 3` | P12 |
 | `@ruby:begin_loop_body` | `,@ruby:begin_loop_body`（ほかの注釈に足す） | 変換器 `ast-handlers/control-flow.js` | 生成器 `scrub.js` | `begin ... end while` | P12 |
 | `@ruby:block_param` | `@ruby:block_param:<番号>:<名前>`（1 行に 1 つ） | 変換器 `smalruby-ruby.js` / `control.js` | 生成器 `smalruby-ruby.js` | `@ruby:block_param:1:i` | P13 |
-| `@ruby:comment_position` | `<利用者の文>\n@ruby:comment_position:inline`、`<前の文>\n<うしろの文>\n@ruby:comment_position:inline:last` | 変換器 `comment-handler.js` | 生成器 `scrub.js`、`src/lib/scratch-blocks-comment-icon-patch.js` | `move(10) # ...` | P14 |
+| `@ruby:comment_position` | `<利用者の文>\n@ruby:comment_position:inline`、`<前の文>\n<うしろの文>\n@ruby:comment_position:inline:last`、中に命令を入れるブロックの最初の行なら `@ruby:comment_position:start` を足す | 変換器 `comment-handler.js` | 生成器 `scrub.js` / `control.js`（`when` / `elsif`）、`src/lib/scratch-blocks-comment-icon-patch.js` | `move(10) # ...` | P14 |
 
 - すべての注釈を読むところ: `src/lib/ruby-markers.js`（ブロックの注釈を読むただ 1 つの関数。生成器・`module-sync.js`・`settings-menu.jsx`・`mobile-drawer.jsx` の「読む」はみなこれを通す。スプライトのコメントの `@ruby:class` / `@ruby:initialize` / `@ruby:module` は生成器がコメント全体の形で読む）、`src/lib/scratch-blocks-comment-icon-patch.js`（注釈だけのコメントのアイコンを隠す）、生成器 `scrub.js`（`#` のコメントから `@ruby:` の行を捨てる）、`scratch-vm/src/engine/comment.js`（注釈のコメントの位置）。
 - 一覧がそろっているかは `grep -rhoE "@ruby:[a-z_?-]+" packages/scratch-gui/src packages/scratch-vm/src | sort -u` で確かめる。

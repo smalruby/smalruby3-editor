@@ -119,6 +119,7 @@ test/unit/*
 !test/unit/mesh_service_v2_polling.js
 !test/unit/mesh_service_v2_status_history.js
 !test/unit/mesh_service_v2_subscription.js
+!test/unit/mesh_service_v2_subscription_ready.js
 !test/unit/mesh_service_v2_timestamp.js
 !test/unit/mesh_service_v2.js
 !test/unit/rate_limiter.js

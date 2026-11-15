@@ -259,6 +259,22 @@ const NodeUtils = {
         return statement;
     },
 
+    /**
+     * The line of the source that holds the start of the node, without the spaces around it.
+     * @param {object} node - The node.
+     * @returns {string} The line.
+     */
+    _lineSourceOf(node) {
+        const source = this._context.sourceCode;
+        if (!source || !node || !node.location) {
+            return '';
+        }
+        const start = this._byteOffsetToCharOffset(node.location.startOffset);
+        const lineStart = source.lastIndexOf('\n', start - 1) + 1;
+        const newline = source.indexOf('\n', start);
+        return source.slice(lineStart, newline < 0 ? source.length : newline).trim();
+    },
+
     _truncateSource(src, maxLength = 40) {
         if (!src) return src;
         const newlineIndex = src.indexOf('\n');

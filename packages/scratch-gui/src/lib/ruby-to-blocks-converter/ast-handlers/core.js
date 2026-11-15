@@ -406,6 +406,48 @@ const CoreHandlers = {
     },
 
     /**
+     * Whether a receiver or an argument is a `ruby_*` block left by a call that could not be converted,
+     * such as `foo.bar` of `say(:a, foo.bar)` (issue #1884). The receiver of an extension or of another sprite
+     * (`koshien`, `mesh`, `sprite("Cat")`, `stage`) is made as a `ruby_expression` on purpose for the
+     * converters registered on its name, so it is not one.
+     * @param {*} value - The value of the receiver or the argument.
+     * @returns {boolean} Whether the value is a `ruby_*` block no converter takes as a receiver.
+     */
+    _isUnconvertedValue(value) {
+        if (!this._isRubyBlock(value)) {
+            return false;
+        }
+        const receiverName = value.opcode === 'ruby_expression' ? this._getReceiverName(value) : null;
+        return !(receiverName && this._receiverToMethods[receiverName]);
+    },
+
+    /**
+     * Whether an operand came to nothing: it is not written (the end of `1..`), or visiting its node
+     * returned `undefined` (a node with no visitor, such as a string, a symbol or a regular expression
+     * with `#{...}`). Put in an input, it stopped the conversion with a JavaScript error
+     * (`@b == "a#{@x}"`, issue #1885).
+     * @param {object} node - The node of the operand, or null when it is not written.
+     * @param {*} value - What visiting the node returned.
+     * @returns {boolean} Whether the node is null or the value is `undefined`.
+     */
+    _isMissingOperand(node, value) {
+        return !node || typeof value === 'undefined';
+    },
+
+    /**
+     * The error of a wrong instruction on the statement that holds the node (P17).
+     * @param {object} node - The node of the expression that cannot be converted.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _wrongInstructionError(node) {
+        const source = this._truncateSource(this._getSource(this._sourceNodeForError(node)));
+        return new RubyToBlocksConverterError(
+            node,
+            this._translator(converterMessages.wrongInstruction, { SOURCE: source }),
+        );
+    },
+
+    /**
      * Whether a receiver is a loop made to be chained (issue #1691): `loop` and `N.times` without a block
      * come as the loop block (`control_forever` / `control_repeat`) for `.with_screen_refresh do ... end`,
      * which puts its body into it. That is the only method that takes a command as its receiver.
