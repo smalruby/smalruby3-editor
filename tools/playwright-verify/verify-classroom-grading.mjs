@@ -17,7 +17,11 @@
  *   DOCS_SHOTS=1 node verify-classroom-grading.mjs          # docs/classroom/screenshots も撮り直す
  *   BEFORE=1 node verify-classroom-grading.mjs              # 直す前の画面 (手順のボタンが無い) を撮るだけ
  *   LOCALE=ja-Hira node verify-classroom-grading.mjs        # ひらがなで測る (既定は ja。DOCS_SHOTS は ja のときだけ)
- *   ASSIGNMENTS=6 node verify-classroom-grading.mjs         # 課題 6 つの表 (列の見出しの欄名で表が横に広がらないかも測る)
+ *   ASSIGNMENTS=6 node verify-classroom-grading.mjs         # 課題 6 つの表 (表の枠の中だけ横にスクロールし、ページが横に広がらないか・#1945)
+ *   VIEWPORT=1920x1080 node verify-classroom-grading.mjs    # 大きい画面でも測る (既定は 1300x600)
+ *
+ * 採点簿 (#1962): 表は点だけ、セルを押すと右の列 ([data-testid="classroom-eval-detail"]) に根拠・コメント。
+ * 各手順で、ページの横スクロールが無いこと・手順の行の右端が画面の中・右の列が画面の中に収まることも測る。
  */
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
@@ -33,9 +37,11 @@ const BASE = process.env.BASE || 'http://localhost:8601';
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SHOT_DIR = process.env.SHOT_DIR || resolve(REPO_ROOT, 'tmp');
 const LOCALE = process.env.LOCALE || 'ja';
-const DOCS_SHOTS = process.env.DOCS_SHOTS === '1' && LOCALE === 'ja' && !process.env.ASSIGNMENTS;
+const DOCS_SHOTS =
+    process.env.DOCS_SHOTS === '1' && LOCALE === 'ja' && !process.env.ASSIGNMENTS && !process.env.VIEWPORT;
 const BEFORE = process.env.BEFORE === '1';
-const VIEWPORT = { width: 1300, height: 600 };
+const [VW, VH] = (process.env.VIEWPORT || '1300x600').split('x').map(Number);
+const VIEWPORT = { width: VW, height: VH };
 const SEATS = 40;
 const ROOT = '[data-testid="classroom-phase-teacher-evaluation"]';
 const MATRIX = '.eval-matrix-wrapper, [class*="eval-matrix-wrapper"]';
@@ -139,7 +145,35 @@ const measure = (page) =>
                 matrixClient: m ? m.clientHeight : null,
                 pageScroll: se.scrollHeight,
                 pageClient: se.clientHeight,
+                pageScrollW: se.scrollWidth,
+                pageClientW: se.clientWidth,
+                matrixScrollW: m ? m.scrollWidth : null,
+                matrixClientW: m ? m.clientWidth : null,
+                stepsRight: (() => {
+                    const steps = document.querySelector('[data-testid="classroom-eval-steps"]');
+                    return steps ? Math.round(steps.getBoundingClientRect().right) : null;
+                })(),
+                detailBottom: (() => {
+                    const d = document.querySelector('[data-testid="classroom-eval-detail"]');
+                    return d ? Math.round(d.getBoundingClientRect().bottom) : null;
+                })(),
+                detailRight: (() => {
+                    const d = document.querySelector('[data-testid="classroom-eval-detail"]');
+                    return d ? Math.round(d.getBoundingClientRect().right) : null;
+                })(),
+                // 表の枠の中で全部見えている席の行の数（見出しの行の下から枠の下まで）
+                rowsVisible: (() => {
+                    if (!m) return null;
+                    const frame = m.getBoundingClientRect();
+                    const head = m.querySelector('thead');
+                    const top = head ? head.getBoundingClientRect().bottom : frame.top;
+                    return [...m.querySelectorAll('tbody tr')].filter((tr) => {
+                        const r = tr.getBoundingClientRect();
+                        return r.top >= top - 1 && r.bottom <= frame.bottom + 1;
+                    }).length;
+                })(),
                 vh: window.innerHeight,
+                vw: window.innerWidth,
             };
         },
         { root: ROOT, matrix: MATRIX },
@@ -158,15 +192,23 @@ const judge = async (page, { name, expected, shot }) => {
     const pageOk = m.pageScroll <= m.pageClient;
     const currentOk = m.current === expected;
     const bottomOk = m.currentBottom !== null && m.currentBottom <= m.vh;
+    // #1945: ページは横にもスクロールしない・手順の行と右の列は画面の中。
+    const widthOk = m.pageScrollW <= m.pageClientW && m.stepsRight !== null && m.stepsRight <= m.vw;
+    const detailOk = m.detailBottom === null || (m.detailBottom <= m.vh && m.detailRight <= m.vw);
     record({
         name,
-        ok: rootOk && pageOk && currentOk && bottomOk,
+        ok: rootOk && pageOk && currentOk && bottomOk && widthOk && detailOk,
         detail:
             `current ${m.current} (expected ${expected}) bottom ${m.currentBottom}/${m.vh}` +
             ` · cancel bottom ${m.footerBottom}/${m.vh}` +
             ` · screen ${rootOk ? 'OK' : 'NG'} ${m.rootScroll}/${m.rootClient}` +
             ` · page ${pageOk ? 'OK' : 'NG'} ${m.pageScroll}/${m.pageClient}` +
-            (m.matrixScroll === null ? '' : ` · matrix frame ${m.matrixScroll}/${m.matrixClient}`),
+            ` · page width ${m.pageScrollW}/${m.pageClientW} · steps right ${m.stepsRight}/${m.vw}` +
+            (m.detailBottom === null ? '' : ` · detail bottom ${m.detailBottom} right ${m.detailRight}`) +
+            (m.matrixScroll === null
+                ? ''
+                : ` · matrix frame ${m.matrixScroll}/${m.matrixClient} (w ${m.matrixScrollW}/${m.matrixClientW})` +
+                  ` · rows visible ${m.rowsVisible}`),
     });
     await shoot(page, shot);
 };
@@ -258,22 +300,66 @@ await page.waitForSelector('[data-testid="classroom-eval-matrix"]', { timeout: 3
 await page.waitForTimeout(500);
 await judge(page, { name: '2 loaded (40 seats)', expected: 'classroom-eval-run-grade', shot: 'step2-grade' });
 
-// 列の見出しの下の欄名（#1924 C5）で表が横に広がらないか: 欄名を消した表と横幅を比べる。
-const tableWidth = () =>
+// 採点簿 (#1962): 表のセルに入力欄は無く、押すと右の列にその席が出る。
+const gradebook = await page.evaluate(() => {
+    const matrix = document.querySelector('[data-testid="classroom-eval-matrix"]');
+    return {
+        fieldsInTable: matrix.querySelectorAll('select, input, textarea').length,
+        title: document.querySelector('[data-testid="classroom-eval-detail-title"]')?.textContent ?? null,
+    };
+});
+record({
+    name: 'gradebook: the table has no fields, the first submitted seat is in the right column',
+    ok: gradebook.fieldsInTable === 0 && /01/.test(gradebook.title || ''),
+    detail: JSON.stringify(gradebook),
+});
+await page.click(`[data-testid="classroom-eval-cell-button-12-${LESSONS[LESSONS.length - 1].classroomId}"]`);
+await page.waitForTimeout(200);
+const chosen = await page.evaluate(
+    (id) => ({
+        title: document.querySelector('[data-testid="classroom-eval-detail-title"]')?.textContent ?? null,
+        grade: !!document.querySelector(`[data-testid="classroom-eval-grade-12-${id}"]`),
+    }),
+    LESSONS[LESSONS.length - 1].classroomId,
+);
+record({
+    name: 'gradebook: pressing seat 12 of the last assignment shows it on the right',
+    ok: /12/.test(chosen.title || '') && chosen.grade,
+    detail: JSON.stringify(chosen),
+});
+await judge(page, { name: '2 seat 12 chosen', expected: 'classroom-eval-run-grade', shot: 'step2-chosen' });
+
+// ‹ › で移ったセルが、上に留まる見出しの行・左に留まる出席番号の列の下に隠れないか（#1962 FYI1）。
+// 左の課題の列を選び、枠を下の端・右の端までスクロールしてから、上の席へ ‹ で戻る。
+await page.click(`[data-testid="classroom-eval-cell-button-12-${LESSONS[0].classroomId}"]`);
+const hidden = async () =>
     page.evaluate((matrix) => {
         const m = document.querySelector(matrix);
-        return { scroll: m.scrollWidth, client: m.clientWidth };
+        const sel = m.querySelector('[aria-pressed="true"]');
+        const head = m.querySelector('thead').getBoundingClientRect();
+        const seat = m.querySelector('thead th').getBoundingClientRect();
+        const r = sel.getBoundingClientRect();
+        const frame = m.getBoundingClientRect();
+        return {
+            id: sel.getAttribute('data-testid'),
+            underHead: r.top < head.bottom - 1,
+            underSeat: r.left < seat.right - 1,
+            outside: r.bottom > frame.bottom + 1 || r.right > frame.right + 1,
+        };
     }, MATRIX);
-const withFields = await tableWidth();
-await page.addStyleTag({ content: '[data-testid^="classroom-eval-head-fields-"] { display: none !important; }' });
+for (let i = 0; i < 12; i++) await page.click('[data-testid="classroom-eval-detail-next"]');
+await page.evaluate((matrix) => {
+    const m = document.querySelector(matrix);
+    m.scrollTop = m.scrollHeight;
+    m.scrollLeft = m.scrollWidth;
+}, MATRIX);
+for (let i = 0; i < 14; i++) await page.click('[data-testid="classroom-eval-detail-prev"]');
 await page.waitForTimeout(200);
-const withoutFields = await tableWidth();
-await page.addStyleTag({ content: '[data-testid^="classroom-eval-head-fields-"] { display: block !important; }' });
-await page.waitForTimeout(200);
+const afterNav = await hidden();
 record({
-    name: `table width with the field names under the headings (${ASSIGNMENTS} assignments)`,
-    ok: withFields.scroll <= withoutFields.scroll,
-    detail: `matrix frame scrollWidth/clientWidth with ${withFields.scroll}/${withFields.client} · without ${withoutFields.scroll}/${withoutFields.client}`,
+    name: '‹ › keeps the chosen cell out from under the sticky heading row and seat column',
+    ok: !afterNav.underHead && !afterNav.underSeat && !afterNav.outside,
+    detail: JSON.stringify(afterNav),
 });
 
 await page.click('[data-testid="classroom-eval-settings-toggle"]');

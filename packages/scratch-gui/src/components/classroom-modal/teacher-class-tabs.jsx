@@ -7,6 +7,7 @@
  * Which tab is selected and what a tab does is decided by the screen that
  * draws the row (the grading screen asks before leaving, #1948).
  */
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import { defineMessages, FormattedMessage } from 'react-intl';
@@ -39,7 +40,7 @@ export const classTabMessages = defineMessages({
 
 const TAB_ORDER = ['stream', 'classwork', 'grading'];
 
-const TeacherClassTabs = ({ selected, showGrading = true, onOpenSettings, onSelect }) => {
+const TeacherClassTabs = ({ end, selected, showGrading = true, onOpenSettings, onSelect }) => {
     const handleClick = useCallback(
         (event) => {
             const tab = event.currentTarget.dataset.tab;
@@ -65,6 +66,8 @@ const TeacherClassTabs = ({ selected, showGrading = true, onOpenSettings, onSele
                     </ClassroomTab>
                 ))}
             </div>
+            {/* 採点のタブでは、ここに説明の 1 行を置く（#1962・タブの下の行を使わず表を広げる）。 */}
+            {end ? <span className={classNames(styles.tabListEnd, styles.tabListEndText)}>{end}</span> : null}
             {onOpenSettings ? (
                 <span className={styles.tabListEnd}>
                     <ClassroomButton
@@ -82,6 +85,8 @@ const TeacherClassTabs = ({ selected, showGrading = true, onOpenSettings, onSele
 };
 
 TeacherClassTabs.propTypes = {
+    /** 行の右端に置くもの（採点の説明の 1 行など）。長いときは 1 行で切る。 */
+    end: PropTypes.node,
     selected: PropTypes.oneOf(TAB_ORDER).isRequired,
     /** ［採点］を出すか（採点の機能が無いときは出さない）。 */
     showGrading: PropTypes.bool,

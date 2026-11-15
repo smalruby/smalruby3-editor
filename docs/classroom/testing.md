@@ -595,9 +595,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-phase-teacher-evaluation` | div | 採点フェーズのルート |
+| `classroom-eval-hint-text` | span | 説明の 1 行（タブの行の右。長いときは「…」・全文は `title`） |
 | `classroom-eval-hint-toggle` | button | 説明の「詳しく / 閉じる」（`aria-expanded`） |
 | `classroom-eval-hint-detail` | span | 「詳しく」で開く説明の残り |
-| `classroom-eval-lesson-only-hint` | span | 作品を出さないレッスンの課題だけのときの説明（「…自動で採点します。AI の採点は使いません」） |
+| `classroom-eval-lesson-only-hint` | span | 作品を出さないレッスンの課題だけのときの説明（タブの行の右・「…自動で採点します。AI の採点は使いません」） |
 | `classroom-eval-mixed-note` | span | 混ぜて選んだとき、レッスンだけの課題には AI を使わないことの注意（採点の設定の行の右） |
 | `classroom-eval-lesson-scoring` | div | 採点の画面の「レッスンの点」の欄のまとまり（設定を読めたレッスンの課題だけ） |
 | `classroom-eval-lesson-scoring-{classroomId}` | div | 課題ごとのレッスンの点の欄（課題名 + `classroom-lesson-scoring`。変えるとすぐ保存） |
@@ -608,12 +609,18 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-axis-name-{i}` / `classroom-eval-axis-desc-{i}` | input | 観点の名前 / どこを見るか（設定を開いたときだけ） |
 | `classroom-eval-strictness` | select | 採点の厳しさ（やや甘め/標準/やや厳しめ・設定を開いたときだけ） |
 | `classroom-eval-progress` | div | 進捗表示 |
-| `classroom-eval-matrix` | table | 席 × 課題の表（表の枠の中だけスクロール） |
+| `classroom-eval-matrix` | table | 採点簿の表（点だけ。表の枠の中だけ縦にも横にもスクロール・出席番号の列は左に留まる） |
 | `classroom-eval-cell-{seat}-{classroomId}` | td | セル（未提出は ×、要確認はオレンジ） |
-| `classroom-eval-head-fields-{classroomId}` | span | 課題の列の見出しの下の行の「点 / 根拠（先生だけ） / 生徒へのコメント」 |
-| `classroom-eval-grade-{seat}-{classroomId}` | select | 採点（S/A/B/C。手動変更は較正サンプルになる）。`aria-label` は「出席番号 N の点」 |
-| `classroom-eval-reason-{seat}-{classroomId}` | input | 根拠（先生だけ）。`aria-label` は「出席番号 N の根拠（先生だけ）」 |
-| `classroom-eval-comment-{seat}-{classroomId}` | textarea | 生徒へのコメント。`aria-label` は「出席番号 N の生徒へのコメント」 |
+| `classroom-eval-cell-button-{seat}-{classroomId}` | button | 提出したセルの点のボタン（まだ無いときは —・押すと右の列に出す・選んだセルは `aria-pressed="true"`）。要確認は「!」、返却済みは「↩」、コメントがあれば「💬」。`aria-label` は「出席番号 N・{課題名}: {点}」で、点が無いときは「未採点」、印があれば「（要確認・返却済み・コメントあり）」を足す |
+| `classroom-eval-detail` | aside | 右の列（選んだ席の点・根拠・コメント） |
+| `classroom-eval-detail-title` | h3 | 右の列の見出し「出席番号 NN」 |
+| `classroom-eval-detail-lesson` | span | 右の列の課題名 |
+| `classroom-eval-detail-prev` / `classroom-eval-detail-next` | button | 同じ課題を提出した前 / 次の席へ（「‹ NN」/「NN ›」。端では押せない）。`aria-label` は「前の出席番号 NN」/「次の出席番号 NN」（端では番号なし） |
+| `classroom-eval-detail-ai-draft` | span | 「AI の下書き」（AI が出した点を先生がまだ変えていないとき。根拠だけを直したときは残る） |
+| `classroom-eval-detail-empty` | p | 提出が 1 つも無いときの「提出された作品はありません。」 |
+| `classroom-eval-grade-{seat}-{classroomId}` | select | 右の列の点（S/A/B/C。手動変更は較正サンプルになる）。見えるラベル「点」。選んだ席の分だけ出る |
+| `classroom-eval-reason-{seat}-{classroomId}` | textarea | 右の列の根拠。見えるラベル「根拠（先生だけ）」 |
+| `classroom-eval-comment-{seat}-{classroomId}` | textarea | 右の列の生徒へのコメント。見えるラベル「生徒へのコメント」 |
 | `classroom-eval-overall-{seat}` | td | 総合 |
 | `classroom-eval-lesson-head-{classroomId}` | th | 「レッスン」の列の見出し（レッスンの課題だけ・作品の列の右・#1603） |
 | `classroom-eval-lesson-score-{seat}-{classroomId}` | td | 席のレッスンの点（記録が無ければ「—」） |

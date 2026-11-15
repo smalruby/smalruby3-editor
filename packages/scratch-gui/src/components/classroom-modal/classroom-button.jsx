@@ -30,6 +30,7 @@ const ClassroomButton = ({
     ariaCurrent,
     ariaExpanded,
     ariaHasPopup,
+    ariaLabel,
     autoFocus,
     children,
     className,
@@ -44,6 +45,7 @@ const ClassroomButton = ({
         aria-current={ariaCurrent}
         aria-expanded={ariaExpanded}
         aria-haspopup={ariaHasPopup}
+        aria-label={ariaLabel}
         autoFocus={autoFocus}
         className={classNames(styles[BUTTON_VARIANT_STYLE_KEYS[variant]], className)}
         data-testid={dataTestId}
@@ -62,6 +64,8 @@ ClassroomButton.propTypes = {
     /** メニューを開くボタンの開閉状態。 */
     ariaExpanded: PropTypes.bool,
     ariaHasPopup: PropTypes.string,
+    /** 見える文字が記号だけのとき（‹ ›）の名前。 */
+    ariaLabel: PropTypes.string,
     autoFocus: PropTypes.bool,
     children: PropTypes.node,
     /** 画面固有の微調整クラス (例: 左寄せ) を足したいときだけ使う。 */
