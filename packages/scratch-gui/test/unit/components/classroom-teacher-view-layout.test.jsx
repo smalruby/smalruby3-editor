@@ -112,6 +112,7 @@ describe('ClassroomButton (#1125)', () => {
             danger: 'dangerButton',
             primary: 'primaryButton',
             secondary: 'secondaryButton',
+            text: 'textButton',
         });
     });
 

@@ -76,3 +76,20 @@
 | ふつう（`.small`） | 0.825rem の丸・地 `$looks-secondary`・文字 白 | `$color-primary` | （撮っていない） |
 | ホバー（`.large`） | `transform: scale(1.1, 1.1)`・輪が 4px に | | 一致（輪 4px・`matrix(1.1, 0, 0, 1.1, 0, 0)`） |
 | 押した・選ばれた・押せない・フォーカス | — | | |
+
+## クラス管理のボタン（`classroom-modal/classroom-button.jsx`）
+
+スモウルビー独自。クラス管理（先生）と生徒の「クラス」のボタンは、どれも `ClassroomButton` を使う（`classroom-modal.css` の `.primary-button` / `.secondary-button` / `.text-button` / `.danger-button`）。形は上の「主ボタン・副ボタン」（Scratch のダイアログのボタン）にそろえ、主の色だけクラス管理の操作の青（`$color-action`）にする。
+
+| 状態 | 主（`variant="primary"`） | 副（`variant="secondary"`） | テキスト（`variant="text"`） | トークン |
+|---|---|---|---|---|
+| ふつう | 地 `$color-action`・枠 `1px solid $color-action-dark`・文字 白 | 地 白・枠 `1px solid $color-border`・文字 `$color-action` | 地も枠も無し・文字 `$color-action`・左右の余白 0.625rem | `$color-action`・`$color-action-dark`・`$color-surface`・`$color-border` |
+| 共通 | 高さ 36px 以上（`min-height`）・左右の余白 1rem・角丸 4px・文字 14px の太字・アイコンとの間 0.25rem | | | `$size-button-height`・`$radius-small`・`$font-size-medium`・`$font-weight-bold`・`$space-small` |
+| ホバー・押した | 地 `$color-action-dark` | 地 `$color-background` | 地 `$color-background` | |
+| 押せない | 地 `$color-disabled`・文字 `$color-disabled-text`・枠なし・`cursor: not-allowed`（3 種とも同じ） | | | `$color-disabled`・`$color-disabled-text` |
+| フォーカス | `:focus-visible` で `outline: 2px solid $color-action; outline-offset: 2px` | | | |
+
+- 上流の独自の画面の形（紫の主ボタン・ホバーなし）との違い: クラス管理は青を主の色にしているので、主・フォーカスの色を `$color-action` にする。Google Classroom の先生に見慣れた形にそろえるため、ホバーで地を少し濃くする・副ボタンの文字を青にする。
+- 主ボタンは 1 画面に 1 つ（クラス管理の R2）。カードの下の「採点」「⚙ 設定」のような軽い操作はテキストボタンにする。
+- `variant="danger"`（採点を離れる確認の［戻る］だけ）は形だけ同じにしてあり、色は画面ごとの Issue で R4 に合わせて見直す。
+- 並べ方（副が左・主が右）は `TeacherScreen` / `TeacherSubView` の `footer` が持つ（[`../../classroom/source-code.md`](../../classroom/source-code.md)）。

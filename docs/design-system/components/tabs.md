@@ -16,4 +16,17 @@
 
 注: スモウルビーは `.tab-list-container` を足して Ruby タブを並べ、低い画面ではタブを 36px に縮める（`gui.css` のマーカーの中）。値は上流の CSS を正にする。
 
-独自の画面でタブを作るときは、この形（白い選ばれたタブ・紫の文字・淡い青のホバー）に合わせる。フォーカスは消さずに、[`README.md`](README.md) の「フォーカス」の形（`:focus-visible` で `outline: 2px solid $color-primary; outline-offset: 2px;`）で付ける。
+独自の画面でタブを作るときは、この形（白い選ばれたタブ・紫の文字・淡い青のホバー）に合わせる（クラス管理は例外で、下の「クラス管理のタブ」の形にする）。フォーカスは消さずに、[`README.md`](README.md) の「フォーカス」の形（`:focus-visible` で `outline: 2px solid $color-primary; outline-offset: 2px;`）で付ける。
+
+## クラス管理のタブ（`classroom-modal/classroom-tab.jsx`）
+
+スモウルビー独自。クラス管理は Google Classroom と同じ**下に線**のタブにする（上のエディターのタブの形ではない）。クラスの中の［ストリーム］［授業］、課題の［説明］［メンバー］［進み具合］、みんなの課題の［すべて］［自分の投稿］が使う。
+
+| 状態 | 値 | トークン |
+|---|---|---|
+| 並び（`.tab-list`・`role="tablist"`） | 横に並べて下にそろえる・タブの間 0.25rem・下に `1px solid $color-border` の線・下の余白 0.75rem。右端に「⋮」などを置くときはこの並びの中に `margin-left: auto` で置く | `$color-border` |
+| ふつう（`.tab`） | 地と枠なし・下に透明な 3px の線・余白 `0.5rem 1rem`・文字 14px の太字 `$color-text` | `$size-tab-indicator`・`$font-size-medium`・`$font-weight-bold`・`$color-text` |
+| ホバー | 文字 `$color-action` | `$color-action` |
+| 選ばれた（`.tab-selected`・`aria-selected="true"`） | 文字と下の 3px の線を `$color-action` に（並びの 1px の線に重ねる） | `$color-action`・`$size-tab-indicator` |
+| フォーカス | `:focus-visible` で `outline: 2px solid $color-action; outline-offset: -2px`（並びの線と重ならないよう内側） | |
+| 押した・押せない | — | |

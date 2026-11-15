@@ -17,6 +17,7 @@ import { buildStreamEvents } from '../../lib/classroom-stream.js';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
+import ClassroomTab from './classroom-tab.jsx';
 import ErrorDisplay from './error-display.jsx';
 import SharedAssignmentCatalog from './shared-assignment-catalog.jsx';
 import TeacherPasscodeImport from './teacher-passcode-import.jsx';
@@ -993,34 +994,28 @@ const TeacherAssignmentBoard = ({
                 <React.Fragment>
                     {/* クラス名は独立行（省略しない）。その下に［ストリーム］［授業］のタブ。 */}
                     <h2 className={styles.boardTitle}>{formatClassLabel(group)}</h2>
-                    <div className={styles.boardTabs} role="tablist">
-                        <button
-                            aria-selected={tab === 'stream'}
-                            className={tab === 'stream' ? styles.boardTabActive : styles.boardTab}
-                            data-testid="classroom-board-tab-stream"
-                            role="tab"
-                            type="button"
+                    <div className={styles.tabList} role="tablist">
+                        <ClassroomTab
+                            dataTestId="classroom-board-tab-stream"
+                            selected={tab === 'stream'}
                             onClick={handleSelectStream}
                         >
                             <FormattedMessage {...tabMessages.stream} />
-                        </button>
-                        <button
-                            aria-selected={tab === 'classwork'}
-                            className={tab === 'classwork' ? styles.boardTabActive : styles.boardTab}
-                            data-testid="classroom-board-tab-classwork"
-                            role="tab"
-                            type="button"
+                        </ClassroomTab>
+                        <ClassroomTab
+                            dataTestId="classroom-board-tab-classwork"
+                            selected={tab === 'classwork'}
                             onClick={handleSelectClasswork}
                         >
                             <FormattedMessage {...tabMessages.classwork} />
-                        </button>
+                        </ClassroomTab>
                     </div>
                     {tab === 'classwork' ? (
                         // R2: 主ボタンは［＋ 作成 ▾］1 つ。作り方は毎回選んでもらう（先生ごとに
                         // 使う作り方が違うため決め打ちしない）。まれな一括 DL は⋮へ。
                         <div className={styles.boardHeader}>
                             <BoardMenu
-                                buttonClassName={styles.boardCreateButton}
+                                buttonClassName={styles.primaryButton}
                                 disabled={isLoading}
                                 label={
                                     <FormattedMessage
