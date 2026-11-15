@@ -69,15 +69,10 @@ const TeacherMemberDetail = ({
         }
     }, [selectedMember, memberMap]);
 
-    const handleOpenClick = useCallback(
-        (e) => {
-            const projectUrl = e.currentTarget.dataset.projectUrl;
-            if (projectUrl) {
-                onOpenSubmission(projectUrl);
-            }
-        },
-        [onOpenSubmission],
-    );
+    const handleOpenClick = useCallback(() => {
+        const projectUrl = selectedMember && memberMap[selectedMember]?.projectUrl;
+        if (projectUrl) onOpenSubmission(projectUrl);
+    }, [selectedMember, memberMap, onOpenSubmission]);
 
     // ⋮ の［退室させる］は確認を開くだけ。確認の［退室させる］で退室させる（#1923 C3）。
     const handleRemoveClick = useCallback(() => setConfirmingRemove(true), []);
@@ -407,10 +402,10 @@ const TeacherMemberDetail = ({
                             </span>
                         )}
                         {selectedMemberData.projectUrl && (
-                            <button
-                                className={styles.primaryButton}
-                                data-project-url={selectedMemberData.projectUrl}
-                                data-testid="classroom-member-detail-open"
+                            /* A secondary button: the main one of this pane is［返却］(R2・#1961). */
+                            <ClassroomButton
+                                className={styles.memberDetailOpenButton}
+                                dataTestId="classroom-member-detail-open"
                                 disabled={isLoading}
                                 onClick={handleOpenClick}
                             >
@@ -419,7 +414,7 @@ const TeacherMemberDetail = ({
                                     description="Open student submission button"
                                     id="gui.classroom.teacherDetail.openSubmission"
                                 />
-                            </button>
+                            </ClassroomButton>
                         )}
                         {/* Peer view (#1208): keep an inappropriate submission
                             out of what classmates can see. */}
@@ -461,10 +456,12 @@ const TeacherMemberDetail = ({
                                 value={commentText}
                                 onChange={handleCommentChange}
                             />
-                            <button
-                                className={styles.returnButton}
-                                data-testid="classroom-member-detail-return"
+                            {/* The main button of the seat detail (R2・#1961). */}
+                            <ClassroomButton
+                                className={styles.memberDetailReturnButton}
+                                dataTestId="classroom-member-detail-return"
                                 disabled={isLoading || selectedMemberData.isReturned}
+                                variant="primary"
                                 onClick={handleReturnClick}
                             >
                                 {selectedMemberData.isReturned ? (
@@ -480,7 +477,7 @@ const TeacherMemberDetail = ({
                                         id="gui.classroom.teacherDetail.returnSubmission"
                                     />
                                 )}
-                            </button>
+                            </ClassroomButton>
                         </div>
                     </div>
                 )}

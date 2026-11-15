@@ -19,7 +19,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-modal/       ← 生徒用 UI コンポーネント群
 │   │   │   │   ├── classroom-modal.jsx
 │   │   │   │   ├── classroom-modal.css
-│   │   │   │   ├── class-code-display.jsx ← 参加コード表示（全画面対応）
+│   │   │   │   ├── teacher-projection-view.jsx ← ［⛶ 映す］画面（参加コード・座席・数。プロジェクター用）
 │   │   │   │   ├── google-course-list.jsx ← GC コースタイルグリッド
 │   │   │   │   ├── kick-request-confirm-dialog.jsx ← 退室依頼ダイアログ (#692)
 │   │   │   │   ├── student-seat-selector.jsx ← 生徒の席選択（番号入力・案内・参加確認・依頼中表示）
@@ -236,7 +236,7 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 **プレゼンテーショナルコンポーネント** — 生徒フェーズの UI を描画。
 
 サブコンポーネント (同一ファイル内):
-- `ClassCodeDisplay` — 参加コード大画面表示 (Portal 使用)
+- `TeacherProjectionView` — ［⛶ 映す］画面（参加コード・座席・数を大きく。Portal 使用・名前は出さない）
 - `SeatGrid` — 座席グリッド
 - `MemberDetailPanel` — メンバー詳細パネル (右側)
 

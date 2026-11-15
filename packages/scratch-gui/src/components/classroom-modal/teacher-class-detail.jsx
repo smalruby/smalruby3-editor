@@ -2,7 +2,6 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import { sanitizeEntryName } from '../../lib/classroom-download-utils.js';
 import {
     canVerifyGoogleShare,
@@ -26,7 +25,7 @@ import { retentionLevel } from '../../lib/classroom-retention.js';
 import { findCourse } from '../../lib/lessons/courses.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
-import ClassCodeDisplay from './class-code-display.jsx';
+import ClassroomButton from './classroom-button.jsx';
 import classroomIconMessages from './classroom-icon-messages.js';
 import styles from './classroom-modal.css';
 import ClassroomStatusIcon, {
@@ -48,6 +47,7 @@ import SeatColorLegend, {
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherLessonProgress from './teacher-lesson-progress.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
+import TeacherProjectionView, { projectionMessages } from './teacher-projection-view.jsx';
 
 // Lesson assignments (#1602): the seat colour shows the lesson progress, so
 // the legend lists presence and leave requests (+ submission when work is
@@ -123,14 +123,9 @@ const TeacherClassDetail = ({
     onSetHiddenFromPeers,
     onDownloadAll,
     downloadProgress,
-    onShowCodeDisplay,
-    onCloseCodeDisplay,
     onCopyInviteLink,
-    onToggleCodeFullscreen,
     onShowPostAssignment,
     onUpdateAssignmentName,
-    codeDisplayClassroom,
-    codeDisplayFullscreen,
     kickRequestsBySeat,
     lessonProgress,
     onApproveKickRequest,
@@ -165,7 +160,10 @@ const TeacherClassDetail = ({
     const handleDescUseFile = descEditor.onUseFile;
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const deleteConfirmRef = useRef(null);
-    const [showCodeDisplay, setShowCodeDisplay] = useState(false);
+    // The［⛶ 映す］screen (#1961): drawn over the page while this detail stays
+    // mounted, so the members refresh keeps changing its seats. The stream's
+    // ［⛶ 全画面で映す］opens the detail with it (detailEntry.project).
+    const [projecting, setProjecting] = useState(Boolean(detailEntry && detailEntry.project));
     // The members tab is the entry view; the description tab only on the
     // first open of a just-created assignment (pickDetailEntryTab, #1199).
     const entryTab = (detailEntry && detailEntry.tab) || 'members';
@@ -196,7 +194,7 @@ const TeacherClassDetail = ({
         clearNameSavedTimer();
         setNameSaveStatus(null);
         setShowDeleteConfirm(false);
-        setShowCodeDisplay(false);
+        setProjecting(Boolean(detailEntry && detailEntry.project));
         setActiveTab(entryTab);
         setPreviewPage(0);
         if (onDetailTabChange) onDetailTabChange(entryTab);
@@ -350,10 +348,14 @@ const TeacherClassDetail = ({
         if (onVerifyGoogleCourseAccess) onVerifyGoogleCourseAccess(group);
     }, [onVerifyGoogleCourseAccess, group]);
 
-    const handleShowCode = useCallback(() => {
-        setShowCodeDisplay(true);
-        onShowCodeDisplay(selectedClassroom.classroomId);
-    }, [onShowCodeDisplay, selectedClassroom]);
+    // The seats come from the members tab's refresh (every 30 s while it is shown),
+    // so projecting shows the members tab underneath.
+    const handleProject = useCallback(() => {
+        setActiveTab('members');
+        if (onDetailTabChange) onDetailTabChange('members');
+        setProjecting(true);
+    }, [onDetailTabChange]);
+    const handleCloseProjection = useCallback(() => setProjecting(false), []);
 
     const [inviteCopied, setInviteCopied] = useState(false);
     const handleCopyInvite = useCallback(() => {
@@ -361,11 +363,6 @@ const TeacherClassDetail = ({
         setInviteCopied(true);
         setTimeout(() => setInviteCopied(false), 2000);
     }, [onCopyInviteLink, selectedClassroom]);
-
-    const handleCloseCode = useCallback(() => {
-        setShowCodeDisplay(false);
-        onCloseCodeDisplay();
-    }, [onCloseCodeDisplay]);
 
     const isSeated = useCallback((member) => isMemberSeated(member), []);
 
@@ -424,968 +421,905 @@ const TeacherClassDetail = ({
 
     return (
         <div className={styles.detailLayout} data-testid="classroom-phase-teacher-detail">
-            {showCodeDisplay ? (
-                codeDisplayFullscreen ? (
-                    <ClassCodeDisplay
-                        classroom={codeDisplayClassroom || selectedClassroom}
-                        isFullscreen
-                        onClose={handleCloseCode}
-                        onCopyInviteLink={onCopyInviteLink}
-                        onToggleFullscreen={onToggleCodeFullscreen}
-                    />
-                ) : (
-                    <div>
-                        <ClassCodeDisplay
-                            classroom={codeDisplayClassroom || selectedClassroom}
-                            onClose={handleCloseCode}
-                            onCopyInviteLink={onCopyInviteLink}
-                            onToggleFullscreen={onToggleCodeFullscreen}
-                        />
-                    </div>
-                )
-            ) : (
-                <React.Fragment>
-                    {!noBackButton && (
-                        <button className={styles.backLink} data-testid="classroom-back" onClick={onBack}>
-                            {'<'}{' '}
-                            <FormattedMessage
-                                defaultMessage="Back"
-                                description="Back button"
-                                id="gui.classroom.back"
-                            />
-                        </button>
-                    )}
-                    <div className={styles.detailTwoPaneLayout}>
-                        {/* Left pane */}
-                        <div className={styles.detailLeftPane}>
-                            <div
-                                className={classNames(
-                                    styles.teacherViewTitle,
-                                    compactHeader && styles.compactHeaderTitle,
-                                )}
-                                data-testid="classroom-detail-name"
-                            >
-                                {group ? formatClassLabel(group) : selectedClassroom.className}
-                            </div>
-
-                            {/* 課題名（左）と参加コード（右）を均等幅の 2 カラムに
+            {projecting ? (
+                <TeacherProjectionView
+                    classroom={selectedClassroom}
+                    group={group}
+                    lessonTiles={lessonTiles}
+                    members={members}
+                    submitsWork={submitsWork}
+                    onClose={handleCloseProjection}
+                />
+            ) : null}
+            {!noBackButton && (
+                <button className={styles.backLink} data-testid="classroom-back" onClick={onBack}>
+                    {'<'} <FormattedMessage defaultMessage="Back" description="Back button" id="gui.classroom.back" />
+                </button>
+            )}
+            <div className={styles.detailTwoPaneLayout}>
+                {/* Left pane */}
+                <div className={styles.detailLeftPane}>
+                    {/* 課題名（左）と参加コード（右）を均等幅の 2 カラムに
                                 分け、各カラムを 2 行に収める。参加コードカードが
                                 縦に伸びて全体が崩れるのを防ぐ。 */}
-                            {compactHeader ? (
-                                <div className={styles.compactCodeRow} data-testid="classroom-detail-compact-code">
+                    {compactHeader ? (
+                        <div className={styles.compactCodeRow} data-testid="classroom-detail-compact-code">
+                            <FormattedMessage
+                                defaultMessage="Join Code"
+                                description="Join code label"
+                                id="gui.classroom.joinCode.label"
+                            />
+                            {': '}
+                            <span className={styles.compactCodeValue} data-testid="classroom-detail-join-code">
+                                {selectedClassroom.joinCode.toLowerCase()}
+                            </span>
+                            <button
+                                className={styles.joinCodeAction}
+                                data-testid="classroom-detail-expand-code"
+                                title={intl.formatMessage({
+                                    id: 'gui.classroom.joinCode.fullscreen',
+                                    defaultMessage: 'Show fullscreen',
+                                    description: 'Fullscreen the join code',
+                                })}
+                                type="button"
+                                onClick={handleProject}
+                            >
+                                <span aria-hidden="true" className={styles.joinCodeIcon}>
+                                    {'⛶'}
+                                </span>
+                                {intl.formatMessage(classroomIconMessages.fullscreen)}
+                            </button>
+                        </div>
+                    ) : (
+                        <div className={styles.nameCodeRow}>
+                            {/* 左: 課題名。1 行の入力欄（#1303 D3）。カーソルがある間は
+                                    欄の下に保存のしかた、保存後は欄の横に結果を出す（#1388）。 */}
+                            <div className={styles.nameCol}>
+                                <label className={styles.assignmentNameLabel} htmlFor={nameInputId}>
                                     <FormattedMessage
-                                        defaultMessage="Join Code"
-                                        description="Join code label"
-                                        id="gui.classroom.joinCode.label"
+                                        defaultMessage="Assignment Name"
+                                        description="Assignment name label in class detail"
+                                        id="gui.classroom.teacherDetail.assignmentNameLabel"
                                     />
                                     {': '}
-                                    <span
-                                        className={styles.compactCodeValue}
-                                        data-testid="classroom-detail-join-code"
-                                    >
-                                        {selectedClassroom.joinCode.toLowerCase()}
-                                    </span>
-                                    <button
-                                        className={styles.joinCodeAction}
-                                        data-testid="classroom-detail-expand-code"
-                                        title={intl.formatMessage({
-                                            id: 'gui.classroom.joinCode.fullscreen',
-                                            defaultMessage: 'Show fullscreen',
-                                            description: 'Fullscreen the join code',
-                                        })}
-                                        type="button"
-                                        onClick={handleShowCode}
-                                    >
-                                        <span aria-hidden="true" className={styles.joinCodeIcon}>
-                                            {'⛶'}
-                                        </span>
-                                        {intl.formatMessage(classroomIconMessages.fullscreen)}
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className={styles.nameCodeRow}>
-                                    {/* 左: 課題名。1 行の入力欄（#1303 D3）。カーソルがある間は
-                                    欄の下に保存のしかた、保存後は欄の横に結果を出す（#1388）。 */}
-                                    <div className={styles.nameCol}>
-                                        <label className={styles.assignmentNameLabel} htmlFor={nameInputId}>
+                                </label>
+                                <div className={styles.assignmentNameField}>
+                                    <input
+                                        className={styles.assignmentNameInput}
+                                        data-testid="classroom-detail-assignment-name"
+                                        id={nameInputId}
+                                        maxLength={50}
+                                        type="text"
+                                        value={editAssignmentName}
+                                        onBlur={handleAssignmentNameBlur}
+                                        onChange={handleAssignmentNameChange}
+                                        onFocus={handleAssignmentNameFocus}
+                                        onKeyDown={handleAssignmentNameKeyDown}
+                                    />
+                                    {nameFocused && (
+                                        <div
+                                            className={styles.assignmentNameSaveHint}
+                                            data-testid="classroom-detail-assignment-name-save-hint"
+                                        >
                                             <FormattedMessage
-                                                defaultMessage="Assignment Name"
-                                                description="Assignment name label in class detail"
-                                                id="gui.classroom.teacherDetail.assignmentNameLabel"
+                                                defaultMessage="Press Enter or click outside the field to save"
+                                                description="Shown under the assignment name field while it is focused: how the name is saved"
+                                                id="gui.classroom.teacherDetail.assignmentNameSaveHint"
                                             />
-                                            {': '}
-                                        </label>
-                                        <div className={styles.assignmentNameField}>
-                                            <input
-                                                className={styles.assignmentNameInput}
-                                                data-testid="classroom-detail-assignment-name"
-                                                id={nameInputId}
-                                                maxLength={50}
-                                                type="text"
-                                                value={editAssignmentName}
-                                                onBlur={handleAssignmentNameBlur}
-                                                onChange={handleAssignmentNameChange}
-                                                onFocus={handleAssignmentNameFocus}
-                                                onKeyDown={handleAssignmentNameKeyDown}
-                                            />
-                                            {nameFocused && (
-                                                <div
-                                                    className={styles.assignmentNameSaveHint}
-                                                    data-testid="classroom-detail-assignment-name-save-hint"
-                                                >
-                                                    <FormattedMessage
-                                                        defaultMessage="Press Enter or click outside the field to save"
-                                                        description="Shown under the assignment name field while it is focused: how the name is saved"
-                                                        id="gui.classroom.teacherDetail.assignmentNameSaveHint"
-                                                    />
-                                                </div>
-                                            )}
                                         </div>
-                                        {nameSaveStatus === 'saved' && (
-                                            <span
-                                                className={styles.assignmentNameSaved}
-                                                data-testid="classroom-detail-assignment-name-saved"
-                                                role="status"
-                                            >
-                                                {'✓ '}
-                                                <FormattedMessage
-                                                    defaultMessage="Saved"
-                                                    description="Shown next to the assignment name for a moment after it was saved"
-                                                    id="gui.classroom.teacherDetail.assignmentNameSaved"
-                                                />
-                                            </span>
-                                        )}
-                                        {nameSaveStatus === 'error' && (
-                                            <span
-                                                className={styles.assignmentNameSaveError}
-                                                data-testid="classroom-detail-assignment-name-save-error"
-                                                role="alert"
-                                            >
-                                                <FormattedMessage
-                                                    defaultMessage="Couldn't save"
-                                                    description="Shown next to the assignment name when saving it failed"
-                                                    id="gui.classroom.teacherDetail.assignmentNameSaveFailed"
-                                                />
-                                            </span>
-                                        )}
-                                    </div>
+                                    )}
+                                </div>
+                                {nameSaveStatus === 'saved' && (
+                                    <span
+                                        className={styles.assignmentNameSaved}
+                                        data-testid="classroom-detail-assignment-name-saved"
+                                        role="status"
+                                    >
+                                        {'✓ '}
+                                        <FormattedMessage
+                                            defaultMessage="Saved"
+                                            description="Shown next to the assignment name for a moment after it was saved"
+                                            id="gui.classroom.teacherDetail.assignmentNameSaved"
+                                        />
+                                    </span>
+                                )}
+                                {nameSaveStatus === 'error' && (
+                                    <span
+                                        className={styles.assignmentNameSaveError}
+                                        data-testid="classroom-detail-assignment-name-save-error"
+                                        role="alert"
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Couldn't save"
+                                            description="Shown next to the assignment name when saving it failed"
+                                            id="gui.classroom.teacherDetail.assignmentNameSaveFailed"
+                                        />
+                                    </span>
+                                )}
+                            </div>
 
-                                    {/* 右: 参加コードカード。コードとボタンを 1 つの
+                            {/* 右: 参加コードカード。コードとボタンを 1 つの
                                     flex flow に並べ、同じ行から始めることで 3 つの
                                     ボタンが 2 行に収まる。狭い幅では全画面表示・招待
                                     リンクコピーをアイコンのみ、GC 共有を短縮表示。 */}
-                                    <div className={styles.joinCodeCard}>
-                                        <span className={styles.joinCodeCodePart}>
-                                            <span className={styles.joinCodeLabel}>
-                                                <FormattedMessage
-                                                    defaultMessage="Join Code"
-                                                    description="Join code label"
-                                                    id="gui.classroom.joinCode.label"
-                                                />
-                                                {': '}
-                                            </span>
-                                            <span
-                                                className={styles.joinCodeValue}
-                                                data-testid="classroom-detail-join-code"
-                                            >
-                                                {selectedClassroom.joinCode.toLowerCase()}
-                                            </span>
-                                        </span>
-                                        {/* 全画面表示: アイコンの横に「全画面」の文字（#1924 C11） */}
-                                        <button
-                                            className={styles.joinCodeAction}
-                                            data-testid="classroom-detail-expand-code"
-                                            title={intl.formatMessage({
-                                                id: 'gui.classroom.joinCode.fullscreen',
-                                                defaultMessage: 'Show fullscreen',
-                                                description: 'Fullscreen the join code',
-                                            })}
-                                            type="button"
-                                            onClick={handleShowCode}
-                                        >
-                                            <span aria-hidden="true" className={styles.joinCodeIcon}>
-                                                {'⛶'}
-                                            </span>
-                                            {intl.formatMessage(classroomIconMessages.fullscreen)}
-                                        </button>
-                                        {/* 招待リンクをコピー: アイコンのみ。クリックすると
+                            <div className={styles.joinCodeCard}>
+                                <span className={styles.joinCodeCodePart}>
+                                    <span className={styles.joinCodeLabel}>
+                                        <FormattedMessage
+                                            defaultMessage="Join Code"
+                                            description="Join code label"
+                                            id="gui.classroom.joinCode.label"
+                                        />
+                                        {': '}
+                                    </span>
+                                    <span className={styles.joinCodeValue} data-testid="classroom-detail-join-code">
+                                        {selectedClassroom.joinCode.toLowerCase()}
+                                    </span>
+                                </span>
+                                {/* 全画面表示: アイコンの横に「全画面」の文字（#1924 C11） */}
+                                <button
+                                    className={styles.joinCodeAction}
+                                    data-testid="classroom-detail-expand-code"
+                                    title={intl.formatMessage({
+                                        id: 'gui.classroom.joinCode.fullscreen',
+                                        defaultMessage: 'Show fullscreen',
+                                        description: 'Fullscreen the join code',
+                                    })}
+                                    type="button"
+                                    onClick={handleProject}
+                                >
+                                    <span aria-hidden="true" className={styles.joinCodeIcon}>
+                                        {'⛶'}
+                                    </span>
+                                    {intl.formatMessage(classroomIconMessages.fullscreen)}
+                                </button>
+                                {/* 招待リンクをコピー: アイコンのみ。クリックすると
                                             アイコンがチェックに変わり、コピー完了を示す。 */}
-                                        <button
-                                            className={classNames(styles.joinCodeAction, {
-                                                [styles.joinCodeActionCopied]: inviteCopied,
-                                            })}
-                                            data-testid="classroom-detail-copy-link"
-                                            title={intl.formatMessage(
-                                                inviteCopied
-                                                    ? {
-                                                          id: 'gui.classroom.codeDisplay.copied',
-                                                          defaultMessage: 'Copied',
-                                                          description: 'Confirmation after copying invite link',
-                                                      }
-                                                    : {
-                                                          id: 'gui.classroom.codeDisplay.copyLink',
-                                                          defaultMessage: 'Copy invite link',
-                                                          description: 'Button to copy classroom invite link',
-                                                      },
-                                            )}
-                                            type="button"
-                                            onClick={handleCopyInvite}
+                                <button
+                                    className={classNames(styles.joinCodeAction, {
+                                        [styles.joinCodeActionCopied]: inviteCopied,
+                                    })}
+                                    data-testid="classroom-detail-copy-link"
+                                    title={intl.formatMessage(
+                                        inviteCopied
+                                            ? {
+                                                  id: 'gui.classroom.codeDisplay.copied',
+                                                  defaultMessage: 'Copied',
+                                                  description: 'Confirmation after copying invite link',
+                                              }
+                                            : {
+                                                  id: 'gui.classroom.codeDisplay.copyLink',
+                                                  defaultMessage: 'Copy invite link',
+                                                  description: 'Button to copy classroom invite link',
+                                              },
+                                    )}
+                                    type="button"
+                                    onClick={handleCopyInvite}
+                                >
+                                    {inviteCopied ? (
+                                        <svg
+                                            className={styles.joinCodeIcon}
+                                            fill="none"
+                                            height="15"
+                                            stroke="currentColor"
+                                            strokeWidth="2.5"
+                                            viewBox="0 0 24 24"
+                                            width="15"
                                         >
-                                            {inviteCopied ? (
-                                                <svg
-                                                    className={styles.joinCodeIcon}
-                                                    fill="none"
-                                                    height="15"
-                                                    stroke="currentColor"
-                                                    strokeWidth="2.5"
-                                                    viewBox="0 0 24 24"
-                                                    width="15"
-                                                >
-                                                    <path d="M20 6L9 17l-5-5" />
-                                                </svg>
-                                            ) : (
-                                                <svg
-                                                    className={styles.joinCodeIcon}
-                                                    fill="none"
-                                                    height="15"
-                                                    stroke="currentColor"
-                                                    strokeWidth="2"
-                                                    viewBox="0 0 24 24"
-                                                    width="15"
-                                                >
-                                                    <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
-                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                                </svg>
-                                            )}
-                                        </button>
-                                        {/* Google Classroom linkage lives on the class
+                                            <path d="M20 6L9 17l-5-5" />
+                                        </svg>
+                                    ) : (
+                                        <svg
+                                            className={styles.joinCodeIcon}
+                                            fill="none"
+                                            height="15"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            viewBox="0 0 24 24"
+                                            width="15"
+                                        >
+                                            <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                        </svg>
+                                    )}
+                                </button>
+                                {/* Google Classroom linkage lives on the class
                                             (group), so an assignment posts to the group's
                                             course even without its own courseId. ボタンは
                                             幅に関わらず "[アイコン]に共有" の短縮表示で固定。 */}
-                                        {(selectedClassroom.googleClassroomCourseId ||
-                                            (group && group.googleClassroomCourseId)) &&
-                                            (selectedClassroom.googleClassroomAlternateLink ? (
-                                                <a
-                                                    className={classNames(
-                                                        styles.joinCodeAction,
-                                                        styles.joinCodeActionGc,
-                                                    )}
-                                                    data-testid="classroom-view-assignment"
-                                                    href={selectedClassroom.googleClassroomAlternateLink}
-                                                    rel="noopener noreferrer"
-                                                    target="_blank"
-                                                >
-                                                    <img
-                                                        alt=""
-                                                        className={styles.gcImportIcon}
-                                                        src={googleClassroomIcon}
-                                                    />
-                                                    <span className={styles.joinCodeGcLabel}>
-                                                        <FormattedMessage
-                                                            defaultMessage="Open"
-                                                            description="Short label (icon shows Google Classroom) to open the assignment"
-                                                            id="gui.classroom.joinCode.openInGcShort"
-                                                        />
-                                                    </span>
-                                                </a>
-                                            ) : (
-                                                <button
-                                                    className={classNames(
-                                                        styles.joinCodeAction,
-                                                        styles.joinCodeActionGc,
-                                                    )}
-                                                    data-testid="classroom-post-assignment"
-                                                    disabled={gcShareBlocked}
-                                                    title={gcShareBlockedText || null}
-                                                    type="button"
-                                                    onClick={onShowPostAssignment}
-                                                >
-                                                    <img
-                                                        alt=""
-                                                        className={styles.gcImportIcon}
-                                                        src={googleClassroomIcon}
-                                                    />
-                                                    <span className={styles.joinCodeGcLabel}>
-                                                        <FormattedMessage
-                                                            defaultMessage="Share join code"
-                                                            description="Short label (icon shows Google Classroom) to share the join code"
-                                                            id="gui.classroom.joinCode.shareToGcShort"
-                                                        />
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        {/* 共有できない理由（GC コースの教師ではない共同担当）
+                                {(selectedClassroom.googleClassroomCourseId ||
+                                    (group && group.googleClassroomCourseId)) &&
+                                    (selectedClassroom.googleClassroomAlternateLink ? (
+                                        <a
+                                            className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
+                                            data-testid="classroom-view-assignment"
+                                            href={selectedClassroom.googleClassroomAlternateLink}
+                                            rel="noopener noreferrer"
+                                            target="_blank"
+                                        >
+                                            <img alt="" className={styles.gcImportIcon} src={googleClassroomIcon} />
+                                            <span className={styles.joinCodeGcLabel}>
+                                                <FormattedMessage
+                                                    defaultMessage="Open"
+                                                    description="Short label (icon shows Google Classroom) to open the assignment"
+                                                    id="gui.classroom.joinCode.openInGcShort"
+                                                />
+                                            </span>
+                                        </a>
+                                    ) : (
+                                        <button
+                                            className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
+                                            data-testid="classroom-post-assignment"
+                                            disabled={gcShareBlocked}
+                                            title={gcShareBlockedText || null}
+                                            type="button"
+                                            onClick={onShowPostAssignment}
+                                        >
+                                            <img alt="" className={styles.gcImportIcon} src={googleClassroomIcon} />
+                                            <span className={styles.joinCodeGcLabel}>
+                                                <FormattedMessage
+                                                    defaultMessage="Share join code"
+                                                    description="Short label (icon shows Google Classroom) to share the join code"
+                                                    id="gui.classroom.joinCode.shareToGcShort"
+                                                />
+                                            </span>
+                                        </button>
+                                    ))}
+                                {/* 共有できない理由（GC コースの教師ではない共同担当）
                                         をボタンの近くに出す。本当に GC の共同教師である
                                         先生だけが「確認する」で自分で解除できる。#1184 */}
-                                        {gcShareBlocked && (
-                                            <div
-                                                className={styles.joinCodeGcBlockedNote}
-                                                data-testid="classroom-post-assignment-blocked"
+                                {gcShareBlocked && (
+                                    <div
+                                        className={styles.joinCodeGcBlockedNote}
+                                        data-testid="classroom-post-assignment-blocked"
+                                    >
+                                        {gcShareBlockedText}
+                                        {gcCanVerify && (
+                                            <button
+                                                className={styles.joinCodeGcVerifyButton}
+                                                data-testid="classroom-post-assignment-verify"
+                                                disabled={isVerifyingGoogleCourseAccess}
+                                                type="button"
+                                                onClick={handleVerifyGcAccess}
                                             >
-                                                {gcShareBlockedText}
-                                                {gcCanVerify && (
-                                                    <button
-                                                        className={styles.joinCodeGcVerifyButton}
-                                                        data-testid="classroom-post-assignment-verify"
-                                                        disabled={isVerifyingGoogleCourseAccess}
-                                                        type="button"
-                                                        onClick={handleVerifyGcAccess}
-                                                    >
-                                                        {isVerifyingGoogleCourseAccess ? (
-                                                            <FormattedMessage
-                                                                defaultMessage="Checking…"
-                                                                description="Label while checking the teacher's Google Classroom access"
-                                                                id="gui.classroom.googleShare.verifying"
-                                                            />
-                                                        ) : (
-                                                            <FormattedMessage
-                                                                defaultMessage="I am a teacher of this Google Classroom class (check)"
-                                                                description="Button that lets a Google Classroom co-teacher prove their access and share"
-                                                                id="gui.classroom.googleShare.verify"
-                                                            />
-                                                        )}
-                                                    </button>
+                                                {isVerifyingGoogleCourseAccess ? (
+                                                    <FormattedMessage
+                                                        defaultMessage="Checking…"
+                                                        description="Label while checking the teacher's Google Classroom access"
+                                                        id="gui.classroom.googleShare.verifying"
+                                                    />
+                                                ) : (
+                                                    <FormattedMessage
+                                                        defaultMessage="I am a teacher of this Google Classroom class (check)"
+                                                        description="Button that lets a Google Classroom co-teacher prove their access and share"
+                                                        id="gui.classroom.googleShare.verify"
+                                                    />
                                                 )}
-                                            </div>
+                                            </button>
                                         )}
                                     </div>
-                                </div>
-                            )}
-                            {/* 保存期限（#1303 D1・R4）: ふだんは灰色の小さな 1 行。
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    {/* 保存期限（#1303 D1・R4）: ふだんは灰色の小さな 1 行。
                                 残り 7 日以内のときだけ赤い警告と「全作品ダウンロード」を
                                 日付の右に出す（課題一覧の行と同じ扱い）。狭い幅では
                                 「ダウンロードして保存してください」を省略する。 */}
-                            {selectedClassroom.expiresAt && (!compactHeader || retentionUrgent) && (
-                                <div
-                                    className={classNames(styles.expiresAtText, {
-                                        [styles.expiresAtWarning]: retentionUrgent,
-                                    })}
-                                    data-testid="classroom-detail-expires-at"
-                                >
-                                    <span className={styles.expiresAtDate}>
+                    {selectedClassroom.expiresAt && (!compactHeader || retentionUrgent) && (
+                        <div
+                            className={classNames(styles.expiresAtText, {
+                                [styles.expiresAtWarning]: retentionUrgent,
+                            })}
+                            data-testid="classroom-detail-expires-at"
+                        >
+                            <span className={styles.expiresAtDate}>
+                                <FormattedMessage
+                                    defaultMessage="Kept until: {date}"
+                                    description="Retention deadline in assignment detail"
+                                    id="gui.classroom.teacherDetail.expiresAt"
+                                    values={{
+                                        date: new Date(selectedClassroom.expiresAt).toLocaleDateString(),
+                                    }}
+                                />
+                            </span>
+                            {retentionUrgent && (
+                                <span className={styles.expiresAtAlert} data-testid="classroom-retention-banner">
+                                    <span className={styles.expiresAtAlertMark}>{'⚠'}</span>
+                                    <FormattedMessage
+                                        defaultMessage={
+                                            'Once the deadline passes, this assignment ' +
+                                            'and its submissions are deleted automatically.'
+                                        }
+                                        description="Inline retention warning next to the deadline"
+                                        id="gui.classroom.teacherDetail.retentionInline"
+                                    />
+                                    <span className={styles.expiresAtHint}>
                                         <FormattedMessage
-                                            defaultMessage="Kept until: {date}"
-                                            description="Retention deadline in assignment detail"
-                                            id="gui.classroom.teacherDetail.expiresAt"
-                                            values={{
-                                                date: new Date(selectedClassroom.expiresAt).toLocaleDateString(),
-                                            }}
+                                            defaultMessage="Download them to keep a copy."
+                                            description="Retention hint omitted on narrow widths"
+                                            id="gui.classroom.teacherDetail.retentionInlineHint"
                                         />
                                     </span>
-                                    {retentionUrgent && (
-                                        <span
-                                            className={styles.expiresAtAlert}
-                                            data-testid="classroom-retention-banner"
-                                        >
-                                            <span className={styles.expiresAtAlertMark}>{'⚠'}</span>
-                                            <FormattedMessage
-                                                defaultMessage={
-                                                    'Once the deadline passes, this assignment ' +
-                                                    'and its submissions are deleted automatically.'
-                                                }
-                                                description="Inline retention warning next to the deadline"
-                                                id="gui.classroom.teacherDetail.retentionInline"
-                                            />
-                                            <span className={styles.expiresAtHint}>
-                                                <FormattedMessage
-                                                    defaultMessage="Download them to keep a copy."
-                                                    description="Retention hint omitted on narrow widths"
-                                                    id="gui.classroom.teacherDetail.retentionInlineHint"
-                                                />
-                                            </span>
-                                            <button
-                                                className={styles.expiresAtDownload}
-                                                data-testid="classroom-retention-banner-download"
-                                                disabled={isLoading || !!downloadProgress}
-                                                type="button"
-                                                onClick={onDownloadAll}
-                                            >
-                                                <FormattedMessage
-                                                    defaultMessage="Download All"
-                                                    description="Download all submissions button"
-                                                    id="gui.classroom.teacherDetail.downloadAll"
-                                                />
-                                            </button>
-                                        </span>
-                                    )}
-                                </div>
+                                    <button
+                                        className={styles.expiresAtDownload}
+                                        data-testid="classroom-retention-banner-download"
+                                        disabled={isLoading || !!downloadProgress}
+                                        type="button"
+                                        onClick={onDownloadAll}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Download All"
+                                            description="Download all submissions button"
+                                            id="gui.classroom.teacherDetail.downloadAll"
+                                        />
+                                    </button>
+                                </span>
                             )}
+                        </div>
+                    )}
 
-                            {/* 共有推奨バナー (#1106): 運営が「みんなの課題に
+                    {/* 共有推奨バナー (#1106): 運営が「みんなの課題に
                                 共有する価値がある」と判断した課題。公開は
                                 CC BY 同意を伴う先生本人の共有フローのみ。
                                 hasAssignment ゲートはボード行の共有ボタンと同じ
                                 (中身が無いと共有 API がエラーになる — 推奨後に
                                 先生が説明を空にしたケースもここで吸収)。 */}
-                            {selectedClassroom.recommendedForSharing &&
-                                selectedClassroom.hasAssignment &&
-                                onOpenShareSuggestion && (
-                                    <div
-                                        className={styles.shareSuggestionBanner}
-                                        data-testid="classroom-share-suggestion-banner"
-                                    >
-                                        <span className={styles.shareSuggestionText}>
-                                            <FormattedMessage
-                                                defaultMessage="Why not share this assignment to みんなの課題? Operators picked it as worth sharing with teachers nationwide."
-                                                description="Banner prompting the teacher to share an operator-recommended assignment (#1106)"
-                                                id="gui.classroom.teacherDetail.shareSuggestion"
-                                            />
-                                        </span>
-                                        <button
-                                            className={styles.shareSuggestionButton}
-                                            data-testid="classroom-share-suggestion-open"
-                                            type="button"
-                                            onClick={onOpenShareSuggestion}
+                    {selectedClassroom.recommendedForSharing &&
+                        selectedClassroom.hasAssignment &&
+                        onOpenShareSuggestion && (
+                            <div
+                                className={styles.shareSuggestionBanner}
+                                data-testid="classroom-share-suggestion-banner"
+                            >
+                                <span className={styles.shareSuggestionText}>
+                                    <FormattedMessage
+                                        defaultMessage="Why not share this assignment to みんなの課題? Operators picked it as worth sharing with teachers nationwide."
+                                        description="Banner prompting the teacher to share an operator-recommended assignment (#1106)"
+                                        id="gui.classroom.teacherDetail.shareSuggestion"
+                                    />
+                                </span>
+                                <button
+                                    className={styles.shareSuggestionButton}
+                                    data-testid="classroom-share-suggestion-open"
+                                    type="button"
+                                    onClick={onOpenShareSuggestion}
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Open the share form"
+                                        description="Banner CTA that opens the existing share flow (#1106)"
+                                        id="gui.classroom.teacherDetail.shareSuggestionOpen"
+                                    />
+                                </button>
+                            </div>
+                        )}
+
+                    {/* Tabs: Description / Members (/ Progress). ［⛶ 映す］and ⋮ are
+                        buttons, not tabs: same row, outside the tablist (#1958 Q3). */}
+                    <div className={styles.classTabsRow}>
+                        <div className={styles.tabList} role="tablist">
+                            <ClassroomTab
+                                dataTab="description"
+                                dataTestId="classroom-tab-description"
+                                selected={activeTab === 'description'}
+                                onClick={handleTabClick}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Description"
+                                    description="Assignment description tab label"
+                                    id="gui.classroom.teacherDetail.descriptionTab"
+                                />
+                            </ClassroomTab>
+                            <ClassroomTab
+                                dataTab="members"
+                                dataTestId="classroom-tab-members"
+                                selected={activeTab === 'members'}
+                                onClick={handleTabClick}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Members"
+                                    description="Members list title"
+                                    id="gui.classroom.members.title"
+                                />
+                            </ClassroomTab>
+                            {showProgressTab && (
+                                <ClassroomTab
+                                    dataTab="progress"
+                                    dataTestId="classroom-tab-progress"
+                                    selected={activeTab === 'progress'}
+                                    onClick={handleTabClick}
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Progress"
+                                        description="Tab of a lesson assignment: the seat × challenge progress table"
+                                        id="gui.classroom.teacherDetail.progressTab"
+                                    />
+                                </ClassroomTab>
+                            )}
+                        </div>
+                        {/* まれな操作は⋮の中（R2・#1303 D1）。ダウンロード中は
+                                    メニューが閉じるので、進み具合は⋮の横に出す。 */}
+                        <span className={classNames(styles.tabListEnd, styles.detailTabsMore)}>
+                            <ClassroomButton
+                                dataTestId="classroom-detail-project"
+                                variant="text"
+                                onClick={handleProject}
+                            >
+                                <span aria-hidden="true">{'⛶'}</span>
+                                <FormattedMessage {...projectionMessages.open} />
+                            </ClassroomButton>
+                            {downloadProgress ? (
+                                <span
+                                    className={styles.detailDownloadProgress}
+                                    data-testid="classroom-download-progress"
+                                >
+                                    {`${downloadProgress.current}/${downloadProgress.total}`}
+                                </span>
+                            ) : null}
+                            <BoardMenu
+                                alignRight
+                                ariaLabel={intl.formatMessage({
+                                    defaultMessage: 'More actions',
+                                    description: 'Accessible name of the ⋮ menu of the assignment detail',
+                                    id: 'gui.classroom.teacherDetail.moreMenu',
+                                })}
+                                buttonClassName={styles.boardKebab}
+                                label="⋮"
+                                testId="classroom-detail-more-menu"
+                            >
+                                {(close) => (
+                                    <React.Fragment>
+                                        {activeTab === 'progress' && lessonCtx && progressData ? (
+                                            <BoardMenuItem
+                                                close={close}
+                                                testId="classroom-lesson-progress-csv"
+                                                onSelect={handleDownloadProgressCsv}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Download the progress (CSV)"
+                                                    description="… menu of the progress tab: save the seat × challenge table as CSV"
+                                                    id="gui.classroom.teacherDetail.progressCsv"
+                                                />
+                                            </BoardMenuItem>
+                                        ) : null}
+                                        <BoardMenuItem
+                                            close={close}
+                                            disabled={isLoading || !!downloadProgress}
+                                            testId="classroom-download-all"
+                                            onSelect={onDownloadAll}
                                         >
                                             <FormattedMessage
-                                                defaultMessage="Open the share form"
-                                                description="Banner CTA that opens the existing share flow (#1106)"
-                                                id="gui.classroom.teacherDetail.shareSuggestionOpen"
+                                                defaultMessage="Download All"
+                                                description="Download all submissions button"
+                                                id="gui.classroom.teacherDetail.downloadAll"
+                                            />
+                                        </BoardMenuItem>
+                                        <BoardMenuItem
+                                            close={close}
+                                            disabled={isLoading}
+                                            testId="classroom-delete-classroom"
+                                            onSelect={handleDeleteClick}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Archive the assignment"
+                                                description="Archive assignment button (soft-delete, restorable)"
+                                                id="gui.classroom.teacherDetail.archiveClassroom"
+                                            />
+                                        </BoardMenuItem>
+                                    </React.Fragment>
+                                )}
+                            </BoardMenu>
+                        </span>
+                        {/* 共有導線はボード（課題一覧）の各行「共有」に一本化した
+                                    （#1109）。課題詳細タブ行の共有ボタンは廃止。 */}
+                    </div>
+
+                    {/* Description tab: the student-facing pages editor.
+                                Changes reach students only on save. */}
+                    {activeTab === 'description' && assignmentEditor && (
+                        <TeacherAssignmentEditor
+                            editorPages={descEditor.editorPages}
+                            error={null}
+                            errorTitle={null}
+                            hasExistingStarter={descEditor.hasExistingStarter}
+                            isSaving={descEditor.isSaving}
+                            savedSettings={descEditor.savedSettings}
+                            starterMode={descEditor.starterMode}
+                            starterSource={descEditor.starterSource}
+                            peerView={descEditor.peerView || 'none'}
+                            meshGroupLimit={descEditor.meshGroupLimit}
+                            lessonDraft={descEditor.lessonDraft || null}
+                            savedLesson={descEditor.savedLesson || null}
+                            descriptionQuestion={!!descEditor.descriptionQuestion}
+                            lessonPanelAutoOpen={!!descEditor.lessonPanelAutoOpen}
+                            onAnswerDescriptionQuestion={handleDescAnswerDescriptionQuestion}
+                            onChangeLesson={handleDescChangeLesson}
+                            onLessonPanelAutoOpened={handleDescLessonPanelAutoOpened}
+                            onLessonPanelClose={handleDescLessonPanelClose}
+                            onAddPage={handleDescAddPage}
+                            onAttachPageImage={handleDescAttachPageImage}
+                            onChangePageText={handleDescChangePageText}
+                            onMovePage={handleDescMovePage}
+                            onRemovePage={handleDescRemovePage}
+                            onRemovePageImage={handleDescRemovePageImage}
+                            onChangePeerView={handleDescChangePeerView}
+                            onChangeMeshGroupLimit={handleDescChangeMeshGroupLimit}
+                            onRemoveStarter={handleDescRemoveStarter}
+                            onSave={handleDescSave}
+                            onUseCurrentProject={handleDescUseCurrentProject}
+                            onUseFile={handleDescUseFile}
+                        />
+                    )}
+
+                    {/* Members tab: legend + count/refresh + seat grid */}
+                    {activeTab === 'members' && (
+                        <React.Fragment>
+                            <div className={styles.membersHeader}>
+                                <div className={styles.membersLegends}>
+                                    {/* 座席の色の意味（R5・#1303 D2）。アイコンの凡例より先に出す。
+                                                レッスンの課題では色は進み具合（#1602）。 */}
+                                    {lessonTiles ? (
+                                        <SeatColorLegend
+                                            items={LESSON_SEAT_COLOR_ITEMS}
+                                            testId="classroom-lesson-seat-legend"
+                                        >
+                                            <span className={styles.statusLegendItem}>
+                                                <span className={styles.lessonSeatStuckLegend}>{'!'}</span>
+                                                {intl.formatMessage(lessonSeatMessages.stuck)}
+                                            </span>
+                                        </SeatColorLegend>
+                                    ) : (
+                                        <SeatColorLegend
+                                            items={MEMBER_SEAT_COLOR_ITEMS}
+                                            testId="classroom-seat-color-legend"
+                                        />
+                                    )}
+                                    <ClassroomStatusLegend
+                                        className={styles.membersLegend}
+                                        statuses={
+                                            lessonTiles
+                                                ? submitsWork
+                                                    ? LESSON_SUBMIT_LEGEND_STATUSES
+                                                    : LESSON_LEGEND_STATUSES
+                                                : MEMBER_LEGEND_STATUSES
+                                        }
+                                    />
+                                </div>
+                                <div className={styles.membersHeaderRight}>
+                                    {lessonSummary ? (
+                                        <span
+                                            className={styles.lessonClearedSummary}
+                                            data-testid="classroom-lesson-cleared-summary"
+                                        >
+                                            {intl.formatMessage(lessonSeatMessages.clearedSummary, {
+                                                cleared: lessonSummary.cleared,
+                                                joined: lessonSummary.joined,
+                                            })}
+                                        </span>
+                                    ) : null}
+                                    <span className={styles.membersCount} data-testid="classroom-members-count">
+                                        {joinedCount}
+                                        {' / '}
+                                        {totalCount}
+                                    </span>
+                                    <button
+                                        aria-label={intl.formatMessage(classroomIconMessages.refresh)}
+                                        className={styles.refreshButton}
+                                        data-testid="classroom-refresh"
+                                        disabled={isLoading}
+                                        title={intl.formatMessage(classroomIconMessages.refresh)}
+                                        onClick={onRefresh}
+                                    >
+                                        {'↻'}
+                                    </button>
+                                </div>
+                            </div>
+                            {progressError ? (
+                                <p
+                                    className={styles.lessonProgressNotice}
+                                    data-testid="classroom-lesson-progress-error"
+                                >
+                                    {intl.formatMessage(lessonSeatMessages.loadError)}
+                                </p>
+                            ) : null}
+                            {progressLoading ? (
+                                <p
+                                    className={styles.lessonProgressNotice}
+                                    data-testid="classroom-lesson-progress-loading"
+                                >
+                                    {intl.formatMessage(lessonSeatMessages.loading)}
+                                </p>
+                            ) : (
+                                <div className={styles.membersGrid} data-testid="classroom-members-grid">
+                                    {Array.from({ length: totalCount }, (_, i) => {
+                                        const seatNum = i + 1;
+                                        const memberId = `seat-${String(seatNum).padStart(2, '0')}`;
+                                        const member = memberMap[memberId];
+                                        const isSelected = selectedMember === memberId;
+                                        const seated = member && isSeated(member);
+                                        const tile = lessonTiles ? lessonTiles[i] : null;
+                                        const seatColor = memberSeatColorKind(member);
+                                        const cellColorClass = tile
+                                            ? classNames(styles.lessonSeat, styles[LESSON_TILE_CLASSES[tile.state]])
+                                            : seatColorClass(styles, 'memberCell', seatColor);
+                                        const cellClass = classNames(
+                                            styles.memberCell,
+                                            cellColorClass,
+                                            isSelected && styles.memberCellSelected,
+                                            seated && styles.memberCellSeated,
+                                        );
+                                        const seatKickRequests =
+                                            (kickRequestsBySeat && kickRequestsBySeat[seatNum]) || [];
+                                        return (
+                                            <button
+                                                className={cellClass}
+                                                data-lesson-state={tile ? tile.state : null}
+                                                data-member-id={memberId}
+                                                data-seat-color={tile ? null : seatColor}
+                                                data-testid={`classroom-member-${memberId}`}
+                                                key={memberId}
+                                                onClick={handleCellClick}
+                                            >
+                                                {tile ? (
+                                                    <LessonSeatTile
+                                                        presence={getPresenceStatus(member, seated)}
+                                                        seatNumber={seatNum}
+                                                        submission={submitsWork ? getSubmissionStatus(member) : null}
+                                                        tile={tile}
+                                                    />
+                                                ) : (
+                                                    <React.Fragment>
+                                                        <span className={styles.memberCellNumber}>{seatNum}</span>
+                                                        <ClassroomStatusIcons
+                                                            className={styles.memberCellIcons}
+                                                            presence={getPresenceStatus(member, seated)}
+                                                            size={10}
+                                                            submission={getSubmissionStatus(member)}
+                                                        />
+                                                    </React.Fragment>
+                                                )}
+                                                {seatKickRequests.length > 0 && (
+                                                    <span
+                                                        className={styles.seatKickRequestBadge}
+                                                        data-testid={`classroom-seat-kick-request-${seatNum}`}
+                                                    >
+                                                        <ClassroomStatusIcon size={14} status="kickRequested" />
+                                                    </span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </React.Fragment>
+                    )}
+
+                    {/* Progress tab (#1602): seat × challenge table of a lesson assignment. */}
+                    {activeTab === 'progress' && showProgressTab && (
+                        <TeacherLessonProgress
+                            ctx={lessonCtx}
+                            status={progressLoading ? 'loading' : progressError ? 'error' : 'ready'}
+                            members={members}
+                            now={progressNow}
+                            rowsByMember={rowsByMember}
+                            selectedMember={selectedMember}
+                            studentCount={totalCount}
+                            onSelectSeat={onSelectMember}
+                        />
+                    )}
+
+                    {/* Archive confirmation (soft-delete, restorable — issue #1051).
+                                The action itself is in the ⋮ menu (#1303 D1).
+                                data-testids keep the historical "delete" names for E2E stability. */}
+                    {(error || showDeleteConfirm) && (
+                        <div className={styles.detailFooter}>
+                            <ErrorDisplay
+                                actionLabel={errorActionLabel}
+                                error={error}
+                                errorTitle={errorTitle}
+                                onAction={errorActionHandler}
+                            />
+                            {showDeleteConfirm ? (
+                                <div
+                                    className={classNames(styles.confirmNote, styles.deleteConfirmBox)}
+                                    ref={deleteConfirmRef}
+                                >
+                                    <div className={styles.deleteConfirmMessage}>
+                                        <FormattedMessage
+                                            defaultMessage="Archive this assignment? It disappears from the board, but you can restore it anytime from the archived assignments section."
+                                            description="Archive assignment confirmation message"
+                                            id="gui.classroom.teacherDetail.archiveConfirm"
+                                        />
+                                    </div>
+                                    <div className={styles.buttonRow}>
+                                        <button
+                                            className={styles.secondaryButton}
+                                            data-testid="classroom-delete-cancel"
+                                            onClick={handleDeleteCancel}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Cancel"
+                                                description="Cancel archiving the assignment"
+                                                id="gui.classroom.teacherDetail.archiveCancel"
+                                            />
+                                        </button>
+                                        {/* 戻せる操作なので赤にしない（R4・#1923 C2）。 */}
+                                        <button
+                                            className={styles.primaryButton}
+                                            data-testid="classroom-delete-confirm"
+                                            onClick={handleDeleteConfirm}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Archive"
+                                                description="Confirm archive assignment button"
+                                                id="gui.classroom.teacherDetail.archive"
                                             />
                                         </button>
                                     </div>
-                                )}
+                                </div>
+                            ) : null}
+                        </div>
+                    )}
+                </div>
 
-                            {/* Tabs: Description (default) / Members */}
-                            <div className={styles.tabList} role="tablist">
-                                <ClassroomTab
-                                    dataTab="description"
-                                    dataTestId="classroom-tab-description"
-                                    selected={activeTab === 'description'}
-                                    onClick={handleTabClick}
-                                >
-                                    <FormattedMessage
-                                        defaultMessage="Description"
-                                        description="Assignment description tab label"
-                                        id="gui.classroom.teacherDetail.descriptionTab"
-                                    />
-                                </ClassroomTab>
-                                <ClassroomTab
-                                    dataTab="members"
-                                    dataTestId="classroom-tab-members"
-                                    selected={activeTab === 'members'}
-                                    onClick={handleTabClick}
-                                >
-                                    <FormattedMessage
-                                        defaultMessage="Members"
-                                        description="Members list title"
-                                        id="gui.classroom.members.title"
-                                    />
-                                </ClassroomTab>
-                                {showProgressTab && (
-                                    <ClassroomTab
-                                        dataTab="progress"
-                                        dataTestId="classroom-tab-progress"
-                                        selected={activeTab === 'progress'}
-                                        onClick={handleTabClick}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Progress"
-                                            description="Tab of a lesson assignment: the seat × challenge progress table"
-                                            id="gui.classroom.teacherDetail.progressTab"
-                                        />
-                                    </ClassroomTab>
-                                )}
-                                {/* まれな操作は⋮の中（R2・#1303 D1）。ダウンロード中は
-                                    メニューが閉じるので、進み具合は⋮の横に出す。 */}
-                                <span className={styles.detailTabsMore}>
-                                    {downloadProgress ? (
-                                        <span
-                                            className={styles.detailDownloadProgress}
-                                            data-testid="classroom-download-progress"
+                {/* Right pane - member detail */}
+                <div className={styles.detailRightPane}>
+                    {activeTab === 'description' && assignmentEditor ? (
+                        <div className={styles.assignmentPreview} data-testid="classroom-description-preview">
+                            {(() => {
+                                const pages = descEditor.editorPages || [];
+                                // E3 (#1303): nothing written yet → one line, not an empty box.
+                                if (isAssignmentPreviewEmpty(pages)) {
+                                    return (
+                                        <p
+                                            className={styles.assignmentPreviewEmpty}
+                                            data-testid="classroom-description-preview-empty"
                                         >
-                                            {`${downloadProgress.current}/${downloadProgress.total}`}
-                                        </span>
-                                    ) : null}
-                                    <BoardMenu
-                                        alignRight
-                                        ariaLabel={intl.formatMessage({
-                                            defaultMessage: 'More actions',
-                                            description: 'Accessible name of the ⋮ menu of the assignment detail',
-                                            id: 'gui.classroom.teacherDetail.moreMenu',
-                                        })}
-                                        buttonClassName={styles.boardKebab}
-                                        label="⋮"
-                                        testId="classroom-detail-more-menu"
-                                    >
-                                        {(close) => (
-                                            <React.Fragment>
-                                                {activeTab === 'progress' && lessonCtx && progressData ? (
-                                                    <BoardMenuItem
-                                                        close={close}
-                                                        testId="classroom-lesson-progress-csv"
-                                                        onSelect={handleDownloadProgressCsv}
-                                                    >
-                                                        <FormattedMessage
-                                                            defaultMessage="Download the progress (CSV)"
-                                                            description="… menu of the progress tab: save the seat × challenge table as CSV"
-                                                            id="gui.classroom.teacherDetail.progressCsv"
-                                                        />
-                                                    </BoardMenuItem>
-                                                ) : null}
-                                                <BoardMenuItem
-                                                    close={close}
-                                                    disabled={isLoading || !!downloadProgress}
-                                                    testId="classroom-download-all"
-                                                    onSelect={onDownloadAll}
-                                                >
-                                                    <FormattedMessage
-                                                        defaultMessage="Download All"
-                                                        description="Download all submissions button"
-                                                        id="gui.classroom.teacherDetail.downloadAll"
-                                                    />
-                                                </BoardMenuItem>
-                                                <BoardMenuItem
-                                                    close={close}
-                                                    disabled={isLoading}
-                                                    testId="classroom-delete-classroom"
-                                                    onSelect={handleDeleteClick}
-                                                >
-                                                    <FormattedMessage
-                                                        defaultMessage="Archive the assignment"
-                                                        description="Archive assignment button (soft-delete, restorable)"
-                                                        id="gui.classroom.teacherDetail.archiveClassroom"
-                                                    />
-                                                </BoardMenuItem>
-                                            </React.Fragment>
-                                        )}
-                                    </BoardMenu>
-                                </span>
-                                {/* 共有導線はボード（課題一覧）の各行「共有」に一本化した
-                                    （#1109）。課題詳細タブ行の共有ボタンは廃止。 */}
-                            </div>
-
-                            {/* Description tab: the student-facing pages editor.
-                                Changes reach students only on save. */}
-                            {activeTab === 'description' && assignmentEditor && (
-                                <TeacherAssignmentEditor
-                                    editorPages={descEditor.editorPages}
-                                    error={null}
-                                    errorTitle={null}
-                                    hasExistingStarter={descEditor.hasExistingStarter}
-                                    isSaving={descEditor.isSaving}
-                                    savedSettings={descEditor.savedSettings}
-                                    starterMode={descEditor.starterMode}
-                                    starterSource={descEditor.starterSource}
-                                    peerView={descEditor.peerView || 'none'}
-                                    meshGroupLimit={descEditor.meshGroupLimit}
-                                    lessonDraft={descEditor.lessonDraft || null}
-                                    savedLesson={descEditor.savedLesson || null}
-                                    descriptionQuestion={!!descEditor.descriptionQuestion}
-                                    lessonPanelAutoOpen={!!descEditor.lessonPanelAutoOpen}
-                                    onAnswerDescriptionQuestion={handleDescAnswerDescriptionQuestion}
-                                    onChangeLesson={handleDescChangeLesson}
-                                    onLessonPanelAutoOpened={handleDescLessonPanelAutoOpened}
-                                    onLessonPanelClose={handleDescLessonPanelClose}
-                                    onAddPage={handleDescAddPage}
-                                    onAttachPageImage={handleDescAttachPageImage}
-                                    onChangePageText={handleDescChangePageText}
-                                    onMovePage={handleDescMovePage}
-                                    onRemovePage={handleDescRemovePage}
-                                    onRemovePageImage={handleDescRemovePageImage}
-                                    onChangePeerView={handleDescChangePeerView}
-                                    onChangeMeshGroupLimit={handleDescChangeMeshGroupLimit}
-                                    onRemoveStarter={handleDescRemoveStarter}
-                                    onSave={handleDescSave}
-                                    onUseCurrentProject={handleDescUseCurrentProject}
-                                    onUseFile={handleDescUseFile}
-                                />
-                            )}
-
-                            {/* Members tab: legend + count/refresh + seat grid */}
-                            {activeTab === 'members' && (
-                                <React.Fragment>
-                                    <div className={styles.membersHeader}>
-                                        <div className={styles.membersLegends}>
-                                            {/* 座席の色の意味（R5・#1303 D2）。アイコンの凡例より先に出す。
-                                                レッスンの課題では色は進み具合（#1602）。 */}
-                                            {lessonTiles ? (
-                                                <SeatColorLegend
-                                                    items={LESSON_SEAT_COLOR_ITEMS}
-                                                    testId="classroom-lesson-seat-legend"
-                                                >
-                                                    <span className={styles.statusLegendItem}>
-                                                        <span className={styles.lessonSeatStuckLegend}>{'!'}</span>
-                                                        {intl.formatMessage(lessonSeatMessages.stuck)}
-                                                    </span>
-                                                </SeatColorLegend>
-                                            ) : (
-                                                <SeatColorLegend
-                                                    items={MEMBER_SEAT_COLOR_ITEMS}
-                                                    testId="classroom-seat-color-legend"
-                                                />
-                                            )}
-                                            <ClassroomStatusLegend
-                                                className={styles.membersLegend}
-                                                statuses={
-                                                    lessonTiles
-                                                        ? submitsWork
-                                                            ? LESSON_SUBMIT_LEGEND_STATUSES
-                                                            : LESSON_LEGEND_STATUSES
-                                                        : MEMBER_LEGEND_STATUSES
-                                                }
+                                            <FormattedMessage
+                                                defaultMessage="Write a page and it shows up here"
+                                                description="Student-view preview while no page has text or an image"
+                                                id="gui.classroom.teacherDetail.previewEmpty"
                                             />
-                                        </div>
-                                        <div className={styles.membersHeaderRight}>
-                                            {lessonSummary ? (
-                                                <span
-                                                    className={styles.lessonClearedSummary}
-                                                    data-testid="classroom-lesson-cleared-summary"
-                                                >
-                                                    {intl.formatMessage(lessonSeatMessages.clearedSummary, {
-                                                        cleared: lessonSummary.cleared,
-                                                        joined: lessonSummary.joined,
-                                                    })}
-                                                </span>
-                                            ) : null}
-                                            <span
-                                                className={styles.membersCount}
-                                                data-testid="classroom-members-count"
-                                            >
-                                                {joinedCount}
-                                                {' / '}
-                                                {totalCount}
-                                            </span>
-                                            <button
-                                                aria-label={intl.formatMessage(classroomIconMessages.refresh)}
-                                                className={styles.refreshButton}
-                                                data-testid="classroom-refresh"
-                                                disabled={isLoading}
-                                                title={intl.formatMessage(classroomIconMessages.refresh)}
-                                                onClick={onRefresh}
-                                            >
-                                                {'↻'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {progressError ? (
-                                        <p
-                                            className={styles.lessonProgressNotice}
-                                            data-testid="classroom-lesson-progress-error"
-                                        >
-                                            {intl.formatMessage(lessonSeatMessages.loadError)}
                                         </p>
-                                    ) : null}
-                                    {progressLoading ? (
-                                        <p
-                                            className={styles.lessonProgressNotice}
-                                            data-testid="classroom-lesson-progress-loading"
-                                        >
-                                            {intl.formatMessage(lessonSeatMessages.loading)}
-                                        </p>
-                                    ) : (
-                                        <div className={styles.membersGrid} data-testid="classroom-members-grid">
-                                            {Array.from({ length: totalCount }, (_, i) => {
-                                                const seatNum = i + 1;
-                                                const memberId = `seat-${String(seatNum).padStart(2, '0')}`;
-                                                const member = memberMap[memberId];
-                                                const isSelected = selectedMember === memberId;
-                                                const seated = member && isSeated(member);
-                                                const tile = lessonTiles ? lessonTiles[i] : null;
-                                                const seatColor = memberSeatColorKind(member);
-                                                const cellColorClass = tile
-                                                    ? classNames(
-                                                          styles.lessonSeat,
-                                                          styles[LESSON_TILE_CLASSES[tile.state]],
-                                                      )
-                                                    : seatColorClass(styles, 'memberCell', seatColor);
-                                                const cellClass = classNames(
-                                                    styles.memberCell,
-                                                    cellColorClass,
-                                                    isSelected && styles.memberCellSelected,
-                                                    seated && styles.memberCellSeated,
-                                                );
-                                                const seatKickRequests =
-                                                    (kickRequestsBySeat && kickRequestsBySeat[seatNum]) || [];
-                                                return (
-                                                    <button
-                                                        className={cellClass}
-                                                        data-lesson-state={tile ? tile.state : null}
-                                                        data-member-id={memberId}
-                                                        data-seat-color={tile ? null : seatColor}
-                                                        data-testid={`classroom-member-${memberId}`}
-                                                        key={memberId}
-                                                        onClick={handleCellClick}
-                                                    >
-                                                        {tile ? (
-                                                            <LessonSeatTile
-                                                                presence={getPresenceStatus(member, seated)}
-                                                                seatNumber={seatNum}
-                                                                submission={
-                                                                    submitsWork ? getSubmissionStatus(member) : null
-                                                                }
-                                                                tile={tile}
-                                                            />
-                                                        ) : (
-                                                            <React.Fragment>
-                                                                <span className={styles.memberCellNumber}>
-                                                                    {seatNum}
-                                                                </span>
-                                                                <ClassroomStatusIcons
-                                                                    className={styles.memberCellIcons}
-                                                                    presence={getPresenceStatus(member, seated)}
-                                                                    size={10}
-                                                                    submission={getSubmissionStatus(member)}
-                                                                />
-                                                            </React.Fragment>
-                                                        )}
-                                                        {seatKickRequests.length > 0 && (
-                                                            <span
-                                                                className={styles.seatKickRequestBadge}
-                                                                data-testid={`classroom-seat-kick-request-${seatNum}`}
-                                                            >
-                                                                <ClassroomStatusIcon
-                                                                    size={14}
-                                                                    status="kickRequested"
-                                                                />
-                                                            </span>
-                                                        )}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </React.Fragment>
-                            )}
-
-                            {/* Progress tab (#1602): seat × challenge table of a lesson assignment. */}
-                            {activeTab === 'progress' && showProgressTab && (
-                                <TeacherLessonProgress
-                                    ctx={lessonCtx}
-                                    status={progressLoading ? 'loading' : progressError ? 'error' : 'ready'}
-                                    members={members}
-                                    now={progressNow}
-                                    rowsByMember={rowsByMember}
-                                    selectedMember={selectedMember}
-                                    studentCount={totalCount}
-                                    onSelectSeat={onSelectMember}
-                                />
-                            )}
-
-                            {/* Archive confirmation (soft-delete, restorable — issue #1051).
-                                The action itself is in the ⋮ menu (#1303 D1).
-                                data-testids keep the historical "delete" names for E2E stability. */}
-                            {(error || showDeleteConfirm) && (
-                                <div className={styles.detailFooter}>
-                                    <ErrorDisplay
-                                        actionLabel={errorActionLabel}
-                                        error={error}
-                                        errorTitle={errorTitle}
-                                        onAction={errorActionHandler}
-                                    />
-                                    {showDeleteConfirm ? (
-                                        <div
-                                            className={classNames(styles.confirmNote, styles.deleteConfirmBox)}
-                                            ref={deleteConfirmRef}
-                                        >
-                                            <div className={styles.deleteConfirmMessage}>
+                                    );
+                                }
+                                const index = Math.min(previewPage, Math.max(0, pages.length - 1));
+                                const page = pages[index];
+                                return (
+                                    <React.Fragment>
+                                        {/* Pager on top so it is visible without scrolling
+                                                    past a tall preview (review round 3). */}
+                                        <div className={styles.assignmentPreviewHeader}>
+                                            <div className={styles.assignmentPreviewTitle}>
                                                 <FormattedMessage
-                                                    defaultMessage="Archive this assignment? It disappears from the board, but you can restore it anytime from the archived assignments section."
-                                                    description="Archive assignment confirmation message"
-                                                    id="gui.classroom.teacherDetail.archiveConfirm"
+                                                    defaultMessage="Student view preview"
+                                                    description="Title of the student-view preview pane"
+                                                    id="gui.classroom.teacherDetail.previewTitle"
                                                 />
                                             </div>
-                                            <div className={styles.buttonRow}>
-                                                <button
-                                                    className={styles.secondaryButton}
-                                                    data-testid="classroom-delete-cancel"
-                                                    onClick={handleDeleteCancel}
-                                                >
-                                                    <FormattedMessage
-                                                        defaultMessage="Cancel"
-                                                        description="Cancel archiving the assignment"
-                                                        id="gui.classroom.teacherDetail.archiveCancel"
-                                                    />
-                                                </button>
-                                                {/* 戻せる操作なので赤にしない（R4・#1923 C2）。 */}
-                                                <button
-                                                    className={styles.primaryButton}
-                                                    data-testid="classroom-delete-confirm"
-                                                    onClick={handleDeleteConfirm}
-                                                >
-                                                    <FormattedMessage
-                                                        defaultMessage="Archive"
-                                                        description="Confirm archive assignment button"
-                                                        id="gui.classroom.teacherDetail.archive"
-                                                    />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : null}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Right pane - member detail */}
-                        <div className={styles.detailRightPane}>
-                            {activeTab === 'description' && assignmentEditor ? (
-                                <div className={styles.assignmentPreview} data-testid="classroom-description-preview">
-                                    {(() => {
-                                        const pages = descEditor.editorPages || [];
-                                        // E3 (#1303): nothing written yet → one line, not an empty box.
-                                        if (isAssignmentPreviewEmpty(pages)) {
-                                            return (
-                                                <p
-                                                    className={styles.assignmentPreviewEmpty}
-                                                    data-testid="classroom-description-preview-empty"
-                                                >
-                                                    <FormattedMessage
-                                                        defaultMessage="Write a page and it shows up here"
-                                                        description="Student-view preview while no page has text or an image"
-                                                        id="gui.classroom.teacherDetail.previewEmpty"
-                                                    />
-                                                </p>
-                                            );
-                                        }
-                                        const index = Math.min(previewPage, Math.max(0, pages.length - 1));
-                                        const page = pages[index];
-                                        return (
-                                            <React.Fragment>
-                                                {/* Pager on top so it is visible without scrolling
-                                                    past a tall preview (review round 3). */}
-                                                <div className={styles.assignmentPreviewHeader}>
-                                                    <div className={styles.assignmentPreviewTitle}>
-                                                        <FormattedMessage
-                                                            defaultMessage="Student view preview"
-                                                            description="Title of the student-view preview pane"
-                                                            id="gui.classroom.teacherDetail.previewTitle"
-                                                        />
-                                                    </div>
-                                                    {pages.length > 1 ? (
-                                                        <div className={styles.assignmentPreviewPager}>
-                                                            <button
-                                                                data-testid="classroom-description-preview-prev"
-                                                                disabled={index === 0}
-                                                                type="button"
-                                                                onClick={handlePreviewPrev}
-                                                            >
-                                                                {'←'}
-                                                            </button>
-                                                            <span>{`${index + 1} / ${pages.length}`}</span>
-                                                            <button
-                                                                data-testid="classroom-description-preview-next"
-                                                                disabled={index >= pages.length - 1}
-                                                                type="button"
-                                                                onClick={handlePreviewNext}
-                                                            >
-                                                                {'→'}
-                                                            </button>
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                                <div
-                                                    className={styles.assignmentPreviewBody}
-                                                    data-testid="classroom-description-preview-body"
-                                                >
-                                                    {/* Image above text — matches the student panel. */}
-                                                    {page && (page.previewUrl || page.imageUrl) ? (
-                                                        <img
-                                                            alt=""
-                                                            className={styles.assignmentPreviewImage}
-                                                            src={page.previewUrl || page.imageUrl}
-                                                        />
-                                                    ) : null}
-                                                    <p className={styles.assignmentPreviewText}>
-                                                        {page ? page.text : ''}
-                                                    </p>
-                                                </div>
-                                                {/* How the student starts on join (#1202). */}
-                                                <div
-                                                    className={styles.assignmentPreviewStart}
-                                                    data-testid="classroom-description-preview-start"
-                                                >
-                                                    {(() => {
-                                                        if (
-                                                            descEditor.starterMode &&
-                                                            descEditor.starterMode !== 'none'
-                                                        ) {
-                                                            return (
-                                                                <FormattedMessage
-                                                                    defaultMessage="On join: students start from the starter with a button (students with an earlier submission choose where to start)"
-                                                                    description="Student-view preview: the assignment has a starter"
-                                                                    id="gui.classroom.teacherDetail.previewStartStarter"
-                                                                />
-                                                            );
-                                                        }
-                                                        return (
-                                                            <FormattedMessage
-                                                                defaultMessage="On join: students start with the open project (students with an earlier submission choose where to start)"
-                                                                description="Student-view preview: the assignment has no starter"
-                                                                id="gui.classroom.teacherDetail.previewStartNone"
-                                                            />
-                                                        );
-                                                    })()}
-                                                </div>
-                                                {/* The lesson strip students see above the lesson
-                                                    library (#1598): condition and circles (★ = required). */}
-                                                {descEditor.lessonDraft &&
-                                                descEditor.lessonDraft.challengeIds.length > 0 ? (
-                                                    <div
-                                                        className={styles.assignmentPreviewStart}
-                                                        data-testid="classroom-description-preview-lesson"
+                                            {pages.length > 1 ? (
+                                                <div className={styles.assignmentPreviewPager}>
+                                                    <button
+                                                        data-testid="classroom-description-preview-prev"
+                                                        disabled={index === 0}
+                                                        type="button"
+                                                        onClick={handlePreviewPrev}
                                                     >
+                                                        {'←'}
+                                                    </button>
+                                                    <span>{`${index + 1} / ${pages.length}`}</span>
+                                                    <button
+                                                        data-testid="classroom-description-preview-next"
+                                                        disabled={index >= pages.length - 1}
+                                                        type="button"
+                                                        onClick={handlePreviewNext}
+                                                    >
+                                                        {'→'}
+                                                    </button>
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                        <div
+                                            className={styles.assignmentPreviewBody}
+                                            data-testid="classroom-description-preview-body"
+                                        >
+                                            {/* Image above text — matches the student panel. */}
+                                            {page && (page.previewUrl || page.imageUrl) ? (
+                                                <img
+                                                    alt=""
+                                                    className={styles.assignmentPreviewImage}
+                                                    src={page.previewUrl || page.imageUrl}
+                                                />
+                                            ) : null}
+                                            <p className={styles.assignmentPreviewText}>{page ? page.text : ''}</p>
+                                        </div>
+                                        {/* How the student starts on join (#1202). */}
+                                        <div
+                                            className={styles.assignmentPreviewStart}
+                                            data-testid="classroom-description-preview-start"
+                                        >
+                                            {(() => {
+                                                if (descEditor.starterMode && descEditor.starterMode !== 'none') {
+                                                    return (
                                                         <FormattedMessage
-                                                            defaultMessage="Lesson: {sentence}"
-                                                            description="Student-view preview: the lesson completion condition"
-                                                            id="gui.classroom.teacherDetail.previewLesson"
-                                                            values={{
-                                                                sentence: formatCompletionSentence(
-                                                                    intl,
-                                                                    descEditor.lessonDraft,
-                                                                ),
-                                                            }}
-                                                        />{' '}
-                                                        <span aria-hidden="true">
-                                                            {descEditor.lessonDraft.challengeIds
-                                                                .map((id) =>
-                                                                    descEditor.lessonDraft.requiredChallengeIds.includes(
-                                                                        id,
-                                                                    )
-                                                                        ? '★'
-                                                                        : '○',
-                                                                )
-                                                                .join('')}
-                                                        </span>
-                                                    </div>
-                                                ) : null}
-                                            </React.Fragment>
-                                        );
-                                    })()}
-                                </div>
-                            ) : (
-                                <TeacherMemberDetail
-                                    isLoading={isLoading}
-                                    kickRequestsForSelectedSeat={(() => {
-                                        if (!selectedMember || !kickRequestsBySeat) return [];
-                                        const match = selectedMember.match(/^seat-(\d+)$/);
-                                        if (!match) return [];
-                                        return kickRequestsBySeat[parseInt(match[1], 10)] || [];
-                                    })()}
-                                    lessonDetail={lessonDetail}
-                                    lessonNow={progressNow}
-                                    memberMap={memberMap}
-                                    members={members}
-                                    selectedMember={selectedMember}
-                                    showSubmission={!lessonCtx || submitsWork}
-                                    onApproveKickRequest={onApproveKickRequest}
-                                    onDeleteMember={onDeleteMember}
-                                    onOpenSubmission={onOpenSubmission}
-                                    onRejectKickRequest={onRejectKickRequest}
-                                    onReturnSubmission={onReturnSubmission}
-                                    onSetHiddenFromPeers={onSetHiddenFromPeers}
-                                />
-                            )}
+                                                            defaultMessage="On join: students start from the starter with a button (students with an earlier submission choose where to start)"
+                                                            description="Student-view preview: the assignment has a starter"
+                                                            id="gui.classroom.teacherDetail.previewStartStarter"
+                                                        />
+                                                    );
+                                                }
+                                                return (
+                                                    <FormattedMessage
+                                                        defaultMessage="On join: students start with the open project (students with an earlier submission choose where to start)"
+                                                        description="Student-view preview: the assignment has no starter"
+                                                        id="gui.classroom.teacherDetail.previewStartNone"
+                                                    />
+                                                );
+                                            })()}
+                                        </div>
+                                        {/* The lesson strip students see above the lesson
+                                                    library (#1598): condition and circles (★ = required). */}
+                                        {descEditor.lessonDraft && descEditor.lessonDraft.challengeIds.length > 0 ? (
+                                            <div
+                                                className={styles.assignmentPreviewStart}
+                                                data-testid="classroom-description-preview-lesson"
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Lesson: {sentence}"
+                                                    description="Student-view preview: the lesson completion condition"
+                                                    id="gui.classroom.teacherDetail.previewLesson"
+                                                    values={{
+                                                        sentence: formatCompletionSentence(
+                                                            intl,
+                                                            descEditor.lessonDraft,
+                                                        ),
+                                                    }}
+                                                />{' '}
+                                                <span aria-hidden="true">
+                                                    {descEditor.lessonDraft.challengeIds
+                                                        .map((id) =>
+                                                            descEditor.lessonDraft.requiredChallengeIds.includes(id)
+                                                                ? '★'
+                                                                : '○',
+                                                        )
+                                                        .join('')}
+                                                </span>
+                                            </div>
+                                        ) : null}
+                                    </React.Fragment>
+                                );
+                            })()}
                         </div>
-                    </div>
-                </React.Fragment>
-            )}
+                    ) : (
+                        <TeacherMemberDetail
+                            isLoading={isLoading}
+                            kickRequestsForSelectedSeat={(() => {
+                                if (!selectedMember || !kickRequestsBySeat) return [];
+                                const match = selectedMember.match(/^seat-(\d+)$/);
+                                if (!match) return [];
+                                return kickRequestsBySeat[parseInt(match[1], 10)] || [];
+                            })()}
+                            lessonDetail={lessonDetail}
+                            lessonNow={progressNow}
+                            memberMap={memberMap}
+                            members={members}
+                            selectedMember={selectedMember}
+                            showSubmission={!lessonCtx || submitsWork}
+                            onApproveKickRequest={onApproveKickRequest}
+                            onDeleteMember={onDeleteMember}
+                            onOpenSubmission={onOpenSubmission}
+                            onRejectKickRequest={onRejectKickRequest}
+                            onReturnSubmission={onReturnSubmission}
+                            onSetHiddenFromPeers={onSetHiddenFromPeers}
+                        />
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
 
 TeacherClassDetail.propTypes = {
-    codeDisplayClassroom: PropTypes.object,
-    codeDisplayFullscreen: PropTypes.bool,
     downloadProgress: PropTypes.shape({
         current: PropTypes.number,
         total: PropTypes.number,
@@ -1398,7 +1332,6 @@ TeacherClassDetail.propTypes = {
     members: PropTypes.arrayOf(PropTypes.object).isRequired,
     noBackButton: PropTypes.bool,
     onBack: PropTypes.func,
-    onCloseCodeDisplay: PropTypes.func.isRequired,
     onCopyInviteLink: PropTypes.func.isRequired,
     onDeleteClassroom: PropTypes.func.isRequired,
     onDeleteMember: PropTypes.func.isRequired,
@@ -1408,9 +1341,7 @@ TeacherClassDetail.propTypes = {
     onReturnSubmission: PropTypes.func.isRequired,
     onSetHiddenFromPeers: PropTypes.func,
     onSelectMember: PropTypes.func.isRequired,
-    onShowCodeDisplay: PropTypes.func.isRequired,
     onShowPostAssignment: PropTypes.func,
-    onToggleCodeFullscreen: PropTypes.func.isRequired,
     onUpdateAssignmentName: PropTypes.func,
     kickRequestsBySeat: PropTypes.object,
     // GET lesson-progress of the selected assignment (+ its classroomId), #1602
@@ -1425,6 +1356,8 @@ TeacherClassDetail.propTypes = {
     detailEntry: PropTypes.shape({
         tab: PropTypes.oneOf(['members', 'description', 'progress']),
         seq: PropTypes.number,
+        /** Open on the［⛶ 映す］screen (the stream's［⛶ 全画面で映す］). */
+        project: PropTypes.bool,
     }),
     onOpenShareSuggestion: PropTypes.func,
     assignmentEditor: PropTypes.object,

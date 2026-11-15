@@ -247,12 +247,19 @@ try {
     );
     await shot('stream', '0226-board-stream.png');
 
-    // ［⛶ 全画面で映す］ shows the existing full-screen join code; ✕ goes back to the stream.
+    // ［⛶ 全画面で映す］ opens the assignment on its［⛶ 映す］screen (#1961): the same
+    // screen as the assignment detail's. ［閉じる］ leaves the assignment detail; the
+    // path in the header goes back to the class.
     await page.locator(tid('classroom-board-current-fullscreen')).click();
-    await page.waitForSelector(tid('classroom-code-display-close'));
+    await page.waitForSelector(tid('classroom-projection'), { timeout: 20000 });
+    const projCode = await page.$eval(tid('classroom-projection-code'), (el) => el.textContent);
+    const projSeats = await page.$$eval('[data-testid^="classroom-projection-seat-"]', (els) => els.length);
     await shot('stream-fullscreen');
-    await page.locator(tid('classroom-code-display-close')).click();
-    record('stream: full-screen join code', !(await page.$(tid('classroom-code-display-close'))), 'opened and closed');
+    await page.locator(tid('classroom-projection-close')).click();
+    const backOnDetail = !(await page.$(tid('classroom-projection'))) && !!(await page.$(tid('classroom-phase-teacher-detail')));
+    record('stream: ［⛶ 全画面で映す］ opens the projector screen', projCode === 'abc234' && projSeats > 0 && backOnDetail, `code=${projCode} seats=${projSeats} closed to detail=${backOnDetail}`);
+    await page.locator(tid('classroom-breadcrumb-assignments')).click();
+    await page.waitForSelector(tid('classroom-board'), { timeout: 20000 });
 
     await page.locator(tid('classroom-board-tab-classwork')).click();
     await page.waitForTimeout(300);

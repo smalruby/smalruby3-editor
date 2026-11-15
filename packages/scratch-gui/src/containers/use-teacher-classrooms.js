@@ -349,6 +349,8 @@ const useTeacherClassrooms = ({
      * @param {string} classroomId - assignment to open
      * @param {object} [options] - open options
      * @param {string} [options.tab] - force the tab it opens on ('members' | 'description')
+     * @param {boolean} [options.project] - open it on the［⛶ 映す］screen (the stream's
+     *   ［⛶ 全画面で映す］, #1961). The seats need the members tab's refresh, so it opens there.
      * @returns {Promise<boolean>} whether the detail opened
      */
     const handleSelectClassroom = useCallback(
@@ -359,11 +361,11 @@ const useTeacherClassrooms = ({
             if (success) {
                 const tab = pickDetailEntryTab({
                     classroomId,
-                    requestedTab: options.tab,
+                    requestedTab: options.project ? 'members' : options.tab,
                     freshlyCreatedIds: freshlyCreatedIdsRef.current,
                 });
                 freshlyCreatedIdsRef.current.delete(classroomId);
-                setDetailEntry((prev) => ({ tab, seq: prev.seq + 1 }));
+                setDetailEntry((prev) => ({ tab, project: Boolean(options.project), seq: prev.seq + 1 }));
                 setDetailTab(tab);
                 setPhase('teacher-class-detail');
             }

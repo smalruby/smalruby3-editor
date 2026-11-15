@@ -71,7 +71,6 @@ const useTeacherClassroom = ({
         members: classrooms.members,
         handleTeacher401: auth.handleTeacher401,
         loadClassroomDetail: classrooms.loadClassroomDetail,
-        mode,
         clearError,
         showError,
         intl,
@@ -173,11 +172,10 @@ const useTeacherClassroom = ({
     const handleTeacherLogout = useCallback(() => {
         auth.logoutAuth();
         classrooms.resetClassrooms();
-        submissions.resetSubmissionDisplay();
         notifications.resetNotifications();
         clearError();
         setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
-    }, [auth, classrooms, submissions, notifications, mode, clearError, setPhase]);
+    }, [auth, classrooms, notifications, mode, clearError, setPhase]);
 
     /**
      * Open the view an お知らせ links to. Kinds are a small whitelist the
@@ -234,8 +232,7 @@ const useTeacherClassroom = ({
 
     const handleBackToDashboard = useCallback(() => {
         classrooms.handleBackToDashboard();
-        submissions.resetSubmissionDisplay();
-    }, [classrooms, submissions]);
+    }, [classrooms]);
 
     // ［＋ 作成 ▾］→「レッスン」(#1780): created like「課題」, then opened on the
     // description tab with the first lesson chosen and the lesson panel open.
@@ -314,13 +311,8 @@ const useTeacherClassroom = ({
         // Co-teachers (shared classroom management)
 
         // Submissions
-        codeDisplayClassroom: submissions.codeDisplayClassroom,
-        codeDisplayFullscreen: submissions.codeDisplayFullscreen,
         downloadProgress: submissions.downloadProgress,
         handleOpenSubmission: submissions.handleOpenSubmission,
-        handleShowCodeDisplay: submissions.handleShowCodeDisplay,
-        handleCloseCodeDisplay: submissions.handleCloseCodeDisplay,
-        handleToggleCodeFullscreen: submissions.handleToggleCodeFullscreen,
         handleCopyInviteLink: submissions.handleCopyInviteLink,
         handleReturnSubmission: submissions.handleReturnSubmission,
         handleSetHiddenFromPeers: submissions.handleSetHiddenFromPeers,

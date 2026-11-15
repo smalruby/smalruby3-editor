@@ -28,10 +28,7 @@ const defaultProps = () => ({
     onRefresh: jest.fn(),
     onReturnSubmission: jest.fn(),
     onDownloadAll: jest.fn(),
-    onShowCodeDisplay: jest.fn(),
-    onCloseCodeDisplay: jest.fn(),
     onCopyInviteLink: jest.fn(),
-    onToggleCodeFullscreen: jest.fn(),
     onShowPostAssignment: jest.fn(),
     onUpdateAssignmentName: jest.fn(),
 });
@@ -802,6 +799,16 @@ describe('TeacherClassDetail — lesson progress (#1602)', () => {
     };
     const members = [{ memberId: 'seat-01', displayName: 'あ', lastActiveAt: recent }];
 
+    test('the［⛶ 映す］screen colours the seats by progress and counts the cleared (#1961)', () => {
+        renderDetail({ lessonProgress, members });
+        fireEvent.click(document.querySelector('[data-testid="classroom-detail-project"]'));
+        const seat = (n) => document.querySelector(`[data-testid="classroom-projection-seat-${n}"]`);
+        expect(seat(1).dataset.seatColor).toBe('inProgress');
+        expect(seat(2).dataset.seatColor).toBe('empty');
+        expect(document.querySelector('[data-testid="classroom-projection-cleared"]').textContent).toBe('Cleared 0');
+        expect(document.querySelector('[data-testid="classroom-projection-legend-cleared"]')).toBeInTheDocument();
+    });
+
     test('colours the seats by progress and shows the count, ★ left and「!」', () => {
         renderDetail({ lessonProgress, members });
         const seat1 = document.querySelector('[data-testid="classroom-member-seat-01"]');
@@ -925,12 +932,82 @@ describe('TeacherClassDetail — アイコンだけのボタンに名前 (#1924 
     });
 });
 
-describe('TeacherClassDetail — 参加コードの全画面表示の ⛶ (#1924 Q2)', () => {
-    test('全画面表示の ⛶ にも「全画面」の文字がある', () => {
+describe('TeacherClassDetail — ［⛶ 映す］ (#1961)', () => {
+    const seatedAt = new Date().toISOString();
+    const projectionMembers = [
+        { memberId: 'seat-01', displayName: 'あいう', lastActiveAt: seatedAt },
+        {
+            memberId: 'seat-02',
+            displayName: 'えおか',
+            lastActiveAt: seatedAt,
+            hasSubmission: true,
+            submissionStatus: 'submitted',
+        },
+    ];
+    const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+
+    test('the tab row has［⛶ 映す］and ⋮ outside the tablist', () => {
         renderDetail();
-        fireEvent.click(document.querySelector('[data-testid="classroom-detail-expand-code"]'));
-        const button = document.querySelector('[data-testid="classroom-code-display-expand"]');
-        expect(button).not.toBeNull();
-        expect(button.textContent).toContain('Full screen');
+        const tablist = document.querySelector('[role="tablist"]');
+        expect(tablist.contains(byTestId('classroom-detail-project'))).toBe(false);
+        expect(tablist.contains(byTestId('classroom-detail-more-menu'))).toBe(false);
+        expect(byTestId('classroom-detail-project').textContent).toContain('Project');
+    });
+
+    test('the class name heading above the body is gone (the header shows it)', () => {
+        renderDetail({ group: { groupId: 'g1', name: '技術', year: 2026, section: '2年1組' } });
+        expect(byTestId('classroom-detail-name')).toBeNull();
+    });
+
+    test('［⛶ 映す］shows the join code, the counts and the seats, without names', () => {
+        renderDetail({ members: projectionMembers });
+        fireEvent.click(byTestId('classroom-detail-project'));
+        const screen = byTestId('classroom-projection');
+        expect(screen).not.toBeNull();
+        expect(byTestId('classroom-projection-code').textContent).toBe('abcdef');
+        expect(byTestId('classroom-projection-joined').textContent).toBe('Joined 2 / 3');
+        expect(byTestId('classroom-projection-submitted').textContent).toBe('Submitted 1');
+        expect(byTestId('classroom-projection-seat-1').dataset.seatColor).toBe('joined');
+        expect(byTestId('classroom-projection-seat-2').dataset.seatColor).toBe('submitted');
+        expect(byTestId('classroom-projection-seat-3').dataset.seatColor).toBe('empty');
+        expect(screen.textContent).not.toContain('あいう');
+        expect(screen.textContent).not.toContain('えおか');
+    });
+
+    test('Esc and［閉じる］go back to the assignment', () => {
+        renderDetail();
+        fireEvent.click(byTestId('classroom-detail-project'));
+        fireEvent.keyDown(document, { key: 'Escape' });
+        expect(byTestId('classroom-projection')).toBeNull();
+        fireEvent.click(byTestId('classroom-detail-expand-code'));
+        expect(byTestId('classroom-projection')).not.toBeNull();
+        fireEvent.click(byTestId('classroom-projection-close'));
+        expect(byTestId('classroom-projection')).toBeNull();
+    });
+
+    test('projecting from the description tab switches to the members tab (its refresh moves the seats)', () => {
+        const onDetailTabChange = jest.fn();
+        renderDetail({ detailEntry: { tab: 'description', seq: 1 }, onDetailTabChange });
+        onDetailTabChange.mockClear();
+        fireEvent.click(byTestId('classroom-detail-project'));
+        expect(onDetailTabChange).toHaveBeenCalledWith('members');
+        expect(byTestId('classroom-tab-members').getAttribute('aria-selected')).toBe('true');
+    });
+
+    test('opens on the projector screen when the stream asks for it (detailEntry.project)', () => {
+        renderDetail({ detailEntry: { tab: 'members', project: true, seq: 2 } });
+        expect(byTestId('classroom-projection')).not.toBeNull();
+    });
+
+    test('the seats update while it is open', () => {
+        const { rerender } = renderDetail();
+        fireEvent.click(byTestId('classroom-detail-project'));
+        expect(byTestId('classroom-projection-seat-1').dataset.seatColor).toBe('empty');
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherClassDetail {...defaultProps()} members={projectionMembers} />
+            </IntlProvider>,
+        );
+        expect(byTestId('classroom-projection-seat-1').dataset.seatColor).toBe('joined');
     });
 });

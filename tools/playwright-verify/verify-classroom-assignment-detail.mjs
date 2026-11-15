@@ -10,6 +10,11 @@
 //   DOCS_SHOTS=1 node verify-classroom-assignment-detail.mjs    # + docs/classroom/screenshots
 //   BASE=http://localhost:8621 node verify-classroom-assignment-detail.mjs
 //   PREFIX=before node verify-classroom-assignment-detail.mjs   # name the tmp/ shots
+//   LOCALE=ja-Hira node verify-classroom-assignment-detail.mjs  # docs shots only with ja
+//
+// Also the［⛶ 映す］screen (#1961): at 1300x600 and 1920x1080 the join code and all
+// 40 seats are inside the viewport, nothing scrolls, no student name is shown, and
+// Esc goes back. And the seat detail: ［返却］is the main button and is visible.
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -19,8 +24,9 @@ const BASE = process.env.BASE || 'http://localhost:8601';
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SHOT_DIR = process.env.SHOT_DIR || resolve(REPO_ROOT, 'tmp');
 const DOCS_DIR = resolve(REPO_ROOT, 'docs/classroom/screenshots');
-const DOCS_SHOTS = process.env.DOCS_SHOTS === '1';
+const DOCS_SHOTS = process.env.DOCS_SHOTS === '1' && (process.env.LOCALE || 'ja') === 'ja';
 const PREFIX = process.env.PREFIX || 'after';
+const LOCALE = process.env.LOCALE || 'ja';
 const VIEWPORT = { width: 1300, height: 600 };
 mkdirSync(SHOT_DIR, { recursive: true });
 
@@ -55,6 +61,7 @@ const classrooms = [
 ];
 const members = Array.from({ length: 24 }, (_, i) => ({
     memberId: `seat-${String(i + 1).padStart(2, '0')}`,
+    displayName: `なまえ${i + 1}`,
     lastActiveAt: i % 3 === 0 ? iso(now - 60 * 1000) : iso(now - 2 * 60 * 60 * 1000),
 }));
 const submissions = members
@@ -104,7 +111,7 @@ await page.route(/\/classrooms\/c\d\/assignment$/, (r) => {
 
 const tid = (id) => `[data-testid="${id}"]`;
 const shot = async (name, docsName) => {
-    await page.screenshot({ path: resolve(SHOT_DIR, `issue-1303-${PREFIX}-${name}.png`) });
+    await page.screenshot({ path: resolve(SHOT_DIR, `issue-1303-${PREFIX}-${LOCALE}-${name}.png`) });
     if (DOCS_SHOTS && docsName) await page.screenshot({ path: resolve(DOCS_DIR, docsName) });
 };
 // The bottom of `button` and whether the page / the modal body scroll.
@@ -158,7 +165,7 @@ const backToBoard = async () => {
 };
 
 try {
-    await page.goto(`${BASE}/?no_beforeunload=1&locale=ja&devlogin=stub-token`, { waitUntil: 'load' });
+    await page.goto(`${BASE}/?no_beforeunload=1&locale=${LOCALE}&devlogin=stub-token`, { waitUntil: 'load' });
     await page.waitForTimeout(3000);
     // The dev server's warning overlay would swallow the clicks.
     await page.addStyleTag({ content: '#webpack-dev-server-client-overlay { display: none !important; }' });
@@ -188,6 +195,69 @@ try {
         // Escape would also close the modal, so toggle the menu shut.
         await page.locator(tid('classroom-detail-more-menu')).click();
     }
+
+    // #1961: the seat detail —［返却］is the main button and visible without scrolling.
+    await page.locator(tid('classroom-member-seat-01')).click();
+    await page.waitForTimeout(400);
+    m = await measure(tid('classroom-member-detail-return'), BODY);
+    const returnIsPrimary = await page.$eval(tid('classroom-member-detail-return'), (el) =>
+        /primary-button/.test(el.className),
+    );
+    record('seat detail: 返却 is the main button (#1961)', returnIsPrimary && m.bottom !== null && m.bottom <= m.vh && m.pageOk && m.bodyOk, `return ${describe(m)} primary=${returnIsPrimary}`);
+    await shot('member-detail', null);
+
+    // #1961: the［⛶ 映す］screen at the lesson PC size and at a projector size.
+    const measureProjection = () =>
+        page.evaluate(() => {
+            const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+            const root = q('classroom-projection');
+            const seats = [...document.querySelectorAll('[data-testid^="classroom-projection-seat-"]')];
+            const last = seats[seats.length - 1].getBoundingClientRect();
+            const code = q('classroom-projection-code');
+            const codeBox = code.getBoundingClientRect();
+            const close = q('classroom-projection-close').getBoundingClientRect();
+            const se = document.scrollingElement;
+            return {
+                seats: seats.length,
+                lastBottom: Math.round(last.bottom),
+                lastRight: Math.round(last.right),
+                seatH: Math.round(last.height),
+                seatW: Math.round(last.width),
+                seatFont: getComputedStyle(seats[0]).fontSize,
+                codeFont: getComputedStyle(code).fontSize,
+                codeRight: Math.round(codeBox.right),
+                countFont: getComputedStyle(q('classroom-projection-joined')).fontSize,
+                closeBottom: Math.round(close.bottom),
+                vw: window.innerWidth,
+                vh: window.innerHeight,
+                noScroll: root.scrollHeight <= root.clientHeight && se.scrollHeight <= se.clientHeight,
+                names: /なまえ/.test(root.textContent),
+                focus: document.activeElement && document.activeElement.dataset.testid,
+            };
+        });
+    await page.locator(tid('classroom-detail-project')).click();
+    await page.waitForSelector(tid('classroom-projection'));
+    await page.waitForTimeout(300);
+    for (const vp of [VIEWPORT, { width: 1920, height: 1080 }]) {
+        await page.setViewportSize(vp);
+        await page.waitForTimeout(300);
+        const p = await measureProjection();
+        const ok =
+            p.seats === 40 && p.lastBottom <= p.vh && p.lastRight <= p.vw && p.codeRight <= p.vw &&
+            p.closeBottom <= p.vh && p.noScroll && !p.names;
+        record(
+            `projection ${vp.width}x${vp.height} (#1961)`,
+            ok,
+            `seats=${p.seats} last=${p.lastRight}x${p.lastBottom}/${p.vw}x${p.vh} seat=${p.seatW}x${p.seatH} seatFont=${p.seatFont} code=${p.codeFont} codeRight=${p.codeRight} counts=${p.countFont} noScroll=${p.noScroll} names=${p.names} focus=${p.focus}`,
+        );
+        await shot(`projection-${vp.width}`, vp.width === 1920 ? '0261-detail-projection-1920.png' : '0260-detail-projection.png');
+    }
+    await page.setViewportSize(VIEWPORT);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    const projGone = !(await page.$(tid('classroom-projection')));
+    const stillDetail = !!(await page.$(tid('classroom-phase-teacher-detail')));
+    record('Esc closes the projection only (#1961)', projGone && stillDetail, `gone=${projGone} detail=${stillDetail}`);
 
     // #1388: no「名前を変える」. While the name field is focused it says how
     // the name is saved; after saving,「✓ 保存しました」shows for a moment.
