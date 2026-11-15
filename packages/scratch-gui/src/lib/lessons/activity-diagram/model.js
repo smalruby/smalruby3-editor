@@ -1,34 +1,76 @@
 // アクティビティ図のモデル（記号の木）を、VM 形式のブロックから作る純粋関数。
-// docs/lessons/design.md の「アクティビティ図」: 記号は 開始・終了・処理・分岐・合流・くり返し。
+// docs/lessons/design.md の「アクティビティ図」: 記号は教科書のアクティビティ図にそろえる（開始・終了・処理・
+// 分岐と合流のひし形・送信・受信）。くり返しは、ひし形の合流と戻る線で描く（置き方は layout.js）。
 // モデルは置き方（layout.js）と別にしておき、右クリックで描く（#1647）でも同じモデルを使えるようにする。
 //
 // モデルの形:
-//   {lanes: [{id, label, targets: [{name, scripts: [{start, body}]}]}]}
-//   start = 帽子のブロックの文（帽子が無いスクリプトは null）、body = 記号の並び:
+//   {lanes: [{id, label, targets: [{name, scripts: [{start, receive, body}]}]}]}
+//   start = 帽子のブロックの文（帽子が無いスクリプトは null）。receive = 「〜を受け取ったとき」なら合図の名前
+//   （図では開始の黒丸の代わりに受信の記号で始める）、ほかは null。body = 記号の並び:
 //     {kind: 'action', label}
-//     {kind: 'decision', label, yes: [...], no: [...]}   （もし〜なら・もし〜なら〜でなければ。合流は描く側が足す）
-//     {kind: 'loop', label, forever, body: [...]}       （くり返し・ずっと・〜までくり返す）
+//     {kind: 'send', label, message}                    （〜を送る・〜を送って待つ。message は合図の名前か null）
+//     {kind: 'decision', label, yesGuard, noGuard, yes: [...], no: [...]}
+//         （もし〜なら・もし〜なら〜でなければ。ガードは枝に書く「[条件]」。合流は描く側が足す）
+//     {kind: 'loop', label, forever, continueGuard, exitGuard, body: [...]}
+//         （くり返し・ずっと・〜までくり返す。ずっとはガードが null）
 //   lane = スイムレーン（label が null なら見出しを描かない）。target = スプライトごとのプログラム。
 import { normalizePartner } from '../practice-partner';
 import { createBlockLabeler } from './labels';
 
 export const NODE_KINDS = Object.freeze({
     ACTION: 'action',
+    SEND: 'send',
     DECISION: 'decision',
     LOOP: 'loop',
 });
 
+// 合図を送るブロック（教科書の「送信」の記号で描く）。メッシュの合図もふつうの「〜を送る」で送るので、
+// 値つきで送るブロックなどができたら、ここに足す（opcode → 合図の名前の入力）
+const SEND_OPCODES = {
+    event_broadcast: 'BROADCAST_INPUT',
+    event_broadcastandwait: 'BROADCAST_INPUT',
+};
+
+// 合図の名前（▼のメニューで選んだもの）。穴に式を入れたときは名前が決まらないので null
+const messageOf = (blocks, block, inputName) => {
+    const input = block.inputs && block.inputs[inputName];
+    // 穴にシャドウ（メニュー）だけがあるときは block と shadow が同じ id
+    const menu =
+        input && input.shadow && (!input.block || input.block === input.shadow) ? blocks[input.shadow] : null;
+    if (!menu || !menu.fields) return null;
+    const names = Object.keys(menu.fields);
+    return names.length > 0 ? String(menu.fields[names[0]].value) : null;
+};
+
 // くり返しの opcode → 条件の付け方
+// くり返しは、ひし形の合流から「続ける」枝（continue）と「ぬける」枝（exit）に分ける。ガードはその枝に書く文
 const LOOPS = {
     control_repeat: {
         forever: false,
         label: (l, blocks, id) => l.format('repeat', { times: timesOf(l, blocks, id) }),
+        guards: (l, blocks, id) => ({
+            continueGuard: l.format('otherwise'),
+            exitGuard: l.format('guard', { condition: l.format('repeatDone', { times: timesOf(l, blocks, id) }) }),
+        }),
     },
-    control_forever: { forever: true, label: (l) => l.format('forever') },
+    control_forever: {
+        forever: true,
+        label: (l) => l.format('forever'),
+        guards: () => ({ continueGuard: null, exitGuard: null }),
+    },
     control_repeat_until: {
         forever: false,
         label: (l, blocks, id) => l.format('repeatUntil', { condition: l.condition(blocks, id) }),
+        guards: (l, blocks, id) => guardsOf(l, l.condition(blocks, id), 'exit'),
     },
+};
+
+// 条件の文から、条件に合う枝・合わない枝のガードを作る。合わない枝は UML の [else] と同じく「[それ以外]」
+// （「〜ではない」と書くと「触れたではない」のような文になるため）
+const guardsOf = (l, condition, when) => {
+    const yes = l.format('guard', { condition });
+    const no = l.format('otherwise');
+    return when === 'exit' ? { continueGuard: no, exitGuard: yes } : { yesGuard: yes, noGuard: no };
 };
 
 const timesOf = (l, blocks, id) => {
@@ -56,9 +98,11 @@ const sequence = (l, blocks, firstId, seen) => {
 const nodeOf = (l, blocks, id, seen) => {
     const block = blocks[id];
     if (block.opcode === 'control_if' || block.opcode === 'control_if_else') {
+        const condition = l.condition(blocks, id);
         return {
             kind: NODE_KINDS.DECISION,
-            label: l.format('decision', { condition: l.condition(blocks, id) }),
+            label: l.format('decision', { condition }),
+            ...guardsOf(l, condition, 'branch'),
             yes: sequence(l, blocks, substackOf(block, 'SUBSTACK'), seen),
             no: block.opcode === 'control_if_else' ? sequence(l, blocks, substackOf(block, 'SUBSTACK2'), seen) : [],
         };
@@ -69,18 +113,32 @@ const nodeOf = (l, blocks, id, seen) => {
             kind: NODE_KINDS.LOOP,
             label: loop.label(l, blocks, id),
             forever: loop.forever,
+            ...loop.guards(l, blocks, id),
             body: sequence(l, blocks, substackOf(block, 'SUBSTACK'), seen),
+        };
+    }
+    if (SEND_OPCODES[block.opcode]) {
+        return {
+            kind: NODE_KINDS.SEND,
+            label: l.statement(blocks, id),
+            message: messageOf(blocks, block, SEND_OPCODES[block.opcode]),
         };
     }
     return { kind: NODE_KINDS.ACTION, label: l.statement(blocks, id) };
 };
+
+// 「〜を受け取ったとき」の合図の名前（ほかの帽子は null）
+const receiveOf = (block) =>
+    block.opcode === 'event_whenbroadcastreceived' && block.fields && block.fields.BROADCAST_OPTION
+        ? String(block.fields.BROADCAST_OPTION.value)
+        : null;
 
 /**
  * 1 つのスプライトのブロックを、スクリプト（帽子のブロックから始まる並び）ごとのモデルにする。
  * 並びは変換の出力の順（Ruby に書いた順）。
  * @param {object} blocks - id → VM 形式のブロック（`converter.blocks`）。
  * @param {object} labeler - `createBlockLabeler` の戻り値。
- * @returns {Array<{start: ?string, body: Array<object>}>} スクリプト。
+ * @returns {Array<{start: ?string, receive: ?string, body: Array<object>}>} スクリプト。
  */
 export const scriptsOf = (blocks, labeler) => {
     const all = blocks || {};
@@ -89,9 +147,9 @@ export const scriptsOf = (blocks, labeler) => {
         .filter((id) => all[id].topLevel && !all[id].shadow)
         .map((id) => {
             const start = labeler.hat(all, id);
-            if (start === null) return { start: null, body: sequence(labeler, all, id, seen) };
+            if (start === null) return { start: null, receive: null, body: sequence(labeler, all, id, seen) };
             seen.add(id);
-            return { start, body: sequence(labeler, all, all[id].next, seen) };
+            return { start, receive: receiveOf(all[id]), body: sequence(labeler, all, all[id].next, seen) };
         });
 };
 
@@ -126,8 +184,8 @@ export const buildActivityModel = ({ lanes }, options) => {
  * 定義は動かすとき（練習のパネル）と同じ `normalizePartner` で読む。locale ごとの書き方（`{ja, 'ja-Hira', en}`）も
  * 同じ選び方で選び、動かすときに使わない行（ラベルの無いボタン、名前の無い変数・`fromVariable`、何もしない返事）は
  * 図にも描かない。
- * ボタンは「〜」ボタンを押したとき、自動の返事は `onBroadcast` の合図を受け取ったときを開始にし、
- * `set`（〜を〜にする）→ `broadcast`（〜を送る）の順の処理にする。描くものが無い・定義が無いときは null
+ * ボタンは「〜」ボタンを押したとき、自動の返事は `onBroadcast` の合図を受け取ったとき（受信の記号）を開始にし、
+ * `set`（〜を〜にする）→ `broadcast`（〜を送る。送信の記号）の順にする。描くものが無い・定義が無いときは null
  * （自分のレーンだけを描く）。
  * @param {?object} partner - 練習相手の定義。
  * @param {object} options - 文の作り方。
@@ -154,15 +212,23 @@ export const partnerLane = (partner, { format, locale = null }) => {
         })),
         ...(rule.broadcast === null
             ? []
-            : [{ kind: NODE_KINDS.ACTION, label: l.format('broadcast', { name: quote(rule.broadcast) }) }]),
+            : [
+                  {
+                      kind: NODE_KINDS.SEND,
+                      label: l.format('broadcast', { name: quote(rule.broadcast) }),
+                      message: rule.broadcast,
+                  },
+              ]),
     ];
     const scripts = [
         ...normalized.buttons.map((button) => ({
             start: l.format('hat.partnerButton', { label: button.label }),
+            receive: null,
             body: actionsOf(button),
         })),
         ...normalized.replies.map((reply) => ({
             start: l.format('hat.receive', { name: quote(reply.onBroadcast) }),
+            receive: reply.onBroadcast,
             body: actionsOf(reply),
         })),
     ];

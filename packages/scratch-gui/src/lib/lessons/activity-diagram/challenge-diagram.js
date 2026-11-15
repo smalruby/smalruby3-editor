@@ -94,6 +94,6 @@ export const challengeActivityDiagram = async (
     if (countScripts(model) === 0) return null;
     const guards = { yes: format(`${P}yes`), no: format(`${P}no`) };
     // 代わりの文（流れを文にしたもの）は置き方といっしょに描く側へ渡す
-    const layout = { ...layoutActivityDiagram(model, guards), description: describeActivityModel(model, guards) };
+    const layout = { ...layoutActivityDiagram(model), description: describeActivityModel(model, guards) };
     return { model, layout };
 };

@@ -16,6 +16,7 @@ import {
     FONT_SIZE,
     layoutActivityDiagram,
     MIN_DIAGRAM_SCALE,
+    RECEIVE_NOTCH,
     SMALL_FONT_SIZE,
 } from '../../../../src/lib/lessons/activity-diagram/layout';
 import {
@@ -57,13 +58,14 @@ describe('buildActivityModel', () => {
     test('a hat becomes the start label and the stack becomes actions in order', async () => {
         const script = onlyScript(await modelOf('when_flag_clicked do\n  say("こんにちは！", 2)\n  sleep(1)\nend\n'));
         expect(script.start).toBe('旗が押されたとき');
+        expect(script.receive).toBeNull();
         expect(script.body).toEqual([
             { kind: NODE_KINDS.ACTION, label: '「こんにちは！」と2秒言う' },
             { kind: NODE_KINDS.ACTION, label: '1秒待つ' },
         ]);
     });
 
-    test('ask and if / else become an action and a decision with yes / no branches', async () => {
+    test('ask and if / else become an action and a decision with guards on the branches', async () => {
         const { challenge } = findChallenge('blocks-l1-quiz');
         const script = onlyScript(await modelOf(challenge.code.ja));
         expect(script.start).toBe('このスプライトが押されたとき');
@@ -72,6 +74,9 @@ describe('buildActivityModel', () => {
             {
                 kind: NODE_KINDS.DECISION,
                 label: '答え = 7？',
+                // 教科書と同じく、条件は枝に「[条件]」と書く
+                yesGuard: '[答え = 7]',
+                noGuard: '[それ以外]',
                 yes: [{ kind: NODE_KINDS.ACTION, label: '「正解です」と2秒言う' }],
                 no: [{ kind: NODE_KINDS.ACTION, label: '「ちがいます」と2秒言う' }],
             },
@@ -90,15 +95,22 @@ describe('buildActivityModel', () => {
                 kind: NODE_KINDS.LOOP,
                 label: 'ずっとくり返す',
                 forever: true,
+                // ずっとは出口が無いので、ガードも無い
+                continueGuard: null,
+                exitGuard: null,
                 body: [
                     {
                         kind: NODE_KINDS.LOOP,
                         label: '3回くり返す',
                         forever: false,
+                        continueGuard: '[それ以外]',
+                        exitGuard: '[3回くり返した]',
                         body: [
                             {
                                 kind: NODE_KINDS.DECISION,
                                 label: 'マウスのポインターに触れた？',
+                                yesGuard: '[マウスのポインターに触れた]',
+                                noGuard: '[それ以外]',
                                 yes: [{ kind: NODE_KINDS.ACTION, label: '「くすぐったい！」と言う' }],
                                 no: [],
                             },
@@ -123,6 +135,15 @@ describe('buildActivityModel', () => {
         ]);
         expect(second.start).toBe('「あいさつ」を受け取ったとき');
         expect(second.body.map((n) => n.label)).toEqual(['「やあ！」と答えと言う']);
+        // 送る・受け取るは、教科書の送信・受信の記号で描くので、合図の名前を持つ
+        expect(first.body[2]).toEqual({ kind: NODE_KINDS.SEND, label: '「あいさつ」を送る', message: 'あいさつ' });
+        expect(first.receive).toBeNull();
+        expect(second.receive).toBe('あいさつ');
+    });
+
+    test('broadcast and wait is a send too', async () => {
+        const script = onlyScript(await modelOf('when_flag_clicked do\n  broadcast_and_wait("おくる")\nend\n'));
+        expect(script.body).toEqual([{ kind: NODE_KINDS.SEND, label: '「おくる」を送って待つ', message: 'おくる' }]);
     });
 
     test('an unsupported block becomes an action with the block name', async () => {
@@ -175,18 +196,22 @@ describe('partnerLane', () => {
             {
                 // set（共有する変数を変える）→ broadcast（合図を送る）の順
                 start: '「あいさつ」ボタンを押したとき',
+                receive: null,
                 body: [
                     { kind: NODE_KINDS.ACTION, label: 'メッセージを「こんにちは」にする' },
-                    { kind: NODE_KINDS.ACTION, label: '「とどいた」を送る' },
+                    { kind: NODE_KINDS.SEND, label: '「とどいた」を送る', message: 'とどいた' },
                 ],
             },
             {
                 start: '「3 にする」ボタンを押したとき',
+                receive: null,
                 body: [{ kind: NODE_KINDS.ACTION, label: '点数を3にする' }],
             },
             {
+                // 自動の返事は受信で始まる
                 start: '「こんにちは」を受け取ったとき',
-                body: [{ kind: NODE_KINDS.ACTION, label: '「やあ」を送る' }],
+                receive: 'こんにちは',
+                body: [{ kind: NODE_KINDS.SEND, label: '「やあ」を送る', message: 'やあ' }],
             },
         ]);
     });
@@ -199,6 +224,7 @@ describe('partnerLane', () => {
         expect(lane.targets[0].scripts).toEqual([
             {
                 start: '「ping」を受け取ったとき',
+                receive: 'ping',
                 body: [{ kind: NODE_KINDS.ACTION, label: 'へんじを「pong」にする' }],
             },
         ]);
@@ -290,7 +316,7 @@ describe('layoutActivityDiagram', () => {
         expect(start.label).toBe('旗が押されたとき');
     });
 
-    test('a decision puts the yes branch on the left, the no branch on the right and merges below', async () => {
+    test('a decision is an empty diamond: the yes branch goes left, the no branch right, guards on the branches', async () => {
         const { challenge } = findChallenge('blocks-l1-quiz');
         const layout = layoutActivityDiagram(await modelOf(challenge.code.ja));
         const decision = layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.DECISION);
@@ -303,22 +329,83 @@ describe('layoutActivityDiagram', () => {
         expect(no.x + no.w / 2).toBeGreaterThan(cx);
         expect(merge.y).toBeGreaterThan(Math.max(yes.y + yes.h, no.y + no.h));
         expect(merge.x + merge.w / 2).toBeCloseTo(cx);
-        const guards = layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.GUARD).map((s) => s.label);
-        expect(guards).toEqual(['はい', 'いいえ']);
+        // 分岐と合流は同じ大きさのひし形で、中に字を書かない（教科書の形）
+        expect([merge.w, merge.h]).toEqual([decision.w, decision.h]);
+        expect(decision.lines).toBeUndefined();
+        const guards = layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.GUARD);
+        expect(guards.map((s) => s.label)).toEqual(['[答え = 7]', '[それ以外]']);
+        // ガードはひし形の左右（条件に合う枝が左）
+        expect(guards[0].x + guards[0].w).toBeLessThanOrEqual(decision.x);
+        expect(guards[1].x).toBeGreaterThanOrEqual(decision.x + decision.w);
         layout.shapes.forEach((s) => expect(insideBox(s, layout)).toBe(true));
     });
 
-    test('a loop is a frame that holds its body', async () => {
+    test('forever is a merge diamond with a line that goes back from the bottom of its body (no exit)', async () => {
         const layout = layoutActivityDiagram(
             await modelOf('when_flag_clicked do\n  loop do\n    say("a")\n  end\nend\n'),
         );
-        const frame = layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.LOOP);
+        const merge = layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.MERGE);
         const action = layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.ACTION);
-        expect(frame.label).toBe('ずっとくり返す');
-        expect(action.x).toBeGreaterThan(frame.x);
-        expect(action.y).toBeGreaterThan(frame.y);
-        expect(action.x + action.w).toBeLessThan(frame.x + frame.w);
-        expect(action.y + action.h).toBeLessThan(frame.y + frame.h);
+        expect(merge.label).toBe('ずっとくり返す');
+        expect(merge.y + merge.h).toBeLessThan(action.y);
+        // 戻る線: 本体の下から出て、ひし形の左のかどへ矢印で入る
+        const back = layout.edges[layout.edges.length - 1];
+        const [first] = back.points;
+        const last = back.points[back.points.length - 1];
+        expect(first[1]).toBeCloseTo(action.y + action.h);
+        expect(last).toEqual([merge.x, merge.y + merge.h / 2]);
+        expect(back.arrow).toBe(true);
+        expect(Math.min(...back.points.map(([x]) => x))).toBeLessThan(action.x);
+        // 出口のガードも枠も無い
+        expect(layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.GUARD)).toHaveLength(0);
+    });
+
+    test('repeat is a diamond that merges and branches: continue below, exit to the right and back to the middle', async () => {
+        const layout = layoutActivityDiagram(
+            await modelOf('when_flag_clicked do\n  3.times do\n    say("a")\n  end\n  say("b")\nend\n'),
+        );
+        const diamond = layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.DECISION);
+        const [a, b] = layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.ACTION);
+        const cx = diamond.x + diamond.w / 2;
+        const vy = diamond.y + diamond.h / 2;
+        expect(diamond.label).toBe('3回くり返す');
+        const guards = layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.GUARD);
+        expect(guards.map((s) => s.label)).toEqual(['[それ以外]', '[3回くり返した]']);
+        // 戻る線は左のかどへ、ぬける線は右のかどから出て、本体より下を通って真ん中へ戻る
+        const back = layout.edges.find((e) => e.points[e.points.length - 1][0] === diamond.x);
+        expect(back.points[back.points.length - 1]).toEqual([diamond.x, vy]);
+        const exit = layout.edges.find((e) => e.points[0][0] === diamond.x + diamond.w && e.points[0][1] === vy);
+        const exitEnd = exit.points[exit.points.length - 1];
+        expect(exitEnd[0]).toBeCloseTo(cx);
+        expect(exitEnd[1]).toBeGreaterThan(a.y + a.h);
+        expect(exitEnd[1]).toBeLessThan(b.y);
+        expect(Math.max(...exit.points.map(([x]) => x))).toBeGreaterThan(a.x + a.w);
+        // 線や字がほかの記号と重ならない（ガードはひし形・箱の外）
+        guards.forEach((g) => {
+            expect(g.y + g.h <= a.y || g.x >= a.x + a.w || g.x + g.w <= a.x).toBe(true);
+        });
+        layout.shapes.forEach((s) => expect(insideBox(s, layout)).toBe(true));
+    });
+
+    test('send is a pentagon and a script started by receiving starts with the receive symbol', async () => {
+        const layout = layoutActivityDiagram(
+            await modelOf(
+                'when_flag_clicked do\n  broadcast("あいさつ")\nend\n\nwhen_receive("あいさつ") do\n  say("やあ")\nend\n',
+            ),
+        );
+        expect(layout.shapes.map((s) => s.type)).toEqual([
+            DIAGRAM_SHAPES.START,
+            DIAGRAM_SHAPES.SEND,
+            DIAGRAM_SHAPES.END,
+            DIAGRAM_SHAPES.RECEIVE,
+            DIAGRAM_SHAPES.ACTION,
+            DIAGRAM_SHAPES.END,
+        ]);
+        const receive = layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.RECEIVE);
+        expect(receive.label).toBe('「あいさつ」を受け取ったとき');
+        expect(receive.lines.join('')).toBe('「あいさつ」を受け取ったとき');
+        // 同じスプライトの中の合図には矢印を引かない（スクリプトが横に並ぶので、ほかの記号を横切るため）
+        expect(layout.edges.some((e) => e.message)).toBe(false);
     });
 
     test('long labels wrap so the boxes stay narrow', async () => {
@@ -349,6 +436,106 @@ describe('layoutActivityDiagram', () => {
         expect(lanes.map((l) => l.label)).toEqual(['あなた', 'ロボ']);
         expect(lanes[0].x + lanes[0].w).toBeLessThanOrEqual(lanes[1].x);
         swim.shapes.forEach((s) => expect(insideBox(s, swim)).toBe(true));
+    });
+
+    test('a send in one lane points to the receive of the same message in the other lane, at the same height', async () => {
+        const own = (
+            await modelOf(
+                'when_flag_clicked do\n  ask("メッセージは？")\n  $メッセージ = answer\n  broadcast("メッセージ")\nend\n\n' +
+                    'when_receive("へんじ") do\n  say("とどいた")\nend\n',
+            )
+        ).lanes[0];
+        const partner = partnerLane(
+            {
+                name: 'ロボ',
+                replies: [{ onBroadcast: 'メッセージ', set: { variable: 'x', value: 1 }, broadcast: 'へんじ' }],
+            },
+            { format: formatJa },
+        );
+        const layout = layoutActivityDiagram({ lanes: [{ ...own, label: 'あなた' }, partner] });
+        const [laneOwn, lanePartner] = layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.LANE);
+        const within = (lane, s) => s.x >= lane.x && s.x + s.w <= lane.x + lane.w;
+        const sends = layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.SEND);
+        const receives = layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.RECEIVE);
+        const ownSend = sends.find((s) => s.message === 'メッセージ');
+        const partnerSend = sends.find((s) => s.message === 'へんじ');
+        const partnerReceive = receives.find((s) => s.message === 'メッセージ');
+        const ownReceive = receives.find((s) => s.message === 'へんじ');
+        expect(within(laneOwn, ownSend) && within(laneOwn, ownReceive)).toBe(true);
+        expect(within(lanePartner, partnerSend) && within(lanePartner, partnerReceive)).toBe(true);
+        // 送信は相手の向きがとがり、受信は送り手の向きがへこむ
+        expect([ownSend.direction, partnerReceive.notch]).toEqual(['right', 'left']);
+        expect([partnerSend.direction, ownReceive.notch]).toEqual(['left', 'right']);
+        // 受信は送信と同じ高さまで下がり、矢印はまっすぐ横に引く
+        const cy = (s) => s.y + s.h / 2;
+        expect(cy(partnerReceive)).toBeCloseTo(cy(ownSend));
+        expect(cy(ownReceive)).toBeCloseTo(cy(partnerSend));
+        const messages = layout.edges.filter((e) => e.message);
+        expect(messages).toHaveLength(2);
+        expect(messages[0].points).toEqual([
+            [ownSend.x + ownSend.w, cy(ownSend)],
+            [partnerReceive.x + RECEIVE_NOTCH, cy(partnerReceive)],
+        ]);
+        expect(messages[1].points).toEqual([
+            [partnerSend.x, cy(partnerSend)],
+            [ownReceive.x + ownReceive.w - RECEIVE_NOTCH, cy(ownReceive)],
+        ]);
+        expect(messages.every((e) => e.arrow)).toBe(true);
+        // 下げたぶん、レーンも高くなって、どの記号もレーンの中
+        layout.shapes
+            .filter((s) => s.type !== DIAGRAM_SHAPES.LANE)
+            .forEach((s) => expect(s.y + s.h).toBeLessThanOrEqual(laneOwn.y + laneOwn.h));
+        layout.shapes.forEach((s) => expect(insideBox(s, layout)).toBe(true));
+    });
+
+    test('scripts that talk to the other lane sit on the side of that lane', async () => {
+        const own = (
+            await modelOf('when_receive("へんじ") do\n  say("a")\nend\n\nwhen_clicked do\n  say("b")\nend\n')
+        ).lanes[0];
+        const partner = partnerLane(
+            { name: 'ロボ', buttons: [{ label: 'おす', broadcast: 'へんじ' }] },
+            { format: formatJa },
+        );
+        const layout = layoutActivityDiagram({ lanes: [{ ...own, label: 'あなた' }, partner] });
+        const receive = layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.RECEIVE);
+        const other = layout.shapes.find((s) => s.label === '「b」と言う');
+        expect(other.x + other.w).toBeLessThan(receive.x);
+    });
+
+    test('sprites in one lane are connected too, and a receive lower than its send turns in the gap', async () => {
+        const blocksA = await toBlocks(
+            'when_clicked do\n  say("a")\n  say("b")\n  say("c")\n  broadcast("あいさつ")\nend\n',
+        );
+        const blocksB = await toBlocks('when_receive("あいさつ") do\n  say("やあ！", 2)\nend\n');
+        const blocksC = await toBlocks('when_flag_clicked do\n  broadcast("あいさつ")\nend\n');
+        const model = buildActivityModel(
+            {
+                lanes: [
+                    {
+                        id: 'own',
+                        label: null,
+                        targets: [
+                            { name: 'ネコ', blocks: blocksA },
+                            { name: 'Penguin', blocks: blocksB },
+                            { name: 'Owl', blocks: blocksC },
+                        ],
+                    },
+                ],
+            },
+            { format: formatJa },
+        );
+        const layout = layoutActivityDiagram(model);
+        const receive = layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.RECEIVE);
+        const [catSend, owlSend] = layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.SEND);
+        const cy = (s) => s.y + s.h / 2;
+        const messages = layout.edges.filter((e) => e.message);
+        expect(messages).toHaveLength(2);
+        // いちばん上の送信（ここではフクロウ）の高さにそろえ、もう一方は相手の手前で曲げる
+        expect(cy(receive)).toBeCloseTo(Math.min(cy(catSend), cy(owlSend)));
+        const bent = messages.find((e) => e.points.length === 4);
+        expect(bent).toBeDefined();
+        expect(owlSend.direction).toBe('left');
+        expect(receive.notch).toBe('left');
     });
 
     test('target captions are drawn when the lane has programs of 2 or more sprites', async () => {
@@ -414,7 +601,7 @@ describe('challenge definition', () => {
             },
         );
         expect(diagram.model.lanes).toHaveLength(1);
-        expect(diagram.layout.shapes.some((s) => s.type === DIAGRAM_SHAPES.LOOP)).toBe(true);
+        expect(diagram.layout.shapes.some((s) => s.type === DIAGRAM_SHAPES.MERGE)).toBe(true);
         expect(diagram.layout.shapes.some((s) => s.type === DIAGRAM_SHAPES.DECISION)).toBe(true);
         expect(diagram.layout.width).toBeGreaterThan(0);
     });
@@ -496,6 +683,9 @@ describe('more shapes', () => {
                 kind: NODE_KINDS.LOOP,
                 label: '答え = 「おわり」までくり返す',
                 forever: false,
+                // 条件に合うまで続け、合ったらぬける
+                continueGuard: '[それ以外]',
+                exitGuard: '[答え = 「おわり」]',
                 body: [{ kind: NODE_KINDS.ACTION, label: '「なに？」と聞いて待つ' }],
             },
         ]);
@@ -514,19 +704,32 @@ describe('more shapes', () => {
         expect(decision.yes[0].kind).toBe(NODE_KINDS.LOOP);
         expect(decision.no[0].kind).toBe(NODE_KINDS.DECISION);
         const layout = layoutActivityDiagram(model);
-        const frames = layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.LOOP);
-        const [outerFrame, innerFrame] = frames;
         const said = (label) => layout.shapes.find((s) => s.label === label);
-        // はいの枝（くり返しの枠）が、いいえの枝（入れ子の分岐とその箱）より左にあって重ならない
+        const innerLoop = said('3回くり返す');
+        // はいの枝のくり返しの線（ぬける線の右はし）が、いいえの枝（入れ子の分岐とその箱）より左にあって重ならない
+        const innerExit = layout.edges.find(
+            (e) => e.points[0][0] === innerLoop.x + innerLoop.w && e.points[0][1] === innerLoop.y + innerLoop.h / 2,
+        );
+        const innerRight = Math.max(...innerExit.points.map(([x]) => x));
         const noShapes = [said('「に」と言う'), said('「ほか」と言う')];
-        noShapes.forEach((shape) => expect(innerFrame.x + innerFrame.w).toBeLessThanOrEqual(shape.x));
-        // どれも外の枠の中
-        layout.shapes
-            .filter((s) => s !== outerFrame && s.type !== DIAGRAM_SHAPES.START && s.type !== DIAGRAM_SHAPES.GUARD)
-            .forEach((s) => {
-                expect(s.x).toBeGreaterThanOrEqual(outerFrame.x);
-                expect(s.x + s.w).toBeLessThanOrEqual(outerFrame.x + outerFrame.w);
-            });
+        noShapes.forEach((shape) => expect(innerRight).toBeLessThan(shape.x));
+        // 記号どうしが重ならない（ガードを含む）
+        const boxes = layout.shapes.filter((s) => s.type !== DIAGRAM_SHAPES.START);
+        boxes.forEach((p, i) =>
+            boxes.slice(i + 1).forEach((q) => {
+                const apart = p.x + p.w <= q.x || q.x + q.w <= p.x || p.y + p.h <= q.y || q.y + q.h <= p.y;
+                expect({ p: p.label, q: q.label, apart }).toEqual({ p: p.label, q: q.label, apart: true });
+            }),
+        );
+        // 外のずっとの戻る線が、いちばん左にある
+        const outerMerge = said('ずっとくり返す');
+        const outerBack = layout.edges.find(
+            (e) =>
+                e.points[e.points.length - 1][0] === outerMerge.x &&
+                e.points[e.points.length - 1][1] === outerMerge.y + 9,
+        );
+        const leftMost = Math.min(...layout.edges.flatMap((e) => e.points.map(([x]) => x)));
+        expect(Math.min(...outerBack.points.map(([x]) => x))).toBe(leftMost);
     });
 
     test('a script that ends with forever has no end symbol', async () => {
@@ -534,9 +737,9 @@ describe('more shapes', () => {
             await modelOf('when_flag_clicked do\n  loop do\n    say("a")\n  end\nend\n'),
         );
         expect(layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.END)).toHaveLength(0);
-        const frame = layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.LOOP);
-        // 枠の下から先へ出る矢印も無い
-        expect(layout.edges.every((e) => e.points.every(([, y]) => y <= frame.y + frame.h))).toBe(true);
+        const action = layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.ACTION);
+        // 戻る線より下へ出る矢印も無い
+        expect(layout.edges.every((e) => e.points.every(([, y]) => y <= action.y + action.h + 10))).toBe(true);
         // ずっとのあとに続きがあるとき（ずっとが最後でない）は終了を描く
         const repeat = layoutActivityDiagram(
             await modelOf('when_flag_clicked do\n  3.times do\n    say("a")\n  end\nend\n'),

@@ -26,13 +26,6 @@
     stroke-width: 1.3;
 }
 
-.loop {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1;
-    stroke-dasharray: 4 3;
-}
-
 .lane {
     fill: none;
     stroke: currentColor;
