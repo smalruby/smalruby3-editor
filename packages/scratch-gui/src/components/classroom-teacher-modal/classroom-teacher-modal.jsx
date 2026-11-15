@@ -350,6 +350,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         getCell={evaluation.getCell}
                         leaveRequest={evaluation.leaveRequest}
                         lessonScores={evaluation.lessonScores}
+                        openingWork={evaluation.openingWork}
                         rubricAxes={evaluation.rubricAxes}
                         scoringChecked={evaluation.scoringChecked}
                         scoringSavingId={evaluation.scoringSavingId}

@@ -52,6 +52,8 @@ const TeacherMemberDetail = ({
     const [commentText, setCommentText] = useState('');
     // 「退室させる」の確認（#1923 C3）。押してすぐ退室させない。
     const [confirmingRemove, setConfirmingRemove] = useState(false);
+    // 作品を開くとクラス管理が閉じ、返却していないコメントが消える。そのときだけ先に聞く（#1980）。
+    const [confirmingOpen, setConfirmingOpen] = useState(false);
 
     // Reset image index and comment only when a DIFFERENT member is selected
     const prevSelectedMemberRef = React.useRef(selectedMember);
@@ -60,6 +62,7 @@ const TeacherMemberDetail = ({
             prevSelectedMemberRef.current = selectedMember;
             setCurrentImageIndex(0);
             setConfirmingRemove(false);
+            setConfirmingOpen(false);
             if (selectedMember) {
                 const member = memberMap[selectedMember];
                 setCommentText(member?.teacherComment || '');
@@ -69,10 +72,22 @@ const TeacherMemberDetail = ({
         }
     }, [selectedMember, memberMap]);
 
-    const handleOpenClick = useCallback(() => {
+    const openSelected = useCallback(() => {
+        setConfirmingOpen(false);
         const projectUrl = selectedMember && memberMap[selectedMember]?.projectUrl;
         if (projectUrl) onOpenSubmission(projectUrl);
     }, [selectedMember, memberMap, onOpenSubmission]);
+    // 書きかけのコメント: 空でなく、返却したもの（保存されているもの）と違う。
+    const hasCommentDraft = useCallback(() => {
+        const draft = commentText.trim();
+        const saved = ((selectedMember && memberMap[selectedMember]?.teacherComment) || '').trim();
+        return draft !== '' && draft !== saved;
+    }, [commentText, selectedMember, memberMap]);
+    const handleOpenClick = useCallback(() => {
+        if (hasCommentDraft()) setConfirmingOpen(true);
+        else openSelected();
+    }, [hasCommentDraft, openSelected]);
+    const handleOpenStay = useCallback(() => setConfirmingOpen(false), []);
 
     // ⋮ の［退室させる］は確認を開くだけ。確認の［退室させる］で退室させる（#1923 C3）。
     const handleRemoveClick = useCallback(() => setConfirmingRemove(true), []);
@@ -415,6 +430,49 @@ const TeacherMemberDetail = ({
                                     id="gui.classroom.teacherDetail.openSubmission"
                                 />
                             </ClassroomButton>
+                        )}
+                        {confirmingOpen && (
+                            <div
+                                className={classNames(styles.confirmNote, styles.memberRemoveConfirm)}
+                                data-testid="classroom-member-open-confirm-box"
+                            >
+                                <p
+                                    className={styles.memberRemoveConfirmMessage}
+                                    data-testid="classroom-member-open-confirm-message"
+                                    role="alert"
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="The comment you have not returned will be lost. Leave this screen and open the work?"
+                                        description="Member detail: question before opening the work over a comment not returned (#1980)"
+                                        id="gui.classroom.teacherDetail.openLoseComment"
+                                    />
+                                </p>
+                                <div className={styles.buttonRow}>
+                                    <ClassroomButton
+                                        autoFocus
+                                        dataTestId="classroom-member-open-stay"
+                                        onClick={handleOpenStay}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Stay"
+                                            description="Member detail: closes the question and keeps the comment (#1980)"
+                                            id="gui.classroom.teacherDetail.openStay"
+                                        />
+                                    </ClassroomButton>
+                                    <ClassroomButton
+                                        dataTestId="classroom-member-open-leave"
+                                        disabled={isLoading}
+                                        variant="danger"
+                                        onClick={openSelected}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Leave"
+                                            description="Member detail: opens the work and drops the comment not returned (#1980)"
+                                            id="gui.classroom.teacherDetail.openLeave"
+                                        />
+                                    </ClassroomButton>
+                                </div>
+                            </div>
                         )}
                         {/* Peer view (#1208): keep an inappropriate submission
                             out of what classmates can see. */}

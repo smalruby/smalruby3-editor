@@ -523,6 +523,7 @@ const TeacherEvaluation = ({
     onExportEvaluationCsv,
     onLoadSubmissions,
     onOpenWork = null,
+    openingWork = false,
     onRequestLeave = runAction,
     onReturnComments,
     onRunAi,
@@ -1190,6 +1191,7 @@ const TeacherEvaluation = ({
                             comment={detailCell ? comments[`${detailCell.seat}:${detailCell.classroomId}`] : null}
                             lessonName={detailLesson ? detailLesson.assignmentName : null}
                             nextSeat={detailNeighbours.next}
+                            openingWork={openingWork}
                             prevSeat={detailNeighbours.prev}
                             seatNumber={detailCell ? detailCell.seat : null}
                             onOpenWork={onOpenWork ? handleOpenWork : null}
@@ -1218,6 +1220,8 @@ TeacherEvaluation.propTypes = {
         kind: PropTypes.oneOf(['back', 'leave', 'reload']),
     }),
     lessonScores: PropTypes.object,
+    /** A work is being opened from the right column (#1980). */
+    openingWork: PropTypes.bool,
     rubricAxes: PropTypes.arrayOf(PropTypes.object).isRequired,
     scoringChecked: PropTypes.bool,
     scoringSavingId: PropTypes.string,

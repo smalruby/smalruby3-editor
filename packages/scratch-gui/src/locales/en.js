@@ -275,8 +275,9 @@ export default {
     'gui.classroom.evaluation.needsReviewTitle': 'The AI was unsure about this one.',
     'gui.classroom.evaluation.returned': 'Returned',
     'gui.classroom.evaluation.openWork': 'Open the work',
+    'gui.classroom.evaluation.openingWork': 'Opening…',
     'gui.classroom.evaluation.openWorkFailed':
-        'The work could not be opened. Load the submissions again and try once more.',
+        'The work could not be opened. Wait a moment and press [Open the work] again. If it still fails, load the submissions again (grades not exported will be lost).',
     'gui.classroom.teacherDetail.commentLabel': 'Comment to the student (sent when you return it)',
     'gui.classroom.error.title': 'An error occurred',
     'gui.classroom.error.joinTitle': 'Could not join',
@@ -291,6 +292,10 @@ export default {
     'gui.classroom.error.goToLogin': 'Go to login screen',
     'gui.classroom.error.goToJoin': 'Go to join screen',
     'gui.classroom.teacherDetail.openSubmission': 'Open in Smalruby',
+    'gui.classroom.teacherDetail.openLoseComment':
+        'The comment you have not returned will be lost. Leave this screen and open the work?',
+    'gui.classroom.teacherDetail.openStay': 'Stay',
+    'gui.classroom.teacherDetail.openLeave': 'Leave',
     'gui.classroom.teacherDetail.returnSubmission': 'Return',
     'gui.classroom.teacherDetail.hideFromPeers': "Don't show to other students",
     'gui.classroom.teacherDetail.returned': 'Returned',

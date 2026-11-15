@@ -123,8 +123,9 @@ describe('useTeacherEvaluation — 作品を開く (#1980)', () => {
         await openWork(hook, 1);
         expect(deps.openSubmission).not.toHaveBeenCalled();
         expect(deps.showError).toHaveBeenCalledTimes(2);
+        // 採点を消さないよう、まずもう一度押すよう知らせる（読み込み直しは最後の手）
         expect(deps.showError).toHaveBeenCalledWith(
-            'The work could not be opened. Load the submissions again and try once more.',
+            expect.stringMatching(/^The work could not be opened\. Wait a moment/),
         );
     });
 
@@ -141,5 +142,44 @@ describe('useTeacherEvaluation — 作品を開く (#1980)', () => {
     test('URL をセルに足しても、書き出していない採点の判定は変わらない', async () => {
         const { hook } = await setup();
         expect(hook.result.current.hasUnsavedWork).toBe(false);
+    });
+
+    test('取り直しに無くなった提出は URL を消し、押すと開けないと知らせる (FYI1)', async () => {
+        const { hook, deps } = await setup();
+        now += 55 * 60 * 1000;
+        // 席 2 の提出が取り消された
+        mockListSubmissions.mockResolvedValue({ submissions: submissionsWith('fresh').slice(0, 1) });
+        await openWork(hook, 1);
+        expect(deps.openSubmission).toHaveBeenCalledWith('https://example.invalid/fresh/1.sb3');
+        expect(hook.result.current.getCell(2, 'c1').projectUrl).toBeNull();
+        await openWork(hook, 2);
+        expect(deps.openSubmission).toHaveBeenCalledTimes(1);
+        expect(deps.showError).toHaveBeenCalledWith(expect.stringMatching(/^The work could not be opened/));
+    });
+
+    test('開いている間は openingWork が true で、二度押しても 1 回しか開かない (FYI2)', async () => {
+        let finish;
+        const openSubmission = jest.fn(
+            () =>
+                new Promise((resolve) => {
+                    finish = resolve;
+                }),
+        );
+        const { hook } = await setup(openSubmission);
+        let first;
+        await act(async () => {
+            first = hook.result.current.handleOpenWork(1, 'c1');
+            await Promise.resolve();
+        });
+        expect(hook.result.current.openingWork).toBe(true);
+        await act(async () => {
+            await hook.result.current.handleOpenWork(1, 'c1');
+        });
+        expect(openSubmission).toHaveBeenCalledTimes(1);
+        await act(async () => {
+            finish();
+            await first;
+        });
+        expect(hook.result.current.openingWork).toBe(false);
     });
 });

@@ -225,3 +225,49 @@ describe('TeacherMemberDetail — コメント欄のラベル (#1924 C5・R1)', 
         expect(input.getAttribute('placeholder')).toBeFalsy();
     });
 });
+
+describe('TeacherMemberDetail — ［スモウルビーで開く］の前の確認 (#1980)', () => {
+    const URL = 'https://example.invalid/3.sb3';
+    const typeComment = (text) =>
+        fireEvent.change(byTestId('classroom-member-detail-comment'), { target: { value: text } });
+
+    test('書きかけのコメントが無ければ、確かめずに開く', () => {
+        const onOpenSubmission = jest.fn();
+        renderDetail(member({ projectUrl: URL }), { onOpenSubmission });
+        fireEvent.click(byTestId('classroom-member-detail-open'));
+        expect(onOpenSubmission).toHaveBeenCalledWith(URL);
+        expect(byTestId('classroom-member-open-confirm-box')).not.toBeInTheDocument();
+    });
+
+    test('返却したコメントのままなら、確かめずに開く', () => {
+        const onOpenSubmission = jest.fn();
+        renderDetail(member({ projectUrl: URL, teacherComment: 'いいね' }), { onOpenSubmission });
+        fireEvent.click(byTestId('classroom-member-detail-open'));
+        expect(onOpenSubmission).toHaveBeenCalledWith(URL);
+    });
+
+    test('返却していないコメントがあれば先に聞き、［とどまる］なら開かずにコメントを残す', () => {
+        const onOpenSubmission = jest.fn();
+        renderDetail(member({ projectUrl: URL }), { onOpenSubmission });
+        typeComment('よくできました');
+        fireEvent.click(byTestId('classroom-member-detail-open'));
+        expect(onOpenSubmission).not.toHaveBeenCalled();
+        expect(byTestId('classroom-member-open-confirm-message')).toHaveTextContent(
+            'The comment you have not returned will be lost.',
+        );
+        fireEvent.click(byTestId('classroom-member-open-stay'));
+        expect(byTestId('classroom-member-open-confirm-box')).not.toBeInTheDocument();
+        expect(byTestId('classroom-member-detail-comment')).toHaveValue('よくできました');
+        expect(onOpenSubmission).not.toHaveBeenCalled();
+    });
+
+    test('［離れる］で開く', () => {
+        const onOpenSubmission = jest.fn();
+        renderDetail(member({ projectUrl: URL, teacherComment: 'いいね' }), { onOpenSubmission });
+        typeComment('いいね！ もう少し');
+        fireEvent.click(byTestId('classroom-member-detail-open'));
+        fireEvent.click(byTestId('classroom-member-open-leave'));
+        expect(onOpenSubmission).toHaveBeenCalledWith(URL);
+        expect(byTestId('classroom-member-open-confirm-box')).not.toBeInTheDocument();
+    });
+});

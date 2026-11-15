@@ -691,3 +691,18 @@ describe('右の列の［作品を開く］(#1980)', () => {
         expect(onOpenWork).not.toHaveBeenCalled();
     });
 });
+
+describe('［作品を開く］を押したあと (#1980 FYI2)', () => {
+    test('開いている間は押せず「Opening…」と出す', () => {
+        const cells = { '1:c1': { submissionId: 's1', submitted: true, grade: 'A' } };
+        renderEvaluation({
+            seats: [1],
+            getCell: (seat, id) => cells[`${seat}:${id}`] || null,
+            onOpenWork: jest.fn(),
+            openingWork: true,
+        });
+        const button = document.querySelector('[data-testid="classroom-eval-detail-open-work"]');
+        expect(button).toBeDisabled();
+        expect(button).toHaveTextContent('Opening…');
+    });
+});

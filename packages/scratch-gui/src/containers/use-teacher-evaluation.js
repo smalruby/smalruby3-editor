@@ -40,9 +40,12 @@ const evaluationMessages = defineMessages({
         id: 'gui.classroom.evaluation.lessonRemoved',
     },
     openWorkFailed: {
-        defaultMessage: 'The work could not be opened. Load the submissions again and try once more.',
+        defaultMessage:
+            'The work could not be opened. Wait a moment and press [Open the work] again. If it still fails, ' +
+            'load the submissions again (grades not exported will be lost).',
         description:
-            'Grading screen: [Open the work] could not get the link to the work (it may have been taken back, #1980)',
+            'Grading screen: [Open the work] could not get the link to the work (a network error, or it was ' +
+            'taken back). Trying again first keeps the grades; loading again drops grades not exported (#1980)',
         id: 'gui.classroom.evaluation.openWorkFailed',
     },
 });
@@ -123,6 +126,13 @@ const useTeacherEvaluation = ({
     const shownGroupRef = useRef(null);
     // classroomId → when its submissions (and their links) were read (#1980)
     const urlsReadAtRef = useRef({});
+    // A work is being opened: [Open the work] waits, so it is not pressed twice (#1980).
+    const [openingWork, setOpeningWork] = useState(false);
+    const openingWorkRef = useRef(false);
+    const markOpeningWork = useCallback((value) => {
+        openingWorkRef.current = value;
+        setOpeningWork(value);
+    }, []);
 
     const handleShowEvaluation = useCallback(
         (group) => {
@@ -402,41 +412,51 @@ const useTeacherEvaluation = ({
     const handleOpenWork = useCallback(
         async (seatNumber, classroomId) => {
             const cell = matrix[cellKey(seatNumber, classroomId)];
-            if (!openSubmission || !cell || !cell.submissionId) return;
-            let projectUrl = cell.projectUrl;
-            const readAt = urlsReadAtRef.current[classroomId];
-            if (!projectUrl || !readAt || Date.now() - readAt > WORK_URL_FRESH_MS) {
-                clearError();
-                let fresh = [];
-                try {
-                    const data = await classroomAPI.listSubmissions(idToken, classroomId);
-                    fresh = data.submissions || [];
-                } catch (err) {
-                    if (err.status === 401) {
-                        handleTeacher401();
+            if (!openSubmission || !cell || !cell.submissionId || openingWorkRef.current) return;
+            markOpeningWork(true);
+            try {
+                let projectUrl = cell.projectUrl;
+                const readAt = urlsReadAtRef.current[classroomId];
+                if (!projectUrl || !readAt || Date.now() - readAt > WORK_URL_FRESH_MS) {
+                    clearError();
+                    let fresh = null;
+                    try {
+                        const data = await classroomAPI.listSubmissions(idToken, classroomId);
+                        fresh = data.submissions || [];
+                    } catch (err) {
+                        if (err.status === 401) {
+                            handleTeacher401();
+                            return;
+                        }
+                    }
+                    if (fresh) {
+                        const urls = new Map(fresh.map((s) => [s.submissionId, s.projectUrl || null]));
+                        projectUrl = urls.get(cell.submissionId) || null;
+                        // Every link of this assignment is new now. A submission no longer
+                        // listed has no link (pressing it says so). The grades are kept.
+                        urlsReadAtRef.current = { ...urlsReadAtRef.current, [classroomId]: Date.now() };
+                        setMatrix((prev) => {
+                            const next = { ...prev };
+                            for (const [key, value] of Object.entries(prev)) {
+                                if (!key.endsWith(`:${classroomId}`) || !value.submissionId) continue;
+                                next[key] = { ...value, projectUrl: urls.get(value.submissionId) || null };
+                            }
+                            return next;
+                        });
+                    } else {
+                        projectUrl = null;
+                    }
+                    if (!projectUrl) {
+                        showError(intl.formatMessage(evaluationMessages.openWorkFailed));
                         return;
                     }
                 }
-                const urls = new Map(fresh.map((s) => [s.submissionId, s.projectUrl || null]));
-                projectUrl = urls.get(cell.submissionId) || null;
-                if (!projectUrl) {
-                    showError(intl.formatMessage(evaluationMessages.openWorkFailed));
-                    return;
-                }
-                // Every link of this assignment is new now (the grades are kept as they are).
-                urlsReadAtRef.current = { ...urlsReadAtRef.current, [classroomId]: Date.now() };
-                setMatrix((prev) => {
-                    const next = { ...prev };
-                    for (const [key, value] of Object.entries(prev)) {
-                        if (!key.endsWith(`:${classroomId}`) || !urls.has(value.submissionId)) continue;
-                        next[key] = { ...value, projectUrl: urls.get(value.submissionId) };
-                    }
-                    return next;
-                });
+                await openSubmission(projectUrl);
+            } finally {
+                markOpeningWork(false);
             }
-            await openSubmission(projectUrl);
         },
-        [matrix, openSubmission, idToken, clearError, showError, intl, handleTeacher401],
+        [matrix, openSubmission, idToken, clearError, showError, intl, handleTeacher401, markOpeningWork],
     );
 
     /**
@@ -663,6 +683,7 @@ const useTeacherEvaluation = ({
         handleCheckScoring,
         handleChangeLessonScoring,
         handleOpenWork: openSubmission ? handleOpenWork : null,
+        openingWork,
         handleExportEvaluationCsv,
         handleExportAuditCsv,
         handleReturnComments,

@@ -78,6 +78,12 @@ export const detailMessages = defineMessages({
             '(closes the classroom screen, #1980)',
         id: 'gui.classroom.evaluation.openWork',
     },
+    openingWork: {
+        defaultMessage: 'Opening…',
+        description:
+            'Grading screen: [Open the work] while the work is being opened (it cannot be pressed again, #1980)',
+        id: 'gui.classroom.evaluation.openingWork',
+    },
     returned: {
         defaultMessage: 'Returned',
         description: 'Grading screen: tag of a cell whose comment was returned to the student',
@@ -93,6 +99,7 @@ const TeacherEvaluationDetail = ({
     comment,
     lessonName,
     nextSeat,
+    openingWork = false,
     prevSeat,
     seatNumber,
     onOpenWork,
@@ -172,10 +179,10 @@ const TeacherEvaluationDetail = ({
                     <ClassroomButton
                         className={styles.evalDetailOpenWork}
                         dataTestId="classroom-eval-detail-open-work"
-                        disabled={!cell.submissionId}
+                        disabled={!cell.submissionId || openingWork}
                         onClick={handleOpenWork}
                     >
-                        {intl.formatMessage(detailMessages.openWork)}
+                        {intl.formatMessage(openingWork ? detailMessages.openingWork : detailMessages.openWork)}
                     </ClassroomButton>
                 )}
             </div>
@@ -247,6 +254,8 @@ TeacherEvaluationDetail.propTypes = {
     comment: PropTypes.string,
     lessonName: PropTypes.string,
     nextSeat: PropTypes.number,
+    /** A work is being opened: [Open the work] waits (#1980). */
+    openingWork: PropTypes.bool,
     prevSeat: PropTypes.number,
     seatNumber: PropTypes.number,
     /** (seat, classroomId) → opens the work in the editor (#1980). Without it there is no button. */
