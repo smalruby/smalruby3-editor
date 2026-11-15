@@ -33,7 +33,7 @@ export const ja = {
     [`${C}chat-l1-repeat.task`]:
         '旗を押したら「メッセージを入力」と聞く。そのあと、ずっと「変数「シマラビのメッセージ」を (答え) にして、(シマラビのメッセージ) と聞いて待つ」をくり返そう。\n「聞いて待つ」の質問に変数を入れると、入力を待つあいだ、さっきのメッセージが吹き出しに出る。チャットはこうして、いつ来るかわからない入力を待ち続ける。',
     [`${C}chat-l1-repeat.step1`]:
-        '図で、ひし形からもとのひし形へもどる線が「ずっと」のくり返し。まず「旗が押されたとき」の下に「メッセージを入力と聞いて待つ」をつなげよう。',
+        '図で、いちばん下から上のひし形へもどる線が「ずっと」のくり返し。まず「旗が押されたとき」の下に「メッセージを入力と聞いて待つ」をつなげよう。',
     [`${C}chat-l1-repeat.step2`]: 'その下に、オレンジの「制御」の「ずっと」をつなげよう。',
     [`${C}chat-l1-repeat.step3`]:
         '変数「シマラビのメッセージ」を作って、「ずっと」の中に「シマラビのメッセージを (答え) にする」と「(シマラビのメッセージ) と聞いて待つ」を入れよう。',
@@ -62,7 +62,7 @@ export const ja = {
         '旗を押して、何も入れずに Enter キー。もう一度旗を押して、何か入れて Enter キー。2 回試そう。',
     [`${C}chat-l1-branch.debug1`]:
         '何も入れなくても「何か書いてね」と言わないときは、「=」の右を空のままにしたか見よう（空白も入れない）。',
-    [`${C}chat-l1-branch.quiz.question`]: '「もし〜なら」のように、条件に応じて行われる処理を何という？',
+    [`${C}chat-l1-branch.quiz.question`]: '条件によって、することを変える処理を何という？',
     [`${C}chat-l1-branch.quiz.choice1`]: '分岐処理',
     [`${C}chat-l1-branch.quiz.choice2`]: '順次処理',
     [`${C}chat-l1-branch.quiz.choice3`]: '反復処理',
@@ -111,7 +111,7 @@ export const jaHira = {
     [`${C}chat-l1-repeat.task`]:
         'はたをおしたら「メッセージを にゅうりょく」ときく。そのあと、ずっと「へんすう「シマラビのメッセージ」を (こたえ) にして、(シマラビのメッセージ) と きいてまつ」をくりかえそう。\n「きいてまつ」のしつもんに へんすうをいれると、にゅうりょくをまつあいだ、さっきのメッセージが ふきだしにでる。チャットはこうして、いつくるか わからない にゅうりょくを まちつづける。',
     [`${C}chat-l1-repeat.step1`]:
-        'ずで、ひしがたから もとのひしがたへ もどるせんが「ずっと」のくりかえし。まず「はたがおされたとき」のしたに「メッセージを にゅうりょく ときいてまつ」をつなげよう。',
+        'ずで、いちばん したから うえのひしがたへ もどるせんが「ずっと」のくりかえし。まず「はたがおされたとき」のしたに「メッセージを にゅうりょく ときいてまつ」をつなげよう。',
     [`${C}chat-l1-repeat.step2`]: 'そのしたに、オレンジの「せいぎょ」の「ずっと」をつなげよう。',
     [`${C}chat-l1-repeat.step3`]:
         'へんすう「シマラビのメッセージ」をつくって、「ずっと」のなかに「シマラビのメッセージを (こたえ) にする」と「(シマラビのメッセージ) と きいてまつ」をいれよう。',
@@ -140,8 +140,7 @@ export const jaHira = {
         'はたをおして、なにも いれずに Enter キー。もういちど はたをおして、なにか いれて Enter キー。2 かい ためそう。',
     [`${C}chat-l1-branch.debug1`]:
         'なにも いれなくても「なにか かいてね」といわないときは、「=」のみぎを からのままにしたか みよう（くうはくも いれない）。',
-    [`${C}chat-l1-branch.quiz.question`]:
-        '「もし〜なら」のように、じょうけんに おうじて おこなわれる しょりを なんという？',
+    [`${C}chat-l1-branch.quiz.question`]: 'じょうけんによって、することを かえる しょりを なんという？',
     [`${C}chat-l1-branch.quiz.choice1`]: 'ぶんきしょり',
     [`${C}chat-l1-branch.quiz.choice2`]: 'じゅんじしょり',
     [`${C}chat-l1-branch.quiz.choice3`]: 'はんぷくしょり',
@@ -221,7 +220,7 @@ export const en = {
         'Click the flag and press Enter without typing. Click the flag again, type something and press Enter. Try both.',
     [`${C}chat-l1-branch.debug1`]:
         'If it does not say "Write something" when you type nothing, check that the right side of "=" is empty (no spaces either).',
-    [`${C}chat-l1-branch.quiz.question`]: 'What do we call steps, like "if", that run depending on a condition?',
+    [`${C}chat-l1-branch.quiz.question`]: 'What do we call changing what to do by a condition?',
     [`${C}chat-l1-branch.quiz.choice1`]: 'Branching',
     [`${C}chat-l1-branch.quiz.choice2`]: 'Sequence',
     [`${C}chat-l1-branch.quiz.choice3`]: 'Repetition',

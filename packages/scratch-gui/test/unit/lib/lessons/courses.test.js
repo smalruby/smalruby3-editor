@@ -1244,13 +1244,18 @@ describe('chat course lesson 1 "手順を図にしよう" (#1641)', () => {
     );
 
     test('the goals accept the words the code of every locale says', () => {
-        const [emptyText] = challenge('chat-l1-branch').goal;
+        const emptyText = challenge('chat-l1-branch').goal[1];
         ['何か書いてね', 'なにか かいてね', 'Write something'].forEach((text) =>
             expect(emptyText.text.test(text)).toBe(true),
         );
         const bye = challenge('chat-l1-read-diagram').goal[1];
+        const byeBlock = challenge('chat-l1-read-diagram').goal[0].blocks[2].args.MESSAGE;
+        ['またね', 'Bye!'].forEach((text) => expect(byeBlock.test(text)).toBe(true));
         ['またね', 'Bye!'].forEach((text) => expect(bye.text.test(text)).toBe(true));
-        expect(challenge('chat-l1-repeat').goal[1].name).toEqual(['シマラビのメッセージ', 'shimaraby_message']);
+        expect(challenge('chat-l1-repeat').goal[1].equalsVariable).toEqual([
+            'シマラビのメッセージ',
+            'shimaraby_message',
+        ]);
     });
 });
 

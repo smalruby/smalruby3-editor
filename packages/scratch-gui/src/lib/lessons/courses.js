@@ -930,7 +930,8 @@ const chatLesson1 = defineLesson({
                     blocks: ['sensing_askandwait', 'data_setvariableto', 'looks_sayforsecs'],
                     order: ['sensing_askandwait', 'data_setvariableto', 'looks_sayforsecs'],
                 },
-                { type: 'said', equalsAnswer: true },
+                // 決めた名前の変数（答えを入れたもの）を言った
+                { type: 'said', equalsAnswer: true, equalsVariable: CHAT_MESSAGE_VARIABLE },
             ],
             quiz: challengeQuiz('chat-l1-sequence', 1),
             code: chatCode(
@@ -964,14 +965,16 @@ const chatLesson1 = defineLesson({
                 { target: HINT_TARGETS.GREEN_FLAG },
             ]),
             debug: debugTips('chat-l1-repeat', 1),
-            // 「聞いて待つ」が 3 回動いた = 最初の 1 回 + くり返しの中で 2 回（2 回以上入力した）
+            // 「聞いて待つ」が 3 回動いた = 最初の 1 回 + くり返しの中で 2 回（2 回以上入力した）。
+            // 「(変数) と聞いて待つ」の質問は吹き出し（SAY）に出るので、答えを入れた変数を質問にしたことを said で見る
+            // （作っただけの変数は 0 なので、変数の値だけを見ると変数に入れないプログラムでも通ってしまう）
             goal: [
                 {
                     type: 'uses',
                     trigger: { hat: 'event_whenflagclicked' },
-                    blocks: ['control_forever', { opcode: 'sensing_askandwait', count: 3 }],
+                    blocks: ['control_forever', 'data_setvariableto', { opcode: 'sensing_askandwait', count: 3 }],
                 },
-                { type: 'variable', name: CHAT_MESSAGE_VARIABLE, value: { ne: '' } },
+                { type: 'said', equalsAnswer: true, equalsVariable: CHAT_MESSAGE_VARIABLE },
             ],
             quiz: challengeQuiz('chat-l1-repeat', 2),
             code: chatCode(
@@ -1022,10 +1025,12 @@ const chatLesson1 = defineLesson({
                 { target: HINT_TARGETS.GREEN_FLAG },
             ]),
             debug: debugTips('chat-l1-branch', 1),
-            // 何も入れずに試すのと、何か入れて試すのの両方（2 回試す）
+            // 何も入れずに試すのと、何か入れて試すのの両方（2 回試す）。分岐で言い分けたことを見るため、
+            // 「何か書いてね」は答えが空のとき、答えは変数に入れて言ったとき、旗のスクリプトで「もし〜なら でなければ」が動いた
             goal: [
-                { type: 'said', text: /^(何か書いてね|なにか かいてね|write something)/i },
-                { type: 'said', equalsAnswer: true },
+                { type: 'uses', trigger: { hat: 'event_whenflagclicked' }, blocks: ['control_if_else'] },
+                { type: 'said', text: /^(何か書いてね|なにか かいてね|write something)/i, answer: '' },
+                { type: 'said', equalsAnswer: true, equalsVariable: CHAT_MESSAGE_VARIABLE },
             ],
             quiz: challengeQuiz('chat-l1-branch', 0),
             code: chatCode(
@@ -1065,7 +1070,12 @@ const chatLesson1 = defineLesson({
                 {
                     type: 'uses',
                     trigger: { hat: 'event_whenflagclicked' },
-                    blocks: ['control_repeat_until', { opcode: 'sensing_askandwait', count: 2 }],
+                    // 「またね」は「言う」ブロックで言った（入力した「またね」を「答えと 1 秒言う」で言っても通さない）
+                    blocks: [
+                        'control_repeat_until',
+                        { opcode: 'sensing_askandwait', count: 2 },
+                        { opcode: 'looks_say', args: { MESSAGE: /^(またね|bye)/i } },
+                    ],
                 },
                 { type: 'said', text: /^(またね|bye)/i },
             ],

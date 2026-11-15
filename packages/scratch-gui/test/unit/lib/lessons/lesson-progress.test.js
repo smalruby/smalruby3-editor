@@ -484,7 +484,7 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
         );
     });
 
-    test('when the first course is all done, moves to the next course', () => {
+    test('looks only at the first course: when it is all done, opens like the menu (null)', () => {
         const courses = [
             defineCourse({
                 id: 'first',
@@ -498,22 +498,13 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
             }),
         ];
         const progress = ['fa', 'fb'].reduce((p, id) => markChallengeCompleted(p, id, NOW, courses), emptyProgress());
-        expect(startLessonsFocus(progress, courses)).toEqual({
-            language: 'ruby',
-            courseId: 'second',
-            lessonId: 's1',
-            nextChallengeId: 'sa',
-        });
+        // ほかのコースへは自動で案内しない（授業で先生が開くコースがあるため・#1641）
+        expect(startLessonsFocus(progress, courses)).toBeNull();
     });
 
-    test('when the first course is done, opens the next course at its first challenge', () => {
-        const next = findCourse('chat-wo-tsukurou');
-        expect(startLessonsFocus(completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))).toEqual({
-            language: next.language,
-            courseId: next.id,
-            lessonId: next.lessons[0].id,
-            nextChallengeId: next.lessons[0].challenges[0].id,
-        });
+    test('when the first course is done, opens like the menu (null) and does not lead to the other courses', () => {
+        // 授業で使う中 2 のコース（チャットをつくろう）へは自動で案内しない（#1641）
+        expect(startLessonsFocus(completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))).toBeNull();
     });
 
     test('when everything is done, opens like the menu (null)', () => {
