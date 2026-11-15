@@ -11,7 +11,8 @@
 // - `name` / `label` / `broadcast` / `onBroadcast` は文字列か、locale ごとの `{ja, 'ja-Hira', en}`
 //   （作品の中の名前は locale で変わるため。`code` と同じ `localizeCode` で選ぶ）。
 // - `set` は共有する変数を変える `{ variable, value }`（複数なら配列）。`variable` は文字列か locale ごとの
-//   文字列、`value` は文字列か数。メッシュの共有する変数（「〜のセンサー値」）として相手の値になる。
+//   文字列、`value` は文字列か数か `{ fromVariable: '名前' }`（生徒の作品の変数の、押したときの値。名前は文字列か
+//   locale ごと。変数が無ければ空文字）。メッシュの共有する変数（「〜のセンサー値」）として相手の値になる。
 // - ボタンを押したとき・合図を受け取ったときは、`set` → `broadcast` の順に起きる。
 // VM とのつなぎ（ブラウザの中での折り返し）は practice-loopback.js。
 import { localizeCode } from './courses';
@@ -35,16 +36,36 @@ const localizeText = (value, locale) => {
 };
 
 /**
- * `set`（`{variable, value}` か、その配列）を `[{name, value}]` にする。
+ * `set` の 1 つの値を読む。文字列・数はそのまま、`{fromVariable}` は生徒の変数の名前（値は押したときに読む）。
+ * @param {*} value - `set` の `value`。
+ * @param {string} locale - いまの locale。
+ * @returns {?({value: string}|{fromVariable: string})} 値。使えない形なら null。
+ */
+const normalizeValue = (value, locale) => {
+    if (isScalar(value)) return { value: String(value) };
+    if (isPlainObject(value) && Object.prototype.hasOwnProperty.call(value, 'fromVariable')) {
+        const fromVariable = localizeText(value.fromVariable, locale);
+        return fromVariable === null ? null : { fromVariable };
+    }
+    return null;
+};
+
+/**
+ * `set`（`{variable, value}` か、その配列）を `[{name, value}]` にする（`{fromVariable}` の値は
+ * `[{name, fromVariable}]`）。
  * @param {?(object|Array<object>)} set - `set` の定義。
  * @param {string} locale - いまの locale。
- * @returns {Array<{name: string, value: string}>} 変える変数（値は文字列。メッシュは文字列で送るため）。
+ * @returns {Array<{name: string, value: (string|undefined), fromVariable: (string|undefined)}>} 変える変数
+ *   （値は文字列。メッシュは文字列で送るため）。
  */
 const normalizeSet = (set, locale) =>
     (Array.isArray(set) ? set : [set])
-        .filter((one) => isPlainObject(one) && isScalar(one.value))
-        .map((one) => ({ name: localizeText(one.variable, locale), value: String(one.value) }))
-        .filter((one) => one.name !== null);
+        .filter(isPlainObject)
+        .map((one) => {
+            const value = normalizeValue(one.value, locale);
+            return value ? { name: localizeText(one.variable, locale), ...value } : null;
+        })
+        .filter((one) => one !== null && one.name !== null);
 
 const normalizeAction = (def, locale) => ({
     set: normalizeSet(def.set, locale),
@@ -84,6 +105,21 @@ const sameMessage = (a, b) => String(a).toUpperCase() === String(b).toUpperCase(
 export const repliesFor = (normalized, messageName) => {
     if (!normalized || typeof messageName !== 'string' || messageName === '') return [];
     return normalized.replies.filter((reply) => sameMessage(reply.onBroadcast, messageName));
+};
+
+/**
+ * 練習相手のパネルに出す「相手に届いたもの」の 1 行（D3）。最後に届いたのが合図なら合図の名前（同じ名前の
+ * 共有する変数があれば、その値も。このコースは変数と合図に同じ名前を使う）、変数なら「名前 = 値」。
+ * @param {?{last: ?{kind: string, name: string}, values: object}} received - 届いたもの。`last` は最後に
+ *   届いたもの（`kind` = 'message' / 'variable'）、`values` は共有する変数の名前 → 最後の値。
+ * @returns {?string} 1 行。まだ何も届いていなければ null。
+ */
+export const receivedSummary = (received) => {
+    if (!received || !received.last) return null;
+    const { last, values = {} } = received;
+    if (last.kind === 'variable') return `${last.name} = ${values[last.name] ?? ''}`;
+    const sameName = Object.keys(values).find((name) => sameMessage(name, last.name));
+    return sameName === undefined ? last.name : `${last.name} = ${values[sameName]}`;
 };
 
 /**

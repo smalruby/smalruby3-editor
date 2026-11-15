@@ -10,6 +10,7 @@ import {
     normalizePartner,
     PRACTICE_PARTNER_NODE_ID,
     practiceAllowed,
+    receivedSummary,
     repliesFor,
 } from '../../../../src/lib/lessons/practice-partner';
 
@@ -69,6 +70,26 @@ describe('normalizePartner', () => {
         const partner = normalizePartner({ replies: [{ onBroadcast: 'Hello', broadcast: 'hi' }] }, 'en');
         expect(repliesFor(partner, 'HELLO')).toHaveLength(1);
         expect(repliesFor(partner, 'bye')).toHaveLength(0);
+    });
+
+    test('a value may be the value of a variable of the student (fromVariable, per locale)', () => {
+        const partner = normalizePartner(
+            {
+                buttons: [
+                    {
+                        label: 'DM',
+                        set: [
+                            { variable: 'あて先', value: { fromVariable: { ja: '名前', en: 'name' } } },
+                            { variable: 'x', value: { fromVariable: '' } },
+                            { variable: 'y', value: { other: 1 } },
+                        ],
+                    },
+                ],
+            },
+            'en',
+        );
+        // 名前の無い fromVariable・知らない形の値は使わない
+        expect(partner.buttons[0].set).toEqual([{ name: 'あて先', fromVariable: 'name' }]);
     });
 
     test('practice runs only while the real mesh is not connected', () => {
@@ -135,6 +156,35 @@ const exec = (runtime, opcode, args, util = {}) => {
     runtime._primitives[opcode] = runtime._primitives[opcode] || jest.fn();
     return runtime.getOpcodeFunction(opcode)(args, util);
 };
+
+describe('receivedSummary', () => {
+    test('a message shows with the value of the variable of the same name (the course names them alike)', () => {
+        expect(
+            receivedSummary({
+                last: { kind: 'message', name: 'シマラビのメッセージ' },
+                values: { シマラビのメッセージ: 'こんにちは' },
+            }),
+        ).toBe('シマラビのメッセージ = こんにちは');
+        expect(receivedSummary({ last: { kind: 'message', name: 'Hello' }, values: { hello: 'hi' } })).toBe(
+            'Hello = hi',
+        );
+        expect(receivedSummary({ last: { kind: 'message', name: '手をふる' }, values: {} })).toBe('手をふる');
+    });
+
+    test('a variable alone shows its value', () => {
+        expect(
+            receivedSummary({
+                last: { kind: 'variable', name: 'シマラビの気分' },
+                values: { シマラビの気分: 'ねむい' },
+            }),
+        ).toBe('シマラビの気分 = ねむい');
+    });
+
+    test('nothing yet gives null', () => {
+        expect(receivedSummary(null)).toBeNull();
+        expect(receivedSummary({ last: null, values: {} })).toBeNull();
+    });
+});
 
 describe('attachPracticeLoopback', () => {
     const setup = (vmOptions) => {
@@ -274,6 +324,54 @@ describe('attachPracticeLoopback', () => {
         meshService.remoteData.me.count = { value: '9', timestamp: 2000 };
         loop.detach();
         expect(meshService.remoteData.me.count.value).toBe('9');
+    });
+
+    test('tells what reached the partner: the last message and the shared variable values (D3)', () => {
+        const fake = makeVm();
+        const onReceived = jest.fn();
+        const loop = attachPracticeLoopback({
+            vm: fake.vm,
+            partner: normalizePartner(PARTNER, 'ja'),
+            now: () => 1000,
+            timers: makeTimers(),
+            onReceived,
+        });
+        exec(fake.runtime, 'data_setvariableto', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 'hi' });
+        expect(onReceived).toHaveBeenLastCalledWith('count = hi');
+        exec(fake.runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        expect(onReceived).toHaveBeenLastCalledWith('メッセージ');
+        // 同じ内容なら知らせ直さない（ずっと同じ値にするスクリプトでも描き直さない）
+        const calls = onReceived.mock.calls.length;
+        exec(fake.runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        expect(onReceived).toHaveBeenCalledTimes(calls);
+        // ボタン（相手から生徒へ）は相手に届いたものではない
+        loop.press(0);
+        expect(onReceived).toHaveBeenCalledTimes(calls);
+        loop.detach();
+    });
+
+    test('a value fromVariable is the value of the student variable, or empty without it (D4)', () => {
+        const fake = makeVm();
+        fake.runtime.targets[0].variables.v2 = { id: 'v2', name: '名前', type: '', value: 'たろう' };
+        const loop = attachPracticeLoopback({
+            vm: fake.vm,
+            partner: normalizePartner(
+                {
+                    buttons: [
+                        { label: 'DM', set: { variable: 'あて先', value: { fromVariable: '名前' } } },
+                        { label: 'none', set: { variable: 'あて先', value: { fromVariable: 'ない' } } },
+                    ],
+                },
+                'ja',
+            ),
+            now: () => 1000,
+            timers: makeTimers(),
+        });
+        loop.press(0);
+        expect(fake.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].あて先.value).toBe('たろう');
+        loop.press(1);
+        expect(fake.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].あて先.value).toBe('');
+        loop.detach();
     });
 
     test('does nothing while the real mesh is connected', () => {
