@@ -5,7 +5,7 @@
 //
 // goal は条件の配列で、全部を満たしたら「できた」。条件の `type`:
 //   uses      決めたきっかけ（trigger）から始まったスクリプトで、決めたブロックが動いた（`not: true` なら、
-//             そう動いたことが一度も無い）
+//             きっかけに合ういちばん新しい実行でそう動いていない）
 //   said      言った（考えた）文字
 //   variable  変数の値
 //   list      リストの中身
@@ -273,10 +273,8 @@ const orderSatisfiedByRun = (order, run) => {
     return true;
 };
 
-// `not: true` の uses は「そう動いたことが一度も無い」（NG ワードを変数に入れて送った、など・#1645）。
-// 事実は消えないので、一度そう動いたらそのチャレンジのあいだは満たさない
-const evaluateUsesOnce = (condition, facts) => {
-    const runs = facts.runs.filter((run) => triggerMatches(condition.trigger, run));
+// 決めた runs（きっかけに合うスクリプトの実行）の中で、blocks と order を満たしたか
+const usesSatisfiedByRuns = (condition, runs) => {
     if (runs.length === 0) return false;
     const entries = (condition.blocks || []).map(normalizeBlockEntry);
     if (!entries.every((entry) => runs.some((run) => blockEntrySatisfiedByRun(entry, run)))) return false;
@@ -286,9 +284,19 @@ const evaluateUsesOnce = (condition, facts) => {
     return true;
 };
 
+// 実行の中で、blocks のどれかの opcode が（引数を問わず）動いたか
+const runUsesAnyOpcode = (condition, run) =>
+    (condition.blocks || []).map(normalizeBlockEntry).some((entry) => entryOpcodes(entry).some((op) => run.ops[op]));
+
+// `not: true` の uses は「きっかけに合い、blocks の opcode が動いた**いちばん新しい**スクリプトの実行で、そう動いて
+// いない」（NG ワードを変数に入れて送った、など・#1645）。直して旗を押し直せば、新しい実行で見るので満たす（前の
+// 実行の記録は見ない）。その opcode の動かない同じきっかけのスクリプト（ステージの旗のリストの準備など）は、
+// いちばん新しいものにしない。そういう実行がまだ無ければ満たす
 const evaluateUses = (condition, facts) => {
-    const used = evaluateUsesOnce(condition, facts);
-    return condition.not ? !used : used;
+    const runs = facts.runs.filter((run) => triggerMatches(condition.trigger, run));
+    if (!condition.not) return usesSatisfiedByRuns(condition, runs);
+    const using = runs.filter((run) => runUsesAnyOpcode(condition, run));
+    return using.length === 0 || !usesSatisfiedByRuns(condition, using.slice(-1));
 };
 
 // 変数名の条件（文字列か文字列の配列）を配列にする
@@ -493,6 +501,10 @@ export const validateGoal = (goal) => {
         if (!condition || typeof condition !== 'object' || !CONDITION_TYPES.includes(condition.type)) {
             errors.push(`${at}: type must be one of ${CONDITION_TYPES.join(', ')}`);
             return;
+        }
+        // `not` は uses だけ（ほかの条件に書いても効かないので、書きまちがいとして弾く）
+        if (condition.type !== 'uses' && !isUnset(condition.not)) {
+            errors.push(`${at}: not is only for uses`);
         }
         switch (condition.type) {
             case 'uses': {

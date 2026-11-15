@@ -164,7 +164,7 @@ export const defineChallenge = (def) =>
  * レッスンを定義する。何個めか（`number`。レッスンの中の番号）は並びから付ける（並びを
  * 変えたときに番号がずれないように、定義には書かない）。レッスンの「全部できた」（✓）は、ふつうは
  * チャレンジが全部できたとき（lesson-progress.js）。テーマを選んでやるレッスン（「チャットをつくろう」の
- * レッスン 5）だけ `requiredCount` で数を決める。先生が必須にするチャレンジは段 2 でクラス管理の課題の
+ * レッスン 5）だけ `checkCount` で数を決める。先生が必須にするチャレンジは段 2 でクラス管理の課題の
  * 側に持つ（#1529）。
  * @param {object} def - レッスンの定義。
  * @param {string} def.id - レッスン id。
@@ -172,15 +172,15 @@ export const defineChallenge = (def) =>
  * @param {boolean} [def.allowDnclMode] - レッスンのあいだ Ruby タブを日本語モードに切りかえてよいか。
  *   書いていなければ不可（日本語モードのパレットの絞り込みがチャレンジの絞り込みに重なり、チャレンジの
  *   ブロックが出なくなるため・#1741）。setup で日本語モードにするレッスン（DNCL のコースなど）は true にする。
- * @param {number} [def.requiredCount] - レッスンの ✓ に要るできた数。書いていなければチャレンジの数（全部）。
+ * @param {number} [def.checkCount] - レッスンの ✓ に要るできた数。書いていなければチャレンジの数（全部）。
  *   テーマを 1 つ以上選んでやるレッスンは 1（#1616 の Q17）。
  * @returns {object} レッスン。
  */
-export const defineLesson = ({ id, challenges, allowDnclMode = false, requiredCount = null }) => ({
+export const defineLesson = ({ id, challenges, allowDnclMode = false, checkCount = null }) => ({
     id,
     name: message(`gui.lessons.lesson.${id}.name`),
     allowDnclMode: Boolean(allowDnclMode),
-    requiredCount: requiredCount === null ? challenges.length : Math.min(requiredCount, challenges.length),
+    checkCount: checkCount === null ? challenges.length : Math.min(checkCount, challenges.length),
     challenges: challenges.map((def, index) => defineChallenge({ ...def, number: index + 1 })),
 });
 
@@ -2120,7 +2120,7 @@ const chatLesson4 = defineLesson({
 // レッスン 5「チャットを改良しよう」（#1645）: 改良のテーマを 1 つずつチャレンジにする（通知と既読・NG ワード・時間で
 // 自動返信・合言葉・スタンプ）。どのテーマも 4-3 の答え（シマラビの役の 2 人のチャット）を setup で入れて始め、
 // 最低限の機能を足すところまでを「できた」にする（その先の工夫は判定せず、提出した作品で先生が見る）。レッスンの ✓ は
-// テーマを 1 つ「できた」にすればつく（requiredCount: 1・#1616 の Q17）。メッシュで相手に届く名前は、レッスン 4 と
+// テーマを 1 つ「できた」にすればつく（checkCount: 1・#1616 の Q17）。メッシュで相手に届く名前は、レッスン 4 と
 // 同じく ja と ja-Hira で同じ（漢字を使わない形）。en は別の名前
 const CHAT_L5_WORDS = {
     ja: {
@@ -2211,7 +2211,8 @@ const CHAT_STAMP_MESSAGE = chatL5Values('myStamp').concat(chatL5Values('partnerS
 const notOneOf = (values) => new RegExp(`^(?!(${anyOf(values)})$)`, 'i');
 const oneOf = (values) => new RegExp(`^(${anyOf(values)})$`, 'i');
 
-// 旗のスクリプトで、自分のメッセージの変数をこの値にしたことが一度も無い（`uses` の `not`）
+// いちばん新しい旗のスクリプトの実行で、自分のメッセージの変数をこの値にしていない（`uses` の `not`。
+// 直して旗を押し直せば通る）
 const neverSets = (value) => ({
     type: 'uses',
     not: true,
@@ -2270,7 +2271,7 @@ const joinCode = (...codes) =>
 const chatLesson5 = defineLesson({
     id: 'chat-l5',
     // テーマは生徒が選ぶので、1 つ「できた」でレッスンの ✓（#1616 の Q17）
-    requiredCount: 1,
+    checkCount: 1,
     challenges: [
         // 1 通知と既読: 相手のメッセージが届いたらシマネコが音を鳴らし、シマネコを押すと「シマラビがよんだ」を送る。
         // シマラビは「シマネコがよんだ」を受け取ったら「既読」と言う
@@ -2408,7 +2409,8 @@ const chatLesson5 = defineLesson({
                     answer: oneOf(chatL5Values('ngWords')),
                 },
                 { ...CHAT_L4_SENT_ANSWER, value: notOneOf(chatL5Values('ngWords')) },
-                // NG ワードを自分のメッセージの変数に入れたことが一度も無い（注意したあとに送ってしまうプログラムを通さない）
+                // いちばん新しい旗の実行で、NG ワードを自分のメッセージの変数に入れていない（注意したあとに
+                // 送ってしまうプログラムを通さない）
                 neverSets(oneOf(chatL5Values('ngWords'))),
             ],
             quiz: challengeQuiz('chat-l5-ng-word', 0),
@@ -2523,7 +2525,8 @@ const chatLesson5 = defineLesson({
                     answer: notOneOf(chatL5Values('password')),
                 },
                 { ...CHAT_L4_SENT_ANSWER, value: notOneOf(chatL5Values('password')) },
-                // 合言葉を自分のメッセージの変数に入れたことが一度も無い（合言葉をそのまま送ってしまうプログラムを通さない）
+                // いちばん新しい旗の実行で、合言葉を自分のメッセージの変数に入れていない（合言葉をそのまま
+                // 送ってしまうプログラムを通さない）
                 neverSets(oneOf(chatL5Values('password'))),
             ],
             quiz: challengeQuiz('chat-l5-password', 0),

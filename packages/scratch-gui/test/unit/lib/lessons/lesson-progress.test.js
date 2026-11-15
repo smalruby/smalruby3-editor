@@ -118,13 +118,13 @@ describe('lesson progress', () => {
             expect(lessonProgress(lesson1, emptyProgress())).toEqual({
                 completedCount: 0,
                 total: 4,
-                requiredCount: 4,
+                checkCount: 4,
                 allCompleted: false,
             });
             expect(lessonProgress(lesson1, completeAll([1, 3, 5]))).toEqual({
                 completedCount: 2,
                 total: 4,
-                requiredCount: 4,
+                checkCount: 4,
                 allCompleted: false,
             });
         });
@@ -140,31 +140,31 @@ describe('lesson progress', () => {
             expect(lessonProgress(lesson1, progress).completedCount).toBe(2);
         });
 
-        // テーマを選ぶレッスン（「チャットをつくろう」のレッスン 5）は、requiredCount だけできれば ✓（#1645）
-        test('a lesson with requiredCount is all completed when that many challenges are done', () => {
+        // テーマを選ぶレッスン（「チャットをつくろう」のレッスン 5）は、checkCount だけできれば ✓（#1645）
+        test('a lesson with checkCount is all completed when that many challenges are done', () => {
             const themes = defineLesson({
                 id: 'themes',
-                requiredCount: 1,
+                checkCount: 1,
                 challenges: [{ id: 'theme-a' }, { id: 'theme-b' }, { id: 'theme-c' }],
             });
-            expect(themes.requiredCount).toBe(1);
+            expect(themes.checkCount).toBe(1);
             expect(lessonProgress(themes, emptyProgress()).allCompleted).toBe(false);
             const one = emptyProgress();
             one.challenges['theme-b'] = { completedAt: NOW, courseId: 'c', lessonId: 'themes' };
             expect(lessonProgress(themes, one)).toEqual({
                 completedCount: 1,
                 total: 3,
-                requiredCount: 1,
+                checkCount: 1,
                 allCompleted: true,
             });
             // 書いていなければ全部
-            expect(defineLesson({ id: 'all', challenges: [{ id: 'x' }, { id: 'y' }] }).requiredCount).toBe(2);
+            expect(defineLesson({ id: 'all', challenges: [{ id: 'x' }, { id: 'y' }] }).checkCount).toBe(2);
         });
 
         test('the chat lesson 5 is all completed with one theme (#1616 Q17)', () => {
             const chat = findCourse('chat-wo-tsukurou');
             const lesson5 = chat.lessons[4];
-            expect(lesson5.requiredCount).toBe(1);
+            expect(lesson5.checkCount).toBe(1);
             const progress = emptyProgress();
             progress.challenges['chat-l5-stamp'] = { completedAt: NOW, courseId: chat.id, lessonId: lesson5.id };
             expect(lessonProgress(lesson5, progress).allCompleted).toBe(true);
@@ -199,12 +199,12 @@ describe('lesson progress', () => {
             expect(courseProgress(course, completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])).allCompleted).toBe(true);
         });
 
-        // コースの数（バー）は、レッスンごとに requiredCount までを数え、✓ はレッスンが全部 ✓ のとき（#1645）
-        test('a course with a theme lesson counts that lesson up to its requiredCount', () => {
+        // コースの数（バー）は、レッスンごとに checkCount までを数え、✓ はレッスンが全部 ✓ のとき（#1645）
+        test('a course with a theme lesson counts that lesson up to its checkCount', () => {
             const basics = defineLesson({ id: 'basics', challenges: [{ id: 'b1' }, { id: 'b2' }] });
             const themes = defineLesson({
                 id: 'themes',
-                requiredCount: 1,
+                checkCount: 1,
                 challenges: [{ id: 't1' }, { id: 't2' }, { id: 't3' }],
             });
             const themed = defineCourse({ id: 'themed', language: 'blocks', lessons: [basics, themes] });
@@ -221,6 +221,17 @@ describe('lesson progress', () => {
             expect(courseProgress(themed, done(['b1', 'b2', 't3']))).toEqual(
                 expect.objectContaining({ completedCount: 3, total: 3, allCompleted: true }),
             );
+        });
+
+        // まだチャレンジの無いレッスンは、コースの ✓ の判定から外す
+        test('a lesson with no challenges does not keep the course from its check', () => {
+            const one = defineLesson({ id: 'one', challenges: [{ id: 'only' }] });
+            const empty = defineLesson({ id: 'later', challenges: [] });
+            const withEmpty = defineCourse({ id: 'with-empty', language: 'blocks', lessons: [one, empty] });
+            const progress = emptyProgress();
+            progress.challenges.only = { completedAt: NOW, courseId: 'with-empty', lessonId: 'one' };
+            expect(courseProgress(withEmpty, progress).allCompleted).toBe(true);
+            expect(courseProgress(withEmpty, emptyProgress()).allCompleted).toBe(false);
         });
 
         test('a course with no lessons is not all completed', () => {

@@ -247,7 +247,7 @@ describe('uses', () => {
         expect(satisfied(goal, fromPartner)).toBe(true);
     });
 
-    test('uses with not is met only while the blocks have never run that way (#1645)', () => {
+    test('uses with not looks at the newest run of the trigger only (#1645)', () => {
         const goal = [
             {
                 type: 'uses',
@@ -262,7 +262,14 @@ describe('uses', () => {
         expect(satisfied(goal, facts)).toBe(true);
         run(facts, flag, [['data_setvariableto', { VARIABLE: 'シマラビのメッセージ', VALUE: 'ばか' }]]);
         expect(satisfied(goal, facts)).toBe(false);
+        // ほかのきっかけの実行は見ない
+        run(facts, clicked, [['data_setvariableto', { VARIABLE: 'シマラビのメッセージ', VALUE: 'やあ' }]]);
+        expect(satisfied(goal, facts)).toBe(false);
+        // 直して旗を押し直した（新しい実行）
+        run(facts, flag, [['data_setvariableto', { VARIABLE: 'シマラビのメッセージ', VALUE: 'またね' }]]);
+        expect(satisfied(goal, facts)).toBe(true);
         expect(validateGoal([{ ...goal[0], not: 'yes' }])).toEqual(['goal[0]: uses.not must be true or false']);
+        expect(validateGoal([{ type: 'said', text: 'a', not: true }])).toEqual(['goal[0]: not is only for uses']);
     });
 
     test('sentBy other also counts the mesh broadcast-with-value block as the sender', () => {

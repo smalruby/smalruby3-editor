@@ -168,6 +168,7 @@ export const ja = {
     'gui.lessons.completed.remaining': 'このレッスンは、あと {count} つ',
     'gui.lessons.completed.lessonTitle': 'レッスン {number} ぜんぶできた！',
     'gui.lessons.completed.lessonDetail': '「{name}」の {count} つ、全部できました',
+    'gui.lessons.completed.lessonTitleSome': 'レッスン {number} クリア！',
     'gui.lessons.completed.lessonDetailSome': '「{name}」は {count} つできました。このレッスンはこれでクリア',
     'gui.lessons.completed.courseDetail': '「{course}」のレッスンは、これで全部です',
     'gui.lessons.completed.next': '次のチャレンジへ',
@@ -385,6 +386,7 @@ export const jaHira = {
     'gui.lessons.completed.remaining': 'このレッスンは、あと {count} つ',
     'gui.lessons.completed.lessonTitle': 'レッスン {number} ぜんぶできた！',
     'gui.lessons.completed.lessonDetail': '「{name}」の {count} つ、ぜんぶできました',
+    'gui.lessons.completed.lessonTitleSome': 'レッスン {number} クリア！',
     'gui.lessons.completed.lessonDetailSome': '「{name}」は {count} つ できました。この レッスンは これで クリア',
     'gui.lessons.completed.courseDetail': '「{course}」のレッスンは、これでぜんぶです',
     'gui.lessons.completed.next': 'つぎのチャレンジへ',
@@ -604,6 +606,7 @@ export const en = {
     'gui.lessons.completed.remaining': '{count} more in this lesson',
     'gui.lessons.completed.lessonTitle': 'Lesson {number} complete!',
     'gui.lessons.completed.lessonDetail': 'You finished all {count} challenges of "{name}".',
+    'gui.lessons.completed.lessonTitleSome': 'Lesson {number} cleared!',
     'gui.lessons.completed.lessonDetailSome':
         'You finished {count} of the challenges of "{name}". That is enough for this lesson.',
     'gui.lessons.completed.courseDetail': 'That was every lesson in "{course}".',

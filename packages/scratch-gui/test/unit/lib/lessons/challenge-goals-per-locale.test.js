@@ -1640,3 +1640,42 @@ describe('the chat lesson 5 goals also pass for the one who plays Shimacat in a 
         expect(await until(run.isSatisfied, 4000)).toBe(true);
     }, 20000);
 });
+
+// `uses` の `not` は、いちばん新しい旗の実行だけを見る。ヒントどおり直して旗を押し直せば、開き直さなくても
+// 「できた」になる（#1645）
+describe('the chat lesson 5 goals pass after fixing the program and clicking the flag again (#1645)', () => {
+    let vm;
+
+    afterEach(() => {
+        quitVm(vm);
+        vm = null;
+    });
+
+    test('5-2: after sending the NG word, the fixed program passes', async () => {
+        const run = await prepareRun('chat-l5-ng-word', 'ja', CHEATS_L5[4][2]);
+        vm = run.vm;
+        await CHEATS_L5[4][3](run.ctx);
+        expect(await until(run.isSatisfied, 500)).toBe(false);
+        await insert(vm, run.ctx.cat, localizeCode(findChallenge('chat-l5-ng-word').challenge.code, 'ja'));
+        vm.greenFlag();
+        // 前のプログラムの「聞いて待つ」が数えられないよう、新しいプログラムが聞くのを待つ
+        await sleep(300);
+        await run.ctx.answer('ばか');
+        await sleep(2200);
+        await run.ctx.answer('こんにちは');
+        expect(await until(run.isSatisfied, 1500)).toBe(true);
+    }, 20000);
+
+    test('5-4: after sending the password itself, the fixed program passes', async () => {
+        const run = await prepareRun('chat-l5-password', 'ja', CHEATS_L5[12][2]);
+        vm = run.vm;
+        await password(run.ctx);
+        expect(await until(run.isSatisfied, 500)).toBe(false);
+        await insert(vm, run.ctx.cat, localizeCode(findChallenge('chat-l5-password').challenge.code, 'ja'));
+        vm.greenFlag();
+        await sleep(300);
+        await run.ctx.answer('もみじ');
+        await run.ctx.answer('こんにちは');
+        expect(await until(run.isSatisfied, 1500)).toBe(true);
+    }, 20000);
+});

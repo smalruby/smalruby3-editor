@@ -372,6 +372,61 @@ describe('attachGoalMonitor and the broadcasts the mesh delivers', () => {
         expect(onSatisfied).toHaveBeenCalledTimes(1);
     });
 
+    // 「送って待つ」などで別のメッセージの「送る」に止まっているスレッドの util で、届いた合図が流れたとき
+    test('a delivered message is not recorded on a thread waiting at a broadcast of another message', () => {
+        const blocks = {
+            flagHat: { opcode: 'event_whenflagclicked', fields: {} },
+            wait: {
+                opcode: 'event_broadcastandwait',
+                inputs: { BROADCAST_INPUT: { block: 'menu', shadow: 'menu' } },
+            },
+            menu: {
+                opcode: 'event_broadcast_menu',
+                fields: { BROADCAST_OPTION: { name: 'BROADCAST_OPTION', value: 'シマラビのメッセージ', id: 'm2' } },
+            },
+            recv: {
+                opcode: 'event_whenbroadcastreceived',
+                fields: { BROADCAST_OPTION: { name: 'BROADCAST_OPTION', value: 'シマネコがよんだ', id: 'm1' } },
+            },
+        };
+        const shimaraby = makeTarget({ id: 'shimaraby', blocks });
+        const vm = makeVm([shimaraby]);
+        const runtime = vm.runtime;
+        runtime._primitives.event_broadcast = jest.fn();
+        runtime._primitives.event_broadcastandwait = jest.fn();
+        runtime._primitives.looks_sayforsecs = jest.fn();
+        const onSatisfied = jest.fn();
+        attachGoalMonitor(
+            vm,
+            [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'remote' },
+                    blocks: ['looks_sayforsecs'],
+                },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        { opcode: 'event_broadcastandwait', args: { BROADCAST_OPTION: 'シマラビのメッセージ' } },
+                    ],
+                },
+            ],
+            onSatisfied,
+        );
+        const thread = (topBlock, at) => ({ ...hatThread(shimaraby, topBlock), peekStack: () => at });
+        const waiting = thread('flagHat', 'wait');
+        // 自分で送った（止まっているブロックのメッセージと同じ）は記録する
+        exec(runtime, waiting, 'event_broadcastandwait', {
+            BROADCAST_OPTION: { id: 'm2', name: 'シマラビのメッセージ' },
+        });
+        // 届いた合図（別の名前）は記録しない
+        exec(runtime, waiting, 'event_broadcast', { BROADCAST_OPTION: { id: null, name: 'シマネコがよんだ' } });
+        exec(runtime, thread('recv', 'recv'), 'looks_sayforsecs', { MESSAGE: '既読', SECS: 2 });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).toHaveBeenCalledTimes(1);
+    });
+
     test('a broadcast from a broadcast block is recorded as sent by this project', () => {
         const blocks = {
             clickHat: { opcode: 'event_whenthisspriteclicked', fields: {} },

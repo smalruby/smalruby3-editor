@@ -1719,13 +1719,13 @@ describe('chat course lesson 5 "チャットを改良しよう" (#1645)', () => 
         expect(jaHira[lesson.name.id]).toBe('チャットを かいりょう しよう');
         expect(en[lesson.name.id]).toBe('Improve the Chat');
         expect(lesson.allowDnclMode).toBe(false);
-        expect(lesson.requiredCount).toBe(1);
+        expect(lesson.checkCount).toBe(1);
         expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(CHAT_L5.map((id, i) => `${i + 1} ${id}`));
         // ほかのレッスンは全部できたら ✓
         findCourse('chat-wo-tsukurou')
             .lessons.slice(0, 4)
             .forEach((l) =>
-                expect({ id: l.id, required: l.requiredCount }).toEqual({ id: l.id, required: l.challenges.length }),
+                expect({ id: l.id, required: l.checkCount }).toEqual({ id: l.id, required: l.challenges.length }),
             );
     });
 
