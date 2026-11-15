@@ -13,9 +13,11 @@ import { applyDeckSetup } from '../lib/deck-setup';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
 import { assignmentProgress, isAssignmentChallenge } from '../lib/lessons/assignment-progress';
 import { setupForChallenge } from '../lib/lessons/challenge-setup';
+import { applyChallengeStart } from '../lib/lessons/challenge-start';
 import { findChallenge } from '../lib/lessons/courses';
 import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics';
 import { openAssignmentLessonsLibrary } from '../lib/lessons/open-lessons-library';
+import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import sharedMessages from '../lib/shared-messages';
 import { closeCards } from '../reducers/cards';
 import { selectStudentLesson } from '../reducers/classroom';
@@ -41,6 +43,7 @@ import {
     getIsShowingWithoutId,
     requestNewProject,
 } from '../reducers/project-state';
+import { updateRubyCodeTarget } from '../reducers/ruby-code';
 import LessonHint from './lesson-hint.jsx';
 import LessonPracticePartner from './lesson-practice-partner.jsx';
 
@@ -122,6 +125,9 @@ const LessonMode = ({
     const wasCreatingRef = useRef(isAnyCreatingNewState);
     const pendingRef = useRef(pendingChallengeId);
     pendingRef.current = pendingChallengeId;
+    // setup のプログラムの変換に使う（effect をこれらの変化で走らせ直さないよう ref で持つ）
+    const convertRef = useRef({ intl, rubyVersion });
+    convertRef.current = { intl, rubyVersion };
     useEffect(() => {
         const finished = wasCreatingRef.current && !isAnyCreatingNewState && isShowingWithoutId;
         wasCreatingRef.current = isAnyCreatingNewState;
@@ -129,7 +135,20 @@ const LessonMode = ({
         const found = findChallenge(pendingChallengeId);
         if (!found) return;
         const challengeId = pendingChallengeId;
-        applyDeckSetup(setupForChallenge(found.course, found.challenge), dispatch, vm)
+        const setup = setupForChallenge(found.course, found.challenge);
+        const { intl: convertIntl, rubyVersion: version } = convertRef.current;
+        applyDeckSetup(setup, dispatch, vm)
+            // 拡張機能を読み込んだあとで、ネコの置きかえと前の段の答えを入れる（lib/lessons/challenge-start.js）
+            .then(() =>
+                applyChallengeStart(vm, setup, {
+                    locale: convertIntl.locale,
+                    toBlocks: (target, code) => targetCodeToBlocks(vm, target, code, convertIntl, { version }),
+                }),
+            )
+            .then((changed) => {
+                // Ruby タブは編集中のスプライトが変わったときにしかプログラムを作り直さないので、入れた答えを出し直す
+                if (changed && vm.editingTarget) dispatch(updateRubyCodeTarget(vm.editingTarget, version));
+            })
             .catch((err) => {
                 // setup が失敗してもチャレンジは開く（拡張機能などは手で足せる）
                 // eslint-disable-next-line no-console

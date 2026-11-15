@@ -52,6 +52,14 @@ const CODE_SPRITE_NAME = { id: 'gui.lessons.activityDiagram.codeSprite', default
 const STAGE_NAME = { id: 'gui.lessons.activityDiagram.stage', defaultMessage: 'Stage' };
 
 /**
+ * `code` の入るスプライトの名前（始めるときにネコを置きかえたチャレンジの `setup.sprites` の 1 つめ）。
+ * @param {?object} setup - チャレンジの setup。
+ * @returns {?string} 名前。ネコのままなら null。
+ */
+export const codeSpriteName = (setup) =>
+    (setup && Array.isArray(setup.sprites) && typeof setup.sprites[0] === 'string' && setup.sprites[0]) || null;
+
+/**
  * 答えのプログラムがあるか（`code` か `spriteCodes` のどちらか）。無いと、図も答えのページの絵も出ない。
  * @param {object} challenge - チャレンジ。
  * @returns {boolean} あれば true。
@@ -67,17 +75,18 @@ export const hasAnswerProgram = (challenge) =>
  * @param {?(string|object)} [challenge.code] - 答えのプログラム。
  * @param {?string} [challenge.codeTarget] - `code` を入れる相手（'stage' ならステージ）。
  * @param {Array<{sprite: string, code: (string|object)}>} [challenge.spriteCodes] - ほかのスプライトの答え。
+ * @param {?object} [challenge.setup] - 始め方（`sprites` があれば、その 1 つめが `code` の入る先）。
  * @returns {{blocks: ?(string|object), label: ?{message: object, name: (object|string)}}} 描くものと見出し。
  *   見出しの `name` は message descriptor（ネコ・ステージ）か、スプライトの名前の文字列。
  */
-export const readDiagramAnswer = ({ code = null, codeTarget = null, spriteCodes = [] }) => {
+export const readDiagramAnswer = ({ code = null, codeTarget = null, spriteCodes = [], setup = null }) => {
     const sprites = (spriteCodes || []).filter((s) => s && s.code);
     const sources = (code ? 1 : 0) + sprites.length;
     let blocks = null;
     let name = null;
     if (code) {
         blocks = code;
-        name = codeTarget === 'stage' ? STAGE_NAME : CODE_SPRITE_NAME;
+        name = codeTarget === 'stage' ? STAGE_NAME : codeSpriteName(setup) || CODE_SPRITE_NAME;
     } else if (sprites.length > 0) {
         blocks = sprites[0].code;
         name = sprites[0].sprite;
@@ -95,6 +104,7 @@ export const readDiagramAnswer = ({ code = null, codeTarget = null, spriteCodes 
  * @param {?(string|object)} [challenge.code] - 答えのプログラム（3 ページ目に描く。locale ごとでもよい）。
  * @param {?string} [challenge.codeTarget] - `code` を入れる相手。
  * @param {Array<object>} [challenge.spriteCodes] - ほかのスプライトの答え（`code` が無ければ最初のものを描く）。
+ * @param {?object} [challenge.setup] - 始め方（見出しの名前に `sprites` の 1 つめを使う）。
  * @returns {Array<{kind: string, title: ?object, note: ?object, target: string, blocks: ?(string|object),
  *   label: ?object, spotlight: boolean}>} 3 ページ。`kind` = `read` / `try` / `answer`。
  */
@@ -104,8 +114,9 @@ export const readDiagramSteps = ({
     code = null,
     codeTarget = null,
     spriteCodes = [],
+    setup = null,
 }) => {
-    const answer = readDiagramAnswer({ code, codeTarget, spriteCodes });
+    const answer = readDiagramAnswer({ code, codeTarget, spriteCodes, setup });
     return [
         {
             kind: 'read',

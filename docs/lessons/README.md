@@ -96,7 +96,7 @@
 | `card` | `{category, main}` \| null | null | レッスン表のカード。`category` = 左の帯の色のなかま、`main` = そのチャレンジで覚えるメインのなかま（同じ数で並んだときの色）。どちらも `CATEGORIES` の値（`motion` / `looks` / `sound` / `events` / `control` / `sensing` / `operators` / `variables` / `lists` / `extensions`）。決め方は下の「カードの色」 |
 | `goal` | 条件[] \| null | null | できた の判定。条件の配列で、全部を満たしたら「できた」（下の「できた の判定」）。null なら判定しない |
 | `allowedBlocks` | object \| null | null | パレットに出すブロック（deck と同じ形）。項目は opcode か、初期値を持つ `{opcode, fields, inputs}`（下の「パレットのブロックの初期値」） |
-| `setup` | object \| null | null | 始めるときの準備（deck と同じ形。`lib/deck-setup.js`） |
+| `setup` | object \| null | null | 始めるときの準備。deck と同じ項目（`tab` / `rubyMode` / `extensions` / `rubyVersion`。`lib/deck-setup.js`）に、作品の準備（`sprites` / `code` / `spriteCodes` / `stageCode`。`lib/lessons/challenge-start.js`）を足せる。下の「レッスンモード」の **setup** |
 | `steps` | ヒント[] | [] | ヒント（下の表） |
 | `code` | string \| `{ja, 'ja-Hira', en}` \| null | null | ヒントの最後の手段「プログラムを入れる」（Ruby。deck の `code` と同じ）。作品の中の名前が locale で変わるときは locale ごとに書く（下の「英語の UI でも使う（locale ごとの `code`）」） |
 | `codeTarget` | `'stage'` \| null | null | `code` を入れる相手。null はいま編集中のスプライト。`'stage'` はステージのプログラムのチャレンジ（入れる前にステージをえらぶ） |
@@ -357,7 +357,9 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
 
 - `trigger`: `{hat, key, message, target, sentBy}`。`hat` はハットの opcode（`event_whenkeypressed` /
   `event_whenflagclicked` / `event_whenthisspriteclicked` / `event_whenbroadcastreceived` など）。
-  `key` はキー（`space` / `up arrow` / `1` ...。「どれかのキー」のスクリプトも合格）、`message` はメッセージ名、
+  `key` はキー（`space` / `up arrow` / `1` ...。「どれかのキー」のスクリプトも合格）、`message` はメッセージ名
+  （名前の配列も書ける。どれか 1 つに合えばよい。ペアで役を入れかえると合図の名前も入れかわるので、両方の役と
+  3 つの locale の名前を並べる。例 `['シマネコのメッセージ', 'シマラビのメッセージ', 'しまねこのめっせーじ', …]`）、
   `target` は `'stage'` / `'sprite'`、`sentBy: 'other'` は「メッセージを別のスプライト（ステージ）が送った」。
   省くとどのハットから始まったスクリプトでもよい。コードエリアでスクリプトをクリックして動かしたものは
   数えない（きっかけが違う）。
@@ -837,6 +839,19 @@ partner: {
 - **setup**: `lib/lessons/challenge-setup.js` の `setupForChallenge(course, challenge)` が
   `lib/deck-setup.js` に渡す形を作る。コースの言語から既定（ブロック = コードタブ、Ruby = Ruby タブ・Ruby
   モード、DNCL = Ruby タブ・DNCL モード）を決め、チャレンジの `setup` で上書きする。
+  deck と同じ項目を適用したあと（拡張機能を読み込んでから）、作品の準備をする（`lib/lessons/challenge-start.js`）:
+
+  | 項目 | 形 | 何をするか |
+  |---|---|---|
+  | `sprites` | string[] | 新しい作品のネコを、ライブラリのスプライトに置きかえる（例 `['Shimaraby']`・`['Shimaraby', 'Shimacat']`）。1 つめはネコのいた場所、2 つめは「プログラムを入れる」で足すときと同じネコと重ならない右（x=150, y=0）、3 つめからはその下へ 100 ずつずらす。1 つめを編集中にする。ライブラリに 1 つも無いときはネコを残す |
+  | `code` | Ruby（locale ごとにも書ける） | 前の段の**答え**を、`sprites` の 1 つめ（無ければネコ）に入れておく。生徒の前の作品ではない |
+  | `spriteCodes` | `{sprite, code}`[] | ほかのスプライトの前の段の答え。チャレンジの `spriteCodes` と同じ形（いなければライブラリから足す） |
+  | `stageCode` | Ruby（locale ごとにも書ける） | ステージのプログラム（例: 旗でリスト「NGワード」を作り直す準備） |
+
+  入れる順はステージ → `spriteCodes` → `code`。変換は「プログラムを入れる」の `spriteCodes` と同じ（`targetCodeToBlocks` → `apply`）。
+  変換できないプログラムは入れずにとばし（コンソールに警告）、ほかは入れる。`sprites` のあるチャレンジでは、
+  「正解のプログラムを確認する」の `code` も `sprites` の 1 つめに入り（生徒がほかのスプライトを選んでいても）、
+  アクティビティ図・読んで作るチャレンジの見出しの名前も「ネコ」の代わりにそのスプライトの名前になる。
 - **課題バー**（`components/lesson-task-bar/`）: メニューバーのすぐ下に、**画面の幅いっぱい**（エディタの列と
   ステージの列の両方の上）で 1 行・40px で出す（`gui.jsx` がメニューバーと本体のあいだに置き、本体は
   `.body-wrapper-with-lesson-task-bar` でその分だけ縮む）。

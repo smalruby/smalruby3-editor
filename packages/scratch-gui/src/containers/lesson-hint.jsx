@@ -109,13 +109,18 @@ const LessonHintContainer = ({
         const hasVm = Boolean(vm && vm.runtime);
         const stage = challenge.codeTarget === 'stage' && hasVm ? vm.runtime.getTargetForStage() : null;
         const editing = vm && vm.editingTarget ? vm.editingTarget : null;
+        // 始めるときにネコを置きかえたチャレンジ（`setup.sprites`）は、その 1 つめに code を入れる
+        // （生徒がもう 1 つのスプライトを選んでいても、答えはシマラビの役の形で入る）
+        const startSprites = (challenge.setup && challenge.setup.sprites) || [];
+        const preferred = hasVm && startSprites.length > 0 ? startSprites[0] : null;
+        const preferredSprite = preferred ? findSpriteByName(vm, preferred) : null;
         // 確かめる組: [target, code]。まだいないスプライト（これから足すペンギン）は target なしで確かめる
         // （target が無いと音・コスチュームは確かめない。足すのはライブラリのままのスプライトなので足りる）
         const checksFor = (candidate) => {
             const spriteCodes = hasVm ? candidate.spriteCodes : [];
-            // code を入れる相手: ステージのプログラムはステージ、spriteCodes があれば残りのスプライト（ネコ）。
-            // どちらでもなければ null（いま編集中のスプライトに入れる）
-            const codeSprite = spriteCodes.length > 0 ? findCodeSprite(vm, spriteCodes) : null;
+            // code を入れる相手: ステージのプログラムはステージ、setup.sprites があればその 1 つめ、spriteCodes が
+            // あれば残りのスプライト（ネコ）。どれでもなければ null（いま編集中のスプライトに入れる）
+            const codeSprite = spriteCodes.length > 0 ? findCodeSprite(vm, spriteCodes, preferred) : preferredSprite;
             return [
                 ...spriteCodes.map(({ sprite, code }) => [findSpriteByName(vm, sprite), code]),
                 [stage || codeSprite || editing, candidate.code],
@@ -153,11 +158,12 @@ const LessonHintContainer = ({
         }
         setInsertErrors([]);
         const spriteCodes = hasVm ? chosen.spriteCodes : [];
-        let target = stage;
+        let target = stage || preferredSprite;
         if (spriteCodes.length > 0) {
             // ほかのスプライト（ペンギン）のプログラムを先に入れ、code はネコに入れる
             target = await insertSpriteCodes(vm, spriteCodes, {
                 toBlocks: (t, code) => targetCodeToBlocks(vm, t, code, intl, { version: rubyVersion }),
+                preferred,
             });
         }
         if (target) vm.setEditingTarget(target.id);

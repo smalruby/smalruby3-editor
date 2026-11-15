@@ -6,11 +6,15 @@ import { IntlProvider } from 'react-intl';
 import { LessonMode } from '../../../src/containers/lesson-mode.jsx';
 import analytics from '../../../src/lib/analytics';
 import { applyDeckSetup } from '../../../src/lib/deck-setup';
+import { applyChallengeStart } from '../../../src/lib/lessons/challenge-start';
 import { findChallenge } from '../../../src/lib/lessons/courses';
 
 jest.mock('../../../src/lib/analytics', () => ({ event: jest.fn() }));
 jest.mock('../../../src/lib/deck-setup', () => ({
     applyDeckSetup: jest.fn(() => Promise.resolve()),
+}));
+jest.mock('../../../src/lib/lessons/challenge-start', () => ({
+    applyChallengeStart: jest.fn(() => Promise.resolve()),
 }));
 // 吹き出しのコンテナは Redux の store が要るので、ここでは出さない（containers/lesson-hint.test.jsx で確かめる）
 jest.mock('../../../src/containers/lesson-hint.jsx', () => () => null);
@@ -63,6 +67,7 @@ const flush = () => act(() => Promise.resolve());
 describe('LessonMode container', () => {
     beforeEach(() => {
         applyDeckSetup.mockClear();
+        applyChallengeStart.mockClear();
         jest.spyOn(window, 'confirm').mockReturnValue(true);
     });
 
@@ -371,6 +376,35 @@ describe('LessonMode container', () => {
         rerender({ ...props, isAnyCreatingNewState: false, isShowingProject: true, isShowingWithoutId: true });
         expect(applyDeckSetup).toHaveBeenCalledWith({ tab: 'code' }, props.dispatch, props.vm);
         await flush();
+        // deck-setup（拡張機能）のあとで、スプライトの置きかえと前の段の答え（lib/lessons/challenge-start.js）
+        expect(applyChallengeStart).toHaveBeenCalledWith(
+            props.vm,
+            { tab: 'code' },
+            expect.objectContaining({ locale: 'en', toBlocks: expect.any(Function) }),
+        );
+        await flush();
+        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
+    });
+
+    test('redraws the Ruby code of the edited sprite when the start changed the project', async () => {
+        applyChallengeStart.mockImplementationOnce(() => Promise.resolve(true));
+        const shimaraby = { id: 'r' };
+        const props = {
+            ...baseProps(),
+            vm: { id: 'vm', editingTarget: shimaraby },
+            rubyVersion: '2',
+            pendingChallengeId: CHALLENGE_ID,
+            isAnyCreatingNewState: true,
+            isShowingProject: false,
+            isShowingWithoutId: false,
+        };
+        const { rerender } = renderLessonMode(props);
+        rerender({ ...props, isAnyCreatingNewState: false, isShowingProject: true, isShowingWithoutId: true });
+        await flush();
+        await flush();
+        expect(props.dispatch).toHaveBeenCalledWith(
+            expect.objectContaining({ type: expect.stringContaining('RUBYCODE_TARGET'), target: shimaraby }),
+        );
         expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
     });
 

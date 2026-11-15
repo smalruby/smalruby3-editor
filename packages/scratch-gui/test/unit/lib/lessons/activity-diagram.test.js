@@ -383,6 +383,15 @@ describe('challenge definition', () => {
         ]);
     });
 
+    test('names the code sprite after setup.sprites when the challenge starts with other sprites', async () => {
+        const { challenge } = findChallenge('blocks-l1-broadcast');
+        const diagram = await challengeActivityDiagram(
+            { ...challenge, activityDiagram: true, setup: { sprites: ['Shimaraby', 'Penguin'] } },
+            { locale: 'ja', format: formatJa, toBlocks: (source) => toBlocks(source.code) },
+        );
+        expect(diagram.model.lanes[0].targets.map((t) => t.name)).toEqual(['Shimaraby', 'Penguin']);
+    });
+
     test('a partner adds its own lane and names the student lane', async () => {
         const challenge = defineChallenge({
             id: 'x',

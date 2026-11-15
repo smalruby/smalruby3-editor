@@ -1,0 +1,155 @@
+/**
+ * applyChallengeStart: チャレンジを始めるときに、ネコをライブラリのスプライトに置きかえ
+ * （`setup.sprites`）、前の段の答え（`setup.code` / `spriteCodes` / `stageCode`）を入れる。
+ */
+import {
+    applyChallengeStart,
+    hasChallengeStart,
+    replaceStartSprites,
+} from '../../../../src/lib/lessons/challenge-start';
+
+const sprite = (id, name, x = 0, y = 0) => ({ id, isOriginal: true, isStage: false, x, y, getName: () => name });
+const stageTarget = () => ({ id: 'stage', isOriginal: true, isStage: true, getName: () => 'Stage' });
+
+const LIBRARY = [{ name: 'Shimaraby', costumes: [] }, { name: 'Shimacat', costumes: [] }, { name: 'Penguin' }];
+
+const makeVm = (targets) => {
+    const vm = {
+        editingTarget: targets.find((t) => !t.isStage) || null,
+        runtime: {
+            targets: [...targets],
+            getTargetForStage: () => vm.runtime.targets.find((t) => t.isStage),
+        },
+        addSprite: jest.fn((json) => {
+            const item = JSON.parse(json);
+            vm.runtime.targets.push(sprite(`added-${item.name}`, item.name, item.x, item.y));
+            return Promise.resolve();
+        }),
+        deleteSprite: jest.fn((id) => {
+            vm.runtime.targets = vm.runtime.targets.filter((t) => t.id !== id);
+        }),
+        setEditingTarget: jest.fn((id) => {
+            vm.editingTarget = vm.runtime.targets.find((t) => t.id === id);
+        }),
+    };
+    return vm;
+};
+
+const makeToBlocks = (failFor = null) => {
+    const applied = [];
+    const toBlocks = jest.fn((target, code) =>
+        Promise.resolve({
+            result: code !== failFor,
+            errors: code === failFor ? [{ text: 'x' }] : [],
+            apply: () => {
+                applied.push({ id: target.id, code });
+                return Promise.resolve();
+            },
+        }),
+    );
+    return { toBlocks, applied };
+};
+
+const names = (vm) => vm.runtime.targets.filter((t) => !t.isStage).map((t) => t.getName());
+
+describe('hasChallengeStart', () => {
+    test('is true only when the setup changes the project', () => {
+        expect(hasChallengeStart(null)).toBe(false);
+        expect(hasChallengeStart({ tab: 'code', extensions: ['meshV2'] })).toBe(false);
+        expect(hasChallengeStart({ sprites: [] })).toBe(false);
+        expect(hasChallengeStart({ sprites: ['Shimaraby'] })).toBe(true);
+        expect(hasChallengeStart({ code: 'x' })).toBe(true);
+        expect(hasChallengeStart({ stageCode: { ja: 'x' } })).toBe(true);
+        expect(hasChallengeStart({ spriteCodes: [{ sprite: 'Shimacat', code: 'x' }] })).toBe(true);
+    });
+});
+
+describe('replaceStartSprites', () => {
+    test('replaces the cat with the library sprites: the first where the cat was, the next to the right', async () => {
+        const vm = makeVm([stageTarget(), sprite('cat', 'Sprite1', 0, 0)]);
+        const added = await replaceStartSprites(vm, ['Shimaraby', 'Shimacat'], { library: LIBRARY });
+        expect(added.map((t) => t.getName())).toEqual(['Shimaraby', 'Shimacat']);
+        expect(names(vm)).toEqual(['Shimaraby', 'Shimacat']);
+        expect(vm.deleteSprite).toHaveBeenCalledWith('cat');
+        expect(JSON.parse(vm.addSprite.mock.calls[0][0])).toMatchObject({ name: 'Shimaraby', x: 0, y: 0 });
+        // 「プログラムを入れる」で足すときと同じ、ネコと重ならない右の場所
+        expect(JSON.parse(vm.addSprite.mock.calls[1][0])).toMatchObject({ name: 'Shimacat', x: 150, y: 0 });
+        expect(vm.editingTarget.getName()).toBe('Shimaraby');
+        // ライブラリの項目そのものは変えない
+        expect(LIBRARY[0]).toEqual({ name: 'Shimaraby', costumes: [] });
+    });
+
+    test('keeps the cat when none of the sprites is in the library', async () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const vm = makeVm([stageTarget(), sprite('cat', 'Sprite1')]);
+        const added = await replaceStartSprites(vm, ['Nobody'], { library: LIBRARY });
+        expect(added).toEqual([]);
+        expect(names(vm)).toEqual(['Sprite1']);
+        expect(vm.deleteSprite).not.toHaveBeenCalled();
+        console.warn.mockRestore();
+    });
+
+    test('the real library has Shimaraby and Shimacat', () => {
+        // eslint-disable-next-line global-require
+        const library = require('../../../../src/lib/libraries/sprites.json');
+        expect(library.some((s) => s.name === 'Shimaraby')).toBe(true);
+        expect(library.some((s) => s.name === 'Shimacat')).toBe(true);
+    });
+});
+
+describe('applyChallengeStart', () => {
+    test('does nothing for a setup that does not change the project', async () => {
+        const vm = makeVm([stageTarget(), sprite('cat', 'Sprite1')]);
+        const { toBlocks } = makeToBlocks();
+        expect(await applyChallengeStart(vm, { tab: 'code' }, { toBlocks, locale: 'ja', library: LIBRARY })).toBe(
+            false,
+        );
+        expect(vm.addSprite).not.toHaveBeenCalled();
+        expect(toBlocks).not.toHaveBeenCalled();
+    });
+
+    test('puts the answer of the previous step into the replaced sprites and the stage', async () => {
+        const vm = makeVm([stageTarget(), sprite('cat', 'Sprite1')]);
+        const { toBlocks, applied } = makeToBlocks();
+        await applyChallengeStart(
+            vm,
+            {
+                sprites: ['Shimaraby', 'Shimacat'],
+                code: { ja: 'shimaraby-ja', en: 'shimaraby-en' },
+                spriteCodes: [{ sprite: 'Shimacat', code: { ja: 'shimacat-ja', en: 'shimacat-en' } }],
+                stageCode: 'stage-code',
+            },
+            { toBlocks, locale: 'ja', library: LIBRARY },
+        );
+        expect(applied).toEqual([
+            { id: 'stage', code: 'stage-code' },
+            { id: 'added-Shimacat', code: 'shimacat-ja' },
+            { id: 'added-Shimaraby', code: 'shimaraby-ja' },
+        ]);
+        // 子どもが続きを作るのは 1 つめのスプライト
+        expect(vm.editingTarget.getName()).toBe('Shimaraby');
+    });
+
+    test('without sprites the code goes into the sprite being edited (the cat)', async () => {
+        const vm = makeVm([stageTarget(), sprite('cat', 'Sprite1')]);
+        const { toBlocks, applied } = makeToBlocks();
+        expect(
+            await applyChallengeStart(vm, { code: 'cat-code' }, { toBlocks, locale: 'en', library: LIBRARY }),
+        ).toBe(true);
+        expect(applied).toEqual([{ id: 'cat', code: 'cat-code' }]);
+        expect(vm.addSprite).not.toHaveBeenCalled();
+    });
+
+    test('a program that does not convert is skipped and the others still go in', async () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const vm = makeVm([stageTarget(), sprite('cat', 'Sprite1')]);
+        const { toBlocks, applied } = makeToBlocks('broken');
+        await applyChallengeStart(
+            vm,
+            { sprites: ['Shimaraby'], code: 'ok', stageCode: 'broken' },
+            { toBlocks, locale: 'ja', library: LIBRARY },
+        );
+        expect(applied).toEqual([{ id: 'added-Shimaraby', code: 'ok' }]);
+        console.warn.mockRestore();
+    });
+});

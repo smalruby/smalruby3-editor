@@ -363,6 +363,39 @@ describe('LessonHint container', () => {
         expect(props.onInsertCode).toHaveBeenCalledWith(challenge.code, 'blocks', stage, '2');
     });
 
+    test('a challenge that starts with setup.sprites inserts the code into the first of them', async () => {
+        const shimaraby = { id: 'r', isOriginal: true, isStage: false, getName: () => 'Shimaraby' };
+        const shimacat = { id: 'c', isOriginal: true, isStage: false, getName: () => 'Shimacat' };
+        const stage = { id: 'stage', isOriginal: true, isStage: true, getName: () => 'Stage' };
+        // 生徒がシマネコを選んでいても、答えはシマラビ（setup.sprites の 1 つめ）に入る
+        const vm = {
+            editingTarget: shimacat,
+            runtime: { targets: [stage, shimaraby, shimacat], getTargetForStage: () => stage },
+            setEditingTarget: jest.fn(),
+            addSprite: jest.fn(),
+        };
+        const base = findChallenge('blocks-l1-click-say');
+        const challenge = { ...base.challenge, setup: { sprites: ['Shimaraby', 'Shimacat'] } };
+        const current = { ...base, challenge };
+        const hint = {
+            visible: true,
+            index: challenge.steps.length,
+            count: challenge.steps.length + 1,
+            step: null,
+            spotlight: false,
+            lastResort: true,
+            debug: challenge.debug,
+            code: challenge.code,
+        };
+        const props = { ...baseProps(), current, hint, vm };
+        const { getByTestId } = renderContainer(props);
+        insertWithConfirm(getByTestId);
+        await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
+        expect(rubyToBlocksXml.mock.calls[0][1]).toBe(shimaraby);
+        expect(vm.setEditingTarget).toHaveBeenCalledWith('r');
+        expect(props.onInsertCode.mock.calls[0][2]).toBe(shimaraby);
+    });
+
     test('a challenge with spriteCodes puts them in first and inserts the code into the remaining sprite', async () => {
         const cat = { id: 'cat', isOriginal: true, isStage: false, getName: () => 'Sprite1' };
         const penguin = { id: 'penguin', isOriginal: true, isStage: false, getName: () => 'Penguin' };

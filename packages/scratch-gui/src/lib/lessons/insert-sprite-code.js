@@ -7,9 +7,9 @@ import spriteLibraryContent from '../libraries/sprites.json';
 
 // ライブラリから足したスプライトを置く場所。ネコ（真ん中）と重ならないように右に置く
 // （ライブラリの「スプライトを選ぶ」は真ん中あたりのランダムな場所に置く）
-const ADDED_SPRITE_POSITION = Object.freeze({ x: 150, y: 0 });
+export const ADDED_SPRITE_POSITION = Object.freeze({ x: 150, y: 0 });
 
-const spritesOf = (vm) => vm.runtime.targets.filter((t) => t.isOriginal && !t.isStage);
+export const spritesOf = (vm) => vm.runtime.targets.filter((t) => t.isOriginal && !t.isStage);
 
 /**
  * 名前でスプライトを探す。
@@ -20,13 +20,17 @@ const spritesOf = (vm) => vm.runtime.targets.filter((t) => t.isOriginal && !t.is
 export const findSpriteByName = (vm, name) => spritesOf(vm).find((t) => t.getName() === name) || null;
 
 /**
- * `spriteCodes` のほかに、チャレンジの `code` を入れるスプライトを探す（`spriteCodes` に名前の無い
- * 最初のスプライト = ネコ）。
+ * `spriteCodes` のほかに、チャレンジの `code` を入れるスプライトを探す。`preferred`（チャレンジの
+ * `setup.sprites` の 1 つめ = 始めるときに置きかえたスプライト）がいればそれ、いなければ `spriteCodes` に
+ * 名前の無い最初のスプライト（ネコ）。
  * @param {object} vm - Scratch VM。
  * @param {Array<{sprite: string}>} spriteCodes - スプライトの名前とプログラム。
+ * @param {?string} [preferred] - 先に探すスプライトの名前。
  * @returns {?object} スプライト。いなければ null。
  */
-export const findCodeSprite = (vm, spriteCodes) => {
+export const findCodeSprite = (vm, spriteCodes, preferred = null) => {
+    const found = preferred ? findSpriteByName(vm, preferred) : null;
+    if (found) return found;
     const names = spriteCodes.map((s) => s.sprite);
     return spritesOf(vm).find((t) => !names.includes(t.getName())) || null;
 };
@@ -36,12 +40,13 @@ export const findCodeSprite = (vm, spriteCodes) => {
  * @param {object} vm - Scratch VM。
  * @param {string} name - ライブラリのスプライトの名前（例: `Penguin`）。
  * @param {Array<object>} library - スプライトのライブラリ（sprites.json の形）。
+ * @param {{x: number, y: number}} [position] - 置く場所（既定はネコの右）。
  * @returns {Promise<?object>} 足したスプライト。ライブラリに無ければ null。
  */
-const addLibrarySprite = async (vm, name, library) => {
+export const addLibrarySprite = async (vm, name, library, position = ADDED_SPRITE_POSITION) => {
     const item = library.find((s) => s.name === name);
     if (!item) return null;
-    await vm.addSprite(JSON.stringify({ ...item, ...ADDED_SPRITE_POSITION }));
+    await vm.addSprite(JSON.stringify({ ...item, ...position }));
     return findSpriteByName(vm, name);
 };
 
@@ -54,10 +59,16 @@ const addLibrarySprite = async (vm, name, library) => {
  * @param {object} options - 変換とライブラリ。
  * @param {Function} options.toBlocks - `(target, code) => Promise<converter>`（targetCodeToBlocks）。
  * @param {Array<object>} [options.library] - スプライトのライブラリ（テスト用。既定は sprites.json）。
- * @returns {Promise<?object>} `code` を入れるスプライト（`spriteCodes` に無い最初のスプライト = ネコ）。
+ * @param {?string} [options.preferred] - `code` を入れるスプライトの名前（`setup.sprites` の 1 つめ）。
+ * @returns {Promise<?object>} `code` を入れるスプライト（`preferred`、いなければ `spriteCodes` に無い最初の
+ *   スプライト = ネコ）。
  *   いなければ null。
  */
-export const insertSpriteCodes = async (vm, spriteCodes, { toBlocks, library = spriteLibraryContent }) => {
+export const insertSpriteCodes = async (
+    vm,
+    spriteCodes,
+    { toBlocks, library = spriteLibraryContent, preferred = null },
+) => {
     for (const { sprite, code } of spriteCodes) {
         const target = findSpriteByName(vm, sprite) || (await addLibrarySprite(vm, sprite, library));
         if (!target) {
@@ -73,5 +84,5 @@ export const insertSpriteCodes = async (vm, spriteCodes, { toBlocks, library = s
             console.warn(`[lesson-hint] the code for "${sprite}" did not convert:`, converter.errors);
         }
     }
-    return findCodeSprite(vm, spriteCodes);
+    return findCodeSprite(vm, spriteCodes, preferred);
 };

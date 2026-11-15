@@ -125,6 +125,15 @@ describe('read-diagram (読んで作るチャレンジ)', () => {
             expect(label.name).toEqual(expect.objectContaining({ id: 'gui.lessons.activityDiagram.codeSprite' }));
         });
 
+        test('names the first sprite of setup.sprites instead of the cat', () => {
+            const setup = { sprites: ['Shimaraby', 'Shimacat'] };
+            const { label } = readDiagramAnswer({ code: 'x', spriteCodes: [PENGUIN], setup });
+            expect(label.name).toBe('Shimaraby');
+            expect(readDiagramSteps({ task: TASK, code: 'x', spriteCodes: [PENGUIN], setup })[2].label.name).toBe(
+                'Shimaraby',
+            );
+        });
+
         test('names the stage when the code is the stage program', () => {
             const { label } = readDiagramAnswer({ code: 'x', codeTarget: 'stage', spriteCodes: [PENGUIN] });
             expect(label.name).toEqual(expect.objectContaining({ id: 'gui.lessons.activityDiagram.stage' }));
