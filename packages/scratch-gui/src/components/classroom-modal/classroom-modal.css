@@ -2995,11 +2995,15 @@ $seat-tile-min: 36px;
    auto のまま: ふだんは表の枠が縮むので本文はスクロールしないが、課題がとても多い・
    設定と「詳しく」を同時に開いた等で収まらないときに、手順のボタンが切れて押せなく
    ならないようにする（hidden にしない）。 */
+/* 横にも広がらない（#1945）: width と min-width: 0 で、表が広くても画面はモーダルの幅のまま。
+   広い表は .eval-matrix-wrapper の中だけで横にスクロールする。 */
 .teacher-view.evaluation-screen {
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
     height: 100%;
+    width: 100%;
+    min-width: 0;
     max-width: 100%;
 }
 
@@ -3007,8 +3011,18 @@ $seat-tile-min: 36px;
     flex-shrink: 0;
 }
 
-.teacher-view.evaluation-screen > .eval-matrix-wrapper {
+.teacher-view.evaluation-screen > .eval-workspace {
     flex: 1 1 auto;
+}
+
+/* 採点簿の表（左）と選んだ席の詳細（右・#1962）。高さは残り全部で、表の枠と右の列がそれぞれ
+   中でスクロールする。 */
+.eval-workspace {
+    display: flex;
+    gap: 1rem;
+    min-height: 0;
+    min-width: 0;
+    margin-bottom: 0.75rem;
 }
 
 .teacher-view.evaluation-screen > .button-row {
@@ -3117,118 +3131,256 @@ $seat-tile-min: 36px;
 .eval-matrix-wrapper {
     flex: 1 1 auto;
     min-height: 0;
+    min-width: 0;
     overflow: auto;
-    margin-bottom: 0.75rem;
-    border: 1px solid #e5e8ec;
-    border-radius: 0.4rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
 }
 
 .eval-matrix {
-    border-collapse: collapse;
-    font-size: 0.85rem;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: $font-size-medium;
     min-width: 100%;
 }
 
-/* 表は枠の中でスクロールするので、見出しの行は上に留める。 */
-.eval-matrix th {
+/* 表は枠の中でスクロールするので、見出しの行は上に、出席番号の列は左に留める。 */
+.eval-matrix thead th {
     position: sticky;
     top: 0;
-    z-index: 1;
-    background-color: #f4f6f8;
-    border-bottom: 1px solid #e5e8ec;
-    color: #575e75;
-    padding: 0.4rem 0.5rem;
+    z-index: 2;
+    background-color: $color-background;
+    border-bottom: 1px solid $color-border;
+    color: $color-text;
+    padding: 0.4rem 0.75rem;
     text-align: left;
     white-space: nowrap;
 }
 
-/* 課題の列の見出しの下の行に、セルの中の 3 つの欄の名前を上から順に（R1・#1924 C5）。
-   見出しの nowrap を外して折り返すので、課題が多い表でも列が広がらない。 */
-.eval-head-fields {
-    display: block;
-    white-space: normal;
-    font-size: $font-size-small;
-    font-weight: normal;
-    color: #575e75;
+/* 課題の名前が長くても列は広がりすぎない（... で切り、全部は title で見る）。 */
+.eval-work-head {
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.eval-matrix td {
-    border-bottom: 1px solid #eef1f4;
-    padding: 0.3rem 0.4rem;
-    vertical-align: top;
+.eval-matrix thead th.eval-seat-head {
+    left: 0;
+    z-index: 3;
+}
+
+.eval-matrix td,
+.eval-matrix tbody th {
+    border-bottom: 1px solid $color-border;
+    padding: 0 0.75rem;
+    vertical-align: middle;
 }
 
 .eval-seat-cell {
-    font-weight: bold;
-    color: #575e75;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background-color: $color-surface;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+    text-align: left;
     white-space: nowrap;
 }
 
 .eval-cell {
-    min-width: 14rem;
+    padding: 0 0.4rem;
 }
 
 .eval-cell-empty {
-    color: #b7bec9;
+    color: $color-text-muted;
     text-align: center;
 }
 
 .eval-cell-needs-review {
-    background-color: #fff4e5;
+    background-color: $color-confirm-background;
 }
 
-.eval-cell-row {
-    display: flex;
+/* セルそのものがボタン。選んだセルは操作の青の枠（モックの通り内側に 2px）。 */
+.eval-cell-button {
+    display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    margin-bottom: 0.2rem;
+    min-width: 4rem;
+    min-height: 1.75rem;
+    padding: 0 0.4rem;
+    border: 2px solid transparent;
+    border-radius: $radius-small;
+    background: none;
+    color: $color-text;
+    font: inherit;
+    cursor: pointer;
+}
+
+.eval-cell-button:hover {
+    border-color: $color-seat-joined-hover;
+}
+
+.eval-cell-button:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 1px;
+}
+
+.eval-cell-button-selected,
+.eval-cell-button-selected:hover {
+    border-color: $color-action;
+}
+
+.eval-grade-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.75rem;
+    height: 1.375rem;
+    padding: 0 0.5rem;
+    border-radius: 999px;
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+}
+
+.eval-grade-pill-empty {
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
+}
+
+.eval-cell-mark {
+    font-size: $font-size-small;
+    color: $color-confirm-text;
 }
 
 .eval-grade-select {
-    padding: 0.15rem 0.3rem;
-    border: 1px solid #c9cdd3;
-    border-radius: 0.3rem;
-    font-size: 0.9rem;
-    background-color: white;
+    height: $size-button-height-small;
+    padding: 0 0.4rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    font-size: $font-size-medium;
+    background-color: $color-surface;
+    color: $color-text;
+}
+
+.eval-needs-review-badge,
+.eval-returned-badge,
+.eval-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 1.375rem;
+    padding: 0 0.55rem;
+    border-radius: 999px;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
 }
 
 .eval-needs-review-badge {
-    background-color: #ffab19;
-    border-radius: 0.3rem;
-    color: white;
-    font-size: 0.7rem;
-    padding: 0.05rem 0.3rem;
-    white-space: nowrap;
+    background-color: $color-seat-returned;
+    color: $color-seat-returned-text;
 }
 
 .eval-returned-badge {
-    background-color: #b7dfc2;
-    border-radius: 0.3rem;
-    color: #2d7a43;
-    font-size: 0.7rem;
-    padding: 0.05rem 0.3rem;
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
+}
+
+.eval-tag {
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
+}
+
+/* 右の列: 選んだ席の点・根拠・コメント（見えるラベルつき・R1）。 */
+.eval-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    width: 22rem;
+    flex-shrink: 0;
+    min-height: 0;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 0.6rem 1rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
+    color: $color-text;
+}
+
+.eval-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.eval-detail-title {
+    margin: 0;
+    font-size: $font-size-heading-small;
+    font-weight: $font-weight-bold;
     white-space: nowrap;
 }
 
-.eval-reason-input {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.2rem 0.35rem;
-    border: 1px solid #dfe3e8;
-    border-radius: 0.3rem;
-    font-size: 0.8rem;
+.eval-detail-lesson {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: $color-text-muted;
+    font-size: $font-size-medium;
 }
 
+.eval-detail-grade-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.eval-detail-label {
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    color: $color-text-muted;
+}
+
+.eval-reason-input,
 .eval-comment-input {
     width: 100%;
     box-sizing: border-box;
-    margin-top: 0.2rem;
-    padding: 0.2rem 0.35rem;
-    border: 1px solid #dfe3e8;
-    border-radius: 0.3rem;
-    font-size: 0.8rem;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
     font-family: inherit;
+    font-size: $font-size-medium;
+    color: $color-text;
     resize: vertical;
+}
+
+/* 根拠とコメントは中で縮めず、右の列が低いときは右の列ごとスクロールする。コメントだけは
+   残りの高さまで伸ばす（返却で生徒に届くので、いちばん長く書く欄）。 */
+.eval-detail > * {
+    flex-shrink: 0;
+}
+
+.eval-detail > .eval-comment-input {
+    flex: 1 0 auto;
+    min-height: 4rem;
+}
+
+.eval-detail-nav {
+    display: flex;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.eval-detail-empty {
+    margin: auto 0;
+    color: $color-text-muted;
+    font-size: $font-size-medium;
+    text-align: center;
 }
 
 /* レッスンの点 (#1603): 作品の列の横。点だけなので狭く、数字は右寄せ。 */

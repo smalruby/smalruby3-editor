@@ -11,7 +11,11 @@ import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
-import TeacherEvaluation, { currentEvalStep } from '../../../src/components/classroom-modal/teacher-evaluation.jsx';
+import TeacherEvaluation, {
+    currentEvalStep,
+    neighbourSeats,
+    pickDetailCell,
+} from '../../../src/components/classroom-modal/teacher-evaluation.jsx';
 import { COURSES } from '../../../src/lib/lessons/courses.js';
 
 const LESSONS = [{ classroomId: 'c1', assignmentName: '迷路' }];
@@ -373,25 +377,103 @@ describe('レッスンの課題の採点の流れ (#1778)', () => {
     });
 });
 
-describe('採点の表のラベル (#1924 C5・R1)', () => {
-    const cell = { submitted: true, grade: 'A', reason: '旗で動く' };
-    test('課題の列の見出しに、セルの中の 3 つの欄の名前を出す', () => {
-        const { getByTestId } = renderEvaluation({ seats: [1], getCell: () => cell });
-        expect(getByTestId('classroom-eval-head-fields-c1').textContent).toBe(
-            'Grade / Reason (teacher only) / Comment to the student',
-        );
+describe('採点簿の表と右の詳細 (#1962・R1)', () => {
+    const cells = {
+        '1:c1': { submitted: true, grade: 'A', reason: '旗で動く', manual: false },
+        '2:c1': null,
+        '3:c1': { submitted: true, grade: null, reason: '', needsReview: true },
+        '4:c1': { submitted: true, grade: 'B', reason: '', manual: true, returned: true },
+    };
+    const getCell = (seat, id) => cells[`${seat}:${id}`] || null;
+    const seats = [1, 2, 3, 4];
+
+    test('表は点だけ: セルに入力欄を置かず、点（無ければ —）のボタンを出す', () => {
+        const { getByTestId } = renderEvaluation({ seats, getCell });
+        const cell = getByTestId('classroom-eval-cell-1-c1');
+        expect(cell.querySelector('select, input, textarea')).toBeNull();
+        expect(getByTestId('classroom-eval-cell-button-1-c1')).toHaveTextContent('A');
+        expect(getByTestId('classroom-eval-cell-button-1-c1').getAttribute('aria-label')).toBe('Seat 1, 迷路: A');
+        expect(getByTestId('classroom-eval-cell-button-3-c1')).toHaveTextContent('—');
+        expect(getByTestId('classroom-eval-cell-2-c1')).toHaveTextContent('×');
     });
 
-    test('セルの 3 つの欄に名前があり、プレースホルダーを名前の代わりにしない', () => {
-        const { getByTestId } = renderEvaluation({ seats: [1], getCell: () => cell });
-        // The seat is in the name: 40 rows have the same three fields (#1924 FYI2).
-        expect(getByTestId('classroom-eval-grade-1-c1').getAttribute('aria-label')).toBe('Seat 1: Grade');
-        const reason = getByTestId('classroom-eval-reason-1-c1');
-        expect(reason.getAttribute('aria-label')).toBe('Seat 1: Reason (teacher only)');
-        expect(reason.getAttribute('placeholder')).toBeFalsy();
-        const comment = getByTestId('classroom-eval-comment-1-c1');
-        expect(comment.getAttribute('aria-label')).toBe('Seat 1: Comment to the student');
-        expect(comment.getAttribute('placeholder')).toBeFalsy();
+    test('読み込んだら最初に提出した席を右に出す。欄には見えるラベルがあり、プレースホルダーを使わない', () => {
+        const { getByTestId, getByLabelText } = renderEvaluation({ seats, getCell });
+        expect(getByTestId('classroom-eval-detail-title')).toHaveTextContent('Seat 01');
+        expect(getByTestId('classroom-eval-cell-button-1-c1')).toHaveAttribute('aria-pressed', 'true');
+        expect(getByLabelText('Grade')).toBe(getByTestId('classroom-eval-grade-1-c1'));
+        expect(getByLabelText('Reason (teacher only)')).toBe(getByTestId('classroom-eval-reason-1-c1'));
+        expect(getByLabelText('Comment to the student')).toBe(getByTestId('classroom-eval-comment-1-c1'));
+        expect(getByTestId('classroom-eval-reason-1-c1').getAttribute('placeholder')).toBeFalsy();
+        expect(getByTestId('classroom-eval-comment-1-c1').getAttribute('placeholder')).toBeFalsy();
+        // AI が出した点（先生がまだ変えていない）には「AI の下書き」
+        expect(getByTestId('classroom-eval-detail-ai-draft')).toHaveTextContent('AI draft');
+    });
+
+    test('セルを押すとその席を右に出し、欄を変えると席と課題を渡す', () => {
+        const { getByTestId, queryByTestId, handlers } = renderEvaluation({ seats, getCell });
+        fireEvent.click(getByTestId('classroom-eval-cell-button-4-c1'));
+        expect(getByTestId('classroom-eval-detail-title')).toHaveTextContent('Seat 04');
+        expect(queryByTestId('classroom-eval-grade-1-c1')).toBeNull();
+        // 先生が決めた点には「AI の下書き」を付けない
+        expect(queryByTestId('classroom-eval-detail-ai-draft')).toBeNull();
+        fireEvent.change(getByTestId('classroom-eval-grade-4-c1'), { target: { value: 'S' } });
+        expect(handlers.onSetCellGrade).toHaveBeenCalledWith(4, 'c1', 'S');
+        fireEvent.change(getByTestId('classroom-eval-reason-4-c1'), { target: { value: 'よい' } });
+        expect(handlers.onSetCellReason).toHaveBeenCalledWith(4, 'c1', 'よい');
+        fireEvent.change(getByTestId('classroom-eval-comment-4-c1'), { target: { value: 'いいね' } });
+        expect(handlers.onSetComment).toHaveBeenCalledWith(4, 'c1', 'いいね');
+    });
+
+    test('‹ › は同じ課題を提出した前後の席へ（出していない席はとばす）', () => {
+        const { getByTestId } = renderEvaluation({ seats, getCell });
+        expect(getByTestId('classroom-eval-detail-prev')).toBeDisabled();
+        expect(getByTestId('classroom-eval-detail-next')).toHaveTextContent('03 ›');
+        fireEvent.click(getByTestId('classroom-eval-detail-next'));
+        expect(getByTestId('classroom-eval-detail-title')).toHaveTextContent('Seat 03');
+        expect(getByTestId('classroom-eval-detail-prev')).toHaveTextContent('‹ 01');
+        expect(getByTestId('classroom-eval-detail-prev').getAttribute('aria-label')).toBe('Previous seat');
+        fireEvent.click(getByTestId('classroom-eval-detail-next'));
+        expect(getByTestId('classroom-eval-detail-title')).toHaveTextContent('Seat 04');
+        expect(getByTestId('classroom-eval-detail-next')).toBeDisabled();
+    });
+
+    test('コメントを書いたセルに印、要確認のセルは「要確認」を右に出す', () => {
+        const { getByTestId } = renderEvaluation({ seats, getCell, comments: { '1:c1': 'よくできました' } });
+        expect(getByTestId('classroom-eval-cell-button-1-c1')).toHaveTextContent('💬');
+        expect(getByTestId('classroom-eval-cell-button-4-c1')).not.toHaveTextContent('💬');
+        fireEvent.click(getByTestId('classroom-eval-cell-button-3-c1'));
+        expect(getByTestId('classroom-eval-detail')).toHaveTextContent('Check');
+        expect(getByTestId('classroom-eval-comment-3-c1').value).toBe('');
+    });
+
+    test('提出が 1 つも無いときは、右の列にそう書く', () => {
+        const { getByTestId } = renderEvaluation({ seats: [2], getCell });
+        expect(getByTestId('classroom-eval-detail-empty')).toHaveTextContent('No work has been submitted.');
+    });
+});
+
+describe('pickDetailCell / neighbourSeats (#1962)', () => {
+    const getCell = (seat, id) => (seat === 2 || (seat === 3 && id === 'b') ? { submitted: true } : null);
+    test('押したセルが表にあればそれ、無ければ行の順で最初の提出', () => {
+        const base = { seats: [1, 2, 3], workIds: ['a', 'b'], getCell };
+        expect(pickDetailCell({ ...base, chosen: { seat: 3, classroomId: 'b' } })).toEqual({
+            seat: 3,
+            classroomId: 'b',
+        });
+        expect(pickDetailCell({ ...base, chosen: null })).toEqual({ seat: 2, classroomId: 'a' });
+        // 課題の選択を外した・提出が無いセルは使わない
+        expect(pickDetailCell({ ...base, workIds: ['a'], chosen: { seat: 3, classroomId: 'b' } })).toEqual({
+            seat: 2,
+            classroomId: 'a',
+        });
+        expect(pickDetailCell({ ...base, seats: [1], chosen: null })).toBeNull();
+    });
+
+    test('前後の席は同じ課題の提出だけを数える', () => {
+        expect(neighbourSeats([1, 2, 3], getCell, 'b', 2)).toEqual({ prev: null, next: 3 });
+        expect(neighbourSeats([1, 2, 3], getCell, 'b', 3)).toEqual({ prev: 2, next: null });
+        expect(neighbourSeats([1, 2, 3], getCell, 'a', 2)).toEqual({ prev: null, next: null });
     });
 });
 
