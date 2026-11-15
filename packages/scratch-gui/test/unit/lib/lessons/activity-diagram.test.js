@@ -268,8 +268,9 @@ describe('partnerLane', () => {
             'when the "Hello" button is pressed',
             expect.stringContaining('shimaraby_message'),
         ]);
-        // 値の locale ごとの書き方は動かすときも使わない（文字か数だけ）ので、その行は描かない
+        // 値も locale ごとに書ける（#1643。キーが無ければ en → ja）。動かすときと同じく描く
         expect(enLane.targets[0].scripts[0].body.map((n) => n.label)).toEqual([
+            expect.stringMatching(/shimacat_message.*x/),
             expect.stringContaining('shimacat_message'),
         ]);
         // locale のキーが無いときは、動かすときと同じく en → ja の順

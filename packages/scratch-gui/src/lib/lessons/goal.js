@@ -173,8 +173,9 @@ export const recordExecution = (facts, run, opcode, args) => {
 /**
  * 言った（考えた）文字を記録する。空の文字（吹き出しを消す）は記録しない。
  * @param {object} facts - facts。
- * @param {object} say - `{targetId, isStage, text, variables}`。`variables` は言った時点の
- *   変数名 → 値（`equalsVariable` の判定用）。
+ * @param {object} say - `{targetId, isStage, text, variables, run}`。`variables` は言った時点の
+ *   変数名 → 値（`equalsVariable` の判定用）。`run` は言ったスクリプトの run（startRun の戻り値。
+ *   分からなければ省く。said の `trigger` の判定用）。
  */
 export const recordSay = (facts, say) => {
     const text = isUnset(say.text) ? '' : String(say.text);
@@ -186,6 +187,7 @@ export const recordSay = (facts, say) => {
         // 言った時点の最後の答え（まだ答えていなければ null）
         answer: facts.answers.length > 0 ? facts.answers[facts.answers.length - 1] : null,
         variables: say.variables || {},
+        run: say.run || null,
     });
     if (facts.says.length > MAX_SAYS) facts.says.shift();
 };
@@ -287,6 +289,8 @@ const saidVariableMatches = (spec, value, answer) => {
 const evaluateSaid = (condition, facts) =>
     facts.says.some((say) => {
         if (condition.target === 'stage' && !say.isStage) return false;
+        // 言ったスクリプトのきっかけ（「受け取ったとき」のスクリプトで言った、など。uses の trigger と同じ形）
+        if (!isUnset(condition.trigger) && !(say.run && triggerMatches(condition.trigger, say.run))) return false;
         if (condition.target === 'sprite' && say.isStage) return false;
         if (!isUnset(condition.text) && !matchValue(condition.text, say.text)) return false;
         if (condition.equalsAnswer && (isUnset(say.answer) || compareValues(say.text, say.answer) !== 0)) {
@@ -315,16 +319,26 @@ const evaluateSaid = (condition, facts) =>
 // 名前ごとに、ステージ（すべてのスプライト用）の変数を先に探す。name は名前の配列でもよい
 // （locale ごとの名前。ja-Hira は「かいすう」、en は「count」と書く）。ja で作った作品を en で開いて
 // 「プログラムを入れる」と両方の名前がそろうことがあるので、見つかった変数のどれかが合えばよい
-const findVariables = (snapshot, name, type) =>
+// `target` が 'stage' ならステージ（すべてのスプライト用）の変数だけ、'sprite' ならスプライトの変数だけを見る
+// （メッシュで共有されるのはステージの変数だけ・#1643）
+const findVariables = (snapshot, name, type, target = null) =>
     variableNames(name)
         .map((n) => {
-            const variables = (snapshot.variables || []).filter((v) => (v.type || '') === type && v.name === n);
+            const variables = (snapshot.variables || []).filter(
+                (v) =>
+                    (v.type || '') === type &&
+                    v.name === n &&
+                    !(target === 'stage' && !v.isStage) &&
+                    !(target === 'sprite' && v.isStage),
+            );
             return variables.find((v) => v.isStage) || variables[0] || null;
         })
         .filter((v) => v !== null);
 
 const evaluateVariable = (condition, snapshot) =>
-    findVariables(snapshot, condition.name, '').some((variable) => matchValue(condition.value, variable.value));
+    findVariables(snapshot, condition.name, '', condition.target).some((variable) =>
+        matchValue(condition.value, variable.value),
+    );
 
 const listMatches = (condition, facts, variable) => {
     if (!Array.isArray(variable.value)) return false;
@@ -407,6 +421,23 @@ const isMatcher = (value) =>
             ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'includes', 'matches'].includes(key),
         ));
 
+// uses / said の `trigger` の形
+const validateTrigger = (trigger, at) => {
+    if (isUnset(trigger)) return [];
+    if (typeof trigger !== 'object') return [`${at}: trigger must be an object`];
+    const errors = [];
+    if (!isUnset(trigger.target) && !['stage', 'sprite'].includes(trigger.target)) {
+        errors.push(`${at}: trigger.target must be 'stage' or 'sprite'`);
+    }
+    if (!isUnset(trigger.sentBy) && trigger.sentBy !== 'other') {
+        errors.push(`${at}: trigger.sentBy must be 'other'`);
+    }
+    if (!isUnset(trigger.message) && !isVariableName(trigger.message)) {
+        errors.push(`${at}: trigger.message must be a message name or an array of names`);
+    }
+    return errors;
+};
+
 /**
  * goal の形を確かめる（courses.js に入れる前のテスト用）。
  * @param {*} goal - goal。
@@ -451,23 +482,11 @@ export const validateGoal = (goal) => {
                 if (!isUnset(condition.order) && !Array.isArray(condition.order)) {
                     errors.push(`${at}: order must be an array of opcodes`);
                 }
-                const trigger = condition.trigger;
-                if (!isUnset(trigger) && typeof trigger !== 'object') {
-                    errors.push(`${at}: trigger must be an object`);
-                } else if (!isUnset(trigger)) {
-                    if (!isUnset(trigger.target) && !['stage', 'sprite'].includes(trigger.target)) {
-                        errors.push(`${at}: trigger.target must be 'stage' or 'sprite'`);
-                    }
-                    if (!isUnset(trigger.sentBy) && trigger.sentBy !== 'other') {
-                        errors.push(`${at}: trigger.sentBy must be 'other'`);
-                    }
-                    if (!isUnset(trigger.message) && !isVariableName(trigger.message)) {
-                        errors.push(`${at}: trigger.message must be a message name or an array of names`);
-                    }
-                }
+                errors.push(...validateTrigger(condition.trigger, at));
                 break;
             }
             case 'said':
+                errors.push(...validateTrigger(condition.trigger, at));
                 if (!isMatcher(condition.text)) errors.push(`${at}: said.text must be a string, RegExp or matcher`);
                 if (!isMatcher(condition.answer)) errors.push(`${at}: said.answer must be a matcher`);
                 if (
@@ -500,6 +519,9 @@ export const validateGoal = (goal) => {
             case 'variable':
                 if (!isVariableName(condition.name)) errors.push(`${at}: variable.name is required`);
                 if (!isMatcher(condition.value)) errors.push(`${at}: variable.value must be a matcher`);
+                if (!isUnset(condition.target) && !['stage', 'sprite'].includes(condition.target)) {
+                    errors.push(`${at}: variable.target must be 'stage' or 'sprite'`);
+                }
                 break;
             case 'list':
                 if (!isVariableName(condition.name)) errors.push(`${at}: list.name is required`);

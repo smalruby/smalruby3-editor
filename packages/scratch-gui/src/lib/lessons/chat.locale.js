@@ -144,6 +144,82 @@ export const ja = {
     [`${C}chat-l2-janken.quiz.choice3`]: 'ネットワークにつなぐ',
     [`${C}chat-l2-janken.quiz.explanation`]:
         '変数は、名前を付けて値を入れておく入れもの。入れた値は、あとで取り出して使える。ここではコンピューターの手を入れておき、答えと比べて、言うことを変えたね。',
+    'gui.lessons.lesson.chat-l3.name': 'メッシュでつながろう',
+
+    [`${C}chat-l3-local-message.name`]: 'メッセージと変数を分けて送ろう（同じコンピューターの中）',
+    [`${C}chat-l3-local-message.task`]:
+        'ライブラリからシマネコを足そう。旗を押したらシマラビが「メッセージを入力」と聞き、答えを変数「シマラビのメッセージ」に入れて、メッセージ「シマラビのメッセージ」を送る。シマネコは、そのメッセージを受け取ったら、変数「シマラビのメッセージ」を 3 秒言うようにしよう。\nメッセージは「送ったよ」の知らせだけ。文字は変数に入れておく。',
+    [`${C}chat-l3-local-message.step1`]: '右下の「スプライトを選ぶ」から、シマネコを足そう。',
+    [`${C}chat-l3-local-message.step2`]:
+        'シマラビをえらんで、黄色い「イベント」の「旗が押されたとき」を置こう。その下に「メッセージを入力と聞いて待つ」と、変数「シマラビのメッセージ」を作って「シマラビのメッセージを (答え) にする」をつなげよう。変数は「すべてのスプライト用」にする。',
+    [`${C}chat-l3-local-message.step3`]:
+        'その下に「イベント」の「〜を送る」をつなげて、▼ の「新しいメッセージ」で「シマラビのメッセージ」を作ろう。図の、とがった五角形が「送る」。',
+    [`${C}chat-l3-local-message.step4`]:
+        'シマネコをえらんで、「〜を受け取ったとき」を置き、▼ で「シマラビのメッセージ」をえらぼう。図の、へこんだ箱が「受け取ったとき」で、五角形からの矢印がそこへ届く。その下に「(シマラビのメッセージ) と 3 秒言う」をつなげよう。',
+    [`${C}chat-l3-local-message.step5`]:
+        '旗を押して、メッセージを入力して Enter キーを押そう。シマネコが入力した文字を言うか見よう。',
+    [`${C}chat-l3-local-message.debug1`]:
+        'シマネコが何も言わないときは、「受け取ったとき」の ▼ が「シマラビのメッセージ」か見よう。',
+    [`${C}chat-l3-local-message.debug2`]:
+        'シマネコが「0」と言うときは、変数を「すべてのスプライト用」で作ったか、「送る」が「シマラビのメッセージを (答え) にする」より下にあるか見よう。',
+    [`${C}chat-l3-local-message.quiz.question`]: 'メッセージを送ったとき、相手に届くのは？',
+    [`${C}chat-l3-local-message.quiz.choice1`]: '「送ったよ」という知らせだけ',
+    [`${C}chat-l3-local-message.quiz.choice2`]: '入力した文字',
+    [`${C}chat-l3-local-message.quiz.choice3`]: 'スプライトの絵',
+    [`${C}chat-l3-local-message.quiz.explanation`]:
+        'メッセージは知らせを伝えるだけで、中身は運ばない。中身は変数に入れておき、受け取った側がその変数を読む。メッシュでも同じ考え方だよ。',
+
+    [`${C}chat-l3-mesh-signal.name`]: 'メッシュでメッセージを送り合おう',
+    [`${C}chat-l3-mesh-signal.task`]:
+        '拡張機能「メッシュ」を足そう。ペアなら 1 人がホストになってグループを作り、もう 1 人がそのグループに参加する。ひとりなら練習相手とやろう。\nスペースキーを押したらシマラビがメッセージ「手をふる」を送る。「手をふる」を受け取ったら、シマネコが「やあ！」と 2 秒言うようにしよう。',
+    [`${C}chat-l3-mesh-signal.step1`]:
+        '左下の拡張機能のボタンから「メッシュ」をえらぼう。パレットに「メッシュ」がふえるよ。',
+    [`${C}chat-l3-mesh-signal.step2`]:
+        'ペアなら、「メッシュ」の横のボタンから、1 人が「メッシュのホストになる」でグループを作り、もう 1 人が「メッシュに参加する」でそのグループに入る。ひとりなら、右上の練習相手のパネルを使おう。',
+    [`${C}chat-l3-mesh-signal.step3`]:
+        'シマラビをえらんで、黄色い「イベント」の「スペースキーが押されたとき」を置こう。その下に「〜を送る」をつなげて、▼ の「新しいメッセージ」で「手をふる」を作ろう。',
+    [`${C}chat-l3-mesh-signal.step4`]:
+        'シマネコをえらんで、「手をふるを受け取ったとき」を置き、その下に「やあ！と 2 秒言う」をつなげよう。図では、相手の五角形からの矢印も、このへこんだ箱に届く。',
+    [`${C}chat-l3-mesh-signal.step5`]:
+        'ステージを押してから、スペースキーを押そう。ひとりなら、練習相手のパネルの「手をふる」も押してみよう。どちらでもシマネコが「やあ！」と言うか見よう。',
+    [`${C}chat-l3-mesh-signal.debug1`]:
+        'スペースキーを押しても何も起きないときは、ステージを一度押してから、もう一度スペースキーを押そう。',
+    [`${C}chat-l3-mesh-signal.debug2`]:
+        'ペアで相手から届かないときは、2 人が同じグループに入っているか、メッセージの名前が同じ「手をふる」か見よう。',
+    [`${C}chat-l3-mesh-signal.quiz.question`]:
+        '種類のちがう機器どうしでも通信できるように決めた、共通の約束事を何という？',
+    [`${C}chat-l3-mesh-signal.quiz.choice1`]: 'アルゴリズム',
+    [`${C}chat-l3-mesh-signal.quiz.choice2`]: 'コンテンツ',
+    [`${C}chat-l3-mesh-signal.quiz.choice3`]: 'プロトコル',
+    [`${C}chat-l3-mesh-signal.quiz.explanation`]:
+        '通信の約束事をプロトコルという。インターネットでは TCP/IP というプロトコルを使っていて、メッシュもその上でメッセージを届けているよ。',
+
+    [`${C}chat-l3-mesh-variable.name`]: '変数を共有しよう',
+    [`${C}chat-l3-mesh-variable.task`]:
+        '1 のキーで変数「シマラビの気分」を「うれしい」、2 のキーで「ねむい」にしよう。シマネコを押したら、シマネコの気分（「シマネコの気分」のセンサーの値）を 2 秒言うようにしよう。\nペアでシマネコの役の人は、シマラビとシマネコを入れかえて作ろう。',
+    [`${C}chat-l3-mesh-variable.step1`]:
+        'シマラビをえらんで、オレンジの「変数」の「変数を作る」で「シマラビの気分」を作ろう。「すべてのスプライト用」にすると、メッシュでつながった相手と共有される。',
+    [`${C}chat-l3-mesh-variable.step2`]:
+        '黄色い「イベント」の「1 キーが押されたとき」を置いて、「シマラビの気分を うれしい にする」をつなげよう。',
+    [`${C}chat-l3-mesh-variable.step3`]:
+        'もう 1 つ「2 キーが押されたとき」を置いて、「シマラビの気分を ねむい にする」をつなげよう。',
+    [`${C}chat-l3-mesh-variable.step4`]:
+        'ひとりなら、練習相手のパネルの「うれしい」を押そう（ペアなら、相手に 1 のキーを押してもらう）。相手の気分が届くと、「メッシュ」の「(　) センサーの値」の ▼ に「シマネコの気分」が出る。',
+    [`${C}chat-l3-mesh-variable.step5`]:
+        'シマネコをえらんで、「このスプライトが押されたとき」を置こう。その下に「(　) と 2 秒言う」をつなげて、白いところに「(シマネコの気分) センサーの値」を入れよう。',
+    [`${C}chat-l3-mesh-variable.step6`]:
+        '1 のキーと 2 のキーを押して、練習相手のパネルの「届いた」に自分の気分が出るか見よう。パネルの「うれしい」「ねむい」を押してからシマネコを押して、相手の気分を言うか見よう。',
+    [`${C}chat-l3-mesh-variable.debug1`]:
+        '▼ に「シマネコの気分」が無いときは、先に練習相手の「うれしい」を押そう（ペアなら、相手に 1 のキーを押してもらおう）。',
+    [`${C}chat-l3-mesh-variable.debug2`]:
+        '自分の気分が相手に届かないときは、変数「シマラビの気分」を「すべてのスプライト用」で作ったか見よう。',
+    [`${C}chat-l3-mesh-variable.quiz.question`]:
+        'ネットワークにつながった情報機器に割りふられる、個別の番号を何という？',
+    [`${C}chat-l3-mesh-variable.quiz.choice1`]: 'ドメイン名',
+    [`${C}chat-l3-mesh-variable.quiz.choice2`]: 'IP アドレス',
+    [`${C}chat-l3-mesh-variable.quiz.choice3`]: 'ルータ',
+    [`${C}chat-l3-mesh-variable.quiz.explanation`]:
+        'IP アドレスで通信の相手を見分ける。数字だけでは人にはわかりにくいので、Web ページではドメイン名という文字に置きかえて使うよ。',
 };
 
 export const jaHira = {
@@ -289,6 +365,82 @@ export const jaHira = {
     [`${C}chat-l2-janken.quiz.choice3`]: 'ネットワークに つなぐ',
     [`${C}chat-l2-janken.quiz.explanation`]:
         'へんすうは、なまえを つけて あたいを いれておく いれもの。いれた あたいは、あとで とりだして つかえる。ここでは コンピューターの てを いれておき、こたえと くらべて、いうことを かえたね。',
+    'gui.lessons.lesson.chat-l3.name': 'メッシュで つながろう',
+
+    [`${C}chat-l3-local-message.name`]: 'メッセージと へんすうを わけて おくろう（おなじ コンピューターの なか）',
+    [`${C}chat-l3-local-message.task`]:
+        'ライブラリから シマネコを たそう。はたをおしたら シマラビが「メッセージを にゅうりょく」ときき、こたえを へんすう「シマラビのメッセージ」にいれて、メッセージ「シマラビのメッセージ」をおくる。シマネコは、そのメッセージを うけとったら、へんすう「シマラビのメッセージ」を 3 びょう いうようにしよう。\nメッセージは「おくったよ」の しらせだけ。もじは へんすうに いれておく。',
+    [`${C}chat-l3-local-message.step1`]: 'みぎしたの「スプライトをえらぶ」から、シマネコを たそう。',
+    [`${C}chat-l3-local-message.step2`]:
+        'シマラビを えらんで、きいろい「イベント」の「はたがおされたとき」を おこう。そのしたに「メッセージを にゅうりょく ときいてまつ」と、へんすう「シマラビのメッセージ」をつくって「シマラビのメッセージを (こたえ) にする」をつなげよう。へんすうは「すべてのスプライトよう」にする。',
+    [`${C}chat-l3-local-message.step3`]:
+        'そのしたに「イベント」の「〜をおくる」をつなげて、▼ の「あたらしいメッセージ」で「シマラビのメッセージ」をつくろう。ずの、とがった ごかくけいが「おくる」。',
+    [`${C}chat-l3-local-message.step4`]:
+        'シマネコを えらんで、「〜をうけとったとき」をおき、▼ で「シマラビのメッセージ」をえらぼう。ずの、へこんだ はこが「うけとったとき」で、ごかくけいからの やじるしが そこへ とどく。そのしたに「(シマラビのメッセージ) と 3 びょう いう」をつなげよう。',
+    [`${C}chat-l3-local-message.step5`]:
+        'はたをおして、メッセージを にゅうりょくして Enter キーを おそう。シマネコが にゅうりょくした もじを いうか みよう。',
+    [`${C}chat-l3-local-message.debug1`]:
+        'シマネコが なにも いわないときは、「うけとったとき」の ▼ が「シマラビのメッセージ」か みよう。',
+    [`${C}chat-l3-local-message.debug2`]:
+        'シマネコが「0」と いうときは、へんすうを「すべてのスプライトよう」で つくったか、「おくる」が「シマラビのメッセージを (こたえ) にする」より したに あるか みよう。',
+    [`${C}chat-l3-local-message.quiz.question`]: 'メッセージを おくったとき、あいてに とどくのは？',
+    [`${C}chat-l3-local-message.quiz.choice1`]: '「おくったよ」という しらせだけ',
+    [`${C}chat-l3-local-message.quiz.choice2`]: 'にゅうりょくした もじ',
+    [`${C}chat-l3-local-message.quiz.choice3`]: 'スプライトの え',
+    [`${C}chat-l3-local-message.quiz.explanation`]:
+        'メッセージは しらせを つたえるだけで、なかみは はこばない。なかみは へんすうに いれておき、うけとった がわが その へんすうを よむ。メッシュでも おなじ かんがえかただよ。',
+
+    [`${C}chat-l3-mesh-signal.name`]: 'メッシュで メッセージを おくりあおう',
+    [`${C}chat-l3-mesh-signal.task`]:
+        'かくちょうきのう「メッシュ」を たそう。ペアなら 1 にんが ホストになって グループを つくり、もう 1 にんが その グループに さんかする。ひとりなら れんしゅうあいてと やろう。\nスペースキーを おしたら シマラビが メッセージ「てをふる」を おくる。「てをふる」を うけとったら、シマネコが「やあ！」と 2 びょう いうようにしよう。',
+    [`${C}chat-l3-mesh-signal.step1`]:
+        'ひだりしたの かくちょうきのうの ボタンから「メッシュ」を えらぼう。パレットに「メッシュ」が ふえるよ。',
+    [`${C}chat-l3-mesh-signal.step2`]:
+        'ペアなら、「メッシュ」の よこの ボタンから、1 にんが「メッシュのホストになる」で グループを つくり、もう 1 にんが「メッシュにさんかする」で その グループに はいる。ひとりなら、みぎうえの れんしゅうあいての パネルを つかおう。',
+    [`${C}chat-l3-mesh-signal.step3`]:
+        'シマラビを えらんで、きいろい「イベント」の「スペースキーがおされたとき」を おこう。そのしたに「〜をおくる」をつなげて、▼ の「あたらしいメッセージ」で「てをふる」をつくろう。',
+    [`${C}chat-l3-mesh-signal.step4`]:
+        'シマネコを えらんで、「てをふるをうけとったとき」をおき、そのしたに「やあ！と 2 びょう いう」をつなげよう。ずでは、あいての ごかくけいからの やじるしも、この へこんだ はこに とどく。',
+    [`${C}chat-l3-mesh-signal.step5`]:
+        'ステージを おしてから、スペースキーを おそう。ひとりなら、れんしゅうあいての パネルの「てをふる」も おしてみよう。どちらでも シマネコが「やあ！」と いうか みよう。',
+    [`${C}chat-l3-mesh-signal.debug1`]:
+        'スペースキーを おしても なにも おきないときは、ステージを いちど おしてから、もういちど スペースキーを おそう。',
+    [`${C}chat-l3-mesh-signal.debug2`]:
+        'ペアで あいてから とどかないときは、2 にんが おなじ グループに はいっているか、メッセージの なまえが おなじ「てをふる」か みよう。',
+    [`${C}chat-l3-mesh-signal.quiz.question`]:
+        'しゅるいの ちがう きき どうしでも つうしん できるように きめた、きょうつうの やくそくごとを なんという？',
+    [`${C}chat-l3-mesh-signal.quiz.choice1`]: 'アルゴリズム',
+    [`${C}chat-l3-mesh-signal.quiz.choice2`]: 'コンテンツ',
+    [`${C}chat-l3-mesh-signal.quiz.choice3`]: 'プロトコル',
+    [`${C}chat-l3-mesh-signal.quiz.explanation`]:
+        'つうしんの やくそくごとを プロトコルという。インターネットでは TCP/IP という プロトコルを つかっていて、メッシュも その うえで メッセージを とどけているよ。',
+
+    [`${C}chat-l3-mesh-variable.name`]: 'へんすうを きょうゆうしよう',
+    [`${C}chat-l3-mesh-variable.task`]:
+        '1 のキーで へんすう「シマラビのきぶん」を「うれしい」、2 のキーで「ねむい」にしよう。シマネコを おしたら、シマネコの きぶん（「シマネコのきぶん」の センサーの あたい）を 2 びょう いうようにしよう。\nペアで シマネコの やくの ひとは、シマラビと シマネコを いれかえて つくろう。',
+    [`${C}chat-l3-mesh-variable.step1`]:
+        'シマラビを えらんで、オレンジの「へんすう」の「へんすうをつくる」で「シマラビのきぶん」をつくろう。「すべてのスプライトよう」にすると、メッシュで つながった あいてと きょうゆう される。',
+    [`${C}chat-l3-mesh-variable.step2`]:
+        'きいろい「イベント」の「1 キーがおされたとき」をおいて、「シマラビのきぶんを うれしい にする」をつなげよう。',
+    [`${C}chat-l3-mesh-variable.step3`]:
+        'もう 1 つ「2 キーがおされたとき」をおいて、「シマラビのきぶんを ねむい にする」をつなげよう。',
+    [`${C}chat-l3-mesh-variable.step4`]:
+        'ひとりなら、れんしゅうあいての パネルの「うれしい」を おそう（ペアなら、あいてに 1 のキーを おしてもらう）。あいての きぶんが とどくと、「メッシュ」の「(　) センサーのあたい」の ▼ に「シマネコのきぶん」が でる。',
+    [`${C}chat-l3-mesh-variable.step5`]:
+        'シマネコを えらんで、「このスプライトがおされたとき」を おこう。そのしたに「(　) と 2 びょう いう」をつなげて、しろいところに「(シマネコのきぶん) センサーのあたい」を いれよう。',
+    [`${C}chat-l3-mesh-variable.step6`]:
+        '1 のキーと 2 のキーを おして、れんしゅうあいての パネルの「とどいた」に じぶんの きぶんが でるか みよう。パネルの「うれしい」「ねむい」を おしてから シマネコを おして、あいての きぶんを いうか みよう。',
+    [`${C}chat-l3-mesh-variable.debug1`]:
+        '▼ に「シマネコのきぶん」が ないときは、さきに れんしゅうあいての「うれしい」を おそう（ペアなら、あいてに 1 のキーを おしてもらおう）。',
+    [`${C}chat-l3-mesh-variable.debug2`]:
+        'じぶんの きぶんが あいてに とどかないときは、へんすう「シマラビのきぶん」を「すべてのスプライトよう」で つくったか みよう。',
+    [`${C}chat-l3-mesh-variable.quiz.question`]:
+        'ネットワークに つながった じょうほうききに わりふられる、こべつの ばんごうを なんという？',
+    [`${C}chat-l3-mesh-variable.quiz.choice1`]: 'ドメインめい',
+    [`${C}chat-l3-mesh-variable.quiz.choice2`]: 'IP アドレス',
+    [`${C}chat-l3-mesh-variable.quiz.choice3`]: 'ルータ',
+    [`${C}chat-l3-mesh-variable.quiz.explanation`]:
+        'IP アドレスで つうしんの あいてを みわける。すうじだけでは ひとには わかりにくいので、Web ページでは ドメインめいという もじに おきかえて つかうよ。',
 };
 
 export const en = {
@@ -432,4 +584,80 @@ export const en = {
     [`${C}chat-l2-janken.quiz.choice3`]: 'Connects to the network',
     [`${C}chat-l2-janken.quiz.explanation`]:
         "A variable is a named box that keeps a value. You can take the value out and use it later. Here it kept the computer's hand, compared it with the answer and changed what to say.",
+    'gui.lessons.lesson.chat-l3.name': 'Connect with Mesh',
+
+    [`${C}chat-l3-local-message.name`]: 'Send the Message and the Variable Apart (in One Computer)',
+    [`${C}chat-l3-local-message.task`]:
+        'Add Shimacat from the library. When the flag is clicked, Shimaraby asks "Enter a message", puts the answer into the variable "shimaraby_message" and broadcasts the message "shimaraby_message". When Shimacat receives that message, it says the variable "shimaraby_message" for 3 seconds.\nA message is only the news "I sent it". Keep the text in the variable.',
+    [`${C}chat-l3-local-message.step1`]: 'Use "Choose a Sprite" at the bottom right to add Shimacat.',
+    [`${C}chat-l3-local-message.step2`]:
+        'Select Shimaraby and place the yellow Events block "when flag clicked". Under it, attach "ask Enter a message and wait", make the variable "shimaraby_message" and attach "set shimaraby_message to (answer)". Make the variable "For all sprites".',
+    [`${C}chat-l3-local-message.step3`]:
+        'Under it, attach the Events block "broadcast", and make "shimaraby_message" with "New message" in its ▼. In the diagram, the pointed pentagon is "broadcast".',
+    [`${C}chat-l3-local-message.step4`]:
+        'Select Shimacat, place "when I receive" and choose "shimaraby_message" in its ▼. In the diagram, the notched box is "when I receive", and the arrow from the pentagon comes into it. Under it, attach "say (shimaraby_message) for 3 seconds".',
+    [`${C}chat-l3-local-message.step5`]:
+        'Click the flag, type a message and press Enter. Check that Shimacat says what you typed.',
+    [`${C}chat-l3-local-message.debug1`]:
+        'If Shimacat says nothing, check that the ▼ of "when I receive" is "shimaraby_message".',
+    [`${C}chat-l3-local-message.debug2`]:
+        'If Shimacat says "0", check that you made the variable "For all sprites" and that "broadcast" is under "set shimaraby_message to (answer)".',
+    [`${C}chat-l3-local-message.quiz.question`]: 'When you broadcast a message, what reaches the other side?',
+    [`${C}chat-l3-local-message.quiz.choice1`]: 'Only the news "I sent it"',
+    [`${C}chat-l3-local-message.quiz.choice2`]: 'The text you typed',
+    [`${C}chat-l3-local-message.quiz.choice3`]: 'The picture of the sprite',
+    [`${C}chat-l3-local-message.quiz.explanation`]:
+        'A message only tells the news and carries no contents. Keep the contents in a variable, and the receiver reads that variable. The mesh works the same way.',
+
+    [`${C}chat-l3-mesh-signal.name`]: 'Send Messages over the Mesh',
+    [`${C}chat-l3-mesh-signal.task`]:
+        'Add the extension "Mesh". In a pair, one of you becomes the host and makes a group, and the other joins that group. On your own, use the practice partner.\nWhen the space key is pressed, Shimaraby broadcasts the message "wave". When Shimacat receives "wave", it says "Hi!" for 2 seconds.',
+    [`${C}chat-l3-mesh-signal.step1`]:
+        'Choose "Mesh" with the extension button at the bottom left. "Mesh" is added to the palette.',
+    [`${C}chat-l3-mesh-signal.step2`]:
+        'In a pair, use the button next to "Mesh": one of you makes a group with "Become Mesh Host", and the other joins it with "Join Mesh". On your own, use the practice partner panel at the top right.',
+    [`${C}chat-l3-mesh-signal.step3`]:
+        'Select Shimaraby and place the yellow Events block "when space key pressed". Under it, attach "broadcast" and make "wave" with "New message" in its ▼.',
+    [`${C}chat-l3-mesh-signal.step4`]:
+        'Select Shimacat, place "when I receive wave" and attach "say Hi! for 2 seconds" under it. In the diagram, the arrow from the partner\'s pentagon also comes into this notched box.',
+    [`${C}chat-l3-mesh-signal.step5`]:
+        'Click the stage, then press the space key. On your own, also click "wave" on the practice partner panel. Check that Shimacat says "Hi!" either way.',
+    [`${C}chat-l3-mesh-signal.debug1`]:
+        'If nothing happens when you press the space key, click the stage once and press the space key again.',
+    [`${C}chat-l3-mesh-signal.debug2`]:
+        'If nothing comes from your pair, check that you are both in the same group and that the message name is the same "wave".',
+    [`${C}chat-l3-mesh-signal.quiz.question`]:
+        'What do we call the common rules that let different kinds of devices talk to each other?',
+    [`${C}chat-l3-mesh-signal.quiz.choice1`]: 'Algorithm',
+    [`${C}chat-l3-mesh-signal.quiz.choice2`]: 'Content',
+    [`${C}chat-l3-mesh-signal.quiz.choice3`]: 'Protocol',
+    [`${C}chat-l3-mesh-signal.quiz.explanation`]:
+        'The rules of communication are called a protocol. The internet uses the protocol TCP/IP, and the mesh delivers messages on top of it.',
+
+    [`${C}chat-l3-mesh-variable.name`]: 'Share a Variable',
+    [`${C}chat-l3-mesh-variable.task`]:
+        'With the 1 key, set the variable "shimaraby_mood" to "happy", and with the 2 key to "sleepy". When Shimacat is clicked, it says the mood of Shimacat (the sensor value of "shimacat_mood") for 2 seconds.\nIn a pair, the one who plays Shimacat swaps Shimaraby and Shimacat.',
+    [`${C}chat-l3-mesh-variable.step1`]:
+        'Select Shimaraby and make "shimaraby_mood" with "Make a Variable" in the orange Variables. Make it "For all sprites" so that it is shared with the one you connect to over the mesh.',
+    [`${C}chat-l3-mesh-variable.step2`]:
+        'Place the yellow Events block "when 1 key pressed" and attach "set shimaraby_mood to happy".',
+    [`${C}chat-l3-mesh-variable.step3`]:
+        'Place another "when 2 key pressed" and attach "set shimaraby_mood to sleepy".',
+    [`${C}chat-l3-mesh-variable.step4`]:
+        'On your own, click "happy" on the practice partner panel (in a pair, ask your pair to press the 1 key). When the mood arrives, "shimacat_mood" appears in the ▼ of the Mesh block "( ) sensor value".',
+    [`${C}chat-l3-mesh-variable.step5`]:
+        'Select Shimacat and place "when this sprite clicked". Under it, attach "say ( ) for 2 seconds" and put "(shimacat_mood) sensor value" into its white space.',
+    [`${C}chat-l3-mesh-variable.step6`]:
+        'Press the 1 key and the 2 key, and check that your mood appears in "Received" on the practice partner panel. Click "happy" or "sleepy" on the panel, then click Shimacat and check that it says the mood of the partner.',
+    [`${C}chat-l3-mesh-variable.debug1`]:
+        'If "shimacat_mood" is not in the ▼, first click "happy" on the practice partner panel (in a pair, ask your pair to press the 1 key).',
+    [`${C}chat-l3-mesh-variable.debug2`]:
+        'If your mood does not reach the other side, check that you made the variable "shimaraby_mood" "For all sprites".',
+    [`${C}chat-l3-mesh-variable.quiz.question`]:
+        'What do we call the number given to each device on a network to tell it apart?',
+    [`${C}chat-l3-mesh-variable.quiz.choice1`]: 'Domain name',
+    [`${C}chat-l3-mesh-variable.quiz.choice2`]: 'IP address',
+    [`${C}chat-l3-mesh-variable.quiz.choice3`]: 'Router',
+    [`${C}chat-l3-mesh-variable.quiz.explanation`]:
+        'An IP address tells which device to talk to. Numbers alone are hard for people to read, so web pages use a domain name made of letters instead.',
 };

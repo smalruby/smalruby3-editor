@@ -95,6 +95,24 @@ describe('normalizePartner', () => {
         expect(partner.buttons[0].set).toEqual([{ name: 'あて先', fromVariable: 'name' }]);
     });
 
+    test('a value may be written per locale (the mood of 3-3, #1643)', () => {
+        const def = {
+            buttons: [
+                {
+                    label: { ja: 'うれしい', en: 'happy' },
+                    set: {
+                        variable: { ja: 'シマネコの気分', en: 'shimacat_mood' },
+                        value: { ja: 'うれしい', en: 'happy' },
+                    },
+                },
+            ],
+        };
+        expect(normalizePartner(def, 'en').buttons[0].set).toEqual([{ name: 'shimacat_mood', value: 'happy' }]);
+        // キーの無い locale は en
+        expect(normalizePartner(def, 'ja-Hira').buttons[0].set).toEqual([{ name: 'shimacat_mood', value: 'happy' }]);
+        expect(normalizePartner(def, 'ja').buttons[0].set).toEqual([{ name: 'シマネコの気分', value: 'うれしい' }]);
+    });
+
     test('practice runs only while the real mesh is not connected', () => {
         expect(practiceAllowed(null)).toBe(true);
         expect(practiceAllowed('disconnected')).toBe(true);

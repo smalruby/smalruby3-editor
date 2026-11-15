@@ -216,6 +216,24 @@ describe('attachGoalMonitor', () => {
         expect(onSatisfied).toHaveBeenCalledTimes(1);
     });
 
+    test('said: a line said inside a block remembers the script that said it (said.trigger, #1643)', () => {
+        const onSatisfied = jest.fn();
+        const goal = [{ type: 'said', text: 'やあ', trigger: { hat: 'event_whenthisspriteclicked' } }];
+        // 「言う」は見張りのすぐあとに、同じブロックの中で SAY を出す
+        runtime._primitives.looks_say = (args, util) => runtime.emit('SAY', util.target, 'say', args.MESSAGE);
+        attachGoalMonitor(vm, goal, onSatisfied);
+        exec(runtime, hatThread(cat, 'spaceHat'), 'looks_say', { MESSAGE: 'やあ' });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+        // ほかのスプライトの SAY（ブロックの外から出たもの）は、最後に動いたスクリプトのものにしない
+        runtime.emit('SAY', stage, 'say', 'やあ');
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+        exec(runtime, hatThread(cat, 'clickHat'), 'looks_say', { MESSAGE: 'やあ' });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).toHaveBeenCalledTimes(1);
+    });
+
     test('result goals re-evaluate when the project changes (costumes, sprites, extensions)', () => {
         const onSatisfied = jest.fn();
         const goal = [

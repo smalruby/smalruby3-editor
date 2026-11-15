@@ -122,6 +122,9 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
     const baselineCostumes = takeCostumeCounts(runtime);
     let dirty = true;
     let detached = false;
+    // 最後にブロックを動かした run。「言う」「聞いて待つ」は、見張りが呼ばれたすぐあとに同じブロックの中で
+    // 'SAY' を出すので、言ったスクリプトはこの run（said の trigger 用）
+    let lastRun = null;
 
     const runFor = (thread) => {
         let run = runs.get(thread);
@@ -136,7 +139,9 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
         const thread = util && util.thread;
         // モニター（ステージの表示）のスレッドはプログラムではない
         if (!thread || thread.updateMonitor) return;
-        recordExecution(facts, runFor(thread), opcode, copyArgs(args));
+        const run = runFor(thread);
+        recordExecution(facts, run, opcode, copyArgs(args));
+        lastRun = run;
         dirty = true;
     };
 
@@ -146,6 +151,8 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
             isStage: Boolean(target && target.isStage),
             text,
             variables: readScalarVariables(runtime, target),
+            // ちがうスプライトの run なら、言ったスクリプトは分からない（ブロックの外から出た 'SAY'）
+            run: lastRun && target && lastRun.targetId === target.id ? lastRun : null,
         });
         dirty = true;
     };

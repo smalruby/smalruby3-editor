@@ -1157,12 +1157,12 @@ describe('chat course lesson 1 "手順を図にしよう" (#1641)', () => {
         expect(COURSES[1]).toBe(course);
         expect(course.language).toBe(LANGUAGES.BLOCKS);
         expect(ja[course.name.id]).toBe('チャットをつくろう');
-        expect(course.lessons.map((l) => l.id)).toEqual(['chat-l1', 'chat-l2']);
+        expect(course.lessons.map((l) => l.id)).toEqual(['chat-l1', 'chat-l2', 'chat-l3']);
         const lesson = findLesson('chat-l1');
         expect(ja[lesson.name.id]).toBe('手順を図にしよう');
         expect(lesson.allowDnclMode).toBe(false);
         expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(CHAT_L1.map((id, i) => `${i + 1} ${id}`));
-        expect(courseSize(course)).toEqual({ lessonCount: 2, challengeCount: 7 });
+        expect(courseSize(course)).toEqual({ lessonCount: 3, challengeCount: 10 });
     });
 
     test('every challenge starts with Shimaraby instead of the cat, shows the diagram and has a quiz', () => {
@@ -1370,6 +1370,120 @@ describe('chat course lesson 2 "データとイベント" (#1642)', () => {
         // 「あいこ」と「勝負あり」は取りちがえない（en の "No tie" は "Tie" の条件に入らない）
         expect(tie.text.test('No tie')).toBe(false);
         expect(tie.variable.name).toEqual(['手', 'て', 'hand']);
+    });
+});
+
+// コース「チャットをつくろう」のレッスン 3「メッシュでつながろう」（#1643）
+describe('chat course lesson 3 "メッシュでつながろう" (#1643)', () => {
+    const CHAT_L3 = ['chat-l3-local-message', 'chat-l3-mesh-signal', 'chat-l3-mesh-variable'];
+    const challenge = (id) => findChallenge(id).challenge;
+
+    test('the lesson 3 has the 3 challenges in order', () => {
+        const lesson = findLesson('chat-l3');
+        expect(findCourse('chat-wo-tsukurou').lessons[2]).toBe(lesson);
+        expect(ja[lesson.name.id]).toBe('メッシュでつながろう');
+        expect(en[lesson.name.id]).toBe('Connect with Mesh');
+        expect(lesson.allowDnclMode).toBe(false);
+        expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(CHAT_L3.map((id, i) => `${i + 1} ${id}`));
+    });
+
+    test('3-1 starts with Shimaraby only, 3-2 with both, 3-3 also loads the mesh', () => {
+        expect(challenge('chat-l3-local-message').setup).toEqual({ sprites: ['Shimaraby'] });
+        // 3-2 は拡張機能「メッシュ」を生徒が足す
+        expect(challenge('chat-l3-mesh-signal').setup).toEqual({ sprites: ['Shimaraby', 'Shimacat'] });
+        expect(challenge('chat-l3-mesh-variable').setup).toEqual({
+            sprites: ['Shimaraby', 'Shimacat'],
+            extensions: ['meshV2'],
+        });
+        CHAT_L3.map(challenge).forEach((c) => {
+            expect({ id: c.id, diagram: c.activityDiagram }).toEqual({ id: c.id, diagram: true });
+            expect({ id: c.id, errors: validateQuiz(c.quiz) }).toEqual({ id: c.id, errors: [] });
+            expect({ id: c.id, errors: validateGoal(c.goal) }).toEqual({ id: c.id, errors: [] });
+            expect(c.spriteCodes.map((s) => s.sprite)).toEqual(['Shimacat']);
+            expect(isReadDiagram(c)).toBe(false);
+        });
+        expect(challenge('chat-l3-local-message').partner).toBeNull();
+        // クイズの正解は教科書の用語
+        expect(CHAT_L3.map((id) => ja[challenge(id).quiz.choices[challenge(id).quiz.answer].id])).toEqual([
+            '「送ったよ」という知らせだけ',
+            'プロトコル',
+            'IP アドレス',
+        ]);
+    });
+
+    test('the palettes are the spec', () => {
+        expect(allowedOpcodes(challenge('chat-l3-local-message'))).toEqual({
+            event: ['event_whenflagclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
+            sensing: ['sensing_askandwait', 'sensing_answer'],
+            data: ['data_setvariableto', 'data_variable'],
+            looks: ['looks_sayforsecs'],
+        });
+        expect(allowedOpcodes(challenge('chat-l3-mesh-signal'))).toEqual({
+            event: ['event_whenkeypressed', 'event_broadcast', 'event_whenbroadcastreceived'],
+            looks: ['looks_sayforsecs'],
+        });
+        expect(allowedOpcodes(challenge('chat-l3-mesh-variable'))).toEqual({
+            event: ['event_whenkeypressed', 'event_whenthisspriteclicked'],
+            data: ['data_setvariableto', 'data_variable'],
+            looks: ['looks_sayforsecs'],
+            meshV2: ['meshV2_getSensorValue'],
+        });
+    });
+
+    test('the practice partners: 3-2 waves, 3-3 sets its mood and watches the mood of Shimaraby', () => {
+        expect(challenge('chat-l3-mesh-signal').partner).toEqual({
+            name: { ja: 'シマネコ', 'ja-Hira': 'シマネコ', en: 'Shimacat' },
+            buttons: [
+                {
+                    label: { ja: '手をふる', 'ja-Hira': 'てをふる', en: 'wave' },
+                    broadcast: { ja: '手をふる', 'ja-Hira': 'てをふる', en: 'wave' },
+                },
+            ],
+            replies: [],
+        });
+        const partner = challenge('chat-l3-mesh-variable').partner;
+        expect(partner.buttons.map((b) => [b.label.ja, b.set.variable.ja, b.set.value.ja])).toEqual([
+            ['うれしい', 'シマネコの気分', 'うれしい'],
+            ['ねむい', 'シマネコの気分', 'ねむい'],
+        ]);
+        expect(partner.watch).toEqual([
+            { ja: 'シマラビの気分', 'ja-Hira': 'シマラビのきぶん', en: 'shimaraby_mood' },
+        ]);
+    });
+
+    test('the ja-Hira strings and code of lesson 3 have no kanji', () => {
+        Object.keys(jaHira)
+            .filter((id) => /^gui\.lessons\.(lesson\.chat-l3|challenge\.chat-l3-)/.test(id))
+            .forEach((id) =>
+                expect({ id, text: jaHira[id] }).not.toEqual({ id, text: expect.stringMatching(/\p{Script=Han}/u) }),
+            );
+        CHAT_L3.forEach((id) => {
+            const c = challenge(id);
+            expect(localizeCode(c.code, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u);
+            c.spriteCodes.forEach((s) => expect(localizeCode(s.code, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u));
+            c.steps.forEach((step) =>
+                expect(localizeCode(step.blocks, 'ja-Hira') || '').not.toMatch(/\p{Script=Han}/u),
+            );
+        });
+    });
+
+    test.each(['ja', 'ja-Hira', 'en'])('the code (%s) uses the names the task of that locale writes', (locale) => {
+        const names = {
+            ja: { wave: '手をふる', mood: 'シマラビの気分', partnerMood: 'シマネコの気分' },
+            'ja-Hira': { wave: 'てをふる', mood: 'シマラビのきぶん', partnerMood: 'シマネコのきぶん' },
+            en: { wave: 'wave', mood: 'shimaraby_mood', partnerMood: 'shimacat_mood' },
+        }[locale];
+        const messages = LOCALES[locale];
+        const signal = challenge('chat-l3-mesh-signal');
+        expect(localizeCode(signal.code, locale)).toContain(`broadcast("${names.wave}")`);
+        expect(messages[signal.task.id]).toContain(names.wave);
+        const variable = challenge('chat-l3-mesh-variable');
+        expect(localizeCode(variable.code, locale)).toContain(`$${names.mood} = `);
+        expect(localizeCode(variable.spriteCodes[0].code, locale)).toContain(
+            `mesh.sensor_value("${names.partnerMood}")`,
+        );
+        expect(messages[variable.task.id]).toContain(names.mood);
+        expect(messages[variable.task.id]).toContain(names.partnerMood);
     });
 });
 
