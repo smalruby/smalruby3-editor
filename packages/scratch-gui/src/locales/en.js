@@ -356,6 +356,15 @@ export default {
     'gui.classroom.board.currentCounts': 'Joined {joined} of {capacity} · Submitted {submitted}',
     'gui.classroom.board.currentCountsLesson': 'Joined {joined} of {capacity} · Cleared {cleared}',
     'gui.classroom.board.currentFullscreen': 'Show on the full screen',
+    'gui.classroom.projection.open': 'Project',
+    'gui.classroom.projection.title': 'Screen for the projector',
+    'gui.classroom.projection.close': 'Close',
+    'gui.classroom.projection.hint': 'Choose "Class" in the menu and type this code',
+    'gui.classroom.projection.joined': 'Joined {joined} / {capacity}',
+    'gui.classroom.projection.submitted': 'Submitted {count}',
+    'gui.classroom.projection.cleared': 'Cleared {count}',
+    'gui.classroom.projection.lessonLoading': 'Loading…',
+    'gui.classroom.projection.lessonError': "Couldn't load the lesson progress",
     'gui.classroom.board.retentionTitle': 'Retention',
     'gui.classroom.board.retentionItem': '"{name}" is deleted on {date}',
     'gui.classroom.board.retentionNone': 'No assignment is deleted within 7 days.',
@@ -659,7 +668,6 @@ export default {
     'gui.classroom.teacherDetail.retentionBanner':
         'This assignment and its submissions will be deleted automatically on {date}. ' +
         'Download them to keep a copy.',
-    'gui.classroom.codeDisplay.title': 'Join Code',
     'gui.classroom.codeDisplay.copyLink': 'Copy invite link',
     'gui.classroom.codeDisplay.copied': 'Copied',
     'gui.classroom.teacherDetail.selectMember': 'Click a seat number to view student details',

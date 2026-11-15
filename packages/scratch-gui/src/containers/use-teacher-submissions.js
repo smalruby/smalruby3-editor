@@ -57,7 +57,6 @@ const csvChallengeColumns = (contexts, anyLesson, intl) =>
  * @param {Array} params.members - current members list
  * @param {Function} params.handleTeacher401 - 401 handler from auth hook
  * @param {Function} params.loadClassroomDetail - reload detail after return
- * @param {string} params.mode - 'student' | 'teacher'
  * @param {Function} params.clearError - clear error helper
  * @param {Function} params.showError - error display helper
  * @param {object} params.intl - react-intl intl object
@@ -72,7 +71,6 @@ const useTeacherSubmissions = ({
     members,
     handleTeacher401,
     loadClassroomDetail,
-    mode,
     clearError,
     showError,
     intl,
@@ -80,8 +78,6 @@ const useTeacherSubmissions = ({
     vm,
     dispatch,
 }) => {
-    const [codeDisplayClassroom, setCodeDisplayClassroom] = useState(null);
-    const [codeDisplayFullscreen, setCodeDisplayFullscreen] = useState(false);
     const [downloadProgress, setDownloadProgress] = useState(null);
 
     // --- Open student submission ---
@@ -107,24 +103,6 @@ const useTeacherSubmissions = ({
         },
         [vm, dispatch, clearError, showError, intl, setIsLoading],
     );
-
-    // --- Code display ---
-
-    const handleShowCodeDisplay = useCallback(() => {
-        if (selectedClassroom) {
-            setCodeDisplayClassroom(selectedClassroom);
-            setCodeDisplayFullscreen(mode === 'teacher');
-        }
-    }, [selectedClassroom, mode]);
-
-    const handleCloseCodeDisplay = useCallback(() => {
-        setCodeDisplayClassroom(null);
-        setCodeDisplayFullscreen(false);
-    }, []);
-
-    const handleToggleCodeFullscreen = useCallback(() => {
-        setCodeDisplayFullscreen((prev) => !prev);
-    }, []);
 
     // --- Invite link ---
 
@@ -409,26 +387,14 @@ const useTeacherSubmissions = ({
         [idToken, clearError, showError, handleTeacher401, intl],
     );
 
-    /** Reset display state (used by back-to-dashboard). */
-    const resetSubmissionDisplay = useCallback(() => {
-        setCodeDisplayClassroom(null);
-        setCodeDisplayFullscreen(false);
-    }, []);
-
     return {
-        codeDisplayClassroom,
-        codeDisplayFullscreen,
         downloadProgress,
         handleOpenSubmission,
-        handleShowCodeDisplay,
-        handleCloseCodeDisplay,
-        handleToggleCodeFullscreen,
         handleCopyInviteLink,
         handleReturnSubmission,
         handleSetHiddenFromPeers,
         handleDownloadAll,
         handleDownloadClassAll,
-        resetSubmissionDisplay,
     };
 };
 

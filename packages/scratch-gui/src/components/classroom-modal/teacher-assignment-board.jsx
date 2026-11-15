@@ -21,7 +21,6 @@ import { buildAssignmentSections } from '../../lib/classroom-group-utils.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
 import { buildStreamEvents, retentionSummary } from '../../lib/classroom-stream.js';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
-import ClassCodeDisplay from './class-code-display.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
@@ -796,8 +795,8 @@ StreamItem.propTypes = {
 /**
  * The「いまの課題」card of the stream (#1960・Q8): the assignment of today's lesson, or of
  * the nearest lesson date (`currentAssignmentFor`). Its join code is large, so the teacher
- * can read it out or put it on the screen with［⛶ 全画面で映す］(the existing full-screen
- * display). Joined / submitted come from the same summary as the opened row.
+ * can read it out or put it on the projector with［⛶ 全画面で映す］(the assignment's［⛶ 映す］
+ * screen: join code, seats and counts). Joined / submitted come from the same summary as the opened row.
  * @param {object} props - component props
  * @param {?{classroom: object, date: string}} props.current - the current assignment
  * @param {Function} props.onOpen - (classroomId) => void, opens the assignment
@@ -1037,7 +1036,6 @@ const TeacherAssignmentBoard = ({
     isLoading,
     onCreateAssignmentInClass,
     onDownloadClassAll,
-    onCopyInviteLink,
     onLoadAssignmentSummary,
     onRestoreClassroom,
     onReuseAssignment,
@@ -1268,9 +1266,12 @@ const TeacherAssignmentBoard = ({
         if (current) ensureSummary(current.classroom);
         // Only when the current assignment changes, not on every render.
     }, [currentId, ensureSummary]);
-    // ［⛶ 全画面で映す］shows the existing full-screen join code over everything.
-    const [fullscreenClassroom, setFullscreenClassroom] = useState(null);
-    const handleCloseFullscreen = useCallback(() => setFullscreenClassroom(null), []);
+    // ［⛶ 全画面で映す］opens the assignment on its［⛶ 映す］screen (join code + seats + counts,
+    // #1961): the same screen as the assignment detail's, not a join-code-only one.
+    const handleProjectCurrent = useCallback(
+        (classroom) => onSelectClassroom(classroom.classroomId, { project: true }),
+        [onSelectClassroom],
+    );
     const [scrollTargetId, setScrollTargetId] = useState(null);
     const handleOpenStreamEvent = useCallback(
         (event) => {
@@ -1589,7 +1590,7 @@ const TeacherAssignmentBoard = ({
                                 current={current}
                                 summary={current ? summaries[current.classroom.classroomId] : null}
                                 onOpen={onSelectClassroom}
-                                onShowFullscreen={onCopyInviteLink ? setFullscreenClassroom : null}
+                                onShowFullscreen={handleProjectCurrent}
                             />
                             <RetentionCard retention={retention} onOpen={handleOpenRetentionEntry} />
                         </div>
@@ -1614,15 +1615,6 @@ const TeacherAssignmentBoard = ({
                         </div>
                     </div>
                 </div>
-            ) : null}
-            {fullscreenClassroom && onCopyInviteLink ? (
-                <ClassCodeDisplay
-                    isFullscreen
-                    classroom={fullscreenClassroom}
-                    onClose={handleCloseFullscreen}
-                    onCopyInviteLink={onCopyInviteLink}
-                    onToggleFullscreen={handleCloseFullscreen}
-                />
             ) : null}
             {showTopicDialog ? (
                 <TopicAddDialog isLoading={isLoading} onAdd={handleAddTopic} onCancel={handleCloseTopicDialog} />
@@ -1945,8 +1937,6 @@ TeacherAssignmentBoard.propTypes = {
     isLoading: PropTypes.bool,
     onCreateAssignmentInClass: PropTypes.func.isRequired,
     onDownloadClassAll: PropTypes.func,
-    /** 全画面の参加コードの［招待リンクをコピー］。渡さなければ［⛶ 全画面で映す］を出さない。 */
-    onCopyInviteLink: PropTypes.func,
     onLoadAssignmentSummary: PropTypes.func,
     onRestoreClassroom: PropTypes.func,
     onReuseAssignment: PropTypes.func.isRequired,

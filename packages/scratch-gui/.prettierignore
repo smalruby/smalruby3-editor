@@ -618,6 +618,7 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-assignment.test.js
 !test/unit/containers/use-teacher-assignment-lesson-description.test.js
 !test/unit/containers/use-teacher-classrooms-rename.test.js
+!test/unit/containers/use-teacher-classrooms-project.test.js
 !test/unit/containers/use-teacher-classrooms-lesson-progress.test.js
 !test/unit/containers/use-student-submit.test.js
 !test/unit/containers/connection-modal-connected-message.test.jsx

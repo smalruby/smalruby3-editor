@@ -781,7 +781,6 @@ describe('TeacherAssignmentBoard — the stream cards (#1960・Q8)', () => {
         const props = defaultProps();
         renderStream({
             onLoadAssignmentSummary,
-            onCopyInviteLink: jest.fn(),
             classrooms: [
                 classroom({ classroomId: 'past', assignmentName: '前の課題', joinCode: 'zzz999', sortDate: localNoon(-1) }),
                 classroom({ classroomId: 'today', assignmentName: 'ねこを動かそう', joinCode: 'ABC234', sortDate: localNoon(0) }),
@@ -800,20 +799,19 @@ describe('TeacherAssignmentBoard — the stream cards (#1960・Q8)', () => {
         expect(props.onSelectClassroom).toHaveBeenCalledWith('today');
     });
 
-    test('［⛶ 全画面で映す］ shows the full-screen join code, and ✕ closes it', async () => {
+    test('［⛶ 全画面で映す］ opens the assignment on its［⛶ 映す］screen (#1961)', async () => {
+        const props = defaultProps();
         renderStream({
-            onCopyInviteLink: jest.fn(),
             onLoadAssignmentSummary: jest.fn().mockResolvedValue(summary),
             classrooms: [classroom({ sortDate: localNoon(0) })],
+            onSelectClassroom: props.onSelectClassroom,
         });
         await waitFor(() => expect(byTestId('classroom-board-current-counts-c1').textContent).toContain('24'));
         fireEvent.click(byTestId('classroom-board-current-fullscreen'));
-        expect(byTestId('classroom-code-display-close')).toBeInTheDocument();
-        fireEvent.click(byTestId('classroom-code-display-close'));
-        expect(byTestId('classroom-code-display-close')).not.toBeInTheDocument();
+        expect(props.onSelectClassroom).toHaveBeenCalledWith('c1', { project: true });
     });
 
-    test('a class without assignments says so; without onCopyInviteLink there is no full-screen button', () => {
+    test('a class without assignments says so (no full-screen button)', () => {
         renderStream({ classrooms: [] });
         expect(byTestId('classroom-board-current-empty')).toBeInTheDocument();
         expect(byTestId('classroom-board-current-fullscreen')).not.toBeInTheDocument();

@@ -9,7 +9,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
-import ClassCodeDisplay from '../classroom-modal/class-code-display.jsx';
 import TeacherAssignmentBoard from '../classroom-modal/teacher-assignment-board.jsx';
 import TeacherBreadcrumbs, {
     BreadcrumbSlotContext,
@@ -74,8 +73,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         errorActionHandler,
         isLoading,
         selectedMember,
-        codeDisplayClassroom,
-        codeDisplayFullscreen,
         downloadProgress,
         googleCourses,
         googleCourseAccess,
@@ -100,10 +97,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onSetHiddenFromPeers,
         onDownloadAll,
         onDownloadClassAll,
-        onShowCodeDisplay,
-        onCloseCodeDisplay,
         onCopyInviteLink,
-        onToggleCodeFullscreen,
         onShowPostAssignment,
         onBackToDetail,
         onPostAssignment,
@@ -157,6 +151,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onReuseAssignment,
         onDetailTabChange,
         detailEntry,
+        onProjectEntryUsed,
         onBackFromGroupManage,
         onCreateGroup,
         onUpdateGroup,
@@ -278,19 +273,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     }, []);
 
     const renderMain = () => {
-        // Fullscreen code display overlay
-        if (codeDisplayFullscreen && codeDisplayClassroom) {
-            return (
-                <ClassCodeDisplay
-                    classroom={codeDisplayClassroom}
-                    isFullscreen
-                    onClose={onCloseCodeDisplay}
-                    onCopyInviteLink={onCopyInviteLink}
-                    onToggleFullscreen={onToggleCodeFullscreen}
-                />
-            );
-        }
-
         if (phase === 'teacher-login') {
             return (
                 <TeacherLoginPhase
@@ -448,8 +430,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             onUseCurrentProject: onAssignmentUseCurrentProject,
                             onUseFile: onAssignmentUseFile,
                         }}
-                        codeDisplayClassroom={codeDisplayClassroom}
-                        codeDisplayFullscreen={false}
                         downloadProgress={downloadProgress}
                         error={error}
                         errorActionHandler={errorActionHandler}
@@ -466,11 +446,12 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         selectedClassroom={selectedClassroom}
                         selectedMember={selectedMember}
                         onApproveKickRequest={onApproveKickRequest}
-                        onCloseCodeDisplay={onCloseCodeDisplay}
                         onCopyInviteLink={onCopyInviteLink}
                         onDeleteClassroom={onDeleteClassroom}
                         onDeleteMember={onDeleteMember}
                         detailEntry={detailEntry}
+                        onBackToBoard={onBackToDashboard}
+                        onProjectEntryUsed={onProjectEntryUsed}
                         onDetailTabChange={onDetailTabChange}
                         onDownloadAll={onDownloadAll}
                         onOpenSubmission={onOpenSubmission}
@@ -479,12 +460,10 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onReturnSubmission={onReturnSubmission}
                         onSetHiddenFromPeers={onSetHiddenFromPeers}
                         onSelectMember={onSelectMember}
-                        onShowCodeDisplay={onShowCodeDisplay}
                         shared={shared}
                         onOpenShareSuggestion={handleOpenShareSuggestion}
                         onShowPostAssignment={authProvider === 'google' ? onShowPostAssignment : null}
                         onVerifyGoogleCourseAccess={authProvider === 'google' ? onVerifyGoogleCourseAccess : null}
-                        onToggleCodeFullscreen={onToggleCodeFullscreen}
                         onUpdateAssignmentName={onUpdateAssignmentName}
                     />
                 </div>
@@ -562,7 +541,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         initialTab={boardTab.groupId === selectedGroup.groupId ? boardTab.tab : 'stream'}
                         isLoading={isLoading}
                         shared={shared}
-                        onCopyInviteLink={onCopyInviteLink}
                         onCreateAssignmentInClass={onCreateAssignmentInClass}
                         onDownloadClassAll={onDownloadClassAll}
                         onLoadAssignmentSummary={onLoadAssignmentSummary}

@@ -338,15 +338,6 @@
     outline: 2px solid transparent;
 }
 
-.join-code-display {
-    background-color: #f2f2f2;
-    border: 2px dashed #d9d9d9;
-    border-radius: 8px;
-    padding: 0.3rem;
-    text-align: center;
-    margin: 0.3rem 0;
-}
-
 /* 課題名（左）と参加コード（右）を均等幅 2 カラムに分ける。両カラムは
    stretch で高さが揃うので、課題名入力の高さは参加コードカードに一致する。
    幅が足りず参加コードカードが 340px を割り込むと、行が折り返して参加コード
@@ -1657,24 +1648,14 @@ $seat-tile-min: 36px;
     outline: 2px solid transparent;
 }
 
-.return-button {
-    background-color: #ff8c1a;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 0.4rem 0.8rem;
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: bold;
+/* The seat detail (#1961):［返却］is the main button (full width under the comment),
+   ［スモウルビーで開く］a secondary one at the left. */
+.member-detail-open-button {
+    align-self: flex-start;
 }
 
-.return-button:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
-.return-button:hover:not(:disabled) {
-    background-color: #e67e16;
+.member-detail-return-button {
+    margin-top: 0.25rem;
 }
 
 .refresh-button {
@@ -1812,137 +1793,178 @@ $seat-tile-min: 36px;
     margin-bottom: 0.5rem;
 }
 
-.expand-icon-button {
-    background: none;
-    border: 1px solid #d9d9d9;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    padding: 0.1rem 0.3rem;
-    color: #575e75;
+/* The［⛶ 映す］screen (#1956 Q9・Q13): the join code, the seats and the counts
+   for the projector. Over the whole page; everything is sized from the
+   viewport so it fits 1300x600 and 1920x1080 alike, and the text uses the
+   projection sizes (read from the back of the classroom). */
+.projection {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: min(1.5vh, 1rem);
+    padding: min(3vh, 2rem) min(3vw, 3rem);
+    background-color: $color-surface;
+    color: $color-text;
+}
+
+.projection-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.projection-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: min($font-size-projection-heading, 4vh);
+    font-weight: $font-weight-bold;
+}
+
+.projection-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-shrink: 0;
+}
+
+.projection-code-block {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.projection-label,
+.projection-hint {
+    font-size: $font-size-projection-body;
+    color: $color-text-muted;
+}
+
+/* The code is the largest thing: min() keeps it inside a narrow / low screen. */
+.projection-code {
+    font-family: monospace;
+    font-size: min($font-size-projection-code, 15vw, 20vh);
+    font-weight: $font-weight-bold;
+    line-height: 1;
+    letter-spacing: 0.15em;
+    color: $color-action;
+    user-select: text;
+}
+
+.projection-counts {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.projection-count {
+    padding: 0.4rem 1.25rem;
+    border-radius: $radius-medium;
+    font-size: max($font-size-projection-body, min(4.5vh, 2.5rem));
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
+}
+
+.projection-count-joined {
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+}
+
+.projection-count-done {
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
+}
+
+.projection-legend {
+    flex-shrink: 0;
+    gap: 0.25rem 1.5rem;
+    font-size: $font-size-projection-body;
+}
+
+.projection-legend .seat-swatch {
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 1rem;
+}
+
+/* 10 columns; the rows (set inline from the number of seats) share the height left. */
+.projection-seats {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: min(1vh, 0.5rem);
+}
+
+.projection-seat {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25em;
+    min-width: 0;
+    min-height: 0;
+    box-sizing: border-box;
+    border-radius: $radius-medium;
+    font-size: max($font-size-projection-body, min(5vh, 3rem));
+    font-weight: $font-weight-bold;
     line-height: 1;
 }
 
-.expand-icon-button:hover {
-    background-color: #f2f2f2;
+.projection-seat-mark {
+    font-size: 0.75em;
 }
 
-/* Class code display */
-
-.code-display {
-    text-align: center;
-    padding: 1rem;
+.projection-seat-empty {
+    background-color: $color-seat-empty;
+    color: $color-seat-empty-text;
+    border: 3px dashed $color-seat-empty-border;
 }
 
-.code-display-title {
-    font-size: 0.9rem;
-    color: #575e75;
-    text-align: left;
-    margin-bottom: 1rem;
+.projection-seat-joined {
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
 }
 
-.code-display-code {
-    font-size: 3rem;
-    font-weight: bold;
-    font-family: monospace;
-    letter-spacing: 0.3em;
-    color: #333;
-    user-select: text;
-    cursor: text;
-    padding: 2rem 0;
+.projection-seat-submitted {
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
 }
 
-.code-display-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 0.5rem;
-    border-top: 1px solid #e0e0e0;
+.projection-seat-returned {
+    background-color: $color-seat-returned;
+    color: $color-seat-returned-text;
 }
 
-.code-display-info {
-    display: flex;
-    gap: 0.5rem;
-    font-size: 0.8rem;
-    color: #999;
+/* A lesson seat before its progress is read: grey, no colour meaning yet. */
+.projection-seat-loading {
+    background-color: $color-seat-not-started;
+    color: $color-text-muted;
 }
 
-.code-display-actions {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
+.projection-notice {
+    color: $color-text-muted;
 }
 
-.copy-link-button {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    background: none;
-    border: none;
-    color: $color-action;
-    cursor: pointer;
-    font-size: 0.8rem;
-    padding: 0.3rem 0.5rem;
+/* Shown instead of the seats when the lesson progress could not be read. */
+.projection-error {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: $font-size-projection-body;
+    color: $color-text-muted;
 }
 
-.copy-link-button:hover {
-    text-decoration: underline;
-}
-
-/* Fullscreen overlay */
-
-.code-fullscreen-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #e8eaf0;
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 2rem;
-}
-
-.code-fullscreen-title {
-    position: absolute;
-    top: 1rem;
-    left: 1.5rem;
-    font-size: 0.9rem;
-    color: #575e75;
-}
-
-.code-fullscreen-close {
-    position: absolute;
-    top: 1rem;
-    right: 1.5rem;
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #575e75;
-}
-
-.code-fullscreen-code {
-    font-size: min(15vw, 10rem);
-    font-weight: bold;
-    font-family: monospace;
-    letter-spacing: 0.2em;
-    color: #333;
-    user-select: text;
-    cursor: text;
-}
-
-.code-fullscreen-footer {
-    position: absolute;
-    bottom: 1rem;
-    left: 1.5rem;
-    right: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.projection-seat-not-started {
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
 }
 
 /* Two-pane layout for class detail */
@@ -4727,11 +4749,9 @@ $seat-tile-min: 36px;
     gap: 0.5rem;
 }
 
+/* The right end of the assignment detail's tab row:［⛶ 映す］, the download progress and ⋮. */
 .detail-tabs-more {
-    display: inline-flex;
-    align-items: center;
     gap: 0.4rem;
-    margin-left: auto;
 }
 
 .detail-download-progress {
@@ -5484,15 +5504,29 @@ $seat-tile-min: 36px;
     }
 }
 
+/* Narrow tiles (58px and below — the 1300x600 tiles are 58px square now that the
+   detail has no class-name heading, #1961):「★ あと 1」is wider than the room left
+   of the submission badge on the bottom line, so use the short form there too. */
+@container (max-width: 64px) {
+    .lesson-seat-required {
+        align-self: flex-start;
+        padding-left: 3px;
+    }
+
+    .lesson-seat-required-full {
+        display: none;
+    }
+
+    .lesson-seat-required-short {
+        display: inline;
+    }
+}
+
 /* Rows of the progress table: as low as the 16px cells allow (#1767 M1). */
 .lesson-progress-table tbody td,
 .lesson-progress-table tbody th {
     padding-top: 0;
     padding-bottom: 0;
-}
-
-.compact-header-title {
-    margin-bottom: 0.3rem;
 }
 
 .compact-code-row {

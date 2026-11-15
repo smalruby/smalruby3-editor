@@ -64,18 +64,18 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-detail-name` | div | 課題が属するクラス（学級）名 |
 | `classroom-detail-assignment-name` | input[type=text] | 課題名（1 行・blur / Enter で保存） |
 | `classroom-detail-assignment-name-save-hint` | div | 課題名の欄の下の「Enter か欄の外をクリックで保存」（欄にカーソルがある間だけ） |
 | `classroom-detail-assignment-name-saved` | span | 課題名の欄の横の「✓ 保存しました」（`role="status"`・保存後 2 秒ほど） |
 | `classroom-detail-assignment-name-save-error` | span | 課題名の欄の横の赤い「保存できませんでした」（`role="alert"`・保存に失敗したとき） |
 | `classroom-detail-expires-at` | div | 保存期限（ふだんは灰色。残り 7 日以内は `classroom-retention-banner` を含む） |
-| `classroom-detail-more-menu` | button | タブの行の右端の⋮（一覧は `classroom-detail-more-menu-list`） |
+| `classroom-detail-project` | button | タブの行の右の［⛶ 映す］（tablist の外）。`classroom-projection` を開く |
+| `classroom-detail-more-menu` | button | タブの行の右端の⋮（tablist の外。一覧は `classroom-detail-more-menu-list`） |
 | `classroom-download-progress` | span | ⋮の左の全作品ダウンロードの進み具合（`n/m`・ダウンロード中のみ） |
 | `classroom-tab-members` | button | 「メンバー」タブ（凡例 + 人数 + 更新 + 座席グリッド） |
 | `classroom-view-assignment` | a | 「課題を確認」（配信済みのとき・新しいタブ。生徒のステータス画面にもある） |
 | `classroom-detail-join-code` | div | 参加コード |
-| `classroom-detail-expand-code` | button | コード拡大表示（⛶ + 「全画面」） |
+| `classroom-detail-expand-code` | button | 参加コードの横の［⛶ 全画面］。［⛶ 映す］と同じ `classroom-projection` を開く |
 | `classroom-members-grid` | div | 座席グリッド |
 | `classroom-seat-color-legend` | div | 座席の色の凡例（空席・参加済み・提出済み ✓・返却済み ↩。状態アイコンの凡例より前） |
 | `classroom-seat-color-legend-{kind}` | span | 凡例の 1 項目（`kind` = `empty` / `joined` / `submitted` / `returned`） |
@@ -134,8 +134,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-member-detail-image-index` | span | 画像インデックス |
 | `classroom-member-detail-prev` | button | 前の画像 |
 | `classroom-member-detail-next` | button | 次の画像 |
-| `classroom-member-detail-open` | button | Smalruby で開く |
-| `classroom-member-detail-return` | button | 返却 |
+| `classroom-member-detail-open` | button | スモウルビーで開く（副ボタン） |
+| `classroom-member-detail-return` | button | 返却（選んだ席の詳細の主ボタン） |
 | `classroom-member-detail-comment-label` | label | コメント欄の上のラベル「生徒へのコメント（返却で届きます）」 |
 | `classroom-member-detail-comment` | textarea | コメント入力 |
 | `classroom-member-detail-hide-from-peers` | input (checkbox) | 他の生徒に見せない（提出があるときだけ・切り替えで即保存・Issue #1208） |
@@ -150,14 +150,25 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-member-lesson-detail-list` | ul | チャレンジの一覧の枠（この枠の中だけスクロール） |
 | `classroom-member-lesson-detail-{challengeId}` | li | チャレンジ 1 行（`data-kind` = `done` / `before` / `current` / `stuck` / `todo`） |
 
-### コード表示
+### ［⛶ 映す］画面（先生）
+
+プロジェクターに映す全画面（`document.body` へのポータル）。生徒の名前は出さない。
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-code-display-copy-link` | button | 招待リンクをコピー |
-| `classroom-code-display-expand` | button | 全画面表示（⛶ + 「全画面」） |
-| `classroom-code-display-shrink` | button | 全画面解除 |
-| `classroom-code-display-close` | button | コード表示を閉じる |
+| `classroom-projection` | div[role=dialog] | 映す画面の全体。Esc でも閉じる |
+| `classroom-projection-title` | span | 「クラス名 › 課題名」 |
+| `classroom-projection-close` | button | ［閉じる］（開いたときにフォーカスがある） |
+| `classroom-projection-code` | span | 参加コード（大きく） |
+| `classroom-projection-counts` | div | 数の札のまとまり |
+| `classroom-projection-joined` | span | 「参加 N / N」 |
+| `classroom-projection-submitted` | span | 「提出 N」（ふつうの課題・作品を出すレッスン） |
+| `classroom-projection-cleared` | span | 「クリア N」（レッスンの課題） |
+| `classroom-projection-legend` | div | 座席の色の凡例（各項目 `classroom-projection-legend-{kind}`） |
+| `classroom-projection-seats` | div | 座席（10 列） |
+| `classroom-projection-seat-{n}` | span | 1 席（出席番号だけ。`data-seat-color` = `empty` / `joined` / `submitted` / `returned` / `notStarted` / `inProgress` / `cleared` / `loading`（レッスンの進み具合をまだ読み込んでいない）） |
+| `classroom-projection-lesson-loading` | span | レッスンの進み具合を読み込み中の「読み込み中…」（凡例の横） |
+| `classroom-projection-lesson-error` | p | レッスンの進み具合を読み込めなかったときの短い表示（座席の代わり） |
 
 ### 生徒: 共通の部品（進む順の帯・主ボタン・小さなリンク）
 
@@ -455,7 +466,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-current-name` | button | いまの課題の名前（押すと課題詳細へ） |
 | `classroom-board-current-date` | span | いまの課題の「授業日」（ラベル付き） |
 | `classroom-board-current-code` | span | いまの課題の参加コード（大きく） |
-| `classroom-board-current-fullscreen` | button | ［⛶ 全画面で映す］（ストリームの主ボタン。参加コードの全画面表示 = `classroom-code-display-close` で閉じる） |
+| `classroom-board-current-fullscreen` | button | ［⛶ 全画面で映す］（ストリームの主ボタン。いまの課題を開き、その［⛶ 映す］画面 `classroom-projection` を出す。閉じるとストリームに戻る） |
 | `classroom-board-current-counts-{classroomId}` | span | いまの課題の「参加 N / N・提出 N」（レッスンの課題は「クリア N」）。読み込み中は「読み込み中…」、失敗は「-」 |
 | `classroom-board-current-empty` | p | 課題が無いクラスのいまの課題カードの案内 |
 | `classroom-board-retention-card` | section | ストリームの左の「保存期限」カード。`data-urgent="true"` は 7 日以内に消える課題があるとき（赤） |
