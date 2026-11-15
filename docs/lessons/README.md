@@ -296,14 +296,14 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
 
 中学 2 年の授業のコース（方針は [`design.md` の「中 2 のコース「チャットをつくろう」」](design.md#中-2-のコースチャットをつくろう)）。
 コース id は `chat-wo-tsukurou`、文言は `chat.locale.js`（ja / ja-Hira / en。`lessons.locale.js` に spread する）。
-いまはレッスン 1 だけが入っている（レッスン 2〜5 は順に足す）。
+いまはレッスン 1・2 が入っている（レッスン 3〜5 は順に足す）。
 
 - **始め方**: どのチャレンジも、新しい作品のネコを**シマラビ**（ライブラリの Shimaraby）に置きかえて始める
   （`setup.sprites: ['Shimaraby']`）。「プログラムを入れる」の `code` もシマラビに入る。メッシュは使わない。
 - **アクティビティ図**: 全チャレンジ `activityDiagram: true`。課題の全文に入らない大きい図は、ヒントの 1 ページ目で見る。
 - **変数**: 「すべてのスプライト用」（Ruby の `$`）。名前は ja / ja-Hira が「シマラビのメッセージ」（カタカナなので
   ja-Hira も同じ。画面のキャラクターの名前もカタカナ）、en が `shimaraby_message`。判定はどの名前でも通す。
-- **クイズ**: 用語は教科書（順次処理・反復処理・分岐処理）にそろえる。文は自分の言葉で書く。
+- **クイズ**: 用語は教科書（順次処理・反復処理・分岐処理・変数など）にそろえる。文は自分の言葉で書く。教科書に無いもの（乱数）は教科書の用語を使わない。
 - 「聞いて待つ」の質問は「メッセージを入力」（ja-Hira「メッセージを にゅうりょく」、en "Enter a message"）。
 
 レッスン 1「手順を図にしよう」（`chat-l1`。ja-Hira「てじゅんを ずに しよう」、en "Draw the Steps"）:
@@ -337,6 +337,37 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
 ![チャットをつくろう 1-4 読んで作るのヒントの 3 ページ目（答え・1300×600）](screenshots/0705-chat-l1-read-diagram-answer-1300x600.png)
 
 ![レッスン表の「チャットをつくろう」（1300×600）](screenshots/0706-chat-lessons-library-1300x600.png)
+
+レッスン 2「データとイベント」（`chat-l2`。ja-Hira も「データとイベント」、en "Data and Events"）:
+
+| # | id | 課題 | 答え（ja） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `chat-l2-omikuji` | シマラビを押したら 1〜3 の乱数を変数「くじ」に入れ、1 なら「大吉」、それ以外は「小吉」と 2 秒言う | `$くじ = rand(1..3)` → `if $くじ == 1` 〔`say("大吉", 2)`〕 `else` 〔`say("小吉", 2)`〕 | 押したときのスクリプトで `operator_random`（1 から 3）・`data_setvariableto`・`control_if_else` が動いた ＋ 「くじ」が 1 のときに「大吉」、1 でないときに「小吉」を言った（`said` の `variable`） | ①3 回に 1 回 |
+| 2 | `chat-l2-timer` | 旗でタイマーをリセットし、タイマーが 10 より大きくなるまで待ってから「10秒たったよ」と言う | `timer.reset` → `wait until timer.value > 10` → `say("10秒たったよ")` | 旗のスクリプトで `sensing_resettimer` → `control_wait_until` → `looks_say` の順に動き、`sensing_timer` と、右が 10 以上の `operator_gt` が動いた ＋ 「10秒たったよ」（ja-Hira「10びょう たったよ」、en "10 seconds passed"）を言った | ①使う時間を自分で制御できなくなる |
+| 3 | `chat-l2-janken` | 「0:グー 1:チョキ 2:パー」と聞き、0〜2 の乱数を変数「手」に入れ、答えと同じなら「あいこ」、ちがえば「勝負あり」と 2 秒言う | `ask` → `$手 = rand(0..2)` → `if answer == $手` 〔`say("あいこ", 2)`〕 `else` 〔`say("勝負あり", 2)`〕 | 押したときのスクリプトで `operator_random`（0 から 2）・`sensing_askandwait`・`data_setvariableto`・`control_if_else` が動いた ＋ 「手」と答えが同じときに「あいこ」、ちがうときに「勝負あり」を言った（`said` の `variable.equalsAnswer`） | ②値を入れておき、あとで比べるのに使う |
+
+- **変数の名前**: 「くじ」は ja / ja-Hira とも「くじ」、en が `fortune`。「手」は ja が「手」、ja-Hira が「て」、en が `hand`。
+  言うことは ja-Hira が「だいきち」「しょうきち」「しょうぶあり」、en が "Great luck" / "Small luck" / "Tie" / "No tie"。
+- **1・3 の判定**は「分岐で言い分けたこと」を、言った時点の変数の値で見る。分岐を使わずに両方を言うプログラムは通らない。
+  くじを見ずに別の乱数で分けるプログラム、答えを決まった数と比べるプログラムは、乱数の出方しだいで何回か試すうちに通ることがある
+  （判定は動いた結果を見るので、そこまでは見分けない）。`challenge-goals-per-locale.test.js` の「通ってはいけない例」は、
+  乱数を決めた場合に、これらが通らないことを確かめる。
+- **2 のタイマー**は、授業で試せるように 10 秒にする。課題の全文に「本当に使いすぎを知らせるなら 600 秒（10 分）」と書く。
+  判定は「>」の右が 10 以上（600 にしても通る）。左の値（タイマー）は実行ごとに変わり、記録する引数の種類に上限がある
+  （`goal.js` の `MAX_ARGS_SEEN`）ので条件にしない。右は数に限る（「10秒」のような文字だと Scratch は文字として比べ、2 秒ほどで
+  成り立つ）。同じスクリプトの「言う」は待つが終わってから動くので、`order` で「待ったあとに言った」ことになる。ただし `order` は
+  それぞれのブロックが**最初に動いた順だけ**を見る（あとで動いた分は見ない）。`> 1` のように早く終わる条件では通らない。
+- **クイズ**: 1 の乱数は教科書に無いので教科書の用語は使わない。2 は教科書の「使う時間を自分で制御できなくなる」（使いすぎへの
+  対策）、3 は変数のはたらき。
+- ヒントの図の読み方は、分岐のひし形と、枝の [条件] / [それ以外] に合わせて書く（例: 「図の枝の [くじ = 1] が『もし』の条件」）。
+
+![チャットをつくろう 2-1 の課題の全文と図（1300×600）](screenshots/0707-chat-l2-omikuji-full-text-1300x600.png)
+
+![チャットをつくろう 2-2 のヒントの 1 ページ目（1300×600）](screenshots/0708-chat-l2-timer-hint1-1300x600.png)
+
+![チャットをつくろう 2-3 のヒントの 4 ページ目（1300×600）](screenshots/0709-chat-l2-janken-hint4-1300x600.png)
+
+![チャットをつくろう 2-2 の「できた！」のクイズ（1300×600）](screenshots/0710-chat-l2-timer-quiz-1300x600.png)
 
 ## 記録の形（端末）
 
@@ -392,7 +423,7 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
 | `type` | 見るもの | 項目 |
 |--------|---------|------|
 | `uses` | 決めたきっかけ（`trigger`）から始まったスクリプトで、決めたブロックが動いた | `trigger`（省略可）, `blocks`（必須）, `order` |
-| `said` | 言った（考えた）文字 | `text`, `equalsAnswer`, `equalsVariable`, `answer`, `target` |
+| `said` | 言った（考えた）文字 | `text`, `equalsAnswer`, `equalsVariable`, `answer`, `variable`, `target` |
 | `variable` | 変数の値（ステージの変数を先に探す） | `name`, `value` |
 | `list` | リストの中身 | `name`, `length`, `itemsFromAnswers` |
 | `sprites` | スプライトの数（クローンを除く） | `min` |
@@ -426,10 +457,13 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
 
 **`said` の項目**: `text`（matcher）、`equalsAnswer: true`（最後に「聞いて待つ」で入力した答えと同じ文字を言った）、
 `equalsVariable: '<変数名>'`（言った時点のその変数の値と同じ。名前の配列ならどれか 1 つ）、`answer`（言った時点の最後の答えの条件。
-例: `{eq: 7}` / `{ne: 7}`。まだ答えていなければ合わない）、`target`（`'stage'` / `'sprite'`）。
+例: `{eq: 7}` / `{ne: 7}`。まだ答えていなければ合わない）、`variable: {name, value, equalsAnswer}`（言った時点の変数の値の条件。
+`value` は matcher、`equalsAnswer: true` は変数が最後の答えと同じ・`false` はちがう（まだ答えていなければ合わない）。`value` か
+`equalsAnswer` のどちらかは要る。
+例: `{name: ['くじ', 'fortune'], value: 1}` =「くじが 1 のときに言った」。分岐で言い分けたことを見るのに使う）、`target`（`'stage'` / `'sprite'`）。
 吹き出しを消す（空の文字）は記録しない。
 
-**変数・リストの名前**（`variable` / `list` の `name`、`said` の `equalsVariable`）は、文字列か名前の配列
+**変数・リストの名前**（`variable` / `list` の `name`、`said` の `equalsVariable` と `variable.name`）は、文字列か名前の配列
 （見つかった変数のどれか 1 つが合えばよい）。ja-Hira のヒントは変数名をひらがなで書き（「かいすう」）、en は英語で
 書く（`count`）ので、`['回数', 'かいすう', 'count']` のように全部を書く。言う文字も同じで、ja-Hira の課題がひらがなで書く文字は
 RegExp で両方を許す（例: `/^(正解です|せいかいです|correct)$/i`。en の `code` が言う文字も許す）。

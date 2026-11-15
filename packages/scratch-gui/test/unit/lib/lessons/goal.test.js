@@ -347,6 +347,57 @@ describe('said', () => {
         expect(satisfied([{ type: 'said', equalsVariable: '回数' }], facts)).toBe(true);
     });
 
+    // 言った時点の変数の値（「くじが 1 のとき大吉」）と、変数と答えが同じか（「同じならあいこ」）を見る（#1642）
+    test('variable checks the variable value at the time it was said', () => {
+        const facts = createFacts();
+        const big = [{ type: 'said', text: '大吉', variable: { name: ['くじ', 'fortune'], value: 1 } }];
+        recordSay(facts, { targetId: 'cat', text: '大吉', variables: { くじ: 2 } });
+        expect(satisfied(big, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: '小吉', variables: { くじ: 1 } });
+        expect(satisfied(big, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: '大吉', variables: { fortune: 1 } });
+        expect(satisfied(big, facts)).toBe(true);
+        // 変数が無ければ合わない
+        expect(satisfied([{ type: 'said', text: '大吉', variable: { name: 'ない', value: 1 } }], facts)).toBe(false);
+    });
+
+    test('variable.equalsAnswer compares the variable with the last answer (true: same, false: different)', () => {
+        const same = [{ type: 'said', text: 'あいこ', variable: { name: '手', equalsAnswer: true } }];
+        const differ = [{ type: 'said', text: '勝負あり', variable: { name: '手', equalsAnswer: false } }];
+        const facts = createFacts();
+        // まだ答えていなければどちらも合わない
+        recordSay(facts, { targetId: 'cat', text: 'あいこ', variables: { 手: 0 } });
+        recordSay(facts, { targetId: 'cat', text: '勝負あり', variables: { 手: 0 } });
+        expect(satisfied(same, facts)).toBe(false);
+        expect(satisfied(differ, facts)).toBe(false);
+        recordAnswer(facts, '1');
+        recordSay(facts, { targetId: 'cat', text: 'あいこ', variables: { 手: 0 } });
+        recordSay(facts, { targetId: 'cat', text: '勝負あり', variables: { 手: 1 } });
+        expect(satisfied(same, facts)).toBe(false);
+        expect(satisfied(differ, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: 'あいこ', variables: { 手: 1 } });
+        recordSay(facts, { targetId: 'cat', text: '勝負あり', variables: { 手: 2 } });
+        expect(satisfied(same, facts)).toBe(true);
+        expect(satisfied(differ, facts)).toBe(true);
+    });
+
+    test('validateGoal checks said.variable', () => {
+        expect(validateGoal([{ type: 'said', variable: { name: ['くじ', 'fortune'], value: { ne: 1 } } }])).toEqual(
+            [],
+        );
+        expect(validateGoal([{ type: 'said', variable: { name: '手', equalsAnswer: false } }])).toEqual([]);
+        expect(validateGoal([{ type: 'said', variable: { name: '手' } }])).toEqual([
+            'goal[0]: said.variable needs value or equalsAnswer',
+        ]);
+        expect(validateGoal([{ type: 'said', variable: { value: 1 } }])).toEqual([
+            'goal[0]: said.variable needs a variable name or an array of names',
+        ]);
+        expect(validateGoal([{ type: 'said', variable: { name: '手', value: [1], equalsAnswer: 'yes' } }])).toEqual([
+            'goal[0]: said.variable.value must be a matcher',
+            'goal[0]: said.variable.equalsAnswer must be true or false',
+        ]);
+    });
+
     test('target restricts who said it', () => {
         const facts = createFacts();
         recordSay(facts, { targetId: 'stage', isStage: true, text: 'hi' });
@@ -522,7 +573,7 @@ describe('validateGoal', () => {
             'goal[1]: uses.blocks must be a non-empty array',
             'goal[2].blocks[0]: opcode is required',
             "goal[2]: trigger.target must be 'stage' or 'sprite'",
-            'goal[3]: said needs text, equalsAnswer, equalsVariable or answer',
+            'goal[3]: said needs text, equalsAnswer, equalsVariable, answer or variable',
             'goal[4]: variable.name is required',
             'goal[5]: sprites.min must be a positive integer',
             'goal[6]: costumes.added must be a positive integer',

@@ -1089,6 +1089,251 @@ const chatLesson1 = defineLesson({
     ],
 });
 
+// レッスン 2「データとイベント」（#1642）: 変数・乱数・タイマーと「〜したとき」で、働きかけ（入力）に応答（出力）する。
+// 変数の名前は locale ごと（ja-Hira は漢字を使わない・en は英語）。判定はどの locale の名前でも通す
+const CHAT_L2_WORDS = {
+    ja: {
+        kuji: '$くじ',
+        great: '大吉',
+        small: '小吉',
+        timeUp: '10秒たったよ',
+        janken: '0:グー 1:チョキ 2:パー',
+        te: '$手',
+        tie: 'あいこ',
+        noTie: '勝負あり',
+    },
+    'ja-Hira': {
+        kuji: '$くじ',
+        great: 'だいきち',
+        small: 'しょうきち',
+        timeUp: '10びょう たったよ',
+        janken: '0:グー 1:チョキ 2:パー',
+        te: '$て',
+        tie: 'あいこ',
+        noTie: 'しょうぶあり',
+    },
+    en: {
+        kuji: '$fortune',
+        great: 'Great luck',
+        small: 'Small luck',
+        timeUp: '10 seconds passed',
+        janken: '0:rock 1:scissors 2:paper',
+        te: '$hand',
+        tie: 'Tie',
+        noTie: 'No tie',
+    },
+};
+const chatL2Code = (make) =>
+    Object.fromEntries(Object.entries(CHAT_L2_WORDS).map(([locale, words]) => [locale, make(words)]));
+// locale ごとの文字（パレットの初期値）
+const chatL2Text = (key) =>
+    Object.fromEntries(Object.entries(CHAT_L2_WORDS).map(([locale, words]) => [locale, words[key]]));
+const CHAT_KUJI_VARIABLE = ['くじ', 'fortune'];
+const CHAT_TE_VARIABLE = ['手', 'て', 'hand'];
+// タイマーで知らせる秒数。本当に使いすぎを知らせるなら 600 秒（10 分）だが、授業で試せるように 10 秒にする
+const CHAT_TIMER_SECS = 10;
+
+const chatLesson2 = defineLesson({
+    id: 'chat-l2',
+    challenges: [
+        // 1 おみくじを作ろう（乱数）: 押したら 1〜3 の乱数を「くじ」に入れて、1 なら大吉、それ以外は小吉
+        {
+            id: 'chat-l2-omikuji',
+            card: { category: CATEGORIES.OPERATORS, main: CATEGORIES.OPERATORS },
+            task: challengeMessage('chat-l2-omikuji', 'task'),
+            setup: CHAT_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenthisspriteclicked'],
+                data: ['data_setvariableto', 'data_variable'],
+                operators: [
+                    { opcode: 'operator_random', inputs: { FROM: 1, TO: 3 } },
+                    { opcode: 'operator_equals', inputs: { OPERAND2: 1 } },
+                ],
+                control: ['control_if_else'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: { MESSAGE: chatL2Text('great') } }],
+            },
+            steps: withTitles('chat-l2-omikuji', [
+                { target: HINT_TARGETS.PALETTE, blocks: 'when_clicked do\nend\n' },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL2Code((w) => `when_clicked do\n  ${w.kuji} = rand(1..3)\nend\n`),
+                },
+                // 「もし〜なら でなければ」と、その中の「言う」2 つ（条件の穴はまだ空）
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL2Code(
+                        (w) =>
+                            `${w.kuji} = rand(1..3)\nif false\n  say("${w.great}", 2)\nelse\n` +
+                            `  say("${w.small}", 2)\nend\n`,
+                    ),
+                },
+                { target: HINT_TARGETS.CODE_AREA, blocks: chatL2Code((w) => `${w.kuji} == 1\n`) },
+                { target: HINT_TARGETS.STAGE },
+            ]),
+            debug: debugTips('chat-l2-omikuji', 1),
+            // 乱数を「くじ」に入れて、分岐で言い分けた: 大吉は「くじ」が 1 のとき、小吉は 1 でないときに言った
+            // （分岐を使わずに両方を言うプログラムは通らない。くじを見ずに別の乱数で分けるプログラムは、乱数の出方しだいで
+            // 何回か押すうちに通ることがある。判定は動いた結果を見るので、そこまでは見分けない）
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    blocks: [
+                        { opcode: 'operator_random', args: { FROM: 1, TO: 3 } },
+                        'data_setvariableto',
+                        'control_if_else',
+                    ],
+                },
+                {
+                    type: 'said',
+                    text: /^(大吉|だいきち|great)/i,
+                    variable: { name: CHAT_KUJI_VARIABLE, value: 1 },
+                },
+                {
+                    type: 'said',
+                    text: /^(小吉|しょうきち|small)/i,
+                    variable: { name: CHAT_KUJI_VARIABLE, value: { ne: 1 } },
+                },
+            ],
+            quiz: challengeQuiz('chat-l2-omikuji', 0),
+            code: chatL2Code(
+                (w) =>
+                    `when_clicked do\n  ${w.kuji} = rand(1..3)\n  if ${w.kuji} == 1\n    say("${w.great}", 2)\n` +
+                    `  else\n    say("${w.small}", 2)\n  end\nend\n`,
+            ),
+        },
+        // 2 タイマーで知らせよう: 旗でタイマーをリセットし、10 秒より大きくなるまで待ってから知らせる
+        // （使いすぎを知らせる機能のもと。課題の全文に、本当なら 600 秒と書く）
+        {
+            id: 'chat-l2-timer',
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.SENSING },
+            task: challengeMessage('chat-l2-timer', 'task'),
+            setup: CHAT_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                sensing: ['sensing_resettimer', 'sensing_timer'],
+                control: ['control_wait_until'],
+                operators: [{ opcode: 'operator_gt', inputs: { OPERAND2: CHAT_TIMER_SECS } }],
+                looks: [{ opcode: 'looks_say', inputs: { MESSAGE: chatL2Text('timeUp') } }],
+            },
+            steps: withTitles('chat-l2-timer', [
+                { target: HINT_TARGETS.PALETTE, blocks: 'when_flag_clicked do\n  timer.reset\nend\n' },
+                { target: HINT_TARGETS.PALETTE, blocks: 'timer.reset\nwait until false\n' },
+                { target: HINT_TARGETS.CODE_AREA, blocks: `wait until timer.value > ${CHAT_TIMER_SECS}\n` },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL2Code((w) => `wait until timer.value > ${CHAT_TIMER_SECS}\nsay("${w.timeUp}")\n`),
+                },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('chat-l2-timer', 1),
+            // リセット → 待つ → 言う の順に動き、待つの条件が「(タイマー) > 10」（本当の 600 でもよい）だった。
+            // 同じスレッドの「言う」は待つが終わってから動くので、order で「待ったあとに言った」ことになる
+            // （order は、それぞれのブロックが最初に動いた順だけを見る）。「> 0」「> 1」のように早く終わる条件、
+            // 待つ前に言うプログラムは通らない。右は数に限る（「10秒」のような文字だと Scratch は文字として比べ、
+            // 2 秒ほどで成り立ってしまう）。左の値（タイマー）は毎回ちがい、記録する引数の種類に上限があるので
+            // （goal.js の MAX_ARGS_SEEN）条件にしない
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        'sensing_resettimer',
+                        'control_wait_until',
+                        'sensing_timer',
+                        {
+                            opcode: 'operator_gt',
+                            args: { OPERAND2: { gte: CHAT_TIMER_SECS, matches: /^\s*\d+(\.\d+)?\s*$/ } },
+                        },
+                    ],
+                    order: ['sensing_resettimer', 'control_wait_until', 'looks_say'],
+                },
+                { type: 'said', text: /^(10秒たったよ|10びょう たったよ|10 seconds)/i },
+            ],
+            quiz: challengeQuiz('chat-l2-timer', 0),
+            code: chatL2Code(
+                (w) =>
+                    `when_flag_clicked do\n  timer.reset\n  wait until timer.value > ${CHAT_TIMER_SECS}\n` +
+                    `  say("${w.timeUp}")\nend\n`,
+            ),
+        },
+        // 3 じゃんけんであいこを見つけよう: 手を聞き、コンピューターの手を 0〜2 の乱数で「手」に入れて、
+        // 答えと同じなら「あいこ」、ちがえば「勝負あり」
+        {
+            id: 'chat-l2-janken',
+            card: { category: CATEGORIES.VARIABLES, main: CATEGORIES.VARIABLES },
+            task: challengeMessage('chat-l2-janken', 'task'),
+            setup: CHAT_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenthisspriteclicked'],
+                sensing: [
+                    { opcode: 'sensing_askandwait', inputs: { QUESTION: chatL2Text('janken') } },
+                    'sensing_answer',
+                ],
+                data: ['data_setvariableto', 'data_variable'],
+                operators: [{ opcode: 'operator_random', inputs: { FROM: 0, TO: 2 } }, 'operator_equals'],
+                control: ['control_if_else'],
+                looks: [{ opcode: 'looks_sayforsecs', inputs: { MESSAGE: chatL2Text('tie') } }],
+            },
+            steps: withTitles('chat-l2-janken', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL2Code((w) => `when_clicked do\n  ask("${w.janken}")\nend\n`),
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL2Code((w) => `ask("${w.janken}")\n${w.te} = rand(0..2)\n`),
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL2Code(
+                        (w) =>
+                            `${w.te} = rand(0..2)\nif false\n  say("${w.tie}", 2)\nelse\n` +
+                            `  say("${w.noTie}", 2)\nend\n`,
+                    ),
+                },
+                { target: HINT_TARGETS.CODE_AREA, blocks: chatL2Code((w) => `answer == ${w.te}\n`) },
+                { target: HINT_TARGETS.STAGE },
+            ]),
+            debug: debugTips('chat-l2-janken', 1),
+            // 乱数を「手」に入れて、答えと比べて言い分けた: あいこは「手」と答えが同じとき、勝負ありはちがうときに
+            // 言った（分岐を使わずに両方を言うプログラムは通らない。答えを決まった数と比べるプログラムは、乱数の出方しだいで
+            // 何回か試すうちに通ることがある。判定は動いた結果を見るので、そこまでは見分けない）
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenthisspriteclicked' },
+                    blocks: [
+                        { opcode: 'operator_random', args: { FROM: 0, TO: 2 } },
+                        'sensing_askandwait',
+                        'data_setvariableto',
+                        'control_if_else',
+                    ],
+                },
+                {
+                    type: 'said',
+                    text: /^(あいこ|tie)/i,
+                    variable: { name: CHAT_TE_VARIABLE, equalsAnswer: true },
+                },
+                {
+                    type: 'said',
+                    text: /^(勝負あり|しょうぶあり|no tie)/i,
+                    variable: { name: CHAT_TE_VARIABLE, equalsAnswer: false },
+                },
+            ],
+            quiz: challengeQuiz('chat-l2-janken', 1),
+            code: chatL2Code(
+                (w) =>
+                    `when_clicked do\n  ask("${w.janken}")\n  ${w.te} = rand(0..2)\n  if answer == ${w.te}\n` +
+                    `    say("${w.tie}", 2)\n  else\n    say("${w.noTie}", 2)\n  end\nend\n`,
+            ),
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
@@ -1098,7 +1343,7 @@ export const COURSES = [
     defineCourse({
         id: 'chat-wo-tsukurou',
         language: LANGUAGES.BLOCKS,
-        lessons: [chatLesson1],
+        lessons: [chatLesson1, chatLesson2],
     }),
 ];
 
