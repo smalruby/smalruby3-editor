@@ -7,6 +7,11 @@ import { SEAT_STATES } from '../../lib/classroom-lesson-progress.js';
 import { barWidths } from '../../lib/classroom-lesson-summary.js';
 import ClassroomStatusIcon, { ClassroomStatusIcons } from '../classroom-modal/classroom-status-icon.jsx';
 import { lessonSeatMessages } from '../classroom-modal/lesson-seat-tile.jsx';
+import SeatColorLegend, {
+    LESSON_SEAT_COLOR_ITEMS,
+    PANEL_SEAT_COLOR_ITEMS,
+    seatColorKind,
+} from '../classroom-modal/seat-color-legend.jsx';
 import styles from './classroom-teacher-panel.css';
 
 const messages = defineMessages({
@@ -81,6 +86,14 @@ const messages = defineMessages({
         id: 'gui.classroomTeacherPanel.selectAssignment',
     },
 });
+
+// ふつうの課題の座席の色（#1926）: メンバータブ・生徒の番号選びと同じ意味
+const SEAT_COLOR_CLASSES = {
+    empty: 'seatEmpty',
+    joined: 'seatJoined',
+    submitted: 'seatSubmitted',
+    returned: 'seatReturned',
+};
 
 const LESSON_SEAT_CLASSES = {
     [SEAT_STATES.NOT_JOINED]: 'seatEmpty',
@@ -433,14 +446,22 @@ const ClassroomTeacherPanel = ({
                                     <div className={styles.grid} data-testid="classroom-teacher-panel-grid">
                                         {seats.map((seat, i) => {
                                             const tile = lesson ? lesson.tiles[i] : null;
+                                            const seatColor = tile
+                                                ? null
+                                                : seatColorKind(seat.presence !== 'notJoined', seat.submission);
                                             return (
                                                 <button
-                                                    className={classNames(styles.seat, {
-                                                        [styles.seatEmpty]: !tile && seat.presence === 'notJoined',
-                                                        [styles[tile ? LESSON_SEAT_CLASSES[tile.state] : '']]: !!tile,
-                                                        [styles.seatKick]: seat.kickRequested,
-                                                    })}
+                                                    className={classNames(
+                                                        styles.seat,
+                                                        styles[
+                                                            tile
+                                                                ? LESSON_SEAT_CLASSES[tile.state]
+                                                                : SEAT_COLOR_CLASSES[seatColor]
+                                                        ],
+                                                        { [styles.seatKick]: seat.kickRequested },
+                                                    )}
                                                     data-lesson-state={tile ? tile.state : null}
+                                                    data-seat-color={seatColor}
                                                     data-member-id={seat.memberId}
                                                     data-testid={`classroom-teacher-panel-seat-${seat.seatNumber}`}
                                                     key={seat.memberId}
@@ -462,7 +483,11 @@ const ClassroomTeacherPanel = ({
                                                             {'!'}
                                                         </span>
                                                     ) : null}
-                                                    <span className={styles.seatNumber}>{seat.seatNumber}</span>
+                                                    <span className={styles.seatNumber}>
+                                                        {seat.seatNumber}
+                                                        {/* クリアの緑は提出済みと同じ色なので ★ を添える (#1926) */}
+                                                        {tile && tile.state === SEAT_STATES.CLEARED ? '★' : null}
+                                                    </span>
                                                     <ClassroomStatusIcons
                                                         kickRequested={seat.kickRequested}
                                                         presence={seat.presence}
@@ -475,27 +500,25 @@ const ClassroomTeacherPanel = ({
                                             );
                                         })}
                                     </div>
+                                    {/* 座席の色の凡例（R5・#1926）: 座席のすぐ下に、メンバータブと同じ色と印で */}
                                     {lesson ? (
-                                        <div
-                                            className={styles.legend}
-                                            data-testid="classroom-teacher-panel-seat-legend"
+                                        <SeatColorLegend
+                                            small
+                                            items={LESSON_SEAT_COLOR_ITEMS}
+                                            testId="classroom-teacher-panel-seat-legend"
                                         >
-                                            {[
-                                                ['lessonSeatNotStarted', lessonSeatMessages.notStarted],
-                                                ['lessonSeatInProgress', lessonSeatMessages.inProgress],
-                                                ['lessonSeatCleared', lessonSeatMessages.cleared],
-                                            ].map(([cls, msg]) => (
-                                                <span className={styles.legendItem} key={cls}>
-                                                    <span className={classNames(styles.legendSwatch, styles[cls])} />
-                                                    {intl.formatMessage(msg)}
-                                                </span>
-                                            ))}
                                             <span className={styles.legendItem}>
                                                 <span className={styles.legendStuck}>{'!'}</span>
                                                 {intl.formatMessage(messages.lessonStuckLegend)}
                                             </span>
-                                        </div>
-                                    ) : null}
+                                        </SeatColorLegend>
+                                    ) : (
+                                        <SeatColorLegend
+                                            small
+                                            items={PANEL_SEAT_COLOR_ITEMS}
+                                            testId="classroom-teacher-panel-seat-color-legend"
+                                        />
+                                    )}
                                     {lesson ? <PanelLessonBars lesson={lesson} /> : null}
                                     {kickRequests.length > 0 ? (
                                         <div

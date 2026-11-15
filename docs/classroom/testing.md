@@ -77,7 +77,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-detail-join-code` | div | 参加コード |
 | `classroom-detail-expand-code` | button | コード拡大表示 |
 | `classroom-members-grid` | div | 座席グリッド |
-| `classroom-seat-color-legend` | div | 座席の色の凡例（灰色＝参加済み・青＝まだ参加していない。状態アイコンの凡例より前） |
+| `classroom-seat-color-legend` | div | 座席の色の凡例（空席・参加済み・提出済み ✓・返却済み ↩。状態アイコンの凡例より前） |
+| `classroom-seat-color-legend-{kind}` | span | 凡例の 1 項目（`kind` = `empty` / `joined` / `submitted` / `returned`） |
 | `classroom-status-legend` | div | 状態アイコンの凡例（各項目 `classroom-status-legend-{status}`） |
 | `classroom-status-icons` | span | 1 セル内の着席系 + 提出系アイコンのまとまり |
 | `classroom-status-icon-{status}` | span[role=img] | 状態アイコン（`data-status` と `aria-label` を持つ。status は `seated` / `notSeated` / `notJoined` / `submitted` / `notSubmitted` / `returned` / `kickRequested` / `occupied`） |
@@ -92,8 +93,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-tab-progress` | button | 「進み具合」タブ（レッスンを紐付けた課題だけ） |
-| `classroom-member-{memberId}` | button | 座席（レッスンの課題では `data-lesson-state` = `notJoined` / `notStarted` / `inProgress` / `cleared`） |
-| `classroom-lesson-seat-legend` | div | 座席の色の凡例（まだ・とちゅう・課題クリア・未参加・「!」）。レッスンの課題では `classroom-seat-color-legend` の代わりに出る |
+| `classroom-member-{memberId}` | button | 座席。`data-seat-color` = `empty` / `joined` / `submitted` / `returned`（レッスンの課題では代わりに `data-lesson-state` = `notJoined` / `notStarted` / `inProgress` / `cleared`） |
+| `classroom-lesson-seat-legend` | div | 座席の色の凡例（未参加・まだ・とちゅう・課題クリア ★・「!」）。レッスンの課題では `classroom-seat-color-legend` の代わりに出る |
+| `classroom-lesson-seat-legend-{kind}` | span | 凡例の 1 項目（`kind` = `empty` / `notStarted` / `inProgress` / `cleared`） |
+| `classroom-lesson-seat-cleared-{n}` | span | 課題クリアした席の ★ |
 | `classroom-lesson-cleared-summary` | span | 「クリア N / 参加 N」 |
 | `classroom-lesson-seat-count-{seat}` | span[role=img] | タイルの「できた数 / 条件の数」（できた数は条件の数で止める） |
 | `classroom-lesson-seat-required-{seat}` | span | タイルの「★ あと n」（必須が残っているときだけ） |
@@ -634,12 +637,13 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-teacher-panel-seated` | span | 着席（目安） N / 定員 |
 | `classroom-teacher-panel-submitted` | span | 提出 N / 参加数 |
 | `classroom-teacher-panel-grid` | div | 座席ミニグリッド |
-| `classroom-teacher-panel-seat-<N>` | button | 座席 N（`data-member-id`。押すとメンバー詳細へ。レッスンの課題は `data-lesson-state`） |
+| `classroom-teacher-panel-seat-<N>` | button | 座席 N（`data-member-id`。押すとメンバー詳細へ。色は `data-seat-color`、レッスンの課題は `data-lesson-state`） |
 | `classroom-teacher-panel-seat-stuck-<N>` | span | 座席 N の「!」（同じチャレンジに 10 分以上・レッスンの課題だけ） |
 | `classroom-teacher-panel-lesson-summary` | div | レッスンの課題の 2 行目の数（#1603） |
 | `classroom-teacher-panel-lesson-cleared` | span | 課題クリア N / 参加 N |
 | `classroom-teacher-panel-lesson-stuck` | span | 止まっている N |
-| `classroom-teacher-panel-seat-legend` | div | 座席の色の凡例（まだ・とちゅう・課題クリア・!） |
+| `classroom-teacher-panel-seat-legend` | div | レッスンの課題の座席の色の凡例（未参加・まだ・とちゅう・課題クリア ★・!）。項目は `classroom-teacher-panel-seat-legend-{kind}` |
+| `classroom-teacher-panel-seat-color-legend` | div | ふつうの課題の座席の色の凡例（未参加・参加済み・提出済み ✓・返却済み ↩）。座席のすぐ下。項目は `classroom-teacher-panel-seat-color-legend-{kind}` |
 | `classroom-teacher-panel-lesson-bars` | div | チャレンジごとの横棒 |
 | `classroom-teacher-panel-bar-legend` | div | 横棒の凡例（できた・いまやっている） |
 | `classroom-teacher-panel-bar-{challengeId}` | div | チャレンジ 1 本の横棒（`title` に人数） |

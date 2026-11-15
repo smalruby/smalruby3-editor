@@ -967,9 +967,10 @@
 }
 
 .seat-button {
-    background-color: #4c97ff;
-    color: white;
-    border: none;
+    /* 空いている席: 白地に点線の枠（#1926）。先生のメンバータブと同じ意味 */
+    background-color: $color-seat-empty;
+    color: $color-seat-empty-text;
+    border: 2px dashed $color-seat-empty-border;
     border-radius: 4px;
     padding: 0.5rem;
     font-size: 0.9rem;
@@ -983,7 +984,7 @@
 }
 
 .seat-button:hover {
-    background-color: #3d89f0;
+    border-style: solid;
 }
 
 /* Occupied seats must still look pressable: pressing one asks the teacher
@@ -993,13 +994,14 @@
     flex-direction: column;
     gap: 1px;
     padding: 0.25rem 0.2rem;
-    background-color: white;
-    color: #575e75;
-    border: 2px dashed #8c94a8;
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+    /* 枠は透明にして大きさをそろえる（光るときだけ色が付く） */
+    border: 2px solid transparent;
 }
 
 .seat-taken:hover {
-    background-color: #f2f4f8;
+    background-color: $ui-tertiary;
 }
 
 .seat-taken:disabled {
@@ -1292,19 +1294,75 @@
     gap: 0 0.9rem;
 }
 
-/* 座席の色の意味（#1303 D2・R5）。色見本は座席と同じクラスを使う。 */
+/* 座席の色の意味（R5・#1926）。色見本は座席と同じ色と印（✓ / ↩ / ★）。 */
 .seat-color-legend {
     display: flex;
-    gap: 0.7rem;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.7rem;
     font-size: 0.75rem;
-    color: #575e75;
+    color: $color-text;
 }
 
-.seat-color-swatch {
-    display: inline-block;
-    width: 0.8rem;
-    height: 0.8rem;
+.seat-swatch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 0.95rem;
+    height: 0.95rem;
     border-radius: 0.15rem;
+    font-size: 0.6rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* 状況のパネルの小さな凡例（パネルの文字の大きさ） */
+.seat-color-legend-small {
+    gap: 0.1rem 0.5rem;
+    font-size: $font-size-xsmall;
+    /* whole pixels: the status panel is placed by its measured height (keeps it inside 600px) */
+    line-height: 0.75rem;
+    color: $color-text-muted;
+}
+
+.seat-color-legend-small .status-legend-item {
+    gap: 0.2rem;
+}
+
+/* 状況のパネルの小さな凡例: 座席の枠と同じ 1px */
+.seat-swatch-small {
+    width: 0.75rem;
+    height: 0.75rem;
+    font-size: 0.45rem;
+}
+
+.seat-swatch-empty {
+    background-color: $color-seat-empty;
+    border: 2px dashed $color-seat-empty-border;
+}
+
+.seat-swatch-small.seat-swatch-empty {
+    border-width: 1px;
+}
+
+.seat-swatch-joined {
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+}
+
+.seat-swatch-submitted {
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
+}
+
+.seat-swatch-returned {
+    background-color: $color-seat-returned;
+    color: $color-seat-returned-text;
+}
+
+.seat-swatch-not-started {
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
 }
 
 .members-legend {
@@ -1349,28 +1407,28 @@
     position: relative;
 }
 
-/* Seat colors: align with the student-side seat selector so the same visual
- * mapping holds across roles — blue means "available", grey means "occupied
- * but no submission yet". Submitted / returned keep their own colors since
- * they're teacher-only states the student never sees. */
+/* 座席の色（#1926・案 A）: 生徒の番号選びと同じ意味。空いている席は白地に点線の枠、
+ * 人が来た席は色が付き、進むほど濃くなる（参加済み → 提出済み）。返却済みは淡いオレンジ。
+ * 先生はプロジェクターでこの画面を映して参加を促すので、生徒の画面と同じ見え方にする。 */
 .member-cell-joined {
-    background-color: #d9d9d9;
-    color: #555;
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
 }
 
 .member-cell-submitted {
-    background-color: #0fbd8c;
-    color: white;
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
 }
 
 .member-cell-returned {
-    background-color: #ff8c1a;
-    color: white;
+    background-color: $color-seat-returned;
+    color: $color-seat-returned-text;
 }
 
 .member-cell-empty {
-    background-color: #4c97ff;
-    color: white;
+    background-color: $color-seat-empty;
+    color: $color-seat-empty-text;
+    border: 2px dashed $color-seat-empty-border;
     cursor: default;
 }
 
@@ -4703,7 +4761,7 @@
 }
 
 .seat-guide-sample:hover {
-    background-color: white;
+    background-color: $color-seat-joined;
 }
 
 /* Occupied seats glow once, slowly. With reduced motion only the frame
@@ -4722,7 +4780,7 @@
     0%,
     100% {
         box-shadow: 0 0 0 0 rgba(255, 140, 26, 0);
-        background-color: white;
+        background-color: $color-seat-joined;
     }
     50% {
         box-shadow: 0 0 12px 4px rgba(255, 140, 26, 0.8);
@@ -4737,7 +4795,7 @@
         box-shadow:
             0 0 0 3px #ffab19,
             0 0 10px 3px rgba(255, 171, 25, 0.7);
-        background-color: white;
+        background-color: $color-seat-joined;
     }
     50% {
         box-shadow:
@@ -4870,9 +4928,9 @@
 
 /* --- Lesson progress (#1602) --- */
 
-/* Seat tile colours of a lesson assignment: grey = not started, blue = in
-   progress, green = cleared. A seat with no student is white with a dotted
-   border, since blue now means "in progress". */
+/* Seat tile colours of a lesson assignment (#1926): the same scale as the
+   ordinary seats — empty = white with a dotted border, not started = pale grey,
+   in progress = pale blue (= joined), cleared = green with ★. */
 .lesson-seat {
     justify-content: flex-start;
     padding-top: clamp(3px, 6cqi, 10px);
@@ -4880,18 +4938,18 @@
 }
 
 .lesson-seat-not-started {
-    background-color: #d9d9d9;
-    color: #575e75;
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
 }
 
 .lesson-seat-in-progress {
-    background-color: #4c97ff;
-    color: white;
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
 }
 
 .lesson-seat-cleared {
-    background-color: #0fbd8c;
-    color: white;
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
 }
 
 /* The seated dot is the same green as a cleared tile, so it disappears there.
@@ -4903,10 +4961,14 @@
 }
 
 .lesson-seat-not-joined {
-    background-color: #fff;
-    color: #9aa1b8;
-    border: 1.5px dashed #c8cddb;
+    background-color: $color-seat-empty;
+    color: $color-seat-empty-text;
+    border: 2px dashed $color-seat-empty-border;
     cursor: default;
+}
+
+.lesson-seat-cleared-mark {
+    line-height: 1;
 }
 
 .lesson-seat-head {
@@ -4940,6 +5002,16 @@
 
 .lesson-seat-not-started .lesson-seat-meter {
     background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* On the pale tiles a white bar disappears: draw it in the seat's text blue. */
+.lesson-seat-in-progress .lesson-seat-meter {
+    background-color: rgba(31, 63, 122, 0.15);
+}
+
+.lesson-seat-not-started .lesson-seat-meter-fill,
+.lesson-seat-in-progress .lesson-seat-meter-fill {
+    background-color: $color-seat-joined-text;
 }
 
 .lesson-seat-meter-fill {

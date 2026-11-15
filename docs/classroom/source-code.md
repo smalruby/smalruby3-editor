@@ -37,6 +37,7 @@ smalruby3-editor/
 │   │   │   │   ├── teacher-assignment-editor.jsx ← 課題詳細の説明タブの編集フォーム（ページ + スターター + 詳しい設定）
 │   │   │   │   ├── lesson-settings-field.jsx ← 説明タブの「レッスン」欄（コース・チャレンジ・★・完了の条件・作品の提出）
 │   │   │   │   ├── lesson-seat-tile.jsx ← レッスンの課題の座席タイルの中身（できた数 / 条件の数・バー・★ あと n・「!」）
+│   │   │   │   ├── seat-color-legend.jsx ← 座席の色の凡例と色の決め方（空席・参加済み・提出済み ✓・返却済み ↩・レッスンの段階。全画面で同じ意味）
 │   │   │   │   ├── teacher-lesson-progress.jsx ← 「進み具合」タブ（席 × チャレンジの表・並べ方）
 │   │   │   │   ├── lesson-scoring-field.jsx ← 「詳しい設定」の中のレッスンの点（満点・必須の点）
 │   │   │   │   ├── lesson-number-input.jsx ← レッスン欄の数の欄（打っている途中は直さず、欄を出る・Enter で確定）

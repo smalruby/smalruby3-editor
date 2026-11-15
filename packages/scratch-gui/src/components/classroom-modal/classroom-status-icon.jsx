@@ -275,5 +275,12 @@ ClassroomStatusLegend.propTypes = {
     statuses: PropTypes.arrayOf(PropTypes.oneOf(STATUS_KINDS)).isRequired,
 };
 
-export { ClassroomStatusIcons, ClassroomStatusLegend, getPresenceStatus, getSubmissionStatus, STATUS_KINDS };
+export {
+    ClassroomStatusIcons,
+    ClassroomStatusLegend,
+    getPresenceStatus,
+    getSubmissionStatus,
+    messages as statusIconMessages,
+    STATUS_KINDS,
+};
 export default ClassroomStatusIcon;

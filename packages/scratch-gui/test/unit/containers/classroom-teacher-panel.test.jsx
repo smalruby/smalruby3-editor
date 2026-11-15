@@ -271,7 +271,53 @@ describe('ClassroomTeacherPanel のレッスンの課題 (#1603)', () => {
             'notStarted',
         );
         expect(screen.getByTestId('classroom-teacher-panel-bar-blocks-l1-key-sound')).toBeTruthy();
+        // 座席の色の凡例（#1926）: 空席・まだ・とちゅう・クリア ★
+        expect(screen.getByTestId('classroom-teacher-panel-seat-legend-empty')).toBeTruthy();
+        expect(screen.getByTestId('classroom-teacher-panel-seat-legend-cleared').textContent).toContain('★');
+        expect(screen.getByTestId('classroom-teacher-panel-seat-1').textContent).toContain('★');
+        expect(screen.getByTestId('classroom-teacher-panel-seat-2').textContent).not.toContain('★');
         // 作品を出さない課題では「提出」の数を出さない
         expect(screen.queryByTestId('classroom-teacher-panel-submitted')).toBeNull();
+    });
+});
+
+describe('ClassroomTeacherPanel の座席の色 (#1926)', () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+        mockToken = 'old-token';
+        mockListClassrooms.mockReset();
+        mockListMembers.mockReset();
+        mockListSubmissions.mockReset();
+        mockGetLessonProgress.mockReset();
+        mockListClassrooms.mockResolvedValue({ classrooms: [{ classroomId: 'c1', studentCount: 4 }] });
+        mockListMembers.mockResolvedValue({
+            members: [
+                { memberId: 'seat-01' },
+                { memberId: 'seat-02', hasSubmission: true, submissionStatus: 'submitted' },
+                { memberId: 'seat-03', hasSubmission: true, submissionStatus: 'returned' },
+            ],
+        });
+        mockListSubmissions.mockResolvedValue({ submissions: [] });
+        Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    test('メンバータブと同じ意味の色と、座席の下に凡例を出す', async () => {
+        renderPanel();
+        await flush();
+        await flush();
+        const color = (n) => screen.getByTestId(`classroom-teacher-panel-seat-${n}`).getAttribute('data-seat-color');
+        expect([1, 4].map(color)).toEqual(['joined', 'empty']);
+        const legend = screen.getByTestId('classroom-teacher-panel-seat-color-legend');
+        const kinds = Array.from(
+            legend.querySelectorAll('[data-testid^="classroom-teacher-panel-seat-color-legend-"]'),
+        ).map((el) => el.getAttribute('data-testid').replace('classroom-teacher-panel-seat-color-legend-', ''));
+        expect(kinds).toEqual(['empty', 'joined', 'submitted', 'returned']);
+        // 凡例は座席のすぐ下
+        const grid = screen.getByTestId('classroom-teacher-panel-grid');
+        expect(grid.nextElementSibling).toBe(legend);
     });
 });
