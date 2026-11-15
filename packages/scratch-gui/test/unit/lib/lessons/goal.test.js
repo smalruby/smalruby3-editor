@@ -220,6 +220,26 @@ describe('uses', () => {
         expect(satisfied(goal, facts)).toBe(true);
     });
 
+    test('sentBy other also counts the mesh broadcast-with-value block as the sender', () => {
+        const goal = [
+            {
+                type: 'uses',
+                trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' },
+                blocks: ['looks_sayforsecs'],
+            },
+        ];
+        const facts = createFacts();
+        run(facts, clicked, [['meshV2_broadcastWithValue', { BROADCAST_OPTION: 'あいさつ', VALUE: 'hi' }]], {
+            targetId: 'cat',
+            isStage: false,
+        });
+        run(facts, received('あいさつ'), [['looks_sayforsecs', { MESSAGE: 'やあ！', SECS: 2 }]], {
+            targetId: 'penguin',
+            isStage: false,
+        });
+        expect(satisfied(goal, facts)).toBe(true);
+    });
+
     test('message trigger matches the received message name case-insensitively', () => {
         const goal = [
             {
