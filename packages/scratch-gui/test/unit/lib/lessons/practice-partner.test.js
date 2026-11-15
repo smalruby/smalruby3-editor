@@ -47,6 +47,7 @@ describe('normalizePartner', () => {
                 },
             ],
             replies: [{ onBroadcast: 'メッセージ', set: [{ name: 'へんじ', value: 'やあ' }], broadcast: 'へんじ' }],
+            watch: [],
         });
     });
 
@@ -178,6 +179,17 @@ describe('partnerNames / findName', () => {
             ['あて先', 'へんじ', 'シマラビのメッセージ', 'メッセージ', '名前'].sort(),
         );
         expect(partnerNames(null)).toEqual([]);
+    });
+
+    test('watch adds names of student variables to show, per locale too (3-3: the own mood)', () => {
+        const def = {
+            buttons: [{ label: 'うれしい', set: { variable: 'シマネコの気分', value: 'うれしい' } }],
+            watch: [{ ja: 'シマラビの気分', en: 'shimaraby_mood' }, 'x', '', 3, null],
+        };
+        expect(normalizePartner(def, 'en').watch).toEqual(['shimaraby_mood', 'x', '3']);
+        expect(partnerNames(normalizePartner(def, 'ja'))).toContain('シマラビの気分');
+        // watch だけでは練習相手にならない（ボタンも返事も無ければ null）
+        expect(normalizePartner({ watch: ['a'] }, 'ja')).toBeNull();
     });
 
     test('finds the exact name first, then without case', () => {
@@ -402,6 +414,14 @@ describe('attachPracticeLoopback', () => {
         exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v3', name: 'へんじ' }, VALUE: 'おはよう' });
         step();
         expect(onReceived).toHaveBeenLastCalledWith('へんじ = おはよう', { announce: false });
+        loop.detach();
+    });
+
+    test('a variable listed in watch shows even though the partner does not use it', () => {
+        const { loop, onReceived, runtime, step } = watch({ ...PARTNER, watch: ['count'] });
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 'ねむい' });
+        step();
+        expect(onReceived).toHaveBeenLastCalledWith('count = ねむい', { announce: false });
         loop.detach();
     });
 

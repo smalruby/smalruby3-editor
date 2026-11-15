@@ -103,7 +103,7 @@
 | `spriteCodes` | `{sprite, code}`[] | [] | `code` のほかに、名前で決めたスプライトに入れるプログラム（2 つのスプライトでやりとりするチャレンジ用）。`sprite` はライブラリのスプライトの名前。`code` は `code` と同じく locale ごとにも書ける。下の「最後の手段」 |
 | `debug` | message[] | [] | うまく動かないときは |
 | `activityDiagram` | boolean | false | 答えのプログラム（`code` と `spriteCodes`）から描くアクティビティ図を、課題の全文とヒントの 1 ページ目に出すか。答えが無いチャレンジでは true でも出さない。描き方は下の「アクティビティ図（答えから描く）」 |
-| `partner` | object \| null | null | メッシュの練習相手の定義 `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}]}`（`set` = `{variable, value}` か、その配列）。あればチャレンジ中に練習相手のパネルを出す（下の「メッシュの練習相手」）。図では相手のスイムレーンになる。無ければ自分のプログラムだけを描く |
+| `partner` | object \| null | null | メッシュの練習相手の定義 `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}], watch}`（`set` = `{variable, value}` か、その配列。`watch` は任意で、パネルの「届いた」に出す生徒の変数の名前の配列）。あればチャレンジ中に練習相手のパネルを出す（下の「メッシュの練習相手」）。図では相手のスイムレーンになる。無ければ自分のプログラムだけを描く |
 | `quiz` | `{question, choices, answer, explanation}` \| null | null | ふりかえりのクイズ（3 択）。「できた！」の表示の中に出す（下の「ふりかえりのクイズ」）。`question` / `choices`（3 つ）/ `explanation` は message、`answer` は正解が `choices` の何番目か（0 から）。ふつうは `challengeQuiz(id, answer)` で書く |
 | `mode` | `'readDiagram'` \| null | null | チャレンジの形。null = ふつう。`'readDiagram'` = **読んで作る**（説明とアクティビティ図だけで指示する）。図を必ず出し（`activityDiagram` は true になる）、ヒントを 3 ページ（図と説明 → 試す → 答えを見る）に置き換える（`steps` は使わない）。最後の手段のページ（「正解のプログラムを確認する」）は付かない。答えは `code`。下の「読んで作るチャレンジ」 |
 | `explanation` | message \| null | null | 読んで作るチャレンジのヒントの 1 ページ目の説明。無ければ `task` を出す |
@@ -617,6 +617,8 @@ partner: {
         // 自動の返事。生徒の作品が onBroadcast の合図を送ったら、少しあと（0.5 秒）に set → broadcast
         { onBroadcast: 'メッセージ', set: [{ variable: 'へんじ', value: 'やあ' }], broadcast: 'へんじ' },
     ],
+    // 任意。パネルの「届いた」に出す生徒の変数（相手が使わない変数でも出す。例: 3-3 の自分の気分）
+    watch: ['気分'],
 }
 ```
 
@@ -624,7 +626,11 @@ partner: {
   `{ fromVariable: '名前' }` と書ける（押したとき・返事のときの**生徒の作品の変数の値**。ステージの変数を先に、
   無ければスプライトの変数を探し、どちらにも無ければ空文字。名前は文字列か `{ja, 'ja-Hira', en}`。例: DM の
   「あなたに DM」で、生徒が入力した名前をあて先にする `{ variable: 'あて先', value: { fromVariable: '名前' } }`）。
-  アクティビティ図では「あて先を(名前の値)にする」と描く。`broadcast` / `onBroadcast` は合図の名前
+  アクティビティ図では「あて先を(名前の値)にする」と描く。
+- `watch`（任意）は、パネルの「届いた」の行に出す**生徒の共有する変数**の名前の配列（文字列か `{ja, 'ja-Hira', en}`）。
+  行に出す変数はふつう相手が使う名前だけなので、相手が読まない変数を見せたいときに書く（例: 3-3 は
+  `watch: ['シマラビの気分']`。1・2 のキーで変えた自分の気分が、ひとりのときもパネルに出る）。書かなければ今までどおり。
+  ボタン・返事が無い定義は `watch` があっても練習相手にならない。図には描かない。`broadcast` / `onBroadcast` は合図の名前
   （大文字小文字は区別しない）。`name` / `label` / `variable` / `broadcast` / `onBroadcast` は、作品の中の名前が
   locale で変わるときは `code` と同じく `{ja, 'ja-Hira', en}` でも書ける。
 - アクティビティ図（相手のスイムレーン）も同じ定義から、動かすときと同じ読み方（`normalizePartner`。locale ごとの書き方の選び方も同じ）で描く。動かすときに使わない行（ラベルの無いボタン・名前の無い変数や `fromVariable`・何もしない返事）は図にも描かない。
@@ -660,7 +666,7 @@ partner: {
   例「届いた: シマラビのメッセージ = こんにちは」。送るだけの段や自動返信の段で、ひとりのときに届いたことが見える
   ようにするため。
   - 変数で行が変わるのは、**その練習相手が使う名前**（`set` の変数・`fromVariable`・相手が受け取る / 送る合図と
-    同じ名前の変数。`partnerNames`）だけ。ずっと得点を変えるような、相手に関係の無い変数では変わらない。
+    同じ名前の変数）と `watch` の名前だけ（`partnerNames`）。ずっと得点を変えるような、相手に関係の無い変数では変わらない。
   - 知らせるのはフレームの最初（`BEFORE_STEP`）にまとめて 1 回まで。同じフレームの中で何度変わっても描き直しは 1 回。
   - 読み上げ（`aria-live="polite"`）は**合図が届いたときだけ**（画面には出さない読み上げ用の要素
     `lesson-practice-partner-announcement`。変数が変わるたびには読み上げない）。

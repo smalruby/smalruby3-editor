@@ -6,6 +6,7 @@
 //       name,                                   // 相手の名前
 //       buttons: [{ label, set, broadcast }],   // パネルのボタン（押すと相手が変数を変える・合図を送る）
 //       replies: [{ onBroadcast, set, broadcast }], // 自動の返事（合図を受け取ったら、変数を変える・合図を送る）
+//       watch: ['名前'],                         // 任意。パネルの「届いた」に出す生徒の変数（相手が使わない変数でも）
 //   }
 //
 // - `name` / `label` / `broadcast` / `onBroadcast` は文字列か、locale ごとの `{ja, 'ja-Hira', en}`
@@ -14,6 +15,8 @@
 //   文字列、`value` は文字列か数か `{ fromVariable: '名前' }`（生徒の作品の変数の、押したときの値。名前は文字列か
 //   locale ごと。変数が無ければ空文字）。メッシュの共有する変数（「〜のセンサー値」）として相手の値になる。
 // - ボタンを押したとき・合図を受け取ったときは、`set` → `broadcast` の順に起きる。
+// - `watch` は、パネルの「届いた」の行に出す生徒の共有する変数の名前（文字列か locale ごとの文字列の配列）。
+//   ふつうは相手が使う名前だけを出すが、相手が読まない変数（3-3 の自分の気分）も出したいときに書く。
 // VM とのつなぎ（ブラウザの中での折り返し）は practice-loopback.js。
 import { localizeCode } from './courses';
 
@@ -90,7 +93,10 @@ export const normalizePartner = (partner, locale) => {
         .map((reply) => ({ onBroadcast: localizeText(reply.onBroadcast, locale), ...normalizeAction(reply, locale) }))
         .filter((reply) => reply.onBroadcast !== null && (reply.set.length > 0 || reply.broadcast !== null));
     if (buttons.length === 0 && replies.length === 0) return null;
-    return { name: localizeText(partner.name, locale) || '', buttons, replies };
+    const watch = (Array.isArray(partner.watch) ? partner.watch : [])
+        .map((name) => localizeText(name, locale))
+        .filter((name) => name !== null);
+    return { name: localizeText(partner.name, locale) || '', buttons, replies, watch };
 };
 
 // 合図の名前は Scratch と同じく大文字小文字を区別しない
@@ -109,7 +115,8 @@ export const repliesFor = (normalized, messageName) => {
 
 /**
  * 練習相手が使う名前（D3 のパネルに出す変数を絞るため）。`set` の変数・`fromVariable` の変数と、相手が
- * 受け取る・送る合図の名前（このコースは変数と合図に同じ名前を使うので、合図と同じ名前の共有する変数も出す）。
+ * 受け取る・送る合図の名前（このコースは変数と合図に同じ名前を使うので、合図と同じ名前の共有する変数も出す）、
+ * それに定義の `watch`（相手は使わないが行に出したい生徒の変数）。
  * ずっと得点を変えるような、相手に関係の無い変数で行が変わり続けないようにする。
  * @param {?object} normalized - `normalizePartner` の結果。
  * @returns {Array<string>} 名前。
@@ -121,6 +128,7 @@ export const partnerNames = (normalized) => {
         ...actions.flatMap((action) => action.set.flatMap((one) => [one.name, one.fromVariable])),
         ...actions.map((action) => action.broadcast),
         ...normalized.replies.map((reply) => reply.onBroadcast),
+        ...(normalized.watch || []),
     ];
     return [...new Set(names.filter((name) => typeof name === 'string' && name !== ''))];
 };
