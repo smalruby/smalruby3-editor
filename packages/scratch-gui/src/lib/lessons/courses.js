@@ -872,11 +872,220 @@ const blocksLesson3 = defineLesson({
     ],
 });
 
+// ===== コース「チャットをつくろう」（中学 2 年・EPIC #1616）=====
+// 中身はレッスンごとに人間と詰めたもの（#1641〜#1645 のコメント）。どのチャレンジも、新しい作品のネコを
+// シマラビ（Shimaraby）に置きかえて始める（setup.sprites・#1936）。変数は「すべてのスプライト用」（Ruby の `$`）。
+// 子どもが作る名前（変数）は ja / ja-Hira が「シマラビのメッセージ」（カタカナなので ja-Hira も同じ。画面の
+// キャラクターの名前もカタカナのシマラビ）、en が `shimaraby_message`（英語の生徒に日本語を入力させない）。
+// 判定はどの locale の名前でも通す（locale をまたいだ作品のため）
+const CHAT_START = { sprites: ['Shimaraby'] };
+const CHAT_MESSAGE_VARIABLE = ['シマラビのメッセージ', 'shimaraby_message'];
+// 「聞いて待つ」の質問（ja-Hira は漢字を使わない）
+const CHAT_ASK = { ja: 'メッセージを入力', 'ja-Hira': 'メッセージを にゅうりょく', en: 'Enter a message' };
+// locale ごとの Ruby を、名前（変数・質問・セリフ）の差しかえで作る
+const CHAT_WORDS = {
+    ja: { v: '$シマラビのメッセージ', ask: CHAT_ASK.ja, empty: '何か書いてね', end: 'おわり', bye: 'またね' },
+    'ja-Hira': {
+        v: '$シマラビのメッセージ',
+        ask: CHAT_ASK['ja-Hira'],
+        empty: 'なにか かいてね',
+        end: 'おわり',
+        bye: 'またね',
+    },
+    en: { v: '$shimaraby_message', ask: CHAT_ASK.en, empty: 'Write something', end: 'end', bye: 'Bye!' },
+};
+const chatCode = (make) =>
+    Object.fromEntries(Object.entries(CHAT_WORDS).map(([locale, words]) => [locale, make(words)]));
+
+const chatLesson1 = defineLesson({
+    id: 'chat-l1',
+    challenges: [
+        // 1 入力して表示しよう（順次処理）: 聞く → 変数に入れる → 言う
+        {
+            id: 'chat-l1-sequence',
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.SENSING },
+            task: challengeMessage('chat-l1-sequence', 'task'),
+            setup: CHAT_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: CHAT_ASK } }, 'sensing_answer'],
+                data: ['data_setvariableto', 'data_variable'],
+                looks: ['looks_sayforsecs'],
+            },
+            steps: withTitles('chat-l1-sequence', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatCode((w) => `when_flag_clicked do\n  ask("${w.ask}")\nend\n`),
+                },
+                { target: HINT_TARGETS.PALETTE, blocks: chatCode((w) => `ask("${w.ask}")\n${w.v} = answer\n`) },
+                { target: HINT_TARGETS.PALETTE, blocks: chatCode((w) => `${w.v} = answer\nsay(${w.v}, 2)\n`) },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('chat-l1-sequence', 1),
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: ['sensing_askandwait', 'data_setvariableto', 'looks_sayforsecs'],
+                    order: ['sensing_askandwait', 'data_setvariableto', 'looks_sayforsecs'],
+                },
+                { type: 'said', equalsAnswer: true },
+            ],
+            quiz: challengeQuiz('chat-l1-sequence', 1),
+            code: chatCode(
+                (w) => `when_flag_clicked do\n  ask("${w.ask}")\n  ${w.v} = answer\n  say(${w.v}, 2)\nend\n`,
+            ),
+        },
+        // 2 入力を待ち続けよう（反復処理）: 「聞いて待つ」の質問に変数を入れて、ずっと入力を待つ。
+        // レッスン 4 で「送る」を足すと教科書のチャットの送る側になる
+        {
+            id: 'chat-l1-repeat',
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.CONTROL },
+            task: challengeMessage('chat-l1-repeat', 'task'),
+            setup: CHAT_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: CHAT_ASK } }, 'sensing_answer'],
+                control: ['control_forever'],
+                data: ['data_setvariableto', 'data_variable'],
+            },
+            steps: withTitles('chat-l1-repeat', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatCode((w) => `when_flag_clicked do\n  ask("${w.ask}")\nend\n`),
+                },
+                { target: HINT_TARGETS.PALETTE, blocks: chatCode((w) => `ask("${w.ask}")\nloop do\nend\n`) },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatCode((w) => `loop do\n  ${w.v} = answer\n  ask(${w.v})\nend\n`),
+                },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('chat-l1-repeat', 1),
+            // 「聞いて待つ」が 3 回動いた = 最初の 1 回 + くり返しの中で 2 回（2 回以上入力した）
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: ['control_forever', { opcode: 'sensing_askandwait', count: 3 }],
+                },
+                { type: 'variable', name: CHAT_MESSAGE_VARIABLE, value: { ne: '' } },
+            ],
+            quiz: challengeQuiz('chat-l1-repeat', 2),
+            code: chatCode(
+                (w) =>
+                    `when_flag_clicked do\n  ask("${w.ask}")\n  loop do\n    ${w.v} = answer\n` +
+                    `    ask(${w.v})\n  end\nend\n`,
+            ),
+        },
+        // 3 空のメッセージは表示しない（分岐処理）: 何も入力しなければ「何か書いてね」
+        {
+            id: 'chat-l1-branch',
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.CONTROL },
+            task: challengeMessage('chat-l1-branch', 'task'),
+            setup: CHAT_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: CHAT_ASK } }, 'sensing_answer'],
+                control: ['control_if_else'],
+                // 右は空（何も入力しなかった = 空の文字と等しい）
+                operators: [{ opcode: 'operator_equals', inputs: { OPERAND2: '' } }],
+                data: ['data_setvariableto', 'data_variable'],
+                looks: [
+                    {
+                        opcode: 'looks_sayforsecs',
+                        inputs: {
+                            MESSAGE: { ja: '何か書いてね', 'ja-Hira': 'なにか かいてね', en: 'Write something' },
+                        },
+                    },
+                ],
+            },
+            steps: withTitles('chat-l1-branch', [
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatCode((w) => `when_flag_clicked do\n  ask("${w.ask}")\nend\n`),
+                },
+                // `false` は空の穴、中身の無い `else` も「でなければ」のまま描く（blocks-l1-if と同じ）
+                { target: HINT_TARGETS.PALETTE, blocks: chatCode((w) => `ask("${w.ask}")\nif false\nelse\nend\n`) },
+                { target: HINT_TARGETS.PALETTE, blocks: 'if answer == ""\nelse\nend\n' },
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks: chatCode(
+                        (w) =>
+                            `if answer == ""\n  say("${w.empty}", 2)\nelse\n  ${w.v} = answer\n` +
+                            `  say(${w.v}, 2)\nend\n`,
+                    ),
+                },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('chat-l1-branch', 1),
+            // 何も入れずに試すのと、何か入れて試すのの両方（2 回試す）
+            goal: [
+                { type: 'said', text: /^(何か書いてね|なにか かいてね|write something)/i },
+                { type: 'said', equalsAnswer: true },
+            ],
+            quiz: challengeQuiz('chat-l1-branch', 0),
+            code: chatCode(
+                (w) =>
+                    `when_flag_clicked do\n  ask("${w.ask}")\n  if answer == ""\n    say("${w.empty}", 2)\n` +
+                    `  else\n    ${w.v} = answer\n    say(${w.v}, 2)\n  end\nend\n`,
+            ),
+        },
+        // 4 図を読んで作ろう（読んで作る）: 「おわり」と入力するまで聞いて言うをくり返し、最後に「またね」
+        {
+            id: 'chat-l1-read-diagram',
+            mode: 'readDiagram',
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.CONTROL },
+            task: challengeMessage('chat-l1-read-diagram', 'task'),
+            explanation: challengeMessage('chat-l1-read-diagram', 'explanation'),
+            setup: CHAT_START,
+            allowedBlocks: {
+                event: ['event_whenflagclicked'],
+                control: ['control_repeat_until'],
+                operators: [
+                    {
+                        opcode: 'operator_equals',
+                        inputs: { OPERAND2: { ja: 'おわり', 'ja-Hira': 'おわり', en: 'end' } },
+                    },
+                ],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: CHAT_ASK } }, 'sensing_answer'],
+                looks: [
+                    { opcode: 'looks_sayforsecs', inputs: { SECS: 1 } },
+                    { opcode: 'looks_say', inputs: { MESSAGE: { ja: 'またね', 'ja-Hira': 'またね', en: 'Bye!' } } },
+                ],
+            },
+            // 「聞いて待つ」が 2 回動いた（「おわり」の前に 1 回以上入力した）あと「またね」と言った
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: ['control_repeat_until', { opcode: 'sensing_askandwait', count: 2 }],
+                },
+                { type: 'said', text: /^(またね|bye)/i },
+            ],
+            quiz: challengeQuiz('chat-l1-read-diagram', 1),
+            code: chatCode(
+                (w) =>
+                    `when_flag_clicked do\n  until answer == "${w.end}"\n    ask("${w.ask}")\n` +
+                    `    say(answer, 1)\n  end\n  say("${w.bye}")\nend\n`,
+            ),
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
         language: LANGUAGES.BLOCKS,
         lessons: [blocksLesson1, blocksLesson2, blocksLesson3],
+    }),
+    defineCourse({
+        id: 'chat-wo-tsukurou',
+        language: LANGUAGES.BLOCKS,
+        lessons: [chatLesson1],
     }),
 ];
 

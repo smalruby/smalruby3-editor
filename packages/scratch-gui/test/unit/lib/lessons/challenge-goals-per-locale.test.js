@@ -150,6 +150,29 @@ const OPERATIONS = {
             await answer(text);
         }
     },
+    // コース「チャットをつくろう」のレッスン 1（#1641）。作品ではシマラビに置きかえて始めるが、判定は
+    // スプライトを見ないので、ここではネコに入れて動かす
+    'chat-l1-sequence': async ({ vm, answer }) => {
+        vm.greenFlag();
+        await answer('hello');
+    },
+    'chat-l1-repeat': async ({ vm, answer }) => {
+        vm.greenFlag();
+        await answer('hello');
+        await answer('again');
+    },
+    'chat-l1-branch': async ({ vm, answer }) => {
+        vm.greenFlag();
+        await answer('');
+        await sleep(2200);
+        vm.greenFlag();
+        await answer('hello');
+    },
+    'chat-l1-read-diagram': async ({ vm, answer, locale }) => {
+        vm.greenFlag();
+        await answer('hello');
+        await answer(locale === 'en' ? 'end' : 'おわり');
+    },
 };
 
 // ステージのプログラムのチャレンジ 4 は 1 秒の待ちが 6 回ある
@@ -205,6 +228,7 @@ describe('the code of every locale satisfies the goal when run in a new project 
 
             const ctx = {
                 vm,
+                locale,
                 cat,
                 stage,
                 touch: (value) => {

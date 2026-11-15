@@ -1,4 +1,4 @@
-import { defineCourse, defineLesson, findCourse } from '../../../../src/lib/lessons/courses';
+import { COURSES, defineCourse, defineLesson, findCourse } from '../../../../src/lib/lessons/courses';
 import {
     COMPLETED_ACTIONS,
     LESSON_PROGRESS_STORAGE_KEY,
@@ -506,8 +506,20 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
         });
     });
 
+    test('when the first course is done, opens the next course at its first challenge', () => {
+        const next = findCourse('chat-wo-tsukurou');
+        expect(startLessonsFocus(completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))).toEqual({
+            language: next.language,
+            courseId: next.id,
+            lessonId: next.lessons[0].id,
+            nextChallengeId: next.lessons[0].challenges[0].id,
+        });
+    });
+
     test('when everything is done, opens like the menu (null)', () => {
-        expect(startLessonsFocus(completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))).toBeNull();
+        const all = COURSES.flatMap((c) => c.lessons.flatMap((l) => l.challenges));
+        const progress = all.reduce((p, c) => markChallengeCompleted(p, c.id, NOW), emptyProgress());
+        expect(startLessonsFocus(progress)).toBeNull();
     });
 
     test('ignores records of challenges that are not in the courses', () => {
