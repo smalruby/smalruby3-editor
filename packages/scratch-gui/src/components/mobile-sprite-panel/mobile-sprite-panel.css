@@ -43,10 +43,12 @@
  * モーダルを開いてもモバイル UI で隠れて操作できないので、Smalruby 側で
  * 上書きする。スプライトライブラリ・背景ライブラリ両方のモーダルが対象。
  *
- * 9999 まで上げてしまうとデスクトップでも他の要素より高くなるが、upstream
- * モーダル間の優先順位は同じ 9999 のままなので問題ない (もともと 510 同士で
- * 順位なし)。
+ * モバイル UI があるのは MobileGui の中だけなので、`body.smalruby-mobile-mode`
+ * （MobileGui がマウント中だけ付く）の下に限る。PC・iPad（desktop GUI）では
+ * 上流の 510 のままにして、アラート (520) や先生の退室依頼のトースト (600) が
+ * モーダルの上に出るようにする (#1933 Q2 / #1952)。共有の Modal の overlay は
+ * mobile-gui.css でさらに 10000 に上がる。
  */
-:global(.ReactModal__Overlay) {
+:global(body.smalruby-mobile-mode .ReactModal__Overlay) {
     z-index: 9999 !important;
 }
