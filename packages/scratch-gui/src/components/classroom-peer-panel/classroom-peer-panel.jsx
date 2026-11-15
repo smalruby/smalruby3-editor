@@ -4,6 +4,7 @@ import React, { useCallback } from 'react';
 import Draggable from 'react-draggable';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import { isPeerSeatSelectable } from '../../lib/classroom-peer-view.js';
+import classroomIconMessages from '../classroom-modal/classroom-icon-messages.js';
 import ClassroomStatusIcon from '../classroom-modal/classroom-status-icon.jsx';
 // The floating frame (overlay / header / buttons / seat grid) is shared with
 // the teacher's status panel (#1203) so both panels look and behave alike.
@@ -26,11 +27,6 @@ const messages = defineMessages({
         defaultMessage: 'Close',
         description: 'Peer view panel / viewer: close button (#1210)',
         id: 'gui.classroomPeerPanel.close',
-    },
-    refresh: {
-        defaultMessage: 'Refresh',
-        description: 'Peer view panel: refresh button (#1210)',
-        id: 'gui.classroomPeerPanel.refresh',
     },
     openSeat: {
         defaultMessage: 'Seat {seatNumber}: see the work',
@@ -174,7 +170,7 @@ const ClassroomPeerPanel = ({
                         </span>
                         <HeaderButton
                             disabled={loading}
-                            label={intl.formatMessage(messages.refresh)}
+                            label={intl.formatMessage(classroomIconMessages.refresh)}
                             testId="classroom-peer-panel-refresh"
                             onClick={onRefresh}
                         >
@@ -236,10 +232,14 @@ const ClassroomPeerPanel = ({
                                             {seats.map((seat) => (
                                                 <button
                                                     className={classNames(frameStyles.seat, {
-                                                        [frameStyles.seatEmpty]: !seat.submitted,
+                                                        // 提出済みは先生の画面と同じ緑（押せる）。未提出は押せないので、
+                                                        // 押せる空席の点線と見分けがつく淡い灰にする (#1926)
+                                                        [frameStyles.seatSubmitted]: seat.submitted,
+                                                        [styles.seatNotSubmitted]: !seat.submitted,
                                                         [styles.seatOwn]: seat.own,
                                                         [styles.seatSelected]: seat.seatNumber === selectedSeat,
                                                     })}
+                                                    data-seat-color={seat.submitted ? 'submitted' : 'notSubmitted'}
                                                     data-seat-number={seat.seatNumber}
                                                     data-testid={`classroom-peer-panel-seat-${seat.seatNumber}`}
                                                     disabled={!isPeerSeatSelectable(seat)}

@@ -63,7 +63,7 @@ export default function (Generator) {
 
     Generator.ev3_buttonPressed = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const port = Generator.valueToCode(block, 'PORT', order) || null;
+        const port = Generator.valueToCode(block, 'PORT', Generator.ORDER_NONE) || null;
         return [`ev3.button_pressed?(${port})`, order];
     };
 

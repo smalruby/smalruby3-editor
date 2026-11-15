@@ -27,4 +27,21 @@ describe('Ruby Roundtrip: Mesh extension blocks', () => {
         `,
         );
     });
+
+    test('value message blocks (#1843): Ruby -> Code -> Ruby', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            self.when(:receive, "chat") do
+              say(mesh.message_value)
+            end
+
+            self.when(:flag_clicked) do
+              mesh.broadcast("chat", "hello")
+              mesh.broadcast("chat", mesh.sensor_value("score"))
+            end
+        `,
+        );
+    });
 });

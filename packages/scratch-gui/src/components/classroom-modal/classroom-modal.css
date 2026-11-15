@@ -1,3 +1,7 @@
+/* 色はデザインシステムのトークン（docs/design-system/tokens.md）。主ボタン・文字リンクの青は
+   $color-action（白に 4.5:1 以上の濃い青・#1922）。 */
+@import '../../css/smalruby-tokens.css';
+
 /* The student modal targets the 1300x600 classroom PC (#1221): it is wide so
    guidance and actions sit side by side, and it sits near the top so the body
    gets most of the 600px height without scrolling. */
@@ -22,9 +26,11 @@
     border-radius: 0 0 8px 8px;
 }
 
-/* Student body: 1rem margins x2 + 3.125rem header + 8px modal border. */
+/* Student body: max-height leaves room for the modal's 1rem margins x2 + 3.125rem
+   header + 8px border. The top padding is 0.75rem so the step band sits close to
+   the header (#1792). */
 .student-body {
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1.5rem 1rem;
     max-height: calc(100vh - 5.125rem - 8px);
 }
 
@@ -123,9 +129,9 @@
 }
 
 .input:focus {
-    outline: none;
-    border-color: #4c97ff;
-    box-shadow: 0 0 0 2px rgba(76, 151, 255, 0.2);
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 .button-row {
@@ -143,7 +149,7 @@
 .link-button {
     background: none;
     border: none;
-    color: #4c97ff;
+    color: $color-action;
     cursor: pointer;
     font-size: 1rem;
     text-decoration: underline;
@@ -151,7 +157,7 @@
 }
 
 .link-button:hover {
-    color: #3373cc;
+    color: $membership-blue;
 }
 
 .link-button:disabled {
@@ -170,7 +176,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    background-color: #4c97ff;
+    background-color: $color-action;
     color: white;
     border: none;
     border-radius: 4px;
@@ -182,7 +188,7 @@
 }
 
 .primary-button:hover {
-    background-color: #3d89f0;
+    background-color: $membership-blue;
 }
 
 .primary-button:disabled {
@@ -232,13 +238,6 @@
 .danger-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-}
-
-.status-card {
-    background-color: #f2f2f2;
-    border-radius: 8px;
-    padding: 1rem;
-    margin: 0.5rem 0 1rem;
 }
 
 .status-row {
@@ -297,8 +296,9 @@
 }
 
 .assignment-name-input:focus {
-    border-color: #4c97ff;
-    outline: none;
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 .join-code-display {
@@ -442,7 +442,7 @@
 .join-code-action-gc {
     border-color: #4c97ff;
     background-color: #e5f0ff;
-    color: #3373cc;
+    color: $color-action;
     font-weight: bold;
 }
 
@@ -477,7 +477,7 @@
     border: 1px solid #c3cad8;
     border-radius: 0.5rem;
     background-color: #fff;
-    color: #4c97ff;
+    color: $color-action;
     font-size: 0.75rem;
     cursor: pointer;
 }
@@ -510,7 +510,7 @@
     font-weight: bold;
     font-family: monospace;
     letter-spacing: 0.15em;
-    color: #4c97ff;
+    color: $color-action;
     user-select: text;
     cursor: text;
 }
@@ -767,7 +767,7 @@
     padding: 0;
     border: none;
     background: none;
-    color: #4c97ff;
+    color: $color-action;
     font-size: inherit;
     text-decoration: underline;
     cursor: pointer;
@@ -840,7 +840,7 @@
     font-size: 1.6rem;
     font-weight: bold;
     letter-spacing: 0.2em;
-    color: #3373cc;
+    color: $color-action;
     user-select: text;
     cursor: text;
 }
@@ -875,7 +875,7 @@
 .class-item-code {
     font-family: monospace;
     font-size: 1.1rem;
-    color: #4c97ff;
+    color: $color-action;
     letter-spacing: 0.1em;
     user-select: text;
     cursor: text;
@@ -952,9 +952,11 @@
     margin: 1rem 0;
 }
 
-/* Ten seats per row: 40 seats fit in 4 rows on the 1300x600 PC (#1221). */
+/* Ten seats per row: 40 seats fit in 4 rows on the 1300x600 PC (#1221).
+   One height for free and occupied seats, which carry an "In use" line. */
 .student-main .seat-grid {
     grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-auto-rows: 3rem;
     margin: 0.6rem 0 0;
 }
 
@@ -965,9 +967,10 @@
 }
 
 .seat-button {
-    background-color: #4c97ff;
-    color: white;
-    border: none;
+    /* 空いている席: 白地に点線の枠（#1926）。先生のメンバータブと同じ意味 */
+    background-color: $color-seat-empty;
+    color: $color-seat-empty-text;
+    border: 2px dashed $color-seat-empty-border;
     border-radius: 4px;
     padding: 0.5rem;
     font-size: 0.9rem;
@@ -981,13 +984,36 @@
 }
 
 .seat-button:hover {
-    background-color: #3d89f0;
+    /* 空席: 地をうすい青に、枠を実線に（押せることが分かるように） */
+    background-color: $color-background;
+    border-style: solid;
+    /* 地が青くなる分、文字と枠をホバーの青にして 4.5:1 を保つ */
+    border-color: $membership-blue;
+    color: $membership-blue;
 }
 
+/* Occupied seats must still look pressable: pressing one asks the teacher
+   to free it, and a grey "disabled" look kept students away from their own
+   seat (#1796). */
 .seat-taken {
-    background-color: #d9d9d9;
-    color: #999;
+    flex-direction: column;
+    gap: 1px;
+    padding: 0.25rem 0.2rem;
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+    /* 枠は透明にして大きさをそろえる（光るときだけ色が付く） */
+    border: 2px solid transparent;
+}
+
+.seat-taken:hover {
+    background-color: $color-seat-joined-hover;
+    border-color: transparent;
+    color: $color-seat-joined-text;
+}
+
+.seat-taken:disabled {
     cursor: not-allowed;
+    opacity: 0.6;
 }
 
 .error-text {
@@ -1220,7 +1246,7 @@
 .error-action-link {
     background: none;
     border: none;
-    color: #4c97ff;
+    color: $color-action;
     cursor: pointer;
     font-size: 0.85rem;
     text-decoration: underline;
@@ -1230,7 +1256,7 @@
 }
 
 .error-action-link:hover {
-    color: #3373cc;
+    color: $membership-blue;
 }
 
 .success-area {
@@ -1262,20 +1288,6 @@
     font-weight: bold;
 }
 
-.status-footer {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 1rem;
-}
-
-/* "提出すると見られます" in place of the peer view button (#1210). */
-.peer-view-locked {
-    display: inline-flex;
-    align-items: center;
-    color: #575e75;
-    font-size: 0.75rem;
-}
-
 .loading {
     text-align: center;
     padding: 2rem;
@@ -1289,19 +1301,75 @@
     gap: 0 0.9rem;
 }
 
-/* 座席の色の意味（#1303 D2・R5）。色見本は座席と同じクラスを使う。 */
+/* 座席の色の意味（R5・#1926）。色見本は座席と同じ色と印（✓ / ↩ / ★）。 */
 .seat-color-legend {
     display: flex;
-    gap: 0.7rem;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.7rem;
     font-size: 0.75rem;
-    color: #575e75;
+    color: $color-text;
 }
 
-.seat-color-swatch {
-    display: inline-block;
-    width: 0.8rem;
-    height: 0.8rem;
+.seat-swatch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 0.95rem;
+    height: 0.95rem;
     border-radius: 0.15rem;
+    font-size: 0.6rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* 状況のパネルの小さな凡例（パネルの文字の大きさ） */
+.seat-color-legend-small {
+    gap: 0.1rem 0.5rem;
+    font-size: $font-size-xsmall;
+    /* whole pixels: the status panel is placed by its measured height (keeps it inside 600px) */
+    line-height: 0.75rem;
+    color: $color-text-muted;
+}
+
+.seat-color-legend-small .status-legend-item {
+    gap: 0.2rem;
+}
+
+/* 状況のパネルの小さな凡例: 座席の枠と同じ 1px */
+.seat-swatch-small {
+    width: 0.75rem;
+    height: 0.75rem;
+    font-size: 0.45rem;
+}
+
+.seat-swatch-empty {
+    background-color: $color-seat-empty;
+    border: 2px dashed $color-seat-empty-border;
+}
+
+.seat-swatch-small.seat-swatch-empty {
+    border-width: 1px;
+}
+
+.seat-swatch-joined {
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+}
+
+.seat-swatch-submitted {
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
+}
+
+.seat-swatch-returned {
+    background-color: $color-seat-returned;
+    color: $color-seat-returned-text;
+}
+
+.seat-swatch-not-started {
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
 }
 
 .members-legend {
@@ -1311,16 +1379,35 @@
     font-size: 0.75rem;
 }
 
+/* The seat tiles in the members tab (#1925): at most 58px wide and high so
+   that 40 seats read as one block (like the status panel); at least 36px
+   high (the number and the status icons stay readable; below that the frame
+   scrolls down). The width has no lower bound (no sideways scroll). */
+$seat-tile-max: 58px;
+$seat-tile-min: 36px;
+
 .members-grid {
     display: grid;
-    /* minmax(0, …): the lesson tiles' min-content must not widen the modal past
-       1300px and push the seat detail on the right off screen (#1603). */
-    grid-template-columns: repeat(10, minmax(0, 1fr));
+    /* The tiles set the column width (.member-cell below), so the columns are
+       as wide as the tiles and the row stays packed to the left. The tile
+       width has no lower bound, so 10 columns never widen the frame (no
+       sideways scroll on an iPad, #1925) nor the modal past 1300px (#1603). */
+    grid-template-columns: repeat(10, auto);
+    justify-content: start;
     gap: 4px;
-    margin: 0.5rem 0;
+    /* The selected seat's ring sits outside the tile: keep room so the frame
+       (overflow) does not clip it on the first row / column (#1922). */
+    padding: 4px;
+    /* No margin below: the frame's height is the tiles' height (#1925). */
+    margin: 0.25rem 0 0;
     /* The seats (up to 40) are a list: only this frame scrolls (R6 exception). */
     flex: 1 1 auto;
-    min-height: 0;
+    /* The tiles are sized from this frame's height (cqh) so that 40 seats =
+       4 rows fit on the lesson PC (1300x600, #1925). Size containment keeps
+       the frame's height from depending on the tiles; the min-height keeps
+       the frame from collapsing where the pane is not height-bound. */
+    container-type: size;
+    min-height: calc(4 * $seat-tile-min + 3 * 4px + 8px);
     overflow-y: auto;
     align-content: start;
 }
@@ -1330,10 +1417,22 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    aspect-ratio: 1;
-    /* Size the number / status icons relative to the (square) cell (#1196) */
-    container-type: inline-size;
+    /* Width: at most the max size, and narrow enough that 10 columns fit the
+       frame (no lower bound: on a narrow screen the tiles get narrower
+       rather than the frame scrolling sideways). Height: also at most the
+       width and low enough that 4 rows fit the frame's height (then the tile
+       is wider than tall), never below the min size (then the frame scrolls
+       down). 36px = 9 gaps between 10 columns, 12px = 3 gaps between
+       4 rows (#1925). The first pair is for browsers without container
+       queries (cqw / cqh), which drop the second pair. */
+    width: 58px;
+    height: 46px;
+    width: min($seat-tile-max, calc((100cqw - 36px) / 10));
+    height: max($seat-tile-min, min($seat-tile-max, calc((100cqw - 36px) / 10), calc((100cqh - 12px) / 4)));
+    /* Size the number / status icons relative to the cell (#1196). The cell's
+       size is set above, so size containment is safe and lets low tiles
+       tighten their lines (@container (max-height) below). */
+    container-type: size;
     border-radius: 4px;
     font-size: 0.8rem;
     font-weight: bold;
@@ -1343,34 +1442,38 @@
     position: relative;
 }
 
-/* Seat colors: align with the student-side seat selector so the same visual
- * mapping holds across roles — blue means "available", grey means "occupied
- * but no submission yet". Submitted / returned keep their own colors since
- * they're teacher-only states the student never sees. */
+/* 座席の色（#1926・案 A）: 生徒の番号選びと同じ意味。空いている席は白地に点線の枠、
+ * 人が来た席は色が付き、進むほど濃くなる（参加済み → 提出済み）。返却済みは淡いオレンジ。
+ * 先生はプロジェクターでこの画面を映して参加を促すので、生徒の画面と同じ見え方にする。 */
 .member-cell-joined {
-    background-color: #d9d9d9;
-    color: #555;
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
 }
 
 .member-cell-submitted {
-    background-color: #0fbd8c;
-    color: white;
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
 }
 
 .member-cell-returned {
-    background-color: #ff8c1a;
-    color: white;
+    background-color: $color-seat-returned;
+    color: $color-seat-returned-text;
 }
 
 .member-cell-empty {
-    background-color: #4c97ff;
-    color: white;
+    background-color: $color-seat-empty;
+    color: $color-seat-empty-text;
+    border: 2px dashed $color-seat-empty-border;
     cursor: default;
 }
 
-.member-cell-selected {
-    outline: 3px solid #0fbd8c;
-    outline-offset: -1px;
+/* 選んだ席とキーボードのフォーカスは、DS のフォーカスの形（主の色の 2px の線を
+   2px 外に + 淡い輪）。外に引くので、緑・オレンジ・青どの色のタイルの上でも見える（#1922）。 */
+.member-cell-selected,
+.member-cell:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
 }
 
 .member-cell-seated {
@@ -1414,7 +1517,7 @@
 }
 
 .seated-badge {
-    color: #4c97ff;
+    color: $color-action;
     font-size: 0.7rem;
     margin-left: 0.5rem;
     font-weight: bold;
@@ -1474,6 +1577,12 @@
     gap: 0.25rem;
 }
 
+.comment-label {
+    font-size: $font-size-small;
+    font-weight: bold;
+    color: #575e75;
+}
+
 .comment-input {
     width: 100%;
     min-height: 60px;
@@ -1487,8 +1596,9 @@
 }
 
 .comment-input:focus {
-    outline: none;
-    border-color: #4c97ff;
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 .return-button {
@@ -1627,6 +1737,12 @@
     font-size: 1rem;
     padding: 0.1rem 0.4rem;
     color: #575e75;
+    /* 押せる大きさは 32px 以上（#1924 C11） */
+    min-width: 2rem;
+    min-height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .refresh-button:hover {
@@ -1641,7 +1757,7 @@
 .back-link {
     background: none;
     border: none;
-    color: #4c97ff;
+    color: $color-action;
     cursor: pointer;
     font-size: 0.85rem;
     padding: 0;
@@ -1741,7 +1857,7 @@
     gap: 0.3rem;
     background: none;
     border: none;
-    color: #4c97ff;
+    color: $color-action;
     cursor: pointer;
     font-size: 0.8rem;
     padding: 0.3rem 0.5rem;
@@ -1926,7 +2042,7 @@
     margin-top: 0.5rem;
     background: none;
     border: none;
-    color: #4c97ff;
+    color: $color-action;
     font-size: 0.8rem;
     cursor: pointer;
     text-decoration: underline;
@@ -1934,7 +2050,7 @@
 }
 
 .teacher-link:hover {
-    color: #3373cc;
+    color: $membership-blue;
 }
 
 .history-select {
@@ -1953,15 +2069,16 @@
 }
 
 .history-select:focus {
-    outline: none;
-    border-color: #4c97ff;
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 .student-count-button {
     background: none;
-    border: 1px solid #4c97ff;
+    border: 1px solid $color-action;
     border-radius: 4px;
-    color: #4c97ff;
+    color: $color-action;
     font-size: inherit;
     font-weight: bold;
     padding: 0 0.3rem;
@@ -1971,7 +2088,7 @@
 }
 
 .student-count-button:hover {
-    background-color: #4c97ff;
+    background-color: $color-action;
     color: white;
 }
 
@@ -2019,7 +2136,7 @@
 }
 
 .student-count-increment {
-    background: #4c97ff;
+    background: $color-action;
     color: white;
     border: none;
     border-radius: 4px;
@@ -2034,7 +2151,7 @@
 }
 
 .student-count-increment:hover {
-    background: #3373cc;
+    background: $membership-blue;
 }
 
 .student-count-dialog-hint {
@@ -2064,13 +2181,14 @@
 }
 
 .detail-tab:hover {
-    color: #855cd6;
+    color: $color-action;
 }
 
+/* ［ストリーム］［授業］のタブ（.board-tab-active）と同じ色（#1922）。 */
 .detail-tab-active {
-    color: #855cd6;
+    color: $color-action;
     font-weight: bold;
-    border-bottom-color: #855cd6;
+    border-bottom-color: $color-action;
 }
 
 /* --- Co-teachers (shared classroom management) --- */
@@ -2145,8 +2263,9 @@
 }
 
 .co-teacher-invite-input:focus {
-    border-color: #4c97ff;
-    outline: none;
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 /* --- Assignment editor (teacher) --- */
@@ -2349,7 +2468,7 @@
 }
 
 .panel-close-button:focus-visible {
-    outline: 2px solid #4c97ff;
+    outline: 2px solid $color-action;
     outline-offset: 2px;
 }
 
@@ -2557,8 +2676,9 @@
 }
 
 .assignment-page-textarea:focus {
-    border-color: #4c97ff;
-    outline: none;
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 .assignment-page-char-count {
@@ -2617,26 +2737,15 @@
     font-size: 0.8rem;
 }
 
-.assignment-start-from-previous {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-    cursor: pointer;
-}
-
-.assignment-start-from-previous input {
-    margin-top: 0.2rem;
-}
-
-.assignment-start-from-previous-label {
+/* Label and hint of one assignment setting (peer view, mesh, lesson). */
+.assignment-option-label {
     display: block;
     color: #575e75;
     font-size: 0.9rem;
     font-weight: bold;
 }
 
-.assignment-start-from-previous-hint {
+.assignment-option-hint {
     display: block;
     color: #575e75;
     font-size: 0.8rem;
@@ -2735,23 +2844,9 @@
     word-break: break-word;
 }
 
-.assignment-footer {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.75rem;
-    margin-top: 0.75rem;
-}
-
-.assignment-footer .continue-choice {
-    flex: 1 1 auto;
-    min-width: 0;
-    margin-top: 0;
-}
-
-.assignment-footer .button-row {
-    margin-top: 0;
-    margin-left: auto;
-    white-space: nowrap;
+/* The one main button under the page (「つぎのページ」 / 「とじる」, #1793). */
+.assignment-main {
+    margin-top: 0.6rem;
 }
 
 .assignment-pager {
@@ -2794,8 +2889,9 @@
 }
 
 .group-row-name-input:focus {
-    border-color: #4c97ff;
-    outline: none;
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
 }
 
 .group-create-year-input {
@@ -2872,151 +2968,6 @@
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
-}
-
-/* --- Where to start: starter / last time's / this assignment's submission (#1201) ---
-   One horizontal row: the classroom PC is 1300x600, so the choices go side by
-   side instead of stacking (#1221). */
-
-/* "Where to start" choices (#1201). Each choice is a start action, styled as a
-   button (blue outline + bottom shadow) so it does not read as a text field or
-   an info box. "As it is" (load nothing) is the plain gray variant. */
-.continue-choice {
-    margin-top: 0.75rem;
-}
-
-.continue-choice-title {
-    color: #575e75;
-    font-size: 0.8rem;
-    font-weight: bold;
-    margin-bottom: 0.4rem;
-}
-
-.continue-choice-notice {
-    margin-left: 0.5rem;
-    color: #0b8e69;
-    font-weight: normal;
-}
-
-/* Alone (no choices to offer): no left gap to keep it aligned. */
-.continue-choice > .continue-choice-notice {
-    margin-left: 0;
-    font-size: 0.8rem;
-}
-
-.continue-choice-row {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.continue-choice-button {
-    flex: 1 1 0;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background-color: #fff;
-    color: #4c97ff;
-    border: 2px solid #4c97ff;
-    border-radius: 0.5rem;
-    box-shadow: 0 2px 0 #3373cc;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.9rem;
-    font-weight: bold;
-    text-align: left;
-    cursor: pointer;
-}
-
-.continue-choice-button:hover {
-    background-color: #e9f1fc;
-}
-
-.continue-choice-button:active {
-    box-shadow: none;
-    transform: translateY(2px);
-}
-
-.continue-choice-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.continue-choice-button[aria-pressed='true'] {
-    border-color: #0b8e69;
-    box-shadow: 0 2px 0 #0b8e69;
-    background-color: #e6f4ea;
-}
-
-/* The choice the teacher's setting recommends (#1202): filled so it stands
-   out from the others without loading anything by itself. */
-.continue-choice-recommended {
-    background-color: #4c97ff;
-    color: #fff;
-}
-
-.continue-choice-recommended:hover {
-    background-color: #3d86ed;
-}
-
-.continue-choice-recommended .continue-choice-detail {
-    color: #e9f1fc;
-}
-
-.continue-choice-badge {
-    flex: none;
-    margin-left: auto;
-    padding: 0.1rem 0.4rem;
-    border-radius: 0.75rem;
-    background-color: #fff;
-    color: #3373cc;
-    font-size: 0.7rem;
-}
-
-.continue-choice-plain {
-    color: #575e75;
-    border-color: #b8b8b8;
-    box-shadow: 0 2px 0 #8a8fa3;
-}
-
-.continue-choice-plain:hover {
-    background-color: #f0f0f0;
-}
-
-.continue-choice-icon {
-    flex: none;
-    width: 1.5rem;
-    height: 1.5rem;
-}
-
-.continue-choice-check {
-    flex: none;
-    margin-left: auto;
-    color: #0b8e69;
-    font-weight: bold;
-}
-
-.continue-choice-text {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-/* the label wraps instead of being cut: with four choices it must stay readable */
-.continue-choice-label {
-    line-height: 1.25;
-}
-
-.continue-choice-detail {
-    color: #5a8fd8;
-    font-size: 0.75rem;
-    font-weight: normal;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.continue-choice-plain .continue-choice-detail {
-    color: #8a8fa3;
 }
 
 /* --- Term-end evaluation (teacher) --- */
@@ -3140,7 +3091,7 @@
     background-color: #e9f1fc;
     border: 1px solid #b5cff5;
     border-radius: 0.4rem;
-    color: #3373cc;
+    color: $color-action;
     font-size: 0.9rem;
     padding: 0.4rem 0.75rem;
     margin-bottom: 0.75rem;
@@ -3172,6 +3123,16 @@
     padding: 0.4rem 0.5rem;
     text-align: left;
     white-space: nowrap;
+}
+
+/* 課題の列の見出しの下の行に、セルの中の 3 つの欄の名前を上から順に（R1・#1924 C5）。
+   見出しの nowrap を外して折り返すので、課題が多い表でも列が広がらない。 */
+.eval-head-fields {
+    display: block;
+    white-space: normal;
+    font-size: $font-size-small;
+    font-weight: normal;
+    color: #575e75;
 }
 
 .eval-matrix td {
@@ -3663,13 +3624,13 @@
 
 /* プライマリは評価画面と同じ青塗りに統一（#1122）。 */
 .shared-form-submit {
-    border-color: #4c97ff !important;
-    background: #4c97ff !important;
+    border-color: $color-action !important;
+    background: $color-action !important;
     color: white;
 }
 
 .shared-form-submit:hover {
-    background: #3d89f0 !important;
+    background: $membership-blue !important;
 }
 
 .shared-form-submit:disabled {
@@ -3982,7 +3943,7 @@
 
 /* プライマリ = 青塗り（評価画面に統一・#1122）。 */
 .board-create-button {
-    background: #4c97ff;
+    background: $color-action;
     color: white;
     border: none;
     border-radius: 0.5rem;
@@ -3992,7 +3953,7 @@
 }
 
 .board-create-button:hover {
-    background: #3d89f0;
+    background: $membership-blue;
 }
 
 .board-create-button:disabled {
@@ -4020,8 +3981,8 @@
 }
 
 .board-tab-active {
-    border-bottom-color: #4c97ff;
-    color: #3373cc;
+    border-bottom-color: $color-action;
+    color: $color-action;
     font-weight: bold;
 }
 
@@ -4029,7 +3990,7 @@
     margin-left: auto;
 }
 
-/* ［＋ 作成 ▾］・「…」・⋮ のドロップダウン。 */
+/* ［＋ 作成 ▾］・⋮ のドロップダウン。 */
 .board-menu {
     position: relative;
     display: inline-block;
@@ -4084,7 +4045,7 @@
     border-top: 1px solid hsla(0, 0%, 0%, 0.12);
 }
 
-/* ⋮ / … のアイコンボタン。 */
+/* ⋮ のアイコンボタン（「その他」はクラス管理のどこでも ⋮・#1925）。 */
 .board-kebab {
     width: 2rem;
     height: 2rem;
@@ -4459,6 +4420,14 @@
     min-width: 0;
 }
 
+/* クラスを作成・クラス設定の入力欄も、ほかの入力欄と同じフォーカスの形（#1922）。 */
+.class-field input:focus,
+.class-settings-co-teachers input:focus {
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
+}
+
 /* 設定画面で 4 つを 1 行に並べるとき、クラス名だけ広くする。 */
 .class-settings-row > .class-field-wide {
     flex: 2;
@@ -4756,6 +4725,26 @@
     line-height: 1;
 }
 
+.seat-button-top {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.seat-button-icon {
+    display: inline-flex;
+}
+
+/* One line, except where the locale puts a line break in the label: the
+   hiragana label is too wide for a 10-column seat on one line. */
+.seat-in-use-label {
+    font-size: 0.62rem;
+    font-weight: bold;
+    line-height: 1;
+    white-space: pre;
+    text-align: center;
+}
+
 /* --- Seat selection: number input, guide and confirmation (#1198) --- */
 
 .seat-number-form {
@@ -4774,36 +4763,110 @@
     border-radius: 6px;
 }
 
-.seat-guide {
-    margin: 0.5rem 0;
-    padding: 0.6rem 0.8rem;
+/* Heading and "Last time you were number 03" share one line so a 40-seat
+   grid still fits 1300x600 (#1796). */
+.seat-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    column-gap: 1rem;
+}
+
+.seat-heading .phase-title {
+    margin-bottom: 0;
+}
+
+.seat-previous-note {
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #b25e00;
+}
+
+/* The seat this PC joined last time: a thick glowing frame, never selected. */
+.seat-previous {
+    box-shadow:
+        0 0 0 3px #ffab19,
+        0 0 10px 3px rgba(255, 171, 25, 0.7);
+}
+
+/* Guide next to the grid: after 30 seconds without a pick, or at once when
+   the previous seat is in use (#1796). */
+.seat-idle-guide {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem 0.9rem;
     border-radius: 8px;
     background-color: #fff8e1;
-    border: 1px solid #ffcc80;
+    border: 2px solid #ffab19;
     color: #575e75;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    font-weight: bold;
     line-height: 1.5;
 }
 
-.seat-guide-idle {
-    background-color: #ffe0b2;
-    border: 2px solid #ff9800;
-    font-weight: bold;
+.seat-idle-guide-text {
+    min-width: 0;
+}
+
+.seat-guide-sample {
+    flex: 0 0 auto;
+    width: 52px;
+    cursor: default;
+}
+
+.seat-guide-sample:hover {
+    background-color: $color-seat-joined;
+    border-color: transparent;
+    color: $color-seat-joined-text;
+}
+
+/* Occupied seats glow once, slowly. With reduced motion only the frame
+   colour changes. */
+.seat-flash {
+    border-color: #ff8c1a;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .seat-guide-idle {
-        animation: seat-guide-bounce 1.2s ease-in-out infinite;
+    .seat-flash {
+        animation: seat-flash-once 2.4s ease-in-out 1;
     }
 }
 
-@keyframes seat-guide-bounce {
+@keyframes seat-flash-once {
     0%,
     100% {
-        transform: translateY(0);
+        box-shadow: 0 0 0 0 rgba(255, 140, 26, 0);
+        background-color: $color-seat-joined;
     }
     50% {
-        transform: translateY(-4px);
+        box-shadow: 0 0 12px 4px rgba(255, 140, 26, 0.8);
+        background-color: #fff1dc;
+    }
+}
+
+/* The previous seat keeps its frame while it glows. */
+@keyframes seat-flash-once-previous {
+    0%,
+    100% {
+        box-shadow:
+            0 0 0 3px #ffab19,
+            0 0 10px 3px rgba(255, 171, 25, 0.7);
+        background-color: $color-seat-joined;
+    }
+    50% {
+        box-shadow:
+            0 0 0 3px #ffab19,
+            0 0 14px 6px rgba(255, 140, 26, 0.9);
+        background-color: #fff1dc;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .seat-previous.seat-flash {
+        animation-name: seat-flash-once-previous;
     }
 }
 
@@ -4924,28 +4987,30 @@
 
 /* --- Lesson progress (#1602) --- */
 
-/* Seat tile colours of a lesson assignment: grey = not started, blue = in
-   progress, green = cleared. A seat with no student is white with a dotted
-   border, since blue now means "in progress". */
+/* Seat tile colours of a lesson assignment (#1926): the same scale as the
+   ordinary seats — empty = white with a dotted border, not started = pale grey,
+   in progress = pale blue (= joined), cleared = green with ★. */
 .lesson-seat {
     justify-content: flex-start;
-    padding-top: clamp(3px, 6cqi, 10px);
-    gap: clamp(1px, 3cqi, 5px);
+    /* The tile is at most 58px (#1925): small fixed spacing. (cqi here would
+       be the seat grid's width, not the tile's.) */
+    padding-top: 3px;
+    gap: 1px;
 }
 
 .lesson-seat-not-started {
-    background-color: #d9d9d9;
-    color: #575e75;
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
 }
 
 .lesson-seat-in-progress {
-    background-color: #4c97ff;
-    color: white;
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
 }
 
 .lesson-seat-cleared {
-    background-color: #0fbd8c;
-    color: white;
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
 }
 
 /* The seated dot is the same green as a cleared tile, so it disappears there.
@@ -4957,10 +5022,14 @@
 }
 
 .lesson-seat-not-joined {
-    background-color: #fff;
-    color: #9aa1b8;
-    border: 1.5px dashed #c8cddb;
+    background-color: $color-seat-empty;
+    color: $color-seat-empty-text;
+    border: 2px dashed $color-seat-empty-border;
     cursor: default;
+}
+
+.lesson-seat-cleared-mark {
+    line-height: 1;
 }
 
 .lesson-seat-head {
@@ -4994,6 +5063,16 @@
 
 .lesson-seat-not-started .lesson-seat-meter {
     background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* On the pale tiles a white bar disappears: draw it in the seat's text blue. */
+.lesson-seat-in-progress .lesson-seat-meter {
+    background-color: rgba(31, 63, 122, 0.15);
+}
+
+.lesson-seat-not-started .lesson-seat-meter-fill,
+.lesson-seat-in-progress .lesson-seat-meter-fill {
+    background-color: $color-seat-joined-text;
 }
 
 .lesson-seat-meter-fill {
@@ -5034,6 +5113,48 @@
     line-height: 0;
 }
 
+/* 「★ あと 1」, or「★1」on a low tile (below). */
+.lesson-seat-required-short {
+    display: none;
+}
+
+/* Low tiles (1300x600 fits 4 rows at about 40-47px high, #1925): the bar repeats
+   「できた数 / 条件の数」, so drop it and tighten the lines so the number, the
+   count and ★ の残り (as「★1」) still fit. The text stays at least
+   0.625rem (the xsmall font size token). */
+@container (max-height: 52px) {
+    .lesson-seat-meter {
+        display: none;
+    }
+
+    .lesson-seat-head .member-cell-number {
+        font-size: 0.75rem;
+    }
+
+    .lesson-seat-count {
+        font-size: $font-size-xsmall;
+        line-height: 1.2;
+        padding: 0 2px;
+    }
+
+    /* It shares the bottom line with the submission badge (bottom right):
+       the short form, started at the left, so the two do not overlap. */
+    .lesson-seat-required {
+        align-self: flex-start;
+        padding-left: 3px;
+        font-size: $font-size-xsmall;
+        line-height: 1;
+    }
+
+    .lesson-seat-required-full {
+        display: none;
+    }
+
+    .lesson-seat-required-short {
+        display: inline;
+    }
+}
+
 /* Rows of the progress table: as low as the 16px cells allow (#1767 M1). */
 .lesson-progress-table tbody td,
 .lesson-progress-table tbody th {
@@ -5057,7 +5178,7 @@
 .compact-code-value {
     font-weight: bold;
     letter-spacing: 0.05em;
-    color: #4c97ff;
+    color: $color-action;
 }
 
 .compact-code-row .join-code-action {
@@ -5325,6 +5446,8 @@
     display: inline-flex;
     align-items: center;
     gap: 2px;
+    /* The gap after the class label (ordinary assignments show no mark here, #1795). */
+    margin-left: 0.3rem;
 }
 
 .menu-lesson-mark {

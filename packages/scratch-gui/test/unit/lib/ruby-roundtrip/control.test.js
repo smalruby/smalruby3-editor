@@ -1,5 +1,7 @@
 /**
  * Unit test replacing test/integration/ruby-tab/control.test.js (basic control)
+ *
+ * Waits, loops and if/else are in control-table.test.js (both directions per row).
  */
 import dedent from 'dedent';
 import {
@@ -23,51 +25,6 @@ describe('Ruby Roundtrip: Control category blocks', () => {
             converter,
             target,
             dedent`
-            sleep(1)
-            sleep(x)
-            sleep(touching?("_edge_"))
-            10.times do
-              move(10)
-            end
-            x.times do
-              move(10)
-            end
-            touching?("_edge_").times do
-              move(10)
-            end
-            loop do
-              move(10)
-            end
-
-            if false
-            end
-            if touching?("_edge_")
-              turn_right(180)
-            end
-            if false
-            else
-            end
-            if touching?("_edge_")
-              turn_right(180)
-            else
-              move(10)
-            end
-            if touching?("_edge_")
-            else
-              move(10)
-            end
-            if touching?("_edge_")
-              turn_right(180)
-            else
-            end
-            wait until false
-            wait until touching?("_edge_")
-            until false
-              move(10)
-            end
-            until touching?("_edge_")
-              move(10)
-            end
             stop("all")
 
             stop("this script")

@@ -35,6 +35,9 @@ const ContextUtils = {
             // the numbers of `@_retN` the code already uses (issue #1725), found when first needed
             returnValueTempsInSource: null,
             literalCallIndices: {},
+            // ids of the range blocks with an end that is not a number or a value (issue #1906):
+            // `rand` does not take them, and they are left as the error of a wrong instruction
+            rangesWithWrongEnd: new Set(),
             elsifCounter: 0,
             caseCounter: 0,
             isValue: false,
@@ -106,31 +109,6 @@ const ContextUtils = {
                 fromTarget: true,
             });
         });
-    },
-
-    _countMethodCalls(node) {
-        const counts = {};
-        if (!node) return counts;
-
-        const queue = [node];
-        while (queue.length > 0) {
-            const ast = queue.shift();
-            if (!ast) continue;
-
-            if (this._prismNodeType(ast) === 'CallNode') {
-                const name = ast.name;
-                const procedure = this._lookupProcedure(name);
-                if (procedure && procedure.hasReturnValue) {
-                    counts[name] = (counts[name] || 0) + 1;
-                }
-            }
-            if (ast.compactChildNodes) {
-                ast.compactChildNodes().forEach((child) => {
-                    queue.push(child);
-                });
-            }
-        }
-        return counts;
     },
 
     _saveContext() {

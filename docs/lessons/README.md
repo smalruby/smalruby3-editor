@@ -474,7 +474,7 @@ scratch-vm には「ブロックが動いた」を知らせるイベントが無
 |------|--------|
 | ブロックの実行（opcode・引数・スレッド） | 上のフック。スレッドの最初の実行で run（1 回のスクリプトの実行）を作る。モニター用のスレッド（`thread.updateMonitor`）は除く |
 | きっかけ（ハット） | `thread.topBlock` のブロックの opcode とフィールド（`KEY_OPTION` / `BROADCAST_OPTION`） |
-| 誰がメッセージを送ったか | `event_broadcast` / `event_broadcastandwait` の実行を記録（メッセージ名 → ターゲット id）。受け取ったスクリプトの run に送り主を持つ |
+| 誰がメッセージを送ったか | `event_broadcast` / `event_broadcastandwait` / `meshV2_broadcastWithValue`（メッシュの「といっしょに送る」）の実行を記録（メッセージ名 → ターゲット id）。受け取ったスクリプトの run に送り主を持つ |
 | 言った文字 | runtime の `SAY` イベント（`say` / `think` も。空の文字は吹き出しを消すだけなので記録しない）。言った時点の変数の値も一緒に持つ |
 | 答え | runtime の `ANSWER` イベント |
 | 変数・リスト・スプライト数・コスチューム数・拡張機能 | 判定のたびに VM を読む（`takeSnapshot`）。コスチューム数は見張りを始めたときの数と比べる |
@@ -718,6 +718,7 @@ partner: {
 | `progress` | 記録の写し（起動時に localStorage から読む） |
 | `justCompletedId` | 「できた！」を出しているチャレンジ id（null なら出していない） |
 | `libraryFocusChallengeId` | レッスン表を開いたときに見せるチャレンジ（「次のチャレンジ」で開いたとき）。レッスン表はこれから見せるレッスンと次のチャレンジを決める（`lessonsLibraryFocus`）。レッスンを閉じても消さず、レッスン表が閉じるときに消す |
+| `libraryStartFocus` | レッスン表を、ウェルカムの「レッスンを始める」で開いたか。レッスン表は記録から次にやるチャレンジを決める（`startLessonsFocus`）。レッスン表が閉じるときに消す |
 
 | action / selector | 説明 |
 |------|------|
@@ -729,6 +730,7 @@ partner: {
 | `finishHint()` | 「おわり」で閉じる（次に開くときは 1 ページ目から） |
 | `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない）。`justCompletedId` をそのチャレンジにする（すでにできていても）。いま開いているチャレンジなら、ヒントの吹き出しを閉じる（ページは保つ） |
 | `dismissCompleted()` | 「できた！」を閉じる |
+| `focusLessonsLibraryStart()` | レッスン表を開いたときに、記録から次にやるチャレンジを目立たせる（ウェルカムの「レッスンを始める」）。2 つをまとめて出すのは `openLessonsLibraryToStart(dispatch)` |
 | `focusLessonsLibrary(challengeId)` / `clearLessonsLibraryFocus()` | レッスン表で見せるチャレンジを入れる / 消す（知らない id は無視）。開くのは modals の `openLessonsLibrary`。2 つをまとめて出すのは `openLessonsLibraryAt(dispatch, challengeId)` |
 | `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
@@ -805,6 +807,10 @@ partner: {
   そのレッスンの言語を選び、レッスンへスクロールして（`scrollIntoView`）薄い紫で囲み
   （`data-focused="true"`）、次のチャレンジのカードをオレンジの太い枠と右下の「次はこれ！」で目立たせる
   （`data-next="true"`・`lessons-library-challenge-next`）。メニューから開いたときは、どれも付けない。
+- **ウェルカムの「レッスンを始める」で開く**: 同じ見せ方で、記録から次にやるチャレンジに「次はこれ！」を付ける
+  （`startLessonsFocus(progress)`）。まだ何もしていなければレッスン 1 の最初のチャレンジ、途中ならいちばん最近できた
+  チャレンジを「いまのチャレンジ」として `lessonsLibraryFocus` と同じ決め方、全部できていればメニューから開いたときと同じ
+  （詳しくは [`docs/welcome/README.md`](../welcome/README.md)）。
 
   ![次のチャレンジで開いたレッスン表（1300×600）](screenshots/0305-lessons-library-next-1300x600.png)
 - **はじめての人向けの吹き出しは出さない**: 「レッスン」ボタンの下に吹き出しで誘うことはしない（どの端末でも）。
@@ -1372,6 +1378,8 @@ partner: {
 
 ## GA の計測
 
+GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム定義）は [`docs/analytics/README.md`](../analytics/README.md)。
+
 レッスン全体（課題の外もふくむ・クラスに参加していないときもふくむ）の使われ方を GA で計測する。目的は
 **人気のないコンテンツ**と**滞在の長いヒント**を見つけて見直すこと（方針は [`design.md`](design.md) の
 「GA の計測の方針」）。
@@ -1388,7 +1396,7 @@ partner: {
 
 | `action` | いつ | `label` | 項目 |
 |---|---|---|---|
-| `library_open` | レッスン表を開いた（メニュー・SP のドロワー・「ほかのチャレンジへ」・「できた！」の「次のチャレンジへ」） | `menu`（ふつうに開いた）／`next`（「次のチャレンジへ」で、いまのレッスンを見せて開いた） | — |
+| `library_open` | レッスン表を開いた（メニュー・SP のドロワー・「ほかのチャレンジへ」・「できた！」の「次のチャレンジへ」・ウェルカムの「レッスンを始める」） | `menu`（ふつうに開いた。ウェルカムから開いたときもこれ）／`next`（「次のチャレンジへ」で、いまのレッスンを見せて開いた） | — |
 | `challenge_open` | チャレンジを開いた（レッスンモードに入った。同じチャレンジを開き直しても送る） | チャレンジ id | `course_id`・`lesson_id`・`challenge_id`・`from_assignment` |
 | `challenge_complete` | 「できた！」になった（もう一度できたときも送る） | チャレンジ id | 上の 4 つ + `seconds`（チャレンジを開いてから「できた！」まで） |
 | `hint_view` | ヒントの 1 ページを見おわった（下の「ヒントの滞在時間」） | チャレンジ id | 上の 4 つ + `page`（1 から。最後の手段のページもふくむ）・`seconds` |

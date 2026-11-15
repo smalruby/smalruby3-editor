@@ -143,6 +143,18 @@ describe('TeacherAssignmentBoard — class-wide bulk download (issue #1055)', ()
     });
 });
 
+describe('TeacherAssignmentBoard — the "more" menus are all ⋮ (#1925 C9)', () => {
+    test('the header menu, a row menu and a topic heading menu show ⋮', () => {
+        const props = defaultProps();
+        props.group = { groupId: 'g1', name: '技術', year: 2026, topics: ['第1回'] };
+        props.onDownloadClassAll = jest.fn();
+        renderBoard(props);
+        expect(byTestId('classroom-board-more-menu').textContent).toBe('⋮');
+        expect(byTestId('classroom-board-row-menu-c1').textContent).toBe('⋮');
+        expect(byTestId('classroom-topic-menu-第1回').textContent).toBe('⋮');
+    });
+});
+
 describe('TeacherAssignmentBoard — share entry (#1109)', () => {
     const sharedStub = (over = {}) => ({
         shareTarget: null,

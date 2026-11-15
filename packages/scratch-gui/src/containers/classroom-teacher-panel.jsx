@@ -221,7 +221,10 @@ const ClassroomTeacherPanel = () => {
         const fit = () => {
             const el = panelRef.current;
             if (!el) return;
-            const size = { width: el.offsetWidth, height: el.offsetHeight };
+            // offsetHeight rounds 452.5px down to 452 and lets the bottom stick out by
+            // half a pixel; use the real (fractional) size instead (#1926).
+            const rect = el.getBoundingClientRect();
+            const size = { width: rect.width, height: rect.height };
             setPosition((p) => {
                 const next = keepOnScreen(p, size);
                 return next.x === p.x && next.y === p.y ? p : next;

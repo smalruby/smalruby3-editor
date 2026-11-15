@@ -364,6 +364,64 @@ describe('RubyGenerator/Data', () => {
             expect(RubyGenerator.data_deleteoflist(block)).toEqual('@my_list.delete_at(-1)\n');
         });
 
+        describe('"last" (issue #1840)', () => {
+            const blocksById = {};
+            const deleteBlock = (indexBlock, comment) => {
+                Object.keys(blocksById).forEach((id) => delete blocksById[id]);
+                blocksById[indexBlock.id] = indexBlock;
+                if (comment) RubyGenerator.cache_.comments['block-id'] = { text: comment };
+                return {
+                    id: 'block-id',
+                    opcode: 'data_deleteoflist',
+                    fields: { LIST: { id: 'list-id', value: 'my list' } },
+                    inputs: { INDEX: { block: indexBlock.id } },
+                };
+            };
+            const lengthBlock = (listId) => ({
+                id: 'length-id',
+                opcode: 'data_lengthoflist',
+                fields: { LIST: { id: listId, value: 'a list' } },
+            });
+            const integerBlock = (value) => ({
+                id: 'integer-id',
+                opcode: 'math_integer',
+                fields: { NUM: { name: 'NUM', value } },
+                shadow: true,
+            });
+
+            beforeEach(() => {
+                RubyGenerator.getBlock = jest.fn((id) => blocksById[id] || null);
+                RubyGenerator.getFieldId = jest.fn((block, name) => block.fields[name].id);
+            });
+
+            test('the length of the list is delete_at(-1)', () => {
+                const block = deleteBlock(lengthBlock('list-id'), null);
+                expect(RubyGenerator.data_deleteoflist(block)).toEqual('@my_list.delete_at(-1)\n');
+            });
+
+            test('the length of the list with the marker is delete_at(-1)', () => {
+                const block = deleteBlock(lengthBlock('list-id'), '@ruby:array:delete_at:last');
+                expect(RubyGenerator.data_deleteoflist(block)).toEqual('@my_list.delete_at(-1)\n');
+            });
+
+            test('the index 1 with the marker (the old form) is delete_at(-1)', () => {
+                const block = deleteBlock(integerBlock('1'), '@ruby:array:delete_at:last');
+                expect(RubyGenerator.data_deleteoflist(block)).toEqual('@my_list.delete_at(-1)\n');
+            });
+
+            test('another index put by the user with the marker is not delete_at(-1)', () => {
+                const block = deleteBlock(integerBlock('3'), '@ruby:array:delete_at:last');
+                RubyGenerator.valueToCode = jest.fn().mockReturnValue('3');
+                expect(RubyGenerator.data_deleteoflist(block)).toEqual('@my_list.delete_at(2)\n');
+            });
+
+            test('the length of another list is not delete_at(-1)', () => {
+                const block = deleteBlock(lengthBlock('other-list-id'), null);
+                RubyGenerator.valueToCode = jest.fn().mockReturnValue('@other.length');
+                expect(RubyGenerator.data_deleteoflist(block)).not.toEqual('@my_list.delete_at(-1)\n');
+            });
+        });
+
         test('data_deleteoflist with INDEX "random" generates delete_at(rand(...))', () => {
             const block = {
                 id: 'block-id',

@@ -4,21 +4,26 @@
  * Manages the submit-confirm flow: thumbnail capture, block screenshots,
  * project upload, and progress tracking.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import analytics from '../lib/analytics';
 import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
+import { CLASSROOM_STUDENT_EVENTS, secondsSince } from '../lib/classroom-student-analytics.js';
+import { activeNow } from '../lib/lessons/lesson-analytics.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
 import {
     clearClassroomSession,
     clearSubmissionThumbnail,
     closeClassroomModal,
+    setStudentSubmitting,
     setSubmissionStatus,
 } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
 // Server-side limit of each screenshotLabels entry (#1239).
 const MAX_SCREENSHOT_LABEL_LENGTH = 100;
+
+const noTrack = () => {};
 
 /**
  * @param {object} params - hook dependencies
@@ -35,6 +40,7 @@ const MAX_SCREENSHOT_LABEL_LENGTH = 100;
  * @param {Function} params.setPhase - phase setter
  * @param {Function} [params.targetCodeToBlocks] - converts the edited Ruby code to blocks
  *     (from RubyToBlocksConverterHOC)
+ * @param {Function} [params.track] - sends a classroom_student GA event (#1831)
  * @returns {object} submit state and handler functions
  */
 const useStudentSubmit = ({
@@ -50,9 +56,24 @@ const useStudentSubmit = ({
     setIsLoading,
     setPhase,
     targetCodeToBlocks,
+    track = noTrack,
 }) => {
+    // When the confirmation was opened (activeNow clock), for the GA seconds (#1831).
+    const openedAtRef = useRef(null);
+    const trackResult = useCallback(
+        (result) =>
+            track(CLASSROOM_STUDENT_EVENTS.SUBMIT_RESULT, {
+                result,
+                seconds: secondsSince(openedAtRef.current, activeNow()),
+            }),
+        [track],
+    );
     const [thumbnailDataUrl, setThumbnailDataUrl] = useState(null);
     const [submitProgress, setSubmitProgress] = useState(null);
+    // Sending the submission (#1795). Kept apart from the modal's isLoading,
+    // which verify-session also sets: the confirmation opened from the menu bar
+    // must not read 「提出中...」 before the student has confirmed.
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleStartSubmit = useCallback(() => {
         clearError();
@@ -68,6 +89,7 @@ const useStudentSubmit = ({
                 });
             }
         }
+        openedAtRef.current = activeNow();
         setPhase('student-submit-confirm');
     }, [vm, clearError, setPhase, classroomState.submissionThumbnail]);
 
@@ -129,6 +151,9 @@ const useStudentSubmit = ({
         if (!classroomState.sessionToken || !classroomState.classroomId) return;
         clearError();
         setIsLoading(true);
+        setIsSubmitting(true);
+        // The menu bar's button is disabled meanwhile: no second, concurrent submit.
+        dispatch(setStudentSubmitting(true));
         try {
             // Code edited in the Ruby tab is not blocks yet; submitting it as-is
             // sent a project without those blocks (#1449). Convert first, like
@@ -138,6 +163,8 @@ const useStudentSubmit = ({
                 if (!converter.result) {
                     // The HOC already opened the Ruby tab with the error; close
                     // the modal so the student can see it.
+                    trackResult('convert_error');
+                    dispatch(setStudentSubmitting(false));
                     dispatch(closeClassroomModal());
                     return;
                 }
@@ -195,7 +222,9 @@ const useStudentSubmit = ({
             // The manually picked thumbnail is consumed by this submission. Clear it so a
             // later submit auto-captures the then-current stage frame unless re-picked (#631).
             dispatch(clearSubmissionThumbnail());
-            setPhase('student-status');
+            // A big 「提出できました ✓」 (#1795); the menu bar turns green 「提出済み ✓」.
+            setPhase('student-submit-done');
+            trackResult('done');
             try {
                 analytics.event({
                     category: 'classroom',
@@ -207,6 +236,7 @@ const useStudentSubmit = ({
             }
         } catch (err) {
             setSubmitProgress(null);
+            trackResult(err.status === 401 ? 'expired' : 'error');
             if (err.status === 401) {
                 dispatch(clearClassroomSession());
                 showSessionExpiredError(translateError(intl, err, 'session'));
@@ -215,6 +245,8 @@ const useStudentSubmit = ({
             }
         } finally {
             setIsLoading(false);
+            setIsSubmitting(false);
+            dispatch(setStudentSubmitting(false));
         }
     }, [
         classroomState,
@@ -230,15 +262,20 @@ const useStudentSubmit = ({
         intl,
         setIsLoading,
         setPhase,
+        trackResult,
     ]);
 
+    // The confirmation is opened from the menu bar's 「提出する」 (#1795), so
+    // 「やめる」 goes back to the work rather than to the status view.
     const handleCancelSubmit = useCallback(() => {
-        setPhase('student-status');
-    }, [setPhase]);
+        trackResult('cancel');
+        dispatch(closeClassroomModal());
+    }, [dispatch, trackResult]);
 
     return {
         thumbnailDataUrl,
         submitProgress,
+        isSubmitting,
         handleStartSubmit,
         handleConfirmSubmit,
         handleCancelSubmit,

@@ -7,38 +7,25 @@ export default function (Generator) {
     Generator.looks_sayforsecs = function (block) {
         const message = Generator.valueToCode(block, 'MESSAGE', Generator.ORDER_NONE) || Generator.quote_('');
         const secs = Generator.valueToCode(block, 'SECS', Generator.ORDER_NONE) || '0';
-        const comment = Generator.getCommentText(block);
-        if (comment) {
-            const commentParts = comment.split(/,(?=@ruby:)/);
-            let methodName = null;
-            let argumentType = null;
-            for (const part of commentParts) {
-                if (part.startsWith('@ruby:method:')) {
-                    methodName = part.substring(13);
-                } else if (part.startsWith('@ruby:argument:1:type:')) {
-                    argumentType = part.substring(22);
+        const methodName = Generator.rubyMarkerValue(block, '@ruby:method:');
+        const argumentType = Generator.rubyMarkerValue(block, '@ruby:argument:1:type:');
+        if (methodName && ['print', 'puts', 'p'].includes(methodName) && secs === '1') {
+            let argument = message;
+            if (argumentType && (argumentType === 'Integer' || argumentType === 'Float')) {
+                if (argument.startsWith('"') && argument.endsWith('"')) {
+                    argument = argument.slice(1, -1);
+                } else if (argument.startsWith("'") && argument.endsWith("'")) {
+                    argument = argument.slice(1, -1);
                 }
             }
-
-            if (methodName && ['print', 'puts', 'p'].includes(methodName) && secs === '1') {
-                let argument = message;
-                if (argumentType && (argumentType === 'Integer' || argumentType === 'Float')) {
-                    if (argument.startsWith('"') && argument.endsWith('"')) {
-                        argument = argument.slice(1, -1);
-                    } else if (argument.startsWith("'") && argument.endsWith("'")) {
-                        argument = argument.slice(1, -1);
-                    }
-                }
-                return `${methodName}(${argument})\n`;
-            }
+            return `${methodName}(${argument})\n`;
         }
         return `say(${message}, ${secs})\n`;
     };
 
     Generator.looks_say = function (block) {
-        const sayComment = Generator.getCommentText(block);
-        if (sayComment && sayComment.startsWith('@ruby:symbol:')) {
-            const symbolName = sayComment.slice('@ruby:symbol:'.length);
+        const symbolName = Generator.rubyMarkerValue(block, '@ruby:symbol:');
+        if (symbolName !== null) {
             return `say(:${symbolName})\n`;
         }
         const message = Generator.valueToCode(block, 'MESSAGE', Generator.ORDER_NONE) || Generator.quote_('');
@@ -52,9 +39,8 @@ export default function (Generator) {
     };
 
     Generator.looks_think = function (block) {
-        const thinkComment = Generator.getCommentText(block);
-        if (thinkComment && thinkComment.startsWith('@ruby:symbol:')) {
-            const symbolName = thinkComment.slice('@ruby:symbol:'.length);
+        const symbolName = Generator.rubyMarkerValue(block, '@ruby:symbol:');
+        if (symbolName !== null) {
             return `think(:${symbolName})\n`;
         }
         const message = Generator.valueToCode(block, 'MESSAGE', Generator.ORDER_NONE) || Generator.quote_('');

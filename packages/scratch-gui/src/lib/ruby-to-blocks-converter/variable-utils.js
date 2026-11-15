@@ -479,6 +479,12 @@ const VariableUtils = {
                     // Whether the value is a String, for the string `+` (issue #1659).
                     mark(node.name, this._isStringValueNode(node.value) ? 'string' : 'notString', unit);
                 }
+            } else if (nodeType === 'MultiWriteNode') {
+                // `a, b = 1, "x"` becomes `a = 1` and `b = "x"` (issue #1814).
+                (this._multiWritePairs(node) || []).forEach(({ target, value }) => {
+                    mark(target.name, 'scalar', unit, target);
+                    mark(target.name, this._isStringValueNode(value) ? 'string' : 'notString', unit);
+                });
             } else if (
                 nodeType === 'CallNode' &&
                 LIST_ONLY_METHODS.has(String(node.name)) &&
@@ -491,9 +497,7 @@ const VariableUtils = {
                     mark(node.receiver.name, 'list', unit, node);
                 }
             }
-            if (typeof node.compactChildNodes === 'function') {
-                node.compactChildNodes().forEach((child) => queue.push([child, unit]));
-            }
+            this._childNodesOf(node).forEach((child) => queue.push([child, unit]));
         }
 
         // A local that the script outside the blocks does not use, and that its blocks use as

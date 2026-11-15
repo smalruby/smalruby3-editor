@@ -113,9 +113,20 @@ const translateError = (intl, err, context = 'general') => {
     const googleMessage = translateGoogleClassroomError(intl, err);
     if (googleMessage) return googleMessage;
 
+    // An archived assignment also answers 404 on lookup: say it has ended
+    // instead of「the join code was not found」(#1924 M1).
+    if (msg.includes('no longer active')) {
+        return intl.formatMessage({
+            defaultMessage: 'This assignment is no longer active.',
+            description: 'Error when classroom is archived',
+            id: 'gui.classroom.error.classroomInactive',
+        });
+    }
     if (context === 'join' && (status === 404 || msg.includes('Invalid join code'))) {
         return intl.formatMessage({
-            defaultMessage: 'Could not join the classroom. Please check the join code and try again.',
+            // Say what happened and what to do (#1924 C12): the code was not
+            // found, so enter the one the teacher showed again.
+            defaultMessage: 'That join code was not found. Enter the code your teacher showed you again.',
             description: 'Error when join code is invalid',
             id: 'gui.classroom.error.invalidJoinCode',
         });
@@ -134,13 +145,6 @@ const translateError = (intl, err, context = 'general') => {
             id: 'gui.classroom.error.sessionExpired',
         });
     }
-    if (msg.includes('no longer active')) {
-        return intl.formatMessage({
-            defaultMessage: 'This assignment is no longer active.',
-            description: 'Error when classroom is archived',
-            id: 'gui.classroom.error.classroomInactive',
-        });
-    }
     return (
         msg ||
         intl.formatMessage({
@@ -150,6 +154,34 @@ const translateError = (intl, err, context = 'general') => {
         })
     );
 };
+
+/**
+ * Title of the error shown when a student could not join (the join code was
+ * not found, or the class could not be looked up). Says what failed instead
+ * of「エラーが発生しました」(#1924 C12).
+ * @param {object} intl - react-intl intl object
+ * @returns {string} Localized title
+ */
+const joinErrorTitle = (intl) =>
+    intl.formatMessage({
+        defaultMessage: 'Could not join',
+        description: 'Title of the error shown when a student could not join an assignment',
+        id: 'gui.classroom.error.joinTitle',
+    });
+
+/**
+ * Title of the error shown when a joined student could not switch to another
+ * seat (「出席番号がちがう」): they are still joined, so not「参加できませんでした」
+ * (#1924 Q1).
+ * @param {object} intl - react-intl intl object
+ * @returns {string} Localized title
+ */
+const switchSeatErrorTitle = (intl) =>
+    intl.formatMessage({
+        defaultMessage: 'Could not switch seats',
+        description: 'Title of the error shown when a joined student could not switch to another seat',
+        id: 'gui.classroom.error.switchSeatTitle',
+    });
 
 /**
  * If the error represents a kick (verify-session returned 410 with
@@ -172,5 +204,5 @@ const extractKickReason = (err) => {
     };
 };
 
-export { translateError, extractKickReason };
+export { translateError, extractKickReason, joinErrorTitle, switchSeatErrorTitle };
 export default translateError;

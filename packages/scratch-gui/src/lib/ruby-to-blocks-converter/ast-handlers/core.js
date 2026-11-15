@@ -1,5 +1,7 @@
+import { Visitor } from '@ruby/prism/src/visitor.js';
 import _ from 'lodash';
 import { defineMessages } from 'react-intl';
+import { messages as converterMessages } from '../converter-errors';
 import { RubyToBlocksConverterError } from '../errors';
 import { isKnownListReceiver } from '../variable-hash-ops';
 
@@ -134,6 +136,35 @@ const CoreHandlers = {
         }
     },
 
+    /**
+     * Throw the error of a wrong instruction for a statement that has no block (`alias`, `undef`,
+     * `for`, ...): the converter has no handler for it, so it gave nothing, and was then an internal
+     * error ("invalid block: undefined") or was dropped in a block body (issue #1814).
+     * It comes after the other checks of a statement, which tell more about some of them
+     * (e.g. `"#{x}"` on a line by itself).
+     * @param {object} node - The prism node of the statement.
+     * @param {*} result - What visiting the statement gave.
+     * @param {object} [message] - The message of the error.
+     */
+    _checkStatementHasHandler(node, result, message = converterMessages.wrongInstruction) {
+        if (typeof result !== 'undefined' || this._hasOwnHandler(node)) return;
+        throw new RubyToBlocksConverterError(
+            node,
+            this._translator(message, { SOURCE: this._truncateSource(this._getSource(node)) }),
+        );
+    },
+
+    /**
+     * Whether the converter has a handler of its own for a node: the handlers that `Visitor` of
+     * `@ruby/prism` has only visit the children and give nothing.
+     * @param {object} node - A prism node.
+     * @returns {boolean} true if the converter handles the node.
+     */
+    _hasOwnHandler(node) {
+        const handlerName = `visit${this._getNodeTypeName(node)}`;
+        return typeof this[handlerName] === 'function' && this[handlerName] !== Visitor.prototype[handlerName];
+    },
+
     visitStatementsNode(node) {
         const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
         this._context.inMyBlockDefinition = false;
@@ -162,6 +193,7 @@ const CoreHandlers = {
             if (bodyKind) {
                 this._checkStatementInBody(childNode, block, bodyKind, index === node.body.length - 1);
             }
+            this._checkStatementHasHandler(childNode, block);
             if (_.isArray(block)) {
                 block.forEach((b) => {
                     blocks.push(b);
@@ -371,6 +403,48 @@ const CoreHandlers = {
      */
     _isCommandValue(value) {
         return this._isBlock(value) && !this._isValueBlock(value) && !this._isRubyBlock(value);
+    },
+
+    /**
+     * Whether a receiver or an argument is a `ruby_*` block left by a call that could not be converted,
+     * such as `foo.bar` of `say(:a, foo.bar)` (issue #1884). The receiver of an extension or of another sprite
+     * (`koshien`, `mesh`, `sprite("Cat")`, `stage`) is made as a `ruby_expression` on purpose for the
+     * converters registered on its name, so it is not one.
+     * @param {*} value - The value of the receiver or the argument.
+     * @returns {boolean} Whether the value is a `ruby_*` block no converter takes as a receiver.
+     */
+    _isUnconvertedValue(value) {
+        if (!this._isRubyBlock(value)) {
+            return false;
+        }
+        const receiverName = value.opcode === 'ruby_expression' ? this._getReceiverName(value) : null;
+        return !(receiverName && this._receiverToMethods[receiverName]);
+    },
+
+    /**
+     * Whether an operand came to nothing: it is not written (the end of `1..`), or visiting its node
+     * returned `undefined` (a node with no visitor, such as a string, a symbol or a regular expression
+     * with `#{...}`). Put in an input, it stopped the conversion with a JavaScript error
+     * (`@b == "a#{@x}"`, issue #1885).
+     * @param {object} node - The node of the operand, or null when it is not written.
+     * @param {*} value - What visiting the node returned.
+     * @returns {boolean} Whether the node is null or the value is `undefined`.
+     */
+    _isMissingOperand(node, value) {
+        return !node || typeof value === 'undefined';
+    },
+
+    /**
+     * The error of a wrong instruction on the statement that holds the node (P17).
+     * @param {object} node - The node of the expression that cannot be converted.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _wrongInstructionError(node) {
+        const source = this._truncateSource(this._getSource(this._sourceNodeForError(node)));
+        return new RubyToBlocksConverterError(
+            node,
+            this._translator(converterMessages.wrongInstruction, { SOURCE: source }),
+        );
     },
 
     /**

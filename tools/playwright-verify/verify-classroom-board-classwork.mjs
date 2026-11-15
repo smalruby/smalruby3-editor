@@ -169,7 +169,12 @@ try {
     const items = await page.$$eval('[data-testid="classroom-board-create-menu-list"] [role="menuitem"]', (els) =>
         els.map((e) => e.textContent.trim()),
     );
-    record('create menu items', items.length === 5, items.join(' / '));
+    const CREATE_MENU = ['課題', 'レッスン', '課題を再利用', 'みんなの課題からさがす', '合言葉で取り込み', 'トピック'];
+    record(
+        'create menu items',
+        items.length === CREATE_MENU.length && CREATE_MENU.every((label, i) => items[i] === label),
+        items.join(' / '),
+    );
     await shot('create-menu', '0224-board-create-menu.png');
 
     await page.locator(tid('classroom-board-create-topic')).click();

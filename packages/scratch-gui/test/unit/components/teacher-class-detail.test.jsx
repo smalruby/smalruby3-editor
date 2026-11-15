@@ -316,6 +316,18 @@ describe('TeacherClassDetail — entry tab (teacher review on #1199)', () => {
         expect(onDetailTabChange).toHaveBeenLastCalledWith('description');
     });
 
+    test('the tabs are role="tab" and only the shown one is aria-selected (#1922)', () => {
+        renderDetail({});
+        const tab = (name) => document.querySelector(`[data-testid="classroom-tab-${name}"]`);
+        expect(tab('description')).toHaveAttribute('role', 'tab');
+        expect(tab('members')).toHaveAttribute('role', 'tab');
+        expect(tab('members')).toHaveAttribute('aria-selected', 'true');
+        expect(tab('description')).toHaveAttribute('aria-selected', 'false');
+        fireEvent.click(tab('description'));
+        expect(tab('description')).toHaveAttribute('aria-selected', 'true');
+        expect(tab('members')).toHaveAttribute('aria-selected', 'false');
+    });
+
     test('reopening the assignment on screen resets the tab', () => {
         const onDetailTabChange = jest.fn();
         const props = { ...defaultProps(), onDetailTabChange, detailEntry: { tab: 'description', seq: 1 } };
@@ -334,18 +346,16 @@ describe('TeacherClassDetail — entry tab (teacher review on #1199)', () => {
     });
 });
 
-describe('TeacherClassDetail — 前回の提出物から始めさせる (#1202)', () => {
+describe('TeacherClassDetail — 前回の提出物から始めさせる (#1202 → #1825 で廃止)', () => {
     const editor = (over = {}) => ({
         editorPages: [{ text: '続きを作ろう' }],
         starterMode: 'keep',
         starterSource: null,
         hasExistingStarter: true,
         isSaving: false,
-        startFromPrevious: false,
         onAddPage: jest.fn(),
         onAttachPageImage: jest.fn(),
         onChangePageText: jest.fn(),
-        onChangeStartFromPrevious: jest.fn(),
         onMovePage: jest.fn(),
         onRemovePage: jest.fn(),
         onRemovePageImage: jest.fn(),
@@ -359,26 +369,18 @@ describe('TeacherClassDetail — 前回の提出物から始めさせる (#1202)
         renderDetail({ assignmentEditor: editor(over), detailEntry: { tab: 'description', seq: 1 } });
     const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
 
-    test('説明タブに設定のチェックボックス (既定 OFF) を出し、切り替えを伝える', () => {
-        const onChangeStartFromPrevious = jest.fn();
-        renderDescription({ onChangeStartFromPrevious });
+    test('「前回の提出物から始めさせる」の設定は出さない（#1825 で廃止）', () => {
+        renderDescription({ startFromPrevious: true, onChangePeerView: jest.fn() });
         openAdvanced();
-        const checkbox = byTestId('classroom-assignment-start-from-previous');
-        expect(checkbox).not.toBeChecked();
-        fireEvent.click(checkbox);
-        expect(onChangeStartFromPrevious).toHaveBeenCalledWith(true);
-    });
-
-    test('ON のときはチェックされ、生徒視点プレビューに「前回の提出物から続けるのがおすすめ」と出す', () => {
-        renderDescription({ startFromPrevious: true });
-        openAdvanced();
-        expect(byTestId('classroom-assignment-start-from-previous')).toBeChecked();
+        expect(byTestId('classroom-assignment-start-from-previous')).not.toBeInTheDocument();
+        expect(byTestId('classroom-assignment-advanced-summary-previous')).not.toBeInTheDocument();
+        // 保存済みの値が ON でもプレビューはスターターで始まると出す
         expect(byTestId('classroom-description-preview-start')).toHaveTextContent(
-            "continuing from last time's submission is recommended",
+            'start from the starter with a button',
         );
     });
 
-    test('OFF のときプレビューはスターター (無ければいまの作品) で始まると出す', () => {
+    test('プレビューはスターター (無ければいまの作品) で始まると出す', () => {
         renderDescription();
         expect(byTestId('classroom-description-preview-start')).toHaveTextContent(
             'start from the starter with a button',
@@ -396,12 +398,10 @@ describe('TeacherClassDetail — 他者参照 (#1208)', () => {
         starterSource: null,
         hasExistingStarter: false,
         isSaving: false,
-        startFromPrevious: false,
         peerView: 'none',
         onAddPage: jest.fn(),
         onAttachPageImage: jest.fn(),
         onChangePageText: jest.fn(),
-        onChangeStartFromPrevious: jest.fn(),
         onChangePeerView: jest.fn(),
         onMovePage: jest.fn(),
         onRemovePage: jest.fn(),
@@ -445,14 +445,12 @@ describe('TeacherClassDetail — メッシュのグループの人数 (#1257)', 
         starterSource: null,
         hasExistingStarter: false,
         isSaving: false,
-        startFromPrevious: false,
         peerView: 'none',
         meshGroupLimit: 0,
         onChangeMeshGroupLimit: jest.fn(),
         onAddPage: jest.fn(),
         onAttachPageImage: jest.fn(),
         onChangePageText: jest.fn(),
-        onChangeStartFromPrevious: jest.fn(),
         onChangePeerView: jest.fn(),
         onMovePage: jest.fn(),
         onRemovePage: jest.fn(),
@@ -497,7 +495,6 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
         starterSource: null,
         hasExistingStarter: false,
         isSaving: false,
-        startFromPrevious: false,
         peerView: 'none',
         meshGroupLimit: 6,
         onAddPage: jest.fn(),
@@ -505,7 +502,6 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
         onChangeMeshGroupLimit: jest.fn(),
         onChangePageText: jest.fn(),
         onChangePeerView: jest.fn(),
-        onChangeStartFromPrevious: jest.fn(),
         onMovePage: jest.fn(),
         onRemovePage: jest.fn(),
         onRemovePageImage: jest.fn(),
@@ -518,7 +514,12 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
     const renderDescription = (over) =>
         renderDetail({ assignmentEditor: editor(over), detailEntry: { tab: 'description', seq: 1 } });
 
-    test('D1: 全作品ダウンロードとアーカイブは「…」の中にあり、タブの行には出さない', () => {
+    test('C9: タブの行の「その他」メニューの記号は ⋮ (#1925)', () => {
+        renderDetail();
+        expect(byTestId('classroom-detail-more-menu').textContent).toBe('⋮');
+    });
+
+    test('D1: 全作品ダウンロードとアーカイブは ⋮ の中にあり、タブの行には出さない', () => {
         const onDownloadAll = jest.fn();
         const onDeleteClassroom = jest.fn();
         // jsdom has no scrollIntoView (the confirm box scrolls into view).
@@ -542,15 +543,38 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
         expect(byTestId('classroom-download-progress').textContent).toBe('2/5');
     });
 
-    test('D2: 凡例の先頭に座席の色（灰色＝参加済み・青＝まだ参加していない）を出す', () => {
+    test('D2/C6: 凡例の先頭に座席の色（空席・参加済み・提出済み ✓・返却済み ↩）を出す (#1926)', () => {
         renderDetail({ members: [] });
         const legend = byTestId('classroom-seat-color-legend');
         expect(legend).toBeInTheDocument();
-        expect(legend.textContent).toContain('Joined');
-        expect(legend.textContent).toContain('Not joined yet');
+        const kinds = Array.from(legend.querySelectorAll('[data-testid^="classroom-seat-color-legend-"]')).map((el) =>
+            el.dataset.testid.replace('classroom-seat-color-legend-', ''),
+        );
+        expect(kinds).toEqual(['empty', 'joined', 'submitted', 'returned']);
+        expect(byTestId('classroom-seat-color-legend-empty').textContent).toContain('Not joined yet');
+        expect(byTestId('classroom-seat-color-legend-joined').textContent).toContain('Joined');
+        expect(byTestId('classroom-seat-color-legend-submitted').textContent).toContain('Submitted');
+        expect(byTestId('classroom-seat-color-legend-submitted').textContent).toContain('✓');
+        expect(byTestId('classroom-seat-color-legend-returned').textContent).toContain('Returned');
+        expect(byTestId('classroom-seat-color-legend-returned').textContent).toContain('↩');
         // The seat colours come before the icon legend.
         const iconLegend = byTestId('classroom-status-legend');
         expect(legend.compareDocumentPosition(iconLegend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    test('座席の色は空席・参加済み・提出済み・返却済みで分かれる (#1926)', () => {
+        renderDetail({
+            selectedClassroom: classroom({ studentCount: 4 }),
+            members: [
+                { memberId: 'seat-01' },
+                { memberId: 'seat-02', hasSubmission: true, submissionStatus: 'submitted' },
+                { memberId: 'seat-03', hasSubmission: true, submissionStatus: 'returned' },
+                // 退室した席は空席として出す（状況のパネルと同じ判定）
+                { memberId: 'seat-04', left: true, hasSubmission: true, submissionStatus: 'submitted' },
+            ],
+        });
+        const color = (n) => byTestId(`classroom-member-seat-0${n}`).dataset.seatColor;
+        expect([1, 2, 3, 4].map(color)).toEqual(['joined', 'submitted', 'returned', 'empty']);
     });
 
     test('D3: 課題名は 1 行の入力欄で、「名前を変える」は出さない (#1388)', () => {
@@ -683,24 +707,22 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
 
     test('E2: 詳しい設定は畳まれていて、閉じたままでも現在の値が分かる', () => {
         renderDescription();
-        expect(byTestId('classroom-assignment-start-from-previous')).not.toBeInTheDocument();
         expect(byTestId('classroom-assignment-peer-view')).not.toBeInTheDocument();
         expect(byTestId('classroom-assignment-mesh-group-limit')).not.toBeInTheDocument();
         expect(byTestId('classroom-assignment-advanced-summary').textContent).toBe(
-            "From last time: No · Peer view: Don't show · Mesh: Up to 6",
+            "Peer view: Don't show · Mesh: Up to 6",
         );
 
         fireEvent.click(byTestId('classroom-assignment-advanced-toggle'));
         expect(byTestId('classroom-assignment-advanced-toggle')).toHaveAttribute('aria-expanded', 'true');
-        expect(byTestId('classroom-assignment-start-from-previous')).toBeInTheDocument();
         expect(byTestId('classroom-assignment-peer-view')).toBeInTheDocument();
         expect(byTestId('classroom-assignment-mesh-group-limit')).toBeInTheDocument();
     });
 
     test('E2: 要約は保存前の選択も反映する', () => {
-        renderDescription({ startFromPrevious: true, peerView: 'afterSubmit', meshGroupLimit: 0 });
+        renderDescription({ peerView: 'afterSubmit', meshGroupLimit: 0 });
         expect(byTestId('classroom-assignment-advanced-summary').textContent).toBe(
-            'From last time: Yes · Peer view: After submitting their own · Mesh: No limit',
+            'Peer view: After submitting their own · Mesh: No limit',
         );
     });
 
@@ -715,10 +737,9 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
 
     test('E2: 保存した値と同じなら「保存していません」も色も出さない', () => {
         renderDescription({
-            startFromPrevious: false,
             peerView: 'none',
             meshGroupLimit: 6,
-            savedSettings: { startFromPrevious: false, peerView: 'none', meshGroupLimit: 6 },
+            savedSettings: { peerView: 'none', meshGroupLimit: 6 },
         });
         expect(byTestId('classroom-assignment-advanced-unsaved')).not.toBeInTheDocument();
         expect(document.querySelector('[data-changed="true"]')).not.toBeInTheDocument();
@@ -726,18 +747,16 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
 
     test('E2: 保存した値から変えた設定だけ色を付け、「保存していません」を出す', () => {
         renderDescription({
-            startFromPrevious: false,
             peerView: 'always',
             meshGroupLimit: 6,
-            savedSettings: { startFromPrevious: false, peerView: 'none', meshGroupLimit: 6 },
+            savedSettings: { peerView: 'none', meshGroupLimit: 6 },
         });
         expect(byTestId('classroom-assignment-advanced-unsaved').textContent).toBe('Not saved yet');
         expect(byTestId('classroom-assignment-advanced-summary-peerView')).toHaveAttribute('data-changed', 'true');
-        expect(byTestId('classroom-assignment-advanced-summary-previous')).not.toHaveAttribute('data-changed');
         expect(byTestId('classroom-assignment-advanced-summary-mesh')).not.toHaveAttribute('data-changed');
         // The summary text itself is unchanged (the mark is a separate element).
         expect(byTestId('classroom-assignment-advanced-summary').textContent).toBe(
-            'From last time: No · Peer view: Anytime · Mesh: Up to 6',
+            'Peer view: Anytime · Mesh: Up to 6',
         );
     });
 
@@ -788,13 +807,32 @@ describe('TeacherClassDetail — lesson progress (#1602)', () => {
         const seat1 = document.querySelector('[data-testid="classroom-member-seat-01"]');
         expect(seat1.dataset.lessonState).toBe('inProgress');
         expect(document.querySelector('[data-testid="classroom-lesson-seat-count-1"]').textContent).toBe('1 / 3');
-        expect(document.querySelector('[data-testid="classroom-lesson-seat-required-1"]')).toBeInTheDocument();
+        const required = document.querySelector('[data-testid="classroom-lesson-seat-required-1"]');
+        // Both the long and the short (low tiles, #1925) form are in the tile;
+        // CSS shows one. Screen readers read the long one from the label.
+        expect(required.getAttribute('aria-label')).toBe('★ 1 left');
+        expect(required.querySelector('[data-testid="classroom-lesson-seat-required-full-1"]').textContent).toBe(
+            '★ 1 left',
+        );
+        expect(required.querySelector('[data-testid="classroom-lesson-seat-required-short-1"]').textContent).toBe(
+            '★1',
+        );
         expect(document.querySelector('[data-testid="classroom-lesson-seat-stuck-1"]')).toBeInTheDocument();
         expect(document.querySelector('[data-testid="classroom-member-seat-02"]').dataset.lessonState).toBe(
             'notJoined',
         );
         expect(document.querySelector('[data-testid="classroom-lesson-seat-legend"]')).toBeInTheDocument();
         expect(document.querySelector('[data-testid="classroom-seat-color-legend"]')).not.toBeInTheDocument();
+        // The lesson legend: empty → not started → in progress → cleared ★ (#1926).
+        const lessonKinds = Array.from(
+            document.querySelectorAll('[data-testid^="classroom-lesson-seat-legend-"]'),
+        ).map((el) => el.dataset.testid.replace('classroom-lesson-seat-legend-', ''));
+        expect(lessonKinds).toEqual(['empty', 'notStarted', 'inProgress', 'cleared']);
+        expect(document.querySelector('[data-testid="classroom-lesson-seat-legend-cleared"]').textContent).toContain(
+            '★',
+        );
+        // ★ only on a cleared tile.
+        expect(document.querySelector('[data-testid="classroom-lesson-seat-cleared-1"]')).not.toBeInTheDocument();
         expect(document.querySelector('[data-testid="classroom-lesson-cleared-summary"]').textContent).toContain('0');
     });
 
@@ -869,5 +907,30 @@ describe('TeacherClassDetail — lesson progress (#1602)', () => {
             'cleared',
         );
         expect(document.querySelector('[data-testid="classroom-lesson-seat-stuck-1"]')).not.toBeInTheDocument();
+    });
+});
+
+describe('TeacherClassDetail — アイコンだけのボタンに名前 (#1924 C11)', () => {
+    test('メンバータブの ↻ に「読み込み直す」の名前がある', () => {
+        renderDetail();
+        const button = document.querySelector('[data-testid="classroom-refresh"]');
+        expect(button.getAttribute('aria-label')).toBe('Reload');
+        expect(button.getAttribute('title')).toBe('Reload');
+    });
+
+    test('参加コードの ⛶ の横に「全画面」の文字を出す', () => {
+        renderDetail();
+        const button = document.querySelector('[data-testid="classroom-detail-expand-code"]');
+        expect(button.textContent).toContain('Full screen');
+    });
+});
+
+describe('TeacherClassDetail — 参加コードの全画面表示の ⛶ (#1924 Q2)', () => {
+    test('全画面表示の ⛶ にも「全画面」の文字がある', () => {
+        renderDetail();
+        fireEvent.click(document.querySelector('[data-testid="classroom-detail-expand-code"]'));
+        const button = document.querySelector('[data-testid="classroom-code-display-expand"]');
+        expect(button).not.toBeNull();
+        expect(button.textContent).toContain('Full screen');
     });
 });

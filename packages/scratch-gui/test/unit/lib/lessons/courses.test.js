@@ -19,6 +19,7 @@ import {
     challengeCodeCandidates,
     challengeCodeFor,
     challengeQuiz,
+    courseSize,
     findLesson,
     localizeCode,
     validateQuiz,
@@ -1139,5 +1140,16 @@ describe('lesson courses', () => {
             .filter((challenge) => !hasAnswerProgram(challenge))
             .map((challenge) => challenge.id);
         expect(missing).toEqual([]);
+    });
+});
+
+describe('courseSize (#1888)', () => {
+    test('counts the lessons and the challenges of a course from its data', () => {
+        const course = findCourse('kyou-kara-programmer');
+        expect(courseSize(course)).toEqual({
+            lessonCount: course.lessons.length,
+            challengeCount: course.lessons.reduce((sum, lesson) => sum + lesson.challenges.length, 0),
+        });
+        expect(courseSize(course)).toEqual({ lessonCount: 3, challengeCount: 11 });
     });
 });

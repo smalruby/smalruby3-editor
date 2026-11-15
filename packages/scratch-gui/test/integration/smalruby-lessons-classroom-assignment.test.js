@@ -171,9 +171,9 @@ describe('Lessons in classroom assignments (stage 2)', () => {
         await clickByTestId('classroom-confirm-seat');
 
         // 「はじめる」 of a lesson assignment (no records on this device, so no confirmation).
-        await waitForTestId('classroom-joined-start-lesson', 'the lesson start button did not appear', 15000);
+        await waitForTestId('classroom-start-main', 'the lesson start button did not appear', 15000);
         await driver.sleep(500);
-        await clickByTestId('classroom-joined-start-lesson');
+        await clickByTestId('classroom-start-main');
         await waitForTestId('lessons-library');
         await waitForTestId('lesson-assignment-band');
         const shown = await driver.executeScript(`

@@ -99,11 +99,14 @@ active 状態は `[data-active="true"]` 属性で表現される。
 | `mobile-drawer-turbo-mode`                 | button   | ターボモード on/off                                     |
 | `mobile-drawer-classroom`                  | button   | 生徒モードでクラスルーム参加                            |
 | `mobile-drawer-mesh`                       | button   | Mesh v2 接続                                             |
+| `mobile-drawer-mesh-status`                | button   | メッシュの状態と履歴のウィンドウを開く (meshV2 ロード時) |
 | `mobile-drawer-classroom-management`       | button   | クラス管理 (教師モード)                                 |
 | `mobile-drawer-toggle-${key}`              | button   | アコーディオン開閉 (`language` / `ruby-version` など)    |
 | `mobile-drawer-locale-${code}`             | button   | locale 選択 (`ja` / `ja-Hira` / `en` ほか)               |
 | `mobile-drawer-ruby-version-${version}`    | button   | Ruby version 切替 (`1` / `2`)                            |
 | `mobile-drawer-switch-to-desktop`          | button   | PC モードに切り替える (表示モードを desktop に固定, #865) |
+
+クラスに参加中は、ドロワーのいちばん上に「提出する」(`classroom-menu-submit`・`data-placement="drawer"`) が出る（定義は [`docs/classroom/testing.md`](../classroom/testing.md) の「メニューバー」）。
 
 ### 3.3 MobileModeNotice (`mobile-mode-notice.jsx`)
 

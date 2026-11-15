@@ -75,6 +75,8 @@ ruby-toolbar 上部のセグメントで切替：
 | `packages/scratch-gui/src/lib/ruby-to-blocks-converter/` | Ruby AST → Scratch ブロックデータへの変換（`@ruby/prism` AST を walk）|
 | `packages/scratch-gui/src/lib/ruby-generator/` | Scratch ブロック → Ruby コード生成（拡張機能ごとに `motion.js`, `looks.js` などのジェネレータ）|
 
+Scratch に無い Ruby の考え方（ローカル変数・戻り値・ハッシュ・class など）を、どのブロック・名前・注釈 `@ruby:*` で表すかは [`bridging-patterns.md`](bridging-patterns.md) にまとめてある。
+
 #### Ruby パーサー
 
 | ファイル | 役割 |
@@ -271,6 +273,7 @@ debounceMs = Math.max(50, lastRenderMs * 2);
 - [`docs/dncl/`](../dncl/) — 日本語プログラミングモード
 - [`docs/rubytee/`](../rubytee/) — ルビティー（「生成AI に相談」の［ルビティーにまかせる］）
 - [`docs/smalruby-language-spec.ja.md`](../smalruby-language-spec.ja.md) — Smalruby Ruby 言語仕様
+- [`bridging-patterns.md`](bridging-patterns.md) — Ruby → Scratch 橋渡しパターン集（Ruby の考え方をブロックと注釈 `@ruby:*` でどう表すか。変換器・生成器を直す人向け）
 - [`docs/smalruby-language-spec-extensions.ja.md`](../smalruby-language-spec-extensions.ja.md) — 拡張機能の Ruby 表現
 - [`docs/smalruby-language-spec-v1-diff.ja.md`](../smalruby-language-spec-v1-diff.ja.md) — Ruby v1 と v2 の差分
 - `.claude/rules/scratch-gui/ruby-mode.md` — Ruby モード開発ルール

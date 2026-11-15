@@ -24,7 +24,9 @@ const CustomProcedures = props => {
         <Modal
             className={styles.modalContent}
             contentLabel={intl.formatMessage(messages.myblockModalTitle)}
+            // === Smalruby: Start of upstream warning fixes ===
             id="customProceduresModal"
+            // === Smalruby: End of upstream warning fixes ===
             onRequestClose={props.onCancel}
         >
             <Box

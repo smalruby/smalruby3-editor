@@ -139,3 +139,44 @@ describe('TeacherMemberDetail — レッスンの詳細 (#1603)', () => {
         expect(byTestId('classroom-member-lesson-detail')).toBeInTheDocument();
     });
 });
+
+describe('TeacherMemberDetail — ［削除］と提出時刻 (#1919)', () => {
+    test('［削除］を押すと、選んでいるメンバーの ID を渡す（クリックのイベントではなく）', () => {
+        const onDeleteMember = jest.fn();
+        renderDetail(member(), { onDeleteMember });
+        fireEvent.click(byTestId('classroom-member-remove'));
+        expect(onDeleteMember).toHaveBeenCalledTimes(1);
+        expect(onDeleteMember).toHaveBeenCalledWith('seat-3');
+    });
+
+    test('提出時刻は日付つきで出す', () => {
+        const iso = '2026-10-26T01:00:00.000Z';
+        renderDetail(member({ submittedAt: iso }));
+        const badge = byTestId('classroom-member-detail-submitted');
+        const date = new Date(iso).toLocaleDateString('en', { month: 'numeric', day: 'numeric' });
+        expect(badge.textContent).toContain(date);
+    });
+
+    test.each([undefined, null, '', 'not-a-date'])(
+        '提出時刻が無い・読めないとき (%p) は時刻を出さない',
+        (submittedAt) => {
+            renderDetail(member({ submittedAt }));
+            const badge = byTestId('classroom-member-detail-submitted');
+            expect(badge).toBeInTheDocument();
+            expect(badge.textContent).not.toContain('Invalid Date');
+            expect(badge.textContent).not.toMatch(/1970/);
+            expect(badge.textContent.trim()).toBe('');
+        },
+    );
+});
+
+describe('TeacherMemberDetail — コメント欄のラベル (#1924 C5・R1)', () => {
+    test('コメント欄の上に見えるラベルがあり、欄と結び付いている', () => {
+        renderDetail(member());
+        const input = byTestId('classroom-member-detail-comment');
+        const label = byTestId('classroom-member-detail-comment-label');
+        expect(label.textContent).toBe('Comment to the student (sent when you return it)');
+        expect(label.getAttribute('for')).toBe(input.id);
+        expect(input.getAttribute('placeholder')).toBeFalsy();
+    });
+});

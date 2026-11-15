@@ -52,7 +52,10 @@ import {
     // === Smalruby: End of welcome tooltip ===
 } from '../../reducers/modals';
 import {
-    setDomain as setMeshV2Domain
+    setDomain as setMeshV2Domain,
+    // === Smalruby: Start of mesh status popup ===
+    openMeshV2StatusPopup
+    // === Smalruby: End of mesh status popup ===
 } from '../../reducers/mesh-v2';
 import {setConnectionModalExtensionId} from '../../reducers/connection-modal';
 import {openBlockDisplayModal} from '../../reducers/block-display';
@@ -126,6 +129,7 @@ import {isFirmwareFlashSupported} from '../../lib/smalrubot-firmware-flasher';
 import {openClassroomModal} from '../../reducers/classroom';
 import {isClassroomConfigured} from '../../lib/classroom-api';
 import ClassroomMenuStatus from '../classroom-modal/classroom-menu-status.jsx';
+import ClassroomMenuSubmitButton from '../classroom-modal/classroom-menu-submit-button.jsx';
 import ClassroomTeacherMenu from '../../containers/classroom-teacher-menu.jsx';
 // === Smalruby: End of classroom button ===
 import collectMetadata from '../../lib/collect-metadata';
@@ -667,8 +671,11 @@ class MenuBar extends React.Component {
                 {/* === Smalruby: Start of welcome tooltip === */}
                 {/* The balloon sits just left of "?", where the teacher menu is
                     while a teacher is logged in (#1299). It stays hidden in lesson
-                    mode, where it would cover the lesson task bar (#1498). */}
-                {this.props.classroomTeacherLoggedIn || this.props.lessonModeActive ? null : (
+                    mode, where it would cover the lesson task bar (#1498), and while
+                    a student is in a class, where it would cover 「提出する」 (#1795). */}
+                {this.props.classroomTeacherLoggedIn ||
+                this.props.lessonModeActive ||
+                (this.props.classroomClassName && this.props.classroomSeatNumber) ? null : (
                     <WelcomeTooltip onClick={this.handleClickWelcomeTooltip} />
                 )}
                 {/* === Smalruby: End of welcome tooltip === */}
@@ -1229,6 +1236,18 @@ class MenuBar extends React.Component {
                                                     meshV2Status.message
                                                 )}
                                             </MenuItem>
+                                            {/* === Smalruby: Start of mesh status popup === */}
+                                            <MenuItem
+                                                data-testid="menu-bar-mesh-status"
+                                                onClick={this.props.onOpenMeshV2StatusPopup}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Show status and history"
+                                                    description="Mesh menu item that opens the mesh status window"
+                                                    id="gui.menuBar.meshV2Status"
+                                                />
+                                            </MenuItem>
+                                            {/* === Smalruby: End of mesh status popup === */}
                                         </MenuSection>
                                     </MenuBarMenu>
                                 </div>
@@ -1315,12 +1334,14 @@ class MenuBar extends React.Component {
                                     {this.props.classroomClassName && this.props.classroomSeatNumber ? (
                                         <span
                                             data-testid="classroom-menu-submission-status"
-                                            style={{display: 'inline-flex', marginLeft: '0.3rem'}}
+                                            style={{display: 'inline-flex'}}
                                         >
                                             <ClassroomMenuStatus />
                                         </span>
                                     ) : null}
                                 </div>
+                                {/* The always-visible submit entry while joined (#1795). */}
+                                <ClassroomMenuSubmitButton />
                             </React.Fragment>
                         )}
                         {/* === Smalruby: End of classroom button === */}
@@ -1804,6 +1825,9 @@ MenuBar.propTypes = {
     onActivateRubyTab: PropTypes.func,
     onShowWelcomeModal: PropTypes.func, // === Smalruby: welcome tooltip ===
     onClickMeshV2: PropTypes.func,
+    // === Smalruby: Start of mesh status popup ===
+    onOpenMeshV2StatusPopup: PropTypes.func,
+    // === Smalruby: End of mesh status popup ===
     onClickSmalrubotS1: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onClickMode: PropTypes.func,
     onClickNew: PropTypes.func,
@@ -1963,6 +1987,12 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     onRequestCloseKoshien: () => dispatch(closeKoshienMenu()),
     onClickMeshV2: () => dispatch(openMeshV2Menu()),
     onRequestCloseMeshV2: () => dispatch(closeMeshV2Menu()),
+    // === Smalruby: Start of mesh status popup ===
+    onOpenMeshV2StatusPopup: () => {
+        dispatch(closeMeshV2Menu());
+        dispatch(openMeshV2StatusPopup());
+    },
+    // === Smalruby: End of mesh status popup ===
     // === Smalruby: Start of smalrubot firmware menu ===
     onClickSmalrubotS1: () => dispatch(openSmalrubotS1Menu()),
     onRequestCloseSmalrubotS1: () => dispatch(closeSmalrubotS1Menu()),

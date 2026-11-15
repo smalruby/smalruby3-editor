@@ -32,6 +32,7 @@ const DISMISS_COMPLETED = 'scratch-gui/lesson-mode/DISMISS_COMPLETED';
 const HIDE_COMPLETED = 'scratch-gui/lesson-mode/HIDE_COMPLETED';
 const SHOW_COMPLETED = 'scratch-gui/lesson-mode/SHOW_COMPLETED';
 const FOCUS_LESSONS_LIBRARY = 'scratch-gui/lesson-mode/FOCUS_LESSONS_LIBRARY';
+const FOCUS_LESSONS_LIBRARY_START = 'scratch-gui/lesson-mode/FOCUS_LESSONS_LIBRARY_START';
 const CLEAR_LESSONS_LIBRARY_FOCUS = 'scratch-gui/lesson-mode/CLEAR_LESSONS_LIBRARY_FOCUS';
 const SET_LIBRARY_ASSIGNMENT_ONLY = 'scratch-gui/lesson-mode/SET_LIBRARY_ASSIGNMENT_ONLY';
 // チュートリアルのカードを開く action（reducers/cards.js の ACTIVATE_DECK）。カードの
@@ -87,6 +88,9 @@ const initialState = {
     // レッスン表は、これが入っているレッスンへスクロールし、次のまだできていないチャレンジを
     // 目立たせる（lessonsLibraryFocus）。レッスンを閉じても消さない（レッスン表が閉じるときに消す）
     libraryFocusChallengeId: null,
+    // レッスン表を、ウェルカムの「レッスンを始める」で開いたか（#1888）。レッスン表は、記録から次にやる
+    // チャレンジを決めて目立たせる（lesson-progress.js の startLessonsFocus）。レッスン表が閉じるときに消す
+    libraryStartFocus: false,
     // レッスン表を、クラスの課題のチャレンジだけで開くか（「はじめる」「レッスンを続ける」・#1599）。
     // メニューの「レッスン」から開くときは false（コース全体＋課題の帯）。レッスン表が閉じるときに消す
     libraryAssignmentOnly: false,
@@ -207,10 +211,12 @@ const reducer = function (state, action) {
                 return state;
             }
             return { ...state, libraryFocusChallengeId: action.challengeId };
+        case FOCUS_LESSONS_LIBRARY_START:
+            return state.libraryStartFocus ? state : { ...state, libraryStartFocus: true };
         case CLEAR_LESSONS_LIBRARY_FOCUS:
-            return state.libraryFocusChallengeId === null && !state.libraryAssignmentOnly
+            return state.libraryFocusChallengeId === null && !state.libraryAssignmentOnly && !state.libraryStartFocus
                 ? state
-                : { ...state, libraryFocusChallengeId: null, libraryAssignmentOnly: false };
+                : { ...state, libraryFocusChallengeId: null, libraryAssignmentOnly: false, libraryStartFocus: false };
         case SET_LIBRARY_ASSIGNMENT_ONLY:
             return state.libraryAssignmentOnly === Boolean(action.assignmentOnly)
                 ? state
@@ -314,6 +320,14 @@ const showCompleted = () => ({ type: SHOW_COMPLETED });
  */
 const focusLessonsLibrary = (challengeId) => ({ type: FOCUS_LESSONS_LIBRARY, challengeId });
 
+/**
+ * レッスン表を開いたときに、記録から次にやるチャレンジを決めて目立たせる（ウェルカムの
+ * 「レッスンを始める」・#1888。見せ方は「次のチャレンジ」と同じ）。開くのは modals の openLessonsLibrary
+ * （まとめて出すときは lib/lessons/open-lessons-library.js の openLessonsLibraryToStart）。
+ * @returns {object} action。
+ */
+const focusLessonsLibraryStart = () => ({ type: FOCUS_LESSONS_LIBRARY_START });
+
 /** レッスン表を閉じたとき、見せるチャレンジと課題だけの表示を消す（次にメニューから開いたときは先頭から）。 */
 const clearLessonsLibraryFocus = () => ({ type: CLEAR_LESSONS_LIBRARY_FOCUS });
 
@@ -408,6 +422,7 @@ export {
     hideCompleted,
     showCompleted,
     focusLessonsLibrary,
+    focusLessonsLibraryStart,
     clearLessonsLibraryFocus,
     setLibraryAssignmentOnly,
     isLessonMode,

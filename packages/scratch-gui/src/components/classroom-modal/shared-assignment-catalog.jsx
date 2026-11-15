@@ -442,7 +442,9 @@ const SharedAssignmentCatalog = ({ group, isLoading, shared }) => {
                     className={classNames(styles.detailTab, {
                         [styles.detailTabActive]: shared.catalogTab === 'all',
                     })}
+                    aria-selected={shared.catalogTab === 'all'}
                     data-testid="shared-catalog-tab-all"
+                    role="tab"
                     type="button"
                     onClick={handleTabAll}
                 >
@@ -456,7 +458,9 @@ const SharedAssignmentCatalog = ({ group, isLoading, shared }) => {
                     className={classNames(styles.detailTab, {
                         [styles.detailTabActive]: shared.catalogTab === 'mine',
                     })}
+                    aria-selected={shared.catalogTab === 'mine'}
                     data-testid="shared-catalog-tab-mine"
+                    role="tab"
                     type="button"
                     onClick={handleTabMine}
                 >

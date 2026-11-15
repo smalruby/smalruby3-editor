@@ -1,0 +1,347 @@
+@import '../../css/smalruby-tokens.css';
+
+/* A movable window, not a modal: the project keeps running and stays clickable.
+   Below the menu-bar menus and modals (the connection modal can be opened from here),
+   above the stage and monitors. In full-screen stage mode it goes above the stage overlay.
+   The frame is the floating panel of the design system (docs/design-system/components/modal.md:
+   the tutorial card's border, shadow and corners). */
+.popup {
+    position: fixed;
+    z-index: $z-index-tooltip; /* just below $z-index-menu-bar */
+    display: flex;
+    flex-direction: column;
+    width: 320px;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+    background-color: $color-surface;
+    border: 1px solid $ui-tertiary;
+    border-radius: 0.75rem;
+    box-shadow: 0 5px 25px 5px $ui-black-transparent;
+    color: $color-text;
+    font-size: $font-size-dialog;
+    overflow: hidden;
+}
+
+/* The window itself only takes the focus programmatically (tabIndex -1) to pass it on;
+   it is not in the tab order, so no ring around the whole window. */
+.popup:focus {
+    outline: none;
+}
+
+.above-stage {
+    z-index: $z-index-context-menu; /* above the full-screen stage overlay */
+}
+
+/* Mesh is a "connect" screen: dark green header like the connection modal.
+   White text on it is 4.1:1, so the title is bold 1.2rem (WCAG large text) and
+   nothing small is put in the header. */
+.header {
+    display: flex;
+    align-items: center;
+    gap: $space-medium;
+    padding: $space-small $space-small $space-small 0.75rem;
+    background-color: $extensions-tertiary;
+    color: $ui-white;
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+}
+
+.header-icon {
+    width: 20px;
+    height: 20px;
+    background-color: $ui-white;
+    border-radius: $radius-small;
+}
+
+.title {
+    flex: 1;
+    font-size: 1.2rem;
+    font-weight: $font-weight-bold;
+}
+
+.close-button {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: $radius-round;
+    background: transparent;
+    color: $ui-white;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.close-button:hover {
+    background-color: $ui-black-transparent;
+}
+
+/* On the dark green header the focus line is white. */
+.close-button:focus-visible {
+    outline: 2px solid $ui-white;
+    outline-offset: -2px;
+}
+
+/* Tabs: the editor tabs' form (white selected tab, purple text, pale blue hover). */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid $color-border;
+    background-color: $ui-tertiary;
+}
+
+.tab {
+    flex: 1;
+    min-height: 36px;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    /* Not the muted grey: unselected tab text needs 4.5:1 on the pale tab strip. */
+    color: $color-text;
+    font-size: $font-size-dialog;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+}
+
+.tab:hover {
+    background-color: $color-background;
+}
+
+/* Selected: white and purple, with a purple line so it is not told by colour alone. */
+.tab-active,
+.tab-active:hover {
+    border-bottom-color: $color-primary;
+    background-color: $color-surface;
+    color: $color-primary;
+}
+
+/* Inside the window (overflow hidden), so the line is drawn inward. */
+.tab:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: -2px;
+}
+
+.badge {
+    display: inline-block;
+    min-width: 1.25rem;
+    margin-left: $space-small;
+    padding: 0 $space-small;
+    border-radius: 999px;
+    background-color: $color-primary;
+    color: $ui-white;
+    font-size: 0.6875rem;
+    line-height: 1.25rem;
+}
+
+.body {
+    overflow-y: auto;
+    background-color: $color-surface;
+}
+
+.tab-body {
+    padding: $space-medium 0.75rem 0.75rem;
+}
+
+.summary {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: $space-small 0.75rem;
+    margin: 0;
+}
+
+.summary dt {
+    color: $color-text-muted;
+}
+
+.summary dd {
+    margin: 0;
+    font-weight: $font-weight-bold;
+    overflow-wrap: anywhere;
+}
+
+.dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: $radius-round;
+    background-color: $color-border;
+    vertical-align: middle;
+}
+
+/* Connected: the success green of the connection modal's progress dots (next to text). */
+.dot-on {
+    background-color: $pen-primary;
+}
+
+/* Buttons: the design system's primary (purple) and secondary forms.
+   No hover look, like the upstream dialog buttons. */
+.connect-button,
+.expand-button {
+    min-height: 36px;
+    margin-top: $space-medium;
+    padding: 0 1rem;
+    border-radius: $radius-small;
+    font-size: $font-size-dialog;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+}
+
+.connect-button {
+    background-color: $color-primary;
+    border: 1px solid $color-primary;
+    color: $ui-white;
+}
+
+.connect-button:active {
+    background-color: $color-primary-dark;
+    border-color: $color-primary-dark;
+}
+
+.expand-button {
+    width: 100%;
+    background-color: $color-surface;
+    border: 1px solid $color-border;
+    color: $color-text;
+}
+
+.expand-button:active {
+    background-color: $color-background;
+}
+
+.connect-button:focus-visible,
+.expand-button:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+}
+
+.nodes {
+    margin: $space-medium 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.node {
+    margin-top: 6px;
+    padding: 6px $space-medium;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+}
+
+.node-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: $space-medium;
+}
+
+.node-label {
+    font-weight: $font-weight-bold;
+}
+
+.node-time,
+.history-time {
+    color: $color-text-muted;
+    font-size: $font-size-small;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.variables {
+    width: 100%;
+    margin-top: $space-small;
+    border-collapse: collapse;
+}
+
+.variables th,
+.variables td {
+    padding: 2px $space-small;
+    border-top: 1px solid $ui-black-transparent-10;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-all;
+}
+
+.variables th {
+    width: 40%;
+    font-weight: normal;
+    color: $color-text-muted;
+}
+
+.muted {
+    color: $color-text-muted;
+}
+
+.history {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.history-item {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas:
+        'time direction who'
+        'name name name'
+        'value value value';
+    gap: 2px 6px;
+    padding: 6px 0;
+    border-bottom: 1px solid $ui-black-transparent-10;
+}
+
+.history-time {
+    grid-area: time;
+}
+
+/* 送った / 受け取った: text in the body colour on the info / warning alert colours
+   (coloured text on a pale ground is hard to read; the word tells the direction). */
+.direction {
+    grid-area: direction;
+    padding: 0 6px;
+    border: 1px solid transparent;
+    border-radius: $radius-small;
+    color: $color-text;
+    font-size: 0.6875rem;
+    font-weight: $font-weight-bold;
+    line-height: 1.125rem;
+}
+
+.sent {
+    background-color: $color-info-background;
+    border-color: $color-info;
+}
+
+.received {
+    background-color: $color-warning-background;
+    border-color: $color-warning;
+}
+
+.history-who {
+    grid-area: who;
+    font-weight: $font-weight-bold;
+}
+
+.history-name {
+    grid-area: name;
+    font-weight: $font-weight-bold;
+    word-break: break-all;
+}
+
+.history-value {
+    grid-area: value;
+    word-break: break-all;
+    white-space: pre-wrap;
+    max-height: 4.5em;
+    overflow-y: auto;
+}
+
+/* 練習相手が動いているしるし (#1845)。ボタンの「練習」の札と同じ紫 */
+.practice-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-left: $space-small;
+    border-radius: $radius-round;
+    background-color: $color-primary;
+    vertical-align: middle;
+}

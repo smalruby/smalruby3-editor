@@ -5,6 +5,7 @@ import reducer, {
     setClassroomSession,
     clearClassroomSession,
     setSubmissionStatus,
+    setStudentSubmitting,
     setSubmissionThumbnail,
     clearSubmissionThumbnail,
     setTeacherSelection,
@@ -32,6 +33,9 @@ import reducer, {
     requestStudentSubmit,
     clearStudentSubmitRequest,
     selectStudentLesson,
+    markStudentProjectLoaded,
+    setSubmitReminderVisible,
+    dismissSubmitReminder,
 } from '../../../src/reducers/classroom';
 
 const STORAGE_KEY = 'smalruby:classroom';
@@ -136,6 +140,21 @@ describe('classroom reducer', () => {
         const state = reducer(withSubmission, clearClassroomSession());
         expect(state.submissionStatus).toBeNull();
         expect(state.lastSubmittedAt).toBeNull();
+    });
+
+    // #1795: the server says there is no submission (another seat holder, a new device).
+    test('SET_SUBMISSION_STATUS with null clears the submitted time too', () => {
+        const submitted = reducer(classroomInitialState, setSubmissionStatus('submitted', '2026-04-04T10:00:00Z'));
+        const state = reducer(submitted, setSubmissionStatus(null, null));
+        expect(state.submissionStatus).toBeNull();
+        expect(state.lastSubmittedAt).toBeNull();
+    });
+
+    test('SET_STUDENT_SUBMITTING toggles studentSubmitting, CLEAR_SESSION resets it (#1795)', () => {
+        const on = reducer(classroomInitialState, setStudentSubmitting(true));
+        expect(on.studentSubmitting).toBe(true);
+        expect(reducer(on, setStudentSubmitting(false)).studentSubmitting).toBe(false);
+        expect(reducer(on, clearClassroomSession()).studentSubmitting).toBe(false);
     });
 
     describe('submission thumbnail', () => {
@@ -712,12 +731,122 @@ describe('classroom reducer', () => {
             expect(reducer(state, setStudentLesson(null)).studentLesson).toBeNull();
         });
 
+        test('joining another class drops the previous submission status; rejoining the same keeps it (#1792)', () => {
+            let state = reducer(classroomInitialState, setClassroomSession(session));
+            state = reducer(state, setSubmissionStatus('submitted', '2026-11-13T10:00:00.000Z'));
+            const other = reducer(state, setClassroomSession({ ...session, classroomId: 'other' }));
+            expect(other.submissionStatus).toBeNull();
+            expect(other.lastSubmittedAt).toBeNull();
+            expect(reducer(state, setClassroomSession(session)).submissionStatus).toBe('submitted');
+        });
+
         test('requestStudentSubmit opens the modal and is consumed once', () => {
             let state = reducer(classroomInitialState, requestStudentSubmit());
             expect(state.modalVisible).toBe(true);
             expect(state.studentSubmitRequested).toBe(true);
             state = reducer(state, clearStudentSubmitRequest());
             expect(state.studentSubmitRequested).toBe(false);
+        });
+
+        test('requestStudentSubmit keeps where it was pressed until consumed (GA, #1831)', () => {
+            let state = reducer(classroomInitialState, requestStudentSubmit('drawer'));
+            expect(state.studentSubmitFrom).toBe('drawer');
+            state = reducer(state, clearStudentSubmitRequest());
+            expect(state.studentSubmitFrom).toBeNull();
+            expect(reducer(classroomInitialState, requestStudentSubmit()).studentSubmitFrom).toBeNull();
+        });
+    });
+    describe('このタブで開いた作品の出どころ (#1825)', () => {
+        const student = {
+            role: 'student',
+            classroomId: 'class-123',
+            className: '2年A組',
+            joinCode: 'ABC234',
+            seatNumber: 5,
+            memberId: 'seat-05',
+            sessionToken: 'token-abc',
+        };
+
+        test('既定は新しい作品で、読み込んだ提出物も無い', () => {
+            expect(classroomInitialState.projectFromOutside).toBe(false);
+            expect(classroomInitialState.studentLoadedSubmission).toBeNull();
+        });
+
+        test('ファイル・ID・Google ドライブから開くと「外から開いた」、新しい作品で元に戻る', () => {
+            for (const type of [
+                'scratch-gui/project-state/START_LOADING_VM_FILE_UPLOAD',
+                'scratch-gui/project-state/DONE_FETCHING_WITH_ID',
+                'googleDriveFile/SET_GOOGLE_DRIVE_FILE',
+            ]) {
+                const opened = reducer(classroomInitialState, { type });
+                expect(opened.projectFromOutside).toBe(true);
+                expect(
+                    reducer(opened, { type: 'scratch-gui/project-state/DONE_FETCHING_DEFAULT' }).projectFromOutside,
+                ).toBe(false);
+            }
+        });
+
+        test('クラスから読み込むと外から開いた扱いになり、この課題の提出物ならキーを覚える', () => {
+            let state = reducer(classroomInitialState, markStudentProjectLoaded());
+            expect(state.projectFromOutside).toBe(true);
+            expect(state.studentLoadedSubmission).toBeNull();
+            state = reducer(state, markStudentProjectLoaded('class-123:2026-11-10T01:00:00.000Z'));
+            expect(state.studentLoadedSubmission).toBe('class-123:2026-11-10T01:00:00.000Z');
+            // スターターを読み込んでも、覚えた提出物は消えない
+            state = reducer(state, markStudentProjectLoaded());
+            expect(state.studentLoadedSubmission).toBe('class-123:2026-11-10T01:00:00.000Z');
+        });
+
+        test('別のクラスに入る・クラスから出ると、読み込んだ提出物を忘れる', () => {
+            let state = reducer(classroomInitialState, setClassroomSession(student));
+            state = reducer(state, markStudentProjectLoaded('k'));
+            expect(
+                reducer(state, setClassroomSession({ ...student, classroomId: 'other' })).studentLoadedSubmission,
+            ).toBeNull();
+            expect(reducer(state, clearClassroomSession()).studentLoadedSubmission).toBeNull();
+        });
+
+        test('どちらも localStorage に保存しない（読み込み直すと忘れる）', () => {
+            let state = reducer(classroomInitialState, setClassroomSession(student));
+            state = reducer(state, markStudentProjectLoaded('k'));
+            reducer(state, setSubmissionStatus('submitted', '2026-11-10T01:00:00.000Z'));
+            const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
+            expect(stored.submissionStatus).toBe('submitted');
+            expect(stored).not.toHaveProperty('studentLoadedSubmission');
+            expect(stored).not.toHaveProperty('projectFromOutside');
+        });
+    });
+
+    describe('「提出しよう」の吹き出し (#1835)', () => {
+        test('はじめは出していない', () => {
+            expect(classroomInitialState.submitReminderVisible).toBe(false);
+            expect(classroomInitialState.submitReminderDismissCount).toBe(0);
+        });
+
+        test('出す・しまう（しまうのは「消した」ではない）', () => {
+            let state = reducer(classroomInitialState, setSubmitReminderVisible(true));
+            expect(state.submitReminderVisible).toBe(true);
+            expect(reducer(state, setSubmitReminderVisible(true))).toBe(state);
+            state = reducer(state, setSubmitReminderVisible(false));
+            expect(state.submitReminderVisible).toBe(false);
+            expect(state.submitReminderDismissCount).toBe(0);
+        });
+
+        test('消すと数が増え、理由を覚える', () => {
+            let state = reducer(classroomInitialState, setSubmitReminderVisible(true));
+            state = reducer(state, dismissSubmitReminder('close'));
+            expect(state.submitReminderVisible).toBe(false);
+            expect(state.submitReminderDismissCount).toBe(1);
+            expect(state.submitReminderDismissReason).toBe('close');
+        });
+
+        test('出ていないときに消しても何もしない（二重に数えない）', () => {
+            expect(reducer(classroomInitialState, dismissSubmitReminder('outside'))).toBe(classroomInitialState);
+        });
+
+        test('クラスから出るとしまう', () => {
+            const state = reducer(classroomInitialState, setSubmitReminderVisible(true));
+            expect(reducer(state, clearClassroomSession()).submitReminderVisible).toBe(false);
         });
     });
 });

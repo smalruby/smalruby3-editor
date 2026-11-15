@@ -14,5 +14,15 @@ export default function (Generator) {
         return [`mesh.sensor_value(${name})`, Generator.ORDER_ATOMIC];
     };
 
+    Generator.meshV2_broadcastWithValue = function (block) {
+        const message = Generator.valueToCode(block, 'BROADCAST_INPUT', Generator.ORDER_NONE) || null;
+        const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '""';
+        return `mesh.broadcast(${message}, ${value})\n`;
+    };
+
+    Generator.meshV2_messageValue = function () {
+        return ['mesh.message_value', Generator.ORDER_ATOMIC];
+    };
+
     return Generator;
 }

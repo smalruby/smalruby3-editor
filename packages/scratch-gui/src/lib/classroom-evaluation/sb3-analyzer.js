@@ -22,6 +22,9 @@ const isHatOpcode = (opcode) => /(^|_)when/i.test(opcode || '') || opcode === 'p
 
 const LOOP_OPCODES = new Set(['control_repeat', 'control_forever', 'control_repeat_until', 'control_for_each']);
 const CONDITIONAL_OPCODES = new Set(['control_if', 'control_if_else', 'control_wait_until']);
+// メッセージを送るブロック。メッシュの「といっしょに送る」も、同じプロジェクトの中へ
+// メッセージを送るので数える。
+const BROADCAST_OPCODES = new Set(['event_broadcast', 'event_broadcastandwait', 'meshV2_broadcastWithValue']);
 const VARIABLE_OPCODES = new Set([
     'data_setvariableto',
     'data_changevariableby',
@@ -48,6 +51,7 @@ const OPCODE_LABELS = {
     event_whengreaterthan: '{WHENGREATERTHANMENU} > {VALUE} のとき',
     event_broadcast: '{BROADCAST_INPUT} を送る',
     event_broadcastandwait: '{BROADCAST_INPUT} を送って待つ',
+    meshV2_broadcastWithValue: '{BROADCAST_INPUT} といっしょに {VALUE} を送る',
     // Motion
     motion_movesteps: '{STEPS} 歩動かす',
     motion_turnright: '右に {DEGREES} 度回す',
@@ -334,7 +338,7 @@ const analyzeProject = (projectJson) => {
             if (VARIABLE_OPCODES.has(opcode)) usesVariables = true;
             if (category === 'operator') usesOperators = true;
             if (opcode === 'procedures_definition') usesCustomBlocks = true;
-            if (opcode === 'event_broadcast' || opcode === 'event_broadcastandwait') usesBroadcast = true;
+            if (BROADCAST_OPCODES.has(opcode)) usesBroadcast = true;
         }
 
         if (targetLines.length > 0) {

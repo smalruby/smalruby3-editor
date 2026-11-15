@@ -38,6 +38,11 @@ runs:
     - if: steps.restore-node-modules-cache.outputs.cache-hit != 'true'
       name: Install NPM dependencies
       shell: bash
+      # playwright-chromium (scratch-render の devDependency) の postinstall はブラウザを落とすが、
+      # Playwright 1.59 は ubuntu-26.04 に対応しておらず、キャッシュの無い npm ci が落ちる (#1903)。
+      # ブラウザが要るジョブは test-package の `npx playwright install` で別に入れる。
+      env:
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
       run: NODE_ENV=development npm ci
     - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       if: steps.restore-node-modules-cache.outputs.cache-hit != 'true'

@@ -6,9 +6,7 @@
  * from (#1201) — this assignment's or the previous assignment's of the same
  * class. Joining never loads a project by itself; the student's choice does
  * (an automatic load plus the same choice on screen made students unsure
- * what to press and loaded the project twice). With the teacher's "start
- * from the previous submission" setting (#1202) the previous submission is
- * the recommended choice. Nothing clobbers work silently: when the open
+ * what to press and loaded the project twice). Nothing clobbers work silently: when the open
  * project has unsaved changes the student is asked first. A loaded project
  * that uses mesh asks for the mesh connection modal (#1251).
  *
@@ -17,26 +15,32 @@
  * joining (join / verify-session only tell `hasAssignment`, which is false
  * for a lesson-only assignment). The lesson goes to Redux
  * (classroom.studentLesson) for the lessons library, the class screen and
- * the menu-bar mark. Without a starter, a lesson assignment starts in the
- * lessons library (「はじめる」) instead of the start choices.
+ * the menu-bar mark. A lesson assignment starts in the lessons library
+ * (「はじめる」); its starter and submissions go under 「ほかの始め方」.
+ *
+ * The way to start is decided as one main button (#1793, decideStartMethod):
+ * this assignment's submission → last time's → the starter → as it is.
  */
 import { useCallback, useRef, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import classroomAPI from '../lib/classroom-api.js';
-import { decideJoinStart, normalizeContinueOptions } from '../lib/classroom-continue-options.js';
+import { decideStartMethod, normalizeContinueOptions } from '../lib/classroom-continue-options.js';
 import { readMeshState, shouldPromptMeshConnect } from '../lib/classroom-mesh-connect.js';
+import { submissionKey } from '../lib/classroom-welcome-back.js';
 import { normalizeAssignmentLesson } from '../lib/lessons/assignment-progress.js';
 import { loadProjectWithChecks } from '../lib/project-loader-utils.js';
 import {
     clearMeshConnectRequest,
+    markStudentProjectLoaded,
     requestMeshConnect,
     setStudentLesson,
     setStudentPeerView,
+    setSubmissionStatus,
 } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
-const NO_START_CHOICE = { showStarter: false, recommend: null, notice: null };
+const NO_START_METHOD = { main: 'keep', others: [] };
 
 const messages = defineMessages({
     overwriteConfirm: {
@@ -118,19 +122,20 @@ const useStudentAssignment = ({
     // join / verify-session responses so the status view can offer the
     // "View Assignment" button without an extra request.
     const [hasAssignment, setHasAssignment] = useState(false);
+    // Whether the assignment has a starter project: the welcome back screen
+    // offers it under 「作品を読み込み直す」 (#1794). Learned from the assignment
+    // responses already fetched (join / status view), no extra request.
+    const [hasStarter, setHasStarter] = useState(false);
 
     // Submissions to continue from ({current, previous}) or null when there
     // are none, and which choice was last loaded ('starter' | 'previous' |
     // 'current') so the choice row can mark it.
     const [continueOptions, setContinueOptions] = useState(null);
     const [loadedChoice, setLoadedChoice] = useState(null);
-    // Start choices right after joining (decideJoinStart): whether the starter
-    // is offered, which choice is recommended by the teacher's setting
-    // (#1202) and the notice explaining it.
-    const [startChoice, setStartChoice] = useState(NO_START_CHOICE);
-    // A lesson assignment without a starter: right after joining, 「はじめる」
-    // opens the lessons library and the start choices are not shown (#1599).
-    const [lessonStartOnly, setLessonStartOnly] = useState(false);
+    // How to start right after joining (decideStartMethod, #1793): the main
+    // button and the other ways under 「ほかの始め方」. 'lesson' opens the
+    // lessons library (#1599).
+    const [startMethod, setStartMethod] = useState(NO_START_METHOD);
 
     /**
      * Download an sb3 and load it into the VM. Asks for confirmation when the
@@ -140,10 +145,12 @@ const useStudentAssignment = ({
      * @param {string} url - presigned download URL
      * @param {object} confirmMessage - confirm text naming what replaces the project
      * @param {string} source - which choice is loaded ('starter' | 'previous' | 'current')
+     * @param {?object} [submission] - the submission loaded (this assignment's is remembered
+     *   in this tab so the welcome back screen does not offer it again, #1825)
      * @returns {Promise<boolean>} true when the project was loaded
      */
     const loadProjectFromUrl = useCallback(
-        async (url, confirmMessage, source) => {
+        async (url, confirmMessage, source, submission = null) => {
             if (projectChanged) {
                 // eslint-disable-next-line no-alert
                 if (!window.confirm(intl.formatMessage(confirmMessage))) {
@@ -156,6 +163,7 @@ const useStudentAssignment = ({
             }
             const projectData = await response.arrayBuffer();
             await loadProjectWithChecks(vm, intl, projectData);
+            dispatch(markStudentProjectLoaded(source === 'current' ? submissionKey(submission) : null));
             const prompt = shouldPromptMeshConnect({ source, ...readMeshState(vm) });
             dispatch(prompt ? requestMeshConnect() : clearMeshConnectRequest());
             return true;
@@ -183,24 +191,26 @@ const useStudentAssignment = ({
      * "nothing to offer" so the join / status view keeps working.
      * @param {string} sessionToken - student session token
      * @param {string} classroomId - joined classroom ID
-     * @returns {Promise<{options: ?object, startFromPrevious: boolean}>}
-     *   normalized options (null when none) and the assignment setting
+     * @returns {Promise<?object>} normalized options (null when none). The
+     *   old `startFromPrevious` setting in the answer is not read (#1825).
      */
     const fetchContinueOptions = useCallback(async (sessionToken, classroomId) => {
         try {
             const data = await classroomAPI.getContinuableSubmissions(sessionToken, classroomId);
             const options = normalizeContinueOptions(data);
             setContinueOptions(options);
-            return { options, startFromPrevious: data?.startFromPrevious === true };
+            return options;
         } catch {
-            return { options: null, startFromPrevious: false };
+            // Could not check: offer nothing rather than an old answer (#1825).
+            setContinueOptions(null);
+            return null;
         }
     }, []);
 
     /**
      * Called right after a successful join: fetch the assignment content (when
      * the classroom has one) and the submissions to continue from, decide the
-     * start choices (decideJoinStart) and return the phase the container
+     * way to start (decideStartMethod) and return the phase the container
      * should switch to ('student-assignment' when there are pages to read,
      * null to fall back to the joined confirmation). Nothing is loaded here.
      * Failures fall back gracefully — joining must never be blocked by
@@ -213,13 +223,13 @@ const useStudentAssignment = ({
     const handleJoined = useCallback(
         async (sessionToken, classroomId, withAssignment) => {
             setLoadedChoice(null);
-            setStartChoice(NO_START_CHOICE);
+            setStartMethod(NO_START_METHOD);
             setContinueOptions(null);
             setHasAssignment(false);
-            setLessonStartOnly(false);
+            setHasStarter(false);
             // Fetched even without `hasAssignment`: a lesson-only assignment has
             // no pages or starter but still a lesson (#1599).
-            const [assignmentData, { options, startFromPrevious }] = await Promise.all([
+            const [assignmentData, options] = await Promise.all([
                 Promise.resolve()
                     .then(() => classroomAPI.getAssignment(sessionToken, classroomId))
                     .catch(() => null),
@@ -228,19 +238,29 @@ const useStudentAssignment = ({
             rememberPeerView(assignmentData);
             const joinedAssignment = withAssignment ? assignmentData?.assignment || null : null;
             setAssignment(joinedAssignment);
+            setHasStarter(!!joinedAssignment?.starterUrl);
             setAssignmentPageIndex(0);
             const hasLesson = !!normalizeAssignmentLesson(assignmentData?.lesson);
-            if (hasLesson && !joinedAssignment?.starterUrl) {
-                setLessonStartOnly(true);
-                setStartChoice(NO_START_CHOICE);
-            } else {
-                setStartChoice(decideJoinStart(options, startFromPrevious, !!joinedAssignment?.starterUrl));
+            setStartMethod(
+                decideStartMethod({
+                    options,
+                    hasStarter: !!joinedAssignment?.starterUrl,
+                    lesson: hasLesson,
+                }),
+            );
+            // Joining resets the submission status (another assignment, #1792). A
+            // submission of this seat in this assignment (submitted on another PC
+            // or before re-joining) is already in the answer above, so the menu
+            // bar shows 「提出済み ✓」 without another request (#1795). Whether it
+            // was returned is read by the next verify-session.
+            if (options && options.current) {
+                dispatch(setSubmissionStatus('submitted', options.current.submittedAt || null));
             }
             if (!joinedAssignment) return null;
             setHasAssignment(true);
             return (joinedAssignment.pages || []).length > 0 ? 'student-assignment' : null;
         },
-        [fetchContinueOptions, rememberPeerView],
+        [dispatch, fetchContinueOptions, rememberPeerView],
     );
 
     /**
@@ -257,6 +277,7 @@ const useStudentAssignment = ({
             // an answer for an old session must not land in the new one (#1599 FYI1).
             if (token !== sessionTokenRef.current) return;
             rememberPeerView(data);
+            setHasStarter(!!data?.assignment?.starterUrl);
         } catch {
             // keep what we have
         }
@@ -294,7 +315,7 @@ const useStudentAssignment = ({
                 }
                 const confirmMessage =
                     kind === 'previous' ? messages.overwriteConfirmPrevious : messages.overwriteConfirmCurrent;
-                if (await loadProjectFromUrl(target.projectUrl, confirmMessage, kind)) {
+                if (await loadProjectFromUrl(target.projectUrl, confirmMessage, kind, target)) {
                     setLoadedChoice(kind);
                     if (onStarted) onStarted();
                 }
@@ -324,6 +345,7 @@ const useStudentAssignment = ({
         try {
             const data = await classroomAPI.getAssignment(classroomState.sessionToken, classroomState.classroomId);
             rememberPeerView(data);
+            setHasStarter(!!data?.assignment?.starterUrl);
             if (!data.assignment) {
                 setHasAssignment(false);
                 return;
@@ -348,57 +370,50 @@ const useStudentAssignment = ({
     ]);
 
     /**
-     * Open the starter from the assignment panel / choice row. The starter URL
+     * "Start from the starter" (the assignment panel / 「ほかの始め方」 /
+     * 「作品を読み込み直す」): load the starter and start working. The starter URL
      * is fetched again right before loading, like the submissions: the URL
      * from the join may have expired while the student read the assignment.
-     * @param {boolean} start - true from the choice row: the work starts
-     *     (onStarted) once the starter has loaded
+     * On the welcome back screen the assignment is not in memory yet, so the
+     * fresh fetch is the only source there (#1794).
      */
-    const openStarter = useCallback(
-        async (start) => {
-            if (!assignment) return;
-            clearError();
-            setIsLoading(true);
-            try {
-                let starterAssignment = assignment;
-                if (classroomState.sessionToken && classroomState.classroomId) {
-                    const data = await classroomAPI.getAssignment(
-                        classroomState.sessionToken,
-                        classroomState.classroomId,
-                    );
-                    starterAssignment = data.assignment;
-                }
-                if (!starterAssignment?.starterUrl) {
-                    showError(intl.formatMessage(messages.starterLoadFailed));
-                    return;
-                }
-                if ((await loadStarter(starterAssignment)) && start && onStarted) {
-                    onStarted();
-                }
-            } catch {
-                showError(intl.formatMessage(messages.starterLoadFailed));
-            } finally {
-                setIsLoading(false);
+    const handleChooseStarter = useCallback(async () => {
+        const canFetch = !!(classroomState.sessionToken && classroomState.classroomId);
+        if (!assignment && !canFetch) return;
+        clearError();
+        setIsLoading(true);
+        try {
+            let starterAssignment = assignment;
+            if (canFetch) {
+                const data = await classroomAPI.getAssignment(
+                    classroomState.sessionToken,
+                    classroomState.classroomId,
+                );
+                starterAssignment = data.assignment;
             }
-        },
-        [
-            assignment,
-            classroomState.sessionToken,
-            classroomState.classroomId,
-            loadStarter,
-            onStarted,
-            clearError,
-            showError,
-            intl,
-            setIsLoading,
-        ],
-    );
-
-    /** "Open the Starter Project" button (no choices): reload and stay on the panel. */
-    const handleReloadStarter = useCallback(() => openStarter(false), [openStarter]);
-
-    /** "Start from the starter" choice: load the starter and start working. */
-    const handleChooseStarter = useCallback(() => openStarter(true), [openStarter]);
+            if (!starterAssignment?.starterUrl) {
+                showError(intl.formatMessage(messages.starterLoadFailed));
+                return;
+            }
+            if ((await loadStarter(starterAssignment)) && onStarted) {
+                onStarted();
+            }
+        } catch {
+            showError(intl.formatMessage(messages.starterLoadFailed));
+        } finally {
+            setIsLoading(false);
+        }
+    }, [
+        assignment,
+        classroomState.sessionToken,
+        classroomState.classroomId,
+        loadStarter,
+        onStarted,
+        clearError,
+        showError,
+        intl,
+        setIsLoading,
+    ]);
 
     const handleAssignmentPrevPage = useCallback(() => {
         setAssignmentPageIndex((i) => Math.max(0, i - 1));
@@ -413,14 +428,13 @@ const useStudentAssignment = ({
         assignmentPageIndex,
         continueOptions,
         hasAssignment,
-        lessonStartOnly,
+        hasStarter,
         loadedChoice,
-        startChoice,
+        startMethod,
         setHasAssignment,
         handleJoined,
         handleLoadSubmission,
         handleOpenAssignment,
-        handleReloadStarter,
         handleChooseStarter,
         refreshContinueOptions,
         refreshLesson,
