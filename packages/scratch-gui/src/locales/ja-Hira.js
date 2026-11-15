@@ -296,6 +296,9 @@ export default {
     'gui.classroom.evaluation.needsReview': 'ようかくにん',
     'gui.classroom.evaluation.needsReviewTitle': 'AI がはんだんにまよいました。',
     'gui.classroom.evaluation.returned': 'へんきゃくずみ',
+    'gui.classroom.evaluation.openWork': 'さくひんをひらく',
+    'gui.classroom.evaluation.openWorkFailed':
+        'さくひんをひらけませんでした。ていしゅつをよみこみなおしてから、もういちどためしてください。',
     'gui.classroom.teacherDetail.commentLabel': 'せいとへのコメント（へんきゃくでとどきます）',
     'gui.classroom.error.title': 'エラーがはっせいしました',
     'gui.classroom.error.joinTitle': 'さんかできませんでした',

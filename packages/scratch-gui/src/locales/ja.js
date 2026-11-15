@@ -289,6 +289,9 @@ export default {
     'gui.classroom.evaluation.needsReview': '要確認',
     'gui.classroom.evaluation.needsReviewTitle': 'AI が判断に迷いました。',
     'gui.classroom.evaluation.returned': '返却済み',
+    'gui.classroom.evaluation.openWork': '作品を開く',
+    'gui.classroom.evaluation.openWorkFailed':
+        '作品を開けませんでした。提出を読み込み直してから、もう一度ためしてください。',
     'gui.classroom.teacherDetail.commentLabel': '生徒へのコメント（返却で届きます）',
     'gui.classroom.error.title': 'エラーが発生しました',
     'gui.classroom.error.joinTitle': '参加できませんでした',

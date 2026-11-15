@@ -16,7 +16,7 @@ import {
 import { lessonProgressContext } from '../lib/classroom-lesson-progress.js';
 import { mergedChallengeColumns, submissionCsvRows } from '../lib/classroom-lesson-summary.js';
 import { findCourse } from '../lib/lessons/courses.js';
-import { closeClassroomModal } from '../reducers/classroom.js';
+import { closeClassroomModal, closeTeacherModal } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 import { enrichMembers } from './use-teacher-classrooms.js';
 
@@ -94,6 +94,9 @@ const useTeacherSubmissions = ({
                 }
                 const projectData = await response.arrayBuffer();
                 await vm.loadProject(projectData);
+                // The teacher screens live in their own modal now: close it too,
+                // or the work opens behind it (#1980).
+                dispatch(closeTeacherModal());
                 dispatch(closeClassroomModal());
             } catch (err) {
                 showError(translateError(intl, err));

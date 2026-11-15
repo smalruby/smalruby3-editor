@@ -45,7 +45,7 @@ smalruby3-editor/
 │   │   │   │   ├── mesh-group-limit-field.jsx ← 「メッシュのグループの人数」の選択（作成画面と課題エディタで共用・#1257）
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理
 │   │   │   │   ├── teacher-evaluation.jsx ← 採点（点だけの採点簿の表・手順 1〜4・書き出しメニュー）
-│   │   │   │   ├── teacher-evaluation-detail.jsx ← 採点の右の列（選んだ席の点・根拠・コメント・‹ ›）
+│   │   │   │   ├── teacher-evaluation-detail.jsx ← 採点の右の列（選んだ席の点・根拠・コメント・‹ ›・［作品を開く］）
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
 │   │   │   ├── classroom-teacher-menu/ ← メニューバーの先生メニュー「クラス管理」(表示) #1199
 │   │   │   ├── classroom-teacher-kick-toast/ ← 先生向けの退室依頼トースト / 一覧 (表示) #1200

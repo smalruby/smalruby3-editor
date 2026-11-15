@@ -3364,6 +3364,24 @@ $seat-tile-min: 36px;
     font-size: $font-size-medium;
 }
 
+/* 課題名と［作品を開く］(#1980): 名前が長いときは名前のほうを省略して、ボタンは隠さない。 */
+.eval-detail-lesson-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.eval-detail-lesson-row > .eval-detail-lesson {
+    flex: 1 1 auto;
+}
+
+.eval-detail-open-work {
+    flex-shrink: 0;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
 .eval-detail-grade-row {
     display: flex;
     flex-wrap: wrap;

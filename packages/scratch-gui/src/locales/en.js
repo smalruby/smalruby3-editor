@@ -274,6 +274,9 @@ export default {
     'gui.classroom.evaluation.needsReview': 'Needs check',
     'gui.classroom.evaluation.needsReviewTitle': 'The AI was unsure about this one.',
     'gui.classroom.evaluation.returned': 'Returned',
+    'gui.classroom.evaluation.openWork': 'Open the work',
+    'gui.classroom.evaluation.openWorkFailed':
+        'The work could not be opened. Load the submissions again and try once more.',
     'gui.classroom.teacherDetail.commentLabel': 'Comment to the student (sent when you return it)',
     'gui.classroom.error.title': 'An error occurred',
     'gui.classroom.error.joinTitle': 'Could not join',

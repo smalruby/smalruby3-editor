@@ -373,6 +373,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onExportAuditCsv={evaluation.handleExportAuditCsv}
                         onExportEvaluationCsv={evaluation.handleExportEvaluationCsv}
                         onLoadSubmissions={evaluation.handleLoadSubmissions}
+                        onOpenWork={evaluation.handleOpenWork}
                         onReturnComments={evaluation.handleReturnComments}
                         onRunAi={evaluation.handleRunAi}
                         onSetCellGrade={evaluation.handleSetCellGrade}

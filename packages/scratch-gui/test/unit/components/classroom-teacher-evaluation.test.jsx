@@ -655,3 +655,39 @@ describe('採点を離れるときの確認 (#1923 C4)', () => {
         expect(byTestId('classroom-eval-leave-confirm').textContent).toBe('Load again');
     });
 });
+
+describe('右の列の［作品を開く］(#1980)', () => {
+    const cells = {
+        '1:c1': { submissionId: 's1', submitted: true, grade: 'A', projectUrl: 'https://example.invalid/1.sb3' },
+        '3:c1': { submissionId: 's3', submitted: true, grade: null, projectUrl: 'https://example.invalid/3.sb3' },
+    };
+    const getCell = (seat, id) => cells[`${seat}:${id}`] || null;
+    const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+
+    test('開く処理が無ければボタンを出さない', () => {
+        renderEvaluation({ seats: [1, 3], getCell });
+        expect(byTestId('classroom-eval-detail-open-work')).toBeNull();
+    });
+
+    test('課題名の横に出し、押すと離れる確認（leave）を通してから選んだ席と課題を渡す', () => {
+        const onOpenWork = jest.fn();
+        const onRequestLeave = jest.fn((action) => action());
+        renderEvaluation({ seats: [1, 3], getCell, onOpenWork, onRequestLeave });
+        const button = byTestId('classroom-eval-detail-open-work');
+        expect(button).toHaveTextContent('Open the work');
+        expect(button).toBeEnabled();
+        fireEvent.click(byTestId('classroom-eval-detail-next'));
+        fireEvent.click(byTestId('classroom-eval-detail-open-work'));
+        expect(onRequestLeave).toHaveBeenCalledWith(expect.any(Function), 'leave');
+        expect(onOpenWork).toHaveBeenCalledWith(3, 'c1');
+    });
+
+    test('確認で止まったら（requestLeave が action を呼ばなければ）開かない', () => {
+        const onOpenWork = jest.fn();
+        const onRequestLeave = jest.fn();
+        renderEvaluation({ seats: [1, 3], getCell, onOpenWork, onRequestLeave });
+        fireEvent.click(byTestId('classroom-eval-detail-open-work'));
+        expect(onRequestLeave).toHaveBeenCalledTimes(1);
+        expect(onOpenWork).not.toHaveBeenCalled();
+    });
+});

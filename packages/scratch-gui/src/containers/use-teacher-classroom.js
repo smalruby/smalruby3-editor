@@ -149,6 +149,7 @@ const useTeacherClassroom = ({
         showError,
         intl,
         setPhase,
+        openSubmission: submissions.handleOpenSubmission,
     });
 
     const shared = useSharedAssignments({

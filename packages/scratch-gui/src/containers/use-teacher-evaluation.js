@@ -39,9 +39,19 @@ const evaluationMessages = defineMessages({
         description: 'Grading screen: the lesson was removed elsewhere before the lesson points were saved (#1778)',
         id: 'gui.classroom.evaluation.lessonRemoved',
     },
+    openWorkFailed: {
+        defaultMessage: 'The work could not be opened. Load the submissions again and try once more.',
+        description:
+            'Grading screen: [Open the work] could not get the link to the work (it may have been taken back, #1980)',
+        id: 'gui.classroom.evaluation.openWorkFailed',
+    },
 });
 
 const EVAL_CHUNK_SIZE = 10;
+// The link to a work (`projectUrl`) is a signed URL that ends after an hour by
+// default (PRESIGNED_URL_DOWNLOAD_EXPIRY). Grading often takes longer, so an old
+// link is fetched again before opening (#1980). A little under the hour.
+const WORK_URL_FRESH_MS = 50 * 60 * 1000;
 const cellKey = (seatNumber, classroomId) => `${seatNumber}:${classroomId}`;
 const seatFromMemberId = (memberId) => {
     const match = /^seat-(\d+)$/.exec(memberId || '');
@@ -72,9 +82,21 @@ const downloadText = (filename, text) => {
  * @param {Function} params.showError - error display helper
  * @param {object} params.intl - react-intl intl object
  * @param {Function} params.setPhase - phase setter
+ * @param {Function} [params.openSubmission] - opens a work in the editor and closes
+ *   the modal (`handleOpenSubmission` of use-teacher-submissions, the same as
+ *   「スモウルビーで開く」 of the assignment's members)
  * @returns {object} evaluation state and handlers
  */
-const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearError, showError, intl, setPhase }) => {
+const useTeacherEvaluation = ({
+    idToken,
+    classrooms,
+    handleTeacher401,
+    clearError,
+    showError,
+    intl,
+    setPhase,
+    openSubmission,
+}) => {
     const [evalGroup, setEvalGroup] = useState(null);
     const [evalLessons, setEvalLessons] = useState([]);
     const [selectedLessonIds, setSelectedLessonIds] = useState([]);
@@ -99,6 +121,8 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     const [leaveRequest, setLeaveRequest] = useState(null);
     // Settings fetched for a group that is no longer shown are dropped.
     const shownGroupRef = useRef(null);
+    // classroomId → when its submissions (and their links) were read (#1980)
+    const urlsReadAtRef = useRef({});
 
     const handleShowEvaluation = useCallback(
         (group) => {
@@ -166,6 +190,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         const nextMatrix = {};
         const nextLessonScores = {};
         const nextLessonProgress = {};
+        const nextUrlsReadAt = {};
         const seatSet = new Set();
         let done = 0;
         try {
@@ -203,6 +228,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                     }
                 }
                 const data = await classroomAPI.listSubmissions(idToken, lesson.classroomId);
+                nextUrlsReadAt[lesson.classroomId] = Date.now();
                 for (const submission of data.submissions || []) {
                     const seatNumber = seatFromMemberId(submission.memberId);
                     if (seatNumber === null) continue;
@@ -210,6 +236,8 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                     const cell = {
                         submissionId: submission.submissionId,
                         submitted: true,
+                        // Opened from the right column (#1980). Not part of the grades.
+                        projectUrl: submission.projectUrl || null,
                         returned: submission.status === 'returned',
                         // The comment the student got: a draft equal to it is not lost (#1923 C4).
                         returnedComment:
@@ -242,6 +270,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                 done++;
             }
             setMatrix(nextMatrix);
+            urlsReadAtRef.current = nextUrlsReadAt;
             setExported({});
             setLessonScores(nextLessonScores);
             setLessonProgress(nextLessonProgress);
@@ -360,6 +389,55 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     );
 
     const handleCheckScoring = useCallback(() => setScoringChecked(true), []);
+
+    /**
+     * Open the work of a cell in the editor (#1980), the same way as
+     * 「スモウルビーで開く」 of the assignment's members: the modal closes, so the
+     * caller asks first through `requestLeave`. A link read more than
+     * WORK_URL_FRESH_MS ago is read again (it may have ended), without loading
+     * the table again (that would drop grades not exported).
+     * @param {number} seatNumber - seat of the cell
+     * @param {string} classroomId - assignment of the cell
+     */
+    const handleOpenWork = useCallback(
+        async (seatNumber, classroomId) => {
+            const cell = matrix[cellKey(seatNumber, classroomId)];
+            if (!openSubmission || !cell || !cell.submissionId) return;
+            let projectUrl = cell.projectUrl;
+            const readAt = urlsReadAtRef.current[classroomId];
+            if (!projectUrl || !readAt || Date.now() - readAt > WORK_URL_FRESH_MS) {
+                clearError();
+                let fresh = [];
+                try {
+                    const data = await classroomAPI.listSubmissions(idToken, classroomId);
+                    fresh = data.submissions || [];
+                } catch (err) {
+                    if (err.status === 401) {
+                        handleTeacher401();
+                        return;
+                    }
+                }
+                const urls = new Map(fresh.map((s) => [s.submissionId, s.projectUrl || null]));
+                projectUrl = urls.get(cell.submissionId) || null;
+                if (!projectUrl) {
+                    showError(intl.formatMessage(evaluationMessages.openWorkFailed));
+                    return;
+                }
+                // Every link of this assignment is new now (the grades are kept as they are).
+                urlsReadAtRef.current = { ...urlsReadAtRef.current, [classroomId]: Date.now() };
+                setMatrix((prev) => {
+                    const next = { ...prev };
+                    for (const [key, value] of Object.entries(prev)) {
+                        if (!key.endsWith(`:${classroomId}`) || !urls.has(value.submissionId)) continue;
+                        next[key] = { ...value, projectUrl: urls.get(value.submissionId) };
+                    }
+                    return next;
+                });
+            }
+            await openSubmission(projectUrl);
+        },
+        [matrix, openSubmission, idToken, clearError, showError, intl, handleTeacher401],
+    );
 
     /**
      * Save new lesson points from the grading screen (#1778): the table is
@@ -584,6 +662,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         handleChangeRubricAxis,
         handleCheckScoring,
         handleChangeLessonScoring,
+        handleOpenWork: openSubmission ? handleOpenWork : null,
         handleExportEvaluationCsv,
         handleExportAuditCsv,
         handleReturnComments,
