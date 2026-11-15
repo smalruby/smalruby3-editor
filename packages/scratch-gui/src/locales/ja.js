@@ -169,14 +169,23 @@ export default {
     'gui.classroom.evaluation.leaveConfirmLeave': '離れる',
     'gui.classroom.evaluation.leaveConfirmReload': '読み込み直す',
     'gui.classroom.members.empty': 'メンバーはまだいません',
+    'gui.classroom.studentJoin.hintAskTeacher':
+        '参加コードは、先生が黒板や画面に出しています。見つからないときは、先生に聞いてください。',
+    'gui.classroom.studentJoin.teacherLink': 'クラス管理を開く',
+    'gui.classroom.studentJoin.codeLabel': '参加コード（先生が見せている 6 文字）',
+    'gui.classroom.studentJoin.teacherQuestion':
+        'あなたは先生ですか？ クラスを作ると、生徒に配る参加コードが出ます。',
+    'gui.classroom.error.invalidJoinCode':
+        'この参加コードの課題は見つかりませんでした。先生が出しているコードと 1 文字ずつ見くらべて、もう一度入れてください。',
+    'gui.classroom.error.classroomInactive':
+        'この課題は終わっています。いまの課題の参加コードを、先生に聞いてください。',
+    'gui.classroom.studentStatus.teacherComment': '先生から',
+    'gui.classroom.previousComment.context': '前回の課題「{assignmentName}」',
+    'gui.classroom.previousComment.contextNoName': '前回の課題',
     'gui.classroom.studentJoin.title': '参加コードを入力',
     'gui.classroom.studentJoin.next': '次へ',
     'gui.classroom.studentJoin.hintTitle': 'ヒント',
-    'gui.classroom.studentJoin.hintAskTeacher': '先生から参加コードを聞いてください。',
-    'gui.classroom.studentJoin.hintTeacherPath':
-        '先生は「{settingsIcon} 設定 → クラス管理」から参加コードを確認できます。',
     'gui.classroom.studentJoin.historyPlaceholder': 'これまでに参加したクラス・課題の参加コード',
-    'gui.classroom.studentJoin.teacherLink': '先生の方はこちら（クラス管理）',
     'gui.classroom.studentSeat.prompt': '出席番号を選んでください',
     'gui.classroom.studentSeat.join': '参加する',
     'gui.classroom.studentSeat.numberInputLabel': '出席番号',
@@ -266,15 +275,12 @@ export default {
     'gui.classroom.evaluation.fieldOfSeat': '出席番号 {seat} の{field}',
     'gui.classroom.teacherDetail.commentLabel': '生徒へのコメント（返却で届きます）',
     'gui.classroom.error.title': 'エラーが発生しました',
-    'gui.classroom.error.invalidJoinCode':
-        '参加コードが見つかりませんでした。先生に見せてもらったコードをもう一度入れてください。',
     'gui.classroom.error.joinTitle': '参加できませんでした',
     'gui.classroom.error.switchSeatTitle': '席を切りかえられませんでした',
     'gui.classroom.error.seatTaken': 'この席はすでに使われています。別の席を選んでください。',
     'gui.classroom.error.sessionExpired': 'セッションが無効になりました。もう一度参加してください。',
     'gui.classroom.sessionExpiredBanner': 'セッションが無効になりました。',
     'gui.classroom.alert.rejoin': '参加しなおす',
-    'gui.classroom.error.classroomInactive': 'この課題は現在利用できません。',
     'gui.classroom.error.networkUnreachable':
         'サーバーに接続できませんでした。ネットワークやファイアウォールの設定で {host}（HTTPS / 443）への通信が許可されているかご確認ください。',
     'gui.classroom.error.googleTokenExpired':
@@ -498,7 +504,6 @@ export default {
     'gui.classroom.classList.evaluate': '採点',
     'gui.classroom.classList.empty': 'まだクラスがありません。「クラスを作成」から始めましょう。',
     'gui.classroom.classList.back': '‹ クラス一覧',
-    'gui.classroom.previousComment.title': '前回の先生からのコメント（{assignmentName}）:',
     'gui.classroom.groups.title': 'クラスの設定',
     'gui.classroom.groups.hint':
         'クラスは1つの学級（例: 2年1組）です。授業（課題）をクラスに割り当てると年間の整理ができ、生徒には前回の返却コメントが再表示されます。',
@@ -600,7 +605,6 @@ export default {
     'gui.classroom.postAssignment.viewAssignment': '課題を確認',
     'gui.classroom.error.fileTooLarge': 'プロジェクトが大きすぎます（{size}MB）。上限は10MBです。',
     'gui.classroom.studentStatus.returned': '返却済み',
-    'gui.classroom.studentStatus.teacherComment': '先生からのコメント',
     'gui.classroom.teacherDetail.archiveCancel': 'キャンセル',
     'gui.classroom.classList.showArchived': 'アーカイブ済みのクラス（{count}）',
     'gui.classroom.classList.restore': '元に戻す',

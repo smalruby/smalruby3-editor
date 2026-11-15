@@ -1276,24 +1276,26 @@
     color: #000;
 }
 
+/* エラーの枠（参加できなかったときなど）。何が起きて何をすればよいかを、見出しと本文で言う。
+   見出しの赤は地に 7.5:1、本文は $color-text */
 .error-box {
-    background-color: #fff0f3;
-    border: 1px solid #ff6680;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-top: 0.8rem;
+    background-color: #fff1f2;
+    border: 1px solid #f2a7ac;
+    border-radius: $radius-medium;
+    padding: 0.625rem 0.875rem;
+    margin-top: 0.75rem;
 }
 
 .error-box-title {
-    font-weight: bold;
-    color: #d32f2f;
-    font-size: 0.95rem;
-    margin-bottom: 0.4rem;
+    font-weight: $font-weight-bold;
+    color: #a1121b;
+    font-size: $font-size-medium;
+    margin-bottom: 0.15rem;
 }
 
 .error-box-message {
-    color: #575e75;
-    font-size: 0.85rem;
+    color: $color-text;
+    font-size: $font-size-medium;
     line-height: 1.5;
 }
 
@@ -1695,24 +1697,6 @@ $seat-tile-min: 36px;
     cursor: default;
 }
 
-.teacher-comment-box {
-    background-color: #fff8e1;
-    border: 1px solid #ffcc02;
-    border-radius: 4px;
-    padding: 0.5rem;
-    margin-top: 0.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.teacher-comment-text {
-    font-size: 0.85rem;
-    color: #575e75;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
 .submission-detail {
     display: flex;
     gap: 0.5rem;
@@ -2074,62 +2058,10 @@ $seat-tile-min: 36px;
     font-size: 0.85rem;
 }
 
-.join-hint-box {
-    margin-top: 1.5rem;
-    padding: 0.8rem 1rem;
-    background-color: #f0f4ff;
-    border: 1px solid #c8d6f0;
-    border-radius: 8px;
-}
-
-.join-hint-title {
-    font-size: 0.85rem;
-    font-weight: bold;
-    color: #4c6ef5;
-    margin-bottom: 0.4rem;
-}
-
 .join-hint-text {
     font-size: 0.8rem;
     color: #575e75;
     line-height: 1.5;
-}
-
-.teacher-link {
-    display: block;
-    margin-top: 0.5rem;
-    background: none;
-    border: none;
-    color: $color-action;
-    font-size: 0.8rem;
-    cursor: pointer;
-    text-decoration: underline;
-    padding: 0;
-}
-
-.teacher-link:hover {
-    color: $membership-blue;
-}
-
-.history-select {
-    flex: 1;
-    min-width: 0;
-    padding: 0.5rem 0.4rem;
-    border: 1px solid #d9d9d9;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    color: #575e75;
-    background-color: white;
-    cursor: pointer;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-.history-select:focus {
-    border-color: $color-action;
-    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
-    outline: 2px solid transparent;
 }
 
 .student-count-button {
@@ -3031,31 +2963,6 @@ $seat-tile-min: 36px;
     border-radius: 0.4rem;
     font-size: 0.9rem;
     background-color: white;
-}
-
-/* --- Previous returned comment recap (student) --- */
-
-.previous-comment-box {
-    background-color: #fff8e5;
-    border: 1px solid #f2d675;
-    border-radius: 0.4rem;
-    padding: 0.6rem 0.75rem;
-    margin-bottom: 0.75rem;
-}
-
-.previous-comment-title {
-    color: #8a6d1a;
-    font-size: 0.8rem;
-    font-weight: bold;
-    margin-bottom: 0.25rem;
-}
-
-.previous-comment-text {
-    color: #575e75;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
 }
 
 /* --- Term-end evaluation (teacher) --- */
@@ -4837,7 +4744,7 @@ $seat-tile-min: 36px;
     column-gap: 1rem;
 }
 
-.seat-heading .phase-title {
+.seat-heading > h2 {
     margin-bottom: 0;
 }
 
@@ -4978,6 +4885,7 @@ $seat-tile-min: 36px;
 
 .seat-confirm-buttons {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     gap: 0.75rem;
     margin-top: 1rem;

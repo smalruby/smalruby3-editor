@@ -173,14 +173,16 @@ describe('参加のエラー (#1924 C12)', () => {
         const err = new Error('Invalid join code');
         err.status = 404;
         expect(translateError(intlMock, err, 'join')).toBe(
-            'That join code was not found. Enter the code your teacher showed you again.',
+            'No assignment has this join code. Check it letter by letter against the code your teacher shows, and enter it again.',
         );
     });
 
     test('終わった（アーカイブした）課題は「参加コードが見つからない」と言わない (#1924 M1)', () => {
         const err = new Error('This classroom is no longer active');
         err.status = 404;
-        expect(translateError(intlMock, err, 'join')).toBe('This assignment is no longer active.');
+        expect(translateError(intlMock, err, 'join')).toBe(
+            'This assignment has ended. Ask your teacher for the join code of the current assignment.',
+        );
     });
 
     test('見出しは「参加できませんでした」', () => {

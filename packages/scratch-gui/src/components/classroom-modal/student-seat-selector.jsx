@@ -8,10 +8,13 @@ import {
     parseSeatNumberInput,
     seatGuideFor,
 } from '../../lib/classroom-seat-selection.js';
+import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import ClassroomStatusIcon from './classroom-status-icon.jsx';
 import ErrorDisplay from './error-display.jsx';
 import KickRequestConfirmDialog from './kick-request-confirm-dialog.jsx';
+import partStyles from './student-screen-parts.css';
+import StudentTextLink from './student-text-link.jsx';
 
 const messages = defineMessages({
     numberInputLabel: {
@@ -215,32 +218,30 @@ const StudentSeatSelector = ({
                             </div>
                         </div>
                         <div className={styles.seatConfirmButtons}>
-                            <button
-                                className={styles.secondaryButton}
-                                data-testid="classroom-seat-reselect"
+                            {/* 「選び直す」は小さなリンク: 主ボタンと同じ重さに見せない */}
+                            <StudentTextLink
+                                dataTestId="classroom-seat-reselect"
                                 disabled={isLoading}
                                 onClick={handleReselect}
-                                type="button"
                             >
                                 <FormattedMessage
                                     defaultMessage="Choose again"
                                     description="Button on the seat confirmation that goes back to the seat buttons"
                                     id="gui.classroom.studentSeat.reselect"
                                 />
-                            </button>
-                            <button
-                                className={styles.primaryButton}
-                                data-testid="classroom-confirm-seat"
+                            </StudentTextLink>
+                            <ClassroomButton
+                                dataTestId="classroom-confirm-seat"
                                 disabled={isLoading}
+                                variant="primary"
                                 onClick={onConfirmJoin}
-                                type="button"
                             >
                                 <FormattedMessage
                                     defaultMessage="Join"
                                     description="Confirm join button"
                                     id="gui.classroom.studentSeat.join"
                                 />
-                            </button>
+                            </ClassroomButton>
                         </div>
                     </div>
                 ) : (
@@ -248,13 +249,13 @@ const StudentSeatSelector = ({
                         {/* The previous seat shares the heading line so 40 seats still
                             fit in 1300x600 (#1796). */}
                         <div className={styles.seatHeading} data-testid="classroom-seat-heading">
-                            <div className={styles.phaseTitle}>
+                            <h2 className={partStyles.studentTitle}>
                                 <FormattedMessage
                                     defaultMessage="Select your seat number"
                                     description="Seat selection prompt"
                                     id="gui.classroom.studentSeat.prompt"
                                 />
-                            </div>
+                            </h2>
                             {previousSeat && (
                                 <div
                                     className={styles.seatPreviousNote}
@@ -334,17 +335,13 @@ const StudentSeatSelector = ({
                                     type="text"
                                     value={seatInput}
                                 />
-                                <button
-                                    className={styles.secondaryButton}
-                                    data-testid="classroom-seat-number-submit"
-                                    type="submit"
-                                >
+                                <ClassroomButton dataTestId="classroom-seat-number-submit" type="submit">
                                     <FormattedMessage
                                         defaultMessage="Use this number"
                                         description="Button next to the seat number input"
                                         id="gui.classroom.studentSeat.numberSubmit"
                                     />
-                                </button>
+                                </ClassroomButton>
                             </form>
                         ) : (
                             <button

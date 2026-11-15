@@ -287,7 +287,19 @@ const history = Array.from({ length: 5 }, (_, i) => ({
     await page.locator('[data-testid="classroom-join-code-input"]').fill('zzz999');
     await page.locator('[data-testid="classroom-join-submit"]').click();
     await page.waitForTimeout(800);
-    await judge(page, { who: 'student', name: 'student-join (history 5 + error)', shot: 'student-join' });
+    await judge(page, {
+        who: 'student',
+        name: 'student-join (history 5 + error)',
+        shot: 'student-join',
+        primary: '[data-testid="classroom-join-submit"]',
+    });
+    // 先生向けの「クラス管理を開く」もスクロールせずに見える (#1963)
+    await judge(page, {
+        who: 'student',
+        name: 'student-join (teacher link)',
+        shot: 'student-join-teacher-link',
+        primary: '[data-testid="classroom-teacher-link"]',
+    });
     await ctx.close();
 }
 

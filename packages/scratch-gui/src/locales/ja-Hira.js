@@ -173,14 +173,23 @@ export default {
     'gui.classroom.evaluation.leaveConfirmLeave': 'はなれる',
     'gui.classroom.evaluation.leaveConfirmReload': 'よみこみなおす',
     'gui.classroom.members.empty': 'メンバーはまだいません',
+    'gui.classroom.studentJoin.hintAskTeacher':
+        'さんかコードは、せんせいがこくばんやがめんにだしています。みつからないときは、せんせいにきいてください。',
+    'gui.classroom.studentJoin.teacherLink': 'クラスかんりをひらく',
+    'gui.classroom.studentJoin.codeLabel': 'さんかコード（せんせいがみせている 6 もじ）',
+    'gui.classroom.studentJoin.teacherQuestion':
+        'あなたはせんせいですか？ クラスをつくると、せいとにくばるさんかコードがでます。',
+    'gui.classroom.error.invalidJoinCode':
+        'このさんかコードのかだいはみつかりませんでした。せんせいがだしているコードと 1 もじずつみくらべて、もういちどいれてください。',
+    'gui.classroom.error.classroomInactive':
+        'このかだいはおわっています。いまのかだいのさんかコードを、せんせいにきいてください。',
+    'gui.classroom.studentStatus.teacherComment': 'せんせいから',
+    'gui.classroom.previousComment.context': 'ぜんかいのかだい「{assignmentName}」',
+    'gui.classroom.previousComment.contextNoName': 'ぜんかいのかだい',
     'gui.classroom.studentJoin.title': 'さんかコードをにゅうりょく',
     'gui.classroom.studentJoin.next': 'つぎへ',
     'gui.classroom.studentJoin.hintTitle': 'ヒント',
-    'gui.classroom.studentJoin.hintAskTeacher': 'せんせいからさんかコードをきいてください。',
-    'gui.classroom.studentJoin.hintTeacherPath':
-        'せんせいは「{settingsIcon} せってい → クラスかんり」からさんかコードをかくにんできます。',
     'gui.classroom.studentJoin.historyPlaceholder': 'これまでにさんかしたクラス・かだいのさんかコード',
-    'gui.classroom.studentJoin.teacherLink': 'せんせいのかたはこちら（クラスかんり）',
     'gui.classroom.studentSeat.prompt': 'しゅっせきばんごうをえらんでください',
     'gui.classroom.studentSeat.join': 'さんかする',
     'gui.classroom.studentSeat.numberInputLabel': 'しゅっせきばんごう',
@@ -273,15 +282,12 @@ export default {
     'gui.classroom.evaluation.fieldOfSeat': 'しゅっせきばんごう {seat} の{field}',
     'gui.classroom.teacherDetail.commentLabel': 'せいとへのコメント（へんきゃくでとどきます）',
     'gui.classroom.error.title': 'エラーがはっせいしました',
-    'gui.classroom.error.invalidJoinCode':
-        'さんかコードがみつかりませんでした。せんせいにみせてもらったコードをもういちどいれてください。',
     'gui.classroom.error.joinTitle': 'さんかできませんでした',
     'gui.classroom.error.switchSeatTitle': 'せきをきりかえられませんでした',
     'gui.classroom.error.seatTaken': 'このせきはすでにつかわれています。べつのせきをえらんでください。',
     'gui.classroom.error.sessionExpired': 'セッションがむこうになりました。もういちどさんかしてください。',
     'gui.classroom.sessionExpiredBanner': 'セッションがむこうになりました。',
     'gui.classroom.alert.rejoin': 'さんかしなおす',
-    'gui.classroom.error.classroomInactive': 'このかだいはげんざいりようできません。',
     'gui.classroom.error.networkUnreachable':
         'サーバーにせつぞくできませんでした。ネットワークやファイアウォールのせっていで {host}（HTTPS / 443）へのつうしんがきょかされているかごかくにんください。',
     'gui.classroom.error.googleTokenExpired':
@@ -510,7 +516,6 @@ export default {
     'gui.classroom.classList.evaluate': 'さいてん',
     'gui.classroom.classList.empty': 'まだクラスがありません。「クラスをさくせい」からはじめましょう。',
     'gui.classroom.classList.back': '‹ クラスいちらん',
-    'gui.classroom.previousComment.title': 'ぜんかいのせんせいからのコメント（{assignmentName}）:',
     'gui.classroom.groups.title': 'クラスのせってい',
     'gui.classroom.groups.hint':
         'クラスは1つのがっきゅう（れい: 2ねん1くみ）です。じゅぎょう（かだい）をクラスにわりあてるとねんかんのせいりができ、せいとにはぜんかいのへんきゃくコメントがさいひょうじされます。',
@@ -612,7 +617,6 @@ export default {
     'gui.classroom.postAssignment.viewAssignment': 'かだいをかくにん',
     'gui.classroom.error.fileTooLarge': 'プロジェクトがおおきすぎます（{size}MB）。じょうげんは10MBです。',
     'gui.classroom.studentStatus.returned': 'へんきゃくずみ',
-    'gui.classroom.studentStatus.teacherComment': 'せんせいからのコメント',
     'gui.classroom.teacherDetail.archiveCancel': 'キャンセル',
     'gui.classroom.classList.showArchived': 'アーカイブずみのクラス（{count}）',
     'gui.classroom.classList.restore': 'もとにもどす',

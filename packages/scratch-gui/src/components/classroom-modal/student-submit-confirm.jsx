@@ -5,6 +5,7 @@ import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import StudentMainButton from './student-main-button.jsx';
 import partStyles from './student-screen-parts.css';
+import StudentTeacherNote from './student-teacher-note.jsx';
 import StudentTextLink from './student-text-link.jsx';
 
 const SubmitButtonLabel = ({ isSubmitting, resubmit, submitProgress }) => {
@@ -137,16 +138,7 @@ const StudentSubmitConfirm = ({
                 )}
             </div>
             {resubmit && teacherComment && (
-                <div className={styles.teacherCommentBox} data-testid="classroom-submit-teacher-comment">
-                    <span className={styles.statusLabel}>
-                        <FormattedMessage
-                            defaultMessage="Teacher's Comment"
-                            description="Teacher comment label"
-                            id="gui.classroom.studentStatus.teacherComment"
-                        />
-                    </span>
-                    <span className={styles.teacherCommentText}>{teacherComment}</span>
-                </div>
+                <StudentTeacherNote dataTestId="classroom-submit-teacher-comment" text={teacherComment} />
             )}
             <div className={partStyles.submitActions}>
                 <StudentTextLink

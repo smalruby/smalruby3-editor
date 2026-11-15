@@ -175,8 +175,12 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-join-code-input` | input | 参加コード入力 |
-| `classroom-join-submit` | button | 参加コード送信 |
+| `classroom-join-code-input` | input | 参加コード入力（見えるラベル「参加コード（先生が見せている 6 文字）」が付く） |
+| `classroom-join-submit` | button | 参加コード送信（主ボタン「次へ」） |
+| `classroom-join-history` | select | これまでに参加したクラス・課題の参加コード（あるときだけ） |
+| `classroom-join-hint` | div | ヒント（参加コードは先生が黒板や画面に出している） |
+| `classroom-join-teacher-hint` | div | ヒントの下の先生向けの小さな案内「あなたは先生ですか？…」 |
+| `classroom-teacher-link` | button | 先生向けの「クラス管理を開く」。生徒の「クラス」を閉じて先生のクラス管理を開く |
 
 ### 生徒: 席番号選択
 
@@ -195,7 +199,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-seat-idle-guide` | div | 右の列の案内の枠（使用中ボタンの小さな絵つき）。`data-variant="idle"` = グリッドが出てから 30 秒選ばれないとき（使用中の席があるときだけ）、`data-variant="previousTaken"` = 前回の番号が使用中のとき（すぐ出る）。確認・退室依頼ダイアログ・依頼の承認待ちの間は出ない |
 | `classroom-seat-confirm` | div | 席を選んだあとの確認ステップ（座席グリッドの代わりに表示。確認文・［選び直す］・［参加する］を含む） |
 | `classroom-seat-confirm-message` | div | 参加確定前の大きな確認「出席番号 NN で参加します」 |
-| `classroom-seat-reselect` | button | 「選び直す」。座席グリッドに戻る |
+| `classroom-seat-reselect` | button | 「選び直す」（小さなリンク）。座席グリッドに戻る |
 | `classroom-confirm-seat` | button | 席番号確定・参加（席を選んだあとの確認ステップにだけ表示） |
 
 ### 生徒: 参加完了
@@ -221,7 +225,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-status-assignment` | span | 課題名（`title` に全体） |
 | `classroom-submit-status` | span | 提出状況（未提出 / ✓ 提出済み (時刻) / ↩ 返却済み (時刻)）。作品を提出しないレッスンの課題では出さない |
 | `classroom-student-refresh` | button | 更新 (↻)。`aria-label` / `title` は「読み込み直す」 |
-| `classroom-status-teacher-comment` | div | 先生からのコメント（返却済みのときだけ） |
+| `classroom-status-teacher-comment` | div | 先生からのコメントの吹き出し（「先生から」の見出しとアイコン。返却済みのときだけ） |
+| `classroom-previous-comment` / `classroom-previous-comment-text` | div | 参加した直後の、前回の課題で先生から届いたコメントの吹き出し / その本文 |
 | `classroom-status-continue` | button | 主ボタン「つづける」（何も読み込まずに閉じる。説明の行は `classroom-status-continue-note`）。レッスンの課題では、作品も提出する課題で条件を満たしたあとだけ |
 | `classroom-status-continue-current` | button | 主ボタン「この課題で出した作品から続ける」（リロードしたあと、作品が新しい作品のまま・この課題で出した作品がある・このタブでまだ読み込んでいないときだけ。`classroom-status-continue` の代わりに出す）。押すとその提出物を読み込んで閉じる（確認は出さない） |
 | `classroom-status-start-starter` | button | 主ボタン「スターターから始める」（リロードしたあと、作品が新しい作品のまま・未提出・課題にスターターがあるときだけ。`classroom-status-continue` の代わりに出す）。押すとスターターを読み込んで閉じる |
@@ -259,7 +264,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-submit-checking` | div | 「提出の状態を確かめています...」（開いた直後に verify-session を待つ間だけ。このあいだ見出し・サムネイル・主ボタンは出さず、「やめる」だけ押せる） |
 | `classroom-submit-preview` | img | サムネイルプレビュー |
-| `classroom-submit-teacher-comment` | div | 先生のコメント（返却済みからの再提出のときだけ） |
+| `classroom-submit-teacher-comment` | div | 先生からのコメントの吹き出し（返却済みからの再提出のときだけ） |
 | `classroom-submit-cancel` | button | 「やめる」（小さなリンク。モーダルを閉じる） |
 | `classroom-submit-confirm` | button | 主ボタン「提出する」（再提出では「もう一度提出する」。送信中だけ「提出中...」で押せない。送信中はクラスの画面も閉じられない） |
 
