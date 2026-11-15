@@ -1,4 +1,4 @@
-import { defineCourse, defineLesson, findCourse } from '../../../../src/lib/lessons/courses';
+import { COURSES, defineCourse, defineLesson, findCourse } from '../../../../src/lib/lessons/courses';
 import {
     COMPLETED_ACTIONS,
     LESSON_PROGRESS_STORAGE_KEY,
@@ -484,7 +484,7 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
         );
     });
 
-    test('when the first course is all done, moves to the next course', () => {
+    test('looks only at the first course: when it is all done, opens like the menu (null)', () => {
         const courses = [
             defineCourse({
                 id: 'first',
@@ -498,16 +498,19 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
             }),
         ];
         const progress = ['fa', 'fb'].reduce((p, id) => markChallengeCompleted(p, id, NOW, courses), emptyProgress());
-        expect(startLessonsFocus(progress, courses)).toEqual({
-            language: 'ruby',
-            courseId: 'second',
-            lessonId: 's1',
-            nextChallengeId: 'sa',
-        });
+        // ほかのコースへは自動で案内しない（授業で先生が開くコースがあるため・#1641）
+        expect(startLessonsFocus(progress, courses)).toBeNull();
+    });
+
+    test('when the first course is done, opens like the menu (null) and does not lead to the other courses', () => {
+        // 授業で使う中 2 のコース（チャットをつくろう）へは自動で案内しない（#1641）
+        expect(startLessonsFocus(completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))).toBeNull();
     });
 
     test('when everything is done, opens like the menu (null)', () => {
-        expect(startLessonsFocus(completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))).toBeNull();
+        const all = COURSES.flatMap((c) => c.lessons.flatMap((l) => l.challenges));
+        const progress = all.reduce((p, c) => markChallengeCompleted(p, c.id, NOW), emptyProgress());
+        expect(startLessonsFocus(progress)).toBeNull();
     });
 
     test('ignores records of challenges that are not in the courses', () => {

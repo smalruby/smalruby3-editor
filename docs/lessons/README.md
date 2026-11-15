@@ -189,7 +189,7 @@ code: {
 - テスト: `courses.test.js` が全チャレンジの `code` を ja / ja-Hira / en それぞれの新しい作品の名前で（音・背景の
   確かめ込みで）ブロックに変換できることを確かめる。`challenge-goals-per-locale.test.js` は、その `code` を
   それぞれの locale の新しい作品に入れて本物の VM で動かし、課題の操作（キー・クリック・答えの入力）をすると
-  `goal` を満たす（「できた」になる）ことを、全 11 チャレンジ × 3 locale で確かめる。integration は `smalruby-lessons-en.test.js`（en で
+  `goal` を満たす（「できた」になる）ことを、全チャレンジ × 3 locale で確かめる。integration は `smalruby-lessons-en.test.js`（en で
   チャレンジ 1・8・9 を開いて「プログラムを入れる」→ 操作 →「できた」）。
 
 コース「きょうからプログラマー」の 11 のチャレンジは、どれも中身（課題・パレット・ヒント・判定・Ruby）が
@@ -291,6 +291,52 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
   変数を作ろうと書き、en は `count` と書くので、`goal` は「回数」「かいすう」「count」のどれでもよい（7 の「せいかいです」も同じ）。
 - エディタ（コードエリア）にフォーカスがあってもキーはステージに届く（`vm-listener-hoc` は SVG への
   keydown を VM に渡す）。`integration` テストはコードエリアをクリックしてからキーを押して確かめている。
+
+### コース「チャットをつくろう」のチャレンジ
+
+中学 2 年の授業のコース（方針は [`design.md` の「中 2 のコース「チャットをつくろう」」](design.md#中-2-のコースチャットをつくろう)）。
+コース id は `chat-wo-tsukurou`、文言は `chat.locale.js`（ja / ja-Hira / en。`lessons.locale.js` に spread する）。
+いまはレッスン 1 だけが入っている（レッスン 2〜5 は順に足す）。
+
+- **始め方**: どのチャレンジも、新しい作品のネコを**シマラビ**（ライブラリの Shimaraby）に置きかえて始める
+  （`setup.sprites: ['Shimaraby']`）。「プログラムを入れる」の `code` もシマラビに入る。メッシュは使わない。
+- **アクティビティ図**: 全チャレンジ `activityDiagram: true`。課題の全文に入らない大きい図は、ヒントの 1 ページ目で見る。
+- **変数**: 「すべてのスプライト用」（Ruby の `$`）。名前は ja / ja-Hira が「シマラビのメッセージ」（カタカナなので
+  ja-Hira も同じ。画面のキャラクターの名前もカタカナ）、en が `shimaraby_message`。判定はどの名前でも通す。
+- **クイズ**: 用語は教科書（順次処理・反復処理・分岐処理）にそろえる。文は自分の言葉で書く。
+- 「聞いて待つ」の質問は「メッセージを入力」（ja-Hira「メッセージを にゅうりょく」、en "Enter a message"）。
+
+レッスン 1「手順を図にしよう」（`chat-l1`。ja-Hira「てじゅんを ずに しよう」、en "Draw the Steps"）:
+
+| # | id | 課題 | 答え（ja） | できた の条件（`goal`） | クイズの正解 |
+|---|----|------|-----------|------------------------|-------------|
+| 1 | `chat-l1-sequence` | 旗を押したら「メッセージを入力」と聞き、答えを変数「シマラビのメッセージ」に入れて 2 秒言う（順次処理） | `ask` → `$シマラビのメッセージ = answer` → `say($シマラビのメッセージ, 2)` | 旗のスクリプトで `sensing_askandwait` → `data_setvariableto` → `looks_sayforsecs` の順に動いた ＋ 答えを入れた変数を言った | ②順次処理 |
+| 2 | `chat-l1-repeat` | 「メッセージを入力」と聞いたあと、ずっと「変数を (答え) にして、(変数) と聞いて待つ」をくり返す（反復処理） | `ask` → `loop do` 〔`$シマラビのメッセージ = answer` → `ask($シマラビのメッセージ)`〕 | 旗のスクリプトで `control_forever`・`data_setvariableto` と、`sensing_askandwait` が 3 回（2 回以上入力した）＋ 答えを入れた変数「シマラビのメッセージ」を質問にした（「聞いて待つ」の質問は吹き出しに出るので `said` の `equalsAnswer` と `equalsVariable` で見る） | ③反復処理 |
+| 3 | `chat-l1-branch` | 何も入力しなければ「何か書いてね」、書いたら変数に入れて 2 秒言う（分岐処理） | `if answer == ""` 〔`say("何か書いてね", 2)`〕 `else` 〔変数に入れて言う〕 | 旗のスクリプトで `control_if_else` が動いた ＋ 答えが空のときに「何か書いてね」（ja-Hira「なにか かいてね」、en "Write something"）を言った ＋ 答えを入れた変数を言った（2 回試す） | ①分岐処理 |
+| 4 | `chat-l1-read-diagram` | 読んで作る: 「おわり」と入力するまで聞いて言うをくり返し、最後に「またね」と言う | `ask` → `until answer == "おわり"` 〔`say(answer, 1)` → `ask`〕 → `say("またね")` | 旗のスクリプトで `control_repeat_until` と、`sensing_askandwait` が 2 回と、「言う」ブロックで「またね」（en "Bye!"）を言った（入力した「またね」では通さない） | ②またね |
+
+- **2 の答え**は、教科書のチャットの送る側から「送る」を抜いた形。レッスン 4 で「送る」を 1 つ足すと教科書のチャットになる。
+  「聞いて待つ」の質問に変数を入れるので、入力を待つあいだ、前のメッセージが吹き出しに出る。
+- **3 の「=」の右**はパレットの初期値を空にしてある（何も入力しなかった = 空の文字と等しい）。
+- **4 の答え**は、くり返しの前に 1 回聞き、くり返しの中は「言う → 聞く」にする（教科書のチャットの送る側と同じ
+  「聞く → くり返し〔… → 聞く〕」の形）。Scratch の「答え」は前の実行の値を覚えているが、旗を押すたびに最初に聞くので、
+  前に「おわり」と入力していても、すぐ「またね」にはならない。「おわり」と入力したら「おわり」は言わずにくり返しをぬける。
+  判定の「聞いて待つが 2 回」は、くり返しの前の 1 回とくり返しの中の 1 回（くり返しを 1 回は通った）。終わりの言葉は
+  en が `end`。答えはふつうのチャレンジと同じく `code` に書き、ヒントの 3 ページ目に描く（置き換えない）。
+- ヒントの図の読み方は、教科書の記号にそろえた図（ひし形の合流と戻る線）に合わせて書く（例: 「いちばん下から上のひし形へ
+  もどる線が『ずっと』」）。
+
+![チャットをつくろう 1-1 の課題の全文と図（1300×600）](screenshots/0701-chat-l1-sequence-full-text-1300x600.png)
+
+![チャットをつくろう 1-2 のヒントの 1 ページ目（1300×600）](screenshots/0702-chat-l1-repeat-hint1-1300x600.png)
+
+![チャットをつくろう 1-4 読んで作るのヒントの 1 ページ目（1300×600）](screenshots/0703-chat-l1-read-diagram-hint1-1300x600.png)
+
+![チャットをつくろう 1-1 の「できた！」のクイズ（1300×600）](screenshots/0704-chat-l1-sequence-quiz-1300x600.png)
+
+![チャットをつくろう 1-4 読んで作るのヒントの 3 ページ目（答え・1300×600）](screenshots/0705-chat-l1-read-diagram-answer-1300x600.png)
+
+![レッスン表の「チャットをつくろう」（1300×600）](screenshots/0706-chat-lessons-library-1300x600.png)
 
 ## 記録の形（端末）
 
@@ -1446,6 +1492,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/lessons/card-color.js` | レッスン表のカードの色の決め方（ブロックをなかまごとに数える・いちばん多いなかま、同数ならメイン） |
 | `packages/scratch-gui/src/lib/lessons/courses.js` | コース・レッスン・チャレンジのデータと検索。locale ごとの Ruby を選ぶ `localizeCode` / `challengeCodeFor` / `challengeCodeCandidates`。ふりかえりのクイズを作る `challengeQuiz` と形を確かめる `validateQuiz` |
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
+| `packages/scratch-gui/src/lib/lessons/chat.locale.js` | コース「チャットをつくろう」の文言（en / ja / ja-Hira。`lessons.locale.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/lesson-progress.js` | 端末への記録（いまの定義での読みかえ）・レッスン／コースの進み具合・「できた！」のボタンとレッスン表で見せるもの |
 | `packages/scratch-gui/src/lib/lessons/challenge-setup.js` | チャレンジを開くときの setup（言語の既定 + チャレンジの `setup`） |
 | `packages/scratch-gui/src/components/balloon/` | 吹き出し・ツールチップの見た目の土台（`Balloon` / `BalloonHeader` / `BalloonCloseButton` / `BalloonButton` / `balloon-tokens.css`。上の「吹き出しの共通の土台」） |

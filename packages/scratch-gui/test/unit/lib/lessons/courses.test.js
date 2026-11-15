@@ -897,17 +897,20 @@ describe('lesson courses', () => {
         // ヒントは見られない。試す操作のヒントは、ステージ・キーボード・旗を指すものだけ
         test('the hint that asks to try it out is the last one', () => {
             const tryTargets = [HINT_TARGETS.STAGE, HINT_TARGETS.KEYBOARD, HINT_TARGETS.GREEN_FLAG];
-            allChallenges().forEach((c) => {
-                const targets = c.steps.map((s) => s.target);
-                expect({ id: c.id, last: tryTargets.includes(targets[targets.length - 1]) }).toEqual({
-                    id: c.id,
-                    last: true,
+            // 読んで作るチャレンジのヒントは決まった 3 ページ（どれもステージの左に出す・read-diagram.js）なので除く
+            allChallenges()
+                .filter((c) => !isReadDiagram(c))
+                .forEach((c) => {
+                    const targets = c.steps.map((s) => s.target);
+                    expect({ id: c.id, last: tryTargets.includes(targets[targets.length - 1]) }).toEqual({
+                        id: c.id,
+                        last: true,
+                    });
+                    expect({ id: c.id, before: targets.slice(0, -1).filter((t) => tryTargets.includes(t)) }).toEqual({
+                        id: c.id,
+                        before: [],
+                    });
                 });
-                expect({ id: c.id, before: targets.slice(0, -1).filter((t) => tryTargets.includes(t)) }).toEqual({
-                    id: c.id,
-                    before: [],
-                });
-            });
         });
 
         // ヒントは帽子のブロックを置く手順を抜かさない（docs/lessons/design.md の「ヒント」・#1564）:
@@ -1100,7 +1103,8 @@ describe('lesson courses', () => {
             async (locale) => {
                 const { vm, stage, cat } = projectFor(locale);
                 const challenges = allChallenges().filter((c) => c.code);
-                expect(challenges).toHaveLength(11);
+                // どのチャレンジにも「プログラムを入れる」（読んで作るは答え）の code がある
+                expect(challenges).toHaveLength(allChallenges().length);
                 for (const c of challenges) {
                     const { code, spriteCodes } = challengeCodeFor(c, locale);
                     const target = c.codeTarget === 'stage' ? stage : cat;
@@ -1140,6 +1144,118 @@ describe('lesson courses', () => {
             .filter((challenge) => !hasAnswerProgram(challenge))
             .map((challenge) => challenge.id);
         expect(missing).toEqual([]);
+    });
+});
+
+// コース「チャットをつくろう」（中学 2 年・EPIC #1616）のレッスン 1（#1641）
+describe('chat course lesson 1 "手順を図にしよう" (#1641)', () => {
+    const CHAT_L1 = ['chat-l1-sequence', 'chat-l1-repeat', 'chat-l1-branch', 'chat-l1-read-diagram'];
+    const challenge = (id) => findChallenge(id).challenge;
+
+    test('the course "チャットをつくろう" is the second blocks course and has the lesson 1 with 4 challenges', () => {
+        const course = findCourse('chat-wo-tsukurou');
+        expect(COURSES[1]).toBe(course);
+        expect(course.language).toBe(LANGUAGES.BLOCKS);
+        expect(ja[course.name.id]).toBe('チャットをつくろう');
+        expect(course.lessons.map((l) => l.id)).toEqual(['chat-l1']);
+        const lesson = findLesson('chat-l1');
+        expect(ja[lesson.name.id]).toBe('手順を図にしよう');
+        expect(lesson.allowDnclMode).toBe(false);
+        expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(CHAT_L1.map((id, i) => `${i + 1} ${id}`));
+        expect(courseSize(course)).toEqual({ lessonCount: 1, challengeCount: 4 });
+    });
+
+    test('every challenge starts with Shimaraby instead of the cat, shows the diagram and has a quiz', () => {
+        CHAT_L1.map(challenge).forEach((c) => {
+            expect({ id: c.id, sprites: c.setup.sprites }).toEqual({ id: c.id, sprites: ['Shimaraby'] });
+            expect({ id: c.id, diagram: c.activityDiagram }).toEqual({ id: c.id, diagram: true });
+            expect({ id: c.id, errors: validateQuiz(c.quiz) }).toEqual({ id: c.id, errors: [] });
+            expect(c.partner).toBeNull();
+        });
+        // 答え（クイズの正解）は教科書の用語: ②順次処理 ③反復処理 ①分岐処理 ②またね
+        expect(CHAT_L1.map((id) => ja[challenge(id).quiz.choices[challenge(id).quiz.answer].id])).toEqual([
+            '順次処理',
+            '反復処理',
+            '分岐処理',
+            'またね',
+        ]);
+    });
+
+    test('the palettes are the spec', () => {
+        expect(allowedOpcodes(challenge('chat-l1-sequence'))).toEqual({
+            event: ['event_whenflagclicked'],
+            sensing: ['sensing_askandwait', 'sensing_answer'],
+            data: ['data_setvariableto', 'data_variable'],
+            looks: ['looks_sayforsecs'],
+        });
+        expect(allowedOpcodes(challenge('chat-l1-repeat'))).toEqual({
+            event: ['event_whenflagclicked'],
+            sensing: ['sensing_askandwait', 'sensing_answer'],
+            control: ['control_forever'],
+            data: ['data_setvariableto', 'data_variable'],
+        });
+        expect(allowedOpcodes(challenge('chat-l1-branch'))).toEqual({
+            event: ['event_whenflagclicked'],
+            sensing: ['sensing_askandwait', 'sensing_answer'],
+            control: ['control_if_else'],
+            operators: ['operator_equals'],
+            data: ['data_setvariableto', 'data_variable'],
+            looks: ['looks_sayforsecs'],
+        });
+        expect(allowedOpcodes(challenge('chat-l1-read-diagram'))).toEqual({
+            event: ['event_whenflagclicked'],
+            control: ['control_repeat_until'],
+            operators: ['operator_equals'],
+            sensing: ['sensing_askandwait', 'sensing_answer'],
+            looks: ['looks_sayforsecs', 'looks_say'],
+        });
+    });
+
+    test('1-4 is a read-and-build challenge with the 3 fixed hint pages and its own explanation', () => {
+        const c = challenge('chat-l1-read-diagram');
+        expect(isReadDiagram(c)).toBe(true);
+        expect(c.steps.map((s) => s.kind)).toEqual(['read', 'try', 'answer']);
+        expect(c.steps[0].title).toBe(c.explanation);
+        expect(ja[c.explanation.id]).toMatch(/図だけを見て作ってみよう/);
+    });
+
+    test('the ja-Hira strings of the course have no kanji', () => {
+        Object.keys(jaHira)
+            .filter((id) => /^gui\.lessons\.(course\.chat-wo-tsukurou|lesson\.chat-l1|challenge\.chat-l1-)/.test(id))
+            .forEach((id) =>
+                expect({ id, text: jaHira[id] }).not.toEqual({ id, text: expect.stringMatching(/\p{Script=Han}/u) }),
+            );
+    });
+
+    test.each(['ja', 'ja-Hira', 'en'])(
+        'the code (%s) uses the names the task and hints of that locale write',
+        (locale) => {
+            const variable = locale === 'en' ? '$shimaraby_message' : '$シマラビのメッセージ';
+            ['chat-l1-sequence', 'chat-l1-repeat', 'chat-l1-branch'].forEach((id) => {
+                expect(localizeCode(challenge(id).code, locale)).toContain(variable);
+            });
+            // ja-Hira の Ruby（言うこと・質問）にも漢字を使わない
+            if (locale === 'ja-Hira') {
+                CHAT_L1.forEach((id) =>
+                    expect(localizeCode(challenge(id).code, locale)).not.toMatch(/\p{Script=Han}/u),
+                );
+            }
+        },
+    );
+
+    test('the goals accept the words the code of every locale says', () => {
+        const emptyText = challenge('chat-l1-branch').goal[1];
+        ['何か書いてね', 'なにか かいてね', 'Write something'].forEach((text) =>
+            expect(emptyText.text.test(text)).toBe(true),
+        );
+        const bye = challenge('chat-l1-read-diagram').goal[1];
+        const byeBlock = challenge('chat-l1-read-diagram').goal[0].blocks[2].args.MESSAGE;
+        ['またね', 'Bye!'].forEach((text) => expect(byeBlock.test(text)).toBe(true));
+        ['またね', 'Bye!'].forEach((text) => expect(bye.text.test(text)).toBe(true));
+        expect(challenge('chat-l1-repeat').goal[1].equalsVariable).toEqual([
+            'シマラビのメッセージ',
+            'shimaraby_message',
+        ]);
     });
 });
 

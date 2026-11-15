@@ -150,20 +150,124 @@ const OPERATIONS = {
             await answer(text);
         }
     },
+    // コース「チャットをつくろう」のレッスン 1（#1641）。作品ではシマラビに置きかえて始めるが、判定は
+    // スプライトを見ないので、ここではネコに入れて動かす
+    'chat-l1-sequence': async ({ vm, answer }) => {
+        vm.greenFlag();
+        await answer('hello');
+    },
+    'chat-l1-repeat': async ({ vm, answer }) => {
+        vm.greenFlag();
+        await answer('hello');
+        await answer('again');
+    },
+    'chat-l1-branch': async ({ vm, answer }) => {
+        vm.greenFlag();
+        await answer('');
+        await sleep(2200);
+        vm.greenFlag();
+        await answer('hello');
+    },
+    'chat-l1-read-diagram': async ({ vm, answer, locale, isSatisfied }) => {
+        const end = locale === 'en' ? 'end' : 'おわり';
+        // 1 回目: すぐ「おわり」（くり返しを通らない = まだ「できた」にならない）
+        vm.greenFlag();
+        await answer(end);
+        await sleep(300);
+        expect(isSatisfied()).toBe(false);
+        // 2 回目: 前の「答え」（おわり）が残っていても、旗を押せば最初に聞く（answer が質問を待つ）
+        vm.greenFlag();
+        await answer('hello');
+        await answer(end);
+    },
 };
 
 // ステージのプログラムのチャレンジ 4 は 1 秒の待ちが 6 回ある
 const WAIT_FOR_GOAL_MS = 9000;
 
+// チャレンジの code（または codeOverride）をその locale の新しい作品に入れ、goal の見張りを付けて動かす準備をする。
+// 戻り値の ctx でチャレンジの操作をし、isSatisfied() で「できた」かを見る
+const prepareRun = async (id, locale, codeOverride = null) => {
+    const { challenge } = findChallenge(id);
+    const vm = new VM();
+    await vm.loadProject(projectFor(locale, { penguin: challenge.spriteCodes.length > 0 }));
+    const stage = vm.runtime.getTargetForStage();
+    const cat = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === 'Sprite1');
+    vm.setEditingTarget(cat.id);
+
+    if (codeOverride === null) {
+        for (const { sprite: name, code } of challenge.spriteCodes) {
+            const target = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === name);
+            await insert(vm, target, localizeCode(code, locale));
+        }
+    }
+    await insert(
+        vm,
+        challenge.codeTarget === 'stage' ? stage : cat,
+        codeOverride === null ? localizeCode(challenge.code, locale) : codeOverride,
+    );
+
+    // 音声合成（チャレンジ 10）はネットワークにつながないので、しゃべるブロックは何もしない
+    if (vm.runtime._primitives.text2speech_speakAndWait) {
+        vm.runtime._primitives.text2speech_speakAndWait = () => {};
+    }
+    // マウスのふれ方はレンダラーが無いので、テストで決める
+    let touching = false;
+    cat.isTouchingObject = (object) => object === '_mouse_' && touching;
+
+    let questions = 0;
+    vm.runtime.on('QUESTION', (q) => {
+        if (q !== null) questions += 1;
+    });
+    let satisfied = false;
+    attachGoalMonitor(vm, challenge.goal, () => {
+        satisfied = true;
+    });
+    vm.start();
+
+    const ctx = {
+        vm,
+        locale,
+        cat,
+        stage,
+        isSatisfied: () => satisfied,
+        touch: (value) => {
+            touching = value;
+        },
+        press: async (key) => {
+            vm.postIOData('keyboard', { key, isDown: true });
+            await sleep(50);
+            vm.postIOData('keyboard', { key, isDown: false });
+            await sleep(50);
+        },
+        click: async () => {
+            vm.runtime.startHats('event_whenthisspriteclicked', null, cat);
+            await sleep(50);
+        },
+        answer: async (text) => {
+            const asked = questions;
+            expect(await until(() => questions > asked - 1 && questions > 0, 2000)).toBe(true);
+            vm.runtime.emit('ANSWER', text);
+            questions = 0;
+            await sleep(50);
+        },
+    };
+    return { vm, ctx, isSatisfied: () => satisfied };
+};
+
+const quitVm = (vm) => {
+    if (vm) {
+        vm.stopAll();
+        vm.runtime.quit();
+    }
+};
+
 describe('the code of every locale satisfies the goal when run in a new project of that locale', () => {
     let vm;
 
     afterEach(() => {
-        if (vm) {
-            vm.stopAll();
-            vm.runtime.quit();
-            vm = null;
-        }
+        quitVm(vm);
+        vm = null;
     });
 
     const cases = [];
@@ -172,64 +276,82 @@ describe('the code of every locale satisfies the goal when run in a new project 
     test.each(cases)(
         '%s (%s)',
         async (id, locale) => {
-            const { challenge } = findChallenge(id);
-            vm = new VM();
-            await vm.loadProject(projectFor(locale, { penguin: challenge.spriteCodes.length > 0 }));
-            const stage = vm.runtime.getTargetForStage();
-            const cat = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === 'Sprite1');
-            vm.setEditingTarget(cat.id);
+            const run = await prepareRun(id, locale);
+            vm = run.vm;
+            await OPERATIONS[id](run.ctx);
+            expect(await until(run.isSatisfied, WAIT_FOR_GOAL_MS)).toBe(true);
+        },
+        20000,
+    );
+});
 
-            for (const { sprite: name, code } of challenge.spriteCodes) {
-                const target = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === name);
-                await insert(vm, target, localizeCode(code, locale));
-            }
-            await insert(vm, challenge.codeTarget === 'stage' ? stage : cat, localizeCode(challenge.code, locale));
+// 「チャットをつくろう」レッスン 1（#1641）の goal が、課題をやっていないプログラム（ずる）では満たされないこと
+const CHEATS = [
+    // 1-1: 変数を使わずに答えを言う
+    [
+        'chat-l1-sequence',
+        'when_flag_clicked do\n  ask("メッセージを入力")\n  say(answer, 2)\nend\n',
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('hello');
+            await sleep(300);
+        },
+    ],
+    // 1-2: ずっと〔(答え) と聞いて待つ〕だけ（変数は作ってあるが入れない）
+    [
+        'chat-l1-repeat',
+        'when_flag_clicked do\n  ask("メッセージを入力")\n  loop do\n    ask(answer)\n  end\nend\n\n' +
+            'when_key_pressed("x") do\n  $シマラビのメッセージ = 0\nend\n',
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('hello');
+            await answer('again');
+            await answer('more');
+        },
+    ],
+    // 1-3: 分岐なしで「何か書いてね」と答えの両方を言う
+    [
+        'chat-l1-branch',
+        'when_flag_clicked do\n  ask("メッセージを入力")\n  say("何か書いてね", 2)\n' +
+            '  $シマラビのメッセージ = answer\n  say($シマラビのメッセージ, 2)\nend\n',
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('');
+            await sleep(4200);
+            vm.greenFlag();
+            await answer('hello');
+            await sleep(4200);
+        },
+    ],
+    // 1-4: 「またね」を言うブロックが無く、入力した「またね」を言っただけ
+    [
+        'chat-l1-read-diagram',
+        'when_flag_clicked do\n  ask("メッセージを入力")\n  until answer == "おわり"\n    say(answer, 1)\n' +
+            '    ask("メッセージを入力")\n  end\nend\n',
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('またね');
+            await answer('おわり');
+            await sleep(300);
+        },
+    ],
+];
 
-            // 音声合成（チャレンジ 10）はネットワークにつながないので、しゃべるブロックは何もしない
-            if (vm.runtime._primitives.text2speech_speakAndWait) {
-                vm.runtime._primitives.text2speech_speakAndWait = () => {};
-            }
-            // マウスのふれ方はレンダラーが無いので、テストで決める
-            let touching = false;
-            cat.isTouchingObject = (object) => object === '_mouse_' && touching;
+describe('the chat lesson 1 goals are not met by programs that skip the task (#1641)', () => {
+    let vm;
 
-            let questions = 0;
-            vm.runtime.on('QUESTION', (q) => {
-                if (q !== null) questions += 1;
-            });
-            let satisfied = false;
-            attachGoalMonitor(vm, challenge.goal, () => {
-                satisfied = true;
-            });
-            vm.start();
+    afterEach(() => {
+        quitVm(vm);
+        vm = null;
+    });
 
-            const ctx = {
-                vm,
-                cat,
-                stage,
-                touch: (value) => {
-                    touching = value;
-                },
-                press: async (key) => {
-                    vm.postIOData('keyboard', { key, isDown: true });
-                    await sleep(50);
-                    vm.postIOData('keyboard', { key, isDown: false });
-                    await sleep(50);
-                },
-                click: async () => {
-                    vm.runtime.startHats('event_whenthisspriteclicked', null, cat);
-                    await sleep(50);
-                },
-                answer: async (text) => {
-                    const asked = questions;
-                    expect(await until(() => questions > asked - 1 && questions > 0, 2000)).toBe(true);
-                    vm.runtime.emit('ANSWER', text);
-                    questions = 0;
-                    await sleep(50);
-                },
-            };
-            await OPERATIONS[id](ctx);
-            expect(await until(() => satisfied, WAIT_FOR_GOAL_MS)).toBe(true);
+    test.each(CHEATS)(
+        '%s',
+        async (id, code, operation) => {
+            const run = await prepareRun(id, 'ja', code);
+            vm = run.vm;
+            await operation(run.ctx);
+            expect(await until(run.isSatisfied, 1500)).toBe(false);
         },
         20000,
     );
