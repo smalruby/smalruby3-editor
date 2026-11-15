@@ -24,7 +24,7 @@
 
 | 状態 | 値 | トークン |
 |---|---|---|
-| 並び（`.tab-list`・`role="tablist"`） | 横に並べて下にそろえる・タブの間 0.25rem・下に `1px solid $color-border` の線・下の余白 0.75rem。右端に「⋮」などを置くときはこの並びの中に `margin-left: auto` で置く | `$color-border` |
+| 並び（`.tab-list`・`role="tablist"`） | 横に並べて下にそろえる・タブの間 0.25rem・下に `1px solid $color-border` の線・下の余白 0.75rem。右端に「⋮」や［⚙ クラスの設定］などのボタンを置くときは、tablist の中に入れず、tablist と同じ行の flex に `margin-left: auto` で置く（線は行が引く。`.class-tabs-row`）。タブでないものを矢印キー・読み上げのタブの並びに混ぜないため | `$color-border` |
 | ふつう（`.tab`） | 地と枠なし・下に透明な 3px の線・余白 `0.5rem 1rem`・文字 14px の太字 `$color-text` | `$size-tab-indicator`・`$font-size-medium`・`$font-weight-bold`・`$color-text` |
 | ホバー | 文字 `$color-action` | `$color-action` |
 | 選ばれた（`.tab-selected`・`aria-selected="true"`） | 文字と下の 3px の線を `$color-action` に（並びの 1px の線に重ねる） | `$color-action`・`$size-tab-indicator` |

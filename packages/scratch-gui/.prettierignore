@@ -547,6 +547,7 @@ test/unit/components/*
 !test/unit/components/teacher-avatar-menu.test.jsx
 !test/unit/components/google-sign-in-slot.test.jsx
 !test/unit/components/teacher-notifications-list.test.jsx
+!test/unit/components/classroom-teacher-header.test.jsx
 !test/unit/components/classroom-teacher-modal-share-suggestion.test.js
 !test/unit/components/classroom-tab.test.jsx
 !test/unit/components/classroom-teacher-view-layout.test.jsx
@@ -623,6 +624,7 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-groups-loaded.test.js
 !test/unit/containers/use-teacher-groups-topics.test.js
 !test/unit/containers/use-teacher-groups-create.test.js
+!test/unit/containers/use-teacher-groups-update.test.js
 !test/unit/containers/use-teacher-notifications.test.js
 !test/unit/containers/use-teacher-evaluation-leave.test.js
 !test/unit/containers/use-before-unload-while.test.js

@@ -17,9 +17,11 @@ import { buildStreamEvents } from '../../lib/classroom-stream.js';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
-import ClassroomTab from './classroom-tab.jsx';
 import ErrorDisplay from './error-display.jsx';
 import SharedAssignmentCatalog from './shared-assignment-catalog.jsx';
+import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
+import { ClassSettingsForm } from './teacher-class-list.jsx';
+import TeacherClassTabs, { classTabMessages } from './teacher-class-tabs.jsx';
 import TeacherPasscodeImport from './teacher-passcode-import.jsx';
 import TeacherShareStep from './teacher-share-step.jsx';
 import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
@@ -700,8 +702,10 @@ const TeacherAssignmentBoard = ({
     onReuseAssignment,
     onSelectClassroom,
     onShowClassList,
+    onShowGrading,
     onTabChange,
     onUpdateAssignmentMeta,
+    onUpdateGroup,
     onUpdateGroupTopics,
     shared,
 }) => {
@@ -725,6 +729,8 @@ const TeacherAssignmentBoard = ({
     const [showReuse, setShowReuse] = useState(false);
     const [reuseFilterGroupId, setReuseFilterGroupId] = useState('');
     const [showArchived, setShowArchived] = useState(false);
+    // ［⚙ クラスの設定］ at the right of the tabs opens the settings inside the class.
+    const [showSettings, setShowSettings] = useState(false);
     const topics = Array.isArray(group.topics) ? group.topics : [];
     const sections = buildAssignmentSections(classrooms, topics);
     // Archived assignments of this class (issue #1051), newest first. Shown
@@ -842,8 +848,44 @@ const TeacherAssignmentBoard = ({
         },
         [onUpdateGroupTopics, group.groupId],
     );
-    const handleSelectStream = useCallback(() => setTab('stream'), [setTab]);
-    const handleSelectClasswork = useCallback(() => setTab('classwork'), [setTab]);
+    // ［採点］ opens the grading screen (another phase); the other tabs stay on this board.
+    const handleSelectTab = useCallback(
+        (next) => {
+            if (next === 'grading') {
+                if (onShowGrading) onShowGrading(group);
+            } else {
+                setTab(next);
+            }
+        },
+        [setTab, onShowGrading, group],
+    );
+    const handleOpenSettings = useCallback(() => setShowSettings(true), []);
+    // While an archive is on its way the settings stay open (their buttons are off while
+    // loading), so nothing on the board can be pressed until the API answers (#1958 M1).
+    const [archiving, setArchiving] = useState(false);
+    const archivingRef = useRef(false);
+    const handleCloseSettings = useCallback(() => {
+        if (!archivingRef.current) setShowSettings(false);
+    }, []);
+    // Archiving the class leaves it: back to the class list, where archived classes are
+    // listed — only when it was saved. A failure keeps the settings and their error.
+    const handleUpdateGroupInClass = useCallback(
+        async (groupId, updates) => {
+            if (!updates || updates.status !== 'archived') return onUpdateGroup(groupId, updates);
+            archivingRef.current = true;
+            setArchiving(true);
+            let saved = false;
+            try {
+                saved = await onUpdateGroup(groupId, updates);
+            } finally {
+                archivingRef.current = false;
+                setArchiving(false);
+            }
+            if (saved) onShowClassList();
+            return saved;
+        },
+        [onUpdateGroup, onShowClassList],
+    );
 
     // Accordion (B7): one open row at a time. Its counts and description are
     // loaded when it opens (not with the list) and kept for this board.
@@ -940,19 +982,6 @@ const TeacherAssignmentBoard = ({
             id: 'gui.classroom.shared.openCatalog',
         },
     };
-    // パンくずの末尾（現在地）に出すタブ名。タブのボタンと同じ descriptor。
-    const tabMessages = {
-        stream: {
-            defaultMessage: 'Stream',
-            description: 'Tab of a class: the stream (announcements), like Google Classroom',
-            id: 'gui.classroom.board.tabStream',
-        },
-        classwork: {
-            defaultMessage: 'Classwork',
-            description: 'Tab of a class: the assignment list, like Google Classroom',
-            id: 'gui.classroom.board.tabClasswork',
-        },
-    };
     const handleBoardHome = useCallback(() => {
         resetSubViewForms();
         setShowInlineCreate(false);
@@ -964,52 +993,59 @@ const TeacherAssignmentBoard = ({
         }
     }, [shared, resetSubViewForms]);
 
+    // The header path (#1956 Q2): 「クラス管理 › クラス名」. In a sub view the class
+    // name goes back to the board (the testid ...-assignments is kept from the old path).
+    const topCrumb = {
+        label: intl.formatMessage(breadcrumbMessages.top),
+        onClick: onShowClassList,
+        testId: 'classroom-breadcrumb-class-list',
+    };
+    const classCrumbLink = {
+        label: formatClassLabel(group),
+        onClick: showSettings ? handleCloseSettings : handleBoardHome,
+        testId: 'classroom-breadcrumb-assignments',
+    };
+
+    if (showSettings && onUpdateGroup) {
+        return (
+            <TeacherScreen
+                breadcrumbs={[topCrumb, classCrumbLink, { label: intl.formatMessage(classTabMessages.settings) }]}
+                className={`${styles.classList} ${styles.classSettingsScreen}`}
+                error={error}
+                errorTitle={errorTitle}
+                testId="classroom-board-settings-view"
+            >
+                <TeacherSubView title={formatClassLabel(group)}>
+                    <ClassSettingsForm
+                        group={group}
+                        isLoading={isLoading || archiving}
+                        onCancel={handleCloseSettings}
+                        onUpdateGroup={handleUpdateGroupInClass}
+                    />
+                </TeacherSubView>
+            </TeacherScreen>
+        );
+    }
+
     return (
         <TeacherScreen
-            breadcrumbs={[
-                {
-                    label: intl.formatMessage({
-                        defaultMessage: 'Class list',
-                        description: 'Breadcrumb link back to the class list',
-                        id: 'gui.classroom.breadcrumbs.classList',
-                    }),
-                    onClick: onShowClassList,
-                    testId: 'classroom-breadcrumb-class-list',
-                },
-                // 現在地は「クラス > タブ（またはサブビュー）」。サブビュー中はクラス名を
-                // ボードへ戻るリンクにする（testid は歴史的経緯で ...-assignments のまま）。
+            breadcrumbs={
                 subView
-                    ? {
-                          label: formatClassLabel(group),
-                          onClick: handleBoardHome,
-                          testId: 'classroom-breadcrumb-assignments',
-                      }
-                    : { label: formatClassLabel(group) },
-                { label: intl.formatMessage(subView ? subViewMessages[subView] : tabMessages[tab]) },
-            ]}
+                    ? [topCrumb, classCrumbLink, { label: intl.formatMessage(subViewMessages[subView]) }]
+                    : [topCrumb, { label: formatClassLabel(group) }]
+            }
             className={styles.boardScreen}
             testId="classroom-board"
         >
             {!subView && (
                 <React.Fragment>
-                    {/* クラス名は独立行（省略しない）。その下に［ストリーム］［授業］のタブ。 */}
-                    <h2 className={styles.boardTitle}>{formatClassLabel(group)}</h2>
-                    <div className={styles.tabList} role="tablist">
-                        <ClassroomTab
-                            dataTestId="classroom-board-tab-stream"
-                            selected={tab === 'stream'}
-                            onClick={handleSelectStream}
-                        >
-                            <FormattedMessage {...tabMessages.stream} />
-                        </ClassroomTab>
-                        <ClassroomTab
-                            dataTestId="classroom-board-tab-classwork"
-                            selected={tab === 'classwork'}
-                            onClick={handleSelectClasswork}
-                        >
-                            <FormattedMessage {...tabMessages.classwork} />
-                        </ClassroomTab>
-                    </div>
+                    {/* クラス名はヘッダーの › に出す。ここは［ストリーム］［授業］［採点］のタブ（#1956 Q3）。 */}
+                    <TeacherClassTabs
+                        selected={tab}
+                        showGrading={!!onShowGrading}
+                        onOpenSettings={onUpdateGroup ? handleOpenSettings : null}
+                        onSelect={handleSelectTab}
+                    />
                     {tab === 'classwork' ? (
                         // R2: 主ボタンは［＋ 作成 ▾］1 つ。作り方は毎回選んでもらう（先生ごとに
                         // 使う作り方が違うため決め打ちしない）。まれな一括 DL は⋮へ。
@@ -1487,8 +1523,12 @@ TeacherAssignmentBoard.propTypes = {
     onReuseAssignment: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
     onShowClassList: PropTypes.func.isRequired,
+    /** ［採点］のタブ。このクラスの採点の画面を開く。 */
+    onShowGrading: PropTypes.func,
     onTabChange: PropTypes.func,
     onUpdateAssignmentMeta: PropTypes.func.isRequired,
+    /** ［⚙ クラスの設定］で保存する。渡さなければボタンを出さない。 */
+    onUpdateGroup: PropTypes.func,
     onUpdateGroupTopics: PropTypes.func.isRequired,
     shared: PropTypes.object,
 };

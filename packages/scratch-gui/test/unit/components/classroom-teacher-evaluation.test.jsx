@@ -408,6 +408,19 @@ describe('採点を離れるときの確認 (#1923 C4)', () => {
         },
     );
 
+    test('ヘッダーの「クラス管理」は onShowClassList を requestLeave に渡す (#1956)', () => {
+        const onRequestLeave = jest.fn();
+        const onShowClassList = jest.fn();
+        renderEvaluation({ onRequestLeave, onShowClassList });
+        fireEvent.click(byTestId('classroom-breadcrumb-class-list'));
+        expect(onRequestLeave).toHaveBeenCalledWith(onShowClassList, 'back');
+    });
+
+    test('タブの行（tabs）を出す', () => {
+        renderEvaluation({ tabs: <div data-testid="the-class-tabs" /> });
+        expect(byTestId('the-class-tabs')).toBeInTheDocument();
+    });
+
     test('requestLeave が無ければ、そのまま戻る', () => {
         const { handlers } = renderEvaluation();
         fireEvent.click(byTestId('classroom-evaluation-cancel'));

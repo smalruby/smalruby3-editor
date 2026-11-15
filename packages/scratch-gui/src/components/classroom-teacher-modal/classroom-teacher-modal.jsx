@@ -5,15 +5,19 @@
  * with a sidebar (class list) and a main area that shows phase content.
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import ClassCodeDisplay from '../classroom-modal/class-code-display.jsx';
 import TeacherAssignmentBoard from '../classroom-modal/teacher-assignment-board.jsx';
-import TeacherBreadcrumbs from '../classroom-modal/teacher-breadcrumbs.jsx';
+import TeacherBreadcrumbs, {
+    BreadcrumbSlotContext,
+    breadcrumbMessages,
+} from '../classroom-modal/teacher-breadcrumbs.jsx';
 import TeacherClassDetail from '../classroom-modal/teacher-class-detail.jsx';
 import TeacherClassList from '../classroom-modal/teacher-class-list.jsx';
+import TeacherClassTabs from '../classroom-modal/teacher-class-tabs.jsx';
 import TeacherEvaluation from '../classroom-modal/teacher-evaluation.jsx';
 import TeacherPostAssignment from '../classroom-modal/teacher-post-assignment.jsx';
 import ClassroomTutorial from '../classroom-tutorial/classroom-tutorial.jsx';
@@ -21,25 +25,16 @@ import Spinner from '../spinner/spinner.jsx';
 import styles from './classroom-teacher-modal.css';
 import TeacherAvatarMenu from './teacher-avatar-menu.jsx';
 import TeacherGoogleCoursesPhase from './teacher-google-courses-phase.jsx';
+import TeacherHeader from './teacher-header.jsx';
 import TeacherLoginPhase from './teacher-login-phase.jsx';
 import TeacherNotificationsList from './teacher-notifications-list.jsx';
 import TeacherNotifications from './teacher-notifications.jsx';
 
 const messagesBreadcrumbs = defineMessages({
-    classList: {
-        defaultMessage: 'Class list',
-        description: 'Breadcrumb link back to the class list',
-        id: 'gui.classroom.breadcrumbs.classList',
-    },
     assignments: {
         defaultMessage: 'Assignments',
         description: 'Breadcrumb link back to the assignment board',
         id: 'gui.classroom.breadcrumbs.assignments',
-    },
-    assignmentDetail: {
-        defaultMessage: 'Assignment detail',
-        description: 'Breadcrumb label of the assignment detail view',
-        id: 'gui.classroom.breadcrumbs.assignmentDetail',
     },
     shareGc: {
         defaultMessage: 'Share to Google Classroom',
@@ -48,13 +43,7 @@ const messagesBreadcrumbs = defineMessages({
     },
 });
 
-const messages = defineMessages({
-    title: {
-        defaultMessage: 'Class Management',
-        description: 'Title for the teacher class management modal',
-        id: 'gui.classroom.management.title',
-    },
-});
+const messages = { title: breadcrumbMessages.top };
 
 /**
  * 共有ステップ (#1106 バナー CTA) を載せるボードのグループを選ぶ。
@@ -216,6 +205,77 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     const classCrumbLabel = selectedGroup
         ? formatClassLabel(selectedGroup)
         : intl.formatMessage(messagesBreadcrumbs.assignments);
+    // The assignment's own name in the header path (#1956 Q12:「課題詳細」→ 課題名).
+    const assignmentCrumbLabel = selectedClassroom
+        ? selectedClassroom.assignmentName || selectedClassroom.className || ''
+        : '';
+    // The header path starts at 「クラス管理」, which always goes back to the class cards.
+    const topCrumb = {
+        label: intl.formatMessage(messages.title),
+        onClick: onShowClassList,
+        testId: 'classroom-breadcrumb-class-list',
+    };
+
+    // ［ストリーム］［授業］ from the grading screen: back to this class's board on that tab.
+    // Leaving the grading screen asks first when work would be lost (#1948).
+    const evalGroup = evaluation ? evaluation.evalGroup : null;
+    const handleEvaluationTab = useCallback(
+        (tab) => {
+            if (!evaluation || !evalGroup || tab === 'grading') return;
+            evaluation.handleRequestLeave(() => {
+                evaluation.handleBackFromEvaluation();
+                setBoardTab({ groupId: evalGroup.groupId, tab });
+                onSelectGroup(evalGroup);
+            }, 'leave');
+        },
+        [evaluation, evalGroup, onSelectGroup],
+    );
+    // The grading screen's cancel goes back to where it was opened (#1958 Q1): the class
+    // when it was opened from the class's［採点］tab, the class cards from a card.
+    const [gradingOpenedFrom, setGradingOpenedFrom] = useState('list');
+    const handleShowGradingFromClass = useCallback(
+        (group) => {
+            setGradingOpenedFrom('class');
+            evaluation.handleShowEvaluation(group);
+        },
+        [evaluation],
+    );
+    const handleShowGradingFromList = useCallback(
+        (group) => {
+            setGradingOpenedFrom('list');
+            evaluation.handleShowEvaluation(group);
+        },
+        [evaluation],
+    );
+    const handleBackFromEvaluation = useCallback(() => {
+        if (!evaluation) return;
+        evaluation.handleBackFromEvaluation();
+        if (gradingOpenedFrom === 'class' && evalGroup) onSelectGroup(evalGroup);
+    }, [evaluation, gradingOpenedFrom, evalGroup, onSelectGroup]);
+    const handleShowClassListFromEvaluation = useCallback(() => {
+        if (evaluation) evaluation.handleBackFromEvaluation();
+        onShowClassList();
+    }, [evaluation, onShowClassList]);
+
+    // The header's slot that the screens' paths are carried to (portal target).
+    const [crumbSlot, setCrumbSlot] = useState(null);
+
+    // After a link in the header path or the［採点］tab moves to another screen, the
+    // pressed button is gone: put the focus on the new screen (main) instead of the
+    // page (#1958 FYI1). When the button is still there (e.g. the grading screen asks
+    // first), the focus stays where that screen put it.
+    const mainRef = useRef(null);
+    const handleNavClickCapture = useCallback((event) => {
+        const button = event.target && event.target.closest ? event.target.closest('button') : null;
+        if (!button) return;
+        const isPathLink = !!button.closest('[data-testid="classroom-breadcrumbs"]');
+        const isGradingTab = button.getAttribute('data-tab') === 'grading';
+        if (!isPathLink && !isGradingTab) return;
+        setTimeout(() => {
+            if (button.isConnected && document.activeElement !== document.body) return;
+            if (mainRef.current) mainRef.current.focus({ preventScroll: true });
+        }, 0);
+    }, []);
 
     const renderMain = () => {
         // Fullscreen code display overlay
@@ -248,26 +308,24 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         if (phase === 'teacher-notifications' && notificationsCenter) {
             return (
                 <div className={styles.mainRelative}>
-                    <div className={styles.detailBreadcrumbs}>
-                        {/* ポリシー: パンくずの先頭「クラス管理」でいつでもトップ
-                            （クラス一覧）へ戻れる（#1111 レビュー）。 */}
-                        <TeacherBreadcrumbs
-                            items={[
-                                {
-                                    label: intl.formatMessage(messages.title),
-                                    onClick: onShowClassList,
-                                    testId: 'classroom-breadcrumb-top',
-                                },
-                                {
-                                    label: intl.formatMessage({
-                                        defaultMessage: 'Notifications',
-                                        description: 'Breadcrumb label of the notification list page',
-                                        id: 'gui.classroom.notifications.title',
-                                    }),
-                                },
-                            ]}
-                        />
-                    </div>
+                    {/* ポリシー: ヘッダーの「クラス管理」でいつでもトップ
+                        （クラス一覧）へ戻れる（#1111 レビュー）。 */}
+                    <TeacherBreadcrumbs
+                        items={[
+                            {
+                                label: intl.formatMessage(messages.title),
+                                onClick: onShowClassList,
+                                testId: 'classroom-breadcrumb-top',
+                            },
+                            {
+                                label: intl.formatMessage({
+                                    defaultMessage: 'Notifications',
+                                    description: 'Breadcrumb label of the notification list page',
+                                    id: 'gui.classroom.notifications.title',
+                                }),
+                            },
+                        ]}
+                    />
                     <TeacherNotificationsList
                         notifications={notificationsCenter.notifications}
                         onBack={onShowClassList}
@@ -289,7 +347,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onCreateClassWithAssignment={onCreateClassWithAssignment}
                         onOpenUngrouped={onSelectClassroom}
                         onSelectGroup={onSelectGroup}
-                        onShowEvaluation={evaluation?.handleShowEvaluation}
+                        onShowEvaluation={evaluation ? handleShowGradingFromList : null}
                         onShowGoogleCourses={authProvider === 'google' ? onShowGoogleCourses : null}
                         onUpdateGroup={onUpdateGroup}
                     />
@@ -316,8 +374,14 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         seats={evaluation.seats}
                         selectedLessonIds={evaluation.selectedLessonIds}
                         strictness={evaluation.strictness}
+                        tabs={
+                            evaluation.evalGroup ? (
+                                <TeacherClassTabs selected="grading" onSelect={handleEvaluationTab} />
+                            ) : null
+                        }
                         unsavedWork={evaluation.unsavedWork}
-                        onBack={evaluation.handleBackFromEvaluation}
+                        onBack={handleBackFromEvaluation}
+                        onShowClassList={handleShowClassListFromEvaluation}
                         onCancelLeave={evaluation.handleCancelLeave}
                         onConfirmLeave={evaluation.handleConfirmLeave}
                         onRequestLeave={evaluation.handleRequestLeave}
@@ -342,23 +406,17 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         if (phase === 'teacher-class-detail' && selectedClassroom) {
             return (
                 <div className={styles.mainFill}>
-                    <div className={styles.detailBreadcrumbs}>
-                        <TeacherBreadcrumbs
-                            items={[
-                                {
-                                    label: intl.formatMessage(messagesBreadcrumbs.classList),
-                                    onClick: onShowClassList,
-                                    testId: 'classroom-breadcrumb-class-list',
-                                },
-                                {
-                                    label: classCrumbLabel,
-                                    onClick: onBackToDashboard,
-                                    testId: 'classroom-breadcrumb-assignments',
-                                },
-                                { label: intl.formatMessage(messagesBreadcrumbs.assignmentDetail) },
-                            ]}
-                        />
-                    </div>
+                    <TeacherBreadcrumbs
+                        items={[
+                            topCrumb,
+                            {
+                                label: classCrumbLabel,
+                                onClick: onBackToDashboard,
+                                testId: 'classroom-breadcrumb-assignments',
+                            },
+                            { label: assignmentCrumbLabel, testId: 'classroom-breadcrumb-assignment-name' },
+                        ]}
+                    />
                     <TeacherClassDetail
                         assignmentEditor={{
                             editorPages: assignmentEditorPages,
@@ -456,28 +514,22 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         if (phase === 'teacher-post-assignment') {
             return (
                 <div className={styles.mainRelative}>
-                    <div className={styles.detailBreadcrumbs}>
-                        <TeacherBreadcrumbs
-                            items={[
-                                {
-                                    label: intl.formatMessage(messagesBreadcrumbs.classList),
-                                    onClick: onShowClassList,
-                                    testId: 'classroom-breadcrumb-class-list',
-                                },
-                                {
-                                    label: classCrumbLabel,
-                                    onClick: onBackToDashboard,
-                                    testId: 'classroom-breadcrumb-assignments',
-                                },
-                                {
-                                    label: intl.formatMessage(messagesBreadcrumbs.assignmentDetail),
-                                    onClick: onBackToDetail,
-                                    testId: 'classroom-breadcrumb-assignment-detail',
-                                },
-                                { label: intl.formatMessage(messagesBreadcrumbs.shareGc) },
-                            ]}
-                        />
-                    </div>
+                    <TeacherBreadcrumbs
+                        items={[
+                            topCrumb,
+                            {
+                                label: classCrumbLabel,
+                                onClick: onBackToDashboard,
+                                testId: 'classroom-breadcrumb-assignments',
+                            },
+                            {
+                                label: assignmentCrumbLabel,
+                                onClick: onBackToDetail,
+                                testId: 'classroom-breadcrumb-assignment-detail',
+                            },
+                            { label: intl.formatMessage(messagesBreadcrumbs.shareGc) },
+                        ]}
+                    />
                     <TeacherPostAssignment
                         error={error}
                         errorTitle={errorTitle}
@@ -517,8 +569,10 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onReuseAssignment={onReuseAssignment}
                         onSelectClassroom={onSelectClassroom}
                         onShowClassList={onShowClassList}
+                        onShowGrading={evaluation ? handleShowGradingFromClass : null}
                         onTabChange={handleBoardTabChange}
                         onUpdateAssignmentMeta={onUpdateAssignmentMeta}
+                        onUpdateGroup={onUpdateGroup}
                         onUpdateGroupTopics={onUpdateGroupTopics}
                     />
                 </div>
@@ -555,27 +609,39 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         <Modal
             contentLabel={intl.formatMessage(messages.title)}
             fullScreen
+            headerClassName={styles.modalHeaderHidden}
             id="classroomTeacherModal"
             onRequestClose={onClose}
         >
-            <div className={styles.layout} data-testid="classroom-teacher-modal">
-                {/* タイトルバー右上（× の左）: 通知ベル → アバターメニュー。
-                    アバターは右上固定でアカウント（メール頭文字）を示し、
-                    クリックでログアウト等のメニューを出す（#1111 レビュー）。 */}
-                {phase !== 'teacher-login' && notificationsCenter && (
-                    <TeacherNotifications
-                        isOpen={notificationsCenter.isOpen}
-                        notifications={notificationsCenter.notifications}
-                        unreadCount={notificationsCenter.unreadCount}
-                        onMarkAllRead={notificationsCenter.handleMarkAllRead}
-                        onOpenLink={notificationsCenter.handleOpenLink}
-                        onShowAll={notificationsCenter.handleShowAll}
-                        onToggle={notificationsCenter.handleToggleNotifications}
-                    />
-                )}
-                {phase !== 'teacher-login' && <TeacherAvatarMenu email={teacherEmail} onLogout={onTeacherLogout} />}
-                {/* Main area */}
-                <main className={styles.main}>{renderMain()}</main>
+            <div
+                className={styles.layout}
+                data-testid="classroom-teacher-modal"
+                onClickCapture={handleNavClickCapture}
+            >
+                {/* 紫のヘッダー（#1956 Q2）:「← エディタに戻る｜クラス管理 › クラス名 › 課題名」。
+                    右は通知ベル → アバターメニュー（#1111 レビュー）。共有 Modal のヘッダーは
+                    隠し、この画面のヘッダーを置く（upstream の Modal を変えないため）。 */}
+                <TeacherHeader slotRef={setCrumbSlot} onBackToEditor={onClose}>
+                    {phase !== 'teacher-login' && notificationsCenter && (
+                        <TeacherNotifications
+                            isOpen={notificationsCenter.isOpen}
+                            notifications={notificationsCenter.notifications}
+                            unreadCount={notificationsCenter.unreadCount}
+                            onMarkAllRead={notificationsCenter.handleMarkAllRead}
+                            onOpenLink={notificationsCenter.handleOpenLink}
+                            onShowAll={notificationsCenter.handleShowAll}
+                            onToggle={notificationsCenter.handleToggleNotifications}
+                        />
+                    )}
+                    {phase !== 'teacher-login' && (
+                        <TeacherAvatarMenu email={teacherEmail} onLogout={onTeacherLogout} />
+                    )}
+                </TeacherHeader>
+                <BreadcrumbSlotContext.Provider value={crumbSlot}>
+                    <main className={styles.main} ref={mainRef} tabIndex={-1}>
+                        {renderMain()}
+                    </main>
+                </BreadcrumbSlotContext.Provider>
             </div>
         </Modal>
     );

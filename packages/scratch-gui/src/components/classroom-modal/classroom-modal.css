@@ -683,11 +683,11 @@
     background-color: #e9f0ff;
 }
 
-/* 配信画面の本文コンテナ。課題詳細（.detail-layout）と同じ左右オフセットに
-   合わせる（上端はパンくずラッパーが持つ）。旧 .phaseContainer は未定義で
-   左マージンが出ていなかったため専用クラスに置き換え。 */
+/* 配信画面の本文コンテナ。課題詳細（.detail-layout）と同じオフセットに合わせる
+   （いまいる所はヘッダーに出るので、上の余白もここで持つ・#1958）。旧 .phaseContainer は
+   未定義で左マージンが出ていなかったため専用クラスに置き換え。 */
 .post-assignment-container {
-    padding: 0 2rem 1.25rem;
+    padding: 1.25rem 2rem;
 }
 
 /* クラス名（課題詳細と同じ表記）を配信画面のサブタイトルとして表示。 */
@@ -1971,9 +1971,9 @@ $seat-tile-min: 36px;
     flex: 1 1 auto;
     min-height: 0;
     box-sizing: border-box;
-    /* Align with the unified teacher views; the breadcrumb wrapper above
-       carries the top offset. */
-    padding: 0 2rem 1.25rem;
+    /* Align with the unified teacher views (.teacher-view). The path is in the
+       header now, so the top offset is here too (#1958). */
+    padding: 1.25rem 2rem;
 }
 
 .detail-two-pane-layout {
@@ -2256,6 +2256,27 @@ $seat-tile-min: 36px;
 .tab-selected {
     color: $color-action;
     border-bottom-color: $color-action;
+}
+
+/* A tab row with buttons at its right end (［⚙ クラスの設定］): the line is drawn by the
+   row, and the buttons sit outside the tablist. */
+.class-tabs-row {
+    display: flex;
+    align-items: flex-end;
+    border-bottom: 1px solid $color-border;
+    margin-bottom: 0.75rem;
+}
+
+.class-tabs-row .tab-list {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.tab-list-end {
+    display: flex;
+    align-items: center;
+    align-self: center;
+    margin-left: auto;
 }
 
 /* --- Co-teachers (shared classroom management) --- */
@@ -3714,7 +3735,7 @@ $seat-tile-min: 36px;
 
 /* --- みんなの課題: catalog (EPIC #1066 S3) --- */
 
-/* 枠なし（#1122）: 課題ボードの本文幅にそのまま乗せ、パンくず左端にそろえる。 */
+/* 枠なし（#1122）: 課題ボードの本文幅にそのまま乗せ、タブの行の左端にそろえる。 */
 .shared-catalog {
     display: flex;
     flex-direction: column;
@@ -3724,9 +3745,9 @@ $seat-tile-min: 36px;
 
 /* クラス管理パネル内サブビュー共通コンテナ（#1122）: 課題を作る・課題を再利用・
    みんなの課題・合言葉で取り込み・共有ステップ・クラスを作る・クラス設定など、
-   パンくずを持つパネル（.teacher-view）の中に描画されるビューが
+   トップレベルの画面（.teacher-view）の中に描画されるビューが
    共有する。パネル側が持つ左右パディング（2rem）に二重で足さないよう水平パディングは
-   0 にし、左端をパンくずにそろえる。パネル内に新しいサブビューを足すときもこのクラスを
+   0 にし、左端をパネルの本文にそろえる。パネル内に新しいサブビューを足すときもこのクラスを
    使う（.post-assignment-container はパネル外＝.main-relative 直下の配信画面用）。 */
 .panel-inner-view {
     padding: 0 0 1.25rem;
@@ -3990,13 +4011,6 @@ $seat-tile-min: 36px;
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 0.75rem;
-}
-
-.board-title {
-    margin: 0.25rem 0 0.25rem;
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #575e75;
 }
 
 .board-year {
@@ -4485,27 +4499,56 @@ $seat-tile-min: 36px;
 .breadcrumbs {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    margin-bottom: 0.75rem;
-    font-size: 0.85rem;
+    gap: 0.5rem;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
+/* The path sits in the purple header (#1956 Q2): white text. The places above
+   go back (links); the current place is bold. */
 .breadcrumb-link {
     border: none;
     background: transparent;
-    color: #855cd6;
-    text-decoration: underline;
+    color: $color-surface;
     cursor: pointer;
     padding: 0;
-    font-size: 0.85rem;
+    font-family: inherit;
+    font-size: inherit;
+    flex: 0 1 auto;
+    min-width: 3rem;
+    max-width: 20rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 「クラス管理」 (the top) is short: it is never cut. */
+.breadcrumb-link:first-child {
+    flex: none;
+}
+
+.breadcrumb-link:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-link:focus-visible {
+    outline: 2px solid $color-surface;
+    outline-offset: 2px;
 }
 
 .breadcrumb-separator {
-    color: hsla(225, 15%, 40%, 1);
+    color: $color-surface;
+    flex: none;
+    opacity: 0.8;
 }
 
 .breadcrumb-current {
-    color: hsla(225, 15%, 40%, 1);
+    color: $color-surface;
+    font-weight: $font-weight-bold;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* セカンダリ = 白地 + 中立の枠線（評価画面に統一・#1122）。 */
@@ -4611,7 +4654,8 @@ $seat-tile-min: 36px;
    クラス管理のトップレベル画面（評価・クラス一覧・課題ボード）の共通コンテナ。
    #1125 で同一宣言だった .assignment-board を統合した。新しい画面は
    teacher-view-layout.jsx の TeacherScreen / TeacherSubView を使えば
-   このスタイルが自動的に適用される。 */
+   このスタイルが自動的に適用される。いまいる所（パンくず）は紫のヘッダーへ
+   運ばれるので、この中には描かれない（#1958）。 */
 
 .teacher-view {
     padding: 1.25rem 2rem;

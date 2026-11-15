@@ -461,7 +461,7 @@ erDiagram
 - **単一ライター**: 書き込みは admin スタック（`POST /admin/notifications`、名前規約 import + write-only grant）のみ。classroom API は一覧と既読化だけを提供するので、エディタ側からお知らせを偽造できない
 - 宛先の `teacherSub` は admin SPA に出さず、admin API が classroomId から解決する
 - `link.kind` は whitelist（現在 `classroom` のみ）。エディタは未知の kind を無視する（前方互換）
-- GUI は先生モーダルのタイトルバー 🔔 から一覧を開く。パネルを開いた時点で mark-read（全件）が走りバッジが消える。60 秒間隔でポーリング
+- GUI は先生モーダルのヘッダーの 🔔 から一覧を開く。パネルを開いた時点で mark-read（全件）が走りバッジが消える。60 秒間隔でポーリング
 
 ### 退室依頼の先生への通知（ポーリング方針）
 

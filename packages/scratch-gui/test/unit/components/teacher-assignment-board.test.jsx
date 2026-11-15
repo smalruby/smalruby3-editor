@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import TeacherAssignmentBoard from '../../../src/components/classroom-modal/teacher-assignment-board.jsx';
@@ -386,20 +386,111 @@ describe('TeacherAssignmentBoard — Stream / Classwork tabs (#1301, B5)', () =>
         expect(byTestId('classroom-board-stream')).not.toBeInTheDocument();
     });
 
-    test('the breadcrumbs say the class and the tab; a sub view links back to the class', () => {
+    test('the header path says the class; a sub view links back to the class (#1956 Q2)', () => {
         const crumbs = () => byTestId('classroom-breadcrumbs').textContent;
         renderStream();
-        expect(crumbs()).toBe('Class list>技術 2026年度>Stream');
+        expect(crumbs()).toBe('Class Management›技術 2026年度');
         expect(byTestId('classroom-breadcrumb-assignments')).not.toBeInTheDocument();
 
         fireEvent.click(byTestId('classroom-board-tab-classwork'));
-        expect(crumbs()).toBe('Class list>技術 2026年度>Classwork');
+        expect(crumbs()).toBe('Class Management›技術 2026年度');
 
         clickCreateItem('classroom-board-create');
-        expect(crumbs()).toBe('Class list>技術 2026年度>Create an assignment');
+        expect(crumbs()).toBe('Class Management›技術 2026年度›Create an assignment');
         fireEvent.click(byTestId('classroom-breadcrumb-assignments'));
         expect(byTestId('classroom-board-tab-classwork')).toHaveAttribute('aria-selected', 'true');
-        expect(crumbs()).toBe('Class list>技術 2026年度>Classwork');
+        expect(crumbs()).toBe('Class Management›技術 2026年度');
+    });
+
+    test('「クラス管理」 in the path goes back to the class list', () => {
+        const onShowClassList = jest.fn();
+        renderStream({ onShowClassList });
+        fireEvent.click(byTestId('classroom-breadcrumb-class-list'));
+        expect(onShowClassList).toHaveBeenCalled();
+    });
+
+    test('［採点］ opens the grading screen of this class (#1956 Q3)', () => {
+        const onShowGrading = jest.fn();
+        const onTabChange = jest.fn();
+        renderStream({ onShowGrading, onTabChange });
+        expect(byTestId('classroom-class-tabs').querySelectorAll('[role="tab"]')).toHaveLength(3);
+        fireEvent.click(byTestId('classroom-board-tab-grading'));
+        expect(onShowGrading).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g1' }));
+        // The board itself stays on the stream (the grading screen is another phase).
+        expect(onTabChange).not.toHaveBeenCalled();
+        expect(byTestId('classroom-board-tab-stream')).toHaveAttribute('aria-selected', 'true');
+    });
+
+    test('［⚙ クラスの設定］ opens the settings inside the class and Cancel comes back', () => {
+        renderStream({ onUpdateGroup: jest.fn() });
+        fireEvent.click(byTestId('classroom-board-class-settings'));
+        expect(byTestId('classroom-board-settings-view')).toBeInTheDocument();
+        expect(byTestId('classroom-breadcrumbs').textContent).toBe(
+            'Class Management›技術 2026年度›Class settings',
+        );
+        fireEvent.click(byTestId('classroom-class-settings-cancel'));
+        expect(byTestId('classroom-board-settings-view')).not.toBeInTheDocument();
+        expect(byTestId('classroom-board-tab-stream')).toBeInTheDocument();
+    });
+
+    test('a failed archive stays in the settings with the error, and nothing moves (#1958 M1)', async () => {
+        let finish;
+        const onUpdateGroup = jest.fn(
+            () =>
+                new Promise((resolve) => {
+                    finish = resolve;
+                }),
+        );
+        const onShowClassList = jest.fn();
+        const { rerender } = renderStream({ onUpdateGroup, onShowClassList });
+        fireEvent.click(byTestId('classroom-board-class-settings'));
+        fireEvent.click(byTestId('classroom-class-settings-archive'));
+        fireEvent.click(byTestId('classroom-class-settings-archive'));
+        // Until the API answers, the settings stay (the board cannot be pressed) and its buttons are off.
+        expect(byTestId('classroom-board-settings-view')).toBeInTheDocument();
+        expect(byTestId('classroom-class-settings-archive')).toBeDisabled();
+        await act(async () => finish(false));
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherAssignmentBoard
+                    {...defaultProps()}
+                    error="Could not save"
+                    onShowClassList={onShowClassList}
+                    onUpdateGroup={onUpdateGroup}
+                />
+            </IntlProvider>,
+        );
+        expect(onShowClassList).not.toHaveBeenCalled();
+        expect(byTestId('classroom-board-settings-view')).toBeInTheDocument();
+        expect(byTestId('classroom-board-settings-view').textContent).toContain('Could not save');
+        expect(byTestId('classroom-class-settings-archive')).not.toBeDisabled();
+    });
+
+    test('without onShowGrading there is no［採点］tab (#1958 FYI8)', () => {
+        renderStream();
+        expect(byTestId('classroom-board-tab-grading')).not.toBeInTheDocument();
+    });
+
+    test('the settings button is outside the tablist (#1958 Q3)', () => {
+        renderStream({ onUpdateGroup: jest.fn() });
+        expect(byTestId('classroom-class-tabs')).not.toContainElement(byTestId('classroom-board-class-settings'));
+        expect(byTestId('classroom-class-tabs').querySelectorAll('[role="tab"]')).toHaveLength(2);
+    });
+
+    test('without onUpdateGroup there is no settings button', () => {
+        renderStream();
+        expect(byTestId('classroom-board-class-settings')).not.toBeInTheDocument();
+    });
+
+    test('archiving the class from its settings goes back to the class list', async () => {
+        const onUpdateGroup = jest.fn(() => Promise.resolve(true));
+        const onShowClassList = jest.fn();
+        renderStream({ onUpdateGroup, onShowClassList });
+        fireEvent.click(byTestId('classroom-board-class-settings'));
+        fireEvent.click(byTestId('classroom-class-settings-archive'));
+        fireEvent.click(byTestId('classroom-class-settings-archive'));
+        await waitFor(() => expect(onShowClassList).toHaveBeenCalled());
+        expect(onUpdateGroup).toHaveBeenCalledWith('g1', { status: 'archived' });
     });
 
     test('initialTab opens on Classwork and onTabChange reports the switches', () => {

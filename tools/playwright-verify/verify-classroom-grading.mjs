@@ -329,11 +329,19 @@ const leaveState = () =>
             vw: window.innerWidth,
         };
     }, ROOT);
-const backButton = '.ReactModal__Content [class*="back-button"]';
+// 紫のヘッダーの「← エディタに戻る」(#1958)。共有 Modal のヘッダーは隠している。
+const backButton = '[data-testid="classroom-teacher-back-to-editor"]';
 const entries = [
     { name: 'cancel', run: () => page.click('[data-testid="classroom-evaluation-cancel"]'), yes: /戻る|もどる/ },
     { name: 'breadcrumb', run: () => page.click('[data-testid="classroom-breadcrumb-class-list"]'), yes: /戻る|もどる/ },
     { name: 'modal back (close)', run: () => page.click(backButton), yes: /離れる|はなれる/ },
+    // クラスの中のタブ (#1958): 採点から［ストリーム］［授業］へ移るときも聞く。
+    { name: 'tab stream', run: () => page.click('[data-testid="classroom-board-tab-stream"]'), yes: /離れる|はなれる/ },
+    {
+        name: 'tab classwork',
+        run: () => page.click('[data-testid="classroom-board-tab-classwork"]'),
+        yes: /離れる|はなれる/,
+    },
     { name: 'Esc', run: () => page.keyboard.press('Escape'), yes: /離れる|はなれる/ },
     {
         name: 'notifications "open all"',
