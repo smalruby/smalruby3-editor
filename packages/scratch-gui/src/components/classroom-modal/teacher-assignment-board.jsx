@@ -749,13 +749,13 @@ const StreamItem = ({ event, onOpen }) => {
     return (
         <li>
             <button
-                className={event.type === 'expiring' ? styles.streamItemUrgent : styles.streamItem}
+                className={styles.streamItem}
                 data-testid={`classroom-board-stream-item-${event.key}`}
                 type="button"
                 onClick={handleClick}
             >
-                {/* R4: red only for the entry the teacher has to act on now. */}
-                {event.type === 'expiring' ? <span className={styles.streamItemMark}>{'⚠'}</span> : null}
+                {/* The warning itself is on the deadline card at the left (#1960, R4): the
+                    expiring entry stays in the record in the record's own grey. */}
                 <span className={styles.streamItemText}>{text}</span>
                 {/* R1: the date says what it is (the expiring entry has it in its text). */}
                 {event.type === 'expiring' ? null : (

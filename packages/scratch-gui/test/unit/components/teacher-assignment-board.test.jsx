@@ -544,6 +544,9 @@ describe('TeacherAssignmentBoard — stream entries (B5)', () => {
         expect(byTestId('classroom-board-stream-date-created-a').textContent).toMatch(/^Created\s*\d/);
         expect(byTestId('classroom-board-stream-date-archived-x').textContent).toMatch(/^Archived\s*\d/);
         expect(byTestId('classroom-board-stream-date-expiring-b')).not.toBeInTheDocument();
+        // The warning is on the deadline card (#1960): the record's entry has no ⚠ mark.
+        expect(byTestId('classroom-board-stream-item-expiring-b').textContent).not.toContain('⚠');
+        expect(byTestId('classroom-board-retention-card')).toHaveAttribute('data-urgent', 'true');
     });
 
     test('an empty class shows the empty message', () => {

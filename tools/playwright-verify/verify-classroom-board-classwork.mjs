@@ -164,6 +164,12 @@ const measureStream = () =>
             })(),
             retentionUrgent: document.querySelector('[data-testid="classroom-board-retention-card"]')?.getAttribute('data-urgent'),
             band: document.querySelector('[data-testid="classroom-board-stream-band"]')?.textContent,
+            // The record's expiring entry is grey like the others; the red is on the deadline card (#1960).
+            expiringGrey: (() => {
+                const e = document.querySelector('[data-testid="classroom-board-stream-item-expiring-c2"]');
+                const c = document.querySelector('[data-testid="classroom-board-stream-item-created-c1"]');
+                return !!e && !!c && getComputedStyle(e).color === getComputedStyle(c).color && !e.textContent.includes('⚠');
+            })(),
         };
     });
 const measure = () =>
@@ -236,8 +242,8 @@ try {
     );
     record(
         'stream: band and deadline card (red within 7 days)',
-        cur.retentionUrgent === 'true' && cur.retentionBottom <= VIEWPORT.height && cur.band.includes(CLASS_SECTION),
-        `band=${cur.band} deadline card urgent=${cur.retentionUrgent} bottom=${cur.retentionBottom}/${VIEWPORT.height}`,
+        cur.retentionUrgent === 'true' && cur.retentionBottom <= VIEWPORT.height && cur.band.includes(CLASS_SECTION) && cur.expiringGrey,
+        `band=${cur.band} deadline card urgent=${cur.retentionUrgent} bottom=${cur.retentionBottom}/${VIEWPORT.height} record's expiring entry grey=${cur.expiringGrey}`,
     );
     await shot('stream', '0226-board-stream.png');
 

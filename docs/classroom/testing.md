@@ -463,7 +463,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-retention-card-none` | p | 「7 日以内に消える課題はありません。」（灰色） |
 | `classroom-board-retention-card-next` | p | 次の保存期限（灰色。7 日以内のものが無いとき） |
 | `classroom-board-stream` | div | ［ストリーム］の右の記録の枠（件数が多いときはこの中だけスクロール） |
-| `classroom-board-stream-item-{type}-{classroomId}` | button | ストリームの 1 行。`{type}` は `created`（作成）/ `archived`（アーカイブ）/ `expiring`（残り 7 日以内の自動削除の予定）。押すと［授業］でその課題へ |
+| `classroom-board-stream-item-{type}-{classroomId}` | button | ストリームの 1 行。`{type}` は `created`（作成）/ `archived`（アーカイブ）/ `expiring`（残り 7 日以内の自動削除の予定。ほかの行と同じ灰色・赤い警告は `classroom-board-retention-card`）。押すと［授業］でその課題へ |
 | `classroom-board-stream-date-{type}-{classroomId}` | span | ストリームの行の右端の日付とラベル（「作成日」／「アーカイブした日」）。`expiring` の行には無い（日付は文中） |
 | `classroom-board-stream-empty` | p | ストリームが空のときの案内 |
 | `classroom-board-create-menu` | button | ［＋ 作成 ▾］（主ボタン）。開いた一覧は `classroom-board-create-menu-list`（`role="menu"`） |

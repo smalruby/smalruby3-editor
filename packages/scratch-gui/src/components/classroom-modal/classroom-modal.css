@@ -5085,8 +5085,7 @@ $seat-tile-min: 36px;
     gap: 0.4rem;
 }
 
-.stream-item,
-.stream-item-urgent {
+.stream-item {
     width: 100%;
     display: flex;
     align-items: baseline;
@@ -5101,20 +5100,8 @@ $seat-tile-min: 36px;
     cursor: pointer;
 }
 
-.stream-item:hover,
-.stream-item-urgent:hover {
+.stream-item:hover {
     border-color: #855cd6;
-}
-
-/* 赤は「いま対処が必要」な自動削除の予定だけ（R4）。 */
-.stream-item-urgent {
-    border-color: hsla(10, 80%, 42%, 0.5);
-    color: hsla(10, 80%, 42%, 1);
-    font-weight: bold;
-}
-
-.stream-item-mark {
-    flex: none;
 }
 
 .stream-item-text {
