@@ -386,20 +386,66 @@ describe('TeacherAssignmentBoard — Stream / Classwork tabs (#1301, B5)', () =>
         expect(byTestId('classroom-board-stream')).not.toBeInTheDocument();
     });
 
-    test('the breadcrumbs say the class and the tab; a sub view links back to the class', () => {
+    test('the header path says the class; a sub view links back to the class (#1956 Q2)', () => {
         const crumbs = () => byTestId('classroom-breadcrumbs').textContent;
         renderStream();
-        expect(crumbs()).toBe('Class list>技術 2026年度>Stream');
+        expect(crumbs()).toBe('Class Management›技術 2026年度');
         expect(byTestId('classroom-breadcrumb-assignments')).not.toBeInTheDocument();
 
         fireEvent.click(byTestId('classroom-board-tab-classwork'));
-        expect(crumbs()).toBe('Class list>技術 2026年度>Classwork');
+        expect(crumbs()).toBe('Class Management›技術 2026年度');
 
         clickCreateItem('classroom-board-create');
-        expect(crumbs()).toBe('Class list>技術 2026年度>Create an assignment');
+        expect(crumbs()).toBe('Class Management›技術 2026年度›Create an assignment');
         fireEvent.click(byTestId('classroom-breadcrumb-assignments'));
         expect(byTestId('classroom-board-tab-classwork')).toHaveAttribute('aria-selected', 'true');
-        expect(crumbs()).toBe('Class list>技術 2026年度>Classwork');
+        expect(crumbs()).toBe('Class Management›技術 2026年度');
+    });
+
+    test('「クラス管理」 in the path goes back to the class list', () => {
+        const onShowClassList = jest.fn();
+        renderStream({ onShowClassList });
+        fireEvent.click(byTestId('classroom-breadcrumb-class-list'));
+        expect(onShowClassList).toHaveBeenCalled();
+    });
+
+    test('［採点］ opens the grading screen of this class (#1956 Q3)', () => {
+        const onShowGrading = jest.fn();
+        const onTabChange = jest.fn();
+        renderStream({ onShowGrading, onTabChange });
+        fireEvent.click(byTestId('classroom-board-tab-grading'));
+        expect(onShowGrading).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g1' }));
+        // The board itself stays on the stream (the grading screen is another phase).
+        expect(onTabChange).not.toHaveBeenCalled();
+        expect(byTestId('classroom-board-tab-stream')).toHaveAttribute('aria-selected', 'true');
+    });
+
+    test('［⚙ クラスの設定］ opens the settings inside the class and Cancel comes back', () => {
+        renderStream({ onUpdateGroup: jest.fn() });
+        fireEvent.click(byTestId('classroom-board-class-settings'));
+        expect(byTestId('classroom-board-settings-view')).toBeInTheDocument();
+        expect(byTestId('classroom-breadcrumbs').textContent).toBe(
+            'Class Management›技術 2026年度›Class settings',
+        );
+        fireEvent.click(byTestId('classroom-class-settings-cancel'));
+        expect(byTestId('classroom-board-settings-view')).not.toBeInTheDocument();
+        expect(byTestId('classroom-board-tab-stream')).toBeInTheDocument();
+    });
+
+    test('without onUpdateGroup there is no settings button', () => {
+        renderStream();
+        expect(byTestId('classroom-board-class-settings')).not.toBeInTheDocument();
+    });
+
+    test('archiving the class from its settings goes back to the class list', async () => {
+        const onUpdateGroup = jest.fn(() => Promise.resolve());
+        const onShowClassList = jest.fn();
+        renderStream({ onUpdateGroup, onShowClassList });
+        fireEvent.click(byTestId('classroom-board-class-settings'));
+        fireEvent.click(byTestId('classroom-class-settings-archive'));
+        fireEvent.click(byTestId('classroom-class-settings-archive'));
+        await waitFor(() => expect(onShowClassList).toHaveBeenCalled());
+        expect(onUpdateGroup).toHaveBeenCalledWith('g1', { status: 'archived' });
     });
 
     test('initialTab opens on Classwork and onTabChange reports the switches', () => {

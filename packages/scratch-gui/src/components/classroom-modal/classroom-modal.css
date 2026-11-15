@@ -2258,6 +2258,14 @@ $seat-tile-min: 36px;
     border-bottom-color: $color-action;
 }
 
+/* The right end of a tab row (［⚙ クラスの設定］). */
+.tab-list-end {
+    display: flex;
+    align-items: center;
+    align-self: center;
+    margin-left: auto;
+}
+
 /* --- Co-teachers (shared classroom management) --- */
 
 .co-teachers-section {
@@ -3992,13 +4000,6 @@ $seat-tile-min: 36px;
     margin-bottom: 0.75rem;
 }
 
-.board-title {
-    margin: 0.25rem 0 0.25rem;
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #575e75;
-}
-
 .board-year {
     margin-left: 0.5rem;
     font-size: 0.8rem;
@@ -4485,27 +4486,45 @@ $seat-tile-min: 36px;
 .breadcrumbs {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    margin-bottom: 0.75rem;
-    font-size: 0.85rem;
+    gap: 0.5rem;
+    min-width: 0;
+    white-space: nowrap;
 }
 
+/* The path sits in the purple header (#1956 Q2): white text. The places above
+   go back (links); the current place is bold. */
 .breadcrumb-link {
     border: none;
     background: transparent;
-    color: #855cd6;
-    text-decoration: underline;
+    color: $color-surface;
     cursor: pointer;
     padding: 0;
-    font-size: 0.85rem;
+    font-family: inherit;
+    font-size: inherit;
+    max-width: 20rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.breadcrumb-link:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-link:focus-visible {
+    outline: 2px solid $color-surface;
+    outline-offset: 2px;
 }
 
 .breadcrumb-separator {
-    color: hsla(225, 15%, 40%, 1);
+    color: $color-surface;
+    opacity: 0.8;
 }
 
 .breadcrumb-current {
-    color: hsla(225, 15%, 40%, 1);
+    color: $color-surface;
+    font-weight: $font-weight-bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* セカンダリ = 白地 + 中立の枠線（評価画面に統一・#1122）。 */

@@ -31,6 +31,7 @@ import { findCourse } from '../../lib/lessons/courses.js';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import LessonScoringField from './lesson-scoring-field.jsx';
+import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
 import { TeacherScreen } from './teacher-view-layout.jsx';
 
 const GRADES = [...GRADE_ORDER].reverse(); // S, A, B, C
@@ -435,9 +436,11 @@ const TeacherEvaluation = ({
     seats,
     selectedLessonIds,
     strictness,
+    tabs,
     leaveRequest = null,
     unsavedWork = NOTHING_UNSAVED,
     onBack,
+    onShowClassList,
     onCancelLeave,
     onChangeLessonScoring,
     onChangeRubricAxis,
@@ -511,6 +514,11 @@ const TeacherEvaluation = ({
     // Every way out asks first when grades not exported or comments not
     // returned would be lost (#1923 C4). The container decides (requestLeave).
     const handleLeave = useCallback(() => onRequestLeave(onBack, 'back'), [onRequestLeave, onBack]);
+    // 「クラス管理」 in the header path goes to the class cards, asking the same way.
+    const handleLeaveToClassList = useCallback(
+        () => onRequestLeave(onShowClassList || onBack, 'back'),
+        [onRequestLeave, onShowClassList, onBack],
+    );
     // Loading again replaces the table: ask the same way once something is loaded.
     const handleLoad = useCallback(
         () => (loaded ? onRequestLeave(onLoadSubmissions, 'reload') : onLoadSubmissions()),
@@ -711,20 +719,18 @@ const TeacherEvaluation = ({
 
     return (
         <TeacherScreen
+            // The header path (#1956 Q2): 「クラス管理 › クラス名」. The grading screen is
+            // the class's［採点］tab, so the tab row says where in the class it is.
             breadcrumbs={[
                 {
-                    label: (
-                        <FormattedMessage
-                            defaultMessage="Class list"
-                            description="Breadcrumb link back to the class list"
-                            id="gui.classroom.breadcrumbs.classList"
-                        />
-                    ),
-                    onClick: handleLeave,
+                    label: <FormattedMessage {...breadcrumbMessages.top} />,
+                    onClick: handleLeaveToClassList,
                     testId: 'classroom-breadcrumb-class-list',
                 },
                 {
-                    label: (
+                    label: evalGroup ? (
+                        formatClassLabel(evalGroup)
+                    ) : (
                         <FormattedMessage
                             defaultMessage="Grading"
                             description="Breadcrumb label of the evaluation view"
@@ -782,8 +788,8 @@ const TeacherEvaluation = ({
                     </>
                 )
             }
+            tabs={tabs}
             testId="classroom-phase-teacher-evaluation"
-            title={evalGroup ? formatClassLabel(evalGroup) : ''}
         >
             {/* Lesson selection */}
             <div className={styles.evalSection}>
@@ -1093,12 +1099,16 @@ TeacherEvaluation.propTypes = {
     seats: PropTypes.arrayOf(PropTypes.number).isRequired,
     selectedLessonIds: PropTypes.arrayOf(PropTypes.string).isRequired,
     strictness: PropTypes.string.isRequired,
+    /** クラスの中のタブの行（［採点］が選ばれた `TeacherClassTabs`）。 */
+    tabs: PropTypes.node,
     /** What leaving would lose now (#1923 C4): {grades, comments}. */
     unsavedWork: PropTypes.shape({
         comments: PropTypes.bool,
         grades: PropTypes.bool,
     }),
     onBack: PropTypes.func.isRequired,
+    /** ヘッダーの「クラス管理」。無ければ onBack。 */
+    onShowClassList: PropTypes.func,
     onCancelLeave: PropTypes.func,
     onChangeLessonScoring: PropTypes.func,
     onChangeRubricAxis: PropTypes.func.isRequired,

@@ -24,6 +24,8 @@ import ClassAiStudentPreview from './class-ai-student-preview.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
+import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
+import { classTabMessages } from './teacher-class-tabs.jsx';
 import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
 
 /** Default school year: before April it is still the previous year's term. */
@@ -188,7 +190,7 @@ ClassFields.propTypes = {
 };
 
 // Inline settings editor shown in place of a card (recommended UX: no nested modal).
-const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
+export const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
     const intl = useIntl();
     const [name, setName] = useState(group.name);
     const [year, setYear] = useState(String(group.year));
@@ -830,6 +832,11 @@ const TeacherClassList = ({
         [onOpenUngrouped],
     );
     const handleCloseSettings = useCallback(() => setSettingsGroupId(null), []);
+    // The class name in the header path opens that class.
+    const handleOpenSettingsGroup = useCallback(() => {
+        const group = groups.find((g) => g.groupId === settingsGroupId);
+        if (group) onSelectGroup(group);
+    }, [groups, settingsGroupId, onSelectGroup]);
     const handleToggleArchived = useCallback(() => setShowArchived((v) => !v), []);
     const handleRestoreGroup = useCallback(
         (groupId) => onUpdateGroup(groupId, { status: 'active' }),
@@ -849,12 +856,9 @@ const TeacherClassList = ({
     const ungrouped = classrooms.filter((c) => !c.groupId || !knownGroupIds.has(c.groupId));
     const settingsGroup = groups.find((g) => g.groupId === settingsGroupId);
 
+    // The header path starts at 「クラス管理」 (#1956 Q2): here it goes back to the cards.
     const classListCrumb = {
-        label: intl.formatMessage({
-            defaultMessage: 'Class list',
-            description: 'Breadcrumb link back to the class list',
-            id: 'gui.classroom.breadcrumbs.classList',
-        }),
+        label: intl.formatMessage(breadcrumbMessages.top),
         onClick: handleCloseSettings,
         testId: 'classroom-breadcrumb-class-list',
     };
@@ -866,12 +870,11 @@ const TeacherClassList = ({
                 breadcrumbs={[
                     classListCrumb,
                     {
-                        label: intl.formatMessage({
-                            defaultMessage: 'Settings',
-                            description: 'Button on a class card to open its settings',
-                            id: 'gui.classroom.classList.settings',
-                        }),
+                        label: formatClassLabel(settingsGroup),
+                        onClick: handleOpenSettingsGroup,
+                        testId: 'classroom-breadcrumb-assignments',
                     },
+                    { label: intl.formatMessage(classTabMessages.settings) },
                 ]}
                 className={`${styles.classList} ${styles.classSettingsScreen}`}
                 error={error}
@@ -892,15 +895,7 @@ const TeacherClassList = ({
 
     return (
         <TeacherScreen
-            breadcrumbs={[
-                {
-                    label: intl.formatMessage({
-                        defaultMessage: 'Class list',
-                        description: 'Breadcrumb label of the class list (current view)',
-                        id: 'gui.classroom.breadcrumbs.classList',
-                    }),
-                },
-            ]}
+            breadcrumbs={[{ label: intl.formatMessage(breadcrumbMessages.top) }]}
             className={`${styles.classList} ${styles.classListLanding}`}
             // A failed "Create" must be readable in the dialog, not dimmed behind it.
             error={showCreateForm ? null : error}

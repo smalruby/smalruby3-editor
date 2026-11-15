@@ -428,7 +428,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-archived-class-list` | ul | アーカイブ済みクラスのカード一覧 |
 | `classroom-class-restore-{groupId}` | button | アーカイブ済みクラスカードの「元に戻す」 |
 | `classroom-board` | div | 課題管理ボード（クラス内のメイン領域） |
-| `classroom-board-tab-stream` / `classroom-board-tab-classwork` | button (tab) | クラスの画面の［ストリーム］［授業］タブ（`aria-selected`。最初は［ストリーム］） |
+| `classroom-class-tabs` | div (tablist) | クラスの中のタブの行（クラスの画面と採点の画面の両方に出る） |
+| `classroom-board-tab-stream` / `classroom-board-tab-classwork` / `classroom-board-tab-grading` | button (tab) | クラスの中の［ストリーム］［授業］［採点］タブ（`aria-selected`。最初は［ストリーム］。採点の画面では［採点］が選ばれる。採点の画面からほかのタブへ移るときは離れる確認を通る） |
+| `classroom-board-class-settings` | button | タブの行の右端の［⚙ クラスの設定］（ストリーム・授業のとき） |
+| `classroom-board-settings-view` | div | クラスの中で開いたクラスの設定の画面（中のフォームは `classroom-class-settings-{groupId}`） |
 | `classroom-board-stream` | div | ［ストリーム］の枠（件数が多いときはこの中だけスクロール） |
 | `classroom-board-stream-item-{type}-{classroomId}` | button | ストリームの 1 行。`{type}` は `created`（作成）/ `archived`（アーカイブ）/ `expiring`（残り 7 日以内の自動削除の予定）。押すと［授業］でその課題へ |
 | `classroom-board-stream-date-{type}-{classroomId}` | span | ストリームの行の右端の日付とラベル（「作成日」／「アーカイブした日」）。`expiring` の行には無い（日付は文中） |
@@ -515,8 +518,12 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `shared-import-success` | p | 取り込み完了メッセージ（ボード上） |
 | `classroom-share-suggestion-banner` / `classroom-share-suggestion-open` | div/button | 共有推奨バナーと「共有フォームを開く」CTA（#1106） |
 | `classroom-board-share-suggested-{classroomId}` | span | ボード行の「共有おすすめ」マーク（#1106） |
-| `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > {クラス名} > ストリーム｜授業｜課題を作成などのサブビュー｜課題詳細） |
-| `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | パンくずリンク |
+| `classroom-teacher-header` | header | 紫のヘッダー（「← エディタに戻る｜クラス管理 › …」・ベル・アバター） |
+| `classroom-teacher-back-to-editor` | button | ヘッダー左の「← エディタに戻る」（クラス管理を閉じる。共有モーダルの「戻る」の代わり） |
+| `classroom-breadcrumbs` | nav | ヘッダーの中のいまいる所（クラス管理 › {クラス名} › 課題を作成などのサブビュー｜{課題名}）。いまの画面は `aria-current="page"` |
+| `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | いまいる所の「クラス管理」（クラス一覧へ）/ {クラス名}（クラスの画面へ）のリンク |
+| `classroom-breadcrumb-assignment-name` | span | 課題詳細のいまいる所の末尾（課題名） |
+| `classroom-breadcrumb-assignment-detail` | button | Google Classroom に共有の画面で、課題名（課題詳細へ戻る） |
 | `classroom-board-create-name` / `classroom-board-create-submit` | input / button | インライン課題作成（課題名） |
 | `classroom-board-reuse` | button (menuitem) | 作成メニューの「課題を再利用」 |
 | `classroom-board-reuse-view` | div | 再利用ビュー（全課題を日付降順） |
@@ -533,7 +540,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-avatar-email` | span | アカウントメニュー内のユーザーメール（OIDC トークンに email がある場合のみ。旧 `classroom-teacher-email` は廃止） |
 | `classroom-board-create-cancel` / `classroom-board-reuse-cancel` | button | インラインフォームのキャンセル |
 | `classroom-google-course-imported-{courseId}` | span | GC コースの「インポート済み」バッジ |
-| `classroom-breadcrumb-assignments` | button | パンくずのクラス名リンク（クラスの画面へ戻る。testid は「課題一覧」だった頃の名前のまま。クラスに属さない古い課題では「課題一覧」） |
+| `classroom-breadcrumb-assignments` | button | いまいる所のクラス名リンク（クラスの画面へ戻る。testid は「課題一覧」だった頃の名前のまま。クラスに属さない古い課題では「課題一覧」） |
 | `classroom-ungrouped-list` | div | クラス未所属の課題のフォールバック一覧（develop 互換） |
 | `classroom-ungrouped-open-{classroomId}` | button | 未所属課題をひらく |
 | `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
@@ -725,7 +732,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-notification-unread-dot` | span | 未読ドット（未読アイテムのみ） |
 | `classroom-notifications-empty` | div | お知らせ 0 件のとき |
 | `classroom-notifications-page` | div | 全件一覧ページ（`teacher-notifications` フェーズ） |
-| `classroom-breadcrumb-top` | button | パンくず先頭「クラス管理」（トップ = クラス一覧へ） |
+| `classroom-breadcrumb-top` | button | お知らせの一覧ページのいまいる所の「クラス管理」（トップ = クラス一覧へ） |
 | `classroom-notifications-back` | button | 左下の「戻る」（クラス一覧へ） |
 | `classroom-notification-page-item-{notificationId}` | button | 一覧ページ内のお知らせ 1 件 |
 | `classroom-notifications-pager` / `-prev` / `-next` | div / button | ページャ（10 件/ページ） |

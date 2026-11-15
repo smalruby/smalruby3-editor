@@ -12,7 +12,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { isTutorialSeen, markClassroomTutorialSeen } from '../../reducers/classroom-tutorial.js';
 import ErrorDisplay from '../classroom-modal/error-display.jsx';
 import GoogleCourseList from '../classroom-modal/google-course-list.jsx';
-import TeacherBreadcrumbs from '../classroom-modal/teacher-breadcrumbs.jsx';
+import TeacherBreadcrumbs, { breadcrumbMessages } from '../classroom-modal/teacher-breadcrumbs.jsx';
 import Spinner from '../spinner/spinner.jsx';
 import styles from './classroom-teacher-modal.css';
 import googleAuthHintImage from './google-auth-hint.png';
@@ -102,13 +102,7 @@ const TeacherGoogleCoursesPhase = ({
                 <TeacherBreadcrumbs
                     items={[
                         {
-                            label: (
-                                <FormattedMessage
-                                    defaultMessage="Class list"
-                                    description="Breadcrumb link back to the class list"
-                                    id="gui.classroom.breadcrumbs.classList"
-                                />
-                            ),
+                            label: <FormattedMessage {...breadcrumbMessages.top} />,
                             onClick: onBack,
                             testId: 'classroom-breadcrumb-class-list',
                         },

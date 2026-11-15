@@ -146,6 +146,29 @@ try {
     await page.$eval(tid('classroom-teacher-menu-button'), (el) => el.click());
     await page.waitForTimeout(300);
     await page.$eval(tid('classroom-teacher-menu-class-list'), (el) => el.click());
+    await page.waitForSelector(tid('classroom-class-open-g1'), { timeout: 20000 });
+    await page.waitForTimeout(500);
+    // The class list (#1958): the header says only 「クラス管理」 and the main button is visible.
+    const landing = await page.evaluate(() => {
+        const se = document.scrollingElement;
+        const main = document.querySelector('[data-testid="classroom-teacher-modal"] main');
+        const btn = document.querySelector('[data-testid="classroom-class-create"]');
+        const frame = document.querySelector('[data-testid="classroom-class-list-scroll"]');
+        return {
+            path: document.querySelector('[data-testid="classroom-teacher-header"] [data-testid="classroom-breadcrumbs"]')?.textContent,
+            bottom: btn ? Math.round(btn.getBoundingClientRect().bottom) : null,
+            mainOk: main ? main.scrollHeight <= main.clientHeight : false,
+            main: main ? `${main.scrollHeight}/${main.clientHeight}` : '-',
+            frame: frame ? `${frame.scrollHeight}/${frame.clientHeight}` : '-',
+            pageOk: se.scrollHeight <= se.clientHeight,
+        };
+    });
+    record(
+        'class list (header path)',
+        landing.bottom !== null && landing.bottom <= VIEWPORT.height && landing.mainOk && landing.pageOk && landing.path === (LOCALE === 'ja' ? 'クラス管理' : 'クラスかんり'),
+        `path=${landing.path} create bottom=${landing.bottom}/${VIEWPORT.height} page=${landing.pageOk ? 'no scroll' : 'SCROLLS'} main=${landing.main} list=${landing.frame}`,
+    );
+    await shot('class-list', '0210-teacher-class-list.png');
     await page.locator(tid('classroom-class-open-g1')).click();
     await page.waitForSelector(tid('classroom-board'), { timeout: 20000 });
     await page.waitForTimeout(800);
@@ -228,6 +251,43 @@ try {
     await page.waitForSelector(tid('classroom-board-restore-c9'));
     record('archived entry opens the restore row', true, 'archived section expanded with［復元］');
     await shot('stream-archived-open');
+
+    // The header path and the tabs (#1958): 「クラス管理 › クラス名」, then［⚙ クラスの設定］
+    // opens the settings inside the class, and［採点］opens the grading screen.
+    const path = await page.$eval('[data-testid="classroom-teacher-header"] [data-testid="classroom-breadcrumbs"]', (el) => el.textContent);
+    record('header path in a class', /›技術 2026年度/.test(path), path);
+    await page.locator(tid('classroom-board-class-settings')).click();
+    await page.waitForSelector(tid('classroom-board-settings-view'));
+    const settings = await page.evaluate(() => {
+        const se = document.scrollingElement;
+        const main = document.querySelector('[data-testid="classroom-teacher-modal"] main');
+        const save = document.querySelector('[data-testid="classroom-class-settings-save"]');
+        return {
+            path: document.querySelector('[data-testid="classroom-breadcrumbs"]')?.textContent,
+            bottom: save ? Math.round(save.getBoundingClientRect().bottom) : null,
+            mainOk: main ? main.scrollHeight <= main.clientHeight : false,
+            main: main ? `${main.scrollHeight}/${main.clientHeight}` : '-',
+            pageOk: se.scrollHeight <= se.clientHeight,
+        };
+    });
+    record(
+        'class settings from the tab row',
+        settings.bottom !== null && settings.bottom <= VIEWPORT.height && settings.mainOk && settings.pageOk,
+        `path=${settings.path} save bottom=${settings.bottom}/${VIEWPORT.height} page=${settings.pageOk ? 'no scroll' : 'SCROLLS'} main=${settings.main}`,
+    );
+    await shot('class-settings');
+    await page.locator(tid('classroom-class-settings-cancel')).click();
+    await page.locator(tid('classroom-board-tab-grading')).click();
+    await page.waitForSelector(tid('classroom-phase-teacher-evaluation'), { timeout: 10000 });
+    record(
+        'grading tab opens the grading screen',
+        (await page.getAttribute(tid('classroom-board-tab-grading'), 'aria-selected')) === 'true',
+        '［採点］selected on the grading screen',
+    );
+    // Back to the class on［授業］ (nothing loaded, so no question).
+    await page.locator(tid('classroom-board-tab-classwork')).click();
+    await page.waitForSelector(tid('classroom-board-create-menu'), { timeout: 10000 });
+    record('classwork tab from the grading screen', true, 'board on［授業］');
 } finally {
     await browser.close();
 }
