@@ -1,5 +1,6 @@
 /* eslint-env jest */
 import {
+    currentAssignmentFor,
     lessonDateKey,
     localDateKey,
     nextLessonFor,
@@ -106,5 +107,45 @@ describe('reviewItems', () => {
                 groups,
             ),
         ).toBeNull();
+    });
+});
+
+describe('currentAssignmentFor (the stream card, #1960)', () => {
+    const c = (id, days, over = {}) => ({
+        classroomId: id,
+        groupId: 'g1',
+        assignmentName: id,
+        sortDate: at(days),
+        ...over,
+    });
+
+    test('a lesson today wins over closer-looking ones', () => {
+        const current = currentAssignmentFor([c('past', -1), c('today', 0), c('next', 1)], NOW);
+        expect(current.classroom.classroomId).toBe('today');
+        expect(current.isToday).toBe(true);
+        expect(current.date).toBe(localDateKey(NOW));
+    });
+
+    test('without a lesson today, the nearest lesson date (an upcoming one on a tie)', () => {
+        expect(currentAssignmentFor([c('past', -3), c('next', 5)], NOW).classroom.classroomId).toBe('past');
+        const tie = currentAssignmentFor([c('past', -2), c('next', 2)], NOW);
+        expect(tie.classroom.classroomId).toBe('next');
+        expect(tie.isToday).toBe(false);
+    });
+
+    test('the same day goes by name; archived and dateless assignments are left out', () => {
+        expect(currentAssignmentFor([c('b', 0), c('a', 0)], NOW).classroom.classroomId).toBe('a');
+        expect(
+            currentAssignmentFor([c('gone', 0, { status: 'archived' }), { classroomId: 'x', groupId: 'g1' }], NOW),
+        ).toBeNull();
+        expect(currentAssignmentFor([], NOW)).toBeNull();
+    });
+
+    test('counts the day in Japan time: a morning lesson stored as UTC is still today', () => {
+        // Stored as local midnight (the date input) → the day before in UTC.
+        const midnight = new Date(2026, 10, 15, 0, 0, 0).toISOString();
+        const current = currentAssignmentFor([{ classroomId: 'm', sortDate: midnight }, c('next', 1)], NOW);
+        expect(current.classroom.classroomId).toBe('m');
+        expect(current.isToday).toBe(true);
     });
 });

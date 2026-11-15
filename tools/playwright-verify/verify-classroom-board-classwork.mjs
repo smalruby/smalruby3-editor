@@ -3,8 +3,9 @@
 // so no login or stg data is needed — only the dev server.
 //
 // Measures (R6): the bottom of the main button ［＋ 作成 ▾］ and that the page
-// does not scroll; on the stream (no main button) that only the stream frame
-// scrolls. Takes the docs screenshots with DOCS_SHOTS=1.
+// does not scroll; on the stream that only the stream frame scrolls and that the
+// main button of the stream (［⛶ 全画面で映す］ on the「いまの課題」card, #1960) is
+// visible. Takes the docs screenshots with DOCS_SHOTS=1.
 //
 //   node verify-classroom-board-classwork.mjs                 # headless, asserts
 //   DOCS_SHOTS=1 node verify-classroom-board-classwork.mjs    # + docs/classroom/screenshots
@@ -50,7 +51,8 @@ const assignment = (over) => ({
     ...over,
 });
 const classrooms = [
-    assignment({ classroomId: 'c1', assignmentName: C1_NAME, joinCode: 'abc234', sortDate: iso(now - 2 * DAY) }),
+    // c1 has the nearest lesson date, so it is the stream's「いまの課題」(#1960).
+    assignment({ classroomId: 'c1', assignmentName: C1_NAME, joinCode: 'abc234', sortDate: iso(now - 2 * DAY), unreturnedCount: 3 }),
     assignment({
         classroomId: 'c2',
         assignmentName: 'チャットアプリを作ろう',
@@ -94,7 +96,7 @@ await page.route('**/classroom-groups', (r) =>
     r.fulfill({
         json: {
             groups: [
-                { groupId: 'g1', name: CLASS_NAME, year: 2026, section: CLASS_SECTION, status: 'active', schemaVersion: 2, topics: ['第1回 アニメーション', '第2回 チャット'] },
+                { groupId: 'g1', name: CLASS_NAME, year: 2026, section: CLASS_SECTION, studentCount: 30, status: 'active', schemaVersion: 2, topics: ['第1回 アニメーション', '第2回 チャット'] },
             ],
         },
     }),
@@ -149,6 +151,19 @@ const measureStream = () =>
             bodyOk: body ? body.scrollHeight <= body.clientHeight : false,
             body: body ? `${body.scrollHeight}/${body.clientHeight}` : '-',
             pageOk: se.scrollHeight <= se.clientHeight,
+            current: document.querySelector('[data-testid="classroom-board-current-name"]')?.textContent,
+            code: document.querySelector('[data-testid="classroom-board-current-code"]')?.textContent,
+            counts: document.querySelector('[data-testid^="classroom-board-current-counts-"]')?.textContent,
+            fullBottom: (() => {
+                const b = document.querySelector('[data-testid="classroom-board-current-fullscreen"]');
+                return b ? Math.round(b.getBoundingClientRect().bottom) : null;
+            })(),
+            retentionBottom: (() => {
+                const b = document.querySelector('[data-testid="classroom-board-retention-card"]');
+                return b ? Math.round(b.getBoundingClientRect().bottom) : null;
+            })(),
+            retentionUrgent: document.querySelector('[data-testid="classroom-board-retention-card"]')?.getAttribute('data-urgent'),
+            band: document.querySelector('[data-testid="classroom-board-stream-band"]')?.textContent,
         };
     });
 const measure = () =>
@@ -212,12 +227,38 @@ try {
         st.selected === 'true' && st.keys.join() === expectedKeys.join() && st.pageOk && st.bodyOk,
         `entries=${st.keys.join(',')} last-entry bottom=${st.lastBottom}/${VIEWPORT.height} page=${st.pageOk ? 'no scroll' : 'SCROLLS'} board=${st.body} stream=${st.frame}`,
     );
+    await page.waitForFunction(() => /24/.test(document.querySelector('[data-testid^="classroom-board-current-counts-"]')?.textContent || ''));
+    const cur = await measureStream();
+    record(
+        'stream: current assignment card (#1960)',
+        cur.current === C1_NAME && cur.code === 'abc234' && /24/.test(cur.counts) && cur.fullBottom !== null && cur.fullBottom <= VIEWPORT.height,
+        `current=${cur.current} code=${cur.code} counts=${cur.counts} fullscreen bottom=${cur.fullBottom}/${VIEWPORT.height}`,
+    );
+    record(
+        'stream: band and deadline card (red within 7 days)',
+        cur.retentionUrgent === 'true' && cur.retentionBottom <= VIEWPORT.height && cur.band.includes(CLASS_SECTION),
+        `band=${cur.band} deadline card urgent=${cur.retentionUrgent} bottom=${cur.retentionBottom}/${VIEWPORT.height}`,
+    );
     await shot('stream', '0226-board-stream.png');
+
+    // ［⛶ 全画面で映す］ shows the existing full-screen join code; ✕ goes back to the stream.
+    await page.locator(tid('classroom-board-current-fullscreen')).click();
+    await page.waitForSelector(tid('classroom-code-display-close'));
+    await shot('stream-fullscreen');
+    await page.locator(tid('classroom-code-display-close')).click();
+    record('stream: full-screen join code', !(await page.$(tid('classroom-code-display-close'))), 'opened and closed');
 
     await page.locator(tid('classroom-board-tab-classwork')).click();
     await page.waitForTimeout(300);
     let m = await measure();
     record('classwork tab (closed rows)', m.bottom !== null && m.bottom <= m.vh && m.pageOk && m.bodyOk, `create-menu bottom=${m.bottom}/${m.vh} page=${m.pageOk ? 'no scroll' : 'SCROLLS'} board=${m.body} list=${m.list}`);
+    // Count tags (#1960): c1 was loaded by the stream card (joined / submitted) and has
+    // unreturnedCount in the list; c3 was not opened, so it shows nothing.
+    const tags = await page.evaluate(() => ({
+        c1: document.querySelector('[data-testid="classroom-board-row-tags-c1"]')?.textContent || '',
+        c3: !!document.querySelector('[data-testid="classroom-board-row-tags-c3"]'),
+    }));
+    record('row count tags', /24\/30/.test(tags.c1) && /3/.test(tags.c1) && !tags.c3, `c1=${tags.c1} c3 tags=${tags.c3}`);
     await shot('classwork', '0211-teacher-assignment-board.png');
 
     await page.locator(tid('classroom-board-create-menu')).click();
@@ -234,10 +275,19 @@ try {
         'classroom-board-passcode-import',
         'classroom-board-create-topic',
     ];
+    const menuShape = await page.evaluate(() => {
+        const list = document.querySelector('[data-testid="classroom-board-create-menu-list"]');
+        const els = Array.from(list.querySelectorAll('[role="menuitem"]'));
+        const hr = list.querySelector('hr');
+        return {
+            icons: els.every((e) => e.querySelector('[aria-hidden="true"]')),
+            afterLine: hr && hr.nextElementSibling ? hr.nextElementSibling.getAttribute('data-testid') : null,
+        };
+    });
     record(
         'create menu items',
-        items.length === CREATE_MENU.length && CREATE_MENU.every((id, i) => items[i].id === id),
-        items.map((item) => `${item.text} (${item.id})`).join(' / '),
+        items.length === CREATE_MENU.length && CREATE_MENU.every((id, i) => items[i].id === id) && menuShape.icons && menuShape.afterLine === 'classroom-board-create-topic',
+        `${items.map((item) => `${item.text} (${item.id})`).join(' / ')} icons=${menuShape.icons} line before=${menuShape.afterLine}`,
     );
     await shot('create-menu', '0224-board-create-menu.png');
 

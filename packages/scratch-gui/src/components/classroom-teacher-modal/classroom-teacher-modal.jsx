@@ -562,6 +562,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         initialTab={boardTab.groupId === selectedGroup.groupId ? boardTab.tab : 'stream'}
                         isLoading={isLoading}
                         shared={shared}
+                        onCopyInviteLink={onCopyInviteLink}
                         onCreateAssignmentInClass={onCreateAssignmentInClass}
                         onDownloadClassAll={onDownloadClassAll}
                         onLoadAssignmentSummary={onLoadAssignmentSummary}

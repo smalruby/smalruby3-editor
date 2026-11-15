@@ -5135,6 +5135,198 @@ $seat-tile-min: 36px;
     color: hsla(225, 15%, 40%, 1);
 }
 
+/* --- Stream: color band + 「いまの課題」 / deadline cards + record (#1960・Q8) --- */
+
+.stream-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* クラスの色の帯。地の色と白い文字は style で付ける（classColorStyle）。 */
+.stream-band {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.125rem;
+    box-sizing: border-box;
+    min-height: 4.5rem;
+    padding: 0.625rem 1rem;
+    border-radius: $radius-medium;
+}
+
+.stream-band-name,
+.stream-band-line {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stream-band-name {
+    font-size: $font-size-heading-medium;
+    font-weight: $font-weight-bold;
+}
+
+.stream-band-line {
+    font-size: $font-size-medium;
+}
+
+.stream-columns {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 17rem minmax(0, 1fr);
+    gap: 1rem;
+}
+
+.stream-side {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.stream-card,
+.stream-card-urgent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.375rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background: $color-surface;
+    color: $color-text;
+}
+
+/* 赤は 7 日以内に消える課題があるときだけ（R4）。 */
+.stream-card-urgent {
+    border-color: hsla(10, 80%, 42%, 0.5);
+    color: hsla(10, 80%, 42%, 1);
+}
+
+.stream-card-title {
+    margin: 0;
+    font-size: $font-size-heading-small;
+    font-weight: $font-weight-bold;
+}
+
+.stream-card-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    max-width: 100%;
+}
+
+.stream-card-name {
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: $color-action;
+    font-family: inherit;
+    font-size: $font-size-medium;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stream-card-name:hover {
+    text-decoration: underline;
+}
+
+.stream-card-code {
+    font-family: monospace;
+    font-size: 1.75rem;
+    font-weight: $font-weight-bold;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+}
+
+.stream-card-button {
+    min-height: $size-button-height-small;
+}
+
+.stream-card-muted {
+    margin: 0;
+    font-size: $font-size-small;
+    color: $color-text-muted;
+}
+
+.stream-card-urgent .stream-card-muted {
+    color: inherit;
+}
+
+.stream-card-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stream-card-urgent-item {
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    text-align: left;
+    cursor: pointer;
+}
+
+.stream-card-urgent-item:hover {
+    text-decoration: underline;
+}
+
+/* 授業の行の数の札（#1960）。色は座席の色と同じ（参加済み・提出済み・返却）。 */
+.board-row-tags {
+    display: inline-flex;
+    gap: 0.375rem;
+}
+
+.board-row-tag-joined,
+.board-row-tag-done,
+.board-row-tag-unreturned {
+    padding: 0.0625rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
+}
+
+.board-row-tag-joined {
+    background: $color-seat-joined;
+    color: $color-seat-joined-text;
+}
+
+.board-row-tag-done {
+    background: $color-success-background;
+    color: $color-seat-submitted;
+}
+
+.board-row-tag-unreturned {
+    background: $color-seat-returned;
+    color: $color-seat-returned-text;
+}
+
+/* ［＋ 作成 ▾］のメニューの各項目のアイコン（#1960）。 */
+.board-menu-icon {
+    display: inline-block;
+    width: 1.25rem;
+    margin-right: 0.5rem;
+    color: $color-text-muted;
+    text-align: center;
+}
+
 /* --- Lesson progress (#1602) --- */
 
 /* Seat tile colours of a lesson assignment (#1926): the same scale as the
