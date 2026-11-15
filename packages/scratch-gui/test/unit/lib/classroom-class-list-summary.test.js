@@ -79,17 +79,32 @@ describe('reviewItems', () => {
         expect(reviewItems([{ classroomId: 'a', groupId: 'g1', unreturnedCount: 0 }], groups)).toEqual([]);
     });
 
-    test('returns null when a count is missing (older API) or there is no assignment', () => {
+    test('leaves out assignments without a count (lessons, older assignments)', () => {
+        const items = reviewItems(
+            [
+                { classroomId: 'a', groupId: 'g1', unreturnedCount: 2 },
+                { classroomId: 'lesson', groupId: 'g1' },
+            ],
+            groups,
+        );
+        expect(items.map((x) => x.classroom.classroomId)).toEqual(['a']);
+    });
+
+    test('returns null when no assignment has a count (older API) or there is no assignment', () => {
+        expect(reviewItems([{ classroomId: 'a', groupId: 'g1' }], groups)).toBeNull();
+        expect(reviewItems([], groups)).toBeNull();
+        expect(reviewItems([{ classroomId: 'a', groupId: 'g2', unreturnedCount: 1 }], groups)).toBeNull();
+    });
+
+    test('does not say "none" while some assignments have no count', () => {
         expect(
             reviewItems(
                 [
-                    { classroomId: 'a', groupId: 'g1', unreturnedCount: 2 },
-                    { classroomId: 'b', groupId: 'g1' },
+                    { classroomId: 'a', groupId: 'g1', unreturnedCount: 0 },
+                    { classroomId: 'lesson', groupId: 'g1' },
                 ],
                 groups,
             ),
         ).toBeNull();
-        expect(reviewItems([], groups)).toBeNull();
-        expect(reviewItems([{ classroomId: 'a', groupId: 'g2', unreturnedCount: 1 }], groups)).toBeNull();
     });
 });

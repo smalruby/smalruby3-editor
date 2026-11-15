@@ -390,7 +390,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-archive-dialog` | div (`role="dialog"`) | カードの ⋮ からのアーカイブの確認（Esc で閉じる） |
 | `classroom-class-archive-confirm-message` | p | その確認の説明 |
 | `classroom-class-archive-cancel` / `classroom-class-archive-confirm` | button | その確認の［アーカイブしない］（開いたときにフォーカス）/［アーカイブする］ |
-| `classroom-review-band` | section | 「確認が必要な課題」の帯（課題の一覧に `unreturnedCount` が無いとき（古い API）・課題が無いときは出ない） |
+| `classroom-review-band` | section | 「確認が必要な課題」の帯（どの課題にも `unreturnedCount` が無いとき（古い API）・課題が無いときは出ない。数の無い課題（レッスンなど）は帯に出ない） |
 | `classroom-review-item-{classroomId}` | li | 帯の 1 件（クラス名・課題名・「返却していない {数}」） |
 | `classroom-review-open-{classroomId}` | button | 帯の［開く］（その課題の詳細を［メンバー］で開く＝返却する画面） |
 | `classroom-review-none` | span | 帯の「返却していない提出はありません。」（全部の課題の数がそろって 0 のときだけ） |

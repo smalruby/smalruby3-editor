@@ -595,10 +595,21 @@ describe('TeacherClassList — 「確認が必要な課題」 band (#1959)', () 
     test('is hidden when the API has no counts (older API)', () => {
         renderList({
             classrooms: [
-                { classroomId: 'c1', groupId: 'g1', unreturnedCount: 3 },
+                { classroomId: 'c1', groupId: 'g1' },
                 { classroomId: 'c2', groupId: 'g1' },
             ],
         });
         expect(byTestId('classroom-review-band')).toBeNull();
+    });
+
+    test('leaves out an assignment without a count (a lesson)', () => {
+        renderList({
+            classrooms: [
+                { classroomId: 'c1', groupId: 'g1', assignmentName: 'Cat', unreturnedCount: 3 },
+                { classroomId: 'c2', groupId: 'g1', assignmentName: 'Lesson' },
+            ],
+        });
+        expect(byTestId('classroom-review-item-c1')).toBeInTheDocument();
+        expect(byTestId('classroom-review-item-c2')).toBeNull();
     });
 });

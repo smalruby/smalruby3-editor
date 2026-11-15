@@ -110,7 +110,9 @@ const makeClassrooms = (groups) => {
     return list;
 };
 // unreturnedCount (#1972): c1a has 12 not returned, c2a 25, the others are all returned.
-const withCounts = (classrooms) => classrooms.map((c) => ({ ...c, unreturnedCount: { c1a: 12, c2a: 25 }[c.classroomId] || 0 }));
+// c3a stands for a lesson assignment: it has no count and is left out of the band.
+const withCounts = (classrooms) =>
+    classrooms.map((c) => (c.classroomId === 'c3a' ? c : { ...c, unreturnedCount: { c1a: 12, c2a: 25 }[c.classroomId] || 0 }));
 
 const results = [];
 const record = (name, ok, detail) => {

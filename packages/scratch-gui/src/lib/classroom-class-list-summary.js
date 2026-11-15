@@ -77,23 +77,26 @@ const nextLessonFor = (classrooms, groupId, now) => {
 /**
  * 確認が必要な課題。アーカイブしていないクラスの課題のうち `unreturnedCount` が 1 以上のものを、
  * 授業日の新しい順に並べる。
- * - 対象の課題（アーカイブしていないクラスの active な課題）が 1 つも無いときは null（帯を出さない）。
- * - 対象のどれかに `unreturnedCount`（0 以上の整数）が無いとき（古い API）も null。数がそろわないのに
- *   「すべて返却しました」と言わないため。
+ * - `unreturnedCount`（0 以上の整数）が無い課題（レッスンの課題・数を持っていない古い課題）は数えず、
+ *   帯にも出さない。
+ * - 対象の課題（アーカイブしていないクラスの active な課題）のどれにも `unreturnedCount` が無いとき
+ *   （古い API・課題が無い）は null（帯を出さない）。
+ * - 返却していない課題が 1 つも無く、数の無い課題が残っているときも null。数がそろわないのに
+ *   「返却していない提出はありません」と言わないため（空の配列は「全部の数がそろって 0」のときだけ）。
  * @param {Array<object>} classrooms - 先生の課題の一覧（`GET /classrooms`）
  * @param {Array<object>} groups - 先生のクラスの一覧
- * @returns {?Array<{classroom: object, group: object, count: number}>} 課題。数がそろわなければ null
+ * @returns {?Array<{classroom: object, group: object, count: number}>} 課題。帯を出さないときは null
  */
 const reviewItems = (classrooms, groups) => {
     const activeGroups = new Map(
         (groups || []).filter((g) => g && g.status !== 'archived').map((g) => [g.groupId, g]),
     );
     const targets = (classrooms || []).filter((c) => isActive(c) && activeGroups.has(c.groupId));
-    if (targets.length === 0) return null;
-    const counted = targets.every((c) => Number.isInteger(c.unreturnedCount) && c.unreturnedCount >= 0);
-    if (!counted) return null;
-    return targets
-        .filter((c) => c.unreturnedCount > 0)
+    const counted = targets.filter((c) => Number.isInteger(c.unreturnedCount) && c.unreturnedCount >= 0);
+    if (counted.length === 0) return null;
+    const items = counted.filter((c) => c.unreturnedCount > 0);
+    if (items.length === 0 && counted.length < targets.length) return null;
+    return items
         .map((c) => ({
             classroom: c,
             group: activeGroups.get(c.groupId),
