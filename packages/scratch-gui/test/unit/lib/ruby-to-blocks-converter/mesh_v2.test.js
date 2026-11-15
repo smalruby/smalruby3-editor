@@ -43,4 +43,48 @@ describe('RubyToBlocksConverter/MeshV2', () => {
             }
         }
     });
+
+    test('meshV2_messageValue (#1843)', async () => {
+        await convertAndExpectToEqualBlocks(converter, target, 'mesh.message_value', [
+            { opcode: 'meshV2_messageValue' },
+        ]);
+        await convertAndExpectRubyBlockError(converter, target, 'mesh.message_value(1)');
+    });
+
+    const broadcastExpected = (message, valueBlock) => [
+        {
+            opcode: 'meshV2_broadcastWithValue',
+            inputs: [
+                {
+                    name: 'BROADCAST_INPUT',
+                    block: {
+                        opcode: 'event_broadcast_menu',
+                        fields: [{ name: 'BROADCAST_OPTION', broadcastMsg: message }],
+                        shadow: true,
+                    },
+                },
+                { name: 'VALUE', block: valueBlock },
+            ],
+        },
+    ];
+    const text = (value) => ({ opcode: 'text', fields: [{ name: 'TEXT', value }], shadow: true });
+
+    test('meshV2_broadcastWithValue (#1843)', async () => {
+        await convertAndExpectToEqualBlocks(
+            converter,
+            target,
+            'mesh.broadcast("chat", "hello")',
+            broadcastExpected('chat', text('hello')),
+        );
+        // 数は数字の文字列として送る
+        await convertAndExpectToEqualBlocks(
+            converter,
+            target,
+            'mesh.broadcast("chat", 42)',
+            broadcastExpected('chat', text('42')),
+        );
+        for (const s of ['mesh.broadcast("chat")', 'mesh.broadcast(1, "x")', 'mesh.broadcast("a", "b", "c")']) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        }
+    });
 });

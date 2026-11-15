@@ -299,13 +299,18 @@
     vertical-align: middle;
 }
 
-/* === Smalruby: Start of meshV2 menu === */
+/* === Smalruby: Start of mesh menu icon design system === */
+/* Same spacing as the upstream tutorials / debug .help-icon (docs/design-system/menu-bar.md). */
 .mesh-icon {
     width: 21px;
     height: 21px;
-    margin-right: 0.5rem;
+    margin: 0 .25rem 0 0;
 }
-/* === Smalruby: End of meshV2 menu === */
+
+[dir="rtl"] .mesh-icon {
+    margin: 0 0 0 .25rem;
+}
+/* === Smalruby: End of mesh menu icon design system === */
 
 .collapsible-label {
     margin: 0 .5rem 0 .25rem;

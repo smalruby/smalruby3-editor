@@ -23,6 +23,7 @@ import { openBugReportModal } from '../../reducers/bug-report.js';
 import { openClassroomModal, openTeacherModal } from '../../reducers/classroom.js';
 import { setConnectionModalExtensionId } from '../../reducers/connection-modal.js';
 import { selectLocale } from '../../reducers/locales.js';
+import { openMeshV2StatusPopup } from '../../reducers/mesh-v2.js';
 import {
     openConnectionModal,
     openLessonsLibrary,
@@ -113,6 +114,12 @@ const messages = defineMessages({
         description:
             'Mobile drawer item that opens the Mesh v2 connection modal (only when meshV2 extension is loaded)',
         id: 'gui.mobile.drawer.mesh',
+    },
+    meshStatus: {
+        defaultMessage: 'Mesh status and history',
+        description:
+            'Mobile drawer item that opens the mesh status window (only when meshV2 extension is loaded, #1844)',
+        id: 'gui.mobile.drawer.meshStatus',
     },
     settingsLanguage: {
         defaultMessage: 'Language',
@@ -246,6 +253,7 @@ const hasV2Features = (vm) => {
  * @param {Function} props.onOpenClassroomModal - 生徒向けクラスモーダル
  * @param {Function} props.onOpenTeacherModal - 教師向けクラス管理モーダル
  * @param {Function} props.onOpenMeshModal - メッシュ接続モーダル
+ * @param {Function} props.onOpenMeshStatus - メッシュの状態と履歴のウィンドウ
  * @param {Function} props.onStartSelectingFileUpload - SBFileUploaderHOC 注入
  * @param {Function} props.onStartSelectingGoogleDrive - GoogleDriveLoaderHOC 注入
  * @param {Function} props.onSaveDirectlyToGoogleDrive - GoogleDriveSaverHOC 注入
@@ -270,6 +278,7 @@ const MobileDrawerComponent = ({
     onOpenClassroomModal,
     onOpenTeacherModal,
     onOpenMeshModal,
+    onOpenMeshStatus,
     onStartSelectingFileUpload,
     onStartSelectingGoogleDrive,
     onSaveDirectlyToGoogleDrive,
@@ -358,6 +367,11 @@ const MobileDrawerComponent = ({
         onOpenMeshModal('meshV2');
         onClose();
     }, [onOpenMeshModal, onClose]);
+
+    const handleClickMeshStatus = useCallback(() => {
+        onOpenMeshStatus();
+        onClose();
+    }, [onOpenMeshStatus, onClose]);
 
     const handleClickClassroomManagement = useCallback(() => {
         onOpenTeacherModal();
@@ -659,6 +673,18 @@ const MobileDrawerComponent = ({
                             </button>
                         </li>
                     )}
+                    {meshLoaded && (
+                        <li>
+                            <button
+                                type="button"
+                                className={styles.menuItem}
+                                onClick={handleClickMeshStatus}
+                                data-testid="mobile-drawer-mesh-status"
+                            >
+                                <FormattedMessage {...messages.meshStatus} />
+                            </button>
+                        </li>
+                    )}
 
                     {/* ===== 設定 (accordion トグル単独 — sectionTitle を兼ねる) ===== */}
                     <li>{renderToggle(<FormattedMessage {...messages.sectionSettings} />, SUBMENU_SETTINGS)}</li>
@@ -806,6 +832,7 @@ MobileDrawerComponent.propTypes = {
     onOpenClassroomModal: PropTypes.func.isRequired,
     onOpenTeacherModal: PropTypes.func.isRequired,
     onOpenMeshModal: PropTypes.func.isRequired,
+    onOpenMeshStatus: PropTypes.func.isRequired,
     onStartSelectingFileUpload: PropTypes.func.isRequired,
     onStartSelectingGoogleDrive: PropTypes.func.isRequired,
     onSaveDirectlyToGoogleDrive: PropTypes.func.isRequired,
@@ -837,6 +864,7 @@ const mapDispatchToProps = (dispatch) => ({
         dispatch(setConnectionModalExtensionId(extensionId));
         dispatch(openConnectionModal());
     },
+    onOpenMeshStatus: () => dispatch(openMeshV2StatusPopup()),
     onStartSelectingUrlLoad: () => dispatch(openUrlLoaderModal()),
     onOpenWelcomeModal: () => dispatch(openWelcomeModal()),
     onOpenLessonsLibrary: () => {

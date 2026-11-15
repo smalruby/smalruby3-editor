@@ -1294,6 +1294,16 @@ describe('FuriganaAnnotator', () => {
             expect(labels).toContain('メッシュ');
             expect(labels).toContain('センサーの値');
         });
+        test('mesh.broadcast("chat", "hi") → メッシュ + といっしょに送る (#1843)', () => {
+            const labels = labelsAt(annotate('mesh.broadcast("chat", "hi")'), 1);
+            expect(labels).toContain('メッシュ');
+            expect(labels).toContain('といっしょに送る');
+        });
+        test('mesh.message_value → メッシュ + メッセージの値 (#1843)', () => {
+            const labels = labelsAt(annotate('say(mesh.message_value)'), 1);
+            expect(labels).toContain('メッシュ');
+            expect(labels).toContain('メッセージの値');
+        });
     });
 
     describe('smalrubot_s1 extension (predefined receiver)', () => {

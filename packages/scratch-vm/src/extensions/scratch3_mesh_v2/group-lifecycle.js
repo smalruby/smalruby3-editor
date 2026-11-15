@@ -59,6 +59,8 @@ const GroupLifecycleMixin = {
             this.lastFetchTime = new Date().toISOString();
             // issue #556: orderKey の連番をリセット
             this.eventSequence = 0;
+            // 新しいグループでは履歴を始めからにする (#1844)
+            this.clearMessageHistory();
             debug(() => `Mesh V2: Initialized lastFetchTime to ${this.lastFetchTime} (before createGroup)`);
             const result = await this.client.mutate({
                 mutation: CREATE_GROUP,
@@ -80,6 +82,8 @@ const GroupLifecycleMixin = {
                 this.pollingIntervalSeconds = group.pollingIntervalSeconds;
             }
             this.isHost = true;
+            // 状態と履歴のウィンドウ (#1844): listNodesInGroup はホストを返さないので覚えておく
+            this.groupHostId = this.meshId;
             if (group.heartbeatIntervalSeconds) {
                 this.hostHeartbeatInterval = group.heartbeatIntervalSeconds;
             }
@@ -116,7 +120,16 @@ const GroupLifecycleMixin = {
         }
     },
 
-    async joinGroup(groupId, domain, groupName) {
+    /**
+     * Join a group as a member.
+     * @param {string} groupId - group id.
+     * @param {?string} domain - domain of the group.
+     * @param {?string} groupName - group name.
+     * @param {?string} [hostId] - host node id recorded by the server (listGroupsByDomain),
+     *   for the status window (#1844); listNodesInGroup does not return the host.
+     * @returns {Promise<object>} the joined node.
+     */
+    async joinGroup(groupId, domain, groupName, hostId = null) {
         if (!this.client) throw new Error('Client not initialized');
 
         try {
@@ -130,6 +143,8 @@ const GroupLifecycleMixin = {
             this.lastFetchTime = new Date().toISOString();
             // issue #556: orderKey の連番をリセット
             this.eventSequence = 0;
+            // 新しいグループでは履歴を始めからにする (#1844)
+            this.clearMessageHistory();
             debug(() => `Mesh V2: Initialized lastFetchTime to ${this.lastFetchTime} (before joinGroup)`);
             const result = await this.client.mutate({
                 mutation: JOIN_GROUP,
@@ -151,6 +166,7 @@ const GroupLifecycleMixin = {
                 this.pollingIntervalSeconds = node.pollingIntervalSeconds;
             }
             this.isHost = false;
+            this.groupHostId = hostId || null;
             if (node.heartbeatIntervalSeconds) {
                 this.memberHeartbeatInterval = node.heartbeatIntervalSeconds;
             }

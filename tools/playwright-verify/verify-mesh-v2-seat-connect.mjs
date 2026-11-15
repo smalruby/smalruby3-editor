@@ -171,14 +171,24 @@ try {
     await teacher.click('[data-testid="classroom-class-create-submit"]');
     await teacher.waitForSelector('[data-testid="classroom-board"]', { timeout: 30000 });
     // The create-class dialog makes only the class; the assignment is made inside it.
+    // 「授業」のタブの「作成」のメニューから課題を作り、行を開いてから課題の画面へ
+    if (await teacher.$('[data-testid="classroom-board-tab-classwork"]')) {
+        await teacher.click('[data-testid="classroom-board-tab-classwork"]');
+    }
+    await sleep(500);
+    await teacher.click('[data-testid="classroom-board-create-menu"]');
     await teacher.click('[data-testid="classroom-board-create"]');
     await teacher.fill('[data-testid="classroom-board-create-name"]', `メッシュ-${stamp}`);
     await teacher.click('[data-testid="classroom-board-create-submit"]');
-    await teacher.waitForSelector('[data-testid^="classroom-board-open-"]', { timeout: 30000 });
-    await sleep(500);
-    await teacher.locator('[data-testid^="classroom-board-open-"]').first().click();
+    const row = teacher.locator('[data-testid^="classroom-board-row-toggle-"]', { hasText: `メッシュ-${stamp}` });
+    await row.waitFor({ timeout: 30000 });
+    const assignmentId = (await row.getAttribute('data-testid')).replace('classroom-board-row-toggle-', '');
+    if (!(await teacher.$(`[data-testid="classroom-board-open-${assignmentId}"]`))) await row.click();
+    await teacher.click(`[data-testid="classroom-board-open-${assignmentId}"]`);
     await teacher.waitForSelector('[data-testid="classroom-phase-teacher-detail"]', { timeout: 20000 });
-    const code = (await teacher.textContent('[data-testid="classroom-detail-join-code"]')).trim();
+    await teacher.waitForSelector('[data-testid="classroom-detail-join-code"]', { timeout: 20000 });
+    await sleep(800);
+    const code = (await teacher.textContent('[data-testid="classroom-detail-join-code"]')).replace(/[^A-Za-z0-9]/g, '');
     assert(/^[a-z0-9]{6}$/.test(code), `join code ${code}`);
 
     // ---- 生徒: 席1・席2・席4 が参加（席3 は欠席）----
