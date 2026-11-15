@@ -185,6 +185,8 @@ describe('StudentStatusView: おかえりなさい (#1794)', () => {
         });
         expect(screen.getByTestId('classroom-submit-status')).toHaveTextContent('Returned');
         expect(screen.getByTestId('classroom-status-teacher-comment')).toHaveTextContent('よくできました');
+        // Said to come from the teacher (#1963), not a plain label box.
+        expect(screen.getByTestId('classroom-status-teacher-comment')).toHaveTextContent('From your teacher');
     });
 
     test('a lesson assignment: the main button is 「レッスンを続ける」 until the goal is met', () => {

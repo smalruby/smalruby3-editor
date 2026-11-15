@@ -123,4 +123,32 @@ describe('StudentJoinForm', () => {
             expect(onJoin).toHaveBeenCalledWith('abc234');
         });
     });
+
+    describe('label and hints (#1963)', () => {
+        test('the code input has a visible label', () => {
+            const { getByLabelText } = renderForm();
+            expect(getByLabelText('Join code (the 6 letters your teacher shows)')).toHaveAttribute(
+                'data-testid',
+                'classroom-join-code-input',
+            );
+        });
+
+        test('the hint tells a student where the join code is', () => {
+            const { getByTestId } = renderForm();
+            expect(getByTestId('classroom-join-hint')).toHaveTextContent('on the board or on the screen');
+        });
+
+        test('a teacher who came here can open class management', () => {
+            const onTeacherLink = jest.fn();
+            const { getByTestId } = renderForm({ onTeacherLink });
+            expect(getByTestId('classroom-join-teacher-hint')).toHaveTextContent('Are you a teacher?');
+            fireEvent.click(getByTestId('classroom-teacher-link'));
+            expect(onTeacherLink).toHaveBeenCalledTimes(1);
+        });
+
+        test('without the handler the teacher note is not shown', () => {
+            const { queryByTestId } = renderForm();
+            expect(queryByTestId('classroom-join-teacher-hint')).toBeNull();
+        });
+    });
 });

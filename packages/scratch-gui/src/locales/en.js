@@ -149,13 +149,27 @@ export default {
     'gui.classroom.evaluation.leaveConfirmLeave': 'Leave',
     'gui.classroom.evaluation.leaveConfirmReload': 'Load again',
     'gui.classroom.members.empty': 'No members yet',
+    'gui.classroom.studentJoin.hintAskTeacher':
+        'Your teacher shows the join code on the board or on the screen. If you cannot find it, ask your teacher.',
+    'gui.classroom.studentJoin.teacherLink': 'Open class management',
+    'gui.classroom.studentJoin.codeLabel': 'Join code (the 6 letters your teacher shows)',
+    'gui.classroom.studentJoin.teacherQuestion':
+        'Are you a teacher? Create a class to get a join code for your students.',
+    'gui.classroom.error.invalidJoinCode':
+        'No assignment has this join code. Check it letter by letter against the code your teacher shows, and enter it again.',
+    'gui.classroom.error.classroomInactive': 'This assignment has ended.',
+    'gui.classroom.error.classroomInactiveJoin':
+        'This assignment has ended. Ask your teacher for the join code of the current assignment.',
+    'gui.classroom.error.classroomInactiveSubmit':
+        'This assignment has ended, so you cannot submit. Keep your project with [File] → [Save to your computer], and tell your teacher.',
+    'gui.classroom.studentStatus.teacherComment': 'From your teacher',
+    'gui.classroom.previousComment.context': 'Last time: {assignmentName}',
+    'gui.classroom.previousComment.contextNoName': 'Last time',
     'gui.classroom.studentJoin.title': 'Enter Join Code',
     'gui.classroom.studentJoin.next': 'Next',
     'gui.classroom.studentJoin.hintTitle': 'Hint',
-    'gui.classroom.studentJoin.hintAskTeacher': 'Ask your teacher for the join code.',
+    'gui.classroom.studentJoin.historyLabel': 'Joined before',
     'gui.classroom.studentJoin.historyPlaceholder': 'Join codes from previously joined classes',
-    'gui.classroom.studentJoin.hintTeacherPath':
-        'Teachers can find the join code in {settingsIcon} Settings → Class Management.',
     'gui.classroom.studentSeat.prompt': 'Select your seat number',
     'gui.classroom.studentSeat.join': 'Join',
     'gui.classroom.studentSeat.numberInputLabel': 'Seat number',
@@ -250,15 +264,12 @@ export default {
     'gui.classroom.evaluation.fieldOfSeat': 'Seat {seat}: {field}',
     'gui.classroom.teacherDetail.commentLabel': 'Comment to the student (sent when you return it)',
     'gui.classroom.error.title': 'An error occurred',
-    'gui.classroom.error.invalidJoinCode':
-        'That join code was not found. Enter the code your teacher showed you again.',
     'gui.classroom.error.joinTitle': 'Could not join',
     'gui.classroom.error.switchSeatTitle': 'Could not switch seats',
     'gui.classroom.error.seatTaken': 'This seat is already taken. Please choose a different seat.',
     'gui.classroom.error.sessionExpired': 'Your session has expired. Please rejoin the classroom.',
     'gui.classroom.sessionExpiredBanner': 'Session expired.',
     'gui.classroom.alert.rejoin': 'Rejoin',
-    'gui.classroom.error.classroomInactive': 'This assignment is no longer active.',
     'gui.classroom.error.networkUnreachable':
         'Could not connect to the server. Please check that your network or firewall allows access to {host} (HTTPS / port 443).',
     'gui.classroom.error.generic': 'An unexpected error occurred. Please try again.',
@@ -317,7 +328,6 @@ export default {
     'gui.classroom.evaluation.exportCsv': 'Grades (CSV)',
     'gui.classroom.evaluation.exportAuditCsv': 'Audit data (CSV)',
     'gui.classroom.evaluation.returnComments': 'Return Comments',
-    'gui.classroom.previousComment.title': 'From your teacher last time ({assignmentName}):',
     'gui.classroom.teacherDetail.descriptionTab': 'Description',
     'gui.classroom.teacherDetail.previewTitle': 'Student view preview',
     'gui.classroom.breadcrumbs.label': 'You are here',
@@ -553,7 +563,6 @@ export default {
     'gui.classroom.postAssignment.viewAssignment': 'View Assignment',
     'gui.classroom.error.fileTooLarge': 'Project is too large ({size}MB). Maximum size is 10MB.',
     'gui.classroom.studentStatus.returned': 'Returned',
-    'gui.classroom.studentStatus.teacherComment': "Teacher's Comment",
     'gui.classroom.teacherDetail.archiveCancel': 'Cancel',
     'gui.classroom.classList.showArchived': 'Archived classes ({count})',
     'gui.classroom.classList.restore': 'Restore',
