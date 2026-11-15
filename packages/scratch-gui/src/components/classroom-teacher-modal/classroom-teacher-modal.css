@@ -7,6 +7,9 @@
     flex: 1;
     height: 100vh;
     min-height: 0;
+    /* The screen is as wide as the window: a long name inside never widens it (the
+       header path is cut with「…」, #1958). */
+    contain: inline-size;
     background-color: white;
 }
 
@@ -69,7 +72,9 @@
 /* The path is carried here by a portal; until a screen draws one, 「クラス管理」 is shown. */
 .header-path {
     display: flex;
+    flex: 0 1 auto;
     min-width: 0;
+    overflow: hidden;
 }
 
 .header-path:empty {
@@ -243,6 +248,11 @@
     overflow-y: auto;
     padding: 1rem;
     min-height: 0;
+}
+
+/* main takes the focus after a move from the header path (tabIndex=-1, not a stop for Tab). */
+.main:focus {
+    outline: none;
 }
 
 .login-button {

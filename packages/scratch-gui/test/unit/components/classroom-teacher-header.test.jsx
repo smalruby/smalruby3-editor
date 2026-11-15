@@ -7,7 +7,7 @@
  *   書き出していない採点の確認 (#1948) を通る。
  */
 import '@testing-library/jest-dom';
-import { fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import TeacherBreadcrumbs, {
@@ -65,20 +65,29 @@ const renderModal = (containerProps, onClose = jest.fn()) => {
 
 describe('TeacherBreadcrumbs', () => {
     test('draws in place without a header', () => {
-        render(<TeacherBreadcrumbs items={[{ label: 'A', onClick: jest.fn(), testId: 'a' }, { label: 'B' }]} />);
+        render(
+            <IntlProvider locale="en">
+                <TeacherBreadcrumbs items={[{ label: 'A', onClick: jest.fn(), testId: 'a' }, { label: 'B' }]} />
+            </IntlProvider>,
+        );
         expect(byTestId('classroom-breadcrumbs').textContent).toBe('A›B');
         expect(byTestId('a').tagName).toBe('BUTTON');
+        expect(byTestId('classroom-breadcrumbs')).toHaveAttribute('aria-label', 'You are here');
+        // A long name is cut with「…」: the whole name is in the tooltip.
+        expect(byTestId('a')).toHaveAttribute('title', 'A');
     });
 
     test('is carried into the header slot', () => {
         const slot = document.createElement('div');
         document.body.appendChild(slot);
         render(
-            <div data-testid="screen">
-                <BreadcrumbSlotContext.Provider value={slot}>
-                    <TeacherBreadcrumbs items={[{ label: 'A' }]} />
-                </BreadcrumbSlotContext.Provider>
-            </div>,
+            <IntlProvider locale="en">
+                <div data-testid="screen">
+                    <BreadcrumbSlotContext.Provider value={slot}>
+                        <TeacherBreadcrumbs items={[{ label: 'A' }]} />
+                    </BreadcrumbSlotContext.Provider>
+                </div>
+            </IntlProvider>,
         );
         expect(slot.textContent).toBe('A');
         expect(byTestId('screen').textContent).toBe('');
@@ -165,7 +174,34 @@ describe('ClassroomTeacherModal — the grading tab (#1956 Q3・#1948)', () => {
         evalGroup: group,
         handleRequestLeave: jest.fn(),
         handleBackFromEvaluation: jest.fn(),
+        handleShowEvaluation: jest.fn(),
     });
+
+    // Renders the modal and lets a test change the phase like the container does.
+    const renderWithPhase = (initial) => {
+        const props = {
+            classrooms: [],
+            groups: [group],
+            members: [],
+            onSelectGroup: jest.fn(),
+            onShowClassList: jest.fn(),
+            onBackToDashboard: jest.fn(),
+            onCreateAssignmentInClass: jest.fn(),
+            onReuseAssignment: jest.fn(),
+            onSelectClassroom: jest.fn(),
+            onUpdateAssignmentMeta: jest.fn(),
+            onUpdateGroupTopics: jest.fn(),
+            onUpdateGroup: jest.fn(),
+            ...initial,
+        };
+        const view = (extra) => (
+            <IntlProvider locale="en">
+                <ClassroomTeacherModal containerProps={{ ...props, ...extra }} onClose={jest.fn()} />
+            </IntlProvider>
+        );
+        const result = render(view({}));
+        return { props, setPhase: (extra) => result.rerender(view(extra)) };
+    };
 
     test('［採点］ is selected on the grading screen', () => {
         renderModal({ phase: 'teacher-evaluation', evaluation: makeEvaluation() });
@@ -180,35 +216,90 @@ describe('ClassroomTeacherModal — the grading tab (#1956 Q3・#1948)', () => {
         expect(evaluation.handleRequestLeave).toHaveBeenCalledWith(expect.any(Function), 'leave');
         expect(onSelectGroup).not.toHaveBeenCalled();
         // The teacher answered「離れる」 (or nothing was lost): the action runs.
-        evaluation.handleRequestLeave.mock.calls[0][0]();
+        act(() => evaluation.handleRequestLeave.mock.calls[0][0]());
         expect(evaluation.handleBackFromEvaluation).toHaveBeenCalled();
         expect(onSelectGroup).toHaveBeenCalledWith(group);
     });
 
-    test('the cancel goes back to the class when it was opened from the class', () => {
+    test('opened from the class tab, the cancel goes back to the class (#1958 Q1)', () => {
         const evaluation = makeEvaluation();
-        const onSelectGroup = jest.fn();
-        renderModal({ phase: 'teacher-evaluation', evaluation, onSelectGroup, selectedGroup: group });
-        mockEvaluationProps.onBack();
+        const { props, setPhase } = renderWithPhase({
+            phase: 'teacher-dashboard',
+            selectedGroup: group,
+            evaluation,
+        });
+        fireEvent.click(byTestId('classroom-board-tab-grading'));
+        expect(evaluation.handleShowEvaluation).toHaveBeenCalledWith(group);
+        // The class card path leaves selectedGroup as it is: the record decides, not it.
+        setPhase({ phase: 'teacher-evaluation', selectedGroup: null });
+        act(() => mockEvaluationProps.onBack());
         expect(evaluation.handleBackFromEvaluation).toHaveBeenCalled();
-        expect(onSelectGroup).toHaveBeenCalledWith(group);
+        expect(props.onSelectGroup).toHaveBeenCalledWith(group);
     });
 
-    test('opened from a class card, the cancel goes back to the cards', () => {
+    test('opened from a class card, the cancel goes back to the cards (#1958 Q1)', () => {
         const evaluation = makeEvaluation();
-        const onSelectGroup = jest.fn();
-        renderModal({ phase: 'teacher-evaluation', evaluation, onSelectGroup, selectedGroup: null });
-        mockEvaluationProps.onBack();
+        const { props, setPhase } = renderWithPhase({ phase: 'teacher-class-list', evaluation });
+        fireEvent.click(byTestId('classroom-class-evaluate-g1'));
+        expect(evaluation.handleShowEvaluation).toHaveBeenCalledWith(group);
+        // Even with a class still selected, the card path goes back to the cards.
+        setPhase({ phase: 'teacher-evaluation', selectedGroup: group });
+        act(() => mockEvaluationProps.onBack());
         expect(evaluation.handleBackFromEvaluation).toHaveBeenCalled();
-        expect(onSelectGroup).not.toHaveBeenCalled();
+        expect(props.onSelectGroup).not.toHaveBeenCalled();
     });
 
     test('「クラス管理」 leaves the grading screen for the class list', () => {
         const evaluation = makeEvaluation();
         const onShowClassList = jest.fn();
         renderModal({ phase: 'teacher-evaluation', evaluation, onShowClassList });
-        mockEvaluationProps.onShowClassList();
+        act(() => mockEvaluationProps.onShowClassList());
         expect(evaluation.handleBackFromEvaluation).toHaveBeenCalled();
         expect(onShowClassList).toHaveBeenCalled();
+    });
+});
+
+describe('ClassroomTeacherModal — focus after a move (#1958 FYI1)', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    test('a link in the header path that changes the screen puts the focus on main', () => {
+        const { rerender } = render(
+            <IntlProvider locale="en">
+                <ClassroomTeacherModal
+                    containerProps={{
+                        phase: 'teacher-class-detail',
+                        classrooms: [],
+                        groups: [group],
+                        members: [],
+                        selectedGroup: group,
+                        selectedClassroom: { classroomId: 'c1', groupId: 'g1', assignmentName: 'ねこ' },
+                        onSelectGroup: jest.fn(),
+                        onShowClassList: jest.fn(),
+                        onBackToDashboard: jest.fn(),
+                    }}
+                    onClose={jest.fn()}
+                />
+            </IntlProvider>,
+        );
+        fireEvent.click(byTestId('classroom-breadcrumb-class-list'));
+        // The container moves to the class list: the pressed link is gone.
+        rerender(
+            <IntlProvider locale="en">
+                <ClassroomTeacherModal
+                    containerProps={{
+                        phase: 'teacher-login',
+                        classrooms: [],
+                        groups: [group],
+                        members: [],
+                        onSelectGroup: jest.fn(),
+                        onShowClassList: jest.fn(),
+                    }}
+                    onClose={jest.fn()}
+                />
+            </IntlProvider>,
+        );
+        act(() => jest.runAllTimers());
+        expect(document.activeElement).toBe(document.querySelector('main'));
     });
 });

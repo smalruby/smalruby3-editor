@@ -10,6 +10,7 @@
 //   DOCS_SHOTS=1 node verify-classroom-board-classwork.mjs    # + docs/classroom/screenshots
 //   LOCALE=ja-Hira node verify-classroom-board-classwork.mjs  # ひらがなで測る (既定は ja。DOCS_SHOTS は ja のときだけ)
 //   BASE=http://localhost:8621 node verify-classroom-board-classwork.mjs
+//   LONG=1 node verify-classroom-board-classwork.mjs           # 長いクラス名・課題名でヘッダーがはみ出さないか (#1958)
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -22,6 +23,13 @@ const DOCS_DIR = resolve(REPO_ROOT, 'docs/classroom/screenshots');
 const LOCALE = process.env.LOCALE || 'ja';
 const DOCS_SHOTS = process.env.DOCS_SHOTS === '1' && LOCALE === 'ja';
 const VIEWPORT = { width: 1300, height: 600 };
+// LONG=1: a long class name and assignment name, to see the header path cut with「…」 (#1958).
+const LONG = process.env.LONG === '1';
+const CLASS_NAME = LONG ? '技術・家庭科（情報の技術）プログラミングによる問題の解決と双方向性のあるコンテンツ' : '技術';
+const CLASS_SECTION = LONG ? '2年1組 A コース（火曜 3・4 時間目）' : '2年1組';
+const C1_NAME = LONG
+    ? 'ねこを動かそう — 順次・反復・分岐を使ってステージの端まで歩いて戻るアニメーションを作る'
+    : 'ねこを動かそう';
 mkdirSync(SHOT_DIR, { recursive: true });
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -42,7 +50,7 @@ const assignment = (over) => ({
     ...over,
 });
 const classrooms = [
-    assignment({ classroomId: 'c1', assignmentName: 'ねこを動かそう', joinCode: 'abc234', sortDate: iso(now - 2 * DAY) }),
+    assignment({ classroomId: 'c1', assignmentName: C1_NAME, joinCode: 'abc234', sortDate: iso(now - 2 * DAY) }),
     assignment({
         classroomId: 'c2',
         assignmentName: 'チャットアプリを作ろう',
@@ -86,7 +94,7 @@ await page.route('**/classroom-groups', (r) =>
     r.fulfill({
         json: {
             groups: [
-                { groupId: 'g1', name: '技術', year: 2026, section: '2年1組', status: 'active', schemaVersion: 2, topics: ['第1回 アニメーション', '第2回 チャット'] },
+                { groupId: 'g1', name: CLASS_NAME, year: 2026, section: CLASS_SECTION, status: 'active', schemaVersion: 2, topics: ['第1回 アニメーション', '第2回 チャット'] },
             ],
         },
     }),
@@ -94,6 +102,11 @@ await page.route('**/classroom-groups', (r) =>
 await page.route('**/classroom-groups/migrate', (r) => r.fulfill({ json: { migrated: 0 } }));
 await page.route('**/classrooms?**', (r) => r.fulfill({ json: { classrooms: [...classrooms, ...archived] } }));
 await page.route(/\/classrooms$/, (r) => r.fulfill({ json: { classrooms } }));
+await page.route(/\/classrooms\/c\d$/, (r) => {
+    const id = r.request().url().match(/classrooms\/(c\d)$/)[1];
+    return r.fulfill({ json: classrooms.find((c) => c.classroomId === id) || {} });
+});
+await page.route(/\/kick-requests/, (r) => r.fulfill({ json: { requests: [] } }));
 await page.route(/\/classrooms\/c\d\/members$/, (r) => r.fulfill({ json: { members } }));
 await page.route(/\/classrooms\/c\d\/submissions$/, (r) => r.fulfill({ json: { submissions } }));
 await page.route(/\/classrooms\/c\d\/assignment$/, (r) =>
@@ -105,6 +118,23 @@ const shot = async (name, docsName) => {
     await page.screenshot({ path: resolve(SHOT_DIR, `issue-1301-${name}${LOCALE === 'ja' ? '' : `-${LOCALE}`}.png`) });
     if (DOCS_SHOTS && docsName) await page.screenshot({ path: resolve(DOCS_DIR, docsName) });
 };
+// The header stays one line inside the window: the path is cut with「…」, the bell and the
+// avatar stay at the right end (#1958).
+const measureHeader = () =>
+    page.evaluate(() => {
+        const header = document.querySelector('[data-testid="classroom-teacher-header"]');
+        const avatar = document.querySelector('[data-testid="classroom-avatar-button"]');
+        const back = document.querySelector('[data-testid="classroom-teacher-back-to-editor"]');
+        const r = header.getBoundingClientRect();
+        return {
+            fits: header.scrollWidth <= header.clientWidth && r.height <= 51,
+            size: `${header.scrollWidth}/${header.clientWidth} h=${Math.round(r.height)}`,
+            avatarRight: avatar ? Math.round(avatar.getBoundingClientRect().right) : null,
+            backVisible: back ? back.getBoundingClientRect().width > 0 : false,
+            path: document.querySelector('[data-testid="classroom-teacher-header"] [data-testid="classroom-breadcrumbs"]')?.textContent,
+        };
+    });
+const headerOk = (h) => h.fits && h.backVisible && h.avatarRight !== null && h.avatarRight <= VIEWPORT.width;
 const measureStream = () =>
     page.evaluate(() => {
         const se = document.scrollingElement;
@@ -254,8 +284,8 @@ try {
 
     // The header path and the tabs (#1958): 「クラス管理 › クラス名」, then［⚙ クラスの設定］
     // opens the settings inside the class, and［採点］opens the grading screen.
-    const path = await page.$eval('[data-testid="classroom-teacher-header"] [data-testid="classroom-breadcrumbs"]', (el) => el.textContent);
-    record('header path in a class', /›技術 2026年度/.test(path), path);
+    const inClass = await measureHeader();
+    record('header path in a class', headerOk(inClass) && inClass.path.includes(`›${CLASS_NAME} 2026年度`), `${inClass.path} header=${inClass.size} avatar right=${inClass.avatarRight}`);
     await page.locator(tid('classroom-board-class-settings')).click();
     await page.waitForSelector(tid('classroom-board-settings-view'));
     const settings = await page.evaluate(() => {
@@ -288,6 +318,15 @@ try {
     await page.locator(tid('classroom-board-tab-classwork')).click();
     await page.waitForSelector(tid('classroom-board-create-menu'), { timeout: 10000 });
     record('classwork tab from the grading screen', true, 'board on［授業］');
+
+    // The assignment detail: 「クラス管理 › クラス名 › 課題名」 still on one line.
+    await page.locator(tid('classroom-board-row-toggle-c1')).click();
+    await page.locator(tid('classroom-board-open-c1')).click();
+    await page.waitForSelector(tid('classroom-breadcrumb-assignment-name'), { timeout: 10000 });
+    await page.waitForTimeout(500);
+    const inDetail = await measureHeader();
+    record('header path in an assignment', headerOk(inDetail) && inDetail.path.endsWith(C1_NAME), `${inDetail.path} header=${inDetail.size} avatar right=${inDetail.avatarRight}`);
+    if (LONG) await shot('long-names-detail');
 } finally {
     await browser.close();
 }

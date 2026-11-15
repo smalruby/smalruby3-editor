@@ -860,15 +860,29 @@ const TeacherAssignmentBoard = ({
         [setTab, onShowGrading, group],
     );
     const handleOpenSettings = useCallback(() => setShowSettings(true), []);
-    const handleCloseSettings = useCallback(() => setShowSettings(false), []);
-    // Archiving the class leaves it: back to the class list, where archived classes are listed.
+    // While an archive is on its way the settings stay open (their buttons are off while
+    // loading), so nothing on the board can be pressed until the API answers (#1958 M1).
+    const [archiving, setArchiving] = useState(false);
+    const archivingRef = useRef(false);
+    const handleCloseSettings = useCallback(() => {
+        if (!archivingRef.current) setShowSettings(false);
+    }, []);
+    // Archiving the class leaves it: back to the class list, where archived classes are
+    // listed — only when it was saved. A failure keeps the settings and their error.
     const handleUpdateGroupInClass = useCallback(
-        (groupId, updates) => {
-            const done = onUpdateGroup(groupId, updates);
-            if (updates && updates.status === 'archived') {
-                Promise.resolve(done).then(() => onShowClassList());
+        async (groupId, updates) => {
+            if (!updates || updates.status !== 'archived') return onUpdateGroup(groupId, updates);
+            archivingRef.current = true;
+            setArchiving(true);
+            let saved = false;
+            try {
+                saved = await onUpdateGroup(groupId, updates);
+            } finally {
+                archivingRef.current = false;
+                setArchiving(false);
             }
-            return done;
+            if (saved) onShowClassList();
+            return saved;
         },
         [onUpdateGroup, onShowClassList],
     );
@@ -1004,7 +1018,7 @@ const TeacherAssignmentBoard = ({
                 <TeacherSubView title={formatClassLabel(group)}>
                     <ClassSettingsForm
                         group={group}
-                        isLoading={isLoading}
+                        isLoading={isLoading || archiving}
                         onCancel={handleCloseSettings}
                         onUpdateGroup={handleUpdateGroupInClass}
                     />
@@ -1028,6 +1042,7 @@ const TeacherAssignmentBoard = ({
                     {/* クラス名はヘッダーの › に出す。ここは［ストリーム］［授業］［採点］のタブ（#1956 Q3）。 */}
                     <TeacherClassTabs
                         selected={tab}
+                        showGrading={!!onShowGrading}
                         onOpenSettings={onUpdateGroup ? handleOpenSettings : null}
                         onSelect={handleSelectTab}
                     />

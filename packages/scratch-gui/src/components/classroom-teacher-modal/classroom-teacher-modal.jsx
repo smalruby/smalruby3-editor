@@ -5,7 +5,7 @@
  * with a sidebar (class list) and a main area that shows phase content.
  */
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
@@ -215,12 +215,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onClick: onShowClassList,
         testId: 'classroom-breadcrumb-class-list',
     };
-    // The class as saved last: selectedGroup is the object picked from the cards, so a
-    // name changed in［⚙ クラスの設定］ shows only through the reloaded groups.
-    const currentGroup = useMemo(
-        () => (selectedGroup && (groups || []).find((g) => g.groupId === selectedGroup.groupId)) || selectedGroup,
-        [selectedGroup, groups],
-    );
 
     // ［ストリーム］［授業］ from the grading screen: back to this class's board on that tab.
     // Leaving the grading screen asks first when work would be lost (#1948).
@@ -236,13 +230,28 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         },
         [evaluation, evalGroup, onSelectGroup],
     );
-    // The grading screen's cancel goes back to where it was opened: the class when it
-    // was opened from the class's［採点］tab, the class cards otherwise.
+    // The grading screen's cancel goes back to where it was opened (#1958 Q1): the class
+    // when it was opened from the class's［採点］tab, the class cards from a card.
+    const [gradingOpenedFrom, setGradingOpenedFrom] = useState('list');
+    const handleShowGradingFromClass = useCallback(
+        (group) => {
+            setGradingOpenedFrom('class');
+            evaluation.handleShowEvaluation(group);
+        },
+        [evaluation],
+    );
+    const handleShowGradingFromList = useCallback(
+        (group) => {
+            setGradingOpenedFrom('list');
+            evaluation.handleShowEvaluation(group);
+        },
+        [evaluation],
+    );
     const handleBackFromEvaluation = useCallback(() => {
         if (!evaluation) return;
         evaluation.handleBackFromEvaluation();
-        if (selectedGroup) onSelectGroup(selectedGroup);
-    }, [evaluation, selectedGroup, onSelectGroup]);
+        if (gradingOpenedFrom === 'class' && evalGroup) onSelectGroup(evalGroup);
+    }, [evaluation, gradingOpenedFrom, evalGroup, onSelectGroup]);
     const handleShowClassListFromEvaluation = useCallback(() => {
         if (evaluation) evaluation.handleBackFromEvaluation();
         onShowClassList();
@@ -250,6 +259,23 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
 
     // The header's slot that the screens' paths are carried to (portal target).
     const [crumbSlot, setCrumbSlot] = useState(null);
+
+    // After a link in the header path or the［採点］tab moves to another screen, the
+    // pressed button is gone: put the focus on the new screen (main) instead of the
+    // page (#1958 FYI1). When the button is still there (e.g. the grading screen asks
+    // first), the focus stays where that screen put it.
+    const mainRef = useRef(null);
+    const handleNavClickCapture = useCallback((event) => {
+        const button = event.target && event.target.closest ? event.target.closest('button') : null;
+        if (!button) return;
+        const isPathLink = !!button.closest('[data-testid="classroom-breadcrumbs"]');
+        const isGradingTab = button.getAttribute('data-tab') === 'grading';
+        if (!isPathLink && !isGradingTab) return;
+        setTimeout(() => {
+            if (button.isConnected && document.activeElement !== document.body) return;
+            if (mainRef.current) mainRef.current.focus({ preventScroll: true });
+        }, 0);
+    }, []);
 
     const renderMain = () => {
         // Fullscreen code display overlay
@@ -321,7 +347,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onCreateClassWithAssignment={onCreateClassWithAssignment}
                         onOpenUngrouped={onSelectClassroom}
                         onSelectGroup={onSelectGroup}
-                        onShowEvaluation={evaluation?.handleShowEvaluation}
+                        onShowEvaluation={evaluation ? handleShowGradingFromList : null}
                         onShowGoogleCourses={authProvider === 'google' ? onShowGoogleCourses : null}
                         onUpdateGroup={onUpdateGroup}
                     />
@@ -524,7 +550,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             return (
                 <div className={styles.mainRelative}>
                     <TeacherAssignmentBoard
-                        key={currentGroup.groupId}
+                        key={selectedGroup.groupId}
                         allClassrooms={classrooms}
                         allGroups={groups || []}
                         archivedClassrooms={scopedArchivedClassrooms}
@@ -532,8 +558,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         downloadProgress={downloadProgress}
                         error={error}
                         errorTitle={errorTitle}
-                        group={currentGroup}
-                        initialTab={boardTab.groupId === currentGroup.groupId ? boardTab.tab : 'stream'}
+                        group={selectedGroup}
+                        initialTab={boardTab.groupId === selectedGroup.groupId ? boardTab.tab : 'stream'}
                         isLoading={isLoading}
                         shared={shared}
                         onCreateAssignmentInClass={onCreateAssignmentInClass}
@@ -543,7 +569,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onReuseAssignment={onReuseAssignment}
                         onSelectClassroom={onSelectClassroom}
                         onShowClassList={onShowClassList}
-                        onShowGrading={evaluation ? evaluation.handleShowEvaluation : null}
+                        onShowGrading={evaluation ? handleShowGradingFromClass : null}
                         onTabChange={handleBoardTabChange}
                         onUpdateAssignmentMeta={onUpdateAssignmentMeta}
                         onUpdateGroup={onUpdateGroup}
@@ -587,7 +613,11 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             id="classroomTeacherModal"
             onRequestClose={onClose}
         >
-            <div className={styles.layout} data-testid="classroom-teacher-modal">
+            <div
+                className={styles.layout}
+                data-testid="classroom-teacher-modal"
+                onClickCapture={handleNavClickCapture}
+            >
                 {/* 紫のヘッダー（#1956 Q2）:「← エディタに戻る｜クラス管理 › クラス名 › 課題名」。
                     右は通知ベル → アバターメニュー（#1111 レビュー）。共有 Modal のヘッダーは
                     隠し、この画面のヘッダーを置く（upstream の Modal を変えないため）。 */}
@@ -608,7 +638,9 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     )}
                 </TeacherHeader>
                 <BreadcrumbSlotContext.Provider value={crumbSlot}>
-                    <main className={styles.main}>{renderMain()}</main>
+                    <main className={styles.main} ref={mainRef} tabIndex={-1}>
+                        {renderMain()}
+                    </main>
                 </BreadcrumbSlotContext.Provider>
             </div>
         </Modal>

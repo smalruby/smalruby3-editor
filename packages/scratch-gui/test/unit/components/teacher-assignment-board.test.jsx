@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import TeacherAssignmentBoard from '../../../src/components/classroom-modal/teacher-assignment-board.jsx';
@@ -413,6 +413,7 @@ describe('TeacherAssignmentBoard — Stream / Classwork tabs (#1301, B5)', () =>
         const onShowGrading = jest.fn();
         const onTabChange = jest.fn();
         renderStream({ onShowGrading, onTabChange });
+        expect(byTestId('classroom-class-tabs').querySelectorAll('[role="tab"]')).toHaveLength(3);
         fireEvent.click(byTestId('classroom-board-tab-grading'));
         expect(onShowGrading).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g1' }));
         // The board itself stays on the stream (the grading screen is another phase).
@@ -432,13 +433,57 @@ describe('TeacherAssignmentBoard — Stream / Classwork tabs (#1301, B5)', () =>
         expect(byTestId('classroom-board-tab-stream')).toBeInTheDocument();
     });
 
+    test('a failed archive stays in the settings with the error, and nothing moves (#1958 M1)', async () => {
+        let finish;
+        const onUpdateGroup = jest.fn(
+            () =>
+                new Promise((resolve) => {
+                    finish = resolve;
+                }),
+        );
+        const onShowClassList = jest.fn();
+        const { rerender } = renderStream({ onUpdateGroup, onShowClassList });
+        fireEvent.click(byTestId('classroom-board-class-settings'));
+        fireEvent.click(byTestId('classroom-class-settings-archive'));
+        fireEvent.click(byTestId('classroom-class-settings-archive'));
+        // Until the API answers, the settings stay (the board cannot be pressed) and its buttons are off.
+        expect(byTestId('classroom-board-settings-view')).toBeInTheDocument();
+        expect(byTestId('classroom-class-settings-archive')).toBeDisabled();
+        await act(async () => finish(false));
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherAssignmentBoard
+                    {...defaultProps()}
+                    error="Could not save"
+                    onShowClassList={onShowClassList}
+                    onUpdateGroup={onUpdateGroup}
+                />
+            </IntlProvider>,
+        );
+        expect(onShowClassList).not.toHaveBeenCalled();
+        expect(byTestId('classroom-board-settings-view')).toBeInTheDocument();
+        expect(byTestId('classroom-board-settings-view').textContent).toContain('Could not save');
+        expect(byTestId('classroom-class-settings-archive')).not.toBeDisabled();
+    });
+
+    test('without onShowGrading there is no［採点］tab (#1958 FYI8)', () => {
+        renderStream();
+        expect(byTestId('classroom-board-tab-grading')).not.toBeInTheDocument();
+    });
+
+    test('the settings button is outside the tablist (#1958 Q3)', () => {
+        renderStream({ onUpdateGroup: jest.fn() });
+        expect(byTestId('classroom-class-tabs')).not.toContainElement(byTestId('classroom-board-class-settings'));
+        expect(byTestId('classroom-class-tabs').querySelectorAll('[role="tab"]')).toHaveLength(2);
+    });
+
     test('without onUpdateGroup there is no settings button', () => {
         renderStream();
         expect(byTestId('classroom-board-class-settings')).not.toBeInTheDocument();
     });
 
     test('archiving the class from its settings goes back to the class list', async () => {
-        const onUpdateGroup = jest.fn(() => Promise.resolve());
+        const onUpdateGroup = jest.fn(() => Promise.resolve(true));
         const onShowClassList = jest.fn();
         renderStream({ onUpdateGroup, onShowClassList });
         fireEvent.click(byTestId('classroom-board-class-settings'));

@@ -320,6 +320,7 @@ export default {
     'gui.classroom.previousComment.title': 'From your teacher last time ({assignmentName}):',
     'gui.classroom.teacherDetail.descriptionTab': 'Description',
     'gui.classroom.teacherDetail.previewTitle': 'Student view preview',
+    'gui.classroom.breadcrumbs.label': 'You are here',
     'gui.classroom.breadcrumbs.evaluation': 'Grading',
     'gui.classroom.breadcrumbs.importGc': 'Import from Google Classroom',
     'gui.classroom.board.createCancel': 'Cancel',

@@ -13,7 +13,7 @@
 import PropTypes from 'prop-types';
 import React, { useContext } from 'react';
 import ReactDOM from 'react-dom';
-import { defineMessages } from 'react-intl';
+import { defineMessages, useIntl } from 'react-intl';
 import styles from './classroom-modal.css';
 
 /**
@@ -29,41 +29,61 @@ export const breadcrumbMessages = defineMessages({
         description: 'Title for the teacher class management modal',
         id: 'gui.classroom.management.title',
     },
+    label: {
+        defaultMessage: 'You are here',
+        description: 'Accessible name of the path in the class management header (クラス管理 › クラス名 › 課題名)',
+        id: 'gui.classroom.breadcrumbs.label',
+    },
 });
 
-const BreadcrumbList = ({ items }) => (
-    <nav className={styles.breadcrumbs} data-testid="classroom-breadcrumbs">
-        {items.map((item, index) => {
-            const handleItemClick = item.onClick;
-            return (
-                // label は node (FormattedMessage) のこともあり key にすると
-                // "[object Object]" で衝突するため、位置を key にする
-                // (パンくずは 1 レンダリング内で並べ替わらない)。
-                <React.Fragment key={index}>
-                    {index > 0 ? (
-                        <span aria-hidden="true" className={styles.breadcrumbSeparator}>
-                            {'›'}
-                        </span>
-                    ) : null}
-                    {handleItemClick ? (
-                        <button
-                            className={styles.breadcrumbLink}
-                            data-testid={item.testId}
-                            type="button"
-                            onClick={handleItemClick}
-                        >
-                            {item.label}
-                        </button>
-                    ) : (
-                        <span aria-current="page" className={styles.breadcrumbCurrent} data-testid={item.testId}>
-                            {item.label}
-                        </span>
-                    )}
-                </React.Fragment>
-            );
-        })}
-    </nav>
-);
+const BreadcrumbList = ({ items }) => {
+    const intl = useIntl();
+    return (
+        <nav
+            aria-label={intl.formatMessage(breadcrumbMessages.label)}
+            className={styles.breadcrumbs}
+            data-testid="classroom-breadcrumbs"
+        >
+            {items.map((item, index) => {
+                const handleItemClick = item.onClick;
+                // A long class / assignment name is cut with「…」: the whole name is in the tooltip.
+                const title = typeof item.label === 'string' ? item.label : null;
+                return (
+                    // label は node (FormattedMessage) のこともあり key にすると
+                    // "[object Object]" で衝突するため、位置を key にする
+                    // (パンくずは 1 レンダリング内で並べ替わらない)。
+                    <React.Fragment key={index}>
+                        {index > 0 ? (
+                            <span aria-hidden="true" className={styles.breadcrumbSeparator}>
+                                {'›'}
+                            </span>
+                        ) : null}
+                        {handleItemClick ? (
+                            <button
+                                className={styles.breadcrumbLink}
+                                data-testid={item.testId}
+                                title={title}
+                                type="button"
+                                onClick={handleItemClick}
+                            >
+                                {item.label}
+                            </button>
+                        ) : (
+                            <span
+                                aria-current="page"
+                                className={styles.breadcrumbCurrent}
+                                data-testid={item.testId}
+                                title={title}
+                            >
+                                {item.label}
+                            </span>
+                        )}
+                    </React.Fragment>
+                );
+            })}
+        </nav>
+    );
+};
 
 const itemsShape = PropTypes.arrayOf(
     PropTypes.shape({

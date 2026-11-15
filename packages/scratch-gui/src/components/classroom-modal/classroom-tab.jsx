@@ -2,8 +2,9 @@
  * クラス管理のタブ（#1956 Q7）。
  *
  * 下に線のタブ。選ばれたタブは主の色（`$color-action`）の文字と 3px の線になる。
- * 並びは `<div className={styles.tabList} role="tablist">` で包む（右端に「…」などを
- * 置くときもこの並びの中に置く）。形の決まりは docs/design-system/components/tabs.md の
+ * 並びは `<div className={styles.tabList} role="tablist">` で包む。右端に「…」や
+ * ［⚙ クラスの設定］のようなボタンを置くときは、tablist の中には入れず、tablist と
+ * 同じ行の flex に並べる（タブではないものを矢印キー・読み上げのタブの並びに混ぜない）。形の決まりは docs/design-system/components/tabs.md の
  * 「クラス管理のタブ」。
  *
  * キーボード: Tab で入るのは選ばれたタブだけ（ほかは tabIndex=-1・ロービング）。左右の矢印・

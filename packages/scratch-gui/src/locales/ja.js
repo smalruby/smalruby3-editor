@@ -357,6 +357,7 @@ export default {
     'gui.classroom.evaluation.cancel': 'キャンセル',
     'gui.classroom.teacherDetail.descriptionTab': '説明',
     'gui.classroom.teacherDetail.previewTitle': '生徒に見える内容（プレビュー）',
+    'gui.classroom.breadcrumbs.label': '現在の場所',
     'gui.classroom.breadcrumbs.evaluation': '採点',
     'gui.classroom.breadcrumbs.importGc': 'Google Classroomからインポート',
     'gui.classroom.board.createCancel': 'キャンセル',

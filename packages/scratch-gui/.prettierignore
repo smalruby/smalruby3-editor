@@ -624,6 +624,7 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-groups-loaded.test.js
 !test/unit/containers/use-teacher-groups-topics.test.js
 !test/unit/containers/use-teacher-groups-create.test.js
+!test/unit/containers/use-teacher-groups-update.test.js
 !test/unit/containers/use-teacher-notifications.test.js
 !test/unit/containers/use-teacher-evaluation-leave.test.js
 !test/unit/containers/use-before-unload-while.test.js

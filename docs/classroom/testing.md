@@ -42,7 +42,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-refresh` | button | 更新 (↻)。`aria-label` / `title` は「読み込み直す」 |
 | `classroom-google-import` | button | Google Classroom からインポート |
 | `classroom-google-import-confirm` | button | GC コース一覧の「インポート」（未選択時は disabled） |
-| `classroom-avatar-button` | button | アカウントメニュー（タイトルバー右上・メール頭文字 + ▼） |
+| `classroom-avatar-button` | button | アカウントメニュー（ヘッダー右端・メール頭文字 + ▼） |
 | `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内） |
 
 ### 課題作成

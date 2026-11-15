@@ -39,7 +39,7 @@ export const classTabMessages = defineMessages({
 
 const TAB_ORDER = ['stream', 'classwork', 'grading'];
 
-const TeacherClassTabs = ({ selected, onOpenSettings, onSelect }) => {
+const TeacherClassTabs = ({ selected, showGrading = true, onOpenSettings, onSelect }) => {
     const handleClick = useCallback(
         (event) => {
             const tab = event.currentTarget.dataset.tab;
@@ -47,19 +47,24 @@ const TeacherClassTabs = ({ selected, onOpenSettings, onSelect }) => {
         },
         [selected, onSelect],
     );
+    const tabs = showGrading ? TAB_ORDER : TAB_ORDER.filter((tab) => tab !== 'grading');
+    // ［⚙ クラスの設定］ is a button, not a tab: it sits in the same row but outside the
+    // tablist, so the arrow keys and screen readers see only the three tabs (#1958 Q3).
     return (
-        <div className={styles.tabList} data-testid="classroom-class-tabs" role="tablist">
-            {TAB_ORDER.map((tab) => (
-                <ClassroomTab
-                    key={tab}
-                    dataTab={tab}
-                    dataTestId={`classroom-board-tab-${tab}`}
-                    selected={selected === tab}
-                    onClick={handleClick}
-                >
-                    <FormattedMessage {...classTabMessages[tab]} />
-                </ClassroomTab>
-            ))}
+        <div className={styles.classTabsRow}>
+            <div className={styles.tabList} data-testid="classroom-class-tabs" role="tablist">
+                {tabs.map((tab) => (
+                    <ClassroomTab
+                        key={tab}
+                        dataTab={tab}
+                        dataTestId={`classroom-board-tab-${tab}`}
+                        selected={selected === tab}
+                        onClick={handleClick}
+                    >
+                        <FormattedMessage {...classTabMessages[tab]} />
+                    </ClassroomTab>
+                ))}
+            </div>
             {onOpenSettings ? (
                 <span className={styles.tabListEnd}>
                     <ClassroomButton
@@ -78,6 +83,8 @@ const TeacherClassTabs = ({ selected, onOpenSettings, onSelect }) => {
 
 TeacherClassTabs.propTypes = {
     selected: PropTypes.oneOf(TAB_ORDER).isRequired,
+    /** ［採点］を出すか（採点の機能が無いときは出さない）。 */
+    showGrading: PropTypes.bool,
     /** ［⚙ クラスの設定］。渡さなければ出さない（採点のタブ）。 */
     onOpenSettings: PropTypes.func,
     /** 選んだタブ（`'stream'` / `'classwork'` / `'grading'`）で呼ぶ。 */

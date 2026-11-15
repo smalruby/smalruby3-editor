@@ -364,6 +364,7 @@ export default {
     'gui.classroom.evaluation.cancel': 'キャンセル',
     'gui.classroom.teacherDetail.descriptionTab': 'せつめい',
     'gui.classroom.teacherDetail.previewTitle': 'せいとにみえるないよう（プレビュー）',
+    'gui.classroom.breadcrumbs.label': 'いまのばしょ',
     'gui.classroom.breadcrumbs.evaluation': 'さいてん',
     'gui.classroom.breadcrumbs.importGc': 'Google Classroomからインポート',
     'gui.classroom.board.createCancel': 'キャンセル',
