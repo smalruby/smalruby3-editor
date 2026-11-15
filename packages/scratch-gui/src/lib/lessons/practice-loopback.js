@@ -10,10 +10,12 @@
 //   生徒 → 相手: 生徒の作品が動かした「〜を送る」を vm-execution-hook.js で見て、自動の返事を返す。
 //                生徒のグローバル変数の値は、本物のメッシュの #713 と同じく自分のノードの値として
 //                `remoteData[meshId]` にも入れる（自分の変数の「〜のセンサー値」が本物と同じに読めるように）。
+//                相手に届いたもの（最後の合図・共有する変数の値）は `onReceived` でパネルに 1 行で知らせる（D3）。
+//   相手の値に `{fromVariable}` があれば、押したとき（返事のとき）の生徒の変数の値を使う（D4）。
 //
 // 本物のメッシュでつながっている・つなごうとしているあいだは何もしない（practiceAllowed）。
 // 外す（detach）と、入れた値を remoteData から消し、見張りも外す。外したあとは本物のメッシュに何も残らない。
-import { PRACTICE_PARTNER_NODE_ID, practiceAllowed, repliesFor } from './practice-partner';
+import { PRACTICE_PARTNER_NODE_ID, practiceAllowed, receivedSummary, repliesFor } from './practice-partner';
 import { hookOpcodeExecution, resetExecuteCaches } from './vm-execution-hook';
 
 /** 自動の返事を返すまでの間（ms）。本物のメッシュの遅れ（およそ 1 秒）より短く、合図の順が分かる長さ。 */
@@ -49,6 +51,8 @@ const messageNameOf = (option) => {
  * @param {number} [options.replyDelayMs] - 自動の返事までの間。
  * @param {function(): number} [options.now] - 時刻（テスト用）。
  * @param {object} [options.timers] - `{setTimeout, clearTimeout}`（テスト用）。
+ * @param {?function(?string): void} [options.onReceived] - 相手に届いたものの 1 行（`receivedSummary`）が
+ *   変わったときに呼ぶ。
  * @returns {{press: function(number): void, detach: function(): void}} ボタンを押す・外す。
  */
 export const attachPracticeLoopback = ({
@@ -60,6 +64,7 @@ export const attachPracticeLoopback = ({
         setTimeout: globalThis.setTimeout.bind(globalThis),
         clearTimeout: globalThis.clearTimeout.bind(globalThis),
     },
+    onReceived = null,
 }) => {
     const runtime = vm.runtime;
     // 待っている返事: 合図の名前（大文字）→ タイマー。本物のメッシュの fireEvent が、まだ送っていない同じ合図を
@@ -70,6 +75,15 @@ export const attachPracticeLoopback = ({
     // 出席番号で変わる（setClassroomSeat）ので、書いたときのノード ID を覚えて、そこから消す
     const ownSeeds = new Map();
     let attached = true;
+    // 相手に届いたもの（D3）: 最後に届いたもの（合図か変数）と、共有する変数の名前 → 最後の値
+    const received = { last: null, values: {} };
+    let receivedLine = null;
+    const notifyReceived = () => {
+        const line = receivedSummary(received);
+        if (line === receivedLine) return;
+        receivedLine = line;
+        if (onReceived) onReceived(line);
+    };
 
     const extension = () => (runtime.peripheralExtensions && runtime.peripheralExtensions.meshV2) || null;
     const service = () => {
@@ -81,13 +95,27 @@ export const attachPracticeLoopback = ({
         return attached && practiceAllowed(ext ? ext.connectionState : null);
     };
 
+    // 生徒の作品の変数（ふつうの変数）の値。ステージ（すべてのスプライト用）を先に、なければスプライトの変数
+    const studentVariableValue = (name) => {
+        const targets = (runtime.targets || []).filter((t) => t.isOriginal !== false);
+        const ordered = [...targets.filter((t) => t.isStage), ...targets.filter((t) => !t.isStage)];
+        for (const target of ordered) {
+            const variable = Object.values(target.variables || {}).find(
+                (v) => v.name === name && v.type === SCALAR_TYPE,
+            );
+            if (variable) return String(variable.value);
+        }
+        return '';
+    };
+
     const setPartnerVariables = (set) => {
         const svc = service();
         if (!svc || set.length === 0) return;
         if (!svc.remoteData[PRACTICE_PARTNER_NODE_ID]) svc.remoteData[PRACTICE_PARTNER_NODE_ID] = {};
         const timestamp = now();
-        set.forEach(({ name, value }) => {
-            svc.remoteData[PRACTICE_PARTNER_NODE_ID][name] = { value, timestamp };
+        set.forEach(({ name, value, fromVariable }) => {
+            const resolved = typeof fromVariable === 'string' ? studentVariableValue(fromVariable) : value;
+            svc.remoteData[PRACTICE_PARTNER_NODE_ID][name] = { value: resolved, timestamp };
         });
     };
 
@@ -120,10 +148,10 @@ export const attachPracticeLoopback = ({
         pending.set(key, id);
     };
 
-    const seedOwnVariable = (args) => {
-        const svc = service();
+    // 共有する変数（ステージのふつうの変数）。本物のメッシュで共有されるのはこれだけ
+    const findStageVariable = (args) => {
         const stage = runtime.getTargetForStage && runtime.getTargetForStage();
-        if (!svc || !stage || !args.VARIABLE) return;
+        if (!stage || !args.VARIABLE) return;
         // メッシュの拡張（syncVariable）と同じく、ステージの変数を id か名前で探す
         let variable = stage.lookupVariableById(args.VARIABLE.id);
         if (!variable) variable = stage.lookupVariableByNameAndType(args.VARIABLE.name, SCALAR_TYPE);
@@ -139,18 +167,26 @@ export const attachPracticeLoopback = ({
                 return;
             }
             const name = messageNameOf(args.BROADCAST_OPTION);
-            if (name) scheduleReplies(name);
+            if (name) {
+                received.last = { kind: 'message', name };
+                notifyReceived();
+                scheduleReplies(name);
+            }
             return;
         }
         if (VARIABLE_OPCODES.has(opcode)) {
-            const variable = seedOwnVariable(args);
+            const variable = findStageVariable(args);
             if (!variable) return;
             // 見張りはブロックが動く前に呼ばれるので、動いたあとの値をここで出す
             const value =
                 opcode === 'data_setvariableto'
                     ? String(args.VALUE)
                     : String(toNumber(variable.value) + toNumber(args.VALUE));
+            received.last = { kind: 'variable', name: variable.name };
+            received.values[variable.name] = value;
+            notifyReceived();
             const svc = service();
+            if (!svc) return;
             const nodeId = svc.meshId;
             if (!svc.remoteData[nodeId]) svc.remoteData[nodeId] = {};
             const entry = { value, timestamp: now() };

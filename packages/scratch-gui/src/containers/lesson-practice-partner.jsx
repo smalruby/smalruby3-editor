@@ -38,11 +38,14 @@ const LessonPracticePartnerContainer = ({ challengeId = null, locale, partnerDef
     const [open, setOpen] = useState(true);
     const [meshFree, setMeshFree] = useState(() => practiceAllowed(meshConnectionState(vm)));
     const [position, setPosition] = useState(null);
+    // 相手に届いたものの 1 行（D3。practice-loopback.js の onReceived）。チャレンジが変わったら消す
+    const [received, setReceived] = useState(null);
     const loopRef = useRef(null);
 
     // チャレンジが変わったら開いた状態にもどす（本物のメッシュでつながっていれば閉じて出す）
     useEffect(() => {
         setOpen(practiceAllowed(meshConnectionState(vm)));
+        setReceived(null);
     }, [challengeId, vm]);
 
     // 本物のメッシュのつながり。つながったらパネルを閉じる
@@ -67,7 +70,7 @@ const LessonPracticePartnerContainer = ({ challengeId = null, locale, partnerDef
     // 折り返しをつなぐ・外す
     useEffect(() => {
         if (!active) return () => {};
-        const loop = attachPracticeLoopback({ vm, partner });
+        const loop = attachPracticeLoopback({ vm, partner, onReceived: setReceived });
         loopRef.current = loop;
         return () => {
             loop.detach();
@@ -106,6 +109,7 @@ const LessonPracticePartnerContainer = ({ challengeId = null, locale, partnerDef
             onPress={handlePress}
             open={open}
             position={position}
+            received={received}
         />,
         document.body,
     );

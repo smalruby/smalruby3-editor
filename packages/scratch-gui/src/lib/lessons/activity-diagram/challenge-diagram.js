@@ -68,7 +68,7 @@ export const challengeActivityDiagram = async (
     // 訳のあるキャラクター（シマラビ・シマネコ）は locale の名前で書く
     const displayed = (name) => (typeof name === 'string' ? name : format(name.id));
     const setupSprite = codeSpriteName(challenge.setup);
-    const partner = partnerLane(challenge.partner, { format });
+    const partner = partnerLane(challenge.partner, { format, locale });
     const lanes = [];
     for (const lane of activityDiagramLanes(challenge, locale)) {
         const targets = [];

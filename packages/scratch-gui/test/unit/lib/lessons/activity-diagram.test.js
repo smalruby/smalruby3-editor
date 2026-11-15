@@ -204,6 +204,25 @@ describe('partnerLane', () => {
         ]);
     });
 
+    test('a value from a variable of the student is drawn as "(name の値)" (D4)', () => {
+        const partner = {
+            name: 'シマネコ',
+            buttons: [
+                {
+                    label: 'あなたに DM',
+                    set: [
+                        { variable: 'あて先', value: { fromVariable: { ja: '名前', en: 'name' } } },
+                        { variable: 'x', value: { fromVariable: '' } },
+                    ],
+                },
+            ],
+        };
+        const ja = partnerLane(partner, { format: formatJa, locale: 'ja' });
+        expect(ja.targets[0].scripts[0].body.map((n) => n.label)).toEqual(['あて先を(名前の値)にする', 'xを◯にする']);
+        const enLane = partnerLane(partner, { format: formatEn, locale: 'en' });
+        expect(enLane.targets[0].scripts[0].body[0].label).toBe('set あて先 to (value of name)');
+    });
+
     test('no partner (or a partner without anything to draw) gives no lane', () => {
         expect(partnerLane(null, { format: formatJa })).toBeNull();
         expect(partnerLane(undefined, { format: formatJa })).toBeNull();

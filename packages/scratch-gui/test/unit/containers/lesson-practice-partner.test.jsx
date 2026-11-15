@@ -23,9 +23,17 @@ const PARTNER = {
 
 const makeVm = (connectionState = 'disconnected') => {
     const runtime = new EventEmitter();
+    const variables = {
+        m: { id: 'm', name: 'メッセージ', type: 'broadcast_msg' },
+        v: { id: 'v', name: 'メッセージ', type: '', value: '' },
+    };
     const stage = {
-        variables: { m: { id: 'm', name: 'メッセージ', type: 'broadcast_msg' } },
+        isStage: true,
+        variables,
         blocks: { resetCache: jest.fn() },
+        lookupVariableById: (id) => variables[id],
+        lookupVariableByNameAndType: (name, type) =>
+            Object.values(variables).find((v) => v.name === name && v.type === type),
         lookupBroadcastMsg: (id, name) => (name === 'メッセージ' ? { name: 'メッセージ' } : undefined),
     };
     runtime.targets = [stage];
@@ -122,8 +130,46 @@ describe('LessonPracticePartner container', () => {
         expect(vm.ext.meshService.remoteData).toEqual({});
     });
 
+    test('one line tells what reached the partner (the last message, with the shared value of that name)', () => {
+        const vm = makeVm();
+        renderContainer({ vm });
+        const line = screen.getByTestId('lesson-practice-partner-received');
+        // 何も届いていなくても行を出す（パネルの高さを変えない）
+        expect(line).toHaveTextContent('To ロボ: (nothing yet)');
+        const exec = (opcode, args) => {
+            vm.runtime._primitives[opcode] = vm.runtime._primitives[opcode] || jest.fn();
+            act(() => {
+                vm.runtime.getOpcodeFunction(opcode)(args, {});
+            });
+        };
+        exec('data_setvariableto', { VARIABLE: { id: 'v', name: 'メッセージ' }, VALUE: 'こんにちは' });
+        expect(line).toHaveTextContent('To ロボ: メッセージ = こんにちは');
+        exec('event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
+        expect(line).toHaveTextContent('To ロボ: メッセージ = こんにちは');
+        expect(line).toHaveAttribute('title', 'To ロボ: メッセージ = こんにちは');
+        // 相手のボタン（相手から生徒へ）は相手に届いたものではない
+        fireEvent.click(screen.getAllByTestId('lesson-practice-partner-button')[1]);
+        expect(line).toHaveTextContent('To ロボ: メッセージ = こんにちは');
+    });
+
+    test('the line starts over when the challenge changes', () => {
+        const vm = makeVm();
+        const { rerender } = renderContainer({ vm });
+        vm.runtime._primitives.event_broadcast = jest.fn();
+        act(() => {
+            vm.runtime.getOpcodeFunction('event_broadcast')({ BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } }, {});
+        });
+        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('To ロボ: メッセージ');
+        rerender(
+            <IntlProvider locale="en" messages={en}>
+                <LessonPracticePartnerContainer challengeId="c2" locale="ja" partnerDef={PARTNER} vm={vm} />
+            </IntlProvider>,
+        );
+        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('To ロボ: (nothing yet)');
+    });
+
     test('strings exist in en / ja / ja-Hira', () => {
-        ['title', 'note', 'close', 'open'].forEach((key) => {
+        ['title', 'note', 'close', 'open', 'received', 'nothingReceived'].forEach((key) => {
             const id = `gui.lessonPracticePartner.${key}`;
             [en, ja, jaHira].forEach((messages) => expect(typeof messages[id]).toBe('string'));
         });

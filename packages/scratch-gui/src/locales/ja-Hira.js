@@ -1820,6 +1820,8 @@ export default {
     'gui.lessonPracticePartner.title': 'れんしゅうあいて: {name}',
     'gui.lessonPracticePartner.note': 'ペアでやるときは、とじて ほんもののメッシュで つなごう。',
     'gui.lessonPracticePartner.close': 'れんしゅうあいてを とじる',
+    'gui.lessonPracticePartner.received': '{name}に とどいた: {what}',
+    'gui.lessonPracticePartner.nothingReceived': '（まだ なにも とどいていない）',
     'gui.lessonPracticePartner.open': 'れんしゅうあいて',
     'gui.lessonHint.ariaLabel': 'ヒント',
     'gui.lessonHint.position': 'ヒント {number} / {count}',

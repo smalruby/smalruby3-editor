@@ -119,7 +119,7 @@ export const receivedSummary = (received) => {
     const { last, values = {} } = received;
     if (last.kind === 'variable') return `${last.name} = ${values[last.name] ?? ''}`;
     const sameName = Object.keys(values).find((name) => sameMessage(name, last.name));
-    return sameName === undefined ? last.name : `${last.name} = ${values[sameName]}`;
+    return typeof sameName === 'string' ? `${last.name} = ${values[sameName]}` : last.name;
 };
 
 /**

@@ -1763,6 +1763,8 @@ export default {
     'gui.lessonPracticePartner.title': '練習相手: {name}',
     'gui.lessonPracticePartner.note': 'ペアでやるときは、閉じて本物のメッシュでつなごう。',
     'gui.lessonPracticePartner.close': '練習相手を閉じる',
+    'gui.lessonPracticePartner.received': '{name}に届いた: {what}',
+    'gui.lessonPracticePartner.nothingReceived': '（まだ何も届いていない）',
     'gui.lessonPracticePartner.open': '練習相手',
     'gui.lessonHint.ariaLabel': 'ヒント',
     'gui.lessonHint.position': 'ヒント {number} / {count}',
