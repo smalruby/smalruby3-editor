@@ -70,8 +70,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-detail-assignment-name-saved` | span | 課題名の欄の横の「✓ 保存しました」（`role="status"`・保存後 2 秒ほど） |
 | `classroom-detail-assignment-name-save-error` | span | 課題名の欄の横の赤い「保存できませんでした」（`role="alert"`・保存に失敗したとき） |
 | `classroom-detail-expires-at` | div | 保存期限（ふだんは灰色。残り 7 日以内は `classroom-retention-banner` を含む） |
-| `classroom-detail-more-menu` | button | タブの行の右端の「…」（一覧は `classroom-detail-more-menu-list`） |
-| `classroom-download-progress` | span | 「…」の左の全作品ダウンロードの進み具合（`n/m`・ダウンロード中のみ） |
+| `classroom-detail-more-menu` | button | タブの行の右端の⋮（一覧は `classroom-detail-more-menu-list`） |
+| `classroom-download-progress` | span | ⋮の左の全作品ダウンロードの進み具合（`n/m`・ダウンロード中のみ） |
 | `classroom-tab-members` | button | 「メンバー」タブ（凡例 + 人数 + 更新 + 座席グリッド） |
 | `classroom-view-assignment` | a | 「課題を確認」（配信済みのとき・新しいタブ。生徒のステータス画面にもある） |
 | `classroom-detail-join-code` | div | 参加コード |
@@ -83,10 +83,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-status-icons` | span | 1 セル内の着席系 + 提出系アイコンのまとまり |
 | `classroom-status-icon-{status}` | span[role=img] | 状態アイコン（`data-status` と `aria-label` を持つ。status は `seated` / `notSeated` / `notJoined` / `submitted` / `notSubmitted` / `returned` / `kickRequested` / `occupied`） |
 | `classroom-members-count` | span | メンバー数 |
-| `classroom-delete-classroom` | button (menuitem) | 「…」の「課題をアーカイブ」（歴史的経緯で testid は delete のまま。soft-delete・復元可能） |
+| `classroom-delete-classroom` | button (menuitem) | ⋮の「課題をアーカイブ」（歴史的経緯で testid は delete のまま。soft-delete・復元可能） |
 | `classroom-delete-confirm` | button | アーカイブ確認 |
 | `classroom-delete-cancel` | button | アーカイブキャンセル |
-| `classroom-download-all` | button (menuitem) | 「…」の「全作品ダウンロード」 |
+| `classroom-download-all` | button (menuitem) | ⋮の「全作品ダウンロード」 |
 
 ### レッスンの進み具合 (先生・レッスンの課題だけ)
 
@@ -99,7 +99,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-lesson-seat-cleared-{n}` | span | 課題クリアした席の ★ |
 | `classroom-lesson-cleared-summary` | span | 「クリア N / 参加 N」 |
 | `classroom-lesson-seat-count-{seat}` | span[role=img] | タイルの「できた数 / 条件の数」（できた数は条件の数で止める） |
-| `classroom-lesson-seat-required-{seat}` | span | タイルの「★ あと n」（必須が残っているときだけ） |
+| `classroom-lesson-seat-required-{seat}` | span | タイルの「★ あと n」（必須が残っているときだけ。`role="img"`・`aria-label` は「★ あと n」。中に下の 2 つがあり、CSS がどちらかを出す） |
+| `classroom-lesson-seat-required-full-{seat}` | span | 「★ あと n」（ふつうの高さのタイル） |
+| `classroom-lesson-seat-required-short-{seat}` | span | 「★n」（高さ 52px 以下のタイル。1300×600 で 40 席を 4 行に収めたとき） |
 | `classroom-lesson-seat-stuck-{seat}` | span[role=img] | タイルの「!」（同じチャレンジに 10 分以上・最後の送信から 35 分未満のときだけ） |
 | `classroom-lesson-progress` | div | 「進み具合」タブの中身 |
 | `classroom-lesson-progress-legend` | div | 記号の凡例（✓・前・▶・!・・・★） |
@@ -116,7 +118,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-lesson-progress-seat-{memberId}` | button | 席番号（押すと右にメンバーの詳細） |
 | `classroom-lesson-progress-cell-{memberId}-{challengeId}` | span | セル（`data-kind` = `done` / `before` / `current` / `stuck` / `todo`） |
 | `classroom-lesson-progress-unknown-course` | p | このスモウルビーに無いコースのとき表の代わりに出す文 |
-| `classroom-lesson-progress-csv` | button (menuitem) | 「…」の「進み具合を CSV でダウンロード」（「進み具合」タブのときだけ） |
+| `classroom-lesson-progress-csv` | button (menuitem) | ⋮の「進み具合を CSV でダウンロード」（「進み具合」タブのときだけ） |
 
 ### メンバー詳細パネル (先生)
 
@@ -429,7 +431,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-create` | button (menuitem) | 作成メニューの「課題」（課題の作成画面へ） |
 | `classroom-board-create-lesson` | button (menuitem) | 作成メニューの「レッスン」（「課題」のすぐ下。同じ作成画面へ。作ると説明タブでレッスン欄が開き、最初のコースの最初のレッスンが選ばれる） |
 | `classroom-board-create-topic` | button (menuitem) | 作成メニューの「トピック」（トピックを追加の小さな画面へ） |
-| `classroom-board-more-menu` | button | 右上の「…」（中に `classroom-board-download-class`） |
+| `classroom-board-more-menu` | button | 右上の ⋮（中に `classroom-board-download-class`） |
 | `classroom-board-empty` | p | ボードの空メッセージ |
 | `classroom-board-section-{topic}` | div | トピックセクション（未設定は `-none`） |
 | `classroom-board-section-title-{topic}` | h3 | セクションの見出し（未設定は `-none` =「トピックなし」） |
@@ -462,7 +464,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-board-restore-{classroomId}` | button | アーカイブ済み課題の「元に戻す」 |
 | `classroom-board-expiry-{classroomId}` | div | 開いた中の自動削除の警告（保存期限 7 日以内のときだけ・赤） |
 | `classroom-board-download-{classroomId}` | button | 警告の「全作品ダウンロード」（その課題だけ） |
-| `classroom-board-download-class` | button (menuitem) | 「…」の「全課題の提出物をダウンロード」（active + アーカイブ済みを 1 つの zip に） |
+| `classroom-board-download-class` | button (menuitem) | ⋮の「全課題の提出物をダウンロード」（active + アーカイブ済みを 1 つの zip に） |
 | `classroom-retention-banner` | div | 課題詳細の保存期限の赤い警告（残り 7 日以内のときだけ・保存期限の右） |
 | `classroom-retention-banner-download` | button | 警告の中の「全作品ダウンロード」 |
 | `classroom-share-assignment` | button | 課題詳細の「この課題を共有」（みんなの課題フォームを開く） |
@@ -704,8 +706,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-notifications-button` | button | ベル（クリックでパネル開閉） |
 | `classroom-notifications-badge` | span | 未読数（10 以上は「9+」。未読 0 で非表示） |
 | `classroom-notifications-panel` | div | 一覧パネル（先頭 5 件プレビュー） |
-| `classroom-notifications-menu-button` | button | パネルヘッダー右の ⋯ |
-| `classroom-notifications-menu` | div | ⋯ メニュー |
+| `classroom-notifications-menu-button` | button | パネルヘッダー右の ⋮ |
+| `classroom-notifications-menu` | div | ⋮ メニュー |
 | `classroom-notifications-mark-all-read` | button | すべて既読にする（未読 0 で無効） |
 | `classroom-notifications-open-all` | button | お知らせを開く（全件一覧ページへ） |
 | `classroom-notification-item-{notificationId}` | button | パネル内のお知らせ 1 件（クリックでリンク先へ + パネルを閉じる） |

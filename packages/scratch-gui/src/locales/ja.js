@@ -791,6 +791,7 @@ export default {
     'gui.classroom.lessonSeat.notJoined': '未参加',
     'gui.classroom.lessonSeat.stuck': '同じチャレンジに 10 分以上',
     'gui.classroom.lessonSeat.requiredLeft': '★ あと {count}',
+    'gui.classroom.lessonSeat.requiredLeftShort': '★{count}',
     'gui.classroom.lessonSeat.progressLabel': '条件 {target} つのうち {done} つできた',
     'gui.classroom.lessonSeat.loading': '進み具合を読み込み中…',
     'gui.classroom.lessonSeat.loadError': '進み具合を読み込めませんでした。30 秒ごとに読み込み直します。',

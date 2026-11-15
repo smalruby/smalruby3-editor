@@ -41,7 +41,7 @@ smalruby3-editor/
 │   │   │   │   ├── teacher-lesson-progress.jsx ← 「進み具合」タブ（席 × チャレンジの表・並べ方）
 │   │   │   │   ├── lesson-scoring-field.jsx ← 「詳しい設定」の中のレッスンの点（満点・必須の点）
 │   │   │   │   ├── lesson-number-input.jsx ← レッスン欄の数の欄（打っている途中は直さず、欄を出る・Enter で確定）
-│   │   │   │   ├── board-menu.jsx ← 小さなドロップダウン（［＋ 作成 ▾］・⋮・課題詳細の「…」で共用）
+│   │   │   │   ├── board-menu.jsx ← 小さなドロップダウン（［＋ 作成 ▾］・⋮・課題詳細の ⋮ で共用）
 │   │   │   │   ├── mesh-group-limit-field.jsx ← 「メッシュのグループの人数」の選択（作成画面と課題エディタで共用・#1257）
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理
 │   │   │   │   ├── teacher-evaluation.jsx ← 採点（席×課題の表・手順 1〜4・書き出しメニュー）

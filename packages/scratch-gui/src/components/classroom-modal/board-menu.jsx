@@ -1,6 +1,6 @@
 /**
  * BoardMenu — a small dropdown (toggle + list) used by the assignment board
- * and the assignment detail's「…」menu (#1303: own file so the detail view
+ * and the assignment detail's ⋮ menu (#1303: own file so the detail view
  * does not import from the board).
  */
 import PropTypes from 'prop-types';

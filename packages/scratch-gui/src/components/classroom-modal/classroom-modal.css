@@ -1379,19 +1379,35 @@
     font-size: 0.75rem;
 }
 
+/* The seat tiles in the members tab (#1925): at most 58px wide and high so
+   that 40 seats read as one block (like the status panel); at least 36px
+   high (the number and the status icons stay readable; below that the frame
+   scrolls down). The width has no lower bound (no sideways scroll). */
+$seat-tile-max: 58px;
+$seat-tile-min: 36px;
+
 .members-grid {
     display: grid;
-    /* minmax(0, …): the lesson tiles' min-content must not widen the modal past
-       1300px and push the seat detail on the right off screen (#1603). */
-    grid-template-columns: repeat(10, minmax(0, 1fr));
+    /* The tiles set the column width (.member-cell below), so the columns are
+       as wide as the tiles and the row stays packed to the left. The tile
+       width has no lower bound, so 10 columns never widen the frame (no
+       sideways scroll on an iPad, #1925) nor the modal past 1300px (#1603). */
+    grid-template-columns: repeat(10, auto);
+    justify-content: start;
     gap: 4px;
     /* The selected seat's ring sits outside the tile: keep room so the frame
        (overflow) does not clip it on the first row / column (#1922). */
     padding: 4px;
-    margin: 0.5rem 0;
+    /* No margin below: the frame's height is the tiles' height (#1925). */
+    margin: 0.25rem 0 0;
     /* The seats (up to 40) are a list: only this frame scrolls (R6 exception). */
     flex: 1 1 auto;
-    min-height: 0;
+    /* The tiles are sized from this frame's height (cqh) so that 40 seats =
+       4 rows fit on the lesson PC (1300x600, #1925). Size containment keeps
+       the frame's height from depending on the tiles; the min-height keeps
+       the frame from collapsing where the pane is not height-bound. */
+    container-type: size;
+    min-height: calc(4 * $seat-tile-min + 3 * 4px + 8px);
     overflow-y: auto;
     align-content: start;
 }
@@ -1401,10 +1417,22 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    aspect-ratio: 1;
-    /* Size the number / status icons relative to the (square) cell (#1196) */
-    container-type: inline-size;
+    /* Width: at most the max size, and narrow enough that 10 columns fit the
+       frame (no lower bound: on a narrow screen the tiles get narrower
+       rather than the frame scrolling sideways). Height: also at most the
+       width and low enough that 4 rows fit the frame's height (then the tile
+       is wider than tall), never below the min size (then the frame scrolls
+       down). 36px = 9 gaps between 10 columns, 12px = 3 gaps between
+       4 rows (#1925). The first pair is for browsers without container
+       queries (cqw / cqh), which drop the second pair. */
+    width: 58px;
+    height: 46px;
+    width: min($seat-tile-max, calc((100cqw - 36px) / 10));
+    height: max($seat-tile-min, min($seat-tile-max, calc((100cqw - 36px) / 10), calc((100cqh - 12px) / 4)));
+    /* Size the number / status icons relative to the cell (#1196). The cell's
+       size is set above, so size containment is safe and lets low tiles
+       tighten their lines (@container (max-height) below). */
+    container-type: size;
     border-radius: 4px;
     font-size: 0.8rem;
     font-weight: bold;
@@ -3940,7 +3968,7 @@
     margin-left: auto;
 }
 
-/* ［＋ 作成 ▾］・「…」・⋮ のドロップダウン。 */
+/* ［＋ 作成 ▾］・⋮ のドロップダウン。 */
 .board-menu {
     position: relative;
     display: inline-block;
@@ -3995,7 +4023,7 @@
     border-top: 1px solid hsla(0, 0%, 0%, 0.12);
 }
 
-/* ⋮ / … のアイコンボタン。 */
+/* ⋮ のアイコンボタン（「その他」はクラス管理のどこでも ⋮・#1925）。 */
 .board-kebab {
     width: 2rem;
     height: 2rem;
@@ -4942,8 +4970,10 @@
    in progress = pale blue (= joined), cleared = green with ★. */
 .lesson-seat {
     justify-content: flex-start;
-    padding-top: clamp(3px, 6cqi, 10px);
-    gap: clamp(1px, 3cqi, 5px);
+    /* The tile is at most 58px (#1925): small fixed spacing. (cqi here would
+       be the seat grid's width, not the tile's.) */
+    padding-top: 3px;
+    gap: 1px;
 }
 
 .lesson-seat-not-started {
@@ -5059,6 +5089,48 @@
     right: 2px;
     bottom: 2px;
     line-height: 0;
+}
+
+/* 「★ あと 1」, or「★1」on a low tile (below). */
+.lesson-seat-required-short {
+    display: none;
+}
+
+/* Low tiles (1300x600 fits 4 rows at about 40-47px high, #1925): the bar repeats
+   「できた数 / 条件の数」, so drop it and tighten the lines so the number, the
+   count and ★ の残り (as「★1」) still fit. The text stays at least
+   0.625rem (the xsmall font size token). */
+@container (max-height: 52px) {
+    .lesson-seat-meter {
+        display: none;
+    }
+
+    .lesson-seat-head .member-cell-number {
+        font-size: 0.75rem;
+    }
+
+    .lesson-seat-count {
+        font-size: $font-size-xsmall;
+        line-height: 1.2;
+        padding: 0 2px;
+    }
+
+    /* It shares the bottom line with the submission badge (bottom right):
+       the short form, started at the left, so the two do not overlap. */
+    .lesson-seat-required {
+        align-self: flex-start;
+        padding-left: 3px;
+        font-size: $font-size-xsmall;
+        line-height: 1;
+    }
+
+    .lesson-seat-required-full {
+        display: none;
+    }
+
+    .lesson-seat-required-short {
+        display: inline;
+    }
 }
 
 /* Rows of the progress table: as low as the 16px cells allow (#1767 M1). */

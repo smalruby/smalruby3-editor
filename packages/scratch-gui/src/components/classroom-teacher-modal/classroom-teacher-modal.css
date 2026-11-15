@@ -592,7 +592,7 @@
     width: 22rem;
     max-width: calc(100vw - 2rem);
     /* プレビューは最大 5 件で高さが有界なのでパネルはスクロールさせない
-       （overflow を付けるとヘッダーの ⋯ ポップアップがクリップされる）。 */
+       （overflow を付けるとヘッダーの ⋮ ポップアップがクリップされる）。 */
     background-color: white;
     border: 1px solid #d9d9d9;
     border-radius: 0.5rem;
@@ -611,7 +611,7 @@
     border-bottom: 1px solid #e0e0e0;
 }
 
-/* ヘッダーの ⋯ メニュー（すべて既読にする / お知らせを開く）。 */
+/* ヘッダーの ⋮ メニュー（すべて既読にする / お知らせを開く）。 */
 .notifications-menu {
     position: relative;
 }

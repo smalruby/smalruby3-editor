@@ -810,6 +810,7 @@ export default {
     'gui.classroom.lessonSeat.notJoined': 'みさんか',
     'gui.classroom.lessonSeat.stuck': 'おなじチャレンジに 10 ぷんいじょう',
     'gui.classroom.lessonSeat.requiredLeft': '★ あと {count}',
+    'gui.classroom.lessonSeat.requiredLeftShort': '★{count}',
     'gui.classroom.lessonSeat.progressLabel': 'じょうけん {target} つのうち {done} つできた',
     'gui.classroom.lessonSeat.loading': 'すすみぐあいをよみこみちゅう…',
     'gui.classroom.lessonSeat.loadError': 'すすみぐあいをよみこめませんでした。30 びょうごとによみこみなおします。',

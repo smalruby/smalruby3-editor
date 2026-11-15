@@ -1017,7 +1017,7 @@ const TeacherAssignmentBoard = ({
                     </div>
                     {tab === 'classwork' ? (
                         // R2: 主ボタンは［＋ 作成 ▾］1 つ。作り方は毎回選んでもらう（先生ごとに
-                        // 使う作り方が違うため決め打ちしない）。まれな一括 DL は「…」へ。
+                        // 使う作り方が違うため決め打ちしない）。まれな一括 DL は⋮へ。
                         <div className={styles.boardHeader}>
                             <BoardMenu
                                 buttonClassName={styles.boardCreateButton}
@@ -1113,11 +1113,11 @@ const TeacherAssignmentBoard = ({
                                         alignRight
                                         ariaLabel={intl.formatMessage({
                                             defaultMessage: 'More',
-                                            description: 'Accessible name of the … menu on the classwork tab',
+                                            description: 'Accessible name of the ⋮ menu on the classwork tab',
                                             id: 'gui.classroom.board.moreMenu',
                                         })}
                                         buttonClassName={styles.boardKebab}
-                                        label="…"
+                                        label="⋮"
                                         testId="classroom-board-more-menu"
                                     >
                                         {(close) => (

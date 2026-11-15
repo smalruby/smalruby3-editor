@@ -514,7 +514,12 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
     const renderDescription = (over) =>
         renderDetail({ assignmentEditor: editor(over), detailEntry: { tab: 'description', seq: 1 } });
 
-    test('D1: 全作品ダウンロードとアーカイブは「…」の中にあり、タブの行には出さない', () => {
+    test('C9: タブの行の「その他」メニューの記号は ⋮ (#1925)', () => {
+        renderDetail();
+        expect(byTestId('classroom-detail-more-menu').textContent).toBe('⋮');
+    });
+
+    test('D1: 全作品ダウンロードとアーカイブは ⋮ の中にあり、タブの行には出さない', () => {
         const onDownloadAll = jest.fn();
         const onDeleteClassroom = jest.fn();
         // jsdom has no scrollIntoView (the confirm box scrolls into view).
@@ -802,7 +807,16 @@ describe('TeacherClassDetail — lesson progress (#1602)', () => {
         const seat1 = document.querySelector('[data-testid="classroom-member-seat-01"]');
         expect(seat1.dataset.lessonState).toBe('inProgress');
         expect(document.querySelector('[data-testid="classroom-lesson-seat-count-1"]').textContent).toBe('1 / 3');
-        expect(document.querySelector('[data-testid="classroom-lesson-seat-required-1"]')).toBeInTheDocument();
+        const required = document.querySelector('[data-testid="classroom-lesson-seat-required-1"]');
+        // Both the long and the short (low tiles, #1925) form are in the tile;
+        // CSS shows one. Screen readers read the long one from the label.
+        expect(required.getAttribute('aria-label')).toBe('★ 1 left');
+        expect(required.querySelector('[data-testid="classroom-lesson-seat-required-full-1"]').textContent).toBe(
+            '★ 1 left',
+        );
+        expect(required.querySelector('[data-testid="classroom-lesson-seat-required-short-1"]').textContent).toBe(
+            '★1',
+        );
         expect(document.querySelector('[data-testid="classroom-lesson-seat-stuck-1"]')).toBeInTheDocument();
         expect(document.querySelector('[data-testid="classroom-member-seat-02"]').dataset.lessonState).toBe(
             'notJoined',

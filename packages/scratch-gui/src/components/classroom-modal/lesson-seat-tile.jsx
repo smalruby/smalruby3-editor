@@ -36,6 +36,11 @@ export const lessonSeatMessages = defineMessages({
         description: 'On a lesson seat tile: how many required (★) challenges are not done yet',
         id: 'gui.classroom.lessonSeat.requiredLeft',
     },
+    requiredLeftShort: {
+        defaultMessage: '★{count}',
+        description: 'On a low lesson seat tile (40 seats on a 1300x600 screen): short form of「★ {count} left」',
+        id: 'gui.classroom.lessonSeat.requiredLeftShort',
+    },
     progress: {
         defaultMessage: '{done} of {target} done',
         description: 'Accessible label of the「done / condition」count on a lesson seat tile',
@@ -110,11 +115,33 @@ const LessonSeatTile = ({ seatNumber, tile, presence, submission }) => {
                         />
                     </span>
                     {progress.requiredLeft > 0 ? (
+                        // The long form, or「★1」on a low tile (CSS picks one, #1925).
                         <span
+                            aria-label={intl.formatMessage(lessonSeatMessages.requiredLeft, {
+                                count: progress.requiredLeft,
+                            })}
                             className={styles.lessonSeatRequired}
                             data-testid={`classroom-lesson-seat-required-${seatNumber}`}
+                            role="img"
                         >
-                            {intl.formatMessage(lessonSeatMessages.requiredLeft, { count: progress.requiredLeft })}
+                            <span
+                                aria-hidden="true"
+                                className={styles.lessonSeatRequiredFull}
+                                data-testid={`classroom-lesson-seat-required-full-${seatNumber}`}
+                            >
+                                {intl.formatMessage(lessonSeatMessages.requiredLeft, {
+                                    count: progress.requiredLeft,
+                                })}
+                            </span>
+                            <span
+                                aria-hidden="true"
+                                className={styles.lessonSeatRequiredShort}
+                                data-testid={`classroom-lesson-seat-required-short-${seatNumber}`}
+                            >
+                                {intl.formatMessage(lessonSeatMessages.requiredLeftShort, {
+                                    count: progress.requiredLeft,
+                                })}
+                            </span>
                         </span>
                     ) : null}
                     {progress.stuck ? (
