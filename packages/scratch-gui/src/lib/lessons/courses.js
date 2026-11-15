@@ -1631,6 +1631,488 @@ const chatLesson3 = defineLesson({
     ],
 });
 
+// レッスン 4「チャットを作ろう」（#1644）: 1 回送る → くり返し送る → おたがいに → グループ → ダイレクトメッセージ、と
+// 育てて、教科書の形のチャットを作る。どの段も前の段の答えを setup（code / spriteCodes）で入れて始め、足すのは 3〜6
+// ブロック。4-1〜4-3 はシマラビの役（練習相手 = シマネコの役。ペアでシマネコの役の人は名前と受け持ちを入れかえる）、
+// 4-4 からは「みんなで 1 つ」の変数・メッセージ「メッセージ」に切りかえる（シマネコはみんなの発言を言う役）。
+// メッシュで相手に届く名前（メッセージ・共有する変数）は ja と ja-Hira で同じ（漢字を使わない形）。「なまえ」
+// 「あてさき」も、すべてのスプライト用の変数なのでメッシュで共有されるから、同じ決まりにする。en は別の名前
+const CHAT_L4_WORDS = {
+    ja: {
+        v: '$シマラビのメッセージ',
+        message: 'シマラビのメッセージ',
+        partnerMessage: 'シマネコのメッセージ',
+        ask: CHAT_ASK.ja,
+        hello: 'こんにちは',
+        howAreYou: '元気？',
+        gotIt: 'とどいたよ',
+        group: 'メッセージ',
+        gv: '$メッセージ',
+        nv: '$なまえ',
+        askName: '名前は？',
+        colon: '：',
+        tv: '$あてさき',
+        to: 'あてさき',
+        askTo: 'だれに送る？',
+        asShimacat: 'シマネコとして送る',
+        asMimi: 'ミミとして送る',
+        shimacatHello: 'シマネコ：こんにちは',
+        mimiHello: 'ミミ：よろしくね',
+        dmYou: 'あなたに DM',
+        dmMimi: 'ミミに DM',
+        mimi: 'ミミ',
+        secret: 'シマネコ：ないしょだよ',
+        mimiOnly: 'シマネコ：ミミにだけ',
+        nameVar: 'なまえ',
+        partner: 'シマネコ',
+    },
+    'ja-Hira': {
+        v: '$シマラビのメッセージ',
+        message: 'シマラビのメッセージ',
+        partnerMessage: 'シマネコのメッセージ',
+        ask: CHAT_ASK['ja-Hira'],
+        hello: 'こんにちは',
+        howAreYou: 'げんき？',
+        gotIt: 'とどいたよ',
+        group: 'メッセージ',
+        gv: '$メッセージ',
+        nv: '$なまえ',
+        askName: 'なまえは？',
+        colon: '：',
+        tv: '$あてさき',
+        to: 'あてさき',
+        askTo: 'だれに おくる？',
+        asShimacat: 'シマネコとして おくる',
+        asMimi: 'ミミとして おくる',
+        shimacatHello: 'シマネコ：こんにちは',
+        mimiHello: 'ミミ：よろしくね',
+        dmYou: 'あなたに DM',
+        dmMimi: 'ミミに DM',
+        mimi: 'ミミ',
+        secret: 'シマネコ：ないしょだよ',
+        mimiOnly: 'シマネコ：ミミにだけ',
+        nameVar: 'なまえ',
+        partner: 'シマネコ',
+    },
+    en: {
+        v: '$shimaraby_message',
+        message: 'shimaraby_message',
+        partnerMessage: 'shimacat_message',
+        ask: CHAT_ASK.en,
+        hello: 'Hello',
+        howAreYou: 'How are you?',
+        gotIt: 'Got it',
+        group: 'message',
+        gv: '$message',
+        nv: '$name',
+        askName: 'What is your name?',
+        colon: ': ',
+        tv: '$to',
+        to: 'to',
+        askTo: 'Send to whom?',
+        asShimacat: 'Send as Shimacat',
+        asMimi: 'Send as Mimi',
+        shimacatHello: 'Shimacat: Hello',
+        mimiHello: 'Mimi: Nice to meet you',
+        dmYou: 'DM to you',
+        dmMimi: 'DM to Mimi',
+        mimi: 'Mimi',
+        secret: 'Shimacat: It is a secret',
+        mimiOnly: 'Shimacat: Only for Mimi',
+        nameVar: 'name',
+        partner: 'Shimacat',
+    },
+};
+const chatL4Code = (make) =>
+    Object.fromEntries(Object.entries(CHAT_L4_WORDS).map(([locale, words]) => [locale, make(words)]));
+const chatL4Text = (key) =>
+    Object.fromEntries(Object.entries(CHAT_L4_WORDS).map(([locale, words]) => [locale, words[key]]));
+
+// 各段の答え（Ruby）。次の段の setup にもそのまま使う
+const chatL4SendOnce = chatL4Code(
+    (w) => `when_flag_clicked do\n  ask("${w.ask}")\n  ${w.v} = answer\n  broadcast("${w.message}")\nend\n`,
+);
+const chatL4SendRepeat = chatL4Code(
+    (w) =>
+        `when_flag_clicked do\n  ask("${w.ask}")\n  loop do\n    ${w.v} = answer\n    broadcast("${w.message}")\n` +
+        `    ask(${w.v})\n  end\nend\n`,
+);
+const chatL4ReceiveSay = chatL4Code(
+    (w) => `when_receive("${w.partnerMessage}") do\n  say(mesh.sensor_value("${w.partnerMessage}"))\nend\n`,
+);
+// 4-4 の始め: 4-3 を「みんなで 1 つ」の変数・メッセージに置きかえた形
+const chatL4GroupStart = chatL4Code(
+    (w) =>
+        `when_flag_clicked do\n  ask("${w.ask}")\n  loop do\n    ${w.gv} = answer\n    broadcast("${w.group}")\n` +
+        `    ask(${w.gv})\n  end\nend\n`,
+);
+const chatL4GroupReceive = chatL4Code(
+    (w) => `when_receive("${w.group}") do\n  say(mesh.sensor_value("${w.group}"))\nend\n`,
+);
+const chatL4Group = chatL4Code(
+    (w) =>
+        `when_flag_clicked do\n  ask("${w.askName}")\n  ${w.nv} = answer\n  ask("${w.ask}")\n  loop do\n` +
+        `    ${w.gv} = ${w.nv} + "${w.colon}" + answer\n    broadcast("${w.group}")\n    ask(${w.gv})\n  end\nend\n`,
+);
+const chatL4Dm = chatL4Code(
+    (w) =>
+        `when_flag_clicked do\n  ask("${w.askName}")\n  ${w.nv} = answer\n  ask("${w.ask}")\n  loop do\n` +
+        `    ${w.gv} = ${w.nv} + "${w.colon}" + answer\n    ask("${w.askTo}")\n    ${w.tv} = answer\n` +
+        `    broadcast("${w.group}")\n    ask(${w.gv})\n  end\nend\n`,
+);
+const chatL4DmReceive = chatL4Code(
+    (w) =>
+        `when_receive("${w.group}") do\n  if mesh.sensor_value("${w.to}") == ${w.nv}\n` +
+        `    say(mesh.sensor_value("${w.group}"))\n  end\nend\n`,
+);
+
+const CHAT_L4_START = { sprites: ['Shimaraby', 'Shimacat'], extensions: ['meshV2'] };
+// 自分のメッセージの変数・メッセージ（シマラビの役・シマネコの役のどちらの名前も、どの locale の名前も）
+const CHAT_PAIR_MESSAGE = ['シマラビのメッセージ', 'シマネコのメッセージ', 'shimaraby_message', 'shimacat_message'];
+const CHAT_PAIR_MESSAGE_NAME = messageMatcher(CHAT_PAIR_MESSAGE);
+// 「みんなで 1 つ」の変数・メッセージ、名前・あて先の変数（ja は漢字で書いた名前も通す）
+const CHAT_GROUP_MESSAGE = ['メッセージ', 'message'];
+const CHAT_GROUP_MESSAGE_NAME = messageMatcher(CHAT_GROUP_MESSAGE);
+const CHAT_NAME_VARIABLE = ['なまえ', '名前', 'name'];
+const CHAT_NAME_VARIABLE_NAME = new RegExp(`^(${CHAT_NAME_VARIABLE.join('|')})$`);
+const CHAT_TO_VARIABLE = ['あてさき', 'あて先', 'to'];
+const CHAT_TO_VARIABLE_NAME = new RegExp(`^(${CHAT_TO_VARIABLE.join('|')})$`);
+const CHAT_SAY_OPCODES = ['looks_say', 'looks_sayforsecs'];
+// 「メッセージを入力」「〜にする」「送る」（自分のメッセージの名前で）
+const chatL4SendBlocks = (count) => [
+    { opcode: 'sensing_askandwait', count },
+    { opcode: 'data_setvariableto', args: { VARIABLE: CHAT_PAIR_MESSAGE_NAME }, count },
+    { opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: CHAT_PAIR_MESSAGE_NAME }, count },
+];
+// 自分のメッセージの変数が、すべてのスプライト用（メッシュで共有される）で、入力した答えが入っている
+const CHAT_L4_SENT_ANSWER = { type: 'variable', name: CHAT_PAIR_MESSAGE, target: 'stage', fromAnswer: true };
+// 4-1〜4-3 の練習相手: ボタンでシマネコのメッセージを変えて送り、シマラビのメッセージを受け取ったら「とどいたよ」を返す
+const chatL4PairPartner = () => ({
+    name: chatL4Text('partner'),
+    buttons: ['hello', 'howAreYou'].map((key) => ({
+        label: chatL4Text(key),
+        set: { variable: chatL4Text('partnerMessage'), value: chatL4Text(key) },
+        broadcast: chatL4Text('partnerMessage'),
+    })),
+    replies: [
+        {
+            onBroadcast: chatL4Text('message'),
+            set: { variable: chatL4Text('partnerMessage'), value: chatL4Text('gotIt') },
+            broadcast: chatL4Text('partnerMessage'),
+        },
+    ],
+});
+const chatL4AskBlock = (key) => ({ opcode: 'sensing_askandwait', inputs: { QUESTION: chatL4Text(key) } });
+
+const chatLesson4 = defineLesson({
+    id: 'chat-l4',
+    challenges: [
+        // 1 1 回送ろう: 旗でシマラビが聞いた答えを変数「シマラビのメッセージ」に入れ、メッセージ「シマラビのメッセージ」を
+        // メッシュで送る（3-1 と同じ形で、相手が別のコンピューターになった）
+        {
+            id: 'chat-l4-send-once',
+            card: { category: CATEGORIES.EVENTS, main: CATEGORIES.EVENTS },
+            task: challengeMessage('chat-l4-send-once', 'task'),
+            setup: CHAT_L4_START,
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_broadcast'],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: CHAT_ASK } }, 'sensing_answer'],
+                data: ['data_setvariableto', 'data_variable'],
+            },
+            partner: chatL4PairPartner(),
+            steps: withTitles('chat-l4-send-once', [
+                { target: HINT_TARGETS.PALETTE },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL4Code((w) => `when_flag_clicked do\n  ask("${w.ask}")\n  ${w.v} = answer\nend\n`),
+                },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL4Code((w) => `${w.v} = answer\nbroadcast("${w.message}")\n`),
+                },
+                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('chat-l4-send-once', 2),
+            // 旗のスクリプトで 聞く → 変数に入れる → 送る の順に動き（変数とメッセージは自分のメッセージの名前）、
+            // その変数がすべてのスプライト用（メッシュで共有される）で、入力した答えが入っている。作っただけの変数（0）・
+            // 決まった文字を入れた変数・このスプライトのみの変数では通らない
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: chatL4SendBlocks(1),
+                    order: ['sensing_askandwait', 'data_setvariableto', 'event_broadcast'],
+                },
+                CHAT_L4_SENT_ANSWER,
+            ],
+            quiz: challengeQuiz('chat-l4-send-once', 1),
+            code: chatL4SendOnce,
+        },
+        // 2 くり返し送ろう: 「〜にする」と「送る」をずっとの中に入れ、その下に「(シマラビのメッセージ) と聞いて待つ」を
+        // 足す（レッスン 1-2 の形。教科書の送る側と同じ）
+        {
+            id: 'chat-l4-send-repeat',
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.CONTROL },
+            task: challengeMessage('chat-l4-send-repeat', 'task'),
+            setup: { ...CHAT_L4_START, code: chatL4SendOnce },
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_broadcast'],
+                control: ['control_forever'],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: CHAT_ASK } }, 'sensing_answer'],
+                data: ['data_setvariableto', 'data_variable'],
+            },
+            partner: chatL4PairPartner(),
+            steps: withTitles('chat-l4-send-repeat', [
+                {
+                    target: HINT_TARGETS.CODE_AREA,
+                    blocks: chatL4Code((w) => `loop do\n  ${w.v} = answer\n  broadcast("${w.message}")\nend\n`),
+                },
+                { target: HINT_TARGETS.PALETTE, blocks: chatL4SendRepeat },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('chat-l4-send-repeat', 2),
+            // 旗のスクリプトで「ずっと」が動き、聞いて待つ・自分のメッセージの変数に入れる・送る が 2 回以上ずつ動いた
+            // （2 回以上入力して送った）＋ 変数に入力した答えが入っている。くり返さずに 2 つ並べるプログラム、ずっとの中で
+            // 聞かずに送り続けるプログラムは通らない
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: ['control_forever', ...chatL4SendBlocks(2)],
+                },
+                CHAT_L4_SENT_ANSWER,
+            ],
+            quiz: challengeQuiz('chat-l4-send-repeat', 1),
+            code: chatL4SendRepeat,
+        },
+        // 3 おたがいに送ろう: シマネコが、メッセージ「シマネコのメッセージ」を受け取ったら「シマネコのメッセージ」の
+        // センサーの値を言う（3-1 の「(変数) を言う」が「(センサーの値) を言う」になる）
+        {
+            id: 'chat-l4-both-ways',
+            card: { category: CATEGORIES.EVENTS, main: CATEGORIES.EVENTS },
+            task: challengeMessage('chat-l4-both-ways', 'task'),
+            setup: { ...CHAT_L4_START, code: chatL4SendRepeat },
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
+                control: ['control_forever'],
+                sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: CHAT_ASK } }, 'sensing_answer'],
+                data: ['data_setvariableto', 'data_variable'],
+                looks: ['looks_say'],
+                // 拡張機能のカテゴリはパレットを絞っても全部出る（make-toolbox-xml）。ここは使うブロックの記録
+                meshV2: ['meshV2_getSensorValue'],
+            },
+            partner: chatL4PairPartner(),
+            steps: withTitles('chat-l4-both-ways', [
+                { target: HINT_TARGETS.SPRITE_LIST },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL4Code((w) => `when_receive("${w.partnerMessage}") do\nend\n`),
+                },
+                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                { target: HINT_TARGETS.PALETTE, blocks: chatL4ReceiveSay },
+                // 送る側（シマラビ）のプログラムは 4-2 の答えのまま。旗を押すとこれで自分から送れる
+                { target: HINT_TARGETS.GREEN_FLAG, blocks: chatL4SendRepeat },
+            ]),
+            debug: debugTips('chat-l4-both-ways', 2),
+            // 旗のスクリプトで自分のメッセージを送った（4-2 の答えのまま）＋ 相手のメッセージを受け取ったスクリプトで、
+            // 相手のメッセージの名前の `meshV2_getSensorValue` と「言う」が動いた ＋ そのスクリプトで言った文字が、
+            // ほかのノード（練習相手・ペアの相手）から届いた値だった（remoteValue）。自分のメッセージのセンサーの値・
+            // 自分の変数を言うプログラムは、相手と同じ文字でない限り通らない
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [{ opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: CHAT_PAIR_MESSAGE_NAME } }],
+                },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', message: CHAT_PAIR_MESSAGE },
+                    blocks: [
+                        { opcode: 'meshV2_getSensorValue', args: { NAME: CHAT_PAIR_MESSAGE_NAME } },
+                        { opcode: CHAT_SAY_OPCODES },
+                    ],
+                },
+                {
+                    type: 'said',
+                    trigger: { hat: 'event_whenbroadcastreceived', message: CHAT_PAIR_MESSAGE },
+                    text: /\S/,
+                    remoteValue: true,
+                },
+            ],
+            quiz: challengeQuiz('chat-l4-both-ways', 1),
+            code: chatL4SendRepeat,
+            spriteCodes: [{ sprite: 'Shimacat', code: chatL4ReceiveSay }],
+        },
+        // 4 グループチャットにしよう: みんなで 1 つの変数・メッセージ「メッセージ」を使う形（最初から入っている）に、
+        // はじめに名前を聞いて変数「なまえ」に入れ、「なまえ：メッセージ」の形で送るようにする
+        {
+            id: 'chat-l4-group',
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.OPERATORS },
+            task: challengeMessage('chat-l4-group', 'task'),
+            setup: {
+                ...CHAT_L4_START,
+                code: chatL4GroupStart,
+                spriteCodes: [{ sprite: 'Shimacat', code: chatL4GroupReceive }],
+            },
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
+                control: ['control_forever'],
+                sensing: [chatL4AskBlock('askName'), 'sensing_answer'],
+                data: ['data_setvariableto', 'data_variable'],
+                operators: [{ opcode: 'operator_join', inputs: { STRING2: chatL4Text('colon') } }],
+                looks: ['looks_say'],
+                meshV2: ['meshV2_getSensorValue'],
+            },
+            partner: {
+                name: chatL4Text('partner'),
+                buttons: [
+                    ['asShimacat', 'shimacatHello'],
+                    ['asMimi', 'mimiHello'],
+                ].map(([label, value]) => ({
+                    label: chatL4Text(label),
+                    set: { variable: chatL4Text('group'), value: chatL4Text(value) },
+                    broadcast: chatL4Text('group'),
+                })),
+                replies: [],
+            },
+            steps: withTitles('chat-l4-group', [
+                // 最初から入っているシマネコのプログラム（みんなの発言を言う）
+                { target: HINT_TARGETS.CODE_AREA, blocks: chatL4GroupReceive },
+                {
+                    target: HINT_TARGETS.PALETTE,
+                    blocks: chatL4Code(
+                        (w) =>
+                            `when_flag_clicked do\n  ask("${w.askName}")\n  ${w.nv} = answer\n  ask("${w.ask}")\nend\n`,
+                    ),
+                },
+                // つなぐ 2 つの入れ方は、できあがりの形で見せる（「なまえ」が文字の変数だと分かる形でないと「+」が
+                // つなぐにならないので、つなぐだけは描けない）
+                { target: HINT_TARGETS.CODE_AREA, blocks: chatL4Group },
+                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('chat-l4-group', 2),
+            // 旗のスクリプトで、変数「なまえ」に入れ、つなぐが 2 回動き、メッセージ「メッセージ」を送った ＋ 「なまえ」に
+            // 入力した答えが入っている ＋ 変数「メッセージ」（すべてのスプライト用）が「：」を含み、「なまえ」の値を含む。
+            // 名前を聞かずに決まった名前をつなぐ・「：」を入れないプログラムは通らない
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        { opcode: 'data_setvariableto', args: { VARIABLE: CHAT_NAME_VARIABLE_NAME } },
+                        { opcode: 'operator_join', count: 2 },
+                        { opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: CHAT_GROUP_MESSAGE_NAME } },
+                    ],
+                },
+                { type: 'variable', name: CHAT_NAME_VARIABLE, fromAnswer: true },
+                {
+                    type: 'variable',
+                    name: CHAT_GROUP_MESSAGE,
+                    target: 'stage',
+                    value: /[：:]/,
+                    includesVariable: CHAT_NAME_VARIABLE,
+                },
+            ],
+            quiz: challengeQuiz('chat-l4-group', 1),
+            code: chatL4Group,
+            spriteCodes: [{ sprite: 'Shimacat', code: chatL4GroupReceive }],
+        },
+        // 5 ダイレクトメッセージを送ろう: メッセージを入れたあと「だれに送る？」と聞いて変数「あてさき」に入れてから送る。
+        // シマネコは、あてさき（センサーの値）が自分の名前と同じときだけ言う
+        {
+            id: 'chat-l4-dm',
+            card: { category: CATEGORIES.SENSING, main: CATEGORIES.CONTROL },
+            task: challengeMessage('chat-l4-dm', 'task'),
+            setup: {
+                ...CHAT_L4_START,
+                code: chatL4Group,
+                spriteCodes: [{ sprite: 'Shimacat', code: chatL4GroupReceive }],
+            },
+            activityDiagram: true,
+            allowedBlocks: {
+                event: ['event_whenflagclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
+                control: ['control_forever', 'control_if'],
+                sensing: [chatL4AskBlock('askTo'), 'sensing_answer'],
+                data: ['data_setvariableto', 'data_variable'],
+                operators: ['operator_join', 'operator_equals'],
+                looks: ['looks_say'],
+                meshV2: ['meshV2_getSensorValue'],
+            },
+            partner: {
+                name: chatL4Text('partner'),
+                buttons: [
+                    {
+                        label: chatL4Text('dmYou'),
+                        set: [
+                            { variable: chatL4Text('to'), value: { fromVariable: chatL4Text('nameVar') } },
+                            { variable: chatL4Text('group'), value: chatL4Text('secret') },
+                        ],
+                        broadcast: chatL4Text('group'),
+                    },
+                    {
+                        label: chatL4Text('dmMimi'),
+                        set: [
+                            { variable: chatL4Text('to'), value: chatL4Text('mimi') },
+                            { variable: chatL4Text('group'), value: chatL4Text('mimiOnly') },
+                        ],
+                        broadcast: chatL4Text('group'),
+                    },
+                ],
+                replies: [],
+            },
+            steps: withTitles('chat-l4-dm', [
+                { target: HINT_TARGETS.CODE_AREA, blocks: chatL4Dm },
+                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4DmReceive },
+                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                { target: HINT_TARGETS.GREEN_FLAG },
+            ]),
+            debug: debugTips('chat-l4-dm', 2),
+            // 旗のスクリプトで変数「あてさき」に入れて「メッセージ」を送った ＋ 「あてさき」がすべてのスプライト用で、
+            // 入力した答えが入っている ＋ 「メッセージ」を受け取ったスクリプトで、もし・=・「あてさき」のセンサーの値・
+            // 変数「なまえ」・言う が動いた ＋ そのスクリプトで、ほかのノードから届いたメッセージを言った（自分あての DM が
+            // 届いて表示した）。あてさきを見ずに全部言うプログラム（もし が無い）、自分の「あてさき」の変数と比べる
+            // プログラム、ほかの人あての DM だけでは通らない
+            goal: [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        { opcode: 'data_setvariableto', args: { VARIABLE: CHAT_TO_VARIABLE_NAME } },
+                        { opcode: CHAT_SEND_OPCODES, args: { BROADCAST_OPTION: CHAT_GROUP_MESSAGE_NAME } },
+                    ],
+                },
+                { type: 'variable', name: CHAT_TO_VARIABLE, target: 'stage', fromAnswer: true },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', message: CHAT_GROUP_MESSAGE },
+                    blocks: [
+                        'control_if',
+                        'operator_equals',
+                        { opcode: 'meshV2_getSensorValue', args: { NAME: CHAT_TO_VARIABLE_NAME } },
+                        { opcode: 'data_variable', args: { VARIABLE: CHAT_NAME_VARIABLE_NAME } },
+                        { opcode: CHAT_SAY_OPCODES },
+                    ],
+                },
+                {
+                    type: 'said',
+                    trigger: { hat: 'event_whenbroadcastreceived', message: CHAT_GROUP_MESSAGE },
+                    text: /[：:]/,
+                    remoteValue: true,
+                },
+            ],
+            quiz: challengeQuiz('chat-l4-dm', 0),
+            code: chatL4Dm,
+            spriteCodes: [{ sprite: 'Shimacat', code: chatL4DmReceive }],
+        },
+    ],
+});
+
 export const COURSES = [
     defineCourse({
         id: 'kyou-kara-programmer',
@@ -1640,7 +2122,7 @@ export const COURSES = [
     defineCourse({
         id: 'chat-wo-tsukurou',
         language: LANGUAGES.BLOCKS,
-        lessons: [chatLesson1, chatLesson2, chatLesson3],
+        lessons: [chatLesson1, chatLesson2, chatLesson3, chatLesson4],
     }),
 ];
 

@@ -1158,12 +1158,12 @@ describe('chat course lesson 1 "手順を図にしよう" (#1641)', () => {
         expect(COURSES[1]).toBe(course);
         expect(course.language).toBe(LANGUAGES.BLOCKS);
         expect(ja[course.name.id]).toBe('チャットをつくろう');
-        expect(course.lessons.map((l) => l.id)).toEqual(['chat-l1', 'chat-l2', 'chat-l3']);
+        expect(course.lessons.map((l) => l.id)).toEqual(['chat-l1', 'chat-l2', 'chat-l3', 'chat-l4']);
         const lesson = findLesson('chat-l1');
         expect(ja[lesson.name.id]).toBe('手順を図にしよう');
         expect(lesson.allowDnclMode).toBe(false);
         expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(CHAT_L1.map((id, i) => `${i + 1} ${id}`));
-        expect(courseSize(course)).toEqual({ lessonCount: 3, challengeCount: 10 });
+        expect(courseSize(course)).toEqual({ lessonCount: 4, challengeCount: 15 });
     });
 
     test('every challenge starts with Shimaraby instead of the cat, shows the diagram and has a quiz', () => {
@@ -1496,6 +1496,209 @@ describe('chat course lesson 3 "メッシュでつながろう" (#1643)', () => 
         );
         expect(messages[variable.task.id]).toContain(names.mood);
         expect(messages[variable.task.id]).toContain(names.partnerMood);
+    });
+});
+
+describe('chat course lesson 4 "チャットを作ろう" (#1644)', () => {
+    const CHAT_L4 = ['chat-l4-send-once', 'chat-l4-send-repeat', 'chat-l4-both-ways', 'chat-l4-group', 'chat-l4-dm'];
+    const challenge = (id) => findChallenge(id).challenge;
+
+    test('the lesson 4 has the 5 challenges in order', () => {
+        const lesson = findLesson('chat-l4');
+        expect(findCourse('chat-wo-tsukurou').lessons[3]).toBe(lesson);
+        expect(ja[lesson.name.id]).toBe('チャットを作ろう');
+        expect(jaHira[lesson.name.id]).toBe('チャットを つくろう');
+        expect(en[lesson.name.id]).toBe('Make a Chat');
+        expect(lesson.allowDnclMode).toBe(false);
+        expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(CHAT_L4.map((id, i) => `${i + 1} ${id}`));
+    });
+
+    test('every stage starts from the answer of the stage before, with both sprites and the mesh', () => {
+        const ids = CHAT_L4.map(challenge);
+        ids.forEach((c) => {
+            expect({ id: c.id, sprites: c.setup.sprites, extensions: c.setup.extensions }).toEqual({
+                id: c.id,
+                sprites: ['Shimaraby', 'Shimacat'],
+                extensions: ['meshV2'],
+            });
+            expect({ id: c.id, diagram: c.activityDiagram }).toEqual({ id: c.id, diagram: true });
+            expect({ id: c.id, errors: validateQuiz(c.quiz) }).toEqual({ id: c.id, errors: [] });
+            expect({ id: c.id, errors: validateGoal(c.goal) }).toEqual({ id: c.id, errors: [] });
+            expect(isReadDiagram(c)).toBe(false);
+            expect(c.partner).not.toBeNull();
+        });
+        const [once, repeat, both, group, dm] = ids;
+        expect(once.setup.code).toBeUndefined();
+        // 4-2・4-3 は前の段の答え（シマラビ）、4-5 は 4-4 の答え（シマラビとシマネコ）
+        expect(repeat.setup.code).toBe(once.code);
+        expect(both.setup.code).toBe(repeat.code);
+        expect(dm.setup.code).toBe(group.code);
+        expect(dm.setup.spriteCodes).toEqual(group.spriteCodes);
+        // 4-4 は 4-3 を「みんなで 1 つ」の変数・メッセージに置きかえた形（シマネコはみんなの発言を言う）
+        ['ja', 'ja-Hira', 'en'].forEach((locale) => {
+            const name = locale === 'en' ? 'message' : 'メッセージ';
+            const start = localizeCode(group.setup.code, locale);
+            expect(start).toContain(`$${name} = answer`);
+            expect(start).toContain(`broadcast("${name}")`);
+            expect(localizeCode(group.setup.spriteCodes[0].code, locale)).toBe(
+                `when_receive("${name}") do\n  say(mesh.sensor_value("${name}"))\nend\n`,
+            );
+        });
+        expect(CHAT_L4.map((id) => challenge(id).spriteCodes.map((s) => s.sprite))).toEqual([
+            [],
+            [],
+            ['Shimacat'],
+            ['Shimacat'],
+            ['Shimacat'],
+        ]);
+        // クイズの正解は教科書の用語
+        expect(CHAT_L4.map((id) => ja[challenge(id).quiz.choices[challenge(id).quiz.answer].id])).toEqual([
+            'パケット',
+            'サーバ',
+            '「(変数) を言う」を「(〜のセンサーの値) を言う」に変えた',
+            '人が増えるたびに、変数と受け取るプログラムを足すことになる',
+            '機密性',
+        ]);
+    });
+
+    test('the palettes are the spec', () => {
+        const send = {
+            event: ['event_whenflagclicked', 'event_broadcast'],
+            sensing: ['sensing_askandwait', 'sensing_answer'],
+            data: ['data_setvariableto', 'data_variable'],
+        };
+        expect(allowedOpcodes(challenge('chat-l4-send-once'))).toEqual(send);
+        expect(allowedOpcodes(challenge('chat-l4-send-repeat'))).toEqual({ ...send, control: ['control_forever'] });
+        expect(allowedOpcodes(challenge('chat-l4-both-ways'))).toEqual({
+            ...send,
+            event: ['event_whenflagclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
+            control: ['control_forever'],
+            looks: ['looks_say'],
+            meshV2: ['meshV2_getSensorValue'],
+        });
+        expect(allowedOpcodes(challenge('chat-l4-group')).operators).toEqual(['operator_join']);
+        expect(allowedOpcodes(challenge('chat-l4-dm'))).toEqual({
+            event: ['event_whenflagclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
+            control: ['control_forever', 'control_if'],
+            sensing: ['sensing_askandwait', 'sensing_answer'],
+            data: ['data_setvariableto', 'data_variable'],
+            operators: ['operator_join', 'operator_equals'],
+            looks: ['looks_say'],
+            meshV2: ['meshV2_getSensorValue'],
+        });
+    });
+
+    test('the practice partners: 4-1〜4-3 talk with Shimacat, 4-4 sends as two people, 4-5 sends DMs', () => {
+        const pair = normalizePartner(challenge('chat-l4-send-once').partner, 'ja');
+        expect(pair.buttons.map((b) => [b.label, b.set, b.broadcast])).toEqual([
+            ['こんにちは', [{ name: 'シマネコのメッセージ', value: 'こんにちは' }], 'シマネコのメッセージ'],
+            ['元気？', [{ name: 'シマネコのメッセージ', value: '元気？' }], 'シマネコのメッセージ'],
+        ]);
+        expect(pair.replies.map((r) => [r.onBroadcast, r.set, r.broadcast])).toEqual([
+            ['シマラビのメッセージ', [{ name: 'シマネコのメッセージ', value: 'とどいたよ' }], 'シマネコのメッセージ'],
+        ]);
+        ['chat-l4-send-repeat', 'chat-l4-both-ways'].forEach((id) =>
+            expect(normalizePartner(challenge(id).partner, 'ja')).toEqual(pair),
+        );
+        const group = normalizePartner(challenge('chat-l4-group').partner, 'ja');
+        expect(group.buttons.map((b) => [b.label, b.set, b.broadcast])).toEqual([
+            ['シマネコとして送る', [{ name: 'メッセージ', value: 'シマネコ：こんにちは' }], 'メッセージ'],
+            ['ミミとして送る', [{ name: 'メッセージ', value: 'ミミ：よろしくね' }], 'メッセージ'],
+        ]);
+        const dm = normalizePartner(challenge('chat-l4-dm').partner, 'ja');
+        expect(dm.buttons.map((b) => [b.label, b.set, b.broadcast])).toEqual([
+            [
+                'あなたに DM',
+                [
+                    { name: 'あてさき', fromVariable: 'なまえ' },
+                    { name: 'メッセージ', value: 'シマネコ：ないしょだよ' },
+                ],
+                'メッセージ',
+            ],
+            [
+                'ミミに DM',
+                [
+                    { name: 'あてさき', value: 'ミミ' },
+                    { name: 'メッセージ', value: 'シマネコ：ミミにだけ' },
+                ],
+                'メッセージ',
+            ],
+        ]);
+    });
+
+    test('the names that reach the other side over the mesh are the same in ja and ja-Hira', () => {
+        CHAT_L4.forEach((id) => {
+            const c = challenge(id);
+            const names = (code) =>
+                [...code.matchAll(/(?:\$|broadcast\("|when_receive\("|sensor_value\(")([^\s"=)]+)/g)].map(
+                    (m) => m[1],
+                );
+            expect(names(localizeCode(c.code, 'ja'))).toEqual(names(localizeCode(c.code, 'ja-Hira')));
+            c.spriteCodes.forEach((s) =>
+                expect(names(localizeCode(s.code, 'ja'))).toEqual(names(localizeCode(s.code, 'ja-Hira'))),
+            );
+            const partnerNamesOf = (locale) => {
+                const p = normalizePartner(c.partner, locale);
+                return [...p.buttons, ...p.replies].map((a) => [
+                    a.broadcast,
+                    a.onBroadcast,
+                    a.set.map((x) => x.name),
+                ]);
+            };
+            expect(partnerNamesOf('ja')).toEqual(partnerNamesOf('ja-Hira'));
+        });
+    });
+
+    test('the ja-Hira strings and code of lesson 4 have no kanji', () => {
+        Object.keys(jaHira)
+            .filter((id) => /^gui\.lessons\.(lesson\.chat-l4|challenge\.chat-l4-)/.test(id))
+            .forEach((id) =>
+                expect({ id, text: jaHira[id] }).not.toEqual({ id, text: expect.stringMatching(/\p{Script=Han}/u) }),
+            );
+        CHAT_L4.forEach((id) => {
+            const c = challenge(id);
+            expect(localizeCode(c.code, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u);
+            c.spriteCodes.forEach((s) => expect(localizeCode(s.code, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u));
+            c.steps.forEach((step) =>
+                expect(localizeCode(step.blocks, 'ja-Hira') || '').not.toMatch(/\p{Script=Han}/u),
+            );
+            expect(JSON.stringify(normalizePartner(c.partner, 'ja-Hira'))).not.toMatch(/\p{Script=Han}/u);
+        });
+    });
+
+    test.each(['ja', 'ja-Hira', 'en'])('the code (%s) uses the names the task of that locale writes', (locale) => {
+        const names = {
+            ja: {
+                mine: 'シマラビのメッセージ',
+                theirs: 'シマネコのメッセージ',
+                group: 'メッセージ',
+                name: 'なまえ',
+                to: 'あてさき',
+            },
+            'ja-Hira': {
+                mine: 'シマラビのメッセージ',
+                theirs: 'シマネコのメッセージ',
+                group: 'メッセージ',
+                name: 'なまえ',
+                to: 'あてさき',
+            },
+            en: { mine: 'shimaraby_message', theirs: 'shimacat_message', group: 'message', name: 'name', to: 'to' },
+        }[locale];
+        const messages = LOCALES[locale];
+        const code = (id) => localizeCode(challenge(id).code, locale);
+        expect(code('chat-l4-send-once')).toContain(`broadcast("${names.mine}")`);
+        expect(messages[challenge('chat-l4-send-once').task.id]).toContain(names.mine);
+        expect(localizeCode(challenge('chat-l4-both-ways').spriteCodes[0].code, locale)).toContain(
+            `mesh.sensor_value("${names.theirs}")`,
+        );
+        expect(messages[challenge('chat-l4-both-ways').task.id]).toContain(names.theirs);
+        expect(code('chat-l4-group')).toContain(`$${names.group} = $${names.name} + `);
+        expect(messages[challenge('chat-l4-group').task.id]).toContain(names.name);
+        expect(code('chat-l4-dm')).toContain(`$${names.to} = answer`);
+        expect(localizeCode(challenge('chat-l4-dm').spriteCodes[0].code, locale)).toContain(
+            `if mesh.sensor_value("${names.to}") == $${names.name}`,
+        );
+        expect(messages[challenge('chat-l4-dm').task.id]).toContain(names.to);
     });
 });
 

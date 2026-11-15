@@ -55,9 +55,31 @@ const blockToXml = (blocks, blockId) => {
     return `${xml}</${tagName}>`;
 };
 
+// ブロックが使う変数・リスト・メッセージを `<variables>` に書く（scratch-vm の作品の XML と同じ）。
+// scratch-blocks の「(変数)」のブロック（field_variable_getter）は、XML の id で変数を探すだけで
+// 作らない。「〜にする」の無いヒントの絵（「(なまえ) と言う」だけ、など）で変数の名前が空になるので、
+// 先に宣言しておく。同じ種類・同じ名前は最初の 1 つだけ（Blockly は id ちがいの同名を作れない）
+const variablesToXml = (blocks) => {
+    const seen = new Set();
+    let xml = '';
+    Object.values(blocks).forEach((block) =>
+        Object.values(block.fields || {}).forEach((field) => {
+            if (!field.id || typeof field.variableType !== 'string' || typeof field.value !== 'string') return;
+            const key = `${field.variableType}\n${field.value}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+            xml +=
+                `<variable type="${escapeXml(field.variableType)}" id="${escapeXml(field.id)}">` +
+                `${escapeXml(field.value)}</variable>`;
+        }),
+    );
+    return xml === '' ? '' : `<variables>${xml}</variables>`;
+};
+
 /**
  * ブロックの集合（id → VM 形式のブロック）を、先頭のブロック（`topLevel` で shadow でないもの）
- * ごとのスクリプトとして `<xml>` に書く。位置（x / y）は書かない（描く側が並べる）。
+ * ごとのスクリプトとして `<xml>` に書く。位置（x / y）は書かない（描く側が並べる）。使う変数は
+ * 先頭の `<variables>` に宣言する。
  * @param {?object} blocks - `converter.blocks` と同じ形。
  * @returns {string} Blockly の `<xml>` 文字列。
  */
@@ -67,5 +89,5 @@ export const blocksToXml = (blocks) => {
         .filter((id) => all[id].topLevel && !all[id].shadow)
         .map((id) => blockToXml(all, id))
         .join('');
-    return `<xml xmlns="${XML_NS}">${scripts}</xml>`;
+    return `<xml xmlns="${XML_NS}">${variablesToXml(all)}${scripts}</xml>`;
 };
