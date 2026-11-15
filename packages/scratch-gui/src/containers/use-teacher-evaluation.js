@@ -8,10 +8,14 @@
  *
  * The matrix is a plain object keyed by `${seatNumber}:${classroomId}`.
  * Each cell: {submissionId, submitted, signals, pseudocode, grade, reason,
- * needsReview, comment, returned}.
+ * needsReview, comment, returned, returnedComment}.
+ *
+ * Grades live only here and in the exported 「採点結果」 CSV (returning sends
+ * only the comment), so leaving with grades not exported or comments not
+ * returned asks first (#1923 C4: `hasUnsavedWork` / `requestLeave`).
  */
 import JSZip from 'jszip';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import classroomAPI from '../lib/classroom-api.js';
 import {
@@ -19,6 +23,8 @@ import {
     buildAuditCsv,
     buildEvaluationCsv,
     chunk,
+    evaluationSnapshot,
+    unsavedEvaluation,
     isLessonOnlyAssignment,
 } from '../lib/classroom-evaluation/evaluation-utils.js';
 import { analyzeProject } from '../lib/classroom-evaluation/sb3-analyzer.js';
@@ -87,6 +93,10 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     const [scoringChecked, setScoringChecked] = useState(false);
     // classroomId whose lesson points are being saved
     const [scoringSavingId, setScoringSavingId] = useState(null);
+    // evaluationSnapshot of the matrix at the last 「採点結果」 export (#1923 C4)
+    const [exported, setExported] = useState({});
+    // A leave waiting for the teacher's answer: {kind: 'back'|'leave'|'reload', busy, action} (#1923 C4)
+    const [leaveRequest, setLeaveRequest] = useState(null);
     // Settings fetched for a group that is no longer shown are dropped.
     const shownGroupRef = useRef(null);
 
@@ -112,6 +122,8 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
             setScoringChecked(false);
             setScoringSavingId(null);
             setEvalProgress(null);
+            setExported({});
+            setLeaveRequest(null);
             setPhase('teacher-evaluation');
             // The lesson settings decide the flow (lesson-only assignments are not
             // graded by the AI) and feed the lesson points field (#1778). A failed
@@ -136,6 +148,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
 
     const handleBackFromEvaluation = useCallback(() => {
         clearError();
+        setLeaveRequest(null);
         setEvalProgress(null);
         setPhase('teacher-class-list');
     }, [clearError, setPhase]);
@@ -198,6 +211,9 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                         submissionId: submission.submissionId,
                         submitted: true,
                         returned: submission.status === 'returned',
+                        // The comment the student got: a draft equal to it is not lost (#1923 C4).
+                        returnedComment:
+                            submission.status === 'returned' ? (submission.teacherComment || '').trim() : null,
                         signals: null,
                         pseudocode: '',
                         grade: null,
@@ -226,6 +242,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                 done++;
             }
             setMatrix(nextMatrix);
+            setExported({});
             setLessonScores(nextLessonScores);
             setLessonProgress(nextLessonProgress);
             setScoringChecked(false);
@@ -443,11 +460,18 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     const selectedLessons = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
 
     const handleExportEvaluationCsv = useCallback(() => {
+        // The CSV is the only place the grades are kept (#1923 C4): remember
+        // what it has (the selected assignments only, like the CSV).
+        const ids = new Set(selectedLessons.map((lesson) => lesson.classroomId));
+        const inCsv = Object.fromEntries(
+            Object.entries(matrix).filter(([key]) => ids.has(key.slice(key.indexOf(':') + 1))),
+        );
+        setExported((prev) => ({ ...prev, ...evaluationSnapshot(inCsv) }));
         downloadText(
             `${evalGroup?.name || 'class'}_採点結果.csv`,
             buildEvaluationCsv(selectedLessons, seats, getCell, lessonScores),
         );
-    }, [evalGroup, selectedLessons, seats, getCell, lessonScores]);
+    }, [evalGroup, matrix, selectedLessons, seats, getCell, lessonScores]);
 
     const handleExportAuditCsv = useCallback(() => {
         downloadText(`${evalGroup?.name || 'class'}_検証用.csv`, buildAuditCsv(selectedLessons, seats, getCell));
@@ -477,7 +501,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                 });
                 setMatrix((prev) => ({
                     ...prev,
-                    [target.key]: { ...prev[target.key], returned: true },
+                    [target.key]: { ...prev[target.key], returned: true, returnedComment: target.comment },
                 }));
                 done++;
             }
@@ -491,6 +515,45 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
             setEvalProgress(null);
         }
     }, [idToken, selectedLessons, seats, comments, matrix, clearError, showError, intl, handleTeacher401]);
+
+    const unsaved = useMemo(
+        () =>
+            unsavedEvaluation({
+                seats,
+                lessonIds: selectedLessonIds,
+                getCell,
+                comments,
+                exported,
+            }),
+        [seats, selectedLessonIds, getCell, comments, exported],
+    );
+    const hasUnsavedWork = unsaved.grades || unsaved.comments;
+    const busy = !!evalProgress;
+
+    /**
+     * Leave the grading screen, or re-load the table, only after asking when
+     * work would be lost (#1923 C4): grades not exported, comments not
+     * returned, or the AI still running. Every way out goes through here
+     * (cancel, breadcrumb, the modal's close, notifications, logout, load).
+     * @param {Function} action - what to do once it is fine to leave
+     * @param {'back'|'leave'|'reload'} [kind] - which question to ask
+     */
+    const requestLeave = useCallback(
+        (action, kind = 'back') => {
+            // Loading again keeps the comment drafts: only the grades are lost.
+            const lost = kind === 'reload' ? unsaved.grades : hasUnsavedWork;
+            const waitsForAi = busy && kind !== 'reload';
+            if (lost || waitsForAi) setLeaveRequest({ kind, busy: waitsForAi, action });
+            else action();
+        },
+        [unsaved.grades, hasUnsavedWork, busy],
+    );
+    const confirmLeave = useCallback(() => {
+        const request = leaveRequest;
+        setLeaveRequest(null);
+        if (request) request.action();
+    }, [leaveRequest]);
+    const cancelLeave = useCallback(() => setLeaveRequest(null), []);
 
     return {
         evalGroup,
@@ -521,6 +584,11 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         handleExportEvaluationCsv,
         handleExportAuditCsv,
         handleReturnComments,
+        hasUnsavedWork,
+        leaveRequest,
+        handleRequestLeave: requestLeave,
+        handleConfirmLeave: confirmLeave,
+        handleCancelLeave: cancelLeave,
     };
 };
 

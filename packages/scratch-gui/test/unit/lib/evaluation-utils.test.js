@@ -7,7 +7,8 @@ import {
     currentLessonOnlyStep,
     evaluationColumns,
     evaluationFlowMode,
-    hasUnreturnedEvaluation,
+    evaluationSnapshot,
+    hasUnsavedEvaluation,
     isLessonOnlyAssignment,
 } from '../../../src/lib/classroom-evaluation/evaluation-utils';
 
@@ -183,38 +184,107 @@ describe('採点の流れ（#1778）', () => {
     });
 });
 
-describe('hasUnreturnedEvaluation (#1923 C4)', () => {
-    const run = (cells, comments = {}, seats = [1, 2], lessonIds = ['c1']) =>
-        hasUnreturnedEvaluation({
+describe('hasUnsavedEvaluation (#1923 C4)', () => {
+    // 返却しても採点（grade・reason）はサーバーに残らない。残る手段は「採点結果」の CSV だけ。
+    const run = ({ cells = {}, comments = {}, exported = {}, seats = [1, 2], lessonIds = ['c1'] }) =>
+        hasUnsavedEvaluation({
             seats,
             lessonIds,
             getCell: (seat, id) => cells[`${seat}:${id}`] || null,
             comments,
+            exported,
         });
 
     test('nothing graded or drafted: nothing is lost', () => {
-        expect(run({ '1:c1': { submitted: true, grade: null } })).toBe(false);
+        expect(run({ cells: { '1:c1': { submitted: true, grade: null, reason: '' } } })).toBe(false);
     });
 
-    test('a grade that is not returned is lost', () => {
-        expect(run({ '1:c1': { submitted: true, grade: 'A', returned: false } })).toBe(true);
+    test('a grade that is not exported is lost', () => {
+        expect(run({ cells: { '1:c1': { submitted: true, grade: 'A', reason: '' } } })).toBe(true);
+    });
+
+    test('a reason alone that is not exported is lost', () => {
+        expect(run({ cells: { '1:c1': { submitted: true, grade: null, reason: '旗で動く' } } })).toBe(true);
+    });
+
+    test('a returned cell still loses its grade when it is not exported (returning does not save grades)', () => {
+        const cells = {
+            '1:c1': { submitted: true, grade: 'A', reason: '', returned: true, returnedComment: 'よい' },
+        };
+        expect(run({ cells, comments: { '1:c1': 'よい' } })).toBe(true);
+    });
+
+    test('exported grades are kept; a grade changed after the export is lost', () => {
+        const cells = { '1:c1': { submitted: true, grade: 'A', reason: '旗で動く' } };
+        const exported = evaluationSnapshot(cells);
+        expect(run({ cells, exported })).toBe(false);
+        expect(run({ cells: { '1:c1': { ...cells['1:c1'], grade: 'S' } }, exported })).toBe(true);
+        expect(run({ cells: { '1:c1': { ...cells['1:c1'], reason: '工夫あり' } }, exported })).toBe(true);
     });
 
     test('a comment draft that is not returned is lost (even without a cell)', () => {
-        expect(run({}, { '2:c1': 'よくできました' })).toBe(true);
+        expect(run({ comments: { '2:c1': 'よくできました' } })).toBe(true);
     });
 
     test('blank comment drafts do not count', () => {
-        expect(run({}, { '1:c1': '   ' })).toBe(false);
+        expect(run({ comments: { '1:c1': '   ' } })).toBe(false);
     });
 
-    test('returned cells are done: their grade and comment do not count', () => {
-        expect(run({ '1:c1': { submitted: true, grade: 'A', returned: true } }, { '1:c1': 'よくできました' })).toBe(
-            false,
-        );
+    test('a comment returned as it is now is kept; edited after the return it is lost', () => {
+        const cells = { '1:c1': { submitted: true, grade: null, returned: true, returnedComment: 'よくできました' } };
+        expect(run({ cells, comments: { '1:c1': ' よくできました ' } })).toBe(false);
+        expect(run({ cells, comments: { '1:c1': 'よくできました！' } })).toBe(true);
     });
 
     test('only the seats and assignments on the table count', () => {
-        expect(run({ '9:c1': { grade: 'A' }, '1:c2': { grade: 'A' } }, { '9:c1': 'x', '1:c2': 'y' })).toBe(false);
+        expect(
+            run({
+                cells: { '9:c1': { grade: 'A' }, '1:c2': { grade: 'A' } },
+                comments: { '9:c1': 'x', '1:c2': 'y' },
+            }),
+        ).toBe(false);
+    });
+
+    // 筋書き（レビュー M1）: 一連の操作で、いつ「消える」と数えるか。
+    describe('scenarios', () => {
+        const grade = (cells, key, g, reason = '旗で動く') => ({
+            ...cells,
+            [key]: { ...cells[key], grade: g, reason },
+        });
+        const returnAll = (cells, comments) =>
+            Object.fromEntries(
+                Object.entries(cells).map(([key, cell]) => [
+                    key,
+                    comments[key] ? { ...cell, returned: true, returnedComment: comments[key].trim() } : cell,
+                ]),
+            );
+        const loaded = {
+            '1:c1': { submitted: true, grade: null, reason: '' },
+            '2:c1': { submitted: true, grade: null, reason: '' },
+        };
+
+        test('1: load → AI → fix → comments → return → cancel: the grades are lost (not exported)', () => {
+            let cells = grade(grade(loaded, '1:c1', 'A'), '2:c1', 'B');
+            cells = grade(cells, '2:c1', 'A', '直した');
+            const comments = { '1:c1': 'よい', '2:c1': 'すてき' };
+            cells = returnAll(cells, comments);
+            expect(run({ cells, comments })).toBe(true);
+        });
+
+        test('2: … → export → return → cancel: nothing is lost', () => {
+            const cells = grade(grade(loaded, '1:c1', 'A'), '2:c1', 'B');
+            const exported = evaluationSnapshot(cells);
+            const comments = { '1:c1': 'よい', '2:c1': 'すてき' };
+            expect(run({ cells: returnAll(cells, comments), comments, exported })).toBe(false);
+        });
+
+        test('3: … → export → return → AI drafts the comments again (overwrites): lost', () => {
+            const cells = grade(grade(loaded, '1:c1', 'A'), '2:c1', 'B');
+            const exported = evaluationSnapshot(cells);
+            const returned = returnAll(cells, { '1:c1': 'よい', '2:c1': 'すてき' });
+            expect(run({ cells: returned, comments: { '1:c1': 'よい', '2:c1': '新しい下書き' }, exported })).toBe(
+                true,
+            );
+        });
     });
 });

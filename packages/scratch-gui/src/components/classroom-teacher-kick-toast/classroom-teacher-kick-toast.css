@@ -1,5 +1,4 @@
-@import '../../css/colors.css';
-@import '../../css/units.css';
+@import '../../css/smalruby-tokens.css';
 
 /* Bottom of the screen, above the editor. Kept compact for 1300x600 class PCs. */
 .toast {
@@ -81,8 +80,9 @@
 }
 
 .approve {
-    border-color: $error-primary;
-    background-color: $error-primary;
+    /* 白い文字が読める濃いオレンジ（$error-primary は白に 2.3:1・#1923） */
+    border-color: $color-attention-action;
+    background-color: $color-attention-action;
     color: $ui-white;
 }
 

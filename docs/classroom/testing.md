@@ -575,10 +575,11 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-return-comments` | button | 手順 4「コメントを返却」 |
 | `classroom-eval-export-menu` | button | 「書き出し ▾」（`aria-expanded`。読み込む前は押せない） |
 | `classroom-eval-export` / `classroom-eval-export-audit` | button | 書き出しメニューの「採点結果（CSV）」/「検証用データ（CSV）」 |
-| `classroom-evaluation-cancel` | button | キャンセル（クラス一覧へ戻る。返却していない採点・コメントがあるときは先に確認を出す） |
-| `classroom-eval-leave-confirm-message` | p | 離れる確認「返却していない採点とコメントは消えます。戻りますか？」（キャンセル・パンくずの「クラス一覧」で、返却していない採点・コメントがあるときだけ。出ている間は手順のボタンと書き出しを隠す） |
+| `classroom-evaluation-cancel` | button | キャンセル（クラス一覧へ戻る。消える採点・コメントがあるとき・AI の途中は先に確認を出す） |
+| `classroom-eval-leave-confirm-message` | p | 離れる確認（「書き出していない採点と、返却していないコメントは消えます。戻りますか？」／「…この画面を離れますか？」／「書き出していない採点は消えます。読み込み直しますか？」。AI の途中なら先頭に「AI の処理の途中です。」）。出ている間は手順のボタンと書き出しメニューを隠す |
 | `classroom-eval-leave-cancel` | button | 離れる確認の［採点を続ける］ |
-| `classroom-eval-leave-confirm` | button | 離れる確認の［戻る］（採点とコメントを捨ててクラス一覧へ・赤） |
+| `classroom-eval-leave-export` | button | 離れる確認の［採点結果を書き出す］（採点結果の CSV） |
+| `classroom-eval-leave-confirm` | button | 離れる確認の確定（［戻る］／［離れる］／［読み込み直す］・赤） |
 
 手順のボタンのうち、いまの手順だけが `aria-current="step"`（主ボタン）。読み込む前 → 1、読み込んだら → 2、
 採点が 1 つでも入ったら → 3、コメントの下書きが 1 つでもあれば → 4（`currentEvalStep`）。
@@ -706,7 +707,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-seat-kick-request-{seatNumber}` | span | 先生の課題詳細の座席グリッドに表示する退室依頼アイコン（`classroom-status-icon-kickRequested`）のバッジ |
 | `classroom-member-kick-request-panel` | div | 先生メンバー詳細パネルに表示される依頼一覧 |
 | `classroom-kick-request-row-{requestId}` | div | 1 リクエストの行 |
-| `classroom-kick-request-approve-{requestId}` | button | 承認（kick + リクエスト削除）。色はトースト・状況のパネルの［承認］と同じオレンジ（`$error-primary`） |
+| `classroom-kick-request-approve-{requestId}` | button | 承認（kick + リクエスト削除）。色はトースト・状況のパネルの［承認］と同じ濃いオレンジ（`$color-attention-action`）。確認を挟まずに退室させる |
 | `classroom-kick-request-reject-{requestId}` | button | 却下（リクエストのみ削除）|
 
 ### お知らせセンター (先生)

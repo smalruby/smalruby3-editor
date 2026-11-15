@@ -1,3 +1,4 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -247,7 +248,10 @@ const TeacherMemberDetail = ({
                     </div>
                 </div>
                 {confirmingRemove && (
-                    <div className={styles.memberRemoveConfirm} data-testid="classroom-member-remove-confirm-box">
+                    <div
+                        className={classNames(styles.confirmNote, styles.memberRemoveConfirm)}
+                        data-testid="classroom-member-remove-confirm-box"
+                    >
                         <p
                             className={styles.memberRemoveConfirmMessage}
                             data-testid="classroom-member-remove-confirm-message"

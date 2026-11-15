@@ -396,51 +396,89 @@ describe('採点の表のラベル (#1924 C5・R1)', () => {
 });
 
 describe('採点を離れるときの確認 (#1923 C4)', () => {
-    const GRADED = { seats: [1], getCell: () => ({ submitted: true, grade: 'A', returned: false }) };
-    const message = 'Grades and comments you have not returned will be lost. Go back?';
     const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
 
     test.each(['classroom-evaluation-cancel', 'classroom-breadcrumb-class-list'])(
-        '返却していない採点が無ければ、%s ですぐ戻る',
+        '%s は requestLeave に onBack を渡す（確かめるかは container が決める）',
         (id) => {
-            const { handlers } = renderEvaluation({ seats: [1], getCell: () => ({ submitted: true, grade: null }) });
+            const onRequestLeave = jest.fn();
+            const { handlers } = renderEvaluation({ onRequestLeave });
             fireEvent.click(byTestId(id));
-            expect(handlers.onBack).toHaveBeenCalledTimes(1);
-            expect(byTestId('classroom-eval-leave-confirm-message')).not.toBeInTheDocument();
+            expect(onRequestLeave).toHaveBeenCalledWith(handlers.onBack, 'back');
         },
     );
 
-    test.each(['classroom-evaluation-cancel', 'classroom-breadcrumb-class-list'])(
-        '返却していない採点があれば、%s で確かめ、［戻る］で戻る',
-        (id) => {
-            const { handlers } = renderEvaluation(GRADED);
-            fireEvent.click(byTestId(id));
-            expect(handlers.onBack).not.toHaveBeenCalled();
-            expect(byTestId('classroom-eval-leave-confirm-message').textContent).toBe(message);
-            // 確かめている間は手順のボタンを出さない（押し間違えない）
-            expect(byTestId('classroom-eval-steps')).not.toBeInTheDocument();
-            fireEvent.click(byTestId('classroom-eval-leave-confirm'));
-            expect(handlers.onBack).toHaveBeenCalledTimes(1);
-        },
-    );
-
-    test('［採点を続ける］で確認を閉じ、戻らない', () => {
-        const { handlers } = renderEvaluation(GRADED);
+    test('requestLeave が無ければ、そのまま戻る', () => {
+        const { handlers } = renderEvaluation();
         fireEvent.click(byTestId('classroom-evaluation-cancel'));
-        fireEvent.click(byTestId('classroom-eval-leave-cancel'));
-        expect(handlers.onBack).not.toHaveBeenCalled();
-        expect(byTestId('classroom-eval-leave-confirm-message')).not.toBeInTheDocument();
-        expect(byTestId('classroom-eval-steps')).toBeInTheDocument();
+        expect(handlers.onBack).toHaveBeenCalledTimes(1);
     });
 
-    test('返却していないコメントの下書きだけでも確かめる', () => {
+    test('読み込んだあとの［読み込む］は、読み込み直しとして requestLeave に渡す', () => {
+        const onRequestLeave = jest.fn();
         const { handlers } = renderEvaluation({
             seats: [1],
             getCell: () => ({ submitted: true, grade: null }),
-            comments: { '1:c1': 'よくできました' },
+            onRequestLeave,
         });
-        fireEvent.click(byTestId('classroom-evaluation-cancel'));
+        fireEvent.click(byTestId('classroom-eval-load'));
+        expect(onRequestLeave).toHaveBeenCalledWith(handlers.onLoadSubmissions, 'reload');
+    });
+
+    test('読み込む前の［読み込む］は確かめない', () => {
+        const onRequestLeave = jest.fn();
+        const { handlers } = renderEvaluation({ onRequestLeave });
+        fireEvent.click(byTestId('classroom-eval-load'));
+        expect(onRequestLeave).not.toHaveBeenCalled();
+        expect(handlers.onLoadSubmissions).toHaveBeenCalledTimes(1);
+    });
+
+    test('確かめている間: 手順のボタンの代わりに、文・［採点を続ける］・［書き出し］・［戻る］', () => {
+        const onConfirmLeave = jest.fn();
+        const onCancelLeave = jest.fn();
+        const { handlers } = renderEvaluation({
+            seats: [1],
+            getCell: () => ({ submitted: true, grade: 'A' }),
+            leaveRequest: { kind: 'back', busy: false },
+            onCancelLeave,
+            onConfirmLeave,
+        });
+        expect(byTestId('classroom-eval-leave-confirm-message').textContent).toBe(
+            'Grades you have not exported and comments you have not returned will be lost. Go back?',
+        );
+        expect(byTestId('classroom-eval-steps')).not.toBeInTheDocument();
+        expect(byTestId('classroom-eval-leave-confirm').textContent).toBe('Go back');
+        fireEvent.click(byTestId('classroom-eval-leave-export'));
+        expect(handlers.onExportEvaluationCsv).toHaveBeenCalledTimes(1);
+        fireEvent.click(byTestId('classroom-eval-leave-cancel'));
+        expect(onCancelLeave).toHaveBeenCalledTimes(1);
+        fireEvent.click(byTestId('classroom-eval-leave-confirm'));
+        expect(onConfirmLeave).toHaveBeenCalledTimes(1);
         expect(handlers.onBack).not.toHaveBeenCalled();
-        expect(byTestId('classroom-eval-leave-confirm-message')).toBeInTheDocument();
+    });
+
+    test('✕・ログアウト・お知らせから離れるとき（leave）と、AI の途中（busy）', () => {
+        renderEvaluation({
+            seats: [1],
+            getCell: () => ({ submitted: true, grade: 'A' }),
+            leaveRequest: { kind: 'leave', busy: true },
+        });
+        expect(byTestId('classroom-eval-leave-confirm-message').textContent).toBe(
+            'The AI is still working. Grades you have not exported and comments you have not returned will be lost. ' +
+                'Leave this screen?',
+        );
+        expect(byTestId('classroom-eval-leave-confirm').textContent).toBe('Leave');
+    });
+
+    test('読み込み直し（reload）', () => {
+        renderEvaluation({
+            seats: [1],
+            getCell: () => ({ submitted: true, grade: 'A' }),
+            leaveRequest: { kind: 'reload', busy: false },
+        });
+        expect(byTestId('classroom-eval-leave-confirm-message').textContent).toBe(
+            'Grades you have not exported will be lost. Load again?',
+        );
+        expect(byTestId('classroom-eval-leave-confirm').textContent).toBe('Load again');
     });
 });

@@ -356,7 +356,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                 />
                 {confirmingArchive ? (
                     <p
-                        className={styles.classSettingsArchiveConfirm}
+                        className={classNames(styles.confirmNote, styles.classSettingsArchiveConfirm)}
                         data-testid="classroom-class-settings-archive-confirm-message"
                     >
                         <FormattedMessage
@@ -368,7 +368,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                 ) : null}
                 {confirmingDecrease ? (
                     <p
-                        className={styles.classSettingsArchiveConfirm}
+                        className={classNames(styles.confirmNote, styles.classSettingsArchiveConfirm)}
                         data-testid="classroom-class-settings-decrease-confirm-message"
                     >
                         <FormattedMessage

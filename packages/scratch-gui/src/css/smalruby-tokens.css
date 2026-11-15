@@ -47,6 +47,13 @@ $color-success-background: $extensions-light;
 /* お知らせのアラートの枠と背景（alerts/alert.css の .info-blue） */
 $color-info: $motion-primary;
 $color-info-background: $ui-primary;
+/* 取り消せる操作の確認（「アーカイブしますか？」「退室させますか？」「採点を離れますか？」）の
+   淡いオレンジの地と文字。赤は使わない（クラス管理の R4）。文字は地に 7:1 以上 */
+$color-confirm-background: hsla(35, 90%, 55%, 0.12);
+$color-confirm-text: hsla(30, 60%, 30%, 1);
+/* 白い文字を載せるオレンジの塗り（退室依頼の［承認］）。上流の $error-primary（#FF8C1A）は
+   白に 2.3:1 で読めないので、同じ色相の濃いほう（#B35900・白に 4.8:1） */
+$color-attention-action: #b35900;
 
 /* 座席の色（クラス管理: 生徒の番号選び・先生のメンバータブ・状況のパネル・レッスンの座席）。
    どの画面でも同じ意味: 空いている席は白地に点線の枠、人が来た席は色が付き、進むほど濃くなる。

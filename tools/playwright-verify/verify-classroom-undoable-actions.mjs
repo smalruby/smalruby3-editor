@@ -2,7 +2,7 @@
 //   C2: クラス設定と課題のアーカイブの確認の［アーカイブする］は赤ではなく主ボタン（青）。
 //   C3: メンバー詳細の「退室させる」は ⋮ の中。押すと「出席番号 N の生徒を課題から
 //       退室させますか？（作品は残ります）」の確認を挟み、［退室させる］で DELETE が出る。
-//   C14: メンバー詳細の退室依頼の［承認］は、トースト・状況のパネルと同じオレンジ（$error-primary）。
+//   C14: メンバー詳細の退室依頼の［承認］は、トースト・状況のパネルと同じ濃いオレンジ（$color-attention-action・白い字が 4.5:1 以上）。
 // 確定のボタンの下端が 600 以下か、本文・ページが縦にスクロールしないかを測り、一覧で出す。
 // classroom API は page.route でスタブするので、dev server だけが前提（ログイン・stg 不要）。
 // 採点画面を離れるときの確認 (C4) は verify-classroom-grading.mjs が測る。
@@ -114,7 +114,7 @@ const isBlue = (css) => {
 };
 const isOrange = (css) => {
     const [r, g, b] = rgb(css || '');
-    return r > 230 && g > 110 && g < 170 && b < 60; // $error-primary #FF8C1A
+    return r > 160 && r < 200 && g > 70 && g < 110 && b < 30; // $color-attention-action #B35900
 };
 // bodyMayScroll: 本文のスクロールをこのスクリプトでは問わない（#1923 で変えていない既存の並び。
 // 課題のアーカイブの確認は座席の下に足され、課題詳細の左の枠がスクロールして確認を見せる）。
@@ -215,7 +215,7 @@ try {
         await page.waitForSelector(tid('classroom-kick-request-approve-k1'), { timeout: 10000 });
         await page.waitForTimeout(300);
         await judge(page, {
-            name: `[${locale}] C14 kick request: [承認] is $error-primary orange and visible`,
+            name: `[${locale}] C14 kick request: [承認] is the $color-attention-action orange and visible`,
             button: tid('classroom-kick-request-approve-k1'),
             body: tid('classroom-phase-teacher-detail'),
             color: isOrange,

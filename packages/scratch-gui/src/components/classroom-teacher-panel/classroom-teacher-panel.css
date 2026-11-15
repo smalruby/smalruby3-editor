@@ -240,8 +240,9 @@
 }
 
 .approve {
-    border-color: $error-primary;
-    background-color: $error-primary;
+    /* 白い文字が読める濃いオレンジ（$error-primary は白に 2.3:1・#1923） */
+    border-color: $color-attention-action;
+    background-color: $color-attention-action;
     color: $ui-white;
 }
 

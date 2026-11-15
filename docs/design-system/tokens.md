@@ -173,6 +173,8 @@
 | `$color-warning` / `$color-warning-background` | `$data-primary` / `$ui-alert-orange` | 注意（`alert.css` の `.warn`） |
 | `$color-success` / `$color-success-background` | `$extensions-tertiary` / `$extensions-light` | 成功（`alert.css` の `.success`） |
 | `$color-info` / `$color-info-background` | `$motion-primary` / `$ui-primary` | お知らせ（`alert.css` の `.info-blue`） |
+| `$color-confirm-background` / `$color-confirm-text` | `hsla(35, 90%, 55%, 0.12)`（白の上で `#FEF3E5`）/ `hsla(30, 60%, 30%, 1)`（`#7A4D1F`） | クラス管理の取り消せる操作の確認の枠（アーカイブ・退室させる・採点を離れる。`classroom-modal.css` の `.confirm-note`）。赤は使わない（クラス管理の R4）。文字は地に 6.5:1 |
+| `$color-attention-action` | `#b35900` | 白い文字を載せるオレンジの塗り（退室依頼の［承認］: トースト・状況のパネル・メンバー詳細）。上流の `$error-primary`（`#FF8C1A`）は白に 2.3:1 で白い文字が読めないので、同じ色相で白に 4.8:1 の濃さをここで持つ |
 | `$color-seat-empty` / `$color-seat-empty-text` / `$color-seat-empty-border` | `$ui-white` / `$color-action` / `$color-action` | クラス管理の座席: 空いている席（白地に点線の枠。大きな座席は 2px、状況のパネルは 1px）。文字は白に 4.7:1 |
 | `$color-seat-joined` / `$color-seat-joined-text` / `$color-seat-joined-hover` | `#dce8fb` / `#1f3f7a` / `#c6d8f6` | 座席: 使用中（生徒）・参加済み（先生）・レッスンの進めている途中。文字は地に 8.3:1。hover は少し濃い地（文字は 7.1:1） |
 | `$color-seat-submitted` / `$color-seat-submitted-text` | `#0a7d5c` / `$ui-white` | 座席: 提出済み（✓）・レッスンのクリア（★）。白い文字は 5.1:1。状況のパネルの席番号は小さな文字（0.625rem）なので 4.5:1 が要り、上流の `$pen-tertiary`（`#0B8E69`・4.1:1）では足りないため、ここで値を持つ |

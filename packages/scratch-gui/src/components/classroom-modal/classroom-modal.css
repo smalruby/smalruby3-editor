@@ -701,15 +701,19 @@
     margin-right: auto;
 }
 
-/* 採点を離れる確認（#1923 C4）。手順のボタンの行に、［採点を続ける］・文・［戻る］を並べる。
-   色はクラス設定のアーカイブの確認と同じ淡いオレンジ。 */
+/* 取り消せる操作の確認の枠（クラス設定・課題のアーカイブ、退室させる、採点を離れる・#1923）。
+   淡いオレンジの地。赤は使わない（R4）。並び（余白・幅）は各画面のクラスで決める。 */
+.confirm-note {
+    border-radius: $radius-medium;
+    background: $color-confirm-background;
+    color: $color-confirm-text;
+}
+
+/* 採点を離れる確認（#1923 C4）。手順のボタンの行に、［採点を続ける］・文・［書き出す］・［戻る］を並べる。 */
 .eval-leave-confirm {
     flex: 1;
     margin: 0;
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.5rem;
-    background: hsla(35, 90%, 55%, 0.12);
-    color: hsla(30, 60%, 30%, 1);
+    padding: 0.4rem 0.75rem;
     font-size: 0.875rem;
 }
 
@@ -1070,9 +1074,9 @@
     flex-wrap: wrap;
 }
 
-/* 承認は、退室依頼のトースト・状況のパネルの［承認］と同じオレンジ（$error-primary・#1923 C14）。 */
+/* 承認は、退室依頼のトースト・状況のパネルの［承認］と同じ濃いオレンジ（#1923 C14）。 */
 .kick-request-approve-button {
-    background-color: $error-primary;
+    background-color: $color-attention-action;
     color: $ui-white;
     border: none;
     border-radius: 4px;
@@ -1776,17 +1780,13 @@ $seat-tile-min: 36px;
     border-top: 1px solid #e0e0e0;
 }
 
-/* 課題をアーカイブする確認。戻せる操作なので赤にしない（R4・#1923 C2）。
-   色はクラス設定のアーカイブの確認と同じ淡いオレンジ。 */
+/* 課題をアーカイブする確認（色は .confirm-note・#1923 C2）。 */
 .delete-confirm-box {
-    background-color: hsla(35, 90%, 55%, 0.12);
-    border-radius: 8px;
     padding: 1rem;
     margin-top: 0.5rem;
 }
 
 .delete-confirm-message {
-    color: hsla(30, 60%, 30%, 1);
     font-size: 0.85rem;
     margin-bottom: 0.5rem;
 }
@@ -1998,13 +1998,10 @@ $seat-tile-min: 36px;
     margin-left: auto;
 }
 
-/* 「退室させますか？」の確認。取り消せる操作なので赤にしない（R4）。
-   色はクラス設定のアーカイブの確認と同じ淡いオレンジ。 */
+/* 「退室させますか？」の確認（色は .confirm-note・#1923 C3）。 */
 .member-remove-confirm {
     margin-bottom: 0.5rem;
     padding: 0.5rem 0.75rem;
-    border-radius: 0.5rem;
-    background: hsla(35, 90%, 55%, 0.12);
 }
 
 .member-remove-confirm .button-row {
@@ -2013,7 +2010,6 @@ $seat-tile-min: 36px;
 
 .member-remove-confirm-message {
     margin: 0;
-    color: hsla(30, 60%, 30%, 1);
     font-size: 0.875rem;
 }
 
@@ -3469,12 +3465,10 @@ $seat-tile-min: 36px;
     cursor: pointer;
 }
 
+/* クラス設定のアーカイブ・人数を減らす確認（色は .confirm-note）。 */
 .class-settings-archive-confirm {
     margin: 0.5rem 0 0;
     padding: 0.5rem 0.75rem;
-    border-radius: 0.5rem;
-    background: hsla(35, 90%, 55%, 0.12);
-    color: hsla(30, 60%, 30%, 1);
     font-size: 0.875rem;
 }
 

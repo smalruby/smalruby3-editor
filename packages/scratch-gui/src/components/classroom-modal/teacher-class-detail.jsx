@@ -1188,7 +1188,10 @@ const TeacherClassDetail = ({
                                         onAction={errorActionHandler}
                                     />
                                     {showDeleteConfirm ? (
-                                        <div className={styles.deleteConfirmBox} ref={deleteConfirmRef}>
+                                        <div
+                                            className={classNames(styles.confirmNote, styles.deleteConfirmBox)}
+                                            ref={deleteConfirmRef}
+                                        >
                                             <div className={styles.deleteConfirmMessage}>
                                                 <FormattedMessage
                                                     defaultMessage="Archive this assignment? It disappears from the board, but you can restore it anytime from the archived assignments section."

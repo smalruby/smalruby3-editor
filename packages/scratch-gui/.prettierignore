@@ -181,6 +181,7 @@ src/containers/*
 !src/containers/block-display-modal.jsx
 !src/containers/bug-report-modal.jsx
 !src/containers/use-bug-report-submit.js
+!src/containers/use-before-unload-while.js
 !src/containers/classroom-classcode-utils.js
 !src/containers/classroom-error-utils.js
 !src/containers/classroom-modal.jsx
@@ -621,6 +622,8 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-groups-topics.test.js
 !test/unit/containers/use-teacher-groups-create.test.js
 !test/unit/containers/use-teacher-notifications.test.js
+!test/unit/containers/use-teacher-evaluation-leave.test.js
+!test/unit/containers/use-before-unload-while.test.js
 !test/unit/containers/google-drive-saver-hoc.test.jsx
 !test/unit/containers/google-drive-state-management.test.jsx
 !test/unit/containers/ruby-downloader.test.jsx

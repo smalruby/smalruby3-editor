@@ -23,6 +23,7 @@ import {
     clearTeacherNavigation,
 } from '../reducers/classroom.js';
 import { decideTeacherSelectionSync } from './classroom-classcode-utils.js';
+import useBeforeUnloadWhile from './use-before-unload-while.js';
 import { getCachedTeacherAuthProvider } from './use-teacher-auth.js';
 import useTeacherClassroom, { getCachedTeacherIdToken, setCachedTeacherIdToken } from './use-teacher-classroom.js';
 
@@ -238,16 +239,40 @@ const ClassroomTeacherModal = () => {
     }, [dispatch]);
     showSessionExpiredErrorRef.current = showSessionExpiredError;
 
+    // Leaving the grading screen any way (the modal's ✕ / overlay / Esc,
+    // logout, the notifications) asks first when grades not exported or
+    // comments not returned would be lost (#1923 C4). The question is shown on
+    // the grading screen itself.
+    const evaluation = teacher.evaluation;
+    const onEvaluation = phase === 'teacher-evaluation' && !!evaluation;
+    const guardLeave = useCallback(
+        (action) => (onEvaluation ? evaluation.handleRequestLeave(action, 'leave') : action()),
+        [onEvaluation, evaluation],
+    );
+
+    // Reloading or closing the tab: the browser's own question, only while
+    // something would be lost (and not with ?no_beforeunload=1).
+    useBeforeUnloadWhile(onEvaluation && evaluation.hasUnsavedWork);
+
     const handleClose = useCallback(() => {
-        dispatch(closeTeacherModal());
-    }, [dispatch]);
+        guardLeave(() => dispatch(closeTeacherModal()));
+    }, [dispatch, guardLeave]);
 
     // Wrap the teacher logout so we also clear teacherSelection from Redux —
     // the underlying handleTeacherLogout only resets local hook state.
     const handleTeacherLogoutWithReduxClear = useCallback(() => {
-        dispatch(clearTeacherSelection());
-        teacher.handleTeacherLogout();
-    }, [dispatch, teacher]);
+        guardLeave(() => {
+            dispatch(clearTeacherSelection());
+            teacher.handleTeacherLogout();
+        });
+    }, [dispatch, teacher, guardLeave]);
+
+    const notificationsCenter = teacher.notificationsCenter;
+    const guardedNotificationsCenter = notificationsCenter && {
+        ...notificationsCenter,
+        handleShowAll: (...args) => guardLeave(() => notificationsCenter.handleShowAll(...args)),
+        handleOpenLink: (...args) => guardLeave(() => notificationsCenter.handleOpenLink(...args)),
+    };
 
     const teacherContainerProps = {
         phase,
@@ -348,7 +373,7 @@ const ClassroomTeacherModal = () => {
         onUpdateGroup: teacher.handleUpdateGroup,
         evaluation: teacher.evaluation,
         shared: teacher.shared,
-        notificationsCenter: teacher.notificationsCenter,
+        notificationsCenter: guardedNotificationsCenter,
     };
     return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
 };
