@@ -6,7 +6,8 @@
  *   - 主ボタンの下端が 600 以下か (縦スクロールせずに押せるか・R6)
  *   - 画面 ([data-testid="classroom-phase-teacher-evaluation"]) とページがスクロールしないか
  *     (40 人の表は一覧の例外として表の枠 .eval-matrix-wrapper の中だけスクロール可)
- * を一覧で出す。1 つでも外れたら exit 1。
+ * を一覧で出す。返却していない採点があるときのキャンセル・パンくずの確認 (#1923 C4) で、
+ * 確認の［戻る］が見えるかも測る。1 つでも外れたら exit 1。
  *
  * classroom API は route interception でスタブするので stg デプロイ不要 (dev server だけが前提)。
  * スクショは tmp/classroom-grading-*.png。
@@ -47,6 +48,7 @@ const DOC_SHOT_NAMES = {
     'export-menu': '0236-teacher-grading-export-menu.png',
     'hint-open': '0237-teacher-grading-hint-detail.png',
     'settings-open': '0238-teacher-grading-settings.png',
+    'leave-confirm': '0259-teacher-grading-leave-confirm.png',
 };
 
 const LONG_CLASS = '3年2組 技術・家庭科（情報の技術）';
@@ -175,7 +177,11 @@ const ctx = await browser.newContext({ viewport: VIEWPORT, locale: 'ja-JP' });
 const page = await ctx.newPage();
 
 await page.route('**/notifications', (r) => r.fulfill({ json: { notifications: [], unreadCount: 0 } }));
-await page.route('**/kick-requests/pending', (r) => r.fulfill({ json: { requests: [] } }));
+// 退室依頼のトーストの「課題を開く」からの移動も確かめる (#1923)。途中で 1 件だけ返す。
+let pendingKicks = [];
+await page.route('**/kick-requests/pending**', (r) =>
+    r.fulfill({ json: { requests: pendingKicks, activeAssignmentCount: ASSIGNMENTS } }),
+);
 await page.route('**/classroom-groups', (r) =>
     r.fulfill({ json: { groups: [{ groupId: 'g1', name: LONG_CLASS, year: 2026, status: 'active', schemaVersion: 2, topics: [] }] } }),
 );
@@ -294,6 +300,147 @@ const menu = await page.evaluate(() => {
 const menuOk = menu.length === 2 && menu.every((m) => m.top >= 0 && m.bottom <= VIEWPORT.height);
 record({ name: 'export menu open', ok: menuOk, detail: JSON.stringify(menu) });
 await shoot(page, 'export-menu');
+// Escape はクラス管理のモーダルごと閉じるので、メニューはボタンでもう一度押して閉じる。
+await page.click('[data-testid="classroom-eval-export-menu"]');
+await page.waitForTimeout(200);
+
+// 離れる確認 (#1923 C4): 書き出していない採点・返却していないコメントがあるとき、どの入口から
+// 離れようとしても、すぐには離れず手順の行が確認に変わる。確認の［書き出す］［戻る］が 1300×600 で見えるか。
+const leaveState = () =>
+    page.evaluate((root) => {
+        const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+        const el = document.querySelector(root);
+        const yes = q('classroom-eval-leave-confirm');
+        const exp = q('classroom-eval-leave-export');
+        const se = document.scrollingElement;
+        return {
+            message: q('classroom-eval-leave-confirm-message')?.textContent ?? null,
+            lost: q('classroom-eval-leave-confirm-message')?.getAttribute('data-lost') ?? null,
+            yes: yes ? yes.textContent : null,
+            yesBottom: yes ? Math.round(yes.getBoundingClientRect().bottom) : null,
+            exportBottom: exp ? Math.round(exp.getBoundingClientRect().bottom) : null,
+            exportRight: exp ? Math.round(exp.getBoundingClientRect().right) : null,
+            steps: !!q('classroom-eval-steps'),
+            onScreen: !!el,
+            screenOk: el ? el.scrollHeight <= el.clientHeight : false,
+            screen: el ? `${el.scrollHeight}/${el.clientHeight}` : null,
+            pageOk: se.scrollHeight <= se.clientHeight,
+            vh: window.innerHeight,
+            vw: window.innerWidth,
+        };
+    }, ROOT);
+const backButton = '.ReactModal__Content [class*="back-button"]';
+const entries = [
+    { name: 'cancel', run: () => page.click('[data-testid="classroom-evaluation-cancel"]'), yes: /戻る|もどる/ },
+    { name: 'breadcrumb', run: () => page.click('[data-testid="classroom-breadcrumb-class-list"]'), yes: /戻る|もどる/ },
+    { name: 'modal back (close)', run: () => page.click(backButton), yes: /離れる|はなれる/ },
+    { name: 'Esc', run: () => page.keyboard.press('Escape'), yes: /離れる|はなれる/ },
+    {
+        name: 'notifications "open all"',
+        run: async () => {
+            await page.click('[data-testid="classroom-notifications-button"]');
+            await page.click('[data-testid="classroom-notifications-menu-button"]');
+            await page.click('[data-testid="classroom-notifications-open-all"]');
+            await page.click('[data-testid="classroom-notifications-button"]').catch(() => {});
+        },
+        yes: /離れる|はなれる/,
+    },
+    {
+        name: 'logout',
+        run: async () => {
+            await page.click('[data-testid="classroom-avatar-button"]');
+            await page.click('[data-testid="classroom-teacher-logout"]');
+        },
+        yes: /離れる|はなれる/,
+    },
+    {
+        name: 'kick toast "open the assignment"',
+        run: async () => {
+            pendingKicks = [
+                {
+                    requestId: 'k1',
+                    classroomId: LESSONS[0].classroomId,
+                    groupId: 'g1',
+                    className: LONG_CLASS,
+                    assignmentName: LESSONS[0].assignmentName,
+                    seatNumber: 3,
+                    occupantName: 'せいと3',
+                    reason: '席を間違えました',
+                    createdAt: new Date().toISOString(),
+                },
+            ];
+            await page.waitForSelector('[data-testid="classroom-teacher-kick-toast-open"]', { timeout: 30000 });
+            // 1300×600 の採点の画面では、トーストの上に採点の手順の行が重なるので、ボタンを直接押す。
+            await page.$eval('[data-testid="classroom-teacher-kick-toast-open"]', (el) => el.click());
+            pendingKicks = [];
+        },
+        yes: /離れる|はなれる/,
+    },
+    {
+        name: 'load again',
+        run: () => page.click('[data-testid="classroom-eval-load"]'),
+        yes: /読み込み直す|よみこみなおす/,
+        lost: 'grades',
+    },
+];
+for (const entry of entries) {
+    await entry.run();
+    await page.waitForTimeout(300);
+    const st = await leaveState();
+    record({
+        name: `leave confirm via ${entry.name} ([書き出す] [${entry.yes.source}] visible, no scroll)`,
+        ok:
+            st.onScreen &&
+            !!st.message &&
+            entry.yes.test(st.yes || '') &&
+            st.lost === (entry.lost || 'grades comments') &&
+            !st.steps &&
+            st.yesBottom !== null &&
+            st.yesBottom <= st.vh &&
+            st.exportBottom !== null &&
+            st.exportBottom <= st.vh &&
+            st.screenOk &&
+            st.pageOk,
+        detail:
+            `"${st.message}" · [data-testid="classroom-eval-leave-confirm"] "${st.yes}" bottom ${st.yesBottom}/${st.vh}` +
+            ` · [data-testid="classroom-eval-leave-export"] bottom ${st.exportBottom} right ${st.exportRight}/${st.vw}` +
+            ` · screen ${ROOT} ${st.screen} · page ${st.pageOk ? 'OK' : 'NG'}`,
+    });
+    if (entry.name === 'cancel') await shoot(page, 'leave-confirm');
+    if (!st.onScreen) break;
+    await page.click('[data-testid="classroom-eval-leave-cancel"]');
+    await page.waitForTimeout(200);
+    const back = await leaveState();
+    record({
+        name: `[採点を続ける] after ${entry.name} keeps the grading screen`,
+        ok: back.onScreen && back.message === null && back.steps,
+        detail: `steps ${back.steps} · message ${back.message}`,
+    });
+}
+
+// 書き出すと採点は残るが、返却していないコメントはまだ消えるので確かめる。
+await page.click('[data-testid="classroom-evaluation-cancel"]');
+await page.click('[data-testid="classroom-eval-leave-export"]');
+await page.waitForTimeout(200);
+const afterExport = await leaveState();
+record({
+    name: 'after [書き出す] the question follows: only the comments not returned are lost',
+    ok: !!afterExport.message && afterExport.lost === 'comments',
+    detail: `"${afterExport.message}" lost=${afterExport.lost}`,
+});
+await page.click('[data-testid="classroom-eval-leave-cancel"]');
+await page.waitForTimeout(200);
+// 書き出したあとの読み込み直しは、採点が残っているので確かめない（コメントの下書きは残る）。
+await page.click('[data-testid="classroom-eval-load"]');
+await page.waitForTimeout(300);
+const reload = await leaveState();
+record({
+    name: 'load again after the export does not ask (grades are in the CSV, drafts stay)',
+    ok: reload.message === null,
+    detail: `"${reload.message}"`,
+});
+await page.waitForSelector('[data-testid="classroom-eval-matrix"]', { timeout: 30000 });
+await page.waitForTimeout(500);
 
 await browser.close();
 const failed = rows.filter((r) => !r.ok);

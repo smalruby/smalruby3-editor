@@ -1188,7 +1188,10 @@ const TeacherClassDetail = ({
                                         onAction={errorActionHandler}
                                     />
                                     {showDeleteConfirm ? (
-                                        <div className={styles.deleteConfirmBox} ref={deleteConfirmRef}>
+                                        <div
+                                            className={classNames(styles.confirmNote, styles.deleteConfirmBox)}
+                                            ref={deleteConfirmRef}
+                                        >
                                             <div className={styles.deleteConfirmMessage}>
                                                 <FormattedMessage
                                                     defaultMessage="Archive this assignment? It disappears from the board, but you can restore it anytime from the archived assignments section."
@@ -1208,8 +1211,9 @@ const TeacherClassDetail = ({
                                                         id="gui.classroom.teacherDetail.archiveCancel"
                                                     />
                                                 </button>
+                                                {/* 戻せる操作なので赤にしない（R4・#1923 C2）。 */}
                                                 <button
-                                                    className={styles.dangerButton}
+                                                    className={styles.primaryButton}
                                                     data-testid="classroom-delete-confirm"
                                                     onClick={handleDeleteConfirm}
                                                 >

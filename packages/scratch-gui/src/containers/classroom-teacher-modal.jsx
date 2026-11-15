@@ -23,6 +23,7 @@ import {
     clearTeacherNavigation,
 } from '../reducers/classroom.js';
 import { decideTeacherSelectionSync } from './classroom-classcode-utils.js';
+import useBeforeUnloadWhile from './use-before-unload-while.js';
 import { getCachedTeacherAuthProvider } from './use-teacher-auth.js';
 import useTeacherClassroom, { getCachedTeacherIdToken, setCachedTeacherIdToken } from './use-teacher-classroom.js';
 
@@ -179,6 +180,27 @@ const ClassroomTeacherModal = () => {
         saveTeacherLastSelection(selection);
     }, [dispatch, selectedClassroomId, selectedClassroomGroupId]);
 
+    // Leaving the grading screen any way (the modal's ✕ / overlay / Esc,
+    // logout, the notifications) asks first when grades not exported or
+    // comments not returned would be lost (#1923 C4). The question is shown on
+    // the grading screen itself.
+    const evaluation = teacher.evaluation;
+    const onEvaluation = phase === 'teacher-evaluation' && !!evaluation;
+    const guardLeave = useCallback(
+        (action) => (onEvaluation ? evaluation.handleRequestLeave(action, 'leave') : action()),
+        [onEvaluation, evaluation],
+    );
+    // The navigation effect below runs only when its inputs change: it reads the latest guard.
+    const guardLeaveRef = useRef(guardLeave);
+    guardLeaveRef.current = guardLeave;
+    // A jump confirmed later uses the handlers of that time, not of the effect's run.
+    const teacherRef = useRef(teacher);
+    teacherRef.current = teacher;
+
+    // Reloading or closing the tab: the browser's own question, only while
+    // something would be lost (and not with ?no_beforeunload=1).
+    useBeforeUnloadWhile(onEvaluation && evaluation.hasUnsavedWork);
+
     // Jump requested from the menu bar. Uses the same handlers as the
     // breadcrumbs / notification links, so the phase always follows the
     // selection (handleSelectGroup resets it to the board first).
@@ -199,20 +221,26 @@ const ClassroomTeacherModal = () => {
             groupsLoaded: teacher.groupsLoaded,
         });
         if (nav.action === 'wait' || nav.action === 'none') return;
+        // The request is consumed now; the jump itself may wait for the
+        // teacher's answer when it would leave the grading screen with work
+        // not saved (#1923: the menu bar and the kick toast's 「課題を開く」).
         dispatch(clearTeacherNavigation());
-        if (nav.action === 'notifications') {
-            teacher.notificationsCenter.handleShowAll();
-        } else if (nav.action === 'assignment') {
-            if (nav.group) teacher.handleSelectGroup(nav.group);
-            // Back to the lesson in progress: always the members tab, and the
-            // seat picked in the floating status panel when there is one (#1203).
-            const memberId = navMemberId;
-            Promise.resolve(teacher.handleSelectClassroom(nav.classroomId, { tab: 'members' })).then(() => {
-                if (memberId) teacher.handleSelectMember(memberId);
-            });
-        } else {
-            teacher.handleShowClassList();
-        }
+        const memberId = navMemberId;
+        guardLeaveRef.current(() => {
+            const current = teacherRef.current;
+            if (nav.action === 'notifications') {
+                current.notificationsCenter.handleShowAll();
+            } else if (nav.action === 'assignment') {
+                if (nav.group) current.handleSelectGroup(nav.group);
+                // Back to the lesson in progress: always the members tab, and the
+                // seat picked in the floating status panel when there is one (#1203).
+                Promise.resolve(current.handleSelectClassroom(nav.classroomId, { tab: 'members' })).then(() => {
+                    if (memberId) teacherRef.current.handleSelectMember(memberId);
+                });
+            } else {
+                current.handleShowClassList();
+            }
+        });
         // teacher is a fresh object every render; re-run only when the inputs change.
     }, [
         dispatch,
@@ -239,15 +267,24 @@ const ClassroomTeacherModal = () => {
     showSessionExpiredErrorRef.current = showSessionExpiredError;
 
     const handleClose = useCallback(() => {
-        dispatch(closeTeacherModal());
-    }, [dispatch]);
+        guardLeave(() => dispatch(closeTeacherModal()));
+    }, [dispatch, guardLeave]);
 
     // Wrap the teacher logout so we also clear teacherSelection from Redux —
     // the underlying handleTeacherLogout only resets local hook state.
     const handleTeacherLogoutWithReduxClear = useCallback(() => {
-        dispatch(clearTeacherSelection());
-        teacher.handleTeacherLogout();
-    }, [dispatch, teacher]);
+        guardLeave(() => {
+            dispatch(clearTeacherSelection());
+            teacher.handleTeacherLogout();
+        });
+    }, [dispatch, teacher, guardLeave]);
+
+    const notificationsCenter = teacher.notificationsCenter;
+    const guardedNotificationsCenter = notificationsCenter && {
+        ...notificationsCenter,
+        handleShowAll: (...args) => guardLeave(() => notificationsCenter.handleShowAll(...args)),
+        handleOpenLink: (...args) => guardLeave(() => notificationsCenter.handleOpenLink(...args)),
+    };
 
     const teacherContainerProps = {
         phase,
@@ -348,7 +385,7 @@ const ClassroomTeacherModal = () => {
         onUpdateGroup: teacher.handleUpdateGroup,
         evaluation: teacher.evaluation,
         shared: teacher.shared,
-        notificationsCenter: teacher.notificationsCenter,
+        notificationsCenter: guardedNotificationsCenter,
     };
     return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
 };

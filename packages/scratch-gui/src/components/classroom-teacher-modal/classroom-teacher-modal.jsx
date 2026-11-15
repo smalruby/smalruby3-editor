@@ -308,6 +308,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         evalLessons={evaluation.evalLessons}
                         evalProgress={evaluation.evalProgress}
                         getCell={evaluation.getCell}
+                        leaveRequest={evaluation.leaveRequest}
                         lessonScores={evaluation.lessonScores}
                         rubricAxes={evaluation.rubricAxes}
                         scoringChecked={evaluation.scoringChecked}
@@ -315,7 +316,11 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         seats={evaluation.seats}
                         selectedLessonIds={evaluation.selectedLessonIds}
                         strictness={evaluation.strictness}
+                        unsavedWork={evaluation.unsavedWork}
                         onBack={evaluation.handleBackFromEvaluation}
+                        onCancelLeave={evaluation.handleCancelLeave}
+                        onConfirmLeave={evaluation.handleConfirmLeave}
+                        onRequestLeave={evaluation.handleRequestLeave}
                         onChangeLessonScoring={evaluation.handleChangeLessonScoring}
                         onChangeRubricAxis={evaluation.handleChangeRubricAxis}
                         onCheckScoring={evaluation.handleCheckScoring}
