@@ -177,7 +177,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-join-code-input` | input | 参加コード入力（見えるラベル「参加コード（先生が見せている 6 文字）」が付く） |
 | `classroom-join-submit` | button | 参加コード送信（主ボタン「次へ」） |
-| `classroom-join-history` | select | これまでに参加したクラス・課題の参加コード（あるときだけ） |
+| `classroom-join-history` | select | これまでに参加したクラス・課題の参加コード（あるときだけ。見えるラベル「前に参加した課題」が付く） |
 | `classroom-join-hint` | div | ヒント（参加コードは先生が黒板や画面に出している） |
 | `classroom-join-teacher-hint` | div | ヒントの下の先生向けの小さな案内「あなたは先生ですか？…」 |
 | `classroom-teacher-link` | button | 先生向けの「クラス管理を開く」。生徒の「クラス」を閉じて先生のクラス管理を開く |

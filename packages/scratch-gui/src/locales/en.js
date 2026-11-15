@@ -157,14 +157,18 @@ export default {
         'Are you a teacher? Create a class to get a join code for your students.',
     'gui.classroom.error.invalidJoinCode':
         'No assignment has this join code. Check it letter by letter against the code your teacher shows, and enter it again.',
-    'gui.classroom.error.classroomInactive':
+    'gui.classroom.error.classroomInactive': 'This assignment has ended.',
+    'gui.classroom.error.classroomInactiveJoin':
         'This assignment has ended. Ask your teacher for the join code of the current assignment.',
+    'gui.classroom.error.classroomInactiveSubmit':
+        'This assignment has ended, so you cannot submit. Keep your project with [File] → [Save to your computer], and tell your teacher.',
     'gui.classroom.studentStatus.teacherComment': 'From your teacher',
     'gui.classroom.previousComment.context': 'Last time: {assignmentName}',
     'gui.classroom.previousComment.contextNoName': 'Last time',
     'gui.classroom.studentJoin.title': 'Enter Join Code',
     'gui.classroom.studentJoin.next': 'Next',
     'gui.classroom.studentJoin.hintTitle': 'Hint',
+    'gui.classroom.studentJoin.historyLabel': 'Joined before',
     'gui.classroom.studentJoin.historyPlaceholder': 'Join codes from previously joined classes',
     'gui.classroom.studentSeat.prompt': 'Select your seat number',
     'gui.classroom.studentSeat.join': 'Join',

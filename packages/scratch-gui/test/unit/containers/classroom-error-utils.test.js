@@ -185,6 +185,22 @@ describe('参加のエラー (#1924 C12)', () => {
         );
     });
 
+    test('終わった課題: 提出の場面では作品の残し方を言う (#1963)', () => {
+        const err = new Error('This classroom is no longer active');
+        err.status = 404;
+        expect(translateError(intlMock, err, 'submit')).toBe(
+            'This assignment has ended, so you cannot submit. Keep your project with ' +
+                '[File] → [Save to your computer], and tell your teacher.',
+        );
+    });
+
+    test('終わった課題: 参加・提出以外の場面では短く言う (#1963)', () => {
+        const err = new Error('This classroom is no longer active');
+        err.status = 404;
+        expect(translateError(intlMock, err)).toBe('This assignment has ended.');
+        expect(translateError(intlMock, err, 'session')).toBe('This assignment has ended.');
+    });
+
     test('見出しは「参加できませんでした」', () => {
         expect(joinErrorTitle(intlMock)).toBe('Could not join');
     });

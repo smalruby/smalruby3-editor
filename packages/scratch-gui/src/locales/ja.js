@@ -177,14 +177,18 @@ export default {
         'あなたは先生ですか？ クラスを作ると、生徒に配る参加コードが出ます。',
     'gui.classroom.error.invalidJoinCode':
         'この参加コードの課題は見つかりませんでした。先生が出しているコードと 1 文字ずつ見くらべて、もう一度入れてください。',
-    'gui.classroom.error.classroomInactive':
+    'gui.classroom.error.classroomInactive': 'この課題は終わっています。',
+    'gui.classroom.error.classroomInactiveJoin':
         'この課題は終わっています。いまの課題の参加コードを、先生に聞いてください。',
+    'gui.classroom.error.classroomInactiveSubmit':
+        'この課題は終わったので、提出できません。作品は［ファイル］→［コンピューターに保存する］で残して、先生に知らせてください。',
     'gui.classroom.studentStatus.teacherComment': '先生から',
     'gui.classroom.previousComment.context': '前回の課題「{assignmentName}」',
     'gui.classroom.previousComment.contextNoName': '前回の課題',
     'gui.classroom.studentJoin.title': '参加コードを入力',
     'gui.classroom.studentJoin.next': '次へ',
     'gui.classroom.studentJoin.hintTitle': 'ヒント',
+    'gui.classroom.studentJoin.historyLabel': '前に参加した課題',
     'gui.classroom.studentJoin.historyPlaceholder': 'これまでに参加したクラス・課題の参加コード',
     'gui.classroom.studentSeat.prompt': '出席番号を選んでください',
     'gui.classroom.studentSeat.join': '参加する',

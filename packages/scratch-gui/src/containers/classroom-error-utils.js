@@ -82,7 +82,7 @@ const translateGoogleClassroomError = (intl, err) => {
  * Translate known API error messages to localized user-friendly messages.
  * @param {object} intl - react-intl intl object
  * @param {Error} err - Error from API call
- * @param {string} context - Error context ('join', 'seat', 'session', 'general')
+ * @param {string} context - Error context ('join', 'seat', 'session', 'submit', 'general')
  * @returns {string} Localized error message
  */
 const translateError = (intl, err, context = 'general') => {
@@ -114,11 +114,30 @@ const translateError = (intl, err, context = 'general') => {
     if (googleMessage) return googleMessage;
 
     // An archived assignment also answers 404 on lookup: say it has ended
-    // instead of「the join code was not found」(#1924 M1).
+    // instead of「the join code was not found」(#1924 M1). What to do next
+    // depends on the scene (#1963): joining asks for the current code,
+    // submitting says how to keep the work, the rest only says it has ended.
     if (msg.includes('no longer active')) {
+        if (context === 'join') {
+            return intl.formatMessage({
+                defaultMessage:
+                    'This assignment has ended. Ask your teacher for the join code of the current assignment.',
+                description: 'Error when the join code belongs to an archived assignment',
+                id: 'gui.classroom.error.classroomInactiveJoin',
+            });
+        }
+        if (context === 'submit') {
+            return intl.formatMessage({
+                defaultMessage:
+                    'This assignment has ended, so you cannot submit. Keep your project with ' +
+                    '[File] → [Save to your computer], and tell your teacher.',
+                description:
+                    'Error when submitting to an archived assignment; [File] → [Save to your computer] are the menu names',
+                id: 'gui.classroom.error.classroomInactiveSubmit',
+            });
+        }
         return intl.formatMessage({
-            defaultMessage:
-                'This assignment has ended. Ask your teacher for the join code of the current assignment.',
+            defaultMessage: 'This assignment has ended.',
             description: 'Error when classroom is archived',
             id: 'gui.classroom.error.classroomInactive',
         });

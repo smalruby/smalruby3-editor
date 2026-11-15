@@ -181,14 +181,18 @@ export default {
         'あなたはせんせいですか？ クラスをつくると、せいとにくばるさんかコードがでます。',
     'gui.classroom.error.invalidJoinCode':
         'このさんかコードのかだいはみつかりませんでした。せんせいがだしているコードと 1 もじずつみくらべて、もういちどいれてください。',
-    'gui.classroom.error.classroomInactive':
+    'gui.classroom.error.classroomInactive': 'このかだいはおわっています。',
+    'gui.classroom.error.classroomInactiveJoin':
         'このかだいはおわっています。いまのかだいのさんかコードを、せんせいにきいてください。',
+    'gui.classroom.error.classroomInactiveSubmit':
+        'このかだいはおわったので、ていしゅつできません。さくひんは［ファイル］→［コンピューターにほぞんする］でのこして、せんせいにしらせてください。',
     'gui.classroom.studentStatus.teacherComment': 'せんせいから',
     'gui.classroom.previousComment.context': 'ぜんかいのかだい「{assignmentName}」',
     'gui.classroom.previousComment.contextNoName': 'ぜんかいのかだい',
     'gui.classroom.studentJoin.title': 'さんかコードをにゅうりょく',
     'gui.classroom.studentJoin.next': 'つぎへ',
     'gui.classroom.studentJoin.hintTitle': 'ヒント',
+    'gui.classroom.studentJoin.historyLabel': 'まえにさんかしたかだい',
     'gui.classroom.studentJoin.historyPlaceholder': 'これまでにさんかしたクラス・かだいのさんかコード',
     'gui.classroom.studentSeat.prompt': 'しゅっせきばんごうをえらんでください',
     'gui.classroom.studentSeat.join': 'さんかする',

@@ -138,7 +138,7 @@ const StudentSubmitConfirm = ({
                 )}
             </div>
             {resubmit && teacherComment && (
-                <StudentTeacherNote dataTestId="classroom-submit-teacher-comment" text={teacherComment} />
+                <StudentTeacherNote compact dataTestId="classroom-submit-teacher-comment" text={teacherComment} />
             )}
             <div className={partStyles.submitActions}>
                 <StudentTextLink

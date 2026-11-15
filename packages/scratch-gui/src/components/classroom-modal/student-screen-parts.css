@@ -475,7 +475,7 @@
     border: 1px solid $color-border;
     border-radius: $radius-small;
     background-color: $color-surface;
-    color: $color-seat-joined-text;
+    color: $color-text;
     font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
     font-size: 1.5rem;
     font-weight: $font-weight-bold;
@@ -500,12 +500,26 @@
     padding: 0 1.75rem;
 }
 
+.join-history-row {
+    display: flex;
+    align-items: center;
+    gap: $space-medium;
+    margin-top: $space-medium;
+}
+
+.join-history-label {
+    flex: none;
+    color: $color-text;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+}
+
 .join-history-select {
     display: block;
+    flex: 1 1 auto;
+    min-width: 0;
     box-sizing: border-box;
-    width: 100%;
     height: $size-button-height;
-    margin-top: $space-medium;
     padding: 0 0.4rem;
     border: 1px solid $color-border;
     border-radius: $radius-small;
@@ -535,7 +549,7 @@
 
 .join-hint-title {
     margin-bottom: 0.15rem;
-    color: $color-seat-joined-text;
+    color: $color-text;
     font-weight: $font-weight-bold;
 }
 
@@ -642,10 +656,24 @@
 }
 
 .teacher-note-text {
+    /* 長いコメント（上限 500 字・改行が多い）でも主ボタンを 1300x600 に収めるため、6 行半で止めて
+       吹き出しの中だけスクロールする（半行見せて、続きがあると分かるようにする） */
+    max-height: calc(1.5em * 6.5);
     margin-top: 0.15rem;
+    overflow-y: auto;
     color: $color-text;
     font-size: $font-size-medium;
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+/* もう一度の提出の確認は作品の画像も並ぶので、3 行半で止める */
+.teacher-note-text.teacher-note-text-compact {
+    max-height: calc(1.5em * 3.5);
+}
+
+.teacher-note-text:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 2px;
 }

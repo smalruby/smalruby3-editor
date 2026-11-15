@@ -50,6 +50,7 @@ const StudentJoinForm = ({
     const intl = useIntl();
     const [code, setCode] = React.useState('');
     const inputId = useId();
+    const historyId = useId();
 
     const handleCodeChange = useCallback((e) => {
         setCode(normalizeJoinCodeInput(e.target.value));
@@ -145,25 +146,36 @@ const StudentJoinForm = ({
                 </ClassroomButton>
             </div>
             {hasHistory && (
-                <select
-                    className={partStyles.joinHistorySelect}
-                    data-testid="classroom-join-history"
-                    value={historySelectValue}
-                    onChange={handleHistorySelect}
-                >
-                    <option value="">
-                        {intl.formatMessage({
-                            defaultMessage: 'Join codes from previously joined classes',
-                            description: 'Placeholder for join code history dropdown',
-                            id: 'gui.classroom.studentJoin.historyPlaceholder',
-                        })}
-                    </option>
-                    {joinCodeHistory.map((entry) => (
-                        <option key={entry.joinCode} value={entry.joinCode}>
-                            {`${entry.className}${entry.assignmentName ? `/${entry.assignmentName}` : ''} ${entry.joinCode}`}
+                // A label that stays visible next to the list (R1), on the same line so 1300x600 still fits.
+                <div className={partStyles.joinHistoryRow}>
+                    <label className={partStyles.joinHistoryLabel} htmlFor={historyId}>
+                        <FormattedMessage
+                            defaultMessage="Joined before"
+                            description="Visible label of the list of join codes this PC used before, on the student join form"
+                            id="gui.classroom.studentJoin.historyLabel"
+                        />
+                    </label>
+                    <select
+                        className={partStyles.joinHistorySelect}
+                        id={historyId}
+                        data-testid="classroom-join-history"
+                        value={historySelectValue}
+                        onChange={handleHistorySelect}
+                    >
+                        <option value="">
+                            {intl.formatMessage({
+                                defaultMessage: 'Join codes from previously joined classes',
+                                description: 'Placeholder for join code history dropdown',
+                                id: 'gui.classroom.studentJoin.historyPlaceholder',
+                            })}
                         </option>
-                    ))}
-                </select>
+                        {joinCodeHistory.map((entry) => (
+                            <option key={entry.joinCode} value={entry.joinCode}>
+                                {`${entry.className}${entry.assignmentName ? `/${entry.assignmentName}` : ''} ${entry.joinCode}`}
+                            </option>
+                        ))}
+                    </select>
+                </div>
             )}
             <ErrorDisplay
                 actionLabel={errorActionLabel}

@@ -6,7 +6,7 @@
  * 吹き出しにして、「先生から」届いたことが一目で分かるようにする（黄色・アラートの形は使わない）。
  */
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useId } from 'react';
 import { FormattedMessage } from 'react-intl';
 import styles from './student-screen-parts.css';
 
@@ -27,36 +27,53 @@ const TeacherIcon = () => (
 
 /**
  * @param {object} props - component props
+ * @param {boolean} [props.compact] - 本文を 3 行半で止める（作品の画像と並ぶ、もう一度の提出の確認）
  * @param {React.ReactNode} [props.context] - 「先生から」の右に添える小さな字（前回の課題名など）
  * @param {string} props.dataTestId - 外枠の data-testid
  * @param {string} props.text - 先生のコメント
  * @param {string} [props.textTestId] - コメントの本文の data-testid
  * @returns {React.ReactElement} the note
  */
-const StudentTeacherNote = ({ context = null, dataTestId, text, textTestId }) => (
-    <div className={styles.teacherNote} data-testid={dataTestId}>
-        <span className={styles.teacherNoteAvatar}>
-            <TeacherIcon />
-        </span>
-        <div className={styles.teacherNoteBubble}>
-            <div className={styles.teacherNoteHead}>
-                <span className={styles.teacherNoteFrom}>
-                    <FormattedMessage
-                        defaultMessage="From your teacher"
-                        description="Heading of the bubble that shows a comment the teacher returned to the student"
-                        id="gui.classroom.studentStatus.teacherComment"
-                    />
-                </span>
-                {context && <span className={styles.teacherNoteContext}>{context}</span>}
-            </div>
-            <div className={styles.teacherNoteText} data-testid={textTestId}>
-                {text}
+const StudentTeacherNote = ({ compact = false, context = null, dataTestId, text, textTestId }) => {
+    const fromId = useId();
+    return (
+        <div className={styles.teacherNote} data-testid={dataTestId}>
+            <span className={styles.teacherNoteAvatar}>
+                <TeacherIcon />
+            </span>
+            <div className={styles.teacherNoteBubble}>
+                <div className={styles.teacherNoteHead}>
+                    <span className={styles.teacherNoteFrom} id={fromId}>
+                        <FormattedMessage
+                            defaultMessage="From your teacher"
+                            description="Heading of the bubble that shows a comment the teacher returned to the student"
+                            id="gui.classroom.studentStatus.teacherComment"
+                        />
+                    </span>
+                    {context && <span className={styles.teacherNoteContext}>{context}</span>}
+                </div>
+                {/* A long comment scrolls inside the bubble (6.5 lines), so it can be
+                    reached with the keyboard too. */}
+                <div
+                    aria-labelledby={fromId}
+                    className={
+                        compact
+                            ? `${styles.teacherNoteText} ${styles.teacherNoteTextCompact}`
+                            : styles.teacherNoteText
+                    }
+                    data-testid={textTestId}
+                    role="region"
+                    tabIndex={0}
+                >
+                    {text}
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 StudentTeacherNote.propTypes = {
+    compact: PropTypes.bool,
     context: PropTypes.node,
     dataTestId: PropTypes.string.isRequired,
     text: PropTypes.string.isRequired,
