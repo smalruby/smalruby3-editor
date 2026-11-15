@@ -4,8 +4,9 @@
 // 「レッスンの点」 field is shown for each.
 //   - c1: 8 challenges, condition 6, ★ 6 (r = n) — doing the 6 required ones
 //     gives 100 (it used to be 70), and the required points field is not used.
-//   - c2: 6 challenges, 「全部」, ★ 2 — changing the required points saves the
-//     assignment (the pages are sent back) and the table changes at once.
+//   - c2: 6 challenges, 「全部」, ★ 2 — changing the required points saves only
+//     the scoring (PATCH /classrooms/{id}/assignment/lesson-scoring, #1787 — the
+//     assignment content is not put back) and the table changes at once.
 // The classroom API is stubbed with page.route, so no login or stg data is
 // needed — only the dev server.
 //
@@ -174,6 +175,23 @@ await page.route(/\/classrooms\/c\d\/lesson-progress$/, (r) => {
         json: { lesson: lessons[id], progress: progressOf(id) },
     });
 });
+// The grading screen saves the points with the scoring-only API (#1787):
+// PATCH {scoring} → {lesson}. The server writes only lesson.scoring.
+const patches = [];
+await page.route(/\/classrooms\/c\d\/assignment\/lesson-scoring$/, (r) => {
+    const id = r
+        .request()
+        .url()
+        .match(/\/classrooms\/(c\d)\//)[1];
+    if (r.request().method() !== "PATCH")
+        return r.fulfill({ status: 405, json: { error: "method" } });
+    const body = JSON.parse(r.request().postData());
+    patches.push({ id, body });
+    lessons[id] = { ...lessons[id], scoring: body.scoring };
+    return r.fulfill({ json: { lesson: lessons[id] } });
+});
+// A PUT of the whole assignment must not be sent any more: it could put back
+// an image replaced in between (#1787).
 const puts = [];
 await page.route(/\/classrooms\/c\d\/assignment$/, (r) => {
     const id = r
@@ -287,7 +305,8 @@ try {
     );
     record(
         "header says the lesson column is automatic",
-        (await text("classroom-eval-lesson-head-c1")) === "レッスン1（レッスン・自動）",
+        (await text("classroom-eval-lesson-head-c1")) ===
+            "レッスン1（レッスン・自動）",
         await text("classroom-eval-lesson-head-c1"),
     );
     record(
@@ -304,25 +323,32 @@ try {
     );
     await required.fill("50");
     await required.press("Enter");
+    await page
+        .waitForFunction(
+            () =>
+                !document.querySelector(
+                    '[data-testid="classroom-eval-lesson-scoring-c2"] [data-testid="classroom-lesson-scoring-required"]:disabled',
+                ),
+            null,
+            { timeout: 5000 },
+        )
+        .catch(() => {});
     await page.waitForTimeout(800);
-    const put = puts.find((p) => p.id === "c2");
+    const patch = patches.find((p) => p.id === "c2");
     record(
-        "c2: changing the required points saves the assignment with its pages and starter",
-        !!put &&
-            put.body.lesson.scoring.requiredPoints === 50 &&
-            put.body.pages.length === 1 &&
-            put.body.pages[0].imageKey === "c2/assignment/image-1.png" &&
-            put.body.keepStarter === true,
-        put
-            ? JSON.stringify({
-                  pages: put.body.pages,
-                  keepStarter: put.body.keepStarter,
-                  scoring: put.body.lesson.scoring,
-              })
-            : "no PUT",
+        "c2: changing the required points saves only the scoring (PATCH, no PUT of the assignment)",
+        !!patch &&
+            patch.body.scoring &&
+            patch.body.scoring.requiredPoints === 50 &&
+            patch.body.scoring.total === 100 &&
+            Object.keys(patch.body).join() === "scoring" &&
+            puts.length === 0,
+        patch
+            ? JSON.stringify({ body: patch.body, puts: puts.length })
+            : `no PATCH (puts=${puts.length})`,
     );
     record(
-        "c2: the table changes at once (★ 2 only → 50)",
+        "c2: the table changes at once (★ 2 only → 50) and stays after the save",
         (await text("classroom-eval-lesson-score-1-c2")) === "50",
         await text("classroom-eval-lesson-score-1-c2"),
     );
