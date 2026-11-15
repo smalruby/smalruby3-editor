@@ -2,7 +2,12 @@
  * insertSpriteCodes: 「プログラムを入れる」で、名前で決めたスプライト（チャレンジ 9 のペンギン）に
  * プログラムを入れる。いなければライブラリから足し、残りのスプライト（ネコ）を返す。
  */
-import { findSpriteByName, insertSpriteCodes } from '../../../../src/lib/lessons/insert-sprite-code';
+import {
+    findCodeSprite,
+    findSpriteByName,
+    insertSpriteCodes,
+    resolveCodeSprite,
+} from '../../../../src/lib/lessons/insert-sprite-code';
 
 const sprite = (id, name) => ({ id, isOriginal: true, isStage: false, getName: () => name });
 const stage = { id: 'stage', isOriginal: true, isStage: true, getName: () => 'Stage' };
@@ -93,5 +98,31 @@ describe('insertSpriteCodes', () => {
         const vm = makeVm([stage, clone]);
         expect(findSpriteByName(vm, 'Penguin')).toBeNull();
         expect(findSpriteByName(vm, 'Stage')).toBeNull();
+    });
+
+    test('the code goes into the sprite of setup.sprites first, then the first sprite without a code', async () => {
+        const shimaraby = sprite('r', 'Shimaraby');
+        const shimacat = sprite('c', 'Shimacat');
+        const vm = makeVm([stage, shimacat, shimaraby]);
+        expect(findCodeSprite(vm, [], 'Shimaraby')).toBe(shimaraby);
+        // いなければ従来どおり
+        expect(findCodeSprite(vm, [], 'Nobody')).toBe(shimacat);
+        const { toBlocks } = makeToBlocks();
+        const rest = await insertSpriteCodes(vm, [{ sprite: 'Shimacat', code: 'x' }], {
+            toBlocks,
+            preferred: 'Shimaraby',
+        });
+        expect(rest).toBe(shimaraby);
+    });
+
+    test('resolveCodeSprite: the same choice for "insert the program" and the start of a challenge', () => {
+        const cat = sprite('cat', 'Sprite1');
+        const shimaraby = sprite('r', 'Shimaraby');
+        const vm = makeVm([stage, cat, shimaraby]);
+        // spriteCodes も setup.sprites も無ければ null（呼ぶ側が編集中のスプライトに入れる）
+        expect(resolveCodeSprite(vm, [], null)).toBeNull();
+        expect(resolveCodeSprite(vm, [], 'Shimaraby')).toBe(shimaraby);
+        expect(resolveCodeSprite(vm, [{ sprite: 'Sprite1' }], null)).toBe(shimaraby);
+        expect(resolveCodeSprite(vm, [{ sprite: 'Shimaraby' }], 'Nobody')).toBe(cat);
     });
 });

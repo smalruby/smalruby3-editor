@@ -4,6 +4,7 @@
 // （GUI もテストも VM なしの RubyToBlocksConverter。use-challenge-activity-diagram.js）。
 // 練習相手の定義（`partner`）があれば、自分と相手のスイムレーンにする。
 import { localizeCode } from '../courses';
+import { codeSpriteName, spriteDisplayName } from '../read-diagram';
 import { layoutActivityDiagram } from './layout';
 import { buildActivityModel, countScripts, describeActivityModel, partnerLane } from './model';
 
@@ -55,7 +56,8 @@ export const activityDiagramLanes = (challenge, locale) => {
  *   VM 形式のブロック（失敗は null）。
  * @param {?function(string): ?string} [options.blockName] - 対応していないブロックの名前のテンプレート。
  * @param {?string} [options.codeName] - `code` を入れる相手の名前（スプライトが 2 つ以上のとき見出しに書く）。
- *   無ければ、ステージのプログラムなら「ステージ」、ほかは「ネコ」（`spriteCodes` の残りのスプライト）。
+ *   無ければ、ステージのプログラムなら「ステージ」、始めるときにネコを置きかえたチャレンジなら `setup.sprites` の
+ *   1 つめ、ほかは「ネコ」（`spriteCodes` の残りのスプライト）。
  * @returns {Promise<?{model: object, layout: object}>} 図。
  */
 export const challengeActivityDiagram = async (
@@ -63,6 +65,9 @@ export const challengeActivityDiagram = async (
     { locale, format, toBlocks, blockName = null, codeName = null },
 ) => {
     if (!showsActivityDiagram(challenge)) return null;
+    // 訳のあるキャラクター（シマラビ・シマネコ）は locale の名前で書く
+    const displayed = (name) => (typeof name === 'string' ? name : format(name.id));
+    const setupSprite = codeSpriteName(challenge.setup);
     const partner = partnerLane(challenge.partner, { format });
     const lanes = [];
     for (const lane of activityDiagramLanes(challenge, locale)) {
@@ -72,8 +77,13 @@ export const challengeActivityDiagram = async (
             if (!blocks) return null;
             const name =
                 source.target === 'code'
-                    ? codeName || format(`${P}${challenge.codeTarget === 'stage' ? 'stage' : 'codeSprite'}`)
-                    : source.name;
+                    ? codeName ||
+                      (challenge.codeTarget === 'stage'
+                          ? format(`${P}stage`)
+                          : setupSprite
+                            ? displayed(setupSprite)
+                            : format(`${P}codeSprite`))
+                    : displayed(spriteDisplayName(source.name));
             targets.push({ name, blocks });
         }
         lanes.push({ id: lane.id, label: partner ? format(`${P}ownLane`) : null, targets });

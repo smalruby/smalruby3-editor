@@ -211,8 +211,10 @@ const triggerMatches = (trigger, run) => {
     if (trigger.hat && run.trigger.hat !== trigger.hat) return false;
     if (!isUnset(trigger.key) && !sameKey(run.trigger.fields.KEY_OPTION, trigger.key)) return false;
     if (!isUnset(trigger.message)) {
+        // 名前の配列なら、どれか 1 つに合えばよい（ペアのどちらの役の名前・どの locale の名前でも通す）
         const field = run.trigger.fields.BROADCAST_OPTION;
-        if (isUnset(field) || upper(field) !== upper(trigger.message)) return false;
+        const names = Array.isArray(trigger.message) ? trigger.message : [trigger.message];
+        if (isUnset(field) || !names.some((name) => upper(field) === upper(name))) return false;
     }
     if (trigger.target === 'stage' && !run.isStage) return false;
     if (trigger.target === 'sprite' && run.isStage) return false;
@@ -438,6 +440,9 @@ export const validateGoal = (goal) => {
                     }
                     if (!isUnset(trigger.sentBy) && trigger.sentBy !== 'other') {
                         errors.push(`${at}: trigger.sentBy must be 'other'`);
+                    }
+                    if (!isUnset(trigger.message) && !isVariableName(trigger.message)) {
+                        errors.push(`${at}: trigger.message must be a message name or an array of names`);
                     }
                 }
                 break;

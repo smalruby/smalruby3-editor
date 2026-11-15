@@ -235,6 +235,43 @@ describe('uses', () => {
         expect(satisfied(goal, facts)).toBe(true);
     });
 
+    test('message trigger can be a list of names (either role of a pair, any locale)', () => {
+        const goal = [
+            {
+                type: 'uses',
+                trigger: {
+                    hat: 'event_whenbroadcastreceived',
+                    message: ['シマネコのメッセージ', 'シマラビのメッセージ', 'shimacat_message'],
+                },
+                blocks: ['looks_say'],
+            },
+        ];
+        const facts = createFacts();
+        run(facts, received('ほかのメッセージ'), [['looks_say', { MESSAGE: 'x' }]]);
+        expect(satisfied(goal, facts)).toBe(false);
+        // シマネコの役の人は、名前を入れかえて「シマラビのメッセージ」を受け取る
+        run(facts, received('シマラビのメッセージ'), [['looks_say', { MESSAGE: 'x' }]]);
+        expect(satisfied(goal, facts)).toBe(true);
+
+        const en = createFacts();
+        run(en, received('Shimacat_Message'), [['looks_say', { MESSAGE: 'x' }]]);
+        expect(satisfied(goal, en)).toBe(true);
+    });
+
+    test('validateGoal accepts a message name or a list of names and rejects anything else', () => {
+        const uses = (message) => [
+            { type: 'uses', trigger: { hat: 'event_whenbroadcastreceived', message }, blocks: ['looks_say'] },
+        ];
+        expect(validateGoal(uses('hello'))).toEqual([]);
+        expect(validateGoal(uses(['hello', 'こんにちは']))).toEqual([]);
+        expect(validateGoal(uses([]))).toEqual([
+            'goal[0]: trigger.message must be a message name or an array of names',
+        ]);
+        expect(validateGoal(uses([1]))).toEqual([
+            'goal[0]: trigger.message must be a message name or an array of names',
+        ]);
+    });
+
     test('keeps only the newest runs so a long session stays bounded', () => {
         const facts = createFacts();
         for (let i = 0; i < 250; i += 1) run(facts, flag, [['looks_say', { MESSAGE: String(i) }]]);

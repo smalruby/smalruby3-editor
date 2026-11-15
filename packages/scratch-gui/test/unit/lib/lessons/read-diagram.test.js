@@ -125,6 +125,26 @@ describe('read-diagram (読んで作るチャレンジ)', () => {
             expect(label.name).toEqual(expect.objectContaining({ id: 'gui.lessons.activityDiagram.codeSprite' }));
         });
 
+        test('names the first sprite of setup.sprites instead of the cat (translated for the characters)', () => {
+            const setup = { sprites: ['Shimaraby', 'Shimacat'] };
+            const SHIMARABY = { id: 'gui.lessons.activityDiagram.sprite.Shimaraby', defaultMessage: 'Shimaraby' };
+            const { label } = readDiagramAnswer({ code: 'x', spriteCodes: [PENGUIN], setup });
+            expect(label.name).toEqual(SHIMARABY);
+            expect(readDiagramSteps({ task: TASK, code: 'x', spriteCodes: [PENGUIN], setup })[2].label.name).toEqual(
+                SHIMARABY,
+            );
+            // 訳の無いスプライトは名前のまま
+            expect(
+                readDiagramAnswer({ code: 'x', spriteCodes: [PENGUIN], setup: { sprites: ['Owl'] } }).label.name,
+            ).toBe('Owl');
+            // spriteCodes のキャラクターも訳す
+            const shimacat = { sprite: 'Shimacat', code: 'x' };
+            expect(readDiagramAnswer({ spriteCodes: [shimacat, OWL] }).label.name).toEqual({
+                id: 'gui.lessons.activityDiagram.sprite.Shimacat',
+                defaultMessage: 'Shimacat',
+            });
+        });
+
         test('names the stage when the code is the stage program', () => {
             const { label } = readDiagramAnswer({ code: 'x', codeTarget: 'stage', spriteCodes: [PENGUIN] });
             expect(label.name).toEqual(expect.objectContaining({ id: 'gui.lessons.activityDiagram.stage' }));
