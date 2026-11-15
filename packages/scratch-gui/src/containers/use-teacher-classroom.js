@@ -149,6 +149,7 @@ const useTeacherClassroom = ({
         showError,
         intl,
         setPhase,
+        phase,
     });
 
     const shared = useSharedAssignments({

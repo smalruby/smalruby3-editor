@@ -13,9 +13,15 @@
  * Grades live only here and in the exported 「採点結果」 CSV (returning sends
  * only the comment), so leaving with grades not exported or comments not
  * returned asks first (#1923 C4: `hasUnsavedWork` / `requestLeave`).
+ *
+ * Leaving stops what is running (#1950): every run (load, AI, return) carries
+ * the generation it started in, and leaving the screen (another phase, the
+ * modal unmounting, another class) or starting a new load / AI run moves the
+ * generation on. A run whose generation is gone sends nothing more and writes
+ * nothing, so results from before do not end up in the table shown now.
  */
 import JSZip from 'jszip';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { defineMessages } from 'react-intl';
 import classroomAPI from '../lib/classroom-api.js';
 import {
@@ -72,9 +78,19 @@ const downloadText = (filename, text) => {
  * @param {Function} params.showError - error display helper
  * @param {object} params.intl - react-intl intl object
  * @param {Function} params.setPhase - phase setter
+ * @param {string} [params.phase] - current UI phase (leaving 'teacher-evaluation' stops the runs, #1950)
  * @returns {object} evaluation state and handlers
  */
-const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearError, showError, intl, setPhase }) => {
+const useTeacherEvaluation = ({
+    idToken,
+    classrooms,
+    handleTeacher401,
+    clearError,
+    showError,
+    intl,
+    setPhase,
+    phase,
+}) => {
     const [evalGroup, setEvalGroup] = useState(null);
     const [evalLessons, setEvalLessons] = useState([]);
     const [selectedLessonIds, setSelectedLessonIds] = useState([]);
@@ -99,6 +115,26 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
     const [leaveRequest, setLeaveRequest] = useState(null);
     // Settings fetched for a group that is no longer shown are dropped.
     const shownGroupRef = useRef(null);
+    // Generation of the runs (load / AI / return): a run that is no longer
+    // current stops and writes nothing (#1950).
+    const runRef = useRef(0);
+    const stopRuns = useCallback(() => {
+        runRef.current++;
+    }, []);
+    /**
+     * Start a run in the current generation.
+     * @param {boolean} replace - true for a run that replaces the table (load / AI): it stops the older ones
+     * @returns {Function} true while the run is still current
+     */
+    const startRun = useCallback((replace) => {
+        if (replace) runRef.current++;
+        const run = runRef.current;
+        return () => runRef.current === run;
+    }, []);
+    useEffect(() => stopRuns, [stopRuns]);
+    useEffect(() => {
+        if (phase && phase !== 'teacher-evaluation') stopRuns();
+    }, [phase, stopRuns]);
 
     const handleShowEvaluation = useCallback(
         (group) => {
@@ -111,6 +147,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                     hasLesson: !!c.hasLesson,
                 }));
             shownGroupRef.current = group.groupId;
+            stopRuns();
             setEvalGroup(group);
             setEvalLessons(lessons);
             setSelectedLessonIds(lessons.map((l) => l.classroomId));
@@ -143,15 +180,16 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                         .catch(() => {});
                 });
         },
-        [idToken, classrooms, clearError, setPhase],
+        [idToken, classrooms, clearError, setPhase, stopRuns],
     );
 
     const handleBackFromEvaluation = useCallback(() => {
+        stopRuns();
         clearError();
         setLeaveRequest(null);
         setEvalProgress(null);
         setPhase('teacher-class-list');
-    }, [clearError, setPhase]);
+    }, [clearError, setPhase, stopRuns]);
 
     const handleToggleLesson = useCallback((classroomId) => {
         setSelectedLessonIds((prev) =>
@@ -161,6 +199,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
 
     /** Load submissions of the selected lessons and static-analyze each sb3. */
     const handleLoadSubmissions = useCallback(async () => {
+        const current = startRun(true);
         clearError();
         const targets = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
         const nextMatrix = {};
@@ -170,6 +209,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         let done = 0;
         try {
             for (const lesson of targets) {
+                if (!current()) return;
                 setEvalProgress({ label: lesson.assignmentName, done, total: targets.length });
                 if (lesson.hasLesson) {
                     // The lesson score comes from the progress, not the work (#1603).
@@ -202,8 +242,10 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                         continue;
                     }
                 }
+                if (!current()) return;
                 const data = await classroomAPI.listSubmissions(idToken, lesson.classroomId);
                 for (const submission of data.submissions || []) {
+                    if (!current()) return;
                     const seatNumber = seatFromMemberId(submission.memberId);
                     if (seatNumber === null) continue;
                     seatSet.add(seatNumber);
@@ -241,6 +283,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                 }
                 done++;
             }
+            if (!current()) return;
             setMatrix(nextMatrix);
             setExported({});
             setLessonScores(nextLessonScores);
@@ -248,19 +291,21 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
             setScoringChecked(false);
             setSeats([...seatSet].sort((a, b) => a - b));
         } catch (err) {
+            if (!current()) return;
             if (err.status === 401) {
                 handleTeacher401();
                 return;
             }
             showError(translateError(intl, err));
         } finally {
-            setEvalProgress(null);
+            if (current()) setEvalProgress(null);
         }
-    }, [idToken, evalLessons, selectedLessonIds, clearError, showError, intl, handleTeacher401]);
+    }, [idToken, evalLessons, selectedLessonIds, clearError, showError, intl, handleTeacher401, startRun]);
 
     /** Run the AI per lesson (grade proposals or comment drafts). */
     const handleRunAi = useCallback(
         async (mode) => {
+            const current = startRun(true);
             clearError();
             const targets = evalLessons.filter((l) => selectedLessonIds.includes(l.classroomId));
             let done = 0;
@@ -285,6 +330,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                     const pending = mode === 'grade' ? cells.filter((entry) => !entry.cell.manual) : cells;
                     const chunks = chunk(pending, EVAL_CHUNK_SIZE);
                     for (let i = 0; i < chunks.length; i++) {
+                        if (!current()) return;
                         setEvalProgress({
                             label: `${lesson.assignmentName} (${i + 1}/${chunks.length})`,
                             done,
@@ -304,6 +350,8 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                             })),
                         };
                         const data = await classroomAPI.evaluateSubmissions(idToken, lesson.classroomId, payload);
+                        // Left (or started again) while the AI was answering: drop the result.
+                        if (!current()) return;
                         if (mode === 'grade') {
                             setMatrix((prev) => {
                                 const next = { ...prev };
@@ -335,13 +383,14 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                     done++;
                 }
             } catch (err) {
+                if (!current()) return;
                 if (err.status === 401) {
                     handleTeacher401();
                     return;
                 }
                 showError(translateError(intl, err));
             } finally {
-                setEvalProgress(null);
+                if (current()) setEvalProgress(null);
             }
         },
         [
@@ -356,6 +405,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
             showError,
             intl,
             handleTeacher401,
+            startRun,
         ],
     );
 
@@ -485,6 +535,8 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
 
     /** Return every non-empty comment draft to its student. */
     const handleReturnComments = useCallback(async () => {
+        // Returning does not replace the table, so it does not stop the others.
+        const current = startRun(false);
         clearError();
         const targets = [];
         for (const lesson of selectedLessons) {
@@ -500,11 +552,13 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         let done = 0;
         try {
             for (const target of targets) {
+                if (!current()) return;
                 setEvalProgress({ label: `返却 ${done + 1}/${targets.length}`, done, total: targets.length });
                 await classroomAPI.updateSubmission(idToken, target.lesson.classroomId, target.submissionId, {
                     status: 'returned',
                     teacherComment: target.comment,
                 });
+                if (!current()) return;
                 setMatrix((prev) => ({
                     ...prev,
                     [target.key]: { ...prev[target.key], returned: true, returnedComment: target.comment },
@@ -512,15 +566,16 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                 done++;
             }
         } catch (err) {
+            if (!current()) return;
             if (err.status === 401) {
                 handleTeacher401();
                 return;
             }
             showError(translateError(intl, err));
         } finally {
-            setEvalProgress(null);
+            if (current()) setEvalProgress(null);
         }
-    }, [idToken, selectedLessons, seats, comments, matrix, clearError, showError, intl, handleTeacher401]);
+    }, [idToken, selectedLessons, seats, comments, matrix, clearError, showError, intl, handleTeacher401, startRun]);
 
     const unsaved = useMemo(() => unsavedEvaluation({ matrix, comments, exported }), [matrix, comments, exported]);
     const hasUnsavedWork = unsaved.grades || unsaved.comments;
