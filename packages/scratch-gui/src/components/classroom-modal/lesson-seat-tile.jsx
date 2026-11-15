@@ -8,17 +8,17 @@ import ClassroomStatusIcon from './classroom-status-icon.jsx';
 export const lessonSeatMessages = defineMessages({
     notStarted: {
         defaultMessage: 'Not started',
-        description: 'Lesson seat colour legend: grey = no challenge done yet',
+        description: 'Lesson seat colour legend: pale grey = no challenge done yet',
         id: 'gui.classroom.lessonSeat.notStarted',
     },
     inProgress: {
         defaultMessage: 'In progress',
-        description: 'Lesson seat colour legend: blue = some challenges done',
+        description: 'Lesson seat colour legend: pale blue = some challenges done',
         id: 'gui.classroom.lessonSeat.inProgress',
     },
     cleared: {
         defaultMessage: 'Cleared',
-        description: 'Lesson seat colour legend: green = the assignment is cleared',
+        description: 'Lesson seat colour legend: green with a star = the assignment is cleared',
         id: 'gui.classroom.lessonSeat.cleared',
     },
     notJoined: {
@@ -76,6 +76,16 @@ const LessonSeatTile = ({ seatNumber, tile, presence, submission }) => {
         <React.Fragment>
             <span className={styles.lessonSeatHead}>
                 <span className={styles.memberCellNumber}>{seatNumber}</span>
+                {/* クリアの緑は提出済みと同じ色なので、色だけで区別しないよう ★ を添える (#1926)。凡例は seat-color-legend.jsx の SEAT_COLOR_MARKS と同じ印 */}
+                {tile.state === SEAT_STATES.CLEARED ? (
+                    <span
+                        aria-hidden="true"
+                        className={styles.lessonSeatClearedMark}
+                        data-testid={`classroom-lesson-seat-cleared-${seatNumber}`}
+                    >
+                        {'★'}
+                    </span>
+                ) : null}
                 {presence ? <ClassroomStatusIcon size={10} status={presence} /> : null}
             </span>
             {tile.state === SEAT_STATES.NOT_JOINED ? null : (

@@ -236,10 +236,14 @@ const ClassroomPeerPanel = ({
                                             {seats.map((seat) => (
                                                 <button
                                                     className={classNames(frameStyles.seat, {
-                                                        [frameStyles.seatEmpty]: !seat.submitted,
+                                                        // 提出済みは先生の画面と同じ緑（押せる）。未提出は押せないので、
+                                                        // 押せる空席の点線と見分けがつく淡い灰にする (#1926)
+                                                        [frameStyles.seatSubmitted]: seat.submitted,
+                                                        [styles.seatNotSubmitted]: !seat.submitted,
                                                         [styles.seatOwn]: seat.own,
                                                         [styles.seatSelected]: seat.seatNumber === selectedSeat,
                                                     })}
+                                                    data-seat-color={seat.submitted ? 'submitted' : 'notSubmitted'}
                                                     data-seat-number={seat.seatNumber}
                                                     data-testid={`classroom-peer-panel-seat-${seat.seatNumber}`}
                                                     disabled={!isPeerSeatSelectable(seat)}

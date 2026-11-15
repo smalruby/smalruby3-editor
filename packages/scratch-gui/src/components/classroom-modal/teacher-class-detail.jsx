@@ -37,6 +37,12 @@ import ClassroomStatusIcon, {
 import ErrorDisplay from './error-display.jsx';
 import LessonSeatTile, { lessonSeatMessages } from './lesson-seat-tile.jsx';
 import { formatCompletionSentence } from './lesson-settings-field.jsx';
+import SeatColorLegend, {
+    LESSON_SEAT_COLOR_ITEMS,
+    MEMBER_SEAT_COLOR_ITEMS,
+    memberSeatColorKind,
+    seatColorClass,
+} from './seat-color-legend.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherLessonProgress from './teacher-lesson-progress.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
@@ -1001,63 +1007,20 @@ const TeacherClassDetail = ({
                                             {/* 座席の色の意味（R5・#1303 D2）。アイコンの凡例より先に出す。
                                                 レッスンの課題では色は進み具合（#1602）。 */}
                                             {lessonTiles ? (
-                                                <div
-                                                    className={styles.seatColorLegend}
-                                                    data-testid="classroom-lesson-seat-legend"
+                                                <SeatColorLegend
+                                                    items={LESSON_SEAT_COLOR_ITEMS}
+                                                    testId="classroom-lesson-seat-legend"
                                                 >
-                                                    {[
-                                                        ['lessonSeatNotStarted', lessonSeatMessages.notStarted],
-                                                        ['lessonSeatInProgress', lessonSeatMessages.inProgress],
-                                                        ['lessonSeatCleared', lessonSeatMessages.cleared],
-                                                        ['lessonSeatNotJoined', lessonSeatMessages.notJoined],
-                                                    ].map(([cls, message]) => (
-                                                        <span className={styles.statusLegendItem} key={cls}>
-                                                            <span
-                                                                className={classNames(
-                                                                    styles.seatColorSwatch,
-                                                                    styles[cls],
-                                                                )}
-                                                            />
-                                                            {intl.formatMessage(message)}
-                                                        </span>
-                                                    ))}
                                                     <span className={styles.statusLegendItem}>
                                                         <span className={styles.lessonSeatStuckLegend}>{'!'}</span>
                                                         {intl.formatMessage(lessonSeatMessages.stuck)}
                                                     </span>
-                                                </div>
+                                                </SeatColorLegend>
                                             ) : (
-                                                <div
-                                                    className={styles.seatColorLegend}
-                                                    data-testid="classroom-seat-color-legend"
-                                                >
-                                                    <span className={styles.statusLegendItem}>
-                                                        <span
-                                                            className={classNames(
-                                                                styles.seatColorSwatch,
-                                                                styles.memberCellJoined,
-                                                            )}
-                                                        />
-                                                        <FormattedMessage
-                                                            defaultMessage="Joined"
-                                                            description="Seat color legend: a grey seat is a student who joined"
-                                                            id="gui.classroom.teacherDetail.seatColorJoined"
-                                                        />
-                                                    </span>
-                                                    <span className={styles.statusLegendItem}>
-                                                        <span
-                                                            className={classNames(
-                                                                styles.seatColorSwatch,
-                                                                styles.memberCellEmpty,
-                                                            )}
-                                                        />
-                                                        <FormattedMessage
-                                                            defaultMessage="Not joined yet"
-                                                            description="Seat color legend: a blue seat has no student yet"
-                                                            id="gui.classroom.teacherDetail.seatColorNotJoined"
-                                                        />
-                                                    </span>
-                                                </div>
+                                                <SeatColorLegend
+                                                    items={MEMBER_SEAT_COLOR_ITEMS}
+                                                    testId="classroom-seat-color-legend"
+                                                />
                                             )}
                                             <ClassroomStatusLegend
                                                 className={styles.membersLegend}
@@ -1122,25 +1085,15 @@ const TeacherClassDetail = ({
                                                 const memberId = `seat-${String(seatNum).padStart(2, '0')}`;
                                                 const member = memberMap[memberId];
                                                 const isSelected = selectedMember === memberId;
-                                                const hasSubmission = member && member.hasSubmission;
-                                                const isReturned = member && member.submissionStatus === 'returned';
                                                 const seated = member && isSeated(member);
                                                 const tile = lessonTiles ? lessonTiles[i] : null;
-                                                let cellColorClass = styles.memberCellEmpty;
-                                                if (tile) {
-                                                    cellColorClass = classNames(
-                                                        styles.lessonSeat,
-                                                        styles[LESSON_TILE_CLASSES[tile.state]],
-                                                    );
-                                                } else if (member) {
-                                                    if (isReturned) {
-                                                        cellColorClass = styles.memberCellReturned;
-                                                    } else if (hasSubmission) {
-                                                        cellColorClass = styles.memberCellSubmitted;
-                                                    } else {
-                                                        cellColorClass = styles.memberCellJoined;
-                                                    }
-                                                }
+                                                const seatColor = memberSeatColorKind(member);
+                                                const cellColorClass = tile
+                                                    ? classNames(
+                                                          styles.lessonSeat,
+                                                          styles[LESSON_TILE_CLASSES[tile.state]],
+                                                      )
+                                                    : seatColorClass(styles, 'memberCell', seatColor);
                                                 const cellClass = classNames(
                                                     styles.memberCell,
                                                     cellColorClass,
@@ -1154,6 +1107,7 @@ const TeacherClassDetail = ({
                                                         className={cellClass}
                                                         data-lesson-state={tile ? tile.state : null}
                                                         data-member-id={memberId}
+                                                        data-seat-color={tile ? null : seatColor}
                                                         data-testid={`classroom-member-${memberId}`}
                                                         key={memberId}
                                                         onClick={handleCellClick}

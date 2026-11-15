@@ -1,5 +1,4 @@
-@import '../../css/colors.css';
-@import '../../css/units.css';
+@import '../../css/smalruby-tokens.css';
 
 /* The frame (overlay, panel, header, seat grid) comes from classroom-teacher-panel.css. */
 
@@ -20,9 +19,24 @@
     font-weight: bold;
 }
 
-.seat-own {
-    border-style: dashed;
-    color: $text-primary-transparent;
+/* 未提出の席: 押せない。白地に点線（= 押せる空席）と見分けがつくよう、淡い灰で点線なし (#1926) */
+.seat-not-submitted {
+    border-color: transparent;
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
+    cursor: default;
+}
+
+/* button を付けて、共通の枠の .seat:hover より強くする */
+button.seat-not-submitted:hover {
+    border-color: transparent;
+}
+
+/* 自分の席: 押せない。点線は「押せる空席」の意味なので使わず、濃い実線の枠で示す */
+.seat-own,
+button.seat-own:hover {
+    border: 2px solid $color-seat-joined-text;
+    cursor: default;
 }
 
 .seat-selected {

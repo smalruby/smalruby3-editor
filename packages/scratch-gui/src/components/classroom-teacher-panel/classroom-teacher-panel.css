@@ -1,5 +1,4 @@
-@import '../../css/colors.css';
-@import '../../css/units.css';
+@import '../../css/smalruby-tokens.css';
 
 /*
  * Non-modal: the overlay covers the window only to give react-draggable its
@@ -132,7 +131,8 @@
     align-items: center;
     justify-content: center;
     min-width: 0;
-    height: 1.9rem;
+    /* 1.8rem: the seat colour legend under the grid (#1926) still fits in 600px */
+    height: 1.8rem;
     padding: 0;
     border: 1px solid $ui-black-transparent;
     border-radius: 0.25rem;
@@ -147,11 +147,43 @@
     border-color: $looks-secondary;
 }
 
-.seat-empty {
-    background-color: $ui-tertiary;
+/* Hover on the coloured seats: the transparent border would hide the change */
+.seat-joined:hover,
+.seat-submitted:hover,
+.seat-returned:hover,
+.lesson-seat-not-started:hover,
+.lesson-seat-in-progress:hover,
+.lesson-seat-cleared:hover {
+    border-color: $color-action;
 }
 
-.seat-kick {
+/* 座席の色（#1926）: メンバータブ・生徒の番号選びと同じ意味。小さな座席なので枠は 1px */
+.seat-empty {
+    border: 1px dashed $color-seat-empty-border;
+    background-color: $color-seat-empty;
+    color: $color-seat-empty-text;
+}
+
+.seat-joined {
+    border-color: transparent;
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+}
+
+.seat-submitted {
+    border-color: transparent;
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
+}
+
+.seat-returned {
+    border-color: transparent;
+    background-color: $color-seat-returned;
+    color: $color-seat-returned-text;
+}
+
+/* 色の後に書いた lesson-seat-* の透明な枠に負けないよう、.seat と重ねて強くする */
+.seat.seat-kick {
     border: 2px solid $error-primary;
 }
 
@@ -245,39 +277,53 @@
 
 /*
  * Lesson assignments (#1603). The seat colours are those of the members tab
- * (grey = not started, blue = in progress, green = cleared). With 40 seats the
+ * (pale grey = not started, pale blue = in progress, green ★ = cleared; #1926). With 40 seats the
  * panel stays within 600px: the per-challenge bars are thin rows and, beyond
  * 12 challenges, scroll inside their own frame only.
  */
 .lesson-seat-not-started {
     border-color: transparent;
-    background-color: #d9d9d9;
-    color: #575e75;
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
 }
 
 .lesson-seat-in-progress {
     border-color: transparent;
-    background-color: #4c97ff;
-    color: $ui-white;
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
 }
 
 .lesson-seat-cleared {
     border-color: transparent;
-    background-color: #0fbd8c;
-    color: $ui-white;
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
 }
 
-/* The seated dot and the submitted square are the same green as a cleared seat,
-   so they disappear there (#1604). Draw the dot white (still a filled dot, unlike
-   the hollow 「未着席」 ring; !important beats the icon's inline colour) and put
-   the square on a white backing (its check mark is already white). */
-.lesson-seat-cleared [data-status='seated'] {
-    color: $ui-white !important;
-}
-
-.lesson-seat-cleared [data-status='submitted'] {
+/* The status icons sit on a small white chip on every coloured seat (#1604, #1926):
+   on the green seats the white chip stands out (5.1:1); on the pale seats
+   (joined / returned / lesson) the chip gets a 1px edge in the seat's text colour
+   so it still stands out from the seat (3:1 or more). */
+.seat-joined [data-status],
+.seat-submitted [data-status],
+.seat-returned [data-status],
+.lesson-seat-not-started [data-status],
+.lesson-seat-in-progress [data-status],
+.lesson-seat-cleared [data-status] {
     background-color: $ui-white;
     border-radius: 2px;
+}
+
+.seat-joined [data-status],
+.lesson-seat-in-progress [data-status] {
+    box-shadow: 0 0 0 1px $color-seat-joined-text;
+}
+
+.seat-returned [data-status] {
+    box-shadow: 0 0 0 1px $color-seat-returned-text;
+}
+
+.lesson-seat-not-started [data-status] {
+    box-shadow: 0 0 0 1px $color-seat-not-started-text;
 }
 
 .seat {
@@ -386,12 +432,13 @@
 
 .bar-done,
 .bar-done-swatch {
-    background-color: #0fbd8c;
+    /* the same green as a cleared seat (#1926) */
+    background-color: $color-seat-submitted;
 }
 
 .bar-current,
 .bar-current-swatch {
-    background-color: #4c97ff;
+    background-color: $color-action;
 }
 
 .bar-count {

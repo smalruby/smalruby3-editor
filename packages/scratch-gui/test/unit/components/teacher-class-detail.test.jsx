@@ -538,15 +538,38 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
         expect(byTestId('classroom-download-progress').textContent).toBe('2/5');
     });
 
-    test('D2: 凡例の先頭に座席の色（灰色＝参加済み・青＝まだ参加していない）を出す', () => {
+    test('D2/C6: 凡例の先頭に座席の色（空席・参加済み・提出済み ✓・返却済み ↩）を出す (#1926)', () => {
         renderDetail({ members: [] });
         const legend = byTestId('classroom-seat-color-legend');
         expect(legend).toBeInTheDocument();
-        expect(legend.textContent).toContain('Joined');
-        expect(legend.textContent).toContain('Not joined yet');
+        const kinds = Array.from(legend.querySelectorAll('[data-testid^="classroom-seat-color-legend-"]')).map((el) =>
+            el.dataset.testid.replace('classroom-seat-color-legend-', ''),
+        );
+        expect(kinds).toEqual(['empty', 'joined', 'submitted', 'returned']);
+        expect(byTestId('classroom-seat-color-legend-empty').textContent).toContain('Not joined yet');
+        expect(byTestId('classroom-seat-color-legend-joined').textContent).toContain('Joined');
+        expect(byTestId('classroom-seat-color-legend-submitted').textContent).toContain('Submitted');
+        expect(byTestId('classroom-seat-color-legend-submitted').textContent).toContain('✓');
+        expect(byTestId('classroom-seat-color-legend-returned').textContent).toContain('Returned');
+        expect(byTestId('classroom-seat-color-legend-returned').textContent).toContain('↩');
         // The seat colours come before the icon legend.
         const iconLegend = byTestId('classroom-status-legend');
         expect(legend.compareDocumentPosition(iconLegend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    test('座席の色は空席・参加済み・提出済み・返却済みで分かれる (#1926)', () => {
+        renderDetail({
+            selectedClassroom: classroom({ studentCount: 4 }),
+            members: [
+                { memberId: 'seat-01' },
+                { memberId: 'seat-02', hasSubmission: true, submissionStatus: 'submitted' },
+                { memberId: 'seat-03', hasSubmission: true, submissionStatus: 'returned' },
+                // 退室した席は空席として出す（状況のパネルと同じ判定）
+                { memberId: 'seat-04', left: true, hasSubmission: true, submissionStatus: 'submitted' },
+            ],
+        });
+        const color = (n) => byTestId(`classroom-member-seat-0${n}`).dataset.seatColor;
+        expect([1, 2, 3, 4].map(color)).toEqual(['joined', 'submitted', 'returned', 'empty']);
     });
 
     test('D3: 課題名は 1 行の入力欄で、「名前を変える」は出さない (#1388)', () => {
@@ -786,6 +809,16 @@ describe('TeacherClassDetail — lesson progress (#1602)', () => {
         );
         expect(document.querySelector('[data-testid="classroom-lesson-seat-legend"]')).toBeInTheDocument();
         expect(document.querySelector('[data-testid="classroom-seat-color-legend"]')).not.toBeInTheDocument();
+        // The lesson legend: empty → not started → in progress → cleared ★ (#1926).
+        const lessonKinds = Array.from(
+            document.querySelectorAll('[data-testid^="classroom-lesson-seat-legend-"]'),
+        ).map((el) => el.dataset.testid.replace('classroom-lesson-seat-legend-', ''));
+        expect(lessonKinds).toEqual(['empty', 'notStarted', 'inProgress', 'cleared']);
+        expect(document.querySelector('[data-testid="classroom-lesson-seat-legend-cleared"]').textContent).toContain(
+            '★',
+        );
+        // ★ only on a cleared tile.
+        expect(document.querySelector('[data-testid="classroom-lesson-seat-cleared-1"]')).not.toBeInTheDocument();
         expect(document.querySelector('[data-testid="classroom-lesson-cleared-summary"]').textContent).toContain('0');
     });
 

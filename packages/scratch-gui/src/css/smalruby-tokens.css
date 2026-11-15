@@ -48,6 +48,29 @@ $color-success-background: $extensions-light;
 $color-info: $motion-primary;
 $color-info-background: $ui-primary;
 
+/* 座席の色（クラス管理: 生徒の番号選び・先生のメンバータブ・状況のパネル・レッスンの座席）。
+   どの画面でも同じ意味: 空いている席は白地に点線の枠、人が来た席は色が付き、進むほど濃くなる。
+   上流に同じ値が無い淡い色・濃い文字だけ、ここで値を持つ（文字は地に 4.5:1 以上）。 */
+/* 空いている席（生徒は押せる・先生はまだ参加していない）: 白地・点線の枠と文字は操作の青 */
+$color-seat-empty: $ui-white;
+$color-seat-empty-text: $color-action;
+$color-seat-empty-border: $color-action;
+/* 使用中（生徒の画面）・参加済み（先生）・レッスンの進めている途中 */
+$color-seat-joined: #dce8fb;
+$color-seat-joined-text: #1f3f7a;
+/* 使用中の席にマウスを乗せたとき（少し濃い地。文字は 7:1 以上のまま） */
+$color-seat-joined-hover: #c6d8f6;
+/* 提出済み・レッスンのクリア（✓ / ★ を添える）。状況のパネルの席番号は小さな文字なので、
+   白い文字が 4.5:1 以上になる濃さ（#0A7D5C で 5.1:1。上流の $pen-tertiary #0B8E69 は 4.1:1 で足りない） */
+$color-seat-submitted: #0a7d5c;
+$color-seat-submitted-text: $ui-white;
+/* 返却済み（↩ を添える） */
+$color-seat-returned: #ffe1bf;
+$color-seat-returned-text: #7a3e00;
+/* レッスン: 始めていない */
+$color-seat-not-started: #eceef3;
+$color-seat-not-started-text: $text-primary;
+
 /* ---- 余白 ---- */
 
 /* 小さい余白 0.25rem（アイコンと文字のすき間など） */

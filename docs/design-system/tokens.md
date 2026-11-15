@@ -173,6 +173,11 @@
 | `$color-warning` / `$color-warning-background` | `$data-primary` / `$ui-alert-orange` | 注意（`alert.css` の `.warn`） |
 | `$color-success` / `$color-success-background` | `$extensions-tertiary` / `$extensions-light` | 成功（`alert.css` の `.success`） |
 | `$color-info` / `$color-info-background` | `$motion-primary` / `$ui-primary` | お知らせ（`alert.css` の `.info-blue`） |
+| `$color-seat-empty` / `$color-seat-empty-text` / `$color-seat-empty-border` | `$ui-white` / `$color-action` / `$color-action` | クラス管理の座席: 空いている席（白地に点線の枠。大きな座席は 2px、状況のパネルは 1px）。文字は白に 4.7:1 |
+| `$color-seat-joined` / `$color-seat-joined-text` / `$color-seat-joined-hover` | `#dce8fb` / `#1f3f7a` / `#c6d8f6` | 座席: 使用中（生徒）・参加済み（先生）・レッスンの進めている途中。文字は地に 8.3:1。hover は少し濃い地（文字は 7.1:1） |
+| `$color-seat-submitted` / `$color-seat-submitted-text` | `#0a7d5c` / `$ui-white` | 座席: 提出済み（✓）・レッスンのクリア（★）。白い文字は 5.1:1。状況のパネルの席番号は小さな文字（0.625rem）なので 4.5:1 が要り、上流の `$pen-tertiary`（`#0B8E69`・4.1:1）では足りないため、ここで値を持つ |
+| `$color-seat-returned` / `$color-seat-returned-text` | `#ffe1bf` / `#7a3e00` | 座席: 返却済み（↩）。文字は地に 6.7:1 |
+| `$color-seat-not-started` / `$color-seat-not-started-text` | `#eceef3` / `$text-primary` | 座席: レッスンを始めていない。文字は地に 5.5:1 |
 | `$space-small` / `$space-medium` / `$space-large` | `calc($space / 2)` / `$space` / `calc($space * 2)` | 余白 0.25rem / 0.5rem / 1rem |
 | `$radius-small` | `$form-radius` | ボタン・入力欄 |
 | `$radius-medium` | `0.5rem` | カード・ライブラリの項目・吹き出し |
