@@ -1,8 +1,9 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
+import { classColorFor } from '../../../src/lib/classroom-class-color.js';
 import TeacherClassList from '../../../src/components/classroom-modal/teacher-class-list.jsx';
 
 const group = (over = {}) => ({
@@ -168,7 +169,7 @@ describe('TeacherClassList', () => {
         expect(document.querySelector('[data-testid="classroom-class-list-loading"]')).toBeNull();
     });
 
-    test('summarizes the class on its card: students and the generative AI', () => {
+    test('summarizes the class on its card: students, with the generative AI as a small label', () => {
         renderList({
             groups: [
                 group({
@@ -179,14 +180,18 @@ describe('TeacherClassList', () => {
         });
         const summary = document.querySelector('[data-testid="classroom-class-summary-g1"]');
         expect(summary).toHaveTextContent('8 students');
-        expect(summary).toHaveTextContent('Generative AI: Gemini');
+        expect(document.querySelector('[data-testid="classroom-class-genai-g1"]')).toHaveTextContent(
+            'Generative AI: Gemini',
+        );
     });
 
     test('leaves the generative AI out of the summary when it is not used', () => {
         renderList({ groups: [group({ studentCount: 8, genai: { enabled: false } })] });
         const summary = document.querySelector('[data-testid="classroom-class-summary-g1"]');
         expect(summary).toHaveTextContent('8 students');
-        expect(summary).not.toHaveTextContent('Generative AI');
+        expect(document.querySelector('[data-testid="classroom-class-card-g1"]')).not.toHaveTextContent(
+            'Generative AI',
+        );
     });
 
     test('labels the year, section and student count in the class settings (K1)', () => {
@@ -201,11 +206,69 @@ describe('TeacherClassList', () => {
         expect(form).toHaveTextContent('Number of students (seat numbers)');
     });
 
-    test('should show the class label with year and section', () => {
+    test('shows the name, then the year and section on the class color band (#1959)', () => {
         renderList({ groups: [group({ name: '技術', section: '2年1組' })] });
-        expect(document.querySelector('[data-testid="classroom-class-open-g1"]')).toHaveTextContent(
+        const band = document.querySelector('[data-testid="classroom-class-band-g1"]');
+        expect(band).toHaveTextContent('技術');
+        expect(band).toHaveTextContent('2026 school year・2年1組');
+        // The color comes from classColorFor (the class's place among the teacher's classes).
+        expect(band).toHaveStyle({ backgroundColor: classColorFor('g1', [group()]), color: '#FFFFFF' });
+        // The full label stays readable when the name is cut with「…」.
+        expect(document.querySelector('[data-testid="classroom-class-open-g1"]')).toHaveAttribute(
+            'title',
             '技術 2026年度 / 2年1組',
         );
+    });
+
+    test('titles the list 「Classes」 (#1956 Q12)', () => {
+        renderList();
+        expect(document.querySelector('[data-testid="classroom-phase-teacher-class-list"] h2')).toHaveTextContent(
+            /^Classes$/,
+        );
+    });
+
+    test('shows the next lesson date of the class, or why there is none', () => {
+        const day = 24 * 60 * 60 * 1000;
+        const later = new Date(Date.now() + 3 * day).toISOString();
+        const sooner = new Date(Date.now() + 1 * day).toISOString();
+        renderList({
+            classrooms: [
+                { classroomId: 'c1', groupId: 'g1', assignmentName: 'Later', sortDate: later },
+                { classroomId: 'c2', groupId: 'g1', assignmentName: 'Sooner', sortDate: sooner },
+                { classroomId: 'c3', groupId: 'g2', assignmentName: 'Past', sortDate: '2020-04-01T00:00:00.000Z' },
+            ],
+            groups: [group(), group({ groupId: 'g2' }), group({ groupId: 'g3' })],
+        });
+        expect(document.querySelector('[data-testid="classroom-class-next-g1"]')).toHaveTextContent(
+            /^Next lesson .+: Sooner$/,
+        );
+        expect(document.querySelector('[data-testid="classroom-class-next-g2"]')).toHaveTextContent(
+            'No upcoming lesson',
+        );
+        expect(document.querySelector('[data-testid="classroom-class-next-g3"]')).toHaveTextContent(
+            'No assignments yet',
+        );
+    });
+
+    test('puts Archive in the card ⋮ menu behind a confirmation (#1959)', () => {
+        const onUpdateGroup = jest.fn();
+        renderList({ onUpdateGroup });
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        // Not on the card itself.
+        expect(byTestId('classroom-class-archive-g1')).toBeNull();
+        fireEvent.click(byTestId('classroom-class-menu-g1'));
+        fireEvent.click(byTestId('classroom-class-archive-g1'));
+        expect(onUpdateGroup).not.toHaveBeenCalled();
+        expect(byTestId('classroom-class-archive-dialog')).toBeInTheDocument();
+        fireEvent.click(byTestId('classroom-class-archive-cancel'));
+        expect(byTestId('classroom-class-archive-dialog')).toBeNull();
+        expect(onUpdateGroup).not.toHaveBeenCalled();
+
+        fireEvent.click(byTestId('classroom-class-menu-g1'));
+        fireEvent.click(byTestId('classroom-class-archive-g1'));
+        fireEvent.click(byTestId('classroom-class-archive-confirm'));
+        expect(onUpdateGroup).toHaveBeenCalledWith('g1', { status: 'archived' });
+        expect(byTestId('classroom-class-archive-dialog')).toBeNull();
     });
 
     test('should open inline settings and save the edited fields', () => {
@@ -445,5 +508,42 @@ describe('TeacherClassList — archived classes section (issue #1051)', () => {
         fireEvent.click(byTestId('classroom-show-archived'));
         expect(byTestId('classroom-class-settings-open-g2')).not.toBeInTheDocument();
         expect(byTestId('classroom-class-restore-g2')).toBeInTheDocument();
+    });
+});
+
+describe('TeacherClassList — 「確認が必要な課題」 band (#1959)', () => {
+    const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+    const yesterday = () => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const recent = () => [
+        { classroomId: 'c1', groupId: 'g1', assignmentName: 'Cat', sortDate: yesterday() },
+        { classroomId: 'c2', groupId: 'g1', assignmentName: 'Chat', sortDate: yesterday() },
+    ];
+
+    test('lists the recent assignments with submissions not returned, and opens grading', async () => {
+        const onShowEvaluation = jest.fn();
+        const onLoadUnreturnedCount = jest.fn((id) => Promise.resolve(id === 'c1' ? 12 : 0));
+        renderList({ classrooms: recent(), onLoadUnreturnedCount, onShowEvaluation });
+        expect(byTestId('classroom-review-band')).toHaveTextContent('Checking');
+        await waitFor(() => expect(byTestId('classroom-review-item-c1')).toBeInTheDocument());
+        expect(byTestId('classroom-review-item-c1')).toHaveTextContent('2年1組・Cat');
+        expect(byTestId('classroom-review-item-c1')).toHaveTextContent('Not returned 12');
+        // An assignment whose submissions are all returned is left out.
+        expect(byTestId('classroom-review-item-c2')).toBeNull();
+        fireEvent.click(byTestId('classroom-review-open-c1'));
+        expect(onShowEvaluation).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g1' }));
+    });
+
+    test('says so when every recent submission is returned', async () => {
+        renderList({ classrooms: recent(), onLoadUnreturnedCount: () => Promise.resolve(0) });
+        await waitFor(() => expect(byTestId('classroom-review-none')).toBeInTheDocument());
+    });
+
+    test('is hidden without recent assignments or without grading', () => {
+        const onLoadUnreturnedCount = jest.fn(() => Promise.resolve(3));
+        renderList({ onLoadUnreturnedCount });
+        expect(byTestId('classroom-review-band')).toBeNull();
+        renderList({ classrooms: recent(), onLoadUnreturnedCount, onShowEvaluation: null });
+        expect(byTestId('classroom-review-band')).toBeNull();
+        expect(onLoadUnreturnedCount).not.toHaveBeenCalled();
     });
 });

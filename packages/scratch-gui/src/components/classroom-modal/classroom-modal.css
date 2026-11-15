@@ -3236,8 +3236,11 @@ $seat-tile-min: 36px;
 .class-list-landing {
     display: flex;
     flex-direction: column;
+    gap: 0.75rem;
     height: 100%;
+    max-width: none;
     box-sizing: border-box;
+    padding: 1rem 2rem;
     overflow: hidden;
 }
 
@@ -3245,56 +3248,75 @@ $seat-tile-min: 36px;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    /* カードのホバー枠が切れないように少し余白を持たせる。 */
-    padding: 0 0.25rem 0.5rem 0;
+    /* カードのフォーカスの輪が切れないように少し余白を持たせる。 */
+    padding: 0.25rem 0.25rem 0.5rem;
 }
 
-/* 主ボタン（クラスを作成）と読み込み中の表示・インポートを 1 行に並べる（#1300 L1）。
-   主ボタンは共通の .primary-button（ClassroomButton）を使い、薄い色にしない。 */
-.class-list-actions {
+/* 見出しの行（#1959）: 見出し「クラス」・アーカイブ済み・インポート・主ボタン［＋ クラスを作成］。 */
+.class-list-heading {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.75rem;
+    gap: $space-medium;
+    flex-shrink: 0;
+}
+
+.class-list-title {
+    margin: 0;
+    font-size: $font-size-heading-large;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+}
+
+.class-list-heading-spacer {
+    flex: 1;
 }
 
 .class-list-loading {
-    font-size: 0.85rem;
-    color: hsla(225, 15%, 40%, 1);
+    font-size: $font-size-medium;
+    color: $color-text-muted;
 }
 
 .class-list-empty {
     margin: 1.5rem 0;
-    color: hsla(225, 15%, 40%, 1);
+    color: $color-text-muted;
 }
 
+/* クラスのカード（EPIC #1956 Q4）: 低めのカードを 4 列。8 クラスが 1300×600 の 1 画面に入る。
+   9 クラス目からはこの一覧の枠の中だけがスクロールする（R6 の例外）。 */
 .class-cards {
     list-style: none;
-    margin: 1rem 0 0;
+    margin: 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.875rem;
 }
 
 .class-card {
     display: flex;
-    align-items: stretch;
-    gap: 0.5rem;
+    flex-direction: column;
+    min-width: 0;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background: $color-surface;
+    overflow: hidden;
+}
+
+.class-card:hover {
+    border-color: $color-action;
 }
 
 .class-card-main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-    padding: 0.9rem 1rem;
-    border: 1px solid hsla(0, 0%, 0%, 0.15);
-    border-radius: 0.5rem;
-    background: white;
-    /* ボタンの既定色（無効時は灰色）に任せると名前が薄く見えるので明示する（#1300 L1）。 */
-    color: hsla(225, 15%, 20%, 1);
+    align-items: stretch;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: $color-text;
     font-family: inherit;
     cursor: pointer;
     text-align: left;
@@ -3304,23 +3326,162 @@ $seat-tile-min: 36px;
     cursor: progress;
 }
 
-.class-card-main:hover:not(:disabled) {
-    border-color: #855cd6;
+.class-card-main:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: -2px;
+}
+
+/* クラスの色の帯（Q5）: 高さ 64px。地の色と白い文字は style で付ける（classColorStyle）。 */
+.class-card-band {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.125rem;
+    box-sizing: border-box;
+    height: 4rem;
+    padding: 0.5rem 0.875rem;
+}
+
+/* 長いクラス名は 1 行で「…」（全体はカードの title で読める）。 */
+.class-card-name,
+.class-card-section {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .class-card-name {
-    font-size: 1.05rem;
-    font-weight: bold;
+    font-size: $font-size-heading-small;
+    font-weight: $font-weight-bold;
+}
+
+.class-card-section {
+    font-size: $font-size-small;
+}
+
+.class-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-height: 3.75rem;
+    padding: 0.5rem 0.875rem 0.375rem;
+}
+
+.class-card-meta,
+.class-card-next {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .class-card-meta {
-    font-size: 0.8rem;
-    color: hsla(225, 15%, 40%, 1);
+    font-size: $font-size-medium;
+    color: $color-text;
 }
 
 /* 要約の項目は「・」で区切る（#1300 L2）。 */
 .class-card-meta > span + span::before {
     content: '・';
+}
+
+.class-card-next {
+    font-size: $font-size-small;
+    color: $color-text-muted;
+}
+
+/* カードの下: ［採点］［⚙ 設定］と ⋮。 */
+.class-card-footer {
+    display: flex;
+    align-items: center;
+    gap: $space-small;
+    padding: 0.25rem 0.5rem;
+    border-top: 1px solid $color-border;
+}
+
+.class-card-footer-button {
+    min-height: $size-button-height-small;
+}
+
+.class-card-footer-spacer {
+    flex: 1;
+}
+
+.class-archive-note {
+    margin: 0;
+    font-size: $font-size-medium;
+    color: $color-text;
+}
+
+/* 「確認が必要な課題」（#1959）: カードの上の 1 行の帯。 */
+.review-band {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+    min-height: 2.75rem;
+    box-sizing: border-box;
+    padding: 0.25rem 1rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background: $color-surface;
+}
+
+.review-band-title {
+    margin: 0;
+    flex-shrink: 0;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+}
+
+.review-band-list {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow: hidden;
+}
+
+.review-band-item {
+    display: flex;
+    align-items: center;
+    gap: $space-medium;
+    min-width: 0;
+}
+
+.review-band-name {
+    min-width: 0;
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: $font-size-medium;
+    color: $color-text;
+}
+
+/* 返却していない数の札。急ぐものではないので赤にしない（R4）。 */
+.review-band-count {
+    flex-shrink: 0;
+    padding: 0.125rem 0.5rem;
+    border-radius: 1rem;
+    background: $color-confirm-background;
+    color: $color-confirm-text;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
+}
+
+.review-band-open {
+    flex-shrink: 0;
+    min-height: $size-button-height-small;
+}
+
+.review-band-muted {
+    font-size: $font-size-medium;
+    color: $color-text-muted;
 }
 
 /* --- Create a class: small dialog over the class list (#1300 K5) --- */
@@ -3369,6 +3530,7 @@ $seat-tile-min: 36px;
 
 .class-card-badges {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.25rem;
 }
 
@@ -3380,20 +3542,10 @@ $seat-tile-min: 36px;
     color: #855cd6;
 }
 
-.class-card-evaluate {
-    align-self: center;
-    padding: 0.5rem 1rem;
-    border: 1px solid #855cd6;
-    border-radius: 0.5rem;
-    background: white;
-    color: #855cd6;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.class-card-evaluate:disabled {
-    opacity: 0.5;
-    cursor: default;
+/* カードの札は紫にしない（紫はヘッダーだけ・#1956 Q1）。 */
+.class-card-body .class-card-badge {
+    background: $color-background;
+    color: $color-text;
 }
 
 /* --- Archived section (class list & assignment board, issue #1051) --- */
@@ -3416,6 +3568,12 @@ $seat-tile-min: 36px;
 
 .archived-toggle:hover {
     color: #855cd6;
+}
+
+.archived-heading {
+    margin: 0 0 0.75rem;
+    font-size: $font-size-heading-small;
+    color: $color-text;
 }
 
 /* クラス設定の［保存］の行。AI の確認（生成AI・ルビティー）を両方開くと 1300×600 に
@@ -4276,25 +4434,6 @@ $seat-tile-min: 36px;
 }
 
 /* セカンダリ = 白地 + 中立の枠線（評価画面に統一・#1122）。 */
-.class-list-import-button {
-    border: 1px solid #d9d9d9;
-    background: white;
-    color: #575e75;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1.25rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-}
-
-.class-list-import-button:hover {
-    background: #f2f2f2;
-}
-
-.class-list-import-button:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
 .class-list-logout {
     margin-top: 1.5rem;
     border: none;
@@ -4611,7 +4750,46 @@ $seat-tile-min: 36px;
 }
 
 .ungrouped-section {
-    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* どのクラスにも入っていない課題（移行の取りこぼしの受け皿）: カードより簡単な 4 列の箱。 */
+.ungrouped-cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.875rem;
+}
+
+.ungrouped-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    width: 100%;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background: $color-surface;
+    color: $color-text;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ungrouped-card:hover:not(:disabled) {
+    border-color: $color-action;
+}
+
+.ungrouped-card-name {
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+}
+
+.ungrouped-card-meta {
+    font-size: $font-size-small;
+    color: $color-text-muted;
 }
 
 /* Shared status icons (#1196) */

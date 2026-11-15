@@ -255,6 +255,9 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 | `classroom-modal/class-ai-student-preview.jsx` | クラス設定フォームの右に出す「生徒の画面はこうなります」の見本（CSS だけで描く）。未保存の入力に合わせて、コード・Ruby 両方の「AI に相談」の顔と、顔のパネルの［ルビティーにまかせる］の有無を変える。幅 1100px 未満では出さない |
 | `classroom-modal/classroom-button.jsx` | `ClassroomButton`（`variant="primary" / "secondary" / "text" / "danger"`）。ボタンの見た目はここだけが持つ（Scratch の形・高さ 36px。[`../design-system/components/buttons.md`](../design-system/components/buttons.md) の「クラス管理のボタン」） |
 | `classroom-modal/classroom-tab.jsx` | `ClassroomTab`（下に線のタブ。選ばれたら主の色の文字と 3px の線）。並びは `styles.tabList` の `role="tablist"` で包み、右端のボタンは tablist の外の同じ行に置く（[`../design-system/components/tabs.md`](../design-system/components/tabs.md) の「クラス管理のタブ」） |
+| `classroom-modal/teacher-class-card.jsx` | クラス一覧のカード `ClassCard`（色の帯・要約・次の授業日・札、下に［採点］［⚙ 設定］⋮）と、⋮ の「アーカイブ」の確認 `ArchiveClassDialog` |
+| `classroom-modal/teacher-review-band.jsx` | クラス一覧の上の「確認が必要な課題」`TeacherReviewBand`。最近の課題の提出を問い合わせて、返却していない提出がある課題を最大 3 件出す |
+| `lib/classroom-class-list-summary.js` | クラス一覧の要約の純粋関数: 次の授業日 `nextLessonFor`、「確認が必要な課題」の候補 `reviewCandidates`（授業日が 14 日前〜今日・最大 6 件）、返却していない提出の数 `countUnreturned` |
 | `lib/classroom-class-color.js` | クラスの色（帯の色）を先生のクラスの一覧の作成日の順（取れなければ id のハッシュ）から選ぶ純粋関数 `classColorFor` / `classColorStyle` と色の一覧 `CLASS_COLORS`（[`ui-ux.md`](ui-ux.md) の「共通: クラスの色」） |
 
 画面側で `<h2 className={styles.xxxTitle}>` やボタンのクラスを書き起こさないこと

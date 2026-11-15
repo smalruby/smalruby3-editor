@@ -302,6 +302,7 @@ const useTeacherClassroom = ({
         handleUpdateAssignmentName: classrooms.handleUpdateAssignmentName,
         handleUpdateAssignmentMeta: classrooms.handleUpdateAssignmentMeta,
         loadAssignmentSummary: classrooms.loadAssignmentSummary,
+        loadUnreturnedCount: classrooms.loadUnreturnedCount,
         setDetailTab: classrooms.setDetailTab,
         detailEntry: classrooms.detailEntry,
 

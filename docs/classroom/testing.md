@@ -381,8 +381,21 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-create-count` | input | 作成: 人数（出席番号の数・必須） |
 | `classroom-class-create-cancel` | button | 作成: キャンセル |
 | `classroom-class-create-submit` | button | 作成: 作成（文言は固定） |
-| `classroom-class-summary-{groupId}` | span | クラスカードの要約（課題数・生徒数・生成AI） |
-| `classroom-class-list` | ul | クラス一覧（カード） |
+| `classroom-class-summary-{groupId}` | span | クラスカードの要約（課題数・生徒数） |
+| `classroom-class-band-{groupId}` | span | クラスカードの色の帯（クラス名・年度・セクション。色は `classColorFor`） |
+| `classroom-class-next-{groupId}` | span | クラスカードの次の授業日（「次の授業日 11/5「課題名」」・無いとき「次の授業日はありません」・課題が 0 件のとき「まだ課題がありません」） |
+| `classroom-class-genai-{groupId}` | span | クラスカードの生成AI の札（「生成AI: Gemini」。使うときだけ） |
+| `classroom-class-menu-{groupId}` | button | クラスカードの ⋮（一覧は `classroom-class-menu-{groupId}-list`） |
+| `classroom-class-archive-{groupId}` | button (`role="menuitem"`) | ⋮ の「アーカイブ」（確認の小さな画面を開く） |
+| `classroom-class-archive-dialog` | div (`role="dialog"`) | カードの ⋮ からのアーカイブの確認（Esc で閉じる） |
+| `classroom-class-archive-confirm-message` | p | その確認の説明 |
+| `classroom-class-archive-cancel` / `classroom-class-archive-confirm` | button | その確認の［アーカイブしない］（開いたときにフォーカス）/［アーカイブする］ |
+| `classroom-review-band` | section | 「確認が必要な課題」の帯（最近の授業日の課題が無いとき・採点が使えないときは出ない） |
+| `classroom-review-item-{classroomId}` | li | 帯の 1 件（クラス名・課題名・「返却していない {数}」） |
+| `classroom-review-open-{classroomId}` | button | 帯の［採点を開く］（そのクラスの採点の画面） |
+| `classroom-review-none` | span | 帯の「最近の授業の提出は、すべて返却しました。」 |
+| `classroom-class-list` | ul | クラス一覧（カード 4 列。クラスが 0 件のときは出ない） |
+| `classroom-class-list-scroll` | div | カードの一覧の枠（9 クラス目からこの枠の中だけがスクロールする） |
 | `classroom-class-list-empty` | p | クラス一覧の空メッセージ |
 | `classroom-class-card-{groupId}` | li | クラスカード |
 | `classroom-class-open-{groupId}` | button | クラスカード本体（クリックでクラスをひらく） |
@@ -391,7 +404,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-avatar-button` / `classroom-avatar-initials` / `classroom-avatar-email` | button/span | アカウントメニュー（右上・メール頭文字 + ▼。クリックでメール表示 + ログアウト） |
 | `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内。#1111 レビューでタイトルバー常時表示から移動） |
 | `classroom-class-create-section` | input | 作成: セクション（オプション） |
-| `classroom-class-settings-open-{groupId}` | button | クラスカードの「設定」（インライン編集を開く） |
+| `classroom-class-settings-open-{groupId}` | button | クラスカードの「⚙ 設定」（クラスの設定の画面を開く） |
 | `classroom-class-settings-{groupId}` | form | クラス設定のインライン編集フォーム |
 | `classroom-class-settings-name/year/section/count` | input | クラス設定の各フィールド（それぞれ見えるラベル付き） |
 | `classroom-class-settings-co-teacher-input` | input | 共同管理者メール入力（クラス単位） |
@@ -429,7 +442,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-ai-preview-rubytee` | span | 見本の顔のパネルの［ルビティーにまかせる］（生成AI を使うときだけ。`data-on="true/false"`。オフは薄く表示） |
 | `classroom-class-ai-preview-rubytee-off` | p | 生成AI を使い、ルビティーがオフのときの説明 |
 | `classroom-class-ai-preview-rubytee-no-genai` | p | 生成AI を使わず、ルビティーがオンのときの説明（ルビティーは顔のパネルから使う） |
-| `classroom-show-archived` | button | 「アーカイブ済みのクラス（{count}）」トグル（アーカイブ済みが 1 件以上のとき表示） |
+| `classroom-show-archived` | button | 見出しの行の「アーカイブ済みのクラス（{count}）」（アーカイブ済みが 1 件以上のとき表示）。押すとカードがアーカイブ済みに切りかわり、文言が「クラスに戻る」になる（`aria-expanded`） |
 | `classroom-archived-class-list` | ul | アーカイブ済みクラスのカード一覧 |
 | `classroom-class-restore-{groupId}` | button | アーカイブ済みクラスカードの「元に戻す」 |
 | `classroom-board` | div | 課題管理ボード（クラス内のメイン領域） |

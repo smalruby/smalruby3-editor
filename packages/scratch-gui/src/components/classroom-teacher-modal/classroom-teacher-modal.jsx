@@ -153,6 +153,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onUpdateGroupTopics,
         onUpdateAssignmentMeta,
         onLoadAssignmentSummary,
+        onLoadUnreturnedCount,
         onCreateAssignmentInClass,
         onReuseAssignment,
         onDetailTabChange,
@@ -345,6 +346,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         groups={groups || []}
                         isLoading={isLoading}
                         onCreateClassWithAssignment={onCreateClassWithAssignment}
+                        onLoadUnreturnedCount={onLoadUnreturnedCount}
                         onOpenUngrouped={onSelectClassroom}
                         onSelectGroup={onSelectGroup}
                         onShowEvaluation={evaluation ? handleShowGradingFromList : null}
