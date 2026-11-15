@@ -93,7 +93,9 @@ const mapStateToProps = state => {
 const mapDispatchToProps = dispatch => ({
     onSetStageLarge: () => dispatch(setStageSize(STAGE_SIZE_MODES.large)),
     onSetStageSmall: () => dispatch(setStageSize(STAGE_SIZE_MODES.small)),
+    // === Smalruby: Start of middle stage size ===
     onSetStageMiddle: () => dispatch(setStageSize(STAGE_SIZE_MODES.middle)),
+    // === Smalruby: End of middle stage size ===
     onSetStageFull: () => dispatch(setFullScreen(true)),
     onSetStageUnFull: () => dispatch(setFullScreen(false)),
     onShowSettingThumbnail: () => dispatch(showStandardAlert(ALERT_ID.settingThumbnail)),

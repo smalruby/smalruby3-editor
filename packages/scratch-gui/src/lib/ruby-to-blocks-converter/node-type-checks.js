@@ -21,6 +21,18 @@ const NodeTypeChecks = {
         return value && typeof value.accept === 'function' ? this._getNodeTypeName(value) : null;
     },
 
+    /**
+     * The child nodes of a `@ruby/prism` node, without the empty ones.
+     * Not `compactChildNodes()`: in `@ruby/prism` 1.9.0 it drops the children in an array
+     * (the `when` of a `case`, the conditions of a `when`, ...), issue #1813.
+     * @param {object} node - A prism node.
+     * @returns {Array<object>} The child nodes.
+     */
+    _childNodesOf(node) {
+        if (!node || typeof node.childNodes !== 'function') return [];
+        return node.childNodes().filter(Boolean);
+    },
+
     _isSelf(block) {
         return this._isPrimitive(block) && block.type === 'self';
     },

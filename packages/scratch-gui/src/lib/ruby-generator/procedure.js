@@ -77,13 +77,12 @@ export default function (Generator) {
     Generator.procedures_definition = function (block) {
         // Check for @ruby:module_source:ModuleName comment
         // Extended format: @ruby:module_source:Mod:super_of:originalName
-        const comment = Generator.getCommentText(block);
-        const moduleSourceMatch = comment && comment.match(/^@ruby:module_source:(.+)$/m);
+        const moduleSource = Generator.rubyMarkerValue(block, '@ruby:module_source:');
 
         // Check for super_of: extract original method name for renamed module methods
         let superOfOriginalName = null;
-        if (moduleSourceMatch) {
-            const superOfMatch = moduleSourceMatch[1].match(/^(.+):super_of:(.+)$/);
+        if (moduleSource !== null) {
+            const superOfMatch = moduleSource.match(/^(.+):super_of:(.+)$/);
             if (superOfMatch) {
                 superOfOriginalName = superOfMatch[2];
             }
@@ -127,12 +126,12 @@ export default function (Generator) {
                     prevBlock = Generator.getBlock(prevBlock.next);
                 }
                 if (prevBlock !== lastBlock) {
-                    const prevComment = Generator.getCommentText(prevBlock);
+                    const prevComment = Generator.getRubyMarkerText(prevBlock);
                     if (prevComment === '@ruby:super' || prevComment === '@ruby:super:forwarding') {
                         const superCode = generateSuperCall(prevBlock, prevComment);
                         // Set up cache so the return block outputs the super call
                         // The return comment contains the method name
-                        const returnComment = Generator.getCommentText(lastBlock);
+                        const returnComment = Generator.getRubyMarkerText(lastBlock);
                         if (returnComment) {
                             const returnMatch = returnComment.match(/@ruby:return:(\w+)/);
                             if (returnMatch) {
@@ -168,9 +167,9 @@ export default function (Generator) {
         block._skipNextInScrub = true;
 
         // If this is a module method, store the code separately and suppress from main output
-        if (moduleSourceMatch) {
+        if (moduleSource !== null) {
             // Extract module name (handle super_of: suffix)
-            let moduleName = moduleSourceMatch[1];
+            let moduleName = moduleSource;
             const superOfIdx = moduleName.indexOf(':super_of:');
             if (superOfIdx !== -1) {
                 moduleName = moduleName.substring(0, superOfIdx);
@@ -187,7 +186,7 @@ export default function (Generator) {
 
     Generator.isRubyReturnAssignment = function (block) {
         if (!block || block.opcode !== 'data_setvariableto') return false;
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment && comment.startsWith('@ruby:return:')) return true;
 
         const hasValueInput = block.inputs && block.inputs.VALUE && block.inputs.VALUE.block;
@@ -247,7 +246,7 @@ export default function (Generator) {
     };
 
     Generator.procedures_call = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
 
         // Check if this is a super call AND next block is a return assignment
         // (i.e., super is the last expression in a method with return value)
@@ -272,7 +271,7 @@ export default function (Generator) {
                     Generator.returnCallCache_ = {};
                 }
                 // Extract method name from the return assignment comment
-                const nextComment = Generator.getCommentText(nextBlock);
+                const nextComment = Generator.getRubyMarkerText(nextBlock);
                 if (nextComment) {
                     const match = nextComment.match(/@ruby:return:(\w+)/);
                     if (match) {

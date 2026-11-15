@@ -133,6 +133,25 @@ describe('analyzeProject', () => {
         expect(pseudocode).toContain('[koshien_getMapArea] AREA=A1');
     });
 
+    test('counts the mesh broadcast-with-value block as sending a message', () => {
+        const p = project();
+        expect(analyzeProject(p).signals.usesBroadcast).toBe(false);
+        p.targets[1].blocks.hat2 = { opcode: 'event_whenthisspriteclicked', next: 'meshsend1', topLevel: true };
+        p.targets[1].blocks.meshsend1 = {
+            opcode: 'meshV2_broadcastWithValue',
+            next: null,
+            inputs: { BROADCAST_INPUT: [1, 'bcmenu1'], VALUE: [1, [10, 'hi']] },
+        };
+        p.targets[1].blocks.bcmenu1 = {
+            opcode: 'event_broadcast_menu',
+            shadow: true,
+            fields: { BROADCAST_OPTION: ['あいさつ', 'msgid1'] },
+        };
+        const { signals, pseudocode } = analyzeProject(p);
+        expect(signals.usesBroadcast).toBe(true);
+        expect(pseudocode).toContain('あいさつ といっしょに hi を送る');
+    });
+
     test('handles empty / malformed projects gracefully', () => {
         expect(analyzeProject({}).signals.totalBlocks).toBe(0);
         expect(analyzeProject(null).signals.spriteCount).toBe(0);

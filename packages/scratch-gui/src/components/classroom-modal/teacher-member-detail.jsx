@@ -1,10 +1,24 @@
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FormattedMessage } from 'react-intl';
+import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { isMemberSeated } from '../../lib/classroom-presence.js';
 import styles from './classroom-modal.css';
 import ClassroomStatusIcon from './classroom-status-icon.jsx';
 import LessonMemberDetail from './lesson-member-detail.jsx';
+
+// 提出時刻は日付つきで書く（別の日の提出と見分けるため）。値が無い・読めないときは何も出さない
+// （そのまま Date にすると「Invalid Date」や 1970 年の時刻が出てしまう）。
+const formatSubmittedAt = (iso, locale) => {
+    if (!iso) return '';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleString(locale, {
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
 
 const TeacherMemberDetail = ({
     isLoading,
@@ -22,6 +36,9 @@ const TeacherMemberDetail = ({
     lessonNow,
     showSubmission = true,
 }) => {
+    const intl = useIntl();
+    // Ties the visible label to the comment field (R1)
+    const commentInputId = useId();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [commentText, setCommentText] = useState('');
 
@@ -49,6 +66,11 @@ const TeacherMemberDetail = ({
         },
         [onOpenSubmission],
     );
+
+    // onDeleteMember は生徒の ID を受け取る（クリックのイベントをそのまま渡さない）。
+    const handleDeleteClick = useCallback(() => {
+        if (selectedMember) onDeleteMember(selectedMember);
+    }, [selectedMember, onDeleteMember]);
 
     const handleReturnClick = useCallback(() => {
         if (!selectedMember || !memberMap[selectedMember]?.submissionId) return;
@@ -143,7 +165,7 @@ const TeacherMemberDetail = ({
                             data-testid="classroom-member-detail-submitted"
                         >
                             <ClassroomStatusIcon status={selectedMemberData.isReturned ? 'returned' : 'submitted'} />{' '}
-                            {new Date(selectedMemberData.submittedAt).toLocaleTimeString()}
+                            {formatSubmittedAt(selectedMemberData.submittedAt, intl.locale)}
                         </span>
                     )}
                     {showSubmission && !selectedMemberData.hasSubmission && (
@@ -182,7 +204,7 @@ const TeacherMemberDetail = ({
                         className={styles.deleteButton}
                         data-member-id={selectedMember}
                         data-testid="classroom-member-remove"
-                        onClick={onDeleteMember}
+                        onClick={handleDeleteClick}
                     >
                         <FormattedMessage
                             defaultMessage="Remove"
@@ -340,11 +362,23 @@ const TeacherMemberDetail = ({
                         )}
                         {/* Comment + Return */}
                         <div className={styles.commentSection}>
+                            {/* R1: a visible label, not「...」in the field (#1924 C5) */}
+                            <label
+                                className={styles.commentLabel}
+                                data-testid="classroom-member-detail-comment-label"
+                                htmlFor={commentInputId}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Comment to the student (sent when you return it)"
+                                    description="Member detail: label above the comment field"
+                                    id="gui.classroom.teacherDetail.commentLabel"
+                                />
+                            </label>
                             <textarea
                                 className={styles.commentInput}
                                 data-testid="classroom-member-detail-comment"
+                                id={commentInputId}
                                 maxLength={500}
-                                placeholder={selectedMemberData.isReturned ? '' : '...'}
                                 value={commentText}
                                 onChange={handleCommentChange}
                             />

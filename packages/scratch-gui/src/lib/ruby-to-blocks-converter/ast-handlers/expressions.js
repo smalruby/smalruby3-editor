@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { defineMessages } from 'react-intl';
+import { messages as converterMessages } from '../converter-errors';
 import { RubyToBlocksConverterError } from '../errors';
 import Primitive from '../primitive';
 import ExpressionsLiterals from './expressions-literals';
@@ -102,6 +103,11 @@ const ExpressionHandlers = {
 
     visitCallNode(node) {
         this._rejectVisibilityModifier(node);
+        // A block argument (`@a.each(&:x)`, `3.times(&blk)`, `when_flag_clicked(&blk)`) has no place in the
+        // blocks: the call became its block with an empty body and the argument was dropped (P17, issue #1913).
+        if (node.block && this._prismNodeType(node.block) === 'BlockArgumentNode') {
+            throw this._wrongInstructionError(node);
+        }
 
         // === Smalruby: Start of attr_accessor getter/setter resolution ===
         const attrAccessors = this._context.attrAccessors;
@@ -198,6 +204,11 @@ const ExpressionHandlers = {
         } finally {
             this._context.isValue = savedIsValueForReceiver;
         }
+        // A receiver or an argument that came to nothing (`"a#{@x}"`) cannot be put in an input; checked
+        // before the converters, as some of them put any operand in an input (`@b == "a#{@x}"`, issue #1885).
+        if (node.receiver && this._isMissingOperand(node.receiver, receiver)) {
+            throw this._wrongInstructionError(node);
+        }
         const split = this._splitPreBlocksAndValue(receiver);
         receiver = split.value;
         preBlocks.push(...split.preBlocks);
@@ -207,6 +218,9 @@ const ExpressionHandlers = {
         this._context.isValue = true;
         const args = (node.arguments_ ? node.arguments_.arguments_ : []).map((childNode) => {
             const result = this.visit(childNode);
+            if (this._isMissingOperand(childNode, result)) {
+                throw this._wrongInstructionError(node);
+            }
             const s = this._splitPreBlocksAndValue(result);
             preBlocks.push(...s.preBlocks);
             return s.value;
@@ -278,12 +292,26 @@ const ExpressionHandlers = {
         }
 
         if (!block) {
+            // A receiver or an argument that is not a value (`@h[:a] = (@a = 1)`), or one that could not be
+            // converted (`@h[:a] = @x.bar`), is what is wrong: the symbol errors below would tell to change the
+            // symbol, which does not help. The wrong instruction is told instead (P17, issue #1884).
+            // Checked before the context is restored: the receiver of an extension is read from its blocks.
+            // Block parameters no converter took (`self.when(:key_pressed, "a") do |x|`) are what is wrong too:
+            // the call has no place for them (issue #1909). No converter takes both a symbol argument and block
+            // parameters, so `.to_s` would not make the call convert (`mesh.when_receive(:a) do |x|`).
+            const hasUnconvertedOperand =
+                hasCommandValue ||
+                (rubyBlockArgs && rubyBlockArgs.length > 0) ||
+                this._isUnconvertedValue(receiver) ||
+                args.some((a) => this._isUnconvertedValue(a));
             this._restoreContext(saved);
 
             const arithmeticOps = ['+', '-', '*', '/', '%', '**'];
             const comparisonOps = ['>', '<', '>=', '<='];
-            const isSymReceiver = this._isPrimitive(receiver) && receiver.type === 'sym';
-            const symbolArg = args.find((a) => this._isPrimitive(a) && a.type === 'sym');
+            const isSymReceiver = !hasUnconvertedOperand && this._isPrimitive(receiver) && receiver.type === 'sym';
+            const symbolArg = hasUnconvertedOperand
+                ? null
+                : args.find((a) => this._isPrimitive(a) && a.type === 'sym');
 
             // Symbol in arithmetic → specific error
             if (arithmeticOps.indexOf(name) >= 0 && (isSymReceiver || symbolArg)) {
@@ -431,7 +459,9 @@ const ExpressionHandlers = {
             if (isNil || !/[\r\n]/.test(returnValue.value)) {
                 literalMarker = isNil ? ',@ruby:nil' : `,@ruby:symbol:${returnValue.value}`;
             }
-            returnValue = this._createTextBlock(isNil ? '' : returnValue.value.toString());
+            // The text itself goes in the input, as `return ""` does: a text block put there got a `0`
+            // shadow behind it, which no script reached (issue #1866).
+            returnValue = isNil ? '' : returnValue.value.toString();
         }
         assignBlock.comment = this._createComment(
             `@ruby:syntax:return @ruby:return:${procedureName}${parenMarker}${literalMarker}`,
@@ -469,11 +499,54 @@ const ExpressionHandlers = {
 
     visitParametersNode(node) {
         // Used for method definition parameters: def foo(arg1, arg2)
+        this._rejectParameterShape(node);
         return (node.requireds || []).map((childNode) => this.visit(childNode));
     },
 
     visitBlockParametersNode(node) {
+        if (node.locals && node.locals.length > 0) {
+            throw this._wrongParameterError(node.locals[0]);
+        }
+        if (node.parameters) {
+            this._rejectParameterShape(node.parameters);
+        }
         return (node.parameters ? node.parameters.requireds : []).map((childNode) => this.visit(childNode));
+    },
+
+    /**
+     * A My Block and a block of `3.times do |i|` take only required arguments (issue #1906).
+     * A default value (`a = 1`), `*a`, a keyword (`a:`), `**h`, `&blk`, `...` and a destructured argument
+     * (`(a, b)`) were dropped without an error, so the value or the argument was lost.
+     * @param {object} node - The `ParametersNode`.
+     */
+    _rejectParameterShape(node) {
+        const others = [
+            ...(node.requireds || []).filter((n) => this._getNodeTypeName(n) !== 'RequiredParameterNode'),
+            ...(node.optionals || []),
+            node.rest,
+            ...(node.posts || []),
+            ...(node.keywords || []),
+            node.keywordRest,
+            node.block,
+        ].filter((n) => n);
+        if (others.length > 0) {
+            throw this._wrongParameterError(others[0]);
+        }
+    },
+
+    /**
+     * The error of a wrong instruction on the line of an argument (P17). The `def` or the call with the block
+     * goes on over more lines, so the line of the argument is quoted: `def foo(a = 1)`.
+     * @param {object} node - The node of the argument.
+     * @returns {RubyToBlocksConverterError} The error.
+     */
+    _wrongParameterError(node) {
+        return new RubyToBlocksConverterError(
+            node,
+            this._translator(converterMessages.wrongInstruction, {
+                SOURCE: this._truncateSource(this._lineSourceOf(node)),
+            }),
+        );
     },
 
     visitRequiredParameterNode(node) {
@@ -613,7 +686,14 @@ const ExpressionHandlers = {
             // Explicit arguments from super(a, b, ...)
             const savedIsValue = this._context.isValue;
             this._context.isValue = true;
-            args = (node.arguments_ ? node.arguments_.arguments_ : []).map((childNode) => this.visit(childNode));
+            args = (node.arguments_ ? node.arguments_.arguments_ : []).map((childNode) => {
+                const result = this.visit(childNode);
+                // `super("a#{@x}")`: put in an input, nothing stopped with a JavaScript error (issue #1885).
+                if (this._isMissingOperand(childNode, result)) {
+                    throw this._wrongInstructionError(node);
+                }
+                return result;
+            });
             this._context.isValue = savedIsValue;
         }
 

@@ -131,3 +131,16 @@ describe('MobileSideRail', () => {
         expect(getByTestId('mobile-side-rail-backpack')).toHaveAttribute('aria-pressed', 'true');
     });
 });
+
+// #1835: スマホでは「提出する」が ☰ のドロワーの中なので、吹き出しを出す時は ☰ に点を出す。
+describe('MobileSideRail — 「提出しよう」の点', () => {
+    test('出す時は ☰ に点を出す', () => {
+        const { getByTestId } = renderWithIntl({ submitReminderDue: true });
+        expect(getByTestId('mobile-side-rail-menu')).toContainElement(getByTestId('mobile-side-rail-menu-dot'));
+    });
+
+    test('出す時でなければ点を出さない', () => {
+        const { queryByTestId } = renderWithIntl();
+        expect(queryByTestId('mobile-side-rail-menu-dot')).toBeNull();
+    });
+});

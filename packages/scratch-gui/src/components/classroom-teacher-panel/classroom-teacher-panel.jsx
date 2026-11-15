@@ -5,8 +5,15 @@ import Draggable from 'react-draggable';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import { SEAT_STATES } from '../../lib/classroom-lesson-progress.js';
 import { barWidths } from '../../lib/classroom-lesson-summary.js';
+import classroomIconMessages from '../classroom-modal/classroom-icon-messages.js';
 import ClassroomStatusIcon, { ClassroomStatusIcons } from '../classroom-modal/classroom-status-icon.jsx';
 import { lessonSeatMessages } from '../classroom-modal/lesson-seat-tile.jsx';
+import SeatColorLegend, {
+    LESSON_SEAT_COLOR_ITEMS,
+    PANEL_SEAT_COLOR_ITEMS,
+    seatColorClass,
+    seatColorKind,
+} from '../classroom-modal/seat-color-legend.jsx';
 import styles from './classroom-teacher-panel.css';
 
 const messages = defineMessages({
@@ -29,11 +36,6 @@ const messages = defineMessages({
         defaultMessage: 'Close',
         description: 'Teacher status panel: close button (#1203)',
         id: 'gui.classroomTeacherPanel.close',
-    },
-    refresh: {
-        defaultMessage: 'Refresh',
-        description: 'Teacher status panel: refresh now (#1203)',
-        id: 'gui.classroomTeacherPanel.refresh',
     },
     openSeat: {
         defaultMessage: 'Seat {seatNumber}: open the details',
@@ -318,11 +320,11 @@ const ClassroomTeacherPanel = ({
                         </span>
                         {minimized ? counts : null}
                         <button
-                            aria-label={intl.formatMessage(messages.refresh)}
+                            aria-label={intl.formatMessage(classroomIconMessages.refresh)}
                             className={styles.headerButton}
                             data-testid="classroom-teacher-panel-refresh"
                             disabled={loading}
-                            title={intl.formatMessage(messages.refresh)}
+                            title={intl.formatMessage(classroomIconMessages.refresh)}
                             onClick={onRefresh}
                         >
                             {'↻'}
@@ -433,14 +435,22 @@ const ClassroomTeacherPanel = ({
                                     <div className={styles.grid} data-testid="classroom-teacher-panel-grid">
                                         {seats.map((seat, i) => {
                                             const tile = lesson ? lesson.tiles[i] : null;
+                                            // presence は getPresenceStatus と同じ条件（退室した席は
+                                            // 'notJoined'）なので isSeatJoined とそろっている
+                                            const seatColor = tile
+                                                ? null
+                                                : seatColorKind(seat.presence !== 'notJoined', seat.submission);
                                             return (
                                                 <button
-                                                    className={classNames(styles.seat, {
-                                                        [styles.seatEmpty]: !tile && seat.presence === 'notJoined',
-                                                        [styles[tile ? LESSON_SEAT_CLASSES[tile.state] : '']]: !!tile,
-                                                        [styles.seatKick]: seat.kickRequested,
-                                                    })}
+                                                    className={classNames(
+                                                        styles.seat,
+                                                        tile
+                                                            ? styles[LESSON_SEAT_CLASSES[tile.state]]
+                                                            : seatColorClass(styles, 'seat', seatColor),
+                                                        { [styles.seatKick]: seat.kickRequested },
+                                                    )}
                                                     data-lesson-state={tile ? tile.state : null}
+                                                    data-seat-color={seatColor}
                                                     data-member-id={seat.memberId}
                                                     data-testid={`classroom-teacher-panel-seat-${seat.seatNumber}`}
                                                     key={seat.memberId}
@@ -462,7 +472,11 @@ const ClassroomTeacherPanel = ({
                                                             {'!'}
                                                         </span>
                                                     ) : null}
-                                                    <span className={styles.seatNumber}>{seat.seatNumber}</span>
+                                                    <span className={styles.seatNumber}>
+                                                        {seat.seatNumber}
+                                                        {/* クリアの緑は提出済みと同じ色なので ★ を添える (#1926) */}
+                                                        {tile && tile.state === SEAT_STATES.CLEARED ? '★' : null}
+                                                    </span>
                                                     <ClassroomStatusIcons
                                                         kickRequested={seat.kickRequested}
                                                         presence={seat.presence}
@@ -475,27 +489,25 @@ const ClassroomTeacherPanel = ({
                                             );
                                         })}
                                     </div>
+                                    {/* 座席の色の凡例（R5・#1926）: 座席のすぐ下に、メンバータブと同じ色と印で */}
                                     {lesson ? (
-                                        <div
-                                            className={styles.legend}
-                                            data-testid="classroom-teacher-panel-seat-legend"
+                                        <SeatColorLegend
+                                            small
+                                            items={LESSON_SEAT_COLOR_ITEMS}
+                                            testId="classroom-teacher-panel-seat-legend"
                                         >
-                                            {[
-                                                ['lessonSeatNotStarted', lessonSeatMessages.notStarted],
-                                                ['lessonSeatInProgress', lessonSeatMessages.inProgress],
-                                                ['lessonSeatCleared', lessonSeatMessages.cleared],
-                                            ].map(([cls, msg]) => (
-                                                <span className={styles.legendItem} key={cls}>
-                                                    <span className={classNames(styles.legendSwatch, styles[cls])} />
-                                                    {intl.formatMessage(msg)}
-                                                </span>
-                                            ))}
                                             <span className={styles.legendItem}>
                                                 <span className={styles.legendStuck}>{'!'}</span>
                                                 {intl.formatMessage(messages.lessonStuckLegend)}
                                             </span>
-                                        </div>
-                                    ) : null}
+                                        </SeatColorLegend>
+                                    ) : (
+                                        <SeatColorLegend
+                                            small
+                                            items={PANEL_SEAT_COLOR_ITEMS}
+                                            testId="classroom-teacher-panel-seat-color-legend"
+                                        />
+                                    )}
                                     {lesson ? <PanelLessonBars lesson={lesson} /> : null}
                                     {kickRequests.length > 0 ? (
                                         <div

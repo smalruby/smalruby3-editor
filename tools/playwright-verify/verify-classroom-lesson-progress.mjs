@@ -5,7 +5,7 @@
 //
 // Checks: seat colours / count / ★ / 「!」 / unjoined seats, 「クリア N / 参加 N」,
 // the table (fixed header incl. the「できた人」row, fixed seat column, only the
-// frame scrolls), sort orders, the CSV in「…」, and R6 (the page and the modal
+// frame scrolls), sort orders, the CSV in ⋮, and R6 (the page and the modal
 // body do not scroll; the seat grid / table frame scroll inside).
 //
 //   node verify-classroom-lesson-progress.mjs                 # headless, asserts
@@ -249,7 +249,7 @@ try {
     const firstStuck = await page.$eval('[data-testid^="classroom-lesson-progress-row-"]', (el) => el.dataset.testid);
     record('sort: longest on a challenge first', firstStuck.endsWith('seat-04'), firstStuck);
 
-    // 4. CSV in「…」.
+    // 4. CSV in ⋮.
     await page.locator(tid('classroom-detail-more-menu')).click();
     const [download] = await Promise.all([
         page.waitForEvent('download', { timeout: 5000 }),

@@ -12,6 +12,7 @@ import TurboMode from '../../containers/turbo-mode.jsx';
 import { isBugReportConfigured } from '../../lib/bug-report-api.js';
 import { isClassroomConfigured } from '../../lib/classroom-api';
 import intlShape from '../../lib/intlShape';
+import { isRubyV2Comment } from '../../lib/ruby-markers.js';
 import SBFileUploaderHOC from '../../lib/sb-file-uploader-hoc.jsx';
 import { DISPLAY_MODE_DESKTOP } from '../../lib/settings/display-mode/index.js';
 import { persistDisplayMode } from '../../lib/settings/display-mode/persistence.js';
@@ -22,6 +23,7 @@ import { openBugReportModal } from '../../reducers/bug-report.js';
 import { openClassroomModal, openTeacherModal } from '../../reducers/classroom.js';
 import { setConnectionModalExtensionId } from '../../reducers/connection-modal.js';
 import { selectLocale } from '../../reducers/locales.js';
+import { openMeshV2StatusPopup } from '../../reducers/mesh-v2.js';
 import {
     openConnectionModal,
     openLessonsLibrary,
@@ -31,6 +33,7 @@ import {
 import { requestNewProject } from '../../reducers/project-state.js';
 import { setRubyVersion } from '../../reducers/settings.js';
 import { markTutorialSeen } from '../../reducers/tutorial-onboarding.js';
+import ClassroomMenuSubmitButton from '../classroom-modal/classroom-menu-submit-button.jsx';
 import closeIcon from './icon--close.svg';
 import styles from './mobile-drawer.css';
 
@@ -111,6 +114,12 @@ const messages = defineMessages({
         description:
             'Mobile drawer item that opens the Mesh v2 connection modal (only when meshV2 extension is loaded)',
         id: 'gui.mobile.drawer.mesh',
+    },
+    meshStatus: {
+        defaultMessage: 'Mesh status and history',
+        description:
+            'Mobile drawer item that opens the mesh status window (only when meshV2 extension is loaded, #1844)',
+        id: 'gui.mobile.drawer.meshStatus',
     },
     settingsLanguage: {
         defaultMessage: 'Language',
@@ -203,13 +212,7 @@ const hasV2Features = (vm) => {
     if (!vm?.runtime?.targets) return false;
     return vm.runtime.targets.some((target) => {
         if (!target.comments) return false;
-        return Object.values(target.comments).some(
-            (comment) =>
-                comment.text &&
-                (comment.text.startsWith('@ruby:module_source:') ||
-                    comment.text === '@ruby:class' ||
-                    comment.text.startsWith('@ruby:class:')),
-        );
+        return Object.values(target.comments).some((comment) => isRubyV2Comment(comment.text));
     });
 };
 
@@ -219,6 +222,7 @@ const hasV2Features = (vm) => {
  * MobileSideRail の ☰ から開閉する。Desktop メニューバーと同等の主要機能を
  * 折りたたみ可能なツリー形式で提供する:
  *
+ *   提出する / 提出済み ✓          (クラスに参加中のみ・#1795)
  *   ファイル
  *     ├ 新規作成...
  *     ├ 次から開く ▾ (Googleドライブ / デバイス / Scratch)
@@ -249,6 +253,7 @@ const hasV2Features = (vm) => {
  * @param {Function} props.onOpenClassroomModal - 生徒向けクラスモーダル
  * @param {Function} props.onOpenTeacherModal - 教師向けクラス管理モーダル
  * @param {Function} props.onOpenMeshModal - メッシュ接続モーダル
+ * @param {Function} props.onOpenMeshStatus - メッシュの状態と履歴のウィンドウ
  * @param {Function} props.onStartSelectingFileUpload - SBFileUploaderHOC 注入
  * @param {Function} props.onStartSelectingGoogleDrive - GoogleDriveLoaderHOC 注入
  * @param {Function} props.onSaveDirectlyToGoogleDrive - GoogleDriveSaverHOC 注入
@@ -273,6 +278,7 @@ const MobileDrawerComponent = ({
     onOpenClassroomModal,
     onOpenTeacherModal,
     onOpenMeshModal,
+    onOpenMeshStatus,
     onStartSelectingFileUpload,
     onStartSelectingGoogleDrive,
     onSaveDirectlyToGoogleDrive,
@@ -361,6 +367,11 @@ const MobileDrawerComponent = ({
         onOpenMeshModal('meshV2');
         onClose();
     }, [onOpenMeshModal, onClose]);
+
+    const handleClickMeshStatus = useCallback(() => {
+        onOpenMeshStatus();
+        onClose();
+    }, [onOpenMeshStatus, onClose]);
 
     const handleClickClassroomManagement = useCallback(() => {
         onOpenTeacherModal();
@@ -462,6 +473,21 @@ const MobileDrawerComponent = ({
                     </button>
                 </header>
                 <ul className={styles.menuList}>
+                    {/*
+                     * 参加中の「提出する」(#1795)。スマホにはメニューバーが無く、サイドレールには
+                     * 44px の高さを取る余りが無いので、ドロワーのいちばん上に置く（参加していない・
+                     * 作品を提出しないレッスンの課題では何も描かない）。押したらドロワーを閉じる。
+                     * 「提出しよう」の吹き出し (#1835) は、ドロワーを開いたときだけその下に出す。
+                     */}
+                    {classroomEnabled && (
+                        <li>
+                            <ClassroomMenuSubmitButton
+                                placement="drawer"
+                                reminderAllowed={open}
+                                onAfterClick={onClose}
+                            />
+                        </li>
+                    )}
                     {/* ===== ファイル ===== */}
                     <li className={styles.sectionTitle}>
                         <FormattedMessage {...messages.sectionFile} />
@@ -647,6 +673,18 @@ const MobileDrawerComponent = ({
                             </button>
                         </li>
                     )}
+                    {meshLoaded && (
+                        <li>
+                            <button
+                                type="button"
+                                className={styles.menuItem}
+                                onClick={handleClickMeshStatus}
+                                data-testid="mobile-drawer-mesh-status"
+                            >
+                                <FormattedMessage {...messages.meshStatus} />
+                            </button>
+                        </li>
+                    )}
 
                     {/* ===== 設定 (accordion トグル単独 — sectionTitle を兼ねる) ===== */}
                     <li>{renderToggle(<FormattedMessage {...messages.sectionSettings} />, SUBMENU_SETTINGS)}</li>
@@ -794,6 +832,7 @@ MobileDrawerComponent.propTypes = {
     onOpenClassroomModal: PropTypes.func.isRequired,
     onOpenTeacherModal: PropTypes.func.isRequired,
     onOpenMeshModal: PropTypes.func.isRequired,
+    onOpenMeshStatus: PropTypes.func.isRequired,
     onStartSelectingFileUpload: PropTypes.func.isRequired,
     onStartSelectingGoogleDrive: PropTypes.func.isRequired,
     onSaveDirectlyToGoogleDrive: PropTypes.func.isRequired,
@@ -825,6 +864,7 @@ const mapDispatchToProps = (dispatch) => ({
         dispatch(setConnectionModalExtensionId(extensionId));
         dispatch(openConnectionModal());
     },
+    onOpenMeshStatus: () => dispatch(openMeshV2StatusPopup()),
     onStartSelectingUrlLoad: () => dispatch(openUrlLoaderModal()),
     onOpenWelcomeModal: () => dispatch(openWelcomeModal()),
     onOpenLessonsLibrary: () => {

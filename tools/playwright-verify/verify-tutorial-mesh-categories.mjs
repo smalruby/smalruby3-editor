@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 
-const URL = 'http://localhost:8601/?no_beforeunload=1&welcome=1';
+// The welcome CTA now opens the lessons library, so open the tutorials list directly.
+const URL = 'http://localhost:8601/?no_beforeunload=1&tutorial=all';
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
@@ -16,34 +17,7 @@ await page.evaluate(() => localStorage.clear());
 await page.reload();
 await page.waitForTimeout(800);
 
-// Welcome modal exposes a 'Start the first tutorial' CTA that opens tipsLibrary.
-// First close any welcome tooltip balloon, then click the modal's start CTA.
-const tooltipDismiss = page.locator('[data-testid="welcome-tooltip"] [aria-label*="閉じる"], [data-testid="welcome-tooltip"] [aria-label*="dismiss"]');
-if (await tooltipDismiss.count()) {
-    try { await tooltipDismiss.first().click({ force: true }); } catch {}
-}
-
-const startBtn = page.locator('[data-testid="welcome-modal-start-tutorial"]');
-if (await startBtn.count()) {
-    log('clicking welcome-modal-start-tutorial');
-    await startBtn.click();
-} else {
-    log('welcome modal CTA not found, dismiss it and use menu bar');
-    const laterBtn = page.locator('[data-testid="welcome-modal-later"]');
-    if (await laterBtn.count()) {
-        await laterBtn.click();
-        await page.waitForTimeout(300);
-    }
-    // Click About menu (?) → use Tutorials in dropdown, or directly find tutorials button.
-    // Smalruby has a question-mark button that opens the About menu containing Tutorials.
-    const aboutBtn = page.locator('[aria-label="About"], [aria-label="アバウト"], [class*=menuBarItem][class*=about]').first();
-    if (await aboutBtn.count()) {
-        await aboutBtn.click();
-        await page.waitForTimeout(300);
-        const tutItems = await page.locator('[role=menuitem]').allTextContents();
-        log('about menu items:', JSON.stringify(tutItems));
-    }
-}
+// tipsLibrary opens from ?tutorial=all (the welcome CTA now opens the lessons library).
 
 await page.waitForTimeout(3000);
 

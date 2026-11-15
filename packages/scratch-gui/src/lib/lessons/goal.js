@@ -30,7 +30,9 @@ const MAX_SAYS = 500;
 const MAX_ANSWERS = 500;
 const MAX_ARGS_SEEN = 50;
 
-const BROADCAST_OPCODES = new Set(['event_broadcast', 'event_broadcastandwait']);
+// メッセージを送るブロック（送り主の記録用）。メッシュの「といっしょに送る」も、引数は
+// 標準の「送る」と同じ BROADCAST_OPTION（goal-monitor でメッセージ名にする）。
+const BROADCAST_OPCODES = new Set(['event_broadcast', 'event_broadcastandwait', 'meshV2_broadcastWithValue']);
 
 const isUnset = (value) => typeof value === 'undefined' || value === null;
 

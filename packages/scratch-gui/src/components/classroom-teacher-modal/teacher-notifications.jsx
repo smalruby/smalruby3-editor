@@ -3,7 +3,7 @@
  *
  * クラス管理タイトルバー右上、アバターの左に置く**白一色のベル**ボタン
  * （+ 未読バッジ）。クリックでドロップダウンパネルを開き、**先頭 5 件**の
- * お知らせを表示。ヘッダーの ⋯ メニューから「すべて既読にする」「お知らせを
+ * お知らせを表示。ヘッダーの ⋮ メニューから「すべて既読にする」「お知らせを
  * 開く（全件一覧ページ）」を選べる（件数に関係なく一覧へ行ける・レビュー指摘）。
  */
 import PropTypes from 'prop-types';
@@ -85,7 +85,7 @@ NotificationItem.propTypes = {
     onOpenLink: PropTypes.func.isRequired,
 };
 
-// パネルヘッダーの ⋯ メニュー（すべて既読にする / お知らせを開く）。
+// パネルヘッダーの ⋮ メニュー（すべて既読にする / お知らせを開く）。
 const PanelMenu = ({ unreadCount, onMarkAllRead, onShowAll }) => {
     const intl = useIntl();
     const [open, setOpen] = useState(false);
@@ -121,7 +121,7 @@ const PanelMenu = ({ unreadCount, onMarkAllRead, onShowAll }) => {
                 type="button"
                 onClick={toggle}
             >
-                {'⋯'}
+                {'⋮'}
             </button>
             {open && (
                 <div className={styles.notificationsMenuPopup} data-testid="classroom-notifications-menu" role="menu">

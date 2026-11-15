@@ -11,6 +11,14 @@ description: "Ruby ↔ Blocks 変換、prism パーサー、Monaco Editor 統合
 
 # Ruby Mode Integration
 
+## 橋渡しパターン集を先に読む（必須）
+
+- 変換器（`ruby-to-blocks-converter/`）・生成器（`ruby-generator/`）を直す前に、
+  **`docs/ruby-editor/bridging-patterns.md`** を読む。似たパターンがあれば同じ名前・注釈 `@ruby:*` の形にそろえる。
+- 橋渡しの工夫（予約された名前・注釈の種類や形・ブロックの組み合わせ）を足す・変えたとき、
+  不具合を直して考慮漏れがわかったときは、同じ PR でパターン集の該当パターンと「注釈 `@ruby:*` の一覧」を直す。
+  手順はパターン集の「新しい橋渡しパターンを足すときのチェックリスト」。
+
 ## Parser: @ruby/prism
 
 Ruby code is parsed using [@ruby/prism](https://github.com/ruby/prism), a WebAssembly-based Ruby parser. The WASM module runs both in the browser and in Node.js (for tests).

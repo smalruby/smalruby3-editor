@@ -63,6 +63,14 @@ const BroadcastReceiverMixin = {
         }
 
         debug(() => `Mesh V2: Total pending broadcasts: ${this.pendingBroadcasts.length}`);
+
+        // 状態と履歴のポップアップ (#1844): 再生のキューに入れたあとで残す（自分が送ったものは
+        // 呼び出し元で除いてある）。見るだけの機能なので、失敗しても受信を止めない。
+        try {
+            this.recordReceivedEvents(sortedEvents);
+        } catch (error) {
+            log.warn(`Mesh V2: Failed to record received events: ${error}`);
+        }
     },
 
     /**
@@ -156,6 +164,12 @@ const BroadcastReceiverMixin = {
             if (util) {
                 if (!util.sequencer) {
                     util.sequencer = this.runtime.sequencer;
+                }
+                if (event.payload && typeof this.blocks.startMessageHats === 'function') {
+                    // 値つきメッセージ (#1843): 動き出したスクリプトに値を持たせる
+                    debug(() => `Mesh V2: Starting hats with value: ${event.name}`);
+                    this.blocks.startMessageHats(event.name, String(event.payload), util);
+                    return;
                 }
                 debug(() => `Mesh V2: Triggering event_broadcast: ${event.name}`);
                 this.blocks.opcodeFunctions.event_broadcast(args, util);

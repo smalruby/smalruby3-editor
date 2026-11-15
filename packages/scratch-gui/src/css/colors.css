@@ -15,7 +15,9 @@ $ui-black-transparent-10: hsla(0, 0%, 0%, 0.10); /* 10% transparent version of b
 
 $ui-green: hsla(163, 85%, 35%, 1); /* #0DA57A */
 $ui-green-2: hsla(163, 85%, 40%, 1); /* #0FBD8C */
+/* === Smalruby: Start of microbitMore firmware update === */
 $ui-red: hsla(0, 100%, 50%, 1); /* #FF0000 */
+/* === Smalruby: End of microbitMore firmware update === */
 
 $ui-orange: hsla(37, 96%, 55%, 1); /* #FAA51D */
 $ui-alert-orange: hsla(32, 100%, 94%, 1); /* #FFF0DF */

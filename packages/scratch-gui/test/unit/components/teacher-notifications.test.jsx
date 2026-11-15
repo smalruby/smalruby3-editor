@@ -88,7 +88,12 @@ describe('TeacherNotifications (EPIC #1111)', () => {
         expect(screen.getAllByTestId(/classroom-notification-item-/)).toHaveLength(5);
     });
 
-    test('⋯メニューから「すべて既読にする」「お知らせを開く」を選べる (#1111 レビュー)', () => {
+    test('「その他」メニューの記号は、クラス管理のほかの画面と同じ ⋮ (#1925)', () => {
+        renderNotifications({ isOpen: true, notifications: many(1) });
+        expect(screen.getByTestId('classroom-notifications-menu-button').textContent).toBe('⋮');
+    });
+
+    test('⋮メニューから「すべて既読にする」「お知らせを開く」を選べる (#1111 レビュー)', () => {
         const onMarkAllRead = jest.fn();
         const onShowAll = jest.fn();
         renderNotifications({ isOpen: true, notifications: many(3), unreadCount: 3, onMarkAllRead, onShowAll });

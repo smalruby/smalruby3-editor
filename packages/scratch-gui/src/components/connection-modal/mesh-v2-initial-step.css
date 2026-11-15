@@ -1,36 +1,38 @@
 /* === Smalruby: This file is Smalruby-specific (MeshV2 initial step styles) === */
+@import '../../css/smalruby-tokens.css';
 
 .buttonContainer {
     display: flex;
-    gap: 1rem;
+    gap: $space-large;
     justify-content: center;
     align-items: stretch;
-    margin-bottom: 0.5rem;
+    margin-bottom: $space-medium;
 }
 
+/* The two big choices are "selectable cards" (docs/design-system/components/cards.md):
+   grey border, purple border + pale purple ring on hover. */
 .actionButton {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 1rem;
-    background: #ffffff;
-    border: 2px solid #e8edf1;
-    border-radius: 0.5rem;
+    padding: $space-large;
+    background: $color-surface;
+    border: 2px solid $color-border;
+    border-radius: $radius-medium;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: $transition-standard;
     max-width: 250px;
 }
 
 .actionButton:hover {
-    border-color: #4c97ff;
-    box-shadow: 0 2px 8px rgba(76, 151, 255, 0.2);
-    transform: translateY(-2px);
+    border-color: $color-primary;
+    box-shadow: 0 0 0 0.25rem $color-primary-transparent;
 }
 
-.actionButton:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 4px rgba(76, 151, 255, 0.3);
+.actionButton:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
 }
 
 .buttonImage {
@@ -38,7 +40,7 @@
     height: auto;
     max-width: 200px;
     margin-bottom: 0.75rem;
-    border-radius: 0.25rem;
+    border-radius: $radius-small;
 }
 
 .buttonTextContainer {
@@ -46,60 +48,70 @@
 }
 
 .buttonTitle {
-    font-size: 1rem;
-    font-weight: bold;
-    color: #575e75;
-    margin-bottom: 0.25rem;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+    margin-bottom: $space-small;
 }
 
 .buttonDescription {
-    font-size: 0.875rem;
-    color: #8fa1b3;
+    font-size: $font-size-medium;
+    color: $color-text-muted;
 }
 
 .domainSection {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: $space-medium;
     max-width: 500px;
     margin: 0 auto;
 }
 
 .domainLabel {
-    font-size: 0.875rem;
-    font-weight: bold;
-    color: #575e75;
-    margin-bottom: 0.25rem;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+    margin-bottom: $space-small;
 }
 
+/* The upstream input's form: purple border and ring on focus, outline kept transparent
+   so it still shows in forced-colors mode. */
 .domainInput {
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-    border: 2px solid #e8edf1;
-    border-radius: 0.25rem;
-    outline: none;
+    padding: $space-medium 0.75rem;
+    font-size: $font-size-medium;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    color: $color-text;
     transition: border-color 0.2s ease;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+.domainInput:hover:not(:disabled) {
+    border-color: $color-primary;
+}
+
 .domainInput:focus {
-    border-color: #4c97ff;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 0.25rem $color-primary-transparent;
+    outline: 2px solid transparent;
 }
 
 .domainInput.inputError {
-    border-color: #ff6680;
+    border-color: $error-primary;
 }
 
+/* The error is told in words; the text stays readable (coloured text on white is under 3:1). */
 .errorMessage {
-    font-size: 0.75rem;
-    color: #ff6680;
-    margin-top: -0.25rem;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+    margin-top: calc($space-small * -1);
 }
 
 .domainHelp {
-    font-size: 0.75rem;
-    color: #8fa1b3;
+    font-size: $font-size-small;
+    color: $color-text-muted;
     line-height: 1.4;
 }
 
@@ -107,7 +119,7 @@
 @media (max-width: 600px) {
     .buttonContainer {
         flex-direction: column;
-        gap: 1rem;
+        gap: $space-large;
     }
 
     .actionButton {

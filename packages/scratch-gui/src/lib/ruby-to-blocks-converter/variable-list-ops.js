@@ -167,11 +167,26 @@ export const registerListOperations = function (
         const recv = converted ? listBlock : receiver;
         if (!recv) return null;
 
-        // Detect delete_at(-1) as "last" special value
+        // delete_at(-1) deletes the last item: "delete (length of the list) of the list". The index
+        // was 1, which deleted the first item when the blocks ran (issue #1840).
         if (converter._isNumber(args[0]) && Number(args[0]) === -1) {
             const block = converter._changeBlock(recv, 'data_deleteoflist', 'statement');
-            converter._addNumberInput(block, 'INDEX', 'math_integer', 1, 1);
-            block.comment = converter._createComment('@ruby:array:delete_at:last', block.id);
+            // Not mapped to the node of the line: the line is the delete block
+            const previousNode = converter._context.currentNode;
+            converter._context.currentNode = null;
+            const lengthBlock = converter._createBlock('data_lengthoflist', 'value', {
+                fields: { LIST: { ...block.fields.LIST } },
+            });
+            converter._context.currentNode = previousNode;
+            converter._addNumberInput(block, 'INDEX', 'math_integer', lengthBlock, 1);
+            // Keep the comment that names a local list (`@ruby:lvar:a:1`): `a.delete_at(-1)` came back
+            // as `@_a_1_.delete_at(-1)`
+            const existing = block.comment && converter._context.comments[block.comment];
+            if (existing) {
+                existing.text = `${existing.text},@ruby:array:delete_at:last`;
+            } else {
+                block.comment = converter._createComment('@ruby:array:delete_at:last', block.id);
+            }
             return block;
         }
 

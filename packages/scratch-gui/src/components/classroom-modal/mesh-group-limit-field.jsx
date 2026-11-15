@@ -34,7 +34,7 @@ const MeshGroupLimitField = ({ disabled, testId, value, onChange }) => {
     return (
         <div className={styles.assignmentPeerView}>
             <label className={styles.assignmentPeerViewRow}>
-                <span className={styles.assignmentStartFromPreviousLabel}>
+                <span className={styles.assignmentOptionLabel}>
                     <FormattedMessage
                         defaultMessage="Mesh group size"
                         description="Assignment setting: label of the mesh group size limit"
@@ -52,7 +52,7 @@ const MeshGroupLimitField = ({ disabled, testId, value, onChange }) => {
                     <option value="0">{intl.formatMessage(messages.noLimit)}</option>
                 </select>
             </label>
-            <span className={styles.assignmentStartFromPreviousHint}>
+            <span className={styles.assignmentOptionHint}>
                 <FormattedMessage
                     defaultMessage={
                         'With "No limit" the whole class can be one group: when you press "Become host", it becomes the teacher\'s group, and students join it with one tap.'

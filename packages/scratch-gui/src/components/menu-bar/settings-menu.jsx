@@ -36,6 +36,9 @@ import {isClassroomConfigured} from '../../lib/classroom-api';
 import {openTeacherModal} from '../../reducers/classroom';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 // === Smalruby: End of classroom management menu ===
+// === Smalruby: Start of v1 switch prevention ===
+import {isRubyV2Comment} from '../../lib/ruby-markers.js';
+// === Smalruby: End of v1 switch prevention ===
 import {
     colorModeMenuOpen,
     themeMenuOpen,
@@ -111,13 +114,8 @@ const SettingsMenu = ({
         if (rubyVersion === '1' && vm.runtime) { // eslint-disable-line react/prop-types
             const hasV2Features = vm.runtime.targets.some(target => { // eslint-disable-line react/prop-types
                 if (!target.comments) return false;
-                return Object.values(target.comments).some(comment =>
-                    comment.text && (
-                        comment.text.startsWith('@ruby:module_source:') ||
-                        comment.text === '@ruby:class' ||
-                        comment.text.startsWith('@ruby:class:')
-                    )
-                );
+                // A comment of the user can come before the marker (issue #1857).
+                return Object.values(target.comments).some(comment => isRubyV2Comment(comment.text));
             });
             if (hasV2Features) {
                 // eslint-disable-next-line no-alert

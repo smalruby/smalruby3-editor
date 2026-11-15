@@ -98,7 +98,9 @@ body .card-container {
     box-shadow: 0px 5px 25px 5px $ui-black-transparent;
     align-items: center;
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    /* === Smalruby: Start of tutorial card layout === */
     max-width: 500px;
+    /* === Smalruby: End of tutorial card layout === */
 }
 
 .header-buttons {
@@ -160,8 +162,11 @@ body .card-container {
     text-align: center;
     font-weight: bold;
     color: $text-primary;
+    /* === Smalruby: Start of tutorial card layout === */
+    /* wrap long Japanese titles instead of widening the card */
     word-break: break-word;
     overflow-wrap: break-word;
+    /* === Smalruby: End of tutorial card layout === */
 }
 
 .step-body {
@@ -306,6 +311,8 @@ body .card-container {
     align-items: center;
 }
 
+/* === Smalruby: Start of step pip selector === */
+/* upstream: .inactiveStepPip (mixed-case class name in a kebab-case file) */
 .active-step-pip, .inactive-step-pip {
     width: 0.5rem;
     height: 0.5rem;
@@ -313,6 +320,7 @@ body .card-container {
     border-radius: 100%;
     background: $ui-white-transparent;
 }
+/* === Smalruby: End of step pip selector === */
 
 .active-step-pip {
     background: $ui-white;
@@ -323,6 +331,7 @@ body .card-container {
     display: none;
 }
 
+/* === Smalruby: Start of tutorial insert-code button === */
 /* Insert Code Button */
 .insert-code-button {
     display: flex;
@@ -351,6 +360,7 @@ body .card-container {
     height: 1rem;
     filter: brightness(0) invert(1);
 }
+/* === Smalruby: End of tutorial insert-code button === */
 
 /* === Smalruby: Start of tutorial glow animation === */
 /* Glow animation for tutorial hints */

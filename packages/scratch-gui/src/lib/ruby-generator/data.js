@@ -8,7 +8,7 @@ import DataListBlocks from './data-list.js';
 export default function (Generator) {
     Generator.data_variable = function (block) {
         let variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
 
         // Check for local variable metadata (may be mixed with user comments)
         if (comment) {
@@ -47,7 +47,7 @@ export default function (Generator) {
     };
 
     Generator.data_setvariableto = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         const hasValueInput = block.inputs && block.inputs.VALUE && block.inputs.VALUE.block;
 
         // === Smalruby: Start of bare literal generation ===
@@ -105,11 +105,11 @@ export default function (Generator) {
             // === Smalruby: Start of nil / symbol return value ===
             // A method ending in `nil` / `:a` keeps the text block "" / "a" and a comment marker
             // (issue #1548). Restore the literal only while the text is still what it was.
-            const symbolMatch = comment.match(/,@ruby:symbol:(.+)$/);
+            const symbolName = Generator.rubyMarkerValue(block, '@ruby:symbol:');
             if (comment.includes(',@ruby:nil') && value === Generator.quote_('')) {
                 value = 'nil';
-            } else if (symbolMatch && value === Generator.quote_(symbolMatch[1])) {
-                const name = symbolMatch[1];
+            } else if (symbolName !== null && value === Generator.quote_(symbolName)) {
+                const name = symbolName;
                 value = /^[\p{L}_][\p{L}\p{N}_]*[?!=]?$/u.test(name) ? `:${name}` : `:${value}`;
             }
             // === Smalruby: End of nil / symbol return value ===
@@ -211,7 +211,7 @@ export default function (Generator) {
     };
 
     Generator.data_listcontents = function (block) {
-        const comment = Generator.getCommentText(block);
+        const comment = Generator.getRubyMarkerText(block);
         if (comment) {
             const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+)/);
             if (lvarMatch) {

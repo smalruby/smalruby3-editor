@@ -27,6 +27,7 @@ import { findCourse } from '../../lib/lessons/courses.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
 import ClassCodeDisplay from './class-code-display.jsx';
+import classroomIconMessages from './classroom-icon-messages.js';
 import styles from './classroom-modal.css';
 import ClassroomStatusIcon, {
     ClassroomStatusIcons,
@@ -37,6 +38,12 @@ import ClassroomStatusIcon, {
 import ErrorDisplay from './error-display.jsx';
 import LessonSeatTile, { lessonSeatMessages } from './lesson-seat-tile.jsx';
 import { formatCompletionSentence } from './lesson-settings-field.jsx';
+import SeatColorLegend, {
+    LESSON_SEAT_COLOR_ITEMS,
+    MEMBER_SEAT_COLOR_ITEMS,
+    memberSeatColorKind,
+    seatColorClass,
+} from './seat-color-legend.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherLessonProgress from './teacher-lesson-progress.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
@@ -146,7 +153,6 @@ const TeacherClassDetail = ({
     const handleDescRemovePage = descEditor.onRemovePage;
     const handleDescRemovePageImage = descEditor.onRemovePageImage;
     const handleDescRemoveStarter = descEditor.onRemoveStarter;
-    const handleDescChangeStartFromPrevious = descEditor.onChangeStartFromPrevious;
     const handleDescChangePeerView = descEditor.onChangePeerView;
     const handleDescChangeMeshGroupLimit = descEditor.onChangeMeshGroupLimit;
     const handleDescChangeLesson = descEditor.onChangeLesson;
@@ -489,7 +495,10 @@ const TeacherClassDetail = ({
                                         type="button"
                                         onClick={handleShowCode}
                                     >
-                                        <span className={styles.joinCodeIcon}>{'⛶'}</span>
+                                        <span aria-hidden="true" className={styles.joinCodeIcon}>
+                                            {'⛶'}
+                                        </span>
+                                        {intl.formatMessage(classroomIconMessages.fullscreen)}
                                     </button>
                                 </div>
                             ) : (
@@ -581,7 +590,7 @@ const TeacherClassDetail = ({
                                                 {selectedClassroom.joinCode.toLowerCase()}
                                             </span>
                                         </span>
-                                        {/* 全画面表示: 幅に関わらずアイコンのみ（tooltip でラベル補足） */}
+                                        {/* 全画面表示: アイコンの横に「全画面」の文字（#1924 C11） */}
                                         <button
                                             className={styles.joinCodeAction}
                                             data-testid="classroom-detail-expand-code"
@@ -593,7 +602,10 @@ const TeacherClassDetail = ({
                                             type="button"
                                             onClick={handleShowCode}
                                         >
-                                            <span className={styles.joinCodeIcon}>{'⛶'}</span>
+                                            <span aria-hidden="true" className={styles.joinCodeIcon}>
+                                                {'⛶'}
+                                            </span>
+                                            {intl.formatMessage(classroomIconMessages.fullscreen)}
                                         </button>
                                         {/* 招待リンクをコピー: アイコンのみ。クリックすると
                                             アイコンがチェックに変わり、コピー完了を示す。 */}
@@ -840,8 +852,10 @@ const TeacherClassDetail = ({
                                         styles.detailTab,
                                         activeTab === 'description' && styles.detailTabActive,
                                     )}
+                                    aria-selected={activeTab === 'description'}
                                     data-tab="description"
                                     data-testid="classroom-tab-description"
+                                    role="tab"
                                     onClick={handleTabClick}
                                 >
                                     <FormattedMessage
@@ -855,8 +869,10 @@ const TeacherClassDetail = ({
                                         styles.detailTab,
                                         activeTab === 'members' && styles.detailTabActive,
                                     )}
+                                    aria-selected={activeTab === 'members'}
                                     data-tab="members"
                                     data-testid="classroom-tab-members"
+                                    role="tab"
                                     onClick={handleTabClick}
                                 >
                                     <FormattedMessage
@@ -871,8 +887,10 @@ const TeacherClassDetail = ({
                                             styles.detailTab,
                                             activeTab === 'progress' && styles.detailTabActive,
                                         )}
+                                        aria-selected={activeTab === 'progress'}
                                         data-tab="progress"
                                         data-testid="classroom-tab-progress"
+                                        role="tab"
                                         onClick={handleTabClick}
                                     >
                                         <FormattedMessage
@@ -882,8 +900,8 @@ const TeacherClassDetail = ({
                                         />
                                     </button>
                                 )}
-                                {/* まれな操作は「…」の中（R2・#1303 D1）。ダウンロード中は
-                                    メニューが閉じるので、進み具合は「…」の横に出す。 */}
+                                {/* まれな操作は⋮の中（R2・#1303 D1）。ダウンロード中は
+                                    メニューが閉じるので、進み具合は⋮の横に出す。 */}
                                 <span className={styles.detailTabsMore}>
                                     {downloadProgress ? (
                                         <span
@@ -897,11 +915,11 @@ const TeacherClassDetail = ({
                                         alignRight
                                         ariaLabel={intl.formatMessage({
                                             defaultMessage: 'More actions',
-                                            description: 'Accessible name of the … menu of the assignment detail',
+                                            description: 'Accessible name of the ⋮ menu of the assignment detail',
                                             id: 'gui.classroom.teacherDetail.moreMenu',
                                         })}
                                         buttonClassName={styles.boardKebab}
-                                        label="…"
+                                        label="⋮"
                                         testId="classroom-detail-more-menu"
                                     >
                                         {(close) => (
@@ -963,7 +981,6 @@ const TeacherClassDetail = ({
                                     savedSettings={descEditor.savedSettings}
                                     starterMode={descEditor.starterMode}
                                     starterSource={descEditor.starterSource}
-                                    startFromPrevious={!!descEditor.startFromPrevious}
                                     peerView={descEditor.peerView || 'none'}
                                     meshGroupLimit={descEditor.meshGroupLimit}
                                     lessonDraft={descEditor.lessonDraft || null}
@@ -980,7 +997,6 @@ const TeacherClassDetail = ({
                                     onMovePage={handleDescMovePage}
                                     onRemovePage={handleDescRemovePage}
                                     onRemovePageImage={handleDescRemovePageImage}
-                                    onChangeStartFromPrevious={handleDescChangeStartFromPrevious}
                                     onChangePeerView={handleDescChangePeerView}
                                     onChangeMeshGroupLimit={handleDescChangeMeshGroupLimit}
                                     onRemoveStarter={handleDescRemoveStarter}
@@ -998,63 +1014,20 @@ const TeacherClassDetail = ({
                                             {/* 座席の色の意味（R5・#1303 D2）。アイコンの凡例より先に出す。
                                                 レッスンの課題では色は進み具合（#1602）。 */}
                                             {lessonTiles ? (
-                                                <div
-                                                    className={styles.seatColorLegend}
-                                                    data-testid="classroom-lesson-seat-legend"
+                                                <SeatColorLegend
+                                                    items={LESSON_SEAT_COLOR_ITEMS}
+                                                    testId="classroom-lesson-seat-legend"
                                                 >
-                                                    {[
-                                                        ['lessonSeatNotStarted', lessonSeatMessages.notStarted],
-                                                        ['lessonSeatInProgress', lessonSeatMessages.inProgress],
-                                                        ['lessonSeatCleared', lessonSeatMessages.cleared],
-                                                        ['lessonSeatNotJoined', lessonSeatMessages.notJoined],
-                                                    ].map(([cls, message]) => (
-                                                        <span className={styles.statusLegendItem} key={cls}>
-                                                            <span
-                                                                className={classNames(
-                                                                    styles.seatColorSwatch,
-                                                                    styles[cls],
-                                                                )}
-                                                            />
-                                                            {intl.formatMessage(message)}
-                                                        </span>
-                                                    ))}
                                                     <span className={styles.statusLegendItem}>
                                                         <span className={styles.lessonSeatStuckLegend}>{'!'}</span>
                                                         {intl.formatMessage(lessonSeatMessages.stuck)}
                                                     </span>
-                                                </div>
+                                                </SeatColorLegend>
                                             ) : (
-                                                <div
-                                                    className={styles.seatColorLegend}
-                                                    data-testid="classroom-seat-color-legend"
-                                                >
-                                                    <span className={styles.statusLegendItem}>
-                                                        <span
-                                                            className={classNames(
-                                                                styles.seatColorSwatch,
-                                                                styles.memberCellJoined,
-                                                            )}
-                                                        />
-                                                        <FormattedMessage
-                                                            defaultMessage="Joined"
-                                                            description="Seat color legend: a grey seat is a student who joined"
-                                                            id="gui.classroom.teacherDetail.seatColorJoined"
-                                                        />
-                                                    </span>
-                                                    <span className={styles.statusLegendItem}>
-                                                        <span
-                                                            className={classNames(
-                                                                styles.seatColorSwatch,
-                                                                styles.memberCellEmpty,
-                                                            )}
-                                                        />
-                                                        <FormattedMessage
-                                                            defaultMessage="Not joined yet"
-                                                            description="Seat color legend: a blue seat has no student yet"
-                                                            id="gui.classroom.teacherDetail.seatColorNotJoined"
-                                                        />
-                                                    </span>
-                                                </div>
+                                                <SeatColorLegend
+                                                    items={MEMBER_SEAT_COLOR_ITEMS}
+                                                    testId="classroom-seat-color-legend"
+                                                />
                                             )}
                                             <ClassroomStatusLegend
                                                 className={styles.membersLegend}
@@ -1088,9 +1061,11 @@ const TeacherClassDetail = ({
                                                 {totalCount}
                                             </span>
                                             <button
+                                                aria-label={intl.formatMessage(classroomIconMessages.refresh)}
                                                 className={styles.refreshButton}
                                                 data-testid="classroom-refresh"
                                                 disabled={isLoading}
+                                                title={intl.formatMessage(classroomIconMessages.refresh)}
                                                 onClick={onRefresh}
                                             >
                                                 {'↻'}
@@ -1119,25 +1094,15 @@ const TeacherClassDetail = ({
                                                 const memberId = `seat-${String(seatNum).padStart(2, '0')}`;
                                                 const member = memberMap[memberId];
                                                 const isSelected = selectedMember === memberId;
-                                                const hasSubmission = member && member.hasSubmission;
-                                                const isReturned = member && member.submissionStatus === 'returned';
                                                 const seated = member && isSeated(member);
                                                 const tile = lessonTiles ? lessonTiles[i] : null;
-                                                let cellColorClass = styles.memberCellEmpty;
-                                                if (tile) {
-                                                    cellColorClass = classNames(
-                                                        styles.lessonSeat,
-                                                        styles[LESSON_TILE_CLASSES[tile.state]],
-                                                    );
-                                                } else if (member) {
-                                                    if (isReturned) {
-                                                        cellColorClass = styles.memberCellReturned;
-                                                    } else if (hasSubmission) {
-                                                        cellColorClass = styles.memberCellSubmitted;
-                                                    } else {
-                                                        cellColorClass = styles.memberCellJoined;
-                                                    }
-                                                }
+                                                const seatColor = memberSeatColorKind(member);
+                                                const cellColorClass = tile
+                                                    ? classNames(
+                                                          styles.lessonSeat,
+                                                          styles[LESSON_TILE_CLASSES[tile.state]],
+                                                      )
+                                                    : seatColorClass(styles, 'memberCell', seatColor);
                                                 const cellClass = classNames(
                                                     styles.memberCell,
                                                     cellColorClass,
@@ -1151,6 +1116,7 @@ const TeacherClassDetail = ({
                                                         className={cellClass}
                                                         data-lesson-state={tile ? tile.state : null}
                                                         data-member-id={memberId}
+                                                        data-seat-color={tile ? null : seatColor}
                                                         data-testid={`classroom-member-${memberId}`}
                                                         key={memberId}
                                                         onClick={handleCellClick}
@@ -1211,7 +1177,7 @@ const TeacherClassDetail = ({
                             )}
 
                             {/* Archive confirmation (soft-delete, restorable — issue #1051).
-                                The action itself is in the … menu (#1303 D1).
+                                The action itself is in the ⋮ menu (#1303 D1).
                                 data-testids keep the historical "delete" names for E2E stability. */}
                             {(error || showDeleteConfirm) && (
                                 <div className={styles.detailFooter}>
@@ -1339,15 +1305,6 @@ const TeacherClassDetail = ({
                                                     data-testid="classroom-description-preview-start"
                                                 >
                                                     {(() => {
-                                                        if (descEditor.startFromPrevious) {
-                                                            return (
-                                                                <FormattedMessage
-                                                                    defaultMessage="On join: continuing from last time's submission is recommended (the starter if there is none)"
-                                                                    description="Student-view preview: start-from-previous setting is on"
-                                                                    id="gui.classroom.teacherDetail.previewStartPrevious"
-                                                                />
-                                                            );
-                                                        }
                                                         if (
                                                             descEditor.starterMode &&
                                                             descEditor.starterMode !== 'none'
@@ -1355,7 +1312,7 @@ const TeacherClassDetail = ({
                                                             return (
                                                                 <FormattedMessage
                                                                     defaultMessage="On join: students start from the starter with a button (students with an earlier submission choose where to start)"
-                                                                    description="Student-view preview: setting off, assignment has a starter"
+                                                                    description="Student-view preview: the assignment has a starter"
                                                                     id="gui.classroom.teacherDetail.previewStartStarter"
                                                                 />
                                                             );
@@ -1363,7 +1320,7 @@ const TeacherClassDetail = ({
                                                         return (
                                                             <FormattedMessage
                                                                 defaultMessage="On join: students start with the open project (students with an earlier submission choose where to start)"
-                                                                description="Student-view preview: setting off, no starter"
+                                                                description="Student-view preview: the assignment has no starter"
                                                                 id="gui.classroom.teacherDetail.previewStartNone"
                                                             />
                                                         );

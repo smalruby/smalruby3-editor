@@ -1,3 +1,6 @@
+/* 主ボタン・文字リンクの青は $color-action（docs/design-system/tokens.md・#1922）。 */
+@import '../../css/smalruby-tokens.css';
+
 .layout {
     display: flex;
     flex: 1;
@@ -120,10 +123,10 @@
 
 .sidebar-button {
     padding: 0.3rem 0.4rem;
-    border: 1px solid #4c97ff;
+    border: 1px solid $color-action;
     border-radius: 4px;
     background: white;
-    color: #4c97ff;
+    color: $color-action;
     cursor: pointer;
     font-size: 0.8rem;
     text-align: center;
@@ -135,13 +138,13 @@
 }
 
 .sidebar-button-primary {
-    background: #4c97ff;
+    background: $color-action;
     color: white;
-    border-color: #4c97ff;
+    border-color: $color-action;
 }
 
 .sidebar-button-primary:hover {
-    background: #3373cc;
+    background: $membership-blue;
 }
 
 .sidebar-button-danger {
@@ -165,7 +168,7 @@
 
 .login-button {
     padding: 0.8rem 2rem;
-    background: #4c97ff;
+    background: $color-action;
     color: white;
     border: none;
     border-radius: 4px;
@@ -175,7 +178,7 @@
 }
 
 .login-button:hover:not(:disabled) {
-    background: #3373cc;
+    background: $membership-blue;
 }
 
 .login-button:disabled {
@@ -438,7 +441,7 @@
 .back-link {
     background: none;
     border: none;
-    color: #4c97ff;
+    color: $color-action;
     cursor: pointer;
     font-size: 0.85rem;
     padding: 0;
@@ -589,7 +592,7 @@
     width: 22rem;
     max-width: calc(100vw - 2rem);
     /* プレビューは最大 5 件で高さが有界なのでパネルはスクロールさせない
-       （overflow を付けるとヘッダーの ⋯ ポップアップがクリップされる）。 */
+       （overflow を付けるとヘッダーの ⋮ ポップアップがクリップされる）。 */
     background-color: white;
     border: 1px solid #d9d9d9;
     border-radius: 0.5rem;
@@ -608,7 +611,7 @@
     border-bottom: 1px solid #e0e0e0;
 }
 
-/* ヘッダーの ⋯ メニュー（すべて既読にする / お知らせを開く）。 */
+/* ヘッダーの ⋮ メニュー（すべて既読にする / お知らせを開く）。 */
 .notifications-menu {
     position: relative;
 }

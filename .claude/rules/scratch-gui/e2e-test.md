@@ -229,3 +229,12 @@ const lang = await page.evaluate(() => {
     return monaco.editor.getEditors()[0].getModel().getLanguageId();
 });
 ```
+
+## ブラウザ・dev server の後片付け（コンテナのメモリを守る）
+
+integration テスト（Selenium = `chromedriver` + `/usr/lib/chromium/chromium`）や Playwright のスクリプトを途中で止めると、ブラウザが親を失って残り（PID 1 に付け替わる）、何日も動き続けてコンテナのメモリを食う。実際に `chromedriver` 8 組・chromium 約 80 プロセスが 1 日半残っていた。
+
+- テストやスクリプトが終わったら、残りが無いか確かめる: `pgrep -af 'chromedriver|chromium|headless_shell|webpack'`。
+- 親が PID 1（`ps -o ppid= -p <pid>` が 1）の `chromedriver` / chromium、または `etime` が長く、どのテストも動いていないのに残っているものは止めてよい: `pkill -x chromedriver` → `pkill -f /usr/lib/chromium/chromium`。ほかの人のテストが動いていないか（`pgrep -af jest`）を先に見る。
+- dev server は `npm exec` / `npx` のラッパーだけを止めると webpack の子が残る。**webpack のプロセスそのもの**を PID で止める（`/proc/<pid>/cwd` で自分の worktree のものか確かめる）。
+- サブエージェントに UI の確認やテストを頼むときは、終わったら上のコマンドで後片付けし、報告に「残っているブラウザ・dev server は無い」と書くよう指示する。

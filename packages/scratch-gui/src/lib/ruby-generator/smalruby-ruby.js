@@ -118,19 +118,19 @@ export default function (Generator) {
 
     // --- Helper: resolve block parameter names from comment ---
     const resolveBlockParams = function (block, branch) {
-        const comment = Generator.getCommentText(block);
         let paramStr = '';
         let resolvedBranch = branch;
-        if (comment) {
-            const paramMatches = comment.match(/@ruby:block_param:(\d+):(\S+)/g);
-            if (paramMatches) {
-                const params = paramMatches.map((m) => {
-                    const [, idx, name] = m.match(/@ruby:block_param:(\d+):(\S+)/);
-                    resolvedBranch = resolvedBranch.replace(new RegExp(`_bp_${idx}_`, 'g'), name);
-                    return name;
-                });
-                paramStr = ` |${params.join(', ')}|`;
+        const params = [];
+        Generator.getRubyMarkers(block).forEach((marker) => {
+            const match = marker.match(/^@ruby:block_param:(\d+):(\S+)$/);
+            if (match) {
+                const [, idx, name] = match;
+                resolvedBranch = resolvedBranch.replace(new RegExp(`_bp_${idx}_`, 'g'), name);
+                params.push(name);
             }
+        });
+        if (params.length > 0) {
+            paramStr = ` |${params.join(', ')}|`;
         }
         return { paramStr, branch: resolvedBranch };
     };

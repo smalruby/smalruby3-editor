@@ -55,6 +55,7 @@ import ClassroomKickRequestWatcher from '../../containers/classroom-kick-request
 import ClassroomTeacherKickAlerts from '../../containers/classroom-teacher-kick-alerts.jsx';
 import ClassroomTeacherPanel from '../../containers/classroom-teacher-panel.jsx';
 import ClassroomPeerPanel from '../../containers/classroom-peer-panel.jsx';
+import ClassroomSubmitReminder from '../../containers/classroom-submit-reminder.jsx';
 import ClassroomTeacherModal from '../../containers/classroom-teacher-modal.jsx';
 // === Smalruby: End of classroom modal ===
 // === Smalruby: Start of bug report modal ===
@@ -69,6 +70,9 @@ import ClassroomMeshConnectPrompt from '../../containers/classroom-mesh-connect-
 // === Smalruby: Start of meshV2 self-sensor notice ===
 import MeshSelfSensorNotice from '../../containers/mesh-self-sensor-notice.jsx';
 // === Smalruby: End of meshV2 self-sensor notice ===
+// === Smalruby: Start of mesh status popup ===
+import MeshStatusPopup from '../../containers/mesh-status-popup.jsx';
+// === Smalruby: End of mesh status popup ===
 // === Smalruby: Start of lesson goal watcher ===
 import LessonGoalWatcher from '../../containers/lesson-goal-watcher.jsx';
 // === Smalruby: End of lesson goal watcher ===
@@ -421,6 +425,9 @@ const GUIComponent = props => {
                         onRequestClose={onRequestCloseKoshienSettingsModal}
                     />
                 ) : null}
+                {/* === Smalruby: Start of mesh status popup === */}
+                <MeshStatusPopup />
+                {/* === Smalruby: End of mesh status popup === */}
             </StageWrapper>
         ) : (
             <ModalFocusProvider>
@@ -515,6 +522,7 @@ const GUIComponent = props => {
                     <ClassroomTeacherKickAlerts />
                     <ClassroomTeacherPanel />
                     <ClassroomPeerPanel />
+                    <ClassroomSubmitReminder />
                     {teacherModalVisible ? <ClassroomTeacherModal /> : null}
                     {/* === Smalruby: End of classroom modal === */}
                     {/* === Smalruby: Start of bug report modal === */}
@@ -527,6 +535,9 @@ const GUIComponent = props => {
                     {/* === Smalruby: Start of meshV2 self-sensor notice === */}
                     <MeshSelfSensorNotice />
                     {/* === Smalruby: End of meshV2 self-sensor notice === */}
+                    {/* === Smalruby: Start of mesh status popup === */}
+                    <MeshStatusPopup />
+                    {/* === Smalruby: End of mesh status popup === */}
                     {/* === Smalruby: Start of lesson goal watcher === */}
                     <LessonGoalWatcher />
                     {/* === Smalruby: End of lesson goal watcher === */}
