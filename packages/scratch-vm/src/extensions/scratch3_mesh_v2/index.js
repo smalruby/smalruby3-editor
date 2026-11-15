@@ -107,6 +107,11 @@ class Scratch3MeshV2Blocks {
             this.runtime.on('RUNTIME_DISPOSED', () => {
                 this.lastMessageValue = '';
             });
+            // A loaded project has a new stage: hook it too, once the variable
+            // functions were hooked (connect), so its variable changes reach the mesh.
+            this.runtime.on('PROJECT_LOADED', () => {
+                if (this.variableFunctions) this.setVariableFunctionHOC();
+            });
         }
 
         this.runtime.registerPeripheralExtension(Scratch3MeshV2Blocks.EXTENSION_ID, this);
@@ -817,24 +822,35 @@ class Scratch3MeshV2Blocks {
         }
     }
 
-    /* istanbul ignore next */
+    /**
+     * Hook the variable functions so that changes to global variables are sent
+     * to the mesh. The runtime is hooked once; the stage is hooked again
+     * whenever it is a new one (loading a project makes a new stage, and the
+     * old hooks stay on the old stage).
+     */
     setVariableFunctionHOC() {
-        if (this.variableFunctions) return;
+        if (!this.variableFunctions) {
+            this.variableFunctions = {
+                runtime: {
+                    createNewGlobalVariable: this.runtime.createNewGlobalVariable.bind(this.runtime),
+                },
+                stage: null,
+                hookedStage: null,
+            };
+            this.runtime.createNewGlobalVariable = this.createNewGlobalVariable.bind(this);
+        }
 
         const stage = this.runtime.getTargetForStage();
-        this.variableFunctions = {
-            runtime: {
-                createNewGlobalVariable: this.runtime.createNewGlobalVariable.bind(this.runtime),
-            },
-            stage: {
-                lookupOrCreateVariable: stage.lookupOrCreateVariable.bind(stage),
-                createVariable: stage.createVariable.bind(stage),
-                setVariableValue: stage.setVariableValue.bind(stage),
-                renameVariable: stage.renameVariable.bind(stage),
-            },
-        };
+        if (!stage || this.variableFunctions.hookedStage === stage) return;
 
-        this.runtime.createNewGlobalVariable = this.createNewGlobalVariable.bind(this);
+        this.variableFunctions.stage = {
+            lookupOrCreateVariable: stage.lookupOrCreateVariable.bind(stage),
+            createVariable: stage.createVariable.bind(stage),
+            setVariableValue: stage.setVariableValue.bind(stage),
+            renameVariable: stage.renameVariable.bind(stage),
+        };
+        this.variableFunctions.hookedStage = stage;
+
         stage.lookupOrCreateVariable = this.lookupOrCreateVariable.bind(this);
         stage.createVariable = this.createVariable.bind(this);
         stage.setVariableValue = this.setVariableValue.bind(this);

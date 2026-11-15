@@ -285,7 +285,7 @@ end-to-end 動作確認: [`tools/playwright-verify/verify-classroom-mesh-connect
 
 | ファイル | 責務 |
 |---|---|
-| `index.js` | scratch 拡張ブロック定義、UI 連携 |
+| `index.js` | scratch 拡張ブロック定義、UI 連携。グローバル変数の変更を送るためのフック（`setVariableFunctionHOC`: つないだときにステージの `createVariable` / `setVariableValue` などを包む。作品を読み込み直すとステージが新しくなるので、`PROJECT_LOADED` で新しいステージも包み直す。これで「変数を作る」やモニターのスライダーでの変更も、読み込み直したあとすぐ送られる） |
 | `mesh-service.js` | ファサード。各 manager mixin を集約 |
 | `mesh-client.js` | Apollo Client、GraphQL endpoint URL |
 | `gql-operations.js` | GraphQL queries / mutations / subscription 定義 |
