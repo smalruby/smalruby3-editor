@@ -1,4 +1,4 @@
-import translateError, { extractKickReason } from '../../../src/containers/classroom-error-utils.js';
+import translateError, { extractKickReason, joinErrorTitle } from '../../../src/containers/classroom-error-utils.js';
 
 // Minimal intl mock: substitutes {placeholders} from the values map into
 // the defaultMessage so we can assert the composed, localized text.
@@ -165,5 +165,25 @@ describe('extractKickReason', () => {
         expect(extractKickReason(null)).toBeNull();
         expect(extractKickReason(undefined)).toBeNull();
         expect(extractKickReason('boom')).toBeNull();
+    });
+});
+
+describe('参加のエラー (#1924 C12)', () => {
+    test('参加コードが見つからないときは、何が起きて何をすればよいかを言う', () => {
+        const err = new Error('Invalid join code');
+        err.status = 404;
+        expect(translateError(intlMock, err, 'join')).toBe(
+            'That join code was not found. Enter the code your teacher showed you again.',
+        );
+    });
+
+    test('終わった（アーカイブした）課題は「参加コードが見つからない」と言わない (#1924 M1)', () => {
+        const err = new Error('This classroom is no longer active');
+        err.status = 404;
+        expect(translateError(intlMock, err, 'join')).toBe('This assignment is no longer active.');
+    });
+
+    test('見出しは「参加できませんでした」', () => {
+        expect(joinErrorTitle(intlMock)).toBe('Could not join');
     });
 });

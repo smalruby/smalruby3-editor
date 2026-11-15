@@ -44,7 +44,11 @@ import {
 import { reloadProgress, requestProgressSend } from '../reducers/lesson-mode.js';
 import { setProjectTitle } from '../reducers/project-title.js';
 import { decideClasscodeAction, initialStudentPhase, resolveAutoJoinCode } from './classroom-classcode-utils.js';
-import translateError, { extractKickReason } from './classroom-error-utils.js';
+import translateError, {
+    extractKickReason,
+    joinErrorTitle as formatJoinErrorTitle,
+    switchSeatErrorTitle,
+} from './classroom-error-utils.js';
 import useKickRequestPolling from './use-kick-request-polling.js';
 import useStudentAssignment from './use-student-assignment.js';
 import useStudentSubmit from './use-student-submit.js';
@@ -269,15 +273,9 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
 
     // --- Join with code ---
 
-    const joinErrorTitle = useCallback(
-        () =>
-            intl.formatMessage({
-                defaultMessage: 'An error occurred',
-                description: 'Error dialog title',
-                id: 'gui.classroom.error.title',
-            }),
-        [intl],
-    );
+    const joinErrorTitle = useCallback(() => formatJoinErrorTitle(intl), [intl]);
+    // 「出席番号がちがう」failed: the student is still joined (#1924 Q1).
+    const switchSeatTitle = useCallback(() => switchSeatErrorTitle(intl), [intl]);
 
     // Show the seat selection for a looked-up class. `options.forgetSeat`: the
     // seat the student just freed with "wrong number", so it is not offered
@@ -510,7 +508,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
                     setTakenSeats((prev) => [...prev, seatNumber]);
                     setSelectedSeat(null);
                 }
-                showError(translateError(intl, err, 'seat'));
+                showError(translateError(intl, err, 'seat'), joinErrorTitle());
             } finally {
                 setIsLoading(false);
             }
@@ -523,6 +521,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             clearError,
             showError,
             intl,
+            joinErrorTitle,
             studentAssignment,
             track,
         ],
@@ -711,14 +710,14 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             try {
                 data = await classroomAPI.lookupClassroom(joinCode);
             } catch (err) {
-                showError(translateError(intl, err, 'join'), joinErrorTitle());
+                showError(translateError(intl, err, 'join'), switchSeatTitle());
                 return;
             }
             if (sessionToken && classroomId) {
                 try {
                     await classroomAPI.leaveClassroom(sessionToken, classroomId);
                 } catch (err) {
-                    showError(translateError(intl, err), joinErrorTitle());
+                    showError(translateError(intl, err), switchSeatTitle());
                     return;
                 }
             }
@@ -732,7 +731,7 @@ const ClassroomModal = ({ targetCodeToBlocks }) => {
             switchingSeatRef.current = false;
             setSwitchingSeat(false);
         });
-    }, [classroomState, clearError, showError, intl, joinErrorTitle, dispatch, showSeatSelection]);
+    }, [classroomState, clearError, showError, intl, switchSeatTitle, dispatch, showSeatSelection]);
 
     // --- Auto-join: classcode URL parameter / teacher's selected assignment ---
     useEffect(() => {

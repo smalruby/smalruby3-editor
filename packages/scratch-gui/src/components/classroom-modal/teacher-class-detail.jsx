@@ -27,6 +27,7 @@ import { findCourse } from '../../lib/lessons/courses.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
 import ClassCodeDisplay from './class-code-display.jsx';
+import classroomIconMessages from './classroom-icon-messages.js';
 import styles from './classroom-modal.css';
 import ClassroomStatusIcon, {
     ClassroomStatusIcons,
@@ -494,7 +495,10 @@ const TeacherClassDetail = ({
                                         type="button"
                                         onClick={handleShowCode}
                                     >
-                                        <span className={styles.joinCodeIcon}>{'⛶'}</span>
+                                        <span aria-hidden="true" className={styles.joinCodeIcon}>
+                                            {'⛶'}
+                                        </span>
+                                        {intl.formatMessage(classroomIconMessages.fullscreen)}
                                     </button>
                                 </div>
                             ) : (
@@ -586,7 +590,7 @@ const TeacherClassDetail = ({
                                                 {selectedClassroom.joinCode.toLowerCase()}
                                             </span>
                                         </span>
-                                        {/* 全画面表示: 幅に関わらずアイコンのみ（tooltip でラベル補足） */}
+                                        {/* 全画面表示: アイコンの横に「全画面」の文字（#1924 C11） */}
                                         <button
                                             className={styles.joinCodeAction}
                                             data-testid="classroom-detail-expand-code"
@@ -598,7 +602,10 @@ const TeacherClassDetail = ({
                                             type="button"
                                             onClick={handleShowCode}
                                         >
-                                            <span className={styles.joinCodeIcon}>{'⛶'}</span>
+                                            <span aria-hidden="true" className={styles.joinCodeIcon}>
+                                                {'⛶'}
+                                            </span>
+                                            {intl.formatMessage(classroomIconMessages.fullscreen)}
                                         </button>
                                         {/* 招待リンクをコピー: アイコンのみ。クリックすると
                                             アイコンがチェックに変わり、コピー完了を示す。 */}
@@ -1054,9 +1061,11 @@ const TeacherClassDetail = ({
                                                 {totalCount}
                                             </span>
                                             <button
+                                                aria-label={intl.formatMessage(classroomIconMessages.refresh)}
                                                 className={styles.refreshButton}
                                                 data-testid="classroom-refresh"
                                                 disabled={isLoading}
+                                                title={intl.formatMessage(classroomIconMessages.refresh)}
                                                 onClick={onRefresh}
                                             >
                                                 {'↻'}

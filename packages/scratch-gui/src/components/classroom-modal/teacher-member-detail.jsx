@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { isMemberSeated } from '../../lib/classroom-presence.js';
 import styles from './classroom-modal.css';
@@ -37,6 +37,8 @@ const TeacherMemberDetail = ({
     showSubmission = true,
 }) => {
     const intl = useIntl();
+    // Ties the visible label to the comment field (R1)
+    const commentInputId = useId();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [commentText, setCommentText] = useState('');
 
@@ -360,11 +362,23 @@ const TeacherMemberDetail = ({
                         )}
                         {/* Comment + Return */}
                         <div className={styles.commentSection}>
+                            {/* R1: a visible label, not「...」in the field (#1924 C5) */}
+                            <label
+                                className={styles.commentLabel}
+                                data-testid="classroom-member-detail-comment-label"
+                                htmlFor={commentInputId}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Comment to the student (sent when you return it)"
+                                    description="Member detail: label above the comment field"
+                                    id="gui.classroom.teacherDetail.commentLabel"
+                                />
+                            </label>
                             <textarea
                                 className={styles.commentInput}
                                 data-testid="classroom-member-detail-comment"
+                                id={commentInputId}
                                 maxLength={500}
-                                placeholder={selectedMemberData.isReturned ? '' : '...'}
                                 value={commentText}
                                 onChange={handleCommentChange}
                             />

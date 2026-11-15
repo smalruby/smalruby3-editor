@@ -28,6 +28,7 @@ import {
     UnknownChallengesNote,
     messages as bandMessages,
 } from '../lesson-assignment-band/lesson-assignment-band.jsx';
+import classroomIconMessages from './classroom-icon-messages.js';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
 import StudentMainButton from './student-main-button.jsx';
@@ -88,16 +89,23 @@ const messages = defineMessages({
 const formatTime = (iso, locale) =>
     iso ? new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) : '';
 
-const RefreshButton = ({ isLoading, onRefreshStudentStatus }) => (
-    <button
-        className={styles.refreshButton}
-        data-testid="classroom-student-refresh"
-        disabled={isLoading}
-        onClick={onRefreshStudentStatus}
-    >
-        {'↻'}
-    </button>
-);
+// ↻ alone has no name: give it one, also as a tooltip (#1924 C11).
+const RefreshButton = ({ isLoading, onRefreshStudentStatus }) => {
+    const intl = useIntl();
+    const label = intl.formatMessage(classroomIconMessages.refresh);
+    return (
+        <button
+            aria-label={label}
+            className={styles.refreshButton}
+            data-testid="classroom-student-refresh"
+            disabled={isLoading}
+            title={label}
+            onClick={onRefreshStudentStatus}
+        >
+            {'↻'}
+        </button>
+    );
+};
 
 RefreshButton.propTypes = {
     isLoading: PropTypes.bool,

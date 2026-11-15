@@ -169,3 +169,14 @@ describe('TeacherMemberDetail — ［削除］と提出時刻 (#1919)', () => {
         },
     );
 });
+
+describe('TeacherMemberDetail — コメント欄のラベル (#1924 C5・R1)', () => {
+    test('コメント欄の上に見えるラベルがあり、欄と結び付いている', () => {
+        renderDetail(member());
+        const input = byTestId('classroom-member-detail-comment');
+        const label = byTestId('classroom-member-detail-comment-label');
+        expect(label.textContent).toBe('Comment to the student (sent when you return it)');
+        expect(label.getAttribute('for')).toBe(input.id);
+        expect(input.getAttribute('placeholder')).toBeFalsy();
+    });
+});
