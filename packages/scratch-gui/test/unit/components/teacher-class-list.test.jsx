@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { classColorFor } from '../../../src/lib/classroom-class-color.js';
@@ -26,6 +26,7 @@ const defaultProps = () => ({
     groups: [group()],
     isLoading: false,
     onCreateClassWithAssignment: jest.fn(),
+    onOpenUngrouped: jest.fn(),
     onSelectGroup: jest.fn(),
     onShowEvaluation: jest.fn(),
     onUpdateGroup: jest.fn(),
@@ -250,8 +251,8 @@ describe('TeacherClassList', () => {
         );
     });
 
-    test('puts Archive in the card ⋮ menu behind a confirmation (#1959)', () => {
-        const onUpdateGroup = jest.fn();
+    test('puts Archive in the card ⋮ menu behind a confirmation (#1959)', async () => {
+        const onUpdateGroup = jest.fn(() => Promise.resolve(true));
         renderList({ onUpdateGroup });
         const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
         // Not on the card itself.
@@ -263,12 +264,67 @@ describe('TeacherClassList', () => {
         fireEvent.click(byTestId('classroom-class-archive-cancel'));
         expect(byTestId('classroom-class-archive-dialog')).toBeNull();
         expect(onUpdateGroup).not.toHaveBeenCalled();
+        // Cancelling gives the focus back to the card's ⋮.
+        expect(document.activeElement).toBe(byTestId('classroom-class-menu-g1'));
 
         fireEvent.click(byTestId('classroom-class-menu-g1'));
         fireEvent.click(byTestId('classroom-class-archive-g1'));
-        fireEvent.click(byTestId('classroom-class-archive-confirm'));
+        await act(async () => {
+            fireEvent.click(byTestId('classroom-class-archive-confirm'));
+        });
         expect(onUpdateGroup).toHaveBeenCalledWith('g1', { status: 'archived' });
         expect(byTestId('classroom-class-archive-dialog')).toBeNull();
+        // The card may be gone: the focus goes to the title.
+        expect(document.activeElement).toBe(document.querySelector('h2'));
+    });
+
+    test('keeps the archive confirmation open with the error when archiving fails', async () => {
+        let finish;
+        const onUpdateGroup = jest.fn(
+            () =>
+                new Promise((resolve) => {
+                    finish = resolve;
+                }),
+        );
+        const { rerender } = renderList({ onUpdateGroup });
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        fireEvent.click(byTestId('classroom-class-menu-g1'));
+        fireEvent.click(byTestId('classroom-class-archive-g1'));
+        fireEvent.click(byTestId('classroom-class-archive-confirm'));
+        // While waiting, the buttons cannot be pressed.
+        expect(byTestId('classroom-class-archive-confirm')).toBeDisabled();
+        expect(byTestId('classroom-class-archive-cancel')).toBeDisabled();
+        await act(async () => {
+            finish(false);
+        });
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherClassList {...defaultProps()} error="Could not save" onUpdateGroup={onUpdateGroup} />
+            </IntlProvider>,
+        );
+        expect(byTestId('classroom-class-archive-dialog')).toBeInTheDocument();
+        expect(byTestId('classroom-class-archive-dialog')).toHaveTextContent('Could not save');
+        expect(byTestId('classroom-class-archive-confirm')).not.toBeDisabled();
+    });
+
+    test('goes back to the classes when the last archived class is restored', () => {
+        const { rerender } = renderList({ groups: [group(), group({ groupId: 'g2', status: 'archived' })] });
+        const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
+        fireEvent.click(byTestId('classroom-show-archived'));
+        expect(byTestId('classroom-archived-class-list')).toBeInTheDocument();
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherClassList {...defaultProps()} groups={[group(), group({ groupId: 'g2' })]} />
+            </IntlProvider>,
+        );
+        expect(byTestId('classroom-class-list')).toBeInTheDocument();
+        // A class archived again later does not reopen the archived view by itself.
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherClassList {...defaultProps()} groups={[group(), group({ groupId: 'g2', status: 'archived' })]} />
+            </IntlProvider>,
+        );
+        expect(byTestId('classroom-archived-class-list')).toBeNull();
     });
 
     test('should open inline settings and save the edited fields', () => {
@@ -513,37 +569,36 @@ describe('TeacherClassList — archived classes section (issue #1051)', () => {
 
 describe('TeacherClassList — 「確認が必要な課題」 band (#1959)', () => {
     const byTestId = (id) => document.querySelector(`[data-testid="${id}"]`);
-    const yesterday = () => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const recent = () => [
-        { classroomId: 'c1', groupId: 'g1', assignmentName: 'Cat', sortDate: yesterday() },
-        { classroomId: 'c2', groupId: 'g1', assignmentName: 'Chat', sortDate: yesterday() },
-    ];
 
-    test('lists the recent assignments with submissions not returned, and opens grading', async () => {
-        const onShowEvaluation = jest.fn();
-        const onLoadUnreturnedCount = jest.fn((id) => Promise.resolve(id === 'c1' ? 12 : 0));
-        renderList({ classrooms: recent(), onLoadUnreturnedCount, onShowEvaluation });
-        expect(byTestId('classroom-review-band')).toHaveTextContent('Checking');
-        await waitFor(() => expect(byTestId('classroom-review-item-c1')).toBeInTheDocument());
+    test('lists the assignments with submissions not returned and opens one on its members', () => {
+        const onOpenUngrouped = jest.fn();
+        renderList({
+            classrooms: [
+                { classroomId: 'c1', groupId: 'g1', assignmentName: 'Cat', unreturnedCount: 12 },
+                { classroomId: 'c2', groupId: 'g1', assignmentName: 'Chat', unreturnedCount: 0 },
+            ],
+            onOpenUngrouped,
+        });
         expect(byTestId('classroom-review-item-c1')).toHaveTextContent('2年1組・Cat');
         expect(byTestId('classroom-review-item-c1')).toHaveTextContent('Not returned 12');
         // An assignment whose submissions are all returned is left out.
         expect(byTestId('classroom-review-item-c2')).toBeNull();
         fireEvent.click(byTestId('classroom-review-open-c1'));
-        expect(onShowEvaluation).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g1' }));
+        expect(onOpenUngrouped).toHaveBeenCalledWith('c1', { tab: 'members' });
     });
 
-    test('says so when every recent submission is returned', async () => {
-        renderList({ classrooms: recent(), onLoadUnreturnedCount: () => Promise.resolve(0) });
-        await waitFor(() => expect(byTestId('classroom-review-none')).toBeInTheDocument());
+    test('says so when every count is there and zero', () => {
+        renderList({ classrooms: [{ classroomId: 'c1', groupId: 'g1', unreturnedCount: 0 }] });
+        expect(byTestId('classroom-review-none')).toHaveTextContent('Every submission has been returned.');
     });
 
-    test('is hidden without recent assignments or without grading', () => {
-        const onLoadUnreturnedCount = jest.fn(() => Promise.resolve(3));
-        renderList({ onLoadUnreturnedCount });
+    test('is hidden when the API has no counts (older API)', () => {
+        renderList({
+            classrooms: [
+                { classroomId: 'c1', groupId: 'g1', unreturnedCount: 3 },
+                { classroomId: 'c2', groupId: 'g1' },
+            ],
+        });
         expect(byTestId('classroom-review-band')).toBeNull();
-        renderList({ classrooms: recent(), onLoadUnreturnedCount, onShowEvaluation: null });
-        expect(byTestId('classroom-review-band')).toBeNull();
-        expect(onLoadUnreturnedCount).not.toHaveBeenCalled();
     });
 });

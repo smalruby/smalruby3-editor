@@ -641,7 +641,6 @@ const TeacherClassList = ({
     groups,
     isLoading,
     onCreateClassWithAssignment,
-    onLoadUnreturnedCount,
     onOpenUngrouped,
     onSelectGroup,
     onShowEvaluation,
@@ -675,12 +674,38 @@ const TeacherClassList = ({
         (groupId) => onUpdateGroup(groupId, { status: 'active' }),
         [onUpdateGroup],
     );
+    const [archiving, setArchiving] = useState(false);
+    const titleRef = useRef(null);
+    // Where the focus goes when the archive confirmation closes: back to the card's ⋮ when
+    // it was cancelled, to the title when the class was archived (its card is gone).
+    const focusAfterArchiveRef = useRef(null);
     const handleRequestArchive = useCallback((groupId) => setArchivingGroupId(groupId), []);
-    const handleCancelArchive = useCallback(() => setArchivingGroupId(null), []);
-    const handleConfirmArchive = useCallback(() => {
-        if (archivingGroupId) onUpdateGroup(archivingGroupId, { status: 'archived' });
+    const handleCancelArchive = useCallback(() => {
+        focusAfterArchiveRef.current = `classroom-class-menu-${archivingGroupId}`;
+        setArchivingGroupId(null);
+    }, [archivingGroupId]);
+    // Close only when the archive went through; a failure stays in the dialog with its error.
+    const handleConfirmArchive = useCallback(async () => {
+        if (!archivingGroupId) return;
+        setArchiving(true);
+        const ok = await onUpdateGroup(archivingGroupId, { status: 'archived' });
+        setArchiving(false);
+        if (ok === false) return;
+        focusAfterArchiveRef.current = 'title';
         setArchivingGroupId(null);
     }, [archivingGroupId, onUpdateGroup]);
+    useEffect(() => {
+        if (archivingGroupId || !focusAfterArchiveRef.current) return;
+        const target = focusAfterArchiveRef.current;
+        focusAfterArchiveRef.current = null;
+        const el = target === 'title' ? titleRef.current : document.querySelector(`[data-testid="${target}"]`);
+        if (el) el.focus();
+    }, [archivingGroupId]);
+    // Open an assignment of the 「確認が必要な課題」 band on its members (where submissions are returned).
+    const handleOpenReviewAssignment = useCallback(
+        (classroomId) => onOpenUngrouped(classroomId, { tab: 'members' }),
+        [onOpenUngrouped],
+    );
 
     const activeGroups = groups.filter((g) => g.status !== 'archived');
     // Archived classes stay reachable (issue #1051): 「アーカイブ済みのクラス」 next to the
@@ -688,6 +713,11 @@ const TeacherClassList = ({
     // archive is self-recoverable instead of a support inquiry.
     const archivedGroups = groups.filter((g) => g.status === 'archived');
     const listingArchived = showArchived && archivedGroups.length > 0;
+    // The last archived class was restored: go back to the classes.
+    const hasArchived = archivedGroups.length > 0;
+    useEffect(() => {
+        if (!hasArchived) setShowArchived(false);
+    }, [hasArchived]);
     const countFor = (groupId) => classrooms.filter((c) => c.groupId === groupId).length;
     // develop-compat safety net: assignments that do not belong to any class
     // yet (e.g. a co-teacher logs in before the owner's account migrated, or
@@ -761,7 +791,7 @@ const TeacherClassList = ({
         >
             {/* 見出しの行: 見出し「クラス」・アーカイブ済み・インポート・主ボタン（L1・R2: 主ボタンは 1 つ）。 */}
             <div className={styles.classListHeading}>
-                <h2 className={styles.classListTitle}>
+                <h2 className={styles.classListTitle} ref={titleRef} tabIndex={-1}>
                     <FormattedMessage
                         defaultMessage="Classes"
                         description="Title of the class list (post-login landing view)"
@@ -839,8 +869,7 @@ const TeacherClassList = ({
                     classrooms={classrooms}
                     groups={groups}
                     isLoading={isLoading}
-                    onLoadUnreturnedCount={onLoadUnreturnedCount}
-                    onShowEvaluation={onShowEvaluation}
+                    onOpenAssignment={handleOpenReviewAssignment}
                 />
             )}
             {/* 件数で長さが変わる一覧は、この枠の中だけでスクロールする（R6）。
@@ -922,8 +951,10 @@ const TeacherClassList = ({
             ) : null}
             {archivingGroup ? (
                 <ArchiveClassDialog
+                    error={error}
+                    errorTitle={errorTitle}
                     group={archivingGroup}
-                    isLoading={isLoading}
+                    isLoading={isLoading || archiving}
                     onCancel={handleCancelArchive}
                     onConfirm={handleConfirmArchive}
                 />
@@ -939,7 +970,6 @@ TeacherClassList.propTypes = {
     groups: PropTypes.arrayOf(PropTypes.object).isRequired,
     isLoading: PropTypes.bool,
     onCreateClassWithAssignment: PropTypes.func.isRequired,
-    onLoadUnreturnedCount: PropTypes.func,
     onOpenUngrouped: PropTypes.func.isRequired,
     onSelectGroup: PropTypes.func.isRequired,
     onShowEvaluation: PropTypes.func,

@@ -6,7 +6,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
 import { summarizeAssignmentRow } from '../lib/classroom-assignment-utils.js';
-import { countUnreturned } from '../lib/classroom-class-list-summary.js';
 import { lessonClearedCount } from '../lib/classroom-lesson-summary.js';
 import { findCourse } from '../lib/lessons/courses.js';
 import translateError from './classroom-error-utils.js';
@@ -532,26 +531,6 @@ const useTeacherClassrooms = ({
         [idToken, handleTeacher401],
     );
 
-    // 「確認が必要な課題」（クラス一覧・#1959）: 返却していない提出の数。取れないときは null
-    // （帯からその課題を外すだけで、一覧の表示は止めない）。
-    const loadUnreturnedCount = useCallback(
-        async (classroomId) => {
-            try {
-                return countUnreturned(await classroomAPI.listSubmissions(idToken, classroomId));
-            } catch (err) {
-                if (err.status !== 401) return null;
-                const newToken = await handleTeacher401();
-                return newToken
-                    ? classroomAPI
-                          .listSubmissions(newToken, classroomId)
-                          .then(countUnreturned)
-                          .catch(() => null)
-                    : null;
-            }
-        },
-        [idToken, handleTeacher401],
-    );
-
     const handleUpdateAssignmentMeta = useCallback(
         async (classroomId, updates) => {
             if (!idToken) return;
@@ -732,7 +711,6 @@ const useTeacherClassrooms = ({
         markClassroomCreated,
         handleUpdateAssignmentMeta,
         loadAssignmentSummary,
-        loadUnreturnedCount,
         handleUpdateAssignmentName,
         handleUpdateStudentCount,
         handleApproveKickRequest,

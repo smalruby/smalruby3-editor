@@ -15,6 +15,7 @@ import { formatClassLabel } from '../../lib/classroom-class-label.js';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
+import ErrorDisplay from './error-display.jsx';
 
 const messages = defineMessages({
     archiveConfirmTitle: {
@@ -72,19 +73,21 @@ const yearSectionLine = (intl, group) => {
  * Small confirmation over the class list before archiving a class from its ⋮ menu. The
  * archive can be undone from 「アーカイブ済みのクラス」, so the colors stay neutral (R4).
  * @param {object} props - component props
+ * @param {string} props.error - error of the last request (a failed archive is shown here)
+ * @param {string} props.errorTitle - title of that error
  * @param {object} props.group - the class to archive
  * @param {boolean} props.isLoading - whether a request is in flight
  * @param {Function} props.onCancel - keeps the class
  * @param {Function} props.onConfirm - archives the class
  * @returns {React.ReactElement} the dialog
  */
-const ArchiveClassDialog = ({ group, isLoading, onCancel, onConfirm }) => {
+const ArchiveClassDialog = ({ error, errorTitle, group, isLoading, onCancel, onConfirm }) => {
     const intl = useIntl();
     const handleKeyDown = useCallback(
         (e) => {
-            if (e.key === 'Escape') onCancel();
+            if (e.key === 'Escape' && !isLoading) onCancel();
         },
-        [onCancel],
+        [isLoading, onCancel],
     );
     return (
         <div className={styles.createClassBackdrop}>
@@ -108,6 +111,7 @@ const ArchiveClassDialog = ({ group, isLoading, onCancel, onConfirm }) => {
                         id="gui.classroom.classList.archiveConfirmNote"
                     />
                 </p>
+                <ErrorDisplay error={error} errorTitle={errorTitle} />
                 <div className={styles.createClassButtons}>
                     <ClassroomButton
                         autoFocus
@@ -140,6 +144,8 @@ const ArchiveClassDialog = ({ group, isLoading, onCancel, onConfirm }) => {
 };
 
 ArchiveClassDialog.propTypes = {
+    error: PropTypes.string,
+    errorTitle: PropTypes.string,
     group: PropTypes.object.isRequired,
     isLoading: PropTypes.bool,
     onCancel: PropTypes.func.isRequired,

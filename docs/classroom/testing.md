@@ -390,10 +390,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-archive-dialog` | div (`role="dialog"`) | カードの ⋮ からのアーカイブの確認（Esc で閉じる） |
 | `classroom-class-archive-confirm-message` | p | その確認の説明 |
 | `classroom-class-archive-cancel` / `classroom-class-archive-confirm` | button | その確認の［アーカイブしない］（開いたときにフォーカス）/［アーカイブする］ |
-| `classroom-review-band` | section | 「確認が必要な課題」の帯（最近の授業日の課題が無いとき・採点が使えないときは出ない） |
+| `classroom-review-band` | section | 「確認が必要な課題」の帯（課題の一覧に `unreturnedCount` が無いとき（古い API）・課題が無いときは出ない） |
 | `classroom-review-item-{classroomId}` | li | 帯の 1 件（クラス名・課題名・「返却していない {数}」） |
-| `classroom-review-open-{classroomId}` | button | 帯の［採点を開く］（そのクラスの採点の画面） |
-| `classroom-review-none` | span | 帯の「最近の授業の提出は、すべて返却しました。」 |
+| `classroom-review-open-{classroomId}` | button | 帯の［開く］（その課題の詳細を［メンバー］で開く＝返却する画面） |
+| `classroom-review-none` | span | 帯の「返却していない提出はありません。」（全部の課題の数がそろって 0 のときだけ） |
 | `classroom-class-list` | ul | クラス一覧（カード 4 列。クラスが 0 件のときは出ない） |
 | `classroom-class-list-scroll` | div | カードの一覧の枠（9 クラス目からこの枠の中だけがスクロールする） |
 | `classroom-class-list-empty` | p | クラス一覧の空メッセージ |

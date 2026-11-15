@@ -4,9 +4,11 @@
 //
 // Scenarios:
 //   eight     8 classes: every card is on screen (4 x 2), the 「確認が必要な課題」 band shows the
-//             assignments with submissions not returned, the main button is visible and the
+//             assignments with submissions not returned (`unreturnedCount` of GET /classrooms,
+//             #1972), ［開く］ opens the assignment's members, the main button is visible and the
 //             page / body do not scroll (R6). Takes the docs screenshot 0210 with DOCS_SHOTS=1.
 //   many      11 classes: only the card frame scrolls.
+//   oldapi    GET /classrooms without `unreturnedCount` (before #1972): no band.
 //   empty     no class: the empty message.
 //   archived  「アーカイブ済みのクラス」 switches to the archived cards with ［元に戻す］ (docs 0216),
 //             and ⋮ › アーカイブ on a card asks first (docs 0230).
@@ -107,16 +109,8 @@ const makeClassrooms = (groups) => {
     });
     return list;
 };
-// Submissions: c1a has 12 not returned, c2a 25, the others are all returned.
-const submissionsFor = (classroomId) => {
-    const unreturned = { c1a: 12, c2a: 25 }[classroomId] || 0;
-    return Array.from({ length: Math.max(unreturned, 4) }, (_, i) => ({
-        submissionId: `${classroomId}-s${i}`,
-        memberId: `seat-${String(i + 1).padStart(2, '0')}`,
-        status: i < unreturned ? 'submitted' : 'returned',
-        submittedAt: iso(now - DAY),
-    }));
-};
+// unreturnedCount (#1972): c1a has 12 not returned, c2a 25, the others are all returned.
+const withCounts = (classrooms) => classrooms.map((c) => ({ ...c, unreturnedCount: { c1a: 12, c2a: 25 }[c.classroomId] || 0 }));
 
 const results = [];
 const record = (name, ok, detail) => {
@@ -135,10 +129,15 @@ await page.route('**/classroom-groups', (r) => r.fulfill({ json: { groups: state
 await page.route('**/classroom-groups/migrate', (r) => r.fulfill({ json: { migrated: 0 } }));
 await page.route('**/classrooms?**', (r) => r.fulfill({ json: { classrooms: state.classrooms } }));
 await page.route(/\/classrooms$/, (r) => r.fulfill({ json: { classrooms: state.classrooms } }));
-await page.route(/\/classrooms\/[^/]+\/submissions$/, (r) => {
-    const id = r.request().url().match(/classrooms\/([^/]+)\/submissions$/)[1];
-    return r.fulfill({ json: { submissions: submissionsFor(id) } });
+// The assignment detail opened from the band.
+await page.route(/\/classrooms\/[^/?]+$/, (r) => {
+    const id = r.request().url().match(/classrooms\/([^/?]+)$/)[1];
+    return r.fulfill({ json: state.classrooms.find((c) => c.classroomId === id) || {} });
 });
+await page.route(/\/classrooms\/[^/]+\/members$/, (r) => r.fulfill({ json: { members: [] } }));
+await page.route(/\/classrooms\/[^/]+\/submissions$/, (r) => r.fulfill({ json: { submissions: [] } }));
+await page.route(/\/classrooms\/[^/]+\/kick-requests$/, (r) => r.fulfill({ json: { requests: [] } }));
+await page.route(/\/classrooms\/[^/]+\/assignment$/, (r) => r.fulfill({ json: { assignment: null } }));
 
 const tid = (id) => `[data-testid="${id}"]`;
 const shot = async (name, docsName) => {
@@ -197,7 +196,7 @@ const r6Detail = (m) =>
 try {
     // eight
     const eight = makeGroups(8);
-    await openList({ groups: eight, classrooms: makeClassrooms(eight) });
+    await openList({ groups: eight, classrooms: withCounts(makeClassrooms(eight)) });
     await page.waitForSelector(tid('classroom-review-item-c1a'), { timeout: 10000 });
     let m = await measure();
     const expectedTitle = 'クラス';
@@ -214,15 +213,25 @@ try {
     record('class colors', new Set(bandColors).size === 8, bandColors.join(' '));
     await shot('eight', '0210-teacher-class-list.png');
 
-    // ［採点を開く］ opens grading of that class.
+    // ［開く］ opens the assignment on its members (where submissions are returned).
     await page.locator(tid('classroom-review-open-c2a')).click();
-    await page.waitForTimeout(800);
-    const grading = await page.evaluate(() => !!document.querySelector('[data-testid="classroom-phase-teacher-evaluation"]'));
-    record('open grading from the band', grading, `evaluation=${grading}`);
+    await page.waitForSelector(tid('classroom-phase-teacher-detail'), { timeout: 10000 }).catch(() => {});
+    const opened = await page.evaluate(() => ({
+        detail: !!document.querySelector('[data-testid="classroom-phase-teacher-detail"]'),
+        members: document.querySelector('[data-testid="classroom-tab-members"]')?.getAttribute('aria-selected') ||
+            document.querySelector('[data-testid="classroom-tab-members"]')?.className || '',
+    }));
+    record('open the assignment from the band', opened.detail, JSON.stringify(opened));
+
+    // oldapi
+    await openList({ groups: eight, classrooms: makeClassrooms(eight) });
+    const oldBand = await page.evaluate(() => !!document.querySelector('[data-testid="classroom-review-band"]'));
+    m = await measure();
+    record('older API: no band', !oldBand && r6(m) && m.visible === 8, `band=${oldBand} ${r6Detail(m)}`);
 
     // many
     const many = makeGroups(11);
-    await openList({ groups: many, classrooms: makeClassrooms(many) });
+    await openList({ groups: many, classrooms: withCounts(makeClassrooms(many)) });
     m = await measure();
     record('eleven classes: only the card frame scrolls', r6(m) && m.cards === 11 && m.frameScrolls, r6Detail(m));
     await shot('many');
@@ -236,7 +245,7 @@ try {
 
     // archived
     const withArchived = makeGroups(5).map((g, i) => (i >= 3 ? { ...g, status: 'archived' } : g));
-    await openList({ groups: withArchived, classrooms: makeClassrooms(withArchived) });
+    await openList({ groups: withArchived, classrooms: withCounts(makeClassrooms(withArchived)) });
     await page.locator(tid('classroom-show-archived')).click();
     await page.waitForTimeout(300);
     const arch = await page.evaluate(() => ({
@@ -271,7 +280,7 @@ try {
 
     // long
     const long = makeGroups(8, { long: true });
-    await openList({ groups: long, classrooms: makeClassrooms(long) });
+    await openList({ groups: long, classrooms: withCounts(makeClassrooms(long)) });
     m = await measure();
     const cut = await page.evaluate(() => {
         const name = document.querySelector('[data-testid="classroom-class-band-g1"] span');
