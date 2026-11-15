@@ -1152,17 +1152,17 @@ describe('chat course lesson 1 "手順を図にしよう" (#1641)', () => {
     const CHAT_L1 = ['chat-l1-sequence', 'chat-l1-repeat', 'chat-l1-branch', 'chat-l1-read-diagram'];
     const challenge = (id) => findChallenge(id).challenge;
 
-    test('the course "チャットをつくろう" is the second blocks course and has the lesson 1 with 4 challenges', () => {
+    test('the course "チャットをつくろう" is the second blocks course and its lesson 1 has 4 challenges', () => {
         const course = findCourse('chat-wo-tsukurou');
         expect(COURSES[1]).toBe(course);
         expect(course.language).toBe(LANGUAGES.BLOCKS);
         expect(ja[course.name.id]).toBe('チャットをつくろう');
-        expect(course.lessons.map((l) => l.id)).toEqual(['chat-l1']);
+        expect(course.lessons.map((l) => l.id)).toEqual(['chat-l1', 'chat-l2']);
         const lesson = findLesson('chat-l1');
         expect(ja[lesson.name.id]).toBe('手順を図にしよう');
         expect(lesson.allowDnclMode).toBe(false);
         expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(CHAT_L1.map((id, i) => `${i + 1} ${id}`));
-        expect(courseSize(course)).toEqual({ lessonCount: 1, challengeCount: 4 });
+        expect(courseSize(course)).toEqual({ lessonCount: 2, challengeCount: 7 });
     });
 
     test('every challenge starts with Shimaraby instead of the cat, shows the diagram and has a quiz', () => {
@@ -1256,6 +1256,120 @@ describe('chat course lesson 1 "手順を図にしよう" (#1641)', () => {
             'シマラビのメッセージ',
             'shimaraby_message',
         ]);
+    });
+});
+
+// コース「チャットをつくろう」のレッスン 2「データとイベント」（#1642）
+describe('chat course lesson 2 "データとイベント" (#1642)', () => {
+    const CHAT_L2 = ['chat-l2-omikuji', 'chat-l2-timer', 'chat-l2-janken'];
+    const challenge = (id) => findChallenge(id).challenge;
+
+    test('the lesson 2 has the 3 challenges in order', () => {
+        const lesson = findLesson('chat-l2');
+        expect(findCourse('chat-wo-tsukurou').lessons[1]).toBe(lesson);
+        expect(ja[lesson.name.id]).toBe('データとイベント');
+        expect(en[lesson.name.id]).toBe('Data and Events');
+        expect(lesson.allowDnclMode).toBe(false);
+        expect(lesson.challenges.map((c) => `${c.number} ${c.id}`)).toEqual(CHAT_L2.map((id, i) => `${i + 1} ${id}`));
+    });
+
+    test('every challenge starts with Shimaraby, shows the diagram and has a quiz', () => {
+        CHAT_L2.map(challenge).forEach((c) => {
+            expect({ id: c.id, sprites: c.setup.sprites }).toEqual({ id: c.id, sprites: ['Shimaraby'] });
+            expect({ id: c.id, diagram: c.activityDiagram }).toEqual({ id: c.id, diagram: true });
+            expect({ id: c.id, errors: validateQuiz(c.quiz) }).toEqual({ id: c.id, errors: [] });
+            expect({ id: c.id, errors: validateGoal(c.goal) }).toEqual({ id: c.id, errors: [] });
+            expect(c.partner).toBeNull();
+            expect(isReadDiagram(c)).toBe(false);
+        });
+        expect(CHAT_L2.map((id) => ja[challenge(id).quiz.choices[challenge(id).quiz.answer].id])).toEqual([
+            '3 回に 1 回',
+            '使う時間を自分で制御できなくなる',
+            '値を入れておき、あとで比べるのに使う',
+        ]);
+    });
+
+    test('the palettes are the spec', () => {
+        expect(allowedOpcodes(challenge('chat-l2-omikuji'))).toEqual({
+            event: ['event_whenthisspriteclicked'],
+            data: ['data_setvariableto', 'data_variable'],
+            operators: ['operator_random', 'operator_equals'],
+            control: ['control_if_else'],
+            looks: ['looks_sayforsecs'],
+        });
+        expect(allowedOpcodes(challenge('chat-l2-timer'))).toEqual({
+            event: ['event_whenflagclicked'],
+            sensing: ['sensing_resettimer', 'sensing_timer'],
+            control: ['control_wait_until'],
+            operators: ['operator_gt'],
+            looks: ['looks_say'],
+        });
+        expect(allowedOpcodes(challenge('chat-l2-janken'))).toEqual({
+            event: ['event_whenthisspriteclicked'],
+            sensing: ['sensing_askandwait', 'sensing_answer'],
+            data: ['data_setvariableto', 'data_variable'],
+            operators: ['operator_random', 'operator_equals'],
+            control: ['control_if_else'],
+            looks: ['looks_sayforsecs'],
+        });
+    });
+
+    test('the ja-Hira strings and code of lesson 2 have no kanji', () => {
+        Object.keys(jaHira)
+            .filter((id) => /^gui\.lessons\.(lesson\.chat-l2|challenge\.chat-l2-)/.test(id))
+            .forEach((id) =>
+                expect({ id, text: jaHira[id] }).not.toEqual({ id, text: expect.stringMatching(/\p{Script=Han}/u) }),
+            );
+        CHAT_L2.forEach((id) => {
+            const c = challenge(id);
+            expect(localizeCode(c.code, 'ja-Hira')).not.toMatch(/\p{Script=Han}/u);
+            c.steps.forEach((step) =>
+                expect(localizeCode(step.blocks, 'ja-Hira') || '').not.toMatch(/\p{Script=Han}/u),
+            );
+        });
+    });
+
+    test('the task of the timer says 600 seconds for the real one and the code waits 10 seconds', () => {
+        const c = challenge('chat-l2-timer');
+        expect(ja[c.task.id]).toMatch(/600 秒/);
+        expect(jaHira[c.task.id]).toMatch(/600 びょう/);
+        expect(en[c.task.id]).toMatch(/600 seconds/);
+        ['ja', 'ja-Hira', 'en'].forEach((locale) =>
+            expect(localizeCode(c.code, locale)).toContain('wait until timer.value > 10'),
+        );
+    });
+
+    test.each(['ja', 'ja-Hira', 'en'])(
+        'the code (%s) uses the names the task and hints of that locale write',
+        (locale) => {
+            const names = {
+                ja: { kuji: '$くじ', te: '$手' },
+                'ja-Hira': { kuji: '$くじ', te: '$て' },
+                en: { kuji: '$fortune', te: '$hand' },
+            }[locale];
+            expect(localizeCode(challenge('chat-l2-omikuji').code, locale)).toContain(`${names.kuji} = rand(1..3)`);
+            expect(localizeCode(challenge('chat-l2-janken').code, locale)).toContain(`${names.te} = rand(0..2)`);
+            const messages = LOCALES[locale];
+            expect(messages[challenge('chat-l2-omikuji').task.id]).toContain(names.kuji.slice(1));
+            expect(messages[challenge('chat-l2-janken').task.id]).toContain(names.te.slice(1));
+        },
+    );
+
+    test('the goals accept the words and names the code of every locale uses', () => {
+        const [, great, small] = challenge('chat-l2-omikuji').goal;
+        ['大吉', 'だいきち', 'Great luck'].forEach((text) => expect(great.text.test(text)).toBe(true));
+        ['小吉', 'しょうきち', 'Small luck'].forEach((text) => expect(small.text.test(text)).toBe(true));
+        expect(great.variable.name).toEqual(['くじ', 'fortune']);
+        const timeUp = challenge('chat-l2-timer').goal[1];
+        ['10秒たったよ', '10びょう たったよ', '10 seconds passed'].forEach((text) =>
+            expect(timeUp.text.test(text)).toBe(true),
+        );
+        const [, tie, noTie] = challenge('chat-l2-janken').goal;
+        ['あいこ', 'Tie'].forEach((text) => expect(tie.text.test(text)).toBe(true));
+        ['勝負あり', 'しょうぶあり', 'No tie'].forEach((text) => expect(noTie.text.test(text)).toBe(true));
+        // 「あいこ」と「勝負あり」は取りちがえない（en の "No tie" は "Tie" の条件に入らない）
+        expect(tie.text.test('No tie')).toBe(false);
+        expect(tie.variable.name).toEqual(['手', 'て', 'hand']);
     });
 });
 

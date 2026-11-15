@@ -180,6 +180,26 @@ const OPERATIONS = {
         await answer('hello');
         await answer(end);
     },
+    // レッスン 2（#1642）。乱数を決めて、課題の両方の場合（大吉と小吉・あいこと勝負あり）を出す
+    'chat-l2-omikuji': async ({ click, randoms }) => {
+        randoms([1, 2]);
+        await click(); // くじ = 1 → 大吉
+        await sleep(2200);
+        await click(); // くじ = 2 → 小吉
+    },
+    // タイマーは本当に 10 秒待つ（課題の全文の「本当なら 600 秒」は試しやすいように 10 秒にしてある）
+    'chat-l2-timer': async ({ vm }) => {
+        vm.greenFlag();
+        await sleep(10600);
+    },
+    'chat-l2-janken': async ({ click, answer, randoms }) => {
+        randoms([0, 1]);
+        await click();
+        await answer('0'); // 手 = 0 → あいこ
+        await sleep(2200);
+        await click();
+        await answer('0'); // 手 = 1 → 勝負あり
+    },
 };
 
 // ステージのプログラムのチャレンジ 4 は 1 秒の待ちが 6 回ある
@@ -231,6 +251,17 @@ const prepareRun = async (id, locale, codeOverride = null) => {
         cat,
         stage,
         isSatisfied: () => satisfied,
+        // 「乱数」ブロックが返す数を、決めた数のくり返しにする（Math.random はほかでも呼ばれるので、ブロックの
+        // 関数を差しかえる。見張りは差しかえた関数も包むので、引数 FROM / TO は記録される）
+        randoms: (values) => {
+            let i = 0;
+            vm.runtime._primitives.operator_random = () => {
+                const value = values[i % values.length];
+                i += 1;
+                return value;
+            };
+            vm.runtime.targets.forEach((target) => target.blocks.resetCache());
+        },
         touch: (value) => {
             touching = value;
         },
@@ -281,7 +312,8 @@ describe('the code of every locale satisfies the goal when run in a new project 
             await OPERATIONS[id](run.ctx);
             expect(await until(run.isSatisfied, WAIT_FOR_GOAL_MS)).toBe(true);
         },
-        20000,
+        // レッスン 2 のタイマーは 10 秒待つ
+        30000,
     );
 });
 
@@ -348,6 +380,102 @@ describe('the chat lesson 1 goals are not met by programs that skip the task (#1
     test.each(CHEATS)(
         '%s',
         async (id, code, operation) => {
+            const run = await prepareRun(id, 'ja', code);
+            vm = run.vm;
+            await operation(run.ctx);
+            expect(await until(run.isSatisfied, 1500)).toBe(false);
+        },
+        20000,
+    );
+});
+
+// 「チャットをつくろう」レッスン 2（#1642）の goal が、課題をやっていないプログラム（ずる）では満たされないこと。
+// 乱数を決めて、ずるのプログラムでも「大吉と小吉」「あいこと勝負あり」の両方を言う場面を作る
+const CHEATS_L2 = [
+    // 2-1: 分岐を使わずに、押すたびに大吉と小吉の両方を言う（くじが 1 のときに大吉、2 のときに小吉は言っている）
+    [
+        'chat-l2-omikuji (both lines without the branch)',
+        'chat-l2-omikuji',
+        'when_clicked do\n  $くじ = rand(1..3)\n  say("大吉", 2)\n  say("小吉", 2)\nend\n',
+        async ({ click, randoms }) => {
+            randoms([1, 2]);
+            await click();
+            await sleep(4200);
+            await click();
+            await sleep(4200);
+        },
+    ],
+    // 2-1: くじを見ずに、別の乱数で分ける（くじに入れた数と、言ったことが合わない）
+    [
+        'chat-l2-omikuji (branch on another random number, not on くじ)',
+        'chat-l2-omikuji',
+        'when_clicked do\n  $くじ = rand(1..3)\n  if rand(1..3) == 1\n    say("大吉", 2)\n  else\n' +
+            '    say("小吉", 2)\n  end\nend\n',
+        async ({ click, randoms }) => {
+            // 押すたびに (くじ, 条件の乱数) = (1, 2) (3, 1) (2, 3) (1, 2)
+            randoms([1, 2, 3]);
+            for (let i = 0; i < 4; i += 1) {
+                await click();
+                await sleep(2200);
+            }
+        },
+    ],
+    // 2-2: 10 秒より前に終わる条件で待つ
+    [
+        'chat-l2-timer (waits until the timer is greater than 1)',
+        'chat-l2-timer',
+        'when_flag_clicked do\n  timer.reset\n  wait until timer.value > 1\n  say("10秒たったよ")\nend\n',
+        async ({ vm }) => {
+            vm.greenFlag();
+            await sleep(1600);
+        },
+    ],
+    // 2-3: 分岐を使わずに、あいこと勝負ありの両方を言う
+    [
+        'chat-l2-janken (both lines without the branch)',
+        'chat-l2-janken',
+        'when_clicked do\n  ask("0:グー 1:チョキ 2:パー")\n  $手 = rand(0..2)\n  say("あいこ", 2)\n' +
+            '  say("勝負あり", 2)\nend\n',
+        async ({ click, answer, randoms }) => {
+            randoms([0, 1]);
+            await click();
+            await answer('0');
+            await sleep(4200);
+            await click();
+            await answer('0');
+            await sleep(4200);
+        },
+    ],
+    // 2-3: 答えをコンピューターの手ではなく、決まった数（0）と比べる
+    [
+        'chat-l2-janken (compares the answer with 0, not with 手)',
+        'chat-l2-janken',
+        'when_clicked do\n  ask("0:グー 1:チョキ 2:パー")\n  $手 = rand(0..2)\n  if answer == 0\n' +
+            '    say("あいこ", 2)\n  else\n    say("勝負あり", 2)\n  end\nend\n',
+        async ({ click, answer, randoms }) => {
+            // 手はいつも 1
+            randoms([1]);
+            await click();
+            await answer('0'); // 手とちがうのに「あいこ」
+            await sleep(2200);
+            await click();
+            await answer('1'); // 手と同じなのに「勝負あり」
+            await sleep(2200);
+        },
+    ],
+];
+
+describe('the chat lesson 2 goals are not met by programs that skip the task (#1642)', () => {
+    let vm;
+
+    afterEach(() => {
+        quitVm(vm);
+        vm = null;
+    });
+
+    test.each(CHEATS_L2)(
+        '%s',
+        async (_name, id, code, operation) => {
             const run = await prepareRun(id, 'ja', code);
             vm = run.vm;
             await operation(run.ctx);

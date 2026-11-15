@@ -274,6 +274,16 @@ const variableNames = (name) => (Array.isArray(name) ? name : [name]);
 const isVariableName = (name) =>
     typeof name === 'string' || (Array.isArray(name) && name.length > 0 && name.every((n) => typeof n === 'string'));
 
+// said の `variable`: 言った時点の変数の値が条件に合うか。`equalsAnswer` が true なら最後の答えと同じ、
+// false なら最後の答えとちがう（どちらも、まだ答えていなければ合わない）。「1 なら大吉」「同じならあいこ」のように、
+// 分岐で言い分けたこと（言ったときの変数の値）を見るため（#1642）
+const saidVariableMatches = (spec, value, answer) => {
+    if (!matchValue(spec.value, value)) return false;
+    if (isUnset(spec.equalsAnswer)) return true;
+    if (isUnset(answer)) return false;
+    return (compareValues(value, answer) === 0) === spec.equalsAnswer;
+};
+
 const evaluateSaid = (condition, facts) =>
     facts.says.some((say) => {
         if (condition.target === 'stage' && !say.isStage) return false;
@@ -290,6 +300,14 @@ const evaluateSaid = (condition, facts) =>
         }
         if (!isUnset(condition.answer)) {
             if (isUnset(say.answer) || !matchValue(condition.answer, say.answer)) return false;
+        }
+        if (!isUnset(condition.variable)) {
+            const names = variableNames(condition.variable.name).filter((name) =>
+                Object.prototype.hasOwnProperty.call(say.variables, name),
+            );
+            if (!names.some((name) => saidVariableMatches(condition.variable, say.variables[name], say.answer))) {
+                return false;
+            }
         }
         return true;
     });
@@ -456,12 +474,24 @@ export const validateGoal = (goal) => {
                     isUnset(condition.text) &&
                     !condition.equalsAnswer &&
                     isUnset(condition.equalsVariable) &&
-                    isUnset(condition.answer)
+                    isUnset(condition.answer) &&
+                    isUnset(condition.variable)
                 ) {
-                    errors.push(`${at}: said needs text, equalsAnswer, equalsVariable or answer`);
+                    errors.push(`${at}: said needs text, equalsAnswer, equalsVariable, answer or variable`);
                 }
                 if (!isUnset(condition.equalsVariable) && !isVariableName(condition.equalsVariable)) {
                     errors.push(`${at}: said.equalsVariable must be a variable name or an array of names`);
+                }
+                if (!isUnset(condition.variable)) {
+                    const spec = condition.variable;
+                    if (typeof spec !== 'object' || !isVariableName(spec.name)) {
+                        errors.push(`${at}: said.variable needs a variable name or an array of names`);
+                    } else {
+                        if (!isMatcher(spec.value)) errors.push(`${at}: said.variable.value must be a matcher`);
+                        if (!isUnset(spec.equalsAnswer) && typeof spec.equalsAnswer !== 'boolean') {
+                            errors.push(`${at}: said.variable.equalsAnswer must be true or false`);
+                        }
+                    }
                 }
                 break;
             case 'variable':
