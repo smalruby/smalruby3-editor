@@ -229,6 +229,50 @@ describe('useTeacherEvaluation — 離れたら途中の処理を止める (#195
         expect(hook.result.current.evalProgress).toBeNull();
     });
 
+    test('返却の途中で離れると残りは返却せず、入り直した表にはサーバーが返却済みとした分が出る', async () => {
+        const { hook } = await setup();
+        await act(async () => {
+            await hook.result.current.handleRunAi('comment');
+        });
+        // 1 人目は返却でき、2 人目の返却の答えを待っている間に離れる
+        const second = deferred();
+        mockUpdateSubmission.mockResolvedValueOnce({}).mockImplementationOnce(() => second.promise);
+        let returning;
+        await act(async () => {
+            returning = hook.result.current.handleReturnComments();
+        });
+        await act(async () => {
+            hook.result.current.handleBackFromEvaluation();
+        });
+        await act(async () => {
+            hook.result.current.handleShowEvaluation(group);
+        });
+        await act(async () => {
+            second.resolve({});
+            await returning;
+        });
+        // 残りの 10 人は返却しない。入り直した（まだ読み込んでいない）表にも書き込まない
+        expect(mockUpdateSubmission).toHaveBeenCalledTimes(2);
+        expect(hook.result.current.matrix).toEqual({});
+        expect(hook.result.current.evalProgress).toBeNull();
+
+        // 読み込むと、サーバーの状態（返却済みの 2 人）がそのまま出る
+        const all = submissionsOf(12);
+        mockListSubmissions.mockResolvedValueOnce({
+            submissions: all.map((s, i) =>
+                i < 2 ? { ...s, status: 'returned', teacherComment: `new ${i + 1}` } : s,
+            ),
+        });
+        await act(async () => {
+            await hook.result.current.handleLoadSubmissions();
+        });
+        const cell = (seat) => hook.result.current.getCell(seat, 'c1');
+        expect(cell(1)).toMatchObject({ returned: true, returnedComment: 'new 1' });
+        expect(cell(2)).toMatchObject({ returned: true, returnedComment: 'new 2' });
+        expect(cell(3)).toMatchObject({ returned: false, returnedComment: null });
+        expect(hook.result.current.seats).toHaveLength(12);
+    });
+
     test('離れずに最後まで走れば、2 回に分けた結果がどちらも入る', async () => {
         const { hook } = await setup();
         await act(async () => {

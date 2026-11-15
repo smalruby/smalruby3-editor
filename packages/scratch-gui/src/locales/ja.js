@@ -163,7 +163,7 @@ export default {
     'gui.classroom.evaluation.askBack': '戻りますか？',
     'gui.classroom.evaluation.askLeave': 'この画面を離れますか？',
     'gui.classroom.evaluation.askReload': '読み込み直しますか？',
-    'gui.classroom.evaluation.leaveBusy': 'AI の処理の途中です。',
+    'gui.classroom.evaluation.leaveBusy': 'AI の処理の途中です。離れると、そこで止まります。',
     'gui.classroom.evaluation.leaveCancel': '採点を続ける',
     'gui.classroom.evaluation.leaveExport': '採点結果を書き出す',
     'gui.classroom.evaluation.leaveConfirmYes': '戻る',
