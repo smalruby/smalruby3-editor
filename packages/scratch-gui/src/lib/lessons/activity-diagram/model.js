@@ -7,7 +7,7 @@
 //   {lanes: [{id, label, targets: [{name, scripts: [{start, receive, body}]}]}]}
 //   start = 帽子のブロックの文（帽子が無いスクリプトは null）。receive = 「〜を受け取ったとき」なら合図の名前
 //   （図では開始の黒丸の代わりに受信の記号で始める）、ほかは null。body = 記号の並び:
-//     {kind: 'action', label}
+//     {kind: 'action', label, stops?}                  （stops: すべて・このスクリプトを止める。そこで終わる）
 //     {kind: 'send', label, message}                    （〜を送る・〜を送って待つ。message は合図の名前か null）
 //     {kind: 'decision', label, yesGuard, noGuard, yes: [...], no: [...]}
 //         （もし〜なら・もし〜なら〜でなければ。ガードは枝に書く「[条件]」。合流は描く側が足す）
@@ -29,7 +29,19 @@ export const NODE_KINDS = Object.freeze({
 const SEND_OPCODES = {
     event_broadcast: 'BROADCAST_INPUT',
     event_broadcastandwait: 'BROADCAST_INPUT',
+    // メッシュの値つきで送る（develop の scratch3_mesh_v2 の broadcastWithValue）
+    meshV2_broadcastWithValue: 'BROADCAST_INPUT',
 };
+
+// 「止める」のうち、そのスクリプトが終わるもの（すべて・このスクリプト）。そのあとに終了を描かない
+const STOPS_SCRIPT = ['all', 'this script'];
+
+/**
+ * 合図の名前を照らし合わせるためのキー。Scratch と同じく大文字と小文字を区別しない。
+ * @param {string} name - 合図の名前。
+ * @returns {string} キー。
+ */
+export const messageKey = (name) => String(name).toLowerCase();
 
 // 合図の名前（▼のメニューで選んだもの）。穴に式を入れたときは名前が決まらないので null
 const messageOf = (blocks, block, inputName) => {
@@ -124,7 +136,12 @@ const nodeOf = (l, blocks, id, seen) => {
             message: messageOf(blocks, block, SEND_OPCODES[block.opcode]),
         };
     }
-    return { kind: NODE_KINDS.ACTION, label: l.statement(blocks, id) };
+    const stops =
+        block.opcode === 'control_stop' &&
+        block.fields &&
+        block.fields.STOP_OPTION &&
+        STOPS_SCRIPT.includes(block.fields.STOP_OPTION.value);
+    return { kind: NODE_KINDS.ACTION, label: l.statement(blocks, id), ...(stops ? { stops: true } : {}) };
 };
 
 // 「〜を受け取ったとき」の合図の名前（ほかの帽子は null）
@@ -239,43 +256,78 @@ export const partnerLane = (partner, { format, locale = null }) => {
     };
 };
 
-const describeNodes = (nodes, guards) =>
-    nodes
-        .map((node) => {
-            if (node.kind === NODE_KINDS.DECISION) {
-                const branch = (label, body) => `${label}: ${body.length > 0 ? describeNodes(body, guards) : '-'}`;
-                return `${node.label}（${branch(guards.yes, node.yes)} / ${branch(guards.no, node.no)}）`;
-            }
-            if (node.kind === NODE_KINDS.LOOP) {
-                return node.body.length > 0 ? `${node.label}（${describeNodes(node.body, guards)}）` : node.label;
-            }
-            return node.label;
-        })
-        .join(' → ');
+// レーンとスプライトの名前（スプライトが 2 つ以上のときだけスプライトの名前も書く）。図の見出しと同じ
+const targetTitle = (lane, target) =>
+    [lane.label, lane.targets.length > 1 ? target.name : null].filter(Boolean).join(' / ');
+
+const sentMessagesOf = (nodes) =>
+    nodes.flatMap((node) => {
+        if (node.kind === NODE_KINDS.SEND) return node.message === null ? [] : [node.message];
+        if (node.kind === NODE_KINDS.DECISION) return [...sentMessagesOf(node.yes), ...sentMessagesOf(node.no)];
+        if (node.kind === NODE_KINDS.LOOP) return sentMessagesOf(node.body);
+        return [];
+    });
 
 /**
  * 図の流れを文にする（スクリーンリーダー向けの代わりの文。SVG の `<desc>`）。スクリプトごとに 1 行で、
- * 「開始の文 → 処理 → …」。分岐は「条件（はい: … / いいえ: …）」、くり返しは「くり返しの文（…）」。
+ * 「開始の文 → 処理 → …」。分岐は「条件？（[条件]: … / [それ以外]: …）」と図と同じガードで、くり返しは
+ * 「くり返しの文（…）」。送信・受信には、ほかのスプライト・レーンの相手（図で矢印を引く相手）を書く。
  * レーンの名前と（スプライトが 2 つ以上なら）スプライトの名前を行の頭に書く。
  * @param {object} model - `buildActivityModel` の戻り値。
- * @param {object} guards - 分岐の文言 `{yes, no}`。
+ * @param {function(string, object=): string} format - 文言を引く関数（完全な id）。
  * @returns {string} 代わりの文（行は改行で区切る）。
  */
-export const describeActivityModel = (model, guards) =>
-    model.lanes
-        .flatMap((lane) =>
-            lane.targets.flatMap((target) =>
-                target.scripts.map((script) => {
-                    // スプライトの名前は、図と同じくスプライトが 2 つ以上のときだけ書く
-                    const head = [lane.label, lane.targets.length > 1 ? target.name : null]
-                        .filter(Boolean)
-                        .join(' / ');
-                    const steps = [script.start, describeNodes(script.body, guards)].filter(Boolean).join(' → ');
-                    return head ? `${head}: ${steps}` : steps;
-                }),
-            ),
+export const describeActivityModel = (model, format) => {
+    const f = (key, values) => format(`gui.lessons.activityDiagram.${key}`, values);
+    const targets = model.lanes.flatMap((lane) => lane.targets.map((target) => ({ lane, target })));
+    const receivers = new Map();
+    const senders = new Map();
+    const add = (map, message, index) => {
+        const key = messageKey(message);
+        if (!map.has(key)) map.set(key, []);
+        if (!map.get(key).includes(index)) map.get(key).push(index);
+    };
+    targets.forEach(({ target }, index) =>
+        target.scripts.forEach((script) => {
+            if (script.receive) add(receivers, script.receive, index);
+            sentMessagesOf(script.body).forEach((message) => add(senders, message, index));
+        }),
+    );
+    // 相手（同じスプライトは除く）の名前を並べる。いなければ null
+    const namesOf = (map, message, here) => {
+        const others = (map.get(messageKey(message)) || []).filter((index) => index !== here);
+        const names = others.map((index) => targetTitle(targets[index].lane, targets[index].target)).filter(Boolean);
+        return names.length > 0 ? names.join(f('nameSeparator')) : null;
+    };
+    const describeNodes = (nodes, here) =>
+        nodes
+            .map((node) => {
+                if (node.kind === NODE_KINDS.DECISION) {
+                    const branch = (guard, body) => `${guard}: ${body.length > 0 ? describeNodes(body, here) : '-'}`;
+                    return `${node.label}（${branch(node.yesGuard, node.yes)} / ${branch(node.noGuard, node.no)}）`;
+                }
+                if (node.kind === NODE_KINDS.LOOP) {
+                    return node.body.length > 0 ? `${node.label}（${describeNodes(node.body, here)}）` : node.label;
+                }
+                if (node.kind === NODE_KINDS.SEND && node.message !== null) {
+                    const names = namesOf(receivers, node.message, here);
+                    return names ? f('sendTo', { label: node.label, names }) : node.label;
+                }
+                return node.label;
+            })
+            .join(' → ');
+    return targets
+        .flatMap(({ lane, target }, here) =>
+            target.scripts.map((script) => {
+                const head = targetTitle(lane, target);
+                const names = script.receive ? namesOf(senders, script.receive, here) : null;
+                const start = names ? f('receiveFrom', { label: script.start, names }) : script.start;
+                const steps = [start, describeNodes(script.body, here)].filter(Boolean).join(' → ');
+                return head ? `${head}: ${steps}` : steps;
+            }),
         )
         .join('\n');
+};
 
 /**
  * モデルのスクリプトの数（0 なら図を描かない）。

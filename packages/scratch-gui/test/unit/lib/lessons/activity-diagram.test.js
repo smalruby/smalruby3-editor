@@ -296,6 +296,169 @@ const insideBox = (shape, layout) =>
     shape.x + shape.w <= layout.width + 0.01 &&
     shape.y + shape.h <= layout.height + 0.01;
 
+// 線分が、両はしの記号のほかの記号の内側を通るか（M3）。縦・横の線分だけ（置き方はそれしか作らない）。
+// 開始の黒丸は横の文まで含める。字（ガード・見出し）も記号として見る
+const crossings = (layout) => {
+    const rects = layout.shapes
+        .filter((s) => s.type !== DIAGRAM_SHAPES.LANE && s.type !== DIAGRAM_SHAPES.CAPTION)
+        .map((s) => {
+            if (s.type === DIAGRAM_SHAPES.START && s.lines && s.lines.length > 0) {
+                const label = Math.max(...s.lines.map((l) => Array.from(l).length)) * SMALL_FONT_SIZE;
+                return { s, x: s.x, y: s.y, w: s.w + 6 + label * 0.6, h: s.h };
+            }
+            return { s, x: s.x, y: s.y, w: s.w, h: s.h };
+        });
+    const near = ([px, py], r) =>
+        px >= r.x - 0.5 && px <= r.x + r.w + 0.5 && py >= r.y - 0.5 && py <= r.y + r.h + 0.5;
+    const hits = [];
+    layout.edges.forEach((edge, ei) => {
+        const ends = [edge.points[0], edge.points[edge.points.length - 1]];
+        rects
+            .filter((r) => !ends.some((p) => near(p, r)))
+            .forEach((r) => {
+                edge.points.slice(1).forEach((b, i) => {
+                    const a = edge.points[i];
+                    const inside =
+                        Math.max(a[0], b[0]) > r.x + 1 &&
+                        Math.min(a[0], b[0]) < r.x + r.w - 1 &&
+                        Math.max(a[1], b[1]) > r.y + 1 &&
+                        Math.min(a[1], b[1]) < r.y + r.h - 1;
+                    if (inside) hits.push(`edge ${ei}${edge.message ? ' (message)' : ''} × ${r.s.type} ${r.s.label}`);
+                });
+            });
+    });
+    return [...new Set(hits)];
+};
+
+const spritesModel = async (codes) =>
+    buildActivityModel(
+        {
+            lanes: [
+                {
+                    id: 'own',
+                    label: null,
+                    targets: await Promise.all(
+                        codes.map(async (code, i) => ({ name: `S${i}`, blocks: await toBlocks(code) })),
+                    ),
+                },
+            ],
+        },
+        { format: formatJa },
+    );
+
+describe('message arrows do not pass through any symbol (M3)', () => {
+    test.each([
+        [
+            'one send to two receivers on the right',
+            [
+                'when_flag_clicked do\n  broadcast("go")\nend\n',
+                'when_receive("go") do\n  say("b")\nend\n',
+                'when_receive("go") do\n  say("c")\nend\n',
+            ],
+            2,
+        ],
+        [
+            'an unrelated sprite between the send and the receive',
+            [
+                'when_flag_clicked do\n  broadcast("go")\nend\n',
+                'when_flag_clicked do\n  say("mid")\n  say("mid2")\nend\n',
+                'when_receive("go") do\n  say("c")\nend\n',
+            ],
+            1,
+        ],
+        [
+            'two senders on the same side',
+            [
+                'when_flag_clicked do\n  broadcast("x")\nend\n\nwhen_clicked do\n  broadcast("y")\nend\n',
+                'when_receive("x") do\n  say("1")\nend\n\nwhen_receive("y") do\n  say("2")\nend\n',
+            ],
+            2,
+        ],
+        [
+            'a sender in the middle (receivers on both sides)',
+            [
+                'when_receive("go") do\n  say("a")\nend\n',
+                'when_flag_clicked do\n  broadcast("go")\nend\n',
+                'when_receive("go") do\n  say("c")\nend\n',
+            ],
+            2,
+        ],
+        [
+            'a receiver with senders on both sides',
+            [
+                'when_flag_clicked do\n  broadcast("go")\nend\n',
+                'when_receive("go") do\n  say("b")\nend\n',
+                'when_clicked do\n  say("z")\n  say("z")\n  broadcast("go")\nend\n',
+            ],
+            2,
+        ],
+    ])('%s', async (name, codes, arrows) => {
+        const layout = layoutActivityDiagram(await spritesModel(codes));
+        const messages = layout.edges.filter((e) => e.message);
+        expect(messages).toHaveLength(arrows);
+        expect(crossings(layout)).toEqual([]);
+        // 矢印は送信の、相手のいる側の辺から出る
+        const sends = layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.SEND);
+        messages.forEach((edge) => {
+            const [[x0, y0], [x1]] = edge.points;
+            const send = sends.find((s) => Math.abs(s.y + s.h / 2 - y0) < 0.01 && (s.x === x0 || s.x + s.w === x0));
+            expect(send).toBeDefined();
+            expect(x0 === send.x ? x1 < x0 : x1 > x0).toBe(true);
+        });
+        layout.shapes.forEach((s) => expect(insideBox(s, layout)).toBe(true));
+    });
+
+    test('a send with receivers on both sides points both ways', async () => {
+        const layout = layoutActivityDiagram(
+            await spritesModel([
+                'when_receive("go") do\n  say("a")\nend\n',
+                'when_flag_clicked do\n  broadcast("go")\nend\n',
+                'when_receive("go") do\n  say("c")\nend\n',
+            ]),
+        );
+        expect(layout.shapes.find((s) => s.type === DIAGRAM_SHAPES.SEND).direction).toBe('both');
+        expect(layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.RECEIVE).map((s) => s.notch)).toEqual([
+            'right',
+            'left',
+        ]);
+    });
+
+    test('the chat answer with a partner has no crossings either', async () => {
+        const own = (
+            await modelOf(
+                'when_flag_clicked do\n  ask("メッセージを入力")\n  loop do\n    $メッセージ = answer\n' +
+                    '    broadcast("メッセージ")\n    ask($メッセージ)\n  end\nend\n\n' +
+                    'when_receive("へんじ") do\n  say(mesh.sensor_value("へんじ"))\nend\n',
+            )
+        ).lanes[0];
+        const partner = partnerLane(
+            {
+                name: 'ロボ',
+                buttons: [{ label: 'あいさつ', broadcast: 'へんじ' }],
+                replies: [
+                    { onBroadcast: 'メッセージ', set: { variable: 'へんじ', value: 'x' }, broadcast: 'へんじ' },
+                ],
+            },
+            { format: formatJa },
+        );
+        const layout = layoutActivityDiagram({ lanes: [{ ...own, label: 'あなた' }, partner] });
+        expect(layout.edges.filter((e) => e.message)).toHaveLength(3);
+        expect(crossings(layout)).toEqual([]);
+        // レーンの境目の線に重ねて通さない
+        const borders = layout.shapes
+            .filter((sh) => sh.type === DIAGRAM_SHAPES.LANE)
+            .flatMap((lane) => [lane.x, lane.x + lane.w]);
+        layout.edges
+            .filter((e) => e.message)
+            .forEach((e) =>
+                e.points.slice(1).forEach(([x, y], i) => {
+                    const [px, py] = e.points[i];
+                    if (px === x && py !== y) borders.forEach((b) => expect(Math.abs(x - b)).toBeGreaterThan(2));
+                }),
+            );
+    });
+});
+
 describe('layoutActivityDiagram', () => {
     test('places start, actions and end top to bottom, connected by arrows', async () => {
         const layout = layoutActivityDiagram(await modelOf('when_flag_clicked do\n  say("a")\n  say("b")\nend\n'));
@@ -535,7 +698,12 @@ describe('layoutActivityDiagram', () => {
         const bent = messages.find((e) => e.points.length === 4);
         expect(bent).toBeDefined();
         expect(owlSend.direction).toBe('left');
-        expect(receive.notch).toBe('left');
+        // 送り手が左（ネコ）と右（フクロウ）の両側にいるので、受信は両側がへこむ
+        expect(receive.notch).toBe('both');
+        // 矢印は、相手のいる側の辺から出て、相手のいる側の辺へ入る
+        const owlEdge = messages.find((e) => e.points[0][0] === owlSend.x);
+        expect(owlEdge.points[owlEdge.points.length - 1][0]).toBe(receive.x + receive.w - RECEIVE_NOTCH);
+        expect(crossings(layout)).toEqual([]);
     });
 
     test('target captions are drawn when the lane has programs of 2 or more sprites', async () => {
@@ -747,6 +915,78 @@ describe('more shapes', () => {
         expect(repeat.shapes.filter((s) => s.type === DIAGRAM_SHAPES.END)).toHaveLength(1);
     });
 
+    test('stop all / this script ends the script: no end symbol, and nothing drawn after it', async () => {
+        const script = onlyScript(await modelOf('when_flag_clicked do\n  say("a")\n  stop("all")\nend\n'));
+        expect(script.body[1]).toEqual({ kind: NODE_KINDS.ACTION, label: expect.any(String), stops: true });
+        const layout = layoutActivityDiagram(
+            await modelOf('when_flag_clicked do\n  say("a")\n  stop("this script")\nend\n'),
+        );
+        expect(layout.shapes.filter((s) => s.type === DIAGRAM_SHAPES.END)).toHaveLength(0);
+        // ほかのスクリプトを止めるだけなら、そのスクリプトは続く
+        const others = layoutActivityDiagram(
+            await modelOf('when_flag_clicked do\n  stop("other scripts in sprite")\nend\n'),
+        );
+        expect(others.shapes.filter((s) => s.type === DIAGRAM_SHAPES.END)).toHaveLength(1);
+    });
+
+    test('a branch that stops does not go to the merge; when both branches end, nothing follows', async () => {
+        const one = layoutActivityDiagram(
+            await modelOf(
+                'when_flag_clicked do\n  if touching?("_edge_")\n    stop("all")\n  end\n  say("x")\nend\n',
+            ),
+        );
+        const merge = one.shapes.find((s) => s.type === DIAGRAM_SHAPES.MERGE);
+        // 合流へ入るのは、いいえの枝（右）だけ
+        const intoMerge = one.edges.filter((e) => {
+            const [x, y] = e.points[e.points.length - 1];
+            return Math.abs(y - (merge.y + merge.h / 2)) < 0.01 && (x === merge.x || x === merge.x + merge.w);
+        });
+        expect(intoMerge).toHaveLength(1);
+        expect(one.shapes.filter((s) => s.type === DIAGRAM_SHAPES.END)).toHaveLength(1);
+        const both = layoutActivityDiagram(
+            await modelOf(
+                'when_flag_clicked do\n  if touching?("_edge_")\n    stop("all")\n  else\n    loop do\n      say("a")\n' +
+                    '    end\n  end\n  say("never")\nend\n',
+            ),
+        );
+        expect(both.shapes.filter((s) => s.type === DIAGRAM_SHAPES.MERGE)).toHaveLength(1); // ずっとの合流だけ
+        expect(both.shapes.filter((s) => s.type === DIAGRAM_SHAPES.END)).toHaveLength(0);
+        expect(both.shapes.some((s) => s.label === '「never」と言う')).toBe(false);
+        both.shapes.forEach((s) => expect(insideBox(s, both)).toBe(true));
+    });
+
+    test('mesh broadcast with value is a send too', () => {
+        // topic にはまだブロックが無いので、VM 形式のブロックを直接書く
+        const blocks = {
+            hat: { opcode: 'event_whenflagclicked', topLevel: true, next: 's', inputs: {}, fields: {} },
+            s: {
+                opcode: 'meshV2_broadcastWithValue',
+                next: null,
+                inputs: { BROADCAST_INPUT: { block: 'm', shadow: 'm' }, VALUE: { block: 'v', shadow: 'v' } },
+                fields: {},
+            },
+            m: { opcode: 'event_broadcast_menu', shadow: true, fields: { BROADCAST_OPTION: { value: 'あいさつ' } } },
+            v: { opcode: 'text', shadow: true, fields: { TEXT: { value: 'やあ' } } },
+        };
+        const model = buildActivityModel(
+            { lanes: [{ id: 'own', label: null, targets: [{ name: null, blocks }] }] },
+            { format: formatJa, blockName: () => '%1 を %2 で送る' },
+        );
+        expect(onlyScript(model).body).toEqual([
+            { kind: NODE_KINDS.SEND, label: '「あいさつ」 を 「やあ」 で送る', message: 'あいさつ' },
+        ]);
+    });
+
+    test('message names match regardless of upper and lower case', async () => {
+        const layout = layoutActivityDiagram(
+            await spritesModel([
+                'when_flag_clicked do\n  broadcast("Go")\nend\n',
+                'when_receive("go") do\n  say("b")\nend\n',
+            ]),
+        );
+        expect(layout.edges.filter((e) => e.message)).toHaveLength(1);
+    });
+
     test('an answer without scripts gives no diagram', async () => {
         const diagram = await challengeActivityDiagram(
             defineChallenge({ id: 'x', activityDiagram: true, code: '# メモだけ\n' }),
@@ -759,10 +999,11 @@ describe('more shapes', () => {
 describe('describeActivityModel', () => {
     test('writes the flow as text (for screen readers)', async () => {
         const { challenge } = findChallenge('blocks-l1-quiz');
-        const text = describeActivityModel(await modelOf(challenge.code.ja), { yes: 'はい', no: 'いいえ' });
+        const text = describeActivityModel(await modelOf(challenge.code.ja), formatJa);
+        // 分岐の枝は図と同じガードで書く
         expect(text).toBe(
             'このスプライトが押されたとき → 「4+3=?」と聞いて待つ → 答え = 7？' +
-                '（はい: 「正解です」と2秒言う / いいえ: 「ちがいます」と2秒言う）',
+                '（[答え = 7]: 「正解です」と2秒言う / [それ以外]: 「ちがいます」と2秒言う）',
         );
     });
 
@@ -782,6 +1023,27 @@ describe('describeActivityModel', () => {
             'あなた: 旗が押されたとき → ずっとくり返す（「a」と言う）',
             'ロボ: 「あ」を受け取ったとき → 「い」を送る',
         ]);
+    });
+
+    test('a send and a receive name the sprites or lanes on the other end (as the arrows do)', async () => {
+        const challenge = defineChallenge({
+            id: 'x',
+            activityDiagram: true,
+            code: 'when_flag_clicked do\n  broadcast("Hello")\nend\n\nwhen_receive("やあ") do\n  say("a")\nend\n',
+            // 合図の名前は大文字と小文字を区別しない（Scratch と同じ）
+            partner: { name: 'ロボ', replies: [{ onBroadcast: 'hello', broadcast: 'やあ' }] },
+        });
+        const diagram = await challengeActivityDiagram(challenge, {
+            locale: 'ja',
+            format: formatJa,
+            toBlocks: (source) => toBlocks(source.code),
+        });
+        expect(diagram.layout.description.split('\n')).toEqual([
+            'あなた: 旗が押されたとき → 「Hello」を送る（受け取る: ロボ）',
+            'あなた: 「やあ」を受け取ったとき（送る: ロボ） → 「a」と言う',
+            'ロボ: 「hello」を受け取ったとき（送る: あなた） → 「やあ」を送る（受け取る: あなた）',
+        ]);
+        expect(diagram.layout.edges.filter((e) => e.message)).toHaveLength(2);
     });
 });
 

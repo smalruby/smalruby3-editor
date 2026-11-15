@@ -54,22 +54,46 @@ Lines.propTypes = {
 
 const diamond = ({ x, y, w, h }) => `${x + w / 2},${y} ${x + w},${y + h / 2} ${x + w / 2},${y + h} ${x},${y + h / 2}`;
 
-// 送信: とがった側（direction）を相手に向けた五角形
-const sendOutline = ({ x, y, w, h, direction }) =>
-    direction === 'left'
-        ? `${x},${y + h / 2} ${x + SEND_TIP},${y} ${x + w},${y} ${x + w},${y + h} ${x + SEND_TIP},${y + h}`
-        : `${x},${y} ${x + w - SEND_TIP},${y} ${x + w},${y + h / 2} ${x + w - SEND_TIP},${y + h} ${x},${y + h}`;
+// 送信: とがった側（direction）を相手に向けた五角形。相手が両側にいれば両側がとがった六角形
+const sendOutline = ({ x, y, w, h, direction }) => {
+    const left = direction === 'left' || direction === 'both';
+    const right = direction !== 'left';
+    const l = left ? SEND_TIP : 0;
+    const r = right ? SEND_TIP : 0;
+    return [
+        `${x + l},${y}`,
+        `${x + w - r},${y}`,
+        ...(right ? [`${x + w},${y + h / 2}`] : []),
+        `${x + w - r},${y + h}`,
+        `${x + l},${y + h}`,
+        ...(left ? [`${x},${y + h / 2}`] : []),
+    ].join(' ');
+};
 
-// 受信: 送り手の側（notch）が内へへこんだ箱
-const receiveOutline = ({ x, y, w, h, notch }) =>
-    notch === 'right'
-        ? `${x},${y} ${x + w},${y} ${x + w - RECEIVE_NOTCH},${y + h / 2} ${x + w},${y + h} ${x},${y + h}`
-        : `${x},${y} ${x + w},${y} ${x + w},${y + h} ${x},${y + h} ${x + RECEIVE_NOTCH},${y + h / 2}`;
+// 受信: 送り手の側（notch）が内へへこんだ箱。送り手が両側にいれば両側がへこむ
+const receiveOutline = ({ x, y, w, h, notch }) => {
+    const left = notch !== 'right';
+    const right = notch === 'right' || notch === 'both';
+    return [
+        `${x},${y}`,
+        `${x + w},${y}`,
+        ...(right ? [`${x + w - RECEIVE_NOTCH},${y + h / 2}`] : []),
+        `${x + w},${y + h}`,
+        `${x},${y + h}`,
+        ...(left ? [`${x + RECEIVE_NOTCH},${y + h / 2}`] : []),
+    ].join(' ');
+};
 
-// 字を記号の中の真ん中に置く（とがり・へこみのぶんだけ寄せる）
+// 字を記号の中の真ん中に置く（片側だけのとがり・へこみのぶんだけ寄せる）
 const textCenterX = ({ type, x, w, direction, notch }) => {
-    if (type === DIAGRAM_SHAPES.SEND) return x + w / 2 + (direction === 'left' ? SEND_TIP : -SEND_TIP) / 2;
-    if (type === DIAGRAM_SHAPES.RECEIVE) return x + w / 2 + (notch === 'right' ? -RECEIVE_NOTCH : RECEIVE_NOTCH) / 2;
+    if (type === DIAGRAM_SHAPES.SEND) {
+        if (direction === 'both') return x + w / 2;
+        return x + w / 2 + (direction === 'left' ? SEND_TIP : -SEND_TIP) / 2;
+    }
+    if (type === DIAGRAM_SHAPES.RECEIVE) {
+        if (notch === 'both') return x + w / 2;
+        return x + w / 2 + (notch === 'right' ? -RECEIVE_NOTCH : RECEIVE_NOTCH) / 2;
+    }
     return x + w / 2;
 };
 
@@ -164,7 +188,7 @@ Shape.propTypes = {
         label: PropTypes.string,
         // ガードの寄せ方（start / end）
         anchor: PropTypes.string,
-        // 送信のとがった向き（left / right）・受信のへこみの側（left / right）
+        // 送信のとがった向き・受信のへこみの側（left / right / both）
         direction: PropTypes.string,
         notch: PropTypes.string,
         // レーンの見出しの高さ

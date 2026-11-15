@@ -12,7 +12,7 @@
 //   高さまで下げる。
 // スクリプトは横に並べ、スプライトが 2 つ以上ならスプライトの名前を上に書く。レーンが 2 つ以上
 // （メッシュの練習相手がいるとき）は見出しつきのスイムレーンにする。
-import { NODE_KINDS } from './model';
+import { messageKey, NODE_KINDS } from './model';
 
 export const DIAGRAM_SHAPES = Object.freeze({
     START: 'start',
@@ -121,13 +121,25 @@ const guardReserve = (...boxes) => Math.max(0, Math.max(0, ...boxes.map((b) => b
 
 const EMPTY = { left: 0, right: 0, h: 0, entry: 0 };
 
-// 最後が「ずっと」の並びは終わらない（その先へ線を引かない）
-const endsForever = (nodes) => {
-    const last = nodes[nodes.length - 1];
-    return Boolean(last && last.kind === NODE_KINDS.LOOP && last.forever);
+// そこで終わって先へ進まない記号: 「ずっと」、スクリプトを止める処理、両方の枝が終わる分岐
+const isEndless = (node) => {
+    if (node.kind === NODE_KINDS.LOOP) return node.forever;
+    if (node.kind === NODE_KINDS.ACTION) return Boolean(node.stops);
+    if (node.kind === NODE_KINDS.DECISION) return endsForever(node.yes) && endsForever(node.no);
+    return false;
 };
 
-const measureSeq = (nodes) => {
+// 終わらない並び（どこかで終わる記号がある）。その先へ線を引かない
+const endsForever = (nodes) => nodes.some(isEndless);
+
+// 終わる記号より後ろ（届かない記号）は描かない
+const reachable = (nodes) => {
+    const i = nodes.findIndex(isEndless);
+    return i < 0 ? nodes : nodes.slice(0, i + 1);
+};
+
+const measureSeq = (all) => {
+    const nodes = reachable(all);
     if (nodes.length === 0) return EMPTY;
     const sizes = nodes.map(measureNode);
     return {
@@ -193,10 +205,12 @@ const measureNode = (node) => {
     }
     if (node.kind === NODE_KINDS.DECISION) {
         const { yes, no, reserve, dl, dr } = decisionParts(node);
+        // 両方の枝が終わるときは合流を描かない
+        const merge = isEndless(node) ? 0 : GAP / 2 + DIAMOND;
         return {
             left: Math.max(DIAMOND / 2, dl + yes.left),
             right: Math.max(DIAMOND / 2, dr + no.right),
-            h: reserve + DIAMOND + GAP / 2 + Math.max(yes.h, no.h) + GAP / 2 + DIAMOND,
+            h: reserve + DIAMOND + GAP / 2 + Math.max(yes.h, no.h) + merge,
             entry: reserve,
         };
     }
@@ -215,7 +229,8 @@ const arrowInto = (out, cx, fromY, nodes, top) =>
         [cx, top + measureSeq(nodes).entry],
     ]);
 
-const placeSeq = (nodes, cx, y, out) => {
+const placeSeq = (all, cx, y, out) => {
+    const nodes = reachable(all);
     let top = y;
     nodes.forEach((node, i) => {
         if (i > 0) {
@@ -299,7 +314,7 @@ const placeDecision = (node, cx, y, out) => {
             [colX, branchTop + measureSeq(nodes).entry],
         ]);
         const bottom = placeSeq(nodes, colX, branchTop, out);
-        // 「ずっと」で終わる枝は合流へ戻らない
+        // 終わる枝（ずっと・止める）は合流へ戻らない
         if (endsForever(nodes)) return;
         addEdge(out, [
             [colX, bottom],
@@ -307,6 +322,7 @@ const placeDecision = (node, cx, y, out) => {
             [tipX, mergeCY],
         ]);
     });
+    if (isEndless(node)) return branchTop + Math.max(yes.h, no.h);
     out.shapes.push(diamondShape(DIAGRAM_SHAPES.MERGE, cx, mergeTop));
     return mergeTop + DIAMOND;
 };
@@ -497,13 +513,14 @@ export const diagramScaleFor = (layout, { maxWidth, maxHeight }) => {
     return { scale: Math.max(want, MIN_DIAGRAM_SCALE), fits: want >= MIN_DIAGRAM_SCALE };
 };
 
-// スプライト（レーンをまたいで通し番号）どうしの合図のやりとり
+// スプライト（レーンをまたいで通し番号）どうしの合図のやりとり。合図の名前は大文字と小文字を区別しない
 const messageRoutes = (lanes) => {
     const senders = new Map();
     const receivers = new Map();
     const add = (map, message, gi) => {
-        if (!map.has(message)) map.set(message, new Set());
-        map.get(message).add(gi);
+        const key = messageKey(message);
+        if (!map.has(key)) map.set(key, new Set());
+        map.get(key).add(gi);
     };
     let gi = 0;
     lanes.forEach((lane) =>
@@ -530,8 +547,8 @@ const orderScripts = (lanes) => {
             gi += 1;
             const side = (script) => {
                 const partners = [
-                    ...sentMessages(script.body).flatMap((m) => Array.from(receivers.get(m) || [])),
-                    ...(startsWithReceive(script) ? Array.from(senders.get(script.receive) || []) : []),
+                    ...sentMessages(script.body).flatMap((m) => Array.from(receivers.get(messageKey(m)) || [])),
+                    ...(startsWithReceive(script) ? Array.from(senders.get(messageKey(script.receive)) || []) : []),
                 ].filter((p) => p !== here);
                 const left = partners.some((p) => p < here);
                 const right = partners.some((p) => p > here);
@@ -548,17 +565,84 @@ const orderScripts = (lanes) => {
 
 const centerY = (shape) => shape.y + shape.h / 2;
 
+const shift = (shape, dy) => ({ ...shape, y: shape.y + dy });
+
+const sameMessage = (a, b) => messageKey(a) === messageKey(b);
+
+// 線が避ける範囲。開始の黒丸は横の文まで含める
+const obstacleOf = (shape) => {
+    if (shape.type === DIAGRAM_SHAPES.START && shape.lines && shape.lines.length > 0) {
+        const h = Math.max(shape.h, shape.lines.length * SMALL_LINE_HEIGHT);
+        return {
+            shape,
+            x: shape.x,
+            y: shape.y + shape.h / 2 - h / 2,
+            w: shape.w + 6 + linesWidth(shape.lines, SMALL_FONT_SIZE),
+            h,
+        };
+    }
+    return { shape, x: shape.x, y: shape.y, w: shape.w, h: shape.h };
+};
+
+// 縦か横の線分が、範囲の内側（縁から 1 内側）を通るか
+const segmentHits = ([ax, ay], [bx, by], r) => {
+    const m = 1;
+    const x0 = Math.min(ax, bx);
+    const x1 = Math.max(ax, bx);
+    const y0 = Math.min(ay, by);
+    const y1 = Math.max(ay, by);
+    return x1 > r.x + m && x0 < r.x + r.w - m && y1 > r.y + m && y0 < r.y + r.h - m;
+};
+
+// 折れ線が、両はしの記号（ignore）のほかのどの記号の内側も通らないか
+const pathIsFree = (points, obstacles, ignore) =>
+    points.every(
+        (p, i) => i === 0 || obstacles.every((r) => ignore.includes(r.shape) || !segmentHits(points[i - 1], p, r)),
+    );
+
+// 送信のとがった先・受信のへこみの奥。相手が右なら送信は右の辺、受信は左の辺から取る
+const sendPoint = (send, right) => [right ? send.x + send.w : send.x, centerY(send)];
+const receivePoint = (receive, right) => [
+    right ? receive.x + RECEIVE_NOTCH : receive.x + receive.w - RECEIVE_NOTCH,
+    centerY(receive),
+];
+
+const obstaclesOf = (placed) =>
+    placed.flatMap((p) => p.local.shapes.map((shape) => ({ ...obstacleOf(shift(shape, p.dy)), shape })));
+
 // 受信で始まるスクリプトを、送ったスクリプトの送信と同じ高さまで下げる（どのスクリプトも 1 回だけ動かす）。
+// まっすぐ横に引いた矢印がほかの記号を横切らない送り手（近いスプライトから順に）にだけそろえる。
 // 送り手が先に決まったものから決め、送り手どうしが互いを待つときは、いまの位置で決める
 const alignReceivers = (placed) => {
     const resolved = new Set(placed.filter((p) => !p.receive).map((p) => p.index));
     const sendersOf = (entry) =>
-        placed.filter((p) => p.gi !== entry.gi && p.sends.some((s) => s.message === entry.receive.message));
+        placed.filter((p) => p.gi !== entry.gi && p.sends.some((s) => sameMessage(s.message, entry.receive.message)));
     const resolve = (entry) => {
-        const ys = sendersOf(entry).flatMap((p) =>
-            p.sends.filter((s) => s.message === entry.receive.message).map((s) => p.dy + centerY(s)),
-        );
-        if (ys.length > 0) entry.dy = Math.max(0, Math.min(...ys) - centerY(entry.receive));
+        const candidates = sendersOf(entry)
+            .flatMap((p) =>
+                p.sends.filter((s) => sameMessage(s.message, entry.receive.message)).map((send) => ({ p, send })),
+            )
+            .sort(
+                (a, b) =>
+                    Math.abs(a.p.gi - entry.gi) - Math.abs(b.p.gi - entry.gi) ||
+                    a.p.dy + a.send.y - (b.p.dy + b.send.y),
+            );
+        const found = candidates.find(({ p, send }) => {
+            const dy = p.dy + centerY(send) - centerY(entry.receive);
+            if (dy < 0) return false;
+            const before = entry.dy;
+            entry.dy = dy;
+            const right = entry.gi > p.gi;
+            const free = pathIsFree(
+                [sendPoint(shift(send, p.dy), right), receivePoint(shift(entry.receive, dy), right)],
+                // まだ決めていない受信のスクリプトは、このあと下がるので避けない（最後に引く道すじで確かめる）
+                obstaclesOf(placed.filter((q) => q === entry || resolved.has(q.index))),
+                [send, entry.receive],
+            );
+            if (!free) entry.dy = before;
+            return free;
+        });
+        if (!found) entry.dy = 0;
         resolved.add(entry.index);
     };
     while (resolved.size < placed.length) {
@@ -573,7 +657,55 @@ const alignReceivers = (placed) => {
     }
 };
 
-const shift = (shape, dy) => ({ ...shape, y: shape.y + dy });
+// 合図の矢印の道すじ。まっすぐ → 受け手の手前のすき間で曲げる → 送り手の先のすき間で曲げる → 図の下を回る、
+// の順に、両はしの記号のほかの記号の内側を通らないものを選ぶ。すき間（スクリプトの間）を何本も通るときは
+// 少しずつずらす
+const routeMessage = ({ from, to, send, receive, obstacles, channels, bus }) => {
+    const right = to.gi > from.gi;
+    const start = sendPoint(send, right);
+    const end = receivePoint(receive, right);
+    const [, sy] = start;
+    const [, ry] = end;
+    const half = SCRIPT_GAP / 2;
+    // 同じすき間（2px 以内）は同じ道として数える
+    const keyOf = (x) => Array.from(channels.keys()).find((k) => Math.abs(k - x) <= 2) ?? Math.round(x);
+    const channel = (x) => {
+        const used = channels.get(keyOf(x)) || 0;
+        const offsets = [0, 5, -5, 9, -9];
+        return x + offsets[used % offsets.length];
+    };
+    const take = (x) => {
+        const key = keyOf(x);
+        channels.set(key, (channels.get(key) || 0) + 1);
+    };
+    const nearReceiver = right ? to.x0 - half : to.x1 + half;
+    const nearSender = right ? from.x1 + half : from.x0 - half;
+    const c2 = channel(nearReceiver);
+    const c1 = channel(nearSender);
+    const ignore = [send, receive];
+    const candidates = [
+        ...(Math.abs(sy - ry) < 0.5 ? [{ points: [start, end] }] : []),
+        {
+            points: [start, [c2, sy], [c2, ry], end],
+            use: [nearReceiver],
+        },
+        {
+            points: [start, [c1, sy], [c1, ry], end],
+            use: [nearSender],
+        },
+    ];
+    const chosen = candidates.find((c) => pathIsFree(c.points, obstacles, ignore));
+    if (chosen) {
+        (chosen.use || []).forEach(take);
+        return chosen.points;
+    }
+    // 図の下を回る（下の段は合図ごとに分ける）
+    const h = bus.next;
+    bus.next += 8;
+    take(nearSender);
+    take(nearReceiver);
+    return [start, [c1, sy], [c1, h], [c2, h], [c2, ry], end];
+};
 
 /**
  * 図のモデルに置き方を付ける。
@@ -591,9 +723,9 @@ export const layoutActivityDiagram = (model) => {
     const contentTop = MARGIN + headerH + pad;
     const out = { shapes: [], edges: [] };
     const laneShapes = [];
-    const targetBounds = [];
     const placed = [];
     let laneX = MARGIN;
+    let gi = 0;
     lanes.forEach((lane, li) => {
         const size = sizes[li];
         const laneW = size.w + pad * 2;
@@ -613,8 +745,6 @@ export const layoutActivityDiagram = (model) => {
         let targetX = laneX + pad;
         lane.targets.forEach((target, ti) => {
             const tsize = size.targets[ti];
-            const gi = targetBounds.length;
-            targetBounds.push({ x0: targetX, x1: targetX + tsize.w });
             if (size.captioned && target.name) {
                 out.shapes.push({
                     type: DIAGRAM_SHAPES.CAPTION,
@@ -634,6 +764,8 @@ export const layoutActivityDiagram = (model) => {
                 placed.push({
                     index: placed.length,
                     gi,
+                    x0: scriptX,
+                    x1: scriptX + s.left + s.right,
                     local,
                     bottom: scriptTop + s.h,
                     dy: 0,
@@ -643,6 +775,7 @@ export const layoutActivityDiagram = (model) => {
                 scriptX += s.left + s.right + SCRIPT_GAP;
             });
             targetX += tsize.w + SCRIPT_GAP;
+            gi += 1;
         });
         laneX += laneW + (swimlanes ? 0 : SCRIPT_GAP);
     });
@@ -659,40 +792,43 @@ export const layoutActivityDiagram = (model) => {
             out.edges.push({ ...edge, points: edge.points.map(([x, y]) => [x, y + p.dy]) }),
         );
     });
-    // 送信 → ほかのスプライト・レーンの同じ合図の受信。相手が右なら送信は右がとがり、受信は左がへこむ
-    const pointed = new Set();
+    const scriptsBottom = Math.max(contentTop, ...placed.map((p) => p.bottom + p.dy));
+    // 送信 → ほかのスプライト・レーンの同じ合図の受信。送信は相手のいる側がとがり、受信は送り手のいる側がへこむ
+    // （両側にいれば両側）
+    const obstacles = placed.flatMap((p) => p.local.shapes.map((shape) => obstacleOf(moved.get(shape))));
+    const channels = new Map();
+    // レーンの境目のすき間では、境目の線に重ならないよう、はじめからずらして通す
+    laneShapes.forEach((lane) => {
+        channels.set(Math.round(lane.x), 1);
+        channels.set(Math.round(lane.x + lane.w), 1);
+    });
+    const bus = { next: scriptsBottom + 12 };
+    const sides = new Map();
+    const addSide = (shape, side) => {
+        if (!sides.has(shape)) sides.set(shape, new Set());
+        sides.get(shape).add(side);
+    };
     placed.forEach((from) =>
         from.sends.forEach((sendLocal) => {
             const send = moved.get(sendLocal);
             placed
-                .filter((to) => to.receive && to.gi !== from.gi && to.receive.message === send.message)
+                .filter((to) => to.receive && to.gi !== from.gi && sameMessage(to.receive.message, send.message))
                 .forEach((to) => {
                     const receive = moved.get(to.receive);
                     const right = to.gi > from.gi;
-                    if (!pointed.has(send)) send.direction = right ? 'right' : 'left';
-                    if (!pointed.has(receive)) receive.notch = right ? 'left' : 'right';
-                    pointed.add(send);
-                    pointed.add(receive);
-                    const sy = centerY(send);
-                    const ry = centerY(receive);
-                    const start = [send.direction === 'right' ? send.x + send.w : send.x, sy];
-                    const end = [
-                        receive.notch === 'left' ? receive.x + RECEIVE_NOTCH : receive.x + receive.w - RECEIVE_NOTCH,
-                        ry,
-                    ];
-                    let points = [start, end];
-                    if (Math.abs(sy - ry) > 0.5) {
-                        // 高さがそろわないとき（受信がもっと下にあるとき）は、相手のスプライトの手前のすき間で曲げる
-                        const bounds = targetBounds[to.gi];
-                        const near = targetBounds[right ? to.gi - 1 : to.gi + 1];
-                        const channelX = right ? (near.x1 + bounds.x0) / 2 : (bounds.x1 + near.x0) / 2;
-                        points = [start, [channelX, sy], [channelX, ry], end];
-                    }
+                    addSide(send, right ? 'right' : 'left');
+                    addSide(receive, right ? 'left' : 'right');
+                    const points = routeMessage({ from, to, send, receive, obstacles, channels, bus });
                     out.edges.push({ points, arrow: true, message: true });
                 });
         }),
     );
-    const contentBottom = Math.max(contentTop, ...placed.map((p) => p.bottom + p.dy));
+    sides.forEach((set, shape) => {
+        const side = set.size > 1 ? 'both' : Array.from(set)[0];
+        if (shape.type === DIAGRAM_SHAPES.SEND) shape.direction = side;
+        else shape.notch = side;
+    });
+    const contentBottom = bus.next > scriptsBottom + 12 ? bus.next - 2 : scriptsBottom;
     const contentH = contentBottom - contentTop;
     laneShapes.forEach((shape) => {
         shape.h = headerH + contentH + pad * 2;

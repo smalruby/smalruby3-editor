@@ -92,8 +92,7 @@ export const challengeActivityDiagram = async (
     if (partner) model.lanes.push(partner);
     // 答えにスクリプトが無い（コメントだけなど）ときは、空の枠を出さない
     if (countScripts(model) === 0) return null;
-    const guards = { yes: format(`${P}yes`), no: format(`${P}no`) };
     // 代わりの文（流れを文にしたもの）は置き方といっしょに描く側へ渡す
-    const layout = { ...layoutActivityDiagram(model), description: describeActivityModel(model, guards) };
+    const layout = { ...layoutActivityDiagram(model), description: describeActivityModel(model, format) };
     return { model, layout };
 };
