@@ -888,3 +888,46 @@ describe('lesson 1 goals can be written in this shape', () => {
         },
     );
 });
+
+describe('variable.fromAnswer and variable.includesVariable (#1644)', () => {
+    const v = (name, value, isStage = true) => ({ name, type: '', value, isStage });
+
+    test('fromAnswer needs the value to be one of the answers (not a made variable or a fixed text)', () => {
+        const goal = [{ type: 'variable', name: ['メッセージ', 'message'], target: 'stage', fromAnswer: true }];
+        const facts = createFacts();
+        // 作っただけの変数（0）
+        expect(satisfied(goal, facts, snapshot({ variables: [v('メッセージ', 0)] }))).toBe(false);
+        // 入力していない文字
+        recordAnswer(facts, 'hello');
+        expect(satisfied(goal, facts, snapshot({ variables: [v('メッセージ', 'こんにちは')] }))).toBe(false);
+        expect(satisfied(goal, facts, snapshot({ variables: [v('message', 'hello')] }))).toBe(true);
+        // 空の答えは入れたことにしない
+        recordAnswer(facts, '');
+        expect(satisfied(goal, facts, snapshot({ variables: [v('メッセージ', '')] }))).toBe(false);
+    });
+
+    test('includesVariable needs the value to contain the (non-empty) value of the other variable', () => {
+        const goal = [{ type: 'variable', name: 'メッセージ', value: /：/, includesVariable: ['なまえ', 'name'] }];
+        const facts = createFacts();
+        const message = v('メッセージ', 'たろう：やあ');
+        expect(satisfied(goal, facts, snapshot({ variables: [message] }))).toBe(false);
+        expect(satisfied(goal, facts, snapshot({ variables: [message, v('なまえ', 'じろう')] }))).toBe(false);
+        expect(satisfied(goal, facts, snapshot({ variables: [message, v('なまえ', '')] }))).toBe(false);
+        expect(satisfied(goal, facts, snapshot({ variables: [message, v('name', 'たろう', false)] }))).toBe(true);
+    });
+
+    test('validateGoal checks fromAnswer and includesVariable', () => {
+        expect(
+            validateGoal([
+                { type: 'variable', name: 'a', fromAnswer: 'yes' },
+                { type: 'variable', name: 'a', includesVariable: 3 },
+            ]),
+        ).toEqual([
+            'goal[0]: variable.fromAnswer must be true or false',
+            'goal[1]: variable.includesVariable must be a variable name or an array of names',
+        ]);
+        expect(validateGoal([{ type: 'variable', name: 'a', fromAnswer: true, includesVariable: ['b'] }])).toEqual(
+            [],
+        );
+    });
+});

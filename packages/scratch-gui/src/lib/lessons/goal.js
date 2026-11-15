@@ -351,9 +351,23 @@ const findVariables = (snapshot, name, type, target = null) =>
         })
         .filter((v) => v !== null);
 
-const evaluateVariable = (condition, snapshot) =>
-    findVariables(snapshot, condition.name, '', condition.target).some((variable) =>
-        matchValue(condition.value, variable.value),
+// 値がほかの変数の値（空でない）を含むか（「名前：メッセージ」に名前の変数を入れた、など・#1644）
+const includesVariableValue = (snapshot, names, value) =>
+    findVariables(snapshot, names, '').some(
+        (other) => String(other.value) !== '' && String(value).includes(String(other.value)),
+    );
+
+// `fromAnswer`: 値が「聞いて待つ」に入力した答えのどれか（空でない）。作っただけの変数（0）や、決まった文字を
+// 入れた変数では合わない（#1644）。`includesVariable`: 値がその変数の値を含む（名前の配列ならどれか 1 つ）
+const evaluateVariable = (condition, facts, snapshot) =>
+    findVariables(snapshot, condition.name, '', condition.target).some(
+        (variable) =>
+            matchValue(condition.value, variable.value) &&
+            (!condition.fromAnswer ||
+                (String(variable.value) !== '' &&
+                    ((facts && facts.answers) || []).includes(String(variable.value)))) &&
+            (isUnset(condition.includesVariable) ||
+                includesVariableValue(snapshot, condition.includesVariable, variable.value)),
     );
 
 const listMatches = (condition, facts, variable) => {
@@ -400,7 +414,7 @@ export const evaluateCondition = (condition, facts, snapshot) => {
         case 'said':
             return evaluateSaid(condition, facts);
         case 'variable':
-            return evaluateVariable(condition, snapshot);
+            return evaluateVariable(condition, facts, snapshot);
         case 'list':
             return evaluateList(condition, facts, snapshot);
         case 'sprites':
@@ -546,6 +560,12 @@ export const validateGoal = (goal) => {
                 if (!isMatcher(condition.value)) errors.push(`${at}: variable.value must be a matcher`);
                 if (!isUnset(condition.target) && !['stage', 'sprite'].includes(condition.target)) {
                     errors.push(`${at}: variable.target must be 'stage' or 'sprite'`);
+                }
+                if (!isUnset(condition.fromAnswer) && typeof condition.fromAnswer !== 'boolean') {
+                    errors.push(`${at}: variable.fromAnswer must be true or false`);
+                }
+                if (!isUnset(condition.includesVariable) && !isVariableName(condition.includesVariable)) {
+                    errors.push(`${at}: variable.includesVariable must be a variable name or an array of names`);
                 }
                 break;
             case 'list':

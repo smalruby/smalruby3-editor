@@ -222,6 +222,123 @@ export const ja = {
     [`${C}chat-l3-mesh-variable.quiz.choice3`]: 'ルータ',
     [`${C}chat-l3-mesh-variable.quiz.explanation`]:
         'IP アドレスで通信の相手を見分ける。数字だけでは人にはわかりにくいので、Web ページではドメイン名という文字に置きかえて使うよ。',
+
+    'gui.lessons.lesson.chat-l4.name': 'チャットを作ろう',
+
+    [`${C}chat-l4-send-once.name`]: '1 回送ろう',
+    [`${C}chat-l4-send-once.task`]:
+        '旗を押したら、シマラビが「メッセージを入力」と聞き、答えを変数「シマラビのメッセージ」に入れて、メッセージ「シマラビのメッセージ」を送るようにしよう。\n3-1 と同じ形で、相手が別のコンピューターになっただけ。ペアならメッシュでつなぎ、ひとりなら練習相手とやろう。ペアでシマネコの役の人は、シマラビとシマネコを入れかえて作ろう。',
+    [`${C}chat-l4-send-once.step1`]:
+        '図の左の「あなた」のレーンが、今回作るところ。右のレーンは相手（ひとりなら練習相手のシマネコ）が動かすところで、とがった五角形の「送る」から矢印が届く。',
+    [`${C}chat-l4-send-once.step2`]:
+        'シマラビをえらんで、黄色い「イベント」の「旗が押されたとき」を置こう。その下に「メッセージを入力と聞いて待つ」と、変数「シマラビのメッセージ」を作って「シマラビのメッセージを (答え) にする」をつなげよう。変数は「すべてのスプライト用」にする。',
+    [`${C}chat-l4-send-once.step3`]:
+        'その下に「イベント」の「〜を送る」をつなげて、▼ の「新しいメッセージ」で「シマラビのメッセージ」を作ろう。',
+    [`${C}chat-l4-send-once.step4`]:
+        'ペアなら、「メッシュ」の横のボタンから、1 人がホストになってグループを作り、もう 1 人が参加しよう。ひとりなら、この練習相手のパネルを使う。',
+    [`${C}chat-l4-send-once.step5`]:
+        '旗を押して、メッセージを入力して Enter キーを押そう。練習相手のパネルの「届いた」（ペアなら相手の画面）に、入力した文字が出るか見よう。',
+    [`${C}chat-l4-send-once.debug1`]:
+        '「届いた」に何も出ないときは、変数「シマラビのメッセージ」を「すべてのスプライト用」で作ったか見よう。',
+    [`${C}chat-l4-send-once.debug2`]:
+        '入力した文字ではなく前の文字が届くときは、「送る」が「シマラビのメッセージを (答え) にする」より下にあるか見よう。',
+    [`${C}chat-l4-send-once.quiz.question`]:
+        'インターネットでデータを送るときに、小さく分けたひとまとまりを何という？',
+    [`${C}chat-l4-send-once.quiz.choice1`]: 'フォルダ',
+    [`${C}chat-l4-send-once.quiz.choice2`]: 'パケット',
+    [`${C}chat-l4-send-once.quiz.choice3`]: 'スプライト',
+    [`${C}chat-l4-send-once.quiz.explanation`]:
+        'データはパケットに小分けして送られ、届いた先で元の順に組み立て直される。長いメッセージも、分けて運ばれているよ。',
+
+    [`${C}chat-l4-send-repeat.name`]: 'くり返し送ろう',
+    [`${C}chat-l4-send-repeat.task`]:
+        '何回でも送れるようにしよう。「シマラビのメッセージを (答え) にする」と「送る」を「ずっと」の中に入れ、その下に「(シマラビのメッセージ) と聞いて待つ」を足す（レッスン 1-2 の形）。\n自分のメッセージは、聞いて待つあいだシマラビの吹き出しに出る。',
+    [`${C}chat-l4-send-repeat.step1`]:
+        '黄色い「制御」の「ずっと」を「メッセージを入力と聞いて待つ」の下に入れて、「〜にする」と「送る」をその中へ動かそう。図では、いちばん下から上のひし形へもどる線が「ずっと」。',
+    [`${C}chat-l4-send-repeat.step2`]:
+        '「送る」の下（「ずっと」の中）に「聞いて待つ」をつなげて、白いところに変数「シマラビのメッセージ」を入れよう。',
+    [`${C}chat-l4-send-repeat.step3`]:
+        '旗を押して、2 回以上メッセージを入力しよう。入力するたびに、練習相手のパネルの「届いた」が変わるか見よう。',
+    [`${C}chat-l4-send-repeat.debug1`]:
+        '1 回しか送れないときは、「〜にする」と「送る」が「ずっと」の中にあるか見よう。',
+    [`${C}chat-l4-send-repeat.debug2`]:
+        '入力を待たずに送り続けるときは、「ずっと」の中の「送る」の下に「聞いて待つ」があるか見よう。',
+    [`${C}chat-l4-send-repeat.quiz.question`]:
+        'チャットのメッセージを受け取って相手に届ける、サービスを提供するコンピュータを何という？',
+    [`${C}chat-l4-send-repeat.quiz.choice1`]: 'クライアント',
+    [`${C}chat-l4-send-repeat.quiz.choice2`]: 'サーバ',
+    [`${C}chat-l4-send-repeat.quiz.choice3`]: 'ルータ',
+    [`${C}chat-l4-send-repeat.quiz.explanation`]:
+        'メッセージはいったんサーバに送られ、サーバから相手に届く。サービスを受ける側のコンピュータはクライアントというよ。',
+
+    [`${C}chat-l4-both-ways.name`]: 'おたがいに送ろう',
+    [`${C}chat-l4-both-ways.task`]:
+        'シマネコが、相手のメッセージを受け取って言うようにしよう。メッセージ「シマネコのメッセージ」を受け取ったら、「シマネコのメッセージ」のセンサーの値を言う。\n3-1 では「(変数) を言う」だった。変わるのはそこだけ。',
+    [`${C}chat-l4-both-ways.step1`]: '右下のスプライトのならびで、シマネコをえらぼう。',
+    [`${C}chat-l4-both-ways.step2`]:
+        '黄色い「イベント」の「〜を受け取ったとき」を置き、▼ の「新しいメッセージ」で「シマネコのメッセージ」を作ろう。図の、相手の五角形からの矢印が届くへこんだ箱がここ。',
+    [`${C}chat-l4-both-ways.step3`]:
+        'ひとりなら、練習相手のパネルの「こんにちは」を押そう（ペアなら、相手に送ってもらう）。相手のメッセージが届くと、「メッシュ」の「(　) センサーの値」の ▼ に「シマネコのメッセージ」が出る。',
+    [`${C}chat-l4-both-ways.step4`]:
+        '「受け取ったとき」の下に紫の「見た目」の「(　) と言う」をつなげて、白いところに「(シマネコのメッセージ) センサーの値」を入れよう。',
+    [`${C}chat-l4-both-ways.step5`]:
+        '旗を押して自分から送ったり、パネルのボタンを押したりして、2〜3 回やりとりしよう。シマネコが相手のメッセージを言うか見よう。',
+    [`${C}chat-l4-both-ways.debug1`]:
+        'シマネコが何も言わないときは、「受け取ったとき」の ▼ が「シマネコのメッセージ」か見よう。',
+    [`${C}chat-l4-both-ways.debug2`]:
+        'シマネコが自分のメッセージを言うときは、「センサーの値」の ▼ で相手のメッセージ（「シマネコのメッセージ」）をえらんだか見よう。',
+    [`${C}chat-l4-both-ways.quiz.question`]:
+        '同じコンピューターの中（3-1）と比べて、相手のメッセージを言うために変えたのは？',
+    [`${C}chat-l4-both-ways.quiz.choice1`]: '「旗が押されたとき」を「このスプライトが押されたとき」に変えた',
+    [`${C}chat-l4-both-ways.quiz.choice2`]: '「(変数) を言う」を「(〜のセンサーの値) を言う」に変えた',
+    [`${C}chat-l4-both-ways.quiz.choice3`]: '「送る」を「送って待つ」に変えた',
+    [`${C}chat-l4-both-ways.quiz.explanation`]:
+        '相手の変数は、相手のコンピューターの中にある。センサーの値を使うと、はなれたコンピューターの変数を読めるよ。',
+
+    [`${C}chat-l4-group.name`]: 'グループチャットにしよう',
+    [`${C}chat-l4-group.task`]:
+        '3 人以上だと、人の数だけ変数と受け取るプログラムが要る。そこで、みんなで 1 つの変数とメッセージ「メッセージ」を使う形にした（最初から入っている。シマネコは、みんなの発言を言う役）。\nでも、だれの発言かわからない。はじめに「名前は？」と聞いて変数「なまえ」に入れ、「なまえ：メッセージ」の形で送ろう。',
+    [`${C}chat-l4-group.step1`]:
+        '最初から入っているプログラムを見よう。シマラビは変数「メッセージ」に入れてメッセージ「メッセージ」を送り、シマネコは受け取ったら「メッセージ」のセンサーの値を言う。',
+    [`${C}chat-l4-group.step2`]:
+        'シマラビの「旗が押されたとき」のすぐ下に「名前は？と聞いて待つ」を入れ、変数「なまえ」（すべてのスプライト用）を作って「なまえを (答え) にする」をつなげよう。',
+    [`${C}chat-l4-group.step3`]:
+        '「メッセージを (答え) にする」の白いところに、緑の「演算」の「(　) と (　)」を 2 つ使って、(なまえ) と (：) と (答え) をつないで入れよう。',
+    [`${C}chat-l4-group.step4`]:
+        'ひとりなら、練習相手のパネルの「シマネコとして送る」「ミミとして送る」を押そう。シマネコが「だれ：メッセージ」の形で言う。',
+    [`${C}chat-l4-group.step5`]:
+        '旗を押して、名前とメッセージを入力しよう。自分の発言も「なまえ：メッセージ」の形でシマネコが言う（グループのトークのように）。',
+    [`${C}chat-l4-group.debug1`]:
+        '名前が出ないときは、つなぐの左に変数「なまえ」を入れたか、「なまえを (答え) にする」が「名前は？と聞いて待つ」のすぐ下にあるか見よう。',
+    [`${C}chat-l4-group.debug2`]: '「：」が出ないときは、つなぐの右の白いところが「：」か見よう。',
+    [`${C}chat-l4-group.quiz.question`]: 'グループで、人ごとに変数を作るやり方だと困るのは？',
+    [`${C}chat-l4-group.quiz.choice1`]: '文字が送れなくなる',
+    [`${C}chat-l4-group.quiz.choice2`]: '人が増えるたびに、変数と受け取るプログラムを足すことになる',
+    [`${C}chat-l4-group.quiz.choice3`]: '速くなりすぎる',
+    [`${C}chat-l4-group.quiz.explanation`]:
+        'みんなで 1 つの変数を使い、だれの発言かは文字の中に書くことにすると、人が増えてもプログラムを変えなくてよいね。',
+
+    [`${C}chat-l4-dm.name`]: 'ダイレクトメッセージを送ろう',
+    [`${C}chat-l4-dm.task`]:
+        'メッセージを入れたあと「だれに送る？」と聞いて、答えを変数「あてさき」に入れてから送るようにしよう。シマネコは、「あてさき」のセンサーの値が自分の名前（変数「なまえ」）と同じときだけ言う。\nほかの人にもメッセージと変数は届いている。見せるかどうかを、受け取った側が決めている。',
+    [`${C}chat-l4-dm.step1`]:
+        'シマラビ: 「メッセージを (なまえ と ： と 答え) にする」の下に「だれに送る？と聞いて待つ」を入れ、変数「あてさき」（すべてのスプライト用）を作って「あてさきを (答え) にする」をつなげよう。そのあとに「送る」が来るようにする。',
+    [`${C}chat-l4-dm.step2`]:
+        'シマネコをえらんで、「メッセージを受け取ったとき」の「言う」を、黄色い「制御」の「もし〜なら」の中へ入れよう。条件には緑の「(　) = (　)」を入れ、左に「(あてさき) センサーの値」、右に変数「なまえ」を入れる。図では、ひし形から [「あてさき」のセンサー値 = なまえ] の枝に進んだときだけ言う。',
+    [`${C}chat-l4-dm.step3`]:
+        '旗を押して名前を入れてから、練習相手のパネルの「あなたに DM」と「ミミに DM」を押そう。自分あてのときだけシマネコが言うか見よう。',
+    [`${C}chat-l4-dm.step4`]:
+        '自分の名前あて・ほかの名前あてで送ってみて、ちがいを確かめよう。ペアなら、相手の名前あてに送ってみよう。',
+    [`${C}chat-l4-dm.debug1`]:
+        '自分あてでも言わないときは、「もし」の右が変数「なまえ」か、左が「あてさき」のセンサーの値（自分の変数「あてさき」ではない）か見よう。',
+    [`${C}chat-l4-dm.debug2`]:
+        'メッセージが前のあてさきで届くことがあるときは、もう一度送ってみよう。メッシュでは、メッセージが変数より先に届くことがある。',
+    [`${C}chat-l4-dm.quiz.question`]: '許可された人だけが情報を使えるようにすることを、情報セキュリティの何という？',
+    [`${C}chat-l4-dm.quiz.choice1`]: '機密性',
+    [`${C}chat-l4-dm.quiz.choice2`]: '完全性',
+    [`${C}chat-l4-dm.quiz.choice3`]: '可用性',
+    [`${C}chat-l4-dm.quiz.explanation`]:
+        'このダイレクトメッセージは全員に届き、見せるかどうかを受け取った側が決めているだけ。プログラムを変えれば読めてしまうので、機密性を守るしくみとしては弱いよ。',
 };
 
 export const jaHira = {
@@ -445,6 +562,124 @@ export const jaHira = {
     [`${C}chat-l3-mesh-variable.quiz.choice3`]: 'ルータ',
     [`${C}chat-l3-mesh-variable.quiz.explanation`]:
         'IP アドレスで つうしんの あいてを みわける。すうじだけでは ひとには わかりにくいので、Web ページでは ドメインめいという もじに おきかえて つかうよ。',
+
+    'gui.lessons.lesson.chat-l4.name': 'チャットを つくろう',
+
+    [`${C}chat-l4-send-once.name`]: '1 かい おくろう',
+    [`${C}chat-l4-send-once.task`]:
+        'はたを おしたら、シマラビが「メッセージを にゅうりょく」ときき、こたえを へんすう「シマラビのメッセージ」にいれて、メッセージ「シマラビのメッセージ」を おくるようにしよう。\n3-1 と おなじ かたちで、あいてが べつの コンピューターに なっただけ。ペアなら メッシュで つなぎ、ひとりなら れんしゅうあいてと やろう。ペアで シマネコの やくの ひとは、シマラビと シマネコを いれかえて つくろう。',
+    [`${C}chat-l4-send-once.step1`]:
+        'ずの ひだりの「あなた」の レーンが、こんかい つくるところ。みぎの レーンは あいて（ひとりなら れんしゅうあいての シマネコ）が うごかすところで、とがった ごかくけいの「おくる」から やじるしが とどく。',
+    [`${C}chat-l4-send-once.step2`]:
+        'シマラビを えらんで、きいろい「イベント」の「はたがおされたとき」を おこう。そのしたに「メッセージを にゅうりょく ときいてまつ」と、へんすう「シマラビのメッセージ」をつくって「シマラビのメッセージを (こたえ) にする」をつなげよう。へんすうは「すべてのスプライトよう」にする。',
+    [`${C}chat-l4-send-once.step3`]:
+        'そのしたに「イベント」の「〜をおくる」をつなげて、▼ の「あたらしいメッセージ」で「シマラビのメッセージ」をつくろう。',
+    [`${C}chat-l4-send-once.step4`]:
+        'ペアなら、「メッシュ」の よこの ボタンから、1 にんが ホストになって グループを つくり、もう 1 にんが さんかしよう。ひとりなら、この れんしゅうあいての パネルを つかう。',
+    [`${C}chat-l4-send-once.step5`]:
+        'はたを おして、メッセージを にゅうりょくして Enter キーを おそう。れんしゅうあいての パネルの「とどいた」（ペアなら あいての がめん）に、にゅうりょくした もじが でるか みよう。',
+    [`${C}chat-l4-send-once.debug1`]:
+        '「とどいた」に なにも でないときは、へんすう「シマラビのメッセージ」を「すべてのスプライトよう」で つくったか みよう。',
+    [`${C}chat-l4-send-once.debug2`]:
+        'にゅうりょくした もじではなく まえの もじが とどくときは、「おくる」が「シマラビのメッセージを (こたえ) にする」より したに あるか みよう。',
+    [`${C}chat-l4-send-once.quiz.question`]:
+        'インターネットで データを おくるときに、ちいさく わけた ひとまとまりを なんという？',
+    [`${C}chat-l4-send-once.quiz.choice1`]: 'フォルダ',
+    [`${C}chat-l4-send-once.quiz.choice2`]: 'パケット',
+    [`${C}chat-l4-send-once.quiz.choice3`]: 'スプライト',
+    [`${C}chat-l4-send-once.quiz.explanation`]:
+        'データは パケットに こわけして おくられ、とどいた さきで もとの じゅんに くみたてなおされる。ながい メッセージも、わけて はこばれているよ。',
+
+    [`${C}chat-l4-send-repeat.name`]: 'くりかえし おくろう',
+    [`${C}chat-l4-send-repeat.task`]:
+        'なんかいでも おくれるように しよう。「シマラビのメッセージを (こたえ) にする」と「おくる」を「ずっと」の なかに いれ、そのしたに「(シマラビのメッセージ) と きいてまつ」を たす（レッスン 1-2 の かたち）。\nじぶんの メッセージは、きいてまつ あいだ シマラビの ふきだしに でる。',
+    [`${C}chat-l4-send-repeat.step1`]:
+        'きいろい「せいぎょ」の「ずっと」を「メッセージを にゅうりょく ときいてまつ」の したに いれて、「〜にする」と「おくる」を その なかへ うごかそう。ずでは、いちばん したから うえの ひしがたへ もどる せんが「ずっと」。',
+    [`${C}chat-l4-send-repeat.step2`]:
+        '「おくる」の した（「ずっと」の なか）に「きいてまつ」を つなげて、しろいところに へんすう「シマラビのメッセージ」を いれよう。',
+    [`${C}chat-l4-send-repeat.step3`]:
+        'はたを おして、2 かい いじょう メッセージを にゅうりょくしよう。にゅうりょくする たびに、れんしゅうあいての パネルの「とどいた」が かわるか みよう。',
+    [`${C}chat-l4-send-repeat.debug1`]:
+        '1 かいしか おくれないときは、「〜にする」と「おくる」が「ずっと」の なかに あるか みよう。',
+    [`${C}chat-l4-send-repeat.debug2`]:
+        'にゅうりょくを またずに おくりつづけるときは、「ずっと」の なかの「おくる」の したに「きいてまつ」が あるか みよう。',
+    [`${C}chat-l4-send-repeat.quiz.question`]:
+        'チャットの メッセージを うけとって あいてに とどける、サービスを ていきょうする コンピュータを なんという？',
+    [`${C}chat-l4-send-repeat.quiz.choice1`]: 'クライアント',
+    [`${C}chat-l4-send-repeat.quiz.choice2`]: 'サーバ',
+    [`${C}chat-l4-send-repeat.quiz.choice3`]: 'ルータ',
+    [`${C}chat-l4-send-repeat.quiz.explanation`]:
+        'メッセージは いったん サーバに おくられ、サーバから あいてに とどく。サービスを うける がわの コンピュータは クライアントというよ。',
+
+    [`${C}chat-l4-both-ways.name`]: 'おたがいに おくろう',
+    [`${C}chat-l4-both-ways.task`]:
+        'シマネコが、あいての メッセージを うけとって いうように しよう。メッセージ「シマネコのメッセージ」を うけとったら、「シマネコのメッセージ」の センサーの あたいを いう。\n3-1 では「(へんすう) と いう」だった。かわるのは そこだけ。',
+    [`${C}chat-l4-both-ways.step1`]: 'みぎしたの スプライトの ならびで、シマネコを えらぼう。',
+    [`${C}chat-l4-both-ways.step2`]:
+        'きいろい「イベント」の「〜をうけとったとき」を おき、▼ の「あたらしいメッセージ」で「シマネコのメッセージ」を つくろう。ずの、あいての ごかくけいからの やじるしが とどく へこんだ はこが ここ。',
+    [`${C}chat-l4-both-ways.step3`]:
+        'ひとりなら、れんしゅうあいての パネルの「こんにちは」を おそう（ペアなら、あいてに おくってもらう）。あいての メッセージが とどくと、「メッシュ」の「(　) センサーのあたい」の ▼ に「シマネコのメッセージ」が でる。',
+    [`${C}chat-l4-both-ways.step4`]:
+        '「うけとったとき」の したに むらさきの「みため」の「(　) という」を つなげて、しろいところに「(シマネコのメッセージ) センサーのあたい」を いれよう。',
+    [`${C}chat-l4-both-ways.step5`]:
+        'はたを おして じぶんから おくったり、パネルの ボタンを おしたりして、2〜3 かい やりとりしよう。シマネコが あいての メッセージを いうか みよう。',
+    [`${C}chat-l4-both-ways.debug1`]:
+        'シマネコが なにも いわないときは、「うけとったとき」の ▼ が「シマネコのメッセージ」か みよう。',
+    [`${C}chat-l4-both-ways.debug2`]:
+        'シマネコが じぶんの メッセージを いうときは、「センサーのあたい」の ▼ で あいての メッセージ（「シマネコのメッセージ」）を えらんだか みよう。',
+    [`${C}chat-l4-both-ways.quiz.question`]:
+        'おなじ コンピューターの なか（3-1）と くらべて、あいての メッセージを いうために かえたのは？',
+    [`${C}chat-l4-both-ways.quiz.choice1`]: '「はたがおされたとき」を「このスプライトがおされたとき」に かえた',
+    [`${C}chat-l4-both-ways.quiz.choice2`]: '「(へんすう) と いう」を「(〜の センサーのあたい) と いう」に かえた',
+    [`${C}chat-l4-both-ways.quiz.choice3`]: '「おくる」を「おくって まつ」に かえた',
+    [`${C}chat-l4-both-ways.quiz.explanation`]:
+        'あいての へんすうは、あいての コンピューターの なかに ある。センサーの あたいを つかうと、はなれた コンピューターの へんすうを よめるよ。',
+
+    [`${C}chat-l4-group.name`]: 'グループチャットに しよう',
+    [`${C}chat-l4-group.task`]:
+        '3 にん いじょうだと、ひとの かずだけ へんすうと うけとる プログラムが いる。そこで、みんなで 1 つの へんすうと メッセージ「メッセージ」を つかう かたちに した（さいしょから はいっている。シマネコは、みんなの はつげんを いう やく）。\nでも、だれの はつげんか わからない。はじめに「なまえは？」と きいて へんすう「なまえ」に いれ、「なまえ：メッセージ」の かたちで おくろう。',
+    [`${C}chat-l4-group.step1`]:
+        'さいしょから はいっている プログラムを みよう。シマラビは へんすう「メッセージ」に いれて メッセージ「メッセージ」を おくり、シマネコは うけとったら「メッセージ」の センサーの あたいを いう。',
+    [`${C}chat-l4-group.step2`]:
+        'シマラビの「はたがおされたとき」の すぐしたに「なまえは？ ときいてまつ」を いれ、へんすう「なまえ」（すべてのスプライトよう）を つくって「なまえを (こたえ) にする」を つなげよう。',
+    [`${C}chat-l4-group.step3`]:
+        '「メッセージを (こたえ) にする」の しろいところに、みどりの「えんざん」の「(　) と (　)」を 2 つ つかって、(なまえ) と (：) と (こたえ) を つないで いれよう。',
+    [`${C}chat-l4-group.step4`]:
+        'ひとりなら、れんしゅうあいての パネルの「シマネコとして おくる」「ミミとして おくる」を おそう。シマネコが「だれ：メッセージ」の かたちで いう。',
+    [`${C}chat-l4-group.step5`]:
+        'はたを おして、なまえと メッセージを にゅうりょくしよう。じぶんの はつげんも「なまえ：メッセージ」の かたちで シマネコが いう（グループの トークのように）。',
+    [`${C}chat-l4-group.debug1`]:
+        'なまえが でないときは、つなぐの ひだりに へんすう「なまえ」を いれたか、「なまえを (こたえ) にする」が「なまえは？ ときいてまつ」の すぐしたに あるか みよう。',
+    [`${C}chat-l4-group.debug2`]: '「：」が でないときは、つなぐの みぎの しろいところが「：」か みよう。',
+    [`${C}chat-l4-group.quiz.question`]: 'グループで、ひとごとに へんすうを つくる やりかただと こまるのは？',
+    [`${C}chat-l4-group.quiz.choice1`]: 'もじが おくれなくなる',
+    [`${C}chat-l4-group.quiz.choice2`]: 'ひとが ふえる たびに、へんすうと うけとる プログラムを たすことになる',
+    [`${C}chat-l4-group.quiz.choice3`]: 'はやく なりすぎる',
+    [`${C}chat-l4-group.quiz.explanation`]:
+        'みんなで 1 つの へんすうを つかい、だれの はつげんかは もじの なかに かくことに すると、ひとが ふえても プログラムを かえなくて よいね。',
+
+    [`${C}chat-l4-dm.name`]: 'ダイレクトメッセージを おくろう',
+    [`${C}chat-l4-dm.task`]:
+        'メッセージを いれたあと「だれに おくる？」と きいて、こたえを へんすう「あてさき」に いれてから おくるように しよう。シマネコは、「あてさき」の センサーの あたいが じぶんの なまえ（へんすう「なまえ」）と おなじ ときだけ いう。\nほかの ひとにも メッセージと へんすうは とどいている。みせるか どうかを、うけとった がわが きめている。',
+    [`${C}chat-l4-dm.step1`]:
+        'シマラビ:「メッセージを (なまえ と ： と こたえ) にする」の したに「だれに おくる？ ときいてまつ」を いれ、へんすう「あてさき」（すべてのスプライトよう）を つくって「あてさきを (こたえ) にする」を つなげよう。その あとに「おくる」が くるように する。',
+    [`${C}chat-l4-dm.step2`]:
+        'シマネコを えらんで、「メッセージをうけとったとき」の「いう」を、きいろい「せいぎょ」の「もし〜なら」の なかへ いれよう。じょうけんには みどりの「(　) = (　)」を いれ、ひだりに「(あてさき) センサーのあたい」、みぎに へんすう「なまえ」を いれる。ずでは、ひしがたから [「あてさき」のセンサーち = なまえ] の えだに すすんだ ときだけ いう。',
+    [`${C}chat-l4-dm.step3`]:
+        'はたを おして なまえを いれてから、れんしゅうあいての パネルの「あなたに DM」と「ミミに DM」を おそう。じぶん あての ときだけ シマネコが いうか みよう。',
+    [`${C}chat-l4-dm.step4`]:
+        'じぶんの なまえ あて・ほかの なまえ あてで おくってみて、ちがいを たしかめよう。ペアなら、あいての なまえ あてに おくってみよう。',
+    [`${C}chat-l4-dm.debug1`]:
+        'じぶん あてでも いわないときは、「もし」の みぎが へんすう「なまえ」か、ひだりが「あてさき」の センサーの あたい（じぶんの へんすう「あてさき」ではない）か みよう。',
+    [`${C}chat-l4-dm.debug2`]:
+        'メッセージが まえの あてさきで とどくことが あるときは、もういちど おくってみよう。メッシュでは、メッセージが へんすうより さきに とどくことが ある。',
+    [`${C}chat-l4-dm.quiz.question`]:
+        'きょかされた ひとだけが じょうほうを つかえるように することを、じょうほうセキュリティの なんという？',
+    [`${C}chat-l4-dm.quiz.choice1`]: 'きみつせい',
+    [`${C}chat-l4-dm.quiz.choice2`]: 'かんぜんせい',
+    [`${C}chat-l4-dm.quiz.choice3`]: 'かようせい',
+    [`${C}chat-l4-dm.quiz.explanation`]:
+        'この ダイレクトメッセージは ぜんいんに とどき、みせるか どうかを うけとった がわが きめているだけ。プログラムを かえれば よめてしまうので、きみつせいを まもる しくみとしては よわいよ。',
 };
 
 export const en = {
@@ -666,4 +901,122 @@ export const en = {
     [`${C}chat-l3-mesh-variable.quiz.choice3`]: 'Router',
     [`${C}chat-l3-mesh-variable.quiz.explanation`]:
         'An IP address tells which device to talk to. Numbers alone are hard for people to read, so web pages use a domain name made of letters instead.',
+
+    'gui.lessons.lesson.chat-l4.name': 'Make a Chat',
+
+    [`${C}chat-l4-send-once.name`]: 'Send Once',
+    [`${C}chat-l4-send-once.task`]:
+        'When the flag is clicked, Shimaraby asks "Enter a message", puts the answer into the variable "shimaraby_message" and broadcasts the message "shimaraby_message".\nIt is the same as 3-1, but the other side is another computer. In a pair, connect with the mesh. On your own, use the practice partner. In a pair, the one who plays Shimacat swaps Shimaraby and Shimacat.',
+    [`${C}chat-l4-send-once.step1`]:
+        'The "You" lane on the left of the diagram is what you make this time. The lane on the right is run by the other side (on your own, Shimacat, the practice partner), and the arrow from the pointed pentagon "broadcast" goes there.',
+    [`${C}chat-l4-send-once.step2`]:
+        'Select Shimaraby and place the yellow Events block "when flag clicked". Under it, attach "ask Enter a message and wait", make the variable "shimaraby_message" and attach "set shimaraby_message to (answer)". Make the variable "For all sprites".',
+    [`${C}chat-l4-send-once.step3`]:
+        'Under it, attach the Events block "broadcast", and make "shimaraby_message" with "New message" in its ▼.',
+    [`${C}chat-l4-send-once.step4`]:
+        'In a pair, use the button next to "Mesh": one of you becomes the host and makes a group, and the other joins it. On your own, use this practice partner panel.',
+    [`${C}chat-l4-send-once.step5`]:
+        'Click the flag, type a message and press Enter. Check that what you typed appears in "Received" on the practice partner panel (in a pair, on the screen of your pair).',
+    [`${C}chat-l4-send-once.debug1`]:
+        'If nothing appears in "Received", check that you made the variable "shimaraby_message" "For all sprites".',
+    [`${C}chat-l4-send-once.debug2`]:
+        'If the text before arrives instead of what you typed, check that "broadcast" is under "set shimaraby_message to (answer)".',
+    [`${C}chat-l4-send-once.quiz.question`]:
+        'When data is sent over the internet, what do we call each small piece it is split into?',
+    [`${C}chat-l4-send-once.quiz.choice1`]: 'Folder',
+    [`${C}chat-l4-send-once.quiz.choice2`]: 'Packet',
+    [`${C}chat-l4-send-once.quiz.choice3`]: 'Sprite',
+    [`${C}chat-l4-send-once.quiz.explanation`]:
+        'Data is split into packets, and put back in the right order where it arrives. Even a long message travels in pieces.',
+
+    [`${C}chat-l4-send-repeat.name`]: 'Send Again and Again',
+    [`${C}chat-l4-send-repeat.task`]:
+        'Make it send any number of times. Put "set shimaraby_message to (answer)" and "broadcast" inside "forever", and add "ask (shimaraby_message) and wait" under them (the shape of lesson 1-2).\nYour message appears in the speech bubble of Shimaraby while it waits.',
+    [`${C}chat-l4-send-repeat.step1`]:
+        'Put the Control block "forever" under "ask Enter a message and wait", and move "set" and "broadcast" into it. In the diagram, the line from the bottom back up to the diamond is "forever".',
+    [`${C}chat-l4-send-repeat.step2`]:
+        'Under "broadcast" (inside "forever"), attach "ask and wait" and put the variable "shimaraby_message" into its white space.',
+    [`${C}chat-l4-send-repeat.step3`]:
+        'Click the flag and type a message two times or more. Check that "Received" on the practice partner panel changes each time.',
+    [`${C}chat-l4-send-repeat.debug1`]:
+        'If it sends only once, check that "set" and "broadcast" are inside "forever".',
+    [`${C}chat-l4-send-repeat.debug2`]:
+        'If it keeps sending without waiting for you to type, check that "ask and wait" is under "broadcast" inside "forever".',
+    [`${C}chat-l4-send-repeat.quiz.question`]:
+        'What do we call the computer that offers a service, such as receiving chat messages and passing them on?',
+    [`${C}chat-l4-send-repeat.quiz.choice1`]: 'Client',
+    [`${C}chat-l4-send-repeat.quiz.choice2`]: 'Server',
+    [`${C}chat-l4-send-repeat.quiz.choice3`]: 'Router',
+    [`${C}chat-l4-send-repeat.quiz.explanation`]:
+        'A message goes to a server first, and the server passes it on to the other side. The computer that uses the service is called a client.',
+
+    [`${C}chat-l4-both-ways.name`]: 'Send Both Ways',
+    [`${C}chat-l4-both-ways.task`]:
+        'Make Shimacat receive the message of the other side and say it. When it receives the message "shimacat_message", it says the sensor value of "shimacat_message".\nIn 3-1 it said "(variable)". Only that part changes.',
+    [`${C}chat-l4-both-ways.step1`]: 'Select Shimacat in the sprite list at the bottom right.',
+    [`${C}chat-l4-both-ways.step2`]:
+        'Place the yellow Events block "when I receive" and make "shimacat_message" with "New message" in its ▼. In the diagram, it is the notched box that the arrow from the pentagon of the other side comes into.',
+    [`${C}chat-l4-both-ways.step3`]:
+        'On your own, click "Hello" on the practice partner panel (in a pair, ask your pair to send). When the message arrives, "shimacat_message" appears in the ▼ of the Mesh block "( ) sensor value".',
+    [`${C}chat-l4-both-ways.step4`]:
+        'Under "when I receive", attach the purple Looks block "say ( )" and put "(shimacat_message) sensor value" into its white space.',
+    [`${C}chat-l4-both-ways.step5`]:
+        'Click the flag and send, or click the buttons on the panel, and talk back and forth 2 or 3 times. Check that Shimacat says the message of the other side.',
+    [`${C}chat-l4-both-ways.debug1`]:
+        'If Shimacat says nothing, check that the ▼ of "when I receive" is "shimacat_message".',
+    [`${C}chat-l4-both-ways.debug2`]:
+        'If Shimacat says your own message, check that you chose the message of the other side ("shimacat_message") in the ▼ of "sensor value".',
+    [`${C}chat-l4-both-ways.quiz.question`]:
+        'Compared with one computer (3-1), what did you change to say the message of the other side?',
+    [`${C}chat-l4-both-ways.quiz.choice1`]: 'Changed "when flag clicked" to "when this sprite clicked"',
+    [`${C}chat-l4-both-ways.quiz.choice2`]: 'Changed "say (variable)" to "say (... sensor value)"',
+    [`${C}chat-l4-both-ways.quiz.choice3`]: 'Changed "broadcast" to "broadcast and wait"',
+    [`${C}chat-l4-both-ways.quiz.explanation`]:
+        'The variable of the other side is in the computer of the other side. A sensor value reads a variable of a computer far away.',
+
+    [`${C}chat-l4-group.name`]: 'Make a Group Chat',
+    [`${C}chat-l4-group.task`]:
+        'With 3 people or more, you need a variable and a receiving program for each person. So the program now uses one variable and one message "message" for everyone (it is already there. Shimacat says what everyone says).\nBut you cannot tell who said it. First ask "What is your name?", put the answer into the variable "name", and send in the form "name: message".',
+    [`${C}chat-l4-group.step1`]:
+        'Look at the program that is already there. Shimaraby puts the text into the variable "message" and broadcasts the message "message", and Shimacat says the sensor value of "message" when it receives it.',
+    [`${C}chat-l4-group.step2`]:
+        'Right under "when flag clicked" of Shimaraby, put "ask What is your name? and wait", make the variable "name" (For all sprites) and attach "set name to (answer)".',
+    [`${C}chat-l4-group.step3`]:
+        'Into the white space of "set message to (answer)", put two green Operators blocks "join ( ) ( )" to join (name), (: ) and (answer).',
+    [`${C}chat-l4-group.step4`]:
+        'On your own, click "Send as Shimacat" and "Send as Mimi" on the practice partner panel. Shimacat says it in the form "who: message".',
+    [`${C}chat-l4-group.step5`]:
+        'Click the flag and type your name and a message. Shimacat also says your own message in the form "name: message" (like a group chat).',
+    [`${C}chat-l4-group.debug1`]:
+        'If the name does not appear, check that the variable "name" is on the left of "join", and that "set name to (answer)" is right under "ask What is your name? and wait".',
+    [`${C}chat-l4-group.debug2`]: 'If ": " does not appear, check that the right white space of "join" is ": ".',
+    [`${C}chat-l4-group.quiz.question`]: 'In a group, what is the problem with making a variable for each person?',
+    [`${C}chat-l4-group.quiz.choice1`]: 'You cannot send text any more',
+    [`${C}chat-l4-group.quiz.choice2`]: 'Each time someone joins, you add a variable and a receiving program',
+    [`${C}chat-l4-group.quiz.choice3`]: 'It becomes too fast',
+    [`${C}chat-l4-group.quiz.explanation`]:
+        'If everyone uses one variable and the text tells who said it, you do not have to change the program when more people join.',
+
+    [`${C}chat-l4-dm.name`]: 'Send a Direct Message',
+    [`${C}chat-l4-dm.task`]:
+        'After the message, ask "Send to whom?" and put the answer into the variable "to" before broadcasting. Shimacat says it only when the sensor value of "to" is the same as its own name (the variable "name").\nThe message and the variables reach everyone. The receiver decides whether to show it.',
+    [`${C}chat-l4-dm.step1`]:
+        'Shimaraby: under "set message to (name, : and answer)", put "ask Send to whom? and wait", make the variable "to" (For all sprites) and attach "set to to (answer)". Keep "broadcast" after them.',
+    [`${C}chat-l4-dm.step2`]:
+        'Select Shimacat and move "say" of "when I receive message" into the yellow Control block "if then". For its condition, put the green "( ) = ( )" with "(to) sensor value" on the left and the variable "name" on the right. In the diagram, it says only on the branch ["to" sensor value = name] from the diamond.',
+    [`${C}chat-l4-dm.step3`]:
+        'Click the flag and type your name, then click "DM to you" and "DM to Mimi" on the practice partner panel. Check that Shimacat says it only when it is for you.',
+    [`${C}chat-l4-dm.step4`]:
+        'Send to your own name and to another name, and see the difference. In a pair, send to the name of your pair.',
+    [`${C}chat-l4-dm.debug1`]:
+        'If it does not say even a message for you, check that the right of "if" is the variable "name", and the left is the sensor value of "to" (not your own variable "to").',
+    [`${C}chat-l4-dm.debug2`]:
+        'If a message sometimes arrives with the "to" before, send it again. Over the mesh, a message can arrive before the variable.',
+    [`${C}chat-l4-dm.quiz.question`]:
+        'In information security, what do we call keeping information usable only by the people who are allowed?',
+    [`${C}chat-l4-dm.quiz.choice1`]: 'Confidentiality',
+    [`${C}chat-l4-dm.quiz.choice2`]: 'Integrity',
+    [`${C}chat-l4-dm.quiz.choice3`]: 'Availability',
+    [`${C}chat-l4-dm.quiz.explanation`]:
+        'This direct message reaches everyone, and the receiver only decides whether to show it. Anyone can read it by changing the program, so it is weak at keeping confidentiality.',
 };

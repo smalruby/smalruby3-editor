@@ -262,6 +262,43 @@ const OPERATIONS = {
         await partnerPress(0);
         await clickSprite('Shimacat');
     },
+    // レッスン 4（#1644）。シマラビ（code）はネコに、シマネコは spriteCodes で入れる。メッシュは setup で読み込む
+    'chat-l4-send-once': async ({ vm, answer }) => {
+        vm.greenFlag();
+        await answer('hello');
+    },
+    'chat-l4-send-repeat': async ({ vm, answer, isSatisfied }) => {
+        vm.greenFlag();
+        await answer('hello');
+        await sleep(100);
+        // 1 回送っただけでは、まだ「できた」にならない
+        expect(isSatisfied()).toBe(false);
+        await answer('again');
+    },
+    // 練習相手のボタンを押しただけ（自分から送っていない）では「できた」にならない。送ると相手が「とどいたよ」を返す
+    'chat-l4-both-ways': async ({ vm, answer, partnerPress, isSatisfied }) => {
+        await partnerPress(0);
+        await sleep(100);
+        expect(isSatisfied()).toBe(false);
+        vm.greenFlag();
+        await answer('hello');
+    },
+    'chat-l4-group': async ({ vm, answer }) => {
+        vm.greenFlag();
+        await answer('たろう');
+        await answer('やあ');
+    },
+    // 自分の名前を「たろう」にし、ミミあてに送る → 練習相手の「ミミに DM」→ 言わない。「あなたに DM」で言う
+    'chat-l4-dm': async ({ vm, answer, partnerPress, isSatisfied }) => {
+        vm.greenFlag();
+        await answer('たろう');
+        await answer('やあ');
+        await answer('ミミ');
+        await partnerPress(1);
+        await sleep(200);
+        expect(isSatisfied()).toBe(false);
+        await partnerPress(0);
+    },
 };
 
 // ステージのプログラムのチャレンジ 4 は 1 秒の待ちが 6 回ある
@@ -847,6 +884,308 @@ describe('the chat lesson 3 goals also pass for the other ways to do the task (#
             シマラビのきぶん: { value: 'ねむい', timestamp: Date.now() },
         };
         await run.ctx.clickSprite('Shimacat');
+        expect(await until(run.isSatisfied, 1500)).toBe(true);
+    }, 20000);
+});
+
+// 「チャットをつくろう」レッスン 4（#1644）の goal が、課題をやっていないプログラム（ずる）では満たされないこと
+// 4-2 の答え（4-3 の送る側）
+const L4_SEND_REPEAT =
+    'when_flag_clicked do\n  ask("メッセージを入力")\n  loop do\n    $シマラビのメッセージ = answer\n' +
+    '    broadcast("シマラビのメッセージ")\n    ask($シマラビのメッセージ)\n  end\nend\n';
+const L4_RECEIVE_GROUP = 'when_receive("メッセージ") do\n  say(mesh.sensor_value("メッセージ"))\nend\n';
+const L4_DM_RECEIVE =
+    'when_receive("メッセージ") do\n  if mesh.sensor_value("あてさき") == $なまえ\n' +
+    '    say(mesh.sensor_value("メッセージ"))\n  end\nend\n';
+const l4Group = (message) =>
+    'when_flag_clicked do\n  ask("名前は？")\n  $なまえ = answer\n  ask("メッセージを入力")\n  loop do\n' +
+    `    $メッセージ = ${message}\n    broadcast("メッセージ")\n    ask($メッセージ)\n  end\nend\n`;
+const l4Dm = (setTo) =>
+    'when_flag_clicked do\n  ask("名前は？")\n  $なまえ = answer\n  ask("メッセージを入力")\n  loop do\n' +
+    `    $メッセージ = $なまえ + "：" + answer\n    ask("だれに送る？")\n    ${setTo}\n` +
+    '    broadcast("メッセージ")\n    ask($メッセージ)\n  end\nend\n';
+const sendOnce = async ({ vm, answer }) => {
+    vm.greenFlag();
+    await answer('hello');
+    await sleep(300);
+};
+const sendGroup = async ({ vm, answer }) => {
+    vm.greenFlag();
+    await answer('たろう');
+    await answer('やあ');
+    await sleep(300);
+};
+// 名前「たろう」で自分あてに送り、練習相手の「ミミに DM」「あなたに DM」を押す
+const sendDm = async ({ vm, answer, partnerPress }) => {
+    vm.greenFlag();
+    await answer('たろう');
+    await answer('やあ');
+    await answer('たろう');
+    await partnerPress(1);
+    await partnerPress(0);
+    await sleep(300);
+};
+const CHEATS_L4 = [
+    // 4-1: 変数に入れずに送る（変数は作ってあるが入れない）
+    [
+        'chat-l4-send-once (broadcasts without setting the variable)',
+        'chat-l4-send-once',
+        'when_flag_clicked do\n  ask("メッセージを入力")\n  broadcast("シマラビのメッセージ")\nend\n\n' +
+            'when_key_pressed("x") do\n  $シマラビのメッセージ = 0\nend\n',
+        sendOnce,
+    ],
+    // 4-1: 入力した答えではなく、決まった文字を入れて送る
+    [
+        'chat-l4-send-once (sets a fixed text, not the answer)',
+        'chat-l4-send-once',
+        'when_flag_clicked do\n  ask("メッセージを入力")\n  $シマラビのメッセージ = "こんにちは"\n' +
+            '  broadcast("シマラビのメッセージ")\nend\n',
+        sendOnce,
+    ],
+    // 4-1: 「このスプライトのみ」の変数に入れる（メッシュで共有されない）
+    [
+        'chat-l4-send-once (the variable is for this sprite only)',
+        'chat-l4-send-once',
+        'when_flag_clicked do\n  ask("メッセージを入力")\n  @シマラビのメッセージ = answer\n' +
+            '  broadcast("シマラビのメッセージ")\nend\n',
+        sendOnce,
+    ],
+    // 4-1: 変数に入れる前に送る（前の値が届く）
+    [
+        'chat-l4-send-once (broadcasts before setting the variable)',
+        'chat-l4-send-once',
+        'when_flag_clicked do\n  ask("メッセージを入力")\n  broadcast("シマラビのメッセージ")\n' +
+            '  $シマラビのメッセージ = answer\nend\n',
+        sendOnce,
+    ],
+    // 4-2: 「ずっと」を使わずに 2 回並べる
+    [
+        'chat-l4-send-repeat (two sends in a row without forever)',
+        'chat-l4-send-repeat',
+        'when_flag_clicked do\n  ask("メッセージを入力")\n  $シマラビのメッセージ = answer\n' +
+            '  broadcast("シマラビのメッセージ")\n  ask($シマラビのメッセージ)\n  $シマラビのメッセージ = answer\n' +
+            '  broadcast("シマラビのメッセージ")\n  ask($シマラビのメッセージ)\nend\n',
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('hello');
+            await answer('again');
+            await sleep(300);
+        },
+    ],
+    // 4-2: 「ずっと」の中で聞かずに送り続ける
+    [
+        'chat-l4-send-repeat (keeps sending without asking in forever)',
+        'chat-l4-send-repeat',
+        'when_flag_clicked do\n  ask("メッセージを入力")\n  loop do\n    $シマラビのメッセージ = answer\n' +
+            '    broadcast("シマラビのメッセージ")\n  end\nend\n',
+        sendOnce,
+    ],
+    // 4-3: 受け取ったシマネコが、自分のメッセージのセンサーの値を言う（練習相手は「とどいたよ」を返している）
+    [
+        'chat-l4-both-ways (Shimacat says the sensor value of its own message)',
+        'chat-l4-both-ways',
+        {
+            code: L4_SEND_REPEAT,
+            sprites: {
+                Shimacat:
+                    'when_receive("シマネコのメッセージ") do\n  say(mesh.sensor_value("シマラビのメッセージ"))\nend\n',
+            },
+        },
+        async (ctx) => {
+            await sendOnce(ctx);
+            await sleep(700);
+        },
+    ],
+    // 4-3: 受け取ったシマネコが、自分の変数を言う（3-1 の形のまま）
+    [
+        'chat-l4-both-ways (Shimacat says its own variable as in 3-1)',
+        'chat-l4-both-ways',
+        {
+            code: L4_SEND_REPEAT,
+            sprites: { Shimacat: 'when_receive("シマネコのメッセージ") do\n  say($シマラビのメッセージ)\nend\n' },
+        },
+        async (ctx) => {
+            await sendOnce(ctx);
+            await ctx.partnerPress(0);
+            await sleep(700);
+        },
+    ],
+    // 4-3: センサーの値を読まずに、練習相手の返事と同じ「とどいたよ」を言う
+    [
+        'chat-l4-both-ways (says "とどいたよ" without the sensor value)',
+        'chat-l4-both-ways',
+        {
+            code: L4_SEND_REPEAT,
+            sprites: { Shimacat: 'when_receive("シマネコのメッセージ") do\n  say("とどいたよ")\nend\n' },
+        },
+        async (ctx) => {
+            await sendOnce(ctx);
+            await sleep(700);
+        },
+    ],
+    // 4-4: 名前を聞かずに、決まった名前をつなぐ（変数「なまえ」は作ってあるが入れない）
+    [
+        'chat-l4-group (joins a fixed name without asking the name)',
+        'chat-l4-group',
+        {
+            code:
+                'when_flag_clicked do\n  ask("メッセージを入力")\n  loop do\n' +
+                '    $メッセージ = "シマラビ" + "：" + answer\n    broadcast("メッセージ")\n    ask($メッセージ)\n' +
+                '  end\nend\n\nwhen_key_pressed("x") do\n  $なまえ = 0\nend\n',
+            sprites: { Shimacat: L4_RECEIVE_GROUP },
+        },
+        async ({ vm, answer }) => {
+            vm.greenFlag();
+            await answer('やあ');
+            await sleep(300);
+        },
+    ],
+    // 4-4: 名前を聞いて変数に入れたが、つなぐのは決まった名前
+    [
+        'chat-l4-group (asks the name but joins a fixed name)',
+        'chat-l4-group',
+        { code: l4Group('"シマラビ" + "：" + answer'), sprites: { Shimacat: L4_RECEIVE_GROUP } },
+        sendGroup,
+    ],
+    // 4-4: 「：」を入れずにつなぐ
+    [
+        'chat-l4-group (joins without "：")',
+        'chat-l4-group',
+        { code: l4Group('$なまえ + " " + answer'), sprites: { Shimacat: L4_RECEIVE_GROUP } },
+        sendGroup,
+    ],
+    // 4-4: 名前に入力した答えではなく、決まった名前を入れる
+    [
+        'chat-l4-group (sets a fixed name)',
+        'chat-l4-group',
+        {
+            code: l4Group('$なまえ + "：" + answer').replace('$なまえ = answer', '$なまえ = "シマラビ"'),
+            sprites: { Shimacat: L4_RECEIVE_GROUP },
+        },
+        sendGroup,
+    ],
+    // 4-5: シマネコが、あてさきを見ずに全部言う（4-4 のまま）
+    [
+        'chat-l4-dm (Shimacat says every message without "if")',
+        'chat-l4-dm',
+        { code: l4Dm('$あてさき = answer'), sprites: { Shimacat: L4_RECEIVE_GROUP } },
+        sendDm,
+    ],
+    // 4-5: シマネコが、自分の変数「あてさき」（自分が送った先）と名前を比べる
+    [
+        'chat-l4-dm (compares its own variable "あてさき", not the sensor value)',
+        'chat-l4-dm',
+        {
+            code: l4Dm('$あてさき = answer'),
+            sprites: {
+                Shimacat:
+                    'when_receive("メッセージ") do\n  if $あてさき == $なまえ\n' +
+                    '    say(mesh.sensor_value("メッセージ"))\n  end\nend\n',
+            },
+        },
+        sendDm,
+    ],
+    // 4-5: 「あてさき」を「このスプライトのみ」の変数にする（ほかの人に届かない）
+    [
+        'chat-l4-dm (the variable "あてさき" is for this sprite only)',
+        'chat-l4-dm',
+        { code: l4Dm('@あてさき = answer'), sprites: { Shimacat: L4_DM_RECEIVE } },
+        sendDm,
+    ],
+    // 4-5: シマラビが「だれに送る？」を聞かない（シマネコは答えのとおり）
+    [
+        'chat-l4-dm (Shimaraby does not ask "だれに送る？")',
+        'chat-l4-dm',
+        { code: l4Group('$なまえ + "：" + answer'), sprites: { Shimacat: L4_DM_RECEIVE } },
+        async ({ vm, answer, partnerPress }) => {
+            vm.greenFlag();
+            await answer('たろう');
+            await answer('やあ');
+            await partnerPress(0);
+            await sleep(300);
+        },
+    ],
+    // 4-5: 答えのとおりでも、ほかの人あて（ミミに DM）しか届いていない
+    [
+        'chat-l4-dm (only a DM for someone else arrives)',
+        'chat-l4-dm',
+        null,
+        async ({ vm, answer, partnerPress }) => {
+            vm.greenFlag();
+            await answer('たろう');
+            await answer('やあ');
+            await answer('ミミ');
+            await partnerPress(1);
+            await sleep(300);
+        },
+    ],
+];
+
+describe('the chat lesson 4 goals are not met by programs that skip the task (#1644)', () => {
+    let vm;
+
+    afterEach(() => {
+        quitVm(vm);
+        vm = null;
+    });
+
+    test.each(CHEATS_L4)(
+        '%s',
+        async (_name, id, code, operation) => {
+            const run = await prepareRun(id, 'ja', code);
+            vm = run.vm;
+            await operation(run.ctx);
+            expect(await until(run.isSatisfied, 1500)).toBe(false);
+        },
+        20000,
+    );
+});
+
+// ペアでシマネコの役の人は、シマラビとシマネコの名前と受け持ちを入れかえて作る（判定は両方の名前を通す・#1644）。
+// 相手（シマラビの役）のメッセージは、本物のメッシュでほかのノードから届いた値として remoteData に入れて合図を流す
+describe('the chat lesson 4 goals also pass for the one who plays Shimacat in a pair (#1644)', () => {
+    let vm;
+
+    afterEach(() => {
+        quitVm(vm);
+        vm = null;
+    });
+
+    const fromPair = async (run, name, value) => {
+        run.vm.runtime.peripheralExtensions.meshV2.meshService.remoteData.pair = {
+            [name]: { value, timestamp: Date.now() },
+        };
+        run.vm.runtime.startHats('event_whenbroadcastreceived', { BROADCAST_OPTION: name });
+        await sleep(100);
+    };
+
+    test('4-1 with the names swapped', async () => {
+        const run = await prepareRun(
+            'chat-l4-send-once',
+            'ja',
+            'when_flag_clicked do\n  ask("メッセージを入力")\n  $シマネコのメッセージ = answer\n' +
+                '  broadcast("シマネコのメッセージ")\nend\n',
+        );
+        vm = run.vm;
+        vm.greenFlag();
+        await run.ctx.answer('hello');
+        expect(await until(run.isSatisfied, 1500)).toBe(true);
+    }, 20000);
+
+    test('4-3 with the names swapped, with the message of the pair from another node', async () => {
+        const run = await prepareRun('chat-l4-both-ways', 'ja', {
+            code:
+                'when_flag_clicked do\n  ask("メッセージを入力")\n  loop do\n    $シマネコのメッセージ = answer\n' +
+                '    broadcast("シマネコのメッセージ")\n    ask($シマネコのメッセージ)\n  end\nend\n',
+            sprites: {
+                Shimacat:
+                    'when_receive("シマラビのメッセージ") do\n  say(mesh.sensor_value("シマラビのメッセージ"))\nend\n',
+            },
+        });
+        vm = run.vm;
+        vm.greenFlag();
+        await run.ctx.answer('hello');
+        await fromPair(run, 'シマラビのメッセージ', 'やっほー');
         expect(await until(run.isSatisfied, 1500)).toBe(true);
     }, 20000);
 });
