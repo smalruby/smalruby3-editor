@@ -2288,6 +2288,8 @@ const chatLesson5 = defineLesson({
                     'event_broadcast',
                 ],
                 sound: ['sound_play'],
+                // 変数のカテゴリはこの絞りで出す（最初から入っている 4-3 のプログラムが使う）
+                data: ['data_setvariableto', 'data_variable'],
                 looks: [
                     'looks_say',
                     { opcode: 'looks_sayforsecs', inputs: { MESSAGE: chatL5Text('read'), SECS: 2 } },
@@ -2361,7 +2363,14 @@ const chatLesson5 = defineLesson({
                 event: ['event_whenflagclicked', 'event_broadcast'],
                 control: ['control_forever', 'control_if_else'],
                 sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: CHAT_ASK } }, 'sensing_answer'],
-                data: ['data_setvariableto', 'data_variable', 'data_listcontainsitem'],
+                // ステージのリストの準備（空にする・足す）も、変数のカテゴリに出す
+                data: [
+                    'data_setvariableto',
+                    'data_variable',
+                    'data_deletealloflist',
+                    'data_addtolist',
+                    'data_listcontainsitem',
+                ],
                 looks: [{ opcode: 'looks_sayforsecs', inputs: { MESSAGE: chatL5Text('cannotSend'), SECS: 2 } }],
             },
             partner: chatL5Partner(),
@@ -2538,6 +2547,7 @@ const chatLesson5 = defineLesson({
                 ],
                 control: [{ opcode: 'control_wait', inputs: { DURATION: 2 } }],
                 looks: ['looks_switchcostumeto'],
+                data: ['data_setvariableto', 'data_variable'],
             },
             partner: chatL5Partner({
                 buttons: [{ label: chatL5Text('sendStamp'), broadcast: chatL5Text('partnerStamp') }],
