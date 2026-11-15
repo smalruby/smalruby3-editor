@@ -893,8 +893,8 @@ const TeacherClassDetail = ({
                                         />
                                     </button>
                                 )}
-                                {/* まれな操作は「…」の中（R2・#1303 D1）。ダウンロード中は
-                                    メニューが閉じるので、進み具合は「…」の横に出す。 */}
+                                {/* まれな操作は⋮の中（R2・#1303 D1）。ダウンロード中は
+                                    メニューが閉じるので、進み具合は⋮の横に出す。 */}
                                 <span className={styles.detailTabsMore}>
                                     {downloadProgress ? (
                                         <span
@@ -908,11 +908,11 @@ const TeacherClassDetail = ({
                                         alignRight
                                         ariaLabel={intl.formatMessage({
                                             defaultMessage: 'More actions',
-                                            description: 'Accessible name of the … menu of the assignment detail',
+                                            description: 'Accessible name of the ⋮ menu of the assignment detail',
                                             id: 'gui.classroom.teacherDetail.moreMenu',
                                         })}
                                         buttonClassName={styles.boardKebab}
-                                        label="…"
+                                        label="⋮"
                                         testId="classroom-detail-more-menu"
                                     >
                                         {(close) => (
@@ -1168,7 +1168,7 @@ const TeacherClassDetail = ({
                             )}
 
                             {/* Archive confirmation (soft-delete, restorable — issue #1051).
-                                The action itself is in the … menu (#1303 D1).
+                                The action itself is in the ⋮ menu (#1303 D1).
                                 data-testids keep the historical "delete" names for E2E stability. */}
                             {(error || showDeleteConfirm) && (
                                 <div className={styles.detailFooter}>

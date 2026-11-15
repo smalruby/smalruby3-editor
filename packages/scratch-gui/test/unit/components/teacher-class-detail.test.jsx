@@ -514,7 +514,12 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
     const renderDescription = (over) =>
         renderDetail({ assignmentEditor: editor(over), detailEntry: { tab: 'description', seq: 1 } });
 
-    test('D1: 全作品ダウンロードとアーカイブは「…」の中にあり、タブの行には出さない', () => {
+    test('C9: タブの行の「その他」メニューの記号は ⋮ (#1925)', () => {
+        renderDetail();
+        expect(byTestId('classroom-detail-more-menu').textContent).toBe('⋮');
+    });
+
+    test('D1: 全作品ダウンロードとアーカイブは ⋮ の中にあり、タブの行には出さない', () => {
         const onDownloadAll = jest.fn();
         const onDeleteClassroom = jest.fn();
         // jsdom has no scrollIntoView (the confirm box scrolls into view).
