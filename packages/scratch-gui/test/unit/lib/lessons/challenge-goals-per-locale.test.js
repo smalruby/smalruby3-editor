@@ -169,9 +169,15 @@ const OPERATIONS = {
         await answer('hello');
     },
     'chat-l1-read-diagram': async ({ vm, answer, locale }) => {
+        const end = locale === 'en' ? 'end' : 'おわり';
+        // 1 回目: すぐ「おわり」（くり返しを通らない = まだ「できた」にならない）
+        vm.greenFlag();
+        await answer(end);
+        await sleep(200);
+        // 2 回目: 前の「答え」（おわり）が残っていても、旗を押せば最初に聞く（answer が質問を待つ）
         vm.greenFlag();
         await answer('hello');
-        await answer(locale === 'en' ? 'end' : 'おわり');
+        await answer(end);
     },
 };
 

@@ -79,7 +79,7 @@ export const ja = {
     [`${C}chat-l1-read-diagram.quiz.choice2`]: 'またね',
     [`${C}chat-l1-read-diagram.quiz.choice3`]: '何も言わない',
     [`${C}chat-l1-read-diagram.quiz.explanation`]:
-        'くり返しの中で「おわり」を 1 秒言ったあと、条件に合ってくり返しをぬけ、その下の「またね」を言う。最後は終了の記号（二重丸）だよ。',
+        '「おわり」と入力すると、くり返しの条件に合うので、「おわり」は言わずにくり返しをぬけ、その下の「またね」を言う。最後は終了の記号（二重丸）だよ。',
 };
 
 export const jaHira = {
@@ -159,7 +159,7 @@ export const jaHira = {
     [`${C}chat-l1-read-diagram.quiz.choice2`]: 'またね',
     [`${C}chat-l1-read-diagram.quiz.choice3`]: 'なにも いわない',
     [`${C}chat-l1-read-diagram.quiz.explanation`]:
-        'くりかえしのなかで「おわり」を 1 びょう いったあと、じょうけんに あって くりかえしを ぬけ、そのしたの「またね」をいう。さいごは しゅうりょうの きごう（にじゅうまる）だよ。',
+        '「おわり」と にゅうりょくすると、くりかえしの じょうけんに あうので、「おわり」は いわずに くりかえしを ぬけ、そのしたの「またね」をいう。さいごは しゅうりょうの きごう（にじゅうまる）だよ。',
 };
 
 export const en = {
@@ -238,5 +238,5 @@ export const en = {
     [`${C}chat-l1-read-diagram.quiz.choice2`]: 'Bye!',
     [`${C}chat-l1-read-diagram.quiz.choice3`]: 'Nothing',
     [`${C}chat-l1-read-diagram.quiz.explanation`]:
-        'Inside the loop it says "end" for 1 second, then the condition is met and it leaves the loop and says "Bye!" below it. The end is the final node (the double circle).',
+        'When you type "end", the condition of the loop is met, so it leaves the loop without saying "end" and says "Bye!" below it. The end is the final node (the double circle).',
 };

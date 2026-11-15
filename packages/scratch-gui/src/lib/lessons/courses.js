@@ -1034,7 +1034,9 @@ const chatLesson1 = defineLesson({
                     `  else\n    ${w.v} = answer\n    say(${w.v}, 2)\n  end\nend\n`,
             ),
         },
-        // 4 図を読んで作ろう（読んで作る）: 「おわり」と入力するまで聞いて言うをくり返し、最後に「またね」
+        // 4 図を読んで作ろう（読んで作る）: 「おわり」と入力するまで聞いて言うをくり返し、最後に「またね」。
+        // くり返しの前に 1 回聞く（教科書のチャットの送る側と同じ「聞く → くり返し〔… → 聞く〕」の形）。旗を押すたびに
+        // 最初に聞くので、前の実行の「答え」（「おわり」）が残っていても、すぐ「またね」にならない
         {
             id: 'chat-l1-read-diagram',
             mode: 'readDiagram',
@@ -1057,7 +1059,8 @@ const chatLesson1 = defineLesson({
                     { opcode: 'looks_say', inputs: { MESSAGE: { ja: 'またね', 'ja-Hira': 'またね', en: 'Bye!' } } },
                 ],
             },
-            // 「聞いて待つ」が 2 回動いた（「おわり」の前に 1 回以上入力した）あと「またね」と言った
+            // 「聞いて待つ」が 2 回動いた（くり返しの前の 1 回 + くり返しの中で 1 回 = 「おわり」の前に 1 回以上
+            // 入力して、くり返しを通った）あと「またね」と言った
             goal: [
                 {
                     type: 'uses',
@@ -1069,8 +1072,8 @@ const chatLesson1 = defineLesson({
             quiz: challengeQuiz('chat-l1-read-diagram', 1),
             code: chatCode(
                 (w) =>
-                    `when_flag_clicked do\n  until answer == "${w.end}"\n    ask("${w.ask}")\n` +
-                    `    say(answer, 1)\n  end\n  say("${w.bye}")\nend\n`,
+                    `when_flag_clicked do\n  ask("${w.ask}")\n  until answer == "${w.end}"\n` +
+                    `    say(answer, 1)\n    ask("${w.ask}")\n  end\n  say("${w.bye}")\nend\n`,
             ),
         },
     ],
