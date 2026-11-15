@@ -146,6 +146,23 @@ describe('lesson courses', () => {
         expect(COURSES[0]).toBe(course);
     });
 
+    test('every sprite a challenge starts with (setup.sprites, setup.spriteCodes) is in the sprite library', () => {
+        // eslint-disable-next-line global-require
+        const library = require('../../../../src/lib/libraries/sprites.json').map((s) => s.name);
+        allChallenges().forEach((challenge) => {
+            const setup = challenge.setup || {};
+            const sprites = [...(setup.sprites || []), ...(setup.spriteCodes || []).map((s) => s.sprite)];
+            sprites.forEach((name) =>
+                expect({ challenge: challenge.id, name, known: library.includes(name) }).toEqual({
+                    challenge: challenge.id,
+                    name,
+                    known: true,
+                }),
+            );
+            if (setup.sprites) expect(Array.isArray(setup.sprites)).toBe(true);
+        });
+    });
+
     test('every challenge has a card with a color (category) and a main family, and no picture (#1543)', () => {
         const known = Object.values(CATEGORIES);
         allChallenges().forEach((challenge) => {

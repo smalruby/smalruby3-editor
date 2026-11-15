@@ -46,8 +46,25 @@ export const findCodeSprite = (vm, spriteCodes, preferred = null) => {
 export const addLibrarySprite = async (vm, name, library, position = ADDED_SPRITE_POSITION) => {
     const item = library.find((s) => s.name === name);
     if (!item) return null;
+    // 足したスプライトは、足す前後のスプライトの差分で取る（同じ名前のスプライトがあると VM は名前を変えて
+    // 足すので、名前で探すと前からいたほうを取ってしまう）
+    const before = new Set(spritesOf(vm).map((t) => t.id));
     await vm.addSprite(JSON.stringify({ ...item, ...position }));
-    return findSpriteByName(vm, name);
+    return spritesOf(vm).find((t) => !before.has(t.id)) || null;
+};
+
+/**
+ * `code` を入れるスプライト（「プログラムを入れる」とチャレンジの始め方で同じ決め方）。`spriteCodes` があれば
+ * `findCodeSprite`（`preferred`、いなければ `spriteCodes` に名前の無い最初のスプライト）、無ければ `preferred`
+ * のスプライト。どちらも無ければ null（呼ぶ側が、いま編集中のスプライトに入れる）。
+ * @param {object} vm - Scratch VM。
+ * @param {Array<{sprite: string}>} spriteCodes - スプライトの名前とプログラム。
+ * @param {?string} [preferred] - `setup.sprites` の 1 つめ。
+ * @returns {?object} スプライト。
+ */
+export const resolveCodeSprite = (vm, spriteCodes, preferred = null) => {
+    if (spriteCodes.length > 0) return findCodeSprite(vm, spriteCodes, preferred);
+    return preferred ? findSpriteByName(vm, preferred) : null;
 };
 
 /**

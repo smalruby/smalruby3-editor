@@ -383,13 +383,32 @@ describe('challenge definition', () => {
         ]);
     });
 
-    test('names the code sprite after setup.sprites when the challenge starts with other sprites', async () => {
+    test('names the code sprite after setup.sprites, in the words of the locale for the characters', async () => {
         const { challenge } = findChallenge('blocks-l1-broadcast');
-        const diagram = await challengeActivityDiagram(
-            { ...challenge, activityDiagram: true, setup: { sprites: ['Shimaraby', 'Penguin'] } },
+        const started = {
+            ...challenge,
+            activityDiagram: true,
+            setup: { sprites: ['Shimaraby', 'Shimacat'] },
+            spriteCodes: [{ sprite: 'Shimacat', code: challenge.spriteCodes[0].code }],
+        };
+        const ja = await challengeActivityDiagram(started, {
+            locale: 'ja',
+            format: formatJa,
+            toBlocks: (source) => toBlocks(source.code),
+        });
+        expect(ja.model.lanes[0].targets.map((t) => t.name)).toEqual(['シマラビ', 'シマネコ']);
+        const enDiagram = await challengeActivityDiagram(started, {
+            locale: 'en',
+            format: formatEn,
+            toBlocks: (source) => toBlocks(source.code),
+        });
+        expect(enDiagram.model.lanes[0].targets.map((t) => t.name)).toEqual(['Shimaraby', 'Shimacat']);
+        // 訳の無いスプライトは名前のまま
+        const owl = await challengeActivityDiagram(
+            { ...challenge, activityDiagram: true, setup: { sprites: ['Owl'] } },
             { locale: 'ja', format: formatJa, toBlocks: (source) => toBlocks(source.code) },
         );
-        expect(diagram.model.lanes[0].targets.map((t) => t.name)).toEqual(['Shimaraby', 'Penguin']);
+        expect(owl.model.lanes[0].targets.map((t) => t.name)).toEqual(['Owl', 'Penguin']);
     });
 
     test('a partner adds its own lane and names the student lane', async () => {
