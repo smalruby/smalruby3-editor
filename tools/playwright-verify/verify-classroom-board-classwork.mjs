@@ -198,7 +198,8 @@ try {
         landing.bottom !== null && landing.bottom <= VIEWPORT.height && landing.mainOk && landing.pageOk && landing.path === (LOCALE === 'ja' ? 'クラス管理' : 'クラスかんり'),
         `path=${landing.path} create bottom=${landing.bottom}/${VIEWPORT.height} page=${landing.pageOk ? 'no scroll' : 'SCROLLS'} main=${landing.main} list=${landing.frame}`,
     );
-    await shot('class-list', '0210-teacher-class-list.png');
+    // The docs screenshot of the class list (0210) is taken by verify-classroom-class-list.mjs (#1959).
+    await shot('class-list');
     await page.locator(tid('classroom-class-open-g1')).click();
     await page.waitForSelector(tid('classroom-board'), { timeout: 20000 });
     await page.waitForTimeout(800);
