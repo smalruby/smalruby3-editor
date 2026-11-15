@@ -11,8 +11,10 @@ const Runtime = require('../../src/engine/runtime');
 const Sprite = require('../../src/sprites/sprite');
 const Variable = require('../../src/engine/variable');
 
+const originalURLSearchParams = global.URLSearchParams;
 require('tap').teardown(() => {
     delete global.window;
+    global.URLSearchParams = originalURLSearchParams;
 });
 
 const makeStage = (runtime) => {
@@ -38,6 +40,15 @@ const setup = () => {
 };
 
 /**
+ * Like connect(): hook the opcodes and the variable functions.
+ * @param {MeshV2Blocks} blocks - the extension.
+ */
+const connectHooks = (blocks) => {
+    blocks.setOpcodeFunctionHOC();
+    blocks.setVariableFunctionHOC();
+};
+
+/**
  * Replace the project like vm.loadProject: dispose, install a new stage, then PROJECT_LOADED.
  * @param {Runtime} runtime - the runtime.
  * @returns {Target} the new stage.
@@ -49,41 +60,51 @@ const reloadProject = (runtime) => {
     return stage;
 };
 
-test('variable changes on the stage are sent after connecting', (t) => {
+// The paths the editor really uses (blocks.js handles the Blockly variable events).
+const makeVariableFromMenu = (stage, id, name) =>
+    stage.blocks.blocklyListen({ type: 'var_create', varId: id, varName: name, varType: '', isLocal: false });
+const renameVariableFromMenu = (stage, id, newName) =>
+    stage.blocks.blocklyListen({ type: 'var_rename', varId: id, newName });
+const runSetVariableBlock = (runtime, stage, id, name, value) =>
+    runtime.getOpcodeFunction('data_setvariableto')({ VARIABLE: { id, name }, VALUE: value }, { target: stage });
+
+test('"Make a Variable" on the stage is sent after connecting', (t) => {
     const { runtime, blocks, sent } = setup();
     const stage = makeStage(runtime);
-    stage.createVariable('v1', 'score', Variable.SCALAR_TYPE);
-    blocks.setVariableFunctionHOC();
-    stage.setVariableValue('v1', 5);
-    t.same(sent, [{ key: 'score', value: '5' }]);
+    connectHooks(blocks);
+    makeVariableFromMenu(stage, 'v1', 'score');
+    t.same(sent, [{ key: 'score', value: '0' }]);
     t.end();
 });
 
-test('the new stage is hooked after the project is reloaded (#1833)', (t) => {
+test('after reloading the project, the new stage is hooked (#1833)', (t) => {
     const { runtime, blocks, sent } = setup();
     makeStage(runtime);
-    blocks.setVariableFunctionHOC();
+    connectHooks(blocks);
 
     const stage2 = reloadProject(runtime);
-    stage2.createVariable('v2', 'level', Variable.SCALAR_TYPE);
-    t.same(sent, [{ key: 'level', value: '0' }], 'a variable made on the new stage is sent');
-    stage2.setVariableValue('v2', 3);
-    t.same(sent[1], { key: 'level', value: '3' }, 'a value set on the new stage (e.g. slider) is sent');
-    t.equal(stage2.variables.v2.value, 3, 'the new stage really keeps the value');
-    stage2.renameVariable('v2', 'stage');
-    t.same(sent[2], { key: 'stage', value: '3' });
+    makeVariableFromMenu(stage2, 'v2', 'level');
+    t.same(sent, [{ key: 'level', value: '0' }], '"Make a Variable" on the new stage is sent');
+    t.equal(stage2.variables.v2.name, 'level', 'the new stage really has the variable');
+
+    renameVariableFromMenu(stage2, 'v2', 'stage');
+    t.same(sent[1], { key: 'stage', value: '0' }, 'renaming on the new stage is sent');
     t.equal(stage2.variables.v2.name, 'stage');
+
+    runSetVariableBlock(runtime, stage2, 'v2', 'stage', 3);
+    t.same(sent[2], { key: 'stage', value: '3' }, 'the set variable block still sends on the new stage');
+    t.equal(stage2.variables.v2.value, 3);
     t.end();
 });
 
 test('reloading twice hooks only the current stage once (#1833)', (t) => {
     const { runtime, blocks, sent } = setup();
     makeStage(runtime);
-    blocks.setVariableFunctionHOC();
+    connectHooks(blocks);
     reloadProject(runtime);
     const stage3 = reloadProject(runtime);
     blocks.setVariableFunctionHOC(); // e.g. connect() again: must not wrap twice
-    stage3.createVariable('v3', 'hp', Variable.SCALAR_TYPE);
+    makeVariableFromMenu(stage3, 'v3', 'hp');
     stage3.setVariableValue('v3', 9);
     t.same(sent, [
         { key: 'hp', value: '0' },
@@ -96,7 +117,7 @@ test('a reload before connecting does not hook the stage', (t) => {
     const { runtime, sent } = setup();
     makeStage(runtime);
     const stage2 = reloadProject(runtime);
-    stage2.createVariable('v4', 'x', Variable.SCALAR_TYPE);
+    makeVariableFromMenu(stage2, 'v4', 'x');
     stage2.setVariableValue('v4', 1);
     t.same(sent, []);
     t.equal(stage2.variables.v4.value, 1);

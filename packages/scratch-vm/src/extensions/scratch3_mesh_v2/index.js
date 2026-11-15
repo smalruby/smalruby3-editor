@@ -7,6 +7,7 @@ const debugLogger = require('../../util/debug-logger');
 const debug = debugLogger(process.env.DEBUG);
 const { v4: uuidv4 } = require('uuid');
 const Variable = require('../../engine/variable');
+const Runtime = require('../../engine/runtime');
 const { getDomain, saveDomainToLocalStorage } = require('./utils');
 const { hiraganaToHex } = require('./name-search-utils');
 const { createClient } = require('./mesh-client');
@@ -109,7 +110,7 @@ class Scratch3MeshV2Blocks {
             });
             // A loaded project has a new stage: hook it too, once the variable
             // functions were hooked (connect), so its variable changes reach the mesh.
-            this.runtime.on('PROJECT_LOADED', () => {
+            this.runtime.on(Runtime.PROJECT_LOADED, () => {
                 if (this.variableFunctions) this.setVariableFunctionHOC();
             });
         }
