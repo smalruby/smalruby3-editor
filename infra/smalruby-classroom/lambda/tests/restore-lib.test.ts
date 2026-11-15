@@ -68,6 +68,30 @@ describe('buildRestorePlan', () => {
   const NOW = new Date('2026-07-17T00:00:00.000Z').getTime();
   const DAY = 24 * 60 * 60;
 
+  test('recounts unreturnedCount from the restored seats and submissions (#1972)', () => {
+    const plan = buildRestorePlan(
+      {
+        classroom: { classroomId: 'c1', status: 'archived', ttl: 123, unreturnedCount: 9 },
+        memberships: [
+          { classroomId: 'c1', memberId: 'seat-01' },
+          { classroomId: 'c1', memberId: 'seat-02' },
+          { classroomId: 'c1', memberId: 'seat-03', kicked: true },
+        ],
+        submissions: [
+          { classroomId: 'c1', submissionId: 's1', memberId: 'seat-01', status: 'submitted' },
+          { classroomId: 'c1', submissionId: 's2', memberId: 'seat-02', status: 'returned' },
+          { classroomId: 'c1', submissionId: 's3', memberId: 'seat-03', status: 'submitted' },
+          { classroomId: 'c1', submissionId: 's4', memberId: 'seat-04', status: 'submitted' },
+        ],
+      },
+      NOW,
+      90,
+      400,
+    );
+    const classroom = plan.find(p => p.table === 'classrooms')!;
+    expect(classroom.item.unreturnedCount).toBe(1);
+  });
+
   test('re-stamps TTLs from now and reactivates the classroom', () => {
     const plan = buildRestorePlan(
       {

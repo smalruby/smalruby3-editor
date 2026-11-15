@@ -42,6 +42,14 @@ import {
   validateLessonSetting,
   type LessonProgress,
 } from './lesson-lib';
+import {
+  hasUnreturnedSubmission,
+  isSeatOccupied,
+  unreturnedCountOf,
+  unreturnedDeltaOnOccupancy,
+  unreturnedDeltaOnSubmit,
+  unreturnedDeltaOnUpdate,
+} from './unreturned-count-lib';
 
 // --- Configuration ---
 
@@ -899,6 +907,8 @@ async function handleCreateClassroom(identity: TeacherIdentity, body: Record<str
       topic,
       sortDate: sortDate || now,
       meshGroupLimit,
+      // 返却していない提出の数 (#1972)。新しい課題は 0 から数える。
+      unreturnedCount: 0,
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -1169,7 +1179,82 @@ function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIde
     status: item.status,
     archivedAt: archivedAtOf(item),
     role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
+    // 返却していない提出の数 (#1972)。数を持っていない課題（この項目より前に作り、
+    // まだ埋めていないもの）とレッスンの課題（提出・返却の流れが無い）は項目を出さない。
+    ...unreturnedCountFieldOf(item),
   };
+}
+
+/**
+ * 一覧・詳細の応答に足す `unreturnedCount`（#1972）。出さないときは空のオブジェクト。
+ * @param item - Classrooms の item
+ */
+function unreturnedCountFieldOf(item: Record<string, unknown>): { unreturnedCount?: number } {
+  if (lessonSettingOf(item) !== null) return {};
+  const count = unreturnedCountOf(item);
+  return count === undefined ? {} : { unreturnedCount: count };
+}
+
+/**
+ * 課題の item の `unreturnedCount` を増減する（#1972）。数を持っている課題だけを動かす
+ * （持っていない古い課題に足すと、すでにある提出のぶんだけずれた数ができてしまうため。
+ * 古い課題は bin/backfill-unreturned-count.ts で埋める）。0 より下にはしない。
+ * 付随的な集計なので、失敗しても本来の操作（提出・返却・退室）は止めない（fail-open）。
+ * @param classroomId - 課題
+ * @param delta - 増減（0 なら何もしない）
+ */
+async function adjustUnreturnedCount(classroomId: string, delta: number): Promise<void> {
+  if (!delta) return;
+  try {
+    await docClient.send(new UpdateCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId },
+      UpdateExpression: 'SET #u = #u + :d',
+      ConditionExpression: delta < 0 ? 'attribute_exists(#u) AND #u >= :abs' : 'attribute_exists(#u)',
+      ExpressionAttributeNames: { '#u': 'unreturnedCount' },
+      ExpressionAttributeValues: delta < 0 ? { ':d': delta, ':abs': -delta } : { ':d': delta },
+    }));
+  } catch (err: unknown) {
+    if ((err as { name?: string })?.name === 'ConditionalCheckFailedException') return;
+    console.error('unreturnedCount update failed (ignored):', err);
+  }
+}
+
+/**
+ * その席に返却していない提出があるか（#1972。席の在・不在が変わるときに使う）。
+ * 1 つの席の提出だけを GSI で読む（ふつうは 0〜1 件）。
+ * @param classroomId - 課題
+ * @param memberId - 席
+ */
+async function seatHasUnreturnedSubmission(classroomId: string, memberId: string): Promise<boolean> {
+  const res = await docClient.send(new QueryCommand({
+    TableName: SUBMISSIONS_TABLE,
+    IndexName: 'classroomId-memberId-index',
+    KeyConditionExpression: 'classroomId = :cid AND memberId = :mid',
+    ExpressionAttributeValues: { ':cid': classroomId, ':mid': memberId },
+    ProjectionExpression: 'memberId, #st, submittedAt',
+    ExpressionAttributeNames: { '#st': 'status' },
+  }));
+  return hasUnreturnedSubmission((res?.Items || []) as Record<string, unknown>[]);
+}
+
+/**
+ * 席の在・不在が変わったあとに数を直す（#1972）。fail-open。
+ * @param classroomId - 課題
+ * @param memberId - 席
+ * @param wasOccupied - 変わる前に在席だったか
+ * @param isOccupied - 変わったあとに在席か
+ */
+async function adjustUnreturnedCountOnOccupancy(
+  classroomId: string, memberId: string, wasOccupied: boolean, isOccupied: boolean,
+): Promise<void> {
+  if (wasOccupied === isOccupied) return;
+  try {
+    const seatHasUnreturned = await seatHasUnreturnedSubmission(classroomId, memberId);
+    await adjustUnreturnedCount(classroomId, unreturnedDeltaOnOccupancy(wasOccupied, isOccupied, seatHasUnreturned));
+  } catch (err) {
+    console.error('unreturnedCount occupancy update failed (ignored):', err);
+  }
 }
 
 /**
@@ -1562,6 +1647,10 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
     throw err;
   }
 
+  // The put only succeeds on an empty (or kicked) seat, so the seat has just
+  // become occupied: a submission already on it counts again (#1972).
+  await adjustUnreturnedCountOnOccupancy(classroom.classroomId as string, memberId, false, true);
+
   // Personalized recap: when the lesson belongs to a group (組), surface the
   // returned teacher comment this seat received in the most recent prior
   // lesson of the same group. Best-effort — joining must never fail on this.
@@ -1879,8 +1968,10 @@ async function handleDeleteMember(identity: TeacherIdentity, classroomId: string
         ':sn': seatNumber,
         ':ttl': kickTtl,
       },
-      // The kicked session's token is needed for the kick marker below.
-      ReturnValues: 'ALL_NEW',
+      // The kicked session's token is needed for the kick marker below, and
+      // the old `kicked` tells whether the seat was occupied (#1972). The
+      // token is not changed by this update, so ALL_OLD carries it too.
+      ReturnValues: 'ALL_OLD',
     }));
     kickedRow = updated?.Attributes;
   } catch (err: unknown) {
@@ -1895,6 +1986,9 @@ async function handleDeleteMember(identity: TeacherIdentity, classroomId: string
     }
     throw err;
   }
+
+  // A kick empties the seat: its unreturned submission stops counting (#1972).
+  await adjustUnreturnedCountOnOccupancy(classroomId, memberId, isSeatOccupied(kickedRow), false);
 
   // Keep the kick on a marker that a new join on the seat cannot overwrite
   // (issue #1821). Best-effort: the seat tombstone already answers 410 until
@@ -2363,6 +2457,7 @@ async function handleCreateSubmission(
   // A teacher's "hide from classmates" survives a resubmission (#1239): the
   // student must not be able to lift it by submitting again.
   let hiddenFromPeers = false;
+  let deletedPrevious: Record<string, unknown> | null = null;
   if (prevResult.Items && prevResult.Items.length > 0) {
     const prev = prevResult.Items[0];
     const prevId = prev.submissionId as string;
@@ -2377,11 +2472,15 @@ async function handleCreateSubmission(
     await Promise.allSettled(
       deleteKeys.map(key => s3Client.send(new DeleteObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: key }))),
     );
-    // Delete old DynamoDB record
-    await docClient.send(new DeleteCommand({
+    // Delete old DynamoDB record. ALL_OLD tells whether this request really
+    // removed it and what its status was, for unreturnedCount (#1972) — the
+    // GSI read above is eventually consistent and may predate a return.
+    const deleted = await docClient.send(new DeleteCommand({
       TableName: SUBMISSIONS_TABLE,
       Key: { classroomId, submissionId: prevId },
+      ReturnValues: 'ALL_OLD',
     }));
+    deletedPrevious = (deleted?.Attributes as Record<string, unknown> | undefined) || null;
   }
 
   const submissionId = crypto.randomUUID();
@@ -2445,6 +2544,10 @@ async function handleCreateSubmission(
       ttl: Math.floor(Date.now() / 1000) + SUBMISSION_TTL_SECONDS,
     },
   }));
+
+  // The submitter holds a live session, so the seat is occupied: the new
+  // submission counts, minus the replaced one if it was still unreturned.
+  await adjustUnreturnedCount(classroomId, unreturnedDeltaOnSubmit(deletedPrevious));
 
   return {
     statusCode: 201,
@@ -2762,13 +2865,34 @@ async function handleUpdateSubmission(
   exprNames['#ua'] = 'updatedAt';
   exprValues[':ua'] = updates.updatedAt;
 
-  await docClient.send(new UpdateCommand({
+  const updated = await docClient.send(new UpdateCommand({
     TableName: SUBMISSIONS_TABLE,
     Key: { classroomId, submissionId },
     UpdateExpression: `SET ${exprParts.join(', ')}`,
     ExpressionAttributeNames: exprNames,
     ExpressionAttributeValues: exprValues,
+    // The old status (atomic with this write) decides whether this request
+    // is the one that returned it — two clicks must not count twice (#1972).
+    ReturnValues: 'UPDATED_OLD',
   }));
+
+  if (updates.status === 'returned') {
+    const oldStatus = updated?.Attributes ? updated.Attributes.status : submission.Item.status;
+    if (oldStatus !== 'returned') {
+      try {
+        const membership = await docClient.send(new GetCommand({
+          TableName: MEMBERSHIPS_TABLE,
+          Key: { classroomId, memberId: submission.Item.memberId as string },
+        }));
+        await adjustUnreturnedCount(
+          classroomId,
+          unreturnedDeltaOnUpdate(oldStatus, 'returned', isSeatOccupied(membership?.Item)),
+        );
+      } catch (err) {
+        console.error('unreturnedCount return update failed (ignored):', err);
+      }
+    }
+  }
 
   return {
     statusCode: 200,
@@ -3010,6 +3134,8 @@ async function handleImportGoogleClassroom(
       googleClassroomCourseId: courseId,
       // A new assignment always stores its mesh group limit (#1255).
       meshGroupLimit: DEFAULT_MESH_GROUP_LIMIT,
+      // 返却していない提出の数 (#1972)。新しい課題は 0 から数える。
+      unreturnedCount: 0,
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -4190,6 +4316,8 @@ async function handleDuplicateClassroom(
       ...(hasStoredMeshGroupLimit(source) ? { meshGroupLimit: source.meshGroupLimit } : {}),
       // ...and its lesson setting (#1597). Progress is per assignment and is not copied.
       ...(lessonSettingOf(source) ? { lesson: lessonSettingOf(source) } : {}),
+      // 返却していない提出の数 (#1972)。新しい課題は 0 から数える。
+      unreturnedCount: 0,
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -5778,6 +5906,8 @@ async function importSharedItem(
       meshGroupLimit: DEFAULT_MESH_GROUP_LIMIT,
       // The shared lesson setting comes along (#1597).
       ...(lessonSettingOf(item) ? { lesson: lessonSettingOf(item) } : {}),
+      // 返却していない提出の数 (#1972)。新しい課題は 0 から数える。
+      unreturnedCount: 0,
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -6422,10 +6552,15 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
         if (session.classroomId !== classroomId) {
           throw new AuthError('Session does not match this classroom');
         }
-        await docClient.send(new DeleteCommand({
+        const left = await docClient.send(new DeleteCommand({
           TableName: MEMBERSHIPS_TABLE,
           Key: { classroomId, memberId: session.memberId },
+          ReturnValues: 'ALL_OLD',
         }));
+        // Leaving empties the seat: its unreturned submission stops counting (#1972).
+        await adjustUnreturnedCountOnOccupancy(
+          classroomId, session.memberId, isSeatOccupied(left?.Attributes), false,
+        );
         result = { statusCode: 204 };
       } else {
         // Teacher removal via ID token

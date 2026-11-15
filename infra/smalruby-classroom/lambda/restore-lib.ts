@@ -6,6 +6,7 @@
  * so the restore behavior is unit-testable: argument parsing, snapshot
  * matching, and the restore plan (which items get written, with what TTL).
  */
+import { countUnreturnedSubmissions, isSeatOccupied } from './unreturned-count-lib';
 
 export interface RestoreArgs {
   classroomId: string | null;
@@ -144,9 +145,21 @@ export function buildRestorePlan(
     plan.push({ table: 'groups', item: { ...input.group, ttl: groupTtl, status: 'active', restoredAt } });
   }
   const { archivedAt: _archivedAt, ...classroom } = input.classroom;
+  // Recount unreturnedCount (#1972) from what is actually being restored:
+  // the snapshot of the classroom row and those of its submissions were taken
+  // at different moments, so the stored count may not match them.
+  const occupied = new Set(
+    input.memberships.filter(m => isSeatOccupied(m)).map(m => String(m.memberId)),
+  );
   plan.push({
     table: 'classrooms',
-    item: { ...classroom, ttl, status: 'active', restoredAt },
+    item: {
+      ...classroom,
+      ttl,
+      status: 'active',
+      restoredAt,
+      unreturnedCount: countUnreturnedSubmissions(input.submissions, occupied),
+    },
   });
   for (const membership of input.memberships) {
     plan.push({ table: 'memberships', item: { ...membership, ttl } });
