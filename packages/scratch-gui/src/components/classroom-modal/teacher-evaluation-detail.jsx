@@ -37,13 +37,17 @@ export const detailMessages = defineMessages({
         id: 'gui.classroom.evaluation.detailTitle',
     },
     prev: {
-        defaultMessage: 'Previous seat',
-        description: 'Grading screen: accessible name of ‹ (the previous seat that submitted, #1962)',
+        defaultMessage: 'Previous seat {seat}',
+        description:
+            'Grading screen: accessible name of ‹ (the previous seat that submitted, #1962). {seat} is the number ' +
+            'shown on the button, empty at the first seat',
         id: 'gui.classroom.evaluation.detailPrev',
     },
     next: {
-        defaultMessage: 'Next seat',
-        description: 'Grading screen: accessible name of › (the next seat that submitted, #1962)',
+        defaultMessage: 'Next seat {seat}',
+        description:
+            'Grading screen: accessible name of › (the next seat that submitted, #1962). {seat} is the number ' +
+            'shown on the button, empty at the last seat',
         id: 'gui.classroom.evaluation.detailNext',
     },
     empty: {
@@ -57,7 +61,7 @@ export const detailMessages = defineMessages({
         id: 'gui.classroom.evaluation.aiDraft',
     },
     needsReview: {
-        defaultMessage: 'Check',
+        defaultMessage: 'Needs check',
         description: 'Grading screen: tag of a cell the AI was unsure about',
         id: 'gui.classroom.evaluation.needsReview',
     },
@@ -124,7 +128,9 @@ const TeacherEvaluationDetail = ({
                 </h3>
                 <div className={styles.evalDetailNav}>
                     <ClassroomButton
-                        ariaLabel={intl.formatMessage(detailMessages.prev)}
+                        ariaLabel={intl
+                            .formatMessage(detailMessages.prev, { seat: prevSeat === null ? '' : pad(prevSeat) })
+                            .trim()}
                         dataTestId="classroom-eval-detail-prev"
                         disabled={prevSeat === null}
                         variant="text"
@@ -133,7 +139,9 @@ const TeacherEvaluationDetail = ({
                         {prevSeat === null ? '‹' : `‹ ${pad(prevSeat)}`}
                     </ClassroomButton>
                     <ClassroomButton
-                        ariaLabel={intl.formatMessage(detailMessages.next)}
+                        ariaLabel={intl
+                            .formatMessage(detailMessages.next, { seat: nextSeat === null ? '' : pad(nextSeat) })
+                            .trim()}
                         dataTestId="classroom-eval-detail-next"
                         disabled={nextSeat === null}
                         variant="text"
@@ -164,7 +172,7 @@ const TeacherEvaluationDetail = ({
                         </option>
                     ))}
                 </select>
-                {cell.grade && !cell.manual && (
+                {cell.grade && !cell.gradeEdited && (
                     <span className={styles.evalTag} data-testid="classroom-eval-detail-ai-draft">
                         {intl.formatMessage(detailMessages.aiDraft)}
                     </span>

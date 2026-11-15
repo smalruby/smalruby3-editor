@@ -316,6 +316,7 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
                                         reason: result.reason || '',
                                         needsReview: result.needsReview === true,
                                         manual: false,
+                                        gradeEdited: false,
                                     };
                                 }
                                 return next;
@@ -424,14 +425,19 @@ const useTeacherEvaluation = ({ idToken, classrooms, handleTeacher401, clearErro
         [idToken, evalLessons, lessonProgress, clearError, showError, intl, handleTeacher401],
     );
 
-    /** Teacher edits a cell — marks it manual so it feeds calibration. */
+    /**
+     * Teacher edits a cell — marks it manual so it feeds calibration (and the AI
+     * does not grade it again). `gradeEdited` is only for the screen: the grade is
+     * no longer the AI's draft (#1962). Editing only the reason keeps the AI's grade,
+     * so it stays a draft. Kept in the browser only; nothing is sent to the API.
+     */
     const handleSetCellGrade = useCallback((seatNumber, classroomId, grade) => {
         setMatrix((prev) => {
             const key = cellKey(seatNumber, classroomId);
             if (!prev[key]) return prev;
             return {
                 ...prev,
-                [key]: { ...prev[key], grade: grade || null, needsReview: false, manual: true },
+                [key]: { ...prev[key], grade: grade || null, needsReview: false, manual: true, gradeEdited: true },
             };
         });
     }, []);

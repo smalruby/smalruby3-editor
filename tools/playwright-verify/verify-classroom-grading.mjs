@@ -161,6 +161,17 @@ const measure = (page) =>
                     const d = document.querySelector('[data-testid="classroom-eval-detail"]');
                     return d ? Math.round(d.getBoundingClientRect().right) : null;
                 })(),
+                // 表の枠の中で全部見えている席の行の数（見出しの行の下から枠の下まで）
+                rowsVisible: (() => {
+                    if (!m) return null;
+                    const frame = m.getBoundingClientRect();
+                    const head = m.querySelector('thead');
+                    const top = head ? head.getBoundingClientRect().bottom : frame.top;
+                    return [...m.querySelectorAll('tbody tr')].filter((tr) => {
+                        const r = tr.getBoundingClientRect();
+                        return r.top >= top - 1 && r.bottom <= frame.bottom + 1;
+                    }).length;
+                })(),
                 vh: window.innerHeight,
                 vw: window.innerWidth,
             };
@@ -196,7 +207,8 @@ const judge = async (page, { name, expected, shot }) => {
             (m.detailBottom === null ? '' : ` · detail bottom ${m.detailBottom} right ${m.detailRight}`) +
             (m.matrixScroll === null
                 ? ''
-                : ` · matrix frame ${m.matrixScroll}/${m.matrixClient} (w ${m.matrixScrollW}/${m.matrixClientW})`),
+                : ` · matrix frame ${m.matrixScroll}/${m.matrixClient} (w ${m.matrixScrollW}/${m.matrixClientW})` +
+                  ` · rows visible ${m.rowsVisible}`),
     });
     await shoot(page, shot);
 };
@@ -316,6 +328,39 @@ record({
     detail: JSON.stringify(chosen),
 });
 await judge(page, { name: '2 seat 12 chosen', expected: 'classroom-eval-run-grade', shot: 'step2-chosen' });
+
+// ‹ › で移ったセルが、上に留まる見出しの行・左に留まる出席番号の列の下に隠れないか（#1962 FYI1）。
+// 左の課題の列を選び、枠を下の端・右の端までスクロールしてから、上の席へ ‹ で戻る。
+await page.click(`[data-testid="classroom-eval-cell-button-12-${LESSONS[0].classroomId}"]`);
+const hidden = async () =>
+    page.evaluate((matrix) => {
+        const m = document.querySelector(matrix);
+        const sel = m.querySelector('[aria-pressed="true"]');
+        const head = m.querySelector('thead').getBoundingClientRect();
+        const seat = m.querySelector('thead th').getBoundingClientRect();
+        const r = sel.getBoundingClientRect();
+        const frame = m.getBoundingClientRect();
+        return {
+            id: sel.getAttribute('data-testid'),
+            underHead: r.top < head.bottom - 1,
+            underSeat: r.left < seat.right - 1,
+            outside: r.bottom > frame.bottom + 1 || r.right > frame.right + 1,
+        };
+    }, MATRIX);
+for (let i = 0; i < 12; i++) await page.click('[data-testid="classroom-eval-detail-next"]');
+await page.evaluate((matrix) => {
+    const m = document.querySelector(matrix);
+    m.scrollTop = m.scrollHeight;
+    m.scrollLeft = m.scrollWidth;
+}, MATRIX);
+for (let i = 0; i < 14; i++) await page.click('[data-testid="classroom-eval-detail-prev"]');
+await page.waitForTimeout(200);
+const afterNav = await hidden();
+record({
+    name: '‹ › keeps the chosen cell out from under the sticky heading row and seat column',
+    ok: !afterNav.underHead && !afterNav.underSeat && !afterNav.outside,
+    detail: JSON.stringify(afterNav),
+});
 
 await page.click('[data-testid="classroom-eval-settings-toggle"]');
 await page.waitForTimeout(200);

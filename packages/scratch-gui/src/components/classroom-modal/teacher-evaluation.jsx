@@ -35,7 +35,7 @@ import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import LessonScoringField from './lesson-scoring-field.jsx';
 import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
-import TeacherEvaluationDetail from './teacher-evaluation-detail.jsx';
+import TeacherEvaluationDetail, { detailMessages } from './teacher-evaluation-detail.jsx';
 import { TeacherScreen } from './teacher-view-layout.jsx';
 
 const evalMessages = defineMessages({
@@ -107,8 +107,21 @@ const evalMessages = defineMessages({
     cellName: {
         defaultMessage: 'Seat {seat}, {name}: {grade}',
         description:
-            'Grading table: accessible name of a cell button, e.g. "Seat 4, Maze: A" ({grade} is — when not graded, #1962)',
+            'Grading table: accessible name of a cell button, e.g. "Seat 4, Maze: A" ({grade} is "Not graded" ' +
+            'when there is no grade, #1962)',
         id: 'gui.classroom.evaluation.cellName',
+    },
+    cellNameWithState: {
+        defaultMessage: 'Seat {seat}, {name}: {grade} ({state})',
+        description:
+            'Grading table: accessible name of a cell button with its state, e.g. "Seat 4, Maze: A (Needs check, ' +
+            'Comment written)" (#1962)',
+        id: 'gui.classroom.evaluation.cellNameWithState',
+    },
+    notGraded: {
+        defaultMessage: 'Not graded',
+        description: 'Grading table: read out for a cell that has no grade yet (shown as —, #1962)',
+        id: 'gui.classroom.evaluation.notGraded',
     },
     commentMark: {
         defaultMessage: 'Comment written',
@@ -121,6 +134,27 @@ const evalMessages = defineMessages({
             'Grading table: header of the lesson score column, next to the work column. "auto" tells that it is ' +
             'scored from the progress, not by the AI (EPIC #1592 / #1778)',
         id: 'gui.classroom.evaluation.lessonHead',
+    },
+    hint: {
+        defaultMessage: 'AI grades are drafts. You make the final call.',
+        description: 'One-line explanation of the grading screen',
+        id: 'gui.classroom.evaluation.hint',
+    },
+    hintMore: {
+        defaultMessage: 'More',
+        description: 'Show the details of the grading screen explanation',
+        id: 'gui.classroom.evaluation.hintMore',
+    },
+    hintLess: {
+        defaultMessage: 'Less',
+        description: 'Hide the details of the grading screen explanation',
+        id: 'gui.classroom.evaluation.hintLess',
+    },
+    hintDetail: {
+        defaultMessage:
+            'Grading a few students by hand first calibrates the AI to your standard. Term grades are never shown to students; only the positive comments are returned.',
+        description: 'Details of the grading screen explanation (opened with More)',
+        id: 'gui.classroom.evaluation.hintDetail',
     },
     lessonOnlyHint: {
         defaultMessage: 'Lesson assignments are scored automatically from the progress. AI grading is not used.',
@@ -311,13 +345,30 @@ const GradeCell = ({ cell, classroomId, comment, lessonName, seatNumber, selecte
     }
     const grade = cell.grade || '—';
     const hasComment = (comment || '').trim() !== '';
+    // 印（! ↩ 💬）は見た目だけなので、読み上げの名前には言葉で入れる（#1962）。
+    const states = [
+        cell.needsReview && intl.formatMessage(detailMessages.needsReview),
+        cell.returned && intl.formatMessage(detailMessages.returned),
+        hasComment && intl.formatMessage(evalMessages.commentMark),
+    ].filter(Boolean);
+    const nameValues = {
+        seat: seatNumber,
+        name: lessonName,
+        grade: cell.grade || intl.formatMessage(evalMessages.notGraded),
+    };
+    const cellName = states.length
+        ? intl.formatMessage(evalMessages.cellNameWithState, {
+              ...nameValues,
+              state: states.join(/^ja/.test(intl.locale || '') ? '・' : ', '),
+          })
+        : intl.formatMessage(evalMessages.cellName, nameValues);
     return (
         <td
             className={classNames(styles.evalCell, { [styles.evalCellNeedsReview]: cell.needsReview })}
             data-testid={`classroom-eval-cell-${seatNumber}-${classroomId}`}
         >
             <button
-                aria-label={intl.formatMessage(evalMessages.cellName, { seat: seatNumber, name: lessonName, grade })}
+                aria-label={cellName}
                 aria-pressed={selected}
                 className={classNames(styles.evalCellButton, { [styles.evalCellButtonSelected]: selected })}
                 data-testid={`classroom-eval-cell-button-${seatNumber}-${classroomId}`}
@@ -536,6 +587,12 @@ const TeacherEvaluation = ({
         const button =
             frame && frame.querySelector(`[data-testid="classroom-eval-cell-button-${seat}-${classroomId}"]`);
         if (button && typeof button.scrollIntoView === 'function') {
+            // 上に留まる見出しの行・左に留まる出席番号の列の下に隠れないよう、その分を空けて寄せる。
+            // 列の幅は言語（ja-Hira は長い）で変わるので、CSS の固定値にせずその場で測る。
+            const head = frame.querySelector('thead');
+            const seatHead = frame.querySelector('thead th');
+            frame.style.scrollPaddingTop = `${head ? head.offsetHeight : 0}px`;
+            frame.style.scrollPaddingLeft = `${seatHead ? seatHead.offsetWidth : 0}px`;
             button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
         }
     }, []);
@@ -764,6 +821,37 @@ const TeacherEvaluation = ({
         </>
     );
 
+    /* 説明の 1 行はタブの行の右に置き（#1962・モックの通り）、表の枠を広げる。幅が足りなければ
+       1 行で「…」にし、全文は title で見る。「詳しく」で開く残りはタブの下に出す。 */
+    const hintText = intl.formatMessage(lessonOnly ? evalMessages.lessonOnlyHint : evalMessages.hint);
+    const hintLine = lessonOnly ? (
+        <span className={styles.evalHintText} data-testid="classroom-eval-lesson-only-hint" title={hintText}>
+            {hintText}
+        </span>
+    ) : (
+        <>
+            <span className={styles.evalHintText} data-testid="classroom-eval-hint-text" title={hintText}>
+                {hintText}
+            </span>
+            <button
+                aria-expanded={hintOpen}
+                className={styles.evalHintToggle}
+                data-testid="classroom-eval-hint-toggle"
+                type="button"
+                onClick={handleHintToggle}
+            >
+                {intl.formatMessage(hintOpen ? evalMessages.hintLess : evalMessages.hintMore)}
+            </button>
+        </>
+    );
+    const hintDetail =
+        !lessonOnly && hintOpen ? (
+            <span className={styles.evalHintDetail} data-testid="classroom-eval-hint-detail">
+                {intl.formatMessage(evalMessages.hintDetail)}
+            </span>
+        ) : null;
+    const tabsWithHint = React.isValidElement(tabs) ? React.cloneElement(tabs, { end: hintLine }) : tabs;
+
     return (
         <TeacherScreen
             // The header path (#1956 Q2): 「クラス管理 › クラス名」. The grading screen is
@@ -791,51 +879,16 @@ const TeacherEvaluation = ({
             errorTitle={errorTitle}
             footer={footer}
             hint={
-                lessonOnly ? (
-                    <span data-testid="classroom-eval-lesson-only-hint">
-                        {intl.formatMessage(evalMessages.lessonOnlyHint)}
-                    </span>
+                tabs ? (
+                    hintDetail
                 ) : (
                     <>
-                        <FormattedMessage
-                            defaultMessage="AI grades are drafts. You make the final call."
-                            description="One-line explanation of the grading screen"
-                            id="gui.classroom.evaluation.hint"
-                        />{' '}
-                        <button
-                            aria-expanded={hintOpen}
-                            className={styles.evalHintToggle}
-                            data-testid="classroom-eval-hint-toggle"
-                            type="button"
-                            onClick={handleHintToggle}
-                        >
-                            {hintOpen ? (
-                                <FormattedMessage
-                                    defaultMessage="Less"
-                                    description="Hide the details of the grading screen explanation"
-                                    id="gui.classroom.evaluation.hintLess"
-                                />
-                            ) : (
-                                <FormattedMessage
-                                    defaultMessage="More"
-                                    description="Show the details of the grading screen explanation"
-                                    id="gui.classroom.evaluation.hintMore"
-                                />
-                            )}
-                        </button>
-                        {hintOpen && (
-                            <span className={styles.evalHintDetail} data-testid="classroom-eval-hint-detail">
-                                <FormattedMessage
-                                    defaultMessage="Grading a few students by hand first calibrates the AI to your standard. Term grades are never shown to students; only the positive comments are returned."
-                                    description="Details of the grading screen explanation (opened with More)"
-                                    id="gui.classroom.evaluation.hintDetail"
-                                />
-                            </span>
-                        )}
+                        {hintLine}
+                        {hintDetail}
                     </>
                 )
             }
-            tabs={tabs}
+            tabs={tabsWithHint}
             testId="classroom-phase-teacher-evaluation"
         >
             {/* Lesson selection */}

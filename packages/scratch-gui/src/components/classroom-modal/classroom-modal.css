@@ -817,6 +817,18 @@
     cursor: pointer;
 }
 
+.eval-hint-toggle {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.eval-hint-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .eval-hint-detail {
     display: block;
     margin-top: 0.25rem;
@@ -2233,6 +2245,21 @@ $seat-tile-min: 36px;
     margin-left: auto;
 }
 
+/* タブの行の右の文（採点の説明の 1 行・#1962）。タブは縮めず、文のほうを 1 行で「…」にする。 */
+.tab-list-end-text {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    min-width: 0;
+    padding-left: 1rem;
+    color: $color-text-muted;
+    font-size: $font-size-medium;
+}
+
+.class-tabs-row .tab-list {
+    flex-shrink: 0;
+}
+
 /* --- Co-teachers (shared classroom management) --- */
 
 .co-teachers-section {
@@ -3001,6 +3028,8 @@ $seat-tile-min: 36px;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
+    /* 下は手順の行の下端までで足りるので、ほかの画面より詰めて表の枠に回す（#1962）。 */
+    padding-bottom: 0.75rem;
     height: 100%;
     width: 100%;
     min-width: 0;
@@ -3022,13 +3051,13 @@ $seat-tile-min: 36px;
     gap: 1rem;
     min-height: 0;
     min-width: 0;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
 }
 
 .teacher-view.evaluation-screen > .button-row {
     flex-shrink: 0;
     margin-top: auto;
-    padding-top: 0.75rem;
+    padding-top: 0.5rem;
 }
 
 .eval-section {
@@ -3036,7 +3065,7 @@ $seat-tile-min: 36px;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
 }
 
 .eval-lesson-checkbox {
@@ -3172,6 +3201,8 @@ $seat-tile-min: 36px;
 
 .eval-matrix td,
 .eval-matrix tbody th {
+    /* 点のボタンが無い行（レッスンの点だけ）も、ボタンの行と同じ高さにそろえる。 */
+    height: 1.75rem;
     border-bottom: 1px solid $color-border;
     padding: 0 0.75rem;
     vertical-align: middle;

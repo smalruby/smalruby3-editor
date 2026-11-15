@@ -217,3 +217,15 @@ describe('useTeacherEvaluation — 離れる前の確認 (#1923 C4)', () => {
         expect(mockListSubmissions.mock.calls.map((call) => call[1])).toEqual(['c1']);
     });
 });
+
+describe('useTeacherEvaluation — 「AI の下書き」の印 (#1962)', () => {
+    test('根拠だけを直しても点は AI のまま（gradeEdited にしない）。点を変えたときだけ gradeEdited', async () => {
+        const hook = await setup();
+        await runAi(hook, 'grade');
+        expect(hook.result.current.getCell(1, 'c1')).toMatchObject({ grade: 'A', gradeEdited: false });
+        act(() => hook.result.current.handleSetCellReason(1, 'c1', '旗で動く。音もある'));
+        expect(hook.result.current.getCell(1, 'c1')).toMatchObject({ grade: 'A', manual: true, gradeEdited: false });
+        act(() => hook.result.current.handleSetCellGrade(1, 'c1', 'S'));
+        expect(hook.result.current.getCell(1, 'c1')).toMatchObject({ grade: 'S', gradeEdited: true });
+    });
+});
