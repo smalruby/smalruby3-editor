@@ -289,12 +289,13 @@ describe('ClassroomTeacherPanel の座席の色 (#1926)', () => {
         mockListMembers.mockReset();
         mockListSubmissions.mockReset();
         mockGetLessonProgress.mockReset();
-        mockListClassrooms.mockResolvedValue({ classrooms: [{ classroomId: 'c1', studentCount: 4 }] });
+        mockListClassrooms.mockResolvedValue({ classrooms: [{ classroomId: 'c1', studentCount: 5 }] });
         mockListMembers.mockResolvedValue({
             members: [
                 { memberId: 'seat-01' },
                 { memberId: 'seat-02', hasSubmission: true, submissionStatus: 'submitted' },
                 { memberId: 'seat-03', hasSubmission: true, submissionStatus: 'returned' },
+                { memberId: 'seat-05', left: true },
             ],
         });
         mockListSubmissions.mockResolvedValue({ submissions: [] });
@@ -310,7 +311,7 @@ describe('ClassroomTeacherPanel の座席の色 (#1926)', () => {
         await flush();
         await flush();
         const color = (n) => screen.getByTestId(`classroom-teacher-panel-seat-${n}`).getAttribute('data-seat-color');
-        expect([1, 4].map(color)).toEqual(['joined', 'empty']);
+        expect([1, 2, 3, 4, 5].map(color)).toEqual(['joined', 'submitted', 'returned', 'empty', 'empty']);
         const legend = screen.getByTestId('classroom-teacher-panel-seat-color-legend');
         const kinds = Array.from(
             legend.querySelectorAll('[data-testid^="classroom-teacher-panel-seat-color-legend-"]'),

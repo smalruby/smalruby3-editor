@@ -668,7 +668,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-peer-panel-hint` | p | 「まねするのではなく、よいところを見つけて…」 |
 | `classroom-peer-panel-count` | div | 提出: N 人（自分を除く） |
 | `classroom-peer-panel-grid` | div | 座席ミニグリッド |
-| `classroom-peer-panel-seat-<N>` | button | 座席 N。提出済みのクラスメイトだけ押せる（未提出・自分の席は disabled） |
+| `classroom-peer-panel-seat-<N>` | button | 座席 N。提出済みのクラスメイトだけ押せる（未提出・自分の席は disabled）。`data-seat-color` = `submitted` / `notSubmitted` |
 | `classroom-peer-panel-empty` | div | まだだれも提出していない |
 | `classroom-peer-panel-error` | div | 見られない理由（`data-error` = `off` / `notSubmitted` / `ended` / `failed`） |
 | `classroom-peer-viewer` | div | 画像ビューアのウィンドウ（ドラッグ・リサイズ可能・非モーダル） |

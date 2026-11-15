@@ -40,18 +40,12 @@ import { formatCompletionSentence } from './lesson-settings-field.jsx';
 import SeatColorLegend, {
     LESSON_SEAT_COLOR_ITEMS,
     MEMBER_SEAT_COLOR_ITEMS,
-    seatColorKind,
+    memberSeatColorKind,
+    seatColorClass,
 } from './seat-color-legend.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
 import TeacherLessonProgress from './teacher-lesson-progress.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
-
-const MEMBER_CELL_COLOR_CLASSES = {
-    empty: 'memberCellEmpty',
-    joined: 'memberCellJoined',
-    submitted: 'memberCellSubmitted',
-    returned: 'memberCellReturned',
-};
 
 // Lesson assignments (#1602): the seat colour shows the lesson progress, so
 // the legend lists presence and leave requests (+ submission when work is
@@ -1091,20 +1085,15 @@ const TeacherClassDetail = ({
                                                 const memberId = `seat-${String(seatNum).padStart(2, '0')}`;
                                                 const member = memberMap[memberId];
                                                 const isSelected = selectedMember === memberId;
-                                                const hasSubmission = member && member.hasSubmission;
-                                                const isReturned = member && member.submissionStatus === 'returned';
                                                 const seated = member && isSeated(member);
                                                 const tile = lessonTiles ? lessonTiles[i] : null;
-                                                const seatColor = seatColorKind(
-                                                    !!member,
-                                                    isReturned ? 'returned' : hasSubmission ? 'submitted' : null,
-                                                );
+                                                const seatColor = memberSeatColorKind(member);
                                                 const cellColorClass = tile
                                                     ? classNames(
                                                           styles.lessonSeat,
                                                           styles[LESSON_TILE_CLASSES[tile.state]],
                                                       )
-                                                    : styles[MEMBER_CELL_COLOR_CLASSES[seatColor]];
+                                                    : seatColorClass(styles, 'memberCell', seatColor);
                                                 const cellClass = classNames(
                                                     styles.memberCell,
                                                     cellColorClass,

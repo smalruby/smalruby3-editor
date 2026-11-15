@@ -58,8 +58,11 @@ $color-seat-empty-border: $color-action;
 /* 使用中（生徒の画面）・参加済み（先生）・レッスンの進めている途中 */
 $color-seat-joined: #dce8fb;
 $color-seat-joined-text: #1f3f7a;
-/* 提出済み・レッスンのクリア（✓ / ★ を添える） */
-$color-seat-submitted: $pen-tertiary;
+/* 使用中の席にマウスを乗せたとき（少し濃い地。文字は 7:1 以上のまま） */
+$color-seat-joined-hover: #c6d8f6;
+/* 提出済み・レッスンのクリア（✓ / ★ を添える）。状況のパネルの席番号は小さな文字なので、
+   白い文字が 4.5:1 以上になる濃さ（#0A7D5C で 5.1:1。上流の $pen-tertiary #0B8E69 は 4.1:1 で足りない） */
+$color-seat-submitted: #0a7d5c;
 $color-seat-submitted-text: $ui-white;
 /* 返却済み（↩ を添える） */
 $color-seat-returned: #ffe1bf;

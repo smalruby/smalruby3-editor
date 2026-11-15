@@ -10,6 +10,7 @@ import { lessonSeatMessages } from '../classroom-modal/lesson-seat-tile.jsx';
 import SeatColorLegend, {
     LESSON_SEAT_COLOR_ITEMS,
     PANEL_SEAT_COLOR_ITEMS,
+    seatColorClass,
     seatColorKind,
 } from '../classroom-modal/seat-color-legend.jsx';
 import styles from './classroom-teacher-panel.css';
@@ -86,14 +87,6 @@ const messages = defineMessages({
         id: 'gui.classroomTeacherPanel.selectAssignment',
     },
 });
-
-// ふつうの課題の座席の色（#1926）: メンバータブ・生徒の番号選びと同じ意味
-const SEAT_COLOR_CLASSES = {
-    empty: 'seatEmpty',
-    joined: 'seatJoined',
-    submitted: 'seatSubmitted',
-    returned: 'seatReturned',
-};
 
 const LESSON_SEAT_CLASSES = {
     [SEAT_STATES.NOT_JOINED]: 'seatEmpty',
@@ -446,6 +439,8 @@ const ClassroomTeacherPanel = ({
                                     <div className={styles.grid} data-testid="classroom-teacher-panel-grid">
                                         {seats.map((seat, i) => {
                                             const tile = lesson ? lesson.tiles[i] : null;
+                                            // presence は getPresenceStatus と同じ条件（退室した席は
+                                            // 'notJoined'）なので isSeatJoined とそろっている
                                             const seatColor = tile
                                                 ? null
                                                 : seatColorKind(seat.presence !== 'notJoined', seat.submission);
@@ -453,11 +448,9 @@ const ClassroomTeacherPanel = ({
                                                 <button
                                                     className={classNames(
                                                         styles.seat,
-                                                        styles[
-                                                            tile
-                                                                ? LESSON_SEAT_CLASSES[tile.state]
-                                                                : SEAT_COLOR_CLASSES[seatColor]
-                                                        ],
+                                                        tile
+                                                            ? styles[LESSON_SEAT_CLASSES[tile.state]]
+                                                            : seatColorClass(styles, 'seat', seatColor),
                                                         { [styles.seatKick]: seat.kickRequested },
                                                     )}
                                                     data-lesson-state={tile ? tile.state : null}

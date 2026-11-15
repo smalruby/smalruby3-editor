@@ -984,7 +984,12 @@
 }
 
 .seat-button:hover {
+    /* 空席: 地をうすい青に、枠を実線に（押せることが分かるように） */
+    background-color: $color-background;
     border-style: solid;
+    /* 地が青くなる分、文字と枠をホバーの青にして 4.5:1 を保つ */
+    border-color: $membership-blue;
+    color: $membership-blue;
 }
 
 /* Occupied seats must still look pressable: pressing one asks the teacher
@@ -1001,7 +1006,9 @@
 }
 
 .seat-taken:hover {
-    background-color: $ui-tertiary;
+    background-color: $color-seat-joined-hover;
+    border-color: transparent;
+    color: $color-seat-joined-text;
 }
 
 .seat-taken:disabled {
@@ -4762,6 +4769,8 @@
 
 .seat-guide-sample:hover {
     background-color: $color-seat-joined;
+    border-color: transparent;
+    color: $color-seat-joined-text;
 }
 
 /* Occupied seats glow once, slowly. With reduced motion only the frame

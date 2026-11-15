@@ -18,6 +18,12 @@ jest.mock('../../../src/lib/classroom-api.js', () => ({
     default: { listPeerSubmissions: (...args) => mockListPeers(...args) },
 }));
 
+// CSS Modules: return the class name itself so the seat classes can be checked (#1926).
+jest.mock(
+    '../../__mocks__/styleMock.js',
+    () => new Proxy({}, { get: (_, key) => (key === '__esModule' ? false : key) }),
+);
+
 const SUBMISSIONS = [
     {
         seatNumber: 2,
@@ -141,5 +147,23 @@ describe('ClassroomPeerPanel (#1210)', () => {
         expect(store.getState().scratchGui.classroom.studentPeerView).toBe('none');
         act(() => store.dispatch(closeStudentPeerPanel()));
         expect(screen.queryByTestId('classroom-peer-panel')).toBeNull();
+    });
+
+    test('未提出の席は押せない淡い灰（押せる空席の白い点線にしない）、提出済みは提出済みの緑 (#1926)', async () => {
+        mockListPeers.mockResolvedValue({ peerView: 'always', submissions: SUBMISSIONS });
+        const store = renderPanel();
+        act(() => {
+            store.dispatch(openStudentPeerPanel());
+        });
+        await waitFor(() => expect(screen.getByTestId('classroom-peer-panel-seat-2')).toBeEnabled());
+        const seat1 = screen.getByTestId('classroom-peer-panel-seat-1');
+        expect(seat1).toHaveClass('seatNotSubmitted');
+        expect(seat1).not.toHaveClass('seatEmpty');
+        expect(seat1.dataset.seatColor).toBe('notSubmitted');
+        const seat2 = screen.getByTestId('classroom-peer-panel-seat-2');
+        expect(seat2).toHaveClass('seatSubmitted');
+        expect(seat2.dataset.seatColor).toBe('submitted');
+        // 自分の席（3）は押せず、点線ではなく実線の枠のクラス
+        expect(screen.getByTestId('classroom-peer-panel-seat-3')).toHaveClass('seatOwn');
     });
 });

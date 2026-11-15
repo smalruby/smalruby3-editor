@@ -158,6 +158,14 @@ describe('classroom-teacher-panel', () => {
             expect(clampPanelPosition({ x: 100, y: 50 }, size, viewport)).toEqual({ x: 100, y: 50 });
         });
 
+        test('rounds down a fractional size so the bottom stays inside the window (#1926)', () => {
+            const viewport = { width: 1300, height: 600 };
+            const size = { width: 280, height: 452.48 };
+            const { y } = clampPanelPosition({ x: 0, y: 900 }, size, viewport);
+            expect(y).toBe(147);
+            expect(y + size.height).toBeLessThanOrEqual(600);
+        });
+
         test('save / load round trip and survive a throwing storage', () => {
             savePanelPosition({ x: 12, y: 34 });
             expect(loadPanelPosition()).toEqual({ x: 12, y: 34 });

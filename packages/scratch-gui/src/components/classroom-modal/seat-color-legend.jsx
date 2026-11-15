@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import styles from './classroom-modal.css';
-import { statusIconMessages } from './classroom-status-icon.jsx';
+import { getSubmissionStatus, statusIconMessages } from './classroom-status-icon.jsx';
 import { lessonSeatMessages } from './lesson-seat-tile.jsx';
 
 /**
@@ -44,21 +44,22 @@ const messages = defineMessages({
     },
 });
 
-// ふつうの課題の凡例（#1926・C6）: 空席 → 参加済み → 提出済み ✓ → 返却済み ↩ の順。
-const MEMBER_SEAT_COLOR_ITEMS = [
-    { kind: 'empty', message: messages.notJoined },
+/**
+ * ふつうの課題の凡例（#1926・C6）: 空席 → 参加済み → 提出済み ✓ → 返却済み ↩ の順。
+ * 空席の文言だけ画面で変える（メンバータブは「まだ参加していない」、幅 280px の状況のパネルは
+ * 1 行に収まるよう短い「未参加」）。
+ * @param {object} emptyMessage - 空席の文言（react-intl の message descriptor）
+ * @returns {Array<{kind: string, message: object}>} 凡例の項目
+ */
+const seatColorItems = (emptyMessage) => [
+    { kind: 'empty', message: emptyMessage },
     { kind: 'joined', message: messages.joined },
     { kind: 'submitted', message: statusIconMessages.submitted },
     { kind: 'returned', message: statusIconMessages.returned },
 ];
 
-// 状況のパネル（幅 280px）の凡例: 1 行に収まるよう、空席は短い「未参加」にする。
-const PANEL_SEAT_COLOR_ITEMS = [
-    { kind: 'empty', message: statusIconMessages.notJoined },
-    { kind: 'joined', message: messages.joined },
-    { kind: 'submitted', message: statusIconMessages.submitted },
-    { kind: 'returned', message: statusIconMessages.returned },
-];
+const MEMBER_SEAT_COLOR_ITEMS = seatColorItems(messages.notJoined);
+const PANEL_SEAT_COLOR_ITEMS = seatColorItems(statusIconMessages.notJoined);
 
 // レッスンの課題の凡例: 空席 → 始めていない → 途中 → クリア ★ の順。
 const LESSON_SEAT_COLOR_ITEMS = [
@@ -69,8 +70,16 @@ const LESSON_SEAT_COLOR_ITEMS = [
 ];
 
 /**
+ * その席に生徒が参加しているか。退室した（left）席は空席として出す。全画面でこの判定にそろえる
+ * （状況のパネルの `getPresenceStatus` も同じ条件で 'notJoined' を返す）。
+ * @param {?object} member - メンバーの記録（空席は null）
+ * @returns {boolean} 参加しているなら true
+ */
+const isSeatJoined = (member) => !!member && !member.left;
+
+/**
  * ふつうの課題の座席の色（メンバータブ・状況のパネル）。
- * @param {boolean} joined - その席に生徒が参加しているか
+ * @param {boolean} joined - その席に生徒が参加しているか（`isSeatJoined`）
  * @param {?string} submission - 'submitted' | 'returned' | 'notSubmitted' | null
  * @returns {string} 'empty' | 'joined' | 'submitted' | 'returned'
  */
@@ -80,6 +89,30 @@ const seatColorKind = (joined, submission) => {
     if (submission === 'submitted') return 'submitted';
     return 'joined';
 };
+
+/**
+ * メンバーの記録からの座席の色。
+ * @param {?object} member - メンバーの記録（空席は null）
+ * @returns {string} 'empty' | 'joined' | 'submitted' | 'returned'
+ */
+const memberSeatColorKind = (member) => seatColorKind(isSeatJoined(member), getSubmissionStatus(member));
+
+const SEAT_COLOR_CLASS_SUFFIXES = {
+    empty: 'Empty',
+    joined: 'Joined',
+    submitted: 'Submitted',
+    returned: 'Returned',
+};
+
+/**
+ * 座席の色のクラス。メンバータブ（`memberCellJoined` など）と状況のパネル（`seatJoined` など）で
+ * 接頭辞だけが違うので、色の種類からの対応はここ 1 つにする。
+ * @param {object} cssModule - その画面の CSS モジュール
+ * @param {string} prefix - クラス名の接頭辞（'memberCell' / 'seat'）
+ * @param {string} kind - `seatColorKind` の値
+ * @returns {string} クラス名
+ */
+const seatColorClass = (cssModule, prefix, kind) => cssModule[`${prefix}${SEAT_COLOR_CLASS_SUFFIXES[kind]}`];
 
 /**
  * 座席の色の凡例。色見本は座席と同じ色・同じ印を使う。
@@ -139,6 +172,9 @@ export {
     PANEL_SEAT_COLOR_ITEMS,
     SEAT_COLOR_KINDS,
     SEAT_COLOR_MARKS,
+    isSeatJoined,
+    memberSeatColorKind,
+    seatColorClass,
     seatColorKind,
 };
 export default SeatColorLegend;

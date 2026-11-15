@@ -132,8 +132,10 @@ const parsePanelPosition = (raw) => {
  * @returns {{x: number, y: number}} clamped top-left
  */
 const clampPanelPosition = (position, size, viewport) => ({
-    x: Math.max(0, Math.min(position.x, viewport.width - size.width)),
-    y: Math.max(0, Math.min(position.y, viewport.height - size.height)),
+    // floor: the measured size can be fractional (e.g. 452.48px) and the panel is
+    // placed on whole pixels, so rounding up would push it 0.5px past the edge (#1926).
+    x: Math.max(0, Math.min(position.x, Math.floor(viewport.width - size.width))),
+    y: Math.max(0, Math.min(position.y, Math.floor(viewport.height - size.height))),
 });
 
 /** @returns {{x: number, y: number}|null} the remembered position */

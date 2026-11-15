@@ -147,6 +147,16 @@
     border-color: $looks-secondary;
 }
 
+/* Hover on the coloured seats: the transparent border would hide the change */
+.seat-joined:hover,
+.seat-submitted:hover,
+.seat-returned:hover,
+.lesson-seat-not-started:hover,
+.lesson-seat-in-progress:hover,
+.lesson-seat-cleared:hover {
+    border-color: $color-action;
+}
+
 /* 座席の色（#1926）: メンバータブ・生徒の番号選びと同じ意味。小さな座席なので枠は 1px */
 .seat-empty {
     border: 1px dashed $color-seat-empty-border;
@@ -289,19 +299,31 @@
     color: $color-seat-submitted-text;
 }
 
-/* The seated dot and the submitted square are the same green as a cleared seat,
-   so they disappear there (#1604). Draw the dot white (still a filled dot, unlike
-   the hollow 「未着席」 ring; !important beats the icon's inline colour) and put
-   the square on a white backing (its check mark is already white). */
-.lesson-seat-cleared [data-status='seated'],
-.seat-submitted [data-status='seated'] {
-    color: $ui-white !important;
-}
-
-.lesson-seat-cleared [data-status='submitted'],
-.seat-submitted [data-status='submitted'] {
+/* The status icons sit on a small white chip on every coloured seat (#1604, #1926):
+   on the green seats the white chip stands out (5.1:1); on the pale seats
+   (joined / returned / lesson) the chip gets a 1px edge in the seat's text colour
+   so it still stands out from the seat (3:1 or more). */
+.seat-joined [data-status],
+.seat-submitted [data-status],
+.seat-returned [data-status],
+.lesson-seat-not-started [data-status],
+.lesson-seat-in-progress [data-status],
+.lesson-seat-cleared [data-status] {
     background-color: $ui-white;
     border-radius: 2px;
+}
+
+.seat-joined [data-status],
+.lesson-seat-in-progress [data-status] {
+    box-shadow: 0 0 0 1px $color-seat-joined-text;
+}
+
+.seat-returned [data-status] {
+    box-shadow: 0 0 0 1px $color-seat-returned-text;
+}
+
+.lesson-seat-not-started [data-status] {
+    box-shadow: 0 0 0 1px $color-seat-not-started-text;
 }
 
 .seat {
@@ -410,12 +432,13 @@
 
 .bar-done,
 .bar-done-swatch {
-    background-color: #0fbd8c;
+    /* the same green as a cleared seat (#1926) */
+    background-color: $color-seat-submitted;
 }
 
 .bar-current,
 .bar-current-swatch {
-    background-color: #4c97ff;
+    background-color: $color-action;
 }
 
 .bar-count {

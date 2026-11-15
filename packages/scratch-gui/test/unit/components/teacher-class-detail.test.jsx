@@ -564,6 +564,8 @@ describe('TeacherClassDetail — 1 画面に収める (#1303)', () => {
                 { memberId: 'seat-01' },
                 { memberId: 'seat-02', hasSubmission: true, submissionStatus: 'submitted' },
                 { memberId: 'seat-03', hasSubmission: true, submissionStatus: 'returned' },
+                // 退室した席は空席として出す（状況のパネルと同じ判定）
+                { memberId: 'seat-04', left: true, hasSubmission: true, submissionStatus: 'submitted' },
             ],
         });
         const color = (n) => byTestId(`classroom-member-seat-0${n}`).dataset.seatColor;

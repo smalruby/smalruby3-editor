@@ -4,6 +4,7 @@
 // - パネルを出したままブロックをドラッグできる
 // - 最小化 / 元に戻す
 // - 退室依頼をパネルから承認できる（approve API が呼ばれ、一覧から消える）
+// LOCALE=ja-Hira で、ひらがなの凡例でも収まるかを測る（文言の確認は ja のときだけ）。
 // 前提: dev server（BASE_URL、既定 localhost:8601）・リポジトリ直下の .env に CLASSROOM_API_ENDPOINT。
 import { chromium } from 'playwright';
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -24,6 +25,7 @@ if (!API) throw new Error('CLASSROOM_API_ENDPOINT missing in .env');
 
 const BASE = process.env.BASE_URL || 'http://localhost:8601/';
 const HEADLESS = process.env.HEADLESS !== 'false';
+const LOCALE = process.env.LOCALE || 'ja';
 // 授業 PC のビューポート（#1221）
 const VIEWPORT = { width: 1300, height: 600 };
 const SEATS = 40;
@@ -103,7 +105,7 @@ const fail = async (msg) => {
 };
 const check = (cond, msg) => (cond ? log('OK', msg) : fail(msg));
 
-await page.goto(`${BASE}?no_beforeunload=1&devlogin=stub-token`, { waitUntil: 'domcontentloaded' });
+await page.goto(`${BASE}?no_beforeunload=1&locale=${LOCALE}&devlogin=stub-token`, { waitUntil: 'domcontentloaded' });
 await page.waitForSelector('[class*="gui_editor-wrapper"]', { timeout: 180000 });
 await page.waitForSelector('[data-testid="classroom-teacher-menu-button"]', { timeout: 30000 });
 await sleep(1000);
@@ -126,17 +128,20 @@ const rect = await page.$eval('[data-testid="classroom-teacher-panel"]', (el) =>
     return { top: r.top, left: r.left, bottom: r.bottom, right: r.right, width: r.width, height: r.height };
 });
 log('panel rect', JSON.stringify(rect));
+log('seat legend height', await page.$eval('[data-testid="classroom-teacher-panel-seat-color-legend"]', (el) => el.getBoundingClientRect().height));
 await check(rect.top >= 0 && rect.left >= 0 && rect.bottom <= VIEWPORT.height && rect.right <= VIEWPORT.width,
     `40 seats + 3 kick requests fit in ${VIEWPORT.width}x${VIEWPORT.height}`);
 const bodyScroll = await page.$eval('[data-testid="classroom-teacher-panel-body"]', (el) => el.scrollHeight - el.clientHeight);
 log('panel body overflow px', bodyScroll);
-await check(
-    (await page.textContent('[data-testid="classroom-teacher-panel-seated"]')).includes('着席（目安） 27 / 40'),
-    'seated (approx.) count');
-await check(
-    (await page.textContent('[data-testid="classroom-teacher-panel-submitted"]')).includes('提出 12 / 36'),
-    'submitted / joined count');
-await shot('01-panel-1300x600');
+if (LOCALE === 'ja') {
+    await check(
+        (await page.textContent('[data-testid="classroom-teacher-panel-seated"]')).includes('着席（目安） 27 / 40'),
+        'seated (approx.) count');
+    await check(
+        (await page.textContent('[data-testid="classroom-teacher-panel-submitted"]')).includes('提出 12 / 36'),
+        'submitted / joined count');
+}
+await shot(LOCALE === 'ja' ? '01-panel-1300x600' : `01-panel-1300x600-${LOCALE}`);
 
 // パネル表示中にブロックをドラッグできる
 const countBlocks = () =>
