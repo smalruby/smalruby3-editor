@@ -103,6 +103,13 @@ describe('SmalrubyWebHostingStack', () => {
             });
         });
 
+        test('retains the bucket (the production origin is never deleted with the stack)', () => {
+            template.hasResource('AWS::S3::Bucket', {
+                DeletionPolicy: 'Retain',
+                UpdateReplacePolicy: 'Retain',
+            });
+        });
+
         test('never expires the current objects, only old versions', () => {
             const buckets = Object.values(template.findResources('AWS::S3::Bucket'));
             const rules = buckets[0].Properties.LifecycleConfiguration.Rules;
@@ -117,6 +124,7 @@ describe('SmalrubyWebHostingStack', () => {
                         NoncurrentVersionExpiration: {
                             NoncurrentDays: SITE_NONCURRENT_VERSION_EXPIRATION_DAYS,
                         },
+                        ExpiredObjectDeleteMarker: true,
                     }),
                 ]),
             );

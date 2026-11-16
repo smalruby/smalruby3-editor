@@ -216,11 +216,13 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             encryption: s3.BucketEncryption.S3_MANAGED,
             enforceSSL: true,
             objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_ENFORCED,
-            // 中身は CI のビルドで作り直せるので RETAIN にしない（.claude/rules/infra/development.md の
-            // 「データ保持」）。autoDeleteObjects は付けないので、中身が残っている間は削除が失敗して止まる。
-            removalPolicy: cdk.RemovalPolicy.DESTROY,
+            // 本番の配信元なので、スタックの削除や論理 ID の変更があっても消さない（例外の RETAIN。
+            // .claude/rules/infra/development.md の「データ保持」）。中身はビルドで作り直せるが、
+            // 消えると切り替え後の smalruby.app が止まり、CloudFront の OAC の向き先も失われる。
+            removalPolicy: cdk.RemovalPolicy.RETAIN,
             // 本番はプレビューと違い、いまの版を期限で消さない。上書き・削除された古い版だけを
-            // しばらく残し、CI の誤りで消えたファイルを戻せるようにする。
+            // しばらく残し、CI の誤りで消えたファイルを戻せるようにする。古い版が消えたあとに残る
+            // 削除マーカーも片付ける。
             versioned: true,
             lifecycleRules: [
                 {
@@ -228,6 +230,7 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
                     noncurrentVersionExpiration: cdk.Duration.days(
                         SITE_NONCURRENT_VERSION_EXPIRATION_DAYS,
                     ),
+                    expiredObjectDeleteMarker: true,
                     abortIncompleteMultipartUploadAfter: cdk.Duration.days(7),
                 },
             ],

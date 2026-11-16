@@ -174,9 +174,22 @@ aws s3 rm "s3://$BUCKET/test/index.html"
 
 | リソース | 内容 |
 |---|---|
-| S3 バケット `SiteBucket` | Block Public Access 全部 ON・`enforceSSL`・**バージョニングあり**。上書き・削除された古い版は 30 日で消す。**いまの版は期限で消さない**（プレビューとの違い）。`removalPolicy` は `DESTROY`（ビルドから作り直せる。`autoDeleteObjects` は付けない） |
+| S3 バケット `SiteBucket` | Block Public Access 全部 ON・`enforceSSL`・**バージョニングあり**。上書き・削除された古い版は 30 日で消し、残った削除マーカーも片付ける。**いまの版は期限で消さない**（プレビューとの違い）。`removalPolicy` は **`RETAIN`**（下の「本番のバケットを RETAIN にする理由」） |
 | CloudFront `SiteDistribution` | オリジンは S3 + OAC。viewer-request はプレビューと同じ関数（`/` → `/index.html`、`/admin` → `/admin/` へ 301）。キャッシュポリシーもプレビューと同じ値。応答ヘッダポリシーで HSTS（1 年）と `X-Content-Type-Options: nosniff` を付ける。HTTP/2 と HTTP/3、Price Class 200 |
 | CI 用ロール `SiteDeployRole` | 既存の GitHub OIDC プロバイダを参照。信頼は `repo:smalruby/smalruby3-editor:ref:refs/heads/develop` と `...:environment:prod` だけ（プレビューより狭い）。権限はこのバケットの `ListBucket` / `PutObject` / `DeleteObject` と、このディストリビューションの invalidation だけ |
+
+### 本番のバケットを RETAIN にする理由
+
+データ保持の決まり（`.claude/rules/infra/development.md`）では、ビルドから作り直せるバケットは `DESTROY` に
+する。本番の配信バケットはその**例外**で `RETAIN` にする。中身は作り直せるが、切り替え後に消えると
+smalruby.app がその場で止まるため、スタックの削除や論理 ID の変更（CloudFormation から見ると削除 + 新規作成）
+で消えないようにする。
+
+- 残ったバケットを使い直すときは、スタックが無い状態で `npx cdk import --context stage=prod` を実行し、
+  `SiteBucket` に残ったバケットの名前を渡す（人間が手元で行う）。
+- 要らなくなって消すときは、中身（古い版と削除マーカーを含む）を空にしてから、人間がコンソールか CLI で消す。
+- 古い版を残す日数（いまは 30 日）は人間が決める値。案: 切り替えから 1 か月は 30 日のまま、落ち着いたら
+  7〜14 日に縮めて保存の費用を抑える。
 
 TLS 1.2 以上の指定（`minimumProtocolVersion`）は既定の証明書では効かないので、`smalruby.app` の
 証明書を付けるときに一緒に足す。
