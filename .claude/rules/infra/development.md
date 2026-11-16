@@ -19,7 +19,7 @@ AWS CDK infrastructure projects live in `infra/`. Each project is independent fr
 | smalruby-api | `infra/smalruby-api/` | Smalruby API endpoints (HTTP API v2 + Lambda): cors-proxy, mesh-domain, scratch-api-proxy/* |
 | smalruby-bug-report | `infra/smalruby-bug-report/` | Program bug report service (HTTP API v2 + Lambda + DynamoDB + S3): 作品添付つき不具合報告 + 管理者レジストリ |
 | smalruby-admin | `infra/smalruby-admin/` | Admin service (HTTP API v2 + Lambda + DynamoDB): 管理 SPA のバックエンド（deny-by-default 許可リスト + 監査ログ） |
-| smalruby-web-hosting | `infra/smalruby-web-hosting/` | Web 配信基盤（Route 53 + S3 + CloudFront + ACM + GitHub OIDC ロール）: ブランチプレビュー `preview.smalruby.app/<slug>/`。stg だけに作り、prod は空のスタック |
+| smalruby-web-hosting | `infra/smalruby-web-hosting/` | Web 配信基盤（Route 53 + S3 + CloudFront + ACM + GitHub OIDC ロール）: stg: ブランチプレビュー `preview.smalruby.app/<slug>/`。prod: 本番 smalruby.app の配信基盤（`docs/hosting/`） |
 
 See project-specific rules for details:
 - `.claude/rules/infra/smalruby-mesh-v2.md`
@@ -317,6 +317,9 @@ account ID は CDK の `cdk.context.json` コミット方針で既にリポジ�
      `SharedAssignments`（みんなの課題。prod のみ RETAIN）、rubytee-relay の `RubyteeRelayUsage`（利用集計）。
   2. **作り直すと、AWS の外に登録した値と食い違うリソース**: web-hosting の Route 53 ホストゾーン
      `preview.smalruby.app`（stg のみ）。作り直すと NS が変わり、お名前.com に登録した委任の NS と合わなくなる。
+  3. **例外: 本番の配信元**: web-hosting の本番の配信バケット `SiteBucket`（prod のみ）。中身はビルドから
+     作り直せるが、消えると smalruby.app が止まるので、スタックの削除や論理 ID の変更で消えないようにする。
+     プレビューのバケットは DESTROY のまま。
 
   それ以外の運用テーブル（mesh-v2 / classroom のクラス・課題系 / `BugReports` / rate limit /
   `RubyteeJobs`）は **DESTROY** — スタック削除・リソース差し替えでデータが消える前提で扱うこと。
