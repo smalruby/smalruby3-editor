@@ -32,7 +32,7 @@
 | 部分 | 上流の CSS（ファイル・セレクター） | 上流のトークン（値） | 色 | 別名 | 実測 |
 |---|---|---|---|---|---|
 | オーバーレイ | `modal/modal.css` `.modal-overlay` | `$ui-modal-overlay`（`hsla(215, 100%, 65%, 0.9)`） | `#4D97FF` × 0.9 | `$color-overlay` | 一致（`rgba(77, 151, 255, 0.9)`） |
-| 枠 | `modal/modal.css` `.modal-content` | `$ui-white-transparent`（`hsla(0, 100%, 100%, 0.25)`）の 4px | `#FFFFFF` × 0.25 | 別名なし | 値は一致（`4px solid rgba(255, 255, 255, 0.25)`）。ただし**見た目は白**（スモウルビーの既定の地が枠の下まで塗るため。上流はオーバーレイが透けて淡い青） |
+| 枠 | `modal/modal.css` `.modal-content` | `$ui-white-transparent`（`hsla(0, 100%, 100%, 0.25)`）の 4px | `#FFFFFF` × 0.25 | 別名なし | 一致（`4px solid rgba(255, 255, 255, 0.25)`）。オーバーレイが透けて淡い青に見える（スモウルビーの既定の白い地は `background-clip: padding-box` で枠の内側だけ） |
 | ヘッダーの地 | `modal/modal.css` `.header` | `$looks-secondary` | `#855CD6` | `$color-primary` | 一致（`rgb(133, 92, 214)`） |
 | ヘッダーの文字 | `modal/modal.css` `.header-item` | `$ui-white` | `#FFFFFF` | `$color-surface` | 一致 |
 | 閉じるボタン | `close-button/close-button.css` `.close-button.large` | 地と輪 `$ui-black-transparent`・× は白 | `#000000` × 0.15 | `$color-border` | 一致（ホバーで `scale(1.1)`・輪 4px） |
@@ -114,8 +114,8 @@
 
 | 場所 | 中身 | 見た目への影響 |
 |---|---|---|
-| `modal/modal.css`（マーカー付き） | `.modal-content` に既定の白い地（`background-clip` の指定なし） | 枠（白 25%）の下まで白く塗るので、**枠の下が白になり、枠が不透明な白に見える**（上流は枠からオーバーレイが透けて淡い青）。本文の地は上流でも白なので、ほかは変わらない |
-| `mobile-sprite-panel/mobile-sprite-panel.css` | すべてのモーダルのオーバーレイの重なりを 9999 に上げる（[`library.md`](library.md) の「スモウルビーの追加」） | 重なり順だけ |
+| `modal/modal.css`（マーカー付き） | `.modal-content` に既定の白い地（`background-clip: padding-box` で枠の内側だけ塗る） | 見た目は変わらない（枠は上流と同じ淡い青。本文の地は上流でも白） |
+| `mobile-sprite-panel/mobile-sprite-panel.css` | スマホの画面（MobileGui）だけ、モーダルのオーバーレイの重なりを 9999 に上げる（[`library.md`](library.md) の「スモウルビーの追加」）。PC・iPad は上流の 510 | スマホの重なり順だけ |
 | `prompt/prompt.jsx`・`custom-procedures/custom-procedures.jsx`（どちらもマーカー `upstream warning fixes`） | モーダルに `id` を付けた | なし |
 | `containers/prompt.jsx`（マーカー付き） | 日本語の変換を決める Enter でダイアログを閉じない | なし（振る舞いだけ） |
 | `containers/custom-procedures.jsx`（マーカー付き） | 作業の場のブロックを、メインのコードエリアと同じテーマ（`catblocks` / `classic`）で描く | 定義のブロックの形（テーマ）だけ。色は上流と同じ色のモード |

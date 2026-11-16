@@ -1,17 +1,4 @@
 import _ from 'lodash';
-import {
-    MusicConverter,
-    PenConverter,
-    EV3Converter,
-    GdxForConverter,
-    SmalrubotS1Converter,
-    BoostConverter,
-    TranslateConverter,
-    MakeyMakeyConverter,
-    LooksConverter,
-    SoundConverter,
-    SensingConverter,
-} from './register-converters';
 
 /**
  * Mixin for converter registration and execution methods.
@@ -47,14 +34,14 @@ const ConverterRegistry = {
         }
 
         let methodToNumArgs = this._receiverToMethods[receiverName];
-        if (!methodToNumArgs) methodToNumArgs = this._receiverToMethods[receiverName] = {};
+        if (!methodToNumArgs) methodToNumArgs = this._receiverToMethods[receiverName] = Object.create(null);
 
         let numArgsToNumRubyBlockArgs = methodToNumArgs[name];
-        if (!numArgsToNumRubyBlockArgs) numArgsToNumRubyBlockArgs = methodToNumArgs[name] = {};
+        if (!numArgsToNumRubyBlockArgs) numArgsToNumRubyBlockArgs = methodToNumArgs[name] = Object.create(null);
 
         let numRubyBlockArgsToCreateBlockFuncs = numArgsToNumRubyBlockArgs[numArgs];
         if (!numRubyBlockArgsToCreateBlockFuncs) {
-            numRubyBlockArgsToCreateBlockFuncs = numArgsToNumRubyBlockArgs[numArgs] = {};
+            numRubyBlockArgsToCreateBlockFuncs = numArgsToNumRubyBlockArgs[numArgs] = Object.create(null);
         }
 
         let createBlockFuncs = numRubyBlockArgsToCreateBlockFuncs[numRubyBlockArgs];
@@ -207,7 +194,6 @@ const ConverterRegistry = {
     },
 
     _callConvertersHandler(handlerName, ...args) {
-        // First, check registered handlers based on handlerName
         const handlersMap = {
             onIf: this._onIfHandlers,
             onUntil: this._onUntilHandlers,
@@ -223,31 +209,6 @@ const ConverterRegistry = {
         if (handlers) {
             for (const handler of handlers) {
                 const block = handler.apply(this, args);
-                if (block) {
-                    return block;
-                }
-            }
-        }
-
-        // Then, check legacy converter objects for remaining unmigrated handlers
-        const legacyConverters = [
-            MusicConverter,
-            PenConverter,
-            EV3Converter,
-            GdxForConverter,
-            SmalrubotS1Converter,
-            BoostConverter,
-            TranslateConverter,
-            MakeyMakeyConverter,
-            LooksConverter,
-            SoundConverter,
-            SensingConverter,
-        ];
-
-        for (let i = 0; i < legacyConverters.length; i++) {
-            const converter = legacyConverters[i];
-            if (Object.prototype.hasOwnProperty.call(converter, handlerName)) {
-                const block = converter[handlerName].apply(this, args);
                 if (block) {
                     return block;
                 }

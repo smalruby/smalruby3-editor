@@ -4,12 +4,12 @@
  * manage the caller's own posts (unlist / republish). Supplement URLs open
  * behind an explicit confirmation that names the external domain (D4).
  */
-import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import { SCHOOL_LEVELS, SUBJECTS_BY_LEVEL } from '../../lib/shared-assignment-taxonomy.js';
 import styles from './classroom-modal.css';
+import ClassroomTab from './classroom-tab.jsx';
 import SharedAssignmentForm from './shared-assignment-form.jsx';
 
 // Static message map so the level label can be resolved at runtime from the
@@ -437,15 +437,10 @@ const SharedAssignmentCatalog = ({ group, isLoading, shared }) => {
                 </button>
             </div>
 
-            <div className={styles.detailTabs} role="tablist">
-                <button
-                    className={classNames(styles.detailTab, {
-                        [styles.detailTabActive]: shared.catalogTab === 'all',
-                    })}
-                    aria-selected={shared.catalogTab === 'all'}
-                    data-testid="shared-catalog-tab-all"
-                    role="tab"
-                    type="button"
+            <div className={styles.tabList} role="tablist">
+                <ClassroomTab
+                    dataTestId="shared-catalog-tab-all"
+                    selected={shared.catalogTab === 'all'}
                     onClick={handleTabAll}
                 >
                     <FormattedMessage
@@ -453,15 +448,10 @@ const SharedAssignmentCatalog = ({ group, isLoading, shared }) => {
                         description="Catalog tab showing every published assignment"
                         id="gui.classroom.shared.tabAll"
                     />
-                </button>
-                <button
-                    className={classNames(styles.detailTab, {
-                        [styles.detailTabActive]: shared.catalogTab === 'mine',
-                    })}
-                    aria-selected={shared.catalogTab === 'mine'}
-                    data-testid="shared-catalog-tab-mine"
-                    role="tab"
-                    type="button"
+                </ClassroomTab>
+                <ClassroomTab
+                    dataTestId="shared-catalog-tab-mine"
+                    selected={shared.catalogTab === 'mine'}
                     onClick={handleTabMine}
                 >
                     <FormattedMessage
@@ -469,7 +459,7 @@ const SharedAssignmentCatalog = ({ group, isLoading, shared }) => {
                         description="Catalog tab showing the caller's own posts"
                         id="gui.classroom.shared.tabMine"
                     />
-                </button>
+                </ClassroomTab>
             </div>
 
             {shared.broadenTarget ? (

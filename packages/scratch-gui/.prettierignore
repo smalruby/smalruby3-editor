@@ -60,6 +60,8 @@ src/components/*
 !src/components/classroom-teacher-kick-toast/**
 !src/components/classroom-teacher-panel/
 !src/components/classroom-teacher-panel/**
+!src/components/classroom-teacher-work-bar/
+!src/components/classroom-teacher-work-bar/**
 !src/components/classroom-peer-panel/
 !src/components/classroom-peer-panel/**
 !src/components/classroom-tutorial/
@@ -185,6 +187,7 @@ src/containers/*
 !src/containers/block-display-modal.jsx
 !src/containers/bug-report-modal.jsx
 !src/containers/use-bug-report-submit.js
+!src/containers/use-before-unload-while.js
 !src/containers/classroom-classcode-utils.js
 !src/containers/classroom-error-utils.js
 !src/containers/classroom-modal.jsx
@@ -193,6 +196,8 @@ src/containers/*
 !src/containers/classroom-submit-reminder.jsx
 !src/containers/use-kick-request-polling.js
 !src/containers/classroom-teacher-modal.jsx
+!src/containers/classroom-teacher-modal-host.jsx
+!src/containers/classroom-teacher-work-bar.jsx
 !src/containers/classroom-teacher-menu.jsx
 !src/containers/classroom-teacher-kick-alerts.jsx
 !src/containers/classroom-teacher-panel.jsx
@@ -275,11 +280,14 @@ src/lib/*
 !src/lib/classroom-evaluation/**
 !src/lib/classroom-download-utils.js
 !src/lib/classroom-google-share.js
+!src/lib/classroom-class-color.js
+!src/lib/classroom-class-list-summary.js
 !src/lib/classroom-group-utils.js
 !src/lib/classroom-genai-settings.js
 !src/lib/classroom-retention.js
 !src/lib/classroom-stream.js
 !src/lib/classroom-teacher-session.js
+!src/lib/classroom-teacher-work.js
 !src/lib/classroom-presence.js
 !src/lib/shared-assignment-taxonomy.js
 !src/lib/shared-author-profile.js
@@ -513,6 +521,7 @@ test/unit/components/*
 !test/unit/components/class-ai-settings.test.jsx
 !test/unit/components/image-viewer.test.jsx
 !test/unit/components/bug-report-consent.test.jsx
+!test/unit/components/bug-report-modal-date.test.jsx
 !test/unit/components/koshien-mock-panel.test.jsx
 !test/unit/components/koshien-settings-modal.test.jsx
 !test/unit/components/lesson-settings-field-close.test.jsx
@@ -553,7 +562,10 @@ test/unit/components/*
 !test/unit/components/teacher-avatar-menu.test.jsx
 !test/unit/components/google-sign-in-slot.test.jsx
 !test/unit/components/teacher-notifications-list.test.jsx
+!test/unit/components/classroom-teacher-header.test.jsx
 !test/unit/components/classroom-teacher-modal-share-suggestion.test.js
+!test/unit/components/teacher-open-work-confirm.test.jsx
+!test/unit/components/classroom-tab.test.jsx
 !test/unit/components/classroom-teacher-view-layout.test.jsx
 !test/unit/components/classroom-teacher-evaluation.test.jsx
 !test/unit/components/classroom-teacher-menu.test.jsx
@@ -584,6 +596,7 @@ test/unit/components/*
 !test/unit/components/ruby-toolbar-dncl-lock.test.jsx
 !test/unit/components/scanning-step-name-search.test.js
 !test/unit/components/student-join-form.test.js
+!test/unit/components/student-previous-comment.test.jsx
 
 # Level 3: test/unit/containers/*
 test/unit/containers/*
@@ -620,6 +633,7 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-assignment.test.js
 !test/unit/containers/use-teacher-assignment-lesson-description.test.js
 !test/unit/containers/use-teacher-classrooms-rename.test.js
+!test/unit/containers/use-teacher-classrooms-project.test.js
 !test/unit/containers/use-teacher-classrooms-lesson-progress.test.js
 !test/unit/containers/use-student-submit.test.js
 !test/unit/containers/connection-modal-connected-message.test.jsx
@@ -628,7 +642,17 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-groups-loaded.test.js
 !test/unit/containers/use-teacher-groups-topics.test.js
 !test/unit/containers/use-teacher-groups-create.test.js
+!test/unit/containers/use-teacher-groups-update.test.js
 !test/unit/containers/use-teacher-notifications.test.js
+!test/unit/containers/use-teacher-evaluation-leave.test.js
+!test/unit/containers/use-teacher-evaluation-stale-runs.test.js
+!test/unit/containers/use-teacher-evaluation-open-work.test.js
+!test/unit/containers/use-teacher-evaluation-token-refresh.test.js
+!test/unit/containers/use-teacher-submissions-open.test.js
+!test/unit/containers/use-before-unload-while.test.js
+!test/unit/containers/classroom-teacher-modal-leave.test.jsx
+!test/unit/containers/classroom-teacher-modal-host.test.jsx
+!test/unit/containers/classroom-teacher-work-bar.test.jsx
 !test/unit/containers/google-drive-saver-hoc.test.jsx
 !test/unit/containers/google-drive-state-management.test.jsx
 !test/unit/containers/ruby-downloader.test.jsx
@@ -677,6 +701,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-menu-submit.test.js
 !test/unit/lib/classroom-submit-reminder.test.js
 !test/unit/lib/classroom-teacher-session.test.js
+!test/unit/lib/classroom-teacher-work.test.js
 !test/unit/lib/classroom-teacher-kick-alerts.test.js
 !test/unit/lib/classroom-teacher-panel.test.js
 !test/unit/lib/classroom-teacher-reauth.test.js
@@ -688,6 +713,8 @@ test/unit/lib/*
 !test/unit/lib/classroom-lesson-summary.test.js
 !test/unit/lib/classroom-lesson-description.test.js
 !test/unit/lib/classroom-download-utils.test.js
+!test/unit/lib/classroom-class-color.test.js
+!test/unit/lib/classroom-class-list-summary.test.js
 !test/unit/lib/classroom-group-utils.test.js
 !test/unit/lib/google-classroom-auth.test.js
 !test/unit/lib/classroom-google-share.test.js

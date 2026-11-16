@@ -1,32 +1,40 @@
 /**
- * "From your teacher last time" recap box.
+ * "From your teacher last time" recap.
  *
  * Shown right after joining when the lesson belongs to a group (組) and the
  * same seat received a returned comment in a prior lesson of that group.
  * Bridges the gap between weekly lessons (and long holidays) with a
- * personalized positive note.
+ * personalized positive note, in the same bubble as the returned comment
+ * on the welcome back screen (#1963).
  */
 import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
-import styles from './classroom-modal.css';
+import StudentTeacherNote from './student-teacher-note.jsx';
 
 const StudentPreviousComment = ({ previousComment }) => {
     if (!previousComment || !previousComment.teacherComment) return null;
+    const context = previousComment.assignmentName ? (
+        <FormattedMessage
+            defaultMessage="Last time: {assignmentName}"
+            description="Next to 「From your teacher」: the earlier assignment the comment was returned on"
+            id="gui.classroom.previousComment.context"
+            values={{ assignmentName: previousComment.assignmentName }}
+        />
+    ) : (
+        <FormattedMessage
+            defaultMessage="Last time"
+            description="Next to 「From your teacher」 when the earlier assignment has no name"
+            id="gui.classroom.previousComment.contextNoName"
+        />
+    );
     return (
-        <div className={styles.previousCommentBox} data-testid="classroom-previous-comment">
-            <div className={styles.previousCommentTitle}>
-                <FormattedMessage
-                    defaultMessage="From your teacher last time ({assignmentName}):"
-                    description="Title of the previous returned comment recap box"
-                    id="gui.classroom.previousComment.title"
-                    values={{ assignmentName: previousComment.assignmentName || '' }}
-                />
-            </div>
-            <div className={styles.previousCommentText} data-testid="classroom-previous-comment-text">
-                {previousComment.teacherComment}
-            </div>
-        </div>
+        <StudentTeacherNote
+            context={context}
+            dataTestId="classroom-previous-comment"
+            text={previousComment.teacherComment}
+            textTestId="classroom-previous-comment-text"
+        />
     );
 };
 

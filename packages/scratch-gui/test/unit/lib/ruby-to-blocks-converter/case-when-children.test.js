@@ -14,7 +14,7 @@ import {
 } from '../../helpers/ruby-roundtrip-helper';
 
 describe('RubyToBlocksConverter: the code inside case / when (issue #1813)', () => {
-    describe('how a variable is used (`_collectVariableUses`)', () => {
+    describe('how a variable is used (the analysis, `variables.uses`)', () => {
         let target, runtime, converter;
 
         beforeEach(() => {
@@ -86,13 +86,13 @@ describe('RubyToBlocksConverter: the code inside case / when (issue #1813)', () 
             expect(converter.errors.map((e) => e.text)).toEqual([
                 '"when (@a = "abc")" is the wrong instruction.\nCheck the spelling or use a supported block.',
             ]);
-            expect(converter._context.variableUses['@a']).toEqual(
+            expect(converter._context.analysis.variables.uses['@a']).toEqual(
                 expect.objectContaining({ list: false, scalar: true, string: true }),
             );
         });
     });
 
-    describe('a list in a when and a variable elsewhere (`_collectVariableUses`)', () => {
+    describe('a list in a when and a variable elsewhere (the analysis, `variables.uses`)', () => {
         const listAndVariableError =
             '"@a" is used as a list on line 3 and as a variable on line 5.\n' +
             'In Ruby, one name cannot be both a variable and a list. Rename one of them.';
@@ -109,7 +109,7 @@ describe('RubyToBlocksConverter: the code inside case / when (issue #1813)', () 
         });
     });
 
-    describe('super inside a when (`_nodeContainsSuper`)', () => {
+    describe('super inside a when (`containsSuper` of class-analysis.js)', () => {
         test('super in the body of a when calls the method of the module', async () => {
             const converter = new RubyToBlocksConverter(null, { version: '2' });
             const code = dedent`

@@ -52,7 +52,7 @@ describe('ClassroomStatusIcon (#1196)', () => {
     const LABELS = {
         seated: 'Seated',
         notSeated: 'Not seated',
-        notJoined: 'Not joined',
+        notJoined: 'Empty',
         submitted: 'Submitted',
         notSubmitted: 'Not submitted',
         returned: 'Returned',

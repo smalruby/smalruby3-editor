@@ -6,26 +6,34 @@
 
 .main-button {
     display: block;
+    box-sizing: border-box;
     width: 100%;
     padding: 0.75rem 1rem;
-    border: none;
-    border-radius: 10px;
+    border: 1px solid $color-action-dark;
+    border-radius: $radius-small;
     background-color: $color-action;
-    box-shadow: 0 3px 0 $membership-blue;
-    color: white;
+    color: $color-surface;
+    font-family: inherit;
     font-size: 1.05rem;
-    font-weight: bold;
+    font-weight: $font-weight-bold;
     text-align: center;
     cursor: pointer;
 }
 
-.main-button:hover {
-    background-color: $membership-blue;
+.main-button:hover,
+.main-button:active {
+    background-color: $color-action-dark;
+}
+
+.main-button:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 2px;
 }
 
 .main-button:disabled {
-    background-color: #d9d9d9;
-    box-shadow: none;
+    border-color: transparent;
+    background-color: $color-disabled;
+    color: $color-disabled-text;
     cursor: not-allowed;
 }
 
@@ -37,23 +45,40 @@
     opacity: 0.9;
 }
 
+/* 小さな文字のリンク: 主の色の青（白に 4.7:1）。主ボタンより軽く見えるよう、地も枠も無い小さい字 */
 .text-link {
     padding: 0.2rem;
     border: none;
     background: none;
-    color: #5f6b8a;
+    color: $color-action;
+    font-family: inherit;
     font-size: 0.8rem;
     text-decoration: underline;
     cursor: pointer;
 }
 
 .text-link:hover {
-    color: #3a4560;
+    color: $color-action-dark;
+}
+
+.text-link:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 1px;
 }
 
 .text-link:disabled {
-    color: #aaa;
+    color: $color-disabled-text;
     cursor: default;
+}
+
+/* 生徒の画面の見出し（「参加コードを入力」「出席番号を選んでください」「おかえりなさい」など）。
+   20px（$font-size-heading-medium・#1956 Q13）。h2 の既定の余白は消して、帯との間を詰める */
+.student-title {
+    margin: 0 0 0.4rem;
+    color: $color-text;
+    font-size: $font-size-heading-medium;
+    font-weight: $font-weight-bold;
+    line-height: 1.3;
 }
 
 /* 進む順の帯: 1300x600 では 1 行・高さ 1 行分。モーダルの本文のいちばん上に置く。
@@ -93,8 +118,8 @@
 }
 
 .step-band-step[data-state='now'] {
-    background-color: #2a6fd6;
-    color: white;
+    background-color: $color-action;
+    color: $color-surface;
 }
 
 .step-band-step[data-state='todo'] {
@@ -423,4 +448,232 @@
     border-radius: 50%;
     background-color: #1f5fbf;
     pointer-events: none;
+}
+
+/* 参加コードの入力 (#1963): 見えるラベル → 大きなコードの欄と［次へ］を 1 行 → 前に入った参加コード →
+   エラー → ヒント。1300x600 でスクロールなし。 */
+.join-code-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: $color-text;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+}
+
+.join-code-row {
+    display: flex;
+    gap: $space-medium;
+    align-items: stretch;
+}
+
+.join-code-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    box-sizing: border-box;
+    height: 3rem;
+    padding: 0 $space-medium;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    background-color: $color-surface;
+    color: $color-text;
+    font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 1.5rem;
+    font-weight: $font-weight-bold;
+    letter-spacing: 0.2em;
+    text-align: center;
+}
+
+.join-code-input::placeholder {
+    color: $color-disabled-text;
+    font-weight: normal;
+}
+
+.join-code-input:focus {
+    border-color: $color-action;
+    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
+    outline: 2px solid transparent;
+}
+
+/* ［次へ］は入力欄と同じ高さにそろえる（共通のボタンより強くするため、クラスを 2 つ重ねる） */
+.join-code-submit.join-code-submit {
+    min-height: 3rem;
+    padding: 0 1.75rem;
+}
+
+.join-history-row {
+    display: flex;
+    align-items: center;
+    gap: $space-medium;
+    margin-top: $space-medium;
+}
+
+.join-history-label {
+    flex: none;
+    color: $color-text;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+}
+
+.join-history-select {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    box-sizing: border-box;
+    height: $size-button-height;
+    padding: 0 0.4rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    background-color: $color-surface;
+    color: $color-text;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.join-history-select:focus {
+    border-color: $color-action;
+    outline: 2px solid transparent;
+}
+
+/* ヒントは生徒向けが主。先生向け（クラス管理を知らずに「クラス」を押した先生）は、線で分けた下に
+   小さく置く */
+.join-hint {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: $radius-medium;
+    background-color: $color-background;
+    color: $color-text;
+    font-size: $font-size-medium;
+    line-height: 1.5;
+}
+
+.join-hint-title {
+    margin-bottom: 0.15rem;
+    color: $color-text;
+    font-weight: $font-weight-bold;
+}
+
+.join-hint-teacher {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.75rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid $color-border;
+    font-size: 0.8rem;
+}
+
+.join-teacher-link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: $color-action;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: $font-weight-bold;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.join-teacher-link:hover {
+    color: $color-action-dark;
+}
+
+.join-teacher-link:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 2px;
+}
+
+/* 先生からのコメント (#1963): 先生から届いたと一目で分かるよう、先生のアイコンと吹き出しにする。
+   警告に見えないよう、黄色・アラートの形は使わず、やわらかい緑にする（文字は地に 4.5:1 以上:
+   見出しの緑 #17663f は 6.6:1、本文 $color-text は 5.9:1）。 */
+.teacher-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin: 0.25rem 0 0.5rem;
+}
+
+.teacher-note-avatar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: $radius-round;
+    background-color: #d2efdf;
+    color: #17663f;
+}
+
+.teacher-note-bubble {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.5rem 0.875rem;
+    border: 1px solid #b7e0c8;
+    border-radius: $radius-medium;
+    background-color: #eef8f2;
+}
+
+/* 吹き出しのしっぽ（アイコンの方を向く） */
+.teacher-note-bubble::before {
+    position: absolute;
+    top: 0.75rem;
+    left: -0.4rem;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-bottom: 1px solid #b7e0c8;
+    border-left: 1px solid #b7e0c8;
+    background-color: #eef8f2;
+    content: '';
+    transform: rotate(45deg);
+}
+
+.teacher-note-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.teacher-note-from {
+    flex: none;
+    color: #17663f;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+}
+
+/* 前回の課題名など。長いときは「…」で切って 1 行にする */
+.teacher-note-context {
+    min-width: 0;
+    overflow: hidden;
+    color: $color-text;
+    font-size: $font-size-small;
+    text-overflow: ellipsis;
+}
+
+.teacher-note-text {
+    /* 長いコメント（上限 500 字・改行が多い）でも主ボタンを 1300x600 に収めるため、6 行半で止めて
+       吹き出しの中だけスクロールする（半行見せて、続きがあると分かるようにする） */
+    max-height: calc(1.5em * 6.5);
+    margin-top: 0.15rem;
+    overflow-y: auto;
+    color: $color-text;
+    font-size: $font-size-medium;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* もう一度の提出の確認は作品の画像も並ぶので、3 行半で止める */
+.teacher-note-text.teacher-note-text-compact {
+    max-height: calc(1.5em * 3.5);
+}
+
+.teacher-note-text:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 2px;
 }

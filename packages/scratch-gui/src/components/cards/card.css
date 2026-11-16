@@ -339,12 +339,15 @@ body .card-container {
     gap: 0.5rem;
     margin-top: 0.75rem;
     padding: 0.5rem 1rem;
-    background-color: $ui-green;
+    /* Darker green (#0B8E69) so the white label reaches 4.15:1 (#0DA57A was
+       3.14:1), and a bold label. Quick fix only: EPIC #1935 brings the
+       tutorial back to upstream and reverts this (#1933 Q4). */
+    background-color: $extensions-tertiary;
     color: $ui-white;
     border: none;
     border-radius: 0.25rem;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: bold;
     cursor: pointer;
     transition: background-color 0.2s;
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -352,7 +355,7 @@ body .card-container {
 }
 
 .insert-code-button:hover {
-    background-color: $ui-green-2;
+    background-color: $ui-green;
 }
 
 .insert-code-button .code-icon {

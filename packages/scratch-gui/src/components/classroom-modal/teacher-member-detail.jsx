@@ -1,7 +1,10 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { isMemberSeated } from '../../lib/classroom-presence.js';
+import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
+import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import ClassroomStatusIcon from './classroom-status-icon.jsx';
 import LessonMemberDetail from './lesson-member-detail.jsx';
@@ -20,6 +23,12 @@ const formatSubmittedAt = (iso, locale) => {
     });
 };
 
+// 「seat-04」→ 4（確認の文で「出席番号 4」と読む）。
+const seatNumberOf = (memberId) => {
+    const n = parseInt(String(memberId || '').replace('seat-', ''), 10);
+    return Number.isNaN(n) ? memberId : n;
+};
+
 const TeacherMemberDetail = ({
     isLoading,
     members,
@@ -35,12 +44,23 @@ const TeacherMemberDetail = ({
     lessonDetail,
     lessonNow,
     showSubmission = true,
+    commentDrafts = null,
+    onChangeCommentDraft = null,
 }) => {
     const intl = useIntl();
     // Ties the visible label to the comment field (R1)
     const commentInputId = useId();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [commentText, setCommentText] = useState('');
+    const [ownCommentText, setOwnCommentText] = useState('');
+    // コメントの下書きは、渡されたら container が持つ（#1990）。作品を開いてクラス管理が
+    // 閉じても（隠して残す）、席を移っても消えない。だから［スモウルビーで開く］は確かめない。
+    const controlled = !!onChangeCommentDraft;
+    const savedComment = (selectedMember && memberMap[selectedMember]?.teacherComment) || '';
+    const draftOfSelected = controlled && commentDrafts && selectedMember ? commentDrafts[selectedMember] : null;
+    let commentText = ownCommentText;
+    if (controlled) commentText = typeof draftOfSelected === 'string' ? draftOfSelected : savedComment;
+    // 「退室させる」の確認（#1923 C3）。押してすぐ退室させない。
+    const [confirmingRemove, setConfirmingRemove] = useState(false);
 
     // Reset image index and comment only when a DIFFERENT member is selected
     const prevSelectedMemberRef = React.useRef(selectedMember);
@@ -48,27 +68,31 @@ const TeacherMemberDetail = ({
         if (selectedMember !== prevSelectedMemberRef.current) {
             prevSelectedMemberRef.current = selectedMember;
             setCurrentImageIndex(0);
+            setConfirmingRemove(false);
             if (selectedMember) {
                 const member = memberMap[selectedMember];
-                setCommentText(member?.teacherComment || '');
+                setOwnCommentText(member?.teacherComment || '');
             } else {
-                setCommentText('');
+                setOwnCommentText('');
             }
         }
     }, [selectedMember, memberMap]);
 
-    const handleOpenClick = useCallback(
-        (e) => {
-            const projectUrl = e.currentTarget.dataset.projectUrl;
-            if (projectUrl) {
-                onOpenSubmission(projectUrl);
-            }
-        },
-        [onOpenSubmission],
-    );
+    const handleOpenClick = useCallback(() => {
+        const projectUrl = selectedMember && memberMap[selectedMember]?.projectUrl;
+        // 開いたあと、エディタの上の帯から課題へ戻れるよう、席の番号だけを渡す（#1990）。
+        const seat = /^seat-(\d+)$/.exec(selectedMember || '');
+        if (projectUrl) {
+            onOpenSubmission(projectUrl, { from: 'assignment', seatNumber: seat ? parseInt(seat[1], 10) : null });
+        }
+    }, [selectedMember, memberMap, onOpenSubmission]);
 
+    // ⋮ の［退室させる］は確認を開くだけ。確認の［退室させる］で退室させる（#1923 C3）。
+    const handleRemoveClick = useCallback(() => setConfirmingRemove(true), []);
+    const handleRemoveCancel = useCallback(() => setConfirmingRemove(false), []);
     // onDeleteMember は生徒の ID を受け取る（クリックのイベントをそのまま渡さない）。
-    const handleDeleteClick = useCallback(() => {
+    const handleRemoveConfirm = useCallback(() => {
+        setConfirmingRemove(false);
         if (selectedMember) onDeleteMember(selectedMember);
     }, [selectedMember, onDeleteMember]);
 
@@ -87,9 +111,13 @@ const TeacherMemberDetail = ({
         [selectedMember, memberMap, onSetHiddenFromPeers],
     );
 
-    const handleCommentChange = useCallback((e) => {
-        setCommentText(e.target.value);
-    }, []);
+    const handleCommentChange = useCallback(
+        (e) => {
+            if (onChangeCommentDraft) onChangeCommentDraft(selectedMember, e.target.value);
+            else setOwnCommentText(e.target.value);
+        },
+        [onChangeCommentDraft, selectedMember],
+    );
 
     const handleApproveKickClick = useCallback(
         (e) => {
@@ -200,19 +228,82 @@ const TeacherMemberDetail = ({
                             />
                         )}
                     </span>
-                    <button
-                        className={styles.deleteButton}
-                        data-member-id={selectedMember}
-                        data-testid="classroom-member-remove"
-                        onClick={handleDeleteClick}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Remove"
-                            description="Remove member button"
-                            id="gui.classroom.members.remove"
-                        />
-                    </button>
+                    {/* まれな操作は ⋮ に入れる（R2）。退室させても作品は残るので赤にしない（R4・#1923 C3）。 */}
+                    <div className={styles.memberDetailMore}>
+                        <BoardMenu
+                            alignRight
+                            ariaLabel={intl.formatMessage({
+                                defaultMessage: 'More actions for this student',
+                                description: 'Accessible name of the ⋮ menu of the member detail',
+                                id: 'gui.classroom.members.moreMenu',
+                            })}
+                            buttonClassName={styles.boardKebab}
+                            disabled={isLoading}
+                            label="⋮"
+                            testId="classroom-member-more-menu"
+                        >
+                            {(close) => (
+                                <BoardMenuItem
+                                    close={close}
+                                    disabled={isLoading}
+                                    testId="classroom-member-remove"
+                                    onSelect={handleRemoveClick}
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Remove from the assignment"
+                                        description="Member detail ⋮ menu: remove (kick) the student from the assignment"
+                                        id="gui.classroom.members.remove"
+                                    />
+                                </BoardMenuItem>
+                            )}
+                        </BoardMenu>
+                    </div>
                 </div>
+                {confirmingRemove && (
+                    <div
+                        className={classNames(styles.confirmNote, styles.memberRemoveConfirm)}
+                        data-testid="classroom-member-remove-confirm-box"
+                    >
+                        <p
+                            className={styles.memberRemoveConfirmMessage}
+                            data-testid="classroom-member-remove-confirm-message"
+                            role="alert"
+                        >
+                            <FormattedMessage
+                                defaultMessage="Remove the student at seat {number} from the assignment? (Their work is kept.)"
+                                description="Member detail: confirmation before removing (kicking) a student from the assignment"
+                                id="gui.classroom.members.removeConfirm"
+                                values={{ number: seatNumberOf(selectedMember) }}
+                            />
+                        </p>
+                        <div className={styles.buttonRow}>
+                            <ClassroomButton
+                                autoFocus
+                                dataTestId="classroom-member-remove-cancel"
+                                disabled={isLoading}
+                                onClick={handleRemoveCancel}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Cancel"
+                                    description="Member detail: cancel removing the student"
+                                    id="gui.classroom.members.removeCancel"
+                                />
+                            </ClassroomButton>
+                            <ClassroomButton
+                                dataTestId="classroom-member-remove-confirm"
+                                disabled={isLoading}
+                                variant="primary"
+                                onClick={handleRemoveConfirm}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Remove from the assignment"
+                                    description="Member detail: confirm button that removes (kicks) the student"
+                                    id="gui.classroom.members.removeConfirmYes"
+                                />
+                            </ClassroomButton>
+                        </div>
+                    </div>
+                )}
                 {kickRequestsForSelectedSeat && kickRequestsForSelectedSeat.length > 0 && (
                     <div className={styles.kickRequestPanel} data-testid="classroom-member-kick-request-panel">
                         <div className={styles.kickRequestPanelTitle}>
@@ -328,10 +419,10 @@ const TeacherMemberDetail = ({
                             </span>
                         )}
                         {selectedMemberData.projectUrl && (
-                            <button
-                                className={styles.primaryButton}
-                                data-project-url={selectedMemberData.projectUrl}
-                                data-testid="classroom-member-detail-open"
+                            /* A secondary button: the main one of this pane is［返却］(R2・#1961). */
+                            <ClassroomButton
+                                className={styles.memberDetailOpenButton}
+                                dataTestId="classroom-member-detail-open"
                                 disabled={isLoading}
                                 onClick={handleOpenClick}
                             >
@@ -340,7 +431,7 @@ const TeacherMemberDetail = ({
                                     description="Open student submission button"
                                     id="gui.classroom.teacherDetail.openSubmission"
                                 />
-                            </button>
+                            </ClassroomButton>
                         )}
                         {/* Peer view (#1208): keep an inappropriate submission
                             out of what classmates can see. */}
@@ -382,10 +473,12 @@ const TeacherMemberDetail = ({
                                 value={commentText}
                                 onChange={handleCommentChange}
                             />
-                            <button
-                                className={styles.returnButton}
-                                data-testid="classroom-member-detail-return"
+                            {/* The main button of the seat detail (R2・#1961). */}
+                            <ClassroomButton
+                                className={styles.memberDetailReturnButton}
+                                dataTestId="classroom-member-detail-return"
                                 disabled={isLoading || selectedMemberData.isReturned}
+                                variant="primary"
                                 onClick={handleReturnClick}
                             >
                                 {selectedMemberData.isReturned ? (
@@ -401,7 +494,7 @@ const TeacherMemberDetail = ({
                                         id="gui.classroom.teacherDetail.returnSubmission"
                                     />
                                 )}
-                            </button>
+                            </ClassroomButton>
                         </div>
                     </div>
                 )}
@@ -450,6 +543,10 @@ const TeacherMemberDetail = ({
 };
 
 TeacherMemberDetail.propTypes = {
+    /** memberId → comment typed, kept by the container (#1990). Used with onChangeCommentDraft. */
+    commentDrafts: PropTypes.objectOf(PropTypes.string),
+    /** (memberId, text) → keeps the typed comment in the container (#1990). */
+    onChangeCommentDraft: PropTypes.func,
     isLoading: PropTypes.bool,
     lessonDetail: PropTypes.shape({
         progress: PropTypes.object,

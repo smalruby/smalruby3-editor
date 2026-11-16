@@ -58,3 +58,31 @@ export const buildStreamEvents = (classrooms, archivedClassrooms, now = Date.now
     history.sort((a, b) => timeOf(b.date) - timeOf(a.date));
     return [...expiring, ...history];
 };
+
+/**
+ * ストリームの「保存期限」のカード（#1960・R4）。
+ * - `expiring`: 自動で消えるまで RETENTION_WARNING_DAYS 日以内の課題（active とアーカイブ済み）。
+ *   早く消える順。これがあるときだけカードを赤にする。
+ * - `next`: これから消える課題のうち、いちばん早いもの（7 日より先なら灰色の文に出す）。
+ * もう期限を過ぎた課題はデータから消えているので数えない。
+ * @param {Array<object>} classrooms - そのクラスの active な課題
+ * @param {Array<object>} archivedClassrooms - そのクラスのアーカイブ済みの課題
+ * @param {number} [now] - いまの時刻（ms。テストで固定するため）
+ * @returns {{expiring: Array<{classroom: object, archived: boolean}>, next: ?{classroom: object, archived: boolean}}}
+ *   カードに出すもの
+ */
+export const retentionSummary = (classrooms, archivedClassrooms, now = Date.now()) => {
+    const upcoming = [
+        ...(classrooms || []).map((c) => ({ classroom: c, archived: false })),
+        ...(archivedClassrooms || []).map((c) => ({ classroom: c, archived: true })),
+    ]
+        .filter((e) => {
+            const t = timeOf(e.classroom.expiresAt);
+            return !Number.isNaN(t) && t > now;
+        })
+        .sort((a, b) => timeOf(a.classroom.expiresAt) - timeOf(b.classroom.expiresAt));
+    return {
+        expiring: upcoming.filter((e) => timeOf(e.classroom.expiresAt) - now <= RETENTION_WARNING_DAYS * DAY_MS),
+        next: upcoming[0] || null,
+    };
+};

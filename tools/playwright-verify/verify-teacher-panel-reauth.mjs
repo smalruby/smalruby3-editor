@@ -119,7 +119,7 @@ await check(expiredCalls() === n, `no more 401 polls while expired (${n} -> ${ex
 // （スタブがこのトークンを受け付ける。失敗ならクラス管理がログイン画面に戻す＝既存の経路）
 acceptExpired = true;
 await page.click('[data-testid="classroom-teacher-panel-reauth"]');
-await page.waitForSelector('[data-testid="classroom-teacher-modal"], [class*="classroom-teacher-modal"]', { timeout: 10000 });
+await page.waitForSelector('[data-testid="classroom-teacher-modal"]', { timeout: 10000 });
 log('OK class management opened after a failed re-auth');
 await shot('02-fallback-modal');
 

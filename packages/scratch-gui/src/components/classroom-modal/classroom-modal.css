@@ -2,6 +2,11 @@
    $color-action（白に 4.5:1 以上の濃い青・#1922）。 */
 @import '../../css/smalruby-tokens.css';
 
+/* 先生の画面（クラス一覧・クラスの中のタブ・課題・採点・配信）の上の余白（#1988）。
+   紫のヘッダーの下は main の padding（1rem）があるので、画面の側はトークンの小さい余白だけにする。
+   どの画面も同じ値にして、タブを切りかえてもタブの行が上下に動かないようにする。 */
+$teacher-screen-padding-top: $space-small;
+
 /* The student modal targets the 1300x600 classroom PC (#1221): it is wide so
    guidance and actions sit side by side, and it sits near the top so the body
    gets most of the 600px height without scrolling. */
@@ -172,63 +177,100 @@
     margin-right: 0.3rem;
 }
 
+/* クラス管理のボタン（#1956 Q6）: Scratch のダイアログのボタンの形（角丸 4px・太字）で、高さは 36px に
+   そろえる。主（青の塗り）・副（白地に枠・青の文字）・テキスト（地も枠も無い青の文字）の 3 種。
+   ClassroomButton の variant が選ぶ。形の決まりは docs/design-system/components/buttons.md の
+   「クラス管理のボタン」。 */
+.primary-button,
+.secondary-button,
+.text-button,
+.danger-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: $space-small;
+    box-sizing: border-box;
+    min-height: $size-button-height;
+    padding: 0 1rem;
+    border: 1px solid transparent;
+    border-radius: $radius-small;
+    font-family: inherit;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.text-button:focus-visible,
+.danger-button:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 2px;
+}
+
+/* 主ボタン: 1 つの画面に 1 つ（R2） */
 .primary-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
     background-color: $color-action;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-    font-weight: bold;
-    text-decoration: none;
+    border-color: $color-action-dark;
+    color: $color-surface;
 }
 
-.primary-button:hover {
-    background-color: $membership-blue;
+.primary-button:hover,
+.primary-button:active {
+    background-color: $color-action-dark;
 }
 
-.primary-button:disabled {
-    background-color: #d9d9d9;
-    cursor: not-allowed;
-}
-
-/* セカンダリボタン（#1125: 同名定義が 2 つあり後勝ちで実効値が混ざっていたのを、
-   その実効値どおりに 1 つへ統合した）。 */
+/* 副ボタン: やめる・戻る・ほかの操作 */
 .secondary-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    background-color: #fff;
-    color: #575e75;
-    border: 1px solid #b8b8b8;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-    text-decoration: none;
+    background-color: $color-surface;
+    border-color: $color-border;
+    color: $color-action;
 }
 
-.secondary-button:hover {
-    background-color: #f0f0f0;
+/* ホバー・押したときの淡い青の地の上では、$color-action（4.1:1）では足りないので濃い青（4.6:1）にする */
+.secondary-button:hover,
+.secondary-button:active {
+    background-color: $color-background;
+    color: $color-action-dark;
 }
 
+/* テキストボタン: カードの下の「採点」「設定」のような軽い操作。左右の余白を詰める */
+.text-button {
+    padding: 0 0.625rem;
+    background-color: transparent;
+    color: $color-action;
+}
+
+.text-button:hover,
+.text-button:active {
+    background-color: $color-background;
+    color: $color-action-dark;
+}
+
+/* 押せない: 主・副は淡い灰色の地と文字にそろえる（押せない部品はコントラストの対象外）。
+   テキストボタンは箱にせず、文字だけを灰色にする */
+.primary-button:disabled,
 .secondary-button:disabled {
-    opacity: 0.5;
+    background-color: $color-disabled;
+    border-color: transparent;
+    color: $color-disabled-text;
     cursor: not-allowed;
 }
 
+.text-button:disabled {
+    background-color: transparent;
+    color: $color-disabled-text;
+    cursor: not-allowed;
+}
+
+/* 取り消せない操作の確認（採点を離れる）。色は画面ごとの Issue で R4 に合わせて見直す */
 .danger-button {
     background-color: white;
     color: #ff6680;
-    border: 1px solid #ff6680;
-    border-radius: 4px;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.85rem;
-    cursor: pointer;
+    border-color: #ff6680;
 }
 
 .danger-button:hover {
@@ -299,15 +341,6 @@
     border-color: $color-action;
     box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
     outline: 2px solid transparent;
-}
-
-.join-code-display {
-    background-color: #f2f2f2;
-    border: 2px dashed #d9d9d9;
-    border-radius: 8px;
-    padding: 0.3rem;
-    text-align: center;
-    margin: 0.3rem 0;
 }
 
 /* 課題名（左）と参加コード（右）を均等幅 2 カラムに分ける。両カラムは
@@ -646,11 +679,11 @@
     background-color: #e9f0ff;
 }
 
-/* 配信画面の本文コンテナ。課題詳細（.detail-layout）と同じ左右オフセットに
-   合わせる（上端はパンくずラッパーが持つ）。旧 .phaseContainer は未定義で
-   左マージンが出ていなかったため専用クラスに置き換え。 */
+/* 配信画面の本文コンテナ。課題詳細（.detail-layout）と同じオフセットに合わせる
+   （いまいる所はヘッダーに出るので、上の余白もここで持つ・#1958）。旧 .phaseContainer は
+   未定義で左マージンが出ていなかったため専用クラスに置き換え。 */
 .post-assignment-container {
-    padding: 0 2rem 1.25rem;
+    padding: $teacher-screen-padding-top 2rem 1.25rem;
 }
 
 /* クラス名（課題詳細と同じ表記）を配信画面のサブタイトルとして表示。 */
@@ -699,6 +732,22 @@
    同じ行で左に離す。レビュー指摘）。 */
 .eval-cancel {
     margin-right: auto;
+}
+
+/* 取り消せる操作の確認の枠（クラス設定・課題のアーカイブ、退室させる、採点を離れる・#1923）。
+   淡いオレンジの地。赤は使わない（R4）。並び（余白・幅）は各画面のクラスで決める。 */
+.confirm-note {
+    border-radius: $radius-medium;
+    background: $color-confirm-background;
+    color: $color-confirm-text;
+}
+
+/* 採点を離れる確認（#1923 C4）。手順のボタンの行に、［採点を続ける］・文・［書き出す］・［戻る］を並べる。 */
+.eval-leave-confirm {
+    flex: 1;
+    margin: 0;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.875rem;
 }
 
 /* 採点の手順（1 読み込む → 2 AIで採点 → 3 コメント → 4 返却・#1304 V1）。
@@ -771,6 +820,18 @@
     font-size: inherit;
     text-decoration: underline;
     cursor: pointer;
+}
+
+.eval-hint-toggle {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.eval-hint-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .eval-hint-detail {
@@ -1058,9 +1119,10 @@
     flex-wrap: wrap;
 }
 
+/* 承認は、退室依頼のトースト・状況のパネルの［承認］と同じ濃いオレンジ（#1923 C14）。 */
 .kick-request-approve-button {
-    background-color: #d32f2f;
-    color: #fff;
+    background-color: $color-attention-action;
+    color: $ui-white;
     border: none;
     border-radius: 4px;
     padding: 0.4rem 0.8rem;
@@ -1068,8 +1130,8 @@
     cursor: pointer;
 }
 
-.kick-request-approve-button:hover {
-    background-color: #b71c1c;
+.kick-request-approve-button:hover:not(:disabled) {
+    filter: brightness(0.92);
 }
 
 .kick-request-approve-button:disabled {
@@ -1222,24 +1284,26 @@
     color: #000;
 }
 
+/* エラーの枠（参加できなかったときなど）。何が起きて何をすればよいかを、見出しと本文で言う。
+   見出しの赤は地に 7.5:1、本文は $color-text */
 .error-box {
-    background-color: #fff0f3;
-    border: 1px solid #ff6680;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-top: 0.8rem;
+    background-color: #fff1f2;
+    border: 1px solid #f2a7ac;
+    border-radius: $radius-medium;
+    padding: 0.625rem 0.875rem;
+    margin-top: 0.75rem;
 }
 
 .error-box-title {
-    font-weight: bold;
-    color: #d32f2f;
-    font-size: 0.95rem;
-    margin-bottom: 0.4rem;
+    font-weight: $font-weight-bold;
+    color: #a1121b;
+    font-size: $font-size-medium;
+    margin-bottom: 0.15rem;
 }
 
 .error-box-message {
-    color: #575e75;
-    font-size: 0.85rem;
+    color: $color-text;
+    font-size: $font-size-medium;
     line-height: 1.5;
 }
 
@@ -1601,24 +1665,14 @@ $seat-tile-min: 36px;
     outline: 2px solid transparent;
 }
 
-.return-button {
-    background-color: #ff8c1a;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 0.4rem 0.8rem;
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: bold;
+/* The seat detail (#1961):［返却］is the main button (full width under the comment),
+   ［スモウルビーで開く］a secondary one at the left. */
+.member-detail-open-button {
+    align-self: flex-start;
 }
 
-.return-button:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
-.return-button:hover:not(:disabled) {
-    background-color: #e67e16;
+.member-detail-return-button {
+    margin-top: 0.25rem;
 }
 
 .refresh-button {
@@ -1639,24 +1693,6 @@ $seat-tile-min: 36px;
 .refresh-button:disabled {
     opacity: 0.3;
     cursor: default;
-}
-
-.teacher-comment-box {
-    background-color: #fff8e1;
-    border: 1px solid #ffcc02;
-    border-radius: 4px;
-    padding: 0.5rem;
-    margin-top: 0.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.teacher-comment-text {
-    font-size: 0.85rem;
-    color: #575e75;
-    white-space: pre-wrap;
-    word-break: break-word;
 }
 
 .submission-detail {
@@ -1696,19 +1732,6 @@ $seat-tile-min: 36px;
     max-height: 180px;
     border: 1px solid #d9d9d9;
     border-radius: 4px;
-}
-
-.delete-button {
-    background: none;
-    border: none;
-    color: #ff6680;
-    cursor: pointer;
-    font-size: 0.8rem;
-    padding: 0.2rem 0.5rem;
-}
-
-.delete-button:hover {
-    text-decoration: underline;
 }
 
 .members-header {
@@ -1776,151 +1799,189 @@ $seat-tile-min: 36px;
     border-top: 1px solid #e0e0e0;
 }
 
+/* 課題をアーカイブする確認（色は .confirm-note・#1923 C2）。 */
 .delete-confirm-box {
-    background-color: #fff0f3;
-    border: 1px solid #ff6680;
-    border-radius: 8px;
     padding: 1rem;
     margin-top: 0.5rem;
 }
 
 .delete-confirm-message {
-    color: #575e75;
     font-size: 0.85rem;
     margin-bottom: 0.5rem;
 }
 
-.expand-icon-button {
-    background: none;
-    border: 1px solid #d9d9d9;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    padding: 0.1rem 0.3rem;
-    color: #575e75;
+/* The［⛶ 映す］screen (#1956 Q9・Q13): the join code, the seats and the counts
+   for the projector. Over the whole page; everything is sized from the
+   viewport so it fits 1300x600 and 1920x1080 alike, and the text uses the
+   projection sizes (read from the back of the classroom). */
+.projection {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: min(1.5vh, 1rem);
+    padding: min(3vh, 2rem) min(3vw, 3rem);
+    background-color: $color-surface;
+    color: $color-text;
+}
+
+.projection-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.projection-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: min($font-size-projection-heading, 4vh);
+    font-weight: $font-weight-bold;
+}
+
+.projection-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-shrink: 0;
+}
+
+.projection-code-block {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.projection-label,
+.projection-hint {
+    font-size: $font-size-projection-body;
+    color: $color-text-muted;
+}
+
+/* The code is the largest thing: min() keeps it inside a narrow / low screen. */
+.projection-code {
+    font-family: monospace;
+    font-size: min($font-size-projection-code, 15vw, 20vh);
+    font-weight: $font-weight-bold;
+    line-height: 1;
+    letter-spacing: 0.15em;
+    color: $color-action;
+    user-select: text;
+}
+
+.projection-counts {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.projection-count {
+    padding: 0.4rem 1.25rem;
+    border-radius: $radius-medium;
+    font-size: max($font-size-projection-body, min(4.5vh, 2.5rem));
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
+}
+
+.projection-count-joined {
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+}
+
+.projection-count-done {
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
+}
+
+.projection-legend {
+    flex-shrink: 0;
+    gap: 0.25rem 1.5rem;
+    font-size: $font-size-projection-body;
+}
+
+.projection-legend .seat-swatch {
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 1rem;
+}
+
+/* 10 columns; the rows (set inline from the number of seats) share the height left. */
+.projection-seats {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: min(1vh, 0.5rem);
+}
+
+.projection-seat {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25em;
+    min-width: 0;
+    min-height: 0;
+    box-sizing: border-box;
+    border-radius: $radius-medium;
+    font-size: max($font-size-projection-body, min(5vh, 3rem));
+    font-weight: $font-weight-bold;
     line-height: 1;
 }
 
-.expand-icon-button:hover {
-    background-color: #f2f2f2;
+.projection-seat-mark {
+    font-size: 0.75em;
 }
 
-/* Class code display */
-
-.code-display {
-    text-align: center;
-    padding: 1rem;
+.projection-seat-empty {
+    background-color: $color-seat-empty;
+    color: $color-seat-empty-text;
+    border: 3px dashed $color-seat-empty-border;
 }
 
-.code-display-title {
-    font-size: 0.9rem;
-    color: #575e75;
-    text-align: left;
-    margin-bottom: 1rem;
+.projection-seat-joined {
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
 }
 
-.code-display-code {
-    font-size: 3rem;
-    font-weight: bold;
-    font-family: monospace;
-    letter-spacing: 0.3em;
-    color: #333;
-    user-select: text;
-    cursor: text;
-    padding: 2rem 0;
+.projection-seat-submitted {
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
 }
 
-.code-display-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 0.5rem;
-    border-top: 1px solid #e0e0e0;
+.projection-seat-returned {
+    background-color: $color-seat-returned;
+    color: $color-seat-returned-text;
 }
 
-.code-display-info {
-    display: flex;
-    gap: 0.5rem;
-    font-size: 0.8rem;
-    color: #999;
+/* A lesson seat before its progress is read: grey, no colour meaning yet. */
+.projection-seat-loading {
+    background-color: $color-seat-not-started;
+    color: $color-text-muted;
 }
 
-.code-display-actions {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
+.projection-notice {
+    color: $color-text-muted;
 }
 
-.copy-link-button {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    background: none;
-    border: none;
-    color: $color-action;
-    cursor: pointer;
-    font-size: 0.8rem;
-    padding: 0.3rem 0.5rem;
+/* Shown instead of the seats when the lesson progress could not be read. */
+.projection-error {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: $font-size-projection-body;
+    color: $color-text-muted;
 }
 
-.copy-link-button:hover {
-    text-decoration: underline;
-}
-
-/* Fullscreen overlay */
-
-.code-fullscreen-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #e8eaf0;
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 2rem;
-}
-
-.code-fullscreen-title {
-    position: absolute;
-    top: 1rem;
-    left: 1.5rem;
-    font-size: 0.9rem;
-    color: #575e75;
-}
-
-.code-fullscreen-close {
-    position: absolute;
-    top: 1rem;
-    right: 1.5rem;
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #575e75;
-}
-
-.code-fullscreen-code {
-    font-size: min(15vw, 10rem);
-    font-weight: bold;
-    font-family: monospace;
-    letter-spacing: 0.2em;
-    color: #333;
-    user-select: text;
-    cursor: text;
-}
-
-.code-fullscreen-footer {
-    position: absolute;
-    bottom: 1rem;
-    left: 1.5rem;
-    right: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.projection-seat-not-started {
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
 }
 
 /* Two-pane layout for class detail */
@@ -1933,9 +1994,9 @@ $seat-tile-min: 36px;
     flex: 1 1 auto;
     min-height: 0;
     box-sizing: border-box;
-    /* Align with the unified teacher views; the breadcrumb wrapper above
-       carries the top offset. */
-    padding: 0 2rem 1.25rem;
+    /* Align with the unified teacher views (.teacher-view). The path is in the
+       header now, so the top offset is here too (#1958). */
+    padding: $teacher-screen-padding-top 2rem 1.25rem;
 }
 
 .detail-two-pane-layout {
@@ -1974,6 +2035,33 @@ $seat-tile-min: 36px;
     padding-left: 1rem;
 }
 
+/* Below the 960px modal (iPad portrait) the 380px pane on the right would
+   leave the seats about 280px: the tiles shrink to about 24px and their
+   content overlaps (#1941). Put the detail under the seats instead; the two
+   share the height (3 : 2, so 4 rows of full-size tiles fit on 768x1024) and
+   each scrolls inside its own frame. */
+@media (max-width: 1023px) {
+    .detail-two-pane-layout {
+        flex-direction: column;
+    }
+
+    .detail-left-pane {
+        flex: 3 1 0;
+    }
+
+    .detail-right-pane {
+        flex: 2 1 0;
+    }
+
+    .detail-right-pane {
+        width: auto;
+        border-left: none;
+        border-top: 1px solid #e0e0e0;
+        padding-left: 0;
+        padding-top: 1rem;
+    }
+}
+
 /* Right pane member detail */
 
 .member-detail-panel {
@@ -1990,6 +2078,26 @@ $seat-tile-min: 36px;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #e0e0e0;
     margin-bottom: 0.5rem;
+}
+
+/* メンバー詳細の見出しの右端の ⋮（退室させる・#1923 C3）。 */
+.member-detail-more {
+    margin-left: auto;
+}
+
+/* 「退室させますか？」の確認（色は .confirm-note・#1923 C3）。 */
+.member-remove-confirm {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.member-remove-confirm .button-row {
+    margin-top: 0.5rem;
+}
+
+.member-remove-confirm-message {
+    margin: 0;
+    font-size: 0.875rem;
 }
 
 .member-detail-body {
@@ -2016,62 +2124,10 @@ $seat-tile-min: 36px;
     font-size: 0.85rem;
 }
 
-.join-hint-box {
-    margin-top: 1.5rem;
-    padding: 0.8rem 1rem;
-    background-color: #f0f4ff;
-    border: 1px solid #c8d6f0;
-    border-radius: 8px;
-}
-
-.join-hint-title {
-    font-size: 0.85rem;
-    font-weight: bold;
-    color: #4c6ef5;
-    margin-bottom: 0.4rem;
-}
-
 .join-hint-text {
     font-size: 0.8rem;
     color: #575e75;
     line-height: 1.5;
-}
-
-.teacher-link {
-    display: block;
-    margin-top: 0.5rem;
-    background: none;
-    border: none;
-    color: $color-action;
-    font-size: 0.8rem;
-    cursor: pointer;
-    text-decoration: underline;
-    padding: 0;
-}
-
-.teacher-link:hover {
-    color: $membership-blue;
-}
-
-.history-select {
-    flex: 1;
-    min-width: 0;
-    padding: 0.5rem 0.4rem;
-    border: 1px solid #d9d9d9;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    color: #575e75;
-    background-color: white;
-    cursor: pointer;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-.history-select:focus {
-    border-color: $color-action;
-    box-shadow: 0 0 0 0.25rem $ui-alert-overlay;
-    outline: 2px solid transparent;
 }
 
 .student-count-button {
@@ -2160,35 +2216,80 @@ $seat-tile-min: 36px;
     margin-bottom: 1rem;
 }
 
-/* --- Class detail tabs (Members / Co-teachers) --- */
+/* --- クラス管理のタブ（#1956 Q7・ClassroomTab）: 下に線。選ばれたら主の色の文字と 3px の線 ---
+   クラスの中の［ストリーム］［授業］、課題の［説明］［メンバー］［進み具合］、みんなの課題の
+   ［すべて］［自分の投稿］が使う。形の決まりは docs/design-system/components/tabs.md の
+   「クラス管理のタブ」。 */
 
-.detail-tabs {
+.tab-list {
     display: flex;
+    align-items: flex-end;
     gap: 0.25rem;
-    border-bottom: 1px solid #e9edf2;
+    border-bottom: 1px solid $color-border;
     margin-bottom: 0.75rem;
 }
 
-.detail-tab {
+.tab {
     background: none;
     border: none;
-    border-bottom: 3px solid transparent;
+    border-bottom: $size-tab-indicator solid transparent;
     margin-bottom: -1px;
-    padding: 0.5rem 0.9rem;
-    font-size: 0.95rem;
-    color: #575e75;
+    padding: 0.5rem 1rem;
+    font-family: inherit;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+    color: $color-text;
     cursor: pointer;
 }
 
-.detail-tab:hover {
+.tab:hover {
     color: $color-action;
 }
 
-/* ［ストリーム］［授業］のタブ（.board-tab-active）と同じ色（#1922）。 */
-.detail-tab-active {
+.tab:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: -2px;
+}
+
+.tab-selected {
     color: $color-action;
-    font-weight: bold;
     border-bottom-color: $color-action;
+}
+
+/* A tab row with buttons at its right end (［⚙ クラスの設定］): the line is drawn by the
+   row, and the buttons sit outside the tablist. */
+.class-tabs-row {
+    display: flex;
+    align-items: flex-end;
+    border-bottom: 1px solid $color-border;
+    margin-bottom: 0.75rem;
+}
+
+.class-tabs-row .tab-list {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.tab-list-end {
+    display: flex;
+    align-items: center;
+    align-self: center;
+    margin-left: auto;
+}
+
+/* タブの行の右の文（採点の説明の 1 行・#1962）。タブは縮めず、文のほうを 1 行で「…」にする。 */
+.tab-list-end-text {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    min-width: 0;
+    padding-left: 1rem;
+    color: $color-text-muted;
+    font-size: $font-size-medium;
+}
+
+.class-tabs-row .tab-list {
+    flex-shrink: 0;
 }
 
 /* --- Co-teachers (shared classroom management) --- */
@@ -2945,31 +3046,6 @@ $seat-tile-min: 36px;
     background-color: white;
 }
 
-/* --- Previous returned comment recap (student) --- */
-
-.previous-comment-box {
-    background-color: #fff8e5;
-    border: 1px solid #f2d675;
-    border-radius: 0.4rem;
-    padding: 0.6rem 0.75rem;
-    margin-bottom: 0.75rem;
-}
-
-.previous-comment-title {
-    color: #8a6d1a;
-    font-size: 0.8rem;
-    font-weight: bold;
-    margin-bottom: 0.25rem;
-}
-
-.previous-comment-text {
-    color: #575e75;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
 /* --- Term-end evaluation (teacher) --- */
 
 /* 1300×600 で縦スクロール無し（R6）。画面は縦の flex にして、席 × 課題の表の
@@ -2978,11 +3054,17 @@ $seat-tile-min: 36px;
    auto のまま: ふだんは表の枠が縮むので本文はスクロールしないが、課題がとても多い・
    設定と「詳しく」を同時に開いた等で収まらないときに、手順のボタンが切れて押せなく
    ならないようにする（hidden にしない）。 */
+/* 横にも広がらない（#1945）: width と min-width: 0 で、表が広くても画面はモーダルの幅のまま。
+   広い表は .eval-matrix-wrapper の中だけで横にスクロールする。 */
 .teacher-view.evaluation-screen {
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
+    /* 下は手順の行の下端までで足りるので、ほかの画面より詰めて表の枠に回す（#1962）。 */
+    padding-bottom: 0.75rem;
     height: 100%;
+    width: 100%;
+    min-width: 0;
     max-width: 100%;
 }
 
@@ -2990,14 +3072,24 @@ $seat-tile-min: 36px;
     flex-shrink: 0;
 }
 
-.teacher-view.evaluation-screen > .eval-matrix-wrapper {
+.teacher-view.evaluation-screen > .eval-workspace {
     flex: 1 1 auto;
+}
+
+/* 採点簿の表（左）と選んだ席の詳細（右・#1962）。高さは残り全部で、表の枠と右の列がそれぞれ
+   中でスクロールする。 */
+.eval-workspace {
+    display: flex;
+    gap: 1rem;
+    min-height: 0;
+    min-width: 0;
+    margin-bottom: 0.5rem;
 }
 
 .teacher-view.evaluation-screen > .button-row {
     flex-shrink: 0;
     margin-top: auto;
-    padding-top: 0.75rem;
+    padding-top: 0.5rem;
 }
 
 .eval-section {
@@ -3005,7 +3097,7 @@ $seat-tile-min: 36px;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
 }
 
 .eval-lesson-checkbox {
@@ -3100,118 +3192,276 @@ $seat-tile-min: 36px;
 .eval-matrix-wrapper {
     flex: 1 1 auto;
     min-height: 0;
+    min-width: 0;
     overflow: auto;
-    margin-bottom: 0.75rem;
-    border: 1px solid #e5e8ec;
-    border-radius: 0.4rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
 }
 
 .eval-matrix {
-    border-collapse: collapse;
-    font-size: 0.85rem;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: $font-size-medium;
     min-width: 100%;
 }
 
-/* 表は枠の中でスクロールするので、見出しの行は上に留める。 */
-.eval-matrix th {
+/* 表は枠の中でスクロールするので、見出しの行は上に、出席番号の列は左に留める。 */
+.eval-matrix thead th {
     position: sticky;
     top: 0;
-    z-index: 1;
-    background-color: #f4f6f8;
-    border-bottom: 1px solid #e5e8ec;
-    color: #575e75;
-    padding: 0.4rem 0.5rem;
+    z-index: 2;
+    background-color: $color-background;
+    border-bottom: 1px solid $color-border;
+    color: $color-text;
+    padding: 0.4rem 0.75rem;
     text-align: left;
     white-space: nowrap;
 }
 
-/* 課題の列の見出しの下の行に、セルの中の 3 つの欄の名前を上から順に（R1・#1924 C5）。
-   見出しの nowrap を外して折り返すので、課題が多い表でも列が広がらない。 */
-.eval-head-fields {
-    display: block;
-    white-space: normal;
-    font-size: $font-size-small;
-    font-weight: normal;
-    color: #575e75;
+/* 課題の名前が長くても列は広がりすぎない（... で切り、全部は title で見る）。 */
+.eval-work-head {
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.eval-matrix td {
-    border-bottom: 1px solid #eef1f4;
-    padding: 0.3rem 0.4rem;
-    vertical-align: top;
+.eval-matrix thead th.eval-seat-head {
+    left: 0;
+    z-index: 3;
+}
+
+.eval-matrix td,
+.eval-matrix tbody th {
+    /* 点のボタンが無い行（レッスンの点だけ）も、ボタンの行と同じ高さにそろえる。 */
+    height: 1.75rem;
+    border-bottom: 1px solid $color-border;
+    padding: 0 0.75rem;
+    vertical-align: middle;
 }
 
 .eval-seat-cell {
-    font-weight: bold;
-    color: #575e75;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background-color: $color-surface;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+    text-align: left;
     white-space: nowrap;
 }
 
 .eval-cell {
-    min-width: 14rem;
+    padding: 0 0.4rem;
 }
 
 .eval-cell-empty {
-    color: #b7bec9;
+    color: $color-text-muted;
     text-align: center;
 }
 
 .eval-cell-needs-review {
-    background-color: #fff4e5;
+    background-color: $color-confirm-background;
 }
 
-.eval-cell-row {
-    display: flex;
+/* セルそのものがボタン。選んだセルは操作の青の枠（モックの通り内側に 2px）。 */
+.eval-cell-button {
+    display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    margin-bottom: 0.2rem;
+    min-width: 4rem;
+    min-height: 1.75rem;
+    padding: 0 0.4rem;
+    border: 2px solid transparent;
+    border-radius: $radius-small;
+    background: none;
+    color: $color-text;
+    font: inherit;
+    cursor: pointer;
+}
+
+.eval-cell-button:hover {
+    border-color: $color-seat-joined-hover;
+}
+
+.eval-cell-button:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 1px;
+}
+
+.eval-cell-button-selected,
+.eval-cell-button-selected:hover {
+    border-color: $color-action;
+}
+
+.eval-grade-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.75rem;
+    height: 1.375rem;
+    padding: 0 0.5rem;
+    border-radius: 999px;
+    background-color: $color-seat-joined;
+    color: $color-seat-joined-text;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+}
+
+.eval-grade-pill-empty {
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
+}
+
+.eval-cell-mark {
+    font-size: $font-size-small;
+    color: $color-confirm-text;
 }
 
 .eval-grade-select {
-    padding: 0.15rem 0.3rem;
-    border: 1px solid #c9cdd3;
-    border-radius: 0.3rem;
-    font-size: 0.9rem;
-    background-color: white;
+    height: $size-button-height-small;
+    padding: 0 0.4rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
+    font-size: $font-size-medium;
+    background-color: $color-surface;
+    color: $color-text;
+}
+
+.eval-needs-review-badge,
+.eval-returned-badge,
+.eval-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 1.375rem;
+    padding: 0 0.55rem;
+    border-radius: 999px;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
 }
 
 .eval-needs-review-badge {
-    background-color: #ffab19;
-    border-radius: 0.3rem;
-    color: white;
-    font-size: 0.7rem;
-    padding: 0.05rem 0.3rem;
-    white-space: nowrap;
+    background-color: $color-seat-returned;
+    color: $color-seat-returned-text;
 }
 
 .eval-returned-badge {
-    background-color: #b7dfc2;
-    border-radius: 0.3rem;
-    color: #2d7a43;
-    font-size: 0.7rem;
-    padding: 0.05rem 0.3rem;
+    background-color: $color-seat-submitted;
+    color: $color-seat-submitted-text;
+}
+
+.eval-tag {
+    background-color: $color-seat-not-started;
+    color: $color-seat-not-started-text;
+}
+
+/* 右の列: 選んだ席の点・根拠・コメント（見えるラベルつき・R1）。 */
+.eval-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    width: 22rem;
+    flex-shrink: 0;
+    min-height: 0;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 0.6rem 1rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
+    color: $color-text;
+}
+
+.eval-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.eval-detail-title {
+    margin: 0;
+    font-size: $font-size-heading-small;
+    font-weight: $font-weight-bold;
     white-space: nowrap;
 }
 
-.eval-reason-input {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.2rem 0.35rem;
-    border: 1px solid #dfe3e8;
-    border-radius: 0.3rem;
-    font-size: 0.8rem;
+.eval-detail-lesson {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: $color-text-muted;
+    font-size: $font-size-medium;
 }
 
+/* 課題名と［作品を開く］(#1980): 名前が長いときは名前のほうを省略して、ボタンは隠さない。 */
+.eval-detail-lesson-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.eval-detail-lesson-row > .eval-detail-lesson {
+    flex: 1 1 auto;
+}
+
+.eval-detail-open-work {
+    flex-shrink: 0;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.eval-detail-grade-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.eval-detail-label {
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    color: $color-text-muted;
+}
+
+.eval-reason-input,
 .eval-comment-input {
     width: 100%;
     box-sizing: border-box;
-    margin-top: 0.2rem;
-    padding: 0.2rem 0.35rem;
-    border: 1px solid #dfe3e8;
-    border-radius: 0.3rem;
-    font-size: 0.8rem;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-small;
     font-family: inherit;
+    font-size: $font-size-medium;
+    color: $color-text;
     resize: vertical;
+}
+
+/* 根拠とコメントは中で縮めず、右の列が低いときは右の列ごとスクロールする。コメントだけは
+   残りの高さまで伸ばす（返却で生徒に届くので、いちばん長く書く欄）。 */
+.eval-detail > * {
+    flex-shrink: 0;
+}
+
+.eval-detail > .eval-comment-input {
+    flex: 1 0 auto;
+    min-height: 4rem;
+}
+
+.eval-detail-nav {
+    display: flex;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.eval-detail-empty {
+    margin: auto 0;
+    color: $color-text-muted;
+    font-size: $font-size-medium;
+    text-align: center;
 }
 
 /* レッスンの点 (#1603): 作品の列の横。点だけなので狭く、数字は右寄せ。 */
@@ -3232,7 +3482,7 @@ $seat-tile-min: 36px;
 /* --- Class list (post-login landing view) --- */
 
 .class-list {
-    padding: 1.25rem 2rem;
+    padding: $teacher-screen-padding-top 2rem 1.25rem;
     max-width: 60rem;
     overflow-y: auto;
 }
@@ -3241,8 +3491,11 @@ $seat-tile-min: 36px;
 .class-list-landing {
     display: flex;
     flex-direction: column;
+    gap: 0.75rem;
     height: 100%;
+    max-width: none;
     box-sizing: border-box;
+    padding: 1rem 2rem;
     overflow: hidden;
 }
 
@@ -3250,56 +3503,75 @@ $seat-tile-min: 36px;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    /* カードのホバー枠が切れないように少し余白を持たせる。 */
-    padding: 0 0.25rem 0.5rem 0;
+    /* カードのフォーカスの輪が切れないように少し余白を持たせる。 */
+    padding: 0.25rem 0.25rem 0.5rem;
 }
 
-/* 主ボタン（クラスを作成）と読み込み中の表示・インポートを 1 行に並べる（#1300 L1）。
-   主ボタンは共通の .primary-button（ClassroomButton）を使い、薄い色にしない。 */
-.class-list-actions {
+/* 見出しの行（#1959）: 見出し「クラス」・アーカイブ済み・インポート・主ボタン［＋ クラスを作成］。 */
+.class-list-heading {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.75rem;
+    gap: $space-medium;
+    flex-shrink: 0;
+}
+
+.class-list-title {
+    margin: 0;
+    font-size: $font-size-heading-large;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+}
+
+.class-list-heading-spacer {
+    flex: 1;
 }
 
 .class-list-loading {
-    font-size: 0.85rem;
-    color: hsla(225, 15%, 40%, 1);
+    font-size: $font-size-medium;
+    color: $color-text-muted;
 }
 
 .class-list-empty {
     margin: 1.5rem 0;
-    color: hsla(225, 15%, 40%, 1);
+    color: $color-text-muted;
 }
 
+/* クラスのカード（EPIC #1956 Q4）: 低めのカードを 4 列。8 クラスが 1300×600 の 1 画面に入る。
+   9 クラス目からはこの一覧の枠の中だけがスクロールする（R6 の例外）。 */
 .class-cards {
     list-style: none;
-    margin: 1rem 0 0;
+    margin: 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.875rem;
 }
 
 .class-card {
     display: flex;
-    align-items: stretch;
-    gap: 0.5rem;
+    flex-direction: column;
+    min-width: 0;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background: $color-surface;
+    overflow: hidden;
+}
+
+.class-card:hover {
+    border-color: $color-action;
 }
 
 .class-card-main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-    padding: 0.9rem 1rem;
-    border: 1px solid hsla(0, 0%, 0%, 0.15);
-    border-radius: 0.5rem;
-    background: white;
-    /* ボタンの既定色（無効時は灰色）に任せると名前が薄く見えるので明示する（#1300 L1）。 */
-    color: hsla(225, 15%, 20%, 1);
+    align-items: stretch;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: $color-text;
     font-family: inherit;
     cursor: pointer;
     text-align: left;
@@ -3309,23 +3581,162 @@ $seat-tile-min: 36px;
     cursor: progress;
 }
 
-.class-card-main:hover:not(:disabled) {
-    border-color: #855cd6;
+.class-card-main:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: -2px;
+}
+
+/* クラスの色の帯（Q5）: 高さ 64px。地の色と白い文字は style で付ける（classColorStyle）。 */
+.class-card-band {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.125rem;
+    box-sizing: border-box;
+    height: 4rem;
+    padding: 0.5rem 0.875rem;
+}
+
+/* 長いクラス名は 1 行で「…」（全体はカードの title で読める）。 */
+.class-card-name,
+.class-card-section {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .class-card-name {
-    font-size: 1.05rem;
-    font-weight: bold;
+    font-size: $font-size-heading-small;
+    font-weight: $font-weight-bold;
+}
+
+.class-card-section {
+    font-size: $font-size-small;
+}
+
+.class-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-height: 3.75rem;
+    padding: 0.5rem 0.875rem 0.375rem;
+}
+
+.class-card-meta,
+.class-card-next {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .class-card-meta {
-    font-size: 0.8rem;
-    color: hsla(225, 15%, 40%, 1);
+    font-size: $font-size-medium;
+    color: $color-text;
 }
 
 /* 要約の項目は「・」で区切る（#1300 L2）。 */
 .class-card-meta > span + span::before {
     content: '・';
+}
+
+.class-card-next {
+    font-size: $font-size-small;
+    color: $color-text-muted;
+}
+
+/* カードの下: ［採点］［⚙ 設定］と ⋮。 */
+.class-card-footer {
+    display: flex;
+    align-items: center;
+    gap: $space-small;
+    padding: 0.25rem 0.5rem;
+    border-top: 1px solid $color-border;
+}
+
+.class-card-footer-button {
+    min-height: $size-button-height-small;
+}
+
+.class-card-footer-spacer {
+    flex: 1;
+}
+
+.class-archive-note {
+    margin: 0;
+    font-size: $font-size-medium;
+    color: $color-text;
+}
+
+/* 「確認が必要な課題」（#1959）: カードの上の 1 行の帯。 */
+.review-band {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+    min-height: 2.75rem;
+    box-sizing: border-box;
+    padding: 0.25rem 1rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background: $color-surface;
+}
+
+.review-band-title {
+    margin: 0;
+    flex-shrink: 0;
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+}
+
+.review-band-list {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow: hidden;
+}
+
+.review-band-item {
+    display: flex;
+    align-items: center;
+    gap: $space-medium;
+    min-width: 0;
+}
+
+.review-band-name {
+    min-width: 0;
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: $font-size-medium;
+    color: $color-text;
+}
+
+/* 返却していない数の札。急ぐものではないので赤にしない（R4）。 */
+.review-band-count {
+    flex-shrink: 0;
+    padding: 0.125rem 0.5rem;
+    border-radius: 1rem;
+    background: $color-confirm-background;
+    color: $color-confirm-text;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
+}
+
+.review-band-open {
+    flex-shrink: 0;
+    min-height: $size-button-height-small;
+}
+
+.review-band-muted {
+    font-size: $font-size-medium;
+    color: $color-text-muted;
 }
 
 /* --- Create a class: small dialog over the class list (#1300 K5) --- */
@@ -3374,6 +3785,7 @@ $seat-tile-min: 36px;
 
 .class-card-badges {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.25rem;
 }
 
@@ -3385,20 +3797,10 @@ $seat-tile-min: 36px;
     color: #855cd6;
 }
 
-.class-card-evaluate {
-    align-self: center;
-    padding: 0.5rem 1rem;
-    border: 1px solid #855cd6;
-    border-radius: 0.5rem;
-    background: white;
-    color: #855cd6;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.class-card-evaluate:disabled {
-    opacity: 0.5;
-    cursor: default;
+/* カードの札は紫にしない（紫はヘッダーだけ・#1956 Q1）。 */
+.class-card-body .class-card-badge {
+    background: $color-background;
+    color: $color-text;
 }
 
 /* --- Archived section (class list & assignment board, issue #1051) --- */
@@ -3423,6 +3825,12 @@ $seat-tile-min: 36px;
     color: #855cd6;
 }
 
+.archived-heading {
+    margin: 0 0 0.75rem;
+    font-size: $font-size-heading-small;
+    color: $color-text;
+}
+
 /* クラス設定の［保存］の行。AI の確認（生成AI・ルビティー）を両方開くと 1300×600 に
    収まらないので、本文がスクロールしても確定のボタンが見えるように下に留める（R6・#1413）。 */
 .class-settings-footer {
@@ -3444,12 +3852,10 @@ $seat-tile-min: 36px;
     cursor: pointer;
 }
 
+/* クラス設定のアーカイブ・人数を減らす確認（色は .confirm-note）。 */
 .class-settings-archive-confirm {
     margin: 0.5rem 0 0;
     padding: 0.5rem 0.75rem;
-    border-radius: 0.5rem;
-    background: hsla(35, 90%, 55%, 0.12);
-    color: hsla(30, 60%, 30%, 1);
     font-size: 0.875rem;
 }
 
@@ -3649,7 +4055,7 @@ $seat-tile-min: 36px;
 
 /* --- みんなの課題: catalog (EPIC #1066 S3) --- */
 
-/* 枠なし（#1122）: 課題ボードの本文幅にそのまま乗せ、パンくず左端にそろえる。 */
+/* 枠なし（#1122）: 課題ボードの本文幅にそのまま乗せ、タブの行の左端にそろえる。 */
 .shared-catalog {
     display: flex;
     flex-direction: column;
@@ -3659,9 +4065,9 @@ $seat-tile-min: 36px;
 
 /* クラス管理パネル内サブビュー共通コンテナ（#1122）: 課題を作る・課題を再利用・
    みんなの課題・合言葉で取り込み・共有ステップ・クラスを作る・クラス設定など、
-   パンくずを持つパネル（.teacher-view）の中に描画されるビューが
+   トップレベルの画面（.teacher-view）の中に描画されるビューが
    共有する。パネル側が持つ左右パディング（2rem）に二重で足さないよう水平パディングは
-   0 にし、左端をパンくずにそろえる。パネル内に新しいサブビューを足すときもこのクラスを
+   0 にし、左端をパネルの本文にそろえる。パネル内に新しいサブビューを足すときもこのクラスを
    使う（.post-assignment-container はパネル外＝.main-relative 直下の配信画面用）。 */
 .panel-inner-view {
     padding: 0 0 1.25rem;
@@ -3906,7 +4312,7 @@ $seat-tile-min: 36px;
     flex-direction: column;
     box-sizing: border-box;
     height: 100%;
-    padding: 1.25rem 2rem;
+    padding: $teacher-screen-padding-top 2rem 1.25rem;
     max-width: 60rem;
     overflow-y: auto;
 }
@@ -3927,63 +4333,11 @@ $seat-tile-min: 36px;
     margin-bottom: 0.75rem;
 }
 
-.board-title {
-    margin: 0.25rem 0 0.25rem;
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #575e75;
-}
-
 .board-year {
     margin-left: 0.5rem;
     font-size: 0.8rem;
     font-weight: normal;
     color: hsla(225, 15%, 40%, 1);
-}
-
-/* プライマリ = 青塗り（評価画面に統一・#1122）。 */
-.board-create-button {
-    background: $color-action;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1.25rem;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.board-create-button:hover {
-    background: $membership-blue;
-}
-
-.board-create-button:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
-/* ［ストリーム］［授業］のタブ（Google Classroom と同じ並び）。 */
-.board-tabs {
-    display: flex;
-    gap: 0.25rem;
-    border-bottom: 1px solid hsla(0, 0%, 0%, 0.12);
-    margin-bottom: 0.75rem;
-}
-
-.board-tab,
-.board-tab-active {
-    border: none;
-    border-bottom: 3px solid transparent;
-    background: transparent;
-    padding: 0.4rem 1rem;
-    font-size: 0.95rem;
-    color: #575e75;
-    cursor: pointer;
-}
-
-.board-tab-active {
-    border-bottom-color: $color-action;
-    color: $color-action;
-    font-weight: bold;
 }
 
 .board-header-end {
@@ -4335,25 +4689,6 @@ $seat-tile-min: 36px;
 }
 
 /* セカンダリ = 白地 + 中立の枠線（評価画面に統一・#1122）。 */
-.class-list-import-button {
-    border: 1px solid #d9d9d9;
-    background: white;
-    color: #575e75;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1.25rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-}
-
-.class-list-import-button:hover {
-    background: #f2f2f2;
-}
-
-.class-list-import-button:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
 .class-list-logout {
     margin-top: 1.5rem;
     border: none;
@@ -4465,27 +4800,56 @@ $seat-tile-min: 36px;
 .breadcrumbs {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    margin-bottom: 0.75rem;
-    font-size: 0.85rem;
+    gap: 0.5rem;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
+/* The path sits in the purple header (#1956 Q2): white text. The places above
+   go back (links); the current place is bold. */
 .breadcrumb-link {
     border: none;
     background: transparent;
-    color: #855cd6;
-    text-decoration: underline;
+    color: $color-surface;
     cursor: pointer;
     padding: 0;
-    font-size: 0.85rem;
+    font-family: inherit;
+    font-size: inherit;
+    flex: 0 1 auto;
+    min-width: 3rem;
+    max-width: 20rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 「クラス管理」 (the top) is short: it is never cut. */
+.breadcrumb-link:first-child {
+    flex: none;
+}
+
+.breadcrumb-link:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-link:focus-visible {
+    outline: 2px solid $color-surface;
+    outline-offset: 2px;
 }
 
 .breadcrumb-separator {
-    color: hsla(225, 15%, 40%, 1);
+    color: $color-surface;
+    flex: none;
+    opacity: 0.8;
 }
 
 .breadcrumb-current {
-    color: hsla(225, 15%, 40%, 1);
+    color: $color-surface;
+    font-weight: $font-weight-bold;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* セカンダリ = 白地 + 中立の枠線（評価画面に統一・#1122）。 */
@@ -4591,10 +4955,11 @@ $seat-tile-min: 36px;
    クラス管理のトップレベル画面（評価・クラス一覧・課題ボード）の共通コンテナ。
    #1125 で同一宣言だった .assignment-board を統合した。新しい画面は
    teacher-view-layout.jsx の TeacherScreen / TeacherSubView を使えば
-   このスタイルが自動的に適用される。 */
+   このスタイルが自動的に適用される。いまいる所（パンくず）は紫のヘッダーへ
+   運ばれるので、この中には描かれない（#1958）。 */
 
 .teacher-view {
-    padding: 1.25rem 2rem;
+    padding: $teacher-screen-padding-top 2rem 1.25rem;
     max-width: 60rem;
     overflow-y: auto;
 }
@@ -4617,11 +4982,9 @@ $seat-tile-min: 36px;
     gap: 0.5rem;
 }
 
+/* The right end of the assignment detail's tab row:［⛶ 映す］, the download progress and ⋮. */
 .detail-tabs-more {
-    display: inline-flex;
-    align-items: center;
     gap: 0.4rem;
-    margin-left: auto;
 }
 
 .detail-download-progress {
@@ -4640,7 +5003,46 @@ $seat-tile-min: 36px;
 }
 
 .ungrouped-section {
-    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* どのクラスにも入っていない課題（移行の取りこぼしの受け皿）: カードより簡単な 4 列の箱。 */
+.ungrouped-cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.875rem;
+}
+
+.ungrouped-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    width: 100%;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background: $color-surface;
+    color: $color-text;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ungrouped-card:hover:not(:disabled) {
+    border-color: $color-action;
+}
+
+.ungrouped-card-name {
+    font-size: $font-size-medium;
+    font-weight: $font-weight-bold;
+}
+
+.ungrouped-card-meta {
+    font-size: $font-size-small;
+    color: $color-text-muted;
 }
 
 /* Shared status icons (#1196) */
@@ -4773,7 +5175,7 @@ $seat-tile-min: 36px;
     column-gap: 1rem;
 }
 
-.seat-heading .phase-title {
+.seat-heading > h2 {
     margin-bottom: 0;
 }
 
@@ -4914,6 +5316,7 @@ $seat-tile-min: 36px;
 
 .seat-confirm-buttons {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     gap: 0.75rem;
     margin-top: 1rem;
@@ -4935,8 +5338,7 @@ $seat-tile-min: 36px;
     gap: 0.4rem;
 }
 
-.stream-item,
-.stream-item-urgent {
+.stream-item {
     width: 100%;
     display: flex;
     align-items: baseline;
@@ -4951,20 +5353,8 @@ $seat-tile-min: 36px;
     cursor: pointer;
 }
 
-.stream-item:hover,
-.stream-item-urgent:hover {
+.stream-item:hover {
     border-color: #855cd6;
-}
-
-/* 赤は「いま対処が必要」な自動削除の予定だけ（R4）。 */
-.stream-item-urgent {
-    border-color: hsla(10, 80%, 42%, 0.5);
-    color: hsla(10, 80%, 42%, 1);
-    font-weight: bold;
-}
-
-.stream-item-mark {
-    flex: none;
 }
 
 .stream-item-text {
@@ -4983,6 +5373,198 @@ $seat-tile-min: 36px;
     white-space: nowrap;
     font-size: 0.8rem;
     color: hsla(225, 15%, 40%, 1);
+}
+
+/* --- Stream: color band + 「いまの課題」 / deadline cards + record (#1960・Q8) --- */
+
+.stream-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* クラスの色の帯。地の色と白い文字は style で付ける（classColorStyle）。 */
+.stream-band {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.125rem;
+    box-sizing: border-box;
+    min-height: 4.5rem;
+    padding: 0.625rem 1rem;
+    border-radius: $radius-medium;
+}
+
+.stream-band-name,
+.stream-band-line {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stream-band-name {
+    font-size: $font-size-heading-medium;
+    font-weight: $font-weight-bold;
+}
+
+.stream-band-line {
+    font-size: $font-size-medium;
+}
+
+.stream-columns {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 17rem minmax(0, 1fr);
+    gap: 1rem;
+}
+
+.stream-side {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.stream-card,
+.stream-card-urgent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.375rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background: $color-surface;
+    color: $color-text;
+}
+
+/* 赤は 7 日以内に消える課題があるときだけ（R4）。 */
+.stream-card-urgent {
+    border-color: hsla(10, 80%, 42%, 0.5);
+    color: hsla(10, 80%, 42%, 1);
+}
+
+.stream-card-title {
+    margin: 0;
+    font-size: $font-size-heading-small;
+    font-weight: $font-weight-bold;
+}
+
+.stream-card-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    max-width: 100%;
+}
+
+.stream-card-name {
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: $color-action;
+    font-family: inherit;
+    font-size: $font-size-medium;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stream-card-name:hover {
+    text-decoration: underline;
+}
+
+.stream-card-code {
+    font-family: monospace;
+    font-size: 1.75rem;
+    font-weight: $font-weight-bold;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+}
+
+.stream-card-button {
+    min-height: $size-button-height-small;
+}
+
+.stream-card-muted {
+    margin: 0;
+    font-size: $font-size-small;
+    color: $color-text-muted;
+}
+
+.stream-card-urgent .stream-card-muted {
+    color: inherit;
+}
+
+.stream-card-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stream-card-urgent-item {
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    text-align: left;
+    cursor: pointer;
+}
+
+.stream-card-urgent-item:hover {
+    text-decoration: underline;
+}
+
+/* 授業の行の数の札（#1960）。色は座席の色と同じ（参加済み・提出済み・返却）。 */
+.board-row-tags {
+    display: inline-flex;
+    gap: 0.375rem;
+}
+
+.board-row-tag-joined,
+.board-row-tag-done,
+.board-row-tag-unreturned {
+    padding: 0.0625rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
+}
+
+.board-row-tag-joined {
+    background: $color-seat-joined;
+    color: $color-seat-joined-text;
+}
+
+.board-row-tag-done {
+    background: $color-success-background;
+    color: $color-seat-submitted;
+}
+
+.board-row-tag-unreturned {
+    background: $color-seat-returned;
+    color: $color-seat-returned-text;
+}
+
+/* ［＋ 作成 ▾］のメニューの各項目のアイコン（#1960）。 */
+.board-menu-icon {
+    display: inline-block;
+    width: 1.25rem;
+    margin-right: 0.5rem;
+    color: $color-text-muted;
+    text-align: center;
 }
 
 /* --- Lesson progress (#1602) --- */
@@ -5155,15 +5737,29 @@ $seat-tile-min: 36px;
     }
 }
 
+/* Narrow tiles (58px and below — the 1300x600 tiles are 58px square now that the
+   detail has no class-name heading, #1961):「★ あと 1」is wider than the room left
+   of the submission badge on the bottom line, so use the short form there too. */
+@container (max-width: 64px) {
+    .lesson-seat-required {
+        align-self: flex-start;
+        padding-left: 3px;
+    }
+
+    .lesson-seat-required-full {
+        display: none;
+    }
+
+    .lesson-seat-required-short {
+        display: inline;
+    }
+}
+
 /* Rows of the progress table: as low as the 16px cells allow (#1767 M1). */
 .lesson-progress-table tbody td,
 .lesson-progress-table tbody th {
     padding-top: 0;
     padding-bottom: 0;
-}
-
-.compact-header-title {
-    margin-bottom: 0.3rem;
 }
 
 .compact-code-row {

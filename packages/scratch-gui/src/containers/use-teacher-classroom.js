@@ -30,6 +30,10 @@ export { getCachedTeacherIdToken, setCachedTeacherIdToken };
  * @param {Function} params.showSessionExpiredError - session-expired error helper
  * @param {Function} params.setIsLoading - loading state setter
  * @param {object} params.vm - Scratch VM instance
+ * @param {boolean} [params.visible] - class management is shown. It stays mounted while a
+ *   work is open in the editor (#1990); the members refresh waits meanwhile
+ * @param {boolean} [params.projectChanged] - the editor has changes not saved: opening a
+ *   student's work asks first (#1983)
  * @returns {object} merged teacher state and handler functions
  */
 const useTeacherClassroom = ({
@@ -43,6 +47,8 @@ const useTeacherClassroom = ({
     showSessionExpiredError,
     setIsLoading,
     vm,
+    visible = true,
+    projectChanged = false,
 }) => {
     // --- Sub-hooks ---
 
@@ -63,6 +69,7 @@ const useTeacherClassroom = ({
         showError,
         intl,
         setIsLoading,
+        visible,
     });
 
     const submissions = useTeacherSubmissions({
@@ -71,13 +78,13 @@ const useTeacherClassroom = ({
         members: classrooms.members,
         handleTeacher401: auth.handleTeacher401,
         loadClassroomDetail: classrooms.loadClassroomDetail,
-        mode,
         clearError,
         showError,
         intl,
         setIsLoading,
         vm,
         dispatch,
+        projectChanged,
     });
 
     // The groups hook is created after this one; bridge with a ref so the
@@ -150,6 +157,7 @@ const useTeacherClassroom = ({
         showError,
         intl,
         setPhase,
+        openSubmission: submissions.handleOpenSubmission,
     });
 
     const shared = useSharedAssignments({
@@ -173,11 +181,10 @@ const useTeacherClassroom = ({
     const handleTeacherLogout = useCallback(() => {
         auth.logoutAuth();
         classrooms.resetClassrooms();
-        submissions.resetSubmissionDisplay();
         notifications.resetNotifications();
         clearError();
         setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
-    }, [auth, classrooms, submissions, notifications, mode, clearError, setPhase]);
+    }, [auth, classrooms, notifications, mode, clearError, setPhase]);
 
     /**
      * Open the view an お知らせ links to. Kinds are a small whitelist the
@@ -234,8 +241,7 @@ const useTeacherClassroom = ({
 
     const handleBackToDashboard = useCallback(() => {
         classrooms.handleBackToDashboard();
-        submissions.resetSubmissionDisplay();
-    }, [classrooms, submissions]);
+    }, [classrooms]);
 
     // ［＋ 作成 ▾］→「レッスン」(#1780): created like「課題」, then opened on the
     // description tab with the first lesson chosen and the lesson panel open.
@@ -303,7 +309,9 @@ const useTeacherClassroom = ({
         handleUpdateAssignmentMeta: classrooms.handleUpdateAssignmentMeta,
         loadAssignmentSummary: classrooms.loadAssignmentSummary,
         setDetailTab: classrooms.setDetailTab,
+        detailTab: classrooms.detailTab,
         detailEntry: classrooms.detailEntry,
+        consumeDetailProject: classrooms.consumeDetailProject,
 
         // Kick requests (Phase 4-6)
         kickRequestsBySeat: classrooms.kickRequestsBySeat,
@@ -314,13 +322,11 @@ const useTeacherClassroom = ({
         // Co-teachers (shared classroom management)
 
         // Submissions
-        codeDisplayClassroom: submissions.codeDisplayClassroom,
-        codeDisplayFullscreen: submissions.codeDisplayFullscreen,
         downloadProgress: submissions.downloadProgress,
         handleOpenSubmission: submissions.handleOpenSubmission,
-        handleShowCodeDisplay: submissions.handleShowCodeDisplay,
-        handleCloseCodeDisplay: submissions.handleCloseCodeDisplay,
-        handleToggleCodeFullscreen: submissions.handleToggleCodeFullscreen,
+        openWorkConfirm: submissions.openWorkConfirm,
+        handleConfirmOpenWork: submissions.handleConfirmOpenWork,
+        handleCancelOpenWork: submissions.handleCancelOpenWork,
         handleCopyInviteLink: submissions.handleCopyInviteLink,
         handleReturnSubmission: submissions.handleReturnSubmission,
         handleSetHiddenFromPeers: submissions.handleSetHiddenFromPeers,

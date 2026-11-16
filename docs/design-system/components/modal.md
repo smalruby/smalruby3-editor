@@ -11,8 +11,8 @@
 | 部分 | 値（上流） | トークン | 実測 |
 |---|---|---|---|
 | オーバーレイ（`.modal-overlay`） | 画面全体・地 `$ui-modal-overlay`・重なり `$z-index-modal` | `$color-overlay` | 一致（`rgba(77, 151, 255, 0.9)`） |
-| 枠（`.modal-content`） | 枠 `4px solid $ui-white-transparent`・角丸 `$space`（0.5rem）・上に 100px あけて中央・文字 `$text-primary`・Helvetica Neue・はみ出しを隠す。幅は使う側が決める（`prompt.css` は 360px） | `$radius-medium`・`$color-text` | 一致（4px・8px・360px）。ただしスモウルビーでは下の「枠の地」の白が枠の下まで塗るので、枠は不透明な白に見える（上流はオーバーレイが透けて淡い青） |
-| 枠の地 | 上流は**無い**（本文が透明だとオーバーレイが透ける）。スモウルビーはマーカー付きで `$ui-white` を足している | `$color-surface` | 白（スモウルビーの変更） |
+| 枠（`.modal-content`） | 枠 `4px solid $ui-white-transparent`・角丸 `$space`（0.5rem）・上に 100px あけて中央・文字 `$text-primary`・Helvetica Neue・はみ出しを隠す。幅は使う側が決める（`prompt.css` は 360px） | `$radius-medium`・`$color-text` | 一致（4px・8px・360px）。枠からオーバーレイが透けて淡い青に見える |
+| 枠の地 | 上流は**無い**（本文が透明だとオーバーレイが透ける）。スモウルビーはマーカー付きで `$ui-white` を足し、`background-clip: padding-box` で枠の内側だけ塗る（枠の淡い青は上流のまま） | `$color-surface` | 白（スモウルビーの変更） |
 | フルスクリーン（`.modal-content.full-screen`） | 画面全体・地 `$ui-secondary`・枠と角丸なし（ライブラリで使う。[`../library.md`](../library.md)） | 別名なし | 一致（`rgb(233, 241, 252)`） |
 | ヘッダー（`.header`） | 高さ `$library-header-height`（3.125rem）・地 `$looks-secondary`・文字 1rem の太さふつう・白（`.header-item`）・余白 1rem | `$color-primary`・`$font-size-base` | 一致（50px） |
 | 題（`.header-item-title`） | 中央・字間 0.4px | | |
@@ -37,7 +37,7 @@
 |---|---|---|---|---|---|---|
 | 部品 | 共有の `Modal`（フルスクリーン） | 共有の `Modal` | 共有の `Modal`（フルスクリーン） | 共有の `Modal`（ヘッダーだけ上書き） | モーダルでない（浮いたカード） | `react-modal` を直接（独自の CSS） |
 | 幕 | `$ui-modal-overlay`（青 90%。中身が覆うので見えない） | `$ui-modal-overlay` | `$ui-modal-overlay`（見えない） | `$ui-modal-overlay` | 無い（後ろを操作できる） | 透明（後ろは見えるが触れない） |
-| 枠 | 無い | 4px `$ui-white-transparent`（スモウルビーでは白） | 無い | 4px `$ui-white-transparent`（スモウルビーでは白） | 1px `$ui-tertiary` + 影 | 無い（影 `$ui-black-transparent-10`） |
+| 枠 | 無い | 4px `$ui-white-transparent`（淡い青に見える） | 無い | 4px `$ui-white-transparent`（淡い青に見える） | 1px `$ui-tertiary` + 影 | 無い（影 `$ui-black-transparent-10`） |
 | ヘッダーの地 | **紫** `$looks-secondary` | **紫** `$looks-secondary` | **紫** `$looks-secondary` | **濃い緑** `$pen-tertiary`（`#0B8E69`） | **緑** `$extensions-primary`（`#0FBD8C`） | **緑** `$ui-green-2`（`#0FBD8C`） |
 | ヘッダーの文字 | 白・1rem・ふつう | 白・1rem・ふつう | 白・1rem・ふつう | 白・1rem・ふつう | 白・0.625rem・太字 | 白・1rem・太字 |
 | ヘッダーの文字のコントラスト | 4.7:1 | 4.7:1 | 4.7:1 | 4.1:1 | 2.4:1 | 2.4:1 |
@@ -67,7 +67,7 @@
 |---|---|---|
 | 部品 | 共有の `Modal` を使う。`react-modal` を直接使わない | 幕・枠・ヘッダー・閉じる・フォーカスの閉じ込めが上流のほかのモーダルとそろう |
 | 幕 | 共有の `Modal` の青 90%（`$color-overlay`）のまま。透明にしない | 後ろが止まっていることが見て分かる。後ろを操作させたい手引きは、モーダルにせず浮いたパネルにする（チュートリアルのカードの形。枠 `1px solid $ui-tertiary`・影 `0 5px 25px 5px $ui-black-transparent`・角丸 0.75rem・重なり `$z-index-card`） |
-| 枠 | 共有の `Modal` のまま（`.modal-content` の地・枠・影を上書きしない） | スモウルビーでは、上流の白 25% の枠が不透明な白に見える（`modal.css` の本文の既定の白が枠の下まで塗る）。どのモーダルも同じ白い縁になるので、独自の画面だけ上流の淡い青の縁をまねたり、影を足したりしない |
+| 枠 | 共有の `Modal` のまま（`.modal-content` の地・枠・影を上書きしない） | 上流の白 25% の枠は、オーバーレイが透けて淡い青に見える（`modal.css` の本文の既定の白は `background-clip: padding-box` で枠の内側だけ）。どのモーダルも同じ縁になるので、独自の画面だけ縁を白くしたり、影を足したりしない |
 | ヘッダーの地（ふつう） | **紫 `$color-primary`**（共有の `Modal` のまま。`headerClassName` で変えない） | 作る・選ぶ・見る・設定するなど、エディターの操作のモーダルは上流のダイアログ・ライブラリと同じ紫。白い文字が 4.7:1 で読める |
 | ヘッダーの地（つなぐ画面） | 拡張機能・機器・ネットワーク（メッシュなど）と**つなぐ**モーダルだけ、**濃い緑 `$extensions-tertiary`**（`#0B8E69`） | 上流の接続のモーダルと同じ色（同じ流れの中で色が変わらない）。名前は `$pen-tertiary` でなく `$extensions-tertiary` を使う（ほぼ同じ値で、意味が合う）。白い文字は 4.1:1 で、AA を満たすのは WCAG の「大きい文字」（太字 14pt＝約 1.17rem 以上）だけ。そこで**ヘッダーの題は太字 1.2rem 以上**にし（`headerTitle` に題の要素を渡して大きさを付ける。下の例）、**ヘルプ（0.75rem）のような小さい文字はヘッダーに置かず本文へ移す**（`onHelp` を渡さない）。上流の接続のモーダル（題 1rem の太さふつう・ヘルプ 0.75rem）はこの点で AA に届かないので、文字の大きさは手本にしない（[`../extension-modals.md`](../extension-modals.md)）。同じ値の `$color-success`（成功のアラート）があるが、意味が違うので使わない |
 | ヘッダーの地（使わない色） | 明るい緑（`$extensions-primary` / `$ui-green-2`）はヘッダーの地にしない。手引きの画面でも使わない | 白い文字が 2.4:1 で読みにくい（上流のチュートリアル・デバッグは、この点で手本にしない） |

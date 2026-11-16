@@ -1,8 +1,10 @@
 import PropTypes from 'prop-types';
-import React, { useCallback } from 'react';
+import React, { useCallback, useId } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
+import partStyles from './student-screen-parts.css';
 
 /**
  * Normalize input for join code: full-width to half-width, then keep only [a-z0-9].
@@ -47,6 +49,8 @@ const StudentJoinForm = ({
 }) => {
     const intl = useIntl();
     const [code, setCode] = React.useState('');
+    const inputId = useId();
+    const historyId = useId();
 
     const handleCodeChange = useCallback((e) => {
         setCode(normalizeJoinCodeInput(e.target.value));
@@ -90,34 +94,70 @@ const StudentJoinForm = ({
                     {'<'} <FormattedMessage defaultMessage="Back" description="Back button" id="gui.classroom.back" />
                 </button>
             )}
-            <div className={styles.phaseTitle}>
+            <h2 className={partStyles.studentTitle}>
                 <FormattedMessage
                     defaultMessage="Enter Join Code"
                     description="Student join form title"
                     id="gui.classroom.studentJoin.title"
                 />
-            </div>
-            <div className={styles.formGroup}>
+            </h2>
+            {/* A label that stays visible (R1): the placeholder alone disappears once typed. */}
+            <label className={partStyles.joinCodeLabel} htmlFor={inputId}>
+                <FormattedMessage
+                    defaultMessage="Join code (the 6 letters your teacher shows)"
+                    description="Visible label of the join code input on the student join form"
+                    id="gui.classroom.studentJoin.codeLabel"
+                />
+            </label>
+            <div className={partStyles.joinCodeRow}>
                 <input
-                    className={styles.input}
+                    autoComplete="off"
+                    className={partStyles.joinCodeInput}
                     data-testid="classroom-join-code-input"
+                    id={inputId}
                     maxLength={6}
                     placeholder="○○○○○○"
-                    style={{
-                        textAlign: 'center',
-                        fontSize: '1.5rem',
-                        letterSpacing: '0.2em',
-                    }}
+                    spellCheck={false}
                     type="text"
                     value={code}
                     onChange={handleCodeChange}
                     onKeyDown={handleKeyDown}
                 />
+                <ClassroomButton
+                    className={partStyles.joinCodeSubmit}
+                    dataTestId="classroom-join-submit"
+                    disabled={code.trim().length !== 6 || isLoading}
+                    variant="primary"
+                    onClick={handleSubmit}
+                >
+                    {isLoading ? (
+                        <FormattedMessage
+                            defaultMessage="Loading..."
+                            description="Loading indicator"
+                            id="gui.classroom.loading"
+                        />
+                    ) : (
+                        <FormattedMessage
+                            defaultMessage="Next"
+                            description="Submit join code button"
+                            id="gui.classroom.studentJoin.next"
+                        />
+                    )}
+                </ClassroomButton>
             </div>
-            <div className={styles.buttonRow}>
-                {hasHistory && (
+            {hasHistory && (
+                // A label that stays visible next to the list (R1), on the same line so 1300x600 still fits.
+                <div className={partStyles.joinHistoryRow}>
+                    <label className={partStyles.joinHistoryLabel} htmlFor={historyId}>
+                        <FormattedMessage
+                            defaultMessage="Joined before"
+                            description="Visible label of the list of join codes this PC used before, on the student join form"
+                            id="gui.classroom.studentJoin.historyLabel"
+                        />
+                    </label>
                     <select
-                        className={styles.historySelect}
+                        className={partStyles.joinHistorySelect}
+                        id={historyId}
                         data-testid="classroom-join-history"
                         value={historySelectValue}
                         onChange={handleHistorySelect}
@@ -135,71 +175,54 @@ const StudentJoinForm = ({
                             </option>
                         ))}
                     </select>
-                )}
-                <button
-                    className={styles.primaryButton}
-                    data-testid="classroom-join-submit"
-                    disabled={code.trim().length !== 6 || isLoading}
-                    onClick={handleSubmit}
-                >
-                    {isLoading ? (
-                        <FormattedMessage
-                            defaultMessage="Loading..."
-                            description="Loading indicator"
-                            id="gui.classroom.loading"
-                        />
-                    ) : (
-                        <FormattedMessage
-                            defaultMessage="Next"
-                            description="Submit join code button"
-                            id="gui.classroom.studentJoin.next"
-                        />
-                    )}
-                </button>
-            </div>
+                </div>
+            )}
             <ErrorDisplay
                 actionLabel={errorActionLabel}
                 error={error}
                 errorTitle={errorTitle}
                 onAction={errorActionHandler}
             />
-            <div className={styles.joinHintBox}>
-                <div className={styles.joinHintTitle}>
+            {/* For the student first (#1963): where the code is. A teacher who pressed
+                「クラス」 without knowing class management finds the way there below,
+                kept small so students do not take it. */}
+            <div className={partStyles.joinHint} data-testid="classroom-join-hint">
+                <div className={partStyles.joinHintTitle}>
                     <FormattedMessage
                         defaultMessage="Hint"
                         description="Hint box title on student join form"
                         id="gui.classroom.studentJoin.hintTitle"
                     />
                 </div>
-                <div className={styles.joinHintText}>
+                <div className={partStyles.joinHintText}>
                     <FormattedMessage
-                        defaultMessage="Ask your teacher for the join code."
-                        description="Hint text telling students to ask teacher for join code"
+                        defaultMessage="Your teacher shows the join code on the board or on the screen. If you cannot find it, ask your teacher."
+                        description="Hint telling students where the join code is shown"
                         id="gui.classroom.studentJoin.hintAskTeacher"
                     />
                 </div>
-                <div className={styles.joinHintText}>
-                    <FormattedMessage
-                        defaultMessage="Teachers can find the join code in {settingsIcon} Settings → Class Management."
-                        description="Hint text explaining where teachers find join code"
-                        id="gui.classroom.studentJoin.hintTeacherPath"
-                        values={{
-                            settingsIcon: '\u2699',
-                        }}
-                    />
-                </div>
                 {onTeacherLink && (
-                    <button
-                        className={styles.teacherLink}
-                        data-testid="classroom-teacher-link"
-                        onClick={onTeacherLink}
-                    >
-                        <FormattedMessage
-                            defaultMessage="For teachers: Go to Class Management"
-                            description="Link for teachers to access class management from student join form"
-                            id="gui.classroom.studentJoin.teacherLink"
-                        />
-                    </button>
+                    <div className={partStyles.joinHintTeacher} data-testid="classroom-join-teacher-hint">
+                        <span>
+                            <FormattedMessage
+                                defaultMessage="Are you a teacher? Create a class to get a join code for your students."
+                                description="Small note on the student join form for a teacher who opened the student screen"
+                                id="gui.classroom.studentJoin.teacherQuestion"
+                            />
+                        </span>
+                        <button
+                            className={partStyles.joinTeacherLink}
+                            data-testid="classroom-teacher-link"
+                            type="button"
+                            onClick={onTeacherLink}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Open class management"
+                                description="Link for teachers to open class management from the student join form"
+                                id="gui.classroom.studentJoin.teacherLink"
+                            />
+                        </button>
+                    </div>
                 )}
             </div>
         </div>

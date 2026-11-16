@@ -132,6 +132,14 @@ describe('teacherMenuItems — kick requests (#1200)', () => {
 });
 
 describe('resolveTeacherNavigation', () => {
+    test('logout (the menu bar over work not saved, #1990)', () => {
+        expect(
+            resolveTeacherNavigation({ target: 'logout', lastSelection: null, groups: [], groupsLoaded: false }),
+        ).toEqual({
+            action: 'logout',
+        });
+    });
+
     const groups = [{ groupId: 'g1', name: '1-1' }];
 
     test('no request', () => {
