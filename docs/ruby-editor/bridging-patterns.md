@@ -443,6 +443,7 @@ end
 | `a <= b` | `(a < b) または (a = b)` | 3 つに `@ruby:operator:<=:<番号>` |
 | `a != b` | `(a = b) ではない` | 2 つに `@ruby:operator:!=:<番号>` |
 | `-a` | `0 - a` | `@ruby:unary_minus` |
+| `rand(10)`（1 以上の整数） | `0 から 9 までの乱数` | `@ruby:rand:n` |
 | `x.empty?` | `(x の長さ) = 0`（リストならリストの長さ） | 2 つに `@ruby:method:empty?:<番号>` |
 | `x.to_s` | `x と ""` をつなぐ | `@ruby:method:to_s` |
 | `"3".to_i` | `"3"` の切り下げ | `@ruby:method:to_i` |
@@ -463,7 +464,7 @@ say(@a.empty?)
 
 - 同じコードに戻る。
 
-**テスト**: `ruby-to-blocks-converter/operators/comparison-compound.test.js`、`comparison-not-equals.test.js`、`type-conversion.test.js`、`string.test.js`、`ruby-generator/operators/operators1.test.js`、`operators2.test.js`、`ruby-roundtrip/operators.test.js`、`operator-order.test.js`、`unary-minus.test.js`。
+**テスト**: `ruby-to-blocks-converter/operators/comparison-compound.test.js`、`comparison-not-equals.test.js`、`type-conversion.test.js`、`string.test.js`、`ruby-generator/operators/operators1.test.js`、`operators2.test.js`、`ruby-roundtrip/operators.test.js`、`operator-order.test.js`、`unary-minus.test.js`、`rand-integer.test.js`。
 
 ### P11. Scratch に無いメソッド（`@ruby:method`・`@ruby:argument`）
 

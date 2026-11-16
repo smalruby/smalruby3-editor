@@ -7,6 +7,9 @@ const MathE = '::Math::E';
 /** Marker on "(0) - (X)" that came from `-X` (the generator reads it to write `-X` back). */
 const UNARY_MINUS_COMMENT = '@ruby:unary_minus';
 
+/** Marker on "pick random (0) to (n - 1)" that came from `rand(n)` (the generator writes `rand(n)` back). */
+const RAND_N_COMMENT = '@ruby:rand:n';
+
 /**
  * Math and arithmetic operator handlers for OperatorsConverter.
  */
@@ -39,6 +42,18 @@ const OperatorsMath = {
 
         converter.registerOnSend('self', 'rand', 1, (params) => {
             const { args } = params;
+            // `rand(n)` with a positive integer picks an integer from 0 to n - 1 (issue #2042).
+            // `rand(0)` and a float bound give a float, which no "pick random" block picks, so
+            // only an integer literal of 1 or more becomes a block.
+            if (converter._isPrimitive(args[0]) && args[0].type === 'int') {
+                const n = Number(args[0].value);
+                if (!Number.isSafeInteger(n) || n < 1) return null;
+                const block = converter._createBlock('operator_random', 'value');
+                converter._addNumberInput(block, 'FROM', 'math_number', 0, 1);
+                converter._addNumberInput(block, 'TO', 'math_number', n - 1, 10);
+                block.comment = converter._createComment(RAND_N_COMMENT, block.id);
+                return block;
+            }
             if (!converter._isBlock(args[0]) || args[0].opcode !== 'ruby_range') return null;
             if (converter._context.rangesWithWrongEnd.has(args[0].id)) return null;
 
