@@ -433,8 +433,9 @@ const prepareRun = async (id, locale, override = null, { role = ROLES.SHIMARABY 
         addExtension: (id) => loadExtension(vm, id),
         // 練習相手のパネルのボタンを押す（何番目か）
         partnerPress: async (index) => {
-            loop.press(index);
+            const result = loop.press(index);
             await sleep(50);
+            return result;
         },
         // シマネコ（spriteCodes のスプライト）を押す
         clickSprite: async (name) => {
@@ -1239,6 +1240,58 @@ describe('the chat lesson 4 goals are not met by programs that skip the task (#1
             vm = run.vm;
             await operation(run.ctx);
             expect(await until(run.isSatisfied, 1500)).toBe(false);
+        },
+        20000,
+    );
+});
+
+// 4-5 の練習相手の「あなたに DM」（教員レビュー: 名前を「たかお」にして押しても何も起きなかった）。あて先は、押したときの
+// 生徒の変数「なまえ」の値（決まった文字ではない）。名前を入れる前に押したときは送らず、空の変数の名前を返す
+describe('the DM to you of the 4-5 practice partner goes to the name the student entered', () => {
+    let vm;
+
+    afterEach(() => {
+        quitVm(vm);
+        vm = null;
+    });
+
+    test.each(LOCALES)(
+        '%s',
+        async (locale) => {
+            const run = await prepareRun('chat-l4-dm', locale);
+            vm = run.vm;
+            const shimacat = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === 'Shimacat');
+            const said = [];
+            vm.runtime.on('SAY', (target, _type, text) => {
+                if (target === shimacat) said.push(text);
+            });
+            const secret = {
+                ja: 'シマネコ：ないしょだよ',
+                'ja-Hira': 'シマネコ：ないしょだよ',
+                en: 'Shimacat: It is a secret',
+            };
+            const nameVariable = { ja: 'なまえ', 'ja-Hira': 'なまえ', en: 'name' }[locale];
+            // 旗を押す前（名前がまだ作ったときのまま）は送らない
+            expect(await run.ctx.partnerPress(0)).toEqual({ missingVariable: nameVariable });
+            await sleep(100);
+            expect(said).toEqual([]);
+            vm.greenFlag();
+            await run.ctx.answer('たかお');
+            // 名前を入れたあと（メッセージの入力を待っているあいだ）に押す: 自分あてなので言う
+            expect(await run.ctx.partnerPress(0)).toEqual({ done: true });
+            expect(await until(() => said.includes(secret[locale]), 2000)).toBe(true);
+            // ミミに DM は言わない
+            said.length = 0;
+            await run.ctx.partnerPress(1);
+            await sleep(200);
+            expect(said).toEqual([]);
+            // 自分から送ったあとでも、もう一度「あなたに DM」で言う
+            await run.ctx.answer('やあ');
+            await run.ctx.answer('ミミ');
+            said.length = 0;
+            await run.ctx.partnerPress(0);
+            expect(await until(() => said.includes(secret[locale]), 2000)).toBe(true);
+            expect(await until(run.isSatisfied, WAIT_FOR_GOAL_MS)).toBe(true);
         },
         20000,
     );

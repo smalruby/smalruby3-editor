@@ -922,11 +922,17 @@ describe('lesson courses', () => {
         });
 
         // ヒントは帽子のブロックを置く手順を抜かさない（docs/lessons/design.md の「ヒント」・#1564）:
-        // できあがりのプログラムの帽子のブロック（`when_...`）は、どれもいずれかのヒントの絵に描く
+        // できあがりのプログラムの帽子のブロック（`when_...`）は、どれもいずれかのヒントの絵に描く。ただし、最初から
+        // 入っていて書きかえないスプライトのプログラム（4-4 のシマネコ）は生徒が置かないので除く（2 つのスプライトの
+        // プログラムは吹き出しに入りきらない・教員レビュー）
         test.each(['ja', 'ja-Hira', 'en'])('every hat block of the answer is drawn in a hint (%s)', (locale) => {
             allChallenges().forEach((c) => {
                 const { code, spriteCodes } = challengeCodeFor(c, locale);
-                const hats = [code, ...spriteCodes.map((s) => s.code)]
+                const setupCodes = ((c.setup && c.setup.spriteCodes) || []).map(
+                    (s) => `${s.sprite}\u0000${localizeCode(s.code, locale)}`,
+                );
+                const built = spriteCodes.filter((s) => !setupCodes.includes(`${s.sprite}\u0000${s.code}`));
+                const hats = [code, ...built.map((s) => s.code)]
                     .join('\n')
                     .split('\n')
                     .filter((line) => /^when_\w+/.test(line))
@@ -1889,7 +1895,8 @@ describe('chat course lesson 4 "チャットを作ろう" (#1644)', () => {
             [
                 'あなたに DM',
                 [
-                    { name: 'あてさき', fromVariable: 'なまえ' },
+                    // あて先は押したときの生徒の名前。まだ入れていなければ送らない（教員レビュー）
+                    { name: 'あてさき', fromVariable: 'なまえ', orVariables: ['名前', 'name'], required: true },
                     { name: 'メッセージ', value: 'シマネコ：ないしょだよ' },
                 ],
                 'メッセージ',

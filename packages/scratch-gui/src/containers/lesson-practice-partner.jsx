@@ -72,6 +72,7 @@ const LessonPracticePartnerContainer = ({ challengeId = null, locale, partnerDef
         setArrivals([]);
         setFlashId(null);
         setAnnouncement('');
+        setMissingVariable(null);
     }, [challengeId, vm]);
 
     // 本物のメッシュのつながり。つながったらパネルを閉じる
@@ -133,8 +134,13 @@ const LessonPracticePartnerContainer = ({ challengeId = null, locale, partnerDef
         };
     }, [partner]);
 
+    // 押したのに、相手が使う生徒の変数（4-5 の「なまえ」）がまだ空で何もしなかったとき、その名前を出す
+    // （「あなたに DM」が空のあて先で送られて、何も起きないように見えないように）
+    const [missingVariable, setMissingVariable] = useState(null);
     const handlePress = useCallback((index) => {
-        if (loopRef.current) loopRef.current.press(index);
+        if (!loopRef.current) return;
+        const result = loopRef.current.press(index);
+        setMissingVariable(result && result.missingVariable ? result.missingVariable : null);
     }, []);
     const handleClose = useCallback(() => setOpen(false), []);
     const handleOpen = useCallback(() => setOpen(true), []);
@@ -152,6 +158,7 @@ const LessonPracticePartnerContainer = ({ challengeId = null, locale, partnerDef
             announcement={announcement}
             arrivals={arrivals}
             flashId={flashId}
+            missingVariable={missingVariable}
         />,
         document.body,
     );

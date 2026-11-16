@@ -283,8 +283,40 @@ describe('LessonPracticePartner container', () => {
         expect(vm.ext.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].へんじ.value).toBe('こんにちは');
     });
 
+    // 4-5 の「あなたに DM」（教員レビュー）: 名前がまだ空なら送らず、パネルに「先に入れよう」と出す。入れたら送って消す
+    test('a button that needs the student name says so instead of sending while the name is empty', () => {
+        const vm = makeVm();
+        const name = { id: 'n', name: 'なまえ', type: '', value: 0 };
+        vm.runtime.targets[0].variables.n = name;
+        renderContainer({
+            vm,
+            partnerDef: {
+                name: 'シマネコ',
+                buttons: [
+                    {
+                        label: 'あなたに DM',
+                        set: { variable: 'あてさき', value: { fromVariable: 'なまえ', required: true } },
+                        broadcast: 'メッセージ',
+                    },
+                ],
+            },
+        });
+        const button = screen.getByTestId('lesson-practice-partner-button');
+        expect(screen.queryByTestId('lesson-practice-partner-missing')).toBeNull();
+        fireEvent.click(button);
+        expect(screen.getByTestId('lesson-practice-partner-missing')).toHaveTextContent(
+            '"なまえ" is still empty. Click the flag and enter it first.',
+        );
+        expect(vm.runtime.startHats).not.toHaveBeenCalled();
+        name.value = 'たかお';
+        fireEvent.click(button);
+        expect(screen.queryByTestId('lesson-practice-partner-missing')).toBeNull();
+        expect(vm.ext.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].あてさき.value).toBe('たかお');
+        expect(vm.runtime.startHats).toHaveBeenCalledTimes(1);
+    });
+
     test('strings exist in en / ja / ja-Hira', () => {
-        ['title', 'note', 'close', 'open', 'received', 'nothingReceived', 'sendHeading', 'receivedHeading', 'variableName'].forEach((key) => {
+        ['title', 'note', 'close', 'open', 'received', 'nothingReceived', 'sendHeading', 'receivedHeading', 'variableName', 'missingVariable'].forEach((key) => {
             const id = `gui.lessonPracticePartner.${key}`;
             [en, ja, jaHira].forEach((messages) => expect(typeof messages[id]).toBe('string'));
         });

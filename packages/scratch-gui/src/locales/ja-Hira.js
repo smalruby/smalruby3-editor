@@ -1944,6 +1944,7 @@ export default {
     'gui.lessonPracticePartner.receivedHeading': '{name}に とどいた',
     'gui.lessonPracticePartner.variableName': '← {name}',
     'gui.lessonPracticePartner.nothingReceived': '（まだ なにも とどいていない）',
+    'gui.lessonPracticePartner.missingVariable': '「{name}」が まだ から。さきに はたを おして いれよう。',
     'gui.lessonPracticePartner.open': 'れんしゅうあいて',
     'gui.lessonHint.ariaLabel': 'ヒント',
     'gui.lessonHint.position': 'ヒント {number} / {count}',

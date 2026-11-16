@@ -1561,6 +1561,7 @@ export default {
     'gui.lessonPracticePartner.receivedHeading': 'Reached {name}',
     'gui.lessonPracticePartner.variableName': '← {name}',
     'gui.lessonPracticePartner.nothingReceived': '(nothing yet)',
+    'gui.lessonPracticePartner.missingVariable': '"{name}" is still empty. Click the flag and enter it first.',
     'gui.lessonPracticePartner.open': 'Practice partner',
     'gui.lessonHint.ariaLabel': 'Hint',
     'gui.lessonHint.position': 'Hint {number} of {count}',
