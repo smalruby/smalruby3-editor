@@ -177,8 +177,10 @@ const putArg = (converter, block, spec, arg) => {
  * A row with `selfReceiver: true` takes only `self.xxx` or `xxx`, not a receiver that is
  * resolved to the same name (`stage.backdrop_name` is of sensing, not of looks).
  * The receiver (`"abc".length`) is put first without a check (the receiver of the row, such
- * as `['string', 'block', 'variable']`, already says what it takes), then the constant fields, then the
- * arguments in order. A hat (`hat: true`) puts the body of `do ... end` under the block.
+ * as `['string', 'block', 'variable']`, already says what it takes), then the constant fields
+ * (`fields: {NAME: value}`) and menus (`menus: {INPUT: [menuOpcode, field, value]}`), then the
+ * arguments in order. A row with `changesReceiver: true` turns its receiver, a Ruby expression
+ * (`pen` of `pen.down`), into the block instead of making a new one. A hat (`hat: true`) puts the body of `do ... end` under the block.
  * @param {object} converter - The converter.
  * @param {object} row - The row.
  * @returns {Function} The handler.
@@ -187,6 +189,7 @@ const handlerOfRow = (converter, row) => {
     const specs = row.args || [];
     const type = row.hat ? 'hat' : row.type || 'statement';
     const fields = row.fields ? Object.entries(row.fields) : [];
+    const menus = row.menus ? Object.entries(row.menus) : [];
     return (params) => {
         const { receiver, args } = params;
         if (row.selfReceiver && !converter._isSelf(receiver) && receiver !== null) return null;
@@ -194,9 +197,14 @@ const handlerOfRow = (converter, row) => {
         specs.forEach((spec, i) => {
             if (spec.validate) spec.validate(converter, args[i], params);
         });
-        const block = converter._createBlock(row.opcode, type);
+        const block = row.changesReceiver
+            ? converter._changeRubyExpressionBlock(receiver, row.opcode, type)
+            : converter._createBlock(row.opcode, type);
         if (row.receiverArg) putArg(converter, block, row.receiverArg, receiver);
         fields.forEach(([name, value]) => converter._addField(block, name, value));
+        menus.forEach(([name, [menuOpcode, field, value]]) =>
+            converter._addFieldInput(block, name, menuOpcode, field, value, value),
+        );
         specs.forEach((spec, i) => putArg(converter, block, spec, args[i]));
         if (row.hat) converter._setParent(params.rubyBlock, block);
         return block;
@@ -207,7 +215,7 @@ const handlerOfRow = (converter, row) => {
  * Register the rows of a send table on the converter, in the order of the rows.
  * @param {object} converter - The converter.
  * @param {Array<object>} rows - The rows: `{receiver, name, opcode, type?, args?, fields?,
- *     receiverArg?, hat?, selfReceiver?}`. A hat takes `do ... end` (with no block parameters).
+ *     menus?, receiverArg?, changesReceiver?, hat?, selfReceiver?}`. A hat takes `do ... end` (with no block parameters).
  */
 /**
  * The rows, each taking only `self.xxx` or `xxx` (`selfReceiver: true`).

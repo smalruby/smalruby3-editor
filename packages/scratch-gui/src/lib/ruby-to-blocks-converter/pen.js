@@ -1,51 +1,61 @@
 import _ from 'lodash';
+import { numberArg, registerSendTable } from './send-table';
 
 const Pen = 'pen';
+
+const colorParamMenu = (value) => ({ COLOR_PARAM: ['pen_menu_colorParam', 'colorParam', value] });
+
+const ColorParams = ['saturation', 'brightness', 'transparency'];
+
+/**
+ * The calls of pen that map one to one onto a block (see `send-table.js`): the v2 form on the
+ * Ruby expression `pen` (`pen.down`) and the v1 form (`pen_down`). `pen.color =` (a number or a
+ * color) and `pen.size += 1` are handlers below.
+ */
+const PEN_SENDS = [
+    { receiver: '::Pen', name: 'clear', opcode: 'pen_clear' },
+    { receiver: Pen, name: 'clear', opcode: 'pen_clear', changesReceiver: true },
+    { receiver: 'self', name: 'pen_clear', opcode: 'pen_clear' },
+    { receiver: Pen, name: 'stamp', opcode: 'pen_stamp', changesReceiver: true },
+    { receiver: 'sprite', name: 'pen_stamp', opcode: 'pen_stamp' },
+    { receiver: Pen, name: 'down', opcode: 'pen_penDown', changesReceiver: true },
+    { receiver: 'sprite', name: 'pen_down', opcode: 'pen_penDown' },
+    { receiver: Pen, name: 'up', opcode: 'pen_penUp', changesReceiver: true },
+    { receiver: 'sprite', name: 'pen_up', opcode: 'pen_penUp' },
+    ...ColorParams.flatMap((param) => [
+        {
+            receiver: Pen,
+            name: `${param}=`,
+            opcode: 'pen_setPenColorParamTo',
+            changesReceiver: true,
+            menus: colorParamMenu(param),
+            args: [numberArg('VALUE', 50)],
+        },
+        {
+            receiver: 'sprite',
+            name: `pen_${param}=`,
+            opcode: 'pen_setPenColorParamTo',
+            menus: colorParamMenu(param),
+            args: [numberArg('VALUE', 50)],
+        },
+    ]),
+    { receiver: Pen, name: 'size=', opcode: 'pen_setPenSizeTo', changesReceiver: true, args: [numberArg('SIZE', 1)] },
+    { receiver: 'sprite', name: 'pen_size=', opcode: 'pen_setPenSizeTo', args: [numberArg('SIZE', 1)] },
+];
 
 /**
  * Pen converter
  */
 const PenConverter = {
+    sends: PEN_SENDS,
+
     register: function (converter) {
-        converter.registerOnSend('::Pen', 'clear', 0, () => converter.createBlock('pen_clear', 'statement'));
-
-        // v2: pen.clear
-        converter.registerOnSend(Pen, 'clear', 0, (params) => {
-            const { receiver } = params;
-            return converter.changeRubyExpressionBlock(receiver, 'pen_clear', 'statement');
-        });
-
-        // backward compatibility
-        converter.registerOnSend('self', 'pen_clear', 0, () => converter.createBlock('pen_clear', 'statement'));
+        registerSendTable(converter, PEN_SENDS);
 
         converter.registerOnSend('sprite', Pen, 0, (params) => {
             const { node } = params;
             return converter.createRubyExpressionBlock(Pen, node);
         });
-
-        converter.registerOnSend(Pen, 'stamp', 0, (params) => {
-            const { receiver } = params;
-            return converter.changeRubyExpressionBlock(receiver, 'pen_stamp', 'statement');
-        });
-
-        // backward compatibility
-        converter.registerOnSend('sprite', 'pen_stamp', 0, () => converter.createBlock('pen_stamp', 'statement'));
-
-        converter.registerOnSend(Pen, 'down', 0, (params) => {
-            const { receiver } = params;
-            return converter.changeRubyExpressionBlock(receiver, 'pen_penDown', 'statement');
-        });
-
-        // backward compatibility
-        converter.registerOnSend('sprite', 'pen_down', 0, () => converter.createBlock('pen_penDown', 'statement'));
-
-        converter.registerOnSend(Pen, 'up', 0, (params) => {
-            const { receiver } = params;
-            return converter.changeRubyExpressionBlock(receiver, 'pen_penUp', 'statement');
-        });
-
-        // backward compatibility
-        converter.registerOnSend('sprite', 'pen_up', 0, () => converter.createBlock('pen_penUp', 'statement'));
 
         converter.registerOnSend(Pen, 'color=', 1, (params) => {
             const { receiver, args } = params;
@@ -78,102 +88,6 @@ const PenConverter = {
                 return block;
             }
             return null;
-        });
-
-        converter.registerOnSend(Pen, 'saturation=', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter.isNumberOrBlock(args[0])) return null;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'pen_setPenColorParamTo', 'statement');
-            converter.addFieldInput(block, 'COLOR_PARAM', 'pen_menu_colorParam', 'colorParam', 'saturation', 'color');
-            converter.addNumberInput(block, 'VALUE', 'math_number', args[0], 50);
-            return block;
-        });
-
-        // backward compatibility
-        converter.registerOnSend('sprite', 'pen_saturation=', 1, (params) => {
-            const { args } = params;
-            if (!converter.isNumberOrBlock(args[0])) return null;
-
-            const block = converter.createBlock('pen_setPenColorParamTo', 'statement');
-            converter.addFieldInput(block, 'COLOR_PARAM', 'pen_menu_colorParam', 'colorParam', 'saturation', 'color');
-            converter.addNumberInput(block, 'VALUE', 'math_number', args[0], 50);
-            return block;
-        });
-
-        converter.registerOnSend(Pen, 'brightness=', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter.isNumberOrBlock(args[0])) return null;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'pen_setPenColorParamTo', 'statement');
-            converter.addFieldInput(block, 'COLOR_PARAM', 'pen_menu_colorParam', 'colorParam', 'brightness', 'color');
-            converter.addNumberInput(block, 'VALUE', 'math_number', args[0], 50);
-            return block;
-        });
-
-        // backward compatibility
-        converter.registerOnSend('sprite', 'pen_brightness=', 1, (params) => {
-            const { args } = params;
-            if (!converter.isNumberOrBlock(args[0])) return null;
-
-            const block = converter.createBlock('pen_setPenColorParamTo', 'statement');
-            converter.addFieldInput(block, 'COLOR_PARAM', 'pen_menu_colorParam', 'colorParam', 'brightness', 'color');
-            converter.addNumberInput(block, 'VALUE', 'math_number', args[0], 50);
-            return block;
-        });
-
-        converter.registerOnSend(Pen, 'transparency=', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter.isNumberOrBlock(args[0])) return null;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'pen_setPenColorParamTo', 'statement');
-            converter.addFieldInput(
-                block,
-                'COLOR_PARAM',
-                'pen_menu_colorParam',
-                'colorParam',
-                'transparency',
-                'color',
-            );
-            converter.addNumberInput(block, 'VALUE', 'math_number', args[0], 50);
-            return block;
-        });
-
-        // backward compatibility
-        converter.registerOnSend('sprite', 'pen_transparency=', 1, (params) => {
-            const { args } = params;
-            if (!converter.isNumberOrBlock(args[0])) return null;
-
-            const block = converter.createBlock('pen_setPenColorParamTo', 'statement');
-            converter.addFieldInput(
-                block,
-                'COLOR_PARAM',
-                'pen_menu_colorParam',
-                'colorParam',
-                'transparency',
-                'color',
-            );
-            converter.addNumberInput(block, 'VALUE', 'math_number', args[0], 50);
-            return block;
-        });
-
-        converter.registerOnSend(Pen, 'size=', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter.isNumberOrBlock(args[0])) return null;
-
-            const block = converter.changeRubyExpressionBlock(receiver, 'pen_setPenSizeTo', 'statement');
-            converter.addNumberInput(block, 'SIZE', 'math_number', args[0], 1);
-            return block;
-        });
-
-        // backward compatibility
-        converter.registerOnSend('sprite', 'pen_size=', 1, (params) => {
-            const { args } = params;
-            if (!converter.isNumberOrBlock(args[0])) return null;
-
-            const block = converter.createBlock('pen_setPenSizeTo', 'statement');
-            converter.addNumberInput(block, 'SIZE', 'math_number', args[0], 1);
-            return block;
         });
 
         // backward compatibility getters for +=
