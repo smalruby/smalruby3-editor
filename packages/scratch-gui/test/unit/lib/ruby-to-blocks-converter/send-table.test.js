@@ -1,5 +1,6 @@
 import RubyGenerator from '../../../../src/lib/ruby-generator';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
+import LooksConverter from '../../../../src/lib/ruby-to-blocks-converter/looks';
 import MotionConverter from '../../../../src/lib/ruby-to-blocks-converter/motion';
 import { numberArg, registerSendTable } from '../../../../src/lib/ruby-to-blocks-converter/send-table';
 
@@ -15,21 +16,24 @@ const opcodesOf = (rows) =>
     ]);
 
 describe('RubyToBlocksConverter/send table', () => {
-    test('every opcode of the motion table has a generator', () => {
-        const missing = opcodesOf(MotionConverter.sends).filter(
-            (opcode) => typeof RubyGenerator[opcode] !== 'function',
-        );
+    const tables = {
+        motion: MotionConverter,
+        looks: LooksConverter,
+    };
+
+    test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
+        const missing = opcodesOf(tables[area].sends).filter((opcode) => typeof RubyGenerator[opcode] !== 'function');
         expect(missing).toEqual([]);
     });
 
     test('a row with an unknown kind of argument is an error, not a block without the argument', async () => {
         const converter = new RubyToBlocksConverter(null, { version: '2' });
         registerSendTable(converter, [
-            { receiver: 'sprite', name: 'jump', opcode: 'motion_movesteps', args: [{ kind: 'color', input: 'C' }] },
+            { receiver: 'sprite', name: 'jump', opcode: 'motion_movesteps', args: [{ kind: 'paint', input: 'C' }] },
         ]);
 
         expect(await converter.targetCodeToBlocks(null, 'jump(3)')).toBe(false);
-        expect(converter.errors.map((error) => error.text)).toEqual(['unknown kind of argument: color']);
+        expect(converter.errors.map((error) => error.text)).toEqual(['unknown kind of argument: paint']);
     });
 
     test('a row gives way to the next handler when an argument is of another kind', async () => {
