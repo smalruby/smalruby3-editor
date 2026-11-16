@@ -106,10 +106,8 @@ export default function (Generator) {
         const toNum = Generator.valueToCode(block, 'TO', Generator.ORDER_RANGE) || 10;
         // "pick random (0) to (n - 1)" made from `rand(n)` (issue #2042). Only while "from" is
         // still 0 and "to" an integer: otherwise the range says what the block picks.
-        const comment = Generator.getRubyMarkerText(block);
         if (
-            comment &&
-            comment.split(/,(?=@ruby:)/).includes('@ruby:rand:n') &&
+            Generator.hasRubyMarker(block, '@ruby:rand:n') &&
             String(fromNum) === '0' &&
             /^\d+$/.test(String(toNum))
         ) {

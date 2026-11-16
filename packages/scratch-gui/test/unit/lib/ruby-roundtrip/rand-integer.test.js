@@ -104,7 +104,8 @@ describe('Ruby Roundtrip: rand(n) with an integer (issue #2042)', () => {
     });
 
     test.each([
-        // rand(0) is a float from 0 to 1 and a float bound is a float, so no block picks the same.
+        // Kernel#rand gives a float for rand(0); rand(1.5) is 0 (max.to_i.abs) and "3" is an error.
+        // Only an integer literal of 1 or more becomes a block, so these stay as they were.
         ['zero', 'say(rand(0))'],
         ['float', 'say(rand(1.5))'],
         ['string', 'say(rand("3"))'],

@@ -665,6 +665,7 @@ stage.variable("$var")
 | Method | Description | Example |
 |---|---|---|
 | `rand(range)` | Random number | `rand(1..10)` |
+| `rand(n)` | Random integer from 0 to n - 1 (n is an integer of 1 or more; the block is "pick random 0 to n - 1") | `rand(10)` |
 | `value.round` | Round | `3.7.round` |
 | `value.abs` | Absolute value | `(-5).abs` |
 | `value.floor` | Floor | `3.7.floor` |

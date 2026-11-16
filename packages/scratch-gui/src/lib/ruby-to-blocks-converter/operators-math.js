@@ -43,8 +43,10 @@ const OperatorsMath = {
         converter.registerOnSend('self', 'rand', 1, (params) => {
             const { args } = params;
             // `rand(n)` with a positive integer picks an integer from 0 to n - 1 (issue #2042).
-            // `rand(0)` and a float bound give a float, which no "pick random" block picks, so
-            // only an integer literal of 1 or more becomes a block.
+            // Kernel#rand takes `max.to_i.abs` when it is 1 or more (`rand(1.5)` is 0, `rand(10.0)`
+            // is 0 to 9, `rand(-5)` is 0 to 4) and gives a float only for `rand(0)` or when the
+            // absolute value is below 1. Only an integer literal of 1 or more becomes a block here:
+            // the other forms would not come back as the same Ruby.
             if (converter._isPrimitive(args[0]) && args[0].type === 'int') {
                 const n = Number(args[0].value);
                 if (!Number.isSafeInteger(n) || n < 1) return null;
