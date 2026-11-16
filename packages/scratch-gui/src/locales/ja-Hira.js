@@ -296,6 +296,11 @@ export default {
     'gui.classroom.evaluation.needsReview': 'ようかくにん',
     'gui.classroom.evaluation.needsReviewTitle': 'AI がはんだんにまよいました。',
     'gui.classroom.evaluation.returned': 'へんきゃくずみ',
+    'gui.classroom.teacherWorkBar.viewing':
+        'しゅっせきばんごう {seatNumber}・{assignmentName} のさくひんをみています',
+    'gui.classroom.teacherWorkBar.viewingNoSeat': '{assignmentName} のさくひんをみています',
+    'gui.classroom.teacherWorkBar.backToGrading': '‹ さいてんにもどる',
+    'gui.classroom.teacherWorkBar.backToAssignment': '‹ かだいにもどる',
     'gui.classroom.evaluation.openWork': 'さくひんをひらく',
     'gui.classroom.evaluation.openingWork': 'ひらいています…',
     'gui.classroom.evaluation.openWorkFailed':

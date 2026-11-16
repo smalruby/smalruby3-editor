@@ -131,6 +131,7 @@ const TeacherClassDetail = ({
     onApproveKickRequest,
     onRejectKickRequest,
     onDetailTabChange,
+    currentTab = null,
     detailEntry,
     onBackToBoard,
     onProjectEntryUsed,
@@ -173,7 +174,11 @@ const TeacherClassDetail = ({
     // The members tab is the entry view; the description tab only on the
     // first open of a just-created assignment (pickDetailEntryTab, #1199).
     const entryTab = (detailEntry && detailEntry.tab) || 'members';
-    const [activeTab, setActiveTab] = useState(entryTab);
+    // Mounted again on the same assignment (back from an opened work, #1990, or from
+    // posting to Google Classroom): the tab the teacher was on (`currentTab`, kept by
+    // the container) instead of the entry tab.
+    const [activeTab, setActiveTab] = useState(currentTab || entryTab);
+    const entryAppliedRef = useRef(Boolean(currentTab));
     const [previewPage, setPreviewPage] = useState(0);
     const nameInputId = `classroom-detail-assignment-name-${selectedClassroom.classroomId}`;
     const [editAssignmentName, setEditAssignmentName] = useState(selectedClassroom.assignmentName || '');
@@ -206,8 +211,13 @@ const TeacherClassDetail = ({
         const fromStream = Boolean(detailEntry && detailEntry.project);
         setProjection(fromStream ? 'stream' : null);
         if (fromStream && onProjectEntryUsed) onProjectEntryUsed();
-        setActiveTab(entryTab);
         setPreviewPage(0);
+        if (entryAppliedRef.current) {
+            // The first run after mounting again keeps the tab it was on.
+            entryAppliedRef.current = false;
+            return;
+        }
+        setActiveTab(entryTab);
         if (onDetailTabChange) onDetailTabChange(entryTab);
     }, [selectedClassroom.classroomId, detailEntry && detailEntry.seq]);
 
@@ -1382,6 +1392,8 @@ TeacherClassDetail.propTypes = {
     onApproveKickRequest: PropTypes.func,
     onRejectKickRequest: PropTypes.func,
     onDetailTabChange: PropTypes.func,
+    /** The tab the teacher is on, kept by the container: a detail mounted again opens on it (#1990). */
+    currentTab: PropTypes.oneOf(['members', 'description', 'progress']),
     detailEntry: PropTypes.shape({
         tab: PropTypes.oneOf(['members', 'description', 'progress']),
         seq: PropTypes.number,

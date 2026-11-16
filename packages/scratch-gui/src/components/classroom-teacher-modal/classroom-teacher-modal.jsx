@@ -150,6 +150,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onCreateAssignmentInClass,
         onReuseAssignment,
         onDetailTabChange,
+        detailTab,
         detailEntry,
         onProjectEntryUsed,
         onBackFromGroupManage,
@@ -341,6 +342,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             return (
                 <div className={styles.mainRelative}>
                     <TeacherEvaluation
+                        chosenCell={evaluation.chosenCell}
                         comments={evaluation.comments}
                         error={error}
                         errorTitle={errorTitle}
@@ -371,6 +373,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onChangeLessonScoring={evaluation.handleChangeLessonScoring}
                         onChangeRubricAxis={evaluation.handleChangeRubricAxis}
                         onCheckScoring={evaluation.handleCheckScoring}
+                        onChooseCell={evaluation.handleChooseCell}
                         onExportAuditCsv={evaluation.handleExportAuditCsv}
                         onExportEvaluationCsv={evaluation.handleExportEvaluationCsv}
                         onLoadSubmissions={evaluation.handleLoadSubmissions}
@@ -451,6 +454,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onCopyInviteLink={onCopyInviteLink}
                         onDeleteClassroom={onDeleteClassroom}
                         onDeleteMember={onDeleteMember}
+                        currentTab={detailTab}
                         detailEntry={detailEntry}
                         onBackToBoard={onBackToDashboard}
                         onProjectEntryUsed={onProjectEntryUsed}

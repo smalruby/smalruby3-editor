@@ -56,7 +56,8 @@ import ClassroomTeacherKickAlerts from '../../containers/classroom-teacher-kick-
 import ClassroomTeacherPanel from '../../containers/classroom-teacher-panel.jsx';
 import ClassroomPeerPanel from '../../containers/classroom-peer-panel.jsx';
 import ClassroomSubmitReminder from '../../containers/classroom-submit-reminder.jsx';
-import ClassroomTeacherModal from '../../containers/classroom-teacher-modal.jsx';
+import ClassroomTeacherModalHost from '../../containers/classroom-teacher-modal-host.jsx';
+import ClassroomTeacherWorkBar from '../../containers/classroom-teacher-work-bar.jsx';
 // === Smalruby: End of classroom modal ===
 // === Smalruby: Start of bug report modal ===
 import BugReportModal from '../../containers/bug-report-modal.jsx';
@@ -202,6 +203,7 @@ const GUIComponent = props => {
         // === Smalruby: Start of classroom modal ===
         classroomModalVisible,
         teacherModalVisible,
+        teacherWorkBarVisible,
         // === Smalruby: End of classroom modal ===
         blocksId,
         blocksTabVisible,
@@ -391,8 +393,11 @@ const GUIComponent = props => {
             const boxStyles = classNames(styles.bodyWrapper, {
                 [styles.bodyWrapperWithoutMenuBar]: menuBarHidden,
                 // === Smalruby: Start of lesson mode ===
-                [styles.bodyWrapperWithLessonTaskBar]: lessonTaskBarVisible
+                [styles.bodyWrapperWithLessonTaskBar]: lessonTaskBarVisible,
                 // === Smalruby: End of lesson mode ===
+                // === Smalruby: Start of classroom teacher work bar ===
+                [styles.bodyWrapperWithTeacherWorkBar]: teacherWorkBarVisible
+                // === Smalruby: End of classroom teacher work bar ===
             });
 
         return isPlayerOnly ? (
@@ -523,7 +528,8 @@ const GUIComponent = props => {
                     <ClassroomTeacherPanel />
                     <ClassroomPeerPanel />
                     <ClassroomSubmitReminder />
-                    {teacherModalVisible ? <ClassroomTeacherModal /> : null}
+                    {/* 開いたあとは隠して残す（作品を開いて戻ったとき、元の画面と採点の下書きを残す） */}
+                    <ClassroomTeacherModalHost />
                     {/* === Smalruby: End of classroom modal === */}
                     {/* === Smalruby: Start of bug report modal === */}
                     {isBugReportConfigured() ? <BugReportModal /> : null}
@@ -613,6 +619,10 @@ const GUIComponent = props => {
                     {/* クラスの課題へ進み具合を送る・本人の確認 */}
                     <LessonProgressSync />
                     {/* === Smalruby: End of lesson mode === */}
+                    {/* === Smalruby: Start of classroom teacher work bar === */}
+                    {/* 先生がクラス管理から作品を開いている間の「戻る帯」（画面の幅いっぱい） */}
+                    <ClassroomTeacherWorkBar />
+                    {/* === Smalruby: End of classroom teacher work bar === */}
                     <Box className={classNames(boxStyles, styles.flexWrapper)}>
                         <Box
                             role="main"
@@ -920,6 +930,7 @@ GUIComponent.propTypes = {
     blockDisplayModalVisible: PropTypes.bool,
     classroomModalVisible: PropTypes.bool, // === Smalruby: classroom modal ===
     teacherModalVisible: PropTypes.bool, // === Smalruby: classroom modal ===
+    teacherWorkBarVisible: PropTypes.bool, // === Smalruby: classroom modal ===
     onOpenBugReportModal: PropTypes.func, // === Smalruby: bug report modal ===
     smalrubotFirmwareModalVisible: PropTypes.bool, // === Smalruby: smalrubot firmware modal ===
     blocksTabVisible: PropTypes.bool,

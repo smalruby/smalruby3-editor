@@ -19,6 +19,8 @@ const SET_TEACHER_UNREAD_COUNT = 'scratch-gui/classroom/SET_TEACHER_UNREAD_COUNT
 const SET_TEACHER_LAST_SELECTION = 'scratch-gui/classroom/SET_TEACHER_LAST_SELECTION';
 const REQUEST_TEACHER_NAVIGATION = 'scratch-gui/classroom/REQUEST_TEACHER_NAVIGATION';
 const CLEAR_TEACHER_NAVIGATION = 'scratch-gui/classroom/CLEAR_TEACHER_NAVIGATION';
+const SET_TEACHER_OPENED_WORK = 'scratch-gui/classroom/SET_TEACHER_OPENED_WORK';
+const CLEAR_TEACHER_OPENED_WORK = 'scratch-gui/classroom/CLEAR_TEACHER_OPENED_WORK';
 const SET_TEACHER_KICK_REQUESTS = 'scratch-gui/classroom/SET_TEACHER_KICK_REQUESTS';
 const REMOVE_TEACHER_KICK_REQUEST = 'scratch-gui/classroom/REMOVE_TEACHER_KICK_REQUEST';
 const OPEN_TEACHER_KICK_LIST = 'scratch-gui/classroom/OPEN_TEACHER_KICK_LIST';
@@ -201,6 +203,12 @@ const initialState = {
     teacherKickListOpen: false,
     // Floating "いまの課題の状況" panel (#1203).
     teacherPanelOpen: false,
+    // A work the teacher opened from class management (#1990), for the bar above
+    // the editor that goes back: {from: 'evaluation'|'assignment', seatNumber,
+    // assignmentName}. Only the seat number and the assignment name — never the
+    // student's name. Cleared when class management opens again, another project
+    // is loaded or the teacher logs out. Memory only.
+    teacherOpenedWork: null,
     // Student's "みんなの作品を見る" (#1210): the assignment's peer view setting
     // as last read from the server (null = not known yet; not persisted, so a
     // changed setting is picked up again) and whether the floating panel is shown.
@@ -252,7 +260,8 @@ const reducer = (state, action) => {
         case CLOSE_MODAL:
             return { ...state, modalVisible: false };
         case OPEN_TEACHER_MODAL:
-            return { ...state, teacherModalVisible: true };
+            // Back in class management: the bar to go back has done its job (#1990).
+            return { ...state, teacherModalVisible: true, teacherOpenedWork: null };
         case CLOSE_TEACHER_MODAL:
             return { ...state, teacherModalVisible: false };
         case SET_SESSION: {
@@ -373,6 +382,7 @@ const reducer = (state, action) => {
                 teacherKickRequests: [],
                 teacherKickListOpen: false,
                 teacherPanelOpen: false,
+                teacherOpenedWork: null,
             };
         case SET_TEACHER_UNREAD_COUNT:
             return { ...state, teacherUnreadCount: action.unreadCount || 0 };
@@ -384,9 +394,14 @@ const reducer = (state, action) => {
                 teacherModalVisible: true,
                 teacherNavTarget: action.target,
                 teacherNavMemberId: action.memberId || null,
+                teacherOpenedWork: null,
             };
         case CLEAR_TEACHER_NAVIGATION:
             return { ...state, teacherNavTarget: null, teacherNavMemberId: null };
+        case SET_TEACHER_OPENED_WORK:
+            return { ...state, teacherOpenedWork: action.work };
+        case CLEAR_TEACHER_OPENED_WORK:
+            return state.teacherOpenedWork ? { ...state, teacherOpenedWork: null } : state;
         case SET_TEACHER_KICK_REQUESTS:
             return { ...state, teacherKickRequests: action.requests || [] };
         case REMOVE_TEACHER_KICK_REQUEST: {
@@ -548,6 +563,23 @@ const requestTeacherNavigation = (target, memberId = null) => ({
     memberId,
 });
 const clearTeacherNavigation = () => ({ type: CLEAR_TEACHER_NAVIGATION });
+/**
+ * Remember the work the teacher opened from class management (#1990), for the
+ * bar above the editor. Only the seat number and the assignment name are kept.
+ * @param {{from: string, seatNumber: ?number, assignmentName: ?string}} work - the opened work
+ * @returns {object} action
+ */
+const setTeacherOpenedWork = (work) => ({
+    type: SET_TEACHER_OPENED_WORK,
+    work: work
+        ? {
+              from: work.from === 'evaluation' ? 'evaluation' : 'assignment',
+              seatNumber: typeof work.seatNumber === 'number' ? work.seatNumber : null,
+              assignmentName: work.assignmentName || null,
+          }
+        : null,
+});
+const clearTeacherOpenedWork = () => ({ type: CLEAR_TEACHER_OPENED_WORK });
 const setTeacherKickRequests = (requests) => ({ type: SET_TEACHER_KICK_REQUESTS, requests });
 /**
  * Drop a handled kick request from the teacher's pending list (#1200).
@@ -668,6 +700,8 @@ export {
     setTeacherLastSelection,
     requestTeacherNavigation,
     clearTeacherNavigation,
+    setTeacherOpenedWork,
+    clearTeacherOpenedWork,
     setTeacherKickRequests,
     removeTeacherKickRequest,
     openTeacherKickList,

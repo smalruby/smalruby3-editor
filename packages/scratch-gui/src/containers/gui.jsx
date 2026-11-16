@@ -66,6 +66,9 @@ import {getUrlParams} from '../lib/url-params.js';
 // === Smalruby: Start of lesson mode ===
 import {getCurrentChallenge} from '../reducers/lesson-mode.js';
 // === Smalruby: End of lesson mode ===
+// === Smalruby: Start of classroom teacher work bar ===
+import {isTeacherWorkBarVisible} from '../lib/classroom-teacher-work.js';
+// === Smalruby: End of classroom teacher work bar ===
 
 import GUIComponent from '../components/gui/gui.jsx';
 import {GUIStoragePropType} from '../gui-config';
@@ -282,6 +285,8 @@ const mapStateToProps = (state, ownProps) => {
         // === Smalruby: Start of classroom modal ===
         classroomModalVisible: state.scratchGui.classroom ? state.scratchGui.classroom.modalVisible : false,
         teacherModalVisible: state.scratchGui.classroom ? state.scratchGui.classroom.teacherModalVisible : false,
+        // 「戻る帯」（containers/classroom-teacher-work-bar.jsx）が出ているあいだ、その高さの分だけ本体を縮める
+        teacherWorkBarVisible: isTeacherWorkBarVisible(state.scratchGui.classroom),
         // === Smalruby: End of classroom modal ===
         dnclMode: state.scratchGui.dnclMode.dnclMode, // === Smalruby: DNCL block filtering ===
         // === Smalruby: Start of lesson mode ===

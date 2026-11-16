@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
@@ -29,7 +30,18 @@ import useTeacherClassroom, { getCachedTeacherIdToken, setCachedTeacherIdToken }
 
 const TEACHER_MODE = 'teacher';
 
-const ClassroomTeacherModal = () => {
+/**
+ * The teacher's class management (full-screen modal).
+ *
+ * Mounted by ClassroomTeacherModalHost. When the teacher opens a work in the
+ * editor, the modal closes but this container stays mounted with `visible`
+ * false (#1990), so the class, assignment, tab, seat and the grading drafts are
+ * all there when the teacher comes back (the bar above the editor, the menu).
+ * @param {object} props - component props
+ * @param {boolean} [props.visible] - the modal is shown
+ * @returns {React.ReactElement|null} the modal, or null while hidden
+ */
+const ClassroomTeacherModal = ({ visible = true }) => {
     const dispatch = useDispatch();
     const intl = useIntl();
     const classroomState = useSelector((state) => state.scratchGui.classroom);
@@ -83,6 +95,7 @@ const ClassroomTeacherModal = () => {
         isLoading,
         setIsLoading,
         vm,
+        visible,
     });
 
     // Go back to login screen (used as error action for session expiry)
@@ -266,9 +279,11 @@ const ClassroomTeacherModal = () => {
     }, [dispatch]);
     showSessionExpiredErrorRef.current = showSessionExpiredError;
 
+    // Closing keeps this container mounted (#1990): nothing on the grading screen
+    // is lost, so it does not ask. Reloading the tab still asks (above).
     const handleClose = useCallback(() => {
-        guardLeave(() => dispatch(closeTeacherModal()));
-    }, [dispatch, guardLeave]);
+        dispatch(closeTeacherModal());
+    }, [dispatch]);
 
     // Wrap the teacher logout so we also clear teacherSelection from Redux —
     // the underlying handleTeacherLogout only resets local hook state.
@@ -375,6 +390,7 @@ const ClassroomTeacherModal = () => {
         onLoadAssignmentSummary: teacher.loadAssignmentSummary,
         onCreateAssignmentInClass: teacher.handleCreateAssignmentInClass,
         onDetailTabChange: teacher.setDetailTab,
+        detailTab: teacher.detailTab,
         detailEntry: teacher.detailEntry,
         onProjectEntryUsed: teacher.consumeDetailProject,
         onReuseAssignment: teacher.handleReuseAssignment,
@@ -383,7 +399,12 @@ const ClassroomTeacherModal = () => {
         shared: teacher.shared,
         notificationsCenter: guardedNotificationsCenter,
     };
+    if (!visible) return null;
     return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
+};
+
+ClassroomTeacherModal.propTypes = {
+    visible: PropTypes.bool,
 };
 
 export default ClassroomTeacherModal;

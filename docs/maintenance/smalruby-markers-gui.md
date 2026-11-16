@@ -42,7 +42,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/connection-modal/connected-step.jsx` | meshV2 connected message feature | Mesh v2 接続済みステップ UI |
 | `src/components/menu-bar/menu-bar.jsx` | smalrubot firmware menu | SmalrubotS1 メニューの import、ハンドラー、レンダリング、Redux 接続 |
 | `src/components/gui/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダルの import と配置 |
-| `src/components/gui/gui.jsx` | classroom modal | クラスルームモーダルの import と配置（モーダル非表示中は退室依頼の見張り `ClassroomKickRequestWatcher` を代わりにマウント） |
+| `src/components/gui/gui.jsx` | classroom modal | クラスルームモーダルの import と配置（モーダル非表示中は退室依頼の見張り `ClassroomKickRequestWatcher` を代わりにマウント）。先生のクラス管理は `ClassroomTeacherModalHost` で置く（いちど開いたらログイン中は隠して残す）。`teacherWorkBarVisible` の destructure・propType |
 | `src/components/gui/gui.jsx` | bug report modal | プログラム不具合報告モーダルの import、`legalLinks` の「不具合を報告」リンク、`<BugReportModal />` 配置、`handleBugReportClick` ハンドラ、`onOpenBugReportModal` prop/propType、props 伝播防止リスト |
 | `src/containers/gui.jsx` | bug report modal | `openBugReportModal` の import、`onOpenBugReportModal` を Redux `openBugReportModal()` にマップ |
 | `src/components/modal/modal.css` | default modal background | `.modal-content` (非フルスクリーン) に既定背景 `$ui-white` を付与し、本文背景の設定漏れでも青いオーバーレイが透けないようにする (案X)。`background-clip: padding-box` で枠（白 25%）の下は塗らず、枠は上流と同じ淡い青に見せる |
@@ -60,6 +60,9 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/gui/gui.jsx` | lesson mode | レッスンモードのコンテナ `LessonMode`（課題バー + チャレンジを開く流れ）と GA 計測のコンテナ `LessonAnalytics`（描画しない）、クラスの課題へ進み具合を送るコンテナ `LessonProgressSync`（本人の確認のダイアログだけ描画する）の import と、メニューバーと本体（`flexWrapper`）のあいだへの常時マウント（課題バーを画面の幅いっぱいに出す）。`lessonTaskBarVisible` の destructure・propType と、本体に `bodyWrapperWithLessonTaskBar` を付ける classNames（`docs/lessons/README.md`） |
 | `src/containers/gui.jsx` | lesson mode | `getCurrentChallenge` の import と、`lessonTaskBarVisible`（チャレンジを開いているか）の state マッピング |
 | `src/components/gui/gui.css` | lesson mode | `.body-wrapper-with-lesson-task-bar`: 課題バー（2.5rem）が出ているあいだ本体の高さをその分縮める（narrow-height・メニューバーなしの組み合わせも） |
+| `src/components/gui/gui.jsx` | classroom teacher work bar | 先生がクラス管理から作品を開いている間の「戻る帯」`ClassroomTeacherWorkBar` の import（classroom modal の import の中）と、レッスンの課題バーの下への常時マウント。本体に `bodyWrapperWithTeacherWorkBar` を付ける classNames（`docs/classroom/ui-ux.md`） |
+| `src/containers/gui.jsx` | classroom teacher work bar | `isTeacherWorkBarVisible` の import と、classroom modal のマッピングの中の `teacherWorkBarVisible` |
+| `src/components/gui/gui.css` | classroom teacher work bar | `.body-wrapper-with-teacher-work-bar`: 戻る帯（2.25rem）が出ているあいだ本体の高さをその分縮める（課題バー・narrow-height・メニューバーなしの組み合わせも） |
 | `src/components/gui/gui.jsx` | lessons library | レッスン表のコンテナ `LessonsLibrary` の import と、他のモーダルと並ぶ場所（`WelcomeModalHOC` の次）への常時マウント（`docs/lessons/README.md`） |
 | `src/containers/gui.jsx` | DNCL mode notice | `onRequestExitDnclMode` を Redux `setDnclMode(false)` + `requestExternalExitDnclMode()` にマップ |
 | `src/components/gui/gui.jsx` | genai concierge | 「生成AI に相談」の顔（`GenaiConcierge`）の import とスクリプトエリアへの常時マウント。表示条件はコンテナ側で判定（`docs/genai-consult/README.md`） |

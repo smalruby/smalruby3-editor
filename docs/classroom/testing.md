@@ -617,7 +617,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-detail` | aside | 右の列（選んだ席の点・根拠・コメント） |
 | `classroom-eval-detail-title` | h3 | 右の列の見出し「出席番号 NN」 |
 | `classroom-eval-detail-lesson` | span | 右の列の課題名 |
-| `classroom-eval-detail-open-work` | button | 右の列の課題名の右の［作品を開く］。選んだ席の作品をエディタで開き、クラス管理を閉じる（課題の詳細の［スモウルビーで開く］と同じ処理）。書き出していない採点・返却していないコメントがあれば、閉じるときと同じ確認（`classroom-eval-leave-confirm-message` の `data-kind="leave"`）を先に出す。開いている間は押せず「開いています…」と出す |
+| `classroom-eval-detail-open-work` | button | 右の列の課題名の右の［作品を開く］。選んだ席の作品をエディタで開き、クラス管理を閉じる（課題の詳細の［スモウルビーで開く］と同じ処理）。確かめずに開く（採点の画面は隠して残る・下の戻る帯）。開いている間は押せず「開いています…」と出す |
+| `classroom-teacher-work-bar` | div | 先生がクラス管理から作品を開いている間、メニューバーの下に出す戻る帯（クラス管理が閉じている間だけ。生徒の画面には出ない） |
+| `classroom-teacher-work-bar-text` | span | 戻る帯の「出席番号 N・課題名 の作品を見ています」（生徒の名前は出さない） |
+| `classroom-teacher-work-bar-back` | button | ［‹ 採点に戻る］／［‹ 課題に戻る］。クラス管理を開き直す（隠して残してある画面・下書きのまま） |
 | `classroom-eval-detail-prev` / `classroom-eval-detail-next` | button | 同じ課題を提出した前 / 次の席へ（「‹ NN」/「NN ›」。端では押せない）。`aria-label` は「前の出席番号 NN」/「次の出席番号 NN」（端では番号なし） |
 | `classroom-eval-detail-ai-draft` | span | 「AI の下書き」（AI が出した点を先生がまだ変えていないとき。根拠だけを直したときは残る） |
 | `classroom-eval-detail-empty` | p | 提出が 1 つも無いときの「提出された作品はありません。」 |

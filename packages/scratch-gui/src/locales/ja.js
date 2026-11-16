@@ -289,6 +289,10 @@ export default {
     'gui.classroom.evaluation.needsReview': '要確認',
     'gui.classroom.evaluation.needsReviewTitle': 'AI が判断に迷いました。',
     'gui.classroom.evaluation.returned': '返却済み',
+    'gui.classroom.teacherWorkBar.viewing': '出席番号 {seatNumber}・{assignmentName} の作品を見ています',
+    'gui.classroom.teacherWorkBar.viewingNoSeat': '{assignmentName} の作品を見ています',
+    'gui.classroom.teacherWorkBar.backToGrading': '‹ 採点に戻る',
+    'gui.classroom.teacherWorkBar.backToAssignment': '‹ 課題に戻る',
     'gui.classroom.evaluation.openWork': '作品を開く',
     'gui.classroom.evaluation.openingWork': '開いています…',
     'gui.classroom.evaluation.openWorkFailed':

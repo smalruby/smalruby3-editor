@@ -228,6 +228,8 @@ describe('TeacherMemberDetail — コメント欄のラベル (#1924 C5・R1)', 
 
 describe('TeacherMemberDetail — ［スモウルビーで開く］の前の確認 (#1980)', () => {
     const URL = 'https://example.invalid/3.sb3';
+    // 戻る帯（#1990）のため、開いた場所と席の番号だけを渡す。
+    const OPENED_FROM = { from: 'assignment', seatNumber: expect.any(Number) };
     const typeComment = (text) =>
         fireEvent.change(byTestId('classroom-member-detail-comment'), { target: { value: text } });
 
@@ -235,7 +237,7 @@ describe('TeacherMemberDetail — ［スモウルビーで開く］の前の確�
         const onOpenSubmission = jest.fn();
         renderDetail(member({ projectUrl: URL }), { onOpenSubmission });
         fireEvent.click(byTestId('classroom-member-detail-open'));
-        expect(onOpenSubmission).toHaveBeenCalledWith(URL);
+        expect(onOpenSubmission).toHaveBeenCalledWith(URL, OPENED_FROM);
         expect(byTestId('classroom-member-open-confirm-box')).not.toBeInTheDocument();
     });
 
@@ -243,7 +245,7 @@ describe('TeacherMemberDetail — ［スモウルビーで開く］の前の確�
         const onOpenSubmission = jest.fn();
         renderDetail(member({ projectUrl: URL, teacherComment: 'いいね' }), { onOpenSubmission });
         fireEvent.click(byTestId('classroom-member-detail-open'));
-        expect(onOpenSubmission).toHaveBeenCalledWith(URL);
+        expect(onOpenSubmission).toHaveBeenCalledWith(URL, OPENED_FROM);
     });
 
     test('返却していないコメントがあれば先に聞き、［とどまる］なら開かずにコメントを残す', () => {
@@ -267,7 +269,7 @@ describe('TeacherMemberDetail — ［スモウルビーで開く］の前の確�
         typeComment('いいね！ もう少し');
         fireEvent.click(byTestId('classroom-member-detail-open'));
         fireEvent.click(byTestId('classroom-member-open-leave'));
-        expect(onOpenSubmission).toHaveBeenCalledWith(URL);
+        expect(onOpenSubmission).toHaveBeenCalledWith(URL, OPENED_FROM);
         expect(byTestId('classroom-member-open-confirm-box')).not.toBeInTheDocument();
     });
 });

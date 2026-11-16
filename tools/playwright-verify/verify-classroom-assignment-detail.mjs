@@ -74,7 +74,13 @@ const members = Array.from({ length: 24 }, (_, i) => ({
 }));
 const submissions = members
     .filter((_, i) => i % 2 === 0)
-    .map((m, i) => ({ submissionId: `s${i}`, memberId: m.memberId, status: 'submitted', submittedAt: iso(now) }));
+    .map((m, i) => ({
+        submissionId: `s${i}`,
+        memberId: m.memberId,
+        status: 'submitted',
+        submittedAt: iso(now),
+        projectUrl: `https://example.invalid/sub/${m.memberId}.sb3`,
+    }));
 const pagesFor = (id) =>
     id === 'c3'
         ? []
@@ -213,6 +219,43 @@ try {
     );
     record('seat detail: 返却 is the main button (#1961)', returnIsPrimary && m.bottom !== null && m.bottom <= m.vh && m.pageOk && m.bodyOk, `return ${describe(m)} primary=${returnIsPrimary}`);
     await shot('member-detail', null);
+
+    // #1990: ［スモウルビーで開く］→ 戻る帯「出席番号 3・課題名」［‹ 課題に戻る］→ 同じ課題・メンバーのタブ・席に戻る。
+    {
+        const { readFile } = await import('node:fs/promises');
+        const sb3 = await readFile(resolve(REPO_ROOT, 'packages/scratch-gui/test/fixtures/monitor-variable.sb3'));
+        await page.route('https://example.invalid/sub/**', (r) =>
+            r.fulfill({ status: 200, body: sb3, headers: { 'content-type': 'application/octet-stream' } }),
+        );
+        await page.locator(tid('classroom-member-seat-03')).click();
+        await page.waitForTimeout(300);
+        const seatBefore = await page.textContent(tid('classroom-member-detail-seat'));
+        await page.locator(tid('classroom-member-detail-open')).click();
+        await page.waitForSelector(tid('classroom-teacher-work-bar'), { timeout: 20000 }).catch(() => {});
+        const bar = await page.evaluate(() => ({
+            modalGone: !document.querySelector('[data-testid="classroom-teacher-modal"]'),
+            text: document.querySelector('[data-testid="classroom-teacher-work-bar-text"]')?.textContent ?? null,
+            back: document.querySelector('[data-testid="classroom-teacher-work-bar-back"]')?.textContent ?? null,
+        }));
+        record(
+            '[スモウルビーで開く] shows the bar with the seat and the assignment, [‹ 課題に戻る] (#1990)',
+            bar.modalGone && /3/.test(bar.text || '') && (bar.text || '').includes('ねこを動かそう') && /課題に戻る|かだいにもどる/.test(bar.back || ''),
+            JSON.stringify(bar),
+        );
+        await shot('work-bar-assignment', null);
+        await page.locator(tid('classroom-teacher-work-bar-back')).click();
+        await page.waitForSelector(tid('classroom-member-detail'), { timeout: 10000 }).catch(() => {});
+        const back = await page.evaluate(() => ({
+            seat: document.querySelector('[data-testid="classroom-member-detail-seat"]')?.textContent ?? null,
+            membersTab: document.querySelector('[data-testid="classroom-tab-members"]')?.getAttribute('aria-selected'),
+            bar: !!document.querySelector('[data-testid="classroom-teacher-work-bar"]'),
+        }));
+        record(
+            '[‹ 課題に戻る] comes back to the same assignment, tab and seat (#1990)',
+            back.seat === seatBefore && back.membersTab === 'true' && !back.bar,
+            `before "${seatBefore}" · ${JSON.stringify(back)}`,
+        );
+    }
 
     // #1961: the［⛶ 映す］screen at the lesson PC size and at a projector size.
     const measureProjection = () =>

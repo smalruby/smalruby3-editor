@@ -75,7 +75,11 @@ const TeacherMemberDetail = ({
     const openSelected = useCallback(() => {
         setConfirmingOpen(false);
         const projectUrl = selectedMember && memberMap[selectedMember]?.projectUrl;
-        if (projectUrl) onOpenSubmission(projectUrl);
+        // 開いたあと、エディタの上の帯から課題へ戻れるよう、席の番号だけを渡す（#1990）。
+        const seat = /^seat-(\d+)$/.exec(selectedMember || '');
+        if (projectUrl) {
+            onOpenSubmission(projectUrl, { from: 'assignment', seatNumber: seat ? parseInt(seat[1], 10) : null });
+        }
     }, [selectedMember, memberMap, onOpenSubmission]);
     // 書きかけのコメント: 空でなく、返却したもの（保存されているもの）と違う。
     const hasCommentDraft = useCallback(() => {

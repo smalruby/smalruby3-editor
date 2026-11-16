@@ -155,6 +155,8 @@ export const fetchAssignmentRowSummary = async (api, token, classroom, now = Dat
  * @param {Function} params.showError - error display helper
  * @param {object} params.intl - react-intl intl object
  * @param {Function} params.setIsLoading - loading state setter
+ * @param {boolean} [params.visible] - class management is shown (#1990): hidden behind an
+ *   opened work, the members refresh stops, and starts again (at once) when it comes back
  * @returns {object} classroom state and handler functions
  */
 const useTeacherClassrooms = ({
@@ -167,6 +169,7 @@ const useTeacherClassrooms = ({
     showError,
     intl,
     setIsLoading,
+    visible = true,
 }) => {
     const [classrooms, setClassrooms] = useState([]);
     // Archived assignments (issue #1051): kept separate so every existing
@@ -458,7 +461,7 @@ const useTeacherClassrooms = ({
         // The members tab and the lesson progress tab (#1602) both show the
         // seats, so both poll; the description tab does not.
         const pollingTab = detailTab === 'members' || detailTab === 'progress';
-        if (phase === 'teacher-class-detail' && selectedClassroom && idToken && pollingTab) {
+        if (visible && phase === 'teacher-class-detail' && selectedClassroom && idToken && pollingTab) {
             // Refresh immediately when the tab opens, then poll.
             refreshMembersOnly(selectedClassroom.classroomId);
             refreshTimerRef.current = setInterval(() => {
@@ -471,7 +474,7 @@ const useTeacherClassrooms = ({
                 clearInterval(refreshTimerRef.current);
             }
         };
-    }, [phase, selectedClassroom, idToken, refreshMembersOnly, detailTab]);
+    }, [visible, phase, selectedClassroom, idToken, refreshMembersOnly, detailTab]);
 
     // Another assignment: drop the progress of the previous one.
     useEffect(() => {

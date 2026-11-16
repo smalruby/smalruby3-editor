@@ -5,7 +5,8 @@
  * - 退室依頼のトースト（モーダルより上）の「課題を開く」・メニューバーの先生メニューは、
  *   ナビゲーションの要求（teacherNavTarget）でモーダルの画面を移す。採点の画面にいるときは、
  *   要求は受け取って消し、移動は requestLeave に渡して先生の答えを待つ。
- * - モーダルの［戻る］（✕・Esc）も同じ。
+ * - ログアウト・お知らせも同じ。モーダルの［戻る］（✕・Esc）は聞かない: 閉じても先生の画面は
+ *   隠して残る（#1990）ので、何も消えない。
  */
 import { act, render } from '@testing-library/react';
 import React from 'react';
@@ -121,14 +122,22 @@ describe('ClassroomTeacherModal — leaving the grading screen (#1923)', () => {
         expect(mockTeacher.handleShowClassList).toHaveBeenCalledTimes(1);
     });
 
-    test('closing the modal, logging out and the notifications ask on the grading screen', () => {
+    test('logging out and the notifications ask on the grading screen', () => {
         renderModal();
         openGrading();
-        act(() => mockComponentProps.onClose());
         act(() => mockComponentProps.containerProps.onTeacherLogout());
         act(() => mockComponentProps.containerProps.notificationsCenter.handleShowAll());
-        expect(mockTeacher.evaluation.handleRequestLeave).toHaveBeenCalledTimes(3);
+        expect(mockTeacher.evaluation.handleRequestLeave).toHaveBeenCalledTimes(2);
         expect(mockTeacher.handleTeacherLogout).not.toHaveBeenCalled();
         expect(mockTeacher.notificationsCenter.handleShowAll).not.toHaveBeenCalled();
+    });
+
+    test('closing the modal does not ask: the screen stays behind the editor (#1990)', () => {
+        const store = renderModal();
+        act(() => store.dispatch({ type: 'scratch-gui/classroom/OPEN_TEACHER_MODAL' }));
+        openGrading();
+        act(() => mockComponentProps.onClose());
+        expect(mockTeacher.evaluation.handleRequestLeave).not.toHaveBeenCalled();
+        expect(store.getState().scratchGui.classroom.teacherModalVisible).toBe(false);
     });
 });

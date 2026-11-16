@@ -403,3 +403,35 @@ body .alerts-container {
     height: calc(100% - 2.5rem);
 }
 /* === Smalruby: End of lesson mode === */
+
+/* === Smalruby: Start of classroom teacher work bar === */
+/*
+    先生がクラス管理から作品を開いている間の「戻る帯」（components/classroom-teacher-work-bar/。1 行・2.25rem
+    固定）は、メニューバー（とレッスンの課題バー）と本体のあいだに出す。本体はその高さの分だけ縮める。
+*/
+.body-wrapper-with-teacher-work-bar {
+    height: calc(100% - $menu-bar-height - 2.25rem);
+}
+
+.body-wrapper-with-lesson-task-bar.body-wrapper-with-teacher-work-bar {
+    height: calc(100% - $menu-bar-height - 2.5rem - 2.25rem);
+}
+
+@media (max-height: 800px) {
+    .body-wrapper-with-teacher-work-bar {
+        height: calc(100% - 2.5rem - 2.25rem);
+    }
+
+    .body-wrapper-with-lesson-task-bar.body-wrapper-with-teacher-work-bar {
+        height: calc(100% - 2.5rem - 2.5rem - 2.25rem);
+    }
+}
+
+.body-wrapper-without-menu-bar.body-wrapper-with-teacher-work-bar {
+    height: calc(100% - 2.25rem);
+}
+
+.body-wrapper-without-menu-bar.body-wrapper-with-lesson-task-bar.body-wrapper-with-teacher-work-bar {
+    height: calc(100% - 2.5rem - 2.25rem);
+}
+/* === Smalruby: End of classroom teacher work bar === */
