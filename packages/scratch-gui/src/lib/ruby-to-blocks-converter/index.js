@@ -106,50 +106,30 @@ class RubyToBlocksConverter extends Visitor {
         this._prismErrorTranslator = new PrismErrorTranslator(translator);
     }
 
+    /**
+     * Convert the Ruby code of a target into blocks in four stages
+     * (docs/ruby-editor/converter-stages.md): parse, analyze, convert and finish.
+     * The blocks are written into the target later by `applyTargetBlocks` (target-applier.js).
+     * @param {object} target - The target (sprite or stage) of the code.
+     * @param {string} code - The Ruby code.
+     * @returns {Promise<boolean>} Whether the code was converted. The errors are in `errors`.
+     */
     async targetCodeToBlocks(target, code) {
         this.reset();
         this._setTarget(target);
         this._loadVariables(target);
-        this._context.sourceCode = code;
-        this._buildByteToCharMap();
+        this._indexSource(code);
         try {
-            const prism = RubyParser.getPrism() || (await RubyParser.loadPrism());
-            const parseResult = prism.parse(code);
-            if (parseResult.errors.length > 0) {
-                parseResult.errors.forEach((e) => {
-                    const translatedMessage = this._prismErrorTranslator.translate(e.message);
-                    // Prism error locations have startOffset (byte-based) but not startLine/startColumn.
-                    // Compute line/column from the byte offset using our byte→char mapping.
-                    const loc = this._getLoc({ location: e.location });
-                    this._context.errors.push(this._toErrorAnnotation(loc.line, loc.column, translatedMessage));
-                });
+            const parseResult = await this._parse(code);
+            if (!parseResult) {
                 return false;
             }
             const root = parseResult.value;
-            this._context.rootNode = root; // Save root node for line mapping
-            // The analysis stage (docs/ruby-editor/converter-stages.md): walk the tree once before
-            // converting and keep what the conversion reads in a frozen table: how each variable
-            // name is used, so that `@a.length` does not depend on whether `@a = "abc"` was
-            // converted before it (issue #1613), the units of the locals (issue #1630), and the
-            // calls of the procedures whose values are used (the variables of their return values).
-            this._context.analysis = analyze(root, { source: code });
-            // One `@a` used as both a variable and a list is an error (issues #1593 / #1622)
-            this._rejectRubyNameOfVariableAndList();
-            let blocks = this.visit(root);
-            if (blocks === null || typeof blocks === 'undefined') {
+            this._analyze(root, code);
+            const blocks = this._convert(root);
+            if (blocks === null) {
                 return true;
             }
-            if (!_.isArray(blocks)) {
-                blocks = [blocks];
-            }
-            // Link blocks if root is not a begin node (begin nodes handle linking internally)
-            // This is needed for cases like "text = gets" where a single statement returns
-            // multiple blocks
-            const rootType = nodeTypeName(root);
-            if (rootType !== 'StatementsNode' && rootType !== 'ProgramNode' && rootType !== 'BeginNode') {
-                blocks = this._linkBlocks(blocks);
-            }
-            // The finish stage (finish.js): what is decided or checked after the whole code is converted
             this._finish(blocks, parseResult, code);
 
             return true;
@@ -174,6 +154,77 @@ class RubyToBlocksConverter extends Visitor {
             }
             return false;
         }
+    }
+
+    /**
+     * The first half of the parse stage: the index of the source (byte → character), which the
+     * locations of the errors of every stage read.
+     * @param {string} code - The Ruby code.
+     */
+    _indexSource(code) {
+        this._context.sourceCode = code;
+        this._buildByteToCharMap();
+    }
+
+    /**
+     * The parse stage: parse the code with prism. A syntax error is translated and put in `errors`.
+     * @param {string} code - The Ruby code.
+     * @returns {Promise<object|null>} The result of prism, or null when the code has syntax errors.
+     */
+    async _parse(code) {
+        const prism = RubyParser.getPrism() || (await RubyParser.loadPrism());
+        const parseResult = prism.parse(code);
+        if (parseResult.errors.length > 0) {
+            parseResult.errors.forEach((e) => {
+                const translatedMessage = this._prismErrorTranslator.translate(e.message);
+                // Prism error locations have startOffset (byte-based) but not startLine/startColumn.
+                // Compute line/column from the byte offset using our byte→char mapping.
+                const loc = this._getLoc({ location: e.location });
+                this._context.errors.push(this._toErrorAnnotation(loc.line, loc.column, translatedMessage));
+            });
+            return null;
+        }
+        this._context.rootNode = parseResult.value; // Save root node for line mapping
+        return parseResult;
+    }
+
+    /**
+     * The analysis stage (analysis.js): walk the tree once before converting and keep what the
+     * conversion reads in a frozen table: how each variable name is used, so that `@a.length` does
+     * not depend on whether `@a = "abc"` was converted before it (issue #1613), the units of the
+     * locals (issue #1630), and the calls of the procedures whose values are used (the variables of
+     * their return values).
+     * @param {object} root - The root node.
+     * @param {string} code - The Ruby code.
+     */
+    _analyze(root, code) {
+        this._context.analysis = analyze(root, { source: code });
+        // One `@a` used as both a variable and a list is an error (issues #1593 / #1622)
+        this._rejectRubyNameOfVariableAndList();
+    }
+
+    /**
+     * The convert stage: make the blocks of the root node.
+     * @param {object} root - The root node.
+     * @returns {Array|null} The blocks (and primitives) of the statements of the root, or null when
+     * the code has no statement.
+     */
+    _convert(root) {
+        let blocks = this.visit(root);
+        if (blocks === null || typeof blocks === 'undefined') {
+            return null;
+        }
+        if (!_.isArray(blocks)) {
+            blocks = [blocks];
+        }
+        // Link blocks if root is not a begin node (begin nodes handle linking internally)
+        // This is needed for cases like "text = gets" where a single statement returns
+        // multiple blocks
+        const rootType = nodeTypeName(root);
+        if (rootType !== 'StatementsNode' && rootType !== 'ProgramNode' && rootType !== 'BeginNode') {
+            blocks = this._linkBlocks(blocks);
+        }
+        return blocks;
     }
 
     visit(node) {
