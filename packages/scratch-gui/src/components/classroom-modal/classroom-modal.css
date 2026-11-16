@@ -2030,6 +2030,33 @@ $seat-tile-min: 36px;
     padding-left: 1rem;
 }
 
+/* Below the 960px modal (iPad portrait) the 380px pane on the right would
+   leave the seats about 280px: the tiles shrink to about 24px and their
+   content overlaps (#1941). Put the detail under the seats instead; the two
+   share the height (3 : 2, so 4 rows of full-size tiles fit on 768x1024) and
+   each scrolls inside its own frame. */
+@media (max-width: 1023px) {
+    .detail-two-pane-layout {
+        flex-direction: column;
+    }
+
+    .detail-left-pane {
+        flex: 3 1 0;
+    }
+
+    .detail-right-pane {
+        flex: 2 1 0;
+    }
+
+    .detail-right-pane {
+        width: auto;
+        border-left: none;
+        border-top: 1px solid #e0e0e0;
+        padding-left: 0;
+        padding-top: 1rem;
+    }
+}
+
 /* Right pane member detail */
 
 .member-detail-panel {
