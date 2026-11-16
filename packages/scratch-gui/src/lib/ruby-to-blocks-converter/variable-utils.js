@@ -388,7 +388,7 @@ const VariableUtils = {
      * @returns {?object} `{variables, locals}` of the analysis.
      */
     _variableAnalysis() {
-        return this._context.analysis || null;
+        return this._context.analysis;
     },
 
     /**
@@ -567,7 +567,7 @@ const VariableUtils = {
             return scopeIndex;
         }
         // Decided while converting (in the order of the scopes), so not in the frozen analysis.
-        const scopeIndexes = this._context.localScopeIndexes || (this._context.localScopeIndexes = {});
+        const scopeIndexes = this._context.localScopeIndexes;
         if (!scopeIndexes[unit]) {
             this._context.scopeCounter++;
             scopeIndexes[unit] = this._context.scopeCounter;

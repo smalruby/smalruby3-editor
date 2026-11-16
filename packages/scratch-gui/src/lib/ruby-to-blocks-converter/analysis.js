@@ -203,12 +203,14 @@ const readOnlyMap = (map) =>
  * @returns {object} `{enter, finish}`.
  */
 const variableCollector = (lineOf) => {
-    const uses = {};
-    const localUses = { 0: {} };
+    // The tables keyed by Ruby names have no prototype, so that `__proto__` or `constructor` is a
+    // name like any other (issue #2034).
+    const uses = Object.create(null);
+    const localUses = { 0: Object.create(null) };
     const unitGroups = { 0: 0 };
     const unitOfNode = new Map();
     const unitOfEntered = new Map();
-    const firstUses = {};
+    const firstUses = Object.create(null);
     const rubyNames = new Set();
     let nextUnit = 1;
 
@@ -219,7 +221,7 @@ const variableCollector = (lineOf) => {
         uses[key][use] = true;
         const isInstanceOrGlobal = key[0] === '$' || key[0] === '@';
         if (node && (use === 'list' || use === 'scalar') && isInstanceOrGlobal) {
-            if (!firstUses[key]) firstUses[key] = {};
+            if (!firstUses[key]) firstUses[key] = Object.create(null);
             const line = lineOf(node);
             // The first in the order of the source on the earliest line.
             if (!firstUses[key][use] || line < firstUses[key][use].line) {
@@ -243,7 +245,7 @@ const variableCollector = (lineOf) => {
         if (startsUnit) {
             unit = nextUnit++;
             unitGroups[unit] = type === 'DefNode' ? unit : 0;
-            localUses[unit] = {};
+            localUses[unit] = Object.create(null);
             unitOfNode.set(node, unit);
         }
         unitOfEntered.set(node, unit);
@@ -287,7 +289,7 @@ const variableCollector = (lineOf) => {
             if (use.hash) return 'hash';
             return 'scalar';
         };
-        const kindsOfName = {};
+        const kindsOfName = Object.create(null);
         Object.keys(localUses).forEach((unit) => {
             if (Number(unit) === 0 || unitGroups[unit] !== 0) return;
             Object.keys(localUses[unit]).forEach((name) => {
@@ -327,7 +329,8 @@ const variableCollector = (lineOf) => {
  * @returns {object} `{enter, finish}`.
  */
 const valueCallCounter = () => {
-    const counts = {};
+    // Keyed by method names: no prototype, so that a method named `constructor` counts (issue #2034).
+    const counts = Object.create(null);
     // node -> STATEMENT or VALUE; a node without one is not looked at (its children neither).
     const roleOf = new Map();
     const setRole = (child, role) => {
@@ -429,7 +432,7 @@ const classCollector = (lineOf) => {
             .map((stmt) => String(stmt.name));
     const enter = (node, type) => {
         if (type === 'ClassNode') {
-            const attrs = {};
+            const attrs = Object.create(null);
             const includes = [];
             bodyStatements(node).forEach((stmt) => {
                 if (nodeTypeName(stmt) !== 'CallNode' || stmt.receiver) return;

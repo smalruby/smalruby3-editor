@@ -25,9 +25,6 @@ const ContextUtils = {
             lists: Object.create(null),
             broadcastMsgs: Object.create(null),
             procedures: Object.create(null),
-            // Still a plain object: the analysis (`valueCallCounter` in analysis.js) counts in a
-            // plain object too, and the two must agree until the converter reads the analysis (#2016).
-            methodCallCounts: {},
             methodCallIndices: Object.create(null),
             // Whether a return value of a call is saved in a variable in the current statement (issue #1556)
             savedReturnValueInStatement: false,
@@ -62,12 +59,15 @@ const ContextUtils = {
             superMethodMap: Object.create(null),
             superRenameTarget: null,
             symbols: new Set(),
-            // How the code uses each variable name, collected before converting (issue #1613)
-            variableUses: Object.create(null),
-            // Where the code uses each local variable, and the unit being converted (issue #1630)
-            localVariableUnits: null,
+            // What the analysis stage decides before converting (`analysis.js`, read-only): how
+            // each variable name is used (issue #1613), where each local is used (issue #1630), how
+            // many times each method is called as a value, ...
+            analysis: null,
+            // The scope index of each unit of locals of the script, decided while converting (issue #1630)
+            localScopeIndexes: Object.create(null),
             // The list blocks that read `@a` / `$a` of Ruby version 2 (issue #1622)
             listReadBlockIds: new Set(),
+            // The unit of locals being converted (issue #1630)
             currentLocalUnit: 0,
         };
         // The tables that a conversion attempt rolls back record their writes (see `_saveContext`).
