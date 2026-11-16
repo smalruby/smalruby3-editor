@@ -45,6 +45,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/reducers/gui.ts` | initial state | Smalruby 初期 state の展開 |
 | `src/reducers/gui.ts` | reducers | Smalruby reducer の登録 |
 | `src/containers/cards.jsx` | tutorial glow animation | チュートリアルのハイライトアニメーション |
+| `src/containers/sprite-library.jsx` | localized library sprite names | 「スプライトを選ぶ」の一覧で、コースのキャラクター（Shimaraby / Shimacat）を言語の名前（シマラビ / シマネコ）にする（import・`localizeSprites`・render の 3 ペア）。一覧の名前・検索・足したスプライトの名前がそろう。名前の表は `src/lib/lessons/sprite-names.js`（`docs/lessons/README.md`） |
 | `src/containers/connection-modal.jsx` | smalrubot firmware flash | SmalrubotS1 ファームウェア書き込みの import、ハンドラー、props |
 | `src/containers/connection-modal.jsx` | meshV2 initial step feature | Mesh v2 接続初期ステップ |
 | `src/containers/connection-modal.jsx` | meshV2 connected message feature | Mesh v2 接続済みメッセージ |
@@ -70,7 +71,6 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/gui.jsx` | bug report modal | `openBugReportModal` の import、`onOpenBugReportModal` を Redux `openBugReportModal()` にマップ |
 | `src/components/modal/modal.css` | default modal background | `.modal-content` (非フルスクリーン) に既定背景 `$ui-white` を付与し、本文背景の設定漏れでも青いオーバーレイが透けないようにする (案X)。`background-clip: padding-box` で枠（白 25%）の下は塗らず、枠は上流と同じ淡い青に見せる |
 | `src/components/gui/gui.jsx` | meshV2 classroom binding | クラス状態に応じて Mesh v2 ドメインを参加コードに固定する常時マウントの binding |
-| `src/components/gui/gui.jsx` | meshV2 self-sensor notice | グローバル変数名と mesh センサーの値の重複を検出し初回のみ通知する常時マウントのバナー (Issue #707) の import と配置 |
 | `src/components/gui/gui.jsx` | mesh status popup | メッシュの「状態と履歴」ウィンドウ（`containers/mesh-status-popup.jsx`）の import と、エディターとプレイヤーのツリー（`StageWrapper` 内）への常時マウント（`docs/mesh-v2/README.md`） |
 | `src/components/stage-header/stage-header.jsx` | mesh status button | 緑の旗・停止（`Controls`）とメッシュのボタン（`MeshStatusButton`）を 1 つのまとまり（`controlsGroup`）に入れる。通常表示と全画面の 2 か所 + import |
 | `src/components/menu-bar/menu-bar.jsx` | mesh status popup | メッシュのメニューの「状態と履歴を見る」（`menu-bar-mesh-status`）と、`openMeshV2StatusPopup` の import・`onOpenMeshV2StatusPopup` の dispatch と propType |

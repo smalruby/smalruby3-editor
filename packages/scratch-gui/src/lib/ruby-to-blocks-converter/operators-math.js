@@ -1,5 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (arithmetic operators and math function handlers) ===
 import _ from 'lodash';
+import { numberArg, registerSendTable } from './send-table';
 
 const Math = '::Math';
 const MathE = '::Math::E';
@@ -11,9 +12,37 @@ const UNARY_MINUS_COMMENT = '@ruby:unary_minus';
 const RAND_N_COMMENT = '@ruby:rand:n';
 
 /**
+ * `x.round`, `x.abs`, `x.floor` and `x.ceil` map one to one onto a block (see `send-table.js`):
+ * the receiver goes into the input.
+ */
+const OPERATORS_MATH_SENDS = [
+    {
+        receiver: ['variable', 'number', 'block'],
+        name: 'round',
+        opcode: 'operator_round',
+        type: 'value',
+        receiverArg: numberArg('NUM', ''),
+    },
+    ...[
+        ['abs', 'abs'],
+        ['floor', 'floor'],
+        ['ceil', 'ceiling'],
+    ].map(([name, operator]) => ({
+        receiver: ['variable', 'number', 'block'],
+        name,
+        opcode: 'operator_mathop',
+        type: 'value',
+        fields: { OPERATOR: operator },
+        receiverArg: numberArg('NUM', ''),
+    })),
+];
+
+/**
  * Math and arithmetic operator handlers for OperatorsConverter.
  */
 const OperatorsMath = {
+    sends: OPERATORS_MATH_SENDS,
+
     registerMath: function (converter) {
         // String-typed variable + any: use operator_join (must be registered before the numeric + handler)
         converter.registerOnSend('variable', '+', 1, (params) => {
@@ -124,28 +153,7 @@ const OperatorsMath = {
             return block;
         });
 
-        converter.registerOnSend(['variable', 'number', 'block'], 'round', 0, (params) => {
-            const { receiver } = params;
-
-            const block = converter._createBlock('operator_round', 'value');
-            converter._addNumberInput(block, 'NUM', 'math_number', receiver, '');
-            return block;
-        });
-
-        ['abs', 'floor', 'ceil'].forEach((methodName) => {
-            converter.registerOnSend(['variable', 'number', 'block'], methodName, 0, (params) => {
-                const { receiver } = params;
-
-                let operator = methodName;
-                if (methodName === 'ceil') {
-                    operator = 'ceiling';
-                }
-                const block = converter._createBlock('operator_mathop', 'value');
-                converter._addField(block, 'OPERATOR', operator);
-                converter._addNumberInput(block, 'NUM', 'math_number', receiver, '');
-                return block;
-            });
-        });
+        registerSendTable(converter, OPERATORS_MATH_SENDS);
 
         ['sqrt', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'log', 'log10'].forEach((methodName) => {
             converter.registerOnSend(Math, methodName, 1, (params) => {

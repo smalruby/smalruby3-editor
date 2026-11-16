@@ -1,33 +1,10 @@
-import {
-    ProgramNode,
-    StatementsNode,
-    BlockNode,
-    BeginNode,
-    DefNode,
-    ClassNode,
-    ModuleNode,
-} from '@ruby/prism/src/nodes.js';
 import { Visitor } from '@ruby/prism/src/visitor.js';
-import _ from 'lodash';
 import RubyParser from '../ruby-parser';
-import AstHandlers from './ast-handlers';
-import BlockUtils from './block-utils';
-import ClassVisitor from './class-visitor';
-import CommentHandler from './comment-handler';
-import ContextUtils from './context-utils';
-import { messages, getExtensionIdForOpcode } from './converter-errors';
-import ConverterRegistry from './converter-registry';
+import { messages } from './converter-errors';
 import { RubyToBlocksConverterError } from './errors';
-import InitializeHandler from './initialize-handler';
-import LineMappingUtils from './line-mapping';
-import ModuleVisitor from './module-visitor';
-import NodeUtils from './node-utils';
 import PrismErrorTranslator from './prism-error-translator';
 import registerConverters from './register-converters';
-import ReturnValueTemps from './return-value-temps';
-import ScopeManager from './scope-manager';
-import TargetApplier from './target-applier';
-import VariableUtils from './variable-utils';
+import { STAGES, mixStages } from './stages';
 
 /**
  * Class for a block converter that translates ruby code into the blocks.
@@ -103,140 +80,36 @@ class RubyToBlocksConverter extends Visitor {
         this._prismErrorTranslator = new PrismErrorTranslator(translator);
     }
 
+    /**
+     * Convert the Ruby code of a target into blocks in four stages
+     * (docs/ruby-editor/converter-stages.md): parse, analyze, convert and finish. The parts of each
+     * stage are in `stages.js`.
+     * The blocks are written into the target later by `applyTargetBlocks` (target-applier.js).
+     * @param {object} target - The target (sprite or stage) of the code.
+     * @param {string} code - The Ruby code.
+     * @returns {Promise<boolean>} Whether the code was converted. The errors are in `errors`.
+     */
     async targetCodeToBlocks(target, code) {
         this.reset();
         this._setTarget(target);
         this._loadVariables(target);
-        this._context.sourceCode = code;
-        this._buildByteToCharMap();
+        this._indexSource(code);
         try {
+            // Await only while prism is not loaded yet, and keep the stages synchronous: one more
+            // await delays the end of every conversion, and the Ruby tab then lost the error alert
+            // of a failed conversion when the sprite was changed (conversion-timing.test.js).
             const prism = RubyParser.getPrism() || (await RubyParser.loadPrism());
-            const parseResult = prism.parse(code);
-            if (parseResult.errors.length > 0) {
-                parseResult.errors.forEach((e) => {
-                    const translatedMessage = this._prismErrorTranslator.translate(e.message);
-                    // Prism error locations have startOffset (byte-based) but not startLine/startColumn.
-                    // Compute line/column from the byte offset using our byte→char mapping.
-                    const loc = this._getLoc({ location: e.location });
-                    this._context.errors.push(this._toErrorAnnotation(loc.line, loc.column, translatedMessage));
-                });
+            const parseResult = this._parse(prism, code);
+            if (!parseResult) {
                 return false;
             }
             const root = parseResult.value;
-            this._context.rootNode = root; // Save root node for line mapping
-            // Pre-pass: count procedure calls to support evacuation block generation
-            this._countProcedureCallsInNode(root);
-            // Pre-pass: how each variable name is used, so that `@a.length` does not depend on
-            // whether `@a = "abc"` was converted before it (issue #1613)
-            this._collectVariableUses(root);
-            // One `@a` used as both a variable and a list is an error (issues #1593 / #1622)
-            this._rejectRubyNameOfVariableAndList();
-            let blocks = this.visit(root);
-            if (blocks === null || typeof blocks === 'undefined') {
+            this._analyze(root, code);
+            const blocks = this._convert(root);
+            if (blocks === null) {
                 return true;
             }
-            if (!_.isArray(blocks)) {
-                blocks = [blocks];
-            }
-            // Link blocks if root is not a begin node (begin nodes handle linking internally)
-            // This is needed for cases like "text = gets" where a single statement returns
-            // multiple blocks
-            const rootType = this._getNodeTypeName(root);
-            if (rootType !== 'StatementsNode' && rootType !== 'ProgramNode' && rootType !== 'BeginNode') {
-                blocks = this._linkBlocks(blocks);
-            }
-            // === Smalruby: Start of bare literal to temp variable ===
-            // Convert bare Primitive literals to temp variable assignments
-            // so they become valid blocks (e.g. "Jimmy" → _lit_1_ = "Jimmy")
-            const Primitive = require('./primitive').default;
-            const newBlocks = [];
-            for (let i = 0; i < blocks.length; i++) {
-                const block = blocks[i];
-                if (block instanceof Primitive && block.type !== 'sym') {
-                    const converted = this._convertBareLiteralToAssignment(block);
-                    const arr = _.isArray(converted) ? converted : [converted];
-                    // Link converted blocks into a chain
-                    for (let j = 0; j < arr.length - 1; j++) {
-                        arr[j].next = arr[j + 1].id;
-                        arr[j + 1].parent = arr[j].id;
-                    }
-                    // Link last converted block to the previous block's chain
-                    if (newBlocks.length > 0) {
-                        const prev = newBlocks[newBlocks.length - 1];
-                        if (this._isBlock(prev) && !prev.next) {
-                            prev.next = arr[0].id;
-                            arr[0].parent = prev.id;
-                        }
-                    }
-                    newBlocks.push(...arr);
-                } else {
-                    newBlocks.push(block);
-                }
-            }
-            blocks = newBlocks;
-            // === Smalruby: End of bare literal to temp variable ===
-
-            blocks.forEach((block) => {
-                if (this._isBlock(block)) {
-                    if (!block.parent) {
-                        block.topLevel = true;
-                    }
-                } else if (block instanceof Primitive) {
-                    if (block.type === 'sym') {
-                        const source = this._truncateSource(this._getSource(block.node));
-                        const suggestion = `${source}.to_s`;
-                        throw new RubyToBlocksConverterError(
-                            block.node,
-                            this._translator(messages.symbolNeedsToS, { SOURCE: source, SUGGESTION: suggestion }),
-                        );
-                    }
-                    throw new RubyToBlocksConverterError(
-                        block.node,
-                        this._translator(messages.couldNotConvertPrimitive, {
-                            SOURCE: this._truncateSource(this._getSource(block.node)),
-                        }),
-                    );
-                } else {
-                    throw new Error(`invalid block: ${block}`);
-                }
-            });
-            Object.keys(this._context.blocks).forEach((blockId) => {
-                const block = this._context.blocks[blockId];
-
-                // Reject ruby blocks (ruby_statement, ruby_expression, ruby_range, etc.)
-                // UNLESS they have @ruby:return comment (legitimate fallback for procedures)
-                if (this._isRubyBlock(block)) {
-                    const hasReturnComment =
-                        block.comment &&
-                        this._context.comments[block.comment] &&
-                        this._context.comments[block.comment].text.startsWith('@ruby:return');
-                    if (!hasReturnComment) {
-                        // Quote the statement on one line that holds the expression, also when the
-                        // expression is inside another; the marker stays on the expression (issue #1704)
-                        const sourceNode = this._sourceNodeForError(block.node);
-                        throw new RubyToBlocksConverterError(
-                            block.node,
-                            this._translator(messages.wrongInstruction, {
-                                SOURCE: this._truncateSource(this._getSource(sourceNode)),
-                            }),
-                        );
-                    }
-                }
-
-                const extensionID = getExtensionIdForOpcode(block.opcode);
-                if (extensionID) {
-                    this._context.extensionIDs.add(extensionID);
-                }
-            });
-
-            this._dropUnusedHashVariables();
-            this._rejectVariableAndListOfSameName();
-
-            // Create $_symbols_ list if symbols were collected
-            this._createSymbolsList();
-
-            // Associate source comments with blocks
-            this._associateSourceComments(parseResult, code);
+            this._finish(blocks, parseResult, code);
 
             return true;
         } catch (e) {
@@ -261,237 +134,10 @@ class RubyToBlocksConverter extends Visitor {
             return false;
         }
     }
-
-    visit(node) {
-        if (!node) {
-            return null;
-        }
-
-        // Track depth for lineToNodeMap
-        const depth = this._context.processDepth || 0;
-        this._context.processDepth = depth + 1;
-
-        const startLine = this._getNodeStartLine(node);
-        const endLine = this._getNodeEndLine(node) || startLine;
-
-        if (startLine !== null && endLine !== null) {
-            const isContainerNode =
-                node instanceof ProgramNode ||
-                node instanceof StatementsNode ||
-                node instanceof BlockNode ||
-                node instanceof BeginNode ||
-                node instanceof DefNode ||
-                node instanceof ClassNode ||
-                node instanceof ModuleNode;
-
-            if (isContainerNode) {
-                const rangeEntry = {
-                    type: this._getNodeTypeName(node),
-                    startLine,
-                    endLine,
-                    depth,
-                };
-                // Store module name for comment association
-                if (node instanceof ModuleNode) {
-                    rangeEntry.moduleName = node.name;
-                }
-                this._context.containerNodeRanges.push(rangeEntry);
-            } else {
-                for (let line = startLine; line <= endLine; line++) {
-                    const existingEntry = this._context.lineToNodeMap.get(line);
-                    if (!existingEntry || depth < existingEntry.depth) {
-                        this._context.lineToNodeMap.set(line, { node, depth });
-                    }
-                }
-            }
-        }
-
-        const previousNode = this._context.currentNode;
-        this._context.currentNode = node;
-        // A method or a block of the script has its own local variables (issue #1630)
-        const previousLocalUnit = this._enterLocalUnit(node);
-
-        // Resolve the handler name via node.accept() rather than constructor.name.
-        // constructor.name is mangled by esbuild/terser in production builds, but
-        // each node class has a hardcoded accept() that calls the correct visitXxxNode
-        // method name on the visitor, so we can use a sniffing proxy to get it.
-        let handlerName = null;
-        const sniffer = new Proxy(
-            {},
-            {
-                get(_target, prop) {
-                    if (typeof prop === 'string' && prop.startsWith('visit')) {
-                        handlerName = prop;
-                    }
-                    return () => {};
-                },
-            },
-        );
-        node.accept(sniffer);
-
-        let result;
-        try {
-            if (handlerName && typeof this[handlerName] === 'function') {
-                result = this[handlerName](node);
-            } else {
-                throw new Error(`not supported node type: ${this._getNodeTypeName(node)}`);
-            }
-        } finally {
-            if (previousLocalUnit !== null) this._context.currentLocalUnit = previousLocalUnit;
-        }
-
-        if (result && !this._context.nodeToBlockMap.has(node)) {
-            const blockId = this._getBlockIdFromResult(result);
-            if (blockId) {
-                this._context.nodeToBlockMap.set(node, blockId);
-            }
-        }
-
-        this._context.currentNode = previousNode;
-        this._context.processDepth = depth;
-        return result;
-    }
-
-    // Get the node type name using accept()-based sniffing, which is safe
-    // against minification (constructor.name is mangled by esbuild/terser).
-    // Returns e.g. 'CallNode', 'StringNode', 'IntegerNode', etc.
-    _getNodeTypeName(node) {
-        let handlerName = null;
-        const sniffer = new Proxy(
-            {},
-            {
-                get(_target, prop) {
-                    if (typeof prop === 'string' && prop.startsWith('visit')) {
-                        handlerName = prop;
-                    }
-                    return () => {};
-                },
-            },
-        );
-        node.accept(sniffer);
-        // handlerName is e.g. 'visitCallNode' -> extract 'CallNode'
-        return handlerName ? handlerName.slice('visit'.length) : null;
-    }
-
-    /**
-     * Convert a ConstantReadNode or ConstantPathNode to its full path string.
-     * e.g. ConstantReadNode "Foo" -> "Foo"
-     * e.g. ConstantPathNode(ConstantPathNode(null, "Smalruby3"), "Sprite") -> "::Smalruby3::Sprite"
-     * @param {object} node - A prism constant node
-     * @returns {string} The full constant path
-     */
-    _constantNodeToPath(node) {
-        const typeName = this._getNodeTypeName(node);
-        if (typeName === 'ConstantReadNode') {
-            return node.name;
-        }
-        if (typeName === 'ConstantPathNode') {
-            if (node.parent) {
-                return `${this._constantNodeToPath(node.parent)}::${node.name}`;
-            }
-            // Leading :: (root scope)
-            return `::${node.name}`;
-        }
-        return String(node.name || '');
-    }
-
-    /**
-     * Convert a bare Primitive literal to a temp variable assignment block.
-     * e.g. "Jimmy" → _lit_1_ = "Jimmy" with `@ruby`:literal:string comment
-     * @param {object} primitive - The Primitive instance.
-     * @returns {object|Array} The assignment block(s).
-     */
-    _convertBareLiteralToAssignment(primitive) {
-        const items = primitive.type === 'array' ? primitive.value : null;
-        // An item that is not a number, a string or a value (`[(@a = 1)]`, `[:a]`) used to be put in
-        // the list as its text ("[object Object]", "a"): the error of a wrong instruction instead (#1865).
-        // Check before the list is made and the number of `_lit_` goes on.
-        if (items && !items.every((item) => this._isNumberOrStringOrBlock(item))) {
-            throw new RubyToBlocksConverterError(
-                primitive.node,
-                this._translator(messages.wrongInstruction, {
-                    SOURCE: this._truncateSource(this._getSource(primitive.node)),
-                }),
-            );
-        }
-        const index = (this._context.literalCallIndices._lit_ || 0) + 1;
-        this._context.literalCallIndices._lit_ = index;
-        const varName = `_lit_${index}_`;
-
-        if (primitive.type === 'array') {
-            // Array literal: create list variable + add items
-            const prefixedName = varName;
-            const listVar = this._lookupOrCreateList(prefixedName);
-            const clearBlock = this._createBlock('data_deletealloflist', 'statement');
-            clearBlock.node = primitive.node;
-            clearBlock.fields = {
-                LIST: { name: 'LIST', id: listVar.id, value: listVar.name, variableType: listVar.type },
-            };
-            clearBlock.comment = this._createComment(`@ruby:literal:array`, clearBlock.id);
-
-            const addBlocks = [];
-            items.forEach((item) => {
-                const addBlock = this._createBlock('data_addtolist', 'statement');
-                addBlock.node = primitive.node;
-                addBlock.fields = {
-                    LIST: { name: 'LIST', id: listVar.id, value: listVar.name, variableType: listVar.type },
-                };
-                if (this._isValueBlock(item)) {
-                    this._addTextInput(addBlock, 'ITEM', item, '');
-                } else {
-                    const val = this._isPrimitive(item) ? item.value : item;
-                    this._addTextInput(addBlock, 'ITEM', String(val), '');
-                }
-                addBlocks.push(addBlock);
-            });
-
-            return [clearBlock, ...addBlocks];
-        }
-
-        // String, integer, float: create scalar variable assignment
-        let commentType;
-        if (primitive.type === 'str') {
-            commentType = 'string';
-        } else if (primitive.type === 'int') {
-            commentType = 'integer';
-        } else if (primitive.type === 'float') {
-            commentType = 'float';
-        } else {
-            commentType = primitive.type;
-        }
-
-        const variable = this._lookupOrCreateVariable(varName);
-        const block = this._createBlock('data_setvariableto', 'statement');
-        block.node = primitive.node;
-        block.fields = {
-            VARIABLE: { name: 'VARIABLE', id: variable.id, value: variable.name, variableType: variable.type },
-        };
-        this._addTextInput(block, 'VALUE', String(primitive.value), '0');
-        block.comment = this._createComment(`@ruby:literal:${commentType}`, block.id);
-
-        return block;
-    }
-
-    visitProgramNode(node) {
-        return this.visit(node.statements);
-    }
 }
 
-// Mixin methods
-Object.assign(RubyToBlocksConverter.prototype, BlockUtils);
-Object.assign(RubyToBlocksConverter.prototype, NodeUtils);
-Object.assign(RubyToBlocksConverter.prototype, VariableUtils);
-Object.assign(RubyToBlocksConverter.prototype, ContextUtils);
-Object.assign(RubyToBlocksConverter.prototype, ScopeManager);
-Object.assign(RubyToBlocksConverter.prototype, AstHandlers);
-Object.assign(RubyToBlocksConverter.prototype, ReturnValueTemps);
-Object.assign(RubyToBlocksConverter.prototype, LineMappingUtils);
-Object.assign(RubyToBlocksConverter.prototype, ConverterRegistry);
-Object.assign(RubyToBlocksConverter.prototype, TargetApplier);
-Object.assign(RubyToBlocksConverter.prototype, CommentHandler);
-Object.assign(RubyToBlocksConverter.prototype, ClassVisitor);
-Object.assign(RubyToBlocksConverter.prototype, InitializeHandler);
-Object.assign(RubyToBlocksConverter.prototype, ModuleVisitor);
+// The parts of the four stages (stages.js)
+mixStages(RubyToBlocksConverter.prototype, STAGES);
 
 /**
  * Null of RubyToBlocksConverter
