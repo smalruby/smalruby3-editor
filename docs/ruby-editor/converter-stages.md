@@ -7,6 +7,7 @@ Ruby → ブロックの変換器（`packages/scratch-gui/src/lib/ruby-to-blocks
 
 - 何をどのブロックと注釈 `@ruby:*` で表すか（橋渡しの決まり）は [`bridging-patterns.md`](bridging-patterns.md)。この文書は「どこで・どの順に」それを決めるかを扱う。
 - 振る舞いを固定するテストは、ブロック ⇔ Ruby の表（[`bridging-patterns.md`](bridging-patterns.md) の「表のテスト」）と往復テスト。
+- 段の間で渡すものの約束、日本語モードの経路、残りの移し方は [`converter-roadmap.md`](converter-roadmap.md)。
 
 ## ねらい
 
