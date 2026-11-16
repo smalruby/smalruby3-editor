@@ -242,12 +242,16 @@ export const validateQuiz = (quiz) => {
     return errors;
 };
 // ヒントの文言は並びの番号（step1, step2, ...）で引く。`classroom: true` の手順は、クラスに参加中の生徒には
-// `stepN.inClass` の文言を出す（メッシュのつなぎ方。クラスの中では出席番号でつながる・lib/lessons/hint-text.js）
+// `stepN.inClass` の文言を出す（メッシュのつなぎ方。クラスの中では出席番号でつながる・lib/lessons/hint-text.js）。
+// いくつものチャレンジで同じ文の手順（「メッシュにつなごう」）は、`title` / `classroomTitle` を書いておけば
+// それを使う（その番号の stepN は使わない）
 const withTitles = (challengeId, steps) =>
     steps.map(({ classroom, ...step }, i) => ({
         ...step,
-        title: challengeMessage(challengeId, `step${i + 1}`),
-        ...(classroom ? { classroomTitle: challengeMessage(challengeId, `step${i + 1}.inClass`) } : {}),
+        title: step.title || challengeMessage(challengeId, `step${i + 1}`),
+        ...(classroom && !step.classroomTitle
+            ? { classroomTitle: challengeMessage(challengeId, `step${i + 1}.inClass`) }
+            : {}),
     }));
 
 /** ヒントの 1 ページ目「課題の説明と、アクティビティ図を理解しよう」の `kind`。 */
@@ -1424,6 +1428,15 @@ const CHAT_HAPPY = /^(うれしい|happy)$/i;
 const CHAT_SLEEPY = /^(ねむい|sleepy)$/i;
 const CHAT_MOOD = /^(うれしい|ねむい|happy|sleepy)$/i;
 
+// ペア・グループでやるチャレンジの 2 ページ目「メッシュにつなごう」（#2060）。チャレンジを始めると作品を読み込み
+// 直すので、前のチャレンジからつながったままかは生徒にはわからない。つながっていれば次のページへ進めばよいと書く。
+// 文はどのチャレンジでも同じなので共通の文言（クラスの中は出席番号でつながる）。kind = 'pair'（2 人）/ 'group'（3 人以上）
+const connectStep = (kind = 'pair') => ({
+    target: HINT_TARGETS.PRACTICE_PARTNER,
+    title: message(`gui.lessons.chat.connect.${kind}`),
+    classroomTitle: message(`gui.lessons.chat.connect.${kind}.inClass`),
+});
+
 const chatLesson3 = defineLesson({
     id: 'chat-l3',
     challenges: [
@@ -1594,6 +1607,7 @@ const chatLesson3 = defineLesson({
                 watch: [chatL3Text('myMoodName')],
             },
             steps: withDiagramFirst('chat-l3-mesh-variable', [
+                connectStep(),
                 { target: HINT_TARGETS.PALETTE },
                 {
                     target: HINT_TARGETS.PALETTE,
@@ -1891,6 +1905,7 @@ const chatLesson4 = defineLesson({
             },
             partner: chatL4PairPartner(),
             steps: withDiagramFirst('chat-l4-send-repeat', [
+                connectStep(),
                 {
                     target: HINT_TARGETS.CODE_AREA,
                     blocks: chatL4Code((w) => `loop do\n  ${w.v} = answer\n  broadcast("${w.message}")\nend\n`),
@@ -1932,6 +1947,7 @@ const chatLesson4 = defineLesson({
             },
             partner: chatL4PairPartner(),
             steps: withDiagramFirst('chat-l4-both-ways', [
+                connectStep(),
                 { target: HINT_TARGETS.SPRITE_LIST },
                 {
                     target: HINT_TARGETS.PALETTE,
@@ -2006,6 +2022,7 @@ const chatLesson4 = defineLesson({
                 replies: [],
             },
             steps: withDiagramFirst('chat-l4-group', [
+                connectStep('group'),
                 // 最初から入っているシマネコのプログラム（みんなの発言を言う）
                 { target: HINT_TARGETS.CODE_AREA, blocks: chatL4GroupReceive },
                 {
@@ -2092,6 +2109,7 @@ const chatLesson4 = defineLesson({
                 replies: [],
             },
             steps: withDiagramFirst('chat-l4-dm', [
+                connectStep('group'),
                 { target: HINT_TARGETS.CODE_AREA, blocks: chatL4Dm },
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4DmReceive },
                 { target: HINT_TARGETS.PRACTICE_PARTNER },
@@ -2329,6 +2347,7 @@ const chatLesson5 = defineLesson({
                 ],
             }),
             steps: withDiagramFirst('chat-l5-read-receipt', [
+                connectStep(),
                 {
                     target: HINT_TARGETS.SPRITE_LIST,
                     blocks: chatL5Code(
@@ -2397,6 +2416,7 @@ const chatLesson5 = defineLesson({
             },
             partner: chatL5Partner(),
             steps: withDiagramFirst('chat-l5-ng-word', [
+                connectStep(),
                 // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL5NgStage },
@@ -2456,6 +2476,7 @@ const chatLesson5 = defineLesson({
             // 自動の返事（「とどいたよ」）は持たない。自動返信どうしが行き来し続けないように
             partner: chatL5Partner({ replies: [] }),
             steps: withDiagramFirst('chat-l5-auto-reply', [
+                connectStep(),
                 // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
                 {
@@ -2510,6 +2531,7 @@ const chatLesson5 = defineLesson({
             },
             partner: chatL5Partner(),
             steps: withDiagramFirst('chat-l5-password', [
+                connectStep(),
                 // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
                 {
@@ -2578,6 +2600,7 @@ const chatLesson5 = defineLesson({
                 replies: [{ onBroadcast: chatL5Text('myStamp'), broadcast: chatL5Text('partnerStamp') }],
             }),
             steps: withDiagramFirst('chat-l5-stamp', [
+                connectStep(),
                 // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
                 { target: HINT_TARGETS.PALETTE, blocks: chatL5StampSend },

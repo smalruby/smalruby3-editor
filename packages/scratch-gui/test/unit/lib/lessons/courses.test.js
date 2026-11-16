@@ -1511,6 +1511,50 @@ describe('chat course: how to connect over the mesh, in and outside a class', ()
         ['chat-l4-send-once', 4],
     ];
 
+    // 「メッシュにつなごう」を 2 ページ目に足したチャレンジ（#2060。文はどれも同じ共通の文言）
+    const SHARED_CONNECT = [
+        ['chat-l3-mesh-variable', 'pair'],
+        ['chat-l4-send-repeat', 'pair'],
+        ['chat-l4-both-ways', 'pair'],
+        ['chat-l4-group', 'group'],
+        ['chat-l4-dm', 'group'],
+        ['chat-l5-read-receipt', 'pair'],
+        ['chat-l5-ng-word', 'pair'],
+        ['chat-l5-auto-reply', 'pair'],
+        ['chat-l5-password', 'pair'],
+        ['chat-l5-stamp', 'pair'],
+    ];
+    const ALL_CONNECT = [...CONNECT_STEPS, ...SHARED_CONNECT.map(([id]) => [id, 2])];
+
+    test.each(SHARED_CONNECT)('%s has "connect to the mesh" on page 2 (%s)', (id, kind) => {
+        const step = challenge(id).steps[1];
+        expect(step.title.id).toBe(`gui.lessons.chat.connect.${kind}`);
+        expect(step.classroomTitle.id).toBe(`gui.lessons.chat.connect.${kind}.inClass`);
+        expect(step.target).toBe('practice-partner');
+    });
+
+    test.each(Object.keys(LOCALES))('the shared connect page says to go on if already connected (%s)', (locale) => {
+        const next = { ja: '次のページへ進もう', 'ja-Hira': 'つぎの ページへ すすもう', en: 'go to the next page' }[
+            locale
+        ];
+        ['pair', 'group'].forEach((kind) => {
+            expect(LOCALES[locale][`gui.lessons.chat.connect.${kind}`]).toContain(next);
+            expect(LOCALES[locale][`gui.lessons.chat.connect.${kind}.inClass`]).toContain(next);
+        });
+    });
+
+    test.each(Object.keys(LOCALES))('4-1 and 4-2 tell a pair to check the mesh status and history (%s)', (locale) => {
+        const word = { ja: '状態と履歴', 'ja-Hira': 'じょうたいとりれき', en: 'status and history' }[locale];
+        [
+            ['chat-l4-send-once', 5],
+            ['chat-l4-send-repeat', 5],
+        ].forEach(([id, number]) => {
+            const step = challenge(id).steps[number - 1];
+            expect(step.target).toBe('green-flag');
+            expect(LOCALES[locale][step.title.id].toLowerCase()).toContain(word);
+        });
+    });
+
     test.each(CONNECT_STEPS)('%s step %d has a text for a student in a class', (id, number) => {
         const step = challenge(id).steps[number - 1];
         expect(step.title.id).toBe(`gui.lessons.challenge.${id}.step${number}`);
@@ -1526,7 +1570,7 @@ describe('chat course: how to connect over the mesh, in and outside a class', ()
                 'ja-Hira': { seat: 'しゅっせきばんごうで つながる', host: 'ホスト' },
                 en: { seat: 'Connect by seat number', host: 'host' },
             }[locale];
-            CONNECT_STEPS.forEach(([id, number]) => {
+            ALL_CONNECT.forEach(([id, number]) => {
                 const step = challenge(id).steps[number - 1];
                 expect(LOCALES[locale][step.classroomTitle.id]).toContain(words.seat);
                 expect(LOCALES[locale][step.classroomTitle.id]).not.toContain(words.host);
@@ -1539,7 +1583,7 @@ describe('chat course: how to connect over the mesh, in and outside a class', ()
         const withClassroom = allChallenges().flatMap((c) =>
             c.steps.map((s, i) => (s.classroomTitle ? `${c.id}:${i + 1}` : null)).filter(Boolean),
         );
-        expect(withClassroom).toEqual(['chat-l3-mesh-signal:3', 'chat-l4-send-once:4']);
+        expect(withClassroom.sort()).toEqual(ALL_CONNECT.map(([id, number]) => `${id}:${number}`).sort());
     });
 });
 
