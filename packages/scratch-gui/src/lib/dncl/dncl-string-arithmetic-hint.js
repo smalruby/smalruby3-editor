@@ -40,12 +40,23 @@ const TO_STRING = '文字列';
 
 /**
  * A new state for an expression inside one pair of brackets (or the line).
- * @returns {{joinsString: boolean, lastIsString: boolean, pending: boolean, expectOperand: boolean}}
+ * @param {boolean} [call] - The brackets hold the arguments of a call (`f(...)`).
+ * @returns {{joinsString: boolean, lastIsString: boolean, pending: boolean, expectOperand: boolean, call: boolean}}
  *   `joinsString`: a string has been joined with `+` in this expression;
  *   `lastIsString`: the last operand is a string; `pending`: a number-only
- *   operator waits for its right operand; `expectOperand`: the next `-` is a sign.
+ *   operator waits for its right operand; `expectOperand`: the next `-` is a sign;
+ *   `call`: the brackets are the arguments of a call.
  */
-const newFrame = () => ({ joinsString: false, lastIsString: false, pending: false, expectOperand: true });
+const newFrame = (call = false) => ({
+    joinsString: false,
+    lastIsString: false,
+    pending: false,
+    expectOperand: true,
+    call,
+});
+
+/** A method called on an operand (`.to_s`, `.length`, `.to_i`). */
+const METHOD_RE = /^\.([\p{L}_][\p{L}\p{N}_]*[?!]?)/u;
 
 /**
  * Whether the code of a line does arithmetic other than `+` with a string:
@@ -60,17 +71,22 @@ const hasStringArithmetic = (code) => {
     const stack = [newFrame()];
     const top = () => stack[stack.length - 1];
     // An operand ends at `end`; `isString` tells whether it is a string.
-    // A `.to_s` after it makes it a string (`(a).to_s`).
+    // The last method called on it decides instead: `.to_s` makes it a string
+    // (`(a).to_s`), any other is not known to return one (`"12".to_i`).
     const operand = (isString, end) => {
         const frame = top();
-        const toS = code.startsWith('.to_s', end) && !isNameChar(code[end + 5]);
-        const string = isString || toS;
+        let string = isString;
+        let next = end;
+        for (let method = METHOD_RE.exec(code.slice(next)); method; method = METHOD_RE.exec(code.slice(next))) {
+            string = method[1] === 'to_s';
+            next += method[0].length;
+        }
         if (string && frame.pending) return { warn: true };
         frame.pending = false;
         frame.lastIsString = string;
         if (string) frame.joinsString = true;
         frame.expectOperand = false;
-        return { warn: false, next: toS ? end + 5 : end };
+        return { warn: false, next };
     };
     let i = 0;
     while (i < code.length) {
@@ -98,14 +114,16 @@ const hasStringArithmetic = (code) => {
             continue;
         }
         if (ch === '(' || ch === '[') {
-            stack.push(newFrame());
+            // `f(` is a call; `(` after an operator or a space groups an expression.
+            const before = code[i - 1];
+            stack.push(newFrame(ch === '(' && (isNameChar(before) || before === ')' || before === ']')));
             i++;
             continue;
         }
         if ((ch === ')' || ch === ']') && stack.length > 1) {
             const inner = stack.pop();
-            // `("a" + b)` is a string; an index `x[1]` or a call is not known to be one.
-            const result = operand(ch === ')' && inner.joinsString, i + 1);
+            // `("a" + b)` is a string; an index `x[1]` or a call `f("a")` is not known to be one.
+            const result = operand(ch === ')' && !inner.call && inner.joinsString, i + 1);
             if (result.warn) return true;
             i = result.next;
             continue;
