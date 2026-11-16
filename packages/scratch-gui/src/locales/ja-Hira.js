@@ -299,6 +299,12 @@ export default {
     'gui.classroom.teacherLogoutConfirm.message': 'へんきゃくしていないコメントはきえます。ログアウトしますか？',
     'gui.classroom.teacherLogoutConfirm.stay': 'とどまる',
     'gui.classroom.teacherLogoutConfirm.logout': 'ログアウトする',
+    'gui.classroom.teacherOpenWorkConfirm.openedMessage':
+        'まえにひらいたせいとのさくひんを、せんせいがかえています。このへんこうはせいとのさくひんのうえのへんこうで、どこにもほぞんされていません。ひらくとおきかわってきえます。ひらきますか？',
+    'gui.classroom.teacherOpenWorkConfirm.ownMessage':
+        'エディタにあるせんせいのさくひんに、ほぞんしていないへんこうがあります。せいとのさくひんをひらくとおきかわってきえます。ひらきますか？',
+    'gui.classroom.teacherOpenWorkConfirm.cancel': 'やめる',
+    'gui.classroom.teacherOpenWorkConfirm.open': 'ひらく',
     'gui.classroom.teacherWorkBar.viewing':
         'しゅっせきばんごう {seatNumber}・{assignmentName} のさくひんをみています',
     'gui.classroom.teacherWorkBar.viewingNoSeat': '{assignmentName} のさくひんをみています',

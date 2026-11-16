@@ -54,6 +54,7 @@ const ClassroomTeacherModal = ({ visible = true }) => {
     const intl = useIntl();
     const classroomState = useSelector((state) => state.scratchGui.classroom);
     const vm = useSelector((state) => state.scratchGui.vm);
+    const projectChanged = useSelector((state) => state.scratchGui.projectChanged);
 
     // Auto-login with dev bypass token from URL (e.g. ?devlogin=<secret>)
     const urlParams = getUrlParams();
@@ -104,6 +105,7 @@ const ClassroomTeacherModal = ({ visible = true }) => {
         setIsLoading,
         vm,
         visible,
+        projectChanged,
     });
 
     // A logout on purpose (not an expired login) is marked here first, so the
@@ -534,6 +536,9 @@ const ClassroomTeacherModal = ({ visible = true }) => {
         logoutConfirm: !!logoutConfirm,
         onConfirmLogout: handleConfirmLogout,
         onCancelLogout: handleCancelLogout,
+        openWorkConfirm: teacher.openWorkConfirm,
+        onConfirmOpenWork: teacher.handleConfirmOpenWork,
+        onCancelOpenWork: teacher.handleCancelOpenWork,
         shared: teacher.shared,
         notificationsCenter: guardedNotificationsCenter,
     };

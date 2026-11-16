@@ -277,6 +277,12 @@ export default {
     'gui.classroom.teacherLogoutConfirm.message': 'The comments you have not returned will be lost. Log out?',
     'gui.classroom.teacherLogoutConfirm.stay': 'Stay',
     'gui.classroom.teacherLogoutConfirm.logout': 'Log out',
+    'gui.classroom.teacherOpenWorkConfirm.openedMessage':
+        "You have changed the student's work you opened before. The changes are on that student's work and are not saved anywhere. Opening this work replaces it and the changes will be lost. Open it?",
+    'gui.classroom.teacherOpenWorkConfirm.ownMessage':
+        "Your own work in the editor has changes that are not saved. Opening the student's work replaces it and the changes will be lost. Open it?",
+    'gui.classroom.teacherOpenWorkConfirm.cancel': 'Cancel',
+    'gui.classroom.teacherOpenWorkConfirm.open': 'Open',
     'gui.classroom.teacherWorkBar.viewing': 'Viewing the work of seat {seatNumber} · {assignmentName}',
     'gui.classroom.teacherWorkBar.viewingNoSeat': 'Viewing a work of {assignmentName}',
     'gui.classroom.teacherWorkBar.sessionExpired': 'Your login has expired. Go back and log in again.',
