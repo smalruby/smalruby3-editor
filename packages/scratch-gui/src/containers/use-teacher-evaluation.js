@@ -133,6 +133,11 @@ const useTeacherEvaluation = ({
     const [leaveRequest, setLeaveRequest] = useState(null);
     // Settings fetched for a group that is no longer shown are dropped.
     const shownGroupRef = useRef(null);
+    // The ID token at this moment (#1993): a long run (load, AI, return) reads it
+    // before each call, so after logging in again on the way the rest is sent
+    // with the new token, not the one the run started with.
+    const idTokenRef = useRef(idToken);
+    idTokenRef.current = idToken;
     // Generation of the runs (load / AI / return): a run that is no longer
     // current stops and writes nothing (#1950).
     const runRef = useRef(0);
@@ -201,7 +206,7 @@ const useTeacherEvaluation = ({
                 .filter((l) => l.hasLesson)
                 .forEach((l) => {
                     classroomAPI
-                        .getAssignment(idToken, l.classroomId)
+                        .getAssignment(idTokenRef.current, l.classroomId)
                         .then((data) => {
                             if (shownGroupRef.current !== group.groupId) return;
                             const lessonSetting = (data && data.lesson) || null;
@@ -212,7 +217,7 @@ const useTeacherEvaluation = ({
                         .catch(() => {});
                 });
         },
-        [idToken, classrooms, clearError, setPhase, stopRuns],
+        [classrooms, clearError, setPhase, stopRuns],
     );
 
     const handleBackFromEvaluation = useCallback(() => {
@@ -253,11 +258,11 @@ const useTeacherEvaluation = ({
                         return null;
                     };
                     let progressData = await classroomAPI
-                        .getLessonProgress(idToken, lesson.classroomId)
+                        .getLessonProgress(idTokenRef.current, lesson.classroomId)
                         .catch(notAuthorized);
                     if (!progressData) {
                         const assignment = await classroomAPI
-                            .getAssignment(idToken, lesson.classroomId)
+                            .getAssignment(idTokenRef.current, lesson.classroomId)
                             .catch(notAuthorized);
                         progressData =
                             assignment && assignment.lesson ? { lesson: assignment.lesson, progress: [] } : null;
@@ -276,7 +281,7 @@ const useTeacherEvaluation = ({
                     }
                 }
                 if (!current()) return;
-                const data = await classroomAPI.listSubmissions(idToken, lesson.classroomId);
+                const data = await classroomAPI.listSubmissions(idTokenRef.current, lesson.classroomId);
                 nextUrlsReadAt[lesson.classroomId] = Date.now();
                 for (const submission of data.submissions || []) {
                     if (!current()) return;
@@ -337,7 +342,7 @@ const useTeacherEvaluation = ({
         } finally {
             if (current()) setEvalProgress(null);
         }
-    }, [idToken, evalLessons, selectedLessonIds, clearError, showError, intl, handleTeacher401, startRun]);
+    }, [evalLessons, selectedLessonIds, clearError, showError, intl, handleTeacher401, startRun]);
 
     /** Run the AI per lesson (grade proposals or comment drafts). */
     const handleRunAi = useCallback(
@@ -386,7 +391,11 @@ const useTeacherEvaluation = ({
                                 pseudocode: entry.cell.pseudocode || '',
                             })),
                         };
-                        const data = await classroomAPI.evaluateSubmissions(idToken, lesson.classroomId, payload);
+                        const data = await classroomAPI.evaluateSubmissions(
+                            idTokenRef.current,
+                            lesson.classroomId,
+                            payload,
+                        );
                         // Left (or started again) while the AI was answering: drop the result.
                         if (!current()) return;
                         if (mode === 'grade') {
@@ -431,7 +440,6 @@ const useTeacherEvaluation = ({
             }
         },
         [
-            idToken,
             evalLessons,
             selectedLessonIds,
             seats,
@@ -469,7 +477,7 @@ const useTeacherEvaluation = ({
                     clearError();
                     let fresh = null;
                     try {
-                        const data = await classroomAPI.listSubmissions(idToken, classroomId);
+                        const data = await classroomAPI.listSubmissions(idTokenRef.current, classroomId);
                         fresh = data.submissions || [];
                     } catch (err) {
                         if (err.status === 401) {
@@ -510,17 +518,7 @@ const useTeacherEvaluation = ({
                 markOpeningWork(false);
             }
         },
-        [
-            matrix,
-            evalLessons,
-            openSubmission,
-            idToken,
-            clearError,
-            showError,
-            intl,
-            handleTeacher401,
-            markOpeningWork,
-        ],
+        [matrix, evalLessons, openSubmission, clearError, showError, intl, handleTeacher401, markOpeningWork],
     );
 
     /**
@@ -560,7 +558,7 @@ const useTeacherEvaluation = ({
             setScoringChecked(true);
             setScoringSavingId(classroomId);
             try {
-                const saved = await classroomAPI.setLessonScoring(idToken, classroomId, scoring);
+                const saved = await classroomAPI.setLessonScoring(idTokenRef.current, classroomId, scoring);
                 apply((saved && saved.lesson) || null);
             } catch (err) {
                 if (err.status === 400) {
@@ -577,14 +575,14 @@ const useTeacherEvaluation = ({
                 // The points may have been saved even though it failed here: show
                 // what the server has, or the old points when it cannot be read.
                 const UNREAD = {};
-                const fresh = await classroomAPI.getAssignment(idToken, classroomId).catch(() => UNREAD);
+                const fresh = await classroomAPI.getAssignment(idTokenRef.current, classroomId).catch(() => UNREAD);
                 apply(fresh === UNREAD ? before : (fresh && fresh.lesson) || null);
                 showError(translateError(intl, err));
             } finally {
                 setScoringSavingId(null);
             }
         },
-        [idToken, evalLessons, lessonProgress, clearError, showError, intl, handleTeacher401],
+        [evalLessons, lessonProgress, clearError, showError, intl, handleTeacher401],
     );
 
     /**
@@ -666,10 +664,15 @@ const useTeacherEvaluation = ({
             for (const target of targets) {
                 if (!current()) return;
                 setEvalProgress({ label: `返却 ${done + 1}/${targets.length}`, done, total: targets.length });
-                await classroomAPI.updateSubmission(idToken, target.lesson.classroomId, target.submissionId, {
-                    status: 'returned',
-                    teacherComment: target.comment,
-                });
+                await classroomAPI.updateSubmission(
+                    idTokenRef.current,
+                    target.lesson.classroomId,
+                    target.submissionId,
+                    {
+                        status: 'returned',
+                        teacherComment: target.comment,
+                    },
+                );
                 if (!current()) return;
                 setMatrix((prev) => ({
                     ...prev,
@@ -687,7 +690,7 @@ const useTeacherEvaluation = ({
         } finally {
             if (current()) setEvalProgress(null);
         }
-    }, [idToken, selectedLessons, seats, comments, matrix, clearError, showError, intl, handleTeacher401, startRun]);
+    }, [selectedLessons, seats, comments, matrix, clearError, showError, intl, handleTeacher401, startRun]);
 
     const unsaved = useMemo(() => unsavedEvaluation({ matrix, comments, exported }), [matrix, comments, exported]);
     const hasUnsavedWork = unsaved.grades || unsaved.comments;
