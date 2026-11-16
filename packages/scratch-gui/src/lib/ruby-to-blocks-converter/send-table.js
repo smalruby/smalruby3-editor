@@ -82,6 +82,8 @@ const putArg = (converter, block, spec, arg) => {
         case 'field':
             converter._addField(block, spec.field, arg);
             break;
+        default:
+            throw new Error(`unknown kind of argument: ${spec.kind}`);
     }
 };
 

@@ -22,6 +22,16 @@ describe('RubyToBlocksConverter/send table', () => {
         expect(missing).toEqual([]);
     });
 
+    test('a row with an unknown kind of argument is an error, not a block without the argument', async () => {
+        const converter = new RubyToBlocksConverter(null, { version: '2' });
+        registerSendTable(converter, [
+            { receiver: 'sprite', name: 'jump', opcode: 'motion_movesteps', args: [{ kind: 'color', input: 'C' }] },
+        ]);
+
+        expect(await converter.targetCodeToBlocks(null, 'jump(3)')).toBe(false);
+        expect(converter.errors.map((error) => error.text)).toEqual(['unknown kind of argument: color']);
+    });
+
     test('a row gives way to the next handler when an argument is of another kind', async () => {
         const converter = new RubyToBlocksConverter(null, { version: '2' });
         registerSendTable(converter, [

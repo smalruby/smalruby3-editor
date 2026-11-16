@@ -21,13 +21,15 @@ Ruby → ブロックの変換器（`packages/scratch-gui/src/lib/ruby-to-blocks
 
 | 項目               | いま                                                                                                                                                                                                                   |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 大きさ             | 68 ファイル・約 20,100 行（`ast-handlers/` を含む）                                                                                                                                                                    |
+| 大きさ             | 69 ファイル・約 20,200 行（`ast-handlers/` と `send-table.js` を含む）                                                                                                                                                 |
 | クラス             | `RubyToBlocksConverter`（prism の `Visitor` を継承）1 つに、14 の部品を `Object.assign` で混ぜる                                                                                                                       |
-| 呼び出しの登録     | `registerOnSend` 395 か所・`registerOnSendWithBlock` 64 か所・`registerOnSendMyBlock` 6 か所                                                                                                                           |
-| 構文の登録         | `registerOnIf` / `OnUntil` / `OnOpAsgn` / `OnAnd` / `OnOr` / `OnVar` / `OnVasgn` / `OnDefs`（14 か所）                                                                                                                 |
+| 呼び出しの登録     | `converter.registerOnSend(` 386 か所・`converter.registerOnSendWithBlock(` 57 か所・`converter.registerOnSendMyBlock(` 1 か所。ほかに `send-table.js` の表の行が 12                                                    |
+| 構文の登録         | `converter.registerOnIf(` / `OnUntil` / `OnOpAsgn` / `OnAnd` / `OnOr` / `OnVar` / `OnVasgn` / `OnDefs`（13 か所）                                                                                                      |
 | 古い `onXxx` 形式  | `_callConvertersHandler` が 11 個の変換器オブジェクトを毎回調べる。いま中身があるのは `pen.onOpAsgn` と `makeymakey.onSend` の 2 つだけで、残り 9 個は名前だけ残っている                                               |
 | 変換の前の下調べ   | `_countProcedureCallsInNode`（手続きの呼び出しの数）、`_collectVariableUses`（変数の使い方・ローカル変数の範囲）、`_rejectRubyNameOfVariableAndList`                                                                   |
 | 変換のあとの仕上げ | 素のリテラルを代入に変える、`ruby_*` ブロックを断る、拡張機能の ID を集める、`_dropUnusedHashVariables`、`_rejectVariableAndListOfSameName`、`$_symbols_` を作る、コメントを結びつける、`target-applier.js` で書きこむ |
+
+数え方: `ruby-to-blocks-converter/` の下の `.js`（`ast-handlers/` を含む）を対象に、ファイルの数と行の数（`wc -l`）、登録は `converter.registerOnXxx(` と書かれた所の数を数えた（`grep -roF`）。`converter-registry.js` の中の定義と、`receiver` の `self` / `any` / 配列を広げるための呼び直しは数えない。`forEach` の中の 1 か所は、いくつのメソッドを登録していても 1 と数える（実際に登録される数はこれより多い）。`send-table.js` の中の `registerOnSend(` 1 か所も 386 に入る。
 
 下調べと仕上げは、すでに `targetCodeToBlocks`（`index.js`）の前と後ろにある。4 段の構造は、これを名前のある段として切り出し、段の間で渡すものを決めることにあたる。
 
