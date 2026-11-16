@@ -14,7 +14,7 @@ export const ja = {
     [`${C}chat-l1-sequence.name`]: '入力して表示しよう（順次処理）',
     [`${C}chat-l1-sequence.task`]:
         '旗を押したら、シマラビが「メッセージを入力」と聞き、入力した文字を変数「シマラビのメッセージ」に入れて、その変数を 2 秒言うようにしよう。\n上から順に 1 つずつ動くことを、図と見くらべよう。',
-    [`${C}chat-l1-sequence.step1`]: '課題の説明と、アクティビティ図を理解しよう。図の上から順に、1 つずつ動くよ。',
+    [`${C}chat-l1-sequence.step1`]: '課題の説明と、アクティビティ図を理解しよう。',
     [`${C}chat-l1-sequence.step2`]:
         '「イベント」の「旗が押されたとき」の下に、「調べる」の「メッセージを入力と聞いて待つ」をつなげよう。',
     [`${C}chat-l1-sequence.step3`]:
@@ -498,8 +498,7 @@ export const jaHira = {
     [`${C}chat-l1-sequence.name`]: 'にゅうりょくして ひょうじしよう（じゅんじしょり）',
     [`${C}chat-l1-sequence.task`]:
         'はたをおしたら、シマラビが「メッセージを にゅうりょく」ときき、にゅうりょくしたもじを へんすう「シマラビのメッセージ」にいれて、そのへんすうを 2 びょう いうようにしよう。\nうえから じゅんに 1 つずつ うごくことを、ずと みくらべよう。',
-    [`${C}chat-l1-sequence.step1`]:
-        'かだいの せつめいと、アクティビティずを りかいしよう。ずの うえから じゅんに、1 つずつ うごくよ。',
+    [`${C}chat-l1-sequence.step1`]: 'かだいの せつめいと、アクティビティずを りかいしよう。',
     [`${C}chat-l1-sequence.step2`]:
         '「イベント」の「はたがおされたとき」のしたに、「しらべる」の「メッセージを にゅうりょく ときいてまつ」をつなげよう。',
     [`${C}chat-l1-sequence.step3`]:
@@ -994,8 +993,7 @@ export const en = {
     [`${C}chat-l1-sequence.name`]: 'Type and Show (Sequence)',
     [`${C}chat-l1-sequence.task`]:
         'When the flag is clicked, make Shimaraby ask "Enter a message", put what was typed into the variable "shimaraby_message", and say that variable for 2 seconds.\nCompare it with the diagram: it runs one step at a time from the top.',
-    [`${C}chat-l1-sequence.step1`]:
-        'Understand the task and the activity diagram. It runs one by one from the top of the diagram.',
+    [`${C}chat-l1-sequence.step1`]: 'Understand the task and the activity diagram.',
     [`${C}chat-l1-sequence.step2`]:
         'Under the Events block "when flag clicked", attach the Sensing block "ask Enter a message and wait".',
     [`${C}chat-l1-sequence.step3`]:
