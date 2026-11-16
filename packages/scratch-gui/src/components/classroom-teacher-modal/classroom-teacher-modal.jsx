@@ -30,6 +30,7 @@ import TeacherLoginPhase from './teacher-login-phase.jsx';
 import TeacherLogoutConfirm from './teacher-logout-confirm.jsx';
 import TeacherNotificationsList from './teacher-notifications-list.jsx';
 import TeacherNotifications from './teacher-notifications.jsx';
+import TeacherOpenWorkConfirm from './teacher-open-work-confirm.jsx';
 
 const messagesBreadcrumbs = defineMessages({
     assignments: {
@@ -166,6 +167,9 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         logoutConfirm,
         onConfirmLogout,
         onCancelLogout,
+        openWorkConfirm,
+        onConfirmOpenWork,
+        onCancelOpenWork,
     } = containerProps;
 
     // 共有推奨バナー (#1106) の CTA: 共有ステップはボード内サブビュー
@@ -640,6 +644,13 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     )}
                 </TeacherHeader>
                 {logoutConfirm && <TeacherLogoutConfirm onCancel={onCancelLogout} onConfirm={onConfirmLogout} />}
+                {openWorkConfirm && !logoutConfirm && (
+                    <TeacherOpenWorkConfirm
+                        kind={openWorkConfirm}
+                        onCancel={onCancelOpenWork}
+                        onConfirm={onConfirmOpenWork}
+                    />
+                )}
                 <BreadcrumbSlotContext.Provider value={crumbSlot}>
                     <main className={styles.main} ref={mainRef} tabIndex={-1}>
                         {renderMain()}

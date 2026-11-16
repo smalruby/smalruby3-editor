@@ -125,7 +125,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-member-detail-image-index` | span | 画像インデックス |
 | `classroom-member-detail-prev` | button | 前の画像 |
 | `classroom-member-detail-next` | button | 次の画像 |
-| `classroom-member-detail-open` | button | スモウルビーで開く（副ボタン）。作品を開くとクラス管理を閉じる（隠して残す）。返却していないコメントは消えないので確かめない |
+| `classroom-member-detail-open` | button | スモウルビーで開く（副ボタン）。作品を開くとクラス管理を閉じる（隠して残す）。返却していないコメントは消えないので確かめない。エディタに保存していない変更があれば `classroom-teacher-open-work-confirm-box` を先に出す |
 | `classroom-member-detail-return` | button | 返却（選んだ席の詳細の主ボタン） |
 | `classroom-member-detail-comment-label` | label | コメント欄の上のラベル「生徒へのコメント（返却で届きます）」 |
 | `classroom-member-detail-comment` | textarea | コメント入力。下書きは課題と席ごとにクラス管理（container）が持ち、作品を開いても・席を移っても残る |
@@ -407,6 +407,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内。#1111 レビューでタイトルバー常時表示から移動）。採点の画面の下書きがあれば採点の確認、メンバーのタブの返却していないコメントがあれば `classroom-teacher-logout-confirm-box` を先に出す |
 | `classroom-teacher-logout-confirm-box` / `classroom-teacher-logout-confirm-message` | div / p | ログアウトの前の確認「返却していないコメントは消えます。ログアウトしますか？」（ヘッダーの下・右に重ねて出す。メニューバーの「ログアウト」からでも出る） |
 | `classroom-teacher-logout-cancel` / `classroom-teacher-logout-confirm` | button | 確認の［とどまる］（コメントを残す）/［ログアウトする］ |
+| `classroom-teacher-open-work-confirm-box` / `classroom-teacher-open-work-confirm-message` | div / p | 生徒の作品を開く前の確認（#1983。ヘッダーの下・右に重ねて出す）。エディタに保存していない変更があるときだけ出る。message の `data-kind` が `own`（先生自身の作品「エディタにある先生の作品に、保存していない変更があります。…」）か `opened`（前に開いた生徒の作品を先生が変えた「…生徒の作品の上の変更で、どこにも保存されていません。…」） |
+| `classroom-teacher-open-work-cancel` / `classroom-teacher-open-work-confirm` | button | 確認の［やめる］（開かない）/［開く］（エディタの作品を置きかえて開く） |
 | `classroom-class-create-section` | input | 作成: セクション（オプション） |
 | `classroom-class-settings-open-{groupId}` | button | クラスカードの「⚙ 設定」（クラスの設定の画面を開く） |
 | `classroom-class-settings-{groupId}` | form | クラス設定のインライン編集フォーム |
@@ -607,7 +609,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-detail` | aside | 右の列（選んだ席の点・根拠・コメント） |
 | `classroom-eval-detail-title` | h3 | 右の列の見出し「出席番号 NN」 |
 | `classroom-eval-detail-lesson` | span | 右の列の課題名 |
-| `classroom-eval-detail-open-work` | button | 右の列の課題名の右の［作品を開く］。選んだ席の作品をエディタで開き、クラス管理を閉じる（課題の詳細の［スモウルビーで開く］と同じ処理）。確かめずに開く（採点の画面は隠して残る・下の戻る帯）。開いている間は押せず「開いています…」と出す |
+| `classroom-eval-detail-open-work` | button | 右の列の課題名の右の［作品を開く］。選んだ席の作品をエディタで開き、クラス管理を閉じる（課題の詳細の［スモウルビーで開く］と同じ処理）。採点の下書きについては確かめずに開く（採点の画面は隠して残る・下の戻る帯）。エディタに保存していない変更があれば `classroom-teacher-open-work-confirm-box` を先に出す。開いている間は押せず「開いています…」と出す |
 | `classroom-teacher-work-bar` | div | 先生がクラス管理から作品を開いている間、メニューバーの下に出す戻る帯（クラス管理が閉じている間だけ。生徒の画面には出ない） |
 | `classroom-teacher-work-bar-text` | span | 戻る帯の「出席番号 N・課題名 の作品を見ています」（生徒の名前は出さない） |
 | `classroom-teacher-work-bar-expired` | span | ログインが切れたときだけ出す「ログインが切れました。戻ってログインし直してください。」 |

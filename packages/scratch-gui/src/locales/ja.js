@@ -292,6 +292,12 @@ export default {
     'gui.classroom.teacherLogoutConfirm.message': '返却していないコメントは消えます。ログアウトしますか？',
     'gui.classroom.teacherLogoutConfirm.stay': 'とどまる',
     'gui.classroom.teacherLogoutConfirm.logout': 'ログアウトする',
+    'gui.classroom.teacherOpenWorkConfirm.openedMessage':
+        '前に開いた生徒の作品を、先生が変えています。この変更は生徒の作品の上の変更で、どこにも保存されていません。開くと置きかわって消えます。開きますか？',
+    'gui.classroom.teacherOpenWorkConfirm.ownMessage':
+        'エディタにある先生の作品に、保存していない変更があります。生徒の作品を開くと置きかわって消えます。開きますか？',
+    'gui.classroom.teacherOpenWorkConfirm.cancel': 'やめる',
+    'gui.classroom.teacherOpenWorkConfirm.open': '開く',
     'gui.classroom.teacherWorkBar.viewing': '出席番号 {seatNumber}・{assignmentName} の作品を見ています',
     'gui.classroom.teacherWorkBar.viewingNoSeat': '{assignmentName} の作品を見ています',
     'gui.classroom.teacherWorkBar.sessionExpired': 'ログインが切れました。戻ってログインし直してください。',

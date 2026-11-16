@@ -32,6 +32,8 @@ export { getCachedTeacherIdToken, setCachedTeacherIdToken };
  * @param {object} params.vm - Scratch VM instance
  * @param {boolean} [params.visible] - class management is shown. It stays mounted while a
  *   work is open in the editor (#1990); the members refresh waits meanwhile
+ * @param {boolean} [params.projectChanged] - the editor has changes not saved: opening a
+ *   student's work asks first (#1983)
  * @returns {object} merged teacher state and handler functions
  */
 const useTeacherClassroom = ({
@@ -46,6 +48,7 @@ const useTeacherClassroom = ({
     setIsLoading,
     vm,
     visible = true,
+    projectChanged = false,
 }) => {
     // --- Sub-hooks ---
 
@@ -81,6 +84,7 @@ const useTeacherClassroom = ({
         setIsLoading,
         vm,
         dispatch,
+        projectChanged,
     });
 
     // The groups hook is created after this one; bridge with a ref so the
@@ -320,6 +324,9 @@ const useTeacherClassroom = ({
         // Submissions
         downloadProgress: submissions.downloadProgress,
         handleOpenSubmission: submissions.handleOpenSubmission,
+        openWorkConfirm: submissions.openWorkConfirm,
+        handleConfirmOpenWork: submissions.handleConfirmOpenWork,
+        handleCancelOpenWork: submissions.handleCancelOpenWork,
         handleCopyInviteLink: submissions.handleCopyInviteLink,
         handleReturnSubmission: submissions.handleReturnSubmission,
         handleSetHiddenFromPeers: submissions.handleSetHiddenFromPeers,

@@ -5,7 +5,7 @@
  * as well as the code-display overlay and invite-link copy.
  */
 import JSZip from 'jszip';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
 import {
     assignmentFolderNames,
@@ -17,6 +17,7 @@ import { lessonProgressContext } from '../lib/classroom-lesson-progress.js';
 import { mergedChallengeColumns, submissionCsvRows } from '../lib/classroom-lesson-summary.js';
 import { findCourse } from '../lib/lessons/courses.js';
 import { closeClassroomModal, closeTeacherModal, setTeacherOpenedWork } from '../reducers/classroom.js';
+import { setProjectUnchanged } from '../reducers/project-changed.js';
 import translateError from './classroom-error-utils.js';
 import { enrichMembers } from './use-teacher-classrooms.js';
 
@@ -63,6 +64,8 @@ const csvChallengeColumns = (contexts, anyLesson, intl) =>
  * @param {Function} params.setIsLoading - loading state setter
  * @param {object} params.vm - Scratch VM instance
  * @param {Function} params.dispatch - Redux dispatch
+ * @param {boolean} [params.projectChanged] - the editor has changes not saved
+ *   (upstream's state.scratchGui.projectChanged)
  * @returns {object} submission state and handler functions
  */
 const useTeacherSubmissions = ({
@@ -77,23 +80,39 @@ const useTeacherSubmissions = ({
     setIsLoading,
     vm,
     dispatch,
+    projectChanged = false,
 }) => {
     const [downloadProgress, setDownloadProgress] = useState(null);
 
     // --- Open student submission ---
 
+    // The editor holds a work opened from here (#1983): its changes are the teacher's
+    // edits on the student's work, not the teacher's own work. Another project loaded
+    // after it (a file, a new project, a lesson…) emits PROJECT_LOADED and ends it;
+    // our own load emits it before the promise resolves, so it is set after that.
+    const openedWorkInEditorRef = useRef(false);
+    useEffect(() => {
+        const runtime = vm && vm.runtime;
+        if (!runtime || !runtime.on) return () => {};
+        const handleLoaded = () => {
+            openedWorkInEditorRef.current = false;
+        };
+        runtime.on('PROJECT_LOADED', handleLoaded);
+        return () => runtime.removeListener('PROJECT_LOADED', handleLoaded);
+    }, [vm]);
+
+    // Opening over changes not saved asks first, in class management (#1983):
+    // {projectUrl, work, kind: 'own' (the teacher's own work) | 'opened' (edits on a
+    // student's work opened before)}.
+    const [openWorkConfirm, setOpenWorkConfirm] = useState(null);
+
     /**
-     * Open a student's work in the editor and close class management (#1980).
-     * The teacher screens stay as they were behind it, and the bar above the
-     * editor offers to go back to them (#1990).
+     * Load the work without asking (handleOpenSubmission below decides whether to ask).
      * @param {string} projectUrl - link to the work
-     * @param {{from: string, seatNumber: ?number, assignmentName: ?string}} [work] - where
-     *   it was opened from, for the bar: 'evaluation' (grading) or 'assignment' (the
-     *   assignment's members). The assignment name defaults to the selected assignment.
+     * @param {?object} work - where it was opened from, for the bar (see below)
      */
-    const handleOpenSubmission = useCallback(
-        async (projectUrl, work = null) => {
-            if (!projectUrl || !vm) return;
+    const loadSubmission = useCallback(
+        async (projectUrl, work) => {
             clearError();
             setIsLoading(true);
             try {
@@ -103,6 +122,11 @@ const useTeacherSubmissions = ({
                 }
                 const projectData = await response.arrayBuffer();
                 await vm.loadProject(projectData);
+                openedWorkInEditorRef.current = true;
+                // Like a project loaded from a file (vm-manager-hoc): what changes from
+                // here are the teacher's edits on this work (#1983). In a timeout as the
+                // renderer's skin loading can still mark it changed.
+                setTimeout(() => dispatch(setProjectUnchanged()));
                 // The teacher screens live in their own modal now: close it too,
                 // or the work opens behind it (#1980).
                 dispatch(closeTeacherModal());
@@ -126,6 +150,42 @@ const useTeacherSubmissions = ({
         },
         [vm, dispatch, clearError, showError, intl, setIsLoading, selectedClassroom],
     );
+
+    /**
+     * Open a student's work in the editor and close class management (#1980).
+     * The teacher screens stay as they were behind it, and the bar above the
+     * editor offers to go back to them (#1990). Over changes not saved in the
+     * editor it asks first (#1983), like opening a file from the File menu; with
+     * no changes it opens at once.
+     * @param {string} projectUrl - link to the work
+     * @param {{from: string, seatNumber: ?number, assignmentName: ?string}} [work] - where
+     *   it was opened from, for the bar: 'evaluation' (grading) or 'assignment' (the
+     *   assignment's members). The assignment name defaults to the selected assignment.
+     * @returns {Promise<void>} resolves once opened, or once the question is shown
+     */
+    const handleOpenSubmission = useCallback(
+        async (projectUrl, work = null) => {
+            if (!projectUrl || !vm) return;
+            if (projectChanged) {
+                setOpenWorkConfirm({
+                    projectUrl,
+                    work,
+                    kind: openedWorkInEditorRef.current ? 'opened' : 'own',
+                });
+                return;
+            }
+            await loadSubmission(projectUrl, work);
+        },
+        [vm, projectChanged, loadSubmission],
+    );
+
+    const handleConfirmOpenWork = useCallback(async () => {
+        const request = openWorkConfirm;
+        setOpenWorkConfirm(null);
+        if (request) await loadSubmission(request.projectUrl, request.work);
+    }, [openWorkConfirm, loadSubmission]);
+
+    const handleCancelOpenWork = useCallback(() => setOpenWorkConfirm(null), []);
 
     // --- Invite link ---
 
@@ -416,6 +476,9 @@ const useTeacherSubmissions = ({
     return {
         downloadProgress,
         handleOpenSubmission,
+        openWorkConfirm: openWorkConfirm && openWorkConfirm.kind,
+        handleConfirmOpenWork,
+        handleCancelOpenWork,
         handleCopyInviteLink,
         handleReturnSubmission,
         handleSetHiddenFromPeers,
