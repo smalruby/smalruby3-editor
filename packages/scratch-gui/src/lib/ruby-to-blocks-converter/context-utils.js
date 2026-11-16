@@ -7,30 +7,35 @@ import { ContextJournal, JOURNALED_STORES } from './context-journal';
  */
 const ContextUtils = {
     reset() {
+        // The tables keyed by names from the Ruby code (variables, lists, methods, ...) have no
+        // prototype, so that `__proto__`, `constructor` or `toString` is a name like any other
+        // (issue #2034): `table.__proto__ = v` on `{}` changes the prototype instead of adding a key.
         this._context = {
             currentNode: null,
             errors: [],
-            argumentBlocks: {},
-            procedureCallBlocks: {},
+            argumentBlocks: Object.create(null),
+            procedureCallBlocks: Object.create(null),
             extensionIDs: new Set(),
 
-            blocks: {},
-            comments: {},
-            blockTypes: {},
-            localVariables: {},
-            variables: {},
-            lists: {},
-            broadcastMsgs: {},
-            procedures: {},
+            blocks: Object.create(null),
+            comments: Object.create(null),
+            blockTypes: Object.create(null),
+            localVariables: Object.create(null),
+            variables: Object.create(null),
+            lists: Object.create(null),
+            broadcastMsgs: Object.create(null),
+            procedures: Object.create(null),
+            // Still a plain object: the analysis (`valueCallCounter` in analysis.js) counts in a
+            // plain object too, and the two must agree until the converter reads the analysis (#2016).
             methodCallCounts: {},
-            methodCallIndices: {},
+            methodCallIndices: Object.create(null),
             // Whether a return value of a call is saved in a variable in the current statement (issue #1556)
             savedReturnValueInStatement: false,
             // return value reporter id -> id of the method block it gives the value of (issue #1725)
-            returnValueSources: {},
+            returnValueSources: Object.create(null),
             // the numbers of `@_retN` the code already uses (issue #1725), found when first needed
             returnValueTempsInSource: null,
-            literalCallIndices: {},
+            literalCallIndices: Object.create(null),
             // ids of the range blocks with an end that is not a number or a value (issue #1906):
             // `rand` does not take them, and they are left as the error of a wrong instruction
             rangesWithWrongEnd: new Set(),
@@ -52,13 +57,13 @@ const ContextUtils = {
             containerNodeRanges: [], // Store {startLine, endLine} for container nodes (block, begin, kwbegin)
             processDepth: 0,
             rootNode: null,
-            modules: {},
+            modules: Object.create(null),
             currentModuleName: null,
-            superMethodMap: {},
+            superMethodMap: Object.create(null),
             superRenameTarget: null,
             symbols: new Set(),
             // How the code uses each variable name, collected before converting (issue #1613)
-            variableUses: {},
+            variableUses: Object.create(null),
             // Where the code uses each local variable, and the unit being converted (issue #1630)
             localVariableUnits: null,
             // The list blocks that read `@a` / `$a` of Ruby version 2 (issue #1622)

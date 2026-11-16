@@ -178,7 +178,7 @@ const CoreHandlers = {
             // This ensures `1 != 50\n2 != 60` produces two blocks both with index :1, while
             // `1 != 50 && 2 != 60` (a single expression) produces indices :1 and :2.
             // Note: literalCallIndices are NOT reset per-statement - they accumulate across statements.
-            this._context.methodCallIndices = {};
+            this._context.methodCallIndices = Object.create(null);
             this._context.savedReturnValueInStatement = false;
             if (bodyKind && bodyKind !== 'top' && nodeTypeName(childNode) === 'DefNode') {
                 // On any line, not only on the first one (#1554). The body of a class is not a block

@@ -107,7 +107,7 @@ const ClassVisitor = {
 
         // Pre-scan class body for attr_accessor/attr_reader/attr_writer
         // { varName: 'accessor' | 'reader' | 'writer' }
-        const attrAccessors = {};
+        const attrAccessors = Object.create(null);
         const attrStatements = new Set();
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
@@ -136,7 +136,7 @@ const ClassVisitor = {
         this._context.attrAccessors = attrAccessors;
 
         // Pre-scan class body for set_xxx calls
-        const classInfo = {};
+        const classInfo = Object.create(null);
         const setMethodNames = new Set();
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
@@ -226,7 +226,7 @@ const ClassVisitor = {
 
         // Pre-scan class methods for super usage to determine which module methods need renaming
         // superMethodMap: { methodName: { moduleName, renamedProcName } }
-        const superMethodMap = {};
+        const superMethodMap = Object.create(null);
         if (node.body && node.body.body && includedModuleNames.length > 0) {
             for (const stmt of node.body.body) {
                 if (nodeTypeName(stmt) === 'DefNode' && !stmt.receiver) {
@@ -441,7 +441,7 @@ const ClassVisitor = {
             const blocks = [];
             const blockToStmt = new Map();
             for (const stmt of filteredStatements) {
-                this._context.methodCallIndices = {};
+                this._context.methodCallIndices = Object.create(null);
                 this._context.savedReturnValueInStatement = false;
                 const block = this.visit(stmt);
                 // A statement that has no block (`alias`, `undef`, ...) was dropped (issue #1814).
