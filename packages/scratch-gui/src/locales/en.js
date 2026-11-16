@@ -143,7 +143,7 @@ export default {
     'gui.classroom.evaluation.askBack': 'Go back?',
     'gui.classroom.evaluation.askLeave': 'Leave this screen?',
     'gui.classroom.evaluation.askReload': 'Load again?',
-    'gui.classroom.evaluation.leaveBusy': 'The AI is still working. Leaving stops it.',
+    'gui.classroom.evaluation.leaveBusy': 'Something is still running. Leaving stops it.',
     'gui.classroom.evaluation.leaveCancel': 'Keep grading',
     'gui.classroom.evaluation.leaveExport': 'Export grades (CSV)',
     'gui.classroom.evaluation.leaveConfirmYes': 'Go back',

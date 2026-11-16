@@ -631,7 +631,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-export-menu` | button | 「書き出し ▾」（`aria-expanded`。読み込む前は押せない） |
 | `classroom-eval-export` / `classroom-eval-export-audit` | button | 書き出しメニューの「採点結果（CSV）」/「検証用データ（CSV）」 |
 | `classroom-evaluation-cancel` | button | キャンセル（クラス一覧へ戻る。消える採点・コメントがあるとき・AI の途中は先に確認を出す） |
-| `classroom-eval-leave-confirm-message` | p | 離れる確認の文。消えるもの（「書き出していない採点は消えます。」／「返却していないコメントは消えます。」／両方）と入口の問い（「戻りますか？」／「この画面を離れますか？」／「読み込み直しますか？」）。AI の途中なら先頭に「AI の処理の途中です。離れると、そこで止まります。」。`data-kind` は `back` / `leave` / `reload`、`data-lost` は消えるもの（`grades` / `comments` を空白区切り）。出ている間は手順のボタンと書き出しメニューを隠す |
+| `classroom-eval-leave-confirm-message` | p | 離れる確認の文。消えるもの（「書き出していない採点は消えます。」／「返却していないコメントは消えます。」／両方）と入口の問い（「戻りますか？」／「この画面を離れますか？」／「読み込み直しますか？」）。読み込み・AI・返却の途中なら先頭に「処理の途中です。離れると、そこで止まります。」。`data-kind` は `back` / `leave` / `reload`、`data-lost` は消えるもの（`grades` / `comments` を空白区切り）。出ている間は手順のボタンと書き出しメニューを隠す |
 | `classroom-eval-leave-cancel` | button | 離れる確認の［採点を続ける］ |
 | `classroom-eval-leave-export` | button | 離れる確認の［採点結果を書き出す］（採点結果の CSV） |
 | `classroom-eval-leave-confirm` | button | 離れる確認の確定（［戻る］／［離れる］／［読み込み直す］・赤） |

@@ -58,9 +58,9 @@ const evalMessages = defineMessages({
         id: 'gui.classroom.evaluation.lostBoth',
     },
     leaveBusy: {
-        defaultMessage: 'The AI is still working. Leaving stops it.',
+        defaultMessage: 'Something is still running. Leaving stops it.',
         description:
-            'Grading screen: leave question while the AI is grading or drafting; leaving stops it (#1923, #1950)',
+            'Grading screen: leave question while loading, the AI or returning is running; leaving stops it (#1923, #1950)',
         id: 'gui.classroom.evaluation.leaveBusy',
     },
     askBack: {

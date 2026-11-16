@@ -601,14 +601,14 @@ describe('採点を離れるときの確認 (#1923 C4)', () => {
             { grades: true, comments: true },
             { label: 'AI', done: 0, total: 1 },
             'leave',
-            'The AI is still working. Leaving stops it. Grades you have not exported and comments you have not returned will be lost. ' +
+            'Something is still running. Leaving stops it. Grades you have not exported and comments you have not returned will be lost. ' +
                 'Leave this screen?',
         ],
         [
             { grades: false, comments: false },
             { label: 'AI', done: 0, total: 1 },
             'back',
-            'The AI is still working. Leaving stops it. Go back?',
+            'Something is still running. Leaving stops it. Go back?',
         ],
         // 読み込み直してもコメントの下書きは残るので、採点だけを言う
         [{ grades: true, comments: true }, null, 'reload', 'Grades you have not exported will be lost. Load again?'],

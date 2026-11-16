@@ -138,6 +138,9 @@ const useTeacherEvaluation = ({
     const runRef = useRef(0);
     const stopRuns = useCallback(() => {
         runRef.current++;
+        // The stopped run no longer clears it, so a leave to anywhere (notifications,
+        // an assignment, the class list, logout) does not leave the screen busy.
+        setEvalProgress(null);
     }, []);
     /**
      * Start a run in the current generation.

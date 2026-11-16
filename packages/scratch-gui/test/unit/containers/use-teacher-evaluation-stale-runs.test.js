@@ -159,6 +159,30 @@ describe('useTeacherEvaluation — 離れたら途中の処理を止める (#195
         expect(mockEvaluateSubmissions).toHaveBeenCalledTimes(1);
     });
 
+    test('［戻る］を通らない行き先（お知らせ・課題・クラス一覧・ログアウト）でも、［離れる］で進み具合が消える', async () => {
+        const { hook } = await setup();
+        const { first, running } = await startAiWaiting(hook, 'grade');
+        // guardLeave の行き先は handleBackFromEvaluation を呼ばない
+        const action = jest.fn();
+
+        await act(async () => {
+            hook.result.current.handleRequestLeave(action, 'leave');
+        });
+        await act(async () => {
+            hook.result.current.handleConfirmLeave();
+        });
+        expect(action).toHaveBeenCalledTimes(1);
+        expect(hook.result.current.evalProgress).toBeNull();
+
+        await act(async () => {
+            first.resolve(answer({ mode: 'grade', submissions: [{ seatNumber: 1 }] }, 'old'));
+            await running;
+        });
+        expect(hook.result.current.evalProgress).toBeNull();
+        expect(grades(hook)).toEqual([]);
+        expect(mockEvaluateSubmissions).toHaveBeenCalledTimes(1);
+    });
+
     test('クラス管理を隠して戻った（hook は生きたまま）ら、続きの結果がそのまま表に入る', async () => {
         const { hook } = await setup();
         const { first, running } = await startAiWaiting(hook, 'comment');
