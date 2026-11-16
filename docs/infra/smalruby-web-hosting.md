@@ -268,6 +268,8 @@ aws route53 list-hosted-zones-by-name --dns-name smalruby.app \
   --query "HostedZones[?Name=='smalruby.app.'].[Id,Config.Comment]" --output table
 ```
 
+**注意**: `RETAIN` なのはゾーンだけで、レコードは `DESTROY`。NS を切り替えたあとにスタックを消すと、apex の A と `api.` / `preview.` の委任が消えて smalruby.app が止まる。作り直すときは、ゾーンを `cdk import` で取り込んでから deploy する。
+
 そのうえで次のどちらかを選ぶ（どちらも人間が手元で行う）。
 
 - **残ったゾーンを取り込む（NS が変わらない。こちらを優先）**: スタックが無い状態で
