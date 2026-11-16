@@ -134,7 +134,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-member-detail-image-index` | span | 画像インデックス |
 | `classroom-member-detail-prev` | button | 前の画像 |
 | `classroom-member-detail-next` | button | 次の画像 |
-| `classroom-member-detail-open` | button | スモウルビーで開く（副ボタン） |
+| `classroom-member-detail-open` | button | スモウルビーで開く（副ボタン）。作品を開くとクラス管理を閉じる。返却していないコメント（空でなく、返却したものと違う）があれば、先に `classroom-member-open-confirm-box` を出す |
+| `classroom-member-open-confirm-box` / `classroom-member-open-confirm-message` | div / p | 「返却していないコメントは消えます。この画面を離れて作品を開きますか？」の確認 |
+| `classroom-member-open-stay` / `classroom-member-open-leave` | button | 確認の［とどまる］（コメントを残して閉じる）/［離れる］（開く） |
 | `classroom-member-detail-return` | button | 返却（選んだ席の詳細の主ボタン） |
 | `classroom-member-detail-comment-label` | label | コメント欄の上のラベル「生徒へのコメント（返却で届きます）」 |
 | `classroom-member-detail-comment` | textarea | コメント入力 |
@@ -615,6 +617,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-detail` | aside | 右の列（選んだ席の点・根拠・コメント） |
 | `classroom-eval-detail-title` | h3 | 右の列の見出し「出席番号 NN」 |
 | `classroom-eval-detail-lesson` | span | 右の列の課題名 |
+| `classroom-eval-detail-open-work` | button | 右の列の課題名の右の［作品を開く］。選んだ席の作品をエディタで開き、クラス管理を閉じる（課題の詳細の［スモウルビーで開く］と同じ処理）。書き出していない採点・返却していないコメントがあれば、閉じるときと同じ確認（`classroom-eval-leave-confirm-message` の `data-kind="leave"`）を先に出す。開いている間は押せず「開いています…」と出す |
 | `classroom-eval-detail-prev` / `classroom-eval-detail-next` | button | 同じ課題を提出した前 / 次の席へ（「‹ NN」/「NN ›」。端では押せない）。`aria-label` は「前の出席番号 NN」/「次の出席番号 NN」（端では番号なし） |
 | `classroom-eval-detail-ai-draft` | span | 「AI の下書き」（AI が出した点を先生がまだ変えていないとき。根拠だけを直したときは残る） |
 | `classroom-eval-detail-empty` | p | 提出が 1 つも無いときの「提出された作品はありません。」 |
