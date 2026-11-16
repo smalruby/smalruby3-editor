@@ -669,7 +669,7 @@ describe('右の列の［作品を開く］(#1980)', () => {
         expect(byTestId('classroom-eval-detail-open-work')).toBeNull();
     });
 
-    test('課題名の横に出し、押すと離れる確認（leave）を通してから選んだ席と課題を渡す', () => {
+    test('課題名の横に出し、押すと確かめずに選んだ席と課題を渡す（採点の画面は残るので・#1990）', () => {
         const onOpenWork = jest.fn();
         const onRequestLeave = jest.fn((action) => action());
         renderEvaluation({ seats: [1, 3], getCell, onOpenWork, onRequestLeave });
@@ -678,17 +678,24 @@ describe('右の列の［作品を開く］(#1980)', () => {
         expect(button).toBeEnabled();
         fireEvent.click(byTestId('classroom-eval-detail-next'));
         fireEvent.click(byTestId('classroom-eval-detail-open-work'));
-        expect(onRequestLeave).toHaveBeenCalledWith(expect.any(Function), 'leave');
+        expect(onRequestLeave).not.toHaveBeenCalled();
         expect(onOpenWork).toHaveBeenCalledWith(3, 'c1');
     });
 
-    test('確認で止まったら（requestLeave が action を呼ばなければ）開かない', () => {
+    test('選んだ席を container が持つときは、それを出し、選び直しを container に渡す (#1990)', () => {
+        const onChooseCell = jest.fn();
         const onOpenWork = jest.fn();
-        const onRequestLeave = jest.fn();
-        renderEvaluation({ seats: [1, 3], getCell, onOpenWork, onRequestLeave });
+        renderEvaluation({
+            seats: [1, 3],
+            getCell,
+            onOpenWork,
+            chosenCell: { seat: 3, classroomId: 'c1' },
+            onChooseCell,
+        });
         fireEvent.click(byTestId('classroom-eval-detail-open-work'));
-        expect(onRequestLeave).toHaveBeenCalledTimes(1);
-        expect(onOpenWork).not.toHaveBeenCalled();
+        expect(onOpenWork).toHaveBeenCalledWith(3, 'c1');
+        fireEvent.click(byTestId('classroom-eval-detail-prev'));
+        expect(onChooseCell).toHaveBeenCalledWith({ seat: 1, classroomId: 'c1' });
     });
 });
 

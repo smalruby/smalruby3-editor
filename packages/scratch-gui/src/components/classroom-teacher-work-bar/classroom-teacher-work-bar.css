@@ -1,0 +1,46 @@
+/* 色・大きさはデザインシステムのトークン（docs/design-system/tokens.md）。 */
+@import '../../css/smalruby-tokens.css';
+
+/*
+    先生がクラス管理から作品を開いている間、メニューバーのすぐ下に画面の幅いっぱいで出す帯（#1990）。
+    1 行・36px 固定。本体（gui.css の .body-wrapper-with-teacher-work-bar）はこの高さの分だけ縮む。
+    授業 PC（1300×600）でステージ・ブロックを削りすぎないよう、レッスンの課題バー（40px）より低くする。
+*/
+.bar {
+    display: flex;
+    align-items: center;
+    gap: $space-small;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border-bottom: 1px solid $color-border;
+    background-color: $color-info-background;
+    color: $color-text;
+    font-size: $font-size-medium;
+    line-height: 1.2;
+    overflow: hidden;
+}
+
+/* 出席番号・課題名の文。長い課題名は … で切る（ボタンを押し出さない） */
+.text {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ログインが切れたときの知らせ（#1990）。注意の文字の色（赤は使わない・R4） */
+.expired {
+    flex-shrink: 0;
+    color: $color-confirm-text;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
+}
+
+.back.back {
+    flex-shrink: 0;
+    min-height: $size-button-height-small;
+}

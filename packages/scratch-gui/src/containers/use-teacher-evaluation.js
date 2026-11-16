@@ -87,7 +87,7 @@ const downloadText = (filename, text) => {
  * @param {Function} params.setPhase - phase setter
  * @param {Function} [params.openSubmission] - opens a work in the editor and closes
  *   the modal (`handleOpenSubmission` of use-teacher-submissions, the same as
- *   「スモウルビーで開く」 of the assignment's members)
+ *   「スモウルビーで開く」 of the assignment's members). This screen's state stays (#1990).
  * @returns {object} evaluation state and handlers
  */
 const useTeacherEvaluation = ({
@@ -128,6 +128,9 @@ const useTeacherEvaluation = ({
     const urlsReadAtRef = useRef({});
     // A work is being opened: [Open the work] waits, so it is not pressed twice (#1980).
     const [openingWork, setOpeningWork] = useState(false);
+    // The seat × assignment shown in the right column (#1962). Kept here, not in the
+    // screen, so it is still chosen after a work is opened and the screen comes back (#1990).
+    const [chosenCell, setChosenCell] = useState(null);
     const openingWorkRef = useRef(false);
     const markOpeningWork = useCallback((value) => {
         openingWorkRef.current = value;
@@ -158,6 +161,7 @@ const useTeacherEvaluation = ({
             setEvalProgress(null);
             setExported({});
             setLeaveRequest(null);
+            setChosenCell(null);
             setPhase('teacher-evaluation');
             // The lesson settings decide the flow (lesson-only assignments are not
             // graded by the AI) and feed the lesson points field (#1778). A failed
@@ -402,8 +406,8 @@ const useTeacherEvaluation = ({
 
     /**
      * Open the work of a cell in the editor (#1980), the same way as
-     * 「スモウルビーで開く」 of the assignment's members: the modal closes, so the
-     * caller asks first through `requestLeave`. A link read more than
+     * 「スモウルビーで開く」 of the assignment's members. The modal closes but this
+     * hook stays mounted (#1990), so nothing is lost and it does not ask. A link read more than
      * WORK_URL_FRESH_MS ago is read again (it may have ended), without loading
      * the table again (that would drop grades not exported).
      * @param {number} seatNumber - seat of the cell
@@ -451,12 +455,28 @@ const useTeacherEvaluation = ({
                         return;
                     }
                 }
-                await openSubmission(projectUrl);
+                // Only the seat and the assignment name go to the bar above the editor (#1990).
+                const lesson = evalLessons.find((l) => l.classroomId === classroomId);
+                await openSubmission(projectUrl, {
+                    from: 'evaluation',
+                    seatNumber,
+                    assignmentName: (lesson && lesson.assignmentName) || null,
+                });
             } finally {
                 markOpeningWork(false);
             }
         },
-        [matrix, openSubmission, idToken, clearError, showError, intl, handleTeacher401, markOpeningWork],
+        [
+            matrix,
+            evalLessons,
+            openSubmission,
+            idToken,
+            clearError,
+            showError,
+            intl,
+            handleTeacher401,
+            markOpeningWork,
+        ],
     );
 
     /**
@@ -684,6 +704,8 @@ const useTeacherEvaluation = ({
         handleChangeLessonScoring,
         handleOpenWork: openSubmission ? handleOpenWork : null,
         openingWork,
+        chosenCell,
+        handleChooseCell: setChosenCell,
         handleExportEvaluationCsv,
         handleExportAuditCsv,
         handleReturnComments,

@@ -343,6 +343,39 @@ describe('TeacherClassDetail — entry tab (teacher review on #1199)', () => {
     });
 });
 
+describe('TeacherClassDetail — 作品を開いて戻ったとき (#1990)', () => {
+    const tab = (name) => document.querySelector(`[data-testid="classroom-tab-${name}"]`);
+
+    test('置き直されたら、container が覚えているタブ（currentTab）で開き、入口のタブに戻さない', () => {
+        const onDetailTabChange = jest.fn();
+        renderDetail({ onDetailTabChange, currentTab: 'description', detailEntry: { tab: 'members', seq: 3 } });
+        expect(tab('description')).toHaveAttribute('aria-selected', 'true');
+        expect(onDetailTabChange).not.toHaveBeenCalled();
+    });
+
+    test('置き直したあとで別の課題を開いたら、入口のタブにする', () => {
+        const onDetailTabChange = jest.fn();
+        const props = {
+            ...defaultProps(),
+            onDetailTabChange,
+            currentTab: 'description',
+            detailEntry: { tab: 'members', seq: 3 },
+        };
+        const { rerender } = render(
+            <IntlProvider locale="en">
+                <TeacherClassDetail {...props} />
+            </IntlProvider>,
+        );
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherClassDetail {...props} detailEntry={{ tab: 'members', seq: 4 }} />
+            </IntlProvider>,
+        );
+        expect(onDetailTabChange).toHaveBeenLastCalledWith('members');
+        expect(tab('members')).toHaveAttribute('aria-selected', 'true');
+    });
+});
+
 describe('TeacherClassDetail — 前回の提出物から始めさせる (#1202 → #1825 で廃止)', () => {
     const editor = (over = {}) => ({
         editorPages: [{ text: '続きを作ろう' }],

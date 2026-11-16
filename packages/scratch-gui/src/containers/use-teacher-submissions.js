@@ -16,7 +16,7 @@ import {
 import { lessonProgressContext } from '../lib/classroom-lesson-progress.js';
 import { mergedChallengeColumns, submissionCsvRows } from '../lib/classroom-lesson-summary.js';
 import { findCourse } from '../lib/lessons/courses.js';
-import { closeClassroomModal, closeTeacherModal } from '../reducers/classroom.js';
+import { closeClassroomModal, closeTeacherModal, setTeacherOpenedWork } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 import { enrichMembers } from './use-teacher-classrooms.js';
 
@@ -82,8 +82,17 @@ const useTeacherSubmissions = ({
 
     // --- Open student submission ---
 
+    /**
+     * Open a student's work in the editor and close class management (#1980).
+     * The teacher screens stay as they were behind it, and the bar above the
+     * editor offers to go back to them (#1990).
+     * @param {string} projectUrl - link to the work
+     * @param {{from: string, seatNumber: ?number, assignmentName: ?string}} [work] - where
+     *   it was opened from, for the bar: 'evaluation' (grading) or 'assignment' (the
+     *   assignment's members). The assignment name defaults to the selected assignment.
+     */
     const handleOpenSubmission = useCallback(
-        async (projectUrl) => {
+        async (projectUrl, work = null) => {
             if (!projectUrl || !vm) return;
             clearError();
             setIsLoading(true);
@@ -98,13 +107,24 @@ const useTeacherSubmissions = ({
                 // or the work opens behind it (#1980).
                 dispatch(closeTeacherModal());
                 dispatch(closeClassroomModal());
+                if (work) {
+                    dispatch(
+                        setTeacherOpenedWork({
+                            ...work,
+                            assignmentName:
+                                work.assignmentName ||
+                                (selectedClassroom && selectedClassroom.assignmentName) ||
+                                null,
+                        }),
+                    );
+                }
             } catch (err) {
                 showError(translateError(intl, err));
             } finally {
                 setIsLoading(false);
             }
         },
-        [vm, dispatch, clearError, showError, intl, setIsLoading],
+        [vm, dispatch, clearError, showError, intl, setIsLoading, selectedClassroom],
     );
 
     // --- Invite link ---
@@ -120,9 +140,10 @@ const useTeacherSubmissions = ({
 
     // --- Return submission ---
 
+    // Resolves true when the comment was returned (the container then drops its draft, #1990).
     const handleReturnSubmission = useCallback(
         async (submissionId, teacherComment) => {
-            if (!idToken || !selectedClassroom) return;
+            if (!idToken || !selectedClassroom) return false;
             clearError();
             setIsLoading(true);
             try {
@@ -131,12 +152,14 @@ const useTeacherSubmissions = ({
                     teacherComment,
                 });
                 await loadClassroomDetail(selectedClassroom.classroomId);
+                return true;
             } catch (err) {
                 if (err.status === 401) {
                     await handleTeacher401();
                 } else {
                     showError(translateError(intl, err));
                 }
+                return false;
             } finally {
                 setIsLoading(false);
             }

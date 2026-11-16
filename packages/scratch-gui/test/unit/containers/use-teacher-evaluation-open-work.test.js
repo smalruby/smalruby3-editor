@@ -49,6 +49,9 @@ const setup = async (openSubmission = jest.fn(() => Promise.resolve())) => {
     return { hook, deps };
 };
 
+// The bar above the editor gets only the seat and the assignment name (#1990).
+const WORK_2 = { from: 'evaluation', seatNumber: 2, assignmentName: '迷路' };
+
 const openWork = async (hook, seat) => {
     await act(async () => {
         await hook.result.current.handleOpenWork(seat, 'c1');
@@ -90,7 +93,7 @@ describe('useTeacherEvaluation — 作品を開く (#1980)', () => {
         now += 10 * 60 * 1000;
         await openWork(hook, 2);
         expect(mockListSubmissions).not.toHaveBeenCalled();
-        expect(deps.openSubmission).toHaveBeenCalledWith('https://example.invalid/first/2.sb3');
+        expect(deps.openSubmission).toHaveBeenCalledWith('https://example.invalid/first/2.sb3', WORK_2);
     });
 
     test('時間がたっていたら、その課題の URL だけを取り直して開く（採点は消さない）', async () => {
@@ -103,7 +106,7 @@ describe('useTeacherEvaluation — 作品を開く (#1980)', () => {
         now += 55 * 60 * 1000;
         await openWork(hook, 2);
         expect(mockListSubmissions).toHaveBeenCalledWith('id-token', 'c1');
-        expect(deps.openSubmission).toHaveBeenCalledWith('https://example.invalid/fresh/2.sb3');
+        expect(deps.openSubmission).toHaveBeenCalledWith('https://example.invalid/fresh/2.sb3', WORK_2);
         // ほかの席の URL も新しくなり、採点はそのまま
         expect(hook.result.current.getCell(1, 'c1').projectUrl).toBe('https://example.invalid/fresh/1.sb3');
         expect(hook.result.current.getCell(1, 'c1').grade).toBe('S');
@@ -111,7 +114,10 @@ describe('useTeacherEvaluation — 作品を開く (#1980)', () => {
         mockListSubmissions.mockClear();
         await openWork(hook, 1);
         expect(mockListSubmissions).not.toHaveBeenCalled();
-        expect(deps.openSubmission).toHaveBeenLastCalledWith('https://example.invalid/fresh/1.sb3');
+        expect(deps.openSubmission).toHaveBeenLastCalledWith(
+            'https://example.invalid/fresh/1.sb3',
+            expect.objectContaining({ seatNumber: 1 }),
+        );
     });
 
     test('取り直せない（提出が無くなった・失敗した）ときは開かずに、読み込み直すよう知らせる', async () => {
@@ -150,7 +156,11 @@ describe('useTeacherEvaluation — 作品を開く (#1980)', () => {
         // 席 2 の提出が取り消された
         mockListSubmissions.mockResolvedValue({ submissions: submissionsWith('fresh').slice(0, 1) });
         await openWork(hook, 1);
-        expect(deps.openSubmission).toHaveBeenCalledWith('https://example.invalid/fresh/1.sb3');
+        expect(deps.openSubmission).toHaveBeenCalledWith('https://example.invalid/fresh/1.sb3', {
+            from: 'evaluation',
+            seatNumber: 1,
+            assignmentName: '迷路',
+        });
         expect(hook.result.current.getCell(2, 'c1').projectUrl).toBeNull();
         await openWork(hook, 2);
         expect(deps.openSubmission).toHaveBeenCalledTimes(1);
@@ -181,5 +191,32 @@ describe('useTeacherEvaluation — 作品を開く (#1980)', () => {
             await first;
         });
         expect(hook.result.current.openingWork).toBe(false);
+    });
+});
+
+describe('useTeacherEvaluation — 作品を開いて戻ったとき (#1990)', () => {
+    test('選んだ席と採点の下書きは、作品を開いたあとも残る', async () => {
+        const { hook } = await setup();
+        act(() => {
+            hook.result.current.handleChooseCell({ seat: 2, classroomId: 'c1' });
+            hook.result.current.handleSetCellGrade(2, 'c1', 'A');
+            hook.result.current.handleSetCellReason(2, 'c1', 'ていねい');
+            hook.result.current.handleSetComment(2, 'c1', 'よくできました');
+        });
+        await openWork(hook, 2);
+        expect(hook.result.current.chosenCell).toEqual({ seat: 2, classroomId: 'c1' });
+        const cell = hook.result.current.getCell(2, 'c1');
+        expect(cell.grade).toBe('A');
+        expect(cell.reason).toBe('ていねい');
+        expect(hook.result.current.comments['2:c1']).toBe('よくできました');
+    });
+
+    test('別のクラスの採点を始めると、選んだ席は消える', async () => {
+        const { hook } = await setup();
+        act(() => hook.result.current.handleChooseCell({ seat: 2, classroomId: 'c1' }));
+        await act(async () => {
+            hook.result.current.handleShowEvaluation({ groupId: 'g1', name: '技術' });
+        });
+        expect(hook.result.current.chosenCell).toBeNull();
     });
 });

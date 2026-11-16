@@ -296,6 +296,15 @@ export default {
     'gui.classroom.evaluation.needsReview': 'ようかくにん',
     'gui.classroom.evaluation.needsReviewTitle': 'AI がはんだんにまよいました。',
     'gui.classroom.evaluation.returned': 'へんきゃくずみ',
+    'gui.classroom.teacherLogoutConfirm.message': 'へんきゃくしていないコメントはきえます。ログアウトしますか？',
+    'gui.classroom.teacherLogoutConfirm.stay': 'とどまる',
+    'gui.classroom.teacherLogoutConfirm.logout': 'ログアウトする',
+    'gui.classroom.teacherWorkBar.viewing':
+        'しゅっせきばんごう {seatNumber}・{assignmentName} のさくひんをみています',
+    'gui.classroom.teacherWorkBar.viewingNoSeat': '{assignmentName} のさくひんをみています',
+    'gui.classroom.teacherWorkBar.sessionExpired': 'ログインがきれました。もどってログインしなおしてください。',
+    'gui.classroom.teacherWorkBar.backToGrading': '‹ さいてんにもどる',
+    'gui.classroom.teacherWorkBar.backToAssignment': '‹ かだいにもどる',
     'gui.classroom.evaluation.openWork': 'さくひんをひらく',
     'gui.classroom.evaluation.openingWork': 'ひらいています…',
     'gui.classroom.evaluation.openWorkFailed':
@@ -335,10 +344,6 @@ export default {
     'gui.classroom.error.goToLogin': 'ログインがめんをひょうじ',
     'gui.classroom.error.goToJoin': 'さんかがめんをひょうじ',
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーでひらく',
-    'gui.classroom.teacherDetail.openLoseComment':
-        'へんきゃくしていないコメントはきえます。このがめんをはなれてさくひんをひらきますか？',
-    'gui.classroom.teacherDetail.openStay': 'とどまる',
-    'gui.classroom.teacherDetail.openLeave': 'はなれる',
     'gui.classroom.teacherDetail.returnSubmission': 'へんきゃくする',
     'gui.classroom.teacherDetail.hideFromPeers': 'ほかのせいとにみせない',
     'gui.classroom.teacherDetail.returned': 'へんきゃくずみ',

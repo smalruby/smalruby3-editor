@@ -26,6 +26,7 @@ import TeacherAvatarMenu from './teacher-avatar-menu.jsx';
 import TeacherGoogleCoursesPhase from './teacher-google-courses-phase.jsx';
 import TeacherHeader from './teacher-header.jsx';
 import TeacherLoginPhase from './teacher-login-phase.jsx';
+import TeacherLogoutConfirm from './teacher-logout-confirm.jsx';
 import TeacherNotificationsList from './teacher-notifications-list.jsx';
 import TeacherNotifications from './teacher-notifications.jsx';
 
@@ -150,6 +151,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onCreateAssignmentInClass,
         onReuseAssignment,
         onDetailTabChange,
+        detailTab,
         detailEntry,
         onProjectEntryUsed,
         onBackFromGroupManage,
@@ -158,6 +160,11 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         evaluation,
         shared,
         notificationsCenter,
+        memberCommentDrafts,
+        onChangeMemberCommentDraft,
+        logoutConfirm,
+        onConfirmLogout,
+        onCancelLogout,
     } = containerProps;
 
     // 共有推奨バナー (#1106) の CTA: 共有ステップはボード内サブビュー
@@ -341,6 +348,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             return (
                 <div className={styles.mainRelative}>
                     <TeacherEvaluation
+                        chosenCell={evaluation.chosenCell}
                         comments={evaluation.comments}
                         error={error}
                         errorTitle={errorTitle}
@@ -371,6 +379,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onChangeLessonScoring={evaluation.handleChangeLessonScoring}
                         onChangeRubricAxis={evaluation.handleChangeRubricAxis}
                         onCheckScoring={evaluation.handleCheckScoring}
+                        onChooseCell={evaluation.handleChooseCell}
                         onExportAuditCsv={evaluation.handleExportAuditCsv}
                         onExportEvaluationCsv={evaluation.handleExportEvaluationCsv}
                         onLoadSubmissions={evaluation.handleLoadSubmissions}
@@ -451,7 +460,10 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onCopyInviteLink={onCopyInviteLink}
                         onDeleteClassroom={onDeleteClassroom}
                         onDeleteMember={onDeleteMember}
+                        currentTab={detailTab}
                         detailEntry={detailEntry}
+                        memberCommentDrafts={memberCommentDrafts}
+                        onChangeMemberCommentDraft={onChangeMemberCommentDraft}
                         onBackToBoard={onBackToDashboard}
                         onProjectEntryUsed={onProjectEntryUsed}
                         onDetailTabChange={onDetailTabChange}
@@ -618,6 +630,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         <TeacherAvatarMenu email={teacherEmail} onLogout={onTeacherLogout} />
                     )}
                 </TeacherHeader>
+                {logoutConfirm && <TeacherLogoutConfirm onCancel={onCancelLogout} onConfirm={onConfirmLogout} />}
                 <BreadcrumbSlotContext.Provider value={crumbSlot}>
                     <main className={styles.main} ref={mainRef} tabIndex={-1}>
                         {renderMain()}
