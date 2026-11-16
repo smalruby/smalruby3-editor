@@ -167,7 +167,7 @@ export default {
     'gui.classroom.evaluation.askBack': 'もどりますか？',
     'gui.classroom.evaluation.askLeave': 'このがめんをはなれますか？',
     'gui.classroom.evaluation.askReload': 'よみこみなおしますか？',
-    'gui.classroom.evaluation.leaveBusy': 'AI のしょりのとちゅうです。',
+    'gui.classroom.evaluation.leaveBusy': 'しょりのとちゅうです。はなれると、そこでとまります。',
     'gui.classroom.evaluation.leaveCancel': 'さいてんをつづける',
     'gui.classroom.evaluation.leaveExport': 'さいてんけっかをかきだす',
     'gui.classroom.evaluation.leaveConfirmYes': 'もどる',
