@@ -89,6 +89,33 @@ Scratch のブロック
 分析で決めたことは、[`bridging-patterns.md`](bridging-patterns.md) の P1（ローカル変数）・P2（戻り値）・P4/P5（配列・ハッシュ）・P6（class）・P15（変数の種類）に対応する。
 新しい橋渡しの工夫で「変換の前に全体を見ないと決まらないこと」が出たら、変換の途中で決めずに分析の表に足す。
 
+#### `Analysis` の形（`analysis.js` の `analyze(root, { source })`）
+
+たどり方は `node-walk.js` の `forEachNode(root, { enter(node, type, parent), leave(node, type, parent) })`。
+prism の `childNodes()` のすべての子を、ソースの順に（親を子より先に）1 回ずつ見る。再帰しないので長いコードでもスタックがあふれない。
+ノードの種類名は `nodeTypeName(node)` で、ノードのクラスごとに 1 回だけ `accept()` で調べて覚える。
+`analyze` は構文木とソースだけを読む純粋な関数で、変換器や VM を読まない。結果は `Object.freeze` する（中の prism のノードは凍らせない。`Map` は読むだけの形 `{ get, has, size }` にする）。
+
+| 表                           | 形                                                                                                                                            | いまの変換器の値                                                                 |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `variables.uses`             | `{ [Ruby の名前]: { list, scalar, hash, string, notString } }`                                                                                | `_context.variableUses`                                                          |
+| `variables.firstUses`        | `{ ['@a' / '$a']: { list?: { line, node }, scalar?: { line, node } } }`（いちばん前の行）                                                     | `_context.firstVariableUses`                                                     |
+| `variables.rubyNames`        | コードが読み書きする `@a` / `$a` の並び                                                                                                       | `_context.rubyVariableNames`                                                     |
+| `locals`                     | `unitOfNode`（範囲を始めるノード → 範囲の番号）、`uses[範囲][名前]`、`groups[範囲]`（メソッドは自分、スクリプトのブロックは 0）、`splitNames` | `_context.localVariableUnits`（`scopeIndexes` は変換の途中で決まるので含めない） |
+| `procedures.valueCallCounts` | `{ [メソッド名]: 値として呼ばれる数 }`。`case` / `when` / `else` の中も数える                                                                 | `_context.methodCallCounts`（`case` の中は 0）                                   |
+| `procedures.definitions`     | `def` ごとの `{ name, line, onSelf, requireds, optionals, returnsValue, usesSuper, node }`                                                    | `my-blocks.js` と `class-visitor.js` がその場で調べている                        |
+| `classes`                    | `classes`: `{ name, superclass, line, attrs, includes, methods, hasInitialize, node }`、`modules`: `{ name, line, methods, node }`            | `class-visitor.js` / `module-visitor.js` の本体の下調べ                          |
+| `symbols`                    | コードに書かれたシンボル（`:name`）の並び。`$_symbols_` に入る候補（変換で使われたものだけが入る）                                            | `_context.symbols`（変換の途中で集める）                                         |
+| `errors`                     | `{ kind: 'variableAndList', name, listLine, variableLine, node }` を変数としての行の順に                                                      | `_rejectRubyNameOfVariableAndList`（最初の 1 つで止める）                        |
+
+「値として呼ばれる」は、いまの `_countProcedureCallsInNode` と同じ決まりで決める。
+ノードごとに「文として見る」「値として見る」を子に配り、値として見た `CallNode` を数える
+（引数・レシーバー・条件・`x = ...` の値・`return` の値が値、`do ... end` の中・`if` の中が文）。
+これに `case` の決まり（`case x` と `when x` の `x` が値、`when` と `else` の中が文）を足した。
+
+表がいまの変換器と同じであることは `test/unit/lib/ruby-to-blocks-converter/analysis.test.js` で確かめる。
+変換器と往復のテストに書かれた Ruby（約 3,500 個）で、変換器の下調べの結果と表を比べる。違ってよいのは `case` の中の呼び出しの数だけ。
+
 ### 3. 変換（convert）
 
 - `visitXxxNode` がノードごとにブロックを作る（prism の `Visitor` の形はそのまま）。
