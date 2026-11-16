@@ -635,32 +635,34 @@ describe('lesson-mode reducer: the role of a pair challenge (#2061)', () => {
     beforeEach(() => {
         window.localStorage.clear();
     });
-    const remembered = () => JSON.parse(window.localStorage.getItem(LESSON_ROLE_STORAGE_KEY));
 
     test('a challenge without roles has no role', () => {
         const state = reducer(lessonModeInitialState, openChallenge('chat-l3-mesh-signal'));
         expect(state.role).toBeNull();
         expect(getCurrentRole(wrap(state))).toBeNull();
-        expect(remembered()).toBeNull();
     });
 
-    test('nothing remembered: the Shimaraby role, and it is remembered', () => {
+    test('without a role from the container: the Shimaraby role', () => {
         const state = reducer(lessonModeInitialState, openChallenge('chat-l4-send-repeat'));
         expect(getCurrentRole(wrap(state))).toEqual({ role: ROLES.SHIMARABY, source: ROLE_SOURCES.DEFAULT });
         expect(getCurrentChallenge(wrap(state)).challenge.code.ja).toContain('$シマラビのメッセージ');
-        expect(remembered()).toEqual({ role: ROLES.SHIMARABY, pair: null });
     });
 
-    test('choosing the Shimacat role swaps the challenge and is remembered for the next one', () => {
+    test('the reducer does not read or write the device (the container does)', () => {
+        window.localStorage.setItem(LESSON_ROLE_STORAGE_KEY, JSON.stringify({ role: 'shimacat', pair: null }));
+        let state = reducer(lessonModeInitialState, openChallenge('chat-l3-mesh-variable'));
+        expect(state.role).toBe(ROLES.SHIMARABY);
+        window.localStorage.clear();
+        state = reducer(state, setLessonRole(ROLES.SHIMACAT));
+        expect(window.localStorage.getItem(LESSON_ROLE_STORAGE_KEY)).toBeNull();
+    });
+
+    test('choosing the Shimacat role swaps the challenge', () => {
         let state = reducer(lessonModeInitialState, openChallenge('chat-l3-mesh-variable'));
         state = reducer(state, setLessonRole(ROLES.SHIMACAT));
         expect(getCurrentRole(wrap(state))).toEqual({ role: ROLES.SHIMACAT, source: ROLE_SOURCES.CHOSEN });
         expect(getCurrentChallenge(wrap(state)).challenge.code.ja).toContain('$シマネコのきぶん');
         expect(getLessonAllowedBlocks(wrap(state))).toBe(getCurrentChallenge(wrap(state)).challenge.allowedBlocks);
-        // どの順でも: 次に開いたのが 5-5 でも、前回の役を選んでおく
-        state = reducer(reducer(state, closeLesson()), openChallenge('chat-l5-stamp'));
-        expect(getCurrentRole(wrap(state))).toEqual({ role: ROLES.SHIMACAT, source: ROLE_SOURCES.REMEMBERED });
-        expect(getCurrentChallenge(wrap(state)).challenge.code.ja).toContain('broadcast("シマネコのスタンプ")');
     });
 
     test('closing the lesson clears the role, setLessonRole outside a role challenge does nothing', () => {
@@ -672,7 +674,7 @@ describe('lesson-mode reducer: the role of a pair challenge (#2061)', () => {
         expect(reducer(signal, setLessonRole(ROLES.SHIMACAT))).toBe(signal);
     });
 
-    test('the role the container decided (seat pair) is used and remembered with the pair', () => {
+    test('the role the container decided (remembered / seat pair) is used', () => {
         const state = reducer(
             lessonModeInitialState,
             openChallenge('chat-l4-send-once', {
@@ -682,7 +684,7 @@ describe('lesson-mode reducer: the role of a pair challenge (#2061)', () => {
             }),
         );
         expect(getCurrentRole(wrap(state))).toEqual({ role: ROLES.SHIMACAT, source: ROLE_SOURCES.SEAT });
-        expect(remembered()).toEqual({ role: ROLES.SHIMACAT, pair: '3-7' });
+        expect(state.rolePair).toBe('3-7');
     });
 
     test('startChallenge with a role (starting again in the other role) opens in that role', () => {

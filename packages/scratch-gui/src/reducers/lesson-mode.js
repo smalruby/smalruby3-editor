@@ -12,14 +12,9 @@ import {
     mergeProgress,
     saveProgress,
 } from '../lib/lessons/lesson-progress';
-import {
-    ROLE_SOURCES,
-    loadRememberedRole,
-    resolveChallengeRole,
-    saveRememberedRole,
-} from '../lib/lessons/lesson-role';
+import { ROLE_SOURCES } from '../lib/lessons/lesson-role';
 import { isReadDiagram } from '../lib/lessons/read-diagram';
-import { challengeForRole, isRole } from '../lib/lessons/role-swap';
+import { DEFAULT_ROLE, challengeForRole, isRole } from '../lib/lessons/role-swap';
 import { isSpotlightSeen, markSpotlightSeen } from '../lib/lessons/spotlight-seen';
 
 const START_CHALLENGE = 'scratch-gui/lesson-mode/START_CHALLENGE';
@@ -117,8 +112,9 @@ const initialState = {
 
 /**
  * チャレンジを開くときの役（役のあるチャレンジだけ）。役を選びなおして始めなおしたとき（pendingRole）は
- * その役、コンテナが決めた役（action.role。前回の役・出席番号のペア）があればそれ、無ければ前回の役から
- * 決める。決めた役は次のチャレンジのために端末に覚える。
+ * その役、コンテナが決めた役（action.role。前回の役・出席番号のペア。lib/lessons/lesson-role.js）があれば
+ * それ、無ければシマラビの役。reducer は端末（localStorage）を読み書きしない（前回の役を読むのも、選んだ役を
+ * 覚えるのもコンテナ）。
  * @param {object} challenge - 開くチャレンジ。
  * @param {object} action - OPEN_CHALLENGE。
  * @param {object} state - いまの state。
@@ -140,9 +136,8 @@ const openedRoleState = (challenge, action, state) => {
             pair: action.rolePair || null,
         };
     } else {
-        resolved = resolveChallengeRole({ remembered: loadRememberedRole() });
+        resolved = { role: DEFAULT_ROLE, source: ROLE_SOURCES.DEFAULT, pair: null };
     }
-    saveRememberedRole({ role: resolved.role, pair: resolved.pair });
     return { role: resolved.role, roleSource: resolved.source, rolePair: resolved.pair };
 };
 
@@ -273,7 +268,6 @@ const reducer = function (state, action) {
             const found = state.challengeId === null ? null : findChallenge(state.challengeId);
             if (!found || !found.challenge.roles || !isRole(action.role)) return state;
             if (state.role === action.role && state.roleSource === ROLE_SOURCES.CHOSEN) return state;
-            saveRememberedRole({ role: action.role, pair: state.rolePair });
             return { ...state, role: action.role, roleSource: ROLE_SOURCES.CHOSEN };
         }
         case SET_LIBRARY_ASSIGNMENT_ONLY:
