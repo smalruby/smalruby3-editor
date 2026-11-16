@@ -19,17 +19,17 @@ Ruby → ブロックの変換器（`packages/scratch-gui/src/lib/ruby-to-blocks
 
 ## いまの作り
 
-| 項目               | いま                                                                                                                                                                                                                   |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 大きさ             | 69 ファイル・約 20,200 行（`ast-handlers/` と `send-table.js` を含む）                                                                                                                                                 |
-| クラス             | `RubyToBlocksConverter`（prism の `Visitor` を継承）1 つに、14 の部品を `Object.assign` で混ぜる                                                                                                                       |
-| 呼び出しの登録     | `converter.registerOnSend(` 386 か所・`converter.registerOnSendWithBlock(` 57 か所・`converter.registerOnSendMyBlock(` 1 か所。ほかに `send-table.js` の表の行が 12                                                    |
-| 構文の登録         | `converter.registerOnIf(` / `OnUntil` / `OnOpAsgn` / `OnAnd` / `OnOr` / `OnVar` / `OnVasgn` / `OnDefs`（13 か所）                                                                                                      |
-| 古い `onXxx` 形式  | `_callConvertersHandler` が 11 個の変換器オブジェクトを毎回調べる。いま中身があるのは `pen.onOpAsgn` と `makeymakey.onSend` の 2 つだけで、残り 9 個は名前だけ残っている                                               |
-| 変換の前の分析     | `analysis.js` の `analyze`（変数の使い方・ローカル変数の範囲・値として呼ばれる手続きの数）。変換器は結果の表を `_context.analysis` に置いて読む。`_rejectRubyNameOfVariableAndList` は表の `errors` を見て断る         |
-| 変換のあとの仕上げ | 素のリテラルを代入に変える、`ruby_*` ブロックを断る、拡張機能の ID を集める、`_dropUnusedHashVariables`、`_rejectVariableAndListOfSameName`、`$_symbols_` を作る、コメントを結びつける、`target-applier.js` で書きこむ |
+| 項目               | いま                                                                                                                                                                                                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 大きさ             | 72 ファイル・約 20,500 行（`ast-handlers/` と `send-table.js` を含む）                                                                                                                                                                                              |
+| クラス             | `RubyToBlocksConverter`（prism の `Visitor` を継承）1 つに、14 の部品を `Object.assign` で混ぜる                                                                                                                                                                    |
+| 呼び出しの登録     | 呼び出しの表（`send-table.js`）の行が 95（motion 12・looks 25・sound 8・control 5・event 6・sensing 16・operators 6・pen 17）。ほかに `converter.registerOnSend(` 324 か所・`converter.registerOnSendWithBlock(` 53 か所・`converter.registerOnSendMyBlock(` 1 か所 |
+| 構文の登録         | `converter.registerOnIf(` / `OnUntil` / `OnOpAsgn` / `OnAnd` / `OnOr` / `OnVar` / `OnVasgn` / `OnDefs`（13 か所）                                                                                                                                                   |
+| 古い `onXxx` 形式  | なくした。`_callConvertersHandler` は `registerOnXxx` で登録した配列だけを見る                                                                                                                                                                                      |
+| 変換の前の分析     | `analysis.js` の `analyze`（変数の使い方・ローカル変数の範囲・値として呼ばれる手続きの数）。変換器は結果の表を `_context.analysis` に置いて読む。`_rejectRubyNameOfVariableAndList` は表の `errors` を見て断る                                                      |
+| 変換のあとの仕上げ | 素のリテラルを代入に変える、`ruby_*` ブロックを断る、拡張機能の ID を集める、`_dropUnusedHashVariables`、`_rejectVariableAndListOfSameName`、`$_symbols_` を作る、コメントを結びつける、`target-applier.js` で書きこむ                                              |
 
-数え方: `ruby-to-blocks-converter/` の下の `.js`（`ast-handlers/` を含む）を対象に、ファイルの数と行の数（`wc -l`）、登録は `converter.registerOnXxx(` と書かれた所の数を数えた（`grep -roF`）。`converter-registry.js` の中の定義と、`receiver` の `self` / `any` / 配列を広げるための呼び直しは数えない。`forEach` の中の 1 か所は、いくつのメソッドを登録していても 1 と数える（実際に登録される数はこれより多い）。`send-table.js` の中の `registerOnSend(` 1 か所も 386 に入る。
+数え方: `ruby-to-blocks-converter/` の下の `.js`（`ast-handlers/` を含む）を対象に、ファイルの数と行の数（`wc -l`）、登録は `converter.registerOnXxx(` と書かれた所の数を数えた（`grep -roF`）。`converter-registry.js` の中の定義と、`receiver` の `self` / `any` / 配列を広げるための呼び直しは数えない。`forEach` の中の 1 か所は、いくつのメソッドを登録していても 1 と数える（実際に登録される数はこれより多い）。`send-table.js` の中の `registerOnSend(` / `registerOnSendWithBlock(` 1 か所ずつもこの数に入る。表の行は、`map` で広げたあとの数（各変換器の `sends`）。
 
 分析と仕上げは、`targetCodeToBlocks`（`index.js`）の前と後ろにある。分析は名前のある段（`analysis.js`）になった。仕上げも同じように段として切り出し、段の間で渡すものを決めるのが残りの仕事。
 
@@ -136,7 +136,7 @@ Ruby の名前をキーにする表（`variables.uses`・`locals.uses`・`proced
 
 ## 呼び出しの登録を表にする
 
-### 表の形（試作: `send-table.js`）
+### 表の形（`send-table.js`）
 
 1 対 1 でブロックになる呼び出しは、行で書く。
 
@@ -170,47 +170,81 @@ const MOTION_SENDS = [
 registerSendTable(converter, MOTION_SENDS);
 ```
 
-| 引数の種類                                 | 受けつけるもの                         | ブロックへの入れ方                                      |
-| ------------------------------------------ | -------------------------------------- | ------------------------------------------------------- |
-| `numberArg(input, 既定値, 影の opcode)`    | 数・値のブロック（`_isNumberOrBlock`） | 数の影つきの入力（`_addNumberInput`）                   |
-| `menuArg(input, メニューの opcode, field)` | 文字列                                 | メニューのブロックを入力に入れる（`_createFieldBlock`） |
-| `fieldArg(field, 選べる値)`                | 文字列（選べる値があればその中のもの） | ブロックのフィールド（`_addField`）                     |
+| 引数の種類                                                                               | 受けつけるもの                                                                          | ブロックへの入れ方                                      |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `numberArg(input, 既定値, 影の opcode)`                                                  | 数・値のブロック（`_isNumberOrBlock`）                                                  | 数の影つきの入力（`_addNumberInput`）                   |
+| `textArg(input, 既定値)`                                                                 | 文字列・値のブロック（`_isStringOrBlock`）                                              | 文字の影つきの入力（`_addTextInput`）                   |
+| `menuArg(input, メニューの opcode, field, { validate })`                                 | 文字列                                                                                  | メニューのブロックを入力に入れる（`_createFieldBlock`） |
+| `menuInputArg(input, メニューの opcode, field, 既定値, { choices, validate, anyBlock })` | 文字列（`choices` があればその中のもの）・値のブロック（`anyBlock` ならどのブロックも） | メニューの影つきの入力（`_addFieldInput`）              |
+| `colorArg(input, 既定値)`                                                                | 色・値のブロック（`_isColorOrBlock`）                                                   | 色の入力（`_addColorFieldInput`）                       |
+| `fieldArg(field, 選べる値, { normalize })`                                               | 文字列（選べる値があれば、`normalize` したものがその中にあるもの）                      | ブロックのフィールド（`_addField`）                     |
+
+`validate(converter, arg, params)` は、すべての引数を受けつけたあと、ブロックを作る前に呼ぶ（衣装・背景・音が無いときのエラー。ブロックを作ってから断ると、作りかけのブロックが残る）。
 
 - 行の引数の種類に合わない呼び出しは `null` を返し、同じメソッドの次の登録に譲る（いまの `registerOnSend` の handler と同じ決まり）。
-- 表で書けない形（`go_to([x, y])` の配列、`glide(..., secs: 1)` のキーワード引数、引数で opcode を選ぶもの、ハット、`self.x += 1` のような演算代入）は、いまの handler のまま表の横に置く。
-- 表はデータなので、テストが読める。試作では「表の opcode にはすべて生成器がある」ことを確かめている（`send-table.test.js`）。同じ表から、補完の一覧やふりがなの一覧を作ることもできる。
+- 表で書けない形（`go_to([x, y])` の配列、`glide(..., secs: 1)` のキーワード引数、引数で opcode を選ぶもの、`self.x += 1` のような演算代入、変数・リストを引く呼び出し）は、いまの handler のまま表の横に置く。
+- 同じキー（レシーバー・名前・引数の数・ブロック引数の数）に handler がいくつかあると、登録した順に試す。表へ移すときは、同じキーの中の順番を変えない。キーの違う handler との前後は結果に関わらないので、表は `register` の中のどこで登録してもよい（sensing と control は先頭で登録している）。
+- 表はデータなので、テストが読める（`send-table.test.js` は「表の opcode にはすべて生成器がある」ことを確かめる）。同じ表から、補完の一覧やふりがなの一覧を作ることもできる。
 
-motion では、呼び出しの登録 14 のうち 12 が表になった（残りは `go_to` / `glide`。演算代入は `registerOnOpAsgn` のまま）。ほかの領域も、まず表で書ける行を移し、残りを handler のまま残す。
+領域ごとの表（各変換器の `sends` が表。`send-table.test.js` は、すべての表の opcode とメニューの opcode に生成器があることを確かめる）:
 
-### 表に足していく列（実装のときに決める）
+| 領域      | 表の行 | handler のまま残したもの                                                                                                                                         |
+| --------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| motion    | 12     | `go_to`・`glide`（配列・キーワード引数）、演算代入                                                                                                               |
+| looks     | 25     | `say` / `think`（`secs:`・シンボル）、`print` / `puts` / `p`（引数の数が決まらない）、演算代入                                                                   |
+| sound     | 8      | 演算代入                                                                                                                                                         |
+| control   | 5      | `repeat`・本体のある `loop` / `forever`・`N.times`（`wait` を除く・ブロック引数）、`create_clone` / `clone`、`with_screen_refresh`、`if` / `until`、v1 の `when` |
+| event     | 6      | `when_receive`・`broadcast`（メッセージを引く）、v1 の `when`                                                                                                    |
+| sensing   | 16     | Ruby の式のレシーバーを使う v2 の形（`mouse.x`・`stage.volume`・`sprite("A").x`・`Time.now.year`）、`gets`、`drag_mode=`                                         |
+| operators | 6      | `[]`・`empty?`・`+`・比べる演算・`=~`・算術（`operators-math.js`。`Math.sqrt` など、引数が配列のときがあるもの）                                                 |
+| data      | 0      | すべて（変数・リスト・ハッシュを引き、リストに変える。表の 1 行では書けない）                                                                                    |
+| pen       | 17     | `pen.color =`（数か色で opcode を選ぶ）、`pen.size += 1` の下ごしらえ、演算代入                                                                                  |
 
-| 列                | 使い道                                                          | 例                               |
-| ----------------- | --------------------------------------------------------------- | -------------------------------- |
-| `rubyBlock: 0`    | `do ... end` を取る呼び出し（いまの `registerOnSendWithBlock`） | `forever do`                     |
-| `hat: true`       | ハット（ブロックの中身を下につなぐ）                            | `when_flag_clicked do`           |
-| `stage: false`    | ステージでは使えない（エラーにする）                            | 動きのブロック                   |
-| `versions: ['2']` | Ruby のバージョンで形が違う                                     | v1 の `self.when(:flag_clicked)` |
+拡張機能は pen だけ移した。残り（music・video・text2speech・translate・ev3・wedo2・microbit・micro:bit More・g2s・koshien・mesh など）は、同じ形（`changesReceiver` と `menus`）で 1 つずつ移す。
 
-### 古い `onXxx` 形式をなくす道すじ
+### 表の列
 
-1. `pen.onOpAsgn` を `registerOnOpAsgn` に、`makeymakey.onSend`（v1 の `self.when(:makey_key_pressed, ...)`）を `registerOnSendWithBlock('self', 'when', 2, 0, ...)` に移す。
-   いまは `callMethod` の登録が先に試され、`onSend` はその後なので、`event.js` の `when` の登録より **後に** 登録して順番を保つ。
-2. `_callConvertersHandler` から 11 個の変換器オブジェクトを調べる部分を消し、`register-converters.js` の export も消す。
-3. 「新しい変換は registerOnXxx か表で書く」をそのまま決まりにする（`.claude/rules/scratch-gui/ruby-mode.md`）。
+| 列                                      | 使い道                                                                                                         | 例                        |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `type`                                  | ブロックの形（`statement`・`value`・`value_boolean`・`terminate`）                                             | `x` → `value`             |
+| `fields: { NAME: 値 }`                  | 決まった値のフィールド                                                                                         | `go_to_front`             |
+| `menus: { INPUT: [opcode, field, 値] }` | 決まった値のメニューの入力                                                                                     | `pen.saturation = 50`     |
+| `receiverArg`                           | レシーバーを入力に入れる（チェックはしない。行の `receiver` が受けつけるものを決める）                         | `"apple".length`          |
+| `changesReceiver: true`                 | レシーバー（Ruby の式）をそのブロックに変える                                                                  | `pen.down`                |
+| `hat: true`                             | ハット。`do ... end`（ブロック引数なし）を取り、その中身を下につなぐ（`registerOnSendWithBlock(..., 0, ...)`） | `when_flag_clicked do`    |
+| `selfReceiver: true`（`onSelf(rows)`）  | `self.xxx` と `xxx` だけを受けつけ、同じ名前になる Ruby の式（`stage`）は受けつけない                          | `stage.volume` は sensing |
+
+まだ足していない列（要る領域が出たら足す）:
+
+| 列                | 使い道                                   | 例                               |
+| ----------------- | ---------------------------------------- | -------------------------------- |
+| `rubyBlock: 0`    | ハットでない `do ... end` を取る呼び出し | `forever do`（いまは handler）   |
+| `stage: false`    | ステージでは使えない（エラーにする）     | 動きのブロック                   |
+| `versions: ['2']` | Ruby のバージョンで形が違う              | v1 の `self.when(:flag_clicked)` |
+
+### 古い `onXxx` 形式（なくした）
+
+- `pen.onOpAsgn` は `registerOnOpAsgn` の handler に、`makeymakey.onSend`（v1 の `self.when(:makey_key_pressed, ...)`）は `registerOnSendWithBlock('self', 'when', 2, 0, ...)` に移した。
+  もとの `onSend` は、その呼び出しのすべての handler が譲ったあとに試されていたので、`register-converters.js` がすべての変換器を登録したあとに `MakeyMakeyConverter.registerLast` で登録する。`self.when` の引数 2 つの handler（event・EV3・GdxFor）が先に試される順番はもとのまま。
+- `_callConvertersHandler` は `registerOnXxx` で登録した配列だけを見る。11 個の変換器オブジェクトを調べる部分と、`register-converters.js` の export は消した。
+- 新しい変換は表か `registerOnXxx` で書く（`.claude/rules/scratch-gui/ruby-mode.md`）。
+
+表へ移すときは、変換器と往復のテストに書かれた Ruby（約 7,100 個）を、スプライト（v2・v1）・ステージ・衣装と音のあるスプライトの 4 通りで変換し、
+エラー（行・列・文）、ブロック（opcode・フィールド・入力・mutation・親）、変数・リストが移す前とすべて一致することを確かめた。
 
 ## 1 領域ずつ移す順番
 
 どの段階でも、移す領域の **ブロック ⇔ Ruby の表**（`test/unit/lib/ruby-roundtrip/<category>-table.test.js`）を先に作るか足して、移す前に通ることを確かめてから移す。
 表が無い領域は、まず既存のテストを表へ移す（`.claude/rules/scratch-gui/testing.md` の「新しい opcode はブロック ⇔ Ruby の表から」）。
 
-| 順  | すること                                                                                                                                   | 振る舞いを固定するテスト                                                                             | 効率                         |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ---------------------------- |
-| 1   | 解析の索引: 行の表、ノードの種類名をクラスごとに覚える（`nodeTypeName`）。済み                                                             | 表のテストすべて、`line-for-offset.test.js`、`multibyte-offset.test.js`                              | 小                           |
-| 2   | 変換の巻き戻しを journal に（`_saveContext` を写さない）。済み                                                                             | 表のテストすべて、`orphan-blocks.test.js`、`target-applier-transaction.test.js`、往復テスト          | **大**（いま最も時間を使う） |
-| 3   | 分析の段: `forEachNode` を作り、`_collectVariableUses` と `_countProcedureCallsInNode` を移して凍結した `Analysis` を出す。済み            | 分析の結果の表のテスト（Ruby → `Analysis`）、表のテストすべて                                        | 小                           |
-| 4   | 呼び出しの表: motion（試作で済み）→ looks → sound → control / event → sensing → operators → data → 拡張機能。古い `onXxx` 2 つもここで移す | その領域の表のテスト                                                                                 | なし                         |
-| 5   | 仕上げの段: `targetCodeToBlocks` の後半を `finish()` へ。`targetCodeToBlocks` は 4 段を順に呼ぶだけにする                                  | 表のテストすべて、往復テスト                                                                         | なし                         |
-| 6   | class / module / initialize の判断を分析へ移す                                                                                             | `class.test.js`、`module.test.js`、`initialize-round-trip.test.js`、`ruby-roundtrip-class-*.test.js` | なし                         |
+| 順  | すること                                                                                                                                                                                      | 振る舞いを固定するテスト                                                                             | 効率                         |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 1   | 解析の索引: 行の表、ノードの種類名をクラスごとに覚える（`nodeTypeName`）。済み                                                                                                                | 表のテストすべて、`line-for-offset.test.js`、`multibyte-offset.test.js`                              | 小                           |
+| 2   | 変換の巻き戻しを journal に（`_saveContext` を写さない）。済み                                                                                                                                | 表のテストすべて、`orphan-blocks.test.js`、`target-applier-transaction.test.js`、往復テスト          | **大**（いま最も時間を使う） |
+| 3   | 分析の段: `forEachNode` を作り、`_collectVariableUses` と `_countProcedureCallsInNode` を移して凍結した `Analysis` を出す。済み                                                               | 分析の結果の表のテスト（Ruby → `Analysis`）、表のテストすべて                                        | 小                           |
+| 4   | 呼び出しの表: motion → looks → sound → control / event → sensing → operators → data（表にできる行なし）→ 拡張機能（pen まで済み）。古い `onXxx` 2 つもここで移した。残りは pen 以外の拡張機能 | その領域の表のテスト                                                                                 | なし                         |
+| 5   | 仕上げの段: `targetCodeToBlocks` の後半を `finish()` へ。`targetCodeToBlocks` は 4 段を順に呼ぶだけにする                                                                                     | 表のテストすべて、往復テスト                                                                         | なし                         |
+| 6   | class / module / initialize の判断を分析へ移す                                                                                                                                                | `class.test.js`、`module.test.js`、`initialize-round-trip.test.js`、`ruby-roundtrip-class-*.test.js` | なし                         |
 
 1・2 は振る舞いを変えずに速くするだけなので先に行う。3 以降は、分析の表ができると変換の部品が `_context` を書きかえなくなり、`Object.assign` で混ぜている部品を段ごとのモジュールへ分けられるようになる（14 の部品を分けるのは 6 のあと）。
 

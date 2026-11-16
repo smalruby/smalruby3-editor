@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { KeyOptions } from './constants';
+import { colorArg, menuInputArg, registerSendTable, textArg } from './send-table';
 
 const DragMode = ['draggable', 'not draggable'];
 
@@ -12,55 +13,108 @@ const spriteCall = function (name) {
 
 const Stage = 'stage';
 
+// Mouse.x / mouse.x, Timer.value / timer.value
+const MouseGetters = [
+    { method: 'down?', opcode: 'sensing_mousedown', blockType: 'value_boolean' },
+    { method: 'x', opcode: 'sensing_mousex', blockType: 'value' },
+    { method: 'y', opcode: 'sensing_mousey', blockType: 'value' },
+];
+
+const TimerMethods = [
+    { method: 'value', opcode: 'sensing_timer', blockType: 'value' },
+    { method: 'reset', opcode: 'sensing_resettimer', blockType: 'statement' },
+];
+
+/**
+ * The calls of sensing that map one to one onto a block (see `send-table.js`). The v2 forms on a
+ * receiver that is a Ruby expression (`mouse.x`, `timer.value`, `stage.volume`, `sprite("A").x`,
+ * `Time.now.year`), `gets`, `self.drag_mode = true` and `keyboard.pressed?` are handlers below.
+ */
+const SENSING_SENDS = [
+    { receiver: 'self', name: 'answer', opcode: 'sensing_answer', type: 'value' },
+    { receiver: 'self', name: 'loudness', opcode: 'sensing_loudness', type: 'value' },
+    { receiver: 'self', name: 'days_since_2000', opcode: 'sensing_dayssince2000', type: 'value' },
+    { receiver: 'self', name: 'online?', opcode: 'sensing_online', type: 'value' },
+    { receiver: 'self', name: 'user_name', opcode: 'sensing_username', type: 'value' },
+    ...MouseGetters.map(({ method, opcode, blockType }) => ({
+        receiver: '::Mouse',
+        name: method,
+        opcode,
+        type: blockType,
+    })),
+    ...TimerMethods.map(({ method, opcode, blockType }) => ({
+        receiver: '::Timer',
+        name: method,
+        opcode,
+        type: blockType,
+    })),
+    {
+        receiver: 'sprite',
+        name: 'touching?',
+        opcode: 'sensing_touchingobject',
+        type: 'value_boolean',
+        args: [menuInputArg('TOUCHINGOBJECTMENU', 'sensing_touchingobjectmenu', 'TOUCHINGOBJECTMENU', '_mouse_')],
+    },
+    {
+        receiver: 'sprite',
+        name: 'touching_color?',
+        opcode: 'sensing_touchingcolor',
+        type: 'value_boolean',
+        args: [colorArg('COLOR', '#43066f')],
+    },
+    {
+        receiver: 'sprite',
+        name: 'color_is_touching_color?',
+        opcode: 'sensing_coloristouchingcolor',
+        type: 'value_boolean',
+        args: [colorArg('COLOR', '#aad315'), colorArg('COLOR2', '#fca3bf')],
+    },
+    {
+        receiver: 'sprite',
+        name: 'distance',
+        opcode: 'sensing_distanceto',
+        type: 'value',
+        args: [menuInputArg('DISTANCETOMENU', 'sensing_distancetomenu', 'DISTANCETOMENU', '_mouse_')],
+    },
+    {
+        receiver: 'self',
+        name: 'ask',
+        opcode: 'sensing_askandwait',
+        args: [textArg('QUESTION', "What's your name?")],
+    },
+    {
+        receiver: '::Keyboard',
+        name: 'pressed?',
+        opcode: 'sensing_keypressed',
+        type: 'value_boolean',
+        args: [
+            menuInputArg('KEY_OPTION', 'sensing_keyoptions', 'KEY_OPTION', 'space', {
+                choices: KeyOptions,
+                anyBlock: true,
+            }),
+        ],
+    },
+];
+
 /**
  * Sensing converter
  */
 const SensingConverter = {
+    sends: SENSING_SENDS,
+
     register: function (converter) {
-        // Simple getters with no arguments
-        const simpleGetters = [
-            { method: 'answer', opcode: 'sensing_answer' },
-            { method: 'loudness', opcode: 'sensing_loudness' },
-            { method: 'days_since_2000', opcode: 'sensing_dayssince2000' },
-            { method: 'online?', opcode: 'sensing_online' },
-            { method: 'user_name', opcode: 'sensing_username' },
-        ];
-
-        simpleGetters.forEach(({ method, opcode }) => {
-            converter.registerOnSend('self', method, 0, () => converter.createBlock(opcode, 'value'));
-        });
-
-        // Mouse methods
-        const mouseGetters = [
-            { method: 'down?', opcode: 'sensing_mousedown', blockType: 'value_boolean' },
-            { method: 'x', opcode: 'sensing_mousex', blockType: 'value' },
-            { method: 'y', opcode: 'sensing_mousey', blockType: 'value' },
-        ];
-
-        mouseGetters.forEach(({ method, opcode, blockType }) => {
-            converter.registerOnSend('::Mouse', method, 0, () => converter.createBlock(opcode, blockType));
-        });
+        registerSendTable(converter, SENSING_SENDS);
 
         // v2: mouse.xxx (lowercase receiver)
         converter.registerOnSend('sprite', 'mouse', 0, (params) => {
             const { node } = params;
             return converter.createRubyExpressionBlock('mouse', node);
         });
-        mouseGetters.forEach(({ method, opcode, blockType }) => {
+        MouseGetters.forEach(({ method, opcode, blockType }) => {
             converter.registerOnSend('mouse', method, 0, (params) => {
                 const { receiver } = params;
                 return converter.changeRubyExpressionBlock(receiver, opcode, blockType);
             });
-        });
-
-        // Timer methods
-        const timerMethods = [
-            { method: 'value', opcode: 'sensing_timer', blockType: 'value' },
-            { method: 'reset', opcode: 'sensing_resettimer', blockType: 'statement' },
-        ];
-
-        timerMethods.forEach(({ method, opcode, blockType }) => {
-            converter.registerOnSend('::Timer', method, 0, () => converter.createBlock(opcode, blockType));
         });
 
         // v2: timer.xxx (lowercase receiver)
@@ -68,7 +122,7 @@ const SensingConverter = {
             const { node } = params;
             return converter.createRubyExpressionBlock('timer', node);
         });
-        timerMethods.forEach(({ method, opcode, blockType }) => {
+        TimerMethods.forEach(({ method, opcode, blockType }) => {
             converter.registerOnSend('timer', method, 0, (params) => {
                 const { receiver } = params;
                 return converter.changeRubyExpressionBlock(receiver, opcode, blockType);
@@ -108,74 +162,6 @@ const SensingConverter = {
             return block;
         });
 
-        // Touching methods (sprite only)
-        converter.registerOnSend('sprite', 'touching?', 1, (params) => {
-            const { args } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-
-            const block = converter.createBlock('sensing_touchingobject', 'value_boolean');
-            converter.addFieldInput(
-                block,
-                'TOUCHINGOBJECTMENU',
-                'sensing_touchingobjectmenu',
-                'TOUCHINGOBJECTMENU',
-                args[0],
-                '_mouse_',
-            );
-            return block;
-        });
-
-        converter.registerOnSend('sprite', 'touching_color?', 1, (params) => {
-            const { args } = params;
-
-            if (!converter.isColorOrBlock(args[0])) return null;
-
-            const block = converter.createBlock('sensing_touchingcolor', 'value_boolean');
-            converter.addColorFieldInput(block, 'COLOR', args[0], '#43066f');
-            return block;
-        });
-
-        converter.registerOnSend('sprite', 'color_is_touching_color?', 2, (params) => {
-            const { args } = params;
-
-            if (!converter.isColorOrBlock(args[0]) || !converter.isColorOrBlock(args[1])) return null;
-
-            const block = converter.createBlock('sensing_coloristouchingcolor', 'value_boolean');
-            converter.addColorFieldInput(block, 'COLOR', args[0], '#aad315');
-            converter.addColorFieldInput(block, 'COLOR2', args[1], '#fca3bf');
-            return block;
-        });
-
-        // Distance method (sprite only)
-        converter.registerOnSend('sprite', 'distance', 1, (params) => {
-            const { args } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-
-            const block = converter.createBlock('sensing_distanceto', 'value');
-            converter.addFieldInput(
-                block,
-                'DISTANCETOMENU',
-                'sensing_distancetomenu',
-                'DISTANCETOMENU',
-                args[0],
-                '_mouse_',
-            );
-            return block;
-        });
-
-        // Ask method (all targets)
-        converter.registerOnSend('self', 'ask', 1, (params) => {
-            const { args } = params;
-
-            if (!converter.isStringOrBlock(args[0])) return null;
-
-            const block = converter.createBlock('sensing_askandwait', 'statement');
-            converter.addTextInput(block, 'QUESTION', args[0], "What's your name?");
-            return block;
-        });
-
         // Gets method (all targets)
         converter.registerOnSend('self', 'gets', 0, () => {
             const askBlock = converter.createBlock('sensing_askandwait', 'statement');
@@ -209,21 +195,6 @@ const SensingConverter = {
             converter.addField(block, 'DRAG_MODE', dragMode);
             return block;
         });
-
-        const keyPressedHandler = (params) => {
-            const { args } = params;
-
-            const validKey = converter.isString(args[0]) && KeyOptions.indexOf(args[0].toString()) >= 0;
-            const isBlockArg = converter.isBlock(args[0]);
-
-            if (!validKey && !isBlockArg) return null;
-
-            const block = converter.createBlock('sensing_keypressed', 'value_boolean');
-            converter.addFieldInput(block, 'KEY_OPTION', 'sensing_keyoptions', 'KEY_OPTION', args[0], 'space');
-            return block;
-        };
-
-        converter.registerOnSend('::Keyboard', 'pressed?', 1, keyPressedHandler);
 
         // v2: keyboard.pressed?(key) (lowercase receiver)
         converter.registerOnSend('sprite', 'keyboard', 0, (params) => {
