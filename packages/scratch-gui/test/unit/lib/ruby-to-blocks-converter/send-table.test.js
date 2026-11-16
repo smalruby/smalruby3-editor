@@ -4,6 +4,7 @@ import ControlConverter from '../../../../src/lib/ruby-to-blocks-converter/contr
 import EventConverter from '../../../../src/lib/ruby-to-blocks-converter/event';
 import LooksConverter from '../../../../src/lib/ruby-to-blocks-converter/looks';
 import MotionConverter from '../../../../src/lib/ruby-to-blocks-converter/motion';
+import OperatorsConverter from '../../../../src/lib/ruby-to-blocks-converter/operators';
 import { numberArg, registerSendTable } from '../../../../src/lib/ruby-to-blocks-converter/send-table';
 import SensingConverter from '../../../../src/lib/ruby-to-blocks-converter/sensing';
 import SoundConverter from '../../../../src/lib/ruby-to-blocks-converter/sound';
@@ -27,6 +28,7 @@ describe('RubyToBlocksConverter/send table', () => {
         control: ControlConverter,
         event: EventConverter,
         sensing: SensingConverter,
+        operators: OperatorsConverter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {

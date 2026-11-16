@@ -176,7 +176,8 @@ const putArg = (converter, block, spec, arg) => {
  *
  * A row with `selfReceiver: true` takes only `self.xxx` or `xxx`, not a receiver that is
  * resolved to the same name (`stage.backdrop_name` is of sensing, not of looks).
- * The receiver (`"abc".length`) is checked and put first, then the constant fields, then the
+ * The receiver (`"abc".length`) is put first without a check (the receiver of the row, such
+ * as `['string', 'block', 'variable']`, already says what it takes), then the constant fields, then the
  * arguments in order. A hat (`hat: true`) puts the body of `do ... end` under the block.
  * @param {object} converter - The converter.
  * @param {object} row - The row.
@@ -189,7 +190,6 @@ const handlerOfRow = (converter, row) => {
     return (params) => {
         const { receiver, args } = params;
         if (row.selfReceiver && !converter._isSelf(receiver) && receiver !== null) return null;
-        if (row.receiverArg && !acceptsArg(converter, row.receiverArg, receiver)) return null;
         if (!specs.every((spec, i) => acceptsArg(converter, spec, args[i]))) return null;
         specs.forEach((spec, i) => {
             if (spec.validate) spec.validate(converter, args[i], params);
