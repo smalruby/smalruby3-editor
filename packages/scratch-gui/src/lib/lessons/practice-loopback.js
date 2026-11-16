@@ -6,13 +6,14 @@
 //
 //   - `owner: 'lesson'` でつなぐ。ひとりで使う練習相手（#1845）は、そのあいだ自動で休む。
 //     ほかの練習相手がもうつないでいれば、つながない（null を返す）。
-//   - 相手に届いたもの（最後の合図・相手が使う名前の共有する変数の値）を、フレームに 1 回までに
-//     まとめて `onReceived` でパネルに知らせる（D3。パネルは 2 行まで出す）。
+//   - 相手に届いたもの（合図・相手が使う名前の共有する変数の値）を、フレームに 1 回までにまとめて
+//     `onReceived` でパネルに知らせる（D3。パネルは「〜に届いた」に新しいものから 3 行出す）。
+//     同じ合図が続けて届いても毎回知らせる（パネルは 1 行ずつ足す）。変数は値が変わったときだけ。
 //   - 送った・受け取ったものは、本物のメッシュと同じ「状態と履歴」のウィンドウの履歴にも残す
 //     （相手は「相手（練習相手）」と出る）。外すと、残したものも消す。
 import { attachPracticeLoopback as attachSharedLoopback } from '../mesh-practice/loopback';
 import { REPLY_DELAY_MS } from '../mesh-practice/partner';
-import { findName, PRACTICE_PARTNER_NODE_ID, partnerNames, receivedSummary } from './practice-partner';
+import { findName, PRACTICE_PARTNER_NODE_ID, partnerNames, receivedArrival } from './practice-partner';
 
 /** レッスンの練習相手としてつなぐときの名前（共通の部品の owner）。 */
 export const LESSON_OWNER = 'lesson';
@@ -25,9 +26,9 @@ export const LESSON_OWNER = 'lesson';
  * @param {number} [options.replyDelayMs] - 自動の返事までの間。
  * @param {function(): number} [options.now] - 時刻（テスト用）。
  * @param {object} [options.timers] - `{setTimeout, clearTimeout}`（テスト用）。
- * @param {?function(?string, {announce: boolean}): void} [options.onReceived] - 相手に届いたもの
- *   （`receivedSummary`。パネルに 2 行まで出す）が変わったときに、フレームに 1 回まで呼ぶ。`announce` は
- *   合図が届いて変わったとき true（読み上げは合図のときだけにする）。
+ * @param {?function(object, {announce: boolean}): void} [options.onReceived] - 相手に何か届いたときに、
+ *   フレームに 1 回まで、その行（`receivedArrival`）を渡して呼ぶ。`announce` は合図が届いたとき true
+ *   （読み上げは合図のときだけにする）。
  * @returns {?{press: function(number): void, detach: function(): void}} ボタンを押す・外す。
  *   ほかの練習相手がつないでいれば null。
  */
@@ -48,7 +49,6 @@ export const attachPracticeLoopback = ({
     // パネルを毎回描き直さない）
     const names = partnerNames(partner);
     const received = { last: null, values: {} };
-    let receivedLine = null;
     let receivedDirty = false;
     let messageArrived = false;
 
@@ -56,12 +56,19 @@ export const attachPracticeLoopback = ({
         if (kind === 'message') {
             received.last = { kind: 'message', name };
             messageArrived = true;
-        } else {
-            // 値はいつも覚える（合図と同じ名前の変数の値として出すため）。行の主役にするのは相手が使う名前だけ
-            received.values[name] = value;
-            if (findName(names, name) !== null) received.last = { kind: 'variable', name };
+            receivedDirty = true;
+            return;
         }
-        receivedDirty = true;
+        // 値はいつも覚える（合図と同じ名前の変数の値として出すため）。行にするのは相手が使う名前で、値が
+        // 変わったときだけ（同じ値を入れ直しても相手には何も新しく届かない。ずっと入れ直すスクリプトで行が
+        // 増え続けないように）
+        const changed =
+            !Object.prototype.hasOwnProperty.call(received.values, name) || received.values[name] !== value;
+        received.values[name] = value;
+        if (changed && findName(names, name) !== null) {
+            received.last = { kind: 'variable', name };
+            receivedDirty = true;
+        }
     };
 
     const loop = attachSharedLoopback({
@@ -82,10 +89,8 @@ export const attachPracticeLoopback = ({
         receivedDirty = false;
         const announce = messageArrived;
         messageArrived = false;
-        const line = receivedSummary(received);
-        if (line === receivedLine) return;
-        receivedLine = line;
-        if (onReceived) onReceived(line, { announce });
+        const arrival = receivedArrival(received);
+        if (arrival && onReceived) onReceived(arrival, { announce });
     };
     runtime.on('BEFORE_STEP', flushReceived);
 
