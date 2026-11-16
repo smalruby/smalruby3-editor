@@ -1,12 +1,38 @@
 import _ from 'lodash';
 import { RubyToBlocksConverterError } from './errors';
 import OperatorsMath from './operators-math';
+import { registerSendTable, textArg } from './send-table';
 import { adjustIndex } from './variable-hash-ops';
+
+/**
+ * The calls of operators that map one to one onto a block (see `send-table.js`). The receiver
+ * (`"apple".length`) goes into the input. `[]`, `empty?`, `+`, the comparisons and `=~` are
+ * handlers below; the arithmetic is in `operators-math.js`.
+ */
+const OPERATORS_SENDS = [
+    {
+        receiver: ['string', 'block', 'variable'],
+        name: 'length',
+        opcode: 'operator_length',
+        type: 'value',
+        receiverArg: textArg('STRING', 'apple'),
+    },
+    {
+        receiver: ['string', 'block', 'variable'],
+        name: 'include?',
+        opcode: 'operator_contains',
+        type: 'value_boolean',
+        receiverArg: textArg('STRING1', 'apple'),
+        args: [textArg('STRING2', 'a')],
+    },
+];
 
 /**
  * Operators converter
  */
 const OperatorsConverter = {
+    sends: [...OPERATORS_SENDS, ...OperatorsMath.sends],
+
     register: function (converter) {
         // Register arithmetic and math function handlers
         OperatorsMath.registerMath(converter);
@@ -29,13 +55,7 @@ const OperatorsConverter = {
             return block;
         });
 
-        converter.registerOnSend(['string', 'block', 'variable'], 'length', 0, (params) => {
-            const { receiver } = params;
-
-            const block = converter._createBlock('operator_length', 'value');
-            converter._addTextInput(block, 'STRING', receiver, 'apple');
-            return block;
-        });
+        registerSendTable(converter, OPERATORS_SENDS);
 
         converter.registerOnSend(['string', 'block', 'variable'], 'empty?', 0, (params) => {
             const { receiver, name } = params;
@@ -58,16 +78,6 @@ const OperatorsConverter = {
             converter._addInput(block, 'OPERAND1', lengthBlock, converter._createTextBlock(''));
             converter._addTextInput(block, 'OPERAND2', '0', '50');
             block.comment = converter._createComment(commentText, block.id);
-            return block;
-        });
-
-        converter.registerOnSend(['string', 'block', 'variable'], 'include?', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isStringOrBlock(args[0])) return null;
-
-            const block = converter._createBlock('operator_contains', 'value_boolean');
-            converter._addTextInput(block, 'STRING1', receiver, 'apple');
-            converter._addTextInput(block, 'STRING2', args[0], 'a');
             return block;
         });
 

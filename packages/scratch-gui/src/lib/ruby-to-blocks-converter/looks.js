@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import LooksValidation from './looks-validation';
+import { fieldArg, menuArg, numberArg, onSelf, registerSendTable } from './send-table';
 
 const { validateCostume, validateBackdrop, resolveSymbolArg, createBlockWithMessage } = LooksValidation;
 
@@ -9,10 +10,118 @@ const FrontBack = ['front', 'back'];
 
 const ForwardBackward = ['forward', 'backward'];
 
+const upcase = (value) => value.toUpperCase();
+
+const costumeArg = menuArg('COSTUME', 'looks_costume', 'COSTUME', {
+    validate: (converter, arg) => validateCostume(converter, arg.toString(), [arg]),
+});
+
+const backdropArg = menuArg('BACKDROP', 'looks_backdrops', 'BACKDROP', {
+    validate: (converter, arg) => validateBackdrop(converter, arg.toString(), [arg]),
+});
+
+/**
+ * The calls of looks that map one to one onto a block (see `send-table.js`).
+ * `say` / `think` (a keyword argument `secs:`, a symbol), `print` / `puts` / `p` (any number of
+ * arguments) and `self.size += 1` are handlers below. All of them take only `self.xxx` or `xxx`.
+ */
+const LOOKS_SENDS = onSelf([
+    { receiver: 'sprite', name: 'switch_costume', opcode: 'looks_switchcostumeto', args: [costumeArg] },
+    { receiver: 'sprite', name: 'costume=', opcode: 'looks_switchcostumeto', args: [costumeArg] },
+    { receiver: 'sprite', name: 'next_costume', opcode: 'looks_nextcostume' },
+    { receiver: 'self', name: 'switch_backdrop', opcode: 'looks_switchbackdropto', args: [backdropArg] },
+    { receiver: 'self', name: 'backdrop=', opcode: 'looks_switchbackdropto', args: [backdropArg] },
+    { receiver: 'self', name: 'next_backdrop', opcode: 'looks_nextbackdrop' },
+    {
+        receiver: 'self',
+        name: 'switch_backdrop_and_wait',
+        opcode: 'looks_switchbackdroptoandwait',
+        args: [backdropArg],
+    },
+    {
+        receiver: 'self',
+        name: 'switch_backdrop_to_and_wait',
+        opcode: 'looks_switchbackdroptoandwait',
+        args: [backdropArg],
+    },
+    { receiver: 'sprite', name: 'size=', opcode: 'looks_setsizeto', args: [numberArg('SIZE', 100)] },
+    {
+        receiver: 'self',
+        name: 'change_effect_by',
+        opcode: 'looks_changeeffectby',
+        args: [fieldArg('EFFECT', Effects, { normalize: upcase }), numberArg('CHANGE', 25)],
+    },
+    {
+        receiver: 'self',
+        name: 'set_effect',
+        opcode: 'looks_seteffectto',
+        args: [fieldArg('EFFECT', Effects, { normalize: upcase }), numberArg('VALUE', 25)],
+    },
+    { receiver: 'self', name: 'clear_graphic_effects', opcode: 'looks_cleargraphiceffects' },
+    { receiver: 'sprite', name: 'show', opcode: 'looks_show' },
+    { receiver: 'sprite', name: 'hide', opcode: 'looks_hide' },
+    {
+        receiver: 'sprite',
+        name: 'go_to_layer',
+        opcode: 'looks_gotofrontback',
+        args: [fieldArg('FRONT_BACK', FrontBack)],
+    },
+    ...FrontBack.map((option) => ({
+        receiver: 'sprite',
+        name: `go_to_${option}`,
+        opcode: 'looks_gotofrontback',
+        fields: { FRONT_BACK: option },
+    })),
+    {
+        receiver: 'sprite',
+        name: 'go_layers',
+        opcode: 'looks_goforwardbackwardlayers',
+        args: [numberArg('NUM', 1, 'math_integer'), fieldArg('FORWARD_BACKWARD', ForwardBackward)],
+    },
+    ...ForwardBackward.map((option) => ({
+        receiver: 'sprite',
+        name: `go_${option}`,
+        opcode: 'looks_goforwardbackwardlayers',
+        fields: { FORWARD_BACKWARD: option },
+        args: [numberArg('NUM', 1, 'math_integer')],
+    })),
+    {
+        receiver: 'sprite',
+        name: 'costume_number',
+        opcode: 'looks_costumenumbername',
+        type: 'value',
+        fields: { NUMBER_NAME: 'number' },
+    },
+    {
+        receiver: 'sprite',
+        name: 'costume_name',
+        opcode: 'looks_costumenumbername',
+        type: 'value',
+        fields: { NUMBER_NAME: 'name' },
+    },
+    { receiver: 'sprite', name: 'size', opcode: 'looks_size', type: 'value' },
+    {
+        receiver: 'self',
+        name: 'backdrop_number',
+        opcode: 'looks_backdropnumbername',
+        type: 'value',
+        fields: { NUMBER_NAME: 'number' },
+    },
+    {
+        receiver: 'self',
+        name: 'backdrop_name',
+        opcode: 'looks_backdropnumbername',
+        type: 'value',
+        fields: { NUMBER_NAME: 'name' },
+    },
+]);
+
 /**
  * Looks converter
  */
 const LooksConverter = {
+    sends: LOOKS_SENDS,
+
     register: function (converter) {
         // say/think with symbol argument - sprite-only
         ['say', 'think'].forEach((methodName) => {
@@ -216,279 +325,7 @@ const LooksConverter = {
             return null;
         });
 
-        // switch_costume(name) - sprite-only
-        converter.registerOnSend('sprite', 'switch_costume', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0])) return null;
-
-            const costumeName = args[0].toString();
-            validateCostume(converter, costumeName, args);
-
-            const block = converter._createBlock('looks_switchcostumeto', 'statement');
-            converter._addInput(
-                block,
-                'COSTUME',
-                converter._createFieldBlock('looks_costume', 'COSTUME', costumeName),
-            );
-            return block;
-        });
-
-        // costume = name (self.costume = "name" form) - sprite-only
-        converter.registerOnSend('sprite', 'costume=', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0])) return null;
-
-            const costumeName = args[0].toString();
-            validateCostume(converter, costumeName, args);
-
-            const block = converter._createBlock('looks_switchcostumeto', 'statement');
-            converter._addInput(
-                block,
-                'COSTUME',
-                converter._createFieldBlock('looks_costume', 'COSTUME', costumeName),
-            );
-            return block;
-        });
-
-        // next_costume - sprite-only
-        converter.registerOnSend('sprite', 'next_costume', 0, (params) => {
-            const { receiver } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-
-            return converter._createBlock('looks_nextcostume', 'statement');
-        });
-
-        // switch_backdrop(name)
-        converter.registerOnSend('self', 'switch_backdrop', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0])) return null;
-
-            const backdropName = args[0].toString();
-            validateBackdrop(converter, backdropName, args);
-
-            const block = converter._createBlock('looks_switchbackdropto', 'statement');
-            converter._addInput(
-                block,
-                'BACKDROP',
-                converter._createFieldBlock('looks_backdrops', 'BACKDROP', backdropName),
-            );
-            return block;
-        });
-
-        // backdrop = name (self.backdrop = "name" form)
-        converter.registerOnSend('self', 'backdrop=', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0])) return null;
-
-            const backdropName = args[0].toString();
-            validateBackdrop(converter, backdropName, args);
-
-            const block = converter._createBlock('looks_switchbackdropto', 'statement');
-            converter._addInput(
-                block,
-                'BACKDROP',
-                converter._createFieldBlock('looks_backdrops', 'BACKDROP', backdropName),
-            );
-            return block;
-        });
-
-        // next_backdrop
-        converter.registerOnSend('self', 'next_backdrop', 0, (params) => {
-            const { receiver } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-
-            return converter._createBlock('looks_nextbackdrop', 'statement');
-        });
-
-        // switch_backdrop_and_wait(name)
-        converter.registerOnSend('self', 'switch_backdrop_and_wait', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0])) return null;
-
-            const backdropName = args[0].toString();
-            validateBackdrop(converter, backdropName, args);
-
-            const block = converter._createBlock('looks_switchbackdroptoandwait', 'statement');
-            converter._addInput(
-                block,
-                'BACKDROP',
-                converter._createFieldBlock('looks_backdrops', 'BACKDROP', backdropName),
-            );
-            return block;
-        });
-
-        // switch_backdrop_to_and_wait(name) (alternate form)
-        converter.registerOnSend('self', 'switch_backdrop_to_and_wait', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0])) return null;
-
-            const backdropName = args[0].toString();
-            validateBackdrop(converter, backdropName, args);
-
-            const block = converter._createBlock('looks_switchbackdroptoandwait', 'statement');
-            converter._addInput(
-                block,
-                'BACKDROP',
-                converter._createFieldBlock('looks_backdrops', 'BACKDROP', backdropName),
-            );
-            return block;
-        });
-
-        // size = value - sprite-only
-        converter.registerOnSend('sprite', 'size=', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isNumberOrBlock(args[0])) return null;
-
-            const block = converter._createBlock('looks_setsizeto', 'statement');
-            converter._addNumberInput(block, 'SIZE', 'math_number', args[0], 100);
-            return block;
-        });
-
-        // change_effect_by(effect, value)
-        converter.registerOnSend('self', 'change_effect_by', 2, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0]) || Effects.indexOf(args[0].toString().toUpperCase()) < 0) return null;
-            if (!converter._isNumberOrBlock(args[1])) return null;
-
-            const block = converter._createBlock('looks_changeeffectby', 'statement');
-            converter._addField(block, 'EFFECT', args[0].toString().toUpperCase());
-            converter._addNumberInput(block, 'CHANGE', 'math_number', args[1], 25);
-            return block;
-        });
-
-        // set_effect(effect, value)
-        converter.registerOnSend('self', 'set_effect', 2, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0]) || Effects.indexOf(args[0].toString().toUpperCase()) < 0) return null;
-            if (!converter._isNumberOrBlock(args[1])) return null;
-
-            const block = converter._createBlock('looks_seteffectto', 'statement');
-            converter._addField(block, 'EFFECT', args[0].toString().toUpperCase());
-            converter._addNumberInput(block, 'VALUE', 'math_number', args[1], 25);
-            return block;
-        });
-
-        // clear_graphic_effects
-        converter.registerOnSend('self', 'clear_graphic_effects', 0, (params) => {
-            const { receiver } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-
-            return converter._createBlock('looks_cleargraphiceffects', 'statement');
-        });
-
-        // show - sprite-only
-        converter.registerOnSend('sprite', 'show', 0, (params) => {
-            const { receiver } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-
-            return converter._createBlock('looks_show', 'statement');
-        });
-
-        // hide - sprite-only
-        converter.registerOnSend('sprite', 'hide', 0, (params) => {
-            const { receiver } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-
-            return converter._createBlock('looks_hide', 'statement');
-        });
-
-        // go_to_layer("front") and go_to_layer("back") - sprite-only
-        converter.registerOnSend('sprite', 'go_to_layer', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0]) || FrontBack.indexOf(args[0].toString()) < 0) return null;
-
-            const block = converter._createBlock('looks_gotofrontback', 'statement');
-            converter._addField(block, 'FRONT_BACK', args[0].toString());
-            return block;
-        });
-
-        // go_to_front and go_to_back (alternate form) - sprite-only
-        ['front', 'back'].forEach((option) => {
-            converter.registerOnSend('sprite', `go_to_${option}`, 0, (params) => {
-                const { receiver } = params;
-                if (!converter._isSelf(receiver) && receiver !== null) return null;
-
-                const block = converter._createBlock('looks_gotofrontback', 'statement');
-                converter._addField(block, 'FRONT_BACK', option);
-                return block;
-            });
-        });
-
-        // go_layers(layers, direction) - go_layers(1, "forward") - sprite-only
-        converter.registerOnSend('sprite', 'go_layers', 2, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isNumberOrBlock(args[0])) return null;
-            if (!converter._isString(args[1]) || ForwardBackward.indexOf(args[1].toString()) < 0) return null;
-
-            const block = converter._createBlock('looks_goforwardbackwardlayers', 'statement');
-            converter._addField(block, 'FORWARD_BACKWARD', args[1].toString());
-            converter._addNumberInput(block, 'NUM', 'math_integer', args[0], 1);
-            return block;
-        });
-
-        // go_forward(layers) and go_backward(layers) - sprite-only
-        ['forward', 'backward'].forEach((option) => {
-            converter.registerOnSend('sprite', `go_${option}`, 1, (params) => {
-                const { receiver, args } = params;
-                if (!converter._isSelf(receiver) && receiver !== null) return null;
-                if (!converter._isNumberOrBlock(args[0])) return null;
-
-                const block = converter._createBlock('looks_goforwardbackwardlayers', 'statement');
-                converter._addField(block, 'FORWARD_BACKWARD', option);
-                converter._addNumberInput(block, 'NUM', 'math_integer', args[0], 1);
-                return block;
-            });
-        });
-
-        // Sprite-only getters
-        const spriteGetters = [
-            { method: 'costume_number', opcode: 'looks_costumenumbername', field: 'NUMBER_NAME', value: 'number' },
-            { method: 'costume_name', opcode: 'looks_costumenumbername', field: 'NUMBER_NAME', value: 'name' },
-            { method: 'size', opcode: 'looks_size' },
-        ];
-
-        spriteGetters.forEach(({ method, opcode, field, value }) => {
-            converter.registerOnSend('sprite', method, 0, (params) => {
-                const { receiver } = params;
-                if (!converter._isSelf(receiver) && receiver !== null) return null;
-
-                const block = converter._createBlock(opcode, 'value');
-                if (field) {
-                    converter._addField(block, field, value);
-                }
-                return block;
-            });
-        });
-
-        // Stage-compatible getters
-        const stageGetters = [
-            { method: 'backdrop_number', opcode: 'looks_backdropnumbername', field: 'NUMBER_NAME', value: 'number' },
-            { method: 'backdrop_name', opcode: 'looks_backdropnumbername', field: 'NUMBER_NAME', value: 'name' },
-        ];
-
-        stageGetters.forEach(({ method, opcode, field, value }) => {
-            converter.registerOnSend('self', method, 0, (params) => {
-                const { receiver } = params;
-                if (!converter._isSelf(receiver) && receiver !== null) return null;
-
-                const block = converter._createBlock(opcode, 'value');
-                if (field) {
-                    converter._addField(block, field, value);
-                }
-                return block;
-            });
-        });
+        registerSendTable(converter, LOOKS_SENDS);
 
         // Register onXxx handlers
         converter.registerOnOpAsgn((lh, operator, rh) => {

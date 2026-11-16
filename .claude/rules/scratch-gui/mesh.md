@@ -124,8 +124,6 @@ mesh のリグレッション確認には `tools/playwright-verify/` の **ス�
 | スクリプト | 検証対象 |
 |-----------|---------|
 | `mesh-v2-classroom-binding.mjs` | **mesh v2 ↔ クラス管理ドメイン連動の本命リグレッション**。teacher/student 2 タブで参加コード→ `state.scratchGui.meshV2.domain` 一致、接続モーダル入力欄 disabled、解除時の復元 |
-| `verify-mesh-collision-paths.mjs` | mesh センサー衝突パス |
-| `verify-mesh-self-sensor-notice.mjs` | グローバル変数名と mesh センサー値の重複通知 (#707) |
 | `verify-tutorial-mesh-categories.mjs` | チュートリアルの mesh カテゴリ |
 
 実行（dev server 起動 + `.env` の `DEV_BYPASS_TOKEN`/mesh/classroom エンドポイントが前提）:

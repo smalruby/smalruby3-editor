@@ -1,67 +1,49 @@
 import { KeyOptions, Variable } from './constants';
+import { fieldArg, numberArg, registerSendTable } from './send-table';
 
 const GreaterThanMenu = ['LOUDNESS', 'TIMER'];
+
+const upcase = (value) => value.toUpperCase();
+
+/**
+ * The hats of event that map one to one onto a block (see `send-table.js`). `when_receive`,
+ * `broadcast` (a broadcast message) and the v1 form `self.when(:flag_clicked)` are handlers below.
+ */
+const EVENT_SENDS = [
+    { receiver: 'self', name: 'when_flag_clicked', opcode: 'event_whenflagclicked', hat: true },
+    {
+        receiver: 'self',
+        name: 'when_key_pressed',
+        opcode: 'event_whenkeypressed',
+        hat: true,
+        args: [fieldArg('KEY_OPTION', KeyOptions)],
+    },
+    { receiver: 'sprite', name: 'when_clicked', opcode: 'event_whenthisspriteclicked', hat: true },
+    { receiver: 'stage', name: 'when_clicked', opcode: 'event_whenstageclicked', hat: true },
+    {
+        receiver: 'self',
+        name: 'when_backdrop_switches',
+        opcode: 'event_whenbackdropswitchesto',
+        hat: true,
+        args: [fieldArg('BACKDROP')],
+    },
+    {
+        receiver: 'self',
+        name: 'when_greater_than',
+        opcode: 'event_whengreaterthan',
+        hat: true,
+        args: [fieldArg('WHENGREATERTHANMENU', GreaterThanMenu, { normalize: upcase }), numberArg('VALUE', 10)],
+    },
+];
 
 /**
  * Event converter
  */
 const EventConverter = {
+    sends: EVENT_SENDS,
+
     register: function (converter) {
-        converter.registerOnSendWithBlock('self', 'when_flag_clicked', 0, 0, (params) => {
-            const { rubyBlock } = params;
-
-            const block = converter.createBlock('event_whenflagclicked', 'hat');
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
-
-        converter.registerOnSendWithBlock('self', 'when_key_pressed', 1, 0, (params) => {
-            const { args, rubyBlock } = params;
-
-            if (!converter.isString(args[0])) return null;
-            if (KeyOptions.indexOf(args[0].toString()) < 0) return null;
-
-            const block = converter.createBlock('event_whenkeypressed', 'hat');
-            converter.addField(block, 'KEY_OPTION', args[0]);
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
-
-        converter.registerOnSendWithBlock('self', 'when_clicked', 0, 0, (params) => {
-            const { receiverName, rubyBlock } = params;
-
-            let opcode = 'event_whenthisspriteclicked';
-            if (receiverName === 'stage') opcode = 'event_whenstageclicked';
-            const block = converter.createBlock(opcode, 'hat');
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
-
-        converter.registerOnSendWithBlock('self', 'when_backdrop_switches', 1, 0, (params) => {
-            const { args, rubyBlock } = params;
-
-            if (!converter.isString(args[0])) return null;
-
-            const block = converter.createBlock('event_whenbackdropswitchesto', 'hat');
-            converter.addField(block, 'BACKDROP', args[0]);
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
-
-        converter.registerOnSendWithBlock('self', 'when_greater_than', 2, 0, (params) => {
-            const { args, rubyBlock } = params;
-
-            if (!converter.isString(args[0])) return null;
-            const args0 = args[0].toString().toUpperCase();
-            if (GreaterThanMenu.indexOf(args0) < 0) return null;
-            if (!converter.isNumberOrBlock(args[1])) return null;
-
-            const block = converter.createBlock('event_whengreaterthan', 'hat');
-            converter.addField(block, 'WHENGREATERTHANMENU', args0);
-            converter.addNumberInput(block, 'VALUE', 'math_number', args[1], 10);
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
+        registerSendTable(converter, EVENT_SENDS);
 
         converter.registerOnSendWithBlock('self', 'when_receive', 1, 0, (params) => {
             const { args, rubyBlock } = params;

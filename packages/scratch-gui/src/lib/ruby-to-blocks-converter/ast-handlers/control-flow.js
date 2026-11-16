@@ -2,6 +2,7 @@ import _ from 'lodash';
 import { defineMessages } from 'react-intl';
 import { messages as converterMessages } from '../converter-errors';
 import { RubyToBlocksConverterError } from '../errors';
+import { nodeTypeName } from '../node-walk';
 import ControlFlowDef from './control-flow-def';
 
 // The marker of the blocks that call the methods of the condition of a loop again at the end of
@@ -59,7 +60,7 @@ const ControlFlowHandlers = {
         // even if the else body is empty — preserves round-trip fidelity for "if cond; else; end"
         if (
             node.subsequent &&
-            this._getNodeTypeName(node.subsequent) === 'ElseNode' &&
+            nodeTypeName(node.subsequent) === 'ElseNode' &&
             this._isBlock(block) &&
             block.opcode !== 'control_if_else'
         ) {
@@ -69,7 +70,7 @@ const ControlFlowHandlers = {
             }
         }
 
-        if (node.subsequent && this._getNodeTypeName(node.subsequent) === 'IfNode') {
+        if (node.subsequent && nodeTypeName(node.subsequent) === 'IfNode') {
             const elseBlock = this._elsifBlockOf(_.isArray(elseStatement) ? elseStatement[0] : elseStatement);
             if (this.isBlock(block) && this.isBlock(elseBlock)) {
                 let n;
@@ -614,7 +615,7 @@ const ControlFlowHandlers = {
      */
     _soleWithScreenRefreshCall(node) {
         let statements = node.statements ? node.statements.body : [];
-        if (statements.length === 1 && this._getNodeTypeName(statements[0]) === 'BeginNode') {
+        if (statements.length === 1 && nodeTypeName(statements[0]) === 'BeginNode') {
             const begin = statements[0];
             if (begin.rescueClause || begin.elseClause || begin.ensureClause) return null;
             statements = begin.statements ? begin.statements.body : [];
@@ -622,10 +623,10 @@ const ControlFlowHandlers = {
         if (statements.length !== 1) return null;
         const call = statements[0];
         if (
-            this._getNodeTypeName(call) !== 'CallNode' ||
+            nodeTypeName(call) !== 'CallNode' ||
             call.name !== 'with_screen_refresh' ||
             // `self.with_screen_refresh` is the same call as `with_screen_refresh`.
-            (call.receiver && this._getNodeTypeName(call.receiver) !== 'SelfNode') ||
+            (call.receiver && nodeTypeName(call.receiver) !== 'SelfNode') ||
             call.arguments_ ||
             !call.block
         ) {
