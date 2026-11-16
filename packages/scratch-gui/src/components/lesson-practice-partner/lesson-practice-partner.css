@@ -87,14 +87,26 @@
     list-style: none;
 }
 
+/*
+    送るボタンは横に並べる（2 つまでなら 1 段。パネルの高さを抑えて、コードエリアの右下のボタンにかかりにくくする）。
+    1 つならその段いっぱいに広げる
+*/
+.send {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(4rem, 1fr));
+}
+
 .button {
-    padding: 0.25rem 0.5rem;
+    min-width: 0;
+    padding: 0.25rem;
+    overflow-wrap: anywhere;
     border: 1px solid $extensions-tertiary;
     border-radius: 0.375rem;
     background-color: $extensions-light;
     color: $color-text;
-    font-size: 0.8125rem;
+    font-size: $font-size-small;
     font-weight: bold;
+    line-height: 1.25;
     cursor: pointer;
 }
 
@@ -109,7 +121,7 @@
     1 行は値（大きく）と変数の名前（小さく）の 2 段
 */
 .received {
-    height: 7.25rem;
+    height: 7.5rem;
     overflow: hidden;
 }
 
@@ -155,7 +167,7 @@
 }
 
 .value {
-    font-size: $font-size-small;
+    font-size: 0.8125rem;
     font-weight: bold;
     line-height: 1.3;
 }

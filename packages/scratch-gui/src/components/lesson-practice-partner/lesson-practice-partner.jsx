@@ -144,7 +144,7 @@ const LessonPracticePartner = ({
                     <h3 className={styles.heading} id={sendHeadingId}>
                         {intl.formatMessage(messages.sendHeading, { name })}
                     </h3>
-                    <div className={styles.group}>
+                    <div className={classNames(styles.group, styles.send)}>
                         {buttons.map((button, index) => (
                             <button
                                 className={styles.button}
