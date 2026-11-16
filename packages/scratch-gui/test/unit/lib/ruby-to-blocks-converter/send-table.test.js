@@ -1,9 +1,11 @@
 import RubyGenerator from '../../../../src/lib/ruby-generator';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
+import ControlConverter from '../../../../src/lib/ruby-to-blocks-converter/control';
+import EventConverter from '../../../../src/lib/ruby-to-blocks-converter/event';
 import LooksConverter from '../../../../src/lib/ruby-to-blocks-converter/looks';
 import MotionConverter from '../../../../src/lib/ruby-to-blocks-converter/motion';
-import SoundConverter from '../../../../src/lib/ruby-to-blocks-converter/sound';
 import { numberArg, registerSendTable } from '../../../../src/lib/ruby-to-blocks-converter/send-table';
+import SoundConverter from '../../../../src/lib/ruby-to-blocks-converter/sound';
 
 /**
  * The opcodes that the rows of a send table make, menus included.
@@ -21,6 +23,8 @@ describe('RubyToBlocksConverter/send table', () => {
         motion: MotionConverter,
         looks: LooksConverter,
         sound: SoundConverter,
+        control: ControlConverter,
+        event: EventConverter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {
