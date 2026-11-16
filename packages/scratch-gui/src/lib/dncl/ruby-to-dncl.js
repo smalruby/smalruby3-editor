@@ -211,7 +211,9 @@ const openerSuffix = (block) => {
  * with `繰り返す:`. The closer lines are dropped, as the indent ends the
  * block, except where the indent cannot tell it, and the reader takes the
  * closer of the DNCL 風の形 as well:
- * - the block has no body (`もし a ならば:` + `を実行する`);
+ * - the block, or any branch of it, has no body (`もし a ならば:` +
+ *   `を実行する`): a branch with no body ends at the next branch without
+ *   the indent telling it, so the reader cannot tell where the block ends;
  * - the closer has a comment (`end # c`), so the comment keeps its place;
  * - a comment line follows it: the reader keeps a comment at a shallower
  *   indent in the block, as it would a blank line.
@@ -231,23 +233,28 @@ const toStandardBlocks = (entries) => {
         const indent = STANDARD_INDENT.repeat(open.length);
         if (entry.kind === 'open') {
             out.push(`${indent}${body}${openerSuffix(entry.block)}${entry.comment}`);
-            open.push(entry.block);
+            open.push({ block: entry.block, emptyBranch: false });
             hasBody = false;
             return;
         }
         if (entry.kind === 'mid' && open.length > 0) {
+            const top = open[open.length - 1];
             const midIndent = STANDARD_INDENT.repeat(open.length - 1);
-            // An empty branch before it is closed by the next branch (`:` opener + next).
-            out.push(`${midIndent}${body}:${entry.comment}`);
+            if (!hasBody) top.emptyBranch = true;
+            out.push(`${midIndent}${body}${top.block === 'do' ? '' : ':'}${entry.comment}`);
             hasBody = false;
             return;
         }
         if (entry.kind === 'close' && open.length > 0) {
-            const block = open.pop();
+            const { block, emptyBranch } = open.pop();
             const closerIndent = STANDARD_INDENT.repeat(open.length);
             const next = nextCode(k);
             const keep =
-                block === 'do' || !hasBody || entry.comment !== '' || (next && next.text.trim().startsWith('#'));
+                block === 'do' ||
+                !hasBody ||
+                emptyBranch ||
+                entry.comment !== '' ||
+                (next && next.text.trim().startsWith('#'));
             if (keep) out.push(`${closerIndent}${body}${entry.comment}`);
             hasBody = true;
             return;

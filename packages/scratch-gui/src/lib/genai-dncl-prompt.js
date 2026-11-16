@@ -8,28 +8,29 @@ import { COPY_END, COPY_START, betweenCopyMarks } from './genai-prompt.js';
 const DNCL_TAB_KINDS = ['wrong-answer', 'error', 'how-write', 'how-think'];
 
 // How DNCL is written in Smalruby: the AI follows these. Each one is a whole program, so
-// the unit test checks it turns into ordinary blocks (genai-dncl-prompt.test.js).
+// the unit test checks it turns into ordinary blocks (genai-dncl-prompt.test.js). They are
+// in the standard form the editor shows (Issue #1754); the DNCL 風 answers are read too.
 const SYNTAX_EXAMPLES = [
     { note: '代入（← でも = でもよい）', code: 'kosuu ← 3\ngoukei = 0' },
     { note: '配列（添字は 0 から。Data[0] が 3、最後は Data[2]）', code: 'Data = [3, 1, 2]\nData[0] = 5' },
     { note: '入力（数にするときは 整数(...)）', code: 'kotae = 【外部からの入力】\nn = 整数(kotae)' },
     {
-        note: '割り算（/ は小数になる割り算、÷ と // は商の整数値で負の数は小さいほうへ丸める（-7 ÷ 2 は -4）、% は余り。// はコメントではない）',
-        code: 'a = 7 / 2\nb = 7 ÷ 2\nc = 7 // 2\nd = 7 % 2',
+        note: '割り算（/ は小数になる割り算、÷ と // は商の整数値で負の数は小さいほうへ丸める（-7 ÷ 2 は -4）、％ は余り。// はコメントではない）',
+        code: 'a = 7 / 2\nb = 7 ÷ 2\nc = 7 // 2\nd = 7 ％ 2',
     },
     {
-        note: 'もし〜ならば（「を実行する」で閉じる）',
-        code: 'x = 1\nもし x > 0 かつ x < 10 ならば\n  表示する("1けた")\nそうでなくもし x == 0 ならば\n  表示する("0")\nそうでなければ\n  表示する("ほか")\nを実行する',
+        note: 'もし〜ならば（中は字下げ。and / or / not が使える）',
+        code: 'x = 1\nもし x > 0 and x < 10 ならば:\n    表示する("1けた")\nそうでなくもし x == 0 ならば:\n    表示する("0")\nそうでなければ:\n    表示する("ほか")',
     },
-    { note: '〜の間（「を繰り返す」で閉じる）', code: 'x = 10\nx > 0 の間\n  x = x - 3\nを繰り返す' },
+    { note: '〜の間繰り返す', code: 'x = 10\nx > 0 の間繰り返す:\n    x = x - 3' },
     {
-        note: '増やしながら（終わりの値も含む。「を繰り返す」で閉じる）',
-        code: 'Data = [3, 1, 2]\ni を 0 から 要素数(Data) - 1 まで 1 ずつ増やしながら\n  表示する(Data[i])\nを繰り返す',
+        note: '増やしながら繰り返す（終わりの値も含む）',
+        code: 'Data = [3, 1, 2]\ni を 0 から 要素数(Data) - 1 まで 1 ずつ増やしながら繰り返す:\n    表示する(Data[i])',
     },
-    { note: '減らしながら', code: 'i を 10 から 1 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す' },
+    { note: '減らしながら繰り返す', code: 'i を 10 から 1 まで 1 ずつ減らしながら繰り返す:\n    表示する(i)' },
     {
-        note: '関数（「と定義する」で閉じる。値は 返す で返す）',
-        code: '関数 nibai(x)\n  返す x * 2\nと定義する\n表示する(nibai(4))',
+        note: '関数（値は「を返す」で返す）',
+        code: '関数 nibai(x):\n    x * 2 を返す\n表示する(nibai(4))',
     },
 ];
 
@@ -38,7 +39,7 @@ const BUILTIN_EXAMPLES = {
     表示する: { note: '表示する（いくつか並べるとつなげて表示）', code: 'ten = 80\n表示する(ten, "点")' },
     含む: {
         note: '文字列に含まれるか',
-        code: 'namae = "さくら"\nもし 含む(namae, "く") ならば\n  表示する("ある")\nを実行する',
+        code: 'namae = "さくら"\nもし 含む(namae, "く") ならば:\n    表示する("ある")',
     },
     要素数: { note: '配列の要素の数', code: 'Data = [3, 1, 2]\n表示する(要素数(Data))' },
     整数: { note: '整数にする（小さいほうの整数。整数(3.7) は 3、整数(-3.5) は -4）', code: '表示する(整数(3.7))' },
@@ -65,8 +66,9 @@ const dnclRules = () => [
     '配列の添字は 0 から始まります（最初の要素は Data[0]）。問題文が「添字は 1 から」と言っていても、添字を 1 ずらして 0 から書いてください。',
     '代入は「←」か「=」で書いてください。',
     '関数の引数には代入できません（引数を変える行はエラーになります）。引数の値を変えたいときは、「x ← a」のようにほかの変数に写してから、その変数を変えてください。',
-    'ブロックの終わりは、「もし〜ならば」は「を実行する」、「〜の間」と「〜ずつ増やしながら」「〜ずつ減らしながら」は「を繰り返す」、「関数」は「と定義する」の行で閉じてください。',
-    '繰り返しは「〜の間」（前判定）と「〜ずつ増やしながら」「〜ずつ減らしながら」だけで書いてください。後判定の繰り返し（「繰り返し … を〜になるまで実行する」や Ruby の begin ... end while）は日本語では書けません。先に 1 回動かしたいときは、その 1 回をループの前に書いてから「〜の間」にしてください。',
+    'ブロックは字下げ（空白 4 つ）で表し、「もし 条件 ならば:」「そうでなければ:」「条件 の間繰り返す:」「i を 1 から 10 まで 1 ずつ増やしながら繰り返す:」「関数 名前(引数):」のように、始まりの行の終わりに「:」を書いてください。「を実行する」「を繰り返す」「と定義する」の行は書かないでください。',
+    '「かつ」「または」「でない」ではなく、「and」「or」「not」を使ってください。',
+    '繰り返しは「〜の間繰り返す」（前判定）と「〜ずつ増やしながら繰り返す」「〜ずつ減らしながら繰り返す」だけで書いてください。後判定の繰り返し（「繰り返し … を〜になるまで実行する」や Ruby の begin ... end while）は日本語では書けません。先に 1 回動かしたいときは、その 1 回をループの前に書いてから「〜の間繰り返す」にしてください。',
     '答えは、生徒のプログラムを、変えないところも含めて全部書いてください。スモウルビーはエディタのプログラムを丸ごと入れかえます。',
     'コードの前に、何を変えたかを「「もし x > 0 ならば」の中に「表示する(x)」を足しました」のように、DNCL のことばで 1〜3 行で説明してください。',
     'コメントは # で書いてください。// は整数の割り算なので、コメントには使えません。',
@@ -110,7 +112,8 @@ const buildDnclTabPrompt = ({ kindLabel, text, code, errors, assignmentName }) =
 };
 
 // A line that only DNCL (not prose) would have, for an answer pasted without a code fence.
-const DNCL_LINE = /(を実行する|を繰り返す|と定義する|ならば\s*[:：]?|の間\s*[:：]?|表示する\(|←)\s*$/m;
+const DNCL_LINE =
+    /(を実行する|を繰り返す|と定義する|ならば\s*[:：]?|の間\s*[:：]?|繰り返す\s*[:：]|を返す|表示する\(|←)\s*$/m;
 
 /**
  * Take the DNCL out of a pasted answer: the fenced code between the copy markers, else

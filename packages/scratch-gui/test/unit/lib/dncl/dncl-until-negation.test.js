@@ -14,6 +14,12 @@ import {
 // These cases check the DNCL 風の形 the writer still has (Issue #1754);
 // the standard form is checked in dncl-standard-form.test.js.
 const rubyToDncl = (ruby) => rubyToDnclInForm(ruby, { form: FORMS.DNCL });
+// Ruby → Japanese → Ruby gives the same Ruby in both forms.
+const expectRubyBack = (ruby, expected) => {
+    [FORMS.DNCL, FORMS.STANDARD].forEach((form) => {
+        expect(dnclToRuby(rubyToDnclInForm(ruby, { form }).dncl).ruby).toBe(expected);
+    });
+};
 
 const toRuby = (dncl) => dnclToRuby(dncl).ruby;
 const toDncl = (ruby) => rubyToDncl(ruby).dncl;
@@ -106,11 +112,11 @@ describe('DNCL round trip: until', () => {
         'until @a > 10\n  until @b\n    @b = true\n  end\nend',
     ];
     test.each(cases)('Ruby → DNCL → Ruby: %s', (ruby) => {
-        expect(toRuby(toDncl(ruby))).toBe(ruby);
+        expectRubyBack(ruby, ruby);
     });
 
     test('while !(@a > 10) becomes until @a > 10', () => {
-        expect(toRuby(toDncl('while !(@a > 10)\nend'))).toBe('until @a > 10\nend');
+        expectRubyBack('while !(@a > 10)\nend', 'until @a > 10\nend');
     });
 
     // `!` that negates only the right-hand side of a comparison must not grow
@@ -138,8 +144,16 @@ describe('DNCL round trip: until', () => {
         },
     );
 
+    // The standard form's `not` negates up to the next and / or, so a `!` with
+    // more of its term after it is put in parentheses (Issue #1754).
+    test('standard form: !@a == @b keeps its meaning with parentheses', () => {
+        const standard = rubyToDnclInForm('@c = !@a == @b', { form: FORMS.STANDARD }).dncl;
+        expect(standard).toBe('c = (not a) == b');
+        expect(toRuby(standard)).toBe('@c = (!@a) == @b');
+    });
+
     test('wait until @a > 10 keeps the same meaning', () => {
-        expect(toRuby(toDncl('wait until @a > 10'))).toBe('until @a > 10\nend');
+        expectRubyBack('wait until @a > 10', 'until @a > 10\nend');
     });
 });
 

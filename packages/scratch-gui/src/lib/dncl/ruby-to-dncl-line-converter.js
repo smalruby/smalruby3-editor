@@ -170,7 +170,9 @@ const convertLine = (line, blockStack, form = FORMS.STANDARD) => {
 
     // Any other `xxx do` / `xxx do |x|` has no DNCL form and is shown as it is,
     // but its `end` must not take the closer of the block around it (issue #1665).
-    if (isDoBlockLine(trimmed)) {
+    // `unless` has no Japanese form either (it stays as it is, issue #1740);
+    // as a block its body keeps its indent and its `end` its own closer.
+    if (isDoBlockLine(trimmed) || /^unless\s/.test(trimmed)) {
         blockStack.push('do');
         return convertBuiltins(processSegments(line, form));
     }

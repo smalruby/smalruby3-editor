@@ -52,9 +52,24 @@ describe('buildDnclTabPrompt', () => {
 
     test('says how assignments and the ends of blocks are written', () => {
         expect(prompt).toContain('代入は「←」か「=」で書いてください');
-        expect(prompt).toContain('「もし〜ならば」は「を実行する」');
-        expect(prompt).toContain('「を繰り返す」');
-        expect(prompt).toContain('「関数」は「と定義する」');
+        // The standard form (Issue #1754): blocks by indent and a `:`, no closer lines.
+        expect(prompt).toContain('ブロックは字下げ（空白 4 つ）で表し');
+        expect(prompt).toContain('「もし 条件 ならば:」');
+        expect(prompt).toContain('「関数 名前(引数):」');
+        expect(prompt).toContain('「を実行する」「を繰り返す」「と定義する」の行は書かないでください');
+    });
+
+    test('shows the examples in the standard form (Issue #1754)', () => {
+        DNCL_COMMAND_EXAMPLES.forEach(({ code }) => {
+            expect(code).not.toMatch(/^\s*(?:を実行する|を繰り返す|と定義する)\s*$/m);
+            expect(code).not.toMatch(/\s(?:かつ|または|でない)\s/);
+            expect(code).not.toMatch(/^\s*返す\s/m);
+        });
+        const program = DNCL_COMMAND_EXAMPLES.map(({ code }) => code).join('\n');
+        expect(program).toContain('ならば:\n    ');
+        expect(program).toContain('繰り返す:\n    ');
+        expect(program).toContain(' を返す');
+        expect(program).toContain(' and ');
     });
 
     // Gemini read the error of an assignment to an argument as a matter of `=` and `←` (#1403).

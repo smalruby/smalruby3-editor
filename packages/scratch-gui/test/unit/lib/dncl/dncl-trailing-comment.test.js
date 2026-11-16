@@ -12,6 +12,12 @@ import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/
 // These cases check the DNCL 風の形 the writer still has (Issue #1754);
 // the standard form is checked in dncl-standard-form.test.js.
 const rubyToDncl = (ruby) => rubyToDnclInForm(ruby, { form: FORMS.DNCL });
+// Ruby → Japanese → Ruby gives the same Ruby in both forms.
+const expectRubyBack = (ruby, expected) => {
+    [FORMS.DNCL, FORMS.STANDARD].forEach((form) => {
+        expect(dnclToRuby(rubyToDnclInForm(ruby, { form }).dncl).ruby).toBe(expected);
+    });
+};
 
 const toRuby = (dncl) => {
     const result = dnclToRuby(dncl);
@@ -166,7 +172,7 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
         });
 
         test('Ruby → DNCL → Ruby', () => {
-            expect(toRuby(toDncl(ruby))).toBe(ruby);
+            expectRubyBack(ruby, ruby);
         });
     });
 
@@ -217,7 +223,7 @@ describe('trailing # comment on block lines (Issue #1696)', () => {
             expect(toDncl(ruby)).toBe(dncl);
             expect(toRuby(dncl)).toBe(rubyBack);
             expect(toDncl(rubyBack)).toBe(dncl);
-            expect(toRuby(toDncl(rubyBack))).toBe(rubyBack);
+            expectRubyBack(rubyBack, rubyBack);
         });
     });
 

@@ -91,6 +91,36 @@ const ROWS = [
         lines('もし a > 0 ならば:', 'を実行する', 'b = 1'),
     ],
     [
+        'an if with an empty first branch keeps its closer',
+        lines('if @a', 'else', '  @b = 1', 'end', '@c = 1'),
+        lines('もし a ならば:', 'そうでなければ:', '    b = 1', 'を実行する', 'c = 1'),
+    ],
+    [
+        'an if with an empty middle branch keeps its closer',
+        lines('if @a', '  @b = 1', 'elsif @d', 'else', '  @b = 2', 'end', '@c = 1'),
+        lines(
+            'もし a ならば:',
+            '    b = 1',
+            'そうでなくもし d ならば:',
+            'そうでなければ:',
+            '    b = 2',
+            'を実行する',
+            'c = 1',
+        ),
+    ],
+    [
+        'an if with an empty branch in a loop keeps its closer',
+        lines('while @x', '  if @a', '  else', '    @b = 1', '  end', '  @c = 1', 'end'),
+        lines(
+            'x の間繰り返す:',
+            '    もし a ならば:',
+            '    そうでなければ:',
+            '        b = 1',
+            '    を実行する',
+            '    c = 1',
+        ),
+    ],
+    [
         'a comment after a block keeps the closer',
         lines('if @a > 0', '  @b = 1', 'end', '# c', '@d = 1'),
         lines('もし a > 0 ならば:', '    b = 1', 'を実行する', '# c', 'd = 1'),
@@ -188,6 +218,22 @@ describe('the DNCL 風の形 is still read (Issue #1754)', () => {
     test('the DNCL 風の形 is still written when asked for', () => {
         expect(rubyToDncl(lines('if @a && !@b', '  return @a % 3', 'end'), { form: FORMS.DNCL }).dncl).toBe(
             lines('もし a かつ b でない ならば', '  返す a % 3', 'を実行する'),
+        );
+    });
+});
+
+describe('the standard form: unless keeps the indent of its body (Issue #1754)', () => {
+    // `unless` has no Japanese form and stays as it is, as in the DNCL 風の形
+    // (reading it back is issue #1740); its body must not lose its indent.
+    test('the body is indented and the closer is kept', () => {
+        expect(toJapanese(lines('unless @a', '  @b = 1', 'end', '@c = 1'))).toBe(
+            lines('unless a', '    b = 1', 'を実行する', 'c = 1'),
+        );
+    });
+
+    test('an unless in a loop does not take the closer of the loop', () => {
+        expect(toJapanese(lines('while @x', '  unless @a', '    @b = 1', '  end', '  @c = 1', 'end'))).toBe(
+            lines('x の間繰り返す:', '    unless a', '        b = 1', '    を実行する', '    c = 1'),
         );
     });
 });
