@@ -5,6 +5,7 @@
 // 練習相手の定義（`partner`）があれば、自分と相手のスイムレーンにする。
 import { localizeCode } from '../courses';
 import { codeSpriteName, spriteDisplayName } from '../read-diagram';
+import { otherRole, roleOfChallenge } from '../role-swap';
 import { layoutActivityDiagram } from './layout';
 import { buildActivityModel, countScripts, describeActivityModel, partnerLane } from './model';
 
@@ -69,6 +70,12 @@ export const challengeActivityDiagram = async (
     const displayed = (name) => (typeof name === 'string' ? name : format(name.id));
     const setupSprite = codeSpriteName(challenge.setup);
     const partner = partnerLane(challenge.partner, { format, locale });
+    // ペアでやるチャレンジ（役のあるもの）は、レーンの見出しに役を書く。相手のレーンは「相手（シマネコの役）」
+    // にして、ペアのときは相手の人間が作るもの（役を入れかえた同じ形）、ひとりのときは練習相手、と読めるようにする
+    const role = roleOfChallenge(challenge);
+    const roleName = (one) => format(`${P}role.${one}`);
+    if (partner && role) partner.label = format(`${P}partnerLaneRole`, { role: roleName(otherRole(role)) });
+    const ownLabel = role ? format(`${P}ownLaneRole`, { role: roleName(role) }) : format(`${P}ownLane`);
     const lanes = [];
     for (const lane of activityDiagramLanes(challenge, locale)) {
         const targets = [];
@@ -86,7 +93,7 @@ export const challengeActivityDiagram = async (
                     : displayed(spriteDisplayName(source.name));
             targets.push({ name, blocks });
         }
-        lanes.push({ id: lane.id, label: partner ? format(`${P}ownLane`) : null, targets });
+        lanes.push({ id: lane.id, label: partner ? ownLabel : null, targets });
     }
     const model = buildActivityModel({ lanes }, { format, blockName });
     if (partner) model.lanes.push(partner);
