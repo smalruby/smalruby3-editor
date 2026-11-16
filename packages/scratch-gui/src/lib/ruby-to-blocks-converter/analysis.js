@@ -5,13 +5,12 @@ import { childNodesOf, forEachNode, nodeTypeName } from './node-walk';
 // conversion needs to know in one frozen table (`Analysis`). It is a pure function of the tree and
 // the source; it does not read the converter or the VM.
 //
-// The tables follow what the converter decides now in its pre-passes, so that the conversion can
-// read them in place of those pre-passes: `_collectVariableUses` (`variable-utils.js`) for
-// `variables` / `locals`, `_countProcedureCallsInNode` (`context-utils.js`) for `procedures`, and
-// `_rejectRubyNameOfVariableAndList` for `errors`. The converter does not use this yet.
+// The converter analyzes the code in `targetCodeToBlocks` before it converts (`_context.analysis`)
+// and reads `variables` / `locals` (`variable-utils.js`), `procedures.valueCallCounts`
+// (`my-blocks.js`) and `errors` (`_rejectRubyNameOfVariableAndList`) from here.
 
 // Methods that the converter turns into list blocks only (a String has no such block), so calling
-// one is evidence that the name is a list (issue #1613). The same as in `variable-utils.js`.
+// one is evidence that the name is a list (issue #1613).
 const LIST_ONLY_METHODS = new Set(['push', '<<', 'delete_at', 'clear', 'insert', '[]=']);
 // Nodes that set a variable, whose `name` is the Ruby name (`@a`, `$a`, `a`) and `value` the value.
 const VARIABLE_WRITE_NODE_TYPES = new Set(
@@ -35,19 +34,20 @@ const INSTANCE_OR_GLOBAL_NODE_TYPES = new Set(
 const STRING_VALUE_NODE_TYPES = new Set(['StringNode', 'InterpolatedStringNode']);
 // Calls whose value is always a String (issue #1659): `gets` / `answer` (no receiver), and `x.to_s`.
 const STRING_CALLS_WITHOUT_RECEIVER = new Set(['gets', 'answer']);
-// The variables and the values of `a, b = 1, "x"` that the blocks take (issue #1814). The same as
-// `_multiWritePairs` in `ast-handlers/assignments.js`.
-const MULTI_WRITE_TARGET_TYPES = new Set([
-    'LocalVariableTargetNode',
-    'InstanceVariableTargetNode',
-    'GlobalVariableTargetNode',
-]);
+// The variables a multiple assignment can set, and the kind of each (issue #1814).
+const MULTI_WRITE_TARGET_SCOPES = {
+    LocalVariableTargetNode: 'local',
+    InstanceVariableTargetNode: 'instance',
+    GlobalVariableTargetNode: 'global',
+};
+// The values of a multiple assignment that becomes one assignment for each variable: literals only,
+// so that setting the variables one by one is the same as setting them together.
 const MULTI_WRITE_LITERAL_TYPES = new Set(['IntegerNode', 'FloatNode', 'StringNode', 'TrueNode', 'FalseNode']);
 // How the code uses a name. `string` / `notString`: set to a String / to another value.
 const EMPTY_USE = Object.freeze({ list: false, scalar: false, hash: false, string: false, notString: false });
 
-// Where a call is counted as a call whose value is used (see `procedures`). The pre-pass of the
-// converter looks at the children of each kind of node in its own way; these are the same rules.
+// Where a call is counted as a call whose value is used (see `procedures`): the places that the
+// conversion visits as values.
 const VALUE_WRITE_NODE_TYPES = new Set([
     'LocalVariableWriteNode',
     'InstanceVariableWriteNode',
@@ -96,7 +96,7 @@ const lineFinderOf = (source) => {
 
 /**
  * Whether a prism node is a value that is always a String: a string literal, `gets`, `answer`,
- * `x.to_s`, or `x + "literal"`. The same as `_isStringValueNode` of the converter.
+ * `x.to_s`, or `x + "literal"` (so `a = a + "x"` keeps `a` a String, issue #1659).
  * @param {object} node - The prism node of the value.
  * @returns {boolean} true if the value is a String.
  */
@@ -116,10 +116,15 @@ const isStringValueNode = (node) => {
 };
 
 /**
- * The variables and the values of a multiple assignment that the blocks take as one assignment
- * for each variable (`a, b = 1, "x"`), or null. The same as `_multiWritePairs` of the converter.
+ * The variables and the values of a multiple assignment that the blocks can do as one assignment
+ * for each variable (issue #1814): `a, b = 1, "x"` (literals after `=`, as many as the variables).
+ * Ruby works out every value before it sets the variables, so a value that reads a variable or
+ * calls a method could differ when the variables are set one by one: the swap `a, b = b, a` is not
+ * `a = b` then `b = a`. Such a form, and a splat, an array, an element of a list or nested
+ * variables, is not taken. The analysis and the conversion (`visitMultiWriteNode`) both use this.
  * @param {object} node - A MultiWriteNode.
- * @returns {?Array<{target: object, value: object}>} The pairs.
+ * @returns {?Array<{target: object, scope: string, value: object}>} The pairs, or null when the
+ *   form is not taken.
  */
 const multiWritePairs = (node) => {
     const value = node.value;
@@ -129,9 +134,9 @@ const multiWritePairs = (node) => {
     const pairs = [];
     for (let i = 0; i < node.lefts.length; i++) {
         const target = node.lefts[i];
-        if (!MULTI_WRITE_TARGET_TYPES.has(nodeTypeName(target))) return null;
-        if (!MULTI_WRITE_LITERAL_TYPES.has(nodeTypeName(value.elements[i]))) return null;
-        pairs.push({ target, value: value.elements[i] });
+        const scope = MULTI_WRITE_TARGET_SCOPES[nodeTypeName(target)];
+        if (!scope || !MULTI_WRITE_LITERAL_TYPES.has(nodeTypeName(value.elements[i]))) return null;
+        pairs.push({ target, scope, value: value.elements[i] });
     }
     return pairs;
 };
@@ -193,17 +198,19 @@ const readOnlyMap = (map) =>
     });
 
 /**
- * Collect the uses of the variables (`variables`, `locals`). See `_collectVariableUses`.
+ * Collect the uses of the variables (`variables`, `locals`).
  * @param {function(object): number} lineOf - The line of a node.
  * @returns {object} `{enter, finish}`.
  */
 const variableCollector = (lineOf) => {
-    const uses = {};
-    const localUses = { 0: {} };
+    // The tables keyed by Ruby names have no prototype, so that `__proto__` or `constructor` is a
+    // name like any other (issue #2034).
+    const uses = Object.create(null);
+    const localUses = { 0: Object.create(null) };
     const unitGroups = { 0: 0 };
     const unitOfNode = new Map();
     const unitOfEntered = new Map();
-    const firstUses = {};
+    const firstUses = Object.create(null);
     const rubyNames = new Set();
     let nextUnit = 1;
 
@@ -214,7 +221,7 @@ const variableCollector = (lineOf) => {
         uses[key][use] = true;
         const isInstanceOrGlobal = key[0] === '$' || key[0] === '@';
         if (node && (use === 'list' || use === 'scalar') && isInstanceOrGlobal) {
-            if (!firstUses[key]) firstUses[key] = {};
+            if (!firstUses[key]) firstUses[key] = Object.create(null);
             const line = lineOf(node);
             // The first in the order of the source on the earliest line.
             if (!firstUses[key][use] || line < firstUses[key][use].line) {
@@ -238,7 +245,7 @@ const variableCollector = (lineOf) => {
         if (startsUnit) {
             unit = nextUnit++;
             unitGroups[unit] = type === 'DefNode' ? unit : 0;
-            localUses[unit] = {};
+            localUses[unit] = Object.create(null);
             unitOfNode.set(node, unit);
         }
         unitOfEntered.set(node, unit);
@@ -275,13 +282,14 @@ const variableCollector = (lineOf) => {
 
     const finish = () => {
         // A local that the script outside the blocks does not use, and that its blocks use as
-        // different things, is a separate local in each block (`_localScopeIndex`).
+        // different things (a string in one event, a list in another), is a separate local in each
+        // block: it gets a scope index for each block (`_localScopeIndex`).
         const kindOf = (use) => {
             if (use.list) return 'list';
             if (use.hash) return 'hash';
             return 'scalar';
         };
-        const kindsOfName = {};
+        const kindsOfName = Object.create(null);
         Object.keys(localUses).forEach((unit) => {
             if (Number(unit) === 0 || unitGroups[unit] !== 0) return;
             Object.keys(localUses[unit]).forEach((name) => {
@@ -317,11 +325,12 @@ const variableCollector = (lineOf) => {
 /**
  * Count the calls whose value is used, by name (`procedures.valueCallCounts`). The converter uses
  * the count of a method made with `def` to name the variables that keep its return values
- * (`@_return_foo_1_`). See `_countProcedureCallsInNode`.
+ * (`@_return_foo_1_`).
  * @returns {object} `{enter, finish}`.
  */
 const valueCallCounter = () => {
-    const counts = {};
+    // Keyed by method names: no prototype, so that a method named `constructor` counts (issue #2034).
+    const counts = Object.create(null);
     // node -> STATEMENT or VALUE; a node without one is not looked at (its children neither).
     const roleOf = new Map();
     const setRole = (child, role) => {
@@ -423,7 +432,7 @@ const classCollector = (lineOf) => {
             .map((stmt) => String(stmt.name));
     const enter = (node, type) => {
         if (type === 'ClassNode') {
-            const attrs = {};
+            const attrs = Object.create(null);
             const includes = [];
             bodyStatements(node).forEach((stmt) => {
                 if (nodeTypeName(stmt) !== 'CallNode' || stmt.receiver) return;

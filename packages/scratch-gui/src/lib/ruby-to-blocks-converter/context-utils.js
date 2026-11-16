@@ -1,11 +1,6 @@
 import { Variable, LOCAL_VARIABLE_PATTERN } from './constants';
 import { ContextJournal, JOURNALED_STORES } from './context-journal';
 
-// Assignments whose value is visited as a value (see `_onVasgn`).
-const VALUE_WRITE_NODE_TYPES = ['LocalVariableWriteNode', 'InstanceVariableWriteNode', 'GlobalVariableWriteNode'];
-// Nodes with a condition (`predicate`) and the lines run by it (see `_countProcedureCallsInNode`).
-const CONDITION_NODE_TYPES = ['IfNode', 'UnlessNode', 'WhileNode', 'UntilNode'];
-
 /**
  * Context and state management utilities for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
@@ -30,9 +25,6 @@ const ContextUtils = {
             lists: Object.create(null),
             broadcastMsgs: Object.create(null),
             procedures: Object.create(null),
-            // Still a plain object: the analysis (`valueCallCounter` in analysis.js) counts in a
-            // plain object too, and the two must agree until the converter reads the analysis (#2016).
-            methodCallCounts: {},
             methodCallIndices: Object.create(null),
             // Whether a return value of a call is saved in a variable in the current statement (issue #1556)
             savedReturnValueInStatement: false,
@@ -67,12 +59,15 @@ const ContextUtils = {
             superMethodMap: Object.create(null),
             superRenameTarget: null,
             symbols: new Set(),
-            // How the code uses each variable name, collected before converting (issue #1613)
-            variableUses: Object.create(null),
-            // Where the code uses each local variable, and the unit being converted (issue #1630)
-            localVariableUnits: null,
+            // What the analysis stage decides before converting (`analysis.js`, read-only): how
+            // each variable name is used (issue #1613), where each local is used (issue #1630), how
+            // many times each method is called as a value, ...
+            analysis: null,
+            // The scope index of each unit of locals of the script, decided while converting (issue #1630)
+            localScopeIndexes: Object.create(null),
             // The list blocks that read `@a` / `$a` of Ruby version 2 (issue #1622)
             listReadBlockIds: new Set(),
+            // The unit of locals being converted (issue #1630)
             currentLocalUnit: 0,
         };
         // The tables that a conversion attempt rolls back record their writes (see `_saveContext`).
@@ -308,91 +303,6 @@ const ContextUtils = {
 
     isValueContext() {
         return this._context.isValue;
-    },
-
-    /**
-     * Pre-pass to count how many times each procedure/method is called
-     * in value (argument) contexts. Used by my-blocks to generate evacuation blocks.
-     * @param {object} node - AST node to traverse
-     */
-    _countProcedureCallsInNode(node) {
-        if (!node || typeof node !== 'object') return;
-        // Not `constructor.name`: the production build renames the classes.
-        const nodeType = this._prismNodeType(node);
-        if (!nodeType) return;
-
-        if (nodeType === 'CallNode') {
-            // Count calls in argument positions (value context)
-            // Use _countCallsInValueNode which fully recurses into nested calls;
-            // do NOT also call _countProcedureCallsInNode on args to avoid double-counting.
-            if (node.arguments_ && node.arguments_.arguments_) {
-                node.arguments_.arguments_.forEach((argNode) => {
-                    this._countCallsInValueNode(argNode);
-                });
-            }
-            // Also traverse block body if present
-            if (node.block && node.block.body) {
-                this._countProcedureCallsInNode(node.block.body);
-            }
-            // The receiver is visited as a value (e.g. `bar(1)` of `bar(1) + bar(2)`) (issue #1568)
-            this._countCallsInValueNode(node.receiver);
-        } else if (CONDITION_NODE_TYPES.includes(nodeType)) {
-            // The condition is visited as a value (e.g. `bar(1)` and `bar(2)` of `while bar(1) < bar(2)`),
-            // then the body and the other branches as lines (issue #1606).
-            this._countCallsInValueNode(node.predicate);
-            [node.statements, node.subsequent, node.elseClause].forEach((child) => {
-                if (this._prismNodeType(child)) {
-                    this._countProcedureCallsInNode(child);
-                }
-            });
-        } else if (VALUE_WRITE_NODE_TYPES.includes(nodeType)) {
-            // The value of an assignment is visited as a value too (e.g. `x = bar(1) + bar(2)`) (issue #1568).
-            this._countCallsInValueNode(node.value);
-        } else if (nodeType === 'ReturnNode') {
-            // The value of `return` is used as a value too (issue #1556).
-            if (node.arguments_ && node.arguments_.arguments_) {
-                node.arguments_.arguments_.forEach((argNode) => {
-                    this._countCallsInValueNode(argNode);
-                });
-            }
-        } else {
-            // For other node types, traverse every child: a list of names missed the `when` and the
-            // `else` of `case` (`conditions` / `elseClause`), so no call in them was counted (issue #2014).
-            this._childNodesOf(node).forEach((child) => this._countProcedureCallsInNode(child));
-        }
-    },
-
-    /**
-     * Count CallNode calls within a value (argument) context node.
-     * This increments methodCallCounts for procedure calls found as arguments.
-     * @param {object} node - AST node to traverse
-     */
-    _countCallsInValueNode(node) {
-        if (!node || typeof node !== 'object') return;
-        // Not `constructor.name`: the production build renames the classes.
-        const nodeType = this._prismNodeType(node);
-        if (!nodeType) return;
-
-        if (nodeType === 'CallNode') {
-            const name = node.name && node.name.toString();
-            if (name) {
-                this._context.methodCallCounts[name] = (this._context.methodCallCounts[name] || 0) + 1;
-            }
-            // Recurse into the receiver (e.g. `bar(1)` of `bar(1) + bar(2)`) and the arguments
-            this._countCallsInValueNode(node.receiver);
-            if (node.arguments_ && node.arguments_.arguments_) {
-                node.arguments_.arguments_.forEach((argNode) => {
-                    this._countCallsInValueNode(argNode);
-                });
-            }
-        } else if (nodeType === 'StatementsNode') {
-            // The inside of parentheses, e.g. `(bar + 1)`
-            node.body.forEach((child) => this._countCallsInValueNode(child));
-        } else {
-            // Every child is a value too (`&&` / `||`, parentheses, ...). Not a list of names, which
-            // had names prism does not use (`condition`) and could miss children (issue #2014).
-            this._childNodesOf(node).forEach((child) => this._countCallsInValueNode(child));
-        }
     },
 };
 

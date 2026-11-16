@@ -3,6 +3,7 @@ import { findTargetsWithModule, generateTargetCode, extractModuleCode } from '..
 import RubyParser from '../ruby-parser';
 import { messages } from './converter-errors';
 import { RubyToBlocksConverterError } from './errors';
+import { nodeTypeName } from './node-walk';
 
 /**
  * Mixin methods for visiting module nodes in the Ruby-to-blocks converter.
@@ -32,7 +33,7 @@ const ModuleVisitor = {
         // Validate: only DefNode allowed in module body
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
-                const typeName = this._getNodeTypeName(stmt);
+                const typeName = nodeTypeName(stmt);
                 if (typeName === 'CallNode' && stmt.name === 'module_function' && !stmt.receiver) {
                     throw new RubyToBlocksConverterError(stmt, this._translator(messages.moduleFunctionNotSupported));
                 }
@@ -86,7 +87,7 @@ const ModuleVisitor = {
         let moduleNode = null;
         if (root.statements && root.statements.body) {
             for (const stmt of root.statements.body) {
-                if (this._getNodeTypeName(stmt) === 'ModuleNode') {
+                if (nodeTypeName(stmt) === 'ModuleNode') {
                     moduleNode = stmt;
                     break;
                 }

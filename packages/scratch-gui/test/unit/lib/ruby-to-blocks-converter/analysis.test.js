@@ -1,9 +1,10 @@
 /**
  * The analysis stage (`analysis.js`, docs/ruby-editor/converter-stages.md): Ruby -> `Analysis`.
  *
- * The tables must be what the converter decides now in its pre-passes (`_collectVariableUses`,
- * `_countProcedureCallsInNode`, `_rejectRubyNameOfVariableAndList`), so that the conversion can read
- * them in place of the pre-passes. The Ruby of the existing converter tests is compared one by one.
+ * The converter reads these tables in place of the pre-passes it had before (how each variable is
+ * used, the units of the locals, the calls whose value is used), so the converter and round-trip
+ * tests also hold the tables in place. Before the pre-passes were removed, the tables were compared
+ * with them for the Ruby of the existing tests, and all agreed.
  */
 import dedent from 'dedent';
 import fs from 'fs';
@@ -21,29 +22,6 @@ beforeAll(async () => {
 
 const parse = (source) => prism.parse(source).value;
 const analyzeRuby = (source) => analyze(parse(source), { source });
-
-/**
- * What the converter decides now: run its pre-passes on a tree.
- * @param {string} source - The Ruby source.
- * @param {object} root - The tree of the source.
- * @returns {object} The context after the pre-passes, and the error of `_rejectRubyNameOfVariableAndList`.
- */
-const converterPrePasses = (source, root) => {
-    const converter = new RubyToBlocksConverter(null, { version: '2' });
-    converter.reset();
-    converter._context.sourceCode = source;
-    converter._buildByteToCharMap();
-    converter._context.rootNode = root;
-    converter._countProcedureCallsInNode(root);
-    converter._collectVariableUses(root);
-    let rejected = null;
-    try {
-        converter._rejectRubyNameOfVariableAndList();
-    } catch (e) {
-        rejected = e;
-    }
-    return { context: converter._context, rejected, lineOf: (node) => converter._getLoc(node).line };
-};
 
 /**
  * The value of a single-quoted JavaScript string (the escapes that the tests use).
@@ -80,97 +58,29 @@ const corpus = () => {
     return sources;
 };
 
-const ownUnit = (groups, unit) => groups[unit] === unit;
-
-/**
- * The differences between the analysis and the converter for one source.
- * @param {string} source - The Ruby source.
- * @returns {Array<string>} The differences (empty when they agree).
- */
-const differences = (source) => {
-    const parsed = prism.parse(source);
-    if (parsed.errors.length > 0) return null;
-    const root = parsed.value;
-    const analysis = analyze(root, { source });
-    const { context, rejected, lineOf } = converterPrePasses(source, root);
-    const diffs = [];
-    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-
-    if (!same(sortKeys(analysis.variables.uses), sortKeys(context.variableUses))) diffs.push('variables.uses');
-    if (!same(analysis.variables.rubyNames, [...context.rubyVariableNames].sort())) {
-        diffs.push('variables.rubyNames');
-    }
-    const firstLines = (firstUses) =>
-        sortKeys(
-            Object.fromEntries(
-                Object.keys(firstUses).map((name) => [
-                    name,
-                    sortKeys(Object.fromEntries(Object.entries(firstUses[name]).map(([use, v]) => [use, v.line]))),
-                ]),
-            ),
-        );
-    if (!same(firstLines(analysis.variables.firstUses), firstLines(context.firstVariableUses))) {
-        diffs.push('variables.firstUses');
-    }
-
-    const units = context.localVariableUnits;
-    if (analysis.locals.unitOfNode.size !== units.unitOfNode.size) diffs.push('locals.units');
-    if (!same(sortKeys(analysis.locals.uses[0]), sortKeys(units.localUses[0]))) diffs.push('locals.uses[0]');
-    units.unitOfNode.forEach((unit, node) => {
-        const own = analysis.locals.unitOfNode.get(node);
-        if (typeof own === 'undefined') {
-            diffs.push('locals.unitOfNode');
-            return;
-        }
-        if (ownUnit(analysis.locals.groups, own) !== ownUnit(units.unitGroups, unit)) diffs.push('locals.groups');
-        if (!same(sortKeys(analysis.locals.uses[own]), sortKeys(units.localUses[unit]))) diffs.push('locals.uses');
-    });
-    if (!same(analysis.locals.splitNames, [...units.splitNames].sort())) diffs.push('locals.splitNames');
-
-    const counts = analysis.procedures.valueCallCounts;
-    if (!same(sortKeys(counts), sortKeys(context.methodCallCounts))) diffs.push('procedures.valueCallCounts');
-
-    const firstError = analysis.errors[0];
-    if (Boolean(firstError) !== Boolean(rejected)) {
-        diffs.push('errors');
-    } else if (firstError && lineOf(firstError.node) !== lineOf(rejected.node)) {
-        diffs.push('errors.line');
-    }
-    return [...new Set(diffs)];
-};
-
-/**
- * An object with its keys in order (to compare as JSON).
- * @param {object} obj - An object of objects.
- * @returns {object} The object.
- */
-function sortKeys(obj) {
-    return Object.fromEntries(
-        Object.keys(obj || {})
-            .sort()
-            .map((key) => [key, obj[key] && typeof obj[key] === 'object' ? sortKeys(obj[key]) : obj[key]]),
-    );
-}
-
 describe('RubyToBlocksConverter/Analysis', () => {
-    describe('the same as the pre-passes of the converter, for the Ruby of the existing tests', () => {
-        // One test for each test file, so that a slow machine does not hit the timeout of one test.
+    describe('the Ruby of the existing tests', () => {
         const sources = corpus();
-        const files = [...new Set(sources.map(({ file }) => file))];
 
         test('has enough Ruby to mean something', () => {
             expect(sources.length).toBeGreaterThan(3000);
         });
 
-        test.each(files)('%s', (file) => {
-            const mismatches = [];
-            sources
-                .filter((s) => s.file === file)
-                .forEach(({ source }) => {
-                    const diffs = differences(source);
-                    if (diffs && diffs.length > 0) mismatches.push({ diffs, source });
-                });
-            expect(mismatches).toEqual([]);
+        test('is analyzed without an error into a frozen table', () => {
+            const failures = [];
+            sources.forEach(({ file, source }) => {
+                const parsed = prism.parse(source);
+                if (parsed.errors.length > 0) return;
+                try {
+                    const analysis = analyze(parsed.value, { source });
+                    if (!Object.isFrozen(analysis) || !Object.isFrozen(analysis.variables.uses)) {
+                        failures.push({ file, source, error: 'not frozen' });
+                    }
+                } catch (e) {
+                    failures.push({ file, source, error: e.message });
+                }
+            });
+            expect(failures).toEqual([]);
         });
     });
 
@@ -230,7 +140,7 @@ describe('RubyToBlocksConverter/Analysis', () => {
     });
 
     describe('procedures', () => {
-        test('counts the calls whose value is used, also in a `case` (issue #2014)', () => {
+        test('counts the calls whose value is used, also in a `case` (issue #2014)', async () => {
             const source = dedent`
                 def foo(a)
                   return a * 2
@@ -247,8 +157,10 @@ describe('RubyToBlocksConverter/Analysis', () => {
             `;
             const analysis = analyzeRuby(source);
             expect(analysis.procedures.valueCallCounts.foo).toBe(3);
-            const { context } = converterPrePasses(source, parse(source));
-            expect(context.methodCallCounts.foo).toBe(3);
+            // The converter keeps the table it reads.
+            const converter = new RubyToBlocksConverter(null, { version: '2' });
+            expect(await converter.targetCodeToBlocks(null, source)).toBe(true);
+            expect(converter._context.analysis.procedures.valueCallCounts.foo).toBe(3);
         });
 
         test('collects the methods made with `def`', () => {

@@ -65,7 +65,9 @@ const MyBlocksConverter = {
                         }),
                     );
                 }
-                callCount = converter._context.methodCallCounts[name] || 0;
+                // How many times the code calls it as a value, from the analysis before converting.
+                const analysis = converter._context.analysis;
+                callCount = (analysis && analysis.procedures.valueCallCounts[name]) || 0;
                 callIndex = (converter._context.methodCallIndices[name] || 0) + 1;
                 converter._context.methodCallIndices[name] = callIndex;
 
