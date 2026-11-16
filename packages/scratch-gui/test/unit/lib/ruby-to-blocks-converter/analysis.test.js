@@ -313,6 +313,16 @@ describe('RubyToBlocksConverter/Analysis', () => {
             ]);
         });
 
+        test.each([
+            ['ClassNode', 'class Sprite1\nend'],
+            ['ModuleNode', 'module Walk\nend'],
+        ])('a %s that is not in the analysis is an error of the converter', async (type, source) => {
+            const converter = new RubyToBlocksConverter(null, { version: '2' });
+            await converter.targetCodeToBlocks(null, 'move(10)');
+            const [node] = parse(source).statements.body;
+            expect(() => converter.visit(node)).toThrow(`the analysis stage has no ${type} here`);
+        });
+
         test('keeps the lines of the body of a module', () => {
             const analysis = analyzeRuby('module Walk\n  def walk\n  end\n  move(1)\nend');
             const [walk] = analysis.classes.modules;

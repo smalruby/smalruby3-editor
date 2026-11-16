@@ -1,7 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (class visitor for Ruby-to-blocks converter) ===
-import { classStructureOf } from './class-analysis';
 import { messages } from './converter-errors';
 import { RubyToBlocksConverterError } from './errors';
+import { nodeTypeName } from './node-walk';
 
 /**
  * Mixin methods for visiting class nodes in the Ruby-to-blocks converter.
@@ -10,15 +10,21 @@ import { RubyToBlocksConverterError } from './errors';
  */
 const ClassVisitor = {
     /**
-     * The structure of a class that the analysis stage decided (`class-analysis.js`).
-     * @param {object} node - A ClassNode.
+     * The structure of a class or a module that the analysis stage decided (`class-analysis.js`).
+     * Every ClassNode / ModuleNode that the conversion visits is in the analyzed tree (a module
+     * read from another sprite gives only its `def`s, and a `def` cannot hold a class or a module),
+     * so a node that is not in the table is an error of the converter. It is not looked at again
+     * here, so that a node the analysis missed is found instead of being hidden.
+     * @param {object} node - A ClassNode or a ModuleNode.
      * @returns {object} The structure.
      */
-    _classStructureOf(node) {
+    _structureOf(node) {
         const analysis = this._context.analysis;
         const entry = analysis && analysis.classes.ofNode.get(node);
-        // A class that is not in the analyzed tree is looked at here, in the same way.
-        return entry ? entry.structure : classStructureOf(node);
+        if (!entry) {
+            throw new Error(`the analysis stage has no ${nodeTypeName(node)} here (an error of the converter)`);
+        }
+        return entry.structure;
     },
 
     /**
@@ -40,7 +46,7 @@ const ClassVisitor = {
 
         // What the body sets and the errors that the tree alone shows are decided by the analysis
         // stage. They are thrown here, in the order that the body is looked at.
-        const structure = this._classStructureOf(node);
+        const structure = this._structureOf(node);
         this._throwStructureError(structure.superclassError);
 
         // attr_accessor / attr_reader / attr_writer make the instance variables, and the getters and

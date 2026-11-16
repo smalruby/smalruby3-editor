@@ -1,7 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (module visitor for Ruby-to-blocks converter) ===
 import { findTargetsWithModule, generateTargetCode, extractModuleCode } from '../module-sync';
 import RubyParser from '../ruby-parser';
-import { moduleStructureOf } from './class-analysis';
 import { messages } from './converter-errors';
 import { RubyToBlocksConverterError } from './errors';
 import { nodeTypeName } from './node-walk';
@@ -31,9 +30,7 @@ const ModuleVisitor = {
 
         const moduleName = node.name;
         // The lines of the body, from the analysis stage (`class-analysis.js`)
-        const analysis = this._context.analysis;
-        const entry = analysis && analysis.classes.ofNode.get(node);
-        const { statements } = entry ? entry.structure : moduleStructureOf(node);
+        const { statements } = this._structureOf(node);
 
         // Validate: only DefNode allowed in module body
         for (const stmt of statements) {

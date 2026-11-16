@@ -36,12 +36,13 @@ Ruby → ブロックの変換器（`packages/scratch-gui/src/lib/ruby-to-blocks
 
 ### 構文木をたどる処理
 
-| たどる処理                                              | 子の取り方                                                            |
-| ------------------------------------------------------- | --------------------------------------------------------------------- |
-| 変換そのもの（`visit` と `visitXxxNode`）               | ノードの種類ごとに手で書く                                            |
-| 分析（`analyze`）                                       | `forEachNode`（`node-walk.js`。prism の `childNodes()` のすべての子） |
-| `_statementNodeOf`（エラーで文を指す）                  | `_childNodesOf`。エラーのたびに根からたどる                           |
-| `_associateSourceComments` の一部、`_nodeContainsSuper` | `_childNodesOf`                                                       |
+| たどる処理                                                              | 子の取り方                                                            |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 変換そのもの（`visit` と `visitXxxNode`）                               | ノードの種類ごとに手で書く                                            |
+| 分析（`analyze`）                                                       | `forEachNode`（`node-walk.js`。prism の `childNodes()` のすべての子） |
+| `_statementNodeOf`（エラーで文を指す）                                  | `_childNodesOf`。エラーのたびに根からたどる                           |
+| `_associateSourceComments` の一部                                       | `_childNodesOf`                                                       |
+| `containsSuper`（`class-analysis.js`。メソッドの中に `super` があるか） | `forEachNode`                                                         |
 
 手続きの呼び出しを数える下調べ（もとの `_countProcedureCallsInNode`）は、子を手で並べたプロパティ名でたどっていた。並べた名前に `CaseNode` の `conditions`（`when` の並び）や
 `elseClause` が無く、`case` の中の手続きの呼び出しを数えていなかった。
@@ -122,7 +123,7 @@ Ruby の名前をキーにする表（`variables.uses`・`locals.uses`・`proced
 #### class / module / initialize の構造（`class-analysis.js`）
 
 `classStructureOf(node)` が、class の本体から木だけで決まることを決める。`analysis.js` が `classes` の各項目の `structure` に入れ、
-変換（`visitClassNode`）は `ofNode` で引いて読む（分析した木に無い class は、その場で同じ関数を呼ぶ）。
+変換（`visitClassNode`）は `ofNode` で引いて読む（変換が通る class と module はすべて分析した木の中にあるので、表に無いノードは変換器の誤りとして投げる。分析の取りこぼしを、黙って計算し直して隠さないため）。
 
 | `structure` の中身                                                        | 決めること                                                                         | 変換で使うところ                                                                                                  |
 | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
