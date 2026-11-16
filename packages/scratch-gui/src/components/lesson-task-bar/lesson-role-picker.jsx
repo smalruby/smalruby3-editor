@@ -60,7 +60,13 @@ const LessonRolePicker = ({ role, source, onChoose }) => {
     }
     return (
         <span className={styles.role} data-testid="lesson-task-bar-role">
-            <span className={styles.roleButtons} role="group" aria-label={intl.formatMessage(messages.label)}>
+            <span
+                className={styles.roleButtons}
+                role="group"
+                aria-label={intl.formatMessage(messages.label)}
+                // ヒントの「役を決めよう」の吹き出しが指す（lib/lessons/hint-targets.js の ROLE_PICKER）
+                data-testid="lesson-task-bar-role-buttons"
+            >
                 {[ROLES.SHIMARABY, ROLES.SHIMACAT].map((value) => (
                     <button
                         key={value}

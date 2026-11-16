@@ -15,6 +15,8 @@ export const HINT_TARGETS = Object.freeze({
     GREEN_FLAG: 'green-flag',
     // メッシュの練習相手のパネル（閉じているときは小さな「練習相手」のボタン）
     PRACTICE_PARTNER: 'practice-partner',
+    // 課題バーの役のボタン（役のあるチャレンジの「役を決めよう」のページ）
+    ROLE_PICKER: 'role-picker',
     KEYBOARD: 'keyboard',
 });
 
@@ -87,6 +89,15 @@ const TARGET_SPECS = {
         selectors: ['[data-testid="lesson-practice-partner"]', '[data-testid="lesson-practice-partner-open"]'],
         sides: [HINT_SIDES.LEFT, HINT_SIDES.BOTTOM, HINT_SIDES.INSIDE],
     },
+    [HINT_TARGETS.ROLE_PICKER]: {
+        // components/lesson-task-bar/lesson-role-picker.jsx のボタンの並び（下の「前回は…」の一言は含めない）。
+        // 課題バーは吹き出しより上に描かれ、吹き出しはバーの下から置く（hintViewport）ので、下に置いてしっぽを上に向ける
+        selectors: ['[data-testid="lesson-task-bar-role-buttons"]'],
+        sides: [HINT_SIDES.BOTTOM],
+        // 役のボタンは練習相手のパネルの真上にあることが多い（1300×600）。パネルをよけると吹き出しが左へずれ、しっぽが
+        // ボタンに届かない。このページは練習相手を使う前に読むので、パネルにかぶってもしっぽでボタンを指す
+        coverAvoid: true,
+    },
     [HINT_TARGETS.KEYBOARD]: { selectors: [], sides: [] },
 };
 
@@ -143,9 +154,14 @@ export const findHintTargetRect = (target, doc) => {
 /**
  * 吹き出しをかぶせない部品の矩形（viewport 座標。出ているものだけ）。
  * @param {Document} doc - 探す document。
+ * @param {string} [target] - 指す場所。かぶってでも指す場所（役のボタン）なら、よけるものは無い。
  * @returns {Array<{left: number, top: number, right: number, bottom: number}>} 矩形。
  */
-export const findHintAvoidRects = (doc) => (doc ? visibleRects(doc, AVOID_SELECTORS) : []);
+export const findHintAvoidRects = (doc, target) => {
+    const spec = target ? TARGET_SPECS[target] : null;
+    if (!doc || (spec && spec.coverAvoid)) return [];
+    return visibleRects(doc, AVOID_SELECTORS);
+};
 
 /**
  * 指す場所ごとの、吹き出しを置く側の候補（先に書いたものを優先）。

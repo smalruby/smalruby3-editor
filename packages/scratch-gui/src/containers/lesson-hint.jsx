@@ -26,6 +26,7 @@ import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
 import { hintStepTitle, isSeatedStudent } from '../lib/lessons/hint-text';
 import { findSpriteByName, insertSpriteCodes, resolveCodeSprite } from '../lib/lessons/insert-sprite-code';
 import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics';
+import { roleStepNote } from '../lib/lessons/lesson-role';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { colorModeMap } from '../lib/settings/color-mode';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
@@ -50,6 +51,8 @@ const LessonHintContainer = ({
     onInsertCode,
     onNextHint,
     onPrevHint,
+    role = null,
+    roleSource = null,
     rubyVersion,
     scratchBlocks,
     teacherLoggedIn = false,
@@ -207,7 +210,8 @@ const LessonHintContainer = ({
             onClose={onHideHint}
             onFinish={onFinishHint}
             onInsertCode={handleInsertCode}
-            note={step ? step.note || null : null}
+            // 「役を決めよう」のページは、役を選んだら「〜の役を選んだよ」を出す
+            note={step ? roleStepNote(step, role ? { role, source: roleSource } : null) || step.note || null : null}
             onNext={onNextHint}
             onPrev={onPrevHint}
             scratchBlocks={scratchBlocks}
@@ -246,6 +250,9 @@ LessonHintContainer.propTypes = {
     onInsertCode: PropTypes.func.isRequired,
     onNextHint: PropTypes.func.isRequired,
     onPrevHint: PropTypes.func.isRequired,
+    // いまの役と、どう決めたか（役のあるチャレンジだけ。lib/lessons/role-swap.js の ROLES・lesson-role.js の ROLE_SOURCES）
+    role: PropTypes.string,
+    roleSource: PropTypes.string,
     rubyVersion: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     scratchBlocks: PropTypes.object,
     // 先生（クラス管理にログイン中）か（GA に送らない）
@@ -261,6 +268,9 @@ const mapStateToProps = (state) => ({
     teacherLoggedIn: Boolean(state.scratchGui.classroom && state.scratchGui.classroom.teacherLoggedIn),
     hint: getCurrentHint(state),
     inClassroom: isSeatedStudent(state.scratchGui.classroom),
+    // 文字のまま渡す（getCurrentRole は呼ぶたびに新しいオブジェクトを作り、毎回描き直しになるため）
+    role: state.scratchGui.lessonMode.role || null,
+    roleSource: state.scratchGui.lessonMode.roleSource || null,
     rubyVersion: state.scratchGui.settings.rubyVersion,
     scratchBlocks: state.scratchGui.blockDisplay.scratchBlocks,
     vm: state.scratchGui.vm,

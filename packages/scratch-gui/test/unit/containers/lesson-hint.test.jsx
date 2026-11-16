@@ -114,6 +114,31 @@ describe('LessonHint container', () => {
         expect(outside.getByTestId('lesson-hint-title')).toHaveTextContent('host or join');
     });
 
+    test('the role page points at the role buttons and notices when a role was chosen (without blocking)', async () => {
+        const current = findChallenge('chat-l4-send-repeat');
+        const step = current.challenge.steps[2];
+        const hint = { ...hintFor(2, { step }), count: current.challenge.steps.length + 1 };
+        const before = renderContainer(
+            { ...baseProps(), current, hint, role: 'shimaraby', roleSource: 'default' },
+            'ja',
+        );
+        await flush();
+        expect(before.getByTestId('lesson-hint')).toHaveAttribute('data-target', 'role-picker');
+        expect(before.getByTestId('lesson-hint-title')).toHaveTextContent(
+            '課題バーの「シマラビの役」「シマネコの役」',
+        );
+        expect(before.queryByTestId('lesson-hint-note')).toBeNull();
+        expect(before.getByTestId('lesson-hint-next')).not.toBeDisabled();
+        before.unmount();
+        const chosen = renderContainer(
+            { ...baseProps(), current, hint, role: 'shimacat', roleSource: 'chosen' },
+            'ja',
+        );
+        await flush();
+        expect(chosen.getByTestId('lesson-hint-note')).toHaveTextContent('「シマネコの役」を選んだよ');
+        chosen.unmount();
+    });
+
     test('shows the activity diagram on the first page of a challenge that asks for it', async () => {
         const found = findChallenge(CHALLENGE_ID);
         const current = { ...found, challenge: { ...found.challenge, activityDiagram: true } };

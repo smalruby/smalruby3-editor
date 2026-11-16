@@ -133,6 +133,18 @@ describe('findHintTargetRect', () => {
         expect(findHintTargetRect(HINT_TARGETS.PRACTICE_PARTNER, document)).toEqual(rect(746, 132, 922, 331));
         expect(findHintAvoidRects(document)).toEqual([rect(746, 132, 922, 331)]);
     });
+
+    test('the role buttons in the task bar are found by their data-testid (not the note under them)', () => {
+        expect(findHintTargetRect(HINT_TARGETS.ROLE_PICKER, document)).toBeNull();
+        addEl('', rect(880, 46, 1040, 66), { 'data-testid': 'lesson-task-bar-role-buttons' });
+        expect(findHintTargetRect(HINT_TARGETS.ROLE_PICKER, document)).toEqual(rect(880, 46, 1040, 66));
+    });
+
+    test('the balloon pointing at the role buttons may cover the practice partner panel (it sits right under them)', () => {
+        addEl('', rect(746, 132, 922, 331), { 'data-testid': 'lesson-practice-partner' });
+        expect(findHintAvoidRects(document, HINT_TARGETS.ROLE_PICKER)).toEqual([]);
+        expect(findHintAvoidRects(document, HINT_TARGETS.PALETTE)).toEqual([rect(746, 132, 922, 331)]);
+    });
 });
 
 // upstream の部品は data-testid を持たないので CSS Modules のクラス名の接頭辞（`<css ファイル名>_<クラス名>_`）で
@@ -367,6 +379,20 @@ describe('hint targets: the SP side rail is above the balloon', () => {
         expect(clampHintPosition({ left: 100, top: 10 }, balloon, viewport).top).toBe(88);
         // 収まらないほど高いときは、下を切っても上（ヘッダーと閉じる）を見せる
         expect(clampHintPosition({ left: 100, top: 10 }, { width: 352, height: 700 }, viewport).top).toBe(88);
+    });
+
+    test('pointing at the role buttons in the task bar puts the balloon below the bar, arrow up at the buttons', () => {
+        const viewport = { left: 0, top: 80, width: 1300, height: 600 };
+        const placed = computeHintPlacement({
+            target: rect(880, 46, 1040, 66),
+            balloon: { width: 352, height: 200 },
+            viewport,
+            sides: preferredSides(HINT_TARGETS.ROLE_PICKER),
+        });
+        expect(placed.side).toBe(HINT_SIDES.BOTTOM);
+        // バーの下（80 + 8）から。しっぽは役のボタンの真ん中（x = 960）を指す
+        expect(placed.top).toBe(88);
+        expect(placed.left + placed.arrow.x).toBe(960);
     });
 
     test('placement and dragging keep the balloon right of the rail', () => {

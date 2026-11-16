@@ -2,12 +2,14 @@ import { buildGroupName, withSeatSuffix } from '@smalruby/scratch-vm/src/extensi
 import { findChallenge } from '../../../../src/lib/lessons/courses';
 import {
     LESSON_ROLE_STORAGE_KEY,
+    ROLE_STEP_KIND,
     connectedGroupSeats,
     roleChangeRestarts,
     ROLE_SOURCES,
     loadRememberedRole,
     pairKeyOf,
     resolveChallengeRole,
+    roleStepNote,
     saveRememberedRole,
     seatRoleFor,
     seatsOfGroupName,
@@ -126,5 +128,31 @@ describe('the mesh group and starting again', () => {
         expect(roleChangeRestarts(findChallenge('chat-l4-send-once').challenge)).toBe(true);
         expect(roleChangeRestarts(findChallenge('chat-l5-ng-word').challenge)).toBe(true);
         expect(roleChangeRestarts(findChallenge('chat-l3-mesh-signal').challenge)).toBe(false);
+    });
+});
+
+describe('the "decide your roles" hint page', () => {
+    const page = { kind: ROLE_STEP_KIND, target: 'role-picker' };
+
+    test('after choosing a role in this challenge, the page says which role was chosen', () => {
+        expect(roleStepNote(page, { role: ROLES.SHIMARABY, source: ROLE_SOURCES.CHOSEN }).id).toBe(
+            'gui.lessons.chat.role.chosenShimaraby',
+        );
+        expect(roleStepNote(page, { role: ROLES.SHIMACAT, source: ROLE_SOURCES.CHOSEN }).id).toBe(
+            'gui.lessons.chat.role.chosenShimacat',
+        );
+    });
+
+    test('the note is not swapped for the Shimacat role (it names the role as it is)', () => {
+        expect(roleStepNote(page, { role: ROLES.SHIMACAT, source: ROLE_SOURCES.CHOSEN }).roleSwapped).toBeUndefined();
+    });
+
+    test('nothing before choosing (default, last time, seat number), on other pages, or without a role', () => {
+        [ROLE_SOURCES.DEFAULT, ROLE_SOURCES.REMEMBERED, ROLE_SOURCES.SEAT].forEach((source) =>
+            expect(roleStepNote(page, { role: ROLES.SHIMACAT, source })).toBeNull(),
+        );
+        expect(roleStepNote({ target: 'palette' }, { role: ROLES.SHIMACAT, source: ROLE_SOURCES.CHOSEN })).toBeNull();
+        expect(roleStepNote(page, null)).toBeNull();
+        expect(roleStepNote(null, { role: ROLES.SHIMACAT, source: ROLE_SOURCES.CHOSEN })).toBeNull();
     });
 });
