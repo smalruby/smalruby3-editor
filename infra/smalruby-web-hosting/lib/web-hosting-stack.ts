@@ -53,11 +53,11 @@ export const SITE_DEPLOY_SUBJECTS = [
 export const SITE_NONCURRENT_VERSION_EXPIRATION_DAYS = 30;
 
 /**
- * 本番 CloudFront のアクセスログを残す日数（人間がまだ決めていない。案は 90 日）。
+ * 本番 CloudFront のアクセスログを残す日数（人間が 30 日に決めた）。
  * ログには利用者の IP アドレスが入るので、必要な間だけ残して消す（docs/hosting/README.md）。
  * 変えるときはこの値だけを変える（バケットのライフサイクルが追従する）。
  */
-export const SITE_ACCESS_LOG_RETENTION_DAYS = 90;
+export const SITE_ACCESS_LOG_RETENTION_DAYS = 30;
 
 /** アクセスログのオブジェクトキーの接頭辞（ログのバケットを後でほかの用途と分けられるように付ける）。 */
 export const SITE_ACCESS_LOG_PREFIX = 'cloudfront/smalruby.app/';

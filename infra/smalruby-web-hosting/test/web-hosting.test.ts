@@ -207,6 +207,8 @@ describe('SmalrubyWebHostingStack', () => {
         });
 
         test('access logs are deleted after the retention period', () => {
+            // 人間が決めた保持期間（30 日）。変えるときは docs/hosting/README.md も直す。
+            expect(SITE_ACCESS_LOG_RETENTION_DAYS).toBe(30);
             const rules = logBucket().Properties.LifecycleConfiguration.Rules;
             expect(rules).toEqual([
                 expect.objectContaining({

@@ -162,7 +162,7 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 | 方式 | CloudFront の**標準ログ（従来の S3 配信）** |
 | 置き場所 | `SiteLogBucket` の `cloudfront/smalruby.app/` 以下（gzip のファイルが数分〜1 時間ごとに届く） |
 | バケット | 非公開（Block Public Access 全部 ON）・SSE-S3 で暗号化・SSL のみ。CI 用ロールからは触れない |
-| 保持期間 | **90 日で消す（案。人間が決める値）**。`infra/smalruby-web-hosting/lib/web-hosting-stack.ts` の `SITE_ACCESS_LOG_RETENTION_DAYS` だけを変えれば、バケットのライフサイクルが追従する |
+| 保持期間 | **30 日で消す**（人間が決めた値）。`infra/smalruby-web-hosting/lib/web-hosting-stack.ts` の `SITE_ACCESS_LOG_RETENTION_DAYS` だけを変えれば、バケットのライフサイクルが追従する |
 | Cookie | 記録しない（`logIncludesCookies: false`） |
 
 ### 標準ログ（従来）を選んだ理由
@@ -207,7 +207,7 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 | S3 の保存 | 月 0.1 未満 | ビルドは 1 版あたり 100〜200 MB。古い版を 30 日残しても数 GB |
 | CloudFront のデータ転送 | 月 0〜230 | 毎月 1 TB までは無料。新しい端末は precache で 60〜100 MB を読む。1 日の利用者 3,000 人が平均 10〜30 MB を読むと月 1〜3 TB。1 TB を超えた分は 1 GB あたり約 0.114 |
 | CloudFront のリクエストと関数 | 月 0〜30 | 毎月 1,000 万リクエスト・関数 200 万回までは無料。1 回の読み込みで数百のリクエストがあるので、無料枠を超えうる |
-| アクセスログ | 月 1 未満 | 標準ログ（従来）は届けるのが無料で、かかるのは S3 の保存と書き込みだけ。月 3,000 万リクエストでもログは gzip で月 数 GB、90 日分を置いて月 0.1〜0.5 程度 |
+| アクセスログ | 月 1 未満 | 標準ログ（従来）は届けるのが無料で、かかるのは S3 の保存と書き込みだけ。月 3,000 万リクエストでもログは gzip で月 数 GB、30 日分を置いて月 0.05〜0.2 程度 |
 
 - 従量課金の上限が読みにくいので、**CloudFront の定額プラン**（Pro は月 15 で転送量の上限が十分大きい）を使うかどうかを人間が決める。まず従量で 1〜2 週間動かし、CloudFront の使用量レポートで実際の転送量を見てから決めるのが安全。
 - **AWS Budgets の予算アラート**（例: 月 50 を超えたら通知）を切り替えの前に設定する。
@@ -227,7 +227,6 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 | 段 10 | 夜間に段 9 の PR をマージし、確かめる。だめなら戻す |
 | 段 11 | GitHub Pages を止める（`build-and-deploy` の GitHub Pages のステップを外し、`smalruby/smalruby.app` の Pages を無効にする）。`_github-pages-challenge-smalruby` の TXT と組織のドメイン検証は残す |
 | 切り替えの前 | AWS Budgets の予算アラートを設定する。CloudFront の定額プランを使うか決める |
-| 段 5 のマージの前 | アクセスログの保持期間を決める（案: 90 日。`SITE_ACCESS_LOG_RETENTION_DAYS`） |
 
 ## 主要ファイル
 
