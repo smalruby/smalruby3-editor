@@ -140,4 +140,69 @@ describe('ClassroomTeacherModal — leaving the grading screen (#1923)', () => {
         expect(mockTeacher.evaluation.handleRequestLeave).not.toHaveBeenCalled();
         expect(store.getState().scratchGui.classroom.teacherModalVisible).toBe(false);
     });
+
+    test('the menu bar logout (navigation "logout") asks on the grading screen, then logs out and closes', async () => {
+        const store = renderModal();
+        openGrading();
+        act(() => store.dispatch(requestTeacherNavigation('logout')));
+        expect(store.getState().scratchGui.classroom.teacherNavTarget).toBeNull();
+        expect(mockTeacher.handleTeacherLogout).not.toHaveBeenCalled();
+        const [action, kind] = mockTeacher.evaluation.handleRequestLeave.mock.calls[0];
+        expect(kind).toBe('leave');
+        await act(async () => action());
+        expect(mockTeacher.handleTeacherLogout).toHaveBeenCalledTimes(1);
+        expect(store.getState().scratchGui.classroom.teacherModalVisible).toBe(false);
+    });
+
+    test('the grading screen with work not saved is mirrored for the menu bar', () => {
+        const store = renderModal();
+        expect(store.getState().scratchGui.classroom.teacherHasUnsavedWork).toBe(false);
+        openGrading();
+        expect(store.getState().scratchGui.classroom.teacherHasUnsavedWork).toBe(true);
+    });
+});
+
+describe('ClassroomTeacherModal — comments typed on the members tab (#1990)', () => {
+    beforeEach(() => {
+        mockTeacher = {
+            ...makeTeacher(),
+            evaluation: { hasUnsavedWork: false, handleRequestLeave: jest.fn() },
+            selectedClassroom: { classroomId: 'c1', joinCode: 'abc234' },
+            members: [{ memberId: 'seat-03', teacherComment: 'いいね' }],
+        };
+        mockComponentProps = null;
+    });
+
+    const typeDraft = (text) =>
+        act(() => mockComponentProps.containerProps.onChangeMemberCommentDraft('seat-03', text));
+
+    test('the draft is kept by the container and given back to the members tab', () => {
+        renderModal();
+        typeDraft('もう少し');
+        expect(mockComponentProps.containerProps.memberCommentDrafts).toEqual({ 'seat-03': 'もう少し' });
+    });
+
+    test('logging out over a draft not returned asks; [Stay] keeps it, [Log out] drops it', () => {
+        const store = renderModal();
+        typeDraft('もう少し');
+        expect(store.getState().scratchGui.classroom.teacherHasUnsavedWork).toBe(true);
+        act(() => mockComponentProps.containerProps.onTeacherLogout());
+        expect(mockTeacher.handleTeacherLogout).not.toHaveBeenCalled();
+        expect(mockComponentProps.containerProps.logoutConfirm).toBe(true);
+        act(() => mockComponentProps.containerProps.onCancelLogout());
+        expect(mockComponentProps.containerProps.logoutConfirm).toBe(false);
+        expect(mockComponentProps.containerProps.memberCommentDrafts).toEqual({ 'seat-03': 'もう少し' });
+        act(() => mockComponentProps.containerProps.onTeacherLogout());
+        act(() => mockComponentProps.containerProps.onConfirmLogout());
+        expect(mockTeacher.handleTeacherLogout).toHaveBeenCalledTimes(1);
+        expect(mockComponentProps.containerProps.memberCommentDrafts).toEqual({});
+    });
+
+    test('a draft equal to the returned comment does not ask', () => {
+        const store = renderModal();
+        typeDraft('いいね');
+        expect(store.getState().scratchGui.classroom.teacherHasUnsavedWork).toBe(false);
+        act(() => mockComponentProps.containerProps.onTeacherLogout());
+        expect(mockTeacher.handleTeacherLogout).toHaveBeenCalledTimes(1);
+    });
 });

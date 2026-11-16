@@ -21,6 +21,7 @@ const REQUEST_TEACHER_NAVIGATION = 'scratch-gui/classroom/REQUEST_TEACHER_NAVIGA
 const CLEAR_TEACHER_NAVIGATION = 'scratch-gui/classroom/CLEAR_TEACHER_NAVIGATION';
 const SET_TEACHER_OPENED_WORK = 'scratch-gui/classroom/SET_TEACHER_OPENED_WORK';
 const CLEAR_TEACHER_OPENED_WORK = 'scratch-gui/classroom/CLEAR_TEACHER_OPENED_WORK';
+const SET_TEACHER_HAS_UNSAVED_WORK = 'scratch-gui/classroom/SET_TEACHER_HAS_UNSAVED_WORK';
 const SET_TEACHER_KICK_REQUESTS = 'scratch-gui/classroom/SET_TEACHER_KICK_REQUESTS';
 const REMOVE_TEACHER_KICK_REQUEST = 'scratch-gui/classroom/REMOVE_TEACHER_KICK_REQUEST';
 const OPEN_TEACHER_KICK_LIST = 'scratch-gui/classroom/OPEN_TEACHER_KICK_LIST';
@@ -209,6 +210,11 @@ const initialState = {
     // student's name. Cleared when class management opens again, another project
     // is loaded or the teacher logs out. Memory only.
     teacherOpenedWork: null,
+    // Class management (hidden or shown) holds work that a logout would drop: grades
+    // not exported / comments not returned / the AI running on the grading screen, or
+    // comments not returned on the members tab (#1990). Mirrored by the teacher modal
+    // so the menu bar's logout asks first. Memory only.
+    teacherHasUnsavedWork: false,
     // Student's "みんなの作品を見る" (#1210): the assignment's peer view setting
     // as last read from the server (null = not known yet; not persisted, so a
     // changed setting is picked up again) and whether the floating panel is shown.
@@ -383,6 +389,7 @@ const reducer = (state, action) => {
                 teacherKickListOpen: false,
                 teacherPanelOpen: false,
                 teacherOpenedWork: null,
+                teacherHasUnsavedWork: false,
             };
         case SET_TEACHER_UNREAD_COUNT:
             return { ...state, teacherUnreadCount: action.unreadCount || 0 };
@@ -400,6 +407,10 @@ const reducer = (state, action) => {
             return { ...state, teacherNavTarget: null, teacherNavMemberId: null };
         case SET_TEACHER_OPENED_WORK:
             return { ...state, teacherOpenedWork: action.work };
+        case SET_TEACHER_HAS_UNSAVED_WORK:
+            return state.teacherHasUnsavedWork === action.unsaved
+                ? state
+                : { ...state, teacherHasUnsavedWork: action.unsaved };
         case CLEAR_TEACHER_OPENED_WORK:
             return state.teacherOpenedWork ? { ...state, teacherOpenedWork: null } : state;
         case SET_TEACHER_KICK_REQUESTS:
@@ -580,6 +591,7 @@ const setTeacherOpenedWork = (work) => ({
         : null,
 });
 const clearTeacherOpenedWork = () => ({ type: CLEAR_TEACHER_OPENED_WORK });
+const setTeacherHasUnsavedWork = (unsaved) => ({ type: SET_TEACHER_HAS_UNSAVED_WORK, unsaved: !!unsaved });
 const setTeacherKickRequests = (requests) => ({ type: SET_TEACHER_KICK_REQUESTS, requests });
 /**
  * Drop a handled kick request from the teacher's pending list (#1200).
@@ -702,6 +714,7 @@ export {
     clearTeacherNavigation,
     setTeacherOpenedWork,
     clearTeacherOpenedWork,
+    setTeacherHasUnsavedWork,
     setTeacherKickRequests,
     removeTeacherKickRequest,
     openTeacherKickList,

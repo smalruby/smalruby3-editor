@@ -28,4 +28,55 @@ const shouldMountTeacherModal = ({ visible, opened, loggedIn }) => !!visible || 
 const isTeacherWorkBarVisible = (classroom) =>
     !!(classroom && classroom.teacherOpenedWork && !classroom.teacherModalVisible && classroom.teacherLoggedIn);
 
-export { shouldMountTeacherModal, isTeacherWorkBarVisible };
+/**
+ * Key of a members-tab comment draft: one per assignment and seat (#1990).
+ * @param {string} classroomId - the assignment
+ * @param {string} memberId - the seat ('seat-04')
+ * @returns {string} key
+ */
+const memberCommentDraftKey = (classroomId, memberId) => `${classroomId}\n${memberId}`;
+
+/**
+ * The drafts of one assignment, as memberId → text, for its members tab.
+ * @param {object} drafts - memberCommentDraftKey → {text, base}
+ * @param {?string} classroomId - the shown assignment
+ * @returns {object} memberId → text
+ */
+const memberDraftsForClassroom = (drafts, classroomId) => {
+    const out = {};
+    if (!classroomId) return out;
+    const prefix = `${classroomId}\n`;
+    for (const [key, value] of Object.entries(drafts || {})) {
+        if (key.startsWith(prefix)) out[key.slice(prefix.length)] = value.text;
+    }
+    return out;
+};
+
+/**
+ * Whether some members-tab comment is typed and not returned: not empty and not
+ * the returned comment. For the shown assignment the returned comment is read
+ * from its members (so returning it makes the draft saved); for the others,
+ * from when the typing started.
+ * @param {object} drafts - memberCommentDraftKey → {text, base}
+ * @param {?string} shownClassroomId - the assignment shown now
+ * @param {Array<object>} shownMembers - its members (memberId, teacherComment)
+ * @returns {boolean} whether a logout would drop a comment
+ */
+const unsavedMemberCommentDrafts = (drafts, shownClassroomId, shownMembers) =>
+    Object.entries(drafts || {}).some(([key, { text, base }]) => {
+        const draft = (text || '').trim();
+        if (!draft) return false;
+        const [classroomId, memberId] = key.split('\n');
+        const shown =
+            classroomId === shownClassroomId ? (shownMembers || []).find((m) => m.memberId === memberId) : null;
+        const saved = shown ? shown.teacherComment || '' : base || '';
+        return draft !== saved.trim();
+    });
+
+export {
+    shouldMountTeacherModal,
+    isTeacherWorkBarVisible,
+    memberCommentDraftKey,
+    memberDraftsForClassroom,
+    unsavedMemberCommentDrafts,
+};

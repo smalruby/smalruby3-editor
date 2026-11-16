@@ -11,6 +11,11 @@ import {
     saveTeacherLastSelection,
     saveTeacherLogin,
 } from '../lib/classroom-teacher-session.js';
+import {
+    memberCommentDraftKey,
+    memberDraftsForClassroom,
+    unsavedMemberCommentDrafts,
+} from '../lib/classroom-teacher-work.js';
 import { getUrlParams } from '../lib/url-params.js';
 import { showAlertWithTimeout } from '../reducers/alerts.js';
 import {
@@ -22,6 +27,7 @@ import {
     setTeacherUnreadCount,
     setTeacherLastSelection,
     clearTeacherNavigation,
+    setTeacherHasUnsavedWork,
 } from '../reducers/classroom.js';
 import { decideTeacherSelectionSync } from './classroom-classcode-utils.js';
 import useBeforeUnloadWhile from './use-before-unload-while.js';
@@ -203,6 +209,56 @@ const ClassroomTeacherModal = ({ visible = true }) => {
         (action) => (onEvaluation ? evaluation.handleRequestLeave(action, 'leave') : action()),
         [onEvaluation, evaluation],
     );
+
+    // Comments typed on the members tab and not returned yet (#1990). They live here,
+    // not in the screen, so opening a work (which hides this modal) keeps them.
+    // key (memberCommentDraftKey) → {text, base}; base is the returned comment when the
+    // typing started, used while another assignment is shown.
+    const [memberDrafts, setMemberDrafts] = useState({});
+    const selectedDetailId = teacher.selectedClassroom && teacher.selectedClassroom.classroomId;
+    const handleChangeMemberCommentDraft = useCallback(
+        (memberId, text) => {
+            if (!selectedDetailId || !memberId) return;
+            const key = memberCommentDraftKey(selectedDetailId, memberId);
+            const member = (teacher.members || []).find((m) => m.memberId === memberId);
+            setMemberDrafts((prev) => ({
+                ...prev,
+                [key]: { text, base: prev[key] ? prev[key].base : (member && member.teacherComment) || '' },
+            }));
+        },
+        [selectedDetailId, teacher.members],
+    );
+    const unsavedMemberDrafts = unsavedMemberCommentDrafts(memberDrafts, selectedDetailId, teacher.members);
+    const unsavedMemberDraftsRef = useRef(unsavedMemberDrafts);
+    unsavedMemberDraftsRef.current = unsavedMemberDrafts;
+
+    // Logging out drops everything here, so it asks first: the grading screen's own
+    // question, then this one for the members tab's comments (#1990).
+    const [logoutConfirm, setLogoutConfirm] = useState(null);
+    const guardLogout = useCallback(
+        (action) => {
+            const askDrafts = () => (unsavedMemberDraftsRef.current ? setLogoutConfirm({ action }) : action());
+            if (onEvaluation) evaluation.handleRequestLeave(askDrafts, 'leave');
+            else askDrafts();
+        },
+        [onEvaluation, evaluation],
+    );
+    const guardLogoutRef = useRef(guardLogout);
+    guardLogoutRef.current = guardLogout;
+    const handleConfirmLogout = useCallback(() => {
+        const request = logoutConfirm;
+        setLogoutConfirm(null);
+        if (request) request.action();
+    }, [logoutConfirm]);
+    const handleCancelLogout = useCallback(() => setLogoutConfirm(null), []);
+
+    // The menu bar's logout asks too when this modal is hidden (#1990).
+    const hasUnsavedWork =
+        (onEvaluation && !!(evaluation.hasUnsavedWork || evaluation.evalProgress)) || unsavedMemberDrafts;
+    useEffect(() => {
+        dispatch(setTeacherHasUnsavedWork(hasUnsavedWork));
+    }, [dispatch, hasUnsavedWork]);
+    useEffect(() => () => dispatch(setTeacherHasUnsavedWork(false)), [dispatch]);
     // The navigation effect below runs only when its inputs change: it reads the latest guard.
     const guardLeaveRef = useRef(guardLeave);
     guardLeaveRef.current = guardLeave;
@@ -239,6 +295,17 @@ const ClassroomTeacherModal = ({ visible = true }) => {
         // not saved (#1923: the menu bar and the kick toast's 「課題を開く」).
         dispatch(clearTeacherNavigation());
         const memberId = navMemberId;
+        if (nav.action === 'logout') {
+            // The menu bar's logout over work not saved (#1990): ask here, like the
+            // avatar menu's logout, then close as the menu bar's logout does.
+            guardLogoutRef.current(() => {
+                setMemberDrafts({});
+                dispatch(clearTeacherSelection());
+                teacherRef.current.handleTeacherLogout();
+                dispatch(closeTeacherModal());
+            });
+            return;
+        }
         guardLeaveRef.current(() => {
             const current = teacherRef.current;
             if (nav.action === 'notifications') {
@@ -288,11 +355,12 @@ const ClassroomTeacherModal = ({ visible = true }) => {
     // Wrap the teacher logout so we also clear teacherSelection from Redux —
     // the underlying handleTeacherLogout only resets local hook state.
     const handleTeacherLogoutWithReduxClear = useCallback(() => {
-        guardLeave(() => {
+        guardLogout(() => {
+            setMemberDrafts({});
             dispatch(clearTeacherSelection());
             teacher.handleTeacherLogout();
         });
-    }, [dispatch, teacher, guardLeave]);
+    }, [dispatch, teacher, guardLogout]);
 
     const notificationsCenter = teacher.notificationsCenter;
     const guardedNotificationsCenter = notificationsCenter && {
@@ -396,6 +464,11 @@ const ClassroomTeacherModal = ({ visible = true }) => {
         onReuseAssignment: teacher.handleReuseAssignment,
         onUpdateGroup: teacher.handleUpdateGroup,
         evaluation: teacher.evaluation,
+        memberCommentDrafts: memberDraftsForClassroom(memberDrafts, selectedDetailId),
+        onChangeMemberCommentDraft: handleChangeMemberCommentDraft,
+        logoutConfirm: !!logoutConfirm,
+        onConfirmLogout: handleConfirmLogout,
+        onCancelLogout: handleCancelLogout,
         shared: teacher.shared,
         notificationsCenter: guardedNotificationsCenter,
     };

@@ -230,6 +230,9 @@ try {
         await page.locator(tid('classroom-member-seat-03')).click();
         await page.waitForTimeout(300);
         const seatBefore = await page.textContent(tid('classroom-member-detail-seat'));
+        // 返却していないコメントを書いてから開く（確かめずに開き、戻ったら残っている）。
+        const DRAFT = 'コメントの下書き（戻る帯の確認）';
+        await page.fill(tid('classroom-member-detail-comment'), DRAFT);
         await page.locator(tid('classroom-member-detail-open')).click();
         await page.waitForSelector(tid('classroom-teacher-work-bar'), { timeout: 20000 }).catch(() => {});
         const bar = await page.evaluate(() => ({
@@ -249,12 +252,41 @@ try {
             seat: document.querySelector('[data-testid="classroom-member-detail-seat"]')?.textContent ?? null,
             membersTab: document.querySelector('[data-testid="classroom-tab-members"]')?.getAttribute('aria-selected'),
             bar: !!document.querySelector('[data-testid="classroom-teacher-work-bar"]'),
+            comment: document.querySelector('[data-testid="classroom-member-detail-comment"]')?.value ?? null,
         }));
         record(
-            '[‹ 課題に戻る] comes back to the same assignment, tab and seat (#1990)',
-            back.seat === seatBefore && back.membersTab === 'true' && !back.bar,
+            '[‹ 課題に戻る] comes back to the same assignment, tab, seat and comment draft (#1990)',
+            back.seat === seatBefore && back.membersTab === 'true' && !back.bar && back.comment === DRAFT,
             `before "${seatBefore}" · ${JSON.stringify(back)}`,
         );
+
+        // メニューバーのログアウト: 隠れているコメントの下書きがあれば、クラス管理を開いて先に聞く。
+        await page.click(tid('classroom-teacher-back-to-editor'));
+        await page.waitForTimeout(300);
+        await page.click(tid('classroom-teacher-menu-button'));
+        await page.click(tid('classroom-teacher-menu-logout'));
+        await page.waitForSelector(tid('classroom-teacher-logout-confirm-box'), { timeout: 10000 }).catch(() => {});
+        const ask = await page.evaluate(() => {
+            const box = document.querySelector('[data-testid="classroom-teacher-logout-confirm-box"]');
+            const r = box && box.getBoundingClientRect();
+            return {
+                message: document.querySelector('[data-testid="classroom-teacher-logout-confirm-message"]')?.textContent ?? null,
+                bottom: r ? Math.round(r.bottom) : null,
+                stillLoggedIn: !!document.querySelector('[data-testid="classroom-teacher-menu-button"]'),
+            };
+        });
+        record(
+            'menu bar logout over a hidden comment draft asks first (#1990)',
+            !!ask.message && ask.bottom !== null && ask.bottom <= 600 && ask.stillLoggedIn,
+            JSON.stringify(ask),
+        );
+        await shot('logout-confirm', null);
+        await page.click(tid('classroom-teacher-logout-cancel'));
+        await page.waitForTimeout(200);
+        const kept = await page.evaluate(
+            () => document.querySelector('[data-testid="classroom-member-detail-comment"]')?.value ?? null,
+        );
+        record('[とどまる] keeps the comment draft (#1990)', kept === DRAFT, `"${kept}"`);
     }
 
     // #1961: the［⛶ 映す］screen at the lesson PC size and at a projector size.

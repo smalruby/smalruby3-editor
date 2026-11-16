@@ -6,13 +6,20 @@
  * - 帯は、先生が開いた作品があり、クラス管理が閉じている間だけ出す。
  * - 帯には出席番号と課題名だけを覚える（生徒の名前は持たない）。
  */
-import { isTeacherWorkBarVisible, shouldMountTeacherModal } from '../../../src/lib/classroom-teacher-work.js';
+import {
+    isTeacherWorkBarVisible,
+    memberCommentDraftKey,
+    memberDraftsForClassroom,
+    shouldMountTeacherModal,
+    unsavedMemberCommentDrafts,
+} from '../../../src/lib/classroom-teacher-work.js';
 import reducer, {
     classroomInitialState,
     clearTeacherOpenedWork,
     closeTeacherModal,
     openTeacherModal,
     requestTeacherNavigation,
+    setTeacherHasUnsavedWork,
     setTeacherLoggedIn,
     setTeacherOpenedWork,
 } from '../../../src/reducers/classroom.js';
@@ -76,5 +83,50 @@ describe('classroom reducer — teacherOpenedWork', () => {
         expect(reducer(opened(), setTeacherLoggedIn(false)).teacherOpenedWork).toBeNull();
         expect(reducer(opened(), clearTeacherOpenedWork()).teacherOpenedWork).toBeNull();
         expect(reducer(classroomInitialState, clearTeacherOpenedWork())).toBe(classroomInitialState);
+    });
+});
+
+describe('メンバーのタブのコメントの下書き', () => {
+    const drafts = {
+        [memberCommentDraftKey('c1', 'seat-03')]: { text: 'もう少し', base: '' },
+        [memberCommentDraftKey('c2', 'seat-01')]: { text: 'いいね', base: 'いいね' },
+    };
+
+    test('表示中の課題の下書きだけを席ごとに渡す', () => {
+        expect(memberDraftsForClassroom(drafts, 'c1')).toEqual({ 'seat-03': 'もう少し' });
+        expect(memberDraftsForClassroom(drafts, null)).toEqual({});
+    });
+
+    test('空でなく、返却したコメントと違えば「返却していない」', () => {
+        expect(unsavedMemberCommentDrafts(drafts, 'c1', [{ memberId: 'seat-03', teacherComment: '' }])).toBe(true);
+        // 返却したら（members の teacherComment が同じになったら）残っていない扱い。
+        expect(unsavedMemberCommentDrafts(drafts, 'c1', [{ memberId: 'seat-03', teacherComment: 'もう少し' }])).toBe(
+            false,
+        );
+        // 表示していない課題は、書き始めたときの返却済みのコメントと比べる。
+        expect(
+            unsavedMemberCommentDrafts(
+                { [memberCommentDraftKey('c2', 'seat-01')]: { text: '直した', base: 'いいね' } },
+                'c1',
+                [],
+            ),
+        ).toBe(true);
+        expect(
+            unsavedMemberCommentDrafts(
+                { [memberCommentDraftKey('c1', 'seat-03')]: { text: '  ', base: '' } },
+                'c1',
+                [],
+            ),
+        ).toBe(false);
+        expect(unsavedMemberCommentDrafts({}, 'c1', [])).toBe(false);
+    });
+});
+
+describe('classroom reducer — teacherHasUnsavedWork', () => {
+    test('立てて、ログアウトで戻る', () => {
+        const on = reducer(reducer(classroomInitialState, setTeacherLoggedIn(true)), setTeacherHasUnsavedWork(true));
+        expect(on.teacherHasUnsavedWork).toBe(true);
+        expect(reducer(on, setTeacherHasUnsavedWork(true))).toBe(on);
+        expect(reducer(on, setTeacherLoggedIn(false)).teacherHasUnsavedWork).toBe(false);
     });
 });

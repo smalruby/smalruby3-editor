@@ -43,6 +43,7 @@ const ClassroomTeacherMenu = ({ className, activeClassName, menuClassName, place
     const unreadCount = useSelector((state) => state.scratchGui.classroom.teacherUnreadCount);
     const lastSelection = useSelector((state) => state.scratchGui.classroom.teacherLastSelection);
     const kickRequestCount = useSelector((state) => (state.scratchGui.classroom.teacherKickRequests || []).length);
+    const hasUnsavedWork = useSelector((state) => !!state.scratchGui.classroom.teacherHasUnsavedWork);
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
@@ -100,6 +101,12 @@ const ClassroomTeacherMenu = ({ className, activeClassName, menuClassName, place
                 return;
             }
             if (id === 'logout') {
+                if (hasUnsavedWork) {
+                    // Class management (maybe hidden behind an opened work, #1990) holds grades
+                    // not exported or comments not returned: open it and ask there first.
+                    dispatch(requestTeacherNavigation('logout'));
+                    return;
+                }
                 logoutCachedTeacher();
                 dispatch(closeTeacherModal());
                 dispatch(clearTeacherSelection());
@@ -108,7 +115,7 @@ const ClassroomTeacherMenu = ({ className, activeClassName, menuClassName, place
             }
             dispatch(requestTeacherNavigation(id));
         },
-        [dispatch],
+        [dispatch, hasUnsavedWork],
     );
 
     if (!loggedIn) return null;

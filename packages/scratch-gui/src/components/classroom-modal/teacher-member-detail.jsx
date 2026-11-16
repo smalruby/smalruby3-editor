@@ -44,16 +44,23 @@ const TeacherMemberDetail = ({
     lessonDetail,
     lessonNow,
     showSubmission = true,
+    commentDrafts = null,
+    onChangeCommentDraft = null,
 }) => {
     const intl = useIntl();
     // Ties the visible label to the comment field (R1)
     const commentInputId = useId();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [commentText, setCommentText] = useState('');
+    const [ownCommentText, setOwnCommentText] = useState('');
+    // コメントの下書きは、渡されたら container が持つ（#1990）。作品を開いてクラス管理が
+    // 閉じても（隠して残す）、席を移っても消えない。だから［スモウルビーで開く］は確かめない。
+    const controlled = !!onChangeCommentDraft;
+    const savedComment = (selectedMember && memberMap[selectedMember]?.teacherComment) || '';
+    const draftOfSelected = controlled && commentDrafts && selectedMember ? commentDrafts[selectedMember] : null;
+    let commentText = ownCommentText;
+    if (controlled) commentText = typeof draftOfSelected === 'string' ? draftOfSelected : savedComment;
     // 「退室させる」の確認（#1923 C3）。押してすぐ退室させない。
     const [confirmingRemove, setConfirmingRemove] = useState(false);
-    // 作品を開くとクラス管理が閉じ、返却していないコメントが消える。そのときだけ先に聞く（#1980）。
-    const [confirmingOpen, setConfirmingOpen] = useState(false);
 
     // Reset image index and comment only when a DIFFERENT member is selected
     const prevSelectedMemberRef = React.useRef(selectedMember);
@@ -62,18 +69,16 @@ const TeacherMemberDetail = ({
             prevSelectedMemberRef.current = selectedMember;
             setCurrentImageIndex(0);
             setConfirmingRemove(false);
-            setConfirmingOpen(false);
             if (selectedMember) {
                 const member = memberMap[selectedMember];
-                setCommentText(member?.teacherComment || '');
+                setOwnCommentText(member?.teacherComment || '');
             } else {
-                setCommentText('');
+                setOwnCommentText('');
             }
         }
     }, [selectedMember, memberMap]);
 
-    const openSelected = useCallback(() => {
-        setConfirmingOpen(false);
+    const handleOpenClick = useCallback(() => {
         const projectUrl = selectedMember && memberMap[selectedMember]?.projectUrl;
         // 開いたあと、エディタの上の帯から課題へ戻れるよう、席の番号だけを渡す（#1990）。
         const seat = /^seat-(\d+)$/.exec(selectedMember || '');
@@ -81,17 +86,6 @@ const TeacherMemberDetail = ({
             onOpenSubmission(projectUrl, { from: 'assignment', seatNumber: seat ? parseInt(seat[1], 10) : null });
         }
     }, [selectedMember, memberMap, onOpenSubmission]);
-    // 書きかけのコメント: 空でなく、返却したもの（保存されているもの）と違う。
-    const hasCommentDraft = useCallback(() => {
-        const draft = commentText.trim();
-        const saved = ((selectedMember && memberMap[selectedMember]?.teacherComment) || '').trim();
-        return draft !== '' && draft !== saved;
-    }, [commentText, selectedMember, memberMap]);
-    const handleOpenClick = useCallback(() => {
-        if (hasCommentDraft()) setConfirmingOpen(true);
-        else openSelected();
-    }, [hasCommentDraft, openSelected]);
-    const handleOpenStay = useCallback(() => setConfirmingOpen(false), []);
 
     // ⋮ の［退室させる］は確認を開くだけ。確認の［退室させる］で退室させる（#1923 C3）。
     const handleRemoveClick = useCallback(() => setConfirmingRemove(true), []);
@@ -117,9 +111,13 @@ const TeacherMemberDetail = ({
         [selectedMember, memberMap, onSetHiddenFromPeers],
     );
 
-    const handleCommentChange = useCallback((e) => {
-        setCommentText(e.target.value);
-    }, []);
+    const handleCommentChange = useCallback(
+        (e) => {
+            if (onChangeCommentDraft) onChangeCommentDraft(selectedMember, e.target.value);
+            else setOwnCommentText(e.target.value);
+        },
+        [onChangeCommentDraft, selectedMember],
+    );
 
     const handleApproveKickClick = useCallback(
         (e) => {
@@ -435,49 +433,6 @@ const TeacherMemberDetail = ({
                                 />
                             </ClassroomButton>
                         )}
-                        {confirmingOpen && (
-                            <div
-                                className={classNames(styles.confirmNote, styles.memberRemoveConfirm)}
-                                data-testid="classroom-member-open-confirm-box"
-                            >
-                                <p
-                                    className={styles.memberRemoveConfirmMessage}
-                                    data-testid="classroom-member-open-confirm-message"
-                                    role="alert"
-                                >
-                                    <FormattedMessage
-                                        defaultMessage="The comment you have not returned will be lost. Leave this screen and open the work?"
-                                        description="Member detail: question before opening the work over a comment not returned (#1980)"
-                                        id="gui.classroom.teacherDetail.openLoseComment"
-                                    />
-                                </p>
-                                <div className={styles.buttonRow}>
-                                    <ClassroomButton
-                                        autoFocus
-                                        dataTestId="classroom-member-open-stay"
-                                        onClick={handleOpenStay}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Stay"
-                                            description="Member detail: closes the question and keeps the comment (#1980)"
-                                            id="gui.classroom.teacherDetail.openStay"
-                                        />
-                                    </ClassroomButton>
-                                    <ClassroomButton
-                                        dataTestId="classroom-member-open-leave"
-                                        disabled={isLoading}
-                                        variant="danger"
-                                        onClick={openSelected}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Leave"
-                                            description="Member detail: opens the work and drops the comment not returned (#1980)"
-                                            id="gui.classroom.teacherDetail.openLeave"
-                                        />
-                                    </ClassroomButton>
-                                </div>
-                            </div>
-                        )}
                         {/* Peer view (#1208): keep an inappropriate submission
                             out of what classmates can see. */}
                         {onSetHiddenFromPeers && selectedMemberData.submissionId && (
@@ -588,6 +543,10 @@ const TeacherMemberDetail = ({
 };
 
 TeacherMemberDetail.propTypes = {
+    /** memberId → comment typed, kept by the container (#1990). Used with onChangeCommentDraft. */
+    commentDrafts: PropTypes.objectOf(PropTypes.string),
+    /** (memberId, text) → keeps the typed comment in the container (#1990). */
+    onChangeCommentDraft: PropTypes.func,
     isLoading: PropTypes.bool,
     lessonDetail: PropTypes.shape({
         progress: PropTypes.object,

@@ -746,6 +746,26 @@ record({
     detail: `bar after reopening the work ${barAgain} · after another project ${barAfterNew}`,
 });
 
+// メニューバーのログアウト: 隠れている採点の画面に下書きがあれば、クラス管理を開いて採点の確認を出す (#1990)。
+await page.click('[data-testid="classroom-teacher-menu-button"]');
+await page.click('[data-testid="classroom-teacher-menu-logout"]');
+await page.waitForSelector('[data-testid="classroom-eval-leave-confirm"]', { timeout: 10000 }).catch(() => {});
+const menuLogout = await leaveState();
+const stillIn = await page.evaluate(() => !!document.querySelector('[data-testid="classroom-teacher-menu-button"]'));
+record({
+    name: 'menu bar logout over the hidden grading drafts opens class management and asks first',
+    ok: menuLogout.onScreen && !!menuLogout.message && /離れる|はなれる/.test(menuLogout.yes || '') && stillIn,
+    detail: `"${menuLogout.message}" · [${menuLogout.yes}] bottom ${menuLogout.yesBottom}/${menuLogout.vh} · logged in ${stillIn}`,
+});
+await page.click('[data-testid="classroom-eval-leave-cancel"]');
+await page.waitForTimeout(200);
+const afterStay = await draftState();
+record({
+    name: '[採点を続ける] after the menu bar logout keeps the drafts',
+    ok: afterStay.onScreen && afterStay.reason === REASON && afterStay.comment === COMMENT,
+    detail: JSON.stringify(afterStay),
+});
+
 await browser.close();
 const failed = rows.filter((r) => !r.ok);
 console.log(`\n${rows.length - failed.length}/${rows.length} checks passed at ${VIEWPORT.width}x${VIEWPORT.height}`);

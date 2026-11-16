@@ -134,12 +134,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-member-detail-image-index` | span | 画像インデックス |
 | `classroom-member-detail-prev` | button | 前の画像 |
 | `classroom-member-detail-next` | button | 次の画像 |
-| `classroom-member-detail-open` | button | スモウルビーで開く（副ボタン）。作品を開くとクラス管理を閉じる。返却していないコメント（空でなく、返却したものと違う）があれば、先に `classroom-member-open-confirm-box` を出す |
-| `classroom-member-open-confirm-box` / `classroom-member-open-confirm-message` | div / p | 「返却していないコメントは消えます。この画面を離れて作品を開きますか？」の確認 |
-| `classroom-member-open-stay` / `classroom-member-open-leave` | button | 確認の［とどまる］（コメントを残して閉じる）/［離れる］（開く） |
+| `classroom-member-detail-open` | button | スモウルビーで開く（副ボタン）。作品を開くとクラス管理を閉じる（隠して残す）。返却していないコメントは消えないので確かめない |
 | `classroom-member-detail-return` | button | 返却（選んだ席の詳細の主ボタン） |
 | `classroom-member-detail-comment-label` | label | コメント欄の上のラベル「生徒へのコメント（返却で届きます）」 |
-| `classroom-member-detail-comment` | textarea | コメント入力 |
+| `classroom-member-detail-comment` | textarea | コメント入力。下書きは課題と席ごとにクラス管理（container）が持ち、作品を開いても・席を移っても残る |
 | `classroom-member-detail-hide-from-peers` | input (checkbox) | 他の生徒に見せない（提出があるときだけ・切り替えで即保存・Issue #1208） |
 | `classroom-member-more-menu` | button | メンバー詳細の見出しの右端の ⋮（開くと `classroom-member-more-menu-list`） |
 | `classroom-member-remove` | button | ⋮ の中の「退室させる」。押すと確認を開く（すぐには退室させない） |
@@ -415,7 +413,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-evaluate-{groupId}` | button | クラスカードの「採点」 |
 | `classroom-class-import-gc` | button | クラス一覧の「Google Classroom からインポート」（Google ログイン時のみ） |
 | `classroom-avatar-button` / `classroom-avatar-initials` / `classroom-avatar-email` | button/span | アカウントメニュー（右上・メール頭文字 + ▼。クリックでメール表示 + ログアウト） |
-| `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内。#1111 レビューでタイトルバー常時表示から移動） |
+| `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内。#1111 レビューでタイトルバー常時表示から移動）。採点の画面の下書きがあれば採点の確認、メンバーのタブの返却していないコメントがあれば `classroom-teacher-logout-confirm-box` を先に出す |
+| `classroom-teacher-logout-confirm-box` / `classroom-teacher-logout-confirm-message` | div / p | ログアウトの前の確認「返却していないコメントは消えます。ログアウトしますか？」（ヘッダーの下・右に重ねて出す。メニューバーの「ログアウト」からでも出る） |
+| `classroom-teacher-logout-cancel` / `classroom-teacher-logout-confirm` | button | 確認の［とどまる］（コメントを残す）/［ログアウトする］ |
 | `classroom-class-create-section` | input | 作成: セクション（オプション） |
 | `classroom-class-settings-open-{groupId}` | button | クラスカードの「⚙ 設定」（クラスの設定の画面を開く） |
 | `classroom-class-settings-{groupId}` | form | クラス設定のインライン編集フォーム |

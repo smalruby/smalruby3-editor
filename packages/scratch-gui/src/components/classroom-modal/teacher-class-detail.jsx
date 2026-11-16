@@ -132,6 +132,8 @@ const TeacherClassDetail = ({
     onRejectKickRequest,
     onDetailTabChange,
     currentTab = null,
+    memberCommentDrafts = null,
+    onChangeMemberCommentDraft = null,
     detailEntry,
     onBackToBoard,
     onProjectEntryUsed,
@@ -1340,11 +1342,13 @@ const TeacherClassDetail = ({
                             })()}
                             lessonDetail={lessonDetail}
                             lessonNow={progressNow}
+                            commentDrafts={memberCommentDrafts}
                             memberMap={memberMap}
                             members={members}
                             selectedMember={selectedMember}
                             showSubmission={!lessonCtx || submitsWork}
                             onApproveKickRequest={onApproveKickRequest}
+                            onChangeCommentDraft={onChangeMemberCommentDraft}
                             onDeleteMember={onDeleteMember}
                             onOpenSubmission={onOpenSubmission}
                             onRejectKickRequest={onRejectKickRequest}
@@ -1394,6 +1398,9 @@ TeacherClassDetail.propTypes = {
     onDetailTabChange: PropTypes.func,
     /** The tab the teacher is on, kept by the container: a detail mounted again opens on it (#1990). */
     currentTab: PropTypes.oneOf(['members', 'description', 'progress']),
+    /** memberId → comment typed and kept by the container (#1990). */
+    memberCommentDrafts: PropTypes.objectOf(PropTypes.string),
+    onChangeMemberCommentDraft: PropTypes.func,
     detailEntry: PropTypes.shape({
         tab: PropTypes.oneOf(['members', 'description', 'progress']),
         seq: PropTypes.number,
