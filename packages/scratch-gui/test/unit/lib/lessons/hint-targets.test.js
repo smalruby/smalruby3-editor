@@ -281,12 +281,40 @@ describe('computeHintPlacement', () => {
             expect(overlaps(placed, b, panel)).toBe(false);
         });
 
+        // 1440×900 のチャットのレッスン 4-3 のヒント 1（ステージを指す・図のある高い吹き出し）: パネルをよけて
+        // 下にずらすと、ステージの真ん中の高さは吹き出しの上の端より上になる。しっぽを角に寄せて描くと、
+        // 閉じるボタンにかぶる白いひし形になるので、しっぽは出さない
+        test('no arrow when the balloon slid off the target so the arrow could only sit at a corner', () => {
+            const stage = rect(1070, 132, 1432, 404);
+            const partnerPanel = rect(886, 140, 1062, 339);
+            const big = { width: 480, height: 476 };
+            const placed = computeHintPlacement({
+                target: stage,
+                balloon: big,
+                viewport: { width: 1440, height: 900, top: 88 },
+                sides: preferredSides('stage'),
+                avoid: [partnerPanel],
+            });
+            expect(placed.side).toBe(HINT_SIDES.LEFT);
+            expect(placed.top).toBeGreaterThan((132 + 404) / 2);
+            expect(placed.arrow).toBeNull();
+        });
+
         test('without anything to avoid the placement is as before', () => {
             const target = rect(0, 100, 310, 600);
             expect(computeHintPlacement({ target, balloon, viewport, avoid: [] })).toEqual(
                 computeHintPlacement({ target, balloon, viewport }),
             );
         });
+    });
+
+    test('no arrow when the target is beside the balloon edge, not along it', () => {
+        // 下に置いた吹き出しを画面の左に収めた結果、指す場所の真ん中が吹き出しの右の端より右にある
+        const target = rect(700, 40, 760, 80);
+        const narrow = { width: 375, height: 667 };
+        const placed = computeHintPlacement({ target, balloon, viewport: narrow, sides: [HINT_SIDES.BOTTOM] });
+        expect(placed.side).toBe(HINT_SIDES.BOTTOM);
+        expect(placed.arrow).toBeNull();
     });
 
     test('the default order is right, left, bottom, top', () => {
