@@ -23,7 +23,7 @@ import {
     pairKeyOf,
     resolveChallengeRole,
     roleChangeRestarts,
-    seatRoleFor,
+    saveRememberedRole,
 } from '../lib/lessons/lesson-role';
 import { openAssignmentLessonsLibrary } from '../lib/lessons/open-lessons-library';
 import { challengeForRole } from '../lib/lessons/role-swap';
@@ -237,26 +237,32 @@ const LessonMode = ({
         if (typeof window !== 'undefined') window.dispatchEvent(new Event('resize'));
     }, [taskBarVisible]);
 
-    // 役を選びなおす（課題バーの役のボタン）。最初から入っているプログラムがあるチャレンジは、その役の
-    // プログラムで始めなおす（変更があれば、作品を新しくするときの確認が出る。メッシュはつながったまま）。
-    // 無いチャレンジは、文と答えを入れかえるだけ（作ったブロックはそのまま）
+    // 役を選びなおす（課題バーの役のボタン）。役を変えたら、その役のプログラムでチャレンジを始めなおす（変更があれば、
+    // 作品を新しくするときの確認が出る。メッシュはつながったまま。ヒントのページはそのまま）。先に作った変数の名前と、
+    // 入れかわった練習相手の変数の名前がぶつからないように、最初のプログラムが無いチャレンジ（3-3・4-1）も始めなおす。
+    // 同じ役のまま決め方だけ変わるとき（出席番号でつながった）は、始めなおさない。生徒が選んだ役だけを端末に覚える
+    // （次の役のあるチャレンジで「前回は…」と最初に選んでおく。reducer は端末に触らない）
     const currentId = current ? current.challenge.id : null;
     const changeRole = useCallback(
         (next, { roleSource = ROLE_SOURCES.CHOSEN, rolePair: pair } = {}) => {
             const found = currentId ? findChallenge(currentId) : null;
             if (!found || !found.challenge.roles) return;
+            if (roleSource === ROLE_SOURCES.CHOSEN) {
+                saveRememberedRole({ role: next, pair: pairKeyOf(connectedGroupSeats(vm)) || rolePair });
+            }
             if (roleChangeRestarts(found.challenge) && next !== (role && role.role)) {
                 onStartChallenge(currentId, { fromAssignment, role: next, roleSource });
             } else {
                 onSetRole(next, { roleSource, rolePair: pair });
             }
         },
-        [currentId, fromAssignment, onSetRole, onStartChallenge, role],
+        [currentId, fromAssignment, onSetRole, onStartChallenge, role, rolePair, vm],
     );
     const handleChooseRole = useCallback((next) => changeRole(next), [changeRole]);
 
-    // チャレンジの途中で出席番号のペアにつながったら、まだ役を選んでいなければ、出席番号で役を決めなおす
-    // （小さい人がシマラビの役・先生の判断 p3）。作品を変えたあとに始めなおすことはしない（作ったものを消さない）
+    // チャレンジの途中で出席番号のペアにつながったら、まだこのチャレンジで役を選んでいなければ、チャレンジを開くときと
+    // 同じ決め方（resolveChallengeRole）で役を決めなおす（小さい人がシマラビの役・先生の判断 p3）。同じペアで前に
+    // 選んだ役を覚えていれば、出席番号の役で上書きしない。作品を変えたあとに始めなおすことはしない（作ったものを消さない）
     const seatInputRef = useRef({ changeRole, mySeat, projectChanged, role });
     seatInputRef.current = { changeRole, mySeat, projectChanged, role };
     const roleChallengeOpen = Boolean(current && current.challenge.roles);
@@ -266,15 +272,15 @@ const LessonMode = ({
             const { changeRole: change, mySeat: seat, projectChanged: changed, role: now } = seatInputRef.current;
             if (!now || now.source === ROLE_SOURCES.CHOSEN || now.source === ROLE_SOURCES.SEAT) return;
             const groupSeats = connectedGroupSeats(vm);
-            const seatRole = seatRoleFor(seat, groupSeats);
-            if (!seatRole) return;
-            const found = currentId ? findChallenge(currentId) : null;
-            if (seatRole !== now.role && changed && found && roleChangeRestarts(found.challenge)) return;
-            change(seatRole, { roleSource: ROLE_SOURCES.SEAT, rolePair: pairKeyOf(groupSeats) });
+            const resolved = resolveChallengeRole({ remembered: loadRememberedRole(), mySeat: seat, groupSeats });
+            // 出席番号のペアでない・同じペアで選んだ役を覚えている（REMEMBERED）ときは、いまの役のまま
+            if (resolved.source !== ROLE_SOURCES.SEAT) return;
+            if (resolved.role !== now.role && changed) return;
+            change(resolved.role, { roleSource: ROLE_SOURCES.SEAT, rolePair: resolved.pair });
         };
         vm.runtime.on('PERIPHERAL_CONNECTED', onConnected);
         return () => vm.runtime.removeListener('PERIPHERAL_CONNECTED', onConnected);
-    }, [currentId, roleChallengeOpen, vm]);
+    }, [roleChallengeOpen, vm]);
 
     const handleHint = useCallback(() => {
         if (hint && hint.visible) onHideHint();

@@ -1,8 +1,9 @@
 // === Smalruby: This file is Smalruby-specific (lesson pair roles: how the role is chosen) ===
 // ペアでやるチャレンジの役をどう決めるか（#2061・先生の判断 p2・p3）。
 //
-// - 役はチャレンジごとに決める。前のチャレンジで使った役を端末に覚え、次の役のあるチャレンジを開いたときに
-//   それを最初に選んでおく（「前回はシマネコの役」と出す）。
+// - 役はチャレンジごとに決める。生徒が自分で選んだ役だけを端末に覚え、次の役のあるチャレンジを開いたときに
+//   それを最初に選んでおく（「前回はシマネコの役」と出す）。既定（シマラビの役）や出席番号で決まった役は覚えない
+//   （一度も選んでいない生徒に「前回は…」を出さない）。読むのも書くのもコンテナ（reducer は端末に触らない）。
 // - クラスで出席番号のペアにつながっていれば、出席番号の小さい人がシマラビの役（変えられる）。同じペアで前に
 //   選んだ役を覚えていれば、そちらを使う（ペアで決めて入れかえた役を、次のチャレンジで戻さない）。
 // - 何も覚えていない・ひとりのときはシマラビの役。
@@ -101,7 +102,7 @@ export const loadRememberedRole = (storage = defaultStorage()) => {
 };
 
 /**
- * いまの役を、次のチャレンジのために覚える。書けないときは何もしない（役は覚えなくても動く）。
+ * 生徒が選んだ役を、次のチャレンジのために覚える（選んだときだけ呼ぶ）。書けないときは何もしない（役は覚えなくても動く）。
  * @param {{role: string, pair: ?string}} value - 役とペアの印。
  * @param {?Storage} [storage] - 書く先（テスト用。既定は localStorage）。
  */
@@ -127,14 +128,9 @@ export const connectedGroupSeats = (vm) => {
 };
 
 /**
- * 役を変えたら作品を始めなおす必要があるか。最初から入っているプログラム（`setup.code` など）があると、
- * そのプログラムの名前も役で変わるので、作品を新しくしてから入れなおす（無ければ文と答えを入れかえるだけ）。
+ * 役を変えたら作品を始めなおすか。役のあるチャレンジはすべて始めなおす: 最初から入っているプログラムの名前が役で
+ * 変わるうえ、先に作った変数の名前と、入れかわった練習相手の変数の名前がぶつかるのを防ぐため。
  * @param {object} challenge - チャレンジ。
  * @returns {boolean} 始めなおすなら true。
  */
-export const roleChangeRestarts = (challenge) => {
-    const setup = (challenge && challenge.setup) || {};
-    return Boolean(
-        setup.code || setup.stageCode || (Array.isArray(setup.spriteCodes) && setup.spriteCodes.length > 0),
-    );
-};
+export const roleChangeRestarts = (challenge) => Boolean(challenge && challenge.roles);

@@ -1,5 +1,4 @@
 import { COURSES, challengeCodeFor, localizeCode } from '../../../../src/lib/lessons/courses';
-import { ja } from '../../../../src/lib/lessons/lessons.locale';
 import {
     DEFAULT_ROLE,
     ROLES,
@@ -116,14 +115,6 @@ describe('swapChallengeRoles', () => {
         expect(s.task).toEqual({ ...c.task, roleSwapped: true });
         expect(s.steps[2].title).toEqual({ ...c.steps[2].title, roleSwapped: true });
     });
-
-    test('uses a hand-written text for the Shimacat role when there is one (<id>.asShimacat)', () => {
-        const c = challenge('chat-l3-mesh-variable');
-        const messages = { ...ja, [`${c.task.id}.asShimacat`]: '手で書いた文' };
-        const s = swapChallengeRoles(c, messages);
-        expect(s.task).toEqual({ id: `${c.task.id}.asShimacat`, defaultMessage: '手で書いた文', roleSwapOf: c.task });
-        expect(swapChallengeRoles(s, messages).task).toBe(c.task);
-    });
 });
 
 describe('challengeForRole', () => {
@@ -145,11 +136,20 @@ describe('challengeForRole', () => {
 });
 
 describe('formatRoleMessage', () => {
-    const intl = { formatMessage: (d) => d.defaultMessage };
+    const intl = { formatMessage: (d) => d.defaultMessage, messages: {} };
 
     test('formats and swaps the marked messages only', () => {
         expect(formatRoleMessage(intl, { id: 'x', defaultMessage: 'シマラビ' })).toBe('シマラビ');
         expect(formatRoleMessage(intl, { id: 'x', defaultMessage: 'シマラビ', roleSwapped: true })).toBe('シマネコ');
         expect(formatRoleMessage(intl, null)).toBe('');
+    });
+
+    test('uses a hand-written text for the Shimacat role from the shown locale (<id>.asShimacat)', () => {
+        const withOverride = { formatMessage: (d) => d.defaultMessage, messages: { 'x.asShimacat': '手で書いた文' } };
+        expect(formatRoleMessage(withOverride, { id: 'x', defaultMessage: 'シマラビ', roleSwapped: true })).toBe(
+            '手で書いた文',
+        );
+        // シマラビの役（印なし）では使わない
+        expect(formatRoleMessage(withOverride, { id: 'x', defaultMessage: 'シマラビ' })).toBe('シマラビ');
     });
 });
