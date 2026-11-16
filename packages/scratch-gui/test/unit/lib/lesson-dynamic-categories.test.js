@@ -155,7 +155,6 @@ describe('lesson-dynamic-categories', () => {
         });
     });
 
-    // deck の分は test/unit/lib/libraries/decks/deck-dynamic-categories.test.js
     describe('existing challenges', () => {
         test('lesson challenges that use variables or lists show the Variables category', () => {
             const { challenge: count } = findChallenge('blocks-l1-count');

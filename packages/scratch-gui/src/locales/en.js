@@ -1,10 +1,4 @@
-// Tutorial category locale strings are split into per-category modules
-// (issue #932) so tutorial categories can be developed independently.
 import { en as lessonsMessages } from '../lib/lessons/lessons.locale.js';
-import { en as blockSeriesHowtos } from '../lib/libraries/decks/categories/block-series.locale.js';
-import { en as dnclHowtos } from '../lib/libraries/decks/categories/dncl.locale.js';
-import { en as gettingStartedHowtos } from '../lib/libraries/decks/categories/getting-started.locale.js';
-import { en as rubyBasicsHowtos } from '../lib/libraries/decks/categories/ruby-basics.locale.js';
 
 export default {
     'gui.sharedMessages.meshV1AutoMigrated':
@@ -1409,136 +1403,17 @@ export default {
     'gui.rubyToolbar.download': 'Download Ruby code',
     'gui.rubyToolbar.stage': 'Stage',
 
-    // Tutorials
-    ...gettingStartedHowtos,
     'gui.cards.all-tutorials': 'Tutorials',
     'gui.cards.shrink': 'Shrink',
     'gui.cards.expand': 'Expand',
     'gui.cards.close': 'Close',
     'gui.cards.more-things-to-try': 'More things to try!',
     'gui.cards.see-more': 'See more',
-    'gui.cards.insert-ruby': 'Insert This Ruby',
-    'gui.cards.insert-blocks': 'Insert Blocks',
-    'gui.cards.start-tutorial': 'Start Tutorial',
-    'gui.cards.open-external-link': 'Open External Link',
     'gui.tipsLibrary.tutorials': 'Choose a Tutorial',
     'gui.libraryTags.ruby': 'Ruby',
     'gui.libraryTags.mesh': 'Mesh',
     'gui.libraryTags.firstTime': 'First Time',
     'gui.libraryCategories.gettingStarted': 'Getting Started',
-    'gui.library.blockBasics': 'Block Basics: First Steps',
-    'gui.library.blockGames': 'Block Games: Shooting Game',
-    'gui.library.meshStep1': 'Intro to Communication ① Send a Message',
-    'gui.library.meshStep2': 'Intro to Communication ② Chat Between Two Sprites',
-    'gui.library.meshStep3': 'Intro to Communication ③ Chat Across Devices (Mesh)',
-    'gui.howtos.chat-1-basic-1.name': "Let's Send a Message!",
-    'gui.howtos.chat-1-basic-1.step1.title': "Let's send a message to a remote block!",
-    'gui.howtos.chat-1-basic-1.step2.title': 'First, insert the code and run the program',
-    'gui.howtos.chat-1-basic-1.step3.title': "'broadcast' can run commands in a remote place",
-    'gui.howtos.chat-1-basic-1.step4.title': "Is 'Sending...' really accurate? Let's send it properly",
-    'gui.howtos.chat-1-basic-1.step5.title': "How to create the 'send message' variable",
-    'gui.howtos.chat-1-basic-1.step6.title': "Key concepts: 'set variable', 'broadcast', 'when received'",
-    'gui.howtos.chat-1-basic-1.step7.title': 'Try changing what is said',
-    // Chat Tutorial 1 Basic 2
-    'gui.howtos.chat-1-basic-2.name': "Let's Send a Message! Lv2",
-    'gui.howtos.chat-1-basic-2.step1.title': "Now let's build the blocks yourself!",
-    'gui.howtos.chat-1-basic-2.step2.title':
-        'Create the "send message" variable, and place "when {greenFlag} clicked" and "set send message to"',
-    'gui.howtos.chat-1-basic-2.step3.title': 'Add "say for seconds" and type "Sending..."',
-    'gui.howtos.chat-1-basic-2.step4.title': '★ Add "broadcast" — it can run remote blocks',
-    'gui.howtos.chat-1-basic-2.step5.title': '★ Place a new "when I receive" — it receives the sent message',
-    'gui.howtos.chat-1-basic-2.step6.title':
-        '★ Put the "send message" variable into "say" — pass values with variables',
-    'gui.howtos.chat-1-basic-2.step7.title': 'Click {greenFlag} to run! Try changing what is said',
-    // Chat Tutorial 1 Basic 3
-    'gui.howtos.chat-1-basic-3.name': "Let's Send a Message! Lv3",
-    'gui.howtos.chat-1-basic-3.step1.title': "Now let's build the same program in Ruby!",
-    'gui.howtos.chat-1-basic-3.step2.title': 'Switch to the Ruby tab',
-    'gui.howtos.chat-1-basic-3.step3.title': 'Press "Insert Ruby" to enter the example code',
-    'gui.howtos.chat-1-basic-3.step4.title':
-        '★ Type $send_message = "Hello! How are you?" on line 2 — variables starting with $ are global',
-    'gui.howtos.chat-1-basic-3.step5.title':
-        '★ Change say("change this") to say($send_message) — pass values with variables',
-    'gui.howtos.chat-1-basic-3.step6.title': 'Click {greenFlag} to run!',
-    'gui.howtos.chat-1-basic-3.step7.title':
-        'Key concept: "broadcast", "when received", and "variables" work the same way in Ruby',
-    // Chat Tutorial 2 Sprites 1
-    'gui.howtos.chat-2-sprites-1.name': "Let's Chat with Cat and Penguin!",
-    'gui.howtos.chat-2-sprites-1.step1.title': 'Cat and Penguin conversation',
-    'gui.howtos.chat-2-sprites-1.step2.title': 'Enter the Cat code',
-    'gui.howtos.chat-2-sprites-1.step3.title':
-        'Important: the "received message" variable is set to "This sprite only"',
-    'gui.howtos.chat-2-sprites-1.step4.title': 'Important: send "Cat\'s message" and receive "Message from Penguin"',
-    'gui.howtos.chat-2-sprites-1.step5.title': 'Add the Penguin sprite',
-    'gui.howtos.chat-2-sprites-1.step6.title': 'Adjust the Penguin position and direction',
-    'gui.howtos.chat-2-sprites-1.step7.title': 'Enter the Penguin code to finish. Try clicking Cat or Penguin!',
-    // Chat Tutorial 2 Sprites 2
-    'gui.howtos.chat-2-sprites-2.name': "Let's Chat with Cat and Penguin! Lv2",
-    'gui.howtos.chat-2-sprites-2.step1.title': "Now let's build the blocks yourself!",
-    'gui.howtos.chat-2-sprites-2.step2.title':
-        'Cat: Create variable "sent message", place "when this sprite clicked" and "set sent message to ___"',
-    'gui.howtos.chat-2-sprites-2.step3.title':
-        'Cat: Add "say ___ for ___ secs" and ★ "broadcast ___" — it runs blocks far away!',
-    'gui.howtos.chat-2-sprites-2.step4.title':
-        '★ Cat: Place "when I receive Penguin\'s message" and use variable "received message" (this sprite only) — @ variables are sprite-local!',
-    'gui.howtos.chat-2-sprites-2.step5.title': 'Add the Penguin sprite',
-    'gui.howtos.chat-2-sprites-2.step6.title': 'Adjust the Penguin position and direction',
-    'gui.howtos.chat-2-sprites-2.step7.title':
-        '★ Build the same block structure for Penguin — message names are reversed!',
-    'gui.howtos.chat-2-sprites-2.step8.title': 'Click Cat or Penguin to run! Try changing the message too',
-    // Chat Tutorial 2 Sprites 3
-    'gui.howtos.chat-2-sprites-3.name': "Let's Chat with Cat and Penguin! Lv3",
-    'gui.howtos.chat-2-sprites-3.step1.title': "Now let's build the same program in Ruby!",
-    'gui.howtos.chat-2-sprites-3.step2.title': 'Switch to the Ruby tab',
-    'gui.howtos.chat-2-sprites-3.step3.title': 'Press "Insert Ruby code" to enter the Cat base code',
-    'gui.howtos.chat-2-sprites-3.step4.title':
-        '★ Change say("change this", 3) to say(@received_message, 3) — @ variables belong to this sprite only!',
-    'gui.howtos.chat-2-sprites-3.step5.title': 'Add the Penguin sprite',
-    'gui.howtos.chat-2-sprites-3.step6.title': 'Adjust the Penguin position and direction',
-    'gui.howtos.chat-2-sprites-3.step7.title': 'Press "Insert Ruby code" for Penguin — message names are reversed!',
-    'gui.howtos.chat-2-sprites-3.step8.title': 'Click Cat or Penguin to run!',
-    // Chat Tutorial 3 Mesh 1
-    'gui.howtos.chat-3-mesh-1.name': "Let's Connect with Mesh!",
-    'gui.howtos.chat-3-mesh-1.step1.title': "Connect to other people's Smalruby using the Mesh extension",
-    'gui.howtos.chat-3-mesh-1.step2.title':
-        'Form a group and select the Mesh extension (even one person can do it with two Smalruby windows)',
-    'gui.howtos.chat-3-mesh-1.step3.title': 'The first person becomes the host. Others join the mesh',
-    'gui.howtos.chat-3-mesh-1.step4.title': "Change the sprite's costume",
-    'gui.howtos.chat-3-mesh-1.step5.title': 'The host and others use different code. Enter the host code first',
-    'gui.howtos.chat-3-mesh-1.step6.title': 'Next, enter the code for those who joined the mesh',
-    'gui.howtos.chat-3-mesh-1.step7.title': 'Click your sprite to send a message!',
-    'gui.howtos.chat-3-mesh-1.step8.title': 'Key concept: use "sensor value" to get other people\'s "sent message"',
-    'gui.howtos.chat-3-mesh-1.external.kairyudo.name': 'Kairyudo: Try Programming! "Create a Chat App"',
-    // Chat Tutorial 3 Mesh 2
-    'gui.howtos.chat-3-mesh-2.name': "Let's Connect with Mesh! Lv2",
-    'gui.howtos.chat-3-mesh-2.step1.title': 'Build the mesh chat program by assembling blocks yourself!',
-    'gui.howtos.chat-3-mesh-2.step2.title': 'Form a group and select the Mesh extension',
-    'gui.howtos.chat-3-mesh-2.step3.title': 'The first person becomes the host. Others join the mesh',
-    'gui.howtos.chat-3-mesh-2.step4.title': "Change the sprite's costume",
-    'gui.howtos.chat-3-mesh-2.step5.title':
-        'Host: Build blocks for "when this sprite clicked" — set variable, say, and broadcast',
-    'gui.howtos.chat-3-mesh-2.step6.title':
-        '★ Host: Build "when I receive" blocks — use "sensor value of sent message" to get other people\'s data!',
-    'gui.howtos.chat-3-mesh-2.step7.title': '★ Member: Build the same block structure — message names are reversed!',
-    'gui.howtos.chat-3-mesh-2.step8.title':
-        'Click your sprite to run! Use "sensor value" to get other people\'s "sent message"',
-    // Chat Tutorial 3 Mesh 3
-    'gui.howtos.chat-3-mesh-3.name': "Let's Connect with Mesh! Lv3",
-    'gui.howtos.chat-3-mesh-3.step1.title': 'Build the mesh chat program in Ruby!',
-    'gui.howtos.chat-3-mesh-3.step2.title': 'Form a group and select the Mesh extension',
-    'gui.howtos.chat-3-mesh-3.step3.title': 'The first person becomes the host. Others join the mesh',
-    'gui.howtos.chat-3-mesh-3.step4.title': "Change the sprite's costume",
-    'gui.howtos.chat-3-mesh-3.step5.title':
-        'Switch to the Ruby tab and press "Insert Ruby code" to enter the host base code',
-    'gui.howtos.chat-3-mesh-3.step6.title':
-        '★ Change @received_message = "change this" to @received_message = mesh.sensor_value("sent_message") — use mesh.sensor_value to get other people\'s variables!',
-    'gui.howtos.chat-3-mesh-3.step7.title': 'Enter the member code — message names are reversed!',
-    'gui.howtos.chat-3-mesh-3.step8.title':
-        'Click your sprite to run! Use "sensor value" to get other people\'s "sent message"',
-    'gui.howtos.chat-3-mesh-3.external.kairyudo.name': 'Kairyudo: Try Programming! "Create a Chat App"',
-    // Ruby Basics 1: calculate with puts
-    'gui.library.rubyBasics': 'Ruby Basics',
-    ...rubyBasicsHowtos,
     ...lessonsMessages,
     'gui.lessonTaskBar.ariaLabel': 'Lesson task',
     'gui.lessonTaskBar.position': '{number} of {count}',
@@ -1591,8 +1466,6 @@ export default {
     'gui.lessonsLibrary.category.variables': 'Variables',
     'gui.lessonsLibrary.category.lists': 'Lists',
     'gui.lessonsLibrary.category.extensions': 'Extensions',
-    ...blockSeriesHowtos,
-    ...dnclHowtos,
     'gui.menuBar.updateTooltip': 'Try the new Smalruby!',
     'gui.menuBar.updateConfirm':
         'A new version of Smalruby is available. Press "OK" to update now, or "Cancel" to update later.',

@@ -9,15 +9,10 @@ import tutorialTags from '../lib/libraries/tutorial-tags';
 
 import analytics from '../lib/analytics';
 import {PLATFORM} from '../lib/platform.js';
-// === Smalruby: Start of tutorial deck setup ===
-import {applySetup} from '../lib/lessons/apply-setup';
-// === Smalruby: End of tutorial deck setup ===
 
 import LibraryComponent from '../components/library/library.jsx';
 
 import {connect} from 'react-redux';
-
-import VM from '@smalruby/scratch-vm';
 
 import {
     closeTipsLibrary
@@ -42,7 +37,7 @@ class TipsLibrary extends React.PureComponent {
             'handleItemSelect'
         ]);
     }
-    async handleItemSelect (item) {
+    handleItemSelect (item) {
         analytics.event({
             category: 'library',
             action: 'Select How-to',
@@ -67,16 +62,6 @@ class TipsLibrary extends React.PureComponent {
         if (this.props.onTutorialSelect) {
             this.props.onTutorialSelect();
         }
-
-        // === Smalruby: Start of tutorial deck setup ===
-        // Apply the deck setup (tab / Ruby mode / extensions) before activating
-        // the deck so that the tutorial opens with the right environment.
-        const deck = decksLibraryContent[item.id];
-        if (deck && deck.setup) {
-            await applySetup(deck.setup, this.props.onApplyDeckSetup, this.props.vm);
-        }
-        // === Smalruby: End of tutorial deck setup ===
-
         this.props.onActivateDeck(item.id);
     }
     render () {
@@ -140,25 +125,21 @@ TipsLibrary.propTypes = {
     onTutorialSelect: PropTypes.func,
     intl: intlShape.isRequired,
     onActivateDeck: PropTypes.func.isRequired,
-    onApplyDeckSetup: PropTypes.func.isRequired,
     onRequestClose: PropTypes.func,
     projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
     visible: PropTypes.bool,
-    hideTutorialProjects: PropTypes.bool,
-    vm: PropTypes.instanceOf(VM)
+    hideTutorialProjects: PropTypes.bool
 };
 
 const mapStateToProps = state => ({
     visible: state.scratchGui.modals.tipsLibrary,
     projectId: state.scratchGui.projectState.projectId,
-    platform: state.scratchGui.platform.platform,
-    vm: state.scratchGui.vm
+    platform: state.scratchGui.platform.platform
 });
 
 const mapDispatchToProps = dispatch => ({
     onActivateDeck: id => dispatch(activateDeck(id)),
-    onApplyDeckSetup: dispatch,
     onRequestClose: () => dispatch(closeTipsLibrary())
 });
 

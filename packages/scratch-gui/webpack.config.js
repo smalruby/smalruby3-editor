@@ -64,6 +64,32 @@ const monacoRuntimeCaching = {
 };
 // === Smalruby: End of self-hosted Monaco Editor (#1171) ===
 
+// === Smalruby: Start of lazy tutorial images ===
+// The upstream tutorials bring back ~1,400 step images and thumbnails (about 50 MB).
+// Emit them under static/assets/decks/ as files (never inlined into gui.js), keep them and the
+// per-language step chunks out of the service worker precache, and cache them only after a
+// tutorial is opened, so that the first visit does not download them.
+const decksImagesDir = path.resolve(__dirname, 'src/lib/libraries/decks');
+const decksPrecacheExclude = [
+    /^static[\\/]assets[\\/]decks[\\/]/,
+    /^chunks[\\/][A-Za-z_]+-steps\./
+];
+const decksRuntimeCaching = {
+    urlPattern: /\/(static\/assets\/decks\/|chunks\/[A-Za-z_]+-steps\.)/,
+    handler: 'CacheFirst',
+    options: {
+        cacheName: 'smalruby-tutorial-images',
+        expiration: {
+            maxEntries: 300,
+            maxAgeSeconds: 30 * 24 * 60 * 60 // 30 日
+        },
+        cacheableResponse: {
+            statuses: [0, 200]
+        }
+    }
+};
+// === Smalruby: End of lazy tutorial images ===
+
 const cssModuleExceptions = [
     /\.raw\.css$/, // Allow for overriding CSS classes from libraries
     /[\\/]driver\.js[\\/].*\.css$/ // driver.js CSS
@@ -133,6 +159,17 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         resourceQuery: /^$/, // reject any query string
         type: 'asset' // let webpack decide on the best type of asset
     })
+    // === Smalruby: Start of lazy tutorial images ===
+    .addModuleRule({
+        test: /\.(png|gif|jpg)$/,
+        include: decksImagesDir,
+        resourceQuery: /^$/,
+        type: 'asset/resource',
+        generator: {
+            filename: 'static/assets/decks/[name].[hash][ext][query]'
+        }
+    })
+    // === Smalruby: End of lazy tutorial images ===
     .addPlugin(new webpack.DefinePlugin({
         'process.env.DEBUG': Boolean(process.env.DEBUG),
         'process.env.GA_ID': `"${process.env.GA_ID || 'UA-000000-01'}"`,
@@ -383,10 +420,12 @@ const buildWithPwaConfig = buildConfig.clone()
             exclude: [
                 /\.DS_Store/,
                 /version\.json$/, // === Smalruby: exclude from precache for version update notification ===
-                monacoPrecacheExclude // === Smalruby: Monaco is runtime-cached instead (#1171) ===
+                monacoPrecacheExclude, // === Smalruby: Monaco is runtime-cached instead (#1171) ===
+                ...decksPrecacheExclude // === Smalruby: tutorial images are runtime-cached (lazy tutorial images) ===
             ],
             // === Smalruby: runtime caching for the self-hosted Monaco Editor (#1171) ===
-            runtimeCaching: [monacoRuntimeCaching],
+            // === Smalruby: and for the tutorial images (lazy tutorial images) ===
+            runtimeCaching: [monacoRuntimeCaching, decksRuntimeCaching],
             maximumFileSizeToCacheInBytes: 64 * 1024 * 1024,
             // Don't add revision to files that already have hash in filename
             dontCacheBustURLsMatching: /\.[0-9a-f]{8,}\./
@@ -454,10 +493,12 @@ const distWithHtmlConfig = buildConfig.clone()
             exclude: [
                 /\.DS_Store/,
                 /version\.json$/, // === Smalruby: exclude from precache for version update notification ===
-                monacoPrecacheExclude // === Smalruby: Monaco is runtime-cached instead (#1171) ===
+                monacoPrecacheExclude, // === Smalruby: Monaco is runtime-cached instead (#1171) ===
+                ...decksPrecacheExclude // === Smalruby: tutorial images are runtime-cached (lazy tutorial images) ===
             ],
             // === Smalruby: runtime caching for the self-hosted Monaco Editor (#1171) ===
-            runtimeCaching: [monacoRuntimeCaching],
+            // === Smalruby: and for the tutorial images (lazy tutorial images) ===
+            runtimeCaching: [monacoRuntimeCaching, decksRuntimeCaching],
             maximumFileSizeToCacheInBytes: 64 * 1024 * 1024,
             // Don't add revision to files that already have hash in filename
             dontCacheBustURLsMatching: /\.[0-9a-f]{8,}\./
