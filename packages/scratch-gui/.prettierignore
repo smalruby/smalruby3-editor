@@ -516,6 +516,7 @@ test/unit/components/*
 !test/unit/components/class-ai-settings.test.jsx
 !test/unit/components/image-viewer.test.jsx
 !test/unit/components/bug-report-consent.test.jsx
+!test/unit/components/bug-report-modal-date.test.jsx
 !test/unit/components/koshien-mock-panel.test.jsx
 !test/unit/components/koshien-settings-modal.test.jsx
 !test/unit/components/lesson-settings-field-close.test.jsx
