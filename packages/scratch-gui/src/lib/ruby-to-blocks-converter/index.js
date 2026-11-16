@@ -16,9 +16,10 @@ import BlockUtils from './block-utils';
 import ClassVisitor from './class-visitor';
 import CommentHandler from './comment-handler';
 import ContextUtils from './context-utils';
-import { messages, getExtensionIdForOpcode } from './converter-errors';
+import { messages } from './converter-errors';
 import ConverterRegistry from './converter-registry';
 import { RubyToBlocksConverterError } from './errors';
+import Finish from './finish';
 import InitializeHandler from './initialize-handler';
 import LineMappingUtils from './line-mapping';
 import ModuleVisitor from './module-visitor';
@@ -148,98 +149,8 @@ class RubyToBlocksConverter extends Visitor {
             if (rootType !== 'StatementsNode' && rootType !== 'ProgramNode' && rootType !== 'BeginNode') {
                 blocks = this._linkBlocks(blocks);
             }
-            // === Smalruby: Start of bare literal to temp variable ===
-            // Convert bare Primitive literals to temp variable assignments
-            // so they become valid blocks (e.g. "Jimmy" → _lit_1_ = "Jimmy")
-            const Primitive = require('./primitive').default;
-            const newBlocks = [];
-            for (let i = 0; i < blocks.length; i++) {
-                const block = blocks[i];
-                if (block instanceof Primitive && block.type !== 'sym') {
-                    const converted = this._convertBareLiteralToAssignment(block);
-                    const arr = _.isArray(converted) ? converted : [converted];
-                    // Link converted blocks into a chain
-                    for (let j = 0; j < arr.length - 1; j++) {
-                        arr[j].next = arr[j + 1].id;
-                        arr[j + 1].parent = arr[j].id;
-                    }
-                    // Link last converted block to the previous block's chain
-                    if (newBlocks.length > 0) {
-                        const prev = newBlocks[newBlocks.length - 1];
-                        if (this._isBlock(prev) && !prev.next) {
-                            prev.next = arr[0].id;
-                            arr[0].parent = prev.id;
-                        }
-                    }
-                    newBlocks.push(...arr);
-                } else {
-                    newBlocks.push(block);
-                }
-            }
-            blocks = newBlocks;
-            // === Smalruby: End of bare literal to temp variable ===
-
-            blocks.forEach((block) => {
-                if (this._isBlock(block)) {
-                    if (!block.parent) {
-                        block.topLevel = true;
-                    }
-                } else if (block instanceof Primitive) {
-                    if (block.type === 'sym') {
-                        const source = this._truncateSource(this._getSource(block.node));
-                        const suggestion = `${source}.to_s`;
-                        throw new RubyToBlocksConverterError(
-                            block.node,
-                            this._translator(messages.symbolNeedsToS, { SOURCE: source, SUGGESTION: suggestion }),
-                        );
-                    }
-                    throw new RubyToBlocksConverterError(
-                        block.node,
-                        this._translator(messages.couldNotConvertPrimitive, {
-                            SOURCE: this._truncateSource(this._getSource(block.node)),
-                        }),
-                    );
-                } else {
-                    throw new Error(`invalid block: ${block}`);
-                }
-            });
-            Object.keys(this._context.blocks).forEach((blockId) => {
-                const block = this._context.blocks[blockId];
-
-                // Reject ruby blocks (ruby_statement, ruby_expression, ruby_range, etc.)
-                // UNLESS they have @ruby:return comment (legitimate fallback for procedures)
-                if (this._isRubyBlock(block)) {
-                    const hasReturnComment =
-                        block.comment &&
-                        this._context.comments[block.comment] &&
-                        this._context.comments[block.comment].text.startsWith('@ruby:return');
-                    if (!hasReturnComment) {
-                        // Quote the statement on one line that holds the expression, also when the
-                        // expression is inside another; the marker stays on the expression (issue #1704)
-                        const sourceNode = this._sourceNodeForError(block.node);
-                        throw new RubyToBlocksConverterError(
-                            block.node,
-                            this._translator(messages.wrongInstruction, {
-                                SOURCE: this._truncateSource(this._getSource(sourceNode)),
-                            }),
-                        );
-                    }
-                }
-
-                const extensionID = getExtensionIdForOpcode(block.opcode);
-                if (extensionID) {
-                    this._context.extensionIDs.add(extensionID);
-                }
-            });
-
-            this._dropUnusedHashVariables();
-            this._rejectVariableAndListOfSameName();
-
-            // Create $_symbols_ list if symbols were collected
-            this._createSymbolsList();
-
-            // Associate source comments with blocks
-            this._associateSourceComments(parseResult, code);
+            // The finish stage (finish.js): what is decided or checked after the whole code is converted
+            this._finish(blocks, parseResult, code);
 
             return true;
         } catch (e) {
@@ -364,83 +275,6 @@ class RubyToBlocksConverter extends Visitor {
         return String(node.name || '');
     }
 
-    /**
-     * Convert a bare Primitive literal to a temp variable assignment block.
-     * e.g. "Jimmy" → _lit_1_ = "Jimmy" with `@ruby`:literal:string comment
-     * @param {object} primitive - The Primitive instance.
-     * @returns {object|Array} The assignment block(s).
-     */
-    _convertBareLiteralToAssignment(primitive) {
-        const items = primitive.type === 'array' ? primitive.value : null;
-        // An item that is not a number, a string or a value (`[(@a = 1)]`, `[:a]`) used to be put in
-        // the list as its text ("[object Object]", "a"): the error of a wrong instruction instead (#1865).
-        // Check before the list is made and the number of `_lit_` goes on.
-        if (items && !items.every((item) => this._isNumberOrStringOrBlock(item))) {
-            throw new RubyToBlocksConverterError(
-                primitive.node,
-                this._translator(messages.wrongInstruction, {
-                    SOURCE: this._truncateSource(this._getSource(primitive.node)),
-                }),
-            );
-        }
-        const index = (this._context.literalCallIndices._lit_ || 0) + 1;
-        this._context.literalCallIndices._lit_ = index;
-        const varName = `_lit_${index}_`;
-
-        if (primitive.type === 'array') {
-            // Array literal: create list variable + add items
-            const prefixedName = varName;
-            const listVar = this._lookupOrCreateList(prefixedName);
-            const clearBlock = this._createBlock('data_deletealloflist', 'statement');
-            clearBlock.node = primitive.node;
-            clearBlock.fields = {
-                LIST: { name: 'LIST', id: listVar.id, value: listVar.name, variableType: listVar.type },
-            };
-            clearBlock.comment = this._createComment(`@ruby:literal:array`, clearBlock.id);
-
-            const addBlocks = [];
-            items.forEach((item) => {
-                const addBlock = this._createBlock('data_addtolist', 'statement');
-                addBlock.node = primitive.node;
-                addBlock.fields = {
-                    LIST: { name: 'LIST', id: listVar.id, value: listVar.name, variableType: listVar.type },
-                };
-                if (this._isValueBlock(item)) {
-                    this._addTextInput(addBlock, 'ITEM', item, '');
-                } else {
-                    const val = this._isPrimitive(item) ? item.value : item;
-                    this._addTextInput(addBlock, 'ITEM', String(val), '');
-                }
-                addBlocks.push(addBlock);
-            });
-
-            return [clearBlock, ...addBlocks];
-        }
-
-        // String, integer, float: create scalar variable assignment
-        let commentType;
-        if (primitive.type === 'str') {
-            commentType = 'string';
-        } else if (primitive.type === 'int') {
-            commentType = 'integer';
-        } else if (primitive.type === 'float') {
-            commentType = 'float';
-        } else {
-            commentType = primitive.type;
-        }
-
-        const variable = this._lookupOrCreateVariable(varName);
-        const block = this._createBlock('data_setvariableto', 'statement');
-        block.node = primitive.node;
-        block.fields = {
-            VARIABLE: { name: 'VARIABLE', id: variable.id, value: variable.name, variableType: variable.type },
-        };
-        this._addTextInput(block, 'VALUE', String(primitive.value), '0');
-        block.comment = this._createComment(`@ruby:literal:${commentType}`, block.id);
-
-        return block;
-    }
-
     visitProgramNode(node) {
         return this.visit(node.statements);
     }
@@ -461,6 +295,7 @@ Object.assign(RubyToBlocksConverter.prototype, CommentHandler);
 Object.assign(RubyToBlocksConverter.prototype, ClassVisitor);
 Object.assign(RubyToBlocksConverter.prototype, InitializeHandler);
 Object.assign(RubyToBlocksConverter.prototype, ModuleVisitor);
+Object.assign(RubyToBlocksConverter.prototype, Finish);
 
 /**
  * Null of RubyToBlocksConverter
