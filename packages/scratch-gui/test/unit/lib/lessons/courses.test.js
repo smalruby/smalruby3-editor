@@ -296,6 +296,7 @@ describe('lesson courses', () => {
             quiz: null,
             activityDiagram: false,
             partner: null,
+            roles: false,
             mode: null,
             explanation: null,
             steps: [

@@ -138,6 +138,9 @@ export const defineChallenge = (def) =>
         // broadcast}]}（set = {variable, value} か、その配列）。チャレンジ中に練習相手のパネルを出し
         // （lib/lessons/practice-partner.js）、図では相手のスイムレーンになる。無ければ null
         partner: null,
+        // ペアでやるチャレンジで、役（シマラビの役 / シマネコの役）を選べるか（#2061）。true なら、シマネコの役を
+        // 選ぶと名前を入れかえた形（鏡の形）で出す（lib/lessons/role-swap.js）。みんな同じ名前を使う段は false
+        roles: false,
         // ふりかえりのクイズ（任意）: {question, choices: [3 つ], answer, explanation}。文言は message descriptor、
         // answer は choices の何番目が正解か（0 から）。「できた！」の中に出す（「できた」の判定には入れない）。
         // ふつうは challengeQuiz(id, answer) で書く。形は validateQuiz
@@ -1580,6 +1583,7 @@ const chatLesson3 = defineLesson({
             task: challengeMessage('chat-l3-mesh-variable', 'task'),
             setup: { ...CHAT_PAIR_START, extensions: ['meshV2'] },
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: [
                     { opcode: 'event_whenkeypressed', fields: { KEY_OPTION: '1' } },
@@ -1854,6 +1858,7 @@ const chatLesson4 = defineLesson({
             task: challengeMessage('chat-l4-send-once', 'task'),
             setup: CHAT_L4_START,
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_broadcast'],
                 sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: CHAT_ASK } }, 'sensing_answer'],
@@ -1897,6 +1902,7 @@ const chatLesson4 = defineLesson({
             task: challengeMessage('chat-l4-send-repeat', 'task'),
             setup: { ...CHAT_L4_START, code: chatL4SendOnce },
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_broadcast'],
                 control: ['control_forever'],
@@ -1936,6 +1942,7 @@ const chatLesson4 = defineLesson({
             task: challengeMessage('chat-l4-both-ways', 'task'),
             setup: { ...CHAT_L4_START, code: chatL4SendRepeat },
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
                 control: ['control_forever'],
@@ -2320,6 +2327,7 @@ const chatLesson5 = defineLesson({
             task: challengeMessage('chat-l5-read-receipt', 'task'),
             setup: CHAT_L5_BASE,
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: [
                     'event_whenflagclicked',
@@ -2400,6 +2408,7 @@ const chatLesson5 = defineLesson({
             task: challengeMessage('chat-l5-ng-word', 'task'),
             setup: { ...CHAT_L5_BASE, stageCode: chatL5NgStage },
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_broadcast'],
                 control: ['control_forever', 'control_if_else'],
@@ -2466,6 +2475,7 @@ const chatLesson5 = defineLesson({
             task: challengeMessage('chat-l5-auto-reply', 'task'),
             setup: CHAT_L5_BASE,
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
                 control: ['control_if'],
@@ -2521,6 +2531,7 @@ const chatLesson5 = defineLesson({
             task: challengeMessage('chat-l5-password', 'task'),
             setup: CHAT_L5_BASE,
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_broadcast'],
                 control: ['control_forever', 'control_if_else'],
@@ -2584,6 +2595,7 @@ const chatLesson5 = defineLesson({
             task: challengeMessage('chat-l5-stamp', 'task'),
             setup: CHAT_L5_BASE,
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: [
                     'event_whenflagclicked',
