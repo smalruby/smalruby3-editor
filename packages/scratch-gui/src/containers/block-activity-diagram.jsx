@@ -6,10 +6,11 @@
 // - 開いている間はブロックを変えると図も描き直す（作品が変わった合図 PROJECT_CHANGED で読み直す）。
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useSelector } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
 import BlockActivityDiagram from '../components/block-activity-diagram/block-activity-diagram.jsx';
 import { en } from '../lib/lessons/activity-diagram/activity-diagram.locale';
 import { scriptActivityDiagram } from '../lib/lessons/activity-diagram/script-diagram';
+import { lessonAnalyticsSnapshot, sendActivityDiagramEvent } from '../lib/lessons/lesson-analytics';
 
 export const MENU_ITEM_ID = 'smalrubyActivityDiagram';
 const P = 'gui.lessons.activityDiagram.';
@@ -39,6 +40,7 @@ const targetName = (target, format) => {
 
 const BlockActivityDiagramContainer = () => {
     const intl = useIntl();
+    const store = useStore();
     const vm = useSelector((state) => state.scratchGui.vm);
     const scratchBlocks = useSelector((state) => state.scratchGui.blockDisplay.scratchBlocks);
     // 開いている図: どの target の、どのブロックを右クリックしたか
@@ -66,6 +68,12 @@ const BlockActivityDiagramContainer = () => {
         // 閉じているところから開くときは、右上に置き直す（位置は描いたあとに幅を測って決める）
         if (!openedRef.current) placeRef.current = true;
         setOpened({ targetId: target.id, blockId: block.id });
+        // GA: 開いた回数（レッスン中ならそのチャレンジ・スプライトかステージか。docs/lessons/README.md の「GA の計測」）
+        try {
+            sendActivityDiagramEvent(lessonAnalyticsSnapshot(store.getState()), target.isStage ? 'stage' : 'sprite');
+        } catch (_e) {
+            // 計測に失敗しても図は開く
+        }
     };
 
     useEffect(() => {

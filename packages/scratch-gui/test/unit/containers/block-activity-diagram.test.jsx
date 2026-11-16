@@ -14,7 +14,10 @@ import BlockActivityDiagramContainer, {
     MENU_ITEM_ID,
     showsActivityDiagramMenuItem,
 } from '../../../src/containers/block-activity-diagram.jsx';
+import analytics from '../../../src/lib/analytics';
 import { ja } from '../../../src/lib/lessons/activity-diagram/activity-diagram.locale';
+
+jest.mock('../../../src/lib/analytics', () => ({ __esModule: true, default: { event: jest.fn() } }));
 
 const makeRegistry = () => {
     const items = new Map();
@@ -59,7 +62,10 @@ const makeBlocks = (message = 'やあ') => ({
     },
 });
 
-const setup = () => {
+const LESSON_MODE_CLOSED = { courseId: null, lessonId: null, challengeId: null, fromAssignment: false };
+
+const setup = ({ lessonMode = LESSON_MODE_CLOSED, teacherLoggedIn = false } = {}) => {
+    analytics.event.mockClear();
     const registry = makeRegistry();
     const scratchBlocks = {
         ContextMenuRegistry: { registry, ScopeType: { BLOCK: 'block' } },
@@ -70,7 +76,15 @@ const setup = () => {
     const vm = new EventEmitter();
     vm.editingTarget = sprite;
     vm.runtime = { getTargetById: (id) => (id === 'cat' ? sprite : null) };
-    const store = createStore(() => ({ scratchGui: { vm, blockDisplay: { scratchBlocks } } }));
+    const store = createStore(() => ({
+        scratchGui: {
+            vm,
+            blockDisplay: { scratchBlocks },
+            lessonMode,
+            modals: { lessonsLibrary: false },
+            classroom: { teacherLoggedIn },
+        },
+    }));
     const utils = render(
         <Provider store={store}>
             <IntlProvider locale="ja" messages={ja}>
@@ -155,5 +169,34 @@ describe('BlockActivityDiagramContainer', () => {
         } finally {
             jest.useRealTimers();
         }
+    });
+
+    test('sends the GA event each time the menu item opens the diagram (outside a lesson)', () => {
+        const { registry } = setup();
+        act(() => registry.getItem(MENU_ITEM_ID).callback({ block: block() }));
+        act(() => registry.getItem(MENU_ITEM_ID).callback({ block: block() }));
+        expect(analytics.event).toHaveBeenCalledTimes(2);
+        expect(analytics.event.mock.calls[0][0]).toMatchObject({
+            category: 'lessons',
+            action: 'activity_diagram_open',
+            label: 'sprite',
+        });
+        expect(analytics.event.mock.calls[0][0].challenge_id).toBeUndefined();
+    });
+
+    test('in a lesson the GA event has the challenge, and a logged-in teacher sends nothing', () => {
+        const lessonMode = { courseId: 'c', lessonId: 'l', challengeId: 'ch', fromAssignment: false };
+        const { registry, unmount } = setup({ lessonMode });
+        act(() => registry.getItem(MENU_ITEM_ID).callback({ block: block() }));
+        expect(analytics.event.mock.calls[0][0]).toMatchObject({
+            course_id: 'c',
+            challenge_id: 'ch',
+            label: 'sprite',
+        });
+        unmount();
+        const teacher = setup({ teacherLoggedIn: true });
+        act(() => teacher.registry.getItem(MENU_ITEM_ID).callback({ block: block() }));
+        expect(analytics.event).not.toHaveBeenCalled();
+        expect(screen.getByTestId('block-activity-diagram')).toBeInTheDocument();
     });
 });
