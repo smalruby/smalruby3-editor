@@ -5,7 +5,7 @@ import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonHint } from '../../../src/containers/lesson-hint.jsx';
 import analytics from '../../../src/lib/analytics';
-import { challengeCodeFor, findChallenge, localizeCode } from '../../../src/lib/lessons/courses';
+import { challengeCodeFor, defineChallenge, findChallenge, localizeCode } from '../../../src/lib/lessons/courses';
 import { rubyToBlocksXml } from '../../../src/lib/lessons/hint-blocks';
 import { targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';
 
@@ -26,6 +26,14 @@ jest.mock('../../../src/lib/ruby-to-blocks-converter', () => ({
             },
         }),
     ),
+}));
+
+// 図の変換（本物は Ruby → ブロック）は lib のテストで確かめるので、ここでは置き方を返すだけにする
+jest.mock('../../../src/lib/lessons/activity-diagram/use-challenge-activity-diagram', () => ({
+    useChallengeActivityDiagram: (challenge) =>
+        challenge && challenge.activityDiagram
+            ? { width: 40, height: 30, shapes: [{ type: 'end', x: 0, y: 0, w: 16, h: 16 }], edges: [] }
+            : null,
 }));
 
 const CHALLENGE_ID = 'blocks-l1-click-say';
@@ -88,6 +96,65 @@ describe('LessonHint container', () => {
         hidden.unmount();
         const outside = renderContainer({ ...baseProps(), current: null, hint: null });
         expect(outside.queryByTestId('lesson-hint')).not.toBeInTheDocument();
+    });
+
+    test('a student in a class sees the classroom text of a step that has one', async () => {
+        const step = {
+            target: 'stage',
+            title: { id: 'test.outside', defaultMessage: 'host or join' },
+            classroomTitle: { id: 'test.inClass', defaultMessage: 'by seat number' },
+        };
+        const hint = hintFor(1, { step });
+        const inClass = renderContainer({ ...baseProps(), hint, inClassroom: true });
+        await flush();
+        expect(inClass.getByTestId('lesson-hint-title')).toHaveTextContent('by seat number');
+        inClass.unmount();
+        const outside = renderContainer({ ...baseProps(), hint, inClassroom: false });
+        await flush();
+        expect(outside.getByTestId('lesson-hint-title')).toHaveTextContent('host or join');
+    });
+
+    test('the role page points at the role buttons and notices when a role was chosen (without blocking)', async () => {
+        const current = findChallenge('chat-l4-send-repeat');
+        const step = current.challenge.steps[2];
+        const hint = { ...hintFor(2, { step }), count: current.challenge.steps.length + 1 };
+        const before = renderContainer(
+            { ...baseProps(), current, hint, role: 'shimaraby', roleSource: 'default' },
+            'ja',
+        );
+        await flush();
+        expect(before.getByTestId('lesson-hint')).toHaveAttribute('data-target', 'role-picker');
+        expect(before.getByTestId('lesson-hint-title')).toHaveTextContent(
+            '課題バーの「シマラビの役」「シマネコの役」',
+        );
+        expect(before.queryByTestId('lesson-hint-note')).toBeNull();
+        expect(before.getByTestId('lesson-hint-next')).not.toBeDisabled();
+        before.unmount();
+        const chosen = renderContainer(
+            { ...baseProps(), current, hint, role: 'shimacat', roleSource: 'chosen' },
+            'ja',
+        );
+        await flush();
+        expect(chosen.getByTestId('lesson-hint-note')).toHaveTextContent('「シマネコの役」を選んだよ');
+        chosen.unmount();
+    });
+
+    test('shows the activity diagram on the first page of a challenge that asks for it', async () => {
+        const found = findChallenge(CHALLENGE_ID);
+        const current = { ...found, challenge: { ...found.challenge, activityDiagram: true } };
+        const first = renderContainer({ ...baseProps(), current, hint: hintFor(0) });
+        await flush();
+        expect(first.getByTestId('lesson-hint-activity-diagram')).toContainElement(
+            first.getByTestId('lesson-activity-diagram'),
+        );
+        first.unmount();
+        const second = renderContainer({ ...baseProps(), current, hint: hintFor(1) });
+        await flush();
+        expect(second.queryByTestId('lesson-hint-activity-diagram')).toBeNull();
+        second.unmount();
+        const off = renderContainer({ ...baseProps(), hint: hintFor(0) });
+        await flush();
+        expect(off.queryByTestId('lesson-hint-activity-diagram')).toBeNull();
     });
 
     test('opening the challenge again drops what was going on in the balloon (the confirmation)', async () => {
@@ -337,6 +404,39 @@ describe('LessonHint container', () => {
         expect(props.onInsertCode).toHaveBeenCalledWith(challenge.code, 'blocks', stage, '2');
     });
 
+    test('a challenge that starts with setup.sprites inserts the code into the first of them', async () => {
+        const shimaraby = { id: 'r', isOriginal: true, isStage: false, getName: () => 'Shimaraby' };
+        const shimacat = { id: 'c', isOriginal: true, isStage: false, getName: () => 'Shimacat' };
+        const stage = { id: 'stage', isOriginal: true, isStage: true, getName: () => 'Stage' };
+        // 生徒がシマネコを選んでいても、答えはシマラビ（setup.sprites の 1 つめ）に入る
+        const vm = {
+            editingTarget: shimacat,
+            runtime: { targets: [stage, shimaraby, shimacat], getTargetForStage: () => stage },
+            setEditingTarget: jest.fn(),
+            addSprite: jest.fn(),
+        };
+        const base = findChallenge('blocks-l1-click-say');
+        const challenge = { ...base.challenge, setup: { sprites: ['Shimaraby', 'Shimacat'] } };
+        const current = { ...base, challenge };
+        const hint = {
+            visible: true,
+            index: challenge.steps.length,
+            count: challenge.steps.length + 1,
+            step: null,
+            spotlight: false,
+            lastResort: true,
+            debug: challenge.debug,
+            code: challenge.code,
+        };
+        const props = { ...baseProps(), current, hint, vm };
+        const { getByTestId } = renderContainer(props);
+        insertWithConfirm(getByTestId);
+        await waitFor(() => expect(props.onInsertCode).toHaveBeenCalled());
+        expect(rubyToBlocksXml.mock.calls[0][1]).toBe(shimaraby);
+        expect(vm.setEditingTarget).toHaveBeenCalledWith('r');
+        expect(props.onInsertCode.mock.calls[0][2]).toBe(shimaraby);
+    });
+
     test('a challenge with spriteCodes puts them in first and inserts the code into the remaining sprite', async () => {
         const cat = { id: 'cat', isOriginal: true, isStage: false, getName: () => 'Sprite1' };
         const penguin = { id: 'penguin', isOriginal: true, isStage: false, getName: () => 'Penguin' };
@@ -461,5 +561,96 @@ describe('LessonHint container', () => {
         expect(props.onNextHint).toHaveBeenCalledTimes(1);
         expect(props.onPrevHint).toHaveBeenCalledTimes(1);
         expect(props.onHideHint).toHaveBeenCalledTimes(1);
+    });
+
+    describe('read-and-build challenge (mode readDiagram)', () => {
+        const ANSWER = 'when_flag_clicked do\n  say("Hi")\nend\n';
+        const readCurrent = () => {
+            const found = findChallenge(CHALLENGE_ID);
+            return {
+                ...found,
+                challenge: defineChallenge({
+                    id: found.challenge.id,
+                    number: found.challenge.number,
+                    mode: 'readDiagram',
+                    task: found.challenge.task,
+                    code: ANSWER,
+                    debug: found.challenge.debug,
+                }),
+            };
+        };
+        const readHint = (current, index) => ({
+            visible: true,
+            index,
+            count: 3,
+            step: current.challenge.steps[index],
+            spotlight: false,
+            lastResort: false,
+            debug: current.challenge.debug,
+            code: current.challenge.code,
+            session: 1,
+        });
+
+        test('page 1 shows the diagram, the explanation and that the answer is on the last page', async () => {
+            const current = readCurrent();
+            const { getByTestId } = renderContainer({ ...baseProps(), current, hint: readHint(current, 0) });
+            await flush();
+            expect(getByTestId('lesson-hint-position')).toHaveTextContent('Hint 1 of 3');
+            expect(getByTestId('lesson-hint-activity-diagram')).toBeInTheDocument();
+            expect(getByTestId('lesson-hint-note')).toHaveTextContent('The answer is on the last page');
+        });
+
+        test('page 3 names whose program it draws when there is more than one script', async () => {
+            const found = findChallenge(CHALLENGE_ID);
+            const current = {
+                ...found,
+                challenge: defineChallenge({
+                    id: found.challenge.id,
+                    number: found.challenge.number,
+                    mode: 'readDiagram',
+                    task: found.challenge.task,
+                    code: ANSWER,
+                    spriteCodes: [{ sprite: 'Penguin 2', code: 'when_flag_clicked do\n  say("P")\nend\n' }],
+                }),
+            };
+            const { getByTestId } = renderContainer({ ...baseProps(), current, hint: readHint(current, 2) });
+            await flush();
+            expect(getByTestId('lesson-hint-blocks-label')).toHaveTextContent('Program of Cat');
+            expect(rubyToBlocksXml).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.anything(),
+                ANSWER,
+                expect.anything(),
+                expect.anything(),
+            );
+        });
+
+        test('page 3 has no label when the answer is one script', async () => {
+            const current = readCurrent();
+            const { queryByTestId } = renderContainer({ ...baseProps(), current, hint: readHint(current, 2) });
+            await flush();
+            expect(queryByTestId('lesson-hint-blocks-label')).toBeNull();
+        });
+
+        test('page 3 draws the whole answer in the balloon and offers no replacing', async () => {
+            const current = readCurrent();
+            const props = baseProps();
+            const { getByTestId, queryByTestId } = renderContainer({ ...props, current, hint: readHint(current, 2) });
+            await flush();
+            expect(rubyToBlocksXml).toHaveBeenCalledWith(
+                props.vm,
+                props.vm.editingTarget,
+                ANSWER,
+                expect.anything(),
+                expect.objectContaining({ version: '2' }),
+            );
+            expect(getByTestId('lesson-hint-title')).toHaveTextContent('This is the answer');
+            expect(queryByTestId('lesson-hint-activity-diagram')).toBeNull();
+            expect(queryByTestId('lesson-hint-insert-code')).toBeNull();
+            expect(queryByTestId('lesson-hint-debug')).toBeNull();
+            expect(props.onInsertCode).not.toHaveBeenCalled();
+            // 最後のページなので「おわり」
+            expect(getByTestId('lesson-hint-finish')).toBeInTheDocument();
+        });
     });
 });

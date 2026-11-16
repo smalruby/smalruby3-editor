@@ -14,8 +14,13 @@ Smalruby の Web フロントエンドを AWS（Route 53 / 今後 S3 + CloudFron
 ## 不変条件
 
 - **プレビュー用の資源は stg ステージだけに作る**。`Deploy Infra` は develop へのマージで prod にも
-  出すので、stg 以外（prod など）では何も作らない（`if (stage !== 'stg') return`）。
+  出すので、prod と stg2 などにはプレビュー用の資源を作らない（`if (stage !== 'stg') return`）。
   同じ名前のゾーンが複数あると、どれが委任先か分からなくなる。この分岐を外さない。
+- **prod には本番 smalruby.app の配信基盤だけを作る**（`createSiteDelivery()`。計画は
+  `docs/hosting/README.md`）。本番は GitHub Pages から切り替える途中なので、**本番の DNS・配信の向き先を
+  変える差分（apex のレコード、`smalruby.app` の代替ドメインなど）は、人間が夜間（21:00〜7:00）に
+  マージする PR に分ける**。本番のバケットは**いまの版を期限で消さない**（プレビューのライフサイクルを
+  写さない）。本番の CI 用ロールは develop（と Environment `prod`）だけを信頼する。
 - **ホストゾーン `preview.smalruby.app` は `RemovalPolicy.RETAIN`**。作り直すと NS が変わり、
   お名前.com に登録した委任（NS 4 本）と食い違って `preview.smalruby.app` が引けなくなる。
   このプロジェクトの RETAIN は「データ」ではなく「AWS の外に登録した値」を守るためのもの
@@ -42,7 +47,5 @@ Smalruby の Web フロントエンドを AWS（Route 53 / 今後 S3 + CloudFron
 - 必要な Secrets: repo の `INFRA_STG_DOTENV_SMALRUBY_WEB_HOSTING`、Environment `prod` の
   `INFRA_PROD_DOTENV_SMALRUBY_WEB_HOSTING`（中身は `STAGE=<stage>` だけでよい）。無いとマージ後の
   デプロイがこのプロジェクトだけ失敗する。
-- prod は `AWS::CDK::Metadata` だけの空のスタック。初回の自動デプロイは空のスタックを作り、以後は
-  「差分なし」で何もしない（`.claude/rules/infra/development.md` の「新しい CDK プロジェクトを足すときの
-  チェックリスト」3.）。
+- prod には本番の配信基盤がある。追加だけの差分は develop へのマージで自動で出る。
 - CI（`.github/workflows/ci-infra.yml`）は unit test と、stg / prod 両方の `cdk synth` を行う。

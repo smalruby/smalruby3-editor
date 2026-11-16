@@ -1,6 +1,8 @@
 // Locale strings for the lessons (コース › レッスン › チャレンジ).
 // Kept next to the course data (like the tutorial category modules, #932) and
 // spread into src/locales/{en,ja,ja-Hira}.js. Keys: `gui.lessons.<course|lesson|challenge>.<field>`.
+// The strings of the course "チャットをつくろう" are in chat.locale.js (spread at the end of each locale).
+import { en as chatEn, ja as chatJa, jaHira as chatJaHira } from './chat.locale';
 
 export const ja = {
     'gui.lessons.course.kyou-kara-programmer.name': 'きょうからプログラマー',
@@ -166,6 +168,8 @@ export const ja = {
     'gui.lessons.completed.remaining': 'このレッスンは、あと {count} つ',
     'gui.lessons.completed.lessonTitle': 'レッスン {number} ぜんぶできた！',
     'gui.lessons.completed.lessonDetail': '「{name}」の {count} つ、全部できました',
+    'gui.lessons.completed.lessonTitleSome': 'レッスン {number} クリア！',
+    'gui.lessons.completed.lessonDetailSome': '「{name}」は {count} つできました。このレッスンはこれでクリア',
     'gui.lessons.completed.courseDetail': '「{course}」のレッスンは、これで全部です',
     'gui.lessons.completed.next': '次のチャレンジへ',
     'gui.lessons.completed.nextLesson': '次のレッスンへ',
@@ -174,6 +178,9 @@ export const ja = {
     'gui.lessons.completed.assignmentTitle': '課題クリア！',
     'gui.lessons.completed.assignmentDetail': '「{name}」の条件を満たしました',
     'gui.lessons.completed.assignmentDetailNoName': '課題の条件を満たしました',
+    'gui.lessons.completed.quizLabel': 'ふりかえりクイズ',
+    'gui.lessons.completed.quizCorrect': '正解！',
+    'gui.lessons.completed.quizWrong': 'はずれ。もう一度選んでみよう',
     'gui.lessons.assignment.label': '課題',
     'gui.lessons.assignment.conditionAll': '条件: 全部（{count} つ）',
     'gui.lessons.assignment.conditionCount': '条件: {count} つ（★ をふくむ）',
@@ -204,6 +211,7 @@ export const ja = {
     'gui.lessons.progressConfirm.clearNote': '消した記録は、もとにもどせません。',
     'gui.lessons.progressConfirm.back': '戻る',
     'gui.lessons.progressConfirm.clear': '消す',
+    ...chatJa,
 };
 
 export const jaHira = {
@@ -378,6 +386,8 @@ export const jaHira = {
     'gui.lessons.completed.remaining': 'このレッスンは、あと {count} つ',
     'gui.lessons.completed.lessonTitle': 'レッスン {number} ぜんぶできた！',
     'gui.lessons.completed.lessonDetail': '「{name}」の {count} つ、ぜんぶできました',
+    'gui.lessons.completed.lessonTitleSome': 'レッスン {number} クリア！',
+    'gui.lessons.completed.lessonDetailSome': '「{name}」は {count} つ できました。この レッスンは これで クリア',
     'gui.lessons.completed.courseDetail': '「{course}」のレッスンは、これでぜんぶです',
     'gui.lessons.completed.next': 'つぎのチャレンジへ',
     'gui.lessons.completed.nextLesson': 'つぎのレッスンへ',
@@ -386,6 +396,9 @@ export const jaHira = {
     'gui.lessons.completed.assignmentTitle': 'かだいクリア！',
     'gui.lessons.completed.assignmentDetail': '「{name}」の じょうけんを みたしました',
     'gui.lessons.completed.assignmentDetailNoName': 'かだいの じょうけんを みたしました',
+    'gui.lessons.completed.quizLabel': 'ふりかえりクイズ',
+    'gui.lessons.completed.quizCorrect': 'せいかい！',
+    'gui.lessons.completed.quizWrong': 'はずれ。もういちど えらんでみよう',
     'gui.lessons.assignment.label': 'かだい',
     'gui.lessons.assignment.conditionAll': 'じょうけん: ぜんぶ（{count} つ）',
     'gui.lessons.assignment.conditionCount': 'じょうけん: {count} つ（★ をふくむ）',
@@ -416,6 +429,7 @@ export const jaHira = {
     'gui.lessons.progressConfirm.clearNote': 'けした きろくは、もとに もどせません。',
     'gui.lessons.progressConfirm.back': 'もどる',
     'gui.lessons.progressConfirm.clear': 'けす',
+    ...chatJaHira,
 };
 
 export const en = {
@@ -592,6 +606,9 @@ export const en = {
     'gui.lessons.completed.remaining': '{count} more in this lesson',
     'gui.lessons.completed.lessonTitle': 'Lesson {number} complete!',
     'gui.lessons.completed.lessonDetail': 'You finished all {count} challenges of "{name}".',
+    'gui.lessons.completed.lessonTitleSome': 'Lesson {number} cleared!',
+    'gui.lessons.completed.lessonDetailSome':
+        'You finished {count} of the challenges of "{name}". That is enough for this lesson.',
     'gui.lessons.completed.courseDetail': 'That was every lesson in "{course}".',
     'gui.lessons.completed.next': 'Next challenge',
     'gui.lessons.completed.nextLesson': 'Next lesson',
@@ -600,6 +617,9 @@ export const en = {
     'gui.lessons.completed.assignmentTitle': 'Assignment cleared!',
     'gui.lessons.completed.assignmentDetail': 'You met the goal of "{name}".',
     'gui.lessons.completed.assignmentDetailNoName': 'You met the goal of the assignment.',
+    'gui.lessons.completed.quizLabel': 'Quick quiz',
+    'gui.lessons.completed.quizCorrect': 'Correct!',
+    'gui.lessons.completed.quizWrong': 'Not quite. Try another one.',
     'gui.lessons.assignment.label': 'Assignment',
     'gui.lessons.assignment.conditionAll': 'Goal: all {count}',
     'gui.lessons.assignment.conditionCount': 'Goal: {count}, including ★',
@@ -630,4 +650,5 @@ export const en = {
     'gui.lessons.progressConfirm.clearNote': 'Cleared records cannot be brought back.',
     'gui.lessons.progressConfirm.back': 'Back',
     'gui.lessons.progressConfirm.clear': 'Clear',
+    ...chatEn,
 };

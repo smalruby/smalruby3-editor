@@ -1,4 +1,5 @@
 import NodeTypeChecks from './node-type-checks';
+import { nodeTypeName } from './node-walk';
 
 // The mark of `not (x = "false")` made for a variable alone as a condition (issue #1611).
 const VARIABLE_CONDITION_MARKER = '@ruby:variable_condition';
@@ -224,12 +225,12 @@ const NodeUtils = {
         let current = root;
         let parentType = null;
         while (current && current !== node) {
-            const type = this._getNodeTypeName(current);
+            const type = nodeTypeName(current);
             const next = this._childNodesOf(current).find(contains);
             if (!next) {
                 break;
             }
-            const nextType = this._getNodeTypeName(next);
+            const nextType = nodeTypeName(next);
             if (
                 (type === 'StatementsNode' && parentType !== 'ParenthesesNode') ||
                 (type === 'IfNode' && nextType === 'IfNode' && next === current.subsequent) ||

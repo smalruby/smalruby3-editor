@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (literal-handling AST visitors for expressions) ===
+import { nodeTypeName } from '../node-walk';
 import Primitive from '../primitive';
 
 /**
@@ -143,7 +144,7 @@ const ExpressionsLiterals = {
      * @returns {*} The value of the end.
      */
     _rangeEndValue(node, value) {
-        const statements = this._getNodeTypeName(node) === 'ParenthesesNode' && node.body ? node.body.body : null;
+        const statements = nodeTypeName(node) === 'ParenthesesNode' && node.body ? node.body.body : null;
         if (statements && statements.length === 1 && Array.isArray(value) && value.length === 1) {
             return this._rangeEndValue(statements[0], value[0]);
         }
