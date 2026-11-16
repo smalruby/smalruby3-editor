@@ -96,9 +96,9 @@ env トグル: `HEADLESS=false` 表示 / `CHANNEL=chrome` 実 Chrome / `SLOWMO=<
 | `verify-assignment-sharing.mjs` | みんなの課題（EPIC #1066）の通し。クラス+課題作成→説明ページ保存→共有フォーム（CC BY 同意）→カタログ絞り込み→詳細（© クレジット・外部リンク確認 D4）→このクラスに取り込み→ボードに新行→自分の投稿で取り下げ/再公開。stg に S1 API（#1068）が必要。`LOCALE=ja-JP` で日本語スクリーンショット |
 | `verify-admin.mjs` | 管理 SPA（EPIC #1073）の通し。stg API への `/admin/me` プリフライト（403 = allowlist 未登録を明示）→ 8602 の SPA dev server を自前起動（`REUSE_SERVER=1` で再利用）→ ログインゲート → `?devlogin=` バイパス → みんなの課題キュー → 課題検索 + 期限切れ復元タブ → バグ報告一覧（詳細に書き込み UI が無いこと）。前提: AdminStack-stg デプロイ + `SmalrubyAdmins-stg` に `dev-admin@example.com` 登録（docs/admin/operations.md） |
 | `verify-classroom-archive-recovery.mjs` | アーカイブ復旧（EPIC #1049）の通し。クラス+課題作成→保存期限バッジ（`あと{days}日`）→課題詳細の期限バナー+全作品DL CTA→クラス全体一括DL（zip 名 `_全課題.zip`）→課題アーカイブ（確認文言が「アーカイブ」であること）→（S1 API デプロイ後）アーカイブ済み課題の復元→クラスの 2 段階アーカイブ確認→アーカイブ済みクラス一覧→復元。`LOCALE=ja-JP` で日本語スクリーンショット（docs 用） |
-| `mesh-v2-classroom-binding.mjs` | クラス管理と Mesh v2 ドメインの連動。教師タブでクラス作成→サイドバーで選択、生徒タブで `?classcode=` 経由参加し、両方の `state.scratchGui.meshV2.domain` が参加コードに揃うこと、接続モーダル入力欄が disabled になること、解除時に元のドメインに戻ることをチェック。課題は［授業］タブの［＋ 作成 ▾］→「課題」で作り、行を開いて［課題を開く］。FAIL があれば exit 1、全部通れば `ALL OK`。最後に作ったクラス（頭が `メッシュ連動検証-`）をアーカイブする。8601 以外のポートでは `BASE_URL=http://localhost:<port> DISABLE_WEB_SECURITY=1` |
+| `mesh-v2-classroom-binding.mjs` | クラス管理と Mesh v2 ドメインの連動。教師タブでクラス作成→クラスの一覧から選択、生徒タブで `?classcode=` 経由参加し、両方の `state.scratchGui.meshV2.domain` が参加コードに揃うこと、接続モーダル入力欄が disabled になること、解除時に元のドメインに戻ることをチェック。課題は［授業］タブの［＋ 作成 ▾］→「課題」で作り、行を開いて［課題を開く］。FAIL があれば exit 1、全部通れば `ALL OK`。最後に作ったクラス（頭が `メッシュ連動検証-`）をアーカイブする。8601 以外のポートでは `BASE_URL=http://localhost:<port> DISABLE_WEB_SECURITY=1` |
 | `verify-lesson-support-phase3.mjs` | AI 評価（EPIC #974 Phase 3）の通し。生徒提出→評価画面で読み込み（ブラウザ内 sb3 解析）→AI評価実行（実 Claude via stg）→根拠付き S/A/B/C→コメント下書き→返却→生徒側で表示確認。ポート・CORS の注意は phase1 と同じ |
-| `verify-lesson-support-phase2.mjs` | 組（EPIC #974 Phase 2）の UI 通し。組作成→サイドバー階層→クラスの組割当→授業複製（のコピー）→アーカイブでクラス名グルーピングへフォールバック。ポート・CORS の注意は phase1 と同じ |
+| `verify-lesson-support-phase2.mjs` | 組（EPIC #974 Phase 2）の UI 通し。組作成→組の階層→クラスの組割当→授業複製（のコピー）→アーカイブでクラス名グルーピングへフォールバック。ポート・CORS の注意は phase1 と同じ |
 | `verify-lesson-support-phase1.mjs` | 課題配信（EPIC #974 Phase 1）の通し。教師: クラス作成→課題エディタで2ページ+スターター（今開いているプロジェクト）を保存。生徒: `?classcode=` 参加→課題パネル自動表示→ページ送り→スターターボタン→「はじめる！」→ステータスの「課題を見る」で再表示。8601 以外のポートで動かすときは `DISABLE_WEB_SECURITY=1`（stg の CORS が localhost:8601 のみ許可のため） |
 
 ## 自動化のキー知見
@@ -116,15 +116,14 @@ env トグル: `HEADLESS=false` 表示 / `CHANNEL=chrome` 実 Chrome / `SLOWMO=<
 ### data-testid の落とし穴
 
 - **`classroom-phase-teacher-dashboard`**: ダッシュボードフェーズの testid は `components/classroom-teacher-modal/classroom-teacher-modal.jsx` のデフォルト分岐に付けた（旧コードでは login と google-courses 以外に testid が無く、フェーズ検知できなかった）
-- **サイドバー項目**: `classroom-sidebar-item-{classroomId}` （`classroom-item-*` ではない）。表示テキストは `assignmentName · 人数 · 参加コード(小文字)`
 - **クラス作成**: `classroom-name-input` / `classroom-count-input` / `classroom-assignment-name-input` の **3 つすべて** 必須。1 つでも空だと `classroom-create-submit` は disabled
-- **作成後の遷移**: `classroom-create-submit` 押下 → `phase==='teacher-dashboard'` に戻る（自動で詳細画面に遷移しない）。新クラスはサイドバーに追加されるが selectedClassroom は null のまま — テストで `teacherSelection` を埋めたいなら明示的にサイドバー項目をクリック
+- **作成後の遷移**: `classroom-create-submit` 押下 → `phase==='teacher-dashboard'` に戻る（自動で詳細画面に遷移しない）。新クラスはクラスの一覧に追加されるが selectedClassroom は null のまま — テストで `teacherSelection` を埋めたいなら明示的にクラスの一覧から開く
 
 ### 状態の見方
 
 - `state.scratchGui.classroom.role`: student のみ。teacher ログイン中でも null
 - `state.scratchGui.classroom.joinCode`: 学生セッションの参加コード
-- `state.scratchGui.classroom.teacherSelection.joinCode`: 教師がサイドバーで選んだクラスの参加コード
+- `state.scratchGui.classroom.teacherSelection.joinCode`: 教師が選んだクラスの参加コード
 - `state.scratchGui.meshV2.domain`: Mesh v2 ドメイン（バインディングは小文字化した joinCode を入れる）
 
 ### よくある失敗
