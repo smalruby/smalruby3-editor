@@ -104,3 +104,54 @@ describe('Ruby → DNCL: symbols inside a string are kept (Issue #2031)', () => 
         expect(rToD('@a = 1 # s.include?(t)')).toBe('a = 1 # s.include?(t)');
     });
 });
+
+describe('DNCL → Ruby: " and \ inside 「...」 are escaped (Issue #2031)', () => {
+    test.each([
+        ['b ← 「a"←c」', '@b = "a\\"←c"'],
+        ['表示する(「"x←1」)', 'puts("\\"x←1")'],
+        ['表示する(「a\\b」)', 'puts("a\\\\b")'],
+        ['表示する(「a\\"b」)', 'puts("a\\\\\\"b")'],
+    ])('%s', (dncl, ruby) => {
+        expect(dToR(dncl)).toBe(ruby);
+    });
+
+    test('in a condition', () => {
+        expect(dToR('もし b == 「a"←c」 ならば\n  表示する(b)\nを実行する')).toBe(
+            'if @b == "a\\"←c"\n  puts(@b)\nend',
+        );
+    });
+
+    test('the Ruby goes back to the same text (Ruby → DNCL → Ruby)', () => {
+        // Ruby → DNCL writes strings as "..." (it does not make 「...」), so the
+        // DNCL keeps the escapes and gives the same Ruby again.
+        for (const dncl of ['b ← 「a"←c」', '表示する(「"x←1」)', '表示する(「a\\b」)']) {
+            const ruby = dToR(dncl);
+            const back = rToD(ruby);
+            expect(dToR(back)).toBe(ruby);
+        }
+        expect(rToD(dToR('b ← 「a"←c」'))).toBe('b = "a\\"←c"');
+    });
+});
+
+describe('Ruby → DNCL: include? on a string with an escaped quote (Issue #2031)', () => {
+    test.each([
+        ['x = "a\\"b".include?(@c)', 'x = 含む("a\\"b", c)'],
+        ['x = "a\\"b.include?(c)"', 'x = "a\\"b.include?(c)"'],
+        ["x = 'a\\'b'.include?(@c)", "x = 含む('a\\'b', c)"],
+        ['x = @s.include?("q") # t.include?(u)', 'x = 含む(s, "q") # t.include?(u)'],
+    ])('%s', (ruby, dncl) => {
+        expect(rToD(ruby)).toBe(dncl);
+    });
+});
+
+describe('long lines are converted in linear time (Issue #2031)', () => {
+    test('many ← and include? in one line', () => {
+        const n = 20000;
+        const dncl = `a ← ${Array.from({ length: n }, () => '1 ← 2').join(' + ')}`;
+        const ruby = `x = ${Array.from({ length: n }, () => '@s.include?("a")').join(' && ')}`;
+        const start = Date.now();
+        expect(dToR(dncl)).toContain('@a = 1 = 2 + 1 = 2');
+        expect(rToD(ruby)).toContain('含む(s, "a")');
+        expect(Date.now() - start).toBeLessThan(3000);
+    });
+});

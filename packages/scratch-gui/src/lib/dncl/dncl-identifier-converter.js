@@ -68,7 +68,10 @@ const convertJapaneseStrings = (line) => {
         if (ch === '「') {
             const close = line.indexOf('」', i + 1);
             if (close !== -1) {
-                result += `"${line.substring(i + 1, close)}"`;
+                // The text of 「...」 is taken as it is, so a `"` or `\` in it
+                // is escaped to stay text of the "..." string (Issue #2031).
+                const text = line.substring(i + 1, close).replace(/[\\"]/g, '\\$&');
+                result += `"${text}"`;
                 i = close + 1;
                 continue;
             }
@@ -88,26 +91,37 @@ const convertJapaneseStrings = (line) => {
  * @returns {string} The code with its arrows replaced.
  */
 const convertArrow = (str) => {
-    let result = '';
+    // Pieces of the result, and how many of them come before the whitespace
+    // at its end, so the spaces before a `←` are dropped without trimming the
+    // whole result again at each arrow.
+    const out = [];
+    let codeEnd = 0;
     let i = 0;
     while (i < str.length) {
         const end = stringEndAt(str, i);
         if (end !== -1) {
-            result += str.substring(i, end);
+            out.push(str.substring(i, end));
+            codeEnd = out.length;
             i = end;
             continue;
         }
-        if (str[i] === '#') return result + str.substring(i);
+        if (str[i] === '#') {
+            out.push(str.substring(i));
+            break;
+        }
         if (str[i] === '←') {
-            result = `${result.replace(/\s+$/, '')} = `;
+            out.length = codeEnd;
+            out.push(' = ');
             i++;
             while (i < str.length && /\s/.test(str[i])) i++;
+            codeEnd = out.length;
             continue;
         }
-        result += str[i];
+        out.push(str[i]);
+        if (!/\s/.test(str[i])) codeEnd = out.length;
         i++;
     }
-    return result;
+    return out.join('');
 };
 
 /** DNCL `かつ` / `または` and the Ruby operators they become. */

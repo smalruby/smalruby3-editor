@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (Ruby→DNCL builtin conversion) ===
+import { stringEndAt } from './dncl-trailing-comment';
 import {
     findMatchingClose,
     isWrappedInParens,
@@ -9,29 +10,53 @@ import {
 } from './paren-utils';
 import { ID } from './ruby-to-dncl-identifier';
 
+/** `.include?(` after the receiver of `含む`. */
+const INCLUDE_CALL = '.include?(';
+
+/** A character of a name, the receiver of `.include?` (`s`, `名前`). */
+const RECEIVER_CHAR_RE = new RegExp(`[${ID}]`);
+
 /**
- * Whether `pos` is inside a string literal (`"..."` / `'...'`, after its
- * opening quote) or in the `# comment` of a Ruby line. A rewrite that is
- * done with a regular expression uses this to leave the text of strings and
- * comments as it is (Issue #2031).
+ * `recv.include?(sub)` → `含む(recv, sub)`, where the receiver is a string
+ * literal or a name. The line is read once from the front with the scanner
+ * that skips strings for the comment split (`stringEndAt`), so a string
+ * receiver is read whole (`"a\"b".include?(c)`) and an `.include?` inside a
+ * string or the `# comment` is text, left as it is (Issue #2031).
  * @param {string} text - The Ruby code.
- * @param {number} pos - The index to look at.
- * @returns {boolean} True if `pos` is in a string or a comment.
+ * @returns {string} The code with `含む(...)`.
  */
-const isInStringOrComment = (text, pos) => {
+const replaceIncludeCalls = (text) => {
+    const out = [];
     let i = 0;
-    while (i < pos) {
-        const ch = text[i];
-        if (ch === '"' || ch === "'") {
-            const end = skipString(text, i, ch);
-            if (pos < end) return true;
-            i = end;
+    while (i < text.length) {
+        if (text[i] === '#') {
+            out.push(text.substring(i));
+            break;
+        }
+        let end = stringEndAt(text, i);
+        if (end === -1 && RECEIVER_CHAR_RE.test(text[i]) && !RECEIVER_CHAR_RE.test(text[i - 1] || '')) {
+            end = i + 1;
+            while (end < text.length && RECEIVER_CHAR_RE.test(text[end])) end++;
+        }
+        if (end === -1) {
+            out.push(text[i]);
+            i++;
             continue;
         }
-        if (ch === '#') return true;
-        i++;
+        const receiver = text.substring(i, end);
+        if (text.startsWith(INCLUDE_CALL, end)) {
+            const open = end + INCLUDE_CALL.length - 1;
+            const close = findMatchingClose(text, open);
+            if (close !== -1) {
+                out.push(`含む(${receiver}, ${text.substring(open + 1, close)})`);
+                i = close + 1;
+                continue;
+            }
+        }
+        out.push(receiver);
+        i = end;
     }
-    return false;
+    return out.join('');
 };
 
 /**
@@ -431,14 +456,9 @@ const convertBuiltins = (line) => {
     result = replaceCall(result, 'Math.sqrt', (expr) => `平方根(${expr})`);
 
     // expr.include?(sub) → 含む(expr, sub)
-    // NOTE: same-name nesting (s.include?(t.include?(x))) is not handled by
-    // this regex (postfix-with-args form). This is a known limitation.
-    // A match inside a string literal or the comment is text (`puts("a.include?(b)")`),
-    // so it is kept as written (Issue #2031).
-    result = result.replace(
-        new RegExp(`("[^"]*"|[${ID}]+)\\.include\\?\\(([^)]*)\\)`, 'g'),
-        (match, expr, sub, offset, text) => (isInStringOrComment(text, offset) ? match : `含む(${expr}, ${sub})`),
-    );
+    // NOTE: same-name nesting (s.include?(t.include?(x))) is not handled:
+    // the argument is not converted again. This is a known limitation.
+    result = replaceIncludeCalls(result);
 
     // `(A / B).to_i` first becomes the DNCL quotient `A ÷ B` — the inverse of
     // the `÷` wrap performed during DNCL → Ruby conversion. Any other
