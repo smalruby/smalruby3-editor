@@ -360,34 +360,9 @@ const ContextUtils = {
                 });
             }
         } else {
-            // For other node types, traverse children generically
-            const childKeys = [
-                'statements',
-                'body',
-                'then',
-                'else',
-                'value',
-                'left',
-                'right',
-                'condition',
-                'consequent',
-                'alternative',
-                'elements',
-                'requireds',
-                'parameters',
-                'arguments_',
-            ];
-            childKeys.forEach((key) => {
-                const child = node[key];
-                if (!child) return;
-                if (typeof child === 'object' && child.constructor) {
-                    if (this._prismNodeType(child)) {
-                        this._countProcedureCallsInNode(child);
-                    } else if (Array.isArray(child) || typeof child.forEach === 'function') {
-                        child.forEach((c) => this._countProcedureCallsInNode(c));
-                    }
-                }
-            });
+            // For other node types, traverse every child: a list of names missed the `when` and the
+            // `else` of `case` (`conditions` / `elseClause`), so no call in them was counted (issue #2014).
+            this._childNodesOf(node).forEach((child) => this._countProcedureCallsInNode(child));
         }
     },
 
@@ -418,14 +393,9 @@ const ContextUtils = {
             // The inside of parentheses, e.g. `(bar + 1)`
             node.body.forEach((child) => this._countCallsInValueNode(child));
         } else {
-            // Traverse relevant children
-            const childKeys = ['value', 'left', 'right', 'condition', 'body'];
-            childKeys.forEach((key) => {
-                const child = node[key];
-                if (this._prismNodeType(child)) {
-                    this._countCallsInValueNode(child);
-                }
-            });
+            // Every child is a value too (`&&` / `||`, parentheses, ...). Not a list of names, which
+            // had names prism does not use (`condition`) and could miss children (issue #2014).
+            this._childNodesOf(node).forEach((child) => this._countCallsInValueNode(child));
         }
     },
 };
