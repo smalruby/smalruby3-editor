@@ -54,10 +54,13 @@ Ruby code is parsed using [@ruby/prism](https://github.com/ruby/prism), a WebAss
   - receiver の特殊値: `'self'` → sprite + stage に展開、`'any'` → 全 receiver、配列指定も可。
   - handler は `{receiver, receiverName, name, args, rubyBlockArgs, rubyBlock, node}` の
     params オブジェクトで受ける。文字列/数値は `new Primitive('str', value, node)` でラップ。
-- **レガシー二重ディスパッチ**: `onIf` / `onOpAsgn` 等は「registerOnXxx で登録された配列」に
-  加えて「converter オブジェクトが直接持つ `onXxx` プロパティ」（Music / Pen / EV3 等の
-  旧 converter 11 個）も呼ばれる（`_callConvertersHandler`）。**新規実装は registerOnXxx 形式**
-  を使う（レガシー形式を増やさない）。
+- **新しい変換は表か registerOnXxx で書く**: 1 対 1 でブロックになる呼び出しは、各 converter の
+  `XXX_SENDS` の表（`send-table.js` の `registerSendTable`。`numberArg` / `textArg` / `menuArg` /
+  `menuInputArg` / `colorArg` / `fieldArg` と、列 `type` / `fields` / `receiverArg` / `hat` /
+  `selfReceiver`（`onSelf`））に行を足す。表で書けない形（配列・キーワード引数・引数で opcode を
+  選ぶもの・Ruby の式のレシーバーを変えるもの）は `registerOnSend` などの handler で書く。
+  converter オブジェクトに `onXxx` を直接持たせる古い形式は廃止した（`_callConvertersHandler` は
+  registerOnXxx の配列だけを見る）。表の opcode に生成器があることは `send-table.test.js` が確かめる。
 - **opcode prefix の不変条件**: 拡張ブロックの opcode は `<extensionId>_<camelCase>` 形式で、
   **最初の `_` より前が拡張機能 ID と一致**しなければならない。`converter-errors.js` の
   `getExtensionIdForOpcode` が prefix から「ロードが必要な拡張」を導いてエラー帰属するため、

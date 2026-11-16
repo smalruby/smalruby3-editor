@@ -1,9 +1,5 @@
 import { Variable, LOCAL_VARIABLE_PATTERN } from './constants';
-
-// Assignments whose value is visited as a value (see `_onVasgn`).
-const VALUE_WRITE_NODE_TYPES = ['LocalVariableWriteNode', 'InstanceVariableWriteNode', 'GlobalVariableWriteNode'];
-// Nodes with a condition (`predicate`) and the lines run by it (see `_countProcedureCallsInNode`).
-const CONDITION_NODE_TYPES = ['IfNode', 'UnlessNode', 'WhileNode', 'UntilNode'];
+import { ContextJournal, JOURNALED_STORES } from './context-journal';
 
 /**
  * Context and state management utilities for RubyToBlocksConverter.
@@ -11,30 +7,32 @@ const CONDITION_NODE_TYPES = ['IfNode', 'UnlessNode', 'WhileNode', 'UntilNode'];
  */
 const ContextUtils = {
     reset() {
+        // The tables keyed by names from the Ruby code (variables, lists, methods, ...) have no
+        // prototype, so that `__proto__`, `constructor` or `toString` is a name like any other
+        // (issue #2034): `table.__proto__ = v` on `{}` changes the prototype instead of adding a key.
         this._context = {
             currentNode: null,
             errors: [],
-            argumentBlocks: {},
-            procedureCallBlocks: {},
+            argumentBlocks: Object.create(null),
+            procedureCallBlocks: Object.create(null),
             extensionIDs: new Set(),
 
-            blocks: {},
-            comments: {},
-            blockTypes: {},
-            localVariables: {},
-            variables: {},
-            lists: {},
-            broadcastMsgs: {},
-            procedures: {},
-            methodCallCounts: {},
-            methodCallIndices: {},
+            blocks: Object.create(null),
+            comments: Object.create(null),
+            blockTypes: Object.create(null),
+            localVariables: Object.create(null),
+            variables: Object.create(null),
+            lists: Object.create(null),
+            broadcastMsgs: Object.create(null),
+            procedures: Object.create(null),
+            methodCallIndices: Object.create(null),
             // Whether a return value of a call is saved in a variable in the current statement (issue #1556)
             savedReturnValueInStatement: false,
             // return value reporter id -> id of the method block it gives the value of (issue #1725)
-            returnValueSources: {},
+            returnValueSources: Object.create(null),
             // the numbers of `@_retN` the code already uses (issue #1725), found when first needed
             returnValueTempsInSource: null,
-            literalCallIndices: {},
+            literalCallIndices: Object.create(null),
             // ids of the range blocks with an end that is not a number or a value (issue #1906):
             // `rand` does not take them, and they are left as the error of a wrong instruction
             rangesWithWrongEnd: new Set(),
@@ -56,19 +54,28 @@ const ContextUtils = {
             containerNodeRanges: [], // Store {startLine, endLine} for container nodes (block, begin, kwbegin)
             processDepth: 0,
             rootNode: null,
-            modules: {},
+            modules: Object.create(null),
             currentModuleName: null,
-            superMethodMap: {},
+            superMethodMap: Object.create(null),
             superRenameTarget: null,
             symbols: new Set(),
-            // How the code uses each variable name, collected before converting (issue #1613)
-            variableUses: {},
-            // Where the code uses each local variable, and the unit being converted (issue #1630)
-            localVariableUnits: null,
+            // What the analysis stage decides before converting (`analysis.js`, read-only): how
+            // each variable name is used (issue #1613), where each local is used (issue #1630), how
+            // many times each method is called as a value, ...
+            analysis: null,
+            // The scope index of each unit of locals of the script, decided while converting (issue #1630)
+            localScopeIndexes: Object.create(null),
             // The list blocks that read `@a` / `$a` of Ruby version 2 (issue #1622)
             listReadBlockIds: new Set(),
+            // The unit of locals being converted (issue #1630)
             currentLocalUnit: 0,
         };
+        // The tables that a conversion attempt rolls back record their writes (see `_saveContext`).
+        const journal = new ContextJournal();
+        this._context.journal = journal;
+        JOURNALED_STORES.forEach((name) => {
+            this._context[name] = journal.wrap(name, this._context[name]);
+        });
         if (this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage) {
             this._loadVariables(this.vm.runtime.getTargetForStage());
         }
@@ -111,56 +118,40 @@ const ContextUtils = {
         });
     },
 
+    /**
+     * Start a conversion attempt that `_restoreContext` can roll back.
+     * Nothing is copied: the tables (blocks, comments, variables, ...) record what is written to
+     * them from now on (`context-journal.js`).
+     * @returns {{mark: object}} The point to roll back to.
+     */
     _saveContext() {
-        const includes = [
-            'blocks',
-            'blockTypes',
-            'localVariables',
-            'variables',
-            'lists',
-            'broadcastMsgs',
-            'procedures',
-            'comments',
-            'literalCallIndices',
-        ];
-
-        const saved = {};
-        Object.keys(this._context)
-            .filter((k) => includes.indexOf(k) >= 0)
-            .forEach((k) => {
-                saved[k] = Object.assign({}, this._context[k]);
-            });
-        return saved;
+        return { mark: this._context.journal.mark() };
     },
 
     /**
-     * Roll the context back to a `_saveContext` snapshot: drop the entries (blocks, comments,
+     * The entries a table had when `_saveContext` was called (a copy, for reading).
+     * @param {{mark: object}} saved - The point returned by `_saveContext`.
+     * @param {string} name - The name of the table (e.g. 'variables').
+     * @returns {object} The entries.
+     */
+    _savedStore(saved, name) {
+        return this._context.journal.storeAt(saved.mark, name);
+    },
+
+    /**
+     * Roll the context back to a `_saveContext` point: drop the entries (blocks, comments,
      * variables, ...) made since then and put back the ones removed or replaced since then,
      * so that a conversion attempt that was given up leaves no orphan block or comment behind.
      * The attributes of an entry that was kept (e.g. a block's `parent`) are not restored.
-     * @param {object} saved - The snapshot returned by `_saveContext`.
+     * @param {{mark: object}} saved - The point returned by `_saveContext`.
      */
     _restoreContext(saved) {
         if (!saved) {
             return;
         }
 
-        Object.keys(saved).forEach((key) => {
-            if (Object.prototype.hasOwnProperty.call(this._context, key)) {
-                Object.keys(this._context[key]).forEach((id) => {
-                    if (!Object.prototype.hasOwnProperty.call(saved[key], id)) {
-                        delete this._context[key][id];
-                    }
-                });
-                Object.keys(saved[key]).forEach((id) => {
-                    this._context[key][id] = saved[key][id];
-                });
-            }
-        });
+        this._context.journal.rollback(saved.mark);
 
-        if (!saved.blocks) {
-            return;
-        }
         const exists = (blockId) => Object.prototype.hasOwnProperty.call(this._context.blocks, blockId);
         const nodeToBlockMap = this._context.nodeToBlockMap;
         if (nodeToBlockMap) {
@@ -312,91 +303,6 @@ const ContextUtils = {
 
     isValueContext() {
         return this._context.isValue;
-    },
-
-    /**
-     * Pre-pass to count how many times each procedure/method is called
-     * in value (argument) contexts. Used by my-blocks to generate evacuation blocks.
-     * @param {object} node - AST node to traverse
-     */
-    _countProcedureCallsInNode(node) {
-        if (!node || typeof node !== 'object') return;
-        // Not `constructor.name`: the production build renames the classes.
-        const nodeType = this._prismNodeType(node);
-        if (!nodeType) return;
-
-        if (nodeType === 'CallNode') {
-            // Count calls in argument positions (value context)
-            // Use _countCallsInValueNode which fully recurses into nested calls;
-            // do NOT also call _countProcedureCallsInNode on args to avoid double-counting.
-            if (node.arguments_ && node.arguments_.arguments_) {
-                node.arguments_.arguments_.forEach((argNode) => {
-                    this._countCallsInValueNode(argNode);
-                });
-            }
-            // Also traverse block body if present
-            if (node.block && node.block.body) {
-                this._countProcedureCallsInNode(node.block.body);
-            }
-            // The receiver is visited as a value (e.g. `bar(1)` of `bar(1) + bar(2)`) (issue #1568)
-            this._countCallsInValueNode(node.receiver);
-        } else if (CONDITION_NODE_TYPES.includes(nodeType)) {
-            // The condition is visited as a value (e.g. `bar(1)` and `bar(2)` of `while bar(1) < bar(2)`),
-            // then the body and the other branches as lines (issue #1606).
-            this._countCallsInValueNode(node.predicate);
-            [node.statements, node.subsequent, node.elseClause].forEach((child) => {
-                if (this._prismNodeType(child)) {
-                    this._countProcedureCallsInNode(child);
-                }
-            });
-        } else if (VALUE_WRITE_NODE_TYPES.includes(nodeType)) {
-            // The value of an assignment is visited as a value too (e.g. `x = bar(1) + bar(2)`) (issue #1568).
-            this._countCallsInValueNode(node.value);
-        } else if (nodeType === 'ReturnNode') {
-            // The value of `return` is used as a value too (issue #1556).
-            if (node.arguments_ && node.arguments_.arguments_) {
-                node.arguments_.arguments_.forEach((argNode) => {
-                    this._countCallsInValueNode(argNode);
-                });
-            }
-        } else {
-            // For other node types, traverse every child: a list of names missed the `when` and the
-            // `else` of `case` (`conditions` / `elseClause`), so no call in them was counted (issue #2014).
-            this._childNodesOf(node).forEach((child) => this._countProcedureCallsInNode(child));
-        }
-    },
-
-    /**
-     * Count CallNode calls within a value (argument) context node.
-     * This increments methodCallCounts for procedure calls found as arguments.
-     * @param {object} node - AST node to traverse
-     */
-    _countCallsInValueNode(node) {
-        if (!node || typeof node !== 'object') return;
-        // Not `constructor.name`: the production build renames the classes.
-        const nodeType = this._prismNodeType(node);
-        if (!nodeType) return;
-
-        if (nodeType === 'CallNode') {
-            const name = node.name && node.name.toString();
-            if (name) {
-                this._context.methodCallCounts[name] = (this._context.methodCallCounts[name] || 0) + 1;
-            }
-            // Recurse into the receiver (e.g. `bar(1)` of `bar(1) + bar(2)`) and the arguments
-            this._countCallsInValueNode(node.receiver);
-            if (node.arguments_ && node.arguments_.arguments_) {
-                node.arguments_.arguments_.forEach((argNode) => {
-                    this._countCallsInValueNode(argNode);
-                });
-            }
-        } else if (nodeType === 'StatementsNode') {
-            // The inside of parentheses, e.g. `(bar + 1)`
-            node.body.forEach((child) => this._countCallsInValueNode(child));
-        } else {
-            // Every child is a value too (`&&` / `||`, parentheses, ...). Not a list of names, which
-            // had names prism does not use (`condition`) and could miss children (issue #2014).
-            this._childNodesOf(node).forEach((child) => this._countCallsInValueNode(child));
-        }
     },
 };
 

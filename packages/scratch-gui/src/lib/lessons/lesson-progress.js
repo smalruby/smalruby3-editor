@@ -135,24 +135,28 @@ export const markChallengeCompleted = (progress, challengeId, completedAt, cours
 export const isChallengeCompleted = (progress, challengeId) => Boolean(progress.challenges[challengeId]);
 
 /**
- * レッスンの進み具合（できた数・全部の数・全部できたか）。段 1 にクリア条件（n 個・必須）は無い。
+ * レッスンの進み具合（できた数・全部の数・全部できたか）。「全部できた」（✓）は、レッスンの `checkCount`
+ * （ふつうはチャレンジの数。テーマを選ぶレッスンは 1）だけできたとき。
  * @param {object} lesson - レッスン。
  * @param {object} progress - 記録。
- * @returns {{completedCount: number, total: number, allCompleted: boolean}} 進み具合。
+ * @returns {{completedCount: number, total: number, checkCount: number, allCompleted: boolean}} 進み具合。
  */
 export const lessonProgress = (lesson, progress) => {
     const completedCount = lesson.challenges.filter((c) => isChallengeCompleted(progress, c.id)).length;
     const total = lesson.challenges.length;
-    return { completedCount, total, allCompleted: total > 0 && completedCount === total };
+    const checkCount = Number.isInteger(lesson.checkCount) ? Math.min(lesson.checkCount, total) : total;
+    return { completedCount, total, checkCount, allCompleted: total > 0 && completedCount >= checkCount };
 };
 
 /**
  * コースの進み具合と、レッスンごとの進み具合・チャレンジ（レッスン表が見せるもの）。
- * コースの「全部できた」（クリアの印）は、コースのチャレンジが全部できたとき。
+ * コースの「全部できた」（クリアの印）は、コースのレッスンが全部「全部できた」になったとき。コース全体の数
+ * （進み具合のバー）は、レッスンごとに `checkCount` までを数える（テーマを選ぶレッスンで、バーがいっぱいに
+ * なるのと ✓ がつくのをそろえる）。`checkCount` を書いていないコースでは、チャレンジの数と同じ。
  * @param {object} course - コース。
  * @param {object} progress - 記録。
  * @returns {{completedCount: number, total: number, allCompleted: boolean, lessons: Array<object>}}
- *   コース全体の数と、`lessons`（並び順に `{lesson, number, completedCount, total, allCompleted,
+ *   コース全体の数と、`lessons`（並び順に `{lesson, number, completedCount, total, checkCount, allCompleted,
  *   challenges: [{challenge, completed}]}`。`number` はコースの中のレッスンの番号）。
  */
 export const courseProgress = (course, progress) => {
@@ -165,10 +169,12 @@ export const courseProgress = (course, progress) => {
             completed: isChallengeCompleted(progress, challenge.id),
         })),
     }));
-    const completedCount = lessons.reduce((sum, l) => sum + l.completedCount, 0);
-    const total = lessons.reduce((sum, l) => sum + l.total, 0);
-    // チャレンジがまだ無いコースを「全部できた」にしない
-    return { completedCount, total, allCompleted: total > 0 && completedCount === total, lessons };
+    const completedCount = lessons.reduce((sum, l) => sum + Math.min(l.completedCount, l.checkCount), 0);
+    const total = lessons.reduce((sum, l) => sum + l.checkCount, 0);
+    // チャレンジがまだ無いコースを「全部できた」にしない。チャレンジが 0 のレッスン（まだ中身の無いもの）は
+    // ✓ の判定から外す（前と同じく、チャレンジのあるレッスンが全部 ✓ ならコースの ✓）
+    const allCompleted = total > 0 && lessons.every((l) => l.total === 0 || l.allCompleted);
+    return { completedCount, total, allCompleted, lessons };
 };
 
 /**
@@ -304,7 +310,8 @@ const latestCompletedChallenge = (course, progress) => {
 /**
  * ウェルカムの「レッスンを始める」でレッスン表を開くとき、どのレッスンを見せて、どのチャレンジに
  * 「次はこれ！」を付けるか（#1888）。見せ方は「できた！」の「次のチャレンジへ」（lessonsLibraryFocus）と同じ:
- *   - まだ全部はできていない最初のコースを見る。全部できていれば null（メニューから開いたときと同じ）。
+ *   - 最初のコース（きょうからプログラマー）だけを見る。全部できていれば null（メニューから開いたときと同じ）。
+ *     ほかのコース（授業で使う中 2 の「チャットをつくろう」など）へは案内しない。授業で先生が開くコースのため。
  *   - そのコースで 1 つもできていない: 最初のまだできていないチャレンジ（= レッスン 1 の最初のチャレンジ）。
  *   - 途中: いちばん最近できたチャレンジを「いまのチャレンジ」として lessonsLibraryFocus で決める。
  *     それで印が付かない（後ろのレッスンが全部できていて、前のレッスンが残っている）ときは、
@@ -314,8 +321,8 @@ const latestCompletedChallenge = (course, progress) => {
  * @returns {?{language: string, courseId: string, lessonId: string, nextChallengeId: string}} 全部できていれば null。
  */
 export const startLessonsFocus = (progress, courses = COURSES) => {
-    const course = courses.find((c) => !courseProgress(c, progress).allCompleted && c.lessons.length > 0);
-    if (!course) return null;
+    const course = courses[0];
+    if (!course || course.lessons.length === 0 || courseProgress(course, progress).allCompleted) return null;
     const latest = latestCompletedChallenge(course, progress);
     if (latest) {
         const focus = lessonsLibraryFocus(latest.id, progress, courses);

@@ -123,9 +123,11 @@ describe('Smalruby Lessons Library', () => {
         await findByXpath(byTestId('lessons-library'));
         await driver.sleep(500);
 
-        // 帯の色 = 多く使うブロックのなかまの色（#1543）。絵は無い
+        // 帯の色 = 多く使うブロックのなかまの色（#1543）。絵は無い。「きょうからプログラマー」のカードを見る
+        // （下に「チャットをつくろう」のコースも並ぶ）
         const bands = await driver.executeScript(
-            `return Array.from(document.querySelectorAll('[data-testid="lessons-library-card-band"]'))
+            `return Array.from(document.querySelectorAll(
+                '[data-testid="lessons-library-course-kyou-kara-programmer"] [data-testid="lessons-library-card-band"]'))
                 .map(el => [el.dataset.category, getComputedStyle(el).backgroundColor, el.getBoundingClientRect().width]);`,
         );
         expect(bands.map(([category]) => category)).toEqual([

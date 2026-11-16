@@ -29,6 +29,29 @@ export const PREVIEW_OBJECT_EXPIRATION_DAYS = 365;
  */
 export const PREVIEW_DEFAULT_TTL_SECONDS = 60;
 
+/**
+ * 本番（smalruby.app）の配信を置くステージ。いまの本番は GitHub Pages
+ * （外部リポジトリ smalruby/smalruby.app）で、ここに作る S3 + CloudFront は
+ * 切り替えまで誰も参照しない（docs/hosting/README.md）。
+ */
+export const SITE_STAGE = 'prod';
+
+/**
+ * 本番の配信を置いてよい GitHub Actions の OIDC subject。本番に出すのは develop への
+ * push だけなので、プレビュー（リポジトリの全ブランチ・PR）より狭くする。
+ * `environment: prod` のジョブから出すときは subject が environment になるので、それも許す。
+ */
+export const SITE_DEPLOY_SUBJECTS = [
+    `repo:${PREVIEW_GITHUB_REPOSITORY}:ref:refs/heads/develop`,
+    `repo:${PREVIEW_GITHUB_REPOSITORY}:environment:prod`,
+];
+
+/**
+ * 本番バケットで、上書き・削除された古い版を残す日数。CI の `aws s3 sync --delete` の
+ * 誤りなどで消えたファイルを戻すための保険（いまの版は消さない）。
+ */
+export const SITE_NONCURRENT_VERSION_EXPIRATION_DAYS = 30;
+
 /** GitHub Actions の OIDC プロバイダ（アカウントに 1 つだけ。Deploy Infra 用に作成済みのものを使う）。 */
 const GITHUB_OIDC_HOST = 'token.actions.githubusercontent.com';
 
@@ -48,6 +71,13 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         cdk.Tags.of(this).add('Stage', stage);
         cdk.Tags.of(this).add('Service', 'Route53');
         cdk.Tags.of(this).add('ManagedBy', 'CDK');
+
+        // 本番（smalruby.app）の配信基盤は prod だけに作る。独自ドメインと DNS はまだ付けない
+        // （smalruby.app のゾーンを Route 53 に移してから、別の変更で足す）。
+        if (stage === SITE_STAGE) {
+            this.createSiteDelivery();
+            return;
+        }
 
         // プレビュー配信は stg の資源として持つ（preview は stg API を見る）。
         // Deploy Infra は develop へのマージで prod にも出すので、prod（と stg2 など他ステージ）では
@@ -106,28 +136,14 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             region: 'us-east-1',
         });
 
-        const viewerRequest = new cloudfront.Function(this, 'PreviewViewerRequest', {
-            runtime: cloudfront.FunctionRuntime.JS_2_0,
-            code: cloudfront.FunctionCode.fromFile({
-                filePath: path.join(__dirname, 'functions/preview-viewer-request.js'),
-            }),
-            comment: 'Resolve /<slug>/ to index.html for branch previews',
-        });
-
-        // Cache-Control が無い index.html は短く、CI が長い Cache-Control を付けた
-        // ハッシュ付きアセットは最長 1 年まで持つ。クエリ文字列は GUI 側の設定
-        // （?tab=ruby など）でアセットには関係ないのでキーに含めない。
-        const cachePolicy = new cloudfront.CachePolicy(this, 'PreviewCachePolicy', {
-            comment: 'Branch previews: short for index.html, honor Cache-Control for assets',
-            minTtl: cdk.Duration.seconds(0),
-            defaultTtl: cdk.Duration.seconds(PREVIEW_DEFAULT_TTL_SECONDS),
-            maxTtl: cdk.Duration.days(365),
-            enableAcceptEncodingGzip: true,
-            enableAcceptEncodingBrotli: true,
-            queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
-            headerBehavior: cloudfront.CacheHeaderBehavior.none(),
-            cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-        });
+        const viewerRequest = this.createViewerRequestFunction(
+            'PreviewViewerRequest',
+            'Resolve /<slug>/ to index.html for branch previews',
+        );
+        const cachePolicy = this.createCachePolicy(
+            'PreviewCachePolicy',
+            'Branch previews: short for index.html, honor Cache-Control for assets',
+        );
 
         const distribution = new cloudfront.Distribution(this, 'PreviewDistribution', {
             comment: `Smalruby branch previews (${PREVIEW_ZONE_NAME})`,
@@ -158,18 +174,201 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         new route53.ARecord(this, 'PreviewAliasA', { zone, target: aliasTarget });
         new route53.AaaaRecord(this, 'PreviewAliasAAAA', { zone, target: aliasTarget });
 
-        // CI（GitHub Actions）がプレビューを出すためのロール。OIDC プロバイダはアカウントに
-        // 1 つしか作れず、Deploy Infra 用に作成済みなので参照する。
+        // CI（GitHub Actions）がプレビューを出すためのロール。PR を含む全ブランチから出す。
+        const deployRole = this.createDeployRole(
+            'PreviewDeployRole',
+            `GitHub Actions (${PREVIEW_GITHUB_REPOSITORY}) deploys branch previews`,
+            `repo:${PREVIEW_GITHUB_REPOSITORY}:*`,
+            bucket,
+            distribution,
+        );
+
+        new cdk.CfnOutput(this, 'PreviewDeployRoleArn', {
+            value: deployRole.roleArn,
+            description: 'IAM role GitHub Actions assumes (OIDC) to deploy branch previews',
+        });
+        new cdk.CfnOutput(this, 'PreviewBucketName', {
+            value: bucket.bucketName,
+            description: 'S3 bucket that stores branch previews (<slug>/...)',
+        });
+        new cdk.CfnOutput(this, 'PreviewDistributionId', {
+            value: distribution.distributionId,
+            description: `CloudFront distribution id of ${PREVIEW_ZONE_NAME}`,
+        });
+        new cdk.CfnOutput(this, 'PreviewDistributionDomainName', {
+            value: distribution.distributionDomainName,
+            description: 'CloudFront domain name (alias target of the zone apex)',
+        });
+    }
+
+    /**
+     * 本番（smalruby.app）の配信基盤（S3 + CloudFront + CI 用ロール）。
+     *
+     * いまの本番は GitHub Pages で配信しており、これは切り替え先として並べて作るだけ。
+     * 独自ドメイン（smalruby.app）・証明書・DNS はまだ付けないので、CloudFront の既定の
+     * ドメイン（`*.cloudfront.net`）でしか見えず、いまの本番には影響しない。
+     * 証明書は smalruby.app のゾーンを Route 53 に移してから足す（委任前だと DNS 検証が
+     * 終わらないのはプレビューと同じ）。
+     */
+    private createSiteDelivery(): void {
+        const bucket = new s3.Bucket(this, 'SiteBucket', {
+            blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+            encryption: s3.BucketEncryption.S3_MANAGED,
+            enforceSSL: true,
+            objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_ENFORCED,
+            // 本番の配信元なので、スタックの削除や論理 ID の変更があっても消さない（例外の RETAIN。
+            // .claude/rules/infra/development.md の「データ保持」）。中身はビルドで作り直せるが、
+            // 消えると切り替え後の smalruby.app が止まり、CloudFront の OAC の向き先も失われる。
+            removalPolicy: cdk.RemovalPolicy.RETAIN,
+            // 本番はプレビューと違い、いまの版を期限で消さない。上書き・削除された古い版だけを
+            // しばらく残し、CI の誤りで消えたファイルを戻せるようにする。古い版が消えたあとに残る
+            // 削除マーカーも片付ける。
+            versioned: true,
+            lifecycleRules: [
+                {
+                    id: 'ExpireNoncurrentVersions',
+                    noncurrentVersionExpiration: cdk.Duration.days(
+                        SITE_NONCURRENT_VERSION_EXPIRATION_DAYS,
+                    ),
+                    expiredObjectDeleteMarker: true,
+                    abortIncompleteMultipartUploadAfter: cdk.Duration.days(7),
+                },
+            ],
+        });
+
+        // `/` → `/index.html`、`/admin/` → `/admin/index.html`、`/admin` → `/admin/` への 301。
+        // プレビューと同じ規則で足りるので、同じ関数のコードを使う。
+        const viewerRequest = this.createViewerRequestFunction(
+            'SiteViewerRequest',
+            'Resolve directory URLs to index.html for smalruby.app',
+        );
+        const cachePolicy = this.createCachePolicy(
+            'SiteCachePolicy',
+            'smalruby.app: short for index.html, honor Cache-Control for assets',
+        );
+
+        // GitHub Pages が返している HSTS をそのまま引き継ぐ（.app は HSTS preload 済みなので
+        // ブラウザは常に HTTPS で来るが、ヘッダが消えると診断ツールで差分に見える）。
+        const responseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(
+            this,
+            'SiteResponseHeaders',
+            {
+                comment: 'smalruby.app: HSTS and nosniff',
+                securityHeadersBehavior: {
+                    strictTransportSecurity: {
+                        accessControlMaxAge: cdk.Duration.days(365),
+                        includeSubdomains: false,
+                        override: true,
+                    },
+                    contentTypeOptions: { override: true },
+                },
+            },
+        );
+
+        const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
+            comment: 'Smalruby production site (smalruby.app, not attached yet)',
+            // minimumProtocolVersion（TLS 1.2 以上）は既定の証明書では効かないので、
+            // smalruby.app の証明書を付けるときに一緒に足す。
+            httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
+            priceClass: cloudfront.PriceClass.PRICE_CLASS_200,
+            defaultBehavior: {
+                origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),
+                viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+                compress: true,
+                cachePolicy,
+                responseHeadersPolicy,
+                functionAssociations: [
+                    {
+                        function: viewerRequest,
+                        eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+                    },
+                ],
+            },
+        });
+
+        // 本番に出すのは develop への push だけなので、信頼する subject をプレビューより狭くする。
+        const deployRole = this.createDeployRole(
+            'SiteDeployRole',
+            `GitHub Actions (${PREVIEW_GITHUB_REPOSITORY}) deploys smalruby.app`,
+            SITE_DEPLOY_SUBJECTS,
+            bucket,
+            distribution,
+        );
+
+        new cdk.CfnOutput(this, 'SiteDeployRoleArn', {
+            value: deployRole.roleArn,
+            description: 'IAM role GitHub Actions assumes (OIDC) to deploy smalruby.app',
+        });
+        new cdk.CfnOutput(this, 'SiteBucketName', {
+            value: bucket.bucketName,
+            description: 'S3 bucket that stores the smalruby.app build',
+        });
+        new cdk.CfnOutput(this, 'SiteDistributionId', {
+            value: distribution.distributionId,
+            description: 'CloudFront distribution id for smalruby.app',
+        });
+        new cdk.CfnOutput(this, 'SiteDistributionDomainName', {
+            value: distribution.distributionDomainName,
+            description: 'CloudFront domain name (check before attaching smalruby.app)',
+        });
+    }
+
+    /**
+     * ディレクトリの URL を index.html に解決する viewer-request 関数。S3 は REST
+     * エンドポイント（OAC）なので、ディレクトリの index.html を自分で解決しない。
+     */
+    private createViewerRequestFunction(id: string, comment: string): cloudfront.Function {
+        return new cloudfront.Function(this, id, {
+            runtime: cloudfront.FunctionRuntime.JS_2_0,
+            code: cloudfront.FunctionCode.fromFile({
+                filePath: path.join(__dirname, 'functions/preview-viewer-request.js'),
+            }),
+            comment,
+        });
+    }
+
+    /**
+     * Cache-Control が無い index.html は短く、CI が長い Cache-Control を付けた
+     * ハッシュ付きアセットは最長 1 年まで持つ。クエリ文字列は GUI 側の設定
+     * （?tab=ruby など）でアセットには関係ないのでキーに含めない。
+     */
+    private createCachePolicy(id: string, comment: string): cloudfront.CachePolicy {
+        return new cloudfront.CachePolicy(this, id, {
+            comment,
+            minTtl: cdk.Duration.seconds(0),
+            defaultTtl: cdk.Duration.seconds(PREVIEW_DEFAULT_TTL_SECONDS),
+            maxTtl: cdk.Duration.days(365),
+            enableAcceptEncodingGzip: true,
+            enableAcceptEncodingBrotli: true,
+            queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
+            headerBehavior: cloudfront.CacheHeaderBehavior.none(),
+            cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+        });
+    }
+
+    /**
+     * CI（GitHub Actions）が配信物を置くためのロール。OIDC プロバイダはアカウントに
+     * 1 つしか作れず、Deploy Infra 用に作成済みなので参照する。権限はこのバケットと
+     * このディストリビューションだけ。
+     */
+    private createDeployRole(
+        id: string,
+        description: string,
+        subjects: string | string[],
+        bucket: s3.IBucket,
+        distribution: cloudfront.IDistribution,
+    ): iam.Role {
         const githubOidc = iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(
             this,
             'GitHubOidcProvider',
             `arn:${cdk.Aws.PARTITION}:iam::${cdk.Aws.ACCOUNT_ID}:oidc-provider/${GITHUB_OIDC_HOST}`,
         );
-        const deployRole = new iam.Role(this, 'PreviewDeployRole', {
-            description: `GitHub Actions (${PREVIEW_GITHUB_REPOSITORY}) deploys branch previews`,
+        const deployRole = new iam.Role(this, id, {
+            description,
             assumedBy: new iam.WebIdentityPrincipal(githubOidc.openIdConnectProviderArn, {
                 StringEquals: { [`${GITHUB_OIDC_HOST}:aud`]: 'sts.amazonaws.com' },
-                StringLike: { [`${GITHUB_OIDC_HOST}:sub`]: `repo:${PREVIEW_GITHUB_REPOSITORY}:*` },
+                StringLike: { [`${GITHUB_OIDC_HOST}:sub`]: subjects },
             }),
             maxSessionDuration: cdk.Duration.hours(1),
         });
@@ -198,22 +397,6 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
                 ],
             }),
         );
-
-        new cdk.CfnOutput(this, 'PreviewDeployRoleArn', {
-            value: deployRole.roleArn,
-            description: 'IAM role GitHub Actions assumes (OIDC) to deploy branch previews',
-        });
-        new cdk.CfnOutput(this, 'PreviewBucketName', {
-            value: bucket.bucketName,
-            description: 'S3 bucket that stores branch previews (<slug>/...)',
-        });
-        new cdk.CfnOutput(this, 'PreviewDistributionId', {
-            value: distribution.distributionId,
-            description: `CloudFront distribution id of ${PREVIEW_ZONE_NAME}`,
-        });
-        new cdk.CfnOutput(this, 'PreviewDistributionDomainName', {
-            value: distribution.distributionDomainName,
-            description: 'CloudFront domain name (alias target of the zone apex)',
-        });
+        return deployRole;
     }
 }

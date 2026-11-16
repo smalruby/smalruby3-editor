@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { defineMessages } from 'react-intl';
+import { multiWritePairs } from '../analysis';
 import { messages as converterMessages } from '../converter-errors';
 import { RubyToBlocksConverterError } from '../errors';
 
@@ -12,16 +13,6 @@ const messages = defineMessages({
         id: 'gui.smalruby3.rubyToBlocksConverter.cannotChangeArgument',
     },
 });
-
-// The variables a multiple assignment can set, and the kind of each (issue #1814).
-const MULTI_WRITE_TARGET_SCOPES = {
-    LocalVariableTargetNode: 'local',
-    InstanceVariableTargetNode: 'instance',
-    GlobalVariableTargetNode: 'global',
-};
-// The values of a multiple assignment that becomes one assignment for each variable: literals only,
-// so that setting the variables one by one is the same as setting them together.
-const MULTI_WRITE_LITERAL_TYPES = new Set(['IntegerNode', 'FloatNode', 'StringNode', 'TrueNode', 'FalseNode']);
 
 /**
  * Assignment AST handlers for RubyToBlocksConverter.
@@ -183,36 +174,11 @@ const AssignmentHandlers = {
         return this._onVasgn(node.name, 'instance', node.value, node);
     },
 
-    /**
-     * The variables and the values of a multiple assignment that the blocks can do as one
-     * assignment for each variable (issue #1814): `a, b = 1, "x"` (literals after `=`, as many as
-     * the variables). Ruby works out every value before it sets the variables, so a value that reads
-     * a variable or calls a method could differ when the variables are set one by one: the swap
-     * `a, b = b, a` is not `a = b` then `b = a`. Such a form, and a splat, an array, an element of a
-     * list or nested variables, is not taken.
-     * @param {object} node - A MultiWriteNode.
-     * @returns {?Array<{target: object, scope: string, value: object}>} The pairs, or null when the
-     *   form is not taken.
-     */
-    _multiWritePairs(node) {
-        const value = node.value;
-        if (node.rest || node.rights.length > 0) return null;
-        if (this._prismNodeType(value) !== 'ArrayNode' || value.openingLoc) return null;
-        if (value.elements.length !== node.lefts.length) return null;
-        const pairs = [];
-        for (let i = 0; i < node.lefts.length; i++) {
-            const target = node.lefts[i];
-            const scope = MULTI_WRITE_TARGET_SCOPES[this._prismNodeType(target)];
-            if (!scope || !MULTI_WRITE_LITERAL_TYPES.has(this._prismNodeType(value.elements[i]))) return null;
-            pairs.push({ target, scope, value: value.elements[i] });
-        }
-        return pairs;
-    },
-
     // `a, b = 1, 2` is `a = 1` then `b = 2`. The blocks have no multiple assignment, so any other
     // form is the error of a wrong instruction (issue #1814).
     visitMultiWriteNode(node) {
-        const pairs = this._multiWritePairs(node);
+        // The same pairs as the analysis takes (`multiWritePairs`), so that both see the same assignments.
+        const pairs = multiWritePairs(node);
         if (!pairs) {
             throw new RubyToBlocksConverterError(
                 node,
@@ -268,7 +234,7 @@ const AssignmentHandlers = {
         const variable = this._lookupOrCreateVariable(varName);
         // Whether this assignment made the variable: one made only to be set to a hash is left out
         // at the end when nothing uses it (see `_dropUnusedHashVariables`, issue #1666).
-        const storeOfVariable = scope === 'local' ? saved.localVariables : saved.variables;
+        const storeOfVariable = this._savedStore(saved, scope === 'local' ? 'localVariables' : 'variables');
         const madeByThisAssignment = !Object.values(storeOfVariable).includes(variable);
         // Visit the value as a value, like an argument of `say(...)`: a call of a method that returns
         // a value (e.g. `x = bar(1)`, `x = super`) becomes the call followed by its return variable (#1568).
