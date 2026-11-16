@@ -1,4 +1,5 @@
 import { Variable, LOCAL_VARIABLE_PATTERN } from './constants';
+import { ContextJournal, JOURNALED_STORES } from './context-journal';
 
 // Assignments whose value is visited as a value (see `_onVasgn`).
 const VALUE_WRITE_NODE_TYPES = ['LocalVariableWriteNode', 'InstanceVariableWriteNode', 'GlobalVariableWriteNode'];
@@ -69,6 +70,12 @@ const ContextUtils = {
             listReadBlockIds: new Set(),
             currentLocalUnit: 0,
         };
+        // The tables that a conversion attempt rolls back record their writes (see `_saveContext`).
+        const journal = new ContextJournal();
+        this._context.journal = journal;
+        JOURNALED_STORES.forEach((name) => {
+            this._context[name] = journal.wrap(name, this._context[name]);
+        });
         if (this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage) {
             this._loadVariables(this.vm.runtime.getTargetForStage());
         }
@@ -111,56 +118,40 @@ const ContextUtils = {
         });
     },
 
+    /**
+     * Start a conversion attempt that `_restoreContext` can roll back.
+     * Nothing is copied: the tables (blocks, comments, variables, ...) record what is written to
+     * them from now on (`context-journal.js`).
+     * @returns {{mark: object}} The point to roll back to.
+     */
     _saveContext() {
-        const includes = [
-            'blocks',
-            'blockTypes',
-            'localVariables',
-            'variables',
-            'lists',
-            'broadcastMsgs',
-            'procedures',
-            'comments',
-            'literalCallIndices',
-        ];
-
-        const saved = {};
-        Object.keys(this._context)
-            .filter((k) => includes.indexOf(k) >= 0)
-            .forEach((k) => {
-                saved[k] = Object.assign({}, this._context[k]);
-            });
-        return saved;
+        return { mark: this._context.journal.mark() };
     },
 
     /**
-     * Roll the context back to a `_saveContext` snapshot: drop the entries (blocks, comments,
+     * The entries a table had when `_saveContext` was called (a copy, for reading).
+     * @param {{mark: object}} saved - The point returned by `_saveContext`.
+     * @param {string} name - The name of the table (e.g. 'variables').
+     * @returns {object} The entries.
+     */
+    _savedStore(saved, name) {
+        return this._context.journal.storeAt(saved.mark, name);
+    },
+
+    /**
+     * Roll the context back to a `_saveContext` point: drop the entries (blocks, comments,
      * variables, ...) made since then and put back the ones removed or replaced since then,
      * so that a conversion attempt that was given up leaves no orphan block or comment behind.
      * The attributes of an entry that was kept (e.g. a block's `parent`) are not restored.
-     * @param {object} saved - The snapshot returned by `_saveContext`.
+     * @param {{mark: object}} saved - The point returned by `_saveContext`.
      */
     _restoreContext(saved) {
         if (!saved) {
             return;
         }
 
-        Object.keys(saved).forEach((key) => {
-            if (Object.prototype.hasOwnProperty.call(this._context, key)) {
-                Object.keys(this._context[key]).forEach((id) => {
-                    if (!Object.prototype.hasOwnProperty.call(saved[key], id)) {
-                        delete this._context[key][id];
-                    }
-                });
-                Object.keys(saved[key]).forEach((id) => {
-                    this._context[key][id] = saved[key][id];
-                });
-            }
-        });
+        this._context.journal.rollback(saved.mark);
 
-        if (!saved.blocks) {
-            return;
-        }
         const exists = (blockId) => Object.prototype.hasOwnProperty.call(this._context.blocks, blockId);
         const nodeToBlockMap = this._context.nodeToBlockMap;
         if (nodeToBlockMap) {
