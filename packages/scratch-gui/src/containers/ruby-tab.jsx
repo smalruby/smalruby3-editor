@@ -14,6 +14,7 @@ import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../l
 import collectMetadata from '../lib/collect-metadata.js';
 import { findArrayIndexHints } from '../lib/dncl/dncl-array-index-hint';
 import { slashCommentRows, tidyPastedDncl, withDoubleSlashHint } from '../lib/dncl/dncl-paste-tidy';
+import { stringArithmeticRows } from '../lib/dncl/dncl-string-arithmetic-hint';
 import { dnclToRuby, rubyForLeavingDncl } from '../lib/dncl/dncl-to-ruby';
 import {
     isRubyCommandName,
@@ -65,6 +66,7 @@ import {
     DNCL_INDEX_HINT_OWNER,
     DNCL_UNSUPPORTED_OWNER,
     DNCL_SLASH_COMMENT_OWNER,
+    DNCL_STRING_ARITHMETIC_OWNER,
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import { offerDnclIndexShift } from './ruby-tab/dncl-index-shift';
@@ -1279,6 +1281,32 @@ const RubyTab = (props) => {
             severity: monacoRef.current.MarkerSeverity.Warning,
         }));
         monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_SLASH_COMMENT_OWNER, markers);
+    }, [dnclMode, dnclDisplayCode, intl]);
+
+    // `+` with a string and `-` / `*` / `/` are worked out from the left, so in
+    // `"残り" + a - 1` the `- 1` is taken from a string and only a number is shown.
+    // The order is kept (Ruby reads it the same way); warn on such lines so that
+    // the number part is put in parentheses (see `stringArithmeticRows`). The
+    // markers use their own owner so clearing conversion errors keeps them
+    // (Issue #1465).
+    useEffect(() => {
+        if (!editorRef.current || !monacoRef.current) return;
+        const lines = dnclMode ? dnclDisplayCode.split('\n') : [];
+        const rows = dnclMode ? stringArithmeticRows(lines) : [];
+        const message = intl.formatMessage({
+            id: 'gui.rubyTab.dnclStringArithmeticHint',
+            defaultMessage:
+                'With a string, - * / are worked out from the left, so "a" + x - 1 subtracts from the string "a" + x. Put the number part in parentheses, like "a" + (x - 1).',
+        });
+        const markers = rows.map((row) => ({
+            startLineNumber: row + 1,
+            startColumn: 1,
+            endLineNumber: row + 1,
+            endColumn: lines[row].length + 1,
+            message,
+            severity: monacoRef.current.MarkerSeverity.Warning,
+        }));
+        monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), DNCL_STRING_ARITHMETIC_OWNER, markers);
     }, [dnclMode, dnclDisplayCode, intl]);
 
     // The post-test loop (Issue #1626) and the Ruby commands (Issue #1679)

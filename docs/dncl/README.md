@@ -81,6 +81,7 @@ DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`]
 | `dncl-v2-preprocessor.js` | **DNCLv2 → Smalruby DNCL 正規化**（行番号、コロン、`｜` / `⎿`、複数代入、`and` / `or` / `not`、関数定義 opener） |
 | `dncl-line-number.js` | **行番号と本文の間の区切り**（`lineNumberSeparator`）。行番号の後ろの空白のうち、どこまでが区切りでどこからが字下げかを決める。`dncl-v2-preprocessor.js` と `dncl-paste-tidy.js` が使う |
 | `dncl-paste-tidy.js` | **貼り付け時の整形**（日本語モードのエディタに貼り付けた行番号付きのテキストの行番号を消し、`//` コメントを `#` に直す。下の「貼り付け時の整形」）と、`//` のある行の変換エラーに「`//` はコメントではない」と添える `withDoubleSlashHint` |
+| `dncl-string-arithmetic-hint.js` | **文字列と `-` `*` `/` の警告**（`stringArithmeticRows`）。文字列を `+` でつないだ後の `-` や、文字列に `-` `*` `/` を使う行を見つける。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclStringArithmeticHint`）にして、数の計算をかっこで囲むよう表示する。下の「文字列と数の計算」 |
 | `dncl-array-index-hint.js` | **範囲外の添字の警告**（`findArrayIndexHints`）。1 から始まる添字で書いたときのように配列の範囲外を読む `X[i]` / `X[3]` を見つける。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclArrayIndexHint`）にして、添字が 0 から始まることと直し方を表示する。下の「配列の添字は 0 から」 |
 | `dncl-paste-index-shift.js` | **貼り付け時の添字の 0 始まりへの書き換え**（`hasOneBasedIndexNote` / `shiftArrayIndexes` / `findOneBasedSuspects`）。「添字は 1 から始まる」の注釈がある貼り付けテキストの配列の添字を 1 減らし、1 始まりを前提にしていそうな行を見つける。下の「貼り付け時の添字の書き換え」 |
 | `dncl-line-converter.js` | 行単位の DNCL → Ruby 変換 |
@@ -259,6 +260,14 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
 
 `//` をコメントのつもりで書いた行（行番号なしで貼った例題など）は、`//` が商なのでエラーにならずに別のプログラムになる（`n = 1 // 生徒番号` は `(1 / @生徒番号).to_i`）。そこで日本語モードのエディタは、`//` がコメントに見える行（上の整形でコメントとみなす条件と同じ。`dncl-paste-tidy.js` の `slashCommentRows`）に「スモウルビーでは // はコメントではありません（整数の割り算です）。コメントには # をつかってください。」（`gui.rubyTab.dnclDoubleSlashHint`）の警告マーカーを出す。警告は変換を止めない。マーカーの owner は `smalruby-dncl-slash-comment`（`ruby-tab/constants.js` の `DNCL_SLASH_COMMENT_OWNER`）。`//` のある行が変換エラーになったときは、エラーマーカーの先頭にも同じ文を添える（`ruby-tab.jsx` の `showErrors` が `withDoubleSlashHint` を呼ぶ）。生成AI に相談の答えの確認では、`slashCommentRows` の行を問題として返し、AI に `#` を使うよう伝える（`genai-dncl-answer.js`）。
 
+### 文字列と数の計算
+
+`+` は文字列をつなぎ、`-` `*` `/` は数を計算する。どちらも左から順に計算するので、`表示する("残り" + a - 1 + "日")` は、文字列 `"残り" + a` から 1 を引くことになり、数だけが表示される（Ruby でも同じ順に読む。本物の Ruby では文字列に `-` が無いのでエラーになる）。計算の順番は変えない。代わりに日本語モードのエディタは、次の行に「数の計算はかっこで囲む」警告マーカー（`gui.rubyTab.dnclStringArithmeticHint`）を出す（`dncl-string-arithmetic-hint.js` の `stringArithmeticRows`）。警告は変換を止めない。マーカーの owner は `smalruby-dncl-string-arithmetic`（`ruby-tab/constants.js` の `DNCL_STRING_ARITHMETIC_OWNER`）。
+
+- 文字列（`"..."`・`'...'`・`「...」`・`文字列(...)`・`... .to_s`）を `+` でつないだ後の `-`（`"a" + x - 1`）
+- 文字列のすぐ隣の `-` `*` `/` `%` `÷`（`"a" * 2`、`x - 文字列(1)`）
+- かっこの中は別の式として見る（`"a" + (x - 1)` は警告しない）。`,`・比較・`かつ` / `または` の後も新しい式として見る
+
 ### 配列の添字は 0 から
 
 スモウルビーとスモウルビーの日本語は、配列の添字を 0 から始める（共通テストのプログラム表記の既定と同じ）。宣言や設定で 1 から始まるように切り替える仕組みは持たない。添字の始まりは言語としてどちらを採るかの問題で、今のプログラミング言語にも宣言で切り替えるものは無いため。
@@ -334,6 +343,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-v2-indent-only-blocks.test.js` — 字下げだけで書いたブロック（字下げの幅・全角空白・タブ・入れ子・`そうでなければ`・空行・行末コメント・日本語の関数名・行番号付き・桁をそろえた行番号）の Ruby の字下げと終了行、エラーの列が書いた DNCL の位置を指すこと、変換した Ruby がブロックに変換できること
   - `dncl-line-number.test.js` — 行番号と本文の間の区切りの決め方（1 空白・幅の違う行番号・桁をそろえた行番号・全部の行が字下げされている場合）
   - `dncl-array-index-hint.test.js` — 範囲外の添字の警告（1 から数えたループ・数の添字・0 から数えたループは警告しない・二度代入した配列・要素を追加/削除する配列・関数の引数と同じ名前は推測しない）
+  - `dncl-string-arithmetic-hint.test.js` — 文字列と `-` `*` `/` の警告（`+` でつないだ後の `-`・文字列の隣の `*` `/`・かっこの中・`,` や比較の後・符号・添字・文字列やコメントの中は警告しない）
   - `dncl-paste-tidy.test.js` — 貼り付け時の整形（行番号の削除と字下げの保持・`//` コメント → `#`・整数除算と文字列の `//` は不変）
   - `dncl-paste-index-shift.test.js` — 貼り付け時の添字の書き換え（注釈の検出と表記の揺れ・数/式/2 次元/入れ子の添字・初期化/文字列/コメントは不変・書き換え位置・共通テスト例題の要確認の行）
   - `dncl-display-multi-arg.test.js` — `表示する` 多引数 / `puts(... + ...)` round-trip

@@ -1604,6 +1604,8 @@ export default {
     'gui.dnclModeNotice.exitButton': 'Return to Ruby furigana mode',
     'gui.rubyTab.dnclDoubleSlashHint':
         'In Smalruby, // is not a comment (it is integer division). Use # for comments.',
+    'gui.rubyTab.dnclStringArithmeticHint':
+        'With a string, - * / are worked out from the left, so "a" + x - 1 subtracts from the string "a" + x. Put the number part in parentheses, like "a" + (x - 1).',
     'gui.rubyTab.dnclArrayIndexHint':
         '{access} reads past the end of the array. In Smalruby Japanese mode, array indices start at 0 (the first element is {array}[0] and the last is {array}[{last}]). If the problem counts from 1, shift the index by 1, like {fixed}.',
     'gui.rubyTab.dnclIndexShiftConfirm':
