@@ -5,16 +5,23 @@
  * peripheral extension holding a meshService with `remoteData`).
  */
 import EventEmitter from 'events';
-import { attachPracticeLoopback } from '../../../../src/lib/lessons/practice-loopback';
+import { attachPracticeLoopback, LESSON_OWNER } from '../../../../src/lib/lessons/practice-loopback';
 import {
     normalizePartner,
     PRACTICE_PARTNER_NODE_ID,
     findName,
     partnerNames,
-    practiceAllowed,
     receivedSummary,
-    repliesFor,
 } from '../../../../src/lib/lessons/practice-partner';
+import {
+    attachPracticeLoopback as attachSharedLoopback,
+    practiceLoopbackOwner,
+} from '../../../../src/lib/mesh-practice/loopback';
+import {
+    MESH_PRACTICE_PARTNER_NODE_ID,
+    practiceAllowed,
+    repliesFor,
+} from '../../../../src/lib/mesh-practice/partner';
 
 const PARTNER = {
     name: 'ロボ',
@@ -36,7 +43,12 @@ describe('normalizePartner', () => {
         expect(normalizePartner(PARTNER, 'ja')).toEqual({
             name: 'ロボ',
             buttons: [
-                { label: 'あいさつする', set: [{ name: 'へんじ', value: 'こんにちは' }], broadcast: 'メッセージ' },
+                {
+                    label: 'あいさつする',
+                    set: [{ name: 'へんじ', value: 'こんにちは' }],
+                    broadcast: 'メッセージ',
+                    value: '',
+                },
                 {
                     label: '2 つ変える',
                     set: [
@@ -44,9 +56,17 @@ describe('normalizePartner', () => {
                         { name: 'b', value: 'x' },
                     ],
                     broadcast: null,
+                    value: '',
                 },
             ],
-            replies: [{ onBroadcast: 'メッセージ', set: [{ name: 'へんじ', value: 'やあ' }], broadcast: 'へんじ' }],
+            replies: [
+                {
+                    onBroadcast: 'メッセージ',
+                    set: [{ name: 'へんじ', value: 'やあ' }],
+                    broadcast: 'へんじ',
+                    value: '',
+                },
+            ],
             watch: [],
         });
     });
@@ -508,5 +528,50 @@ describe('attachPracticeLoopback', () => {
         loop.press(0);
         expect(runtime.startHats).toHaveBeenCalledTimes(1);
         loop.detach();
+    });
+});
+
+describe('attachPracticeLoopback on the shared parts (lib/mesh-practice, #1876)', () => {
+    const partner = () => normalizePartner(PARTNER, 'ja');
+
+    test('connects as the lesson and lets the others go after detach', () => {
+        const fake = makeVm();
+        const loop = attachPracticeLoopback({ vm: fake.vm, partner: partner(), timers: makeTimers() });
+        expect(practiceLoopbackOwner(fake.runtime)).toBe(LESSON_OWNER);
+        // ひとりで使う練習相手は、レッスンがつないでいるあいだはつながない（二重に見張らない）
+        expect(attachSharedLoopback({ vm: fake.vm, owner: 'standalone', timers: makeTimers() })).toBeNull();
+        loop.detach();
+        expect(practiceLoopbackOwner(fake.runtime)).toBeNull();
+    });
+
+    test('gives null while another practice partner is connected', () => {
+        const fake = makeVm();
+        const other = attachSharedLoopback({ vm: fake.vm, owner: 'standalone', timers: makeTimers() });
+        expect(attachPracticeLoopback({ vm: fake.vm, partner: partner(), timers: makeTimers() })).toBeNull();
+        other.detach();
+        const loop = attachPracticeLoopback({ vm: fake.vm, partner: partner(), timers: makeTimers() });
+        expect(loop).not.toBeNull();
+        loop.detach();
+    });
+
+    test('uses the same node id as the standalone practice partner', () => {
+        expect(PRACTICE_PARTNER_NODE_ID).toBe(MESH_PRACTICE_PARTNER_NODE_ID);
+    });
+
+    test('records sent and received messages in the mesh history, and removes them on detach', () => {
+        const fake = makeVm();
+        const svc = fake.meshService;
+        svc.messageHistory = [];
+        svc.recordMessage = (entry) => svc.messageHistory.unshift(entry);
+        const timers = makeTimers();
+        const loop = attachPracticeLoopback({ vm: fake.vm, partner: partner(), now: () => 1000, timers });
+        exec(fake.runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        timers.flush();
+        expect(svc.messageHistory.map((e) => [e.direction, e.name, e.nodeId])).toEqual([
+            ['received', 'へんじ', PRACTICE_PARTNER_NODE_ID],
+            ['sent', 'メッセージ', 'me'],
+        ]);
+        loop.detach();
+        expect(svc.messageHistory).toEqual([]);
     });
 });

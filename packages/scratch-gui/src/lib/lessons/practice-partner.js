@@ -17,11 +17,17 @@
 // - ボタンを押したとき・合図を受け取ったときは、`set` → `broadcast` の順に起きる。
 // - `watch` は、パネルの「届いた」の行に出す生徒の共有する変数の名前（文字列か locale ごとの文字列の配列）。
 //   ふつうは相手が使う名前だけを出すが、相手が読まない変数（3-3 の自分の気分）も出したいときに書く。
-// VM とのつなぎ（ブラウザの中での折り返し）は practice-loopback.js。
+// VM とのつなぎ（ブラウザの中での折り返し）は practice-loopback.js（共通の部品 lib/mesh-practice/loopback.js に乗せる）。
+// 結果は共通の形 `{name, buttons: [{label, set, broadcast, value}], replies: [{onBroadcast, set, broadcast, value}]}`。
+// 自動の返事の選び方（repliesFor）・動かしてよいか（practiceAllowed）は lib/mesh-practice/partner.js を使う。
+import { MESH_PRACTICE_PARTNER_NODE_ID, sameMessage } from '../mesh-practice/partner';
 import { localizeCode } from './courses';
 
-/** 練習相手のメッシュのノード ID（本物のノード ID と重ならない名前）。 */
-export const PRACTICE_PARTNER_NODE_ID = 'smalruby-lesson-practice-partner';
+/**
+ * 練習相手のメッシュのノード ID。ひとりで使う練習相手と同じ ID にそろえる（「状態と履歴」のウィンドウで
+ * 「相手（練習相手）」と出すため。二重につながる仕組みは共通の部品が持つので、同じ ID でも混ざらない）。
+ */
+export const PRACTICE_PARTNER_NODE_ID = MESH_PRACTICE_PARTNER_NODE_ID;
 
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -76,16 +82,19 @@ const normalizeSet = (set, locale) =>
         })
         .filter((one) => one !== null && one.name !== null);
 
+// `value` は送る合図の値（値つきメッセージ #1843）。レッスンの合図は値なし（''）
 const normalizeAction = (def, locale) => ({
     set: normalizeSet(def.set, locale),
     broadcast: localizeText(def.broadcast, locale),
+    value: '',
 });
 
 /**
  * 練習相手の定義を、いまの locale で読みやすい形にそろえる。
  * @param {?object} partner - チャレンジの `partner`。
  * @param {string} locale - いまの locale。
- * @returns {?object} `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}]}`。
+ * @returns {?object} `{name, buttons: [{label, set, broadcast, value}], replies: [{onBroadcast, set, broadcast,
+ *   value}], watch}`（共通の部品 lib/mesh-practice/loopback.js が読む形）。
  *   定義が無い・ボタンも自動の返事も無いときは null（練習相手を出さない）。
  */
 export const normalizePartner = (partner, locale) => {
@@ -103,20 +112,6 @@ export const normalizePartner = (partner, locale) => {
         .map((name) => localizeText(name, locale))
         .filter((name) => name !== null);
     return { name: localizeText(partner.name, locale) || '', buttons, replies, watch };
-};
-
-// 合図の名前は Scratch と同じく大文字小文字を区別しない
-const sameMessage = (a, b) => String(a).toUpperCase() === String(b).toUpperCase();
-
-/**
- * 合図を受け取ったときの自動の返事（定義の順）。
- * @param {?object} normalized - `normalizePartner` の結果。
- * @param {string} messageName - 生徒の作品が送った合図の名前。
- * @returns {Array<object>} 返事（`{onBroadcast, set, broadcast}`）。
- */
-export const repliesFor = (normalized, messageName) => {
-    if (!normalized || typeof messageName !== 'string' || messageName === '') return [];
-    return normalized.replies.filter((reply) => sameMessage(reply.onBroadcast, messageName));
 };
 
 /**
@@ -166,12 +161,3 @@ export const receivedSummary = (received) => {
     const sameName = findName(Object.keys(values), last.name);
     return sameName === null ? last.name : `${last.name} = ${values[sameName]}`;
 };
-
-/**
- * メッシュの拡張の接続のようすから、練習のモードを動かしてよいか。本物のメッシュでつながっている・
- * つなごうとしているあいだは動かさない（本物のメッシュに混ぜない）。
- * @param {?string} connectionState - 拡張の `connectionState`（無ければ拡張が無い）。
- * @returns {boolean} 動かしてよければ true。
- */
-export const practiceAllowed = (connectionState) =>
-    !connectionState || connectionState === 'disconnected' || connectionState === 'error';
