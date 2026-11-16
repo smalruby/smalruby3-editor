@@ -2,6 +2,11 @@
    $color-action（白に 4.5:1 以上の濃い青・#1922）。 */
 @import '../../css/smalruby-tokens.css';
 
+/* 先生の画面（クラス一覧・クラスの中のタブ・課題・採点・配信）の上の余白（#1988）。
+   紫のヘッダーの下は main の padding（1rem）があるので、画面の側はトークンの小さい余白だけにする。
+   どの画面も同じ値にして、タブを切りかえてもタブの行が上下に動かないようにする。 */
+$teacher-screen-padding-top: $space-small;
+
 /* The student modal targets the 1300x600 classroom PC (#1221): it is wide so
    guidance and actions sit side by side, and it sits near the top so the body
    gets most of the 600px height without scrolling. */
@@ -678,7 +683,7 @@
    （いまいる所はヘッダーに出るので、上の余白もここで持つ・#1958）。旧 .phaseContainer は
    未定義で左マージンが出ていなかったため専用クラスに置き換え。 */
 .post-assignment-container {
-    padding: 1.25rem 2rem;
+    padding: $teacher-screen-padding-top 2rem 1.25rem;
 }
 
 /* クラス名（課題詳細と同じ表記）を配信画面のサブタイトルとして表示。 */
@@ -1991,7 +1996,7 @@ $seat-tile-min: 36px;
     box-sizing: border-box;
     /* Align with the unified teacher views (.teacher-view). The path is in the
        header now, so the top offset is here too (#1958). */
-    padding: 1.25rem 2rem;
+    padding: $teacher-screen-padding-top 2rem 1.25rem;
 }
 
 .detail-two-pane-layout {
@@ -3432,7 +3437,7 @@ $seat-tile-min: 36px;
 /* --- Class list (post-login landing view) --- */
 
 .class-list {
-    padding: 1.25rem 2rem;
+    padding: $teacher-screen-padding-top 2rem 1.25rem;
     max-width: 60rem;
     overflow-y: auto;
 }
@@ -4262,7 +4267,7 @@ $seat-tile-min: 36px;
     flex-direction: column;
     box-sizing: border-box;
     height: 100%;
-    padding: 1.25rem 2rem;
+    padding: $teacher-screen-padding-top 2rem 1.25rem;
     max-width: 60rem;
     overflow-y: auto;
 }
@@ -4909,7 +4914,7 @@ $seat-tile-min: 36px;
    運ばれるので、この中には描かれない（#1958）。 */
 
 .teacher-view {
-    padding: 1.25rem 2rem;
+    padding: $teacher-screen-padding-top 2rem 1.25rem;
     max-width: 60rem;
     overflow-y: auto;
 }
