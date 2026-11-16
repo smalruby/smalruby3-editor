@@ -11,7 +11,7 @@ import {
     UNSUPPORTED_COMMAND_ERROR_ID,
     unsupportedCommandMessage,
 } from './dncl-validator';
-import { ID, processSegments } from './ruby-to-dncl-identifier';
+import { FORMS, ID, processSegments } from './ruby-to-dncl-identifier';
 import { convertLine, detectForLoopPattern, findCountingLoopStep, toDnclExpr } from './ruby-to-dncl-line-converter';
 
 /**
@@ -187,15 +187,89 @@ const findBareMethods = (lines, dnclLines, origins, folded) => {
     return errors;
 };
 
+/** The spaces of one level of indent in the standard form (design 2 章). */
+const STANDARD_INDENT = '    ';
+
+/**
+ * The `:` / `繰り返す:` the standard form puts at the end of an opener.
+ * @param {string|object} block - The block-stack entry the line opened
+ *   (`'if'`, `'loop'`, `'func'`, `'do'`, or `{type: 'for'}`).
+ * @returns {string} The suffix (`''` for a Ruby `do` block, which has no
+ *   Japanese form and stays as it is).
+ */
+const openerSuffix = (block) => {
+    if (block === 'do') return '';
+    if (block === 'loop' || (typeof block === 'object' && block.type === 'for')) return '繰り返す:';
+    return ':';
+};
+
+/**
+ * Write the blocks of the DNCL 風の形 lines in the standard form (Issue
+ * #1754): each line is indented by its block depth (4 spaces a level, not
+ * the Ruby indent, so a Ruby source with any indent reads back the same),
+ * an opener and `そうでなければ` / `そうでなくもし` end with `:`, and a loop
+ * with `繰り返す:`. The closer lines are dropped, as the indent ends the
+ * block, except where the indent cannot tell it, and the reader takes the
+ * closer of the DNCL 風の形 as well:
+ * - the block has no body (`もし a ならば:` + `を実行する`);
+ * - the closer has a comment (`end # c`), so the comment keeps its place;
+ * - a comment line follows it: the reader keeps a comment at a shallower
+ *   indent in the block, as it would a blank line.
+ * @param {Array<object>} entries - `{text, comment, kind, block}` per line;
+ *   `kind` is `'open'` / `'mid'` / `'close'` / `'line'`, `block` the entry
+ *   of the block stack an opener pushed.
+ * @returns {Array<string>} The lines (with their comments).
+ */
+const toStandardBlocks = (entries) => {
+    const out = [];
+    const open = [];
+    // Whether the block (or the branch) of the top of `open` has a line yet.
+    let hasBody = true;
+    const nextCode = (k) => entries.slice(k + 1).find((e) => e.text.trim() !== '');
+    entries.forEach((entry, k) => {
+        const body = entry.text.trim();
+        const indent = STANDARD_INDENT.repeat(open.length);
+        if (entry.kind === 'open') {
+            out.push(`${indent}${body}${openerSuffix(entry.block)}${entry.comment}`);
+            open.push(entry.block);
+            hasBody = false;
+            return;
+        }
+        if (entry.kind === 'mid' && open.length > 0) {
+            const midIndent = STANDARD_INDENT.repeat(open.length - 1);
+            // An empty branch before it is closed by the next branch (`:` opener + next).
+            out.push(`${midIndent}${body}:${entry.comment}`);
+            hasBody = false;
+            return;
+        }
+        if (entry.kind === 'close' && open.length > 0) {
+            const block = open.pop();
+            const closerIndent = STANDARD_INDENT.repeat(open.length);
+            const next = nextCode(k);
+            const keep =
+                block === 'do' || !hasBody || entry.comment !== '' || (next && next.text.trim().startsWith('#'));
+            if (keep) out.push(`${closerIndent}${body}${entry.comment}`);
+            hasBody = true;
+            return;
+        }
+        if (body !== '') hasBody = true;
+        out.push(body === '' ? entry.comment : `${indent}${body}${entry.comment}`);
+    });
+    return out;
+};
+
 /**
  * Transpile Ruby source code to DNCL.
  * @param {string} source - The Ruby source code.
+ * @param {object} [options] - Options.
+ * @param {string} [options.form] - The form to write: `FORMS.STANDARD`
+ *   (標準の形, the default; Issue #1754) or `FORMS.DNCL` (DNCL 風の形).
  * @returns {object} An object with `dncl` (the transpiled DNCL code) and
  *   `errors` (code that cannot be written in DNCL, with `line` / `column` of
  *   the Ruby source, `id` and `message`). The DNCL of such code is left as
  *   Ruby, so `dnclToRuby` tells the same errors on the DNCL lines.
  */
-const rubyToDncl = (source) => {
+const rubyToDncl = (source, { form = FORMS.STANDARD } = {}) => {
     // Stack of block contexts. String entries (`'if'`, `'loop'`, `'func'`)
     // are pushed by `convertLine`; object entries `{ type: 'for', info }`
     // are pushed here for while-based for-loop detection.
@@ -211,10 +285,13 @@ const rubyToDncl = (source) => {
     const comments = [];
     // The index of the Ruby line each DNCL line comes from.
     const origins = [];
-    const push = (text, comment, origin) => {
+    // What each DNCL line is to the blocks (see `toStandardBlocks`).
+    const kinds = [];
+    const push = (text, comment, origin, kind = { kind: 'line' }) => {
         dnclLines.push(text);
         comments.push(comment);
         origins.push(origin);
+        kinds.push(kind);
     };
     const errors = [];
     // Ruby lines put in the DNCL line of another one (see `findBareMethods`).
@@ -249,22 +326,25 @@ const rubyToDncl = (source) => {
                         indent,
                         varName: processSegments(varRef),
                         varRef,
-                        expr: toDnclExpr(exprRaw),
+                        expr: toDnclExpr(exprRaw, form),
                     },
                     nextTrimmed,
                     nextIndent,
+                    form,
                 );
-                const counting = forInfo && findCountingLoopStep(lines, i + 1, forInfo);
+                const counting = forInfo && findCountingLoopStep(lines, i + 1, forInfo, form);
                 if (counting) {
                     // `@i = 1` and `while @i <= 3` become one header line, and the
                     // increment at the end of the body goes into it. Any other
                     // `while` stays `i = 1` / `i <= 3 の間` (Issue #1695).
                     const direction = forInfo.ascending ? '増やしながら' : '減らしながら';
-                    blockStack.push({ type: 'for', info: forInfo, incIndex: counting.incIndex, incComment: '' });
+                    const forEntry = { type: 'for', info: forInfo, incIndex: counting.incIndex, incComment: '' };
+                    blockStack.push(forEntry);
                     push(
                         `${indent}${forInfo.varName} を ${forInfo.from} から ${forInfo.to} まで ${counting.step} ずつ${direction}`,
                         `${parts[i].comment}${parts[i + 1].comment}`,
                         i,
+                        { kind: 'open', block: forEntry },
                     );
                     folded.set(i + 1, i);
                     folded.set(counting.incIndex, i);
@@ -287,7 +367,7 @@ const rubyToDncl = (source) => {
             const top = blockStack[blockStack.length - 1];
             if (typeof top === 'object' && top.type === 'for' && top.info.indent === indent) {
                 blockStack.pop();
-                push(`${indent}を繰り返す`, `${top.incComment}${parts[i].comment}`, i);
+                push(`${indent}を繰り返す`, `${top.incComment}${parts[i].comment}`, i, { kind: 'close' });
                 continue;
             }
         }
@@ -298,7 +378,8 @@ const rubyToDncl = (source) => {
             errors.push({ line: i + 1, column: 1, id: POST_TEST_LOOP_ERROR_ID, message: POST_TEST_LOOP_MESSAGE });
         }
 
-        const result = convertLine(line, blockStack);
+        const depthBefore = blockStack.length;
+        const result = convertLine(line, blockStack, form);
 
         // Handle ask("") or ask_and_wait("") + next line assignment → 入力
         if (result === null) {
@@ -307,7 +388,7 @@ const rubyToDncl = (source) => {
                 const answerMatch = nextLine.match(/^(\s*)(.+?)\s*=\s*answer(\.to_i)?\s*$/);
                 if (answerMatch) {
                     const answerIndent = answerMatch[1];
-                    const varPart = processSegments(answerMatch[2]);
+                    const varPart = processSegments(answerMatch[2], form);
                     // `answer.to_i` is what 【整数を入力】 generates (Issue #1186).
                     const input = answerMatch[3] ? '整数を入力' : '外部からの入力';
                     push(`${answerIndent}${varPart} = 【${input}】`, `${parts[i].comment}${parts[i + 1].comment}`, i);
@@ -320,7 +401,18 @@ const rubyToDncl = (source) => {
             continue;
         }
 
-        push(result, parts[i].comment, i);
+        if (result.includes('\n')) {
+            // `wait until` is an empty loop: its opener and its closer.
+            const [opener, closer] = result.split('\n');
+            push(opener, '', i, { kind: 'open', block: 'loop' });
+            push(closer, parts[i].comment, i, { kind: 'close' });
+            continue;
+        }
+        let kind = { kind: 'line' };
+        if (blockStack.length > depthBefore) kind = { kind: 'open', block: blockStack[blockStack.length - 1] };
+        else if (blockStack.length < depthBefore) kind = { kind: 'close' };
+        else if (trimmed === 'else' || /^elsif\s/.test(trimmed)) kind = { kind: 'mid' };
+        push(result, parts[i].comment, i, kind);
     }
 
     // Without the comments (put back below), so a word in one is not a command.
@@ -347,10 +439,14 @@ const rubyToDncl = (source) => {
         if (!told) errors.push(err);
     });
 
+    const written =
+        form === FORMS.DNCL
+            ? dnclLines.map((line, k) => `${line}${comments[k]}`)
+            : toStandardBlocks(dnclLines.map((text, k) => ({ ...kinds[k], text, comment: comments[k] })));
     return {
-        dncl: dnclLines.map((line, k) => `${line}${comments[k]}`).join('\n'),
+        dncl: written.join('\n'),
         errors: errors.sort((a, b) => a.line - b.line || a.column - b.column),
     };
 };
 
-export { rubyToDncl };
+export { FORMS, rubyToDncl };

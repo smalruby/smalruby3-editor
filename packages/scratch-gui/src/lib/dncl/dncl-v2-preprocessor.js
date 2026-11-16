@@ -135,7 +135,9 @@ const stripTrailingColon = (line) => {
         'を実行する',
         'を繰り返す',
     ];
-    if (!triggers.some((t) => beforeColon.endsWith(t))) return line;
+    // `関数 名前(引数):` is how the standard form opens a function (Issue #1754).
+    const funcOpener = /^[\s｜|⎿]*関数\s+[\p{L}_][\p{L}\p{N}_]*\s*\([^)]*\)$/u.test(beforeColon);
+    if (!funcOpener && !triggers.some((t) => beforeColon.endsWith(t))) return line;
     // Preserve any whitespace that followed the original colon.
     const trailing = line.substring(trimmed.length);
     return `${beforeColon}${trailing}`;
@@ -412,10 +414,11 @@ const normalizeAndOr = (line) => {
 };
 
 /**
- * Keywords that close a condition (`もし … ならば`, `… の間`) and so end the
- * operand of a `not`, when written after whitespace.
+ * Keywords that close a condition (`もし … ならば`, `… の間`) or a return
+ * value (`… を返す`, Issue #1754) and so end the operand of a `not`, when
+ * written after whitespace.
  */
-const NOT_OPERAND_END_RE = /^\s+(?:ならば|なら|の間)(?=\s|$)/;
+const NOT_OPERAND_END_RE = /^\s+(?:ならば|なら|の間|を返す)(?=\s|$)/;
 
 /**
  * Whether the operand of a `not` ends at `line[i]` because a `かつ` /
@@ -681,12 +684,24 @@ const dnclV2PreprocessWithLineMap = (source) => {
     // Source line of the last code (non-blank, non-comment) line emitted,
     // i.e. where an indentation-style block ends.
     let lastCodeLine = 1;
+    // Where the output stood after the last line that is not blank: a block
+    // closed by the indent ends there, so blank lines after its body stay
+    // after its closer (`もし …:` + body + blank → `end` + blank, Issue #1754).
+    let afterLastText = 0;
     const emit = (text, lineNumber, shift = 0) => {
         out.push(text);
         lineMap.push(lineNumber);
         columnShift.push(shift);
     };
     const emitCloser = (block, lineNumber) => emit(`${block.indent}${closerForBlockType(block.type)}`, lineNumber);
+    // A closer made from the indent, put before the blank lines after the body.
+    const emitIndentCloser = (block) => {
+        const at = afterLastText;
+        out.splice(at, 0, `${block.indent}${closerForBlockType(block.type)}`);
+        lineMap.splice(at, 0, lastCodeLine);
+        columnShift.splice(at, 0, 0);
+        afterLastText = at + 1;
+    };
     // Close indentation-style blocks (opener ends with `:`, body indented, no
     // `⎿` and no closer line, as in 共通テスト code typed without the `｜` /
     // `⎿` markers) once a line at the opener's indent or shallower appears.
@@ -714,7 +729,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
             if (width === top.width && top.type === 'if' && isIfContinuation(body)) {
                 return;
             }
-            emitCloser(stack.pop(), lastCodeLine);
+            emitIndentCloser(stack.pop());
         }
     };
     const logicalLines = joinContinuationLines(source);
@@ -756,6 +771,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
             const shift = pieceIdx === 0 ? codeStart - depthIndent.length : 0;
             emit(rest === '' ? '' : `${depthIndent}${rest}`, lineNumber, shift);
             if (isCode) lastCodeLine = lineNumber;
+            if (rest.trim() !== '') afterLastText = out.length;
             const type = detectBlockType(body);
             if (type) {
                 stack.push({ type, indent: depthIndent, width, colon: colonOpener, hasBody: false });
@@ -765,6 +781,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
                 const popped = stack.pop();
                 if (!popped) break;
                 emitCloser(popped, lineNumber);
+                afterLastText = out.length;
             }
         }
     }
@@ -772,7 +789,7 @@ const dnclV2PreprocessWithLineMap = (source) => {
     while (stack.length > 0) {
         const top = stack[stack.length - 1];
         if (!top.colon || !top.hasBody) break;
-        emitCloser(stack.pop(), lastCodeLine);
+        emitIndentCloser(stack.pop());
     }
     return { source: out.join('\n'), lineMap, columnShift };
 };

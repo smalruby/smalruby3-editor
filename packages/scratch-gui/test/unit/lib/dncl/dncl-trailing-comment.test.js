@@ -7,7 +7,11 @@ import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { codeOfLine, commentIndex, stringEndAt } from '../../../../src/lib/dncl/dncl-trailing-comment';
 import { dnclV2Preprocess } from '../../../../src/lib/dncl/dncl-v2-preprocessor';
 import { isDoBlockLine } from '../../../../src/lib/dncl/dncl-validator';
-import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/ruby-to-dncl';
+
+// These cases check the DNCL 風の形 the writer still has (Issue #1754);
+// the standard form is checked in dncl-standard-form.test.js.
+const rubyToDncl = (ruby) => rubyToDnclInForm(ruby, { form: FORMS.DNCL });
 
 const toRuby = (dncl) => {
     const result = dnclToRuby(dncl);

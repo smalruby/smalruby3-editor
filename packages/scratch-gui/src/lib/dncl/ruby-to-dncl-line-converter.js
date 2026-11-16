@@ -2,16 +2,17 @@
 import { isDoBlockLine } from './dncl-validator';
 import { isSingleOperand, isWrappedInParens, skipString } from './paren-utils';
 import { convertBuiltins } from './ruby-to-dncl-builtins';
-import { ID, processSegments } from './ruby-to-dncl-identifier';
+import { FORMS, ID, processSegments } from './ruby-to-dncl-identifier';
 
 /**
  * A Ruby expression of a control-flow line (condition, loop bound, return
  * value) as DNCL, built-ins included: `@a.to_i > 3` → `整数(a) > 3`. The
  * DNCL → Ruby side converts built-ins in these places too. (Issue #1686)
  * @param {string} expr - The Ruby expression.
+ * @param {string} [form] - `FORMS.STANDARD` (default) or `FORMS.DNCL`.
  * @returns {string} The DNCL expression.
  */
-const toDnclExpr = (expr) => convertBuiltins(processSegments(expr));
+const toDnclExpr = (expr, form = FORMS.STANDARD) => convertBuiltins(processSegments(expr, form));
 
 /**
  * Whether a Ruby condition has `&&` / `||` / `and` / `or` outside brackets
@@ -37,17 +38,19 @@ const hasTopLevelLogical = (condition) => {
 };
 
 /**
- * The DNCL condition of `until condition`: `condition でない`. `でない`
- * negates the condition up to the nearest `かつ` / `または`, so a condition
- * joined by them is put in parentheses: `until a > 10 && b` is
- * `(a > 10 かつ b) でない`, not `a > 10 かつ b でない` (= `a > 10 && !b`).
- * (Issue #1662)
+ * The DNCL condition of `until condition`: `condition でない` (DNCL 風の形)
+ * or `not condition` (standard form). Both negate the condition up to the
+ * nearest `かつ` / `または` / `and` / `or`, so a condition joined by them is
+ * put in parentheses: `until a > 10 && b` is `(a > 10 かつ b) でない`, not
+ * `a > 10 かつ b でない` (= `a > 10 && !b`). (Issue #1662)
  * @param {string} condition - The Ruby condition.
+ * @param {string} form - `FORMS.STANDARD` or `FORMS.DNCL`.
  * @returns {string} The DNCL condition.
  */
-const untilCondition = (condition) => {
-    const dncl = toDnclExpr(condition);
-    return hasTopLevelLogical(condition) ? `(${dncl}) でない` : `${dncl} でない`;
+const untilCondition = (condition, form) => {
+    const dncl = toDnclExpr(condition, form);
+    const operand = hasTopLevelLogical(condition) ? `(${dncl})` : dncl;
+    return form === FORMS.DNCL ? `${operand} でない` : `not ${operand}`;
 };
 
 /**
@@ -57,12 +60,16 @@ const untilCondition = (condition) => {
  * `'func'`, `'do'`) used to translate `end` to the right DNCL terminator. The
  * caller (`rubyToDncl`) owns the stack so for-loop detection (which lives
  * outside this function) can interleave its own entries on the same stack.
+ * The lines are written in the DNCL 風の形 for blocks (closers, no `:`) in
+ * both forms; `rubyToDncl` turns the blocks into the standard form. `form`
+ * only changes the expressions and `返す`.
  * @param {string} line - A single line of Ruby code.
  * @param {Array<string|object>} blockStack - Mutable block-context stack.
+ * @param {string} [form] - `FORMS.STANDARD` (default) or `FORMS.DNCL`.
  * @returns {string|null} The converted DNCL line, or `null` for ask/answer
  *   sentinel lines that the caller must combine with the next line.
  */
-const convertLine = (line, blockStack) => {
+const convertLine = (line, blockStack, form = FORMS.STANDARD) => {
     if (line.trim() === '') return line;
 
     const indentMatch = line.match(/^(\s*)/);
@@ -83,14 +90,14 @@ const convertLine = (line, blockStack) => {
     const ifMatch = trimmed.match(/^if\s+(.+)$/);
     if (ifMatch) {
         blockStack.push('if');
-        const condition = toDnclExpr(ifMatch[1]);
+        const condition = toDnclExpr(ifMatch[1], form);
         return `${indent}もし ${condition} ならば`;
     }
 
     // elsif condition → そうでなくもし condition ならば
     const elsifMatch = trimmed.match(/^elsif\s+(.+)$/);
     if (elsifMatch) {
-        const condition = toDnclExpr(elsifMatch[1]);
+        const condition = toDnclExpr(elsifMatch[1], form);
         return `${indent}そうでなくもし ${condition} ならば`;
     }
 
@@ -104,7 +111,7 @@ const convertLine = (line, blockStack) => {
     const whileMatch = trimmed.match(/^while\s+(.+?)(?:\s+do)?$/);
     if (whileMatch) {
         blockStack.push('loop');
-        const condition = toDnclExpr(whileMatch[1]);
+        const condition = toDnclExpr(whileMatch[1], form);
         return `${indent}${condition} の間`;
     }
 
@@ -112,21 +119,21 @@ const convertLine = (line, blockStack) => {
     const untilMatch = trimmed.match(/^until\s+(.+?)(?:\s+do)?$/);
     if (untilMatch) {
         blockStack.push('loop');
-        return `${indent}${untilCondition(untilMatch[1])} の間`;
+        return `${indent}${untilCondition(untilMatch[1], form)} の間`;
     }
 
     // wait until condition → an empty loop. DNCL has no "wait until", and
     // the loop waits the same way. (Issue #1662)
     const waitUntilMatch = trimmed.match(/^wait\s+until\s+(.+)$/);
     if (waitUntilMatch) {
-        return `${indent}${untilCondition(waitUntilMatch[1])} の間\n${indent}を繰り返す`;
+        return `${indent}${untilCondition(waitUntilMatch[1], form)} の間\n${indent}を繰り返す`;
     }
 
     // N.times do → i を 1 から N まで 1 ずつ増やしながら
     const timesMatch = trimmed.match(/^(.+?)\.times\s+do$/);
     if (timesMatch) {
         blockStack.push('loop');
-        const count = toDnclExpr(timesMatch[1]);
+        const count = toDnclExpr(timesMatch[1], form);
         return `${indent}_ を 1 から ${count} まで 1 ずつ増やしながら`;
     }
 
@@ -137,9 +144,9 @@ const convertLine = (line, blockStack) => {
     if (forAscMatch) {
         blockStack.push('loop');
         const [, from, to, step, loopVar] = forAscMatch;
-        const fromDncl = toDnclExpr(from);
-        const toDncl = toDnclExpr(to);
-        const stepDncl = toDnclExpr(step);
+        const fromDncl = toDnclExpr(from, form);
+        const toDncl = toDnclExpr(to, form);
+        const stepDncl = toDnclExpr(step, form);
         return `${indent}${loopVar} を ${fromDncl} から ${toDncl} まで ${stepDncl} ずつ増やしながら`;
     }
 
@@ -148,9 +155,9 @@ const convertLine = (line, blockStack) => {
     if (forDescMatch) {
         blockStack.push('loop');
         const [, from, to, step, loopVar] = forDescMatch;
-        const fromDncl = toDnclExpr(from);
-        const toDncl = toDnclExpr(to);
-        const stepDncl = toDnclExpr(step);
+        const fromDncl = toDnclExpr(from, form);
+        const toDncl = toDnclExpr(to, form);
+        const stepDncl = toDnclExpr(step, form);
         return `${indent}${loopVar} を ${fromDncl} から ${toDncl} まで ${stepDncl} ずつ減らしながら`;
     }
 
@@ -165,14 +172,14 @@ const convertLine = (line, blockStack) => {
     // but its `end` must not take the closer of the block around it (issue #1665).
     if (isDoBlockLine(trimmed)) {
         blockStack.push('do');
-        return convertBuiltins(processSegments(line));
+        return convertBuiltins(processSegments(line, form));
     }
 
-    // return expr → 返す expr
+    // return expr → `expr を返す` (standard form; Issue #1754) or `返す expr`
     const returnMatch = trimmed.match(/^return\s+(.+)$/);
     if (returnMatch) {
-        const expr = toDnclExpr(returnMatch[1]);
-        return `${indent}返す ${expr}`;
+        const expr = toDnclExpr(returnMatch[1], form);
+        return form === FORMS.DNCL ? `${indent}返す ${expr}` : `${indent}${expr} を返す`;
     }
 
     // end → depends on block context
@@ -189,7 +196,7 @@ const convertLine = (line, blockStack) => {
 
     // General line: process segments first (var refs, operators),
     // then convert builtins (which produce Japanese keywords)
-    let converted = processSegments(line);
+    let converted = processSegments(line, form);
     converted = convertBuiltins(converted);
 
     return converted;
@@ -205,9 +212,10 @@ const convertLine = (line, blockStack) => {
  * @param {object} pending - The buffered assignment.
  * @param {string} whileLine - The current `while` line (trimmed).
  * @param {string} whileIndent - The indent of the while line.
+ * @param {string} [form] - `FORMS.STANDARD` (default) or `FORMS.DNCL`.
  * @returns {object|null} For-loop info or null if not a for-loop pattern.
  */
-const detectForLoopPattern = (pending, whileLine, whileIndent) => {
+const detectForLoopPattern = (pending, whileLine, whileIndent, form = FORMS.STANDARD) => {
     if (!pending) return null;
     if (pending.indent !== whileIndent) return null;
 
@@ -221,7 +229,7 @@ const detectForLoopPattern = (pending, whileLine, whileIndent) => {
         varName: pending.varName,
         varRef: pending.varRef,
         from: pending.expr,
-        to: toDnclExpr(whileMatch[3]),
+        to: toDnclExpr(whileMatch[3], form),
         ascending,
         indent: whileIndent,
         headerIndex: -1, // will be set by caller
@@ -293,10 +301,11 @@ const parseIncrement = (trimmed, varRef) => {
  * @param {Array<string>} lines - The Ruby lines (without their comments).
  * @param {number} whileIndex - The index of the `while` line.
  * @param {object} info - The result of `detectForLoopPattern`.
+ * @param {string} [form] - `FORMS.STANDARD` (default) or `FORMS.DNCL`.
  * @returns {?{incIndex: number, step: string}} The index of the increment
  *   line and the step as DNCL, or null when the loop is not a counting loop.
  */
-const findCountingLoopStep = (lines, whileIndex, info) => {
+const findCountingLoopStep = (lines, whileIndex, info, form = FORMS.STANDARD) => {
     const whileIndent = info.indent.length;
     let endIndex = -1;
     for (let k = whileIndex + 1; k < lines.length; k++) {
@@ -324,7 +333,7 @@ const findCountingLoopStep = (lines, whileIndex, info) => {
     const body = lines.slice(whileIndex + 1, incIndex);
     if (body.some((line) => watched.some((re) => re.test(line)))) return null;
 
-    return { incIndex, step: toDnclExpr(inc.step) };
+    return { incIndex, step: toDnclExpr(inc.step, form) };
 };
 
 export { convertLine, detectForLoopPattern, findCountingLoopStep, toDnclExpr };

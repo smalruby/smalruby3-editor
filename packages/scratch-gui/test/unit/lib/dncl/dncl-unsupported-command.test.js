@@ -12,7 +12,11 @@ import {
     UNSUPPORTED_COMMAND_ERROR_ID,
     validateDncl,
 } from '../../../../src/lib/dncl/dncl-validator';
-import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/ruby-to-dncl';
+
+// These cases check the DNCL 風の形 the writer still has (Issue #1754);
+// the standard form is checked in dncl-standard-form.test.js.
+const rubyToDncl = (ruby) => rubyToDnclInForm(ruby, { form: FORMS.DNCL });
 
 const lines = (...ls) => ls.join('\n');
 

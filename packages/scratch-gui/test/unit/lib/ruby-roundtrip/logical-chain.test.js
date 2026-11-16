@@ -7,7 +7,7 @@
  * (`a && (b && c)`, a different block tree) stay as written.
  */
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/ruby-to-dncl';
 import {
     makeSpriteTarget,
     makeConverter,
@@ -15,6 +15,10 @@ import {
     expectRoundTrip,
     rubyToBlocksToRuby,
 } from '../../helpers/ruby-roundtrip-helper';
+
+// These cases check the DNCL 風の形 the writer still has (Issue #1754);
+// the standard form is checked in dncl-standard-form.test.js.
+const rubyToDncl = (ruby) => rubyToDnclInForm(ruby, { form: FORMS.DNCL });
 
 /**
  * Describe the operator tree of a block as text, e.g. `and(and(gt,lt),gt)`.

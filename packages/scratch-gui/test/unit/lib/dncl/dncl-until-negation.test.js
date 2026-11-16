@@ -3,13 +3,17 @@
 // condition before it (論理演算は比較演算より弱い), not only the last term.
 import dedent from 'dedent';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/ruby-to-dncl';
 import {
     makeConverter,
     makeSpriteTarget,
     rubyToBlocksToRuby,
     setupRubyGenerator,
 } from '../../helpers/ruby-roundtrip-helper';
+
+// These cases check the DNCL 風の形 the writer still has (Issue #1754);
+// the standard form is checked in dncl-standard-form.test.js.
+const rubyToDncl = (ruby) => rubyToDnclInForm(ruby, { form: FORMS.DNCL });
 
 const toRuby = (dncl) => dnclToRuby(dncl).ruby;
 const toDncl = (ruby) => rubyToDncl(ruby).dncl;

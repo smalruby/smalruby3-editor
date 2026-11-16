@@ -154,6 +154,8 @@ const convertOperators = (segment) => {
     // `((a + b) / 2).to_i`, `a * 3 // 2` is `(a * 3 / 2).to_i`).
     // Japanese names are operands as well (`合計 // 個数`, Issue #1711).
     result = result.replace(/\s*\/\/\s*/g, ' ÷ ');
+    // The full-width remainder of the official explanation (Issue #1754).
+    result = result.replace(/％/g, '%');
     result = result.replace(/≦/g, '<=');
     result = result.replace(/≧/g, '>=');
 

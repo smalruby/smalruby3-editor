@@ -22,14 +22,29 @@ const convertVarRefs = (segment) => {
 };
 
 /**
+ * The forms the Japanese mode writes (Issue #1754, `docs/dncl/design.md` 3 章):
+ * - `standard`: 標準の形, the form of 共通テスト用プログラム表記 — blocks by
+ *   indent and a `:` at the end of the opener, `and` / `or` / `not`, `％`,
+ *   `値 を返す`.
+ * - `dncl`: DNCL 風の形 — closers (`を実行する` / `を繰り返す` / `と定義する`),
+ *   `かつ` / `または` / `でない`. Only read now; kept as a form so the
+ *   conversions it shares with the standard form keep their tests.
+ */
+const FORMS = Object.freeze({ STANDARD: 'standard', DNCL: 'dncl' });
+
+/**
  * Convert Ruby operators back to DNCL operators.
  * @param {string} segment - Code segment outside strings.
+ * @param {string} [form] - `FORMS.STANDARD` (default) or `FORMS.DNCL`.
  * @returns {string} Segment with DNCL operators.
  */
-const convertOperators = (segment) => {
+const convertOperators = (segment, form = FORMS.STANDARD) => {
     let result = segment;
-    result = result.replace(/(?<=\s|^)&&(?=\s|$)/g, 'かつ');
-    result = result.replace(/(?<=\s|^)\|\|(?=\s|$)/g, 'または');
+    const standard = form !== FORMS.DNCL;
+    result = result.replace(/(?<=\s|^)&&(?=\s|$)/g, standard ? 'and' : 'かつ');
+    result = result.replace(/(?<=\s|^)\|\|(?=\s|$)/g, standard ? 'or' : 'または');
+    // The official explanation of the remainder writes it full-width.
+    if (standard) result = result.replace(/(?<=\s|^)%(?=\s|$)/g, '％');
     result = result.replace(/(?<=\s|^)true(?=\s|$)/g, '真');
     result = result.replace(/(?<=\s|^)false(?=\s|$)/g, '偽');
 
@@ -107,15 +122,29 @@ const isAssignmentAt = (line, i) =>
     line[i] === '=' && !/[=!<>]/.test(line[i - 1] || '') && !/[=~>]/.test(line[i + 1] || '');
 
 /**
- * Convert Ruby's `!operand` to DNCL's postfix `operand でない`. The whole
- * operand moves in front of `でない` — `!f(x)` is `f(x) でない` and
- * `!(a > 10)` is `(a > 10) でない` — so `dnclToRuby` negates the same
- * thing again. `!=` and method names like `save!` are left as they are.
- * (Issue #1662)
- * @param {string} line - A line of Ruby code.
- * @returns {string} The line with `!` turned into `でない`.
+ * Whether the operand of a `!` that ends at `end` also ends its term, so a
+ * prefix `not` in front of it negates only the operand: the line ends, a
+ * bracket closes, or a `,` / `&&` / `||` / `and` / `or` / `#` follows.
+ * `not` negates everything up to the next of these (Issue #1671), so
+ * `!a == b` must be `(not a) == b`.
+ * @param {string} line - The line.
+ * @param {number} end - The position just after the operand.
+ * @returns {boolean} True when nothing else of the term follows.
  */
-const convertNot = (line) => {
+const endsTerm = (line, end) => /^\s*(?:$|[)\],#]|&&|\|\||(?:and|or)(?:\s|$))/.test(line.substring(end));
+
+/**
+ * Convert Ruby's `!operand` to the Japanese negation. In the DNCL 風の形
+ * it is the postfix `operand でない`: the whole operand moves in front of
+ * `でない` — `!f(x)` is `f(x) でない` and `!(a > 10)` is `(a > 10) でない` —
+ * so `dnclToRuby` negates the same thing again (Issue #1662). In the
+ * standard form it is the prefix `not operand` (Issue #1754). `!=` and
+ * method names like `save!` are left as they are.
+ * @param {string} line - A line of Ruby code.
+ * @param {string} [form] - `FORMS.STANDARD` (default) or `FORMS.DNCL`.
+ * @returns {string} The line with `!` turned into `でない` / `not`.
+ */
+const convertNot = (line, form = FORMS.STANDARD) => {
     if (!line.includes('!')) return line;
     let out = '';
     // Where the current term starts in `out`, one entry per open bracket.
@@ -138,12 +167,17 @@ const convertNot = (line) => {
             while (line[start] === ' ') start++;
             const end = operandEnd(line, start);
             if (end > start) {
-                const negated = `${convertNot(line.substring(start, end))} でない`;
+                const operand = convertNot(line.substring(start, end), form);
+                const standard = form !== FORMS.DNCL;
+                const negated = standard ? `not ${operand}` : `${operand} でない`;
                 // `でない` negates everything before it up to かつ / または, so a
                 // `!` in the middle of a term (`a == !b`) is put in parentheses:
-                // `a == (b でない)`, not `a == b でない` (= `!(a == b)`).
+                // `a == (b でない)`, not `a == b でない` (= `!(a == b)`). `not`
+                // negates everything after it, so it needs them when more of
+                // the term follows (`!a == b` is `(not a) == b`).
                 const inTerm = out.substring(starts[starts.length - 1]).trim() !== '';
-                out += inTerm ? `(${negated})` : negated;
+                const wrap = inTerm || (standard && !endsTerm(line, end));
+                out += wrap ? `(${negated})` : negated;
                 i = end;
                 continue;
             }
@@ -171,12 +205,13 @@ const convertNot = (line) => {
 /**
  * Process a line, applying conversions only outside strings and comments.
  * @param {string} source - A line of code.
+ * @param {string} [form] - `FORMS.STANDARD` (default) or `FORMS.DNCL`.
  * @returns {string} The converted line.
  */
-const processSegments = (source) => {
+const processSegments = (source, form = FORMS.STANDARD) => {
     // The operand of `!` may hold a string (`!f("x")`), so `!` is converted
     // on the whole line before splitting it at strings.
-    const line = convertNot(source);
+    const line = convertNot(source, form);
     let result = '';
     let i = 0;
 
@@ -201,7 +236,7 @@ const processSegments = (source) => {
         }
         if (segEnd > i) {
             let segment = line.substring(i, segEnd);
-            segment = convertOperators(segment);
+            segment = convertOperators(segment, form);
             segment = convertVarRefs(segment);
             result += segment;
             i = segEnd;
@@ -211,4 +246,4 @@ const processSegments = (source) => {
     return result;
 };
 
-export { ID, convertNot, convertOperators, convertVarRefs, processSegments };
+export { FORMS, ID, convertNot, convertOperators, convertVarRefs, processSegments };
