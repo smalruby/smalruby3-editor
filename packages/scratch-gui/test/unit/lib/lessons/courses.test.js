@@ -1535,9 +1535,11 @@ describe('chat course: how to connect over the mesh, in and outside a class', ()
     });
 
     test.each(Object.keys(LOCALES))('the shared connect page says to go on if already connected (%s)', (locale) => {
-        const next = { ja: '次のページへ進もう', 'ja-Hira': 'つぎの ページへ すすもう', en: 'go to the next page' }[
-            locale
-        ];
+        const next = {
+            ja: 'つながっていれば次へ',
+            'ja-Hira': 'つながっていれば つぎへ',
+            en: 'if already connected, go on',
+        }[locale];
         ['pair', 'group'].forEach((kind) => {
             expect(LOCALES[locale][`gui.lessons.chat.connect.${kind}`]).toContain(next);
             expect(LOCALES[locale][`gui.lessons.chat.connect.${kind}.inClass`]).toContain(next);
@@ -1546,6 +1548,8 @@ describe('chat course: how to connect over the mesh, in and outside a class', ()
 
     test.each(Object.keys(LOCALES))('4-1 and 4-2 tell a pair to check the mesh status and history (%s)', (locale) => {
         const word = { ja: '状態と履歴', 'ja-Hira': 'じょうたいとりれき', en: 'status and history' }[locale];
+        // 相手の画面の「受け取った」の行を見る（自分の「送った」では相手に届いたかわからない）
+        const received = { ja: '「受け取った」', 'ja-Hira': '「うけとった」', en: '"received"' }[locale];
         [
             ['chat-l4-send-once', 5],
             ['chat-l4-send-repeat', 5],
@@ -1553,8 +1557,24 @@ describe('chat course: how to connect over the mesh, in and outside a class', ()
             const step = challenge(id).steps[number - 1];
             expect(step.target).toBe('green-flag');
             expect(LOCALES[locale][step.title.id].toLowerCase()).toContain(word);
+            expect(LOCALES[locale][step.title.id].toLowerCase()).toContain(received);
         });
     });
+
+    test.each(Object.keys(LOCALES))('the shared connect page for a pair is short (%s)', (locale) => {
+        const limit = { ja: 110, 'ja-Hira': 130, en: 240 }[locale];
+        expect(LOCALES[locale]['gui.lessons.chat.connect.pair'].length).toBeLessThanOrEqual(limit);
+        expect(LOCALES[locale]['gui.lessons.chat.connect.pair.inClass'].length).toBeLessThanOrEqual(limit);
+    });
+
+    test.each(Object.keys(LOCALES))(
+        '3-3 tells a pair to look at the status window on the partner screen (%s)',
+        (locale) => {
+            const word = { ja: '状態と履歴', 'ja-Hira': 'じょうたいとりれき', en: 'status and history' }[locale];
+            const step = challenge('chat-l3-mesh-variable').steps[7];
+            expect(LOCALES[locale][step.title.id].toLowerCase()).toContain(word);
+        },
+    );
 
     test.each(CONNECT_STEPS)('%s step %d has a text for a student in a class', (id, number) => {
         const step = challenge(id).steps[number - 1];
