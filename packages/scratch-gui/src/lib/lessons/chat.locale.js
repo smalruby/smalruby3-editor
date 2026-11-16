@@ -337,11 +337,11 @@ export const ja = {
         '3 人以上だと、人の数だけ変数と受け取るプログラムが要る。そこで、みんなで 1 つの変数とメッセージ「メッセージ」を使う形にした（最初から入っている。シマネコは、みんなの発言を言う役）。\nでも、だれの発言かわからない。はじめに「名前は？」と聞いて変数「なまえ」に入れ、「なまえ：メッセージ」の形で送ろう。',
     [`${C}chat-l4-group.step1`]: '課題の説明と、アクティビティ図を理解しよう。',
     [`${C}chat-l4-group.step3`]:
-        '最初から入っているプログラムを見よう。シマラビは変数「メッセージ」に入れてメッセージ「メッセージ」を送り、シマネコは受け取ったら「メッセージ」のセンサーの値を言う。',
+        'シマラビ、シマネコの順に押して、最初から入っているプログラムを見よう。シマラビは変数「メッセージ」に入れてメッセージ「メッセージ」を送る。シマネコは受け取ったら「メッセージ」のセンサーの値を言う。',
     [`${C}chat-l4-group.step4`]:
         '**シマラビをえらびなおして**、「旗が押されたとき」のすぐ下に「名前は？と聞いて待つ」を入れ、変数「なまえ」（すべてのスプライト用）を作って「なまえを (答え) にする」をつなげよう。',
     [`${C}chat-l4-group.step5`]:
-        '「メッセージを (答え) にする」の白いところに、「演算」の「(　) と (　)」を 2 つ使って、(なまえ) と (：) と (答え) をつないで入れよう。',
+        '「メッセージを (答え) にする」の答えを取り出して、「演算」の「(　) と (　)」を 2 つ使って、(なまえ) と (：) と (取り出した答え) をつないで入れよう。',
     [`${C}chat-l4-group.step6`]:
         'ひとりなら、練習相手のパネルの「シマネコとして送る」「ミミとして送る」を押そう。シマネコが「だれ：メッセージ」の形で言う。',
     [`${C}chat-l4-group.step7`]:
@@ -850,11 +850,11 @@ export const jaHira = {
         '3 にん いじょうだと、ひとの かずだけ へんすうと うけとる プログラムが いる。そこで、みんなで 1 つの へんすうと メッセージ「メッセージ」を つかう かたちに した（さいしょから はいっている。シマネコは、みんなの はつげんを いう やく）。\nでも、だれの はつげんか わからない。はじめに「なまえは？」と きいて へんすう「なまえ」に いれ、「なまえ：メッセージ」の かたちで おくろう。',
     [`${C}chat-l4-group.step1`]: 'かだいの せつめいと、アクティビティずを りかいしよう。',
     [`${C}chat-l4-group.step3`]:
-        'さいしょから はいっている プログラムを みよう。シマラビは へんすう「メッセージ」に いれて メッセージ「メッセージ」を おくり、シマネコは うけとったら「メッセージ」の センサーの あたいを いう。',
+        'シマラビ、シマネコの じゅんに おして、さいしょから はいっている プログラムを みよう。シマラビは へんすう「メッセージ」に いれて メッセージ「メッセージ」を おくる。シマネコは うけとったら「メッセージ」の センサーの あたいを いう。',
     [`${C}chat-l4-group.step4`]:
         '**シマラビを えらびなおして**、「はたがおされたとき」の すぐしたに「なまえは？ ときいてまつ」を いれ、へんすう「なまえ」（すべてのスプライトよう）を つくって「なまえを (こたえ) にする」を つなげよう。',
     [`${C}chat-l4-group.step5`]:
-        '「メッセージを (こたえ) にする」の しろいところに、「えんざん」の「(　) と (　)」を 2 つ つかって、(なまえ) と (：) と (こたえ) を つないで いれよう。',
+        '「メッセージを (こたえ) にする」の こたえを とりだして、「えんざん」の「(　) と (　)」を 2 つ つかって、(なまえ) と (：) と (とりだした こたえ) を つないで いれよう。',
     [`${C}chat-l4-group.step6`]:
         'ひとりなら、れんしゅうあいての パネルの「シマネコとして おくる」「ミミとして おくる」を おそう。シマネコが「だれ：メッセージ」の かたちで いう。',
     [`${C}chat-l4-group.step7`]:
@@ -1364,11 +1364,11 @@ export const en = {
         'With 3 people or more, you need a variable and a receiving program for each person. So the program now uses one variable and one message "message" for everyone (it is already there. Shimacat says what everyone says).\nBut you cannot tell who said it. First ask "What is your name?", put the answer into the variable "name", and send in the form "name: message".',
     [`${C}chat-l4-group.step1`]: 'Understand the task and the activity diagram.',
     [`${C}chat-l4-group.step3`]:
-        'Look at the program that is already there. Shimaraby puts the text into the variable "message" and broadcasts the message "message", and Shimacat says the sensor value of "message" when it receives it.',
+        'Click Shimaraby and then Shimacat, and look at the programs that are already there. Shimaraby puts the text into the variable "message" and broadcasts the message "message". Shimacat says the sensor value of "message" when it receives it.',
     [`${C}chat-l4-group.step4`]:
         '**Select Shimaraby again**. Right under "when flag clicked", put "ask What is your name? and wait", make the variable "name" (For all sprites) and attach "set name to (answer)".',
     [`${C}chat-l4-group.step5`]:
-        'Into the white space of "set message to (answer)", put two Operators blocks "join ( ) ( )" to join (name), (: ) and (answer).',
+        'Take (answer) out of "set message to (answer)". Then use two Operators blocks "join ( ) ( )" to join (name), (: ) and the (answer) you took out, and put them in.',
     [`${C}chat-l4-group.step6`]:
         'On your own, click "Send as Shimacat" and "Send as Mimi" on the practice partner panel. Shimacat says it in the form "who: message".',
     [`${C}chat-l4-group.step7`]:
