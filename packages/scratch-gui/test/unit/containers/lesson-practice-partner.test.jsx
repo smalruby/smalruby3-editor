@@ -2,7 +2,7 @@
 // メッシュの練習相手のパネル（components/lesson-practice-partner）とコンテナ
 // （containers/lesson-practice-partner.jsx）。VM は EventEmitter のにせもの。
 import '@testing-library/jest-dom';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import EventEmitter from 'events';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
@@ -139,6 +139,11 @@ describe('LessonPracticePartner container', () => {
             vm.runtime.emit('BEFORE_STEP');
         });
     };
+    // 描き直す（前の描画を外して、別の VM で描く）
+    const cleanupAndRender = (vm) => {
+        cleanup();
+        renderContainer({ vm });
+    };
     const rerenderWith = (rerender, vm, challengeId) =>
         rerender(
             <IntlProvider locale="en" messages={en}>
@@ -146,22 +151,95 @@ describe('LessonPracticePartner container', () => {
             </IntlProvider>,
         );
 
-    test('shows what reached the partner, up to two lines (the last message, with the value of that name)', () => {
+    const items = () => screen.queryAllByTestId('lesson-practice-partner-received-item');
+    const values = () => items().map((item) => item.querySelector('[data-testid="lesson-practice-partner-received-value"]').textContent);
+
+    test('splits the panel into 「send」 and 「received」 groups headed with the partner name', () => {
+        renderContainer({ vm: makeVm() });
+        const send = screen.getByTestId('lesson-practice-partner-send');
+        expect(send).toHaveTextContent('Send as ロボ');
+        expect(send.querySelectorAll('[data-testid="lesson-practice-partner-button"]')).toHaveLength(2);
+        const received = screen.getByTestId('lesson-practice-partner-received-group');
+        expect(received).toHaveTextContent('Reached ロボ');
+        // 何も届いていなくても枠は出す（パネルの高さを変えない）
+        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('(nothing yet)');
+        expect(items()).toHaveLength(0);
+        // 閉じてペアでやる案内は残す
+        expect(screen.getByTestId('lesson-practice-partner-note')).toBeInTheDocument();
+    });
+
+    test('a variable shows its value large and its name small; a message shows just its name', () => {
         const vm = makeVm();
         renderContainer({ vm });
-        const line = screen.getByTestId('lesson-practice-partner-received');
-        // 何も届いていなくても出す（パネルの高さを変えない）
-        expect(line).toHaveTextContent('Received: (nothing yet)');
         run(vm, 'data_setvariableto', { VARIABLE: { id: 'v', name: 'メッセージ' }, VALUE: 'こんにちは' });
-        expect(line).toHaveTextContent('Received: メッセージ = こんにちは');
+        const [row] = items();
+        expect(row).toHaveAttribute('data-kind', 'variable');
+        expect(row.querySelector('[data-testid="lesson-practice-partner-received-value"]')).toHaveTextContent(
+            'こんにちは',
+        );
+        expect(row.querySelector('[data-testid="lesson-practice-partner-received-name"]')).toHaveTextContent(
+            '← メッセージ',
+        );
+        // 全文は title で見る（長い値は省略して出すため）
+        expect(row).toHaveAttribute('title', 'メッセージ = こんにちは');
         // 変数が変わっただけでは読み上げない
         expect(screen.getByTestId('lesson-practice-partner-announcement')).toHaveTextContent('');
+
+        const other = makeVm();
+        other.runtime.getTargetForStage().lookupBroadcastMsg = () => ({ name: 'さよなら' });
+        cleanupAndRender(other);
+        run(other, 'event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'さよなら' } });
+        const [message] = items();
+        expect(message).toHaveAttribute('data-kind', 'message');
+        expect(message.querySelector('[data-testid="lesson-practice-partner-received-value"]')).toHaveTextContent(
+            'さよなら',
+        );
+        expect(message.querySelector('[data-testid="lesson-practice-partner-received-name"]')).toBeNull();
+    });
+
+    test('keeps the newest 3, newest on top, older ones faded; repeats are separate rows', () => {
+        const vm = makeVm();
+        renderContainer({ vm });
+        ['あ', 'い', 'う', 'え'].forEach((value) =>
+            run(vm, 'data_setvariableto', { VARIABLE: { id: 'v', name: 'メッセージ' }, VALUE: value }),
+        );
+        expect(values()).toEqual(['え', 'う', 'い']);
+        expect(items().map((item) => item.getAttribute('data-old'))).toEqual(['false', 'true', 'true']);
+        // 同じメッセージが続けて届いても、1 行ずつ足す
         run(vm, 'event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
-        expect(line).toHaveTextContent('Received: メッセージ = こんにちは');
-        expect(line).toHaveAttribute('title', 'Received: メッセージ = こんにちは');
-        // 相手のボタン（相手から生徒へ）は相手に届いたものではない
-        fireEvent.click(screen.getAllByTestId('lesson-practice-partner-button')[1]);
-        expect(line).toHaveTextContent('Received: メッセージ = こんにちは');
+        run(vm, 'event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
+        expect(values()).toEqual(['え', 'え', 'え']);
+        expect(items().map((item) => item.getAttribute('data-kind'))).toEqual(['message', 'message', 'variable']);
+    });
+
+    test('the new row flashes for about a second', () => {
+        jest.useFakeTimers();
+        try {
+            const vm = makeVm();
+            renderContainer({ vm });
+            run(vm, 'event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
+            expect(items()[0]).toHaveAttribute('data-flash', 'true');
+            act(() => {
+                jest.advanceTimersByTime(500);
+            });
+            run(vm, 'event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
+            // 新しい行だけが光る（前の行は光りやめる）
+            expect(items().map((item) => item.getAttribute('data-flash'))).toEqual(['true', 'false']);
+            act(() => {
+                jest.advanceTimersByTime(1000);
+            });
+            expect(items().map((item) => item.getAttribute('data-flash'))).toEqual(['false', 'false']);
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('values are text, never HTML', () => {
+        const vm = makeVm();
+        renderContainer({ vm });
+        run(vm, 'data_setvariableto', { VARIABLE: { id: 'v', name: 'メッセージ' }, VALUE: '<b>やあ</b>' });
+        expect(values()).toEqual(['<b>やあ</b>']);
+        expect(items()[0].querySelector('b')).toBeNull();
     });
 
     test('reads aloud only when a message reached the partner', () => {
@@ -171,7 +249,7 @@ describe('LessonPracticePartner container', () => {
         expect(live).toHaveAttribute('aria-live', 'polite');
         expect(screen.getByTestId('lesson-practice-partner-received')).not.toHaveAttribute('aria-live');
         run(vm, 'event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
-        expect(live).toHaveTextContent('Received: メッセージ');
+        expect(live).toHaveTextContent('Reached ロボ: メッセージ');
     });
 
     test('moving to another challenge with the same partner starts over and still shows what reaches it', () => {
@@ -179,16 +257,19 @@ describe('LessonPracticePartner container', () => {
         const { rerender } = renderContainer({ vm });
         run(vm, 'data_setvariableto', { VARIABLE: { id: 'v', name: 'メッセージ' }, VALUE: 'こんにちは' });
         run(vm, 'event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
-        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent(
-            'Received: メッセージ = こんにちは',
-        );
+        expect(values()).toEqual(['こんにちは', 'こんにちは']);
         rerenderWith(rerender, vm, 'c2');
-        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('Received: (nothing yet)');
-        // 同じ内容を送っても行が出る（前のチャレンジの行を持ち越して「変わっていない」とみなさない）
+        expect(items()).toHaveLength(0);
+        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('(nothing yet)');
         run(vm, 'event_broadcast', { BROADCAST_OPTION: { id: 'm', name: 'メッセージ' } });
-        // 前のチャレンジで覚えた値（メッセージ = こんにちは）も持ち越さない
-        expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('Received: メッセージ');
-        expect(screen.getByTestId('lesson-practice-partner-received')).not.toHaveTextContent('こんにちは');
+        // 前のチャレンジで覚えた値（メッセージ = こんにちは）は持ち越さない
+        expect(values()).toEqual(['メッセージ']);
+    });
+
+    test('headings use the partner name of the challenge (the role mirror swaps it)', () => {
+        renderContainer({ vm: makeVm(), partnerDef: { ...PARTNER, name: 'シマラビ' } });
+        expect(screen.getByTestId('lesson-practice-partner-send')).toHaveTextContent('Send as シマラビ');
+        expect(screen.getByTestId('lesson-practice-partner-received-group')).toHaveTextContent('Reached シマラビ');
     });
 
     test('waits while another practice partner is connected, and connects once it lets go (#1876)', () => {
@@ -203,7 +284,7 @@ describe('LessonPracticePartner container', () => {
     });
 
     test('strings exist in en / ja / ja-Hira', () => {
-        ['title', 'note', 'close', 'open', 'received', 'nothingReceived'].forEach((key) => {
+        ['title', 'note', 'close', 'open', 'received', 'nothingReceived', 'sendHeading', 'receivedHeading', 'variableName'].forEach((key) => {
             const id = `gui.lessonPracticePartner.${key}`;
             [en, ja, jaHira].forEach((messages) => expect(typeof messages[id]).toBe('string'));
         });

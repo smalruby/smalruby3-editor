@@ -10,12 +10,14 @@ import ReactDOM from 'react-dom';
 import { connect } from 'react-redux';
 import LessonPracticePartner from '../components/lesson-practice-partner/lesson-practice-partner.jsx';
 import { attachPracticeLoopback } from '../lib/lessons/practice-loopback';
-import { normalizePartner } from '../lib/lessons/practice-partner';
+import { arrivalSummary, normalizePartner, pushArrival } from '../lib/lessons/practice-partner';
 import { PRACTICE_OWNER_CHANGED } from '../lib/mesh-practice/loopback';
 import { practiceAllowed } from '../lib/mesh-practice/partner';
 import { getCurrentChallenge } from '../reducers/lesson-mode';
 
 const STAGE_SELECTOR = '[class*="stage_stage-wrapper_"]';
+// 新しく届いた行を光らせる時間（ms。pp3）
+export const ARRIVAL_FLASH_MS = 1000;
 // ステージの列とパネルのあいだ（px）
 const GAP = 8;
 
@@ -40,20 +42,35 @@ const LessonPracticePartnerContainer = ({ challengeId = null, locale, partnerDef
     const [open, setOpen] = useState(true);
     const [meshFree, setMeshFree] = useState(() => practiceAllowed(meshConnectionState(vm)));
     const [position, setPosition] = useState(null);
-    // 相手に届いたもの（D3。2 行まで出す。practice-loopback.js の onReceived）と、読み上げる文（合図が届いて
-    // 変わったときだけ更新する）。チャレンジが変わったら消す
-    const [received, setReceived] = useState(null);
+    // 相手に届いたもの（D3。「〜に届いた」に新しいものから 3 行。practice-loopback.js の onReceived）と、
+    // いま光らせている行の id（pp3）、読み上げる文（合図が届いたときだけ更新する）。チャレンジが変わったら消す
+    const [arrivals, setArrivals] = useState([]);
+    const [flashId, setFlashId] = useState(null);
     const [announcement, setAnnouncement] = useState('');
-    const handleReceived = useCallback((line, { announce }) => {
-        setReceived(line);
-        if (announce && line) setAnnouncement(line);
+    const nextArrivalIdRef = useRef(0);
+    const handleReceived = useCallback((arrival, { announce }) => {
+        nextArrivalIdRef.current += 1;
+        const id = nextArrivalIdRef.current;
+        setArrivals((list) => pushArrival(list, { ...arrival, id }));
+        setFlashId(id);
+        // 同じ合図が続けて届いたときも読み上げ直すよう、同じ文なら見えない文字を付け外しして中身を変える
+        if (announce) {
+            const text = arrivalSummary(arrival);
+            setAnnouncement((prev) => (prev === text ? `${text}\u200b` : text));
+        }
     }, []);
+    useEffect(() => {
+        if (flashId === null) return () => {};
+        const timer = setTimeout(() => setFlashId(null), ARRIVAL_FLASH_MS);
+        return () => clearTimeout(timer);
+    }, [flashId]);
     const loopRef = useRef(null);
 
     // チャレンジが変わったら開いた状態にもどす（本物のメッシュでつながっていれば閉じて出す）
     useEffect(() => {
         setOpen(practiceAllowed(meshConnectionState(vm)));
-        setReceived(null);
+        setArrivals([]);
+        setFlashId(null);
         setAnnouncement('');
     }, [challengeId, vm]);
 
@@ -133,7 +150,8 @@ const LessonPracticePartnerContainer = ({ challengeId = null, locale, partnerDef
             open={open}
             position={position}
             announcement={announcement}
-            received={received}
+            arrivals={arrivals}
+            flashId={flashId}
         />,
         document.body,
     );
