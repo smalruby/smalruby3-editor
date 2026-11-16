@@ -318,7 +318,7 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
 - **アクティビティ図**: 全チャレンジ `activityDiagram: true`。課題の全文に入らない大きい図は、ヒントの 1 ページ目で見る。
 - **ヒントの 1 ページ目**は、どのチャレンジも「課題の説明と、アクティビティ図を理解しよう。」（ja-Hira「かだいの せつめいと、
   アクティビティずを りかいしよう。」、en "Understand the task and the activity diagram."）で始め、図の読み方（ひし形・戻る線・
-  五角形・へこんだ箱・レーン）もこのページに書く。ブロックの絵は描かず、吹き出しはステージの左に出す（`kind: 'understand'`・
+  とがった図形・くぼんだ図形・レーン）もこのページに書く。ブロックの絵は描かず、吹き出しはステージの左に出す（`kind: 'understand'`・
   `courses.js` の `withDiagramFirst`）。図はこのページだけに出し、手順は 2 ページ目から（手順のページに図を重ねると情報が
   多すぎるため）。読んで作る 1-4 は、もとから 1 ページ目が図と説明（下の「読んで作るチャレンジ」）。
 - **ヒントの文に色の言葉を書かない**: 「黄色い『イベント』の」ではなく「『イベント』の」と、なかまの名前だけで書く（ブロックの絵が
@@ -429,7 +429,19 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
   に「▼ で自分の気分をえらばない」を入れてある。
 - **練習相手のパネルとヒント**: パネルを押すページ（3-2 の 3 ページ目・3-3 の 5 ページ目）は `practice-partner` を指す。パネルが出ている
   ときは、どのページの吹き出しもパネルにかからない位置に置く（下の「ヒントの吹き出し」）。
-- ヒントの図の読み方は、送信のとがった五角形・受信のへこんだ箱・五角形から受信へ引く矢印に合わせて、1 ページ目に書く。
+- ヒントの図の読み方は、送信は「端がとがった図形」、受信は「端がくぼんだ図形」、とがった図形からくぼんだ図形へ矢印、と書き、
+  1 ページ目に書く（「五角形」「へこんだ箱」は分かりにくいので使わない。`courses.test.js` が確かめる）。どちらの端がとがる・くぼむかは
+  相手のいる側で変わる（送信は相手の側がとがり、受信は送り手の側がくぼむ・両側にいれば両端）ので、そのチャレンジの図に合わせて
+  「右端」「左端」「両端」を書く。
+- **ヒントの強調（`**…**`）**: 文言の `**…**` は、吹き出しで淡い注意の地に濃い朱色の太字で出る（`$color-emphasis` /
+  `$color-emphasis-background`・`lib/lessons/hint-text.js` の `splitEmphasis`。文字として出すので HTML にはならない）。スプライトを
+  足すとえらばれているスプライトが変わり、えらびなおし忘れが多いので、別のスプライトをえらぶ手順の「〜をえらんで」「〜をえらびなおして」に
+  使う（3-1 の 3・5 ページ目など）。前の手順で別のスプライトを足した・見たときは「えらびなおして」と書く。3 locale で同じ数だけ付ける
+  （`courses.test.js` が確かめる）。手順と「うまく動かないときは」で使える。
+- **メッシュのつなぎ方（クラスの中と外）**: つなぎ方の手順（3-2 の 3 ページ目・4-1 の 4 ページ目）は、手順に `classroom: true` を
+  付け、`stepN.inClass` の文言を足す。クラスに参加中の生徒（出席番号がある・接続モーダルが「出席番号でつながる」を出す人。
+  `isSeatedStudent`）には「2 人とも『出席番号でつながる』を選び、相手の出席番号を選んで『つなぐ』」を、ほか（クラスの外・先生）には
+  「1 人が『メッシュのホストになる』、もう 1 人が『メッシュに参加する』」を出す。ひとりのときの練習相手のパネルはどちらにも書く。
 - **D7（メッセージが変数より先に届く）**: 3-1 は同じコンピューターの中なので起こらない。本物のメッシュ（ペア）での回数はレッスン 4
   の実装の確認で見る（答えはこのまま）。
 
@@ -1568,6 +1580,7 @@ partner: {
 | `lesson-hint-spotlight` | div | スポットライトの穴（照らしているときだけある） |
 | `lesson-hint-position` | span | 「ヒント n / N」 |
 | `lesson-hint-title` | p | ヒントの文言 |
+| `lesson-hint-emphasis` | strong | ヒントの文言の中の強調（`**…**`） |
 | `lesson-hint-note` | p | 文言の下の一言（読んで作るチャレンジの 1 ページ目の「答えは最後のページ」） |
 | `lesson-hint-blocks-label` | p | 描いたブロックの見出し（読んで作るチャレンジの答えのページで、プログラムが 2 つ以上あるとき「ネコのプログラム」） |
 | `lesson-hint-activity-diagram` | div | ヒントの 1 ページ目のアクティビティ図（文言の上。チャレンジの `activityDiagram` が true のときだけ） |
@@ -1745,7 +1758,8 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/lessons/challenge-setup.js` | チャレンジを開くときの setup（言語の既定 + チャレンジの `setup`） |
 | `packages/scratch-gui/src/components/balloon/` | 吹き出し・ツールチップの見た目の土台（`Balloon` / `BalloonHeader` / `BalloonCloseButton` / `BalloonButton` / `balloon-tokens.css`。上の「吹き出しの共通の土台」） |
 | `packages/scratch-gui/src/components/lesson-hint/` | ヒントの吹き出し（`lesson-hint.jsx` = 中身・置き方・スポットライト・ドラッグ・正解のプログラムの確認（枠は `balloon/`）、`lesson-hint-blocks.jsx` = 読み取り専用ワークスペースに本物のブロックを描く） |
-| `packages/scratch-gui/src/containers/lesson-hint.jsx` | 吹き出しのコンテナ（`getCurrentHint` を読み、`blocks` を XML にし、「プログラムを入れる」を dispatch） |
+| `packages/scratch-gui/src/containers/lesson-hint.jsx` | 吹き出しのコンテナ（`getCurrentHint` を読み、`blocks` を XML にし、「プログラムを入れる」を dispatch。クラスに参加中の生徒には手順の `classroomTitle` を出す） |
+| `packages/scratch-gui/src/lib/lessons/hint-text.js` | ヒントの文言の決まり（`**…**` の強調を分ける `splitEmphasis`、クラスの中と外で文言を選ぶ `hintStepTitle` / `isSeatedStudent`） |
 | `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・DOM の探し方・置き方・ドラッグした位置を画面に収める（`clampHintPosition`）・置いてよい範囲（`hintViewport`。SP のサイドレールの右・課題バーの下）（純粋関数） |
 | `packages/scratch-gui/src/lib/lessons/read-diagram.js` | 読んで作るチャレンジ（`mode: 'readDiagram'`）のヒントの 3 ページを作る・定義に決まりを当てはめる（`readDiagramSteps`・`applyChallengeMode`。純粋関数） |
 | `packages/scratch-gui/test/unit/lib/lessons/read-diagram.test.js` | 読んで作るチャレンジの unit テスト |

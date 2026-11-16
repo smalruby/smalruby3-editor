@@ -23,6 +23,7 @@ import LessonHint from '../components/lesson-hint/lesson-hint.jsx';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
 import { LANGUAGES, challengeCodeCandidates, localizeCode } from '../lib/lessons/courses';
 import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
+import { hintStepTitle, isSeatedStudent } from '../lib/lessons/hint-text';
 import { findSpriteByName, insertSpriteCodes, resolveCodeSprite } from '../lib/lessons/insert-sprite-code';
 import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
@@ -43,6 +44,7 @@ const LessonHintContainer = ({
     current,
     fromAssignment = false,
     hint,
+    inClassroom = false,
     onFinishHint,
     onHideHint,
     onInsertCode,
@@ -210,7 +212,7 @@ const LessonHintContainer = ({
             scratchBlocks={scratchBlocks}
             spotlight={hint.spotlight}
             target={step ? step.target : null}
-            title={step ? step.title : null}
+            title={hintStepTitle(step, { inClassroom })}
         />
     );
 };
@@ -236,6 +238,8 @@ LessonHintContainer.propTypes = {
         code: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
         session: PropTypes.number,
     }),
+    // クラスに参加中の生徒か（メッシュのつなぎ方の手順を、出席番号でつながる文言にする）
+    inClassroom: PropTypes.bool,
     onFinishHint: PropTypes.func.isRequired,
     onHideHint: PropTypes.func.isRequired,
     onInsertCode: PropTypes.func.isRequired,
@@ -255,6 +259,7 @@ const mapStateToProps = (state) => ({
     // 先生（クラス管理にログイン中）のときは GA に送らない
     teacherLoggedIn: Boolean(state.scratchGui.classroom && state.scratchGui.classroom.teacherLoggedIn),
     hint: getCurrentHint(state),
+    inClassroom: isSeatedStudent(state.scratchGui.classroom),
     rubyVersion: state.scratchGui.settings.rubyVersion,
     scratchBlocks: state.scratchGui.blockDisplay.scratchBlocks,
     vm: state.scratchGui.vm,

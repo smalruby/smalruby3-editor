@@ -241,9 +241,14 @@ export const validateQuiz = (quiz) => {
     if (!isMessage(quiz.explanation)) errors.push('explanation must be a message');
     return errors;
 };
-// ヒントの文言は並びの番号（step1, step2, ...）で引く
+// ヒントの文言は並びの番号（step1, step2, ...）で引く。`classroom: true` の手順は、クラスに参加中の生徒には
+// `stepN.inClass` の文言を出す（メッシュのつなぎ方。クラスの中では出席番号でつながる・lib/lessons/hint-text.js）
 const withTitles = (challengeId, steps) =>
-    steps.map((step, i) => ({ ...step, title: challengeMessage(challengeId, `step${i + 1}`) }));
+    steps.map(({ classroom, ...step }, i) => ({
+        ...step,
+        title: challengeMessage(challengeId, `step${i + 1}`),
+        ...(classroom ? { classroomTitle: challengeMessage(challengeId, `step${i + 1}.inClass`) } : {}),
+    }));
 
 /** ヒントの 1 ページ目「課題の説明と、アクティビティ図を理解しよう」の `kind`。 */
 export const UNDERSTAND_STEP_KIND = 'understand';
@@ -1514,7 +1519,8 @@ const chatLesson3 = defineLesson({
             },
             steps: withDiagramFirst('chat-l3-mesh-signal', [
                 { target: HINT_TARGETS.EXTENSION_BUTTON, spotlight: true },
-                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                // つなぎ方はクラスの中と外で違う（クラスの中は出席番号でつながる）
+                { target: HINT_TARGETS.PRACTICE_PARTNER, classroom: true },
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL3Code((w) => `when_key_pressed("space") do\n  broadcast("${w.wave}")\nend\n`),
@@ -1849,7 +1855,8 @@ const chatLesson4 = defineLesson({
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL4Code((w) => `${w.v} = answer\nbroadcast("${w.message}")\n`),
                 },
-                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                // つなぎ方はクラスの中と外で違う（クラスの中は出席番号でつながる）
+                { target: HINT_TARGETS.PRACTICE_PARTNER, classroom: true },
                 { target: HINT_TARGETS.GREEN_FLAG },
             ]),
             debug: debugTips('chat-l4-send-once', 2),

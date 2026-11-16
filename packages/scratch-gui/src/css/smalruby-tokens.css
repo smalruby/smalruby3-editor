@@ -47,6 +47,10 @@ $color-success-background: $extensions-light;
 /* お知らせのアラートの枠と背景（alerts/alert.css の .info-blue） */
 $color-info: $motion-primary;
 $color-info-background: $ui-primary;
+/* 文言の中の強調（レッスンのヒントの `**…**`）: 見落としやすいところを、淡い注意の地に濃い朱色の文字で出す。
+   上流の朱色（$red-tertiary・#E64D00）は淡い地に 3.5:1 で足りないので濃くしたもの（地に 5.9:1・白に 6.5:1） */
+$color-emphasis: #a33d00;
+$color-emphasis-background: $ui-alert-orange;
 
 /* 座席の色（クラス管理: 生徒の番号選び・先生のメンバータブ・状況のパネル・レッスンの座席）。
    どの画面でも同じ意味: 空いている席は白地に点線の枠、人が来た席は色が付き、進むほど濃くなる。

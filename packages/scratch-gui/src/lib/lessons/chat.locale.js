@@ -156,14 +156,14 @@ export const ja = {
     [`${C}chat-l3-local-message.task`]:
         'ライブラリからシマネコを足そう。旗を押したらシマラビが「メッセージを入力」と聞き、答えを変数「シマラビのメッセージ」に入れて、メッセージ「シマラビのメッセージ」を送る。シマネコは、そのメッセージを受け取ったら、変数「シマラビのメッセージ」を 3 秒言うようにしよう。\nメッセージは「送ったよ」の知らせだけ。文字は変数に入れておく。',
     [`${C}chat-l3-local-message.step1`]:
-        '課題の説明と、アクティビティ図を理解しよう。図の、とがった五角形が「送る」、へこんだ箱が「受け取ったとき」。五角形からの矢印が、へこんだ箱へ届く。',
+        '課題の説明と、アクティビティ図を理解しよう。図の、右端がとがった図形が「送る」、左端がくぼんだ図形が「受け取ったとき」を表す。とがった図形からの矢印が、くぼんだ図形へ届く。',
     [`${C}chat-l3-local-message.step2`]: '右下の「スプライトを選ぶ」から、シマネコを足そう。',
     [`${C}chat-l3-local-message.step3`]:
-        'シマラビをえらんで、「イベント」の「旗が押されたとき」を置こう。その下に「メッセージを入力と聞いて待つ」と、変数「シマラビのメッセージ」を作って「シマラビのメッセージを (答え) にする」をつなげよう。変数は「すべてのスプライト用」にする。',
+        '**シマラビをえらびなおして**、「イベント」の「旗が押されたとき」を置こう。その下に「メッセージを入力と聞いて待つ」と、変数「シマラビのメッセージ」を作って「シマラビのメッセージを (答え) にする」をつなげよう。変数は「すべてのスプライト用」にする。',
     [`${C}chat-l3-local-message.step4`]:
         'その下に「イベント」の「〜を送る」をつなげて、▼ の「新しいメッセージ」で「シマラビのメッセージ」を作ろう。',
     [`${C}chat-l3-local-message.step5`]:
-        'シマネコをえらんで、「〜を受け取ったとき」を置き、▼ で「シマラビのメッセージ」をえらぼう。その下に「(シマラビのメッセージ) と 3 秒言う」をつなげよう。',
+        '**シマネコをえらんで**、「〜を受け取ったとき」を置き、▼ で「シマラビのメッセージ」をえらぼう。その下に「(シマラビのメッセージ) と 3 秒言う」をつなげよう。',
     [`${C}chat-l3-local-message.step6`]:
         '旗を押して、メッセージを入力して Enter キーを押そう。シマネコが入力した文字を言うか見よう。',
     [`${C}chat-l3-local-message.debug1`]:
@@ -181,15 +181,17 @@ export const ja = {
     [`${C}chat-l3-mesh-signal.task`]:
         '拡張機能「メッシュ」を足そう。ペアなら 1 人がホストになってグループを作り、もう 1 人がそのグループに参加する。ひとりなら練習相手とやろう。\nスペースキーを押したらシマラビがメッセージ「てをふる」を送る。「てをふる」を受け取ったら、シマネコが「やあ！」と 2 秒言うようにしよう。',
     [`${C}chat-l3-mesh-signal.step1`]:
-        '課題の説明と、アクティビティ図を理解しよう。図では、自分の五角形からの矢印も、相手の五角形からの矢印も、シマネコの「てをふるを受け取ったとき」のへこんだ箱に届く。',
+        '課題の説明と、アクティビティ図を理解しよう。とがった図形が「送る」で、とがった側が相手のほうを向く。自分の「送る」からの矢印も、相手の「送る」からの矢印も、シマネコの「てをふるを受け取ったとき」（両端がくぼんだ図形）に届く。',
     [`${C}chat-l3-mesh-signal.step2`]:
         '左下の拡張機能のボタンから「メッシュ」をえらぼう。パレットに「メッシュ」がふえるよ。',
     [`${C}chat-l3-mesh-signal.step3`]:
         'ペアなら、「メッシュ」の横のボタンから、1 人が「メッシュのホストになる」でグループを作り、もう 1 人が「メッシュに参加する」でそのグループに入る。ひとりなら、右上の練習相手のパネルを使おう。',
+    [`${C}chat-l3-mesh-signal.step3.inClass`]:
+        'ペアなら、2 人とも「メッシュ」の横のボタンから「出席番号でつながる」を選び、相手の出席番号を選んで「つなぐ」を押そう。ひとりなら、右上の練習相手のパネルを使おう。',
     [`${C}chat-l3-mesh-signal.step4`]:
-        'シマラビをえらんで、「イベント」の「スペースキーが押されたとき」を置こう。その下に「〜を送る」をつなげて、▼ の「新しいメッセージ」で「てをふる」を作ろう。',
+        '**シマラビをえらんで**、「イベント」の「スペースキーが押されたとき」を置こう。その下に「〜を送る」をつなげて、▼ の「新しいメッセージ」で「てをふる」を作ろう。',
     [`${C}chat-l3-mesh-signal.step5`]:
-        'シマネコをえらんで、「てをふるを受け取ったとき」を置き、その下に「やあ！と 2 秒言う」をつなげよう。',
+        '**シマネコをえらんで**、「てをふるを受け取ったとき」を置き、その下に「やあ！と 2 秒言う」をつなげよう。',
     [`${C}chat-l3-mesh-signal.step6`]:
         'ステージを押してから、スペースキーを押そう。ひとりなら、練習相手のパネルの「てをふる」も押してみよう。どちらでもシマネコが「やあ！」と言うか見よう。',
     [`${C}chat-l3-mesh-signal.debug1`]:
@@ -209,7 +211,7 @@ export const ja = {
         '1 のキーで変数「シマラビのきぶん」を「うれしい」、2 のキーで「ねむい」にしよう。シマネコを押したら、シマネコの気分（「シマネコのきぶん」のセンサーの値）を 2 秒言うようにしよう。\nペアでシマネコの役の人は、シマラビとシマネコを入れかえて作ろう。',
     [`${C}chat-l3-mesh-variable.step1`]: '課題の説明と、アクティビティ図を理解しよう。',
     [`${C}chat-l3-mesh-variable.step2`]:
-        'シマラビをえらんで、「変数」の「変数を作る」で「シマラビのきぶん」を作ろう。「すべてのスプライト用」にすると、メッシュでつながった相手と共有される。',
+        '**シマラビをえらんで**、「変数」の「変数を作る」で「シマラビのきぶん」を作ろう。「すべてのスプライト用」にすると、メッシュでつながった相手と共有される。',
     [`${C}chat-l3-mesh-variable.step3`]:
         '「イベント」の「1 キーが押されたとき」を置いて、「シマラビのきぶんを うれしい にする」をつなげよう。',
     [`${C}chat-l3-mesh-variable.step4`]:
@@ -217,7 +219,7 @@ export const ja = {
     [`${C}chat-l3-mesh-variable.step5`]:
         'ひとりなら、練習相手のパネルの「うれしい」を押そう（ペアなら、相手に 1 のキーを押してもらう）。相手の気分が届くと、「メッシュ」の「(　) センサーの値」の ▼ に「シマネコのきぶん」が出る。',
     [`${C}chat-l3-mesh-variable.step6`]:
-        'シマネコをえらんで、「このスプライトが押されたとき」を置こう。その下に「(　) と 2 秒言う」をつなげて、白いところに「(シマネコのきぶん) センサーの値」を入れよう。',
+        '**シマネコをえらんで**、「このスプライトが押されたとき」を置こう。その下に「(　) と 2 秒言う」をつなげて、白いところに「(シマネコのきぶん) センサーの値」を入れよう。',
     [`${C}chat-l3-mesh-variable.step7`]:
         '1 のキーと 2 のキーを押して、練習相手のパネルの「届いた」に自分の気分が出るか見よう。パネルの「うれしい」「ねむい」を押してからシマネコを押して、相手の気分を言うか見よう。',
     [`${C}chat-l3-mesh-variable.debug1`]:
@@ -240,13 +242,15 @@ export const ja = {
     [`${C}chat-l4-send-once.task`]:
         '旗を押したら、シマラビが「メッセージを入力」と聞き、答えを変数「シマラビのメッセージ」に入れて、メッセージ「シマラビのメッセージ」を送るようにしよう。\n3-1 と同じ形で、相手が別のコンピューターになっただけ。ペアならメッシュでつなぎ、ひとりなら練習相手とやろう。ペアでシマネコの役の人は、シマラビとシマネコを入れかえて作ろう。',
     [`${C}chat-l4-send-once.step1`]:
-        '課題の説明と、アクティビティ図を理解しよう。図の左の「あなた」のレーンが、今回作るところ。右のレーンは相手（ひとりなら練習相手のシマネコ）が動かすところで、とがった五角形の「送る」から矢印が届く。',
+        '課題の説明と、アクティビティ図を理解しよう。図の左の「あなた」のレーンが、今回作るところ。右のレーンは相手（ひとりなら練習相手のシマネコ）が動かすところで、右端がとがった図形（「送る」）から矢印が届く。',
     [`${C}chat-l4-send-once.step2`]:
-        'シマラビをえらんで、「イベント」の「旗が押されたとき」を置こう。その下に「メッセージを入力と聞いて待つ」と、変数「シマラビのメッセージ」を作って「シマラビのメッセージを (答え) にする」をつなげよう。変数は「すべてのスプライト用」にする。',
+        '**シマラビをえらんで**、「イベント」の「旗が押されたとき」を置こう。その下に「メッセージを入力と聞いて待つ」と、変数「シマラビのメッセージ」を作って「シマラビのメッセージを (答え) にする」をつなげよう。変数は「すべてのスプライト用」にする。',
     [`${C}chat-l4-send-once.step3`]:
         'その下に「イベント」の「〜を送る」をつなげて、▼ の「新しいメッセージ」で「シマラビのメッセージ」を作ろう。',
     [`${C}chat-l4-send-once.step4`]:
         'ペアなら、「メッシュ」の横のボタンから、1 人がホストになってグループを作り、もう 1 人が参加しよう。ひとりなら、この練習相手のパネルを使う。',
+    [`${C}chat-l4-send-once.step4.inClass`]:
+        'ペアなら、2 人とも「メッシュ」の横のボタンから「出席番号でつながる」を選び、相手の出席番号を選んで「つなぐ」を押そう。ひとりなら、この練習相手のパネルを使う。',
     [`${C}chat-l4-send-once.step5`]:
         '旗を押して、メッセージを入力して Enter キーを押そう。練習相手のパネルの「届いた」（ペアなら相手の画面）に、入力した文字が出るか見よう。',
     [`${C}chat-l4-send-once.debug1`]:
@@ -288,8 +292,8 @@ export const ja = {
     [`${C}chat-l4-both-ways.task`]:
         'シマネコが、相手のメッセージを受け取って言うようにしよう。メッセージ「シマネコのメッセージ」を受け取ったら、「シマネコのメッセージ」のセンサーの値を言う。\n3-1 では「(変数) を言う」だった。変わるのはそこだけ。',
     [`${C}chat-l4-both-ways.step1`]:
-        '課題の説明と、アクティビティ図を理解しよう。相手の五角形からの矢印は、シマネコの「シマネコのメッセージを受け取ったとき」のへこんだ箱に届く。',
-    [`${C}chat-l4-both-ways.step2`]: '右下のスプライトのならびで、シマネコをえらぼう。',
+        '課題の説明と、アクティビティ図を理解しよう。相手の「送る」（左端がとがった図形）からの矢印は、シマネコの「シマネコのメッセージを受け取ったとき」（右端がくぼんだ図形）に届く。',
+    [`${C}chat-l4-both-ways.step2`]: '右下のスプライトのならびで、**シマネコをえらぼう**。',
     [`${C}chat-l4-both-ways.step3`]:
         '「イベント」の「〜を受け取ったとき」を置き、▼ の「新しいメッセージ」で「シマネコのメッセージ」を作ろう。',
     [`${C}chat-l4-both-ways.step4`]:
@@ -317,7 +321,7 @@ export const ja = {
     [`${C}chat-l4-group.step2`]:
         '最初から入っているプログラムを見よう。シマラビは変数「メッセージ」に入れてメッセージ「メッセージ」を送り、シマネコは受け取ったら「メッセージ」のセンサーの値を言う。',
     [`${C}chat-l4-group.step3`]:
-        'シマラビの「旗が押されたとき」のすぐ下に「名前は？と聞いて待つ」を入れ、変数「なまえ」（すべてのスプライト用）を作って「なまえを (答え) にする」をつなげよう。',
+        '**シマラビをえらびなおして**、「旗が押されたとき」のすぐ下に「名前は？と聞いて待つ」を入れ、変数「なまえ」（すべてのスプライト用）を作って「なまえを (答え) にする」をつなげよう。',
     [`${C}chat-l4-group.step4`]:
         '「メッセージを (答え) にする」の白いところに、「演算」の「(　) と (　)」を 2 つ使って、(なまえ) と (：) と (答え) をつないで入れよう。',
     [`${C}chat-l4-group.step5`]:
@@ -340,9 +344,9 @@ export const ja = {
     [`${C}chat-l4-dm.step1`]:
         '課題の説明と、アクティビティ図を理解しよう。図では、ひし形から [「あてさき」のセンサー値 = なまえ] の枝に進んだときだけ言う。',
     [`${C}chat-l4-dm.step2`]:
-        'シマラビ: 「メッセージを (なまえ と ： と 答え) にする」の下に「だれに送る？と聞いて待つ」を入れ、変数「あてさき」（すべてのスプライト用）を作って「あてさきを (答え) にする」をつなげよう。そのあとに「送る」が来るようにする。',
+        '**シマラビをえらんで**、「メッセージを (なまえ と ： と 答え) にする」の下に「だれに送る？と聞いて待つ」を入れ、変数「あてさき」（すべてのスプライト用）を作って「あてさきを (答え) にする」をつなげよう。そのあとに「送る」が来るようにする。',
     [`${C}chat-l4-dm.step3`]:
-        'シマネコをえらんで、「メッセージを受け取ったとき」の「言う」を、「制御」の「もし〜なら」の中へ入れよう。条件には「演算」の「(　) = (　)」を入れ、左に「(あてさき) センサーの値」、右に変数「なまえ」を入れる。',
+        '**シマネコをえらんで**、「メッセージを受け取ったとき」の「言う」を、「制御」の「もし〜なら」の中へ入れよう。条件には「演算」の「(　) = (　)」を入れ、左に「(あてさき) センサーの値」、右に変数「なまえ」を入れる。',
     [`${C}chat-l4-dm.step4`]:
         '旗を押して名前を入れてから、練習相手のパネルの「あなたに DM」と「ミミに DM」を押そう。自分あてのときだけシマネコが言うか見よう。',
     [`${C}chat-l4-dm.step5`]:
@@ -365,11 +369,11 @@ export const ja = {
         '相手のメッセージが届いたら音で知らせ、読んだことを相手に伝えよう。シマネコは、相手のメッセージを言ったあと「Meow の音を鳴らす」。シマネコを押したらメッセージ「シマラビがよんだ」を送り、シマラビは「シマネコがよんだ」を受け取ったら「既読」と 2 秒言う。\nさらに工夫するなら: 既読に時こくをつける・まだ読んでいないメッセージの数を出す。',
     [`${C}chat-l5-read-receipt.step1`]: '課題の説明と、アクティビティ図を理解しよう。',
     [`${C}chat-l5-read-receipt.step2`]:
-        'シマネコをえらぼう。最初から入っている「シマネコのメッセージを受け取ったとき」の「言う」の下に、「音」の「Meow の音を鳴らす」をつなげよう。',
+        '**シマネコをえらぼう**。最初から入っている「シマネコのメッセージを受け取ったとき」の「言う」の下に、「音」の「Meow の音を鳴らす」をつなげよう。',
     [`${C}chat-l5-read-receipt.step3`]:
         'シマネコに、「イベント」の「このスプライトが押されたとき」を置き、「〜を送る」をつなげて、▼ の「新しいメッセージ」で「シマラビがよんだ」を作ろう。',
     [`${C}chat-l5-read-receipt.step4`]:
-        'シマラビをえらんで、「〜を受け取ったとき」を置き、▼ の「新しいメッセージ」で「シマネコがよんだ」を作ろう。その下に「見た目」の「既読 と 2 秒言う」をつなげる。',
+        '**シマラビをえらびなおして**、「〜を受け取ったとき」を置き、▼ の「新しいメッセージ」で「シマネコがよんだ」を作ろう。その下に「見た目」の「既読 と 2 秒言う」をつなげる。',
     [`${C}chat-l5-read-receipt.step5`]:
         'ひとりなら、練習相手のパネルの「発言する」を押そう。音が鳴ったらシマネコを押す（パネルの「届いた」に「シマラビがよんだ」が出る）。パネルの「既読にする」を押すと、シマラビが「既読」と言う。ペアなら、おたがいに送って押してみよう。',
     [`${C}chat-l5-read-receipt.step6`]:
@@ -395,7 +399,7 @@ export const ja = {
     [`${C}chat-l5-ng-word.step3`]:
         'ステージには、旗を押すとリスト「NGワード」を空にして「ばか」「きらい」を入れるプログラムが入っている（右下でステージをえらぶと見られる）。',
     [`${C}chat-l5-ng-word.step4`]:
-        'シマラビをえらんで、「制御」の「もし〜なら でなければ」を「ずっと」の中の上に入れよう。条件には、「変数」の「(NGワード) に (答え) が含まれる」を入れ、「もし」の中に「その言葉は送れません と 2 秒言う」を入れる。',
+        '**シマラビをえらびなおして**、「制御」の「もし〜なら でなければ」を「ずっと」の中の上に入れよう。条件には、「変数」の「(NGワード) に (答え) が含まれる」を入れ、「もし」の中に「その言葉は送れません と 2 秒言う」を入れる。',
     [`${C}chat-l5-ng-word.step5`]:
         '「シマラビのメッセージを (答え) にする」と「送る」を「でなければ」の中へ動かそう。「(シマラビのメッセージ) と聞いて待つ」は、「もし」の下（「ずっと」の中）に残す。',
     [`${C}chat-l5-ng-word.step6`]:
@@ -418,7 +422,7 @@ export const ja = {
     [`${C}chat-l5-auto-reply.step2`]:
         '最初から入っているのは 4-3 のチャット。シマラビが聞いて送り、シマネコが相手のメッセージを言う（右下でシマネコをえらぶと見られる）。',
     [`${C}chat-l5-auto-reply.step3`]:
-        'シマラビをえらんで、「イベント」の「〜を受け取ったとき」を置き、▼ で「シマネコのメッセージ」をえらぼう。',
+        '**シマラビをえらびなおして**、「イベント」の「〜を受け取ったとき」を置き、▼ で「シマネコのメッセージ」をえらぼう。',
     [`${C}chat-l5-auto-reply.step4`]:
         '「制御」の「もし〜なら」をつなげよう。条件には「演算」の「(　) > (21)」を入れ、左に「調べる」の「現在の (時)」を入れる。',
     [`${C}chat-l5-auto-reply.step5`]:
@@ -446,7 +450,7 @@ export const ja = {
     [`${C}chat-l5-password.step2`]:
         '最初から入っているのは 4-3 のチャット。シマラビが聞いて送り、シマネコが相手のメッセージを言う（右下でシマネコをえらぶと見られる）。',
     [`${C}chat-l5-password.step3`]:
-        'シマラビの「旗が押されたとき」のすぐ下に、「調べる」の「合言葉は？と聞いて待つ」を入れよう。',
+        '**シマラビをえらびなおして**、「旗が押されたとき」のすぐ下に、「調べる」の「合言葉は？と聞いて待つ」を入れよう。',
     [`${C}chat-l5-password.step4`]:
         'その下に「制御」の「もし〜なら でなければ」をつなげよう。条件には「演算」の「(答え) = (もみじ)」を入れ、「でなければ」に「合言葉がちがいます と 2 秒言う」を入れる。',
     [`${C}chat-l5-password.step5`]: '「メッセージを入力と聞いて待つ」と「ずっと」を、「もし」の中へ動かそう。',
@@ -470,9 +474,9 @@ export const ja = {
     [`${C}chat-l5-stamp.step2`]:
         '最初から入っているのは 4-3 のチャット。シマラビが聞いて送り、シマネコが相手のメッセージを言う（右下でシマネコをえらぶと見られる）。',
     [`${C}chat-l5-stamp.step3`]:
-        'シマラビに、「イベント」の「このスプライトが押されたとき」を置き、「〜を送る」をつなげて、▼ の「新しいメッセージ」で「シマラビのスタンプ」を作ろう。',
+        '**シマラビをえらびなおして**、「イベント」の「このスプライトが押されたとき」を置き、「〜を送る」をつなげて、▼ の「新しいメッセージ」で「シマラビのスタンプ」を作ろう。',
     [`${C}chat-l5-stamp.step4`]:
-        'シマネコをえらんで、「〜を受け取ったとき」を置き、▼ の「新しいメッセージ」で「シマネコのスタンプ」を作ろう。その下に「見た目」の「コスチュームを shimacat-b にする」、「制御」の「2 秒待つ」、「コスチュームを shimacat-a にする」をつなげる。',
+        '**シマネコをえらんで**、「〜を受け取ったとき」を置き、▼ の「新しいメッセージ」で「シマネコのスタンプ」を作ろう。その下に「見た目」の「コスチュームを shimacat-b にする」、「制御」の「2 秒待つ」、「コスチュームを shimacat-a にする」をつなげる。',
     [`${C}chat-l5-stamp.step5`]:
         'ひとりなら、シマラビを押そう（練習相手がスタンプを返してくれる）。パネルの「スタンプを送る」を押しても、シマネコのコスチュームが 2 秒かわる。ペアなら、おたがいに押してみよう。',
     [`${C}chat-l5-stamp.step6`]:
@@ -647,14 +651,14 @@ export const jaHira = {
     [`${C}chat-l3-local-message.task`]:
         'ライブラリから シマネコを たそう。はたをおしたら シマラビが「メッセージを にゅうりょく」ときき、こたえを へんすう「シマラビのメッセージ」にいれて、メッセージ「シマラビのメッセージ」をおくる。シマネコは、そのメッセージを うけとったら、へんすう「シマラビのメッセージ」を 3 びょう いうようにしよう。\nメッセージは「おくったよ」の しらせだけ。もじは へんすうに いれておく。',
     [`${C}chat-l3-local-message.step1`]:
-        'かだいの せつめいと、アクティビティずを りかいしよう。ずの、とがった ごかくけいが「おくる」、へこんだ はこが「うけとったとき」。ごかくけいからの やじるしが、へこんだ はこへ とどく。',
+        'かだいの せつめいと、アクティビティずを りかいしよう。ずの、みぎはしが とがった ずけいが「おくる」、ひだりはしが くぼんだ ずけいが「うけとったとき」を あらわす。とがった ずけいからの やじるしが、くぼんだ ずけいへ とどく。',
     [`${C}chat-l3-local-message.step2`]: 'みぎしたの「スプライトをえらぶ」から、シマネコを たそう。',
     [`${C}chat-l3-local-message.step3`]:
-        'シマラビを えらんで、「イベント」の「はたがおされたとき」を おこう。そのしたに「メッセージを にゅうりょく ときいてまつ」と、へんすう「シマラビのメッセージ」をつくって「シマラビのメッセージを (こたえ) にする」をつなげよう。へんすうは「すべてのスプライトよう」にする。',
+        '**シマラビを えらびなおして**、「イベント」の「はたがおされたとき」を おこう。そのしたに「メッセージを にゅうりょく ときいてまつ」と、へんすう「シマラビのメッセージ」をつくって「シマラビのメッセージを (こたえ) にする」をつなげよう。へんすうは「すべてのスプライトよう」にする。',
     [`${C}chat-l3-local-message.step4`]:
         'そのしたに「イベント」の「〜をおくる」をつなげて、▼ の「あたらしいメッセージ」で「シマラビのメッセージ」をつくろう。',
     [`${C}chat-l3-local-message.step5`]:
-        'シマネコを えらんで、「〜をうけとったとき」をおき、▼ で「シマラビのメッセージ」をえらぼう。そのしたに「(シマラビのメッセージ) と 3 びょう いう」をつなげよう。',
+        '**シマネコを えらんで**、「〜をうけとったとき」をおき、▼ で「シマラビのメッセージ」をえらぼう。そのしたに「(シマラビのメッセージ) と 3 びょう いう」をつなげよう。',
     [`${C}chat-l3-local-message.step6`]:
         'はたをおして、メッセージを にゅうりょくして Enter キーを おそう。シマネコが にゅうりょくした もじを いうか みよう。',
     [`${C}chat-l3-local-message.debug1`]:
@@ -672,15 +676,17 @@ export const jaHira = {
     [`${C}chat-l3-mesh-signal.task`]:
         'かくちょうきのう「メッシュ」を たそう。ペアなら 1 にんが ホストになって グループを つくり、もう 1 にんが その グループに さんかする。ひとりなら れんしゅうあいてと やろう。\nスペースキーを おしたら シマラビが メッセージ「てをふる」を おくる。「てをふる」を うけとったら、シマネコが「やあ！」と 2 びょう いうようにしよう。',
     [`${C}chat-l3-mesh-signal.step1`]:
-        'かだいの せつめいと、アクティビティずを りかいしよう。ずでは、じぶんの ごかくけいからの やじるしも、あいての ごかくけいからの やじるしも、シマネコの「てをふるをうけとったとき」の へこんだ はこに とどく。',
+        'かだいの せつめいと、アクティビティずを りかいしよう。とがった ずけいが「おくる」で、とがった がわが あいての ほうを むく。じぶんの「おくる」からの やじるしも、あいての「おくる」からの やじるしも、シマネコの「てをふるをうけとったとき」（りょうはしが くぼんだ ずけい）に とどく。',
     [`${C}chat-l3-mesh-signal.step2`]:
         'ひだりしたの かくちょうきのうの ボタンから「メッシュ」を えらぼう。パレットに「メッシュ」が ふえるよ。',
     [`${C}chat-l3-mesh-signal.step3`]:
         'ペアなら、「メッシュ」の よこの ボタンから、1 にんが「メッシュのホストになる」で グループを つくり、もう 1 にんが「メッシュにさんかする」で その グループに はいる。ひとりなら、みぎうえの れんしゅうあいての パネルを つかおう。',
+    [`${C}chat-l3-mesh-signal.step3.inClass`]:
+        'ペアなら、2 にんとも「メッシュ」の よこの ボタンから「しゅっせきばんごうで つながる」を えらび、あいての しゅっせきばんごうを えらんで「つなぐ」を おそう。ひとりなら、みぎうえの れんしゅうあいての パネルを つかおう。',
     [`${C}chat-l3-mesh-signal.step4`]:
-        'シマラビを えらんで、「イベント」の「スペースキーがおされたとき」を おこう。そのしたに「〜をおくる」をつなげて、▼ の「あたらしいメッセージ」で「てをふる」をつくろう。',
+        '**シマラビを えらんで**、「イベント」の「スペースキーがおされたとき」を おこう。そのしたに「〜をおくる」をつなげて、▼ の「あたらしいメッセージ」で「てをふる」をつくろう。',
     [`${C}chat-l3-mesh-signal.step5`]:
-        'シマネコを えらんで、「てをふるをうけとったとき」をおき、そのしたに「やあ！と 2 びょう いう」をつなげよう。',
+        '**シマネコを えらんで**、「てをふるをうけとったとき」をおき、そのしたに「やあ！と 2 びょう いう」をつなげよう。',
     [`${C}chat-l3-mesh-signal.step6`]:
         'ステージを おしてから、スペースキーを おそう。ひとりなら、れんしゅうあいての パネルの「てをふる」も おしてみよう。どちらでも シマネコが「やあ！」と いうか みよう。',
     [`${C}chat-l3-mesh-signal.debug1`]:
@@ -700,7 +706,7 @@ export const jaHira = {
         '1 のキーで へんすう「シマラビのきぶん」を「うれしい」、2 のキーで「ねむい」にしよう。シマネコを おしたら、シマネコの きぶん（「シマネコのきぶん」の センサーの あたい）を 2 びょう いうようにしよう。\nペアで シマネコの やくの ひとは、シマラビと シマネコを いれかえて つくろう。',
     [`${C}chat-l3-mesh-variable.step1`]: 'かだいの せつめいと、アクティビティずを りかいしよう。',
     [`${C}chat-l3-mesh-variable.step2`]:
-        'シマラビを えらんで、「へんすう」の「へんすうをつくる」で「シマラビのきぶん」をつくろう。「すべてのスプライトよう」にすると、メッシュで つながった あいてと きょうゆう される。',
+        '**シマラビを えらんで**、「へんすう」の「へんすうをつくる」で「シマラビのきぶん」をつくろう。「すべてのスプライトよう」にすると、メッシュで つながった あいてと きょうゆう される。',
     [`${C}chat-l3-mesh-variable.step3`]:
         '「イベント」の「1 キーがおされたとき」をおいて、「シマラビのきぶんを うれしい にする」をつなげよう。',
     [`${C}chat-l3-mesh-variable.step4`]:
@@ -708,7 +714,7 @@ export const jaHira = {
     [`${C}chat-l3-mesh-variable.step5`]:
         'ひとりなら、れんしゅうあいての パネルの「うれしい」を おそう（ペアなら、あいてに 1 のキーを おしてもらう）。あいての きぶんが とどくと、「メッシュ」の「(　) センサーのあたい」の ▼ に「シマネコのきぶん」が でる。',
     [`${C}chat-l3-mesh-variable.step6`]:
-        'シマネコを えらんで、「このスプライトがおされたとき」を おこう。そのしたに「(　) と 2 びょう いう」をつなげて、しろいところに「(シマネコのきぶん) センサーのあたい」を いれよう。',
+        '**シマネコを えらんで**、「このスプライトがおされたとき」を おこう。そのしたに「(　) と 2 びょう いう」をつなげて、しろいところに「(シマネコのきぶん) センサーのあたい」を いれよう。',
     [`${C}chat-l3-mesh-variable.step7`]:
         '1 のキーと 2 のキーを おして、れんしゅうあいての パネルの「とどいた」に じぶんの きぶんが でるか みよう。パネルの「うれしい」「ねむい」を おしてから シマネコを おして、あいての きぶんを いうか みよう。',
     [`${C}chat-l3-mesh-variable.debug1`]:
@@ -731,13 +737,15 @@ export const jaHira = {
     [`${C}chat-l4-send-once.task`]:
         'はたを おしたら、シマラビが「メッセージを にゅうりょく」ときき、こたえを へんすう「シマラビのメッセージ」にいれて、メッセージ「シマラビのメッセージ」を おくるようにしよう。\n3-1 と おなじ かたちで、あいてが べつの コンピューターに なっただけ。ペアなら メッシュで つなぎ、ひとりなら れんしゅうあいてと やろう。ペアで シマネコの やくの ひとは、シマラビと シマネコを いれかえて つくろう。',
     [`${C}chat-l4-send-once.step1`]:
-        'かだいの せつめいと、アクティビティずを りかいしよう。ずの ひだりの「あなた」の レーンが、こんかい つくるところ。みぎの レーンは あいて（ひとりなら れんしゅうあいての シマネコ）が うごかすところで、とがった ごかくけいの「おくる」から やじるしが とどく。',
+        'かだいの せつめいと、アクティビティずを りかいしよう。ずの ひだりの「あなた」の レーンが、こんかい つくるところ。みぎの レーンは あいて（ひとりなら れんしゅうあいての シマネコ）が うごかすところで、みぎはしが とがった ずけい（「おくる」）から やじるしが とどく。',
     [`${C}chat-l4-send-once.step2`]:
-        'シマラビを えらんで、「イベント」の「はたがおされたとき」を おこう。そのしたに「メッセージを にゅうりょく ときいてまつ」と、へんすう「シマラビのメッセージ」をつくって「シマラビのメッセージを (こたえ) にする」をつなげよう。へんすうは「すべてのスプライトよう」にする。',
+        '**シマラビを えらんで**、「イベント」の「はたがおされたとき」を おこう。そのしたに「メッセージを にゅうりょく ときいてまつ」と、へんすう「シマラビのメッセージ」をつくって「シマラビのメッセージを (こたえ) にする」をつなげよう。へんすうは「すべてのスプライトよう」にする。',
     [`${C}chat-l4-send-once.step3`]:
         'そのしたに「イベント」の「〜をおくる」をつなげて、▼ の「あたらしいメッセージ」で「シマラビのメッセージ」をつくろう。',
     [`${C}chat-l4-send-once.step4`]:
         'ペアなら、「メッシュ」の よこの ボタンから、1 にんが ホストになって グループを つくり、もう 1 にんが さんかしよう。ひとりなら、この れんしゅうあいての パネルを つかう。',
+    [`${C}chat-l4-send-once.step4.inClass`]:
+        'ペアなら、2 にんとも「メッシュ」の よこの ボタンから「しゅっせきばんごうで つながる」を えらび、あいての しゅっせきばんごうを えらんで「つなぐ」を おそう。ひとりなら、この れんしゅうあいての パネルを つかう。',
     [`${C}chat-l4-send-once.step5`]:
         'はたを おして、メッセージを にゅうりょくして Enter キーを おそう。れんしゅうあいての パネルの「とどいた」（ペアなら あいての がめん）に、にゅうりょくした もじが でるか みよう。',
     [`${C}chat-l4-send-once.debug1`]:
@@ -779,8 +787,8 @@ export const jaHira = {
     [`${C}chat-l4-both-ways.task`]:
         'シマネコが、あいての メッセージを うけとって いうように しよう。メッセージ「シマネコのメッセージ」を うけとったら、「シマネコのメッセージ」の センサーの あたいを いう。\n3-1 では「(へんすう) と いう」だった。かわるのは そこだけ。',
     [`${C}chat-l4-both-ways.step1`]:
-        'かだいの せつめいと、アクティビティずを りかいしよう。あいての ごかくけいからの やじるしは、シマネコの「シマネコのメッセージをうけとったとき」の へこんだ はこに とどく。',
-    [`${C}chat-l4-both-ways.step2`]: 'みぎしたの スプライトの ならびで、シマネコを えらぼう。',
+        'かだいの せつめいと、アクティビティずを りかいしよう。あいての「おくる」（ひだりはしが とがった ずけい）からの やじるしは、シマネコの「シマネコのメッセージをうけとったとき」（みぎはしが くぼんだ ずけい）に とどく。',
+    [`${C}chat-l4-both-ways.step2`]: 'みぎしたの スプライトの ならびで、**シマネコを えらぼう**。',
     [`${C}chat-l4-both-ways.step3`]:
         '「イベント」の「〜をうけとったとき」を おき、▼ の「あたらしいメッセージ」で「シマネコのメッセージ」を つくろう。',
     [`${C}chat-l4-both-ways.step4`]:
@@ -808,7 +816,7 @@ export const jaHira = {
     [`${C}chat-l4-group.step2`]:
         'さいしょから はいっている プログラムを みよう。シマラビは へんすう「メッセージ」に いれて メッセージ「メッセージ」を おくり、シマネコは うけとったら「メッセージ」の センサーの あたいを いう。',
     [`${C}chat-l4-group.step3`]:
-        'シマラビの「はたがおされたとき」の すぐしたに「なまえは？ ときいてまつ」を いれ、へんすう「なまえ」（すべてのスプライトよう）を つくって「なまえを (こたえ) にする」を つなげよう。',
+        '**シマラビを えらびなおして**、「はたがおされたとき」の すぐしたに「なまえは？ ときいてまつ」を いれ、へんすう「なまえ」（すべてのスプライトよう）を つくって「なまえを (こたえ) にする」を つなげよう。',
     [`${C}chat-l4-group.step4`]:
         '「メッセージを (こたえ) にする」の しろいところに、「えんざん」の「(　) と (　)」を 2 つ つかって、(なまえ) と (：) と (こたえ) を つないで いれよう。',
     [`${C}chat-l4-group.step5`]:
@@ -831,9 +839,9 @@ export const jaHira = {
     [`${C}chat-l4-dm.step1`]:
         'かだいの せつめいと、アクティビティずを りかいしよう。ずでは、ひしがたから [「あてさき」のセンサーち = なまえ] の えだに すすんだ ときだけ いう。',
     [`${C}chat-l4-dm.step2`]:
-        'シマラビ:「メッセージを (なまえ と ： と こたえ) にする」の したに「だれに おくる？ ときいてまつ」を いれ、へんすう「あてさき」（すべてのスプライトよう）を つくって「あてさきを (こたえ) にする」を つなげよう。その あとに「おくる」が くるように する。',
+        '**シマラビを えらんで**、「メッセージを (なまえ と ： と こたえ) にする」の したに「だれに おくる？ ときいてまつ」を いれ、へんすう「あてさき」（すべてのスプライトよう）を つくって「あてさきを (こたえ) にする」を つなげよう。その あとに「おくる」が くるように する。',
     [`${C}chat-l4-dm.step3`]:
-        'シマネコを えらんで、「メッセージをうけとったとき」の「いう」を、「せいぎょ」の「もし〜なら」の なかへ いれよう。じょうけんには「えんざん」の「(　) = (　)」を いれ、ひだりに「(あてさき) センサーのあたい」、みぎに へんすう「なまえ」を いれる。',
+        '**シマネコを えらんで**、「メッセージをうけとったとき」の「いう」を、「せいぎょ」の「もし〜なら」の なかへ いれよう。じょうけんには「えんざん」の「(　) = (　)」を いれ、ひだりに「(あてさき) センサーのあたい」、みぎに へんすう「なまえ」を いれる。',
     [`${C}chat-l4-dm.step4`]:
         'はたを おして なまえを いれてから、れんしゅうあいての パネルの「あなたに DM」と「ミミに DM」を おそう。じぶん あての ときだけ シマネコが いうか みよう。',
     [`${C}chat-l4-dm.step5`]:
@@ -857,11 +865,11 @@ export const jaHira = {
         'あいての メッセージが とどいたら おとで しらせ、よんだ ことを あいてに つたえよう。シマネコは、あいての メッセージを いった あと「Meow の おとを ならす」。シマネコを おしたら メッセージ「シマラビがよんだ」を おくり、シマラビは「シマネコがよんだ」を うけとったら「きどく」と 2 びょう いう。\nさらに くふう するなら: きどくに じこくを つける・まだ よんでいない メッセージの かずを だす。',
     [`${C}chat-l5-read-receipt.step1`]: 'かだいの せつめいと、アクティビティずを りかいしよう。',
     [`${C}chat-l5-read-receipt.step2`]:
-        'シマネコを えらぼう。さいしょから はいっている「シマネコのメッセージを うけとったとき」の「いう」の したに、「おと」の「Meow の おとを ならす」を つなげよう。',
+        '**シマネコを えらぼう**。さいしょから はいっている「シマネコのメッセージを うけとったとき」の「いう」の したに、「おと」の「Meow の おとを ならす」を つなげよう。',
     [`${C}chat-l5-read-receipt.step3`]:
         'シマネコに、「イベント」の「このスプライトが おされたとき」を おき、「〜を おくる」を つなげて、▼ の「あたらしいメッセージ」で「シマラビがよんだ」を つくろう。',
     [`${C}chat-l5-read-receipt.step4`]:
-        'シマラビを えらんで、「〜を うけとったとき」を おき、▼ の「あたらしいメッセージ」で「シマネコがよんだ」を つくろう。その したに 「みため」の「きどく と 2 びょう いう」を つなげる。',
+        '**シマラビを えらびなおして**、「〜を うけとったとき」を おき、▼ の「あたらしいメッセージ」で「シマネコがよんだ」を つくろう。その したに 「みため」の「きどく と 2 びょう いう」を つなげる。',
     [`${C}chat-l5-read-receipt.step5`]:
         'ひとりなら、れんしゅうあいての パネルの「はつげんする」を おそう。おとが なったら シマネコを おす（パネルの「とどいた」に「シマラビがよんだ」が でる）。パネルの「きどくにする」を おすと、シマラビが「きどく」と いう。ペアなら、おたがいに おくって おしてみよう。',
     [`${C}chat-l5-read-receipt.step6`]:
@@ -887,7 +895,7 @@ export const jaHira = {
     [`${C}chat-l5-ng-word.step3`]:
         'ステージには、はたを おすと リスト「NGワード」を からにして「ばか」「きらい」を いれる プログラムが はいっている（みぎしたで ステージを えらぶと みられる）。',
     [`${C}chat-l5-ng-word.step4`]:
-        'シマラビを えらんで、「せいぎょ」の「もし 〜 なら でなければ」を「ずっと」の なかの うえに いれよう。じょうけんには、「へんすう」の「(NGワード) に (こたえ) が ふくまれる」を いれ、「もし」の なかに「その ことばは おくれません と 2 びょう いう」を いれる。',
+        '**シマラビを えらびなおして**、「せいぎょ」の「もし 〜 なら でなければ」を「ずっと」の なかの うえに いれよう。じょうけんには、「へんすう」の「(NGワード) に (こたえ) が ふくまれる」を いれ、「もし」の なかに「その ことばは おくれません と 2 びょう いう」を いれる。',
     [`${C}chat-l5-ng-word.step5`]:
         '「シマラビのメッセージを (こたえ) にする」と「おくる」を「でなければ」の なかへ うごかそう。「(シマラビのメッセージ) と きいてまつ」は、「もし」の した（「ずっと」の なか）に のこす。',
     [`${C}chat-l5-ng-word.step6`]:
@@ -911,7 +919,7 @@ export const jaHira = {
     [`${C}chat-l5-auto-reply.step2`]:
         'さいしょから はいっているのは 4-3 の チャット。シマラビが きいて おくり、シマネコが あいての メッセージを いう（みぎしたで シマネコを えらぶと みられる）。',
     [`${C}chat-l5-auto-reply.step3`]:
-        'シマラビを えらんで、「イベント」の「〜を うけとったとき」を おき、▼ で「シマネコのメッセージ」を えらぼう。',
+        '**シマラビを えらびなおして**、「イベント」の「〜を うけとったとき」を おき、▼ で「シマネコのメッセージ」を えらぼう。',
     [`${C}chat-l5-auto-reply.step4`]:
         '「せいぎょ」の「もし 〜 なら」を つなげよう。じょうけんには 「えんざん」の「(　) > (21)」を いれ、ひだりに 「しらべる」の「げんざいの (じ)」を いれる。',
     [`${C}chat-l5-auto-reply.step5`]:
@@ -939,7 +947,7 @@ export const jaHira = {
     [`${C}chat-l5-password.step2`]:
         'さいしょから はいっているのは 4-3 の チャット。シマラビが きいて おくり、シマネコが あいての メッセージを いう（みぎしたで シマネコを えらぶと みられる）。',
     [`${C}chat-l5-password.step3`]:
-        'シマラビの「はたがおされたとき」の すぐ したに、「しらべる」の「あいことばは？ と きいてまつ」を いれよう。',
+        '**シマラビを えらびなおして**、「はたがおされたとき」の すぐ したに、「しらべる」の「あいことばは？ と きいてまつ」を いれよう。',
     [`${C}chat-l5-password.step4`]:
         'その したに 「せいぎょ」の「もし 〜 なら でなければ」を つなげよう。じょうけんには 「えんざん」の「(こたえ) = (もみじ)」を いれ、「でなければ」に「あいことばが ちがいます と 2 びょう いう」を いれる。',
     [`${C}chat-l5-password.step5`]:
@@ -965,9 +973,9 @@ export const jaHira = {
     [`${C}chat-l5-stamp.step2`]:
         'さいしょから はいっているのは 4-3 の チャット。シマラビが きいて おくり、シマネコが あいての メッセージを いう（みぎしたで シマネコを えらぶと みられる）。',
     [`${C}chat-l5-stamp.step3`]:
-        'シマラビに、「イベント」の「このスプライトが おされたとき」を おき、「〜を おくる」を つなげて、▼ の「あたらしいメッセージ」で「シマラビのスタンプ」を つくろう。',
+        '**シマラビを えらびなおして**、「イベント」の「このスプライトが おされたとき」を おき、「〜を おくる」を つなげて、▼ の「あたらしいメッセージ」で「シマラビのスタンプ」を つくろう。',
     [`${C}chat-l5-stamp.step4`]:
-        'シマネコを えらんで、「〜を うけとったとき」を おき、▼ の「あたらしいメッセージ」で「シマネコのスタンプ」を つくろう。その したに 「みため」の「コスチュームを shimacat-b にする」、「せいぎょ」の「2 びょう まつ」、「コスチュームを shimacat-a にする」を つなげる。',
+        '**シマネコを えらんで**、「〜を うけとったとき」を おき、▼ の「あたらしいメッセージ」で「シマネコのスタンプ」を つくろう。その したに 「みため」の「コスチュームを shimacat-b にする」、「せいぎょ」の「2 びょう まつ」、「コスチュームを shimacat-a にする」を つなげる。',
     [`${C}chat-l5-stamp.step5`]:
         'ひとりなら、シマラビを おそう（れんしゅうあいてが スタンプを かえしてくれる）。パネルの「スタンプを おくる」を おしても、シマネコの コスチュームが 2 びょう かわる。ペアなら、おたがいに おしてみよう。',
     [`${C}chat-l5-stamp.step6`]:
@@ -1139,14 +1147,14 @@ export const en = {
     [`${C}chat-l3-local-message.task`]:
         'Add Shimacat from the library. When the flag is clicked, Shimaraby asks "Enter a message", puts the answer into the variable "shimaraby_message" and broadcasts the message "shimaraby_message". When Shimacat receives that message, it says the variable "shimaraby_message" for 3 seconds.\nA message is only the news "I sent it". Keep the text in the variable.',
     [`${C}chat-l3-local-message.step1`]:
-        'Understand the task and the activity diagram. In the diagram, the pointed pentagon is "broadcast" and the notched box is "when I receive". The arrow from the pentagon comes into the notched box.',
+        'Understand the task and the activity diagram. In the diagram, the shape with a pointed right end is "broadcast", and the shape with a notched left end is "when I receive". The arrow from the pointed shape comes into the notched shape.',
     [`${C}chat-l3-local-message.step2`]: 'Use "Choose a Sprite" at the bottom right to add Shimacat.',
     [`${C}chat-l3-local-message.step3`]:
-        'Select Shimaraby and place the Events block "when flag clicked". Under it, attach "ask Enter a message and wait", make the variable "shimaraby_message" and attach "set shimaraby_message to (answer)". Make the variable "For all sprites".',
+        '**Select Shimaraby again** and place the Events block "when flag clicked". Under it, attach "ask Enter a message and wait", make the variable "shimaraby_message" and attach "set shimaraby_message to (answer)". Make the variable "For all sprites".',
     [`${C}chat-l3-local-message.step4`]:
         'Under it, attach the Events block "broadcast", and make "shimaraby_message" with "New message" in its ▼.',
     [`${C}chat-l3-local-message.step5`]:
-        'Select Shimacat, place "when I receive" and choose "shimaraby_message" in its ▼. Under it, attach "say (shimaraby_message) for 3 seconds".',
+        '**Select Shimacat**, place "when I receive" and choose "shimaraby_message" in its ▼. Under it, attach "say (shimaraby_message) for 3 seconds".',
     [`${C}chat-l3-local-message.step6`]:
         'Click the flag, type a message and press Enter. Check that Shimacat says what you typed.',
     [`${C}chat-l3-local-message.debug1`]:
@@ -1164,15 +1172,17 @@ export const en = {
     [`${C}chat-l3-mesh-signal.task`]:
         'Add the extension "Mesh". In a pair, one of you becomes the host and makes a group, and the other joins that group. On your own, use the practice partner.\nWhen the space key is pressed, Shimaraby broadcasts the message "wave". When Shimacat receives "wave", it says "Hi!" for 2 seconds.',
     [`${C}chat-l3-mesh-signal.step1`]:
-        'Understand the task and the activity diagram. In the diagram, the arrows from your pentagon and from the partner\'s pentagon both come into the notched box "when I receive wave" of Shimacat.',
+        'Understand the task and the activity diagram. A pointed shape is "broadcast", and its pointed end faces the other side. The arrows from your "broadcast" and from the partner\'s "broadcast" both come into "when I receive wave" of Shimacat (the shape notched at both ends).',
     [`${C}chat-l3-mesh-signal.step2`]:
         'Choose "Mesh" with the extension button at the bottom left. "Mesh" is added to the palette.',
     [`${C}chat-l3-mesh-signal.step3`]:
         'In a pair, use the button next to "Mesh": one of you makes a group with "Become Mesh Host", and the other joins it with "Join Mesh". On your own, use the practice partner panel at the top right.',
+    [`${C}chat-l3-mesh-signal.step3.inClass`]:
+        'In a pair, both of you use the button next to "Mesh": choose "Connect by seat number", pick your partner\'s seat number and press "Connect". On your own, use the practice partner panel at the top right.',
     [`${C}chat-l3-mesh-signal.step4`]:
-        'Select Shimaraby and place the Events block "when space key pressed". Under it, attach "broadcast" and make "wave" with "New message" in its ▼.',
+        '**Select Shimaraby** and place the Events block "when space key pressed". Under it, attach "broadcast" and make "wave" with "New message" in its ▼.',
     [`${C}chat-l3-mesh-signal.step5`]:
-        'Select Shimacat, place "when I receive wave" and attach "say Hi! for 2 seconds" under it.',
+        '**Select Shimacat**, place "when I receive wave" and attach "say Hi! for 2 seconds" under it.',
     [`${C}chat-l3-mesh-signal.step6`]:
         'Click the stage, then press the space key. On your own, also click "wave" on the practice partner panel. Check that Shimacat says "Hi!" either way.',
     [`${C}chat-l3-mesh-signal.debug1`]:
@@ -1192,7 +1202,7 @@ export const en = {
         'With the 1 key, set the variable "shimaraby_mood" to "happy", and with the 2 key to "sleepy". When Shimacat is clicked, it says the mood of Shimacat (the sensor value of "shimacat_mood") for 2 seconds.\nIn a pair, the one who plays Shimacat swaps Shimaraby and Shimacat.',
     [`${C}chat-l3-mesh-variable.step1`]: 'Understand the task and the activity diagram.',
     [`${C}chat-l3-mesh-variable.step2`]:
-        'Select Shimaraby and make "shimaraby_mood" with "Make a Variable" in Variables. Make it "For all sprites" so that it is shared with the one you connect to over the mesh.',
+        '**Select Shimaraby** and make "shimaraby_mood" with "Make a Variable" in Variables. Make it "For all sprites" so that it is shared with the one you connect to over the mesh.',
     [`${C}chat-l3-mesh-variable.step3`]:
         'Place the Events block "when 1 key pressed" and attach "set shimaraby_mood to happy".',
     [`${C}chat-l3-mesh-variable.step4`]:
@@ -1200,7 +1210,7 @@ export const en = {
     [`${C}chat-l3-mesh-variable.step5`]:
         'On your own, click "happy" on the practice partner panel (in a pair, ask your pair to press the 1 key). When the mood arrives, "shimacat_mood" appears in the ▼ of the Mesh block "( ) sensor value".',
     [`${C}chat-l3-mesh-variable.step6`]:
-        'Select Shimacat and place "when this sprite clicked". Under it, attach "say ( ) for 2 seconds" and put "(shimacat_mood) sensor value" into its white space.',
+        '**Select Shimacat** and place "when this sprite clicked". Under it, attach "say ( ) for 2 seconds" and put "(shimacat_mood) sensor value" into its white space.',
     [`${C}chat-l3-mesh-variable.step7`]:
         'Press the 1 key and the 2 key, and check that your mood appears in "Received" on the practice partner panel. Click "happy" or "sleepy" on the panel, then click Shimacat and check that it says the mood of the partner.',
     [`${C}chat-l3-mesh-variable.debug1`]:
@@ -1223,13 +1233,15 @@ export const en = {
     [`${C}chat-l4-send-once.task`]:
         'When the flag is clicked, Shimaraby asks "Enter a message", puts the answer into the variable "shimaraby_message" and broadcasts the message "shimaraby_message".\nIt is the same as 3-1, but the other side is another computer. In a pair, connect with the mesh. On your own, use the practice partner. In a pair, the one who plays Shimacat swaps Shimaraby and Shimacat.',
     [`${C}chat-l4-send-once.step1`]:
-        'Understand the task and the activity diagram. The "You" lane on the left of the diagram is what you make this time. The lane on the right is run by the other side (on your own, Shimacat, the practice partner), and the arrow from the pointed pentagon "broadcast" goes there.',
+        'Understand the task and the activity diagram. The "You" lane on the left of the diagram is what you make this time. The lane on the right is run by the other side (on your own, Shimacat, the practice partner), and the arrow from the shape with a pointed right end ("broadcast") goes there.',
     [`${C}chat-l4-send-once.step2`]:
-        'Select Shimaraby and place the Events block "when flag clicked". Under it, attach "ask Enter a message and wait", make the variable "shimaraby_message" and attach "set shimaraby_message to (answer)". Make the variable "For all sprites".',
+        '**Select Shimaraby** and place the Events block "when flag clicked". Under it, attach "ask Enter a message and wait", make the variable "shimaraby_message" and attach "set shimaraby_message to (answer)". Make the variable "For all sprites".',
     [`${C}chat-l4-send-once.step3`]:
         'Under it, attach the Events block "broadcast", and make "shimaraby_message" with "New message" in its ▼.',
     [`${C}chat-l4-send-once.step4`]:
         'In a pair, use the button next to "Mesh": one of you becomes the host and makes a group, and the other joins it. On your own, use this practice partner panel.',
+    [`${C}chat-l4-send-once.step4.inClass`]:
+        'In a pair, both of you use the button next to "Mesh": choose "Connect by seat number", pick your partner\'s seat number and press "Connect". On your own, use this practice partner panel.',
     [`${C}chat-l4-send-once.step5`]:
         'Click the flag, type a message and press Enter. Check that what you typed appears in "Received" on the practice partner panel (in a pair, on the screen of your pair).',
     [`${C}chat-l4-send-once.debug1`]:
@@ -1271,8 +1283,8 @@ export const en = {
     [`${C}chat-l4-both-ways.task`]:
         'Make Shimacat receive the message of the other side and say it. When it receives the message "shimacat_message", it says the sensor value of "shimacat_message".\nIn 3-1 it said "(variable)". Only that part changes.',
     [`${C}chat-l4-both-ways.step1`]:
-        'Understand the task and the activity diagram. The arrow from the pentagon of the other side comes into the notched box "when I receive shimacat_message" of Shimacat.',
-    [`${C}chat-l4-both-ways.step2`]: 'Select Shimacat in the sprite list at the bottom right.',
+        'Understand the task and the activity diagram. The arrow from the other side\'s "broadcast" (the shape with a pointed left end) comes into "when I receive shimacat_message" of Shimacat (the shape with a notched right end).',
+    [`${C}chat-l4-both-ways.step2`]: '**Select Shimacat** in the sprite list at the bottom right.',
     [`${C}chat-l4-both-ways.step3`]:
         'Place the Events block "when I receive" and make "shimacat_message" with "New message" in its ▼.',
     [`${C}chat-l4-both-ways.step4`]:
@@ -1300,7 +1312,7 @@ export const en = {
     [`${C}chat-l4-group.step2`]:
         'Look at the program that is already there. Shimaraby puts the text into the variable "message" and broadcasts the message "message", and Shimacat says the sensor value of "message" when it receives it.',
     [`${C}chat-l4-group.step3`]:
-        'Right under "when flag clicked" of Shimaraby, put "ask What is your name? and wait", make the variable "name" (For all sprites) and attach "set name to (answer)".',
+        '**Select Shimaraby again**. Right under "when flag clicked", put "ask What is your name? and wait", make the variable "name" (For all sprites) and attach "set name to (answer)".',
     [`${C}chat-l4-group.step4`]:
         'Into the white space of "set message to (answer)", put two Operators blocks "join ( ) ( )" to join (name), (: ) and (answer).',
     [`${C}chat-l4-group.step5`]:
@@ -1323,9 +1335,9 @@ export const en = {
     [`${C}chat-l4-dm.step1`]:
         'Understand the task and the activity diagram. In the diagram, it says only on the branch ["to" sensor value = name] from the diamond.',
     [`${C}chat-l4-dm.step2`]:
-        'Shimaraby: under "set message to (name, : and answer)", put "ask Send to whom? and wait", make the variable "to" (For all sprites) and attach "set to to (answer)". Keep "broadcast" after them.',
+        '**Select Shimaraby**. Under "set message to (name, : and answer)", put "ask Send to whom? and wait", make the variable "to" (For all sprites) and attach "set to to (answer)". Keep "broadcast" after them.',
     [`${C}chat-l4-dm.step3`]:
-        'Select Shimacat and move "say" of "when I receive message" into the Control block "if then". For its condition, put the Operators block "( ) = ( )" with "(to) sensor value" on the left and the variable "name" on the right.',
+        '**Select Shimacat** and move "say" of "when I receive message" into the Control block "if then". For its condition, put the Operators block "( ) = ( )" with "(to) sensor value" on the left and the variable "name" on the right.',
     [`${C}chat-l4-dm.step4`]:
         'Click the flag and type your name, then click "DM to you" and "DM to Mimi" on the practice partner panel. Check that Shimacat says it only when it is for you.',
     [`${C}chat-l4-dm.step5`]:
@@ -1349,11 +1361,11 @@ export const en = {
         'Let a sound tell you that a message has arrived, and tell the other side that you have read it. Shimacat plays the sound "Meow" after saying the message of the other side. When Shimacat is clicked, it broadcasts the message "shimaraby_read". When Shimaraby receives "shimacat_read", it says "Read" for 2 seconds.\nTo go further: add the time to "Read", or show how many messages are not read yet.',
     [`${C}chat-l5-read-receipt.step1`]: 'Understand the task and the activity diagram.',
     [`${C}chat-l5-read-receipt.step2`]:
-        'Select Shimacat. Under "say" in "when I receive shimacat_message" that is already there, attach the Sound block "start sound Meow".',
+        '**Select Shimacat**. Under "say" in "when I receive shimacat_message" that is already there, attach the Sound block "start sound Meow".',
     [`${C}chat-l5-read-receipt.step3`]:
         'Give Shimacat the Events block "when this sprite clicked", attach "broadcast", and make "shimaraby_read" with "New message" in its ▼.',
     [`${C}chat-l5-read-receipt.step4`]:
-        'Select Shimaraby, place "when I receive", and make "shimacat_read" with "New message" in its ▼. Under it, attach the Looks block "say Read for 2 seconds".',
+        '**Select Shimaraby again**, place "when I receive", and make "shimacat_read" with "New message" in its ▼. Under it, attach the Looks block "say Read for 2 seconds".',
     [`${C}chat-l5-read-receipt.step5`]:
         'On your own, click "Say something" on the practice partner panel. When the sound plays, click Shimacat ("shimaraby_read" appears in "Received" on the panel). Click "Mark as read" on the panel, and Shimaraby says "Read". In a pair, send to each other and click.',
     [`${C}chat-l5-read-receipt.step6`]:
@@ -1379,7 +1391,7 @@ export const en = {
     [`${C}chat-l5-ng-word.step3`]:
         'The stage has a program that empties the list "ng_words" and adds "stupid" and "idiot" when the flag is clicked (select the stage at the bottom right to see it).',
     [`${C}chat-l5-ng-word.step4`]:
-        'Select Shimaraby and put the Control block "if then else" at the top inside "forever". Put the Variables block "(ng_words) contains (answer)?" into the condition, and put "say You can\'t send that word for 2 seconds" into "if".',
+        '**Select Shimaraby again** and put the Control block "if then else" at the top inside "forever". Put the Variables block "(ng_words) contains (answer)?" into the condition, and put "say You can\'t send that word for 2 seconds" into "if".',
     [`${C}chat-l5-ng-word.step5`]:
         'Move "set shimaraby_message to (answer)" and "broadcast" into "else". Keep "ask (shimaraby_message) and wait" under "if" (inside "forever").',
     [`${C}chat-l5-ng-word.step6`]:
@@ -1403,7 +1415,7 @@ export const en = {
     [`${C}chat-l5-auto-reply.step2`]:
         'What is already there is the chat of 4-3: Shimaraby asks and sends, and Shimacat says the message of the other side (select Shimacat at the bottom right to see it).',
     [`${C}chat-l5-auto-reply.step3`]:
-        'Select Shimaraby, place the Events block "when I receive" and choose "shimacat_message" in its ▼.',
+        '**Select Shimaraby again**, place the Events block "when I receive" and choose "shimacat_message" in its ▼.',
     [`${C}chat-l5-auto-reply.step4`]:
         'Attach the Control block "if then". Put the Operators block "(　) > (21)" into the condition, and put the Sensing block "current (hour)" on its left.',
     [`${C}chat-l5-auto-reply.step5`]:
@@ -1431,7 +1443,7 @@ export const en = {
     [`${C}chat-l5-password.step2`]:
         'What is already there is the chat of 4-3: Shimaraby asks and sends, and Shimacat says the message of the other side (select Shimacat at the bottom right to see it).',
     [`${C}chat-l5-password.step3`]:
-        'Right under "when flag clicked" of Shimaraby, put the Sensing block "ask Password? and wait".',
+        '**Select Shimaraby again**. Right under "when flag clicked", put the Sensing block "ask Password? and wait".',
     [`${C}chat-l5-password.step4`]:
         'Under it, attach the Control block "if then else". Put the Operators block "(answer) = (maple)" into the condition, and put "say Wrong password for 2 seconds" into "else".',
     [`${C}chat-l5-password.step5`]: 'Move "ask Enter a message and wait" and "forever" into "if".',
@@ -1456,9 +1468,9 @@ export const en = {
     [`${C}chat-l5-stamp.step2`]:
         'What is already there is the chat of 4-3: Shimaraby asks and sends, and Shimacat says the message of the other side (select Shimacat at the bottom right to see it).',
     [`${C}chat-l5-stamp.step3`]:
-        'Give Shimaraby the Events block "when this sprite clicked", attach "broadcast", and make "shimaraby_stamp" with "New message" in its ▼.',
+        '**Select Shimaraby again** and give it the Events block "when this sprite clicked", attach "broadcast", and make "shimaraby_stamp" with "New message" in its ▼.',
     [`${C}chat-l5-stamp.step4`]:
-        'Select Shimacat, place "when I receive", and make "shimacat_stamp" with "New message" in its ▼. Under it, attach the Looks block "switch costume to shimacat-b", the Control block "wait 2 seconds" and "switch costume to shimacat-a".',
+        '**Select Shimacat**, place "when I receive", and make "shimacat_stamp" with "New message" in its ▼. Under it, attach the Looks block "switch costume to shimacat-b", the Control block "wait 2 seconds" and "switch costume to shimacat-a".',
     [`${C}chat-l5-stamp.step5`]:
         'On your own, click Shimaraby (the practice partner sends a stamp back). Clicking "Send a stamp" on the panel also changes the costume of Shimacat for 2 seconds. In a pair, click on both sides.',
     [`${C}chat-l5-stamp.step6`]:

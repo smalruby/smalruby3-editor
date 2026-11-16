@@ -1,4 +1,5 @@
 @import '../../css/colors.css';
+@import '../../css/smalruby-tokens.css';
 @import '../../css/units.css';
 @import '../../css/z-index.css';
 @import '../balloon/balloon-tokens.css';
@@ -46,6 +47,15 @@
     margin: 0 0 0.5rem;
     font-weight: bold;
     white-space: pre-line;
+}
+
+/* 文言の `**…**`（見落としやすいところ）。文言はもう太字なので、色と地で見分けられるようにする */
+.emphasis {
+    padding: 0 0.125rem;
+    border-radius: 0.125rem;
+    color: $color-emphasis;
+    background-color: $color-emphasis-background;
+    font-weight: bold;
 }
 
 .title:last-child {
