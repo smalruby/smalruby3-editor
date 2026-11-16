@@ -45,7 +45,9 @@ import Alerts from '../../containers/alerts.jsx';
 import DragLayer from '../../containers/drag-layer.jsx';
 import ConnectionModal from '../../containers/connection-modal.jsx';
 import TelemetryModal from '../telemetry-modal/telemetry-modal.jsx';
+// === Smalruby: Start of block display modal ===
 import BlockDisplayModal from '../../containers/block-display-modal.jsx';
+// === Smalruby: End of block display modal ===
 // === Smalruby: Start of smalrubot firmware modal ===
 import SmalrubotFirmwareModal from '../../containers/smalrubot-firmware-modal.jsx';
 // === Smalruby: End of smalrubot firmware modal ===
@@ -56,7 +58,8 @@ import ClassroomTeacherKickAlerts from '../../containers/classroom-teacher-kick-
 import ClassroomTeacherPanel from '../../containers/classroom-teacher-panel.jsx';
 import ClassroomPeerPanel from '../../containers/classroom-peer-panel.jsx';
 import ClassroomSubmitReminder from '../../containers/classroom-submit-reminder.jsx';
-import ClassroomTeacherModal from '../../containers/classroom-teacher-modal.jsx';
+import ClassroomTeacherModalHost from '../../containers/classroom-teacher-modal-host.jsx';
+import ClassroomTeacherWorkBar from '../../containers/classroom-teacher-work-bar.jsx';
 // === Smalruby: End of classroom modal ===
 // === Smalruby: Start of bug report modal ===
 import BugReportModal from '../../containers/bug-report-modal.jsx';
@@ -67,9 +70,6 @@ import MeshV2ClassroomBinding from '../../lib/mesh-v2-classroom-binding.jsx';
 import ClassroomMeshConnectPrompt from '../../containers/classroom-mesh-connect-prompt.jsx';
 // === Smalruby: End of meshV2 classroom binding ===
 
-// === Smalruby: Start of meshV2 self-sensor notice ===
-import MeshSelfSensorNotice from '../../containers/mesh-self-sensor-notice.jsx';
-// === Smalruby: End of meshV2 self-sensor notice ===
 // === Smalruby: Start of mesh status popup ===
 import MeshStatusPopup from '../../containers/mesh-status-popup.jsx';
 // === Smalruby: End of mesh status popup ===
@@ -79,13 +79,21 @@ import LessonGoalWatcher from '../../containers/lesson-goal-watcher.jsx';
 // === Smalruby: Start of welcome modal ===
 import WelcomeModalHOC from '../../containers/welcome-modal-hoc.jsx';
 // === Smalruby: End of welcome modal ===
+// === Smalruby: Start of url loader ===
 import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
+// === Smalruby: End of url loader ===
+// === Smalruby: Start of koshien ===
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
 import KoshienSettingsModal from '../koshien-settings-modal/koshien-settings-modal.jsx';
 import KoshienMockPanel from '../../containers/koshien-mock-panel.jsx';
+// === Smalruby: End of koshien ===
+// === Smalruby: Start of ruby tab ===
 import RubyTab from '../../containers/ruby-tab.jsx';
+// === Smalruby: End of ruby tab ===
 
+// === Smalruby: Start of iPad portrait narrow desktop stage size ===
 import layout, {STAGE_DISPLAY_SIZES, STAGE_SIZE_MODES} from '../../lib/layout-constants';
+// === Smalruby: End of iPad portrait narrow desktop stage size ===
 import {resolveStageSize} from '../../lib/screen-utils';
 import {colorModeMap} from '../../lib/settings/color-mode/index.js';
 import {DEFAULT_THEME, themeMap} from '../../lib/settings/theme/index.js';
@@ -95,7 +103,9 @@ import styles from './gui.css';
 import codeIcon from './icon--code.svg';
 import costumesIcon from './icon--costumes.svg';
 import soundsIcon from './icon--sounds.svg';
+// === Smalruby: Start of ruby tab ===
 import rubyIcon from './icon--ruby.svg';
+// === Smalruby: End of ruby tab ===
 import DebugModal from '../debug-modal/debug-modal.jsx';
 import {setPlatform} from '../../reducers/platform.js';
 import {setTheme} from '../../reducers/settings.js';
@@ -195,13 +205,16 @@ const GUIComponent = props => {
         backpackConfigured,
         backpackHost,
         backpackVisible,
+        // === Smalruby: Start of block display modal ===
         blockDisplayModalVisible,
+        // === Smalruby: End of block display modal ===
         // === Smalruby: Start of smalrubot firmware modal ===
         smalrubotFirmwareModalVisible,
         // === Smalruby: End of smalrubot firmware modal ===
         // === Smalruby: Start of classroom modal ===
         classroomModalVisible,
         teacherModalVisible,
+        teacherWorkBarVisible,
         // === Smalruby: End of classroom modal ===
         blocksId,
         blocksTabVisible,
@@ -238,8 +251,10 @@ const GUIComponent = props => {
         isShared,
         isTelemetryEnabled,
         isTotallyNormal,
+        // === Smalruby: Start of koshien ===
         koshienTestModalVisible,
         koshienSettingsModalVisible,
+        // === Smalruby: End of koshien ===
         loading,
         logo,
         manuallySaveThumbnails,
@@ -258,7 +273,9 @@ const GUIComponent = props => {
         onOpenRegistration,
         onToggleLoginOpen,
         onActivateCostumesTab,
+        // === Smalruby: Start of ruby tab ===
         onActivateRubyTab,
+        // === Smalruby: End of ruby tab ===
         onActivateSoundsTab,
         onActivateTab,
         onClickLogo,
@@ -270,22 +287,32 @@ const GUIComponent = props => {
         onRequestCloseBackdropLibrary,
         onRequestCloseCostumeLibrary,
         onRequestCloseDebugModal,
+        // === Smalruby: Start of koshien ===
         onRequestCloseKoshienTestModal,
         onRequestCloseKoshienSettingsModal,
+        // === Smalruby: End of koshien ===
         onRequestCloseTelemetryModal,
+        // === Smalruby: Start of tips library close ===
         onRequestCloseTipsLibrary,
+        // === Smalruby: End of tips library close ===
+        // === Smalruby: Start of url loader ===
         onRequestCloseUrlLoaderModal,
+        // === Smalruby: End of url loader ===
         onSeeCommunity,
         onShare,
         onShowPrivacyPolicy,
         onStartSelectingFileUpload,
+        // === Smalruby: Start of url loader ===
         onStartSelectingUrlLoad,
+        // === Smalruby: End of url loader ===
         onTelemetryModalCancel,
         onTelemetryModalOptIn,
         onTelemetryModalOptOut,
         onUpdateProjectThumbnail,
+        // === Smalruby: Start of url loader ===
         onUrlLoaderSubmit,
         urlLoaderLoading, // === Smalruby: url loader loading state (#972) ===
+        // === Smalruby: End of url loader ===
         // === Smalruby: Start of Redux action props prevention ===
         // When adding new Redux actions in mapDispatchToProps that start with "on",
         // add them here to prevent React warnings about unknown event handler props
@@ -297,7 +324,9 @@ const GUIComponent = props => {
         onOpenBugReportModal, // === Smalruby: bug report modal ===
         onRequestExitDnclMode,
         // === Smalruby: End of Redux action props prevention ===
+        // === Smalruby: Start of ruby tab ===
         rubyTabVisible,
+        // === Smalruby: End of ruby tab ===
         showComingSoon,
         showNewFeatureCallouts,
         soundsTabVisible,
@@ -307,7 +336,9 @@ const GUIComponent = props => {
         colorMode,
         theme,
         tipsLibraryVisible,
+        // === Smalruby: Start of url loader ===
         urlLoaderModalVisible,
+        // === Smalruby: End of url loader ===
         useExternalPeripheralList,
         username,
         userOwnsProject,
@@ -354,6 +385,7 @@ const GUIComponent = props => {
         onRequestCloseDebugModal();
     }, [onDebugModalClose, onRequestCloseDebugModal]);
 
+    // === Smalruby: Start of feedback link confirm ===
     const handleFeedbackClick = useCallback(e => {
         const confirmed = window.confirm( // eslint-disable-line no-alert
             intl.formatMessage({
@@ -365,6 +397,7 @@ const GUIComponent = props => {
             e.preventDefault();
         }
     }, [intl]);
+    // === Smalruby: End of feedback link confirm ===
 
     // === Smalruby: Start of bug report modal ===
     const handleBugReportClick = useCallback(e => {
@@ -391,8 +424,11 @@ const GUIComponent = props => {
             const boxStyles = classNames(styles.bodyWrapper, {
                 [styles.bodyWrapperWithoutMenuBar]: menuBarHidden,
                 // === Smalruby: Start of lesson mode ===
-                [styles.bodyWrapperWithLessonTaskBar]: lessonTaskBarVisible
+                [styles.bodyWrapperWithLessonTaskBar]: lessonTaskBarVisible,
                 // === Smalruby: End of lesson mode ===
+                // === Smalruby: Start of classroom teacher work bar ===
+                [styles.bodyWrapperWithTeacherWorkBar]: teacherWorkBarVisible
+                // === Smalruby: End of classroom teacher work bar ===
             });
 
         return isPlayerOnly ? (
@@ -407,6 +443,7 @@ const GUIComponent = props => {
                 {alertsVisible ? (
                     <Alerts className={styles.alertsContainer} />
                 ) : null}
+                {/* === Smalruby: Start of url loader === */}
                 {urlLoaderModalVisible ? (
                     <URLLoaderModal
                         loading={urlLoaderLoading} // === Smalruby: url loader loading state (#972) ===
@@ -414,6 +451,8 @@ const GUIComponent = props => {
                         onLoadUrl={onUrlLoaderSubmit}
                     />
                 ) : null}
+                {/* === Smalruby: End of url loader === */}
+                {/* === Smalruby: Start of koshien === */}
                 {koshienTestModalVisible ? (
                     <KoshienTestModal
                         onRequestClose={onRequestCloseKoshienTestModal}
@@ -425,6 +464,7 @@ const GUIComponent = props => {
                         onRequestClose={onRequestCloseKoshienSettingsModal}
                     />
                 ) : null}
+                {/* === Smalruby: End of koshien === */}
                 {/* === Smalruby: Start of mesh status popup === */}
                 <MeshStatusPopup />
                 {/* === Smalruby: End of mesh status popup === */}
@@ -447,6 +487,7 @@ const GUIComponent = props => {
                             onShowPrivacyPolicy={onShowPrivacyPolicy}
                         />
                     ) : null}
+                    {/* === Smalruby: Start of url loader === */}
                     {urlLoaderModalVisible ? (
                         <URLLoaderModal
                             loading={urlLoaderLoading} // === Smalruby: url loader loading state (#972) ===
@@ -454,6 +495,8 @@ const GUIComponent = props => {
                             onLoadUrl={onUrlLoaderSubmit}
                         />
                     ) : null}
+                    {/* === Smalruby: End of url loader === */}
+                    {/* === Smalruby: Start of koshien === */}
                     {koshienTestModalVisible ? (
                         <KoshienTestModal
                             onRequestClose={onRequestCloseKoshienTestModal}
@@ -466,6 +509,7 @@ const GUIComponent = props => {
                         />
                     ) : null}
                     <KoshienMockPanel vm={vm} />
+                    {/* === Smalruby: End of koshien === */}
                     {loading ? (
                         <Loader />
                     ) : null}
@@ -479,7 +523,9 @@ const GUIComponent = props => {
                         <TipsLibrary
                             hideTutorialProjects={hideTutorialProjects}
                             onTutorialSelect={onTutorialSelect}
+                            // === Smalruby: Start of tips library close ===
                             onRequestClose={onRequestCloseTipsLibrary}
+                            // === Smalruby: End of tips library close ===
                         />
                     ) : null}
                     {cardsVisible ? (
@@ -510,9 +556,11 @@ const GUIComponent = props => {
                             onRequestClose={onRequestCloseBackdropLibrary}
                         />
                     ) : null}
+                    {/* === Smalruby: Start of block display modal === */}
                     {blockDisplayModalVisible ? (
                         <BlockDisplayModal />
                     ) : null}
+                    {/* === Smalruby: End of block display modal === */}
                     {/* === Smalruby: Start of smalrubot firmware modal === */}
                     {smalrubotFirmwareModalVisible ? (
                         <SmalrubotFirmwareModal />
@@ -523,7 +571,8 @@ const GUIComponent = props => {
                     <ClassroomTeacherPanel />
                     <ClassroomPeerPanel />
                     <ClassroomSubmitReminder />
-                    {teacherModalVisible ? <ClassroomTeacherModal /> : null}
+                    {/* 開いたあとは隠して残す（作品を開いて戻ったとき、元の画面と採点の下書きを残す） */}
+                    <ClassroomTeacherModalHost />
                     {/* === Smalruby: End of classroom modal === */}
                     {/* === Smalruby: Start of bug report modal === */}
                     {isBugReportConfigured() ? <BugReportModal /> : null}
@@ -532,9 +581,6 @@ const GUIComponent = props => {
                     <MeshV2ClassroomBinding />
                     <ClassroomMeshConnectPrompt />
                     {/* === Smalruby: End of meshV2 classroom binding === */}
-                    {/* === Smalruby: Start of meshV2 self-sensor notice === */}
-                    <MeshSelfSensorNotice />
-                    {/* === Smalruby: End of meshV2 self-sensor notice === */}
                     {/* === Smalruby: Start of mesh status popup === */}
                     <MeshStatusPopup />
                     {/* === Smalruby: End of mesh status popup === */}
@@ -599,7 +645,9 @@ const GUIComponent = props => {
                         onSeeCommunity={onSeeCommunity}
                         onShare={onShare}
                         onStartSelectingFileUpload={onStartSelectingFileUpload}
+                        // === Smalruby: Start of url loader ===
                         onStartSelectingUrlLoad={onStartSelectingUrlLoad}
+                        // === Smalruby: End of url loader ===
                         onToggleLoginOpen={onToggleLoginOpen}
                         userOwnsProject={userOwnsProject}
                         username={username}
@@ -613,6 +661,10 @@ const GUIComponent = props => {
                     {/* クラスの課題へ進み具合を送る・本人の確認 */}
                     <LessonProgressSync />
                     {/* === Smalruby: End of lesson mode === */}
+                    {/* === Smalruby: Start of classroom teacher work bar === */}
+                    {/* 先生がクラス管理から作品を開いている間の「戻る帯」（画面の幅いっぱい） */}
+                    <ClassroomTeacherWorkBar />
+                    {/* === Smalruby: End of classroom teacher work bar === */}
                     <Box className={classNames(boxStyles, styles.flexWrapper)}>
                         <Box
                             role="main"
@@ -640,7 +692,9 @@ const GUIComponent = props => {
                                 focusTabOnClick={false}
                             >
                                 <Box
+                                    // === Smalruby: Start of tab list container style ===
                                     className={styles.tabListContainer}
+                                    // === Smalruby: End of tab list container style ===
                                     role="region"
                                     aria-label={intl.formatMessage(ariaMessages.tabList)}
                                 >
@@ -703,6 +757,7 @@ const GUIComponent = props => {
                                                 id="gui.gui.soundsTab"
                                             />
                                         </Tab>
+                                        {/* === Smalruby: Start of ruby tab === */}
                                         <Tab
                                             className={tabClassNames.tab}
                                             onClick={onActivateRubyTab}
@@ -719,7 +774,9 @@ const GUIComponent = props => {
                                                 id="gui.smalruby3.gui.rubyTab"
                                             />
                                         </Tab>
+                                        {/* === Smalruby: End of ruby tab === */}
                                     </TabList>
+                                    {/* === Smalruby: Start of legal links === */}
                                     <div className={styles.legalLinks}>
                                         <a
                                             className={styles.privacyLink}
@@ -767,6 +824,7 @@ const GUIComponent = props => {
                                         ) : null}
                                         {/* === Smalruby: End of bug report modal === */}
                                     </div>
+                                    {/* === Smalruby: End of legal links === */}
                                 </Box>
                                 <TabPanel
                                     className={tabClassNames.tabPanel}
@@ -837,6 +895,7 @@ const GUIComponent = props => {
                                             vm={vm}
                                         /> : null}
                                 </TabPanel>
+                                {/* === Smalruby: Start of ruby tab === */}
                                 <TabPanel
                                     className={tabClassNames.tabPanel}
                                     role="tabpanel"
@@ -847,6 +906,7 @@ const GUIComponent = props => {
                                         onProjectTelemetryEvent={onProjectTelemetryEvent}
                                     />
                                 </TabPanel>
+                                {/* === Smalruby: End of ruby tab === */}
                             </Tabs>
                             {backpackVisible && backpackConfigured ? (
                                 <Backpack
@@ -900,8 +960,10 @@ const GUIComponent = props => {
                 </Box>
             </ModalFocusProvider>
         );
+        // === Smalruby: Start of iPad portrait narrow desktop stage size ===
         }}</MediaQuery>
     )}</MediaQuery>);
+        // === Smalruby: End of iPad portrait narrow desktop stage size ===
 };
 
 GUIComponent.propTypes = {
@@ -917,9 +979,12 @@ GUIComponent.propTypes = {
     backpackHost: PropTypes.string,
     backpackVisible: PropTypes.bool,
     basePath: PropTypes.string,
+    // === Smalruby: Start of block display modal ===
     blockDisplayModalVisible: PropTypes.bool,
+    // === Smalruby: End of block display modal ===
     classroomModalVisible: PropTypes.bool, // === Smalruby: classroom modal ===
     teacherModalVisible: PropTypes.bool, // === Smalruby: classroom modal ===
+    teacherWorkBarVisible: PropTypes.bool, // === Smalruby: classroom modal ===
     onOpenBugReportModal: PropTypes.func, // === Smalruby: bug report modal ===
     smalrubotFirmwareModalVisible: PropTypes.bool, // === Smalruby: smalrubot firmware modal ===
     blocksTabVisible: PropTypes.bool,
@@ -955,8 +1020,10 @@ GUIComponent.propTypes = {
     isRtl: PropTypes.bool,
     isShared: PropTypes.bool,
     isTotallyNormal: PropTypes.bool,
+    // === Smalruby: Start of koshien ===
     koshienTestModalVisible: PropTypes.bool,
     koshienSettingsModalVisible: PropTypes.bool,
+    // === Smalruby: End of koshien ===
     loading: PropTypes.bool,
     logo: PropTypes.string,
     manuallySaveThumbnails: PropTypes.bool,
@@ -964,7 +1031,9 @@ GUIComponent.propTypes = {
     onSetManualThumbnailButtonClick: PropTypes.func,
     menuBarHidden: PropTypes.bool,
     onActivateCostumesTab: PropTypes.func,
+    // === Smalruby: Start of ruby tab ===
     onActivateRubyTab: PropTypes.func,
+    // === Smalruby: End of ruby tab ===
     onActivateSoundsTab: PropTypes.func,
     onActivateTab: PropTypes.func,
     onClickAccountNav: PropTypes.func,
@@ -980,11 +1049,17 @@ GUIComponent.propTypes = {
     onRequestCloseBackdropLibrary: PropTypes.func,
     onRequestCloseCostumeLibrary: PropTypes.func,
     onRequestCloseDebugModal: PropTypes.func,
+    // === Smalruby: Start of koshien ===
     onRequestCloseKoshienTestModal: PropTypes.func,
     onRequestCloseKoshienSettingsModal: PropTypes.func,
+    // === Smalruby: End of koshien ===
     onRequestCloseTelemetryModal: PropTypes.func,
+    // === Smalruby: Start of tips library close ===
     onRequestCloseTipsLibrary: PropTypes.func,
+    // === Smalruby: End of tips library close ===
+    // === Smalruby: Start of url loader ===
     onRequestCloseUrlLoaderModal: PropTypes.func,
+    // === Smalruby: End of url loader ===
     onSeeCommunity: PropTypes.func,
     onShare: PropTypes.func,
     // === Smalruby: Start of welcome modal ===
@@ -992,20 +1067,29 @@ GUIComponent.propTypes = {
     // === Smalruby: End of welcome modal ===
     onShowPrivacyPolicy: PropTypes.func,
     onStartSelectingFileUpload: PropTypes.func,
+    // === Smalruby: Start of url loader ===
     onStartSelectingUrlLoad: PropTypes.func,
+    // === Smalruby: End of url loader ===
     onTabSelect: PropTypes.func,
     onTelemetryModalCancel: PropTypes.func,
     onTelemetryModalOptIn: PropTypes.func,
     onTelemetryModalOptOut: PropTypes.func,
     onToggleLoginOpen: PropTypes.func,
     onUpdateProjectThumbnail: PropTypes.func,
+    // === Smalruby: Start of url loader ===
     onUrlLoaderSubmit: PropTypes.func,
     urlLoaderLoading: PropTypes.bool, // === Smalruby: url loader loading state (#972) ===
+    // === Smalruby: End of url loader ===
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
     renderLogin: PropTypes.func,
+    // === Smalruby: Start of ruby tab ===
     rubyTabVisible: PropTypes.bool,
+    // === Smalruby: End of ruby tab ===
     setTheme: PropTypes.func.isRequired,
     showComingSoon: PropTypes.bool,
+    // === Smalruby: Start of new feature callouts removal ===
+    // Upstream has a showNewFeatureCallouts prop; Smalruby removed it.
+    // === Smalruby: End of new feature callouts removal ===
     soundsTabVisible: PropTypes.bool,
     stageSizeMode: PropTypes.oneOf(Object.keys(STAGE_SIZE_MODES)),
     setPlatform: PropTypes.func,
@@ -1014,7 +1098,9 @@ GUIComponent.propTypes = {
     colorMode: PropTypes.string,
     theme: PropTypes.string,
     tipsLibraryVisible: PropTypes.bool,
+    // === Smalruby: Start of url loader ===
     urlLoaderModalVisible: PropTypes.bool,
+    // === Smalruby: End of url loader ===
     useExternalPeripheralList: PropTypes.bool, // true for CDM, false for normal Scratch Link
     username: PropTypes.string,
     userOwnsProject: PropTypes.bool,
@@ -1046,6 +1132,9 @@ GUIComponent.defaultProps = {
     loading: false,
     menuBarHidden: false,
     showComingSoon: false,
+    // === Smalruby: Start of new feature callouts removal ===
+    // Upstream has a showNewFeatureCallouts prop; Smalruby removed it.
+    // === Smalruby: End of new feature callouts removal ===
     stageSizeMode: STAGE_SIZE_MODES.large,
     useExternalPeripheralList: false
 };

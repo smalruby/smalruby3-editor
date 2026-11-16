@@ -23,11 +23,29 @@ import {
     hintViewport,
     preferredSides,
 } from '../../lib/lessons/hint-targets';
+import { splitEmphasis } from '../../lib/lessons/hint-text';
+import { formatRoleMessage } from '../../lib/lessons/role-swap';
 import BalloonButton from '../balloon/balloon-button.jsx';
 import BalloonHeader from '../balloon/balloon-header.jsx';
 import Balloon, { BALLOON_VARIANTS } from '../balloon/balloon.jsx';
 import LessonHintBlocks from './lesson-hint-blocks.jsx';
 import styles from './lesson-hint.css';
+
+// 文言の `**…**` を強調して出す（lib/lessons/hint-text.js）。文字として出すので、訳の中の記号は HTML にならない
+const EmphasizedText = ({ text }) =>
+    splitEmphasis(text).map((part, i) =>
+        part.strong ? (
+            <strong key={i} className={styles.emphasis} data-testid="lesson-hint-emphasis">
+                {part.text}
+            </strong>
+        ) : (
+            <React.Fragment key={i}>{part.text}</React.Fragment>
+        ),
+    );
+
+EmphasizedText.propTypes = {
+    text: PropTypes.string.isRequired,
+};
 
 const messages = defineMessages({
     ariaLabel: {
@@ -122,12 +140,20 @@ const useHintPlacement = (target, balloonRef, deps) => {
         if (!el || typeof document === 'undefined') return;
         const targetRect = target ? findHintTargetRect(target, document) : null;
         const size = el.getBoundingClientRect();
+        // しっぽをヘッダーの帯の横・閉じるボタンの上に出さないよう、どちらの位置も吹き出しからの相対で渡す
+        const header = el.querySelector('[data-testid="lesson-hint-drag-handle"]');
+        const close = el.querySelector('[data-testid="lesson-hint-close"]');
         const placement = computeHintPlacement({
             target: targetRect,
-            balloon: { width: size.width, height: size.height },
+            balloon: {
+                width: size.width,
+                height: size.height,
+                header: header ? header.getBoundingClientRect().bottom - size.top : 0,
+                closeLeft: close ? close.getBoundingClientRect().left - size.left : null,
+            },
             viewport: viewportSize(),
             sides: preferredSides(target),
-            avoid: findHintAvoidRects(document),
+            avoid: findHintAvoidRects(document, target),
         });
         setState((prev) =>
             sameRect(prev.targetRect, targetRect) &&
@@ -384,7 +410,9 @@ const LessonHint = ({
                             {debug.length > 0 ? (
                                 <ul className={styles.debugList} data-testid="lesson-hint-debug">
                                     {debug.map((tip) => (
-                                        <li key={tip.id}>{intl.formatMessage(tip)}</li>
+                                        <li key={tip.id}>
+                                            <EmphasizedText text={formatRoleMessage(intl, tip)} />
+                                        </li>
                                     ))}
                                 </ul>
                             ) : null}
@@ -449,12 +477,12 @@ const LessonHint = ({
                             ) : null}
                             {title ? (
                                 <p className={styles.title} data-testid="lesson-hint-title">
-                                    {intl.formatMessage(title)}
+                                    <EmphasizedText text={formatRoleMessage(intl, title)} />
                                 </p>
                             ) : null}
                             {note ? (
                                 <p className={styles.note} data-testid="lesson-hint-note">
-                                    {intl.formatMessage(note)}
+                                    {formatRoleMessage(intl, note)}
                                 </p>
                             ) : null}
                             {label && (blocksXml || blocksError) ? (

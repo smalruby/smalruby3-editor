@@ -215,6 +215,10 @@ const ClassroomTeacherPanel = () => {
         };
     }, [shown]);
 
+    // Kick requests arriving after the load grow the panel (the count tag and the list),
+    // so the panel is put back on screen when their number changes too (#1964 Q1).
+    const kickRequestCount = kickRequestsForClassroom(allKickRequests, classroomId).length;
+
     // Keep the panel on screen once its real size is known and on resize.
     useLayoutEffect(() => {
         if (!shown || !panelRef.current) return () => {};
@@ -233,7 +237,7 @@ const ClassroomTeacherPanel = () => {
         fit();
         window.addEventListener('resize', fit);
         return () => window.removeEventListener('resize', fit);
-    }, [shown, minimized, classroomId, membersById, lessonById, sessionExpired]);
+    }, [shown, minimized, classroomId, membersById, lessonById, sessionExpired, kickRequestCount]);
 
     const handleDrag = useCallback((e, data) => setPosition({ x: data.x, y: data.y }), []);
     const handleDragStop = useCallback((e, data) => {

@@ -392,7 +392,7 @@ const rubyNameOfVariable = function (variable) {
 /**
  * Find the two lists (keys and values) that hold the hash a receiver reads, for the methods of Hash
  * that are also methods of Array or String (`length` / `empty?`). A receiver is a hash when the code
- * sets it to a hash literal (`_collectVariableUses`) or the lists of the hash already exist (a hash
+ * sets it to a hash literal (the analysis, `variables.uses`) or the lists of the hash already exist (a hash
  * of the project, or set earlier in this code). Otherwise these methods would use a list named
  * after the hash, which is always empty (issue #1652).
  * @param {object} converter - The converter instance.

@@ -15,6 +15,8 @@ export const HINT_TARGETS = Object.freeze({
     GREEN_FLAG: 'green-flag',
     // メッシュの練習相手のパネル（閉じているときは小さな「練習相手」のボタン）
     PRACTICE_PARTNER: 'practice-partner',
+    // 課題バーの役のボタン（役のあるチャレンジの「役を決めよう」のページ）
+    ROLE_PICKER: 'role-picker',
     KEYBOARD: 'keyboard',
 });
 
@@ -87,6 +89,15 @@ const TARGET_SPECS = {
         selectors: ['[data-testid="lesson-practice-partner"]', '[data-testid="lesson-practice-partner-open"]'],
         sides: [HINT_SIDES.LEFT, HINT_SIDES.BOTTOM, HINT_SIDES.INSIDE],
     },
+    [HINT_TARGETS.ROLE_PICKER]: {
+        // components/lesson-task-bar/lesson-role-picker.jsx のボタンの並び（下の「前回は…」の一言は含めない）。
+        // 課題バーは吹き出しより上に描かれ、吹き出しはバーの下から置く（hintViewport）ので、下に置いてしっぽを上に向ける
+        selectors: ['[data-testid="lesson-task-bar-role-buttons"]'],
+        sides: [HINT_SIDES.BOTTOM],
+        // 役のボタンは練習相手のパネルの真上にあることが多い（1300×600）。パネルをよけると吹き出しが左へずれ、しっぽが
+        // ボタンに届かない。このページは練習相手を使う前に読むので、パネルにかぶってもしっぽでボタンを指す
+        coverAvoid: true,
+    },
     [HINT_TARGETS.KEYBOARD]: { selectors: [], sides: [] },
 };
 
@@ -143,9 +154,14 @@ export const findHintTargetRect = (target, doc) => {
 /**
  * 吹き出しをかぶせない部品の矩形（viewport 座標。出ているものだけ）。
  * @param {Document} doc - 探す document。
+ * @param {string} [target] - 指す場所。かぶってでも指す場所（役のボタン）なら、よけるものは無い。
  * @returns {Array<{left: number, top: number, right: number, bottom: number}>} 矩形。
  */
-export const findHintAvoidRects = (doc) => (doc ? visibleRects(doc, AVOID_SELECTORS) : []);
+export const findHintAvoidRects = (doc, target) => {
+    const spec = target ? TARGET_SPECS[target] : null;
+    if (!doc || (spec && spec.coverAvoid)) return [];
+    return visibleRects(doc, AVOID_SELECTORS);
+};
 
 /**
  * 指す場所ごとの、吹き出しを置く側の候補（先に書いたものを優先）。
@@ -201,7 +217,9 @@ export const hintViewport = (doc, win) => {
  * 画面からはみ出さないよう、最後に margin の内側に収める。
  * @param {object} args - 引数。
  * @param {?{left: number, top: number, right: number, bottom: number}} args.target - 指す場所の矩形（無ければ null）。
- * @param {{width: number, height: number}} args.balloon - 吹き出しの大きさ。
+ * @param {{width: number, height: number, header: ?number, closeLeft: ?number}} args.balloon - 吹き出しの大きさ。
+ *   `header` はヘッダーの帯の下の端、`closeLeft` は閉じるボタンの左の端（どちらも吹き出しの左上からの相対。
+ *   無ければ見ない）。左右の辺のしっぽは帯の横に、上の辺のしっぽは閉じるボタンの上に出さない。
  * @param {{width: number, height: number, left: ?number}} args.viewport - 画面の大きさ（`left` は左の使えない幅。`hintViewport`）。
  * @param {Array<string>} [args.sides] - 置く側の候補（既定は右 → 左 → 下 → 上 → 中）。
  * @param {Array<object>} [args.avoid] - かぶせない矩形（練習相手のパネル。`findHintAvoidRects`）。かぶる置き方は、
@@ -211,23 +229,43 @@ export const hintViewport = (doc, win) => {
  * @param {number} [args.gap] - 指す場所と吹き出しのすき間。
  * @param {number} [args.margin] - 画面の端から空ける幅。
  * @returns {{left: number, top: number, side: string, arrow: ?{x: number, y: number}}}
- *   吹き出しの左上（viewport 座標）・置いた側・矢印の位置（吹き出しの左上からの相対。無ければ null）。
+ *   吹き出しの左上（viewport 座標）・置いた側・矢印の位置（吹き出しの左上からの相対。無ければ null。ずらした結果、
+ *   指す場所の真ん中が吹き出しの辺の外になったときも null — 角に寄せたしっぽは何も指さないため）。
  */
 export const computeHintPlacement = ({ target, balloon, viewport, sides, avoid = [], gap = 12, margin = 8 }) => {
     const minLeft = (viewport.left || 0) + margin;
     const minTop = (viewport.top || 0) + margin;
     const maxLeft = Math.max(minLeft, viewport.width - balloon.width - margin);
     const maxTop = Math.max(minTop, viewport.height - balloon.height - margin);
+    // しっぽ（矢印）を描ける位置か。画面に収める・かぶせない部品をよけるために吹き出しをずらすと、指す場所の
+    // 真ん中が吹き出しの辺の外（上の端より上など）になることがある。そこで位置を辺の中に寄せて描くと、しっぽは
+    // 何も指さずに角に出る（ヘッダーの閉じるボタンにかぶる白いひし形になる）ので、そのときは出さない
+    const ARROW_INSET = 12;
+    // 辺の中でも、ヘッダーの帯の横（左右の辺の上のほう）と閉じるボタンの上（上の辺の右の端）には出さない。
+    // 帯の色の上に白いしっぽが出て、閉じるボタンの横の白いひし形に見える
+    const headerBottom = balloon.header || 0;
+    const closeLeft = typeof balloon.closeLeft === 'number' ? balloon.closeLeft : Infinity;
+    const alongEdge = (offset, length, start = 0, end = length) =>
+        offset >= start + ARROW_INSET && offset <= Math.min(length, end) - ARROW_INSET;
+    const arrowFor = (l, t, side, anchor) => {
+        if (!anchor) return null;
+        const x = anchor.x - l;
+        const y = anchor.y - t;
+        const sideways = side === HINT_SIDES.RIGHT || side === HINT_SIDES.LEFT;
+        const onTopEdge = side === HINT_SIDES.BOTTOM;
+        const fits = sideways
+            ? alongEdge(y, balloon.height, headerBottom)
+            : alongEdge(x, balloon.width, 0, onTopEdge ? closeLeft : balloon.width);
+        if (!fits) return null;
+        return {
+            x: clamp(x, ARROW_INSET, Math.max(ARROW_INSET, balloon.width - ARROW_INSET)),
+            y: clamp(y, ARROW_INSET, Math.max(ARROW_INSET, balloon.height - ARROW_INSET)),
+        };
+    };
     const settle = (left, top, side, anchor) => {
         const l = clamp(left, minLeft, maxLeft);
         const t = clamp(top, minTop, maxTop);
-        const arrow = anchor
-            ? {
-                  x: clamp(anchor.x - l, 12, Math.max(12, balloon.width - 12)),
-                  y: clamp(anchor.y - t, 12, Math.max(12, balloon.height - 12)),
-              }
-            : null;
-        return { left: l, top: t, side, arrow };
+        return { left: l, top: t, side, arrow: arrowFor(l, t, side, anchor) };
     };
     const boxOf = (p) => ({
         left: p.left,

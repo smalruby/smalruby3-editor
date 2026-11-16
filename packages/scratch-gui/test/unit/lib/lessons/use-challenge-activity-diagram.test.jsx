@@ -13,6 +13,7 @@ import {
     useChallengeActivityDiagram,
 } from '../../../../src/lib/lessons/activity-diagram/use-challenge-activity-diagram';
 import { defineChallenge } from '../../../../src/lib/lessons/courses';
+import { ROLES, challengeForRole } from '../../../../src/lib/lessons/role-swap';
 
 // 変換の呼ばれ方を記録し、答えをテストから決める（resolve を呼ぶまで終わらない）
 const calls = [];
@@ -150,5 +151,25 @@ describe('useChallengeActivityDiagram', () => {
         await finish(calls[0], sayBlocks('a'));
         expect(labelsOf(result.current)).toContain('「b」と言う');
         expect(labelsOf(result.current)).not.toContain('「a」と言う');
+    });
+
+    test('the Shimacat role (the same id, names swapped) draws its own diagram (#2062)', async () => {
+        const shimaraby = defineChallenge({
+            id: 'role',
+            activityDiagram: true,
+            roles: true,
+            code: 'when_flag_clicked do\n  say("シマラビ")\nend\n',
+        });
+        const shimacat = challengeForRole(shimaraby, ROLES.SHIMACAT);
+        const { result, rerender } = renderDiagramHook({ challenge: shimaraby, locale: 'ja', rubyVersion: '2' });
+        await waitFor(() => expect(calls).toHaveLength(1));
+        await finish(calls[0], sayBlocks('シマラビ'));
+        await waitFor(() => expect(result.current).not.toBeNull());
+        rerender({ challenge: shimacat, locale: 'ja', rubyVersion: '2' });
+        // 役が変わったら、覚えている図を使わずに入れかえた答えを変換する
+        await waitFor(() => expect(calls).toHaveLength(2));
+        expect(calls[1].code).toContain('シマネコ');
+        await finish(calls[1], sayBlocks('シマネコ'));
+        await waitFor(() => expect(labelsOf(result.current).join(' ')).toContain('シマネコ'));
     });
 });

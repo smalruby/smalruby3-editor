@@ -89,6 +89,52 @@ const currentLessonOnlyStep = ({ loaded, checked }) => {
     return checked ? 'export' : 'check';
 };
 
+const gradeOf = (cell) => ({
+    grade: (cell && cell.grade) || '',
+    reason: ((cell && cell.reason) || '').trim(),
+});
+
+/**
+ * The grades as exported in the 「採点結果」 CSV (#1923 C4): a snapshot of
+ * every cell's grade and reason, kept to tell what changed after the export.
+ * @param {object} matrix - `${seat}:${classroomId}` → cell
+ * @returns {object} `${seat}:${classroomId}` → {grade, reason}
+ */
+const evaluationSnapshot = (matrix) =>
+    Object.fromEntries(Object.entries(matrix || {}).map(([key, cell]) => [key, gradeOf(cell)]));
+
+/**
+ * What leaving the grading screen would lose (#1923 C4). Grades and comment
+ * drafts live only on this screen:
+ * - a grade or a reason is kept only by the 「採点結果」 CSV (returning does
+ *   not save grades on the server), so one that differs from the last export
+ *   is lost. "Exported" means the download started: a cancelled download
+ *   cannot be told apart;
+ * - a comment is kept only when it was returned as it is now (a comment
+ *   edited or redrafted by the AI after the return is lost).
+ * Every assignment in the table counts, also one unselected after grading
+ * (it is still dropped on leaving or on loading again).
+ * @param {object} state - the grading state
+ * @param {object} state.matrix - `${seat}:${classroomId}` → cell
+ * @param {object} state.comments - `${seat}:${classroomId}` → comment draft
+ * @param {object} [state.exported] - evaluationSnapshot of what was exported
+ * @returns {{grades: boolean, comments: boolean}} what would be lost
+ */
+const unsavedEvaluation = ({ matrix, comments, exported = {} }) => {
+    const cells = matrix || {};
+    const drafts = comments || {};
+    const result = { grades: false, comments: false };
+    for (const key of new Set([...Object.keys(cells), ...Object.keys(drafts)])) {
+        const cell = cells[key] || null;
+        const now = gradeOf(cell);
+        const was = (exported || {})[key] || gradeOf(null);
+        if (now.grade !== was.grade || now.reason !== was.reason) result.grades = true;
+        const comment = (drafts[key] || '').trim();
+        if (comment && !(cell && cell.returned && cell.returnedComment === comment)) result.comments = true;
+    }
+    return result;
+};
+
 /**
  * The columns of the grading table and CSV (#1603). Each assignment has a
  * work column (the AI-assisted grade), and a lesson assignment also has a
@@ -221,6 +267,8 @@ export {
     currentLessonOnlyStep,
     evaluationColumns,
     evaluationFlowMode,
+    evaluationSnapshot,
+    unsavedEvaluation,
     isLessonOnlyAssignment,
     lessonScoreOf,
     buildAuditCsv,

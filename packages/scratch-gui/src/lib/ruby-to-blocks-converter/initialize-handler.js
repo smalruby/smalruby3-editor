@@ -9,18 +9,19 @@ import { RubyToBlocksConverterError } from './errors';
  */
 const InitializeHandler = {
     /**
-     * Process def initialize in a class body.
-     * Extracts variable/list assignments and stores them in context.
-     * @param {object} defNode - The DefNode for initialize
-     * @param {boolean} isStageClass - Whether this is a Stage class
+     * Process def initialize in a class body: make the variables and the lists that it sets, keep
+     * their values for the target (`initializeValues`) and make the comment `@ruby:initialize:...`.
+     * What each line sets is decided by the analysis stage (`initializes` of `class-analysis.js`).
+     * @param {object} initialize - The structure of the def initialize.
      */
-    _processInitialize(defNode, isStageClass) {
+    _processInitialize(initialize) {
+        const defNode = initialize.node;
         this._checkNoExceptionHandling(defNode.body);
         const commentParts = [];
 
         // Save arguments if present
-        if (defNode.parameters) {
-            let params = this._getSource(defNode.parameters);
+        if (initialize.parameters) {
+            let params = this._getSource(initialize.parameters);
             if (params) {
                 // Ensure params are wrapped in parentheses for unambiguous round-trip
                 if (!params.startsWith('(')) {
@@ -30,164 +31,53 @@ const InitializeHandler = {
             }
         }
 
-        // Get body statements
-        let bodyStmts = [];
-        if (defNode.body && defNode.body.body) {
-            bodyStmts = Array.isArray(defNode.body.body) ? defNode.body.body : [defNode.body.body];
+        // super on the first line
+        if (initialize.superArgs) {
+            const argsSource = initialize.superArgs.map((a) => this._getSource(a)).join(', ');
+            commentParts.push(`super=(${argsSource})`);
+        } else if (initialize.hasSuper) {
+            commentParts.push('super');
         }
 
-        // Check for super at the beginning
-        let startIndex = 0;
-        if (bodyStmts.length > 0) {
-            const firstType = this._getNodeTypeName(bodyStmts[0]);
-            if (firstType === 'SuperNode') {
-                const superArgs = bodyStmts[0].arguments_;
-                if (superArgs && superArgs.arguments_ && superArgs.arguments_.length > 0) {
-                    const argsSource = superArgs.arguments_.map((a) => this._getSource(a)).join(', ');
-                    commentParts.push(`super=(${argsSource})`);
-                } else {
-                    commentParts.push('super');
-                }
-                startIndex = 1;
-            } else if (firstType === 'ForwardingSuperNode') {
-                commentParts.push('super');
-                startIndex = 1;
-            }
-        }
-
-        // Process body statements (variable/list assignments only)
+        // The variable/list assignments (`@a` in a sprite, `$a` in the Stage)
         const initializeValues = {};
-        // The variables of attr_accessor / attr_reader / attr_writer set here. The generator does not
-        // write those variables in initialize unless they are named in the comment (issue #1839).
-        const attrAccessors = this._context.attrAccessors || {};
-        const attrNames = [];
-        for (let i = startIndex; i < bodyStmts.length; i++) {
-            const stmt = bodyStmts[i];
-            const stmtType = this._getNodeTypeName(stmt);
-
-            if (stmtType === 'InstanceVariableWriteNode') {
-                if (isStageClass) {
-                    throw new RubyToBlocksConverterError(
-                        stmt,
-                        this._translator(messages.wrongVariableScopeInInitialize, {
-                            SOURCE: this._getSource(stmt),
-                            PREFIX: '$',
-                            CLASS_TYPE: 'Stage',
-                        }),
-                    );
-                }
-                const varName = stmt.name.replace(/^@/, '');
-                if (Object.prototype.hasOwnProperty.call(attrAccessors, varName) && !attrNames.includes(varName)) {
-                    attrNames.push(varName);
-                }
-                const value = this._extractInitializeValue(stmt.value);
-                if (value === null) {
-                    throw new RubyToBlocksConverterError(
-                        stmt,
-                        this._translator(messages.invalidInitializeBody, {
-                            SOURCE: this._truncateSource(this._getSource(stmt)),
-                        }),
-                    );
-                }
-                if (Array.isArray(value)) {
-                    // `@_a_list_` is the list `a` beside the variable `a` (issue #1622)
-                    const list = this._lookupOrCreateList(`@${varName}`);
-                    initializeValues[`list:${list.name}`] = { name: list.name, value, type: 'list' };
-                } else {
-                    const variable = this._lookupOrCreateVariable(`@${varName}`);
-                    initializeValues[`:${variable.name}`] = { name: variable.name, value, type: '' };
-                }
-            } else if (stmtType === 'GlobalVariableWriteNode') {
-                if (!isStageClass) {
-                    throw new RubyToBlocksConverterError(
-                        stmt,
-                        this._translator(messages.wrongVariableScopeInInitialize, {
-                            SOURCE: this._getSource(stmt),
-                            PREFIX: '@',
-                            CLASS_TYPE: 'sprite',
-                        }),
-                    );
-                }
-                const varName = stmt.name.replace(/^\$/, '');
-                const value = this._extractInitializeValue(stmt.value);
-                if (value === null) {
-                    throw new RubyToBlocksConverterError(
-                        stmt,
-                        this._translator(messages.invalidInitializeBody, {
-                            SOURCE: this._truncateSource(this._getSource(stmt)),
-                        }),
-                    );
-                }
-                if (Array.isArray(value)) {
-                    // `@_a_list_` is the list `a` beside the variable `a` (issue #1622)
-                    const list = this._lookupOrCreateList(`$${varName}`);
-                    initializeValues[`list:${list.name}`] = { name: list.name, value, type: 'list' };
-                } else {
-                    const variable = this._lookupOrCreateVariable(`$${varName}`);
-                    initializeValues[`:${variable.name}`] = { name: variable.name, value, type: '' };
-                }
-            } else {
-                const src = this._truncateSource(this._getSource(stmt));
+        for (const statement of initialize.statements) {
+            const stmt = statement.node;
+            if (statement.error) {
+                const source = this._getSource(stmt);
                 throw new RubyToBlocksConverterError(
                     stmt,
-                    this._translator(messages.invalidInitializeBody, { SOURCE: src }),
+                    this._translator(messages[statement.error.message], {
+                        SOURCE: statement.error.truncated ? this._truncateSource(source) : source,
+                        ...statement.error.values,
+                    }),
                 );
+            }
+            if (statement.isList) {
+                // `@_a_list_` is the list `a` beside the variable `a` (issue #1622)
+                const list = this._lookupOrCreateList(statement.rubyName);
+                // A copy: the table of the analysis is frozen, and the list of the target is changed
+                initializeValues[`list:${list.name}`] = {
+                    name: list.name,
+                    value: [...statement.value],
+                    type: 'list',
+                };
+            } else {
+                const variable = this._lookupOrCreateVariable(statement.rubyName);
+                initializeValues[`:${variable.name}`] = { name: variable.name, value: statement.value, type: '' };
             }
         }
 
         this._context.initializeValues = initializeValues;
-        if (attrNames.length > 0) {
-            commentParts.push(`attr=${attrNames.join('+')}`);
+        // The variables of attr_accessor / attr_reader / attr_writer set here. The generator does not
+        // write those variables in initialize unless they are named in the comment (issue #1839).
+        if (initialize.attrNames.length > 0) {
+            commentParts.push(`attr=${initialize.attrNames.join('+')}`);
         }
 
         // Create comment for round-trip
         if (commentParts.length > 0) {
             this._createComment(`@ruby:initialize:${commentParts.join(',')}`, null);
-        }
-    },
-
-    /**
-     * Extract a scalar or array value from an AST node for def initialize.
-     * @param {object} valueNode - AST node representing the value
-     * @returns {number|string|boolean|Array|null} The extracted value, or null if not supported
-     */
-    _extractInitializeValue(valueNode) {
-        const type = this._getNodeTypeName(valueNode);
-        switch (type) {
-            case 'IntegerNode':
-                return valueNode.value;
-            case 'FloatNode':
-                return valueNode.value;
-            case 'StringNode': {
-                const unescaped = valueNode.unescaped;
-                return typeof unescaped === 'object' ? unescaped.value : unescaped;
-            }
-            case 'TrueNode':
-                return true;
-            case 'FalseNode':
-                return false;
-            case 'NilNode':
-                return '';
-            case 'CallNode':
-                // Handle negative numbers: -10 (parsed as CallNode with name '-@')
-                if (valueNode.name === '-@') {
-                    const inner = this._extractInitializeValue(valueNode.receiver);
-                    if (typeof inner === 'number') return -inner;
-                }
-                return null;
-            case 'ArrayNode': {
-                const elements = valueNode.elements || [];
-                const result = [];
-                for (const elem of elements) {
-                    const val = this._extractInitializeValue(elem);
-                    if (val === null) return null;
-                    if (Array.isArray(val)) return null; // No nested arrays
-                    result.push(val);
-                }
-                return result;
-            }
-            default:
-                return null;
         }
     },
 };

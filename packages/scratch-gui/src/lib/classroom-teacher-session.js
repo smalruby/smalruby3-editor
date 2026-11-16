@@ -223,16 +223,18 @@ const teacherMenuItems = ({ lastClassroomId, unreadCount, kickRequestCount = 0 }
 /**
  * Resolve a navigation request from the teacher menu once the modal is open.
  * @param {object} params - inputs
- * @param {string|null} params.target - 'current-assignment' | 'class-list' | 'notifications'
+ * @param {string|null} params.target - 'current-assignment' | 'class-list' | 'notifications' | 'logout'
  * @param {{classroomId: (string|null), groupId: (string|null)}|null} params.lastSelection - last selection
  * @param {Array<object>} params.groups - loaded classes ([] until loaded)
  * @param {boolean} params.groupsLoaded - whether the class list has arrived
  * @returns {{action: string, group?: (object|null), classroomId?: string}} what to do:
- *   'none' (no request), 'wait' (data not ready), 'assignment', 'class-list', 'notifications'
+ *   'none' (no request), 'wait' (data not ready), 'assignment', 'class-list', 'notifications', 'logout'
  */
 const resolveTeacherNavigation = ({ target, lastSelection, groups, groupsLoaded }) => {
     if (!target) return { action: 'none' };
     if (target === 'notifications') return { action: 'notifications' };
+    // The menu bar's logout while class management holds work not saved (#1990).
+    if (target === 'logout') return { action: 'logout' };
     if (target === 'current-assignment' && lastSelection && lastSelection.classroomId) {
         if (lastSelection.groupId && !groupsLoaded) return { action: 'wait' };
         const group = (groups || []).find((g) => g.groupId === lastSelection.groupId) || null;

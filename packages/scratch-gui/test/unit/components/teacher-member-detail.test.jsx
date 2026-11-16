@@ -140,13 +140,58 @@ describe('TeacherMemberDetail — レッスンの詳細 (#1603)', () => {
     });
 });
 
-describe('TeacherMemberDetail — ［削除］と提出時刻 (#1919)', () => {
-    test('［削除］を押すと、選んでいるメンバーの ID を渡す（クリックのイベントではなく）', () => {
+describe('TeacherMemberDetail — ［退室させる］と提出時刻 (#1919 / #1923 C3)', () => {
+    test('［退室させる］は ⋮ のメニューの中にあり、確認で［退室させる］を押すとメンバーの ID を渡す', () => {
+        const onDeleteMember = jest.fn();
+        renderDetail(member({ memberId: 'seat-04' }), { onDeleteMember });
+        // 見出しの行には出さない（⋮ を開くまで無い）
+        expect(byTestId('classroom-member-remove')).not.toBeInTheDocument();
+        fireEvent.click(byTestId('classroom-member-more-menu'));
+        fireEvent.click(byTestId('classroom-member-remove'));
+        // まだ退室させない: 確認を 1 段挟む
+        expect(onDeleteMember).not.toHaveBeenCalled();
+        const confirm = byTestId('classroom-member-remove-confirm-message');
+        expect(confirm.textContent).toBe('Remove the student at seat 4 from the assignment? (Their work is kept.)');
+        fireEvent.click(byTestId('classroom-member-remove-confirm'));
+        expect(onDeleteMember).toHaveBeenCalledTimes(1);
+        expect(onDeleteMember).toHaveBeenCalledWith('seat-04');
+    });
+
+    test('確認で［キャンセル］を押すと退室させず、確認を閉じる', () => {
         const onDeleteMember = jest.fn();
         renderDetail(member(), { onDeleteMember });
+        fireEvent.click(byTestId('classroom-member-more-menu'));
         fireEvent.click(byTestId('classroom-member-remove'));
-        expect(onDeleteMember).toHaveBeenCalledTimes(1);
-        expect(onDeleteMember).toHaveBeenCalledWith('seat-3');
+        fireEvent.click(byTestId('classroom-member-remove-cancel'));
+        expect(onDeleteMember).not.toHaveBeenCalled();
+        expect(byTestId('classroom-member-remove-confirm-message')).not.toBeInTheDocument();
+    });
+
+    test('ほかのメンバーを選ぶと、開いていた確認は閉じる', () => {
+        const a = member({ memberId: 'seat-01' });
+        const b = member({ memberId: 'seat-02' });
+        const props = {
+            isLoading: false,
+            memberMap: { 'seat-01': a, 'seat-02': b },
+            members: [a, b],
+            onDeleteMember: jest.fn(),
+            onOpenSubmission: jest.fn(),
+            onReturnSubmission: jest.fn(),
+        };
+        const { rerender } = render(
+            <IntlProvider locale="en">
+                <TeacherMemberDetail {...props} selectedMember="seat-01" />
+            </IntlProvider>,
+        );
+        fireEvent.click(byTestId('classroom-member-more-menu'));
+        fireEvent.click(byTestId('classroom-member-remove'));
+        expect(byTestId('classroom-member-remove-confirm-message')).toBeInTheDocument();
+        rerender(
+            <IntlProvider locale="en">
+                <TeacherMemberDetail {...props} selectedMember="seat-02" />
+            </IntlProvider>,
+        );
+        expect(byTestId('classroom-member-remove-confirm-message')).not.toBeInTheDocument();
     });
 
     test('提出時刻は日付つきで出す', () => {
@@ -178,5 +223,50 @@ describe('TeacherMemberDetail — コメント欄のラベル (#1924 C5・R1)', 
         expect(label.textContent).toBe('Comment to the student (sent when you return it)');
         expect(label.getAttribute('for')).toBe(input.id);
         expect(input.getAttribute('placeholder')).toBeFalsy();
+    });
+});
+
+describe('TeacherMemberDetail — ［スモウルビーで開く］(#1980・#1990)', () => {
+    const URL = 'https://example.invalid/3.sb3';
+    // 戻る帯（#1990）のため、開いた場所と席の番号だけを渡す。
+    const OPENED_FROM = { from: 'assignment', seatNumber: expect.any(Number) };
+    const typeComment = (text) =>
+        fireEvent.change(byTestId('classroom-member-detail-comment'), { target: { value: text } });
+
+    test('返却していないコメントがあっても確かめずに開く（下書きは container が残す）', () => {
+        const onOpenSubmission = jest.fn();
+        const onChangeCommentDraft = jest.fn();
+        renderDetail(member({ projectUrl: URL }), {
+            onOpenSubmission,
+            onChangeCommentDraft,
+            commentDrafts: { 'seat-3': 'よくできました' },
+        });
+        expect(byTestId('classroom-member-detail-comment')).toHaveValue('よくできました');
+        fireEvent.click(byTestId('classroom-member-detail-open'));
+        expect(onOpenSubmission).toHaveBeenCalledWith(URL, OPENED_FROM);
+        expect(byTestId('classroom-member-open-confirm-box')).not.toBeInTheDocument();
+    });
+
+    test('container が持つときは、書いたコメントを container に渡す', () => {
+        const onChangeCommentDraft = jest.fn();
+        renderDetail(member({ projectUrl: URL, teacherComment: 'いいね' }), {
+            onChangeCommentDraft,
+            commentDrafts: {},
+        });
+        // 下書きが無ければ返却したコメントを出す。
+        expect(byTestId('classroom-member-detail-comment')).toHaveValue('いいね');
+        typeComment('いいね！ もう少し');
+        expect(onChangeCommentDraft).toHaveBeenCalledWith('seat-3', 'いいね！ もう少し');
+    });
+
+    test('［返却］は container の下書きを送る', () => {
+        const onReturnSubmission = jest.fn();
+        renderDetail(member({ projectUrl: URL }), {
+            onReturnSubmission,
+            onChangeCommentDraft: jest.fn(),
+            commentDrafts: { 'seat-3': '下書き' },
+        });
+        fireEvent.click(byTestId('classroom-member-detail-return'));
+        expect(onReturnSubmission).toHaveBeenCalledWith('sub-1', '下書き');
     });
 });

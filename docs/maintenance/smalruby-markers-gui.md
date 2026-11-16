@@ -11,6 +11,29 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 
 マーカーを追加・削除した場合は、下記の一覧を更新すること。
 
+## マーカーを付けるもの・付けないもの
+
+基準は upstream の tag `v13.7.2`（`.upstream-merge-history.json` の `lastMerge.upstreamCommit`）との差分。
+目的は、upstream のマージでぶつかったときに「どこがスモウルビーの変更か」がすぐ分かること。
+
+**付ける**（`// === Smalruby: Start of <機能名> ===` / `End` のペア。JSX の子の位置では `{/* ... */}`）:
+
+- スモウルビーで足した行（import・処理・JSX・propTypes・mapStateToProps / mapDispatchToProps の項目）。
+- upstream の行を書きかえた・包みなおした行（null の確認を足した、条件を足した など）。
+- upstream の行を消したところ。消した行の代わりに、Start / End の間に「upstream はここで何をしていたか」を
+  1 行のコメントで残す（例: `Upstream calls this.props.onRequestCloseFile() here.`）。
+- 1 行だけの追加もペアにする（単一行のインラインは Start / End の数の検査に入らないため）。
+
+**付けない**（機械的な変更）:
+
+- パッケージ名の置きかえ（`@scratch/scratch-vm` → `@smalruby/scratch-vm` など）・import の名前の変更・import の並べかえ。
+- JSDoc・コメントの言いかえだけの変更。
+- 末尾のカンマ・空行・インデントだけの変更（後ろに行を足したための `,` も含む）。
+- `eslint-disable` のコメントを消しただけの変更、未使用の変数を `_x` にしただけの分割代入の名前の変更。
+- チュートリアルの `src/lib/libraries/decks/` は、upstream に戻す EPIC（#1935）の進み具合を見てから決める。
+
+付けるときは、コードの動きを変えない（コメントの行だけを足す）。
+
 ## 現在のマーカー一覧
 
 | ファイル | 機能名 | 説明 |
@@ -43,12 +66,11 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/connection-modal/connected-step.jsx` | meshV2 connected message feature | Mesh v2 接続済みステップ UI |
 | `src/components/menu-bar/menu-bar.jsx` | smalrubot firmware menu | SmalrubotS1 メニューの import、ハンドラー、レンダリング、Redux 接続 |
 | `src/components/gui/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダルの import と配置 |
-| `src/components/gui/gui.jsx` | classroom modal | クラスルームモーダルの import と配置（モーダル非表示中は退室依頼の見張り `ClassroomKickRequestWatcher` を代わりにマウント） |
+| `src/components/gui/gui.jsx` | classroom modal | クラスルームモーダルの import と配置（モーダル非表示中は退室依頼の見張り `ClassroomKickRequestWatcher` を代わりにマウント）。先生のクラス管理は `ClassroomTeacherModalHost` で置く（いちど開いたらログイン中は隠して残す）。`teacherWorkBarVisible` の destructure・propType |
 | `src/components/gui/gui.jsx` | bug report modal | プログラム不具合報告モーダルの import、`legalLinks` の「不具合を報告」リンク、`<BugReportModal />` 配置、`handleBugReportClick` ハンドラ、`onOpenBugReportModal` prop/propType、props 伝播防止リスト |
 | `src/containers/gui.jsx` | bug report modal | `openBugReportModal` の import、`onOpenBugReportModal` を Redux `openBugReportModal()` にマップ |
-| `src/components/modal/modal.css` | default modal background | `.modal-content` (非フルスクリーン) に既定背景 `$ui-white` を付与し、本文背景の設定漏れでも青いオーバーレイが透けないようにする (案X) |
+| `src/components/modal/modal.css` | default modal background | `.modal-content` (非フルスクリーン) に既定背景 `$ui-white` を付与し、本文背景の設定漏れでも青いオーバーレイが透けないようにする (案X)。`background-clip: padding-box` で枠（白 25%）の下は塗らず、枠は上流と同じ淡い青に見せる |
 | `src/components/gui/gui.jsx` | meshV2 classroom binding | クラス状態に応じて Mesh v2 ドメインを参加コードに固定する常時マウントの binding |
-| `src/components/gui/gui.jsx` | meshV2 self-sensor notice | グローバル変数名と mesh センサーの値の重複を検出し初回のみ通知する常時マウントのバナー (Issue #707) の import と配置 |
 | `src/components/gui/gui.jsx` | mesh status popup | メッシュの「状態と履歴」ウィンドウ（`containers/mesh-status-popup.jsx`）の import と、エディターとプレイヤーのツリー（`StageWrapper` 内）への常時マウント（`docs/mesh-v2/README.md`） |
 | `src/components/stage-header/stage-header.jsx` | mesh status button | 緑の旗・停止（`Controls`）とメッシュのボタン（`MeshStatusButton`）を 1 つのまとまり（`controlsGroup`）に入れる。通常表示と全画面の 2 か所 + import |
 | `src/components/menu-bar/menu-bar.jsx` | mesh status popup | メッシュのメニューの「状態と履歴を見る」（`menu-bar-mesh-status`）と、`openMeshV2StatusPopup` の import・`onOpenMeshV2StatusPopup` の dispatch と propType |
@@ -61,6 +83,9 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/gui/gui.jsx` | lesson mode | レッスンモードのコンテナ `LessonMode`（課題バー + チャレンジを開く流れ）と GA 計測のコンテナ `LessonAnalytics`（描画しない）、クラスの課題へ進み具合を送るコンテナ `LessonProgressSync`（本人の確認のダイアログだけ描画する）の import と、メニューバーと本体（`flexWrapper`）のあいだへの常時マウント（課題バーを画面の幅いっぱいに出す）。`lessonTaskBarVisible` の destructure・propType と、本体に `bodyWrapperWithLessonTaskBar` を付ける classNames（`docs/lessons/README.md`） |
 | `src/containers/gui.jsx` | lesson mode | `getCurrentChallenge` の import と、`lessonTaskBarVisible`（チャレンジを開いているか）の state マッピング |
 | `src/components/gui/gui.css` | lesson mode | `.body-wrapper-with-lesson-task-bar`: 課題バー（2.5rem）が出ているあいだ本体の高さをその分縮める（narrow-height・メニューバーなしの組み合わせも） |
+| `src/components/gui/gui.jsx` | classroom teacher work bar | 先生がクラス管理から作品を開いている間の「戻る帯」`ClassroomTeacherWorkBar` の import（classroom modal の import の中）と、レッスンの課題バーの下への常時マウント。本体に `bodyWrapperWithTeacherWorkBar` を付ける classNames（`docs/classroom/ui-ux.md`） |
+| `src/containers/gui.jsx` | classroom teacher work bar | `isTeacherWorkBarVisible` の import と、classroom modal のマッピングの中の `teacherWorkBarVisible` |
+| `src/components/gui/gui.css` | classroom teacher work bar | `.body-wrapper-with-teacher-work-bar`: 戻る帯（2.25rem）が出ているあいだ本体の高さをその分縮める（課題バー・narrow-height・メニューバーなしの組み合わせも） |
 | `src/components/gui/gui.jsx` | lessons library | レッスン表のコンテナ `LessonsLibrary` の import と、他のモーダルと並ぶ場所（`WelcomeModalHOC` の次）への常時マウント（`docs/lessons/README.md`） |
 | `src/containers/gui.jsx` | DNCL mode notice | `onRequestExitDnclMode` を Redux `setDnclMode(false)` + `requestExternalExitDnclMode()` にマップ |
 | `src/components/gui/gui.jsx` | genai concierge | 「生成AI に相談」の顔（`GenaiConcierge`）の import とスクリプトエリアへの常時マウント。表示条件はコンテナ側で判定（`docs/genai-consult/README.md`） |
@@ -207,13 +232,38 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/gui/gui.css` | legal links | タブの右のプライバシーポリシー・フィードバック・不具合の報告のリンク（`.legal-links`・`.privacy-link`・`.link-separator`・`.feedback-link`、幅 743px 以下でフィードバックを消す規則） |
 | `src/components/cards/card.css` | tutorial card layout | チュートリアルのカードの幅を 500px までにし、長い題を折り返す（2 か所） |
 | `src/components/cards/card.css` | step pip selector | 手順の点の規則のクラス名 `.inactiveStepPip` を `.inactive-step-pip` にする |
-| `src/components/cards/card.css` | tutorial insert-code button | チュートリアルのカードの「コードを入れる」ボタン `.insert-code-button`（地 `$ui-green`・ホバー `$ui-green-2`） |
+| `src/components/cards/card.css` | tutorial insert-code button | チュートリアルのカードの「コードを入れる」ボタン `.insert-code-button`（地 `$extensions-tertiary`（#0B8E69。白い文字 4.15:1）・太字・ホバー `$ui-green`）。地と太字は取りいそぎの修正で、チュートリアルを上流に戻す EPIC #1935 で revert する |
 | `src/lib/layout-constants.js` | middle stage size | 「中」のステージ: `STAGE_SIZE_MODES.middle`・`STAGE_DISPLAY_SIZES.middle`・倍率 0.75（3 か所） |
 | `src/lib/screen-utils.js` | middle stage size | `resolveStageSize` が「中」を返す |
 | `src/reducers/stage-size.js` | middle stage size | ステージの大きさの既定を「中」にする（上流は「大」） |
 | `src/components/stage-header/stage-header.jsx` | middle stage size | 「中」のボタンのアイコン・文言・`onSetStageMiddle`（分割代入と propType）・3 つのボタンを `.stage-size-toggle-group` で包む |
 | `src/containers/stage-header.jsx` | middle stage size | `onSetStageMiddle` を `setStageSize(STAGE_SIZE_MODES.middle)` にマップ |
 | `src/components/stage-header/stage-header.jsx` | Hatti logo | ステージのヘッダーのロゴをハッチにする |
+| `src/components/menu-bar/menu-bar.jsx` | google drive / google drive save status / google drive and scratch url loading | Google ドライブの読み込み・保存（HOC・保存ダイアログ・保存中の表示・「直接保存」）と「Scratch から読み込む」のメニュー項目 |
+| `src/components/menu-bar/menu-bar.jsx` | koshien menu | スモウルビー甲子園のメニュー（AI の保存・テスト・練習パネル・設定・応募）と保存の状態の表示 |
+| `src/components/menu-bar/menu-bar.jsx` | mesh v2 menu / extension menus | メッシュ・スモウルボット・甲子園などの拡張のメニューの開閉（Redux）と、メッシュの状態の表示・ドメインの同期 |
+| `src/components/menu-bar/menu-bar.jsx` | extension load tracking | 拡張の読み込み・接続のイベントを見てメニューバーを描きなおす（`extensionLoadCounter`） |
+| `src/components/menu-bar/menu-bar.jsx` | menu toggle / menu auto close | ファイル・編集・設定のメニューを押すたびに開閉する（`toggle*Menu`）。メニューは項目を押すと閉じるので、upstream の `onRequestClose*()` の呼び出しを消したところに注記 |
+| `src/components/menu-bar/menu-bar.jsx` | menu bar modal actions / block display modal | 甲子園・URL ローダー・接続・ブロック表示のモーダルを開くアクション |
+| `src/components/menu-bar/menu-bar.jsx` | ruby tab / generate ruby from code | Ruby タブへの切りかえ・変換エラーの表示と「コードから Ruby を作る」のメニュー項目 |
+| `src/components/menu-bar/menu-bar.jsx` | smalruby menu handlers / smalruby menu props / smalruby menu state / smalruby menu dispatch | 上の機能が使うハンドラーの `bindAll`・propTypes・`mapStateToProps`・`mapDispatchToProps` のまとまり |
+| `src/components/menu-bar/menu-bar.jsx` | smalruby profile icon / replace Scratch logos with Smalruby logo / about menu | ハッチのアイコン・ロゴの既定値、About メニューの項目の title を node にする |
+| `src/components/menu-bar/menu-bar.jsx` | help menu | upstream の `onOpenTipLibrary` を消したところの注記（`MenuBarHOC` が渡す） |
+| `src/containers/blocks.jsx` | only blocks filter / toolbox filters | ツールボックスのブロックを絞る（`only_blocks` のステージのコメント・URL パラメーター・ブロック表示の設定・チュートリアル）と、変わったときの再描画 |
+| `src/containers/blocks.jsx` | palette toggle / toolbox filters and palette toggle | ブロックパレットの表示・非表示（ボタン・位置・切りかえ・Redux） |
+| `src/containers/blocks.jsx` | blocks screenshot | スクリプトを画像で保存するボタン |
+| `src/containers/blocks.jsx` | block display modal / ruby tab | ScratchBlocks を Redux に渡す、Ruby タブのときはコードタブで値を表示しない |
+| `src/containers/blocks.jsx` | Ruby-converted block positioning | Ruby から変換したブロックを並べたあとの中央へのスクロール（コードタブが隠れていたときは後で） |
+| `src/containers/blocks.jsx` | scratch-blocks v2 variable prompt / scratch-blocks v2 toolbox / VMScratchBlocks without useCatBlocks / toolbox selection null guard / scratch-blocks v2 my blocks toolbox refresh / toolbox refresh on tab show / toolbox refresh after backpack drop | scratch-blocks v2 に合わせた呼び出し・null の確認・ツールボックスの作りなおし |
+| `src/containers/blocks.jsx` | scratch-blocks v2 unmount focus guard | `componentWillUnmount` のフォーカスの確認（scratch-blocks#3460。`postMergeReverts` の意図的な乖離） |
+| `src/containers/blocks.jsx` | sensing_online Japanese translation / messages prop type | 「オンライン?」の日本語訳、`messages` の prop type に object を足す |
+| `src/components/gui/gui.jsx` | url loader / koshien / ruby tab / block display modal / tips library close | URL ローダー・甲子園のモーダルとパネル・Ruby タブ・ブロック表示のモーダル・チュートリアルを閉じるアクション（import・props・propTypes・JSX） |
+| `src/components/gui/gui.jsx` | legal links / feedback link confirm | 画面の下のプライバシーポリシー・フィードバックのリンクと、フィードバックの前の確認 |
+| `src/components/gui/gui.jsx` | iPad portrait narrow desktop stage size | `STAGE_DISPLAY_SIZES` の import と、内側の `MediaQuery` を閉じるところ |
+| `src/components/gui/gui.jsx` | tab list container style / new feature callouts removal | タブの並びの `className`、upstream の `showNewFeatureCallouts` を消したところの注記 |
+| `src/containers/gui.jsx` | tab activation handler / onSetPlatform prop rename / set theme | タブ切りかえのハンドラー、`setPlatform` を `onSetPlatform` にした名前、テーマの設定 |
+| `src/containers/gui.jsx` | ruby tab / koshien / url loader / tips library close / welcome modal | 上の機能の import・アクション・state |
+| `src/containers/gui.jsx` | smalruby gui props / smalruby gui state / smalruby modal close actions | 上の機能が使う propTypes・`mapStateToProps`・モーダルを閉じるアクションのまとまり |
 
 > 注: `src/lib/url-params.js` は Smalruby 固有ファイル（`.prettierignore` ホワイトリスト対象）の
 > ため本表の対象外（旧エントリは削除済み。固有ファイル内のマーカーは取り外し可能拡張の

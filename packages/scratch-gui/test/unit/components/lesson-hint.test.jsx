@@ -88,6 +88,38 @@ describe('LessonHint', () => {
         expect(balloon.getAttribute('data-target')).toBe('palette');
     });
 
+    test('shows the text between ** emphasized, without the marks', () => {
+        const emphasized = { id: 'test.emphasis', defaultMessage: 'まず**シマラビをえらびなおして**、置こう。' };
+        const { getByTestId } = renderHint({ title: emphasized }, { locale: 'ja', messages: {} });
+        const text = getByTestId('lesson-hint-title');
+        expect(text).toHaveTextContent('まずシマラビをえらびなおして、置こう。');
+        const strong = text.querySelectorAll('strong');
+        expect(strong).toHaveLength(1);
+        expect(strong[0]).toHaveTextContent('シマラビをえらびなおして');
+        expect(strong[0].getAttribute('data-testid')).toBe('lesson-hint-emphasis');
+    });
+
+    test('swaps the names of a message marked for the Shimacat role (#2062)', () => {
+        const title = {
+            id: 'test.role',
+            defaultMessage: '**シマラビをえらんで**、「シマラビのきぶん」を作ろう。',
+            roleSwapped: true,
+        };
+        const { getByTestId } = renderHint({ title }, { locale: 'ja', messages: {} });
+        expect(getByTestId('lesson-hint-title')).toHaveTextContent(
+            'シマネコをえらんで、「シマネコのきぶん」を作ろう。',
+        );
+        expect(getByTestId('lesson-hint-emphasis')).toHaveTextContent('シマネコをえらんで');
+    });
+
+    test('the emphasis marks do not make HTML of the text', () => {
+        const emphasized = { id: 'test.emphasis', defaultMessage: '**<img src=x onerror=alert(1)>**' };
+        const { getByTestId } = renderHint({ title: emphasized }, { locale: 'en', messages: {} });
+        const text = getByTestId('lesson-hint-title');
+        expect(text.querySelector('img')).toBeNull();
+        expect(text.querySelector('strong')).toHaveTextContent('<img src=x onerror=alert(1)>');
+    });
+
     test('shows Japanese text', () => {
         const { getByTestId } = renderHint({}, { locale: 'ja', messages: ja });
         expect(getByTestId('lesson-hint-position')).toHaveTextContent('ヒント 2 / 7');

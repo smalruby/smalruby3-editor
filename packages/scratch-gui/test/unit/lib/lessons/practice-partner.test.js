@@ -11,6 +11,9 @@ import {
     PRACTICE_PARTNER_NODE_ID,
     findName,
     partnerNames,
+    pushArrival,
+    RECEIVED_ARRIVALS_MAX,
+    receivedArrival,
     receivedSummary,
 } from '../../../../src/lib/lessons/practice-partner';
 import {
@@ -113,6 +116,31 @@ describe('normalizePartner', () => {
         );
         // 名前の無い fromVariable・知らない形の値は使わない
         expect(partner.buttons[0].set).toEqual([{ name: 'あて先', fromVariable: 'name' }]);
+    });
+
+    test('fromVariable may list other names and be required (the DM to you of 4-5)', () => {
+        const partner = normalizePartner(
+            {
+                buttons: [
+                    {
+                        label: 'DM',
+                        set: {
+                            variable: 'あて先',
+                            value: {
+                                fromVariable: { ja: 'なまえ', en: 'name' },
+                                orVariables: ['なまえ', '名前', 'name'],
+                                required: true,
+                            },
+                        },
+                    },
+                ],
+            },
+            'ja',
+        );
+        // fromVariable と同じ名前は orVariables に入れない
+        expect(partner.buttons[0].set).toEqual([
+            { name: 'あて先', fromVariable: 'なまえ', orVariables: ['名前', 'name'], required: true },
+        ]);
     });
 
     test('a value may be written per locale (the mood of 3-3, #1643)', () => {
@@ -270,6 +298,61 @@ describe('receivedSummary', () => {
     });
 });
 
+describe('receivedArrival (one row of 「〜に届いた」)', () => {
+    test('a variable gives its value (shown large) and its name (shown small)', () => {
+        expect(
+            receivedArrival({
+                last: { kind: 'variable', name: 'シマラビの気分' },
+                values: { シマラビの気分: 'ねむい' },
+            }),
+        ).toEqual({ kind: 'variable', name: 'シマラビの気分', value: 'ねむい' });
+    });
+
+    test('a message gives just its name, or the value of the variable of the same name', () => {
+        expect(receivedArrival({ last: { kind: 'message', name: 'てをふる' }, values: {} })).toEqual({
+            kind: 'message',
+            name: 'てをふる',
+            value: null,
+        });
+        expect(
+            receivedArrival({
+                last: { kind: 'message', name: 'シマラビのメッセージ' },
+                values: { シマラビのメッセージ: 'へいへい！' },
+            }),
+        ).toEqual({ kind: 'message', name: 'シマラビのメッセージ', value: 'へいへい！' });
+    });
+
+    test('nothing yet gives null', () => {
+        expect(receivedArrival(null)).toBeNull();
+        expect(receivedArrival({ last: null, values: {} })).toBeNull();
+    });
+});
+
+describe('pushArrival (the rows of 「〜に届いた」)', () => {
+    const row = (id, value = 'やあ') => ({ id, kind: 'variable', name: 'シマラビのメッセージ', value });
+
+    test('keeps the newest 3, newest first', () => {
+        expect(RECEIVED_ARRIVALS_MAX).toBe(3);
+        let rows = [];
+        [1, 2, 3, 4].forEach((id) => {
+            rows = pushArrival(rows, row(id, `v${id}`));
+        });
+        expect(rows.map((one) => one.id)).toEqual([4, 3, 2]);
+    });
+
+    test('the same thing arriving again is another row (so a repeat can be seen)', () => {
+        const rows = pushArrival(pushArrival([], row(1)), row(2));
+        expect(rows).toHaveLength(2);
+        expect(rows.map((one) => one.value)).toEqual(['やあ', 'やあ']);
+    });
+
+    test('does not change the list it was given', () => {
+        const before = [row(1)];
+        pushArrival(before, row(2));
+        expect(before).toEqual([row(1)]);
+    });
+});
+
 describe('attachPracticeLoopback', () => {
     const setup = (vmOptions) => {
         const fake = makeVm(vmOptions);
@@ -424,21 +507,20 @@ describe('attachPracticeLoopback', () => {
         return { ...fake, loop, onReceived, step };
     };
 
+    const message = (name, value = null) => ({ kind: 'message', name, value });
+    const variable = (name, value) => ({ kind: 'variable', name, value });
+
     test('tells what reached the partner once per frame: the last message, with the value of the same name (D3)', () => {
         const { loop, onReceived, runtime, step } = watch();
         exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 'hi' });
         // フレームの最初にまとめて知らせる
         expect(onReceived).not.toHaveBeenCalled();
         step();
-        // count は相手の使う名前ではないので、行の主役にしない
+        // count は相手の使う名前ではないので、行にしない
         expect(onReceived).not.toHaveBeenCalled();
         exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
         step();
-        expect(onReceived).toHaveBeenLastCalledWith('メッセージ', { announce: true });
-        // 同じ内容なら知らせ直さない
-        exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
-        step();
-        expect(onReceived).toHaveBeenCalledTimes(1);
+        expect(onReceived).toHaveBeenLastCalledWith(message('メッセージ'), { announce: true });
         // ボタン（相手から生徒へ）は相手に届いたものではない
         loop.press(0);
         step();
@@ -446,12 +528,33 @@ describe('attachPracticeLoopback', () => {
         loop.detach();
     });
 
-    test('a variable the partner uses shows "name = value", and is not read aloud', () => {
+    test('the same message arriving again is told again (a new row, so the student sees it arrived)', () => {
+        const { loop, onReceived, runtime, step } = watch();
+        exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        step();
+        exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
+        step();
+        expect(onReceived).toHaveBeenCalledTimes(2);
+        expect(onReceived).toHaveBeenNthCalledWith(2, message('メッセージ'), { announce: true });
+        // 何も届かないフレームでは知らせない
+        step();
+        expect(onReceived).toHaveBeenCalledTimes(2);
+        loop.detach();
+    });
+
+    test('a variable the partner uses shows its value and name, and is not read aloud', () => {
         const { loop, onReceived, runtime, step } = watch();
         runtime.targets[0].variables.v3 = { id: 'v3', name: 'へんじ', type: '', value: '' };
         exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v3', name: 'へんじ' }, VALUE: 'おはよう' });
         step();
-        expect(onReceived).toHaveBeenLastCalledWith('へんじ = おはよう', { announce: false });
+        expect(onReceived).toHaveBeenLastCalledWith(variable('へんじ', 'おはよう'), { announce: false });
+        // 同じ値に入れ直しても、相手には何も新しく届かない（ずっと同じ値を入れるスクリプトで行が増え続けない）
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v3', name: 'へんじ' }, VALUE: 'おはよう' });
+        step();
+        expect(onReceived).toHaveBeenCalledTimes(1);
+        exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v3', name: 'へんじ' }, VALUE: 'こんばんは' });
+        step();
+        expect(onReceived).toHaveBeenLastCalledWith(variable('へんじ', 'こんばんは'), { announce: false });
         loop.detach();
     });
 
@@ -459,11 +562,11 @@ describe('attachPracticeLoopback', () => {
         const { loop, onReceived, runtime, step } = watch({ ...PARTNER, watch: ['count'] });
         exec(runtime, 'data_setvariableto', { VARIABLE: { id: 'v1', name: 'count' }, VALUE: 'ねむい' });
         step();
-        expect(onReceived).toHaveBeenLastCalledWith('count = ねむい', { announce: false });
+        expect(onReceived).toHaveBeenLastCalledWith(variable('count', 'ねむい'), { announce: false });
         loop.detach();
     });
 
-    test('a script that changes an unrelated variable every frame does not change the line nor redraw it', () => {
+    test('a script that changes an unrelated variable every frame does not add rows', () => {
         const { loop, onReceived, runtime, step } = watch();
         exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
         step();
@@ -472,7 +575,7 @@ describe('attachPracticeLoopback', () => {
             step();
         }
         expect(onReceived).toHaveBeenCalledTimes(1);
-        expect(onReceived).toHaveBeenLastCalledWith('メッセージ', { announce: true });
+        expect(onReceived).toHaveBeenLastCalledWith(message('メッセージ'), { announce: true });
         loop.detach();
     });
 
@@ -484,7 +587,7 @@ describe('attachPracticeLoopback', () => {
         exec(runtime, 'event_broadcast', { BROADCAST_OPTION: { id: 'm2', name: 'メッセージ' } });
         step();
         expect(onReceived).toHaveBeenCalledTimes(1);
-        expect(onReceived).toHaveBeenLastCalledWith('メッセージ = b', { announce: true });
+        expect(onReceived).toHaveBeenLastCalledWith(message('メッセージ', 'b'), { announce: true });
         loop.detach();
     });
 
@@ -509,6 +612,85 @@ describe('attachPracticeLoopback', () => {
         expect(fake.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].あて先.value).toBe('たろう');
         loop.press(1);
         expect(fake.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].あて先.value).toBe('');
+        loop.detach();
+    });
+
+    // 4-5 の「あなたに DM」（教員レビュー）: 押したときの生徒の名前（なまえ）をあて先にして送る。名前がまだ空なら
+    // 何もせず、空の変数の名前を返す（パネルが「先に入れよう」と出す）
+    const dmPartner = () =>
+        normalizePartner(
+            {
+                buttons: [
+                    {
+                        label: 'あなたに DM',
+                        set: [
+                            {
+                                variable: 'あてさき',
+                                value: { fromVariable: 'なまえ', orVariables: ['名前', 'name'], required: true },
+                            },
+                            { variable: 'メッセージ', value: 'シマネコ：ないしょだよ' },
+                        ],
+                        broadcast: 'メッセージ',
+                    },
+                    {
+                        label: 'ミミに DM',
+                        set: [
+                            { variable: 'あてさき', value: 'ミミ' },
+                            { variable: 'メッセージ', value: 'シマネコ：ミミにだけ' },
+                        ],
+                        broadcast: 'メッセージ',
+                    },
+                ],
+            },
+            'ja',
+        );
+
+    test('DM to you sends to the name the student entered, read when pressed (4-5)', () => {
+        const fake = makeVm();
+        const name = { id: 'v5', name: 'なまえ', type: '', value: 0 };
+        fake.runtime.targets[0].variables.v5 = name;
+        let clock = 1000;
+        const loop = attachPracticeLoopback({
+            vm: fake.vm,
+            partner: dmPartner(),
+            now: () => clock,
+            timers: makeTimers(),
+        });
+        const node = () => fake.meshService.remoteData[PRACTICE_PARTNER_NODE_ID];
+        // まだ名前を入れていない（作ったときのまま 0）: 送らない
+        expect(loop.press(0)).toEqual({ missingVariable: 'なまえ' });
+        expect(node()).toBeUndefined();
+        expect(fake.runtime.startHats).not.toHaveBeenCalled();
+        name.value = '  ';
+        expect(loop.press(0)).toEqual({ missingVariable: 'なまえ' });
+        // 名前を入れた: 押したときの値をあて先にする（「あなた」などの決まった文字ではない）
+        name.value = 'たかお';
+        clock = 2000;
+        expect(loop.press(0)).toEqual({ done: true });
+        expect(node().あてさき).toEqual({ value: 'たかお', timestamp: 2000 });
+        expect(node().メッセージ.value).toBe('シマネコ：ないしょだよ');
+        expect(fake.runtime.startHats).toHaveBeenLastCalledWith('event_whenbroadcastreceived', {
+            BROADCAST_OPTION: 'メッセージ',
+        });
+        // ミミに DM は、名前に関係なくミミあて
+        expect(loop.press(1)).toEqual({ done: true });
+        expect(node().あてさき.value).toBe('ミミ');
+        // 名前を変えたら、次に押したときの名前
+        name.value = 'はなこ';
+        loop.press(0);
+        expect(node().あてさき.value).toBe('はなこ');
+        // 「0」と入力した名前（答えは文字）は入っている扱い
+        name.value = '0';
+        expect(loop.press(0)).toEqual({ done: true });
+        loop.detach();
+    });
+
+    test('DM to you also reads the name written as 名前 or name (the names the goal accepts)', () => {
+        const fake = makeVm();
+        fake.runtime.targets[0].variables.v5 = { id: 'v5', name: '名前', type: '', value: 'たかお' };
+        const loop = attachPracticeLoopback({ vm: fake.vm, partner: dmPartner(), timers: makeTimers() });
+        expect(loop.press(0)).toEqual({ done: true });
+        expect(fake.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].あてさき.value).toBe('たかお');
         loop.detach();
     });
 

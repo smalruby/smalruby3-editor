@@ -3,10 +3,94 @@
 
 .layout {
     display: flex;
+    flex-direction: column;
     flex: 1;
-    height: calc(100vh - 3.125rem);
+    height: 100vh;
     min-height: 0;
+    /* The screen is as wide as the window: a long name inside never widens it (the
+       header path is cut with「…」, #1958). */
+    contain: inline-size;
     background-color: white;
+}
+
+/* The shared Modal's header ("戻る" on the left, title in the middle) is replaced by
+   .header below, so the upstream Modal is not changed (#1956 Q2). */
+.modal-header-hidden {
+    display: none !important;
+}
+
+/* 紫のヘッダー:「← エディタに戻る｜クラス管理 › クラス名 › 課題名」+ ベル・アバター。
+   高さは共有 Modal のヘッダーと同じ（$library-header-height = 3.125rem）。 */
+.header {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.875rem;
+    height: 3.125rem;
+    padding: 0 1.25rem;
+    background-color: $color-primary;
+    color: $color-surface;
+    font-size: 0.9375rem;
+}
+
+.back-button {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.375rem;
+    border: none;
+    background: transparent;
+    padding: 0;
+    color: white;
+    font-family: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.back-button:hover {
+    text-decoration: underline;
+}
+
+.back-button:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+.back-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.header-divider {
+    flex: none;
+    width: 1px;
+    height: 1.375rem;
+    background-color: rgba(255, 255, 255, 0.45);
+}
+
+/* The path is carried here by a portal; until a screen draws one, 「クラス管理」 is shown. */
+.header-path {
+    display: flex;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.header-path:empty {
+    display: none;
+}
+
+.header-path-default {
+    font-weight: $font-weight-bold;
+}
+
+.header-path:not(:empty) + .header-path-default {
+    display: none;
+}
+
+.header-spacer {
+    flex: 1;
 }
 
 .sidebar {
@@ -164,6 +248,11 @@
     overflow-y: auto;
     padding: 1rem;
     min-height: 0;
+}
+
+/* main takes the focus after a move from the header path (tabIndex=-1, not a stop for Tab). */
+.main:focus {
+    outline: none;
 }
 
 .login-button {
@@ -462,17 +551,13 @@
     cursor: pointer;
 }
 
-/* Title bar cluster (fullscreen modal header), right to left:
-   × (Modal) → avatar menu → bell notifications. アバターを右上（× の隣）に
-   固定し、その左に通知ベルを置く（#1111 レビュー: 他アプリ準拠）。 */
+/* Header cluster at the right end: bell notifications → avatar menu
+   （#1111 レビュー: 他アプリ準拠）。.header の flex の中に並ぶ。 */
 
 /* アバターメニュー（メール頭文字 + ▼ → ログアウト等ポップアップ）。 */
-/* フルスクリーン Modal の閉じるは左の「戻る」ボタン（右上に × は無い）。
-   admin と同じく右端 (1.25rem) にアバターを寄せて余白を作らない。 */
 .avatar-menu {
-    position: fixed;
-    top: 0.45rem;
-    right: 1.25rem;
+    position: relative;
+    flex: none;
     z-index: 1000;
 }
 
@@ -550,9 +635,8 @@
 
 /* お知らせ (notification center #1111) bell button — 白一色。アバターの左。 */
 .title-bar-notifications {
-    position: fixed;
-    top: 0.5rem;
-    right: 4.5rem;
+    position: relative;
+    flex: none;
     z-index: 1000;
     border: none;
     background: transparent;
@@ -727,17 +811,9 @@
     color: #999;
 }
 
-.detail-breadcrumbs {
-    /* Same offsets as the unified teacher views (class list / board). */
-    padding: 1.25rem 2rem 0;
-}
-
 /* お知らせ全件一覧ページ + ページネーション。 */
 .notifications-page {
-    /* 上のパンくずラッパー (.detail-breadcrumbs) が top offset を持つので、
-       他のクラス管理画面 (.detail-layout) と同じく top padding は 0 にする。
-       これで「パンくず → タイトル」の間隔が評価画面などと揃う (#1123)。 */
-    padding: 0 2rem 1.25rem;
+    padding: 1.25rem 2rem;
     max-width: 48rem;
 }
 
@@ -831,4 +907,21 @@
     margin: 0.25rem 0 1rem;
     font-size: 1.3rem;
     color: #575e75;
+}
+
+/* ログアウトの前の確認（返却していないコメントがあるとき・#1990）。紫のヘッダーの下、
+   アバターの近くに重ねて出す（本文の並びを動かさない・R6）。色は .confirm-note（R4）。 */
+.logout-confirm {
+    position: fixed;
+    top: calc($library-header-height + 0.5rem);
+    right: 1rem;
+    z-index: 1000;
+    max-width: 26rem;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 0.25rem 1rem $color-border;
+}
+
+.logout-confirm-message {
+    margin: 0 0 0.5rem;
+    font-size: $font-size-medium;
 }

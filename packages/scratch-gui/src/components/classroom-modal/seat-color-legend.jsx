@@ -38,16 +38,15 @@ const messages = defineMessages({
         id: 'gui.classroom.teacherDetail.seatColorJoined',
     },
     notJoined: {
-        defaultMessage: 'Not joined yet',
-        description: 'Seat color legend: a white seat with a dotted border has no student yet',
+        defaultMessage: 'Empty',
+        description: 'Seat color legend: a white seat with a dotted border has no student yet (#1956 Q12: 空席)',
         id: 'gui.classroom.teacherDetail.seatColorNotJoined',
     },
 });
 
 /**
  * ふつうの課題の凡例（#1926・C6）: 空席 → 参加済み → 提出済み ✓ → 返却済み ↩ の順。
- * 空席の文言だけ画面で変える（メンバータブは「まだ参加していない」、幅 280px の状況のパネルは
- * 1 行に収まるよう短い「未参加」）。
+ * 空席の文言は、メンバータブ・映す画面・状況のパネルとも「空席」（#1956 Q12）。
  * @param {object} emptyMessage - 空席の文言（react-intl の message descriptor）
  * @returns {Array<{kind: string, message: object}>} 凡例の項目
  */
@@ -59,7 +58,7 @@ const seatColorItems = (emptyMessage) => [
 ];
 
 const MEMBER_SEAT_COLOR_ITEMS = seatColorItems(messages.notJoined);
-const PANEL_SEAT_COLOR_ITEMS = seatColorItems(statusIconMessages.notJoined);
+const PANEL_SEAT_COLOR_ITEMS = MEMBER_SEAT_COLOR_ITEMS;
 
 // レッスンの課題の凡例: 空席 → 始めていない → 途中 → クリア ★ の順。
 const LESSON_SEAT_COLOR_ITEMS = [

@@ -1,9 +1,11 @@
 // The size of the teacher's seat tiles (#1925 C13). At the lesson PC size
 // (1300x600) 40 seats = 4 rows of 10 must fit in the members grid frame
 // without scrolling, for an ordinary assignment and a lesson assignment.
-// On the iPad sizes (1024x768, 768x1024) the 10 columns must fit the frame's
-// width (no sideways scroll). The classroom API is stubbed with page.route
-// (dev server only).
+// On the iPad sizes (1024x768, 768x1024, 820x1180) the 10 columns must fit
+// the frame's width (no sideways scroll). On the iPad portrait the detail pane
+// moves under the seats, so the tiles keep their size and their content stays
+// inside (#1941). The classroom API is stubbed with page.route (dev server
+// only).
 //
 // Prints, per viewport and assignment kind: tile width x height, rows x
 // columns, the grid frame's scrollHeight / clientHeight and scrollWidth /
@@ -14,7 +16,7 @@
 //   node verify-classroom-seat-size.mjs                 # headless, ja
 //   LOCALE=ja-Hira node verify-classroom-seat-size.mjs
 //   BASE=http://localhost:8625 node verify-classroom-seat-size.mjs
-//   VIEWPORTS=1300x600 node verify-classroom-seat-size.mjs   # default: 1300x600,1024x768,768x1024
+//   VIEWPORTS=1300x600 node verify-classroom-seat-size.mjs   # default: 1300x600,1024x768,768x1024,820x1180
 //   MAX_TILE=58 node verify-classroom-seat-size.mjs     # the upper bound to check (px)
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
@@ -26,11 +28,19 @@ const LOCALE = process.env.LOCALE || "ja";
 const MAX_TILE = Number(process.env.MAX_TILE || 58);
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SHOT_DIR = process.env.SHOT_DIR || resolve(REPO_ROOT, "tmp");
-const VIEWPORTS = (process.env.VIEWPORTS || "1300x600,1024x768,768x1024")
+const VIEWPORTS = (
+    process.env.VIEWPORTS || "1300x600,1024x768,768x1024,820x1180"
+)
     .split(",")
     .map((v) => {
         const [width, height] = v.split("x").map(Number);
-        return { width, height, name: v, lessonPc: v === "1300x600" };
+        return {
+            width,
+            height,
+            name: v,
+            lessonPc: v === "1300x600",
+            portrait: height > width,
+        };
     });
 const SEATS = 40;
 mkdirSync(SHOT_DIR, { recursive: true });
@@ -333,12 +343,28 @@ try {
                     },
                 );
             const m = await measure();
-            // Everywhere: 10 columns, no sideways scroll. At 1300x600 and the
-            // iPad landscape also「★ あと N」clear of the submission badge; at
-            // 1300x600 also 4 rows fit the frame, the body and page do not
-            // scroll (R6) and nothing leaves a tile. On the iPad portrait the
-            // seat pane is about 280-420px wide (the 380px detail pane stays on
-            // the right), too narrow for a tile's content: reported, not failed.
+            // On the iPad portrait the detail pane is under the seats (#1941):
+            // select a seat and check where the detail shows up.
+            if (vp.portrait) {
+                await page.locator(tid("classroom-member-seat-01")).click();
+                await page.waitForSelector(tid("classroom-member-detail"), {
+                    timeout: 10000,
+                });
+                m.detailBelow = await page.evaluate(
+                    ([gridSel, detailSel]) =>
+                        document
+                            .querySelector(detailSel)
+                            .getBoundingClientRect().top >=
+                        document.querySelector(gridSel).getBoundingClientRect()
+                            .bottom,
+                    [GRID, tid("classroom-member-detail")],
+                );
+            }
+            // Everywhere: 10 columns, no sideways scroll,「★ あと N」clear of
+            // the submission badge and nothing leaves a tile. At 1300x600 and on
+            // the iPad portrait also 4 rows fit the frame and the body and page
+            // do not scroll (R6); on the iPad portrait also the tiles are at
+            // least 36px wide and the detail is under the seats (#1941).
             const ok =
                 m.tiles === SEATS &&
                 m.cols === 10 &&
@@ -346,14 +372,15 @@ try {
                 m.tileH <= MAX_TILE + 0.5 &&
                 m.gridXOk &&
                 m.pageXOk &&
-                (vp.width < 1024 || m.underBadge === 0) &&
-                (!vp.lessonPc ||
+                m.underBadge === 0 &&
+                m.outside === 0 &&
+                (!(vp.lessonPc || vp.portrait) ||
                     (m.rows === 4 &&
                         m.gridOk &&
                         m.lastBottom <= m.gridBottom &&
                         m.bodyOk &&
-                        m.pageOk &&
-                        m.outside === 0));
+                        m.pageOk)) &&
+                (!vp.portrait || (m.tileW >= 36 && m.detailBelow === true));
             results.push({ vp: vp.name, kind, ok, ...m });
             console.log(
                 `${ok ? "PASS" : "FAIL"} [${LOCALE} ${vp.name}] ${kind}`,

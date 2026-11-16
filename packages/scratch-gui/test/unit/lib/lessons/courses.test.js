@@ -28,6 +28,7 @@ import {
 import { validateGoal } from '../../../../src/lib/lessons/goal';
 import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
+import { ROLE_STEP_KIND } from '../../../../src/lib/lessons/lesson-role';
 import { normalizePartner } from '../../../../src/lib/lessons/practice-partner';
 import { hasAnswerProgram, isReadDiagram } from '../../../../src/lib/lessons/read-diagram';
 import en from '../../../../src/locales/en';
@@ -78,6 +79,8 @@ const collectMessages = () => {
                 messages.push(challenge.name);
                 if (challenge.task) messages.push(challenge.task);
                 challenge.steps.forEach((step) => step.title && messages.push(step.title));
+                // クラスに参加中の生徒に出す手順の文言（メッシュのつなぎ方）
+                challenge.steps.forEach((step) => step.classroomTitle && messages.push(step.classroomTitle));
                 challenge.debug.forEach((tip) => messages.push(tip));
                 // ふりかえりのクイズ（#1639）
                 if (challenge.quiz) {
@@ -294,6 +297,7 @@ describe('lesson courses', () => {
             quiz: null,
             activityDiagram: false,
             partner: null,
+            roles: false,
             mode: null,
             explanation: null,
             steps: [
@@ -918,18 +922,39 @@ describe('lesson courses', () => {
         });
 
         // ヒントは帽子のブロックを置く手順を抜かさない（docs/lessons/design.md の「ヒント」・#1564）:
-        // できあがりのプログラムの帽子のブロック（`when_...`）は、どれもいずれかのヒントの絵に描く
+        // できあがりのプログラムの帽子のブロック（`when_...`）は、どれもいずれかのヒントの絵に描く。ただし、最初から
+        // 入っていて書きかえないスプライトのプログラム（4-4 のシマネコ）は生徒が置かないので除く（2 つのスプライトの
+        // プログラムは吹き出しに入りきらない・教員レビュー）
         test.each(['ja', 'ja-Hira', 'en'])('every hat block of the answer is drawn in a hint (%s)', (locale) => {
             allChallenges().forEach((c) => {
                 const { code, spriteCodes } = challengeCodeFor(c, locale);
-                const hats = [code, ...spriteCodes.map((s) => s.code)]
+                const setupCodes = ((c.setup && c.setup.spriteCodes) || []).map(
+                    (s) => `${s.sprite}\u0000${localizeCode(s.code, locale)}`,
+                );
+                const built = spriteCodes.filter((s) => !setupCodes.includes(`${s.sprite}\u0000${s.code}`));
+                const hats = [code, ...built.map((s) => s.code)]
                     .join('\n')
                     .split('\n')
                     .filter((line) => /^when_\w+/.test(line))
                     .map((line) => line.replace(/ do$/, ''));
                 expect(hats.length).toBeGreaterThan(0);
                 const drawn = c.steps.map((s) => localizeCode(s.blocks, locale) || '');
-                hats.forEach((hat) => {
+                // 最初から入っているプログラムのスクリプト（そのまま残るもの）は、生徒が置かないので描かなくてよい
+                // （2 つのスプライトの最初のプログラムを説明するページは、絵を描かずに文で書く）
+                const scriptsOf = (one) =>
+                    (localizeCode(one, locale) || '')
+                        .split(/\n(?=when_)/)
+                        .map((script) => script.trim())
+                        .filter((script) => /^when_\w+/.test(script));
+                const setup = c.setup || {};
+                const given = [setup.code, setup.stageCode, ...(setup.spriteCodes || []).map((s) => s.code)].flatMap(
+                    scriptsOf,
+                );
+                const kept = [c.code, ...c.spriteCodes.map((s) => s.code)]
+                    .flatMap(scriptsOf)
+                    .filter((script) => given.includes(script))
+                    .map((script) => script.split('\n')[0].replace(/ do$/, ''));
+                hats.filter((hat) => !kept.includes(hat)).forEach((hat) => {
                     expect({
                         id: c.id,
                         hat,
@@ -1502,6 +1527,263 @@ describe('chat course lesson 3 "メッシュでつながろう" (#1643)', () => 
     });
 });
 
+describe('chat course: how to connect over the mesh, in and outside a class', () => {
+    const challenge = (id) => findChallenge(id).challenge;
+    const CONNECT_STEPS = [
+        ['chat-l3-mesh-signal', 3],
+        ['chat-l4-send-once', 4],
+    ];
+
+    // 「メッシュにつなごう」を 2 ページ目に足したチャレンジ（#2060。文はどれも同じ共通の文言）
+    const SHARED_CONNECT = [
+        ['chat-l3-mesh-variable', 'pair'],
+        ['chat-l4-send-repeat', 'pair'],
+        ['chat-l4-both-ways', 'pair'],
+        ['chat-l4-group', 'group'],
+        ['chat-l4-dm', 'group'],
+        ['chat-l5-read-receipt', 'pair'],
+        ['chat-l5-ng-word', 'pair'],
+        ['chat-l5-auto-reply', 'pair'],
+        ['chat-l5-password', 'pair'],
+        ['chat-l5-stamp', 'pair'],
+    ];
+    const ALL_CONNECT = [...CONNECT_STEPS, ...SHARED_CONNECT.map(([id]) => [id, 2])];
+
+    test.each(SHARED_CONNECT)('%s has "connect to the mesh" on page 2 (%s)', (id, kind) => {
+        const step = challenge(id).steps[1];
+        expect(step.title.id).toBe(`gui.lessons.chat.connect.${kind}`);
+        expect(step.classroomTitle.id).toBe(`gui.lessons.chat.connect.${kind}.inClass`);
+        expect(step.target).toBe('practice-partner');
+    });
+
+    test.each(Object.keys(LOCALES))('the shared connect page says to go on if already connected (%s)', (locale) => {
+        const next = {
+            ja: 'つながっていれば次へ',
+            'ja-Hira': 'つながっていれば つぎへ',
+            en: 'if already connected, go on',
+        }[locale];
+        ['pair', 'group'].forEach((kind) => {
+            expect(LOCALES[locale][`gui.lessons.chat.connect.${kind}`]).toContain(next);
+            expect(LOCALES[locale][`gui.lessons.chat.connect.${kind}.inClass`]).toContain(next);
+        });
+    });
+
+    test.each(Object.keys(LOCALES))('4-1 and 4-2 tell a pair to check the mesh status and history (%s)', (locale) => {
+        const word = { ja: '状態と履歴', 'ja-Hira': 'じょうたいとりれき', en: 'status and history' }[locale];
+        // 相手の画面の「受け取った」の行を見る（自分の「送った」では相手に届いたかわからない）
+        const received = { ja: '「受け取った」', 'ja-Hira': '「うけとった」', en: '"received"' }[locale];
+        [
+            ['chat-l4-send-once', 6],
+            ['chat-l4-send-repeat', 6],
+        ].forEach(([id, number]) => {
+            const step = challenge(id).steps[number - 1];
+            expect(step.target).toBe('green-flag');
+            expect(LOCALES[locale][step.title.id].toLowerCase()).toContain(word);
+            expect(LOCALES[locale][step.title.id].toLowerCase()).toContain(received);
+        });
+    });
+
+    test.each(Object.keys(LOCALES))('the shared connect page for a pair is short (%s)', (locale) => {
+        // 役を決めるのは次のページ（roleStep）なので、ここには書かない
+        const limit = { ja: 105, 'ja-Hira': 135, en: 240 }[locale];
+        expect(LOCALES[locale]['gui.lessons.chat.connect.pair'].length).toBeLessThanOrEqual(limit);
+        expect(LOCALES[locale]['gui.lessons.chat.connect.pair.inClass'].length).toBeLessThanOrEqual(limit);
+    });
+
+    test.each(Object.keys(LOCALES))(
+        '3-3 tells a pair to look at the status window on the partner screen (%s)',
+        (locale) => {
+            const word = { ja: '状態と履歴', 'ja-Hira': 'じょうたいとりれき', en: 'status and history' }[locale];
+            const step = challenge('chat-l3-mesh-variable').steps[8];
+            expect(LOCALES[locale][step.title.id].toLowerCase()).toContain(word);
+        },
+    );
+
+    test.each(CONNECT_STEPS)('%s step %d has a text for a student in a class', (id, number) => {
+        const step = challenge(id).steps[number - 1];
+        expect(step.title.id).toBe(`gui.lessons.challenge.${id}.step${number}`);
+        expect(step.classroomTitle.id).toBe(`gui.lessons.challenge.${id}.step${number}.inClass`);
+        expect(step.classroom).toBeUndefined();
+    });
+
+    test.each(Object.keys(LOCALES))(
+        'in a class it says seat numbers, outside it says host and join (%s)',
+        (locale) => {
+            const words = {
+                ja: { seat: '出席番号でつながる', host: 'ホスト' },
+                'ja-Hira': { seat: 'しゅっせきばんごうで つながる', host: 'ホスト' },
+                en: { seat: 'Connect by seat number', host: 'host' },
+            }[locale];
+            ALL_CONNECT.forEach(([id, number]) => {
+                const step = challenge(id).steps[number - 1];
+                expect(LOCALES[locale][step.classroomTitle.id]).toContain(words.seat);
+                expect(LOCALES[locale][step.classroomTitle.id]).not.toContain(words.host);
+                expect(LOCALES[locale][step.title.id].toLowerCase()).toContain(words.host.toLowerCase());
+            });
+        },
+    );
+
+    test('only the steps that tell how to connect have a classroom text', () => {
+        const withClassroom = allChallenges().flatMap((c) =>
+            c.steps.map((s, i) => (s.classroomTitle ? `${c.id}:${i + 1}` : null)).filter(Boolean),
+        );
+        expect(withClassroom.sort()).toEqual(ALL_CONNECT.map(([id, number]) => `${id}:${number}`).sort());
+    });
+});
+
+describe('chat course: deciding the roles on a page of its own', () => {
+    const challenge = (id) => findChallenge(id).challenge;
+    // 役のあるチャレンジと、「役を決めよう」のページの番号（つなぐページのすぐ次。4-1 はつなぎ方の手順の次）
+    const ROLE_PAGES = [
+        ['chat-l3-mesh-variable', 3],
+        ['chat-l4-send-once', 5],
+        ['chat-l4-send-repeat', 3],
+        ['chat-l4-both-ways', 3],
+        ['chat-l5-read-receipt', 3],
+        ['chat-l5-ng-word', 3],
+        ['chat-l5-auto-reply', 3],
+        ['chat-l5-password', 3],
+        ['chat-l5-stamp', 3],
+    ];
+
+    test('every challenge with roles is listed', () => {
+        expect(
+            allChallenges()
+                .filter((c) => c.roles)
+                .map((c) => c.id)
+                .sort(),
+        ).toEqual(ROLE_PAGES.map(([id]) => id).sort());
+    });
+
+    test.each(ROLE_PAGES)('%s has the shared role page on page %d, right after connecting', (id, number) => {
+        const steps = challenge(id).steps;
+        const step = steps[number - 1];
+        expect(step.kind).toBe(ROLE_STEP_KIND);
+        expect(step.title.id).toBe('gui.lessons.chat.role');
+        // 吹き出しのしっぽは課題バーの役のボタンを指す
+        expect(step.target).toBe(HINT_TARGETS.ROLE_PICKER);
+        expect(step.blocks || null).toBeNull();
+        // すぐ前のページがつなぎ方（練習相手のパネルを指す・クラスの中の文がある）
+        expect(steps[number - 2].target).toBe(HINT_TARGETS.PRACTICE_PARTNER);
+        expect(steps[number - 2].classroomTitle).toBeTruthy();
+        expect(steps.filter((s) => s.kind === ROLE_STEP_KIND)).toHaveLength(1);
+    });
+
+    test('challenges without roles have no role page', () => {
+        allChallenges()
+            .filter((c) => !c.roles)
+            .forEach((c) =>
+                expect({ id: c.id, role: c.steps.some((s) => s.kind === ROLE_STEP_KIND) }).toEqual({
+                    id: c.id,
+                    role: false,
+                }),
+            );
+    });
+
+    test.each(Object.keys(LOCALES))('the role page tells the buttons, and what to do alone (%s)', (locale) => {
+        const words = {
+            ja: ['課題バー', '「シマラビの役」', '「シマネコの役」', 'ひとりなら'],
+            'ja-Hira': ['かだいバー', '「シマラビの やく」', '「シマネコの やく」', 'ひとりなら'],
+            en: ['task bar', '"Shimaraby"', '"Shimacat"', 'On your own'],
+        }[locale];
+        const text = LOCALES[locale]['gui.lessons.chat.role'];
+        words.forEach((word) => expect(text).toContain(word));
+        // シマネコの役でも名前を入れかえない（ボタンの名前・ひとりのときの既定の役）
+        expect(LOCALES[locale]['gui.lessons.chat.role.asShimacat']).toBe(text);
+        expect(text.length).toBeLessThanOrEqual({ ja: 90, 'ja-Hira': 120, en: 200 }[locale]);
+    });
+
+    test.each(Object.keys(LOCALES))(
+        'the connect pages and the 4-1 task no longer talk about the roles (%s)',
+        (locale) => {
+            const role = { ja: '役', 'ja-Hira': 'やく', en: 'role' }[locale];
+            ['pair', 'pair.inClass', 'group', 'group.inClass'].forEach((kind) =>
+                expect(LOCALES[locale][`gui.lessons.chat.connect.${kind}`]).not.toContain(role),
+            );
+            expect(LOCALES[locale][challenge('chat-l4-send-once').task.id]).not.toContain(role);
+        },
+    );
+});
+
+describe('chat course: hints that make a new message and get ready to receive', () => {
+    const NEW_MESSAGE = {
+        ja: '**▼ の「新しいメッセージ」で**',
+        'ja-Hira': '**▼ の「あたらしいメッセージ」で**',
+        en: '**with "New message" in its ▼**',
+    };
+    const RAW_NEW_MESSAGE = {
+        ja: '「新しいメッセージ」',
+        'ja-Hira': '「あたらしいメッセージ」',
+        en: '"New message"',
+    };
+    const chatHintIds = () =>
+        findCourse('chat-wo-tsukurou').lessons.flatMap((lesson) =>
+            lesson.challenges.flatMap((c) => c.steps.flatMap((s) => [s.title, s.classroomTitle]).filter(Boolean)),
+        );
+
+    test.each(Object.keys(LOCALES))('every hint that makes a new message emphasizes the ▼ menu (%s)', (locale) => {
+        const ids = chatHintIds().map(({ id }) => id);
+        const making = ids.filter((id) => LOCALES[locale][id].includes(RAW_NEW_MESSAGE[locale]));
+        expect(making.length).toBe(8);
+        making.forEach((id) =>
+            expect({ id, text: LOCALES[locale][id] }).toEqual({
+                id,
+                text: expect.stringContaining(NEW_MESSAGE[locale]),
+            }),
+        );
+    });
+
+    test.each(Object.keys(LOCALES))(
+        'the pages that only make the partner send say they are a preparation (%s)',
+        (locale) => {
+            const ready = { ja: '準備をしよう', 'ja-Hira': 'じゅんびを しよう', en: 'Get ready' }[locale];
+            [
+                'gui.lessons.challenge.chat-l3-mesh-variable.step7',
+                'gui.lessons.challenge.chat-l4-both-ways.step6',
+            ].forEach((id) => expect(LOCALES[locale][id]).toContain(ready));
+            expect(LOCALES.ja['gui.lessons.challenge.chat-l4-both-ways.step6']).toBe(
+                'メッセージを受け取る準備をしよう。ひとりなら、練習相手のパネルの「こんにちは」を押そう（ペアなら、相手に送ってもらう）。' +
+                    '相手のメッセージが届くと、「メッシュ」の「(　) センサーの値」の ▼ に「シマネコのメッセージ」が出る。',
+            );
+        },
+    );
+});
+
+describe('the emphasis marks (**) in the hints', () => {
+    test.each(Object.keys(LOCALES))('are in pairs and are the same in number across locales (%s)', (locale) => {
+        allChallenges().forEach((c) => {
+            [...c.steps.flatMap((s) => [s.title, s.classroomTitle]), ...c.debug].filter(Boolean).forEach(({ id }) => {
+                const text = LOCALES[locale][id];
+                const marks = (text.match(/\*\*/g) || []).length;
+                expect({ id, even: marks % 2 }).toEqual({ id, even: 0 });
+                expect({ id, marks }).toEqual({ id, marks: (LOCALES.ja[id].match(/\*\*/g) || []).length });
+            });
+        });
+    });
+
+    test('the chat hints that make you select the other sprite are emphasized', () => {
+        expect(ja['gui.lessons.challenge.chat-l3-local-message.step3']).toMatch(
+            /^\*\*シマラビをえらびなおして\*\*、/,
+        );
+        expect(ja['gui.lessons.challenge.chat-l3-local-message.step5']).toMatch(/^\*\*シマネコをえらんで\*\*、/);
+    });
+
+    test('the activity diagram hints describe the shapes, not pentagons or boxes', () => {
+        Object.keys(LOCALES).forEach((locale) =>
+            Object.entries(LOCALES[locale])
+                .filter(([id]) => id.startsWith('gui.lessons.challenge.'))
+                .forEach(([id, text]) =>
+                    expect({ id, text }).toEqual({
+                        id,
+                        text: expect.not.stringMatching(
+                            /五角形|へこんだ箱|ごかくけい|へこんだ はこ|pentagon|notched box/,
+                        ),
+                    }),
+                ),
+        );
+    });
+});
+
 describe('chat course lesson 4 "チャットを作ろう" (#1644)', () => {
     const CHAT_L4 = ['chat-l4-send-once', 'chat-l4-send-repeat', 'chat-l4-both-ways', 'chat-l4-group', 'chat-l4-dm'];
     const challenge = (id) => findChallenge(id).challenge;
@@ -1613,7 +1895,8 @@ describe('chat course lesson 4 "チャットを作ろう" (#1644)', () => {
             [
                 'あなたに DM',
                 [
-                    { name: 'あてさき', fromVariable: 'なまえ' },
+                    // あて先は押したときの生徒の名前。まだ入れていなければ送らない（教員レビュー）
+                    { name: 'あてさき', fromVariable: 'なまえ', orVariables: ['名前', 'name'], required: true },
                     { name: 'メッセージ', value: 'シマネコ：ないしょだよ' },
                 ],
                 'メッセージ',
@@ -1795,7 +2078,7 @@ describe('chat course lesson 5 "チャットを改良しよう" (#1645)', () => 
         });
     });
 
-    test('the practice partners: 5-1 talks and reads, 5-3 has no automatic reply, 5-5 sends stamps', () => {
+    test('the practice partners: 5-1 talks and reads, 5-3 has no automatic reply, 5-5 sends stamps and replies', () => {
         const pair = normalizePartner(challenge('chat-l4-both-ways').partner, 'ja');
         ['chat-l5-ng-word', 'chat-l5-password'].forEach((id) =>
             expect(normalizePartner(challenge(id).partner, 'ja')).toEqual(pair),
@@ -1812,9 +2095,12 @@ describe('chat course lesson 5 "チャットを改良しよう" (#1645)', () => 
         expect(auto.replies).toEqual([]);
         const stamp = normalizePartner(challenge('chat-l5-stamp').partner, 'ja');
         expect(stamp.buttons.map((b) => [b.label, b.broadcast])).toEqual([['スタンプを送る', 'シマネコのスタンプ']]);
+        // 「とどいたよ」の返事も残す（最初から入っている、相手のメッセージを言うプログラムが動くように）
         expect(stamp.replies.map((r) => [r.onBroadcast, r.broadcast])).toEqual([
+            ['シマラビのメッセージ', 'シマネコのメッセージ'],
             ['シマラビのスタンプ', 'シマネコのスタンプ'],
         ]);
+        expect(stamp.replies[0]).toEqual(pair.replies[0]);
     });
 
     test('the names that reach the other side over the mesh are the same in ja and ja-Hira', () => {

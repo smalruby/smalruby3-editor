@@ -14,6 +14,9 @@ const { REPORT_DATA } = require('./gql-operations');
  *   - _reportData → lastSentData による「サーバー反映済みのデルタ」フィルタ
  * これにより、値が短時間で行ったり来たりしても重複 mutation を抑える。
  *
+ * `sendChangedGlobalVariables` は毎フレーム（BEFORE_STEP）呼ばれ、ブロックを通らずに
+ * 変わった値（モニターのスライダーなど・#1930）を同じ sendData へ流す。
+ *
  * `getRemoteVariable` は他ノードから受信した値を最新タイムスタンプで読む。
  *
  * Mixed into MeshV2Service.prototype.
@@ -205,6 +208,28 @@ const DataSenderMixin = {
 
         await this.sendData(allVariables);
         debug(() => `Mesh V2: Sent ${allVariables.length} global variables`);
+    },
+
+    /**
+     * Issue #1930: send the global variables that changed without going through
+     * the hooked functions (the stage monitor's slider writes `variable.value`
+     * directly). Called every frame (BEFORE_STEP) while in a group.
+     *
+     * A change is "the value differs from the last value queued for it"
+     * (latestQueuedData), so values sent by blocks/hooks are not sent again,
+     * and nothing is queued while nothing changes. The sends go through
+     * sendData → dataRateLimiter, so dragging the slider still makes at most
+     * one REPORT_DATA per interval (the queued values are merged by key).
+     */
+    sendChangedGlobalVariables() {
+        if (!this.groupId || !this.client) return;
+
+        const changed = this.getGlobalVariables().filter((item) => this.latestQueuedData[item.key] !== item.value);
+        if (changed.length === 0) return;
+
+        debug(() => `Mesh V2: Global variables changed outside blocks: ${JSON.stringify(changed)}`);
+        // sendData handles its own errors; do not block the frame on it.
+        this.sendData(changed);
     },
 
     getRemoteVariable(name) {

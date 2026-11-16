@@ -15,7 +15,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-modal` | モーダル全体 |
 | `classroom-phase-teacher-login` | 先生: ログイン (Google / Microsoft) |
 | `classroom-phase-teacher-class-list` | 先生: クラス一覧（ログイン後の入口。v2 landing） |
-| `classroom-phase-teacher-dashboard` | 先生: 課題ダッシュボード（クラス選択後） |
+| `classroom-phase-teacher-dashboard` | 先生: 課題ダッシュボード（クラス選択後）。クラスを選んでいないときは「クラスの一覧からクラスを選んでください」と［クラスの一覧へ］（`classroom-teacher-empty-class-list`）を出す |
 | `classroom-phase-teacher-create` | 先生: 課題作成 |
 | `classroom-phase-teacher-detail` | 先生: 課題詳細 |
 | `classroom-phase-teacher-google-courses` | 先生: GC コース一覧 |
@@ -42,7 +42,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-refresh` | button | 更新 (↻)。`aria-label` / `title` は「読み込み直す」 |
 | `classroom-google-import` | button | Google Classroom からインポート |
 | `classroom-google-import-confirm` | button | GC コース一覧の「インポート」（未選択時は disabled） |
-| `classroom-avatar-button` | button | アカウントメニュー（タイトルバー右上・メール頭文字 + ▼） |
+| `classroom-avatar-button` | button | アカウントメニュー（ヘッダー右端・メール頭文字 + ▼） |
 | `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内） |
 
 ### 課題作成
@@ -51,31 +51,22 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 
 
-### サイドバー (先生・常時表示、login 以外のフェーズで visible)
-
-サイドバーはクラス管理モーダル左側に常時表示される（teacher-login 以外）。「クラス一覧 (ダッシュボード)」ではなく **サイドバー** に登録済みの課題がクラス（学級）ごとにリスト表示される。
-
-| data-testid | 要素 | 説明 |
-|------------|------|------|
-| `classroom-sidebar-group-{className}` | div | クラス（学級）名でグルーピングされたヘッダ（例: 「6年A組」）|
-| `classroom-sidebar-item-{classroomId}` | li | サイドバーの個別の課題項目。`data-classroom-id` 属性も持つ。クリックで `selectedClassroom` が更新され `teacher-class-detail` フェーズへ遷移。表示テキストは `assignmentName · 人数 · 参加コード(小文字)` |
-
 ### 課題詳細 (先生)
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-detail-name` | div | 課題が属するクラス（学級）名 |
 | `classroom-detail-assignment-name` | input[type=text] | 課題名（1 行・blur / Enter で保存） |
 | `classroom-detail-assignment-name-save-hint` | div | 課題名の欄の下の「Enter か欄の外をクリックで保存」（欄にカーソルがある間だけ） |
 | `classroom-detail-assignment-name-saved` | span | 課題名の欄の横の「✓ 保存しました」（`role="status"`・保存後 2 秒ほど） |
 | `classroom-detail-assignment-name-save-error` | span | 課題名の欄の横の赤い「保存できませんでした」（`role="alert"`・保存に失敗したとき） |
 | `classroom-detail-expires-at` | div | 保存期限（ふだんは灰色。残り 7 日以内は `classroom-retention-banner` を含む） |
-| `classroom-detail-more-menu` | button | タブの行の右端の⋮（一覧は `classroom-detail-more-menu-list`） |
+| `classroom-detail-project` | button | タブの行の右の［⛶ 映す］（tablist の外）。`classroom-projection` を開く |
+| `classroom-detail-more-menu` | button | タブの行の右端の⋮（tablist の外。一覧は `classroom-detail-more-menu-list`） |
 | `classroom-download-progress` | span | ⋮の左の全作品ダウンロードの進み具合（`n/m`・ダウンロード中のみ） |
 | `classroom-tab-members` | button | 「メンバー」タブ（凡例 + 人数 + 更新 + 座席グリッド） |
 | `classroom-view-assignment` | a | 「課題を確認」（配信済みのとき・新しいタブ。生徒のステータス画面にもある） |
 | `classroom-detail-join-code` | div | 参加コード |
-| `classroom-detail-expand-code` | button | コード拡大表示（⛶ + 「全画面」） |
+| `classroom-detail-expand-code` | button | 参加コードの横の［⛶ 全画面］。［⛶ 映す］と同じ `classroom-projection` を開く |
 | `classroom-members-grid` | div | 座席グリッド |
 | `classroom-seat-color-legend` | div | 座席の色の凡例（空席・参加済み・提出済み ✓・返却済み ↩。状態アイコンの凡例より前） |
 | `classroom-seat-color-legend-{kind}` | span | 凡例の 1 項目（`kind` = `empty` / `joined` / `submitted` / `returned`） |
@@ -94,7 +85,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-tab-progress` | button | 「進み具合」タブ（レッスンを紐付けた課題だけ） |
 | `classroom-member-{memberId}` | button | 座席。`data-seat-color` = `empty` / `joined` / `submitted` / `returned`（レッスンの課題では代わりに `data-lesson-state` = `notJoined` / `notStarted` / `inProgress` / `cleared`） |
-| `classroom-lesson-seat-legend` | div | 座席の色の凡例（未参加・まだ・とちゅう・課題クリア ★・「!」）。レッスンの課題では `classroom-seat-color-legend` の代わりに出る |
+| `classroom-lesson-seat-legend` | div | 座席の色の凡例（空席・まだ・とちゅう・課題クリア ★・「!」）。レッスンの課題では `classroom-seat-color-legend` の代わりに出る |
 | `classroom-lesson-seat-legend-{kind}` | span | 凡例の 1 項目（`kind` = `empty` / `notStarted` / `inProgress` / `cleared`） |
 | `classroom-lesson-seat-cleared-{n}` | span | 課題クリアした席の ★ |
 | `classroom-lesson-cleared-summary` | span | 「クリア N / 参加 N」 |
@@ -134,25 +125,41 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-member-detail-image-index` | span | 画像インデックス |
 | `classroom-member-detail-prev` | button | 前の画像 |
 | `classroom-member-detail-next` | button | 次の画像 |
-| `classroom-member-detail-open` | button | Smalruby で開く |
-| `classroom-member-detail-return` | button | 返却 |
+| `classroom-member-detail-open` | button | スモウルビーで開く（副ボタン）。作品を開くとクラス管理を閉じる（隠して残す）。返却していないコメントは消えないので確かめない。エディタに保存していない変更があれば `classroom-teacher-open-work-confirm-box` を先に出す |
+| `classroom-member-detail-return` | button | 返却（選んだ席の詳細の主ボタン） |
 | `classroom-member-detail-comment-label` | label | コメント欄の上のラベル「生徒へのコメント（返却で届きます）」 |
-| `classroom-member-detail-comment` | textarea | コメント入力 |
+| `classroom-member-detail-comment` | textarea | コメント入力。下書きは課題と席ごとにクラス管理（container）が持ち、作品を開いても・席を移っても残る |
 | `classroom-member-detail-hide-from-peers` | input (checkbox) | 他の生徒に見せない（提出があるときだけ・切り替えで即保存・Issue #1208） |
-| `classroom-member-remove` | button | メンバー削除 |
+| `classroom-member-more-menu` | button | メンバー詳細の見出しの右端の ⋮（開くと `classroom-member-more-menu-list`） |
+| `classroom-member-remove` | button | ⋮ の中の「退室させる」。押すと確認を開く（すぐには退室させない） |
+| `classroom-member-remove-confirm-box` | div | 「退室させますか？」の確認（見出しの下・淡いオレンジ） |
+| `classroom-member-remove-confirm-message` | p | 「出席番号 N の生徒を課題から退室させますか？（作品は残ります）」 |
+| `classroom-member-remove-cancel` | button | 確認の［キャンセル］ |
+| `classroom-member-remove-confirm` | button | 確認の［退室させる］（主ボタン。押すとメンバーを退室させる） |
 | `classroom-member-lesson-detail` | div | レッスンの課題の席の詳細（チャレンジの一覧。#1603） |
 | `classroom-member-lesson-detail-count` | span | 「できた数 / 条件の数」（課題クリアなら「課題クリア」） |
 | `classroom-member-lesson-detail-list` | ul | チャレンジの一覧の枠（この枠の中だけスクロール） |
 | `classroom-member-lesson-detail-{challengeId}` | li | チャレンジ 1 行（`data-kind` = `done` / `before` / `current` / `stuck` / `todo`） |
 
-### コード表示
+### ［⛶ 映す］画面（先生）
+
+プロジェクターに映す全画面（`document.body` へのポータル）。生徒の名前は出さない。
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-code-display-copy-link` | button | 招待リンクをコピー |
-| `classroom-code-display-expand` | button | 全画面表示（⛶ + 「全画面」） |
-| `classroom-code-display-shrink` | button | 全画面解除 |
-| `classroom-code-display-close` | button | コード表示を閉じる |
+| `classroom-projection` | div[role=dialog] | 映す画面の全体。Esc でも閉じる |
+| `classroom-projection-title` | span | 「クラス名 › 課題名」 |
+| `classroom-projection-close` | button | ［閉じる］（開いたときにフォーカスがある） |
+| `classroom-projection-code` | span | 参加コード（大きく） |
+| `classroom-projection-counts` | div | 数の札のまとまり |
+| `classroom-projection-joined` | span | 「参加 N / N」 |
+| `classroom-projection-submitted` | span | 「提出 N」（ふつうの課題・作品を出すレッスン） |
+| `classroom-projection-cleared` | span | 「クリア N」（レッスンの課題） |
+| `classroom-projection-legend` | div | 座席の色の凡例（各項目 `classroom-projection-legend-{kind}`） |
+| `classroom-projection-seats` | div | 座席（10 列） |
+| `classroom-projection-seat-{n}` | span | 1 席（出席番号だけ。`data-seat-color` = `empty` / `joined` / `submitted` / `returned` / `notStarted` / `inProgress` / `cleared` / `loading`（レッスンの進み具合をまだ読み込んでいない）） |
+| `classroom-projection-lesson-loading` | span | レッスンの進み具合を読み込み中の「読み込み中…」（凡例の横） |
+| `classroom-projection-lesson-error` | p | レッスンの進み具合を読み込めなかったときの短い表示（座席の代わり） |
 
 ### 生徒: 共通の部品（進む順の帯・主ボタン・小さなリンク）
 
@@ -170,8 +177,12 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-join-code-input` | input | 参加コード入力 |
-| `classroom-join-submit` | button | 参加コード送信 |
+| `classroom-join-code-input` | input | 参加コード入力（見えるラベル「参加コード（先生が見せている 6 文字）」が付く） |
+| `classroom-join-submit` | button | 参加コード送信（主ボタン「次へ」） |
+| `classroom-join-history` | select | これまでに参加したクラス・課題の参加コード（あるときだけ。見えるラベル「前に参加した課題」が付く） |
+| `classroom-join-hint` | div | ヒント（参加コードは先生が黒板や画面に出している） |
+| `classroom-join-teacher-hint` | div | ヒントの下の先生向けの小さな案内「あなたは先生ですか？…」 |
+| `classroom-teacher-link` | button | 先生向けの「クラス管理を開く」。生徒の「クラス」を閉じて先生のクラス管理を開く |
 
 ### 生徒: 席番号選択
 
@@ -190,7 +201,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-seat-idle-guide` | div | 右の列の案内の枠（使用中ボタンの小さな絵つき）。`data-variant="idle"` = グリッドが出てから 30 秒選ばれないとき（使用中の席があるときだけ）、`data-variant="previousTaken"` = 前回の番号が使用中のとき（すぐ出る）。確認・退室依頼ダイアログ・依頼の承認待ちの間は出ない |
 | `classroom-seat-confirm` | div | 席を選んだあとの確認ステップ（座席グリッドの代わりに表示。確認文・［選び直す］・［参加する］を含む） |
 | `classroom-seat-confirm-message` | div | 参加確定前の大きな確認「出席番号 NN で参加します」 |
-| `classroom-seat-reselect` | button | 「選び直す」。座席グリッドに戻る |
+| `classroom-seat-reselect` | button | 「選び直す」（小さなリンク）。座席グリッドに戻る |
 | `classroom-confirm-seat` | button | 席番号確定・参加（席を選んだあとの確認ステップにだけ表示） |
 
 ### 生徒: 参加完了
@@ -216,7 +227,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-status-assignment` | span | 課題名（`title` に全体） |
 | `classroom-submit-status` | span | 提出状況（未提出 / ✓ 提出済み (時刻) / ↩ 返却済み (時刻)）。作品を提出しないレッスンの課題では出さない |
 | `classroom-student-refresh` | button | 更新 (↻)。`aria-label` / `title` は「読み込み直す」 |
-| `classroom-status-teacher-comment` | div | 先生からのコメント（返却済みのときだけ） |
+| `classroom-status-teacher-comment` | div | 先生からのコメントの吹き出し（「先生から」の見出しとアイコン。返却済みのときだけ） |
+| `classroom-previous-comment` / `classroom-previous-comment-text` | div | 参加した直後の、前回の課題で先生から届いたコメントの吹き出し / その本文 |
 | `classroom-status-continue` | button | 主ボタン「つづける」（何も読み込まずに閉じる。説明の行は `classroom-status-continue-note`）。レッスンの課題では、作品も提出する課題で条件を満たしたあとだけ |
 | `classroom-status-continue-current` | button | 主ボタン「この課題で出した作品から続ける」（リロードしたあと、作品が新しい作品のまま・この課題で出した作品がある・このタブでまだ読み込んでいないときだけ。`classroom-status-continue` の代わりに出す）。押すとその提出物を読み込んで閉じる（確認は出さない） |
 | `classroom-status-start-starter` | button | 主ボタン「スターターから始める」（リロードしたあと、作品が新しい作品のまま・未提出・課題にスターターがあるときだけ。`classroom-status-continue` の代わりに出す）。押すとスターターを読み込んで閉じる |
@@ -254,7 +266,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-submit-checking` | div | 「提出の状態を確かめています...」（開いた直後に verify-session を待つ間だけ。このあいだ見出し・サムネイル・主ボタンは出さず、「やめる」だけ押せる） |
 | `classroom-submit-preview` | img | サムネイルプレビュー |
-| `classroom-submit-teacher-comment` | div | 先生のコメント（返却済みからの再提出のときだけ） |
+| `classroom-submit-teacher-comment` | div | 先生からのコメントの吹き出し（返却済みからの再提出のときだけ） |
 | `classroom-submit-cancel` | button | 「やめる」（小さなリンク。モーダルを閉じる） |
 | `classroom-submit-confirm` | button | 主ボタン「提出する」（再提出では「もう一度提出する」。送信中だけ「提出中...」で押せない。送信中はクラスの画面も閉じられない） |
 
@@ -371,17 +383,34 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-create-count` | input | 作成: 人数（出席番号の数・必須） |
 | `classroom-class-create-cancel` | button | 作成: キャンセル |
 | `classroom-class-create-submit` | button | 作成: 作成（文言は固定） |
-| `classroom-class-summary-{groupId}` | span | クラスカードの要約（課題数・生徒数・生成AI） |
-| `classroom-class-list` | ul | クラス一覧（カード） |
+| `classroom-class-summary-{groupId}` | span | クラスカードの要約（課題数・生徒数） |
+| `classroom-class-band-{groupId}` | span | クラスカードの色の帯（クラス名・年度・セクション。色は `classColorFor`） |
+| `classroom-class-next-{groupId}` | span | クラスカードの次の授業日（「次の授業日 11/5「課題名」」・無いとき「次の授業日はありません」・課題が 0 件のとき「まだ課題がありません」） |
+| `classroom-class-genai-{groupId}` | span | クラスカードの生成AI の札（「生成AI: Gemini」。使うときだけ） |
+| `classroom-class-menu-{groupId}` | button | クラスカードの ⋮（一覧は `classroom-class-menu-{groupId}-list`） |
+| `classroom-class-archive-{groupId}` | button (`role="menuitem"`) | ⋮ の「アーカイブ」（確認の小さな画面を開く） |
+| `classroom-class-archive-dialog` | div (`role="dialog"`) | カードの ⋮ からのアーカイブの確認（Esc で閉じる） |
+| `classroom-class-archive-confirm-message` | p | その確認の説明 |
+| `classroom-class-archive-cancel` / `classroom-class-archive-confirm` | button | その確認の［アーカイブしない］（開いたときにフォーカス）/［アーカイブする］ |
+| `classroom-review-band` | section | 「確認が必要な課題」の帯（どの課題にも `unreturnedCount` が無いとき（古い API）・課題が無いときは出ない。数の無い課題（レッスンなど）は帯に出ない） |
+| `classroom-review-item-{classroomId}` | li | 帯の 1 件（クラス名・課題名・「返却していない {数}」） |
+| `classroom-review-open-{classroomId}` | button | 帯の［開く］（その課題の詳細を［メンバー］で開く＝返却する画面） |
+| `classroom-review-none` | span | 帯の「返却していない提出はありません。」（全部の課題の数がそろって 0 のときだけ） |
+| `classroom-class-list` | ul | クラス一覧（カード 4 列。クラスが 0 件のときは出ない） |
+| `classroom-class-list-scroll` | div | カードの一覧の枠（9 クラス目からこの枠の中だけがスクロールする） |
 | `classroom-class-list-empty` | p | クラス一覧の空メッセージ |
 | `classroom-class-card-{groupId}` | li | クラスカード |
 | `classroom-class-open-{groupId}` | button | クラスカード本体（クリックでクラスをひらく） |
 | `classroom-class-evaluate-{groupId}` | button | クラスカードの「採点」 |
 | `classroom-class-import-gc` | button | クラス一覧の「Google Classroom からインポート」（Google ログイン時のみ） |
 | `classroom-avatar-button` / `classroom-avatar-initials` / `classroom-avatar-email` | button/span | アカウントメニュー（右上・メール頭文字 + ▼。クリックでメール表示 + ログアウト） |
-| `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内。#1111 レビューでタイトルバー常時表示から移動） |
+| `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内。#1111 レビューでタイトルバー常時表示から移動）。採点の画面の下書きがあれば採点の確認、メンバーのタブの返却していないコメントがあれば `classroom-teacher-logout-confirm-box` を先に出す |
+| `classroom-teacher-logout-confirm-box` / `classroom-teacher-logout-confirm-message` | div / p | ログアウトの前の確認「返却していないコメントは消えます。ログアウトしますか？」（ヘッダーの下・右に重ねて出す。メニューバーの「ログアウト」からでも出る） |
+| `classroom-teacher-logout-cancel` / `classroom-teacher-logout-confirm` | button | 確認の［とどまる］（コメントを残す）/［ログアウトする］ |
+| `classroom-teacher-open-work-confirm-box` / `classroom-teacher-open-work-confirm-message` | div / p | 生徒の作品を開く前の確認（#1983。ヘッダーの下・右に重ねて出す）。エディタに保存していない変更があるときだけ出る。message の `data-kind` が `own`（先生自身の作品「エディタにある先生の作品に、保存していない変更があります。…」）か `opened`（前に開いた生徒の作品を先生が変えた「…生徒の作品の上の変更で、どこにも保存されていません。…」） |
+| `classroom-teacher-open-work-cancel` / `classroom-teacher-open-work-confirm` | button | 確認の［やめる］（開かない）/［開く］（エディタの作品を置きかえて開く） |
 | `classroom-class-create-section` | input | 作成: セクション（オプション） |
-| `classroom-class-settings-open-{groupId}` | button | クラスカードの「設定」（インライン編集を開く） |
+| `classroom-class-settings-open-{groupId}` | button | クラスカードの「⚙ 設定」（クラスの設定の画面を開く） |
 | `classroom-class-settings-{groupId}` | form | クラス設定のインライン編集フォーム |
 | `classroom-class-settings-name/year/section/count` | input | クラス設定の各フィールド（それぞれ見えるラベル付き） |
 | `classroom-class-settings-co-teacher-input` | input | 共同管理者メール入力（クラス単位） |
@@ -419,13 +448,28 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-ai-preview-rubytee` | span | 見本の顔のパネルの［ルビティーにまかせる］（生成AI を使うときだけ。`data-on="true/false"`。オフは薄く表示） |
 | `classroom-class-ai-preview-rubytee-off` | p | 生成AI を使い、ルビティーがオフのときの説明 |
 | `classroom-class-ai-preview-rubytee-no-genai` | p | 生成AI を使わず、ルビティーがオンのときの説明（ルビティーは顔のパネルから使う） |
-| `classroom-show-archived` | button | 「アーカイブ済みのクラス（{count}）」トグル（アーカイブ済みが 1 件以上のとき表示） |
+| `classroom-show-archived` | button | 見出しの行の「アーカイブ済みのクラス（{count}）」（アーカイブ済みが 1 件以上のとき表示）。押すとカードがアーカイブ済みに切りかわり、文言が「クラスに戻る」になる（`aria-expanded`） |
 | `classroom-archived-class-list` | ul | アーカイブ済みクラスのカード一覧 |
 | `classroom-class-restore-{groupId}` | button | アーカイブ済みクラスカードの「元に戻す」 |
 | `classroom-board` | div | 課題管理ボード（クラス内のメイン領域） |
-| `classroom-board-tab-stream` / `classroom-board-tab-classwork` | button (tab) | クラスの画面の［ストリーム］［授業］タブ（`aria-selected`。最初は［ストリーム］） |
-| `classroom-board-stream` | div | ［ストリーム］の枠（件数が多いときはこの中だけスクロール） |
-| `classroom-board-stream-item-{type}-{classroomId}` | button | ストリームの 1 行。`{type}` は `created`（作成）/ `archived`（アーカイブ）/ `expiring`（残り 7 日以内の自動削除の予定）。押すと［授業］でその課題へ |
+| `classroom-class-tabs` | div (tablist) | クラスの中のタブの行（クラスの画面と採点の画面の両方に出る） |
+| `classroom-board-tab-stream` / `classroom-board-tab-classwork` / `classroom-board-tab-grading` | button (tab) | クラスの中の［ストリーム］［授業］［採点］タブ（`aria-selected`。最初は［ストリーム］。採点の画面では［採点］が選ばれる。採点の画面からほかのタブへ移るときは離れる確認を通る） |
+| `classroom-board-class-settings` | button | タブの行の右端の［⚙ クラスの設定］（ストリーム・授業のとき） |
+| `classroom-board-settings-view` | div | クラスの中で開いたクラスの設定の画面（中のフォームは `classroom-class-settings-{groupId}`） |
+| `classroom-board-stream-band` | div | ［ストリーム］の上のクラスの色の帯（クラス名・年度・セクション・人数） |
+| `classroom-board-current` | section | ストリームの左の「いまの課題」カード（授業日が今日の課題、無ければ授業日がいちばん近い課題） |
+| `classroom-board-current-name` | button | いまの課題の名前（押すと課題詳細へ） |
+| `classroom-board-current-date` | span | いまの課題の「授業日」（ラベル付き） |
+| `classroom-board-current-code` | span | いまの課題の参加コード（大きく） |
+| `classroom-board-current-fullscreen` | button | ［⛶ 全画面で映す］（ストリームの主ボタン。いまの課題を開き、その［⛶ 映す］画面 `classroom-projection` を出す。閉じるとストリームに戻る） |
+| `classroom-board-current-counts-{classroomId}` | span | いまの課題の「参加 N / N・提出 N」（レッスンの課題は「クリア N」）。読み込み中は「読み込み中…」、失敗は「-」 |
+| `classroom-board-current-empty` | p | 課題が無いクラスのいまの課題カードの案内 |
+| `classroom-board-retention-card` | section | ストリームの左の「保存期限」カード。`data-urgent="true"` は 7 日以内に消える課題があるとき（赤） |
+| `classroom-board-retention-card-item-{classroomId}` | button | 7 日以内に消える課題（押すとストリームの行と同じく［授業］でその課題へ） |
+| `classroom-board-retention-card-none` | p | 「7 日以内に消える課題はありません。」（灰色） |
+| `classroom-board-retention-card-next` | p | 次の保存期限（灰色。7 日以内のものが無いとき） |
+| `classroom-board-stream` | div | ［ストリーム］の右の記録の枠（件数が多いときはこの中だけスクロール） |
+| `classroom-board-stream-item-{type}-{classroomId}` | button | ストリームの 1 行。`{type}` は `created`（作成）/ `archived`（アーカイブ）/ `expiring`（残り 7 日以内の自動削除の予定。ほかの行と同じ灰色・赤い警告は `classroom-board-retention-card`）。押すと［授業］でその課題へ |
 | `classroom-board-stream-date-{type}-{classroomId}` | span | ストリームの行の右端の日付とラベル（「作成日」／「アーカイブした日」）。`expiring` の行には無い（日付は文中） |
 | `classroom-board-stream-empty` | p | ストリームが空のときの案内 |
 | `classroom-board-create-menu` | button | ［＋ 作成 ▾］（主ボタン）。開いた一覧は `classroom-board-create-menu-list`（`role="menu"`） |
@@ -445,7 +489,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-topic-add-cancel` / `classroom-topic-add` | button | ［キャンセル］［追加］ |
 | `classroom-board-row-{classroomId}` | li | 課題行 |
 | `classroom-board-row-toggle-{classroomId}` | button | 課題行本体（押すとその場で開く・`aria-expanded`。開く行は 1 つだけ） |
-| `classroom-board-row-date-{classroomId}` | span | 閉じた行の「授業日」（ラベル付き） |
+| `classroom-board-row-date-{classroomId}` | span | 閉じた行の「授業日」（ラベル付き。利用者の時間帯の日付） |
+| `classroom-board-row-tags-{classroomId}` | span | 行の数の札のまとまり（出す札が無い行には無い） |
+| `classroom-board-row-tag-joined-{classroomId}` / `classroom-board-row-tag-submitted-{classroomId}` / `classroom-board-row-tag-cleared-{classroomId}` | span | 「参加 N/N」「提出 N」（レッスンの課題は「クリア N」）。行を開いたか、いまの課題カードで数を読み込んだ課題だけ |
+| `classroom-board-row-tag-unreturned-{classroomId}` | span | 「返却していない N」（課題の一覧の `unreturnedCount` が 1 以上の課題） |
 | `classroom-board-expiry-mark-{classroomId}` | span | 閉じた行の小さな赤い印（⚠ +「保存期限: 日付」。保存期限 7 日以内のときだけ） |
 | `classroom-board-row-menu-{classroomId}` | button | 課題行の ⋮（中にトピック・授業日・共有） |
 | `classroom-board-topic-{classroomId}` | select | ⋮ の「トピック」 |
@@ -510,8 +557,12 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `shared-import-success` | p | 取り込み完了メッセージ（ボード上） |
 | `classroom-share-suggestion-banner` / `classroom-share-suggestion-open` | div/button | 共有推奨バナーと「共有フォームを開く」CTA（#1106） |
 | `classroom-board-share-suggested-{classroomId}` | span | ボード行の「共有おすすめ」マーク（#1106） |
-| `classroom-breadcrumbs` | nav | パンくず（クラス一覧 > {クラス名} > ストリーム｜授業｜課題を作成などのサブビュー｜課題詳細） |
-| `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | パンくずリンク |
+| `classroom-teacher-header` | header | 紫のヘッダー（「← エディタに戻る｜クラス管理 › …」・ベル・アバター） |
+| `classroom-teacher-back-to-editor` | button | ヘッダー左の「← エディタに戻る」（クラス管理を閉じる。共有モーダルの「戻る」の代わり） |
+| `classroom-breadcrumbs` | nav | ヘッダーの中のいまいる所（クラス管理 › {クラス名} › 課題を作成などのサブビュー｜{課題名}）。いまの画面は `aria-current="page"` |
+| `classroom-breadcrumb-class-list` / `classroom-breadcrumb-assignments` | button | いまいる所の「クラス管理」（クラス一覧へ）/ {クラス名}（クラスの画面へ）のリンク |
+| `classroom-breadcrumb-assignment-name` | span | 課題詳細のいまいる所の末尾（課題名） |
+| `classroom-breadcrumb-assignment-detail` | button | Google Classroom に共有の画面で、課題名（課題詳細へ戻る） |
 | `classroom-board-create-name` / `classroom-board-create-submit` | input / button | インライン課題作成（課題名） |
 | `classroom-board-reuse` | button (menuitem) | 作成メニューの「課題を再利用」 |
 | `classroom-board-reuse-view` | div | 再利用ビュー（全課題を日付降順） |
@@ -528,20 +579,20 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-avatar-email` | span | アカウントメニュー内のユーザーメール（OIDC トークンに email がある場合のみ。旧 `classroom-teacher-email` は廃止） |
 | `classroom-board-create-cancel` / `classroom-board-reuse-cancel` | button | インラインフォームのキャンセル |
 | `classroom-google-course-imported-{courseId}` | span | GC コースの「インポート済み」バッジ |
-| `classroom-breadcrumb-assignments` | button | パンくずのクラス名リンク（クラスの画面へ戻る。testid は「課題一覧」だった頃の名前のまま。クラスに属さない古い課題では「課題一覧」） |
+| `classroom-breadcrumb-assignments` | button | いまいる所のクラス名リンク（クラスの画面へ戻る。testid は「課題一覧」だった頃の名前のまま。クラスに属さない古い課題では「課題一覧」） |
 | `classroom-ungrouped-list` | div | クラス未所属の課題のフォールバック一覧（develop 互換） |
 | `classroom-ungrouped-open-{classroomId}` | button | 未所属課題をひらく |
 | `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
-| `classroom-sidebar-teachergroup-{groupId}` | li | サイドバーの組ヘッダー |
 
 ### 採点（学期末・AI 採点支援）
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-phase-teacher-evaluation` | div | 採点フェーズのルート |
+| `classroom-eval-hint-text` | span | 説明の 1 行（タブの行の右。長いときは「…」・全文は `title`） |
 | `classroom-eval-hint-toggle` | button | 説明の「詳しく / 閉じる」（`aria-expanded`） |
 | `classroom-eval-hint-detail` | span | 「詳しく」で開く説明の残り |
-| `classroom-eval-lesson-only-hint` | span | 作品を出さないレッスンの課題だけのときの説明（「…自動で採点します。AI の採点は使いません」） |
+| `classroom-eval-lesson-only-hint` | span | 作品を出さないレッスンの課題だけのときの説明（タブの行の右・「…自動で採点します。AI の採点は使いません」） |
 | `classroom-eval-mixed-note` | span | 混ぜて選んだとき、レッスンだけの課題には AI を使わないことの注意（採点の設定の行の右） |
 | `classroom-eval-lesson-scoring` | div | 採点の画面の「レッスンの点」の欄のまとまり（設定を読めたレッスンの課題だけ） |
 | `classroom-eval-lesson-scoring-{classroomId}` | div | 課題ごとのレッスンの点の欄（課題名 + `classroom-lesson-scoring`。変えるとすぐ保存） |
@@ -552,12 +603,23 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-axis-name-{i}` / `classroom-eval-axis-desc-{i}` | input | 観点の名前 / どこを見るか（設定を開いたときだけ） |
 | `classroom-eval-strictness` | select | 採点の厳しさ（やや甘め/標準/やや厳しめ・設定を開いたときだけ） |
 | `classroom-eval-progress` | div | 進捗表示 |
-| `classroom-eval-matrix` | table | 席 × 課題の表（表の枠の中だけスクロール） |
+| `classroom-eval-matrix` | table | 採点簿の表（点だけ。表の枠の中だけ縦にも横にもスクロール・出席番号の列は左に留まる） |
 | `classroom-eval-cell-{seat}-{classroomId}` | td | セル（未提出は ×、要確認はオレンジ） |
-| `classroom-eval-head-fields-{classroomId}` | span | 課題の列の見出しの下の行の「点 / 根拠（先生だけ） / 生徒へのコメント」 |
-| `classroom-eval-grade-{seat}-{classroomId}` | select | 採点（S/A/B/C。手動変更は較正サンプルになる）。`aria-label` は「出席番号 N の点」 |
-| `classroom-eval-reason-{seat}-{classroomId}` | input | 根拠（先生だけ）。`aria-label` は「出席番号 N の根拠（先生だけ）」 |
-| `classroom-eval-comment-{seat}-{classroomId}` | textarea | 生徒へのコメント。`aria-label` は「出席番号 N の生徒へのコメント」 |
+| `classroom-eval-cell-button-{seat}-{classroomId}` | button | 提出したセルの点のボタン（まだ無いときは —・押すと右の列に出す・選んだセルは `aria-pressed="true"`）。要確認は「!」、返却済みは「↩」、コメントがあれば「💬」。`aria-label` は「出席番号 N・{課題名}: {点}」で、点が無いときは「未採点」、印があれば「（要確認・返却済み・コメントあり）」を足す |
+| `classroom-eval-detail` | aside | 右の列（選んだ席の点・根拠・コメント） |
+| `classroom-eval-detail-title` | h3 | 右の列の見出し「出席番号 NN」 |
+| `classroom-eval-detail-lesson` | span | 右の列の課題名 |
+| `classroom-eval-detail-open-work` | button | 右の列の課題名の右の［作品を開く］。選んだ席の作品をエディタで開き、クラス管理を閉じる（課題の詳細の［スモウルビーで開く］と同じ処理）。採点の下書きについては確かめずに開く（採点の画面は隠して残る・下の戻る帯）。エディタに保存していない変更があれば `classroom-teacher-open-work-confirm-box` を先に出す。開いている間は押せず「開いています…」と出す |
+| `classroom-teacher-work-bar` | div | 先生がクラス管理から作品を開いている間、メニューバーの下に出す戻る帯（クラス管理が閉じている間だけ。生徒の画面には出ない） |
+| `classroom-teacher-work-bar-text` | span | 戻る帯の「出席番号 N・課題名 の作品を見ています」（生徒の名前は出さない） |
+| `classroom-teacher-work-bar-expired` | span | ログインが切れたときだけ出す「ログインが切れました。戻ってログインし直してください。」 |
+| `classroom-teacher-work-bar-back` | button | ［‹ 採点に戻る］／［‹ 課題に戻る］。クラス管理を開き直す（隠して残してある画面・下書きのまま） |
+| `classroom-eval-detail-prev` / `classroom-eval-detail-next` | button | 同じ課題を提出した前 / 次の席へ（「‹ NN」/「NN ›」。端では押せない）。`aria-label` は「前の出席番号 NN」/「次の出席番号 NN」（端では番号なし） |
+| `classroom-eval-detail-ai-draft` | span | 「AI の下書き」（AI が出した点を先生がまだ変えていないとき。根拠だけを直したときは残る） |
+| `classroom-eval-detail-empty` | p | 提出が 1 つも無いときの「提出された作品はありません。」 |
+| `classroom-eval-grade-{seat}-{classroomId}` | select | 右の列の点（S/A/B/C。手動変更は較正サンプルになる）。見えるラベル「点」。選んだ席の分だけ出る |
+| `classroom-eval-reason-{seat}-{classroomId}` | textarea | 右の列の根拠。見えるラベル「根拠（先生だけ）」 |
+| `classroom-eval-comment-{seat}-{classroomId}` | textarea | 右の列の生徒へのコメント。見えるラベル「生徒へのコメント」 |
 | `classroom-eval-overall-{seat}` | td | 総合 |
 | `classroom-eval-lesson-head-{classroomId}` | th | 「レッスン」の列の見出し（レッスンの課題だけ・作品の列の右・#1603） |
 | `classroom-eval-lesson-score-{seat}-{classroomId}` | td | 席のレッスンの点（記録が無ければ「—」） |
@@ -570,11 +632,15 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-return-comments` | button | 手順 4「コメントを返却」 |
 | `classroom-eval-export-menu` | button | 「書き出し ▾」（`aria-expanded`。読み込む前は押せない） |
 | `classroom-eval-export` / `classroom-eval-export-audit` | button | 書き出しメニューの「採点結果（CSV）」/「検証用データ（CSV）」 |
-| `classroom-evaluation-cancel` | button | キャンセル（クラス一覧へ戻る） |
+| `classroom-evaluation-cancel` | button | キャンセル（クラス一覧へ戻る。消える採点・コメントがあるとき・AI の途中は先に確認を出す） |
+| `classroom-eval-leave-confirm-message` | p | 離れる確認の文。消えるもの（「書き出していない採点は消えます。」／「返却していないコメントは消えます。」／両方）と入口の問い（「戻りますか？」／「この画面を離れますか？」／「読み込み直しますか？」）。読み込み・AI・返却の途中なら先頭に「処理の途中です。離れると、そこで止まります。」。`data-kind` は `back` / `leave` / `reload`、`data-lost` は消えるもの（`grades` / `comments` を空白区切り）。出ている間は手順のボタンと書き出しメニューを隠す |
+| `classroom-eval-leave-cancel` | button | 離れる確認の［採点を続ける］ |
+| `classroom-eval-leave-export` | button | 離れる確認の［採点結果を書き出す］（採点結果の CSV） |
+| `classroom-eval-leave-confirm` | button | 離れる確認の確定（［戻る］／［離れる］／［読み込み直す］・赤） |
 
 手順のボタンのうち、いまの手順だけが `aria-current="step"`（主ボタン）。読み込む前 → 1、読み込んだら → 2、
 採点が 1 つでも入ったら → 3、コメントの下書きが 1 つでもあれば → 4（`currentEvalStep`）。
-1300×600 の収まりと手順の移り方は `tools/playwright-verify/verify-classroom-grading.mjs` が測る。
+1300×600 の収まりと手順の移り方は `tools/playwright-verify/verify-classroom-grading.mjs` が測る（離れる確認の［戻る］が見えることも測る）。タブを切りかえてもタブの行が上下に動かないこと・タブの下の高さ・成績表で見える席の行の数は `tools/playwright-verify/verify-classroom-tab-offsets.mjs` が測る。
 
 ### メニューバー
 
@@ -640,14 +706,15 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-teacher-panel-assignment` | select | 課題の切り替え |
 | `classroom-teacher-panel-seated` | span | 着席（目安） N / 定員 |
 | `classroom-teacher-panel-submitted` | span | 提出 N / 参加数 |
+| `classroom-teacher-panel-kick-count` | span | 退室依頼 N（この課題の退室依頼があるときだけ。数の札の行） |
 | `classroom-teacher-panel-grid` | div | 座席ミニグリッド |
 | `classroom-teacher-panel-seat-<N>` | button | 座席 N（`data-member-id`。押すとメンバー詳細へ。色は `data-seat-color`、レッスンの課題は `data-lesson-state`） |
 | `classroom-teacher-panel-seat-stuck-<N>` | span | 座席 N の「!」（同じチャレンジに 10 分以上・レッスンの課題だけ） |
 | `classroom-teacher-panel-lesson-summary` | div | レッスンの課題の 2 行目の数（#1603） |
 | `classroom-teacher-panel-lesson-cleared` | span | 課題クリア N / 参加 N |
 | `classroom-teacher-panel-lesson-stuck` | span | 止まっている N |
-| `classroom-teacher-panel-seat-legend` | div | レッスンの課題の座席の色の凡例（未参加・まだ・とちゅう・課題クリア ★・!）。項目は `classroom-teacher-panel-seat-legend-{kind}` |
-| `classroom-teacher-panel-seat-color-legend` | div | ふつうの課題の座席の色の凡例（未参加・参加済み・提出済み ✓・返却済み ↩）。座席のすぐ下。項目は `classroom-teacher-panel-seat-color-legend-{kind}` |
+| `classroom-teacher-panel-seat-legend` | div | レッスンの課題の座席の色の凡例（空席・まだ・とちゅう・課題クリア ★・!）。項目は `classroom-teacher-panel-seat-legend-{kind}` |
+| `classroom-teacher-panel-seat-color-legend` | div | ふつうの課題の座席の色の凡例（空席・参加済み・提出済み ✓・返却済み ↩）。座席のすぐ下。項目は `classroom-teacher-panel-seat-color-legend-{kind}` |
 | `classroom-teacher-panel-lesson-bars` | div | チャレンジごとの横棒 |
 | `classroom-teacher-panel-bar-legend` | div | 横棒の凡例（できた・いまやっている） |
 | `classroom-teacher-panel-bar-{challengeId}` | div | チャレンジ 1 本の横棒（`title` に人数） |
@@ -698,7 +765,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-seat-kick-request-{seatNumber}` | span | 先生の課題詳細の座席グリッドに表示する退室依頼アイコン（`classroom-status-icon-kickRequested`）のバッジ |
 | `classroom-member-kick-request-panel` | div | 先生メンバー詳細パネルに表示される依頼一覧 |
 | `classroom-kick-request-row-{requestId}` | div | 1 リクエストの行 |
-| `classroom-kick-request-approve-{requestId}` | button | 承認（kick + リクエスト削除）|
+| `classroom-kick-request-approve-{requestId}` | button | 承認（kick + リクエスト削除）。色はトースト・状況のパネルの［承認］と同じ濃いオレンジ（`$color-attention-action`）。確認を挟まずに退室させる |
 | `classroom-kick-request-reject-{requestId}` | button | 却下（リクエストのみ削除）|
 
 ### お知らせセンター (先生)
@@ -716,7 +783,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-notification-unread-dot` | span | 未読ドット（未読アイテムのみ） |
 | `classroom-notifications-empty` | div | お知らせ 0 件のとき |
 | `classroom-notifications-page` | div | 全件一覧ページ（`teacher-notifications` フェーズ） |
-| `classroom-breadcrumb-top` | button | パンくず先頭「クラス管理」（トップ = クラス一覧へ） |
+| `classroom-breadcrumb-top` | button | お知らせの一覧ページのいまいる所の「クラス管理」（トップ = クラス一覧へ） |
 | `classroom-notifications-back` | button | 左下の「戻る」（クラス一覧へ） |
 | `classroom-notification-page-item-{notificationId}` | button | 一覧ページ内のお知らせ 1 件 |
 | `classroom-notifications-pager` / `-prev` / `-next` | div / button | ページャ（10 件/ページ） |
@@ -757,7 +824,7 @@ http://localhost:8601?no_beforeunload=1&devlogin=<DEV_BYPASS_TOKEN>
 
 代表例: `tools/playwright-verify/mesh-v2-classroom-binding.mjs` は教師タブで devlogin → クラスを作成 → 課題ボードで課題を作成 → 課題管理ボードの行をクリックして課題を選択、生徒タブで `?classcode=` 経由参加 という 2 タブのフローを自動で回し、Mesh v2 ドメインが課題の参加コードに揃うことを確認します。
 
-スクリプトを書く際の落とし穴と対処は `tools/playwright-verify/README.md` を参照してください（ログインバイパスの方法、Redux store の取り出し方、サイドバー testid、tutorial overlay の dismiss 等）。
+スクリプトを書く際の落とし穴と対処は `tools/playwright-verify/README.md` を参照してください（ログインバイパスの方法、Redux store の取り出し方、tutorial overlay の dismiss 等）。
 
 #### 生徒の参加から提出までの通し（stg・ブランチプレビュー）
 

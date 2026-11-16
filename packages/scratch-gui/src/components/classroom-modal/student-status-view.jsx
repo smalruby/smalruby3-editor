@@ -35,6 +35,7 @@ import StudentMainButton from './student-main-button.jsx';
 import StudentPeerViewButton from './student-peer-view-button.jsx';
 import partStyles from './student-screen-parts.css';
 import { formatSubmittedAt, messages as startMessages } from './student-start-method.jsx';
+import StudentTeacherNote from './student-teacher-note.jsx';
 import StudentTextLink from './student-text-link.jsx';
 
 const messages = defineMessages({
@@ -517,13 +518,13 @@ const StudentStatusView = ({
     );
     return (
         <div data-testid="classroom-phase-student-status">
-            <div className={styles.phaseTitle} data-testid="classroom-status-title">
+            <h2 className={partStyles.studentTitle} data-testid="classroom-status-title">
                 <FormattedMessage
                     defaultMessage="Welcome back"
                     description="Student status title"
                     id="gui.classroom.studentStatus.title"
                 />
-            </div>
+            </h2>
             <InfoLine
                 classroomState={classroomState}
                 isLoading={isLoading}
@@ -532,16 +533,7 @@ const StudentStatusView = ({
             />
             {lesson && <LessonProgressRow lessonStatus={lessonStatus} />}
             {classroomState.submissionStatus === 'returned' && teacherComment && (
-                <div className={styles.teacherCommentBox} data-testid="classroom-status-teacher-comment">
-                    <span className={styles.statusLabel}>
-                        <FormattedMessage
-                            defaultMessage="Teacher's Comment"
-                            description="Teacher comment label"
-                            id="gui.classroom.studentStatus.teacherComment"
-                        />
-                    </span>
-                    <span className={styles.teacherCommentText}>{teacherComment}</span>
-                </div>
+                <StudentTeacherNote dataTestId="classroom-status-teacher-comment" text={teacherComment} />
             )}
             {/* Like the usual "submit when ready" hint: only until the first submission. */}
             {lessonSubmitReady && !classroomState.submissionStatus && (

@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 import { defineMessages, injectIntl, FormattedMessage } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
+import { lessonDateKey } from '../../lib/classroom-class-list-summary.js';
 import intlShape from '../../lib/intlShape.js';
 import Box from '../box/box.jsx';
 import closeIcon from '../close-button/icon--close.svg';
@@ -138,7 +139,7 @@ const STATUS_MESSAGE = {
     wont_fix: messages.statusWontFix,
 };
 
-const ReportRow = ({ report, intl, onHide }) => {
+const ReportRow = ({ report, intl, onHide, timeZone }) => {
     const statusMsg = STATUS_MESSAGE[report.status] || messages.statusOpen;
     const handleHideClick = useCallback(() => onHide(report.reportId), [onHide, report.reportId]);
     return (
@@ -151,7 +152,11 @@ const ReportRow = ({ report, intl, onHide }) => {
                 >
                     {intl.formatMessage(statusMsg)}
                 </span>
-                <span className={styles.reportDate}>{(report.createdAt || '').slice(0, 10)}</span>
+                {/* The date in the user's time zone: createdAt is a UTC ISO time, so its first 10
+                    characters would be the day before in Japan in the early morning (#1973). */}
+                <span className={styles.reportDate} data-testid="bug-report-item-date">
+                    {lessonDateKey({ createdAt: report.createdAt }, timeZone) || ''}
+                </span>
                 <button
                     type="button"
                     className={styles.hideButton}
@@ -186,6 +191,8 @@ ReportRow.propTypes = {
         description: PropTypes.string,
         developerReply: PropTypes.string,
     }).isRequired,
+    // The time zone (IANA name) for the date. Omitted, the user's time zone (set in tests).
+    timeZone: PropTypes.string,
 };
 
 /**
@@ -437,5 +444,5 @@ BugReportModal.defaultProps = {
     hideToastVisible: false,
 };
 
-export { messages };
+export { messages, ReportRow };
 export default injectIntl(BugReportModal);

@@ -19,6 +19,10 @@ const SET_TEACHER_UNREAD_COUNT = 'scratch-gui/classroom/SET_TEACHER_UNREAD_COUNT
 const SET_TEACHER_LAST_SELECTION = 'scratch-gui/classroom/SET_TEACHER_LAST_SELECTION';
 const REQUEST_TEACHER_NAVIGATION = 'scratch-gui/classroom/REQUEST_TEACHER_NAVIGATION';
 const CLEAR_TEACHER_NAVIGATION = 'scratch-gui/classroom/CLEAR_TEACHER_NAVIGATION';
+const SET_TEACHER_OPENED_WORK = 'scratch-gui/classroom/SET_TEACHER_OPENED_WORK';
+const CLEAR_TEACHER_OPENED_WORK = 'scratch-gui/classroom/CLEAR_TEACHER_OPENED_WORK';
+const SET_TEACHER_HAS_UNSAVED_WORK = 'scratch-gui/classroom/SET_TEACHER_HAS_UNSAVED_WORK';
+const TEACHER_LOGGED_OUT = 'scratch-gui/classroom/TEACHER_LOGGED_OUT';
 const SET_TEACHER_KICK_REQUESTS = 'scratch-gui/classroom/SET_TEACHER_KICK_REQUESTS';
 const REMOVE_TEACHER_KICK_REQUEST = 'scratch-gui/classroom/REMOVE_TEACHER_KICK_REQUEST';
 const OPEN_TEACHER_KICK_LIST = 'scratch-gui/classroom/OPEN_TEACHER_KICK_LIST';
@@ -201,6 +205,20 @@ const initialState = {
     teacherKickListOpen: false,
     // Floating "いまの課題の状況" panel (#1203).
     teacherPanelOpen: false,
+    // A work the teacher opened from class management (#1990), for the bar above
+    // the editor that goes back: {from: 'evaluation'|'assignment', seatNumber,
+    // assignmentName}. Only the seat number and the assignment name — never the
+    // student's name. Cleared when class management opens again, another project
+    // is loaded or the teacher logs out. Memory only.
+    teacherOpenedWork: null,
+    // Class management (hidden or shown) holds work that a logout would drop: grades
+    // not exported / comments not returned / the AI running on the grading screen, or
+    // comments not returned on the members tab (#1990). Mirrored by the teacher modal
+    // so the menu bar's logout asks first. Memory only.
+    teacherHasUnsavedWork: false,
+    // Bumped on a logout on purpose (not when the login expires), so the hidden
+    // class management is dropped then and only then (#1990). Memory only.
+    teacherLogoutCount: 0,
     // Student's "みんなの作品を見る" (#1210): the assignment's peer view setting
     // as last read from the server (null = not known yet; not persisted, so a
     // changed setting is picked up again) and whether the floating panel is shown.
@@ -252,7 +270,8 @@ const reducer = (state, action) => {
         case CLOSE_MODAL:
             return { ...state, modalVisible: false };
         case OPEN_TEACHER_MODAL:
-            return { ...state, teacherModalVisible: true };
+            // Back in class management: the bar to go back has done its job (#1990).
+            return { ...state, teacherModalVisible: true, teacherOpenedWork: null };
         case CLOSE_TEACHER_MODAL:
             return { ...state, teacherModalVisible: false };
         case SET_SESSION: {
@@ -384,9 +403,27 @@ const reducer = (state, action) => {
                 teacherModalVisible: true,
                 teacherNavTarget: action.target,
                 teacherNavMemberId: action.memberId || null,
+                teacherOpenedWork: null,
             };
         case CLEAR_TEACHER_NAVIGATION:
             return { ...state, teacherNavTarget: null, teacherNavMemberId: null };
+        case SET_TEACHER_OPENED_WORK:
+            return { ...state, teacherOpenedWork: action.work };
+        case TEACHER_LOGGED_OUT:
+            // The work opened from class management and the hidden screen go with
+            // the logout. An expired login (SET_TEACHER_LOGGED_IN false) keeps them.
+            return {
+                ...state,
+                teacherOpenedWork: null,
+                teacherHasUnsavedWork: false,
+                teacherLogoutCount: state.teacherLogoutCount + 1,
+            };
+        case SET_TEACHER_HAS_UNSAVED_WORK:
+            return state.teacherHasUnsavedWork === action.unsaved
+                ? state
+                : { ...state, teacherHasUnsavedWork: action.unsaved };
+        case CLEAR_TEACHER_OPENED_WORK:
+            return state.teacherOpenedWork ? { ...state, teacherOpenedWork: null } : state;
         case SET_TEACHER_KICK_REQUESTS:
             return { ...state, teacherKickRequests: action.requests || [] };
         case REMOVE_TEACHER_KICK_REQUEST: {
@@ -548,6 +585,30 @@ const requestTeacherNavigation = (target, memberId = null) => ({
     memberId,
 });
 const clearTeacherNavigation = () => ({ type: CLEAR_TEACHER_NAVIGATION });
+/**
+ * Remember the work the teacher opened from class management (#1990), for the
+ * bar above the editor. Only the seat number and the assignment name are kept.
+ * @param {{from: string, seatNumber: ?number, assignmentName: ?string}} work - the opened work
+ * @returns {object} action
+ */
+const setTeacherOpenedWork = (work) => ({
+    type: SET_TEACHER_OPENED_WORK,
+    work: work
+        ? {
+              from: work.from === 'evaluation' ? 'evaluation' : 'assignment',
+              seatNumber: typeof work.seatNumber === 'number' ? work.seatNumber : null,
+              assignmentName: work.assignmentName || null,
+          }
+        : null,
+});
+const clearTeacherOpenedWork = () => ({ type: CLEAR_TEACHER_OPENED_WORK });
+const setTeacherHasUnsavedWork = (unsaved) => ({ type: SET_TEACHER_HAS_UNSAVED_WORK, unsaved: !!unsaved });
+/**
+ * The teacher logged out on purpose (#1990): drop the hidden class management
+ * and the bar above the editor. Not for an expired login.
+ * @returns {object} action
+ */
+const teacherLoggedOut = () => ({ type: TEACHER_LOGGED_OUT });
 const setTeacherKickRequests = (requests) => ({ type: SET_TEACHER_KICK_REQUESTS, requests });
 /**
  * Drop a handled kick request from the teacher's pending list (#1200).
@@ -668,6 +729,10 @@ export {
     setTeacherLastSelection,
     requestTeacherNavigation,
     clearTeacherNavigation,
+    setTeacherOpenedWork,
+    clearTeacherOpenedWork,
+    setTeacherHasUnsavedWork,
+    teacherLoggedOut,
     setTeacherKickRequests,
     removeTeacherKickRequest,
     openTeacherKickList,

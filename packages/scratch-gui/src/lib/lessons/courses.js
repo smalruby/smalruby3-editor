@@ -3,6 +3,7 @@
 // 文言は lessons.locale.js（message descriptor の id で引く）。
 import { HINT_TARGETS } from './hint-targets';
 import arrowKeysImage from './images/arrow-keys.svg';
+import { ROLE_STEP_KIND } from './lesson-role';
 import { ja } from './lessons.locale';
 import { applyChallengeMode } from './read-diagram';
 
@@ -138,6 +139,9 @@ export const defineChallenge = (def) =>
         // broadcast}]}（set = {variable, value} か、その配列）。チャレンジ中に練習相手のパネルを出し
         // （lib/lessons/practice-partner.js）、図では相手のスイムレーンになる。無ければ null
         partner: null,
+        // ペアでやるチャレンジで、役（シマラビの役 / シマネコの役）を選べるか（#2061）。true なら、シマネコの役を
+        // 選ぶと名前を入れかえた形（鏡の形）で出す（lib/lessons/role-swap.js）。みんな同じ名前を使う段は false
+        roles: false,
         // ふりかえりのクイズ（任意）: {question, choices: [3 つ], answer, explanation}。文言は message descriptor、
         // answer は choices の何番目が正解か（0 から）。「できた！」の中に出す（「できた」の判定には入れない）。
         // ふつうは challengeQuiz(id, answer) で書く。形は validateQuiz
@@ -241,9 +245,18 @@ export const validateQuiz = (quiz) => {
     if (!isMessage(quiz.explanation)) errors.push('explanation must be a message');
     return errors;
 };
-// ヒントの文言は並びの番号（step1, step2, ...）で引く
+// ヒントの文言は並びの番号（step1, step2, ...）で引く。`classroom: true` の手順は、クラスに参加中の生徒には
+// `stepN.inClass` の文言を出す（メッシュのつなぎ方。クラスの中では出席番号でつながる・lib/lessons/hint-text.js）。
+// いくつものチャレンジで同じ文の手順（「メッシュにつなごう」）は、`title` / `classroomTitle` を書いておけば
+// それを使う（その番号の stepN は使わない）
 const withTitles = (challengeId, steps) =>
-    steps.map((step, i) => ({ ...step, title: challengeMessage(challengeId, `step${i + 1}`) }));
+    steps.map(({ classroom, ...step }, i) => ({
+        ...step,
+        title: step.title || challengeMessage(challengeId, `step${i + 1}`),
+        ...(classroom && !step.classroomTitle
+            ? { classroomTitle: challengeMessage(challengeId, `step${i + 1}.inClass`) }
+            : {}),
+    }));
 
 /** ヒントの 1 ページ目「課題の説明と、アクティビティ図を理解しよう」の `kind`。 */
 export const UNDERSTAND_STEP_KIND = 'understand';
@@ -1419,6 +1432,24 @@ const CHAT_HAPPY = /^(うれしい|happy)$/i;
 const CHAT_SLEEPY = /^(ねむい|sleepy)$/i;
 const CHAT_MOOD = /^(うれしい|ねむい|happy|sleepy)$/i;
 
+// ペア・グループでやるチャレンジの 2 ページ目「メッシュにつなごう」（#2060）。チャレンジを始めると作品を読み込み
+// 直すので、前のチャレンジからつながったままかは生徒にはわからない。つながっていれば次のページへ進めばよいと書く。
+// 文はどのチャレンジでも同じなので共通の文言（クラスの中は出席番号でつながる）。kind = 'pair'（2 人）/ 'group'（3 人以上）
+const connectStep = (kind = 'pair') => ({
+    target: HINT_TARGETS.PRACTICE_PARTNER,
+    title: message(`gui.lessons.chat.connect.${kind}`),
+    classroomTitle: message(`gui.lessons.chat.connect.${kind}.inClass`),
+});
+
+// 役のあるチャレンジの「役を決めよう」のページ（つなぐページの次）。役を決めるのがどの操作かわかるよう、つなぐページから
+// 分け、吹き出しで課題バーの役のボタンを指す。文はどのチャレンジでも同じ共通の文言（シマネコの役でも入れかえない
+// `.asShimacat`）。役を選ぶと、このページに「〜の役を選んだよ」が出る（lesson-role.js の roleStepNote）
+const roleStep = () => ({
+    kind: ROLE_STEP_KIND,
+    target: HINT_TARGETS.ROLE_PICKER,
+    title: message('gui.lessons.chat.role'),
+});
+
 const chatLesson3 = defineLesson({
     id: 'chat-l3',
     challenges: [
@@ -1514,7 +1545,8 @@ const chatLesson3 = defineLesson({
             },
             steps: withDiagramFirst('chat-l3-mesh-signal', [
                 { target: HINT_TARGETS.EXTENSION_BUTTON, spotlight: true },
-                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                // つなぎ方はクラスの中と外で違う（クラスの中は出席番号でつながる）
+                { target: HINT_TARGETS.PRACTICE_PARTNER, classroom: true },
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL3Code((w) => `when_key_pressed("space") do\n  broadcast("${w.wave}")\nend\n`),
@@ -1561,6 +1593,7 @@ const chatLesson3 = defineLesson({
             task: challengeMessage('chat-l3-mesh-variable', 'task'),
             setup: { ...CHAT_PAIR_START, extensions: ['meshV2'] },
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: [
                     { opcode: 'event_whenkeypressed', fields: { KEY_OPTION: '1' } },
@@ -1588,6 +1621,8 @@ const chatLesson3 = defineLesson({
                 watch: [chatL3Text('myMoodName')],
             },
             steps: withDiagramFirst('chat-l3-mesh-variable', [
+                connectStep(),
+                roleStep(),
                 { target: HINT_TARGETS.PALETTE },
                 {
                     target: HINT_TARGETS.PALETTE,
@@ -1834,6 +1869,7 @@ const chatLesson4 = defineLesson({
             task: challengeMessage('chat-l4-send-once', 'task'),
             setup: CHAT_L4_START,
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_broadcast'],
                 sensing: [{ opcode: 'sensing_askandwait', inputs: { QUESTION: CHAT_ASK } }, 'sensing_answer'],
@@ -1849,7 +1885,9 @@ const chatLesson4 = defineLesson({
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL4Code((w) => `${w.v} = answer\nbroadcast("${w.message}")\n`),
                 },
-                { target: HINT_TARGETS.PRACTICE_PARTNER },
+                // つなぎ方はクラスの中と外で違う（クラスの中は出席番号でつながる）
+                { target: HINT_TARGETS.PRACTICE_PARTNER, classroom: true },
+                roleStep(),
                 { target: HINT_TARGETS.GREEN_FLAG },
             ]),
             debug: debugTips('chat-l4-send-once', 2),
@@ -1876,6 +1914,7 @@ const chatLesson4 = defineLesson({
             task: challengeMessage('chat-l4-send-repeat', 'task'),
             setup: { ...CHAT_L4_START, code: chatL4SendOnce },
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_broadcast'],
                 control: ['control_forever'],
@@ -1884,6 +1923,8 @@ const chatLesson4 = defineLesson({
             },
             partner: chatL4PairPartner(),
             steps: withDiagramFirst('chat-l4-send-repeat', [
+                connectStep(),
+                roleStep(),
                 {
                     target: HINT_TARGETS.CODE_AREA,
                     blocks: chatL4Code((w) => `loop do\n  ${w.v} = answer\n  broadcast("${w.message}")\nend\n`),
@@ -1914,6 +1955,7 @@ const chatLesson4 = defineLesson({
             task: challengeMessage('chat-l4-both-ways', 'task'),
             setup: { ...CHAT_L4_START, code: chatL4SendRepeat },
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
                 control: ['control_forever'],
@@ -1925,6 +1967,8 @@ const chatLesson4 = defineLesson({
             },
             partner: chatL4PairPartner(),
             steps: withDiagramFirst('chat-l4-both-ways', [
+                connectStep(),
+                roleStep(),
                 { target: HINT_TARGETS.SPRITE_LIST },
                 {
                     target: HINT_TARGETS.PALETTE,
@@ -1999,8 +2043,10 @@ const chatLesson4 = defineLesson({
                 replies: [],
             },
             steps: withDiagramFirst('chat-l4-group', [
-                // 最初から入っているシマネコのプログラム（みんなの発言を言う）
-                { target: HINT_TARGETS.CODE_AREA, blocks: chatL4GroupReceive },
+                connectStep('group'),
+                // 最初から入っているプログラムを見る（シマラビ、シマネコの順に押す）。2 つのスプライトのプログラムは
+                // 吹き出しに入りきらないので、ブロックの絵は出さない（教員レビュー）
+                { target: HINT_TARGETS.SPRITE_LIST },
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL4Code(
@@ -2068,7 +2114,21 @@ const chatLesson4 = defineLesson({
                     {
                         label: chatL4Text('dmYou'),
                         set: [
-                            { variable: chatL4Text('to'), value: { fromVariable: chatL4Text('nameVar') } },
+                            // 押したときの生徒の名前（変数「なまえ」。判定が通す「名前」「name」でもよい）。まだ名前を
+                            // 入れていなければ送らず、パネルに「先に入れよう」と出す（空のあて先で送ると、押しても何も
+                            // 起きないように見える）
+                            {
+                                variable: chatL4Text('to'),
+                                value: {
+                                    fromVariable: chatL4Text('nameVar'),
+                                    orVariables: {
+                                        ja: ['名前', 'name'],
+                                        'ja-Hira': ['name'],
+                                        en: ['なまえ', '名前'],
+                                    },
+                                    required: true,
+                                },
+                            },
                             { variable: chatL4Text('group'), value: chatL4Text('secret') },
                         ],
                         broadcast: chatL4Text('group'),
@@ -2085,6 +2145,7 @@ const chatLesson4 = defineLesson({
                 replies: [],
             },
             steps: withDiagramFirst('chat-l4-dm', [
+                connectStep('group'),
                 { target: HINT_TARGETS.CODE_AREA, blocks: chatL4Dm },
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4DmReceive },
                 { target: HINT_TARGETS.PRACTICE_PARTNER },
@@ -2295,6 +2356,7 @@ const chatLesson5 = defineLesson({
             task: challengeMessage('chat-l5-read-receipt', 'task'),
             setup: CHAT_L5_BASE,
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: [
                     'event_whenflagclicked',
@@ -2322,6 +2384,8 @@ const chatLesson5 = defineLesson({
                 ],
             }),
             steps: withDiagramFirst('chat-l5-read-receipt', [
+                connectStep(),
+                roleStep(),
                 {
                     target: HINT_TARGETS.SPRITE_LIST,
                     blocks: chatL5Code(
@@ -2374,6 +2438,7 @@ const chatLesson5 = defineLesson({
             task: challengeMessage('chat-l5-ng-word', 'task'),
             setup: { ...CHAT_L5_BASE, stageCode: chatL5NgStage },
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_broadcast'],
                 control: ['control_forever', 'control_if_else'],
@@ -2390,8 +2455,11 @@ const chatLesson5 = defineLesson({
             },
             partner: chatL5Partner(),
             steps: withDiagramFirst('chat-l5-ng-word', [
-                // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
-                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
+                connectStep(),
+                roleStep(),
+                // 最初から入っている 4-3 の答え（シマラビが聞いて送り、シマネコが相手のメッセージを言う）。2 つの
+                // スプライトのプログラムの話なので、絵は描かずに文で書く（1 つの吹き出しに 2 つは収まらない）
+                { target: HINT_TARGETS.SPRITE_LIST },
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL5NgStage },
                 {
                     target: HINT_TARGETS.PALETTE,
@@ -2439,6 +2507,7 @@ const chatLesson5 = defineLesson({
             task: challengeMessage('chat-l5-auto-reply', 'task'),
             setup: CHAT_L5_BASE,
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
                 control: ['control_if'],
@@ -2449,8 +2518,11 @@ const chatLesson5 = defineLesson({
             // 自動の返事（「とどいたよ」）は持たない。自動返信どうしが行き来し続けないように
             partner: chatL5Partner({ replies: [] }),
             steps: withDiagramFirst('chat-l5-auto-reply', [
-                // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
-                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
+                connectStep(),
+                roleStep(),
+                // 最初から入っている 4-3 の答え（シマラビが聞いて送り、シマネコが相手のメッセージを言う）。2 つの
+                // スプライトのプログラムの話なので、絵は描かずに文で書く（1 つの吹き出しに 2 つは収まらない）
+                { target: HINT_TARGETS.SPRITE_LIST },
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL5Code((w) => `when_receive("${w.partnerMessage}") do\nend\n`),
@@ -2493,6 +2565,7 @@ const chatLesson5 = defineLesson({
             task: challengeMessage('chat-l5-password', 'task'),
             setup: CHAT_L5_BASE,
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: ['event_whenflagclicked', 'event_broadcast'],
                 control: ['control_forever', 'control_if_else'],
@@ -2503,8 +2576,11 @@ const chatLesson5 = defineLesson({
             },
             partner: chatL5Partner(),
             steps: withDiagramFirst('chat-l5-password', [
-                // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
-                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
+                connectStep(),
+                roleStep(),
+                // 最初から入っている 4-3 の答え（シマラビが聞いて送り、シマネコが相手のメッセージを言う）。2 つの
+                // スプライトのプログラムの話なので、絵は描かずに文で書く（1 つの吹き出しに 2 つは収まらない）
+                { target: HINT_TARGETS.SPRITE_LIST },
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL5Code((w) => `when_flag_clicked do\n  ask("${w.askPassword}")\nend\n`),
@@ -2555,6 +2631,7 @@ const chatLesson5 = defineLesson({
             task: challengeMessage('chat-l5-stamp', 'task'),
             setup: CHAT_L5_BASE,
             activityDiagram: true,
+            roles: true,
             allowedBlocks: {
                 event: [
                     'event_whenflagclicked',
@@ -2568,11 +2645,19 @@ const chatLesson5 = defineLesson({
             },
             partner: chatL5Partner({
                 buttons: [{ label: chatL5Text('sendStamp'), broadcast: chatL5Text('partnerStamp') }],
-                replies: [{ onBroadcast: chatL5Text('myStamp'), broadcast: chatL5Text('partnerStamp') }],
+                // 「とどいたよ」の返事も残す（相手からメッセージが届かないと、最初から入っている「シマネコのメッセージを
+                // 受け取ったとき」が動かず、図でも送り手のいない受信になる）
+                replies: [
+                    ...chatL4PairPartner().replies,
+                    { onBroadcast: chatL5Text('myStamp'), broadcast: chatL5Text('partnerStamp') },
+                ],
             }),
             steps: withDiagramFirst('chat-l5-stamp', [
-                // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
-                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
+                connectStep(),
+                roleStep(),
+                // 最初から入っている 4-3 の答え（シマラビが聞いて送り、シマネコが相手のメッセージを言う）。2 つの
+                // スプライトのプログラムの話なので、絵は描かずに文で書く（1 つの吹き出しに 2 つは収まらない）
+                { target: HINT_TARGETS.SPRITE_LIST },
                 { target: HINT_TARGETS.PALETTE, blocks: chatL5StampSend },
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL5StampReceive },
                 { target: HINT_TARGETS.PRACTICE_PARTNER },

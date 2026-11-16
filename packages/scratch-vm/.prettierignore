@@ -104,6 +104,7 @@ test/unit/*
 !test/unit/extension_mesh_v2_classroom_seat.js
 !test/unit/extension_mesh_v2_seat_naming.js
 !test/unit/extension_mesh_v2_message_value.js
+!test/unit/extension_mesh_v2_slider_sync.js
 !test/unit/extension_mesh_v2_stage_reload.js
 !test/unit/extension_mesh_v2_status_snapshot.js
 !test/unit/extension_smalrubot_s1.js
@@ -111,6 +112,7 @@ test/unit/*
 !test/unit/extension_text2speech_proxy.js
 !test/unit/util_cors-proxy-url.js
 !test/unit/extension_smalruby_ruby_each.js
+!test/unit/mesh_service_v2_changed_vars.js
 !test/unit/mesh_service_v2_cost.js
 !test/unit/mesh_service_v2_global_vars.js
 !test/unit/mesh_service_v2_integration.js

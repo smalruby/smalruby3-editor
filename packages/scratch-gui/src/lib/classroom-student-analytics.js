@@ -183,8 +183,9 @@ const joinCodeResult = (err) => {
     if (!err) return 'ok';
     const msg = err.message || '';
     if (err.isNetworkError) return 'error';
-    if (err.status === 404 || msg.includes('Invalid join code')) return 'not_found';
+    // 終わった課題にもサーバーは 404 を返すので、404 より先に見る（#1944）。
     if (err.status === 410 || msg.includes('no longer active')) return 'closed';
+    if (err.status === 404 || msg.includes('Invalid join code')) return 'not_found';
     return 'error';
 };
 

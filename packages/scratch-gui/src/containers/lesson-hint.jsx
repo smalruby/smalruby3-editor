@@ -23,8 +23,10 @@ import LessonHint from '../components/lesson-hint/lesson-hint.jsx';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
 import { LANGUAGES, challengeCodeCandidates, localizeCode } from '../lib/lessons/courses';
 import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
+import { hintStepTitle, isSeatedStudent } from '../lib/lessons/hint-text';
 import { findSpriteByName, insertSpriteCodes, resolveCodeSprite } from '../lib/lessons/insert-sprite-code';
 import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics';
+import { roleStepNote } from '../lib/lessons/lesson-role';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { colorModeMap } from '../lib/settings/color-mode';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
@@ -43,11 +45,14 @@ const LessonHintContainer = ({
     current,
     fromAssignment = false,
     hint,
+    inClassroom = false,
     onFinishHint,
     onHideHint,
     onInsertCode,
     onNextHint,
     onPrevHint,
+    role = null,
+    roleSource = null,
     rubyVersion,
     scratchBlocks,
     teacherLoggedIn = false,
@@ -110,7 +115,8 @@ const LessonHintContainer = ({
         const stage = challenge.codeTarget === 'stage' && hasVm ? vm.runtime.getTargetForStage() : null;
         const editing = vm && vm.editingTarget ? vm.editingTarget : null;
         // 始めるときにネコを置きかえたチャレンジ（`setup.sprites`）は、その 1 つめに code を入れる
-        // （生徒がもう 1 つのスプライトを選んでいても、答えはシマラビの役の形で入る）
+        // （生徒がもう 1 つのスプライトを選んでいても、答えはいまの役の形で入る。チャレンジは getCurrentChallenge が
+        // 役で入れかえた形なので、シマネコの役では setup.sprites の 1 つめがシマネコになり、code はシマネコに入る）
         const startSprites = (challenge.setup && challenge.setup.sprites) || [];
         const preferred = hasVm && startSprites.length > 0 ? startSprites[0] : null;
         // 確かめる組: [target, code]。まだいないスプライト（これから足すペンギン）は target なしで確かめる
@@ -204,13 +210,14 @@ const LessonHintContainer = ({
             onClose={onHideHint}
             onFinish={onFinishHint}
             onInsertCode={handleInsertCode}
-            note={step ? step.note || null : null}
+            // 「役を決めよう」のページは、役を選んだら「〜の役を選んだよ」を出す
+            note={step ? roleStepNote(step, role ? { role, source: roleSource } : null) || step.note || null : null}
             onNext={onNextHint}
             onPrev={onPrevHint}
             scratchBlocks={scratchBlocks}
             spotlight={hint.spotlight}
             target={step ? step.target : null}
-            title={step ? step.title : null}
+            title={hintStepTitle(step, { inClassroom })}
         />
     );
 };
@@ -236,11 +243,16 @@ LessonHintContainer.propTypes = {
         code: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
         session: PropTypes.number,
     }),
+    // クラスに参加中の生徒か（メッシュのつなぎ方の手順を、出席番号でつながる文言にする）
+    inClassroom: PropTypes.bool,
     onFinishHint: PropTypes.func.isRequired,
     onHideHint: PropTypes.func.isRequired,
     onInsertCode: PropTypes.func.isRequired,
     onNextHint: PropTypes.func.isRequired,
     onPrevHint: PropTypes.func.isRequired,
+    // いまの役と、どう決めたか（役のあるチャレンジだけ。lib/lessons/role-swap.js の ROLES・lesson-role.js の ROLE_SOURCES）
+    role: PropTypes.string,
+    roleSource: PropTypes.string,
     rubyVersion: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     scratchBlocks: PropTypes.object,
     // 先生（クラス管理にログイン中）か（GA に送らない）
@@ -255,6 +267,10 @@ const mapStateToProps = (state) => ({
     // 先生（クラス管理にログイン中）のときは GA に送らない
     teacherLoggedIn: Boolean(state.scratchGui.classroom && state.scratchGui.classroom.teacherLoggedIn),
     hint: getCurrentHint(state),
+    inClassroom: isSeatedStudent(state.scratchGui.classroom),
+    // 文字のまま渡す（getCurrentRole は呼ぶたびに新しいオブジェクトを作り、毎回描き直しになるため）
+    role: state.scratchGui.lessonMode.role || null,
+    roleSource: state.scratchGui.lessonMode.roleSource || null,
     rubyVersion: state.scratchGui.settings.rubyVersion,
     scratchBlocks: state.scratchGui.blockDisplay.scratchBlocks,
     vm: state.scratchGui.vm,

@@ -7,7 +7,7 @@
  * ようにする (ボタンは `classroom-button.jsx` の `ClassroomButton` を使う)。
  *
  * - `TeacherScreen`: パンくずを持つトップレベル画面 (評価画面・クラス一覧など)。
- *   パンくず → タイトル → 説明 → エラー → 本文 → フッター の順を固定する。
+ *   パンくずはヘッダーへ運ばれる (`teacher-breadcrumbs.jsx`)。タブ → タイトル → 説明 → エラー → 本文 → フッター の順を固定する。
  * - `TeacherSubView`: パネル (課題ボード / クラス一覧) の中に描画されるサブ画面
  *   (課題を作る・課題を再利用・クラスを作る・クラス設定・合言葉で取り込み・共有)。
  *   パネル側の左右パディングに二重で足さない `.panel-inner-view` を土台にする。
@@ -40,11 +40,13 @@ export const TeacherScreen = ({
     errorTitle,
     footer,
     hint,
+    tabs,
     testId,
     title,
 }) => (
     <div className={className || styles.teacherView} data-testid={testId}>
         {breadcrumbs ? <TeacherBreadcrumbs items={breadcrumbs} /> : null}
+        {tabs}
         {title ? <h2 className={styles.teacherViewTitle}>{title}</h2> : null}
         {hint ? <p className={styles.teacherViewHint}>{hint}</p> : null}
         <ErrorDisplay error={error} errorTitle={errorTitle} />
@@ -62,6 +64,8 @@ TeacherScreen.propTypes = {
     /** セカンダリ左・プライマリ右で並べるボタン行。 */
     footer: PropTypes.node,
     hint: PropTypes.node,
+    /** クラスの中のタブの行（`TeacherClassTabs`）。タイトルの上に出す。 */
+    tabs: PropTypes.node,
     testId: PropTypes.string,
     title: PropTypes.node,
 };

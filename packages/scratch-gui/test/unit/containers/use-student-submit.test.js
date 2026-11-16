@@ -283,3 +283,39 @@ describe('useStudentSubmit — GA の submit_result (#1831)', () => {
         expect(track).toHaveBeenCalledWith('submit_result', { result: 'cancel', seconds: 3 });
     });
 });
+
+// 終わった（アーカイブした）課題へ提出したとき (#1963): 参加コードを聞く文ではなく、
+// 作品の残し方と先生に知らせることを言う。
+describe('useStudentSubmit — 終わった課題への提出 (#1963)', () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+        global.requestAnimationFrame = (cb) => cb();
+        mockCreateSubmission.mockReset();
+        mockUpload.mockReset();
+        mockRender.mockReset();
+        mockRender.mockResolvedValue(canvas);
+        const err = new Error('This classroom is no longer active');
+        err.status = 404;
+        mockCreateSubmission.mockRejectedValue(err);
+    });
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    test('提出できないことと、作品を［ファイル］→［コンピューターに保存する］で残すことを言う', async () => {
+        const hook = setup([target('t0', 'ねこ')]);
+        await act(async () => {
+            const done = hook.result.current.handleConfirmSubmit();
+            for (let i = 0; i < 10; i++) {
+                jest.runAllTimers();
+                await Promise.resolve();
+            }
+            await done;
+        });
+        expect(hookDeps.showError).toHaveBeenCalledWith(
+            'This assignment has ended, so you cannot submit. Keep your project with ' +
+                '[File] → [Save to your computer], and tell your teacher.',
+        );
+        expect(hookDeps.showSessionExpiredError).not.toHaveBeenCalled();
+    });
+});
