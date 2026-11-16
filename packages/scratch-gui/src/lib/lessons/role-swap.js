@@ -8,8 +8,7 @@
 // 役は、役のあるチャレンジ（`roles: true`）だけが持つ。みんな同じ名前を使う段（3-2・4-4・4-5）は入れかえない。
 // 文言（message descriptor）はここでは文字にできないので、`roleSwapped: true` の印を付け、出すときに
 // formatRoleMessage が文字にしてから入れかえる。自動の入れかえで不自然になる文は、`<id>.asShimacat` の
-// 文言を足せばそれを使う（印は付けない）。
-import { ja } from './lessons.locale';
+// 文言を足せばそれを使う（表示中の locale の表から探す）。
 
 /** 役。 */
 export const ROLES = Object.freeze({
@@ -70,29 +69,24 @@ const isMessageDescriptor = (value) =>
 const isPlainObject = (value) =>
     Boolean(value) && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype;
 
-// シマネコの役のために手で書いた文言の id（`<id>.asShimacat`）
+// シマネコの役のために手で書いた文言の id（`<id>.asShimacat`）。出すときに、表示中の locale の表から探す
 const ROLE_OVERRIDE_SUFFIX = '.asShimacat';
 
-const swapMessage = (descriptor, messages) => {
-    // 入れかえたものをもう一度入れかえると元にもどる
-    if (descriptor.roleSwapOf) return descriptor.roleSwapOf;
+// 入れかえたものをもう一度入れかえると元にもどる
+const swapMessage = (descriptor) => {
     if (descriptor.roleSwapped) {
         const { roleSwapped, ...original } = descriptor;
         return original;
     }
-    const overrideId = `${descriptor.id}${ROLE_OVERRIDE_SUFFIX}`;
-    if (messages && Object.prototype.hasOwnProperty.call(messages, overrideId)) {
-        return { id: overrideId, defaultMessage: messages[overrideId], roleSwapOf: descriptor };
-    }
     return { ...descriptor, roleSwapped: true };
 };
 
-const swapValue = (value, messages) => {
+const swapValue = (value) => {
     if (typeof value === 'string') return swapRoleText(value);
-    if (Array.isArray(value)) return value.map((item) => swapValue(item, messages));
-    if (isMessageDescriptor(value)) return swapMessage(value, messages);
+    if (Array.isArray(value)) return value.map((item) => swapValue(item));
+    if (isMessageDescriptor(value)) return swapMessage(value);
     if (isPlainObject(value)) {
-        return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, swapValue(item, messages)]));
+        return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, swapValue(item)]));
     }
     // RegExp・画像の URL 以外のもの・関数などはそのまま
     return value;
@@ -117,16 +111,26 @@ const KEEP_KEYS = new Set([
 /**
  * チャレンジを、名前を入れかえた形（鏡の形）にする。2 回入れかえると元にもどる。
  * @param {object} challenge - チャレンジ（defineChallenge の形）。
- * @param {object} [messages] - 文言の表（`<id>.asShimacat` を探す。既定は ja）。
  * @returns {object} 入れかえたチャレンジ（元のチャレンジは変えない）。
  */
-export const swapChallengeRoles = (challenge, messages = ja) =>
-    Object.fromEntries(
-        Object.entries(challenge).map(([key, value]) => [
-            key,
-            KEEP_KEYS.has(key) ? value : swapValue(value, messages),
-        ]),
+export const swapChallengeRoles = (challenge) => {
+    const { roleSwapped, ...rest } = challenge;
+    const swapped = Object.fromEntries(
+        Object.entries(rest).map(([key, value]) => [key, KEEP_KEYS.has(key) ? value : swapValue(value)]),
     );
+    // 入れかえた形の印（図などの覚えておく値を、役で分けるため）。もう一度入れかえると元にもどる
+    return roleSwapped ? swapped : { ...swapped, roleSwapped: true };
+};
+
+/**
+ * 出しているチャレンジの役（役の無いチャレンジは null）。入れかえた形ならシマネコの役。
+ * @param {?object} challenge - challengeForRole が返したチャレンジ。
+ * @returns {?string} 役。
+ */
+export const roleOfChallenge = (challenge) => {
+    if (!challenge || !challenge.roles) return null;
+    return challenge.roleSwapped ? ROLES.SHIMACAT : ROLES.SHIMARABY;
+};
 
 // チャレンジの定義は変わらないので、入れかえた形は 1 回だけ作る（参照が変わらないように。パレット・図の
 // 作り直しは参照の変化で起きる）
@@ -149,7 +153,8 @@ export const challengeForRole = (challenge, role) => {
 };
 
 /**
- * 文言を文字にする。入れかえの印（`roleSwapped`）があれば、文字にしてから名前を入れかえる。
+ * 文言を文字にする。入れかえの印（`roleSwapped`）があれば、表示中の locale の表に `<id>.asShimacat`
+ * （手で書いたシマネコの役の文）があればそれを、無ければ文字にしてから名前を入れかえる。
  * @param {object} intl - react-intl の intl。
  * @param {object} descriptor - message descriptor。
  * @param {object} [values] - 文言に入れる値。
@@ -157,7 +162,11 @@ export const challengeForRole = (challenge, role) => {
  */
 export const formatRoleMessage = (intl, descriptor, values) => {
     if (!descriptor) return '';
-    const { roleSwapped, roleSwapOf, ...plain } = descriptor;
-    const text = intl.formatMessage(plain, values);
-    return roleSwapped ? swapRoleText(text) : text;
+    const { roleSwapped, ...plain } = descriptor;
+    if (!roleSwapped) return intl.formatMessage(plain, values);
+    const overrideId = `${plain.id}${ROLE_OVERRIDE_SUFFIX}`;
+    if (intl.messages && Object.prototype.hasOwnProperty.call(intl.messages, overrideId)) {
+        return intl.formatMessage({ id: overrideId, defaultMessage: intl.messages[overrideId] }, values);
+    }
+    return swapRoleText(intl.formatMessage(plain, values));
 };

@@ -112,7 +112,8 @@ const LessonHintContainer = ({
         const stage = challenge.codeTarget === 'stage' && hasVm ? vm.runtime.getTargetForStage() : null;
         const editing = vm && vm.editingTarget ? vm.editingTarget : null;
         // 始めるときにネコを置きかえたチャレンジ（`setup.sprites`）は、その 1 つめに code を入れる
-        // （生徒がもう 1 つのスプライトを選んでいても、答えはシマラビの役の形で入る）
+        // （生徒がもう 1 つのスプライトを選んでいても、答えはいまの役の形で入る。チャレンジは getCurrentChallenge が
+        // 役で入れかえた形なので、シマネコの役では setup.sprites の 1 つめがシマネコになり、code はシマネコに入る）
         const startSprites = (challenge.setup && challenge.setup.sprites) || [];
         const preferred = hasVm && startSprites.length > 0 ? startSprites[0] : null;
         // 確かめる組: [target, code]。まだいないスプライト（これから足すペンギン）は target なしで確かめる

@@ -1,5 +1,5 @@
 // ペアでやるチャレンジの役を選ぶボタン（課題バーの中・#2062）。「シマラビの役」「シマネコの役」の 2 つを並べ、
-// いまの役を白地で出す。役をどう決めたかを、選びなおすまで横に小さく出す（「前回はシマネコの役」
+// いまの役を白地で出す。役をどう決めたかを、選びなおすまでボタンの下に小さく出す（「前回はシマネコの役」
 // 「出席番号で決めた役」）。チャレンジを順番にやらない生徒も、なぜその役が選ばれているかがわかるように。
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
@@ -60,11 +60,6 @@ const LessonRolePicker = ({ role, source, onChoose }) => {
     }
     return (
         <span className={styles.role} data-testid="lesson-task-bar-role">
-            {note && (
-                <span className={styles.roleNote} data-testid="lesson-task-bar-role-note">
-                    {note}
-                </span>
-            )}
             <span className={styles.roleButtons} role="group" aria-label={intl.formatMessage(messages.label)}>
                 {[ROLES.SHIMARABY, ROLES.SHIMACAT].map((value) => (
                     <button
@@ -80,6 +75,11 @@ const LessonRolePicker = ({ role, source, onChoose }) => {
                     </button>
                 ))}
             </span>
+            {note && (
+                <span className={styles.roleNote} data-testid="lesson-task-bar-role-note">
+                    {note}
+                </span>
+            )}
         </span>
     );
 };
