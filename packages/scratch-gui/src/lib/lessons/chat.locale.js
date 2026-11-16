@@ -230,7 +230,7 @@ export const ja = {
     [`${C}chat-l3-mesh-variable.step7`]:
         '**シマネコをえらんで**、「このスプライトが押されたとき」を置こう。その下に「(　) と 2 秒言う」をつなげて、白いところに「(シマネコのきぶん) センサーの値」を入れよう。',
     [`${C}chat-l3-mesh-variable.step8`]:
-        '1 のキーと 2 のキーを押して、自分の気分が相手に届くか見よう。ひとりなら、練習相手のパネルの「届いた」に出る。ペアなら、相手の画面で「メッシュの状態と履歴」のウィンドウを開き、「状態」の届いた変数に自分の気分が出るか、2 人で見せ合おう。相手の気分が変わってからシマネコを押して、相手の気分を言うか見よう。',
+        '1 のキーと 2 のキーを押して、自分の気分が相手に届くか見よう。ひとりなら、練習相手のパネルの「シマネコに届いた」に出る。ペアなら、相手の画面で「メッシュの状態と履歴」のウィンドウを開き、「状態」の届いた変数に自分の気分が出るか、2 人で見せ合おう。相手の気分が変わってからシマネコを押して、相手の気分を言うか見よう。',
     [`${C}chat-l3-mesh-variable.debug1`]:
         '▼ に「シマネコのきぶん」が無いときは、先に練習相手の「うれしい」を押そう（ペアなら、相手に 1 のキーか 2 のキーを押してもらおう）。',
     [`${C}chat-l3-mesh-variable.debug2`]:
@@ -261,9 +261,9 @@ export const ja = {
     [`${C}chat-l4-send-once.step4.inClass`]:
         'ペアなら、2 人とも「メッシュ」の横のボタンから「出席番号でつながる」を選び、相手の出席番号を選んで「つなぐ」を押そう。ひとりなら、この練習相手のパネルを使う。',
     [`${C}chat-l4-send-once.step5`]:
-        '旗を押して、メッセージを入力して Enter キーを押そう。ひとりなら、練習相手のパネルの「届いた」に入力した文字が出るか見よう。ペアなら、相手の画面で「メッシュの状態と履歴」のウィンドウを開き、「履歴」に「受け取った」の行が出るか、2 人で見せ合おう。',
+        '旗を押して、メッセージを入力して Enter キーを押そう。ひとりなら、練習相手のパネルの「シマネコに届いた」に入力した文字が出るか見よう。ペアなら、相手の画面で「メッシュの状態と履歴」のウィンドウを開き、「履歴」に「受け取った」の行が出るか、2 人で見せ合おう。',
     [`${C}chat-l4-send-once.debug1`]:
-        '「届いた」に何も出ないときは、変数「シマラビのメッセージ」を「すべてのスプライト用」で作ったか見よう。',
+        '「シマネコに届いた」に何も出ないときは、変数「シマラビのメッセージ」を「すべてのスプライト用」で作ったか見よう。',
     [`${C}chat-l4-send-once.debug2`]:
         '入力した文字ではなく前の文字が届くときは、「送る」が「シマラビのメッセージを (答え) にする」より下にあるか見よう。',
     [`${C}chat-l4-send-once.quiz.question`]:
@@ -284,7 +284,7 @@ export const ja = {
     [`${C}chat-l4-send-repeat.step4`]:
         '「送る」の下（「ずっと」の中）に「聞いて待つ」をつなげて、白いところに変数「シマラビのメッセージ」を入れよう。',
     [`${C}chat-l4-send-repeat.step5`]:
-        '旗を押して、2 回以上メッセージを入力しよう。ひとりなら、入力するたびに練習相手のパネルの「届いた」が変わるか見よう。ペアなら、相手の画面の「メッシュの状態と履歴」の「履歴」に、入力するたびに「受け取った」の行が増えるか、2 人で見せ合おう。',
+        '旗を押して、2 回以上メッセージを入力しよう。ひとりなら、入力するたびに練習相手のパネルの「シマネコに届いた」が変わるか見よう。ペアなら、相手の画面の「メッシュの状態と履歴」の「履歴」に、入力するたびに「受け取った」の行が増えるか、2 人で見せ合おう。',
     [`${C}chat-l4-send-repeat.debug1`]:
         '1 回しか送れないときは、「〜にする」と「送る」が「ずっと」の中にあるか見よう。',
     [`${C}chat-l4-send-repeat.debug2`]:
@@ -384,7 +384,7 @@ export const ja = {
     [`${C}chat-l5-read-receipt.step5`]:
         '**シマラビをえらびなおして**、「〜を受け取ったとき」を置き、▼ の「新しいメッセージ」で「シマネコがよんだ」を作ろう。その下に「見た目」の「既読 と 2 秒言う」をつなげる。',
     [`${C}chat-l5-read-receipt.step6`]:
-        'ひとりなら、練習相手のパネルの「発言する」を押そう。音が鳴ったらシマネコを押す（パネルの「届いた」に「シマラビがよんだ」が出る）。パネルの「既読にする」を押すと、シマラビが「既読」と言う。ペアなら、おたがいに送って押してみよう。',
+        'ひとりなら、練習相手のパネルの「発言する」を押そう。音が鳴ったらシマネコを押す（パネルの「シマネコに届いた」に「シマラビがよんだ」が出る）。パネルの「既読にする」を押すと、シマラビが「既読」と言う。ペアなら、おたがいに送って押してみよう。',
     [`${C}chat-l5-read-receipt.step7`]:
         '旗を押すと、今までどおりシマラビから送れる（4-3 のプログラムのまま）。ふだんのやりとりの中でも、音・既読が動くか見よう。',
     [`${C}chat-l5-read-receipt.debug1`]:
@@ -412,7 +412,7 @@ export const ja = {
     [`${C}chat-l5-ng-word.step6`]:
         '「シマラビのメッセージを (答え) にする」と「送る」を「でなければ」の中へ動かそう。「(シマラビのメッセージ) と聞いて待つ」は、「もし」の下（「ずっと」の中）に残す。',
     [`${C}chat-l5-ng-word.step7`]:
-        '旗を押して、「ばか」と、ふつうの言葉を入力しよう。「ばか」は送られず、ふつうの言葉は練習相手のパネルの「届いた」（ペアなら相手の画面）に出るか見よう。',
+        '旗を押して、「ばか」と、ふつうの言葉を入力しよう。「ばか」は送られず、ふつうの言葉は練習相手のパネルの「シマネコに届いた」（ペアなら相手の画面）に出るか見よう。',
     [`${C}chat-l5-ng-word.debug1`]:
         '「ばか」も送られてしまうときは、「送る」が「でなければ」の中にあるか見よう。「もし」の外にあると、注意したあとに送ってしまう。',
     [`${C}chat-l5-ng-word.debug2`]:
@@ -437,7 +437,7 @@ export const ja = {
     [`${C}chat-l5-auto-reply.step6`]:
         '「もし」の中に「シマラビのメッセージを (もう寝ています。朝に返事します) にする」と「シマラビのメッセージを送る」を入れよう。',
     [`${C}chat-l5-auto-reply.step7`]:
-        '昼なら、21 を今の時より小さい数（たとえば 0）にしよう。練習相手のパネルの「こんにちは」を押すと、パネルの「届いた」に自動の返事が出る。確かめたら 21 にもどそう。ペアで試すときは、どちらか 1 人だけ数を小さくする。',
+        '昼なら、21 を今の時より小さい数（たとえば 0）にしよう。練習相手のパネルの「こんにちは」を押すと、パネルの「シマネコに届いた」に自動の返事が出る。確かめたら 21 にもどそう。ペアで試すときは、どちらか 1 人だけ数を小さくする。',
     [`${C}chat-l5-auto-reply.step8`]:
         '旗を押すと、今までどおり自分からも送れる。夜（または数を小さくしたとき）は、相手のメッセージに自動で返事が出るか見よう。',
     [`${C}chat-l5-auto-reply.debug1`]:
@@ -734,7 +734,7 @@ export const jaHira = {
     [`${C}chat-l3-mesh-variable.step7`]:
         '**シマネコを えらんで**、「このスプライトがおされたとき」を おこう。そのしたに「(　) と 2 びょう いう」をつなげて、しろいところに「(シマネコのきぶん) センサーのあたい」を いれよう。',
     [`${C}chat-l3-mesh-variable.step8`]:
-        '1 のキーと 2 のキーを おして、じぶんの きぶんが あいてに とどくか みよう。ひとりなら、れんしゅうあいての パネルの「とどいた」に でる。ペアなら、あいての がめんで「メッシュのじょうたいとりれき」の ウィンドウを ひらき、「じょうたい」の とどいた へんすうに じぶんの きぶんが でるか、2 にんで みせあおう。あいての きぶんが かわってから シマネコを おして、あいての きぶんを いうか みよう。',
+        '1 のキーと 2 のキーを おして、じぶんの きぶんが あいてに とどくか みよう。ひとりなら、れんしゅうあいての パネルの「シマネコに とどいた」に でる。ペアなら、あいての がめんで「メッシュのじょうたいとりれき」の ウィンドウを ひらき、「じょうたい」の とどいた へんすうに じぶんの きぶんが でるか、2 にんで みせあおう。あいての きぶんが かわってから シマネコを おして、あいての きぶんを いうか みよう。',
     [`${C}chat-l3-mesh-variable.debug1`]:
         '▼ に「シマネコのきぶん」が ないときは、さきに れんしゅうあいての「うれしい」を おそう（ペアなら、あいてに 1 のキーか 2 のキーを おしてもらおう）。',
     [`${C}chat-l3-mesh-variable.debug2`]:
@@ -765,9 +765,9 @@ export const jaHira = {
     [`${C}chat-l4-send-once.step4.inClass`]:
         'ペアなら、2 にんとも「メッシュ」の よこの ボタンから「しゅっせきばんごうで つながる」を えらび、あいての しゅっせきばんごうを えらんで「つなぐ」を おそう。ひとりなら、この れんしゅうあいての パネルを つかう。',
     [`${C}chat-l4-send-once.step5`]:
-        'はたを おして、メッセージを にゅうりょくして Enter キーを おそう。ひとりなら、れんしゅうあいての パネルの「とどいた」に にゅうりょくした もじが でるか みよう。ペアなら、あいての がめんで「メッシュのじょうたいとりれき」の ウィンドウを ひらき、「りれき」に「うけとった」の ぎょうが でるか、2 にんで みせあおう。',
+        'はたを おして、メッセージを にゅうりょくして Enter キーを おそう。ひとりなら、れんしゅうあいての パネルの「シマネコに とどいた」に にゅうりょくした もじが でるか みよう。ペアなら、あいての がめんで「メッシュのじょうたいとりれき」の ウィンドウを ひらき、「りれき」に「うけとった」の ぎょうが でるか、2 にんで みせあおう。',
     [`${C}chat-l4-send-once.debug1`]:
-        '「とどいた」に なにも でないときは、へんすう「シマラビのメッセージ」を「すべてのスプライトよう」で つくったか みよう。',
+        '「シマネコに とどいた」に なにも でないときは、へんすう「シマラビのメッセージ」を「すべてのスプライトよう」で つくったか みよう。',
     [`${C}chat-l4-send-once.debug2`]:
         'にゅうりょくした もじではなく まえの もじが とどくときは、「おくる」が「シマラビのメッセージを (こたえ) にする」より したに あるか みよう。',
     [`${C}chat-l4-send-once.quiz.question`]:
@@ -788,7 +788,7 @@ export const jaHira = {
     [`${C}chat-l4-send-repeat.step4`]:
         '「おくる」の した（「ずっと」の なか）に「きいてまつ」を つなげて、しろいところに へんすう「シマラビのメッセージ」を いれよう。',
     [`${C}chat-l4-send-repeat.step5`]:
-        'はたを おして、2 かい いじょう メッセージを にゅうりょくしよう。ひとりなら、にゅうりょくする たびに れんしゅうあいての パネルの「とどいた」が かわるか みよう。ペアなら、あいての がめんの「メッシュのじょうたいとりれき」の「りれき」に、にゅうりょくする たびに「うけとった」の ぎょうが ふえるか、2 にんで みせあおう。',
+        'はたを おして、2 かい いじょう メッセージを にゅうりょくしよう。ひとりなら、にゅうりょくする たびに れんしゅうあいての パネルの「シマネコに とどいた」が かわるか みよう。ペアなら、あいての がめんの「メッシュのじょうたいとりれき」の「りれき」に、にゅうりょくする たびに「うけとった」の ぎょうが ふえるか、2 にんで みせあおう。',
     [`${C}chat-l4-send-repeat.debug1`]:
         '1 かいしか おくれないときは、「〜にする」と「おくる」が「ずっと」の なかに あるか みよう。',
     [`${C}chat-l4-send-repeat.debug2`]:
@@ -889,7 +889,7 @@ export const jaHira = {
     [`${C}chat-l5-read-receipt.step5`]:
         '**シマラビを えらびなおして**、「〜を うけとったとき」を おき、▼ の「あたらしいメッセージ」で「シマネコがよんだ」を つくろう。その したに 「みため」の「きどく と 2 びょう いう」を つなげる。',
     [`${C}chat-l5-read-receipt.step6`]:
-        'ひとりなら、れんしゅうあいての パネルの「はつげんする」を おそう。おとが なったら シマネコを おす（パネルの「とどいた」に「シマラビがよんだ」が でる）。パネルの「きどくにする」を おすと、シマラビが「きどく」と いう。ペアなら、おたがいに おくって おしてみよう。',
+        'ひとりなら、れんしゅうあいての パネルの「はつげんする」を おそう。おとが なったら シマネコを おす（パネルの「シマネコに とどいた」に「シマラビがよんだ」が でる）。パネルの「きどくにする」を おすと、シマラビが「きどく」と いう。ペアなら、おたがいに おくって おしてみよう。',
     [`${C}chat-l5-read-receipt.step7`]:
         'はたを おすと、いままで どおり シマラビから おくれる（4-3 の プログラムの まま）。ふだんの やりとりの なかでも、おと・きどくが うごくか みよう。',
     [`${C}chat-l5-read-receipt.debug1`]:
@@ -917,7 +917,7 @@ export const jaHira = {
     [`${C}chat-l5-ng-word.step6`]:
         '「シマラビのメッセージを (こたえ) にする」と「おくる」を「でなければ」の なかへ うごかそう。「(シマラビのメッセージ) と きいてまつ」は、「もし」の した（「ずっと」の なか）に のこす。',
     [`${C}chat-l5-ng-word.step7`]:
-        'はたを おして、「ばか」と、ふつうの ことばを にゅうりょくしよう。「ばか」は おくられず、ふつうの ことばは れんしゅうあいての パネルの「とどいた」（ペアなら あいての がめん）に でるか みよう。',
+        'はたを おして、「ばか」と、ふつうの ことばを にゅうりょくしよう。「ばか」は おくられず、ふつうの ことばは れんしゅうあいての パネルの「シマネコに とどいた」（ペアなら あいての がめん）に でるか みよう。',
     [`${C}chat-l5-ng-word.debug1`]:
         '「ばか」も おくられてしまう ときは、「おくる」が「でなければ」の なかに あるか みよう。「もし」の そとに あると、ちゅういした あとに おくってしまう。',
     [`${C}chat-l5-ng-word.debug2`]:
@@ -943,7 +943,7 @@ export const jaHira = {
     [`${C}chat-l5-auto-reply.step6`]:
         '「もし」の なかに「シマラビのメッセージを (もう ねています。あさに へんじします) にする」と「シマラビのメッセージを おくる」を いれよう。',
     [`${C}chat-l5-auto-reply.step7`]:
-        'ひるなら、21 を いまの じより ちいさい かず（たとえば 0）に しよう。れんしゅうあいての パネルの「こんにちは」を おすと、パネルの「とどいた」に じどうの へんじが でる。たしかめたら 21 に もどそう。ペアで ためす ときは、どちらか 1 にんだけ かずを ちいさくする。',
+        'ひるなら、21 を いまの じより ちいさい かず（たとえば 0）に しよう。れんしゅうあいての パネルの「こんにちは」を おすと、パネルの「シマネコに とどいた」に じどうの へんじが でる。たしかめたら 21 に もどそう。ペアで ためす ときは、どちらか 1 にんだけ かずを ちいさくする。',
     [`${C}chat-l5-auto-reply.step8`]:
         'はたを おすと、いままで どおり じぶんからも おくれる。よる（または かずを ちいさく したとき）は、あいての メッセージに じどうで へんじが でるか みよう。',
     [`${C}chat-l5-auto-reply.debug1`]:
@@ -1239,7 +1239,7 @@ export const en = {
     [`${C}chat-l3-mesh-variable.step7`]:
         '**Select Shimacat** and place "when this sprite clicked". Under it, attach "say ( ) for 2 seconds" and put "(shimacat_mood) sensor value" into its white space.',
     [`${C}chat-l3-mesh-variable.step8`]:
-        'Press the 1 key and the 2 key, and check that your mood reaches the partner. On your own, it appears in "Received" on the practice partner panel. In a pair, open the "Mesh status and history" window on your partner\'s screen and check together that your mood appears in the received variables of "Status". After the mood of the partner changes, click Shimacat and check that it says the mood of the partner.',
+        'Press the 1 key and the 2 key, and check that your mood reaches the partner. On your own, it appears in "Reached Shimacat" on the practice partner panel. In a pair, open the "Mesh status and history" window on your partner\'s screen and check together that your mood appears in the received variables of "Status". After the mood of the partner changes, click Shimacat and check that it says the mood of the partner.',
     [`${C}chat-l3-mesh-variable.debug1`]:
         'If "shimacat_mood" is not in the ▼, first click "happy" on the practice partner panel (in a pair, ask your pair to press the 1 key or the 2 key).',
     [`${C}chat-l3-mesh-variable.debug2`]:
@@ -1270,9 +1270,9 @@ export const en = {
     [`${C}chat-l4-send-once.step4.inClass`]:
         'In a pair, both of you use the button next to "Mesh": choose "Connect by seat number", pick your partner\'s seat number and press "Connect". On your own, use this practice partner panel.',
     [`${C}chat-l4-send-once.step5`]:
-        'Click the flag, type a message and press Enter. On your own, check that what you typed appears in "Received" on the practice partner panel. In a pair, open the "Mesh status and history" window on your partner\'s screen and check together that a "Received" line appears in "History".',
+        'Click the flag, type a message and press Enter. On your own, check that what you typed appears in "Reached Shimacat" on the practice partner panel. In a pair, open the "Mesh status and history" window on your partner\'s screen and check together that a "Received" line appears in "History".',
     [`${C}chat-l4-send-once.debug1`]:
-        'If nothing appears in "Received", check that you made the variable "shimaraby_message" "For all sprites".',
+        'If nothing appears in "Reached Shimacat", check that you made the variable "shimaraby_message" "For all sprites".',
     [`${C}chat-l4-send-once.debug2`]:
         'If the text before arrives instead of what you typed, check that "broadcast" is under "set shimaraby_message to (answer)".',
     [`${C}chat-l4-send-once.quiz.question`]:
@@ -1293,7 +1293,7 @@ export const en = {
     [`${C}chat-l4-send-repeat.step4`]:
         'Under "broadcast" (inside "forever"), attach "ask and wait" and put the variable "shimaraby_message" into its white space.',
     [`${C}chat-l4-send-repeat.step5`]:
-        'Click the flag and type a message two times or more. On your own, check that "Received" on the practice partner panel changes each time. In a pair, check together that a "Received" line is added to "History" of the "Mesh status and history" window on your partner\'s screen each time.',
+        'Click the flag and type a message two times or more. On your own, check that "Reached Shimacat" on the practice partner panel changes each time. In a pair, check together that a "Received" line is added to "History" of the "Mesh status and history" window on your partner\'s screen each time.',
     [`${C}chat-l4-send-repeat.debug1`]:
         'If it sends only once, check that "set" and "broadcast" are inside "forever".',
     [`${C}chat-l4-send-repeat.debug2`]:
@@ -1394,7 +1394,7 @@ export const en = {
     [`${C}chat-l5-read-receipt.step5`]:
         '**Select Shimaraby again**, place "when I receive", and make "shimacat_read" with "New message" in its ▼. Under it, attach the Looks block "say Read for 2 seconds".',
     [`${C}chat-l5-read-receipt.step6`]:
-        'On your own, click "Say something" on the practice partner panel. When the sound plays, click Shimacat ("shimaraby_read" appears in "Received" on the panel). Click "Mark as read" on the panel, and Shimaraby says "Read". In a pair, send to each other and click.',
+        'On your own, click "Say something" on the practice partner panel. When the sound plays, click Shimacat ("shimaraby_read" appears in "Reached Shimacat" on the panel). Click "Mark as read" on the panel, and Shimaraby says "Read". In a pair, send to each other and click.',
     [`${C}chat-l5-read-receipt.step7`]:
         'Click the flag, and Shimaraby sends messages as before (the program of 4-3). Check that the sound and "Read" work while you chat.',
     [`${C}chat-l5-read-receipt.debug1`]:
@@ -1422,7 +1422,7 @@ export const en = {
     [`${C}chat-l5-ng-word.step6`]:
         'Move "set shimaraby_message to (answer)" and "broadcast" into "else". Keep "ask (shimaraby_message) and wait" under "if" (inside "forever").',
     [`${C}chat-l5-ng-word.step7`]:
-        'Click the flag and type "stupid" and an ordinary word. Check that "stupid" is not sent and the ordinary word appears in "Received" on the practice partner panel (in a pair, on the screen of your pair).',
+        'Click the flag and type "stupid" and an ordinary word. Check that "stupid" is not sent and the ordinary word appears in "Reached Shimacat" on the practice partner panel (in a pair, on the screen of your pair).',
     [`${C}chat-l5-ng-word.debug1`]:
         'If "stupid" is sent too, check that "broadcast" is inside "else". Outside "if", it sends after the warning.',
     [`${C}chat-l5-ng-word.debug2`]:
@@ -1448,7 +1448,7 @@ export const en = {
     [`${C}chat-l5-auto-reply.step6`]:
         'Put "set shimaraby_message to (I am sleeping now. I will reply in the morning)" and "broadcast shimaraby_message" into "if".',
     [`${C}chat-l5-auto-reply.step7`]:
-        'In the daytime, change 21 to a number smaller than the hour now (for example 0). Click "Hello" on the practice partner panel, and the automatic reply appears in "Received" on the panel. Then change it back to 21. In a pair, only one of you makes the number smaller.',
+        'In the daytime, change 21 to a number smaller than the hour now (for example 0). Click "Hello" on the practice partner panel, and the automatic reply appears in "Reached Shimacat" on the panel. Then change it back to 21. In a pair, only one of you makes the number smaller.',
     [`${C}chat-l5-auto-reply.step8`]:
         'Click the flag, and you can send messages yourself as before. At night (or when the number is smaller), check that a reply goes back automatically to the message of the other side.',
     [`${C}chat-l5-auto-reply.debug1`]:
