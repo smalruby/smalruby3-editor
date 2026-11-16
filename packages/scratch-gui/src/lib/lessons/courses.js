@@ -2442,8 +2442,9 @@ const chatLesson5 = defineLesson({
             steps: withDiagramFirst('chat-l5-ng-word', [
                 connectStep(),
                 roleStep(),
-                // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
-                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
+                // 最初から入っている 4-3 の答え（シマラビが聞いて送り、シマネコが相手のメッセージを言う）。2 つの
+                // スプライトのプログラムの話なので、絵は描かずに文で書く（1 つの吹き出しに 2 つは収まらない）
+                { target: HINT_TARGETS.SPRITE_LIST },
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL5NgStage },
                 {
                     target: HINT_TARGETS.PALETTE,
@@ -2504,8 +2505,9 @@ const chatLesson5 = defineLesson({
             steps: withDiagramFirst('chat-l5-auto-reply', [
                 connectStep(),
                 roleStep(),
-                // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
-                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
+                // 最初から入っている 4-3 の答え（シマラビが聞いて送り、シマネコが相手のメッセージを言う）。2 つの
+                // スプライトのプログラムの話なので、絵は描かずに文で書く（1 つの吹き出しに 2 つは収まらない）
+                { target: HINT_TARGETS.SPRITE_LIST },
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL5Code((w) => `when_receive("${w.partnerMessage}") do\nend\n`),
@@ -2561,8 +2563,9 @@ const chatLesson5 = defineLesson({
             steps: withDiagramFirst('chat-l5-password', [
                 connectStep(),
                 roleStep(),
-                // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
-                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
+                // 最初から入っている 4-3 の答え（シマラビが聞いて送り、シマネコが相手のメッセージを言う）。2 つの
+                // スプライトのプログラムの話なので、絵は描かずに文で書く（1 つの吹き出しに 2 つは収まらない）
+                { target: HINT_TARGETS.SPRITE_LIST },
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL5Code((w) => `when_flag_clicked do\n  ask("${w.askPassword}")\nend\n`),
@@ -2627,13 +2630,19 @@ const chatLesson5 = defineLesson({
             },
             partner: chatL5Partner({
                 buttons: [{ label: chatL5Text('sendStamp'), broadcast: chatL5Text('partnerStamp') }],
-                replies: [{ onBroadcast: chatL5Text('myStamp'), broadcast: chatL5Text('partnerStamp') }],
+                // 「とどいたよ」の返事も残す（相手からメッセージが届かないと、最初から入っている「シマネコのメッセージを
+                // 受け取ったとき」が動かず、図でも送り手のいない受信になる）
+                replies: [
+                    ...chatL4PairPartner().replies,
+                    { onBroadcast: chatL5Text('myStamp'), broadcast: chatL5Text('partnerStamp') },
+                ],
             }),
             steps: withDiagramFirst('chat-l5-stamp', [
                 connectStep(),
                 roleStep(),
-                // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
-                { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
+                // 最初から入っている 4-3 の答え（シマラビが聞いて送り、シマネコが相手のメッセージを言う）。2 つの
+                // スプライトのプログラムの話なので、絵は描かずに文で書く（1 つの吹き出しに 2 つは収まらない）
+                { target: HINT_TARGETS.SPRITE_LIST },
                 { target: HINT_TARGETS.PALETTE, blocks: chatL5StampSend },
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL5StampReceive },
                 { target: HINT_TARGETS.PRACTICE_PARTNER },

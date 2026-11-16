@@ -1718,3 +1718,86 @@ describe('the chat lesson 5 goals pass after fixing the program and clicking the
         expect(await until(run.isSatisfied, 1500)).toBe(true);
     }, 20000);
 });
+
+// レッスン 5 の練習相手のボタン・自動の返事が、どの役・どの locale でも本当に効くこと（ひとりで最後までできること）。
+// 「プログラムを入れる」の答えを入れて課題の操作をし「できた」になったあと、パネルのボタンを 1 つずつ全部押して、
+// 生徒のプログラムがそれに応える（相手のメッセージを言う・「既読」と言う・コスチュームがかわる）ことを見る。
+// 4-5 の「あなたに DM」が生徒の名前ではなく「あなた」を送っていた不具合のような、押しても何も起きないボタンを見つける
+describe('every practice partner button of lesson 5 works for both roles', () => {
+    let vm;
+
+    afterEach(() => {
+        quitVm(vm);
+        vm = null;
+    });
+
+    const L5_IDS = Object.keys(OPERATIONS).filter((id) => id.startsWith('chat-l5-'));
+    const cases = [];
+    L5_IDS.forEach((id) =>
+        [ROLES.SHIMARABY, ROLES.SHIMACAT].forEach((role) =>
+            LOCALES.forEach((locale) => cases.push([id, role, locale])),
+        ),
+    );
+
+    test('every lesson 5 challenge is checked', () => {
+        expect(L5_IDS).toHaveLength(5);
+    });
+
+    test.each(cases)(
+        '%s (%s role, %s)',
+        async (id, role, locale) => {
+            const run = await prepareRun(id, locale, null, { role });
+            vm = run.vm;
+            const said = [];
+            const allSaid = [];
+            vm.runtime.on('SAY', (target, type, text) => {
+                said.push(String(text));
+                allSaid.push(String(text));
+            });
+            const costumes = () =>
+                vm.runtime.targets.map((t) => (t.isStage ? null : t.getCostumes()[t.currentCostume].name));
+            const partner = normalizePartner(challengeForRole(findChallenge(id).challenge, role).partner, locale);
+
+            await OPERATIONS[id](run.ctx);
+            expect(await until(run.isSatisfied, WAIT_FOR_GOAL_MS)).toBe(true);
+
+            for (const [index, button] of partner.buttons.entries()) {
+                // 前のボタンの「2 秒言う」・コスチュームがもどるのを待つ
+                await sleep(2300);
+                said.length = 0;
+                const before = costumes();
+                await run.ctx.partnerPress(index);
+                const values = button.set.map((one) => one.value).filter((value) => typeof value === 'string');
+                const answered = await until(
+                    () =>
+                        values.length > 0
+                            ? values.every((value) => said.includes(value))
+                            : said.length > 0 || costumes().some((name, i) => name !== before[i]),
+                    1500,
+                );
+                expect({ button: button.label, answered, said }).toEqual({
+                    button: button.label,
+                    answered: true,
+                    said,
+                });
+            }
+
+            // 自分のメッセージを送ると返す自動の返事（「とどいたよ」）は、相手のメッセージとしてシマネコが言う。
+            // 5-2・5-4 は課題の操作でもう送っている。5-1・5-5 は旗を押して送る
+            const gotIt = partner.replies.find((reply) => reply.set.length > 0);
+            if (gotIt) {
+                const value = gotIt.set[0].value;
+                if (!allSaid.includes(value)) {
+                    await sleep(2300);
+                    vm.greenFlag();
+                    await run.ctx.answer('hello');
+                }
+                expect({ reply: value, said: await until(() => allSaid.includes(value), 2000) }).toEqual({
+                    reply: value,
+                    said: true,
+                });
+            }
+        },
+        40000,
+    );
+});

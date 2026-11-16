@@ -385,7 +385,8 @@ export const ja = {
     [`${C}chat-l5-read-receipt.name`]: '通知と既読をつけよう',
     [`${C}chat-l5-read-receipt.task`]:
         '相手のメッセージが届いたら音で知らせ、読んだことを相手に伝えよう。シマネコは、相手のメッセージを言ったあと「Meow の音を鳴らす」。シマネコを押したらメッセージ「シマラビがよんだ」を送り、シマラビは「シマネコがよんだ」を受け取ったら「既読」と 2 秒言う。\nさらに工夫するなら: 既読に時こくをつける・まだ読んでいないメッセージの数を出す。',
-    [`${C}chat-l5-read-receipt.step1`]: '課題の説明と、アクティビティ図を理解しよう。',
+    [`${C}chat-l5-read-receipt.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。相手の「送る」（左端がとがった図形）からの矢印は、シマラビの「シマネコがよんだを受け取ったとき」と、シマネコの「シマネコのメッセージを受け取ったとき」（どちらも右端がくぼんだ図形）に届く。',
     [`${C}chat-l5-read-receipt.step4`]:
         '**シマネコをえらぼう**。最初から入っている「シマネコのメッセージを受け取ったとき」の「言う」の下に、「音」の「Meow の音を鳴らす」をつなげよう。',
     [`${C}chat-l5-read-receipt.step5`]:
@@ -411,15 +412,16 @@ export const ja = {
     [`${C}chat-l5-ng-word.name`]: 'わるい言葉を送らせない',
     [`${C}chat-l5-ng-word.task`]:
         '入力した言葉がリスト「NGワード」に入っていたら、送らずに「その言葉は送れません」と言おう。入っていなければ、今までどおり送る。リストは、ステージのプログラムで旗を押すと用意される。\nさらに工夫するなら: 「ばかやろう」も止める（リストの言葉を 1 つずつ、入力した言葉に含まれるか調べる）。',
-    [`${C}chat-l5-ng-word.step1`]: '課題の説明と、アクティビティ図を理解しよう。',
+    [`${C}chat-l5-ng-word.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。図では、ひし形で 2 つに分かれる。入力した言葉がリストに入っていれば注意を言うだけで、[それ以外] の枝に進んだときだけ「送る」（右端がとがった図形）を通る。',
     [`${C}chat-l5-ng-word.step4`]:
         '最初から入っているのは 4-3 のチャット。シマラビが聞いて送り、シマネコが相手のメッセージを言う（右下でシマネコをえらぶと見られる）。',
     [`${C}chat-l5-ng-word.step5`]:
         'ステージには、旗を押すとリスト「NGワード」を空にして「ばか」「きらい」を入れるプログラムが入っている（右下でステージをえらぶと見られる）。',
     [`${C}chat-l5-ng-word.step6`]:
-        '**シマラビをえらびなおして**、「制御」の「もし〜なら でなければ」を「ずっと」の中の上に入れよう。条件には、「変数」の「(NGワード) に (答え) が含まれる」を入れ、「もし」の中に「その言葉は送れません と 2 秒言う」を入れる。',
+        '**シマラビをえらびなおして**、「制御」の「もし〜なら でなければ」を「ずっと」の中のいちばん上に入れよう。条件には「変数」の「(NGワード) に (　) が含まれる」を入れて、白いところに「調べる」の「答え」を入れる。「もし」の中には「その言葉は送れません と 2 秒言う」を入れる。',
     [`${C}chat-l5-ng-word.step7`]:
-        '「シマラビのメッセージを (答え) にする」と「送る」を「でなければ」の中へ動かそう。「(シマラビのメッセージ) と聞いて待つ」は、「もし」の下（「ずっと」の中）に残す。',
+        '「シマラビのメッセージを (答え) にする」と「送る」が「でなければ」の中に、「(シマラビのメッセージ) と聞いて待つ」が「もし〜なら でなければ」の下（「ずっと」の中）に来るように動かそう。',
     [`${C}chat-l5-ng-word.step8`]:
         '旗を押して、「ばか」と、ふつうの言葉を入力しよう。「ばか」は送られず、ふつうの言葉は練習相手のパネルの「シマネコに届いた」（ペアなら相手の画面）に出るか見よう。',
     [`${C}chat-l5-ng-word.debug1`]:
@@ -436,7 +438,8 @@ export const ja = {
     [`${C}chat-l5-auto-reply.name`]: '時間で自動返信しよう',
     [`${C}chat-l5-auto-reply.task`]:
         '夜にメッセージが来たら、自動で返事をしよう。シマラビが「シマネコのメッセージ」を受け取ったとき、現在の時が 21 より大きければ、変数「シマラビのメッセージ」を「もう寝ています。朝に返事します」にして、メッセージ「シマラビのメッセージ」を送る。\n昼に試すときは、21 を今の時より小さい数にして動きを確かめ、確かめたら 21 にもどそう。\nさらに工夫するなら: 朝 7 時より前も返信する（「または」を使う）・使いすぎを知らせるタイマー（レッスン 2-2）を入れる。',
-    [`${C}chat-l5-auto-reply.step1`]: '課題の説明と、アクティビティ図を理解しよう。',
+    [`${C}chat-l5-auto-reply.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。相手の「送る」（左端がとがった図形）からの矢印は、シマネコとシマラビの「シマネコのメッセージを受け取ったとき」（右端がくぼんだ図形）に届く。シマラビは、そのあとのひし形で条件の枝に進んだときだけ自動の返事を送る。',
     [`${C}chat-l5-auto-reply.step4`]:
         '最初から入っているのは 4-3 のチャット。シマラビが聞いて送り、シマネコが相手のメッセージを言う（右下でシマネコをえらぶと見られる）。',
     [`${C}chat-l5-auto-reply.step5`]:
@@ -444,7 +447,7 @@ export const ja = {
     [`${C}chat-l5-auto-reply.step6`]:
         '「制御」の「もし〜なら」をつなげよう。条件には「演算」の「(　) > (21)」を入れ、左に「調べる」の「現在の (時)」を入れる。',
     [`${C}chat-l5-auto-reply.step7`]:
-        '「もし」の中に「シマラビのメッセージを (もう寝ています。朝に返事します) にする」と「シマラビのメッセージを送る」を入れよう。',
+        '「もし」の中に「シマラビのメッセージを (もう寝ています。朝に返事します) にする」と「〜を送る」を入れ、「送る」の ▼ で「シマラビのメッセージ」をえらぼう。',
     [`${C}chat-l5-auto-reply.step8`]:
         '昼なら、21 を今の時より小さい数（たとえば 0）にしよう。練習相手のパネルの「こんにちは」を押すと、パネルの「シマネコに届いた」に自動の返事が出る。確かめたら 21 にもどそう。ペアで試すときは、どちらか 1 人だけ数を小さくする。',
     [`${C}chat-l5-auto-reply.step9`]:
@@ -452,7 +455,7 @@ export const ja = {
     [`${C}chat-l5-auto-reply.debug1`]:
         '返事が来ないときは、「もし」の数が今の時より小さいか、「受け取ったとき」の ▼ が「シマネコのメッセージ」か見よう。',
     [`${C}chat-l5-auto-reply.debug2`]:
-        '返事がずっと続くときは、ペアの 2 人とも自動返信が動いている。どちらか 1 人の数を 21 にもどそう。',
+        '返事がずっと続くときは、「送る」の ▼ が「シマラビのメッセージ」か見よう。ペアの 2 人とも自動返信が動いているときも続くので、どちらか 1 人の数を 21 にもどそう。',
     [`${C}chat-l5-auto-reply.quiz.question`]:
         '朝 8 時より前「または」夕方 5 時より後に自動返信したいのに、2 つの条件を「かつ」でつなぐとどうなる？',
     [`${C}chat-l5-auto-reply.quiz.choice1`]: '一度も返信しない',
@@ -464,14 +467,16 @@ export const ja = {
     [`${C}chat-l5-password.name`]: '合言葉で入ろう',
     [`${C}chat-l5-password.task`]:
         '合言葉を知っている人だけがチャットできるようにしよう。旗を押したら「合言葉は？」と聞く。答えが「もみじ」なら、これまでのチャットを始め、ちがえば「合言葉がちがいます」と言う。\nさらに工夫するなら: 3 回までためせるようにする・見破られにくい合言葉にする。',
-    [`${C}chat-l5-password.step1`]: '課題の説明と、アクティビティ図を理解しよう。',
+    [`${C}chat-l5-password.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。図では、ひし形から [答え = 「もみじ」] の枝に進んだときだけ、今までのチャット（「ずっと」のくり返し）に入る。[それ以外] の枝では「合言葉がちがいます」と言って終わる。',
     [`${C}chat-l5-password.step4`]:
         '最初から入っているのは 4-3 のチャット。シマラビが聞いて送り、シマネコが相手のメッセージを言う（右下でシマネコをえらぶと見られる）。',
     [`${C}chat-l5-password.step5`]:
         '**シマラビをえらびなおして**、「旗が押されたとき」のすぐ下に、「調べる」の「合言葉は？と聞いて待つ」を入れよう。',
     [`${C}chat-l5-password.step6`]:
         'その下に「制御」の「もし〜なら でなければ」をつなげよう。条件には「演算」の「(答え) = (もみじ)」を入れ、「でなければ」に「合言葉がちがいます と 2 秒言う」を入れる。',
-    [`${C}chat-l5-password.step7`]: '「メッセージを入力と聞いて待つ」と「ずっと」を、「もし」の中へ動かそう。',
+    [`${C}chat-l5-password.step7`]:
+        '「メッセージを入力と聞いて待つ」と「ずっと」が「もし」の中に来るように動かそう（もう入っていれば、そのままでよい）。',
     [`${C}chat-l5-password.step8`]:
         '旗を押して、ちがう言葉を入れてみよう。「合言葉がちがいます」と言うか見たら、もう一度旗を押して「もみじ」を入れ、メッセージを送ってみよう。',
     [`${C}chat-l5-password.debug1`]:
@@ -488,7 +493,8 @@ export const ja = {
     [`${C}chat-l5-stamp.name`]: 'スタンプを送ろう',
     [`${C}chat-l5-stamp.task`]:
         '絵で気持ちを伝えよう。シマラビを押したらメッセージ「シマラビのスタンプ」を送る。「シマネコのスタンプ」を受け取ったら、シマネコのコスチュームを「shimacat-b」にして 2 秒待ち、「shimacat-a」にもどす。\n変数は使わず、メッセージだけで送れる。\nさらに工夫するなら: 2 つのスタンプから選んで送る（番号を変数で送る）。',
-    [`${C}chat-l5-stamp.step1`]: '課題の説明と、アクティビティ図を理解しよう。',
+    [`${C}chat-l5-stamp.step1`]:
+        '課題の説明と、アクティビティ図を理解しよう。シマラビの「シマラビのスタンプを送る」（右端がとがった図形）からの矢印は相手に届き、相手の「シマネコのスタンプを送る」（左端がとがった図形）からの矢印は、シマネコの「シマネコのスタンプを受け取ったとき」（右端がくぼんだ図形）に届く。',
     [`${C}chat-l5-stamp.step4`]:
         '最初から入っているのは 4-3 のチャット。シマラビが聞いて送り、シマネコが相手のメッセージを言う（右下でシマネコをえらぶと見られる）。',
     [`${C}chat-l5-stamp.step5`]:
@@ -498,7 +504,7 @@ export const ja = {
     [`${C}chat-l5-stamp.step7`]:
         'ひとりなら、シマラビを押そう（練習相手がスタンプを返してくれる）。パネルの「スタンプを送る」を押しても、シマネコのコスチュームが 2 秒かわる。ペアなら、おたがいに押してみよう。',
     [`${C}chat-l5-stamp.step8`]:
-        '旗を押して、メッセージとスタンプの両方を送ってみよう。メッセージは今までどおりシマラビから送れる。',
+        '旗を押して、メッセージとスタンプの両方を送ってみよう。メッセージは今までどおりシマラビから送れる（ひとりなら、練習相手の「とどいたよ」をシマネコが言う）。',
     [`${C}chat-l5-stamp.debug1`]:
         'シマネコがかわらないときは、「受け取ったとき」の ▼ が「シマネコのスタンプ」か、送るのが「シマラビのスタンプ」か見よう。',
     [`${C}chat-l5-stamp.debug2`]:
@@ -899,7 +905,8 @@ export const jaHira = {
     [`${C}chat-l5-read-receipt.name`]: 'つうちと きどくを つけよう',
     [`${C}chat-l5-read-receipt.task`]:
         'あいての メッセージが とどいたら おとで しらせ、よんだ ことを あいてに つたえよう。シマネコは、あいての メッセージを いった あと「Meow の おとを ならす」。シマネコを おしたら メッセージ「シマラビがよんだ」を おくり、シマラビは「シマネコがよんだ」を うけとったら「きどく」と 2 びょう いう。\nさらに くふう するなら: きどくに じこくを つける・まだ よんでいない メッセージの かずを だす。',
-    [`${C}chat-l5-read-receipt.step1`]: 'かだいの せつめいと、アクティビティずを りかいしよう。',
+    [`${C}chat-l5-read-receipt.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。あいての「おくる」（ひだりはしが とがった ずけい）からの やじるしは、シマラビの「シマネコがよんだをうけとったとき」と、シマネコの「シマネコのメッセージをうけとったとき」（どちらも みぎはしが くぼんだ ずけい）に とどく。',
     [`${C}chat-l5-read-receipt.step4`]:
         '**シマネコを えらぼう**。さいしょから はいっている「シマネコのメッセージを うけとったとき」の「いう」の したに、「おと」の「Meow の おとを ならす」を つなげよう。',
     [`${C}chat-l5-read-receipt.step5`]:
@@ -925,15 +932,16 @@ export const jaHira = {
     [`${C}chat-l5-ng-word.name`]: 'わるい ことばを おくらせない',
     [`${C}chat-l5-ng-word.task`]:
         'にゅうりょくした ことばが リスト「NGワード」に はいっていたら、おくらずに「その ことばは おくれません」と いおう。はいっていなければ、いままで どおり おくる。リストは、ステージの プログラムで はたを おすと よういされる。\nさらに くふう するなら: 「ばかやろう」も とめる（リストの ことばを 1 つずつ、にゅうりょくした ことばに ふくまれるか しらべる）。',
-    [`${C}chat-l5-ng-word.step1`]: 'かだいの せつめいと、アクティビティずを りかいしよう。',
+    [`${C}chat-l5-ng-word.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。ずでは、ひしがたで 2 つに わかれる。にゅうりょくした ことばが リストに はいっていれば ちゅういを いうだけで、[それいがい] の えだに すすんだ ときだけ「おくる」（みぎはしが とがった ずけい）を とおる。',
     [`${C}chat-l5-ng-word.step4`]:
         'さいしょから はいっているのは 4-3 の チャット。シマラビが きいて おくり、シマネコが あいての メッセージを いう（みぎしたで シマネコを えらぶと みられる）。',
     [`${C}chat-l5-ng-word.step5`]:
         'ステージには、はたを おすと リスト「NGワード」を からにして「ばか」「きらい」を いれる プログラムが はいっている（みぎしたで ステージを えらぶと みられる）。',
     [`${C}chat-l5-ng-word.step6`]:
-        '**シマラビを えらびなおして**、「せいぎょ」の「もし 〜 なら でなければ」を「ずっと」の なかの うえに いれよう。じょうけんには、「へんすう」の「(NGワード) に (こたえ) が ふくまれる」を いれ、「もし」の なかに「その ことばは おくれません と 2 びょう いう」を いれる。',
+        '**シマラビを えらびなおして**、「せいぎょ」の「もし 〜 なら でなければ」を「ずっと」の なかの いちばん うえに いれよう。じょうけんには 「へんすう」の「(NGワード) に (　) が ふくまれる」を いれて、しろいところに 「しらべる」の「こたえ」を いれる。「もし」の なかには「その ことばは おくれません と 2 びょう いう」を いれる。',
     [`${C}chat-l5-ng-word.step7`]:
-        '「シマラビのメッセージを (こたえ) にする」と「おくる」を「でなければ」の なかへ うごかそう。「(シマラビのメッセージ) と きいてまつ」は、「もし」の した（「ずっと」の なか）に のこす。',
+        '「シマラビのメッセージを (こたえ) にする」と「おくる」が「でなければ」の なかに、「(シマラビのメッセージ) と きいてまつ」が「もし 〜 なら でなければ」の した（「ずっと」の なか）に くるように うごかそう。',
     [`${C}chat-l5-ng-word.step8`]:
         'はたを おして、「ばか」と、ふつうの ことばを にゅうりょくしよう。「ばか」は おくられず、ふつうの ことばは れんしゅうあいての パネルの「シマネコに とどいた」（ペアなら あいての がめん）に でるか みよう。',
     [`${C}chat-l5-ng-word.debug1`]:
@@ -951,7 +959,8 @@ export const jaHira = {
     [`${C}chat-l5-auto-reply.name`]: 'じかんで じどうへんしん しよう',
     [`${C}chat-l5-auto-reply.task`]:
         'よるに メッセージが きたら、じどうで へんじを しよう。シマラビが「シマネコのメッセージ」を うけとったとき、げんざいの じが 21 より おおきければ、へんすう「シマラビのメッセージ」を「もう ねています。あさに へんじします」にして、メッセージ「シマラビのメッセージ」を おくる。\nひるに ためす ときは、21 を いまの じより ちいさい かずに して うごきを たしかめ、たしかめたら 21 に もどそう。\nさらに くふう するなら: あさ 7 じより まえも へんしんする（「または」を つかう）・つかいすぎを しらせる タイマー（レッスン 2-2）を いれる。',
-    [`${C}chat-l5-auto-reply.step1`]: 'かだいの せつめいと、アクティビティずを りかいしよう。',
+    [`${C}chat-l5-auto-reply.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。あいての「おくる」（ひだりはしが とがった ずけい）からの やじるしは、シマネコと シマラビの「シマネコのメッセージをうけとったとき」（みぎはしが くぼんだ ずけい）に とどく。シマラビは、その あとの ひしがたで じょうけんの えだに すすんだ ときだけ じどうの へんじを おくる。',
     [`${C}chat-l5-auto-reply.step4`]:
         'さいしょから はいっているのは 4-3 の チャット。シマラビが きいて おくり、シマネコが あいての メッセージを いう（みぎしたで シマネコを えらぶと みられる）。',
     [`${C}chat-l5-auto-reply.step5`]:
@@ -959,7 +968,7 @@ export const jaHira = {
     [`${C}chat-l5-auto-reply.step6`]:
         '「せいぎょ」の「もし 〜 なら」を つなげよう。じょうけんには 「えんざん」の「(　) > (21)」を いれ、ひだりに 「しらべる」の「げんざいの (じ)」を いれる。',
     [`${C}chat-l5-auto-reply.step7`]:
-        '「もし」の なかに「シマラビのメッセージを (もう ねています。あさに へんじします) にする」と「シマラビのメッセージを おくる」を いれよう。',
+        '「もし」の なかに「シマラビのメッセージを (もう ねています。あさに へんじします) にする」と「〜を おくる」を いれ、「おくる」の ▼ で「シマラビのメッセージ」を えらぼう。',
     [`${C}chat-l5-auto-reply.step8`]:
         'ひるなら、21 を いまの じより ちいさい かず（たとえば 0）に しよう。れんしゅうあいての パネルの「こんにちは」を おすと、パネルの「シマネコに とどいた」に じどうの へんじが でる。たしかめたら 21 に もどそう。ペアで ためす ときは、どちらか 1 にんだけ かずを ちいさくする。',
     [`${C}chat-l5-auto-reply.step9`]:
@@ -967,7 +976,7 @@ export const jaHira = {
     [`${C}chat-l5-auto-reply.debug1`]:
         'へんじが こない ときは、「もし」の かずが いまの じより ちいさいか、「うけとったとき」の ▼ が「シマネコのメッセージ」か みよう。',
     [`${C}chat-l5-auto-reply.debug2`]:
-        'へんじが ずっと つづく ときは、ペアの 2 にんとも じどうへんしんが うごいている。どちらか 1 にんの かずを 21 に もどそう。',
+        'へんじが ずっと つづく ときは、「おくる」の ▼ が「シマラビのメッセージ」か みよう。ペアの 2 にんとも じどうへんしんが うごいている ときも つづくので、どちらか 1 にんの かずを 21 に もどそう。',
     [`${C}chat-l5-auto-reply.quiz.question`]:
         'あさ 8 じより まえ「または」ゆうがた 5 じより あとに じどうへんしん したいのに、2 つの じょうけんを「かつ」で つなぐと どうなる？',
     [`${C}chat-l5-auto-reply.quiz.choice1`]: 'いちども へんしん しない',
@@ -979,7 +988,8 @@ export const jaHira = {
     [`${C}chat-l5-password.name`]: 'あいことばで はいろう',
     [`${C}chat-l5-password.task`]:
         'あいことばを しっている ひとだけが チャットできる ように しよう。はたを おしたら「あいことばは？」と きく。こたえが「もみじ」なら、これまでの チャットを はじめ、ちがえば「あいことばが ちがいます」と いう。\nさらに くふう するなら: 3 かいまで ためせる ように する・みやぶられにくい あいことばに する。',
-    [`${C}chat-l5-password.step1`]: 'かだいの せつめいと、アクティビティずを りかいしよう。',
+    [`${C}chat-l5-password.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。ずでは、ひしがたから [こたえ = 「もみじ」] の えだに すすんだ ときだけ、いままでの チャット（「ずっと」の くりかえし）に はいる。[それいがい] の えだでは「あいことばが ちがいます」と いって おわる。',
     [`${C}chat-l5-password.step4`]:
         'さいしょから はいっているのは 4-3 の チャット。シマラビが きいて おくり、シマネコが あいての メッセージを いう（みぎしたで シマネコを えらぶと みられる）。',
     [`${C}chat-l5-password.step5`]:
@@ -987,7 +997,7 @@ export const jaHira = {
     [`${C}chat-l5-password.step6`]:
         'その したに 「せいぎょ」の「もし 〜 なら でなければ」を つなげよう。じょうけんには 「えんざん」の「(こたえ) = (もみじ)」を いれ、「でなければ」に「あいことばが ちがいます と 2 びょう いう」を いれる。',
     [`${C}chat-l5-password.step7`]:
-        '「メッセージを にゅうりょく と きいてまつ」と「ずっと」を、「もし」の なかへ うごかそう。',
+        '「メッセージを にゅうりょく と きいてまつ」と「ずっと」が「もし」の なかに くるように うごかそう（もう はいっていれば、その ままで よい）。',
     [`${C}chat-l5-password.step8`]:
         'はたを おして、ちがう ことばを いれてみよう。「あいことばが ちがいます」と いうか みたら、もう いちど はたを おして「もみじ」を いれ、メッセージを おくってみよう。',
     [`${C}chat-l5-password.debug1`]:
@@ -1005,7 +1015,8 @@ export const jaHira = {
     [`${C}chat-l5-stamp.name`]: 'スタンプを おくろう',
     [`${C}chat-l5-stamp.task`]:
         'えで きもちを つたえよう。シマラビを おしたら メッセージ「シマラビのスタンプ」を おくる。「シマネコのスタンプ」を うけとったら、シマネコの コスチュームを「shimacat-b」に して 2 びょう まち、「shimacat-a」に もどす。\nへんすうは つかわず、メッセージだけで おくれる。\nさらに くふう するなら: 2 つの スタンプから えらんで おくる（ばんごうを へんすうで おくる）。',
-    [`${C}chat-l5-stamp.step1`]: 'かだいの せつめいと、アクティビティずを りかいしよう。',
+    [`${C}chat-l5-stamp.step1`]:
+        'かだいの せつめいと、アクティビティずを りかいしよう。シマラビの「シマラビのスタンプをおくる」（みぎはしが とがった ずけい）からの やじるしは あいてに とどき、あいての「シマネコのスタンプをおくる」（ひだりはしが とがった ずけい）からの やじるしは、シマネコの「シマネコのスタンプをうけとったとき」（みぎはしが くぼんだ ずけい）に とどく。',
     [`${C}chat-l5-stamp.step4`]:
         'さいしょから はいっているのは 4-3 の チャット。シマラビが きいて おくり、シマネコが あいての メッセージを いう（みぎしたで シマネコを えらぶと みられる）。',
     [`${C}chat-l5-stamp.step5`]:
@@ -1015,7 +1026,7 @@ export const jaHira = {
     [`${C}chat-l5-stamp.step7`]:
         'ひとりなら、シマラビを おそう（れんしゅうあいてが スタンプを かえしてくれる）。パネルの「スタンプを おくる」を おしても、シマネコの コスチュームが 2 びょう かわる。ペアなら、おたがいに おしてみよう。',
     [`${C}chat-l5-stamp.step8`]:
-        'はたを おして、メッセージと スタンプの りょうほうを おくってみよう。メッセージは いままで どおり シマラビから おくれる。',
+        'はたを おして、メッセージと スタンプの りょうほうを おくってみよう。メッセージは いままで どおり シマラビから おくれる（ひとりなら、れんしゅうあいての「とどいたよ」を シマネコが いう）。',
     [`${C}chat-l5-stamp.debug1`]:
         'シマネコが かわらない ときは、「うけとったとき」の ▼ が「シマネコのスタンプ」か、おくるのが「シマラビのスタンプ」か みよう。',
     [`${C}chat-l5-stamp.debug2`]:
@@ -1413,7 +1424,8 @@ export const en = {
     [`${C}chat-l5-read-receipt.name`]: 'Notify and Mark as Read',
     [`${C}chat-l5-read-receipt.task`]:
         'Let a sound tell you that a message has arrived, and tell the other side that you have read it. Shimacat plays the sound "Meow" after saying the message of the other side. When Shimacat is clicked, it broadcasts the message "shimaraby_read". When Shimaraby receives "shimacat_read", it says "Read" for 2 seconds.\nTo go further: add the time to "Read", or show how many messages are not read yet.',
-    [`${C}chat-l5-read-receipt.step1`]: 'Understand the task and the activity diagram.',
+    [`${C}chat-l5-read-receipt.step1`]:
+        'Understand the task and the activity diagram. The arrows from the other side\'s "broadcast" (the shapes with a pointed left end) come into "when I receive shimacat_read" of Shimaraby and "when I receive shimacat_message" of Shimacat (both shapes with a notched right end).',
     [`${C}chat-l5-read-receipt.step4`]:
         '**Select Shimacat**. Under "say" in "when I receive shimacat_message" that is already there, attach the Sound block "start sound Meow".',
     [`${C}chat-l5-read-receipt.step5`]:
@@ -1439,15 +1451,16 @@ export const en = {
     [`${C}chat-l5-ng-word.name`]: "Don't Send Bad Words",
     [`${C}chat-l5-ng-word.task`]:
         'If the word you typed is in the list "ng_words", do not send it and say "You can\'t send that word". If it is not, send it as before. The program of the stage prepares the list when the flag is clicked.\nTo go further: also stop "you stupid thing" (check each word of the list against what you typed).',
-    [`${C}chat-l5-ng-word.step1`]: 'Understand the task and the activity diagram.',
+    [`${C}chat-l5-ng-word.step1`]:
+        'Understand the task and the activity diagram. The flow splits at the diamond. If the word is in the list, it only says the warning. Only on the [else] branch does it go through "broadcast" (the shape with a pointed right end).',
     [`${C}chat-l5-ng-word.step4`]:
         'What is already there is the chat of 4-3: Shimaraby asks and sends, and Shimacat says the message of the other side (select Shimacat at the bottom right to see it).',
     [`${C}chat-l5-ng-word.step5`]:
         'The stage has a program that empties the list "ng_words" and adds "stupid" and "idiot" when the flag is clicked (select the stage at the bottom right to see it).',
     [`${C}chat-l5-ng-word.step6`]:
-        '**Select Shimaraby again** and put the Control block "if then else" at the top inside "forever". Put the Variables block "(ng_words) contains (answer)?" into the condition, and put "say You can\'t send that word for 2 seconds" into "if".',
+        '**Select Shimaraby again** and put the Control block "if then else" at the very top inside "forever". Put the Variables block "(ng_words) contains ( )?" into the condition, and put the Sensing block "answer" into its white space. Put "say You can\'t send that word for 2 seconds" into "if".',
     [`${C}chat-l5-ng-word.step7`]:
-        'Move "set shimaraby_message to (answer)" and "broadcast" into "else". Keep "ask (shimaraby_message) and wait" under "if" (inside "forever").',
+        'Move the blocks so that "set shimaraby_message to (answer)" and "broadcast" are inside "else", and "ask (shimaraby_message) and wait" is under "if then else" (inside "forever").',
     [`${C}chat-l5-ng-word.step8`]:
         'Click the flag and type "stupid" and an ordinary word. Check that "stupid" is not sent and the ordinary word appears in "Reached Shimacat" on the practice partner panel (in a pair, on the screen of your pair).',
     [`${C}chat-l5-ng-word.debug1`]:
@@ -1465,7 +1478,8 @@ export const en = {
     [`${C}chat-l5-auto-reply.name`]: 'Reply Automatically at Night',
     [`${C}chat-l5-auto-reply.task`]:
         'When a message comes at night, reply automatically. When Shimaraby receives "shimacat_message" and the current hour is greater than 21, set the variable "shimaraby_message" to "I am sleeping now. I will reply in the morning" and broadcast the message "shimaraby_message".\nTo try it in the daytime, change 21 to a number smaller than the hour now, check how it works, and then change it back to 21.\nTo go further: also reply before 7 in the morning (use "or"), or add the timer that tells you that you are using it too long (lesson 2-2).',
-    [`${C}chat-l5-auto-reply.step1`]: 'Understand the task and the activity diagram.',
+    [`${C}chat-l5-auto-reply.step1`]:
+        'Understand the task and the activity diagram. The arrows from the other side\'s "broadcast" (the shapes with a pointed left end) come into "when I receive shimacat_message" of both Shimacat and Shimaraby (the shapes with a notched right end). Shimaraby sends the automatic reply only on the branch of the condition at the next diamond.',
     [`${C}chat-l5-auto-reply.step4`]:
         'What is already there is the chat of 4-3: Shimaraby asks and sends, and Shimacat says the message of the other side (select Shimacat at the bottom right to see it).',
     [`${C}chat-l5-auto-reply.step5`]:
@@ -1473,7 +1487,7 @@ export const en = {
     [`${C}chat-l5-auto-reply.step6`]:
         'Attach the Control block "if then". Put the Operators block "(　) > (21)" into the condition, and put the Sensing block "current (hour)" on its left.',
     [`${C}chat-l5-auto-reply.step7`]:
-        'Put "set shimaraby_message to (I am sleeping now. I will reply in the morning)" and "broadcast shimaraby_message" into "if".',
+        'Put "set shimaraby_message to (I am sleeping now. I will reply in the morning)" and "broadcast" into "if", and choose "shimaraby_message" in the ▼ of "broadcast".',
     [`${C}chat-l5-auto-reply.step8`]:
         'In the daytime, change 21 to a number smaller than the hour now (for example 0). Click "Hello" on the practice partner panel, and the automatic reply appears in "Reached Shimacat" on the panel. Then change it back to 21. In a pair, only one of you makes the number smaller.',
     [`${C}chat-l5-auto-reply.step9`]:
@@ -1481,7 +1495,7 @@ export const en = {
     [`${C}chat-l5-auto-reply.debug1`]:
         'If no reply comes, check that the number in "if" is smaller than the hour now and the ▼ of "when I receive" is "shimacat_message".',
     [`${C}chat-l5-auto-reply.debug2`]:
-        'If the replies never stop, the automatic replies of both of the pair are working. One of you changes the number back to 21.',
+        'If the replies never stop, check that the ▼ of "broadcast" is "shimaraby_message". They also go on when the automatic replies of both of the pair are working, so one of you changes the number back to 21.',
     [`${C}chat-l5-auto-reply.quiz.question`]:
         'You want to reply automatically before 8 in the morning "or" after 5 in the evening, but you join the two conditions with "and". What happens?',
     [`${C}chat-l5-auto-reply.quiz.choice1`]: 'It never replies',
@@ -1493,14 +1507,16 @@ export const en = {
     [`${C}chat-l5-password.name`]: 'Enter with a Password',
     [`${C}chat-l5-password.task`]:
         'Let only the people who know the password chat. When the flag is clicked, ask "Password?". If the answer is "maple", start the chat as before. If not, say "Wrong password".\nTo go further: allow up to 3 tries, or use a password that is hard to guess.',
-    [`${C}chat-l5-password.step1`]: 'Understand the task and the activity diagram.',
+    [`${C}chat-l5-password.step1`]:
+        'Understand the task and the activity diagram. Only on the branch [answer = "maple"] from the diamond does it go into the chat as before (the "forever" loop). On the [else] branch, it says "Wrong password" and ends.',
     [`${C}chat-l5-password.step4`]:
         'What is already there is the chat of 4-3: Shimaraby asks and sends, and Shimacat says the message of the other side (select Shimacat at the bottom right to see it).',
     [`${C}chat-l5-password.step5`]:
         '**Select Shimaraby again**. Right under "when flag clicked", put the Sensing block "ask Password? and wait".',
     [`${C}chat-l5-password.step6`]:
         'Under it, attach the Control block "if then else". Put the Operators block "(answer) = (maple)" into the condition, and put "say Wrong password for 2 seconds" into "else".',
-    [`${C}chat-l5-password.step7`]: 'Move "ask Enter a message and wait" and "forever" into "if".',
+    [`${C}chat-l5-password.step7`]:
+        'Move "ask Enter a message and wait" and "forever" so that they are inside "if" (if they are already there, leave them).',
     [`${C}chat-l5-password.step8`]:
         'Click the flag and type a wrong word. After checking that it says "Wrong password", click the flag again, type "maple" and send a message.',
     [`${C}chat-l5-password.debug1`]:
@@ -1518,7 +1534,8 @@ export const en = {
     [`${C}chat-l5-stamp.name`]: 'Send a Stamp',
     [`${C}chat-l5-stamp.task`]:
         'Tell your feelings with a picture. When Shimaraby is clicked, broadcast the message "shimaraby_stamp". When "shimacat_stamp" is received, switch the costume of Shimacat to "shimacat-b", wait 2 seconds and switch it back to "shimacat-a".\nYou can send it with a message only, without a variable.\nTo go further: choose one of two stamps to send (send its number in a variable).',
-    [`${C}chat-l5-stamp.step1`]: 'Understand the task and the activity diagram.',
+    [`${C}chat-l5-stamp.step1`]:
+        'Understand the task and the activity diagram. The arrow from "broadcast shimaraby_stamp" of Shimaraby (the shape with a pointed right end) goes to the other side, and the arrow from the other side\'s "broadcast shimacat_stamp" (the shape with a pointed left end) comes into "when I receive shimacat_stamp" of Shimacat (the shape with a notched right end).',
     [`${C}chat-l5-stamp.step4`]:
         'What is already there is the chat of 4-3: Shimaraby asks and sends, and Shimacat says the message of the other side (select Shimacat at the bottom right to see it).',
     [`${C}chat-l5-stamp.step5`]:
@@ -1528,7 +1545,7 @@ export const en = {
     [`${C}chat-l5-stamp.step7`]:
         'On your own, click Shimaraby (the practice partner sends a stamp back). Clicking "Send a stamp" on the panel also changes the costume of Shimacat for 2 seconds. In a pair, click on both sides.',
     [`${C}chat-l5-stamp.step8`]:
-        'Click the flag and send both messages and stamps. Shimaraby sends messages as before.',
+        'Click the flag and send both messages and stamps. Shimaraby sends messages as before (on your own, Shimacat says "Got it" from the practice partner).',
     [`${C}chat-l5-stamp.debug1`]:
         'If Shimacat does not change, check that the ▼ of "when I receive" is "shimacat_stamp" and you broadcast "shimaraby_stamp".',
     [`${C}chat-l5-stamp.debug2`]:

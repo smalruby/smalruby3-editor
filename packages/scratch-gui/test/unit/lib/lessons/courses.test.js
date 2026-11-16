@@ -933,7 +933,22 @@ describe('lesson courses', () => {
                     .map((line) => line.replace(/ do$/, ''));
                 expect(hats.length).toBeGreaterThan(0);
                 const drawn = c.steps.map((s) => localizeCode(s.blocks, locale) || '');
-                hats.forEach((hat) => {
+                // 最初から入っているプログラムのスクリプト（そのまま残るもの）は、生徒が置かないので描かなくてよい
+                // （2 つのスプライトの最初のプログラムを説明するページは、絵を描かずに文で書く）
+                const scriptsOf = (one) =>
+                    (localizeCode(one, locale) || '')
+                        .split(/\n(?=when_)/)
+                        .map((script) => script.trim())
+                        .filter((script) => /^when_\w+/.test(script));
+                const setup = c.setup || {};
+                const given = [setup.code, setup.stageCode, ...(setup.spriteCodes || []).map((s) => s.code)].flatMap(
+                    scriptsOf,
+                );
+                const kept = [c.code, ...c.spriteCodes.map((s) => s.code)]
+                    .flatMap(scriptsOf)
+                    .filter((script) => given.includes(script))
+                    .map((script) => script.split('\n')[0].replace(/ do$/, ''));
+                hats.filter((hat) => !kept.includes(hat)).forEach((hat) => {
                     expect({
                         id: c.id,
                         hat,
@@ -2056,7 +2071,7 @@ describe('chat course lesson 5 "チャットを改良しよう" (#1645)', () => 
         });
     });
 
-    test('the practice partners: 5-1 talks and reads, 5-3 has no automatic reply, 5-5 sends stamps', () => {
+    test('the practice partners: 5-1 talks and reads, 5-3 has no automatic reply, 5-5 sends stamps and replies', () => {
         const pair = normalizePartner(challenge('chat-l4-both-ways').partner, 'ja');
         ['chat-l5-ng-word', 'chat-l5-password'].forEach((id) =>
             expect(normalizePartner(challenge(id).partner, 'ja')).toEqual(pair),
@@ -2073,9 +2088,12 @@ describe('chat course lesson 5 "チャットを改良しよう" (#1645)', () => 
         expect(auto.replies).toEqual([]);
         const stamp = normalizePartner(challenge('chat-l5-stamp').partner, 'ja');
         expect(stamp.buttons.map((b) => [b.label, b.broadcast])).toEqual([['スタンプを送る', 'シマネコのスタンプ']]);
+        // 「とどいたよ」の返事も残す（最初から入っている、相手のメッセージを言うプログラムが動くように）
         expect(stamp.replies.map((r) => [r.onBroadcast, r.broadcast])).toEqual([
+            ['シマラビのメッセージ', 'シマネコのメッセージ'],
             ['シマラビのスタンプ', 'シマネコのスタンプ'],
         ]);
+        expect(stamp.replies[0]).toEqual(pair.replies[0]);
     });
 
     test('the names that reach the other side over the mesh are the same in ja and ja-Hira', () => {
