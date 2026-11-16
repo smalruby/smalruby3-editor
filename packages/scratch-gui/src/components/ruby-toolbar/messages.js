@@ -137,6 +137,11 @@ const messages = defineMessages({
         defaultMessage: 'Insert class',
         description: 'Label for insert class menu item in More menu',
     },
+    copyProblemForm: {
+        id: 'gui.rubyToolbar.copyProblemForm',
+        defaultMessage: 'Copy in the form of the test questions',
+        description: 'More menu item of the Japanese mode: copy the program with line numbers and rules',
+    },
     previewRubyScript: {
         id: 'gui.rubyToolbar.previewRubyScript',
         defaultMessage: 'Preview Ruby script',

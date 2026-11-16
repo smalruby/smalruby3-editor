@@ -1961,6 +1961,8 @@ export default {
     'gui.rubyTab.dnclIndexShiftDone':
         '{count} か所の配列の添字を 1 ずつ減らしました（緑の印）。\n繰り返しの範囲（「i を 1 から n まで」など）は書き換えていません。0 始まりに合わせて、必要なら自分で直してください。',
     'gui.rubyTab.dnclIndexShiftChangedHeading': '書き換えた箇所:',
+    'gui.rubyTab.problemFormDone': 'できた',
+    'gui.rubyToolbar.copyProblemForm': '問題の形でコピー',
     'gui.rubyTab.dnclIndexShiftChangedItem': '{line} 行目: {before} → {after}',
     'gui.rubyTab.dnclIndexShiftSuspectsHeading': 'もしかしたらここも直す必要があるかもしれません（黄色の印）:',
     'gui.rubyTab.dnclIndexShiftSuspectItem': '{line} 行目: {text}（{reason}）',

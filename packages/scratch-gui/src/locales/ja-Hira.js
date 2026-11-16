@@ -2012,6 +2012,8 @@ export default {
     'gui.rubyTab.dnclIndexShiftDone':
         '{count} かしょのはいれつのそえじを 1 ずつへらしました（みどりのしるし）。\nくりかえしのはんい（「i を 1 から n まで」など）はかきかえていません。0 はじまりにあわせて、ひつようならじぶんでなおしてください。',
     'gui.rubyTab.dnclIndexShiftChangedHeading': 'かきかえたかしょ:',
+    'gui.rubyTab.problemFormDone': 'できた',
+    'gui.rubyToolbar.copyProblemForm': 'もんだいのかたちでコピー',
     'gui.rubyTab.dnclIndexShiftChangedItem': '{line} ぎょうめ: {before} → {after}',
     'gui.rubyTab.dnclIndexShiftSuspectsHeading':
         'もしかしたらここもなおすひつようがあるかもしれません（きいろのしるし）:',

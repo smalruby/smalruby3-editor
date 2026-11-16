@@ -1611,6 +1611,8 @@ export default {
     'gui.rubyTab.dnclIndexShiftDone':
         'Shifted {count} array indices down by 1 (marked in green).\nLoop ranges (such as "i を 1 から n まで") were not changed. Fix them yourself if they should start at 0.',
     'gui.rubyTab.dnclIndexShiftChangedHeading': 'Changed:',
+    'gui.rubyTab.problemFormDone': 'Done',
+    'gui.rubyToolbar.copyProblemForm': 'Copy in the form of the test questions',
     'gui.rubyTab.dnclIndexShiftChangedItem': 'Line {line}: {before} → {after}',
     'gui.rubyTab.dnclIndexShiftSuspectsHeading': 'These may also need fixing (marked in yellow):',
     'gui.rubyTab.dnclIndexShiftSuspectItem': 'Line {line}: {text} ({reason})',

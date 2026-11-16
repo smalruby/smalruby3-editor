@@ -121,6 +121,51 @@ $arrow-rounding: 0.125rem;
     border-bottom: 2px dotted #ffab19;
 }
 
+/* The problem form of the Japanese mode (Issue #1755): the rules of the blocks are drawn over
+   one space of the indent, so the text does not move. A bar runs the full height of the line so
+   the bars of the lines join; an L ends at the middle of its line. */
+.editorWrapper :global(.dncl-rule-bar),
+.editorWrapper :global(.dncl-rule-end) {
+    position: relative;
+}
+
+.editorWrapper :global(.dncl-rule-bar)::before,
+.editorWrapper :global(.dncl-rule-end)::before {
+    content: '';
+    position: absolute;
+    left: 0.3em;
+    border-left: 2px solid $text-primary;
+    pointer-events: none;
+}
+
+.editorWrapper :global(.dncl-rule-bar)::before {
+    top: -0.35em;
+    bottom: -0.35em;
+}
+
+.editorWrapper :global(.dncl-rule-end)::before {
+    top: -0.35em;
+    height: 0.95em;
+    width: 0.9em;
+    border-bottom: 2px solid $text-primary;
+}
+
+/* 「できた」: shows the problem form while writing in the Japanese mode */
+.problemFormDoneButton {
+    position: absolute;
+    top: 0.5rem;
+    right: 1.5rem;
+    z-index: $z-index-add-button;
+    padding: 0.25rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    background-color: $motion-primary;
+    color: $ui-white;
+    font-size: 0.875rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
 /* Value report bubble */
 .valueReportBubble {
     position: fixed;
