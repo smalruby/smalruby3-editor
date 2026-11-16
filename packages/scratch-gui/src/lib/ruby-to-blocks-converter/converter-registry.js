@@ -47,14 +47,14 @@ const ConverterRegistry = {
         }
 
         let methodToNumArgs = this._receiverToMethods[receiverName];
-        if (!methodToNumArgs) methodToNumArgs = this._receiverToMethods[receiverName] = {};
+        if (!methodToNumArgs) methodToNumArgs = this._receiverToMethods[receiverName] = Object.create(null);
 
         let numArgsToNumRubyBlockArgs = methodToNumArgs[name];
-        if (!numArgsToNumRubyBlockArgs) numArgsToNumRubyBlockArgs = methodToNumArgs[name] = {};
+        if (!numArgsToNumRubyBlockArgs) numArgsToNumRubyBlockArgs = methodToNumArgs[name] = Object.create(null);
 
         let numRubyBlockArgsToCreateBlockFuncs = numArgsToNumRubyBlockArgs[numArgs];
         if (!numRubyBlockArgsToCreateBlockFuncs) {
-            numRubyBlockArgsToCreateBlockFuncs = numArgsToNumRubyBlockArgs[numArgs] = {};
+            numRubyBlockArgsToCreateBlockFuncs = numArgsToNumRubyBlockArgs[numArgs] = Object.create(null);
         }
 
         let createBlockFuncs = numRubyBlockArgsToCreateBlockFuncs[numRubyBlockArgs];

@@ -27,7 +27,7 @@ const ReturnValueTemps = {
      * @param {object} methodBlock - The method block that is put before the statement.
      */
     _recordReturnValueSource(returnValueBlock, methodBlock) {
-        if (!this._context.returnValueSources) this._context.returnValueSources = {};
+        if (!this._context.returnValueSources) this._context.returnValueSources = Object.create(null);
         this._context.returnValueSources[returnValueBlock.id] = methodBlock.id;
     },
 

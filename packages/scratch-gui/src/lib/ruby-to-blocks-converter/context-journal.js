@@ -36,10 +36,11 @@ class ContextJournal {
      * Make a table that records its writes.
      * @param {string} name - The name of the table in the context (e.g. 'blocks').
      * @param {object} [initial] - The entries it starts with.
-     * @returns {object} The table (a proxy of a plain object).
+     * @returns {object} The table (a proxy of an object without a prototype, so that a key such as
+     *   `__proto__` or `constructor` is an entry like any other; issue #2034).
      */
-    wrap(name, initial = {}) {
-        const raw = {};
+    wrap(name, initial = Object.create(null)) {
+        const raw = Object.create(null);
         const seqs = new Map();
         this._stores[name] = { raw, seqs };
         Object.keys(initial).forEach((key) => {
@@ -216,7 +217,7 @@ class ContextJournal {
     }
 
     /**
-     * The entries a table had at a mark, as a plain object (a copy; for reading only).
+     * The entries a table had at a mark, as an object without a prototype (a copy; for reading only).
      * @param {{index: number}} mark - The mark.
      * @param {string} name - The name of the table.
      * @returns {object} The entries.
@@ -225,8 +226,8 @@ class ContextJournal {
         this._checkMark(mark);
         const { raw } = this._stores[name];
         const byKey = this._changesSince(mark).get(name);
-        if (!byKey) return Object.assign({}, raw);
-        const result = {};
+        if (!byKey) return Object.assign(Object.create(null), raw);
+        const result = Object.create(null);
         Object.keys(raw).forEach((key) => {
             const entry = byKey.get(key);
             if (!entry) {

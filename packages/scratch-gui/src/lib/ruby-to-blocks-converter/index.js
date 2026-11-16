@@ -49,8 +49,9 @@ class RubyToBlocksConverter extends Visitor {
             }
             return text;
         };
-        this._receiverToMethods = {};
-        this._receiverToMyBlocks = {};
+        // Keyed by method names: `toString` / `constructor` must not find Object.prototype (#2034).
+        this._receiverToMethods = Object.create(null);
+        this._receiverToMyBlocks = Object.create(null);
         this._onIfHandlers = [];
         this._onUntilHandlers = [];
         this._onOpAsgnHandlers = [];
