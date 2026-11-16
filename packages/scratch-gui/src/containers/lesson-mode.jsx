@@ -9,7 +9,7 @@ import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import LessonAssignmentBand from '../components/lesson-assignment-band/lesson-assignment-band.jsx';
 import LessonTaskBar from '../components/lesson-task-bar/lesson-task-bar.jsx';
-import { applyDeckSetup } from '../lib/deck-setup';
+import { applySetup } from '../lib/lessons/apply-setup';
 import { assignmentProgress, isAssignmentChallenge } from '../lib/lessons/assignment-progress';
 import { setupForChallenge } from '../lib/lessons/challenge-setup';
 import { findChallenge } from '../lib/lessons/courses';
@@ -115,7 +115,7 @@ const LessonMode = ({
         const found = findChallenge(pendingChallengeId);
         if (!found) return;
         const challengeId = pendingChallengeId;
-        applyDeckSetup(setupForChallenge(found.course, found.challenge), dispatch, vm)
+        applySetup(setupForChallenge(found.course, found.challenge), dispatch, vm)
             .catch((err) => {
                 // setup が失敗してもチャレンジは開く（拡張機能などは手で足せる）
                 // eslint-disable-next-line no-console
