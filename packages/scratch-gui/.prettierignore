@@ -102,8 +102,6 @@ src/components/*
 !src/components/lesson-progress-confirm/
 !src/components/lesson-progress-confirm/**
 !src/components/koshien-mock-panel/**
-!src/components/mesh-self-sensor-notice/
-!src/components/mesh-self-sensor-notice/**
 !src/components/mesh-status-button/
 !src/components/mesh-status-button/**
 !src/components/mesh-status-popup/
@@ -228,7 +226,6 @@ src/containers/*
 !src/containers/lesson-goal-watcher.jsx
 !src/containers/lesson-mode.jsx
 !src/containers/lessons-library.jsx
-!src/containers/mesh-self-sensor-notice.jsx
 !src/containers/mesh-status-popup.jsx
 !src/containers/mesh-v2-seat-connect.jsx
 !src/containers/google-drive-saver-hoc.jsx
@@ -323,7 +320,6 @@ src/lib/*
 !src/lib/mesh-v2-seat-connect.js
 !src/lib/mesh-v2-seat-label.js
 !src/lib/mesh-v2-seat-snapshot.js
-!src/lib/mesh-v2-sensor-collision.js
 !src/lib/mesh-v2-status.js
 !src/lib/mesh-practice/
 !src/lib/mesh-practice/**
@@ -546,7 +542,6 @@ test/unit/components/*
 !test/unit/components/lesson-completed-quiz.test.jsx
 !test/unit/components/lesson-assignment-band.test.jsx
 !test/unit/components/lesson-progress-confirm.test.jsx
-!test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/mesh-status-popup.test.jsx
 !test/unit/components/mesh-status-button.test.jsx
 !test/unit/components/mesh-v2-help-row.test.jsx
@@ -757,7 +752,6 @@ test/unit/lib/*
 !test/unit/lib/mesh-v2-seat-connect.test.js
 !test/unit/lib/mesh-v2-seat-label.test.js
 !test/unit/lib/mesh-v2-status.test.js
-!test/unit/lib/mesh-v2-sensor-collision.test.js
 !test/unit/lib/monaco-i18n-helper.test.js
 !test/unit/lib/display-mode-persistence.test.js
 !test/unit/lib/responsive-gui.test.jsx
