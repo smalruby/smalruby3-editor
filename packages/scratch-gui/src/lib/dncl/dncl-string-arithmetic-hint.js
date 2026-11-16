@@ -12,11 +12,14 @@
 import { codeOfLine, stringEndAt } from './dncl-trailing-comment';
 import { findMatchingClose, isNameChar, isWholeWordAt } from './paren-utils';
 
-/** Operators that work on numbers only (besides `-`). */
-const MULTIPLICATIVE = new Set(['*', '/', '%', '÷', '×']);
+/**
+ * Operators that work on numbers only (besides `-`). Full-width ones are read
+ * as the half-width ones (docs/dncl/policy.md).
+ */
+const MULTIPLICATIVE = new Set(['*', '/', '%', '÷', '×', '＊', '／', '％']);
 
 /** Minus signs (the hyphen and the ones that come from copied text). */
-const MINUS = new Set(['-', '−', '–']);
+const MINUS = new Set(['-', '−', '–', '－']);
 
 /**
  * Characters after which a new expression starts, so a `+` chain before them
@@ -134,7 +137,7 @@ const hasStringArithmetic = (code) => {
             i++;
             continue;
         }
-        if (ch === '+') {
+        if (ch === '+' || ch === '＋') {
             frame.expectOperand = true;
             i++;
             continue;
