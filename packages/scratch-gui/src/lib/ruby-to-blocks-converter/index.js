@@ -120,7 +120,11 @@ class RubyToBlocksConverter extends Visitor {
         this._loadVariables(target);
         this._indexSource(code);
         try {
-            const parseResult = await this._parse(code);
+            // Await only while prism is not loaded yet, and keep the stages synchronous: one more
+            // await delays the end of every conversion, and the Ruby tab then lost the error alert
+            // of a failed conversion when the sprite was changed (conversion-timing.test.js).
+            const prism = RubyParser.getPrism() || (await RubyParser.loadPrism());
+            const parseResult = this._parse(prism, code);
             if (!parseResult) {
                 return false;
             }
@@ -168,11 +172,11 @@ class RubyToBlocksConverter extends Visitor {
 
     /**
      * The parse stage: parse the code with prism. A syntax error is translated and put in `errors`.
+     * @param {object} prism - The loaded prism.
      * @param {string} code - The Ruby code.
-     * @returns {Promise<object|null>} The result of prism, or null when the code has syntax errors.
+     * @returns {object|null} The result of prism, or null when the code has syntax errors.
      */
-    async _parse(code) {
-        const prism = RubyParser.getPrism() || (await RubyParser.loadPrism());
+    _parse(prism, code) {
         const parseResult = prism.parse(code);
         if (parseResult.errors.length > 0) {
             parseResult.errors.forEach((e) => {

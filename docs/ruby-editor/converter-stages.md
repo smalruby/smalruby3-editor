@@ -71,7 +71,7 @@ Scratch のブロック
 - ソースの索引を **1 回だけ** 作る: バイト → 文字の表（いまの `_buildByteToCharMap`）、改行のバイト位置の表（行番号を二分探索で引く。試作で入れた `_newlineByteOffsets`）。
 - ノードの種類名は、本番のビルドでクラス名が変わるので `accept()` で調べる。`node-walk.js` の `nodeTypeName` が、ノードのクラスごとに一度だけ調べて覚える。変換（`visit` が呼ぶ `visitXxxNode` を決めるところも）と分析は、どちらもこれを使う。
 - 出すもの: `{ root, source, index, comments, errors }`。ブロックはまだ作らない。
-- いまの関数: `_indexSource(code)`（ソースとバイト → 文字の表を `_context` に置く。エラーの位置を出すのにどの段でも使うので、`try` の前に作る）と `_parse(code)`（prism の結果を返す。構文エラーは翻訳して `errors` に入れ、`null` を返す）。
+- いまの関数: `_indexSource(code)`（ソースとバイト → 文字の表を `_context` に置く。エラーの位置を出すのにどの段でも使うので、`try` の前に作る）と `_parse(prism, code)`（prism の結果を返す。読みこみ済みの prism を受けとる同期の関数で、prism を待つのは `targetCodeToBlocks` が読みこみ前のときだけ。待ちを 1 つ増やすと変換の終わりが遅れ、Ruby タブでスプライトを変えたときのエラーの知らせが消えた。構文エラーは翻訳して `errors` に入れ、`null` を返す）。
 
 ### 2. 分析（analyze）
 
