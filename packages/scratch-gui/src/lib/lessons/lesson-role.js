@@ -113,3 +113,28 @@ export const saveRememberedRole = ({ role, pair = null }, storage = defaultStora
         // 書けなくても、このチャレンジの役はそのまま使える
     }
 };
+
+/**
+ * いまつながっているメッシュのグループの出席番号（「出席番号でつながる」のグループ名から）。つながっていない・
+ * 拡張機能が無いときは空。通信はしない（拡張機能が覚えているグループ名を読むだけ）。
+ * @param {?object} vm - VM。
+ * @returns {Array<number>} 出席番号。
+ */
+export const connectedGroupSeats = (vm) => {
+    const ext = vm && vm.runtime && vm.runtime.peripheralExtensions ? vm.runtime.peripheralExtensions.meshV2 : null;
+    if (!ext || ext.connectionState !== 'connected' || !ext.meshService) return [];
+    return seatsOfGroupName(ext.meshService.groupName);
+};
+
+/**
+ * 役を変えたら作品を始めなおす必要があるか。最初から入っているプログラム（`setup.code` など）があると、
+ * そのプログラムの名前も役で変わるので、作品を新しくしてから入れなおす（無ければ文と答えを入れかえるだけ）。
+ * @param {object} challenge - チャレンジ。
+ * @returns {boolean} 始めなおすなら true。
+ */
+export const roleChangeRestarts = (challenge) => {
+    const setup = (challenge && challenge.setup) || {};
+    return Boolean(
+        setup.code || setup.stageCode || (Array.isArray(setup.spriteCodes) && setup.spriteCodes.length > 0),
+    );
+};

@@ -47,6 +47,7 @@ const baseProps = () => ({
     onHideHint: jest.fn(),
     onShowCompleted: jest.fn(),
     onOpenChallenge: jest.fn(),
+    onSetRole: jest.fn(),
     onRequestNewProject: jest.fn(),
     onShowHint: jest.fn(),
     onStartChallenge: jest.fn(),
@@ -317,7 +318,7 @@ describe('LessonMode container', () => {
         });
         await flush();
         expect(props.onRequestNewProject).toHaveBeenCalledTimes(1);
-        expect(props.onOpenChallenge).toHaveBeenCalledWith('blocks-l1-quiz');
+        expect(props.onOpenChallenge).toHaveBeenCalledWith('blocks-l1-quiz', null);
     });
 
     test('waits until a project is showing before starting a new one', () => {
@@ -391,7 +392,7 @@ describe('LessonMode container', () => {
             expect.objectContaining({ locale: 'en', toBlocks: expect.any(Function) }),
         );
         await flush();
-        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
+        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID, null);
     });
 
     const startedProps = (overrides = {}) => ({
@@ -421,7 +422,7 @@ describe('LessonMode container', () => {
             type: 'scratch-gui/project-changed/SET_PROJECT_CHANGED',
             changed: false,
         });
-        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
+        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID, null);
     });
 
     test('does not mark the project unchanged when the start changed nothing', async () => {
@@ -431,7 +432,7 @@ describe('LessonMode container', () => {
         await flush();
         await flush();
         expect(props.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ changed: false }));
-        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
+        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID, null);
     });
 
     test('opens the challenge even when the start fails', async () => {
@@ -442,7 +443,7 @@ describe('LessonMode container', () => {
         finishCreating(rerender, props);
         await flush();
         await flush();
-        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
+        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID, null);
     });
 
     test('converts the starting answer in the Ruby version of the setup, or the current one', async () => {
@@ -517,7 +518,7 @@ describe('LessonMode container', () => {
         rerender({ ...props, isAnyCreatingNewState: false, isShowingProject: true, isShowingWithoutId: true });
         await flush();
         await flush();
-        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
+        expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID, null);
     });
 
     // 課題バーが出る・消えると、ステージの列が上下に動く（大きさは変わらない）。ステージは
@@ -553,5 +554,165 @@ describe('LessonMode container', () => {
         expect(props.onStartChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
         unmount();
         expect(window.smalruby.startChallenge).toBeUndefined();
+    });
+});
+
+describe('LessonMode container: the role of a pair challenge (#2062)', () => {
+    beforeEach(() => {
+        window.localStorage.clear();
+        applyDeckSetup.mockClear();
+        applyChallengeStart.mockClear();
+    });
+
+    const startRole = (id, overrides = {}) => ({
+        ...baseProps(),
+        pendingChallengeId: id,
+        isAnyCreatingNewState: true,
+        isShowingProject: false,
+        isShowingWithoutId: false,
+        ...overrides,
+    });
+    const finish = (rerender, props) =>
+        rerender({ ...props, isAnyCreatingNewState: false, isShowingProject: true, isShowingWithoutId: true });
+    const seatGroupVm = (groupName) => {
+        const listeners = {};
+        return {
+            id: 'vm',
+            runtime: {
+                peripheralExtensions: { meshV2: { connectionState: 'connected', meshService: { groupName } } },
+                on: (name, fn) => {
+                    listeners[name] = fn;
+                },
+                removeListener: () => {},
+                getTargetForStage: () => null,
+            },
+            emit: (name) => listeners[name] && listeners[name](),
+        };
+    };
+
+    test('a challenge without roles opens without a role', async () => {
+        const props = startRole('chat-l3-mesh-signal');
+        const { rerender } = renderLessonMode(props);
+        finish(rerender, props);
+        await flush();
+        await flush();
+        expect(props.onOpenChallenge).toHaveBeenCalledWith('chat-l3-mesh-signal', null);
+    });
+
+    test('the remembered Shimacat role starts the challenge with the swapped programs', async () => {
+        window.localStorage.setItem('smalruby:lessonRole', JSON.stringify({ role: 'shimacat', pair: null }));
+        const props = startRole('chat-l4-send-repeat');
+        const { rerender } = renderLessonMode(props);
+        finish(rerender, props);
+        await flush();
+        await flush();
+        const setup = applyChallengeStart.mock.calls[0][1];
+        expect(setup.sprites).toEqual(['Shimacat', 'Shimaraby']);
+        expect(setup.code.ja).toContain('$シマネコのメッセージ');
+        expect(props.onOpenChallenge).toHaveBeenCalledWith('chat-l4-send-repeat', {
+            role: 'shimacat',
+            source: 'remembered',
+            pair: null,
+        });
+    });
+
+    test('in a seat pair, the larger seat plays Shimacat', async () => {
+        const { buildGroupName, withSeatSuffix } = jest.requireActual(
+            '@smalruby/scratch-vm/src/extensions/scratch3_mesh_v2/seat-naming',
+        );
+        const vm = seatGroupVm(buildGroupName(withSeatSuffix('abcdef12', 3), { seats: [7], host: 3 }));
+        const props = startRole('chat-l3-mesh-variable', { vm, mySeat: 7 });
+        const { rerender } = renderLessonMode(props);
+        finish(rerender, props);
+        await flush();
+        await flush();
+        expect(props.onOpenChallenge).toHaveBeenCalledWith('chat-l3-mesh-variable', {
+            role: 'shimacat',
+            source: 'seat',
+            pair: '3-7',
+        });
+    });
+
+    test('starting again in the chosen role uses that role', async () => {
+        const props = startRole('chat-l4-both-ways', { pendingRole: 'shimacat', pendingRoleSource: 'chosen' });
+        const { rerender } = renderLessonMode(props);
+        finish(rerender, props);
+        await flush();
+        await flush();
+        expect(props.onOpenChallenge).toHaveBeenCalledWith(
+            'chat-l4-both-ways',
+            expect.objectContaining({ role: 'shimacat', source: 'chosen' }),
+        );
+    });
+
+    const openRole = (id, overrides = {}) => {
+        const found = findChallenge(id);
+        return {
+            ...baseProps(),
+            current: { course: found.course, lesson: found.lesson, challenge: found.challenge },
+            role: { role: 'shimaraby', source: 'default' },
+            ...overrides,
+        };
+    };
+
+    test('the role buttons are shown, and choosing changes the role in place without starting programs', () => {
+        const props = openRole('chat-l3-mesh-variable');
+        const { getByTestId } = renderLessonMode(props);
+        expect(getByTestId('lesson-task-bar-role-shimaraby')).toHaveAttribute('aria-pressed', 'true');
+        fireEvent.click(getByTestId('lesson-task-bar-role-shimacat'));
+        expect(props.onSetRole).toHaveBeenCalledWith('shimacat', { roleSource: 'chosen', rolePair: undefined });
+        expect(props.onStartChallenge).not.toHaveBeenCalled();
+    });
+
+    test('choosing the other role starts again when the challenge starts with programs', () => {
+        const props = openRole('chat-l5-stamp');
+        const { getByTestId } = renderLessonMode(props);
+        fireEvent.click(getByTestId('lesson-task-bar-role-shimacat'));
+        expect(props.onStartChallenge).toHaveBeenCalledWith('chat-l5-stamp', {
+            fromAssignment: false,
+            role: 'shimacat',
+            roleSource: 'chosen',
+        });
+        expect(props.onSetRole).not.toHaveBeenCalled();
+    });
+
+    test('shows how the role was decided ("Last time" / "Decided by seat number")', () => {
+        const props = openRole('chat-l3-mesh-variable', { role: { role: 'shimacat', source: 'remembered' } });
+        const { getByTestId, rerender } = renderLessonMode(props);
+        expect(getByTestId('lesson-task-bar-role-note')).toHaveTextContent('Last time: Shimacat');
+        rerender({ ...props, role: { role: 'shimacat', source: 'seat' } });
+        expect(getByTestId('lesson-task-bar-role-note')).toHaveTextContent('Decided by seat number');
+    });
+
+    test('connecting to a seat pair decides the role unless the student chose one', () => {
+        const { buildGroupName, withSeatSuffix } = jest.requireActual(
+            '@smalruby/scratch-vm/src/extensions/scratch3_mesh_v2/seat-naming',
+        );
+        const vm = seatGroupVm(buildGroupName(withSeatSuffix('abcdef12', 3), { seats: [7], host: 3 }));
+        const props = openRole('chat-l3-mesh-variable', { vm, mySeat: 7 });
+        renderLessonMode(props);
+        act(() => vm.emit('PERIPHERAL_CONNECTED'));
+        expect(props.onSetRole).toHaveBeenCalledWith('shimacat', { roleSource: 'seat', rolePair: '3-7' });
+
+        const chosen = openRole('chat-l3-mesh-variable', {
+            vm,
+            mySeat: 7,
+            role: { role: 'shimaraby', source: 'chosen' },
+        });
+        renderLessonMode(chosen);
+        act(() => vm.emit('PERIPHERAL_CONNECTED'));
+        expect(chosen.onSetRole).not.toHaveBeenCalled();
+    });
+
+    test('a seat pair after the student changed the project does not start again', () => {
+        const { buildGroupName, withSeatSuffix } = jest.requireActual(
+            '@smalruby/scratch-vm/src/extensions/scratch3_mesh_v2/seat-naming',
+        );
+        const vm = seatGroupVm(buildGroupName(withSeatSuffix('abcdef12', 3), { seats: [7], host: 3 }));
+        const props = openRole('chat-l5-stamp', { vm, mySeat: 7, projectChanged: true });
+        renderLessonMode(props);
+        act(() => vm.emit('PERIPHERAL_CONNECTED'));
+        expect(props.onStartChallenge).not.toHaveBeenCalled();
+        expect(props.onSetRole).not.toHaveBeenCalled();
     });
 });
