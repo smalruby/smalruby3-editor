@@ -2044,8 +2044,9 @@ const chatLesson4 = defineLesson({
             },
             steps: withDiagramFirst('chat-l4-group', [
                 connectStep('group'),
-                // 最初から入っているシマネコのプログラム（みんなの発言を言う）
-                { target: HINT_TARGETS.CODE_AREA, blocks: chatL4GroupReceive },
+                // 最初から入っているプログラムを見る（シマラビ、シマネコの順に押す）。2 つのスプライトのプログラムは
+                // 吹き出しに入りきらないので、ブロックの絵は出さない（教員レビュー）
+                { target: HINT_TARGETS.SPRITE_LIST },
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL4Code(
@@ -2113,7 +2114,21 @@ const chatLesson4 = defineLesson({
                     {
                         label: chatL4Text('dmYou'),
                         set: [
-                            { variable: chatL4Text('to'), value: { fromVariable: chatL4Text('nameVar') } },
+                            // 押したときの生徒の名前（変数「なまえ」。判定が通す「名前」「name」でもよい）。まだ名前を
+                            // 入れていなければ送らず、パネルに「先に入れよう」と出す（空のあて先で送ると、押しても何も
+                            // 起きないように見える）
+                            {
+                                variable: chatL4Text('to'),
+                                value: {
+                                    fromVariable: chatL4Text('nameVar'),
+                                    orVariables: {
+                                        ja: ['名前', 'name'],
+                                        'ja-Hira': ['name'],
+                                        en: ['なまえ', '名前'],
+                                    },
+                                    required: true,
+                                },
+                            },
                             { variable: chatL4Text('group'), value: chatL4Text('secret') },
                         ],
                         broadcast: chatL4Text('group'),

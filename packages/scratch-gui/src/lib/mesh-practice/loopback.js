@@ -160,28 +160,59 @@ export const attachPracticeLoopback = ({
         return svc.remoteData[nodeId] || null;
     };
 
-    // 生徒の作品の変数（ふつうの変数）の値。ステージ（すべてのスプライト用）を先に、なければスプライトの変数
-    const studentVariableValue = (name) => {
+    // 生徒の作品の変数（ふつうの変数）。ステージ（すべてのスプライト用）を先に、なければスプライトの変数。
+    // 無ければ null
+    const studentVariable = (name) => {
         const targets = (runtime.targets || []).filter((t) => t.isOriginal !== false);
         const ordered = [...targets.filter((t) => t.isStage), ...targets.filter((t) => !t.isStage)];
         for (const target of ordered) {
             const variable = Object.values(target.variables || {}).find(
                 (v) => v.name === name && v.type === SCALAR_TYPE,
             );
-            if (variable) return String(variable.value);
+            if (variable) return variable;
         }
-        return '';
+        return null;
     };
 
-    // `{name, fromVariable}` は、入れるとき（押したとき・返事のとき）の生徒の変数の値を使う（レッスンの D4）
+    // `{fromVariable, orVariables}` の値（入れるとき＝押したとき・返事のときの値。レッスンの D4）。
+    // `fromVariable` が無ければ `orVariables` を順に探す。どれも無ければ null
+    const resolveFromVariable = ({ fromVariable, orVariables = [] }) => {
+        for (const name of [fromVariable, ...orVariables]) {
+            const variable = studentVariable(name);
+            if (variable) return variable;
+        }
+        return null;
+    };
+
+    // `required` の値がまだ入っていない: 変数が無い・空・作ったときのまま（Scratch の新しい変数は数の 0。
+    // 「聞いて待つ」の答えは文字なので、0 と入力したときは文字の "0" になり、入っている扱いにする）
+    const isUnset = (variable) => !variable || variable.value === 0 || String(variable.value ?? '').trim() === '';
+
+    /**
+     * 動く前に、`required` の値が入っているか見る。
+     * @param {object} action - ボタン・自動の返事。
+     * @returns {?string} 入っていない変数の名前（`fromVariable`）。全部入っていれば null。
+     */
+    const missingRequired = (action) => {
+        const set = Array.isArray(action.set) ? action.set : [];
+        const missing = set.find(
+            (one) => one.required && typeof one.fromVariable === 'string' && isUnset(resolveFromVariable(one)),
+        );
+        return missing ? missing.fromVariable : null;
+    };
+
     const setPartnerVariables = (set) => {
         if (!Array.isArray(set) || set.length === 0) return;
         const node = partnerNode(true);
         if (!node) return;
         const timestamp = now();
-        set.forEach(({ name, value, fromVariable }) => {
-            const resolved = typeof fromVariable === 'string' ? studentVariableValue(fromVariable) : value;
-            node[name] = { value: clampValue(resolved), timestamp };
+        set.forEach((one) => {
+            let resolved = one.value;
+            if (typeof one.fromVariable === 'string') {
+                const variable = resolveFromVariable(one);
+                resolved = variable ? String(variable.value) : '';
+            }
+            node[one.name] = { value: clampValue(resolved), timestamp };
         });
     };
 
@@ -227,16 +258,20 @@ export const attachPracticeLoopback = ({
         onSuspend();
     };
 
-    // ボタン・自動の返事のどちらも、set → broadcast の順
+    // ボタン・自動の返事のどちらも、set → broadcast の順。`required` の値がまだ入っていなければ何もしない
+    // （空のあて先で送ると、送ったのに何も起きないように見える）。戻り値で呼んだ側に知らせる
     const act = (action) => {
-        if (!action) return;
+        if (!action) return null;
         if (!allowed()) {
             // つなぎ始めたあとに押された・返事のタイマーが来たときは何もせず、入れた値も残さない
             if (attached) suspend();
-            return;
+            return null;
         }
+        const missingVariable = missingRequired(action);
+        if (missingVariable !== null) return { missingVariable };
         setPartnerVariables(action.set);
         if (action.broadcast) receiveBroadcast(action.broadcast, clampValue(action.value));
+        return { done: true };
     };
 
     const scheduleReplies = (messageName) => {
@@ -313,11 +348,15 @@ export const attachPracticeLoopback = ({
     runtime.on('BEFORE_STEP', onBeforeStep);
 
     return {
-        /** @param {number} index - `partner.buttons` の番号。 */
+        /**
+         * @param {number} index - `partner.buttons` の番号。
+         * @returns {?object} `{done: true}`（動いた）か `{missingVariable}`（`required` の変数がまだ空で、
+         *   何もしなかった）。押せなかった（ボタンが無い・本物のメッシュでつないでいる）ときは null。
+         */
         press: (index) => {
             const current = getPartner();
             const button = current && Array.isArray(current.buttons) ? current.buttons[index] : null;
-            if (button) act(button);
+            return button ? act(button) : null;
         },
         act,
         /**

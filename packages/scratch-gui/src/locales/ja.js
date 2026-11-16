@@ -1887,6 +1887,7 @@ export default {
     'gui.lessonPracticePartner.receivedHeading': '{name}に届いた',
     'gui.lessonPracticePartner.variableName': '← {name}',
     'gui.lessonPracticePartner.nothingReceived': '（まだ何も届いていない）',
+    'gui.lessonPracticePartner.missingVariable': '「{name}」がまだ空。先に旗を押して入れよう。',
     'gui.lessonPracticePartner.open': '練習相手',
     'gui.lessonHint.ariaLabel': 'ヒント',
     'gui.lessonHint.position': 'ヒント {number} / {count}',

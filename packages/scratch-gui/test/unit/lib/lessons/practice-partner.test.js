@@ -118,6 +118,31 @@ describe('normalizePartner', () => {
         expect(partner.buttons[0].set).toEqual([{ name: 'あて先', fromVariable: 'name' }]);
     });
 
+    test('fromVariable may list other names and be required (the DM to you of 4-5)', () => {
+        const partner = normalizePartner(
+            {
+                buttons: [
+                    {
+                        label: 'DM',
+                        set: {
+                            variable: 'あて先',
+                            value: {
+                                fromVariable: { ja: 'なまえ', en: 'name' },
+                                orVariables: ['なまえ', '名前', 'name'],
+                                required: true,
+                            },
+                        },
+                    },
+                ],
+            },
+            'ja',
+        );
+        // fromVariable と同じ名前は orVariables に入れない
+        expect(partner.buttons[0].set).toEqual([
+            { name: 'あて先', fromVariable: 'なまえ', orVariables: ['名前', 'name'], required: true },
+        ]);
+    });
+
     test('a value may be written per locale (the mood of 3-3, #1643)', () => {
         const def = {
             buttons: [
@@ -587,6 +612,85 @@ describe('attachPracticeLoopback', () => {
         expect(fake.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].あて先.value).toBe('たろう');
         loop.press(1);
         expect(fake.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].あて先.value).toBe('');
+        loop.detach();
+    });
+
+    // 4-5 の「あなたに DM」（教員レビュー）: 押したときの生徒の名前（なまえ）をあて先にして送る。名前がまだ空なら
+    // 何もせず、空の変数の名前を返す（パネルが「先に入れよう」と出す）
+    const dmPartner = () =>
+        normalizePartner(
+            {
+                buttons: [
+                    {
+                        label: 'あなたに DM',
+                        set: [
+                            {
+                                variable: 'あてさき',
+                                value: { fromVariable: 'なまえ', orVariables: ['名前', 'name'], required: true },
+                            },
+                            { variable: 'メッセージ', value: 'シマネコ：ないしょだよ' },
+                        ],
+                        broadcast: 'メッセージ',
+                    },
+                    {
+                        label: 'ミミに DM',
+                        set: [
+                            { variable: 'あてさき', value: 'ミミ' },
+                            { variable: 'メッセージ', value: 'シマネコ：ミミにだけ' },
+                        ],
+                        broadcast: 'メッセージ',
+                    },
+                ],
+            },
+            'ja',
+        );
+
+    test('DM to you sends to the name the student entered, read when pressed (4-5)', () => {
+        const fake = makeVm();
+        const name = { id: 'v5', name: 'なまえ', type: '', value: 0 };
+        fake.runtime.targets[0].variables.v5 = name;
+        let clock = 1000;
+        const loop = attachPracticeLoopback({
+            vm: fake.vm,
+            partner: dmPartner(),
+            now: () => clock,
+            timers: makeTimers(),
+        });
+        const node = () => fake.meshService.remoteData[PRACTICE_PARTNER_NODE_ID];
+        // まだ名前を入れていない（作ったときのまま 0）: 送らない
+        expect(loop.press(0)).toEqual({ missingVariable: 'なまえ' });
+        expect(node()).toBeUndefined();
+        expect(fake.runtime.startHats).not.toHaveBeenCalled();
+        name.value = '  ';
+        expect(loop.press(0)).toEqual({ missingVariable: 'なまえ' });
+        // 名前を入れた: 押したときの値をあて先にする（「あなた」などの決まった文字ではない）
+        name.value = 'たかお';
+        clock = 2000;
+        expect(loop.press(0)).toEqual({ done: true });
+        expect(node().あてさき).toEqual({ value: 'たかお', timestamp: 2000 });
+        expect(node().メッセージ.value).toBe('シマネコ：ないしょだよ');
+        expect(fake.runtime.startHats).toHaveBeenLastCalledWith('event_whenbroadcastreceived', {
+            BROADCAST_OPTION: 'メッセージ',
+        });
+        // ミミに DM は、名前に関係なくミミあて
+        expect(loop.press(1)).toEqual({ done: true });
+        expect(node().あてさき.value).toBe('ミミ');
+        // 名前を変えたら、次に押したときの名前
+        name.value = 'はなこ';
+        loop.press(0);
+        expect(node().あてさき.value).toBe('はなこ');
+        // 「0」と入力した名前（答えは文字）は入っている扱い
+        name.value = '0';
+        expect(loop.press(0)).toEqual({ done: true });
+        loop.detach();
+    });
+
+    test('DM to you also reads the name written as 名前 or name (the names the goal accepts)', () => {
+        const fake = makeVm();
+        fake.runtime.targets[0].variables.v5 = { id: 'v5', name: '名前', type: '', value: 'たかお' };
+        const loop = attachPracticeLoopback({ vm: fake.vm, partner: dmPartner(), timers: makeTimers() });
+        expect(loop.press(0)).toEqual({ done: true });
+        expect(fake.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].あてさき.value).toBe('たかお');
         loop.detach();
     });
 

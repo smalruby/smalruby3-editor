@@ -60,6 +60,13 @@ const messages = defineMessages({
         description: 'Shown in the practice partner panel before anything reached the partner',
         defaultMessage: '(nothing yet)',
     },
+    missingVariable: {
+        id: 'gui.lessonPracticePartner.missingVariable',
+        description:
+            'Shown in the practice partner panel when a button needs a value the student has not entered yet ' +
+            '(e.g. "DM to you" needs the student name). {name} = the variable name',
+        defaultMessage: '"{name}" is still empty. Click the flag and enter it first.',
+    },
     open: {
         id: 'gui.lessonPracticePartner.open',
         description: 'Button that shows the practice partner panel again after it was closed',
@@ -72,6 +79,7 @@ const LessonPracticePartner = ({
     arrivals = [],
     buttons,
     flashId = null,
+    missingVariable = null,
     name,
     onClose,
     onOpen,
@@ -159,6 +167,12 @@ const LessonPracticePartner = ({
                             </button>
                         ))}
                     </div>
+                    {/* 押したのに、相手が使う変数（4-5 の「なまえ」）がまだ空で何もしなかったとき */}
+                    {missingVariable ? (
+                        <p className={styles.note} data-testid="lesson-practice-partner-missing" role="status">
+                            {intl.formatMessage(messages.missingVariable, { name: missingVariable })}
+                        </p>
+                    ) : null}
                 </div>
                 <div
                     aria-labelledby={receivedHeadingId}
@@ -242,6 +256,8 @@ LessonPracticePartner.propTypes = {
     buttons: PropTypes.arrayOf(PropTypes.shape({ label: PropTypes.string.isRequired })).isRequired,
     // いま光らせている行の id（届いてから 1 秒ほど）
     flashId: PropTypes.number,
+    // 押したのに、まだ空で何もしなかった生徒の変数の名前（出すと「先に入れよう」の短い文になる）
+    missingVariable: PropTypes.string,
     name: PropTypes.string.isRequired,
     onClose: PropTypes.func.isRequired,
     onOpen: PropTypes.func.isRequired,
