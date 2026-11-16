@@ -64,9 +64,16 @@ const menuArg = (input, menuOpcode, field = input, { validate = null } = {}) => 
  * @param {object} [options] - Options.
  * @param {?Array<string>} [options.choices] - The strings that the menu takes, or null for any.
  * @param {?Function} [options.validate] - As of `menuArg`.
+ * @param {boolean} [options.anyBlock] - Takes any block, not only a value block.
  * @returns {object} The argument of a row.
  */
-const menuInputArg = (input, menuOpcode, field, defaultValue, { choices = null, validate = null } = {}) => ({
+const menuInputArg = (
+    input,
+    menuOpcode,
+    field,
+    defaultValue,
+    { choices = null, validate = null, anyBlock = false } = {},
+) => ({
     kind: 'menuInput',
     input,
     menuOpcode,
@@ -74,6 +81,7 @@ const menuInputArg = (input, menuOpcode, field, defaultValue, { choices = null, 
     defaultValue,
     choices,
     validate,
+    anyBlock,
 });
 
 /**
@@ -119,7 +127,7 @@ const acceptsArg = (converter, spec, arg) => {
         case 'menu':
             return converter._isString(arg);
         case 'menuInput':
-            if (converter._isBlock(arg)) return true;
+            if (spec.anyBlock ? converter._isBlock(arg) : converter._isValueBlock(arg)) return true;
             return converter._isString(arg) && (!spec.choices || spec.choices.indexOf(arg.toString()) >= 0);
         case 'color':
             return converter._isColorOrBlock(arg);

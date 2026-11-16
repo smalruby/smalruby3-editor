@@ -33,6 +33,7 @@ const validateSound = function (converter, soundName, node) {
 const upcase = (value) => value.toUpperCase();
 
 const soundArg = menuInputArg('SOUND_MENU', 'sound_sounds_menu', 'SOUND_MENU', '', {
+    anyBlock: true,
     validate: (converter, arg, { node }) => {
         if (converter._isString(arg)) validateSound(converter, arg.toString(), node);
     },
