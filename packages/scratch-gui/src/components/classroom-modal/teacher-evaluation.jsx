@@ -496,6 +496,7 @@ const runAction = (action) => action();
 const NOTHING_UNSAVED = { grades: false, comments: false };
 
 const TeacherEvaluation = ({
+    chosenCell: chosenCellProp = null,
     comments,
     error,
     errorTitle,
@@ -523,6 +524,9 @@ const TeacherEvaluation = ({
     onExportAuditCsv,
     onExportEvaluationCsv,
     onLoadSubmissions,
+    onChooseCell = null,
+    onOpenWork = null,
+    openingWork = false,
     onRequestLeave = runAction,
     onReturnComments,
     onRunAi,
@@ -567,7 +571,11 @@ const TeacherEvaluation = ({
         if (node && typeof node.scrollIntoView === 'function') node.scrollIntoView({ block: 'nearest' });
     }, [onCheckScoring]);
     // 右の列に出す席 × 課題（#1962）。押したものが表に無くなったら、最初の提出に戻る。
-    const [chosenCell, setChosenCell] = useState(null);
+    // 選んだ席は、渡されたら container（use-teacher-evaluation）が持つ。作品を開いてクラス管理が
+    // 閉じても、戻ったときに同じ席を出すため（#1990）。渡されなければこの画面が持つ。
+    const [ownChosenCell, setOwnChosenCell] = useState(null);
+    const chosenCell = onChooseCell ? chosenCellProp : ownChosenCell;
+    const setChosenCell = onChooseCell || setOwnChosenCell;
     const workLessons = columns.filter(({ kind }) => kind === 'work').map(({ lesson }) => lesson);
     const detailCell = pickDetailCell({
         seats,
@@ -580,23 +588,29 @@ const TeacherEvaluation = ({
         ? neighbourSeats(seats, getCell, detailCell.classroomId, detailCell.seat)
         : { prev: null, next: null };
     const matrixRef = useRef(null);
-    const handleSelectCell = useCallback((seat, classroomId) => setChosenCell({ seat, classroomId }), []);
+    const handleSelectCell = useCallback(
+        (seat, classroomId) => setChosenCell({ seat, classroomId }),
+        [setChosenCell],
+    );
     // ‹ › で選んだ席が表の枠の外なら、枠の中だけをスクロールして見せる。
-    const handleSelectSeat = useCallback((seat, classroomId) => {
-        setChosenCell({ seat, classroomId });
-        const frame = matrixRef.current;
-        const button =
-            frame && frame.querySelector(`[data-testid="classroom-eval-cell-button-${seat}-${classroomId}"]`);
-        if (button && typeof button.scrollIntoView === 'function') {
-            // 上に留まる見出しの行・左に留まる出席番号の列の下に隠れないよう、その分を空けて寄せる。
-            // 列の幅は言語（ja-Hira は長い）で変わるので、CSS の固定値にせずその場で測る。
-            const head = frame.querySelector('thead');
-            const seatHead = frame.querySelector('thead th');
-            frame.style.scrollPaddingTop = `${head ? head.offsetHeight : 0}px`;
-            frame.style.scrollPaddingLeft = `${seatHead ? seatHead.offsetWidth : 0}px`;
-            button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-        }
-    }, []);
+    const handleSelectSeat = useCallback(
+        (seat, classroomId) => {
+            setChosenCell({ seat, classroomId });
+            const frame = matrixRef.current;
+            const button =
+                frame && frame.querySelector(`[data-testid="classroom-eval-cell-button-${seat}-${classroomId}"]`);
+            if (button && typeof button.scrollIntoView === 'function') {
+                // 上に留まる見出しの行・左に留まる出席番号の列の下に隠れないよう、その分を空けて寄せる。
+                // 列の幅は言語（ja-Hira は長い）で変わるので、CSS の固定値にせずその場で測る。
+                const head = frame.querySelector('thead');
+                const seatHead = frame.querySelector('thead th');
+                frame.style.scrollPaddingTop = `${head ? head.offsetHeight : 0}px`;
+                frame.style.scrollPaddingLeft = `${seatHead ? seatHead.offsetWidth : 0}px`;
+                button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            }
+        },
+        [setChosenCell],
+    );
     const [hintOpen, setHintOpen] = useState(false);
     const handleHintToggle = useCallback(() => setHintOpen((prev) => !prev), []);
     const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1185,8 +1199,10 @@ const TeacherEvaluation = ({
                             comment={detailCell ? comments[`${detailCell.seat}:${detailCell.classroomId}`] : null}
                             lessonName={detailLesson ? detailLesson.assignmentName : null}
                             nextSeat={detailNeighbours.next}
+                            openingWork={openingWork}
                             prevSeat={detailNeighbours.prev}
                             seatNumber={detailCell ? detailCell.seat : null}
+                            onOpenWork={onOpenWork}
                             onSelectSeat={handleSelectSeat}
                             onSetCellGrade={onSetCellGrade}
                             onSetCellReason={onSetCellReason}
@@ -1200,6 +1216,8 @@ const TeacherEvaluation = ({
 };
 
 TeacherEvaluation.propTypes = {
+    /** The seat × assignment shown in the right column, when the container keeps it (#1990). */
+    chosenCell: PropTypes.shape({ seat: PropTypes.number, classroomId: PropTypes.string }),
     comments: PropTypes.object.isRequired,
     error: PropTypes.string,
     errorTitle: PropTypes.string,
@@ -1212,6 +1230,8 @@ TeacherEvaluation.propTypes = {
         kind: PropTypes.oneOf(['back', 'leave', 'reload']),
     }),
     lessonScores: PropTypes.object,
+    /** A work is being opened from the right column (#1980). */
+    openingWork: PropTypes.bool,
     rubricAxes: PropTypes.arrayOf(PropTypes.object).isRequired,
     scoringChecked: PropTypes.bool,
     scoringSavingId: PropTypes.string,
@@ -1236,6 +1256,13 @@ TeacherEvaluation.propTypes = {
     onExportAuditCsv: PropTypes.func.isRequired,
     onExportEvaluationCsv: PropTypes.func.isRequired,
     onLoadSubmissions: PropTypes.func.isRequired,
+    /** ({seat, classroomId}) → choose the cell; with chosenCell, the container keeps the choice (#1990). */
+    onChooseCell: PropTypes.func,
+    /**
+     * (seat, classroomId) → opens the work in the editor (#1980). It does not ask: the grading
+     * screen stays as it was behind the editor (#1990).
+     */
+    onOpenWork: PropTypes.func,
     /** (action, kind) → runs action, or asks first when work would be lost (#1923 C4). */
     onRequestLeave: PropTypes.func,
     onReturnComments: PropTypes.func.isRequired,

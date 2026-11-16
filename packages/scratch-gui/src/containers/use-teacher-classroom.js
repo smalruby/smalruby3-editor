@@ -30,6 +30,8 @@ export { getCachedTeacherIdToken, setCachedTeacherIdToken };
  * @param {Function} params.showSessionExpiredError - session-expired error helper
  * @param {Function} params.setIsLoading - loading state setter
  * @param {object} params.vm - Scratch VM instance
+ * @param {boolean} [params.visible] - class management is shown. It stays mounted while a
+ *   work is open in the editor (#1990); the members refresh waits meanwhile
  * @returns {object} merged teacher state and handler functions
  */
 const useTeacherClassroom = ({
@@ -43,6 +45,7 @@ const useTeacherClassroom = ({
     showSessionExpiredError,
     setIsLoading,
     vm,
+    visible = true,
 }) => {
     // --- Sub-hooks ---
 
@@ -63,6 +66,7 @@ const useTeacherClassroom = ({
         showError,
         intl,
         setIsLoading,
+        visible,
     });
 
     const submissions = useTeacherSubmissions({
@@ -149,7 +153,7 @@ const useTeacherClassroom = ({
         showError,
         intl,
         setPhase,
-        phase,
+        openSubmission: submissions.handleOpenSubmission,
     });
 
     const shared = useSharedAssignments({
@@ -301,6 +305,7 @@ const useTeacherClassroom = ({
         handleUpdateAssignmentMeta: classrooms.handleUpdateAssignmentMeta,
         loadAssignmentSummary: classrooms.loadAssignmentSummary,
         setDetailTab: classrooms.setDetailTab,
+        detailTab: classrooms.detailTab,
         detailEntry: classrooms.detailEntry,
         consumeDetailProject: classrooms.consumeDetailProject,
 

@@ -225,3 +225,48 @@ describe('TeacherMemberDetail — コメント欄のラベル (#1924 C5・R1)', 
         expect(input.getAttribute('placeholder')).toBeFalsy();
     });
 });
+
+describe('TeacherMemberDetail — ［スモウルビーで開く］(#1980・#1990)', () => {
+    const URL = 'https://example.invalid/3.sb3';
+    // 戻る帯（#1990）のため、開いた場所と席の番号だけを渡す。
+    const OPENED_FROM = { from: 'assignment', seatNumber: expect.any(Number) };
+    const typeComment = (text) =>
+        fireEvent.change(byTestId('classroom-member-detail-comment'), { target: { value: text } });
+
+    test('返却していないコメントがあっても確かめずに開く（下書きは container が残す）', () => {
+        const onOpenSubmission = jest.fn();
+        const onChangeCommentDraft = jest.fn();
+        renderDetail(member({ projectUrl: URL }), {
+            onOpenSubmission,
+            onChangeCommentDraft,
+            commentDrafts: { 'seat-3': 'よくできました' },
+        });
+        expect(byTestId('classroom-member-detail-comment')).toHaveValue('よくできました');
+        fireEvent.click(byTestId('classroom-member-detail-open'));
+        expect(onOpenSubmission).toHaveBeenCalledWith(URL, OPENED_FROM);
+        expect(byTestId('classroom-member-open-confirm-box')).not.toBeInTheDocument();
+    });
+
+    test('container が持つときは、書いたコメントを container に渡す', () => {
+        const onChangeCommentDraft = jest.fn();
+        renderDetail(member({ projectUrl: URL, teacherComment: 'いいね' }), {
+            onChangeCommentDraft,
+            commentDrafts: {},
+        });
+        // 下書きが無ければ返却したコメントを出す。
+        expect(byTestId('classroom-member-detail-comment')).toHaveValue('いいね');
+        typeComment('いいね！ もう少し');
+        expect(onChangeCommentDraft).toHaveBeenCalledWith('seat-3', 'いいね！ もう少し');
+    });
+
+    test('［返却］は container の下書きを送る', () => {
+        const onReturnSubmission = jest.fn();
+        renderDetail(member({ projectUrl: URL }), {
+            onReturnSubmission,
+            onChangeCommentDraft: jest.fn(),
+            commentDrafts: { 'seat-3': '下書き' },
+        });
+        fireEvent.click(byTestId('classroom-member-detail-return'));
+        expect(onReturnSubmission).toHaveBeenCalledWith('sub-1', '下書き');
+    });
+});

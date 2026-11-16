@@ -44,12 +44,21 @@ const TeacherMemberDetail = ({
     lessonDetail,
     lessonNow,
     showSubmission = true,
+    commentDrafts = null,
+    onChangeCommentDraft = null,
 }) => {
     const intl = useIntl();
     // Ties the visible label to the comment field (R1)
     const commentInputId = useId();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [commentText, setCommentText] = useState('');
+    const [ownCommentText, setOwnCommentText] = useState('');
+    // コメントの下書きは、渡されたら container が持つ（#1990）。作品を開いてクラス管理が
+    // 閉じても（隠して残す）、席を移っても消えない。だから［スモウルビーで開く］は確かめない。
+    const controlled = !!onChangeCommentDraft;
+    const savedComment = (selectedMember && memberMap[selectedMember]?.teacherComment) || '';
+    const draftOfSelected = controlled && commentDrafts && selectedMember ? commentDrafts[selectedMember] : null;
+    let commentText = ownCommentText;
+    if (controlled) commentText = typeof draftOfSelected === 'string' ? draftOfSelected : savedComment;
     // 「退室させる」の確認（#1923 C3）。押してすぐ退室させない。
     const [confirmingRemove, setConfirmingRemove] = useState(false);
 
@@ -62,16 +71,20 @@ const TeacherMemberDetail = ({
             setConfirmingRemove(false);
             if (selectedMember) {
                 const member = memberMap[selectedMember];
-                setCommentText(member?.teacherComment || '');
+                setOwnCommentText(member?.teacherComment || '');
             } else {
-                setCommentText('');
+                setOwnCommentText('');
             }
         }
     }, [selectedMember, memberMap]);
 
     const handleOpenClick = useCallback(() => {
         const projectUrl = selectedMember && memberMap[selectedMember]?.projectUrl;
-        if (projectUrl) onOpenSubmission(projectUrl);
+        // 開いたあと、エディタの上の帯から課題へ戻れるよう、席の番号だけを渡す（#1990）。
+        const seat = /^seat-(\d+)$/.exec(selectedMember || '');
+        if (projectUrl) {
+            onOpenSubmission(projectUrl, { from: 'assignment', seatNumber: seat ? parseInt(seat[1], 10) : null });
+        }
     }, [selectedMember, memberMap, onOpenSubmission]);
 
     // ⋮ の［退室させる］は確認を開くだけ。確認の［退室させる］で退室させる（#1923 C3）。
@@ -98,9 +111,13 @@ const TeacherMemberDetail = ({
         [selectedMember, memberMap, onSetHiddenFromPeers],
     );
 
-    const handleCommentChange = useCallback((e) => {
-        setCommentText(e.target.value);
-    }, []);
+    const handleCommentChange = useCallback(
+        (e) => {
+            if (onChangeCommentDraft) onChangeCommentDraft(selectedMember, e.target.value);
+            else setOwnCommentText(e.target.value);
+        },
+        [onChangeCommentDraft, selectedMember],
+    );
 
     const handleApproveKickClick = useCallback(
         (e) => {
@@ -526,6 +543,10 @@ const TeacherMemberDetail = ({
 };
 
 TeacherMemberDetail.propTypes = {
+    /** memberId → comment typed, kept by the container (#1990). Used with onChangeCommentDraft. */
+    commentDrafts: PropTypes.objectOf(PropTypes.string),
+    /** (memberId, text) → keeps the typed comment in the container (#1990). */
+    onChangeCommentDraft: PropTypes.func,
     isLoading: PropTypes.bool,
     lessonDetail: PropTypes.shape({
         progress: PropTypes.object,

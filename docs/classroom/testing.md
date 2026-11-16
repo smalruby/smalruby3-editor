@@ -15,7 +15,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-modal` | モーダル全体 |
 | `classroom-phase-teacher-login` | 先生: ログイン (Google / Microsoft) |
 | `classroom-phase-teacher-class-list` | 先生: クラス一覧（ログイン後の入口。v2 landing） |
-| `classroom-phase-teacher-dashboard` | 先生: 課題ダッシュボード（クラス選択後） |
+| `classroom-phase-teacher-dashboard` | 先生: 課題ダッシュボード（クラス選択後）。クラスを選んでいないときは「クラスの一覧からクラスを選んでください」と［クラスの一覧へ］（`classroom-teacher-empty-class-list`）を出す |
 | `classroom-phase-teacher-create` | 先生: 課題作成 |
 | `classroom-phase-teacher-detail` | 先生: 課題詳細 |
 | `classroom-phase-teacher-google-courses` | 先生: GC コース一覧 |
@@ -50,15 +50,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 
-
-### サイドバー (先生・常時表示、login 以外のフェーズで visible)
-
-サイドバーはクラス管理モーダル左側に常時表示される（teacher-login 以外）。「クラス一覧 (ダッシュボード)」ではなく **サイドバー** に登録済みの課題がクラス（学級）ごとにリスト表示される。
-
-| data-testid | 要素 | 説明 |
-|------------|------|------|
-| `classroom-sidebar-group-{className}` | div | クラス（学級）名でグルーピングされたヘッダ（例: 「6年A組」）|
-| `classroom-sidebar-item-{classroomId}` | li | サイドバーの個別の課題項目。`data-classroom-id` 属性も持つ。クリックで `selectedClassroom` が更新され `teacher-class-detail` フェーズへ遷移。表示テキストは `assignmentName · 人数 · 参加コード(小文字)` |
 
 ### 課題詳細 (先生)
 
@@ -134,10 +125,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-member-detail-image-index` | span | 画像インデックス |
 | `classroom-member-detail-prev` | button | 前の画像 |
 | `classroom-member-detail-next` | button | 次の画像 |
-| `classroom-member-detail-open` | button | スモウルビーで開く（副ボタン） |
+| `classroom-member-detail-open` | button | スモウルビーで開く（副ボタン）。作品を開くとクラス管理を閉じる（隠して残す）。返却していないコメントは消えないので確かめない |
 | `classroom-member-detail-return` | button | 返却（選んだ席の詳細の主ボタン） |
 | `classroom-member-detail-comment-label` | label | コメント欄の上のラベル「生徒へのコメント（返却で届きます）」 |
-| `classroom-member-detail-comment` | textarea | コメント入力 |
+| `classroom-member-detail-comment` | textarea | コメント入力。下書きは課題と席ごとにクラス管理（container）が持ち、作品を開いても・席を移っても残る |
 | `classroom-member-detail-hide-from-peers` | input (checkbox) | 他の生徒に見せない（提出があるときだけ・切り替えで即保存・Issue #1208） |
 | `classroom-member-more-menu` | button | メンバー詳細の見出しの右端の ⋮（開くと `classroom-member-more-menu-list`） |
 | `classroom-member-remove` | button | ⋮ の中の「退室させる」。押すと確認を開く（すぐには退室させない） |
@@ -413,7 +404,9 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-class-evaluate-{groupId}` | button | クラスカードの「採点」 |
 | `classroom-class-import-gc` | button | クラス一覧の「Google Classroom からインポート」（Google ログイン時のみ） |
 | `classroom-avatar-button` / `classroom-avatar-initials` / `classroom-avatar-email` | button/span | アカウントメニュー（右上・メール頭文字 + ▼。クリックでメール表示 + ログアウト） |
-| `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内。#1111 レビューでタイトルバー常時表示から移動） |
+| `classroom-teacher-logout` | button | ログアウト（アカウントメニュー内。#1111 レビューでタイトルバー常時表示から移動）。採点の画面の下書きがあれば採点の確認、メンバーのタブの返却していないコメントがあれば `classroom-teacher-logout-confirm-box` を先に出す |
+| `classroom-teacher-logout-confirm-box` / `classroom-teacher-logout-confirm-message` | div / p | ログアウトの前の確認「返却していないコメントは消えます。ログアウトしますか？」（ヘッダーの下・右に重ねて出す。メニューバーの「ログアウト」からでも出る） |
+| `classroom-teacher-logout-cancel` / `classroom-teacher-logout-confirm` | button | 確認の［とどまる］（コメントを残す）/［ログアウトする］ |
 | `classroom-class-create-section` | input | 作成: セクション（オプション） |
 | `classroom-class-settings-open-{groupId}` | button | クラスカードの「⚙ 設定」（クラスの設定の画面を開く） |
 | `classroom-class-settings-{groupId}` | form | クラス設定のインライン編集フォーム |
@@ -588,7 +581,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-ungrouped-list` | div | クラス未所属の課題のフォールバック一覧（develop 互換） |
 | `classroom-ungrouped-open-{classroomId}` | button | 未所属課題をひらく |
 | `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
-| `classroom-sidebar-teachergroup-{groupId}` | li | サイドバーの組ヘッダー |
 
 ### 採点（学期末・AI 採点支援）
 
@@ -615,6 +607,11 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-eval-detail` | aside | 右の列（選んだ席の点・根拠・コメント） |
 | `classroom-eval-detail-title` | h3 | 右の列の見出し「出席番号 NN」 |
 | `classroom-eval-detail-lesson` | span | 右の列の課題名 |
+| `classroom-eval-detail-open-work` | button | 右の列の課題名の右の［作品を開く］。選んだ席の作品をエディタで開き、クラス管理を閉じる（課題の詳細の［スモウルビーで開く］と同じ処理）。確かめずに開く（採点の画面は隠して残る・下の戻る帯）。開いている間は押せず「開いています…」と出す |
+| `classroom-teacher-work-bar` | div | 先生がクラス管理から作品を開いている間、メニューバーの下に出す戻る帯（クラス管理が閉じている間だけ。生徒の画面には出ない） |
+| `classroom-teacher-work-bar-text` | span | 戻る帯の「出席番号 N・課題名 の作品を見ています」（生徒の名前は出さない） |
+| `classroom-teacher-work-bar-expired` | span | ログインが切れたときだけ出す「ログインが切れました。戻ってログインし直してください。」 |
+| `classroom-teacher-work-bar-back` | button | ［‹ 採点に戻る］／［‹ 課題に戻る］。クラス管理を開き直す（隠して残してある画面・下書きのまま） |
 | `classroom-eval-detail-prev` / `classroom-eval-detail-next` | button | 同じ課題を提出した前 / 次の席へ（「‹ NN」/「NN ›」。端では押せない）。`aria-label` は「前の出席番号 NN」/「次の出席番号 NN」（端では番号なし） |
 | `classroom-eval-detail-ai-draft` | span | 「AI の下書き」（AI が出した点を先生がまだ変えていないとき。根拠だけを直したときは残る） |
 | `classroom-eval-detail-empty` | p | 提出が 1 つも無いときの「提出された作品はありません。」 |
@@ -641,7 +638,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 手順のボタンのうち、いまの手順だけが `aria-current="step"`（主ボタン）。読み込む前 → 1、読み込んだら → 2、
 採点が 1 つでも入ったら → 3、コメントの下書きが 1 つでもあれば → 4（`currentEvalStep`）。
-1300×600 の収まりと手順の移り方は `tools/playwright-verify/verify-classroom-grading.mjs` が測る（離れる確認の［戻る］が見えることも測る）。
+1300×600 の収まりと手順の移り方は `tools/playwright-verify/verify-classroom-grading.mjs` が測る（離れる確認の［戻る］が見えることも測る）。タブを切りかえてもタブの行が上下に動かないこと・タブの下の高さ・成績表で見える席の行の数は `tools/playwright-verify/verify-classroom-tab-offsets.mjs` が測る。
 
 ### メニューバー
 
@@ -825,7 +822,7 @@ http://localhost:8601?no_beforeunload=1&devlogin=<DEV_BYPASS_TOKEN>
 
 代表例: `tools/playwright-verify/mesh-v2-classroom-binding.mjs` は教師タブで devlogin → クラスを作成 → 課題ボードで課題を作成 → 課題管理ボードの行をクリックして課題を選択、生徒タブで `?classcode=` 経由参加 という 2 タブのフローを自動で回し、Mesh v2 ドメインが課題の参加コードに揃うことを確認します。
 
-スクリプトを書く際の落とし穴と対処は `tools/playwright-verify/README.md` を参照してください（ログインバイパスの方法、Redux store の取り出し方、サイドバー testid、tutorial overlay の dismiss 等）。
+スクリプトを書く際の落とし穴と対処は `tools/playwright-verify/README.md` を参照してください（ログインバイパスの方法、Redux store の取り出し方、tutorial overlay の dismiss 等）。
 
 #### 生徒の参加から提出までの通し（stg・ブランチプレビュー）
 

@@ -8,6 +8,7 @@ import { combineReducers, createStore } from 'redux';
 import ClassroomTeacherMenu from '../../../src/containers/classroom-teacher-menu.jsx';
 import classroomReducer, {
     openTeacherModal,
+    setTeacherHasUnsavedWork,
     setTeacherLastSelection,
     setTeacherLoggedIn,
 } from '../../../src/reducers/classroom.js';
@@ -130,5 +131,21 @@ describe('ClassroomTeacherMenu container (#1199)', () => {
         expect(state.teacherLoggedIn).toBe(false);
         expect(state.teacherModalVisible).toBe(false);
         expect(screen.queryByTestId('classroom-teacher-menu-button')).not.toBeInTheDocument();
+    });
+
+    test('with work not saved in class management (maybe hidden), logout asks there first (#1990)', () => {
+        mockLogout.mockClear();
+        const store = renderMenu();
+        act(() => {
+            store.dispatch(setTeacherLoggedIn(true));
+            store.dispatch(setTeacherHasUnsavedWork(true));
+        });
+        fireEvent.click(screen.getByTestId('classroom-teacher-menu-button'));
+        fireEvent.click(screen.getByTestId('classroom-teacher-menu-logout'));
+        expect(mockLogout).not.toHaveBeenCalled();
+        const state = store.getState().scratchGui.classroom;
+        expect(state.teacherLoggedIn).toBe(true);
+        expect(state.teacherModalVisible).toBe(true);
+        expect(state.teacherNavTarget).toBe('logout');
     });
 });

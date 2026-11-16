@@ -60,6 +60,8 @@ src/components/*
 !src/components/classroom-teacher-kick-toast/**
 !src/components/classroom-teacher-panel/
 !src/components/classroom-teacher-panel/**
+!src/components/classroom-teacher-work-bar/
+!src/components/classroom-teacher-work-bar/**
 !src/components/classroom-peer-panel/
 !src/components/classroom-peer-panel/**
 !src/components/classroom-tutorial/
@@ -190,6 +192,8 @@ src/containers/*
 !src/containers/classroom-submit-reminder.jsx
 !src/containers/use-kick-request-polling.js
 !src/containers/classroom-teacher-modal.jsx
+!src/containers/classroom-teacher-modal-host.jsx
+!src/containers/classroom-teacher-work-bar.jsx
 !src/containers/classroom-teacher-menu.jsx
 !src/containers/classroom-teacher-kick-alerts.jsx
 !src/containers/classroom-teacher-panel.jsx
@@ -278,6 +282,7 @@ src/lib/*
 !src/lib/classroom-retention.js
 !src/lib/classroom-stream.js
 !src/lib/classroom-teacher-session.js
+!src/lib/classroom-teacher-work.js
 !src/lib/classroom-presence.js
 !src/lib/shared-assignment-taxonomy.js
 !src/lib/shared-author-profile.js
@@ -511,6 +516,7 @@ test/unit/components/*
 !test/unit/components/class-ai-settings.test.jsx
 !test/unit/components/image-viewer.test.jsx
 !test/unit/components/bug-report-consent.test.jsx
+!test/unit/components/bug-report-modal-date.test.jsx
 !test/unit/components/koshien-mock-panel.test.jsx
 !test/unit/components/koshien-settings-modal.test.jsx
 !test/unit/components/lesson-settings-field-close.test.jsx
@@ -631,8 +637,12 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-notifications.test.js
 !test/unit/containers/use-teacher-evaluation-leave.test.js
 !test/unit/containers/use-teacher-evaluation-stale-runs.test.js
+!test/unit/containers/use-teacher-evaluation-open-work.test.js
+!test/unit/containers/use-teacher-submissions-open.test.js
 !test/unit/containers/use-before-unload-while.test.js
 !test/unit/containers/classroom-teacher-modal-leave.test.jsx
+!test/unit/containers/classroom-teacher-modal-host.test.jsx
+!test/unit/containers/classroom-teacher-work-bar.test.jsx
 !test/unit/containers/google-drive-saver-hoc.test.jsx
 !test/unit/containers/google-drive-state-management.test.jsx
 !test/unit/containers/ruby-downloader.test.jsx
@@ -681,6 +691,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-menu-submit.test.js
 !test/unit/lib/classroom-submit-reminder.test.js
 !test/unit/lib/classroom-teacher-session.test.js
+!test/unit/lib/classroom-teacher-work.test.js
 !test/unit/lib/classroom-teacher-kick-alerts.test.js
 !test/unit/lib/classroom-teacher-panel.test.js
 !test/unit/lib/classroom-teacher-reauth.test.js

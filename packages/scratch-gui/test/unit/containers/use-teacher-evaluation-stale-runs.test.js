@@ -2,9 +2,12 @@
 /**
  * 採点の画面を離れたら、途中の処理を止める (#1950)。
  *
- * - AI の採点・下書きの途中で離れたら、残りは送らず、あとから届いた結果も書き込まない。
+ * - 止めるのは、離れる確認（requestLeave）で［戻る］［離れる］を選んだとき・別のクラスの採点を
+ *   開いたとき・ログアウト（クラス管理を外す＝アンマウント）・読み込み直し / AI の再実行。
+ *   止めたら残りは送らず、あとから届いた結果も書き込まない。
+ * - クラス管理を隠すだけ（← エディタに戻る・Esc・［作品を開く］）では止めない (#1990)。
+ *   hook は生きたままなので、続きの結果がそのまま表に入る。
  * - 入り直した表に、前の実行の結果が混ざらない（ボタンも押せないままにならない）。
- * - 離れ方は［戻る］・ほかの画面（phase）へ移る・クラス管理を閉じる（アンマウント）・別のクラスを開く。
  */
 import { act, renderHook } from '@testing-library/react';
 import useTeacherEvaluation from '../../../src/containers/use-teacher-evaluation.js';
@@ -60,9 +63,7 @@ const setup = async () => {
         intl: { formatMessage: (m) => m.defaultMessage || m.id || String(m) },
         setPhase: jest.fn(),
     };
-    const hook = renderHook((props) => useTeacherEvaluation({ ...deps, ...props }), {
-        initialProps: { phase: 'teacher-evaluation' },
-    });
+    const hook = renderHook((props) => useTeacherEvaluation({ ...deps, ...props }), { initialProps: {} });
     await act(async () => {
         hook.result.current.handleShowEvaluation(group);
     });
@@ -84,6 +85,21 @@ const startAiWaiting = async (hook, mode) => {
     return { first, running };
 };
 
+/**
+ * Leave through the leave question, as the screen does: ask, then［離れる］.
+ * @returns {Function} the action run on leaving
+ */
+const leave = async (hook) => {
+    const action = jest.fn(() => hook.result.current.handleBackFromEvaluation());
+    await act(async () => {
+        hook.result.current.handleRequestLeave(action, 'leave');
+    });
+    await act(async () => {
+        hook.result.current.handleConfirmLeave();
+    });
+    return action;
+};
+
 const grades = (hook) =>
     Object.values(hook.result.current.matrix)
         .map((cell) => cell.grade)
@@ -99,41 +115,73 @@ beforeEach(() => {
 });
 
 describe('useTeacherEvaluation — 離れたら途中の処理を止める (#1950)', () => {
-    test('AI の採点の途中で［戻る］と、あとから届いた点は書き込まず、残りも送らない', async () => {
+    test('AI の途中で離れる確認を出しただけでは止めず、［採点を続ける］なら最後まで入る', async () => {
+        const { hook } = await setup();
+        const { first, running } = await startAiWaiting(hook, 'grade');
+        const action = jest.fn();
+
+        await act(async () => {
+            hook.result.current.handleRequestLeave(action, 'leave');
+        });
+        expect(hook.result.current.leaveRequest).toMatchObject({ kind: 'leave' });
+        await act(async () => {
+            hook.result.current.handleCancelLeave();
+        });
+        await act(async () => {
+            first.resolve(
+                answer(
+                    { mode: 'grade', submissions: submissionsOf(10).map((_, i) => ({ seatNumber: i + 1 })) },
+                    'new',
+                ),
+            );
+            await running;
+        });
+
+        expect(action).not.toHaveBeenCalled();
+        expect(grades(hook)).toHaveLength(12);
+        expect(mockEvaluateSubmissions).toHaveBeenCalledTimes(2);
+    });
+
+    test('AI の採点の途中で［離れる］を選ぶと、あとから届いた点は書き込まず、残りも送らない', async () => {
         const { hook } = await setup();
         const { first, running } = await startAiWaiting(hook, 'grade');
 
-        await act(async () => {
-            hook.result.current.handleBackFromEvaluation();
-        });
+        const action = await leave(hook);
         await act(async () => {
             first.resolve(answer({ mode: 'grade', submissions: [{ seatNumber: 1 }, { seatNumber: 2 }] }, 'old'));
             await running;
         });
 
+        expect(action).toHaveBeenCalledTimes(1);
         expect(grades(hook)).toEqual([]);
         expect(hook.result.current.evalProgress).toBeNull();
         // 12 人 = 2 回のはずが、離れたので 1 回目だけ
         expect(mockEvaluateSubmissions).toHaveBeenCalledTimes(1);
     });
 
-    test('ほかの画面へ移った（phase が変わった）ら止まる', async () => {
+    test('クラス管理を隠して戻った（hook は生きたまま）ら、続きの結果がそのまま表に入る', async () => {
         const { hook } = await setup();
         const { first, running } = await startAiWaiting(hook, 'comment');
 
+        // 隠す・開き直すは hook に何も伝えない（ClassroomTeacherModalHost が外さない）
+        hook.rerender({});
         await act(async () => {
-            hook.rerender({ phase: 'teacher-notifications' });
-        });
-        await act(async () => {
-            first.resolve(answer({ mode: 'comment', submissions: [{ seatNumber: 1 }] }, 'old'));
+            first.resolve(
+                answer(
+                    { mode: 'comment', submissions: submissionsOf(10).map((_, i) => ({ seatNumber: i + 1 })) },
+                    'new',
+                ),
+            );
             await running;
         });
+        hook.rerender({});
 
-        expect(hook.result.current.comments).toEqual({});
-        expect(mockEvaluateSubmissions).toHaveBeenCalledTimes(1);
+        expect(Object.values(hook.result.current.comments)).toHaveLength(12);
+        expect(hook.result.current.evalProgress).toBeNull();
+        expect(mockEvaluateSubmissions).toHaveBeenCalledTimes(2);
     });
 
-    test('クラス管理を閉じた（アンマウント）ら、残りを送らない', async () => {
+    test('ログアウトでクラス管理を外した（アンマウント）ら、残りを送らない', async () => {
         const { hook } = await setup();
         const { first, running } = await startAiWaiting(hook, 'grade');
 
@@ -146,14 +194,11 @@ describe('useTeacherEvaluation — 離れたら途中の処理を止める (#195
         expect(mockEvaluateSubmissions).toHaveBeenCalledTimes(1);
     });
 
-    test('入り直した表に、前の実行のコメントが混ざらない', async () => {
+    test('［離れる］のあと入り直した表に、前の実行のコメントが混ざらない', async () => {
         const { hook } = await setup();
         const { first, running } = await startAiWaiting(hook, 'comment');
 
-        // 離れて、同じクラスに入り直して読み込む
-        await act(async () => {
-            hook.result.current.handleBackFromEvaluation();
-        });
+        await leave(hook);
         await act(async () => {
             hook.result.current.handleShowEvaluation(group);
         });
@@ -179,7 +224,7 @@ describe('useTeacherEvaluation — 離れたら途中の処理を止める (#195
         expect(values.every((c) => c.startsWith('new '))).toBe(true);
     });
 
-    test('別のクラスを開いたら、前のクラスの点は書き込まない', async () => {
+    test('別の課題・別のクラスの採点に切りかえたら、前の点は書き込まない', async () => {
         const { hook } = await setup();
         const { first, running } = await startAiWaiting(hook, 'grade');
 
@@ -198,24 +243,31 @@ describe('useTeacherEvaluation — 離れたら途中の処理を止める (#195
         expect(mockEvaluateSubmissions).toHaveBeenCalledTimes(1);
     });
 
-    test('読み込みの途中で離れて入り直すと、前の読み込みの表で上書きしない', async () => {
+    test('読み込み直したら、前の AI の点は書き込まない', async () => {
         const { hook } = await setup();
+        const { first, running } = await startAiWaiting(hook, 'grade');
+
         await act(async () => {
-            hook.result.current.handleBackFromEvaluation();
+            await hook.result.current.handleLoadSubmissions();
         });
         await act(async () => {
-            hook.result.current.handleShowEvaluation(group);
+            first.resolve(answer({ mode: 'grade', submissions: [{ seatNumber: 1 }, { seatNumber: 2 }] }, 'old'));
+            await running;
         });
 
+        expect(grades(hook)).toEqual([]);
+        expect(mockEvaluateSubmissions).toHaveBeenCalledTimes(1);
+    });
+
+    test('読み込みの途中で離れて入り直すと、前の読み込みの表で上書きしない', async () => {
+        const { hook } = await setup();
         const slow = deferred();
         mockListSubmissions.mockImplementationOnce(() => slow.promise);
         let loading;
         await act(async () => {
             loading = hook.result.current.handleLoadSubmissions();
         });
-        await act(async () => {
-            hook.result.current.handleBackFromEvaluation();
-        });
+        await leave(hook);
         await act(async () => {
             hook.result.current.handleShowEvaluation(group);
         });
@@ -229,7 +281,7 @@ describe('useTeacherEvaluation — 離れたら途中の処理を止める (#195
         expect(hook.result.current.evalProgress).toBeNull();
     });
 
-    test('返却の途中で離れると残りは返却せず、入り直した表にはサーバーが返却済みとした分が出る', async () => {
+    test('返却の途中で［離れる］と残りは返却せず、入り直した表にはサーバーが返却済みとした分が出る', async () => {
         const { hook } = await setup();
         await act(async () => {
             await hook.result.current.handleRunAi('comment');
@@ -241,9 +293,7 @@ describe('useTeacherEvaluation — 離れたら途中の処理を止める (#195
         await act(async () => {
             returning = hook.result.current.handleReturnComments();
         });
-        await act(async () => {
-            hook.result.current.handleBackFromEvaluation();
-        });
+        await leave(hook);
         await act(async () => {
             hook.result.current.handleShowEvaluation(group);
         });
@@ -273,12 +323,18 @@ describe('useTeacherEvaluation — 離れたら途中の処理を止める (#195
         expect(hook.result.current.seats).toHaveLength(12);
     });
 
-    test('離れずに最後まで走れば、2 回に分けた結果がどちらも入る', async () => {
+    test('返却をクラス管理を隠したまま最後まで終えると、返却済みが表に入る', async () => {
         const { hook } = await setup();
         await act(async () => {
-            await hook.result.current.handleRunAi('grade');
+            await hook.result.current.handleRunAi('comment');
         });
-        expect(grades(hook)).toHaveLength(12);
-        expect(mockEvaluateSubmissions).toHaveBeenCalledTimes(2);
+        hook.rerender({});
+        await act(async () => {
+            await hook.result.current.handleReturnComments();
+        });
+        hook.rerender({});
+
+        expect(mockUpdateSubmission).toHaveBeenCalledTimes(12);
+        expect(hook.result.current.getCell(12, 'c1')).toMatchObject({ returned: true, returnedComment: 'new 12' });
     });
 });

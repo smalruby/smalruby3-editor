@@ -4,7 +4,8 @@
  * The table shows only the grades so 40 seats × several assignments fit; the
  * longer fields live here, one seat at a time. ‹ › at the top right move to the
  * previous / next seat that submitted the same assignment (at the top so they stay
- * visible when the column is low and scrolls).
+ * visible when the column is low and scrolls). [Open the work] next to the
+ * assignment's name opens the seat's work in the editor (#1980).
  */
 import PropTypes from 'prop-types';
 import React, { useCallback, useId } from 'react';
@@ -70,6 +71,19 @@ export const detailMessages = defineMessages({
         description: 'Grading screen: tooltip of the "Check" tag',
         id: 'gui.classroom.evaluation.needsReviewTitle',
     },
+    openWork: {
+        defaultMessage: 'Open the work',
+        description:
+            "Grading screen: button in the right column that opens the chosen seat's work in the editor " +
+            '(closes the classroom screen, #1980)',
+        id: 'gui.classroom.evaluation.openWork',
+    },
+    openingWork: {
+        defaultMessage: 'Opening…',
+        description:
+            'Grading screen: [Open the work] while the work is being opened (it cannot be pressed again, #1980)',
+        id: 'gui.classroom.evaluation.openingWork',
+    },
     returned: {
         defaultMessage: 'Returned',
         description: 'Grading screen: tag of a cell whose comment was returned to the student',
@@ -85,8 +99,10 @@ const TeacherEvaluationDetail = ({
     comment,
     lessonName,
     nextSeat,
+    openingWork = false,
     prevSeat,
     seatNumber,
+    onOpenWork,
     onSelectSeat,
     onSetCellGrade,
     onSetCellReason,
@@ -110,6 +126,10 @@ const TeacherEvaluationDetail = ({
     );
     const handlePrev = useCallback(() => onSelectSeat(prevSeat, classroomId), [onSelectSeat, prevSeat, classroomId]);
     const handleNext = useCallback(() => onSelectSeat(nextSeat, classroomId), [onSelectSeat, nextSeat, classroomId]);
+    const handleOpenWork = useCallback(
+        () => onOpenWork(seatNumber, classroomId),
+        [onOpenWork, seatNumber, classroomId],
+    );
 
     if (!cell) {
         return (
@@ -151,9 +171,21 @@ const TeacherEvaluationDetail = ({
                     </ClassroomButton>
                 </div>
             </div>
-            <span className={styles.evalDetailLesson} data-testid="classroom-eval-detail-lesson">
-                {lessonName}
-            </span>
+            <div className={styles.evalDetailLessonRow}>
+                <span className={styles.evalDetailLesson} data-testid="classroom-eval-detail-lesson">
+                    {lessonName}
+                </span>
+                {onOpenWork && (
+                    <ClassroomButton
+                        className={styles.evalDetailOpenWork}
+                        dataTestId="classroom-eval-detail-open-work"
+                        disabled={!cell.submissionId || openingWork}
+                        onClick={handleOpenWork}
+                    >
+                        {intl.formatMessage(openingWork ? detailMessages.openingWork : detailMessages.openWork)}
+                    </ClassroomButton>
+                )}
+            </div>
             <div className={styles.evalDetailGradeRow}>
                 <label className={styles.evalDetailLabel} htmlFor={gradeId}>
                     {intl.formatMessage(detailMessages.fieldGrade)}
@@ -222,8 +254,12 @@ TeacherEvaluationDetail.propTypes = {
     comment: PropTypes.string,
     lessonName: PropTypes.string,
     nextSeat: PropTypes.number,
+    /** A work is being opened: [Open the work] waits (#1980). */
+    openingWork: PropTypes.bool,
     prevSeat: PropTypes.number,
     seatNumber: PropTypes.number,
+    /** (seat, classroomId) → opens the work in the editor (#1980). Without it there is no button. */
+    onOpenWork: PropTypes.func,
     onSelectSeat: PropTypes.func.isRequired,
     onSetCellGrade: PropTypes.func.isRequired,
     onSetCellReason: PropTypes.func.isRequired,

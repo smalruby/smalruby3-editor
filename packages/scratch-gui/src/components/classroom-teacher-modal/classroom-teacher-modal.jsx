@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import ClassroomButton from '../classroom-modal/classroom-button.jsx';
 import TeacherAssignmentBoard from '../classroom-modal/teacher-assignment-board.jsx';
 import TeacherBreadcrumbs, {
     BreadcrumbSlotContext,
@@ -26,6 +27,7 @@ import TeacherAvatarMenu from './teacher-avatar-menu.jsx';
 import TeacherGoogleCoursesPhase from './teacher-google-courses-phase.jsx';
 import TeacherHeader from './teacher-header.jsx';
 import TeacherLoginPhase from './teacher-login-phase.jsx';
+import TeacherLogoutConfirm from './teacher-logout-confirm.jsx';
 import TeacherNotificationsList from './teacher-notifications-list.jsx';
 import TeacherNotifications from './teacher-notifications.jsx';
 
@@ -150,6 +152,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onCreateAssignmentInClass,
         onReuseAssignment,
         onDetailTabChange,
+        detailTab,
         detailEntry,
         onProjectEntryUsed,
         onBackFromGroupManage,
@@ -158,6 +161,11 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         evaluation,
         shared,
         notificationsCenter,
+        memberCommentDrafts,
+        onChangeMemberCommentDraft,
+        logoutConfirm,
+        onConfirmLogout,
+        onCancelLogout,
     } = containerProps;
 
     // 共有推奨バナー (#1106) の CTA: 共有ステップはボード内サブビュー
@@ -341,6 +349,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
             return (
                 <div className={styles.mainRelative}>
                     <TeacherEvaluation
+                        chosenCell={evaluation.chosenCell}
                         comments={evaluation.comments}
                         error={error}
                         errorTitle={errorTitle}
@@ -350,6 +359,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         getCell={evaluation.getCell}
                         leaveRequest={evaluation.leaveRequest}
                         lessonScores={evaluation.lessonScores}
+                        openingWork={evaluation.openingWork}
                         rubricAxes={evaluation.rubricAxes}
                         scoringChecked={evaluation.scoringChecked}
                         scoringSavingId={evaluation.scoringSavingId}
@@ -370,9 +380,11 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onChangeLessonScoring={evaluation.handleChangeLessonScoring}
                         onChangeRubricAxis={evaluation.handleChangeRubricAxis}
                         onCheckScoring={evaluation.handleCheckScoring}
+                        onChooseCell={evaluation.handleChooseCell}
                         onExportAuditCsv={evaluation.handleExportAuditCsv}
                         onExportEvaluationCsv={evaluation.handleExportEvaluationCsv}
                         onLoadSubmissions={evaluation.handleLoadSubmissions}
+                        onOpenWork={evaluation.handleOpenWork}
                         onReturnComments={evaluation.handleReturnComments}
                         onRunAi={evaluation.handleRunAi}
                         onSetCellGrade={evaluation.handleSetCellGrade}
@@ -449,7 +461,10 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onCopyInviteLink={onCopyInviteLink}
                         onDeleteClassroom={onDeleteClassroom}
                         onDeleteMember={onDeleteMember}
+                        currentTab={detailTab}
                         detailEntry={detailEntry}
+                        memberCommentDrafts={memberCommentDrafts}
+                        onChangeMemberCommentDraft={onChangeMemberCommentDraft}
                         onBackToBoard={onBackToDashboard}
                         onProjectEntryUsed={onProjectEntryUsed}
                         onDetailTabChange={onDetailTabChange}
@@ -575,11 +590,19 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         id="gui.classroom.tutorial.classCreation"
                     />
                 </ClassroomTutorial>
+                {/* There is no sidebar any more: send the teacher to the class list. */}
                 <FormattedMessage
-                    defaultMessage="Select a classroom from the sidebar"
+                    defaultMessage="Choose a class from the class list"
                     description="Prompt to select a classroom in teacher management"
                     id="gui.classroom.teacherDetail.selectClassroom"
                 />
+                <ClassroomButton dataTestId="classroom-teacher-empty-class-list" onClick={onShowClassList}>
+                    <FormattedMessage
+                        defaultMessage="Go to the class list"
+                        description="Button on the empty teacher screen that opens the class list"
+                        id="gui.classroom.teacherDetail.goToClassList"
+                    />
+                </ClassroomButton>
             </div>
         );
     };
@@ -616,6 +639,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         <TeacherAvatarMenu email={teacherEmail} onLogout={onTeacherLogout} />
                     )}
                 </TeacherHeader>
+                {logoutConfirm && <TeacherLogoutConfirm onCancel={onCancelLogout} onConfirm={onConfirmLogout} />}
                 <BreadcrumbSlotContext.Provider value={crumbSlot}>
                     <main className={styles.main} ref={mainRef} tabIndex={-1}>
                         {renderMain()}
