@@ -5,12 +5,12 @@ import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonMode } from '../../../src/containers/lesson-mode.jsx';
 import analytics from '../../../src/lib/analytics';
-import { applyDeckSetup } from '../../../src/lib/deck-setup';
+import { applySetup } from '../../../src/lib/lessons/apply-setup';
 import { findChallenge } from '../../../src/lib/lessons/courses';
 
 jest.mock('../../../src/lib/analytics', () => ({ event: jest.fn() }));
-jest.mock('../../../src/lib/deck-setup', () => ({
-    applyDeckSetup: jest.fn(() => Promise.resolve()),
+jest.mock('../../../src/lib/lessons/apply-setup', () => ({
+    applySetup: jest.fn(() => Promise.resolve()),
 }));
 // 吹き出しのコンテナは Redux の store が要るので、ここでは出さない（containers/lesson-hint.test.jsx で確かめる）
 jest.mock('../../../src/containers/lesson-hint.jsx', () => () => null);
@@ -59,7 +59,7 @@ const flush = () => act(() => Promise.resolve());
 
 describe('LessonMode container', () => {
     beforeEach(() => {
-        applyDeckSetup.mockClear();
+        applySetup.mockClear();
         jest.spyOn(window, 'confirm').mockReturnValue(true);
     });
 
@@ -270,16 +270,16 @@ describe('LessonMode container', () => {
             isShowingWithoutId: false,
         };
         const { rerender } = renderLessonMode(props);
-        expect(applyDeckSetup).not.toHaveBeenCalled();
+        expect(applySetup).not.toHaveBeenCalled();
         rerender({ ...props, isAnyCreatingNewState: false, isShowingProject: true, isShowingWithoutId: true });
-        expect(applyDeckSetup).toHaveBeenCalledWith({ tab: 'code' }, props.dispatch, props.vm);
+        expect(applySetup).toHaveBeenCalledWith({ tab: 'code' }, props.dispatch, props.vm);
         await flush();
         expect(props.onOpenChallenge).toHaveBeenCalledWith(CHALLENGE_ID);
     });
 
     test('does not open the challenge when it was cancelled during the setup', async () => {
         let resolveSetup;
-        applyDeckSetup.mockImplementationOnce(() => new Promise((resolve) => (resolveSetup = resolve)));
+        applySetup.mockImplementationOnce(() => new Promise((resolve) => (resolveSetup = resolve)));
         const props = {
             ...baseProps(),
             pendingChallengeId: CHALLENGE_ID,
@@ -299,7 +299,7 @@ describe('LessonMode container', () => {
 
     test('opens the challenge even when the setup fails', async () => {
         jest.spyOn(console, 'warn').mockImplementation(() => {});
-        applyDeckSetup.mockImplementationOnce(() => Promise.reject(new Error('boom')));
+        applySetup.mockImplementationOnce(() => Promise.reject(new Error('boom')));
         const props = {
             ...baseProps(),
             pendingChallengeId: CHALLENGE_ID,
