@@ -1979,7 +1979,7 @@ export default {
     'gui.rubyTab.dnclPostTestLoopError':
         '後判定の繰り返し（先に 1 回動かしてから条件を確かめる繰り返し）は日本語では書けません。最初の 1 回をループの前に書いてから、「〜の間繰り返す」にしてください。Ruby モードでは書けます。',
     'gui.rubyTab.dnclUndefinedFunctionError':
-        '「{name}」は定義されていない関数です。「関数 {name}(…)」で定義してください。',
+        '「{name}」は定義されていない関数です。「関数 {name}(…):」で定義してください。',
     'gui.rubyTab.dnclUnsupportedCommandError':
         '「{name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。',
     'gui.rubyTab.dnclUnsupportedNumberError':

@@ -10,35 +10,48 @@
  */
 /* eslint-disable no-template-curly-in-string */
 const DNCL_SNIPPETS = [
+    // Blocks go in the standard form: a `:` at the end of the opener and the
+    // inside indented 4 spaces, with no closer line (Issue #2035).
     {
         label: 'もし...ならば',
-        insertText: 'もし ${1:条件} ならば\n  ${2}\nを実行する',
+        insertText: 'もし ${1:条件} ならば:\n    ${2}',
         documentation: '条件分岐（if）',
     },
     {
         label: 'もし...そうでなければ',
-        insertText: 'もし ${1:条件} ならば\n  ${2}\nそうでなければ\n  ${3}\nを実行する',
+        insertText: 'もし ${1:条件} ならば:\n    ${2}\nそうでなければ:\n    ${3}',
         documentation: '条件分岐（if-else）',
     },
     {
+        label: 'もし...そうでなくもし',
+        insertText:
+            'もし ${1:条件} ならば:\n    ${2}\nそうでなくもし ${3:条件} ならば:\n    ${4}\nそうでなければ:\n    ${5}',
+        documentation: '条件分岐（if-elsif-else）',
+    },
+    {
         label: '繰り返し（増やす）',
-        insertText: '${1:i} を ${2:1} から ${3:10} まで ${4:1} ずつ増やしながら\n  ${5}\nを繰り返す',
+        insertText: '${1:i} を ${2:1} から ${3:10} まで ${4:1} ずつ増やしながら繰り返す:\n    ${5}',
         documentation: '順次繰り返し（for ループ・昇順）',
     },
     {
         label: '繰り返し（減らす）',
-        insertText: '${1:i} を ${2:10} から ${3:0} まで ${4:1} ずつ減らしながら\n  ${5}\nを繰り返す',
+        insertText: '${1:i} を ${2:10} から ${3:0} まで ${4:1} ずつ減らしながら繰り返す:\n    ${5}',
         documentation: '順次繰り返し（for ループ・降順）',
     },
     {
         label: '条件の間繰り返す',
-        insertText: '${1:条件} の間\n  ${2}\nを繰り返す',
+        insertText: '${1:条件} の間繰り返す:\n    ${2}',
         documentation: '条件繰り返し（while ループ）',
     },
     {
         label: '関数定義',
-        insertText: '関数 ${1:名前}(${2:引数})\n  ${3}\nと定義する',
+        insertText: '関数 ${1:名前}(${2:引数}):\n    ${3}',
         documentation: '関数を定義する',
+    },
+    {
+        label: 'を返す',
+        insertText: '${1:値} を返す',
+        documentation: '関数の値を返す（return）',
     },
     {
         label: '表示する',

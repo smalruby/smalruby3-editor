@@ -121,11 +121,13 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 
 | 書き方 | エラー（その行に付く） |
 |---|---|
-| `もし〜ならば` / `〜の間` / `〜ずつ増やしながら` / `〜ずつ減らしながら` / `関数` / `〜 do` を閉じていない | 開いた行に「「もし〜ならば」を「を実行する」で閉じてください」など |
+| 標準の形（開始の行の終わりが `:`）のブロックの中を字下げしていない | 開いた行に「「もし〜ならば:」の中の行を字下げしてください」（`「〜の間繰り返す:」` / `「〜ずつ増やしながら繰り返す:」` / `「〜ずつ減らしながら繰り返す:」` / `「関数 〜(…):」` も同じ） |
+| DNCL 風の形の `もし〜ならば` / `〜の間` / `〜ずつ増やしながら` / `〜ずつ減らしながら` / `関数` / `〜 do` を閉じていない | 開いた行に「「もし〜ならば」を「を実行する」で閉じてください」など |
 | 閉じるブロックが無いのに `を実行する` などがある | 「「を実行する」で閉じるものがありません」 |
-| `もし` の外の `そうでなければ` / `そうでなくもし` | 「「そうでなければ」の前に「もし〜ならば」がありません」 |
+| `もし` の外の `そうでなければ` / `そうでなくもし` | 「「そうでなければ」の前に「もし〜ならば」がありません」。標準の形（行の終わりが `:`）では、`もし` より浅く字下げしたときにこうなるので「「そうでなければ:」は、「もし〜ならば:」と同じ字下げで書いてください」 |
 | 種類の違う閉じのことば（ほかに合うブロックが無い） | 閉じのことばの行に「「もし〜ならば」は「を繰り返す」ではなく「を実行する」で閉じてください」 |
 
+- 標準の形か DNCL 風の形かは、エラーの行を書いた元の行の終わりに `:` / `：` があるか（行末のコメントを除く）で決める（`dncl-to-ruby.js` が `findDnclBlockErrors` に `isStandardLine` で渡す）。標準の形は字下げでブロックを示すので、閉じのことばを書くようには言わない。
 - 内側のブロックを閉じ忘れて外側の閉じのことばが来たとき（`〜の間` の中の `もし` を閉じ忘れて `を繰り返す`）は、外側ではなく**閉じ忘れた内側**の行に付ける。
 - 調べるのは **Ruby の `end` が合わなくなるときだけ**。種類の違う閉じのことばでも `end` の数が合えば Ruby は通り、エディタも受け付けるので、エラーにしない（`もし … を繰り返す` など）。
 - `with_screen_refresh do` / `loop do` / `when_flag_clicked do` / `list.each do |x|` など、日本語に書きかえるものが無い `xxx do`（`|x|` 付きも）は Ruby → 日本語でそのまま残し、その `end` は `を実行する` にする（`N.times do` と `(a..b).step(s) do |i|` は `〜ずつ増やしながら` に、`while x do` / `until x do` は `〜の間` になる）。外側のブロックの閉じのことばを取らないよう、`ruby-to-dncl-line-converter.js` はこの行もブロックとして積む。`findDnclBlockErrors` もこの行を `を実行する` で閉じるブロックとして数える（判定は `dncl-validator.js` の `isDoBlockLine`。行末のコメントを除いてから行末の `do` だけを見るので、文字列やコメントの中の `do` は数えない）。日本語モードにはこうした命令が無いので、ほかの対応していない命令と同じくその行に「「with_screen_refresh」は日本語モードでは書けない命令です。…」を出し、Ruby には変換しない（下の「日本語モードに無い命令」）。
@@ -134,7 +136,7 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 #### Monaco Editor 言語定義
 
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-mode.js` — Monaco の DNCL 言語定義（トークナイザ、シンタックスハイライト）
-- `packages/scratch-gui/src/containers/ruby-tab/dncl-snippets.js` — DNCL コード補完スニペット
+- `packages/scratch-gui/src/containers/ruby-tab/dncl-snippets.js` — DNCL コード補完スニペット。ブロックは標準の形（`もし 条件 ならば:` / `〜の間繰り返す:` / `関数 名前(引数):` と字下げ 4 つ。閉じのことばの行は入れない）で入れる
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-index-shift.js` — 貼り付け時の添字の書き換えの確認ダイアログ・書き換え（1 回の Undo）・印（Monaco デコレーション）・まとめの表示（`offerDnclIndexShift`）
 
 #### UI / 状態管理
@@ -368,12 +370,14 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-japanese-quotes-in-string.test.js` — `"..."` / `'...'` の中の `「」` はそのまま残し、`「...」` の文字列だけを `"..."` に直すこと（round-trip を含む）
   - `dncl-validator.test.js` — 閉じ忘れ・閉じすぎを DNCL のことばで言うこと（ブロックの種類ごとの閉じのことば・閉じ忘れた内側の行・`end` が合うときはエラーにしない・DNCLv2 の `⎿` / インデントの形）
   - `ruby-to-dncl.test.js` — Ruby → DNCL 逆変換ユニットテスト
+  - `dncl-block-errors-standard-form.test.js` — 標準の形で書いたブロックの閉じ忘れが字下げのことばで出ること（`ならば:` / `繰り返す:` / `関数 〜(…):`・全角の `：`・行末コメント・行番号・浅く書いた `そうでなければ:`）と、DNCL 風の形では閉じのことばのままであること
   - `dncl-standard-form.test.js` — 書き出しの標準の形（字下げと `:`・`and` / `or` / `not`・`％`・`を返す`・終端の行を残す場合）と、DNCL 風の形も読むこと
   - `dncl-loop-jump.test.js` — 繰り返しの中の `break` / `next`（後置の `if` / `unless` 付き・1 行だけ・`redo` / `retry`）がその行のエラーで止まり、`@break` のような Ruby にならないこと。同じ名前の変数は往復できること
   - `dncl-unsupported-command.test.js` — 日本語モードに無い命令（引数あり・なし・変数と同じ名前・式や条件の中・`xxx do` と `|x|`）がその行のエラーで止まり、定義した関数の呼び出しや組み込み関数は往復できること（DNCL → Ruby と Ruby → DNCL の両方）
   - `dncl-do-block.test.js` — 日本語にしない `xxx do ... end` が `を実行する` で閉じ、外側の `〜の間` / `もし` / `関数` の閉じのことばがずれないこと（入れ子・`until x do`・後判定の中・文字列やコメントの中の `do`）
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
 - エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-shift.test.js`（注釈なしでは聞かない・「いいえ」で何も変えない・「はい」で 1 回の編集と印とまとめ）
+- 補完と色分けの単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-snippets.test.js`（スニペットが標準の形（`:` と字下げ 4 つ・閉じのことばの行なし・`繰り返す:`）で、場所を埋めて入れたものがそのまま Ruby とブロックになり、Ruby から同じ日本語に戻ること）、`dncl-mode.test.js`（開始の行の後の字下げ・`and` / `or` / `not`・`繰り返す` の付いたことば・`を返す`・全角の `％` の色分け）
 - Round-trip テスト (左結合演算子の括弧除去): `packages/scratch-gui/test/unit/lib/ruby-roundtrip-puts-concat.test.js`
 - ブロック制限 UX の単体テスト:
   - `packages/scratch-gui/test/unit/reducers/dncl-mode-reducer.test.js` — `exitDnclModeExternallyRequested` シグナル
