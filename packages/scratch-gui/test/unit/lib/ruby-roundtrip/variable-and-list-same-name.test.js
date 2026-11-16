@@ -44,6 +44,23 @@ describe('Ruby to blocks: a name used as both a variable and a list (issue #1593
         );
     });
 
+    // The analysis looks at the code in the order of the source (#2016): the error is on the first
+    // name and the first place, in the order the code is written.
+    test.each([
+        ['the first of two names on a line', '@a = []; @b = []\n@a = 1; @b = 1', '@a', 1, 2, 0],
+        ['the first assignment of the name on a line', '@a = []\nx = 0; @a = 1; @a = 2', '@a', 1, 2, 7],
+        ['the first assignment before the list', '@a = 1; @a = 2\n@a = []', '@a', 2, 1, 0],
+    ])('%s is where the error is', async (_name, code, name, listLine, variableLine, column) => {
+        const { result, errors } = await convert(code);
+        expect(result).toBe(false);
+        expect(errors).toHaveLength(1);
+        expect([errors[0].row, errors[0].column]).toEqual([variableLine - 1, column]);
+        expect(errors[0].text).toBe(
+            `"${name}" is used as a list on line ${listLine} and as a variable on line ${variableLine}.\n` +
+                'In Ruby, one name cannot be both a variable and a list. Rename one of them.',
+        );
+    });
+
     describe('reading a list is not an error (issue #1567)', () => {
         let target, runtime, converter;
 

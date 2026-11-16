@@ -1,6 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (type-checking methods for RubyToBlocksConverter) ===
 import _ from 'lodash';
 import { normalizeColorString } from './color-utils';
+import { childNodesOf, nodeTypeName } from './node-walk';
 
 /**
  * Type-checking utilities for RubyToBlocksConverter.
@@ -18,7 +19,7 @@ const NodeTypeChecks = {
      * @returns {?string} The type of the node.
      */
     _prismNodeType(value) {
-        return value && typeof value.accept === 'function' ? this._getNodeTypeName(value) : null;
+        return nodeTypeName(value);
     },
 
     /**
@@ -29,8 +30,7 @@ const NodeTypeChecks = {
      * @returns {Array<object>} The child nodes.
      */
     _childNodesOf(node) {
-        if (!node || typeof node.childNodes !== 'function') return [];
-        return node.childNodes().filter(Boolean);
+        return childNodesOf(node);
     },
 
     _isSelf(block) {

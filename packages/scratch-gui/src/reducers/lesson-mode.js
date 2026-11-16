@@ -12,6 +12,9 @@ import {
     mergeProgress,
     saveProgress,
 } from '../lib/lessons/lesson-progress';
+import { ROLE_SOURCES } from '../lib/lessons/lesson-role';
+import { isReadDiagram } from '../lib/lessons/read-diagram';
+import { DEFAULT_ROLE, challengeForRole, isRole } from '../lib/lessons/role-swap';
 import { isSpotlightSeen, markSpotlightSeen } from '../lib/lessons/spotlight-seen';
 
 const START_CHALLENGE = 'scratch-gui/lesson-mode/START_CHALLENGE';
@@ -28,10 +31,13 @@ const RELOAD_PROGRESS = 'scratch-gui/lesson-mode/RELOAD_PROGRESS';
 const CLEAR_PROGRESS = 'scratch-gui/lesson-mode/CLEAR_PROGRESS';
 const REQUEST_PROGRESS_SEND = 'scratch-gui/lesson-mode/REQUEST_PROGRESS_SEND';
 const DISMISS_COMPLETED = 'scratch-gui/lesson-mode/DISMISS_COMPLETED';
+const HIDE_COMPLETED = 'scratch-gui/lesson-mode/HIDE_COMPLETED';
+const SHOW_COMPLETED = 'scratch-gui/lesson-mode/SHOW_COMPLETED';
 const FOCUS_LESSONS_LIBRARY = 'scratch-gui/lesson-mode/FOCUS_LESSONS_LIBRARY';
 const FOCUS_LESSONS_LIBRARY_START = 'scratch-gui/lesson-mode/FOCUS_LESSONS_LIBRARY_START';
 const CLEAR_LESSONS_LIBRARY_FOCUS = 'scratch-gui/lesson-mode/CLEAR_LESSONS_LIBRARY_FOCUS';
 const SET_LIBRARY_ASSIGNMENT_ONLY = 'scratch-gui/lesson-mode/SET_LIBRARY_ASSIGNMENT_ONLY';
+const SET_ROLE = 'scratch-gui/lesson-mode/SET_ROLE';
 // チュートリアルのカードを開く action（reducers/cards.js の ACTIVATE_DECK）。カードの
 // allowedBlocks / setup がレッスンのものと食い違うので、開いたらレッスンモードを抜ける
 const ACTIVATE_DECK = 'scratch-gui/cards/ACTIVATE_DECK';
@@ -43,8 +49,11 @@ const hintClosedState = {
 };
 
 // ヒントのページ数。steps の後ろに「うまく動かないときは」と「プログラムを入れる」の
-// 最後の手段のページが 1 つ付く（debug も code も無いチャレンジでは付かない）
-const hasLastResort = (challenge) => challenge.debug.length > 0 || Boolean(challenge.code);
+// 最後の手段のページが 1 つ付く（debug も code も無いチャレンジでは付かない）。
+// 読んで作るチャレンジには付けない（「正解のプログラムを確認する」で置き換えると、そのまま動かすだけで
+// 「できた」になるため。答えは 3 ページ目に描くだけ・lib/lessons/read-diagram.js）
+const hasLastResort = (challenge) =>
+    !isReadDiagram(challenge) && (challenge.debug.length > 0 || Boolean(challenge.code));
 const hintPageCount = (challenge) => challenge.steps.length + (hasLastResort(challenge) ? 1 : 0);
 
 const closedState = {
@@ -66,6 +75,18 @@ const closedState = {
     // false）。「課題クリア！」を 1 回だけ出すのに使う（lib/lessons/assignment-progress.js の
     // isAssignmentJustCleared）
     justCompletedNew: false,
+    // 「できた！」を閉じずに、いっとき隠しているか（#1639）。クイズのある「できた！」は、課題バーの全文を
+    // タップで開いているあいだだけ隠し、全文を閉じたら出し直す（閉じるとクイズにもどれないため）
+    completedHidden: false,
+    // ペアでやるチャレンジの役（#2061。lib/lessons/role-swap.js の ROLES）。役のあるチャレンジ（`roles: true`）を
+    // 開いているときだけ入る。roleSource = どう決めたか（lib/lessons/lesson-role.js の ROLE_SOURCES）、
+    // rolePair = 出席番号のペアの印（クラスで出席番号のペアにつながっているとき）
+    role: null,
+    roleSource: null,
+    rolePair: null,
+    // 役を選びなおしてチャレンジを始めなおすときの役と、どう決めたか（開くまでの間だけ入る）
+    pendingRole: null,
+    pendingRoleSource: null,
 };
 
 const initialState = {
@@ -90,6 +111,37 @@ const initialState = {
     progressSendRequest: 0,
 };
 
+/**
+ * チャレンジを開くときの役（役のあるチャレンジだけ）。役を選びなおして始めなおしたとき（pendingRole）は
+ * その役、コンテナが決めた役（action.role。前回の役・出席番号のペア。lib/lessons/lesson-role.js）があれば
+ * それ、無ければシマラビの役。reducer は端末（localStorage）を読み書きしない（前回の役を読むのも、選んだ役を
+ * 覚えるのもコンテナ）。
+ * @param {object} challenge - 開くチャレンジ。
+ * @param {object} action - OPEN_CHALLENGE。
+ * @param {object} state - いまの state。
+ * @returns {{role: ?string, roleSource: ?string, rolePair: ?string}} 役の state。
+ */
+const openedRoleState = (challenge, action, state) => {
+    if (!challenge.roles) return { role: null, roleSource: null, rolePair: null };
+    let resolved;
+    if (state.pendingChallengeId === challenge.id && isRole(state.pendingRole)) {
+        resolved = {
+            role: state.pendingRole,
+            source: state.pendingRoleSource || ROLE_SOURCES.CHOSEN,
+            pair: action.rolePair || state.rolePair || null,
+        };
+    } else if (isRole(action.role)) {
+        resolved = {
+            role: action.role,
+            source: action.roleSource || ROLE_SOURCES.DEFAULT,
+            pair: action.rolePair || null,
+        };
+    } else {
+        resolved = { role: DEFAULT_ROLE, source: ROLE_SOURCES.DEFAULT, pair: null };
+    }
+    return { role: resolved.role, roleSource: resolved.source, rolePair: resolved.pair };
+};
+
 const hintCount = (state) => {
     const found = state.challengeId === null ? null : findChallenge(state.challengeId);
     return found ? hintPageCount(found.challenge) : 0;
@@ -104,12 +156,20 @@ const reducer = function (state, action) {
                 ...state,
                 pendingChallengeId: action.challengeId,
                 pendingFromAssignment: Boolean(action.fromAssignment),
+                pendingRole: isRole(action.role) ? action.role : null,
+                pendingRoleSource: isRole(action.role) ? action.roleSource || ROLE_SOURCES.CHOSEN : null,
             };
         }
         case CANCEL_START_CHALLENGE:
             return state.pendingChallengeId === null
                 ? state
-                : { ...state, pendingChallengeId: null, pendingFromAssignment: false };
+                : {
+                      ...state,
+                      pendingChallengeId: null,
+                      pendingFromAssignment: false,
+                      pendingRole: null,
+                      pendingRoleSource: null,
+                  };
         case OPEN_CHALLENGE: {
             const found = findChallenge(action.challengeId);
             if (!found) return state;
@@ -117,6 +177,16 @@ const reducer = function (state, action) {
             // このチャレンジを開いているあいだは state の値で照らし続ける
             const hintSpotlight = !isSpotlightSeen(found.challenge.id);
             if (hintSpotlight) markSpotlightSeen(found.challenge.id);
+            const roleState = openedRoleState(found.challenge, action, state);
+            // 役を選びなおして同じチャレンジを始めなおしたときは、ヒントのページをそのままにする（「メッシュにつなごう」の
+            // ページで役を変えても 1 ページ目にもどらない）
+            const restartedInRole =
+                state.challengeId === found.challenge.id &&
+                state.pendingChallengeId === found.challenge.id &&
+                isRole(state.pendingRole);
+            const hintState = restartedInRole
+                ? { hintIndex: state.hintIndex, hintVisible: state.hintVisible }
+                : { ...hintClosedState, hintVisible: hintPageCount(found.challenge) > 0 };
             // ヒントボタンを押さなくても、始めたら 1 ページ目を出す（ヒントの無いチャレンジは出さない）。
             // 閉じたあとは課題バーの「ヒント」で開き直す
             return {
@@ -126,15 +196,18 @@ const reducer = function (state, action) {
                 challengeId: found.challenge.id,
                 pendingChallengeId: null,
                 pendingFromAssignment: false,
+                pendingRole: null,
+                pendingRoleSource: null,
+                ...roleState,
                 // startChallenge から来たときだけ、そのときの「課題からか」を引き継ぐ
                 fromAssignment:
                     state.pendingChallengeId === found.challenge.id ? Boolean(state.pendingFromAssignment) : false,
-                ...hintClosedState,
-                hintVisible: hintPageCount(found.challenge) > 0,
+                ...hintState,
                 hintSession: (state.hintSession || 0) + 1,
                 hintSpotlight,
                 justCompletedId: null,
                 justCompletedNew: false,
+                completedHidden: false,
             };
         }
         case CLOSE_LESSON:
@@ -173,20 +246,29 @@ const reducer = function (state, action) {
             const hintVisible = action.challengeId === state.challengeId ? false : state.hintVisible;
             const justCompletedNew =
                 justCompletedId === action.challengeId ? progress !== latest : state.justCompletedNew;
+            // 「できた！」を出し直すときは、隠していたのを解く
+            const completedHidden = justCompletedId === action.challengeId ? false : state.completedHidden;
             if (
                 progress === state.progress &&
                 justCompletedId === state.justCompletedId &&
                 hintVisible === state.hintVisible &&
-                justCompletedNew === state.justCompletedNew
+                justCompletedNew === state.justCompletedNew &&
+                completedHidden === state.completedHidden
             ) {
                 return state;
             }
-            return { ...state, progress, justCompletedId, hintVisible, justCompletedNew };
+            return { ...state, progress, justCompletedId, hintVisible, justCompletedNew, completedHidden };
         }
         case DISMISS_COMPLETED:
             return state.justCompletedId === null
                 ? state
-                : { ...state, justCompletedId: null, justCompletedNew: false };
+                : { ...state, justCompletedId: null, justCompletedNew: false, completedHidden: false };
+        case HIDE_COMPLETED:
+            return state.justCompletedId === null || state.completedHidden
+                ? state
+                : { ...state, completedHidden: true };
+        case SHOW_COMPLETED:
+            return state.completedHidden ? { ...state, completedHidden: false } : state;
         case FOCUS_LESSONS_LIBRARY:
             if (!findChallenge(action.challengeId) || state.libraryFocusChallengeId === action.challengeId) {
                 return state;
@@ -198,6 +280,17 @@ const reducer = function (state, action) {
             return state.libraryFocusChallengeId === null && !state.libraryAssignmentOnly && !state.libraryStartFocus
                 ? state
                 : { ...state, libraryFocusChallengeId: null, libraryAssignmentOnly: false, libraryStartFocus: false };
+        case SET_ROLE: {
+            // いまのチャレンジの役を、生徒が選びなおした（役の無いチャレンジでは何もしない）
+            const found = state.challengeId === null ? null : findChallenge(state.challengeId);
+            if (!found || !found.challenge.roles || !isRole(action.role)) return state;
+            const roleSource = action.roleSource || ROLE_SOURCES.CHOSEN;
+            const rolePair = typeof action.rolePair === 'undefined' ? state.rolePair : action.rolePair;
+            if (state.role === action.role && state.roleSource === roleSource && state.rolePair === rolePair) {
+                return state;
+            }
+            return { ...state, role: action.role, roleSource, rolePair };
+        }
         case SET_LIBRARY_ASSIGNMENT_ONLY:
             return state.libraryAssignmentOnly === Boolean(action.assignmentOnly)
                 ? state
@@ -206,7 +299,7 @@ const reducer = function (state, action) {
             // 本人の確認で「ちがう」→「消す」（#1600）。端末のレッスンの記録だけを空にする
             const progress = emptyProgress();
             saveProgress(progress);
-            return { ...state, progress, justCompletedId: null, justCompletedNew: false };
+            return { ...state, progress, justCompletedId: null, justCompletedNew: false, completedHidden: false };
         }
         case REQUEST_PROGRESS_SEND:
             return { ...state, progressSendRequest: (state.progressSendRequest || 0) + 1 };
@@ -226,12 +319,16 @@ const reducer = function (state, action) {
  * @param {string} challengeId - チャレンジ id（知らない id は無視）。
  * @param {object} [options] - オプション。
  * @param {boolean} [options.fromAssignment] - クラスの課題から開いたか（GA の計測で送る）。
+ * @param {?string} [options.role] - この役で始める（役を選びなおして始めなおすとき・#2061）。
+ * @param {?string} [options.roleSource] - その役をどう決めたか（無ければ生徒が選んだ）。
  * @returns {object} action。
  */
-const startChallenge = (challengeId, { fromAssignment = false } = {}) => ({
+const startChallenge = (challengeId, { fromAssignment = false, role = null, roleSource = null } = {}) => ({
     type: START_CHALLENGE,
     challengeId,
     fromAssignment: Boolean(fromAssignment),
+    role,
+    roleSource,
 });
 
 /** 「保存しますか」で取りやめたときなど、開こうとしていたチャレンジを取り消す。 */
@@ -240,9 +337,35 @@ const cancelStartChallenge = () => ({ type: CANCEL_START_CHALLENGE });
 /**
  * レッスンモードに入る（作品の準備は済んでいる前提）。
  * @param {string} challengeId - チャレンジ id（知らない id は無視）。
+ * @param {object} [options] - 役のあるチャレンジの役（#2061。無ければ前回の役から決める）。
+ * @param {?string} [options.role] - 役。
+ * @param {?string} [options.roleSource] - どう決めたか（ROLE_SOURCES）。
+ * @param {?string} [options.rolePair] - 出席番号のペアの印。
  * @returns {object} action。
  */
-const openChallenge = (challengeId) => ({ type: OPEN_CHALLENGE, challengeId });
+const openChallenge = (challengeId, { role = null, roleSource = null, rolePair = null } = {}) => ({
+    type: OPEN_CHALLENGE,
+    challengeId,
+    role,
+    roleSource,
+    rolePair,
+});
+
+/**
+ * いまのチャレンジの役を選びなおす（課題バーの役のボタン・#2061）。役の無いチャレンジでは何もしない。
+ * @param {string} role - 役（lib/lessons/role-swap.js の ROLES）。
+ * @param {object} [options] - オプション。
+ * @param {?string} [options.roleSource] - どう決めたか（無ければ生徒が選んだ）。出席番号のペアにつながって
+ *   決めなおしたときは SEAT。
+ * @param {?string} [options.rolePair] - 出席番号のペアの印（無ければいまのまま）。
+ * @returns {object} action。
+ */
+const setLessonRole = (role, { roleSource = null, rolePair } = {}) => ({
+    type: SET_ROLE,
+    role,
+    roleSource,
+    rolePair,
+});
 
 const closeLesson = () => ({ type: CLOSE_LESSON });
 
@@ -280,6 +403,19 @@ const requestProgressSend = () => ({ type: REQUEST_PROGRESS_SEND });
 const dismissCompleted = () => ({ type: DISMISS_COMPLETED });
 
 /**
+ * 「できた！」を閉じずに、いっとき隠す（課題バーの全文をタップで開いているあいだ・#1639）。
+ * 選んだクイズの答えは残る（toast は描いたまま見えなくするだけ）。
+ * @returns {object} action。
+ */
+const hideCompleted = () => ({ type: HIDE_COMPLETED });
+
+/**
+ * hideCompleted で隠した「できた！」を出し直す（全文を閉じたとき）。
+ * @returns {object} action。
+ */
+const showCompleted = () => ({ type: SHOW_COMPLETED });
+
+/**
  * レッスン表を開いたときに、このチャレンジのレッスンを見せて、その次のまだできていない
  * チャレンジを目立たせる（「次のチャレンジ」・#1520）。開くのは modals の openLessonsLibrary
  * （まとめて出すときは lib/lessons/open-lessons-library.js の openLessonsLibraryAt）。
@@ -314,8 +450,21 @@ const isLessonMode = (state) => state.scratchGui.lessonMode.challengeId !== null
  * @returns {?{course: object, lesson: object, challenge: object}} いま開いているチャレンジ。
  */
 const getCurrentChallenge = (state) => {
-    const { challengeId } = state.scratchGui.lessonMode;
-    return challengeId === null ? null : findChallenge(challengeId);
+    const { challengeId, role } = state.scratchGui.lessonMode;
+    const found = challengeId === null ? null : findChallenge(challengeId);
+    if (!found) return null;
+    // シマネコの役なら、名前を入れかえた形（同じ役なら同じ参照・role-swap.js）
+    return { ...found, challenge: challengeForRole(found.challenge, role) };
+};
+
+/**
+ * いまのチャレンジの役（#2061）。役の無いチャレンジ・レッスンモードでないときは null。
+ * @param {object} state - Redux の state。
+ * @returns {?{role: string, source: string}} 役と、どう決めたか。
+ */
+const getCurrentRole = (state) => {
+    const { role, roleSource } = state.scratchGui.lessonMode;
+    return isRole(role) ? { role, source: roleSource || ROLE_SOURCES.DEFAULT } : null;
 };
 
 /**
@@ -387,12 +536,16 @@ export {
     clearProgress,
     requestProgressSend,
     dismissCompleted,
+    hideCompleted,
+    showCompleted,
     focusLessonsLibrary,
     focusLessonsLibraryStart,
     clearLessonsLibraryFocus,
     setLibraryAssignmentOnly,
     isLessonMode,
     getCurrentChallenge,
+    getCurrentRole,
+    setLessonRole,
     getLessonAllowedBlocks,
     getLessonDnclModeAllowed,
     getCurrentHint,

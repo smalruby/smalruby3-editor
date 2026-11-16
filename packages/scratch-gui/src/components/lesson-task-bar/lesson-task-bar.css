@@ -37,6 +37,17 @@
     white-space: nowrap;
 }
 
+/* 読んで作るチャレンジの印。位置の丸と並べ、白い枠だけにして位置より目立たせない */
+.mode {
+    flex-shrink: 0;
+    padding: 0.125rem 0.5rem;
+    border: 1px solid $ui-white;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
 .task {
     /*
         width: 0 で、課題の文の長さをバーの最小幅に入れない（入れると長い課題で
@@ -100,6 +111,61 @@
 }
 
 /*
+    ペアでやるチャレンジの役を選ぶボタン（#2062）。2 つを 1 つの枠にまとめ、いまの役を白地にする。
+    役をどう決めたか（「前回はシマネコの役」など）は、ボタンの下に小さく出す（横に並べると、768px・SP の幅で
+    課題の 1 行がほとんど見えなくなるため）。ボタンと注記を合わせてバーの高さ（40px）に収める
+*/
+.role {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    flex-shrink: 0;
+}
+
+.role-note {
+    font-size: 0.625rem;
+    line-height: 1;
+    white-space: nowrap;
+    opacity: 0.9;
+}
+
+.role-buttons {
+    display: flex;
+    border: 1px solid $ui-white;
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.role-button {
+    padding: 0.125rem 0.5rem;
+    border: none;
+    background: none;
+    color: $ui-white;
+    font-size: 0.6875rem;
+    line-height: 1.2;
+    font-weight: bold;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.role-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.role-button-active {
+    composes: role-button;
+    background-color: $ui-white;
+    color: $motion-primary;
+    cursor: default;
+}
+
+.role-button-active:hover {
+    background-color: $ui-white;
+}
+
+/*
     課題の全文。バーのすぐ下に、バーと同じ幅（画面の幅）で重ねて出す（absolute なのでレイアウトは変えない）。
     先生がプロジェクターに映して読み上げる場面を想定して、字は大きめ（1300px 幅で 1.5rem 近く、
     SP では 1rem まで小さく）。改行はチャレンジの定義どおり（pre-line）。
@@ -156,4 +222,19 @@
     max-width: 100%;
     max-height: 10rem;
     object-fit: contain;
+}
+
+/*
+    答えのプログラムから描いたアクティビティ図。大きさは lesson-task-bar.jsx が決める（パネルの 60vh から文の分を
+    引いた高さまで縮め、字が読める下限より小さくしない。入らなければ図の代わりに案内の 1 行を出す）。マウスで
+    乗せて出すパネルは中をスクロールできない（pointer-events: none）ので、はみ出させない
+*/
+.full-text-diagram {
+    display: flex;
+    max-width: 100%;
+}
+
+.full-text-diagram-note {
+    margin: 0;
+    font-size: 1rem;
 }

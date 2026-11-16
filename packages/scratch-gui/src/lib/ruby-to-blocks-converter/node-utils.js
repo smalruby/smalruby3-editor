@@ -1,4 +1,5 @@
 import NodeTypeChecks from './node-type-checks';
+import { nodeTypeName } from './node-walk';
 
 // The mark of `not (x = "false")` made for a variable alone as a condition (issue #1611).
 const VARIABLE_CONDITION_MARKER = '@ruby:variable_condition';
@@ -224,12 +225,12 @@ const NodeUtils = {
         let current = root;
         let parentType = null;
         while (current && current !== node) {
-            const type = this._getNodeTypeName(current);
+            const type = nodeTypeName(current);
             const next = this._childNodesOf(current).find(contains);
             if (!next) {
                 break;
             }
-            const nextType = this._getNodeTypeName(next);
+            const nextType = nodeTypeName(next);
             if (
                 (type === 'StatementsNode' && parentType !== 'ParenthesesNode') ||
                 (type === 'IfNode' && nextType === 'IfNode' && next === current.subsequent) ||
@@ -287,34 +288,62 @@ const NodeUtils = {
         return src;
     },
 
+    /**
+     * The UTF-8 byte offsets of the new lines of the source, made once per source.
+     * Prism gives UTF-8 byte offsets; walking the source for each offset made the line lookup
+     * grow with the square of the length of the code (it is called for every visited node).
+     * @returns {Int32Array} The byte offsets of the `\n`s, in order.
+     */
+    _newlineByteOffsets() {
+        const source = this._context.sourceCode;
+        if (this._context.newlineBytesSource === source && this._context.newlineBytes) {
+            return this._context.newlineBytes;
+        }
+        const offsets = [];
+        let bytes = 0;
+        for (let i = 0; i < source.length; i++) {
+            const cp = source.codePointAt(i);
+            if (cp === 0x0a) {
+                offsets.push(bytes);
+            }
+            if (cp < 0x80) {
+                bytes += 1;
+            } else if (cp < 0x800) {
+                bytes += 2;
+            } else if (cp < 0x10000) {
+                bytes += 3;
+            } else {
+                bytes += 4;
+                i++; // surrogate pair: skip extra char in JS
+            }
+        }
+        this._context.newlineBytes = Int32Array.from(offsets);
+        this._context.newlineBytesSource = source;
+        return this._context.newlineBytes;
+    },
+
+    /**
+     * The line (1-based) of a UTF-8 byte offset of the source: 1 + the new lines before it.
+     * @param {number} byteOffset - The byte offset from prism.
+     * @returns {number} The line.
+     */
     _getLineForOffset(byteOffset) {
         if (typeof byteOffset !== 'number' || !this._context.sourceCode) {
             return 1;
         }
-        // Prism uses UTF-8 byte offsets. Walk the JS string counting UTF-8 bytes
-        // so we handle multibyte characters (e.g. Japanese) correctly.
-        const source = this._context.sourceCode;
-        let line = 1;
-        let bytesConsumed = 0;
-        for (let i = 0; i < source.length && bytesConsumed < byteOffset; i++) {
-            const cp = source.codePointAt(i);
-            let byteLen;
-            if (cp < 0x80) {
-                byteLen = 1;
-            } else if (cp < 0x800) {
-                byteLen = 2;
-            } else if (cp < 0x10000) {
-                byteLen = 3;
+        const newlines = this._newlineByteOffsets();
+        // The number of new lines at a byte offset below `byteOffset` (binary search).
+        let low = 0;
+        let high = newlines.length;
+        while (low < high) {
+            const mid = (low + high) >>> 1;
+            if (newlines[mid] < byteOffset) {
+                low = mid + 1;
             } else {
-                byteLen = 4;
-                i++; // surrogate pair: skip extra char in JS
-            }
-            bytesConsumed += byteLen;
-            if (bytesConsumed <= byteOffset && source[i] === '\n') {
-                line++;
+                high = mid;
             }
         }
-        return line;
+        return low + 1;
     },
 
     _getNodeStartLine(node) {
