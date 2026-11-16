@@ -6,14 +6,14 @@
  */
 import { act, renderHook } from '@testing-library/react';
 import useTeacherSubmissions from '../../../src/containers/use-teacher-submissions.js';
-import { closeClassroomModal, closeTeacherModal } from '../../../src/reducers/classroom.js';
+import { closeClassroomModal, closeTeacherModal, setTeacherOpenedWork } from '../../../src/reducers/classroom.js';
 
 jest.mock('../../../src/lib/classroom-api.js', () => ({ __esModule: true, default: {} }));
 
-const setup = () => {
+const setup = (selectedClassroom = null) => {
     const deps = {
         idToken: 'id-token',
-        selectedClassroom: null,
+        selectedClassroom,
         members: [],
         handleTeacher401: jest.fn(),
         loadClassroomDetail: jest.fn(),
@@ -49,5 +49,22 @@ describe('useTeacherSubmissions — 作品を開く', () => {
         expect(deps.vm.loadProject).not.toHaveBeenCalled();
         expect(deps.dispatch).not.toHaveBeenCalled();
         expect(deps.showError).toHaveBeenCalledTimes(1);
+    });
+
+    test('開いた場所を渡すと、閉じたあとで戻る帯のために覚える（課題名は選んだ課題から・#1990）', async () => {
+        global.fetch = jest.fn(() => Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve('sb3') }));
+        const { hook, deps } = setup({ classroomId: 'c1', assignmentName: '迷路' });
+        await act(async () => {
+            await hook.result.current.handleOpenSubmission('https://example.invalid/3.sb3', {
+                from: 'assignment',
+                seatNumber: 3,
+            });
+        });
+        const actions = deps.dispatch.mock.calls.map(([action]) => action);
+        expect(actions).toEqual([
+            closeTeacherModal(),
+            closeClassroomModal(),
+            setTeacherOpenedWork({ from: 'assignment', seatNumber: 3, assignmentName: '迷路' }),
+        ]);
     });
 });

@@ -24,7 +24,12 @@
  * 各手順で、ページの横スクロールが無いこと・手順の行の右端が画面の中・右の列が画面の中に収まることも測る。
  *
  * ［作品を開く］(#1980): 右の列の中で、列をスクロールせずに見えるか・課題名と重ならないか。
- * 押すと離れる確認を出し、［離れる］で作品をエディタに開いてクラス管理を閉じるか。
+ * 押すと確かめずに作品をエディタに開いてクラス管理を閉じるか（採点の画面は隠して残る・#1990）。
+ *
+ * 戻る帯 (#1990): 開いたあと、エディタの上（メニューバーの下）に「出席番号・課題名」と［‹ 採点に戻る］が
+ * 出るか。帯の高さと、帯の有る・無しでのステージ・スプライトの領域・ブロックの領域の位置を測る。
+ * ［戻る］で同じ席の右の列と、点・根拠・コメントの下書きのまま採点の画面に戻るか。✕ で閉じても聞かず、
+ * 設定のメニューの「クラス管理」から開き直すと採点の画面に戻るか。新しい作品を作ると帯が消えるか。
  */
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
@@ -463,7 +468,6 @@ const backButton = '[data-testid="classroom-teacher-back-to-editor"]';
 const entries = [
     { name: 'cancel', run: () => page.click('[data-testid="classroom-evaluation-cancel"]'), yes: /戻る|もどる/ },
     { name: 'breadcrumb', run: () => page.click('[data-testid="classroom-breadcrumb-class-list"]'), yes: /戻る|もどる/ },
-    { name: 'modal back (close)', run: () => page.click(backButton), yes: /離れる|はなれる/ },
     // クラスの中のタブ (#1958): 採点から［ストリーム］［授業］へ移るときも聞く。
     { name: 'tab stream', run: () => page.click('[data-testid="classroom-board-tab-stream"]'), yes: /離れる|はなれる/ },
     {
@@ -471,7 +475,6 @@ const entries = [
         run: () => page.click('[data-testid="classroom-board-tab-classwork"]'),
         yes: /離れる|はなれる/,
     },
-    { name: 'Esc', run: () => page.keyboard.press('Escape'), yes: /離れる|はなれる/ },
     {
         name: 'notifications "open all"',
         run: async () => {
@@ -511,12 +514,6 @@ const entries = [
             await page.locator('[data-testid="classroom-teacher-kick-toast-open"]').click({ timeout: 5000 });
             pendingKicks = [];
         },
-        yes: /離れる|はなれる/,
-    },
-    // ［作品を開く］(#1980): クラス管理を閉じるので、閉じるときと同じく聞く。
-    {
-        name: 'open the work',
-        run: () => page.click('[data-testid="classroom-eval-detail-open-work"]'),
         yes: /離れる|はなれる/,
     },
     {
@@ -585,7 +582,7 @@ record({
 await page.waitForSelector('[data-testid="classroom-eval-matrix"]', { timeout: 30000 });
 await page.waitForTimeout(500);
 
-// ［作品を開く］→［離れる］で、選んだ席の作品をエディタに開き、クラス管理を閉じる (#1980)。
+// ［作品を開く］で、選んだ席の作品をエディタに開き、クラス管理を閉じる (#1980)。確かめない (#1990)。
 // 表の解析用の最小の sb3 はコスチュームが無くエディタに読み込めないので、開く 1 つだけ本物の作品を返す。
 const { readFile } = await import('node:fs/promises');
 const openSb3 = await readFile(resolve(REPO_ROOT, 'packages/scratch-gui/test/fixtures/monitor-variable.sb3'));
@@ -596,25 +593,178 @@ const openedUrls = [];
 page.on('request', (req) => {
     if (req.url().startsWith('https://example.invalid/')) openedUrls.push(req.url());
 });
-await page.click(`[data-testid="classroom-eval-cell-button-5-${LESSONS[0].classroomId}"]`);
+const C1 = LESSONS[0].classroomId;
+await page.click(`[data-testid="classroom-eval-cell-button-5-${C1}"]`);
+// 下書き: 根拠とコメントを書きかえる（戻ったときに残っているかを見る）。
+const REASON = '根拠の下書き（戻る帯の確認）';
+const COMMENT = 'コメントの下書き（戻る帯の確認）';
+await page.selectOption(`[data-testid="classroom-eval-grade-5-${C1}"]`, 'A').catch(() => {});
+await page.fill(`[data-testid="classroom-eval-reason-5-${C1}"]`, REASON);
+await page.fill(`[data-testid="classroom-eval-comment-5-${C1}"]`, COMMENT);
+const draftState = () =>
+    page.evaluate((c1) => {
+        const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+        return {
+            onScreen: !!q('classroom-phase-teacher-evaluation'),
+            title: q('classroom-eval-detail-title')?.textContent ?? null,
+            reason: q(`classroom-eval-reason-5-${c1}`)?.value ?? null,
+            comment: q(`classroom-eval-comment-5-${c1}`)?.value ?? null,
+            grade: q(`classroom-eval-grade-5-${c1}`)?.value ?? null,
+        };
+    }, C1);
+const before = await draftState();
+
+// エディタの部品の位置（モーダルの下でも並びは同じなので、開く前に測る）。
+const editorLayout = () =>
+    page.evaluate(() => {
+        const rect = (sel) => {
+            const el = document.querySelector(sel);
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            return { top: Math.round(r.top), bottom: Math.round(r.bottom), height: Math.round(r.height) };
+        };
+        const se = document.scrollingElement;
+        return {
+            bar: rect('[data-testid="classroom-teacher-work-bar"]'),
+            menuBar: rect('[class*="menu-bar_menu-bar_"]'),
+            stage: rect('[class*="stage_stage_"]'),
+            spriteSelector: rect('[class*="sprite-selector_sprite-selector_"]'),
+            blocks: rect('.injectionDiv'),
+            pageScrolls: se.scrollHeight > se.clientHeight,
+            vh: window.innerHeight,
+        };
+    });
+const noBar = await editorLayout();
 await page.click('[data-testid="classroom-eval-detail-open-work"]');
-await page.waitForTimeout(200);
-await page.click('[data-testid="classroom-eval-leave-confirm"]');
-await page.waitForSelector(ROOT, { state: 'detached', timeout: 20000 }).catch(() => {});
+await page.waitForSelector('[data-testid="classroom-teacher-work-bar"]', { timeout: 20000 }).catch(() => {});
 await page.waitForTimeout(1000);
 const opened = await page.evaluate(() => {
     const vm = window.vm || (window.smalruby && window.smalruby.vm);
     return {
         screenGone: !document.querySelector('[data-testid="classroom-phase-teacher-evaluation"]'),
+        leaveAsked: !!document.querySelector('[data-testid="classroom-eval-leave-confirm"]'),
+        barText: document.querySelector('[data-testid="classroom-teacher-work-bar-text"]')?.textContent ?? null,
+        back: document.querySelector('[data-testid="classroom-teacher-work-bar-back"]')?.textContent ?? null,
         sprites: vm ? vm.runtime.targets.filter((t) => t.isOriginal && !t.isStage).map((t) => t.getName()) : null,
     };
 });
 record({
-    name: '[作品を開く] → [離れる] opens the seat\'s work and closes the classroom screen',
-    ok: opened.screenGone && openedUrls.includes(`https://example.invalid/${LESSONS[0].classroomId}/5.sb3`),
+    name: '[作品を開く] opens the seat\'s work at once (no question) and closes the classroom screen',
+    ok:
+        opened.screenGone &&
+        !opened.leaveAsked &&
+        openedUrls.includes(`https://example.invalid/${C1}/5.sb3`),
     detail: `${JSON.stringify(opened)} · fetched ${openedUrls.join(', ')}`,
 });
-await shoot(page, 'open-work-opened');
+record({
+    name: 'the bar shows the seat number and the assignment name, and [‹ 採点に戻る]',
+    ok:
+        /5/.test(opened.barText || '') &&
+        (opened.barText || '').includes(LESSONS[0].assignmentName) &&
+        /採点に戻る|さいてんにもどる/.test(opened.back || ''),
+    detail: `"${opened.barText}" · "${opened.back}"`,
+});
+const withBar = await editorLayout();
+record({
+    name: 'the bar sits under the menu bar; stage, sprites and blocks stay on the screen (no page scroll)',
+    ok:
+        !!withBar.bar &&
+        !!withBar.menuBar &&
+        withBar.bar.top >= withBar.menuBar.bottom - 1 &&
+        withBar.stage &&
+        withBar.stage.bottom <= withBar.vh &&
+        withBar.spriteSelector &&
+        withBar.spriteSelector.bottom <= withBar.vh &&
+        withBar.blocks &&
+        withBar.blocks.bottom <= withBar.vh &&
+        !withBar.pageScrolls,
+    detail: `without bar ${JSON.stringify(noBar)} · with bar ${JSON.stringify(withBar)}`,
+});
+await shoot(page, 'work-bar');
+
+// ［‹ 採点に戻る］で、同じ席の右の列と下書きのまま戻る。
+await page.click('[data-testid="classroom-teacher-work-bar-back"]');
+await page.waitForSelector(ROOT, { timeout: 20000 }).catch(() => {});
+await page.waitForTimeout(500);
+const back1 = await draftState();
+const barGone1 = await page.evaluate(() => !document.querySelector('[data-testid="classroom-teacher-work-bar"]'));
+record({
+    name: '[‹ 採点に戻る] comes back to the same seat with the drafts (grade, reason, comment)',
+    ok:
+        back1.onScreen &&
+        back1.title === before.title &&
+        back1.reason === REASON &&
+        back1.comment === COMMENT &&
+        back1.grade === before.grade &&
+        barGone1,
+    detail: `before ${JSON.stringify(before)} · after ${JSON.stringify(back1)} · bar gone ${barGone1}`,
+});
+await shoot(page, 'work-bar-back');
+
+// ✕（エディタに戻る）は聞かずに閉じ、設定のメニューの「クラス管理」から開き直すと採点の画面に戻る。
+await page.click(backButton);
+await page.waitForTimeout(400);
+const closed = await page.evaluate(() => ({
+    gone: !document.querySelector('[data-testid="classroom-phase-teacher-evaluation"]'),
+    asked: !!document.querySelector('[data-testid="classroom-eval-leave-confirm"]'),
+}));
+await page.click('[data-testid="settings-menu"]').catch(() => {});
+await page.waitForTimeout(300);
+await page.click('[data-testid="settings-classroom-management"]').catch(() => {});
+await page.waitForSelector(ROOT, { timeout: 10000 }).catch(() => {});
+await page.waitForTimeout(400);
+const back2 = await draftState();
+record({
+    name: '[← エディタに戻る] closes without asking; the menu opens the grading screen again with the drafts',
+    ok: closed.gone && !closed.asked && back2.onScreen && back2.reason === REASON && back2.comment === COMMENT,
+    detail: `closed ${JSON.stringify(closed)} · reopened ${JSON.stringify(back2)}`,
+});
+
+// 作品を開き直して、新しい作品を作る（vm.loadProject）と帯は消える。
+await page.click('[data-testid="classroom-eval-detail-open-work"]');
+await page.waitForSelector('[data-testid="classroom-teacher-work-bar"]', { timeout: 20000 }).catch(() => {});
+const barAgain = await page.evaluate(() => !!document.querySelector('[data-testid="classroom-teacher-work-bar"]'));
+await page.evaluate(async () => {
+    // window.smalruby は Ruby タブを開くまで無いので、React の props から vm を取る（読むだけ）。
+    const findVm = () => {
+        const el = document.querySelector('[class*="gui_page-wrapper"]') || document.body.firstElementChild;
+        const key = el && Object.keys(el).find((k) => k.startsWith('__reactFiber$'));
+        for (let f = key ? el[key] : null; f; f = f.return) {
+            if (f.memoizedProps && f.memoizedProps.vm && f.memoizedProps.vm.loadProject) return f.memoizedProps.vm;
+        }
+        return null;
+    };
+    const vm = window.vm || (window.smalruby && window.smalruby.vm) || findVm();
+    // 読み込み直すだけでも「ほかの作品を読み込んだ」と同じ（ランタイムの PROJECT_LOADED）。
+    await vm.loadProject(vm.toJSON());
+});
+await page.waitForTimeout(500);
+const barAfterNew = await page.evaluate(() => !!document.querySelector('[data-testid="classroom-teacher-work-bar"]'));
+record({
+    name: 'loading another project removes the bar',
+    ok: barAgain && !barAfterNew,
+    detail: `bar after reopening the work ${barAgain} · after another project ${barAfterNew}`,
+});
+
+// メニューバーのログアウト: 隠れている採点の画面に下書きがあれば、クラス管理を開いて採点の確認を出す (#1990)。
+await page.click('[data-testid="classroom-teacher-menu-button"]');
+await page.click('[data-testid="classroom-teacher-menu-logout"]');
+await page.waitForSelector('[data-testid="classroom-eval-leave-confirm"]', { timeout: 10000 }).catch(() => {});
+const menuLogout = await leaveState();
+const stillIn = await page.evaluate(() => !!document.querySelector('[data-testid="classroom-teacher-menu-button"]'));
+record({
+    name: 'menu bar logout over the hidden grading drafts opens class management and asks first',
+    ok: menuLogout.onScreen && !!menuLogout.message && /離れる|はなれる/.test(menuLogout.yes || '') && stillIn,
+    detail: `"${menuLogout.message}" · [${menuLogout.yes}] bottom ${menuLogout.yesBottom}/${menuLogout.vh} · logged in ${stillIn}`,
+});
+await page.click('[data-testid="classroom-eval-leave-cancel"]');
+await page.waitForTimeout(200);
+const afterStay = await draftState();
+record({
+    name: '[採点を続ける] after the menu bar logout keeps the drafts',
+    ok: afterStay.onScreen && afterStay.reason === REASON && afterStay.comment === COMMENT,
+    detail: JSON.stringify(afterStay),
+});
 
 await browser.close();
 const failed = rows.filter((r) => !r.ok);

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
@@ -10,6 +11,12 @@ import {
     saveTeacherLastSelection,
     saveTeacherLogin,
 } from '../lib/classroom-teacher-session.js';
+import {
+    decideSessionResume,
+    memberCommentDraftKey,
+    memberDraftsForClassroom,
+    unsavedMemberCommentDrafts,
+} from '../lib/classroom-teacher-work.js';
 import { getUrlParams } from '../lib/url-params.js';
 import { showAlertWithTimeout } from '../reducers/alerts.js';
 import {
@@ -21,6 +28,8 @@ import {
     setTeacherUnreadCount,
     setTeacherLastSelection,
     clearTeacherNavigation,
+    setTeacherHasUnsavedWork,
+    teacherLoggedOut,
 } from '../reducers/classroom.js';
 import { decideTeacherSelectionSync } from './classroom-classcode-utils.js';
 import useBeforeUnloadWhile from './use-before-unload-while.js';
@@ -29,7 +38,18 @@ import useTeacherClassroom, { getCachedTeacherIdToken, setCachedTeacherIdToken }
 
 const TEACHER_MODE = 'teacher';
 
-const ClassroomTeacherModal = () => {
+/**
+ * The teacher's class management (full-screen modal).
+ *
+ * Mounted by ClassroomTeacherModalHost. When the teacher opens a work in the
+ * editor, the modal closes but this container stays mounted with `visible`
+ * false (#1990), so the class, assignment, tab, seat and the grading drafts are
+ * all there when the teacher comes back (the bar above the editor, the menu).
+ * @param {object} props - component props
+ * @param {boolean} [props.visible] - the modal is shown
+ * @returns {React.ReactElement|null} the modal, or null while hidden
+ */
+const ClassroomTeacherModal = ({ visible = true }) => {
     const dispatch = useDispatch();
     const intl = useIntl();
     const classroomState = useSelector((state) => state.scratchGui.classroom);
@@ -83,18 +103,36 @@ const ClassroomTeacherModal = () => {
         isLoading,
         setIsLoading,
         vm,
+        visible,
     });
 
-    // Go back to login screen (used as error action for session expiry)
-    const handleGoToLogin = useCallback(() => {
-        setCachedTeacherIdToken(null);
-        teacher.setIdToken(null);
+    // A logout on purpose (not an expired login) is marked here first, so the
+    // token → none below does not keep the screen to come back to (#1990).
+    const explicitLogoutRef = useRef(false);
+    // Where the login expired: {phase, email}. The same teacher logging in again
+    // comes back there with everything kept (#1990).
+    const sessionResumeRef = useRef(null);
+    const phaseRef = useRef(phase);
+    phaseRef.current = phase;
+
+    // Forget the screen of the teacher whose login expired (another teacher logged in).
+    // Read through a ref: `teacher` is a fresh object every render, and the login effect
+    // below must not re-run (and dispatch again) on every render.
+    const resetForAnotherTeacherRef = useRef(null);
+    resetForAnotherTeacherRef.current = () => {
         teacher.setClassrooms([]);
         teacher.setSelectedClassroom(null);
         teacher.setMembers([]);
         dispatch(clearTeacherSelection());
+    };
+
+    // Go back to login screen (used as error action for session expiry). It keeps the
+    // screen and the drafts: the same teacher logging in comes back to them (#1990).
+    const handleGoToLogin = useCallback(() => {
+        setCachedTeacherIdToken(null);
+        teacher.setIdToken(null);
         setPhase('teacher-login');
-    }, [dispatch, teacher]);
+    }, [teacher]);
 
     // Sync teacher's selectedClassroom into Redux so the Mesh v2 binding
     // (mesh-v2-classroom-binding.jsx) and the connection modal can react to it.
@@ -139,14 +177,33 @@ const ClassroomTeacherModal = () => {
     const { idToken: teacherIdToken, authProvider: teacherAuthProvider, setIdToken: setTeacherIdToken } = teacher;
     const prevTeacherIdTokenRef = useRef(teacherIdToken);
     useEffect(() => {
+        const prevToken = prevTeacherIdTokenRef.current;
+        prevTeacherIdTokenRef.current = teacherIdToken;
         if (teacherIdToken) {
             dispatch(setTeacherLoggedIn(true));
             saveTeacherLogin(teacherAuthProvider);
-        } else if (prevTeacherIdTokenRef.current) {
+            // Logged in again after the login expired (#1990).
+            const resume = sessionResumeRef.current;
+            sessionResumeRef.current = null;
+            const decision = decideSessionResume(resume, teacherEmailFromToken(teacherIdToken));
+            if (decision === 'resume') setPhase(resume.phase);
+            else if (decision === 'reset') resetForAnotherTeacherRef.current();
+        } else if (prevToken) {
             dispatch(setTeacherLoggedIn(false));
             clearTeacherSession();
+            if (explicitLogoutRef.current) {
+                explicitLogoutRef.current = false;
+                sessionResumeRef.current = null;
+            } else {
+                // The login expired (a 401 the silent re-login could not fix), maybe while
+                // hidden behind an opened work. Keep everything; ask to log in again here.
+                const was = phaseRef.current;
+                if (!sessionResumeRef.current && was !== 'teacher-login') {
+                    sessionResumeRef.current = { phase: was, email: teacherEmailFromToken(prevToken) };
+                }
+                setPhase('teacher-login');
+            }
         }
-        prevTeacherIdTokenRef.current = teacherIdToken;
     }, [dispatch, teacherIdToken, teacherAuthProvider]);
 
     // The background restore finished after this modal mounted on the login
@@ -186,20 +243,93 @@ const ClassroomTeacherModal = () => {
     // the grading screen itself.
     const evaluation = teacher.evaluation;
     const onEvaluation = phase === 'teacher-evaluation' && !!evaluation;
+    // The grading screen waiting behind the login screen after the login expired (#1990):
+    // its work is still there, so the reload question and the bar still count it.
+    const resumePhase = phase === 'teacher-login' && sessionResumeRef.current ? sessionResumeRef.current.phase : null;
+    const evaluationWork =
+        (onEvaluation || (resumePhase === 'teacher-evaluation' && !!evaluation)) && !!evaluation.hasUnsavedWork;
     const guardLeave = useCallback(
         (action) => (onEvaluation ? evaluation.handleRequestLeave(action, 'leave') : action()),
         [onEvaluation, evaluation],
     );
+
+    // Comments typed on the members tab and not returned yet (#1990). They live here,
+    // not in the screen, so opening a work (which hides this modal) keeps them.
+    // key (memberCommentDraftKey) → {text, base}; base is the returned comment when the
+    // typing started, used while another assignment is shown.
+    const [memberDrafts, setMemberDrafts] = useState({});
+    const selectedDetailId = teacher.selectedClassroom && teacher.selectedClassroom.classroomId;
+    const handleChangeMemberCommentDraft = useCallback(
+        (memberId, text) => {
+            if (!selectedDetailId || !memberId) return;
+            const key = memberCommentDraftKey(selectedDetailId, memberId);
+            const member = (teacher.members || []).find((m) => m.memberId === memberId);
+            setMemberDrafts((prev) => ({
+                ...prev,
+                [key]: { text, base: prev[key] ? prev[key].base : (member && member.teacherComment) || '' },
+            }));
+        },
+        [selectedDetailId, teacher.members],
+    );
+    // Returned: the comment is saved, so its draft goes (#1990).
+    const { handleReturnSubmission: returnSubmission } = teacher;
+    const handleReturnSubmission = useCallback(
+        async (submissionId, comment) => {
+            const ok = await returnSubmission(submissionId, comment);
+            const member = ok && (teacher.members || []).find((m) => m.submissionId === submissionId);
+            if (member && selectedDetailId) {
+                const key = memberCommentDraftKey(selectedDetailId, member.memberId);
+                setMemberDrafts((prev) => {
+                    if (!(key in prev)) return prev;
+                    const next = { ...prev };
+                    delete next[key];
+                    return next;
+                });
+            }
+            return ok;
+        },
+        [returnSubmission, teacher.members, selectedDetailId],
+    );
+    const unsavedMemberDrafts = unsavedMemberCommentDrafts(memberDrafts, selectedDetailId, teacher.members);
+    // Reloading or closing the tab: the browser's own question, only while
+    // something would be lost (and not with ?no_beforeunload=1). The members tab's
+    // comments count too (#1990).
+    useBeforeUnloadWhile(evaluationWork || unsavedMemberDrafts);
+    const unsavedMemberDraftsRef = useRef(unsavedMemberDrafts);
+    unsavedMemberDraftsRef.current = unsavedMemberDrafts;
+
+    // Logging out drops everything here, so it asks first: the grading screen's own
+    // question, then this one for the members tab's comments (#1990).
+    const [logoutConfirm, setLogoutConfirm] = useState(null);
+    const guardLogout = useCallback(
+        (action) => {
+            const askDrafts = () => (unsavedMemberDraftsRef.current ? setLogoutConfirm({ action }) : action());
+            if (onEvaluation) evaluation.handleRequestLeave(askDrafts, 'leave');
+            else askDrafts();
+        },
+        [onEvaluation, evaluation],
+    );
+    const guardLogoutRef = useRef(guardLogout);
+    guardLogoutRef.current = guardLogout;
+    const handleConfirmLogout = useCallback(() => {
+        const request = logoutConfirm;
+        setLogoutConfirm(null);
+        if (request) request.action();
+    }, [logoutConfirm]);
+    const handleCancelLogout = useCallback(() => setLogoutConfirm(null), []);
+
+    // The menu bar's logout asks too when this modal is hidden (#1990).
+    const hasUnsavedWork = evaluationWork || (onEvaluation && !!evaluation.evalProgress) || unsavedMemberDrafts;
+    useEffect(() => {
+        dispatch(setTeacherHasUnsavedWork(hasUnsavedWork));
+    }, [dispatch, hasUnsavedWork]);
+    useEffect(() => () => dispatch(setTeacherHasUnsavedWork(false)), [dispatch]);
     // The navigation effect below runs only when its inputs change: it reads the latest guard.
     const guardLeaveRef = useRef(guardLeave);
     guardLeaveRef.current = guardLeave;
     // A jump confirmed later uses the handlers of that time, not of the effect's run.
     const teacherRef = useRef(teacher);
     teacherRef.current = teacher;
-
-    // Reloading or closing the tab: the browser's own question, only while
-    // something would be lost (and not with ?no_beforeunload=1).
-    useBeforeUnloadWhile(onEvaluation && evaluation.hasUnsavedWork);
 
     // Jump requested from the menu bar. Uses the same handlers as the
     // breadcrumbs / notification links, so the phase always follows the
@@ -226,6 +356,19 @@ const ClassroomTeacherModal = () => {
         // not saved (#1923: the menu bar and the kick toast's 「課題を開く」).
         dispatch(clearTeacherNavigation());
         const memberId = navMemberId;
+        if (nav.action === 'logout') {
+            // The menu bar's logout over work not saved (#1990): ask here, like the
+            // avatar menu's logout, then close as the menu bar's logout does.
+            guardLogoutRef.current(() => {
+                setMemberDrafts({});
+                explicitLogoutRef.current = true;
+                dispatch(clearTeacherSelection());
+                teacherRef.current.handleTeacherLogout();
+                dispatch(closeTeacherModal());
+                dispatch(teacherLoggedOut());
+            });
+            return;
+        }
         guardLeaveRef.current(() => {
             const current = teacherRef.current;
             if (nav.action === 'notifications') {
@@ -266,18 +409,23 @@ const ClassroomTeacherModal = () => {
     }, [dispatch]);
     showSessionExpiredErrorRef.current = showSessionExpiredError;
 
+    // Closing keeps this container mounted (#1990): nothing on the grading screen
+    // is lost, so it does not ask. Reloading the tab still asks (above).
     const handleClose = useCallback(() => {
-        guardLeave(() => dispatch(closeTeacherModal()));
-    }, [dispatch, guardLeave]);
+        dispatch(closeTeacherModal());
+    }, [dispatch]);
 
     // Wrap the teacher logout so we also clear teacherSelection from Redux —
     // the underlying handleTeacherLogout only resets local hook state.
     const handleTeacherLogoutWithReduxClear = useCallback(() => {
-        guardLeave(() => {
+        guardLogout(() => {
+            setMemberDrafts({});
+            explicitLogoutRef.current = true;
             dispatch(clearTeacherSelection());
             teacher.handleTeacherLogout();
+            dispatch(teacherLoggedOut());
         });
-    }, [dispatch, teacher, guardLeave]);
+    }, [dispatch, teacher, guardLogout]);
 
     const notificationsCenter = teacher.notificationsCenter;
     const guardedNotificationsCenter = notificationsCenter && {
@@ -319,7 +467,7 @@ const ClassroomTeacherModal = () => {
         onRefreshDetail: teacher.handleRefreshDetail,
         onSelectMember: teacher.handleSelectMember,
         onOpenSubmission: teacher.handleOpenSubmission,
-        onReturnSubmission: teacher.handleReturnSubmission,
+        onReturnSubmission: handleReturnSubmission,
         onSetHiddenFromPeers: teacher.handleSetHiddenFromPeers,
         onDownloadAll: teacher.handleDownloadAll,
         onDownloadClassAll: teacher.handleDownloadClassAll,
@@ -375,15 +523,26 @@ const ClassroomTeacherModal = () => {
         onLoadAssignmentSummary: teacher.loadAssignmentSummary,
         onCreateAssignmentInClass: teacher.handleCreateAssignmentInClass,
         onDetailTabChange: teacher.setDetailTab,
+        detailTab: teacher.detailTab,
         detailEntry: teacher.detailEntry,
         onProjectEntryUsed: teacher.consumeDetailProject,
         onReuseAssignment: teacher.handleReuseAssignment,
         onUpdateGroup: teacher.handleUpdateGroup,
         evaluation: teacher.evaluation,
+        memberCommentDrafts: memberDraftsForClassroom(memberDrafts, selectedDetailId),
+        onChangeMemberCommentDraft: handleChangeMemberCommentDraft,
+        logoutConfirm: !!logoutConfirm,
+        onConfirmLogout: handleConfirmLogout,
+        onCancelLogout: handleCancelLogout,
         shared: teacher.shared,
         notificationsCenter: guardedNotificationsCenter,
     };
+    if (!visible) return null;
     return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
+};
+
+ClassroomTeacherModal.propTypes = {
+    visible: PropTypes.bool,
 };
 
 export default ClassroomTeacherModal;
