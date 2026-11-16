@@ -115,6 +115,29 @@ describe('insertSpriteCodes', () => {
         expect(rest).toBe(shimaraby);
     });
 
+    test('finds the characters by the name of any locale and adds a missing one with the name of the locale', async () => {
+        const shimaraby = sprite('r', 'シマラビ');
+        const vm = makeVm([stage, shimaraby]);
+        expect(findSpriteByName(vm, 'Shimaraby')).toBe(shimaraby);
+        expect(findCodeSprite(vm, [], 'Shimaraby')).toBe(shimaraby);
+        const { toBlocks, applied } = makeToBlocks();
+        const library = [{ name: 'Shimacat', costumes: [] }];
+        const rest = await insertSpriteCodes(vm, [{ sprite: 'Shimacat', code: 'x' }], {
+            toBlocks,
+            library,
+            preferred: 'Shimaraby',
+            locale: 'ja',
+        });
+        expect(JSON.parse(vm.addSprite.mock.calls[0][0]).name).toBe('シマネコ');
+        expect(applied).toEqual([{ id: 'added-シマネコ', code: 'x' }]);
+        expect(rest).toBe(shimaraby);
+        // 2 回目は、日本語の名前のシマネコを見つけて足さない
+        await insertSpriteCodes(vm, [{ sprite: 'Shimacat', code: 'y' }], { toBlocks, library, locale: 'en' });
+        expect(vm.addSprite).toHaveBeenCalledTimes(1);
+        // spriteCodes のスプライト（シマネコ）は code を入れる相手にしない
+        expect(resolveCodeSprite(vm, [{ sprite: 'Shimacat' }], null)).toBe(shimaraby);
+    });
+
     test('resolveCodeSprite: the same choice for "insert the program" and the start of a challenge', () => {
         const cat = sprite('cat', 'Sprite1');
         const shimaraby = sprite('r', 'Shimaraby');

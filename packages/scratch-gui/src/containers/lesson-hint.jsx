@@ -163,6 +163,7 @@ const LessonHintContainer = ({
             target = await insertSpriteCodes(vm, spriteCodes, {
                 toBlocks: (t, code) => targetCodeToBlocks(vm, t, code, intl, { version: rubyVersion }),
                 preferred,
+                locale: intl.locale,
             });
         }
         if (target) vm.setEditingTarget(target.id);
