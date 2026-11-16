@@ -286,6 +286,23 @@ describe('restrictCourseStatus', () => {
     });
 });
 
+// テーマを選ぶレッスン（「チャットをつくろう」のレッスン 5・checkCount 1）も、課題で絞ったら課題のチャレンジが
+// 全部で数える（課題の残りは課題の帯が出す・#1645）
+describe('restrictCourseStatus with a lesson of themes', () => {
+    test('counts every assignment challenge of the lesson, not its checkCount', () => {
+        const chat = COURSES.find((c) => c.id === 'chat-wo-tsukurou');
+        const themes = chat.lessons[4].challenges.map((c) => c.id);
+        const status = { course: chat, ...courseProgress(chat, progressOf(themes[0])) };
+        expect(status.lessons[4]).toEqual(expect.objectContaining({ checkCount: 1, allCompleted: true }));
+        const restricted = restrictCourseStatus(status, themes.slice(0, 3));
+        expect(restricted.lessons).toHaveLength(1);
+        expect(restricted.lessons[0]).toEqual(
+            expect.objectContaining({ completedCount: 1, total: 3, checkCount: 3, allCompleted: false }),
+        );
+        expect(restricted.total).toBe(3);
+    });
+});
+
 describe('assignmentLibraryFocus', () => {
     const course = COURSES[0];
     const [first, second, third] = course.lessons[0].challenges;

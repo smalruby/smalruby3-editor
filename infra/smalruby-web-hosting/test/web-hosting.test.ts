@@ -3,6 +3,7 @@ import { Match, Template } from 'aws-cdk-lib/assertions';
 import {
     PREVIEW_DEFAULT_TTL_SECONDS,
     PREVIEW_OBJECT_EXPIRATION_DAYS,
+    SITE_NONCURRENT_VERSION_EXPIRATION_DAYS,
     SmalrubyWebHostingStack,
 } from '../lib/web-hosting-stack';
 
@@ -46,17 +47,197 @@ describe('SmalrubyWebHostingStack', () => {
         const template = synth('prod');
 
         template.resourceCountIs('AWS::Route53::HostedZone', 0);
+        expect(
+            Object.keys(template.findResources('*')).filter((id) => id.startsWith('Preview')),
+        ).toEqual([]);
+        expect(
+            Object.keys(template.findOutputs('*')).filter((id) => id.startsWith('Preview')),
+        ).toEqual([]);
+    });
+
+    test('stages other than stg and prod create nothing (avoid duplicate zones and sites)', () => {
+        const template = synth('stg2');
+
+        template.resourceCountIs('AWS::Route53::HostedZone', 0);
         template.resourceCountIs('AWS::S3::Bucket', 0);
         template.resourceCountIs('AWS::CloudFront::Distribution', 0);
         template.resourceCountIs('AWS::IAM::Role', 0);
         expect(Object.keys(template.findOutputs('*'))).toEqual([]);
     });
 
-    test('stages other than stg create no preview zone (avoid a duplicate zone)', () => {
-        const template = synth('stg2');
+    test('stg creates no production site resources', () => {
+        const template = synth('stg');
 
-        template.resourceCountIs('AWS::Route53::HostedZone', 0);
-        template.resourceCountIs('AWS::CloudFront::Distribution', 0);
+        expect(
+            Object.keys(template.findResources('*')).filter((id) => id.startsWith('Site')),
+        ).toEqual([]);
+    });
+
+    describe('production site delivery (prod)', () => {
+        let template: Template;
+
+        beforeAll(() => {
+            template = synth('prod');
+        });
+
+        test('creates one private, SSL-only, versioned bucket', () => {
+            template.resourceCountIs('AWS::S3::Bucket', 1);
+            template.hasResourceProperties('AWS::S3::Bucket', {
+                PublicAccessBlockConfiguration: {
+                    BlockPublicAcls: true,
+                    BlockPublicPolicy: true,
+                    IgnorePublicAcls: true,
+                    RestrictPublicBuckets: true,
+                },
+                VersioningConfiguration: { Status: 'Enabled' },
+            });
+            template.hasResourceProperties('AWS::S3::BucketPolicy', {
+                PolicyDocument: {
+                    Statement: Match.arrayWith([
+                        Match.objectLike({
+                            Effect: 'Deny',
+                            Condition: { Bool: { 'aws:SecureTransport': 'false' } },
+                        }),
+                    ]),
+                },
+            });
+        });
+
+        test('retains the bucket (the production origin is never deleted with the stack)', () => {
+            template.hasResource('AWS::S3::Bucket', {
+                DeletionPolicy: 'Retain',
+                UpdateReplacePolicy: 'Retain',
+            });
+        });
+
+        test('never expires the current objects, only old versions', () => {
+            const buckets = Object.values(template.findResources('AWS::S3::Bucket'));
+            const rules = buckets[0].Properties.LifecycleConfiguration.Rules;
+            for (const rule of rules) {
+                expect(rule.ExpirationInDays).toBeUndefined();
+                expect(rule.ExpirationDate).toBeUndefined();
+            }
+            expect(rules).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        Status: 'Enabled',
+                        NoncurrentVersionExpiration: {
+                            NoncurrentDays: SITE_NONCURRENT_VERSION_EXPIRATION_DAYS,
+                        },
+                        ExpiredObjectDeleteMarker: true,
+                    }),
+                ]),
+            );
+        });
+
+        test('distribution serves the bucket through OAC without a custom domain yet', () => {
+            template.resourceCountIs('AWS::CloudFront::Distribution', 1);
+            template.resourceCountIs('AWS::CloudFront::OriginAccessControl', 1);
+            const distribution = Object.values(
+                template.findResources('AWS::CloudFront::Distribution'),
+            )[0];
+            const config = distribution.Properties.DistributionConfig;
+            // smalruby.app は GitHub Pages のまま。証明書と別名はゾーンを移してから足す。
+            expect(config.Aliases).toBeUndefined();
+            expect(config.ViewerCertificate).toBeUndefined();
+            expect(config.DefaultCacheBehavior).toEqual(
+                expect.objectContaining({
+                    ViewerProtocolPolicy: 'redirect-to-https',
+                    FunctionAssociations: [
+                        expect.objectContaining({ EventType: 'viewer-request' }),
+                    ],
+                    ResponseHeadersPolicyId: expect.anything(),
+                }),
+            );
+        });
+
+        test('creates no DNS records or certificates (the live site is untouched)', () => {
+            template.resourceCountIs('AWS::Route53::HostedZone', 0);
+            template.resourceCountIs('AWS::Route53::RecordSet', 0);
+            template.resourceCountIs('AWS::CertificateManager::Certificate', 0);
+            template.resourceCountIs('AWS::CloudFormation::CustomResource', 0);
+        });
+
+        test('cache policy keeps index.html short and lets hashed assets stay long', () => {
+            template.hasResourceProperties('AWS::CloudFront::CachePolicy', {
+                CachePolicyConfig: Match.objectLike({
+                    MinTTL: 0,
+                    DefaultTTL: PREVIEW_DEFAULT_TTL_SECONDS,
+                    MaxTTL: 365 * 24 * 60 * 60,
+                }),
+            });
+        });
+
+        test('response headers keep HSTS like GitHub Pages', () => {
+            template.hasResourceProperties('AWS::CloudFront::ResponseHeadersPolicy', {
+                ResponseHeadersPolicyConfig: Match.objectLike({
+                    SecurityHeadersConfig: Match.objectLike({
+                        StrictTransportSecurity: Match.objectLike({
+                            AccessControlMaxAgeSec: 365 * 24 * 60 * 60,
+                        }),
+                        ContentTypeOptions: Match.anyValue(),
+                    }),
+                }),
+            });
+        });
+
+        test('deploy role trusts only develop (or the prod environment) of this repository', () => {
+            template.resourceCountIs('Custom::AWSCDKOpenIdConnectProvider', 0);
+            template.resourceCountIs('AWS::IAM::OIDCProvider', 0);
+            template.resourceCountIs('AWS::IAM::Role', 1);
+            template.hasResourceProperties('AWS::IAM::Role', {
+                AssumeRolePolicyDocument: {
+                    Statement: [
+                        Match.objectLike({
+                            Action: 'sts:AssumeRoleWithWebIdentity',
+                            Condition: {
+                                StringEquals: {
+                                    'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
+                                },
+                                StringLike: {
+                                    'token.actions.githubusercontent.com:sub': [
+                                        'repo:smalruby/smalruby3-editor:ref:refs/heads/develop',
+                                        'repo:smalruby/smalruby3-editor:environment:prod',
+                                    ],
+                                },
+                            },
+                        }),
+                    ],
+                },
+            });
+        });
+
+        test('deploy role can only touch this bucket and invalidate this distribution', () => {
+            const statements = Object.values(template.findResources('AWS::IAM::Policy')).flatMap(
+                (p) => p.Properties.PolicyDocument.Statement,
+            );
+            const actions = statements.flatMap((s: { Action: string | string[] }) =>
+                Array.isArray(s.Action) ? s.Action : [s.Action],
+            );
+            expect(actions.sort()).toEqual(
+                [
+                    'cloudfront:CreateInvalidation',
+                    'cloudfront:GetInvalidation',
+                    's3:DeleteObject',
+                    's3:ListBucket',
+                    's3:PutObject',
+                ].sort(),
+            );
+            for (const s of statements) {
+                expect(JSON.stringify(s.Resource)).not.toContain('"*"');
+            }
+        });
+
+        test('outputs the role ARN, bucket name, distribution id and domain for CI', () => {
+            expect(Object.keys(template.findOutputs('*')).sort()).toEqual(
+                [
+                    'SiteBucketName',
+                    'SiteDeployRoleArn',
+                    'SiteDistributionDomainName',
+                    'SiteDistributionId',
+                ].sort(),
+            );
+        });
     });
 
     describe('preview delivery (stg)', () => {

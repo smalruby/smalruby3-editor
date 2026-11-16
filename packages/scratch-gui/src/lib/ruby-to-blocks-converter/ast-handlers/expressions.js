@@ -2,6 +2,7 @@ import _ from 'lodash';
 import { defineMessages } from 'react-intl';
 import { messages as converterMessages } from '../converter-errors';
 import { RubyToBlocksConverterError } from '../errors';
+import { nodeTypeName } from '../node-walk';
 import Primitive from '../primitive';
 import ExpressionsLiterals from './expressions-literals';
 
@@ -76,11 +77,7 @@ const ExpressionHandlers = {
      * @param {object} node - A node of a line.
      */
     _rejectVisibilityModifier(node) {
-        if (
-            this._getNodeTypeName(node) !== 'CallNode' ||
-            node.receiver ||
-            !VISIBILITY_MODIFIERS.includes(node.name)
-        ) {
+        if (nodeTypeName(node) !== 'CallNode' || node.receiver || !VISIBILITY_MODIFIERS.includes(node.name)) {
             return;
         }
         // A custom block (def private ... end) may be named private; calling it is not a visibility modifier.
@@ -88,7 +85,7 @@ const ExpressionHandlers = {
             return;
         }
         const args = node.arguments_ ? node.arguments_.arguments_ : [];
-        const defNode = args.length === 1 && this._getNodeTypeName(args[0]) === 'DefNode' ? args[0] : null;
+        const defNode = args.length === 1 && nodeTypeName(args[0]) === 'DefNode' ? args[0] : null;
         const message = defNode
             ? this._translator(messages.visibilityDefNotSupported, {
                   NAME: node.name,
@@ -112,7 +109,7 @@ const ExpressionHandlers = {
         // === Smalruby: Start of attr_accessor getter/setter resolution ===
         const attrAccessors = this._context.attrAccessors;
         if (attrAccessors) {
-            const recvType = node.receiver ? this._getNodeTypeName(node.receiver) : null;
+            const recvType = node.receiver ? nodeTypeName(node.receiver) : null;
             const isSelfOrNone = !node.receiver || recvType === 'SelfNode';
 
             // Getter: foo or self.foo (no args, no block)
@@ -155,7 +152,7 @@ const ExpressionHandlers = {
 
         // === Smalruby: Start of Array.new / Hash.new constructor ===
         if (node.name === 'new' && node.receiver) {
-            const recvType = this._getNodeTypeName(node.receiver);
+            const recvType = nodeTypeName(node.receiver);
             if (recvType === 'ConstantReadNode') {
                 const className = node.receiver.name;
                 const ctorArgs = node.arguments_ ? node.arguments_.arguments_ : [];
@@ -166,7 +163,7 @@ const ExpressionHandlers = {
                     }
                     if (ctorArgs.length <= 2) {
                         const sizeNode = ctorArgs[0];
-                        const sizeType = this._getNodeTypeName(sizeNode);
+                        const sizeType = nodeTypeName(sizeNode);
                         if (sizeType === 'IntegerNode') {
                             const size = sizeNode.value;
                             const fillVal = ctorArgs.length === 2 ? this.visit(ctorArgs[1]) : '';
@@ -252,9 +249,6 @@ const ExpressionHandlers = {
         let block = null;
         if (!hasCommandValue) {
             block = this.callMethod(receiver, name, args, rubyBlockArgs, rubyBlock, node);
-            if (!block) {
-                block = this._callConvertersHandler('onSend', receiver, name, args, rubyBlockArgs, rubyBlock, node);
-            }
         }
 
         // === Smalruby: Start of auto-split method call return value ===
@@ -392,7 +386,7 @@ const ExpressionHandlers = {
             // `return (x + 1)`: the value in the parentheses is returned, and a marker brings the
             // parentheses back (issue #1557). More than one line in them (e.g. `(move(10); 1)`) is an error.
             let valueNode = args[0];
-            while (this._getNodeTypeName(valueNode) === 'ParenthesesNode') {
+            while (nodeTypeName(valueNode) === 'ParenthesesNode') {
                 const statements = this._parenthesesStatements(valueNode);
                 if (statements.length !== 1) {
                     throw this._cannotReturnError(args[0]);
@@ -521,7 +515,7 @@ const ExpressionHandlers = {
      */
     _rejectParameterShape(node) {
         const others = [
-            ...(node.requireds || []).filter((n) => this._getNodeTypeName(n) !== 'RequiredParameterNode'),
+            ...(node.requireds || []).filter((n) => nodeTypeName(n) !== 'RequiredParameterNode'),
             ...(node.optionals || []),
             node.rest,
             ...(node.posts || []),

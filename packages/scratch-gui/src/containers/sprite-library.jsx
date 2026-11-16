@@ -11,6 +11,9 @@ import mergeDynamicAssets from '../lib/merge-dynamic-assets.js';
 import spriteLibraryContent from '../lib/libraries/sprites.json';
 import randomizeSpritePosition from '../lib/randomize-sprite-position';
 import spriteTags from '../lib/libraries/sprite-tags';
+// === Smalruby: Start of localized library sprite names ===
+import {localizeLibrarySprites} from '../lib/lessons/sprite-names';
+// === Smalruby: End of localized library sprite names ===
 
 import LibraryComponent from '../components/library/library.jsx';
 
@@ -48,8 +51,22 @@ class SpriteLibrary extends React.PureComponent {
         );
         return this.processedSprites.data;
     }
+    // === Smalruby: Start of localized library sprite names ===
+    // コースのキャラクター（Shimaraby → 日本語では「シマラビ」）の名前を、いまの言語の名前にする。
+    // 一覧の名前・検索・足したスプライトの名前がそろう（lib/lessons/sprite-names.js）
+    localizeSprites (data) {
+        const locale = this.props.intl.locale;
+        if (!this.localizedSprites || this.localizedSprites.source !== data ||
+            this.localizedSprites.locale !== locale) {
+            this.localizedSprites = {source: data, locale, data: localizeLibrarySprites(data, locale)};
+        }
+        return this.localizedSprites.data;
+    }
+    // === Smalruby: End of localized library sprite names ===
     render () {
-        const data = this.mergeDynamicAssets();
+        // === Smalruby: Start of localized library sprite names ===
+        const data = this.localizeSprites(this.mergeDynamicAssets());
+        // === Smalruby: End of localized library sprite names ===
         return (
             <LibraryComponent
                 data={data}
