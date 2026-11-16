@@ -47,9 +47,15 @@ const isAlive = (isCurrent) => !isCurrent || isCurrent();
  * @param {object} [options] - ライブラリと中断。
  * @param {Array<object>} [options.library] - スプライトのライブラリ（テスト用。既定は sprites.json）。
  * @param {?function(): boolean} [options.isCurrent] - まだ同じチャレンジ・同じ作品か（false なら止める）。
+ * @param {?string} [options.locale] - いまの言語（シマラビ / Shimaraby のように、その言語の名前で足す・
+ *   sprite-names.js）。
  * @returns {Promise<Array<object>>} 足したスプライト（並び順）。
  */
-export const replaceStartSprites = async (vm, names, { library = spriteLibraryContent, isCurrent = null } = {}) => {
+export const replaceStartSprites = async (
+    vm,
+    names,
+    { library = spriteLibraryContent, isCurrent = null, locale = null } = {},
+) => {
     const before = spritesOf(vm);
     const first = before[0];
     const home = first ? { x: first.x || 0, y: first.y || 0 } : { x: 0, y: 0 };
@@ -62,7 +68,7 @@ export const replaceStartSprites = async (vm, names, { library = spriteLibraryCo
                 ? home
                 : { x: ADDED_SPRITE_POSITION.x, y: ADDED_SPRITE_POSITION.y - NEXT_SPRITE_GAP_Y * (index - 1) };
         try {
-            const target = await addLibrarySprite(vm, name, library, position);
+            const target = await addLibrarySprite(vm, name, library, position, locale);
             if (target) added.push(target);
             else warn(`the sprite "${name}" is not in the library`);
         } catch (err) {
@@ -124,7 +130,7 @@ export const applyChallengeStart = async (
 ) => {
     if (!vm || !vm.runtime || !hasChallengeStart(setup)) return false;
     const names = Array.isArray(setup.sprites) ? setup.sprites : [];
-    if (names.length > 0) await replaceStartSprites(vm, names, { library, isCurrent });
+    if (names.length > 0) await replaceStartSprites(vm, names, { library, isCurrent, locale });
     if (!isAlive(isCurrent)) return false;
 
     await insertCode(vm.runtime.getTargetForStage(), localizeCode(setup.stageCode, locale), toBlocks);
@@ -138,7 +144,7 @@ export const applyChallengeStart = async (
     const preferred = names[0] || null;
     if (spriteCodes.length > 0) {
         try {
-            await insertSpriteCodes(vm, spriteCodes, { toBlocks, library, preferred });
+            await insertSpriteCodes(vm, spriteCodes, { toBlocks, library, preferred, locale });
         } catch (err) {
             warn('could not put the starting code into the other sprites:', err);
         }

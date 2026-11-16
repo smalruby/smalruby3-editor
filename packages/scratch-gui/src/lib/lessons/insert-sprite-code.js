@@ -4,6 +4,7 @@
 // Ruby タブは編集中のスプライト 1 つに向けて変換するので、ほかのスプライトには Ruby タブを通さず
 // 変換して直接入れる（genai-code-adapter の loadCode と同じ: targetCodeToBlocks → apply）。
 import spriteLibraryContent from '../libraries/sprites.json';
+import { isSpriteNamed, localSpriteName } from './sprite-names';
 
 // ライブラリから足したスプライトを置く場所。ネコ（真ん中）と重ならないように右に置く
 // （ライブラリの「スプライトを選ぶ」は真ん中あたりのランダムな場所に置く）
@@ -12,12 +13,13 @@ export const ADDED_SPRITE_POSITION = Object.freeze({ x: 150, y: 0 });
 export const spritesOf = (vm) => vm.runtime.targets.filter((t) => t.isOriginal && !t.isStage);
 
 /**
- * 名前でスプライトを探す。
+ * 名前でスプライトを探す。名前を言語ごとに変えるスプライト（シマラビ / Shimaraby など・sprite-names.js）は、
+ * どの言語の名前でも見つける（作品の中の名前は、足したときの言語で決まるため）。
  * @param {object} vm - Scratch VM。
- * @param {string} name - スプライトの名前。
+ * @param {string} name - スプライトの名前（ライブラリの名前）。
  * @returns {?object} スプライト（元の target）。無ければ null。
  */
-export const findSpriteByName = (vm, name) => spritesOf(vm).find((t) => t.getName() === name) || null;
+export const findSpriteByName = (vm, name) => spritesOf(vm).find((t) => isSpriteNamed(t.getName(), name)) || null;
 
 /**
  * `spriteCodes` のほかに、チャレンジの `code` を入れるスプライトを探す。`preferred`（チャレンジの
@@ -32,7 +34,7 @@ export const findCodeSprite = (vm, spriteCodes, preferred = null) => {
     const found = preferred ? findSpriteByName(vm, preferred) : null;
     if (found) return found;
     const names = spriteCodes.map((s) => s.sprite);
-    return spritesOf(vm).find((t) => !names.includes(t.getName())) || null;
+    return spritesOf(vm).find((t) => !names.some((name) => isSpriteNamed(t.getName(), name))) || null;
 };
 
 /**
@@ -41,15 +43,17 @@ export const findCodeSprite = (vm, spriteCodes, preferred = null) => {
  * @param {string} name - ライブラリのスプライトの名前（例: `Penguin`）。
  * @param {Array<object>} library - スプライトのライブラリ（sprites.json の形）。
  * @param {{x: number, y: number}} [position] - 置く場所（既定はネコの右）。
+ * @param {?string} [locale] - いまの言語。名前を言語ごとに変えるスプライトは、その言語の名前で足す
+ *   （sprite-names.js）。無ければライブラリの名前のまま。
  * @returns {Promise<?object>} 足したスプライト。ライブラリに無ければ null。
  */
-export const addLibrarySprite = async (vm, name, library, position = ADDED_SPRITE_POSITION) => {
+export const addLibrarySprite = async (vm, name, library, position = ADDED_SPRITE_POSITION, locale = null) => {
     const item = library.find((s) => s.name === name);
     if (!item) return null;
     // 足したスプライトは、足す前後のスプライトの差分で取る（同じ名前のスプライトがあると VM は名前を変えて
     // 足すので、名前で探すと前からいたほうを取ってしまう）
     const before = new Set(spritesOf(vm).map((t) => t.id));
-    await vm.addSprite(JSON.stringify({ ...item, ...position }));
+    await vm.addSprite(JSON.stringify({ ...item, name: localSpriteName(item.name, locale), ...position }));
     return spritesOf(vm).find((t) => !before.has(t.id)) || null;
 };
 
@@ -77,6 +81,7 @@ export const resolveCodeSprite = (vm, spriteCodes, preferred = null) => {
  * @param {Function} options.toBlocks - `(target, code) => Promise<converter>`（targetCodeToBlocks）。
  * @param {Array<object>} [options.library] - スプライトのライブラリ（テスト用。既定は sprites.json）。
  * @param {?string} [options.preferred] - `code` を入れるスプライトの名前（`setup.sprites` の 1 つめ）。
+ * @param {?string} [options.locale] - いまの言語（足すスプライトの名前・addLibrarySprite）。
  * @returns {Promise<?object>} `code` を入れるスプライト（`preferred`、いなければ `spriteCodes` に無い最初の
  *   スプライト = ネコ）。
  *   いなければ null。
@@ -84,10 +89,12 @@ export const resolveCodeSprite = (vm, spriteCodes, preferred = null) => {
 export const insertSpriteCodes = async (
     vm,
     spriteCodes,
-    { toBlocks, library = spriteLibraryContent, preferred = null },
+    { toBlocks, library = spriteLibraryContent, preferred = null, locale = null },
 ) => {
     for (const { sprite, code } of spriteCodes) {
-        const target = findSpriteByName(vm, sprite) || (await addLibrarySprite(vm, sprite, library));
+        const target =
+            findSpriteByName(vm, sprite) ||
+            (await addLibrarySprite(vm, sprite, library, ADDED_SPRITE_POSITION, locale));
         if (!target) {
             // eslint-disable-next-line no-console
             console.warn(`[lesson-hint] the sprite "${sprite}" is not in the library`);

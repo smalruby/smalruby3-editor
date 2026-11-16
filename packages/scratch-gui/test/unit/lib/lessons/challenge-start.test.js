@@ -156,13 +156,46 @@ describe('applyChallengeStart', () => {
             },
             { toBlocks, locale: 'ja', library: LIBRARY },
         );
+        // 日本語では、キャラクターは日本語の名前で足す（sprite-names.js）。名前が変わっても同じスプライトに入る
         expect(applied).toEqual([
             { id: 'stage', code: 'stage-code' },
-            { id: 'added-Shimacat', code: 'shimacat-ja' },
-            { id: 'added-Shimaraby', code: 'shimaraby-ja' },
+            { id: 'added-シマネコ', code: 'shimacat-ja' },
+            { id: 'added-シマラビ', code: 'shimaraby-ja' },
         ]);
         // 子どもが続きを作るのは 1 つめのスプライト
-        expect(vm.editingTarget.getName()).toBe('Shimaraby');
+        expect(vm.editingTarget.getName()).toBe('シマラビ');
+    });
+
+    test('the characters get the name of the locale (ja-Hira: シマラビ, en: Shimaraby)', async () => {
+        const run = async (locale) => {
+            const vm = makeVm([stageTarget(), sprite('cat', 'Sprite1')]);
+            const { toBlocks } = makeToBlocks();
+            await applyChallengeStart(
+                vm,
+                { sprites: ['Shimaraby', 'Shimacat'], code: 'ok' },
+                { toBlocks, locale, library: LIBRARY },
+            );
+            return names(vm);
+        };
+        expect(await run('ja-Hira')).toEqual(['シマラビ', 'シマネコ']);
+        expect(await run('en')).toEqual(['Shimaraby', 'Shimacat']);
+        // 名前を決めていない言語はライブラリの名前のまま
+        expect(await run('zh-cn')).toEqual(['Shimaraby', 'Shimacat']);
+    });
+
+    test('a project made in Japanese still gets the code in English (the names of every locale match)', async () => {
+        const vm = makeVm([stageTarget(), sprite('r', 'シマラビ'), sprite('c', 'シマネコ')]);
+        const { toBlocks, applied } = makeToBlocks();
+        await applyChallengeStart(
+            vm,
+            { spriteCodes: [{ sprite: 'Shimacat', code: 'shimacat-en' }], code: 'shimaraby-en' },
+            { toBlocks, locale: 'en', library: LIBRARY },
+        );
+        expect(vm.addSprite).not.toHaveBeenCalled();
+        expect(applied).toEqual([
+            { id: 'c', code: 'shimacat-en' },
+            { id: 'r', code: 'shimaraby-en' },
+        ]);
     });
 
     test('without sprites the code goes into the sprite being edited (the cat)', async () => {
@@ -193,8 +226,8 @@ describe('applyChallengeStart', () => {
             { toBlocks, locale: 'ja', library: LIBRARY },
         );
         expect(changed).toBe(true);
-        expect(applied).toEqual([{ id: 'added-Shimaraby', code: 'ok' }]);
-        expect(vm.editingTarget.getName()).toBe('Shimaraby');
+        expect(applied).toEqual([{ id: 'added-シマラビ', code: 'ok' }]);
+        expect(vm.editingTarget.getName()).toBe('シマラビ');
         console.warn.mockRestore();
     });
 
@@ -229,7 +262,7 @@ describe('applyChallengeStart', () => {
             { sprites: ['Shimaraby'], code: 'ok', stageCode: 'broken' },
             { toBlocks, locale: 'ja', library: LIBRARY },
         );
-        expect(applied).toEqual([{ id: 'added-Shimaraby', code: 'ok' }]);
+        expect(applied).toEqual([{ id: 'added-シマラビ', code: 'ok' }]);
         console.warn.mockRestore();
     });
 });
