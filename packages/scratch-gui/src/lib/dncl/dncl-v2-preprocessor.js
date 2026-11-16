@@ -269,7 +269,7 @@ const joinContinuationLines = (source) => {
  *
  * Only splits when:
  *   - There is at least one top-level comma (depth 0, outside strings)
- *   - Every comma-separated piece contains a top-level `=`
+ *   - Every comma-separated piece contains a top-level `=` or `←`
  *
  * The leading indent is preserved on every output line.
  * @param {string} line - The line to inspect.
@@ -320,7 +320,7 @@ const splitMultiAssignment = (line) => {
 
     if (parts.length < 2) return line;
 
-    // Every part must contain a top-level `=` (depth 0, outside strings).
+    // Every part must contain a top-level `=` or `←` (depth 0, outside strings).
     // Otherwise we likely have a function call or a single expression with
     // top-level commas, and shouldn't split.
     const hasTopLevelEquals = (part) => {
@@ -343,6 +343,8 @@ const splitMultiAssignment = (line) => {
                 j++;
                 continue;
             }
+            // `←` is an assignment as `=` is (Issue #1819).
+            if (c === '←' && d === 0) return true;
             if (c === '=' && d === 0) {
                 // Make sure this is `=` (assignment) not `==`, `<=`, `>=`, `!=`.
                 const prev = part[j - 1];

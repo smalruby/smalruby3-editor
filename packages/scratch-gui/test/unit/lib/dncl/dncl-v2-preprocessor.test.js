@@ -154,6 +154,20 @@ describe('DNCLv2 pre-processor: comma-separated multi-assignment', () => {
         expect(dnclV2Preprocess('a = 0')).toBe('a = 0');
     });
 
+    // `←` is an assignment as `=` is (Issue #1819).
+    test('splits assignments written with ←', () => {
+        expect(dnclV2Preprocess('a ← 1, b ← 2')).toBe('a ← 1\nb ← 2');
+        expect(dnclToRuby('a ← 1, b ← 2').ruby).toBe('@a = 1\n@b = 2');
+    });
+
+    test('splits a mix of ← and =', () => {
+        expect(dnclToRuby('a ← 1, b = 2, c ← a + b').ruby).toBe('@a = 1\n@b = 2\n@c = @a + @b');
+    });
+
+    test('does not split when a part has ← only inside 「...」', () => {
+        expect(dnclV2Preprocess('a ← 「x←1」, 表示する(a)')).toBe('a ← 「x←1」, 表示する(a)');
+    });
+
     test('does not split when one part is not assignment', () => {
         // Don't trigger on `a = 1 , b` (no `=` in second part)
         expect(dnclV2Preprocess('a = 1 , b')).toBe('a = 1 , b');
