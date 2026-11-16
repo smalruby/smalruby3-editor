@@ -10,6 +10,7 @@ import {
 import { Visitor } from '@ruby/prism/src/visitor.js';
 import _ from 'lodash';
 import RubyParser from '../ruby-parser';
+import { analyze } from './analysis';
 import AstHandlers from './ast-handlers';
 import BlockUtils from './block-utils';
 import ClassVisitor from './class-visitor';
@@ -22,6 +23,7 @@ import InitializeHandler from './initialize-handler';
 import LineMappingUtils from './line-mapping';
 import ModuleVisitor from './module-visitor';
 import NodeUtils from './node-utils';
+import { nodeTypeName } from './node-walk';
 import PrismErrorTranslator from './prism-error-translator';
 import registerConverters from './register-converters';
 import ReturnValueTemps from './return-value-temps';
@@ -123,11 +125,12 @@ class RubyToBlocksConverter extends Visitor {
             }
             const root = parseResult.value;
             this._context.rootNode = root; // Save root node for line mapping
-            // Pre-pass: count procedure calls to support evacuation block generation
-            this._countProcedureCallsInNode(root);
-            // Pre-pass: how each variable name is used, so that `@a.length` does not depend on
-            // whether `@a = "abc"` was converted before it (issue #1613)
-            this._collectVariableUses(root);
+            // The analysis stage (docs/ruby-editor/converter-stages.md): walk the tree once before
+            // converting and keep what the conversion reads in a frozen table: how each variable
+            // name is used, so that `@a.length` does not depend on whether `@a = "abc"` was
+            // converted before it (issue #1613), the units of the locals (issue #1630), and the
+            // calls of the procedures whose values are used (the variables of their return values).
+            this._context.analysis = analyze(root, { source: code });
             // One `@a` used as both a variable and a list is an error (issues #1593 / #1622)
             this._rejectRubyNameOfVariableAndList();
             let blocks = this.visit(root);
@@ -140,7 +143,7 @@ class RubyToBlocksConverter extends Visitor {
             // Link blocks if root is not a begin node (begin nodes handle linking internally)
             // This is needed for cases like "text = gets" where a single statement returns
             // multiple blocks
-            const rootType = this._getNodeTypeName(root);
+            const rootType = nodeTypeName(root);
             if (rootType !== 'StatementsNode' && rootType !== 'ProgramNode' && rootType !== 'BeginNode') {
                 blocks = this._linkBlocks(blocks);
             }
@@ -285,7 +288,7 @@ class RubyToBlocksConverter extends Visitor {
 
             if (isContainerNode) {
                 const rangeEntry = {
-                    type: this._getNodeTypeName(node),
+                    type: nodeTypeName(node),
                     startLine,
                     endLine,
                     depth,
@@ -310,30 +313,17 @@ class RubyToBlocksConverter extends Visitor {
         // A method or a block of the script has its own local variables (issue #1630)
         const previousLocalUnit = this._enterLocalUnit(node);
 
-        // Resolve the handler name via node.accept() rather than constructor.name.
-        // constructor.name is mangled by esbuild/terser in production builds, but
-        // each node class has a hardcoded accept() that calls the correct visitXxxNode
-        // method name on the visitor, so we can use a sniffing proxy to get it.
-        let handlerName = null;
-        const sniffer = new Proxy(
-            {},
-            {
-                get(_target, prop) {
-                    if (typeof prop === 'string' && prop.startsWith('visit')) {
-                        handlerName = prop;
-                    }
-                    return () => {};
-                },
-            },
-        );
-        node.accept(sniffer);
+        // The type name is found by node.accept() once for each class of node (`nodeTypeName`):
+        // constructor.name is mangled by esbuild/terser in production builds.
+        const typeName = nodeTypeName(node);
+        const handlerName = typeName ? `visit${typeName}` : null;
 
         let result;
         try {
             if (handlerName && typeof this[handlerName] === 'function') {
                 result = this[handlerName](node);
             } else {
-                throw new Error(`not supported node type: ${this._getNodeTypeName(node)}`);
+                throw new Error(`not supported node type: ${typeName}`);
             }
         } finally {
             if (previousLocalUnit !== null) this._context.currentLocalUnit = previousLocalUnit;
@@ -351,27 +341,6 @@ class RubyToBlocksConverter extends Visitor {
         return result;
     }
 
-    // Get the node type name using accept()-based sniffing, which is safe
-    // against minification (constructor.name is mangled by esbuild/terser).
-    // Returns e.g. 'CallNode', 'StringNode', 'IntegerNode', etc.
-    _getNodeTypeName(node) {
-        let handlerName = null;
-        const sniffer = new Proxy(
-            {},
-            {
-                get(_target, prop) {
-                    if (typeof prop === 'string' && prop.startsWith('visit')) {
-                        handlerName = prop;
-                    }
-                    return () => {};
-                },
-            },
-        );
-        node.accept(sniffer);
-        // handlerName is e.g. 'visitCallNode' -> extract 'CallNode'
-        return handlerName ? handlerName.slice('visit'.length) : null;
-    }
-
     /**
      * Convert a ConstantReadNode or ConstantPathNode to its full path string.
      * e.g. ConstantReadNode "Foo" -> "Foo"
@@ -380,7 +349,7 @@ class RubyToBlocksConverter extends Visitor {
      * @returns {string} The full constant path
      */
     _constantNodeToPath(node) {
-        const typeName = this._getNodeTypeName(node);
+        const typeName = nodeTypeName(node);
         if (typeName === 'ConstantReadNode') {
             return node.name;
         }

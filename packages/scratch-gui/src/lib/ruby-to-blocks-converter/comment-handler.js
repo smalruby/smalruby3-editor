@@ -1,5 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (comment extraction and association for Ruby-to-blocks converter) ===
 import { rubyMarkersOf } from '../ruby-markers.js';
+import { nodeTypeName } from './node-walk';
 
 /** The marker of a comment whose user lines are all the trailing comment of the line of the block. */
 const INLINE_MARKER = '@ruby:comment_position:inline';
@@ -248,7 +249,7 @@ const CommentHandler = {
         }
         const caseNodes = [];
         for (const [node, blockId] of nodeBlocks.entries()) {
-            const type = this._getNodeTypeName(node);
+            const type = nodeTypeName(node);
             // The block of a list of statements is only the first block of its first statement.
             if (type === 'ProgramNode' || type === 'StatementsNode') continue;
             const startLine = this._getNodeStartLine(node);
@@ -273,7 +274,7 @@ const CommentHandler = {
         // A line that starts with a node that has no block (the `1` of `def foo\n  1\nend`, an element
         // of an array literal over more lines) goes to the block of the smallest node around it.
         const fill = (node, outerBlockId) => {
-            const type = this._getNodeTypeName(node);
+            const type = nodeTypeName(node);
             const own = type === 'ProgramNode' || type === 'StatementsNode' ? null : nodeBlocks.get(node);
             const blockId = own || outerBlockId;
             const line = this._getNodeStartLine(node);

@@ -26,26 +26,25 @@ Ruby → ブロックの変換器（`packages/scratch-gui/src/lib/ruby-to-blocks
 | 呼び出しの登録     | `converter.registerOnSend(` 386 か所・`converter.registerOnSendWithBlock(` 57 か所・`converter.registerOnSendMyBlock(` 1 か所。ほかに `send-table.js` の表の行が 12                                                    |
 | 構文の登録         | `converter.registerOnIf(` / `OnUntil` / `OnOpAsgn` / `OnAnd` / `OnOr` / `OnVar` / `OnVasgn` / `OnDefs`（13 か所）                                                                                                      |
 | 古い `onXxx` 形式  | `_callConvertersHandler` が 11 個の変換器オブジェクトを毎回調べる。いま中身があるのは `pen.onOpAsgn` と `makeymakey.onSend` の 2 つだけで、残り 9 個は名前だけ残っている                                               |
-| 変換の前の下調べ   | `_countProcedureCallsInNode`（手続きの呼び出しの数）、`_collectVariableUses`（変数の使い方・ローカル変数の範囲）、`_rejectRubyNameOfVariableAndList`                                                                   |
+| 変換の前の分析     | `analysis.js` の `analyze`（変数の使い方・ローカル変数の範囲・値として呼ばれる手続きの数）。変換器は結果の表を `_context.analysis` に置いて読む。`_rejectRubyNameOfVariableAndList` は表の `errors` を見て断る         |
 | 変換のあとの仕上げ | 素のリテラルを代入に変える、`ruby_*` ブロックを断る、拡張機能の ID を集める、`_dropUnusedHashVariables`、`_rejectVariableAndListOfSameName`、`$_symbols_` を作る、コメントを結びつける、`target-applier.js` で書きこむ |
 
 数え方: `ruby-to-blocks-converter/` の下の `.js`（`ast-handlers/` を含む）を対象に、ファイルの数と行の数（`wc -l`）、登録は `converter.registerOnXxx(` と書かれた所の数を数えた（`grep -roF`）。`converter-registry.js` の中の定義と、`receiver` の `self` / `any` / 配列を広げるための呼び直しは数えない。`forEach` の中の 1 か所は、いくつのメソッドを登録していても 1 と数える（実際に登録される数はこれより多い）。`send-table.js` の中の `registerOnSend(` 1 か所も 386 に入る。
 
-下調べと仕上げは、すでに `targetCodeToBlocks`（`index.js`）の前と後ろにある。4 段の構造は、これを名前のある段として切り出し、段の間で渡すものを決めることにあたる。
+分析と仕上げは、`targetCodeToBlocks`（`index.js`）の前と後ろにある。分析は名前のある段（`analysis.js`）になった。仕上げも同じように段として切り出し、段の間で渡すものを決めるのが残りの仕事。
 
 ### 構文木をたどる処理
 
-| たどる処理                                              | 子の取り方                                                        |
-| ------------------------------------------------------- | ----------------------------------------------------------------- |
-| 変換そのもの（`visit` と `visitXxxNode`）               | ノードの種類ごとに手で書く                                        |
-| `_collectVariableUses`                                  | `_childNodesOf`（prism の `childNodes()`。すべての子）            |
-| `_countProcedureCallsInNode` / `_countCallsInValueNode` | 呼び出し・条件・代入・`return` は手で書き、ほかは `_childNodesOf` |
-| `_statementNodeOf`（エラーで文を指す）                  | `_childNodesOf`。エラーのたびに根からたどる                       |
-| `_associateSourceComments` の一部、`_nodeContainsSuper` | `_childNodesOf`                                                   |
+| たどる処理                                              | 子の取り方                                                            |
+| ------------------------------------------------------- | --------------------------------------------------------------------- |
+| 変換そのもの（`visit` と `visitXxxNode`）               | ノードの種類ごとに手で書く                                            |
+| 分析（`analyze`）                                       | `forEachNode`（`node-walk.js`。prism の `childNodes()` のすべての子） |
+| `_statementNodeOf`（エラーで文を指す）                  | `_childNodesOf`。エラーのたびに根からたどる                           |
+| `_associateSourceComments` の一部、`_nodeContainsSuper` | `_childNodesOf`                                                       |
 
-`_countProcedureCallsInNode` は、もとは子を手で並べたプロパティ名でたどっていた。並べた名前に `CaseNode` の `conditions`（`when` の並び）や
+手続きの呼び出しを数える下調べ（もとの `_countProcedureCallsInNode`）は、子を手で並べたプロパティ名でたどっていた。並べた名前に `CaseNode` の `conditions`（`when` の並び）や
 `elseClause` が無く、`case` の中の手続きの呼び出しを数えていなかった。
-このような読み落としは、子の取り方をノードごとに手で書くかぎり、たどる処理の数だけ起きうる。
+このような読み落としは、子の取り方をノードごとに手で書くかぎり、たどる処理の数だけ起きうる。分析はすべて `forEachNode` でたどるので、この形の読み落としは起きない。
 
 ## 4 段の形
 
@@ -69,7 +68,7 @@ Scratch のブロック
 
 - prism の `parse` と、その構文エラーの翻訳（`prism-error-translator.js`）。
 - ソースの索引を **1 回だけ** 作る: バイト → 文字の表（いまの `_buildByteToCharMap`）、改行のバイト位置の表（行番号を二分探索で引く。試作で入れた `_newlineByteOffsets`）。
-- ノードの種類名（`_getNodeTypeName`）は、本番のビルドでクラス名が変わるので `accept()` で調べている。段を分けるときに、ノードのクラスごとに一度だけ調べて覚える形にする。
+- ノードの種類名は、本番のビルドでクラス名が変わるので `accept()` で調べる。`node-walk.js` の `nodeTypeName` が、ノードのクラスごとに一度だけ調べて覚える。変換（`visit` が呼ぶ `visitXxxNode` を決めるところも）と分析は、どちらもこれを使う。
 - 出すもの: `{ root, source, index, comments, errors }`。ブロックはまだ作らない。
 
 ### 2. 分析（analyze）
@@ -77,14 +76,14 @@ Scratch のブロック
 構文木を **1 つのたどり方**（すべての子を見る `forEachNode(root, { enter, leave })`）で 1 回たどり、次を決める。
 分析の結果は `Object.freeze` した表にし、変換は書きかえない。
 
-| 表           | 中身                                                                                             | いまの場所                                                                      |
-| ------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `variables`  | Ruby の名前（`@a` / `$a` / `a`）ごとの使い方（リスト・ハッシュ・値・文字列か）、最初に使われた行 | `_collectVariableUses` の `variableUses` / `firstVariableUses`                  |
-| `locals`     | ローカル変数の範囲（メソッド・スクリプトのブロックごと）と、範囲ごとの名前（`_x_1_`）            | `localVariableUnits`、`_localScopeIndex`                                        |
-| `procedures` | `def` の名前・引数・戻り値を返すか、値として呼ばれる数                                           | `_countProcedureCallsInNode`、`my-blocks.js` の一部                             |
-| `classes`    | class / module / initialize / super / attr_accessor の構造                                       | `class-visitor.js` / `module-visitor.js` / `initialize-handler.js` の判断の部分 |
-| `symbols`    | シンボルの一覧（`$_symbols_` リストのもと）                                                      | 変換の途中で集めている                                                          |
-| `errors`     | 変換の前に断れる誤り（同じ `@a` を変数とリストに使う、など）                                     | `_rejectRubyNameOfVariableAndList`                                              |
+| 表           | 中身                                                                                             | 決める場所                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `variables`  | Ruby の名前（`@a` / `$a` / `a`）ごとの使い方（リスト・ハッシュ・値・文字列か）、最初に使われた行 | `analysis.js`（もとは `_collectVariableUses`）。済み                               |
+| `locals`     | ローカル変数の範囲（メソッド・スクリプトのブロックごと）と、範囲ごとの名前（`_x_1_`）            | `analysis.js`（もとは `_collectVariableUses`）。済み                               |
+| `procedures` | `def` の名前・引数・戻り値を返すか、値として呼ばれる数                                           | 数は `analysis.js`（もとは `_countProcedureCallsInNode`）。`def` は `my-blocks.js` |
+| `classes`    | class / module / initialize / super / attr_accessor の構造                                       | `class-visitor.js` / `module-visitor.js` / `initialize-handler.js` の判断の部分    |
+| `symbols`    | シンボルの一覧（`$_symbols_` リストのもと）                                                      | 変換の途中で集めている                                                             |
+| `errors`     | 変換の前に断れる誤り（同じ `@a` を変数とリストに使う、など）                                     | `analysis.js`。断るのは `_rejectRubyNameOfVariableAndList`。済み                   |
 
 分析で決めたことは、[`bridging-patterns.md`](bridging-patterns.md) の P1（ローカル変数）・P2（戻り値）・P4/P5（配列・ハッシュ）・P6（class）・P15（変数の種類）に対応する。
 新しい橋渡しの工夫で「変換の前に全体を見ないと決まらないこと」が出たら、変換の途中で決めずに分析の表に足す。
@@ -96,24 +95,26 @@ prism の `childNodes()` のすべての子を、ソースの順に（親を子�
 ノードの種類名は `nodeTypeName(node)` で、ノードのクラスごとに 1 回だけ `accept()` で調べて覚える。
 `analyze` は構文木とソースだけを読む純粋な関数で、変換器や VM を読まない。結果は `Object.freeze` する（中の prism のノードは凍らせない。`Map` は読むだけの形 `{ get, has, size }` にする）。
 
-| 表                           | 形                                                                                                                                            | いまの変換器の値                                                                 |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `variables.uses`             | `{ [Ruby の名前]: { list, scalar, hash, string, notString } }`                                                                                | `_context.variableUses`                                                          |
-| `variables.firstUses`        | `{ ['@a' / '$a']: { list?: { line, node }, scalar?: { line, node } } }`（いちばん前の行）                                                     | `_context.firstVariableUses`                                                     |
-| `variables.rubyNames`        | コードが読み書きする `@a` / `$a` の並び                                                                                                       | `_context.rubyVariableNames`                                                     |
-| `locals`                     | `unitOfNode`（範囲を始めるノード → 範囲の番号）、`uses[範囲][名前]`、`groups[範囲]`（メソッドは自分、スクリプトのブロックは 0）、`splitNames` | `_context.localVariableUnits`（`scopeIndexes` は変換の途中で決まるので含めない） |
-| `procedures.valueCallCounts` | `{ [メソッド名]: 値として呼ばれる数 }`                                                                                                        | `_context.methodCallCounts`                                                      |
-| `procedures.definitions`     | `def` ごとの `{ name, line, onSelf, requireds, optionals, returnsValue, usesSuper, node }`                                                    | `my-blocks.js` と `class-visitor.js` がその場で調べている                        |
-| `classes`                    | `classes`: `{ name, superclass, line, attrs, includes, methods, hasInitialize, node }`、`modules`: `{ name, line, methods, node }`            | `class-visitor.js` / `module-visitor.js` の本体の下調べ                          |
-| `symbols`                    | コードに書かれたシンボル（`:name`）の並び。`$_symbols_` に入る候補（変換で使われたものだけが入る）                                            | `_context.symbols`（変換の途中で集める）                                         |
-| `errors`                     | `{ kind: 'variableAndList', name, listLine, variableLine, node }` を変数としての行の順に                                                      | `_rejectRubyNameOfVariableAndList`（最初の 1 つで止める）                        |
+| 表                           | 形                                                                                                                                            | 変換器で読むところ                                                                                                                           |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `variables.uses`             | `{ [Ruby の名前]: { list, scalar, hash, string, notString } }`                                                                                | `_variableUsesOf`・`_kindOfRubyName`・`_listNameOfAlias`（`variable-utils.js`）                                                              |
+| `variables.firstUses`        | `{ ['@a' / '$a']: { list?: { line, node }, scalar?: { line, node } } }`（いちばん前の行）                                                     | （`errors` のもと）                                                                                                                          |
+| `variables.rubyNames`        | コードが読み書きする `@a` / `$a` の並び                                                                                                       | `_kindOfRubyName`・`_listNameOfAlias`                                                                                                        |
+| `locals`                     | `unitOfNode`（範囲を始めるノード → 範囲の番号）、`uses[範囲][名前]`、`groups[範囲]`（メソッドは自分、スクリプトのブロックは 0）、`splitNames` | `_enterLocalUnit`・`_localScopeIndex`・`_variableUsesOf`（範囲ごとの名前の番号は変換の途中で決まるので `_context.localScopeIndexes` に置く） |
+| `procedures.valueCallCounts` | `{ [メソッド名]: 値として呼ばれる数 }`                                                                                                        | `my-blocks.js`（戻り値を入れる変数の番号）                                                                                                   |
+| `procedures.definitions`     | `def` ごとの `{ name, line, onSelf, requireds, optionals, returnsValue, usesSuper, node }`                                                    | まだ読まない（`my-blocks.js` と `class-visitor.js` がその場で調べている）                                                                    |
+| `classes`                    | `classes`: `{ name, superclass, line, attrs, includes, methods, hasInitialize, node }`、`modules`: `{ name, line, methods, node }`            | まだ読まない（`class-visitor.js` / `module-visitor.js` の本体の下調べ）                                                                      |
+| `symbols`                    | コードに書かれたシンボル（`:name`）の並び。`$_symbols_` に入る候補（変換で使われたものだけが入る）                                            | まだ読まない（`_context.symbols` は変換の途中で集める）                                                                                      |
+| `errors`                     | `{ kind: 'variableAndList', name, listLine, variableLine, node }` を変数としての行の順に                                                      | `_rejectRubyNameOfVariableAndList`（最初の 1 つで止める）                                                                                    |
 
-「値として呼ばれる」は、いまの `_countProcedureCallsInNode` と同じ決まりで決める。
+「値として呼ばれる」は、変換が値として変換する所で決める。
 ノードごとに「文として見る」「値として見る」を子に配り、値として見た `CallNode` を数える
 （引数・レシーバー・条件・`x = ...` の値・`return` の値が値、`do ... end` の中・`if` の中が文。ほかのノードは、すべての子を親と同じに見る）。
 
-表がいまの変換器と同じであることは `test/unit/lib/ruby-to-blocks-converter/analysis.test.js` で確かめる。
-変換器と往復のテストに書かれた Ruby（約 3,500 個）で、変換器の下調べの結果と表を比べる。すべて一致する。
+変換器は `targetCodeToBlocks` で `analyze` を 1 回呼び、表を `_context.analysis` に置いて読む（変換の前の下調べ `_collectVariableUses` / `_countProcedureCallsInNode` は消した）。
+消す前に、変換器と往復のテストに書かれた Ruby（約 3,500 個）で下調べの結果と表を比べ、すべて一致することを確かめた。
+いまは `test/unit/lib/ruby-to-blocks-converter/analysis.test.js` が表の中身を、変換器と往復のテストが表を読んだ変換の結果を確かめる。
+文字列の値か（`isStringValueNode`）と多重代入の組（`multiWritePairs`）は `analysis.js` の 1 か所にあり、変換（`visitMultiWriteNode`）も同じものを使う。
 
 ### 3. 変換（convert）
 
@@ -203,9 +204,9 @@ motion では、呼び出しの登録 14 のうち 12 が表になった（残�
 
 | 順  | すること                                                                                                                                   | 振る舞いを固定するテスト                                                                             | 効率                         |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ---------------------------- |
-| 1   | 解析の索引: 行の表（試作で済み）、ノードの種類名をクラスごとに覚える                                                                       | 表のテストすべて、`line-for-offset.test.js`、`multibyte-offset.test.js`                              | 小                           |
-| 2   | 変換の巻き戻しを journal に（`_saveContext` を写さない）                                                                                   | 表のテストすべて、`orphan-blocks.test.js`、`target-applier-transaction.test.js`、往復テスト          | **大**（いま最も時間を使う） |
-| 3   | 分析の段: `forEachNode` を作り、`_collectVariableUses` と `_countProcedureCallsInNode` を移して凍結した `Analysis` を出す                  | 分析の結果の表のテスト（Ruby → `Analysis`）、表のテストすべて                                        | 小                           |
+| 1   | 解析の索引: 行の表、ノードの種類名をクラスごとに覚える（`nodeTypeName`）。済み                                                             | 表のテストすべて、`line-for-offset.test.js`、`multibyte-offset.test.js`                              | 小                           |
+| 2   | 変換の巻き戻しを journal に（`_saveContext` を写さない）。済み                                                                             | 表のテストすべて、`orphan-blocks.test.js`、`target-applier-transaction.test.js`、往復テスト          | **大**（いま最も時間を使う） |
+| 3   | 分析の段: `forEachNode` を作り、`_collectVariableUses` と `_countProcedureCallsInNode` を移して凍結した `Analysis` を出す。済み            | 分析の結果の表のテスト（Ruby → `Analysis`）、表のテストすべて                                        | 小                           |
 | 4   | 呼び出しの表: motion（試作で済み）→ looks → sound → control / event → sensing → operators → data → 拡張機能。古い `onXxx` 2 つもここで移す | その領域の表のテスト                                                                                 | なし                         |
 | 5   | 仕上げの段: `targetCodeToBlocks` の後半を `finish()` へ。`targetCodeToBlocks` は 4 段を順に呼ぶだけにする                                  | 表のテストすべて、往復テスト                                                                         | なし                         |
 | 6   | class / module / initialize の判断を分析へ移す                                                                                             | `class.test.js`、`module.test.js`、`initialize-round-trip.test.js`、`ruby-roundtrip-class-*.test.js` | なし                         |

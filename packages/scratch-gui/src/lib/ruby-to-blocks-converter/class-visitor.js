@@ -7,6 +7,7 @@ import {
     backdropLibraryNames,
 } from './converter-errors';
 import { RubyToBlocksConverterError } from './errors';
+import { nodeTypeName } from './node-walk';
 
 /**
  * Mixin methods for visiting class nodes in the Ruby-to-blocks converter.
@@ -111,7 +112,7 @@ const ClassVisitor = {
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
                 if (
-                    this._getNodeTypeName(stmt) === 'CallNode' &&
+                    nodeTypeName(stmt) === 'CallNode' &&
                     !stmt.receiver &&
                     (stmt.name === 'attr_accessor' || stmt.name === 'attr_reader' || stmt.name === 'attr_writer') &&
                     stmt.arguments_ &&
@@ -119,7 +120,7 @@ const ClassVisitor = {
                 ) {
                     const kind = stmt.name.replace('attr_', '');
                     for (const argNode of stmt.arguments_.arguments_) {
-                        if (this._getNodeTypeName(argNode) === 'SymbolNode') {
+                        if (nodeTypeName(argNode) === 'SymbolNode') {
                             const unescaped = argNode.unescaped;
                             const symName = typeof unescaped === 'object' ? unescaped.value : unescaped;
                             attrAccessors[symName] = kind;
@@ -140,7 +141,7 @@ const ClassVisitor = {
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
                 if (
-                    this._getNodeTypeName(stmt) === 'CallNode' &&
+                    nodeTypeName(stmt) === 'CallNode' &&
                     !stmt.receiver &&
                     stmt.arguments_ &&
                     stmt.arguments_.arguments_.length === 1
@@ -185,7 +186,7 @@ const ClassVisitor = {
         const includeStatements = new Set();
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
-                if (this._getNodeTypeName(stmt) === 'CallNode' && !stmt.receiver) {
+                if (nodeTypeName(stmt) === 'CallNode' && !stmt.receiver) {
                     // Reject extend
                     if (stmt.name === 'extend') {
                         throw new RubyToBlocksConverterError(stmt, this._translator(messages.extendNotSupported));
@@ -193,7 +194,7 @@ const ClassVisitor = {
                     // Handle include
                     if (stmt.name === 'include' && stmt.arguments_ && stmt.arguments_.arguments_.length === 1) {
                         const argNode = stmt.arguments_.arguments_[0];
-                        const argType = this._getNodeTypeName(argNode);
+                        const argType = nodeTypeName(argNode);
                         if (argType === 'ConstantReadNode') {
                             const moduleName = argNode.name;
 
@@ -228,7 +229,7 @@ const ClassVisitor = {
         const superMethodMap = {};
         if (node.body && node.body.body && includedModuleNames.length > 0) {
             for (const stmt of node.body.body) {
-                if (this._getNodeTypeName(stmt) === 'DefNode' && !stmt.receiver) {
+                if (nodeTypeName(stmt) === 'DefNode' && !stmt.receiver) {
                     const methodName = stmt.name;
                     if (this._nodeContainsSuper(stmt)) {
                         // Find which module has a method with the same name
@@ -404,7 +405,7 @@ const ClassVisitor = {
         const initializeNodes = new Set();
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
-                if (this._getNodeTypeName(stmt) === 'DefNode' && stmt.name === 'initialize') {
+                if (nodeTypeName(stmt) === 'DefNode' && stmt.name === 'initialize') {
                     initializeNodes.add(stmt);
                     this._processInitialize(stmt, isStageClass);
                 }
@@ -414,7 +415,7 @@ const ClassVisitor = {
         // Visit class body, filtering out set_xxx calls, include statements, and def initialize
         if (node.body && node.body.body) {
             const filteredStatements = node.body.body.filter((stmt) => {
-                if (this._getNodeTypeName(stmt) === 'CallNode' && setMethodNames.has(stmt.name) && !stmt.receiver) {
+                if (nodeTypeName(stmt) === 'CallNode' && setMethodNames.has(stmt.name) && !stmt.receiver) {
                     return false;
                 }
                 // Filter out include statements (already processed above)
@@ -481,7 +482,7 @@ const ClassVisitor = {
      * @returns {number|string|boolean|Array|null} The extracted value, or null if not supported
      */
     _extractClassMethodArg(argNode) {
-        const type = this._getNodeTypeName(argNode);
+        const type = nodeTypeName(argNode);
         switch (type) {
             case 'StringNode': {
                 const unescaped = argNode.unescaped;
@@ -527,7 +528,7 @@ const ClassVisitor = {
      */
     _nodeContainsSuper(node) {
         if (!node) return false;
-        const typeName = this._getNodeTypeName(node);
+        const typeName = nodeTypeName(node);
         if (typeName === 'SuperNode' || typeName === 'ForwardingSuperNode') {
             return true;
         }

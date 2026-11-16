@@ -3,15 +3,9 @@ import * as Blockly from 'scratch-blocks';
 import { Variable } from './constants';
 import { RubyToBlocksConverterError } from './errors';
 
-// Methods that this converter turns into list blocks only (a String has no such block here), so
-// calling one is evidence that the name is a list (issue #1613).
-const LIST_ONLY_METHODS = new Set(['push', '<<', 'delete_at', 'clear', 'insert', '[]=']);
-// Nodes that set a variable, whose `name` is the Ruby name (`@a`, `$a`, `a`) and `value` the value.
-const VARIABLE_WRITE_NODE_TYPES = new Set(
-    ['InstanceVariable', 'GlobalVariable', 'LocalVariable'].flatMap((kind) =>
-        ['WriteNode', 'OperatorWriteNode', 'OrWriteNode', 'AndWriteNode'].map((suffix) => `${kind}${suffix}`),
-    ),
-);
+// How the code uses a name (`variables.uses` of the analysis, `analysis.js`). `string` / `notString`:
+// set to a String / to another value.
+const EMPTY_USE = { list: false, scalar: false, hash: false, string: false, notString: false };
 // List blocks of Ruby that a String also has (`length` / `[i]` / `include?`), and the read of a list.
 const LIST_OPCODES_ALSO_FOR_STRINGS = new Set([
     'data_lengthoflist',
@@ -19,25 +13,6 @@ const LIST_OPCODES_ALSO_FOR_STRINGS = new Set([
     'data_listcontainsitem',
     'data_listcontents',
 ]);
-const VARIABLE_READ_NODE_TYPES = new Set([
-    'InstanceVariableReadNode',
-    'GlobalVariableReadNode',
-    'LocalVariableReadNode',
-]);
-// Calls whose value is always a String (issue #1659): `gets` / `answer` (no receiver), and `x.to_s`.
-const STRING_CALLS_WITHOUT_RECEIVER = new Set(['gets', 'answer']);
-// How the code uses a name (see `_collectVariableUses`). `string` / `notString`: set to a String /
-// to another value.
-const EMPTY_USE = { list: false, scalar: false, hash: false, string: false, notString: false };
-const STRING_VALUE_NODE_TYPES = new Set(['StringNode', 'InterpolatedStringNode']);
-// Nodes that read or set an instance or a global variable (`name` is `@a` / `$a`).
-const INSTANCE_OR_GLOBAL_NODE_TYPES = new Set(
-    ['InstanceVariable', 'GlobalVariable'].flatMap((kind) =>
-        ['ReadNode', 'WriteNode', 'OperatorWriteNode', 'OrWriteNode', 'AndWriteNode', 'TargetNode'].map(
-            (suffix) => `${kind}${suffix}`,
-        ),
-    ),
-);
 // The Ruby name of a list beside a variable of the same name: `@_a_list_` is the list `a` (issue #1622).
 // `@_a_list2_`, `@_a_list3_`, ... are the same list when the sprite has `_a_list_` too (issue #1707).
 const LIST_BESIDE_VARIABLE_PATTERN = /^([$@])_(.+)_list(?:([2-9]|[1-9]\d+))?_$/;
@@ -399,133 +374,21 @@ const VariableUtils = {
     },
 
     /**
-     * Collect, before converting, how the code uses each variable name, so that a method of both
-     * String and Array (`length` / `include?` / `empty?` / `[i]`) does not depend on the order in
-     * which the code is converted (issue #1613): `@a.length` in a method or an event before
-     * `@a = "abc"`, `@a = gets`, or a number set last.
-     * A name is used as a list when it is set to an array literal or a list-only method is called
-     * on it, as a hash when it is set to a hash literal, and as a scalar when it is set to anything else.
-     * The result is in `_context.variableUses`, keyed by the Ruby name (`@a`, `$a`, `a`).
+     * How the code uses each variable name and where it uses each local, decided by the analysis
+     * stage before converting (`analysis.js`): `variables` and `locals` of the `Analysis`, or null
+     * before `targetCodeToBlocks` has analyzed the code.
      *
-     * A local variable is also collected by where it is used (issue #1630), since `a` in one
-     * method, or in one block of the script (an event `when_flag_clicked do`), is not `a` in
-     * another. A method is a unit of its own. A block of the script (a call with `do ... end`
-     * outside any method or other block) is a unit too, but it sees the locals of the script
-     * outside the blocks (unit 0). The units are in `_context.localVariableUnits` (see
-     * `_variableUsesOf` and `_localScopeIndex`).
-     * @param {object} root - The root prism node.
+     * A name is used as a list when it is set to an array literal or a list-only method is called
+     * on it, as a hash when it is set to a hash literal, and as a scalar when it is set to anything
+     * else, so that a method of both String and Array (`length` / `include?` / `empty?` / `[i]`)
+     * does not depend on the order in which the code is converted (issue #1613). A local is also
+     * collected by where it is used (issue #1630): a method is a unit of its own; a block of the
+     * script is a unit too, but it sees the locals of the script (see `_variableUsesOf` and
+     * `_localScopeIndex`).
+     * @returns {?object} `{variables, locals}` of the analysis.
      */
-    _collectVariableUses(root) {
-        const uses = {};
-        // unit id -> Ruby name of a local -> use
-        const localUses = { 0: {} };
-        // unit id -> the unit whose locals it sees: itself for a method, 0 for a block of the script
-        const unitGroups = { 0: 0 };
-        const unitOfNode = new Map();
-        let nextUnit = 1;
-        const newUnit = (node, ownGroup) => {
-            const unit = nextUnit++;
-            unitGroups[unit] = ownGroup ? unit : 0;
-            localUses[unit] = {};
-            unitOfNode.set(node, unit);
-            return unit;
-        };
-        // Ruby name of an instance or a global variable -> {list, scalar} -> the first node of the use
-        const firstUses = {};
-        const rubyNames = new Set();
-        const mark = (name, use, unit, node) => {
-            if (!name) return;
-            const key = String(name);
-            if (!uses[key]) uses[key] = { ...EMPTY_USE };
-            uses[key][use] = true;
-            if (node && (use === 'list' || use === 'scalar') && (key[0] === '$' || key[0] === '@')) {
-                if (!firstUses[key]) firstUses[key] = {};
-                const line = this._getLoc(node).line;
-                if (!firstUses[key][use] || line < firstUses[key][use].line) {
-                    firstUses[key][use] = { line, node };
-                }
-            }
-            if (key[0] !== '$' && key[0] !== '@') {
-                if (!localUses[unit][key]) localUses[unit][key] = { ...EMPTY_USE };
-                localUses[unit][key][use] = true;
-            }
-        };
-        const queue = [[root, 0]];
-        while (queue.length > 0) {
-            const [node, outerUnit] = queue.pop();
-            // Not `constructor.name`: the production build renames the classes.
-            const nodeType = this._prismNodeType(node);
-            if (!nodeType) continue;
-            let unit = outerUnit;
-            if (nodeType === 'DefNode') {
-                unit = newUnit(node, true);
-            } else if (
-                nodeType === 'CallNode' &&
-                outerUnit === 0 &&
-                node.block &&
-                this._prismNodeType(node.block) === 'BlockNode'
-            ) {
-                unit = newUnit(node, false);
-            }
-            if (INSTANCE_OR_GLOBAL_NODE_TYPES.has(nodeType)) rubyNames.add(String(node.name));
-            if (VARIABLE_WRITE_NODE_TYPES.has(nodeType)) {
-                const valueType = this._prismNodeType(node.value);
-                if (valueType === 'ArrayNode') {
-                    mark(node.name, 'list', unit, node);
-                } else if (valueType === 'HashNode') {
-                    mark(node.name, 'hash', unit);
-                } else {
-                    mark(node.name, 'scalar', unit, node);
-                    // Whether the value is a String, for the string `+` (issue #1659).
-                    mark(node.name, this._isStringValueNode(node.value) ? 'string' : 'notString', unit);
-                }
-            } else if (nodeType === 'MultiWriteNode') {
-                // `a, b = 1, "x"` becomes `a = 1` and `b = "x"` (issue #1814).
-                (this._multiWritePairs(node) || []).forEach(({ target, value }) => {
-                    mark(target.name, 'scalar', unit, target);
-                    mark(target.name, this._isStringValueNode(value) ? 'string' : 'notString', unit);
-                });
-            } else if (
-                nodeType === 'CallNode' &&
-                LIST_ONLY_METHODS.has(String(node.name)) &&
-                VARIABLE_READ_NODE_TYPES.has(this._prismNodeType(node.receiver))
-            ) {
-                const args = node.arguments_ ? node.arguments_.arguments_ : [];
-                const keyType = args.length > 0 ? this._prismNodeType(args[0]) : null;
-                // `@a[:key] = 1` and `@a["key"] = 1` are a hash.
-                if (!(node.name === '[]=' && (keyType === 'SymbolNode' || keyType === 'StringNode'))) {
-                    mark(node.receiver.name, 'list', unit, node);
-                }
-            }
-            this._childNodesOf(node).forEach((child) => queue.push([child, unit]));
-        }
-
-        // A local that the script outside the blocks does not use, and that its blocks use as
-        // different things (a string in one event, a list in another), is a separate local in
-        // each block: it gets a scope index for each block (`_localScopeIndex`).
-        const kindOf = (use) => {
-            if (use.list) return 'list';
-            if (use.hash) return 'hash';
-            return 'scalar';
-        };
-        const kindsOfName = {};
-        Object.keys(localUses).forEach((unit) => {
-            if (Number(unit) === 0 || unitGroups[unit] !== 0) return;
-            Object.keys(localUses[unit]).forEach((name) => {
-                if (!kindsOfName[name]) kindsOfName[name] = new Set();
-                kindsOfName[name].add(kindOf(localUses[unit][name]));
-            });
-        });
-        const splitNames = new Set(
-            Object.keys(kindsOfName).filter((name) => kindsOfName[name].size > 1 && !localUses[0][name]),
-        );
-
-        this._context.variableUses = uses;
-        this._context.firstVariableUses = firstUses;
-        this._context.rubyVariableNames = rubyNames;
-        this._context.listAliases = {};
-        this._context.localVariableUnits = { unitOfNode, localUses, unitGroups, splitNames, scopeIndexes: {} };
-        this._context.currentLocalUnit = 0;
+    _variableAnalysis() {
+        return this._context.analysis || null;
     },
 
     /**
@@ -580,15 +443,17 @@ const VariableUtils = {
         const [, prefix, name, number] = match;
         const n = number ? Number(number) : 1;
         const scope = prefix === '$' ? 'global' : 'instance';
-        const names = this._context.rubyVariableNames || new Set();
+        const analysis = this._variableAnalysis();
+        const names = analysis ? analysis.variables.rubyNames : [];
+        const uses = analysis ? analysis.variables.uses : {};
         // A name is the user's own when the sprite has it or the code sets it to a number or a string.
         const isTaken = (k) => {
             const aliasName = listAliasName(prefix, name, k);
-            const use = this._context.variableUses && this._context.variableUses[aliasName];
+            const use = uses[aliasName];
             return Boolean(use && use.scalar && !use.list) || this._ownerHasVariable(scope, aliasName.slice(1), null);
         };
         let listName = null;
-        if (this._ownerHasVariable(scope, name, null) || names.has(`${prefix}${name}`)) {
+        if (this._ownerHasVariable(scope, name, null) || names.includes(`${prefix}${name}`)) {
             // The list is the first name that is not taken, as the generator chooses it. The loop
             // stops there, so a large number (`@_a_list99999_`) does not try every name before it.
             let k = 1;
@@ -612,7 +477,8 @@ const VariableUtils = {
         const prefix = rubyName[0];
         if (prefix !== '$' && prefix !== '@') return null;
         if (this._listNameOfAlias(rubyName) !== null) return 'list';
-        const use = this._context.variableUses && this._context.variableUses[rubyName];
+        const analysis = this._variableAnalysis();
+        const use = analysis && analysis.variables.uses[rubyName];
         if (use && use.list) return 'list';
         if (use && use.hash) return null;
         if (use && use.scalar) return 'scalar';
@@ -620,8 +486,8 @@ const VariableUtils = {
         const name = rubyName.slice(1);
         // The code also uses `@_a_list_` for the list `a` beside: `@a` is the variable `a`, even when
         // the code only reads it (`say(@a)` and `say(@_a_list_)`).
-        const names = this._context.rubyVariableNames;
-        if (names) {
+        if (analysis) {
+            const names = analysis.variables.rubyNames;
             for (const other of names) {
                 const match = other.match(LIST_BESIDE_VARIABLE_PATTERN);
                 if (match && match[1] === prefix && match[2] === name && this._listNameOfAlias(other) === name) {
@@ -652,30 +518,27 @@ const VariableUtils = {
      * earliest line that uses the name as a variable.
      */
     _rejectRubyNameOfVariableAndList() {
-        const firstUses = this._context.firstVariableUses || {};
-        const conflicts = Object.keys(firstUses)
-            .filter((name) => firstUses[name].list && firstUses[name].scalar)
-            .map((name) => ({ name, ...firstUses[name] }))
-            .sort((a, b) => a.scalar.line - b.scalar.line);
-        if (conflicts.length === 0) return;
-        const { name, list, scalar } = conflicts[0];
+        const analysis = this._variableAnalysis();
+        const conflict = analysis && analysis.errors.find((error) => error.kind === 'variableAndList');
+        if (!conflict) return;
         throw new RubyToBlocksConverterError(
-            scalar.node,
+            conflict.node,
             this._translator(messages.variableAndListSameName, {
-                NAME: name,
-                LIST_LINE: list.line,
-                VARIABLE_LINE: scalar.line,
+                NAME: conflict.name,
+                LIST_LINE: conflict.listLine,
+                VARIABLE_LINE: conflict.variableLine,
             }),
         );
     },
 
     /**
-     * Enter the unit of local variables (see `_collectVariableUses`) that a node starts.
+     * Enter the unit of local variables (see `_variableAnalysis`) that a node starts.
      * @param {object} node - The prism node being converted.
      * @returns {?number} The unit to go back to after the node, or null when the node starts none.
      */
     _enterLocalUnit(node) {
-        const units = this._context.localVariableUnits;
+        const analysis = this._variableAnalysis();
+        const units = analysis && analysis.locals;
         if (!units || !units.unitOfNode.has(node)) return null;
         const previous = this._context.currentLocalUnit || 0;
         this._context.currentLocalUnit = units.unitOfNode.get(node);
@@ -691,45 +554,49 @@ const VariableUtils = {
      */
     _localScopeIndex(varName) {
         const scopeIndex = this._getScopeIndex();
-        const units = this._context.localVariableUnits;
+        const analysis = this._variableAnalysis();
+        const units = analysis && analysis.locals;
         const unit = this._context.currentLocalUnit || 0;
         if (
             this._context.scopeStack.length > 0 ||
             !units ||
             unit === 0 ||
-            units.unitGroups[unit] !== 0 ||
-            !units.splitNames.has(varName)
+            units.groups[unit] !== 0 ||
+            !units.splitNames.includes(varName)
         ) {
             return scopeIndex;
         }
-        if (!units.scopeIndexes[unit]) {
+        // Decided while converting (in the order of the scopes), so not in the frozen analysis.
+        const scopeIndexes = this._context.localScopeIndexes || (this._context.localScopeIndexes = {});
+        if (!scopeIndexes[unit]) {
             this._context.scopeCounter++;
-            units.scopeIndexes[unit] = this._context.scopeCounter;
+            scopeIndexes[unit] = this._context.scopeCounter;
         }
-        return units.scopeIndexes[unit];
+        return scopeIndexes[unit];
     },
 
     /**
-     * How the code uses a variable (see `_collectVariableUses`). For a local, only the uses where
+     * How the code uses a variable (see `_variableAnalysis`). For a local, only the uses where
      * it is the same variable: in its method, or in the script and its blocks (only in its block
      * when the blocks use the name as different things).
      * @param {object} variable - The variable (or list) in the converter's stores.
      * @returns {?object} `{list, scalar, hash}`, or null when the code does not set the name.
      */
     _variableUsesOf(variable) {
-        if (!variable || !this._context.variableUses) return null;
-        if (variable.scope === 'global') return this._context.variableUses[`$${variable.name}`] || null;
-        if (variable.scope === 'instance') return this._context.variableUses[`@${variable.name}`] || null;
+        const analysis = this._variableAnalysis();
+        if (!variable || !analysis) return null;
+        const uses = analysis.variables.uses;
+        if (variable.scope === 'global') return uses[`$${variable.name}`] || null;
+        if (variable.scope === 'instance') return uses[`@${variable.name}`] || null;
         const name = variable.originalName || variable.name;
-        const units = this._context.localVariableUnits;
-        if (!units) return this._context.variableUses[name] || null;
+        const units = analysis.locals;
         const unit = this._context.currentLocalUnit || 0;
-        if (units.unitGroups[unit] !== 0 || (unit !== 0 && units.splitNames.has(name))) {
-            return units.localUses[unit][name] || null;
+        if (units.groups[unit] !== 0 || (unit !== 0 && units.splitNames.includes(name))) {
+            return units.uses[unit][name] || null;
         }
         let found = null;
-        Object.keys(units.localUses).forEach((u) => {
-            const use = units.unitGroups[u] === 0 && units.localUses[u][name];
+        Object.keys(units.uses).forEach((u) => {
+            const use = units.groups[u] === 0 && units.uses[u][name];
             if (!use) return;
             if (!found) found = { ...EMPTY_USE };
             Object.keys(EMPTY_USE).forEach((kind) => {
@@ -740,7 +607,7 @@ const VariableUtils = {
     },
 
     /**
-     * Whether the code uses a variable only as a scalar (see `_collectVariableUses`).
+     * Whether the code uses a variable only as a scalar (see `_variableAnalysis`).
      * @param {object} variable - The variable (or list) in the converter's stores.
      * @returns {boolean} true if the code sets the name to a scalar and never uses it as a list.
      */
@@ -751,28 +618,7 @@ const VariableUtils = {
     },
 
     /**
-     * Whether a prism node is a value that is always a String (see `_collectVariableUses`):
-     * a string literal, `gets`, `answer`, `x.to_s`, or `x + "literal"` (so `a = a + "x"` keeps `a` a String).
-     * @param {object} node - The prism node of the value.
-     * @returns {boolean} true if the value is a String.
-     */
-    _isStringValueNode(node) {
-        const nodeType = this._prismNodeType(node);
-        if (STRING_VALUE_NODE_TYPES.has(nodeType)) return true;
-        if (nodeType !== 'CallNode') return false;
-        const name = String(node.name);
-        const args = node.arguments_ ? node.arguments_.arguments_ : [];
-        if (node.block) return false;
-        if (name === '+' && node.receiver && args.length === 1) {
-            return STRING_VALUE_NODE_TYPES.has(this._prismNodeType(args[0]));
-        }
-        if (args.length > 0) return false;
-        if (name === 'to_s') return true;
-        return !node.receiver && STRING_CALLS_WITHOUT_RECEIVER.has(name);
-    },
-
-    /**
-     * Whether the code sets a variable only to Strings (see `_collectVariableUses`), so that
+     * Whether the code sets a variable only to Strings (see `_variableAnalysis`), so that
      * `@a + x` is the string `+` even where the converter has not seen the string yet (issue #1659).
      * @param {object} variable - The variable in the converter's stores.
      * @returns {boolean} true if every value the code sets the name to is a String.

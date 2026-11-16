@@ -1,6 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (initialize handler for Ruby-to-blocks converter) ===
 import { messages } from './converter-errors';
 import { RubyToBlocksConverterError } from './errors';
+import { nodeTypeName } from './node-walk';
 
 /**
  * Mixin methods for processing def initialize in the Ruby-to-blocks converter.
@@ -39,7 +40,7 @@ const InitializeHandler = {
         // Check for super at the beginning
         let startIndex = 0;
         if (bodyStmts.length > 0) {
-            const firstType = this._getNodeTypeName(bodyStmts[0]);
+            const firstType = nodeTypeName(bodyStmts[0]);
             if (firstType === 'SuperNode') {
                 const superArgs = bodyStmts[0].arguments_;
                 if (superArgs && superArgs.arguments_ && superArgs.arguments_.length > 0) {
@@ -63,7 +64,7 @@ const InitializeHandler = {
         const attrNames = [];
         for (let i = startIndex; i < bodyStmts.length; i++) {
             const stmt = bodyStmts[i];
-            const stmtType = this._getNodeTypeName(stmt);
+            const stmtType = nodeTypeName(stmt);
 
             if (stmtType === 'InstanceVariableWriteNode') {
                 if (isStageClass) {
@@ -152,7 +153,7 @@ const InitializeHandler = {
      * @returns {number|string|boolean|Array|null} The extracted value, or null if not supported
      */
     _extractInitializeValue(valueNode) {
-        const type = this._getNodeTypeName(valueNode);
+        const type = nodeTypeName(valueNode);
         switch (type) {
             case 'IntegerNode':
                 return valueNode.value;

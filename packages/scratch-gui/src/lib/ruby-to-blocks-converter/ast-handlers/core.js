@@ -3,6 +3,7 @@ import _ from 'lodash';
 import { defineMessages } from 'react-intl';
 import { messages as converterMessages } from '../converter-errors';
 import { RubyToBlocksConverterError } from '../errors';
+import { nodeTypeName } from '../node-walk';
 import { isKnownListReceiver } from '../variable-hash-ops';
 
 const messages = defineMessages({
@@ -161,7 +162,7 @@ const CoreHandlers = {
      * @returns {boolean} true if the converter handles the node.
      */
     _hasOwnHandler(node) {
-        const handlerName = `visit${this._getNodeTypeName(node)}`;
+        const handlerName = `visit${nodeTypeName(node)}`;
         return typeof this[handlerName] === 'function' && this[handlerName] !== Visitor.prototype[handlerName];
     },
 
@@ -179,7 +180,7 @@ const CoreHandlers = {
             // Note: literalCallIndices are NOT reset per-statement - they accumulate across statements.
             this._context.methodCallIndices = {};
             this._context.savedReturnValueInStatement = false;
-            if (bodyKind && bodyKind !== 'top' && this._getNodeTypeName(childNode) === 'DefNode') {
+            if (bodyKind && bodyKind !== 'top' && nodeTypeName(childNode) === 'DefNode') {
                 // On any line, not only on the first one (#1554). The body of a class is not a block
                 // body (`bodyKind` is null), so a method written directly in a class is still converted;
                 // neither is the top level (`bodyKind` is 'top').
@@ -272,7 +273,7 @@ const CoreHandlers = {
      */
     _checkStatementInBody(node, result, bodyKind, isLast) {
         const blocks = _.isArray(result) ? result : [result];
-        const isInterpolated = !result && /^Interpolated/.test(this._getNodeTypeName(node) || '');
+        const isInterpolated = !result && /^Interpolated/.test(nodeTypeName(node) || '');
         if (bodyKind === 'top') {
             // At the top level, events and values may stand alone; only a value no block can hold
             // (e.g. `self`, which became the string "self") is an error (#1558).
@@ -387,7 +388,7 @@ const CoreHandlers = {
         if (!node.body) {
             return [];
         }
-        if (this._getNodeTypeName(node.body) === 'StatementsNode') {
+        if (nodeTypeName(node.body) === 'StatementsNode') {
             return node.body.body;
         }
         return [node.body];
@@ -632,7 +633,7 @@ const CoreHandlers = {
         let blocks;
         try {
             blocks = this.visit(node);
-            if (node && this._getNodeTypeName(node) === 'IfNode') {
+            if (node && nodeTypeName(node) === 'IfNode') {
                 // `elsif`: its condition is the statement of the `if` in `else` (issue #1725).
                 blocks = this._saveReturnValuesUsedTwice(blocks, node);
             }
