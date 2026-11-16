@@ -488,6 +488,10 @@ describe('LessonTaskBar: the role of a pair challenge (#2062)', () => {
         expect(getByTestId('lesson-task-bar-task')).toHaveTextContent('変数「シマネコのきぶん」');
         expect(getByTestId('lesson-task-bar-role-shimacat')).toHaveTextContent('シマネコの役');
         expect(getByTestId('lesson-task-bar-role-shimacat')).toHaveAttribute('aria-pressed', 'true');
+        // ヒントの「役を決めよう」の吹き出しが指す、役のボタンの並び（hint-targets.js の ROLE_PICKER）
+        expect(getByTestId('lesson-task-bar-role-buttons')).toContainElement(
+            getByTestId('lesson-task-bar-role-shimaraby'),
+        );
         // いまの役をもう一度押しても何もしない
         fireEvent.click(getByTestId('lesson-task-bar-role-shimacat'));
         expect(onChooseRole).not.toHaveBeenCalled();

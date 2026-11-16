@@ -145,7 +145,7 @@ const useHintPlacement = (target, balloonRef, deps) => {
             balloon: { width: size.width, height: size.height },
             viewport: viewportSize(),
             sides: preferredSides(target),
-            avoid: findHintAvoidRects(document),
+            avoid: findHintAvoidRects(document, target),
         });
         setState((prev) =>
             sameRect(prev.targetRect, targetRect) &&

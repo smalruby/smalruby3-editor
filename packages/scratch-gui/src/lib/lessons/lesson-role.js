@@ -134,3 +134,34 @@ export const connectedGroupSeats = (vm) => {
  * @returns {boolean} 始めなおすなら true。
  */
 export const roleChangeRestarts = (challenge) => Boolean(challenge && challenge.roles);
+
+/**
+ * ヒントの「役を決めよう」のページ（役のあるチャレンジの、メッシュにつなぐページの次）の `kind`。吹き出しは課題バーの
+ * 役のボタンを指す（hint-targets.js の ROLE_PICKER）。役を決めるのがどの操作かわかるよう、つなぐページから分けた。
+ */
+export const ROLE_STEP_KIND = 'role';
+
+// 「役を決めよう」のページで、役を選んだあとに出す一言。名前を入れかえない（選んだ役の名前をそのまま出す）
+const ROLE_CHOSEN_NOTES = {
+    [ROLES.SHIMARABY]: {
+        id: 'gui.lessons.chat.role.chosenShimaraby',
+        defaultMessage: '「シマラビの役」を選んだよ。次へ進もう。',
+    },
+    [ROLES.SHIMACAT]: {
+        id: 'gui.lessons.chat.role.chosenShimacat',
+        defaultMessage: '「シマネコの役」を選んだよ。次へ進もう。',
+    },
+};
+
+/**
+ * 「役を決めよう」のページで、このチャレンジで役を選んだことに気づいて出す一言。役を選ぶと始めなおすが、ヒントの
+ * ページはそのまま（reducer の OPEN_CHALLENGE）なので、選んだあとにこのページで出る。選ぶまで進めないようにはしない
+ * （ひとりはシマラビの役のままでよい）。
+ * @param {?object} step - いまのヒントのページ。
+ * @param {?{role: string, source: string}} role - いまの役（reducer の getCurrentRole）。
+ * @returns {?object} 一言（message descriptor）。役のページでない・まだ選んでいなければ null。
+ */
+export const roleStepNote = (step, role) => {
+    if (!step || step.kind !== ROLE_STEP_KIND || !role || role.source !== ROLE_SOURCES.CHOSEN) return null;
+    return ROLE_CHOSEN_NOTES[role.role] || null;
+};

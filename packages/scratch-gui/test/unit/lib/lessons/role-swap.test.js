@@ -113,7 +113,7 @@ describe('swapChallengeRoles', () => {
         const c = challenge('chat-l3-mesh-variable');
         const s = swapChallengeRoles(c);
         expect(s.task).toEqual({ ...c.task, roleSwapped: true });
-        expect(s.steps[2].title).toEqual({ ...c.steps[2].title, roleSwapped: true });
+        expect(s.steps[3].title).toEqual({ ...c.steps[3].title, roleSwapped: true });
     });
 });
 

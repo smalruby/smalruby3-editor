@@ -3,6 +3,7 @@
 // 文言は lessons.locale.js（message descriptor の id で引く）。
 import { HINT_TARGETS } from './hint-targets';
 import arrowKeysImage from './images/arrow-keys.svg';
+import { ROLE_STEP_KIND } from './lesson-role';
 import { ja } from './lessons.locale';
 import { applyChallengeMode } from './read-diagram';
 
@@ -1440,6 +1441,15 @@ const connectStep = (kind = 'pair') => ({
     classroomTitle: message(`gui.lessons.chat.connect.${kind}.inClass`),
 });
 
+// 役のあるチャレンジの「役を決めよう」のページ（つなぐページの次）。役を決めるのがどの操作かわかるよう、つなぐページから
+// 分け、吹き出しで課題バーの役のボタンを指す。文はどのチャレンジでも同じ共通の文言（シマネコの役でも入れかえない
+// `.asShimacat`）。役を選ぶと、このページに「〜の役を選んだよ」が出る（lesson-role.js の roleStepNote）
+const roleStep = () => ({
+    kind: ROLE_STEP_KIND,
+    target: HINT_TARGETS.ROLE_PICKER,
+    title: message('gui.lessons.chat.role'),
+});
+
 const chatLesson3 = defineLesson({
     id: 'chat-l3',
     challenges: [
@@ -1612,6 +1622,7 @@ const chatLesson3 = defineLesson({
             },
             steps: withDiagramFirst('chat-l3-mesh-variable', [
                 connectStep(),
+                roleStep(),
                 { target: HINT_TARGETS.PALETTE },
                 {
                     target: HINT_TARGETS.PALETTE,
@@ -1876,6 +1887,7 @@ const chatLesson4 = defineLesson({
                 },
                 // つなぎ方はクラスの中と外で違う（クラスの中は出席番号でつながる）
                 { target: HINT_TARGETS.PRACTICE_PARTNER, classroom: true },
+                roleStep(),
                 { target: HINT_TARGETS.GREEN_FLAG },
             ]),
             debug: debugTips('chat-l4-send-once', 2),
@@ -1912,6 +1924,7 @@ const chatLesson4 = defineLesson({
             partner: chatL4PairPartner(),
             steps: withDiagramFirst('chat-l4-send-repeat', [
                 connectStep(),
+                roleStep(),
                 {
                     target: HINT_TARGETS.CODE_AREA,
                     blocks: chatL4Code((w) => `loop do\n  ${w.v} = answer\n  broadcast("${w.message}")\nend\n`),
@@ -1955,6 +1968,7 @@ const chatLesson4 = defineLesson({
             partner: chatL4PairPartner(),
             steps: withDiagramFirst('chat-l4-both-ways', [
                 connectStep(),
+                roleStep(),
                 { target: HINT_TARGETS.SPRITE_LIST },
                 {
                     target: HINT_TARGETS.PALETTE,
@@ -2356,6 +2370,7 @@ const chatLesson5 = defineLesson({
             }),
             steps: withDiagramFirst('chat-l5-read-receipt', [
                 connectStep(),
+                roleStep(),
                 {
                     target: HINT_TARGETS.SPRITE_LIST,
                     blocks: chatL5Code(
@@ -2426,6 +2441,7 @@ const chatLesson5 = defineLesson({
             partner: chatL5Partner(),
             steps: withDiagramFirst('chat-l5-ng-word', [
                 connectStep(),
+                roleStep(),
                 // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL5NgStage },
@@ -2487,6 +2503,7 @@ const chatLesson5 = defineLesson({
             partner: chatL5Partner({ replies: [] }),
             steps: withDiagramFirst('chat-l5-auto-reply', [
                 connectStep(),
+                roleStep(),
                 // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
                 {
@@ -2543,6 +2560,7 @@ const chatLesson5 = defineLesson({
             partner: chatL5Partner(),
             steps: withDiagramFirst('chat-l5-password', [
                 connectStep(),
+                roleStep(),
                 // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
                 {
@@ -2613,6 +2631,7 @@ const chatLesson5 = defineLesson({
             }),
             steps: withDiagramFirst('chat-l5-stamp', [
                 connectStep(),
+                roleStep(),
                 // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
                 { target: HINT_TARGETS.PALETTE, blocks: chatL5StampSend },
