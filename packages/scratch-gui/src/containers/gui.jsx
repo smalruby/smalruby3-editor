@@ -1,4 +1,6 @@
+// === Smalruby: Start of tab activation handler ===
 import bindAll from 'lodash.bindall';
+// === Smalruby: End of tab activation handler ===
 import PropTypes from 'prop-types';
 import React from 'react';
 import {compose} from 'redux';
@@ -18,7 +20,9 @@ import {
     BLOCKS_TAB_INDEX,
     COSTUMES_TAB_INDEX,
     SOUNDS_TAB_INDEX,
+    // === Smalruby: Start of ruby tab ===
     RUBY_TAB_INDEX
+    // === Smalruby: End of ruby tab ===
 } from '../reducers/editor-tab';
 
 import {
@@ -27,15 +31,25 @@ import {
     closeTelemetryModal,
     openExtensionLibrary,
     closeDebugModal,
+    // === Smalruby: Start of koshien ===
     closeKoshienTestModal,
     closeKoshienSettingsModal,
+    // === Smalruby: End of koshien ===
+    // === Smalruby: Start of url loader ===
     closeUrlLoaderModal,
+    // === Smalruby: End of url loader ===
+    // === Smalruby: Start of tips library close ===
     closeTipsLibrary,
+    // === Smalruby: End of tips library close ===
+    // === Smalruby: Start of welcome modal ===
     openWelcomeModal
+    // === Smalruby: End of welcome modal ===
 } from '../reducers/modals';
 
 import {setPlatform} from '../reducers/platform';
+// === Smalruby: Start of set theme ===
 import {setTheme} from '../reducers/settings';
+// === Smalruby: End of set theme ===
 import {setDynamicAssets} from '../reducers/dynamic-assets';
 import { // === Smalruby: DNCL mode notice ===
     setDnclMode,
@@ -48,7 +62,9 @@ import {openBugReportModal} from '../reducers/bug-report';
 import FontLoaderHOC from '../lib/font-loader-hoc.jsx';
 import LocalizationHOC from '../lib/localization-hoc.jsx';
 import SBFileUploaderHOC from '../lib/sb-file-uploader-hoc.jsx';
+// === Smalruby: Start of url loader ===
 import URLLoaderHOC from '../lib/url-loader-hoc.jsx';
+// === Smalruby: End of url loader ===
 import ProjectFetcherHOC from '../lib/project-fetcher-hoc.jsx';
 import TitledHOC from '../lib/titled-hoc.jsx';
 import ProjectSaverHOC from '../lib/project-saver-hoc.jsx';
@@ -66,6 +82,9 @@ import {getUrlParams} from '../lib/url-params.js';
 // === Smalruby: Start of lesson mode ===
 import {getCurrentChallenge} from '../reducers/lesson-mode.js';
 // === Smalruby: End of lesson mode ===
+// === Smalruby: Start of classroom teacher work bar ===
+import {isTeacherWorkBarVisible} from '../lib/classroom-teacher-work.js';
+// === Smalruby: End of classroom teacher work bar ===
 
 import GUIComponent from '../components/gui/gui.jsx';
 import {GUIStoragePropType} from '../gui-config';
@@ -77,18 +96,22 @@ import {
 } from '../lib/assets-prop-types.js';
 
 class GUI extends React.Component {
+    // === Smalruby: Start of tab activation handler ===
     constructor (props) {
         super(props);
         bindAll(this, [
             'handleActivateTab'
         ]);
     }
+    // === Smalruby: End of tab activation handler ===
     componentDidMount () {
         this.props.onStorageInit(this.props.storage.scratchStorage);
         this.props.onVmInit(this.props.vm);
         this.props.storage.setProjectMetadata?.(this.props.projectId);
         if (this.props.platform) {
+            // === Smalruby: Start of onSetPlatform prop rename ===
             this.props.onSetPlatform(this.props.platform);
+            // === Smalruby: End of onSetPlatform prop rename ===
         }
         if (this.props.dynamicAssets) {
             this.props.onUpdateDynamicAssets(this.props.dynamicAssets);
@@ -122,9 +145,11 @@ class GUI extends React.Component {
         // NOTE: the "leaving Ruby tab with modified code" conversion is
         // owned by containers/ruby-tab.jsx (single owner — issue #710).
     }
+    // === Smalruby: Start of tab activation handler ===
     handleActivateTab (tab) {
         this.props.onActivateTab(tab);
     }
+    // === Smalruby: End of tab activation handler ===
     render () {
         if (this.props.isError) {
             throw new Error(
@@ -148,7 +173,9 @@ class GUI extends React.Component {
             fetchingProject,
             isLoading,
             loadingStateVisible,
+            // === Smalruby: Start of tab activation handler ===
             onActivateTab: _onActivateTab,
+            // === Smalruby: End of tab activation handler ===
             ...componentProps
         } = this.props;
 
@@ -156,7 +183,9 @@ class GUI extends React.Component {
         return (
             <GUIComponent
                 loading={fetchingProject || isLoading || loadingStateVisible}
+                // === Smalruby: Start of tab activation handler ===
                 onActivateTab={this.handleActivateTab}
+                // === Smalruby: End of tab activation handler ===
                 {...componentProps}
             >
                 {children}
@@ -166,7 +195,9 @@ class GUI extends React.Component {
 }
 
 GUI.propTypes = {
+    // === Smalruby: Start of ruby tab ===
     activeTabIndex: PropTypes.number,
+    // === Smalruby: End of ruby tab ===
     storage: GUIStoragePropType,
     accountMenuOptions: AccountMenuOptionsPropTypes,
     assetHost: PropTypes.string,
@@ -196,7 +227,9 @@ GUI.propTypes = {
     onUpdateDynamicAssets: PropTypes.func,
     onVmInit: PropTypes.func,
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
+    // === Smalruby: Start of onSetPlatform prop rename ===
     onSetPlatform: PropTypes.func.isRequired,
+    // === Smalruby: End of onSetPlatform prop rename ===
     /**
      * Indicates whether we should highlight new editor features in the UI.
      * Used only when there are new features to highlight.
@@ -206,6 +239,7 @@ GUI.propTypes = {
     projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     shouldStopProject: PropTypes.bool,
     telemetryModalVisible: PropTypes.bool,
+    // === Smalruby: Start of smalruby gui props ===
     koshienTestModalVisible: PropTypes.bool,
     koshienSettingsModalVisible: PropTypes.bool,
     urlLoaderModalVisible: PropTypes.bool,
@@ -222,6 +256,7 @@ GUI.propTypes = {
     theme: PropTypes.string,
     blockDisplayModalVisible: PropTypes.bool,
     onSetTheme: PropTypes.func,
+    // === Smalruby: End of smalruby gui props ===
     username: PropTypes.string,
     userOwnsProject: PropTypes.bool,
     // TODO: Is this unused?
@@ -261,13 +296,16 @@ const mapStateToProps = (state, ownProps) => {
         platform: ownProps.platform,
         projectId: state.scratchGui.projectState.projectId,
         soundsTabVisible: state.scratchGui.editorTab.activeTabIndex === SOUNDS_TAB_INDEX,
+        // === Smalruby: Start of ruby tab ===
         rubyTabVisible: state.scratchGui.editorTab.activeTabIndex === RUBY_TAB_INDEX,
+        // === Smalruby: End of ruby tab ===
         targetIsStage: (
             state.scratchGui.targets.stage &&
             state.scratchGui.targets.stage.id === state.scratchGui.targets.editingTarget
         ),
         telemetryModalVisible: state.scratchGui.modals.telemetryModal,
         tipsLibraryVisible: state.scratchGui.modals.tipsLibrary,
+        // === Smalruby: Start of smalruby gui state ===
         koshienTestModalVisible: state.scratchGui.modals.koshienTestModal,
         koshienSettingsModalVisible: state.scratchGui.modals.koshienSettingsModal,
         urlLoaderModalVisible: state.scratchGui.modals.urlLoaderModal,
@@ -276,12 +314,15 @@ const mapStateToProps = (state, ownProps) => {
         colorMode: state.scratchGui.settings.colorMode,
         theme: state.scratchGui.settings.theme,
         blockDisplayModalVisible: state.scratchGui.blockDisplay.modalVisible,
+        // === Smalruby: End of smalruby gui state ===
         // === Smalruby: Start of smalrubot firmware modal ===
         smalrubotFirmwareModalVisible: state.scratchGui.smalrubotFirmware.modalVisible,
         // === Smalruby: End of smalrubot firmware modal ===
         // === Smalruby: Start of classroom modal ===
         classroomModalVisible: state.scratchGui.classroom ? state.scratchGui.classroom.modalVisible : false,
         teacherModalVisible: state.scratchGui.classroom ? state.scratchGui.classroom.teacherModalVisible : false,
+        // 「戻る帯」（containers/classroom-teacher-work-bar.jsx）が出ているあいだ、その高さの分だけ本体を縮める
+        teacherWorkBarVisible: isTeacherWorkBarVisible(state.scratchGui.classroom),
         // === Smalruby: End of classroom modal ===
         dnclMode: state.scratchGui.dnclMode.dnclMode, // === Smalruby: DNCL block filtering ===
         // === Smalruby: Start of lesson mode ===
@@ -304,17 +345,25 @@ const mapDispatchToProps = dispatch => ({
     onUpdateDynamicAssets: dynamicAssets => dispatch(setDynamicAssets(dynamicAssets)),
     onActivateCostumesTab: () => dispatch(activateTab(COSTUMES_TAB_INDEX)),
     onActivateSoundsTab: () => dispatch(activateTab(SOUNDS_TAB_INDEX)),
+    // === Smalruby: Start of ruby tab ===
     onActivateRubyTab: () => dispatch(activateTab(RUBY_TAB_INDEX)),
+    // === Smalruby: End of ruby tab ===
+    // === Smalruby: Start of onSetPlatform prop rename ===
     onSetPlatform: platform => dispatch(setPlatform(platform)),
+    // === Smalruby: End of onSetPlatform prop rename ===
+    // === Smalruby: Start of set theme ===
     onSetTheme: theme => dispatch(setTheme(theme)),
+    // === Smalruby: End of set theme ===
     onRequestCloseBackdropLibrary: () => dispatch(closeBackdropLibrary()),
     onRequestCloseCostumeLibrary: () => dispatch(closeCostumeLibrary()),
     onRequestCloseDebugModal: () => dispatch(closeDebugModal()),
     onRequestCloseTelemetryModal: () => dispatch(closeTelemetryModal()),
+    // === Smalruby: Start of smalruby modal close actions ===
     onRequestCloseKoshienTestModal: () => dispatch(closeKoshienTestModal()),
     onRequestCloseKoshienSettingsModal: () => dispatch(closeKoshienSettingsModal()),
     onRequestCloseUrlLoaderModal: () => dispatch(closeUrlLoaderModal()),
     onRequestCloseTipsLibrary: () => dispatch(closeTipsLibrary()),
+    // === Smalruby: End of smalruby modal close actions ===
     // === Smalruby: Start of classcode auto-open ===
     onOpenClassroomModal: () => dispatch(openClassroomModal()),
     // === Smalruby: End of classcode auto-open ===
@@ -345,7 +394,9 @@ const WrappedGui = compose(
     vmListenerHOC,
     vmManagerHOC,
     SBFileUploaderHOC,
+    // === Smalruby: Start of url loader ===
     URLLoaderHOC,
+    // === Smalruby: End of url loader ===
     cloudManagerHOC,
     systemPreferencesHOC
 )(ConnectedGUI);

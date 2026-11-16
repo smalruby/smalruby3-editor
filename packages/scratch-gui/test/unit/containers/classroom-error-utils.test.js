@@ -173,14 +173,32 @@ describe('参加のエラー (#1924 C12)', () => {
         const err = new Error('Invalid join code');
         err.status = 404;
         expect(translateError(intlMock, err, 'join')).toBe(
-            'That join code was not found. Enter the code your teacher showed you again.',
+            'No assignment has this join code. Check it letter by letter against the code your teacher shows, and enter it again.',
         );
     });
 
     test('終わった（アーカイブした）課題は「参加コードが見つからない」と言わない (#1924 M1)', () => {
         const err = new Error('This classroom is no longer active');
         err.status = 404;
-        expect(translateError(intlMock, err, 'join')).toBe('This assignment is no longer active.');
+        expect(translateError(intlMock, err, 'join')).toBe(
+            'This assignment has ended. Ask your teacher for the join code of the current assignment.',
+        );
+    });
+
+    test('終わった課題: 提出の場面では作品の残し方を言う (#1963)', () => {
+        const err = new Error('This classroom is no longer active');
+        err.status = 404;
+        expect(translateError(intlMock, err, 'submit')).toBe(
+            'This assignment has ended, so you cannot submit. Keep your project with ' +
+                '[File] → [Save to your computer], and tell your teacher.',
+        );
+    });
+
+    test('終わった課題: 参加・提出以外の場面では短く言う (#1963)', () => {
+        const err = new Error('This classroom is no longer active');
+        err.status = 404;
+        expect(translateError(intlMock, err)).toBe('This assignment has ended.');
+        expect(translateError(intlMock, err, 'session')).toBe('This assignment has ended.');
     });
 
     test('見出しは「参加できませんでした」', () => {

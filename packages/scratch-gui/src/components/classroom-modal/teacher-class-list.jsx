@@ -11,6 +11,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import { nextLessonFor } from '../../lib/classroom-class-list-summary.js';
 import {
     buildAiSettingsUpdate,
     changedAiSettings,
@@ -24,6 +25,10 @@ import ClassAiStudentPreview from './class-ai-student-preview.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import ErrorDisplay from './error-display.jsx';
+import { breadcrumbMessages } from './teacher-breadcrumbs.jsx';
+import ClassCard, { ArchiveClassDialog } from './teacher-class-card.jsx';
+import { classTabMessages } from './teacher-class-tabs.jsx';
+import TeacherReviewBand from './teacher-review-band.jsx';
 import { TeacherScreen, TeacherSubView } from './teacher-view-layout.jsx';
 
 /** Default school year: before April it is still the previous year's term. */
@@ -188,7 +193,7 @@ ClassFields.propTypes = {
 };
 
 // Inline settings editor shown in place of a card (recommended UX: no nested modal).
-const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
+export const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
     const intl = useIntl();
     const [name, setName] = useState(group.name);
     const [year, setYear] = useState(String(group.year));
@@ -356,7 +361,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                 />
                 {confirmingArchive ? (
                     <p
-                        className={styles.classSettingsArchiveConfirm}
+                        className={classNames(styles.confirmNote, styles.classSettingsArchiveConfirm)}
                         data-testid="classroom-class-settings-archive-confirm-message"
                     >
                         <FormattedMessage
@@ -368,7 +373,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                 ) : null}
                 {confirmingDecrease ? (
                     <p
-                        className={styles.classSettingsArchiveConfirm}
+                        className={classNames(styles.confirmNote, styles.classSettingsArchiveConfirm)}
                         data-testid="classroom-class-settings-decrease-confirm-message"
                     >
                         <FormattedMessage
@@ -403,7 +408,7 @@ const ClassSettingsForm = ({ group, isLoading, onCancel, onUpdateGroup }) => {
                             <ClassroomButton
                                 dataTestId="classroom-class-settings-archive"
                                 disabled={isLoading}
-                                variant="danger"
+                                variant="primary"
                                 onClick={handleToggleArchive}
                             >
                                 <FormattedMessage
@@ -512,180 +517,6 @@ ClassSettingsForm.propTypes = {
     isLoading: PropTypes.bool,
     onCancel: PropTypes.func.isRequired,
     onUpdateGroup: PropTypes.func.isRequired,
-};
-
-// Brand names stay as they are in every language; only "other" is translated.
-const GENAI_SERVICE_NAMES = { chatgpt: 'ChatGPT', gemini: 'Gemini' };
-
-/**
- * Short name of the generative AI a class uses, for the card summary.
- * @param {object} intl - react-intl object
- * @param {?object} genai - the class's stored genai settings
- * @returns {?string} the name, or null when the class does not use one
- */
-const genaiServiceName = (intl, genai) => {
-    if (!genai || genai.enabled !== true || !genai.service) return null;
-    return (
-        GENAI_SERVICE_NAMES[genai.service] ||
-        intl.formatMessage({
-            defaultMessage: 'Other',
-            description: 'Generative AI name on a class card when the school chose its own service',
-            id: 'gui.classroom.classList.genaiOther',
-        })
-    );
-};
-
-const ClassCard = ({
-    group,
-    assignmentCount,
-    isLoading,
-    onRestoreGroup,
-    onSelectGroup,
-    onShowEvaluation,
-    onShowSettings,
-}) => {
-    const intl = useIntl();
-    const handleOpen = useCallback(() => onSelectGroup(group), [onSelectGroup, group]);
-    const handleEvaluate = useCallback(() => onShowEvaluation(group), [onShowEvaluation, group]);
-    const handleSettings = useCallback(() => onShowSettings(group.groupId), [onShowSettings, group.groupId]);
-    const handleRestore = useCallback(() => onRestoreGroup(group.groupId), [onRestoreGroup, group.groupId]);
-    const isArchived = group.status === 'archived';
-    const genaiName = genaiServiceName(intl, group.genai);
-
-    return (
-        <li className={styles.classCard} data-testid={`classroom-class-card-${group.groupId}`}>
-            <button
-                className={styles.classCardMain}
-                data-testid={`classroom-class-open-${group.groupId}`}
-                disabled={isLoading}
-                type="button"
-                onClick={handleOpen}
-            >
-                <span className={styles.classCardName}>{formatClassLabel(group)}</span>
-                {/* 小さな要約（L2）: 課題の数・生徒の人数・使う生成 AI。 */}
-                <span className={styles.classCardMeta} data-testid={`classroom-class-summary-${group.groupId}`}>
-                    <span>
-                        {intl.formatMessage(
-                            {
-                                defaultMessage: '{count} assignments',
-                                description: 'Assignment count on a class card',
-                                id: 'gui.classroom.classList.assignmentCount',
-                            },
-                            { count: assignmentCount },
-                        )}
-                    </span>
-                    {typeof group.studentCount === 'number' ? (
-                        <span>
-                            {intl.formatMessage(
-                                {
-                                    defaultMessage: '{count} students',
-                                    description: 'Student count (seat numbers) on a class card',
-                                    id: 'gui.classroom.classList.studentCount',
-                                },
-                                { count: group.studentCount },
-                            )}
-                        </span>
-                    ) : null}
-                    {genaiName ? (
-                        <span>
-                            {intl.formatMessage(
-                                {
-                                    defaultMessage: 'Generative AI: {service}',
-                                    description: 'Generative AI used in the class, on a class card',
-                                    id: 'gui.classroom.classList.genaiSummary',
-                                },
-                                { service: genaiName },
-                            )}
-                        </span>
-                    ) : null}
-                </span>
-                <span className={styles.classCardBadges}>
-                    {group.googleClassroomCourseId ? (
-                        <span className={styles.classCardBadge}>
-                            <FormattedMessage
-                                defaultMessage="Google Classroom"
-                                description="Badge shown when a class is linked to a Google Classroom course"
-                                id="gui.classroom.classList.gcBadge"
-                            />
-                        </span>
-                    ) : null}
-                    {group.role === 'co-teacher' ? (
-                        <span className={styles.classCardBadge}>
-                            <FormattedMessage
-                                defaultMessage="Co-managed"
-                                description="Badge shown when the teacher co-manages this class"
-                                id="gui.classroom.classList.coTeacherBadge"
-                            />
-                        </span>
-                    ) : null}
-                    {group.status === 'archived' ? (
-                        <span className={styles.classCardBadge}>
-                            <FormattedMessage
-                                defaultMessage="Archived"
-                                description="Badge for an archived class"
-                                id="gui.classroom.classList.archivedBadge"
-                            />
-                        </span>
-                    ) : null}
-                </span>
-            </button>
-            {isArchived ? (
-                <button
-                    className={styles.classCardEvaluate}
-                    data-testid={`classroom-class-restore-${group.groupId}`}
-                    disabled={isLoading}
-                    type="button"
-                    onClick={handleRestore}
-                >
-                    <FormattedMessage
-                        defaultMessage="Restore"
-                        description="Button on an archived class card to restore it"
-                        id="gui.classroom.classList.restore"
-                    />
-                </button>
-            ) : (
-                <button
-                    className={styles.classCardEvaluate}
-                    data-testid={`classroom-class-evaluate-${group.groupId}`}
-                    disabled={isLoading}
-                    type="button"
-                    onClick={handleEvaluate}
-                >
-                    <FormattedMessage
-                        defaultMessage="Grade"
-                        description="Button on a class card to open term-end evaluation"
-                        id="gui.classroom.classList.evaluate"
-                    />
-                </button>
-            )}
-            {/* アーカイブ済みは「元に戻す」だけ。設定ボタンは出さない（レビュー指摘）。 */}
-            {isArchived ? null : (
-                <button
-                    className={styles.classCardEvaluate}
-                    data-testid={`classroom-class-settings-open-${group.groupId}`}
-                    disabled={isLoading}
-                    type="button"
-                    onClick={handleSettings}
-                >
-                    <FormattedMessage
-                        defaultMessage="Settings"
-                        description="Button on a class card to open its settings"
-                        id="gui.classroom.classList.settings"
-                    />
-                </button>
-            )}
-        </li>
-    );
-};
-
-ClassCard.propTypes = {
-    assignmentCount: PropTypes.number.isRequired,
-    group: PropTypes.object.isRequired,
-    isLoading: PropTypes.bool,
-    onRestoreGroup: PropTypes.func,
-    onSelectGroup: PropTypes.func.isRequired,
-    onShowEvaluation: PropTypes.func.isRequired,
-    onShowSettings: PropTypes.func.isRequired,
 };
 
 /**
@@ -820,6 +651,9 @@ const TeacherClassList = ({
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [settingsGroupId, setSettingsGroupId] = useState(null);
     const [showArchived, setShowArchived] = useState(false);
+    const [archivingGroupId, setArchivingGroupId] = useState(null);
+    // 次の授業日の「今日」は一覧を開いたときの日付で決める。
+    const [now] = useState(() => Date.now());
 
     // The dialog unmounts when closed, so it opens with the defaults again.
     const handleOpenCreate = useCallback(() => setShowCreateForm(true), []);
@@ -830,17 +664,60 @@ const TeacherClassList = ({
         [onOpenUngrouped],
     );
     const handleCloseSettings = useCallback(() => setSettingsGroupId(null), []);
+    // The class name in the header path opens that class.
+    const handleOpenSettingsGroup = useCallback(() => {
+        const group = groups.find((g) => g.groupId === settingsGroupId);
+        if (group) onSelectGroup(group);
+    }, [groups, settingsGroupId, onSelectGroup]);
     const handleToggleArchived = useCallback(() => setShowArchived((v) => !v), []);
     const handleRestoreGroup = useCallback(
         (groupId) => onUpdateGroup(groupId, { status: 'active' }),
         [onUpdateGroup],
     );
+    const [archiving, setArchiving] = useState(false);
+    const titleRef = useRef(null);
+    // Where the focus goes when the archive confirmation closes: back to the card's ⋮ when
+    // it was cancelled, to the title when the class was archived (its card is gone).
+    const focusAfterArchiveRef = useRef(null);
+    const handleRequestArchive = useCallback((groupId) => setArchivingGroupId(groupId), []);
+    const handleCancelArchive = useCallback(() => {
+        focusAfterArchiveRef.current = `classroom-class-menu-${archivingGroupId}`;
+        setArchivingGroupId(null);
+    }, [archivingGroupId]);
+    // Close only when the archive went through; a failure stays in the dialog with its error.
+    const handleConfirmArchive = useCallback(async () => {
+        if (!archivingGroupId) return;
+        setArchiving(true);
+        const ok = await onUpdateGroup(archivingGroupId, { status: 'archived' });
+        setArchiving(false);
+        if (ok === false) return;
+        focusAfterArchiveRef.current = 'title';
+        setArchivingGroupId(null);
+    }, [archivingGroupId, onUpdateGroup]);
+    useEffect(() => {
+        if (archivingGroupId || !focusAfterArchiveRef.current) return;
+        const target = focusAfterArchiveRef.current;
+        focusAfterArchiveRef.current = null;
+        const el = target === 'title' ? titleRef.current : document.querySelector(`[data-testid="${target}"]`);
+        if (el) el.focus();
+    }, [archivingGroupId]);
+    // Open an assignment of the 「確認が必要な課題」 band on its members (where submissions are returned).
+    const handleOpenReviewAssignment = useCallback(
+        (classroomId) => onOpenUngrouped(classroomId, { tab: 'members' }),
+        [onOpenUngrouped],
+    );
 
     const activeGroups = groups.filter((g) => g.status !== 'archived');
-    // Archived classes stay reachable (issue #1051): a collapsed section at
-    // the bottom lists them with a restore button, so an accidental archive
-    // is self-recoverable instead of a support inquiry.
+    // Archived classes stay reachable (issue #1051): 「アーカイブ済みのクラス」 next to the
+    // title switches the cards to them, each with a restore button, so an accidental
+    // archive is self-recoverable instead of a support inquiry.
     const archivedGroups = groups.filter((g) => g.status === 'archived');
+    const listingArchived = showArchived && archivedGroups.length > 0;
+    // The last archived class was restored: go back to the classes.
+    const hasArchived = archivedGroups.length > 0;
+    useEffect(() => {
+        if (!hasArchived) setShowArchived(false);
+    }, [hasArchived]);
     const countFor = (groupId) => classrooms.filter((c) => c.groupId === groupId).length;
     // develop-compat safety net: assignments that do not belong to any class
     // yet (e.g. a co-teacher logs in before the owner's account migrated, or
@@ -848,13 +725,11 @@ const TeacherClassList = ({
     const knownGroupIds = new Set(groups.map((g) => g.groupId));
     const ungrouped = classrooms.filter((c) => !c.groupId || !knownGroupIds.has(c.groupId));
     const settingsGroup = groups.find((g) => g.groupId === settingsGroupId);
+    const archivingGroup = groups.find((g) => g.groupId === archivingGroupId);
 
+    // The header path starts at 「クラス管理」 (#1956 Q2): here it goes back to the cards.
     const classListCrumb = {
-        label: intl.formatMessage({
-            defaultMessage: 'Class list',
-            description: 'Breadcrumb link back to the class list',
-            id: 'gui.classroom.breadcrumbs.classList',
-        }),
+        label: intl.formatMessage(breadcrumbMessages.top),
         onClick: handleCloseSettings,
         testId: 'classroom-breadcrumb-class-list',
     };
@@ -866,12 +741,11 @@ const TeacherClassList = ({
                 breadcrumbs={[
                     classListCrumb,
                     {
-                        label: intl.formatMessage({
-                            defaultMessage: 'Settings',
-                            description: 'Button on a class card to open its settings',
-                            id: 'gui.classroom.classList.settings',
-                        }),
+                        label: formatClassLabel(settingsGroup),
+                        onClick: handleOpenSettingsGroup,
+                        testId: 'classroom-breadcrumb-assignments',
                     },
+                    { label: intl.formatMessage(classTabMessages.settings) },
                 ]}
                 className={`${styles.classList} ${styles.classSettingsScreen}`}
                 error={error}
@@ -890,52 +764,40 @@ const TeacherClassList = ({
         );
     }
 
+    const renderCard = (group) => (
+        <ClassCard
+            key={group.groupId}
+            assignmentCount={countFor(group.groupId)}
+            group={group}
+            groups={groups}
+            isLoading={isLoading}
+            nextLesson={nextLessonFor(classrooms, group.groupId, now)}
+            onRequestArchive={handleRequestArchive}
+            onRestoreGroup={handleRestoreGroup}
+            onSelectGroup={onSelectGroup}
+            onShowEvaluation={onShowEvaluation}
+            onShowSettings={handleShowSettings}
+        />
+    );
+
     return (
         <TeacherScreen
-            breadcrumbs={[
-                {
-                    label: intl.formatMessage({
-                        defaultMessage: 'Class list',
-                        description: 'Breadcrumb label of the class list (current view)',
-                        id: 'gui.classroom.breadcrumbs.classList',
-                    }),
-                },
-            ]}
+            breadcrumbs={[{ label: intl.formatMessage(breadcrumbMessages.top) }]}
             className={`${styles.classList} ${styles.classListLanding}`}
             // A failed "Create" must be readable in the dialog, not dimmed behind it.
-            error={showCreateForm ? null : error}
+            error={showCreateForm || archivingGroup ? null : error}
             errorTitle={errorTitle}
-            hint={
-                <FormattedMessage
-                    defaultMessage="A class is one homeroom (e.g. Year 2 Class 1). Open a class to manage its assignments."
-                    description="Hint below the class list title"
-                    id="gui.classroom.classList.hint"
-                />
-            }
             testId="classroom-phase-teacher-class-list"
-            title={
-                <FormattedMessage
-                    defaultMessage="Your classes"
-                    description="Title of the class list (post-login landing view)"
-                    id="gui.classroom.classList.title"
-                />
-            }
         >
-            {/* 主ボタン（L1）: 通常の青。読み込み中は押せない理由を横に出す。 */}
-            <div className={styles.classListActions}>
-                <ClassroomButton
-                    dataTestId="classroom-class-create"
-                    disabled={isLoading}
-                    variant="primary"
-                    onClick={handleOpenCreate}
-                >
-                    <span aria-hidden="true">{'＋'}</span>
+            {/* 見出しの行: 見出し「クラス」・アーカイブ済み・インポート・主ボタン（L1・R2: 主ボタンは 1 つ）。 */}
+            <div className={styles.classListHeading}>
+                <h2 className={styles.classListTitle} ref={titleRef} tabIndex={-1}>
                     <FormattedMessage
-                        defaultMessage="Create a class"
-                        description="Button that opens the class creation dialog"
-                        id="gui.classroom.classList.create"
+                        defaultMessage="Classes"
+                        description="Title of the class list (post-login landing view)"
+                        id="gui.classroom.classList.title"
                     />
-                </ClassroomButton>
+                </h2>
                 {isLoading ? (
                     <span
                         className={styles.classListLoading}
@@ -949,12 +811,36 @@ const TeacherClassList = ({
                         />
                     </span>
                 ) : null}
+                <span className={styles.classListHeadingSpacer} />
+                {archivedGroups.length > 0 ? (
+                    <ClassroomButton
+                        ariaExpanded={listingArchived}
+                        dataTestId="classroom-show-archived"
+                        variant="text"
+                        onClick={handleToggleArchived}
+                    >
+                        {listingArchived ? (
+                            <FormattedMessage
+                                defaultMessage="Back to classes"
+                                description="Button that leaves the archived classes and shows the active ones again"
+                                id="gui.classroom.classList.hideArchived"
+                            />
+                        ) : (
+                            intl.formatMessage(
+                                {
+                                    defaultMessage: 'Archived classes ({count})',
+                                    description: 'Toggle of the archived classes section in the class list',
+                                    id: 'gui.classroom.classList.showArchived',
+                                },
+                                { count: archivedGroups.length },
+                            )
+                        )}
+                    </ClassroomButton>
+                ) : null}
                 {onShowGoogleCourses ? (
-                    <button
-                        className={styles.classListImportButton}
-                        data-testid="classroom-class-import-gc"
+                    <ClassroomButton
+                        dataTestId="classroom-class-import-gc"
                         disabled={isLoading}
-                        type="button"
                         onClick={onShowGoogleCourses}
                     >
                         <FormattedMessage
@@ -962,73 +848,36 @@ const TeacherClassList = ({
                             description="Button on the class list to import a GC course as a class"
                             id="gui.classroom.classList.importGc"
                         />
-                    </button>
+                    </ClassroomButton>
                 ) : null}
+                <ClassroomButton
+                    dataTestId="classroom-class-create"
+                    disabled={isLoading}
+                    variant="primary"
+                    onClick={handleOpenCreate}
+                >
+                    <span aria-hidden="true">{'＋'}</span>
+                    <FormattedMessage
+                        defaultMessage="Create a class"
+                        description="Button that opens the class creation dialog"
+                        id="gui.classroom.classList.create"
+                    />
+                </ClassroomButton>
             </div>
+            {listingArchived ? null : (
+                <TeacherReviewBand
+                    classrooms={classrooms}
+                    groups={groups}
+                    isLoading={isLoading}
+                    onOpenAssignment={handleOpenReviewAssignment}
+                />
+            )}
             {/* 件数で長さが変わる一覧は、この枠の中だけでスクロールする（R6）。
                 「クラスを作成」は枠の外なので常に見える。 */}
             <div className={styles.classListScroll} data-testid="classroom-class-list-scroll">
-                {activeGroups.length === 0 ? (
-                    <p className={styles.classListEmpty} data-testid="classroom-class-list-empty">
-                        <FormattedMessage
-                            defaultMessage={'No classes yet. Press "Create a class" to get started.'}
-                            description="Empty state of the class list"
-                            id="gui.classroom.classList.empty"
-                        />
-                    </p>
-                ) : null}
-                {ungrouped.length > 0 ? (
-                    <div className={styles.ungroupedSection} data-testid="classroom-ungrouped-list">
-                        <p className={styles.teacherViewHint}>
-                            <FormattedMessage
-                                defaultMessage="Assignments not in any of your classes (shared with you or not yet migrated):"
-                                description="Heading of the ungrouped assignments fallback list"
-                                id="gui.classroom.classList.ungroupedHint"
-                            />
-                        </p>
-                        <ul className={styles.classCards}>
-                            {ungrouped.map((c) => (
-                                <li key={c.classroomId} className={styles.classCard}>
-                                    <button
-                                        className={styles.classCardMain}
-                                        data-classroom-id={c.classroomId}
-                                        data-testid={`classroom-ungrouped-open-${c.classroomId}`}
-                                        disabled={isLoading}
-                                        type="button"
-                                        onClick={handleOpenUngrouped}
-                                    >
-                                        <span className={styles.classCardName}>
-                                            {c.assignmentName || c.className}
-                                        </span>
-                                        <span className={styles.classCardMeta}>{c.className}</span>
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                ) : null}
-                <ul className={styles.classCards} data-testid="classroom-class-list">
-                    {activeGroups.map((group) => (
-                        <ClassCard
-                            key={group.groupId}
-                            assignmentCount={countFor(group.groupId)}
-                            group={group}
-                            isLoading={isLoading}
-                            onSelectGroup={onSelectGroup}
-                            onShowEvaluation={onShowEvaluation}
-                            onShowSettings={handleShowSettings}
-                        />
-                    ))}
-                </ul>
-                {archivedGroups.length > 0 ? (
-                    <div className={styles.archivedSection}>
-                        <button
-                            className={styles.archivedToggle}
-                            data-testid="classroom-show-archived"
-                            type="button"
-                            onClick={handleToggleArchived}
-                        >
-                            {showArchived ? '▼ ' : '▶ '}
+                {listingArchived ? (
+                    <div>
+                        <h3 className={styles.archivedHeading}>
                             {intl.formatMessage(
                                 {
                                     defaultMessage: 'Archived classes ({count})',
@@ -1037,25 +886,59 @@ const TeacherClassList = ({
                                 },
                                 { count: archivedGroups.length },
                             )}
-                        </button>
-                        {showArchived ? (
-                            <ul className={styles.classCards} data-testid="classroom-archived-class-list">
-                                {archivedGroups.map((group) => (
-                                    <ClassCard
-                                        key={group.groupId}
-                                        assignmentCount={countFor(group.groupId)}
-                                        group={group}
-                                        isLoading={isLoading}
-                                        onRestoreGroup={handleRestoreGroup}
-                                        onSelectGroup={onSelectGroup}
-                                        onShowEvaluation={onShowEvaluation}
-                                        onShowSettings={handleShowSettings}
+                        </h3>
+                        <ul className={styles.classCards} data-testid="classroom-archived-class-list">
+                            {archivedGroups.map(renderCard)}
+                        </ul>
+                    </div>
+                ) : (
+                    <React.Fragment>
+                        {activeGroups.length === 0 ? (
+                            <p className={styles.classListEmpty} data-testid="classroom-class-list-empty">
+                                <FormattedMessage
+                                    defaultMessage={'No classes yet. Press "Create a class" to get started.'}
+                                    description="Empty state of the class list"
+                                    id="gui.classroom.classList.empty"
+                                />
+                            </p>
+                        ) : null}
+                        {ungrouped.length > 0 ? (
+                            <div className={styles.ungroupedSection} data-testid="classroom-ungrouped-list">
+                                <p className={styles.teacherViewHint}>
+                                    <FormattedMessage
+                                        defaultMessage="Assignments not in any of your classes (shared with you or not yet migrated):"
+                                        description="Heading of the ungrouped assignments fallback list"
+                                        id="gui.classroom.classList.ungroupedHint"
                                     />
-                                ))}
+                                </p>
+                                <ul className={styles.ungroupedCards}>
+                                    {ungrouped.map((c) => (
+                                        <li key={c.classroomId}>
+                                            <button
+                                                className={styles.ungroupedCard}
+                                                data-classroom-id={c.classroomId}
+                                                data-testid={`classroom-ungrouped-open-${c.classroomId}`}
+                                                disabled={isLoading}
+                                                type="button"
+                                                onClick={handleOpenUngrouped}
+                                            >
+                                                <span className={styles.ungroupedCardName}>
+                                                    {c.assignmentName || c.className}
+                                                </span>
+                                                <span className={styles.ungroupedCardMeta}>{c.className}</span>
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : null}
+                        {activeGroups.length > 0 ? (
+                            <ul className={styles.classCards} data-testid="classroom-class-list">
+                                {activeGroups.map(renderCard)}
                             </ul>
                         ) : null}
-                    </div>
-                ) : null}
+                    </React.Fragment>
+                )}
             </div>
             {showCreateForm ? (
                 <CreateClassDialog
@@ -1064,6 +947,16 @@ const TeacherClassList = ({
                     isLoading={isLoading}
                     onCancel={handleCloseCreate}
                     onCreate={onCreateClassWithAssignment}
+                />
+            ) : null}
+            {archivingGroup ? (
+                <ArchiveClassDialog
+                    error={error}
+                    errorTitle={errorTitle}
+                    group={archivingGroup}
+                    isLoading={isLoading || archiving}
+                    onCancel={handleCancelArchive}
+                    onConfirm={handleConfirmArchive}
                 />
             ) : null}
         </TeacherScreen>
@@ -1079,7 +972,7 @@ TeacherClassList.propTypes = {
     onCreateClassWithAssignment: PropTypes.func.isRequired,
     onOpenUngrouped: PropTypes.func.isRequired,
     onSelectGroup: PropTypes.func.isRequired,
-    onShowEvaluation: PropTypes.func.isRequired,
+    onShowEvaluation: PropTypes.func,
     onShowGoogleCourses: PropTypes.func,
     onUpdateGroup: PropTypes.func.isRequired,
 };

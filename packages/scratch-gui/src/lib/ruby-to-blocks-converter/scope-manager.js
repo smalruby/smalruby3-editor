@@ -10,7 +10,7 @@ const ScopeManager = {
         this._context.scopeStack.push({
             index: newScopeIndex,
             type: scopeType,
-            localVars: {},
+            localVars: Object.create(null),
         });
 
         this._context.currentScopeIndex = newScopeIndex;

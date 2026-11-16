@@ -241,7 +241,7 @@ const useStudentSubmit = ({
                 dispatch(clearClassroomSession());
                 showSessionExpiredError(translateError(intl, err, 'session'));
             } else {
-                showError(translateError(intl, err));
+                showError(translateError(intl, err, 'submit'));
             }
         } finally {
             setIsLoading(false);

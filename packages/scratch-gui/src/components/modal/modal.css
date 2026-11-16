@@ -31,6 +31,9 @@
        sets its own background simply paint over this. The .full-screen rule
        below overrides this with $ui-secondary. */
     background-color: $ui-white;
+    /* Paint the white only inside the border, so the 25% white border still
+       shows the blue overlay through it (light blue, as upstream) (#1933 Q1). */
+    background-clip: padding-box;
     /* === Smalruby: End of default modal background === */
 
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;

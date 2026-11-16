@@ -67,6 +67,12 @@ const LONG_ASSIGNMENT = 'ねこが迷路を抜けてゴールまで進むゲー�
 const LONG_COMMENT =
     'よくできています。条件分岐の使い方がとても上手です。次は、ゴールに着いたときに音を鳴らしたり、' +
     'タイムを表示したりして、遊ぶ人がもっと楽しくなる工夫を考えてみましょう。変数の名前もわかりやすくしましょう。';
+// 先生のコメントの上限に近い長さ (500 字) で、改行が多いもの (#1963)。吹き出しの本文は
+// 6〜7 行分で止めて中だけスクロールするので、主ボタンは 600 に収まる。
+const HUGE_COMMENT = Array.from({ length: 20 }, (_, i) => `${i + 1}. よくできました。次はここを工夫しよう。`)
+    .join('\n')
+    .padEnd(500, 'あ')
+    .slice(0, 500);
 // 続きに使える提出物 (#1201)。課題名を長くして選択肢の行を一番長い状態にする。
 const CONTINUABLE = {
     previous: {
@@ -272,7 +278,8 @@ const history = Array.from({ length: 5 }, (_, i) => ({
     joinCode: `abc23${i}`,
     className: `${LONG_CLASS} ${i + 1}`,
     assignmentName: LONG_ASSIGNMENT,
-    usedAt: new Date().toISOString(),
+    // The list keeps entries with joinedAt only (join-code-history.js), so usedAt alone showed nothing.
+    joinedAt: new Date().toISOString(),
     expiresAt: null,
 }));
 
@@ -287,7 +294,19 @@ const history = Array.from({ length: 5 }, (_, i) => ({
     await page.locator('[data-testid="classroom-join-code-input"]').fill('zzz999');
     await page.locator('[data-testid="classroom-join-submit"]').click();
     await page.waitForTimeout(800);
-    await judge(page, { who: 'student', name: 'student-join (history 5 + error)', shot: 'student-join' });
+    await judge(page, {
+        who: 'student',
+        name: 'student-join (history 5 + error)',
+        shot: 'student-join',
+        primary: '[data-testid="classroom-join-submit"]',
+    });
+    // 先生向けの「クラス管理を開く」もスクロールせずに見える (#1963)
+    await judge(page, {
+        who: 'student',
+        name: 'student-join (teacher link)',
+        shot: 'student-join-teacher-link',
+        primary: '[data-testid="classroom-teacher-link"]',
+    });
     await ctx.close();
 }
 
@@ -678,7 +697,89 @@ const routeWelcomeBack = (submission) => async (p) => {
     await page.$eval('[data-testid="classroom-menu-submit"]', (el) => el.click());
     await page.locator('[data-testid="classroom-phase-submit-confirm"]').waitFor({ timeout: 10000 });
     await page.waitForTimeout(1500);
-    await judge(page, { who: 'student', name: 'submit-confirm', shot: 'student-submit-confirm' });
+    await judge(page, {
+        who: 'student',
+        name: 'submit-confirm',
+        shot: 'student-submit-confirm',
+        primary: '[data-testid="classroom-submit-confirm"]',
+    });
+    await ctx.close();
+}
+
+// ---------- 先生のコメントが 500 字で改行も多いとき (#1963) ----------
+// おかえりなさい → もう一度の提出の確認、参加した直後の「前回の先生からのコメント」で、
+// 吹き出しの中だけがスクロールし、主ボタンが 600 に収まること。
+{
+    const { ctx, page } = await studentPage({
+        storage: { 'smalruby:classroom': session({ submissionStatus: 'returned' }) },
+        routes: routeWelcomeBack({
+            status: 'returned',
+            submittedAt: new Date().toISOString(),
+            teacherComment: HUGE_COMMENT,
+        }),
+    });
+    await addBlock(page);
+    await openModal(page);
+    await page.locator('[data-testid="classroom-phase-student-status"]').waitFor({ timeout: 10000 });
+    await page.locator('[data-testid="classroom-status-reload-toggle"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(800);
+    await judge(page, {
+        who: 'student',
+        name: 'student-status (welcome back: returned + 500-char comment with many line breaks)',
+        shot: 'student-status-huge-comment',
+        primary: '[data-testid="classroom-status-continue"]',
+    });
+    await page.$eval('[data-testid="classroom-menu-submit"]', (el) => el.click());
+    await page.locator('[data-testid="classroom-phase-submit-confirm"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(1500);
+    await judge(page, {
+        who: 'student',
+        name: 'submit-confirm (resubmit + 500-char comment with many line breaks)',
+        shot: 'student-submit-confirm-huge-comment',
+        primary: '[data-testid="classroom-submit-confirm"]',
+    });
+    await ctx.close();
+}
+{
+    const { ctx, page } = await studentPage({
+        routes: async (p) => {
+            await p.route('**/continuable-submissions', (r) => r.fulfill({ json: CONTINUABLE }));
+            await p.route('**/classrooms/c1/assignment', (r) =>
+                r.fulfill({
+                    json: { assignment: { pages: [], starterUrl: 'https://example.invalid/starter.sb3' } },
+                }),
+            );
+            await p.route('**/classrooms/join', (r) =>
+                r.fulfill({
+                    json: {
+                        classroomId: 'c1',
+                        className: LONG_CLASS,
+                        classYear: 2026,
+                        assignmentName: LONG_ASSIGNMENT,
+                        seatNumber: 3,
+                        memberId: 'seat-03',
+                        sessionToken: 'stub',
+                        hasAssignment: true,
+                        previousComment: { assignmentName: LONG_ASSIGNMENT, teacherComment: HUGE_COMMENT, status: 'returned' },
+                    },
+                }),
+            );
+        },
+    });
+    await openModal(page);
+    await page.locator('[data-testid="classroom-join-code-input"]').fill('abc234');
+    await page.locator('[data-testid="classroom-join-submit"]').click();
+    await page.locator('[data-testid="classroom-seat-3"]').click();
+    await page.locator('[data-testid="classroom-confirm-seat"]').click();
+    await page.locator('[data-testid="classroom-phase-student-joined"]').waitFor({ timeout: 10000 });
+    await page.locator('[data-testid="classroom-start-others-toggle"]').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(500);
+    await judge(page, {
+        who: 'student',
+        name: 'student-joined (500-char previous comment with many line breaks + main button)',
+        shot: 'student-joined-huge-comment',
+        primary: '[data-testid="classroom-start-main"]',
+    });
     await ctx.close();
 }
 

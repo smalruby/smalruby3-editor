@@ -181,8 +181,13 @@ try {
     // 1. The menu: 「レッスン」 right below 「課題」.
     await page.locator(tid('classroom-board-create-menu')).click();
     await page.waitForTimeout(200);
+    // The menu items start with a decorative mark (✎ / ★) marked aria-hidden; compare the label only.
     const items = await page.$$eval('[data-testid="classroom-board-create-menu-list"] [role="menuitem"]', (els) =>
-        els.map((el) => `${el.dataset.testid}:${el.textContent.trim()}`),
+        els.map((el) => {
+            const label = el.cloneNode(true);
+            label.querySelectorAll('[aria-hidden="true"]').forEach((mark) => mark.remove());
+            return `${el.dataset.testid}:${label.textContent.trim()}`;
+        }),
     );
     record(
         'menu: レッスン below 課題',

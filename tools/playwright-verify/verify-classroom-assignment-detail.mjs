@@ -10,6 +10,11 @@
 //   DOCS_SHOTS=1 node verify-classroom-assignment-detail.mjs    # + docs/classroom/screenshots
 //   BASE=http://localhost:8621 node verify-classroom-assignment-detail.mjs
 //   PREFIX=before node verify-classroom-assignment-detail.mjs   # name the tmp/ shots
+//   LOCALE=ja-Hira node verify-classroom-assignment-detail.mjs  # docs shots only with ja
+//
+// Also the［⛶ 映す］screen (#1961): at 1300x600 and 1920x1080 the join code and all
+// 40 seats are inside the viewport, nothing scrolls, no student name is shown, and
+// Esc goes back. And the seat detail: ［返却］is the main button and is visible.
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -19,8 +24,9 @@ const BASE = process.env.BASE || 'http://localhost:8601';
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SHOT_DIR = process.env.SHOT_DIR || resolve(REPO_ROOT, 'tmp');
 const DOCS_DIR = resolve(REPO_ROOT, 'docs/classroom/screenshots');
-const DOCS_SHOTS = process.env.DOCS_SHOTS === '1';
+const DOCS_SHOTS = process.env.DOCS_SHOTS === '1' && (process.env.LOCALE || 'ja') === 'ja';
 const PREFIX = process.env.PREFIX || 'after';
+const LOCALE = process.env.LOCALE || 'ja';
 const VIEWPORT = { width: 1300, height: 600 };
 mkdirSync(SHOT_DIR, { recursive: true });
 
@@ -52,14 +58,29 @@ const classrooms = [
         expiresAt: iso(now + 5 * DAY),
     }),
     assignment({ classroomId: 'c3', assignmentName: 'まだ書いていない課題', joinCode: 'q8wz3e', sortDate: iso(now - 20 * DAY), hasAssignment: false }),
+    // 運営が共有をすすめた課題（共有推奨バナー・#1106）
+    assignment({
+        classroomId: 'c4',
+        assignmentName: 'ねこ迷路ゲーム',
+        joinCode: 'm4zq8t',
+        sortDate: iso(now - 30 * DAY),
+        recommendedForSharing: true,
+    }),
 ];
 const members = Array.from({ length: 24 }, (_, i) => ({
     memberId: `seat-${String(i + 1).padStart(2, '0')}`,
+    displayName: `なまえ${i + 1}`,
     lastActiveAt: i % 3 === 0 ? iso(now - 60 * 1000) : iso(now - 2 * 60 * 60 * 1000),
 }));
 const submissions = members
     .filter((_, i) => i % 2 === 0)
-    .map((m, i) => ({ submissionId: `s${i}`, memberId: m.memberId, status: 'submitted', submittedAt: iso(now) }));
+    .map((m, i) => ({
+        submissionId: `s${i}`,
+        memberId: m.memberId,
+        status: 'submitted',
+        submittedAt: iso(now),
+        projectUrl: `https://example.invalid/sub/${m.memberId}.sb3`,
+    }));
 const pagesFor = (id) =>
     id === 'c3'
         ? []
@@ -104,7 +125,7 @@ await page.route(/\/classrooms\/c\d\/assignment$/, (r) => {
 
 const tid = (id) => `[data-testid="${id}"]`;
 const shot = async (name, docsName) => {
-    await page.screenshot({ path: resolve(SHOT_DIR, `issue-1303-${PREFIX}-${name}.png`) });
+    await page.screenshot({ path: resolve(SHOT_DIR, `issue-1303-${PREFIX}-${LOCALE}-${name}.png`) });
     if (DOCS_SHOTS && docsName) await page.screenshot({ path: resolve(DOCS_DIR, docsName) });
 };
 // The bottom of `button` and whether the page / the modal body scroll.
@@ -158,7 +179,7 @@ const backToBoard = async () => {
 };
 
 try {
-    await page.goto(`${BASE}/?no_beforeunload=1&locale=ja&devlogin=stub-token`, { waitUntil: 'load' });
+    await page.goto(`${BASE}/?no_beforeunload=1&locale=${LOCALE}&devlogin=stub-token`, { waitUntil: 'load' });
     await page.waitForTimeout(3000);
     // The dev server's warning overlay would swallow the clicks.
     await page.addStyleTag({ content: '#webpack-dev-server-client-overlay { display: none !important; }' });
@@ -188,6 +209,143 @@ try {
         // Escape would also close the modal, so toggle the menu shut.
         await page.locator(tid('classroom-detail-more-menu')).click();
     }
+
+    // #1961: the seat detail —［返却］is the main button and visible without scrolling.
+    await page.locator(tid('classroom-member-seat-01')).click();
+    await page.waitForTimeout(400);
+    m = await measure(tid('classroom-member-detail-return'), BODY);
+    const returnIsPrimary = await page.$eval(tid('classroom-member-detail-return'), (el) =>
+        /primary-button/.test(el.className),
+    );
+    record('seat detail: 返却 is the main button (#1961)', returnIsPrimary && m.bottom !== null && m.bottom <= m.vh && m.pageOk && m.bodyOk, `return ${describe(m)} primary=${returnIsPrimary}`);
+    await shot('member-detail', null);
+
+    // #1990: ［スモウルビーで開く］→ 戻る帯「出席番号 3・課題名」［‹ 課題に戻る］→ 同じ課題・メンバーのタブ・席に戻る。
+    {
+        const { readFile } = await import('node:fs/promises');
+        const sb3 = await readFile(resolve(REPO_ROOT, 'packages/scratch-gui/test/fixtures/monitor-variable.sb3'));
+        await page.route('https://example.invalid/sub/**', (r) =>
+            r.fulfill({ status: 200, body: sb3, headers: { 'content-type': 'application/octet-stream' } }),
+        );
+        await page.locator(tid('classroom-member-seat-03')).click();
+        await page.waitForTimeout(300);
+        const seatBefore = await page.textContent(tid('classroom-member-detail-seat'));
+        // 返却していないコメントを書いてから開く（確かめずに開き、戻ったら残っている）。
+        const DRAFT = 'コメントの下書き（戻る帯の確認）';
+        await page.fill(tid('classroom-member-detail-comment'), DRAFT);
+        await page.locator(tid('classroom-member-detail-open')).click();
+        await page.waitForSelector(tid('classroom-teacher-work-bar'), { timeout: 20000 }).catch(() => {});
+        const bar = await page.evaluate(() => ({
+            modalGone: !document.querySelector('[data-testid="classroom-teacher-modal"]'),
+            text: document.querySelector('[data-testid="classroom-teacher-work-bar-text"]')?.textContent ?? null,
+            back: document.querySelector('[data-testid="classroom-teacher-work-bar-back"]')?.textContent ?? null,
+        }));
+        record(
+            '[スモウルビーで開く] shows the bar with the seat and the assignment, [‹ 課題に戻る] (#1990)',
+            bar.modalGone && /3/.test(bar.text || '') && (bar.text || '').includes('ねこを動かそう') && /課題に戻る|かだいにもどる/.test(bar.back || ''),
+            JSON.stringify(bar),
+        );
+        await shot('work-bar-assignment', null);
+        await page.locator(tid('classroom-teacher-work-bar-back')).click();
+        await page.waitForSelector(tid('classroom-member-detail'), { timeout: 10000 }).catch(() => {});
+        const back = await page.evaluate(() => ({
+            seat: document.querySelector('[data-testid="classroom-member-detail-seat"]')?.textContent ?? null,
+            membersTab: document.querySelector('[data-testid="classroom-tab-members"]')?.getAttribute('aria-selected'),
+            bar: !!document.querySelector('[data-testid="classroom-teacher-work-bar"]'),
+            comment: document.querySelector('[data-testid="classroom-member-detail-comment"]')?.value ?? null,
+        }));
+        record(
+            '[‹ 課題に戻る] comes back to the same assignment, tab, seat and comment draft (#1990)',
+            back.seat === seatBefore && back.membersTab === 'true' && !back.bar && back.comment === DRAFT,
+            `before "${seatBefore}" · ${JSON.stringify(back)}`,
+        );
+
+        // メニューバーのログアウト: 隠れているコメントの下書きがあれば、クラス管理を開いて先に聞く。
+        await page.click(tid('classroom-teacher-back-to-editor'));
+        await page.waitForTimeout(300);
+        await page.click(tid('classroom-teacher-menu-button'));
+        await page.click(tid('classroom-teacher-menu-logout'));
+        await page.waitForSelector(tid('classroom-teacher-logout-confirm-box'), { timeout: 10000 }).catch(() => {});
+        const ask = await page.evaluate(() => {
+            const box = document.querySelector('[data-testid="classroom-teacher-logout-confirm-box"]');
+            const r = box && box.getBoundingClientRect();
+            return {
+                message: document.querySelector('[data-testid="classroom-teacher-logout-confirm-message"]')?.textContent ?? null,
+                bottom: r ? Math.round(r.bottom) : null,
+                stillLoggedIn: !!document.querySelector('[data-testid="classroom-teacher-menu-button"]'),
+            };
+        });
+        record(
+            'menu bar logout over a hidden comment draft asks first (#1990)',
+            !!ask.message && ask.bottom !== null && ask.bottom <= 600 && ask.stillLoggedIn,
+            JSON.stringify(ask),
+        );
+        await shot('logout-confirm', null);
+        await page.click(tid('classroom-teacher-logout-cancel'));
+        await page.waitForTimeout(200);
+        const kept = await page.evaluate(
+            () => document.querySelector('[data-testid="classroom-member-detail-comment"]')?.value ?? null,
+        );
+        record('[とどまる] keeps the comment draft (#1990)', kept === DRAFT, `"${kept}"`);
+    }
+
+    // #1961: the［⛶ 映す］screen at the lesson PC size and at a projector size.
+    const measureProjection = () =>
+        page.evaluate(() => {
+            const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+            const root = q('classroom-projection');
+            const seats = [...document.querySelectorAll('[data-testid^="classroom-projection-seat-"]')];
+            const last = seats[seats.length - 1].getBoundingClientRect();
+            const code = q('classroom-projection-code');
+            const codeBox = code.getBoundingClientRect();
+            const close = q('classroom-projection-close').getBoundingClientRect();
+            const se = document.scrollingElement;
+            return {
+                seats: seats.length,
+                lastBottom: Math.round(last.bottom),
+                lastRight: Math.round(last.right),
+                seatH: Math.round(last.height),
+                seatW: Math.round(last.width),
+                seatFont: getComputedStyle(seats[0]).fontSize,
+                codeFont: getComputedStyle(code).fontSize,
+                codeRight: Math.round(codeBox.right),
+                countFont: getComputedStyle(q('classroom-projection-joined')).fontSize,
+                closeBottom: Math.round(close.bottom),
+                vw: window.innerWidth,
+                vh: window.innerHeight,
+                noScroll: root.scrollHeight <= root.clientHeight && se.scrollHeight <= se.clientHeight,
+                names: /なまえ/.test(root.textContent),
+                focus: document.activeElement && document.activeElement.dataset.testid,
+            };
+        });
+    await page.locator(tid('classroom-detail-project')).click();
+    await page.waitForSelector(tid('classroom-projection'));
+    await page.waitForTimeout(300);
+    for (const vp of [VIEWPORT, { width: 1920, height: 1080 }]) {
+        await page.setViewportSize(vp);
+        await page.waitForTimeout(300);
+        const p = await measureProjection();
+        const ok =
+            p.seats === 40 && p.lastBottom <= p.vh && p.lastRight <= p.vw && p.codeRight <= p.vw &&
+            p.closeBottom <= p.vh && p.noScroll && !p.names;
+        record(
+            `projection ${vp.width}x${vp.height} (#1961)`,
+            ok,
+            `seats=${p.seats} last=${p.lastRight}x${p.lastBottom}/${p.vw}x${p.vh} seat=${p.seatW}x${p.seatH} seatFont=${p.seatFont} code=${p.codeFont} codeRight=${p.codeRight} counts=${p.countFont} noScroll=${p.noScroll} names=${p.names} focus=${p.focus}`,
+        );
+        await shot(`projection-${vp.width}`, vp.width === 1920 ? '0261-detail-projection-1920.png' : '0260-detail-projection.png');
+    }
+    await page.setViewportSize(VIEWPORT);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    const projGone = !(await page.$(tid('classroom-projection')));
+    const stillDetail = !!(await page.$(tid('classroom-phase-teacher-detail')));
+    const focusBack = await page.evaluate(() => document.activeElement && document.activeElement.dataset.testid);
+    record(
+        'Esc closes the projection only, focus back on［⛶ 映す］(#1961)',
+        projGone && stillDetail && focusBack === 'classroom-detail-project',
+        `gone=${projGone} detail=${stillDetail} focus=${focusBack}`,
+    );
 
     // #1388: no「名前を変える」. While the name field is focused it says how
     // the name is saved; after saving,「✓ 保存しました」shows for a moment.
@@ -234,6 +392,10 @@ try {
         const changedCount = await page.$$eval('[data-changed="true"]', (els) => els.length);
         record('changed setting is marked unsaved', !!unsaved && changedCount === 1, `changed=${changedCount}`);
         await shot('description-advanced-unsaved', '0239-detail-advanced-unsaved.png');
+        // 他者参照の選択肢（「自分が提出したら見られる」を選んだところ）
+        await page.selectOption(tid('classroom-assignment-peer-view'), 'afterSubmit');
+        await page.waitForTimeout(200);
+        await shot('description-peer-view', '0222-teacher-description-peer-view.png');
 
         // Escape closes only the panel, not the whole modal.
         await page.keyboard.press('Escape');
@@ -259,6 +421,13 @@ try {
     m = await measure(tid('classroom-assignment-save'), BODY);
     record('empty description preview (E3)', !!empty && m.bottom !== null && m.bottom <= m.vh && m.pageOk && m.bodyOk, `save ${describe(m)}`);
     await shot('description-empty', '0233-detail-description-empty.png');
+
+    // Share suggestion banner (#1106) on the detail of a recommended assignment.
+    await backToBoard();
+    await openDetail('c4');
+    const banner = await page.$(tid('classroom-share-suggestion-banner'));
+    record('share suggestion banner', !!banner, '');
+    await shot('share-suggestion', '0219-share-suggestion-banner.png');
 } finally {
     await browser.close();
 }

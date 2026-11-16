@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import { buildStreamEvents } from '../../../src/lib/classroom-stream.js';
+import { buildStreamEvents, retentionSummary } from '../../../src/lib/classroom-stream.js';
 
 const NOW = Date.parse('2026-10-25T00:00:00.000Z');
 const DAY = 24 * 60 * 60 * 1000;
@@ -100,5 +100,33 @@ describe('buildStreamEvents (B5)', () => {
         const keys = events.map((e) => e.key);
         expect(new Set(keys).size).toBe(keys.length);
         expect(keys).toContain('expiring-c1');
+    });
+});
+
+describe('retentionSummary (the deadline card, #1960)', () => {
+    test('lists only assignments deleted within 7 days, soonest first, active and archived', () => {
+        const summary = retentionSummary(
+            [
+                assignment({ classroomId: 'far', expiresAt: iso(NOW + 30 * DAY) }),
+                assignment({ classroomId: 'soon', expiresAt: iso(NOW + 6 * DAY) }),
+                assignment({ classroomId: 'gone', expiresAt: iso(NOW - DAY) }),
+            ],
+            [assignment({ classroomId: 'arch', status: 'archived', expiresAt: iso(NOW + 2 * DAY) })],
+            NOW,
+        );
+        expect(summary.expiring.map((e) => e.classroom.classroomId)).toEqual(['arch', 'soon']);
+        expect(summary.expiring[0].archived).toBe(true);
+        expect(summary.next.classroom.classroomId).toBe('arch');
+    });
+
+    test('nothing within 7 days: no expiring entries, and the next deadline for the grey line', () => {
+        const summary = retentionSummary(
+            [assignment({ classroomId: 'far', expiresAt: iso(NOW + 8 * DAY) })],
+            [],
+            NOW,
+        );
+        expect(summary.expiring).toEqual([]);
+        expect(summary.next.classroom.classroomId).toBe('far');
+        expect(retentionSummary([assignment({ expiresAt: null })], [], NOW)).toEqual({ expiring: [], next: null });
     });
 });

@@ -82,6 +82,11 @@ const messages = defineMessages({
         description: 'Teacher status panel: label of the assignment switcher (#1203)',
         id: 'gui.classroomTeacherPanel.selectAssignment',
     },
+    kickCount: {
+        defaultMessage: 'Kick requests {count}',
+        description: 'Teacher status panel: tag with the number of pending kick requests of this assignment (#1964)',
+        id: 'gui.classroomTeacherPanel.kickCount',
+    },
 });
 
 const LESSON_SEAT_CLASSES = {
@@ -376,7 +381,7 @@ const ClassroomTeacherPanel = ({
                                 <React.Fragment>
                                     <div className={styles.summary}>
                                         <span
-                                            className={styles.summaryItem}
+                                            className={classNames(styles.summaryItem, styles.tagJoined)}
                                             data-testid="classroom-teacher-panel-seated"
                                             title={intl.formatMessage(messages.seatedHint)}
                                         >
@@ -392,7 +397,7 @@ const ClassroomTeacherPanel = ({
                                         </span>
                                         {lesson && !lesson.submitWork ? null : (
                                             <span
-                                                className={styles.summaryItem}
+                                                className={classNames(styles.summaryItem, styles.tagDone)}
                                                 data-testid="classroom-teacher-panel-submitted"
                                             >
                                                 <FormattedMessage
@@ -406,6 +411,17 @@ const ClassroomTeacherPanel = ({
                                                 />
                                             </span>
                                         )}
+                                        {/* 退室依頼は数の札でも知らせる（一覧は下。#1964） */}
+                                        {kickRequests.length > 0 ? (
+                                            <span
+                                                className={classNames(styles.summaryItem, styles.tagAttention)}
+                                                data-testid="classroom-teacher-panel-kick-count"
+                                            >
+                                                {intl.formatMessage(messages.kickCount, {
+                                                    count: kickRequests.length,
+                                                })}
+                                            </span>
+                                        ) : null}
                                     </div>
                                     {lesson ? (
                                         <div
@@ -413,7 +429,7 @@ const ClassroomTeacherPanel = ({
                                             data-testid="classroom-teacher-panel-lesson-summary"
                                         >
                                             <span
-                                                className={styles.summaryItem}
+                                                className={classNames(styles.summaryItem, styles.tagDone)}
                                                 data-testid="classroom-teacher-panel-lesson-cleared"
                                             >
                                                 {intl.formatMessage(messages.lessonCleared, {
@@ -423,7 +439,7 @@ const ClassroomTeacherPanel = ({
                                             </span>
                                             <span
                                                 className={classNames(styles.summaryItem, {
-                                                    [styles.summaryStuck]: lesson.stuck > 0,
+                                                    [styles.tagAttention]: lesson.stuck > 0,
                                                 })}
                                                 data-testid="classroom-teacher-panel-lesson-stuck"
                                                 title={intl.formatMessage(messages.lessonStuckHint)}

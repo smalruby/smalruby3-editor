@@ -2,9 +2,13 @@ import bindAll from 'lodash.bindall';
 import debounce from 'lodash.debounce';
 import defaultsDeep from 'lodash.defaultsdeep';
 import makeToolboxXML from '../lib/make-toolbox-xml';
+// === Smalruby: Start of only blocks filter ===
 import {CATEGORY_BLOCKS} from '../lib/block-utils';
+// === Smalruby: End of only blocks filter ===
 import PropTypes from 'prop-types';
+// === Smalruby: Start of only blocks filter ===
 import queryString from 'query-string';
+// === Smalruby: End of only blocks filter ===
 import React from 'react';
 import VMScratchBlocks from '../lib/blocks';
 import VM from '@smalruby/scratch-vm';
@@ -31,7 +35,9 @@ import {
 
 import {connect} from 'react-redux';
 import {updateToolbox} from '../reducers/toolbox';
+// === Smalruby: Start of block display modal ===
 import {setScratchBlocks} from '../reducers/block-display';
+// === Smalruby: End of block display modal ===
 import {activateColorPicker} from '../reducers/color-picker';
 import {closeExtensionLibrary, openSoundRecorder, openConnectionModal} from '../reducers/modals';
 import {activateCustomProcedures, deactivateCustomProcedures} from '../reducers/custom-procedures';
@@ -53,12 +59,18 @@ import {isTimeTravel2020} from '../reducers/time-travel';
 import {
     activateTab,
     SOUNDS_TAB_INDEX,
+    // === Smalruby: Start of ruby tab ===
     RUBY_TAB_INDEX
+    // === Smalruby: End of ruby tab ===
 } from '../reducers/editor-tab';
+// === Smalruby: Start of palette toggle ===
 import {togglePalette} from '../reducers/palette-visibility';
 import PaletteToggle from '../components/palette-toggle/palette-toggle.jsx';
+// === Smalruby: End of palette toggle ===
+// === Smalruby: Start of blocks screenshot ===
 import BlocksScreenshotButton from '../components/blocks-screenshot-button/blocks-screenshot-button.jsx';
 import {downloadBlocksAsImage} from '../lib/blocks-screenshot';
+// === Smalruby: End of blocks screenshot ===
 // === Smalruby: Start of DNCL block filtering ===
 import {DNCL_ALLOWED_BLOCKS} from '../lib/dncl/dncl-block-filter';
 // === Smalruby: End of DNCL block filtering ===
@@ -75,7 +87,9 @@ const addFunctionListener = (object, property, callback) => {
     };
 };
 
+// === Smalruby: Start of only blocks filter ===
 const TOTAL_DEFAULT_BLOCKS = Object.values(CATEGORY_BLOCKS).reduce((total, blocks) => total + blocks.length, 0);
+// === Smalruby: End of only blocks filter ===
 
 const DroppableBlocks = DropAreaHOC([
     DragConstants.BACKPACK_CODE
@@ -98,7 +112,9 @@ class Blocks extends React.Component {
             'handlePromptCallback',
             'handlePromptClose',
             'handleCustomProceduresClose',
+            // === Smalruby: Start of palette toggle ===
             'handleTogglePalette',
+            // === Smalruby: End of palette toggle ===
             'onScriptGlowOn',
             'onScriptGlowOff',
             'onBlockGlowOn',
@@ -112,7 +128,9 @@ class Blocks extends React.Component {
             'onWorkspaceMetricsChange',
             'setBlocks',
             'setLocale',
+            // === Smalruby: Start of blocks screenshot ===
             'handleDownloadBlocksImage'
+            // === Smalruby: End of blocks screenshot ===
         ]);
         this.ScratchBlocks.dialog.setPrompt(this.handlePromptStart);
         this.ScratchBlocks.ScratchVariables.setPromptHandler(
@@ -126,7 +144,9 @@ class Blocks extends React.Component {
         };
         this.onTargetsUpdate = debounce(this.onTargetsUpdate, 100);
         this.toolboxUpdateQueue = [];
+        // === Smalruby: Start of Ruby-converted block positioning ===
         this._pendingScrollCenter = false;
+        // === Smalruby: End of Ruby-converted block positioning ===
         // === Smalruby: Start of deferred flyout rebuild ===
         // Track whether the code tab has ever been visible. When the workspace
         // is first created while a non-code tab is active (?tab=ruby etc.),
@@ -148,12 +168,18 @@ class Blocks extends React.Component {
         // === Smalruby: End of iOS flyout touch bleed fix ===
     }
     componentDidMount () {
+        // === Smalruby: Start of VMScratchBlocks without useCatBlocks ===
         this.ScratchBlocks = VMScratchBlocks(this.props.vm);
+        // === Smalruby: End of VMScratchBlocks without useCatBlocks ===
+        // === Smalruby: Start of block display modal ===
         this.props.onSetScratchBlocks(this.ScratchBlocks);
+        // === Smalruby: End of block display modal ===
         this.ScratchBlocks.dialog.setPrompt(this.handlePromptStart);
+        // === Smalruby: Start of scratch-blocks v2 variable prompt ===
         this.ScratchBlocks.ScratchVariables.setPromptHandler(
             this.handlePromptStart
         );
+        // === Smalruby: End of scratch-blocks v2 variable prompt ===
         this.ScratchBlocks.StatusIndicatorLabel.statusButtonCallback = this.handleConnectionModalStart;
         this.ScratchBlocks.recordSoundCallback = this.handleOpenSoundRecorder;
 
@@ -267,6 +293,9 @@ class Blocks extends React.Component {
         // @todo change this when blockly supports UI events
         addFunctionListener(this.workspace, 'translate', this.onWorkspaceMetricsChange);
         addFunctionListener(this.workspace, 'zoom', this.onWorkspaceMetricsChange);
+        // === Smalruby: Start of scratch-blocks v2 toolbox ===
+        // Upstream calls this.workspace.getToolbox().selectItemByPosition(0) here; Smalruby does not.
+        // === Smalruby: End of scratch-blocks v2 toolbox ===
 
         this.attachVM();
         // Only update blocks/vm locale when visible to avoid sizing issues
@@ -302,10 +331,12 @@ class Blocks extends React.Component {
             this.props.locale !== nextProps.locale ||
             this.props.anyModalVisible !== nextProps.anyModalVisible ||
             this.props.stageSize !== nextProps.stageSize ||
+            // === Smalruby: Start of toolbox filters and palette toggle ===
             this.props.selectedBlocks !== nextProps.selectedBlocks ||
             this.props.tutorialAllowedBlocks !== nextProps.tutorialAllowedBlocks ||
             this.props.paletteVisible !== nextProps.paletteVisible ||
             this.props.dnclMode !== nextProps.dnclMode // === Smalruby: DNCL block filtering ===
+            // === Smalruby: End of toolbox filters and palette toggle ===
         );
     }
     componentDidUpdate (prevProps) {
@@ -314,6 +345,7 @@ class Blocks extends React.Component {
             this.ScratchBlocks.hideChaff();
         }
 
+        // === Smalruby: Start of toolbox filters ===
         // If selectedBlocks, tutorialAllowedBlocks, or dnclMode changed, update toolbox
         if (this.props.selectedBlocks !== prevProps.selectedBlocks ||
             this.props.tutorialAllowedBlocks !== prevProps.tutorialAllowedBlocks ||
@@ -323,6 +355,7 @@ class Blocks extends React.Component {
                 this.props.updateToolboxState(toolboxXML);
             }
         }
+        // === Smalruby: End of toolbox filters ===
 
         // Only rerender the toolbox when the blocks are visible and the xml is
         // different from the previously rendered toolbox xml.
@@ -331,9 +364,11 @@ class Blocks extends React.Component {
             this.requestToolboxUpdate();
         }
 
+        // === Smalruby: Start of palette toggle ===
         if (this.props.paletteVisible !== prevProps.paletteVisible) {
             this._applyPaletteVisibility(this.props.paletteVisible);
         }
+        // === Smalruby: End of palette toggle ===
 
         if (this.props.isVisible === prevProps.isVisible) {
             if (this.props.stageSize !== prevProps.stageSize) {
@@ -367,14 +402,19 @@ class Blocks extends React.Component {
                 this.setLocale();
             } else {
                 this.props.vm.refreshWorkspace();
+                // === Smalruby: Start of toolbox refresh on tab show ===
                 this.requestToolboxUpdate();
+                // === Smalruby: End of toolbox refresh on tab show ===
             }
 
             window.dispatchEvent(new Event('resize'));
 
+            // === Smalruby: Start of palette toggle ===
             // Restore palette visibility state when switching back to the code tab
             this._applyPaletteVisibility(this.props.paletteVisible);
+            // === Smalruby: End of palette toggle ===
 
+            // === Smalruby: Start of Ruby-converted block positioning ===
             if (this._pendingScrollCenter) {
                 this._pendingScrollCenter = false;
                 if (this.workspace.options && this.workspace.options.zoomOptions) {
@@ -382,6 +422,7 @@ class Blocks extends React.Component {
                     this.workspace.setScale(this.workspace.options.zoomOptions.startScale);
                     this.workspace.scrollCenter();
                 }
+            // === Smalruby: End of Ruby-converted block positioning ===
             }
         } else {
             this.workspace.setVisible(false);
@@ -401,6 +442,7 @@ class Blocks extends React.Component {
         // focused in this workspace (likely the same block about to be
         // disposed). focusNode pins focus to the workspace root directly,
         // ensuring no block is focused when dispose() runs.
+        // === Smalruby: Start of scratch-blocks v2 unmount focus guard ===
         try {
             this.ScratchBlocks.WidgetDiv?.hide?.();
             // focusNode requires the workspace to be a focusable IFocusableNode;
@@ -412,11 +454,13 @@ class Blocks extends React.Component {
             // Workspace may already be unregistered — fall through to dispose.
         }
         this.workspace?.dispose?.();
+        // === Smalruby: End of scratch-blocks v2 unmount focus guard ===
         clearTimeout(this.toolboxUpdateTimeout);
 
         // Clear the flyout blocks so that they can be recreated on mount.
         this.props.vm.clearFlyoutBlocks();
     }
+    // === Smalruby: Start of palette toggle ===
     handleTogglePalette () {
         this.props.onTogglePalette();
     }
@@ -452,6 +496,7 @@ class Blocks extends React.Component {
         // toolbox.getWidth() + flyout.getWidth() after re-open).
         this.forceUpdate();
     }
+    // === Smalruby: End of palette toggle ===
     requestToolboxUpdate () {
         clearTimeout(this.toolboxUpdateTimeout);
         this.toolboxUpdateTimeout = setTimeout(() => {
@@ -461,11 +506,13 @@ class Blocks extends React.Component {
     setLocale () {
         this.ScratchBlocks.ScratchMsgs.setLocale(this.props.locale);
 
+        // === Smalruby: Start of sensing_online Japanese translation ===
         // Add Smalruby-specific block translations that differ from upstream
         if (this.props.locale === 'ja' || this.props.locale === 'ja-Hira') {
             // Override Japanese translation for sensing_online to use Japanese text
             this.ScratchBlocks.Msg.SENSING_ONLINE = 'オンライン?';
         }
+        // === Smalruby: End of sensing_online Japanese translation ===
 
         this.props.vm.setLocale(this.props.locale, this.props.messages)
             .then(() => {
@@ -482,6 +529,7 @@ class Blocks extends React.Component {
         this.toolboxUpdateTimeout = false;
 
         const scale = this.workspace.getFlyout().getWorkspace().scale;
+        // === Smalruby: Start of toolbox selection null guard ===
         let selectedCategoryName = null;
         const selectedItem = this.workspace.getToolbox()?.getSelectedItem?.();
         if (selectedItem) {
@@ -513,6 +561,7 @@ class Blocks extends React.Component {
                 }
             });
         }
+        // === Smalruby: End of toolbox selection null guard ===
         // === Smalruby: Start of forceRerender error guard ===
         // scratch-blocks v2 throws "Cannot read properties of undefined
         // (reading '2')" inside the toolbox flyout's recycling/dispose path
@@ -551,11 +600,14 @@ class Blocks extends React.Component {
         this.toolboxUpdateQueue = [];
         queue.forEach(fn => fn());
 
+        // === Smalruby: Start of palette toggle ===
         // === Smalruby: Re-apply palette visibility since updateToolbox may re-show the flyout
         if (!this.props.paletteVisible) {
             this._applyPaletteVisibility(false);
         }
+        // === Smalruby: End of palette toggle ===
 
+        // === Smalruby: Start of extension category flyout scroll ===
         // === Smalruby: scroll the flyout to a newly added extension category.
         // `handleExtensionAdded` flags the extension id; once the toolbox has
         // been rebuilt (now), look the category up and scroll to it.
@@ -578,6 +630,7 @@ class Blocks extends React.Component {
                     pendingFlyout.scrollToCategory(item);
                 }
             }
+        // === Smalruby: End of extension category flyout scroll ===
         }
     }
 
@@ -686,13 +739,16 @@ class Blocks extends React.Component {
         // No-op (see onBlockGlowOn).
     }
     onVisualReport (data) {
+        // === Smalruby: Start of ruby tab ===
         // Don't show visual report in Code tab when Ruby tab is active
         if (this.props.activeTabIndex === RUBY_TAB_INDEX) {
             return;
         }
+        // === Smalruby: End of ruby tab ===
         this.ScratchBlocks.reportValue(data.id, data.value);
     }
 
+    // === Smalruby: Start of only blocks filter ===
     // Extract only_blocks setting from Stage comments
     extractOnlyBlocksFromStageComments () {
         try {
@@ -714,6 +770,7 @@ class Blocks extends React.Component {
             return null;
         }
     }
+    // === Smalruby: End of only blocks filter ===
 
     // === Smalruby: Start of lesson dynamic category filtering ===
     /**
@@ -758,6 +815,7 @@ class Blocks extends React.Component {
                 this.props.colorMode
             );
 
+            // === Smalruby: Start of only blocks filter ===
             let onlyBlocks;
 
             // === Smalruby: Start of DNCL block filtering ===
@@ -806,6 +864,7 @@ class Blocks extends React.Component {
                 !!onlyBlocks, // isOnlyBlocksSpecified: true if onlyBlocks has a value
                 this.props.dnclMode, // === Smalruby: hide extensions in DNCL mode ===
                 dynamicCategoryIds // === Smalruby: lesson dynamic category filtering ===
+            // === Smalruby: End of only blocks filter ===
             );
             // === Smalruby: Start of lesson palette block defaults ===
             return applyBlockDefaultsToToolboxXml(toolboxXML, this.getTutorialBlockDefaults());
@@ -831,7 +890,9 @@ class Blocks extends React.Component {
         // from reaching the VM — the queued events fire after the listener is re-added.
         // Disabling events entirely during the load ensures nothing is queued.
         this.workspace.removeChangeListener(this.toolboxUpdateChangeListener);
+        // === Smalruby: Start of Ruby-converted block positioning ===
         let fromRuby = false;
+        // === Smalruby: End of Ruby-converted block positioning ===
         // === Smalruby: Start of Ruby-converted toolbox update deferral ===
         // Set inside the fromRuby branch below; the actual updateToolbox()
         // call runs after `finally { Events.enable(); }` so the flyout
@@ -934,10 +995,12 @@ class Blocks extends React.Component {
         }
         // === Smalruby: End of Ruby-converted toolbox update deferral ===
 
+        // === Smalruby: Start of Ruby-converted block positioning ===
         if (!fromRuby &&
             this.props.vm.editingTarget &&
             this.props.workspaceMetrics.targets[this.props.vm.editingTarget.id]
         ) {
+        // === Smalruby: End of Ruby-converted block positioning ===
             const {scrollX, scrollY, scale} = this.props.workspaceMetrics.targets[this.props.vm.editingTarget.id];
             this.workspace.scrollX = scrollX;
             this.workspace.scrollY = scrollY;
@@ -1144,6 +1207,7 @@ class Blocks extends React.Component {
     handleCustomProceduresClose (data) {
         this.props.onRequestCloseCustomProcedures(data);
         const ws = this.workspace;
+        // === Smalruby: Start of scratch-blocks v2 my blocks toolbox refresh ===
         // scratch-blocks v2 renamed `refreshToolboxSelection_` → `refreshToolboxSelection`.
         if (typeof ws.refreshToolboxSelection === 'function') {
             ws.refreshToolboxSelection();
@@ -1184,6 +1248,7 @@ class Blocks extends React.Component {
         } else {
             scrollMyBlocks();
         }
+        // === Smalruby: End of scratch-blocks v2 my blocks toolbox refresh ===
     }
     handleDrop (dragInfo) {
         fetch(dragInfo.payload.bodyUrl)
@@ -1191,9 +1256,12 @@ class Blocks extends React.Component {
             .then(blocks => this.props.vm.shareBlocksToTarget(blocks, this.props.vm.editingTarget.id))
             .then(() => {
                 this.props.vm.refreshWorkspace();
+                // === Smalruby: Start of toolbox refresh after backpack drop ===
                 this.updateToolbox(); // To show new variables/custom blocks
+                // === Smalruby: End of toolbox refresh after backpack drop ===
             });
     }
+    // === Smalruby: Start of blocks screenshot ===
     handleDownloadBlocksImage () {
         if (!this.workspace) return;
         const target = this.props.vm.editingTarget;
@@ -1202,6 +1270,7 @@ class Blocks extends React.Component {
         const costumeDataUri = target?.sprite?.costumes?.[target.currentCostume]?.asset?.encodeDataURI();
         downloadBlocksAsImage(this.workspace, projectTitle, spriteName, costumeDataUri);
     }
+    // === Smalruby: End of blocks screenshot ===
     render () {
         const {
             anyModalVisible: _anyModalVisible,
@@ -1216,7 +1285,9 @@ class Blocks extends React.Component {
             onActivateColorPicker: _onActivateColorPicker,
             onOpenConnectionModal: _onOpenConnectionModal,
             onOpenSoundRecorder: _onOpenSoundRecorder,
+            // === Smalruby: Start of block display modal ===
             onSetScratchBlocks: _onSetScratchBlocks,
+            // === Smalruby: End of block display modal ===
             updateToolboxState: _updateToolboxState,
             onActivateCustomProcedures: _onActivateCustomProcedures,
             onRequestCloseExtensionLibrary,
@@ -1225,14 +1296,19 @@ class Blocks extends React.Component {
             updateMetrics: _updateMetricsProp,
             useCatBlocks: _useCatBlocks,
             workspaceMetrics: _workspaceMetrics,
+            // === Smalruby: Start of palette toggle ===
             paletteVisible,
             onTogglePalette: _onTogglePalette,
+            // === Smalruby: End of palette toggle ===
+            // === Smalruby: Start of blocks screenshot ===
             projectTitle: _projectTitle,
+            // === Smalruby: End of blocks screenshot ===
             colorMode,
             ...props
         } = this.props;
 
         // Calculate toggle button position based on toolbox + flyout combined width.
+        // === Smalruby: Start of palette toggle ===
         // In scratch-blocks v2 toolbox.getWidth() returns only the category-column
         // width, so we add the flyout width separately to land on the visual edge
         // of the open palette (matching docs/mobile-ui/screenshots/02-code-palette-open.png).
@@ -1241,6 +1317,7 @@ class Blocks extends React.Component {
         const toggleButtonLeft = paletteVisible && toolbox ?
             toolbox.getWidth() + (flyout?.getWidth?.() ?? 0) :
             0;
+        // === Smalruby: End of palette toggle ===
 
         return (
             <React.Fragment>
@@ -1249,6 +1326,7 @@ class Blocks extends React.Component {
                     onDrop={this.handleDrop}
                     {...props}
                 />
+                {/* === Smalruby: Start of palette toggle === */}
                 {toolbox ? (
                     <PaletteToggle
                         paletteVisible={paletteVisible}
@@ -1256,11 +1334,14 @@ class Blocks extends React.Component {
                         onClick={this.handleTogglePalette}
                     />
                 ) : null}
+                {/* === Smalruby: End of palette toggle === */}
+                {/* === Smalruby: Start of blocks screenshot === */}
                 {toolbox ? (
                     <BlocksScreenshotButton
                         onClick={this.handleDownloadBlocksImage}
                     />
                 ) : null}
+                {/* === Smalruby: End of blocks screenshot === */}
                 {this.state.prompt ? (
                     <Prompt
                         defaultValue={this.state.prompt.defaultValue}
@@ -1297,8 +1378,10 @@ class Blocks extends React.Component {
 }
 
 Blocks.propTypes = {
+    // === Smalruby: Start of toolbox filters ===
     selectedBlocks: PropTypes.object,
     tutorialAllowedBlocks: PropTypes.object,
+    // === Smalruby: End of toolbox filters ===
     anyModalVisible: PropTypes.bool,
     canUseCloud: PropTypes.bool,
     customProceduresVisible: PropTypes.bool,
@@ -1306,17 +1389,21 @@ Blocks.propTypes = {
     isRtl: PropTypes.bool,
     isVisible: PropTypes.bool,
     locale: PropTypes.string.isRequired,
+    // === Smalruby: Start of messages prop type ===
     messages: PropTypes.objectOf(PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.object
     ])),
+    // === Smalruby: End of messages prop type ===
     onActivateColorPicker: PropTypes.func,
     onActivateCustomProcedures: PropTypes.func,
     onOpenConnectionModal: PropTypes.func,
     onOpenSoundRecorder: PropTypes.func,
     onRequestCloseCustomProcedures: PropTypes.func,
     onRequestCloseExtensionLibrary: PropTypes.func,
+    // === Smalruby: Start of block display modal ===
     onSetScratchBlocks: PropTypes.func,
+    // === Smalruby: End of block display modal ===
     options: PropTypes.shape({
         media: PropTypes.string,
         zoom: PropTypes.shape({
@@ -1335,13 +1422,19 @@ Blocks.propTypes = {
     updateToolboxState: PropTypes.func,
     useCatBlocks: PropTypes.bool,
     vm: PropTypes.instanceOf(VM).isRequired,
+    // === Smalruby: Start of ruby tab ===
     activeTabIndex: PropTypes.number,
+    // === Smalruby: End of ruby tab ===
     workspaceMetrics: PropTypes.shape({
         targets: PropTypes.objectOf(PropTypes.object)
     }),
+    // === Smalruby: Start of palette toggle ===
     paletteVisible: PropTypes.bool,
     onTogglePalette: PropTypes.func,
+    // === Smalruby: End of palette toggle ===
+    // === Smalruby: Start of blocks screenshot ===
     projectTitle: PropTypes.string
+    // === Smalruby: End of blocks screenshot ===
 };
 
 Blocks.defaultOptions = {
@@ -1382,18 +1475,26 @@ const mapStateToProps = state => ({
     locale: state.locales.locale,
     messages: state.locales.messages,
     dnclMode: state.scratchGui.dnclMode.dnclMode, // === Smalruby: DNCL block filtering ===
+    // === Smalruby: Start of toolbox filters ===
     selectedBlocks: state.scratchGui.blockDisplay.selectedBlocks,
+    // === Smalruby: End of toolbox filters ===
     // === Smalruby: Start of lesson mode ===
     // レッスンモードのチャレンジの allowedBlocks をチュートリアルより優先する
     tutorialAllowedBlocks: getLessonAllowedBlocks(state) || state.scratchGui.cards.tutorialAllowedBlocks,
     // === Smalruby: End of lesson mode ===
     toolboxXML: state.scratchGui.toolbox.toolboxXML,
+    // === Smalruby: Start of ruby tab ===
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
+    // === Smalruby: End of ruby tab ===
     customProceduresVisible: state.scratchGui.customProcedures.active,
     workspaceMetrics: state.scratchGui.workspaceMetrics,
     useCatBlocks: isTimeTravel2020(state) || state.scratchGui.settings.theme === CAT_BLOCKS_THEME,
+    // === Smalruby: Start of palette toggle ===
     paletteVisible: state.scratchGui.paletteVisibility.paletteVisible,
+    // === Smalruby: End of palette toggle ===
+    // === Smalruby: Start of blocks screenshot ===
     projectTitle: state.scratchGui.projectTitle
+    // === Smalruby: End of blocks screenshot ===
 });
 
 const mapDispatchToProps = dispatch => ({
@@ -1413,18 +1514,22 @@ const mapDispatchToProps = dispatch => ({
     onRequestCloseCustomProcedures: data => {
         dispatch(deactivateCustomProcedures(data));
     },
+    // === Smalruby: Start of block display modal ===
     onSetScratchBlocks: scratchBlocks => {
         dispatch(setScratchBlocks(scratchBlocks));
     },
+    // === Smalruby: End of block display modal ===
     updateToolboxState: toolboxXML => {
         dispatch(updateToolbox(toolboxXML));
     },
     updateMetrics: metrics => {
         dispatch(updateMetrics(metrics));
     },
+    // === Smalruby: Start of palette toggle ===
     onTogglePalette: () => {
         dispatch(togglePalette());
     }
+    // === Smalruby: End of palette toggle ===
 });
 
 export {Blocks};

@@ -84,7 +84,7 @@
 | 部分 | 上流の CSS（ファイル・セレクター） | 上流のトークン（値） | 色 | 別名 | 実測 |
 |---|---|---|---|---|---|
 | オーバーレイ | `modal/modal.css` `.modal-overlay` | `$ui-modal-overlay` | `#4D97FF` × 0.9 | `$color-overlay` | 一致（`rgba(77, 151, 255, 0.9)`） |
-| 枠 | `modal/modal.css` `.modal-content` | `$ui-white-transparent` の 4px | `#FFFFFF` × 0.25 | 別名なし | 値は一致。見た目は白（スモウルビーの既定の地。[`components/modal.md`](components/modal.md)） |
+| 枠 | `modal/modal.css` `.modal-content` | `$ui-white-transparent` の 4px | `#FFFFFF` × 0.25 | 別名なし | 一致（オーバーレイが透けて淡い青。[`components/modal.md`](components/modal.md)） |
 | **ヘッダーの地** | `connection-modal/connection-modal.css` `.header` | **`$pen-tertiary`**（`hsla(163, 86%, 30%, 1)`） | `#0B8E69` | 別名なし（`$extensions-tertiary` とほぼ同じ値。下の注） | 一致（`rgb(11, 142, 105)`） |
 | ヘッダーの文字（題・ヘルプ） | `modal/modal.css` `.header-item` | `$ui-white` | `#FFFFFF` | `$color-surface` | 一致。濃い緑の上の白は **4.1:1** で、WCAG の AA（ふつうの文字 4.5:1）に届かない。題は 1rem の太さふつう、ヘルプは 0.75rem で、どちらもWCAG の「大きい文字」（太字 14pt＝約 1.17rem 以上・ふつう 18pt＝1.5rem 以上。3:1 でよい）にも当たらない |
 | 閉じるボタン | `close-button/close-button.css` `.close-button.large` | 地と輪 `$ui-black-transparent` | `#000000` × 0.15 | `$color-border` | 一致（28px・輪 2px） |
@@ -143,7 +143,7 @@
 | `connection-modal/connection-modal.jsx`（マーカー付き） | メッシュの接続のモーダルだけ、題を太字 1.2rem にし、ヘルプをヘッダーから本文の下（どの画面でも。`mesh-v2-help-row.jsx`）へ移す | 上流の機器の接続のモーダルは変えない |
 | `connection-modal/connection-modal.css`（**マーカー無し**） | `.important-instruction`（太字・`$ui-red`） | micro:bit More のファームウェア更新の説明だけ |
 | `connection-modal/unavailable-step.jsx`・`update-peripheral-step.jsx`（**マーカー無し**） | 見つからないときの「機器を更新する」の説明とボタン、更新の手順の変更 | 見本 `0304` の「アップデート」のボタンと、その上の説明の文はスモウルビーの追加 |
-| `modal/modal.css`（マーカー付き） | 本文の既定の白い地 | 枠が不透明な白に見える（上流は淡い青が透ける） |
+| `modal/modal.css`（マーカー付き） | 本文の既定の白い地（枠の内側だけ） | 見た目は変わらない（枠は上流と同じ淡い青） |
 
 ## 独自の画面で使うとき
 

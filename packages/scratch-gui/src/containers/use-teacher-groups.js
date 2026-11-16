@@ -114,19 +114,33 @@ const useTeacherGroups = ({
         })();
     }, [idToken, loadClassrooms, loadGroups]);
 
+    /**
+     * Save the class's settings, then reload the classes.
+     * @param {string} groupId - the class
+     * @param {object} updates - the fields to change
+     * @returns {Promise<boolean>} true when saved (the caller moves on only then, #1958)
+     */
     const handleUpdateGroup = useCallback(
         async (groupId, updates) => {
             clearError();
             setIsLoading(true);
             try {
                 await classroomAPI.updateGroup(idToken, groupId, updates);
-                await loadGroups();
+                const loaded = await loadGroups();
+                // The opened class follows what was saved (its name in the header, the
+                // assignment views, the share step), like handleUpdateGroupTopics (#1958).
+                const fresh = loaded.find((g) => g.groupId === groupId);
+                if (fresh) {
+                    setSelectedGroup((prev) => (prev && prev.groupId === groupId ? fresh : prev));
+                }
+                return true;
             } catch (err) {
                 if (err.status === 401) {
                     handleTeacher401();
-                    return;
+                    return false;
                 }
                 showError(translateError(intl, err));
+                return false;
             } finally {
                 setIsLoading(false);
             }

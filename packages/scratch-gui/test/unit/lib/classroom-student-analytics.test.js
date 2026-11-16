@@ -130,6 +130,8 @@ describe('joinCodeResult', () => {
         [{ message: 'Invalid join code' }, 'not_found'],
         [{ status: 410 }, 'closed'],
         [{ status: 403, message: 'This assignment is no longer active' }, 'closed'],
+        // An archived assignment answers 404 with this message (#1944).
+        [{ status: 404, message: 'This classroom is no longer active' }, 'closed'],
         [{ isNetworkError: true }, 'error'],
         [{ status: 500 }, 'error'],
     ])('%o → %s', (err, expected) => {

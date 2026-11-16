@@ -1,7 +1,7 @@
 /**
  * The production build renames classes, so `node.constructor.name` of a @ruby/prism node is not
  * e.g. 'CallNode' there. These round trips run with the class names renamed the same way,
- * so that the converter must find the type of a node in another way (`_getNodeTypeName`).
+ * so that the converter must find the type of a node in another way (`nodeTypeName` of `node-walk.js`).
  */
 import * as prismNodes from '@ruby/prism/src/nodes.js';
 import dedent from 'dedent';

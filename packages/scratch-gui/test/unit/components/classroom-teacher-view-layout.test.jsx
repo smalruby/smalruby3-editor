@@ -25,9 +25,11 @@ import { TeacherScreen, TeacherSubView } from '../../../src/components/classroom
 describe('TeacherScreen (#1125)', () => {
     const renderScreen = (props) =>
         render(
-            <TeacherScreen testId="classroom-phase-x" title="タイトル" {...props}>
-                <p data-testid="body">{'本文'}</p>
-            </TeacherScreen>,
+            <IntlProvider locale="en">
+                <TeacherScreen testId="classroom-phase-x" title="タイトル" {...props}>
+                    <p data-testid="body">{'本文'}</p>
+                </TeacherScreen>
+            </IntlProvider>,
         );
 
     test('renders breadcrumbs, title, hint, error, body and footer in this order', () => {
@@ -112,6 +114,7 @@ describe('ClassroomButton (#1125)', () => {
             danger: 'dangerButton',
             primary: 'primaryButton',
             secondary: 'secondaryButton',
+            text: 'textButton',
         });
     });
 

@@ -19,7 +19,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-modal/       ← 生徒用 UI コンポーネント群
 │   │   │   │   ├── classroom-modal.jsx
 │   │   │   │   ├── classroom-modal.css
-│   │   │   │   ├── class-code-display.jsx ← 参加コード表示（全画面対応）
+│   │   │   │   ├── teacher-projection-view.jsx ← ［⛶ 映す］画面（参加コード・座席・数。プロジェクター用）
 │   │   │   │   ├── google-course-list.jsx ← GC コースタイルグリッド
 │   │   │   │   ├── kick-request-confirm-dialog.jsx ← 退室依頼ダイアログ (#692)
 │   │   │   │   ├── student-seat-selector.jsx ← 生徒の席選択（番号入力・案内・参加確認・依頼中表示）
@@ -44,7 +44,8 @@ smalruby3-editor/
 │   │   │   │   ├── board-menu.jsx ← 小さなドロップダウン（［＋ 作成 ▾］・⋮・課題詳細の ⋮ で共用）
 │   │   │   │   ├── mesh-group-limit-field.jsx ← 「メッシュのグループの人数」の選択（作成画面と課題エディタで共用・#1257）
 │   │   │   │   ├── teacher-group-manage.jsx ← 組（グループ）管理
-│   │   │   │   ├── teacher-evaluation.jsx ← 採点（席×課題の表・手順 1〜4・書き出しメニュー）
+│   │   │   │   ├── teacher-evaluation.jsx ← 採点（点だけの採点簿の表・手順 1〜4・書き出しメニュー）
+│   │   │   │   ├── teacher-evaluation-detail.jsx ← 採点の右の列（選んだ席の点・根拠・コメント・‹ ›・［作品を開く］）
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
 │   │   │   ├── classroom-teacher-menu/ ← メニューバーの先生メニュー「クラス管理」(表示) #1199
 │   │   │   ├── classroom-teacher-kick-toast/ ← 先生向けの退室依頼トースト / 一覧 (表示) #1200
@@ -54,7 +55,6 @@ smalruby3-editor/
 │   │   │   │   ├── classroom-teacher-modal.jsx ← メイン（ダッシュボード/詳細/作成等）
 │   │   │   │   ├── classroom-teacher-modal.css
 │   │   │   │   ├── teacher-login-phase.jsx ← ログイン画面（カルーセル付き）
-│   │   │   │   ├── teacher-sidebar.jsx ← サイドバー（クラスごとの課題一覧ナビ）
 │   │   │   │   ├── teacher-google-courses-phase.jsx ← GC コースインポート
 │   │   │   │   └── carousel-*.png     ← カルーセル画像
 │   │   │   ├── classroom-tutorial/    ← チュートリアルオーバーレイ
@@ -94,8 +94,9 @@ smalruby3-editor/
 │   │   │   ├── classroom-lesson-settings.js ← 課題のレッスンの設定の純粋ロジック（下書き ↔ API の lesson・完了の条件・採点の点）
 │   │   │   ├── classroom-lesson-progress.js ← 先生の進み具合の純粋ロジック（座席の色・表の記号・できた人・並べ方・CSV）
 │   │   │   ├── classroom-lesson-summary.js ← パネル・席の詳細・［授業］の行・採点・提出状況.csv のレッスンの要約（純粋ロジック）
-│   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
-│   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）を組み立てる（純粋）
+│   │   │   ├── classroom-class-color.js ← クラスの色（帯）を先生のクラスの作成日の順から選ぶ純粋関数
+│   │   │   ├── classroom-group-utils.js ← 組の階層の純粋ヘルパー
+│   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）と保存期限のカード `retentionSummary` を組み立てる（純粋）
 │   │   │   ├── classroom-genai-settings.js ← クラスの生成AI・ルビティー設定の下書き・検証・PATCH 差分（純粋）#1277
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
 │   │   │   ├── classroom-evaluation/ ← sb3-analyzer（静的解析）+ evaluation-utils（総合評価/CSV）
@@ -235,7 +236,7 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 **プレゼンテーショナルコンポーネント** — 生徒フェーズの UI を描画。
 
 サブコンポーネント (同一ファイル内):
-- `ClassCodeDisplay` — 参加コード大画面表示 (Portal 使用)
+- `TeacherProjectionView` — ［⛶ 映す］画面（参加コード・座席・数を大きく。Portal 使用・名前は出さない）
 - `SeatGrid` — 座席グリッド
 - `MemberDetailPanel` — メンバー詳細パネル (右側)
 
@@ -246,10 +247,18 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 
 | ファイル | 責務 |
 |---------|------|
-| `classroom-modal/teacher-view-layout.jsx` | `TeacherScreen`（パンくずを持つトップレベル画面）と `TeacherSubView`（パネル内サブ画面。`as="form"` で `<form>` になる）。パンくず → タイトル → 説明 → エラー → 本文 → フッター の順を固定する |
+| `classroom-modal/teacher-view-layout.jsx` | `TeacherScreen`（いまいる所を持つトップレベル画面）と `TeacherSubView`（パネル内サブ画面。`as="form"` で `<form>` になる）。タブの行 → タイトル → 説明 → エラー → 本文 → フッター の順を固定する。`breadcrumbs` は紫のヘッダーへ運ばれる（`teacher-breadcrumbs.jsx`） |
+| `classroom-modal/teacher-breadcrumbs.jsx` | `TeacherBreadcrumbs`（いまいる所「クラス管理 › クラス名 › 課題名」）。`BreadcrumbSlotContext` で渡されたヘッダーの要素へポータルで描く（無ければその場に描く）。いまの画面は太字で `aria-current="page"`、長い名前は「…」で切って `title` に全体。`breadcrumbMessages`（「クラス管理」・nav の名前） |
+| `classroom-modal/teacher-class-tabs.jsx` | `TeacherClassTabs`（クラスの中のタブ［ストリーム］［授業］［採点］と、tablist の外の［⚙ クラスの設定］）。クラスの画面と採点の画面で使う。`classTabMessages` |
+| `classroom-teacher-modal/teacher-header.jsx` | `TeacherHeader`（紫のヘッダー「← エディタに戻る｜いまいる所」＋ 右にベル・アバター）。いまいる所はポータルで運び込まれる要素（`slotRef`）。共有 `Modal` のヘッダーは隠す |
 | `classroom-modal/class-ai-settings.jsx` | クラス設定の「このクラスで使う AI」欄。「学校の生成AI に相談」（使わない / Gemini / ChatGPT / その他）とルビティー（トグル）の 2 行に、それぞれ生徒の画面に起こることを書く。生成AI を選ぶとその行の下に条件・必須の確認・URL を、ルビティーをオンにするとその行の下に条件・必須の確認を開く。下書きは親のクラス設定フォームが持ち、「保存」で変わった項目だけ送る |
 | `classroom-modal/class-ai-student-preview.jsx` | クラス設定フォームの右に出す「生徒の画面はこうなります」の見本（CSS だけで描く）。未保存の入力に合わせて、コード・Ruby 両方の「AI に相談」の顔と、顔のパネルの［ルビティーにまかせる］の有無を変える。幅 1100px 未満では出さない |
-| `classroom-modal/classroom-button.jsx` | `ClassroomButton`（`variant="primary" / "secondary" / "danger"`）。ボタンの見た目はここだけが持つ |
+| `classroom-modal/classroom-button.jsx` | `ClassroomButton`（`variant="primary" / "secondary" / "text" / "danger"`）。ボタンの見た目はここだけが持つ（Scratch の形・高さ 36px。[`../design-system/components/buttons.md`](../design-system/components/buttons.md) の「クラス管理のボタン」） |
+| `classroom-modal/classroom-tab.jsx` | `ClassroomTab`（下に線のタブ。選ばれたら主の色の文字と 3px の線）。並びは `styles.tabList` の `role="tablist"` で包み、右端のボタンは tablist の外の同じ行に置く（[`../design-system/components/tabs.md`](../design-system/components/tabs.md) の「クラス管理のタブ」） |
+| `classroom-modal/teacher-class-card.jsx` | クラス一覧のカード `ClassCard`（色の帯・要約・次の授業日・札、下に［採点］［⚙ 設定］⋮）と、⋮ の「アーカイブ」の確認 `ArchiveClassDialog` |
+| `classroom-modal/teacher-review-band.jsx` | クラス一覧の上の「確認が必要な課題」`TeacherReviewBand`。課題の一覧の各課題の `unreturnedCount` を読み、返却していない提出がある課題を最大 3 件出す（提出の一覧は問い合わせない） |
+| `lib/classroom-class-list-summary.js` | クラス一覧の要約の純粋関数: 授業日 `lessonDateKey`（UTC の ISO を利用者の時間帯の日付に直す）、次の授業日 `nextLessonFor`、「確認が必要な課題」`reviewItems`（`unreturnedCount` を読む。数がそろわなければ null）、ストリームの「いまの課題」`currentAssignmentFor`（授業日が今日、無ければいちばん近い授業日） |
+| `lib/classroom-class-color.js` | クラスの色（帯の色）を先生のクラスの一覧の作成日の順（取れなければ id のハッシュ）から選ぶ純粋関数 `classColorFor` / `classColorStyle` と色の一覧 `CLASS_COLORS`（[`ui-ux.md`](ui-ux.md) の「共通: クラスの色」） |
 
 画面側で `<h2 className={styles.xxxTitle}>` やボタンのクラスを書き起こさないこと
 （それが #1121 / #1122 のズレの発生源だった）。フッターは `footer` スロットに
@@ -261,7 +270,6 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 |---------|------|
 | `classroom-teacher-modal.jsx` | 先生モーダル本体（ダッシュボード、課題詳細、作成、課題配信） |
 | `teacher-login-phase.jsx` | ログイン画面（Google / Microsoft ボタン + カルーセル） |
-| `teacher-sidebar.jsx` | サイドバー（クラスごとの課題一覧ナビゲーション） |
 | `teacher-google-courses-phase.jsx` | Google Classroom コースインポート画面 |
 | `teacher-notifications.jsx` | お知らせセンター（🔔 + 未読バッジ + 一覧パネル、EPIC #1111） |
 

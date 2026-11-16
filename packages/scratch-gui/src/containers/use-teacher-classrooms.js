@@ -155,6 +155,8 @@ export const fetchAssignmentRowSummary = async (api, token, classroom, now = Dat
  * @param {Function} params.showError - error display helper
  * @param {object} params.intl - react-intl intl object
  * @param {Function} params.setIsLoading - loading state setter
+ * @param {boolean} [params.visible] - class management is shown (#1990): hidden behind an
+ *   opened work, the members refresh stops, and starts again (at once) when it comes back
  * @returns {object} classroom state and handler functions
  */
 const useTeacherClassrooms = ({
@@ -167,6 +169,7 @@ const useTeacherClassrooms = ({
     showError,
     intl,
     setIsLoading,
+    visible = true,
 }) => {
     const [classrooms, setClassrooms] = useState([]);
     // Archived assignments (issue #1051): kept separate so every existing
@@ -349,6 +352,8 @@ const useTeacherClassrooms = ({
      * @param {string} classroomId - assignment to open
      * @param {object} [options] - open options
      * @param {string} [options.tab] - force the tab it opens on ('members' | 'description')
+     * @param {boolean} [options.project] - open it on the［⛶ 映す］screen (the stream's
+     *   ［⛶ 全画面で映す］, #1961). The seats need the members tab's refresh, so it opens there.
      * @returns {Promise<boolean>} whether the detail opened
      */
     const handleSelectClassroom = useCallback(
@@ -359,11 +364,11 @@ const useTeacherClassrooms = ({
             if (success) {
                 const tab = pickDetailEntryTab({
                     classroomId,
-                    requestedTab: options.tab,
+                    requestedTab: options.project ? 'members' : options.tab,
                     freshlyCreatedIds: freshlyCreatedIdsRef.current,
                 });
                 freshlyCreatedIdsRef.current.delete(classroomId);
-                setDetailEntry((prev) => ({ tab, seq: prev.seq + 1 }));
+                setDetailEntry((prev) => ({ tab, project: Boolean(options.project), seq: prev.seq + 1 }));
                 setDetailTab(tab);
                 setPhase('teacher-class-detail');
             }
@@ -372,6 +377,14 @@ const useTeacherClassrooms = ({
         },
         [clearError, loadClassroomDetail, setIsLoading, setPhase],
     );
+
+    // The stream's［⛶ 全画面で映す］request is used once (#1961 M1): the detail calls this
+    // after opening the screen, so a later remount of the detail (back from posting to
+    // Google Classroom, etc.) does not open it again. The seq stays, so the detail's
+    // entry effect does not run again.
+    const consumeDetailProject = useCallback(() => {
+        setDetailEntry((prev) => (prev.project ? { ...prev, project: false } : prev));
+    }, []);
 
     /**
      * Restore an archived assignment (issue #1051): flips status back to
@@ -448,7 +461,7 @@ const useTeacherClassrooms = ({
         // The members tab and the lesson progress tab (#1602) both show the
         // seats, so both poll; the description tab does not.
         const pollingTab = detailTab === 'members' || detailTab === 'progress';
-        if (phase === 'teacher-class-detail' && selectedClassroom && idToken && pollingTab) {
+        if (visible && phase === 'teacher-class-detail' && selectedClassroom && idToken && pollingTab) {
             // Refresh immediately when the tab opens, then poll.
             refreshMembersOnly(selectedClassroom.classroomId);
             refreshTimerRef.current = setInterval(() => {
@@ -461,7 +474,7 @@ const useTeacherClassrooms = ({
                 clearInterval(refreshTimerRef.current);
             }
         };
-    }, [phase, selectedClassroom, idToken, refreshMembersOnly, detailTab]);
+    }, [visible, phase, selectedClassroom, idToken, refreshMembersOnly, detailTab]);
 
     // Another assignment: drop the progress of the previous one.
     useEffect(() => {
@@ -708,6 +721,7 @@ const useTeacherClassrooms = ({
         detailTab,
         setDetailTab,
         detailEntry,
+        consumeDetailProject,
         markClassroomCreated,
         handleUpdateAssignmentMeta,
         loadAssignmentSummary,

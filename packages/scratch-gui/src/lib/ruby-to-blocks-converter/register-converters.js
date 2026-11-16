@@ -67,19 +67,9 @@ const registerConverters = function (converter) {
         SensingConverter,
         MyBlocksConverter,
     ].forEach((x) => x.register(converter));
+
+    // After all the converters, as the old `onSend` of Makey Makey was tried last.
+    MakeyMakeyConverter.registerLast(converter);
 };
 
-export {
-    registerConverters as default,
-    MusicConverter,
-    PenConverter,
-    EV3Converter,
-    GdxForConverter,
-    SmalrubotS1Converter,
-    BoostConverter,
-    TranslateConverter,
-    MakeyMakeyConverter,
-    LooksConverter,
-    SoundConverter,
-    SensingConverter,
-};
+export default registerConverters;
