@@ -263,8 +263,8 @@ end-to-end 動作確認: [`tools/playwright-verify/verify-classroom-mesh-connect
 
 レッスンのメッシュのチャレンジでは、ひとりでも練習できるように「練習相手」を出せる（詳しくは
 [`docs/lessons/README.md` の「メッシュの練習相手」](../lessons/README.md#メッシュの練習相手)）。メッシュの拡張は変えず、
-レッスンの側が拡張の受け取り口（`meshService.remoteData` の `smalruby-lesson-practice-partner`）と `runtime.startHats`
-だけを使う。**本物のメッシュでつながっている・つなごうとしているあいだは何もしない**ので、本物のメッシュの動きは変わらない。
+ひとりで使える練習相手と同じ共通の部品（`lib/mesh-practice/loopback.js`）が、拡張の受け取り口（`meshService.remoteData` の
+`smalruby-mesh-practice-partner`）・履歴と `startMessageHats` / `runtime.startHats` だけを使う。**本物のメッシュでつながっている・つなごうとしているあいだは何もしない**ので、本物のメッシュの動きは変わらない。
 
 チャレンジを変えても（新しい作品を読み込んでも）メッシュのグループのつながりは保たれる（拡張と `meshService` は
 作品の読み込みで消えない）。つながったあとに作品を読み込んでも、新しいステージの変数の見張りを付け直すので、「変数を作る」・名前の変更・ブロックでの変更は送られる

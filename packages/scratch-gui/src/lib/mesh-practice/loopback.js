@@ -79,6 +79,9 @@ const setOwner = (runtime, owner) => {
  *   つながない（null を返す）。
  * @param {function(): void} [options.onSuspend] - 本物のメッシュでつなぎ始めて、練習を止めたときに 1 回呼ぶ
  *   （呼んだ側は「使う」を切る。つなぐのに失敗して切れたあとも、勝手に動き出さないように）。
+ * @param {?function(object): void} [options.onStudentAction] - 生徒の作品が相手に送ったもの
+ *   （`{kind: 'message', name, value}` か、ステージの変数を変えた `{kind: 'variable', name, value}`）を
+ *   知らせる。レッスンの練習相手が「相手に届いたもの」をパネルに出すのに使う。
  * @returns {?object} `{press, act, setVariable, syncVariables, detach, isActive}`（つなげなければ null）。
  */
 export const attachPracticeLoopback = ({
@@ -95,6 +98,7 @@ export const attachPracticeLoopback = ({
     },
     owner = 'standalone',
     onSuspend = () => {},
+    onStudentAction = null,
 }) => {
     const runtime = vm.runtime;
     if (owners.has(runtime)) return null;
@@ -156,13 +160,28 @@ export const attachPracticeLoopback = ({
         return svc.remoteData[nodeId] || null;
     };
 
+    // 生徒の作品の変数（ふつうの変数）の値。ステージ（すべてのスプライト用）を先に、なければスプライトの変数
+    const studentVariableValue = (name) => {
+        const targets = (runtime.targets || []).filter((t) => t.isOriginal !== false);
+        const ordered = [...targets.filter((t) => t.isStage), ...targets.filter((t) => !t.isStage)];
+        for (const target of ordered) {
+            const variable = Object.values(target.variables || {}).find(
+                (v) => v.name === name && v.type === SCALAR_TYPE,
+            );
+            if (variable) return String(variable.value);
+        }
+        return '';
+    };
+
+    // `{name, fromVariable}` は、入れるとき（押したとき・返事のとき）の生徒の変数の値を使う（レッスンの D4）
     const setPartnerVariables = (set) => {
         if (!Array.isArray(set) || set.length === 0) return;
         const node = partnerNode(true);
         if (!node) return;
         const timestamp = now();
-        set.forEach(({ name, value }) => {
-            node[name] = { value: clampValue(value), timestamp };
+        set.forEach(({ name, value, fromVariable }) => {
+            const resolved = typeof fromVariable === 'string' ? studentVariableValue(fromVariable) : value;
+            node[name] = { value: clampValue(resolved), timestamp };
         });
     };
 
@@ -253,19 +272,22 @@ export const attachPracticeLoopback = ({
             if (!name) return;
             const svc = service();
             const value = opcode === 'meshV2_broadcastWithValue' ? clampValue(args.VALUE) : '';
+            if (onStudentAction) onStudentAction({ kind: 'message', name, value });
             record('sent', name, value, svc ? svc.meshId : '');
             scheduleReplies(name);
             return;
         }
         if (VARIABLE_OPCODES.has(opcode)) {
             const variable = ownVariable(args);
-            const svc = service();
-            if (!variable || !svc) return;
+            if (!variable) return;
             // 見張りはブロックが動く前に呼ばれるので、動いたあとの値をここで出す
             const value =
                 opcode === 'data_setvariableto'
                     ? String(args.VALUE)
                     : String(toNumber(variable.value) + toNumber(args.VALUE));
+            if (onStudentAction) onStudentAction({ kind: 'variable', name: variable.name, value });
+            const svc = service();
+            if (!svc) return;
             const id = svc.meshId;
             if (!svc.remoteData[id]) svc.remoteData[id] = {};
             const entry = { value, timestamp: now() };

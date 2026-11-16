@@ -10,7 +10,9 @@ import ReactDOM from 'react-dom';
 import { connect } from 'react-redux';
 import LessonPracticePartner from '../components/lesson-practice-partner/lesson-practice-partner.jsx';
 import { attachPracticeLoopback } from '../lib/lessons/practice-loopback';
-import { normalizePartner, practiceAllowed } from '../lib/lessons/practice-partner';
+import { normalizePartner } from '../lib/lessons/practice-partner';
+import { PRACTICE_OWNER_CHANGED } from '../lib/mesh-practice/loopback';
+import { practiceAllowed } from '../lib/mesh-practice/partner';
 import { getCurrentChallenge } from '../reducers/lesson-mode';
 
 const STAGE_SELECTOR = '[class*="stage_stage-wrapper_"]';
@@ -76,12 +78,25 @@ const LessonPracticePartnerContainer = ({ challengeId = null, locale, partnerDef
 
     // 折り返しをつなぐ・外す。同じ練習相手を使うチャレンジ（4-1〜4-3）に移ったときも、チャレンジごとにつなぎ
     // 直す（前のチャレンジで届いたもの・覚えた値を持ち越さない）
+    // ほかの練習相手（ひとりで使う練習相手）がまだつないでいると、共通の部品はつながず null を返す。
+    // その相手が外れたら（PRACTICE_OWNER_CHANGED）つなぎ直す
     useEffect(() => {
         if (!active) return () => {};
-        const loop = attachPracticeLoopback({ vm, partner, onReceived: handleReceived });
-        loopRef.current = loop;
+        let loop = null;
+        let attaching = false;
+        const tryAttach = () => {
+            // つなぐときにも PRACTICE_OWNER_CHANGED が出るので、その中では何もしない
+            if (loop || attaching) return;
+            attaching = true;
+            loop = attachPracticeLoopback({ vm, partner, onReceived: handleReceived });
+            attaching = false;
+            loopRef.current = loop;
+        };
+        tryAttach();
+        vm.runtime.on(PRACTICE_OWNER_CHANGED, tryAttach);
         return () => {
-            loop.detach();
+            vm.runtime.removeListener(PRACTICE_OWNER_CHANGED, tryAttach);
+            if (loop) loop.detach();
             if (loopRef.current === loop) loopRef.current = null;
         };
     }, [active, challengeId, handleReceived, partner, vm]);

@@ -8,6 +8,7 @@ import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonPracticePartnerContainer } from '../../../src/containers/lesson-practice-partner.jsx';
 import { PRACTICE_PARTNER_NODE_ID } from '../../../src/lib/lessons/practice-partner';
+import { attachPracticeLoopback, practiceLoopbackOwner } from '../../../src/lib/mesh-practice/loopback';
 import en from '../../../src/locales/en';
 import ja from '../../../src/locales/ja';
 import jaHira from '../../../src/locales/ja-Hira';
@@ -188,6 +189,17 @@ describe('LessonPracticePartner container', () => {
         // 前のチャレンジで覚えた値（メッセージ = こんにちは）も持ち越さない
         expect(screen.getByTestId('lesson-practice-partner-received')).toHaveTextContent('Received: メッセージ');
         expect(screen.getByTestId('lesson-practice-partner-received')).not.toHaveTextContent('こんにちは');
+    });
+
+    test('waits while another practice partner is connected, and connects once it lets go (#1876)', () => {
+        const vm = makeVm();
+        const other = attachPracticeLoopback({ vm, owner: 'standalone' });
+        renderContainer({ vm });
+        expect(practiceLoopbackOwner(vm.runtime)).toBe('standalone');
+        act(() => other.detach());
+        expect(practiceLoopbackOwner(vm.runtime)).toBe('lesson');
+        fireEvent.click(screen.getAllByTestId('lesson-practice-partner-button')[0]);
+        expect(vm.ext.meshService.remoteData[PRACTICE_PARTNER_NODE_ID].へんじ.value).toBe('こんにちは');
     });
 
     test('strings exist in en / ja / ja-Hira', () => {
