@@ -26,6 +26,7 @@ import {
     partnerLane,
 } from '../../../../src/lib/lessons/activity-diagram/model';
 import { defineChallenge, findChallenge } from '../../../../src/lib/lessons/courses';
+import { ROLES, challengeForRole } from '../../../../src/lib/lessons/role-swap';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 
 const formatJa = formatFromTable(ja);
@@ -1045,6 +1046,52 @@ describe('describeActivityModel', () => {
             'ロボ: 「hello」を受け取ったとき（送る: あなた） → 「やあ」を送る（受け取る: あなた）',
         ]);
         expect(diagram.layout.edges.filter((e) => e.message)).toHaveLength(2);
+    });
+});
+
+describe('the diagram of a pair challenge with roles (#2063)', () => {
+    const laneLines = (diagram) => diagram.layout.description.split('\n').map((line) => line.split(':')[0]);
+
+    test('the Shimaraby role: you are Shimaraby, the partner plays Shimacat', async () => {
+        const { challenge } = findChallenge('chat-l3-mesh-variable');
+        const diagram = await challengeActivityDiagram(challengeForRole(challenge, ROLES.SHIMARABY), {
+            locale: 'ja',
+            format: formatJa,
+            toBlocks: (source) => toBlocks(source.code),
+        });
+        expect([...new Set(laneLines(diagram))]).toEqual([
+            'あなた（シマラビの役） / シマラビ',
+            'あなた（シマラビの役） / シマネコ',
+            '相手（シマネコの役）',
+        ]);
+        expect(diagram.layout.description).toContain('シマラビのきぶんを「うれしい」にする');
+    });
+
+    test('the Shimacat role draws the swapped answer and the partner as the Shimaraby role', async () => {
+        const { challenge } = findChallenge('chat-l3-mesh-variable');
+        const diagram = await challengeActivityDiagram(challengeForRole(challenge, ROLES.SHIMACAT), {
+            locale: 'ja',
+            format: formatJa,
+            toBlocks: (source) => toBlocks(source.code),
+        });
+        expect([...new Set(laneLines(diagram))]).toEqual([
+            'あなた（シマネコの役） / シマネコ',
+            'あなた（シマネコの役） / シマラビ',
+            '相手（シマラビの役）',
+        ]);
+        expect(diagram.layout.description).toContain('シマネコのきぶんを「うれしい」にする');
+        expect(diagram.layout.description).toContain('シマラビのきぶんを「うれしい」にする');
+    });
+
+    test('a challenge without roles keeps "you" and the name of the practice partner', async () => {
+        const { challenge } = findChallenge('chat-l3-mesh-signal');
+        const diagram = await challengeActivityDiagram(challenge, {
+            locale: 'ja',
+            format: formatJa,
+            toBlocks: (source) => toBlocks(source.code),
+        });
+        expect(laneLines(diagram)).toContain('シマネコ');
+        expect(laneLines(diagram).some((line) => line.startsWith('あなた /'))).toBe(true);
     });
 });
 

@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
 import RubyToBlocksConverter from '../../ruby-to-blocks-converter';
+import { roleOfChallenge } from '../role-swap';
 import { en } from './activity-diagram.locale';
 import { challengeActivityDiagram, showsActivityDiagram } from './challenge-diagram';
 
@@ -47,7 +48,9 @@ export const useChallengeActivityDiagram = (challenge, { rubyVersion = '2', scra
     const intl = useIntl();
     const shown = showsActivityDiagram(challenge);
     const msg = scratchBlocks && scratchBlocks.Msg ? scratchBlocks.Msg : null;
-    const key = shown ? `${challenge.id}\n${intl.locale}\n${rubyVersion}\n${msg ? 'msg' : ''}` : null;
+    // シマネコの役（名前を入れかえた形）は同じ id でも別の図なので、役もキーに入れる
+    const role = roleOfChallenge(challenge) || '';
+    const key = shown ? `${challenge.id}\n${role}\n${intl.locale}\n${rubyVersion}\n${msg ? 'msg' : ''}` : null;
     const [state, setState] = useState({ key: null, layout: null });
 
     useEffect(() => {
