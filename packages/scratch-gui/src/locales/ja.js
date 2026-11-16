@@ -289,6 +289,10 @@ export default {
     'gui.classroom.evaluation.needsReview': '要確認',
     'gui.classroom.evaluation.needsReviewTitle': 'AI が判断に迷いました。',
     'gui.classroom.evaluation.returned': '返却済み',
+    'gui.classroom.evaluation.openWork': '作品を開く',
+    'gui.classroom.evaluation.openingWork': '開いています…',
+    'gui.classroom.evaluation.openWorkFailed':
+        '作品を開けませんでした。少し待ってから、もう一度［作品を開く］を押してください。それでも開けないときは、提出を読み込み直してください（書き出していない採点は消えます）。',
     'gui.classroom.teacherDetail.commentLabel': '生徒へのコメント（返却で届きます）',
     'gui.classroom.error.title': 'エラーが発生しました',
     'gui.classroom.error.joinTitle': '参加できませんでした',
@@ -324,6 +328,10 @@ export default {
     'gui.classroom.error.goToLogin': 'ログイン画面を表示',
     'gui.classroom.error.goToJoin': '参加画面を表示',
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーで開く',
+    'gui.classroom.teacherDetail.openLoseComment':
+        '返却していないコメントは消えます。この画面を離れて作品を開きますか？',
+    'gui.classroom.teacherDetail.openStay': 'とどまる',
+    'gui.classroom.teacherDetail.openLeave': '離れる',
     'gui.classroom.teacherDetail.returnSubmission': '返却する',
     'gui.classroom.teacherDetail.hideFromPeers': '他の生徒に見せない',
     'gui.classroom.teacherDetail.returned': '返却済み',

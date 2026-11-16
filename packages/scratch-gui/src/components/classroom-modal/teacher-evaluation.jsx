@@ -522,6 +522,8 @@ const TeacherEvaluation = ({
     onExportAuditCsv,
     onExportEvaluationCsv,
     onLoadSubmissions,
+    onOpenWork = null,
+    openingWork = false,
     onRequestLeave = runAction,
     onReturnComments,
     onRunAi,
@@ -627,6 +629,11 @@ const TeacherEvaluation = ({
     const handleLoad = useCallback(
         () => (loaded ? onRequestLeave(onLoadSubmissions, 'reload') : onLoadSubmissions()),
         [loaded, onRequestLeave, onLoadSubmissions],
+    );
+    // Opening a work closes the classroom screen: ask the same way as closing it (#1980).
+    const handleOpenWork = useCallback(
+        (seat, classroomId) => onRequestLeave(() => onOpenWork(seat, classroomId), 'leave'),
+        [onRequestLeave, onOpenWork],
     );
     const handleRunGrade = useCallback(() => onRunAi('grade'), [onRunAi]);
     const handleRunComment = useCallback(() => onRunAi('comment'), [onRunAi]);
@@ -1184,8 +1191,10 @@ const TeacherEvaluation = ({
                             comment={detailCell ? comments[`${detailCell.seat}:${detailCell.classroomId}`] : null}
                             lessonName={detailLesson ? detailLesson.assignmentName : null}
                             nextSeat={detailNeighbours.next}
+                            openingWork={openingWork}
                             prevSeat={detailNeighbours.prev}
                             seatNumber={detailCell ? detailCell.seat : null}
+                            onOpenWork={onOpenWork ? handleOpenWork : null}
                             onSelectSeat={handleSelectSeat}
                             onSetCellGrade={onSetCellGrade}
                             onSetCellReason={onSetCellReason}
@@ -1211,6 +1220,8 @@ TeacherEvaluation.propTypes = {
         kind: PropTypes.oneOf(['back', 'leave', 'reload']),
     }),
     lessonScores: PropTypes.object,
+    /** A work is being opened from the right column (#1980). */
+    openingWork: PropTypes.bool,
     rubricAxes: PropTypes.arrayOf(PropTypes.object).isRequired,
     scoringChecked: PropTypes.bool,
     scoringSavingId: PropTypes.string,
@@ -1235,6 +1246,8 @@ TeacherEvaluation.propTypes = {
     onExportAuditCsv: PropTypes.func.isRequired,
     onExportEvaluationCsv: PropTypes.func.isRequired,
     onLoadSubmissions: PropTypes.func.isRequired,
+    /** (seat, classroomId) → opens the work in the editor (#1980). Asked through onRequestLeave first. */
+    onOpenWork: PropTypes.func,
     /** (action, kind) → runs action, or asks first when work would be lost (#1923 C4). */
     onRequestLeave: PropTypes.func,
     onReturnComments: PropTypes.func.isRequired,

@@ -22,6 +22,9 @@
  *
  * 採点簿 (#1962): 表は点だけ、セルを押すと右の列 ([data-testid="classroom-eval-detail"]) に根拠・コメント。
  * 各手順で、ページの横スクロールが無いこと・手順の行の右端が画面の中・右の列が画面の中に収まることも測る。
+ *
+ * ［作品を開く］(#1980): 右の列の中で、列をスクロールせずに見えるか・課題名と重ならないか。
+ * 押すと離れる確認を出し、［離れる］で作品をエディタに開いてクラス管理を閉じるか。
  */
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
@@ -329,6 +332,46 @@ record({
 });
 await judge(page, { name: '2 seat 12 chosen', expected: 'classroom-eval-run-grade', shot: 'step2-chosen' });
 
+// ［作品を開く］(#1980): 右の列の中・画面の中にあり、列をスクロールしなくても見える。課題名とは重ならない。
+const openWork = await page.evaluate(() => {
+    const q = (id) => document.querySelector(`[data-testid="${id}"]`);
+    const b = q('classroom-eval-detail-open-work');
+    const d = q('classroom-eval-detail');
+    const l = q('classroom-eval-detail-lesson');
+    if (!b || !d) return null;
+    const r = b.getBoundingClientRect();
+    const dr = d.getBoundingClientRect();
+    const lr = l.getBoundingClientRect();
+    return {
+        text: b.textContent,
+        top: Math.round(r.top),
+        bottom: Math.round(r.bottom),
+        left: Math.round(r.left),
+        right: Math.round(r.right),
+        width: Math.round(r.width),
+        detail: [Math.round(dr.left), Math.round(dr.top), Math.round(dr.right), Math.round(dr.bottom)],
+        lessonRight: Math.round(lr.right),
+        lessonClipped: l.scrollWidth > l.clientWidth,
+        detailScrollTop: d.scrollTop,
+        textFits: b.scrollWidth <= b.clientWidth,
+        vh: window.innerHeight,
+        vw: window.innerWidth,
+    };
+});
+record({
+    name: '[作品を開く] is in the right column, visible without scrolling it, beside the assignment name',
+    ok:
+        !!openWork &&
+        openWork.top >= openWork.detail[1] &&
+        openWork.bottom <= Math.min(openWork.detail[3], openWork.vh) &&
+        openWork.left >= openWork.detail[0] &&
+        openWork.right <= Math.min(openWork.detail[2], openWork.vw) &&
+        openWork.lessonRight <= openWork.left &&
+        openWork.detailScrollTop === 0 &&
+        openWork.textFits,
+    detail: JSON.stringify(openWork),
+});
+
 // ‹ › で移ったセルが、上に留まる見出しの行・左に留まる出席番号の列の下に隠れないか（#1962 FYI1）。
 // 左の課題の列を選び、枠を下の端・右の端までスクロールしてから、上の席へ ‹ で戻る。
 await page.click(`[data-testid="classroom-eval-cell-button-12-${LESSONS[0].classroomId}"]`);
@@ -470,6 +513,12 @@ const entries = [
         },
         yes: /離れる|はなれる/,
     },
+    // ［作品を開く］(#1980): クラス管理を閉じるので、閉じるときと同じく聞く。
+    {
+        name: 'open the work',
+        run: () => page.click('[data-testid="classroom-eval-detail-open-work"]'),
+        yes: /離れる|はなれる/,
+    },
     {
         name: 'load again',
         run: () => page.click('[data-testid="classroom-eval-load"]'),
@@ -535,6 +584,37 @@ record({
 });
 await page.waitForSelector('[data-testid="classroom-eval-matrix"]', { timeout: 30000 });
 await page.waitForTimeout(500);
+
+// ［作品を開く］→［離れる］で、選んだ席の作品をエディタに開き、クラス管理を閉じる (#1980)。
+// 表の解析用の最小の sb3 はコスチュームが無くエディタに読み込めないので、開く 1 つだけ本物の作品を返す。
+const { readFile } = await import('node:fs/promises');
+const openSb3 = await readFile(resolve(REPO_ROOT, 'packages/scratch-gui/test/fixtures/monitor-variable.sb3'));
+await page.route(`https://example.invalid/${LESSONS[0].classroomId}/5.sb3`, (r) =>
+    r.fulfill({ status: 200, body: openSb3, headers: { 'content-type': 'application/octet-stream' } }),
+);
+const openedUrls = [];
+page.on('request', (req) => {
+    if (req.url().startsWith('https://example.invalid/')) openedUrls.push(req.url());
+});
+await page.click(`[data-testid="classroom-eval-cell-button-5-${LESSONS[0].classroomId}"]`);
+await page.click('[data-testid="classroom-eval-detail-open-work"]');
+await page.waitForTimeout(200);
+await page.click('[data-testid="classroom-eval-leave-confirm"]');
+await page.waitForSelector(ROOT, { state: 'detached', timeout: 20000 }).catch(() => {});
+await page.waitForTimeout(1000);
+const opened = await page.evaluate(() => {
+    const vm = window.vm || (window.smalruby && window.smalruby.vm);
+    return {
+        screenGone: !document.querySelector('[data-testid="classroom-phase-teacher-evaluation"]'),
+        sprites: vm ? vm.runtime.targets.filter((t) => t.isOriginal && !t.isStage).map((t) => t.getName()) : null,
+    };
+});
+record({
+    name: '[作品を開く] → [離れる] opens the seat\'s work and closes the classroom screen',
+    ok: opened.screenGone && openedUrls.includes(`https://example.invalid/${LESSONS[0].classroomId}/5.sb3`),
+    detail: `${JSON.stringify(opened)} · fetched ${openedUrls.join(', ')}`,
+});
+await shoot(page, 'open-work-opened');
 
 await browser.close();
 const failed = rows.filter((r) => !r.ok);

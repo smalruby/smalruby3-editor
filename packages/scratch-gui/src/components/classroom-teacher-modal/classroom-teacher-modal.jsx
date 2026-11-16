@@ -350,6 +350,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         getCell={evaluation.getCell}
                         leaveRequest={evaluation.leaveRequest}
                         lessonScores={evaluation.lessonScores}
+                        openingWork={evaluation.openingWork}
                         rubricAxes={evaluation.rubricAxes}
                         scoringChecked={evaluation.scoringChecked}
                         scoringSavingId={evaluation.scoringSavingId}
@@ -373,6 +374,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onExportAuditCsv={evaluation.handleExportAuditCsv}
                         onExportEvaluationCsv={evaluation.handleExportEvaluationCsv}
                         onLoadSubmissions={evaluation.handleLoadSubmissions}
+                        onOpenWork={evaluation.handleOpenWork}
                         onReturnComments={evaluation.handleReturnComments}
                         onRunAi={evaluation.handleRunAi}
                         onSetCellGrade={evaluation.handleSetCellGrade}
