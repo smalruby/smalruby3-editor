@@ -46,7 +46,11 @@ describe('SmalrubyWebHostingStack', () => {
     test('prod creates no preview resources', () => {
         const template = synth('prod');
 
-        template.resourceCountIs('AWS::Route53::HostedZone', 0);
+        // prod のゾーンは smalruby.app だけ（preview.smalruby.app は stg にある）。
+        const zoneNames = Object.values(template.findResources('AWS::Route53::HostedZone')).map(
+            (r) => r.Properties.Name,
+        );
+        expect(zoneNames).toEqual(['smalruby.app.']);
         expect(
             Object.keys(template.findResources('*')).filter((id) => id.startsWith('Preview')),
         ).toEqual([]);
@@ -151,11 +155,13 @@ describe('SmalrubyWebHostingStack', () => {
             );
         });
 
-        test('creates no DNS records or certificates (the live site is untouched)', () => {
-            template.resourceCountIs('AWS::Route53::HostedZone', 0);
-            template.resourceCountIs('AWS::Route53::RecordSet', 0);
+        test('creates no certificate or alias to CloudFront yet (the live site is untouched)', () => {
             template.resourceCountIs('AWS::CertificateManager::Certificate', 0);
             template.resourceCountIs('AWS::CloudFormation::CustomResource', 0);
+            const aliases = Object.values(
+                template.findResources('AWS::Route53::RecordSet'),
+            ).filter((r) => r.Properties.AliasTarget);
+            expect(aliases).toEqual([]);
         });
 
         test('cache policy keeps index.html short and lets hashed assets stay long', () => {
@@ -235,6 +241,9 @@ describe('SmalrubyWebHostingStack', () => {
                     'SiteDeployRoleArn',
                     'SiteDistributionDomainName',
                     'SiteDistributionId',
+                    // smalruby.app のゾーン（test/site-zone.test.ts）
+                    'SiteHostedZoneId',
+                    'SiteHostedZoneNameServers',
                 ].sort(),
             );
         });

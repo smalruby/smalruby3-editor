@@ -16,13 +16,13 @@ stg ステージに、`preview.smalruby.app` のホストゾーン（お名前.c
 | Stage | スタック名 | リソース |
 |---|---|---|
 | stg | `SmalrubyWebHostingStack-stg` | パブリックホストゾーン `preview.smalruby.app`、S3 バケット、CloudFront、ACM 証明書（us-east-1）、A / AAAA（ALIAS）、CI 用 IAM ロール |
-| prod | `SmalrubyWebHostingStack` | 本番 smalruby.app の配信基盤（S3 バケット、CloudFront、CI 用 IAM ロール）。独自ドメイン・証明書・DNS はまだ無い（下の「本番の配信基盤（prod）」） |
+| prod | `SmalrubyWebHostingStack` | 本番 smalruby.app の配信基盤（S3 バケット、CloudFront、CI 用 IAM ロール）と、パブリックホストゾーン `smalruby.app`（お名前.com のレコードを写したもの）。CloudFront の独自ドメイン・証明書はまだ無い（下の「本番の配信基盤（prod）」「ホストゾーン `smalruby.app`（prod）」） |
 | その他（stg2 等） | `SmalrubyWebHostingStack-<stage>` | なし |
 
 - プレビューは stg の API を見るので、プレビュー用の資源は **stg ステージ**に置く。
 - `Deploy Infra` は develop へのマージで prod にも出す。prod でプレビュー用のリソースができないよう、
   プレビュー用の資源は stg だけに作る（同じ名前のゾーンが複数あると、どれが委任先か分からなくなる）。
-- prod には本番（smalruby.app）の配信基盤だけを作る。stg2 などほかのステージでは何も作らない。
+- prod には本番（smalruby.app）の配信基盤と `smalruby.app` のゾーンだけを作る。stg2 などほかのステージでは何も作らない。
 
 ## ホストゾーン `preview.smalruby.app`
 
@@ -218,6 +218,66 @@ curl -sI "https://$DOMAIN/"   # 200・strict-transport-security が付く
 aws s3 rm "s3://$BUCKET/index.html"
 ```
 
+## ホストゾーン `smalruby.app`（prod）
+
+本番のドメイン `smalruby.app` の DNS を、お名前.com から Route 53 へ移すためのゾーン（`docs/hosting/README.md` の段 2）。
+お名前.com のネームサーバーを、このゾーンの NS 4 本に変えるまで（人間が夜間に行う）、誰もこのゾーンを引かない。
+だから作っただけでは、いまの本番には何も起きない。
+
+| 項目 | 値 |
+|---|---|
+| 種類 | パブリックホストゾーン（論理 ID `SiteHostedZone`） |
+| `removalPolicy` | **`RETAIN`** — 作り直すと NS が変わり、お名前.com に登録したネームサーバーと食い違う |
+| Output `SiteHostedZoneNameServers` | NS 4 本（カンマ区切り）。お名前.com のネームサーバーの設定に使う |
+| Output `SiteHostedZoneId` | ホストゾーン ID |
+
+写したレコード（値は `infra/smalruby-web-hosting/lib/site-zone-records.ts`。お名前.com のエクスポートと同じ値）:
+
+| 名前 | 型 | 数 | TTL | 内容 |
+|---|---|---|---|---|
+| `smalruby.app` | A | 4 | 300 | GitHub Pages（185.199.108〜111.153）。お名前.com は 3600 だが、切り替えと戻しを早く効かせるため 300 にする |
+| `smalruby.app` | TXT | 1 | 300 | `google-site-verification=...`（Search Console の所有確認） |
+| `_github-pages-challenge-smalruby.smalruby.app` | TXT | 1 | 3600 | GitHub の組織のドメイン検証。**消さない**（`docs/security/github-pages-subdomain-takeover.md`） |
+| `smalruby.app` | CAA | 6 | 3600 | `issue` amazon.com / amazonaws.com / amazontrust.com / awstrust.com / letsencrypt.org、`issuewild ";"` |
+| `api.smalruby.app` | NS | 4 | 900 | API 群のゾーンへの委任（いまの NS のまま） |
+| `preview.smalruby.app` | NS | 4 | 900 | stg の `PreviewHostedZone` への委任（いまの NS のまま） |
+
+写さないもの: apex の NS / SOA（Route 53 のものになる）、`everdiary.smalruby.app` A（使っていない）。ワイルドカードは作らない。
+
+- お名前.com 側のレコードを変えたら、ここも同じ値にする（ネームサーバーを変えるまでは両方に書いておく決まり）。
+  照合は `scripts/hosting/dns-compare.mjs`（`docs/hosting/verify-scripts.md`）で、お名前.com のエクスポートと
+  `cdk synth` の結果、または両方のネームサーバーへの問い合わせを比べる。
+- NS の値は末尾に `.` を付けて書く（ゾーン名を足した相対名と読まれないように）。
+- apex の A を CloudFront の ALIAS に変えるのは別の変更（本番の向き先が変わるので、人間が夜間にマージする）。
+
+NS はデプロイ後に次で確認する:
+
+```bash
+aws cloudformation describe-stacks --stack-name SmalrubyWebHostingStack \
+  --query "Stacks[0].Outputs[?starts_with(OutputKey, 'SiteHostedZone')]" --output table
+```
+
+### `smalruby.app` のゾーンを作り直すとき（RETAIN の後始末）
+
+考え方は上の「ゾーンを作り直すとき」（`preview.smalruby.app`）と同じ。作り直さないのが基本
+（論理 ID `SiteHostedZone`・スタック名 `SmalrubyWebHostingStack`・ゾーン名を変えない）。やむを得ないときは、
+まず同名のゾーンがいくつあるかを確かめる:
+
+```bash
+aws route53 list-hosted-zones-by-name --dns-name smalruby.app \
+  --query "HostedZones[?Name=='smalruby.app.'].[Id,Config.Comment]" --output table
+```
+
+そのうえで次のどちらかを選ぶ（どちらも人間が手元で行う）。
+
+- **残ったゾーンを取り込む（NS が変わらない。こちらを優先）**: スタックが無い状態で
+  `npx cdk import --context stage=prod` を実行し、`SiteHostedZone` に残ったゾーンの ID を渡す。
+  お名前.com のネームサーバーはそのままでよい。
+- **残ったゾーンを消して作り直す（NS が変わる）**: お名前.com のネームサーバーをまだ変えていないときだけ選ぶ。
+  変えたあとに消すと、`smalruby.app` も `api.` / `preview.` も引けなくなる。残ったゾーンの NS / SOA 以外の
+  レコードを消してからゾーンを消し、`Deploy Infra` で出し直す。新しい NS 4 本（Output `SiteHostedZoneNameServers`）を
+  使う。
+
 ## CI のプレビュー
 
 | 何を | どこで |
@@ -288,7 +348,7 @@ Secrets が無いままマージすると、`Deploy Infra` のこのプロジェ
 
 ### prod のデプロイ
 
-prod には本番の配信基盤（上の「本番の配信基盤（prod）」）がある。追加だけの差分なので、develop への
+prod には本番の配信基盤（上の「本番の配信基盤（prod）」）と `smalruby.app` のゾーンがある。追加だけの差分なので、develop への
 マージで `Deploy Infra` が自動で出す。削除・置き換えを含む差分は自動では出ず、人間が確かめて手元から出す。
 prod にプレビュー用のリソースはできない。
 
@@ -307,7 +367,9 @@ npx cdk synth --context stage=prod
 「バケットが非公開・SSL 必須・ライフサイクルあり」「証明書が us-east-1」「CloudFront が OAC・
 代替ドメイン・viewer-request 関数つき」「ALIAS にワイルドカードが無い」「CI 用ロールの信頼と権限が
 最小」「prod にはプレビュー用の資源が無く、本番の配信基盤（非公開・バージョニングあり・いまの版を消さない・
-独自ドメインも DNS も無い・develop だけを信頼するロール）がある」「stg2 には何も作らない」を確かめる。`test/preview-viewer-request.test.ts` は
+独自ドメインも証明書も無い・develop だけを信頼するロール）がある」「stg2 には何も作らない」を確かめる。`test/site-zone.test.ts` は「prod に `smalruby.app` のゾーンが 1 つあり `RETAIN`・論理 ID が変わらない」「写した
+レコードがお名前.com の値と同じ（apex の A だけ TTL 300）」「apex の NS / SOA・`everdiary`・ワイルドカードが無い」
+「stg / stg2 にはこのゾーンが無い」を確かめる。`test/preview-viewer-request.test.ts` は
 CloudFront Function の実コードを評価して URI の書き換えを確かめる。
 
 CI（`.github/workflows/ci-infra.yml` の `[web-hosting] Unit Tests` / `CDK Build & Synth` /
@@ -318,9 +380,11 @@ CI（`.github/workflows/ci-infra.yml` の `[web-hosting] Unit Tests` / `CDK Buil
 | ファイル | 役割 |
 |---|---|
 | `infra/smalruby-web-hosting/bin/smalruby-web-hosting.ts` | エントリポイント。stage とスタック名を決める |
-| `infra/smalruby-web-hosting/lib/web-hosting-stack.ts` | スタック本体（stg: ホストゾーン・プレビューの配信基盤・CI 用ロール / prod: 本番の配信基盤 `createSiteDelivery()`） |
+| `infra/smalruby-web-hosting/lib/web-hosting-stack.ts` | スタック本体（stg: ホストゾーン・プレビューの配信基盤・CI 用ロール / prod: 本番の配信基盤 `createSiteDelivery()`・ゾーン `createSiteZone()`） |
+| `infra/smalruby-web-hosting/lib/site-zone-records.ts` | `smalruby.app` のゾーンに写すレコードの値（お名前.com と同じ） |
 | `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | CloudFront Function（ディレクトリの URL → `index.html`）。プレビューと本番で共用 |
 | `infra/smalruby-web-hosting/test/web-hosting.test.ts` | スタックのテスト |
+| `infra/smalruby-web-hosting/test/site-zone.test.ts` | `smalruby.app` のゾーンのテスト（写したレコードの一覧・`RETAIN`・prod だけに作る） |
 | `infra/smalruby-web-hosting/test/preview-viewer-request.test.ts` | CloudFront Function のテスト |
 | `.github/workflows/ci-cd.yml`（`preview-deploy`） | プレビューを stg の値でビルドして置く |
 | `.github/workflows/preview-cleanup.yml` | プレビューの片付け |
