@@ -17,7 +17,9 @@ import ShareButton from './share-button.jsx';
 import {ComingSoonTooltip} from '../coming-soon/coming-soon.jsx';
 import Divider from '../divider/divider.jsx';
 import SaveStatus from './save-status.jsx';
+// === Smalruby: Start of google drive save status ===
 import Spinner from '../spinner/spinner.jsx';
+// === Smalruby: End of google drive save status ===
 import ProjectWatcher from '../../containers/project-watcher.jsx';
 import MenuBarMenu from './menu-bar-menu.jsx';
 import {MenuItem, MenuSection} from '../menu/menu.jsx';
@@ -26,13 +28,17 @@ import AuthorInfo from './author-info.jsx';
 import AccountNav from '../../components/menu-bar/account-nav.jsx';
 import LoginDropdown from './login-dropdown.jsx';
 import SB3Downloader from '../../containers/sb3-downloader.jsx';
+// === Smalruby: Start of koshien menu ===
 import RubyDownloader from '../../containers/ruby-downloader.jsx';
+// === Smalruby: End of koshien menu ===
 import DeletionRestorer from '../../containers/deletion-restorer.jsx';
 import TurboMode from '../../containers/turbo-mode.jsx';
 import MenuBarHOC from '../../containers/menu-bar-hoc.jsx';
+// === Smalruby: Start of google drive ===
 import GoogleDriveLoaderHOC from '../../containers/google-drive-loader-hoc.jsx';
 import GoogleDriveSaverHOC from '../../containers/google-drive-saver-hoc.jsx';
 import GoogleDriveSaveDialog from '../google-drive-save-dialog/google-drive-save-dialog.jsx';
+// === Smalruby: End of google drive ===
 import SettingsMenu from './settings-menu.jsx';
 // === Smalruby: Start of welcome tooltip ===
 import WelcomeTooltip from '../welcome-tooltip/welcome-tooltip.jsx';
@@ -43,22 +49,28 @@ import lessonsIcon from '../../lib/assets/icon--tutorials.svg';
 
 import {
     openDebugModal,
+    // === Smalruby: Start of menu bar modal actions ===
     openKoshienTestModal,
     openKoshienSettingsModal,
     openUrlLoaderModal,
     openConnectionModal,
+    // === Smalruby: End of menu bar modal actions ===
     // === Smalruby: Start of welcome tooltip ===
     openWelcomeModal,
     // === Smalruby: End of welcome tooltip ===
 } from '../../reducers/modals';
+// === Smalruby: Start of mesh v2 menu ===
 import {
     setDomain as setMeshV2Domain,
     // === Smalruby: Start of mesh status popup ===
     openMeshV2StatusPopup
     // === Smalruby: End of mesh status popup ===
 } from '../../reducers/mesh-v2';
+// === Smalruby: End of mesh v2 menu ===
+// === Smalruby: Start of menu bar modal actions ===
 import {setConnectionModalExtensionId} from '../../reducers/connection-modal';
 import {openBlockDisplayModal} from '../../reducers/block-display';
+// === Smalruby: End of menu bar modal actions ===
 import {setPlayer} from '../../reducers/mode';
 import {
     isTimeTravel220022BC,
@@ -77,6 +89,7 @@ import {
     remixProject,
     saveProjectAsCopy
 } from '../../reducers/project-state';
+// === Smalruby: Start of google drive and koshien state ===
 import {clearGoogleDriveFile} from '../../reducers/google-drive-file';
 import {
     incrementExtensionLoad,
@@ -84,6 +97,7 @@ import {
     clearAiSaveStatus
 } from '../../reducers/koshien-file';
 import {openKoshienMockPanel} from '../../reducers/koshien-mock-panel';
+// === Smalruby: End of google drive and koshien state ===
 import {
     openAboutMenu,
     closeAboutMenu,
@@ -92,10 +106,14 @@ import {
     closeAccountMenu,
     accountMenuOpen,
     closeFileMenu,
+    // === Smalruby: Start of menu toggle ===
     toggleFileMenu,
+    // === Smalruby: End of menu toggle ===
     fileMenuOpen,
     closeEditMenu,
+    // === Smalruby: Start of menu toggle ===
     toggleEditMenu,
+    // === Smalruby: End of menu toggle ===
     editMenuOpen,
     openLoginMenu,
     closeLoginMenu,
@@ -103,6 +121,7 @@ import {
     openModeMenu,
     closeModeMenu,
     modeMenuOpen,
+    // === Smalruby: Start of extension menus ===
     openKoshienMenu,
     closeKoshienMenu,
     koshienMenuOpen,
@@ -112,14 +131,19 @@ import {
     openSmalrubotS1Menu,
     closeSmalrubotS1Menu,
     smalrubotS1MenuOpen,
+    // === Smalruby: End of extension menus ===
     settingsMenuOpen,
+    // === Smalruby: Start of menu toggle ===
     closeSettingsMenu,
     toggleSettingsMenu
+    // === Smalruby: End of menu toggle ===
 } from '../../reducers/menus';
 
+// === Smalruby: Start of ruby tab ===
 import {updateRubyCodeTarget, updateRubyCodeErrors} from '../../reducers/ruby-code';
 import {activateTab, RUBY_TAB_INDEX} from '../../reducers/editor-tab';
 import {showAlertWithTimeout} from '../../reducers/alerts';
+// === Smalruby: End of ruby tab ===
 
 // === Smalruby: Start of smalrubot firmware menu ===
 import {openSmalrubotFirmwareModal} from '../../reducers/smalrubot-firmware';
@@ -142,15 +166,19 @@ import styles from './menu-bar.css';
 // so upstream's `helpIcon` / `debugIcon` imports are not needed here.
 // === Smalruby: End of help menu ===
 import mystuffIcon from './icon--mystuff.png';
+// === Smalruby: Start of smalruby profile icon ===
 import profileIcon from './profile-hatti.png';
+// === Smalruby: End of smalruby profile icon ===
 import remixIcon from './icon--remix.svg';
 import dropdownCaret from './dropdown-caret.svg';
 import aboutIcon from './icon--about.svg';
 import fileIcon from './icon--file.svg';
 import editIcon from './icon--edit.svg';
+// === Smalruby: Start of extension menus ===
 import koshienIcon from './icon--koshien.svg';
 import meshConnectedIcon from './icon--mesh-connected.png';
 import meshDisconnectedIcon from './icon--mesh-disconnected.png';
+// === Smalruby: End of extension menus ===
 
 // === Smalruby: Start of replace Scratch logos with Smalruby logo ===
 // Upstream imports scratchLogo, scratchLogoAndroid, ninetiesLogo, catLogo,
@@ -167,7 +195,9 @@ import {AccountMenuOptionsPropTypes} from '../../lib/account-menu-options';
 
 const ariaMessages = defineMessages({
     tutorials: {
+        // === Smalruby: Start of help menu ===
         id: 'gui.menuBar.tutorials',
+        // === Smalruby: End of help menu ===
         defaultMessage: 'Tutorials',
         description: 'accessibility text for the tutorials button'
     },
@@ -182,11 +212,13 @@ const ariaMessages = defineMessages({
         id: 'gui.menuBar.debug',
         defaultMessage: 'Debug',
         description: 'accessibility text for the debug button'
+    // === Smalruby: Start of koshien menu ===
     },
     koshien: {
         id: 'gui.menuBar.koshien',
         defaultMessage: 'Smalruby Koshien',
         description: 'accessibility text for the koshien button'
+    // === Smalruby: End of koshien menu ===
     }
 });
 
@@ -282,20 +314,25 @@ class MenuBar extends React.Component {
             'handleClickRemix',
             'handleClickSave',
             'handleClickSaveAsCopy',
+            // === Smalruby: Start of generate ruby from code ===
             'handleClickGenerateRubyFromCode',
+            // === Smalruby: End of generate ruby from code ===
             'handleClickSeeCommunity',
             'handleClickShare',
             'handleSetMode',
             'handleKeyPress',
             'handleRestoreOption',
             'getSaveToComputerHandler',
+            // === Smalruby: Start of koshien menu ===
             'getSaveAIHandler',
             'getSaveAIAsHandler',
             'handleAISaveFinished',
             'handleAISaveAsFinished',
             'handleAISaveError',
             'handleConversionError',
+            // === Smalruby: End of koshien menu ===
             'restoreOptionMessage',
+            // === Smalruby: Start of smalruby menu handlers ===
             'handleClickLoadFromUrl',
             'handleSaveDirectlyToGoogleDrive',
             'handleExtensionAdded',
@@ -307,6 +344,7 @@ class MenuBar extends React.Component {
             'handleClickWelcomeTooltip', // === Smalruby: welcome tooltip ===
             'handleUpdateAvailable',
             'handleUpdateNotificationClick'
+            // === Smalruby: End of smalruby menu handlers ===
         ]);
         // === Smalruby: Start of version update notification ===
         this.state = {
@@ -322,6 +360,7 @@ class MenuBar extends React.Component {
     componentDidMount () {
         document.addEventListener('keydown', this.handleKeyPress);
 
+        // === Smalruby: Start of extension load tracking ===
         // Listen for extension load events
         if (this.props.vm.runtime) {
             this.props.vm.runtime.on('EXTENSION_ADDED', this.handleExtensionAdded);
@@ -331,11 +370,13 @@ class MenuBar extends React.Component {
         }
 
         this.syncMeshV2Domain();
+        // === Smalruby: End of extension load tracking ===
 
         // === Smalruby: Start of version update notification ===
         this.versionChecker.start();
         // === Smalruby: End of version update notification ===
     }
+    // === Smalruby: Start of extension load tracking ===
     componentDidUpdate (prevProps) {
         if (this.props.extensionLoadCounter !== prevProps.extensionLoadCounter) {
             this.syncMeshV2Domain();
@@ -348,6 +389,7 @@ class MenuBar extends React.Component {
         }
         // === Smalruby: End of version update notification ===
     }
+    // === Smalruby: End of extension load tracking ===
     componentWillUnmount () {
         document.removeEventListener('keydown', this.handleKeyPress);
 
@@ -355,6 +397,7 @@ class MenuBar extends React.Component {
         this.versionChecker.stop();
         // === Smalruby: End of version update notification ===
 
+        // === Smalruby: Start of extension load tracking ===
         // Remove extension listener
         if (this.props.vm.runtime) {
             this.props.vm.runtime.off('EXTENSION_ADDED', this.handleExtensionAdded);
@@ -362,6 +405,7 @@ class MenuBar extends React.Component {
             this.props.vm.runtime.off('PERIPHERAL_DISCONNECTED', this.handleExtensionAdded);
             this.props.vm.runtime.off('PERIPHERAL_REQUEST_ERROR', this.handleExtensionAdded);
         }
+        // === Smalruby: End of extension load tracking ===
     }
     // === Smalruby: Start of version update notification ===
     handleUpdateAvailable () {
@@ -399,18 +443,33 @@ class MenuBar extends React.Component {
         const readyToReplaceProject = this.props.confirmReadyToReplaceProject(
             this.props.intl.formatMessage(sharedMessages.replaceProjectWarning)
         );
+        // === Smalruby: Start of menu auto close ===
+        // Upstream calls this.props.onRequestCloseFile() here. Smalruby menus close on item click.
+        // === Smalruby: End of menu auto close ===
         if (readyToReplaceProject) {
             this.props.onClickNew(this.props.canSave && this.props.canCreateNew);
         }
+        // === Smalruby: Start of menu auto close ===
+        // Upstream calls this.props.onRequestCloseFile() here. Smalruby menus close on item click.
+        // === Smalruby: End of menu auto close ===
     }
     handleClickRemix () {
         this.props.onClickRemix();
+        // === Smalruby: Start of menu auto close ===
+        // Upstream calls this.props.onRequestCloseFile() here. Smalruby menus close on item click.
+        // === Smalruby: End of menu auto close ===
     }
     handleClickSave () {
         this.props.onClickSave();
+        // === Smalruby: Start of menu auto close ===
+        // Upstream calls this.props.onRequestCloseFile() here. Smalruby menus close on item click.
+        // === Smalruby: End of menu auto close ===
     }
     handleClickSaveAsCopy () {
         this.props.onClickSaveAsCopy();
+        // === Smalruby: Start of menu auto close ===
+        // Upstream calls this.props.onRequestCloseFile() here. Smalruby menus close on item click.
+        // === Smalruby: End of menu auto close ===
     }
     handleClickSeeCommunity (waitForUpdate) {
         if (this.props.shouldSaveBeforeTransition()) {
@@ -461,6 +520,9 @@ class MenuBar extends React.Component {
     handleRestoreOption (restoreFun) {
         return () => {
             restoreFun();
+            // === Smalruby: Start of menu auto close ===
+            // Upstream calls this.props.onRequestCloseEdit() here. Smalruby menus close on item click.
+            // === Smalruby: End of menu auto close ===
         };
     }
     handleKeyPress (event) {
@@ -472,6 +534,9 @@ class MenuBar extends React.Component {
     }
     getSaveToComputerHandler (downloadProjectCallback) {
         return () => {
+        // === Smalruby: Start of menu auto close ===
+        // Upstream calls this.props.onRequestCloseFile() here. Smalruby menus close on item click.
+        // === Smalruby: End of menu auto close ===
             downloadProjectCallback();
             if (this.props.onProjectTelemetryEvent) {
                 const metadata = collectMetadata(this.props.vm, this.props.projectTitle, this.props.locale);
@@ -479,6 +544,7 @@ class MenuBar extends React.Component {
             }
         };
     }
+    // === Smalruby: Start of koshien menu ===
     getSaveAIHandler (downloadProjectCallback) {
         return () => {
             // Set AI save status to 'saving'
@@ -506,11 +572,13 @@ class MenuBar extends React.Component {
         this.props.onRequestCloseKoshien();
         this.props.onOpenKoshienMockPanel();
     }
+    // === Smalruby: End of koshien menu ===
     // === Smalruby: Start of welcome tooltip ===
     handleClickWelcomeTooltip () {
         this.props.onShowWelcomeModal();
     }
     // === Smalruby: End of welcome tooltip ===
+    // === Smalruby: Start of smalruby menu handlers ===
     getSaveAIAsHandler (downloadProjectCallback) {
         return () => {
             // Set AI save status to 'saving'
@@ -557,6 +625,7 @@ class MenuBar extends React.Component {
         // Open connection modal
         this.props.onOpenConnectionModal('meshV2');
     }
+    // === Smalruby: End of smalruby menu handlers ===
     // === Smalruby: Start of smalrubot firmware menu ===
     handleSmalrubotS1FirmwareFlash () {
         this.props.onRequestCloseSmalrubotS1();
@@ -565,6 +634,7 @@ class MenuBar extends React.Component {
         this.props.onOpenSmalrubotFirmwareModal();
     }
     // === Smalruby: End of smalrubot firmware menu ===
+    // === Smalruby: Start of mesh v2 menu ===
     syncMeshV2Domain () {
         const extension = this.props.vm && this.props.vm.runtime &&
             this.props.vm.runtime.peripheralExtensions &&
@@ -614,6 +684,7 @@ class MenuBar extends React.Component {
             icon: connected ? meshConnectedIcon : meshDisconnectedIcon
         };
     }
+    // === Smalruby: End of mesh v2 menu ===
     restoreOptionMessage (deletedItem) {
         switch (deletedItem) {
         case 'Sprite':
@@ -731,6 +802,9 @@ class MenuBar extends React.Component {
     wrapAboutMenuCallback (callback) {
         return () => {
             callback();
+            // === Smalruby: Start of menu auto close ===
+            // Upstream calls this.props.onRequestCloseAbout() here. Smalruby menus close on item click.
+            // === Smalruby: End of menu auto close ===
         };
     }
     render () {
@@ -762,6 +836,7 @@ class MenuBar extends React.Component {
                 id="gui.menuBar.new"
             />
         );
+        // === Smalruby: Start of generate ruby from code ===
         const generateRubyFromCodeMessage = (
             <FormattedMessage
                 defaultMessage="Generate Ruby from Code"
@@ -769,6 +844,7 @@ class MenuBar extends React.Component {
                 id="gui.smalruby3.menuBar.generateRubyFromCode"
             />
         );
+        // === Smalruby: End of generate ruby from code ===
         const remixButton = (
             <Button
                 className={classNames(
@@ -838,7 +914,9 @@ class MenuBar extends React.Component {
                             isRtl={this.props.isRtl}
                             onRequestClose={this.props.onRequestCloseSettings}
                             onRequestOpen={this.props.onClickSettings}
+                            // === Smalruby: Start of block display modal ===
                             onOpenBlockDisplayModal={this.props.onOpenBlockDisplayModal}
+                            // === Smalruby: End of block display modal ===
                             settingsMenuOpen={this.props.settingsMenuOpen}
                         />)}
                         {(this.props.canManageFiles) && (
@@ -909,6 +987,7 @@ class MenuBar extends React.Component {
                                             </MenuItem>
                                         )}</SB3Downloader>
                                     </MenuSection>
+                                    {/* === Smalruby: Start of google drive and scratch url loading === */}
                                     <MenuSection>
                                         <MenuItem
                                             onClick={this.handleClickLoadFromUrl}
@@ -950,6 +1029,7 @@ class MenuBar extends React.Component {
                                             />
                                         </MenuItem>
                                     </MenuSection>
+                                    {/* === Smalruby: End of google drive and scratch url loading === */}
                                 </MenuBarMenu>
                             </div>
                         )}
@@ -985,7 +1065,9 @@ class MenuBar extends React.Component {
                                 <MenuSection>
                                     <TurboMode>{(toggleTurboMode, {turboMode}) => (
                                         <MenuItem
+                                            // === Smalruby: Start of menu auto close ===
                                             closeOnClick={false}
+                                            // === Smalruby: End of menu auto close ===
                                             onClick={toggleTurboMode}
                                         >
                                             {turboMode ? (
@@ -1004,6 +1086,7 @@ class MenuBar extends React.Component {
                                         </MenuItem>
                                     )}</TurboMode>
                                 </MenuSection>
+                                {/* === Smalruby: Start of generate ruby from code === */}
                                 <MenuSection>
                                     <MenuItem
                                         isRtl={this.props.isRtl}
@@ -1012,6 +1095,7 @@ class MenuBar extends React.Component {
                                         {generateRubyFromCodeMessage}
                                     </MenuItem>
                                 </MenuSection>
+                                {/* === Smalruby: End of generate ruby from code === */}
                             </MenuBarMenu>
 
                         </div>
@@ -1166,6 +1250,7 @@ class MenuBar extends React.Component {
                         </div>
                     </div>
                     {/* === Smalruby: End of lessons button === */}
+                    {/* === Smalruby: Start of mesh v2 menu === */}
                     <Divider className={classNames(styles.divider)} />
                     <div className={styles.fileGroup}>
                         {(() => {
@@ -1236,6 +1321,7 @@ class MenuBar extends React.Component {
                                                     meshV2Status.message
                                                 )}
                                             </MenuItem>
+                    {/* === Smalruby: End of mesh v2 menu === */}
                                             {/* === Smalruby: Start of mesh status popup === */}
                                             <MenuItem
                                                 data-testid="menu-bar-mesh-status"
@@ -1248,11 +1334,13 @@ class MenuBar extends React.Component {
                                                 />
                                             </MenuItem>
                                             {/* === Smalruby: End of mesh status popup === */}
+                                        {/* === Smalruby: Start of mesh v2 menu === */}
                                         </MenuSection>
                                     </MenuBarMenu>
                                 </div>
                             );
                         })()}
+                                        {/* === Smalruby: End of mesh v2 menu === */}
                         {/* === Smalruby: Start of smalrubot firmware menu === */}
                         {(() => {
                             const vm = this.props.vm;
@@ -1345,6 +1433,7 @@ class MenuBar extends React.Component {
                             </React.Fragment>
                         )}
                         {/* === Smalruby: End of classroom button === */}
+                        {/* === Smalruby: Start of koshien menu === */}
                         {this.props.vm.extensionManager &&
                             this.props.vm.extensionManager.isExtensionLoaded('koshien') && (
                             <div
@@ -1458,6 +1547,7 @@ class MenuBar extends React.Component {
                             </div>
                         )}
                     </div>
+                        {/* === Smalruby: End of koshien menu === */}
                 </div>
 
                 {/* show the proper UI in the account menu, given whether the user is
@@ -1468,6 +1558,7 @@ class MenuBar extends React.Component {
                             <SaveStatus />
                         )}
                     </div>
+                    {/* === Smalruby: Start of google drive save status === */}
                     {this.props.googleDriveSaveStatus === 'saving' && (
                         <div className={styles.saveStatus}>
                             <Spinner
@@ -1489,6 +1580,7 @@ class MenuBar extends React.Component {
                             />
                         </div>
                     )}
+                    {/* === Smalruby: End of google drive save status === */}
                     {/* === Smalruby: Start of improved auth_error UX === */}
                     {this.props.googleDriveFile &&
                         this.props.googleDriveFile.isGoogleDriveFile &&
@@ -1526,6 +1618,7 @@ class MenuBar extends React.Component {
                         </div>
                     )}
                     {/* === Smalruby: End of improved auth_error UX === */}
+                    {/* === Smalruby: Start of google drive save status === */}
                     {this.props.googleDriveSaveDirectStatus === 'saving' && (
                         <div className={styles.saveStatus}>
                             <Spinner
@@ -1547,6 +1640,8 @@ class MenuBar extends React.Component {
                             />
                         </div>
                     )}
+                    {/* === Smalruby: End of google drive save status === */}
+                    {/* === Smalruby: Start of koshien menu === */}
                     {this.props.aiSaveStatus === 'saving' && (
                         <div className={styles.saveStatus}>
                             <Spinner
@@ -1568,6 +1663,7 @@ class MenuBar extends React.Component {
                             />
                         </div>
                     )}
+                    {/* === Smalruby: End of koshien menu === */}
 
                     {menuOpts.canHaveSession ? (
                         this.props.username ? (
@@ -1699,7 +1795,9 @@ class MenuBar extends React.Component {
                                                 src={profileIcon}
                                             />
                                             <span>
+                                                {/* === Smalruby: Start of smalruby profile icon === */}
                                                 {'smalruby-hatti'}
+                                                {/* === Smalruby: End of smalruby profile icon === */}
                                             </span>
                                             <img
                                                 className={styles.dropdownCaretIcon}
@@ -1727,6 +1825,7 @@ class MenuBar extends React.Component {
                 {/* === Smalruby: End of classroom teacher menu === */}
                 {aboutButton}
 
+                {/* === Smalruby: Start of google drive === */}
                 {/* Google Drive Save Dialog */}
                 <GoogleDriveSaveDialog
                     defaultFilename={this.props.projectFilename}
@@ -1735,6 +1834,7 @@ class MenuBar extends React.Component {
                     onCancel={this.props.onCancelGoogleDriveSave}
                     onSave={this.props.onSaveToGoogleDrive}
                 />
+                {/* === Smalruby: End of google drive === */}
             </Box>
         );
     }
@@ -1765,8 +1865,11 @@ MenuBar.propTypes = {
     currentLocale: PropTypes.string.isRequired,
     editMenuOpen: PropTypes.bool,
     enableCommunity: PropTypes.bool,
+    // === Smalruby: Start of extension load tracking ===
     extensionLoadCounter: PropTypes.number,
+    // === Smalruby: End of extension load tracking ===
     fileMenuOpen: PropTypes.bool,
+    // === Smalruby: Start of smalruby menu props ===
     googleDriveFile: PropTypes.shape({
         fileId: PropTypes.string,
         fileName: PropTypes.string,
@@ -1781,21 +1884,28 @@ MenuBar.propTypes = {
     googleDriveSaveDirectStatus: PropTypes.string,
     googleDriveSaveStatus: PropTypes.string,
     aiSaveStatus: PropTypes.string,
+    // === Smalruby: End of smalruby menu props ===
     intl: intlShape,
+    // === Smalruby: Start of google drive ===
     isGoogleDriveFile: PropTypes.bool,
+    // === Smalruby: End of google drive ===
     isRtl: PropTypes.bool,
     isShared: PropTypes.bool,
     isShowingProject: PropTypes.bool,
     isTotallyNormal: PropTypes.bool,
     isUpdating: PropTypes.bool,
+    // === Smalruby: Start of koshien menu ===
     koshienMenuOpen: PropTypes.bool,
+    // === Smalruby: End of koshien menu ===
     hasActiveMembership: PropTypes.bool,
     locale: PropTypes.string.isRequired,
     loginMenuOpen: PropTypes.bool,
     logo: PropTypes.string,
+    // === Smalruby: Start of extension menus ===
     meshV2Domain: PropTypes.string,
     meshV2MenuOpen: PropTypes.bool,
     smalrubotS1MenuOpen: PropTypes.bool, // === Smalruby: smalrubot firmware menu ===
+    // === Smalruby: End of extension menus ===
     mode1920: PropTypes.bool,
     mode1990: PropTypes.bool,
     mode2020: PropTypes.bool,
@@ -1806,7 +1916,9 @@ MenuBar.propTypes = {
         PropTypes.func, // button mode: call this callback when the About button is clicked
         PropTypes.arrayOf( // menu mode: list of items in the About menu
             PropTypes.shape({
+                // === Smalruby: Start of about menu ===
                 title: PropTypes.node, // text for the menu item
+                // === Smalruby: End of about menu ===
                 onClick: PropTypes.func // call this callback when the menu item is clicked
             })
         )
@@ -1814,9 +1926,12 @@ MenuBar.propTypes = {
     onClickAccount: PropTypes.func,
     onClickEdit: PropTypes.func,
     onClickFile: PropTypes.func,
+    // === Smalruby: Start of koshien menu ===
     onClickKoshien: PropTypes.func,
+    // === Smalruby: End of koshien menu ===
     onClickLogin: PropTypes.func,
     onClickLogo: PropTypes.func,
+    // === Smalruby: Start of smalruby menu props ===
     onOpenTipsLibrary: PropTypes.func,
     // === Smalruby: Start of lessons button ===
     onOpenLessonsLibrary: PropTypes.func,
@@ -1829,41 +1944,55 @@ MenuBar.propTypes = {
     onOpenMeshV2StatusPopup: PropTypes.func,
     // === Smalruby: End of mesh status popup ===
     onClickSmalrubotS1: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
+    // === Smalruby: End of smalruby menu props ===
     onClickMode: PropTypes.func,
     onClickNew: PropTypes.func,
     onClickRemix: PropTypes.func,
     onClickSave: PropTypes.func,
     onClickSaveAsCopy: PropTypes.func,
     onClickSettings: PropTypes.func,
+    // === Smalruby: Start of extension load tracking ===
     onExtensionLoaded: PropTypes.func,
+    // === Smalruby: End of extension load tracking ===
     onLogOut: PropTypes.func,
     onOpenRegistration: PropTypes.func,
+    // === Smalruby: Start of menu bar modal actions ===
     onOpenBlockDisplayModal: PropTypes.func,
     onOpenConnectionModal: PropTypes.func,
+    // === Smalruby: End of menu bar modal actions ===
     onOpenDebugModal: PropTypes.func,
+    // === Smalruby: Start of koshien menu ===
     onOpenKoshienTestModal: PropTypes.func,
     onOpenKoshienSettingsModal: PropTypes.func,
     onOpenKoshienMockPanel: PropTypes.func,
+    // === Smalruby: End of koshien menu ===
     onProjectTelemetryEvent: PropTypes.func,
     onRequestCloseAbout: PropTypes.func,
     onRequestCloseAccount: PropTypes.func,
     onRequestCloseEdit: PropTypes.func,
     onRequestCloseFile: PropTypes.func,
+    // === Smalruby: Start of koshien menu ===
     onRequestCloseKoshien: PropTypes.func,
+    // === Smalruby: End of koshien menu ===
     onRequestCloseLogin: PropTypes.func,
+    // === Smalruby: Start of extension menus ===
     onRequestCloseMeshV2: PropTypes.func,
     onRequestCloseSmalrubotS1: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onOpenSmalrubotFirmwareModal: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onOpenClassroomModal: PropTypes.func, // === Smalruby: classroom button ===
+    // === Smalruby: End of extension menus ===
     onRequestCloseMode: PropTypes.func,
     onRequestCloseSettings: PropTypes.func,
     onRequestOpenAbout: PropTypes.func,
+    // === Smalruby: Start of google drive ===
     onCancelGoogleDriveSave: PropTypes.func,
     onSaveToGoogleDrive: PropTypes.func,
+    // === Smalruby: End of google drive ===
     onSeeCommunity: PropTypes.func,
     onSetTimeTravelMode: PropTypes.func,
     onShare: PropTypes.func,
     onStartSelectingFileUpload: PropTypes.func,
+    // === Smalruby: Start of smalruby menu props ===
     onStartSelectingGoogleDrive: PropTypes.func,
     onStartSavingToGoogleDrive: PropTypes.func,
     onSaveDirectlyToGoogleDrive: PropTypes.func,
@@ -1872,18 +2001,25 @@ MenuBar.propTypes = {
     onShowConvertRubyToBlocksErrorAlert: PropTypes.func,
     onClearAiSaveStatus: PropTypes.func,
     onStartSelectingUrlLoad: PropTypes.func,
+    // === Smalruby: End of smalruby menu props ===
     onToggleLoginOpen: PropTypes.func,
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
+    // === Smalruby: Start of smalruby menu props ===
     projectFilename: PropTypes.string,
     projectChanged: PropTypes.bool,
+    // === Smalruby: End of smalruby menu props ===
     projectTitle: PropTypes.string,
     renderLogin: PropTypes.func,
+    // === Smalruby: Start of smalruby menu props ===
     sessionExists: PropTypes.bool,
+    // === Smalruby: End of smalruby menu props ===
     settingsMenuOpen: PropTypes.bool,
     shouldSaveBeforeTransition: PropTypes.func,
     showComingSoon: PropTypes.bool,
+    // === Smalruby: Start of ruby tab ===
     onUpdateRubyCodeErrors: PropTypes.func,
     updateRubyCodeTargetState: PropTypes.func,
+    // === Smalruby: End of ruby tab ===
     username: PropTypes.string,
     avatarBadge: PropTypes.number,
     userOwnsProject: PropTypes.bool,
@@ -1894,7 +2030,9 @@ MenuBar.propTypes = {
 };
 
 MenuBar.defaultProps = {
+    // === Smalruby: Start of replace Scratch logos with Smalruby logo ===
     logo: smalrubyLogo,
+    // === Smalruby: End of replace Scratch logos with Smalruby logo ===
     onShare: () => {}
 };
 
@@ -1910,6 +2048,7 @@ const mapStateToProps = (state, ownProps) => {
         currentLocale: state.locales.locale,
         fileMenuOpen: fileMenuOpen(state),
         editMenuOpen: editMenuOpen(state),
+        // === Smalruby: Start of smalruby menu state ===
         koshienMenuOpen: koshienMenuOpen(state),
         meshV2Domain: state.scratchGui.meshV2 ? state.scratchGui.meshV2.domain : null,
         meshV2MenuOpen: meshV2MenuOpen(state),
@@ -1924,15 +2063,20 @@ const mapStateToProps = (state, ownProps) => {
         aiSaveStatus: state.scratchGui.koshienFile.aiSaveStatus,
         googleDriveFile: state.scratchGui.googleDriveFile,
         isGoogleDriveFile: state.scratchGui.googleDriveFile.isGoogleDriveFile,
+        // === Smalruby: End of smalruby menu state ===
         isRtl: state.locales.isRtl,
         isUpdating: getIsUpdating(loadingState),
         isShowingProject: getIsShowingProject(loadingState),
         locale: state.locales.locale,
         loginMenuOpen: loginMenuOpen(state),
         modeMenuOpen: modeMenuOpen(state),
+        // === Smalruby: Start of smalruby menu state ===
         projectChanged: state.scratchGui.projectChanged,
+        // === Smalruby: End of smalruby menu state ===
         projectTitle: state.scratchGui.projectTitle,
+        // === Smalruby: Start of smalruby menu state ===
         sessionExists: sessionExists ?? false,
+        // === Smalruby: End of smalruby menu state ===
         settingsMenuOpen: settingsMenuOpen(state),
         username: ownProps.username ?? (user ? user.username : null),
         avatarBadge: user ? user.membership_avatar_badge : null,
@@ -1969,7 +2113,11 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = (dispatch, ownProps) => ({
     autoUpdateProject: () => dispatch(autoUpdateProject()),
+    // === Smalruby: Start of help menu ===
+    // onOpenTipsLibrary comes from MenuBarHOC (see containers/menu-bar-hoc.jsx).
+    // === Smalruby: End of help menu ===
     onOpenDebugModal: () => dispatch(openDebugModal()),
+    // === Smalruby: Start of menu bar modal actions ===
     onOpenConnectionModal: id => {
         dispatch(setConnectionModalExtensionId(id));
         dispatch(openConnectionModal());
@@ -1977,12 +2125,18 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     onOpenBlockDisplayModal: () => dispatch(openBlockDisplayModal()),
     onOpenKoshienTestModal: () => dispatch(openKoshienTestModal()),
     onOpenKoshienSettingsModal: () => dispatch(openKoshienSettingsModal()),
+    // === Smalruby: End of menu bar modal actions ===
     onClickAccount: () => dispatch(openAccountMenu()),
     onRequestCloseAccount: () => dispatch(closeAccountMenu()),
+    // === Smalruby: Start of menu toggle ===
     onClickFile: () => dispatch(toggleFileMenu()),
+    // === Smalruby: End of menu toggle ===
     onRequestCloseFile: () => dispatch(closeFileMenu()),
+    // === Smalruby: Start of menu toggle ===
     onClickEdit: () => dispatch(toggleEditMenu()),
+    // === Smalruby: End of menu toggle ===
     onRequestCloseEdit: () => dispatch(closeEditMenu()),
+    // === Smalruby: Start of extension menus ===
     onClickKoshien: () => dispatch(openKoshienMenu()),
     onRequestCloseKoshien: () => dispatch(closeKoshienMenu()),
     onClickMeshV2: () => dispatch(openMeshV2Menu()),
@@ -2004,40 +2158,51 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     // === Smalruby: Start of welcome tooltip ===
     onShowWelcomeModal: () => dispatch(openWelcomeModal()),
     // === Smalruby: End of welcome tooltip ===
+    // === Smalruby: End of extension menus ===
     onClickLogin: ownProps.onClickLogin ?? (() => dispatch(openLoginMenu())),
     onRequestCloseLogin: () => dispatch(closeLoginMenu()),
     onClickMode: () => dispatch(openModeMenu()),
     onRequestCloseMode: () => dispatch(closeModeMenu()),
     onRequestOpenAbout: () => dispatch(openAboutMenu()),
     onRequestCloseAbout: () => dispatch(closeAboutMenu()),
+    // === Smalruby: Start of menu toggle ===
     onClickSettings: () => dispatch(toggleSettingsMenu()),
+    // === Smalruby: End of menu toggle ===
     onRequestCloseSettings: () => dispatch(closeSettingsMenu()),
+    // === Smalruby: Start of google drive ===
     onClickNew: needSave => {
         dispatch(requestNewProject(needSave));
         dispatch(clearGoogleDriveFile());
     },
+    // === Smalruby: End of google drive ===
     onClickRemix: () => dispatch(remixProject()),
     onClickSave: () => dispatch(manualUpdateProject()),
     onClickSaveAsCopy: () => dispatch(saveProjectAsCopy()),
+    // === Smalruby: Start of smalruby menu dispatch ===
     onExtensionLoaded: () => dispatch(incrementExtensionLoad()),
     onOpenKoshienMockPanel: () => dispatch(openKoshienMockPanel()),
     onSetMeshV2Domain: domain => dispatch(setMeshV2Domain(domain)),
     onSetAiSaveStatus: status => dispatch(setAiSaveStatus(status)),
     onClearAiSaveStatus: () => dispatch(clearAiSaveStatus()),
+    // === Smalruby: End of smalruby menu dispatch ===
     onSeeCommunity: ownProps.onSeeCommunity ?? (() => dispatch(setPlayer(true))),
     onSetTimeTravelMode: mode => dispatch(setTimeTravel(mode)),
+    // === Smalruby: Start of smalruby menu dispatch ===
     updateRubyCodeTargetState: target => dispatch(updateRubyCodeTarget(target)),
     onStartSelectingUrlLoad: () => dispatch(openUrlLoaderModal()),
     onActivateRubyTab: () => dispatch(activateTab(RUBY_TAB_INDEX)),
     onShowConvertRubyToBlocksErrorAlert: () => showAlertWithTimeout(dispatch, 'convertRubyToBlocksError'),
     onUpdateRubyCodeErrors: errors => dispatch(updateRubyCodeErrors(errors))
+    // === Smalruby: End of smalruby menu dispatch ===
 });
 
 export default compose(
     injectIntl,
     MenuBarHOC,
+    // === Smalruby: Start of google drive ===
     GoogleDriveLoaderHOC,
     GoogleDriveSaverHOC,
+    // === Smalruby: End of google drive ===
     connect(
         mapStateToProps,
         mapDispatchToProps
