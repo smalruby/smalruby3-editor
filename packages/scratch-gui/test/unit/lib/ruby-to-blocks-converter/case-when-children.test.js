@@ -109,7 +109,7 @@ describe('RubyToBlocksConverter: the code inside case / when (issue #1813)', () 
         });
     });
 
-    describe('super inside a when (`_nodeContainsSuper`)', () => {
+    describe('super inside a when (`containsSuper` of class-analysis.js)', () => {
         test('super in the body of a when calls the method of the module', async () => {
             const converter = new RubyToBlocksConverter(null, { version: '2' });
             const code = dedent`
