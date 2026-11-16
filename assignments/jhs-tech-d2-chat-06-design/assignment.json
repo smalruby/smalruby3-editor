@@ -1,0 +1,36 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d2-chat-06-design",
+    "version": "0.1.0",
+    "series": "jhs-tech-d2-chat",
+    "number": 6,
+    "title": "便利・快適・安全なチャットを設計しよう",
+    "goal": "制作工程表を作り、作るものを決めて、アクティビティ図で設計する。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(2) 双方向性のあるコンテンツのプログラミングによる問題解決",
+    "grade": 2,
+    "hours": 1,
+    "starter": null,
+    "license": "CC0-1.0",
+    "worksheetPages": [
+        7
+    ],
+    "lessons": [],
+    "submit": {
+        "project": null,
+        "worksheet": true
+    },
+    "files": [
+        {
+            "file": "worksheet.pdf",
+            "kind": "worksheet",
+            "audience": "student"
+        },
+        {
+            "file": "worksheet-teacher.pdf",
+            "kind": "worksheet",
+            "audience": "teacher"
+        }
+    ]
+}
