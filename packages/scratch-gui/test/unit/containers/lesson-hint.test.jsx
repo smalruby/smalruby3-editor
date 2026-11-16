@@ -98,6 +98,22 @@ describe('LessonHint container', () => {
         expect(outside.queryByTestId('lesson-hint')).not.toBeInTheDocument();
     });
 
+    test('a student in a class sees the classroom text of a step that has one', async () => {
+        const step = {
+            target: 'stage',
+            title: { id: 'test.outside', defaultMessage: 'host or join' },
+            classroomTitle: { id: 'test.inClass', defaultMessage: 'by seat number' },
+        };
+        const hint = hintFor(1, { step });
+        const inClass = renderContainer({ ...baseProps(), hint, inClassroom: true });
+        await flush();
+        expect(inClass.getByTestId('lesson-hint-title')).toHaveTextContent('by seat number');
+        inClass.unmount();
+        const outside = renderContainer({ ...baseProps(), hint, inClassroom: false });
+        await flush();
+        expect(outside.getByTestId('lesson-hint-title')).toHaveTextContent('host or join');
+    });
+
     test('shows the activity diagram on the first page of a challenge that asks for it', async () => {
         const found = findChallenge(CHALLENGE_ID);
         const current = { ...found, challenge: { ...found.challenge, activityDiagram: true } };

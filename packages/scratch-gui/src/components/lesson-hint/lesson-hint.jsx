@@ -23,11 +23,28 @@ import {
     hintViewport,
     preferredSides,
 } from '../../lib/lessons/hint-targets';
+import { splitEmphasis } from '../../lib/lessons/hint-text';
 import BalloonButton from '../balloon/balloon-button.jsx';
 import BalloonHeader from '../balloon/balloon-header.jsx';
 import Balloon, { BALLOON_VARIANTS } from '../balloon/balloon.jsx';
 import LessonHintBlocks from './lesson-hint-blocks.jsx';
 import styles from './lesson-hint.css';
+
+// 文言の `**…**` を強調して出す（lib/lessons/hint-text.js）。文字として出すので、訳の中の記号は HTML にならない
+const EmphasizedText = ({ text }) =>
+    splitEmphasis(text).map((part, i) =>
+        part.strong ? (
+            <strong key={i} className={styles.emphasis} data-testid="lesson-hint-emphasis">
+                {part.text}
+            </strong>
+        ) : (
+            <React.Fragment key={i}>{part.text}</React.Fragment>
+        ),
+    );
+
+EmphasizedText.propTypes = {
+    text: PropTypes.string.isRequired,
+};
 
 const messages = defineMessages({
     ariaLabel: {
@@ -384,7 +401,9 @@ const LessonHint = ({
                             {debug.length > 0 ? (
                                 <ul className={styles.debugList} data-testid="lesson-hint-debug">
                                     {debug.map((tip) => (
-                                        <li key={tip.id}>{intl.formatMessage(tip)}</li>
+                                        <li key={tip.id}>
+                                            <EmphasizedText text={intl.formatMessage(tip)} />
+                                        </li>
                                     ))}
                                 </ul>
                             ) : null}
@@ -449,7 +468,7 @@ const LessonHint = ({
                             ) : null}
                             {title ? (
                                 <p className={styles.title} data-testid="lesson-hint-title">
-                                    {intl.formatMessage(title)}
+                                    <EmphasizedText text={intl.formatMessage(title)} />
                                 </p>
                             ) : null}
                             {note ? (

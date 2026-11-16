@@ -78,6 +78,8 @@ const collectMessages = () => {
                 messages.push(challenge.name);
                 if (challenge.task) messages.push(challenge.task);
                 challenge.steps.forEach((step) => step.title && messages.push(step.title));
+                // クラスに参加中の生徒に出す手順の文言（メッシュのつなぎ方）
+                challenge.steps.forEach((step) => step.classroomTitle && messages.push(step.classroomTitle));
                 challenge.debug.forEach((tip) => messages.push(tip));
                 // ふりかえりのクイズ（#1639）
                 if (challenge.quiz) {
@@ -1499,6 +1501,80 @@ describe('chat course lesson 3 "メッシュでつながろう" (#1643)', () => 
         );
         expect(messages[variable.task.id]).toContain(names.mood);
         expect(messages[variable.task.id]).toContain(names.partnerMood);
+    });
+});
+
+describe('chat course: how to connect over the mesh, in and outside a class', () => {
+    const challenge = (id) => findChallenge(id).challenge;
+    const CONNECT_STEPS = [
+        ['chat-l3-mesh-signal', 3],
+        ['chat-l4-send-once', 4],
+    ];
+
+    test.each(CONNECT_STEPS)('%s step %d has a text for a student in a class', (id, number) => {
+        const step = challenge(id).steps[number - 1];
+        expect(step.title.id).toBe(`gui.lessons.challenge.${id}.step${number}`);
+        expect(step.classroomTitle.id).toBe(`gui.lessons.challenge.${id}.step${number}.inClass`);
+        expect(step.classroom).toBeUndefined();
+    });
+
+    test.each(Object.keys(LOCALES))(
+        'in a class it says seat numbers, outside it says host and join (%s)',
+        (locale) => {
+            const words = {
+                ja: { seat: '出席番号でつながる', host: 'ホスト' },
+                'ja-Hira': { seat: 'しゅっせきばんごうで つながる', host: 'ホスト' },
+                en: { seat: 'Connect by seat number', host: 'host' },
+            }[locale];
+            CONNECT_STEPS.forEach(([id, number]) => {
+                const step = challenge(id).steps[number - 1];
+                expect(LOCALES[locale][step.classroomTitle.id]).toContain(words.seat);
+                expect(LOCALES[locale][step.classroomTitle.id]).not.toContain(words.host);
+                expect(LOCALES[locale][step.title.id].toLowerCase()).toContain(words.host.toLowerCase());
+            });
+        },
+    );
+
+    test('only the steps that tell how to connect have a classroom text', () => {
+        const withClassroom = allChallenges().flatMap((c) =>
+            c.steps.map((s, i) => (s.classroomTitle ? `${c.id}:${i + 1}` : null)).filter(Boolean),
+        );
+        expect(withClassroom).toEqual(['chat-l3-mesh-signal:3', 'chat-l4-send-once:4']);
+    });
+});
+
+describe('the emphasis marks (**) in the hints', () => {
+    test.each(Object.keys(LOCALES))('are in pairs and are the same in number across locales (%s)', (locale) => {
+        allChallenges().forEach((c) => {
+            [...c.steps.flatMap((s) => [s.title, s.classroomTitle]), ...c.debug].filter(Boolean).forEach(({ id }) => {
+                const text = LOCALES[locale][id];
+                const marks = (text.match(/\*\*/g) || []).length;
+                expect({ id, even: marks % 2 }).toEqual({ id, even: 0 });
+                expect({ id, marks }).toEqual({ id, marks: (LOCALES.ja[id].match(/\*\*/g) || []).length });
+            });
+        });
+    });
+
+    test('the chat hints that make you select the other sprite are emphasized', () => {
+        expect(ja['gui.lessons.challenge.chat-l3-local-message.step3']).toMatch(
+            /^\*\*シマラビをえらびなおして\*\*、/,
+        );
+        expect(ja['gui.lessons.challenge.chat-l3-local-message.step5']).toMatch(/^\*\*シマネコをえらんで\*\*、/);
+    });
+
+    test('the activity diagram hints describe the shapes, not pentagons or boxes', () => {
+        Object.keys(LOCALES).forEach((locale) =>
+            Object.entries(LOCALES[locale])
+                .filter(([id]) => id.startsWith('gui.lessons.challenge.'))
+                .forEach(([id, text]) =>
+                    expect({ id, text }).toEqual({
+                        id,
+                        text: expect.not.stringMatching(
+                            /五角形|へこんだ箱|ごかくけい|へこんだ はこ|pentagon|notched box/,
+                        ),
+                    }),
+                ),
+        );
     });
 });
 
