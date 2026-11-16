@@ -4,7 +4,6 @@
  * The tables must be what the converter decides now in its pre-passes (`_collectVariableUses`,
  * `_countProcedureCallsInNode`, `_rejectRubyNameOfVariableAndList`), so that the conversion can read
  * them in place of the pre-passes. The Ruby of the existing converter tests is compared one by one.
- * The one difference on purpose: the calls in a `case` are counted (issue #2014).
  */
 import dedent from 'dedent';
 import fs from 'fs';
@@ -129,19 +128,7 @@ const differences = (source) => {
     if (!same(analysis.locals.splitNames, [...units.splitNames].sort())) diffs.push('locals.splitNames');
 
     const counts = analysis.procedures.valueCallCounts;
-    if (!same(sortKeys(counts), sortKeys(context.methodCallCounts))) {
-        // The converter does not count the calls in a `case` (issue #2014): more is expected there.
-        let hasCase = false;
-        forEachNode(root, {
-            enter: (node, type) => {
-                if (type === 'CaseNode') hasCase = true;
-            },
-        });
-        const onlyMore = Object.keys(context.methodCallCounts).every(
-            (name) => (counts[name] || 0) >= context.methodCallCounts[name],
-        );
-        if (!hasCase || !onlyMore) diffs.push('procedures.valueCallCounts');
-    }
+    if (!same(sortKeys(counts), sortKeys(context.methodCallCounts))) diffs.push('procedures.valueCallCounts');
 
     const firstError = analysis.errors[0];
     if (Boolean(firstError) !== Boolean(rejected)) {
@@ -260,9 +247,8 @@ describe('RubyToBlocksConverter/Analysis', () => {
             `;
             const analysis = analyzeRuby(source);
             expect(analysis.procedures.valueCallCounts.foo).toBe(3);
-            // The converter does not see them yet.
             const { context } = converterPrePasses(source, parse(source));
-            expect(context.methodCallCounts.foo || 0).toBe(0);
+            expect(context.methodCallCounts.foo).toBe(3);
         });
 
         test('collects the methods made with `def`', () => {

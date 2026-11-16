@@ -1,5 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (the analysis stage, docs/ruby-editor/converter-stages.md) ===
-import { forEachNode, nodeTypeName } from './node-walk';
+import { childNodesOf, forEachNode, nodeTypeName } from './node-walk';
 
 // The analysis stage: walk the prism tree once (`forEachNode`) before converting, and keep what the
 // conversion needs to know in one frozen table (`Analysis`). It is a pure function of the tree and
@@ -8,8 +8,7 @@ import { forEachNode, nodeTypeName } from './node-walk';
 // The tables follow what the converter decides now in its pre-passes, so that the conversion can
 // read them in place of those pre-passes: `_collectVariableUses` (`variable-utils.js`) for
 // `variables` / `locals`, `_countProcedureCallsInNode` (`context-utils.js`) for `procedures`, and
-// `_rejectRubyNameOfVariableAndList` for `errors`. One difference is on purpose: the calls inside a
-// `case` are counted (issue #2014). The converter does not use this yet.
+// `_rejectRubyNameOfVariableAndList` for `errors`. The converter does not use this yet.
 
 // Methods that the converter turns into list blocks only (a String has no such block), so calling
 // one is evidence that the name is a list (issue #1613). The same as in `variable-utils.js`.
@@ -55,18 +54,6 @@ const VALUE_WRITE_NODE_TYPES = new Set([
     'GlobalVariableWriteNode',
 ]);
 const CONDITION_NODE_TYPES = new Set(['IfNode', 'UnlessNode', 'WhileNode', 'UntilNode']);
-const STATEMENT_CHILD_KEYS = [
-    'statements',
-    'body',
-    'value',
-    'left',
-    'right',
-    'elements',
-    'requireds',
-    'parameters',
-    'arguments_',
-];
-const VALUE_CHILD_KEYS = ['value', 'left', 'right', 'body'];
 const STATEMENT = 'statement';
 const VALUE = 'value';
 
@@ -357,7 +344,7 @@ const valueCallCounter = () => {
             } else if (type === 'StatementsNode') {
                 setRoleOfEach(node.body, VALUE);
             } else {
-                VALUE_CHILD_KEYS.forEach((key) => setRole(node[key], VALUE));
+                setRoleOfEach(childNodesOf(node), VALUE);
             }
             return;
         }
@@ -368,28 +355,13 @@ const valueCallCounter = () => {
         } else if (CONDITION_NODE_TYPES.has(type)) {
             setRole(node.predicate, VALUE);
             [node.statements, node.subsequent, node.elseClause].forEach((c) => setRole(c, STATEMENT));
-        } else if (type === 'CaseNode') {
-            // The converter's pre-pass does not look in here (issue #2014): `case x` and `when x`
-            // are values, the lines of `when` and `else` are lines.
-            setRole(node.predicate, VALUE);
-            setRoleOfEach(node.conditions, STATEMENT);
-            setRole(node.elseClause, STATEMENT);
-        } else if (type === 'WhenNode') {
-            setRoleOfEach(node.conditions, VALUE);
-            setRole(node.statements, STATEMENT);
         } else if (VALUE_WRITE_NODE_TYPES.has(type)) {
             setRole(node.value, VALUE);
         } else if (type === 'ReturnNode') {
             setRoleOfEach(argumentsOf(node), VALUE);
         } else {
-            STATEMENT_CHILD_KEYS.forEach((key) => {
-                const child = node[key];
-                if (nodeTypeName(child)) {
-                    setRole(child, STATEMENT);
-                } else if (child && typeof child === 'object') {
-                    setRoleOfEach(child, STATEMENT);
-                }
-            });
+            // Every child, so that no kind of node hides a call (the `when` of a `case`, issue #2014).
+            setRoleOfEach(childNodesOf(node), STATEMENT);
         }
     };
 
@@ -501,7 +473,7 @@ const classCollector = (lineOf) => {
  * - `locals`: the units of local variables: `unitOfNode` (the node that starts a unit -> its id),
  *   `uses[unit][name]`, `groups[unit]` (whose locals the unit sees: itself for a method, 0 for a
  *   block of the script) and `splitNames` (locals that are separate in each block of the script).
- * - `procedures`: `valueCallCounts[name]` (calls whose value is used, also in a `case`) and
+ * - `procedures`: `valueCallCounts[name]` (calls whose value is used) and
  *   `definitions` (the methods made with `def`).
  * - `classes`: `classes` and `modules`, with what is directly in their bodies.
  * - `symbols`: every symbol that the code writes (`:name`), the candidates of `$_symbols_`.

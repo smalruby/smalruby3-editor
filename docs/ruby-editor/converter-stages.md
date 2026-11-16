@@ -35,16 +35,16 @@ Ruby → ブロックの変換器（`packages/scratch-gui/src/lib/ruby-to-blocks
 
 ### 構文木をたどる処理
 
-| たどる処理                                              | 子の取り方                                                                            |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| 変換そのもの（`visit` と `visitXxxNode`）               | ノードの種類ごとに手で書く                                                            |
-| `_collectVariableUses`                                  | `_childNodesOf`（prism の `childNodes()`。すべての子）                                |
-| `_countProcedureCallsInNode` / `_countCallsInValueNode` | **手で並べたプロパティ名**（`statements` / `body` / `then` / `else` / `condition` …） |
-| `_statementNodeOf`（エラーで文を指す）                  | `_childNodesOf`。エラーのたびに根からたどる                                           |
-| `_associateSourceComments` の一部、`_nodeContainsSuper` | `_childNodesOf`                                                                       |
+| たどる処理                                              | 子の取り方                                                        |
+| ------------------------------------------------------- | ----------------------------------------------------------------- |
+| 変換そのもの（`visit` と `visitXxxNode`）               | ノードの種類ごとに手で書く                                        |
+| `_collectVariableUses`                                  | `_childNodesOf`（prism の `childNodes()`。すべての子）            |
+| `_countProcedureCallsInNode` / `_countCallsInValueNode` | 呼び出し・条件・代入・`return` は手で書き、ほかは `_childNodesOf` |
+| `_statementNodeOf`（エラーで文を指す）                  | `_childNodesOf`。エラーのたびに根からたどる                       |
+| `_associateSourceComments` の一部、`_nodeContainsSuper` | `_childNodesOf`                                                   |
 
-`_countProcedureCallsInNode` の並べた名前には、prism に無い名前（`then` / `else` / `condition` / `consequent` / `alternative`）があり、
-`CaseNode` の `conditions`（`when` の並び）や `elseClause` が無い。そのため `case` の中の手続きの呼び出しは数えられていない。
+`_countProcedureCallsInNode` は、もとは子を手で並べたプロパティ名でたどっていた。並べた名前に `CaseNode` の `conditions`（`when` の並び）や
+`elseClause` が無く、`case` の中の手続きの呼び出しを数えていなかった。
 このような読み落としは、子の取り方をノードごとに手で書くかぎり、たどる処理の数だけ起きうる。
 
 ## 4 段の形
@@ -102,7 +102,7 @@ prism の `childNodes()` のすべての子を、ソースの順に（親を子�
 | `variables.firstUses`        | `{ ['@a' / '$a']: { list?: { line, node }, scalar?: { line, node } } }`（いちばん前の行）                                                     | `_context.firstVariableUses`                                                     |
 | `variables.rubyNames`        | コードが読み書きする `@a` / `$a` の並び                                                                                                       | `_context.rubyVariableNames`                                                     |
 | `locals`                     | `unitOfNode`（範囲を始めるノード → 範囲の番号）、`uses[範囲][名前]`、`groups[範囲]`（メソッドは自分、スクリプトのブロックは 0）、`splitNames` | `_context.localVariableUnits`（`scopeIndexes` は変換の途中で決まるので含めない） |
-| `procedures.valueCallCounts` | `{ [メソッド名]: 値として呼ばれる数 }`。`case` / `when` / `else` の中も数える                                                                 | `_context.methodCallCounts`（`case` の中は 0）                                   |
+| `procedures.valueCallCounts` | `{ [メソッド名]: 値として呼ばれる数 }`                                                                                                        | `_context.methodCallCounts`                                                      |
 | `procedures.definitions`     | `def` ごとの `{ name, line, onSelf, requireds, optionals, returnsValue, usesSuper, node }`                                                    | `my-blocks.js` と `class-visitor.js` がその場で調べている                        |
 | `classes`                    | `classes`: `{ name, superclass, line, attrs, includes, methods, hasInitialize, node }`、`modules`: `{ name, line, methods, node }`            | `class-visitor.js` / `module-visitor.js` の本体の下調べ                          |
 | `symbols`                    | コードに書かれたシンボル（`:name`）の並び。`$_symbols_` に入る候補（変換で使われたものだけが入る）                                            | `_context.symbols`（変換の途中で集める）                                         |
@@ -110,11 +110,10 @@ prism の `childNodes()` のすべての子を、ソースの順に（親を子�
 
 「値として呼ばれる」は、いまの `_countProcedureCallsInNode` と同じ決まりで決める。
 ノードごとに「文として見る」「値として見る」を子に配り、値として見た `CallNode` を数える
-（引数・レシーバー・条件・`x = ...` の値・`return` の値が値、`do ... end` の中・`if` の中が文）。
-これに `case` の決まり（`case x` と `when x` の `x` が値、`when` と `else` の中が文）を足した。
+（引数・レシーバー・条件・`x = ...` の値・`return` の値が値、`do ... end` の中・`if` の中が文。ほかのノードは、すべての子を親と同じに見る）。
 
 表がいまの変換器と同じであることは `test/unit/lib/ruby-to-blocks-converter/analysis.test.js` で確かめる。
-変換器と往復のテストに書かれた Ruby（約 3,500 個）で、変換器の下調べの結果と表を比べる。違ってよいのは `case` の中の呼び出しの数だけ。
+変換器と往復のテストに書かれた Ruby（約 3,500 個）で、変換器の下調べの結果と表を比べる。すべて一致する。
 
 ### 3. 変換（convert）
 
@@ -202,14 +201,14 @@ motion では、呼び出しの登録 14 のうち 12 が表になった（残�
 どの段階でも、移す領域の **ブロック ⇔ Ruby の表**（`test/unit/lib/ruby-roundtrip/<category>-table.test.js`）を先に作るか足して、移す前に通ることを確かめてから移す。
 表が無い領域は、まず既存のテストを表へ移す（`.claude/rules/scratch-gui/testing.md` の「新しい opcode はブロック ⇔ Ruby の表から」）。
 
-| 順  | すること                                                                                                                                                                                           | 振る舞いを固定するテスト                                                                             | 効率                         |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------- |
-| 1   | 解析の索引: 行の表（試作で済み）、ノードの種類名をクラスごとに覚える                                                                                                                               | 表のテストすべて、`line-for-offset.test.js`、`multibyte-offset.test.js`                              | 小                           |
-| 2   | 変換の巻き戻しを journal に（`_saveContext` を写さない）                                                                                                                                           | 表のテストすべて、`orphan-blocks.test.js`、`target-applier-transaction.test.js`、往復テスト          | **大**（いま最も時間を使う） |
-| 3   | 分析の段: `forEachNode` を作り、`_collectVariableUses` と `_countProcedureCallsInNode` を移して凍結した `Analysis` を出す。`case` の中の呼び出しも数えるようになるので、その行を表に足してから移す | 分析の結果の表のテスト（Ruby → `Analysis`）、表のテストすべて                                        | 小                           |
-| 4   | 呼び出しの表: motion（試作で済み）→ looks → sound → control / event → sensing → operators → data → 拡張機能。古い `onXxx` 2 つもここで移す                                                         | その領域の表のテスト                                                                                 | なし                         |
-| 5   | 仕上げの段: `targetCodeToBlocks` の後半を `finish()` へ。`targetCodeToBlocks` は 4 段を順に呼ぶだけにする                                                                                          | 表のテストすべて、往復テスト                                                                         | なし                         |
-| 6   | class / module / initialize の判断を分析へ移す                                                                                                                                                     | `class.test.js`、`module.test.js`、`initialize-round-trip.test.js`、`ruby-roundtrip-class-*.test.js` | なし                         |
+| 順  | すること                                                                                                                                   | 振る舞いを固定するテスト                                                                             | 効率                         |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 1   | 解析の索引: 行の表（試作で済み）、ノードの種類名をクラスごとに覚える                                                                       | 表のテストすべて、`line-for-offset.test.js`、`multibyte-offset.test.js`                              | 小                           |
+| 2   | 変換の巻き戻しを journal に（`_saveContext` を写さない）                                                                                   | 表のテストすべて、`orphan-blocks.test.js`、`target-applier-transaction.test.js`、往復テスト          | **大**（いま最も時間を使う） |
+| 3   | 分析の段: `forEachNode` を作り、`_collectVariableUses` と `_countProcedureCallsInNode` を移して凍結した `Analysis` を出す                  | 分析の結果の表のテスト（Ruby → `Analysis`）、表のテストすべて                                        | 小                           |
+| 4   | 呼び出しの表: motion（試作で済み）→ looks → sound → control / event → sensing → operators → data → 拡張機能。古い `onXxx` 2 つもここで移す | その領域の表のテスト                                                                                 | なし                         |
+| 5   | 仕上げの段: `targetCodeToBlocks` の後半を `finish()` へ。`targetCodeToBlocks` は 4 段を順に呼ぶだけにする                                  | 表のテストすべて、往復テスト                                                                         | なし                         |
+| 6   | class / module / initialize の判断を分析へ移す                                                                                             | `class.test.js`、`module.test.js`、`initialize-round-trip.test.js`、`ruby-roundtrip-class-*.test.js` | なし                         |
 
 1・2 は振る舞いを変えずに速くするだけなので先に行う。3 以降は、分析の表ができると変換の部品が `_context` を書きかえなくなり、`Object.assign` で混ぜている部品を段ごとのモジュールへ分けられるようになる（14 の部品を分けるのは 6 のあと）。
 
