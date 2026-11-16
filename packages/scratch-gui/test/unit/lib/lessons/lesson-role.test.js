@@ -121,10 +121,10 @@ describe('the mesh group and starting again', () => {
         expect(connectedGroupSeats(null)).toEqual([]);
     });
 
-    test('roleChangeRestarts only when the challenge starts with programs', () => {
-        expect(roleChangeRestarts(findChallenge('chat-l3-mesh-variable').challenge)).toBe(false);
-        expect(roleChangeRestarts(findChallenge('chat-l4-send-once').challenge)).toBe(false);
-        expect(roleChangeRestarts(findChallenge('chat-l4-send-repeat').challenge)).toBe(true);
+    test('roleChangeRestarts for every challenge with roles', () => {
+        expect(roleChangeRestarts(findChallenge('chat-l3-mesh-variable').challenge)).toBe(true);
+        expect(roleChangeRestarts(findChallenge('chat-l4-send-once').challenge)).toBe(true);
         expect(roleChangeRestarts(findChallenge('chat-l5-ng-word').challenge)).toBe(true);
+        expect(roleChangeRestarts(findChallenge('chat-l3-mesh-signal').challenge)).toBe(false);
     });
 });

@@ -655,25 +655,37 @@ describe('LessonMode container: the role of a pair challenge (#2062)', () => {
         };
     };
 
-    test('the role buttons are shown, and choosing changes the role in place without starting programs', () => {
+    test('the role buttons are shown, and choosing starts again in that role and remembers it', () => {
         const props = openRole('chat-l3-mesh-variable');
         const { getByTestId } = renderLessonMode(props);
         expect(getByTestId('lesson-task-bar-role-shimaraby')).toHaveAttribute('aria-pressed', 'true');
         fireEvent.click(getByTestId('lesson-task-bar-role-shimacat'));
-        expect(props.onSetRole).toHaveBeenCalledWith('shimacat', { roleSource: 'chosen', rolePair: undefined });
-        expect(props.onStartChallenge).not.toHaveBeenCalled();
-    });
-
-    test('choosing the other role starts again when the challenge starts with programs', () => {
-        const props = openRole('chat-l5-stamp');
-        const { getByTestId } = renderLessonMode(props);
-        fireEvent.click(getByTestId('lesson-task-bar-role-shimacat'));
-        expect(props.onStartChallenge).toHaveBeenCalledWith('chat-l5-stamp', {
+        // 3-3 も始めなおす（先に作った変数と、入れかわった練習相手の変数の名前がぶつからないように）
+        expect(props.onStartChallenge).toHaveBeenCalledWith('chat-l3-mesh-variable', {
             fromAssignment: false,
             role: 'shimacat',
             roleSource: 'chosen',
         });
         expect(props.onSetRole).not.toHaveBeenCalled();
+        // 生徒が選んだ役だけを覚える
+        expect(JSON.parse(window.localStorage.getItem('smalruby:lessonRole'))).toEqual({
+            role: 'shimacat',
+            pair: null,
+        });
+    });
+
+    test('the default role is not remembered (no "Last time" for a student who never chose)', async () => {
+        const props = startRole('chat-l4-send-once');
+        const { rerender } = renderLessonMode(props);
+        finish(rerender, props);
+        await flush();
+        await flush();
+        expect(props.onOpenChallenge).toHaveBeenCalledWith('chat-l4-send-once', {
+            role: 'shimaraby',
+            source: 'default',
+            pair: null,
+        });
+        expect(window.localStorage.getItem('smalruby:lessonRole')).toBeNull();
     });
 
     test('shows how the role was decided ("Last time" / "Decided by seat number")', () => {
@@ -689,11 +701,17 @@ describe('LessonMode container: the role of a pair challenge (#2062)', () => {
             '@smalruby/scratch-vm/src/extensions/scratch3_mesh_v2/seat-naming',
         );
         const vm = seatGroupVm(buildGroupName(withSeatSuffix('abcdef12', 3), { seats: [7], host: 3 }));
+        // 出席番号の大きい人: シマネコの役で始めなおす（作品はまだ変えていない）
         const props = openRole('chat-l3-mesh-variable', { vm, mySeat: 7 });
         renderLessonMode(props);
         act(() => vm.emit('PERIPHERAL_CONNECTED'));
-        expect(props.onSetRole).toHaveBeenCalledWith('shimacat', { roleSource: 'seat', rolePair: '3-7' });
+        expect(props.onStartChallenge).toHaveBeenCalledWith('chat-l3-mesh-variable', {
+            fromAssignment: false,
+            role: 'shimacat',
+            roleSource: 'seat',
+        });
 
+        // このチャレンジで自分で選んだときは、何もしない
         const chosen = openRole('chat-l3-mesh-variable', {
             vm,
             mySeat: 7,
@@ -702,6 +720,37 @@ describe('LessonMode container: the role of a pair challenge (#2062)', () => {
         renderLessonMode(chosen);
         act(() => vm.emit('PERIPHERAL_CONNECTED'));
         expect(chosen.onSetRole).not.toHaveBeenCalled();
+        expect(chosen.onStartChallenge).not.toHaveBeenCalled();
+    });
+
+    test('the seat role that is the same as now only changes how it was decided', () => {
+        const { buildGroupName, withSeatSuffix } = jest.requireActual(
+            '@smalruby/scratch-vm/src/extensions/scratch3_mesh_v2/seat-naming',
+        );
+        const vm = seatGroupVm(buildGroupName(withSeatSuffix('abcdef12', 3), { seats: [7], host: 3 }));
+        const props = openRole('chat-l3-mesh-variable', { vm, mySeat: 3 });
+        renderLessonMode(props);
+        act(() => vm.emit('PERIPHERAL_CONNECTED'));
+        expect(props.onSetRole).toHaveBeenCalledWith('shimaraby', { roleSource: 'seat', rolePair: '3-7' });
+        expect(props.onStartChallenge).not.toHaveBeenCalled();
+    });
+
+    test('a role chosen before with the same pair is not overwritten by the seat role', () => {
+        // 読み直しで再現した入力: 同じペア（3-7）で前にシマネコの役を選んだ 3 番が、あとから 7 番のグループにつながる
+        window.localStorage.setItem('smalruby:lessonRole', JSON.stringify({ role: 'shimacat', pair: '3-7' }));
+        const { buildGroupName, withSeatSuffix } = jest.requireActual(
+            '@smalruby/scratch-vm/src/extensions/scratch3_mesh_v2/seat-naming',
+        );
+        const vm = seatGroupVm(buildGroupName(withSeatSuffix('abcdef12', 3), { seats: [7], host: 3 }));
+        const props = openRole('chat-l3-mesh-variable', {
+            vm,
+            mySeat: 3,
+            role: { role: 'shimacat', source: 'remembered' },
+        });
+        renderLessonMode(props);
+        act(() => vm.emit('PERIPHERAL_CONNECTED'));
+        expect(props.onSetRole).not.toHaveBeenCalled();
+        expect(props.onStartChallenge).not.toHaveBeenCalled();
     });
 
     test('a seat pair after the student changed the project does not start again', () => {
