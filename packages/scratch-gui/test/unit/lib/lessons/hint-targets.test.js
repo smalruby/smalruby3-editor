@@ -423,6 +423,19 @@ describe('hint targets: the SP side rail is above the balloon', () => {
         expect(placed.left + placed.arrow.x).toBe(960);
     });
 
+    test('on a wide screen (1440x900) the arrow still points at the role buttons', () => {
+        const placed = computeHintPlacement({
+            target: rect(920, 58, 1086, 77),
+            balloon: { width: 352, height: 212 },
+            viewport: { left: 0, top: 88, width: 1440, height: 900 },
+            sides: preferredSides(HINT_TARGETS.ROLE_PICKER),
+            avoid: [],
+        });
+        expect(placed.side).toBe(HINT_SIDES.BOTTOM);
+        expect(placed.arrow).not.toBeNull();
+        expect(placed.left + placed.arrow.x).toBe(1003);
+    });
+
     test('placement and dragging keep the balloon right of the rail', () => {
         const viewport = { left: 56, width: 375, height: 667 };
         const balloon = { width: 256, height: 200 };
