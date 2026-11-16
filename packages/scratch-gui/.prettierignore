@@ -639,6 +639,7 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-evaluation-leave.test.js
 !test/unit/containers/use-teacher-evaluation-stale-runs.test.js
 !test/unit/containers/use-teacher-evaluation-open-work.test.js
+!test/unit/containers/use-teacher-evaluation-token-refresh.test.js
 !test/unit/containers/use-teacher-submissions-open.test.js
 !test/unit/containers/use-before-unload-while.test.js
 !test/unit/containers/classroom-teacher-modal-leave.test.jsx
