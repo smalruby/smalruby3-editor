@@ -80,11 +80,35 @@ const convertJapaneseStrings = (line) => {
 };
 
 /**
- * Convert arrow assignment ← to = in a string.
- * @param {string} str - The string to convert.
- * @returns {string} The string with arrows replaced.
+ * Convert the arrow assignment `←` to ` = `, with the spaces around it made
+ * one on each side. A `←` inside a string literal (「...」, "...", '...') or
+ * in the trailing comment is text, so it is kept: `表示する(「x←1」)` stays
+ * `表示する(「x←1」)` (Issue #2031).
+ * @param {string} str - A line (or part of one) of DNCL code.
+ * @returns {string} The code with its arrows replaced.
  */
-const convertArrow = (str) => str.replace(/\s*←\s*/g, ' = ');
+const convertArrow = (str) => {
+    let result = '';
+    let i = 0;
+    while (i < str.length) {
+        const end = stringEndAt(str, i);
+        if (end !== -1) {
+            result += str.substring(i, end);
+            i = end;
+            continue;
+        }
+        if (str[i] === '#') return result + str.substring(i);
+        if (str[i] === '←') {
+            result = `${result.replace(/\s+$/, '')} = `;
+            i++;
+            while (i < str.length && /\s/.test(str[i])) i++;
+            continue;
+        }
+        result += str[i];
+        i++;
+    }
+    return result;
+};
 
 /** DNCL `かつ` / `または` and the Ruby operators they become. */
 const LOGICAL_OPERATORS = [

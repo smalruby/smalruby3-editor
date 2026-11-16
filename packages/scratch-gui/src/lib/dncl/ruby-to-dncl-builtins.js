@@ -10,6 +10,31 @@ import {
 import { ID } from './ruby-to-dncl-identifier';
 
 /**
+ * Whether `pos` is inside a string literal (`"..."` / `'...'`, after its
+ * opening quote) or in the `# comment` of a Ruby line. A rewrite that is
+ * done with a regular expression uses this to leave the text of strings and
+ * comments as it is (Issue #2031).
+ * @param {string} text - The Ruby code.
+ * @param {number} pos - The index to look at.
+ * @returns {boolean} True if `pos` is in a string or a comment.
+ */
+const isInStringOrComment = (text, pos) => {
+    let i = 0;
+    while (i < pos) {
+        const ch = text[i];
+        if (ch === '"' || ch === "'") {
+            const end = skipString(text, i, ch);
+            if (pos < end) return true;
+            i = end;
+            continue;
+        }
+        if (ch === '#') return true;
+        i++;
+    }
+    return false;
+};
+
+/**
  * Strip a single layer of fully-enclosing parens from `expr`. Returns the
  * inner expression if `expr` is exactly `(...)` with the open paren at
  * position 0 matching the close paren at the very end. Otherwise returns
@@ -408,9 +433,11 @@ const convertBuiltins = (line) => {
     // expr.include?(sub) → 含む(expr, sub)
     // NOTE: same-name nesting (s.include?(t.include?(x))) is not handled by
     // this regex (postfix-with-args form). This is a known limitation.
+    // A match inside a string literal or the comment is text (`puts("a.include?(b)")`),
+    // so it is kept as written (Issue #2031).
     result = result.replace(
         new RegExp(`("[^"]*"|[${ID}]+)\\.include\\?\\(([^)]*)\\)`, 'g'),
-        (_, expr, sub) => `含む(${expr}, ${sub})`,
+        (match, expr, sub, offset, text) => (isInStringOrComment(text, offset) ? match : `含む(${expr}, ${sub})`),
     );
 
     // `(A / B).to_i` first becomes the DNCL quotient `A ÷ B` — the inverse of
