@@ -2,6 +2,7 @@ import RubyGenerator from '../../../../src/lib/ruby-generator';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 import LooksConverter from '../../../../src/lib/ruby-to-blocks-converter/looks';
 import MotionConverter from '../../../../src/lib/ruby-to-blocks-converter/motion';
+import SoundConverter from '../../../../src/lib/ruby-to-blocks-converter/sound';
 import { numberArg, registerSendTable } from '../../../../src/lib/ruby-to-blocks-converter/send-table';
 
 /**
@@ -19,6 +20,7 @@ describe('RubyToBlocksConverter/send table', () => {
     const tables = {
         motion: MotionConverter,
         looks: LooksConverter,
+        sound: SoundConverter,
     };
 
     test.each(Object.keys(tables))('every opcode of the %s table has a generator', (area) => {

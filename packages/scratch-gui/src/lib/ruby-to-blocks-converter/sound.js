@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import { defineMessages } from 'react-intl';
 import { RubyToBlocksConverterError } from './errors';
+import { fieldArg, menuInputArg, numberArg, onSelf, registerSendTable } from './send-table';
 
 const messages = defineMessages({
     soundDoesNotExist: {
@@ -29,101 +30,47 @@ const validateSound = function (converter, soundName, node) {
     }
 };
 
+const upcase = (value) => value.toUpperCase();
+
+const soundArg = menuInputArg('SOUND_MENU', 'sound_sounds_menu', 'SOUND_MENU', '', {
+    validate: (converter, arg, { node }) => {
+        if (converter._isString(arg)) validateSound(converter, arg.toString(), node);
+    },
+});
+
+/**
+ * The calls of sound that map one to one onto a block (see `send-table.js`). They take only
+ * `self.xxx` or `xxx`. `self.volume += 1` is a handler below.
+ */
+const SOUND_SENDS = onSelf([
+    { receiver: 'self', name: 'play', opcode: 'sound_play', args: [soundArg] },
+    { receiver: 'self', name: 'play_until_done', opcode: 'sound_playuntildone', args: [soundArg] },
+    { receiver: 'self', name: 'stop_all_sounds', opcode: 'sound_stopallsounds' },
+    {
+        receiver: 'self',
+        name: 'change_sound_effect_by',
+        opcode: 'sound_changeeffectby',
+        args: [fieldArg('EFFECT', Effects, { normalize: upcase }), numberArg('VALUE', 10)],
+    },
+    {
+        receiver: 'self',
+        name: 'set_sound_effect',
+        opcode: 'sound_seteffectto',
+        args: [fieldArg('EFFECT', Effects, { normalize: upcase }), numberArg('VALUE', 100)],
+    },
+    { receiver: 'self', name: 'clear_sound_effects', opcode: 'sound_cleareffects' },
+    { receiver: 'self', name: 'volume=', opcode: 'sound_setvolumeto', args: [numberArg('VOLUME', 100)] },
+    { receiver: 'self', name: 'volume', opcode: 'sound_volume', type: 'value' },
+]);
+
 /**
  * Sound converter
  */
 const SoundConverter = {
+    sends: SOUND_SENDS,
+
     register: function (converter) {
-        // play(name) - sound_play
-        converter.registerOnSend('self', 'play', 1, (params) => {
-            const { receiver, args, node } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0]) && !converter._isBlock(args[0])) return null;
-
-            if (converter._isString(args[0])) {
-                validateSound(converter, args[0].toString(), node);
-            }
-
-            const block = converter._createBlock('sound_play', 'statement');
-            converter._addFieldInput(block, 'SOUND_MENU', 'sound_sounds_menu', 'SOUND_MENU', args[0], '');
-            return block;
-        });
-
-        // play_until_done(name) - sound_playuntildone
-        converter.registerOnSend('self', 'play_until_done', 1, (params) => {
-            const { receiver, args, node } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0]) && !converter._isBlock(args[0])) return null;
-
-            if (converter._isString(args[0])) {
-                validateSound(converter, args[0].toString(), node);
-            }
-
-            const block = converter._createBlock('sound_playuntildone', 'statement');
-            converter._addFieldInput(block, 'SOUND_MENU', 'sound_sounds_menu', 'SOUND_MENU', args[0], '');
-            return block;
-        });
-
-        // stop_all_sounds
-        converter.registerOnSend('self', 'stop_all_sounds', 0, (params) => {
-            const { receiver } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-
-            return converter._createBlock('sound_stopallsounds', 'statement');
-        });
-
-        // change_sound_effect_by(effect, value)
-        converter.registerOnSend('self', 'change_sound_effect_by', 2, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0]) || Effects.indexOf(args[0].toString().toUpperCase()) < 0) return null;
-            if (!converter._isNumberOrBlock(args[1])) return null;
-
-            const block = converter._createBlock('sound_changeeffectby', 'statement');
-            converter._addField(block, 'EFFECT', args[0].toString().toUpperCase());
-            converter._addNumberInput(block, 'VALUE', 'math_number', args[1], 10);
-            return block;
-        });
-
-        // set_sound_effect(effect, value)
-        converter.registerOnSend('self', 'set_sound_effect', 2, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0]) || Effects.indexOf(args[0].toString().toUpperCase()) < 0) return null;
-            if (!converter._isNumberOrBlock(args[1])) return null;
-
-            const block = converter._createBlock('sound_seteffectto', 'statement');
-            converter._addField(block, 'EFFECT', args[0].toString().toUpperCase());
-            converter._addNumberInput(block, 'VALUE', 'math_number', args[1], 100);
-            return block;
-        });
-
-        // clear_sound_effects
-        converter.registerOnSend('self', 'clear_sound_effects', 0, (params) => {
-            const { receiver } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-
-            return converter._createBlock('sound_cleareffects', 'statement');
-        });
-
-        // volume = value
-        converter.registerOnSend('self', 'volume=', 1, (params) => {
-            const { receiver, args } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isNumberOrBlock(args[0])) return null;
-
-            const block = converter._createBlock('sound_setvolumeto', 'statement');
-            converter._addNumberInput(block, 'VOLUME', 'math_number', args[0], 100);
-            return block;
-        });
-
-        // volume getter
-        converter.registerOnSend('self', 'volume', 0, (params) => {
-            const { receiver } = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-
-            return converter._createBlock('sound_volume', 'value');
-        });
+        registerSendTable(converter, SOUND_SENDS);
 
         // Register onXxx handlers
         converter.registerOnOpAsgn((lh, operator, rh) => {
