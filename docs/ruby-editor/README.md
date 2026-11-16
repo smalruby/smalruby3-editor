@@ -76,6 +76,7 @@ ruby-toolbar 上部のセグメントで切替：
 | `packages/scratch-gui/src/lib/ruby-generator/` | Scratch ブロック → Ruby コード生成（拡張機能ごとに `motion.js`, `looks.js` などのジェネレータ）|
 
 Scratch に無い Ruby の考え方（ローカル変数・戻り値・ハッシュ・class など）を、どのブロック・名前・注釈 `@ruby:*` で表すかは [`bridging-patterns.md`](bridging-patterns.md) にまとめてある。
+変換器の段の分け方（解析・分析・変換・仕上げ）と、1 対 1 でブロックになる呼び出しを行で書く表（`ruby-to-blocks-converter/send-table.js`）は [`converter-stages.md`](converter-stages.md)。
 
 #### Ruby パーサー
 
@@ -274,6 +275,7 @@ debounceMs = Math.max(50, lastRenderMs * 2);
 - [`docs/rubytee/`](../rubytee/) — ルビティー（「生成AI に相談」の［ルビティーにまかせる］）
 - [`docs/smalruby-language-spec.ja.md`](../smalruby-language-spec.ja.md) — Smalruby Ruby 言語仕様
 - [`bridging-patterns.md`](bridging-patterns.md) — Ruby → Scratch 橋渡しパターン集（Ruby の考え方をブロックと注釈 `@ruby:*` でどう表すか。変換器・生成器を直す人向け）
+- [`converter-stages.md`](converter-stages.md) — Ruby → ブロック変換器を解析・分析・変換・仕上げの 4 段に分ける設計（呼び出しの登録の表、移す順番、実行の効率）
 - [`docs/smalruby-language-spec-extensions.ja.md`](../smalruby-language-spec-extensions.ja.md) — 拡張機能の Ruby 表現
 - [`docs/smalruby-language-spec-v1-diff.ja.md`](../smalruby-language-spec-v1-diff.ja.md) — Ruby v1 と v2 の差分
 - `.claude/rules/scratch-gui/ruby-mode.md` — Ruby モード開発ルール

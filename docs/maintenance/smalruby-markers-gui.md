@@ -11,6 +11,29 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 
 マーカーを追加・削除した場合は、下記の一覧を更新すること。
 
+## マーカーを付けるもの・付けないもの
+
+基準は upstream の tag `v13.7.2`（`.upstream-merge-history.json` の `lastMerge.upstreamCommit`）との差分。
+目的は、upstream のマージでぶつかったときに「どこがスモウルビーの変更か」がすぐ分かること。
+
+**付ける**（`// === Smalruby: Start of <機能名> ===` / `End` のペア。JSX の子の位置では `{/* ... */}`）:
+
+- スモウルビーで足した行（import・処理・JSX・propTypes・mapStateToProps / mapDispatchToProps の項目）。
+- upstream の行を書きかえた・包みなおした行（null の確認を足した、条件を足した など）。
+- upstream の行を消したところ。消した行の代わりに、Start / End の間に「upstream はここで何をしていたか」を
+  1 行のコメントで残す（例: `Upstream calls this.props.onRequestCloseFile() here.`）。
+- 1 行だけの追加もペアにする（単一行のインラインは Start / End の数の検査に入らないため）。
+
+**付けない**（機械的な変更）:
+
+- パッケージ名の置きかえ（`@scratch/scratch-vm` → `@smalruby/scratch-vm` など）・import の名前の変更・import の並べかえ。
+- JSDoc・コメントの言いかえだけの変更。
+- 末尾のカンマ・空行・インデントだけの変更（後ろに行を足したための `,` も含む）。
+- `eslint-disable` のコメントを消しただけの変更、未使用の変数を `_x` にしただけの分割代入の名前の変更。
+- チュートリアルの `src/lib/libraries/decks/` は、upstream に戻す EPIC（#1935）の進み具合を見てから決める。
+
+付けるときは、コードの動きを変えない（コメントの行だけを足す）。
+
 ## 現在のマーカー一覧
 
 | ファイル | 機能名 | 説明 |
@@ -216,6 +239,31 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/stage-header/stage-header.jsx` | middle stage size | 「中」のボタンのアイコン・文言・`onSetStageMiddle`（分割代入と propType）・3 つのボタンを `.stage-size-toggle-group` で包む |
 | `src/containers/stage-header.jsx` | middle stage size | `onSetStageMiddle` を `setStageSize(STAGE_SIZE_MODES.middle)` にマップ |
 | `src/components/stage-header/stage-header.jsx` | Hatti logo | ステージのヘッダーのロゴをハッチにする |
+| `src/components/menu-bar/menu-bar.jsx` | google drive / google drive save status / google drive and scratch url loading | Google ドライブの読み込み・保存（HOC・保存ダイアログ・保存中の表示・「直接保存」）と「Scratch から読み込む」のメニュー項目 |
+| `src/components/menu-bar/menu-bar.jsx` | koshien menu | スモウルビー甲子園のメニュー（AI の保存・テスト・練習パネル・設定・応募）と保存の状態の表示 |
+| `src/components/menu-bar/menu-bar.jsx` | mesh v2 menu / extension menus | メッシュ・スモウルボット・甲子園などの拡張のメニューの開閉（Redux）と、メッシュの状態の表示・ドメインの同期 |
+| `src/components/menu-bar/menu-bar.jsx` | extension load tracking | 拡張の読み込み・接続のイベントを見てメニューバーを描きなおす（`extensionLoadCounter`） |
+| `src/components/menu-bar/menu-bar.jsx` | menu toggle / menu auto close | ファイル・編集・設定のメニューを押すたびに開閉する（`toggle*Menu`）。メニューは項目を押すと閉じるので、upstream の `onRequestClose*()` の呼び出しを消したところに注記 |
+| `src/components/menu-bar/menu-bar.jsx` | menu bar modal actions / block display modal | 甲子園・URL ローダー・接続・ブロック表示のモーダルを開くアクション |
+| `src/components/menu-bar/menu-bar.jsx` | ruby tab / generate ruby from code | Ruby タブへの切りかえ・変換エラーの表示と「コードから Ruby を作る」のメニュー項目 |
+| `src/components/menu-bar/menu-bar.jsx` | smalruby menu handlers / smalruby menu props / smalruby menu state / smalruby menu dispatch | 上の機能が使うハンドラーの `bindAll`・propTypes・`mapStateToProps`・`mapDispatchToProps` のまとまり |
+| `src/components/menu-bar/menu-bar.jsx` | smalruby profile icon / replace Scratch logos with Smalruby logo / about menu | ハッチのアイコン・ロゴの既定値、About メニューの項目の title を node にする |
+| `src/components/menu-bar/menu-bar.jsx` | help menu | upstream の `onOpenTipLibrary` を消したところの注記（`MenuBarHOC` が渡す） |
+| `src/containers/blocks.jsx` | only blocks filter / toolbox filters | ツールボックスのブロックを絞る（`only_blocks` のステージのコメント・URL パラメーター・ブロック表示の設定・チュートリアル）と、変わったときの再描画 |
+| `src/containers/blocks.jsx` | palette toggle / toolbox filters and palette toggle | ブロックパレットの表示・非表示（ボタン・位置・切りかえ・Redux） |
+| `src/containers/blocks.jsx` | blocks screenshot | スクリプトを画像で保存するボタン |
+| `src/containers/blocks.jsx` | block display modal / ruby tab | ScratchBlocks を Redux に渡す、Ruby タブのときはコードタブで値を表示しない |
+| `src/containers/blocks.jsx` | Ruby-converted block positioning | Ruby から変換したブロックを並べたあとの中央へのスクロール（コードタブが隠れていたときは後で） |
+| `src/containers/blocks.jsx` | scratch-blocks v2 variable prompt / scratch-blocks v2 toolbox / VMScratchBlocks without useCatBlocks / toolbox selection null guard / scratch-blocks v2 my blocks toolbox refresh / toolbox refresh on tab show / toolbox refresh after backpack drop | scratch-blocks v2 に合わせた呼び出し・null の確認・ツールボックスの作りなおし |
+| `src/containers/blocks.jsx` | scratch-blocks v2 unmount focus guard | `componentWillUnmount` のフォーカスの確認（scratch-blocks#3460。`postMergeReverts` の意図的な乖離） |
+| `src/containers/blocks.jsx` | sensing_online Japanese translation / messages prop type | 「オンライン?」の日本語訳、`messages` の prop type に object を足す |
+| `src/components/gui/gui.jsx` | url loader / koshien / ruby tab / block display modal / tips library close | URL ローダー・甲子園のモーダルとパネル・Ruby タブ・ブロック表示のモーダル・チュートリアルを閉じるアクション（import・props・propTypes・JSX） |
+| `src/components/gui/gui.jsx` | legal links / feedback link confirm | 画面の下のプライバシーポリシー・フィードバックのリンクと、フィードバックの前の確認 |
+| `src/components/gui/gui.jsx` | iPad portrait narrow desktop stage size | `STAGE_DISPLAY_SIZES` の import と、内側の `MediaQuery` を閉じるところ |
+| `src/components/gui/gui.jsx` | tab list container style / new feature callouts removal | タブの並びの `className`、upstream の `showNewFeatureCallouts` を消したところの注記 |
+| `src/containers/gui.jsx` | tab activation handler / onSetPlatform prop rename / set theme | タブ切りかえのハンドラー、`setPlatform` を `onSetPlatform` にした名前、テーマの設定 |
+| `src/containers/gui.jsx` | ruby tab / koshien / url loader / tips library close / welcome modal | 上の機能の import・アクション・state |
+| `src/containers/gui.jsx` | smalruby gui props / smalruby gui state / smalruby modal close actions | 上の機能が使う propTypes・`mapStateToProps`・モーダルを閉じるアクションのまとまり |
 
 > 注: `src/lib/url-params.js` は Smalruby 固有ファイル（`.prettierignore` ホワイトリスト対象）の
 > ため本表の対象外（旧エントリは削除済み。固有ファイル内のマーカーは取り外し可能拡張の
