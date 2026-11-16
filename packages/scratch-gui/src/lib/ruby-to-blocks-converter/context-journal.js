@@ -22,6 +22,9 @@ class ContextJournal {
         // store -> key -> [{time, from, to}]: a rollback added `key` back with the order `from`;
         // before that rollback, its order was `to`. See `_seqAt`.
         this._reorders = new Map();
+        // [{from, to}]: the times of a mark and of the rollback to it. A mark taken between them
+        // was rolled away and cannot be rolled back to (see `_checkMark`).
+        this._rollbacks = [];
         // Nothing is recorded until the first attempt starts.
         this._recording = false;
         // The order in which the keys were added to the tables, to add deleted keys back in order.
@@ -136,18 +139,30 @@ class ContextJournal {
     }
 
     /**
+     * Throw if a mark was rolled away: it was taken inside an attempt that was rolled back
+     * after it (an inner mark used after rolling back to an outer one). Its writes are not in the
+     * record any more, so the tables at that mark cannot be made again.
+     * @param {{time: number}} mark - The mark.
+     */
+    _checkMark(mark) {
+        if (this._rollbacks.some((rollback) => rollback.from < mark.time && mark.time < rollback.to)) {
+            throw new Error('ContextJournal: the mark was rolled back by rolling back to an earlier mark');
+        }
+    }
+
+    /**
      * Put the tables back as they were at a mark.
-     * A mark taken after an earlier mark that was already rolled back to is not there any more,
-     * and rolling back to it does nothing (the code does not roll back in that order).
      * @param {{index: number, time: number}} mark - The mark returned by `mark`.
      * @returns {{removedBlockIds: string[]}} The blocks that rolling back removed.
      */
     rollback(mark) {
+        this._checkMark(mark);
         const removedBlockIds = [];
+        const time = ++this._time;
+        this._rollbacks.push({ from: mark.time, to: time });
         if (mark.index >= this._entries.length) return { removedBlockIds };
         const changes = this._changesSince(mark);
         this._entries.length = mark.index;
-        const time = ++this._time;
         changes.forEach((byKey, name) => {
             const { raw, seqs } = this._stores[name];
             const addBack = [];
@@ -207,6 +222,7 @@ class ContextJournal {
      * @returns {object} The entries.
      */
     storeAt(mark, name) {
+        this._checkMark(mark);
         const { raw } = this._stores[name];
         const byKey = this._changesSince(mark).get(name);
         if (!byKey) return Object.assign({}, raw);

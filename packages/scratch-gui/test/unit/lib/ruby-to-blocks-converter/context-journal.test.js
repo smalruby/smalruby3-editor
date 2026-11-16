@@ -116,6 +116,26 @@ describe('ContextJournal', () => {
         expect(Object.keys(comments)).toEqual(['a', 'b']);
     });
 
+    test('throws when rolling back to a mark that rolling back to an earlier mark rolled away', () => {
+        const journal = new ContextJournal();
+        const blocks = journal.wrap('blocks', { a: 1 });
+        const outer = journal.mark();
+        blocks.b = 2;
+        const inner = journal.mark();
+        blocks.c = 3;
+        journal.rollback(outer);
+        // The writes after `inner` are gone from the record, so the tables at `inner` cannot be made again.
+        expect(() => journal.rollback(inner)).toThrow(/rolled back/);
+        expect(() => journal.storeAt(inner, 'blocks')).toThrow(/rolled back/);
+        expect(Object.assign({}, blocks)).toEqual({ a: 1 });
+        // A mark taken after that rollback can be used.
+        const next = journal.mark();
+        blocks.d = 4;
+        journal.rollback(next);
+        journal.rollback(outer);
+        expect(Object.assign({}, blocks)).toEqual({ a: 1 });
+    });
+
     test('rolling back twice to the same mark gives the same tables', () => {
         const journal = new ContextJournal();
         const lists = journal.wrap('lists', { a: 1 });
@@ -237,6 +257,15 @@ describe('RubyToBlocksConverter/_restoreContext', () => {
         expect(ctx.blocks[made.id]).toBeUndefined();
         expect(keptBlock.comment).toBeUndefined();
         expect([...ctx.nodeToBlockMap.values()].every((id) => ctx.blocks[id])).toBe(true);
+    });
+
+    test('throws for an inner point used after rolling back to an outer one', () => {
+        const outer = converter._saveContext();
+        converter._createBlock('motion_movesteps', 'statement');
+        const inner = converter._saveContext();
+        converter._createBlock('looks_say', 'statement');
+        converter._restoreContext(outer);
+        expect(() => converter._restoreContext(inner)).toThrow(/rolled back/);
     });
 
     test('a conversion that fails partway leaves no block from the failed statement', async () => {
