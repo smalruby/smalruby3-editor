@@ -174,6 +174,7 @@
 | `$color-warning` / `$color-warning-background` | `$data-primary` / `$ui-alert-orange` | 注意（`alert.css` の `.warn`） |
 | `$color-success` / `$color-success-background` | `$extensions-tertiary` / `$extensions-light` | 成功（`alert.css` の `.success`） |
 | `$color-info` / `$color-info-background` | `$motion-primary` / `$ui-primary` | お知らせ（`alert.css` の `.info-blue`） |
+| `$color-emphasis` / `$color-emphasis-background` | `#a33d00` / `$ui-alert-orange` | 文言の中の強調（レッスンのヒントの `**…**`）。上流の `$red-tertiary`（`#E64D00`）は淡い地に 3.5:1 で足りないので濃くした値を持つ（地に 5.9:1・白に 6.5:1） |
 | `$color-confirm-background` / `$color-confirm-text` | `hsla(35, 90%, 55%, 0.12)`（白の上で `#FEF3E5`）/ `hsla(30, 60%, 30%, 1)`（`#7A4D1F`） | クラス管理の取り消せる操作の確認の枠（アーカイブ・退室させる・採点を離れる。`classroom-modal.css` の `.confirm-note`）。赤は使わない（クラス管理の R4）。文字は地に 6.5:1 |
 | `$color-attention-action` | `#b35900` | 白い文字を載せるオレンジの塗り（退室依頼の［承認］: トースト・状況のパネル・メンバー詳細）。上流の `$error-primary`（`#FF8C1A`）は白に 2.3:1 で白い文字が読めないので、同じ色相で白に 4.8:1 の濃さをここで持つ |
 | `$color-seat-empty` / `$color-seat-empty-text` / `$color-seat-empty-border` | `$ui-white` / `$color-action` / `$color-action` | クラス管理の座席: 空いている席（白地に点線の枠。大きな座席は 2px、状況のパネルは 1px）。文字は白に 4.7:1 |

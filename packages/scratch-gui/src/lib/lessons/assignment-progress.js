@@ -202,11 +202,14 @@ export const restrictCourseStatus = (status, challengeIds) => {
         .map((lessonStatus) => {
             const challenges = lessonStatus.challenges.filter(({ challenge }) => ids.has(challenge.id));
             const completedCount = challenges.filter((c) => c.completed).length;
+            // 課題で絞ったレッスンは「課題のチャレンジが全部」で数える（レッスンの checkCount は使わない。テーマを
+            // 選ぶレッスンでも、課題の残りは課題の帯が「あと n つ」で出す）。絞る前の checkCount を残さない
             return {
                 ...lessonStatus,
                 challenges,
                 completedCount,
                 total: challenges.length,
+                checkCount: challenges.length,
                 allCompleted: challenges.length > 0 && completedCount === challenges.length,
             };
         })

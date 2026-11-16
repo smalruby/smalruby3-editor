@@ -76,6 +76,22 @@ const readScalarVariables = (runtime, target) => {
     return values;
 };
 
+// メッシュで自分以外のノード（練習相手を含む）から届いている変数の値。自分の値（`remoteData[meshId]`。
+// 自分の変数の「センサーの値」用）は入れない。メッシュの拡張が無ければ空
+const readRemoteValues = (runtime) => {
+    const ext = runtime.peripheralExtensions && runtime.peripheralExtensions.meshV2;
+    const service = ext && ext.meshService;
+    if (!service || !service.remoteData) return [];
+    const values = [];
+    Object.entries(service.remoteData).forEach(([nodeId, node]) => {
+        if (nodeId === service.meshId || !node) return;
+        Object.values(node).forEach((entry) => {
+            if (entry && typeof entry.value !== 'undefined') values.push(String(entry.value));
+        });
+    });
+    return values;
+};
+
 // スレッドの始まり（ハット）を run の形にする
 const describeThread = (thread) => {
     const container = thread.blockContainer || (thread.target && thread.target.blocks);
@@ -91,6 +107,39 @@ const describeThread = (thread) => {
         targetId: thread.target ? thread.target.id : null,
         isStage: Boolean(thread.target && thread.target.isStage),
     };
+};
+
+// メッセージを送るブロック（goal.js の BROADCAST_OPCODES と同じ）
+const BROADCAST_OPCODES = new Set(['event_broadcast', 'event_broadcastandwait', 'meshV2_broadcastWithValue']);
+
+// ブロックの「送る」メッセージの名前（▼ の影ブロックの BROADCAST_OPTION）。レポーターを入れているなど
+// 分からないときは null
+const blockMessageName = (container, block) => {
+    if (block.fields && block.fields.BROADCAST_OPTION) return block.fields.BROADCAST_OPTION.value;
+    const input = block.inputs && block.inputs.BROADCAST_INPUT;
+    if (!input || input.block !== input.shadow) return null;
+    const shadow = container.getBlock(input.shadow);
+    const field = shadow && shadow.fields && shadow.fields.BROADCAST_OPTION;
+    return field ? field.value : null;
+};
+
+// メッシュの拡張は、ほかのノードから届いた合図を「送る」の関数（つないだときに取った関数 = 見張りの包み）を直接
+// 呼んで流す（broadcast-receiver.js）。そのときの util は最後に使われたもので、スレッドは「送る」を動かしていない。
+// それを「このスレッドが送った」と記録すると、届いた合図の送り手がこの作品のスプライトになる（`sentBy: 'remote'`
+// が通らない・送っていないスクリプトの「送る」が数えられる）ので、スレッドがいま送るブロックにいて、そのブロックの
+// メッセージが送る名前と同じときだけ記録する（たまたま別の「送る」で止まっているスレッドに数えない）。
+// スタックの分からないスレッド（テストの作り物）は記録する（#1645）
+const isSendingThread = (thread, args) => {
+    if (typeof thread.peekStack !== 'function') return true;
+    const container = thread.blockContainer || (thread.target && thread.target.blocks);
+    const block =
+        container && typeof container.getBlock === 'function' ? container.getBlock(thread.peekStack()) : null;
+    if (!block || !BROADCAST_OPCODES.has(block.opcode)) return false;
+    const option = args && args.BROADCAST_OPTION;
+    const sent = option && typeof option === 'object' ? option.name : option;
+    const name = blockMessageName(container, block);
+    if (name === null || sent === null || typeof sent === 'undefined') return true;
+    return String(name).toUpperCase() === String(sent).toUpperCase();
 };
 
 // execute.js は引数のオブジェクトを使い回すので、記録する分は写す。
@@ -122,6 +171,9 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
     const baselineCostumes = takeCostumeCounts(runtime);
     let dirty = true;
     let detached = false;
+    // 最後にブロックを動かした run。「言う」「聞いて待つ」は、見張りが呼ばれたすぐあとに同じブロックの中で
+    // 'SAY' を出すので、言ったスクリプトはこの run（said の trigger 用）
+    let lastRun = null;
 
     const runFor = (thread) => {
         let run = runs.get(thread);
@@ -136,7 +188,10 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
         const thread = util && util.thread;
         // モニター（ステージの表示）のスレッドはプログラムではない
         if (!thread || thread.updateMonitor) return;
-        recordExecution(facts, runFor(thread), opcode, copyArgs(args));
+        if (BROADCAST_OPCODES.has(opcode) && !isSendingThread(thread, args)) return;
+        const run = runFor(thread);
+        recordExecution(facts, run, opcode, copyArgs(args));
+        lastRun = run;
         dirty = true;
     };
 
@@ -146,7 +201,12 @@ export const attachGoalMonitor = (vm, goal, onSatisfied) => {
             isStage: Boolean(target && target.isStage),
             text,
             variables: readScalarVariables(runtime, target),
+            // ちがうスプライトの run なら、言ったスクリプトは分からない（ブロックの外から出た 'SAY'）
+            run: lastRun && target && lastRun.targetId === target.id ? lastRun : null,
+            remoteValues: readRemoteValues(runtime),
         });
+        // 1 つのブロックが出す SAY は 1 回だけ。あとから出た SAY（「秒言う」の終わりの消去など）に使わない
+        lastRun = null;
         dirty = true;
     };
 

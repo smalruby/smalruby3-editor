@@ -1,5 +1,6 @@
 // Tutorial category locale strings are split into per-category modules
 // (issue #932) so tutorial categories can be developed independently.
+import { jaHira as activityDiagramMessages } from '../lib/lessons/activity-diagram/activity-diagram.locale.js';
 import { jaHira as lessonsMessages } from '../lib/lessons/lessons.locale.js';
 import { jaHira as blockSeriesHowtos } from '../lib/libraries/decks/categories/block-series.locale.js';
 import { jaHira as dnclHowtos } from '../lib/libraries/decks/categories/dncl.locale.js';
@@ -1923,11 +1924,28 @@ export default {
     'gui.library.rubyBasics': 'Ruby のきほん',
     ...rubyBasicsHowtos,
     ...lessonsMessages,
+    ...activityDiagramMessages,
     'gui.lessonTaskBar.ariaLabel': 'レッスンのかだい',
     'gui.lessonTaskBar.position': '{number} / {count}',
     'gui.lessonTaskBar.hint': 'ヒント',
     'gui.lessonTaskBar.another': 'ほかのチャレンジへ',
     'gui.lessonTaskBar.end': 'レッスンをおえる',
+    'gui.lessonTaskBar.readDiagram': 'よんでつくる',
+    'gui.lessonTaskBar.role': 'あなたの やく',
+    'gui.lessonTaskBar.roleShimaraby': 'シマラビの やく',
+    'gui.lessonTaskBar.roleShimacat': 'シマネコの やく',
+    'gui.lessonTaskBar.roleRemembered': 'まえは {role}',
+    'gui.lessonTaskBar.roleSeat': 'しゅっせきばんごうで きめた やく',
+    'gui.lessonPracticePartner.title': 'れんしゅうあいて: {name}',
+    'gui.lessonPracticePartner.note': 'ペアでやるときは、とじて ほんもののメッシュで つなごう。',
+    'gui.lessonPracticePartner.close': 'れんしゅうあいてを とじる',
+    'gui.lessonPracticePartner.received': '{name}に とどいた: {what}',
+    'gui.lessonPracticePartner.sendHeading': '{name}から おくる',
+    'gui.lessonPracticePartner.receivedHeading': '{name}に とどいた',
+    'gui.lessonPracticePartner.variableName': '← {name}',
+    'gui.lessonPracticePartner.nothingReceived': '（まだ なにも とどいていない）',
+    'gui.lessonPracticePartner.missingVariable': '「{name}」が まだ から。さきに はたを おして いれよう。',
+    'gui.lessonPracticePartner.open': 'れんしゅうあいて',
     'gui.lessonHint.ariaLabel': 'ヒント',
     'gui.lessonHint.position': 'ヒント {number} / {count}',
     'gui.lessonHint.prev': 'もどる',
@@ -1943,6 +1961,13 @@ export default {
     'gui.lessonHint.dragLabel': 'ドラッグでうごかせます',
     'gui.lessonHint.insertCodeError': 'まだプログラムをいれられないよ。さきにヒントのとおりにたそう。',
     'gui.lessonHint.blocksError': '（このブロックはかけませんでした）',
+    'gui.lessonHint.readDiagram.answerAtEnd':
+        'ずとせつめいをよんで、じぶんでプログラムをつくろう。こたえはヒントのさいごのページにあるよ。',
+    'gui.lessonHint.readDiagram.try':
+        'できたら、うごかしてためそう。ずのとおりにうごくかな？ ちがったら、ずをもういちどよんでなおそう。こたえはつぎのページでみられるよ。',
+    'gui.lessonHint.readDiagram.answerOf': '{name}のプログラム',
+    'gui.lessonHint.readDiagram.answer':
+        'これがこたえのプログラムだよ。じぶんのプログラムとみくらべよう。あなたのプログラムはそのままだよ。',
     'gui.menuBar.lessons': 'レッスン',
     'gui.lessonsLibrary.title': 'レッスンをえらぶ',
     'gui.lessonsLibrary.search': 'けんさく',
