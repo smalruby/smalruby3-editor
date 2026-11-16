@@ -638,7 +638,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 手順のボタンのうち、いまの手順だけが `aria-current="step"`（主ボタン）。読み込む前 → 1、読み込んだら → 2、
 採点が 1 つでも入ったら → 3、コメントの下書きが 1 つでもあれば → 4（`currentEvalStep`）。
-1300×600 の収まりと手順の移り方は `tools/playwright-verify/verify-classroom-grading.mjs` が測る（離れる確認の［戻る］が見えることも測る）。
+1300×600 の収まりと手順の移り方は `tools/playwright-verify/verify-classroom-grading.mjs` が測る（離れる確認の［戻る］が見えることも測る）。タブを切りかえてもタブの行が上下に動かないこと・タブの下の高さ・成績表で見える席の行の数は `tools/playwright-verify/verify-classroom-tab-offsets.mjs` が測る。
 
 ### メニューバー
 
