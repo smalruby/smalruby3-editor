@@ -637,6 +637,7 @@ test/unit/containers/*
 !test/unit/containers/use-teacher-groups-update.test.js
 !test/unit/containers/use-teacher-notifications.test.js
 !test/unit/containers/use-teacher-evaluation-leave.test.js
+!test/unit/containers/use-teacher-evaluation-stale-runs.test.js
 !test/unit/containers/use-teacher-evaluation-open-work.test.js
 !test/unit/containers/use-teacher-submissions-open.test.js
 !test/unit/containers/use-before-unload-while.test.js
