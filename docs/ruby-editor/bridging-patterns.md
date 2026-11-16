@@ -94,7 +94,7 @@ Scratch の変数・リストの名前で、Ruby の情報を持たせている�
 | `_hash_<名前>_keys_` / `_hash_<名前>_values_` | ハッシュ `@<名前>` のキーと値 | リスト 2 つ | `variable-utils.js` の `_hashKeysListName` / `_hashValuesListName` |
 | `_<名前>_list_`（`_<名前>_list2_` ...）（Ruby では `@_a_list_`） | 同じ名前の変数のとなりにあるリスト `a` | リスト | 生成器 `variables.js` の `rubyBaseNameOfVariable`、変換器 `variable-utils.js` の `_listNameOfAlias` |
 | `_symbols_`（ステージ） | 使われたシンボル | ステージのリスト | `variable-utils.js` の `_symbolToBlock` |
-| `__lit_<番号>__1_` | 何もしないリテラルだけの行（`"Jimmy"`） | スプライトの変数・リスト | `index.js` の `_convertBareLiteralToAssignment` |
+| `__lit_<番号>__1_` | 何もしないリテラルだけの行（`"Jimmy"`） | スプライトの変数・リスト | `finish.js` の `_convertBareLiteralToAssignment` |
 | `_super_<メソッド>_<番号>_` | `super` で呼ばれる、module 側の同じ名前のメソッド | 定義ブロック（手続き名） | `class-visitor.js` |
 
 生成器だけが使う、出力の途中の目印もある（Ruby には残らない）。
@@ -674,7 +674,7 @@ $a += 1
 
 **Ruby で書きたいこと**: 当たるブロックが無いメソッドや構文。
 
-**Scratch での表し方**: 変換器は、当たる変換が無い呼び出しを、いったん Ruby のコードをそのまま持つブロック（`ruby_statement` / `ruby_statement_with_block` / `ruby_expression`）にする。範囲 `1..6` も `ruby_range` / `ruby_exclude_range` にする。変換の最後に、これらのブロックが残っていたらエラーにする（`index.js`）。
+**Scratch での表し方**: 変換器は、当たる変換が無い呼び出しを、いったん Ruby のコードをそのまま持つブロック（`ruby_statement` / `ruby_statement_with_block` / `ruby_expression`）にする。範囲 `1..6` も `ruby_range` / `ruby_exclude_range` にする。変換の最後に、これらのブロックが残っていたらエラーにする（仕上げの段。`finish.js`）。
 
 - **`ruby_*` のブロックはエラーの目印**: 残してよいのは `@ruby:return` の付いたものだけ。`ruby_range` は `rand(1..6)` の引数のときだけ「乱数」ブロックに変わって残らない。
 - **エラーの文**: 「`「{ SOURCE }」は命令がまちがっています。`」（`wrongInstruction`）。`SOURCE` は、式がほかの式の中にあっても、その式を含む 1 行の文（`_sourceNodeForError`）。
@@ -746,7 +746,7 @@ say(mesh.message_value)
 | 種類 | 形 | 書く | 読む | 例 | パターン |
 |---|---|---|---|---|---|
 | `@ruby:lvar` | `@ruby:lvar:<名前>:<番号>` | 変換器 `variables.js` / `variable-hash-ops.js` / `smalruby-ruby.js` | 生成器 `data.js` / `data-list.js` / `variables.js` | `@ruby:lvar:a:1` | P1 |
-| `@ruby:return` | `@ruby:return:<メソッド>`、`:<番号>`（控え）、`:initialize`（初期化） | 変換器 `my-blocks.js` / `ast-handlers/expressions.js` | 生成器 `data.js` / `procedure.js` / `control.js`、変換器 `index.js`（`ruby_*` を残してよいか） | `@ruby:return:foo:1` | P2 |
+| `@ruby:return` | `@ruby:return:<メソッド>`、`:<番号>`（控え）、`:initialize`（初期化） | 変換器 `my-blocks.js` / `ast-handlers/expressions.js` | 生成器 `data.js` / `procedure.js` / `control.js`、変換器 `finish.js`（`ruby_*` を残してよいか） | `@ruby:return:foo:1` | P2 |
 | `@ruby:return-bare` | `,@ruby:return-bare`（`@ruby:return` に足す） | 変換器 `expressions.js` | 生成器 `data.js` | `return` | P2 |
 | `@ruby:return-paren` | `,@ruby:return-paren` | 変換器 `expressions.js` | 生成器 `data.js` | `return (x + 1)` | P2 |
 | `@ruby:nil` | `@ruby:nil`（`@ruby:return` に足す） | 変換器 `my-blocks.js` / `expressions.js` | 生成器 `data.js` | `return nil` | P2・P9 |
@@ -760,7 +760,7 @@ say(mesh.message_value)
 | `@ruby:super` | `@ruby:super` / `@ruby:super:forwarding`（値なら `,@ruby:return:<名前>`） | 変換器 `ast-handlers/expressions.js` | 生成器 `procedure.js` / `control.js` | `@ruby:super:forwarding` | P6 |
 | `@ruby:symbol` | `@ruby:symbol:<名前>` / `@ruby:symbol:var` | 変換器 `variable-utils.js` / `looks.js` / `operators.js` / `my-blocks.js` / `expressions.js` | 生成器 `looks.js` / `operators.js` / `data.js` / `data-list.js`、変換器 `node-type-checks.js` | `@ruby:symbol:hello` | P7 |
 | `@ruby:regexp` | `@ruby:regexp:literal` | 変換器 `variables.js` | 生成器 `data.js` | `@ruby:regexp:literal` | P8 |
-| `@ruby:literal` | `true:<番号>` / `false:<番号>` / `string` / `integer` / `float` / `array` | 変換器 `ast-handlers/expressions-literals.js` / `index.js` | 生成器 `operators.js` / `data.js` / `data-list.js`、変換器 `node-type-checks.js` / `block-utils.js` | `@ruby:literal:true:1` | P9・P18 |
+| `@ruby:literal` | `true:<番号>` / `false:<番号>` / `string` / `integer` / `float` / `array` | 変換器 `ast-handlers/expressions-literals.js` / `finish.js` | 生成器 `operators.js` / `data.js` / `data-list.js`、変換器 `node-type-checks.js` / `block-utils.js` | `@ruby:literal:true:1` | P9・P18 |
 | `@ruby:variable_condition` | `@ruby:variable_condition` | 変換器 `node-utils.js` | 生成器 `operators.js` | `if @f` | P9 |
 | `@ruby:operator` | `>=:<番号>` / `<=:<番号>` / `!=:<番号>` / `=~:<番号>[:receiver]` / `!~:<番号>[:receiver]` / `+=` / `-=` | 変換器 `operators.js` / `motion.js` | 生成器 `operators.js` / `motion.js` | `@ruby:operator:>=:1` | P8・P10 |
 | `@ruby:unary_minus` | `@ruby:unary_minus` | 変換器 `operators-math.js` | 生成器 `operators-math-gen.js` | `-@a` | P10 |

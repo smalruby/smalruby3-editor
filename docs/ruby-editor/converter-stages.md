@@ -21,17 +21,18 @@ Ruby → ブロックの変換器（`packages/scratch-gui/src/lib/ruby-to-blocks
 
 | 項目               | いま                                                                                                                                                                                                                                                                |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 大きさ             | 72 ファイル・約 20,500 行（`ast-handlers/` と `send-table.js` を含む）                                                                                                                                                                                              |
+| 大きさ             | 73 ファイル・約 20,600 行（`ast-handlers/` と `send-table.js` を含む）                                                                                                                                                                                              |
 | クラス             | `RubyToBlocksConverter`（prism の `Visitor` を継承）1 つに、14 の部品を `Object.assign` で混ぜる                                                                                                                                                                    |
 | 呼び出しの登録     | 呼び出しの表（`send-table.js`）の行が 95（motion 12・looks 25・sound 8・control 5・event 6・sensing 16・operators 6・pen 17）。ほかに `converter.registerOnSend(` 324 か所・`converter.registerOnSendWithBlock(` 53 か所・`converter.registerOnSendMyBlock(` 1 か所 |
 | 構文の登録         | `converter.registerOnIf(` / `OnUntil` / `OnOpAsgn` / `OnAnd` / `OnOr` / `OnVar` / `OnVasgn` / `OnDefs`（13 か所）                                                                                                                                                   |
 | 古い `onXxx` 形式  | なくした。`_callConvertersHandler` は `registerOnXxx` で登録した配列だけを見る                                                                                                                                                                                      |
 | 変換の前の分析     | `analysis.js` の `analyze`（変数の使い方・ローカル変数の範囲・値として呼ばれる手続きの数）。変換器は結果の表を `_context.analysis` に置いて読む。`_rejectRubyNameOfVariableAndList` は表の `errors` を見て断る                                                      |
-| 変換のあとの仕上げ | 素のリテラルを代入に変える、`ruby_*` ブロックを断る、拡張機能の ID を集める、`_dropUnusedHashVariables`、`_rejectVariableAndListOfSameName`、`$_symbols_` を作る、コメントを結びつける、`target-applier.js` で書きこむ                                              |
+| 変換のあとの仕上げ | `finish.js` の `_finish`（素のリテラルを代入に変える、`ruby_*` ブロックを断る、拡張機能の ID を集める、使われないハッシュの変数を消す、`$_symbols_` を作る、コメントを結びつける など）。書きこみは `target-applier.js`                                             |
 
 数え方: `ruby-to-blocks-converter/` の下の `.js`（`ast-handlers/` を含む）を対象に、ファイルの数と行の数（`wc -l`）、登録は `converter.registerOnXxx(` と書かれた所の数を数えた（`grep -roF`）。`converter-registry.js` の中の定義と、`receiver` の `self` / `any` / 配列を広げるための呼び直しは数えない。`forEach` の中の 1 か所は、いくつのメソッドを登録していても 1 と数える（実際に登録される数はこれより多い）。`send-table.js` の中の `registerOnSend(` / `registerOnSendWithBlock(` 1 か所ずつもこの数に入る。表の行は、`map` で広げたあとの数（各変換器の `sends`）。
 
-分析と仕上げは、`targetCodeToBlocks`（`index.js`）の前と後ろにある。分析は名前のある段（`analysis.js`）になった。仕上げも同じように段として切り出し、段の間で渡すものを決めるのが残りの仕事。
+`targetCodeToBlocks`（`index.js`）は 4 段を順に呼ぶだけになった: `_indexSource` と `_parse`（解析）→ `_analyze`（分析。`analysis.js` の `analyze` を呼ぶ）→ `_convert`（変換）→ `_finish`（仕上げ。`finish.js`）。
+どの段で投げたエラーも、`targetCodeToBlocks` の 1 か所の `catch` が行と列のついた `errors` にする。残りの仕事は、class / module / initialize の判断を分析へ移し、`Object.assign` で混ぜている部品を段ごとに分けること。
 
 ### 構文木をたどる処理
 
@@ -70,6 +71,7 @@ Scratch のブロック
 - ソースの索引を **1 回だけ** 作る: バイト → 文字の表（いまの `_buildByteToCharMap`）、改行のバイト位置の表（行番号を二分探索で引く。試作で入れた `_newlineByteOffsets`）。
 - ノードの種類名は、本番のビルドでクラス名が変わるので `accept()` で調べる。`node-walk.js` の `nodeTypeName` が、ノードのクラスごとに一度だけ調べて覚える。変換（`visit` が呼ぶ `visitXxxNode` を決めるところも）と分析は、どちらもこれを使う。
 - 出すもの: `{ root, source, index, comments, errors }`。ブロックはまだ作らない。
+- いまの関数: `_indexSource(code)`（ソースとバイト → 文字の表を `_context` に置く。エラーの位置を出すのにどの段でも使うので、`try` の前に作る）と `_parse(code)`（prism の結果を返す。構文エラーは翻訳して `errors` に入れ、`null` を返す）。
 
 ### 2. 分析（analyze）
 
@@ -127,12 +129,12 @@ Ruby の名前をキーにする表（`variables.uses`・`locals.uses`・`proced
 
 ### 4. 仕上げ（finish）
 
-全体を作り終えてはじめて決まる処理と検査。いまの `targetCodeToBlocks` の後半をそのまま移す。
+全体を作り終えてはじめて決まる処理と検査。`finish.js` の `_finish(blocks, parseResult, code)` が、次の順に行う（変換がブロックを 1 つも返さないコード、たとえばコメントだけのコードでは仕上げを行わない）。
 
-- 素のリテラルの行を代入に変える（P18）、トップレベルの印、`ruby_*` ブロックを断る（P17）、拡張機能の ID を集める
+- 素のリテラルの行を代入に変える（P18。`_convertBareLiterals`）、トップレベルの印（`_markTopLevelBlocks`。残ったシンボル・値はここで断る）、`ruby_*` ブロックを断る（P17）と拡張機能の ID を集める（`_rejectRubyBlocksAndCollectExtensions`）
 - 使われなかったハッシュの変数を消す、同じ名前の変数とリストを断る、`$_symbols_` リストを作る（P7）
 - ソースのコメントをブロックに結びつける（P14）
-- `target-applier.js` でスプライト（ステージ）へ書きこむ（いまと同じ。書きこみの途中で失敗したら戻す）
+- `target-applier.js` でスプライト（ステージ）へ書きこむのは仕上げのあと、呼び出し側が `apply()`（`applyTargetBlocks`）を呼んだとき（書きこみの途中で失敗したら戻す）
 
 ## 呼び出しの登録を表にする
 
@@ -243,7 +245,7 @@ registerSendTable(converter, MOTION_SENDS);
 | 2   | 変換の巻き戻しを journal に（`_saveContext` を写さない）。済み                                                                                                                                | 表のテストすべて、`orphan-blocks.test.js`、`target-applier-transaction.test.js`、往復テスト          | **大**（いま最も時間を使う） |
 | 3   | 分析の段: `forEachNode` を作り、`_collectVariableUses` と `_countProcedureCallsInNode` を移して凍結した `Analysis` を出す。済み                                                               | 分析の結果の表のテスト（Ruby → `Analysis`）、表のテストすべて                                        | 小                           |
 | 4   | 呼び出しの表: motion → looks → sound → control / event → sensing → operators → data（表にできる行なし）→ 拡張機能（pen まで済み）。古い `onXxx` 2 つもここで移した。残りは pen 以外の拡張機能 | その領域の表のテスト                                                                                 | なし                         |
-| 5   | 仕上げの段: `targetCodeToBlocks` の後半を `finish()` へ。`targetCodeToBlocks` は 4 段を順に呼ぶだけにする                                                                                     | 表のテストすべて、往復テスト                                                                         | なし                         |
+| 5   | 仕上げの段: `targetCodeToBlocks` の後半を `_finish()`（`finish.js`）へ。`targetCodeToBlocks` は 4 段を順に呼ぶだけにする。済み                                                                | 表のテストすべて、往復テスト                                                                         | なし                         |
 | 6   | class / module / initialize の判断を分析へ移す                                                                                                                                                | `class.test.js`、`module.test.js`、`initialize-round-trip.test.js`、`ruby-roundtrip-class-*.test.js` | なし                         |
 
 1・2 は振る舞いを変えずに速くするだけなので先に行う。3 以降は、分析の表ができると変換の部品が `_context` を書きかえなくなり、`Object.assign` で混ぜている部品を段ごとのモジュールへ分けられるようになる（14 の部品を分けるのは 6 のあと）。
