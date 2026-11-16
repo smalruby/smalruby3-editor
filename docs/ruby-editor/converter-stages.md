@@ -22,7 +22,7 @@ Ruby → ブロックの変換器（`packages/scratch-gui/src/lib/ruby-to-blocks
 | 項目               | いま                                                                                                                                                                                                                                                                |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 大きさ             | 73 ファイル・約 20,600 行（`ast-handlers/` と `send-table.js` を含む）                                                                                                                                                                                              |
-| クラス             | `RubyToBlocksConverter`（prism の `Visitor` を継承）1 つに、14 の部品を `Object.assign` で混ぜる                                                                                                                                                                    |
+| クラス             | `RubyToBlocksConverter`（prism の `Visitor` を継承）1 つに、15 の部品を `Object.assign` で混ぜる                                                                                                                                                                    |
 | 呼び出しの登録     | 呼び出しの表（`send-table.js`）の行が 95（motion 12・looks 25・sound 8・control 5・event 6・sensing 16・operators 6・pen 17）。ほかに `converter.registerOnSend(` 324 か所・`converter.registerOnSendWithBlock(` 53 か所・`converter.registerOnSendMyBlock(` 1 か所 |
 | 構文の登録         | `converter.registerOnIf(` / `OnUntil` / `OnOpAsgn` / `OnAnd` / `OnOr` / `OnVar` / `OnVasgn` / `OnDefs`（13 か所）                                                                                                                                                   |
 | 古い `onXxx` 形式  | なくした。`_callConvertersHandler` は `registerOnXxx` で登録した配列だけを見る                                                                                                                                                                                      |
@@ -32,7 +32,7 @@ Ruby → ブロックの変換器（`packages/scratch-gui/src/lib/ruby-to-blocks
 数え方: `ruby-to-blocks-converter/` の下の `.js`（`ast-handlers/` を含む）を対象に、ファイルの数と行の数（`wc -l`）、登録は `converter.registerOnXxx(` と書かれた所の数を数えた（`grep -roF`）。`converter-registry.js` の中の定義と、`receiver` の `self` / `any` / 配列を広げるための呼び直しは数えない。`forEach` の中の 1 か所は、いくつのメソッドを登録していても 1 と数える（実際に登録される数はこれより多い）。`send-table.js` の中の `registerOnSend(` / `registerOnSendWithBlock(` 1 か所ずつもこの数に入る。表の行は、`map` で広げたあとの数（各変換器の `sends`）。
 
 `targetCodeToBlocks`（`index.js`）は 4 段を順に呼ぶだけになった: `_indexSource` と `_parse`（解析）→ `_analyze`（分析。`analysis.js` の `analyze` を呼ぶ）→ `_convert`（変換）→ `_finish`（仕上げ。`finish.js`）。
-どの段で投げたエラーも、`targetCodeToBlocks` の 1 か所の `catch` が行と列のついた `errors` にする。残りの仕事は、class / module / initialize の判断を分析へ移し、`Object.assign` で混ぜている部品を段ごとに分けること。
+解析・分析・変換・仕上げの段で投げたエラーは、`targetCodeToBlocks` の 1 か所の `catch` が行と列のついた `errors` にする。残りの仕事は、class / module / initialize の判断を分析へ移し、`Object.assign` で混ぜている部品を段ごとに分けること。
 
 ### 構文木をたどる処理
 
