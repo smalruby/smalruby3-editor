@@ -111,6 +111,7 @@ test/unit/*
 !test/unit/extension_text2speech_proxy.js
 !test/unit/util_cors-proxy-url.js
 !test/unit/extension_smalruby_ruby_each.js
+!test/unit/mesh_service_v2_changed_vars.js
 !test/unit/mesh_service_v2_cost.js
 !test/unit/mesh_service_v2_global_vars.js
 !test/unit/mesh_service_v2_integration.js

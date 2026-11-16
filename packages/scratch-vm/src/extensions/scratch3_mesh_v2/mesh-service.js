@@ -152,6 +152,10 @@ class MeshV2Service {
         // boundメソッドを保持（cleanup時にoff()で使用）
         this._processNextBroadcastBound = this.processNextBroadcast.bind(this);
         this.runtime.on('BEFORE_STEP', this._processNextBroadcastBound);
+        // Issue #1930: values changed outside blocks (the monitor's slider)
+        // are found every frame and sent through the same rate limiter.
+        this._sendChangedGlobalVariablesBound = this.sendChangedGlobalVariables.bind(this);
+        this.runtime.on('BEFORE_STEP', this._sendChangedGlobalVariablesBound);
 
         /**
          * Bound reference to _reportData for RateLimiter merge comparison.
