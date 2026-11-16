@@ -31,9 +31,15 @@ const markShown = () => {
 // variable name and a Mesh v2 "sensor value" lookup (project load, variable
 // add/rename, sensor dropdown change, Ruby tab edit — all surface as
 // PROJECT_LOADED / PROJECT_CHANGED), and shows the notice the first time one is found.
-const MeshSelfSensorNoticeContainer = ({ vm, isOpen, onShow, onHide }) => {
+// While a lesson challenge is open it stays silent (Issue #2081): the chat course
+// deliberately makes the variable and the sensor share a name, and the banner would
+// cover the task bar's role and hint buttons. It shows on a later change after the
+// lesson is closed.
+const MeshSelfSensorNoticeContainer = ({ vm, isOpen, inLesson, onShow, onHide }) => {
     const onShowRef = useRef(onShow);
     onShowRef.current = onShow;
+    const inLessonRef = useRef(inLesson);
+    inLessonRef.current = inLesson;
 
     useEffect(() => {
         if (!vm || alreadyShown()) return () => {};
@@ -49,7 +55,7 @@ const MeshSelfSensorNoticeContainer = ({ vm, isOpen, onShow, onHide }) => {
         };
 
         const run = () => {
-            if (detached) return;
+            if (detached || inLessonRef.current) return;
             if (hasSensorValueCollision(vm)) {
                 markShown();
                 onShowRef.current();
@@ -73,10 +79,11 @@ const MeshSelfSensorNoticeContainer = ({ vm, isOpen, onShow, onHide }) => {
 
     const handleDismiss = useCallback(() => onHide(), [onHide]);
 
-    return <MeshSelfSensorNotice onDismiss={handleDismiss} visible={isOpen} />;
+    return <MeshSelfSensorNotice onDismiss={handleDismiss} visible={isOpen && !inLesson} />;
 };
 
 MeshSelfSensorNoticeContainer.propTypes = {
+    inLesson: PropTypes.bool,
     isOpen: PropTypes.bool.isRequired,
     onHide: PropTypes.func.isRequired,
     onShow: PropTypes.func.isRequired,
@@ -85,6 +92,7 @@ MeshSelfSensorNoticeContainer.propTypes = {
 
 const mapStateToProps = (state) => ({
     isOpen: Boolean(state.scratchGui.meshV2.selfSensorNoticeVisible),
+    inLesson: Boolean(state.scratchGui.lessonMode && state.scratchGui.lessonMode.challengeId),
     vm: state.scratchGui.vm,
 });
 
@@ -93,4 +101,5 @@ const mapDispatchToProps = (dispatch) => ({
     onHide: () => dispatch(hideMeshV2SelfSensorNotice()),
 });
 
+export { MeshSelfSensorNoticeContainer };
 export default connect(mapStateToProps, mapDispatchToProps)(MeshSelfSensorNoticeContainer);

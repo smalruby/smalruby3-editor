@@ -660,6 +660,7 @@ test/unit/containers/*
 !test/unit/containers/stage-header.test.jsx
 !test/unit/containers/mesh-status-popup.test.jsx
 !test/unit/containers/mesh-practice-partner.test.jsx
+!test/unit/containers/mesh-self-sensor-notice.test.jsx
 
 # Level 3: test/unit/helpers/* — Smalruby-only (whole directory via `/**`)
 
