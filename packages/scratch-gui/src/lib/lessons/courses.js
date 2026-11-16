@@ -244,6 +244,21 @@ export const validateQuiz = (quiz) => {
 // ヒントの文言は並びの番号（step1, step2, ...）で引く
 const withTitles = (challengeId, steps) =>
     steps.map((step, i) => ({ ...step, title: challengeMessage(challengeId, `step${i + 1}`) }));
+
+/** ヒントの 1 ページ目「課題の説明と、アクティビティ図を理解しよう」の `kind`。 */
+export const UNDERSTAND_STEP_KIND = 'understand';
+
+/**
+ * アクティビティ図を出すチャレンジのヒント。1 ページ目に「課題の説明と、アクティビティ図を理解しよう」の
+ * ページ（図はこのページだけに出る・lesson-hint.jsx）を足し、渡した手順を 2 ページ目からにする。
+ * 手順のページに図を重ねると情報が多すぎるため、図を読むことを 1 つの手順に分ける。吹き出しは図が
+ * 読めるようステージの左に出す（読んで作るチャレンジの 1 ページ目と同じ）。文言は step1 が 1 ページ目。
+ * @param {string} challengeId - チャレンジ id。
+ * @param {Array<object>} steps - 2 ページ目からの手順。
+ * @returns {Array<object>} ヒントのページ。
+ */
+const withDiagramFirst = (challengeId, steps) =>
+    withTitles(challengeId, [{ kind: UNDERSTAND_STEP_KIND, target: HINT_TARGETS.STAGE }, ...steps]);
 // 「言う」の初期値「こんにちは！」（仕様の表記。ツールボックスの初期値は半角の「こんにちは!」なので書く）
 const SAY_HELLO = { MESSAGE: { ja: 'こんにちは！', 'ja-Hira': 'こんにちは！', en: 'Hello!' } };
 const debugTips = (challengeId, count) =>
@@ -917,7 +932,7 @@ const chatLesson1 = defineLesson({
                 data: ['data_setvariableto', 'data_variable'],
                 looks: ['looks_sayforsecs'],
             },
-            steps: withTitles('chat-l1-sequence', [
+            steps: withDiagramFirst('chat-l1-sequence', [
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatCode((w) => `when_flag_clicked do\n  ask("${w.ask}")\nend\n`),
@@ -956,7 +971,7 @@ const chatLesson1 = defineLesson({
                 control: ['control_forever'],
                 data: ['data_setvariableto', 'data_variable'],
             },
-            steps: withTitles('chat-l1-repeat', [
+            steps: withDiagramFirst('chat-l1-repeat', [
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatCode((w) => `when_flag_clicked do\n  ask("${w.ask}")\nend\n`),
@@ -1010,7 +1025,7 @@ const chatLesson1 = defineLesson({
                     },
                 ],
             },
-            steps: withTitles('chat-l1-branch', [
+            steps: withDiagramFirst('chat-l1-branch', [
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatCode((w) => `when_flag_clicked do\n  ask("${w.ask}")\nend\n`),
@@ -1157,7 +1172,7 @@ const chatLesson2 = defineLesson({
                 control: ['control_if_else'],
                 looks: [{ opcode: 'looks_sayforsecs', inputs: { MESSAGE: chatL2Text('great') } }],
             },
-            steps: withTitles('chat-l2-omikuji', [
+            steps: withDiagramFirst('chat-l2-omikuji', [
                 { target: HINT_TARGETS.PALETTE, blocks: 'when_clicked do\nend\n' },
                 {
                     target: HINT_TARGETS.PALETTE,
@@ -1222,7 +1237,7 @@ const chatLesson2 = defineLesson({
                 operators: [{ opcode: 'operator_gt', inputs: { OPERAND2: CHAT_TIMER_SECS } }],
                 looks: [{ opcode: 'looks_say', inputs: { MESSAGE: chatL2Text('timeUp') } }],
             },
-            steps: withTitles('chat-l2-timer', [
+            steps: withDiagramFirst('chat-l2-timer', [
                 { target: HINT_TARGETS.PALETTE, blocks: 'when_flag_clicked do\n  timer.reset\nend\n' },
                 { target: HINT_TARGETS.PALETTE, blocks: 'timer.reset\nwait until false\n' },
                 { target: HINT_TARGETS.CODE_AREA, blocks: `wait until timer.value > ${CHAT_TIMER_SECS}\n` },
@@ -1282,7 +1297,7 @@ const chatLesson2 = defineLesson({
                 control: ['control_if_else'],
                 looks: [{ opcode: 'looks_sayforsecs', inputs: { MESSAGE: chatL2Text('tie') } }],
             },
-            steps: withTitles('chat-l2-janken', [
+            steps: withDiagramFirst('chat-l2-janken', [
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL2Code((w) => `when_clicked do\n  ask("${w.janken}")\nend\n`),
@@ -1422,7 +1437,7 @@ const chatLesson3 = defineLesson({
                 data: ['data_setvariableto', 'data_variable'],
                 looks: [{ opcode: 'looks_sayforsecs', inputs: { SECS: 3 } }],
             },
-            steps: withTitles('chat-l3-local-message', [
+            steps: withDiagramFirst('chat-l3-local-message', [
                 { target: HINT_TARGETS.SPRITE_LIST, spotlight: true },
                 {
                     target: HINT_TARGETS.PALETTE,
@@ -1497,7 +1512,7 @@ const chatLesson3 = defineLesson({
                 buttons: [{ label: chatL3Text('wave'), broadcast: chatL3Text('wave') }],
                 replies: [],
             },
-            steps: withTitles('chat-l3-mesh-signal', [
+            steps: withDiagramFirst('chat-l3-mesh-signal', [
                 { target: HINT_TARGETS.EXTENSION_BUTTON, spotlight: true },
                 { target: HINT_TARGETS.PRACTICE_PARTNER },
                 {
@@ -1572,7 +1587,7 @@ const chatLesson3 = defineLesson({
                 // 相手は読まないが、1・2 のキーで変えた自分の気分を、ひとりのときもパネルの「届いた」に出す
                 watch: [chatL3Text('myMoodName')],
             },
-            steps: withTitles('chat-l3-mesh-variable', [
+            steps: withDiagramFirst('chat-l3-mesh-variable', [
                 { target: HINT_TARGETS.PALETTE },
                 {
                     target: HINT_TARGETS.PALETTE,
@@ -1825,8 +1840,7 @@ const chatLesson4 = defineLesson({
                 data: ['data_setvariableto', 'data_variable'],
             },
             partner: chatL4PairPartner(),
-            steps: withTitles('chat-l4-send-once', [
-                { target: HINT_TARGETS.PALETTE },
+            steps: withDiagramFirst('chat-l4-send-once', [
                 {
                     target: HINT_TARGETS.PALETTE,
                     blocks: chatL4Code((w) => `when_flag_clicked do\n  ask("${w.ask}")\n  ${w.v} = answer\nend\n`),
@@ -1869,7 +1883,7 @@ const chatLesson4 = defineLesson({
                 data: ['data_setvariableto', 'data_variable'],
             },
             partner: chatL4PairPartner(),
-            steps: withTitles('chat-l4-send-repeat', [
+            steps: withDiagramFirst('chat-l4-send-repeat', [
                 {
                     target: HINT_TARGETS.CODE_AREA,
                     blocks: chatL4Code((w) => `loop do\n  ${w.v} = answer\n  broadcast("${w.message}")\nend\n`),
@@ -1910,7 +1924,7 @@ const chatLesson4 = defineLesson({
                 meshV2: ['meshV2_getSensorValue'],
             },
             partner: chatL4PairPartner(),
-            steps: withTitles('chat-l4-both-ways', [
+            steps: withDiagramFirst('chat-l4-both-ways', [
                 { target: HINT_TARGETS.SPRITE_LIST },
                 {
                     target: HINT_TARGETS.PALETTE,
@@ -1984,7 +1998,7 @@ const chatLesson4 = defineLesson({
                 })),
                 replies: [],
             },
-            steps: withTitles('chat-l4-group', [
+            steps: withDiagramFirst('chat-l4-group', [
                 // 最初から入っているシマネコのプログラム（みんなの発言を言う）
                 { target: HINT_TARGETS.CODE_AREA, blocks: chatL4GroupReceive },
                 {
@@ -2070,7 +2084,7 @@ const chatLesson4 = defineLesson({
                 ],
                 replies: [],
             },
-            steps: withTitles('chat-l4-dm', [
+            steps: withDiagramFirst('chat-l4-dm', [
                 { target: HINT_TARGETS.CODE_AREA, blocks: chatL4Dm },
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4DmReceive },
                 { target: HINT_TARGETS.PRACTICE_PARTNER },
@@ -2307,7 +2321,7 @@ const chatLesson5 = defineLesson({
                     { label: chatL5Text('markRead'), broadcast: chatL5Text('partnerRead') },
                 ],
             }),
-            steps: withTitles('chat-l5-read-receipt', [
+            steps: withDiagramFirst('chat-l5-read-receipt', [
                 {
                     target: HINT_TARGETS.SPRITE_LIST,
                     blocks: chatL5Code(
@@ -2375,7 +2389,7 @@ const chatLesson5 = defineLesson({
                 looks: [{ opcode: 'looks_sayforsecs', inputs: { MESSAGE: chatL5Text('cannotSend'), SECS: 2 } }],
             },
             partner: chatL5Partner(),
-            steps: withTitles('chat-l5-ng-word', [
+            steps: withDiagramFirst('chat-l5-ng-word', [
                 // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL5NgStage },
@@ -2434,7 +2448,7 @@ const chatLesson5 = defineLesson({
             },
             // 自動の返事（「とどいたよ」）は持たない。自動返信どうしが行き来し続けないように
             partner: chatL5Partner({ replies: [] }),
-            steps: withTitles('chat-l5-auto-reply', [
+            steps: withDiagramFirst('chat-l5-auto-reply', [
                 // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
                 {
@@ -2488,7 +2502,7 @@ const chatLesson5 = defineLesson({
                 looks: [{ opcode: 'looks_sayforsecs', inputs: { MESSAGE: chatL5Text('wrongPassword'), SECS: 2 } }],
             },
             partner: chatL5Partner(),
-            steps: withTitles('chat-l5-password', [
+            steps: withDiagramFirst('chat-l5-password', [
                 // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
                 {
@@ -2556,7 +2570,7 @@ const chatLesson5 = defineLesson({
                 buttons: [{ label: chatL5Text('sendStamp'), broadcast: chatL5Text('partnerStamp') }],
                 replies: [{ onBroadcast: chatL5Text('myStamp'), broadcast: chatL5Text('partnerStamp') }],
             }),
-            steps: withTitles('chat-l5-stamp', [
+            steps: withDiagramFirst('chat-l5-stamp', [
                 // 最初から入っている 4-3 の答え（シマネコが相手のメッセージを言う）
                 { target: HINT_TARGETS.SPRITE_LIST, blocks: chatL4ReceiveSay },
                 { target: HINT_TARGETS.PALETTE, blocks: chatL5StampSend },

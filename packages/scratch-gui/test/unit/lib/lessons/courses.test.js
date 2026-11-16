@@ -12,6 +12,7 @@ import {
     CATEGORIES,
     COURSES,
     LANGUAGES,
+    UNDERSTAND_STEP_KIND,
     defineChallenge,
     defineLesson,
     findChallenge,
@@ -902,7 +903,9 @@ describe('lesson courses', () => {
             allChallenges()
                 .filter((c) => !isReadDiagram(c))
                 .forEach((c) => {
-                    const targets = c.steps.map((s) => s.target);
+                    // 「課題の説明と、アクティビティ図を理解しよう」の 1 ページ目は、図が読めるようステージの左に出す
+                    // だけで、試す操作のページではない
+                    const targets = c.steps.filter((s) => s.kind !== UNDERSTAND_STEP_KIND).map((s) => s.target);
                     expect({ id: c.id, last: tryTargets.includes(targets[targets.length - 1]) }).toEqual({
                         id: c.id,
                         last: true,
@@ -1897,6 +1900,72 @@ describe('chat course lesson 5 "チャットを改良しよう" (#1645)', () => 
         expect(messages[challenge('chat-l5-password').task.id]).toContain(names.password);
         expect(code('chat-l5-stamp')).toContain(`broadcast("${names.stamp}")`);
         expect(messages[challenge('chat-l5-stamp').task.id]).toContain(names.stamp);
+    });
+});
+
+// ヒントの形（コース「チャットをつくろう」全体）: 1 ページ目は「課題の説明と、アクティビティ図を理解しよう」で、
+// 図はこのページだけに出す（lesson-hint.jsx は index 0 だけに図を描く）。手順は 2 ページ目から。
+// ヒント・つまずき・課題の文に色の言葉を書かない（ブロックの絵が付くので、色は絵に任せる。カテゴリ名だけで書く）
+describe('chat course hints: the diagram page first and no color words', () => {
+    const chatChallenges = () => findCourse('chat-wo-tsukurou').lessons.flatMap((l) => l.challenges);
+    const FIRST = {
+        ja: '課題の説明と、アクティビティ図を理解しよう。',
+        'ja-Hira': 'かだいの せつめいと、アクティビティずを りかいしよう。',
+        en: 'Understand the task and the activity diagram.',
+    };
+    // ブロックのなかまの色（ja / ja-Hira / en）
+    const COLOR_WORDS =
+        /黄色|オレンジ|紫|水色|緑|ピンク|青|きいろ|むらさき|みずいろ|みどり|あおい|\b(yellow|orange|purple|light blue|green|pink|blue)\b/i;
+
+    test('every challenge shows the diagram and its first hint page is the diagram page', () => {
+        chatChallenges()
+            .filter((c) => !isReadDiagram(c))
+            .forEach((c) => {
+                expect({ id: c.id, diagram: c.activityDiagram }).toEqual({ id: c.id, diagram: true });
+                const [first, ...rest] = c.steps;
+                expect({ id: c.id, kind: first.kind, target: first.target, blocks: first.blocks }).toEqual({
+                    id: c.id,
+                    kind: UNDERSTAND_STEP_KIND,
+                    target: HINT_TARGETS.STAGE,
+                    blocks: null,
+                });
+                Object.entries(FIRST).forEach(([locale, text]) =>
+                    expect({ id: c.id, locale, first: LOCALES[locale][first.title.id].startsWith(text) }).toEqual({
+                        id: c.id,
+                        locale,
+                        first: true,
+                    }),
+                );
+                // 2 ページ目からは手順だけ（図のページは 1 つ）
+                expect({ id: c.id, more: rest.filter((s) => s.kind === UNDERSTAND_STEP_KIND).length }).toEqual({
+                    id: c.id,
+                    more: 0,
+                });
+                expect(rest.length).toBeGreaterThan(0);
+            });
+    });
+
+    test('the read-and-build challenge keeps its own diagram page first', () => {
+        chatChallenges()
+            .filter(isReadDiagram)
+            .forEach((c) => expect(c.steps[0].kind).toBe('read'));
+    });
+
+    test('the hints, the debug tips and the task of every challenge have no color words (en / ja / ja-Hira)', () => {
+        chatChallenges().forEach((c) => {
+            const ids = [c.task, ...c.steps.map((s) => s.title), ...c.debug].filter(Boolean).map((d) => d.id);
+            Object.entries(LOCALES).forEach(([locale, messages]) =>
+                ids
+                    .filter((id) => messages[id])
+                    .forEach((id) =>
+                        expect({ locale, id, text: messages[id] }).not.toEqual({
+                            locale,
+                            id,
+                            text: expect.stringMatching(COLOR_WORDS),
+                        }),
+                    ),
+            );
+        });
     });
 });
 
