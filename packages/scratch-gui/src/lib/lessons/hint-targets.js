@@ -217,7 +217,9 @@ export const hintViewport = (doc, win) => {
  * 画面からはみ出さないよう、最後に margin の内側に収める。
  * @param {object} args - 引数。
  * @param {?{left: number, top: number, right: number, bottom: number}} args.target - 指す場所の矩形（無ければ null）。
- * @param {{width: number, height: number}} args.balloon - 吹き出しの大きさ。
+ * @param {{width: number, height: number, header: ?number, closeLeft: ?number}} args.balloon - 吹き出しの大きさ。
+ *   `header` はヘッダーの帯の下の端、`closeLeft` は閉じるボタンの左の端（どちらも吹き出しの左上からの相対。
+ *   無ければ見ない）。左右の辺のしっぽは帯の横に、上の辺のしっぽは閉じるボタンの上に出さない。
  * @param {{width: number, height: number, left: ?number}} args.viewport - 画面の大きさ（`left` は左の使えない幅。`hintViewport`）。
  * @param {Array<string>} [args.sides] - 置く側の候補（既定は右 → 左 → 下 → 上 → 中）。
  * @param {Array<object>} [args.avoid] - かぶせない矩形（練習相手のパネル。`findHintAvoidRects`）。かぶる置き方は、
@@ -239,13 +241,22 @@ export const computeHintPlacement = ({ target, balloon, viewport, sides, avoid =
     // 真ん中が吹き出しの辺の外（上の端より上など）になることがある。そこで位置を辺の中に寄せて描くと、しっぽは
     // 何も指さずに角に出る（ヘッダーの閉じるボタンにかぶる白いひし形になる）ので、そのときは出さない
     const ARROW_INSET = 12;
-    const alongEdge = (offset, length) => offset >= ARROW_INSET && offset <= length - ARROW_INSET;
+    // 辺の中でも、ヘッダーの帯の横（左右の辺の上のほう）と閉じるボタンの上（上の辺の右の端）には出さない。
+    // 帯の色の上に白いしっぽが出て、閉じるボタンの横の白いひし形に見える
+    const headerBottom = balloon.header || 0;
+    const closeLeft = typeof balloon.closeLeft === 'number' ? balloon.closeLeft : Infinity;
+    const alongEdge = (offset, length, start = 0, end = length) =>
+        offset >= start + ARROW_INSET && offset <= Math.min(length, end) - ARROW_INSET;
     const arrowFor = (l, t, side, anchor) => {
         if (!anchor) return null;
         const x = anchor.x - l;
         const y = anchor.y - t;
         const sideways = side === HINT_SIDES.RIGHT || side === HINT_SIDES.LEFT;
-        if (sideways ? !alongEdge(y, balloon.height) : !alongEdge(x, balloon.width)) return null;
+        const onTopEdge = side === HINT_SIDES.BOTTOM;
+        const fits = sideways
+            ? alongEdge(y, balloon.height, headerBottom)
+            : alongEdge(x, balloon.width, 0, onTopEdge ? closeLeft : balloon.width);
+        if (!fits) return null;
         return {
             x: clamp(x, ARROW_INSET, Math.max(ARROW_INSET, balloon.width - ARROW_INSET)),
             y: clamp(y, ARROW_INSET, Math.max(ARROW_INSET, balloon.height - ARROW_INSET)),

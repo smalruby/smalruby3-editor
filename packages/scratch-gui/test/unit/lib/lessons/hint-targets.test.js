@@ -312,6 +312,56 @@ describe('computeHintPlacement', () => {
             expect(placed.arrow).toBeNull();
         });
 
+        // 1300×600 のチャットのレッスン 4-3 のヒント 8（旗を指す）: 旗は練習相手のパネルの上にあるので、吹き出しは
+        // 旗の左に置かれ、パネルをよけて左へずれる。しっぽの高さ（y = 14）は辺の中だが、ヘッダーの帯（上から 38px）の
+        // 中で、閉じるボタンの横に白いひし形が出るので、しっぽは出さない
+        test('no arrow when a sideways arrow would sit in the header band', () => {
+            const flag = rect(930, 86, 962, 118);
+            const partnerPanel = rect(750, 130, 1290, 400);
+            const tall = { width: 352, height: 485, header: 38, closeLeft: 318 };
+            const placed = computeHintPlacement({
+                target: flag,
+                balloon: tall,
+                viewport: { width: 1300, height: 600, top: 80 },
+                sides: preferredSides(HINT_TARGETS.GREEN_FLAG),
+                avoid: [partnerPanel],
+            });
+            expect(placed.side).toBe(HINT_SIDES.LEFT);
+            expect(placed.top).toBe(88);
+            expect(placed.arrow).toBeNull();
+        });
+
+        test('a sideways arrow just below the header band is still drawn', () => {
+            const target = rect(930, 140, 962, 172);
+            const placed = computeHintPlacement({
+                target,
+                balloon: { width: 352, height: 300, header: 38, closeLeft: 318 },
+                viewport: { width: 1300, height: 600, top: 80 },
+                sides: [HINT_SIDES.LEFT],
+            });
+            expect(placed.side).toBe(HINT_SIDES.LEFT);
+            expect(placed.top).toBe(88);
+            expect(placed.arrow).toEqual({ x: 340, y: 68 });
+        });
+
+        test('no arrow when an arrow on the top edge would sit on the close button', () => {
+            // 下に置いた吹き出しを画面の右に収めた結果、しっぽ（上の辺・ヘッダーの色）が閉じるボタンにかかる
+            const target = rect(1250, 40, 1290, 80);
+            const b = { width: 352, height: 200, header: 38, closeLeft: 318 };
+            const placed = computeHintPlacement({ target, balloon: b, viewport, sides: [HINT_SIDES.BOTTOM] });
+            expect(placed.side).toBe(HINT_SIDES.BOTTOM);
+            expect(placed.left).toBe(1300 - 352 - 8);
+            expect(placed.arrow).toBeNull();
+            // 閉じるボタンの左なら出す
+            const left = computeHintPlacement({
+                target: rect(1150, 40, 1190, 80),
+                balloon: b,
+                viewport,
+                sides: [HINT_SIDES.BOTTOM],
+            });
+            expect(left.arrow).toEqual({ x: 230, y: 12 });
+        });
+
         test('without anything to avoid the placement is as before', () => {
             const target = rect(0, 100, 310, 600);
             expect(computeHintPlacement({ target, balloon, viewport, avoid: [] })).toEqual(
