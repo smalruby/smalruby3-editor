@@ -113,10 +113,24 @@ const KEEP_KEYS = new Set([
  * @param {object} challenge - チャレンジ（defineChallenge の形）。
  * @returns {object} 入れかえたチャレンジ（元のチャレンジは変えない）。
  */
-export const swapChallengeRoles = (challenge) =>
-    Object.fromEntries(
-        Object.entries(challenge).map(([key, value]) => [key, KEEP_KEYS.has(key) ? value : swapValue(value)]),
+export const swapChallengeRoles = (challenge) => {
+    const { roleSwapped, ...rest } = challenge;
+    const swapped = Object.fromEntries(
+        Object.entries(rest).map(([key, value]) => [key, KEEP_KEYS.has(key) ? value : swapValue(value)]),
     );
+    // 入れかえた形の印（図などの覚えておく値を、役で分けるため）。もう一度入れかえると元にもどる
+    return roleSwapped ? swapped : { ...swapped, roleSwapped: true };
+};
+
+/**
+ * 出しているチャレンジの役（役の無いチャレンジは null）。入れかえた形ならシマネコの役。
+ * @param {?object} challenge - challengeForRole が返したチャレンジ。
+ * @returns {?string} 役。
+ */
+export const roleOfChallenge = (challenge) => {
+    if (!challenge || !challenge.roles) return null;
+    return challenge.roleSwapped ? ROLES.SHIMACAT : ROLES.SHIMARABY;
+};
 
 // チャレンジの定義は変わらないので、入れかえた形は 1 回だけ作る（参照が変わらないように。パレット・図の
 // 作り直しは参照の変化で起きる）

@@ -24,6 +24,7 @@ import {
     preferredSides,
 } from '../../lib/lessons/hint-targets';
 import { splitEmphasis } from '../../lib/lessons/hint-text';
+import { formatRoleMessage } from '../../lib/lessons/role-swap';
 import BalloonButton from '../balloon/balloon-button.jsx';
 import BalloonHeader from '../balloon/balloon-header.jsx';
 import Balloon, { BALLOON_VARIANTS } from '../balloon/balloon.jsx';
@@ -402,7 +403,7 @@ const LessonHint = ({
                                 <ul className={styles.debugList} data-testid="lesson-hint-debug">
                                     {debug.map((tip) => (
                                         <li key={tip.id}>
-                                            <EmphasizedText text={intl.formatMessage(tip)} />
+                                            <EmphasizedText text={formatRoleMessage(intl, tip)} />
                                         </li>
                                     ))}
                                 </ul>
@@ -468,12 +469,12 @@ const LessonHint = ({
                             ) : null}
                             {title ? (
                                 <p className={styles.title} data-testid="lesson-hint-title">
-                                    <EmphasizedText text={intl.formatMessage(title)} />
+                                    <EmphasizedText text={formatRoleMessage(intl, title)} />
                                 </p>
                             ) : null}
                             {note ? (
                                 <p className={styles.note} data-testid="lesson-hint-note">
-                                    {intl.formatMessage(note)}
+                                    {formatRoleMessage(intl, note)}
                                 </p>
                             ) : null}
                             {label && (blocksXml || blocksError) ? (

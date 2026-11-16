@@ -5,6 +5,7 @@ import React from 'react';
 import { IntlProvider } from 'react-intl';
 import LessonTaskBar, { HOVER_DELAY_MS } from '../../../src/components/lesson-task-bar/lesson-task-bar.jsx';
 import { findChallenge } from '../../../src/lib/lessons/courses';
+import { ROLES, challengeForRole } from '../../../src/lib/lessons/role-swap';
 import en from '../../../src/locales/en';
 import ja from '../../../src/locales/ja';
 
@@ -458,5 +459,39 @@ describe('LessonTaskBar', () => {
         expect(read.getByTestId('lesson-task-bar-read-diagram')).toHaveTextContent('読んで作る');
         // 課題の 1 行はそのまま出す
         expect(read.getByTestId('lesson-task-bar-task')).toBeInTheDocument();
+    });
+});
+
+describe('LessonTaskBar: the role of a pair challenge (#2062)', () => {
+    test('no role buttons without a role', () => {
+        const { queryByTestId } = renderBar({ challengeId: 'chat-l3-mesh-signal' });
+        expect(queryByTestId('lesson-task-bar-role')).toBeNull();
+    });
+
+    test('the Shimacat role shows the task with the names swapped (ja)', () => {
+        const { challenge, lesson } = findChallenge('chat-l3-mesh-variable');
+        const swapped = challengeForRole(challenge, ROLES.SHIMACAT);
+        const onChooseRole = jest.fn();
+        const { getByTestId } = render(
+            <IntlProvider locale="ja" messages={ja}>
+                <LessonTaskBar
+                    challenge={swapped}
+                    challengeCount={lesson.challenges.length}
+                    hintAvailable
+                    onHint={jest.fn()}
+                    onQuit={jest.fn()}
+                    onChooseRole={onChooseRole}
+                    role={{ role: ROLES.SHIMACAT, source: 'chosen' }}
+                />
+            </IntlProvider>,
+        );
+        expect(getByTestId('lesson-task-bar-task')).toHaveTextContent('変数「シマネコのきぶん」');
+        expect(getByTestId('lesson-task-bar-role-shimacat')).toHaveTextContent('シマネコの役');
+        expect(getByTestId('lesson-task-bar-role-shimacat')).toHaveAttribute('aria-pressed', 'true');
+        // いまの役をもう一度押しても何もしない
+        fireEvent.click(getByTestId('lesson-task-bar-role-shimacat'));
+        expect(onChooseRole).not.toHaveBeenCalled();
+        fireEvent.click(getByTestId('lesson-task-bar-role-shimaraby'));
+        expect(onChooseRole).toHaveBeenCalledWith(ROLES.SHIMARABY);
     });
 });

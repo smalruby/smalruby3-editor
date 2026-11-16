@@ -1,6 +1,9 @@
 import { buildGroupName, withSeatSuffix } from '@smalruby/scratch-vm/src/extensions/scratch3_mesh_v2/seat-naming';
+import { findChallenge } from '../../../../src/lib/lessons/courses';
 import {
     LESSON_ROLE_STORAGE_KEY,
+    connectedGroupSeats,
+    roleChangeRestarts,
     ROLE_SOURCES,
     loadRememberedRole,
     pairKeyOf,
@@ -101,5 +104,27 @@ describe('remembering the role', () => {
         expect(loadRememberedRole(storage)).toBeNull();
         expect(loadRememberedRole(null)).toBeNull();
         expect(() => saveRememberedRole({ role: ROLES.SHIMACAT }, null)).not.toThrow();
+    });
+});
+
+describe('the mesh group and starting again', () => {
+    const vmWith = (ext) => ({ runtime: { peripheralExtensions: { meshV2: ext } } });
+
+    test('connectedGroupSeats reads the seats of the connected group only', () => {
+        const groupName = buildGroupName(withSeatSuffix('abcdef12', 3), { seats: [7], host: 3 });
+        expect(connectedGroupSeats(vmWith({ connectionState: 'connected', meshService: { groupName } }))).toEqual([
+            3, 7,
+        ]);
+        expect(connectedGroupSeats(vmWith({ connectionState: 'disconnected', meshService: { groupName } }))).toEqual(
+            [],
+        );
+        expect(connectedGroupSeats(null)).toEqual([]);
+    });
+
+    test('roleChangeRestarts for every challenge with roles', () => {
+        expect(roleChangeRestarts(findChallenge('chat-l3-mesh-variable').challenge)).toBe(true);
+        expect(roleChangeRestarts(findChallenge('chat-l4-send-once').challenge)).toBe(true);
+        expect(roleChangeRestarts(findChallenge('chat-l5-ng-word').challenge)).toBe(true);
+        expect(roleChangeRestarts(findChallenge('chat-l3-mesh-signal').challenge)).toBe(false);
     });
 });

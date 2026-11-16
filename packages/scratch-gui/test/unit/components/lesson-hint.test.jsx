@@ -99,6 +99,19 @@ describe('LessonHint', () => {
         expect(strong[0].getAttribute('data-testid')).toBe('lesson-hint-emphasis');
     });
 
+    test('swaps the names of a message marked for the Shimacat role (#2062)', () => {
+        const title = {
+            id: 'test.role',
+            defaultMessage: '**シマラビをえらんで**、「シマラビのきぶん」を作ろう。',
+            roleSwapped: true,
+        };
+        const { getByTestId } = renderHint({ title }, { locale: 'ja', messages: {} });
+        expect(getByTestId('lesson-hint-title')).toHaveTextContent(
+            'シマネコをえらんで、「シマネコのきぶん」を作ろう。',
+        );
+        expect(getByTestId('lesson-hint-emphasis')).toHaveTextContent('シマネコをえらんで');
+    });
+
     test('the emphasis marks do not make HTML of the text', () => {
         const emphasized = { id: 'test.emphasis', defaultMessage: '**<img src=x onerror=alert(1)>**' };
         const { getByTestId } = renderHint({ title: emphasized }, { locale: 'en', messages: {} });

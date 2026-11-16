@@ -1562,7 +1562,8 @@ describe('chat course: how to connect over the mesh, in and outside a class', ()
     });
 
     test.each(Object.keys(LOCALES))('the shared connect page for a pair is short (%s)', (locale) => {
-        const limit = { ja: 110, 'ja-Hira': 130, en: 240 }[locale];
+        // 役を決める 1 文を足した分だけ長い（もとの文の 6 割ほど）
+        const limit = { ja: 120, 'ja-Hira': 150, en: 270 }[locale];
         expect(LOCALES[locale]['gui.lessons.chat.connect.pair'].length).toBeLessThanOrEqual(limit);
         expect(LOCALES[locale]['gui.lessons.chat.connect.pair.inClass'].length).toBeLessThanOrEqual(limit);
     });

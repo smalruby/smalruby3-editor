@@ -84,8 +84,9 @@ const closedState = {
     role: null,
     roleSource: null,
     rolePair: null,
-    // 役を選びなおしてチャレンジを始めなおすときの役（開くまでの間だけ入る）
+    // 役を選びなおしてチャレンジを始めなおすときの役と、どう決めたか（開くまでの間だけ入る）
     pendingRole: null,
+    pendingRoleSource: null,
 };
 
 const initialState = {
@@ -126,7 +127,7 @@ const openedRoleState = (challenge, action, state) => {
     if (state.pendingChallengeId === challenge.id && isRole(state.pendingRole)) {
         resolved = {
             role: state.pendingRole,
-            source: ROLE_SOURCES.CHOSEN,
+            source: state.pendingRoleSource || ROLE_SOURCES.CHOSEN,
             pair: action.rolePair || state.rolePair || null,
         };
     } else if (isRole(action.role)) {
@@ -156,12 +157,19 @@ const reducer = function (state, action) {
                 pendingChallengeId: action.challengeId,
                 pendingFromAssignment: Boolean(action.fromAssignment),
                 pendingRole: isRole(action.role) ? action.role : null,
+                pendingRoleSource: isRole(action.role) ? action.roleSource || ROLE_SOURCES.CHOSEN : null,
             };
         }
         case CANCEL_START_CHALLENGE:
             return state.pendingChallengeId === null
                 ? state
-                : { ...state, pendingChallengeId: null, pendingFromAssignment: false, pendingRole: null };
+                : {
+                      ...state,
+                      pendingChallengeId: null,
+                      pendingFromAssignment: false,
+                      pendingRole: null,
+                      pendingRoleSource: null,
+                  };
         case OPEN_CHALLENGE: {
             const found = findChallenge(action.challengeId);
             if (!found) return state;
@@ -170,6 +178,15 @@ const reducer = function (state, action) {
             const hintSpotlight = !isSpotlightSeen(found.challenge.id);
             if (hintSpotlight) markSpotlightSeen(found.challenge.id);
             const roleState = openedRoleState(found.challenge, action, state);
+            // 役を選びなおして同じチャレンジを始めなおしたときは、ヒントのページをそのままにする（「メッシュにつなごう」の
+            // ページで役を変えても 1 ページ目にもどらない）
+            const restartedInRole =
+                state.challengeId === found.challenge.id &&
+                state.pendingChallengeId === found.challenge.id &&
+                isRole(state.pendingRole);
+            const hintState = restartedInRole
+                ? { hintIndex: state.hintIndex, hintVisible: state.hintVisible }
+                : { ...hintClosedState, hintVisible: hintPageCount(found.challenge) > 0 };
             // ヒントボタンを押さなくても、始めたら 1 ページ目を出す（ヒントの無いチャレンジは出さない）。
             // 閉じたあとは課題バーの「ヒント」で開き直す
             return {
@@ -180,12 +197,12 @@ const reducer = function (state, action) {
                 pendingChallengeId: null,
                 pendingFromAssignment: false,
                 pendingRole: null,
+                pendingRoleSource: null,
                 ...roleState,
                 // startChallenge から来たときだけ、そのときの「課題からか」を引き継ぐ
                 fromAssignment:
                     state.pendingChallengeId === found.challenge.id ? Boolean(state.pendingFromAssignment) : false,
-                ...hintClosedState,
-                hintVisible: hintPageCount(found.challenge) > 0,
+                ...hintState,
                 hintSession: (state.hintSession || 0) + 1,
                 hintSpotlight,
                 justCompletedId: null,
@@ -267,8 +284,12 @@ const reducer = function (state, action) {
             // いまのチャレンジの役を、生徒が選びなおした（役の無いチャレンジでは何もしない）
             const found = state.challengeId === null ? null : findChallenge(state.challengeId);
             if (!found || !found.challenge.roles || !isRole(action.role)) return state;
-            if (state.role === action.role && state.roleSource === ROLE_SOURCES.CHOSEN) return state;
-            return { ...state, role: action.role, roleSource: ROLE_SOURCES.CHOSEN };
+            const roleSource = action.roleSource || ROLE_SOURCES.CHOSEN;
+            const rolePair = typeof action.rolePair === 'undefined' ? state.rolePair : action.rolePair;
+            if (state.role === action.role && state.roleSource === roleSource && state.rolePair === rolePair) {
+                return state;
+            }
+            return { ...state, role: action.role, roleSource, rolePair };
         }
         case SET_LIBRARY_ASSIGNMENT_ONLY:
             return state.libraryAssignmentOnly === Boolean(action.assignmentOnly)
@@ -299,13 +320,15 @@ const reducer = function (state, action) {
  * @param {object} [options] - オプション。
  * @param {boolean} [options.fromAssignment] - クラスの課題から開いたか（GA の計測で送る）。
  * @param {?string} [options.role] - この役で始める（役を選びなおして始めなおすとき・#2061）。
+ * @param {?string} [options.roleSource] - その役をどう決めたか（無ければ生徒が選んだ）。
  * @returns {object} action。
  */
-const startChallenge = (challengeId, { fromAssignment = false, role = null } = {}) => ({
+const startChallenge = (challengeId, { fromAssignment = false, role = null, roleSource = null } = {}) => ({
     type: START_CHALLENGE,
     challengeId,
     fromAssignment: Boolean(fromAssignment),
     role,
+    roleSource,
 });
 
 /** 「保存しますか」で取りやめたときなど、開こうとしていたチャレンジを取り消す。 */
@@ -331,9 +354,18 @@ const openChallenge = (challengeId, { role = null, roleSource = null, rolePair =
 /**
  * いまのチャレンジの役を選びなおす（課題バーの役のボタン・#2061）。役の無いチャレンジでは何もしない。
  * @param {string} role - 役（lib/lessons/role-swap.js の ROLES）。
+ * @param {object} [options] - オプション。
+ * @param {?string} [options.roleSource] - どう決めたか（無ければ生徒が選んだ）。出席番号のペアにつながって
+ *   決めなおしたときは SEAT。
+ * @param {?string} [options.rolePair] - 出席番号のペアの印（無ければいまのまま）。
  * @returns {object} action。
  */
-const setLessonRole = (role) => ({ type: SET_ROLE, role });
+const setLessonRole = (role, { roleSource = null, rolePair } = {}) => ({
+    type: SET_ROLE,
+    role,
+    roleSource,
+    rolePair,
+});
 
 const closeLesson = () => ({ type: CLOSE_LESSON });
 

@@ -693,4 +693,24 @@ describe('lesson-mode reducer: the role of a pair challenge (#2061)', () => {
         expect(getCurrentRole(wrap(state))).toEqual({ role: ROLES.SHIMACAT, source: ROLE_SOURCES.CHOSEN });
         expect(state.pendingRole).toBeNull();
     });
+
+    test('setLessonRole with a seat source keeps how the role was decided and the pair', () => {
+        let state = reducer(lessonModeInitialState, openChallenge('chat-l3-mesh-variable'));
+        state = reducer(state, setLessonRole(ROLES.SHIMACAT, { roleSource: ROLE_SOURCES.SEAT, rolePair: '3-7' }));
+        expect(getCurrentRole(wrap(state))).toEqual({ role: ROLES.SHIMACAT, source: ROLE_SOURCES.SEAT });
+        expect(state.rolePair).toBe('3-7');
+    });
+
+    test('starting the same challenge again in the other role keeps the hint page', () => {
+        let state = reducer(lessonModeInitialState, openChallenge('chat-l5-stamp'));
+        state = reducer(state, nextHint());
+        expect(state.hintIndex).toBe(1);
+        state = reducer(state, startChallenge('chat-l5-stamp', { role: ROLES.SHIMACAT }));
+        state = reducer(state, openChallenge('chat-l5-stamp'));
+        expect(state.hintIndex).toBe(1);
+        expect(state.role).toBe(ROLES.SHIMACAT);
+        // ふつうに開き直したら 1 ページ目から
+        state = reducer(reducer(state, startChallenge('chat-l5-stamp')), openChallenge('chat-l5-stamp'));
+        expect(state.hintIndex).toBe(0);
+    });
 });

@@ -5,6 +5,7 @@ import {
     challengeForRole,
     formatRoleMessage,
     otherRole,
+    roleOfChallenge,
     swapChallengeRoles,
     swapRoleText,
 } from '../../../../src/lib/lessons/role-swap';
@@ -98,6 +99,14 @@ describe('swapChallengeRoles', () => {
         expect(s.name).toBe(c.name);
         expect(s.quiz).toBe(c.quiz);
         expect(s.id).toBe(c.id);
+    });
+
+    test('marks the swapped challenge, and roleOfChallenge reads it', () => {
+        const c = challenge('chat-l3-mesh-variable');
+        expect(swapChallengeRoles(c).roleSwapped).toBe(true);
+        expect(roleOfChallenge(c)).toBe(ROLES.SHIMARABY);
+        expect(roleOfChallenge(swapChallengeRoles(c))).toBe(ROLES.SHIMACAT);
+        expect(roleOfChallenge(challenge('chat-l3-mesh-signal'))).toBeNull();
     });
 
     test('marks the messages so that they are swapped when shown', () => {

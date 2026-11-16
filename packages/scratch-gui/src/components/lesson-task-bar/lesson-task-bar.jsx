@@ -11,7 +11,9 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { defineMessages, useIntl } from 'react-intl';
 import { diagramScaleFor } from '../../lib/lessons/activity-diagram/layout';
 import { isReadDiagram } from '../../lib/lessons/read-diagram';
+import { formatRoleMessage } from '../../lib/lessons/role-swap';
 import LessonActivityDiagram from '../lesson-activity-diagram/lesson-activity-diagram.jsx';
+import LessonRolePicker from './lesson-role-picker.jsx';
 import styles from './lesson-task-bar.css';
 
 const messages = defineMessages({
@@ -123,12 +125,14 @@ const LessonTaskBar = ({
     onCloseFullText,
     onHint,
     onOpenFullText,
+    onChooseRole,
     onQuit,
+    role = null,
     toastVisible,
 }) => {
     const intl = useIntl();
-    // 課題の 1 行が無いチャレンジ（中身がまだのもの）は名前を出す
-    const task = intl.formatMessage(challenge.task || challenge.name);
+    // 課題の 1 行が無いチャレンジ（中身がまだのもの）は名前を出す。シマネコの役では名前を入れかえて出す
+    const task = formatRoleMessage(intl, challenge.task || challenge.name);
     const image = challenge.image || null;
     const readDiagram = isReadDiagram(challenge);
     const wrapperRef = useRef(null);
@@ -271,6 +275,10 @@ const LessonTaskBar = ({
                 >
                     {toOneLine(task)}
                 </button>
+                {/* ペアでやるチャレンジの役（役のあるチャレンジだけ） */}
+                {role && onChooseRole && (
+                    <LessonRolePicker role={role.role} source={role.source} onChoose={onChooseRole} />
+                )}
                 <button
                     type="button"
                     className={styles.button}
@@ -359,8 +367,15 @@ LessonTaskBar.propTypes = {
     onCloseFullText: PropTypes.func,
     // タップで全文のパネルを開くとき（ヒントの吹き出し・「できた！」を閉じる）
     onOpenFullText: PropTypes.func,
+    // ペアでやるチャレンジの役を選びなおした（役のあるチャレンジだけ。lib/lessons/role-swap.js の ROLES）
+    onChooseRole: PropTypes.func,
     // ほかのチャレンジへ（いまのチャレンジを終えてレッスン表を開く）
     onQuit: PropTypes.func.isRequired,
+    // いまの役（役のあるチャレンジだけ・reducers/lesson-mode.js の getCurrentRole）。無ければ役のボタンを出さない
+    role: PropTypes.shape({
+        role: PropTypes.string.isRequired,
+        source: PropTypes.string,
+    }),
     // 「できた！」の toast が出ているか（出ているあいだは全文のパネルを出さない。ホバーでも）
     toastVisible: PropTypes.bool,
 };

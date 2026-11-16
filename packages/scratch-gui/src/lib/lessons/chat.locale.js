@@ -8,9 +8,9 @@ const C = 'gui.lessons.challenge.';
 export const ja = {
     // ペア・グループでやるチャレンジの「メッシュにつなごう」（どのチャレンジでも同じ文・courses.js の connectStep）
     'gui.lessons.chat.connect.pair':
-        'メッシュにつなごう（もうつながっていれば次へ）。ペアなら、「メッシュ」の横のボタンで 1 人が「メッシュのホストになる」、もう 1 人が「メッシュに参加する」。ひとりなら練習相手のパネルを使おう。',
+        'メッシュにつなごう（もうつながっていれば次へ）。ペアなら、「メッシュ」の横のボタンで 1 人が「メッシュのホストになる」、もう 1 人が「メッシュに参加する」。ひとりなら練習相手のパネルを使おう。役を決めて課題バーで選ぼう。',
     'gui.lessons.chat.connect.pair.inClass':
-        'メッシュにつなごう（もうつながっていれば次へ）。ペアなら、2 人とも「メッシュ」の横のボタンで「出席番号でつながる」を選び、相手の出席番号で「つなぐ」。ひとりなら練習相手のパネルを使おう。',
+        'メッシュにつなごう（もうつながっていれば次へ）。ペアなら、2 人とも「メッシュ」の横のボタンで「出席番号でつながる」を選び、相手の出席番号で「つなぐ」。ひとりなら練習相手のパネルを使おう。役を決めて課題バーで選ぼう。',
     'gui.lessons.chat.connect.group':
         'メッシュにつなごう（もうつながっていれば次へ）。グループなら、「メッシュ」の横のボタンで 1 人が「メッシュのホストになる」、ほかの人は「メッシュに参加する」。ひとりなら練習相手のパネルを使おう。',
     'gui.lessons.chat.connect.group.inClass':
@@ -217,7 +217,7 @@ export const ja = {
 
     [`${C}chat-l3-mesh-variable.name`]: '変数を共有しよう',
     [`${C}chat-l3-mesh-variable.task`]:
-        '1 のキーで変数「シマラビのきぶん」を「うれしい」、2 のキーで「ねむい」にしよう。シマネコを押したら、シマネコの気分（「シマネコのきぶん」のセンサーの値）を 2 秒言うようにしよう。\nペアでシマネコの役の人は、シマラビとシマネコを入れかえて作ろう。',
+        '1 のキーで変数「シマラビのきぶん」を「うれしい」、2 のキーで「ねむい」にしよう。シマネコを押したら、シマネコの気分（「シマネコのきぶん」のセンサーの値）を 2 秒言うようにしよう。',
     [`${C}chat-l3-mesh-variable.step1`]: '課題の説明と、アクティビティ図を理解しよう。',
     [`${C}chat-l3-mesh-variable.step3`]:
         '**シマラビをえらんで**、「変数」の「変数を作る」で「シマラビのきぶん」を作ろう。「すべてのスプライト用」にすると、メッシュでつながった相手と共有される。',
@@ -226,13 +226,13 @@ export const ja = {
     [`${C}chat-l3-mesh-variable.step5`]:
         'もう 1 つ「2 キーが押されたとき」を置いて、「シマラビのきぶんを ねむい にする」をつなげよう。',
     [`${C}chat-l3-mesh-variable.step6`]:
-        'ひとりなら、練習相手のパネルの「うれしい」を押そう（ペアなら、相手に 1 のキーを押してもらう）。相手の気分が届くと、「メッシュ」の「(　) センサーの値」の ▼ に「シマネコのきぶん」が出る。',
+        'ひとりなら、練習相手のパネルの「うれしい」を押そう。ペアなら、2 人とも 1 のキーか 2 のキーを押して、自分の気分を相手に送ろう。相手の気分が届くと、「メッシュ」の「(　) センサーの値」の ▼ に「シマネコのきぶん」が出る。',
     [`${C}chat-l3-mesh-variable.step7`]:
         '**シマネコをえらんで**、「このスプライトが押されたとき」を置こう。その下に「(　) と 2 秒言う」をつなげて、白いところに「(シマネコのきぶん) センサーの値」を入れよう。',
     [`${C}chat-l3-mesh-variable.step8`]:
         '1 のキーと 2 のキーを押して、自分の気分が相手に届くか見よう。ひとりなら、練習相手のパネルの「届いた」に出る。ペアなら、相手の画面で「メッシュの状態と履歴」のウィンドウを開き、「状態」の届いた変数に自分の気分が出るか、2 人で見せ合おう。相手の気分が変わってからシマネコを押して、相手の気分を言うか見よう。',
     [`${C}chat-l3-mesh-variable.debug1`]:
-        '▼ に「シマネコのきぶん」が無いときは、先に練習相手の「うれしい」を押そう（ペアなら、相手に 1 のキーを押してもらおう）。',
+        '▼ に「シマネコのきぶん」が無いときは、先に練習相手の「うれしい」を押そう（ペアなら、相手に 1 のキーか 2 のキーを押してもらおう）。',
     [`${C}chat-l3-mesh-variable.debug2`]:
         '自分の気分が相手に届かないときは、変数「シマラビのきぶん」を「すべてのスプライト用」で作ったか見よう。',
     [`${C}chat-l3-mesh-variable.debug3`]:
@@ -249,7 +249,7 @@ export const ja = {
 
     [`${C}chat-l4-send-once.name`]: '1 回送ろう',
     [`${C}chat-l4-send-once.task`]:
-        '旗を押したら、シマラビが「メッセージを入力」と聞き、答えを変数「シマラビのメッセージ」に入れて、メッセージ「シマラビのメッセージ」を送るようにしよう。\n3-1 と同じ形で、相手が別のコンピューターになっただけ。ペアでシマネコの役の人は、シマラビとシマネコを入れかえて作ろう。',
+        '旗を押したら、シマラビが「メッセージを入力」と聞き、答えを変数「シマラビのメッセージ」に入れて、メッセージ「シマラビのメッセージ」を送るようにしよう。\n3-1 と同じ形で、相手が別のコンピューターになっただけ。ペアなら、2 人で役を決めて、課題バーの右の役のボタンで選ぼう。',
     [`${C}chat-l4-send-once.step1`]:
         '課題の説明と、アクティビティ図を理解しよう。図の左の「あなた」のレーンが、今回作るところ。右のレーンは相手（ひとりなら練習相手のシマネコ）が動かすところで、右端がとがった図形（「送る」）から矢印が届く。',
     [`${C}chat-l4-send-once.step2`]:
@@ -505,9 +505,9 @@ export const ja = {
 export const jaHira = {
     // ペア・グループでやるチャレンジの「メッシュにつなごう」（どのチャレンジでも同じ文・courses.js の connectStep）
     'gui.lessons.chat.connect.pair':
-        'メッシュに つなごう（もう つながっていれば つぎへ）。ペアなら、「メッシュ」の よこの ボタンで 1 にんが「メッシュのホストになる」、もう 1 にんが「メッシュにさんかする」。ひとりなら れんしゅうあいての パネルを つかおう。',
+        'メッシュに つなごう（もう つながっていれば つぎへ）。ペアなら、「メッシュ」の よこの ボタンで 1 にんが「メッシュのホストになる」、もう 1 にんが「メッシュにさんかする」。ひとりなら れんしゅうあいての パネルを つかおう。やくを きめて かだいバーで えらぼう。',
     'gui.lessons.chat.connect.pair.inClass':
-        'メッシュに つなごう（もう つながっていれば つぎへ）。ペアなら、2 にんとも「メッシュ」の よこの ボタンで「しゅっせきばんごうで つながる」を えらび、あいての しゅっせきばんごうで「つなぐ」。ひとりなら れんしゅうあいての パネルを つかおう。',
+        'メッシュに つなごう（もう つながっていれば つぎへ）。ペアなら、2 にんとも「メッシュ」の よこの ボタンで「しゅっせきばんごうで つながる」を えらび、あいての しゅっせきばんごうで「つなぐ」。ひとりなら れんしゅうあいての パネルを つかおう。やくを きめて かだいバーで えらぼう。',
     'gui.lessons.chat.connect.group':
         'メッシュに つなごう（もう つながっていれば つぎへ）。グループなら、「メッシュ」の よこの ボタンで 1 にんが「メッシュのホストになる」、ほかの ひとは「メッシュにさんかする」。ひとりなら れんしゅうあいての パネルを つかおう。',
     'gui.lessons.chat.connect.group.inClass':
@@ -721,7 +721,7 @@ export const jaHira = {
 
     [`${C}chat-l3-mesh-variable.name`]: 'へんすうを きょうゆうしよう',
     [`${C}chat-l3-mesh-variable.task`]:
-        '1 のキーで へんすう「シマラビのきぶん」を「うれしい」、2 のキーで「ねむい」にしよう。シマネコを おしたら、シマネコの きぶん（「シマネコのきぶん」の センサーの あたい）を 2 びょう いうようにしよう。\nペアで シマネコの やくの ひとは、シマラビと シマネコを いれかえて つくろう。',
+        '1 のキーで へんすう「シマラビのきぶん」を「うれしい」、2 のキーで「ねむい」にしよう。シマネコを おしたら、シマネコの きぶん（「シマネコのきぶん」の センサーの あたい）を 2 びょう いうようにしよう。',
     [`${C}chat-l3-mesh-variable.step1`]: 'かだいの せつめいと、アクティビティずを りかいしよう。',
     [`${C}chat-l3-mesh-variable.step3`]:
         '**シマラビを えらんで**、「へんすう」の「へんすうをつくる」で「シマラビのきぶん」をつくろう。「すべてのスプライトよう」にすると、メッシュで つながった あいてと きょうゆう される。',
@@ -730,13 +730,13 @@ export const jaHira = {
     [`${C}chat-l3-mesh-variable.step5`]:
         'もう 1 つ「2 キーがおされたとき」をおいて、「シマラビのきぶんを ねむい にする」をつなげよう。',
     [`${C}chat-l3-mesh-variable.step6`]:
-        'ひとりなら、れんしゅうあいての パネルの「うれしい」を おそう（ペアなら、あいてに 1 のキーを おしてもらう）。あいての きぶんが とどくと、「メッシュ」の「(　) センサーのあたい」の ▼ に「シマネコのきぶん」が でる。',
+        'ひとりなら、れんしゅうあいての パネルの「うれしい」を おそう。ペアなら、2 にんとも 1 のキーか 2 のキーを おして、じぶんの きぶんを あいてに おくろう。あいての きぶんが とどくと、「メッシュ」の「(　) センサーのあたい」の ▼ に「シマネコのきぶん」が でる。',
     [`${C}chat-l3-mesh-variable.step7`]:
         '**シマネコを えらんで**、「このスプライトがおされたとき」を おこう。そのしたに「(　) と 2 びょう いう」をつなげて、しろいところに「(シマネコのきぶん) センサーのあたい」を いれよう。',
     [`${C}chat-l3-mesh-variable.step8`]:
         '1 のキーと 2 のキーを おして、じぶんの きぶんが あいてに とどくか みよう。ひとりなら、れんしゅうあいての パネルの「とどいた」に でる。ペアなら、あいての がめんで「メッシュのじょうたいとりれき」の ウィンドウを ひらき、「じょうたい」の とどいた へんすうに じぶんの きぶんが でるか、2 にんで みせあおう。あいての きぶんが かわってから シマネコを おして、あいての きぶんを いうか みよう。',
     [`${C}chat-l3-mesh-variable.debug1`]:
-        '▼ に「シマネコのきぶん」が ないときは、さきに れんしゅうあいての「うれしい」を おそう（ペアなら、あいてに 1 のキーを おしてもらおう）。',
+        '▼ に「シマネコのきぶん」が ないときは、さきに れんしゅうあいての「うれしい」を おそう（ペアなら、あいてに 1 のキーか 2 のキーを おしてもらおう）。',
     [`${C}chat-l3-mesh-variable.debug2`]:
         'じぶんの きぶんが あいてに とどかないときは、へんすう「シマラビのきぶん」を「すべてのスプライトよう」で つくったか みよう。',
     [`${C}chat-l3-mesh-variable.debug3`]:
@@ -753,7 +753,7 @@ export const jaHira = {
 
     [`${C}chat-l4-send-once.name`]: '1 かい おくろう',
     [`${C}chat-l4-send-once.task`]:
-        'はたを おしたら、シマラビが「メッセージを にゅうりょく」ときき、こたえを へんすう「シマラビのメッセージ」にいれて、メッセージ「シマラビのメッセージ」を おくるようにしよう。\n3-1 と おなじ かたちで、あいてが べつの コンピューターに なっただけ。ペアで シマネコの やくの ひとは、シマラビと シマネコを いれかえて つくろう。',
+        'はたを おしたら、シマラビが「メッセージを にゅうりょく」ときき、こたえを へんすう「シマラビのメッセージ」にいれて、メッセージ「シマラビのメッセージ」を おくるようにしよう。\n3-1 と おなじ かたちで、あいてが べつの コンピューターに なっただけ。ペアなら、2 にんで やくを きめて、かだいバーの みぎの やくの ボタンで えらぼう。',
     [`${C}chat-l4-send-once.step1`]:
         'かだいの せつめいと、アクティビティずを りかいしよう。ずの ひだりの「あなた」の レーンが、こんかい つくるところ。みぎの レーンは あいて（ひとりなら れんしゅうあいての シマネコ）が うごかすところで、みぎはしが とがった ずけい（「おくる」）から やじるしが とどく。',
     [`${C}chat-l4-send-once.step2`]:
@@ -1013,9 +1013,9 @@ export const jaHira = {
 export const en = {
     // ペア・グループでやるチャレンジの「メッシュにつなごう」（どのチャレンジでも同じ文・courses.js の connectStep）
     'gui.lessons.chat.connect.pair':
-        'Connect to the mesh (if already connected, go on). In a pair, with the button next to "Mesh", one of you chooses "Become Mesh Host" and the other "Join Mesh". On your own, use the practice partner panel.',
+        'Connect to the mesh (if already connected, go on). In a pair, with the button next to "Mesh", one of you chooses "Become Mesh Host" and the other "Join Mesh". On your own, use the practice partner panel. Then pick your role in the task bar.',
     'gui.lessons.chat.connect.pair.inClass':
-        'Connect to the mesh (if already connected, go on). In a pair, both of you choose "Connect by seat number" with the button next to "Mesh" and "Connect" with your partner\'s seat number. On your own, use the practice partner panel.',
+        'Connect to the mesh (if already connected, go on). In a pair, both of you choose "Connect by seat number" with the button next to "Mesh" and "Connect" with your partner\'s seat number. On your own, use the practice partner panel. Then pick your role in the task bar.',
     'gui.lessons.chat.connect.group':
         'Connect to the mesh (if already connected, go on). In a group, with the button next to "Mesh", one of you chooses "Become Mesh Host" and the others "Join Mesh". On your own, use the practice partner panel.',
     'gui.lessons.chat.connect.group.inClass':
@@ -1226,7 +1226,7 @@ export const en = {
 
     [`${C}chat-l3-mesh-variable.name`]: 'Share a Variable',
     [`${C}chat-l3-mesh-variable.task`]:
-        'With the 1 key, set the variable "shimaraby_mood" to "happy", and with the 2 key to "sleepy". When Shimacat is clicked, it says the mood of Shimacat (the sensor value of "shimacat_mood") for 2 seconds.\nIn a pair, the one who plays Shimacat swaps Shimaraby and Shimacat.',
+        'With the 1 key, set the variable "shimaraby_mood" to "happy", and with the 2 key to "sleepy". When Shimacat is clicked, it says the mood of Shimacat (the sensor value of "shimacat_mood") for 2 seconds.',
     [`${C}chat-l3-mesh-variable.step1`]: 'Understand the task and the activity diagram.',
     [`${C}chat-l3-mesh-variable.step3`]:
         '**Select Shimaraby** and make "shimaraby_mood" with "Make a Variable" in Variables. Make it "For all sprites" so that it is shared with the one you connect to over the mesh.',
@@ -1235,13 +1235,13 @@ export const en = {
     [`${C}chat-l3-mesh-variable.step5`]:
         'Place another "when 2 key pressed" and attach "set shimaraby_mood to sleepy".',
     [`${C}chat-l3-mesh-variable.step6`]:
-        'On your own, click "happy" on the practice partner panel (in a pair, ask your pair to press the 1 key). When the mood arrives, "shimacat_mood" appears in the ▼ of the Mesh block "( ) sensor value".',
+        'On your own, click "happy" on the practice partner panel. In a pair, both of you press the 1 key or the 2 key to send your mood. When the mood arrives, "shimacat_mood" appears in the ▼ of the Mesh block "( ) sensor value".',
     [`${C}chat-l3-mesh-variable.step7`]:
         '**Select Shimacat** and place "when this sprite clicked". Under it, attach "say ( ) for 2 seconds" and put "(shimacat_mood) sensor value" into its white space.',
     [`${C}chat-l3-mesh-variable.step8`]:
         'Press the 1 key and the 2 key, and check that your mood reaches the partner. On your own, it appears in "Received" on the practice partner panel. In a pair, open the "Mesh status and history" window on your partner\'s screen and check together that your mood appears in the received variables of "Status". After the mood of the partner changes, click Shimacat and check that it says the mood of the partner.',
     [`${C}chat-l3-mesh-variable.debug1`]:
-        'If "shimacat_mood" is not in the ▼, first click "happy" on the practice partner panel (in a pair, ask your pair to press the 1 key).',
+        'If "shimacat_mood" is not in the ▼, first click "happy" on the practice partner panel (in a pair, ask your pair to press the 1 key or the 2 key).',
     [`${C}chat-l3-mesh-variable.debug2`]:
         'If your mood does not reach the other side, check that you made the variable "shimaraby_mood" "For all sprites".',
     [`${C}chat-l3-mesh-variable.debug3`]:
@@ -1258,7 +1258,7 @@ export const en = {
 
     [`${C}chat-l4-send-once.name`]: 'Send Once',
     [`${C}chat-l4-send-once.task`]:
-        'When the flag is clicked, Shimaraby asks "Enter a message", puts the answer into the variable "shimaraby_message" and broadcasts the message "shimaraby_message".\nIt is the same as 3-1, but the other side is another computer. In a pair, the one who plays Shimacat swaps Shimaraby and Shimacat.',
+        'When the flag is clicked, Shimaraby asks "Enter a message", puts the answer into the variable "shimaraby_message" and broadcasts the message "shimaraby_message".\nIt is the same as 3-1, but the other side is another computer. In a pair, decide your roles and choose yours with the role buttons on the right of the task bar.',
     [`${C}chat-l4-send-once.step1`]:
         'Understand the task and the activity diagram. The "You" lane on the left of the diagram is what you make this time. The lane on the right is run by the other side (on your own, Shimacat, the practice partner), and the arrow from the shape with a pointed right end ("broadcast") goes there.',
     [`${C}chat-l4-send-once.step2`]:
