@@ -268,7 +268,7 @@ const AssignmentHandlers = {
         const variable = this._lookupOrCreateVariable(varName);
         // Whether this assignment made the variable: one made only to be set to a hash is left out
         // at the end when nothing uses it (see `_dropUnusedHashVariables`, issue #1666).
-        const storeOfVariable = scope === 'local' ? saved.localVariables : saved.variables;
+        const storeOfVariable = this._savedStore(saved, scope === 'local' ? 'localVariables' : 'variables');
         const madeByThisAssignment = !Object.values(storeOfVariable).includes(variable);
         // Visit the value as a value, like an argument of `say(...)`: a call of a method that returns
         // a value (e.g. `x = bar(1)`, `x = super`) becomes the call followed by its return variable (#1568).
