@@ -12,6 +12,7 @@ import { findChallenge, localizeCode } from '../../../../src/lib/lessons/courses
 import { attachGoalMonitor } from '../../../../src/lib/lessons/goal-monitor';
 import { attachPracticeLoopback } from '../../../../src/lib/lessons/practice-loopback';
 import { normalizePartner } from '../../../../src/lib/lessons/practice-partner';
+import { ROLES, challengeForRole, swapRoleText } from '../../../../src/lib/lessons/role-swap';
 import { targetCodeToBlocks } from '../../../../src/lib/ruby-to-blocks-converter';
 
 // jsdom の performance に mark / measure が無い（scratch-vm が読み込み時に呼ぶ）
@@ -40,7 +41,11 @@ const sound = (name) => ({
 });
 // ライブラリのスプライト（spriteCodes で足すもの）のコスチューム・音（sprites.json と同じ名前。レッスン 5 の
 // 「Meow の音を鳴らす」「コスチュームを shimacat-b にする」のため）
-const LIBRARY_SPRITES = { Shimacat: { costumes: ['shimacat-a', 'shimacat-b'], sounds: ['Meow'] } };
+const LIBRARY_SPRITES = {
+    Shimacat: { costumes: ['shimacat-a', 'shimacat-b'], sounds: ['Meow'] },
+    // シマネコの役（名前を入れかえた形・#2061）では、spriteCodes の相手がシマラビになる
+    Shimaraby: { costumes: ['shimaraby-a', 'shimaraby-b'], sounds: ['Chirp'] },
+};
 const sprite = (name, sounds, costumes = ['costume1']) => ({
     isStage: false,
     name,
@@ -360,10 +365,13 @@ const WAIT_FOR_GOAL_MS = 9000;
 // チャレンジの code（または codeOverride）をその locale の新しい作品に入れ、goal の見張りを付けて動かす準備をする。
 // codeOverride は code の Ruby か、ほかのスプライトにも入れるときは `{code, sprites: {名前: Ruby}}`。
 // 戻り値の ctx でチャレンジの操作をし、isSatisfied() で「できた」かを見る
-const prepareRun = async (id, locale, override = null) => {
+const prepareRun = async (id, locale, override = null, { role = ROLES.SHIMARABY } = {}) => {
     const codeOverride = override !== null && typeof override === 'object' ? override.code : override;
     const spriteOverrides = override !== null && typeof override === 'object' ? override.sprites || {} : {};
-    const { challenge } = findChallenge(id);
+    // シマネコの役は、名前を入れかえた形のチャレンジ（答え・練習相手も入れかわる）
+    const challenge = challengeForRole(findChallenge(id).challenge, role);
+    // 操作で押すスプライトの名前も、役に合わせて入れかえる
+    const roleName = (name) => (role === ROLES.SHIMACAT ? swapRoleText(name) : name);
     const vm = new VM();
     await vm.loadProject(projectFor(locale, { sprites: challenge.spriteCodes.map((s) => s.sprite) }));
     // 始めるときに読み込む拡張機能（3-3 のメッシュ）。プログラムを入れる前に読み込む
@@ -430,7 +438,7 @@ const prepareRun = async (id, locale, override = null) => {
         },
         // シマネコ（spriteCodes のスプライト）を押す
         clickSprite: async (name) => {
-            const target = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === name);
+            const target = vm.runtime.targets.find((t) => t.isOriginal && t.getName() === roleName(name));
             vm.runtime.startHats('event_whenthisspriteclicked', null, target);
             await sleep(50);
         },
@@ -502,6 +510,37 @@ describe('the code of every locale satisfies the goal when run in a new project 
         '%s (%s)',
         async (id, locale) => {
             const run = await prepareRun(id, locale);
+            vm = run.vm;
+            await OPERATIONS[id](run.ctx);
+            expect(await until(run.isSatisfied, WAIT_FOR_GOAL_MS)).toBe(true);
+        },
+        20000,
+    );
+});
+
+// ペアでシマネコの役を選んだときの答え（名前を入れかえた形・#2061）でも、判定は変えずに「できた」になる
+// （判定は両方の役の名前を通す・先生の判断 p4）
+describe('the answer of the Shimacat role (names swapped) also satisfies the goal (#2061)', () => {
+    let vm;
+
+    afterEach(() => {
+        quitVm(vm);
+        vm = null;
+    });
+
+    const cases = [];
+    Object.keys(OPERATIONS)
+        .filter((id) => findChallenge(id).challenge.roles)
+        .forEach((id) => LOCALES.forEach((locale) => cases.push([id, locale])));
+
+    test('every challenge with roles is checked', () => {
+        expect(cases.length).toBe(9 * LOCALES.length);
+    });
+
+    test.each(cases)(
+        '%s (%s, Shimacat role)',
+        async (id, locale) => {
+            const run = await prepareRun(id, locale, null, { role: ROLES.SHIMACAT });
             vm = run.vm;
             await OPERATIONS[id](run.ctx);
             expect(await until(run.isSatisfied, WAIT_FOR_GOAL_MS)).toBe(true);
