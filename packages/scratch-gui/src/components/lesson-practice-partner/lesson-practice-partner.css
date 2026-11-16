@@ -29,11 +29,16 @@
 }
 
 .title {
+    /* ひらがなの見出しは長く、1 行だと相手の名前が切れて見えなくなるので 2 行まで折り返す */
     flex: 1;
     min-width: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
 }
 
 .close {
