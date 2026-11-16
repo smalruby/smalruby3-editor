@@ -396,7 +396,7 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
 ![チャットをつくろう 2-2 の「できた！」のクイズ（1300×600）](screenshots/0710-chat-l2-timer-quiz-1300x600.png)
 
 レッスン 3「メッシュでつながろう」（`chat-l3`。ja-Hira「メッシュで つながろう」、en "Connect with Mesh"）。ペアが基本で、
-ひとりのときは練習相手の**シマネコ**とやる（`partner`）。ペアでシマネコの役の人はシマラビとシマネコを入れかえて作るので、
+ひとりのときは練習相手の**シマネコ**とやる（`partner`）。ペアでシマネコの役の人は、課題バーで役を選ぶと名前を入れかえた形で出る（3-3。下の「ペアの役」）。
 判定はどちらの役の名前も通す。変数とメッセージは同じ名前にする（教科書の形）。拡張機能「メッシュ」は 3-2 で生徒が足し、
 3-3 は `setup.extensions: ['meshV2']` で読み込んでおく:
 
@@ -467,7 +467,7 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
 レッスン 4「チャットを作ろう」（`chat-l4`。ja-Hira「チャットを つくろう」、en "Make a Chat"）。1 回送る → くり返し送る → おたがいに →
 グループ → ダイレクトメッセージ、と育てて教科書の形のチャットを作る。どの段も、シマラビ・シマネコと拡張機能「メッシュ」に、前の段の
 **答え**を入れて始める（`setup: {sprites: ['Shimaraby', 'Shimacat'], extensions: ['meshV2'], code, spriteCodes}`。4-1 はプログラムなし）。
-4-1〜4-3 はシマラビの役（練習相手 = シマネコの役。ペアでシマネコの役の人は名前と受け持ちを入れかえるので、判定は両方の名前を通す）。
+4-1〜4-3 はシマラビの役（練習相手 = シマネコの役。ペアでシマネコの役を選ぶと名前と受け持ちを入れかえた形で出る。判定は両方の名前を通す・下の「ペアの役」）。
 4-4 からは、みんなで 1 つの変数・メッセージ「メッセージ」に切りかえる（4-4 の始めは 4-3 をその形に置きかえたもの。シマネコはみんなの発言を言う役）:
 
 | # | id | 課題 | 足すもの（ja） | できた の条件（`goal`） | クイズの正解 |
@@ -531,8 +531,8 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
   ブロックにいるときだけ「送った」と記録する（下の「VM の見張り方」）。
 - **名前**: 相手に届く名前は ja と ja-Hira で同じ（「シマラビがよんだ」「シマネコがよんだ」「シマラビのスタンプ」「シマネコのスタンプ」。
   リスト「NGワード」もカタカナと英字）。en は `shimaraby_read` / `shimacat_read` / `shimaraby_stamp` / `shimacat_stamp` / `ng_words`。
-  ペアでシマネコの役の人は名前と受け持ちを入れかえるので、判定は両方の役の名前を通す。音「Meow」とコスチューム「shimacat-a」「shimacat-b」は
-  ライブラリの Shimacat の名前で、locale によらない。
+  ペアでシマネコの役を選ぶと名前と受け持ちを入れかえた形で出る（下の「ペアの役」）。判定は両方の役の名前を通す。音「Meow」とコスチューム
+  「shimacat-a」「shimacat-b」はライブラリの Shimacat の名前で、locale によらない（シマネコの役では Shimaraby の「Chirp」「shimaraby-a」「shimaraby-b」）。
 - **始め方**: 5-2 だけ、ステージに「旗でリスト『NGワード』を空にして『ばか』『きらい』（en は "stupid" "idiot"）を入れる」プログラムを入れて
   始める（`setup.stageCode`）。リストの「含まれる」は丸ごと一致（大文字小文字は区別しない）なので、「ばかやろう」は止まらない
   （「さらに工夫するなら」の題材）。
@@ -1012,6 +1012,63 @@ partner: {
 | `screenshots/0601-practice-partner-1300x600.png` | 1300×600 で、シマラビとシマネコで始め（`setup.sprites`）、旗を押して「シマラビのメッセージ」を送ったところ。パネルの「届いた: シマラビのメッセージ = こんにちは」（2 行まで。はみ出しは省略し、全文は title） |
 | `screenshots/0602-practice-partner-closed-1300x600.png` | パネルを閉じたところ（小さな「練習相手」のボタンだけ残る） |
 
+## ペアの役（シマラビの役 / シマネコの役）
+
+> 方針は [design.md の「ペアの役」](design.md#ペアの役)。ここはしくみ。
+
+「チャットをつくろう」のペアでやるチャレンジは、2 人が**同じ形のプログラムを、名前を入れかえて**作る（シマラビの役は
+「シマラビのメッセージ」を送って「シマネコのメッセージ」を受け取る。シマネコの役はその逆）。役を選ぶと、画面がその役の
+名前で出る（**鏡の形**）。生徒が頭の中で名前を入れかえなくてよい。
+
+- **役のあるチャレンジ**: チャレンジの `roles: true`。3-3・4-1〜4-3・5-1〜5-5。みんな同じ名前を使う段（3-2・4-4・4-5）と、
+  同じコンピューターの中の段（レッスン 1〜3-1）は付けない（入れかえない）。
+- **入れかえるもの**（`lib/lessons/role-swap.js` の `swapChallengeRoles` / `challengeForRole`）: 課題・ヒントの文・
+  うまく動かないときは・ヒントのブロックの絵・「プログラムを入れる」（`code` / `spriteCodes`）・最初から入っている
+  プログラム（`setup`）・練習相手（`partner`）・パレットの絞り込みの値。語は シマラビ ↔ シマネコ（ja / ja-Hira）、
+  Shimaraby ↔ Shimacat、`shimaraby` ↔ `shimacat`（変数・メッセージ・コスチュームの名前）、Chirp ↔ Meow（スプライトの音。
+  シマラビは Chirp だけを持つ）。ミミなどほかの名前は変えない。2 回入れかえると元にもどる。
+- **入れかえないもの**: id・チャレンジの名前（レッスン表）・カード・**判定（`goal`）**・クイズ。判定は両方の役の名前を
+  もう通すので、シマネコの役の答えもそのまま「できた」になる（`challenge-goals-per-locale.test.js` が、役のある
+  チャレンジを入れかえた答えで動かして確かめる）。
+- **文言**: message descriptor は入れかえた文字を持てないので、入れかえたチャレンジの文言には `roleSwapped: true` の
+  印を付け、出すときに `formatRoleMessage(intl, descriptor)` が文字にしてから入れかえる（課題バー・ヒントの吹き出し）。
+  自動の入れかえで不自然になる文は、`<id>.asShimacat` の文言を足せばそれを使う（いまは無い）。
+- **`getCurrentChallenge`** がいまの役で入れかえたチャレンジを返す（同じ役なら同じ参照）。ヒント・「プログラムを入れる」・
+  練習相手・アクティビティ図は、この値を読むだけで鏡の形になる。
+- **役の決め方**（`lib/lessons/lesson-role.js` の `resolveChallengeRole`。チャレンジを始める前に決める。最初から入る
+  プログラムも役で入れかわるため）:
+  1. 役を選びなおして始めなおすときは、その役。
+  2. クラスで**出席番号のペア**（2 人のグループ）につながっていれば、**出席番号の小さい人がシマラビの役**。同じペアで
+     前に選んだ役を覚えていれば、そちら（ペアで入れかえた役を、次のチャレンジで戻さない）。ペアの出席番号は、
+     つながっているグループの名前（「出席番号でつながる」の `seats=` と `host=`）から読む（`connectedGroupSeats`）。
+     3 人以上のグループでは決めない。
+  3. それ以外は**前回選んだ役**（`smalruby:lessonRole`）。
+  4. 何も無ければ**シマラビの役**（ひとりは選ばなくてよい）。
+  覚えている役といまのつながりだけで決まるので、**チャレンジをどの順にやっても同じ**（3-2 を先にやった、のような前提を
+  置かない）。端末に覚えるのは**生徒が自分で選んだ役だけ**（既定のシマラビの役・出席番号で決まった役は覚えない。一度も
+  選んでいない生徒に「前回は…」を出さない）。前回の役を読むのはチャレンジを開くとき、書くのは役を選んだときで、どちらも
+  コンテナ（`containers/lesson-mode.jsx`）がする（reducer は端末に触らない）。
+- **課題バーの役のボタン**: 「シマラビの役」「シマネコの役」（いまの役が白地）。ボタンの下に、役をどう決めたかを小さく出す
+  （前回の役 → 「前回はシマネコの役」、出席番号 → 「出席番号で決めた役」。自分で選んだら出さない）。横に並べると、768px や
+  SP（844×390）で課題の 1 行がほとんど見えなくなるため、ボタンの下に置いてバーの高さ（40px）に収める。
+- **役を変えたとき**: 役のあるチャレンジはすべて、その役でチャレンジを始めなおす（`roleChangeRestarts`。作品に変更が
+  あれば、置きかえの確認が出る。メッシュはつながったまま。ヒントのページはそのまま）。最初から入っているプログラムの
+  名前が役で変わるうえ、先に作った変数の名前と、入れかわった練習相手の変数の名前がぶつかるのを防ぐため。
+- **途中で出席番号のペアにつながったら**: まだこのチャレンジで役を選んでいなければ、開くときと同じ決め方
+  （`resolveChallengeRole`）で決めなおす。同じペアで前に選んだ役を覚えていれば、出席番号の役で上書きしない。役が変わる
+  ときは始めなおすので、作品をもう変えていたら決めなおさない（作ったものを消さない。ボタンで変えられる）。役が同じで
+  決め方だけ変わるとき（出席番号でも同じ役）は、始めなおさずに「出席番号で決めた役」にする。
+- **アクティビティ図**: 役のあるチャレンジの見出しは「あなた（シマラビの役）」「相手（シマネコの役）」。シマネコの役では
+  左のレーンが入れかえた答え、右のレーンが入れかえた練習相手になる。相手のレーンの絵は、ひとりのときもペアのときも
+  練習相手のボタンの形のまま（ペアの途中で絵が変わらないように）。ペアの相手の人間が作るものは、相手の画面の
+  「あなた」のレーンと同じ形（名前ちがい）になる。図の変換結果は役ごとに覚える。
+- **メッシュにつなごう**: 役のあるチャレンジの「メッシュにつなごう」のページ（共通の文言）に、「役を決めて課題バーで
+  選ぼう」と短く書く。4-1 は共通のつなぐページが無いので、課題の文に書く。
+
+![チャットをつくろう 3-3 を前回シマネコの役で開いたところ（課題バーに「前回はシマネコの役」と役のボタン、ヒントと練習相手がシマネコの役の名前・1300×600）](screenshots/0728-chat-role-l3-shimacat-hint3-1300x600.png)
+
+![チャットをつくろう 3-3 のシマネコの役のヒントの 1 ページ目（図の見出し「あなた（シマネコの役）」・1300×600）](screenshots/0729-chat-role-l3-shimacat-hint1-diagram-1300x600.png)
+
 ## 状態（Redux）
 
 `packages/scratch-gui/src/reducers/lesson-mode.js`（`state.scratchGui.lessonMode`）。
@@ -1026,11 +1083,16 @@ partner: {
 | `progress` | 記録の写し（起動時に localStorage から読む） |
 | `justCompletedId` | 「できた！」を出しているチャレンジ id（null なら出していない） |
 | `libraryFocusChallengeId` | レッスン表を開いたときに見せるチャレンジ（「次のチャレンジ」で開いたとき）。レッスン表はこれから見せるレッスンと次のチャレンジを決める（`lessonsLibraryFocus`）。レッスンを閉じても消さず、レッスン表が閉じるときに消す |
+| `role` / `roleSource` / `rolePair` | いまのチャレンジの役（`shimaraby` / `shimacat`。役のあるチャレンジだけ）・どう決めたか（`default` / `remembered` / `seat` / `chosen`）・出席番号のペアの印（`'3-7'`）。上の「ペアの役」 |
+| `pendingRole` / `pendingRoleSource` | 役を選びなおして始めなおすときの役（開くまでの間だけ入る） |
 | `libraryStartFocus` | レッスン表を、ウェルカムの「レッスンを始める」で開いたか。レッスン表は記録から次にやるチャレンジを決める（`startLessonsFocus`）。レッスン表が閉じるときに消す |
 
 | action / selector | 説明 |
 |------|------|
 | `startChallenge(challengeId)` | **チャレンジを開く入口**（レッスン表が呼ぶ）。新しい作品 → setup → `openChallenge` の順にコンテナが進める（知らない id は無視）。日本語モードのときは、作品の置きかえが決まってから、ふりがなモードに戻す（日本語モードのパレットの絞り込みとチャレンジの絞り込みが重なってブロックが出なくなるため。置きかえを断ったときは変えない） |
+| `startChallenge(challengeId, {role, roleSource})` | 役を選びなおして始めなおす（その役で始める。ヒントのページは保つ） |
+| `setLessonRole(role, {roleSource, rolePair})` | いまのチャレンジの役・決め方を変える（始めなおさない変更。役の無いチャレンジでは何もしない）。端末には書かない（選んだ役を覚えるのはコンテナ） |
+| `getCurrentRole(state)` | `{role, source}`（役の無いチャレンジでは null） |
 | `cancelStartChallenge()` | 開こうとしていたチャレンジを取り消す（「保存しますか」で取りやめたとき） |
 | `openChallenge(challengeId)` | レッスンモードに入る（作品の準備は済んでいる前提。知らない id は無視）。「できた！」は消す |
 | `closeLesson()` | レッスンモードを抜ける（記録は残す） |
@@ -1582,6 +1644,9 @@ partner: {
 | `lesson-task-bar-full-text-diagram` | div | パネルのアクティビティ図（チャレンジの `activityDiagram` が true のときだけ。文の下） |
 | `lesson-task-bar-full-text-diagram-note` | p | 図が大きくて全文に入らないときの「図はヒントの 1 ページ目で見られます」（図の代わり） |
 | `lesson-activity-diagram` | svg | アクティビティ図の SVG（全文のパネルとヒントの 1 ページ目）。記号は `[data-shape]`（`start` / `end` / `action` / `decision` / `merge` / `loop` / `guard` / `lane` / `caption`）、矢印は `[data-edge]` |
+| `lesson-task-bar-role` | span | 役のボタンと、役をどう決めたかの一言（役のあるチャレンジだけ） |
+| `lesson-task-bar-role-shimaraby` / `lesson-task-bar-role-shimacat` | button | 「シマラビの役」/「シマネコの役」（いまの役は `aria-pressed="true"`） |
+| `lesson-task-bar-role-note` | span | 「前回はシマネコの役」/「出席番号で決めた役」（前回の役・出席番号で決めたときだけ。ボタンの下） |
 | `lesson-task-bar-hint` | button | ヒントの吹き出しの出し入れ（ヒントが無ければ disabled） |
 | `lesson-task-bar-quit` | button | ほかのチャレンジへ（いまのチャレンジを終えてレッスン表を開く。白地で目立たせる） |
 | `lesson-task-bar-end` | button | レッスンをおえる（右端。レッスンから出て、いつもの画面にもどる。レッスン表は開かない） |
@@ -1764,6 +1829,9 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/lessons/lessons.locale.js` | 文言（en / ja / ja-Hira。`src/locales/*.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/chat.locale.js` | コース「チャットをつくろう」の文言（en / ja / ja-Hira。`lessons.locale.js` に spread） |
 | `packages/scratch-gui/src/lib/lessons/lesson-progress.js` | 端末への記録（いまの定義での読みかえ）・レッスン／コースの進み具合・「できた！」のボタンとレッスン表で見せるもの |
+| `packages/scratch-gui/src/lib/lessons/role-swap.js` | ペアの役の名前の入れかえ（`swapRoleText` / `swapChallengeRoles` / `challengeForRole` / `formatRoleMessage` / `roleOfChallenge`） |
+| `packages/scratch-gui/src/lib/lessons/lesson-role.js` | 役の決め方（`resolveChallengeRole`・出席番号のペア `seatRoleFor` / `connectedGroupSeats`）・前回の役の保存（`smalruby:lessonRole`）・役を変えたら始めなおすか（`roleChangeRestarts`） |
+| `packages/scratch-gui/src/components/lesson-task-bar/lesson-role-picker.jsx` | 課題バーの役のボタン |
 | `packages/scratch-gui/src/lib/lessons/challenge-setup.js` | チャレンジを開くときの setup（言語の既定 + チャレンジの `setup`） |
 | `packages/scratch-gui/src/components/balloon/` | 吹き出し・ツールチップの見た目の土台（`Balloon` / `BalloonHeader` / `BalloonCloseButton` / `BalloonButton` / `balloon-tokens.css`。上の「吹き出しの共通の土台」） |
 | `packages/scratch-gui/src/components/lesson-hint/` | ヒントの吹き出し（`lesson-hint.jsx` = 中身・置き方・スポットライト・ドラッグ・正解のプログラムの確認（枠は `balloon/`）、`lesson-hint-blocks.jsx` = 読み取り専用ワークスペースに本物のブロックを描く） |
@@ -1844,5 +1912,6 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 |------|------|------|
 | localStorage | `smalruby:lessonProgress` | チャレンジ ID → できた日時（とコース・レッスン） |
 | localStorage | `smalruby:lessonAssignmentConsent` | 本人の確認の答え（課題 × 席 × 席に入った人（参加した時刻、無ければトークンの短いハッシュ）→ `{answer: mine\|cleared\|none, beforeIds, decidedAt}`。新しいものから 50 件） |
+| localStorage | `smalruby:lessonRole` | ペアのチャレンジで生徒が前回**選んだ**役と、そのときの出席番号のペアの印（`{role: 'shimaraby'\|'shimacat', pair: '3-7'\|null}`）。既定の役・出席番号で決まった役は書かない |
 | localStorage | `smalruby:lessonSpotlightSeen` | チャレンジ ID → はじめて開いた日時（ヒントのスポットライトを 2 回目から出さないため） |
 | localStorage | `smalruby:tutorialSeen` | レッスン表を開くと `true` を書く（`tutorial-onboarding` reducer の `markTutorialSeen`）。いまは読む画面が無い（「レッスン」ボタンの下の吹き出しは出さないため） |
