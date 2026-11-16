@@ -183,7 +183,7 @@ registerSendTable(converter, MOTION_SENDS);
 
 - 行の引数の種類に合わない呼び出しは `null` を返し、同じメソッドの次の登録に譲る（いまの `registerOnSend` の handler と同じ決まり）。
 - 表で書けない形（`go_to([x, y])` の配列、`glide(..., secs: 1)` のキーワード引数、引数で opcode を選ぶもの、`self.x += 1` のような演算代入、変数・リストを引く呼び出し）は、いまの handler のまま表の横に置く。
-- 表は、その領域の handler を登録していた所で登録する。同じメソッド（レシーバー・名前・引数の数）に handler がいくつかあると登録した順に試すので、その順番を変えないため。
+- 同じキー（レシーバー・名前・引数の数・ブロック引数の数）に handler がいくつかあると、登録した順に試す。表へ移すときは、同じキーの中の順番を変えない。キーの違う handler との前後は結果に関わらないので、表は `register` の中のどこで登録してもよい（sensing と control は先頭で登録している）。
 - 表はデータなので、テストが読める（`send-table.test.js` は「表の opcode にはすべて生成器がある」ことを確かめる）。同じ表から、補完の一覧やふりがなの一覧を作ることもできる。
 
 領域ごとの表（各変換器の `sends` が表。`send-table.test.js` は、すべての表の opcode とメニューの opcode に生成器があることを確かめる）:
@@ -225,7 +225,7 @@ registerSendTable(converter, MOTION_SENDS);
 ### 古い `onXxx` 形式（なくした）
 
 - `pen.onOpAsgn` は `registerOnOpAsgn` の handler に、`makeymakey.onSend`（v1 の `self.when(:makey_key_pressed, ...)`）は `registerOnSendWithBlock('self', 'when', 2, 0, ...)` に移した。
-  makeymakey は event より後に登録されるので、`event.js` の `when` が先に試される順番はもとのまま。
+  もとの `onSend` は、その呼び出しのすべての handler が譲ったあとに試されていたので、`register-converters.js` がすべての変換器を登録したあとに `MakeyMakeyConverter.registerLast` で登録する。`self.when` の引数 2 つの handler（event・EV3・GdxFor）が先に試される順番はもとのまま。
 - `_callConvertersHandler` は `registerOnXxx` で登録した配列だけを見る。11 個の変換器オブジェクトを調べる部分と、`register-converters.js` の export は消した。
 - 新しい変換は表か `registerOnXxx` で書く（`.claude/rules/scratch-gui/ruby-mode.md`）。
 

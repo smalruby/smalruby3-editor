@@ -36,9 +36,16 @@ const MakeyMakeyConverter = {
             converter.setParent(rubyBlock, block);
             return block;
         });
+    },
 
-        // v1: self.when(:makey_key_pressed, "space") do ... end. Registered after `when` of event.js
-        // (event is registered first), so that event's forms are tried first as before.
+    /**
+     * v1: `self.when(:makey_key_pressed, "space") do ... end`. It was the old `onSend`, tried only
+     * after every handler of the call had given way, so `register-converters.js` registers it after
+     * all the converters: the handlers of `self.when` with two arguments of event, EV3 and GdxFor
+     * are still tried first.
+     * @param {object} converter - The converter.
+     */
+    registerLast: function (converter) {
         converter.registerOnSendWithBlock('self', 'when', 2, 0, (params) => {
             const { receiver, args, rubyBlock } = params;
             if (!converter._isSelf(receiver) || !converter._isSymbol(args[0])) return null;

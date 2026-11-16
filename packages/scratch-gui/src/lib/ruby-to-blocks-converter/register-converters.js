@@ -67,6 +67,9 @@ const registerConverters = function (converter) {
         SensingConverter,
         MyBlocksConverter,
     ].forEach((x) => x.register(converter));
+
+    // After all the converters, as the old `onSend` of Makey Makey was tried last.
+    MakeyMakeyConverter.registerLast(converter);
 };
 
 export default registerConverters;

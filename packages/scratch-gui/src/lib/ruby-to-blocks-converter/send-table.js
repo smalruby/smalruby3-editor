@@ -180,7 +180,8 @@ const putArg = (converter, block, spec, arg) => {
  * as `['string', 'block', 'variable']`, already says what it takes), then the constant fields
  * (`fields: {NAME: value}`) and menus (`menus: {INPUT: [menuOpcode, field, value]}`), then the
  * arguments in order. A row with `changesReceiver: true` turns its receiver, a Ruby expression
- * (`pen` of `pen.down`), into the block instead of making a new one. A hat (`hat: true`) puts the body of `do ... end` under the block.
+ * (`pen` of `pen.down`), into the block instead of making a new one. A hat (`hat: true`) puts
+ * the body of `do ... end` under the block.
  * @param {object} converter - The converter.
  * @param {object} row - The row.
  * @returns {Function} The handler.
@@ -212,18 +213,19 @@ const handlerOfRow = (converter, row) => {
 };
 
 /**
- * Register the rows of a send table on the converter, in the order of the rows.
- * @param {object} converter - The converter.
- * @param {Array<object>} rows - The rows: `{receiver, name, opcode, type?, args?, fields?,
- *     menus?, receiverArg?, changesReceiver?, hat?, selfReceiver?}`. A hat takes `do ... end` (with no block parameters).
- */
-/**
  * The rows, each taking only `self.xxx` or `xxx` (`selfReceiver: true`).
  * @param {Array<object>} rows - The rows.
  * @returns {Array<object>} The rows with `selfReceiver: true`.
  */
 const onSelf = (rows) => rows.map((row) => ({ ...row, selfReceiver: true }));
 
+/**
+ * Register the rows of a send table on the converter, in the order of the rows.
+ * @param {object} converter - The converter.
+ * @param {Array<object>} rows - The rows: `{receiver, name, opcode, type?, args?, fields?,
+ *     menus?, receiverArg?, changesReceiver?, hat?, selfReceiver?}`. A hat takes `do ... end`
+ *     (with no block parameters).
+ */
 const registerSendTable = (converter, rows) => {
     rows.forEach((row) => {
         const numArgs = (row.args || []).length;
