@@ -279,6 +279,7 @@ export default {
     'gui.classroom.teacherLogoutConfirm.logout': 'Log out',
     'gui.classroom.teacherWorkBar.viewing': 'Viewing the work of seat {seatNumber} · {assignmentName}',
     'gui.classroom.teacherWorkBar.viewingNoSeat': 'Viewing a work of {assignmentName}',
+    'gui.classroom.teacherWorkBar.sessionExpired': 'Your login has expired. Go back and log in again.',
     'gui.classroom.teacherWorkBar.backToGrading': '‹ Back to grading',
     'gui.classroom.teacherWorkBar.backToAssignment': '‹ Back to the assignment',
     'gui.classroom.evaluation.openWork': 'Open the work',

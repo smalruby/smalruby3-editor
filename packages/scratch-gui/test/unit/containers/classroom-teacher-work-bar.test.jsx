@@ -64,6 +64,14 @@ describe('ClassroomTeacherWorkBar (#1990)', () => {
         expect(screen.getByTestId('classroom-teacher-work-bar-back')).toHaveTextContent('‹ Back to the assignment');
     });
 
+    test('ログインが切れたら、帯を残したままログインし直すよう知らせる', () => {
+        const { store } = renderBar({ from: 'evaluation', seatNumber: 3, assignmentName: '迷路' });
+        expect(screen.queryByTestId('classroom-teacher-work-bar-expired')).toBeNull();
+        act(() => store.dispatch(setTeacherLoggedIn(false)));
+        expect(bar()).not.toBeNull();
+        expect(screen.getByTestId('classroom-teacher-work-bar-expired')).toHaveTextContent('log in again');
+    });
+
     test('［戻る］でクラス管理を開き、帯は消える', () => {
         const { store } = renderBar({ from: 'evaluation', seatNumber: 3, assignmentName: '迷路' });
         fireEvent.click(screen.getByTestId('classroom-teacher-work-bar-back'));

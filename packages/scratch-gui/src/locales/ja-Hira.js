@@ -302,6 +302,7 @@ export default {
     'gui.classroom.teacherWorkBar.viewing':
         'しゅっせきばんごう {seatNumber}・{assignmentName} のさくひんをみています',
     'gui.classroom.teacherWorkBar.viewingNoSeat': '{assignmentName} のさくひんをみています',
+    'gui.classroom.teacherWorkBar.sessionExpired': 'ログインがきれました。もどってログインしなおしてください。',
     'gui.classroom.teacherWorkBar.backToGrading': '‹ さいてんにもどる',
     'gui.classroom.teacherWorkBar.backToAssignment': '‹ かだいにもどる',
     'gui.classroom.evaluation.openWork': 'さくひんをひらく',

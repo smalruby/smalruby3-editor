@@ -32,6 +32,14 @@
     text-overflow: ellipsis;
 }
 
+/* ログインが切れたときの知らせ（#1990）。注意の文字の色（赤は使わない・R4） */
+.expired {
+    flex-shrink: 0;
+    color: $color-confirm-text;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
+}
+
 .back.back {
     flex-shrink: 0;
     min-height: $size-button-height-small;

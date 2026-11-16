@@ -140,9 +140,10 @@ const useTeacherSubmissions = ({
 
     // --- Return submission ---
 
+    // Resolves true when the comment was returned (the container then drops its draft, #1990).
     const handleReturnSubmission = useCallback(
         async (submissionId, teacherComment) => {
-            if (!idToken || !selectedClassroom) return;
+            if (!idToken || !selectedClassroom) return false;
             clearError();
             setIsLoading(true);
             try {
@@ -151,12 +152,14 @@ const useTeacherSubmissions = ({
                     teacherComment,
                 });
                 await loadClassroomDetail(selectedClassroom.classroomId);
+                return true;
             } catch (err) {
                 if (err.status === 401) {
                     await handleTeacher401();
                 } else {
                     showError(translateError(intl, err));
                 }
+                return false;
             } finally {
                 setIsLoading(false);
             }

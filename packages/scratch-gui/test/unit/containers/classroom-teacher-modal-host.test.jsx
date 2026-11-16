@@ -16,6 +16,7 @@ import classroomReducer, {
     closeTeacherModal,
     openTeacherModal,
     setTeacherLoggedIn,
+    teacherLoggedOut,
 } from '../../../src/reducers/classroom.js';
 
 let mockMounts = 0;
@@ -84,17 +85,35 @@ describe('ClassroomTeacherModalHost (#1990)', () => {
         act(() => {
             store.dispatch(closeTeacherModal());
             store.dispatch(setTeacherLoggedIn(false));
+            store.dispatch(teacherLoggedOut());
         });
         act(() => store.dispatch(openTeacherModal()));
         expect(screen.getByTestId('draft')).toHaveTextContent('');
         expect(mockMounts).toBe(2);
     });
 
-    test('ログインしていないまま閉じたら外す（ログインの画面を開いて閉じたとき）', () => {
+    test('隠れている間にログインが切れても外さない（下書きはログインし直すまで残す）', () => {
         const store = renderHost();
-        act(() => store.dispatch(openTeacherModal()));
+        act(() => {
+            store.dispatch(setTeacherLoggedIn(true));
+            store.dispatch(openTeacherModal());
+        });
+        fireEvent.click(screen.getByTestId('write'));
         act(() => store.dispatch(closeTeacherModal()));
+        act(() => store.dispatch(setTeacherLoggedIn(false)));
         act(() => store.dispatch(openTeacherModal()));
-        expect(mockMounts).toBe(2);
+        expect(screen.getByTestId('draft')).toHaveTextContent('採点: A');
+        expect(mockMounts).toBe(1);
+    });
+
+    test('開いているときのログアウトでは外さない（ログインの画面を出したまま）', () => {
+        const store = renderHost();
+        act(() => {
+            store.dispatch(setTeacherLoggedIn(true));
+            store.dispatch(openTeacherModal());
+        });
+        act(() => store.dispatch(teacherLoggedOut()));
+        expect(screen.getByTestId('draft')).toBeInTheDocument();
+        expect(mockMounts).toBe(1);
     });
 });

@@ -8,25 +8,44 @@
 /**
  * Whether class management stays mounted.
  *
- * Shown: always. Hidden: only after it was opened once and while the teacher
- * is logged in, so opening a work and coming back keeps the screen and the
- * grading drafts. Never mounted before the first open (nothing is fetched).
+ * Shown: always. Hidden: after it was opened once, until the teacher logs out
+ * on purpose (ClassroomTeacherModalHost clears `opened` then). A login that
+ * expires does not count: the screen and the drafts wait for the teacher to log
+ * in again. Never mounted before the first open (nothing is fetched).
  * @param {object} params - inputs
  * @param {boolean} params.visible - the modal is shown
  * @param {boolean} params.opened - it has been opened since the last logout
- * @param {boolean} params.loggedIn - a teacher is logged in
  * @returns {boolean} whether to mount it
  */
-const shouldMountTeacherModal = ({ visible, opened, loggedIn }) => !!visible || (!!opened && !!loggedIn);
+const shouldMountTeacherModal = ({ visible, opened }) => !!visible || !!opened;
 
 /**
  * Whether the bar above the editor is shown.
- * Only for a work the teacher opened, while class management is closed.
+ * Only for a work the teacher opened, while class management is closed. It
+ * stays when the login expires (it then asks to log in again); a logout on
+ * purpose clears the work.
  * @param {object} classroom - state.scratchGui.classroom
  * @returns {boolean} whether to show the bar
  */
 const isTeacherWorkBarVisible = (classroom) =>
-    !!(classroom && classroom.teacherOpenedWork && !classroom.teacherModalVisible && classroom.teacherLoggedIn);
+    !!(classroom && classroom.teacherOpenedWork && !classroom.teacherModalVisible);
+
+/**
+ * What to do with the screen once a teacher logs in again after the login
+ * expired (#1990). The same teacher goes back to the screen they were on, with
+ * everything kept; another teacher starts from the class list with nothing of
+ * the previous teacher's.
+ * @param {?{phase: string, email: ?string}} resume - where the expired login was
+ * @param {?string} email - the teacher who logged in now
+ * @returns {'none'|'resume'|'reset'} what to do
+ */
+const decideSessionResume = (resume, email) => {
+    if (!resume) return 'none';
+    if (resume.email && email) return resume.email === email ? 'resume' : 'reset';
+    // Neither login says who it is (the dev bypass login): nothing tells another teacher apart.
+    if (!resume.email && !email) return 'resume';
+    return 'reset';
+};
 
 /**
  * Key of a members-tab comment draft: one per assignment and seat (#1990).
@@ -76,6 +95,7 @@ const unsavedMemberCommentDrafts = (drafts, shownClassroomId, shownMembers) =>
 export {
     shouldMountTeacherModal,
     isTeacherWorkBarVisible,
+    decideSessionResume,
     memberCommentDraftKey,
     memberDraftsForClassroom,
     unsavedMemberCommentDrafts,

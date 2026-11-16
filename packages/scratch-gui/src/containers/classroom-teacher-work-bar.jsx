@@ -35,7 +35,7 @@ const ClassroomTeacherWorkBar = () => {
     const handleBack = useCallback(() => dispatch(openTeacherModal()), [dispatch]);
 
     if (!isTeacherWorkBarVisible(classroom)) return null;
-    return <ClassroomTeacherWorkBarComponent work={work} onBack={handleBack} />;
+    return <ClassroomTeacherWorkBarComponent expired={!classroom.teacherLoggedIn} work={work} onBack={handleBack} />;
 };
 
 export default ClassroomTeacherWorkBar;

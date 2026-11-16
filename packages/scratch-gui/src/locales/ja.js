@@ -294,6 +294,7 @@ export default {
     'gui.classroom.teacherLogoutConfirm.logout': 'ログアウトする',
     'gui.classroom.teacherWorkBar.viewing': '出席番号 {seatNumber}・{assignmentName} の作品を見ています',
     'gui.classroom.teacherWorkBar.viewingNoSeat': '{assignmentName} の作品を見ています',
+    'gui.classroom.teacherWorkBar.sessionExpired': 'ログインが切れました。戻ってログインし直してください。',
     'gui.classroom.teacherWorkBar.backToGrading': '‹ 採点に戻る',
     'gui.classroom.teacherWorkBar.backToAssignment': '‹ 課題に戻る',
     'gui.classroom.evaluation.openWork': '作品を開く',

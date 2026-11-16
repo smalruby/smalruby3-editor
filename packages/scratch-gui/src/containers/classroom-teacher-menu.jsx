@@ -13,6 +13,7 @@ import {
     setTeacherLastSelection,
     setTeacherLoggedIn,
     setTeacherUnreadCount,
+    teacherLoggedOut,
 } from '../reducers/classroom.js';
 import {
     getCachedTeacherIdToken,
@@ -111,6 +112,7 @@ const ClassroomTeacherMenu = ({ className, activeClassName, menuClassName, place
                 dispatch(closeTeacherModal());
                 dispatch(clearTeacherSelection());
                 dispatch(setTeacherLoggedIn(false));
+                dispatch(teacherLoggedOut());
                 return;
             }
             dispatch(requestTeacherNavigation(id));

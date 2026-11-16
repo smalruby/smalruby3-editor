@@ -23,6 +23,13 @@ const messages = defineMessages({
         description: 'Bar above the editor (#1990) when the seat number is not known',
         id: 'gui.classroom.teacherWorkBar.viewingNoSeat',
     },
+    sessionExpired: {
+        defaultMessage: 'Your login has expired. Go back and log in again.',
+        description:
+            'Bar above the editor (#1990): the teacher login expired while the work was open. Going back ' +
+            'opens class management on the login screen; the screen and the drafts come back after logging in',
+        id: 'gui.classroom.teacherWorkBar.sessionExpired',
+    },
     backToGrading: {
         defaultMessage: '‹ Back to grading',
         description: 'Bar above the editor (#1990): go back to the grading screen the work was opened from',
@@ -35,7 +42,7 @@ const messages = defineMessages({
     },
 });
 
-const ClassroomTeacherWorkBar = ({ work, onBack }) => {
+const ClassroomTeacherWorkBar = ({ work, expired = false, onBack }) => {
     const intl = useIntl();
     const assignmentName = work.assignmentName || '';
     const text =
@@ -47,6 +54,11 @@ const ClassroomTeacherWorkBar = ({ work, onBack }) => {
             <span className={styles.text} data-testid="classroom-teacher-work-bar-text" title={text}>
                 {text}
             </span>
+            {expired && (
+                <span className={styles.expired} data-testid="classroom-teacher-work-bar-expired" role="alert">
+                    {intl.formatMessage(messages.sessionExpired)}
+                </span>
+            )}
             <ClassroomButton className={styles.back} dataTestId="classroom-teacher-work-bar-back" onClick={onBack}>
                 {intl.formatMessage(work.from === 'evaluation' ? messages.backToGrading : messages.backToAssignment)}
             </ClassroomButton>
@@ -60,6 +72,8 @@ ClassroomTeacherWorkBar.propTypes = {
         seatNumber: PropTypes.number,
         assignmentName: PropTypes.string,
     }).isRequired,
+    /** The teacher login expired (not a logout): ask to log in again (#1990). */
+    expired: PropTypes.bool,
     onBack: PropTypes.func.isRequired,
 };
 

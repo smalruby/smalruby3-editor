@@ -7,6 +7,7 @@
  * - 帯には出席番号と課題名だけを覚える（生徒の名前は持たない）。
  */
 import {
+    decideSessionResume,
     isTeacherWorkBarVisible,
     memberCommentDraftKey,
     memberDraftsForClassroom,
@@ -22,14 +23,14 @@ import reducer, {
     setTeacherHasUnsavedWork,
     setTeacherLoggedIn,
     setTeacherOpenedWork,
+    teacherLoggedOut,
 } from '../../../src/reducers/classroom.js';
 
 describe('shouldMountTeacherModal', () => {
     test.each([
-        [{ visible: true, opened: false, loggedIn: false }, true],
-        [{ visible: false, opened: false, loggedIn: true }, false],
-        [{ visible: false, opened: true, loggedIn: true }, true],
-        [{ visible: false, opened: true, loggedIn: false }, false],
+        [{ visible: true, opened: false }, true],
+        [{ visible: false, opened: false }, false],
+        [{ visible: false, opened: true }, true],
     ])('%o → %s', (input, expected) => {
         expect(shouldMountTeacherModal(input)).toBe(expected);
     });
@@ -37,7 +38,7 @@ describe('shouldMountTeacherModal', () => {
 
 describe('isTeacherWorkBarVisible', () => {
     const work = { from: 'evaluation', seatNumber: 3, assignmentName: '迷路' };
-    test('開いた作品があり、クラス管理が閉じていて、先生がログインしているときだけ', () => {
+    test('開いた作品があり、クラス管理が閉じているときだけ（ログインが切れても出したまま）', () => {
         expect(
             isTeacherWorkBarVisible({ teacherOpenedWork: work, teacherModalVisible: false, teacherLoggedIn: true }),
         ).toBe(true);
@@ -46,7 +47,7 @@ describe('isTeacherWorkBarVisible', () => {
         ).toBe(false);
         expect(
             isTeacherWorkBarVisible({ teacherOpenedWork: work, teacherModalVisible: false, teacherLoggedIn: false }),
-        ).toBe(false);
+        ).toBe(true);
         expect(
             isTeacherWorkBarVisible({ teacherOpenedWork: null, teacherModalVisible: false, teacherLoggedIn: true }),
         ).toBe(false);
@@ -79,8 +80,11 @@ describe('classroom reducer — teacherOpenedWork', () => {
         expect(reducer(closed, requestTeacherNavigation('class-list')).teacherOpenedWork).toBeNull();
     });
 
-    test('ログアウトと、ほかの作品を読み込んだとき（clear）に消える', () => {
-        expect(reducer(opened(), setTeacherLoggedIn(false)).teacherOpenedWork).toBeNull();
+    test('ログアウト（teacherLoggedOut）と、ほかの作品を読み込んだとき（clear）に消える', () => {
+        expect(reducer(opened(), teacherLoggedOut()).teacherOpenedWork).toBeNull();
+        expect(reducer(opened(), teacherLoggedOut()).teacherLogoutCount).toBe(1);
+        // ログインが切れただけ（setTeacherLoggedIn(false)）では消さない。
+        expect(reducer(opened(), setTeacherLoggedIn(false)).teacherOpenedWork).not.toBeNull();
         expect(reducer(opened(), clearTeacherOpenedWork()).teacherOpenedWork).toBeNull();
         expect(reducer(classroomInitialState, clearTeacherOpenedWork())).toBe(classroomInitialState);
     });
@@ -123,10 +127,23 @@ describe('メンバーのタブのコメントの下書き', () => {
 });
 
 describe('classroom reducer — teacherHasUnsavedWork', () => {
-    test('立てて、ログアウトで戻る', () => {
+    test('立てて、ログアウトで戻る（ログインが切れただけでは残す）', () => {
         const on = reducer(reducer(classroomInitialState, setTeacherLoggedIn(true)), setTeacherHasUnsavedWork(true));
         expect(on.teacherHasUnsavedWork).toBe(true);
         expect(reducer(on, setTeacherHasUnsavedWork(true))).toBe(on);
-        expect(reducer(on, setTeacherLoggedIn(false)).teacherHasUnsavedWork).toBe(false);
+        expect(reducer(on, setTeacherLoggedIn(false)).teacherHasUnsavedWork).toBe(true);
+        expect(reducer(on, teacherLoggedOut()).teacherHasUnsavedWork).toBe(false);
+    });
+});
+
+describe('decideSessionResume', () => {
+    test.each([
+        [null, 'a@example.com', 'none'],
+        [{ phase: 'teacher-evaluation', email: 'a@example.com' }, 'a@example.com', 'resume'],
+        [{ phase: 'teacher-evaluation', email: 'a@example.com' }, 'b@example.com', 'reset'],
+        [{ phase: 'teacher-evaluation', email: null }, null, 'resume'],
+        [{ phase: 'teacher-evaluation', email: 'a@example.com' }, null, 'reset'],
+    ])('%o + %s → %s', (resume, email, expected) => {
+        expect(decideSessionResume(resume, email)).toBe(expected);
     });
 });

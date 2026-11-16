@@ -22,6 +22,7 @@ const CLEAR_TEACHER_NAVIGATION = 'scratch-gui/classroom/CLEAR_TEACHER_NAVIGATION
 const SET_TEACHER_OPENED_WORK = 'scratch-gui/classroom/SET_TEACHER_OPENED_WORK';
 const CLEAR_TEACHER_OPENED_WORK = 'scratch-gui/classroom/CLEAR_TEACHER_OPENED_WORK';
 const SET_TEACHER_HAS_UNSAVED_WORK = 'scratch-gui/classroom/SET_TEACHER_HAS_UNSAVED_WORK';
+const TEACHER_LOGGED_OUT = 'scratch-gui/classroom/TEACHER_LOGGED_OUT';
 const SET_TEACHER_KICK_REQUESTS = 'scratch-gui/classroom/SET_TEACHER_KICK_REQUESTS';
 const REMOVE_TEACHER_KICK_REQUEST = 'scratch-gui/classroom/REMOVE_TEACHER_KICK_REQUEST';
 const OPEN_TEACHER_KICK_LIST = 'scratch-gui/classroom/OPEN_TEACHER_KICK_LIST';
@@ -215,6 +216,9 @@ const initialState = {
     // comments not returned on the members tab (#1990). Mirrored by the teacher modal
     // so the menu bar's logout asks first. Memory only.
     teacherHasUnsavedWork: false,
+    // Bumped on a logout on purpose (not when the login expires), so the hidden
+    // class management is dropped then and only then (#1990). Memory only.
+    teacherLogoutCount: 0,
     // Student's "みんなの作品を見る" (#1210): the assignment's peer view setting
     // as last read from the server (null = not known yet; not persisted, so a
     // changed setting is picked up again) and whether the floating panel is shown.
@@ -388,8 +392,6 @@ const reducer = (state, action) => {
                 teacherKickRequests: [],
                 teacherKickListOpen: false,
                 teacherPanelOpen: false,
-                teacherOpenedWork: null,
-                teacherHasUnsavedWork: false,
             };
         case SET_TEACHER_UNREAD_COUNT:
             return { ...state, teacherUnreadCount: action.unreadCount || 0 };
@@ -407,6 +409,15 @@ const reducer = (state, action) => {
             return { ...state, teacherNavTarget: null, teacherNavMemberId: null };
         case SET_TEACHER_OPENED_WORK:
             return { ...state, teacherOpenedWork: action.work };
+        case TEACHER_LOGGED_OUT:
+            // The work opened from class management and the hidden screen go with
+            // the logout. An expired login (SET_TEACHER_LOGGED_IN false) keeps them.
+            return {
+                ...state,
+                teacherOpenedWork: null,
+                teacherHasUnsavedWork: false,
+                teacherLogoutCount: state.teacherLogoutCount + 1,
+            };
         case SET_TEACHER_HAS_UNSAVED_WORK:
             return state.teacherHasUnsavedWork === action.unsaved
                 ? state
@@ -592,6 +603,12 @@ const setTeacherOpenedWork = (work) => ({
 });
 const clearTeacherOpenedWork = () => ({ type: CLEAR_TEACHER_OPENED_WORK });
 const setTeacherHasUnsavedWork = (unsaved) => ({ type: SET_TEACHER_HAS_UNSAVED_WORK, unsaved: !!unsaved });
+/**
+ * The teacher logged out on purpose (#1990): drop the hidden class management
+ * and the bar above the editor. Not for an expired login.
+ * @returns {object} action
+ */
+const teacherLoggedOut = () => ({ type: TEACHER_LOGGED_OUT });
 const setTeacherKickRequests = (requests) => ({ type: SET_TEACHER_KICK_REQUESTS, requests });
 /**
  * Drop a handled kick request from the teacher's pending list (#1200).
@@ -715,6 +732,7 @@ export {
     setTeacherOpenedWork,
     clearTeacherOpenedWork,
     setTeacherHasUnsavedWork,
+    teacherLoggedOut,
     setTeacherKickRequests,
     removeTeacherKickRequest,
     openTeacherKickList,

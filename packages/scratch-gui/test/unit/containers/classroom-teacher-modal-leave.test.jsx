@@ -15,11 +15,13 @@ import { Provider } from 'react-redux';
 import { combineReducers, createStore } from 'redux';
 import ClassroomTeacherModal from '../../../src/containers/classroom-teacher-modal.jsx';
 import classroomReducer, {
+    setTeacherUnreadCount,
     requestTeacherNavigation,
     setTeacherLastSelection,
 } from '../../../src/reducers/classroom.js';
 
 let mockSetPhase = null;
+let mockCachedToken = 'cached-token';
 let mockTeacher = null;
 let mockComponentProps = null;
 
@@ -29,7 +31,7 @@ jest.mock('../../../src/containers/use-teacher-classroom.js', () => ({
         mockSetPhase = args.setPhase;
         return mockTeacher;
     },
-    getCachedTeacherIdToken: () => 'cached-token',
+    getCachedTeacherIdToken: () => mockCachedToken,
     setCachedTeacherIdToken: () => {},
 }));
 
@@ -65,6 +67,9 @@ const makeTeacher = () => ({
     handleSelectMember: jest.fn(),
     handleShowClassList: jest.fn(),
     handleTeacherLogout: jest.fn(),
+    setClassrooms: jest.fn(),
+    setSelectedClassroom: jest.fn(),
+    setMembers: jest.fn(),
 });
 
 const renderModal = () => {
@@ -204,5 +209,91 @@ describe('ClassroomTeacherModal — comments typed on the members tab (#1990)', 
         expect(store.getState().scratchGui.classroom.teacherHasUnsavedWork).toBe(false);
         act(() => mockComponentProps.containerProps.onTeacherLogout());
         expect(mockTeacher.handleTeacherLogout).toHaveBeenCalledTimes(1);
+    });
+
+    test('returning the comment drops its draft: no question on logout, the flag goes down', async () => {
+        mockTeacher.members = [{ memberId: 'seat-03', submissionId: 'sub-3', teacherComment: 'いいね' }];
+        mockTeacher.handleReturnSubmission = jest.fn(() => Promise.resolve(true));
+        const store = renderModal();
+        typeDraft('もう少し');
+        expect(store.getState().scratchGui.classroom.teacherHasUnsavedWork).toBe(true);
+        await act(async () => {
+            await mockComponentProps.containerProps.onReturnSubmission('sub-3', 'もう少し');
+        });
+        expect(mockTeacher.handleReturnSubmission).toHaveBeenCalledWith('sub-3', 'もう少し');
+        expect(mockComponentProps.containerProps.memberCommentDrafts).toEqual({});
+        expect(store.getState().scratchGui.classroom.teacherHasUnsavedWork).toBe(false);
+        act(() => mockComponentProps.containerProps.onTeacherLogout());
+        expect(mockComponentProps.containerProps.logoutConfirm).toBe(false);
+        expect(mockTeacher.handleTeacherLogout).toHaveBeenCalledTimes(1);
+    });
+
+    test('a failed return keeps the draft', async () => {
+        mockTeacher.members = [{ memberId: 'seat-03', submissionId: 'sub-3', teacherComment: '' }];
+        mockTeacher.handleReturnSubmission = jest.fn(() => Promise.resolve(false));
+        renderModal();
+        typeDraft('もう少し');
+        await act(async () => {
+            await mockComponentProps.containerProps.onReturnSubmission('sub-3', 'もう少し');
+        });
+        expect(mockComponentProps.containerProps.memberCommentDrafts).toEqual({ 'seat-03': 'もう少し' });
+    });
+});
+
+describe('ClassroomTeacherModal — the login expires (#1990 M1)', () => {
+    const jwt = (email) => `h.${btoa(JSON.stringify({ email }))}.s`;
+    const rerenderWith = (store, token) => {
+        mockTeacher.idToken = token;
+        // A 401 the silent re-login could not fix forgets the cached token too.
+        mockCachedToken = token;
+        act(() => store.dispatch(setTeacherUnreadCount(Math.random())));
+    };
+
+    beforeEach(() => {
+        mockTeacher = makeTeacher();
+        mockComponentProps = null;
+    });
+    afterEach(() => {
+        mockCachedToken = 'cached-token';
+    });
+
+    test('expired on the grading screen: the login screen, everything kept; the same teacher comes back', () => {
+        mockTeacher.idToken = jwt('a@example.com');
+        const store = renderModal();
+        act(() => mockSetPhase('teacher-evaluation'));
+        rerenderWith(store, null);
+        expect(mockComponentProps.containerProps.phase).toBe('teacher-login');
+        const state = store.getState().scratchGui.classroom;
+        expect(state.teacherLoggedIn).toBe(false);
+        // The grading drafts behind the login screen still count (reload question, menu).
+        expect(state.teacherHasUnsavedWork).toBe(true);
+        expect(state.teacherLogoutCount).toBe(0);
+        rerenderWith(store, jwt('a@example.com'));
+        expect(mockComponentProps.containerProps.phase).toBe('teacher-evaluation');
+        expect(mockTeacher.setSelectedClassroom).not.toHaveBeenCalled();
+    });
+
+    test('another teacher logging in after the expiry does not get the previous screen', () => {
+        mockTeacher.idToken = jwt('a@example.com');
+        const store = renderModal();
+        act(() => mockSetPhase('teacher-evaluation'));
+        rerenderWith(store, null);
+        rerenderWith(store, jwt('b@example.com'));
+        expect(mockComponentProps.containerProps.phase).not.toBe('teacher-evaluation');
+        expect(mockTeacher.setSelectedClassroom).toHaveBeenCalledWith(null);
+    });
+
+    test('a logout on purpose is not an expiry: no screen to come back to', () => {
+        mockTeacher.idToken = jwt('a@example.com');
+        mockTeacher.evaluation = { hasUnsavedWork: false, handleRequestLeave: jest.fn((action) => action()) };
+        const store = renderModal();
+        act(() => mockSetPhase('teacher-evaluation'));
+        act(() => mockComponentProps.containerProps.onTeacherLogout());
+        expect(store.getState().scratchGui.classroom.teacherLogoutCount).toBe(1);
+        rerenderWith(store, null);
+        // The real logout goes to the login screen itself; nothing brings the grading screen back.
+        act(() => mockSetPhase('teacher-login'));
+        rerenderWith(store, jwt('a@example.com'));
+        expect(mockComponentProps.containerProps.phase).toBe('teacher-login');
     });
 });
