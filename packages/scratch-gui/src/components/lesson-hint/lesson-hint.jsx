@@ -140,9 +140,17 @@ const useHintPlacement = (target, balloonRef, deps) => {
         if (!el || typeof document === 'undefined') return;
         const targetRect = target ? findHintTargetRect(target, document) : null;
         const size = el.getBoundingClientRect();
+        // しっぽをヘッダーの帯の横・閉じるボタンの上に出さないよう、どちらの位置も吹き出しからの相対で渡す
+        const header = el.querySelector('[data-testid="lesson-hint-drag-handle"]');
+        const close = el.querySelector('[data-testid="lesson-hint-close"]');
         const placement = computeHintPlacement({
             target: targetRect,
-            balloon: { width: size.width, height: size.height },
+            balloon: {
+                width: size.width,
+                height: size.height,
+                header: header ? header.getBoundingClientRect().bottom - size.top : 0,
+                closeLeft: close ? close.getBoundingClientRect().left - size.left : null,
+            },
             viewport: viewportSize(),
             sides: preferredSides(target),
             avoid: findHintAvoidRects(document, target),
