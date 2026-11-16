@@ -49,6 +49,10 @@ $color-success-background: $extensions-light;
 /* お知らせのアラートの枠と背景（alerts/alert.css の .info-blue） */
 $color-info: $motion-primary;
 $color-info-background: $ui-primary;
+/* 文言の中の強調（レッスンのヒントの `**…**`）: 見落としやすいところを、淡い注意の地に濃い朱色の文字で出す。
+   上流の朱色（$red-tertiary・#E64D00）は淡い地に 3.5:1 で足りないので濃くしたもの（地に 5.9:1・白に 6.5:1） */
+$color-emphasis: #a33d00;
+$color-emphasis-background: $ui-alert-orange;
 /* 取り消せる操作の確認（「アーカイブしますか？」「退室させますか？」「採点を離れますか？」）の
    淡いオレンジの地と文字。赤は使わない（クラス管理の R4）。文字は地に 7:1 以上 */
 $color-confirm-background: hsla(35, 90%, 55%, 0.12);

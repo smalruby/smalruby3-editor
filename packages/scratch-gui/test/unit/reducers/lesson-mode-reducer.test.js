@@ -4,12 +4,16 @@ import {
     markChallengeCompleted as markProgress,
     saveProgress,
 } from '../../../src/lib/lessons/lesson-progress';
+import { LESSON_ROLE_STORAGE_KEY, ROLE_SOURCES } from '../../../src/lib/lessons/lesson-role';
+import { ROLES } from '../../../src/lib/lessons/role-swap';
 import { SPOTLIGHT_SEEN_STORAGE_KEY, markSpotlightSeen } from '../../../src/lib/lessons/spotlight-seen';
 import { activateDeck } from '../../../src/reducers/cards';
 import reducer, {
     clearLessonsLibraryFocus,
     closeLesson,
     dismissCompleted,
+    hideCompleted,
+    showCompleted,
     focusLessonsLibrary,
     focusLessonsLibraryStart,
     getCurrentChallenge,
@@ -31,6 +35,8 @@ import reducer, {
     getLessonDnclModeAllowed,
     getCurrentHint,
     setLibraryAssignmentOnly,
+    getCurrentRole,
+    setLessonRole,
 } from '../../../src/reducers/lesson-mode';
 
 const wrap = (lessonMode) => ({ scratchGui: { lessonMode } });
@@ -120,6 +126,29 @@ describe('lesson-mode reducer', () => {
         expect(cleared.justCompletedId).toBeNull();
         const saved = JSON.parse(window.localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY));
         expect(saved.challenges).toEqual({});
+    });
+
+    // 課題バーの全文を開くあいだだけ、クイズのある「できた！」を隠して、閉じたら出し直す（#1639 Q1）
+    test('hideCompleted / showCompleted hide the "You did it!" toast for a while without dismissing it', () => {
+        const opened = reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz'));
+        expect(opened.completedHidden).toBe(false);
+        // 「できた！」が出ていなければ何もしない
+        expect(reducer(opened, hideCompleted())).toBe(opened);
+        const done = reducer(opened, markChallengeCompleted('blocks-l1-quiz', '2026-11-10T00:00:00.000Z'));
+        const hidden = reducer(done, hideCompleted());
+        expect(hidden.completedHidden).toBe(true);
+        expect(hidden.justCompletedId).toBe('blocks-l1-quiz');
+        expect(reducer(hidden, hideCompleted())).toBe(hidden);
+        const shown = reducer(hidden, showCompleted());
+        expect(shown.completedHidden).toBe(false);
+        expect(shown.justCompletedId).toBe('blocks-l1-quiz');
+        expect(reducer(shown, showCompleted())).toBe(shown);
+        // 閉じる・チャレンジを開き直す・もう一度できたときは、隠したのを解く
+        expect(reducer(hidden, dismissCompleted()).completedHidden).toBe(false);
+        expect(reducer(hidden, openChallenge('blocks-l1-quiz')).completedHidden).toBe(false);
+        expect(
+            reducer(hidden, markChallengeCompleted('blocks-l1-quiz', '2026-11-11T00:00:00.000Z')).completedHidden,
+        ).toBe(false);
     });
 
     test('requestProgressSend counts the requests to send the progress to the class', () => {
@@ -546,5 +575,142 @@ describe('lesson-mode reducer: lessons library focus', () => {
             state = reducer(state, openChallenge('blocks-l1-quiz'));
             expect(state.fromAssignment).toBe(true);
         });
+    });
+});
+
+describe('lesson-mode reducer: read-and-build challenge (mode readDiagram)', () => {
+    // いまのコースに読んで作るチャレンジは無いので、テスト用の定義に見せかける
+    const CHALLENGE_ID = 'blocks-l1-click-say';
+    let findChallengeSpy;
+
+    beforeEach(() => {
+        window.localStorage.clear();
+        const courses = require('../../../src/lib/lessons/courses');
+        const real = courses.findChallenge;
+        findChallengeSpy = jest.spyOn(courses, 'findChallenge').mockImplementation((id) => {
+            const found = real(id);
+            if (!found) return found;
+            return {
+                ...found,
+                challenge: courses.defineChallenge({
+                    id: found.challenge.id,
+                    number: found.challenge.number,
+                    mode: 'readDiagram',
+                    task: found.challenge.task,
+                    code: 'when_flag_clicked do\n  say("Hi")\nend\n',
+                    // ふつうのチャレンジなら最後の手段のページが付く
+                    debug: [{ id: 'x.debug1' }],
+                    steps: [{ title: 'ignored' }, { title: 'ignored' }],
+                }),
+            };
+        });
+    });
+
+    afterEach(() => {
+        findChallengeSpy.mockRestore();
+    });
+
+    test('has only 3 hint pages and no last-resort page (no replacing with the answer)', () => {
+        let state = reducer(lessonModeInitialState, openChallenge(CHALLENGE_ID));
+        // 始めたら 1 ページ目（図と説明）が自動で開く
+        let hint = getCurrentHint(wrap(state));
+        expect(hint.visible).toBe(true);
+        expect(hint.count).toBe(3);
+        expect(hint.step.kind).toBe('read');
+        expect(hint.lastResort).toBe(false);
+        state = reducer(state, nextHint());
+        expect(getCurrentHint(wrap(state)).step.kind).toBe('try');
+        state = reducer(state, nextHint());
+        hint = getCurrentHint(wrap(state));
+        expect(hint.step.kind).toBe('answer');
+        expect(hint.step.blocks).toContain('say("Hi")');
+        expect(hint.lastResort).toBe(false);
+        // 3 ページ目が最後（その先は無い）
+        state = reducer(state, nextHint());
+        expect(getCurrentHint(wrap(state)).index).toBe(2);
+    });
+});
+
+describe('lesson-mode reducer: the role of a pair challenge (#2061)', () => {
+    beforeEach(() => {
+        window.localStorage.clear();
+    });
+
+    test('a challenge without roles has no role', () => {
+        const state = reducer(lessonModeInitialState, openChallenge('chat-l3-mesh-signal'));
+        expect(state.role).toBeNull();
+        expect(getCurrentRole(wrap(state))).toBeNull();
+    });
+
+    test('without a role from the container: the Shimaraby role', () => {
+        const state = reducer(lessonModeInitialState, openChallenge('chat-l4-send-repeat'));
+        expect(getCurrentRole(wrap(state))).toEqual({ role: ROLES.SHIMARABY, source: ROLE_SOURCES.DEFAULT });
+        expect(getCurrentChallenge(wrap(state)).challenge.code.ja).toContain('$シマラビのメッセージ');
+    });
+
+    test('the reducer does not read or write the device (the container does)', () => {
+        window.localStorage.setItem(LESSON_ROLE_STORAGE_KEY, JSON.stringify({ role: 'shimacat', pair: null }));
+        let state = reducer(lessonModeInitialState, openChallenge('chat-l3-mesh-variable'));
+        expect(state.role).toBe(ROLES.SHIMARABY);
+        window.localStorage.clear();
+        state = reducer(state, setLessonRole(ROLES.SHIMACAT));
+        expect(window.localStorage.getItem(LESSON_ROLE_STORAGE_KEY)).toBeNull();
+    });
+
+    test('choosing the Shimacat role swaps the challenge', () => {
+        let state = reducer(lessonModeInitialState, openChallenge('chat-l3-mesh-variable'));
+        state = reducer(state, setLessonRole(ROLES.SHIMACAT));
+        expect(getCurrentRole(wrap(state))).toEqual({ role: ROLES.SHIMACAT, source: ROLE_SOURCES.CHOSEN });
+        expect(getCurrentChallenge(wrap(state)).challenge.code.ja).toContain('$シマネコのきぶん');
+        expect(getLessonAllowedBlocks(wrap(state))).toBe(getCurrentChallenge(wrap(state)).challenge.allowedBlocks);
+    });
+
+    test('closing the lesson clears the role, setLessonRole outside a role challenge does nothing', () => {
+        let state = reducer(lessonModeInitialState, openChallenge('chat-l3-mesh-variable'));
+        state = reducer(state, closeLesson());
+        expect(state.role).toBeNull();
+        expect(reducer(state, setLessonRole(ROLES.SHIMACAT))).toBe(state);
+        const signal = reducer(lessonModeInitialState, openChallenge('chat-l3-mesh-signal'));
+        expect(reducer(signal, setLessonRole(ROLES.SHIMACAT))).toBe(signal);
+    });
+
+    test('the role the container decided (remembered / seat pair) is used', () => {
+        const state = reducer(
+            lessonModeInitialState,
+            openChallenge('chat-l4-send-once', {
+                role: ROLES.SHIMACAT,
+                roleSource: ROLE_SOURCES.SEAT,
+                rolePair: '3-7',
+            }),
+        );
+        expect(getCurrentRole(wrap(state))).toEqual({ role: ROLES.SHIMACAT, source: ROLE_SOURCES.SEAT });
+        expect(state.rolePair).toBe('3-7');
+    });
+
+    test('startChallenge with a role (starting again in the other role) opens in that role', () => {
+        let state = reducer(lessonModeInitialState, startChallenge('chat-l4-both-ways', { role: ROLES.SHIMACAT }));
+        state = reducer(state, openChallenge('chat-l4-both-ways'));
+        expect(getCurrentRole(wrap(state))).toEqual({ role: ROLES.SHIMACAT, source: ROLE_SOURCES.CHOSEN });
+        expect(state.pendingRole).toBeNull();
+    });
+
+    test('setLessonRole with a seat source keeps how the role was decided and the pair', () => {
+        let state = reducer(lessonModeInitialState, openChallenge('chat-l3-mesh-variable'));
+        state = reducer(state, setLessonRole(ROLES.SHIMACAT, { roleSource: ROLE_SOURCES.SEAT, rolePair: '3-7' }));
+        expect(getCurrentRole(wrap(state))).toEqual({ role: ROLES.SHIMACAT, source: ROLE_SOURCES.SEAT });
+        expect(state.rolePair).toBe('3-7');
+    });
+
+    test('starting the same challenge again in the other role keeps the hint page', () => {
+        let state = reducer(lessonModeInitialState, openChallenge('chat-l5-stamp'));
+        state = reducer(state, nextHint());
+        expect(state.hintIndex).toBe(1);
+        state = reducer(state, startChallenge('chat-l5-stamp', { role: ROLES.SHIMACAT }));
+        state = reducer(state, openChallenge('chat-l5-stamp'));
+        expect(state.hintIndex).toBe(1);
+        expect(state.role).toBe(ROLES.SHIMACAT);
+        // ふつうに開き直したら 1 ページ目から
+        state = reducer(reducer(state, startChallenge('chat-l5-stamp')), openChallenge('chat-l5-stamp'));
+        expect(state.hintIndex).toBe(0);
     });
 });

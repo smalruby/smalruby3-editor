@@ -216,6 +216,56 @@ describe('attachGoalMonitor', () => {
         expect(onSatisfied).toHaveBeenCalledTimes(1);
     });
 
+    test('said: a line said inside a block remembers the script that said it (said.trigger, #1643)', () => {
+        const onSatisfied = jest.fn();
+        const goal = [{ type: 'said', text: 'やあ', trigger: { hat: 'event_whenthisspriteclicked' } }];
+        // 「言う」は見張りのすぐあとに、同じブロックの中で SAY を出す
+        runtime._primitives.looks_say = (args, util) => runtime.emit('SAY', util.target, 'say', args.MESSAGE);
+        attachGoalMonitor(vm, goal, onSatisfied);
+        exec(runtime, hatThread(cat, 'spaceHat'), 'looks_say', { MESSAGE: 'やあ' });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+        // ほかのスプライトの SAY（ブロックの外から出たもの）は、最後に動いたスクリプトのものにしない
+        runtime.emit('SAY', stage, 'say', 'やあ');
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+        exec(runtime, hatThread(cat, 'clickHat'), 'looks_say', { MESSAGE: 'やあ' });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).toHaveBeenCalledTimes(1);
+    });
+
+    test('said: the script is used for one SAY only, and the values from other mesh nodes are kept (#1643)', () => {
+        const onSatisfied = jest.fn();
+        const goal = [{ type: 'said', text: 'うれしい', trigger: { hat: 'event_whenthisspriteclicked' } }];
+        runtime._primitives.looks_say = (args, util) => runtime.emit('SAY', util.target, 'say', args.MESSAGE);
+        attachGoalMonitor(vm, goal, onSatisfied);
+        exec(runtime, hatThread(cat, 'clickHat'), 'looks_say', { MESSAGE: '' });
+        // 同じスプライトから、ブロックの外で出た 2 回目の SAY は、押したスクリプトのものにしない
+        runtime.emit('SAY', cat, 'say', 'うれしい');
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
+
+        const remote = jest.fn();
+        const goal2 = [{ type: 'said', text: 'うれしい', remoteValue: true }];
+        runtime.peripheralExtensions = {
+            meshV2: {
+                meshService: {
+                    meshId: 'me',
+                    remoteData: { me: { 気分: { value: 'うれしい' } }, other: { 気分: { value: 'ねむい' } } },
+                },
+            },
+        };
+        attachGoalMonitor(vm, goal2, remote);
+        runtime.emit('SAY', cat, 'say', 'うれしい');
+        runtime.emit('BEFORE_STEP');
+        // 自分のノードの値（自分の変数のセンサーの値）は入れない
+        expect(remote).not.toHaveBeenCalled();
+        runtime.peripheralExtensions.meshV2.meshService.remoteData.other.気分.value = 'うれしい';
+        runtime.emit('SAY', cat, 'say', 'うれしい');
+        runtime.emit('BEFORE_STEP');
+        expect(remote).toHaveBeenCalledTimes(1);
+    });
+
     test('result goals re-evaluate when the project changes (costumes, sprites, extensions)', () => {
         const onSatisfied = jest.fn();
         const goal = [
@@ -279,6 +329,137 @@ describe('attachGoalMonitor', () => {
         exec(runtime, hatThread(penguin, 'recv'), 'looks_sayforsecs', { MESSAGE: 'やあ！', SECS: 2 });
         runtime.emit('BEFORE_STEP');
         expect(onSatisfied).toHaveBeenCalledTimes(1);
+    });
+});
+
+// メッシュの拡張は、ほかのノードから届いた合図を「送る」の関数で流す。そのときのスレッドは「送る」を動かして
+// いないので、送ったことにしない（`sentBy: 'remote'` が通るように・#1645）
+describe('attachGoalMonitor and the broadcasts the mesh delivers', () => {
+    test('a broadcast is recorded only while the thread is at a broadcast block', () => {
+        const blocks = {
+            flagHat: { opcode: 'event_whenflagclicked', fields: {} },
+            ask: { opcode: 'sensing_askandwait', fields: {} },
+            send: { opcode: 'event_broadcast', fields: {} },
+            recv: {
+                opcode: 'event_whenbroadcastreceived',
+                fields: { BROADCAST_OPTION: { name: 'BROADCAST_OPTION', value: 'シマネコがよんだ', id: 'm1' } },
+            },
+        };
+        const shimaraby = makeTarget({ id: 'shimaraby', blocks });
+        const vm = makeVm([shimaraby]);
+        const runtime = vm.runtime;
+        runtime._primitives.event_broadcast = jest.fn();
+        runtime._primitives.looks_sayforsecs = jest.fn();
+        const onSatisfied = jest.fn();
+        attachGoalMonitor(
+            vm,
+            [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'remote' },
+                    blocks: ['looks_sayforsecs'],
+                },
+            ],
+            onSatisfied,
+        );
+        const thread = (topBlock, at) => ({ ...hatThread(shimaraby, topBlock), peekStack: () => at });
+        // 届いた合図: 聞いて待つにいるスレッドの util で「送る」の関数が呼ばれる
+        exec(runtime, thread('flagHat', 'ask'), 'event_broadcast', {
+            BROADCAST_OPTION: { id: null, name: 'シマネコがよんだ' },
+        });
+        exec(runtime, thread('recv', 'recv'), 'looks_sayforsecs', { MESSAGE: '既読', SECS: 2 });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).toHaveBeenCalledTimes(1);
+    });
+
+    // 「送って待つ」などで別のメッセージの「送る」に止まっているスレッドの util で、届いた合図が流れたとき
+    test('a delivered message is not recorded on a thread waiting at a broadcast of another message', () => {
+        const blocks = {
+            flagHat: { opcode: 'event_whenflagclicked', fields: {} },
+            wait: {
+                opcode: 'event_broadcastandwait',
+                inputs: { BROADCAST_INPUT: { block: 'menu', shadow: 'menu' } },
+            },
+            menu: {
+                opcode: 'event_broadcast_menu',
+                fields: { BROADCAST_OPTION: { name: 'BROADCAST_OPTION', value: 'シマラビのメッセージ', id: 'm2' } },
+            },
+            recv: {
+                opcode: 'event_whenbroadcastreceived',
+                fields: { BROADCAST_OPTION: { name: 'BROADCAST_OPTION', value: 'シマネコがよんだ', id: 'm1' } },
+            },
+        };
+        const shimaraby = makeTarget({ id: 'shimaraby', blocks });
+        const vm = makeVm([shimaraby]);
+        const runtime = vm.runtime;
+        runtime._primitives.event_broadcast = jest.fn();
+        runtime._primitives.event_broadcastandwait = jest.fn();
+        runtime._primitives.looks_sayforsecs = jest.fn();
+        const onSatisfied = jest.fn();
+        attachGoalMonitor(
+            vm,
+            [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'remote' },
+                    blocks: ['looks_sayforsecs'],
+                },
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenflagclicked' },
+                    blocks: [
+                        { opcode: 'event_broadcastandwait', args: { BROADCAST_OPTION: 'シマラビのメッセージ' } },
+                    ],
+                },
+            ],
+            onSatisfied,
+        );
+        const thread = (topBlock, at) => ({ ...hatThread(shimaraby, topBlock), peekStack: () => at });
+        const waiting = thread('flagHat', 'wait');
+        // 自分で送った（止まっているブロックのメッセージと同じ）は記録する
+        exec(runtime, waiting, 'event_broadcastandwait', {
+            BROADCAST_OPTION: { id: 'm2', name: 'シマラビのメッセージ' },
+        });
+        // 届いた合図（別の名前）は記録しない
+        exec(runtime, waiting, 'event_broadcast', { BROADCAST_OPTION: { id: null, name: 'シマネコがよんだ' } });
+        exec(runtime, thread('recv', 'recv'), 'looks_sayforsecs', { MESSAGE: '既読', SECS: 2 });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).toHaveBeenCalledTimes(1);
+    });
+
+    test('a broadcast from a broadcast block is recorded as sent by this project', () => {
+        const blocks = {
+            clickHat: { opcode: 'event_whenthisspriteclicked', fields: {} },
+            send: { opcode: 'event_broadcast', fields: {} },
+            recv: {
+                opcode: 'event_whenbroadcastreceived',
+                fields: { BROADCAST_OPTION: { name: 'BROADCAST_OPTION', value: 'シマネコがよんだ', id: 'm1' } },
+            },
+        };
+        const shimaraby = makeTarget({ id: 'shimaraby', blocks });
+        const vm = makeVm([shimaraby]);
+        const runtime = vm.runtime;
+        runtime._primitives.event_broadcast = jest.fn();
+        runtime._primitives.looks_sayforsecs = jest.fn();
+        const onSatisfied = jest.fn();
+        attachGoalMonitor(
+            vm,
+            [
+                {
+                    type: 'uses',
+                    trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'remote' },
+                    blocks: ['looks_sayforsecs'],
+                },
+            ],
+            onSatisfied,
+        );
+        const thread = (topBlock, at) => ({ ...hatThread(shimaraby, topBlock), peekStack: () => at });
+        exec(runtime, thread('clickHat', 'send'), 'event_broadcast', {
+            BROADCAST_OPTION: { id: 'm1', name: 'シマネコがよんだ' },
+        });
+        exec(runtime, thread('recv', 'recv'), 'looks_sayforsecs', { MESSAGE: '既読', SECS: 2 });
+        runtime.emit('BEFORE_STEP');
+        expect(onSatisfied).not.toHaveBeenCalled();
     });
 });
 

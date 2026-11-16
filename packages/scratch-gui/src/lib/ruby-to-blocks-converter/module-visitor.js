@@ -29,26 +29,23 @@ const ModuleVisitor = {
         this._checkNoExceptionHandling(node.body);
 
         const moduleName = node.name;
+        // The lines of the body, from the analysis stage (`class-analysis.js`)
+        const { statements } = this._structureOf(node);
 
         // Validate: only DefNode allowed in module body
-        if (node.body && node.body.body) {
-            for (const stmt of node.body.body) {
-                const typeName = nodeTypeName(stmt);
-                if (typeName === 'CallNode' && stmt.name === 'module_function' && !stmt.receiver) {
-                    throw new RubyToBlocksConverterError(stmt, this._translator(messages.moduleFunctionNotSupported));
-                }
-                this._rejectVisibilityModifier(stmt);
-                if (typeName !== 'DefNode') {
-                    throw new RubyToBlocksConverterError(stmt, this._translator(messages.onlyMethodsInModule));
-                }
+        for (const stmt of statements) {
+            const typeName = nodeTypeName(stmt);
+            if (typeName === 'CallNode' && stmt.name === 'module_function' && !stmt.receiver) {
+                throw new RubyToBlocksConverterError(stmt, this._translator(messages.moduleFunctionNotSupported));
+            }
+            this._rejectVisibilityModifier(stmt);
+            if (typeName !== 'DefNode') {
+                throw new RubyToBlocksConverterError(stmt, this._translator(messages.onlyMethodsInModule));
             }
         }
 
         // Save the module's method DefNodes in context for later expansion by include
-        this._context.modules[moduleName] = {
-            name: moduleName,
-            methods: node.body && node.body.body ? node.body.body : [],
-        };
+        this._context.modules[moduleName] = { name: moduleName, methods: statements };
 
         // Module definition itself does not produce blocks
         return [];

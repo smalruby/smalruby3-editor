@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (the analysis stage, docs/ruby-editor/converter-stages.md) ===
+import { classStructureOf, moduleStructureOf } from './class-analysis';
 import { childNodesOf, forEachNode, nodeTypeName } from './node-walk';
 
 // The analysis stage: walk the prism tree once (`forEachNode`) before converting, and keep what the
@@ -7,7 +8,8 @@ import { childNodesOf, forEachNode, nodeTypeName } from './node-walk';
 //
 // The converter analyzes the code in `targetCodeToBlocks` before it converts (`_context.analysis`)
 // and reads `variables` / `locals` (`variable-utils.js`), `procedures.valueCallCounts`
-// (`my-blocks.js`) and `errors` (`_rejectRubyNameOfVariableAndList`) from here.
+// (`my-blocks.js`), `classes` (`class-visitor.js` / `module-visitor.js` / `initialize-handler.js`)
+// and `errors` (`_rejectRubyNameOfVariableAndList`) from here.
 
 // Methods that the converter turns into list blocks only (a String has no such block), so calling
 // one is evidence that the name is a list (issue #1613).
@@ -419,13 +421,15 @@ const definitionCollector = (lineOf) => {
 
 /**
  * Collect the classes and the modules (`classes`): the facts that `class-visitor.js` and
- * `module-visitor.js` look at in the body before converting it.
+ * `module-visitor.js` read before converting the body, and the structure that they convert
+ * (`structure`, `class-analysis.js`). `ofNode` finds the entry of a ClassNode / ModuleNode.
  * @param {function(object): number} lineOf - The line of a node.
  * @returns {object} `{enter, finish}`.
  */
 const classCollector = (lineOf) => {
     const classes = [];
     const modules = [];
+    const ofNode = new Map();
     const methodsOf = (node) =>
         bodyStatements(node)
             .filter((stmt) => nodeTypeName(stmt) === 'DefNode' && !stmt.receiver)
@@ -458,17 +462,21 @@ const classCollector = (lineOf) => {
                 methods,
                 hasInitialize: methods.includes('initialize'),
                 node,
+                structure: classStructureOf(node),
             });
+            ofNode.set(node, classes[classes.length - 1]);
         } else if (type === 'ModuleNode') {
             modules.push({
                 name: constantPath(node.constantPath),
                 line: lineOf(node),
                 methods: methodsOf(node),
                 node,
+                structure: moduleStructureOf(node),
             });
+            ofNode.set(node, modules[modules.length - 1]);
         }
     };
-    return { enter, finish: () => ({ classes, modules }) };
+    return { enter, finish: () => ({ classes, modules, ofNode: readOnlyMap(ofNode) }) };
 };
 
 /**
@@ -484,7 +492,8 @@ const classCollector = (lineOf) => {
  *   block of the script) and `splitNames` (locals that are separate in each block of the script).
  * - `procedures`: `valueCallCounts[name]` (calls whose value is used) and
  *   `definitions` (the methods made with `def`).
- * - `classes`: `classes` and `modules`, with what is directly in their bodies.
+ * - `classes`: `classes` and `modules`, with what is directly in their bodies and their
+ *   `structure` (`class-analysis.js`), and `ofNode` (a ClassNode / ModuleNode -> its entry).
  * - `symbols`: every symbol that the code writes (`:name`), the candidates of `$_symbols_`.
  * - `errors`: what is wrong before converting: one `@a` used as both a variable and a list,
  *   earliest line first (the converter reports the first one).

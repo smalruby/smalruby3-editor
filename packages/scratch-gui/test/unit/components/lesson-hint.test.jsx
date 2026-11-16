@@ -88,11 +88,56 @@ describe('LessonHint', () => {
         expect(balloon.getAttribute('data-target')).toBe('palette');
     });
 
+    test('shows the text between ** emphasized, without the marks', () => {
+        const emphasized = { id: 'test.emphasis', defaultMessage: 'まず**シマラビをえらびなおして**、置こう。' };
+        const { getByTestId } = renderHint({ title: emphasized }, { locale: 'ja', messages: {} });
+        const text = getByTestId('lesson-hint-title');
+        expect(text).toHaveTextContent('まずシマラビをえらびなおして、置こう。');
+        const strong = text.querySelectorAll('strong');
+        expect(strong).toHaveLength(1);
+        expect(strong[0]).toHaveTextContent('シマラビをえらびなおして');
+        expect(strong[0].getAttribute('data-testid')).toBe('lesson-hint-emphasis');
+    });
+
+    test('swaps the names of a message marked for the Shimacat role (#2062)', () => {
+        const title = {
+            id: 'test.role',
+            defaultMessage: '**シマラビをえらんで**、「シマラビのきぶん」を作ろう。',
+            roleSwapped: true,
+        };
+        const { getByTestId } = renderHint({ title }, { locale: 'ja', messages: {} });
+        expect(getByTestId('lesson-hint-title')).toHaveTextContent(
+            'シマネコをえらんで、「シマネコのきぶん」を作ろう。',
+        );
+        expect(getByTestId('lesson-hint-emphasis')).toHaveTextContent('シマネコをえらんで');
+    });
+
+    test('the emphasis marks do not make HTML of the text', () => {
+        const emphasized = { id: 'test.emphasis', defaultMessage: '**<img src=x onerror=alert(1)>**' };
+        const { getByTestId } = renderHint({ title: emphasized }, { locale: 'en', messages: {} });
+        const text = getByTestId('lesson-hint-title');
+        expect(text.querySelector('img')).toBeNull();
+        expect(text.querySelector('strong')).toHaveTextContent('<img src=x onerror=alert(1)>');
+    });
+
     test('shows Japanese text', () => {
         const { getByTestId } = renderHint({}, { locale: 'ja', messages: ja });
         expect(getByTestId('lesson-hint-position')).toHaveTextContent('ヒント 2 / 7');
         expect(getByTestId('lesson-hint-next')).toHaveTextContent('進める');
         expect(getByTestId('lesson-hint-prev')).toHaveTextContent('もどる');
+    });
+
+    test('shows the activity diagram above the text on the first page only', () => {
+        const diagram = <svg data-testid="fake-diagram" />;
+        const { getByTestId, unmount } = renderHint({ index: 0, activityDiagram: diagram });
+        const wrapper = getByTestId('lesson-hint-activity-diagram');
+        expect(wrapper).toContainElement(getByTestId('fake-diagram'));
+        expect(
+            wrapper.compareDocumentPosition(getByTestId('lesson-hint-title')) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        unmount();
+        const second = renderHint({ index: 1, activityDiagram: diagram });
+        expect(second.queryByTestId('lesson-hint-activity-diagram')).toBeNull();
     });
 
     test('back is disabled on the first hint and next on the last', () => {
@@ -510,5 +555,54 @@ describe('LessonHint', () => {
         const { getByTestId, queryByTestId } = renderHint({ blocksError: true });
         expect(getByTestId('lesson-hint-blocks-error')).toBeInTheDocument();
         expect(queryByTestId('lesson-hint-blocks')).not.toBeInTheDocument();
+    });
+
+    test('shows the note under the title when given (the read-and-build first page)', () => {
+        const note = { id: 'gui.lessonHint.readDiagram.answerAtEnd', defaultMessage: 'x' };
+        const { getByTestId, unmount } = renderHint({ index: 0, note }, { locale: 'ja', messages: ja });
+        expect(getByTestId('lesson-hint-note')).toHaveTextContent('答えはヒントの最後のページにあるよ');
+        unmount();
+        const { queryByTestId } = renderHint();
+        expect(queryByTestId('lesson-hint-note')).toBeNull();
+    });
+
+    test('keeps its height below the lesson task bar (inline max-height only when the bar is there)', () => {
+        const without = renderHint();
+        expect(without.getByTestId('lesson-hint').style.maxHeight).toBe('');
+        without.unmount();
+        const bar = addTarget('bar', { left: 0, top: 40, right: 1024, bottom: 80 });
+        bar.setAttribute('data-testid', 'lesson-task-bar');
+        const { getByTestId } = renderHint();
+        // 画面の高さ（jsdom は 768）からバーの下端（80）と上下の余白（8 × 2）を引いた高さ
+        expect(getByTestId('lesson-hint').style.maxHeight).toBe(`${window.innerHeight - 80 - 16}px`);
+    });
+
+    test('shows the label above the blocks naming whose program it is (read-and-build answer page)', () => {
+        const label = {
+            message: { id: 'gui.lessonHint.readDiagram.answerOf', defaultMessage: 'Program of {name}' },
+            name: { id: 'gui.lessons.activityDiagram.codeSprite', defaultMessage: 'Cat' },
+        };
+        const sb = makeScratchBlocks();
+        const shown = renderHint(
+            { index: 2, count: 3, label, blocksXml: '<xml></xml>', scratchBlocks: sb },
+            { locale: 'ja', messages: ja },
+        );
+        expect(shown.getByTestId('lesson-hint-blocks-label')).toHaveTextContent('ネコのプログラム');
+        shown.unmount();
+        const sprite = renderHint({
+            index: 2,
+            count: 3,
+            label: { ...label, name: 'Penguin 2' },
+            blocksXml: '<xml></xml>',
+            scratchBlocks: makeScratchBlocks(),
+        });
+        expect(sprite.getByTestId('lesson-hint-blocks-label')).toHaveTextContent('Program of Penguin 2');
+        sprite.unmount();
+        // ブロックが無いページ・見出しの無いページには出さない
+        const none = renderHint({ index: 2, count: 3, label });
+        expect(none.queryByTestId('lesson-hint-blocks-label')).toBeNull();
+        none.unmount();
+        const plain = renderHint({ blocksXml: '<xml></xml>', scratchBlocks: makeScratchBlocks() });
+        expect(plain.queryByTestId('lesson-hint-blocks-label')).toBeNull();
     });
 });

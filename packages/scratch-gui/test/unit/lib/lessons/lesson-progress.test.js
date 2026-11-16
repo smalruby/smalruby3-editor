@@ -1,4 +1,4 @@
-import { defineCourse, defineLesson, findCourse } from '../../../../src/lib/lessons/courses';
+import { COURSES, defineCourse, defineLesson, findCourse } from '../../../../src/lib/lessons/courses';
 import {
     COMPLETED_ACTIONS,
     LESSON_PROGRESS_STORAGE_KEY,
@@ -118,11 +118,13 @@ describe('lesson progress', () => {
             expect(lessonProgress(lesson1, emptyProgress())).toEqual({
                 completedCount: 0,
                 total: 4,
+                checkCount: 4,
                 allCompleted: false,
             });
             expect(lessonProgress(lesson1, completeAll([1, 3, 5]))).toEqual({
                 completedCount: 2,
                 total: 4,
+                checkCount: 4,
                 allCompleted: false,
             });
         });
@@ -136,6 +138,36 @@ describe('lesson progress', () => {
             const progress = completeAll([1, 2]);
             progress.challenges['other-lesson-challenge'] = { completedAt: NOW, courseId: 'x', lessonId: 'other' };
             expect(lessonProgress(lesson1, progress).completedCount).toBe(2);
+        });
+
+        // テーマを選ぶレッスン（「チャットをつくろう」のレッスン 5）は、checkCount だけできれば ✓（#1645）
+        test('a lesson with checkCount is all completed when that many challenges are done', () => {
+            const themes = defineLesson({
+                id: 'themes',
+                checkCount: 1,
+                challenges: [{ id: 'theme-a' }, { id: 'theme-b' }, { id: 'theme-c' }],
+            });
+            expect(themes.checkCount).toBe(1);
+            expect(lessonProgress(themes, emptyProgress()).allCompleted).toBe(false);
+            const one = emptyProgress();
+            one.challenges['theme-b'] = { completedAt: NOW, courseId: 'c', lessonId: 'themes' };
+            expect(lessonProgress(themes, one)).toEqual({
+                completedCount: 1,
+                total: 3,
+                checkCount: 1,
+                allCompleted: true,
+            });
+            // 書いていなければ全部
+            expect(defineLesson({ id: 'all', challenges: [{ id: 'x' }, { id: 'y' }] }).checkCount).toBe(2);
+        });
+
+        test('the chat lesson 5 is all completed with one theme (#1616 Q17)', () => {
+            const chat = findCourse('chat-wo-tsukurou');
+            const lesson5 = chat.lessons[4];
+            expect(lesson5.checkCount).toBe(1);
+            const progress = emptyProgress();
+            progress.challenges['chat-l5-stamp'] = { completedAt: NOW, courseId: chat.id, lessonId: lesson5.id };
+            expect(lessonProgress(lesson5, progress).allCompleted).toBe(true);
         });
 
         test('a lesson with no challenges is not all completed', () => {
@@ -165,6 +197,41 @@ describe('lesson progress', () => {
         test('the course is all completed only when every challenge of the course is done', () => {
             expect(courseProgress(course, completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])).allCompleted).toBe(false);
             expect(courseProgress(course, completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])).allCompleted).toBe(true);
+        });
+
+        // コースの数（バー）は、レッスンごとに checkCount までを数え、✓ はレッスンが全部 ✓ のとき（#1645）
+        test('a course with a theme lesson counts that lesson up to its checkCount', () => {
+            const basics = defineLesson({ id: 'basics', challenges: [{ id: 'b1' }, { id: 'b2' }] });
+            const themes = defineLesson({
+                id: 'themes',
+                checkCount: 1,
+                challenges: [{ id: 't1' }, { id: 't2' }, { id: 't3' }],
+            });
+            const themed = defineCourse({ id: 'themed', language: 'blocks', lessons: [basics, themes] });
+            const done = (ids) => {
+                const progress = emptyProgress();
+                ids.forEach((id) => {
+                    progress.challenges[id] = { completedAt: NOW, courseId: 'themed', lessonId: 'x' };
+                });
+                return progress;
+            };
+            expect(courseProgress(themed, done(['t1', 't2']))).toEqual(
+                expect.objectContaining({ completedCount: 1, total: 3, allCompleted: false }),
+            );
+            expect(courseProgress(themed, done(['b1', 'b2', 't3']))).toEqual(
+                expect.objectContaining({ completedCount: 3, total: 3, allCompleted: true }),
+            );
+        });
+
+        // まだチャレンジの無いレッスンは、コースの ✓ の判定から外す
+        test('a lesson with no challenges does not keep the course from its check', () => {
+            const one = defineLesson({ id: 'one', challenges: [{ id: 'only' }] });
+            const empty = defineLesson({ id: 'later', challenges: [] });
+            const withEmpty = defineCourse({ id: 'with-empty', language: 'blocks', lessons: [one, empty] });
+            const progress = emptyProgress();
+            progress.challenges.only = { completedAt: NOW, courseId: 'with-empty', lessonId: 'one' };
+            expect(courseProgress(withEmpty, progress).allCompleted).toBe(true);
+            expect(courseProgress(withEmpty, emptyProgress()).allCompleted).toBe(false);
         });
 
         test('a course with no lessons is not all completed', () => {
@@ -484,7 +551,7 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
         );
     });
 
-    test('when the first course is all done, moves to the next course', () => {
+    test('looks only at the first course: when it is all done, opens like the menu (null)', () => {
         const courses = [
             defineCourse({
                 id: 'first',
@@ -498,16 +565,19 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
             }),
         ];
         const progress = ['fa', 'fb'].reduce((p, id) => markChallengeCompleted(p, id, NOW, courses), emptyProgress());
-        expect(startLessonsFocus(progress, courses)).toEqual({
-            language: 'ruby',
-            courseId: 'second',
-            lessonId: 's1',
-            nextChallengeId: 'sa',
-        });
+        // ほかのコースへは自動で案内しない（授業で先生が開くコースがあるため・#1641）
+        expect(startLessonsFocus(progress, courses)).toBeNull();
+    });
+
+    test('when the first course is done, opens like the menu (null) and does not lead to the other courses', () => {
+        // 授業で使う中 2 のコース（チャットをつくろう）へは自動で案内しない（#1641）
+        expect(startLessonsFocus(completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))).toBeNull();
     });
 
     test('when everything is done, opens like the menu (null)', () => {
-        expect(startLessonsFocus(completeAll([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))).toBeNull();
+        const all = COURSES.flatMap((c) => c.lessons.flatMap((l) => l.challenges));
+        const progress = all.reduce((p, c) => markChallengeCompleted(p, c.id, NOW), emptyProgress());
+        expect(startLessonsFocus(progress)).toBeNull();
     });
 
     test('ignores records of challenges that are not in the courses', () => {
