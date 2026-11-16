@@ -36,43 +36,41 @@ const MakeyMakeyConverter = {
             converter.setParent(rubyBlock, block);
             return block;
         });
-    },
 
-    onSend: function (receiver, name, args, rubyBlockArgs, rubyBlock) {
-        const hasRubyBlock = typeof rubyBlock !== 'undefined';
-        if (
-            name === 'when' &&
-            this._isSelf(receiver) &&
-            args.length === 2 &&
-            this._isSymbol(args[0]) &&
-            hasRubyBlock &&
-            // The hats take no block parameters (`do |x|` was dropped without an error, issue #1909).
-            !(rubyBlockArgs && rubyBlockArgs.length > 0)
-        ) {
-            switch (this._getSymbolValue(args[0])) {
+        // v1: self.when(:makey_key_pressed, "space") do ... end. Registered after `when` of event.js
+        // (event is registered first), so that event's forms are tried first as before.
+        converter.registerOnSendWithBlock('self', 'when', 2, 0, (params) => {
+            const { receiver, args, rubyBlock } = params;
+            if (!converter._isSelf(receiver) || !converter._isSymbol(args[0])) return null;
+
+            switch (converter._getSymbolValue(args[0])) {
                 case 'makey_key_pressed':
-                    if (this.isStringOrBlock(args[1])) {
-                        const block = this.createBlock('makeymakey_whenMakeyKeyPressed', 'hat');
-                        this.addInput(block, 'KEY', this.createFieldBlock('makeymakey_menu_KEY', 'KEY', args[1]));
-                        this.setParent(rubyBlock, block);
+                    if (converter.isStringOrBlock(args[1])) {
+                        const block = converter.createBlock('makeymakey_whenMakeyKeyPressed', 'hat');
+                        converter.addInput(
+                            block,
+                            'KEY',
+                            converter.createFieldBlock('makeymakey_menu_KEY', 'KEY', args[1]),
+                        );
+                        converter.setParent(rubyBlock, block);
                         return block;
                     }
                     break;
                 case 'makey_pressed_in_oder':
-                    if (this.isStringOrBlock(args[1])) {
-                        const block = this.createBlock('makeymakey_whenCodePressed', 'hat');
-                        this.addInput(
+                    if (converter.isStringOrBlock(args[1])) {
+                        const block = converter.createBlock('makeymakey_whenCodePressed', 'hat');
+                        converter.addInput(
                             block,
                             'SEQUENCE',
-                            this.createFieldBlock('makeymakey_menu_SEQUENCE', 'SEQUENCE', args[1]),
+                            converter.createFieldBlock('makeymakey_menu_SEQUENCE', 'SEQUENCE', args[1]),
                         );
-                        this.setParent(rubyBlock, block);
+                        converter.setParent(rubyBlock, block);
                         return block;
                     }
                     break;
             }
-        }
-        return null;
+            return null;
+        });
     },
 };
 

@@ -200,89 +200,90 @@ const PenConverter = {
                 return converter.changeRubyExpression(receiver, node);
             });
         });
-    },
 
-    onOpAsgn: function (lh, operator, rh) {
-        let block;
-        if (this.isRubyExpression(lh) && operator === '+' && this._isNumberOrBlock(rh)) {
-            const code = this.getRubyExpression(lh);
-            switch (code) {
-                case 'pen.size':
-                case 'pen_size':
-                    block = this.changeRubyExpressionBlock(lh, 'pen_changePenSizeBy', 'statement');
-                    this.addNumberInput(block, 'SIZE', 'math_number', rh, 1);
-                    break;
-                case 'pen.color':
-                case 'pen_color':
-                case 'pen.saturation':
-                case 'pen_saturation':
-                case 'pen.brightness':
-                case 'pen_brightness':
-                case 'pen.transparency':
-                case 'pen_transparency':
-                    block = this.changeRubyExpressionBlock(lh, 'pen_changePenColorParamBy', 'statement');
+        // pen.size += 1, self.pen_size += 1 (and v1's self.color += 10)
+        converter.registerOnOpAsgn((lh, operator, rh) => {
+            let block;
+            if (converter.isRubyExpression(lh) && operator === '+' && converter._isNumberOrBlock(rh)) {
+                const code = converter.getRubyExpression(lh);
+                switch (code) {
+                    case 'pen.size':
+                    case 'pen_size':
+                        block = converter.changeRubyExpressionBlock(lh, 'pen_changePenSizeBy', 'statement');
+                        converter.addNumberInput(block, 'SIZE', 'math_number', rh, 1);
+                        break;
+                    case 'pen.color':
+                    case 'pen_color':
+                    case 'pen.saturation':
+                    case 'pen_saturation':
+                    case 'pen.brightness':
+                    case 'pen_brightness':
+                    case 'pen.transparency':
+                    case 'pen_transparency':
+                        block = converter.changeRubyExpressionBlock(lh, 'pen_changePenColorParamBy', 'statement');
 
-                    this.addFieldInput(
-                        block,
-                        'COLOR_PARAM',
-                        'pen_menu_colorParam',
-                        'colorParam',
-                        code.replace('pen.', '').replace('pen_', ''),
-                        'color',
-                    );
-                    this.addNumberInput(block, 'VALUE', 'math_number', rh, 10);
-                    break;
+                        converter.addFieldInput(
+                            block,
+                            'COLOR_PARAM',
+                            'pen_menu_colorParam',
+                            'colorParam',
+                            code.replace('pen.', '').replace('pen_', ''),
+                            'color',
+                        );
+                        converter.addNumberInput(block, 'VALUE', 'math_number', rh, 10);
+                        break;
+                }
+            } else if (converter._isRubyStatement(lh) && operator === '+' && converter._isNumberOrBlock(rh)) {
+                const code = converter._getRubyStatement(lh);
+                switch (code) {
+                    case 'self.pen_size':
+                        block = converter._changeBlock(lh, 'pen_changePenSizeBy', 'statement');
+                        delete converter._context.blocks[block.inputs.STATEMENT.block];
+                        delete block.inputs.STATEMENT;
+
+                        converter._addNumberInput(block, 'SIZE', 'math_number', rh, 1);
+                        break;
+                    case 'self.pen_color':
+                    case 'self.pen_saturation':
+                    case 'self.pen_brightness':
+                    case 'self.pen_transparency':
+                        block = converter._changeBlock(lh, 'pen_changePenColorParamBy', 'statement');
+                        delete converter._context.blocks[block.inputs.STATEMENT.block];
+                        delete block.inputs.STATEMENT;
+
+                        converter._addFieldInput(
+                            block,
+                            'COLOR_PARAM',
+                            'pen_menu_colorParam',
+                            'colorParam',
+                            code.replace('self.pen_', ''),
+                            'color',
+                        );
+                        converter._addNumberInput(block, 'VALUE', 'math_number', rh, 10);
+                        break;
+                    // backward compatibility for v1 book code: self.color += 10
+                    case 'self.color':
+                    case 'self.saturation':
+                    case 'self.brightness':
+                    case 'self.transparency':
+                        block = converter._changeBlock(lh, 'pen_changePenColorParamBy', 'statement');
+                        delete converter._context.blocks[block.inputs.STATEMENT.block];
+                        delete block.inputs.STATEMENT;
+
+                        converter._addFieldInput(
+                            block,
+                            'COLOR_PARAM',
+                            'pen_menu_colorParam',
+                            'colorParam',
+                            code.replace('self.', ''),
+                            'color',
+                        );
+                        converter._addNumberInput(block, 'VALUE', 'math_number', rh, 10);
+                        break;
+                }
             }
-        } else if (this._isRubyStatement(lh) && operator === '+' && this._isNumberOrBlock(rh)) {
-            const code = this._getRubyStatement(lh);
-            switch (code) {
-                case 'self.pen_size':
-                    block = this._changeBlock(lh, 'pen_changePenSizeBy', 'statement');
-                    delete this._context.blocks[block.inputs.STATEMENT.block];
-                    delete block.inputs.STATEMENT;
-
-                    this._addNumberInput(block, 'SIZE', 'math_number', rh, 1);
-                    break;
-                case 'self.pen_color':
-                case 'self.pen_saturation':
-                case 'self.pen_brightness':
-                case 'self.pen_transparency':
-                    block = this._changeBlock(lh, 'pen_changePenColorParamBy', 'statement');
-                    delete this._context.blocks[block.inputs.STATEMENT.block];
-                    delete block.inputs.STATEMENT;
-
-                    this._addFieldInput(
-                        block,
-                        'COLOR_PARAM',
-                        'pen_menu_colorParam',
-                        'colorParam',
-                        code.replace('self.pen_', ''),
-                        'color',
-                    );
-                    this._addNumberInput(block, 'VALUE', 'math_number', rh, 10);
-                    break;
-                // backward compatibility for v1 book code: self.color += 10
-                case 'self.color':
-                case 'self.saturation':
-                case 'self.brightness':
-                case 'self.transparency':
-                    block = this._changeBlock(lh, 'pen_changePenColorParamBy', 'statement');
-                    delete this._context.blocks[block.inputs.STATEMENT.block];
-                    delete block.inputs.STATEMENT;
-
-                    this._addFieldInput(
-                        block,
-                        'COLOR_PARAM',
-                        'pen_menu_colorParam',
-                        'colorParam',
-                        code.replace('self.', ''),
-                        'color',
-                    );
-                    this._addNumberInput(block, 'VALUE', 'math_number', rh, 10);
-                    break;
-            }
-        }
-        return block;
+            return block;
+        });
     },
 };
 

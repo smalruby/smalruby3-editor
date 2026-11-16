@@ -69,17 +69,4 @@ const registerConverters = function (converter) {
     ].forEach((x) => x.register(converter));
 };
 
-export {
-    registerConverters as default,
-    MusicConverter,
-    PenConverter,
-    EV3Converter,
-    GdxForConverter,
-    SmalrubotS1Converter,
-    BoostConverter,
-    TranslateConverter,
-    MakeyMakeyConverter,
-    LooksConverter,
-    SoundConverter,
-    SensingConverter,
-};
+export default registerConverters;

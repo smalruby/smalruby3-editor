@@ -249,9 +249,6 @@ const ExpressionHandlers = {
         let block = null;
         if (!hasCommandValue) {
             block = this.callMethod(receiver, name, args, rubyBlockArgs, rubyBlock, node);
-            if (!block) {
-                block = this._callConvertersHandler('onSend', receiver, name, args, rubyBlockArgs, rubyBlock, node);
-            }
         }
 
         // === Smalruby: Start of auto-split method call return value ===
