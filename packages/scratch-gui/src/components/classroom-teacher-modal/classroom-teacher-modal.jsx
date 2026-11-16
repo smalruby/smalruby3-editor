@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import Modal from '../../containers/modal.jsx';
 import { formatClassLabel } from '../../lib/classroom-class-label.js';
+import ClassroomButton from '../classroom-modal/classroom-button.jsx';
 import TeacherAssignmentBoard from '../classroom-modal/teacher-assignment-board.jsx';
 import TeacherBreadcrumbs, {
     BreadcrumbSlotContext,
@@ -577,11 +578,19 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         id="gui.classroom.tutorial.classCreation"
                     />
                 </ClassroomTutorial>
+                {/* There is no sidebar any more: send the teacher to the class list. */}
                 <FormattedMessage
-                    defaultMessage="Select a classroom from the sidebar"
+                    defaultMessage="Choose a class from the class list"
                     description="Prompt to select a classroom in teacher management"
                     id="gui.classroom.teacherDetail.selectClassroom"
                 />
+                <ClassroomButton dataTestId="classroom-teacher-empty-class-list" onClick={onShowClassList}>
+                    <FormattedMessage
+                        defaultMessage="Go to the class list"
+                        description="Button on the empty teacher screen that opens the class list"
+                        id="gui.classroom.teacherDetail.goToClassList"
+                    />
+                </ClassroomButton>
             </div>
         );
     };

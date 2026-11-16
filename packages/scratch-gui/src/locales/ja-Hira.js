@@ -795,7 +795,8 @@ export default {
     'gui.classroom.joinCode.fullscreen': 'ぜんがめんひょうじ',
     'gui.classroom.joinCode.shareToGcShort': 'に きょうゆう',
     'gui.classroom.joinCode.openInGcShort': 'で ひらく',
-    'gui.classroom.teacherDetail.selectClassroom': 'サイドバーからクラスをせんたくしてください',
+    'gui.classroom.teacherDetail.selectClassroom': 'クラスのいちらんからクラスをえらんでください',
+    'gui.classroom.teacherDetail.goToClassList': 'クラスのいちらんへ',
     'gui.classroom.management.loginPrompt': 'ログインしてクラスをかんり',
     'gui.classroom.management.loginDescription':
         'がっこうのアカウントでログインして、クラスをつくったりかんりしたりします。',

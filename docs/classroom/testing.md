@@ -15,7 +15,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-modal` | モーダル全体 |
 | `classroom-phase-teacher-login` | 先生: ログイン (Google / Microsoft) |
 | `classroom-phase-teacher-class-list` | 先生: クラス一覧（ログイン後の入口。v2 landing） |
-| `classroom-phase-teacher-dashboard` | 先生: 課題ダッシュボード（クラス選択後） |
+| `classroom-phase-teacher-dashboard` | 先生: 課題ダッシュボード（クラス選択後）。クラスを選んでいないときは「クラスの一覧からクラスを選んでください」と［クラスの一覧へ］（`classroom-teacher-empty-class-list`）を出す |
 | `classroom-phase-teacher-create` | 先生: 課題作成 |
 | `classroom-phase-teacher-detail` | 先生: 課題詳細 |
 | `classroom-phase-teacher-google-courses` | 先生: GC コース一覧 |
@@ -50,15 +50,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 
-
-### サイドバー (先生・常時表示、login 以外のフェーズで visible)
-
-サイドバーはクラス管理モーダル左側に常時表示される（teacher-login 以外）。「クラス一覧 (ダッシュボード)」ではなく **サイドバー** に登録済みの課題がクラス（学級）ごとにリスト表示される。
-
-| data-testid | 要素 | 説明 |
-|------------|------|------|
-| `classroom-sidebar-group-{className}` | div | クラス（学級）名でグルーピングされたヘッダ（例: 「6年A組」）|
-| `classroom-sidebar-item-{classroomId}` | li | サイドバーの個別の課題項目。`data-classroom-id` 属性も持つ。クリックで `selectedClassroom` が更新され `teacher-class-detail` フェーズへ遷移。表示テキストは `assignmentName · 人数 · 参加コード(小文字)` |
 
 ### 課題詳細 (先生)
 
@@ -590,7 +581,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | `classroom-ungrouped-list` | div | クラス未所属の課題のフォールバック一覧（develop 互換） |
 | `classroom-ungrouped-open-{classroomId}` | button | 未所属課題をひらく |
 | `classroom-phase-teacher-group-manage` | div | 組管理フェーズのルート |
-| `classroom-sidebar-teachergroup-{groupId}` | li | サイドバーの組ヘッダー |
 
 ### 採点（学期末・AI 採点支援）
 
@@ -828,7 +818,7 @@ http://localhost:8601?no_beforeunload=1&devlogin=<DEV_BYPASS_TOKEN>
 
 代表例: `tools/playwright-verify/mesh-v2-classroom-binding.mjs` は教師タブで devlogin → クラスを作成 → 課題ボードで課題を作成 → 課題管理ボードの行をクリックして課題を選択、生徒タブで `?classcode=` 経由参加 という 2 タブのフローを自動で回し、Mesh v2 ドメインが課題の参加コードに揃うことを確認します。
 
-スクリプトを書く際の落とし穴と対処は `tools/playwright-verify/README.md` を参照してください（ログインバイパスの方法、Redux store の取り出し方、サイドバー testid、tutorial overlay の dismiss 等）。
+スクリプトを書く際の落とし穴と対処は `tools/playwright-verify/README.md` を参照してください（ログインバイパスの方法、Redux store の取り出し方、tutorial overlay の dismiss 等）。
 
 #### 生徒の参加から提出までの通し（stg・ブランチプレビュー）
 

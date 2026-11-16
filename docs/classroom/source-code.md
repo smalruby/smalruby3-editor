@@ -55,7 +55,6 @@ smalruby3-editor/
 │   │   │   │   ├── classroom-teacher-modal.jsx ← メイン（ダッシュボード/詳細/作成等）
 │   │   │   │   ├── classroom-teacher-modal.css
 │   │   │   │   ├── teacher-login-phase.jsx ← ログイン画面（カルーセル付き）
-│   │   │   │   ├── teacher-sidebar.jsx ← サイドバー（クラスごとの課題一覧ナビ）
 │   │   │   │   ├── teacher-google-courses-phase.jsx ← GC コースインポート
 │   │   │   │   └── carousel-*.png     ← カルーセル画像
 │   │   │   ├── classroom-tutorial/    ← チュートリアルオーバーレイ
@@ -96,7 +95,7 @@ smalruby3-editor/
 │   │   │   ├── classroom-lesson-progress.js ← 先生の進み具合の純粋ロジック（座席の色・表の記号・できた人・並べ方・CSV）
 │   │   │   ├── classroom-lesson-summary.js ← パネル・席の詳細・［授業］の行・採点・提出状況.csv のレッスンの要約（純粋ロジック）
 │   │   │   ├── classroom-class-color.js ← クラスの色（帯）を先生のクラスの作成日の順から選ぶ純粋関数
-│   │   │   ├── classroom-group-utils.js ← サイドバー組階層の純粋ヘルパー
+│   │   │   ├── classroom-group-utils.js ← 組の階層の純粋ヘルパー
 │   │   │   ├── classroom-stream.js ← クラスの［ストリーム］の行（作成・アーカイブ・残り 7 日以内の自動削除の予定）と保存期限のカード `retentionSummary` を組み立てる（純粋）
 │   │   │   ├── classroom-genai-settings.js ← クラスの生成AI・ルビティー設定の下書き・検証・PATCH 差分（純粋）#1277
 │   │   │   ├── classroom-google-share.js ← GC 共有の既定ブロック判定 + 解除導線の文言（純粋）#1184
@@ -271,7 +270,6 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 |---------|------|
 | `classroom-teacher-modal.jsx` | 先生モーダル本体（ダッシュボード、課題詳細、作成、課題配信） |
 | `teacher-login-phase.jsx` | ログイン画面（Google / Microsoft ボタン + カルーセル） |
-| `teacher-sidebar.jsx` | サイドバー（クラスごとの課題一覧ナビゲーション） |
 | `teacher-google-courses-phase.jsx` | Google Classroom コースインポート画面 |
 | `teacher-notifications.jsx` | お知らせセンター（🔔 + 未読バッジ + 一覧パネル、EPIC #1111） |
 
