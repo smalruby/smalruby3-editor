@@ -85,6 +85,8 @@ src/components/*
 !src/components/lesson-hint/**
 !src/components/lesson-practice-partner/
 !src/components/lesson-practice-partner/**
+!src/components/block-activity-diagram/
+!src/components/block-activity-diagram/**
 !src/components/lesson-activity-diagram/
 !src/components/lesson-activity-diagram/**
 !src/components/lessons-library/
@@ -224,6 +226,7 @@ src/containers/*
 !src/containers/lesson-analytics.jsx
 !src/containers/lesson-progress-sync.jsx
 !src/containers/lesson-goal-watcher.jsx
+!src/containers/block-activity-diagram.jsx
 !src/containers/lesson-mode.jsx
 !src/containers/lessons-library.jsx
 !src/containers/mesh-status-popup.jsx
@@ -599,6 +602,7 @@ test/unit/containers/*
 !test/unit/containers/lesson-analytics.test.jsx
 !test/unit/containers/lesson-progress-sync.test.jsx
 !test/unit/containers/lesson-goal-watcher.test.jsx
+!test/unit/containers/block-activity-diagram.test.jsx
 !test/unit/containers/ruby-tab/**
 !test/unit/containers/backpack.test.jsx
 !test/unit/containers/cards.test.jsx

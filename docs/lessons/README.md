@@ -1670,6 +1670,52 @@ partner: {
 
 ![ヒントの 1 ページ目のアクティビティ図（1300×600）](screenshots/0409-lesson-hint-activity-diagram-1300x600.png)
 
+### アクティビティ図（ブロックを右クリックして描く）
+
+コードエリアのブロックを**右クリック →「アクティビティ図」**（ja-Hira「アクティビティず」、en "Activity diagram"）で、
+そのブロックのある**1 本のスクリプト**の図をパネルに描く。方針は [`design.md` の「アクティビティ図」](design.md#アクティビティ図)の
+「描く」。レッスンモードでなくても使える（自分のプログラムを図にして読む練習に）。
+
+- **メニューの項目**: scratch-blocks（Blockly）の `ContextMenuRegistry` に足す（id `smalrubyActivityDiagram`。
+  上流の項目の下）。upstream のファイルは変えず、`gui.jsx` に常時マウントしたコンテナ（`containers/block-activity-diagram.jsx`）が
+  登録する。**出さない**のは、パレット（フライアウト）のブロックと、どこにもつながっていない値のブロック（「x座標」だけ・
+  「答え = 7」だけなど。流れが無い）。スクリプトの中の値のブロックを右クリックしたときは、そのスクリプトを描く。
+- **図のもと**: VM の target のブロック。右クリックしたブロックから親をたどったいちばん上のブロックと、そこから
+  next・入力でたどれるブロックだけを使う（ほかのスクリプトは描かない。`script-diagram.js`）。描き方（記号・置き方・
+  代わりの文）は上の「アクティビティ図（答えから描く）」と同じ部品（`model.js` / `layout.js` / `lesson-activity-diagram`）。
+  見出し（レーン・スプライトの名前）は描かず、パネルの見出しに「アクティビティ図（スプライトの名前）」と書く。
+- **図にできないもの**:
+  - 帽子の無いスクリプト（つながっているだけのブロック）は、開始の黒丸から描く。
+  - 対応していないブロックは処理の箱に、**ワークスペースに出ているブロックの文**（Blockly の `toString()`。
+    拡張機能のブロックの文も出る）を書く。そのスプライトを選んでいないときは、答えから描く図と同じく scratch-blocks の
+    文言のテンプレート、それも無ければ opcode。
+  - 拡張機能の「〜とき」のように opcode で分からない帽子は、上につながらない形（`previousConnection` も
+    `outputConnection` も無い）なら開始の文にする。
+  - 自分で作ったブロック: 定義は開始「ジャンプ (高さ)の定義」、呼び出しは「ジャンプ 10」（穴に入っている値）。
+  - スクリプトを消した・ほかのプロジェクトを読んだなどでブロックが無くなったら、「このスクリプトはなくなりました。
+    ブロックを右クリックして、もう一度開いてください。」を出す。
+- **描き直し**: 開いている間は、ブロックを変えると図も変わる（VM の `PROJECT_CHANGED` を 150ms まとめて読み直す）。
+  右クリックしたブロックをほかのスクリプトにつなぐと、つないだ先のスクリプトを描く。パネルの下に
+  「ブロックを変えると、図も変わります。」を出す。開いたまま別のブロックを右クリックすると、そのスクリプトに替わる
+  （位置はそのまま）。
+- **パネル**: モーダルにしない（後ろのブロックと見くらべながら直せるように）。開くと右上（メニューバーの下・ステージの上）に
+  出て、見出しをつかんで動かせる（`react-draggable`、画面の外へは出ない）。×か Esc で閉じる。幅は図に合わせ（16〜40rem）、
+  高さは画面の高さ − 4.5rem まで。それより大きい図はパネルの中をスクロールする（字は答えから描く図と同じく下限
+  `MIN_DIAGRAM_SCALE` より小さくしない）。1300×600 でチャットの答えくらいのスクリプト（くり返しと分岐と送る）は
+  スクロールなしで入る。重なりはメニューバー・モーダルより下（485）。本文は白（後ろが透けない）。
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `block-activity-diagram` | div | パネル全体（開いているときだけある） |
+| `block-activity-diagram-title` | span | 見出し「アクティビティ図（スプライトの名前）」（ドラッグの取っ手のヘッダーの中） |
+| `block-activity-diagram-close` | button | 閉じる（×） |
+| `block-activity-diagram-body` | div | 図（`lesson-activity-diagram`）の入れ物 |
+| `block-activity-diagram-gone` | p | スクリプトが無くなったときの文 |
+
+![ブロックを右クリックしたメニューの「アクティビティ図」（1300×600）](screenshots/0801-block-activity-diagram-menu-1300x600.png)
+
+![右クリックしたスクリプトのアクティビティ図のパネル（1300×600）](screenshots/0802-block-activity-diagram-popup-1300x600.png)
+
 ### 吹き出しの共通の土台
 
 吹き出し・ツールチップ・はじめての案内の**見た目**（枠・角丸・影・しっぽの向きと位置・色・閉じるボタン・ボタン・文字）は
@@ -1904,7 +1950,11 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/test/unit/lib/lessons/read-diagram.test.js` | 読んで作るチャレンジの unit テスト |
 | `packages/scratch-gui/src/lib/lessons/hint-blocks.js` / `blocks-xml.js` | Ruby → ブロック → Blockly の XML |
 | `packages/scratch-gui/src/lib/lessons/activity-diagram/` | アクティビティ図。`labels.js`（ブロックの文）・`model.js`（ブロック → 記号の木・練習相手のレーン）・`layout.js`（置き方）は純粋関数。`challenge-diagram.js` がチャレンジの定義から図を作り、`use-challenge-activity-diagram.js` がいまのチャレンジの図を返す hook（変換の結果を覚える）。文言は `activity-diagram.locale.js`（`src/locales/*.js` に spread） |
-| `packages/scratch-gui/src/components/lesson-activity-diagram/` | 置き方を SVG に描く部品（課題の全文・ヒントの 1 ページ目） |
+| `packages/scratch-gui/src/components/lesson-activity-diagram/` | 置き方を SVG に描く部品（課題の全文・ヒントの 1 ページ目・右クリックのパネル） |
+| `packages/scratch-gui/src/lib/lessons/activity-diagram/script-diagram.js` | 右クリックしたブロックのスクリプトだけを取り出して図にする（`scriptRootId` / `scriptBlocksOf` / `scriptActivityDiagram`。純粋関数） |
+| `packages/scratch-gui/src/containers/block-activity-diagram.jsx` | ブロックのメニューに「アクティビティ図」を登録し、パネルを開く・描き直す・閉じる。`gui.jsx` に常時マウント（Smalruby マーカー `block activity diagram`） |
+| `packages/scratch-gui/src/components/block-activity-diagram/` | 右クリックで開くアクティビティ図のパネル（動かせる・閉じられる） |
+| `packages/scratch-gui/test/unit/lib/lessons/script-diagram.test.js` / `test/unit/containers/block-activity-diagram.test.jsx` | 右クリックで描く図の unit テスト（スクリプトの取り出し・図にできないもの・メニューの項目・開閉・描き直し） |
 | `packages/scratch-gui/test/unit/lib/lessons/activity-diagram.test.js` / `test/unit/components/lesson-activity-diagram.test.jsx` | アクティビティ図の unit テスト（本物の変換でモデル・置き方を確かめる） |
 | `packages/scratch-gui/src/lib/lessons/insert-sprite-code.js` | 「プログラムを入れる」で `spriteCodes` をそれぞれのスプライトに入れる（いなければライブラリから足す） |
 | `packages/scratch-gui/src/lib/lessons/sprite-names.js` | コースのキャラクター（Shimaraby / Shimacat）の言語ごとの名前（足すときの名前・どの言語の名前でも探す・「スプライトを選ぶ」の一覧。`containers/sprite-library.jsx` がマーカー付きで使う） |
