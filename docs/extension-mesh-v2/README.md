@@ -73,19 +73,13 @@
 - **ドロップダウン候補**: `getVariableNamesMenuItems`（`index.js`）は、ネットワーク受信名（`remoteData`）に加えて**自プロジェクトのグローバルスカラー変数名**（`getGlobalVariables()`）を合算する。これにより、起動直後・接続前でもプリセット変数を含む自分の変数が候補に出る（ネットワーク往復に依存しない）。
 - **broadcast は対象外**: メッセージ（`meshV2_broadcast` 系）は従来どおり自ノードを除外する（自分が送ったメッセージは自分には届かない）。変数とメッセージで非対称。
 
-### 後方互換性と一度きりの通知
+### 後方互換性
 
 「同一グローバル変数名を複数ノードで共有しない」前提のもとでは、他ノード変数の読み取り（本来の用途）は不変で、変わるのは「自分の変数を読むと空文字ではなく自分の値が返る」点のみ。
 
-唯一挙動が変わりうるのは **グローバル変数名とセンサーの値の指定が重複** しているプロジェクト。これを検出したとき、**ブラウザで一度だけ**「動作が変わった」ことを非ブロッキングのバナーで知らせる（`localStorage: smalruby:meshSelfSensorNoticeShown`）。重複は読込・変数追加・リネーム・ドロップダウン変更・Ruby 編集のいずれでも生じうるため、全経路が集約される `PROJECT_LOADED` / `PROJECT_CHANGED` を監視して検出する。
+挙動が変わりうるのは **グローバル変数名とセンサーの値の指定が重複** しているプロジェクトだけ。以前はこれを検出してブラウザで一度だけバナーで知らせていたが、変更から十分に時間がたったので、いまは知らせない（チャットのレッスンのように、わざと同じ名前にする教材もある）。解説ページ `pages/mesh-self-sensor.html` は残してある。
 
-関連実装（scratch-gui）:
-
-- `src/lib/mesh-v2-sensor-collision.js` — 重複検出（センサーの値の名前はメニュー shadow ブロック `meshV2_menu_variableNames` の `variableNames` フィールドに入る）
-- `src/components/mesh-self-sensor-notice/` — バナー / `src/containers/mesh-self-sensor-notice.jsx` — 監視と初回ガード
-- `pages/mesh-self-sensor.html` — 解説ページ（バナーの「くわしくはこちら」から開く）
-
-> 詳細経緯は Issue #707（自己参照仕様）と Issue #713（即時参照のローカルシード）。実装回帰の確認は `packages/scratch-vm/test/unit/mesh_service_v2_timestamp.js`、`packages/scratch-vm/test/integration/extensions/mesh-v2-variable-sync.test.js`、`packages/scratch-gui/test/unit/lib/mesh-v2-sensor-collision.test.js`、`tools/playwright-verify/verify-mesh-collision-paths.mjs` を参照。
+> 詳細経緯は Issue #707（自己参照仕様）と Issue #713（即時参照のローカルシード）。実装回帰の確認は `packages/scratch-vm/test/unit/mesh_service_v2_timestamp.js`、`packages/scratch-vm/test/integration/extensions/mesh-v2-variable-sync.test.js` を参照。
 
 ### 既知の制限（クロスノードのレース）
 

@@ -1,5 +1,6 @@
 // Tutorial category locale strings are split into per-category modules
 // (issue #932) so tutorial categories can be developed independently.
+import { ja as activityDiagramMessages } from '../lib/lessons/activity-diagram/activity-diagram.locale.js';
 import { ja as lessonsMessages } from '../lib/lessons/lessons.locale.js';
 import { ja as blockSeriesHowtos } from '../lib/libraries/decks/categories/block-series.locale.js';
 import { ja as dnclHowtos } from '../lib/libraries/decks/categories/dncl.locale.js';
@@ -1866,11 +1867,28 @@ export default {
     'gui.library.rubyBasics': 'Ruby のきほん',
     ...rubyBasicsHowtos,
     ...lessonsMessages,
+    ...activityDiagramMessages,
     'gui.lessonTaskBar.ariaLabel': 'レッスンの課題',
     'gui.lessonTaskBar.position': '{number} / {count}',
     'gui.lessonTaskBar.hint': 'ヒント',
     'gui.lessonTaskBar.another': 'ほかのチャレンジへ',
     'gui.lessonTaskBar.end': 'レッスンをおえる',
+    'gui.lessonTaskBar.readDiagram': '読んで作る',
+    'gui.lessonTaskBar.role': 'あなたの役',
+    'gui.lessonTaskBar.roleShimaraby': 'シマラビの役',
+    'gui.lessonTaskBar.roleShimacat': 'シマネコの役',
+    'gui.lessonTaskBar.roleRemembered': '前回は{role}',
+    'gui.lessonTaskBar.roleSeat': '出席番号で決めた役',
+    'gui.lessonPracticePartner.title': '練習相手: {name}',
+    'gui.lessonPracticePartner.note': 'ペアでやるときは、閉じて本物のメッシュでつなごう。',
+    'gui.lessonPracticePartner.close': '練習相手を閉じる',
+    'gui.lessonPracticePartner.received': '{name}に届いた: {what}',
+    'gui.lessonPracticePartner.sendHeading': '{name}から送る',
+    'gui.lessonPracticePartner.receivedHeading': '{name}に届いた',
+    'gui.lessonPracticePartner.variableName': '← {name}',
+    'gui.lessonPracticePartner.nothingReceived': '（まだ何も届いていない）',
+    'gui.lessonPracticePartner.missingVariable': '「{name}」がまだ空。先に旗を押して入れよう。',
+    'gui.lessonPracticePartner.open': '練習相手',
     'gui.lessonHint.ariaLabel': 'ヒント',
     'gui.lessonHint.position': 'ヒント {number} / {count}',
     'gui.lessonHint.prev': 'もどる',
@@ -1885,6 +1903,13 @@ export default {
     'gui.lessonHint.dragLabel': 'ドラッグで動かせます',
     'gui.lessonHint.insertCodeError': 'まだプログラムを入れられないよ。先にヒントのとおりに足そう。',
     'gui.lessonHint.blocksError': '（このブロックは描けませんでした）',
+    'gui.lessonHint.readDiagram.answerAtEnd':
+        '図と説明を読んで、自分でプログラムを作ろう。答えはヒントの最後のページにあるよ。',
+    'gui.lessonHint.readDiagram.try':
+        'できたら、動かして試そう。図のとおりに動くかな？ ちがったら、図をもう一度読んで直そう。答えは次のページで見られるよ。',
+    'gui.lessonHint.readDiagram.answerOf': '{name}のプログラム',
+    'gui.lessonHint.readDiagram.answer':
+        'これが答えのプログラムだよ。自分のプログラムと見くらべよう。あなたのプログラムはそのままだよ。',
     'gui.menuBar.lessons': 'レッスン',
     'gui.lessonsLibrary.title': 'レッスンを選ぶ',
     'gui.lessonsLibrary.search': '検索',
@@ -1948,10 +1973,6 @@ export default {
         '日本語モードでは拡張機能は使えません。\nRubyふりがなモードに戻すと拡張機能が使えるようになります。\n戻しますか？',
     'gui.dnclModeNotice.message': '日本語モード：ブロックが制限されています',
     'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードに戻す',
-    'gui.meshSelfSensorNotice.message':
-        'メッシュの「センサーの値」は、同じ名前のグローバル変数があると、自分の値も読むようになりました。',
-    'gui.meshSelfSensorNotice.learnMore': 'くわしくはこちら',
-    'gui.meshSelfSensorNotice.dismiss': '閉じる',
     'gui.rubyTab.dnclDoubleSlashHint':
         'スモウルビーでは // はコメントではありません（整数の割り算です）。コメントには # をつかってください。',
     'gui.rubyTab.dnclArrayIndexHint':

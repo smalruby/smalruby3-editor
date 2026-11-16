@@ -100,6 +100,41 @@ describe('blocksToXml', () => {
         );
     });
 
+    // 「(変数)」のブロックは XML の id で変数を探すだけなので、「〜にする」の無い絵でも名前が出るように宣言する（#1644）
+    test('declares the variables, lists and messages the blocks use (once per type and name)', () => {
+        const getter = (id, name) => ({
+            id,
+            opcode: 'data_variable',
+            inputs: {},
+            fields: { VARIABLE: { name: 'VARIABLE', value: name, id: `var-${name}`, variableType: '' } },
+            next: null,
+            topLevel: false,
+            shadow: false,
+        });
+        const receive = {
+            id: 'recv',
+            opcode: 'event_whenbroadcastreceived',
+            inputs: {},
+            fields: {
+                BROADCAST_OPTION: {
+                    name: 'BROADCAST_OPTION',
+                    value: 'メッセージ',
+                    id: 'msg-1',
+                    variableType: 'broadcast_msg',
+                },
+            },
+            next: null,
+            topLevel: true,
+            shadow: false,
+        };
+        const xml = blocksToXml({ recv: receive, a: getter('a', 'なまえ'), b: getter('b', 'なまえ') });
+        expect(xml).toContain(
+            '<xml xmlns="http://www.w3.org/1999/xhtml"><variables>' +
+                '<variable type="broadcast_msg" id="msg-1">メッセージ</variable>' +
+                '<variable type="" id="var-なまえ">なまえ</variable></variables><block id="recv"',
+        );
+    });
+
     test('skips blocks that are not top-level scripts and ignores dangling references', () => {
         const xml = blocksToXml({ hat: { ...hat, next: 'missing' } });
         expect(xml).toBe(

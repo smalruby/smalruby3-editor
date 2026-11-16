@@ -70,9 +70,6 @@ import MeshV2ClassroomBinding from '../../lib/mesh-v2-classroom-binding.jsx';
 import ClassroomMeshConnectPrompt from '../../containers/classroom-mesh-connect-prompt.jsx';
 // === Smalruby: End of meshV2 classroom binding ===
 
-// === Smalruby: Start of meshV2 self-sensor notice ===
-import MeshSelfSensorNotice from '../../containers/mesh-self-sensor-notice.jsx';
-// === Smalruby: End of meshV2 self-sensor notice ===
 // === Smalruby: Start of mesh status popup ===
 import MeshStatusPopup from '../../containers/mesh-status-popup.jsx';
 // === Smalruby: End of mesh status popup ===
@@ -584,9 +581,6 @@ const GUIComponent = props => {
                     <MeshV2ClassroomBinding />
                     <ClassroomMeshConnectPrompt />
                     {/* === Smalruby: End of meshV2 classroom binding === */}
-                    {/* === Smalruby: Start of meshV2 self-sensor notice === */}
-                    <MeshSelfSensorNotice />
-                    {/* === Smalruby: End of meshV2 self-sensor notice === */}
                     {/* === Smalruby: Start of mesh status popup === */}
                     <MeshStatusPopup />
                     {/* === Smalruby: End of mesh status popup === */}
