@@ -47,12 +47,19 @@ const converterPrePasses = (source, root) => {
 };
 
 /**
+ * The value of a single-quoted JavaScript string (the escapes that the tests use).
+ * @param {string} text - The text between the quotes.
+ * @returns {string} The value.
+ */
+const unescapeJs = (text) => text.replace(/\\(.)/g, (_m, c) => ({ n: '\n', t: '\t' })[c] || c);
+
+/**
  * The Ruby of the existing tests: the template literals of the converter and round-trip tests that
  * prism parses without errors.
  * @returns {Array<{file: string, source: string}>} The sources.
  */
 const corpus = () => {
-    const dirs = ['test/unit/lib/ruby-to-blocks-converter', 'test/unit/lib/ruby-roundtrip'];
+    const dirs = [__dirname, path.join(__dirname, '..', 'ruby-roundtrip')];
     const seen = new Set();
     const sources = [];
     dirs.forEach((dir) => {
@@ -73,13 +80,6 @@ const corpus = () => {
     });
     return sources;
 };
-
-/**
- * The value of a single-quoted JavaScript string (the escapes that the tests use).
- * @param {string} text - The text between the quotes.
- * @returns {string} The value.
- */
-const unescapeJs = (text) => text.replace(/\\(.)/g, (_m, c) => ({ n: '\n', t: '\t' })[c] || c);
 
 const ownUnit = (groups, unit) => groups[unit] === unit;
 
@@ -166,19 +166,23 @@ function sortKeys(obj) {
 }
 
 describe('RubyToBlocksConverter/Analysis', () => {
-    describe('the same as the pre-passes of the converter', () => {
-        test('for the Ruby of the existing tests', () => {
-            const sources = corpus();
-            let compared = 0;
+    describe('the same as the pre-passes of the converter, for the Ruby of the existing tests', () => {
+        // One test for each test file, so that a slow machine does not hit the timeout of one test.
+        const sources = corpus();
+        const files = [...new Set(sources.map(({ file }) => file))];
+
+        test('has enough Ruby to mean something', () => {
+            expect(sources.length).toBeGreaterThan(3000);
+        });
+
+        test.each(files)('%s', (file) => {
             const mismatches = [];
-            sources.forEach(({ file, source }) => {
-                const diffs = differences(source);
-                if (diffs === null) return;
-                compared++;
-                if (diffs.length > 0) mismatches.push({ file, diffs, source });
-            });
-            // Enough Ruby to mean something.
-            expect(compared).toBeGreaterThan(2000);
+            sources
+                .filter((s) => s.file === file)
+                .forEach(({ source }) => {
+                    const diffs = differences(source);
+                    if (diffs && diffs.length > 0) mismatches.push({ diffs, source });
+                });
             expect(mismatches).toEqual([]);
         });
     });
