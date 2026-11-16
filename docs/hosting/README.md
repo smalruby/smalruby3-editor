@@ -99,7 +99,7 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
   - `_github-pages-challenge-smalruby.smalruby.app` TXT（GitHub の組織のドメイン検証。**消さない**。`docs/security/github-pages-subdomain-takeover.md` の Layer 1）
   - `smalruby.app` CAA ×6（amazon.com / amazonaws.com / amazontrust.com / awstrust.com / letsencrypt.org / issuewild `;`）
   - `api.smalruby.app` NS ×4、`preview.smalruby.app` NS ×4（委任をそのまま写す）
-  - `everdiary.smalruby.app` A は使っていないので写さない
+  - `everdiary.smalruby.app` A は使っていないので写さない（人間が確かめ、お名前.com からも消した）
 - 段 3 のスクリプトで、両方のネームサーバーの応答が一致している（照合はホストか GitHub Actions で行う。コンテナの firewall は任意の DNS サーバーへの問い合わせを止めている）。
 - DNSSEC は無効のまま（有効なら先に外す）。
 

@@ -242,7 +242,7 @@ aws s3 rm "s3://$BUCKET/index.html"
 | `api.smalruby.app` | NS | 4 | 900 | API 群のゾーンへの委任（いまの NS のまま） |
 | `preview.smalruby.app` | NS | 4 | 900 | stg の `PreviewHostedZone` への委任（いまの NS のまま） |
 
-写さないもの: apex の NS / SOA（Route 53 のものになる）、`everdiary.smalruby.app` A（使っていない）。ワイルドカードは作らない。
+写さないもの: apex の NS / SOA（Route 53 のものになる）、`everdiary.smalruby.app` A（使っていないことを人間が確かめ、お名前.com からも消した）。ワイルドカードは作らない。
 
 - お名前.com 側のレコードを変えたら、ここも同じ値にする（ネームサーバーを変えるまでは両方に書いておく決まり）。
   照合は `scripts/hosting/dns-compare.mjs`（`docs/hosting/verify-scripts.md`）で、お名前.com のエクスポートと

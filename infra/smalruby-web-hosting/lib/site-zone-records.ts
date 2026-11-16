@@ -8,7 +8,7 @@
  *
  * 写さないもの:
  * - apex の NS / SOA（Route 53 のゾーンが自分のものを持つ）
- * - `everdiary.smalruby.app` A（使っていない。行き先の無い名前を残さない）
+ * - `everdiary.smalruby.app` A（使っていないことを人間が確かめ、お名前.com からも消した）
  * - ワイルドカード（docs/security/github-pages-subdomain-takeover.md）
  */
 
