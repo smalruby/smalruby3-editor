@@ -360,6 +360,7 @@ src/lib/*
 !src/lib/use-is-narrow-screen.js
 !src/lib/version-checker.js
 !src/lib/tutorial-url-analytics.js
+!src/lib/help-menu.js
 
 # Level 3: src/lib/settings/*
 # color-mode/ and theme/ are upstream; only these are Smalruby-only.
@@ -780,6 +781,7 @@ test/unit/lib/*
 !test/unit/lib/audio-buffer-player.test.js
 !test/unit/lib/tutorial-from-url-analytics.test.js
 !test/unit/lib/tutorial-url-analytics.test.js
+!test/unit/lib/help-menu.test.js
 
 # Level 3: test/unit/reducers/*
 test/unit/reducers/*

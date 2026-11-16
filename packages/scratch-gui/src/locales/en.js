@@ -98,6 +98,9 @@ export default {
     'gui.classroom.submitReminder.text': 'Ready to hand in your work? You can send it again later.',
     'gui.classroom.submitReminder.close': 'Close',
     'gui.menuBar.aboutSmalruby': 'About Smalruby',
+    'gui.menuBar.reportBug': 'Report a bug',
+    'gui.menuBar.version': 'Version: {version}',
+    'gui.menuBar.versionDevelopment': 'development build',
     'gui.welcomeModal.startLessons': 'Start the lessons',
     'gui.welcomeModal.courseGuideTitle': 'First step: the lesson “{course}”',
     'gui.welcomeModal.courseGuideDetail':

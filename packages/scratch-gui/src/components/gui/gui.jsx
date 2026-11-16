@@ -126,6 +126,11 @@ const aboutMenuMessages = defineMessages({
         id: 'gui.menuBar.showWelcomeAgain',
         defaultMessage: 'Show welcome again',
         description: 'Menu item that re-opens the first-visit welcome modal'
+    },
+    reportBug: {
+        id: 'gui.menuBar.reportBug',
+        defaultMessage: 'Report a bug',
+        description: 'Menu item in the "?" menu that opens the bug report window'
     }
 });
 // === Smalruby: End of about menu ===
@@ -628,17 +633,28 @@ const GUIComponent = props => {
                         showComingSoon={showComingSoon}
                         // === Smalruby: Start of about menu ===
                         // title は文字列にする — menu-bar.jsx が title を React の key に使うため。
+                        // id / testId は「?」メニューの並び（lib/help-menu.js の HELP_MENU_SECTIONS）と data-testid。
                         onClickAbout={onClickAbout || [
                             {
+                                id: 'about',
+                                testId: 'menu-bar-help-about',
                                 title: intl.formatMessage(aboutMenuMessages.aboutSmalruby),
                                 onClick: () => {
                                     window.open('about.html', '_blank', 'noopener,noreferrer');
                                 }
                             },
                             {
+                                id: 'welcome',
+                                testId: 'menu-bar-help-welcome',
                                 title: intl.formatMessage(aboutMenuMessages.showWelcomeAgain),
                                 onClick: onShowWelcomeModal
-                            }
+                            },
+                            ...(isBugReportConfigured() && onOpenBugReportModal ? [{
+                                id: 'bugReport',
+                                testId: 'menu-bar-help-bug-report',
+                                title: intl.formatMessage(aboutMenuMessages.reportBug),
+                                onClick: onOpenBugReportModal
+                            }] : [])
                         ]}
                         // === Smalruby: End of about menu ===
                         onClickAccountNav={onClickAccountNav}
