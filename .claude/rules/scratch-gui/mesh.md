@@ -46,7 +46,7 @@ WebSocket / Polling の判定は `testWebSocket()` で行い、`useWebSocket: fa
 | `polling-client.js` | ~110 | Polling モードの 2 秒周期 (`pollEvents` / `POLL_GROUP_DATA`) |
 | `subscription-manager.js` | ~100 | WebSocket subscription 受信 (`onMessageInGroup`) と dispatch |
 | `heartbeat-manager.js` | ~140 | host/member heartbeat と接続タイマー |
-| `data-sender.js` | ~180 | グローバル変数送信 (REPORT_DATA), `getRemoteVariable` |
+| `data-sender.js` | ~230 | グローバル変数送信 (REPORT_DATA), `getRemoteVariable`。ブロックを通らない変更（モニターのスライダー）は `sendChangedGlobalVariables` が毎フレーム（`BEFORE_STEP`）見つけて同じ rate limit で送る |
 | `broadcast-receiver.js` | ~175 | 受信した event を順序保証して Scratch broadcast に流す |
 | `event-sender.js` | ~220 | `fireEvent` キューイング + バッチ送信 (FIRE_EVENTS / RECORD_EVENTS) + orderKey 生成 |
 | `group-lifecycle.js` | ~230 | createDomain / createGroup / joinGroup / leaveGroup |

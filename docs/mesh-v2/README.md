@@ -285,7 +285,7 @@ end-to-end 動作確認: [`tools/playwright-verify/verify-classroom-mesh-connect
 
 | ファイル | 責務 |
 |---|---|
-| `index.js` | scratch 拡張ブロック定義、UI 連携。グローバル変数の変更を送るためのフック（`setVariableFunctionHOC`: つないだときにステージの `createVariable` / `setVariableValue` などを包む。作品を読み込み直すとステージが新しくなるので、`PROJECT_LOADED` で新しいステージも包み直す。これで読み込み直したあとも「変数を作る」と名前の変更がすぐ送られる。ブロックでの変更は `data_setvariableto` / `data_changevariableby` のフック（`setOpcodeFunctionHOC`）で送る。モニターのスライダーは変数の値を直接書きかえるので、どちらのフックも通らず、すぐには送られない） |
+| `index.js` | scratch 拡張ブロック定義、UI 連携。グローバル変数の変更を送るためのフック（`setVariableFunctionHOC`: つないだときにステージの `createVariable` / `setVariableValue` などを包む。作品を読み込み直すとステージが新しくなるので、`PROJECT_LOADED` で新しいステージも包み直す。これで読み込み直したあとも「変数を作る」と名前の変更がすぐ送られる。ブロックでの変更は `data_setvariableto` / `data_changevariableby` のフック（`setOpcodeFunctionHOC`）で送る。モニターのスライダーは変数の値を直接書きかえるので、どちらのフックも通らない。その分は `data-sender.js` の毎フレームの見張りで送る） |
 | `mesh-service.js` | ファサード。各 manager mixin を集約 |
 | `mesh-client.js` | Apollo Client、GraphQL endpoint URL |
 | `gql-operations.js` | GraphQL queries / mutations / subscription 定義 |
@@ -294,7 +294,7 @@ end-to-end 動作確認: [`tools/playwright-verify/verify-classroom-mesh-connect
 | `polling-client.js` | Polling モードの 2 秒周期 (`pollEvents` / `POLL_GROUP_DATA`) |
 | `subscription-manager.js` | WebSocket subscription 受信 |
 | `heartbeat-manager.js` | host/member heartbeat と接続タイマー |
-| `data-sender.js` | グローバル変数送信 (REPORT_DATA) |
+| `data-sender.js` | グローバル変数送信 (REPORT_DATA)。`sendChangedGlobalVariables` が毎フレーム（`BEFORE_STEP`）ステージの変数を「最後に送った値」（`latestQueuedData`）と比べ、ブロックを通らずに変わったもの（モニターのスライダーなど）を送る。ブロックで送った値は「最後に送った値」と同じなので 2 回は送らない。送るのは 1 秒の rate limit を通るので、スライダーを動かし続けても REPORT_DATA は 1 秒に 1 回まで |
 | `broadcast-receiver.js` | 受信した event を順序保証して Scratch broadcast に流す |
 | `event-sender.js` | `fireEvent` キューイング + バッチ送信 + orderKey 生成 |
 | `group-lifecycle.js` | createDomain / createGroup / joinGroup / leaveGroup |
