@@ -18,6 +18,7 @@
 // the implicit `end` insertion based on `⎿` count.
 //
 // See Issue #640.
+import { indentWidth } from './dncl-indent';
 import { lineNumberSeparator } from './dncl-line-number';
 import { codeOfLine, splitTrailingComment, stringEndAt } from './dncl-trailing-comment';
 import { isLogicalWordAt, isNameChar, isWholeWordAt } from './paren-utils';
@@ -586,22 +587,6 @@ const EXPLICIT_CLOSERS = new Set(['を実行する', 'を繰り返す', 'と定�
  * @returns {boolean} True for an else / else-if line.
  */
 const isIfContinuation = (body) => body === 'そうでなければ' || /^そうでなくもし\s/.test(body);
-
-/**
- * Visual width of a leading indent. A tab counts as 4 columns and the
- * full-width space (U+3000) as 2, so mixed indentation still compares sensibly.
- * @param {string} indent - Leading whitespace.
- * @returns {number} The indent width in columns.
- */
-const indentWidth = (indent) => {
-    let width = 0;
-    for (const ch of indent) {
-        if (ch === '\t') width += 4;
-        else if (ch === '\u3000') width += 2;
-        else width += 1;
-    }
-    return width;
-};
 
 /**
  * Convert a DNCLv2 function-definition opener to the Smalruby form:

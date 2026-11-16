@@ -150,6 +150,22 @@ $arrow-rounding: 0.125rem;
     border-bottom: 2px solid $text-primary;
 }
 
+/* A blank line has no indent under the bars: they are drawn on spaces shown in front of the line
+   (not in the text), on the last of them. */
+.editorWrapper :global(.dncl-rule-bar-gap) {
+    position: relative;
+}
+
+.editorWrapper :global(.dncl-rule-bar-gap)::before {
+    content: '';
+    position: absolute;
+    top: -0.35em;
+    bottom: -0.35em;
+    left: calc(100% - 1ch + 0.3em);
+    border-left: 2px solid $text-primary;
+    pointer-events: none;
+}
+
 /* 「できた」: shows the problem form while writing in the Japanese mode */
 .problemFormDoneButton {
     position: absolute;

@@ -69,7 +69,11 @@ import {
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import { offerDnclIndexShift } from './ruby-tab/dncl-index-shift';
-import { createProblemFormView, problemFormLineNumbers } from './ruby-tab/dncl-problem-form-view';
+import {
+    createProblemFormView,
+    problemFormLineNumbers,
+    problemFormLineNumbersMinChars,
+} from './ruby-tab/dncl-problem-form-view';
 import {
     registerCustomPasteAction,
     setupPasteTransform,
@@ -196,6 +200,8 @@ const RubyTab = (props) => {
     // mode: when it has no focus (Issue #1755).
     const [problemFormShown, setProblemFormShown] = useState(false);
     const problemFormViewRef = useRef(null);
+    // Room in the line number column for the labels `(01)` / `(100)` / `(1000)`.
+    const [lineNumbersMinChars, setLineNumbersMinChars] = useState(5);
     const focusListenersRef = useRef([]);
     const dnclSourceMapRef = useRef(null);
     const dnclModeRef = useRef(dnclMode);
@@ -565,10 +571,12 @@ const RubyTab = (props) => {
             editor.onDidFocusEditorText(() => problemFormViewRef.current.sync()),
             editor.onDidBlurEditorText(() => problemFormViewRef.current.sync()),
         ];
+        setLineNumbersMinChars(problemFormLineNumbersMinChars(editor.getValue()));
 
         contentChangeListenerRef.current = editor.onDidChangeModelContent(() => {
             updateUndoRedoState();
             problemFormViewRef.current.sync();
+            setLineNumbersMinChars(problemFormLineNumbersMinChars(editor.getValue()));
             if (furiganaEnabledRef.current) {
                 scheduleFuriganaUpdate();
             }
@@ -595,6 +603,11 @@ const RubyTab = (props) => {
         });
 
         updateUndoRedoState();
+        // A new editor (reload in the Japanese mode, another language) starts
+        // without the problem form: make React and the view agree, then show
+        // it if the mode asks for it.
+        setProblemFormShown(false);
+        problemFormViewRef.current.sync();
     }, []);
 
     // --- UI event handlers (useCallback for react/jsx-no-bind) ---
@@ -653,10 +666,20 @@ const RubyTab = (props) => {
     }, [getSaveToComputerHandler]);
 
     // 「できた」: leave the text for the problem form (Issue #1755). Blurring the
-    // editor also closes the software keyboard of a tablet.
-    const handleProblemFormDone = useCallback((event) => {
-        event.preventDefault();
+    // editor also closes the software keyboard of a tablet. A mouse press is
+    // handled on mousedown without moving the focus to the button, so the
+    // text does not turn into the problem form under the pointer before the
+    // press ends; the click handler serves the keyboard (Enter / Space).
+    const leaveTextForProblemForm = () => {
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    };
+    const handleProblemFormDoneMouseDown = useCallback((event) => {
+        event.preventDefault();
+        leaveTextForProblemForm();
+    }, []);
+    const handleProblemFormDoneClick = useCallback(() => {
+        leaveTextForProblemForm();
+        if (problemFormViewRef.current) problemFormViewRef.current.sync();
     }, []);
 
     const problemFormLineNumberLabels = useCallback(
@@ -1657,6 +1680,7 @@ const RubyTab = (props) => {
                             renderWhitespace: problemFormShown ? 'none' : 'all',
                             guides: { indentation: !problemFormShown },
                             lineNumbers: dnclMode ? problemFormLineNumberLabels : 'on',
+                            lineNumbersMinChars: dnclMode ? lineNumbersMinChars : 5,
                             scrollBeyondLastLine: true,
                             tabSize: 2,
                             fixedOverflowWidgets: true,
@@ -1676,7 +1700,9 @@ const RubyTab = (props) => {
                         <button
                             className={styles.problemFormDoneButton}
                             data-testid="ruby-tab-problem-form-done"
-                            onMouseDown={handleProblemFormDone}
+                            type="button"
+                            onClick={handleProblemFormDoneClick}
+                            onMouseDown={handleProblemFormDoneMouseDown}
                         >
                             {intl.formatMessage(problemFormMessages.done)}
                         </button>

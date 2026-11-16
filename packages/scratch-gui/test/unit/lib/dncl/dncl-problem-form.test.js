@@ -1,6 +1,12 @@
 import { tidyPastedDncl } from '../../../../src/lib/dncl/dncl-paste-tidy';
-import { layoutProblemForm, problemFormLabel, problemFormText } from '../../../../src/lib/dncl/dncl-problem-form';
+import {
+    layoutProblemForm,
+    numberedLineCount,
+    problemFormLabel,
+    problemFormText,
+} from '../../../../src/lib/dncl/dncl-problem-form';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
+import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 
 // The programs are written for these tests in the style of the 共通テスト
 // notation; no question of the test is used (docs/dncl/policy.md).
@@ -15,6 +21,19 @@ describe('problemFormLabel', () => {
     test('pads to 3 digits when the program has 100 lines or more', () => {
         expect(problemFormLabel(7, 120)).toBe('(007)');
         expect(problemFormLabel(120, 120)).toBe('(120)');
+    });
+});
+
+describe('numberedLineCount', () => {
+    test('does not count the empty line after the last newline', () => {
+        expect(numberedLineCount('a = 1\nb = 2\n')).toBe(2);
+        expect(numberedLineCount('a = 1\nb = 2')).toBe(2);
+        expect(numberedLineCount('a = 1\r\n\r\n')).toBe(2);
+    });
+
+    test('labels 99 lines and a final newline with 2 digits', () => {
+        const code = `${'a = 1\n'.repeat(99)}`;
+        expect(layoutProblemForm(code)[0].label).toBe('(01)');
     });
 });
 
@@ -103,6 +122,44 @@ describe('layoutProblemForm', () => {
         expect(rulesOf(code)).toEqual(['', 'bar', 'end end']);
     });
 
+    test('a comment line out of the indent does not cut the block', () => {
+        const code = ['もし a ならば:', '    x = 1', '# 外のコメント', '    y = 1', 'z = 1'].join('\n');
+        expect(rulesOf(code)).toEqual(['', 'bar', 'bar', 'end', '']);
+    });
+
+    test('splits the lines at CRLF as well', () => {
+        expect(rulesOf('もし a ならば:\r\n    x = 1\r\ny = 1')).toEqual(['', 'end', '']);
+    });
+
+    describe('the DNCL-like form closed by a word', () => {
+        test('the bar stops before the closing line, which has no rule', () => {
+            const code = ['もし a ならば', '    x = 1', 'を実行する', 'y = 2'].join('\n');
+            expect(rulesOf(code)).toEqual(['', 'bar', '', '']);
+        });
+
+        test('nested blocks closed by words', () => {
+            const code = [
+                'x < 3 の間',
+                '    もし x == 1 ならば',
+                '        y = 1',
+                '    を実行する',
+                '    x = x + 1',
+                'を繰り返す',
+            ].join('\n');
+            expect(rulesOf(code)).toEqual(['', 'bar', 'bar bar', 'bar', 'bar', '']);
+        });
+
+        test('an if with nothing in it', () => {
+            expect(rulesOf('もし a ならば:\nを実行する\ny = 1')).toEqual(['', '', '']);
+        });
+    });
+
+    test('a line between the indents stays in the block, as the reader reads it', () => {
+        const code = ['もし a ならば:', '    もし b ならば:', '        x = 1', '      y = 1', 'z = 1'].join('\n');
+        expect(rulesOf(code)).toEqual(['', 'bar', 'bar bar', 'end end', '']);
+        expect(layoutProblemForm(code)[3].rules.map((rule) => rule.column)).toEqual([0, 4]);
+    });
+
     test('a tab counts as 4 spaces', () => {
         const code = 'もし a ならば:\n\tx = 1';
         expect(layoutProblemForm(code)[1]).toEqual({
@@ -141,6 +198,14 @@ describe('problemFormText', () => {
         );
     });
 
+    test('drops the spaces at the end of the lines', () => {
+        expect(problemFormText('もし a ならば:  \n    x = 1 \t')).toBe('(01) もし a ならば:\n(02) ⎿ x = 1');
+    });
+
+    test('keeps CRLF', () => {
+        expect(problemFormText('a = 1\r\nb = 2\r\n')).toBe('(01) a = 1\r\n(02) b = 2\r\n');
+    });
+
     test('ends with a newline when the text does', () => {
         expect(problemFormText('a = 1\n')).toBe('(01) a = 1\n');
     });
@@ -160,5 +225,45 @@ describe('problemFormText pasted back', () => {
         const pasted = tidyPastedDncl(problemFormText(code));
         expect(dnclToRuby(code).ruby).toContain('@goukei = @goukei + @i');
         expect(dnclToRuby(pasted).ruby).toBe(dnclToRuby(code).ruby);
+    });
+});
+
+describe('problemFormText pasted back, more forms', () => {
+    const roundTrip = (code) => {
+        const pasted = tidyPastedDncl(problemFormText(code));
+        expect(dnclToRuby(code).errors).toEqual([]);
+        expect(dnclToRuby(pasted).ruby).toBe(dnclToRuby(code).ruby);
+    };
+
+    test('the DNCL-like form closed by a word', () => {
+        roundTrip(['もし a ならば', '    x = 1', 'を実行する', 'y = 2'].join('\n'));
+    });
+
+    test('an if with nothing in it', () => {
+        roundTrip('もし a ならば:\nを実行する\ny = 1');
+    });
+
+    test('a comment line out of the indent', () => {
+        roundTrip(['もし a ならば:', '    x = 1', '# 外のコメント', '    y = 1'].join('\n'));
+    });
+
+    test('the DNCL-like form made from Ruby (while, if / elsif / else, +=)', () => {
+        const ruby = [
+            '@x = 0',
+            'while @x < 5',
+            '  if @x == 1',
+            '    @y = 1',
+            '  elsif @x == 2',
+            '    @y = 2',
+            '  else',
+            '    @y = 3',
+            '  end',
+            '  @x += 1',
+            'end',
+        ].join('\n');
+        const { dncl } = rubyToDncl(ruby);
+        expect(dncl).toContain('を繰り返す');
+        roundTrip(dncl);
+        expect(dnclToRuby(tidyPastedDncl(problemFormText(dncl))).ruby).toContain('@x += 1');
     });
 });
