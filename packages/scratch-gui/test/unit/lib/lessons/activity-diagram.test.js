@@ -1093,6 +1093,19 @@ describe('the diagram of a pair challenge with roles (#2063)', () => {
         expect(laneLines(diagram)).toContain('シマネコ');
         expect(laneLines(diagram).some((line) => line.startsWith('あなた /'))).toBe(true);
     });
+
+    // 4-4・4-5 はみんなが同じ名前を使う（役が無い）ので、見出しに役を書かない
+    test.each(['chat-l4-group', 'chat-l4-dm'])('%s (no roles) does not name a role in the headings', async (id) => {
+        const { challenge } = findChallenge(id);
+        expect(challenge.roles).toBeFalsy();
+        const diagram = await challengeActivityDiagram(challengeForRole(challenge, ROLES.SHIMACAT), {
+            locale: 'ja',
+            format: formatJa,
+            toBlocks: (source) => toBlocks(source.code),
+        });
+        expect(laneLines(diagram).some((line) => line.includes('の役'))).toBe(false);
+        expect(laneLines(diagram).some((line) => line.startsWith('あなた /'))).toBe(true);
+    });
 });
 
 describe('diagramScaleFor (the smallest scale keeps the text readable)', () => {

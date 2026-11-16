@@ -211,23 +211,34 @@ export const hintViewport = (doc, win) => {
  * @param {number} [args.gap] - 指す場所と吹き出しのすき間。
  * @param {number} [args.margin] - 画面の端から空ける幅。
  * @returns {{left: number, top: number, side: string, arrow: ?{x: number, y: number}}}
- *   吹き出しの左上（viewport 座標）・置いた側・矢印の位置（吹き出しの左上からの相対。無ければ null）。
+ *   吹き出しの左上（viewport 座標）・置いた側・矢印の位置（吹き出しの左上からの相対。無ければ null。ずらした結果、
+ *   指す場所の真ん中が吹き出しの辺の外になったときも null — 角に寄せたしっぽは何も指さないため）。
  */
 export const computeHintPlacement = ({ target, balloon, viewport, sides, avoid = [], gap = 12, margin = 8 }) => {
     const minLeft = (viewport.left || 0) + margin;
     const minTop = (viewport.top || 0) + margin;
     const maxLeft = Math.max(minLeft, viewport.width - balloon.width - margin);
     const maxTop = Math.max(minTop, viewport.height - balloon.height - margin);
+    // しっぽ（矢印）を描ける位置か。画面に収める・かぶせない部品をよけるために吹き出しをずらすと、指す場所の
+    // 真ん中が吹き出しの辺の外（上の端より上など）になることがある。そこで位置を辺の中に寄せて描くと、しっぽは
+    // 何も指さずに角に出る（ヘッダーの閉じるボタンにかぶる白いひし形になる）ので、そのときは出さない
+    const ARROW_INSET = 12;
+    const alongEdge = (offset, length) => offset >= ARROW_INSET && offset <= length - ARROW_INSET;
+    const arrowFor = (l, t, side, anchor) => {
+        if (!anchor) return null;
+        const x = anchor.x - l;
+        const y = anchor.y - t;
+        const sideways = side === HINT_SIDES.RIGHT || side === HINT_SIDES.LEFT;
+        if (sideways ? !alongEdge(y, balloon.height) : !alongEdge(x, balloon.width)) return null;
+        return {
+            x: clamp(x, ARROW_INSET, Math.max(ARROW_INSET, balloon.width - ARROW_INSET)),
+            y: clamp(y, ARROW_INSET, Math.max(ARROW_INSET, balloon.height - ARROW_INSET)),
+        };
+    };
     const settle = (left, top, side, anchor) => {
         const l = clamp(left, minLeft, maxLeft);
         const t = clamp(top, minTop, maxTop);
-        const arrow = anchor
-            ? {
-                  x: clamp(anchor.x - l, 12, Math.max(12, balloon.width - 12)),
-                  y: clamp(anchor.y - t, 12, Math.max(12, balloon.height - 12)),
-              }
-            : null;
-        return { left: l, top: t, side, arrow };
+        return { left: l, top: t, side, arrow: arrowFor(l, t, side, anchor) };
     };
     const boxOf = (p) => ({
         left: p.left,
