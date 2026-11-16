@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import { defineMessages } from 'react-intl';
 import { RubyToBlocksConverterError } from './errors';
+import { fieldArg, menuArg, numberArg, registerSendTable } from './send-table';
 
 const messages = defineMessages({
     stageNoMotionBlocks: {
@@ -13,32 +14,47 @@ const messages = defineMessages({
 const RotationStyle = ['left-right', "don't rotate", 'all around'];
 
 /**
+ * The calls of motion that map one to one onto a block (see `send-table.js`).
+ * `go_to`, `glide` and `self.x += 1` (a choice of block by the argument) are handlers below.
+ */
+const MOTION_SENDS = [
+    { receiver: 'sprite', name: 'move', opcode: 'motion_movesteps', args: [numberArg('STEPS', 10)] },
+    { receiver: 'sprite', name: 'turn_right', opcode: 'motion_turnright', args: [numberArg('DEGREES', 15)] },
+    { receiver: 'sprite', name: 'turn_left', opcode: 'motion_turnleft', args: [numberArg('DEGREES', 15)] },
+    {
+        receiver: 'sprite',
+        name: 'direction=',
+        opcode: 'motion_pointindirection',
+        args: [numberArg('DIRECTION', 90, 'math_angle')],
+    },
+    {
+        receiver: 'sprite',
+        name: 'point_towards',
+        opcode: 'motion_pointtowards',
+        args: [menuArg('TOWARDS', 'motion_pointtowards_menu')],
+    },
+    { receiver: 'sprite', name: 'bounce_if_on_edge', opcode: 'motion_ifonedgebounce' },
+    {
+        receiver: 'sprite',
+        name: 'rotation_style=',
+        opcode: 'motion_setrotationstyle',
+        args: [fieldArg('STYLE', RotationStyle)],
+    },
+    { receiver: 'sprite', name: 'x=', opcode: 'motion_setx', args: [numberArg('X', 0)] },
+    { receiver: 'sprite', name: 'y=', opcode: 'motion_sety', args: [numberArg('Y', 0)] },
+    { receiver: 'sprite', name: 'x', opcode: 'motion_xposition', type: 'value' },
+    { receiver: 'sprite', name: 'y', opcode: 'motion_yposition', type: 'value' },
+    { receiver: 'sprite', name: 'direction', opcode: 'motion_direction', type: 'value' },
+];
+
+/**
  * Motion converter
  */
 const MotionConverter = {
+    sends: MOTION_SENDS,
+
     register: function (converter) {
-        // move(steps)
-        converter.registerOnSend('sprite', 'move', 1, (params) => {
-            const { args } = params;
-            if (!converter._isNumberOrBlock(args[0])) return null;
-
-            const block = converter._createBlock('motion_movesteps', 'statement');
-            converter._addNumberInput(block, 'STEPS', 'math_number', args[0], 10);
-            return block;
-        });
-
-        // turn_right(degrees) and turn_left(degrees)
-        ['turn_right', 'turn_left'].forEach((methodName) => {
-            converter.registerOnSend('sprite', methodName, 1, (params) => {
-                const { args } = params;
-                if (!converter._isNumberOrBlock(args[0])) return null;
-
-                const opcode = methodName === 'turn_right' ? 'motion_turnright' : 'motion_turnleft';
-                const block = converter._createBlock(opcode, 'statement');
-                converter._addNumberInput(block, 'DEGREES', 'math_number', args[0], 15);
-                return block;
-            });
-        });
+        registerSendTable(converter, MOTION_SENDS);
 
         // go_to(target)
         converter.registerOnSend('sprite', 'go_to', 1, (params) => {
@@ -91,68 +107,6 @@ const MotionConverter = {
             }
             return block;
         });
-
-        // direction = value
-        converter.registerOnSend('sprite', 'direction=', 1, (params) => {
-            const { args } = params;
-            if (!converter._isNumberOrBlock(args[0])) return null;
-
-            const block = converter._createBlock('motion_pointindirection', 'statement');
-            converter._addNumberInput(block, 'DIRECTION', 'math_angle', args[0], 90);
-            return block;
-        });
-
-        // point_towards(target)
-        converter.registerOnSend('sprite', 'point_towards', 1, (params) => {
-            const { args } = params;
-            if (!converter._isString(args[0])) return null;
-
-            const block = converter._createBlock('motion_pointtowards', 'statement');
-            converter._addInput(
-                block,
-                'TOWARDS',
-                converter._createFieldBlock('motion_pointtowards_menu', 'TOWARDS', args[0]),
-            );
-            return block;
-        });
-
-        // bounce_if_on_edge()
-        converter.registerOnSend('sprite', 'bounce_if_on_edge', 0, () =>
-            converter._createBlock('motion_ifonedgebounce', 'statement'),
-        );
-
-        // rotation_style = value
-        converter.registerOnSend('sprite', 'rotation_style=', 1, (params) => {
-            const { args } = params;
-            if (!converter._isString(args[0]) || RotationStyle.indexOf(args[0].toString()) < 0) return null;
-
-            const block = converter._createBlock('motion_setrotationstyle', 'statement');
-            converter._addField(block, 'STYLE', args[0]);
-            return block;
-        });
-
-        // x = value and y = value
-        ['x=', 'y='].forEach((methodName) => {
-            converter.registerOnSend('sprite', methodName, 1, (params) => {
-                const { args } = params;
-                if (!converter._isNumberOrBlock(args[0])) return null;
-
-                const xy = methodName === 'x=' ? 'x' : 'y';
-                const block = converter._createBlock(`motion_set${xy}`, 'statement');
-                converter._addNumberInput(block, _.toUpper(xy), 'math_number', args[0], 0);
-                return block;
-            });
-        });
-
-        // x and y position getters
-        ['x', 'y'].forEach((methodName) => {
-            converter.registerOnSend('sprite', methodName, 0, () =>
-                converter._createBlock(`motion_${methodName}position`, 'value'),
-            );
-        });
-
-        // direction getter
-        converter.registerOnSend('sprite', 'direction', 0, () => converter._createBlock('motion_direction', 'value'));
 
         // Register onXxx handlers
         converter.registerOnOpAsgn((lh, operator, rh) => {
