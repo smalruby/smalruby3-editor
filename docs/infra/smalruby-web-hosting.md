@@ -218,6 +218,24 @@ curl -sI "https://$DOMAIN/"   # 200・strict-transport-security が付く
 aws s3 rm "s3://$BUCKET/index.html"
 ```
 
+### CI からの配置（GitHub Pages と並べて置く）
+
+`.github/workflows/ci-cd.yml` の `build-and-deploy` は、develop への push のたびに、GitHub Pages へ出したのと
+**同じビルド**をこのバケットにも置く。切り替えるまでの本番は GitHub Pages のままで、こちらは CloudFront の
+ドメインでしか見えない。
+
+- repo の Variables `SITE_DEPLOY_ROLE_ARN` / `SITE_BUCKET_NAME` / `SITE_DISTRIBUTION_ID` のどれかが無いときは、
+  warning を出して飛ばす（GitHub Pages への配置は続ける）。
+- ジョブに `id-token: write` を足すため、ジョブの `permissions` で workflow の権限（`contents` / `issues` /
+  `pull-requests` の write）も書き直している（ジョブに書くと workflow の分は引き継がれない）。
+- 置き方はプレビューと同じ「CI がアップロードするときの約束」: ハッシュ付きのファイルは
+  `public, max-age=31536000, immutable`、それ以外は `max-age=0, s-maxage=60`。`.wasm` / `.mjs` / `.hex` は
+  `Content-Type` を明示する。最後に `--delete --size-only` で古いファイルを消す。
+- 本体（`packages/scratch-gui/dist`）はバケットの直下、管理 SPA（`packages/admin/build`）は `admin/` に置く。
+  本体の `--delete` は `admin/*` を除き、管理 SPA の `--delete` は `admin/` の中だけに効く。
+  `.well-known/` などドットで始まるものも置く。GitHub Pages 用の `.nojekyll` と `CNAME` は置かない。
+- 置いたあとに `/*` を invalidation する。
+
 ## CI のプレビュー
 
 | 何を | どこで |
