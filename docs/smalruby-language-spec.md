@@ -406,6 +406,18 @@ greet("hello")
 - Method overloading is not supported
 - Recursion is not supported
 
+**Run without screen refresh**: "Run without screen refresh" of a custom block is written `without_screen_refresh` before `def` (the same form as `private def foo`). Without it, the custom block refreshes the screen as usual.
+
+```ruby
+without_screen_refresh def learn(n)
+  n.times do
+    @length += 1
+  end
+end
+```
+
+**Custom block names that cannot be method names**: a name that starts with a digit ("1 pick letter") or is a reserved word of Ruby (`end`, `if`, ...) gets `_` in front in Ruby (`def _1_pick_letter`, called as `_1_pick_letter`). Back in the blocks the `_` is taken off ("1_pick_letter"). `_1` to `_9` are the numbered parameters of Ruby blocks, so a name that is one digit gets `__` ("1" is `__1`). A name of the same form that already starts with `_` ("_1x", "_end") gets one more `_` (`__1x`, `__end`). A space in a name becomes `_` (it stays `_` in the blocks).
+
 ### Return Values
 
 ```ruby

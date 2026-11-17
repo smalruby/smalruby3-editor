@@ -96,6 +96,7 @@ Scratch の変数・リストの名前で、Ruby の情報を持たせている�
 | `_symbols_`（ステージ） | 使われたシンボル | ステージのリスト | `variable-utils.js` の `_symbolToBlock` |
 | `__lit_<番号>__1_` | 何もしないリテラルだけの行（`"Jimmy"`） | スプライトの変数・リスト | `finish.js` の `_convertBareLiteralToAssignment` |
 | `_super_<メソッド>_<番号>_` | `super` で呼ばれる、module 側の同じ名前のメソッド | 定義ブロック（手続き名） | `class-visitor.js` |
+| `_<名前>`（`_1_文字えらぶ`・`_end`。1 けたの数字は `__1`） | 数字で始まる名前・予約語の名前の定義ブロック（「1 文字えらぶ」「end」） | 定義ブロック（Ruby のメソッド名だけ。ブロックの名前には `_` を付けない） | `src/lib/ruby-method-name.js`（P20） |
 
 生成器だけが使う、出力の途中の目印もある（Ruby には残らない）。
 
@@ -738,6 +739,32 @@ say(mesh.message_value)
 **できないこと**: `mesh.broadcast("chat", 42)` は `mesh.broadcast("chat", "42")` に戻る（値は文字列で送るため）。引数の数がちがう（`mesh.broadcast("chat")`）、メッセージが数（`mesh.broadcast(1, "x")`）はエラー（P17）。
 
 **テスト**: `ruby-to-blocks-converter/mesh_v2.test.js`、`ruby-roundtrip/extension_mesh.test.js`、`furigana-annotator.test.js`。
+
+### P20. 定義ブロックの名前と「画面を再描画せずに実行する」
+
+**Ruby で書きたいこと**: 定義ブロック（ブロックを作る）の名前と設定を、Ruby の `def` で書く。名前が数字で始まる・予約語のものもある。
+
+**Scratch での表し方**: 定義ブロック（`procedures_definition` と `procedures_prototype`）。名前は `proccode` の言葉、「画面を再描画せずに実行する」は `procedures_prototype` の `mutation.warp`（`"true"` / `"false"`。読みこんだ作品では真偽値のこともある）。
+
+- **名前**: 生成器は `proccode` の言葉（`%s` / `%b` を除く）を `_` でつないでメソッド名にする（`'1 文字えらぶ %s'` → `1_文字えらぶ`）。名前が数字で始まるか予約語のときは前に `_` を付け、1 けたの数字（`_1`〜`_9` は番号指定パラメータ）には `__` を付ける。もとから `_` で始まる同じ形の名前には、もう 1 つ付ける（`_1x` → `__1x`）。変換器は逆に付けた分を取る。この対応は `src/lib/ruby-method-name.js` の 1 か所（`rubyMethodNameOfProccode` / `blockNameOfRubyMethodName`）にあり、生成器 `procedure.js` と、変換器が `proccode` からメソッド名を求める所（`variable-utils.js` の `_isProcedureCallWithReturnValue`・`my-blocks.js`・`return-value-temps.js` の `_procedureNameOfCall`）が使う。変換器の手続きの表（`_context.procedures`）と `_return_<メソッド>_`・`@ruby:return:<メソッド>` は Ruby のメソッド名（`_1_文字えらぶ`）のまま。
+- **注釈の名前**: `@ruby:return:<メソッド>` のメソッド名は日本語のこともあるので、生成器は `\w+` ではなく `[^:,\s]+` で読む（`\w` は日本語に当たらず、`return` のある日本語の名前のメソッドで、初期化と控えのブロックが Ruby に出ていた）。
+- **画面を再描画せずに実行する**: 生成器は `without_screen_refresh def foo ... end` と書く（Ruby の `private def foo` と同じ形。`def` はメソッド名のシンボルを返すので、Ruby として正しい）。変換器は解析の段（`parse-stage.js`）で、この呼び出しを中の `def` に置きかえ（`screen-refresh-defs.js` の `unwrapWithoutScreenRefreshDefs`）、`def` を `_context.warpDefNodes` に覚える。分析・class / module・コメント・ブロックの中の `def` の検査は、ふつうの `def` として見る。`my-blocks.js` が `warp` を `"true"` にする（呼び出しのブロックの `mutation.warp` も同じにする）。module のメソッド（ほかのスプライトの module を読むときも）も同じ。注釈は使わない（Ruby だけで書く人も書けるように、Ruby の形で表す）。smalruby3 gem では `without_screen_refresh` は名前を返すだけのクラスメソッドで、メソッドはふつうに動く。
+
+**往復の例**:
+
+```ruby
+without_screen_refresh def _1_文字えらぶ(n)
+  say(n)
+end
+
+_1_文字えらぶ(1)
+```
+
+- 定義ブロック「1_文字えらぶ (n)」（画面を再描画せずに実行する）と、その呼び出しになり、同じコードに戻る。
+
+**できないこと**: 名前の中の空白は `_` になり、ブロックに戻しても `_` のまま（「1 文字えらぶ」は「1_文字えらぶ」になる）。`-` などメソッド名に使えない記号の入った名前は、そのまま書くので Ruby の文法エラーになる。自分で `def without_screen_refresh` を定義したコードでは、`without_screen_refresh def foo` をその呼び出しとして読む（置きかえない）。日本語モードは `without_screen_refresh def` を読めない。
+
+**テスト**: `ruby-roundtrip/my-block-warp-and-name.test.js`、`ruby-roundtrip/my_blocks.test.js`。
 
 ## 注釈 `@ruby:*` の一覧（仕様）
 
