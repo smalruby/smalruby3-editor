@@ -181,6 +181,8 @@ export const defineChallenge = (def) =>
  * @param {boolean} [def.autoOpenHints] - チャレンジを始めたら、ヒントの 1 ページ目を自動で開くか。書いていなければ
  *   開かない（課題バーの「ヒント」で開く。読んで作るチャレンジはこの設定によらず開く）。はじめのレッスン（レッスン 0 と 1）
  *   だけ true にする。ヒントの使い方に慣れるまでは開いておき、慣れたら自分で開く（#2129 の Q4）。
+ * @param {boolean} [def.showPartNames] - チャレンジを開いたときから画面の部分の名前の札を出しておくか
+ *   （「なまえ」ボタンで消せる。画面の部分の名前を覚えるレッスン 0 で使う・#2133）。書いていなければ出さない。
  * @returns {object} レッスン。
  */
 export const defineLesson = ({
@@ -189,11 +191,13 @@ export const defineLesson = ({
     allowDnclMode = false,
     autoOpenHints = false,
     checkCount = null,
+    showPartNames = false,
 }) => ({
     id,
     name: message(`gui.lessons.lesson.${id}.name`),
     allowDnclMode: Boolean(allowDnclMode),
     autoOpenHints: Boolean(autoOpenHints),
+    showPartNames: Boolean(showPartNames),
     checkCount: checkCount === null ? challenges.length : Math.min(checkCount, challenges.length),
     challenges: challenges.map((def, index) => defineChallenge({ ...def, number: index + 1 })),
 });

@@ -191,6 +191,60 @@ describe('LessonMode container', () => {
         expect(props.onEndLesson).toHaveBeenCalledTimes(1);
     });
 
+    // 画面の部分の名前の札（#2133）
+    test('the "Names" button shows the part names for a few seconds, and hides them when pressed again', () => {
+        jest.useFakeTimers();
+        try {
+            const props = {
+                ...baseProps(),
+                current: findChallenge(CHALLENGE_ID),
+                hint: { visible: false, index: 0, count: 2, step: {} },
+            };
+            const { getByTestId, queryByTestId } = renderLessonMode(props);
+            expect(queryByTestId('lesson-part-names')).not.toBeInTheDocument();
+            fireEvent.click(getByTestId('lesson-task-bar-part-names'));
+            expect(getByTestId('lesson-part-names')).toBeInTheDocument();
+            expect(getByTestId('lesson-task-bar-part-names')).toHaveAttribute('aria-pressed', 'true');
+            fireEvent.click(getByTestId('lesson-task-bar-part-names'));
+            expect(queryByTestId('lesson-part-names')).not.toBeInTheDocument();
+            fireEvent.click(getByTestId('lesson-task-bar-part-names'));
+            act(() => {
+                jest.advanceTimersByTime(6000);
+            });
+            expect(queryByTestId('lesson-part-names')).not.toBeInTheDocument();
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('a lesson with showPartNames shows the part names from the start and keeps them', () => {
+        jest.useFakeTimers();
+        try {
+            const found = findChallenge(CHALLENGE_ID);
+            const props = {
+                ...baseProps(),
+                current: { ...found, lesson: { ...found.lesson, showPartNames: true } },
+                hint: { visible: false, index: 0, count: 2, step: {} },
+            };
+            const { getByTestId, queryByTestId } = renderLessonMode(props);
+            expect(getByTestId('lesson-part-names')).toBeInTheDocument();
+            act(() => {
+                jest.advanceTimersByTime(10000);
+            });
+            fireEvent.pointerDown(document.body);
+            expect(getByTestId('lesson-part-names')).toBeInTheDocument();
+            fireEvent.click(getByTestId('lesson-task-bar-part-names'));
+            expect(queryByTestId('lesson-part-names')).not.toBeInTheDocument();
+            fireEvent.click(getByTestId('lesson-task-bar-part-names'));
+            act(() => {
+                jest.advanceTimersByTime(10000);
+            });
+            expect(getByTestId('lesson-part-names')).toBeInTheDocument();
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
     test('hint button shows the hint, and hides it when it is visible', () => {
         const props = {
             ...baseProps(),

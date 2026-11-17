@@ -56,6 +56,7 @@
 | `name` | message | レッスンの名前 |
 | `challenges` | チャレンジ[] | 並び順 |
 | `allowDnclMode` | boolean | レッスンのあいだ Ruby タブを日本語モードに切りかえてよいか。**書いていなければ不可**（`false`）。下の「日本語モードの切りかえ」 |
+| `showPartNames` | boolean | チャレンジを開いたときから画面の部分の名前の札を出しておくか（下の「名前の札」。課題バーの「なまえ」で消せる）。**書いていなければ出さない**（`false`）。画面の部分の名前を覚えるレッスン 0 で使う |
 | `checkCount` | number | レッスンの ✓（「全部できた」）に要るできた数。**書いていなければチャレンジの数**（全部）。テーマを選んでやるレッスン（「チャットをつくろう」のレッスン 5）だけ `1` |
 | `autoOpenHints` | boolean | チャレンジを始めたら、ヒントの 1 ページ目を自動で開くか。**書いていなければ開かない**（課題バーの「ヒント」で開く）。はじめのレッスン（「きょうからプログラマー」のレッスン 0 と 1。いまはレッスン 1 の `blocks-l1`）だけ `true`。ヒントの使い方に慣れるまでは開いておき、慣れたら自分で開く。読んで作るチャレンジはこの設定によらず開く |
 
@@ -123,7 +124,7 @@
 | 項目 | 型 | 既定 | 説明 |
 |------|----|------|------|
 | `title` | message \| null | null | 吹き出しの文言 |
-| `target` | string \| null | null | 指す場所（`lib/lessons/hint-targets.js` の `HINT_TARGETS`）: `palette`（パレット）・`code-area`（コードエリア）・`stage`（ステージ）・`sprite-list`（スプライトリスト）・`sounds-tab`（音タブ）・`costumes-tab`（コスチュームタブ）・`backdrop`（背景を選ぶ）・`extension-button`（拡張機能のボタン）・`green-flag`（旗）・`practice-partner`（メッシュの練習相手のパネル。閉じているときは小さな「練習相手」のボタン）・`role-picker`（課題バーの役のボタン。役のあるチャレンジの「役を決めよう」のページ）・`keyboard`（場所の無いもの。画面の真ん中に出す） |
+| `target` | string \| null | null | 指す場所（`lib/lessons/hint-targets.js` の `HINT_TARGETS`）: `palette`（パレット）・`code-area`（コードエリア）・`stage`（ステージ）・`sprite-list`（スプライトリスト）・`sounds-tab`（音タブ）・`costumes-tab`（コスチュームタブ）・`backdrop`（背景を選ぶ）・`extension-button`（拡張機能のボタン）・`green-flag`（旗）・`stop-button`（止める）・`code-tab`（コードタブ）・`task-bar`（課題バー）・`hint-button`（課題バーの「ヒント」）・`practice-partner`（メッシュの練習相手のパネル。閉じているときは小さな「練習相手」のボタン）・`role-picker`（課題バーの役のボタン。役のあるチャレンジの「役を決めよう」のページ）・`keyboard`（場所の無いもの。画面の真ん中に出す） |
 | `blocks` | string \| `{ja, 'ja-Hira', en}` \| null | null | 吹き出しに描くブロック（Ruby。`code` と同じ変換でブロックにする）。`code` と同じく locale ごとにも書ける |
 | `spotlight` | boolean | false | はじめて開いたチャレンジだけ、周りを暗くして `target` を照らす |
 
@@ -1755,6 +1756,26 @@ partner: {
 | ウェルカムバルーン（`welcome-tooltip/`。`docs/welcome/`） | 青の `callout` + `BalloonCloseButton`、しっぽは右 |
 | クラス管理のツールチップ（`classroom-tutorial/`。`docs/tutorial/`） | 画面の真ん中のカードで吹き出しとは形が違うので `Balloon` は使わず、`balloon-tokens.css`（白地・角丸・影・文字色）と `BalloonButton`（OK）だけを使う |
 
+### 名前の札（「なまえ」）
+
+画面の部分の名前（ヒントの文と同じ呼び方）を、部分を囲む枠と札で重ねて出す。「音タブを押して」が通じない子が、
+名前と場所を結びつけられるようにする。
+
+- **出す部分**: 課題バー・ヒント（課題バーの「ヒント」）・コードタブ・コスチュームタブ・音タブ・旗・止める・パレット・
+  コードエリア・ステージ・スプライトリスト・背景（9 つの部分。タブは 3 つ、旗と止めるは 2 つの札）。部分の探し方は
+  ヒントの吹き出しと同じ（`findHintTargetRect`）で、いまの画面に無い部分（コスチュームタブを開いているときの
+  パレットなど）は出さない。
+- **置き方**（`lib/lessons/part-names.js` の `computePartNameLayout`。純粋関数）: 小さな部分（ボタン・タブ）は札をすぐ下
+  （入らなければ横）に、広い部分は中の左上に置く。札が画面の外にはみ出さず、札どうし・ほかの小さな部分・ヒントの
+  吹き出し・練習相手のパネルに重ならない置き場所を、部分に近いものから選ぶ。部分が動く（タブの切りかえ・画面の
+  大きさの変化）のに合わせて 0.5 秒ごとに置き直す。
+- **出し方**: 課題バーの「なまえ」（「ヒント」の左。「ヒント」より小さく枠も薄い）で出し、**6 秒たつか、どこかを押すか、
+  Esc で消える**。もう一度「なまえ」を押しても消える。押した操作はそのまま下の部品に届く。
+- **最初から出す**: レッスンの `showPartNames: true` なら、チャレンジを開いたときから出したままにする（時間でも
+  押しても消えない。「なまえ」で消せ、もう一度押すと出したままにもどる）。枠と札は `pointer-events: none` なので、
+  出したままでもブロックのドラッグやクリックを邪魔しない。
+- 層はヒントの吹き出し・課題バーより下（吹き出しを読みながら操作するため）。
+
 ### data-testid
 
 | data-testid | 要素 | 説明 |
@@ -1773,7 +1794,11 @@ partner: {
 | `lesson-task-bar-role-buttons` | span | 役のボタンの並び（ヒントの「役を決めよう」の吹き出しが指す・`role-picker`） |
 | `lesson-task-bar-role-shimaraby` / `lesson-task-bar-role-shimacat` | button | 「シマラビの役」/「シマネコの役」（いまの役は `aria-pressed="true"`） |
 | `lesson-task-bar-role-note` | span | 「前回はシマネコの役」/「出席番号で決めた役」（前回の役・出席番号で決めたときだけ。ボタンの下） |
+| `lesson-task-bar-part-names` | button | 「なまえ」。画面の部分の名前の札の出し入れ（出ているときは `aria-pressed="true"`） |
 | `lesson-task-bar-hint` | button | ヒントの吹き出しの出し入れ（ヒントが無ければ disabled） |
+| `lesson-part-names` | div | 名前の札の重ね（出ているときだけある。document.body への portal） |
+| `lesson-part-names-frame-<label>` | div | 部分を囲む枠（見つかった部分だけ）。`<label>` は `taskBar` / `hint` / `codeTab` / `costumesTab` / `soundsTab` / `greenFlag` / `stop` / `palette` / `codeArea` / `stage` / `spriteList` / `backdrop` |
+| `lesson-part-names-label-<label>` | span | 部分の名前の札（置いたものは `data-placed="true"`、画面に無い部分は `false` で見えない） |
 | `lesson-task-bar-quit` | button | ほかのチャレンジへ（いまのチャレンジを終えてレッスン表を開く。白地で目立たせる） |
 | `lesson-task-bar-end` | button | レッスンをおえる（右端。レッスンから出て、いつもの画面にもどる。レッスン表は開かない） |
 | `lesson-hint` | div | ヒントの吹き出し（`data-side` = 置いた側 `right` / `left` / `bottom` / `top` / `inside` / `center`、`data-target` = 指す場所） |
@@ -1973,6 +1998,8 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/containers/lesson-hint.jsx` | 吹き出しのコンテナ（`getCurrentHint` を読み、`blocks` を XML にし、「プログラムを入れる」を dispatch。クラスに参加中の生徒には手順の `classroomTitle` を出す） |
 | `packages/scratch-gui/src/lib/lessons/hint-text.js` | ヒントの文言の決まり（`**…**` の強調を分ける `splitEmphasis`、クラスの中と外で文言を選ぶ `hintStepTitle` / `isSeatedStudent`） |
 | `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・DOM の探し方・置き方・ドラッグした位置を画面に収める（`clampHintPosition`）・置いてよい範囲（`hintViewport`。SP のサイドレールの右・課題バーの下）（純粋関数） |
+| `packages/scratch-gui/src/lib/lessons/part-names.js` | 名前の札を出す部分（`PART_NAMES`）・探し方（`findPartNameRects`）・札の置き方（`computePartNameLayout`。純粋関数） |
+| `packages/scratch-gui/src/components/lesson-part-names/` | 名前の札の重ね（枠と札・置き直し・6 秒で消す） |
 | `packages/scratch-gui/src/lib/lessons/read-diagram.js` | 読んで作るチャレンジ（`mode: 'readDiagram'`）のヒントの 3 ページを作る・定義に決まりを当てはめる（`readDiagramSteps`・`applyChallengeMode`。純粋関数） |
 | `packages/scratch-gui/test/unit/lib/lessons/read-diagram.test.js` | 読んで作るチャレンジの unit テスト |
 | `packages/scratch-gui/src/lib/lessons/hint-blocks.js` / `blocks-xml.js` | Ruby → ブロック → Blockly の XML |
