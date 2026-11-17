@@ -115,7 +115,7 @@ describe('Smalruby Lessons Library', () => {
         expect(await getLogs()).toEqual([]);
     });
 
-    test('the cards are a color band + the name, and lesson 0 and 1 fit in 1300×600 without scrolling', async () => {
+    test('lesson 0 and 1 fit in 1300×600 without scrolling, the later lessons are folded, and the cards are a color band + the name', async () => {
         await driver.manage().window().setRect({ width: 1300, height: 600 });
         await loadUri(`${uri}?no_beforeunload=1`);
         await waitForLoadingFinished();
@@ -123,6 +123,28 @@ describe('Smalruby Lessons Library', () => {
         await clickByTestId(driver, 'menu-bar-lessons');
         await findByXpath(byTestId('lessons-library'));
         await driver.sleep(500);
+
+        // 最初に開くレッスン 0 と、次のレッスン 1 のカードがスクロールせずに見える（いちばん下のカードが画面の中）。
+        const fit = await driver.executeScript(
+            `const cards = Array.from(document.querySelectorAll(
+                '[data-testid="lessons-library-lesson-blocks-l0"] [data-testid^="lessons-library-challenge-"], [data-testid="lessons-library-lesson-blocks-l1"] [data-testid^="lessons-library-challenge-"]'));
+            return {
+                innerHeight: window.innerHeight,
+                bottom: Math.max(...cards.map(el => el.getBoundingClientRect().bottom)),
+            };`,
+        );
+        expect(fit.bottom).toBeLessThanOrEqual(fit.innerHeight);
+
+        // たたみ方（#2148）: はじめはレッスン 0 と 1 だけ開き、2・3 は 1 行にたたむ。見出しを押すと開く
+        expect(
+            await driver.executeScript(
+                `return ['l0', 'l1', 'l2', 'l3'].map((id) =>
+                    document.querySelector('[data-testid="lessons-library-lesson-blocks-' + id + '"]').dataset.expanded);`,
+            ),
+        ).toEqual(['true', 'true', 'false', 'false']);
+        await clickByTestId(driver, 'lessons-library-lesson-toggle-blocks-l2');
+        await clickByTestId(driver, 'lessons-library-lesson-toggle-blocks-l3');
+        await driver.sleep(300);
 
         // 帯の色 = 多く使うブロックのなかまの色（#1543）。絵は無い。「きょうからプログラマー」のカードを見る
         // （下に「チャットをつくろう」のコースも並ぶ）
@@ -148,18 +170,6 @@ describe('Smalruby Lessons Library', () => {
         expect(bands[1][1]).toBe('rgb(76, 151, 255)');
         bands.forEach(([, , width]) => expect(width).toBe(10));
         expect(await countByTestId(driver, 'lessons-library-card-art')).toBe(0);
-
-        // 最初に開くレッスン 0 と、次のレッスン 1 のカードがスクロールせずに見える（いちばん下のカードが画面の中）。
-        // レッスン 0 を足したので、レッスン 2・3 はスクロールして見る（#2134）
-        const fit = await driver.executeScript(
-            `const cards = Array.from(document.querySelectorAll(
-                '[data-testid="lessons-library-lesson-blocks-l0"] [data-testid^="lessons-library-challenge-"], [data-testid="lessons-library-lesson-blocks-l1"] [data-testid^="lessons-library-challenge-"]'));
-            return {
-                innerHeight: window.innerHeight,
-                bottom: Math.max(...cards.map(el => el.getBoundingClientRect().bottom)),
-            };`,
-        );
-        expect(fit.bottom).toBeLessThanOrEqual(fit.innerHeight);
     });
 
     test('?locale=ja-Hira opens the library in hiragana', async () => {
