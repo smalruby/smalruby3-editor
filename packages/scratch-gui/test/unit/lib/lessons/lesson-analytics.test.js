@@ -1,4 +1,6 @@
 import {
+    activityDiagramEvent,
+    sendActivityDiagramEvent,
     activeNow,
     activeTime,
     resetSharedLessonAnalytics,
@@ -374,5 +376,61 @@ describe('lesson analytics', () => {
         installVisibilityTracking(again, () => t);
         expect(again.addEventListener).not.toHaveBeenCalled();
         resetSharedLessonAnalytics();
+    });
+});
+
+describe('activity diagram analytics (#1647)', () => {
+    const ALL_KEYS = ['course_id', 'lesson_id', 'challenge_id', 'from_assignment', 'page', 'seconds'];
+
+    test('outside a lesson: label is sprite / stage and every lessons item is there as undefined', () => {
+        const event = activityDiagramEvent(closed, 'sprite');
+        expect(event).toEqual({
+            category: LESSON_ANALYTICS_CATEGORY,
+            action: LESSON_EVENTS.ACTIVITY_DIAGRAM_OPEN,
+            label: 'sprite',
+            course_id: undefined, // eslint-disable-line no-undefined
+            lesson_id: undefined, // eslint-disable-line no-undefined
+            challenge_id: undefined, // eslint-disable-line no-undefined
+            from_assignment: undefined, // eslint-disable-line no-undefined
+            page: undefined, // eslint-disable-line no-undefined
+            seconds: undefined, // eslint-disable-line no-undefined
+        });
+        ALL_KEYS.forEach((key) => expect(Object.prototype.hasOwnProperty.call(event, key)).toBe(true));
+        expect(activityDiagramEvent(closed, 'stage').label).toBe('stage');
+    });
+
+    test('in a lesson: the ids of the current challenge are added', () => {
+        const event = activityDiagramEvent(opened({ fromAssignment: true }), 'stage');
+        expect(event).toMatchObject({
+            action: 'activity_diagram_open',
+            label: 'stage',
+            course_id: opened().courseId,
+            lesson_id: opened().lessonId,
+            challenge_id: opened().challengeId,
+            from_assignment: true,
+        });
+        expect(event.page).toBeUndefined();
+        expect(event.seconds).toBeUndefined();
+    });
+
+    test('does not send for a logged-in teacher or a label that is not decided', () => {
+        expect(activityDiagramEvent({ ...closed, teacherLoggedIn: true }, 'sprite')).toBeNull();
+        expect(activityDiagramEvent(closed, 'Sprite1')).toBeNull();
+        expect(activityDiagramEvent(null, 'sprite')).toBeNull();
+    });
+
+    test('sendActivityDiagramEvent sends once and swallows a failure', () => {
+        const send = jest.fn();
+        sendActivityDiagramEvent(closed, 'sprite', send);
+        expect(send).toHaveBeenCalledTimes(1);
+        expect(send.mock.calls[0][0].action).toBe('activity_diagram_open');
+        expect(() =>
+            sendActivityDiagramEvent(closed, 'sprite', () => {
+                throw new Error('no dataLayer');
+            }),
+        ).not.toThrow();
+        const none = jest.fn();
+        sendActivityDiagramEvent({ ...closed, teacherLoggedIn: true }, 'sprite', none);
+        expect(none).not.toHaveBeenCalled();
     });
 });

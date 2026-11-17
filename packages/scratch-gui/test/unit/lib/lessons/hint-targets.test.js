@@ -7,6 +7,7 @@ import {
     HINT_TARGETS,
     clampHintPosition,
     computeHintPlacement,
+    findHintAvoidRects,
     findHintTargetRect,
     hintViewport,
     preferredSides,
@@ -116,11 +117,96 @@ describe('findHintTargetRect', () => {
         expect(findHintTargetRect(HINT_TARGETS.SOUNDS_TAB, document)).toEqual(rect(200, 0, 300, 40));
     });
 
+    // ルビータブは 4 つめのタブ。SP はサイドレールのボタン（#2142）
+    test('the Ruby tab is the 4th desktop tab, or the side rail button on SP', () => {
+        const list = document.createElement('ul');
+        [rect(0, 88, 92, 120), rect(92, 88, 214, 120), rect(214, 88, 290, 120), rect(290, 88, 372, 120)].forEach(
+            (r) => {
+                const li = document.createElement('li');
+                li.className = 'gui_tab_abc';
+                li.getBoundingClientRect = () => r;
+                list.appendChild(li);
+            },
+        );
+        document.body.appendChild(list);
+        expect(findHintTargetRect(HINT_TARGETS.RUBY_TAB, document)).toEqual(rect(290, 88, 372, 120));
+        addEl('x', rect(0, 300, 48, 348), { 'data-testid': 'mobile-side-rail-ruby' });
+        expect(findHintTargetRect(HINT_TARGETS.RUBY_TAB, document)).toEqual(rect(0, 300, 48, 348));
+    });
+
+    // 名前の札（「ガイド」）でも使う場所（#2133）
+    test('the stop button, the code tab, the task bar and the hint button are found', () => {
+        addEl('stop-all_stop-all-button_abc', rect(0, 0, 10, 10));
+        expect(findHintTargetRect(HINT_TARGETS.STOP_BUTTON, document)).toBeNull();
+        addEl('stop-all_stop-all_abc', rect(940, 60, 970, 90));
+        expect(findHintTargetRect(HINT_TARGETS.STOP_BUTTON, document)).toEqual(rect(940, 60, 970, 90));
+        const list = document.createElement('ul');
+        [rect(0, 88, 100, 120), rect(100, 88, 200, 120)].forEach((r) => {
+            const li = document.createElement('li');
+            li.className = 'gui_tab_abc';
+            li.getBoundingClientRect = () => r;
+            list.appendChild(li);
+        });
+        document.body.appendChild(list);
+        expect(findHintTargetRect(HINT_TARGETS.CODE_TAB, document)).toEqual(rect(0, 88, 100, 120));
+        addEl('', rect(0, 48, 1300, 88), { 'data-testid': 'lesson-task-bar' });
+        addEl('', rect(1000, 56, 1050, 80), { 'data-testid': 'lesson-task-bar-hint' });
+        expect(findHintTargetRect(HINT_TARGETS.TASK_BAR, document)).toEqual(rect(0, 48, 1300, 88));
+        expect(findHintTargetRect(HINT_TARGETS.HINT_BUTTON, document)).toEqual(rect(1000, 56, 1050, 80));
+    });
+
     test('the extension button is found by the data-testid of the Smalruby component', () => {
         addEl('extension-button_extension-button-container_abc', rect(0, 540, 60, 600), {
             'data-testid': 'extension-button',
         });
         expect(findHintTargetRect(HINT_TARGETS.EXTENSION_BUTTON, document)).toEqual(rect(0, 540, 60, 600));
+    });
+
+    test('the practice partner panel (or its open button) is found and is avoided (#1643)', () => {
+        expect(findHintAvoidRects(document)).toEqual([]);
+        addEl('', rect(1180, 540, 1260, 570), { 'data-testid': 'lesson-practice-partner-open' });
+        expect(findHintTargetRect(HINT_TARGETS.PRACTICE_PARTNER, document)).toEqual(rect(1180, 540, 1260, 570));
+        expect(findHintAvoidRects(document)).toEqual([]);
+        addEl('', rect(746, 132, 922, 331), { 'data-testid': 'lesson-practice-partner' });
+        expect(findHintTargetRect(HINT_TARGETS.PRACTICE_PARTNER, document)).toEqual(rect(746, 132, 922, 331));
+        expect(findHintAvoidRects(document)).toEqual([rect(746, 132, 922, 331)]);
+    });
+
+    test('the list of costumes or sounds is avoided, so the balloon does not hide the 2nd costume (#2146)', () => {
+        expect(findHintAvoidRects(document, HINT_TARGETS.COSTUMES_TAB)).toEqual([]);
+        addEl('selector_wrapper_abc', rect(0, 117, 150, 563));
+        expect(findHintAvoidRects(document, HINT_TARGETS.COSTUMES_TAB)).toEqual([rect(0, 117, 150, 563)]);
+    });
+
+    test('a balloon pointing at the code area does not cover the scripts in it (#2146)', () => {
+        const blocks = addEl('blocks_blocks_abc', rect(0, 88, 920, 563));
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'blocklySvg');
+        const ws = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        ws.setAttribute('class', 'blocklyWorkspace');
+        const canvas = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        canvas.setAttribute('class', 'blocklyBlockCanvas');
+        const script = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        script.setAttribute('class', 'event_whenflagclicked blocklyBlock blocklyDraggable');
+        script.getBoundingClientRect = () => rect(516, 304, 719, 418);
+        canvas.appendChild(script);
+        ws.appendChild(canvas);
+        svg.appendChild(ws);
+        blocks.appendChild(svg);
+        expect(findHintAvoidRects(document, HINT_TARGETS.CODE_AREA)).toEqual([rect(516, 304, 719, 418)]);
+        expect(findHintAvoidRects(document, HINT_TARGETS.PALETTE)).toEqual([]);
+    });
+
+    test('the role buttons in the task bar are found by their data-testid (not the note under them)', () => {
+        expect(findHintTargetRect(HINT_TARGETS.ROLE_PICKER, document)).toBeNull();
+        addEl('', rect(880, 46, 1040, 66), { 'data-testid': 'lesson-task-bar-role-buttons' });
+        expect(findHintTargetRect(HINT_TARGETS.ROLE_PICKER, document)).toEqual(rect(880, 46, 1040, 66));
+    });
+
+    test('the balloon pointing at the role buttons may cover the practice partner panel (it sits right under them)', () => {
+        addEl('', rect(746, 132, 922, 331), { 'data-testid': 'lesson-practice-partner' });
+        expect(findHintAvoidRects(document, HINT_TARGETS.ROLE_PICKER)).toEqual([]);
+        expect(findHintAvoidRects(document, HINT_TARGETS.PALETTE)).toEqual([rect(746, 132, 922, 331)]);
     });
 });
 
@@ -140,7 +226,20 @@ describe('hint targets: CSS Modules class names of upstream components', () => {
         'sprite-selector_sprite-selector_': ['sprite-selector/sprite-selector.css', 'sprite-selector'],
         'stage-selector_stage-selector_': ['stage-selector/stage-selector.css', 'stage-selector'],
         'green-flag_green-flag_': ['green-flag/green-flag.css', 'green-flag'],
+        'stop-all_stop-all_': ['stop-all/stop-all.css', 'stop-all'],
+        selector_wrapper_: ['asset-panel/selector.css', 'wrapper'],
     };
+
+    // タブは並び順（nth-child）で探す。ルビータブ（Smalruby が足したタブ）が 4 つめのままかを見張る（#2142）
+    test('the tabs are Code, Costumes, Sounds and Ruby in this order in gui.jsx', () => {
+        const gui = fs.readFileSync(path.join(srcDir, 'components/gui/gui.jsx'), 'utf8');
+        const ids = ['gui.gui.codeTab', 'gui.gui.costumesTab', 'gui.gui.soundsTab', 'gui.smalruby3.gui.rubyTab'];
+        const at = ids.map((id) => gui.indexOf(`id="${id}"`));
+        at.forEach((i) => expect(i).toBeGreaterThan(0));
+        expect([...at].sort((x, y) => x - y)).toEqual(at);
+        const tabList = gui.slice(gui.indexOf('<TabList'), gui.indexOf('</TabList>'));
+        expect(tabList.match(/<Tab\b/g)).toHaveLength(4);
+    });
 
     test('every class prefix used by the selectors is listed here', () => {
         const used = new Set(Array.from(source.matchAll(/\[class\*="([^"]+)"\]/g), (m) => m[1]));
@@ -214,6 +313,162 @@ describe('computeHintPlacement', () => {
         expect(below.arrow).toEqual({ x: 142, y: 12 });
     });
 
+    test('below the costumes tab, the balloon moves off the list of costumes (#2146)', () => {
+        const tab = rect(100, 88, 230, 116);
+        const list = rect(0, 117, 150, 563);
+        const placed = computeHintPlacement({
+            target: tab,
+            balloon,
+            viewport: { width: 1300, height: 600, top: 80 },
+            sides: preferredSides('costumes-tab'),
+            avoid: [list],
+        });
+        expect(placed.left).toBeGreaterThanOrEqual(list.right);
+        expect(placed.top).toBeGreaterThanOrEqual(tab.bottom);
+    });
+
+    // 1300×600 のチャットのレッスン 3: 練習相手のパネル（コードエリアの右上）に吹き出しをかぶせない（#1643）
+    describe('with the practice partner panel to avoid (#1643)', () => {
+        const panel = rect(746, 132, 922, 331);
+        const vp = { width: 1300, height: 600, top: 80 };
+        const overlaps = (p, b, r) =>
+            p.left < r.right && p.left + b.width > r.left && p.top < r.bottom && p.top + b.height > r.top;
+
+        test('a wide balloon right of the palette slides left a little over the palette rather than the panel', () => {
+            const palette = rect(0, 117, 311, 563);
+            const big = { width: 480, height: 374 };
+            const placed = computeHintPlacement({
+                target: palette,
+                balloon: big,
+                viewport: vp,
+                sides: preferredSides('palette'),
+                avoid: [panel],
+            });
+            expect(overlaps(placed, big, panel)).toBe(false);
+            expect(placed.side).toBe(HINT_SIDES.RIGHT);
+            expect(placed.left).toBe(746 - 12 - 480);
+        });
+
+        test('a balloon left of the sprite list moves left of the panel', () => {
+            const sprites = rect(930, 404, 1212, 600);
+            const b = { width: 352, height: 312 };
+            const placed = computeHintPlacement({
+                target: sprites,
+                balloon: b,
+                viewport: vp,
+                sides: preferredSides('sprite-list'),
+                avoid: [panel],
+            });
+            expect(overlaps(placed, b, panel)).toBe(false);
+            expect(placed.side).toBe(HINT_SIDES.LEFT);
+            expect(placed.left + b.width).toBeLessThanOrEqual(746);
+        });
+
+        test('pointing at the panel puts the balloon to its left, not over it', () => {
+            const placed = computeHintPlacement({
+                target: panel,
+                balloon,
+                viewport: vp,
+                sides: preferredSides(HINT_TARGETS.PRACTICE_PARTNER),
+                avoid: [panel],
+            });
+            expect(placed.side).toBe(HINT_SIDES.LEFT);
+            expect(overlaps(placed, balloon, panel)).toBe(false);
+        });
+
+        test('a balloon without a target (centered) moves off the panel too', () => {
+            const b = { width: 352, height: 212 };
+            const placed = computeHintPlacement({ target: null, balloon: b, viewport: vp, avoid: [panel] });
+            expect(placed.side).toBe(HINT_SIDES.CENTER);
+            expect(overlaps(placed, b, panel)).toBe(false);
+        });
+
+        // 1440×900 のチャットのレッスン 4-3 のヒント 1（ステージを指す・図のある高い吹き出し）: パネルをよけて
+        // 下にずらすと、ステージの真ん中の高さは吹き出しの上の端より上になる。しっぽを角に寄せて描くと、
+        // 閉じるボタンにかぶる白いひし形になるので、しっぽは出さない
+        test('no arrow when the balloon slid off the target so the arrow could only sit at a corner', () => {
+            const stage = rect(1070, 132, 1432, 404);
+            const partnerPanel = rect(886, 140, 1062, 339);
+            const big = { width: 480, height: 476 };
+            const placed = computeHintPlacement({
+                target: stage,
+                balloon: big,
+                viewport: { width: 1440, height: 900, top: 88 },
+                sides: preferredSides('stage'),
+                avoid: [partnerPanel],
+            });
+            expect(placed.side).toBe(HINT_SIDES.LEFT);
+            expect(placed.top).toBeGreaterThan((132 + 404) / 2);
+            expect(placed.arrow).toBeNull();
+        });
+
+        // 1300×600 のチャットのレッスン 4-3 のヒント 8（旗を指す）: 旗は練習相手のパネルの上にあるので、吹き出しは
+        // 旗の左に置かれ、パネルをよけて左へずれる。しっぽの高さ（y = 14）は辺の中だが、ヘッダーの帯（上から 38px）の
+        // 中で、閉じるボタンの横に白いひし形が出るので、しっぽは出さない
+        test('no arrow when a sideways arrow would sit in the header band', () => {
+            const flag = rect(930, 86, 962, 118);
+            const partnerPanel = rect(750, 130, 1290, 400);
+            const tall = { width: 352, height: 485, header: 38, closeLeft: 318 };
+            const placed = computeHintPlacement({
+                target: flag,
+                balloon: tall,
+                viewport: { width: 1300, height: 600, top: 80 },
+                sides: preferredSides(HINT_TARGETS.GREEN_FLAG),
+                avoid: [partnerPanel],
+            });
+            expect(placed.side).toBe(HINT_SIDES.LEFT);
+            expect(placed.top).toBe(88);
+            expect(placed.arrow).toBeNull();
+        });
+
+        test('a sideways arrow just below the header band is still drawn', () => {
+            const target = rect(930, 140, 962, 172);
+            const placed = computeHintPlacement({
+                target,
+                balloon: { width: 352, height: 300, header: 38, closeLeft: 318 },
+                viewport: { width: 1300, height: 600, top: 80 },
+                sides: [HINT_SIDES.LEFT],
+            });
+            expect(placed.side).toBe(HINT_SIDES.LEFT);
+            expect(placed.top).toBe(88);
+            expect(placed.arrow).toEqual({ x: 340, y: 68 });
+        });
+
+        test('no arrow when an arrow on the top edge would sit on the close button', () => {
+            // 下に置いた吹き出しを画面の右に収めた結果、しっぽ（上の辺・ヘッダーの色）が閉じるボタンにかかる
+            const target = rect(1250, 40, 1290, 80);
+            const b = { width: 352, height: 200, header: 38, closeLeft: 318 };
+            const placed = computeHintPlacement({ target, balloon: b, viewport, sides: [HINT_SIDES.BOTTOM] });
+            expect(placed.side).toBe(HINT_SIDES.BOTTOM);
+            expect(placed.left).toBe(1300 - 352 - 8);
+            expect(placed.arrow).toBeNull();
+            // 閉じるボタンの左なら出す
+            const left = computeHintPlacement({
+                target: rect(1150, 40, 1190, 80),
+                balloon: b,
+                viewport,
+                sides: [HINT_SIDES.BOTTOM],
+            });
+            expect(left.arrow).toEqual({ x: 230, y: 12 });
+        });
+
+        test('without anything to avoid the placement is as before', () => {
+            const target = rect(0, 100, 310, 600);
+            expect(computeHintPlacement({ target, balloon, viewport, avoid: [] })).toEqual(
+                computeHintPlacement({ target, balloon, viewport }),
+            );
+        });
+    });
+
+    test('no arrow when the target is beside the balloon edge, not along it', () => {
+        // 下に置いた吹き出しを画面の左に収めた結果、指す場所の真ん中が吹き出しの右の端より右にある
+        const target = rect(700, 40, 760, 80);
+        const narrow = { width: 375, height: 667 };
+        const placed = computeHintPlacement({ target, balloon, viewport: narrow, sides: [HINT_SIDES.BOTTOM] });
+        expect(placed.side).toBe(HINT_SIDES.BOTTOM);
+        expect(placed.arrow).toBeNull();
+    });
+
     test('the default order is right, left, bottom, top', () => {
         const target = rect(1000, 250, 1100, 350);
         expect(computeHintPlacement({ target, balloon, viewport }).side).toBe(HINT_SIDES.LEFT);
@@ -254,9 +509,71 @@ describe('hint targets: the SP side rail is above the balloon', () => {
 
     test('hintViewport starts right of the side rail, and is the whole screen without it', () => {
         const win = { innerWidth: 375, innerHeight: 667 };
-        expect(hintViewport(document, win)).toEqual({ left: 0, width: 375, height: 667 });
+        expect(hintViewport(document, win)).toEqual({ left: 0, top: 0, width: 375, height: 667 });
         addEl('rail', rect(0, 0, 56, 667), { 'data-testid': 'mobile-side-rail' });
-        expect(hintViewport(document, win)).toEqual({ left: 56, width: 375, height: 667 });
+        expect(hintViewport(document, win)).toEqual({ left: 56, top: 0, width: 375, height: 667 });
+    });
+
+    test('hintViewport starts below the lesson task bar (the bar is drawn above the balloon)', () => {
+        const win = { innerWidth: 1300, innerHeight: 600 };
+        addEl('bar', rect(0, 40, 1300, 80), { 'data-testid': 'lesson-task-bar' });
+        expect(hintViewport(document, win)).toEqual({ left: 0, top: 80, width: 1300, height: 600 });
+    });
+
+    test('with no target, the balloon is centered in the area below the task bar', () => {
+        const placed = computeHintPlacement({
+            target: null,
+            balloon: { width: 300, height: 200 },
+            viewport: { left: 0, top: 80, width: 1300, height: 600 },
+        });
+        expect(placed.side).toBe(HINT_SIDES.CENTER);
+        // 横は (1300 - 300) / 2、縦はバーの下（80〜600）の真ん中 80 + (520 - 200) / 2
+        expect(placed.left).toBe(500);
+        expect(placed.top).toBe(240);
+    });
+
+    test('placement and dragging keep a tall balloon below the task bar', () => {
+        const viewport = { left: 0, top: 80, width: 1300, height: 600 };
+        const balloon = { width: 352, height: 480 };
+        // ステージ（y = 125〜395）の左に置くと、真ん中に合わせた上の端がバーの下にもぐる
+        const placed = computeHintPlacement({
+            target: rect(930, 125, 1290, 395),
+            balloon,
+            viewport,
+            sides: [HINT_SIDES.LEFT],
+        });
+        expect(placed.side).toBe(HINT_SIDES.LEFT);
+        expect(placed.top).toBe(88);
+        expect(clampHintPosition({ left: 100, top: 10 }, balloon, viewport).top).toBe(88);
+        // 収まらないほど高いときは、下を切っても上（ヘッダーと閉じる）を見せる
+        expect(clampHintPosition({ left: 100, top: 10 }, { width: 352, height: 700 }, viewport).top).toBe(88);
+    });
+
+    test('pointing at the role buttons in the task bar puts the balloon below the bar, arrow up at the buttons', () => {
+        const viewport = { left: 0, top: 80, width: 1300, height: 600 };
+        const placed = computeHintPlacement({
+            target: rect(880, 46, 1040, 66),
+            balloon: { width: 352, height: 200 },
+            viewport,
+            sides: preferredSides(HINT_TARGETS.ROLE_PICKER),
+        });
+        expect(placed.side).toBe(HINT_SIDES.BOTTOM);
+        // バーの下（80 + 8）から。しっぽは役のボタンの真ん中（x = 960）を指す
+        expect(placed.top).toBe(88);
+        expect(placed.left + placed.arrow.x).toBe(960);
+    });
+
+    test('on a wide screen (1440x900) the arrow still points at the role buttons', () => {
+        const placed = computeHintPlacement({
+            target: rect(920, 58, 1086, 77),
+            balloon: { width: 352, height: 212 },
+            viewport: { left: 0, top: 88, width: 1440, height: 900 },
+            sides: preferredSides(HINT_TARGETS.ROLE_PICKER),
+            avoid: [],
+        });
+        expect(placed.side).toBe(HINT_SIDES.BOTTOM);
+        expect(placed.arrow).not.toBeNull();
+        expect(placed.left + placed.arrow.x).toBe(1003);
     });
 
     test('placement and dragging keep the balloon right of the rail', () => {

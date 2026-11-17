@@ -1,0 +1,105 @@
+// チャレンジの定義から、アクティビティ図（モデルと置き方）を作る。
+// 図のもとは答えのプログラム（`code` と `spriteCodes`）を Ruby → ブロック変換したもの
+// （ヒントの絵・「プログラムを入れる」と同じ変換）。変換は呼ぶ側が `toBlocks` で渡す
+// （GUI もテストも VM なしの RubyToBlocksConverter。use-challenge-activity-diagram.js）。
+// 練習相手の定義（`partner`）があれば、自分と相手のスイムレーンにする。
+import { localizeCode } from '../courses';
+import { codeSpriteName, spriteDisplayName } from '../read-diagram';
+import { otherRole, roleOfChallenge } from '../role-swap';
+import { layoutActivityDiagram } from './layout';
+import { buildActivityModel, countScripts, describeActivityModel, partnerLane } from './model';
+
+const P = 'gui.lessons.activityDiagram.';
+
+/**
+ * 課題の全文・ヒントの 1 ページ目に図を出すか。チャレンジの定義の `activityDiagram` が true で、
+ * 答えのプログラムがあるときだけ。
+ * @param {?object} challenge - チャレンジ（defineChallenge の形）。
+ * @returns {boolean} 出すか。
+ */
+export const showsActivityDiagram = (challenge) =>
+    Boolean(
+        challenge &&
+        challenge.activityDiagram === true &&
+        (challenge.code || (challenge.spriteCodes && challenge.spriteCodes.length > 0)),
+    );
+
+/**
+ * 自分のレーンのもとにするプログラム（いまの locale の Ruby）。`target` は変換の文脈にする相手
+ * （'code' = `code` を入れる相手、それ以外はスプライトの名前）。
+ * @param {object} challenge - チャレンジ。
+ * @param {string} locale - いまの locale。
+ * @returns {Array<{id: string, sources: Array<{name: ?string, code: string, target: string}>}>} レーン。
+ */
+export const activityDiagramLanes = (challenge, locale) => {
+    const code = localizeCode(challenge.code, locale);
+    const sources = [
+        ...(code ? [{ name: null, code, target: 'code' }] : []),
+        ...(challenge.spriteCodes || [])
+            .map(({ sprite, code: spriteCode }) => ({
+                name: sprite,
+                code: localizeCode(spriteCode, locale),
+                target: sprite,
+            }))
+            .filter((source) => source.code),
+    ];
+    return [{ id: 'own', sources }];
+};
+
+/**
+ * チャレンジのアクティビティ図を作る。出さないチャレンジ・変換できなかったとき・スクリプトが無いときは null。
+ * 置き方（layout）には、流れを文にした代わりの文（`description`）も付ける。
+ * @param {object} challenge - チャレンジ。
+ * @param {object} options - 作り方。
+ * @param {string} options.locale - いまの locale。
+ * @param {function(string, object=): string} options.format - 文言を引く関数。
+ * @param {function(object): Promise<?object>} options.toBlocks - source（`activityDiagramLanes` の要素）→
+ *   VM 形式のブロック（失敗は null）。
+ * @param {?function(string): ?string} [options.blockName] - 対応していないブロックの名前のテンプレート。
+ * @param {?string} [options.codeName] - `code` を入れる相手の名前（スプライトが 2 つ以上のとき見出しに書く）。
+ *   無ければ、ステージのプログラムなら「ステージ」、始めるときにネコを置きかえたチャレンジなら `setup.sprites` の
+ *   1 つめ、ほかは「ネコ」（`spriteCodes` の残りのスプライト）。
+ * @returns {Promise<?{model: object, layout: object}>} 図。
+ */
+export const challengeActivityDiagram = async (
+    challenge,
+    { locale, format, toBlocks, blockName = null, codeName = null },
+) => {
+    if (!showsActivityDiagram(challenge)) return null;
+    // 訳のあるキャラクター（シマラビ・シマネコ）は locale の名前で書く
+    const displayed = (name) => (typeof name === 'string' ? name : format(name.id));
+    const setupSprite = codeSpriteName(challenge.setup);
+    const partner = partnerLane(challenge.partner, { format, locale });
+    // ペアでやるチャレンジ（役のあるもの）は、レーンの見出しに役を書く。相手のレーンは「相手（シマネコの役）」
+    // にして、ペアのときは相手の人間が作るもの（役を入れかえた同じ形）、ひとりのときは練習相手、と読めるようにする
+    const role = roleOfChallenge(challenge);
+    const roleName = (one) => format(`${P}role.${one}`);
+    if (partner && role) partner.label = format(`${P}partnerLaneRole`, { role: roleName(otherRole(role)) });
+    const ownLabel = role ? format(`${P}ownLaneRole`, { role: roleName(role) }) : format(`${P}ownLane`);
+    const lanes = [];
+    for (const lane of activityDiagramLanes(challenge, locale)) {
+        const targets = [];
+        for (const source of lane.sources) {
+            const blocks = await toBlocks(source);
+            if (!blocks) return null;
+            const name =
+                source.target === 'code'
+                    ? codeName ||
+                      (challenge.codeTarget === 'stage'
+                          ? format(`${P}stage`)
+                          : setupSprite
+                            ? displayed(setupSprite)
+                            : format(`${P}codeSprite`))
+                    : displayed(spriteDisplayName(source.name));
+            targets.push({ name, blocks });
+        }
+        lanes.push({ id: lane.id, label: partner ? ownLabel : null, targets });
+    }
+    const model = buildActivityModel({ lanes }, { format, blockName });
+    if (partner) model.lanes.push(partner);
+    // 答えにスクリプトが無い（コメントだけなど）ときは、空の枠を出さない
+    if (countScripts(model) === 0) return null;
+    // 代わりの文（流れを文にしたもの）は置き方といっしょに描く側へ渡す
+    const layout = { ...layoutActivityDiagram(model), description: describeActivityModel(model, format) };
+    return { model, layout };
+};

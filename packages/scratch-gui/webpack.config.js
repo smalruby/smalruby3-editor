@@ -48,6 +48,11 @@ const MONACO_VS_DEST = `static/monaco/${MONACO_EDITOR_VERSION}/vs`;
 // `min/vs` は約 16MB あり、PWA の precache に入れると初回インストールが極端に重くなる。
 // precache からは除外し、runtime caching (StaleWhileRevalidate) でオフライン対応する。
 const monacoPrecacheExclude = /^static[\\/]monaco[\\/]/;
+// === Smalruby: Start of standard assignments ===
+// The PDFs under assignments/ are printed by teachers, not used by the editor. Keep them out of the
+// service worker's precache so that installing the PWA does not download them.
+const assignmentsPrecacheExclude = /^assignments[\\/]/;
+// === Smalruby: End of standard assignments ===
 const monacoRuntimeCaching = {
     urlPattern: /\/static\/monaco\//,
     handler: 'StaleWhileRevalidate',
@@ -406,7 +411,16 @@ const buildConfig = baseConfig.clone()
                 from: 'extensions/**',
                 to: 'static',
                 context: 'src/examples'
+            },
+            // === Smalruby: Start of standard assignments ===
+            // Publish the repository's assignments/ at smalruby.app/assignments/ (CC0 materials).
+            {
+                from: '**/*',
+                context: path.resolve(__dirname, '../../assignments'),
+                to: 'assignments',
+                globOptions: { ignore: ['**/README.md'] }
             }
+            // === Smalruby: End of standard assignments ===
         ]
     }));
 
@@ -421,6 +435,7 @@ const buildWithPwaConfig = buildConfig.clone()
                 /\.DS_Store/,
                 /version\.json$/, // === Smalruby: exclude from precache for version update notification ===
                 monacoPrecacheExclude, // === Smalruby: Monaco is runtime-cached instead (#1171) ===
+                assignmentsPrecacheExclude, // === Smalruby: standard assignments are not precached ===
                 ...decksPrecacheExclude // === Smalruby: tutorial images are runtime-cached (lazy tutorial images) ===
             ],
             // === Smalruby: runtime caching for the self-hosted Monaco Editor (#1171) ===
@@ -494,6 +509,7 @@ const distWithHtmlConfig = buildConfig.clone()
                 /\.DS_Store/,
                 /version\.json$/, // === Smalruby: exclude from precache for version update notification ===
                 monacoPrecacheExclude, // === Smalruby: Monaco is runtime-cached instead (#1171) ===
+                assignmentsPrecacheExclude, // === Smalruby: standard assignments are not precached ===
                 ...decksPrecacheExclude // === Smalruby: tutorial images are runtime-cached (lazy tutorial images) ===
             ],
             // === Smalruby: runtime caching for the self-hosted Monaco Editor (#1171) ===

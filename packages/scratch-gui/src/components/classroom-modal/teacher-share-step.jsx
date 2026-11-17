@@ -8,13 +8,16 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import ClassroomButton from './classroom-button.jsx';
 import styles from './classroom-modal.css';
 import SharedAssignmentForm from './shared-assignment-form.jsx';
+import { closeRowMessages } from './teacher-close-row.jsx';
 import { TeacherSubView } from './teacher-view-layout.jsx';
 
 const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel }) => {
+    const intl = useIntl();
+    const backLabel = intl.formatMessage(closeRowMessages.backToAssignments);
     const [mode, setMode] = useState('limited');
     const [title, setTitle] = useState(classroom.assignmentName || classroom.className || '');
     const [copied, setCopied] = useState(false);
@@ -38,6 +41,8 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
     if (lastShared) {
         return (
             <TeacherSubView
+                closeLabel={backLabel}
+                onClose={onCancel}
                 footer={
                     <>
                         <span />
@@ -121,6 +126,8 @@ const TeacherShareStep = ({ classroom, isLoading, lastShared, onShare, onCancel 
 
     return (
         <TeacherSubView
+            closeLabel={backLabel}
+            onClose={onCancel}
             testId="classroom-phase-share-step"
             title={
                 <FormattedMessage

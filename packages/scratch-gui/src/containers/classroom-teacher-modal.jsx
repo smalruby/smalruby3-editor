@@ -496,6 +496,7 @@ const ClassroomTeacherModal = ({ visible = true }) => {
         assignmentSavedSettings: teacher.assignmentSavedSettings,
         assignmentLessonDraft: teacher.assignmentLessonDraft,
         assignmentSavedLesson: teacher.assignmentSavedLesson,
+        assignmentHasUnsavedChanges: teacher.assignmentHasUnsavedChanges,
         onAssignmentAddPage: teacher.handleAssignmentAddPage,
         onAssignmentRemovePage: teacher.handleAssignmentRemovePage,
         onAssignmentMovePage: teacher.handleAssignmentMovePage,
