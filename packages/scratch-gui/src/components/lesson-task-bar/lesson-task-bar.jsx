@@ -126,6 +126,7 @@ const LessonTaskBar = ({
     challenge,
     challengeCount,
     hintAvailable,
+    hintNudge = false,
     hintVisible,
     menuOpen,
     onEnd,
@@ -312,8 +313,9 @@ const LessonTaskBar = ({
                 )}
                 <button
                     type="button"
-                    className={styles.button}
+                    className={hintNudge ? styles.buttonNudge : styles.button}
                     data-testid="lesson-task-bar-hint"
+                    data-nudge={hintNudge ? 'true' : 'false'}
                     disabled={!hintAvailable}
                     onClick={onHint}
                 >
@@ -387,6 +389,8 @@ LessonTaskBar.propTypes = {
     }).isRequired,
     challengeCount: PropTypes.number.isRequired,
     hintAvailable: PropTypes.bool,
+    // 手が止まっているので「ヒント」をゆっくり光らせるか（containers/lesson-mode.jsx の useIdleNudge・#2132）
+    hintNudge: PropTypes.bool,
     // ヒントの吹き出しが出ているか（出ているあいだはタップで全文を開いたままにしない。ホバーでは出す）
     hintVisible: PropTypes.bool,
     // メニューバーのメニュー（ファイル・編集など）が開いているか（開いているあいだはホバーで全文を出さない）

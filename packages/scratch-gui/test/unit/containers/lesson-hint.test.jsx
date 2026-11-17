@@ -568,6 +568,12 @@ describe('LessonHint container', () => {
         expect(props.onShowHint).toHaveBeenCalledTimes(1);
     });
 
+    test('the small tag glows while the student seems stuck (#2132)', () => {
+        const props = { ...baseProps(), nudge: true, hint: hintFor(1, { visible: false, minimized: true }) };
+        const { getByTestId } = renderContainer(props);
+        expect(getByTestId('lesson-hint-minimized')).toHaveAttribute('data-nudge', 'true');
+    });
+
     test('the small tag of the last page says "If it does not work"', () => {
         const { challenge } = findChallenge(CHALLENGE_ID);
         const props = {

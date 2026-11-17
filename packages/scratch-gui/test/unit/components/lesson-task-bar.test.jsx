@@ -41,6 +41,14 @@ describe('LessonTaskBar', () => {
         );
     });
 
+    test('the hint button glows only while the student seems stuck (#2132)', () => {
+        const calm = renderBar();
+        expect(calm.getByTestId('lesson-task-bar-hint')).toHaveAttribute('data-nudge', 'false');
+        calm.unmount();
+        const { getByTestId } = renderBar({ hintNudge: true });
+        expect(getByTestId('lesson-task-bar-hint')).toHaveAttribute('data-nudge', 'true');
+    });
+
     test('falls back to the challenge name when there is no task line yet', () => {
         // レッスン 1 のチャレンジはどれも課題があるので、課題の無いチャレンジに見せかける
         const { challenge } = findChallenge('blocks-l1-broadcast');

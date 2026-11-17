@@ -1517,6 +1517,17 @@ partner: {
     課題の全文のパネル 470 より下で、全文を隠さない）。
   - 「おわり」・できたとき・レッスンを出たときは、札も残さず閉じる（今までどおり）。
   - 状態は `lessonMode.hintMinimized`（`getCurrentHint` の `minimized`。`visible` と同時に true にならない）。
+- **手が止まったら光らせる**: プログラム（ブロックの変化）もステージ（スプライトの位置・見た目・実行）も **2 分**変わらなければ、
+  課題バーの「ヒント」と小さくしたヒントの札をゆっくり（2.4 秒で 1 往復）オレンジに光らせ、その下に「ヒントを見てみよう」
+  （`lesson-hint-nudge`。押せない文字・`role="status"`）を出す。音は出さない。何か操作したら（押す・キー・ホイール・
+  プログラムやステージの変化）止め、そこからまた 2 分を数える。ヒントを大きく出しているあいだ・「できた！」のあいだは
+  光らせない。ヒントのページを変えた・小さくした・チャレンジを変えたときも数え直す。
+  - 動きを減らす設定（`prefers-reduced-motion: reduce`）では光らせず、文字だけを出す。
+  - 判定は純粋関数（`lib/lessons/idle-nudge.js` の `shouldNudgeHint` / `nextNudgeCheckIn`。2 分は `IDLE_NUDGE_MS`）、
+    変化は `lib/lessons/use-idle-nudge.js` が VM のイベントで知る（VM の `PROJECT_CHANGED`・`targetsUpdate`・`workspaceUpdate`、
+    runtime の `PROJECT_RUN_START`・`SAY`）。イベントでは時刻を覚えるだけで、光らせる時刻にタイマーを 1 つ置いて判定し直す
+    （毎フレームの処理はしない）。`containers/lesson-mode.jsx` が hook を呼び、課題バー（`hintNudge`）・札（`nudge`）・
+    文字（`LessonHintNudge`）に渡す。GA には送らない。
 - **開き直したときのページ**: 閉じ方で変える。
   - **「－」（小さくする・`hideHint`）**: 同じページから。読みかけを一度よけただけなので。
   - **「おわり」（`finishHint`）**: 1 ページ目から。最後まで読んだので、次に「ヒント」を押したときに最後のページ
@@ -1821,6 +1832,7 @@ partner: {
 | `lesson-hint-prev` / `lesson-hint-next` / `lesson-hint-close` | button | もどる / 進める（最後のページには無い） / 小さくする（「－」。閉じずに札を残す。testid は前の「閉じる」のまま） |
 | `lesson-hint-minimized` | button | 小さくしたヒントの札（押すと同じページで元の大きさにもどる） |
 | `lesson-hint-minimized-position` / `lesson-hint-minimized-heading` | span | 札の「ヒント n/N」と短い見出し |
+| `lesson-hint-nudge` | div | 手が止まったときの「ヒントを見てみよう」（光らせているあいだだけある。課題バーの「ヒント」と札は `data-nudge="true"`） |
 
 ### スクリーンショット
 
@@ -1848,6 +1860,8 @@ partner: {
 | `screenshots/0406-lesson-hint-auto-open-1300x600.png` | チャレンジを始めたら自動で開いたヒントの 1 ページ目（1300×600） |
 | `screenshots/0414-lesson-hint-minimized-1300x600.png` | ヒントを「－」で小さくしたところ（1300×600。課題バーの下・コードエリアの右上に「ヒント 2/7」と見出しの札。ステージの列にはかからない） |
 | `screenshots/0415-lesson-hint-minimized-844x390.png` | 同じところを SP 横（844×390）で（札はパレットの右） |
+| `screenshots/0416-lesson-hint-nudge-1300x600.png` | 2 分変化が無く、「ヒント」と札を光らせ、「ヒントを見てみよう」を出したところ（1300×600） |
+| `screenshots/0417-lesson-hint-nudge-reduced-motion-1300x600.png` | 動きを減らす設定のとき（光らせず文字だけ・レッスン 2 なのでヒントは自動で開かず札も無い。1300×600） |
 | `screenshots/0407-lesson-hint-dragged-667x375.png` | SP 横でヘッダーをタッチでドラッグして動かしたところ（しっぽは消える） |
 | `screenshots/0408-lesson-hint-auto-open-375x667.png` | SP 縦（縦持ちの案内を閉じたあと）で自動で開いたヒント（サイドレールの右に置く） |
 | `screenshots/0409-lesson-hint-activity-diagram-1300x600.png` | ヒントの 1 ページ目にアクティビティ図を出したところ（1300×600。図・文言・ブロックの順） |
@@ -1993,7 +2007,8 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/components/lesson-task-bar/lesson-role-picker.jsx` | 課題バーの役のボタン |
 | `packages/scratch-gui/src/lib/lessons/challenge-setup.js` | チャレンジを開くときの setup（言語の既定 + チャレンジの `setup`） |
 | `packages/scratch-gui/src/components/balloon/` | 吹き出し・ツールチップの見た目の土台（`Balloon` / `BalloonHeader` / `BalloonCloseButton` / `BalloonButton` / `balloon-tokens.css`。上の「吹き出しの共通の土台」） |
-| `packages/scratch-gui/src/components/lesson-hint/` | ヒントの吹き出し（`lesson-hint.jsx` = 中身・置き方・スポットライト・ドラッグ・正解のプログラムの確認（枠は `balloon/`）、`lesson-hint-blocks.jsx` = 読み取り専用ワークスペースに本物のブロックを描く、`lesson-hint-minimized.jsx` = 小さくしたヒントの札） |
+| `packages/scratch-gui/src/components/lesson-hint/` | ヒントの吹き出し（`lesson-hint-nudge.jsx` = 手が止まったときの「ヒントを見てみよう」、`lesson-hint.jsx` = 中身・置き方・スポットライト・ドラッグ・正解のプログラムの確認（枠は `balloon/`）、`lesson-hint-blocks.jsx` = 読み取り専用ワークスペースに本物のブロックを描く、`lesson-hint-minimized.jsx` = 小さくしたヒントの札） |
+| `packages/scratch-gui/src/lib/lessons/idle-nudge.js` / `use-idle-nudge.js` | 手が止まったら「ヒント」を光らせるかの判定（純粋関数）と、VM のイベントで変化を知る hook |
 | `packages/scratch-gui/src/lib/lessons/hint-minimized.js` | 小さくしたヒントの札の短い見出し（`shortHintHeading`）と置き場所（`minimizedHintPosition`）（純粋関数） |
 | `packages/scratch-gui/src/containers/lesson-hint.jsx` | 吹き出しのコンテナ（`getCurrentHint` を読み、`blocks` を XML にし、「プログラムを入れる」を dispatch。クラスに参加中の生徒には手順の `classroomTitle` を出す） |
 | `packages/scratch-gui/src/lib/lessons/hint-text.js` | ヒントの文言の決まり（`**…**` の強調を分ける `splitEmphasis`、クラスの中と外で文言を選ぶ `hintStepTitle` / `isSeatedStudent`） |

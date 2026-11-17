@@ -48,6 +48,7 @@ const LessonHintContainer = ({
     fromAssignment = false,
     hint,
     inClassroom = false,
+    nudge = false,
     onFinishHint,
     onHideHint,
     onInsertCode,
@@ -200,6 +201,7 @@ const LessonHintContainer = ({
                 count={hint.count}
                 index={hint.index}
                 lastResort={hint.lastResort}
+                nudge={nudge}
                 title={hintStepTitle(step, { inClassroom })}
                 onRestore={onShowHint}
             />
@@ -264,6 +266,8 @@ LessonHintContainer.propTypes = {
     }),
     // クラスに参加中の生徒か（メッシュのつなぎ方の手順を、出席番号でつながる文言にする）
     inClassroom: PropTypes.bool,
+    // 手が止まっているので、小さくした札を光らせるか（containers/lesson-mode.jsx が渡す・#2132）
+    nudge: PropTypes.bool,
     onFinishHint: PropTypes.func.isRequired,
     onHideHint: PropTypes.func.isRequired,
     onInsertCode: PropTypes.func.isRequired,
