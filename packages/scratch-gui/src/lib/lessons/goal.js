@@ -12,8 +12,10 @@
 //   sprites   スプライトの数
 //   costumes  コスチューム（背景）の数が始めより増えた
 //   extension 拡張機能を読み込んだ
+//   ngram     「ことばを予想する AI」のリスト（まえ・つぎ・こうほ）が、教科書から作った組・いまの文脈の次の文字になっている
 //
 // プログラムの形は見ない（ブロックの並びや個数は条件にしない）。
+import { candidatesFor, isLearnedText, pairsFromLists, pairsOf, samePairs, sameMultiset, ngramKey } from './lm-ngram';
 
 export const CONDITION_TYPES = Object.freeze([
     'uses',
@@ -23,7 +25,13 @@ export const CONDITION_TYPES = Object.freeze([
     'sprites',
     'costumes',
     'extension',
+    'ngram',
 ]);
+
+// ngram の `check`（学習した組か、こうほか）
+const NGRAM_CHECKS = Object.freeze(['learned', 'candidates']);
+// ngram の `scope`（教科書の全部の文か、どれか 1 つの文か）
+const NGRAM_SCOPES = Object.freeze(['all', 'sentence']);
 
 // facts の上限（ずっと動くプログラムでも際限なく増えないように）
 const MAX_RUNS = 200;
@@ -315,8 +323,8 @@ const saidVariableMatches = (spec, value, answer) => {
     return (compareValues(value, answer) === 0) === spec.equalsAnswer;
 };
 
-const evaluateSaid = (condition, facts) =>
-    facts.says.some((say) => {
+const saidMatches = (condition, facts, snapshot) =>
+    facts.says.filter((say) => {
         if (condition.target === 'stage' && !say.isStage) return false;
         // 言ったスクリプトのきっかけ（「受け取ったとき」のスクリプトで言った、など。uses の trigger と同じ形）
         if (!isUnset(condition.trigger) && !(say.run && triggerMatches(condition.trigger, say.run))) return false;
@@ -349,8 +357,33 @@ const evaluateSaid = (condition, facts) =>
                 return false;
             }
         }
+        // 言った文が、最後に入力した答えで始まり、その続きがある（「こんにちは」→「こんにちは、今日はよろしく。」）
+        const startsWithAnswer =
+            condition.startsWithAnswer &&
+            !isUnset(say.answer) &&
+            say.answer !== '' &&
+            say.text.length > say.answer.length &&
+            ngramKey(say.text).startsWith(ngramKey(say.answer));
+        if (condition.startsWithAnswer && !startsWithAnswer) return false;
+        // 言った文が、いまのリスト「まえ」「つぎ」の組だけでできている（書き出しの答えは学習していなくてよい）
+        if (!isUnset(condition.learned)) {
+            const lists = ngramLists(condition.learned, snapshot);
+            const length = ngramLength(condition.learned.length, snapshot);
+            const from = startsWithAnswer ? say.answer.length : 0;
+            if (!lists || length === null || !isLearnedText(say.text, lists.before, lists.after, length, from)) {
+                return false;
+            }
+        }
         return true;
     });
+
+// `distinct` があれば、条件に合う言った文の **ちがう文** の数（大文字小文字は区別しない）を見る（5 回聞いて答えが
+// 変わった、など）。無ければ 1 つでも合えばよい
+const evaluateSaid = (condition, facts, snapshot) => {
+    const matched = saidMatches(condition, facts, snapshot);
+    if (isUnset(condition.distinct)) return matched.length > 0;
+    return matchValue(condition.distinct, new Set(matched.map((say) => ngramKey(say.text))).size);
+};
 
 // 名前ごとに、ステージ（すべてのスプライト用）の変数を先に探す。name は名前の配列でもよい
 // （locale ごとの名前。ja-Hira は「かいすう」、en は「count」と書く）。ja で作った作品を en で開いて
@@ -420,6 +453,53 @@ const evaluateCostumes = (condition, snapshot) => {
 const evaluateExtension = (condition, snapshot) =>
     typeof snapshot.isExtensionLoaded === 'function' && Boolean(snapshot.isExtensionLoaded(condition.id));
 
+// 名前（の配列）で見つけたリストの中身（ステージのものを先に。無ければ null）
+const listItems = (snapshot, name) => {
+    const found = findVariables(snapshot, name, 'list').find((v) => Array.isArray(v.value));
+    return found ? found.value : null;
+};
+
+// 見る長さ: 数（1 以上の整数）か `{variable: 名前}`（いまのその変数の値。1 以上の整数でなければ null）。省くと 1
+const ngramLength = (spec, snapshot) => {
+    if (isUnset(spec)) return 1;
+    if (typeof spec === 'number') return spec;
+    const found = findVariables(snapshot, spec.variable, '')[0];
+    const value = found ? Number(found.value) : NaN;
+    return Number.isInteger(value) && value >= 1 ? value : null;
+};
+
+// ngram と said.learned のリスト「まえ」「つぎ」
+const ngramLists = (spec, snapshot) => {
+    const before = listItems(snapshot, spec.before);
+    const after = listItems(snapshot, spec.after);
+    return before && after ? { before, after } : null;
+};
+
+// `check: 'learned'`: 「まえ」「つぎ」の組が、教科書（`scope: 'all'` = 全部の文、`'sentence'` = どれか 1 つの文）から
+// 見る長さで作った組と、順番を問わず同じ（学習の順・作り方はちがってよい）。空の教科書・空のリストでは合わない。
+// `check: 'candidates'`: 「こうほ」が、いまの文（`text` の変数）の文脈の次に来る文字と、順番を問わず同じ
+// （同じ文字の数も同じ）。「まえ」が空・こうほが空のときは合わない
+const evaluateNgram = (condition, snapshot) => {
+    const lists = ngramLists(condition, snapshot);
+    const length = ngramLength(condition.length, snapshot);
+    if (!lists || length === null || lists.before.length === 0) return false;
+    if (condition.check === 'candidates') {
+        const candidates = listItems(snapshot, condition.candidates);
+        const text = findVariables(snapshot, condition.text, '')[0];
+        if (!candidates || !text || candidates.length === 0) return false;
+        const expected = candidatesFor(lists.before, lists.after, text.value, length);
+        return sameMultiset(candidates.map(ngramKey), expected.map(ngramKey));
+    }
+    const textbook = listItems(snapshot, condition.textbook);
+    if (!textbook || textbook.length === 0) return false;
+    const actual = pairsFromLists(lists.before, lists.after);
+    if (lists.before.length !== lists.after.length) return false;
+    if (condition.scope === 'sentence') {
+        return textbook.some((sentence) => samePairs(actual, pairsOf([sentence], length)));
+    }
+    return samePairs(actual, pairsOf(textbook, length));
+};
+
 /**
  * 条件 1 つを判定する。
  * @param {object} condition - 条件。
@@ -432,7 +512,7 @@ export const evaluateCondition = (condition, facts, snapshot) => {
         case 'uses':
             return evaluateUses(condition, facts);
         case 'said':
-            return evaluateSaid(condition, facts);
+            return evaluateSaid(condition, facts, snapshot);
         case 'variable':
             return evaluateVariable(condition, facts, snapshot);
         case 'list':
@@ -443,6 +523,8 @@ export const evaluateCondition = (condition, facts, snapshot) => {
             return evaluateCostumes(condition, snapshot);
         case 'extension':
             return evaluateExtension(condition, snapshot);
+        case 'ngram':
+            return evaluateNgram(condition, snapshot);
         default:
             return false;
     }
@@ -485,6 +567,21 @@ const validateTrigger = (trigger, at) => {
     if (!isUnset(trigger.message) && !isVariableName(trigger.message)) {
         errors.push(`${at}: trigger.message must be a message name or an array of names`);
     }
+    return errors;
+};
+
+// ngram と said.learned に共通の項目（リスト「まえ」「つぎ」の名前と見る長さ）
+const validateNgramLists = (spec, at) => {
+    const errors = [];
+    if (!spec || typeof spec !== 'object') return [`${at} must be an object`];
+    if (!isVariableName(spec.before)) errors.push(`${at}.before is required`);
+    if (!isVariableName(spec.after)) errors.push(`${at}.after is required`);
+    const length = spec.length;
+    const lengthOk =
+        isUnset(length) ||
+        (Number.isInteger(length) && length >= 1) ||
+        (typeof length === 'object' && isVariableName(length.variable));
+    if (!lengthOk) errors.push(`${at}.length must be a positive integer or {variable}`);
     return errors;
 };
 
@@ -557,12 +654,23 @@ export const validateGoal = (goal) => {
                     !condition.equalsAnswer &&
                     isUnset(condition.equalsVariable) &&
                     isUnset(condition.answer) &&
-                    isUnset(condition.variable)
+                    isUnset(condition.variable) &&
+                    !condition.startsWithAnswer &&
+                    isUnset(condition.learned)
                 ) {
-                    errors.push(`${at}: said needs text, equalsAnswer, equalsVariable, answer or variable`);
+                    errors.push(
+                        `${at}: said needs text, equalsAnswer, equalsVariable, answer, variable, startsWithAnswer or learned`,
+                    );
                 }
                 if (!isUnset(condition.remoteValue) && typeof condition.remoteValue !== 'boolean') {
                     errors.push(`${at}: said.remoteValue must be true or false`);
+                }
+                if (!isUnset(condition.startsWithAnswer) && typeof condition.startsWithAnswer !== 'boolean') {
+                    errors.push(`${at}: said.startsWithAnswer must be true or false`);
+                }
+                if (!isMatcher(condition.distinct)) errors.push(`${at}: said.distinct must be a matcher`);
+                if (!isUnset(condition.learned)) {
+                    errors.push(...validateNgramLists(condition.learned, `${at}: said.learned`));
                 }
                 if (!isUnset(condition.equalsVariable) && !isVariableName(condition.equalsVariable)) {
                     errors.push(`${at}: said.equalsVariable must be a variable name or an array of names`);
@@ -615,6 +723,20 @@ export const validateGoal = (goal) => {
             case 'extension':
                 if (typeof condition.id !== 'string' || condition.id === '')
                     errors.push(`${at}: extension.id is required`);
+                break;
+            case 'ngram':
+                errors.push(...validateNgramLists(condition, `${at}: ngram`));
+                if (!NGRAM_CHECKS.includes(condition.check)) {
+                    errors.push(`${at}: ngram.check must be one of ${NGRAM_CHECKS.join(', ')}`);
+                } else if (condition.check === 'learned') {
+                    if (!isVariableName(condition.textbook)) errors.push(`${at}: ngram.textbook is required`);
+                    if (!isUnset(condition.scope) && !NGRAM_SCOPES.includes(condition.scope)) {
+                        errors.push(`${at}: ngram.scope must be one of ${NGRAM_SCOPES.join(', ')}`);
+                    }
+                } else {
+                    if (!isVariableName(condition.candidates)) errors.push(`${at}: ngram.candidates is required`);
+                    if (!isVariableName(condition.text)) errors.push(`${at}: ngram.text is required`);
+                }
                 break;
             default:
                 break;
