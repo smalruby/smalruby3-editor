@@ -29,8 +29,9 @@ export const HINT_TARGETS = Object.freeze({
 });
 
 // 吹き出しをかぶせない部品（出ているときだけ）。練習相手のパネルはボタンを押しながらヒントを読むので、
-// 吹き出しで隠さない（#1643）
-const AVOID_SELECTORS = ['[data-testid="lesson-practice-partner"]'];
+// 吹き出しで隠さない（#1643）。コスチュームタブ・音タブの左の一覧（components/asset-panel/selector.jsx）も、
+// ヒントを読みながら絵や音をえらぶので隠さない（タブの下に置くと一覧にかぶり、2 つめの絵が見えなかった・#2146）
+const AVOID_SELECTORS = ['[data-testid="lesson-practice-partner"]', '[class*="selector_wrapper_"]'];
 
 /** 吹き出しを置く側。`inside` は指す場所の中、`center` は画面の真ん中（矢印なし）。 */
 export const HINT_SIDES = Object.freeze({
@@ -63,6 +64,10 @@ const TARGET_SPECS = {
         // ワークスペースの svg はパレットの下にも広がっているので、パレットの右だけにする
         subtract: [`${BLOCKS} .blocklyFlyout`, `${BLOCKS} .blocklyToolbox`],
         sides: [HINT_SIDES.INSIDE],
+        // スクリプトエリアに置いてあるスクリプト（いちばん上のブロックの組）にはかぶせない。「「15 度回す」の数を
+        // 変えよう」のように、置いてあるブロックを指して操作させるヒントで、そのブロックが吹き出しに隠れないように
+        // （#2146）。パレットのブロックは別の svg（.blocklyFlyout）なので入らない
+        avoid: [`${BLOCKS} .blocklySvg > .blocklyWorkspace > .blocklyBlockCanvas > .blocklyBlock`],
     },
     [HINT_TARGETS.STAGE]: {
         selectors: ['[class*="stage_stage-wrapper_"]'],
@@ -194,7 +199,7 @@ export const findHintTargetRect = (target, doc) => {
 export const findHintAvoidRects = (doc, target) => {
     const spec = target ? TARGET_SPECS[target] : null;
     if (!doc || (spec && spec.coverAvoid)) return [];
-    return visibleRects(doc, AVOID_SELECTORS);
+    return visibleRects(doc, [...AVOID_SELECTORS, ...((spec && spec.avoid) || [])]);
 };
 
 /**

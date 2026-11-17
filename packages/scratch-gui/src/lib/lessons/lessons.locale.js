@@ -40,20 +40,21 @@ export const ja = {
     'gui.lessons.challenge.blocks-l0-flag.debug1': '「旗が押されたとき」は、ブロックの上にくっつけよう。',
     'gui.lessons.challenge.blocks-l0-change-number.name': '数と ▼ を変えよう',
     'gui.lessons.challenge.blocks-l0-change-number.task':
-        '「10」を「50」に変えて、緑の旗を押そう。▼ の中もえらべるよ。\nいらないブロックは、ブロックパレットへもどすと消える',
-    'gui.lessons.challenge.blocks-l0-change-number.step1': '白いところの「10」を押して、「50」と入れよう。',
+        '「15 度回す」の「15」を「90」に変えて、「マウスのポインターへ行く」の ▼ で「どこかの場所」をえらぼう。\n緑の旗を押そう。いらないブロックは、ブロックパレットへもどすと消える',
+    'gui.lessons.challenge.blocks-l0-change-number.step1':
+        '「15 度回す」の白いところの「15」を押して、「90」と入れよう。',
     'gui.lessons.challenge.blocks-l0-change-number.step2':
-        '▼ を押すと、中からえらべるよ。いらないブロックは、ブロックパレットへドラッグすると消える。',
+        '「マウスのポインターへ行く」の ▼ を押して、「どこかの場所」をえらぼう。いらないブロックは、ブロックパレットへドラッグすると消える。',
     'gui.lessons.challenge.blocks-l0-change-number.step3': '緑の旗を押して、ネコの動きが変わったか見よう。',
-    'gui.lessons.challenge.blocks-l0-change-number.debug1': '数を変えたら、もう一度緑の旗を押そう。',
+    'gui.lessons.challenge.blocks-l0-change-number.debug1': '数と ▼ を変えたら、もう一度緑の旗を押そう。',
     'gui.lessons.challenge.blocks-l0-tabs.name': 'タブをめぐろう',
     'gui.lessons.challenge.blocks-l0-tabs.task':
-        'コスチュームタブで、ネコに好きな絵を 1 つ足して、2 つめの絵にしよう。\n音タブで ▶ を押して「ニャー」を聞こう。さいごにコードタブにもどろう',
+        'シマラビには絵が 2 つあるよ。コスチュームタブで、2 つめの絵をえらぼう。\n音タブで ▶ を押して「Chirp」という名前の音を聞こう。さいごにコードタブにもどろう',
     'gui.lessons.challenge.blocks-l0-tabs.step1':
-        'コスチュームタブを押して、左下のボタンから好きな絵をえらぼう。足した絵が 2 つめの絵になるよ。',
-    'gui.lessons.challenge.blocks-l0-tabs.step2': '音タブを押して、「ニャー」という名前の音の ▶ を押そう。',
+        'コスチュームタブを押して、左にならんだ絵の 2 つめを押そう。ステージのシマラビの絵が変わるよ。',
+    'gui.lessons.challenge.blocks-l0-tabs.step2': '音タブを押して、「Chirp」という名前の音の ▶ を押そう。',
     'gui.lessons.challenge.blocks-l0-tabs.step3': 'コードタブを押して、もどろう。',
-    'gui.lessons.challenge.blocks-l0-tabs.debug1': 'ステージのネコが、足した絵になっているか見よう。',
+    'gui.lessons.challenge.blocks-l0-tabs.debug1': 'ステージのシマラビが、2 つめの絵になっているか見よう。',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.name': 'なかまと背景をふやそう',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.task':
         'スプライトペインのボタンから、好きなスプライトを 1 つ足そう。\n背景も 1 つえらぼう',
@@ -314,21 +315,23 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l0-flag.debug1': '「はたが おされたとき」は、ブロックの うえに くっつけよう。',
     'gui.lessons.challenge.blocks-l0-change-number.name': 'かずと ▼ を かえよう',
     'gui.lessons.challenge.blocks-l0-change-number.task':
-        '「10」を「50」に かえて、みどりのはたを おそう。▼ の なかも えらべるよ。\nいらない ブロックは、ブロックパレットへ もどすと きえる',
-    'gui.lessons.challenge.blocks-l0-change-number.step1': 'しろい ところの「10」を おして、「50」と いれよう。',
+        '「15 どまわす」の「15」を「90」に かえて、「マウスのポインター へいく」の ▼ で「どこかのばしょ」を えらぼう。\nみどりのはたを おそう。いらない ブロックは、ブロックパレットへ もどすと きえる',
+    'gui.lessons.challenge.blocks-l0-change-number.step1':
+        '「15 どまわす」の しろい ところの「15」を おして、「90」と いれよう。',
     'gui.lessons.challenge.blocks-l0-change-number.step2':
-        '▼ を おすと、なかから えらべるよ。いらない ブロックは、ブロックパレットへ ドラッグすると きえる。',
+        '「マウスのポインター へいく」の ▼ を おして、「どこかのばしょ」を えらぼう。いらない ブロックは、ブロックパレットへ ドラッグすると きえる。',
     'gui.lessons.challenge.blocks-l0-change-number.step3':
         'みどりのはたを おして、ネコの うごきが かわったか みよう。',
-    'gui.lessons.challenge.blocks-l0-change-number.debug1': 'かずを かえたら、もう いちど みどりのはたを おそう。',
+    'gui.lessons.challenge.blocks-l0-change-number.debug1':
+        'かずと ▼ を かえたら、もう いちど みどりのはたを おそう。',
     'gui.lessons.challenge.blocks-l0-tabs.name': 'タブを めぐろう',
     'gui.lessons.challenge.blocks-l0-tabs.task':
-        'コスチュームタブで、ネコに すきな えを 1 つ たして、2 つめの えに しよう。\nおとタブで ▶ を おして「Meow」という なまえの おとを きこう。さいごに コードタブに もどろう',
+        'シマラビには えが 2 つ あるよ。コスチュームタブで、2 つめの えを えらぼう。\nおとタブで ▶ を おして「Chirp」という なまえの おとを きこう。さいごに コードタブに もどろう',
     'gui.lessons.challenge.blocks-l0-tabs.step1':
-        'コスチュームタブを おして、ひだりしたの ボタンから すきな えを えらぼう。たした えが 2 つめの えに なるよ。',
-    'gui.lessons.challenge.blocks-l0-tabs.step2': 'おとタブを おして、「Meow」という なまえの おとの ▶ を おそう。',
+        'コスチュームタブを おして、ひだりに ならんだ えの 2 つめを おそう。ステージの シマラビの えが かわるよ。',
+    'gui.lessons.challenge.blocks-l0-tabs.step2': 'おとタブを おして、「Chirp」という なまえの おとの ▶ を おそう。',
     'gui.lessons.challenge.blocks-l0-tabs.step3': 'コードタブを おして、もどろう。',
-    'gui.lessons.challenge.blocks-l0-tabs.debug1': 'ステージの ネコが、たした えに なっているか みよう。',
+    'gui.lessons.challenge.blocks-l0-tabs.debug1': 'ステージの シマラビが、2 つめの えに なっているか みよう。',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.name': 'なかまと はいけいを ふやそう',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.task':
         'スプライトペインの ボタンから、すきな スプライトを 1 つ たそう。\nはいけいも 1 つ えらぼう',
@@ -593,21 +596,22 @@ export const en = {
     'gui.lessons.challenge.blocks-l0-flag.debug1': 'Snap "when flag clicked" on top of the blocks.',
     'gui.lessons.challenge.blocks-l0-change-number.name': 'Change the number and ▼',
     'gui.lessons.challenge.blocks-l0-change-number.task':
-        'Change "10" to "50" and click the Green Flag. You can also pick from a ▼.\nDrag blocks you do not need back to the Block Palette to delete them',
-    'gui.lessons.challenge.blocks-l0-change-number.step1': 'Click the "10" in the white space and type "50".',
+        'Change "15" in "turn 15 degrees" to "90". Pick "random position" with the ▼ of "go to mouse-pointer".\nClick the Green Flag. Drag blocks you do not need back to the Block Palette to delete them',
+    'gui.lessons.challenge.blocks-l0-change-number.step1':
+        'Click the "15" in the white space of "turn 15 degrees" and type "90".',
     'gui.lessons.challenge.blocks-l0-change-number.step2':
-        'Click a ▼ to pick from a list. Drag blocks you do not need to the Block Palette to delete them.',
+        'Click the ▼ of "go to mouse-pointer" and pick "random position". Drag blocks you do not need to the Block Palette to delete them.',
     'gui.lessons.challenge.blocks-l0-change-number.step3': 'Click the Green Flag. Does the cat move differently?',
     'gui.lessons.challenge.blocks-l0-change-number.debug1':
-        'After you change the number, click the Green Flag again.',
+        'After you change the number and the ▼, click the Green Flag again.',
     'gui.lessons.challenge.blocks-l0-tabs.name': 'Visit the tabs',
     'gui.lessons.challenge.blocks-l0-tabs.task':
-        'In the Costumes tab, add a picture you like to the cat. It becomes the 2nd costume.\nIn the Sounds tab, click ▶ to hear "Meow". Then go back to the Code tab',
+        'Shimaraby has 2 costumes. In the Costumes tab, choose the 2nd costume.\nIn the Sounds tab, click ▶ to hear the sound named "Chirp". Then go back to the Code tab',
     'gui.lessons.challenge.blocks-l0-tabs.step1':
-        'Click the Costumes tab and choose a picture with the button at the bottom left. The new picture becomes the 2nd costume.',
-    'gui.lessons.challenge.blocks-l0-tabs.step2': 'Click the Sounds tab and click ▶ of the sound named "Meow".',
+        'Click the Costumes tab and click the 2nd costume in the list on the left. Shimaraby on the stage changes.',
+    'gui.lessons.challenge.blocks-l0-tabs.step2': 'Click the Sounds tab and click ▶ of the sound named "Chirp".',
     'gui.lessons.challenge.blocks-l0-tabs.step3': 'Click the Code tab to go back.',
-    'gui.lessons.challenge.blocks-l0-tabs.debug1': 'Look at the stage. Is the cat showing the new picture?',
+    'gui.lessons.challenge.blocks-l0-tabs.debug1': 'Look at the stage. Is Shimaraby showing the 2nd costume?',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.name': 'Add a friend and a backdrop',
     'gui.lessons.challenge.blocks-l0-sprite-backdrop.task':
         'Add a sprite you like with the button in the Sprite Pane.\nAlso choose a backdrop',

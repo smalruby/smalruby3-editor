@@ -2328,8 +2328,18 @@ describe('lesson 0 "スモウルビーをたんけんしよう" (#2134)', () => 
             expect.objectContaining({ trigger: { click: 'codeArea' }, together: true }),
         );
         expect(goals['blocks-l0-flag'][0].trigger).toEqual({ hat: 'event_whenflagclicked' });
+        expect(goals['blocks-l0-change-number']).toEqual([
+            {
+                type: 'uses',
+                trigger: { click: 'any' },
+                blocks: [
+                    { opcode: 'motion_turnright', args: { DEGREES: { ne: 15 } } },
+                    { opcode: 'motion_goto', args: { TO: { ne: '_mouse_' } } },
+                ],
+            },
+        ]);
         expect(goals['blocks-l0-tabs']).toEqual([
-            { type: 'currentCostume', changed: true },
+            { type: 'currentCostume', number: 2 },
             { type: 'tab', tab: 'code' },
         ]);
         expect(goals['blocks-l0-sprite-backdrop']).toEqual([
@@ -2363,8 +2373,25 @@ describe('lesson 0 "スモウルビーをたんけんしよう" (#2134)', () => 
             );
     });
 
-    test('the en task of the tabs challenge names the cat sound "Meow"', () => {
-        expect(en['gui.lessons.challenge.blocks-l0-tabs.task']).toContain('"Meow"');
-        expect(jaHira['gui.lessons.challenge.blocks-l0-tabs.step2']).toContain('「Meow」という なまえの おと');
+    test('0-5 starts with the blocks whose number and ▼ the hints change (#2146)', () => {
+        const change = findChallenge('blocks-l0-change-number').challenge;
+        expect(change.setup.code).toBe('when_flag_clicked do\n  turn_right(15)\n  go_to("_mouse_")\nend\n');
+        // ヒント 1 は「15 度回す」の数、ヒント 2 は「マウスのポインターへ行く」の ▼（置いてあるブロックを指す）
+        expect(change.steps[0].blocks).toBe('turn_right(90)\n');
+        expect(change.steps[1].blocks).toBe('go_to("_random_")\n');
+        expect(ja[change.steps[0].title.id]).toContain('「15 度回す」');
+        expect(ja[change.steps[1].title.id]).toContain('「マウスのポインターへ行く」の ▼');
+        expect(ja[change.steps[1].title.id]).toContain('「どこかの場所」');
+        expect(change.code).toBe('when_flag_clicked do\n  turn_right(90)\n  go_to("_random_")\nend\n');
+    });
+
+    test('0-6 starts with Shimaraby, who has 2 costumes, and names its sound "Chirp" (#2146)', () => {
+        const tabs = findChallenge('blocks-l0-tabs').challenge;
+        expect(tabs.setup).toEqual({ sprites: ['Shimaraby'] });
+        // ほかのレッスン 0 のチャレンジはネコのまま
+        lesson0.challenges.filter((c) => c !== tabs).forEach((c) => expect((c.setup || {}).sprites).toBeUndefined());
+        expect(ja['gui.lessons.challenge.blocks-l0-tabs.task']).toContain('「Chirp」という名前の音');
+        expect(en['gui.lessons.challenge.blocks-l0-tabs.task']).toContain('"Chirp"');
+        expect(jaHira['gui.lessons.challenge.blocks-l0-tabs.step2']).toContain('「Chirp」という なまえの おと');
     });
 });
