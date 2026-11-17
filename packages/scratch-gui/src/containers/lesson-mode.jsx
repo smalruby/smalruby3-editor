@@ -4,10 +4,13 @@
 //   - レッスンモードのあいだ課題バー（LessonTaskBar）を出す
 // パレットの絞り込みは Blocks コンテナが getLessonAllowedBlocks で行う。
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import LessonAssignmentBand from '../components/lesson-assignment-band/lesson-assignment-band.jsx';
+import LessonHintNudge from '../components/lesson-hint/lesson-hint-nudge.jsx';
+import LessonPartNames from '../components/lesson-part-names/lesson-part-names.jsx';
+import LessonPartQuiz from '../components/lesson-part-quiz/lesson-part-quiz.jsx';
 import LessonTaskBar from '../components/lesson-task-bar/lesson-task-bar.jsx';
 import { applyDeckSetup, normalizeRubyVersion } from '../lib/deck-setup';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
@@ -27,6 +30,7 @@ import {
 } from '../lib/lessons/lesson-role';
 import { openAssignmentLessonsLibrary } from '../lib/lessons/open-lessons-library';
 import { challengeForRole } from '../lib/lessons/role-swap';
+import { useIdleNudge } from '../lib/lessons/use-idle-nudge';
 import { computeBoundSeat } from '../lib/mesh-v2-classroom-binding.jsx';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import sharedMessages from '../lib/shared-messages';
@@ -47,6 +51,7 @@ import {
     setLessonRole,
     showCompleted,
     showHint,
+    solvePartQuiz,
     startChallenge,
 } from '../reducers/lesson-mode';
 import { openLessonsLibrary } from '../reducers/modals';
@@ -86,7 +91,9 @@ const LessonMode = ({
     onSetRole,
     onShowCompleted,
     onShowHint,
+    onSolvePartQuiz,
     onStartChallenge,
+    partQuizSolved = 0,
     pendingChallengeId,
     pendingRole = null,
     pendingRoleSource = null,
@@ -282,10 +289,45 @@ const LessonMode = ({
         return () => vm.runtime.removeListener('PERIPHERAL_CONNECTED', onConnected);
     }, [roleChallengeOpen, vm]);
 
+    // 画面の部分の名前の札（#2133）。`showPartNames` のレッスンはチャレンジを開いたときから出しっぱなしにし、
+    // ほかは課題バーの「ガイド」で数秒だけ出す（どこかを押す・Esc でも消える）。チャレンジが変わったら、
+    // そのレッスンの決まりにもどす。出しっぱなしのレッスンで消したあと「ガイド」を押すと、また出しっぱなしにする
+    // 「どこでしょう？」のクイズ（#2134）のチャレンジでは、名前の札を出さない（答えが見えてしまう）。「ガイド」のボタンも出さない
+    const partQuiz = current ? current.challenge.partQuiz : null;
+    const lessonShowsPartNames = Boolean(current && current.lesson.showPartNames && !partQuiz);
+    const [partNames, setPartNames] = useState({ visible: lessonShowsPartNames, timed: false });
+    useEffect(() => {
+        setPartNames({ visible: lessonShowsPartNames, timed: false });
+    }, [currentId, lessonShowsPartNames]);
+    const handleTogglePartNames = useCallback(() => {
+        setPartNames((prev) =>
+            prev.visible ? { visible: false, timed: false } : { visible: true, timed: !lessonShowsPartNames },
+        );
+    }, [lessonShowsPartNames]);
+    const handleClosePartNames = useCallback(() => setPartNames({ visible: false, timed: false }), []);
+    const handleSolvePartQuiz = useCallback(
+        (index) => {
+            if (currentId) onSolvePartQuiz(currentId, index);
+        },
+        [currentId, onSolvePartQuiz],
+    );
+
     const handleHint = useCallback(() => {
         if (hint && hint.visible) onHideHint();
         else onShowHint();
     }, [hint, onHideHint, onShowHint]);
+
+    // 手が止まったら「ヒント」を光らせる（#2129 の Q5）。プログラムもステージも 2 分変わらなければ、課題バーの
+    // 「ヒント」（小さくした札があれば札も）をゆっくり光らせ、「ヒントを見てみよう」と出す。何か操作したら止める。
+    // ヒントを読んでいるあいだ・「できた！」のあいだは光らせない。ページを変える・小さくするとそこから数え直す
+    const hintNudge = useIdleNudge({
+        vm,
+        enabled: Boolean(current),
+        hintAvailable: Boolean(hint && hint.count > 0),
+        hintVisible: Boolean(hint && hint.visible),
+        blocked: Boolean(toastVisible),
+        resetKey: hint ? `${currentId}|${hint.index}|${hint.minimized ? 'small' : ''}` : '',
+    });
 
     // タップで全文を開くときは、吹き出しと「できた！」に重ねない。クイズのある「できた！」は閉じずに
     // 全文のあいだだけ隠し、全文を閉じたら出し直す（閉じるとクイズにもどれないため・#1639）
@@ -328,6 +370,7 @@ const LessonMode = ({
                 challenge={current.challenge}
                 challengeCount={current.lesson.challenges.length}
                 hintAvailable={Boolean(hint && hint.count > 0)}
+                hintNudge={hintNudge}
                 hintVisible={Boolean(hint && hint.visible)}
                 menuOpen={menuOpen}
                 onEnd={handleEnd}
@@ -336,10 +379,28 @@ const LessonMode = ({
                 onHint={handleHint}
                 onOpenFullText={handleOpenFullText}
                 onQuit={handleQuit}
+                onTogglePartNames={partQuiz ? null : handleTogglePartNames}
+                partNamesVisible={partNames.visible && !partQuiz}
                 role={role}
                 toastVisible={toastVisible}
             />
-            <LessonHint />
+            {/* 小さくしたヒントの札も、手が止まったら光らせる */}
+            <LessonHint nudge={hintNudge} />
+            {/* 手が止まったときの「ヒントを見てみよう」（これも document.body への portal） */}
+            <LessonHintNudge visible={hintNudge} />
+            {/* 画面の部分の名前の札（これも document.body への portal） */}
+            {partNames.visible && !partQuiz && (
+                <LessonPartNames onClose={handleClosePartNames} timed={partNames.timed} />
+            )}
+            {/* 「どこでしょう？」のクイズ（これも document.body への portal。クイズのあいだ画面のクリックを受ける） */}
+            {partQuiz && (
+                <LessonPartQuiz
+                    key={currentId}
+                    questions={partQuiz.questions}
+                    solved={partQuizSolved}
+                    onSolve={handleSolvePartQuiz}
+                />
+            )}
             {/* メッシュの練習相手（チャレンジに partner があるときだけ。これも document.body への portal） */}
             <LessonPracticePartner />
         </>
@@ -362,6 +423,7 @@ LessonMode.propTypes = {
     fromAssignment: PropTypes.bool,
     hint: PropTypes.shape({
         visible: PropTypes.bool.isRequired,
+        minimized: PropTypes.bool,
         index: PropTypes.number.isRequired,
         count: PropTypes.number.isRequired,
         step: PropTypes.object,
@@ -386,7 +448,11 @@ LessonMode.propTypes = {
     onSetRole: PropTypes.func.isRequired,
     onRequestNewProject: PropTypes.func.isRequired,
     onShowHint: PropTypes.func.isRequired,
+    // 「どこでしょう？」のクイズの問いに正しく答えた（#2134）
+    onSolvePartQuiz: PropTypes.func.isRequired,
     onStartChallenge: PropTypes.func.isRequired,
+    // 「どこでしょう？」のクイズで正しく答えた数（reducers/lesson-mode.js の partQuizSolved）
+    partQuizSolved: PropTypes.number,
     pendingChallengeId: PropTypes.string,
     // 役を選びなおして始めなおすときの役と、どう決めたか（#2062）
     pendingRole: PropTypes.string,
@@ -429,6 +495,7 @@ const mapStateToProps = (state) => {
         isShowingWithoutId: getIsShowingWithoutId(loadingState),
         // メニューバーのメニューがどれか開いているか（課題バーのホバーの全文がメニューに重ならないように）
         menuOpen: Object.values(state.scratchGui.menus).some(Boolean),
+        partQuizSolved: state.scratchGui.lessonMode.partQuizSolved || 0,
         pendingChallengeId: state.scratchGui.lessonMode.pendingChallengeId,
         pendingRole: state.scratchGui.lessonMode.pendingRole || null,
         pendingRoleSource: state.scratchGui.lessonMode.pendingRoleSource || null,
@@ -489,6 +556,7 @@ const mapDispatchToProps = (dispatch) => ({
         dispatch(requestNewProject(false));
     },
     onShowHint: () => dispatch(showHint()),
+    onSolvePartQuiz: (challengeId, index) => dispatch(solvePartQuiz(challengeId, index)),
     onStartChallenge: (challengeId, options) => dispatch(startChallenge(challengeId, options)),
 });
 
