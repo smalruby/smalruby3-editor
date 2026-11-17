@@ -80,8 +80,13 @@ const messages = defineMessages({
 
 // 部分の場所を測り直す間（ms）。タブの切りかえ・パレットの開閉は知らせが無いので、出ているあいだだけ見る
 const RELAYOUT_MS = 500;
-// 札でかぶせないもの（ヒントの吹き出し・練習相手のパネル）。札はこれらより下の層に描くが、文字を隠さないよう置き場所でもよける
-const AVOID_SELECTORS = ['[data-testid="lesson-hint"]', '[data-testid="lesson-practice-partner"]'];
+// 札でかぶせないもの（ヒントの吹き出し・小さくしたヒントの札・練習相手のパネル）。名前の札はヒントの吹き出しより
+// 下の層に描くが、文字を隠さないよう置き場所でもよける（小さくしたヒントの札は名前の札より下の層なので、よけないと隠れる）
+const AVOID_SELECTORS = [
+    '[data-testid="lesson-hint"]',
+    '[data-testid="lesson-hint-minimized"]',
+    '[data-testid="lesson-practice-partner"]',
+];
 // 押しても札を消さない場所（「なまえ」のボタン。押すと出し入れが切りかわる）
 const TOGGLE_SELECTOR = '[data-testid="lesson-task-bar-part-names"]';
 

@@ -19,6 +19,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import LessonActivityDiagram from '../components/lesson-activity-diagram/lesson-activity-diagram.jsx';
+import LessonHintMinimized from '../components/lesson-hint/lesson-hint-minimized.jsx';
 import LessonHint from '../components/lesson-hint/lesson-hint.jsx';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
 import { LANGUAGES, challengeCodeCandidates, localizeCode } from '../lib/lessons/courses';
@@ -37,6 +38,7 @@ import {
     hideHint,
     nextHint,
     prevHint,
+    showHint,
 } from '../reducers/lesson-mode';
 import { updateRubyCode, updateRubyCodeTarget } from '../reducers/ruby-code';
 
@@ -51,6 +53,7 @@ const LessonHintContainer = ({
     onInsertCode,
     onNextHint,
     onPrevHint,
+    onShowHint,
     role = null,
     roleSource = null,
     rubyVersion,
@@ -188,8 +191,21 @@ const LessonHintContainer = ({
         });
     }, [insertChallengeCode]);
 
-    if (!hint || !hint.visible || !current) return null;
+    if (!hint || !current) return null;
     const step = hint.step;
+    // 小さくしたときは札だけを出す（スポットライトも消える）。押すと同じページで元の大きさにもどる
+    if (hint.minimized) {
+        return (
+            <LessonHintMinimized
+                count={hint.count}
+                index={hint.index}
+                lastResort={hint.lastResort}
+                title={hintStepTitle(step, { inClassroom })}
+                onRestore={onShowHint}
+            />
+        );
+    }
+    if (!hint.visible) return null;
     const blocksReady = blocks !== null && rendered.blocks === blocks;
     return (
         <LessonHint
@@ -207,6 +223,7 @@ const LessonHintContainer = ({
             label={step ? step.label || null : null}
             lastResort={hint.lastResort}
             mediaPath={`./static/${colorModeMap[colorMode].blocksMediaFolder}/`}
+            // 「－」は閉じずに小さくする（札が残る・reducers/lesson-mode.js の HIDE_HINT）
             onClose={onHideHint}
             onFinish={onFinishHint}
             onInsertCode={handleInsertCode}
@@ -233,6 +250,8 @@ LessonHintContainer.propTypes = {
     fromAssignment: PropTypes.bool,
     hint: PropTypes.shape({
         visible: PropTypes.bool.isRequired,
+        // 小さくして札だけを残しているか
+        minimized: PropTypes.bool,
         index: PropTypes.number.isRequired,
         count: PropTypes.number.isRequired,
         step: PropTypes.object,
@@ -250,6 +269,8 @@ LessonHintContainer.propTypes = {
     onInsertCode: PropTypes.func.isRequired,
     onNextHint: PropTypes.func.isRequired,
     onPrevHint: PropTypes.func.isRequired,
+    // 小さくした札から元の大きさにもどす
+    onShowHint: PropTypes.func.isRequired,
     // いまの役と、どう決めたか（役のあるチャレンジだけ。lib/lessons/role-swap.js の ROLES・lesson-role.js の ROLE_SOURCES）
     role: PropTypes.string,
     roleSource: PropTypes.string,
@@ -281,6 +302,7 @@ const mapDispatchToProps = (dispatch) => ({
     onHideHint: () => dispatch(hideHint()),
     onNextHint: () => dispatch(nextHint()),
     onPrevHint: () => dispatch(prevHint()),
+    onShowHint: () => dispatch(showHint()),
     onInsertCode: (code, language, target, rubyVersion) => {
         // カードの insertCodeButton と同じ: Ruby を入れてから目的のタブを出す。ブロックの
         // コースではコードタブ（Ruby タブが変換してブロックにする）、Ruby / DNCL のコースでは Ruby タブ
