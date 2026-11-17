@@ -1279,6 +1279,19 @@ partner: {
   区別しない（`normalizeQuery`）。合うチャレンジだけ出し、合うものが無いレッスン・コースは隠す。コースの
   バーと「n / m」は絞り込みで変えない。1 つも無いときは「『○○』に合うチャレンジはありません」。
   判定は `lib/lessons/library-filter.js` の `filterCourseStatuses`（純粋関数）。
+- **たたみ方**: コースとレッスンの見出しはボタン（`aria-expanded`・`aria-controls`・キーボードの Enter / Space でも開閉）。
+  表を開いたときは**いま進めているところだけ開く**（決まりは `design.md` の「たたみ方」。判定は
+  `lib/lessons/library-fold.js` の `initialFoldState`（純粋関数））:
+  - いま進めているコース（いちばん最近チャレンジができた、まだ全部できていないコース。どれも始めていなければ最初のコース。
+    「次のチャレンジ」から開いたときはそのレッスンのコース）だけ開く。たたんだコースは見出しと進み具合のバーだけ。
+  - コースの中では、いまのレッスン（まだ全部できていない最初のレッスン。`focusLessonId` があればそれ）と、
+    その後ろのまだ全部できていないレッスン 1 つを開く。全部できたレッスンとそれより後ろは閉じる。
+  - 閉じたレッスンは 1 行（▶・✓・「レッスン 2」・名前・チャレンジの数だけの丸・「2 / 4」）。丸はできた＝緑の塗り、
+    次（「次はこれ！」のチャレンジ）＝オレンジ、まだ＝白（`lessonDots`）。開いたレッスンの行には丸を出さない（カードで見える）。
+  - 閉じてもカードは DOM に残して隠す（`hidden`）。
+  - 開閉は覚えない（表を開くたびに決まりどおり）。検索中と、クラスの課題のチャレンジだけのレッスン表は全部開く。
+    検索を始めた・やめたときは、見出しを押して変えた分を捨てる。コースのボタン（コースが 4 つを超えたとき）を押すと
+    そのコースを開いてスクロールする。
 - **記録の取り込み**: 開くたびに `reloadProgress()` を呼び、別のタブで書いた記録も反映する。
 - **ほかのチャレンジへ → もどる**: レッスンモードの「ほかのチャレンジへ」は `closeLesson()` のあとレッスン表を開く（次のチャレンジを
   すぐ選べる）。
@@ -1328,11 +1341,18 @@ partner: {
 | `lessons-library-tab-<blocks\|ruby\|dncl>` | button | 言語のボタン（コースがある言語だけ。`aria-pressed`） |
 | `lessons-library-course-nav` | div | コースのボタンの段（コースが 4 つを超えたときだけ） |
 | `lessons-library-course-nav-<courseId>` | button | コースのボタン（押すとそのコースまでスクロール） |
-| `lessons-library-course-<courseId>` | section | コース |
+| `lessons-library-course-<courseId>` | section | コース（`data-expanded="true\|false"`） |
+| `lessons-library-course-toggle-<courseId>` | button | コースの見出し（押すと開閉。`aria-expanded`・`aria-controls`） |
+| `lessons-library-course-lessons-<courseId>` | div | コースのレッスンの入れ物（たたむと `hidden`） |
 | `lessons-library-course-done` | span | コース名の前の ✓（コースのチャレンジが全部できたときだけ） |
 | `lessons-library-course-progress` | div | コースのプログレスバー（`role="progressbar"`）と数（課題のチャレンジだけのレッスン表では出さない） |
 | `lessons-library-course-progress-text` | span | 「m / n」（コース全体） |
-| `lessons-library-lesson-<lessonId>` | section | レッスン（`data-focused`） |
+| `lessons-library-lesson-<lessonId>` | section | レッスン（`data-focused`・`data-expanded="true\|false"`） |
+| `lessons-library-lesson-toggle-<lessonId>` | button | レッスンの見出し（押すと開閉。`aria-expanded`・`aria-controls` = カードの並び `lessons-library-lesson-cards-<lessonId>`） |
+| `lessons-library-lesson-done` | span | レッスン名の前の ✓（レッスンが全部できたときだけ） |
+| `lessons-library-lesson-progress-text` | span | 見出しの右の「m / n」（レッスン） |
+| `lessons-library-lesson-dots` | span | 閉じたレッスンの丸の並び（閉じているときだけ） |
+| `lessons-library-lesson-dot` | span | 丸 1 つ（`data-state="done\|next\|todo"`） |
 | `lessons-library-challenge-<challengeId>` | button | チャレンジのカード（`data-completed="true\|false"`・`data-next`） |
 | `lessons-library-card-band` | span | カードの左の色の帯（`data-category` = なかま） |
 | `lessons-library-challenge-done` | span | カードの右上の ✓ |
@@ -2151,6 +2171,8 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/components/lessons-library/` | レッスン表（モーダル） |
 | `packages/scratch-gui/src/lib/lessons/library-filter.js` | レッスン表の検索（`filterCourseStatuses`）・出す言語（`libraryLanguages`）・コースのボタンを出すか（`showCourseNav`） |
 | `packages/scratch-gui/test/unit/lib/lessons/library-filter.test.js` | 上の unit テスト |
+| `packages/scratch-gui/src/lib/lessons/library-fold.js` | レッスン表を開いたときのたたみ方（`initialFoldState`・いま進めているコース `currentCourseId`・閉じた行の丸 `lessonDots`。純粋関数） |
+| `packages/scratch-gui/test/unit/lib/lessons/library-fold.test.js` | 上の unit テスト（全部できた・いま・つぎ・後ろ、検索中、課題だけの表、`focusLessonId`、コースのたたみ） |
 | `packages/scratch-gui/src/lib/lessons/open-lessons-library.js` | レッスン表をいまのレッスンを見せて開く（`openLessonsLibraryAt`。「次のチャレンジ」が使う）・クラスの課題のチャレンジだけで開く（`openAssignmentLessonsLibrary`。「はじめる」「レッスンを続ける」） |
 | `packages/scratch-gui/src/lib/lessons/assignment-progress.js` | クラスの課題のレッスンの数え方（設定をそろえる・条件の数・あと n つ・課題クリア・メニューバーの印・はじめての課題クリア・レッスン表を課題のチャレンジに絞る・次にやる課題のチャレンジ・クラスへ送る分の記録）の純粋関数 |
 | `packages/scratch-gui/test/unit/lib/lessons/assignment-progress.test.js` | 上の unit テスト |
@@ -2177,7 +2199,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/test/integration/smalruby-lesson-task-bar-layout.test.js` | 課題バーが画面の幅いっぱい・ボタンが右端・ステージの列の旗/止める/ステージの大きさが押せる・ページがスクロールしない、中サイズのステージのスプライトの情報が詰まった形でどの入力欄も押せる（大きいステージでは upstream の形）（Selenium・1300×600） |
 | `packages/scratch-gui/test/unit/components/sprite-info-compact.test.jsx` | 中サイズのステージのスプライトの情報（「スプライト」の字なし・x / y が左隣・大きさ / 向きのアイコンとツールチップ en / ja / ja-Hira、小・大は upstream のまま） |
 | `packages/scratch-gui/test/integration/smalruby-lessons.test.js` | チャレンジを開く → 課題バー・絞ったパレット → やめる → 元にもどる。「レッスンをおえる」でレッスン表を開かずに出て、プログラムが残り、パレットが全部にもどる（Selenium） |
-| `packages/scratch-gui/test/unit/components/lessons-library.test.jsx` / `test/unit/containers/lessons-library.test.jsx` / `test/unit/components/menu-bar-lessons.test.jsx` | レッスン表（3 つのレッスン・カードの色の帯・✓・コースのバー・検索・言語とコースのボタン・「次はこれ！」）、コンテナ、「レッスン」ボタン（吹き出しを出さないこと）の unit テスト |
+| `packages/scratch-gui/test/unit/components/lessons-library.test.jsx` / `test/unit/containers/lessons-library.test.jsx` / `test/unit/components/menu-bar-lessons.test.jsx` | レッスン表（3 つのレッスン・カードの色の帯・✓・コースのバー・検索・言語とコースのボタン・「次はこれ！」・見出しの開閉と丸）、コンテナ、「レッスン」ボタン（吹き出しを出さないこと）の unit テスト |
 | `packages/scratch-gui/test/integration/smalruby-lessons-library.test.js` | メニューから開く → チャレンジを押す → レッスンモード → やめる → レッスン表にもどる・記録に合わせた ✓ とコースの進み具合・検索（Selenium） |
 
 ## 設定・データ永続化

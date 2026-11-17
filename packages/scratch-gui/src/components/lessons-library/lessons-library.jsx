@@ -6,6 +6,8 @@
 //   - コース = 大きい見出し（全部できたら名前の前に ✓、右にプログレスバーと「5 / 11」）、
 //     レッスン = 小さい見出し、チャレンジ = カード（左にブロックの色の帯・右に名前。できたら右上に ✓）
 // 絞り込み・言語・コースのボタンの判定は lib/lessons/library-filter.js（純粋関数）。
+// コース・レッスンの見出しは押すと開閉できる。表を開いたときの開き方（いま進めているところだけ開く・#2148）は
+// lib/lessons/library-fold.js（純粋関数）。開閉は覚えない（表を開くたびに決まりどおり）。
 // 状態（記録・開く・閉じる）は containers/lessons-library.jsx が渡す。
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
@@ -15,7 +17,13 @@ import Modal from '../../containers/modal.jsx';
 import TagButton from '../../containers/tag-button.jsx';
 import { restrictCourseStatus } from '../../lib/lessons/assignment-progress';
 import { LANGUAGES } from '../../lib/lessons/courses';
-import { filterCourseStatuses, libraryLanguages, showCourseNav } from '../../lib/lessons/library-filter';
+import {
+    filterCourseStatuses,
+    libraryLanguages,
+    normalizeQuery,
+    showCourseNav,
+} from '../../lib/lessons/library-filter';
+import { initialFoldState, lessonDots } from '../../lib/lessons/library-fold';
 import { DARK_MODE, DEFAULT_MODE, getColorsForMode } from '../../lib/settings/color-mode';
 import Divider from '../divider/divider.jsx';
 import Filter from '../filter/filter.jsx';
@@ -61,6 +69,31 @@ const messages = defineMessages({
         id: 'gui.lessonsLibrary.courseProgress',
         description: 'How many challenges of a course are done, next to its progress bar',
         defaultMessage: '{completed} / {total}',
+    },
+    lessonProgress: {
+        id: 'gui.lessonsLibrary.lessonProgress',
+        description: 'How many challenges of a lesson are done, at the right of the lesson heading',
+        defaultMessage: '{completed} / {total}',
+    },
+    openLesson: {
+        id: 'gui.lessonsLibrary.openLesson',
+        description: 'Tooltip of a closed lesson heading: pressing it shows the challenges of the lesson',
+        defaultMessage: 'Show the challenges',
+    },
+    closeLesson: {
+        id: 'gui.lessonsLibrary.closeLesson',
+        description: 'Tooltip of an open lesson heading: pressing it hides the challenges of the lesson',
+        defaultMessage: 'Hide the challenges',
+    },
+    openCourse: {
+        id: 'gui.lessonsLibrary.openCourse',
+        description: 'Tooltip of a closed course heading: pressing it shows the lessons of the course',
+        defaultMessage: 'Show the lessons',
+    },
+    closeCourse: {
+        id: 'gui.lessonsLibrary.closeCourse',
+        description: 'Tooltip of an open course heading: pressing it hides the lessons of the course',
+        defaultMessage: 'Hide the lessons',
     },
     done: {
         id: 'gui.lessonsLibrary.done',
@@ -250,32 +283,113 @@ ChallengeCard.propTypes = {
     onSelect: PropTypes.func.isRequired,
 };
 
+// 見出しのボタンを Space で開閉する。ボタンは Space を離したときに押される（click）が、GUI の
+// vm-listener-hoc.jsx が document の keyup をすべて preventDefault するため、Space では click が起きない
+// （Enter は keydown で click が起きるので押せる）。ここで keyup を止めて自分で開閉する（click と二重にならない）
+const handleSpaceKeyUp = (event, toggle) => {
+    if (event.key !== ' ') return;
+    event.preventDefault();
+    toggle();
+};
+
+// 見出しの左の開閉の印（▶。開いているときは下に向ける。▼ と ▶ は字の大きさがそろわないので回す）
+const FoldMark = ({ expanded }) => (
+    <span className={classNames(styles.foldMark, { [styles.foldMarkOpen]: expanded })} aria-hidden="true">
+        {'▶'}
+    </span>
+);
+
+FoldMark.propTypes = {
+    expanded: PropTypes.bool.isRequired,
+};
+
+// 閉じたレッスンの行の丸（チャレンジの数だけ。できた＝塗り・つぎ＝オレンジ）。数は右の「n / m」で読めるので
+// 読み上げには出さない
+const LessonDots = ({ lessonStatus, nextChallengeId }) => (
+    <span className={styles.dots} data-testid="lessons-library-lesson-dots" aria-hidden="true">
+        {lessonDots(lessonStatus, nextChallengeId).map((dot) => (
+            <span
+                key={dot.id}
+                className={classNames(styles.dot, styles[`dot-${dot.state}`])}
+                data-testid="lessons-library-lesson-dot"
+                data-state={dot.state}
+            />
+        ))}
+    </span>
+);
+
+LessonDots.propTypes = {
+    lessonStatus: PropTypes.shape({ challenges: PropTypes.array.isRequired }).isRequired,
+    nextChallengeId: PropTypes.string,
+};
+
 const LessonSection = ({
     lessonStatus,
     colorMode,
+    expanded,
     focused,
     nextChallengeId,
     requiredChallengeIds = [],
     onSelectChallenge,
+    onToggle,
 }) => {
-    const { lesson, number } = lessonStatus;
+    const { lesson, number, completedCount, checkCount, allCompleted } = lessonStatus;
     const intl = useIntl();
     const sectionRef = useRef(null);
     useEffect(() => {
         if (focused) scrollToElement(sectionRef.current);
     }, [focused]);
+    const handleToggle = useCallback(() => onToggle(lesson.id), [lesson.id, onToggle]);
+    const handleKeyUp = useCallback((event) => handleSpaceKeyUp(event, handleToggle), [handleToggle]);
+    const cardsId = `lessons-library-lesson-cards-${lesson.id}`;
     return (
         <section
             ref={sectionRef}
-            className={classNames(styles.lesson, { [styles.lessonFocused]: focused })}
+            className={classNames(styles.lesson, {
+                [styles.lessonFocused]: focused,
+                [styles.lessonClosed]: !expanded,
+            })}
             data-testid={`lessons-library-lesson-${lesson.id}`}
             data-focused={focused ? 'true' : 'false'}
+            data-expanded={expanded ? 'true' : 'false'}
         >
             <h3 className={styles.lessonTitle}>
-                <span className={styles.lessonNumber}>{intl.formatMessage(messages.lessonNumber, { number })}</span>
-                <span className={styles.lessonName}>{intl.formatMessage(lesson.name)}</span>
+                <button
+                    type="button"
+                    className={styles.lessonToggle}
+                    aria-expanded={expanded}
+                    aria-controls={cardsId}
+                    title={intl.formatMessage(expanded ? messages.closeLesson : messages.openLesson)}
+                    data-testid={`lessons-library-lesson-toggle-${lesson.id}`}
+                    onClick={handleToggle}
+                    onKeyUp={handleKeyUp}
+                >
+                    <FoldMark expanded={expanded} />
+                    {allCompleted ? (
+                        <span
+                            className={styles.lessonCheck}
+                            data-testid="lessons-library-lesson-done"
+                            role="img"
+                            aria-label={intl.formatMessage(messages.done)}
+                        >
+                            {'✓'}
+                        </span>
+                    ) : null}
+                    <span className={styles.lessonNumber}>
+                        {intl.formatMessage(messages.lessonNumber, { number })}
+                    </span>
+                    <span className={styles.lessonName}>{intl.formatMessage(lesson.name)}</span>
+                    {expanded ? null : <LessonDots lessonStatus={lessonStatus} nextChallengeId={nextChallengeId} />}
+                    <span className={styles.lessonProgress} data-testid="lessons-library-lesson-progress-text">
+                        {intl.formatMessage(messages.lessonProgress, {
+                            completed: Math.min(completedCount, checkCount),
+                            total: checkCount,
+                        })}
+                    </span>
+                </button>
             </h3>
-            <ul className={styles.cards}>
+            {/* 閉じていてもカードは残す（隠すだけ）。aria-controls の先が無くならないように */}
+            <ul className={styles.cards} id={cardsId} hidden={!expanded}>
                 {lessonStatus.challenges.map(({ challenge, completed }) => (
                     <ChallengeCard
                         key={challenge.id}
@@ -300,44 +414,73 @@ LessonSection.propTypes = {
             name: PropTypes.object.isRequired,
         }).isRequired,
         number: PropTypes.number.isRequired,
+        completedCount: PropTypes.number.isRequired,
+        checkCount: PropTypes.number.isRequired,
+        allCompleted: PropTypes.bool.isRequired,
         challenges: PropTypes.arrayOf(
             PropTypes.shape({ challenge: PropTypes.object.isRequired, completed: PropTypes.bool.isRequired }),
         ).isRequired,
     }).isRequired,
     colorMode: PropTypes.string.isRequired,
+    // カードを見せているか（見出しを押すと切りかわる）
+    expanded: PropTypes.bool.isRequired,
     focused: PropTypes.bool,
     nextChallengeId: PropTypes.string,
     requiredChallengeIds: PropTypes.arrayOf(PropTypes.string),
     onSelectChallenge: PropTypes.func.isRequired,
+    onToggle: PropTypes.func.isRequired,
 };
 
 const CourseSection = ({
     status,
     colorMode,
+    expanded,
+    isLessonExpanded,
     focusLessonId,
     nextChallengeId,
     requiredChallengeIds,
     showProgress = true,
     onSelectChallenge,
+    onToggleCourse,
+    onToggleLesson,
 }) => {
     const intl = useIntl();
     const { course, completedCount, total, allCompleted } = status;
     const percent = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+    const handleToggle = useCallback(() => onToggleCourse(course.id), [course.id, onToggleCourse]);
+    const handleKeyUp = useCallback((event) => handleSpaceKeyUp(event, handleToggle), [handleToggle]);
+    const lessonsId = `lessons-library-course-lessons-${course.id}`;
     return (
-        <section className={styles.course} data-testid={`lessons-library-course-${course.id}`}>
+        <section
+            className={classNames(styles.course, { [styles.courseClosed]: !expanded })}
+            data-testid={`lessons-library-course-${course.id}`}
+            data-expanded={expanded ? 'true' : 'false'}
+        >
             <div className={styles.courseHeader}>
                 <h2 className={styles.courseTitle}>
-                    {allCompleted ? (
-                        <span
-                            className={styles.courseCheck}
-                            data-testid="lessons-library-course-done"
-                            role="img"
-                            aria-label={intl.formatMessage(messages.done)}
-                        >
-                            {'✓'}
-                        </span>
-                    ) : null}
-                    {intl.formatMessage(course.name)}
+                    <button
+                        type="button"
+                        className={styles.courseToggle}
+                        aria-expanded={expanded}
+                        aria-controls={lessonsId}
+                        title={intl.formatMessage(expanded ? messages.closeCourse : messages.openCourse)}
+                        data-testid={`lessons-library-course-toggle-${course.id}`}
+                        onClick={handleToggle}
+                        onKeyUp={handleKeyUp}
+                    >
+                        <FoldMark expanded={expanded} />
+                        {allCompleted ? (
+                            <span
+                                className={styles.courseCheck}
+                                data-testid="lessons-library-course-done"
+                                role="img"
+                                aria-label={intl.formatMessage(messages.done)}
+                            >
+                                {'✓'}
+                            </span>
+                        ) : null}
+                        {intl.formatMessage(course.name)}
+                    </button>
                 </h2>
                 {/* 課題のチャレンジだけのレッスン表では、課題の帯がコースの進み具合の役目をする（#1771） */}
                 {showProgress ? (
@@ -358,17 +501,27 @@ const CourseSection = ({
                     </div>
                 ) : null}
             </div>
-            {status.lessons.map((lessonStatus) => (
-                <LessonSection
-                    key={lessonStatus.lesson.id}
-                    lessonStatus={lessonStatus}
-                    colorMode={colorMode}
-                    focused={lessonStatus.lesson.id === focusLessonId}
-                    nextChallengeId={nextChallengeId}
-                    requiredChallengeIds={requiredChallengeIds}
-                    onSelectChallenge={onSelectChallenge}
-                />
-            ))}
+            {/* たたんだコースは見出しとバーだけ。レッスンは残して隠す */}
+            <div
+                id={lessonsId}
+                className={styles.courseLessons}
+                data-testid={`lessons-library-course-lessons-${course.id}`}
+                hidden={!expanded}
+            >
+                {status.lessons.map((lessonStatus) => (
+                    <LessonSection
+                        key={lessonStatus.lesson.id}
+                        lessonStatus={lessonStatus}
+                        colorMode={colorMode}
+                        expanded={isLessonExpanded(lessonStatus.lesson.id)}
+                        focused={lessonStatus.lesson.id === focusLessonId}
+                        nextChallengeId={nextChallengeId}
+                        requiredChallengeIds={requiredChallengeIds}
+                        onSelectChallenge={onSelectChallenge}
+                        onToggle={onToggleLesson}
+                    />
+                ))}
+            </div>
         </section>
     );
 };
@@ -386,12 +539,18 @@ CourseSection.propTypes = {
         lessons: PropTypes.array.isRequired,
     }).isRequired,
     colorMode: PropTypes.string.isRequired,
+    // レッスンを見せているか（たたむと見出しとバーだけ）
+    expanded: PropTypes.bool.isRequired,
+    // レッスンの id → カードを見せているか
+    isLessonExpanded: PropTypes.func.isRequired,
     focusLessonId: PropTypes.string,
     nextChallengeId: PropTypes.string,
     requiredChallengeIds: PropTypes.arrayOf(PropTypes.string),
     // コース名の横の進み具合（バーと「n / 全部」）を出すか。課題のチャレンジだけのときは出さない
     showProgress: PropTypes.bool,
     onSelectChallenge: PropTypes.func.isRequired,
+    onToggleCourse: PropTypes.func.isRequired,
+    onToggleLesson: PropTypes.func.isRequired,
 };
 
 const LessonsLibrary = ({
@@ -429,14 +588,60 @@ const LessonsLibrary = ({
             .filter((status) => status.lessons.length > 0);
     }, [languageCourses, progress, query, nameOf, assignmentChallengeIds]);
 
+    // 開き方: 表を開いたときの決まり（initialFoldState）に、見出しを押して変えた分（toggled）を重ねる。
+    // 検索を始めた・やめたときは押した分を捨てる（検索中は全部開く・やめたら決まりどおりに戻す）
+    const searching = Boolean(normalizeQuery(query));
+    const fold = useMemo(
+        () =>
+            initialFoldState(statuses, progress, {
+                searching,
+                assignmentOnly: Boolean(assignmentChallengeIds),
+                focusLessonId,
+            }),
+        [statuses, progress, searching, assignmentChallengeIds, focusLessonId],
+    );
+    const [toggled, setToggled] = useState({ searching, courses: {}, lessons: {} });
+    // 検索を始めた・やめたときは押した分を捨てる（描画中に state を合わせる React の形）
+    if (toggled.searching !== searching) setToggled({ searching, courses: {}, lessons: {} });
+    const overrides = toggled.searching === searching ? toggled : { courses: {}, lessons: {} };
+    const isCourseExpanded = useCallback(
+        (courseId) => (courseId in overrides.courses ? overrides.courses[courseId] : Boolean(fold.courses[courseId])),
+        [overrides, fold],
+    );
+    const isLessonExpanded = useCallback(
+        (lessonId) => (lessonId in overrides.lessons ? overrides.lessons[lessonId] : Boolean(fold.lessons[lessonId])),
+        [overrides, fold],
+    );
+    const setExpanded = useCallback(
+        (kind, id, value) =>
+            setToggled((prev) => {
+                const base = prev.searching === searching ? prev : { searching, courses: {}, lessons: {} };
+                return { ...base, searching, [kind]: { ...base[kind], [id]: value } };
+            }),
+        [searching],
+    );
+    const handleToggleCourse = useCallback(
+        (courseId) => setExpanded('courses', courseId, !isCourseExpanded(courseId)),
+        [setExpanded, isCourseExpanded],
+    );
+    const handleToggleLesson = useCallback(
+        (lessonId) => setExpanded('lessons', lessonId, !isLessonExpanded(lessonId)),
+        [setExpanded, isLessonExpanded],
+    );
+
     const handleQueryChange = useCallback((event) => setQuery(event.target.value), []);
     const handleQueryClear = useCallback(() => setQuery(''), []);
     const handleLanguage = useCallback((tag) => setLanguage(tag), []);
-    const handleCourseNav = useCallback((courseId) => {
-        const content = contentRef.current;
-        if (!content) return;
-        scrollToElement(content.querySelector(`[data-testid="lessons-library-course-${courseId}"]`));
-    }, []);
+    // コースのボタン: そのコースを開いて、そこまでスクロールする
+    const handleCourseNav = useCallback(
+        (courseId) => {
+            setExpanded('courses', courseId, true);
+            const content = contentRef.current;
+            if (!content) return;
+            scrollToElement(content.querySelector(`[data-testid="lessons-library-course-${courseId}"]`));
+        },
+        [setExpanded],
+    );
 
     return (
         <Modal
@@ -498,11 +703,15 @@ const LessonsLibrary = ({
                                 key={status.course.id}
                                 status={status}
                                 colorMode={colorMode}
+                                expanded={isCourseExpanded(status.course.id)}
+                                isLessonExpanded={isLessonExpanded}
                                 focusLessonId={focusLessonId}
                                 nextChallengeId={nextChallengeId}
                                 requiredChallengeIds={requiredChallengeIds}
                                 showProgress={!assignmentChallengeIds}
                                 onSelectChallenge={onSelectChallenge}
+                                onToggleCourse={handleToggleCourse}
+                                onToggleLesson={handleToggleLesson}
                             />
                         ))
                     )}
