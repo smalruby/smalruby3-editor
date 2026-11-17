@@ -4,6 +4,7 @@ import RubyParser from '../ruby-parser';
 import { messages } from './converter-errors';
 import { RubyToBlocksConverterError } from './errors';
 import { nodeTypeName } from './node-walk';
+import { unwrapWithoutScreenRefreshDefs } from './screen-refresh-defs';
 
 /**
  * Mixin methods for visiting module nodes in the Ruby-to-blocks converter.
@@ -81,6 +82,7 @@ const ModuleVisitor = {
 
         // The parsed result should be: ProgramNode > StatementsNode > [ModuleNode]
         const root = parseResult.value;
+        unwrapWithoutScreenRefreshDefs(root).forEach((def) => this._context.warpDefNodes.add(def));
         let moduleNode = null;
         if (root.statements && root.statements.body) {
             for (const stmt of root.statements.body) {
