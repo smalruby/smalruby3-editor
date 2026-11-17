@@ -117,6 +117,27 @@ describe('findHintTargetRect', () => {
         expect(findHintTargetRect(HINT_TARGETS.SOUNDS_TAB, document)).toEqual(rect(200, 0, 300, 40));
     });
 
+    // 「なまえ」の札でも使う場所（#2133）
+    test('the stop button, the code tab, the task bar and the hint button are found', () => {
+        addEl('stop-all_stop-all-button_abc', rect(0, 0, 10, 10));
+        expect(findHintTargetRect(HINT_TARGETS.STOP_BUTTON, document)).toBeNull();
+        addEl('stop-all_stop-all_abc', rect(940, 60, 970, 90));
+        expect(findHintTargetRect(HINT_TARGETS.STOP_BUTTON, document)).toEqual(rect(940, 60, 970, 90));
+        const list = document.createElement('ul');
+        [rect(0, 88, 100, 120), rect(100, 88, 200, 120)].forEach((r) => {
+            const li = document.createElement('li');
+            li.className = 'gui_tab_abc';
+            li.getBoundingClientRect = () => r;
+            list.appendChild(li);
+        });
+        document.body.appendChild(list);
+        expect(findHintTargetRect(HINT_TARGETS.CODE_TAB, document)).toEqual(rect(0, 88, 100, 120));
+        addEl('', rect(0, 48, 1300, 88), { 'data-testid': 'lesson-task-bar' });
+        addEl('', rect(1000, 56, 1050, 80), { 'data-testid': 'lesson-task-bar-hint' });
+        expect(findHintTargetRect(HINT_TARGETS.TASK_BAR, document)).toEqual(rect(0, 48, 1300, 88));
+        expect(findHintTargetRect(HINT_TARGETS.HINT_BUTTON, document)).toEqual(rect(1000, 56, 1050, 80));
+    });
+
     test('the extension button is found by the data-testid of the Smalruby component', () => {
         addEl('extension-button_extension-button-container_abc', rect(0, 540, 60, 600), {
             'data-testid': 'extension-button',
@@ -163,6 +184,7 @@ describe('hint targets: CSS Modules class names of upstream components', () => {
         'sprite-selector_sprite-selector_': ['sprite-selector/sprite-selector.css', 'sprite-selector'],
         'stage-selector_stage-selector_': ['stage-selector/stage-selector.css', 'stage-selector'],
         'green-flag_green-flag_': ['green-flag/green-flag.css', 'green-flag'],
+        'stop-all_stop-all_': ['stop-all/stop-all.css', 'stop-all'],
     };
 
     test('every class prefix used by the selectors is listed here', () => {

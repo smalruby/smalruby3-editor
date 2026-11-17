@@ -178,12 +178,21 @@ export const defineChallenge = (def) =>
  *   ブロックが出なくなるため・#1741）。setup で日本語モードにするレッスン（DNCL のコースなど）は true にする。
  * @param {number} [def.checkCount] - レッスンの ✓ に要るできた数。書いていなければチャレンジの数（全部）。
  *   テーマを 1 つ以上選んでやるレッスンは 1（#1616 の Q17）。
+ * @param {boolean} [def.showPartNames] - チャレンジを開いたときから画面の部分の名前の札を出しておくか
+ *   （「なまえ」ボタンで消せる。画面の部分の名前を覚えるレッスン 0 で使う・#2133）。書いていなければ出さない。
  * @returns {object} レッスン。
  */
-export const defineLesson = ({ id, challenges, allowDnclMode = false, checkCount = null }) => ({
+export const defineLesson = ({
+    id,
+    challenges,
+    allowDnclMode = false,
+    checkCount = null,
+    showPartNames = false,
+}) => ({
     id,
     name: message(`gui.lessons.lesson.${id}.name`),
     allowDnclMode: Boolean(allowDnclMode),
+    showPartNames: Boolean(showPartNames),
     checkCount: checkCount === null ? challenges.length : Math.min(checkCount, challenges.length),
     challenges: challenges.map((def, index) => defineChallenge({ ...def, number: index + 1 })),
 });

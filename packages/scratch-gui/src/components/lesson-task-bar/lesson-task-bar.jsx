@@ -1,5 +1,5 @@
 // レッスンモードでメニューバーの下に画面の幅いっぱいで出す課題バー（1 行）。
-// 「何個め / 全部で何個」・課題の 1 行・ヒント・ほかのチャレンジへ・レッスンをおえる。見た目の高さは 40px に収め、
+// 「何個め / 全部で何個」・課題の 1 行・なまえ・ヒント・ほかのチャレンジへ・レッスンをおえる。見た目の高さは 40px に収め、
 // 1300×600 の授業のパソコンでコードエリアを圧迫しない。
 // 課題の全文（チャレンジの定義の改行つき・アクティビティ図や画像があればそれも）は、バーにマウスを乗せているあいだ
 // バーの下に大きめの字で出す（先生がプロジェクターに映して説明する場面のため。課題が短くても出す。
@@ -31,6 +31,13 @@ const messages = defineMessages({
         id: 'gui.lessonTaskBar.hint',
         description: 'Button that shows a hint for the current challenge',
         defaultMessage: 'Hint',
+    },
+    partNames: {
+        id: 'gui.lessonTaskBar.partNames',
+        description:
+            'Small button in the lesson task bar that shows the names of the parts of the editor ' +
+            '(tabs, palette, code area, stage, ...) for a few seconds',
+        defaultMessage: 'Names',
     },
     another: {
         id: 'gui.lessonTaskBar.another',
@@ -126,6 +133,8 @@ const LessonTaskBar = ({
     onHint,
     onOpenFullText,
     onChooseRole,
+    onTogglePartNames,
+    partNamesVisible = false,
     onQuit,
     role = null,
     toastVisible,
@@ -181,6 +190,16 @@ const LessonTaskBar = ({
         }
         prevHintVisibleRef.current = Boolean(hintVisible);
     }, [hintVisible, clearHoverTimer]);
+    // 「なまえ」を押して名前の札を出したときも同じく引っこめる（押したマウスはバーの上にあるので、
+    // そのままだと全文のパネルが課題バー・タブの札を隠す）
+    const prevPartNamesVisibleRef = useRef(Boolean(partNamesVisible));
+    useEffect(() => {
+        if (partNamesVisible && !prevPartNamesVisibleRef.current) {
+            clearHoverTimer();
+            setHovered(false);
+        }
+        prevPartNamesVisibleRef.current = Boolean(partNamesVisible);
+    }, [partNamesVisible, clearHoverTimer]);
     useEffect(() => setPinned(false), [task]);
     // タップで開いた全文が閉じたら知らせる（どう閉じても。隠していた「できた！」を出し直すため・#1639）
     const prevPinnedRef = useRef(pinned);
@@ -279,6 +298,18 @@ const LessonTaskBar = ({
                 {role && onChooseRole && (
                     <LessonRolePicker role={role.role} source={role.source} onChoose={onChooseRole} />
                 )}
+                {/* 画面の部分の名前の札を出す（#2133）。「ヒント」より目立たせない（小さく・枠を薄く） */}
+                {onTogglePartNames && (
+                    <button
+                        type="button"
+                        className={styles.buttonSub}
+                        data-testid="lesson-task-bar-part-names"
+                        aria-pressed={partNamesVisible}
+                        onClick={onTogglePartNames}
+                    >
+                        {intl.formatMessage(messages.partNames)}
+                    </button>
+                )}
                 <button
                     type="button"
                     className={styles.button}
@@ -371,6 +402,10 @@ LessonTaskBar.propTypes = {
     onChooseRole: PropTypes.func,
     // ほかのチャレンジへ（いまのチャレンジを終えてレッスン表を開く）
     onQuit: PropTypes.func.isRequired,
+    // 「なまえ」（画面の部分の名前の札を出す・消す）。無ければボタンを出さない
+    onTogglePartNames: PropTypes.func,
+    // 名前の札が出ているか
+    partNamesVisible: PropTypes.bool,
     // いまの役（役のあるチャレンジだけ・reducers/lesson-mode.js の getCurrentRole）。無ければ役のボタンを出さない
     role: PropTypes.shape({
         role: PropTypes.string.isRequired,
