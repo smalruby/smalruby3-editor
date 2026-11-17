@@ -1,5 +1,5 @@
-// 「なまえ」の札（#2133）。画面の部分（タブ・パレット・コードエリア・ステージ・旗と止める・スプライトリスト・
-// 背景・課題バー・ヒント）に名前の札を重ねて出す。部分の DOM の探し方はヒントの吹き出しと同じ
+// 「なまえ」の札（#2133）。画面の部分（タブ・ブロックパレット・スクリプトエリア・ステージ・緑の旗と停止ボタン・
+// スプライトペイン・背景・課題バー・ヒント）に名前の札を重ねて出す。部分の DOM の探し方はヒントの吹き出しと同じ
 // （hint-targets.js の findHintTargetRect）。札の置き方は純粋関数にして unit テストで確かめる。
 import { HINT_TARGETS, findHintTargetRect } from './hint-targets';
 
@@ -8,13 +8,15 @@ export const PART_NAMES_DURATION_MS = 6000;
 
 // 札を出す部分（先に書いたものから置く）。小さな部分（ボタン・タブ）は、札で隠すと押す場所が
 // わからなくなるので、外側に置き、ほかの札でも隠さない（small）。広い部分は中の左上に置く。
-// label は locale の `gui.lessonPartNames.<label>`
+// label は locale の `gui.lessonPartNames.<label>`。名前は Scratch Wiki「Scratchユーザーインターフェース (3.0)」に
+// 合わせる（Wiki に無い課題バー・ヒント・ルビータブ・背景はスモウルビー独自。docs/lessons/design.md）
 export const PART_NAMES = Object.freeze([
     { target: HINT_TARGETS.TASK_BAR, label: 'taskBar', sides: ['below-center'] },
     { target: HINT_TARGETS.HINT_BUTTON, label: 'hint', sides: ['below', 'left'], small: true },
     { target: HINT_TARGETS.CODE_TAB, label: 'codeTab', sides: ['below', 'right'], small: true },
     { target: HINT_TARGETS.COSTUMES_TAB, label: 'costumesTab', sides: ['below', 'right'], small: true },
     { target: HINT_TARGETS.SOUNDS_TAB, label: 'soundsTab', sides: ['below', 'right'], small: true },
+    { target: HINT_TARGETS.RUBY_TAB, label: 'rubyTab', sides: ['below', 'right'], small: true },
     { target: HINT_TARGETS.GREEN_FLAG, label: 'greenFlag', sides: ['below', 'left'], small: true },
     { target: HINT_TARGETS.STOP_BUTTON, label: 'stop', sides: ['below', 'right'], small: true },
     { target: HINT_TARGETS.PALETTE, label: 'palette', sides: ['inside'] },

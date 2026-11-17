@@ -51,6 +51,20 @@ describe('LessonPartNames', () => {
         expect(queryByTestId('lesson-part-names-frame-soundsTab')).not.toBeInTheDocument();
     });
 
+    // 名前は Scratch Wiki に合わせる。タブの札にはルビータブもある（#2142）
+    test('uses the Scratch Wiki names and has a label for the Ruby tab', () => {
+        addPart('mobile-side-rail-ruby', { left: 290, top: 88, right: 372, bottom: 120 });
+        addPart('mobile-side-rail-play', { left: 830, top: 92, right: 862, bottom: 124 });
+        const { getByTestId } = renderNames();
+        expect(getByTestId('lesson-part-names-label-rubyTab')).toHaveTextContent('ルビータブ');
+        expect(getByTestId('lesson-part-names-label-rubyTab')).toHaveAttribute('data-placed', 'true');
+        expect(getByTestId('lesson-part-names-label-greenFlag')).toHaveTextContent('緑の旗');
+        expect(getByTestId('lesson-part-names-label-stop')).toHaveTextContent('停止ボタン');
+        expect(getByTestId('lesson-part-names-label-palette')).toHaveTextContent('ブロックパレット');
+        expect(getByTestId('lesson-part-names-label-codeArea')).toHaveTextContent('スクリプトエリア');
+        expect(getByTestId('lesson-part-names-label-spriteList')).toHaveTextContent('スプライトペイン');
+    });
+
     test('when shown by the button, closes after a few seconds', () => {
         const onClose = jest.fn();
         renderNames({ onClose, timed: true });

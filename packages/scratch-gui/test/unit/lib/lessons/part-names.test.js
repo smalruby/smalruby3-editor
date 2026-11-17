@@ -20,6 +20,7 @@ const PARTS_1300 = [
     { label: 'codeTab', rect: rect(0, 88, 92, 120), sides: ['below', 'right'], small: true },
     { label: 'costumesTab', rect: rect(92, 88, 214, 120), sides: ['below', 'right'], small: true },
     { label: 'soundsTab', rect: rect(214, 88, 290, 120), sides: ['below', 'right'], small: true },
+    { label: 'rubyTab', rect: rect(290, 88, 372, 120), sides: ['below', 'right'], small: true },
     { label: 'greenFlag', rect: rect(830, 92, 862, 124), sides: ['below', 'left'], small: true },
     { label: 'stop', rect: rect(866, 92, 898, 124), sides: ['below', 'right'], small: true },
     { label: 'palette', rect: rect(0, 120, 310, 600), sides: ['inside'] },
@@ -31,13 +32,14 @@ const PARTS_1300 = [
 const SIZES = Object.fromEntries(PARTS_1300.map((p) => [p.label, { width: 12 + 14 * p.label.length, height: 22 }]));
 
 describe('part names: data', () => {
-    test('there are names for the 9 parts of the editor (tabs, flag and stop count as one part each)', () => {
+    test('there are names for the 9 parts of the editor (the 4 tabs with Ruby, flag and stop count as one part each)', () => {
         expect(PART_NAMES.map((p) => p.target)).toEqual([
             HINT_TARGETS.TASK_BAR,
             HINT_TARGETS.HINT_BUTTON,
             HINT_TARGETS.CODE_TAB,
             HINT_TARGETS.COSTUMES_TAB,
             HINT_TARGETS.SOUNDS_TAB,
+            HINT_TARGETS.RUBY_TAB,
             HINT_TARGETS.GREEN_FLAG,
             HINT_TARGETS.STOP_BUTTON,
             HINT_TARGETS.PALETTE,
