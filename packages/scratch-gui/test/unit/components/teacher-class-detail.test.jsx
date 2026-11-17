@@ -918,9 +918,10 @@ describe('TeacherClassDetail — lesson progress (#1602)', () => {
             document.querySelector('[data-testid="classroom-lesson-progress-current-blocks-l1-arrow-move"]')
                 .textContent,
         ).toBe('1');
-        // #1767 M1: the assignment name field and the retention line fold away on this tab.
-        expect(document.querySelector('[data-testid="classroom-detail-assignment-name"]')).not.toBeInTheDocument();
-        expect(document.querySelector('[data-testid="classroom-detail-compact-code"]')).toBeInTheDocument();
+        // #2089: the name and the join code sit in the one「✕ ＋ 課題名」row on every tab
+        // (it replaced the folded header of #1767 M1).
+        expect(document.querySelector('[data-testid="classroom-close-row"]')).toBeInTheDocument();
+        expect(document.querySelector('[data-testid="classroom-detail-join-code"]')).toBeInTheDocument();
         fireEvent.click(document.querySelector('[data-testid="classroom-lesson-progress-seat-seat-01"]'));
         expect(onSelectMember).toHaveBeenCalledWith('seat-01');
     });

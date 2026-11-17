@@ -41,6 +41,7 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 |---|---|---|
 | [`google-drive/`](google-drive/) — Google Drive 保存・読込 | 🆕 独自 | ✅ |
 | [`classroom/`](classroom/) — クラスルーム機能 | 🆕 独自 | ✅ |
+| [`standard-assignments/`](standard-assignments/) — 標準課題（`assignments/`。授業 1 時間ごとのワークシート・評価規準を CC0 で公開） | 🆕 独自 | ✏️ |
 | [`mesh-v2/`](mesh-v2/) — Mesh v2 ネットワーク | 🆕 独自 | ✅ |
 | [`device-connection/`](device-connection/) — connection-modal 共通基盤 | 🔧 改良 | ✅ |
 

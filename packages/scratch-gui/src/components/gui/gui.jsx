@@ -76,6 +76,9 @@ import MeshStatusPopup from '../../containers/mesh-status-popup.jsx';
 // === Smalruby: Start of lesson goal watcher ===
 import LessonGoalWatcher from '../../containers/lesson-goal-watcher.jsx';
 // === Smalruby: End of lesson goal watcher ===
+// === Smalruby: Start of block activity diagram ===
+import BlockActivityDiagram from '../../containers/block-activity-diagram.jsx';
+// === Smalruby: End of block activity diagram ===
 // === Smalruby: Start of welcome modal ===
 import WelcomeModalHOC from '../../containers/welcome-modal-hoc.jsx';
 // === Smalruby: End of welcome modal ===
@@ -587,6 +590,9 @@ const GUIComponent = props => {
                     {/* === Smalruby: Start of lesson goal watcher === */}
                     <LessonGoalWatcher />
                     {/* === Smalruby: End of lesson goal watcher === */}
+                    {/* === Smalruby: Start of block activity diagram === */}
+                    <BlockActivityDiagram />
+                    {/* === Smalruby: End of block activity diagram === */}
                     {/* === Smalruby: End of smalrubot firmware modal === */}
                     {/* === Smalruby: Start of welcome modal === */}
                     <WelcomeModalHOC />

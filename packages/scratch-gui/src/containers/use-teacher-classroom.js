@@ -344,6 +344,7 @@ const useTeacherClassroom = ({
         assignmentSavedSettings: assignment.savedSettings,
         assignmentLessonDraft: assignment.lessonDraft,
         assignmentSavedLesson: assignment.savedLesson,
+        assignmentHasUnsavedChanges: assignment.hasUnsavedChanges,
         handleAssignmentAddPage: assignment.handleAddPage,
         handleAssignmentRemovePage: assignment.handleRemovePage,
         handleAssignmentMovePage: assignment.handleMovePage,
