@@ -1574,7 +1574,9 @@ export default {
     'gui.lessonHint.position': 'Hint {number} of {count}',
     'gui.lessonHint.prev': 'Back',
     'gui.lessonHint.next': 'Next',
-    'gui.lessonHint.close': 'Close',
+    'gui.lessonHint.minimize': 'Make the hint small',
+    'gui.lessonHint.minimizedPosition': 'Hint {number}/{count}',
+    'gui.lessonHint.restore': 'Show the hint again',
     'gui.lessonHint.debugTitle': 'If it does not work',
     'gui.lessonHint.checkAnswer': 'See the correct program',
     'gui.lessonHint.checkAnswerConfirm':

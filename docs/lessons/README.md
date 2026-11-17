@@ -57,6 +57,7 @@
 | `challenges` | チャレンジ[] | 並び順 |
 | `allowDnclMode` | boolean | レッスンのあいだ Ruby タブを日本語モードに切りかえてよいか。**書いていなければ不可**（`false`）。下の「日本語モードの切りかえ」 |
 | `checkCount` | number | レッスンの ✓（「全部できた」）に要るできた数。**書いていなければチャレンジの数**（全部）。テーマを選んでやるレッスン（「チャットをつくろう」のレッスン 5）だけ `1` |
+| `autoOpenHints` | boolean | チャレンジを始めたら、ヒントの 1 ページ目を自動で開くか。**書いていなければ開かない**（課題バーの「ヒント」で開く）。はじめのレッスン（「きょうからプログラマー」のレッスン 0 と 1。いまはレッスン 1 の `blocks-l1`）だけ `true`。ヒントの使い方に慣れるまでは開いておき、慣れたら自分で開く。読んで作るチャレンジはこの設定によらず開く |
 
 必須のチャレンジは持たない。`checkCount` を書いたレッスンは、その数だけできれば ✓ がつく。まだ残りのチャレンジがあるときの「できた！」は、
 見出しを「レッスン n クリア！」、2 行目を「「レッスン名」は n つできました。このレッスンはこれでクリア」にする（「ぜんぶ」とは言わない）。
@@ -1135,7 +1136,8 @@ partner: {
 |------|------|
 | `courseId` / `lessonId` / `challengeId` | いま開いているチャレンジ。`challengeId` が null ならレッスンモードではない |
 | `pendingChallengeId` | 開こうとしているチャレンジ（新しい作品ができるまでの間だけ入る。下の「レッスンモード」） |
-| `hintVisible` / `hintIndex` | ヒントの吹き出しを出しているか・何番めのヒントか（チャレンジを開く・閉じるたびに最初にもどる。開いたときはヒントがあれば出す） |
+| `hintVisible` / `hintIndex` | ヒントの吹き出しを出しているか・何番めのヒントか（チャレンジを開く・閉じるたびに最初にもどる。開いたときは、`autoOpenHints` のレッスンと読んで作るチャレンジならヒントがあれば出す） |
+| `hintMinimized` | ヒントを小さくして札だけを残しているか（`hideHint` で true、`showHint`・`finishHint`・できた・チャレンジを開く・閉じるで false） |
 | `hintSession` | チャレンジを開いた回数（`openChallenge` のたびに増える。同じチャレンジを開き直しても増える）。吹き出しの `key` にして、開き直したらドラッグした位置・確認・入れられなかったわけを持ち越さない（吹き出しは開いたまま次のチャレンジに移ることがあり、そのときは作り直されないため） |
 | `hintSpotlight` | はじめて開いたチャレンジか（`spotlight` のヒントで周りを暗くする）。`openChallenge` で `smalruby:lessonSpotlightSeen` を見て決め、同時に「見た」と記録する |
 | `progress` | 記録の写し（起動時に localStorage から読む） |
@@ -1154,7 +1156,7 @@ partner: {
 | `cancelStartChallenge()` | 開こうとしていたチャレンジを取り消す（「保存しますか」で取りやめたとき） |
 | `openChallenge(challengeId)` | レッスンモードに入る（作品の準備は済んでいる前提。知らない id は無視）。「できた！」は消す |
 | `closeLesson()` | レッスンモードを抜ける（記録は残す） |
-| `showHint()` / `hideHint()` / `nextHint()` / `prevHint()` | ヒントの吹き出しの出し入れと「進める・もどる」（ヒントが無いチャレンジでは出ない。両端で止まる）。`hideHint` はページを保つ |
+| `showHint()` / `hideHint()` / `nextHint()` / `prevHint()` | ヒントの吹き出しの出し入れと「進める・もどる」（ヒントが無いチャレンジでは出ない。両端で止まる）。`hideHint` は閉じずに小さくする（札が残る・ページを保つ） |
 | `finishHint()` | 「おわり」で閉じる（次に開くときは 1 ページ目から） |
 | `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない）。`justCompletedId` をそのチャレンジにする（すでにできていても）。いま開いているチャレンジなら、ヒントの吹き出しを閉じる（ページは保つ） |
 | `dismissCompleted()` | 「できた！」を閉じる |
@@ -1428,8 +1430,10 @@ partner: {
     「なにか」を追加など）はツールボックスの初期値が仕様と同じ。
     初期値で済むようになったヒント（▼で「上向き矢印」をえらぶ・「こんにちは！」と書く・「なまえは？」と書く・
     右に 7 を入れる・ことばを書く）は、「なっているか見よう」「のままでいいよ」の文言にしている。
-- **ヒント**: チャレンジを始めると（`openChallenge`）ヒントの 1 ページ目が**自動で開く**（ヒントボタンに
-  気づかない子でも、何から始めるかがわかるように）。閉じたあとは「ヒント」ボタンで `showHint` / `hideHint`。
+- **ヒント**: `autoOpenHints` のレッスン（レッスン 0 と 1）と読んで作るチャレンジは、チャレンジを始めると
+  （`openChallenge`）ヒントの 1 ページ目が**自動で開く**（ヒントボタンに気づかない子でも、何から始めるかが
+  わかるように）。ほかのレッスンは課題バーの「ヒント」で開く。開いたあとは「ヒント」ボタンで `showHint` / `hideHint`
+  （`hideHint` は閉じずに小さくする。下の「ヒントの吹き出し」の「小さくする」）。
   吹き出し（下の「ヒントの吹き出し」）は `containers/lesson-mode.jsx` の `<LessonTaskBar>` の次に置いた
   `containers/lesson-hint.jsx` が出す。ヒントが無いチャレンジでは自動で開かず、ボタンも無効。
   自動で開くのはレッスンモードに入ったあとなので、「保存しますか」の確認・レッスン表とは重ならない。
@@ -1497,10 +1501,23 @@ partner: {
 - **スポットライト**: `spotlight: true` のヒントで、かつ `hintSpotlight`（はじめて開いたチャレンジ）のときだけ、
   指す場所の矩形に穴を開けた巨大な box-shadow で周りを暗くする。`pointer-events: none` なので、照らした
   パレットやステージはそのまま操作できる（ドラッグ中のブロックは吹き出しより上を通る）。
-- **進める・もどる・閉じる**: `nextHint` / `prevHint` / `hideHint`。最初で「もどる」が無効。最後のページは
+- **進める・もどる・小さくする**: `nextHint` / `prevHint` / `hideHint`。最初で「もどる」が無効。最後のページは
   そのあとが無いので、「進める」の代わりに **「おわり」**（`lesson-hint-finish`。押すと閉じる）を出す。
+- **小さくする（閉じない）**: ヘッダーのボタンは × ではなく **「－」**（ヒントを小さくする）。押すと吹き出しの代わりに、
+  課題バーのすぐ下に**小さな札**（`lesson-hint-minimized`。いまのページの「ヒント n/N」と、文言の最初の文から作った
+  短い見出し・もどす印 ⤢）が残り、押すと同じページで元の大きさにもどる（課題バーの「ヒント」でももどる）。
+  授業で、子どもがヒントを読んで操作するときに閉じてしまい、手順を見失っていたため（ヒントを出したまま操作して
+  よいことがわかっていなかった）。小さくしても消えず、「もどしたくなる」ように吹き出しのヘッダーと同じ色の札にする。
+  - 札の置き場所（`lib/lessons/hint-minimized.js` の `minimizedHintPosition`）: 課題バーのすぐ下で、右の端をバーの
+    「ヒント」ボタンにそろえる。ステージの列（旗・止める・ステージの大きさのボタン）にかかるときはその左（コードエリアの
+    右上）へずらし、そこがパレットにかかるとき（SP の狭い画面）はパレットの右へずらす。1300×600 では
+    コードエリアの右上（タブの行の右）に出る。
+  - 小さくしたらスポットライトも消す（照らしたまま操作のじゃまをしない）。札の z-index は 460（タップで開いたままの
+    課題の全文のパネル 470 より下で、全文を隠さない）。
+  - 「おわり」・できたとき・レッスンを出たときは、札も残さず閉じる（今までどおり）。
+  - 状態は `lessonMode.hintMinimized`（`getCurrentHint` の `minimized`。`visible` と同時に true にならない）。
 - **開き直したときのページ**: 閉じ方で変える。
-  - **×（閉じる・`hideHint`）**: 同じページから。読みかけを一度よけただけなので。
+  - **「－」（小さくする・`hideHint`）**: 同じページから。読みかけを一度よけただけなので。
   - **「おわり」（`finishHint`）**: 1 ページ目から。最後まで読んだので、次に「ヒント」を押したときに最後のページ
     （うまく動かないときは）がまた出ると、何をすればよいかわかりにくいため。
   - **できたとき（`markChallengeCompleted` がいま開いているチャレンジ）**: 吹き出しを自動で閉じる。できたあとは
@@ -1776,7 +1793,9 @@ partner: {
 | `lesson-hint-finish` | button | おわり（最後のページで「進める」の代わり。押すと閉じ、次は 1 ページ目から開く） |
 | `lesson-hint-drag-handle` | div | 吹き出しのヘッダー（ドラッグで動かす取っ手） |
 | `lesson-hint-insert-code-error` | div | プログラムを入れられないときのわけ（音・背景をまだ足していない等） |
-| `lesson-hint-prev` / `lesson-hint-next` / `lesson-hint-close` | button | もどる / 進める（最後のページには無い） / 閉じる |
+| `lesson-hint-prev` / `lesson-hint-next` / `lesson-hint-close` | button | もどる / 進める（最後のページには無い） / 小さくする（「－」。閉じずに札を残す。testid は前の「閉じる」のまま） |
+| `lesson-hint-minimized` | button | 小さくしたヒントの札（押すと同じページで元の大きさにもどる） |
+| `lesson-hint-minimized-position` / `lesson-hint-minimized-heading` | span | 札の「ヒント n/N」と短い見出し |
 
 ### スクリーンショット
 
@@ -1802,6 +1821,8 @@ partner: {
 | `screenshots/0404-lesson-hint-last-resort-1300x600.png` | 最後の手段のページ（うまく動かないときは・正解のプログラムを確認する・おわり） |
 | `screenshots/0405-lesson-hint-check-answer-confirm-1300x600.png` | 「正解のプログラムを確認する」を押したあとの確認（いいえ・はい） |
 | `screenshots/0406-lesson-hint-auto-open-1300x600.png` | チャレンジを始めたら自動で開いたヒントの 1 ページ目（1300×600） |
+| `screenshots/0414-lesson-hint-minimized-1300x600.png` | ヒントを「－」で小さくしたところ（1300×600。課題バーの下・コードエリアの右上に「ヒント 2/7」と見出しの札。ステージの列にはかからない） |
+| `screenshots/0415-lesson-hint-minimized-844x390.png` | 同じところを SP 横（844×390）で（札はパレットの右） |
 | `screenshots/0407-lesson-hint-dragged-667x375.png` | SP 横でヘッダーをタッチでドラッグして動かしたところ（しっぽは消える） |
 | `screenshots/0408-lesson-hint-auto-open-375x667.png` | SP 縦（縦持ちの案内を閉じたあと）で自動で開いたヒント（サイドレールの右に置く） |
 | `screenshots/0409-lesson-hint-activity-diagram-1300x600.png` | ヒントの 1 ページ目にアクティビティ図を出したところ（1300×600。図・文言・ブロックの順） |
@@ -1947,7 +1968,8 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/components/lesson-task-bar/lesson-role-picker.jsx` | 課題バーの役のボタン |
 | `packages/scratch-gui/src/lib/lessons/challenge-setup.js` | チャレンジを開くときの setup（言語の既定 + チャレンジの `setup`） |
 | `packages/scratch-gui/src/components/balloon/` | 吹き出し・ツールチップの見た目の土台（`Balloon` / `BalloonHeader` / `BalloonCloseButton` / `BalloonButton` / `balloon-tokens.css`。上の「吹き出しの共通の土台」） |
-| `packages/scratch-gui/src/components/lesson-hint/` | ヒントの吹き出し（`lesson-hint.jsx` = 中身・置き方・スポットライト・ドラッグ・正解のプログラムの確認（枠は `balloon/`）、`lesson-hint-blocks.jsx` = 読み取り専用ワークスペースに本物のブロックを描く） |
+| `packages/scratch-gui/src/components/lesson-hint/` | ヒントの吹き出し（`lesson-hint.jsx` = 中身・置き方・スポットライト・ドラッグ・正解のプログラムの確認（枠は `balloon/`）、`lesson-hint-blocks.jsx` = 読み取り専用ワークスペースに本物のブロックを描く、`lesson-hint-minimized.jsx` = 小さくしたヒントの札） |
+| `packages/scratch-gui/src/lib/lessons/hint-minimized.js` | 小さくしたヒントの札の短い見出し（`shortHintHeading`）と置き場所（`minimizedHintPosition`）（純粋関数） |
 | `packages/scratch-gui/src/containers/lesson-hint.jsx` | 吹き出しのコンテナ（`getCurrentHint` を読み、`blocks` を XML にし、「プログラムを入れる」を dispatch。クラスに参加中の生徒には手順の `classroomTitle` を出す） |
 | `packages/scratch-gui/src/lib/lessons/hint-text.js` | ヒントの文言の決まり（`**…**` の強調を分ける `splitEmphasis`、クラスの中と外で文言を選ぶ `hintStepTitle` / `isSeatedStudent`） |
 | `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・DOM の探し方・置き方・ドラッグした位置を画面に収める（`clampHintPosition`）・置いてよい範囲（`hintViewport`。SP のサイドレールの右・課題バーの下）（純粋関数） |

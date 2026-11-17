@@ -1957,7 +1957,9 @@ export default {
     'gui.lessonHint.position': 'ヒント {number} / {count}',
     'gui.lessonHint.prev': 'もどる',
     'gui.lessonHint.next': 'すすめる',
-    'gui.lessonHint.close': 'とじる',
+    'gui.lessonHint.minimize': 'ヒントをちいさくする',
+    'gui.lessonHint.minimizedPosition': 'ヒント {number}/{count}',
+    'gui.lessonHint.restore': 'ヒントをもういちどみる',
     'gui.lessonHint.debugTitle': 'うまくうごかないときは',
     'gui.lessonHint.checkAnswer': 'せいかいのプログラムをかくにんする',
     'gui.lessonHint.checkAnswerConfirm':

@@ -178,12 +178,22 @@ export const defineChallenge = (def) =>
  *   ブロックが出なくなるため・#1741）。setup で日本語モードにするレッスン（DNCL のコースなど）は true にする。
  * @param {number} [def.checkCount] - レッスンの ✓ に要るできた数。書いていなければチャレンジの数（全部）。
  *   テーマを 1 つ以上選んでやるレッスンは 1（#1616 の Q17）。
+ * @param {boolean} [def.autoOpenHints] - チャレンジを始めたら、ヒントの 1 ページ目を自動で開くか。書いていなければ
+ *   開かない（課題バーの「ヒント」で開く。読んで作るチャレンジはこの設定によらず開く）。はじめのレッスン（レッスン 0 と 1）
+ *   だけ true にする。ヒントの使い方に慣れるまでは開いておき、慣れたら自分で開く（#2129 の Q4）。
  * @returns {object} レッスン。
  */
-export const defineLesson = ({ id, challenges, allowDnclMode = false, checkCount = null }) => ({
+export const defineLesson = ({
+    id,
+    challenges,
+    allowDnclMode = false,
+    autoOpenHints = false,
+    checkCount = null,
+}) => ({
     id,
     name: message(`gui.lessons.lesson.${id}.name`),
     allowDnclMode: Boolean(allowDnclMode),
+    autoOpenHints: Boolean(autoOpenHints),
     checkCount: checkCount === null ? challenges.length : Math.min(checkCount, challenges.length),
     challenges: challenges.map((def, index) => defineChallenge({ ...def, number: index + 1 })),
 });
@@ -283,6 +293,8 @@ const debugTips = (challengeId, count) =>
 // 入っている「l1」は、11 のチャレンジが 1 つのレッスンだったころの名残で、記録のキーなので変えない（#1529）。
 const blocksLesson1 = defineLesson({
     id: 'blocks-l1',
+    // はじめのレッスンなので、チャレンジを始めたらヒントを開いておく（#2129 の Q4）
+    autoOpenHints: true,
     challenges: [
         // 1 キーで音を鳴らそう（音）: スペースキーで「ニャー」のあと「Owl」が鳴る
         {

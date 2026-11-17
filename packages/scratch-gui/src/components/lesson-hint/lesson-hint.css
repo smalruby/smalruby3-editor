@@ -218,3 +218,60 @@
         padding: 0.5rem;
     }
 }
+
+/*
+    小さくしたヒントの札（lesson-hint-minimized.jsx）。課題バーのすぐ下に position: fixed で置く（置き方は
+    lib/lessons/hint-minimized.js）。課題バーの全文のパネル（タップで開いたままのものは 470）より下の 460 に置き、
+    全文を隠さない（パレット・ステージより上）。消えたと思わず「もどしたくなる」ように、吹き出しの
+    ヘッダーと同じ色の地に白い字で、番号・短い見出し・もどす印を 1 行に並べる。小さく保つため見出しは 1 行で切る
+*/
+.minimized {
+    position: fixed;
+    z-index: 460;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    max-width: min(18rem, calc(100vw - 1rem));
+    padding: 0.25rem 0.5rem 0.25rem 0.375rem;
+    border: $balloon-border-width solid $ui-white;
+    border-radius: $balloon-button-radius;
+    background-color: $balloon-primary;
+    box-shadow: $balloon-shadow-panel;
+    color: $ui-white;
+    font-family: $balloon-font-family;
+    font-size: $balloon-font-size-small;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.minimized:hover {
+    background-color: $balloon-primary-hover;
+}
+
+.minimized:focus-visible {
+    outline: 3px solid $balloon-text;
+    outline-offset: 2px;
+}
+
+.minimized-position {
+    flex-shrink: 0;
+    padding: 0.125rem 0.375rem;
+    border-radius: 1rem;
+    background-color: $ui-white;
+    color: $balloon-primary;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.minimized-heading {
+    min-width: 0;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.minimized-restore {
+    flex-shrink: 0;
+    font-size: 0.875rem;
+}

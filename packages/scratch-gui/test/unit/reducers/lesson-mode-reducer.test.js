@@ -351,6 +351,7 @@ describe('lesson-mode reducer: hints', () => {
         const state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
         expect(getCurrentHint(wrap(state))).toEqual({
             visible: true,
+            minimized: false,
             index: 0,
             count: 3,
             step: STEPS[0],
@@ -465,18 +466,62 @@ describe('lesson-mode reducer: hints', () => {
         let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
         state = reducer(state, hideHint());
         state = reducer(state, nextHint());
-        state = reducer(state, openChallenge('blocks-l1-quiz'));
+        state = reducer(state, openChallenge('blocks-l1-repeat'));
         expect(state.hintVisible).toBe(true);
+        expect(state.hintMinimized).toBe(false);
         expect(state.hintIndex).toBe(0);
     });
 
-    test('closing with × keeps the page; reopening shows the same page', () => {
+    test('only lessons with autoOpenHints open the hint on start (#2131); the others wait for the button', () => {
+        const courses = require('../../../src/lib/lessons/courses');
+        expect(courses.findChallenge('blocks-l1-click-say').lesson.autoOpenHints).toBe(true);
+        expect(courses.findChallenge('blocks-l1-quiz').lesson.autoOpenHints).toBe(false);
+        let state = reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz'));
+        expect(getCurrentHint(wrap(state))).toEqual(
+            expect.objectContaining({ visible: false, minimized: false, index: 0 }),
+        );
+        state = reducer(state, showHint());
+        expect(getCurrentHint(wrap(state)).visible).toBe(true);
+    });
+
+    test('defineLesson does not open hints automatically unless it says so', () => {
+        const { defineLesson } = require('../../../src/lib/lessons/courses');
+        expect(defineLesson({ id: 'x', challenges: [] }).autoOpenHints).toBe(false);
+        expect(defineLesson({ id: 'x', challenges: [], autoOpenHints: true }).autoOpenHints).toBe(true);
+    });
+
+    test('hideHint makes the balloon small (a tag stays) and showHint brings back the same page', () => {
         let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
         state = reducer(state, nextHint());
         state = reducer(state, nextHint());
         state = reducer(state, hideHint());
+        expect(getCurrentHint(wrap(state))).toEqual(
+            expect.objectContaining({ visible: false, minimized: true, index: 2 }),
+        );
+        // 小さくしたあとにもう一度小さくしても変わらない
+        expect(reducer(state, hideHint())).toBe(state);
         state = reducer(state, showHint());
-        expect(getCurrentHint(wrap(state))).toEqual(expect.objectContaining({ visible: true, index: 2 }));
+        expect(getCurrentHint(wrap(state))).toEqual(
+            expect.objectContaining({ visible: true, minimized: false, index: 2 }),
+        );
+    });
+
+    test('finishing, completing or closing the lesson removes the small tag', () => {
+        let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
+        state = reducer(state, nextHint());
+        const small = reducer(state, hideHint());
+        expect(getCurrentHint(wrap(reducer(small, finishHint())))).toEqual(
+            expect.objectContaining({ visible: false, minimized: false, index: 0 }),
+        );
+        const done = reducer(small, markChallengeCompleted('blocks-l1-click-say', '2026-11-10T00:00:00.000Z'));
+        expect(getCurrentHint(wrap(done))).toEqual(
+            expect.objectContaining({ visible: false, minimized: false, index: 1 }),
+        );
+        expect(reducer(small, closeLesson()).hintMinimized).toBe(false);
+        // ほかのチャレンジができても札は消えない
+        expect(
+            reducer(small, markChallengeCompleted('blocks-l1-quiz', '2026-11-10T00:00:00.000Z')).hintMinimized,
+        ).toBe(true);
     });
 
     test('finishHint closes the balloon and the next open starts from the first page', () => {
@@ -488,8 +533,8 @@ describe('lesson-mode reducer: hints', () => {
         state = reducer(state, showHint());
         expect(getCurrentHint(wrap(state))).toEqual(expect.objectContaining({ visible: true, index: 0 }));
         expect(reducer(lessonModeInitialState, finishHint())).toBe(lessonModeInitialState);
-        // すでに閉じていて 1 ページ目なら、何も変えない（同じ state を返す）
-        const closed = reducer(state, hideHint());
+        // すでに閉じていて（小さくした札も無く）1 ページ目なら、何も変えない（同じ state を返す）
+        const closed = reducer(state, finishHint());
         expect(reducer(closed, finishHint())).toBe(closed);
     });
 
@@ -628,6 +673,11 @@ describe('lesson-mode reducer: read-and-build challenge (mode readDiagram)', () 
         // 3 ページ目が最後（その先は無い）
         state = reducer(state, nextHint());
         expect(getCurrentHint(wrap(state)).index).toBe(2);
+    });
+
+    test('opens the hint on start even in a lesson without autoOpenHints', () => {
+        const state = reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz'));
+        expect(getCurrentHint(wrap(state)).visible).toBe(true);
     });
 });
 
