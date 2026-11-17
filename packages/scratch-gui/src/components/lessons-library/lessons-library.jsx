@@ -589,7 +589,6 @@ const LessonsLibrary = ({
     }, [languageCourses, progress, query, nameOf, assignmentChallengeIds]);
 
     // 開き方: 表を開いたときの決まり（initialFoldState）に、見出しを押して変えた分（toggled）を重ねる。
-    // 検索を始めた・やめたときは押した分を捨てる（検索中は全部開く・やめたら決まりどおりに戻す）
     const searching = Boolean(normalizeQuery(query));
     const fold = useMemo(
         () =>
@@ -601,7 +600,8 @@ const LessonsLibrary = ({
         [statuses, progress, searching, assignmentChallengeIds, focusLessonId],
     );
     const [toggled, setToggled] = useState({ searching, courses: {}, lessons: {} });
-    // 検索を始めた・やめたときは押した分を捨てる（描画中に state を合わせる React の形）
+    // 検索を始めた・やめたときは押した分を捨てる（検索中は全部開く・やめたら決まりどおりに戻す）。
+    // 描画中に state を合わせる React の形で、この描画では空の重ねを使う
     if (toggled.searching !== searching) setToggled({ searching, courses: {}, lessons: {} });
     const overrides = toggled.searching === searching ? toggled : { courses: {}, lessons: {} };
     const isCourseExpanded = useCallback(
