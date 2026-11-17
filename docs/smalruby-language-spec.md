@@ -740,6 +740,8 @@ hide_list("@items")            # Hide list
 say(@items)                    # Pass the list itself (the list reporter block) as a value
 ```
 
+A number counted from 1 in the blocks ("item (k) of (list)", "letter (k) of (string)") is written `@items[@k - 1]` / `@s[@k - 1]` in Ruby. When the index is `expression - 1` (the integer `1` subtracted from an expression), it comes back to the blocks as "item (expression) of" (`@items[@k - 1]` is "item (k)", `@items[rand(1..@n) - 1]` is "item (pick random 1 to n)"). It is the same for `[]` / `[]=` / `insert` / `delete_at`. Other indexes (`@items[@k]`, `@items[@k - 2]`, `@items[3 - 1]`) become "item (index + 1)".
+
 One name cannot be both a variable and a list (Scratch can have a variable and a list of the same name, but Ruby has one `@a`). Using a name as both, like `@a = 0` and `@a = []`, is an error that tells the lines when the code is turned into blocks. Only reading a list as a value (`say(@a)` after `@a = []`) is not an error. `length` / `include?` / `empty?` / `[i]` of a variable set to a string become string blocks and make no list. `index` has no string block, so `@a.index("x")` of a name set only to strings is an error that tells the line and says a string has no block for it (not the list error). When the code is rewritten from a list to a variable (`@a = []` → `@a = 0`), the list that the sprite (or the stage) already has stays, and the variable is made beside it: a list that this code does not use is not an error.
 
 ## 5. Unsupported Ruby Syntax

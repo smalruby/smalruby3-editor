@@ -77,6 +77,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/connection-modal/connected-step.jsx` | mesh status popup | メッシュの接続済み画面の［状態と履歴］ボタン（`mesh-v2-open-status`）の import と配置 |
 | `src/components/connection-modal/connection-modal.jsx` | mesh header design system | メッシュの接続のモーダルだけ、ヘッダーの題を太字 1.2rem にし（`.mesh-v2-header-title`）、ヘルプをヘッダーに置かず、どの画面でも本文の下に `MeshV2HelpRow`（`mesh-v2-help-row.jsx`・`meshV2-help`）を出す。その import と `extensionId` の propType（`docs/design-system/components/modal.md` の「つなぐ画面」） |
 | `src/components/gui/gui.jsx` | lesson goal watcher | レッスンモードのあいだ VM を見張り、チャレンジの「できた」を判定して記録・「できた！」を出す常時マウントのコンテナ（`containers/lesson-goal-watcher.jsx`）の import と配置 |
+| `src/components/gui/gui.jsx` | block activity diagram | ブロックを右クリック →「アクティビティ図」の項目をブロックのメニューに足し、そのスクリプトの図をパネルに描く常時マウントのコンテナ（`containers/block-activity-diagram.jsx`）の import と配置 |
 | `src/components/gui/gui.jsx` | welcome modal | 初回訪問者向けウェルカムモーダル HOC の import と配置、`onShowWelcomeModal` prop |
 | `src/containers/gui.jsx` | welcome modal | `onShowWelcomeModal` を Redux `openWelcomeModal()` にマップ |
 | `src/components/gui/gui.jsx` | DNCL mode notice | DnclModeNotice コンポーネントの import・配置・`onRequestExitDnclMode` prop |
@@ -120,6 +121,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `webpack.config.js` | scratch api proxy endpoint | SCRATCH_API_PROXY_ENDPOINT 環境変数注入 |
 | `webpack.config.js` | self-hosted Monaco Editor (#1171) | Monaco 本体 (`min/vs`) を版付きの `static/monaco/<版>/vs` へコピーする定数（版は monaco-editor の package.json から読む）・CopyWebpackPlugin パターン・`DefinePlugin` の `process.env.MONACO_VS_SUBPATH` 注入と、PWA precache 除外 + runtime caching 設定。マーカーは 2 箇所の `GenerateSW` にも単一行で入る |
 | `webpack.config.js` | copy-webpack-plugin 14 (#1320) | dist の `libraries/*.json` コピーで、copy-webpack-plugin 7 で廃止された `flatten: true` の代わりに `to: 'libraries/[name][ext]'` を使う |
+| `webpack.config.js` | standard assignments | リポジトリの `assignments/`（標準課題・CC0）を `assignments/` へコピーする CopyWebpackPlugin パターンと、PWA の precache から外す正規表現。マーカーは 2 箇所の `GenerateSW` にも単一行で入る |
 | `eslint.config.mjs` | react lifecycle typo detection | `react/no-typos` を error にして getDerivedStateFromProps/Error の static 抜け等を lint で検出 |
 | `eslint.config.mjs` | prettier integration | eslintConfigPrettier を最後に置いて prettier と競合する整形ルールを無効化 |
 | `src/lib/blocks.js` | gesture recovery import | ジェスチャー復旧モジュールの import |
