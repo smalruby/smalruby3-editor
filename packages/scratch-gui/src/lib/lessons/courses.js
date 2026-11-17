@@ -183,9 +183,6 @@ export const defineChallenge = (def) =>
  *   ブロックが出なくなるため・#1741）。setup で日本語モードにするレッスン（DNCL のコースなど）は true にする。
  * @param {number} [def.checkCount] - レッスンの ✓ に要るできた数。書いていなければチャレンジの数（全部）。
  *   テーマを 1 つ以上選んでやるレッスンは 1（#1616 の Q17）。
- * @param {boolean} [def.autoOpenHints] - チャレンジを始めたら、ヒントの 1 ページ目を自動で開くか。書いていなければ
- *   開かない（課題バーの「ヒント」で開く。読んで作るチャレンジはこの設定によらず開く）。はじめのレッスン（レッスン 0 と 1）
- *   だけ true にする。ヒントの使い方に慣れるまでは開いておき、慣れたら自分で開く（#2129 の Q4）。
  * @param {boolean} [def.showPartNames] - チャレンジを開いたときから画面の部分の名前の札を出しておくか
  *   （「なまえ」ボタンで消せる。画面の部分の名前を覚えるレッスン 0 で使う・#2133）。書いていなければ出さない。
  * @param {boolean} [def.warmup] - コースの数に入れない、はじめのレッスン（レッスン 0・#2134）か。レッスン表では
@@ -197,7 +194,6 @@ export const defineLesson = ({
     id,
     challenges,
     allowDnclMode = false,
-    autoOpenHints = false,
     checkCount = null,
     showPartNames = false,
     warmup = false,
@@ -205,7 +201,6 @@ export const defineLesson = ({
     id,
     name: message(`gui.lessons.lesson.${id}.name`),
     allowDnclMode: Boolean(allowDnclMode),
-    autoOpenHints: Boolean(autoOpenHints),
     showPartNames: Boolean(showPartNames),
     warmup: Boolean(warmup),
     checkCount: checkCount === null ? challenges.length : Math.min(checkCount, challenges.length),
@@ -339,7 +334,6 @@ export const LESSON0_QUIZ_PARTS = Object.freeze(['palette', 'codeArea', 'soundsT
 const blocksLesson0 = defineLesson({
     id: 'blocks-l0',
     warmup: true,
-    autoOpenHints: true,
     showPartNames: true,
     challenges: [
         // 0-1 ネコをつかんで動かそう（ステージ・スプライト）: ネコの位置が最初と変わった
@@ -487,8 +481,6 @@ const blocksLesson0 = defineLesson({
 // 入っている「l1」は、11 のチャレンジが 1 つのレッスンだったころの名残で、記録のキーなので変えない（#1529）。
 const blocksLesson1 = defineLesson({
     id: 'blocks-l1',
-    // はじめのレッスンなので、チャレンジを始めたらヒントを開いておく（#2129 の Q4）
-    autoOpenHints: true,
     challenges: [
         // 1 キーで音を鳴らそう（音）: スペースキーで「ニャー」が鳴る。はじめての操作を少なくするため、音タブで
         // 音を足す手順は入れない（docs/lessons/design.md の「はじめの一歩」）

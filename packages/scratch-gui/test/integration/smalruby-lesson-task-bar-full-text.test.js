@@ -34,7 +34,7 @@ const startChallenge = async (id, position) => {
         10000,
         `challenge ${id} should open`,
     );
-    // レッスン 1 はチャレンジを始めるとヒントが自動で開く（ほかのレッスンは課題バーの「ヒント」で開く）。
+    // チャレンジを始めるとヒントが自動で開く（小さくしていたら課題バーの「ヒント」で開く）。
     // 開いたままでもホバーで全文が出ることを確かめるので閉じない
     await driver.sleep(500);
     if ((await countByTestId('lesson-hint')) === 0) await clickByTestId('lesson-task-bar-hint');
