@@ -66,4 +66,37 @@ describe('Menu bar help ("?") menu', () => {
         await clickXpath(HELP_DEBUG_XPATH);
         await findByText('Debugging | Getting Unstuck');
     });
+
+    test('lists the help items in the order of HELP_MENU_SECTIONS', async () => {
+        await loadUri(uri);
+        await waitForLoadingFinished();
+
+        await clickXpath(ABOUT_BUTTON_XPATH);
+        await findByXpath(HELP_TUTORIALS_XPATH);
+        const testIds = await driver.executeScript(
+            'return [...document.querySelectorAll(\'[data-testid="menu-bar-about"] li[data-testid]\')]' +
+                '.map(li => li.getAttribute("data-testid"));',
+        );
+        // The bug report item is there only when the bug report endpoint is configured in the build.
+        expect(testIds.filter((id) => id !== 'menu-bar-help-bug-report')).toEqual([
+            'menu-bar-help-tutorials',
+            'menu-bar-help-debug',
+            'menu-bar-help-welcome',
+            'menu-bar-help-about',
+            'menu-bar-help-version',
+        ]);
+        if (testIds.includes('menu-bar-help-bug-report')) {
+            expect(testIds.indexOf('menu-bar-help-bug-report')).toBe(2);
+        }
+    });
+
+    test('"?" > Tutorials opens an upstream tutorial', async () => {
+        await loadUri(uri);
+        await waitForLoadingFinished();
+
+        await clickXpath(ABOUT_BUTTON_XPATH);
+        await clickXpath(HELP_TUTORIALS_XPATH);
+        await findByText('Getting Started', scope.modal);
+        await findByText('Add a Backdrop', scope.modal);
+    });
 });
