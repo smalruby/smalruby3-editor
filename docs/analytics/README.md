@@ -72,7 +72,7 @@ GA4（プロパティ smalruby.app / 測定 ID G-94VC8N0J4K）
 | `classroom_student` | `lib/classroom-student-analytics.js` | [`classroom/ui-ux.md`](../classroom/ui-ux.md) の「GA の計測（生徒の参加〜提出）」 | ✅ |
 | `google_drive` | `containers/google-drive-saver-hoc.jsx` | [`google-drive/`](../google-drive/) | ✅ |
 | `mesh_v2` / `smalrubot_s1` | `containers/connection-modal.jsx` | [`mesh-v2/`](../mesh-v2/)・[`extension-smalrubot-s1/`](../extension-smalrubot-s1/) | ✅ |
-| `lessons` | `lib/lessons/lesson-analytics.js` | [`lessons/README.md`](../lessons/README.md) の「GA の計測」 | ✅ |
+| `lessons` | `lib/lessons/lesson-analytics.js`（右クリックのアクティビティ図 `activity_diagram_open` は `containers/block-activity-diagram.jsx` から） | [`lessons/README.md`](../lessons/README.md) の「GA の計測」 | ✅ |
 | `welcome` | `components/welcome-tooltip/`・`containers/welcome-modal-hoc.jsx` | [`welcome/README.md`](../welcome/README.md) の「GA4 イベント」 | ✅ |
 | `tutorial_url` | `lib/tutorial-url-analytics.js`（`lib/tutorial-from-url.js` から） | [`tutorial/README.md`](../tutorial/README.md) の「GA の計測」 | ❌（トリガーの正規表現に足す人間の作業待ち） |
 | `extensions` / `library` / `open_debug_modal` / `close_debug_modal` / `change_topic_debug_modal` | upstream のコード | — | ❌（upstream のイベント。数えていない） |

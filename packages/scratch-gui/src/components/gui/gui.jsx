@@ -70,15 +70,15 @@ import MeshV2ClassroomBinding from '../../lib/mesh-v2-classroom-binding.jsx';
 import ClassroomMeshConnectPrompt from '../../containers/classroom-mesh-connect-prompt.jsx';
 // === Smalruby: End of meshV2 classroom binding ===
 
-// === Smalruby: Start of meshV2 self-sensor notice ===
-import MeshSelfSensorNotice from '../../containers/mesh-self-sensor-notice.jsx';
-// === Smalruby: End of meshV2 self-sensor notice ===
 // === Smalruby: Start of mesh status popup ===
 import MeshStatusPopup from '../../containers/mesh-status-popup.jsx';
 // === Smalruby: End of mesh status popup ===
 // === Smalruby: Start of lesson goal watcher ===
 import LessonGoalWatcher from '../../containers/lesson-goal-watcher.jsx';
 // === Smalruby: End of lesson goal watcher ===
+// === Smalruby: Start of block activity diagram ===
+import BlockActivityDiagram from '../../containers/block-activity-diagram.jsx';
+// === Smalruby: End of block activity diagram ===
 // === Smalruby: Start of welcome modal ===
 import WelcomeModalHOC from '../../containers/welcome-modal-hoc.jsx';
 // === Smalruby: End of welcome modal ===
@@ -589,15 +589,15 @@ const GUIComponent = props => {
                     <MeshV2ClassroomBinding />
                     <ClassroomMeshConnectPrompt />
                     {/* === Smalruby: End of meshV2 classroom binding === */}
-                    {/* === Smalruby: Start of meshV2 self-sensor notice === */}
-                    <MeshSelfSensorNotice />
-                    {/* === Smalruby: End of meshV2 self-sensor notice === */}
                     {/* === Smalruby: Start of mesh status popup === */}
                     <MeshStatusPopup />
                     {/* === Smalruby: End of mesh status popup === */}
                     {/* === Smalruby: Start of lesson goal watcher === */}
                     <LessonGoalWatcher />
                     {/* === Smalruby: End of lesson goal watcher === */}
+                    {/* === Smalruby: Start of block activity diagram === */}
+                    <BlockActivityDiagram />
+                    {/* === Smalruby: End of block activity diagram === */}
                     {/* === Smalruby: End of smalrubot firmware modal === */}
                     {/* === Smalruby: Start of welcome modal === */}
                     <WelcomeModalHOC />

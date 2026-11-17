@@ -3,9 +3,9 @@ import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { connect } from 'react-redux';
 import LessonCompletedToast from '../components/lesson-completed-toast/lesson-completed-toast.jsx';
 import { assignmentProgress, isAssignmentJustCleared } from '../lib/lessons/assignment-progress.js';
-import { findChallenge } from '../lib/lessons/courses.js';
+import { findChallenge, lessonNumberOf } from '../lib/lessons/courses.js';
 import { attachGoalMonitor } from '../lib/lessons/goal-monitor.js';
-import { evaluateGoal, validateGoal } from '../lib/lessons/goal.js';
+import { EDITOR_TABS, evaluateGoal, validateGoal } from '../lib/lessons/goal.js';
 import { completedAction, courseProgress, isChallengeCompleted } from '../lib/lessons/lesson-progress.js';
 import { openAssignmentLessonsLibrary, openLessonsLibraryAt } from '../lib/lessons/open-lessons-library.js';
 import { requestStudentSubmit, selectStudentLesson } from '../reducers/classroom.js';
@@ -14,10 +14,15 @@ import { closeLesson, dismissCompleted, markChallengeCompleted, openChallenge } 
 // Always-mounted container. While a challenge is open (lesson mode) it watches the VM
 // for the challenge's goal; when the goal is met it records the challenge as completed
 // and shows the "You did it!" toast. Outside lesson mode it renders nothing.
+// goal の `tab` が見るタブの名前（reducers/editor-tab.js の index の順。goal.js の EDITOR_TABS）
+const tabName = (index) => EDITOR_TABS[index] || null;
+
 const LessonGoalWatcher = ({
     vm,
+    activeTabIndex = 0,
     assignmentName = null,
     challengeId,
+    completedHidden = false,
     fromAssignment = false,
     justCompletedId,
     justCompletedNew = false,
@@ -28,6 +33,7 @@ const LessonGoalWatcher = ({
     onOpenChallenge,
     onCloseLesson,
     onSubmitAssignment,
+    partQuizSolved = 0,
     progress,
 }) => {
     const found = useMemo(() => (challengeId === null ? null : findChallenge(challengeId)), [challengeId]);
@@ -37,10 +43,24 @@ const LessonGoalWatcher = ({
     const onCompletedRef = useRef(onCompleted);
     onCompletedRef.current = onCompleted;
 
+    // エディタの画面の状態（goal の `tab` / `partQuiz` が見る・#2134）。見張りは ref から読み、変わったら判定を予約する
+    const uiRef = useRef({});
+    uiRef.current = { activeTab: tabName(activeTabIndex), partQuizSolved };
+    const monitorRef = useRef(null);
     useEffect(() => {
         if (!vm || !goal || challengeId === null) return () => {};
-        return attachGoalMonitor(vm, goal, () => onCompletedRef.current(challengeId));
+        const detach = attachGoalMonitor(vm, goal, () => onCompletedRef.current(challengeId), {
+            getUi: () => uiRef.current,
+        });
+        monitorRef.current = detach;
+        return () => {
+            monitorRef.current = null;
+            detach();
+        };
     }, [vm, goal, challengeId]);
+    useEffect(() => {
+        if (monitorRef.current && monitorRef.current.refresh) monitorRef.current.refresh();
+    }, [activeTabIndex, partQuizSolved]);
 
     // Debug / test hook (like window.smalruby.vm): attach a goal to the live VM without
     // opening a challenge, or open / complete a challenge without the lesson UI. Used by
@@ -97,18 +117,27 @@ const LessonGoalWatcher = ({
             }))}
             courseCompleted={courseProgress(course, progress).allCompleted}
             courseName={course.name}
+            hidden={completedHidden}
             lessonName={found.lesson.name}
-            lessonNumber={course.lessons.indexOf(found.lesson) + 1}
+            lessonNumber={lessonNumberOf(course, found.lesson)}
             onClose={onDismiss}
             onNextChallenge={handleNextChallenge}
+            quiz={challenge.quiz || null}
         />
     );
 };
 
 LessonGoalWatcher.propTypes = {
+    // いま開いているタブ（reducers/editor-tab.js の activeTabIndex）
+    activeTabIndex: PropTypes.number,
+    // 「どこでしょう？」のクイズで正しく答えた数（reducers/lesson-mode.js の partQuizSolved）
+    partQuizSolved: PropTypes.number,
     // 参加している課題の名前（「課題クリア！」の 2 行目）
     assignmentName: PropTypes.string,
     challengeId: PropTypes.string,
+    // 「できた！」をいっとき隠しているか（課題バーの全文を開いているあいだ・#1639）。描いたまま隠すので、
+    // クイズで選んだものは残る
+    completedHidden: PropTypes.bool,
     // いまのチャレンジをクラスの課題から開いたか
     fromAssignment: PropTypes.bool,
     justCompletedId: PropTypes.string,
@@ -132,8 +161,11 @@ LessonGoalWatcher.propTypes = {
 
 const mapStateToProps = (state) => ({
     vm: state.scratchGui.vm,
+    activeTabIndex: state.scratchGui.editorTab ? state.scratchGui.editorTab.activeTabIndex : 0,
+    partQuizSolved: state.scratchGui.lessonMode.partQuizSolved || 0,
     assignmentName: state.scratchGui.classroom ? state.scratchGui.classroom.assignmentName : null,
     challengeId: state.scratchGui.lessonMode.challengeId,
+    completedHidden: Boolean(state.scratchGui.lessonMode.completedHidden),
     fromAssignment: Boolean(state.scratchGui.lessonMode.fromAssignment),
     justCompletedId: state.scratchGui.lessonMode.justCompletedId,
     justCompletedNew: Boolean(state.scratchGui.lessonMode.justCompletedNew),

@@ -43,6 +43,8 @@ CTA:
 | 途中 | いちばん最近できたチャレンジを「いまのチャレンジ」として、「次のチャレンジへ」と同じ決め方（`lessonsLibraryFocus`）。それで印が付かないとき（後ろのレッスンだけ全部できている）は、コースの並び順で最初のまだできていないチャレンジ |
 | ぜんぶできた | 付けない（メニューから開いたときと同じ） |
 
+見るのは**最初のコース（きょうからプログラマー）だけ**。それを全部終えても、ほかのコース（授業で先生が開く中 2 の「チャットをつくろう」など）へは案内しない。
+
 #### 見た目
 
 上流のモーダル（`components/modal/modal.css`）に合わせる: 青い幕（`$color-overlay`）、白い 4px の縁と角丸（`$radius-medium`）、紫のヘッダー（`.header` と同じ高さ `$library-header-height`・`$color-primary`）、紫の主ボタン（`$color-primary`・枠 `1px solid $color-primary`・文字 `$ui-white`。ホバーの見た目は付けず、押したときに `$color-primary-dark`）。ボタンの形とフォーカス（`:focus-visible` で 2px の紫の線を 2px 外に）は [`docs/design-system/components/README.md`](../design-system/components/README.md) の「独自の画面で使う形」に合わせる。角丸・文字・余白は `smalruby-tokens.css` のトークンで書く（[`docs/design-system/tokens.md`](../design-system/tokens.md)）。

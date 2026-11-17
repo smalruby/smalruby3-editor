@@ -26,10 +26,14 @@ const TAB_INDEX_MAP = {
 
 const VALID_RUBY_MODES = new Set(['ruby', 'furigana', 'dncl']);
 
-// setup.rubyVersion may be given as a number (1 | 2) per the design doc, or
-// as the string form ('1' | '2') used internally by the settings reducer.
-// Normalize to the internal string form, or null if unsupported.
-const normalizeRubyVersion = (value) => {
+/**
+ * setup.rubyVersion may be given as a number (1 | 2) per the design doc, or
+ * as the string form ('1' | '2') used internally by the settings reducer.
+ * Normalize to the internal string form, or null if unsupported.
+ * @param {*} value - setup.rubyVersion.
+ * @returns {?string} '1' | '2', or null.
+ */
+export const normalizeRubyVersion = (value) => {
     const asString = String(value);
     return asString === VERSION_1 || asString === VERSION_2 ? asString : null;
 };

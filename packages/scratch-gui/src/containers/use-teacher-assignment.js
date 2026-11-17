@@ -16,6 +16,7 @@ import {
     ASSIGNMENT_IMAGE_CONTENT_TYPES,
     MAX_ASSIGNMENT_PAGES,
     buildAssignmentPayload,
+    hasUnsavedAssignmentChanges,
     moveItem,
     normalizeMeshGroupLimit,
     normalizePeerView,
@@ -132,6 +133,10 @@ const useTeacherAssignment = ({
     // does not know — is kept by omitting it).
     const [lessonDraft, setLessonDraft] = useState(null);
     const [savedLesson, setSavedLesson] = useState(null);
+    // The pages and the starter as loaded (or last saved), so the ✕ of the
+    // detail can tell whether leaving loses a change (#2089 N3).
+    const [savedPages, setSavedPages] = useState([]);
+    const [savedStarterMode, setSavedStarterMode] = useState('none');
     // The lesson description (#1780): the assignment created with
     // ［＋ 作成 ▾］→「レッスン」 (its id until its editor is loaded), whether the
     // lesson panel should open by itself, whether the lesson was changed while
@@ -174,9 +179,12 @@ const useTeacherAssignment = ({
                 imageUrl: page.imageUrl || null,
             }));
             let loadedPages = pages.length > 0 ? pages : [{ text: '' }];
+            // Before the lesson description below: that text is not saved yet.
+            setSavedPages(loadedPages);
             const hasStarter = !!assignment?.starterKey;
             setHasExistingStarter(hasStarter);
             setStarterMode(hasStarter ? 'keep' : 'none');
+            setSavedStarterMode(hasStarter ? 'keep' : 'none');
             setStarterSource(null);
             setPeerView(normalizePeerView(data.peerView));
             setSavedPeerView(normalizePeerView(data.peerView));
@@ -236,6 +244,18 @@ const useTeacherAssignment = ({
         }),
         [savedPeerView, storedMeshGroupLimit],
     );
+
+    const hasUnsavedChanges = hasUnsavedAssignmentChanges({
+        pages: editorPages,
+        savedPages,
+        starterMode,
+        savedStarterMode,
+        peerView,
+        savedPeerView,
+        meshGroupLimit,
+        savedMeshGroupLimit: storedMeshGroupLimit,
+        lessonChanged: lessonChanges(lessonDraft, savedLesson).any,
+    });
 
     const handleAddPage = useCallback(() => {
         setEditorPages((pages) => (pages.length >= MAX_ASSIGNMENT_PAGES ? pages : [...pages, { text: '' }]));
@@ -526,6 +546,7 @@ const useTeacherAssignment = ({
         savedSettings,
         lessonDraft,
         savedLesson,
+        hasUnsavedChanges,
         loadAssignmentEditor,
         handleAddPage,
         handleRemovePage,

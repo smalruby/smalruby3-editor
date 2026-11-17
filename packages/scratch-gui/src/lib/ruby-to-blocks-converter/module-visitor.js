@@ -4,6 +4,7 @@ import RubyParser from '../ruby-parser';
 import { messages } from './converter-errors';
 import { RubyToBlocksConverterError } from './errors';
 import { nodeTypeName } from './node-walk';
+import { unwrapWithoutScreenRefreshDefs } from './screen-refresh-defs';
 
 /**
  * Mixin methods for visiting module nodes in the Ruby-to-blocks converter.
@@ -29,26 +30,23 @@ const ModuleVisitor = {
         this._checkNoExceptionHandling(node.body);
 
         const moduleName = node.name;
+        // The lines of the body, from the analysis stage (`class-analysis.js`)
+        const { statements } = this._structureOf(node);
 
         // Validate: only DefNode allowed in module body
-        if (node.body && node.body.body) {
-            for (const stmt of node.body.body) {
-                const typeName = nodeTypeName(stmt);
-                if (typeName === 'CallNode' && stmt.name === 'module_function' && !stmt.receiver) {
-                    throw new RubyToBlocksConverterError(stmt, this._translator(messages.moduleFunctionNotSupported));
-                }
-                this._rejectVisibilityModifier(stmt);
-                if (typeName !== 'DefNode') {
-                    throw new RubyToBlocksConverterError(stmt, this._translator(messages.onlyMethodsInModule));
-                }
+        for (const stmt of statements) {
+            const typeName = nodeTypeName(stmt);
+            if (typeName === 'CallNode' && stmt.name === 'module_function' && !stmt.receiver) {
+                throw new RubyToBlocksConverterError(stmt, this._translator(messages.moduleFunctionNotSupported));
+            }
+            this._rejectVisibilityModifier(stmt);
+            if (typeName !== 'DefNode') {
+                throw new RubyToBlocksConverterError(stmt, this._translator(messages.onlyMethodsInModule));
             }
         }
 
         // Save the module's method DefNodes in context for later expansion by include
-        this._context.modules[moduleName] = {
-            name: moduleName,
-            methods: node.body && node.body.body ? node.body.body : [],
-        };
+        this._context.modules[moduleName] = { name: moduleName, methods: statements };
 
         // Module definition itself does not produce blocks
         return [];
@@ -84,6 +82,7 @@ const ModuleVisitor = {
 
         // The parsed result should be: ProgramNode > StatementsNode > [ModuleNode]
         const root = parseResult.value;
+        unwrapWithoutScreenRefreshDefs(root).forEach((def) => this._context.warpDefNodes.add(def));
         let moduleNode = null;
         if (root.statements && root.statements.body) {
             for (const stmt of root.statements.body) {

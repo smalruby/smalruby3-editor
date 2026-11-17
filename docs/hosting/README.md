@@ -99,7 +99,7 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
   - `_github-pages-challenge-smalruby.smalruby.app` TXT（GitHub の組織のドメイン検証。**消さない**。`docs/security/github-pages-subdomain-takeover.md` の Layer 1）
   - `smalruby.app` CAA ×6（amazon.com / amazonaws.com / amazontrust.com / awstrust.com / letsencrypt.org / issuewild `;`）
   - `api.smalruby.app` NS ×4、`preview.smalruby.app` NS ×4（委任をそのまま写す）
-  - `everdiary.smalruby.app` A は使っていないので写さない
+  - `everdiary.smalruby.app` A は使っていないので写さない（人間が確かめ、お名前.com からも消した）
 - 段 3 のスクリプトで、両方のネームサーバーの応答が一致している（照合はホストか GitHub Actions で行う。コンテナの firewall は任意の DNS サーバーへの問い合わせを止めている）。
 - DNSSEC は無効のまま（有効なら先に外す）。
 
@@ -153,6 +153,33 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 - CI は置いたあとに `/*` を invalidation する（1 回 1 パスとして数えるので、月 1,000 パスの無料枠に十分収まる）。
 - S3 はバージョニングを有効にし、上書き・削除された古い版を 30 日残す（CI の誤りで消えたファイルを戻すため。日数は人間が決める値）。いまの版は期限で消さない（プレビューと違う点）。バケットは本番の配信元なので `RETAIN`（スタックを消しても残る）。
 
+## アクセスログ（段 5）
+
+本番の CloudFront（`SiteDistribution`）のアクセスログを、ログ専用の S3 バケット `SiteLogBucket` に残す。
+
+| 項目 | 内容 |
+|---|---|
+| 方式 | CloudFront の**標準ログ（従来の S3 配信）** |
+| 置き場所 | `SiteLogBucket` の `cloudfront/smalruby.app/` 以下（gzip のファイルが数分〜1 時間ごとに届く） |
+| バケット | 非公開（Block Public Access 全部 ON）・SSE-S3 で暗号化・SSL のみ。CI 用ロールからは触れない |
+| 保持期間 | **30 日で消す**（人間が決めた値）。`infra/smalruby-web-hosting/lib/web-hosting-stack.ts` の `SITE_ACCESS_LOG_RETENTION_DAYS` だけを変えれば、バケットのライフサイクルが追従する |
+| Cookie | 記録しない（`logIncludesCookies: false`） |
+
+### 標準ログ（従来）を選んだ理由
+
+- **費用**: 従来の方式は、ログを S3 に届けること自体は無料で、かかるのは S3 の保存とリクエストだけ。新しい方式（v2。CloudWatch Logs の配信の仕組みを使う）は、S3 へ届けたログの量に応じて料金がかかる。
+- **手間**: 従来の方式は CloudFront のディストリビューションに設定を足すだけ（ディストリビューションの置き換えにならない）。v2 は配信元の設定を us-east-1 に作る必要があるが、このスタックは ap-northeast-1 で、スタックを分けない決まり（`Deploy Infra` が `cdk deploy` をスタック名なしで呼ぶため）がある。
+- **引き換え**: 従来の方式は CloudFront がバケットの ACL を使って書き込むので、ログのバケットだけ ACL を無効にせず `BucketOwnerPreferred` にする（書かれたログの持ち主はこのアカウントになる）。ACL の相手は CloudFront のログ配信用アカウントで、公開ではないので Block Public Access は全部 ON のまま使える。
+- v2 にしかない機能（項目の選択、Parquet、CloudWatch Logs や Firehose への配信）が必要になったら、そのときに移る。
+
+### 個人を特定しうる情報の扱い
+
+- 標準ログには、利用者の **IP アドレス**、要求した URL（クエリ文字列を含む。`?tab=ruby` など）、User-Agent、Referer が入る。Cookie は記録しない。エディタはログインの情報や作品の中身を URL に入れないので、それらはログに入らない。
+- ログは障害の調査と、転送量・利用の傾向をつかむためだけに使う。**ログを外へ出さない**（Issue・PR・チャットに IP アドレスや生のログを貼らない。集計した数だけを書く）。
+- 読めるのはこの AWS アカウントの管理者だけ（バケットは非公開、CI 用ロールの権限にも入れない）。
+- 保持期間を過ぎたものは S3 のライフサイクルで自動で消える。期間を延ばすときは、使い道と見合うかを人間が決める。
+- WAF（フィルタリング）は入れていない（費用がかかるので、必要になったら別に決める）。
+
 ## PWA / service worker
 
 エディタは Workbox の `GenerateSW` で作った `/service-worker.js`（scope `/`・`skipWaiting` + `clientsClaim`）を登録し、ビルドの大部分を precache する。
@@ -180,7 +207,7 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 | S3 の保存 | 月 0.1 未満 | ビルドは 1 版あたり 100〜200 MB。古い版を 30 日残しても数 GB |
 | CloudFront のデータ転送 | 月 0〜230 | 毎月 1 TB までは無料。新しい端末は precache で 60〜100 MB を読む。1 日の利用者 3,000 人が平均 10〜30 MB を読むと月 1〜3 TB。1 TB を超えた分は 1 GB あたり約 0.114 |
 | CloudFront のリクエストと関数 | 月 0〜30 | 毎月 1,000 万リクエスト・関数 200 万回までは無料。1 回の読み込みで数百のリクエストがあるので、無料枠を超えうる |
-| アクセスログ | 月 1 未満 | S3 に置き、保持期間を決めて消す |
+| アクセスログ | 月 1 未満 | 標準ログ（従来）は届けるのが無料で、かかるのは S3 の保存と書き込みだけ。月 3,000 万リクエストでもログは gzip で月 数 GB、30 日分を置いて月 0.05〜0.2 程度 |
 
 - 従量課金の上限が読みにくいので、**CloudFront の定額プラン**（Pro は月 15 で転送量の上限が十分大きい）を使うかどうかを人間が決める。まず従量で 1〜2 週間動かし、CloudFront の使用量レポートで実際の転送量を見てから決めるのが安全。
 - **AWS Budgets の予算アラート**（例: 月 50 を超えたら通知）を切り替えの前に設定する。
