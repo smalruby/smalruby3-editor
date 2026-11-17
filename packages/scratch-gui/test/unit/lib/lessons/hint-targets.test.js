@@ -172,6 +172,31 @@ describe('findHintTargetRect', () => {
         expect(findHintAvoidRects(document)).toEqual([rect(746, 132, 922, 331)]);
     });
 
+    test('the list of costumes or sounds is avoided, so the balloon does not hide the 2nd costume (#2146)', () => {
+        expect(findHintAvoidRects(document, HINT_TARGETS.COSTUMES_TAB)).toEqual([]);
+        addEl('selector_wrapper_abc', rect(0, 117, 150, 563));
+        expect(findHintAvoidRects(document, HINT_TARGETS.COSTUMES_TAB)).toEqual([rect(0, 117, 150, 563)]);
+    });
+
+    test('a balloon pointing at the code area does not cover the scripts in it (#2146)', () => {
+        const blocks = addEl('blocks_blocks_abc', rect(0, 88, 920, 563));
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'blocklySvg');
+        const ws = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        ws.setAttribute('class', 'blocklyWorkspace');
+        const canvas = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        canvas.setAttribute('class', 'blocklyBlockCanvas');
+        const script = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        script.setAttribute('class', 'event_whenflagclicked blocklyBlock blocklyDraggable');
+        script.getBoundingClientRect = () => rect(516, 304, 719, 418);
+        canvas.appendChild(script);
+        ws.appendChild(canvas);
+        svg.appendChild(ws);
+        blocks.appendChild(svg);
+        expect(findHintAvoidRects(document, HINT_TARGETS.CODE_AREA)).toEqual([rect(516, 304, 719, 418)]);
+        expect(findHintAvoidRects(document, HINT_TARGETS.PALETTE)).toEqual([]);
+    });
+
     test('the role buttons in the task bar are found by their data-testid (not the note under them)', () => {
         expect(findHintTargetRect(HINT_TARGETS.ROLE_PICKER, document)).toBeNull();
         addEl('', rect(880, 46, 1040, 66), { 'data-testid': 'lesson-task-bar-role-buttons' });
@@ -202,6 +227,7 @@ describe('hint targets: CSS Modules class names of upstream components', () => {
         'stage-selector_stage-selector_': ['stage-selector/stage-selector.css', 'stage-selector'],
         'green-flag_green-flag_': ['green-flag/green-flag.css', 'green-flag'],
         'stop-all_stop-all_': ['stop-all/stop-all.css', 'stop-all'],
+        selector_wrapper_: ['asset-panel/selector.css', 'wrapper'],
     };
 
     // タブは並び順（nth-child）で探す。ルビータブ（Smalruby が足したタブ）が 4 つめのままかを見張る（#2142）
@@ -285,6 +311,20 @@ describe('computeHintPlacement', () => {
         expect(below.top).toBe(92);
         expect(below.left).toBe(8);
         expect(below.arrow).toEqual({ x: 142, y: 12 });
+    });
+
+    test('below the costumes tab, the balloon moves off the list of costumes (#2146)', () => {
+        const tab = rect(100, 88, 230, 116);
+        const list = rect(0, 117, 150, 563);
+        const placed = computeHintPlacement({
+            target: tab,
+            balloon,
+            viewport: { width: 1300, height: 600, top: 80 },
+            sides: preferredSides('costumes-tab'),
+            avoid: [list],
+        });
+        expect(placed.left).toBeGreaterThanOrEqual(list.right);
+        expect(placed.top).toBeGreaterThanOrEqual(tab.bottom);
     });
 
     // 1300×600 のチャットのレッスン 3: 練習相手のパネル（コードエリアの右上）に吹き出しをかぶせない（#1643）

@@ -329,7 +329,10 @@ const debugTips = (challengeId, count) =>
 // 判定は結果で見る（タブを開いたことは見ない）
 const L0_MOVE_TURN = 'move(10)\nturn_right(15)\n';
 const L0_FLAG_MOVE_TURN = 'when_flag_clicked do\n  move(10)\n  turn_right(15)\nend\n';
-const L0_FLAG_MOVE_50 = 'when_flag_clicked do\n  move(50)\n  turn_right(15)\nend\n';
+// 0-5 は「数を変える」ブロック（15 度回す）と「▼ を変える」ブロック（マウスのポインターへ行く）を最初から置いておく。
+// 「歩動かす」には ▼ で選ぶ相手のブロックが無く、ヒント 2 が置いていないブロックを指していたため（#2146）
+const L0_FLAG_TURN_GOTO = 'when_flag_clicked do\n  turn_right(15)\n  go_to("_mouse_")\nend\n';
+const L0_FLAG_TURN_GOTO_CHANGED = 'when_flag_clicked do\n  turn_right(90)\n  go_to("_random_")\nend\n';
 // 「どこでしょう？」の 5 問（「なまえ」の札の名前・lib/lessons/part-names.js）。9 つの名前から、手で操作した場所をえらぶ
 export const LESSON0_QUIZ_PARTS = Object.freeze(['palette', 'codeArea', 'soundsTab', 'greenFlag', 'spriteList']);
 
@@ -405,17 +408,18 @@ const blocksLesson0 = defineLesson({
             ],
             code: L0_FLAG_MOVE_TURN,
         },
-        // 0-5 数と ▼ を変えよう（白いところ・▼・消す）: 前の答え（旗のスクリプト）から始める。10 でない数の
-        // 「歩動かす」が動いた（旗でも、押してでも）
+        // 0-5 数と ▼ を変えよう（白いところ・▼・消す）: 「15 度回す」と「マウスのポインターへ行く」の旗のスクリプトから
+        // 始める。15 でない数の「度回す」と、▼ でマウスのポインター以外をえらんだ「へ行く」が動いた（旗でも、押してでも。
+        // 別々の実行でもよい）
         {
             id: 'blocks-l0-change-number',
             card: { category: CATEGORIES.MOTION, main: CATEGORIES.MOTION },
             task: challengeMessage('blocks-l0-change-number', 'task'),
-            setup: { code: L0_FLAG_MOVE_TURN },
+            setup: { code: L0_FLAG_TURN_GOTO },
             steps: withTitles('blocks-l0-change-number', [
-                { target: HINT_TARGETS.CODE_AREA, blocks: 'move(50)\n' },
-                // ブロックの消し方は、試すヒントより前（#1576）
-                { target: HINT_TARGETS.CODE_AREA, spotlight: true },
+                { target: HINT_TARGETS.CODE_AREA, blocks: 'turn_right(90)\n' },
+                // ▼ とブロックの消し方は、試すヒントより前（#1576）
+                { target: HINT_TARGETS.CODE_AREA, blocks: 'go_to("_random_")\n', spotlight: true },
                 { target: HINT_TARGETS.GREEN_FLAG },
             ]),
             debug: debugTips('blocks-l0-change-number', 1),
@@ -423,17 +427,22 @@ const blocksLesson0 = defineLesson({
                 {
                     type: 'uses',
                     trigger: { click: 'any' },
-                    blocks: [{ opcode: 'motion_movesteps', args: { STEPS: { ne: 10 } } }],
+                    blocks: [
+                        { opcode: 'motion_turnright', args: { DEGREES: { ne: 15 } } },
+                        { opcode: 'motion_goto', args: { TO: { ne: '_mouse_' } } },
+                    ],
                 },
             ],
-            code: L0_FLAG_MOVE_50,
+            code: L0_FLAG_TURN_GOTO_CHANGED,
         },
-        // 0-6 タブをめぐろう（タブ）: コスチュームが変わり（スモウルビーのネコは絵が 1 つなので、コスチュームタブで 1 つ足すと
-        // 足した 2 つめの絵になる）、コードタブにもどった（音の再生は判定しない）
+        // 0-6 タブをめぐろう（タブ）: 絵（コスチューム）が 2 つあるシマラビで始める（スモウルビーのネコは絵が 1 つで、
+        // 絵を足す操作が要った・#2146）。2 つめの絵をえらんでコスチュームが変わり、コードタブにもどった（音の再生は
+        // 判定しない）。シマラビはこのチャレンジだけ（ほかのレッスン 0 と レッスン 1 の課題・ヒントはネコで書いている）
         {
             id: 'blocks-l0-tabs',
             card: { category: CATEGORIES.LOOKS, main: CATEGORIES.LOOKS },
             task: challengeMessage('blocks-l0-tabs', 'task'),
+            setup: { sprites: ['Shimaraby'] },
             steps: withTitles('blocks-l0-tabs', [
                 { target: HINT_TARGETS.COSTUMES_TAB },
                 { target: HINT_TARGETS.SOUNDS_TAB },
@@ -441,7 +450,7 @@ const blocksLesson0 = defineLesson({
             ]),
             debug: debugTips('blocks-l0-tabs', 1),
             goal: [
-                { type: 'currentCostume', changed: true },
+                { type: 'currentCostume', number: 2 },
                 { type: 'tab', tab: 'code' },
             ],
         },
