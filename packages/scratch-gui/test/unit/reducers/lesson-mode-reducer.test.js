@@ -37,6 +37,7 @@ import reducer, {
     setLibraryAssignmentOnly,
     getCurrentRole,
     setLessonRole,
+    solvePartQuiz,
 } from '../../../src/reducers/lesson-mode';
 
 const wrap = (lessonMode) => ({ scratchGui: { lessonMode } });
@@ -762,5 +763,32 @@ describe('lesson-mode reducer: the role of a pair challenge (#2061)', () => {
         // ふつうに開き直したら 1 ページ目から
         state = reducer(reducer(state, startChallenge('chat-l5-stamp')), openChallenge('chat-l5-stamp'));
         expect(state.hintIndex).toBe(0);
+    });
+});
+
+describe('the "where is it?" quiz of lesson 0 (#2134)', () => {
+    const open = (id) => reducer(lessonModeInitialState, openChallenge(id));
+
+    test('counts the questions answered in order, once each, up to the number of questions', () => {
+        let state = open('blocks-l0-where');
+        expect(state.partQuizSolved).toBe(0);
+        state = reducer(state, solvePartQuiz('blocks-l0-where', 0));
+        expect(state.partQuizSolved).toBe(1);
+        // 同じ問いを 2 回数えない・先の問いを飛ばさない
+        expect(reducer(state, solvePartQuiz('blocks-l0-where', 0))).toBe(state);
+        expect(reducer(state, solvePartQuiz('blocks-l0-where', 3))).toBe(state);
+        for (let i = 1; i < 5; i++) state = reducer(state, solvePartQuiz('blocks-l0-where', i));
+        expect(state.partQuizSolved).toBe(5);
+        expect(reducer(state, solvePartQuiz('blocks-l0-where', 5))).toBe(state);
+    });
+
+    test('ignores answers for another challenge and starts again when the challenge is opened', () => {
+        let state = open('blocks-l0-where');
+        expect(reducer(state, solvePartQuiz('blocks-l0-tabs', 0))).toBe(state);
+        state = reducer(state, solvePartQuiz('blocks-l0-where', 0));
+        expect(reducer(state, openChallenge('blocks-l0-where')).partQuizSolved).toBe(0);
+        // クイズの無いチャレンジでは数えない
+        const tabs = open('blocks-l0-tabs');
+        expect(reducer(tabs, solvePartQuiz('blocks-l0-tabs', 0))).toBe(tabs);
     });
 });
