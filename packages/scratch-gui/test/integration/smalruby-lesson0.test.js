@@ -88,7 +88,7 @@ describe('Lesson 0 (#2134)', () => {
         await driver.executeScript(`document.querySelector('[data-testid="menu-bar-lessons"]').click()`);
         await findByXpath(byTestId('lessons-library-lesson-blocks-l0'));
         const lessons = await driver.executeScript(
-            `return Array.from(document.querySelectorAll('[data-testid="lessons-library-course-kyou-kara-programmer"] [data-testid^="lessons-library-lesson-"]')).map((el) => el.getAttribute('data-testid'));`,
+            `return Array.from(document.querySelectorAll('[data-testid="lessons-library-course-kyou-kara-programmer"] section[data-testid^="lessons-library-lesson-"]')).map((el) => el.getAttribute('data-testid'));`,
         );
         expect(lessons.slice(0, 2)).toEqual(['lessons-library-lesson-blocks-l0', 'lessons-library-lesson-blocks-l1']);
         const progress = await driver.executeScript(
