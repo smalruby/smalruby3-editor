@@ -41,7 +41,7 @@ const messages = defineMessages({
 });
 
 // 問いの部分の名前（Scratch Wiki「Scratchユーザーインターフェース (3.0)」の名前・#2134）。label は lib/lessons/part-names.js の
-// PART_NAMES の label。「なまえ」の札の文言（gui.lessonPartNames.*）と同じ名前にそろえる。札は「スプライトペイン
+// PART_NAMES の label。名前の札（「ガイド」）の文言（gui.lessonPartNames.*）と同じ名前にそろえる。札は「スプライトペイン
 // （スプライトをえらぶところ）」のように短い説明を付けることがあるので、問いの名前は別に持つ（#2142）
 const partNameMessages = defineMessages({
     taskBar: {
