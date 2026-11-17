@@ -473,22 +473,18 @@ describe('lesson-mode reducer: hints', () => {
         expect(state.hintIndex).toBe(0);
     });
 
-    test('only lessons with autoOpenHints open the hint on start (#2131); the others wait for the button', () => {
-        const courses = require('../../../src/lib/lessons/courses');
-        expect(courses.findChallenge('blocks-l1-click-say').lesson.autoOpenHints).toBe(true);
-        expect(courses.findChallenge('blocks-l1-quiz').lesson.autoOpenHints).toBe(false);
-        let state = reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz'));
-        expect(getCurrentHint(wrap(state))).toEqual(
-            expect.objectContaining({ visible: false, minimized: false, index: 0 }),
-        );
-        state = reducer(state, showHint());
-        expect(getCurrentHint(wrap(state)).visible).toBe(true);
+    test('every challenge with hints opens the hint on start (#2145), in any course', () => {
+        ['blocks-l1-click-say', 'blocks-l1-if', 'chat-l1-sequence'].forEach((id) => {
+            const state = reducer(lessonModeInitialState, openChallenge(id));
+            expect(getCurrentHint(wrap(state))).toEqual(
+                expect.objectContaining({ visible: true, minimized: false, index: 0 }),
+            );
+        });
     });
 
-    test('defineLesson does not open hints automatically unless it says so', () => {
+    test('defineLesson has no setting to keep the hint closed', () => {
         const { defineLesson } = require('../../../src/lib/lessons/courses');
-        expect(defineLesson({ id: 'x', challenges: [] }).autoOpenHints).toBe(false);
-        expect(defineLesson({ id: 'x', challenges: [], autoOpenHints: true }).autoOpenHints).toBe(true);
+        expect(defineLesson({ id: 'x', challenges: [] })).not.toHaveProperty('autoOpenHints');
     });
 
     test('hideHint makes the balloon small (a tag stays) and showHint brings back the same page', () => {
@@ -676,7 +672,7 @@ describe('lesson-mode reducer: read-and-build challenge (mode readDiagram)', () 
         expect(getCurrentHint(wrap(state)).index).toBe(2);
     });
 
-    test('opens the hint on start even in a lesson without autoOpenHints', () => {
+    test('opens the hint on start (read and build)', () => {
         const state = reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz'));
         expect(getCurrentHint(wrap(state)).visible).toBe(true);
     });

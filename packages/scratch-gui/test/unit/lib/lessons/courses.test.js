@@ -571,9 +571,8 @@ describe('lesson courses', () => {
         test('9 なかまに合図しよう: clicking the cat broadcasts and the penguin says', () => {
             const c = challenge('blocks-l1-broadcast');
             expect([findChallenge(c.id).lesson.id, c.number]).toEqual(['blocks-l3', 2]);
-            expect(jaText(c.task)).toBe(
-                'ペンギン（「Penguin」という名前のスプライト）を足して、\nネコを押したらペンギンが「やあ！」と言うようにしよう',
-            );
+            // 課題は「ペンギン」だけにして短く保ち、『Penguin』という名前の説明はヒント 1 に書く（#2145）
+            expect(jaText(c.task)).toBe('ペンギンを足して、\nネコを押したらペンギンが「やあ！」と言うようにしよう');
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenthisspriteclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
                 looks: ['looks_sayforsecs'],
@@ -587,7 +586,7 @@ describe('lesson courses', () => {
                 ['stage', null, false],
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
-                'スプライトペインの「スプライトを選ぶ」から、「Penguin」という名前のスプライトを足そう。',
+                'スプライトペインの「スプライトを選ぶ」から、ペンギンを足そう。ペンギンは「Penguin」という名前のスプライトだよ。',
                 'ネコをえらんで、「押されたとき」と「送る」をつなげよう。▼の「新しいメッセージ」で「あいさつ」を作ろう。',
                 'ペンギンをえらぶと、スクリプトエリアが空になるよ。プログラムはスプライトごとにあるんだ。',
                 'ペンギンに「受け取ったとき」と「言う」をつなげよう。',
@@ -2297,8 +2296,7 @@ describe('lesson 0 "スモウルビーをたんけんしよう" (#2134)', () => 
         });
     });
 
-    test('opens the hints, shows the part names and does not narrow the palette', () => {
-        expect(lesson0.autoOpenHints).toBe(true);
+    test('shows the part names and does not narrow the palette', () => {
         expect(lesson0.showPartNames).toBe(true);
         lesson0.challenges.forEach((c) => expect(c.allowedBlocks).toBeNull());
         expect(ja[lesson0.name.id]).toBe('スモウルビーをたんけんしよう');

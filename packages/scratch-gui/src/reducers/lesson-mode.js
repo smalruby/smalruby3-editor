@@ -61,14 +61,13 @@ const hasLastResort = (challenge) =>
 const hintPageCount = (challenge) => challenge.steps.length + (hasLastResort(challenge) ? 1 : 0);
 
 /**
- * チャレンジを始めたら、ヒントの 1 ページ目を自動で開くか。レッスンの定義の `autoOpenHints`（はじめの
- * レッスン 0 と 1。慣れたら自分で開く）と、読んで作るチャレンジ（1 ページ目が図と説明・lib/lessons/read-diagram.js）。
+ * チャレンジを始めたら、ヒントの 1 ページ目を自動で開くか。ヒントのあるチャレンジは全部開く（ヒントを表示した
+ * まま操作することに気づかない子が多いため・#2129 の Q1）。読むときに邪魔なら「－」で小さくする。
  * ヒントの無いチャレンジは開かない。
  * @param {{lesson: object, challenge: object}} found - findChallenge の結果。
  * @returns {boolean} 自動で開くか。
  */
-const autoOpensHint = (found) =>
-    hintPageCount(found.challenge) > 0 && (Boolean(found.lesson.autoOpenHints) || isReadDiagram(found.challenge));
+const autoOpensHint = (found) => hintPageCount(found.challenge) > 0;
 
 const closedState = {
     courseId: null,
@@ -204,8 +203,7 @@ const reducer = function (state, action) {
             const hintState = restartedInRole
                 ? { hintIndex: state.hintIndex, hintVisible: state.hintVisible, hintMinimized: state.hintMinimized }
                 : { ...hintClosedState, hintVisible: autoOpensHint(found) };
-            // 自動で開くレッスン（autoOpensHint）は、ヒントボタンを押さなくても始めたら 1 ページ目を出す。
-            // ほかは課題バーの「ヒント」で開く
+            // ヒントボタンを押さなくても、始めたら 1 ページ目を出す（autoOpensHint）
             return {
                 ...state,
                 courseId: found.course.id,
