@@ -104,7 +104,7 @@
 | `card` | `{category, main}` \| null | null | レッスン表のカード。`category` = 左の帯の色のなかま、`main` = そのチャレンジで覚えるメインのなかま（同じ数で並んだときの色）。どちらも `CATEGORIES` の値（`motion` / `looks` / `sound` / `events` / `control` / `sensing` / `operators` / `variables` / `lists` / `extensions`）。決め方は下の「カードの色」 |
 | `goal` | 条件[] \| null | null | できた の判定。条件の配列で、全部を満たしたら「できた」（下の「できた の判定」）。null なら判定しない |
 | `allowedBlocks` | object \| null | null | パレットに出すブロック（deck と同じ形）。項目は opcode か、初期値を持つ `{opcode, fields, inputs}`（下の「パレットのブロックの初期値」） |
-| `setup` | object \| null | null | 始めるときの準備。deck と同じ項目（`tab` / `rubyMode` / `extensions` / `rubyVersion`。`lib/deck-setup.js`）に、作品の準備（`sprites` / `code` / `spriteCodes` / `stageCode`。`lib/lessons/challenge-start.js`）を足せる。下の「レッスンモード」の **setup** |
+| `setup` | object \| null | null | 始めるときの準備。deck と同じ項目（`tab` / `rubyMode` / `extensions` / `rubyVersion`。`lib/deck-setup.js`）に、作品の準備（`sprites` / `code` / `spriteCodes` / `stageCode` / `lists` / `warpProcedures`。`lib/lessons/challenge-start.js`）を足せる。下の「レッスンモード」の **setup** |
 | `steps` | ヒント[] | [] | ヒント（下の表） |
 | `code` | string \| `{ja, 'ja-Hira', en}` \| null | null | ヒントの最後の手段「プログラムを入れる」（Ruby。deck の `code` と同じ）。作品の中の名前が locale で変わるときは locale ごとに書く（下の「英語の UI でも使う（locale ごとの `code`）」） |
 | `codeTarget` | `'stage'` \| null | null | `code` を入れる相手。null はいま編集中のスプライト。`'stage'` はステージのプログラムのチャレンジ（入れる前にステージをえらぶ） |
@@ -1310,8 +1310,11 @@ partner: {
   | `code` | Ruby（locale ごとにも書ける） | 前の段の**答え**を、`sprites` の 1 つめ（無ければネコ）に入れておく。生徒の前の作品ではない |
   | `spriteCodes` | `{sprite, code}`[] | ほかのスプライトの前の段の答え。チャレンジの `spriteCodes` と同じ形（いなければライブラリから足す） |
   | `stageCode` | Ruby（locale ごとにも書ける） | ステージのプログラム（例: 旗でリスト「NGワード」を作り直す準備） |
+  | `lists` | `{name, items, stage, monitor}`[] | リストの中身（例: 「ことばを予想する AI」の教科書）。`name` / `items` は locale ごとの `{ja, 'ja-Hira', en}` でも書ける。`stage: true` ならステージ（すべてのスプライト用）、無ければ `code` を入れたスプライトのリスト。同じ名前のリストがあれば中身を置きかえ、無ければ作る。`monitor: true` ならステージにリストのモニターを出す（パレットにリストのブロックが無くても出る） |
+  | `warpProcedures` | string[] | 定義ブロックの名前（locale ごとの名前を全部並べてよい）。入れたプログラムのその定義ブロックを「画面を再描画せずに実行する」にする。Ruby の `def` にはこの設定を書けないため、ここで付ける |
 
-  入れる順はステージ → `spriteCodes` → `code`。変換は「プログラムを入れる」の `spriteCodes` と同じ（`targetCodeToBlocks` → `apply`）。
+  入れる順はステージ → `spriteCodes` → `code` → `lists` → `warpProcedures`（リストはプログラムが作ったリストの中身を
+  置きかえるため、プログラムのあと）。変換は「プログラムを入れる」の `spriteCodes` と同じ（`targetCodeToBlocks` → `apply`）。
   Ruby のバージョンは `setup.rubyVersion` があればそれ、無ければいまの設定。
   - **失敗はとばして続ける**: ライブラリに無い・足すのに失敗したスプライト、変換できない・入れるのに失敗したプログラムは
     とばし（コンソールに警告）、残りのスプライト・プログラム、編集中の切りかえ、Ruby タブの出し直しは行う。

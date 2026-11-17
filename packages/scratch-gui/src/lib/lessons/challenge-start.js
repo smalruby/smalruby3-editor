@@ -4,6 +4,13 @@
 //     1 つめが `code` の入る先になる
 //   - `setup.code` / `setup.spriteCodes` / `setup.stageCode`: 前の段の答え（Ruby）を入れておく。形はチャレンジの
 //     `code` / `spriteCodes` と同じで、locale ごとにも書ける（courses.js の localizeCode）。生徒の前の作品ではない
+//   - `setup.lists`: リストの中身を入れておく（「ことばを予想する AI」の教科書）。`[{name, items, stage, monitor}]`。
+//     `name` / `items` は locale ごとの `{ja, 'ja-Hira', en}` でも書ける。`stage: true` ならステージ（すべての
+//     スプライト用）、無ければ `code` を入れたスプライトのリスト。同じ名前のリストがあれば中身を置きかえ、無ければ作る。
+//     `monitor: true` ならステージにリストのモニターを出す
+//   - `setup.warpProcedures`: 定義ブロックの名前の並び（locale ごとの名前を全部並べてよい）。入れたプログラムの
+//     その定義ブロックを「画面を再描画せずに実行する」にする。Ruby の `def` には、まだこの設定を書けないため
+//     （Ruby → ブロックの変換が warp を作らない・#2114）
 // 変換して入れるのは「プログラムを入れる」の spriteCodes と同じ（targetCodeToBlocks → apply）。
 import spriteLibraryContent from '../libraries/sprites.json';
 import { localizeCode } from './courses';
@@ -34,8 +41,105 @@ export const hasChallengeStart = (setup) =>
         ((Array.isArray(setup.sprites) && setup.sprites.length > 0) ||
             setup.code ||
             setup.stageCode ||
-            (Array.isArray(setup.spriteCodes) && setup.spriteCodes.length > 0)),
+            (Array.isArray(setup.spriteCodes) && setup.spriteCodes.length > 0) ||
+            (Array.isArray(setup.lists) && setup.lists.length > 0)),
     );
+
+// locale ごとに書ける値（文字列・配列、または `{ja, 'ja-Hira', en}`）から、いまの locale のものを選ぶ。キーが無い
+// locale は en、en も無ければ ja（courses.js の localizeCode と同じ順。localizeCode は配列を扱わないので別に持つ）
+const localizeValue = (value, locale) => {
+    if (typeof value === 'string' || Array.isArray(value)) return value;
+    if (!value || typeof value !== 'object') return null;
+    const key = [locale, 'en', 'ja'].find((l) => Object.prototype.hasOwnProperty.call(value, l));
+    return key ? value[key] : null;
+};
+
+let listIdSeq = 0;
+const newListId = (name) => {
+    listIdSeq += 1;
+    return `lesson-list-${Date.now().toString(36)}-${listIdSeq}-${name}`;
+};
+
+// ステージにリストのモニターを出す（作品の読み込みと同じく、モニター用のブロックを作ってからチェックを入れる。
+// パレットにリストのブロックが無いチャレンジでもモニターを出せるように）
+const showListMonitor = (vm, target, list) => {
+    const monitorBlocks = vm.runtime.monitorBlocks;
+    if (!monitorBlocks) return;
+    if (!monitorBlocks.getBlock(list.id)) {
+        monitorBlocks.createBlock({
+            id: list.id,
+            opcode: 'data_listcontents',
+            inputs: {},
+            fields: { LIST: { name: 'LIST', id: list.id, value: list.name, variableType: 'list' } },
+            next: null,
+            parent: null,
+            topLevel: true,
+            shadow: false,
+            targetId: target.isStage ? null : target.id,
+            x: 0,
+            y: 0,
+        });
+    }
+    monitorBlocks.changeBlock({ id: list.id, element: 'checkbox', value: true }, vm.runtime);
+};
+
+/**
+ * `setup.lists` のリストに中身を入れる（同じ名前のリストがあれば中身を置きかえ、無ければ作る）。入れられない
+ * もの（名前・中身が無い、相手がいない）はとばして警告する。
+ * @param {object} vm - Scratch VM。
+ * @param {Array<object>} lists - `[{name, items, stage, monitor}]`。
+ * @param {?object} sprite - `stage` でないリストを入れるスプライト。
+ * @param {string} locale - いまの locale。
+ */
+export const applyStartLists = (vm, lists, sprite, locale) => {
+    (lists || []).forEach((spec) => {
+        const name = localizeValue(spec && spec.name, locale);
+        const items = localizeValue(spec && spec.items, locale);
+        const target = spec && spec.stage ? vm.runtime.getTargetForStage() : sprite;
+        if (typeof name !== 'string' || name === '' || !Array.isArray(items) || !target) {
+            warn('could not put the starting list:', spec);
+            return;
+        }
+        let list = target.lookupVariableByNameAndType(name, 'list', true);
+        if (!list) {
+            target.createVariable(newListId(name), name, 'list');
+            list = target.lookupVariableByNameAndType(name, 'list', true);
+        }
+        list.value = items.map(String);
+        list._monitorUpToDate = false;
+        if (spec.monitor) showListMonitor(vm, target, list);
+    });
+};
+
+// 定義ブロックの名前（proccode の引数より前）
+const procedureName = (proccode) => String(proccode).split(/ %[sbn]/)[0];
+
+/**
+ * 名前の合う定義ブロックを「画面を再描画せずに実行する」にする（定義と呼び出しの mutation の warp）。
+ * @param {object} vm - Scratch VM。
+ * @param {Array<string>} names - 定義ブロックの名前。
+ * @returns {number} warp にした定義ブロックの数。
+ */
+export const applyWarpProcedures = (vm, names) => {
+    const wanted = new Set(names || []);
+    if (wanted.size === 0) return 0;
+    let count = 0;
+    vm.runtime.targets.forEach((target) => {
+        const blocks = target.blocks;
+        if (!blocks || !blocks._blocks) return;
+        Object.values(blocks._blocks).forEach((block) => {
+            if (!block.mutation || !wanted.has(procedureName(block.mutation.proccode))) return;
+            if (block.opcode === 'procedures_prototype') {
+                block.mutation.warp = 'true';
+                count += 1;
+            } else if (block.opcode === 'procedures_call') {
+                block.mutation.warp = 'true';
+            }
+        });
+        if (typeof blocks.resetCache === 'function') blocks.resetCache();
+    });
+    return count;
+};
 
 const isAlive = (isCurrent) => !isCurrent || isCurrent();
 
@@ -154,6 +258,9 @@ export const applyChallengeStart = async (
     const codeSprite = resolveCodeSprite(vm, spriteCodes, preferred) || vm.editingTarget || spritesOf(vm)[0];
     await insertCode(codeSprite, localizeCode(setup.code, locale), toBlocks);
     if (!isAlive(isCurrent)) return false;
+    // プログラムのあとに入れる（`@教科書 = []` のようにプログラムが作ったリストの中身を置きかえるため）
+    applyStartLists(vm, setup.lists, codeSprite, locale);
+    applyWarpProcedures(vm, setup.warpProcedures);
     if (codeSprite) vm.setEditingTarget(codeSprite.id);
     return true;
 };
