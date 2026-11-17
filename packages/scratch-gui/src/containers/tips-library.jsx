@@ -9,7 +9,9 @@ import tutorialTags from '../lib/libraries/tutorial-tags';
 
 import analytics from '../lib/analytics';
 import {PLATFORM} from '../lib/platform.js';
-import {applyDeckSetup} from '../lib/deck-setup';
+// === Smalruby: Start of tutorial deck setup ===
+import {applySetup} from '../lib/lessons/apply-setup';
+// === Smalruby: End of tutorial deck setup ===
 
 import LibraryComponent from '../components/library/library.jsx';
 
@@ -66,13 +68,14 @@ class TipsLibrary extends React.PureComponent {
             this.props.onTutorialSelect();
         }
 
-        // === Smalruby: apply deck setup (tab / Ruby mode / extensions) before
-        // activating the deck so that the tutorial opens with the right
-        // environment already in place. ===
+        // === Smalruby: Start of tutorial deck setup ===
+        // Apply the deck setup (tab / Ruby mode / extensions) before activating
+        // the deck so that the tutorial opens with the right environment.
         const deck = decksLibraryContent[item.id];
         if (deck && deck.setup) {
-            await applyDeckSetup(deck.setup, this.props.onApplyDeckSetup, this.props.vm);
+            await applySetup(deck.setup, this.props.onApplyDeckSetup, this.props.vm);
         }
+        // === Smalruby: End of tutorial deck setup ===
 
         this.props.onActivateDeck(item.id);
     }

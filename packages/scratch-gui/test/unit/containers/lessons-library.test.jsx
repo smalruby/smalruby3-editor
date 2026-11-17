@@ -106,10 +106,11 @@ describe('LessonsLibrary container', () => {
 
     test('opened from the welcome 「レッスンを始める」, marks the first challenge to do (#1888)', () => {
         const { getByTestId } = renderUnconnected({ startFocus: true });
-        const lesson = getByTestId('lessons-library-lesson-blocks-l1');
+        // はじめはレッスン 0 の最初のチャレンジ（#2134）
+        const lesson = getByTestId('lessons-library-lesson-blocks-l0');
         expect(lesson).toHaveAttribute('data-focused', 'true');
         const first = lesson.querySelector('[data-next="true"]');
-        expect(first.getAttribute('data-testid')).toBe('lessons-library-challenge-blocks-l1-key-sound');
+        expect(first.getAttribute('data-testid')).toBe('lessons-library-challenge-blocks-l0-drag-cat');
         expect(first).toContainElement(getByTestId('lessons-library-challenge-next'));
     });
 
@@ -138,7 +139,7 @@ describe('LessonsLibrary container', () => {
                 </IntlProvider>
             </Provider>,
         );
-        expect(getByTestId('lessons-library-challenge-blocks-l1-key-sound')).toHaveAttribute('data-next', 'true');
+        expect(getByTestId('lessons-library-challenge-blocks-l0-drag-cat')).toHaveAttribute('data-next', 'true');
     });
 
     test('connected: closing the library also clears the focus', () => {

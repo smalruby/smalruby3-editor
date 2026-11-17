@@ -5,6 +5,7 @@ import React from 'react';
 import { IntlProvider } from 'react-intl';
 import LessonTaskBar, { HOVER_DELAY_MS } from '../../../src/components/lesson-task-bar/lesson-task-bar.jsx';
 import { findChallenge } from '../../../src/lib/lessons/courses';
+import { ROLES, challengeForRole } from '../../../src/lib/lessons/role-swap';
 import en from '../../../src/locales/en';
 import ja from '../../../src/locales/ja';
 
@@ -38,6 +39,14 @@ describe('LessonTaskBar', () => {
         expect(getByTestId('lesson-task-bar-task')).toHaveTextContent(
             'Add a costume you like to the cat, and make it say "Hello!" and change its look when it is clicked',
         );
+    });
+
+    test('the hint button glows only while the student seems stuck (#2132)', () => {
+        const calm = renderBar();
+        expect(calm.getByTestId('lesson-task-bar-hint')).toHaveAttribute('data-nudge', 'false');
+        calm.unmount();
+        const { getByTestId } = renderBar({ hintNudge: true });
+        expect(getByTestId('lesson-task-bar-hint')).toHaveAttribute('data-nudge', 'true');
     });
 
     test('falls back to the challenge name when there is no task line yet', () => {
@@ -84,6 +93,65 @@ describe('LessonTaskBar', () => {
         const { getByTestId, onQuit } = renderBar();
         fireEvent.click(getByTestId('lesson-task-bar-quit'));
         expect(onQuit).toHaveBeenCalledTimes(1);
+    });
+
+    // 画面の部分の名前の札（#2133）
+    test('the "Guide" button is shown only with onTogglePartNames and sits before the hint button', () => {
+        const { queryByTestId, unmount } = renderBar();
+        expect(queryByTestId('lesson-task-bar-part-names')).not.toBeInTheDocument();
+        unmount();
+        const onTogglePartNames = jest.fn();
+        const bar = renderBar({ onTogglePartNames, partNamesVisible: true });
+        const button = bar.getByTestId('lesson-task-bar-part-names');
+        expect(button).toHaveTextContent('Guide');
+        expect(button).toHaveAttribute('aria-pressed', 'true');
+        expect(button.nextElementSibling).toBe(bar.getByTestId('lesson-task-bar-hint'));
+        fireEvent.click(button);
+        expect(onTogglePartNames).toHaveBeenCalledTimes(1);
+    });
+
+    test('the "Guide" button shows whether the names are out with an eye icon and aria-pressed (ja: ガイド)', () => {
+        const hidden = renderBar({ onTogglePartNames: jest.fn() }, { locale: 'ja', messages: ja });
+        const button = hidden.getByTestId('lesson-task-bar-part-names');
+        expect(button).toHaveTextContent('ガイド');
+        expect(button).toHaveAttribute('aria-pressed', 'false');
+        expect(hidden.getByTestId('lesson-task-bar-part-names-icon')).toHaveAttribute('data-open', 'false');
+        hidden.unmount();
+        const shown = renderBar({ onTogglePartNames: jest.fn(), partNamesVisible: true });
+        expect(shown.getByTestId('lesson-task-bar-part-names')).toHaveAttribute('aria-pressed', 'true');
+        expect(shown.getByTestId('lesson-task-bar-part-names-icon')).toHaveAttribute('data-open', 'true');
+    });
+
+    test('showing the part names hides the full text that the mouse opened (the mouse is on the bar)', () => {
+        jest.useFakeTimers();
+        try {
+            const { getByTestId, queryByTestId, rerender } = renderBar({ onTogglePartNames: jest.fn() });
+            // jsdom には PointerEvent が無いので、pointerType を持たせた MouseEvent で乗せる
+            const over = new MouseEvent('pointerover', { bubbles: true, cancelable: true });
+            Object.defineProperty(over, 'pointerType', { value: 'mouse' });
+            act(() => {
+                getByTestId('lesson-task-bar').dispatchEvent(over);
+                jest.advanceTimersByTime(HOVER_DELAY_MS);
+            });
+            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
+            const { challenge, lesson } = findChallenge('blocks-l1-click-say');
+            rerender(
+                <IntlProvider locale="en" messages={en}>
+                    <LessonTaskBar
+                        challenge={challenge}
+                        challengeCount={lesson.challenges.length}
+                        hintAvailable
+                        onHint={jest.fn()}
+                        onQuit={jest.fn()}
+                        onTogglePartNames={jest.fn()}
+                        partNamesVisible
+                    />
+                </IntlProvider>,
+            );
+            expect(queryByTestId('lesson-task-bar-full-text')).not.toBeInTheDocument();
+        } finally {
+            jest.useRealTimers();
+        }
     });
 
     test('hint button calls onHint', () => {
@@ -137,7 +205,7 @@ describe('LessonTaskBar', () => {
             const { getByTestId, queryByTestId } = renderBar({ challengeId: 'blocks-l1-key-sound' });
             hover(getByTestId('lesson-task-bar'));
             expect(getByTestId('lesson-task-bar-full-text')).toHaveTextContent(
-                'Make the cat meow and then play the "Owl" sound when the space key is pressed',
+                'Make the cat meow when the space key is pressed',
             );
             unhover(getByTestId('lesson-task-bar'));
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
@@ -187,6 +255,97 @@ describe('LessonTaskBar', () => {
             );
         });
 
+        const diagramLayout = (height) => ({
+            width: 200,
+            height,
+            shapes: [{ type: 'action', x: 10, y: 10, w: 100, h: 24, label: 'a', lines: ['a'] }],
+            edges: [],
+        });
+        const withWindow = (width, height, fn) => {
+            const saved = [window.innerWidth, window.innerHeight];
+            window.innerWidth = width;
+            window.innerHeight = height;
+            try {
+                fn();
+            } finally {
+                [window.innerWidth, window.innerHeight] = saved;
+            }
+        };
+
+        test('shows the activity diagram of the answer under the task text', () => {
+            withWindow(1300, 600, () => {
+                const { getByTestId, queryByTestId } = renderBar({ activityDiagram: diagramLayout(120) });
+                hover(getByTestId('lesson-task-bar'));
+                const wrapper = getByTestId('lesson-task-bar-full-text-diagram');
+                const svg = getByTestId('lesson-activity-diagram');
+                expect(wrapper).toContainElement(svg);
+                // 入るので縮めずに描く
+                expect(svg.style.width).toBe('200px');
+                expect(queryByTestId('lesson-task-bar-full-text-diagram-note')).toBeNull();
+                // 文の後ろ（下）に出す
+                expect(
+                    getByTestId('lesson-task-bar-full-text-text').compareDocumentPosition(wrapper) &
+                        Node.DOCUMENT_POSITION_FOLLOWING,
+                ).toBeTruthy();
+            });
+        });
+
+        test('shrinks a diagram a little too tall for the panel (1300×600)', () => {
+            withWindow(1300, 600, () => {
+                const { getByTestId } = renderBar({ activityDiagram: diagramLayout(240) });
+                hover(getByTestId('lesson-task-bar'));
+                // 60vh - 8.5rem = 224px に入るよう縮める
+                expect(parseFloat(getByTestId('lesson-activity-diagram').style.height)).toBeCloseTo(224);
+            });
+        });
+
+        test('shows a line pointing to the hint instead of a diagram too tall to read (1300×600)', () => {
+            withWindow(1300, 600, () => {
+                const { getByTestId, queryByTestId } = renderBar(
+                    { activityDiagram: diagramLayout(600) },
+                    { locale: 'ja', messages: ja },
+                );
+                hover(getByTestId('lesson-task-bar'));
+                expect(queryByTestId('lesson-activity-diagram')).toBeNull();
+                expect(getByTestId('lesson-task-bar-full-text-diagram-note')).toHaveTextContent(
+                    '図はヒントの 1 ページ目で見られます',
+                );
+            });
+        });
+
+        test('uses the measured height of the task text, not a guess', () => {
+            const spy = jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function () {
+                return this.dataset && this.dataset.testid === 'lesson-task-bar-full-text-text' ? 72 : 0;
+            });
+            try {
+                withWindow(1300, 600, () => {
+                    // 文が 72px なら 360 - 72 - 36 = 252px 使えるので、高さ 270 の図は読める大きさで入る
+                    // （2 行ぶんの見積もり 100px のままだと 224px しかなく、入らない）
+                    const { getByTestId } = renderBar({ activityDiagram: diagramLayout(270) });
+                    hover(getByTestId('lesson-task-bar'));
+                    expect(parseFloat(getByTestId('lesson-activity-diagram').style.height)).toBeCloseTo(252);
+                });
+            } finally {
+                spy.mockRestore();
+            }
+        });
+
+        test('the line pointing to the hint is in English too', () => {
+            withWindow(1300, 600, () => {
+                const { getByTestId } = renderBar({ activityDiagram: diagramLayout(600) });
+                hover(getByTestId('lesson-task-bar'));
+                expect(getByTestId('lesson-task-bar-full-text-diagram-note')).toHaveTextContent(
+                    'See the diagram on page 1 of the hint',
+                );
+            });
+        });
+
+        test('shows no activity diagram without one', () => {
+            const { getByTestId, queryByTestId } = renderBar();
+            hover(getByTestId('lesson-task-bar'));
+            expect(queryByTestId('lesson-task-bar-full-text-diagram')).toBeNull();
+        });
+
         test('shows no image for a challenge without one', () => {
             const { getByTestId, queryByTestId } = renderBar({ challengeId: 'blocks-l1-key-sound' });
             hover(getByTestId('lesson-task-bar'));
@@ -216,6 +375,22 @@ describe('LessonTaskBar', () => {
             tap(task);
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
             expect(task).toHaveAttribute('aria-expanded', 'false');
+        });
+
+        // 全文を閉じたことを知らせる（クイズのある「できた！」を出し直すため・#1639）
+        test('tells when a tapped panel closes (tap, outside, Escape), not when it opens', () => {
+            const onCloseFullText = jest.fn();
+            const { getByTestId } = renderBar({ onCloseFullText });
+            tap(getByTestId('lesson-task-bar-task'));
+            expect(onCloseFullText).not.toHaveBeenCalled();
+            tap(getByTestId('lesson-task-bar-task'));
+            expect(onCloseFullText).toHaveBeenCalledTimes(1);
+            tap(getByTestId('lesson-task-bar-task'));
+            fireEvent.pointerDown(document.body);
+            expect(onCloseFullText).toHaveBeenCalledTimes(2);
+            tap(getByTestId('lesson-task-bar-task'));
+            fireEvent.keyDown(document, { key: 'Escape' });
+            expect(onCloseFullText).toHaveBeenCalledTimes(3);
         });
 
         test('a tapped panel closes by pressing outside or Escape, not by pressing inside', () => {
@@ -340,5 +515,54 @@ describe('LessonTaskBar', () => {
             );
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
         });
+    });
+
+    test('shows the read-and-build tag only for a challenge with mode readDiagram', () => {
+        const { challenge } = findChallenge('blocks-l1-click-say');
+        const plain = renderBar();
+        expect(plain.queryByTestId('lesson-task-bar-read-diagram')).toBeNull();
+        plain.unmount();
+        const read = renderBar({ challenge: { ...challenge, mode: 'readDiagram' } }, { locale: 'ja', messages: ja });
+        expect(read.getByTestId('lesson-task-bar-read-diagram')).toHaveTextContent('読んで作る');
+        // 課題の 1 行はそのまま出す
+        expect(read.getByTestId('lesson-task-bar-task')).toBeInTheDocument();
+    });
+});
+
+describe('LessonTaskBar: the role of a pair challenge (#2062)', () => {
+    test('no role buttons without a role', () => {
+        const { queryByTestId } = renderBar({ challengeId: 'chat-l3-mesh-signal' });
+        expect(queryByTestId('lesson-task-bar-role')).toBeNull();
+    });
+
+    test('the Shimacat role shows the task with the names swapped (ja)', () => {
+        const { challenge, lesson } = findChallenge('chat-l3-mesh-variable');
+        const swapped = challengeForRole(challenge, ROLES.SHIMACAT);
+        const onChooseRole = jest.fn();
+        const { getByTestId } = render(
+            <IntlProvider locale="ja" messages={ja}>
+                <LessonTaskBar
+                    challenge={swapped}
+                    challengeCount={lesson.challenges.length}
+                    hintAvailable
+                    onHint={jest.fn()}
+                    onQuit={jest.fn()}
+                    onChooseRole={onChooseRole}
+                    role={{ role: ROLES.SHIMACAT, source: 'chosen' }}
+                />
+            </IntlProvider>,
+        );
+        expect(getByTestId('lesson-task-bar-task')).toHaveTextContent('変数「シマネコのきぶん」');
+        expect(getByTestId('lesson-task-bar-role-shimacat')).toHaveTextContent('シマネコの役');
+        expect(getByTestId('lesson-task-bar-role-shimacat')).toHaveAttribute('aria-pressed', 'true');
+        // ヒントの「役を決めよう」の吹き出しが指す、役のボタンの並び（hint-targets.js の ROLE_PICKER）
+        expect(getByTestId('lesson-task-bar-role-buttons')).toContainElement(
+            getByTestId('lesson-task-bar-role-shimaraby'),
+        );
+        // いまの役をもう一度押しても何もしない
+        fireEvent.click(getByTestId('lesson-task-bar-role-shimacat'));
+        expect(onChooseRole).not.toHaveBeenCalled();
+        fireEvent.click(getByTestId('lesson-task-bar-role-shimaraby'));
+        expect(onChooseRole).toHaveBeenCalledWith(ROLES.SHIMARABY);
     });
 });

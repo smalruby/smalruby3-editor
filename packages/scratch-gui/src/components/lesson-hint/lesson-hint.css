@@ -1,4 +1,5 @@
 @import '../../css/colors.css';
+@import '../../css/smalruby-tokens.css';
 @import '../../css/units.css';
 @import '../../css/z-index.css';
 @import '../balloon/balloon-tokens.css';
@@ -14,6 +15,15 @@
     width: max-content;
     max-width: min(22rem, calc(100vw - 1rem));
     max-height: calc(100vh - 1rem);
+}
+
+/*
+    アクティビティ図のある 1 ページ目は、図が字の読める大きさ（下限）のまま横に収まりやすいよう広げる
+    （分岐のある図で幅 420px ほど）。それでも入らなければ図の枠の中をスクロールする
+*/
+.balloon-wide {
+    composes: balloon;
+    max-width: min(30rem, calc(100vw - 1rem));
 }
 
 /*
@@ -39,8 +49,53 @@
     white-space: pre-line;
 }
 
+/* 文言の `**…**`（見落としやすいところ）。文言はもう太字なので、色と地で見分けられるようにする */
+.emphasis {
+    padding: 0 0.125rem;
+    border-radius: 0.125rem;
+    color: $color-emphasis;
+    background-color: $color-emphasis-background;
+    font-weight: bold;
+}
+
 .title:last-child {
     margin-bottom: 0;
+}
+
+/* 文言の下の一言（読んで作るチャレンジの「答えは最後のページ」など）。文言より控えめにする */
+.note {
+    margin: 0 0 0.5rem;
+    font-size: 0.8125rem;
+    color: $text-primary-transparent;
+    white-space: pre-line;
+}
+
+.note:last-child {
+    margin-bottom: 0;
+}
+
+/*
+    1 ページ目のアクティビティ図。吹き出しの幅（最大 22rem）と、1300×600 で吹き出しが画面に収まる高さまで
+    縦横の比のまま縮める。字が読める下限（lesson-activity-diagram.jsx の min-width / min-height）まで縮めても
+    入らないときは、図の枠の中をスクロールする
+*/
+.activity-diagram {
+    max-height: min(16rem, calc(100vh - 16rem));
+    margin: 0 0 0.5rem;
+    overflow: auto;
+}
+
+.activity-diagram > svg {
+    margin: 0 auto;
+    max-height: min(16rem, calc(100vh - 16rem));
+}
+
+/* 描いたブロックの見出し（読んで作るチャレンジの答えのページ「ネコのプログラム」） */
+.blocks-label {
+    margin: 0 0 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: bold;
+    color: $text-primary-transparent;
 }
 
 /* 本物のブロックを描く Blockly の読み取り専用ワークスペース。大きさは描いた中身から決める */
@@ -162,4 +217,108 @@
     .body {
         padding: 0.5rem;
     }
+}
+
+/*
+    小さくしたヒントの札（lesson-hint-minimized.jsx）。課題バーのすぐ下に position: fixed で置く（置き方は
+    lib/lessons/hint-minimized.js）。課題バーの全文のパネル（タップで開いたままのものは 470）より下の 460 に置き、
+    全文を隠さない（パレット・ステージより上）。消えたと思わず「もどしたくなる」ように、吹き出しの
+    ヘッダーと同じ色の地に白い字で、番号・短い見出し・もどす印を 1 行に並べる。小さく保つため見出しは 1 行で切る
+*/
+.minimized {
+    position: fixed;
+    z-index: 460;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    max-width: min(18rem, calc(100vw - 1rem));
+    padding: 0.25rem 0.5rem 0.25rem 0.375rem;
+    border: $balloon-border-width solid $ui-white;
+    border-radius: $balloon-button-radius;
+    background-color: $balloon-primary;
+    box-shadow: $balloon-shadow-panel;
+    color: $ui-white;
+    font-family: $balloon-font-family;
+    font-size: $balloon-font-size-small;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.minimized:hover {
+    background-color: $balloon-primary-hover;
+}
+
+.minimized:focus-visible {
+    outline: 3px solid $balloon-text;
+    outline-offset: 2px;
+}
+
+.minimized-position {
+    flex-shrink: 0;
+    padding: 0.125rem 0.375rem;
+    border-radius: 1rem;
+    background-color: $ui-white;
+    color: $balloon-primary;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.minimized-heading {
+    min-width: 0;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.minimized-restore {
+    flex-shrink: 0;
+    font-size: 0.875rem;
+}
+
+/*
+    手が止まったときに光らせる（#2132）。小さくしたヒントの札を、ゆっくり（2.4 秒で 1 往復）オレンジに光らせる。
+    動きを減らす設定（prefers-reduced-motion）では光らせず、「ヒントを見てみよう」の文字だけにする
+*/
+.minimized-nudge {
+    composes: minimized;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .minimized-nudge {
+        animation: hint-nudge-glow 1.2s ease-in-out infinite alternate;
+    }
+}
+
+@keyframes hint-nudge-glow {
+    from {
+        box-shadow: $balloon-shadow-panel;
+    }
+
+    to {
+        box-shadow:
+            0 0 0 4px $data-primary,
+            0 0 16px 6px $data-primary;
+    }
+}
+
+/*
+    「ヒントを見てみよう」。課題バーの「ヒント」（小さくした札があれば札）の下に出す文字（lesson-hint-nudge.jsx）。
+    押せない文字なので pointer-events: none（下の部品の操作をじゃましない）。札と同じ層（460）
+*/
+.nudge {
+    position: fixed;
+    z-index: 460;
+    padding: 0.25rem 0.625rem;
+    border: $balloon-border-width solid $data-primary;
+    border-radius: $balloon-button-radius;
+    background-color: $ui-white;
+    box-shadow: $balloon-shadow;
+    color: $color-emphasis;
+    font-family: $balloon-font-family;
+    font-size: $balloon-font-size;
+    font-weight: bold;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
 }

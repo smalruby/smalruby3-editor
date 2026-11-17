@@ -4,13 +4,18 @@
 // goal-monitor.js。goal の書き方は docs/lessons/README.md。
 //
 // goal は条件の配列で、全部を満たしたら「できた」。条件の `type`:
-//   uses      決めたきっかけ（trigger）から始まったスクリプトで、決めたブロックが動いた
+//   uses      決めたきっかけ（trigger）から始まったスクリプトで、決めたブロックが動いた（`not: true` なら、
+//             きっかけに合ういちばん新しい実行でそう動いていない）
 //   said      言った（考えた）文字
 //   variable  変数の値
 //   list      リストの中身
 //   sprites   スプライトの数
 //   costumes  コスチューム（背景）の数が始めより増えた
 //   extension 拡張機能を読み込んだ
+//   moved     スプライトの位置が、見張りを始めたときから変わった（ステージでつかんで動かした・#2134）
+//   currentCostume いまのコスチューム（背景）の番号・始めから変わったか
+//   tab       いま開いているタブ（コード・コスチューム・音）。エディタの画面の状態（snapshot.ui）
+//   partQuiz  画面の部分をクリックして答えるクイズ（「どこでしょう？」）に、決めた数だけ正しく答えた（snapshot.ui）
 //
 // プログラムの形は見ない（ブロックの並びや個数は条件にしない）。
 
@@ -22,7 +27,17 @@ export const CONDITION_TYPES = Object.freeze([
     'sprites',
     'costumes',
     'extension',
+    'moved',
+    'currentCostume',
+    'tab',
+    'partQuiz',
 ]);
+
+/** `tab` の条件のタブ（エディタのタブの並び。reducers/editor-tab.js の index と同じ順）。 */
+export const EDITOR_TABS = Object.freeze(['code', 'costumes', 'sounds']);
+
+/** `uses` の `trigger.click`: コードエリア・パレットでスクリプトを押して動かしたもの（#2134）。 */
+export const CLICK_PLACES = Object.freeze(['palette', 'codeArea', 'any']);
 
 // facts の上限（ずっと動くプログラムでも際限なく増えないように）
 const MAX_RUNS = 200;
@@ -112,8 +127,9 @@ const upper = (value) => String(value).toUpperCase();
 /**
  * スクリプトの実行（スレッド）を 1 つ始める。
  * @param {object} facts - facts。
- * @param {object} info - `{trigger: {hat, fields, stackClick}, targetId, isStage}`。
- *   `fields` はハットのフィールド名 → 値（例: `{KEY_OPTION: 'space'}`）。
+ * @param {object} info - `{trigger: {hat, fields, stackClick, palette}, targetId, isStage}`。
+ *   `fields` はハットのフィールド名 → 値（例: `{KEY_OPTION: 'space'}`）。`palette` はパレット（ブロックを
+ *   置かずに）でブロックを押して動かしたか（stackClick のときだけ意味がある）。
  * @returns {object} run（recordExecution に渡す）。
  */
 export const startRun = (facts, info) => {
@@ -123,6 +139,7 @@ export const startRun = (facts, info) => {
             hat: (info.trigger && info.trigger.hat) || null,
             fields,
             stackClick: Boolean(info.trigger && info.trigger.stackClick),
+            palette: Boolean(info.trigger && info.trigger.palette),
         },
         targetId: isUnset(info.targetId) ? null : info.targetId,
         isStage: Boolean(info.isStage),
@@ -173,8 +190,10 @@ export const recordExecution = (facts, run, opcode, args) => {
 /**
  * 言った（考えた）文字を記録する。空の文字（吹き出しを消す）は記録しない。
  * @param {object} facts - facts。
- * @param {object} say - `{targetId, isStage, text, variables}`。`variables` は言った時点の
- *   変数名 → 値（`equalsVariable` の判定用）。
+ * @param {object} say - `{targetId, isStage, text, variables, run, remoteValues}`。`variables` は言った時点の
+ *   変数名 → 値（`equalsVariable` の判定用）。`run` は言ったスクリプトの run（startRun の戻り値。
+ *   分からなければ省く。said の `trigger` の判定用）。`remoteValues` は言った時点で、メッシュで自分以外の
+ *   ノード（練習相手を含む）から届いていた変数の値（said の `remoteValue` の判定用）。
  */
 export const recordSay = (facts, say) => {
     const text = isUnset(say.text) ? '' : String(say.text);
@@ -186,6 +205,8 @@ export const recordSay = (facts, say) => {
         // 言った時点の最後の答え（まだ答えていなければ null）
         answer: facts.answers.length > 0 ? facts.answers[facts.answers.length - 1] : null,
         variables: say.variables || {},
+        run: say.run || null,
+        remoteValues: Array.isArray(say.remoteValues) ? say.remoteValues : [],
     });
     if (facts.says.length > MAX_SAYS) facts.says.shift();
 };
@@ -207,18 +228,35 @@ const sameKey = (fieldKey, key) => {
     return String(fieldKey).toLowerCase() === String(key).toLowerCase();
 };
 
+// 押して動かしたスクリプト（stackClick）が `trigger.click` に合うか。`click` を書いていなければ、押して動かしたものは
+// 数えない（きっかけが違う）。'palette' = パレットで押した、'codeArea' = コードエリアで押した、'any' = どちらでも
+// （'any' はハットから始まった実行も数える）
+const clickMatches = (click, run) => {
+    if (!run.trigger.stackClick) return isUnset(click) || click === 'any';
+    if (click === 'any') return true;
+    if (click === 'palette') return run.trigger.palette;
+    if (click === 'codeArea') return !run.trigger.palette;
+    return false;
+};
+
 const triggerMatches = (trigger, run) => {
-    if (run.trigger.stackClick) return false;
+    if (!clickMatches(trigger ? trigger.click : null, run)) return false;
     if (!trigger) return true;
     if (trigger.hat && run.trigger.hat !== trigger.hat) return false;
     if (!isUnset(trigger.key) && !sameKey(run.trigger.fields.KEY_OPTION, trigger.key)) return false;
     if (!isUnset(trigger.message)) {
+        // 名前の配列なら、どれか 1 つに合えばよい（ペアのどちらの役の名前・どの locale の名前でも通す）
         const field = run.trigger.fields.BROADCAST_OPTION;
-        if (isUnset(field) || upper(field) !== upper(trigger.message)) return false;
+        const names = Array.isArray(trigger.message) ? trigger.message : [trigger.message];
+        if (isUnset(field) || !names.some((name) => upper(field) === upper(name))) return false;
     }
     if (trigger.target === 'stage' && !run.isStage) return false;
     if (trigger.target === 'sprite' && run.isStage) return false;
     if (trigger.sentBy === 'other' && !(run.broadcaster !== null && run.broadcaster !== run.targetId)) return false;
+    // この作品のスクリプトが送っていない合図（メッシュでほかのノード・練習相手から届いた）。メッシュで届いた合図は
+    // 「送る」のブロックを通らないので送り手が記録されない（broadcaster が null）。自分で一度でも送った名前は、
+    // あとで相手から届いても「この作品が送った」とみなす（#1645）
+    if (trigger.sentBy === 'remote' && run.broadcaster !== null) return false;
     return true;
 };
 
@@ -227,23 +265,30 @@ const normalizeBlockEntry = (entry) => (typeof entry === 'string' ? { opcode: en
 const argsMatch = (matchers, args) =>
     Object.entries(matchers).every(([name, matcher]) => matchValue(matcher, args[name]));
 
+// opcode は 1 つか、どれでもよい opcode の配列（「送る」「送って待つ」「値つきで送る」のどれで送ってもよい、など）
+const entryOpcodes = (entry) => (Array.isArray(entry.opcode) ? entry.opcode : [entry.opcode]);
+
 const blockEntrySatisfiedByRun = (entry, run) => {
-    const op = run.ops[entry.opcode];
-    if (!op) return false;
+    const ops = entryOpcodes(entry)
+        .map((opcode) => run.ops[opcode])
+        .filter(Boolean);
+    if (ops.length === 0) return false;
     const need = entry.count || 1;
     if (entry.distinct) {
         const values = new Set();
-        op.argsSeen.forEach(({ args }) => values.add(String(args[entry.distinct])));
+        ops.forEach((op) => op.argsSeen.forEach(({ args }) => values.add(String(args[entry.distinct]))));
         return values.size >= need;
     }
     if (entry.args) {
         let count = 0;
-        op.argsSeen.forEach((seen) => {
-            if (argsMatch(entry.args, seen.args)) count += seen.count;
-        });
+        ops.forEach((op) =>
+            op.argsSeen.forEach((seen) => {
+                if (argsMatch(entry.args, seen.args)) count += seen.count;
+            }),
+        );
         return count >= need;
     }
-    return op.count >= need;
+    return ops.reduce((sum, op) => sum + op.count, 0) >= need;
 };
 
 const orderSatisfiedByRun = (order, run) => {
@@ -255,15 +300,38 @@ const orderSatisfiedByRun = (order, run) => {
     return true;
 };
 
-const evaluateUses = (condition, facts) => {
-    const runs = facts.runs.filter((run) => triggerMatches(condition.trigger, run));
+// 決めた runs（きっかけに合うスクリプトの実行）の中で、blocks と order を満たしたか
+const usesSatisfiedByRuns = (condition, runs) => {
     if (runs.length === 0) return false;
     const entries = (condition.blocks || []).map(normalizeBlockEntry);
+    // together: 全部のブロックが 1 回の実行（スレッド 1 本）の中で動いた（= つながっている）
+    if (condition.together) {
+        return runs.some(
+            (run) =>
+                entries.every((entry) => blockEntrySatisfiedByRun(entry, run)) &&
+                (!condition.order || condition.order.length < 2 || orderSatisfiedByRun(condition.order, run)),
+        );
+    }
     if (!entries.every((entry) => runs.some((run) => blockEntrySatisfiedByRun(entry, run)))) return false;
     if (condition.order && condition.order.length > 1) {
         return runs.some((run) => orderSatisfiedByRun(condition.order, run));
     }
     return true;
+};
+
+// 実行の中で、blocks のどれかの opcode が（引数を問わず）動いたか
+const runUsesAnyOpcode = (condition, run) =>
+    (condition.blocks || []).map(normalizeBlockEntry).some((entry) => entryOpcodes(entry).some((op) => run.ops[op]));
+
+// `not: true` の uses は「きっかけに合い、blocks の opcode が動いた**いちばん新しい**スクリプトの実行で、そう動いて
+// いない」（NG ワードを変数に入れて送った、など・#1645）。直して旗を押し直せば、新しい実行で見るので満たす（前の
+// 実行の記録は見ない）。その opcode の動かない同じきっかけのスクリプト（ステージの旗のリストの準備など）は、
+// いちばん新しいものにしない。そういう実行がまだ無ければ満たす
+const evaluateUses = (condition, facts) => {
+    const runs = facts.runs.filter((run) => triggerMatches(condition.trigger, run));
+    if (!condition.not) return usesSatisfiedByRuns(condition, runs);
+    const using = runs.filter((run) => runUsesAnyOpcode(condition, run));
+    return using.length === 0 || !usesSatisfiedByRuns(condition, using.slice(-1));
 };
 
 // 変数名の条件（文字列か文字列の配列）を配列にする
@@ -272,9 +340,28 @@ const variableNames = (name) => (Array.isArray(name) ? name : [name]);
 const isVariableName = (name) =>
     typeof name === 'string' || (Array.isArray(name) && name.length > 0 && name.every((n) => typeof n === 'string'));
 
+// said の `variable`: 言った時点の変数の値が条件に合うか。`equalsAnswer` が true なら最後の答えと同じ、
+// false なら最後の答えとちがう（どちらも、まだ答えていなければ合わない）。「1 なら大吉」「同じならあいこ」のように、
+// 分岐で言い分けたこと（言ったときの変数の値）を見るため（#1642）
+const saidVariableMatches = (spec, value, answer) => {
+    if (!matchValue(spec.value, value)) return false;
+    if (isUnset(spec.equalsAnswer)) return true;
+    if (isUnset(answer)) return false;
+    return (compareValues(value, answer) === 0) === spec.equalsAnswer;
+};
+
 const evaluateSaid = (condition, facts) =>
     facts.says.some((say) => {
         if (condition.target === 'stage' && !say.isStage) return false;
+        // 言ったスクリプトのきっかけ（「受け取ったとき」のスクリプトで言った、など。uses の trigger と同じ形）
+        if (!isUnset(condition.trigger) && !(say.run && triggerMatches(condition.trigger, say.run))) return false;
+        // ほかのノードから届いた値を言った（自分の変数のセンサーの値を読んだだけでは通さない・#1643）
+        if (
+            condition.remoteValue &&
+            !(say.remoteValues || []).some((value) => compareValues(say.text, value) === 0)
+        ) {
+            return false;
+        }
         if (condition.target === 'sprite' && say.isStage) return false;
         if (!isUnset(condition.text) && !matchValue(condition.text, say.text)) return false;
         if (condition.equalsAnswer && (isUnset(say.answer) || compareValues(say.text, say.answer) !== 0)) {
@@ -289,22 +376,54 @@ const evaluateSaid = (condition, facts) =>
         if (!isUnset(condition.answer)) {
             if (isUnset(say.answer) || !matchValue(condition.answer, say.answer)) return false;
         }
+        if (!isUnset(condition.variable)) {
+            const names = variableNames(condition.variable.name).filter((name) =>
+                Object.prototype.hasOwnProperty.call(say.variables, name),
+            );
+            if (!names.some((name) => saidVariableMatches(condition.variable, say.variables[name], say.answer))) {
+                return false;
+            }
+        }
         return true;
     });
 
 // 名前ごとに、ステージ（すべてのスプライト用）の変数を先に探す。name は名前の配列でもよい
 // （locale ごとの名前。ja-Hira は「かいすう」、en は「count」と書く）。ja で作った作品を en で開いて
 // 「プログラムを入れる」と両方の名前がそろうことがあるので、見つかった変数のどれかが合えばよい
-const findVariables = (snapshot, name, type) =>
+// `target` が 'stage' ならステージ（すべてのスプライト用）の変数だけ、'sprite' ならスプライトの変数だけを見る
+// （メッシュで共有されるのはステージの変数だけ・#1643）
+const findVariables = (snapshot, name, type, target = null) =>
     variableNames(name)
         .map((n) => {
-            const variables = (snapshot.variables || []).filter((v) => (v.type || '') === type && v.name === n);
+            const variables = (snapshot.variables || []).filter(
+                (v) =>
+                    (v.type || '') === type &&
+                    v.name === n &&
+                    !(target === 'stage' && !v.isStage) &&
+                    !(target === 'sprite' && v.isStage),
+            );
             return variables.find((v) => v.isStage) || variables[0] || null;
         })
         .filter((v) => v !== null);
 
-const evaluateVariable = (condition, snapshot) =>
-    findVariables(snapshot, condition.name, '').some((variable) => matchValue(condition.value, variable.value));
+// 値がほかの変数の値（空でない）を含むか（「名前：メッセージ」に名前の変数を入れた、など・#1644）
+const includesVariableValue = (snapshot, names, value) =>
+    findVariables(snapshot, names, '').some(
+        (other) => String(other.value) !== '' && String(value).includes(String(other.value)),
+    );
+
+// `fromAnswer`: 値が「聞いて待つ」に入力した答えのどれか（空でない）。作っただけの変数（0）や、決まった文字を
+// 入れた変数では合わない（#1644）。`includesVariable`: 値がその変数の値を含む（名前の配列ならどれか 1 つ）
+const evaluateVariable = (condition, facts, snapshot) =>
+    findVariables(snapshot, condition.name, '', condition.target).some(
+        (variable) =>
+            matchValue(condition.value, variable.value) &&
+            (!condition.fromAnswer ||
+                (String(variable.value) !== '' &&
+                    ((facts && facts.answers) || []).includes(String(variable.value)))) &&
+            (isUnset(condition.includesVariable) ||
+                includesVariableValue(snapshot, condition.includesVariable, variable.value)),
+    );
 
 const listMatches = (condition, facts, variable) => {
     if (!Array.isArray(variable.value)) return false;
@@ -336,6 +455,37 @@ const evaluateCostumes = (condition, snapshot) => {
 const evaluateExtension = (condition, snapshot) =>
     typeof snapshot.isExtensionLoaded === 'function' && Boolean(snapshot.isExtensionLoaded(condition.id));
 
+// 見張りを始めたときにあったスプライトの位置が、`min` 以上（既定 1）動いた
+const evaluateMoved = (condition, snapshot) => {
+    const min = isUnset(condition.min) ? 1 : condition.min;
+    const baseline = snapshot.baselinePositions || {};
+    return Object.entries(baseline).some(([targetId, before]) => {
+        const now = (snapshot.positions || {})[targetId];
+        return Boolean(now) && Math.hypot(now.x - before.x, now.y - before.y) >= min;
+    });
+};
+
+// いまのコスチューム（`target: 'stage'` なら背景）。`number` = 何番め（1 から）、`changed: true` = 見張りを始めた
+// ときと別のコスチュームになった。後から足したスプライトは見ない（始めにいたものだけ）
+const evaluateCurrentCostume = (condition, snapshot) => {
+    const wantStage = condition.target === 'stage';
+    const baseline = snapshot.baselineCostumes || {};
+    return Object.entries(baseline).some(([targetId, before]) => {
+        if (Boolean(before.isStage) !== wantStage) return false;
+        const now = (snapshot.costumes || {})[targetId];
+        if (!now || isUnset(now.current)) return false;
+        if (!isUnset(condition.number) && now.current !== condition.number - 1) return false;
+        if (condition.changed && now.current === before.current) return false;
+        return true;
+    });
+};
+
+const uiOf = (snapshot) => snapshot.ui || {};
+
+const evaluateTab = (condition, snapshot) => uiOf(snapshot).activeTab === condition.tab;
+
+const evaluatePartQuiz = (condition, snapshot) => (uiOf(snapshot).partQuizSolved || 0) >= condition.count;
+
 /**
  * 条件 1 つを判定する。
  * @param {object} condition - 条件。
@@ -350,7 +500,7 @@ export const evaluateCondition = (condition, facts, snapshot) => {
         case 'said':
             return evaluateSaid(condition, facts);
         case 'variable':
-            return evaluateVariable(condition, snapshot);
+            return evaluateVariable(condition, facts, snapshot);
         case 'list':
             return evaluateList(condition, facts, snapshot);
         case 'sprites':
@@ -359,6 +509,14 @@ export const evaluateCondition = (condition, facts, snapshot) => {
             return evaluateCostumes(condition, snapshot);
         case 'extension':
             return evaluateExtension(condition, snapshot);
+        case 'moved':
+            return evaluateMoved(condition, snapshot);
+        case 'currentCostume':
+            return evaluateCurrentCostume(condition, snapshot);
+        case 'tab':
+            return evaluateTab(condition, snapshot);
+        case 'partQuiz':
+            return evaluatePartQuiz(condition, snapshot);
         default:
             return false;
     }
@@ -387,6 +545,26 @@ const isMatcher = (value) =>
             ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'includes', 'matches'].includes(key),
         ));
 
+// uses / said の `trigger` の形
+const validateTrigger = (trigger, at) => {
+    if (isUnset(trigger)) return [];
+    if (typeof trigger !== 'object') return [`${at}: trigger must be an object`];
+    const errors = [];
+    if (!isUnset(trigger.target) && !['stage', 'sprite'].includes(trigger.target)) {
+        errors.push(`${at}: trigger.target must be 'stage' or 'sprite'`);
+    }
+    if (!isUnset(trigger.sentBy) && !['other', 'remote'].includes(trigger.sentBy)) {
+        errors.push(`${at}: trigger.sentBy must be 'other' or 'remote'`);
+    }
+    if (!isUnset(trigger.message) && !isVariableName(trigger.message)) {
+        errors.push(`${at}: trigger.message must be a message name or an array of names`);
+    }
+    if (!isUnset(trigger.click) && !CLICK_PLACES.includes(trigger.click)) {
+        errors.push(`${at}: trigger.click must be one of ${CLICK_PLACES.join(', ')}`);
+    }
+    return errors;
+};
+
 /**
  * goal の形を確かめる（courses.js に入れる前のテスト用）。
  * @param {*} goal - goal。
@@ -401,6 +579,10 @@ export const validateGoal = (goal) => {
             errors.push(`${at}: type must be one of ${CONDITION_TYPES.join(', ')}`);
             return;
         }
+        // `not` は uses だけ（ほかの条件に書いても効かないので、書きまちがいとして弾く）
+        if (condition.type !== 'uses' && !isUnset(condition.not)) {
+            errors.push(`${at}: not is only for uses`);
+        }
         switch (condition.type) {
             case 'uses': {
                 const blocks = condition.blocks;
@@ -410,7 +592,13 @@ export const validateGoal = (goal) => {
                 }
                 blocks.forEach((entry, i) => {
                     const e = normalizeBlockEntry(entry);
-                    if (!e || typeof e.opcode !== 'string' || e.opcode === '') {
+                    const opcodeOk =
+                        e &&
+                        ((typeof e.opcode === 'string' && e.opcode !== '') ||
+                            (Array.isArray(e.opcode) &&
+                                e.opcode.length > 0 &&
+                                e.opcode.every((o) => typeof o === 'string' && o !== '')));
+                    if (!opcodeOk) {
                         errors.push(`${at}.blocks[${i}]: opcode is required`);
                         return;
                     }
@@ -431,37 +619,61 @@ export const validateGoal = (goal) => {
                 if (!isUnset(condition.order) && !Array.isArray(condition.order)) {
                     errors.push(`${at}: order must be an array of opcodes`);
                 }
-                const trigger = condition.trigger;
-                if (!isUnset(trigger) && typeof trigger !== 'object') {
-                    errors.push(`${at}: trigger must be an object`);
-                } else if (!isUnset(trigger)) {
-                    if (!isUnset(trigger.target) && !['stage', 'sprite'].includes(trigger.target)) {
-                        errors.push(`${at}: trigger.target must be 'stage' or 'sprite'`);
-                    }
-                    if (!isUnset(trigger.sentBy) && trigger.sentBy !== 'other') {
-                        errors.push(`${at}: trigger.sentBy must be 'other'`);
-                    }
+                if (!isUnset(condition.not) && typeof condition.not !== 'boolean') {
+                    errors.push(`${at}: uses.not must be true or false`);
                 }
+                if (!isUnset(condition.together) && typeof condition.together !== 'boolean') {
+                    errors.push(`${at}: uses.together must be true or false`);
+                }
+                errors.push(...validateTrigger(condition.trigger, at));
                 break;
             }
             case 'said':
+                errors.push(...validateTrigger(condition.trigger, at));
                 if (!isMatcher(condition.text)) errors.push(`${at}: said.text must be a string, RegExp or matcher`);
                 if (!isMatcher(condition.answer)) errors.push(`${at}: said.answer must be a matcher`);
                 if (
                     isUnset(condition.text) &&
                     !condition.equalsAnswer &&
                     isUnset(condition.equalsVariable) &&
-                    isUnset(condition.answer)
+                    isUnset(condition.answer) &&
+                    isUnset(condition.variable)
                 ) {
-                    errors.push(`${at}: said needs text, equalsAnswer, equalsVariable or answer`);
+                    errors.push(`${at}: said needs text, equalsAnswer, equalsVariable, answer or variable`);
+                }
+                if (!isUnset(condition.remoteValue) && typeof condition.remoteValue !== 'boolean') {
+                    errors.push(`${at}: said.remoteValue must be true or false`);
                 }
                 if (!isUnset(condition.equalsVariable) && !isVariableName(condition.equalsVariable)) {
                     errors.push(`${at}: said.equalsVariable must be a variable name or an array of names`);
+                }
+                if (!isUnset(condition.variable)) {
+                    const spec = condition.variable;
+                    if (typeof spec !== 'object' || !isVariableName(spec.name)) {
+                        errors.push(`${at}: said.variable needs a variable name or an array of names`);
+                    } else {
+                        if (isUnset(spec.value) && isUnset(spec.equalsAnswer)) {
+                            errors.push(`${at}: said.variable needs value or equalsAnswer`);
+                        }
+                        if (!isMatcher(spec.value)) errors.push(`${at}: said.variable.value must be a matcher`);
+                        if (!isUnset(spec.equalsAnswer) && typeof spec.equalsAnswer !== 'boolean') {
+                            errors.push(`${at}: said.variable.equalsAnswer must be true or false`);
+                        }
+                    }
                 }
                 break;
             case 'variable':
                 if (!isVariableName(condition.name)) errors.push(`${at}: variable.name is required`);
                 if (!isMatcher(condition.value)) errors.push(`${at}: variable.value must be a matcher`);
+                if (!isUnset(condition.target) && !['stage', 'sprite'].includes(condition.target)) {
+                    errors.push(`${at}: variable.target must be 'stage' or 'sprite'`);
+                }
+                if (!isUnset(condition.fromAnswer) && typeof condition.fromAnswer !== 'boolean') {
+                    errors.push(`${at}: variable.fromAnswer must be true or false`);
+                }
+                if (!isUnset(condition.includesVariable) && !isVariableName(condition.includesVariable)) {
+                    errors.push(`${at}: variable.includesVariable must be a variable name or an array of names`);
+                }
                 break;
             case 'list':
                 if (!isVariableName(condition.name)) errors.push(`${at}: list.name is required`);
@@ -483,6 +695,35 @@ export const validateGoal = (goal) => {
             case 'extension':
                 if (typeof condition.id !== 'string' || condition.id === '')
                     errors.push(`${at}: extension.id is required`);
+                break;
+            case 'moved':
+                if (!isUnset(condition.min) && !(typeof condition.min === 'number' && condition.min > 0)) {
+                    errors.push(`${at}: moved.min must be a positive number`);
+                }
+                break;
+            case 'currentCostume':
+                if (!isUnset(condition.target) && !['stage', 'sprite'].includes(condition.target)) {
+                    errors.push(`${at}: currentCostume.target must be 'stage' or 'sprite'`);
+                }
+                if (!isUnset(condition.number) && !(Number.isInteger(condition.number) && condition.number >= 1)) {
+                    errors.push(`${at}: currentCostume.number must be a positive integer`);
+                }
+                if (!isUnset(condition.changed) && typeof condition.changed !== 'boolean') {
+                    errors.push(`${at}: currentCostume.changed must be true or false`);
+                }
+                if (isUnset(condition.number) && !condition.changed) {
+                    errors.push(`${at}: currentCostume needs number or changed`);
+                }
+                break;
+            case 'tab':
+                if (!EDITOR_TABS.includes(condition.tab)) {
+                    errors.push(`${at}: tab.tab must be one of ${EDITOR_TABS.join(', ')}`);
+                }
+                break;
+            case 'partQuiz':
+                if (!(Number.isInteger(condition.count) && condition.count >= 1)) {
+                    errors.push(`${at}: partQuiz.count must be a positive integer`);
+                }
                 break;
             default:
                 break;
