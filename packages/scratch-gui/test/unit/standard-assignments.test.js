@@ -137,6 +137,32 @@ describe('standard assignments (assignments/)', () => {
         });
     });
 
+    test('files have a known kind and audience', () => {
+        const KINDS = ['worksheet', 'rubric', 'map', 'script'];
+        [...seriesList, ...assignments].forEach((m) => {
+            m.files.forEach((f) => {
+                expect(KINDS).toContain(f.kind);
+                expect(['student', 'teacher']).toContain(f.audience);
+            });
+        });
+    });
+
+    test('ids start with the school type', () => {
+        [...seriesList, ...assignments].forEach((m) => {
+            expect(['es', 'jhs']).toContain(m.schoolType);
+            expect(m.id.startsWith(`${m.schoolType}-`)).toBe(true);
+        });
+    });
+
+    test('the first step has the editor map and the teacher script', () => {
+        const firstStep = readJson('es-pg-kyou-kara-programmer-01-first-step', 'assignment.json');
+        expect(firstStep.files).toEqual([
+            { file: 'map.pdf', kind: 'map', audience: 'student' },
+            { file: 'script.pdf', kind: 'script', audience: 'teacher' },
+        ]);
+        expect(firstStep.lessons[0].course).toBe('kyou-kara-programmer');
+    });
+
     test('files stay small enough to ship with the editor', () => {
         const LIMIT = 3 * 1024 * 1024;
         [...seriesList, ...assignments].forEach((m) => {

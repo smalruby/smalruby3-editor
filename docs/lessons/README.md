@@ -1848,6 +1848,7 @@ partner: {
 | `screenshots/0208-lesson-task-full-text-activity-diagram-swimlane-1300x600.png` | 練習相手の定義があるときのスイムレーン（「クイズを作ろう」にテスト用の `partner`（ボタンで変数を変えて合図を送る・合図を受け取ったら返す）を足して撮影） |
 | `screenshots/0209-lesson-task-full-text-activity-diagram-too-tall-1300x600.png` | 図が大きくて全文に入らないときの案内の 1 行（テスト用の 8 ブロックの答えで撮影） |
 | `screenshots/0210-lesson-task-full-text-read-diagram-1300x600.png` | 読んで作るチャレンジの課題バー（「読んで作る」の印）と全文の図（撮影のため、「クイズを作ろう」を見本の読んで作るチャレンジに実行時に差し替えた。いまのコースに読んで作るチャレンジは無い） |
+| `screenshots/0211-editor-map-1300x600.png` | 標準課題「はじめの一歩」の「スモウルビーの地図」に使った画面（1300×600 でチャレンジ 2「矢印キーで動かそう」を開き、ヒントを「－」で小さくしたところ。地図はこの写真に 9 つの名前を書きこむ） |
 | `screenshots/0410-lesson-hint-activity-diagram-scroll-1300x600.png` | 同じ大きい図をヒントの 1 ページ目で出したところ（下限の大きさで、図の枠の中をスクロールできる） |
 | `screenshots/0411-lesson-hint-read-diagram-page1-1300x600.png` | 読んで作るチャレンジのヒント 1 ページ目（自動で開く。図・説明・答えは最後のページ）。見本は 0210 と同じ |
 | `screenshots/0412-lesson-hint-read-diagram-page2-1300x600.png` | 同じチャレンジの 2 ページ目（試す） |
