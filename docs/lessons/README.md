@@ -649,6 +649,7 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
 | `sprites` | スプライトの数（クローンを除く） | `min` |
 | `costumes` | コスチューム（`target: 'stage'` なら背景）の数が、チャレンジを開いたときより増えた。後から足したスプライトは数えない | `added`（既定 1）, `target` |
 | `extension` | 拡張機能を読み込んだ | `id`（例: `text2speech`） |
+| `ngram` | 「ことばを予想する AI」のリスト（まえ・つぎ・こうほ）の中身 | `check`（`'learned'` / `'candidates'`）, `before`, `after`, `length`, `textbook`, `scope`, `candidates`, `text`（下の「`ngram` の項目」） |
 
 **`uses` の項目**
 
@@ -700,6 +701,22 @@ RegExp で両方を許す（例: `/^(正解です|せいかいです|correct)$/i
 
 **`list` の項目**: `length`（matcher。例: `{gte: 3}`）、`itemsFromAnswers: true`（中身が全部「聞いて待つ」に
 入力した答え）。
+
+**`said` の項目（「ことばを予想する AI」用）**: `distinct`（matcher。条件に合う言った文の**ちがう文**の数。例: `{gte: 2}` =
+2 種類以上の文を言った。大文字小文字は区別しない）、`startsWithAnswer: true`（言った文が最後に入力した答えで始まり、
+その続きがある）、`learned: {before, after, length}`（言った文が、いまのリスト「まえ」「つぎ」の組だけでできている。
+`startsWithAnswer` もあれば、書き出しの答えの部分は学習していなくてよい）。
+
+**`ngram` の項目**（「ことばを予想する AI をつくろう」。決まりは `lib/lessons/lm-ngram.js` と design.md の「しくみ（モデル）」）:
+
+- `before` / `after`: リスト「まえ」「つぎ」の名前（名前の配列も書ける）。同じ行どうしで 1 組。
+- `length`: 見る長さ。1 以上の整数か `{variable: 名前}`（いまのその変数の値）。省くと 1。
+- `check: 'learned'`: 「まえ」「つぎ」の組が、`textbook`（教科書のリストの名前）の文から見る長さで作った組と、
+  **順番を問わず同じ**（同じ組の数も同じ）。`scope: 'all'`（既定）は全部の文、`'sentence'` はどれか 1 つの文。
+  教科書・リストが空なら合わない。
+- `check: 'candidates'`: `candidates`（リスト「こうほ」）が、`text`（いまの文の変数）の最後の文脈の次に来る文字と、
+  順番を問わず同じ（同じ文字の数も同じ）。「まえ」か「こうほ」が空なら合わない。
+- 文字は Scratch の `=` と同じく大文字小文字を区別しないで比べる。どちらも結果を見る条件で、作り方は問わない。
 
 `validateGoal(goal)` が形を確かめる（courses.js に入れる前のテスト用）。
 
@@ -1929,6 +1946,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/containers/lesson-practice-partner.jsx` | 練習相手のコンテナ（開閉・本物のメッシュのつながりを見る・置き場所を測る）。`lesson-mode.jsx` からマウント |
 | `packages/scratch-gui/test/unit/lib/lessons/practice-partner.test.js` / `test/unit/containers/lesson-practice-partner.test.jsx` | 練習相手の unit テスト |
 | `packages/scratch-gui/src/lib/lessons/goal.js` | できた の判定（`goal` の形・事実の記録・判定の純粋関数・`validateGoal`） |
+| `packages/scratch-gui/src/lib/lessons/lm-ngram.js` | 「ことばを予想する AI をつくろう」の文字単位の n-gram（文脈・学習の組・こうほ・学習した組だけの文。判定 `ngram` と教科書のテストが使う純粋関数） |
 | `packages/scratch-gui/src/lib/lessons/vm-execution-hook.js` | ブロックの実行をスレッドつきで取るフック（runtime の `getOpcodeFunction` を包む） |
 | `packages/scratch-gui/src/lib/lessons/goal-monitor.js` | VM を見張って goal を判定する（`attachGoalMonitor` / `takeSnapshot`） |
 | `packages/scratch-gui/src/containers/lesson-goal-watcher.jsx` | レッスンモードのあいだ見張りをつなぎ、できたら記録して「できた！」を出す（gui.jsx に常時マウント） |

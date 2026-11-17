@@ -702,11 +702,11 @@ describe('validateGoal', () => {
             { type: 'extension' },
         ]);
         expect(errors).toEqual([
-            'goal[0]: type must be one of uses, said, variable, list, sprites, costumes, extension',
+            'goal[0]: type must be one of uses, said, variable, list, sprites, costumes, extension, ngram',
             'goal[1]: uses.blocks must be a non-empty array',
             'goal[2].blocks[0]: opcode is required',
             "goal[2]: trigger.target must be 'stage' or 'sprite'",
-            'goal[3]: said needs text, equalsAnswer, equalsVariable, answer or variable',
+            'goal[3]: said needs text, equalsAnswer, equalsVariable, answer, variable, startsWithAnswer or learned',
             'goal[4]: variable.name is required',
             'goal[5]: sprites.min must be a positive integer',
             'goal[6]: costumes.added must be a positive integer',
@@ -981,5 +981,145 @@ describe('variable.fromAnswer and variable.includesVariable (#1644)', () => {
         expect(validateGoal([{ type: 'variable', name: 'a', fromAnswer: true, includesVariable: ['b'] }])).toEqual(
             [],
         );
+    });
+});
+
+describe('the course 「ことばを予想する AI をつくろう」', () => {
+    const TEXTBOOK = ['こんにちは。', 'こんばんは。', 'ねこです。'];
+    const learned = (sentences, length = 1) => {
+        const before = [];
+        const after = [];
+        sentences.forEach((s) => {
+            for (let p = 0; p < s.length; p++) {
+                before.push(s.slice(Math.max(0, p - length), p));
+                after.push(s[p]);
+            }
+        });
+        return { before, after };
+    };
+    const lmSnapshot = ({ before = [], after = [], candidates = [], text = '', length = 1, textbook = TEXTBOOK }) =>
+        snapshot({
+            variables: [
+                { name: '教科書', type: 'list', value: textbook, isStage: false },
+                { name: 'まえ', type: 'list', value: before, isStage: false },
+                { name: 'つぎ', type: 'list', value: after, isStage: false },
+                { name: 'こうほ', type: 'list', value: candidates, isStage: false },
+                { name: '文', type: '', value: text, isStage: false },
+                { name: '見る長さ', type: '', value: length, isStage: false },
+            ],
+        });
+    const LISTS = { before: ['まえ', 'before'], after: ['つぎ', 'after'] };
+    const learnedAll = { type: 'ngram', check: 'learned', textbook: '教科書', ...LISTS };
+
+    test('learned (all) is the pairs of every sentence in any order', () => {
+        const { before, after } = learned(TEXTBOOK);
+        expect(satisfied([learnedAll], createFacts(), lmSnapshot({ before, after }))).toBe(true);
+        const reversed = lmSnapshot({ before: before.slice().reverse(), after: after.slice().reverse() });
+        expect(satisfied([learnedAll], createFacts(), reversed)).toBe(true);
+        const one = learned(TEXTBOOK.slice(0, 1));
+        expect(satisfied([learnedAll], createFacts(), lmSnapshot(one))).toBe(false);
+        expect(satisfied([learnedAll], createFacts(), lmSnapshot({}))).toBe(false);
+        // a pair is off by one (the next char instead of the char itself)
+        const wrong = { before, after: after.slice(1).concat(['。']) };
+        expect(satisfied([learnedAll], createFacts(), lmSnapshot(wrong))).toBe(false);
+    });
+
+    test('learned (sentence) is the pairs of one sentence', () => {
+        const condition = { ...learnedAll, scope: 'sentence' };
+        expect(satisfied([condition], createFacts(), lmSnapshot(learned(['ねこです。'])))).toBe(true);
+        expect(satisfied([condition], createFacts(), lmSnapshot(learned(TEXTBOOK)))).toBe(false);
+    });
+
+    test('learned with a length, or with the length in a variable', () => {
+        const two = learned(TEXTBOOK, 2);
+        expect(satisfied([{ ...learnedAll, length: 2 }], createFacts(), lmSnapshot(two))).toBe(true);
+        expect(satisfied([learnedAll], createFacts(), lmSnapshot(two))).toBe(false);
+        const byVariable = { ...learnedAll, length: { variable: ['見る長さ', 'length'] } };
+        expect(satisfied([byVariable], createFacts(), lmSnapshot({ ...two, length: 2 }))).toBe(true);
+        expect(satisfied([byVariable], createFacts(), lmSnapshot({ ...two, length: 3 }))).toBe(false);
+        expect(satisfied([byVariable], createFacts(), lmSnapshot({ ...two, length: 'x' }))).toBe(false);
+    });
+
+    test('candidates are the next chars of the context of the text', () => {
+        const condition = { type: 'ngram', check: 'candidates', candidates: 'こうほ', text: '文', ...LISTS };
+        const lists = learned(TEXTBOOK);
+        const ok = lmSnapshot({ ...lists, text: 'ねこ', candidates: ['で', 'ん', 'ん'] });
+        expect(satisfied([condition], createFacts(), ok)).toBe(true);
+        const missing = lmSnapshot({ ...lists, text: 'ねこ', candidates: ['ん', 'で'] });
+        expect(satisfied([condition], createFacts(), missing)).toBe(false);
+        const empty = lmSnapshot({ ...lists, text: 'ぼ', candidates: [] });
+        expect(satisfied([condition], createFacts(), empty)).toBe(false);
+        expect(satisfied([condition], createFacts(), lmSnapshot({ text: 'こ', candidates: ['ん'] }))).toBe(false);
+    });
+
+    test('said.learned: the sentence is made only of learned pairs', () => {
+        const lists = learned(TEXTBOOK);
+        const condition = { type: 'said', text: /。$/, learned: { ...LISTS } };
+        const facts = createFacts();
+        recordSay(facts, { text: 'ねこんばんは。' });
+        expect(satisfied([condition], facts, lmSnapshot(lists))).toBe(true);
+        const other = createFacts();
+        recordSay(other, { text: 'こんにちわ。' });
+        expect(satisfied([condition], other, lmSnapshot(lists))).toBe(false);
+    });
+
+    test('said.startsWithAnswer: continues the answer typed in', () => {
+        const lists = learned(TEXTBOOK, 2);
+        const condition = {
+            type: 'said',
+            text: /。$/,
+            startsWithAnswer: true,
+            learned: { ...LISTS, length: { variable: '見る長さ' } },
+        };
+        const facts = createFacts();
+        recordAnswer(facts, 'やあこん');
+        recordSay(facts, { text: 'やあこんにちは。' });
+        expect(satisfied([condition], facts, lmSnapshot({ ...lists, length: 2 }))).toBe(true);
+        const same = createFacts();
+        recordAnswer(same, 'こんにちは。');
+        recordSay(same, { text: 'こんにちは。' });
+        expect(satisfied([condition], same, lmSnapshot({ ...lists, length: 2 }))).toBe(false);
+        const notContinued = createFacts();
+        recordAnswer(notContinued, 'やあ');
+        recordSay(notContinued, { text: 'こんにちは。' });
+        expect(satisfied([condition], notContinued, lmSnapshot({ ...lists, length: 2 }))).toBe(false);
+    });
+
+    test('said.distinct: different sentences', () => {
+        const condition = { type: 'said', text: /。$/, distinct: { gte: 2 } };
+        const facts = createFacts();
+        recordSay(facts, { text: 'ねこです。' });
+        recordSay(facts, { text: 'ねこです。' });
+        expect(satisfied([condition], facts)).toBe(false);
+        recordSay(facts, { text: 'こんばんは。' });
+        expect(satisfied([condition], facts)).toBe(true);
+    });
+
+    test('validateGoal checks the shapes', () => {
+        expect(
+            validateGoal([
+                learnedAll,
+                { ...learnedAll, scope: 'sentence', length: { variable: '見る長さ' } },
+                { type: 'ngram', check: 'candidates', candidates: 'こうほ', text: '文', ...LISTS },
+                { type: 'said', learned: { ...LISTS }, distinct: { gte: 2 }, startsWithAnswer: true },
+            ]),
+        ).toEqual([]);
+        expect(
+            validateGoal([
+                { type: 'ngram', check: 'nope', ...LISTS },
+                { type: 'ngram', check: 'learned', before: 'まえ', length: 0 },
+                { type: 'ngram', check: 'candidates', ...LISTS },
+                { type: 'said', text: 'a', learned: { before: 'まえ' }, startsWithAnswer: 1 },
+            ]),
+        ).toEqual([
+            'goal[0]: ngram.check must be one of learned, candidates',
+            'goal[1]: ngram.after is required',
+            'goal[1]: ngram.length must be a positive integer or {variable}',
+            'goal[1]: ngram.textbook is required',
+            'goal[2]: ngram.candidates is required',
+            'goal[2]: ngram.text is required',
+            'goal[3]: said.startsWithAnswer must be true or false',
+            'goal[3]: said.learned.after is required',
+        ]);
     });
 });
