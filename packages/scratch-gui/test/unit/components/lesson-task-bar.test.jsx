@@ -96,18 +96,30 @@ describe('LessonTaskBar', () => {
     });
 
     // 画面の部分の名前の札（#2133）
-    test('the "Names" button is shown only with onTogglePartNames and sits before the hint button', () => {
+    test('the "Guide" button is shown only with onTogglePartNames and sits before the hint button', () => {
         const { queryByTestId, unmount } = renderBar();
         expect(queryByTestId('lesson-task-bar-part-names')).not.toBeInTheDocument();
         unmount();
         const onTogglePartNames = jest.fn();
         const bar = renderBar({ onTogglePartNames, partNamesVisible: true });
         const button = bar.getByTestId('lesson-task-bar-part-names');
-        expect(button).toHaveTextContent('Names');
+        expect(button).toHaveTextContent('Guide');
         expect(button).toHaveAttribute('aria-pressed', 'true');
         expect(button.nextElementSibling).toBe(bar.getByTestId('lesson-task-bar-hint'));
         fireEvent.click(button);
         expect(onTogglePartNames).toHaveBeenCalledTimes(1);
+    });
+
+    test('the "Guide" button shows whether the names are out with an eye icon and aria-pressed (ja: ガイド)', () => {
+        const hidden = renderBar({ onTogglePartNames: jest.fn() }, { locale: 'ja', messages: ja });
+        const button = hidden.getByTestId('lesson-task-bar-part-names');
+        expect(button).toHaveTextContent('ガイド');
+        expect(button).toHaveAttribute('aria-pressed', 'false');
+        expect(hidden.getByTestId('lesson-task-bar-part-names-icon')).toHaveAttribute('data-open', 'false');
+        hidden.unmount();
+        const shown = renderBar({ onTogglePartNames: jest.fn(), partNamesVisible: true });
+        expect(shown.getByTestId('lesson-task-bar-part-names')).toHaveAttribute('aria-pressed', 'true');
+        expect(shown.getByTestId('lesson-task-bar-part-names-icon')).toHaveAttribute('data-open', 'true');
     });
 
     test('showing the part names hides the full text that the mouse opened (the mouse is on the bar)', () => {

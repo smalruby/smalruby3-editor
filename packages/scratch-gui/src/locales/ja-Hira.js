@@ -1937,7 +1937,7 @@ export default {
     'gui.lessonTaskBar.hint': 'ヒント',
     'gui.lessonTaskBar.another': 'ほかのチャレンジへ',
     'gui.lessonTaskBar.end': 'レッスンをおえる',
-    'gui.lessonTaskBar.partNames': 'なまえ',
+    'gui.lessonTaskBar.partNames': 'ガイド',
     'gui.lessonPartNames.taskBar': 'かだいバー',
     'gui.lessonPartNames.hint': 'ヒント',
     'gui.lessonPartNames.codeTab': 'コードタブ',

@@ -13,7 +13,7 @@ export const HINT_TARGETS = Object.freeze({
     BACKDROP: 'backdrop',
     EXTENSION_BUTTON: 'extension-button',
     GREEN_FLAG: 'green-flag',
-    // 「なまえ」の札（lib/lessons/part-names.js）でも使う場所。停止ボタン・コードタブ・ルビータブ・課題バー・ヒントのボタン（#2133）
+    // 名前の札（「ガイド」）（lib/lessons/part-names.js）でも使う場所。停止ボタン・コードタブ・ルビータブ・課題バー・ヒントのボタン（#2133）
     STOP_BUTTON: 'stop-button',
     CODE_TAB: 'code-tab',
     RUBY_TAB: 'ruby-tab',

@@ -134,7 +134,7 @@ describe('findHintTargetRect', () => {
         expect(findHintTargetRect(HINT_TARGETS.RUBY_TAB, document)).toEqual(rect(0, 300, 48, 348));
     });
 
-    // 「なまえ」の札でも使う場所（#2133）
+    // 名前の札（「ガイド」）でも使う場所（#2133）
     test('the stop button, the code tab, the task bar and the hint button are found', () => {
         addEl('stop-all_stop-all-button_abc', rect(0, 0, 10, 10));
         expect(findHintTargetRect(HINT_TARGETS.STOP_BUTTON, document)).toBeNull();

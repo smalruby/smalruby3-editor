@@ -1,5 +1,5 @@
 // レッスンモードでメニューバーの下に画面の幅いっぱいで出す課題バー（1 行）。
-// 「何個め / 全部で何個」・課題の 1 行・なまえ・ヒント・ほかのチャレンジへ・レッスンをおえる。見た目の高さは 40px に収め、
+// 「何個め / 全部で何個」・課題の 1 行・ガイド・ヒント・ほかのチャレンジへ・レッスンをおえる。見た目の高さは 40px に収め、
 // 1300×600 の授業のパソコンでコードエリアを圧迫しない。
 // 課題の全文（チャレンジの定義の改行つき・アクティビティ図や画像があればそれも）は、バーにマウスを乗せているあいだ
 // バーの下に大きめの字で出す（先生がプロジェクターに映して説明する場面のため。課題が短くても出す。
@@ -35,9 +35,9 @@ const messages = defineMessages({
     partNames: {
         id: 'gui.lessonTaskBar.partNames',
         description:
-            'Small button in the lesson task bar that shows the names of the parts of the editor ' +
-            '(tabs, palette, code area, stage, ...) for a few seconds',
-        defaultMessage: 'Names',
+            'Button in the lesson task bar (left of Hint) that shows or hides the guide: the names of the ' +
+            'parts of the editor (tabs, palette, code area, stage, ...)',
+        defaultMessage: 'Guide',
     },
     another: {
         id: 'gui.lessonTaskBar.another',
@@ -120,6 +120,31 @@ FullTextDiagram.propTypes = {
     textHeight: PropTypes.number,
 };
 
+// 「ガイド」のアイコン。札を出しているときは開いた目、隠しているときは斜めの線で消した目（字と同じ色）
+const GuideIcon = ({ open }) => (
+    <svg
+        className={styles.buttonIcon}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        focusable="false"
+        data-testid="lesson-task-bar-part-names-icon"
+        data-open={open ? 'true' : 'false'}
+    >
+        <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+        <circle cx="12" cy="12" r="3" />
+        {!open && <path d="M4 4l16 16" />}
+    </svg>
+);
+
+GuideIcon.propTypes = {
+    open: PropTypes.bool,
+};
+
 const LessonTaskBar = ({
     activityDiagram = null,
     assignmentBand = null,
@@ -191,7 +216,7 @@ const LessonTaskBar = ({
         }
         prevHintVisibleRef.current = Boolean(hintVisible);
     }, [hintVisible, clearHoverTimer]);
-    // 「なまえ」を押して名前の札を出したときも同じく引っこめる（押したマウスはバーの上にあるので、
+    // 「ガイド」を押して名前の札を出したときも同じく引っこめる（押したマウスはバーの上にあるので、
     // そのままだと全文のパネルが課題バー・タブの札を隠す）
     const prevPartNamesVisibleRef = useRef(Boolean(partNamesVisible));
     useEffect(() => {
@@ -299,15 +324,16 @@ const LessonTaskBar = ({
                 {role && onChooseRole && (
                     <LessonRolePicker role={role.role} source={role.source} onChoose={onChooseRole} />
                 )}
-                {/* 画面の部分の名前の札を出す（#2133）。「ヒント」より目立たせない（小さく・枠を薄く） */}
+                {/* 「ガイド」: 画面の部分の名前の札を出す・消す（#2133）。「ヒント」と同じ大きさで、目のアイコンで出し入れの状態を見せる */}
                 {onTogglePartNames && (
                     <button
                         type="button"
-                        className={styles.buttonSub}
+                        className={styles.buttonGuide}
                         data-testid="lesson-task-bar-part-names"
                         aria-pressed={partNamesVisible}
                         onClick={onTogglePartNames}
                     >
+                        <GuideIcon open={partNamesVisible} />
                         {intl.formatMessage(messages.partNames)}
                     </button>
                 )}
@@ -406,7 +432,7 @@ LessonTaskBar.propTypes = {
     onChooseRole: PropTypes.func,
     // ほかのチャレンジへ（いまのチャレンジを終えてレッスン表を開く）
     onQuit: PropTypes.func.isRequired,
-    // 「なまえ」（画面の部分の名前の札を出す・消す）。無ければボタンを出さない
+    // 「ガイド」（画面の部分の名前の札を出す・消す）。無ければボタンを出さない
     onTogglePartNames: PropTypes.func,
     // 名前の札が出ているか
     partNamesVisible: PropTypes.bool,

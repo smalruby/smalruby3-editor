@@ -1,5 +1,5 @@
 // 「どこでしょう？」のクイズ（#2134）。「パレットはどこ？」のように画面の部分の名前を出し、生徒が画面をクリックして
-// 答える。部分の名前と場所は「なまえ」の札（part-names.js）と同じ（label = PART_NAMES の label、場所の探し方 =
+// 答える。部分の名前と場所は名前の札（「ガイド」）（part-names.js）と同じ（label = PART_NAMES の label、場所の探し方 =
 // hint-targets.js の findHintTargetRect）。ここは判定の純粋関数だけで、クリックを受けるのは
 // components/lesson-part-quiz/。
 import { findHintTargetRect } from './hint-targets';

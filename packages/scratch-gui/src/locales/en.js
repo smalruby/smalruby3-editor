@@ -1554,7 +1554,7 @@ export default {
     'gui.lessonTaskBar.hint': 'Hint',
     'gui.lessonTaskBar.another': 'Try another challenge',
     'gui.lessonTaskBar.end': 'End lesson',
-    'gui.lessonTaskBar.partNames': 'Names',
+    'gui.lessonTaskBar.partNames': 'Guide',
     'gui.lessonPartNames.taskBar': 'Task bar',
     'gui.lessonPartNames.hint': 'Hint',
     'gui.lessonPartNames.codeTab': 'Code tab',

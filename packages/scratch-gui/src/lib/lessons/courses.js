@@ -146,7 +146,7 @@ export const defineChallenge = (def) =>
         // answer は choices の何番目が正解か（0 から）。「できた！」の中に出す（「できた」の判定には入れない）。
         // ふつうは challengeQuiz(id, answer) で書く。形は validateQuiz
         quiz: null,
-        // 「どこでしょう？」のクイズ（任意・#2134）: {questions: [label, ...]}。label は「なまえ」の札の名前
+        // 「どこでしょう？」のクイズ（任意・#2134）: {questions: [label, ...]}。label は名前の札（「ガイド」）の名前
         // （lib/lessons/part-names.js の PART_NAMES の label）。画面の部分をクリックして答え、全部正しく答えたら
         // goal の `partQuiz` を満たす（lib/lessons/part-quiz.js・components/lesson-part-quiz/）。クイズのあいだは
         // 画面のクリックをクイズが受ける（下の部品は動かない）・名前の札は出さない
@@ -184,7 +184,7 @@ export const defineChallenge = (def) =>
  * @param {number} [def.checkCount] - レッスンの ✓ に要るできた数。書いていなければチャレンジの数（全部）。
  *   テーマを 1 つ以上選んでやるレッスンは 1（#1616 の Q17）。
  * @param {boolean} [def.showPartNames] - チャレンジを開いたときから画面の部分の名前の札を出しておくか
- *   （「なまえ」ボタンで消せる。画面の部分の名前を覚えるレッスン 0 で使う・#2133）。書いていなければ出さない。
+ *   （「ガイド」ボタンで消せる。画面の部分の名前を覚えるレッスン 0 で使う・#2133）。書いていなければ出さない。
  * @param {boolean} [def.warmup] - コースの数に入れない、はじめのレッスン（レッスン 0・#2134）か。レッスン表では
  *   コースの最初に「レッスン 0」として出すが、コースの数（進みぐあい・クラスの課題・先生の表）には入れない
  *   （defineCourse が `lessons` から分けて `warmupLessons` に置く）。書いていなければ数えるレッスン。
@@ -328,7 +328,7 @@ const L0_FLAG_MOVE_TURN = 'when_flag_clicked do\n  move(10)\n  turn_right(15)\ne
 // 「歩動かす」には ▼ で選ぶ相手のブロックが無く、ヒント 2 が置いていないブロックを指していたため（#2146）
 const L0_FLAG_TURN_GOTO = 'when_flag_clicked do\n  turn_right(15)\n  go_to("_mouse_")\nend\n';
 const L0_FLAG_TURN_GOTO_CHANGED = 'when_flag_clicked do\n  turn_right(90)\n  go_to("_random_")\nend\n';
-// 「どこでしょう？」の 5 問（「なまえ」の札の名前・lib/lessons/part-names.js）。9 つの名前から、手で操作した場所をえらぶ
+// 「どこでしょう？」の 5 問（名前の札（「ガイド」）の名前・lib/lessons/part-names.js）。9 つの名前から、手で操作した場所をえらぶ
 export const LESSON0_QUIZ_PARTS = Object.freeze(['palette', 'codeArea', 'soundsTab', 'greenFlag', 'spriteList']);
 
 const blocksLesson0 = defineLesson({
