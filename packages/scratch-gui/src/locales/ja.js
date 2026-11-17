@@ -1,11 +1,5 @@
-// Tutorial category locale strings are split into per-category modules
-// (issue #932) so tutorial categories can be developed independently.
 import { ja as activityDiagramMessages } from '../lib/lessons/activity-diagram/activity-diagram.locale.js';
 import { ja as lessonsMessages } from '../lib/lessons/lessons.locale.js';
-import { ja as blockSeriesHowtos } from '../lib/libraries/decks/categories/block-series.locale.js';
-import { ja as dnclHowtos } from '../lib/libraries/decks/categories/dncl.locale.js';
-import { ja as gettingStartedHowtos } from '../lib/libraries/decks/categories/getting-started.locale.js';
-import { ja as rubyBasicsHowtos } from '../lib/libraries/decks/categories/ruby-basics.locale.js';
 
 export default {
     'gui.modal.reload': '再読み込み',
@@ -1758,121 +1752,6 @@ export default {
     'gui.autoCorrectModal.fullwidthSpace': '全角スペース → 半角スペース',
     'gui.autoCorrectModal.replaceInStrings': '文字列も置き換える',
 
-    // Tutorials
-    ...gettingStartedHowtos,
-    // Chat Tutorial 1 Basic 1
-    'gui.howtos.chat-1-basic-1.name': 'メッセージを送ってみよう！',
-    'gui.howtos.chat-1-basic-1.step1.title': '離れたブロックにメッセージを送ってみよう！',
-    'gui.howtos.chat-1-basic-1.step2.title': 'まずはコードを入力してプログラムを実行してみよう',
-    'gui.howtos.chat-1-basic-1.step3.title': '「◯◯を送る」は離れたところにある命令を実行できる',
-    'gui.howtos.chat-1-basic-1.step4.title': '「送信中...」って本当かな？きちんと送るようにするよ',
-    'gui.howtos.chat-1-basic-1.step5.title': '変数「送信メッセージ」の作り方',
-    'gui.howtos.chat-1-basic-1.step6.title': '大事なこと『変数を◯◯にする、◯◯を送る、〇〇を受け取ったとき』',
-    'gui.howtos.chat-1-basic-1.step7.title': 'しゃべる内容を変えてみよう',
-    // Chat Tutorial 1 Basic 2
-    'gui.howtos.chat-1-basic-2.name': 'メッセージを送ってみよう！Lv2',
-    'gui.howtos.chat-1-basic-2.step1.title': '今度はブロックを自分で組み立ててみよう！',
-    'gui.howtos.chat-1-basic-2.step2.title':
-        '変数「送信メッセージ」を作り、「{greenFlag}が押されたとき」と「送信メッセージを◯◯にする」を配置しよう',
-    'gui.howtos.chat-1-basic-2.step3.title': '「◯◯と◯秒言う」を追加して「送信中...」と入力しよう',
-    'gui.howtos.chat-1-basic-2.step4.title': '★「◯◯を送る」を追加しよう — 離れたブロックを実行できるよ',
-    'gui.howtos.chat-1-basic-2.step5.title':
-        '★「◯◯を受け取ったとき」を新しく配置しよう — 送ったメッセージを受け取るよ',
-    'gui.howtos.chat-1-basic-2.step6.title': '★「◯◯と言う」に「送信メッセージ」変数をはめよう — 変数で値を渡すよ',
-    'gui.howtos.chat-1-basic-2.step7.title': '{greenFlag}を押して実行！しゃべる内容も変えてみよう',
-    // Chat Tutorial 1 Basic 3
-    'gui.howtos.chat-1-basic-3.name': 'メッセージを送ってみよう！Lv3',
-    'gui.howtos.chat-1-basic-3.step1.title': '今度はRubyで同じプログラムを作ろう！',
-    'gui.howtos.chat-1-basic-3.step2.title': 'ルビータブに切り替えよう',
-    'gui.howtos.chat-1-basic-3.step3.title': '「ルビーを入力する」を押して、お手本を入力しよう',
-    'gui.howtos.chat-1-basic-3.step4.title':
-        '★ 2行目に $送信メッセージ = "こんにちは！元気ですか？" を入力しよう — $で始まる変数は全体で使えるよ',
-    'gui.howtos.chat-1-basic-3.step5.title':
-        '★ say("ここを変えるよ") を say($送信メッセージ) に変えよう — 変数で値を渡すよ',
-    'gui.howtos.chat-1-basic-3.step6.title': '{greenFlag}を押して実行しよう！',
-    'gui.howtos.chat-1-basic-3.step7.title': '大事なこと：Rubyでも「送る」「受け取ったとき」「変数」は同じ考え方',
-    // Chat Tutorial 2 Sprites 1
-    'gui.howtos.chat-2-sprites-1.name': 'ネコとペンギンで会話しよう',
-    'gui.howtos.chat-2-sprites-1.step1.title': 'ネコとペンギンの会話',
-    'gui.howtos.chat-2-sprites-1.step2.title': 'ネコのコードを入力する',
-    'gui.howtos.chat-2-sprites-1.step3.title':
-        '大事なこと：変数「受信メッセージ」は「このスプライトのみ」になっています',
-    'gui.howtos.chat-2-sprites-1.step4.title':
-        '大事なこと：「ネコからのメッセージ」を送り、「ペンギンからのメッセージ」を受け取る',
-    'gui.howtos.chat-2-sprites-1.step5.title': 'ペンギンのスプライトを追加します',
-    'gui.howtos.chat-2-sprites-1.step6.title': 'ペンギンの位置と向きを調整します',
-    'gui.howtos.chat-2-sprites-1.step7.title': 'ペンギンのコードを入力すると完成。ネコやペンギンを押してみよう！',
-    // Chat Tutorial 2 Sprites 2
-    'gui.howtos.chat-2-sprites-2.name': 'ネコとペンギンで会話しよう！Lv2',
-    'gui.howtos.chat-2-sprites-2.step1.title': '今度はブロックを自分で組み立ててみよう！',
-    'gui.howtos.chat-2-sprites-2.step2.title':
-        'ネコ：変数「送信メッセージ」を作り、「このスプライトが押されたとき」と「送信メッセージを◯◯にする」を配置しよう',
-    'gui.howtos.chat-2-sprites-2.step3.title':
-        'ネコ：「◯◯と◯秒言う」と★「◯◯を送る」を追加しよう — 離れたブロックを実行できるよ',
-    'gui.howtos.chat-2-sprites-2.step4.title':
-        '★ ネコ：「ペンギンからのメッセージを受け取ったとき」を配置し、変数「受信メッセージ」(このスプライトのみ)を使おう — @変数はスプライト専用だよ',
-    'gui.howtos.chat-2-sprites-2.step5.title': 'ペンギンのスプライトを追加します',
-    'gui.howtos.chat-2-sprites-2.step6.title': 'ペンギンの位置と向きを調整します',
-    'gui.howtos.chat-2-sprites-2.step7.title':
-        '★ ペンギンも同じ構造でブロックを組み立てよう — メッセージ名がネコと逆になるよ',
-    'gui.howtos.chat-2-sprites-2.step8.title': 'ネコやペンギンを押して実行！しゃべる内容も変えてみよう',
-    // Chat Tutorial 2 Sprites 3
-    'gui.howtos.chat-2-sprites-3.name': 'ネコとペンギンで会話しよう！Lv3',
-    'gui.howtos.chat-2-sprites-3.step1.title': '今度はRubyで同じプログラムを作ろう！',
-    'gui.howtos.chat-2-sprites-3.step2.title': 'ルビータブに切り替えよう',
-    'gui.howtos.chat-2-sprites-3.step3.title': '「ルビーを入力する」を押して、ネコのお手本を入力しよう',
-    'gui.howtos.chat-2-sprites-3.step4.title':
-        '★ say("ここを変えるよ", 3) を say(@受信メッセージ, 3) に変えよう — @で始まる変数はこのスプライトだけで使えるよ',
-    'gui.howtos.chat-2-sprites-3.step5.title': 'ペンギンのスプライトを追加します',
-    'gui.howtos.chat-2-sprites-3.step6.title': 'ペンギンの位置と向きを調整します',
-    'gui.howtos.chat-2-sprites-3.step7.title':
-        'ペンギンのRubyコードを「ルビーを入力する」で入力しよう — メッセージ名がネコと逆になっているよ',
-    'gui.howtos.chat-2-sprites-3.step8.title': 'ネコやペンギンを押して実行しよう！',
-    // Chat Tutorial 3 Mesh 1
-    'gui.howtos.chat-3-mesh-1.name': 'メッシュでつながろう',
-    'gui.howtos.chat-3-mesh-1.step1.title': 'メッシュ拡張機能を使って他の人のスモウルビーとつながろう',
-    'gui.howtos.chat-3-mesh-1.step2.title':
-        '2人以上のグループをつくってメッシュ拡張機能を選ぶ（1人でも2つのスモウルビーを使えばできる）',
-    'gui.howtos.chat-3-mesh-1.step3.title': '1人目はホストになる。他の人はメッシュに参加する',
-    'gui.howtos.chat-3-mesh-1.step4.title': 'スプライトのコスチュームを変えてみよう',
-    'gui.howtos.chat-3-mesh-1.step5.title': 'ホストとそれ以外でコードが違うよ。まずはホストのコードを入力する',
-    'gui.howtos.chat-3-mesh-1.step6.title': '次にメッシュに参加した人のコードを入力する',
-    'gui.howtos.chat-3-mesh-1.step7.title': '自分のスプライトを押してメッセージを送ってみよう',
-    'gui.howtos.chat-3-mesh-1.step8.title': '大事なこと：他の人の「送信メッセージ」は「センサーの値」で取り出せるよ',
-    'gui.howtos.chat-3-mesh-1.external.kairyudo.name':
-        '開隆堂 やってみよう！プログラミング「チャットアプリを制作しよう」',
-    // Chat Tutorial 3 Mesh 2
-    'gui.howtos.chat-3-mesh-2.name': 'メッシュでつながろう Lv2',
-    'gui.howtos.chat-3-mesh-2.step1.title':
-        'メッシュ拡張機能を使った会話プログラムを、ブロックを自分で組み立てて作ってみよう',
-    'gui.howtos.chat-3-mesh-2.step2.title': '2人以上のグループをつくってメッシュ拡張機能を選ぶ',
-    'gui.howtos.chat-3-mesh-2.step3.title': '1人目はホストになる。他の人はメッシュに参加する',
-    'gui.howtos.chat-3-mesh-2.step4.title': 'スプライトのコスチュームを変えてみよう',
-    'gui.howtos.chat-3-mesh-2.step5.title':
-        'ホスト：「このスプライトが押されたとき」に変数をセットして「送信中...」と言い、メッセージを送るブロックを作ろう',
-    'gui.howtos.chat-3-mesh-2.step6.title':
-        '★ ホスト：「受け取ったとき」に「送信メッセージのセンサーの値」を使おう — 他の人の変数はセンサーの値で取り出すよ！',
-    'gui.howtos.chat-3-mesh-2.step7.title': '★ メンバーも同じ構造のブロックを作ろう — メッセージの名前が逆になるよ！',
-    'gui.howtos.chat-3-mesh-2.step8.title':
-        '自分のスプライトを押して実行！他の人の「送信メッセージ」は「センサーの値」で取り出せるよ',
-    // Chat Tutorial 3 Mesh 3
-    'gui.howtos.chat-3-mesh-3.name': 'メッシュでつながろう Lv3',
-    'gui.howtos.chat-3-mesh-3.step1.title': 'メッシュ拡張機能を使った会話プログラムを、Rubyで作ってみよう',
-    'gui.howtos.chat-3-mesh-3.step2.title': '2人以上のグループをつくってメッシュ拡張機能を選ぶ',
-    'gui.howtos.chat-3-mesh-3.step3.title': '1人目はホストになる。他の人はメッシュに参加する',
-    'gui.howtos.chat-3-mesh-3.step4.title': 'スプライトのコスチュームを変えてみよう',
-    'gui.howtos.chat-3-mesh-3.step5.title':
-        'ルビータブに切り替えて「Rubyコードを挿入」でホストのベースコードを入力する',
-    'gui.howtos.chat-3-mesh-3.step6.title':
-        '★ @受信メッセージ = "ここを変えるよ" を @受信メッセージ = mesh.sensor_value("送信メッセージ") に変えよう — 他の人の変数はmesh.sensor_valueで取り出すよ！',
-    'gui.howtos.chat-3-mesh-3.step7.title': 'メンバーのコードを入力する — メッセージの名前が逆になるよ！',
-    'gui.howtos.chat-3-mesh-3.step8.title':
-        '自分のスプライトを押して実行！他の人の「送信メッセージ」は「センサーの値」で取り出せるよ',
-    'gui.howtos.chat-3-mesh-3.external.kairyudo.name':
-        '開隆堂 やってみよう！プログラミング「チャットアプリを制作しよう」',
-    // Ruby Basics 1: putsで計算してみよう
-    'gui.library.rubyBasics': 'Ruby のきほん',
-    ...rubyBasicsHowtos,
     ...lessonsMessages,
     ...activityDiagramMessages,
     'gui.lessonTaskBar.ariaLabel': 'レッスンの課題',
@@ -1988,8 +1867,6 @@ export default {
     'gui.lessonsLibrary.category.variables': '変数',
     'gui.lessonsLibrary.category.lists': 'リスト',
     'gui.lessonsLibrary.category.extensions': '拡張機能',
-    ...blockSeriesHowtos,
-    ...dnclHowtos,
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.all-tutorials': 'チュートリアル',
@@ -1998,19 +1875,10 @@ export default {
     'gui.cards.close': '閉じる',
     'gui.cards.more-things-to-try': '他にもやってみよう！',
     'gui.cards.see-more': 'もっと見る',
-    'gui.cards.insert-ruby': 'ルビーを入力する',
-    'gui.cards.insert-blocks': 'コードを入力する',
-    'gui.cards.start-tutorial': 'チュートリアルをはじめる',
-    'gui.cards.open-external-link': '外部サイトを開く',
     'gui.tipsLibrary.tutorials': 'チュートリアルを選ぶ',
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': '始めましょう',
-    'gui.library.blockBasics': 'ブロックのきほん：はじめての操作',
-    'gui.library.blockGames': 'ブロックでゲーム：シューティング',
-    'gui.library.meshStep1': '通信入門 ① メッセージを送ってみよう',
-    'gui.library.meshStep2': '通信入門 ② ふたりで会話しよう',
-    'gui.library.meshStep3': '通信入門 ③ みんなで会話しよう (メッシュ)',
     'gui.menuBar.updateTooltip': '新しいスモウルビーを使ってみよう！',
     'gui.menuBar.updateConfirm':
         '新しいバージョンのスモウルビーが利用可能です。いますぐ更新する場合は「OK」を、あとにする場合は「キャンセル」を押してください。',

@@ -1,7 +1,6 @@
 // allowedBlocks で「変数」「ブロック定義」の動的カテゴリを絞るとき、入れるプログラム（code・ヒントの
 // ブロック）が使うブロックが allowedBlocks に入っているかを確かめるための道具。
-// レッスンのチャレンジ（test/unit/lib/lessons/challenge-dynamic-categories.test.js）と
-// チュートリアルの deck（test/unit/lib/libraries/decks/deck-dynamic-categories.test.js）で共有する。
+// レッスンのチャレンジ（test/unit/lib/lessons/challenge-dynamic-categories.test.js）で使う。
 import {
     LIST_OPCODES,
     PROCEDURE_OPCODES,

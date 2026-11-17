@@ -28,7 +28,9 @@ URL パラメータ `?tutorial=<urlId>`（例: `?tutorial=getStarted`）で直�
 2. 「次へ」「前へ」で進む
 3. 完了で閉じる
 
-Smalruby 独自のチュートリアル（「さあ、始めましょう」やメッセージ送信シリーズ）が並ぶ。タグで「ルビー」「メッシュ」フィルタが可能。
+上流（Scratch v13.7.2）のチュートリアルがそのまま並ぶ（スモウルビー独自のチュートリアルは無い。学習の入口は [`docs/lessons/`](../lessons/) のレッスン）。
+
+前にスモウルビーにあったチュートリアルの `?tutorial=<urlId>`（`chat1Basic1` など）はもう開かない。こうしたリンクが使われているかを数えるため、見つからない `urlId` で開かれたら GA に送る（下の「GA の計測」）。
 
 ### Ruby タブオンボーディング (Smalruby 独自)
 
@@ -50,9 +52,10 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 
 | ファイル | 役割 |
 |---|---|
-| `packages/scratch-gui/src/containers/cards.jsx` | チュートリアルカードのコンテナ（Smalruby: glow animation 追加）|
+| `packages/scratch-gui/src/containers/cards.jsx` | チュートリアルカードのコンテナ（上流のまま）|
 | `packages/scratch-gui/src/components/cards/` | カード UI |
-| `packages/scratch-gui/src/containers/tips-library.jsx` | ヒント / チュートリアル一覧 |
+| `packages/scratch-gui/src/containers/tips-library.jsx` | ヒント / チュートリアル一覧（上流のまま）|
+| `packages/scratch-gui/src/lib/tutorial-from-url.js` | `?tutorial=<urlId>` からチュートリアルを開く（Smalruby: 見つからないときの GA 計測）|
 
 #### Smalruby 独自
 
@@ -61,12 +64,15 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 | `packages/scratch-gui/src/reducers/tutorial-onboarding.js` | onboarding state（`MARK_TUTORIAL_SEEN`, `MARK_RUBY_TAB_USED`, `DISMISS_TOOLTIP`）。吹き出し UI は廃止済みで、現在は Ruby タブ訪問の記録に使う |
 | `packages/scratch-gui/src/components/classroom-tutorial/` | クラスルーム機能のチュートリアル UI（見た目のトークンと OK ボタンは `components/balloon/`） |
 | `packages/scratch-gui/src/reducers/classroom-tutorial.js` | クラスルームチュートリアル state |
-| `packages/scratch-gui/src/lib/libraries/decks/categories/book-promo.jsx` | Block 軸シリーズ共通の書籍プロモ要素（`BOOK` 書誌プレースホルダ / `BOOK_URL` / オープニング・クロージング step ファクトリ）。書誌確定後は `BOOK` 定数 1 箇所を差し替える（Phase 3, #956）。カテゴリは `blockBasics`（第1章）と `blockGames`（第4章）の 2 章のみ。第5章・第6章（`blockMath` / `blockScience`）は元となる書籍 PDF が提供されなかったため対象外（#962）|
+| `packages/scratch-gui/src/lib/tutorial-url-analytics.js` | 見つからない `?tutorial=` の GA 計測（送る値を決める純粋関数と送信） |
 
 #### Smalruby マーカー (upstream への埋め込み)
 
-`src/containers/cards.jsx`, `src/components/cards/cards.jsx`:
-- "tutorial glow animation" — チュートリアルのハイライト用アニメーション
+`src/lib/tutorial-from-url.js`:
+- "unknown tutorial url analytics" — 見つからない `?tutorial=` を GA に送る
+
+`webpack.config.js`:
+- "lazy tutorial images" — チュートリアルの画像を `gui.js` に埋めこまず、開いたときだけ読みこむ
 
 `src/components/menu-bar/menu-bar.jsx`, `src/containers/menu-bar-hoc.jsx`:
 - "help menu" — 「チュートリアル」「デバッグ」をメニューバーのボタンから「?」メニューの項目へ移す
@@ -96,6 +102,16 @@ Smalruby Classroom の各フェーズ（教師ログイン、クラス作成、�
 - `smalruby:tutorialSeen` — レッスン表を開くと `true`（`markTutorialSeen`）。`smalruby:rubyTabUsed` — Ruby タブを使うと `true`（`markRubyTabUsed`）。どちらも起動時に `tutorial-onboarding` の state へ読み込むだけで、表示の判定には使っていない
 
 特定の onboarding 完了フラグは Redux state にあるが、永続化はプロジェクト state や `legacy-storage` 経由で扱われる場合がある。
+
+## GA の計測
+
+category は `tutorial_url`（`lib/tutorial-url-analytics.js`）。項目は `action` と `label` だけ。
+
+| action | いつ送るか | label |
+|---|---|---|
+| `not_found` | `?tutorial=<urlId>` で開いたのに、その `urlId` のチュートリアルが無いとき（`all` と上流のチュートリアルの `urlId` は送らない） | 前にスモウルビーにあったチュートリアルの `urlId`（`chat1Basic1`〜`chat3Mesh3`・`gettingStartedCostume`・`gettingStartedSprites`・`rubyBasics1Numbers`〜`rubyBasics7Next`）なら、その値。ほかは `unknown`（入力した文字かもしれないので送らない） |
+
+送られた数を見てから、古いリンクをレッスンへつなぎかえるかを決める。
 
 ## 関連ドキュメント
 
