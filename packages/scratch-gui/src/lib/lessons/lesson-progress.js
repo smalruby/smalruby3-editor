@@ -6,7 +6,7 @@
 // 記録の主はチャレンジ id。courseId / lessonId は書いたときの定義の写しで、読むときは
 // いまの定義（courses.js）から読みかえる（レッスンの分け方が変わっても、古い記録の
 // lessonId を信じない。11 のチャレンジを 3 つのレッスンに分けた #1529）。
-import { COURSES, findChallenge } from './courses';
+import { COURSES, courseLessons, findChallenge, lessonNumberOf } from './courses';
 
 export const LESSON_PROGRESS_STORAGE_KEY = 'smalruby:lessonProgress';
 const PROGRESS_VERSION = 1;
@@ -135,40 +135,48 @@ export const markChallengeCompleted = (progress, challengeId, completedAt, cours
 export const isChallengeCompleted = (progress, challengeId) => Boolean(progress.challenges[challengeId]);
 
 /**
- * レッスンの進み具合（できた数・全部の数・全部できたか）。段 1 にクリア条件（n 個・必須）は無い。
+ * レッスンの進み具合（できた数・全部の数・全部できたか）。「全部できた」（✓）は、レッスンの `checkCount`
+ * （ふつうはチャレンジの数。テーマを選ぶレッスンは 1）だけできたとき。
  * @param {object} lesson - レッスン。
  * @param {object} progress - 記録。
- * @returns {{completedCount: number, total: number, allCompleted: boolean}} 進み具合。
+ * @returns {{completedCount: number, total: number, checkCount: number, allCompleted: boolean}} 進み具合。
  */
 export const lessonProgress = (lesson, progress) => {
     const completedCount = lesson.challenges.filter((c) => isChallengeCompleted(progress, c.id)).length;
     const total = lesson.challenges.length;
-    return { completedCount, total, allCompleted: total > 0 && completedCount === total };
+    const checkCount = Number.isInteger(lesson.checkCount) ? Math.min(lesson.checkCount, total) : total;
+    return { completedCount, total, checkCount, allCompleted: total > 0 && completedCount >= checkCount };
 };
 
 /**
  * コースの進み具合と、レッスンごとの進み具合・チャレンジ（レッスン表が見せるもの）。
- * コースの「全部できた」（クリアの印）は、コースのチャレンジが全部できたとき。
+ * コースの「全部できた」（クリアの印）は、コースのレッスンが全部「全部できた」になったとき。コース全体の数
+ * （進み具合のバー）は、レッスンごとに `checkCount` までを数える（テーマを選ぶレッスンで、バーがいっぱいに
+ * なるのと ✓ がつくのをそろえる）。`checkCount` を書いていないコースでは、チャレンジの数と同じ。
  * @param {object} course - コース。
  * @param {object} progress - 記録。
  * @returns {{completedCount: number, total: number, allCompleted: boolean, lessons: Array<object>}}
- *   コース全体の数と、`lessons`（並び順に `{lesson, number, completedCount, total, allCompleted,
+ *   コース全体の数と、`lessons`（並び順に `{lesson, number, completedCount, total, checkCount, allCompleted,
  *   challenges: [{challenge, completed}]}`。`number` はコースの中のレッスンの番号）。
  */
 export const courseProgress = (course, progress) => {
-    const lessons = course.lessons.map((lesson, index) => ({
+    // レッスン 0（`warmup`）はレッスン表に最初に出すが、コースの数（バー・n / 全部・コースの ✓）には入れない（#2134）
+    const lessons = courseLessons(course).map((lesson) => ({
         lesson,
-        number: index + 1,
+        number: lessonNumberOf(course, lesson),
         ...lessonProgress(lesson, progress),
         challenges: lesson.challenges.map((challenge) => ({
             challenge,
             completed: isChallengeCompleted(progress, challenge.id),
         })),
     }));
-    const completedCount = lessons.reduce((sum, l) => sum + l.completedCount, 0);
-    const total = lessons.reduce((sum, l) => sum + l.total, 0);
-    // チャレンジがまだ無いコースを「全部できた」にしない
-    return { completedCount, total, allCompleted: total > 0 && completedCount === total, lessons };
+    const counted = lessons.filter((l) => !l.lesson.warmup);
+    const completedCount = counted.reduce((sum, l) => sum + Math.min(l.completedCount, l.checkCount), 0);
+    const total = counted.reduce((sum, l) => sum + l.checkCount, 0);
+    // チャレンジがまだ無いコースを「全部できた」にしない。チャレンジが 0 のレッスン（まだ中身の無いもの）は
+    // ✓ の判定から外す（前と同じく、チャレンジのあるレッスンが全部 ✓ ならコースの ✓）
+    const allCompleted = total > 0 && counted.every((l) => l.total === 0 || l.allCompleted);
+    return { completedCount, total, allCompleted, lessons };
 };
 
 /**
@@ -211,8 +219,11 @@ const isLessonAllCompleted = (lesson, progress) => lessonProgress(lesson, progre
  * @param {object} progress - 記録。
  * @returns {?object} レッスン。無ければ null。
  */
-const nextLessonOf = (course, lesson, progress) =>
-    course.lessons.slice(course.lessons.indexOf(lesson) + 1).find((l) => !isLessonAllCompleted(l, progress)) || null;
+const nextLessonOf = (course, lesson, progress) => {
+    // レッスン 0 の次はレッスン 1（レッスン表の並び = courseLessons）
+    const lessons = courseLessons(course);
+    return lessons.slice(lessons.indexOf(lesson) + 1).find((l) => !isLessonAllCompleted(l, progress)) || null;
+};
 
 /**
  * 「できた！」に出すボタンの種類（COMPLETED_ACTIONS）。
@@ -289,7 +300,7 @@ export const lessonsLibraryFocus = (challengeId, progress, courses = COURSES) =>
 const latestCompletedChallenge = (course, progress) => {
     let latest = null;
     let latestAt = '';
-    course.lessons.forEach((lesson) =>
+    courseLessons(course).forEach((lesson) =>
         lesson.challenges.forEach((challenge) => {
             const record = progress.challenges[challenge.id];
             if (record && record.completedAt >= latestAt) {
@@ -304,8 +315,10 @@ const latestCompletedChallenge = (course, progress) => {
 /**
  * ウェルカムの「レッスンを始める」でレッスン表を開くとき、どのレッスンを見せて、どのチャレンジに
  * 「次はこれ！」を付けるか（#1888）。見せ方は「できた！」の「次のチャレンジへ」（lessonsLibraryFocus）と同じ:
- *   - まだ全部はできていない最初のコースを見る。全部できていれば null（メニューから開いたときと同じ）。
- *   - そのコースで 1 つもできていない: 最初のまだできていないチャレンジ（= レッスン 1 の最初のチャレンジ）。
+ *   - 最初のコース（きょうからプログラマー）だけを見る。全部できていれば null（メニューから開いたときと同じ）。
+ *     ほかのコース（授業で使う中 2 の「チャットをつくろう」など）へは案内しない。授業で先生が開くコースのため。
+ *   - そのコースで 1 つもできていない: 最初のまだできていないチャレンジ（= レッスン 0 の最初のチャレンジ。
+ *     レッスン 0 の無いコースはレッスン 1 の最初）。
  *   - 途中: いちばん最近できたチャレンジを「いまのチャレンジ」として lessonsLibraryFocus で決める。
  *     それで印が付かない（後ろのレッスンが全部できていて、前のレッスンが残っている）ときは、
  *     コースの並び順で最初のまだできていないチャレンジに付ける。
@@ -314,14 +327,15 @@ const latestCompletedChallenge = (course, progress) => {
  * @returns {?{language: string, courseId: string, lessonId: string, nextChallengeId: string}} 全部できていれば null。
  */
 export const startLessonsFocus = (progress, courses = COURSES) => {
-    const course = courses.find((c) => !courseProgress(c, progress).allCompleted && c.lessons.length > 0);
-    if (!course) return null;
+    const course = courses[0];
+    if (!course || course.lessons.length === 0 || courseProgress(course, progress).allCompleted) return null;
     const latest = latestCompletedChallenge(course, progress);
     if (latest) {
         const focus = lessonsLibraryFocus(latest.id, progress, courses);
         if (focus && focus.nextChallengeId) return focus;
     }
-    const lesson = course.lessons.find((l) => !isLessonAllCompleted(l, progress));
+    // 1 つもできていなければ、レッスン 0 の最初のチャレンジ（レッスン 0 が先頭）
+    const lesson = courseLessons(course).find((l) => !isLessonAllCompleted(l, progress));
     const next = lesson ? nextIncompleteChallenge(lesson, progress, null) : null;
     if (!next) return null;
     return { language: course.language, courseId: course.id, lessonId: lesson.id, nextChallengeId: next.id };

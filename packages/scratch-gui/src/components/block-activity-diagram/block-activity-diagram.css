@@ -1,0 +1,92 @@
+@import '../../css/smalruby-tokens.css';
+
+/*
+    ブロックを右クリックして開くアクティビティ図のパネル（#1647）。モーダルにしない（後ろのブロックを
+    見くらべながら直せるように）。幕はドラッグの範囲を決めるだけで、マウスの操作はすべて後ろへ通す。
+    重なりはメニューバー（491）とモーダル（510）より下。
+*/
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 485;
+    pointer-events: none;
+}
+
+/* 授業 PC（1300×600）に入る大きさ。図が大きいときは中をスクロールする */
+.panel {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    width: max-content;
+    min-width: 16rem;
+    max-width: min(40rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 4.5rem);
+    overflow: hidden;
+    border: 1px solid $color-border;
+    border-radius: $radius-medium;
+    background-color: $color-surface;
+    box-shadow: $shadow-raised;
+    color: $color-text;
+    font-size: $font-size-small;
+    pointer-events: auto;
+}
+
+.header {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.3rem 0.4rem 0.3rem 0.6rem;
+    background-color: $color-primary;
+    color: $color-surface;
+    cursor: move;
+    user-select: none;
+}
+
+.title {
+    flex: 1;
+    overflow: hidden;
+    font-weight: $font-weight-bold;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.close {
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: none;
+    border-radius: $radius-small;
+    background: transparent;
+    color: $color-surface;
+    font-size: $font-size-medium;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.close:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 本文は不透明の白（後ろのコードエリアが透けないように） */
+.body {
+    flex: 1;
+    min-height: 0;
+    padding: 0.5rem 0.6rem;
+    overflow: auto;
+    background-color: $color-surface;
+}
+
+.note {
+    flex: none;
+    margin: 0;
+    padding: 0.25rem 0.6rem 0.4rem;
+    background-color: $color-surface;
+    color: $color-text-muted;
+    font-size: $font-size-xsmall;
+}
+
+.message {
+    margin: 0;
+    line-height: 1.4;
+}

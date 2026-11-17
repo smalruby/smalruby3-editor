@@ -16,12 +16,13 @@ stg ステージに、`preview.smalruby.app` のホストゾーン（お名前.c
 | Stage | スタック名 | リソース |
 |---|---|---|
 | stg | `SmalrubyWebHostingStack-stg` | パブリックホストゾーン `preview.smalruby.app`、S3 バケット、CloudFront、ACM 証明書（us-east-1）、A / AAAA（ALIAS）、CI 用 IAM ロール |
-| prod | `SmalrubyWebHostingStack` | なし（空のスタック） |
+| prod | `SmalrubyWebHostingStack` | 本番 smalruby.app の配信基盤（S3 バケット、CloudFront、CI 用 IAM ロール）と、パブリックホストゾーン `smalruby.app`（お名前.com のレコードを写したもの）。CloudFront の独自ドメイン・証明書はまだ無い（下の「本番の配信基盤（prod）」「ホストゾーン `smalruby.app`（prod）」） |
 | その他（stg2 等） | `SmalrubyWebHostingStack-<stage>` | なし |
 
 - プレビューは stg の API を見るので、プレビュー用の資源は **stg ステージ**に置く。
 - `Deploy Infra` は develop へのマージで prod にも出す。prod でプレビュー用のリソースができないよう、
-  stg 以外のステージでは何も作らない（同じ名前のゾーンが複数あると、どれが委任先か分からなくなる）。
+  プレビュー用の資源は stg だけに作る（同じ名前のゾーンが複数あると、どれが委任先か分からなくなる）。
+- prod には本番（smalruby.app）の配信基盤と `smalruby.app` のゾーンだけを作る。stg2 などほかのステージでは何も作らない。
 
 ## ホストゾーン `preview.smalruby.app`
 
@@ -164,6 +165,141 @@ curl -sI https://preview.smalruby.app/test    # 301 → /test/
 aws s3 rm "s3://$BUCKET/test/index.html"
 ```
 
+## 本番の配信基盤（prod）
+
+本番 `https://smalruby.app/` を GitHub Pages から移すための置き場所。計画・切り替えの手順・戻し方・費用は
+[`docs/hosting/README.md`](../hosting/README.md)。いまは**作るだけ**で、独自ドメイン（`smalruby.app`）・
+証明書・DNS は付けていない。CloudFront の既定のドメイン（`*.cloudfront.net`）でしか見えないので、
+いまの本番（GitHub Pages）には影響しない。
+
+| リソース | 内容 |
+|---|---|
+| S3 バケット `SiteBucket` | Block Public Access 全部 ON・`enforceSSL`・**バージョニングあり**。上書き・削除された古い版は 30 日で消し、残った削除マーカーも片付ける。**いまの版は期限で消さない**（プレビューとの違い）。`removalPolicy` は **`RETAIN`**（下の「本番のバケットを RETAIN にする理由」） |
+| CloudFront `SiteDistribution` | オリジンは S3 + OAC。viewer-request はプレビューと同じ関数（`/` → `/index.html`、`/admin` → `/admin/` へ 301）。キャッシュポリシーもプレビューと同じ値。応答ヘッダポリシーで HSTS（1 年）と `X-Content-Type-Options: nosniff` を付ける。HTTP/2 と HTTP/3、Price Class 200。標準ログ（従来の S3 配信・Cookie なし）を `SiteLogBucket` の `cloudfront/smalruby.app/` に出す |
+| S3 バケット `SiteLogBucket` | アクセスログ専用。Block Public Access 全部 ON・SSE-S3・`enforceSSL`。標準ログは ACL で書き込まれるので Object Ownership は `BucketOwnerPreferred`（ACL を無効にしない）。`SITE_ACCESS_LOG_RETENTION_DAYS`（30 日）を過ぎたログは消す。バージョニングなし・`removalPolicy` は `DESTROY`（ログが無くても配信は止まらない。中身が残っている間は削除が失敗して止まる）。方式を選んだ理由と個人情報の扱いは [`docs/hosting/README.md`](../hosting/README.md) の「アクセスログ（段 5）」 |
+| CI 用ロール `SiteDeployRole` | 既存の GitHub OIDC プロバイダを参照。信頼は `repo:smalruby/smalruby3-editor:ref:refs/heads/develop` と `...:environment:prod` だけ（プレビューより狭い）。権限はこのバケットの `ListBucket` / `PutObject` / `DeleteObject` と、このディストリビューションの invalidation だけ |
+
+### 本番のバケットを RETAIN にする理由
+
+データ保持の決まり（`.claude/rules/infra/development.md`）では、ビルドから作り直せるバケットは `DESTROY` に
+する。本番の配信バケットはその**例外**で `RETAIN` にする。中身は作り直せるが、切り替え後に消えると
+smalruby.app がその場で止まるため、スタックの削除や論理 ID の変更（CloudFormation から見ると削除 + 新規作成）
+で消えないようにする。
+
+- 残ったバケットを使い直すときは、スタックが無い状態で `npx cdk import --context stage=prod` を実行し、
+  `SiteBucket` に残ったバケットの名前を渡す（人間が手元で行う）。
+- 要らなくなって消すときは、中身（古い版と削除マーカーを含む）を空にしてから、人間がコンソールか CLI で消す。
+- 古い版を残す日数（いまは 30 日）は人間が決める値。案: 切り替えから 1 か月は 30 日のまま、落ち着いたら
+  7〜14 日に縮めて保存の費用を抑える。
+
+TLS 1.2 以上の指定（`minimumProtocolVersion`）は既定の証明書では効かないので、`smalruby.app` の
+証明書を付けるときに一緒に足す。
+
+| Output | 用途 |
+|---|---|
+| `SiteDeployRoleArn` | CI が AssumeRole するロール（repo の Variables `SITE_DEPLOY_ROLE_ARN` に登録する） |
+| `SiteBucketName` | ビルドを置くバケット（`SITE_BUCKET_NAME`） |
+| `SiteDistributionId` | invalidation の対象（`SITE_DISTRIBUTION_ID`） |
+| `SiteDistributionDomainName` | CloudFront のドメイン（切り替え前の確認用） |
+| `SiteLogBucketName` | アクセスログのバケット（調べるときに `aws s3 ls s3://<値>/cloudfront/smalruby.app/`） |
+
+```bash
+aws cloudformation describe-stacks --stack-name SmalrubyWebHostingStack \
+  --query "Stacks[0].Outputs" --output table
+```
+
+手で置いて確かめる（prod のバケットなので、確かめたら消す）:
+
+```bash
+BUCKET=<SiteBucketName>
+DOMAIN=<SiteDistributionDomainName>
+echo '<h1>site test</h1>' > /tmp/index.html
+aws s3 cp /tmp/index.html "s3://$BUCKET/index.html" --content-type text/html \
+  --cache-control 'max-age=0, s-maxage=60'
+curl -sI "https://$DOMAIN/"   # 200・strict-transport-security が付く
+aws s3 rm "s3://$BUCKET/index.html"
+```
+
+### CI からの配置（GitHub Pages と並べて置く）
+
+`.github/workflows/ci-cd.yml` の `build-and-deploy` は、develop への push のたびに、GitHub Pages へ出したのと
+**同じビルド**をこのバケットにも置く。切り替えるまでの本番は GitHub Pages のままで、こちらは CloudFront の
+ドメインでしか見えない。
+
+- repo の Variables `SITE_DEPLOY_ROLE_ARN` / `SITE_BUCKET_NAME` / `SITE_DISTRIBUTION_ID` のどれかが無いときは、
+  warning を出して飛ばす（GitHub Pages への配置は続ける）。
+- ジョブに `id-token: write` を足すため、ジョブの `permissions` で workflow の権限（`contents` / `issues` /
+  `pull-requests` の write）も書き直している（ジョブに書くと workflow の分は引き継がれない）。
+- 置き方はプレビューと同じ「CI がアップロードするときの約束」: ハッシュ付きのファイルは
+  `public, max-age=31536000, immutable`、それ以外は `max-age=0, s-maxage=60`。`.wasm` / `.mjs` / `.hex` は
+  `Content-Type` を明示する。最後に `--delete --size-only` で古いファイルを消す。
+- 本体（`packages/scratch-gui/dist`）はバケットの直下、管理 SPA（`packages/admin/build`）は `admin/` に置く。
+  本体の `--delete` は `admin/*` を除き、管理 SPA の `--delete` は `admin/` の中だけに効く。
+  `.well-known/` などドットで始まるものも置く。GitHub Pages 用の `.nojekyll` と `CNAME` は置かない。
+- 置いたあとに `/*` を invalidation する。
+
+## ホストゾーン `smalruby.app`（prod）
+
+本番のドメイン `smalruby.app` の DNS を、お名前.com から Route 53 へ移すためのゾーン（`docs/hosting/README.md` の段 2）。
+お名前.com のネームサーバーを、このゾーンの NS 4 本に変えるまで（人間が夜間に行う）、誰もこのゾーンを引かない。
+だから作っただけでは、いまの本番には何も起きない。
+
+| 項目 | 値 |
+|---|---|
+| 種類 | パブリックホストゾーン（論理 ID `SiteHostedZone`） |
+| `removalPolicy` | **`RETAIN`** — 作り直すと NS が変わり、お名前.com に登録したネームサーバーと食い違う |
+| Output `SiteHostedZoneNameServers` | NS 4 本（カンマ区切り）。お名前.com のネームサーバーの設定に使う |
+| Output `SiteHostedZoneId` | ホストゾーン ID |
+
+写したレコード（値は `infra/smalruby-web-hosting/lib/site-zone-records.ts`。お名前.com のエクスポートと同じ値）:
+
+| 名前 | 型 | 数 | TTL | 内容 |
+|---|---|---|---|---|
+| `smalruby.app` | A | 4 | 300 | GitHub Pages（185.199.108〜111.153）。お名前.com は 3600 だが、切り替えと戻しを早く効かせるため 300 にする |
+| `smalruby.app` | TXT | 1 | 300 | `google-site-verification=...`（Search Console の所有確認） |
+| `_github-pages-challenge-smalruby.smalruby.app` | TXT | 1 | 3600 | GitHub の組織のドメイン検証。**消さない**（`docs/security/github-pages-subdomain-takeover.md`） |
+| `smalruby.app` | CAA | 6 | 3600 | `issue` amazon.com / amazonaws.com / amazontrust.com / awstrust.com / letsencrypt.org、`issuewild ";"` |
+| `api.smalruby.app` | NS | 4 | 900 | API 群のゾーンへの委任（いまの NS のまま） |
+| `preview.smalruby.app` | NS | 4 | 900 | stg の `PreviewHostedZone` への委任（いまの NS のまま） |
+
+写さないもの: apex の NS / SOA（Route 53 のものになる）、`everdiary.smalruby.app` A（使っていないことを人間が確かめ、お名前.com からも消した）。ワイルドカードは作らない。
+
+- お名前.com 側のレコードを変えたら、ここも同じ値にする（ネームサーバーを変えるまでは両方に書いておく決まり）。
+  照合は `scripts/hosting/dns-compare.mjs`（`docs/hosting/verify-scripts.md`）で、お名前.com のエクスポートと
+  `cdk synth` の結果、または両方のネームサーバーへの問い合わせを比べる。
+- NS の値は末尾に `.` を付けて書く（ゾーン名を足した相対名と読まれないように）。
+- apex の A を CloudFront の ALIAS に変えるのは別の変更（本番の向き先が変わるので、人間が夜間にマージする）。
+
+NS はデプロイ後に次で確認する:
+
+```bash
+aws cloudformation describe-stacks --stack-name SmalrubyWebHostingStack \
+  --query "Stacks[0].Outputs[?starts_with(OutputKey, 'SiteHostedZone')]" --output table
+```
+
+### `smalruby.app` のゾーンを作り直すとき（RETAIN の後始末）
+
+考え方は上の「ゾーンを作り直すとき」（`preview.smalruby.app`）と同じ。作り直さないのが基本
+（論理 ID `SiteHostedZone`・スタック名 `SmalrubyWebHostingStack`・ゾーン名を変えない）。やむを得ないときは、
+まず同名のゾーンがいくつあるかを確かめる:
+
+```bash
+aws route53 list-hosted-zones-by-name --dns-name smalruby.app \
+  --query "HostedZones[?Name=='smalruby.app.'].[Id,Config.Comment]" --output table
+```
+
+**注意**: `RETAIN` なのはゾーンだけで、レコードは `DESTROY`。NS を切り替えたあとにスタックを消すと、apex の A と `api.` / `preview.` の委任が消えて smalruby.app が止まる。作り直すときは、ゾーンを `cdk import` で取り込んでから deploy する。
+
+そのうえで次のどちらかを選ぶ（どちらも人間が手元で行う）。
+
+- **残ったゾーンを取り込む（NS が変わらない。こちらを優先）**: スタックが無い状態で
+  `npx cdk import --context stage=prod` を実行し、`SiteHostedZone` に残ったゾーンの ID を渡す。
+  お名前.com のネームサーバーはそのままでよい。
+- **残ったゾーンを消して作り直す（NS が変わる）**: お名前.com のネームサーバーをまだ変えていないときだけ選ぶ。
+  変えたあとに消すと、`smalruby.app` も `api.` / `preview.` も引けなくなる。残ったゾーンの NS / SOA 以外の
+  レコードを消してからゾーンを消し、`Deploy Infra` で出し直す。新しい NS 4 本（Output `SiteHostedZoneNameServers`）を
+  使う。
+
 ## CI のプレビュー
 
 | 何を | どこで |
@@ -232,13 +368,11 @@ bin/gh-admin secret set INFRA_PROD_DOTENV_SMALRUBY_WEB_HOSTING --env prod < infr
 Secrets が無いままマージすると、`Deploy Infra` のこのプロジェクトのジョブだけが「何を登録すべきか」を
 示して失敗する（ほかのプロジェクトは進む）。
 
-### prod の初回デプロイ
+### prod のデプロイ
 
-prod のテンプレートは `AWS::CDK::Metadata` だけの空のスタック。prod にはまだスタックが無いので、初回の
-`cdk diff` は `BootstrapVersion` パラメータの追加を差分として出す（`AWS::CDK::Metadata` は diff から
-除かれるが、パラメータは除かれない）。そのため初回の自動デプロイは**空のスタック
-`SmalrubyWebHostingStack` を作り**、2 回目からは「差分なし」で何もしない。どちらの場合も削除・置き換えは
-含まないので、prod の自動デプロイは止まらず、prod にプレビュー用のリソースはできない。
+prod には本番の配信基盤（上の「本番の配信基盤（prod）」）と `smalruby.app` のゾーンがある。追加だけの差分なので、develop への
+マージで `Deploy Infra` が自動で出す。削除・置き換えを含む差分は自動では出ず、人間が確かめて手元から出す。
+prod にプレビュー用のリソースはできない。
 
 
 ## テスト
@@ -254,7 +388,11 @@ npx cdk synth --context stage=prod
 テストは「stg にゾーンがあり `RETAIN`・論理 ID が変わらない」「NS と ID を Output」
 「バケットが非公開・SSL 必須・ライフサイクルあり」「証明書が us-east-1」「CloudFront が OAC・
 代替ドメイン・viewer-request 関数つき」「ALIAS にワイルドカードが無い」「CI 用ロールの信頼と権限が
-最小」「prod / stg2 には何も作らない」を確かめる。`test/preview-viewer-request.test.ts` は
+最小」「prod にはプレビュー用の資源が無く、本番の配信基盤（非公開・バージョニングあり・いまの版を消さない・
+独自ドメインも証明書も無い・develop だけを信頼するロール）と、アクセスログのバケット（非公開・暗号化・
+保持期間で消える・CI 用ロールから触れない）がある」「stg2 には何も作らない」を確かめる。`test/site-zone.test.ts` は「prod に `smalruby.app` のゾーンが 1 つあり `RETAIN`・論理 ID が変わらない」「写した
+レコードがお名前.com の値と同じ（apex の A だけ TTL 300）」「apex の NS / SOA・`everdiary`・ワイルドカードが無い」
+「stg / stg2 にはこのゾーンが無い」を確かめる。`test/preview-viewer-request.test.ts` は
 CloudFront Function の実コードを評価して URI の書き換えを確かめる。
 
 CI（`.github/workflows/ci-infra.yml` の `[web-hosting] Unit Tests` / `CDK Build & Synth` /
@@ -265,9 +403,11 @@ CI（`.github/workflows/ci-infra.yml` の `[web-hosting] Unit Tests` / `CDK Buil
 | ファイル | 役割 |
 |---|---|
 | `infra/smalruby-web-hosting/bin/smalruby-web-hosting.ts` | エントリポイント。stage とスタック名を決める |
-| `infra/smalruby-web-hosting/lib/web-hosting-stack.ts` | スタック本体（ホストゾーン・配信基盤・CI 用ロール） |
-| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | CloudFront Function（`/<slug>/` → `index.html`） |
+| `infra/smalruby-web-hosting/lib/web-hosting-stack.ts` | スタック本体（stg: ホストゾーン・プレビューの配信基盤・CI 用ロール / prod: 本番の配信基盤 `createSiteDelivery()`・ゾーン `createSiteZone()`） |
+| `infra/smalruby-web-hosting/lib/site-zone-records.ts` | `smalruby.app` のゾーンに写すレコードの値（お名前.com と同じ） |
+| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | CloudFront Function（ディレクトリの URL → `index.html`）。プレビューと本番で共用 |
 | `infra/smalruby-web-hosting/test/web-hosting.test.ts` | スタックのテスト |
+| `infra/smalruby-web-hosting/test/site-zone.test.ts` | `smalruby.app` のゾーンのテスト（写したレコードの一覧・`RETAIN`・prod だけに作る） |
 | `infra/smalruby-web-hosting/test/preview-viewer-request.test.ts` | CloudFront Function のテスト |
 | `.github/workflows/ci-cd.yml`（`preview-deploy`） | プレビューを stg の値でビルドして置く |
 | `.github/workflows/preview-cleanup.yml` | プレビューの片付け |

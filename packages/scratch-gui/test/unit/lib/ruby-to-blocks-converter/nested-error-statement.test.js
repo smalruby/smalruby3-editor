@@ -5,6 +5,7 @@
 // expression that failed, and a statement on more lines quotes the expression (issue #1704).
 import RubyParser from '../../../../src/lib/ruby-parser';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
+import { nodeTypeName } from '../../../../src/lib/ruby-to-blocks-converter/node-walk';
 
 const convert = async (code) => {
     const converter = new RubyToBlocksConverter(null, { version: '2' });
@@ -103,7 +104,7 @@ describe('RubyToBlocksConverter/an error inside an expression quotes the stateme
             converter._context.rootNode = root;
             const findWait = (node) => {
                 if (!node) return null;
-                if (converter._getNodeTypeName(node) === 'CallNode' && node.name === 'wait') return node;
+                if (nodeTypeName(node) === 'CallNode' && node.name === 'wait') return node;
                 for (const child of node.childNodes()) {
                     const found = findWait(child);
                     if (found) return found;

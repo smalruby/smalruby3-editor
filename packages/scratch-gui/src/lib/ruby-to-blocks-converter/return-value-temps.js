@@ -1,5 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (return values saved in instance variables, issue #1725) ===
 import _ from 'lodash';
+import { rubyMethodNameOfProccode } from '../ruby-method-name';
 import { RubyToBlocksConverterError } from './errors';
 import { myBlocksMessages } from './my-blocks';
 
@@ -27,7 +28,7 @@ const ReturnValueTemps = {
      * @param {object} methodBlock - The method block that is put before the statement.
      */
     _recordReturnValueSource(returnValueBlock, methodBlock) {
-        if (!this._context.returnValueSources) this._context.returnValueSources = {};
+        if (!this._context.returnValueSources) this._context.returnValueSources = Object.create(null);
         this._context.returnValueSources[returnValueBlock.id] = methodBlock.id;
     },
 
@@ -200,7 +201,7 @@ const ReturnValueTemps = {
      */
     _procedureNameOfCall(block) {
         const proccode = (block.mutation && block.mutation.proccode) || '';
-        return proccode.split(' ')[0];
+        return rubyMethodNameOfProccode(proccode);
     },
 
     /**

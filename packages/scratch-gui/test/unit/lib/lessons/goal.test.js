@@ -220,6 +220,58 @@ describe('uses', () => {
         expect(satisfied(goal, facts)).toBe(true);
     });
 
+    // メッシュでほかのノード（練習相手）から届いた合図は「送る」のブロックを通らないので、送り手が記録されない（#1645）
+    test('sentBy remote requires a message that no script of this project sent', () => {
+        const goal = [
+            {
+                type: 'uses',
+                trigger: { hat: 'event_whenbroadcastreceived', message: 'シマネコがよんだ', sentBy: 'remote' },
+                blocks: ['looks_sayforsecs'],
+            },
+        ];
+        const facts = createFacts();
+        run(facts, clicked, [['event_broadcast', { BROADCAST_OPTION: 'シマネコがよんだ' }]], {
+            targetId: 'shimacat',
+            isStage: false,
+        });
+        run(facts, received('シマネコがよんだ'), [['looks_sayforsecs', { MESSAGE: '既読', SECS: 2 }]], {
+            targetId: 'shimaraby',
+            isStage: false,
+        });
+        expect(satisfied(goal, facts)).toBe(false);
+        const fromPartner = createFacts();
+        run(fromPartner, received('シマネコがよんだ'), [['looks_sayforsecs', { MESSAGE: '既読', SECS: 2 }]], {
+            targetId: 'shimaraby',
+            isStage: false,
+        });
+        expect(satisfied(goal, fromPartner)).toBe(true);
+    });
+
+    test('uses with not looks at the newest run of the trigger only (#1645)', () => {
+        const goal = [
+            {
+                type: 'uses',
+                not: true,
+                trigger: { hat: 'event_whenflagclicked' },
+                blocks: [{ opcode: 'data_setvariableto', args: { VALUE: /^ばか$/ } }],
+            },
+        ];
+        const facts = createFacts();
+        expect(satisfied(goal, facts)).toBe(true);
+        run(facts, flag, [['data_setvariableto', { VARIABLE: 'シマラビのメッセージ', VALUE: 'こんにちは' }]]);
+        expect(satisfied(goal, facts)).toBe(true);
+        run(facts, flag, [['data_setvariableto', { VARIABLE: 'シマラビのメッセージ', VALUE: 'ばか' }]]);
+        expect(satisfied(goal, facts)).toBe(false);
+        // ほかのきっかけの実行は見ない
+        run(facts, clicked, [['data_setvariableto', { VARIABLE: 'シマラビのメッセージ', VALUE: 'やあ' }]]);
+        expect(satisfied(goal, facts)).toBe(false);
+        // 直して旗を押し直した（新しい実行）
+        run(facts, flag, [['data_setvariableto', { VARIABLE: 'シマラビのメッセージ', VALUE: 'またね' }]]);
+        expect(satisfied(goal, facts)).toBe(true);
+        expect(validateGoal([{ ...goal[0], not: 'yes' }])).toEqual(['goal[0]: uses.not must be true or false']);
+        expect(validateGoal([{ type: 'said', text: 'a', not: true }])).toEqual(['goal[0]: not is only for uses']);
+    });
+
     test('sentBy other also counts the mesh broadcast-with-value block as the sender', () => {
         const goal = [
             {
@@ -253,6 +305,43 @@ describe('uses', () => {
         expect(satisfied(goal, facts)).toBe(false);
         run(facts, received('Hello'), [['looks_say', { MESSAGE: 'x' }]]);
         expect(satisfied(goal, facts)).toBe(true);
+    });
+
+    test('message trigger can be a list of names (either role of a pair, any locale)', () => {
+        const goal = [
+            {
+                type: 'uses',
+                trigger: {
+                    hat: 'event_whenbroadcastreceived',
+                    message: ['シマネコのメッセージ', 'シマラビのメッセージ', 'shimacat_message'],
+                },
+                blocks: ['looks_say'],
+            },
+        ];
+        const facts = createFacts();
+        run(facts, received('ほかのメッセージ'), [['looks_say', { MESSAGE: 'x' }]]);
+        expect(satisfied(goal, facts)).toBe(false);
+        // シマネコの役の人は、名前を入れかえて「シマラビのメッセージ」を受け取る
+        run(facts, received('シマラビのメッセージ'), [['looks_say', { MESSAGE: 'x' }]]);
+        expect(satisfied(goal, facts)).toBe(true);
+
+        const en = createFacts();
+        run(en, received('Shimacat_Message'), [['looks_say', { MESSAGE: 'x' }]]);
+        expect(satisfied(goal, en)).toBe(true);
+    });
+
+    test('validateGoal accepts a message name or a list of names and rejects anything else', () => {
+        const uses = (message) => [
+            { type: 'uses', trigger: { hat: 'event_whenbroadcastreceived', message }, blocks: ['looks_say'] },
+        ];
+        expect(validateGoal(uses('hello'))).toEqual([]);
+        expect(validateGoal(uses(['hello', 'こんにちは']))).toEqual([]);
+        expect(validateGoal(uses([]))).toEqual([
+            'goal[0]: trigger.message must be a message name or an array of names',
+        ]);
+        expect(validateGoal(uses([1]))).toEqual([
+            'goal[0]: trigger.message must be a message name or an array of names',
+        ]);
     });
 
     test('keeps only the newest runs so a long session stays bounded', () => {
@@ -308,6 +397,57 @@ describe('said', () => {
         expect(satisfied([{ type: 'said', equalsVariable: '回数' }], facts)).toBe(false);
         recordSay(facts, { targetId: 'cat', text: 3, variables: { 回数: 3 } });
         expect(satisfied([{ type: 'said', equalsVariable: '回数' }], facts)).toBe(true);
+    });
+
+    // 言った時点の変数の値（「くじが 1 のとき大吉」）と、変数と答えが同じか（「同じならあいこ」）を見る（#1642）
+    test('variable checks the variable value at the time it was said', () => {
+        const facts = createFacts();
+        const big = [{ type: 'said', text: '大吉', variable: { name: ['くじ', 'fortune'], value: 1 } }];
+        recordSay(facts, { targetId: 'cat', text: '大吉', variables: { くじ: 2 } });
+        expect(satisfied(big, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: '小吉', variables: { くじ: 1 } });
+        expect(satisfied(big, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: '大吉', variables: { fortune: 1 } });
+        expect(satisfied(big, facts)).toBe(true);
+        // 変数が無ければ合わない
+        expect(satisfied([{ type: 'said', text: '大吉', variable: { name: 'ない', value: 1 } }], facts)).toBe(false);
+    });
+
+    test('variable.equalsAnswer compares the variable with the last answer (true: same, false: different)', () => {
+        const same = [{ type: 'said', text: 'あいこ', variable: { name: '手', equalsAnswer: true } }];
+        const differ = [{ type: 'said', text: '勝負あり', variable: { name: '手', equalsAnswer: false } }];
+        const facts = createFacts();
+        // まだ答えていなければどちらも合わない
+        recordSay(facts, { targetId: 'cat', text: 'あいこ', variables: { 手: 0 } });
+        recordSay(facts, { targetId: 'cat', text: '勝負あり', variables: { 手: 0 } });
+        expect(satisfied(same, facts)).toBe(false);
+        expect(satisfied(differ, facts)).toBe(false);
+        recordAnswer(facts, '1');
+        recordSay(facts, { targetId: 'cat', text: 'あいこ', variables: { 手: 0 } });
+        recordSay(facts, { targetId: 'cat', text: '勝負あり', variables: { 手: 1 } });
+        expect(satisfied(same, facts)).toBe(false);
+        expect(satisfied(differ, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: 'あいこ', variables: { 手: 1 } });
+        recordSay(facts, { targetId: 'cat', text: '勝負あり', variables: { 手: 2 } });
+        expect(satisfied(same, facts)).toBe(true);
+        expect(satisfied(differ, facts)).toBe(true);
+    });
+
+    test('validateGoal checks said.variable', () => {
+        expect(validateGoal([{ type: 'said', variable: { name: ['くじ', 'fortune'], value: { ne: 1 } } }])).toEqual(
+            [],
+        );
+        expect(validateGoal([{ type: 'said', variable: { name: '手', equalsAnswer: false } }])).toEqual([]);
+        expect(validateGoal([{ type: 'said', variable: { name: '手' } }])).toEqual([
+            'goal[0]: said.variable needs value or equalsAnswer',
+        ]);
+        expect(validateGoal([{ type: 'said', variable: { value: 1 } }])).toEqual([
+            'goal[0]: said.variable needs a variable name or an array of names',
+        ]);
+        expect(validateGoal([{ type: 'said', variable: { name: '手', value: [1], equalsAnswer: 'yes' } }])).toEqual([
+            'goal[0]: said.variable.value must be a matcher',
+            'goal[0]: said.variable.equalsAnswer must be true or false',
+        ]);
     });
 
     test('target restricts who said it', () => {
@@ -458,6 +598,87 @@ describe('variable names given as a list (ja-Hira writes 「かいすう」)', (
     });
 });
 
+describe('said.trigger and variable.target (#1643)', () => {
+    test('said.trigger needs the line to be said by a script started by that trigger', () => {
+        const facts = createFacts();
+        const send = run(facts, flag, [['event_broadcast', { BROADCAST_OPTION: 'm' }]], { targetId: 'rabbit' });
+        const got = run(facts, received('m'), [['looks_sayforsecs']], { targetId: 'cat' });
+        const goal = [
+            { type: 'said', text: 'hello', trigger: { hat: 'event_whenbroadcastreceived', sentBy: 'other' } },
+        ];
+        // 送った側が自分で言っても通らない
+        recordSay(facts, { targetId: 'rabbit', text: 'hello', run: send });
+        expect(satisfied(goal, facts)).toBe(false);
+        // 言ったスクリプトが分からない（run が無い）ときも通らない
+        recordSay(facts, { targetId: 'cat', text: 'hello' });
+        expect(satisfied(goal, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: 'hello', run: got });
+        expect(satisfied(goal, facts)).toBe(true);
+    });
+
+    test('variable.target "stage" looks only at the variables for all sprites', () => {
+        const goal = [{ type: 'variable', name: ['気分', 'mood'], target: 'stage', value: /^うれしい$/ }];
+        const local = { name: '気分', type: '', value: 'うれしい', isStage: false };
+        const global = { name: 'mood', type: '', value: 'うれしい', isStage: true };
+        expect(satisfied(goal, createFacts(), snapshot({ variables: [local] }))).toBe(false);
+        expect(satisfied(goal, createFacts(), snapshot({ variables: [local, global] }))).toBe(true);
+        const spriteGoal = [{ ...goal[0], target: 'sprite' }];
+        expect(satisfied(spriteGoal, createFacts(), snapshot({ variables: [local] }))).toBe(true);
+    });
+
+    test('validateGoal checks said.trigger and variable.target', () => {
+        expect(validateGoal([{ type: 'said', text: 'a', trigger: { sentBy: 'me' } }])).toEqual([
+            "goal[0]: trigger.sentBy must be 'other' or 'remote'",
+        ]);
+        expect(validateGoal([{ type: 'variable', name: 'a', target: 'all' }])).toEqual([
+            "goal[0]: variable.target must be 'stage' or 'sprite'",
+        ]);
+        expect(
+            validateGoal([
+                { type: 'said', text: 'a', trigger: { hat: 'event_whenbroadcastreceived', message: ['x'] } },
+                { type: 'variable', name: 'a', target: 'stage' },
+            ]),
+        ).toEqual([]);
+    });
+});
+
+describe('an opcode list and said.remoteValue (#1643)', () => {
+    test('a block entry may be any of a list of opcodes', () => {
+        const facts = createFacts();
+        const goal = [
+            {
+                type: 'uses',
+                trigger: { hat: 'event_whenkeypressed', key: 'space' },
+                blocks: [
+                    { opcode: ['event_broadcast', 'meshV2_broadcastWithValue'], args: { BROADCAST_OPTION: 'a' } },
+                ],
+            },
+        ];
+        run(facts, key('space'), [['event_broadcast', { BROADCAST_OPTION: 'b' }]]);
+        expect(satisfied(goal, facts)).toBe(false);
+        run(facts, key('space'), [['meshV2_broadcastWithValue', { BROADCAST_OPTION: 'a', VALUE: 'x' }]]);
+        expect(satisfied(goal, facts)).toBe(true);
+        expect(validateGoal(goal)).toEqual([]);
+        expect(validateGoal([{ type: 'uses', blocks: [{ opcode: [] }] }])).toEqual([
+            'goal[0].blocks[0]: opcode is required',
+        ]);
+    });
+
+    test('said.remoteValue needs the line to be a value that came from another node', () => {
+        const facts = createFacts();
+        const goal = [{ type: 'said', text: /^(うれしい|ねむい)$/, remoteValue: true }];
+        recordSay(facts, { targetId: 'cat', text: 'ねむい', remoteValues: ['うれしい'] });
+        expect(satisfied(goal, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: 'うれしい' });
+        expect(satisfied(goal, facts)).toBe(false);
+        recordSay(facts, { targetId: 'cat', text: 'うれしい', remoteValues: ['ねむい', 'うれしい'] });
+        expect(satisfied(goal, facts)).toBe(true);
+        expect(validateGoal([{ type: 'said', text: 'a', remoteValue: 'yes' }])).toEqual([
+            'goal[0]: said.remoteValue must be true or false',
+        ]);
+    });
+});
+
 describe('validateGoal', () => {
     test('accepts well-formed goals', () => {
         expect(
@@ -481,11 +702,11 @@ describe('validateGoal', () => {
             { type: 'extension' },
         ]);
         expect(errors).toEqual([
-            'goal[0]: type must be one of uses, said, variable, list, sprites, costumes, extension',
+            'goal[0]: type must be one of uses, said, variable, list, sprites, costumes, extension, moved, currentCostume, tab, partQuiz',
             'goal[1]: uses.blocks must be a non-empty array',
             'goal[2].blocks[0]: opcode is required',
             "goal[2]: trigger.target must be 'stage' or 'sprite'",
-            'goal[3]: said needs text, equalsAnswer, equalsVariable or answer',
+            'goal[3]: said needs text, equalsAnswer, equalsVariable, answer or variable',
             'goal[4]: variable.name is required',
             'goal[5]: sprites.min must be a positive integer',
             'goal[6]: costumes.added must be a positive integer',
@@ -509,15 +730,10 @@ describe('lesson 1 goals can be written in this shape', () => {
                 {
                     type: 'uses',
                     trigger: { hat: 'event_whenkeypressed', key: 'space' },
-                    blocks: ['sound_playuntildone', 'sound_play'],
-                    order: ['sound_playuntildone', 'sound_play'],
+                    blocks: [{ opcode: ['sound_playuntildone', 'sound_play'] }],
                 },
             ],
-            play: (facts) =>
-                run(facts, key('space'), [
-                    ['sound_playuntildone', { SOUND_MENU: 'ニャー' }],
-                    ['sound_play', { SOUND_MENU: 'Owl' }],
-                ]),
+            play: (facts) => run(facts, key('space'), [['sound_playuntildone', { SOUND_MENU: 'ニャー' }]]),
         },
         {
             id: 'blocks-l1-arrow-move',
@@ -718,4 +934,192 @@ describe('lesson 1 goals can be written in this shape', () => {
             expect(evaluateGoal(goal, facts, snap || snapshot()).satisfied).toBe(true);
         },
     );
+});
+
+describe('variable.fromAnswer and variable.includesVariable (#1644)', () => {
+    const v = (name, value, isStage = true) => ({ name, type: '', value, isStage });
+
+    test('fromAnswer needs the value to be one of the answers (not a made variable or a fixed text)', () => {
+        const goal = [{ type: 'variable', name: ['メッセージ', 'message'], target: 'stage', fromAnswer: true }];
+        const facts = createFacts();
+        // 作っただけの変数（0）
+        expect(satisfied(goal, facts, snapshot({ variables: [v('メッセージ', 0)] }))).toBe(false);
+        // 入力していない文字
+        recordAnswer(facts, 'hello');
+        expect(satisfied(goal, facts, snapshot({ variables: [v('メッセージ', 'こんにちは')] }))).toBe(false);
+        expect(satisfied(goal, facts, snapshot({ variables: [v('message', 'hello')] }))).toBe(true);
+        // 空の答えは入れたことにしない
+        recordAnswer(facts, '');
+        expect(satisfied(goal, facts, snapshot({ variables: [v('メッセージ', '')] }))).toBe(false);
+    });
+
+    test('includesVariable needs the value to contain the (non-empty) value of the other variable', () => {
+        const goal = [{ type: 'variable', name: 'メッセージ', value: /：/, includesVariable: ['なまえ', 'name'] }];
+        const facts = createFacts();
+        const message = v('メッセージ', 'たろう：やあ');
+        expect(satisfied(goal, facts, snapshot({ variables: [message] }))).toBe(false);
+        expect(satisfied(goal, facts, snapshot({ variables: [message, v('なまえ', 'じろう')] }))).toBe(false);
+        expect(satisfied(goal, facts, snapshot({ variables: [message, v('なまえ', '')] }))).toBe(false);
+        expect(satisfied(goal, facts, snapshot({ variables: [message, v('name', 'たろう', false)] }))).toBe(true);
+    });
+
+    test('validateGoal checks fromAnswer and includesVariable', () => {
+        expect(
+            validateGoal([
+                { type: 'variable', name: 'a', fromAnswer: 'yes' },
+                { type: 'variable', name: 'a', includesVariable: 3 },
+            ]),
+        ).toEqual([
+            'goal[0]: variable.fromAnswer must be true or false',
+            'goal[1]: variable.includesVariable must be a variable name or an array of names',
+        ]);
+        expect(validateGoal([{ type: 'variable', name: 'a', fromAnswer: true, includesVariable: ['b'] }])).toEqual(
+            [],
+        );
+    });
+});
+
+describe('lesson 0 conditions: clicks, moved, currentCostume, tab, partQuiz (#2134)', () => {
+    const paletteClick = { hat: 'motion_movesteps', fields: {}, stackClick: true, palette: true };
+    const areaClick = { hat: 'motion_movesteps', fields: {}, stackClick: true };
+    const move = ['motion_movesteps', { STEPS: 10 }];
+    const turn = ['motion_turnright', { DEGREES: 15 }];
+
+    test('trigger.click: palette counts only the blocks clicked in the palette', () => {
+        const goal = [{ type: 'uses', trigger: { click: 'palette' }, blocks: ['motion_movesteps'] }];
+        const facts = createFacts();
+        run(facts, areaClick, [move]);
+        run(facts, flag, [move]);
+        expect(evaluateGoal(goal, facts, snapshot()).satisfied).toBe(false);
+        run(facts, paletteClick, [move]);
+        expect(evaluateGoal(goal, facts, snapshot()).satisfied).toBe(true);
+    });
+
+    test('trigger.click: codeArea counts only the scripts clicked in the code area', () => {
+        const goal = [{ type: 'uses', trigger: { click: 'codeArea' }, blocks: ['motion_movesteps'] }];
+        const facts = createFacts();
+        run(facts, paletteClick, [move]);
+        expect(evaluateGoal(goal, facts, snapshot()).satisfied).toBe(false);
+        run(facts, areaClick, [move]);
+        expect(evaluateGoal(goal, facts, snapshot()).satisfied).toBe(true);
+    });
+
+    test('trigger.click: any counts clicks and hat scripts; without click, clicks do not count', () => {
+        const any = [{ type: 'uses', trigger: { click: 'any' }, blocks: ['motion_movesteps'] }];
+        const none = [{ type: 'uses', blocks: ['motion_movesteps'] }];
+        const clicks = createFacts();
+        run(clicks, paletteClick, [move]);
+        expect(evaluateGoal(any, clicks, snapshot()).satisfied).toBe(true);
+        expect(evaluateGoal(none, clicks, snapshot()).satisfied).toBe(false);
+        const hats = createFacts();
+        run(hats, flag, [move]);
+        expect(evaluateGoal(any, hats, snapshot()).satisfied).toBe(true);
+    });
+
+    test('together: all the blocks ran in one run (they are snapped)', () => {
+        const goal = [
+            {
+                type: 'uses',
+                trigger: { click: 'codeArea' },
+                blocks: ['motion_movesteps', 'motion_turnright'],
+                together: true,
+            },
+        ];
+        const apart = createFacts();
+        run(apart, areaClick, [move]);
+        run(apart, { ...areaClick, hat: 'motion_turnright' }, [turn]);
+        expect(evaluateGoal(goal, apart, snapshot()).satisfied).toBe(false);
+        // together が無ければ、別々の実行でもよい（いまの決まり）
+        expect(evaluateGoal([{ ...goal[0], together: false }], apart, snapshot()).satisfied).toBe(true);
+        const snapped = createFacts();
+        run(snapped, areaClick, [move, turn]);
+        expect(evaluateGoal(goal, snapped, snapshot()).satisfied).toBe(true);
+    });
+
+    test('moved: a sprite is away from where it was when the watch began', () => {
+        const goal = [{ type: 'moved' }];
+        const base = { baselinePositions: { cat: { x: 0, y: 0 } } };
+        expect(
+            evaluateGoal(goal, createFacts(), snapshot({ ...base, positions: { cat: { x: 0, y: 0 } } })).satisfied,
+        ).toBe(false);
+        expect(
+            evaluateGoal(goal, createFacts(), snapshot({ ...base, positions: { cat: { x: 30, y: -40 } } })).satisfied,
+        ).toBe(true);
+        // 後から足したスプライトは見ない
+        expect(
+            evaluateGoal(
+                goal,
+                createFacts(),
+                snapshot({ ...base, positions: { cat: { x: 0, y: 0 }, dog: { x: 9, y: 9 } } }),
+            ).satisfied,
+        ).toBe(false);
+        expect(
+            evaluateGoal(
+                [{ type: 'moved', min: 60 }],
+                createFacts(),
+                snapshot({ ...base, positions: { cat: { x: 30, y: 40 } } }),
+            ).satisfied,
+        ).toBe(false);
+    });
+
+    test('currentCostume: number (1 from the first) and changed', () => {
+        const at = (cat, stage) =>
+            snapshot({
+                baselineCostumes: {
+                    cat: { isStage: false, count: 2, current: 0 },
+                    stage: { isStage: true, count: 1, current: 0 },
+                },
+                costumes: {
+                    cat: { isStage: false, count: 2, current: cat },
+                    stage: { isStage: true, count: 2, current: stage },
+                },
+            });
+        const second = [{ type: 'currentCostume', number: 2 }];
+        expect(evaluateGoal(second, createFacts(), at(0, 0)).satisfied).toBe(false);
+        expect(evaluateGoal(second, createFacts(), at(1, 0)).satisfied).toBe(true);
+        const backdrop = [{ type: 'currentCostume', target: 'stage', changed: true }];
+        expect(evaluateGoal(backdrop, createFacts(), at(1, 0)).satisfied).toBe(false);
+        expect(evaluateGoal(backdrop, createFacts(), at(0, 1)).satisfied).toBe(true);
+    });
+
+    test('tab and partQuiz look at the editor screen (snapshot.ui)', () => {
+        expect(evaluateGoal([{ type: 'tab', tab: 'code' }], createFacts(), snapshot()).satisfied).toBe(false);
+        expect(
+            evaluateGoal([{ type: 'tab', tab: 'code' }], createFacts(), snapshot({ ui: { activeTab: 'code' } }))
+                .satisfied,
+        ).toBe(true);
+        const quiz = [{ type: 'partQuiz', count: 5 }];
+        expect(evaluateGoal(quiz, createFacts(), snapshot({ ui: { partQuizSolved: 4 } })).satisfied).toBe(false);
+        expect(evaluateGoal(quiz, createFacts(), snapshot({ ui: { partQuizSolved: 5 } })).satisfied).toBe(true);
+    });
+
+    test('validateGoal checks the new conditions', () => {
+        expect(
+            validateGoal([
+                { type: 'uses', trigger: { click: 'menu' }, blocks: ['motion_movesteps'] },
+                { type: 'uses', blocks: ['motion_movesteps'], together: 'yes' },
+                { type: 'moved', min: 0 },
+                { type: 'currentCostume' },
+                { type: 'currentCostume', number: 0, changed: true },
+                { type: 'tab', tab: 'ruby' },
+                { type: 'partQuiz' },
+            ]),
+        ).toEqual([
+            'goal[0]: trigger.click must be one of palette, codeArea, any',
+            'goal[1]: uses.together must be true or false',
+            'goal[2]: moved.min must be a positive number',
+            'goal[3]: currentCostume needs number or changed',
+            'goal[4]: currentCostume.number must be a positive integer',
+            'goal[5]: tab.tab must be one of code, costumes, sounds',
+            'goal[6]: partQuiz.count must be a positive integer',
+        ]);
+        expect(
+            validateGoal([
+                { type: 'moved' },
+                { type: 'currentCostume', target: 'stage', changed: true },
+                { type: 'tab', tab: 'code' },
+                { type: 'partQuiz', count: 5 },
+            ]),
+        ).toEqual([]);
+    });
 });
