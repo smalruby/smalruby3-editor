@@ -512,6 +512,7 @@ test/unit/*
 !test/unit/make-toolbox-xml-hex.test.js
 !test/unit/only-blocks-initialization.test.js
 !test/unit/setup.js
+!test/unit/standard-assignments.test.js
 
 # Level 3: test/unit/components/*
 test/unit/components/*
