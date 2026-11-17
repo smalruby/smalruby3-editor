@@ -1,5 +1,5 @@
-// 「なまえ」の札（#2133）。画面の部分（タブ・パレット・コードエリア・ステージ・旗と止める・スプライトリスト・背景・
-// 課題バー・ヒント）を枠で囲み、名前の札を重ねて出す。部分の探し方と札の置き方は lib/lessons/part-names.js。
+// 「なまえ」の札（#2133）。画面の部分（タブ・ブロックパレット・スクリプトエリア・ステージ・緑の旗と停止ボタン・
+// スプライトペイン・背景・課題バー・ヒント）を枠で囲み、名前の札を重ねて出す。部分の探し方と札の置き方は lib/lessons/part-names.js。
 // 札も枠も pointer-events を通すので、出したままでもドラッグやクリックを邪魔しない（レッスン 0 は最初から出す）。
 // 課題バーの「なまえ」で出したときは、数秒たつか、どこかを押すか、Esc で消す（押した操作はそのまま下に届く）。
 // document.body への portal で出し、部分の場所が変わる（タブを切りかえる・画面の大きさが変わる）のに合わせて置き直す。
@@ -41,25 +41,30 @@ const messages = defineMessages({
         description: 'Name tag on the Sounds tab',
         defaultMessage: 'Sounds tab',
     },
+    rubyTab: {
+        id: 'gui.lessonPartNames.rubyTab',
+        description: 'Name tag on the Ruby tab',
+        defaultMessage: 'Ruby tab',
+    },
     greenFlag: {
         id: 'gui.lessonPartNames.greenFlag',
         description: 'Name tag on the green flag button',
-        defaultMessage: 'Green flag',
+        defaultMessage: 'Green Flag',
     },
     stop: {
         id: 'gui.lessonPartNames.stop',
         description: 'Name tag on the stop button',
-        defaultMessage: 'Stop',
+        defaultMessage: 'Stop Button',
     },
     palette: {
         id: 'gui.lessonPartNames.palette',
         description: 'Name tag on the block palette',
-        defaultMessage: 'Palette',
+        defaultMessage: 'Block Palette',
     },
     codeArea: {
         id: 'gui.lessonPartNames.codeArea',
-        description: 'Name tag on the code area (the block workspace)',
-        defaultMessage: 'Code area',
+        description: 'Name tag on the code area (the block workspace; "Code Area" on the Scratch Wiki)',
+        defaultMessage: 'Code Area',
     },
     stage: {
         id: 'gui.lessonPartNames.stage',
@@ -68,8 +73,8 @@ const messages = defineMessages({
     },
     spriteList: {
         id: 'gui.lessonPartNames.spriteList',
-        description: 'Name tag on the sprite list',
-        defaultMessage: 'Sprite list',
+        description: 'Name tag on the sprite pane, with a short note on what it is for',
+        defaultMessage: 'Sprite Pane (choose a sprite here)',
     },
     backdrop: {
         id: 'gui.lessonPartNames.backdrop',

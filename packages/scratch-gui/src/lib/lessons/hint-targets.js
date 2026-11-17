@@ -13,9 +13,10 @@ export const HINT_TARGETS = Object.freeze({
     BACKDROP: 'backdrop',
     EXTENSION_BUTTON: 'extension-button',
     GREEN_FLAG: 'green-flag',
-    // 「なまえ」の札（lib/lessons/part-names.js）でも使う場所。止めるボタン・コードタブ・課題バー・ヒントのボタン（#2133）
+    // 「なまえ」の札（lib/lessons/part-names.js）でも使う場所。停止ボタン・コードタブ・ルビータブ・課題バー・ヒントのボタン（#2133）
     STOP_BUTTON: 'stop-button',
     CODE_TAB: 'code-tab',
+    RUBY_TAB: 'ruby-tab',
     TASK_BAR: 'task-bar',
     HINT_BUTTON: 'hint-button',
     // メッシュの練習相手のパネル（閉じているときは小さな「練習相手」のボタン）
@@ -97,6 +98,11 @@ const TARGET_SPECS = {
     },
     [HINT_TARGETS.CODE_TAB]: {
         selectors: ['[data-testid="mobile-side-rail-code"]', '[class*="gui_tab_"]:nth-child(1)'],
+        sides: [HINT_SIDES.BOTTOM, HINT_SIDES.RIGHT],
+    },
+    [HINT_TARGETS.RUBY_TAB]: {
+        // ルビータブは Smalruby が足した 4 つめのタブ（gui.jsx の「Start of ruby tab」）。SP はサイドレールのボタン
+        selectors: ['[data-testid="mobile-side-rail-ruby"]', '[class*="gui_tab_"]:nth-child(4)'],
         sides: [HINT_SIDES.BOTTOM, HINT_SIDES.RIGHT],
     },
     [HINT_TARGETS.TASK_BAR]: {

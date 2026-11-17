@@ -117,6 +117,23 @@ describe('findHintTargetRect', () => {
         expect(findHintTargetRect(HINT_TARGETS.SOUNDS_TAB, document)).toEqual(rect(200, 0, 300, 40));
     });
 
+    // ルビータブは 4 つめのタブ。SP はサイドレールのボタン（#2142）
+    test('the Ruby tab is the 4th desktop tab, or the side rail button on SP', () => {
+        const list = document.createElement('ul');
+        [rect(0, 88, 92, 120), rect(92, 88, 214, 120), rect(214, 88, 290, 120), rect(290, 88, 372, 120)].forEach(
+            (r) => {
+                const li = document.createElement('li');
+                li.className = 'gui_tab_abc';
+                li.getBoundingClientRect = () => r;
+                list.appendChild(li);
+            },
+        );
+        document.body.appendChild(list);
+        expect(findHintTargetRect(HINT_TARGETS.RUBY_TAB, document)).toEqual(rect(290, 88, 372, 120));
+        addEl('x', rect(0, 300, 48, 348), { 'data-testid': 'mobile-side-rail-ruby' });
+        expect(findHintTargetRect(HINT_TARGETS.RUBY_TAB, document)).toEqual(rect(0, 300, 48, 348));
+    });
+
     // 「なまえ」の札でも使う場所（#2133）
     test('the stop button, the code tab, the task bar and the hint button are found', () => {
         addEl('stop-all_stop-all-button_abc', rect(0, 0, 10, 10));
@@ -186,6 +203,17 @@ describe('hint targets: CSS Modules class names of upstream components', () => {
         'green-flag_green-flag_': ['green-flag/green-flag.css', 'green-flag'],
         'stop-all_stop-all_': ['stop-all/stop-all.css', 'stop-all'],
     };
+
+    // タブは並び順（nth-child）で探す。ルビータブ（Smalruby が足したタブ）が 4 つめのままかを見張る（#2142）
+    test('the tabs are Code, Costumes, Sounds and Ruby in this order in gui.jsx', () => {
+        const gui = fs.readFileSync(path.join(srcDir, 'components/gui/gui.jsx'), 'utf8');
+        const ids = ['gui.gui.codeTab', 'gui.gui.costumesTab', 'gui.gui.soundsTab', 'gui.smalruby3.gui.rubyTab'];
+        const at = ids.map((id) => gui.indexOf(`id="${id}"`));
+        at.forEach((i) => expect(i).toBeGreaterThan(0));
+        expect([...at].sort((x, y) => x - y)).toEqual(at);
+        const tabList = gui.slice(gui.indexOf('<TabList'), gui.indexOf('</TabList>'));
+        expect(tabList.match(/<Tab\b/g)).toHaveLength(4);
+    });
 
     test('every class prefix used by the selectors is listed here', () => {
         const used = new Set(Array.from(source.matchAll(/\[class\*="([^"]+)"\]/g), (m) => m[1]));
