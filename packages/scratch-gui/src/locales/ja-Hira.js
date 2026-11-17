@@ -1961,6 +1961,7 @@ export default {
     'gui.lessonPartQuiz.part.codeTab': 'コードタブ',
     'gui.lessonPartQuiz.part.costumesTab': 'コスチュームタブ',
     'gui.lessonPartQuiz.part.soundsTab': 'おとタブ',
+    'gui.lessonPartQuiz.part.rubyTab': 'ルビータブ',
     'gui.lessonPartQuiz.part.greenFlag': 'みどりのはた',
     'gui.lessonPartQuiz.part.stop': 'ていしボタン',
     'gui.lessonPartQuiz.part.palette': 'ブロックパレット',

@@ -1578,6 +1578,7 @@ export default {
     'gui.lessonPartQuiz.part.codeTab': 'Code tab',
     'gui.lessonPartQuiz.part.costumesTab': 'Costumes tab',
     'gui.lessonPartQuiz.part.soundsTab': 'Sounds tab',
+    'gui.lessonPartQuiz.part.rubyTab': 'Ruby tab',
     'gui.lessonPartQuiz.part.greenFlag': 'Green Flag',
     'gui.lessonPartQuiz.part.stop': 'Stop Button',
     'gui.lessonPartQuiz.part.palette': 'Block Palette',

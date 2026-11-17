@@ -3,7 +3,7 @@
 // 形が崩れたり、最新（<id>/）と固定の版（<id>/<版>/）の中身がずれたりしないようにする。
 import fs from 'fs';
 import path from 'path';
-import { COURSES } from '../../src/lib/lessons/courses.js';
+import { COURSES, courseLessons } from '../../src/lib/lessons/courses.js';
 
 const ROOT = path.resolve(__dirname, '../../../../assignments');
 const readJson = (...p) => JSON.parse(fs.readFileSync(path.join(ROOT, ...p), 'utf8'));
@@ -117,9 +117,10 @@ describe('standard assignments (assignments/)', () => {
                 const course = COURSES.find((c) => c.id === ref.course);
                 expect(course).toBeDefined();
                 (ref.lessons || []).forEach((lessonId) => {
-                    expect(course.lessons.map((l) => l.id)).toContain(lessonId);
+                    // レッスン 0（warmup。コースの数に入れない）も課題から指してよい
+                    expect(courseLessons(course).map((l) => l.id)).toContain(lessonId);
                 });
-                const challengeIds = course.lessons.flatMap((l) => l.challenges.map((c) => c.id));
+                const challengeIds = courseLessons(course).flatMap((l) => l.challenges.map((c) => c.id));
                 (ref.challenges || []).forEach((challengeId) => {
                     expect(challengeIds).toContain(challengeId);
                 });
@@ -160,7 +161,7 @@ describe('standard assignments (assignments/)', () => {
             { file: 'map.pdf', kind: 'map', audience: 'student' },
             { file: 'script.pdf', kind: 'script', audience: 'teacher' },
         ]);
-        expect(firstStep.lessons[0].course).toBe('kyou-kara-programmer');
+        expect(firstStep.lessons).toEqual([{ course: 'kyou-kara-programmer', lessons: ['blocks-l0', 'blocks-l1'] }]);
     });
 
     test('files stay small enough to ship with the editor', () => {

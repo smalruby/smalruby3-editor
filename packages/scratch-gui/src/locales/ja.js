@@ -1904,6 +1904,7 @@ export default {
     'gui.lessonPartQuiz.part.codeTab': 'コードタブ',
     'gui.lessonPartQuiz.part.costumesTab': 'コスチュームタブ',
     'gui.lessonPartQuiz.part.soundsTab': '音タブ',
+    'gui.lessonPartQuiz.part.rubyTab': 'ルビータブ',
     'gui.lessonPartQuiz.part.greenFlag': '緑の旗',
     'gui.lessonPartQuiz.part.stop': '停止ボタン',
     'gui.lessonPartQuiz.part.palette': 'ブロックパレット',

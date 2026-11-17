@@ -214,7 +214,8 @@ export const ja = {
         'ネコを押したら「メッセージは？」と聞いて、\n答えをリスト「トーク」にためよう。\n3 つためてみよう',
     'gui.lessons.challenge.blocks-l1-message-list.step1':
         '「変数」の下の「リストを作る」を押して、「トーク」というリストを作ろう。ステージに空の箱が出るよ。',
-    'gui.lessons.challenge.blocks-l1-message-list.step2': '1 つめのプログラム: 緑の旗を押したら「トーク」を空にしよう。',
+    'gui.lessons.challenge.blocks-l1-message-list.step2':
+        '1 つめのプログラム: 緑の旗を押したら「トーク」を空にしよう。',
     'gui.lessons.challenge.blocks-l1-message-list.step3':
         '2 つめのプログラムを、緑の旗のプログラムとはべつに作ろう。黄色い「イベント」の「このスプライトが押されたとき」を新しく置いて、その下で「メッセージは？」と聞いて、答えを「トーク」に追加しよう。',
     'gui.lessons.challenge.blocks-l1-message-list.step4':
@@ -457,7 +458,8 @@ export const jaHira = {
         'ネコをおしたかいすうをかぞえて、そのかずをいうようにしよう。\n3 かいおしてみよう',
     'gui.lessons.challenge.blocks-l1-count.step1':
         'オレンジの「へんすう」で「へんすうをつくる」をおして、「かいすう」というへんすうをつくろう。',
-    'gui.lessons.challenge.blocks-l1-count.step2': '1 つめのプログラム: みどりのはたをおしたら「かいすう」を 0 にもどそう。',
+    'gui.lessons.challenge.blocks-l1-count.step2':
+        '1 つめのプログラム: みどりのはたをおしたら「かいすう」を 0 にもどそう。',
     'gui.lessons.challenge.blocks-l1-count.step3':
         '2 つめのプログラムを、みどりのはたのプログラムとはべつにつくろう。きいろい「イベント」の「このスプライトがおされたとき」をあたらしくおいて、そのしたで 1 ふやして、そのかずをいおう。',
     'gui.lessons.challenge.blocks-l1-count.step4':
