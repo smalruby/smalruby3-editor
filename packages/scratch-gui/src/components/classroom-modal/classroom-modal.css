@@ -343,19 +343,6 @@ $teacher-screen-padding-top: $space-small;
     outline: 2px solid transparent;
 }
 
-/* 課題名（左）と参加コード（右）を均等幅 2 カラムに分ける。両カラムは
-   stretch で高さが揃うので、課題名入力の高さは参加コードカードに一致する。
-   幅が足りず参加コードカードが 340px を割り込むと、行が折り返して参加コード
-   カードは単独行（フル幅）になり、狭いウインドウでも 2 行に収まる。 */
-.name-code-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: stretch;
-    /* 下は課題名の欄の下に重ねる保存のしかた（#1388）の 1 行分を空けておく。 */
-    margin: 0.3rem 0 0.7rem;
-}
-
 /* 課題名: ラベル・1 行の入力欄・保存結果を横並び（#1303 D3 / #1388）。 */
 .name-col {
     flex: 1 1 340px;
@@ -2379,25 +2366,12 @@ $seat-tile-min: 36px;
 }
 
 /* E1 (#1303): 説明 1 行と［課題を保存］を最上段に置き、スクロールせずに見せる。 */
-.assignment-editor-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 0.5rem;
-}
-
 .assignment-editor-hint {
-    flex: 1 1 auto;
-    margin: 0;
+    flex: 0 0 auto;
+    margin: 0 0 0.5rem;
     color: #575e75;
     font-size: 0.8rem;
     line-height: 1.4;
-}
-
-.assignment-editor-actions {
-    flex: 0 0 auto;
-    display: flex;
-    gap: 0.5rem;
 }
 
 .assignment-editor-columns {
@@ -5762,27 +5736,6 @@ $seat-tile-min: 36px;
     padding-bottom: 0;
 }
 
-.compact-code-row {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.8rem;
-    color: #575e75;
-    margin-bottom: 0.25rem;
-}
-
-.compact-code-value {
-    font-weight: bold;
-    letter-spacing: 0.05em;
-    color: $color-action;
-}
-
-.compact-code-row .join-code-action {
-    padding: 0 0.3rem;
-    min-height: 0;
-    line-height: 1.3;
-}
-
 .lesson-cleared-summary {
     white-space: nowrap;
     font-size: 0.8rem;
@@ -6154,4 +6107,78 @@ $seat-tile-min: 36px;
 
 .lesson-detail-todo .lesson-detail-status {
     color: #9aa1b8;
+}
+
+/* 「✕ ＋ 見出し」の行（#2089・Google Classroom の編集の画面と同じ）。1 つの物を編集する
+   画面の本文の上に置き、✕ で一覧（開いた元）へ戻る。高さはボタンの 36px に収め、
+   1300×600 で本文に高さを回す。右端には画面ごとの値と確定のボタン（参加コード・［課題を保存］）。 */
+.close-row {
+    display: flex;
+    align-items: center;
+    gap: $space-medium;
+    min-height: $size-button-height;
+    padding-bottom: $space-small;
+    margin-bottom: $space-medium;
+    border-bottom: 1px solid $color-border;
+}
+
+.close-row-button {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: $size-button-height;
+    height: $size-button-height;
+    padding: 0;
+    border: none;
+    border-radius: $radius-round;
+    background: transparent;
+    color: $color-text;
+    cursor: pointer;
+    transition: $transition-standard;
+}
+
+.close-row-button:hover {
+    background-color: $color-background;
+}
+
+.close-row-button:focus-visible {
+    outline: 2px solid $color-action;
+    outline-offset: 2px;
+}
+
+.close-row-title {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    font-size: $font-size-heading-small;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* 見出しが文字でないとき（課題詳細の課題名の欄）。幅を取って右端の値を押し出す。 */
+.close-row-heading {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.close-row-end {
+    flex: 0 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: $space-medium;
+    margin-left: auto;
+}
+
+/* 破棄の確認（色は .confirm-note）。確認の間は右端の値の代わりに出す。 */
+.close-row-confirm {
+    margin: 0;
+    padding: 0.4rem 0.75rem;
+    font-size: $font-size-medium;
 }
