@@ -360,8 +360,8 @@ describe('LessonHint container', () => {
 
     test('draws the hint blocks of the UI locale', async () => {
         const current = findChallenge('blocks-l1-key-sound');
-        const step = current.challenge.steps[2];
-        const hint = { ...keySoundLastPage().hint, index: 2, step, lastResort: false };
+        const step = current.challenge.steps[1];
+        const hint = { ...keySoundLastPage().hint, index: 1, step, lastResort: false };
         renderContainer({ ...baseProps(), current, hint }, 'en');
         await flush();
         expect(rubyToBlocksXml.mock.calls[0][2]).toBe(

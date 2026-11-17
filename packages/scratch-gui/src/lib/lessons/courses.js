@@ -300,24 +300,24 @@ const blocksLesson1 = defineLesson({
     // はじめのレッスンなので、チャレンジを始めたらヒントを開いておく（#2129 の Q4）
     autoOpenHints: true,
     challenges: [
-        // 1 キーで音を鳴らそう（音）: スペースキーで「ニャー」のあと「Owl」が鳴る
+        // 1 キーで音を鳴らそう（音）: スペースキーで「ニャー」が鳴る。はじめての操作を少なくするため、音タブで
+        // 音を足す手順は入れない（docs/lessons/design.md の「はじめの一歩」）
         {
             id: 'blocks-l1-key-sound',
             card: { category: CATEGORIES.SOUND, main: CATEGORIES.SOUND },
             task: challengeMessage('blocks-l1-key-sound', 'task'),
             allowedBlocks: {
                 event: [{ opcode: 'event_whenkeypressed', fields: { KEY_OPTION: 'space' } }],
-                // 音の ▼ は、足した「Owl」ではなくネコの音（作品を作った locale の名前）
+                // 音の ▼ はネコの音（作品を作った locale の名前）
                 sound: [
                     {
                         opcode: 'sound_playuntildone',
                         inputs: { SOUND_MENU: { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' } },
                     },
-                    { opcode: 'sound_play', inputs: { SOUND_MENU: { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' } } },
                 ],
             },
+            // イベントのブロックを置く → 音のブロックをくっつける → キーを押す
             steps: withTitles('blocks-l1-key-sound', [
-                { target: HINT_TARGETS.SOUNDS_TAB },
                 { target: HINT_TARGETS.PALETTE, blocks: 'when_key_pressed("space") do\nend\n', spotlight: true },
                 // つなげる相手（その上のブロック）とつないだ並びで描く（docs/lessons/design.md の「ヒント」・#1582）
                 {
@@ -329,31 +329,23 @@ const blocksLesson1 = defineLesson({
                     },
                     spotlight: true,
                 },
-                {
-                    target: HINT_TARGETS.CODE_AREA,
-                    blocks: {
-                        ja: 'play_until_done("ニャー")\nplay("Owl")\n',
-                        'ja-Hira': 'play_until_done("Meow")\nplay("Owl")\n',
-                        en: 'play_until_done("Meow")\nplay("Owl")\n',
-                    },
-                },
                 { target: HINT_TARGETS.KEYBOARD, spotlight: true },
             ]),
             debug: debugTips('blocks-l1-key-sound', 2),
+            // 見るのは「鳴いた」こと。「終わるまで鳴らす」でも「鳴らす」でもよい
             goal: [
                 {
                     type: 'uses',
                     trigger: { hat: 'event_whenkeypressed', key: 'space' },
-                    blocks: ['sound_playuntildone', 'sound_play'],
-                    order: ['sound_playuntildone', 'sound_play'],
+                    blocks: [{ opcode: ['sound_playuntildone', 'sound_play'] }],
                 },
             ],
             // ネコの音の名前は作品を作ったときの locale で変わる（ja =「ニャー」、en = "Meow"。ja-Hira は
             // scratch-l10n に訳が無く "Meow"）。作品に合わないときは、ほかの locale の code を試す（lesson-hint.jsx）
             code: {
-                ja: 'when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n',
-                'ja-Hira': 'when_key_pressed("space") do\n  play_until_done("Meow")\n  play("Owl")\nend\n',
-                en: 'when_key_pressed("space") do\n  play_until_done("Meow")\n  play("Owl")\nend\n',
+                ja: 'when_key_pressed("space") do\n  play_until_done("ニャー")\nend\n',
+                'ja-Hira': 'when_key_pressed("space") do\n  play_until_done("Meow")\nend\n',
+                en: 'when_key_pressed("space") do\n  play_until_done("Meow")\nend\n',
             },
         },
         // 2 矢印キーで動かそう（動き）: 上下の矢印キーで y 座標を変える

@@ -153,9 +153,9 @@ locale ごとに書ける:
 
 ```js
 code: {
-    ja: 'when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n',
-    'ja-Hira': 'when_key_pressed("space") do\n  play_until_done("Meow")\n  play("Owl")\nend\n',
-    en: 'when_key_pressed("space") do\n  play_until_done("Meow")\n  play("Owl")\nend\n',
+    ja: 'when_key_pressed("space") do\n  play_until_done("ニャー")\nend\n',
+    'ja-Hira': 'when_key_pressed("space") do\n  play_until_done("Meow")\nend\n',
+    en: 'when_key_pressed("space") do\n  play_until_done("Meow")\nend\n',
 },
 ```
 
@@ -166,12 +166,12 @@ code: {
   （scratch-l10n に ja-Hira の訳が無い）。スプライト名（「スプライト1」/ "Sprite1"）・コスチューム名・背景名も
   locale で変わるので、`code` で名前を使うときは locale ごとに書く（いまのレッスン 1 で名前を使うのはチャレンジ 1 の
   ネコの音だけ。スプライトは名前でなく「`spriteCodes` に名前の無い最初のスプライト」で探す）。ライブラリの名前
-  （"Owl" / "Canyon" / "Arctic" / "Penguin"）は locale で変わらない。
+  （"Canyon" / "Arctic" / "Penguin"）は locale で変わらない。
 - **「プログラムを入れる」は作品に合う組を探す**: いまの locale の `code`（と `spriteCodes`）を音・背景の確かめ込みで
   試し、作品に合わない（日本語の作品を英語の UI で開いた、先生が配った日本語の作品を英語の生徒が開いた等）ときは、
   ほかの locale の組を順に試して、合った組を入れる（`challengeCodeCandidates`）。試すのは変換だけで、作品に
   入れるのは選んだ 1 組だけ。どれも合わなければ、わけのいちばん少ない組（同じならいまの locale の組）のわけを出す
-  （Owl をまだ足していない等。日本語の作品を英語の UI で開いたときに、作品に無い "Meow" を探させない）。
+  （背景「Canyon」をまだ足していない等。日本語の作品を英語の UI で開いたときに、作品に無い "Meow" を探させない）。
 - セリフ・変数名・リスト名は、その locale の課題とヒントの文言に合わせる。レッスン 1 では en の課題が
   "Hello!" / "That tickles!" / "Touch me" / "What's your name?" / " seconds" / "Correct" / "Wrong" と書くので en の
   `code` もそれを言う。
@@ -221,19 +221,19 @@ code: {
 
 | # | id | 課題 | パレット（`allowedBlocks`） | できた の条件（`goal`） |
 |---|----|------|---------------------------|------------------------|
-| 1 | `blocks-l1-key-sound` | スペースキーを押したら、ネコが「ニャー」と鳴いたあと、「Owl」の音が鳴る | `event_whenkeypressed` / `sound_playuntildone` / `sound_play` | スペースキーのスクリプトで `sound_playuntildone` → `sound_play` の順に動いた |
+| 1 | `blocks-l1-key-sound` | スペースキーを押したら、ネコが「ニャー」と鳴く（音タブを使わない。はじめての操作を少なくする） | `event_whenkeypressed` / `sound_playuntildone` | スペースキーのスクリプトで `sound_playuntildone` か `sound_play` が動いた（音の名前は見ない） |
 | 2 | `blocks-l1-arrow-move` | 上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かす | `event_whenkeypressed` / `motion_changeyby` | 上向き矢印キーのスクリプトで `DY > 0`、下向き矢印キーのスクリプトで `DY < 0` の `motion_changeyby` が動いた |
 | 3 | `blocks-l1-click-say` | コスチュームを足して、押したら「こんにちは！」と言って、見た目がかわる | `event_whenthisspriteclicked` / `looks_sayforsecs` / `looks_nextcostume` | コスチュームが始めより 1 つ以上増え、スプライトを押したスクリプトで `looks_sayforsecs` と `looks_nextcostume` が動いた |
-| 4 | `blocks-l1-repeat` | 1 のキーを押したら、背景が「Canyon」と「Arctic」に 3 回かわる（**ステージのプログラム**） | `event_whenkeypressed` / `control_repeat` / `control_wait` / `looks_switchbackdropto` | ステージの 1 のキーのスクリプトで `control_repeat` が動き、`looks_switchbackdropto` が 6 回動いた |
+| 4 | `blocks-l1-repeat` | 1 のキーを押したら、「Canyon」という名前の背景と「Arctic」という名前の背景に 3 回かわる（**ステージのプログラム**） | `event_whenkeypressed` / `control_repeat` / `control_wait` / `looks_switchbackdropto` | ステージの 1 のキーのスクリプトで `control_repeat` が動き、`looks_switchbackdropto` が 6 回動いた |
 | 5 | `blocks-l1-if` | マウスでネコにさわったら「くすぐったい！」、さわっていないときは「さわってみて」と言う | `event_whenflagclicked` / `control_forever` / `control_if` / `control_if_else` / `sensing_touchingobject` / `looks_say` | 旗のスクリプトで `sensing_touchingobject` が動き、ちがうセリフ（`MESSAGE`）の `looks_say` が 2 種類動いた |
 | 6 | `blocks-l1-ask-answer` | ネコを押したら名前を聞いて、答えた名前と、答えるまでにかかった秒数を言う | `event_whenthisspriteclicked` / `sensing_resettimer` / `sensing_askandwait` / `sensing_answer` / `sensing_timer` / `operator_join` / `looks_sayforsecs` | スプライトを押したスクリプトで `sensing_resettimer` → `sensing_askandwait` の順に動き、`sensing_answer`・`sensing_timer`・`looks_sayforsecs` 2 回が動いた。答えと同じことばを言った |
 | 7 | `blocks-l1-quiz` | ネコを押したら「4＋3＝？」と聞いて、7 なら「正解です」、ちがえば「ちがいます」と言う | `event_whenthisspriteclicked` / `sensing_askandwait` / `sensing_answer` / `control_if` / `control_if_else` / `operator_equals` / `looks_sayforsecs` | 答えが 7 のときに「正解です」（ja-Hira の「せいかいです」、en の "Correct" も可）、7 でないときに「ちがいます」（en の "Wrong" も可）を言った（両方） |
 | 8 | `blocks-l1-count` | ネコを押した回数を数えて、その数を言う。3 回押す | `event_whenflagclicked` / `event_whenthisspriteclicked` / `data_setvariableto` / `data_changevariableby` / `data_variable` / `looks_say` | 変数「回数」（ja-Hira の「かいすう」、en の `count` も可）が 3 以上になり、その値を言った |
-| 9 | `blocks-l1-broadcast` | ペンギンを足して、ネコを押したらペンギンが「やあ！」と言う（**2 つのスプライト**） | `event_whenthisspriteclicked` / `event_broadcast` / `event_whenbroadcastreceived` / `looks_sayforsecs` | スプライト 2 つ以上・押されたときで送る・**別のスプライト**が受け取ったときに言う（`sentBy: 'other'`） |
+| 9 | `blocks-l1-broadcast` | ペンギン（「Penguin」という名前のスプライト）を足して、ネコを押したらペンギンが「やあ！」と言う（**2 つのスプライト**） | `event_whenthisspriteclicked` / `event_broadcast` / `event_whenbroadcastreceived` / `looks_sayforsecs` | スプライト 2 つ以上・押されたときで送る・**別のスプライト**が受け取ったときに言う（`sentBy: 'other'`） |
 | 10 | `blocks-l1-speak` | 拡張機能「音声合成」を足して、ネコを押したら「ボタンが押されました」としゃべる | `event_whenthisspriteclicked` / `text2speech_speakAndWait` | 拡張機能 `text2speech` が読み込まれている・押されたときで `text2speech_speakAndWait` |
 | 11 | `blocks-l1-message-list` | ネコを押したら「メッセージは？」と聞いて、答えをリスト「トーク」にためる。3 つためる | `event_whenflagclicked` / `event_whenthisspriteclicked` / `data_deletealloflist` / `data_addtolist` / `sensing_askandwait` / `sensing_answer` | リスト「トーク」（en の `talk` も可）の長さ 3 以上・中身が答えから（`itemsFromAnswers`） |
 
-ヒントは、音タブ・コスチュームタブ・背景を選ぶ・スプライトリストのように「足す・えらぶ」場所を指すものと、
+ヒントは、コスチュームタブ・背景を選ぶ・スプライトリストのように「足す・えらぶ」場所を指すものと、
 パレット・コードエリアを指して**本物のブロック**を描くもの、ステージ・キーボードを指して「動かしてみよう」と
 言うものの並び。スポットライト（はじめて開いたときだけ）は基本操作（出す・くっつける・押す・消す）のヒントに
 だけ付けている（チャレンジ 1 のパレットとキーボード、チャレンジ 3 のパレット・ステージ・コードエリア）。
@@ -256,21 +256,27 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
 作るときの注意:
 
 - **ヒントに描くブロックは、まだ足していない音・背景でもよい**。吹き出しの変換（`hint-blocks.js`）は
-  converter の `validateAssets: false` で音・コスチューム・背景の存在を確かめない（「Owl の音を鳴らす」は
-  Owl を足す前から描く）。**`code` を入れるときの変換は従来どおり確かめる**ので、チャレンジ 1 の `code`
-  （`play("Owl")`）はヒント 1 のとおり Owl を足してから、チャレンジ 4 の `code` は背景を足してから入れる
-  （足していなければ入れずに、吹き出しの中に「まだプログラムを入れられないよ。先にヒントのとおりに足そう。」と
-  変換のエラー（「音「Owl」は存在しません。…先に音を追加してください。」）を出す）。
+  converter の `validateAssets: false` で音・コスチューム・背景の存在を確かめない（「Canyon の背景にする」は
+  Canyon を足す前から描く）。**`code` を入れるときの変換は従来どおり確かめる**ので、チャレンジ 4 の `code` は
+  ヒント 1 のとおり背景を足してから入れる（足していなければ入れずに、吹き出しの中に「まだプログラムを
+  入れられないよ。先にヒントのとおりに足そう。」と変換のエラーを出す）。
 - 中身の無い「繰り返す」を描くときは **`3.times`**（ブロック無し）と書く（帽子のブロックの下なら
   `when_key_pressed("1") do\n  3.times\nend\n`）。`3.times do ... end` は中身が無いと変換できない。帽子のブロックだけを描くときは `when_key_pressed("1") do\nend\n` のように中身の無い
   `do ... end` でよい（帽子のブロックは中身が無くても変換できる）。
 - チャレンジ 4 のヒント 5 は、「繰り返す」の中に入れる 4 つ（`switch_backdrop("Canyon")` / `sleep(1)` /
   `switch_backdrop("Arctic")` / `sleep(1)`）を、「繰り返す」に入れた 1 つのかたまり（`3.times do ... end`）として描く。
 - `self.y += -10` は「y座標を -10 ずつ変える」になる（チャレンジ 2 の下向き矢印）。
-- チャレンジ 1 の `code` とヒント 3 のネコの音は locale ごとに書く（ja は「ニャー」、en / ja-Hira は "Meow"。上の
+- **チャレンジ 1 は音タブを使わない**。はじめての操作を少なくするため（[`design.md`](design.md) の「はじめの一歩」）、
+  音を足す手順は無く、ネコの音だけを鳴らす。ヒントは、イベントのブロックを置く → 音のブロックをくっつける →
+  キーを押す、の 3 ページ（と「うまく動かないときは」）。
+- チャレンジ 1 の `code` とヒント 2 のネコの音は locale ごとに書く（ja は「ニャー」、en / ja-Hira は "Meow"。上の
   「英語の UI でも使う」）。`goal` は音の名前を見ない。
-- ライブラリの音「Owl」・背景「Canyon」「Arctic」の表示名は日本語でも英語のまま（ライブラリの名前は
-  翻訳されない）。ヒントの文言もそのまま "Owl" / "Canyon" / "Arctic" と書く。
+- ライブラリの背景「Canyon」「Arctic」・スプライト「Penguin」の表示名は日本語でも英語のまま（ライブラリの名前は
+  翻訳されない）。英語の名前だけでは何のことか分からないので、課題とヒントの文言は「『Canyon』という名前の背景」
+  「『Penguin』という名前のスプライト」のように、何の名前かを書く（ja-Hira も「『Meow』というなまえのおと」）。
+- **ヒントの文の画面の部分の呼び方**は、レッスン 0 で覚える 9 つの名前（タブ・パレット・コードエリア・ステージ・
+  旗と止める・スプライトリスト・背景・課題バー・ヒント）にそろえる（「上の『音』タブ」ではなく「音タブ」、
+  「右下の『スプライトを選ぶ』」ではなく「スプライトリストの『スプライトを選ぶ』」）。
 - チャレンジ 4 のように**ステージのプログラム**のチャレンジは `codeTarget: 'stage'` にする。
   「プログラムを入れる」がステージをえらんで（`vm.setEditingTarget`）Ruby タブの相手（`rubyCode.target`）も
   ステージにしてから入れるので、スプライトを編集中に押してもステージに入る。
@@ -1208,7 +1214,7 @@ partner: {
 
   | チャレンジ | 数 | 色 |
   |---|---|---|
-  | key-sound | サウンド 2・イベント 1 | サウンド |
+  | key-sound | サウンド 1・イベント 1（同数） | サウンド（メイン） |
   | arrow-move | 動き 2・イベント 2（同数） | 動き（メイン） |
   | click-say | 見た目 2・イベント 1 | 見た目 |
   | repeat | 制御 3・見た目 2・イベント 1 | 制御 |
@@ -1423,7 +1429,7 @@ partner: {
     （足す前の背景「Canyon」など）も、そのまま ▼ に出る。
   - 書かないブロックはツールボックスの初期値のまま。メッセージ（「あいさつ」）・変数（「回数」）・リスト
     （「トーク」）の ▼ は子どもが作るものなので書かない（無い名前を入れると flyout が作ってしまう）。
-  - レッスン 1 で書いている初期値: 1 = キー「スペース」・音 2 つとも「ニャー」（Owl を足したあとも）、
+  - レッスン 1 で書いている初期値: 1 = キー「スペース」・音「ニャー」（終わるまで鳴らす）、
     2 = キー「上向き矢印」、3・6・8 = 言う「こんにちは！」（en "Hello!"。ツールボックスの初期値は半角の
     「こんにちは!」なので書く）、4 = キー「1」・繰り返す 3・背景「Canyon」、5 = 言う「くすぐったい！」、
     6 = 聞く「なまえは？」、7 = 聞く「4+3=?」・`=` の右 7・言う「正解です」、9 = 言う「やあ！」、
@@ -1565,7 +1571,7 @@ partner: {
   コードタブでは Ruby タブが変換してブロックにする）。チャレンジの `codeTarget` が `'stage'` なら、入れる前に
   ステージをえらび、Ruby タブの相手（`rubyCode.target`）もステージにする（ステージのプログラムのチャレンジ）。
   入れる前に同じ変換を音・コスチューム・背景の確かめ込みで試し（`rubyToBlocksXml` の `validateAssets: true`）、
-  失敗するとき（ヒントの「Owl を足そう」をまだしていない等）は入れずに、ボタンの下にわけを出す
+  失敗するとき（チャレンジ 4 のヒントの「背景を足そう」をまだしていない等）は入れずに、ボタンの下にわけを出す
   （`lesson-hint-insert-code-error`。入れると Ruby タブに切りかわってエラーになり、ブロックのコースの子どもには
   何が起きたかわかりにくいため）。入れると吹き出しは閉じる。入れて動かしても「できた」になる（判定側は区別しない）。
 - **ほかのスプライトのプログラム（`spriteCodes`）**: Ruby タブは編集中のスプライト 1 つに向けて変換するので、
@@ -1878,7 +1884,7 @@ partner: {
 | `screenshots/0105-completed-toast-quiz-wrong-1300x600.png` | 同じクイズで、はずれを選んだところ（×・「はずれ。もう一度選んでみよう」・解説） |
 | `screenshots/0106-completed-toast-quiz-lesson-correct-1300x600.png` | 「レッスン 1 ぜんぶできた！」の中のクイズで正解を選んだところ（○・「正解！」・解説） |
 | `screenshots/0305-lessons-library-next-1300x600.png` | 「次のチャレンジ」で開いたレッスン表（1〜3 ができていて、4 に「次はこれ！」） |
-| `screenshots/0501-challenge1-key-sound-hint1-1300x600.png` | チャレンジ 1「キーで音を鳴らそう」の最初のヒント（音タブを指す） |
+| `screenshots/0501-challenge1-key-sound-hint1-1300x600.png` | チャレンジ 1「キーで音を鳴らそう」の最初のヒント（パレットを指し、帽子のブロック「スペースキーが押されたとき」を描く） |
 | `screenshots/0502-challenge2-arrow-move-hint1-1300x600.png` | チャレンジ 2「矢印キーで動かそう」の最初のヒント（パレットを指し、帽子のブロック「上向き矢印キーが押されたとき」を描く） |
 | `screenshots/0503-challenge3-click-say-hint1-1300x600.png` | チャレンジ 3「押したら話そう」の最初のヒント（コスチュームタブを指す） |
 | `screenshots/0504-challenge4-repeat-hint1-1300x600.png` | チャレンジ 4「くり返そう」の最初のヒント（背景を選ぶを指す） |

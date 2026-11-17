@@ -12,17 +12,13 @@ export const ja = {
     'gui.lessons.lesson.blocks-l2.name': 'えらんで たずねよう',
     'gui.lessons.lesson.blocks-l3.name': 'おぼえて つたえよう',
     'gui.lessons.challenge.blocks-l1-key-sound.name': 'キーで音を鳴らそう',
-    'gui.lessons.challenge.blocks-l1-key-sound.task':
-        'スペースキーを押したら、\nネコが「ニャー」と鳴いたあと、「Owl」の音が鳴るようにしよう',
+    'gui.lessons.challenge.blocks-l1-key-sound.task': 'スペースキーを押したら、\nネコが「ニャー」と鳴くようにしよう',
     'gui.lessons.challenge.blocks-l1-key-sound.step1':
-        '上の「音」タブを開いて、左下のボタンから「Owl」をえらんで足そう。',
+        '黄色い「イベント」のブロックを、パレットからコードエリアへドラッグしよう。',
     'gui.lessons.challenge.blocks-l1-key-sound.step2':
-        '「コード」タブにもどって、黄色い「イベント」のブロックをコードエリアへドラッグしよう。',
-    'gui.lessons.challenge.blocks-l1-key-sound.step3': 'このブロックを、下にくっつけよう。カチッとはまれば OK。',
-    'gui.lessons.challenge.blocks-l1-key-sound.step4': 'もう 1 つ音のブロックをつなげて、▼で「Owl」をえらぼう。',
-    'gui.lessons.challenge.blocks-l1-key-sound.step5': 'スペースキーを押してみよう。',
-    'gui.lessons.challenge.blocks-l1-key-sound.debug1':
-        '鳴らないときは、パソコンの音量と、▼でえらんだ音の名前を見よう。',
+        'この「音」のブロックを、下にくっつけよう。カチッとはまれば OK。',
+    'gui.lessons.challenge.blocks-l1-key-sound.step3': 'スペースキーを押してみよう。',
+    'gui.lessons.challenge.blocks-l1-key-sound.debug1': '鳴らないときは、パソコンの音量を見よう。',
     'gui.lessons.challenge.blocks-l1-key-sound.debug2': 'ブロックがはなれていると、下のブロックは動かないよ。',
     'gui.lessons.challenge.blocks-l1-arrow-move.name': '矢印キーで動かそう',
     'gui.lessons.challenge.blocks-l1-arrow-move.task': '上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かそう',
@@ -42,9 +38,9 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-click-say.task':
         'ネコに好きなコスチュームを足して、\n押したら「こんにちは！」と言って、見た目がかわるようにしよう',
     'gui.lessons.challenge.blocks-l1-click-say.step1':
-        '上の「コスチューム」タブを開いて、左下のボタンから好きなコスチュームを足そう。えらんでも、筆で描いてもいいよ。',
+        'コスチュームタブを開いて、左下のボタンから好きなコスチュームを足そう。えらんでも、筆で描いてもいいよ。',
     'gui.lessons.challenge.blocks-l1-click-say.step2':
-        '「コード」タブにもどって、「押されたとき」のブロックをコードエリアへドラッグしよう。',
+        'コードタブにもどって、「押されたとき」のブロックをコードエリアへドラッグしよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step3':
         '紫の「見た目」のブロックをくっつけよう。白いところは「こんにちは！」になっているよ。',
     'gui.lessons.challenge.blocks-l1-click-say.step4': 'その下に、これもくっつけよう。',
@@ -54,12 +50,14 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-click-say.debug1':
         '何も起きないときは、ステージのスプライトそのものを押しているか見よう。',
     'gui.lessons.challenge.blocks-l1-click-say.debug2':
-        'プログラムを入れたスプライトと、押したスプライトが同じか、右下のスプライトリストで確かめよう。',
+        'プログラムを入れたスプライトと、押したスプライトが同じか、スプライトリストで確かめよう。',
     'gui.lessons.challenge.blocks-l1-repeat.name': 'くり返そう',
     'gui.lessons.challenge.blocks-l1-repeat.task':
-        '1 のキーを押したら、\n背景が「Canyon」と「Arctic」に 3 回かわるようにしよう',
-    'gui.lessons.challenge.blocks-l1-repeat.step1': '右下の「背景を選ぶ」から、「Canyon」と「Arctic」を足そう。',
-    'gui.lessons.challenge.blocks-l1-repeat.step2': '右の「ステージ」をえらぼう。ステージにもプログラムを書けるよ。',
+        '1 のキーを押したら、\n「Canyon」という名前の背景と「Arctic」という名前の背景に、3 回かわるようにしよう',
+    'gui.lessons.challenge.blocks-l1-repeat.step1':
+        '背景の「背景を選ぶ」から、「Canyon」という名前の背景と「Arctic」という名前の背景を足そう。',
+    'gui.lessons.challenge.blocks-l1-repeat.step2':
+        'スプライトリストの右の「ステージ」をえらぼう。ステージにもプログラムを書けるよ。',
     'gui.lessons.challenge.blocks-l1-repeat.step3':
         '黄色い「イベント」の「1 キーが押されたとき」をコードエリアへドラッグしよう。▼が「1」になっているか見よう。',
     'gui.lessons.challenge.blocks-l1-repeat.step4': 'その下に、オレンジの「制御」の「繰り返す」をつなげよう。',
@@ -79,7 +77,7 @@ export const ja = {
         '水色の「調べる」から、六角形のブロックを「もし」の六角形の穴に入れよう。',
     'gui.lessons.challenge.blocks-l1-if.step5': '上と下に「言う」を入れて、それぞれのセリフを書こう。',
     'gui.lessons.challenge.blocks-l1-if.step6':
-        '旗を押して、マウスをネコに重ねたり、はなしたりしよう。止めるときは赤い●。',
+        '旗を押して、マウスをネコに重ねたり、はなしたりしよう。止めるときは、赤い●の「止める」を押そう。',
     'gui.lessons.challenge.blocks-l1-if.debug1':
         'セリフがかわらないときは、「言う」が「もし」の中と「でなければ」の中に 1 つずつ入っているか見よう。',
     'gui.lessons.challenge.blocks-l1-if.debug2': '1 回しか調べないときは、「ずっと」の中に入っているか見よう。',
@@ -131,8 +129,9 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-message-list.name': 'メッセージをためよう',
     // チャレンジ 9〜11
     'gui.lessons.challenge.blocks-l1-broadcast.task':
-        'ペンギンを足して、\nネコを押したらペンギンが「やあ！」と言うようにしよう',
-    'gui.lessons.challenge.blocks-l1-broadcast.step1': '右下の「スプライトを選ぶ」から、ペンギンを足そう。',
+        'ペンギン（「Penguin」という名前のスプライト）を足して、\nネコを押したらペンギンが「やあ！」と言うようにしよう',
+    'gui.lessons.challenge.blocks-l1-broadcast.step1':
+        'スプライトリストの「スプライトを選ぶ」から、「Penguin」という名前のスプライトを足そう。',
     'gui.lessons.challenge.blocks-l1-broadcast.step2':
         'ネコをえらんで、「押されたとき」と「送る」をつなげよう。▼の「新しいメッセージ」で「あいさつ」を作ろう。',
     'gui.lessons.challenge.blocks-l1-broadcast.step3':
@@ -223,16 +222,13 @@ export const jaHira = {
     'gui.lessons.lesson.blocks-l3.name': 'おぼえて つたえよう',
     'gui.lessons.challenge.blocks-l1-key-sound.name': 'キーでおとをならそう',
     'gui.lessons.challenge.blocks-l1-key-sound.task':
-        'スペースキーをおしたら、\nネコが「Meow」（ニャー）とないたあと、「Owl」のおとがなるようにしよう',
+        'スペースキーをおしたら、\nネコが「Meow」（ニャー）となくようにしよう',
     'gui.lessons.challenge.blocks-l1-key-sound.step1':
-        'うえの「おと」タブをひらいて、ひだりしたのボタンから「Owl」をえらんでたそう。',
+        'きいろい「イベント」のブロックを、パレットからコードエリアへドラッグしよう。',
     'gui.lessons.challenge.blocks-l1-key-sound.step2':
-        '「コード」タブにもどって、きいろい「イベント」のブロックをコードエリアへドラッグしよう。',
-    'gui.lessons.challenge.blocks-l1-key-sound.step3': 'このブロックを、したにくっつけよう。カチッとはまれば OK。',
-    'gui.lessons.challenge.blocks-l1-key-sound.step4': 'もう 1 つおとのブロックをつなげて、▼で「Owl」をえらぼう。',
-    'gui.lessons.challenge.blocks-l1-key-sound.step5': 'スペースキーをおしてみよう。',
-    'gui.lessons.challenge.blocks-l1-key-sound.debug1':
-        'ならないときは、パソコンのおんりょうと、▼でえらんだおとのなまえをみよう。',
+        'この「おと」のブロックを、したにくっつけよう。「Meow」というなまえのおとが、ネコの「ニャー」だよ。',
+    'gui.lessons.challenge.blocks-l1-key-sound.step3': 'スペースキーをおしてみよう。',
+    'gui.lessons.challenge.blocks-l1-key-sound.debug1': 'ならないときは、パソコンのおんりょうをみよう。',
     'gui.lessons.challenge.blocks-l1-key-sound.debug2': 'ブロックがはなれていると、したのブロックはうごかないよ。',
     'gui.lessons.challenge.blocks-l1-arrow-move.name': 'やじるしキーでうごかそう',
     'gui.lessons.challenge.blocks-l1-arrow-move.task':
@@ -254,9 +250,9 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-click-say.task':
         'ネコにすきなコスチュームをたして、\nおしたら「こんにちは！」といって、みためがかわるようにしよう',
     'gui.lessons.challenge.blocks-l1-click-say.step1':
-        'うえの「コスチューム」タブをひらいて、ひだりしたのボタンからすきなコスチュームをたそう。えらんでも、ふででかいてもいいよ。',
+        'コスチュームタブをひらいて、ひだりしたのボタンからすきなコスチュームをたそう。えらんでも、ふででかいてもいいよ。',
     'gui.lessons.challenge.blocks-l1-click-say.step2':
-        '「コード」タブにもどって、「おされたとき」のブロックをコードエリアへドラッグしよう。',
+        'コードタブにもどって、「おされたとき」のブロックをコードエリアへドラッグしよう。',
     'gui.lessons.challenge.blocks-l1-click-say.step3':
         'むらさきの「みため」のブロックをくっつけよう。しろいところは「こんにちは！」になっているよ。',
     'gui.lessons.challenge.blocks-l1-click-say.step4': 'そのしたに、これもくっつけよう。',
@@ -266,14 +262,14 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-click-say.debug1':
         'なにもおきないときは、ステージのスプライトそのものをおしているかみよう。',
     'gui.lessons.challenge.blocks-l1-click-say.debug2':
-        'プログラムをいれたスプライトと、おしたスプライトがおなじか、みぎしたのスプライトリストでたしかめよう。',
+        'プログラムをいれたスプライトと、おしたスプライトがおなじか、スプライトリストでたしかめよう。',
     'gui.lessons.challenge.blocks-l1-repeat.name': 'くりかえそう',
     'gui.lessons.challenge.blocks-l1-repeat.task':
-        '1 のキーをおしたら、\nはいけいが「Canyon」と「Arctic」に 3 かいかわるようにしよう',
+        '1 のキーをおしたら、\n「Canyon」というなまえのはいけいと「Arctic」というなまえのはいけいに、3 かいかわるようにしよう',
     'gui.lessons.challenge.blocks-l1-repeat.step1':
-        'みぎしたの「はいけいをえらぶ」から、「Canyon」と「Arctic」をたそう。',
+        'はいけいの「はいけいをえらぶ」から、「Canyon」というなまえのはいけいと「Arctic」というなまえのはいけいをたそう。',
     'gui.lessons.challenge.blocks-l1-repeat.step2':
-        'みぎの「ステージ」をえらぼう。ステージにもプログラムをかけるよ。',
+        'スプライトリストのみぎの「ステージ」をえらぼう。ステージにもプログラムをかけるよ。',
     'gui.lessons.challenge.blocks-l1-repeat.step3':
         'きいろい「イベント」の「1 キーがおされたとき」をコードエリアへドラッグしよう。▼が「1」になっているかみよう。',
     'gui.lessons.challenge.blocks-l1-repeat.step4':
@@ -294,7 +290,7 @@ export const jaHira = {
         'みずいろの「しらべる」から、ろっかっけいのブロックを「もし」のろっかっけいのあなにいれよう。',
     'gui.lessons.challenge.blocks-l1-if.step5': 'うえとしたに「いう」をいれて、それぞれのセリフをかこう。',
     'gui.lessons.challenge.blocks-l1-if.step6':
-        'はたをおして、マウスをネコにかさねたり、はなしたりしよう。とめるときはあかい●。',
+        'はたをおして、マウスをネコにかさねたり、はなしたりしよう。とめるときは、あかい●の「とめる」をおそう。',
     'gui.lessons.challenge.blocks-l1-if.debug1':
         'セリフがかわらないときは、「いう」が「もし」のなかと「でなければ」のなかに 1 つずつはいっているかみよう。',
     'gui.lessons.challenge.blocks-l1-if.debug2':
@@ -348,8 +344,9 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-message-list.name': 'メッセージをためよう',
     // チャレンジ 9〜11
     'gui.lessons.challenge.blocks-l1-broadcast.task':
-        'ペンギンをたして、\nネコをおしたらペンギンが「やあ！」というようにしよう',
-    'gui.lessons.challenge.blocks-l1-broadcast.step1': 'みぎしたの「スプライトをえらぶ」から、ペンギンをたそう。',
+        'ペンギン（「Penguin」というなまえのスプライト）をたして、\nネコをおしたらペンギンが「やあ！」というようにしよう',
+    'gui.lessons.challenge.blocks-l1-broadcast.step1':
+        'スプライトリストの「スプライトをえらぶ」から、「Penguin」というなまえのスプライトをたそう。',
     'gui.lessons.challenge.blocks-l1-broadcast.step2':
         'ネコをえらんで、「おされたとき」と「おくる」をつなげよう。▼の「あたらしいメッセージ」で「あいさつ」をつくろう。',
     'gui.lessons.challenge.blocks-l1-broadcast.step3':
@@ -440,18 +437,13 @@ export const en = {
     'gui.lessons.lesson.blocks-l2.name': 'Choose and Ask',
     'gui.lessons.lesson.blocks-l3.name': 'Remember and Tell',
     'gui.lessons.challenge.blocks-l1-key-sound.name': 'Play a sound with a key',
-    'gui.lessons.challenge.blocks-l1-key-sound.task':
-        'Make the cat meow and then play the "Owl" sound\nwhen the space key is pressed',
+    'gui.lessons.challenge.blocks-l1-key-sound.task': 'Make the cat meow\nwhen the space key is pressed',
     'gui.lessons.challenge.blocks-l1-key-sound.step1':
-        'Open the "Sounds" tab at the top and add "Owl" with the button at the bottom left.',
+        'Drag the yellow "Events" block from the palette into the code area.',
     'gui.lessons.challenge.blocks-l1-key-sound.step2':
-        'Go back to the "Code" tab and drag the yellow "Events" block into the code area.',
-    'gui.lessons.challenge.blocks-l1-key-sound.step3':
-        'Snap this block on underneath. It is in when it clicks into place.',
-    'gui.lessons.challenge.blocks-l1-key-sound.step4': 'Add one more sound block and choose "Owl" with the ▼.',
-    'gui.lessons.challenge.blocks-l1-key-sound.step5': 'Press the space key.',
-    'gui.lessons.challenge.blocks-l1-key-sound.debug1':
-        'If you hear nothing, check the volume of the computer and the sound name chosen with the ▼.',
+        'Snap this "Sound" block on underneath. It is in when it clicks into place.',
+    'gui.lessons.challenge.blocks-l1-key-sound.step3': 'Press the space key.',
+    'gui.lessons.challenge.blocks-l1-key-sound.debug1': 'If you hear nothing, check the volume of the computer.',
     'gui.lessons.challenge.blocks-l1-key-sound.debug2': 'If the blocks are apart, the lower block does not run.',
     'gui.lessons.challenge.blocks-l1-arrow-move.name': 'Move with the arrow keys',
     'gui.lessons.challenge.blocks-l1-arrow-move.task':
@@ -473,9 +465,9 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-click-say.task':
         'Add a costume you like to the cat,\nand make it say "Hello!" and change its look when it is clicked',
     'gui.lessons.challenge.blocks-l1-click-say.step1':
-        'Open the "Costumes" tab at the top and add a costume you like with the button at the bottom left. Choose one, or paint one.',
+        'Open the Costumes tab and add a costume you like with the button at the bottom left. Choose one, or paint one.',
     'gui.lessons.challenge.blocks-l1-click-say.step2':
-        'Go back to the "Code" tab and drag the "when this sprite clicked" block into the code area.',
+        'Go back to the Code tab and drag the "when this sprite clicked" block into the code area.',
     'gui.lessons.challenge.blocks-l1-click-say.step3':
         'Snap on the purple "Looks" block. The white part already says "Hello!".',
     'gui.lessons.challenge.blocks-l1-click-say.step4': 'Snap this one on underneath.',
@@ -485,13 +477,14 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-click-say.debug1':
         'If nothing happens, check that you are clicking the sprite itself on the stage.',
     'gui.lessons.challenge.blocks-l1-click-say.debug2':
-        'Check in the sprite list at the bottom right that the sprite with the program is the one you clicked.',
+        'Check in the sprite list that the sprite with the program is the one you clicked.',
     'gui.lessons.challenge.blocks-l1-repeat.name': 'Repeat',
     'gui.lessons.challenge.blocks-l1-repeat.task':
-        'Make the backdrop switch between "Canyon" and "Arctic" 3 times\nwhen the 1 key is pressed',
+        'Make the backdrop switch between the backdrops named "Canyon" and "Arctic" 3 times\nwhen the 1 key is pressed',
     'gui.lessons.challenge.blocks-l1-repeat.step1':
-        'Add "Canyon" and "Arctic" from "Choose a Backdrop" at the bottom right.',
-    'gui.lessons.challenge.blocks-l1-repeat.step2': 'Select "Stage" on the right. The stage can have a program too.',
+        'Add the backdrops named "Canyon" and "Arctic" with "Choose a Backdrop" in the backdrop area.',
+    'gui.lessons.challenge.blocks-l1-repeat.step2':
+        'Select "Stage" to the right of the sprite list. The stage can have a program too.',
     'gui.lessons.challenge.blocks-l1-repeat.step3':
         'Drag "when 1 key pressed" from the yellow "Events" to the code area. Check that the ▼ shows "1".',
     'gui.lessons.challenge.blocks-l1-repeat.step4': 'Snap "repeat" from the orange "Control" blocks under it.',
@@ -568,8 +561,9 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-message-list.name': 'Collect messages',
     // チャレンジ 9〜11
     'gui.lessons.challenge.blocks-l1-broadcast.task':
-        'Add a penguin,\nand make the penguin say "Hi!" when the cat is clicked',
-    'gui.lessons.challenge.blocks-l1-broadcast.step1': 'Add a penguin with "Choose a Sprite" at the bottom right.',
+        'Add a penguin (the sprite named "Penguin"),\nand make the penguin say "Hi!" when the cat is clicked',
+    'gui.lessons.challenge.blocks-l1-broadcast.step1':
+        'Add the sprite named "Penguin" with "Choose a Sprite" in the sprite list.',
     'gui.lessons.challenge.blocks-l1-broadcast.step2':
         'Select the cat and snap "when this sprite clicked" and "broadcast" together. Choose "New message" from ▼ and make "hello".',
     'gui.lessons.challenge.blocks-l1-broadcast.step3':
