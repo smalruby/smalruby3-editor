@@ -6182,3 +6182,29 @@ $seat-tile-min: 36px;
     padding: 0.4rem 0.75rem;
     font-size: $font-size-medium;
 }
+
+/* 課題詳細の「✕ ＋ 課題名」の行（#2089）: 課題名の欄は残りの幅を取り、参加コードのカードと
+   ［課題を保存］は中身の幅で 1 行に並べる（カードの中で折り返して行が高くならないように）。 */
+.close-row-heading .name-col {
+    flex: 1 1 auto;
+}
+
+.close-row .close-row-end {
+    flex: 0 0 auto;
+}
+
+.close-row .join-code-card {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    /* 幅を中身から決める（inline-size の containment だと幅が 0 になる）。 */
+    container-type: normal;
+    padding: 0.2rem 0.5rem;
+    white-space: nowrap;
+}
+
+/* 共有できない理由（まれ）は、行の中ではボタンの右に幅を決めて折り返す。 */
+.close-row .join-code-gc-blocked-note {
+    flex: 0 1 14rem;
+    margin-top: 0;
+    white-space: normal;
+}
