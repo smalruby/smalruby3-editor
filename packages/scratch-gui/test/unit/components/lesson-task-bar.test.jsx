@@ -102,6 +102,38 @@ describe('LessonTaskBar', () => {
         expect(onTogglePartNames).toHaveBeenCalledTimes(1);
     });
 
+    test('showing the part names hides the full text that the mouse opened (the mouse is on the bar)', () => {
+        jest.useFakeTimers();
+        try {
+            const { getByTestId, queryByTestId, rerender } = renderBar({ onTogglePartNames: jest.fn() });
+            // jsdom には PointerEvent が無いので、pointerType を持たせた MouseEvent で乗せる
+            const over = new MouseEvent('pointerover', { bubbles: true, cancelable: true });
+            Object.defineProperty(over, 'pointerType', { value: 'mouse' });
+            act(() => {
+                getByTestId('lesson-task-bar').dispatchEvent(over);
+                jest.advanceTimersByTime(HOVER_DELAY_MS);
+            });
+            expect(getByTestId('lesson-task-bar-full-text')).toBeInTheDocument();
+            const { challenge, lesson } = findChallenge('blocks-l1-click-say');
+            rerender(
+                <IntlProvider locale="en" messages={en}>
+                    <LessonTaskBar
+                        challenge={challenge}
+                        challengeCount={lesson.challenges.length}
+                        hintAvailable
+                        onHint={jest.fn()}
+                        onQuit={jest.fn()}
+                        onTogglePartNames={jest.fn()}
+                        partNamesVisible
+                    />
+                </IntlProvider>,
+            );
+            expect(queryByTestId('lesson-task-bar-full-text')).not.toBeInTheDocument();
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
     test('hint button calls onHint', () => {
         const { getByTestId, onHint } = renderBar();
         fireEvent.click(getByTestId('lesson-task-bar-hint'));

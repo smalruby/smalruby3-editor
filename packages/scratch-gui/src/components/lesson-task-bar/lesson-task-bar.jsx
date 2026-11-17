@@ -190,6 +190,16 @@ const LessonTaskBar = ({
         }
         prevHintVisibleRef.current = Boolean(hintVisible);
     }, [hintVisible, clearHoverTimer]);
+    // 「なまえ」を押して名前の札を出したときも同じく引っこめる（押したマウスはバーの上にあるので、
+    // そのままだと全文のパネルが課題バー・タブの札を隠す）
+    const prevPartNamesVisibleRef = useRef(Boolean(partNamesVisible));
+    useEffect(() => {
+        if (partNamesVisible && !prevPartNamesVisibleRef.current) {
+            clearHoverTimer();
+            setHovered(false);
+        }
+        prevPartNamesVisibleRef.current = Boolean(partNamesVisible);
+    }, [partNamesVisible, clearHoverTimer]);
     useEffect(() => setPinned(false), [task]);
     // タップで開いた全文が閉じたら知らせる（どう閉じても。隠していた「できた！」を出し直すため・#1639）
     const prevPinnedRef = useRef(pinned);
