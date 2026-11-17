@@ -4,7 +4,7 @@
 
 ## 概要
 
-いまのチュートリアル（`docs/tutorial/`）を、**コース › レッスン › チャレンジ** の形に作り直す機能。
+スモウルビーの独自のチュートリアル（いまは上流のチュートリアルに戻した。`docs/tutorial/`）の役目を、**コース › レッスン › チャレンジ** の形に作り直した機能。
 探すための一覧ではなく、「何をやって、何ができるようになったか」が見えるレッスンにして、先生の
 説明がなくてもスモウルビーでのプログラミングのやり方が身につくようにする。
 
@@ -1221,7 +1221,7 @@ partner: {
 | `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
 | `getLessonDnclModeAllowed(state)` | Ruby タブを日本語モードに切りかえてよいか（レッスンモードでなければ true、レッスンモードならいまのレッスンの `allowDnclMode`）。`containers/ruby-tab.jsx` が読んで「日本語」ボタンを押せなくする |
-| `getLessonAllowedBlocks(state)` | パレットに出すブロック（チャレンジの `allowedBlocks`。無ければ null）。Blocks コンテナがチュートリアルの `tutorialAllowedBlocks` より優先して使う |
+| `getLessonAllowedBlocks(state)` | パレットに出すブロック（チャレンジの `allowedBlocks`。無ければ null）。Blocks コンテナがこれでパレットを絞る（prop の名前は `tutorialAllowedBlocks` のまま） |
 | `getCurrentHint(state)` | `{visible, index, count, step, spotlight, lastResort, debug, code, session}`（レッスンモードでなければ null）。`count` は最後の手段のページを含む。`step` はいまのヒント（最後の手段のページでは null）、`spotlight` はこのページで周りを暗くするか、`lastResort` は最後の手段のページか。吹き出しのコンテナ（`containers/lesson-hint.jsx`）はこれを読む |
 
 ## レッスン表
@@ -1378,8 +1378,7 @@ partner: {
   結び付きも切る）→ 作品ができたらチャレンジの setup を適用 → `openChallenge(id)`。
   この流れは `containers/lesson-mode.jsx` が進める（作成中 → 表示中の遷移で「できた」を検出する）。
 - **setup**: `lib/lessons/challenge-setup.js` の `setupForChallenge(course, challenge)` が
-  `lib/lessons/apply-setup.js` の `applySetup` に渡す形を作る（チュートリアルの一覧も同じ `applySetup` を使うが、
-  チュートリアルを上流に戻したあともレッスンが使うので `lib/lessons/` に置く）。コースの言語から既定（ブロック = コードタブ、Ruby = Ruby タブ・Ruby
+  `lib/lessons/apply-setup.js` の `applySetup` に渡す形を作る（レッスンだけが使う）。コースの言語から既定（ブロック = コードタブ、Ruby = Ruby タブ・Ruby
   モード、DNCL = Ruby タブ・DNCL モード）を決め、チャレンジの `setup` で上書きする。
   deck と同じ項目を適用したあと（拡張機能を読み込んでから）、作品の準備をする（`lib/lessons/challenge-start.js`）:
 
@@ -1461,17 +1460,16 @@ partner: {
 
   ![画像つきの課題の全文（1300×600）](screenshots/0205-lesson-task-full-text-image-1300x600.png)
 - **チャレンジの画像**（`image`。任意）: `{src, alt}`。`src` は `src/lib/lessons/images/` に置いた画像を
-  `courses.js` で import した URL（webpack の asset。チュートリアルの deck の画像
-  `src/lib/libraries/decks/steps/` と同じ扱いで、バンドルに入るので file:// の integration テストでもそのまま
+  `courses.js` で import した URL（webpack の asset。バンドルに入るので file:// の integration テストでもそのまま
   読める）。`alt` は message descriptor（`gui.lessons.challenge.<id>.image`）。画像の文字は言語で変わるので、
   画像の中には字を入れない（言葉は課題の文と `alt` に書く）。例: チャレンジ 2「矢印キーで動かそう」の
   `images/arrow-keys.svg`（上・下の矢印キーとネコの動く向き）。
-- **パレットを絞る**: チャレンジの `allowedBlocks`（deck と同じ形）。Blocks コンテナの `tutorialAllowedBlocks`
-  にレッスンの分を優先して渡すので、仕組みはチュートリアルと同じ（`allowedBlocks` が null なら絞らない）。
+- **パレットを絞る**: チャレンジの `allowedBlocks`。Blocks コンテナの `tutorialAllowedBlocks`（名前はもとの
+  チュートリアルのまま）にレッスンの分を渡す（`allowedBlocks` が null なら絞らない。上流のチュートリアルは絞らない）。
   - **「変数」「ブロック定義」も絞る**: この 2 つは scratch-blocks が flyout を開くたびに中身を作る動的カテゴリ
     （toolbox XML では `custom="VARIABLE"` / `custom="PROCEDURE"` の空の category）なので、ふつうのカテゴリの
     絞り込み（`only_blocks`）が効かない。`allowedBlocks` があるときは `src/lib/lesson-dynamic-categories.js` で
-    次のように決める（チュートリアルのカードの `allowedBlocks` にも同じように効く）。
+    次のように決める。
     - カテゴリを出すか: そのカテゴリの opcode（`data_*` / `procedures_*`）が `allowedBlocks` に 1 つも無ければ
       出さない（`make-toolbox-xml.js` の最後の引数。Smalruby マーカー `lesson dynamic category filtering`）。
     - 中身: `allowedBlocks` にあるブロックだけ（`blocks.jsx` で登録するカテゴリのコールバックで絞る）。
@@ -1480,19 +1478,17 @@ partner: {
       変数・リストのレポーター（`data_variable` / `data_listcontents`）も同じ条件で出す。モニターの
       チェックボックスを持ち、作った変数・リストをステージに出すのはこのチェックボックスなので、
       残さないと「リストを作る」で作ったリストの箱がステージに出ない。
-    - 変数を使うチャレンジ・チュートリアルは、`allowedBlocks` に `data: [...]`（ブロック定義なら
-      `procedures: [...]`）を書く。キー名は自由（中の opcode だけを見る）。チャットのチュートリアルと
-      Ruby の基本 3・4・6 には書いてある。deck とチャレンジのプログラム（`code`・ヒントのブロック）が使う
+    - 変数を使うチャレンジは、`allowedBlocks` に `data: [...]`（ブロック定義なら
+      `procedures: [...]`）を書く。キー名は自由（中の opcode だけを見る）。チャレンジのプログラム（`code`・ヒントのブロック）が使う
       変数・リスト・ブロック定義の opcode が `allowedBlocks` に入っているかは
-      `test/unit/lib/lessons/challenge-dynamic-categories.test.js`（チャレンジ）と
-      `test/unit/lib/libraries/decks/deck-dynamic-categories.test.js`（deck）が Ruby をブロックに変換して確かめる
+      `test/unit/lib/lessons/challenge-dynamic-categories.test.js` が Ruby をブロックに変換して確かめる
       （道具は `test/helpers/dynamic-category-opcodes.js`）。
     - `?only_blocks=`・ステージのコメント・ブロックの選択（`selectedBlocks`）で絞るときは、これまでどおり
       2 つとも出る。
 - **パレットのブロックの初期値**: `allowedBlocks` の項目は opcode の文字列のほかに
   `{opcode, fields: {名前: 値}, inputs: {名前: 値}}` と書ける。仕様のパレットの表記（`[1 ▼]`・`(3)`）の初期値を
   ここに書く（`src/lib/lessons/block-defaults.js`。Blocks コンテナがツールボックスの XML と「変数」「ブロック
-  定義」の flyout に入れる。チュートリアルのカードの `allowedBlocks` にも効く）。
+  定義」の flyout に入れる）。
   - `fields` はブロックそのもののフィールド（「キーが押されたとき」の `KEY_OPTION` など。ツールボックスの XML に
     書いていないフィールドは足す）。`inputs` は入力の影のフィールド（数・文字・音や背景のメニュー）。影の無い
     入力（「もし」の六角形の穴など）には入れられない。
@@ -1525,8 +1521,7 @@ partner: {
   ヒント・「できた！」が消え、`getLessonAllowedBlocks` が null になってパレットは全部のブロックにもどる。作品
   （プログラム）はそのまま残る（チャレンジは毎回新しい作品から始めるので、残しても前の作品とまざらない）。
   レッスンにもどるのはメニューの「レッスン」から。「ほかのチャレンジへ」（白地）より目立たせない（透明地に白い枠）。
-- **いまのチュートリアル（カード）との関係**: 両方が同時に開くと、カードの `allowedBlocks` / setup と
-  レッスンのものが食い違うので、どちらか一方だけにする。チャレンジを開くときは開いていたカードを閉じ
+- **上流のチュートリアル（カード）との関係**: 両方が同時に開くと画面が重なって分かりにくいので、どちらか一方だけにする。チャレンジを開くときは開いていたカードを閉じ
   （`closeCards`）、レッスンモード中に「?」メニューなどからチュートリアルを開く（`activateDeck`）と
   レッスンモードを抜ける（開こうとしていたチャレンジも取り消す）。
 
@@ -1641,7 +1636,7 @@ partner: {
   消えます。」［いいえ］［はい］を出す（`window.confirm` は使わない。アプリの外の見た目になり、子どもには何のダイアログか
   わかりにくいため）。**いいえ**では何も変えずにボタンにもどる。**はい**で正解のプログラムを入れる（下の動き。この
   ドキュメントで「プログラムを入れる」と書くのはこの動き）。ページを変えると確認は消える。
-  プログラムを入れる動きはチュートリアルのカードの `insertCodeButton` と同じ仕組み
+  プログラムを入れる動きは
   （`updateRubyCode(code)` → ブロックのコースではコードタブ、Ruby / DNCL のコースでは Ruby タブを出す。
   コードタブでは Ruby タブが変換してブロックにする）。チャレンジの `codeTarget` が `'stage'` なら、入れる前に
   ステージをえらび、Ruby タブの相手（`rubyCode.target`）もステージにする（ステージのプログラムのチャレンジ）。
@@ -2107,11 +2102,11 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 
 ## いまのチュートリアルの入口
 
-レッスン機能がチュートリアルの役目を引き継ぐため、従来の **「チュートリアル」「デバッグ」のボタンはメニューバーから外し、右上の「?」メニューの項目**にした（ふだんは目に入らないようにする。そろったら消す）。
+学ぶ入口はレッスン（メニューバーの「レッスン」）。チュートリアルは上流（Scratch）のものをそのまま使い、**「チュートリアル」「デバッグ」のボタンはメニューバーに置かず、右上の「?」メニューの項目**にした（ふだんは目に入らないようにする）。
 
-- 「?」メニュー › チュートリアル → チュートリアル一覧（`tips-library`）
+- 「?」メニュー › チュートリアル → 上流のチュートリアル一覧（`tips-library`）
 - 「?」メニュー › デバッグ → デバッグ画面（`debug-modal`）
-- `?tutorial=<urlId>` で直接開く経路はそのまま動く（教科書や授業資料のリンク用）
+- `?tutorial=<urlId>` で直接開く経路は上流のまま動く。前にスモウルビーにあったチュートリアルの `urlId`（`chat1Basic1` など）はもう開かず、開かれた数を GA で数える（[`docs/tutorial/`](../tutorial/) の「GA の計測」）
 - はじめての人向けの吹き出し（旧 `tutorial-tooltip`）は出さない。代わりに「レッスン」ボタンの下に吹き出しを出す（上の「レッスン表」）
 
 詳細は [`docs/menu-bar/`](../menu-bar/) の「「?」メニュー（ヘルプ）」と [`docs/tutorial/`](../tutorial/) を参照。
@@ -2201,7 +2196,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/make-toolbox-xml.js` | `allowedBlocks` に無ければ「変数」「ブロック定義」のカテゴリを出さない（マーカー `lesson dynamic category filtering`） |
 | `packages/scratch-gui/test/unit/lib/lesson-dynamic-categories.test.js` | 上の純粋関数・toolbox XML・既存のチャレンジの unit テスト |
 | `packages/scratch-gui/test/unit/lib/lessons/challenge-dynamic-categories.test.js` | すべてのチャレンジのプログラムを変換し、使う変数・リスト・ブロック定義の opcode が `allowedBlocks` にあるか（deck の分は `test/unit/lib/libraries/decks/deck-dynamic-categories.test.js`。道具は `test/helpers/dynamic-category-opcodes.js`） |
-| `packages/scratch-gui/src/lib/lessons/apply-setup.js` | チャレンジの setup（タブ・Ruby のモード・拡張機能・Ruby の版）を当てる `applySetup`。チュートリアルの一覧も使う |
+| `packages/scratch-gui/src/lib/lessons/apply-setup.js` | チャレンジの setup（タブ・Ruby のモード・拡張機能・Ruby の版）を当てる `applySetup` |
 | `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定・setup・できた の判定・見張り・カードの色の決め方（`card-color.test.js`）の unit テスト |
 | `packages/scratch-gui/test/unit/reducers/lesson-mode-reducer.test.js` | reducer の unit テスト |
 | `packages/scratch-gui/test/unit/components/lesson-completed-toast.test.jsx` / `test/unit/components/lesson-completed-quiz.test.jsx` / `test/unit/containers/lesson-goal-watcher.test.jsx` | 「できた！」と見張りのコンテナの unit テスト |

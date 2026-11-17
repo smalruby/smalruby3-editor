@@ -368,6 +368,8 @@ src/lib/*
 !src/lib/use-display-mode.js
 !src/lib/use-is-narrow-screen.js
 !src/lib/version-checker.js
+!src/lib/tutorial-url-analytics.js
+!src/lib/help-menu.js
 
 # Level 3: src/lib/settings/*
 # color-mode/ and theme/ are upstream; only these are Smalruby-only.
@@ -380,7 +382,6 @@ src/lib/settings/*
 # Level 3: src/lib/libraries/*
 src/lib/libraries/*
 !src/lib/libraries/extensions/
-!src/lib/libraries/decks/
 
 # Level 4: src/lib/libraries/extensions/*
 src/lib/libraries/extensions/*
@@ -396,16 +397,6 @@ src/lib/libraries/extensions/*
 !src/lib/libraries/extensions/tm2scratch/
 !src/lib/libraries/extensions/tm2scratch/**
 
-# Level 4: src/lib/libraries/decks/*
-# index.jsx and the other pre-existing deck assets are upstream-derived and
-# not (yet) whitelisted; only the new per-category modules are Smalruby-only
-# (issue #932).
-src/lib/libraries/decks/*
-!src/lib/libraries/decks/categories/
-!src/lib/libraries/decks/categories/**
-!src/lib/libraries/decks/green-flag-icon.jsx
-
-# Level 5: src/lib/libraries/decks/categories/* — Smalruby-only (whole directory via `/**`)
 
 # ============================================================
 # Level 2: src/locales/*
@@ -483,7 +474,6 @@ test/integration/*
 !test/integration/smalruby-lesson1-challenges-5-8.test.js
 !test/integration/smalruby-lesson1-challenges-9-11.test.js
 !test/integration/smalruby-help-menu.test.js
-!test/integration/smalruby-tutorials.test.js
 !test/integration/smalruby-lessons.test.js
 !test/integration/smalruby-lessons-hint.test.js
 !test/integration/smalruby-lesson-task-bar-full-text.test.js
@@ -617,7 +607,6 @@ test/unit/containers/*
 !test/unit/containers/block-activity-diagram.test.jsx
 !test/unit/containers/ruby-tab/**
 !test/unit/containers/backpack.test.jsx
-!test/unit/containers/cards.test.jsx
 !test/unit/containers/lesson-mode.test.jsx
 !test/unit/containers/lesson-hint.test.jsx
 !test/unit/containers/lessons-library.test.jsx
@@ -683,8 +672,6 @@ test/unit/lib/*
 !test/unit/lib/mesh-practice/
 !test/unit/lib/mesh-practice/**
 !test/unit/lib/dncl/**
-!test/unit/lib/libraries/
-!test/unit/lib/libraries/**
 !test/unit/lib/ruby-generator/
 !test/unit/lib/ruby-generator/**
 !test/unit/lib/ruby-roundtrip/
@@ -810,6 +797,9 @@ test/unit/lib/*
 !test/unit/lib/setup-prism.js
 !test/unit/lib/version-checker.test.js
 !test/unit/lib/audio-buffer-player.test.js
+!test/unit/lib/tutorial-from-url-analytics.test.js
+!test/unit/lib/tutorial-url-analytics.test.js
+!test/unit/lib/help-menu.test.js
 
 # Level 3: test/unit/reducers/*
 test/unit/reducers/*

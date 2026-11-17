@@ -9,9 +9,6 @@ import {
     getIsShowingWithoutId
 } from '../reducers/project-state';
 import {setProjectTitle} from '../reducers/project-title';
-// === Smalruby: Start of start-tutorial button ===
-import {setPendingProjectTitle} from '../reducers/cards';
-// === Smalruby: End of start-tutorial button ===
 
 const messages = defineMessages({
     defaultProjectTitle: {
@@ -36,16 +33,8 @@ const TitledHOC = function (WrappedComponent) {
             }
             // if project is a new default project, and has loaded,
             if (this.props.isShowingWithoutId && !this.props.isAnyCreatingNewState && prevProps.isAnyCreatingNewState) {
-                // === Smalruby: Start of start-tutorial button ===
-                // Use pending tutorial title if set, otherwise reset to default
-                if (this.props.pendingProjectTitle) {
-                    this.handleReceivedProjectTitle(this.props.pendingProjectTitle);
-                    this.props.onClearPendingProjectTitle();
-                } else {
-                    // reset title to default
-                    this.handleReceivedProjectTitle();
-                }
-                // === Smalruby: End of start-tutorial button ===
+                // reset title to default
+                this.handleReceivedProjectTitle();
             }
             // if the projectTitle hasn't changed, but the reduxProjectTitle
             // HAS changed, we need to report that change to the projectTitle's owner
@@ -71,10 +60,6 @@ const TitledHOC = function (WrappedComponent) {
                 isAnyCreatingNewState,
                 isShowingWithoutId,
                 onChangedProjectTitle,
-                // === Smalruby: Start of start-tutorial button ===
-                onClearPendingProjectTitle,
-                pendingProjectTitle,
-                // === Smalruby: End of start-tutorial button ===
                 // for children, we replace onUpdateProjectTitle with our own
                 onUpdateProjectTitle,
                 // we don't pass projectTitle prop to children -- they must use
@@ -97,10 +82,6 @@ const TitledHOC = function (WrappedComponent) {
         isAnyCreatingNewState: PropTypes.bool,
         isShowingWithoutId: PropTypes.bool,
         onChangedProjectTitle: PropTypes.func,
-        // === Smalruby: Start of start-tutorial button ===
-        onClearPendingProjectTitle: PropTypes.func,
-        pendingProjectTitle: PropTypes.string,
-        // === Smalruby: End of start-tutorial button ===
         onUpdateProjectTitle: PropTypes.func,
         projectTitle: PropTypes.string,
         reduxProjectTitle: PropTypes.string
@@ -115,18 +96,12 @@ const TitledHOC = function (WrappedComponent) {
         return {
             isAnyCreatingNewState: getIsAnyCreatingNewState(loadingState),
             isShowingWithoutId: getIsShowingWithoutId(loadingState),
-            reduxProjectTitle: state.scratchGui.projectTitle,
-            // === Smalruby: Start of start-tutorial button ===
-            pendingProjectTitle: state.scratchGui.cards.pendingProjectTitle
-            // === Smalruby: End of start-tutorial button ===
+            reduxProjectTitle: state.scratchGui.projectTitle
         };
     };
 
     const mapDispatchToProps = dispatch => ({
-        onChangedProjectTitle: title => dispatch(setProjectTitle(title)),
-        // === Smalruby: Start of start-tutorial button ===
-        onClearPendingProjectTitle: () => dispatch(setPendingProjectTitle(null))
-        // === Smalruby: End of start-tutorial button ===
+        onChangedProjectTitle: title => dispatch(setProjectTitle(title))
     });
 
     return injectIntl(connect(
