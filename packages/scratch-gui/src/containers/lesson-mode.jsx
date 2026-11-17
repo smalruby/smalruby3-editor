@@ -290,9 +290,9 @@ const LessonMode = ({
     }, [roleChallengeOpen, vm]);
 
     // 画面の部分の名前の札（#2133）。`showPartNames` のレッスンはチャレンジを開いたときから出しっぱなしにし、
-    // ほかは課題バーの「なまえ」で数秒だけ出す（どこかを押す・Esc でも消える）。チャレンジが変わったら、
-    // そのレッスンの決まりにもどす。出しっぱなしのレッスンで消したあと「なまえ」を押すと、また出しっぱなしにする
-    // 「どこでしょう？」のクイズ（#2134）のチャレンジでは、名前の札を出さない（答えが見えてしまう）。「なまえ」のボタンも出さない
+    // ほかは課題バーの「ガイド」で数秒だけ出す（どこかを押す・Esc でも消える）。チャレンジが変わったら、
+    // そのレッスンの決まりにもどす。出しっぱなしのレッスンで消したあと「ガイド」を押すと、また出しっぱなしにする
+    // 「どこでしょう？」のクイズ（#2134）のチャレンジでは、名前の札を出さない（答えが見えてしまう）。「ガイド」のボタンも出さない
     const partQuiz = current ? current.challenge.partQuiz : null;
     const lessonShowsPartNames = Boolean(current && current.lesson.showPartNames && !partQuiz);
     const [partNames, setPartNames] = useState({ visible: lessonShowsPartNames, timed: false });

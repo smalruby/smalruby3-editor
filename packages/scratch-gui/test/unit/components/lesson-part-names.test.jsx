@@ -78,7 +78,7 @@ describe('LessonPartNames', () => {
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    test('when shown by the button, closes on a press anywhere but the "Names" button, and on Esc', () => {
+    test('when shown by the button, closes on a press anywhere but the "Guide" button, and on Esc', () => {
         const onClose = jest.fn();
         const toggle = addPart('lesson-task-bar-part-names', { left: 980, top: 56, right: 1030, bottom: 80 });
         renderNames({ onClose, timed: true });

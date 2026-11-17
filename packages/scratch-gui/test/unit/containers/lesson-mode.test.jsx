@@ -192,7 +192,7 @@ describe('LessonMode container', () => {
     });
 
     // 画面の部分の名前の札（#2133）
-    test('the "Names" button shows the part names for a few seconds, and hides them when pressed again', () => {
+    test('the "Guide" button shows the part names for a few seconds, and hides them when pressed again', () => {
         jest.useFakeTimers();
         try {
             const props = {

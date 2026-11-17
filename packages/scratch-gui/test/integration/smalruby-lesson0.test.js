@@ -101,7 +101,7 @@ describe('Lesson 0 (#2134)', () => {
     test('0-1: dragging the cat on the stage completes it', async () => {
         await loadEditor();
         await openChallenge('blocks-l0-drag-cat');
-        // 「なまえ」の札はレッスン 0 では最初から出ている
+        // 名前の札（「ガイド」）はレッスン 0 では最初から出ている
         expect(await countByTestId('lesson-part-names')).toBe(1);
         await closeHint();
         const center = await centerOf('[class*="stage_stage-wrapper_"] canvas');
@@ -152,7 +152,7 @@ describe('Lesson 0 (#2134)', () => {
     test('0-8: answering the 5 questions by clicking the parts completes it', async () => {
         await loadEditor();
         await openChallenge('blocks-l0-where');
-        // クイズでは名前の札も「なまえ」のボタンも出さない
+        // クイズでは名前の札も「ガイド」のボタンも出さない
         expect(await countByTestId('lesson-part-names')).toBe(0);
         expect(await countByTestId('lesson-task-bar-part-names')).toBe(0);
         await closeHint();

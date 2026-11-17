@@ -63,7 +63,7 @@
 | `name` | message | レッスンの名前 |
 | `challenges` | チャレンジ[] | 並び順 |
 | `allowDnclMode` | boolean | レッスンのあいだ Ruby タブを日本語モードに切りかえてよいか。**書いていなければ不可**（`false`）。下の「日本語モードの切りかえ」 |
-| `showPartNames` | boolean | チャレンジを開いたときから画面の部分の名前の札を出しておくか（下の「名前の札」。課題バーの「なまえ」で消せる）。**書いていなければ出さない**（`false`）。画面の部分の名前を覚えるレッスン 0 で使う |
+| `showPartNames` | boolean | チャレンジを開いたときから画面の部分の名前の札を出しておくか（下の「名前の札」。課題バーの「ガイド」で消せる）。**書いていなければ出さない**（`false`）。画面の部分の名前を覚えるレッスン 0 で使う |
 | `warmup` | boolean | コースの数に入れない、はじめのレッスンか（上の「コース」）。**書いていなければ数える**（`false`）。「きょうからプログラマー」のレッスン 0 だけ `true` |
 | `checkCount` | number | レッスンの ✓（「全部できた」）に要るできた数。**書いていなければチャレンジの数**（全部）。テーマを選んでやるレッスン（「チャットをつくろう」のレッスン 5）だけ `1` |
 | `autoOpenHints` | boolean | チャレンジを始めたら、ヒントの 1 ページ目を自動で開くか。**書いていなければ開かない**（課題バーの「ヒント」で開く）。はじめのレッスン（「きょうからプログラマー」のレッスン 0 の `blocks-l0` と 1 の `blocks-l1`）だけ `true`。ヒントの使い方に慣れるまでは開いておき、慣れたら自分で開く。読んで作るチャレンジはこの設定によらず開く |
@@ -123,7 +123,7 @@
 | `activityDiagram` | boolean | false | 答えのプログラム（`code` と `spriteCodes`）から描くアクティビティ図を、課題の全文とヒントの 1 ページ目に出すか。答えが無いチャレンジでは true でも出さない。描き方は下の「アクティビティ図（答えから描く）」 |
 | `partner` | object \| null | null | メッシュの練習相手の定義 `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}], watch}`（`set` = `{variable, value}` か、その配列。`watch` は任意で、パネルの「〜に届いた」に出す生徒の変数の名前の配列）。あればチャレンジ中に練習相手のパネルを出す（下の「メッシュの練習相手」）。図では相手のスイムレーンになる。無ければ自分のプログラムだけを描く |
 | `quiz` | `{question, choices, answer, explanation}` \| null | null | ふりかえりのクイズ（3 択）。「できた！」の表示の中に出す（下の「ふりかえりのクイズ」）。`question` / `choices`（3 つ）/ `explanation` は message、`answer` は正解が `choices` の何番目か（0 から）。ふつうは `challengeQuiz(id, answer)` で書く |
-| `partQuiz` | `{questions: [label, ...]}` \| null | null | 「どこでしょう？」のクイズ（下の「どこでしょう？のクイズ」）。`label` は名前の札の名前（`lib/lessons/part-names.js` の `PART_NAMES`）。クイズのあいだは画面のクリックをクイズが受け、名前の札と「なまえ」のボタンは出さない。`validatePartQuiz` が形を確かめる |
+| `partQuiz` | `{questions: [label, ...]}` \| null | null | 「どこでしょう？」のクイズ（下の「どこでしょう？のクイズ」）。`label` は名前の札の名前（`lib/lessons/part-names.js` の `PART_NAMES`）。クイズのあいだは画面のクリックをクイズが受け、名前の札と「ガイド」のボタンは出さない。`validatePartQuiz` が形を確かめる |
 | `mode` | `'readDiagram'` \| null | null | チャレンジの形。null = ふつう。`'readDiagram'` = **読んで作る**（説明とアクティビティ図だけで指示する）。図を必ず出し（`activityDiagram` は true になる）、ヒントを 3 ページ（図と説明 → 試す → 答えを見る）に置き換える（`steps` は使わない）。最後の手段のページ（「正解のプログラムを確認する」）は付かない。答えは `code`。下の「読んで作るチャレンジ」 |
 | `explanation` | message \| null | null | 読んで作るチャレンジのヒントの 1 ページ目の説明。無ければ `task` を出す |
 
@@ -1821,7 +1821,7 @@ partner: {
 | ウェルカムバルーン（`welcome-tooltip/`。`docs/welcome/`） | 青の `callout` + `BalloonCloseButton`、しっぽは右 |
 | クラス管理のツールチップ（`classroom-tutorial/`。`docs/tutorial/`） | 画面の真ん中のカードで吹き出しとは形が違うので `Balloon` は使わず、`balloon-tokens.css`（白地・角丸・影・文字色）と `BalloonButton`（OK）だけを使う |
 
-### 名前の札（「なまえ」）
+### 名前の札（「ガイド」）
 
 画面の部分の名前（ヒントの文と同じ呼び方。Scratch Wiki の名前・`design.md`）を、部分を囲む枠と札で重ねて出す。「音タブを押して」が通じない子が、
 名前と場所を結びつけられるようにする。
@@ -1835,10 +1835,13 @@ partner: {
   （入らなければ横）に、広い部分は中の左上に置く。札が画面の外にはみ出さず、札どうし・ほかの小さな部分・ヒントの
   吹き出し・練習相手のパネルに重ならない置き場所を、部分に近いものから選ぶ。部分が動く（タブの切りかえ・画面の
   大きさの変化）のに合わせて 0.5 秒ごとに置き直す。
-- **出し方**: 課題バーの「なまえ」（「ヒント」の左。「ヒント」より小さく枠も薄い）で出し、**6 秒たつか、どこかを押すか、
-  Esc で消える**。もう一度「なまえ」を押しても消える。押した操作はそのまま下の部品に届く。
+- **出し方**: 課題バーの「ガイド」（「ヒント」の左。en は "Guide"）で出し、**6 秒たつか、どこかを押すか、
+  Esc で消える**。もう一度「ガイド」を押しても消える。押した操作はそのまま下の部品に届く。
+- **「ガイド」のボタン**: 大きさ・字・枠は「ヒント」と同じ（`lesson-task-bar.css` の `.button`。字は `$font-size-small`・
+  上下の余白は `$space-small`）。字の左に目のアイコンを付け、札を出しているときは開いた目と白地（`aria-pressed="true"`）、
+  隠しているときは斜めの線で消した目（`aria-pressed="false"`）にして、出し入れの状態がわかるようにする。
 - **最初から出す**: レッスンの `showPartNames: true` なら、チャレンジを開いたときから出したままにする（時間でも
-  押しても消えない。「なまえ」で消せ、もう一度押すと出したままにもどる）。枠と札は `pointer-events: none` なので、
+  押しても消えない。「ガイド」で消せ、もう一度押すと出したままにもどる）。枠と札は `pointer-events: none` なので、
   出したままでもブロックのドラッグやクリックを邪魔しない。
 - 層はヒントの吹き出し・課題バーより下（吹き出しを読みながら操作するため）。
 
@@ -1861,7 +1864,7 @@ partner: {
   「できた！」（480）・ヒントの吹き出し（490）・課題バー（491）より下の層（459）なので、それらは押せる。全部答えたら外す。
 - **問いの札**: コードエリアの下のほう（真ん中）に出す（パレット・タブ・旗・スプライトリストを隠さない。1300×600 で問いの文と
   結果が見える）。ヒントの 1 ページ目はこの札を指す（`HINT_TARGETS.PART_QUIZ`）。
-- クイズのチャレンジでは、名前の札（`showPartNames` のレッスンでも）と課題バーの「なまえ」を出さない（答えが見えてしまう）。
+- クイズのチャレンジでは、名前の札（`showPartNames` のレッスンでも）と課題バーの「ガイド」を出さない（答えが見えてしまう）。
 
 ### data-testid
 
@@ -1881,7 +1884,8 @@ partner: {
 | `lesson-task-bar-role-buttons` | span | 役のボタンの並び（ヒントの「役を決めよう」の吹き出しが指す・`role-picker`） |
 | `lesson-task-bar-role-shimaraby` / `lesson-task-bar-role-shimacat` | button | 「シマラビの役」/「シマネコの役」（いまの役は `aria-pressed="true"`） |
 | `lesson-task-bar-role-note` | span | 「前回はシマネコの役」/「出席番号で決めた役」（前回の役・出席番号で決めたときだけ。ボタンの下） |
-| `lesson-task-bar-part-names` | button | 「なまえ」。画面の部分の名前の札の出し入れ（出ているときは `aria-pressed="true"`） |
+| `lesson-task-bar-part-names` | button | 「ガイド」。画面の部分の名前の札の出し入れ（出ているときは `aria-pressed="true"`） |
+| `lesson-task-bar-part-names-icon` | svg | 「ガイド」の目のアイコン（札が出ているときは `data-open="true"` の開いた目、隠しているときは `"false"` の消した目） |
 | `lesson-task-bar-hint` | button | ヒントの吹き出しの出し入れ（ヒントが無ければ disabled） |
 | `lesson-part-names` | div | 名前の札の重ね（出ているときだけある。document.body への portal） |
 | `lesson-part-names-frame-<label>` | div | 部分を囲む枠（見つかった部分だけ）。`<label>` は `taskBar` / `hint` / `codeTab` / `costumesTab` / `soundsTab` / `greenFlag` / `stop` / `palette` / `codeArea` / `stage` / `spriteList` / `backdrop` |

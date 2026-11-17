@@ -1,5 +1,5 @@
 /**
- * 「なまえ」の札（#2133）: 部分の探し方と札の置き方（純粋関数）。
+ * 名前の札（「ガイド」）（#2133）: 部分の探し方と札の置き方（純粋関数）。
  */
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
 import { PART_NAMES, computePartNameLayout, findPartNameRects } from '../../../../src/lib/lessons/part-names';

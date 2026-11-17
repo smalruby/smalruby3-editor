@@ -1,7 +1,7 @@
-// 「なまえ」の札（#2133）。画面の部分（タブ・ブロックパレット・スクリプトエリア・ステージ・緑の旗と停止ボタン・
+// 名前の札（「ガイド」）（#2133）。画面の部分（タブ・ブロックパレット・スクリプトエリア・ステージ・緑の旗と停止ボタン・
 // スプライトペイン・背景・課題バー・ヒント）を枠で囲み、名前の札を重ねて出す。部分の探し方と札の置き方は lib/lessons/part-names.js。
 // 札も枠も pointer-events を通すので、出したままでもドラッグやクリックを邪魔しない（レッスン 0 は最初から出す）。
-// 課題バーの「なまえ」で出したときは、数秒たつか、どこかを押すか、Esc で消す（押した操作はそのまま下に届く）。
+// 課題バーの「ガイド」で出したときは、数秒たつか、どこかを押すか、Esc で消す（押した操作はそのまま下に届く）。
 // document.body への portal で出し、部分の場所が変わる（タブを切りかえる・画面の大きさが変わる）のに合わせて置き直す。
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -92,7 +92,7 @@ const AVOID_SELECTORS = [
     '[data-testid="lesson-hint-minimized"]',
     '[data-testid="lesson-practice-partner"]',
 ];
-// 押しても札を消さない場所（「なまえ」のボタン。押すと出し入れが切りかわる）
+// 押しても札を消さない場所（「ガイド」のボタン。押すと出し入れが切りかわる）
 const TOGGLE_SELECTOR = '[data-testid="lesson-task-bar-part-names"]';
 
 const sameLayout = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -138,7 +138,7 @@ const LessonPartNames = ({ onClose, timed }) => {
         };
     }, [relayout]);
 
-    // 「なまえ」で出したときは、数秒で・どこかを押すと・Esc で消す。押した操作はそのまま下の部品に届く（capture で見るだけ）
+    // 「ガイド」で出したときは、数秒で・どこかを押すと・Esc で消す。押した操作はそのまま下の部品に届く（capture で見るだけ）
     const onCloseRef = useRef(onClose);
     onCloseRef.current = onClose;
     useEffect(() => {
@@ -204,7 +204,7 @@ const LessonPartNames = ({ onClose, timed }) => {
 LessonPartNames.propTypes = {
     // 消す（数秒たった・どこかを押した・Esc）
     onClose: PropTypes.func.isRequired,
-    // 「なまえ」で出した（数秒で消す）か。false ならレッスンの設定で出しっぱなし（自分では消さない）
+    // 「ガイド」で出した（数秒で消す）か。false ならレッスンの設定で出しっぱなし（自分では消さない）
     timed: PropTypes.bool,
 };
 
