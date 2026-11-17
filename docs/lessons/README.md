@@ -1971,9 +1971,9 @@ partner: {
 | `screenshots/0408-lesson-hint-auto-open-375x667.png` | SP 縦（縦持ちの案内を閉じたあと）で自動で開いたヒント（サイドレールの右に置く） |
 | `screenshots/0409-lesson-hint-activity-diagram-1300x600.png` | ヒントの 1 ページ目にアクティビティ図を出したところ（1300×600。図・文言・ブロックの順） |
 | `screenshots/0301-lessons-button-1300x600.png` | メニューバーの「レッスン」ボタン（1300×600。はじめての人にも吹き出しは出ない） |
-| `screenshots/0302-lessons-library-1300x600.png` | レッスン表（1300×600）。3 つのレッスンで、いくつかできた状態 |
+| `screenshots/0302-lessons-library-1300x600.png` | レッスン表（1300×600）。レッスン 0 ができて、レッスン 1 の途中。レッスン 0（✓）・3 と「チャットをつくろう」はたたんである |
 | `screenshots/0303-lessons-library-375x667.png` | レッスン表（SP 縦 375×667。カード 2 列） |
-| `screenshots/0304-lessons-library-cleared-1300x600.png` | コースのチャレンジが全部できた状態（コース名の前に ✓） |
+| `screenshots/0304-lessons-library-cleared-1300x600.png` | コースのチャレンジが全部できた状態（コース名の前に ✓。そのコースはたたまれ、次のコースが開く） |
 | `screenshots/0306-lessons-library-667x375.png` | レッスン表（SP 横 667×375） |
 | `screenshots/0307-lessons-library-search-1300x600.png` | 検索したとき（「キー」） |
 | `screenshots/0101-completed-toast-1300x600.png` | 「できた！」（レッスンの途中。丸と「あと n つ」・次のチャレンジへ・もう少し見る） |
