@@ -385,7 +385,7 @@ describe('lesson courses', () => {
                 '「ずっと」の中に「もし〜なら でなければ」を入れよう。',
                 '水色の「調べる」から、六角形のブロックを「もし」の六角形の穴に入れよう。',
                 '上と下に「言う」を入れて、それぞれのセリフを書こう。',
-                '旗を押して、マウスをネコに重ねたり、はなしたりしよう。止めるときは赤い●。',
+                '旗を押して、マウスをネコに重ねたり、はなしたりしよう。止めるときは、赤い●の「止める」を押そう。',
             ]);
             expect(c.debug.map(jaText)).toEqual([
                 'セリフがかわらないときは、「言う」が「もし」の中と「でなければ」の中に 1 つずつ入っているか見よう。',
@@ -557,7 +557,9 @@ describe('lesson courses', () => {
         test('9 なかまに合図しよう: clicking the cat broadcasts and the penguin says', () => {
             const c = challenge('blocks-l1-broadcast');
             expect([findChallenge(c.id).lesson.id, c.number]).toEqual(['blocks-l3', 2]);
-            expect(jaText(c.task)).toBe('ペンギンを足して、\nネコを押したらペンギンが「やあ！」と言うようにしよう');
+            expect(jaText(c.task)).toBe(
+                'ペンギン（「Penguin」という名前のスプライト）を足して、\nネコを押したらペンギンが「やあ！」と言うようにしよう',
+            );
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenthisspriteclicked', 'event_broadcast', 'event_whenbroadcastreceived'],
                 looks: ['looks_sayforsecs'],
@@ -571,7 +573,7 @@ describe('lesson courses', () => {
                 ['stage', null, false],
             ]);
             expect(c.steps.map((s) => jaText(s.title))).toEqual([
-                '右下の「スプライトを選ぶ」から、ペンギンを足そう。',
+                'スプライトリストの「スプライトを選ぶ」から、「Penguin」という名前のスプライトを足そう。',
                 'ネコをえらんで、「押されたとき」と「送る」をつなげよう。▼の「新しいメッセージ」で「あいさつ」を作ろう。',
                 'ペンギンをえらぶと、コードエリアが空になるよ。プログラムはスプライトごとにあるんだ。',
                 'ペンギンに「受け取ったとき」と「言う」をつなげよう。',
@@ -693,25 +695,20 @@ describe('lesson courses', () => {
     });
 
     describe('lesson 1 challenges 1-4 (the spec of the sub-issue)', () => {
-        const { PALETTE, CODE_AREA, STAGE, SPRITE_LIST, SOUNDS_TAB, COSTUMES_TAB, BACKDROP, KEYBOARD } = HINT_TARGETS;
+        const { PALETTE, CODE_AREA, STAGE, SPRITE_LIST, COSTUMES_TAB, BACKDROP, KEYBOARD } = HINT_TARGETS;
         const challenge = (id) => findChallenge(id).challenge;
         const hints = (c) => c.steps.map((s) => [s.target, localizeCode(s.blocks, 'ja'), s.spotlight]);
 
-        test('1 キーで音を鳴らそう: space key plays two sounds in order', () => {
+        // はじめての操作を少なくするため、音タブで音を足す手順は無い（EPIC #2129 の Q3）
+        test('1 キーで音を鳴らそう: space key makes the cat meow (no sounds tab)', () => {
             const c = challenge('blocks-l1-key-sound');
-            expect(ja[c.task.id]).toBe(
-                'スペースキーを押したら、\nネコが「ニャー」と鳴いたあと、「Owl」の音が鳴るようにしよう',
-            );
-            expect(allowedOpcodes(c)).toEqual({
-                event: ['event_whenkeypressed'],
-                sound: ['sound_playuntildone', 'sound_play'],
-            });
+            expect(ja[c.task.id]).toBe('スペースキーを押したら、\nネコが「ニャー」と鳴くようにしよう');
+            expect(allowedOpcodes(c)).toEqual({ event: ['event_whenkeypressed'], sound: ['sound_playuntildone'] });
+            // イベントのブロックを置く → 音のブロックをくっつける → キーを押す
             expect(hints(c)).toEqual([
-                [SOUNDS_TAB, null, false],
                 [PALETTE, 'when_key_pressed("space") do\nend\n', true],
                 // つなげる相手（その上のブロック）とつないだ並び（#1582）
                 [PALETTE, 'when_key_pressed("space") do\n  play_until_done("ニャー")\nend\n', true],
-                [CODE_AREA, 'play_until_done("ニャー")\nplay("Owl")\n', false],
                 [KEYBOARD, null, true],
             ]);
             expect(c.debug).toHaveLength(2);
@@ -719,12 +716,11 @@ describe('lesson courses', () => {
                 {
                     type: 'uses',
                     trigger: { hat: 'event_whenkeypressed', key: 'space' },
-                    blocks: ['sound_playuntildone', 'sound_play'],
-                    order: ['sound_playuntildone', 'sound_play'],
+                    blocks: [{ opcode: ['sound_playuntildone', 'sound_play'] }],
                 },
             ]);
             expect(localizeCode(c.code, 'ja')).toBe(
-                'when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n',
+                'when_key_pressed("space") do\n  play_until_done("ニャー")\nend\n',
             );
             expect(c.codeTarget).toBeNull();
         });
@@ -793,7 +789,9 @@ describe('lesson courses', () => {
 
         test('4 くり返そう: the stage switches the backdrop 6 times on the 1 key', () => {
             const c = challenge('blocks-l1-repeat');
-            expect(ja[c.task.id]).toBe('1 のキーを押したら、\n背景が「Canyon」と「Arctic」に 3 回かわるようにしよう');
+            expect(ja[c.task.id]).toBe(
+                '1 のキーを押したら、\n「Canyon」という名前の背景と「Arctic」という名前の背景に、3 回かわるようにしよう',
+            );
             expect(allowedOpcodes(c)).toEqual({
                 event: ['event_whenkeypressed'],
                 control: ['control_repeat', 'control_wait'],
@@ -845,14 +843,12 @@ describe('lesson courses', () => {
             };
             expectJa('blocks-l1-key-sound', {
                 steps: [
-                    '上の「音」タブを開いて、左下のボタンから「Owl」をえらんで足そう。',
-                    '「コード」タブにもどって、黄色い「イベント」のブロックをコードエリアへドラッグしよう。',
-                    'このブロックを、下にくっつけよう。カチッとはまれば OK。',
-                    'もう 1 つ音のブロックをつなげて、▼で「Owl」をえらぼう。',
+                    '黄色い「イベント」のブロックを、パレットからコードエリアへドラッグしよう。',
+                    'この「音」のブロックを、下にくっつけよう。カチッとはまれば OK。',
                     'スペースキーを押してみよう。',
                 ],
                 debug: [
-                    '鳴らないときは、パソコンの音量と、▼でえらんだ音の名前を見よう。',
+                    '鳴らないときは、パソコンの音量を見よう。',
                     'ブロックがはなれていると、下のブロックは動かないよ。',
                 ],
             });
@@ -870,8 +866,8 @@ describe('lesson courses', () => {
             });
             expectJa('blocks-l1-click-say', {
                 steps: [
-                    '上の「コスチューム」タブを開いて、左下のボタンから好きなコスチュームを足そう。えらんでも、筆で描いてもいいよ。',
-                    '「コード」タブにもどって、「押されたとき」のブロックをコードエリアへドラッグしよう。',
+                    'コスチュームタブを開いて、左下のボタンから好きなコスチュームを足そう。えらんでも、筆で描いてもいいよ。',
+                    'コードタブにもどって、「押されたとき」のブロックをコードエリアへドラッグしよう。',
                     '紫の「見た目」のブロックをくっつけよう。白いところは「こんにちは！」になっているよ。',
                     'その下に、これもくっつけよう。',
                     'まちがえて置いたブロックは、パレットへドラッグしてもどすと消えるよ。',
@@ -879,13 +875,13 @@ describe('lesson courses', () => {
                 ],
                 debug: [
                     '何も起きないときは、ステージのスプライトそのものを押しているか見よう。',
-                    'プログラムを入れたスプライトと、押したスプライトが同じか、右下のスプライトリストで確かめよう。',
+                    'プログラムを入れたスプライトと、押したスプライトが同じか、スプライトリストで確かめよう。',
                 ],
             });
             expectJa('blocks-l1-repeat', {
                 steps: [
-                    '右下の「背景を選ぶ」から、「Canyon」と「Arctic」を足そう。',
-                    '右の「ステージ」をえらぼう。ステージにもプログラムを書けるよ。',
+                    '背景の「背景を選ぶ」から、「Canyon」という名前の背景と「Arctic」という名前の背景を足そう。',
+                    'スプライトリストの右の「ステージ」をえらぼう。ステージにもプログラムを書けるよ。',
                     '黄色い「イベント」の「1 キーが押されたとき」をコードエリアへドラッグしよう。▼が「1」になっているか見よう。',
                     'その下に、オレンジの「制御」の「繰り返す」をつなげよう。',
                     '中に「背景を…にする」「1 秒待つ」を 2 組入れよう。',
@@ -975,7 +971,7 @@ describe('lesson courses', () => {
         const challenge = (id) => findChallenge(id).challenge;
         // 新しい作品のネコの音の名前（scratch-l10n の gui.defaultProject.meow。ja-Hira は訳が無く Meow）
         const CAT_SOUND = { ja: 'ニャー', 'ja-Hira': 'Meow', en: 'Meow' };
-        // その locale の新しい作品に、チャレンジで足すもの（Owl・コスチューム・Canyon / Arctic）を足した状態
+        // その locale の新しい作品に、チャレンジで足すもの（コスチューム・Canyon / Arctic）を足した状態
         const projectFor = (locale) => {
             const stage = {
                 id: 'stage',
@@ -986,7 +982,7 @@ describe('lesson courses', () => {
             const cat = {
                 id: 'cat',
                 isStage: false,
-                getSounds: () => [{ name: CAT_SOUND[locale] }, { name: 'Owl' }],
+                getSounds: () => [{ name: CAT_SOUND[locale] }],
                 getCostumes: () => [{ name: 'costume1' }, { name: 'costume2' }],
             };
             return { vm: { runtime: { getTargetForStage: () => stage } }, stage, cat };
@@ -1023,10 +1019,9 @@ describe('lesson courses', () => {
             const c = challenge('blocks-l1-key-sound');
             expect(localizeCode(c.code, 'ja')).toContain('play_until_done("ニャー")');
             expect(localizeCode(c.code, 'en')).toContain('play_until_done("Meow")');
-            expect(localizeCode(c.steps[2].blocks, 'en')).toBe(
+            expect(localizeCode(c.steps[1].blocks, 'en')).toBe(
                 'when_key_pressed("space") do\n  play_until_done("Meow")\nend\n',
             );
-            expect(localizeCode(c.steps[3].blocks, 'en')).toBe('play_until_done("Meow")\nplay("Owl")\n');
         });
 
         test('the en code says the lines the en task and hints write', () => {

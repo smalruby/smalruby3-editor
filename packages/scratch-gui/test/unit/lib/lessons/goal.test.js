@@ -730,15 +730,10 @@ describe('lesson 1 goals can be written in this shape', () => {
                 {
                     type: 'uses',
                     trigger: { hat: 'event_whenkeypressed', key: 'space' },
-                    blocks: ['sound_playuntildone', 'sound_play'],
-                    order: ['sound_playuntildone', 'sound_play'],
+                    blocks: [{ opcode: ['sound_playuntildone', 'sound_play'] }],
                 },
             ],
-            play: (facts) =>
-                run(facts, key('space'), [
-                    ['sound_playuntildone', { SOUND_MENU: 'ニャー' }],
-                    ['sound_play', { SOUND_MENU: 'Owl' }],
-                ]),
+            play: (facts) => run(facts, key('space'), [['sound_playuntildone', { SOUND_MENU: 'ニャー' }]]),
         },
         {
             id: 'blocks-l1-arrow-move',

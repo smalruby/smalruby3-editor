@@ -5,7 +5,7 @@
  *
  * - キーは Selenium の実際のキー入力で押す（コードエリアをクリックしてフォーカスを移してから）。
  *   エディタにフォーカスがあってもキーがステージ（VM）に届くことの確認を兼ねる。
- * - 音「Owl」・背景「Canyon」「Arctic」は、ネットワーク無しで足せるよう、いまの音・背景を複製して
+ * - 背景「Canyon」「Arctic」は、ネットワーク無しで足せるよう、いまの音・背景を複製して
  *   名前を変えて作る（ライブラリから足すのと同じ VM の状態になる）。
  * - チャレンジ 1 は日本語の locale で開き、日本語の作品（ネコの音「ニャー」）に ja の code が入ることを見る
  *   （英語の作品は smalruby-lessons-en.test.js）。
@@ -129,14 +129,6 @@ const resetProgress = () =>
     driver.executeScript(`window.localStorage.removeItem('smalruby:lessonProgress');
         window.localStorage.removeItem('smalruby:lessonSpotlightSeen');`);
 
-// 複製は元の次（index 1）に入る
-const addSoundNamed = (name) =>
-    driver.executeScript(
-        `const vm = window.smalruby.vm;
-        return vm.duplicateSound(0).then(() => vm.renameSound(1, arguments[0]));`,
-        name,
-    );
-
 // ステージの背景を複製して名前を変える（ライブラリの「背景を選ぶ」で足したのと同じ状態）
 const addBackdropsNamed = (names) =>
     driver.executeScript(
@@ -236,31 +228,16 @@ describe('Smalruby Lessons: lesson 1 challenges 1-4', () => {
         expect(await getLogs()).toEqual([]);
     });
 
-    test('challenge 1 (キーで音を鳴らそう): add "Owl", insert the program, press space → できた！', async () => {
-        // 日本語の作品（ネコの音は「ニャー」）に ja の code を入れる
+    test('challenge 1 (キーで音を鳴らそう): insert the program, press space → できた！', async () => {
+        // 日本語の作品（ネコの音は「ニャー」）に ja の code を入れる。音を足す手順は無い（音タブを使わない）
         await loadEditor('&locale=ja');
         await openChallenge('blocks-l1-key-sound');
         expect(await textByTestId('lesson-task-bar-position')).toBe('1 / 4');
 
-        // Owl を足す前に「プログラムを入れる」を押すと、入れずに吹き出しの中にわけが出る
-        await insertProgramFromHints(6);
-        await findByXpath(byTestId('lesson-hint-insert-code-error'));
-        expect(await textByTestId('lesson-hint-insert-code-error')).toContain('Owl');
-        expect(await opcodesOf('sprite')).toEqual([]);
-        await clickByTestId('lesson-hint-close');
-
-        await addSoundNamed('Owl');
-        expect(
-            await driver.executeScript('return window.smalruby.vm.editingTarget.sprite.sounds.map(s => s.name);'),
-        ).toEqual(['ニャー', 'Owl']);
-
-        // ヒントは最後のページのまま開き直す（わけは消えている）
-        await openHint();
-        await findByXpath(byTestId('lesson-hint-insert-code'));
+        await insertProgramFromHints(4);
+        await waitForOpcode('sprite', 'sound_playuntildone');
         expect(await countByTestId('lesson-hint-insert-code-error')).toBe(0);
-        await confirmInsertCode();
-        await waitForOpcode('sprite', 'sound_play');
-        expect(await opcodesOf('sprite')).toEqual(['event_whenkeypressed', 'sound_play', 'sound_playuntildone']);
+        expect(await opcodesOf('sprite')).toEqual(['event_whenkeypressed', 'sound_playuntildone']);
 
         await focusCodeArea();
         await pressKey(Key.SPACE);

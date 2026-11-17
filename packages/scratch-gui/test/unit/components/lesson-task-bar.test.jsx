@@ -138,7 +138,7 @@ describe('LessonTaskBar', () => {
             const { getByTestId, queryByTestId } = renderBar({ challengeId: 'blocks-l1-key-sound' });
             hover(getByTestId('lesson-task-bar'));
             expect(getByTestId('lesson-task-bar-full-text')).toHaveTextContent(
-                'Make the cat meow and then play the "Owl" sound when the space key is pressed',
+                'Make the cat meow when the space key is pressed',
             );
             unhover(getByTestId('lesson-task-bar'));
             expect(queryByTestId('lesson-task-bar-full-text')).toBeNull();
