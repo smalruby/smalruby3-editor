@@ -319,6 +319,12 @@ describe('lesson courses', () => {
         expect(defineLesson({ id: 'l', challenges: [], allowDnclMode: true }).allowDnclMode).toBe(true);
     });
 
+    // 画面の部分の名前の札を最初から出すか（#2133）。書いていなければ出さない
+    test('defineLesson shows the part names from the start only when the lesson says so', () => {
+        expect(defineLesson({ id: 'l', challenges: [] }).showPartNames).toBe(false);
+        expect(defineLesson({ id: 'l', challenges: [], showPartNames: true }).showPartNames).toBe(true);
+    });
+
     test('every lesson that starts a challenge in the Japanese mode allows the Japanese mode', () => {
         for (const course of COURSES) {
             for (const lesson of course.lessons) {

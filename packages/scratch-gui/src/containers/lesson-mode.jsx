@@ -4,10 +4,11 @@
 //   - レッスンモードのあいだ課題バー（LessonTaskBar）を出す
 // パレットの絞り込みは Blocks コンテナが getLessonAllowedBlocks で行う。
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import LessonAssignmentBand from '../components/lesson-assignment-band/lesson-assignment-band.jsx';
+import LessonPartNames from '../components/lesson-part-names/lesson-part-names.jsx';
 import LessonTaskBar from '../components/lesson-task-bar/lesson-task-bar.jsx';
 import { applyDeckSetup, normalizeRubyVersion } from '../lib/deck-setup';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
@@ -282,6 +283,21 @@ const LessonMode = ({
         return () => vm.runtime.removeListener('PERIPHERAL_CONNECTED', onConnected);
     }, [roleChallengeOpen, vm]);
 
+    // 画面の部分の名前の札（#2133）。`showPartNames` のレッスンはチャレンジを開いたときから出しっぱなしにし、
+    // ほかは課題バーの「なまえ」で数秒だけ出す（どこかを押す・Esc でも消える）。チャレンジが変わったら、
+    // そのレッスンの決まりにもどす。出しっぱなしのレッスンで消したあと「なまえ」を押すと、また出しっぱなしにする
+    const lessonShowsPartNames = Boolean(current && current.lesson.showPartNames);
+    const [partNames, setPartNames] = useState({ visible: lessonShowsPartNames, timed: false });
+    useEffect(() => {
+        setPartNames({ visible: lessonShowsPartNames, timed: false });
+    }, [currentId, lessonShowsPartNames]);
+    const handleTogglePartNames = useCallback(() => {
+        setPartNames((prev) =>
+            prev.visible ? { visible: false, timed: false } : { visible: true, timed: !lessonShowsPartNames },
+        );
+    }, [lessonShowsPartNames]);
+    const handleClosePartNames = useCallback(() => setPartNames({ visible: false, timed: false }), []);
+
     const handleHint = useCallback(() => {
         if (hint && hint.visible) onHideHint();
         else onShowHint();
@@ -336,10 +352,14 @@ const LessonMode = ({
                 onHint={handleHint}
                 onOpenFullText={handleOpenFullText}
                 onQuit={handleQuit}
+                onTogglePartNames={handleTogglePartNames}
+                partNamesVisible={partNames.visible}
                 role={role}
                 toastVisible={toastVisible}
             />
             <LessonHint />
+            {/* 画面の部分の名前の札（これも document.body への portal） */}
+            {partNames.visible && <LessonPartNames onClose={handleClosePartNames} timed={partNames.timed} />}
             {/* メッシュの練習相手（チャレンジに partner があるときだけ。これも document.body への portal） */}
             <LessonPracticePartner />
         </>

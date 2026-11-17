@@ -87,6 +87,21 @@ describe('LessonTaskBar', () => {
         expect(onQuit).toHaveBeenCalledTimes(1);
     });
 
+    // 画面の部分の名前の札（#2133）
+    test('the "Names" button is shown only with onTogglePartNames and sits before the hint button', () => {
+        const { queryByTestId, unmount } = renderBar();
+        expect(queryByTestId('lesson-task-bar-part-names')).not.toBeInTheDocument();
+        unmount();
+        const onTogglePartNames = jest.fn();
+        const bar = renderBar({ onTogglePartNames, partNamesVisible: true });
+        const button = bar.getByTestId('lesson-task-bar-part-names');
+        expect(button).toHaveTextContent('Names');
+        expect(button).toHaveAttribute('aria-pressed', 'true');
+        expect(button.nextElementSibling).toBe(bar.getByTestId('lesson-task-bar-hint'));
+        fireEvent.click(button);
+        expect(onTogglePartNames).toHaveBeenCalledTimes(1);
+    });
+
     test('hint button calls onHint', () => {
         const { getByTestId, onHint } = renderBar();
         fireEvent.click(getByTestId('lesson-task-bar-hint'));

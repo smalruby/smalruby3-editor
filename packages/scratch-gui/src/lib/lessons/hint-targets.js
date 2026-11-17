@@ -13,6 +13,11 @@ export const HINT_TARGETS = Object.freeze({
     BACKDROP: 'backdrop',
     EXTENSION_BUTTON: 'extension-button',
     GREEN_FLAG: 'green-flag',
+    // 「なまえ」の札（lib/lessons/part-names.js）でも使う場所。止めるボタン・コードタブ・課題バー・ヒントのボタン（#2133）
+    STOP_BUTTON: 'stop-button',
+    CODE_TAB: 'code-tab',
+    TASK_BAR: 'task-bar',
+    HINT_BUTTON: 'hint-button',
     // メッシュの練習相手のパネル（閉じているときは小さな「練習相手」のボタン）
     PRACTICE_PARTNER: 'practice-partner',
     // 課題バーの役のボタン（役のあるチャレンジの「役を決めよう」のページ）
@@ -84,6 +89,23 @@ const TARGET_SPECS = {
     [HINT_TARGETS.GREEN_FLAG]: {
         selectors: ['[data-testid="mobile-side-rail-play"]', '[class*="green-flag_green-flag_"]'],
         sides: [HINT_SIDES.BOTTOM, HINT_SIDES.LEFT],
+    },
+    [HINT_TARGETS.STOP_BUTTON]: {
+        // SP のサイドレールには止めるボタンが無い（再生ボタンが全画面のあいだだけ止めるになる）
+        selectors: ['[class*="stop-all_stop-all_"]'],
+        sides: [HINT_SIDES.BOTTOM, HINT_SIDES.LEFT],
+    },
+    [HINT_TARGETS.CODE_TAB]: {
+        selectors: ['[data-testid="mobile-side-rail-code"]', '[class*="gui_tab_"]:nth-child(1)'],
+        sides: [HINT_SIDES.BOTTOM, HINT_SIDES.RIGHT],
+    },
+    [HINT_TARGETS.TASK_BAR]: {
+        selectors: ['[data-testid="lesson-task-bar"]'],
+        sides: [HINT_SIDES.BOTTOM],
+    },
+    [HINT_TARGETS.HINT_BUTTON]: {
+        selectors: ['[data-testid="lesson-task-bar-hint"]'],
+        sides: [HINT_SIDES.BOTTOM],
     },
     [HINT_TARGETS.PRACTICE_PARTNER]: {
         selectors: ['[data-testid="lesson-practice-partner"]', '[data-testid="lesson-practice-partner-open"]'],
