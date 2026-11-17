@@ -66,7 +66,6 @@
 | `showPartNames` | boolean | チャレンジを開いたときから画面の部分の名前の札を出しておくか（下の「名前の札」。課題バーの「なまえ」で消せる）。**書いていなければ出さない**（`false`）。画面の部分の名前を覚えるレッスン 0 で使う |
 | `warmup` | boolean | コースの数に入れない、はじめのレッスンか（上の「コース」）。**書いていなければ数える**（`false`）。「きょうからプログラマー」のレッスン 0 だけ `true` |
 | `checkCount` | number | レッスンの ✓（「全部できた」）に要るできた数。**書いていなければチャレンジの数**（全部）。テーマを選んでやるレッスン（「チャットをつくろう」のレッスン 5）だけ `1` |
-| `autoOpenHints` | boolean | チャレンジを始めたら、ヒントの 1 ページ目を自動で開くか。**書いていなければ開かない**（課題バーの「ヒント」で開く）。はじめのレッスン（「きょうからプログラマー」のレッスン 0 の `blocks-l0` と 1 の `blocks-l1`）だけ `true`。ヒントの使い方に慣れるまでは開いておき、慣れたら自分で開く。読んで作るチャレンジはこの設定によらず開く |
 
 必須のチャレンジは持たない。`checkCount` を書いたレッスンは、その数だけできれば ✓ がつく。まだ残りのチャレンジがあるときの「できた！」は、
 見出しを「レッスン n クリア！」、2 行目を「「レッスン名」は n つできました。このレッスンはこれでクリア」にする（「ぜんぶ」とは言わない）。
@@ -240,14 +239,14 @@ code: {
 | 6 | `blocks-l1-ask-answer` | ネコを押したら名前を聞いて、答えた名前と、答えるまでにかかった秒数を言う | `event_whenthisspriteclicked` / `sensing_resettimer` / `sensing_askandwait` / `sensing_answer` / `sensing_timer` / `operator_join` / `looks_sayforsecs` | スプライトを押したスクリプトで `sensing_resettimer` → `sensing_askandwait` の順に動き、`sensing_answer`・`sensing_timer`・`looks_sayforsecs` 2 回が動いた。答えと同じことばを言った |
 | 7 | `blocks-l1-quiz` | ネコを押したら「4＋3＝？」と聞いて、7 なら「正解です」、ちがえば「ちがいます」と言う | `event_whenthisspriteclicked` / `sensing_askandwait` / `sensing_answer` / `control_if` / `control_if_else` / `operator_equals` / `looks_sayforsecs` | 答えが 7 のときに「正解です」（ja-Hira の「せいかいです」、en の "Correct" も可）、7 でないときに「ちがいます」（en の "Wrong" も可）を言った（両方） |
 | 8 | `blocks-l1-count` | ネコを押した回数を数えて、その数を言う。3 回押す | `event_whenflagclicked` / `event_whenthisspriteclicked` / `data_setvariableto` / `data_changevariableby` / `data_variable` / `looks_say` | 変数「回数」（ja-Hira の「かいすう」、en の `count` も可）が 3 以上になり、その値を言った |
-| 9 | `blocks-l1-broadcast` | ペンギン（「Penguin」という名前のスプライト）を足して、ネコを押したらペンギンが「やあ！」と言う（**2 つのスプライト**） | `event_whenthisspriteclicked` / `event_broadcast` / `event_whenbroadcastreceived` / `looks_sayforsecs` | スプライト 2 つ以上・押されたときで送る・**別のスプライト**が受け取ったときに言う（`sentBy: 'other'`） |
+| 9 | `blocks-l1-broadcast` | ペンギンを足して、ネコを押したらペンギンが「やあ！」と言う（**2 つのスプライト**。『Penguin』という名前のスプライトだという説明はヒント 1 に書き、課題バーは短くする） | `event_whenthisspriteclicked` / `event_broadcast` / `event_whenbroadcastreceived` / `looks_sayforsecs` | スプライト 2 つ以上・押されたときで送る・**別のスプライト**が受け取ったときに言う（`sentBy: 'other'`） |
 | 10 | `blocks-l1-speak` | 拡張機能「音声合成」を足して、ネコを押したら「ボタンが押されました」としゃべる | `event_whenthisspriteclicked` / `text2speech_speakAndWait` | 拡張機能 `text2speech` が読み込まれている・押されたときで `text2speech_speakAndWait` |
 | 11 | `blocks-l1-message-list` | ネコを押したら「メッセージは？」と聞いて、答えをリスト「トーク」にためる。3 つためる | `event_whenflagclicked` / `event_whenthisspriteclicked` / `data_deletealloflist` / `data_addtolist` / `sensing_askandwait` / `sensing_answer` | リスト「トーク」（en の `talk` も可）の長さ 3 以上・中身が答えから（`itemsFromAnswers`） |
 
 #### レッスン 0 のチャレンジ
 
 画面の部分の名前とレッスンの進め方（ヒントを出したまま操作する）を覚える。8 チャレンジ・合計 約 12〜15 分で、
-1 チャレンジで新しく出る名前は 1〜2 個。`autoOpenHints: true`・`showPartNames: true`（名前の札を最初から出す）で、
+1 チャレンジで新しく出る名前は 1〜2 個。`showPartNames: true`（名前の札を最初から出す）で、
 **パレットはしぼらない**（`allowedBlocks: null`）。ヒントは各 1〜3 ページで、吹き出しは `target` で部分を指す（スポットライトは
 つかむ・押す・くっつける・消す・旗の基本操作だけ）。判定は**結果で見る**（タブを開いたことは見ない）。0-4・0-5 は前の答え
 （`setup.code`）から始める。課題・ヒント・クイズの部分の名前は **Scratch Wiki「Scratchユーザーインターフェース (3.0)」の名前**
@@ -307,6 +306,8 @@ with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）
 - ライブラリの背景「Canyon」「Arctic」・スプライト「Penguin」の表示名は日本語でも英語のまま（ライブラリの名前は
   翻訳されない）。英語の名前だけでは何のことか分からないので、課題とヒントの文言は「『Canyon』という名前の背景」
   「『Penguin』という名前のスプライト」のように、何の名前かを書く（ja-Hira も「『Meow』というなまえのおと」）。
+  ただしチャレンジ 9 の課題は「ペンギン」だけにして課題バーを短く保ち、『Penguin』という名前のスプライトだという説明は
+  ヒント 1 に書く。
 - **ヒントの文の画面の部分の呼び方**は、レッスン 0 で覚える 9 つの名前（タブ・ブロックパレット・スクリプトエリア・ステージ・
   緑の旗と停止ボタン・スプライトペイン・背景・課題バー・ヒント）にそろえる（「上の『音』タブ」ではなく「音タブ」、
   「右下の『スプライトを選ぶ』」ではなく「スプライトペインの『スプライトを選ぶ』」）。名前は Scratch Wiki の名前
@@ -1191,7 +1192,7 @@ partner: {
 |------|------|
 | `courseId` / `lessonId` / `challengeId` | いま開いているチャレンジ。`challengeId` が null ならレッスンモードではない |
 | `pendingChallengeId` | 開こうとしているチャレンジ（新しい作品ができるまでの間だけ入る。下の「レッスンモード」） |
-| `hintVisible` / `hintIndex` | ヒントの吹き出しを出しているか・何番めのヒントか（チャレンジを開く・閉じるたびに最初にもどる。開いたときは、`autoOpenHints` のレッスンと読んで作るチャレンジならヒントがあれば出す） |
+| `hintVisible` / `hintIndex` | ヒントの吹き出しを出しているか・何番めのヒントか（チャレンジを開く・閉じるたびに最初にもどる。開いたときは、ヒントがあれば出す） |
 | `hintMinimized` | ヒントを小さくして札だけを残しているか（`hideHint` で true、`showHint`・`finishHint`・できた・チャレンジを開く・閉じるで false） |
 | `hintSession` | チャレンジを開いた回数（`openChallenge` のたびに増える。同じチャレンジを開き直しても増える）。吹き出しの `key` にして、開き直したらドラッグした位置・確認・入れられなかったわけを持ち越さない（吹き出しは開いたまま次のチャレンジに移ることがあり、そのときは作り直されないため） |
 | `hintSpotlight` | はじめて開いたチャレンジか（`spotlight` のヒントで周りを暗くする）。`openChallenge` で `smalruby:lessonSpotlightSeen` を見て決め、同時に「見た」と記録する |
@@ -1485,9 +1486,9 @@ partner: {
     「なにか」を追加など）はツールボックスの初期値が仕様と同じ。
     初期値で済むようになったヒント（▼で「上向き矢印」をえらぶ・「こんにちは！」と書く・「なまえは？」と書く・
     右に 7 を入れる・ことばを書く）は、「なっているか見よう」「のままでいいよ」の文言にしている。
-- **ヒント**: `autoOpenHints` のレッスン（レッスン 0 と 1）と読んで作るチャレンジは、チャレンジを始めると
-  （`openChallenge`）ヒントの 1 ページ目が**自動で開く**（ヒントボタンに気づかない子でも、何から始めるかが
-  わかるように）。ほかのレッスンは課題バーの「ヒント」で開く。開いたあとは「ヒント」ボタンで `showHint` / `hideHint`
+- **ヒント**: どのコースのどのチャレンジも、チャレンジを始めると（`openChallenge`）ヒントの 1 ページ目が
+  **自動で開く**（ヒントボタンに気づかない子・ヒントを出したまま操作してよいとわからない子でも、何から始めるかが
+  わかるように。レッスンごとの設定は無い）。開いたあとは「ヒント」ボタンで `showHint` / `hideHint`
   （`hideHint` は閉じずに小さくする。下の「ヒントの吹き出し」の「小さくする」）。
   吹き出し（下の「ヒントの吹き出し」）は `containers/lesson-mode.jsx` の `<LessonTaskBar>` の次に置いた
   `containers/lesson-hint.jsx` が出す。ヒントが無いチャレンジでは自動で開かず、ボタンも無効。
@@ -1946,7 +1947,7 @@ partner: {
 | `screenshots/0414-lesson-hint-minimized-1300x600.png` | ヒントを「－」で小さくしたところ（1300×600。課題バーの下・コードエリアの右上に「ヒント 2/7」と見出しの札。ステージの列にはかからない） |
 | `screenshots/0415-lesson-hint-minimized-844x390.png` | 同じところを SP 横（844×390）で（札はパレットの右） |
 | `screenshots/0416-lesson-hint-nudge-1300x600.png` | 2 分変化が無く、「ヒント」と札を光らせ、「ヒントを見てみよう」を出したところ（1300×600） |
-| `screenshots/0417-lesson-hint-nudge-reduced-motion-1300x600.png` | 動きを減らす設定のとき（光らせず文字だけ・レッスン 2 なのでヒントは自動で開かず札も無い。1300×600） |
+| `screenshots/0417-lesson-hint-nudge-reduced-motion-1300x600.png` | 動きを減らす設定のとき（光らせず文字だけ・ヒントを閉じたあとなので札も無い。1300×600） |
 | `screenshots/0407-lesson-hint-dragged-667x375.png` | SP 横でヘッダーをタッチでドラッグして動かしたところ（しっぽは消える） |
 | `screenshots/0408-lesson-hint-auto-open-375x667.png` | SP 縦（縦持ちの案内を閉じたあと）で自動で開いたヒント（サイドレールの右に置く） |
 | `screenshots/0409-lesson-hint-activity-diagram-1300x600.png` | ヒントの 1 ページ目にアクティビティ図を出したところ（1300×600。図・文言・ブロックの順） |

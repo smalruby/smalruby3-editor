@@ -189,9 +189,9 @@ export const ja = {
     'gui.lessons.challenge.blocks-l1-message-list.name': 'メッセージをためよう',
     // チャレンジ 9〜11
     'gui.lessons.challenge.blocks-l1-broadcast.task':
-        'ペンギン（「Penguin」という名前のスプライト）を足して、\nネコを押したらペンギンが「やあ！」と言うようにしよう',
+        'ペンギンを足して、\nネコを押したらペンギンが「やあ！」と言うようにしよう',
     'gui.lessons.challenge.blocks-l1-broadcast.step1':
-        'スプライトペインの「スプライトを選ぶ」から、「Penguin」という名前のスプライトを足そう。',
+        'スプライトペインの「スプライトを選ぶ」から、ペンギンを足そう。ペンギンは「Penguin」という名前のスプライトだよ。',
     'gui.lessons.challenge.blocks-l1-broadcast.step2':
         'ネコをえらんで、「押されたとき」と「送る」をつなげよう。▼の「新しいメッセージ」で「あいさつ」を作ろう。',
     'gui.lessons.challenge.blocks-l1-broadcast.step3':
@@ -471,9 +471,9 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l1-message-list.name': 'メッセージをためよう',
     // チャレンジ 9〜11
     'gui.lessons.challenge.blocks-l1-broadcast.task':
-        'ペンギン（「Penguin」というなまえのスプライト）をたして、\nネコをおしたらペンギンが「やあ！」というようにしよう',
+        'ペンギンをたして、\nネコをおしたらペンギンが「やあ！」というようにしよう',
     'gui.lessons.challenge.blocks-l1-broadcast.step1':
-        'スプライトペインの「スプライトをえらぶ」から、「Penguin」というなまえのスプライトをたそう。',
+        'スプライトペインの「スプライトをえらぶ」から、ペンギンをたそう。ペンギンは「Penguin」というなまえのスプライトだよ。',
     'gui.lessons.challenge.blocks-l1-broadcast.step2':
         'ネコをえらんで、「おされたとき」と「おくる」をつなげよう。▼の「あたらしいメッセージ」で「あいさつ」をつくろう。',
     'gui.lessons.challenge.blocks-l1-broadcast.step3':
@@ -750,9 +750,9 @@ export const en = {
     'gui.lessons.challenge.blocks-l1-message-list.name': 'Collect messages',
     // チャレンジ 9〜11
     'gui.lessons.challenge.blocks-l1-broadcast.task':
-        'Add a penguin (the sprite named "Penguin"),\nand make the penguin say "Hi!" when the cat is clicked',
+        'Add a penguin,\nand make the penguin say "Hi!" when the cat is clicked',
     'gui.lessons.challenge.blocks-l1-broadcast.step1':
-        'Add the sprite named "Penguin" with "Choose a Sprite" in the Sprite Pane.',
+        'Add a penguin with "Choose a Sprite" in the Sprite Pane. The penguin is the sprite named "Penguin".',
     'gui.lessons.challenge.blocks-l1-broadcast.step2':
         'Select the cat and snap "when this sprite clicked" and "broadcast" together. Choose "New message" from ▼ and make "hello".',
     'gui.lessons.challenge.blocks-l1-broadcast.step3':
