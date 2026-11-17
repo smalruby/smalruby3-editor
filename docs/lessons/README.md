@@ -1947,6 +1947,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/test/unit/lib/lessons/practice-partner.test.js` / `test/unit/containers/lesson-practice-partner.test.jsx` | 練習相手の unit テスト |
 | `packages/scratch-gui/src/lib/lessons/goal.js` | できた の判定（`goal` の形・事実の記録・判定の純粋関数・`validateGoal`） |
 | `packages/scratch-gui/src/lib/lessons/lm-ngram.js` | 「ことばを予想する AI をつくろう」の文字単位の n-gram（文脈・学習の組・こうほ・学習した組だけの文。判定 `ngram` と教科書のテストが使う純粋関数） |
+| `packages/scratch-gui/src/lib/lessons/lm-textbook.js` | 「ことばを予想する AI をつくろう」の教科書の文（`LM_TEXTBOOK`）・文の終わりの文字（`LM_END_CHAR`）・5-1 の決まった書き出し（`LM_PROMPTS`）。locale ごと |
 | `packages/scratch-gui/src/lib/lessons/vm-execution-hook.js` | ブロックの実行をスレッドつきで取るフック（runtime の `getOpcodeFunction` を包む） |
 | `packages/scratch-gui/src/lib/lessons/goal-monitor.js` | VM を見張って goal を判定する（`attachGoalMonitor` / `takeSnapshot`） |
 | `packages/scratch-gui/src/containers/lesson-goal-watcher.jsx` | レッスンモードのあいだ見張りをつなぎ、できたら記録して「できた！」を出す（gui.jsx に常時マウント） |
