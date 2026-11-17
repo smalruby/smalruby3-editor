@@ -150,9 +150,10 @@ export const isKnownStringReceiver = function (converter, block) {
  * The subtraction and its `1` are dropped from the context.
  * @param {object} converter - The converter instance.
  * @param {object} index - The index block or value.
+ * @param {?Function} keepsMinuend - Returns true for a block of `x` that must stay `x - 1` + 1.
  * @returns {?object} The block of `x`, or null when the index is not `x - 1`.
  */
-const indexCountedFromOne = function (converter, index) {
+const indexCountedFromOne = function (converter, index, keepsMinuend) {
     if (!converter._isBlock(index) || index.opcode !== 'operator_subtract' || index.comment) return null;
     const blocks = converter._context.blocks;
     const minuendInput = index.inputs.NUM1;
@@ -162,7 +163,7 @@ const indexCountedFromOne = function (converter, index) {
     if (!one || !one.shadow || oneInput.block !== oneInput.shadow || !one.fields.NUM) return null;
     if (String(one.fields.NUM.value) !== '1') return null;
     const minuend = blocks[minuendInput.block];
-    if (!minuend) return null;
+    if (!minuend || (keepsMinuend && keepsMinuend(minuend))) return null;
     index.inputs.NUM1 = { ...minuendInput, block: minuendInput.shadow };
     converter._discardBlock(index);
     minuend.parent = null;
@@ -176,11 +177,12 @@ const indexCountedFromOne = function (converter, index) {
  * @param {object} converter - The converter instance.
  * @param {object} index - The index block or value.
  * @param {boolean} converted - Whether the receiver was converted to a list block.
+ * @param {?Function} keepsMinuend - Returns true for a block of `x` that `x - 1` must not become.
  * @returns {object} The adjusted index.
  */
-export const adjustIndex = function (converter, index, converted) {
+export const adjustIndex = function (converter, index, converted, keepsMinuend = null) {
     if (!converted) return index;
-    const counted = indexCountedFromOne(converter, index);
+    const counted = indexCountedFromOne(converter, index, keepsMinuend);
     if (counted) return counted;
     const addBlock = converter._createBlock('operator_add', 'value');
     converter._addNumberInput(addBlock, 'NUM1', 'math_number', index, 0);

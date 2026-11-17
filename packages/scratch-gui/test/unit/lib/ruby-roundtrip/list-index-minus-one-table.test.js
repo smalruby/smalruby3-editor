@@ -79,6 +79,22 @@ defineBlockRubyTable(
             ),
         },
 
+        {
+            name: 'the length of the list as the index',
+            ...rows(
+                `${LIST_A}\nlooks_say(MESSAGE: data_itemoflist(LIST = @a, INDEX: data_lengthoflist(LIST = @a)))`,
+                `${RUBY_A}\nsay(@a[@a.length - 1])`,
+            ),
+        },
+        {
+            // "delete (length of a) of a" is written `delete_at(-1)`, so `@a.length - 1` keeps its form.
+            name: 'delete_at the length of the list minus 1',
+            ...rows(
+                `${LIST_A}\ndata_deleteoflist(LIST = @a, INDEX: operator_add(NUM1: operator_subtract(NUM1: data_lengthoflist(LIST = @a), NUM2: 1), NUM2: 1) #"@ruby:array:index")`,
+                `${RUBY_A}\n@a.delete_at(@a.length - 1)`,
+            ),
+        },
+
         // The other indexes are as before: Ruby's index + 1, with the mark.
         {
             name: 'a number as the index',
