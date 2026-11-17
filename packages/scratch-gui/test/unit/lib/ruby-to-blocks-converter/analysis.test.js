@@ -237,6 +237,100 @@ describe('RubyToBlocksConverter/Analysis', () => {
         });
     });
 
+    describe('the structure of a class (`class-analysis.js`)', () => {
+        const structureOf = (source) => {
+            const analysis = analyzeRuby(source);
+            const [entry] = analysis.classes.classes;
+            expect(analysis.classes.ofNode.get(entry.node)).toBe(entry);
+            return entry.structure;
+        };
+
+        test('decides the comment, the attributes and the lines left to convert', () => {
+            const structure = structureOf(dedent`
+                class Cat < ::Smalruby3::Sprite
+                  attr_accessor :hp
+                  set_x 10
+                  set_costumes ["costume1"]
+                  include Walk
+
+                  def initialize(a)
+                    super(a)
+                    @hp = 1
+                    @items = [1, 2]
+                  end
+
+                  def walk
+                    super
+                  end
+
+                  when_flag_clicked do
+                  end
+                end
+            `);
+            expect(structure.comment).toBe(
+                '@ruby:class:<=//Smalruby3/Sprite,name=Cat,x,costumes,attr_accessor=hp,include=Walk',
+            );
+            expect({ ...structure.classInfo }).toEqual({ x: 10, costumes: ['costume1'], name: 'Cat' });
+            expect(structure.attrVariables).toEqual(['hp']);
+            expect(structure.includeStatements.map((s) => [s.kind, s.name])).toEqual([['include', 'Walk']]);
+            // Every method with super, as before (initialize renames a method of the module named initialize)
+            expect(structure.superMethods).toEqual(['initialize', 'walk']);
+            expect(structure.bodyStatements.map((s) => nodeTypeName(s))).toEqual(['DefNode', 'CallNode']);
+            const [initialize] = structure.initializes;
+            expect(initialize.hasSuper).toBe(true);
+            expect(initialize.superArgs).toHaveLength(1);
+            expect(initialize.attrNames).toEqual(['hp']);
+            expect(initialize.statements.map((s) => [s.rubyName, s.value, s.isList])).toEqual([
+                ['@hp', 1, false],
+                ['@items', [1, 2], true],
+            ]);
+            expect(Object.isFrozen(structure)).toBe(true);
+        });
+
+        test.each([
+            ['class Stage < Foo\nend', 'superclassError', 'invalidStageSuperclass'],
+            ['class Stage\n  set_x 10\nend', 'setError', 'spriteMethodInStageClass'],
+            ['class Sprite1\n  set_current_backdrop "a"\nend', 'setError', 'stageMethodInSpriteClass'],
+            ['class Sprite1\n  set_lists []\nend', 'setError', 'setVariablesListsNotSupported'],
+            [
+                'class Sprite1\n  set_sprite "Cat"\n  set_sounds ["pop"]\nend',
+                'assetError',
+                'spriteAndCostumesSoundsExclusive',
+            ],
+            ['class Sprite1\n  set_costumes ["no such costume"]\nend', 'assetError', 'invalidCostumeName'],
+        ])('keeps the error of %j to be thrown while converting', (source, key, message) => {
+            expect(structureOf(source)[key].message).toBe(message);
+        });
+
+        test('keeps the error of each line of def initialize', () => {
+            const [initialize] = structureOf(
+                'class Stage\n  def initialize\n    @a = 1\n    $b = foo\n    move(1)\n  end\nend',
+            ).initializes;
+            expect(initialize.statements.map((s) => s.error && s.error.message)).toEqual([
+                'wrongVariableScopeInInitialize',
+                'invalidInitializeBody',
+                'invalidInitializeBody',
+            ]);
+        });
+
+        test.each([
+            ['ClassNode', 'class Sprite1\nend'],
+            ['ModuleNode', 'module Walk\nend'],
+        ])('a %s that is not in the analysis is an error of the converter', async (type, source) => {
+            const converter = new RubyToBlocksConverter(null, { version: '2' });
+            await converter.targetCodeToBlocks(null, 'move(10)');
+            const [node] = parse(source).statements.body;
+            expect(() => converter.visit(node)).toThrow(`the analysis stage has no ${type} here`);
+        });
+
+        test('keeps the lines of the body of a module', () => {
+            const analysis = analyzeRuby('module Walk\n  def walk\n  end\n  move(1)\nend');
+            const [walk] = analysis.classes.modules;
+            expect(analysis.classes.ofNode.get(walk.node)).toBe(walk);
+            expect(walk.structure.statements.map((s) => nodeTypeName(s))).toEqual(['DefNode', 'CallNode']);
+        });
+    });
+
     describe('symbols', () => {
         test('lists every symbol of the code once', () => {
             const analysis = analyzeRuby('@a = :b\nsay(:a)\nsay(:b)\n');

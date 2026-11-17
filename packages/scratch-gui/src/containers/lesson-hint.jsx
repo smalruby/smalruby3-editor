@@ -18,11 +18,16 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
+import LessonActivityDiagram from '../components/lesson-activity-diagram/lesson-activity-diagram.jsx';
+import LessonHintMinimized from '../components/lesson-hint/lesson-hint-minimized.jsx';
 import LessonHint from '../components/lesson-hint/lesson-hint.jsx';
+import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
 import { LANGUAGES, challengeCodeCandidates, localizeCode } from '../lib/lessons/courses';
 import { rubyToBlocksXml } from '../lib/lessons/hint-blocks';
-import { findCodeSprite, findSpriteByName, insertSpriteCodes } from '../lib/lessons/insert-sprite-code';
+import { hintStepTitle, isSeatedStudent } from '../lib/lessons/hint-text';
+import { findSpriteByName, insertSpriteCodes, resolveCodeSprite } from '../lib/lessons/insert-sprite-code';
 import { LESSON_EVENTS, sendLessonEvent } from '../lib/lessons/lesson-analytics';
+import { roleStepNote } from '../lib/lessons/lesson-role';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { colorModeMap } from '../lib/settings/color-mode';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
@@ -33,6 +38,7 @@ import {
     hideHint,
     nextHint,
     prevHint,
+    showHint,
 } from '../reducers/lesson-mode';
 import { updateRubyCode, updateRubyCodeTarget } from '../reducers/ruby-code';
 
@@ -41,17 +47,27 @@ const LessonHintContainer = ({
     current,
     fromAssignment = false,
     hint,
+    inClassroom = false,
+    nudge = false,
     onFinishHint,
     onHideHint,
     onInsertCode,
     onNextHint,
     onPrevHint,
+    onShowHint,
+    role = null,
+    roleSource = null,
     rubyVersion,
     scratchBlocks,
     teacherLoggedIn = false,
     vm,
 }) => {
     const intl = useIntl();
+    // 答えのプログラムから描いたアクティビティ図。ヒントの 1 ページ目に出す（課題の全文と同じ図・変換は 1 回）
+    const activityDiagram = useChallengeActivityDiagram(current ? current.challenge : null, {
+        rubyVersion,
+        scratchBlocks,
+    });
     const blocks = hint && hint.visible && hint.step ? localizeCode(hint.step.blocks, intl.locale) : null;
     // 変換した XML は Ruby ごとに覚える（もどる・進めるで同じブロックを変換し直さない）。
     // 変換の結果は Ruby のバージョンでも変わるので、キーに含める
@@ -102,13 +118,18 @@ const LessonHintContainer = ({
         const hasVm = Boolean(vm && vm.runtime);
         const stage = challenge.codeTarget === 'stage' && hasVm ? vm.runtime.getTargetForStage() : null;
         const editing = vm && vm.editingTarget ? vm.editingTarget : null;
+        // 始めるときにネコを置きかえたチャレンジ（`setup.sprites`）は、その 1 つめに code を入れる
+        // （生徒がもう 1 つのスプライトを選んでいても、答えはいまの役の形で入る。チャレンジは getCurrentChallenge が
+        // 役で入れかえた形なので、シマネコの役では setup.sprites の 1 つめがシマネコになり、code はシマネコに入る）
+        const startSprites = (challenge.setup && challenge.setup.sprites) || [];
+        const preferred = hasVm && startSprites.length > 0 ? startSprites[0] : null;
         // 確かめる組: [target, code]。まだいないスプライト（これから足すペンギン）は target なしで確かめる
         // （target が無いと音・コスチュームは確かめない。足すのはライブラリのままのスプライトなので足りる）
         const checksFor = (candidate) => {
             const spriteCodes = hasVm ? candidate.spriteCodes : [];
-            // code を入れる相手: ステージのプログラムはステージ、spriteCodes があれば残りのスプライト（ネコ）。
-            // どちらでもなければ null（いま編集中のスプライトに入れる）
-            const codeSprite = spriteCodes.length > 0 ? findCodeSprite(vm, spriteCodes) : null;
+            // code を入れる相手: ステージのプログラムはステージ、setup.sprites があればその 1 つめ、spriteCodes が
+            // あれば残りのスプライト（ネコ）。どれでもなければ null（いま編集中のスプライトに入れる）
+            const codeSprite = hasVm ? resolveCodeSprite(vm, spriteCodes, preferred) : null;
             return [
                 ...spriteCodes.map(({ sprite, code }) => [findSpriteByName(vm, sprite), code]),
                 [stage || codeSprite || editing, candidate.code],
@@ -146,11 +167,13 @@ const LessonHintContainer = ({
         }
         setInsertErrors([]);
         const spriteCodes = hasVm ? chosen.spriteCodes : [];
-        let target = stage;
+        let target = stage || (hasVm ? resolveCodeSprite(vm, [], preferred) : null);
         if (spriteCodes.length > 0) {
             // ほかのスプライト（ペンギン）のプログラムを先に入れ、code はネコに入れる
             target = await insertSpriteCodes(vm, spriteCodes, {
                 toBlocks: (t, code) => targetCodeToBlocks(vm, t, code, intl, { version: rubyVersion }),
+                preferred,
+                locale: intl.locale,
             });
         }
         if (target) vm.setEditingTarget(target.id);
@@ -169,13 +192,28 @@ const LessonHintContainer = ({
         });
     }, [insertChallengeCode]);
 
-    if (!hint || !hint.visible || !current) return null;
+    if (!hint || !current) return null;
     const step = hint.step;
+    // 小さくしたときは札だけを出す（スポットライトも消える）。押すと同じページで元の大きさにもどる
+    if (hint.minimized) {
+        return (
+            <LessonHintMinimized
+                count={hint.count}
+                index={hint.index}
+                lastResort={hint.lastResort}
+                nudge={nudge}
+                title={hintStepTitle(step, { inClassroom })}
+                onRestore={onShowHint}
+            />
+        );
+    }
+    if (!hint.visible) return null;
     const blocksReady = blocks !== null && rendered.blocks === blocks;
     return (
         <LessonHint
             // チャレンジを開き直したら、ドラッグした位置や「置き換えますか？」を持ち越さない
             key={hint.session}
+            activityDiagram={activityDiagram ? <LessonActivityDiagram layout={activityDiagram} /> : null}
             blocksError={blocksReady && rendered.error}
             blocksXml={blocksReady ? rendered.xml : null}
             colorMode={colorMode}
@@ -184,17 +222,21 @@ const LessonHintContainer = ({
             hasCode={Boolean(hint.code)}
             index={hint.index}
             insertErrors={insertErrors}
+            label={step ? step.label || null : null}
             lastResort={hint.lastResort}
             mediaPath={`./static/${colorModeMap[colorMode].blocksMediaFolder}/`}
+            // 「－」は閉じずに小さくする（札が残る・reducers/lesson-mode.js の HIDE_HINT）
             onClose={onHideHint}
             onFinish={onFinishHint}
             onInsertCode={handleInsertCode}
+            // 「役を決めよう」のページは、役を選んだら「〜の役を選んだよ」を出す
+            note={step ? roleStepNote(step, role ? { role, source: roleSource } : null) || step.note || null : null}
             onNext={onNextHint}
             onPrev={onPrevHint}
             scratchBlocks={scratchBlocks}
             spotlight={hint.spotlight}
             target={step ? step.target : null}
-            title={step ? step.title : null}
+            title={hintStepTitle(step, { inClassroom })}
         />
     );
 };
@@ -210,6 +252,8 @@ LessonHintContainer.propTypes = {
     fromAssignment: PropTypes.bool,
     hint: PropTypes.shape({
         visible: PropTypes.bool.isRequired,
+        // 小さくして札だけを残しているか
+        minimized: PropTypes.bool,
         index: PropTypes.number.isRequired,
         count: PropTypes.number.isRequired,
         step: PropTypes.object,
@@ -220,11 +264,20 @@ LessonHintContainer.propTypes = {
         code: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
         session: PropTypes.number,
     }),
+    // クラスに参加中の生徒か（メッシュのつなぎ方の手順を、出席番号でつながる文言にする）
+    inClassroom: PropTypes.bool,
+    // 手が止まっているので、小さくした札を光らせるか（containers/lesson-mode.jsx が渡す・#2132）
+    nudge: PropTypes.bool,
     onFinishHint: PropTypes.func.isRequired,
     onHideHint: PropTypes.func.isRequired,
     onInsertCode: PropTypes.func.isRequired,
     onNextHint: PropTypes.func.isRequired,
     onPrevHint: PropTypes.func.isRequired,
+    // 小さくした札から元の大きさにもどす
+    onShowHint: PropTypes.func.isRequired,
+    // いまの役と、どう決めたか（役のあるチャレンジだけ。lib/lessons/role-swap.js の ROLES・lesson-role.js の ROLE_SOURCES）
+    role: PropTypes.string,
+    roleSource: PropTypes.string,
     rubyVersion: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     scratchBlocks: PropTypes.object,
     // 先生（クラス管理にログイン中）か（GA に送らない）
@@ -239,6 +292,10 @@ const mapStateToProps = (state) => ({
     // 先生（クラス管理にログイン中）のときは GA に送らない
     teacherLoggedIn: Boolean(state.scratchGui.classroom && state.scratchGui.classroom.teacherLoggedIn),
     hint: getCurrentHint(state),
+    inClassroom: isSeatedStudent(state.scratchGui.classroom),
+    // 文字のまま渡す（getCurrentRole は呼ぶたびに新しいオブジェクトを作り、毎回描き直しになるため）
+    role: state.scratchGui.lessonMode.role || null,
+    roleSource: state.scratchGui.lessonMode.roleSource || null,
     rubyVersion: state.scratchGui.settings.rubyVersion,
     scratchBlocks: state.scratchGui.blockDisplay.scratchBlocks,
     vm: state.scratchGui.vm,
@@ -249,6 +306,7 @@ const mapDispatchToProps = (dispatch) => ({
     onHideHint: () => dispatch(hideHint()),
     onNextHint: () => dispatch(nextHint()),
     onPrevHint: () => dispatch(prevHint()),
+    onShowHint: () => dispatch(showHint()),
     onInsertCode: (code, language, target, rubyVersion) => {
         // カードの insertCodeButton と同じ: Ruby を入れてから目的のタブを出す。ブロックの
         // コースではコードタブ（Ruby タブが変換してブロックにする）、Ruby / DNCL のコースでは Ruby タブ

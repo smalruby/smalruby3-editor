@@ -83,6 +83,16 @@ src/components/*
 !src/components/lesson-task-bar/**
 !src/components/lesson-hint/
 !src/components/lesson-hint/**
+!src/components/lesson-part-names/
+!src/components/lesson-part-names/**
+!src/components/lesson-part-quiz/
+!src/components/lesson-part-quiz/**
+!src/components/lesson-practice-partner/
+!src/components/lesson-practice-partner/**
+!src/components/block-activity-diagram/
+!src/components/block-activity-diagram/**
+!src/components/lesson-activity-diagram/
+!src/components/lesson-activity-diagram/**
 !src/components/lessons-library/
 !src/components/lessons-library/**
 !src/components/dncl-mode-notice/**
@@ -98,8 +108,6 @@ src/components/*
 !src/components/lesson-progress-confirm/
 !src/components/lesson-progress-confirm/**
 !src/components/koshien-mock-panel/**
-!src/components/mesh-self-sensor-notice/
-!src/components/mesh-self-sensor-notice/**
 !src/components/mesh-status-button/
 !src/components/mesh-status-button/**
 !src/components/mesh-status-popup/
@@ -218,12 +226,13 @@ src/containers/*
 !src/containers/google-drive-loader-hoc.jsx
 !src/containers/koshien-mock-panel.jsx
 !src/containers/lesson-hint.jsx
+!src/containers/lesson-practice-partner.jsx
 !src/containers/lesson-analytics.jsx
 !src/containers/lesson-progress-sync.jsx
 !src/containers/lesson-goal-watcher.jsx
+!src/containers/block-activity-diagram.jsx
 !src/containers/lesson-mode.jsx
 !src/containers/lessons-library.jsx
-!src/containers/mesh-self-sensor-notice.jsx
 !src/containers/mesh-status-popup.jsx
 !src/containers/mesh-v2-seat-connect.jsx
 !src/containers/google-drive-saver-hoc.jsx
@@ -244,6 +253,7 @@ src/lib/*
 !src/lib/lessons/**
 !src/lib/lesson-dynamic-categories.js
 !src/lib/ruby-markers.js
+!src/lib/ruby-method-name.js
 !src/lib/dncl/**
 !src/lib/ruby-to-blocks-converter/
 !src/lib/ruby-to-blocks-converter/**
@@ -317,7 +327,6 @@ src/lib/*
 !src/lib/mesh-v2-seat-connect.js
 !src/lib/mesh-v2-seat-label.js
 !src/lib/mesh-v2-seat-snapshot.js
-!src/lib/mesh-v2-sensor-collision.js
 !src/lib/mesh-v2-status.js
 !src/lib/mesh-practice/
 !src/lib/mesh-practice/**
@@ -470,6 +479,7 @@ test/integration/*
 !test/integration/smalruby-lesson-task-bar-full-text.test.js
 !test/integration/smalruby-lesson-task-bar-layout.test.js
 !test/integration/smalruby-lessons-first-time-balloons.test.js
+!test/integration/smalruby-lesson0.test.js
 !test/integration/smalruby-lesson1-challenges-1-4.test.js
 !test/integration/smalruby-lessons-library.test.js
 !test/integration/smalruby-lessons-en.test.js
@@ -498,6 +508,7 @@ test/unit/*
 !test/unit/make-toolbox-xml-hex.test.js
 !test/unit/only-blocks-initialization.test.js
 !test/unit/setup.js
+!test/unit/standard-assignments.test.js
 
 # Level 3: test/unit/components/*
 test/unit/components/*
@@ -515,20 +526,25 @@ test/unit/components/*
 !test/unit/components/url-loader-modal.test.jsx
 !test/unit/components/dncl-mode-notice.test.jsx
 !test/unit/components/lesson-task-bar.test.jsx
+!test/unit/components/lesson-part-names.test.jsx
+!test/unit/components/lesson-part-quiz.test.jsx
 !test/unit/components/sprite-info-compact.test.jsx
 !test/unit/components/stage-selector-compact.test.jsx
 !test/unit/components/lesson-hint.test.jsx
+!test/unit/components/lesson-hint-nudge.test.jsx
+!test/unit/containers/lesson-practice-partner.test.jsx
 !test/unit/components/balloon.test.jsx
 !test/unit/components/classroom-tutorial.test.jsx
 !test/unit/components/lessons-library.test.jsx
+!test/unit/components/lesson-activity-diagram.test.jsx
 !test/unit/components/genai-answer-steps-index-hints.test.jsx
 !test/unit/components/genai-answer-steps-words.test.jsx
 !test/unit/components/extension-button-dncl.test.jsx
 !test/unit/components/connected-step.test.jsx
 !test/unit/components/lesson-completed-toast.test.jsx
+!test/unit/components/lesson-completed-quiz.test.jsx
 !test/unit/components/lesson-assignment-band.test.jsx
 !test/unit/components/lesson-progress-confirm.test.jsx
-!test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/mesh-status-popup.test.jsx
 !test/unit/components/mesh-status-button.test.jsx
 !test/unit/components/mesh-v2-help-row.test.jsx
@@ -547,6 +563,8 @@ test/unit/components/*
 !test/unit/components/classroom-teacher-header.test.jsx
 !test/unit/components/classroom-teacher-modal-share-suggestion.test.js
 !test/unit/components/teacher-open-work-confirm.test.jsx
+!test/unit/components/teacher-close-row.test.jsx
+!test/unit/components/classroom-teacher-modal-close-row.test.jsx
 !test/unit/components/classroom-tab.test.jsx
 !test/unit/components/classroom-teacher-view-layout.test.jsx
 !test/unit/components/classroom-teacher-evaluation.test.jsx
@@ -586,6 +604,7 @@ test/unit/containers/*
 !test/unit/containers/lesson-analytics.test.jsx
 !test/unit/containers/lesson-progress-sync.test.jsx
 !test/unit/containers/lesson-goal-watcher.test.jsx
+!test/unit/containers/block-activity-diagram.test.jsx
 !test/unit/containers/ruby-tab/**
 !test/unit/containers/backpack.test.jsx
 !test/unit/containers/lesson-mode.test.jsx
@@ -734,7 +753,6 @@ test/unit/lib/*
 !test/unit/lib/mesh-v2-seat-connect.test.js
 !test/unit/lib/mesh-v2-seat-label.test.js
 !test/unit/lib/mesh-v2-status.test.js
-!test/unit/lib/mesh-v2-sensor-collision.test.js
 !test/unit/lib/monaco-i18n-helper.test.js
 !test/unit/lib/display-mode-persistence.test.js
 !test/unit/lib/responsive-gui.test.jsx

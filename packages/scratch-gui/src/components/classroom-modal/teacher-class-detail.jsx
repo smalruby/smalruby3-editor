@@ -24,6 +24,7 @@ import { isMemberSeated } from '../../lib/classroom-presence.js';
 import { retentionLevel } from '../../lib/classroom-retention.js';
 import { findCourse } from '../../lib/lessons/courses.js';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
+import Spinner from '../spinner/spinner.jsx';
 import BoardMenu, { BoardMenuItem } from './board-menu.jsx';
 import ClassroomButton from './classroom-button.jsx';
 import classroomIconMessages from './classroom-icon-messages.js';
@@ -45,6 +46,7 @@ import SeatColorLegend, {
     seatColorClass,
 } from './seat-color-legend.jsx';
 import TeacherAssignmentEditor from './teacher-assignment-editor.jsx';
+import TeacherCloseRow, { closeRowMessages } from './teacher-close-row.jsx';
 import TeacherLessonProgress from './teacher-lesson-progress.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
 import TeacherProjectionView, { projectionMessages } from './teacher-projection-view.jsx';
@@ -143,6 +145,8 @@ const TeacherClassDetail = ({
     googleCourseAccess,
     isVerifyingGoogleCourseAccess,
     onVerifyGoogleCourseAccess,
+    onClose,
+    hasUnsavedChanges,
 }) => {
     // Destructured with handle-prefixed names for the embedded editor
     // (react/jsx-handler-names requires handler props to look like handlers).
@@ -477,272 +481,254 @@ const TeacherClassDetail = ({
                     {'<'} <FormattedMessage defaultMessage="Back" description="Back button" id="gui.classroom.back" />
                 </button>
             )}
-            <div className={styles.detailTwoPaneLayout}>
-                {/* Left pane */}
-                <div className={styles.detailLeftPane}>
-                    {/* 課題名（左）と参加コード（右）を均等幅の 2 カラムに
-                                分け、各カラムを 2 行に収める。参加コードカードが
-                                縦に伸びて全体が崩れるのを防ぐ。 */}
-                    {compactHeader ? (
-                        <div className={styles.compactCodeRow} data-testid="classroom-detail-compact-code">
+            {/* 「✕ ＋ 見出し」の行（#2089・Google Classroom の編集の画面と同じ）: ✕ で［授業］へ戻る。
+                課題名の欄・参加コード・［課題を保存］をこの 1 行にまとめ、1300×600 で本文を広くする。 */}
+            <TeacherCloseRow
+                closeLabel={intl.formatMessage(closeRowMessages.backToAssignments)}
+                heading={
+                    <div className={styles.nameCol}>
+                        <label className={styles.assignmentNameLabel} htmlFor={nameInputId}>
+                            <FormattedMessage
+                                defaultMessage="Assignment Name"
+                                description="Assignment name label in class detail"
+                                id="gui.classroom.teacherDetail.assignmentNameLabel"
+                            />
+                            {': '}
+                        </label>
+                        <div className={styles.assignmentNameField}>
+                            <input
+                                className={styles.assignmentNameInput}
+                                data-testid="classroom-detail-assignment-name"
+                                id={nameInputId}
+                                maxLength={50}
+                                type="text"
+                                value={editAssignmentName}
+                                onBlur={handleAssignmentNameBlur}
+                                onChange={handleAssignmentNameChange}
+                                onFocus={handleAssignmentNameFocus}
+                                onKeyDown={handleAssignmentNameKeyDown}
+                            />
+                            {nameFocused && (
+                                <div
+                                    className={styles.assignmentNameSaveHint}
+                                    data-testid="classroom-detail-assignment-name-save-hint"
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Press Enter or click outside the field to save"
+                                        description="Shown under the assignment name field while it is focused: how the name is saved"
+                                        id="gui.classroom.teacherDetail.assignmentNameSaveHint"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        {nameSaveStatus === 'saved' && (
+                            <span
+                                className={styles.assignmentNameSaved}
+                                data-testid="classroom-detail-assignment-name-saved"
+                                role="status"
+                            >
+                                {'✓ '}
+                                <FormattedMessage
+                                    defaultMessage="Saved"
+                                    description="Shown next to the assignment name for a moment after it was saved"
+                                    id="gui.classroom.teacherDetail.assignmentNameSaved"
+                                />
+                            </span>
+                        )}
+                        {nameSaveStatus === 'error' && (
+                            <span
+                                className={styles.assignmentNameSaveError}
+                                data-testid="classroom-detail-assignment-name-save-error"
+                                role="alert"
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Couldn't save"
+                                    description="Shown next to the assignment name when saving it failed"
+                                    id="gui.classroom.teacherDetail.assignmentNameSaveFailed"
+                                />
+                            </span>
+                        )}
+                    </div>
+                }
+                unsaved={Boolean(hasUnsavedChanges)}
+                onClose={onClose}
+            >
+                <div className={styles.joinCodeCard}>
+                    <span className={styles.joinCodeCodePart}>
+                        <span className={styles.joinCodeLabel}>
                             <FormattedMessage
                                 defaultMessage="Join Code"
                                 description="Join code label"
                                 id="gui.classroom.joinCode.label"
                             />
                             {': '}
-                            <span className={styles.compactCodeValue} data-testid="classroom-detail-join-code">
-                                {selectedClassroom.joinCode.toLowerCase()}
-                            </span>
-                            <button
-                                className={styles.joinCodeAction}
-                                data-testid="classroom-detail-expand-code"
-                                title={intl.formatMessage({
-                                    id: 'gui.classroom.joinCode.fullscreen',
-                                    defaultMessage: 'Show fullscreen',
-                                    description: 'Fullscreen the join code',
-                                })}
-                                type="button"
-                                onClick={handleProject}
+                        </span>
+                        <span className={styles.joinCodeValue} data-testid="classroom-detail-join-code">
+                            {selectedClassroom.joinCode.toLowerCase()}
+                        </span>
+                    </span>
+                    {/* 全画面表示: アイコンの横に「全画面」の文字（#1924 C11） */}
+                    <button
+                        className={styles.joinCodeAction}
+                        data-testid="classroom-detail-expand-code"
+                        title={intl.formatMessage({
+                            id: 'gui.classroom.joinCode.fullscreen',
+                            defaultMessage: 'Show fullscreen',
+                            description: 'Fullscreen the join code',
+                        })}
+                        type="button"
+                        onClick={handleProject}
+                    >
+                        <span aria-hidden="true" className={styles.joinCodeIcon}>
+                            {'⛶'}
+                        </span>
+                        {intl.formatMessage(classroomIconMessages.fullscreen)}
+                    </button>
+                    {/* 招待リンクをコピー: アイコンのみ。クリックすると
+                                    アイコンがチェックに変わり、コピー完了を示す。 */}
+                    <button
+                        className={classNames(styles.joinCodeAction, {
+                            [styles.joinCodeActionCopied]: inviteCopied,
+                        })}
+                        data-testid="classroom-detail-copy-link"
+                        title={intl.formatMessage(
+                            inviteCopied
+                                ? {
+                                      id: 'gui.classroom.codeDisplay.copied',
+                                      defaultMessage: 'Copied',
+                                      description: 'Confirmation after copying invite link',
+                                  }
+                                : {
+                                      id: 'gui.classroom.codeDisplay.copyLink',
+                                      defaultMessage: 'Copy invite link',
+                                      description: 'Button to copy classroom invite link',
+                                  },
+                        )}
+                        type="button"
+                        onClick={handleCopyInvite}
+                    >
+                        {inviteCopied ? (
+                            <svg
+                                className={styles.joinCodeIcon}
+                                fill="none"
+                                height="15"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                viewBox="0 0 24 24"
+                                width="15"
                             >
-                                <span aria-hidden="true" className={styles.joinCodeIcon}>
-                                    {'⛶'}
-                                </span>
-                                {intl.formatMessage(classroomIconMessages.fullscreen)}
-                            </button>
-                        </div>
-                    ) : (
-                        <div className={styles.nameCodeRow}>
-                            {/* 左: 課題名。1 行の入力欄（#1303 D3）。カーソルがある間は
-                                    欄の下に保存のしかた、保存後は欄の横に結果を出す（#1388）。 */}
-                            <div className={styles.nameCol}>
-                                <label className={styles.assignmentNameLabel} htmlFor={nameInputId}>
+                                <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                        ) : (
+                            <svg
+                                className={styles.joinCodeIcon}
+                                fill="none"
+                                height="15"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                                width="15"
+                            >
+                                <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                        )}
+                    </button>
+                    {/* Google Classroom linkage lives on the class
+                                    (group), so an assignment posts to the group's
+                                    course even without its own courseId. ボタンは
+                                    幅に関わらず "[アイコン]に共有" の短縮表示で固定。 */}
+                    {(selectedClassroom.googleClassroomCourseId || (group && group.googleClassroomCourseId)) &&
+                        (selectedClassroom.googleClassroomAlternateLink ? (
+                            <a
+                                className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
+                                data-testid="classroom-view-assignment"
+                                href={selectedClassroom.googleClassroomAlternateLink}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                            >
+                                <img alt="" className={styles.gcImportIcon} src={googleClassroomIcon} />
+                                <span className={styles.joinCodeGcLabel}>
                                     <FormattedMessage
-                                        defaultMessage="Assignment Name"
-                                        description="Assignment name label in class detail"
-                                        id="gui.classroom.teacherDetail.assignmentNameLabel"
+                                        defaultMessage="Open"
+                                        description="Short label (icon shows Google Classroom) to open the assignment"
+                                        id="gui.classroom.joinCode.openInGcShort"
                                     />
-                                    {': '}
-                                </label>
-                                <div className={styles.assignmentNameField}>
-                                    <input
-                                        className={styles.assignmentNameInput}
-                                        data-testid="classroom-detail-assignment-name"
-                                        id={nameInputId}
-                                        maxLength={50}
-                                        type="text"
-                                        value={editAssignmentName}
-                                        onBlur={handleAssignmentNameBlur}
-                                        onChange={handleAssignmentNameChange}
-                                        onFocus={handleAssignmentNameFocus}
-                                        onKeyDown={handleAssignmentNameKeyDown}
-                                    />
-                                    {nameFocused && (
-                                        <div
-                                            className={styles.assignmentNameSaveHint}
-                                            data-testid="classroom-detail-assignment-name-save-hint"
-                                        >
-                                            <FormattedMessage
-                                                defaultMessage="Press Enter or click outside the field to save"
-                                                description="Shown under the assignment name field while it is focused: how the name is saved"
-                                                id="gui.classroom.teacherDetail.assignmentNameSaveHint"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                                {nameSaveStatus === 'saved' && (
-                                    <span
-                                        className={styles.assignmentNameSaved}
-                                        data-testid="classroom-detail-assignment-name-saved"
-                                        role="status"
-                                    >
-                                        {'✓ '}
-                                        <FormattedMessage
-                                            defaultMessage="Saved"
-                                            description="Shown next to the assignment name for a moment after it was saved"
-                                            id="gui.classroom.teacherDetail.assignmentNameSaved"
-                                        />
-                                    </span>
-                                )}
-                                {nameSaveStatus === 'error' && (
-                                    <span
-                                        className={styles.assignmentNameSaveError}
-                                        data-testid="classroom-detail-assignment-name-save-error"
-                                        role="alert"
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Couldn't save"
-                                            description="Shown next to the assignment name when saving it failed"
-                                            id="gui.classroom.teacherDetail.assignmentNameSaveFailed"
-                                        />
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* 右: 参加コードカード。コードとボタンを 1 つの
-                                    flex flow に並べ、同じ行から始めることで 3 つの
-                                    ボタンが 2 行に収まる。狭い幅では全画面表示・招待
-                                    リンクコピーをアイコンのみ、GC 共有を短縮表示。 */}
-                            <div className={styles.joinCodeCard}>
-                                <span className={styles.joinCodeCodePart}>
-                                    <span className={styles.joinCodeLabel}>
-                                        <FormattedMessage
-                                            defaultMessage="Join Code"
-                                            description="Join code label"
-                                            id="gui.classroom.joinCode.label"
-                                        />
-                                        {': '}
-                                    </span>
-                                    <span className={styles.joinCodeValue} data-testid="classroom-detail-join-code">
-                                        {selectedClassroom.joinCode.toLowerCase()}
-                                    </span>
                                 </span>
-                                {/* 全画面表示: アイコンの横に「全画面」の文字（#1924 C11） */}
+                            </a>
+                        ) : (
+                            <button
+                                className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
+                                data-testid="classroom-post-assignment"
+                                disabled={gcShareBlocked}
+                                title={gcShareBlockedText || null}
+                                type="button"
+                                onClick={onShowPostAssignment}
+                            >
+                                <img alt="" className={styles.gcImportIcon} src={googleClassroomIcon} />
+                                <span className={styles.joinCodeGcLabel}>
+                                    <FormattedMessage
+                                        defaultMessage="Share join code"
+                                        description="Short label (icon shows Google Classroom) to share the join code"
+                                        id="gui.classroom.joinCode.shareToGcShort"
+                                    />
+                                </span>
+                            </button>
+                        ))}
+                    {/* 共有できない理由（GC コースの教師ではない共同担当）
+                                をボタンの近くに出す。本当に GC の共同教師である
+                                先生だけが「確認する」で自分で解除できる。#1184 */}
+                    {gcShareBlocked && (
+                        <div className={styles.joinCodeGcBlockedNote} data-testid="classroom-post-assignment-blocked">
+                            {gcShareBlockedText}
+                            {gcCanVerify && (
                                 <button
-                                    className={styles.joinCodeAction}
-                                    data-testid="classroom-detail-expand-code"
-                                    title={intl.formatMessage({
-                                        id: 'gui.classroom.joinCode.fullscreen',
-                                        defaultMessage: 'Show fullscreen',
-                                        description: 'Fullscreen the join code',
-                                    })}
+                                    className={styles.joinCodeGcVerifyButton}
+                                    data-testid="classroom-post-assignment-verify"
+                                    disabled={isVerifyingGoogleCourseAccess}
                                     type="button"
-                                    onClick={handleProject}
+                                    onClick={handleVerifyGcAccess}
                                 >
-                                    <span aria-hidden="true" className={styles.joinCodeIcon}>
-                                        {'⛶'}
-                                    </span>
-                                    {intl.formatMessage(classroomIconMessages.fullscreen)}
-                                </button>
-                                {/* 招待リンクをコピー: アイコンのみ。クリックすると
-                                            アイコンがチェックに変わり、コピー完了を示す。 */}
-                                <button
-                                    className={classNames(styles.joinCodeAction, {
-                                        [styles.joinCodeActionCopied]: inviteCopied,
-                                    })}
-                                    data-testid="classroom-detail-copy-link"
-                                    title={intl.formatMessage(
-                                        inviteCopied
-                                            ? {
-                                                  id: 'gui.classroom.codeDisplay.copied',
-                                                  defaultMessage: 'Copied',
-                                                  description: 'Confirmation after copying invite link',
-                                              }
-                                            : {
-                                                  id: 'gui.classroom.codeDisplay.copyLink',
-                                                  defaultMessage: 'Copy invite link',
-                                                  description: 'Button to copy classroom invite link',
-                                              },
-                                    )}
-                                    type="button"
-                                    onClick={handleCopyInvite}
-                                >
-                                    {inviteCopied ? (
-                                        <svg
-                                            className={styles.joinCodeIcon}
-                                            fill="none"
-                                            height="15"
-                                            stroke="currentColor"
-                                            strokeWidth="2.5"
-                                            viewBox="0 0 24 24"
-                                            width="15"
-                                        >
-                                            <path d="M20 6L9 17l-5-5" />
-                                        </svg>
+                                    {isVerifyingGoogleCourseAccess ? (
+                                        <FormattedMessage
+                                            defaultMessage="Checking…"
+                                            description="Label while checking the teacher's Google Classroom access"
+                                            id="gui.classroom.googleShare.verifying"
+                                        />
                                     ) : (
-                                        <svg
-                                            className={styles.joinCodeIcon}
-                                            fill="none"
-                                            height="15"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            viewBox="0 0 24 24"
-                                            width="15"
-                                        >
-                                            <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
-                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                        </svg>
+                                        <FormattedMessage
+                                            defaultMessage="I am a teacher of this Google Classroom class (check)"
+                                            description="Button that lets a Google Classroom co-teacher prove their access and share"
+                                            id="gui.classroom.googleShare.verify"
+                                        />
                                     )}
                                 </button>
-                                {/* Google Classroom linkage lives on the class
-                                            (group), so an assignment posts to the group's
-                                            course even without its own courseId. ボタンは
-                                            幅に関わらず "[アイコン]に共有" の短縮表示で固定。 */}
-                                {(selectedClassroom.googleClassroomCourseId ||
-                                    (group && group.googleClassroomCourseId)) &&
-                                    (selectedClassroom.googleClassroomAlternateLink ? (
-                                        <a
-                                            className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
-                                            data-testid="classroom-view-assignment"
-                                            href={selectedClassroom.googleClassroomAlternateLink}
-                                            rel="noopener noreferrer"
-                                            target="_blank"
-                                        >
-                                            <img alt="" className={styles.gcImportIcon} src={googleClassroomIcon} />
-                                            <span className={styles.joinCodeGcLabel}>
-                                                <FormattedMessage
-                                                    defaultMessage="Open"
-                                                    description="Short label (icon shows Google Classroom) to open the assignment"
-                                                    id="gui.classroom.joinCode.openInGcShort"
-                                                />
-                                            </span>
-                                        </a>
-                                    ) : (
-                                        <button
-                                            className={classNames(styles.joinCodeAction, styles.joinCodeActionGc)}
-                                            data-testid="classroom-post-assignment"
-                                            disabled={gcShareBlocked}
-                                            title={gcShareBlockedText || null}
-                                            type="button"
-                                            onClick={onShowPostAssignment}
-                                        >
-                                            <img alt="" className={styles.gcImportIcon} src={googleClassroomIcon} />
-                                            <span className={styles.joinCodeGcLabel}>
-                                                <FormattedMessage
-                                                    defaultMessage="Share join code"
-                                                    description="Short label (icon shows Google Classroom) to share the join code"
-                                                    id="gui.classroom.joinCode.shareToGcShort"
-                                                />
-                                            </span>
-                                        </button>
-                                    ))}
-                                {/* 共有できない理由（GC コースの教師ではない共同担当）
-                                        をボタンの近くに出す。本当に GC の共同教師である
-                                        先生だけが「確認する」で自分で解除できる。#1184 */}
-                                {gcShareBlocked && (
-                                    <div
-                                        className={styles.joinCodeGcBlockedNote}
-                                        data-testid="classroom-post-assignment-blocked"
-                                    >
-                                        {gcShareBlockedText}
-                                        {gcCanVerify && (
-                                            <button
-                                                className={styles.joinCodeGcVerifyButton}
-                                                data-testid="classroom-post-assignment-verify"
-                                                disabled={isVerifyingGoogleCourseAccess}
-                                                type="button"
-                                                onClick={handleVerifyGcAccess}
-                                            >
-                                                {isVerifyingGoogleCourseAccess ? (
-                                                    <FormattedMessage
-                                                        defaultMessage="Checking…"
-                                                        description="Label while checking the teacher's Google Classroom access"
-                                                        id="gui.classroom.googleShare.verifying"
-                                                    />
-                                                ) : (
-                                                    <FormattedMessage
-                                                        defaultMessage="I am a teacher of this Google Classroom class (check)"
-                                                        description="Button that lets a Google Classroom co-teacher prove their access and share"
-                                                        id="gui.classroom.googleShare.verify"
-                                                    />
-                                                )}
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
+                            )}
                         </div>
                     )}
+                </div>
+                {activeTab === 'description' && assignmentEditor ? (
+                    <button
+                        className={styles.primaryButton}
+                        data-testid="classroom-assignment-save"
+                        disabled={descEditor.isSaving}
+                        onClick={handleDescSave}
+                    >
+                        {descEditor.isSaving ? (
+                            <Spinner className={styles.buttonSpinner} small />
+                        ) : (
+                            <FormattedMessage
+                                defaultMessage="Save Assignment"
+                                description="Assignment editor: save"
+                                id="gui.classroom.assignmentEditor.save"
+                            />
+                        )}
+                    </button>
+                ) : null}
+            </TeacherCloseRow>
+            <div className={styles.detailTwoPaneLayout}>
+                {/* Left pane */}
+                <div className={styles.detailLeftPane}>
                     {/* 保存期限（#1303 D1・R4）: ふだんは灰色の小さな 1 行。
                                 残り 7 日以内のときだけ赤い警告と「全作品ダウンロード」を
                                 日付の右に出す（課題一覧の行と同じ扱い）。狭い幅では
@@ -986,7 +972,6 @@ const TeacherClassDetail = ({
                             onChangePeerView={handleDescChangePeerView}
                             onChangeMeshGroupLimit={handleDescChangeMeshGroupLimit}
                             onRemoveStarter={handleDescRemoveStarter}
-                            onSave={handleDescSave}
                             onUseCurrentProject={handleDescUseCurrentProject}
                             onUseFile={handleDescUseFile}
                         />
@@ -1409,6 +1394,10 @@ TeacherClassDetail.propTypes = {
     }),
     /** Back to the class (the stream): closing the［⛶ 映す］screen opened from the stream. */
     onBackToBoard: PropTypes.func,
+    /** ✕ of the「✕ ＋ 課題名」row (#2089): back to［授業］. Without it, no ✕. */
+    onClose: PropTypes.func,
+    /** The description has changes that are not saved: ✕ asks before leaving. */
+    hasUnsavedChanges: PropTypes.bool,
     /** Called when `detailEntry.project` was used, so the container forgets it. */
     onProjectEntryUsed: PropTypes.func,
     onOpenShareSuggestion: PropTypes.func,
