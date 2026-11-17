@@ -4,6 +4,8 @@
  */
 import {
     applyChallengeStart,
+    applyStartLists,
+    applyWarpProcedures,
     hasChallengeStart,
     replaceStartSprites,
 } from '../../../../src/lib/lessons/challenge-start';
@@ -264,5 +266,121 @@ describe('applyChallengeStart', () => {
         );
         expect(applied).toEqual([{ id: 'added-シマラビ', code: 'ok' }]);
         console.warn.mockRestore();
+    });
+});
+
+// リスト・定義ブロックを持てるターゲット（Target の lookupVariableByNameAndType / createVariable の形）
+const withData = (target, blocks = {}) => {
+    target.variables = {};
+    target.lookupVariableByNameAndType = (name, type) =>
+        Object.values(target.variables).find((v) => v.name === name && v.type === type);
+    target.createVariable = (id, name, type) => {
+        target.variables[id] = { id, name, type, value: [] };
+    };
+    target.blocks = { _blocks: blocks, resetCache: jest.fn() };
+    return target;
+};
+
+const monitorBlocks = () => {
+    const blocks = {};
+    return {
+        blocks,
+        getBlock: (id) => blocks[id],
+        createBlock: jest.fn((block) => {
+            blocks[block.id] = block;
+        }),
+        changeBlock: jest.fn(),
+    };
+};
+
+describe('applyStartLists', () => {
+    test('fills the list of the sprite (or the stage), creating it when missing', () => {
+        const cat = withData(sprite('cat', 'Sprite1'));
+        const stage = withData(stageTarget());
+        cat.createVariable('l1', '教科書', 'list');
+        const vm = makeVm([stage, cat]);
+        applyStartLists(
+            vm,
+            [
+                { name: { ja: '教科書', en: 'textbook' }, items: { ja: ['こんにちは。'], en: ['hello.'] } },
+                { name: 'まえ', items: [], stage: true },
+            ],
+            cat,
+            'ja',
+        );
+        expect(Object.values(cat.variables)).toEqual([
+            expect.objectContaining({ id: 'l1', name: '教科書', value: ['こんにちは。'] }),
+        ]);
+        expect(Object.values(stage.variables)).toEqual([expect.objectContaining({ name: 'まえ', value: [] })]);
+    });
+
+    test('uses the locale (en, then ja when missing) and skips broken entries', () => {
+        const cat = withData(sprite('cat', 'Sprite1'));
+        const vm = makeVm([withData(stageTarget()), cat]);
+        applyStartLists(
+            vm,
+            [{ name: { ja: '教科書', en: 'textbook' }, items: { ja: ['あ。'], en: ['a.'] } }, { name: 'x' }, null],
+            cat,
+            'ja-Hira',
+        );
+        expect(Object.values(cat.variables)).toEqual([expect.objectContaining({ name: 'textbook', value: ['a.'] })]);
+    });
+
+    test('shows the monitor of the list when asked', () => {
+        const cat = withData(sprite('cat', 'Sprite1'));
+        const vm = makeVm([withData(stageTarget()), cat]);
+        vm.runtime.monitorBlocks = monitorBlocks();
+        applyStartLists(vm, [{ name: 'まえ', items: ['こ'], monitor: true }], cat, 'ja');
+        const list = Object.values(cat.variables)[0];
+        expect(vm.runtime.monitorBlocks.createBlock).toHaveBeenCalledWith(
+            expect.objectContaining({ id: list.id, opcode: 'data_listcontents', targetId: 'cat' }),
+        );
+        expect(vm.runtime.monitorBlocks.changeBlock).toHaveBeenCalledWith(
+            { id: list.id, element: 'checkbox', value: true },
+            vm.runtime,
+        );
+    });
+});
+
+describe('applyWarpProcedures', () => {
+    const proc = (opcode, proccode) => ({ opcode, mutation: { proccode, warp: 'false' } });
+
+    test('sets "run without screen refresh" on the named custom blocks only', () => {
+        const blocks = {
+            a: proc('procedures_prototype', '学習する'),
+            b: proc('procedures_call', '学習する'),
+            c: proc('procedures_prototype', 'ほか %s'),
+            d: proc('procedures_prototype', '文字をえらぶ %s'),
+        };
+        const cat = withData(sprite('cat', 'Sprite1'), blocks);
+        const vm = makeVm([withData(stageTarget()), cat]);
+        expect(applyWarpProcedures(vm, ['学習する', '文字をえらぶ', 'learn'])).toBe(2);
+        expect([blocks.a, blocks.b, blocks.c, blocks.d].map((b) => b.mutation.warp)).toEqual([
+            'true',
+            'true',
+            'false',
+            'true',
+        ]);
+        expect(cat.blocks.resetCache).toHaveBeenCalled();
+        expect(applyWarpProcedures(vm, [])).toBe(0);
+    });
+});
+
+describe('applyChallengeStart with lists and custom blocks', () => {
+    test('puts the lists into the sprite of the code after the code, and sets warp', async () => {
+        const blocks = { p: { opcode: 'procedures_prototype', mutation: { proccode: '学習する', warp: 'false' } } };
+        const cat = withData(sprite('cat', 'Sprite1'), blocks);
+        const vm = makeVm([withData(stageTarget()), cat]);
+        const { toBlocks, applied } = makeToBlocks();
+        const setup = {
+            code: 'ai-code',
+            lists: [{ name: '教科書', items: ['こんにちは、今日はよろしく。'] }],
+            warpProcedures: ['学習する'],
+        };
+        expect(hasChallengeStart({ lists: setup.lists })).toBe(true);
+        expect(await applyChallengeStart(vm, setup, { toBlocks, locale: 'ja', library: LIBRARY })).toBe(true);
+        expect(applied).toEqual([{ id: 'cat', code: 'ai-code' }]);
+        expect(Object.values(cat.variables)[0].value).toEqual(['こんにちは、今日はよろしく。']);
+        expect(blocks.p.mutation.warp).toBe('true');
     });
 });
