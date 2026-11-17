@@ -8,6 +8,20 @@ import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
+import {
+    SITE_APEX_A_TTL_SECONDS,
+    SITE_APEX_A_VALUES,
+    SITE_APEX_TXT_TTL_SECONDS,
+    SITE_APEX_TXT_VALUES,
+    SITE_CAA_TTL_SECONDS,
+    SITE_CAA_VALUES,
+    SITE_DELEGATION_TTL_SECONDS,
+    SITE_DELEGATIONS,
+    SITE_GITHUB_PAGES_CHALLENGE_NAME,
+    SITE_GITHUB_PAGES_CHALLENGE_TTL_SECONDS,
+    SITE_GITHUB_PAGES_CHALLENGE_VALUES,
+    SITE_ZONE_NAME,
+} from './site-zone-records';
 
 /** プレビュー配信用のゾーン名（お名前.com から NS を委任する）。 */
 export const PREVIEW_ZONE_NAME = 'preview.smalruby.app';
@@ -71,6 +85,7 @@ export interface SmalrubyWebHostingStackProps extends cdk.StackProps {
 
 export class SmalrubyWebHostingStack extends cdk.Stack {
     public readonly previewZone?: route53.PublicHostedZone;
+    public readonly siteZone?: route53.PublicHostedZone;
 
     constructor(scope: Construct, id: string, props: SmalrubyWebHostingStackProps) {
         super(scope, id, props);
@@ -82,9 +97,11 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         cdk.Tags.of(this).add('Service', 'Route53');
         cdk.Tags.of(this).add('ManagedBy', 'CDK');
 
-        // 本番（smalruby.app）の配信基盤は prod だけに作る。独自ドメインと DNS はまだ付けない
-        // （smalruby.app のゾーンを Route 53 に移してから、別の変更で足す）。
+        // 本番（smalruby.app）の配信基盤と DNS のゾーンは prod だけに作る。ゾーンにはいまの
+        // お名前.com のレコードを同じ値で写すだけで、CloudFront の独自ドメインはまだ付けない
+        // （お名前.com のネームサーバーを Route 53 に変えてから、別の変更で足す）。
         if (stage === SITE_STAGE) {
+            this.siteZone = this.createSiteZone();
             this.createSiteDelivery();
             return;
         }
@@ -212,13 +229,77 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
     }
 
     /**
+     * 本番のパブリックホストゾーン `smalruby.app` と、お名前.com から写したレコード。
+     *
+     * お名前.com のネームサーバーを Route 53 の 4 本に変えるまで（人間が夜間に行う）、誰もこの
+     * ゾーンを引かないので、作っただけではいまの本番に何も起きない。変えた瞬間から答えが
+     * 変わらないよう、値はお名前.com と同じにする（site-zone-records.ts）。
+     */
+    private createSiteZone(): route53.PublicHostedZone {
+        const zone = new route53.PublicHostedZone(this, 'SiteHostedZone', {
+            zoneName: SITE_ZONE_NAME,
+            comment: 'Smalruby production (smalruby.app, copied from onamae.com)',
+        });
+        // 作り直すと NS が変わり、お名前.com に登録したネームサーバーと食い違うので残す
+        // （preview.smalruby.app と同じ扱い。論理 ID・スタック名・zoneName を変えない）。
+        zone.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
+
+        // apex の A はいまの GitHub Pages。CloudFront の ALIAS に変えるのは別の変更。
+        new route53.ARecord(this, 'SiteApexA', {
+            zone,
+            target: route53.RecordTarget.fromIpAddresses(...SITE_APEX_A_VALUES),
+            ttl: cdk.Duration.seconds(SITE_APEX_A_TTL_SECONDS),
+        });
+        new route53.TxtRecord(this, 'SiteApexTxt', {
+            zone,
+            values: SITE_APEX_TXT_VALUES,
+            ttl: cdk.Duration.seconds(SITE_APEX_TXT_TTL_SECONDS),
+        });
+        // GitHub の組織のドメイン検証。消さない（docs/security/github-pages-subdomain-takeover.md）。
+        new route53.TxtRecord(this, 'SiteGitHubPagesChallenge', {
+            zone,
+            recordName: SITE_GITHUB_PAGES_CHALLENGE_NAME,
+            values: SITE_GITHUB_PAGES_CHALLENGE_VALUES,
+            ttl: cdk.Duration.seconds(SITE_GITHUB_PAGES_CHALLENGE_TTL_SECONDS),
+        });
+        new route53.CaaRecord(this, 'SiteApexCaa', {
+            zone,
+            values: SITE_CAA_VALUES.map(({ tag, value }) => ({
+                flag: 0,
+                tag: tag === 'issue' ? route53.CaaTag.ISSUE : route53.CaaTag.ISSUEWILD,
+                value,
+            })),
+            ttl: cdk.Duration.seconds(SITE_CAA_TTL_SECONDS),
+        });
+        // api. と preview. はそれぞれ別のゾーンへの委任を、いまの NS のまま写す。
+        for (const { name, id, nameServers } of SITE_DELEGATIONS) {
+            new route53.NsRecord(this, id, {
+                zone,
+                recordName: name,
+                values: nameServers,
+                ttl: cdk.Duration.seconds(SITE_DELEGATION_TTL_SECONDS),
+            });
+        }
+
+        new cdk.CfnOutput(this, 'SiteHostedZoneId', {
+            value: zone.hostedZoneId,
+            description: `Route 53 hosted zone id of ${SITE_ZONE_NAME}`,
+        });
+        new cdk.CfnOutput(this, 'SiteHostedZoneNameServers', {
+            value: cdk.Fn.join(',', zone.hostedZoneNameServers!),
+            description: `Name servers to register at onamae.com for ${SITE_ZONE_NAME}`,
+        });
+        return zone;
+    }
+
+    /**
      * 本番（smalruby.app）の配信基盤（S3 + CloudFront + CI 用ロール）。
      *
      * いまの本番は GitHub Pages で配信しており、これは切り替え先として並べて作るだけ。
-     * 独自ドメイン（smalruby.app）・証明書・DNS はまだ付けないので、CloudFront の既定の
+     * 独自ドメイン（smalruby.app）・証明書・apex の ALIAS はまだ付けないので、CloudFront の既定の
      * ドメイン（`*.cloudfront.net`）でしか見えず、いまの本番には影響しない。
-     * 証明書は smalruby.app のゾーンを Route 53 に移してから足す（委任前だと DNS 検証が
-     * 終わらないのはプレビューと同じ）。
+     * 証明書は、お名前.com のネームサーバーを `createSiteZone()` のゾーンに変えてから足す
+     * （変える前だと DNS 検証が終わらないのはプレビューと同じ）。
      */
     private createSiteDelivery(): void {
         const bucket = new s3.Bucket(this, 'SiteBucket', {
