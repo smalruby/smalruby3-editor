@@ -57,7 +57,7 @@ assignments/
 | `series` / `number` | シリーズの ID と、シリーズの中の順番（1 から） |
 | `title` / `goal` | 課題の名前とめあて |
 | `schoolType` / `subject` / `curriculum` / `grade` / `hours` | 学校の種類（`jhs` など）・教科・学習指導要領の単元・学年・時間数 |
-| `worksheetPages` | ワークシート全体の中のページ（0 から） |
+| `worksheetPages` | ワークシート全体の中のページ（0 から）。ワークシートの無い課題（はじめの一歩）には無い |
 | `lessons` | 合わせて使うスモウルビーのレッスン（`course` = コースの ID、`lessons` / `challenges` = レッスン・チャレンジの ID。`src/lib/lessons/courses.js`） |
 | `submit` | 提出するもの（`project` = 作品の名前の例、`worksheet` = ワークシートを提出するか） |
 | `files` | 資料（`file` = ファイル名、`kind` = 種類〔`worksheet` / `rubric` / `map`（スモウルビーの地図）/ `script`（授業の台本）〕、`audience` = `student` / `teacher`） |
