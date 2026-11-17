@@ -79,7 +79,8 @@ describe('Smalruby Lessons Library', () => {
         await driver.executeScript(`document.querySelector('[data-testid="lessons-library-search"] button').click()`);
         await driver.sleep(300);
         expect(await countByTestId(driver, 'lessons-library-no-match')).toBe(0);
-        expect((await visibleChallengeIds(driver)).length).toBe(11);
+        // レッスン 0 の 8 つ（コースの数には入れない・#2134）+ 11
+        expect((await visibleChallengeIds(driver)).length).toBe(19);
 
         // チャレンジを押す → レッスン表が閉じてレッスンモードに入る
         await clickByTestId(driver, `lessons-library-challenge-${CHALLENGE_ID}`);
@@ -114,7 +115,7 @@ describe('Smalruby Lessons Library', () => {
         expect(await getLogs()).toEqual([]);
     });
 
-    test('the cards are a color band + the name, and the 11 cards fit in 1300×600 without scrolling', async () => {
+    test('the cards are a color band + the name, and lesson 0 and 1 fit in 1300×600 without scrolling', async () => {
         await driver.manage().window().setRect({ width: 1300, height: 600 });
         await loadUri(`${uri}?no_beforeunload=1`);
         await waitForLoadingFinished();
@@ -127,7 +128,7 @@ describe('Smalruby Lessons Library', () => {
         // （下に「チャットをつくろう」のコースも並ぶ）
         const bands = await driver.executeScript(
             `return Array.from(document.querySelectorAll(
-                '[data-testid="lessons-library-course-kyou-kara-programmer"] [data-testid="lessons-library-card-band"]'))
+                '[data-testid="lessons-library-course-kyou-kara-programmer"] [data-testid^="lessons-library-lesson-blocks-l"]:not([data-testid="lessons-library-lesson-blocks-l0"]) [data-testid="lessons-library-card-band"]'))
                 .map(el => [el.dataset.category, getComputedStyle(el).backgroundColor, el.getBoundingClientRect().width]);`,
         );
         expect(bands.map(([category]) => category)).toEqual([
@@ -148,9 +149,11 @@ describe('Smalruby Lessons Library', () => {
         bands.forEach(([, , width]) => expect(width).toBe(10));
         expect(await countByTestId(driver, 'lessons-library-card-art')).toBe(0);
 
-        // 11 枚がスクロールせずに見える（いちばん下のカードが画面の中）
+        // 最初に開くレッスン 0 と、次のレッスン 1 のカードがスクロールせずに見える（いちばん下のカードが画面の中）。
+        // レッスン 0 を足したので、レッスン 2・3 はスクロールして見る（#2134）
         const fit = await driver.executeScript(
-            `const cards = Array.from(document.querySelectorAll('[data-testid^="lessons-library-challenge-blocks"]'));
+            `const cards = Array.from(document.querySelectorAll(
+                '[data-testid="lessons-library-lesson-blocks-l0"] [data-testid^="lessons-library-challenge-"], [data-testid="lessons-library-lesson-blocks-l1"] [data-testid^="lessons-library-challenge-"]'));
             return {
                 innerHeight: window.innerHeight,
                 bottom: Math.max(...cards.map(el => el.getBoundingClientRect().bottom)),

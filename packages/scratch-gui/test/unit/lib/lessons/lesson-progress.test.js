@@ -1,4 +1,4 @@
-import { COURSES, defineCourse, defineLesson, findCourse } from '../../../../src/lib/lessons/courses';
+import { COURSES, defineCourse, defineLesson, findCourse, findLesson } from '../../../../src/lib/lessons/courses';
 import {
     COMPLETED_ACTIONS,
     LESSON_PROGRESS_STORAGE_KEY,
@@ -182,11 +182,13 @@ describe('lesson progress', () => {
             expect(
                 status.lessons.map((l) => [l.lesson.id, l.number, l.completedCount, l.total, l.allCompleted]),
             ).toEqual([
+                // レッスン 0 は最初に出すが、コースの数（completedCount / total）には入れない（#2134）
+                ['blocks-l0', 0, 0, 8, false],
                 ['blocks-l1', 1, 4, 4, true],
                 ['blocks-l2', 2, 0, 3, false],
                 ['blocks-l3', 3, 1, 4, false],
             ]);
-            expect(status.lessons[2].challenges.map((c) => [c.challenge.id, c.completed])).toEqual([
+            expect(status.lessons[3].challenges.map((c) => [c.challenge.id, c.completed])).toEqual([
                 ['blocks-l1-count', true],
                 ['blocks-l1-broadcast', false],
                 ['blocks-l1-speak', false],
@@ -257,6 +259,7 @@ describe('lesson progress', () => {
         test('shows the right progress for each of the 3 lessons', () => {
             const progress = loadProgress(oldStorage([1, 2, 3, 4, 5, 8, 9]));
             expect(courseProgress(course, progress).lessons.map((l) => [l.completedCount, l.total])).toEqual([
+                [0, 8],
                 [4, 4],
                 [1, 3],
                 [2, 4],
@@ -510,13 +513,35 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
             emptyProgress(),
         );
 
-    test('before anything is done, marks the first challenge of lesson 1', () => {
+    test('before anything is done, marks the first challenge of lesson 0 (#2134)', () => {
         expect(startLessonsFocus(emptyProgress())).toEqual({
             language: 'blocks',
             courseId: 'kyou-kara-programmer',
-            lessonId: 'blocks-l1',
-            nextChallengeId: challengeId(1),
+            lessonId: 'blocks-l0',
+            nextChallengeId: 'blocks-l0-drag-cat',
         });
+    });
+
+    test('after lesson 0, moves to the first challenge of lesson 1', () => {
+        const lesson0 = findLesson('blocks-l0');
+        const progress = lesson0.challenges.reduce(
+            (p, c, i) => markChallengeCompleted(p, c.id, `2026-11-10T00:00:0${i}.000Z`),
+            emptyProgress(),
+        );
+        expect(startLessonsFocus(progress)).toEqual(
+            expect.objectContaining({ lessonId: 'blocks-l1', nextChallengeId: challengeId(1) }),
+        );
+        expect(completedAction(lesson0.challenges[7].id, progress)).toBe(COMPLETED_ACTIONS.OTHER_LESSONS);
+        // コースの数（11）には入らない
+        expect(courseProgress(course, progress)).toEqual(
+            expect.objectContaining({ completedCount: 0, total: 11, allCompleted: false }),
+        );
+    });
+
+    test('a student who started lesson 1 before lesson 0 existed goes on in lesson 1', () => {
+        expect(startLessonsFocus(doneInOrder(1))).toEqual(
+            expect.objectContaining({ lessonId: 'blocks-l1', nextChallengeId: challengeId(2) }),
+        );
     });
 
     test('in the middle, marks the same challenge as 「次のチャレンジへ」 after the latest one done', () => {
@@ -539,8 +564,9 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
     });
 
     test('when the later lessons are done but an earlier one is not, still marks a challenge not done', () => {
+        // まだできていない、いちばん前のチャレンジ（レッスン 0 が先頭）
         expect(startLessonsFocus(doneInOrder(8, 9, 10, 11))).toEqual(
-            expect.objectContaining({ lessonId: 'blocks-l1', nextChallengeId: challengeId(1) }),
+            expect.objectContaining({ lessonId: 'blocks-l0', nextChallengeId: 'blocks-l0-drag-cat' }),
         );
     });
 
@@ -583,6 +609,6 @@ describe('startLessonsFocus (welcome 「レッスンを始める」 #1888)', () 
     test('ignores records of challenges that are not in the courses', () => {
         const progress = emptyProgress();
         progress.challenges['no-such'] = { completedAt: LATER, courseId: 'x', lessonId: 'y' };
-        expect(startLessonsFocus(progress).nextChallengeId).toBe(challengeId(1));
+        expect(startLessonsFocus(progress).nextChallengeId).toBe('blocks-l0-drag-cat');
     });
 });
