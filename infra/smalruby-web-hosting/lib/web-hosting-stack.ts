@@ -66,6 +66,16 @@ export const SITE_DEPLOY_SUBJECTS = [
  */
 export const SITE_NONCURRENT_VERSION_EXPIRATION_DAYS = 30;
 
+/**
+ * 本番 CloudFront のアクセスログを残す日数（人間が 30 日に決めた）。
+ * ログには利用者の IP アドレスが入るので、必要な間だけ残して消す（docs/hosting/README.md）。
+ * 変えるときはこの値だけを変える（バケットのライフサイクルが追従する）。
+ */
+export const SITE_ACCESS_LOG_RETENTION_DAYS = 30;
+
+/** アクセスログのオブジェクトキーの接頭辞（ログのバケットを後でほかの用途と分けられるように付ける）。 */
+export const SITE_ACCESS_LOG_PREFIX = 'cloudfront/smalruby.app/';
+
 /** GitHub Actions の OIDC プロバイダ（アカウントに 1 つだけ。Deploy Infra 用に作成済みのものを使う）。 */
 const GITHUB_OIDC_HOST = 'token.actions.githubusercontent.com';
 
@@ -346,8 +356,17 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             },
         );
 
+        const logBucket = this.createSiteAccessLogBucket();
+
         const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
             comment: 'Smalruby production site (smalruby.app, not attached yet)',
+            // 標準ログ（従来の S3 配信）。v2（CloudWatch Logs の配信）は S3 へ出すと 1 GB あたりの
+            // 料金がかかり、CloudFront の配信元の設定を us-east-1 に置く必要がある（このスタックは
+            // ap-northeast-1 で、スタックは分けない）。従来の方式は配信が無料で、プロパティを足すだけで済む。
+            enableLogging: true,
+            logBucket,
+            logFilePrefix: SITE_ACCESS_LOG_PREFIX,
+            logIncludesCookies: false,
             // minimumProtocolVersion（TLS 1.2 以上）は既定の証明書では効かないので、
             // smalruby.app の証明書を付けるときに一緒に足す。
             httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
@@ -392,6 +411,38 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         new cdk.CfnOutput(this, 'SiteDistributionDomainName', {
             value: distribution.distributionDomainName,
             description: 'CloudFront domain name (check before attaching smalruby.app)',
+        });
+        new cdk.CfnOutput(this, 'SiteLogBucketName', {
+            value: logBucket.bucketName,
+            description: `S3 bucket that keeps CloudFront access logs of smalruby.app (${SITE_ACCESS_LOG_RETENTION_DAYS} days)`,
+        });
+    }
+
+    /**
+     * 本番 CloudFront のアクセスログ専用バケット。非公開・SSE-S3・SSL のみで、
+     * `SITE_ACCESS_LOG_RETENTION_DAYS` を過ぎたログは消す。
+     *
+     * 標準ログ（従来の S3 配信）は CloudFront（awslogsdelivery）がバケットの ACL で書き込むので、
+     * ACL を無効にする BUCKET_OWNER_ENFORCED は使えない。BUCKET_OWNER_PREFERRED にして、
+     * 書かれたログの持ち主をこのアカウントにする。ACL の付与は特定のアカウント宛てで公開ではないので、
+     * Block Public Access は全部 ON のまま使える。
+     * ログは取り戻せなくても配信は止まらないので RETAIN にしない（.claude/rules/infra/development.md の
+     * 「データ保持」）。autoDeleteObjects は付けないので、中身が残っている間は削除が失敗して止まる。
+     */
+    private createSiteAccessLogBucket(): s3.Bucket {
+        return new s3.Bucket(this, 'SiteLogBucket', {
+            blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+            encryption: s3.BucketEncryption.S3_MANAGED,
+            enforceSSL: true,
+            objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_PREFERRED,
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+            lifecycleRules: [
+                {
+                    id: 'ExpireAccessLogs',
+                    expiration: cdk.Duration.days(SITE_ACCESS_LOG_RETENTION_DAYS),
+                    abortIncompleteMultipartUploadAfter: cdk.Duration.days(7),
+                },
+            ],
         });
     }
 

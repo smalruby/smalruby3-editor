@@ -175,7 +175,8 @@ aws s3 rm "s3://$BUCKET/test/index.html"
 | リソース | 内容 |
 |---|---|
 | S3 バケット `SiteBucket` | Block Public Access 全部 ON・`enforceSSL`・**バージョニングあり**。上書き・削除された古い版は 30 日で消し、残った削除マーカーも片付ける。**いまの版は期限で消さない**（プレビューとの違い）。`removalPolicy` は **`RETAIN`**（下の「本番のバケットを RETAIN にする理由」） |
-| CloudFront `SiteDistribution` | オリジンは S3 + OAC。viewer-request はプレビューと同じ関数（`/` → `/index.html`、`/admin` → `/admin/` へ 301）。キャッシュポリシーもプレビューと同じ値。応答ヘッダポリシーで HSTS（1 年）と `X-Content-Type-Options: nosniff` を付ける。HTTP/2 と HTTP/3、Price Class 200 |
+| CloudFront `SiteDistribution` | オリジンは S3 + OAC。viewer-request はプレビューと同じ関数（`/` → `/index.html`、`/admin` → `/admin/` へ 301）。キャッシュポリシーもプレビューと同じ値。応答ヘッダポリシーで HSTS（1 年）と `X-Content-Type-Options: nosniff` を付ける。HTTP/2 と HTTP/3、Price Class 200。標準ログ（従来の S3 配信・Cookie なし）を `SiteLogBucket` の `cloudfront/smalruby.app/` に出す |
+| S3 バケット `SiteLogBucket` | アクセスログ専用。Block Public Access 全部 ON・SSE-S3・`enforceSSL`。標準ログは ACL で書き込まれるので Object Ownership は `BucketOwnerPreferred`（ACL を無効にしない）。`SITE_ACCESS_LOG_RETENTION_DAYS`（30 日）を過ぎたログは消す。バージョニングなし・`removalPolicy` は `DESTROY`（ログが無くても配信は止まらない。中身が残っている間は削除が失敗して止まる）。方式を選んだ理由と個人情報の扱いは [`docs/hosting/README.md`](../hosting/README.md) の「アクセスログ（段 5）」 |
 | CI 用ロール `SiteDeployRole` | 既存の GitHub OIDC プロバイダを参照。信頼は `repo:smalruby/smalruby3-editor:ref:refs/heads/develop` と `...:environment:prod` だけ（プレビューより狭い）。権限はこのバケットの `ListBucket` / `PutObject` / `DeleteObject` と、このディストリビューションの invalidation だけ |
 
 ### 本番のバケットを RETAIN にする理由
@@ -200,6 +201,7 @@ TLS 1.2 以上の指定（`minimumProtocolVersion`）は既定の証明書では
 | `SiteBucketName` | ビルドを置くバケット（`SITE_BUCKET_NAME`） |
 | `SiteDistributionId` | invalidation の対象（`SITE_DISTRIBUTION_ID`） |
 | `SiteDistributionDomainName` | CloudFront のドメイン（切り替え前の確認用） |
+| `SiteLogBucketName` | アクセスログのバケット（調べるときに `aws s3 ls s3://<値>/cloudfront/smalruby.app/`） |
 
 ```bash
 aws cloudformation describe-stacks --stack-name SmalrubyWebHostingStack \
@@ -387,7 +389,8 @@ npx cdk synth --context stage=prod
 「バケットが非公開・SSL 必須・ライフサイクルあり」「証明書が us-east-1」「CloudFront が OAC・
 代替ドメイン・viewer-request 関数つき」「ALIAS にワイルドカードが無い」「CI 用ロールの信頼と権限が
 最小」「prod にはプレビュー用の資源が無く、本番の配信基盤（非公開・バージョニングあり・いまの版を消さない・
-独自ドメインも証明書も無い・develop だけを信頼するロール）がある」「stg2 には何も作らない」を確かめる。`test/site-zone.test.ts` は「prod に `smalruby.app` のゾーンが 1 つあり `RETAIN`・論理 ID が変わらない」「写した
+独自ドメインも証明書も無い・develop だけを信頼するロール）と、アクセスログのバケット（非公開・暗号化・
+保持期間で消える・CI 用ロールから触れない）がある」「stg2 には何も作らない」を確かめる。`test/site-zone.test.ts` は「prod に `smalruby.app` のゾーンが 1 つあり `RETAIN`・論理 ID が変わらない」「写した
 レコードがお名前.com の値と同じ（apex の A だけ TTL 300）」「apex の NS / SOA・`everdiary`・ワイルドカードが無い」
 「stg / stg2 にはこのゾーンが無い」を確かめる。`test/preview-viewer-request.test.ts` は
 CloudFront Function の実コードを評価して URI の書き換えを確かめる。
