@@ -275,3 +275,50 @@
     flex-shrink: 0;
     font-size: 0.875rem;
 }
+
+/*
+    手が止まったときに光らせる（#2132）。小さくしたヒントの札を、ゆっくり（2.4 秒で 1 往復）オレンジに光らせる。
+    動きを減らす設定（prefers-reduced-motion）では光らせず、「ヒントを見てみよう」の文字だけにする
+*/
+.minimized-nudge {
+    composes: minimized;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .minimized-nudge {
+        animation: hint-nudge-glow 1.2s ease-in-out infinite alternate;
+    }
+}
+
+@keyframes hint-nudge-glow {
+    from {
+        box-shadow: $balloon-shadow-panel;
+    }
+
+    to {
+        box-shadow:
+            0 0 0 4px $data-primary,
+            0 0 16px 6px $data-primary;
+    }
+}
+
+/*
+    「ヒントを見てみよう」。課題バーの「ヒント」（小さくした札があれば札）の下に出す文字（lesson-hint-nudge.jsx）。
+    押せない文字なので pointer-events: none（下の部品の操作をじゃましない）。札と同じ層（460）
+*/
+.nudge {
+    position: fixed;
+    z-index: 460;
+    padding: 0.25rem 0.625rem;
+    border: $balloon-border-width solid $data-primary;
+    border-radius: $balloon-button-radius;
+    background-color: $ui-white;
+    box-shadow: $balloon-shadow;
+    color: $color-emphasis;
+    font-family: $balloon-font-family;
+    font-size: $balloon-font-size;
+    font-weight: bold;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+}

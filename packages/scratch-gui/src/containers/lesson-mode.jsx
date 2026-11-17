@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import LessonAssignmentBand from '../components/lesson-assignment-band/lesson-assignment-band.jsx';
+import LessonHintNudge from '../components/lesson-hint/lesson-hint-nudge.jsx';
 import LessonPartNames from '../components/lesson-part-names/lesson-part-names.jsx';
 import LessonTaskBar from '../components/lesson-task-bar/lesson-task-bar.jsx';
 import { applyDeckSetup, normalizeRubyVersion } from '../lib/deck-setup';
@@ -28,6 +29,7 @@ import {
 } from '../lib/lessons/lesson-role';
 import { openAssignmentLessonsLibrary } from '../lib/lessons/open-lessons-library';
 import { challengeForRole } from '../lib/lessons/role-swap';
+import { useIdleNudge } from '../lib/lessons/use-idle-nudge';
 import { computeBoundSeat } from '../lib/mesh-v2-classroom-binding.jsx';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import sharedMessages from '../lib/shared-messages';
@@ -303,6 +305,18 @@ const LessonMode = ({
         else onShowHint();
     }, [hint, onHideHint, onShowHint]);
 
+    // 手が止まったら「ヒント」を光らせる（#2129 の Q5）。プログラムもステージも 2 分変わらなければ、課題バーの
+    // 「ヒント」（小さくした札があれば札も）をゆっくり光らせ、「ヒントを見てみよう」と出す。何か操作したら止める。
+    // ヒントを読んでいるあいだ・「できた！」のあいだは光らせない。ページを変える・小さくするとそこから数え直す
+    const hintNudge = useIdleNudge({
+        vm,
+        enabled: Boolean(current),
+        hintAvailable: Boolean(hint && hint.count > 0),
+        hintVisible: Boolean(hint && hint.visible),
+        blocked: Boolean(toastVisible),
+        resetKey: hint ? `${currentId}|${hint.index}|${hint.minimized ? 'small' : ''}` : '',
+    });
+
     // タップで全文を開くときは、吹き出しと「できた！」に重ねない。クイズのある「できた！」は閉じずに
     // 全文のあいだだけ隠し、全文を閉じたら出し直す（閉じるとクイズにもどれないため・#1639）
     const quizToast = Boolean(toastVisible && current && current.challenge.quiz);
@@ -344,6 +358,7 @@ const LessonMode = ({
                 challenge={current.challenge}
                 challengeCount={current.lesson.challenges.length}
                 hintAvailable={Boolean(hint && hint.count > 0)}
+                hintNudge={hintNudge}
                 hintVisible={Boolean(hint && hint.visible)}
                 menuOpen={menuOpen}
                 onEnd={handleEnd}
@@ -357,7 +372,10 @@ const LessonMode = ({
                 role={role}
                 toastVisible={toastVisible}
             />
-            <LessonHint />
+            {/* 小さくしたヒントの札も、手が止まったら光らせる */}
+            <LessonHint nudge={hintNudge} />
+            {/* 手が止まったときの「ヒントを見てみよう」（これも document.body への portal） */}
+            <LessonHintNudge visible={hintNudge} />
             {/* 画面の部分の名前の札（これも document.body への portal） */}
             {partNames.visible && <LessonPartNames onClose={handleClosePartNames} timed={partNames.timed} />}
             {/* メッシュの練習相手（チャレンジに partner があるときだけ。これも document.body への portal） */}
@@ -382,6 +400,7 @@ LessonMode.propTypes = {
     fromAssignment: PropTypes.bool,
     hint: PropTypes.shape({
         visible: PropTypes.bool.isRequired,
+        minimized: PropTypes.bool,
         index: PropTypes.number.isRequired,
         count: PropTypes.number.isRequired,
         step: PropTypes.object,

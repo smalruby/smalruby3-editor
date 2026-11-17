@@ -1916,6 +1916,7 @@ export default {
     'gui.lessonHint.minimize': 'ヒントを小さくする',
     'gui.lessonHint.minimizedPosition': 'ヒント {number}/{count}',
     'gui.lessonHint.restore': 'ヒントをもう一度見る',
+    'gui.lessonHint.nudge': 'ヒントを見てみよう',
     'gui.lessonHint.debugTitle': 'うまく動かないときは',
     'gui.lessonHint.checkAnswer': '正解のプログラムを確認する',
     'gui.lessonHint.checkAnswerConfirm': '正解のプログラムで置き換えますか？あなたが作成したプログラムは消えます。',

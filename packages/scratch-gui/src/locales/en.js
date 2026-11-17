@@ -1590,6 +1590,7 @@ export default {
     'gui.lessonHint.minimize': 'Make the hint small',
     'gui.lessonHint.minimizedPosition': 'Hint {number}/{count}',
     'gui.lessonHint.restore': 'Show the hint again',
+    'gui.lessonHint.nudge': 'Take a look at the hint',
     'gui.lessonHint.debugTitle': 'If it does not work',
     'gui.lessonHint.checkAnswer': 'See the correct program',
     'gui.lessonHint.checkAnswerConfirm':

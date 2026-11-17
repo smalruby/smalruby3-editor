@@ -107,6 +107,33 @@
     color: $motion-primary;
 }
 
+/*
+    手が止まったときの「ヒント」（#2132）。ゆっくり（2.4 秒で 1 往復）白地とオレンジの光で光らせる。
+    動きを減らす設定（prefers-reduced-motion）では光らせない（「ヒントを見てみよう」の文字だけ。lesson-hint-nudge.jsx）。
+    光はバーの高さ（40px）の中に収まる太さにする（バーは overflow: hidden）
+*/
+.button-nudge {
+    composes: button;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .button-nudge {
+        animation: hint-button-nudge 1.2s ease-in-out infinite alternate;
+    }
+}
+
+@keyframes hint-button-nudge {
+    from {
+        box-shadow: none;
+    }
+
+    to {
+        background-color: $ui-white;
+        color: $motion-primary;
+        box-shadow: 0 0 0 4px $data-primary;
+    }
+}
+
 /* 「ほかのチャレンジへ」: 主な道なので白地で目立たせる */
 .button-primary {
     composes: button;

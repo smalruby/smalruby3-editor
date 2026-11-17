@@ -37,7 +37,7 @@ const toRect = (el) => {
 // ステージの列（旗・止める・ステージの大きさのボタンを含む）。upstream の部品なので CSS Modules のクラス名で探す
 const STAGE_COLUMN = '[class*="gui_stage-and-target-wrapper_"]';
 
-const LessonHintMinimized = ({ count, index, lastResort = false, onRestore, title = null }) => {
+const LessonHintMinimized = ({ count, index, lastResort = false, nudge = false, onRestore, title = null }) => {
     const intl = useIntl();
     // 見出しは吹き出しの見出しと同じ文言の最初の文（最後の手段のページは「うまく動かないときは」）
     const heading = shortHintHeading(
@@ -77,8 +77,9 @@ const LessonHintMinimized = ({ count, index, lastResort = false, onRestore, titl
         <button
             ref={ref}
             type="button"
-            className={styles.minimized}
+            className={nudge ? styles.minimizedNudge : styles.minimized}
             data-testid="lesson-hint-minimized"
+            data-nudge={nudge ? 'true' : 'false'}
             aria-label={[restore, label, heading].filter(Boolean).join(' ')}
             title={restore}
             style={position ? { left: position.left, top: position.top } : { visibility: 'hidden' }}
@@ -105,6 +106,8 @@ LessonHintMinimized.propTypes = {
     index: PropTypes.number.isRequired,
     // 最後の手段のページ（うまく動かないときは）か
     lastResort: PropTypes.bool,
+    // 手が止まっているので光らせるか（#2132）
+    nudge: PropTypes.bool,
     onRestore: PropTypes.func.isRequired,
     // いまのページの文言（message descriptor。lib/lessons/hint-text.js の hintStepTitle）
     title: PropTypes.object,
