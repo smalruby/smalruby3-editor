@@ -155,16 +155,22 @@ describe('SmalrubyWebHostingStack', () => {
             );
         });
 
-        test('distribution serves the bucket through OAC without a custom domain yet', () => {
+        test('distribution serves smalruby.app from the bucket through OAC with TLS 1.2+', () => {
             template.resourceCountIs('AWS::CloudFront::Distribution', 1);
             template.resourceCountIs('AWS::CloudFront::OriginAccessControl', 1);
             const distribution = Object.values(
                 template.findResources('AWS::CloudFront::Distribution'),
             )[0];
             const config = distribution.Properties.DistributionConfig;
-            // smalruby.app は GitHub Pages のまま。証明書と別名はゾーンを移してから足す。
-            expect(config.Aliases).toBeUndefined();
-            expect(config.ViewerCertificate).toBeUndefined();
+            // www.smalruby.app は今は無いので代替ドメインは apex だけ。
+            expect(config.Aliases).toEqual(['smalruby.app']);
+            expect(config.ViewerCertificate).toEqual(
+                expect.objectContaining({
+                    AcmCertificateArn: expect.anything(),
+                    SslSupportMethod: 'sni-only',
+                    MinimumProtocolVersion: 'TLSv1.2_2021',
+                }),
+            );
             expect(config.DefaultCacheBehavior).toEqual(
                 expect.objectContaining({
                     ViewerProtocolPolicy: 'redirect-to-https',
@@ -252,13 +258,43 @@ describe('SmalrubyWebHostingStack', () => {
             expect(JSON.stringify(statements)).not.toContain('SiteLogBucket');
         });
 
-        test('creates no certificate or alias to CloudFront yet (the live site is untouched)', () => {
+        test('keeps the distribution logical id so CloudFront is updated, not replaced', () => {
+            expect(Object.keys(template.findResources('AWS::CloudFront::Distribution'))).toEqual([
+                expect.stringMatching(/^SiteDistribution[0-9A-F]{8}$/),
+            ]);
+        });
+
+        test('certificate for smalruby.app is DNS validated in us-east-1 with the site zone', () => {
+            // DnsValidatedCertificate は us-east-1 の証明書をカスタムリソースで作る（スタックは分けない）。
             template.resourceCountIs('AWS::CertificateManager::Certificate', 0);
-            template.resourceCountIs('AWS::CloudFormation::CustomResource', 0);
-            const aliases = Object.values(
-                template.findResources('AWS::Route53::RecordSet'),
-            ).filter((r) => r.Properties.AliasTarget);
-            expect(aliases).toEqual([]);
+            template.resourceCountIs('AWS::CloudFormation::CustomResource', 1);
+            const zoneId = Object.keys(template.findResources('AWS::Route53::HostedZone'))[0];
+            template.hasResourceProperties('AWS::CloudFormation::CustomResource', {
+                DomainName: 'smalruby.app',
+                Region: 'us-east-1',
+                HostedZoneId: { Ref: zoneId },
+            });
+            // www は今は無いので SAN に足さない。
+            const cert = Object.values(
+                template.findResources('AWS::CloudFormation::CustomResource'),
+            )[0];
+            expect(cert.Properties.SubjectAlternativeNames).toBeUndefined();
+        });
+
+        test('apex still points to GitHub Pages (no alias to CloudFront yet)', () => {
+            const records = Object.values(template.findResources('AWS::Route53::RecordSet'));
+            expect(records.filter((r) => r.Properties.AliasTarget)).toEqual([]);
+            const apexA = records.filter(
+                (r) => r.Properties.Type === 'A' && r.Properties.Name === 'smalruby.app.',
+            );
+            expect(apexA).toHaveLength(1);
+            expect([...apexA[0].Properties.ResourceRecords].sort()).toEqual([
+                '185.199.108.153',
+                '185.199.109.153',
+                '185.199.110.153',
+                '185.199.111.153',
+            ]);
+            expect(records.filter((r) => r.Properties.Type === 'AAAA')).toEqual([]);
         });
 
         test('cache policy keeps index.html short and lets hashed assets stay long', () => {
@@ -287,7 +323,13 @@ describe('SmalrubyWebHostingStack', () => {
         test('deploy role trusts only develop (or the prod environment) of this repository', () => {
             template.resourceCountIs('Custom::AWSCDKOpenIdConnectProvider', 0);
             template.resourceCountIs('AWS::IAM::OIDCProvider', 0);
-            template.resourceCountIs('AWS::IAM::Role', 1);
+            // OIDC で引き受けるロールは CI 用の 1 つだけ（もう 1 つは証明書のカスタムリソースの Lambda 用）。
+            const oidcRoles = Object.values(template.findResources('AWS::IAM::Role')).filter((r) =>
+                JSON.stringify(r.Properties.AssumeRolePolicyDocument).includes(
+                    'sts:AssumeRoleWithWebIdentity',
+                ),
+            );
+            expect(oidcRoles).toHaveLength(1);
             template.hasResourceProperties('AWS::IAM::Role', {
                 AssumeRolePolicyDocument: {
                     Statement: [
@@ -311,9 +353,14 @@ describe('SmalrubyWebHostingStack', () => {
         });
 
         test('deploy role can only touch this bucket and invalidate this distribution', () => {
-            const statements = Object.values(template.findResources('AWS::IAM::Policy')).flatMap(
-                (p) => p.Properties.PolicyDocument.Statement,
+            const roleId = Object.keys(template.findResources('AWS::IAM::Role')).find((id) =>
+                id.startsWith('SiteDeployRole'),
             );
+            const policies = Object.values(template.findResources('AWS::IAM::Policy')).filter(
+                (p) => JSON.stringify(p.Properties.Roles) === JSON.stringify([{ Ref: roleId }]),
+            );
+            expect(policies).toHaveLength(1);
+            const statements = policies.flatMap((p) => p.Properties.PolicyDocument.Statement);
             const actions = statements.flatMap((s: { Action: string | string[] }) =>
                 Array.isArray(s.Action) ? s.Action : [s.Action],
             );
@@ -335,6 +382,7 @@ describe('SmalrubyWebHostingStack', () => {
             expect(Object.keys(template.findOutputs('*')).sort()).toEqual(
                 [
                     'SiteBucketName',
+                    'SiteCertificateArn',
                     'SiteDeployRoleArn',
                     'SiteDistributionDomainName',
                     'SiteDistributionId',
