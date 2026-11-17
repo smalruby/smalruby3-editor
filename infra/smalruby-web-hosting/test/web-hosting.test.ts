@@ -3,6 +3,8 @@ import { Match, Template } from 'aws-cdk-lib/assertions';
 import {
     PREVIEW_DEFAULT_TTL_SECONDS,
     PREVIEW_OBJECT_EXPIRATION_DAYS,
+    SITE_ACCESS_LOG_PREFIX,
+    SITE_ACCESS_LOG_RETENTION_DAYS,
     SITE_NONCURRENT_VERSION_EXPIRATION_DAYS,
     SmalrubyWebHostingStack,
 } from '../lib/web-hosting-stack';
@@ -76,21 +78,39 @@ describe('SmalrubyWebHostingStack', () => {
     describe('production site delivery (prod)', () => {
         let template: Template;
 
+        // 本番の配信元（SiteBucket）とアクセスログ（SiteLogBucket）の 2 つがある。
+        const bucketById = (prefix: string) => {
+            const found = Object.entries(template.findResources('AWS::S3::Bucket')).filter(([id]) =>
+                id.startsWith(prefix),
+            );
+            expect(found).toHaveLength(1);
+            return found[0][1];
+        };
+        const siteBucket = () => bucketById('SiteBucket');
+        const logBucket = () => bucketById('SiteLogBucket');
+
         beforeAll(() => {
             template = synth('prod');
         });
 
-        test('creates one private, SSL-only, versioned bucket', () => {
-            template.resourceCountIs('AWS::S3::Bucket', 1);
-            template.hasResourceProperties('AWS::S3::Bucket', {
-                PublicAccessBlockConfiguration: {
-                    BlockPublicAcls: true,
-                    BlockPublicPolicy: true,
-                    IgnorePublicAcls: true,
-                    RestrictPublicBuckets: true,
-                },
-                VersioningConfiguration: { Status: 'Enabled' },
-            });
+        test('creates the site bucket and the access log bucket only', () => {
+            template.resourceCountIs('AWS::S3::Bucket', 2);
+            siteBucket();
+            logBucket();
+        });
+
+        test('creates one private, SSL-only, versioned site bucket', () => {
+            expect(siteBucket().Properties).toEqual(
+                expect.objectContaining({
+                    PublicAccessBlockConfiguration: {
+                        BlockPublicAcls: true,
+                        BlockPublicPolicy: true,
+                        IgnorePublicAcls: true,
+                        RestrictPublicBuckets: true,
+                    },
+                    VersioningConfiguration: { Status: 'Enabled' },
+                }),
+            );
             template.hasResourceProperties('AWS::S3::BucketPolicy', {
                 PolicyDocument: {
                     Statement: Match.arrayWith([
@@ -104,15 +124,16 @@ describe('SmalrubyWebHostingStack', () => {
         });
 
         test('retains the bucket (the production origin is never deleted with the stack)', () => {
-            template.hasResource('AWS::S3::Bucket', {
-                DeletionPolicy: 'Retain',
-                UpdateReplacePolicy: 'Retain',
-            });
+            expect(siteBucket()).toEqual(
+                expect.objectContaining({
+                    DeletionPolicy: 'Retain',
+                    UpdateReplacePolicy: 'Retain',
+                }),
+            );
         });
 
         test('never expires the current objects, only old versions', () => {
-            const buckets = Object.values(template.findResources('AWS::S3::Bucket'));
-            const rules = buckets[0].Properties.LifecycleConfiguration.Rules;
+            const rules = siteBucket().Properties.LifecycleConfiguration.Rules;
             for (const rule of rules) {
                 expect(rule.ExpirationInDays).toBeUndefined();
                 expect(rule.ExpirationDate).toBeUndefined();
@@ -149,6 +170,82 @@ describe('SmalrubyWebHostingStack', () => {
                     ResponseHeadersPolicyId: expect.anything(),
                 }),
             );
+        });
+
+        test('access log bucket is private, encrypted, SSL only and accepts CloudFront logs', () => {
+            const bucket = logBucket();
+            expect(bucket.Properties).toEqual(
+                expect.objectContaining({
+                    PublicAccessBlockConfiguration: {
+                        BlockPublicAcls: true,
+                        BlockPublicPolicy: true,
+                        IgnorePublicAcls: true,
+                        RestrictPublicBuckets: true,
+                    },
+                    BucketEncryption: {
+                        ServerSideEncryptionConfiguration: [
+                            { ServerSideEncryptionByDefault: { SSEAlgorithm: 'AES256' } },
+                        ],
+                    },
+                    // 標準ログは ACL で書き込まれるので ACL を無効にしない（持ち主はこのアカウント）。
+                    OwnershipControls: { Rules: [{ ObjectOwnership: 'BucketOwnerPreferred' }] },
+                }),
+            );
+            expect(bucket.Properties.VersioningConfiguration).toBeUndefined();
+            const policies = Object.values(template.findResources('AWS::S3::BucketPolicy')).filter(
+                (p) => JSON.stringify(p.Properties.Bucket).includes('SiteLogBucket'),
+            );
+            expect(policies).toHaveLength(1);
+            expect(policies[0].Properties.PolicyDocument.Statement).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        Effect: 'Deny',
+                        Condition: { Bool: { 'aws:SecureTransport': 'false' } },
+                    }),
+                ]),
+            );
+        });
+
+        test('access logs are deleted after the retention period', () => {
+            // 人間が決めた保持期間（30 日）。変えるときは docs/hosting/README.md も直す。
+            expect(SITE_ACCESS_LOG_RETENTION_DAYS).toBe(30);
+            const rules = logBucket().Properties.LifecycleConfiguration.Rules;
+            expect(rules).toEqual([
+                expect.objectContaining({
+                    Status: 'Enabled',
+                    ExpirationInDays: SITE_ACCESS_LOG_RETENTION_DAYS,
+                }),
+            ]);
+        });
+
+        test('access log bucket is not retained (logs are not needed to keep serving)', () => {
+            expect(logBucket()).toEqual(
+                expect.objectContaining({
+                    DeletionPolicy: 'Delete',
+                    UpdateReplacePolicy: 'Delete',
+                }),
+            );
+        });
+
+        test('distribution writes standard logs to the log bucket without cookies', () => {
+            const distribution = Object.values(
+                template.findResources('AWS::CloudFront::Distribution'),
+            )[0];
+            const logging = distribution.Properties.DistributionConfig.Logging;
+            expect(logging).toEqual({
+                Bucket: {
+                    'Fn::GetAtt': [expect.stringMatching(/^SiteLogBucket/), 'RegionalDomainName'],
+                },
+                IncludeCookies: false,
+                Prefix: SITE_ACCESS_LOG_PREFIX,
+            });
+        });
+
+        test('deploy role cannot touch the access log bucket', () => {
+            const statements = Object.values(template.findResources('AWS::IAM::Policy')).flatMap(
+                (p) => p.Properties.PolicyDocument.Statement,
+            );
+            expect(JSON.stringify(statements)).not.toContain('SiteLogBucket');
         });
 
         test('creates no DNS records or certificates (the live site is untouched)', () => {
@@ -235,6 +332,7 @@ describe('SmalrubyWebHostingStack', () => {
                     'SiteDeployRoleArn',
                     'SiteDistributionDomainName',
                     'SiteDistributionId',
+                    'SiteLogBucketName',
                 ].sort(),
             );
         });
