@@ -98,11 +98,12 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         cdk.Tags.of(this).add('ManagedBy', 'CDK');
 
         // 本番（smalruby.app）の配信基盤と DNS のゾーンは prod だけに作る。ゾーンにはいまの
-        // お名前.com のレコードを同じ値で写すだけで、CloudFront の独自ドメインはまだ付けない
-        // （お名前.com のネームサーバーを Route 53 に変えてから、別の変更で足す）。
+        // お名前.com のレコードを同じ値で写し、CloudFront には smalruby.app の証明書と代替ドメインを
+        // 付ける（ネームサーバーを Route 53 に変えたあとなので DNS 検証が終わる）。apex の A は
+        // まだ GitHub Pages のままで、CloudFront へ向けるのは別の変更。
         if (stage === SITE_STAGE) {
             this.siteZone = this.createSiteZone();
-            this.createSiteDelivery();
+            this.createSiteDelivery(this.siteZone);
             return;
         }
 
@@ -293,15 +294,15 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
     }
 
     /**
-     * 本番（smalruby.app）の配信基盤（S3 + CloudFront + CI 用ロール）。
+     * 本番（smalruby.app）の配信基盤（S3 + CloudFront + 証明書 + CI 用ロール）。
      *
      * いまの本番は GitHub Pages で配信しており、これは切り替え先として並べて作るだけ。
-     * 独自ドメイン（smalruby.app）・証明書・apex の ALIAS はまだ付けないので、CloudFront の既定の
-     * ドメイン（`*.cloudfront.net`）でしか見えず、いまの本番には影響しない。
-     * 証明書は、お名前.com のネームサーバーを `createSiteZone()` のゾーンに変えてから足す
+     * CloudFront には `smalruby.app` の証明書と代替ドメインを付けるが、apex の A はまだ
+     * GitHub Pages を向いているので、いまの本番には影響しない（ALIAS へ変えるのは別の変更）。
+     * 証明書は、お名前.com のネームサーバーを `createSiteZone()` のゾーンに変えてから足した
      * （変える前だと DNS 検証が終わらないのはプレビューと同じ）。
      */
-    private createSiteDelivery(): void {
+    private createSiteDelivery(zone: route53.IHostedZone): void {
         const bucket = new s3.Bucket(this, 'SiteBucket', {
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
             encryption: s3.BucketEncryption.S3_MANAGED,
@@ -358,8 +359,20 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
 
         const logBucket = this.createSiteAccessLogBucket();
 
+        // CloudFront 用の証明書は us-east-1 に要る。プレビューと同じく DnsValidatedCertificate で
+        // us-east-1 に作り、smalruby.app のゾーンで検証する（スタックは分けない）。
+        // www.smalruby.app は今は無いので SAN に足さない。
+        const certificate = new acm.DnsValidatedCertificate(this, 'SiteCertificate', {
+            domainName: SITE_ZONE_NAME,
+            hostedZone: zone,
+            region: 'us-east-1',
+        });
+
         const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
-            comment: 'Smalruby production site (smalruby.app, not attached yet)',
+            comment: `Smalruby production site (${SITE_ZONE_NAME})`,
+            domainNames: [SITE_ZONE_NAME],
+            certificate,
+            minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
             // 標準ログ（従来の S3 配信）。v2（CloudWatch Logs の配信）は S3 へ出すと 1 GB あたりの
             // 料金がかかり、CloudFront の配信元の設定を us-east-1 に置く必要がある（このスタックは
             // ap-northeast-1 で、スタックは分けない）。従来の方式は配信が無料で、プロパティを足すだけで済む。
@@ -367,8 +380,6 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             logBucket,
             logFilePrefix: SITE_ACCESS_LOG_PREFIX,
             logIncludesCookies: false,
-            // minimumProtocolVersion（TLS 1.2 以上）は既定の証明書では効かないので、
-            // smalruby.app の証明書を付けるときに一緒に足す。
             httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
             priceClass: cloudfront.PriceClass.PRICE_CLASS_200,
             defaultBehavior: {
@@ -411,6 +422,10 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         new cdk.CfnOutput(this, 'SiteDistributionDomainName', {
             value: distribution.distributionDomainName,
             description: 'CloudFront domain name (check before attaching smalruby.app)',
+        });
+        new cdk.CfnOutput(this, 'SiteCertificateArn', {
+            value: certificate.certificateArn,
+            description: `ACM certificate (us-east-1) of ${SITE_ZONE_NAME} attached to CloudFront`,
         });
         new cdk.CfnOutput(this, 'SiteLogBucketName', {
             value: logBucket.bucketName,

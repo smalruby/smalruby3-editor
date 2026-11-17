@@ -50,7 +50,22 @@
 | 証明書 | ACM（us-east-1）。Route 53 のゾーンで DNS 検証する |
 | `api.` / `preview.` | 切り替えが落ち着いたあと、それぞれのゾーンを `smalruby.app` のゾーンへまとめ、委任とゾーンを消す（費用を戻す） |
 
-prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hosting-stack.ts` の `createSiteDelivery()` にある。最初は独自ドメインも DNS も付けず、CloudFront の既定のドメイン（`*.cloudfront.net`）でしか見えない形で作る。だから作っただけでは、いまの本番には何も起きない。
+prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hosting-stack.ts` の `createSiteDelivery()` にある。最初は独自ドメインも DNS も付けず、CloudFront の既定のドメイン（`*.cloudfront.net`）でしか見えない形で作った。段 7 で `smalruby.app` の証明書と代替ドメインを付けるが、apex の A が GitHub Pages を向いている間は利用者のリクエストが CloudFront に来ないので、いまの本番には何も起きない。
+
+## 証明書と代替ドメイン（段 7）
+
+ネームサーバーが Route 53 に変わった（段 6）あとに、prod の CloudFront へ次を足す。
+
+| もの | 値 |
+|---|---|
+| ACM 証明書 | `smalruby.app`（SAN なし）。CloudFront 用なので us-east-1。`DnsValidatedCertificate` で作り、段 2 のゾーンで DNS 検証する（スタックは分けない。プレビューと同じ形） |
+| 代替ドメイン | `smalruby.app` だけ。`www.smalruby.app` は今は無いので足さない（要るなら別に決める） |
+| TLS | 1.2 以上（`TLSv1.2_2021`）・SNI |
+
+- 段 6 の前に足すと、公開 DNS から検証の CNAME が引けず、デプロイが証明書を待ち続けて失敗する。
+- ディストリビューションへの設定の追加なので、**置き換え（replacement）にはならない**。`cdk diff` は証明書のカスタムリソース（と Lambda・ロール）の追加と、`SiteDistribution` の `Aliases` / `ViewerCertificate` の追加だけになる。追加だけの差分なので、develop へのマージで `Deploy Infra` が prod に出す。
+- apex の A は GitHub Pages のまま変えない（段 9）。代替ドメインを付けても、DNS が CloudFront を向くまで利用者のリクエストは来ない。
+- 出したあとに確かめること: Output `SiteCertificateArn` の証明書が `ISSUED`（`aws acm describe-certificate --region us-east-1 --certificate-arn <値>`）、`curl -sI --resolve smalruby.app:443:<CloudFront の IP> https://smalruby.app/` が CloudFront から返る。
 
 ### GitHub Pages から引き継ぐもの
 
