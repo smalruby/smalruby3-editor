@@ -1,15 +1,18 @@
-// === Smalruby: This file is Smalruby-specific (tutorial deck setup helper) ===
-import { setDnclMode } from '../reducers/dncl-mode';
+// === Smalruby: This file is Smalruby-specific (lesson / tutorial setup helper) ===
+// レッスンのチャレンジを始めるときの準備（タブ・Ruby のモード・拡張機能・Ruby の版）。
+// もとはチュートリアルの deck のために作ったが、チュートリアルを上流に戻したあともレッスンが使うので
+// lib/lessons/ に置く（#1935）。チュートリアルの一覧（tips-library.jsx）は上流に戻すまでの間だけ使う。
+import { setDnclMode } from '../../reducers/dncl-mode';
 import {
     activateTab,
     BLOCKS_TAB_INDEX,
     COSTUMES_TAB_INDEX,
     RUBY_TAB_INDEX,
     SOUNDS_TAB_INDEX,
-} from '../reducers/editor-tab';
-import { setRubyVersion } from '../reducers/settings';
-import { VERSION_1, VERSION_2 } from './settings/ruby-version';
-import { persistRubyVersion } from './settings/ruby-version/persistence';
+} from '../../reducers/editor-tab';
+import { setRubyVersion } from '../../reducers/settings';
+import { VERSION_1, VERSION_2 } from '../settings/ruby-version';
+import { persistRubyVersion } from '../settings/ruby-version/persistence';
 
 const FURIGANA_ENABLED_KEY = 'smalruby:furiganaEnabled';
 
@@ -36,32 +39,26 @@ export const normalizeRubyVersion = (value) => {
 };
 
 /**
- * Apply tutorial deck setup: switch editor tab, set Ruby mode, load
- * required extensions. Each operation is idempotent — calling this with the
- * environment already in the desired state is a no-op.
+ * setup を当てる: タブを切りかえ、Ruby のモードを決め、拡張機能を読みこみ、Ruby の版を決める。
+ * どれも冪等で、もうその状態なら何もしない。
  *
- * The `setup` descriptor is defined per-deck in `decks/index.jsx`:
+ * setup の形（レッスンは `lib/lessons/challenge-setup.js` の setupForChallenge が作る）:
  *
- *     'deck-id': {
- *         setup: {
- *             tab: 'ruby',                       // 'code' | 'costumes' | 'sounds' | 'ruby'
- *             rubyMode: 'dncl',                  // 'ruby' | 'furigana' | 'dncl'
- *             extensions: ['pen', 'microbitMore'],
- *             rubyVersion: 2,                    // 1 | 2 (omit to keep current)
- *         },
- *         // ...
+ *     {
+ *         tab: 'ruby',                       // 'code' | 'costumes' | 'sounds' | 'ruby'
+ *         rubyMode: 'dncl',                  // 'ruby' | 'furigana' | 'dncl'
+ *         extensions: ['pen', 'microbitMore'],
+ *         rubyVersion: 2,                    // 1 | 2（省くといまのまま）
  *     }
  *
- * Extension loads are awaited so that the tutorial card opens once all
- * required extensions are usable. Failures are logged but do not abort the
- * tutorial — the deck still opens and the user can manually load the
- * extension if needed.
- * @param {object} setup - The deck.setup descriptor (may be undefined).
- * @param {Function} dispatch - Redux dispatch function.
- * @param {object} vm - VM instance (state.scratchGui.vm).
- * @returns {Promise<void>} resolves once setup is applied
+ * 拡張機能は読みこみを待つので、このあと出す画面からはどれも使える。読みこめなくても
+ * 止めずに console に残す（子どもは自分で拡張機能を足せる）。
+ * @param {object} setup - setup（undefined でもよい）。
+ * @param {Function} dispatch - Redux の dispatch。
+ * @param {object} vm - VM（state.scratchGui.vm）。
+ * @returns {Promise<void>} 当て終わったら resolve する
  */
-export const applyDeckSetup = async (setup, dispatch, vm) => {
+export const applySetup = async (setup, dispatch, vm) => {
     if (!setup || typeof setup !== 'object') return;
 
     // 1. Tab
@@ -99,7 +96,7 @@ export const applyDeckSetup = async (setup, dispatch, vm) => {
                 // Graceful degradation — log but don't abort. The tutorial
                 // opens and the user can manually load the extension.
                 // eslint-disable-next-line no-console
-                console.warn(`[deck-setup] Failed to load extension '${extId}':`, err);
+                console.warn(`[apply-setup] Failed to load extension '${extId}':`, err);
             }
         }
     }

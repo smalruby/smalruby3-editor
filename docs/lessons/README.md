@@ -113,7 +113,7 @@
 | `card` | `{category, main}` \| null | null | レッスン表のカード。`category` = 左の帯の色のなかま、`main` = そのチャレンジで覚えるメインのなかま（同じ数で並んだときの色）。どちらも `CATEGORIES` の値（`motion` / `looks` / `sound` / `events` / `control` / `sensing` / `operators` / `variables` / `lists` / `extensions`）。決め方は下の「カードの色」 |
 | `goal` | 条件[] \| null | null | できた の判定。条件の配列で、全部を満たしたら「できた」（下の「できた の判定」）。null なら判定しない |
 | `allowedBlocks` | object \| null | null | パレットに出すブロック（deck と同じ形）。項目は opcode か、初期値を持つ `{opcode, fields, inputs}`（下の「パレットのブロックの初期値」） |
-| `setup` | object \| null | null | 始めるときの準備。deck と同じ項目（`tab` / `rubyMode` / `extensions` / `rubyVersion`。`lib/deck-setup.js`）に、作品の準備（`sprites` / `code` / `spriteCodes` / `stageCode`。`lib/lessons/challenge-start.js`）を足せる。下の「レッスンモード」の **setup** |
+| `setup` | object \| null | null | 始めるときの準備。deck と同じ項目（`tab` / `rubyMode` / `extensions` / `rubyVersion`。`lib/lessons/apply-setup.js`）に、作品の準備（`sprites` / `code` / `spriteCodes` / `stageCode`。`lib/lessons/challenge-start.js`）を足せる。下の「レッスンモード」の **setup** |
 | `steps` | ヒント[] | [] | ヒント（下の表） |
 | `code` | string \| `{ja, 'ja-Hira', en}` \| null | null | ヒントの最後の手段「プログラムを入れる」（Ruby。deck の `code` と同じ）。作品の中の名前が locale で変わるときは locale ごとに書く（下の「英語の UI でも使う（locale ごとの `code`）」） |
 | `codeTarget` | `'stage'` \| null | null | `code` を入れる相手。null はいま編集中のスプライト。`'stage'` はステージのプログラムのチャレンジ（入れる前にステージをえらぶ） |
@@ -1378,7 +1378,8 @@ partner: {
   結び付きも切る）→ 作品ができたらチャレンジの setup を適用 → `openChallenge(id)`。
   この流れは `containers/lesson-mode.jsx` が進める（作成中 → 表示中の遷移で「できた」を検出する）。
 - **setup**: `lib/lessons/challenge-setup.js` の `setupForChallenge(course, challenge)` が
-  `lib/deck-setup.js` に渡す形を作る。コースの言語から既定（ブロック = コードタブ、Ruby = Ruby タブ・Ruby
+  `lib/lessons/apply-setup.js` の `applySetup` に渡す形を作る（チュートリアルの一覧も同じ `applySetup` を使うが、
+  チュートリアルを上流に戻したあともレッスンが使うので `lib/lessons/` に置く）。コースの言語から既定（ブロック = コードタブ、Ruby = Ruby タブ・Ruby
   モード、DNCL = Ruby タブ・DNCL モード）を決め、チャレンジの `setup` で上書きする。
   deck と同じ項目を適用したあと（拡張機能を読み込んでから）、作品の準備をする（`lib/lessons/challenge-start.js`）:
 
@@ -1483,7 +1484,9 @@ partner: {
       `procedures: [...]`）を書く。キー名は自由（中の opcode だけを見る）。チャットのチュートリアルと
       Ruby の基本 3・4・6 には書いてある。deck とチャレンジのプログラム（`code`・ヒントのブロック）が使う
       変数・リスト・ブロック定義の opcode が `allowedBlocks` に入っているかは
-      `test/unit/lib/lesson-dynamic-categories-decks.test.js` が Ruby をブロックに変換して確かめる。
+      `test/unit/lib/lessons/challenge-dynamic-categories.test.js`（チャレンジ）と
+      `test/unit/lib/libraries/decks/deck-dynamic-categories.test.js`（deck）が Ruby をブロックに変換して確かめる
+      （道具は `test/helpers/dynamic-category-opcodes.js`）。
     - `?only_blocks=`・ステージのコメント・ブロックの選択（`selectedBlocks`）で絞るときは、これまでどおり
       2 つとも出る。
 - **パレットのブロックの初期値**: `allowedBlocks` の項目は opcode の文字列のほかに
@@ -2196,8 +2199,9 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/lessons/block-defaults.js` | `allowedBlocks` に書いたブロックの初期値を集め、ツールボックスの XML・flyout の要素に入れる純粋関数（`blocks.jsx` のマーカー `lesson palette block defaults`） |
 | `packages/scratch-gui/src/lib/lesson-dynamic-categories.js` | 「変数」「ブロック定義」を `allowedBlocks` で絞る純粋関数（カテゴリを出すか・flyout の中身） |
 | `packages/scratch-gui/src/lib/make-toolbox-xml.js` | `allowedBlocks` に無ければ「変数」「ブロック定義」のカテゴリを出さない（マーカー `lesson dynamic category filtering`） |
-| `packages/scratch-gui/test/unit/lib/lesson-dynamic-categories.test.js` | 上の純粋関数・toolbox XML・既存の deck / チャレンジの unit テスト |
-| `packages/scratch-gui/test/unit/lib/lesson-dynamic-categories-decks.test.js` | すべての deck・チャレンジのプログラムを変換し、使う変数・リスト・ブロック定義の opcode が `allowedBlocks` にあるか |
+| `packages/scratch-gui/test/unit/lib/lesson-dynamic-categories.test.js` | 上の純粋関数・toolbox XML・既存のチャレンジの unit テスト |
+| `packages/scratch-gui/test/unit/lib/lessons/challenge-dynamic-categories.test.js` | すべてのチャレンジのプログラムを変換し、使う変数・リスト・ブロック定義の opcode が `allowedBlocks` にあるか（deck の分は `test/unit/lib/libraries/decks/deck-dynamic-categories.test.js`。道具は `test/helpers/dynamic-category-opcodes.js`） |
+| `packages/scratch-gui/src/lib/lessons/apply-setup.js` | チャレンジの setup（タブ・Ruby のモード・拡張機能・Ruby の版）を当てる `applySetup`。チュートリアルの一覧も使う |
 | `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定・setup・できた の判定・見張り・カードの色の決め方（`card-color.test.js`）の unit テスト |
 | `packages/scratch-gui/test/unit/reducers/lesson-mode-reducer.test.js` | reducer の unit テスト |
 | `packages/scratch-gui/test/unit/components/lesson-completed-toast.test.jsx` / `test/unit/components/lesson-completed-quiz.test.jsx` / `test/unit/containers/lesson-goal-watcher.test.jsx` | 「できた！」と見張りのコンテナの unit テスト |

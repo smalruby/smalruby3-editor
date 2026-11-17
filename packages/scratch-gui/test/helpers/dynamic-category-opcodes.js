@@ -1,16 +1,14 @@
-// 既存のチュートリアル deck とレッスンのチャレンジで、入れるプログラム（steps の code・deck の code）を
-// ブロックにしたとき使う「変数」「ブロック定義」カテゴリのブロックが allowedBlocks に入っているか。
-// 入っていないと、allowedBlocks による動的カテゴリの絞り込み（lesson-dynamic-categories.js）で
-// そのカテゴリや中のブロックが消え、チュートリアルを進められなくなる。
+// allowedBlocks で「変数」「ブロック定義」の動的カテゴリを絞るとき、入れるプログラム（code・ヒントの
+// ブロック）が使うブロックが allowedBlocks に入っているかを確かめるための道具。
+// レッスンのチャレンジ（test/unit/lib/lessons/challenge-dynamic-categories.test.js）と
+// チュートリアルの deck（test/unit/lib/libraries/decks/deck-dynamic-categories.test.js）で共有する。
 import {
     LIST_OPCODES,
     PROCEDURE_OPCODES,
     VARIABLE_OPCODES,
     allowedBlocksToIds,
-} from '../../../src/lib/lesson-dynamic-categories';
-import { COURSES } from '../../../src/lib/lessons/courses';
-import decks from '../../../src/lib/libraries/decks/index.jsx';
-import RubyToBlocksConverter from '../../../src/lib/ruby-to-blocks-converter';
+} from '../../src/lib/lesson-dynamic-categories';
+import RubyToBlocksConverter from '../../src/lib/ruby-to-blocks-converter';
 
 // flyout に並ぶ動的カテゴリのブロック（procedures_prototype は定義の中身なので flyout には無い）
 const DYNAMIC_OPCODES = new Set([
@@ -38,8 +36,6 @@ const usedDynamicOpcodes = async (code) => {
     return [...new Set(opcodes.filter((opcode) => DYNAMIC_OPCODES.has(opcode)))].sort();
 };
 
-const allowedIds = (allowedBlocks) => allowedBlocksToIds(allowedBlocks);
-
 // チャレンジの code / blocks は locale ごとのオブジェクト（{ja, 'ja-Hira', en}）でもよいので、全部の locale を見る
 const rubyOf = (value) => {
     if (typeof value === 'string') return [value];
@@ -59,33 +55,20 @@ const codesOf = (item) => {
     return codes;
 };
 
-const deckCases = Object.entries(decks)
-    .filter(([, deck]) => deck.allowedBlocks)
-    .map(([id, deck]) => [`deck ${id}`, deck]);
+/**
+ * item（deck かチャレンジ）のプログラムが使う動的カテゴリのブロックのうち、allowedBlocks に無いもの。
+ * @param {object} item - allowedBlocks と code / spriteCodes / steps を持つ deck かチャレンジ。
+ * @returns {Promise<string[]>} 足りない opcode（並べたもの）。
+ */
+const missingDynamicOpcodes = async (item) => {
+    const allowed = allowedBlocksToIds(item.allowedBlocks);
+    const missing = new Set();
+    for (const code of codesOf(item)) {
+        (await usedDynamicOpcodes(code)).forEach((opcode) => {
+            if (!allowed.includes(opcode)) missing.add(opcode);
+        });
+    }
+    return [...missing].sort();
+};
 
-const challengeCases = [];
-Object.values(COURSES || {}).forEach((course) =>
-    (course.lessons || []).forEach((lesson) =>
-        (lesson.challenges || []).forEach((challenge) => {
-            if (challenge.allowedBlocks) challengeCases.push([`challenge ${challenge.id}`, challenge]);
-        }),
-    ),
-);
-
-describe('allowedBlocks covers the variables / my blocks used by the code', () => {
-    test('there are decks and challenges to check', () => {
-        expect(deckCases.length).toBeGreaterThan(0);
-        expect(challengeCases.length).toBeGreaterThan(0);
-    });
-
-    test.each([...deckCases, ...challengeCases])('%s', async (name, item) => {
-        const allowed = allowedIds(item.allowedBlocks);
-        const missing = new Set();
-        for (const code of codesOf(item)) {
-            (await usedDynamicOpcodes(code)).forEach((opcode) => {
-                if (!allowed.includes(opcode)) missing.add(opcode);
-            });
-        }
-        expect([...missing].sort()).toEqual([]);
-    });
-});
+export { missingDynamicOpcodes };

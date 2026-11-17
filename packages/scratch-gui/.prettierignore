@@ -266,7 +266,6 @@ src/lib/*
 !src/lib/bug-report-api.js
 !src/lib/koshien-mock-config.js
 !src/lib/koshien-test-url.js
-!src/lib/deck-setup.js
 !src/lib/avatar-initials.js
 !src/lib/classroom-api.js
 !src/lib/classroom-assignment-utils.js
@@ -459,6 +458,7 @@ test/helpers/*
 !test/helpers/menu-xpaths.js
 !test/helpers/ruby-helper.js
 !test/helpers/smalruby-mock-state.js
+!test/helpers/dynamic-category-opcodes.js
 
 # Level 2: test/integration/*
 test/integration/*
@@ -743,7 +743,6 @@ test/unit/lib/*
 !test/unit/lib/classroom-continue-options.test.js
 !test/unit/lib/classroom-welcome-back.test.js
 !test/unit/lib/classroom-mesh-connect.test.js
-!test/unit/lib/deck-setup.test.js
 !test/unit/lib/blocks-screenshot.test.js
 !test/unit/lib/download-blob.test.js
 !test/unit/lib/calculate-popup-position.test.js
@@ -763,7 +762,6 @@ test/unit/lib/*
 !test/unit/lib/legacy-storage.test.js
 !test/unit/lib/make-toolbox-xml.test.js
 !test/unit/lib/lesson-dynamic-categories.test.js
-!test/unit/lib/lesson-dynamic-categories-decks.test.js
 !test/unit/lib/mesh-v2-classroom-binding.test.js
 !test/unit/lib/mesh-v2-seat-connect.test.js
 !test/unit/lib/mesh-v2-seat-label.test.js

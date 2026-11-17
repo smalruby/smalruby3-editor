@@ -45,6 +45,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/reducers/gui.ts` | initial state | Smalruby 初期 state の展開 |
 | `src/reducers/gui.ts` | reducers | Smalruby reducer の登録 |
 | `src/containers/cards.jsx` | tutorial glow animation | チュートリアルのハイライトアニメーション |
+| `src/containers/tips-library.jsx` | tutorial deck setup | チュートリアルを選んだとき、カードを開く前に deck の `setup`（タブ・Ruby のモード・拡張機能）を当てる。`lib/lessons/apply-setup.js` の import と呼び出し（2 ペア）。チュートリアルを上流に戻すとき（#1935）に消す |
 | `src/containers/sprite-library.jsx` | localized library sprite names | 「スプライトを選ぶ」の一覧で、コースのキャラクター（Shimaraby / Shimacat）を言語の名前（シマラビ / シマネコ）にする（import・`localizeSprites`・render の 3 ペア）。一覧の名前・検索・足したスプライトの名前がそろう。名前の表は `src/lib/lessons/sprite-names.js`（`docs/lessons/README.md`） |
 | `src/containers/connection-modal.jsx` | smalrubot firmware flash | SmalrubotS1 ファームウェア書き込みの import、ハンドラー、props |
 | `src/containers/connection-modal.jsx` | meshV2 initial step feature | Mesh v2 接続初期ステップ |

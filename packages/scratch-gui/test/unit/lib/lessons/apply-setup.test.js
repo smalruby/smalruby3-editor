@@ -1,5 +1,5 @@
-import { applyDeckSetup } from '../../../src/lib/deck-setup';
-import { SET_DNCL_MODE } from '../../../src/reducers/dncl-mode';
+import { applySetup } from '../../../../src/lib/lessons/apply-setup';
+import { SET_DNCL_MODE } from '../../../../src/reducers/dncl-mode';
 
 const ACTIVATE_TAB = 'scratch-gui/navigation/ACTIVATE_TAB';
 const SET_RUBY_VERSION = 'scratch-gui/settings/SET_RUBY_VERSION';
@@ -33,16 +33,16 @@ const makeVM = ({ alreadyLoaded = [], failOn = [] } = {}) => {
     };
 };
 
-describe('applyDeckSetup', () => {
+describe('applySetup', () => {
     beforeEach(() => {
         window.localStorage.clear();
     });
 
     test('returns immediately for missing or non-object setup', async () => {
         const dispatch = makeDispatch();
-        await applyDeckSetup(undefined, dispatch, makeVM());
-        await applyDeckSetup(null, dispatch, makeVM());
-        await applyDeckSetup('not-an-object', dispatch, makeVM());
+        await applySetup(undefined, dispatch, makeVM());
+        await applySetup(null, dispatch, makeVM());
+        await applySetup('not-an-object', dispatch, makeVM());
         expect(dispatch.calls).toEqual([]);
     });
 
@@ -56,7 +56,7 @@ describe('applyDeckSetup', () => {
         ];
         for (const [tab, expectedIndex] of cases) {
             const dispatch = makeDispatch();
-            await applyDeckSetup({ tab }, dispatch, makeVM());
+            await applySetup({ tab }, dispatch, makeVM());
             expect(dispatch.calls).toContainEqual({
                 type: ACTIVATE_TAB,
                 activeTabIndex: expectedIndex,
@@ -66,14 +66,14 @@ describe('applyDeckSetup', () => {
 
     test('ignores unknown tab names without dispatching', async () => {
         const dispatch = makeDispatch();
-        await applyDeckSetup({ tab: 'unknown-tab' }, dispatch, makeVM());
+        await applySetup({ tab: 'unknown-tab' }, dispatch, makeVM());
         expect(dispatch.calls.filter((a) => a.type === ACTIVATE_TAB)).toEqual([]);
     });
 
     test('rubyMode dispatches setDnclMode and updates furigana localStorage', async () => {
         // dncl: SET_DNCL_MODE true, furigana=false
         let dispatch = makeDispatch();
-        await applyDeckSetup({ rubyMode: 'dncl' }, dispatch, makeVM());
+        await applySetup({ rubyMode: 'dncl' }, dispatch, makeVM());
         expect(dispatch.calls).toContainEqual({
             type: SET_DNCL_MODE,
             dnclMode: true,
@@ -83,7 +83,7 @@ describe('applyDeckSetup', () => {
         // furigana: SET_DNCL_MODE false, furigana=true
         dispatch = makeDispatch();
         window.localStorage.clear();
-        await applyDeckSetup({ rubyMode: 'furigana' }, dispatch, makeVM());
+        await applySetup({ rubyMode: 'furigana' }, dispatch, makeVM());
         expect(dispatch.calls).toContainEqual({
             type: SET_DNCL_MODE,
             dnclMode: false,
@@ -93,7 +93,7 @@ describe('applyDeckSetup', () => {
         // ruby: SET_DNCL_MODE false, furigana=false
         dispatch = makeDispatch();
         window.localStorage.clear();
-        await applyDeckSetup({ rubyMode: 'ruby' }, dispatch, makeVM());
+        await applySetup({ rubyMode: 'ruby' }, dispatch, makeVM());
         expect(dispatch.calls).toContainEqual({
             type: SET_DNCL_MODE,
             dnclMode: false,
@@ -103,7 +103,7 @@ describe('applyDeckSetup', () => {
 
     test('invalid rubyMode value is ignored', async () => {
         const dispatch = makeDispatch();
-        await applyDeckSetup({ rubyMode: 'bogus' }, dispatch, makeVM());
+        await applySetup({ rubyMode: 'bogus' }, dispatch, makeVM());
         expect(dispatch.calls.filter((a) => a.type === SET_DNCL_MODE)).toEqual([]);
     });
 
@@ -114,7 +114,7 @@ describe('applyDeckSetup', () => {
         ]) {
             const dispatch = makeDispatch();
             window.localStorage.clear();
-            await applyDeckSetup({ rubyVersion: input }, dispatch, makeVM());
+            await applySetup({ rubyVersion: input }, dispatch, makeVM());
             expect(dispatch.calls).toContainEqual({
                 type: SET_RUBY_VERSION,
                 rubyVersion: expected,
@@ -125,7 +125,7 @@ describe('applyDeckSetup', () => {
 
     test('rubyVersion (string) is accepted as well', async () => {
         const dispatch = makeDispatch();
-        await applyDeckSetup({ rubyVersion: '1' }, dispatch, makeVM());
+        await applySetup({ rubyVersion: '1' }, dispatch, makeVM());
         expect(dispatch.calls).toContainEqual({
             type: SET_RUBY_VERSION,
             rubyVersion: '1',
@@ -137,7 +137,7 @@ describe('applyDeckSetup', () => {
         for (const rubyVersion of [undefined, 3, 0, '9', 'bogus', null]) {
             const dispatch = makeDispatch();
             window.localStorage.clear();
-            await applyDeckSetup({ rubyVersion }, dispatch, makeVM());
+            await applySetup({ rubyVersion }, dispatch, makeVM());
             expect(dispatch.calls.filter((a) => a.type === SET_RUBY_VERSION)).toEqual([]);
             expect(window.localStorage.getItem(RUBY_VERSION_KEY)).toBeNull();
         }
@@ -146,7 +146,7 @@ describe('applyDeckSetup', () => {
     test('loads required extensions sequentially', async () => {
         const dispatch = makeDispatch();
         const vm = makeVM();
-        await applyDeckSetup({ extensions: ['pen', 'microbitMore'] }, dispatch, vm);
+        await applySetup({ extensions: ['pen', 'microbitMore'] }, dispatch, vm);
         expect(vm.extensionManager.loadExtensionURL).toHaveBeenCalledWith('pen');
         expect(vm.extensionManager.loadExtensionURL).toHaveBeenCalledWith('microbitMore');
         expect(vm.extensionManager.loadExtensionURL).toHaveBeenCalledTimes(2);
@@ -155,7 +155,7 @@ describe('applyDeckSetup', () => {
     test('skips already-loaded extensions (idempotent)', async () => {
         const dispatch = makeDispatch();
         const vm = makeVM({ alreadyLoaded: ['pen'] });
-        await applyDeckSetup({ extensions: ['pen', 'microbitMore'] }, dispatch, vm);
+        await applySetup({ extensions: ['pen', 'microbitMore'] }, dispatch, vm);
         expect(vm.extensionManager.loadExtensionURL).toHaveBeenCalledWith('microbitMore');
         expect(vm.extensionManager.loadExtensionURL).not.toHaveBeenCalledWith('pen');
     });
@@ -164,7 +164,7 @@ describe('applyDeckSetup', () => {
         const dispatch = makeDispatch();
         const vm = makeVM({ failOn: ['broken'] });
         const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-        await expect(applyDeckSetup({ extensions: ['broken', 'pen'] }, dispatch, vm)).resolves.toBeUndefined();
+        await expect(applySetup({ extensions: ['broken', 'pen'] }, dispatch, vm)).resolves.toBeUndefined();
         // pen should still be loaded after broken fails
         expect(vm.extensionManager.loadExtensionURL).toHaveBeenCalledWith('pen');
         expect(consoleWarn).toHaveBeenCalled();
@@ -174,7 +174,7 @@ describe('applyDeckSetup', () => {
     test('combines tab + rubyMode + extensions in one call', async () => {
         const dispatch = makeDispatch();
         const vm = makeVM();
-        await applyDeckSetup(
+        await applySetup(
             {
                 tab: 'ruby',
                 rubyMode: 'dncl',
@@ -197,6 +197,6 @@ describe('applyDeckSetup', () => {
 
     test('missing vm with extensions does not throw', async () => {
         const dispatch = makeDispatch();
-        await expect(applyDeckSetup({ extensions: ['pen'] }, dispatch, undefined)).resolves.toBeUndefined();
+        await expect(applySetup({ extensions: ['pen'] }, dispatch, undefined)).resolves.toBeUndefined();
     });
 });

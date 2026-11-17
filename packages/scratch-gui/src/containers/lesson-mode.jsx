@@ -12,8 +12,8 @@ import LessonHintNudge from '../components/lesson-hint/lesson-hint-nudge.jsx';
 import LessonPartNames from '../components/lesson-part-names/lesson-part-names.jsx';
 import LessonPartQuiz from '../components/lesson-part-quiz/lesson-part-quiz.jsx';
 import LessonTaskBar from '../components/lesson-task-bar/lesson-task-bar.jsx';
-import { applyDeckSetup, normalizeRubyVersion } from '../lib/deck-setup';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
+import { applySetup, normalizeRubyVersion } from '../lib/lessons/apply-setup';
 import { assignmentProgress, isAssignmentChallenge } from '../lib/lessons/assignment-progress';
 import { setupForChallenge } from '../lib/lessons/challenge-setup';
 import { applyChallengeStart } from '../lib/lessons/challenge-start';
@@ -190,7 +190,7 @@ const LessonMode = ({
             vm && vm.runtime && vm.runtime.getTargetForStage ? vm.runtime.getTargetForStage() : null;
         const startStage = stageOf();
         const isCurrent = () => pendingRef.current === challengeId && stageOf() === startStage;
-        applyDeckSetup(setup, dispatch, vm)
+        applySetup(setup, dispatch, vm)
             .catch((err) => {
                 // setup が失敗してもチャレンジは開く（拡張機能などは手で足せる）
                 // eslint-disable-next-line no-console

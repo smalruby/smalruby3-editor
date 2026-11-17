@@ -4,7 +4,6 @@ import {
     isDynamicCategoryAllowed,
 } from '../../../src/lib/lesson-dynamic-categories';
 import { findChallenge } from '../../../src/lib/lessons/courses';
-import decks from '../../../src/lib/libraries/decks/index.jsx';
 import makeToolboxXML from '../../../src/lib/make-toolbox-xml';
 
 const el = (tag, attrs = {}) => {
@@ -156,15 +155,8 @@ describe('lesson-dynamic-categories', () => {
         });
     });
 
-    describe('existing decks and challenges', () => {
-        // 変数を使う deck（チャット・Ruby の基本 3）は、変数のカテゴリが消えないように data を書いている
-        test('decks that teach variables allow a variable block', () => {
-            Object.entries(decks)
-                .filter(([id]) => id.startsWith('chat-'))
-                .forEach(([, deck]) => {
-                    expect(isDynamicCategoryAllowed('variables', allowedBlocksToIds(deck.allowedBlocks))).toBe(true);
-                });
-        });
+    // deck の分は test/unit/lib/libraries/decks/deck-dynamic-categories.test.js
+    describe('existing challenges', () => {
         test('lesson challenges that use variables or lists show the Variables category', () => {
             const { challenge: count } = findChallenge('blocks-l1-count');
             const { challenge: list } = findChallenge('blocks-l1-message-list');
