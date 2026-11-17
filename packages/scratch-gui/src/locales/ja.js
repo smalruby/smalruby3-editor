@@ -1901,7 +1901,7 @@ export default {
     'gui.lessonPartQuiz.part.taskBar': '課題バー',
     'gui.lessonPartQuiz.part.hint': 'ヒント',
     'gui.lessonPartQuiz.part.codeTab': 'コードタブ',
-    'gui.lessonPartQuiz.part.costumesTab': 'ペイントタブ',
+    'gui.lessonPartQuiz.part.costumesTab': 'コスチュームタブ',
     'gui.lessonPartQuiz.part.soundsTab': '音タブ',
     'gui.lessonPartQuiz.part.greenFlag': '緑の旗',
     'gui.lessonPartQuiz.part.stop': '停止ボタン',

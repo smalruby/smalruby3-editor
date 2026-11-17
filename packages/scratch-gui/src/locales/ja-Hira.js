@@ -1958,7 +1958,7 @@ export default {
     'gui.lessonPartQuiz.part.taskBar': 'かだいバー',
     'gui.lessonPartQuiz.part.hint': 'ヒント',
     'gui.lessonPartQuiz.part.codeTab': 'コードタブ',
-    'gui.lessonPartQuiz.part.costumesTab': 'ペイントタブ',
+    'gui.lessonPartQuiz.part.costumesTab': 'コスチュームタブ',
     'gui.lessonPartQuiz.part.soundsTab': 'おとタブ',
     'gui.lessonPartQuiz.part.greenFlag': 'みどりのはた',
     'gui.lessonPartQuiz.part.stop': 'ていしボタン',

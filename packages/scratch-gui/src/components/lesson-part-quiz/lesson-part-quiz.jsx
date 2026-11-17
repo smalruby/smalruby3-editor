@@ -60,7 +60,7 @@ const partNameMessages = defineMessages({
     },
     costumesTab: {
         id: 'gui.lessonPartQuiz.part.costumesTab',
-        description: 'Name of the Costumes tab (the Paint tab) in the "where is it?" quiz',
+        description: 'Name of the Costumes tab in the "where is it?" quiz',
         defaultMessage: 'Costumes tab',
     },
     soundsTab: {

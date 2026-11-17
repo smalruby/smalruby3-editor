@@ -48,9 +48,9 @@ export const ja = {
     'gui.lessons.challenge.blocks-l0-change-number.debug1': '数を変えたら、もう一度緑の旗を押そう。',
     'gui.lessons.challenge.blocks-l0-tabs.name': 'タブをめぐろう',
     'gui.lessons.challenge.blocks-l0-tabs.task':
-        'ペイントタブ（「コスチューム」と書いてあるタブ）で、ネコに好きな絵を 1 つ足して、2 つめの絵にしよう。\n音タブで ▶ を押して「ニャー」を聞こう。さいごにコードタブにもどろう',
+        'コスチュームタブで、ネコに好きな絵を 1 つ足して、2 つめの絵にしよう。\n音タブで ▶ を押して「ニャー」を聞こう。さいごにコードタブにもどろう',
     'gui.lessons.challenge.blocks-l0-tabs.step1':
-        'ペイントタブ（「コスチューム」と書いてあるタブ）を押して、左下のボタンから好きな絵をえらぼう。足した絵が 2 つめの絵になるよ。',
+        'コスチュームタブを押して、左下のボタンから好きな絵をえらぼう。足した絵が 2 つめの絵になるよ。',
     'gui.lessons.challenge.blocks-l0-tabs.step2': '音タブを押して、「ニャー」という名前の音の ▶ を押そう。',
     'gui.lessons.challenge.blocks-l0-tabs.step3': 'コードタブを押して、もどろう。',
     'gui.lessons.challenge.blocks-l0-tabs.debug1': 'ステージのネコが、足した絵になっているか見よう。',
@@ -322,9 +322,9 @@ export const jaHira = {
     'gui.lessons.challenge.blocks-l0-change-number.debug1': 'かずを かえたら、もう いちど みどりのはたを おそう。',
     'gui.lessons.challenge.blocks-l0-tabs.name': 'タブを めぐろう',
     'gui.lessons.challenge.blocks-l0-tabs.task':
-        'ペイントタブ（「コスチューム」と かいてある タブ）で、ネコに すきな えを 1 つ たして、2 つめの えに しよう。\nおとタブで ▶ を おして「Meow」という なまえの おとを きこう。さいごに コードタブに もどろう',
+        'コスチュームタブで、ネコに すきな えを 1 つ たして、2 つめの えに しよう。\nおとタブで ▶ を おして「Meow」という なまえの おとを きこう。さいごに コードタブに もどろう',
     'gui.lessons.challenge.blocks-l0-tabs.step1':
-        'ペイントタブ（「コスチューム」と かいてある タブ）を おして、ひだりしたの ボタンから すきな えを えらぼう。たした えが 2 つめの えに なるよ。',
+        'コスチュームタブを おして、ひだりしたの ボタンから すきな えを えらぼう。たした えが 2 つめの えに なるよ。',
     'gui.lessons.challenge.blocks-l0-tabs.step2': 'おとタブを おして、「Meow」という なまえの おとの ▶ を おそう。',
     'gui.lessons.challenge.blocks-l0-tabs.step3': 'コードタブを おして、もどろう。',
     'gui.lessons.challenge.blocks-l0-tabs.debug1': 'ステージの ネコが、たした えに なっているか みよう。',
