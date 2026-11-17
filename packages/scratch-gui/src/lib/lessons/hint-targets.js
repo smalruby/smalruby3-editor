@@ -23,6 +23,8 @@ export const HINT_TARGETS = Object.freeze({
     PRACTICE_PARTNER: 'practice-partner',
     // 課題バーの役のボタン（役のあるチャレンジの「役を決めよう」のページ）
     ROLE_PICKER: 'role-picker',
+    // 「どこでしょう？」のクイズの問い（components/lesson-part-quiz/・#2134）
+    PART_QUIZ: 'part-quiz',
     KEYBOARD: 'keyboard',
 });
 
@@ -112,6 +114,10 @@ const TARGET_SPECS = {
     [HINT_TARGETS.HINT_BUTTON]: {
         selectors: ['[data-testid="lesson-task-bar-hint"]'],
         sides: [HINT_SIDES.BOTTOM],
+    },
+    [HINT_TARGETS.PART_QUIZ]: {
+        selectors: ['[data-testid="lesson-part-quiz-panel"]'],
+        sides: [HINT_SIDES.TOP, HINT_SIDES.RIGHT],
     },
     [HINT_TARGETS.PRACTICE_PARTNER]: {
         selectors: ['[data-testid="lesson-practice-partner"]', '[data-testid="lesson-practice-partner-open"]'],

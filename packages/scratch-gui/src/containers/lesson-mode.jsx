@@ -10,6 +10,7 @@ import { connect } from 'react-redux';
 import LessonAssignmentBand from '../components/lesson-assignment-band/lesson-assignment-band.jsx';
 import LessonHintNudge from '../components/lesson-hint/lesson-hint-nudge.jsx';
 import LessonPartNames from '../components/lesson-part-names/lesson-part-names.jsx';
+import LessonPartQuiz from '../components/lesson-part-quiz/lesson-part-quiz.jsx';
 import LessonTaskBar from '../components/lesson-task-bar/lesson-task-bar.jsx';
 import { applyDeckSetup, normalizeRubyVersion } from '../lib/deck-setup';
 import { useChallengeActivityDiagram } from '../lib/lessons/activity-diagram/use-challenge-activity-diagram';
@@ -50,6 +51,7 @@ import {
     setLessonRole,
     showCompleted,
     showHint,
+    solvePartQuiz,
     startChallenge,
 } from '../reducers/lesson-mode';
 import { openLessonsLibrary } from '../reducers/modals';
@@ -89,7 +91,9 @@ const LessonMode = ({
     onSetRole,
     onShowCompleted,
     onShowHint,
+    onSolvePartQuiz,
     onStartChallenge,
+    partQuizSolved = 0,
     pendingChallengeId,
     pendingRole = null,
     pendingRoleSource = null,
@@ -288,7 +292,9 @@ const LessonMode = ({
     // 画面の部分の名前の札（#2133）。`showPartNames` のレッスンはチャレンジを開いたときから出しっぱなしにし、
     // ほかは課題バーの「なまえ」で数秒だけ出す（どこかを押す・Esc でも消える）。チャレンジが変わったら、
     // そのレッスンの決まりにもどす。出しっぱなしのレッスンで消したあと「なまえ」を押すと、また出しっぱなしにする
-    const lessonShowsPartNames = Boolean(current && current.lesson.showPartNames);
+    // 「どこでしょう？」のクイズ（#2134）のチャレンジでは、名前の札を出さない（答えが見えてしまう）。「なまえ」のボタンも出さない
+    const partQuiz = current ? current.challenge.partQuiz : null;
+    const lessonShowsPartNames = Boolean(current && current.lesson.showPartNames && !partQuiz);
     const [partNames, setPartNames] = useState({ visible: lessonShowsPartNames, timed: false });
     useEffect(() => {
         setPartNames({ visible: lessonShowsPartNames, timed: false });
@@ -299,6 +305,12 @@ const LessonMode = ({
         );
     }, [lessonShowsPartNames]);
     const handleClosePartNames = useCallback(() => setPartNames({ visible: false, timed: false }), []);
+    const handleSolvePartQuiz = useCallback(
+        (index) => {
+            if (currentId) onSolvePartQuiz(currentId, index);
+        },
+        [currentId, onSolvePartQuiz],
+    );
 
     const handleHint = useCallback(() => {
         if (hint && hint.visible) onHideHint();
@@ -367,8 +379,8 @@ const LessonMode = ({
                 onHint={handleHint}
                 onOpenFullText={handleOpenFullText}
                 onQuit={handleQuit}
-                onTogglePartNames={handleTogglePartNames}
-                partNamesVisible={partNames.visible}
+                onTogglePartNames={partQuiz ? null : handleTogglePartNames}
+                partNamesVisible={partNames.visible && !partQuiz}
                 role={role}
                 toastVisible={toastVisible}
             />
@@ -377,7 +389,18 @@ const LessonMode = ({
             {/* 手が止まったときの「ヒントを見てみよう」（これも document.body への portal） */}
             <LessonHintNudge visible={hintNudge} />
             {/* 画面の部分の名前の札（これも document.body への portal） */}
-            {partNames.visible && <LessonPartNames onClose={handleClosePartNames} timed={partNames.timed} />}
+            {partNames.visible && !partQuiz && (
+                <LessonPartNames onClose={handleClosePartNames} timed={partNames.timed} />
+            )}
+            {/* 「どこでしょう？」のクイズ（これも document.body への portal。クイズのあいだ画面のクリックを受ける） */}
+            {partQuiz && (
+                <LessonPartQuiz
+                    key={currentId}
+                    questions={partQuiz.questions}
+                    solved={partQuizSolved}
+                    onSolve={handleSolvePartQuiz}
+                />
+            )}
             {/* メッシュの練習相手（チャレンジに partner があるときだけ。これも document.body への portal） */}
             <LessonPracticePartner />
         </>
@@ -425,7 +448,11 @@ LessonMode.propTypes = {
     onSetRole: PropTypes.func.isRequired,
     onRequestNewProject: PropTypes.func.isRequired,
     onShowHint: PropTypes.func.isRequired,
+    // 「どこでしょう？」のクイズの問いに正しく答えた（#2134）
+    onSolvePartQuiz: PropTypes.func.isRequired,
     onStartChallenge: PropTypes.func.isRequired,
+    // 「どこでしょう？」のクイズで正しく答えた数（reducers/lesson-mode.js の partQuizSolved）
+    partQuizSolved: PropTypes.number,
     pendingChallengeId: PropTypes.string,
     // 役を選びなおして始めなおすときの役と、どう決めたか（#2062）
     pendingRole: PropTypes.string,
@@ -468,6 +495,7 @@ const mapStateToProps = (state) => {
         isShowingWithoutId: getIsShowingWithoutId(loadingState),
         // メニューバーのメニューがどれか開いているか（課題バーのホバーの全文がメニューに重ならないように）
         menuOpen: Object.values(state.scratchGui.menus).some(Boolean),
+        partQuizSolved: state.scratchGui.lessonMode.partQuizSolved || 0,
         pendingChallengeId: state.scratchGui.lessonMode.pendingChallengeId,
         pendingRole: state.scratchGui.lessonMode.pendingRole || null,
         pendingRoleSource: state.scratchGui.lessonMode.pendingRoleSource || null,
@@ -528,6 +556,7 @@ const mapDispatchToProps = (dispatch) => ({
         dispatch(requestNewProject(false));
     },
     onShowHint: () => dispatch(showHint()),
+    onSolvePartQuiz: (challengeId, index) => dispatch(solvePartQuiz(challengeId, index)),
     onStartChallenge: (challengeId, options) => dispatch(startChallenge(challengeId, options)),
 });
 

@@ -38,6 +38,7 @@ const FOCUS_LESSONS_LIBRARY_START = 'scratch-gui/lesson-mode/FOCUS_LESSONS_LIBRA
 const CLEAR_LESSONS_LIBRARY_FOCUS = 'scratch-gui/lesson-mode/CLEAR_LESSONS_LIBRARY_FOCUS';
 const SET_LIBRARY_ASSIGNMENT_ONLY = 'scratch-gui/lesson-mode/SET_LIBRARY_ASSIGNMENT_ONLY';
 const SET_ROLE = 'scratch-gui/lesson-mode/SET_ROLE';
+const SOLVE_PART_QUIZ = 'scratch-gui/lesson-mode/SOLVE_PART_QUIZ';
 // チュートリアルのカードを開く action（reducers/cards.js の ACTIVATE_DECK）。カードの
 // allowedBlocks / setup がレッスンのものと食い違うので、開いたらレッスンモードを抜ける
 const ACTIVATE_DECK = 'scratch-gui/cards/ACTIVATE_DECK';
@@ -100,6 +101,9 @@ const closedState = {
     // 役を選びなおしてチャレンジを始めなおすときの役と、どう決めたか（開くまでの間だけ入る）
     pendingRole: null,
     pendingRoleSource: null,
+    // 画面の部分をクリックして答えるクイズ（チャレンジの `partQuiz`・#2134）で、正しく答えた問いの数。
+    // いまの問いは、この数の番め（0 から）。チャレンジを開くたびに 0 にもどす
+    partQuizSolved: 0,
 };
 
 const initialState = {
@@ -221,7 +225,16 @@ const reducer = function (state, action) {
                 justCompletedId: null,
                 justCompletedNew: false,
                 completedHidden: false,
+                partQuizSolved: 0,
             };
+        }
+        case SOLVE_PART_QUIZ: {
+            // ちがうチャレンジ（開きなおした後に届いたもの）の答えは数えない
+            const found = state.challengeId === action.challengeId ? findChallenge(state.challengeId) : null;
+            const questions = found && found.challenge.partQuiz ? found.challenge.partQuiz.questions.length : 0;
+            const solved = state.partQuizSolved || 0;
+            if (solved >= questions || action.index !== solved) return state;
+            return { ...state, partQuizSolved: solved + 1 };
         }
         case CLOSE_LESSON:
         case ACTIVATE_DECK:
@@ -395,6 +408,15 @@ const setLessonRole = (role, { roleSource = null, rolePair } = {}) => ({
 
 const closeLesson = () => ({ type: CLOSE_LESSON });
 
+/**
+ * 画面の部分をクリックして答えるクイズで、`index` 番め（0 から）の問いに正しく答えた（#2134）。いまの問いで
+ * なければ数えない（同じ問いを 2 回数えない）。
+ * @param {string} challengeId - クイズのあるチャレンジ id。
+ * @param {number} index - 答えた問いの番号（0 から）。
+ * @returns {object} action。
+ */
+const solvePartQuiz = (challengeId, index) => ({ type: SOLVE_PART_QUIZ, challengeId, index });
+
 const showHint = () => ({ type: SHOW_HINT });
 
 const hideHint = () => ({ type: HIDE_HINT });
@@ -554,6 +576,7 @@ export {
     cancelStartChallenge,
     openChallenge,
     closeLesson,
+    solvePartQuiz,
     showHint,
     hideHint,
     finishHint,

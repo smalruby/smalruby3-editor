@@ -20,7 +20,9 @@ import {
     challengeCodeCandidates,
     challengeCodeFor,
     challengeQuiz,
+    courseLessons,
     courseSize,
+    lessonNumberOf,
     findLesson,
     localizeCode,
     validateQuiz,
@@ -29,6 +31,7 @@ import { validateGoal } from '../../../../src/lib/lessons/goal';
 import { rubyToBlocksXml } from '../../../../src/lib/lessons/hint-blocks';
 import { HINT_TARGETS } from '../../../../src/lib/lessons/hint-targets';
 import { ROLE_STEP_KIND } from '../../../../src/lib/lessons/lesson-role';
+import { validatePartQuiz } from '../../../../src/lib/lessons/part-quiz';
 import { normalizePartner } from '../../../../src/lib/lessons/practice-partner';
 import { hasAnswerProgram, isReadDiagram } from '../../../../src/lib/lessons/read-diagram';
 import en from '../../../../src/locales/en';
@@ -65,7 +68,11 @@ const LESSONS = [
     },
 ];
 
-const allChallenges = () => COURSES.flatMap((course) => course.lessons.flatMap((lesson) => lesson.challenges));
+// レッスン 0（画面の部分を覚える warmup）の外のチャレンジ。「試すヒントが最後」「帽子のブロックを描く」「プログラムを入れる」の
+// 決まりは、ブロックを置いて作るチャレンジのもの（レッスン 0 はパレット・コードエリアで押して試す・タブを開く・クイズに答える）
+const countedChallenges = () => COURSES.flatMap((course) => course.lessons.flatMap((lesson) => lesson.challenges));
+// レッスン 0（warmup）もふくめた全部のチャレンジ
+const allChallenges = () => COURSES.flatMap((course) => courseLessons(course).flatMap((lesson) => lesson.challenges));
 
 const collectMessages = () => {
     const messages = [];
@@ -73,7 +80,7 @@ const collectMessages = () => {
         messages.push(course.name);
         // #1780: the course description goes into assignment pages
         messages.push(course.description);
-        course.lessons.forEach((lesson) => {
+        courseLessons(course).forEach((lesson) => {
             messages.push(lesson.name);
             lesson.challenges.forEach((challenge) => {
                 messages.push(challenge.name);
@@ -247,7 +254,7 @@ describe('lesson courses', () => {
 
     test('course and lesson ids are unique', () => {
         const courseIds = COURSES.map((c) => c.id);
-        const lessonIds = COURSES.flatMap((c) => c.lessons.map((l) => l.id));
+        const lessonIds = COURSES.flatMap((c) => courseLessons(c).map((l) => l.id));
         expect(new Set(courseIds).size).toBe(courseIds.length);
         expect(new Set(lessonIds).size).toBe(lessonIds.length);
     });
@@ -295,6 +302,7 @@ describe('lesson courses', () => {
             codeTarget: null,
             debug: [],
             quiz: null,
+            partQuiz: null,
             activityDiagram: false,
             partner: null,
             roles: false,
@@ -906,7 +914,7 @@ describe('lesson courses', () => {
         test('the hint that asks to try it out is the last one', () => {
             const tryTargets = [HINT_TARGETS.STAGE, HINT_TARGETS.KEYBOARD, HINT_TARGETS.GREEN_FLAG];
             // 読んで作るチャレンジのヒントは決まった 3 ページ（どれもステージの左に出す・read-diagram.js）なので除く
-            allChallenges()
+            countedChallenges()
                 .filter((c) => !isReadDiagram(c))
                 .forEach((c) => {
                     // 「課題の説明と、アクティビティ図を理解しよう」の 1 ページ目は、図が読めるようステージの左に出す
@@ -928,7 +936,7 @@ describe('lesson courses', () => {
         // 入っていて書きかえないスプライトのプログラム（4-4 のシマネコ）は生徒が置かないので除く（2 つのスプライトの
         // プログラムは吹き出しに入りきらない・教員レビュー）
         test.each(['ja', 'ja-Hira', 'en'])('every hat block of the answer is drawn in a hint (%s)', (locale) => {
-            allChallenges().forEach((c) => {
+            countedChallenges().forEach((c) => {
                 const { code, spriteCodes } = challengeCodeFor(c, locale);
                 const setupCodes = ((c.setup && c.setup.spriteCodes) || []).map(
                     (s) => `${s.sprite}\u0000${localizeCode(s.code, locale)}`,
@@ -1132,9 +1140,9 @@ describe('lesson courses', () => {
             'every challenge code (%s) converts to blocks in a new project of that locale',
             async (locale) => {
                 const { vm, stage, cat } = projectFor(locale);
-                const challenges = allChallenges().filter((c) => c.code);
+                const challenges = countedChallenges().filter((c) => c.code);
                 // どのチャレンジにも「プログラムを入れる」（読んで作るは答え）の code がある
-                expect(challenges).toHaveLength(allChallenges().length);
+                expect(challenges).toHaveLength(countedChallenges().length);
                 for (const c of challenges) {
                     const { code, spriteCodes } = challengeCodeFor(c, locale);
                     const target = c.codeTarget === 'stage' ? stage : cat;
@@ -2266,5 +2274,99 @@ describe('courseSize (#1888)', () => {
             challengeCount: course.lessons.reduce((sum, lesson) => sum + lesson.challenges.length, 0),
         });
         expect(courseSize(course)).toEqual({ lessonCount: 3, challengeCount: 11 });
+    });
+});
+
+describe('lesson 0 "スモウルビーをたんけんしよう" (#2134)', () => {
+    const course = findCourse('kyou-kara-programmer');
+    const lesson0 = findLesson('blocks-l0');
+
+    test('is the warmup lesson at the start of the course, outside the 11 of the course', () => {
+        expect(lesson0.warmup).toBe(true);
+        expect(course.warmupLessons).toEqual([lesson0]);
+        expect(courseLessons(course).map((l) => l.id)).toEqual(['blocks-l0', 'blocks-l1', 'blocks-l2', 'blocks-l3']);
+        // コースの数（課題・進みぐあい・クラスの画面の n / 11）は変えない
+        expect(course.lessons).not.toContain(lesson0);
+        expect(courseSize(course)).toEqual({ lessonCount: 3, challengeCount: 11 });
+        expect(lessonNumberOf(course, lesson0)).toBe(0);
+        expect(lessonNumberOf(course, findLesson('blocks-l1'))).toBe(1);
+        expect(findChallenge('blocks-l0-where')).toEqual({
+            course,
+            lesson: lesson0,
+            challenge: lesson0.challenges[7],
+        });
+    });
+
+    test('opens the hints, shows the part names and does not narrow the palette', () => {
+        expect(lesson0.autoOpenHints).toBe(true);
+        expect(lesson0.showPartNames).toBe(true);
+        lesson0.challenges.forEach((c) => expect(c.allowedBlocks).toBeNull());
+        expect(ja[lesson0.name.id]).toBe('スモウルビーをたんけんしよう');
+    });
+
+    test('has the 8 challenges of the spec, with 1 to 3 hint pages each', () => {
+        expect(lesson0.challenges.map((c) => `0-${c.number} ${ja[c.name.id]}`)).toEqual([
+            '0-1 ネコをつかんで動かそう',
+            '0-2 ブロックを押してみよう',
+            '0-3 置いて、くっつけよう',
+            '0-4 緑の旗で動かそう・止めよう',
+            '0-5 数と ▼ を変えよう',
+            '0-6 タブをめぐろう',
+            '0-7 なかまと背景をふやそう',
+            '0-8 どこでしょう？',
+        ]);
+        lesson0.challenges.forEach((c) => {
+            expect(c.steps.length).toBeGreaterThanOrEqual(1);
+            expect(c.steps.length).toBeLessThanOrEqual(3);
+            expect(validateGoal(c.goal)).toEqual([]);
+        });
+    });
+
+    test('the goals look at the results (the spec of each challenge)', () => {
+        const goals = Object.fromEntries(lesson0.challenges.map((c) => [c.id, c.goal]));
+        expect(goals['blocks-l0-drag-cat']).toEqual([{ type: 'moved' }]);
+        expect(goals['blocks-l0-click-block'][0].trigger).toEqual({ click: 'palette' });
+        expect(goals['blocks-l0-snap'][0]).toEqual(
+            expect.objectContaining({ trigger: { click: 'codeArea' }, together: true }),
+        );
+        expect(goals['blocks-l0-flag'][0].trigger).toEqual({ hat: 'event_whenflagclicked' });
+        expect(goals['blocks-l0-tabs']).toEqual([
+            { type: 'currentCostume', changed: true },
+            { type: 'tab', tab: 'code' },
+        ]);
+        expect(goals['blocks-l0-sprite-backdrop']).toEqual([
+            { type: 'sprites', min: 2 },
+            { type: 'currentCostume', target: 'stage', changed: true },
+        ]);
+        expect(goals['blocks-l0-where']).toEqual([{ type: 'partQuiz', count: 5 }]);
+    });
+
+    test('the last challenge is the 5-question "where is it?" quiz on the part names', () => {
+        const where = findChallenge('blocks-l0-where').challenge;
+        expect(validatePartQuiz(where.partQuiz)).toEqual([]);
+        expect(where.partQuiz.questions).toHaveLength(5);
+        expect(where.steps[0].target).toBe(HINT_TARGETS.PART_QUIZ);
+        // ほかのチャレンジはクイズを持たない
+        lesson0.challenges.filter((c) => c !== where).forEach((c) => expect(c.partQuiz).toBeNull());
+    });
+
+    test('the spotlight is only on the hints of the basic operations', () => {
+        const spot = lesson0.challenges.flatMap((c) => c.steps.filter((s) => s.spotlight).map((s) => s.target));
+        expect(new Set(spot)).toEqual(
+            new Set([HINT_TARGETS.STAGE, HINT_TARGETS.PALETTE, HINT_TARGETS.CODE_AREA, HINT_TARGETS.GREEN_FLAG]),
+        );
+    });
+
+    test('the ja-Hira strings of lesson 0 have no kanji', () => {
+        Object.keys(jaHira)
+            .filter((id) => /^gui\.lessons\.(lesson\.blocks-l0\.|challenge\.blocks-l0-)/.test(id))
+            .forEach((id) =>
+                expect({ id, text: jaHira[id] }).toEqual({ id, text: expect.not.stringMatching(/\p{sc=Han}/u) }),
+            );
+    });
+
+    test('the en task of the tabs challenge names the cat sound "Meow"', () => {
+        expect(en['gui.lessons.challenge.blocks-l0-tabs.task']).toContain('"Meow"');
+        expect(jaHira['gui.lessons.challenge.blocks-l0-tabs.step2']).toContain('「Meow」という なまえの おと');
     });
 });
