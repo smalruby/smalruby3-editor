@@ -140,6 +140,53 @@ const summarizeAssignmentRow = ({ members, studentCount, assignment } = {}) => {
     };
 };
 
+/**
+ * The fields of a page that saving would change: its text and its image (the
+ * stored one, or a newly attached one that is not uploaded yet).
+ * @param {object} page - editor page ({text, imageKey, newImageBlob})
+ * @returns {string} a key that is equal for pages that save the same
+ */
+const pageSaveKey = (page) =>
+    JSON.stringify([(page && page.text) || '', (page && page.imageKey) || null, Boolean(page && page.newImageBlob)]);
+
+/**
+ * Whether the assignment detail holds changes that are not saved (#2089 N3).
+ * The ✕ of the detail asks「変更を破棄しますか？」only then: the description
+ * pages, the starter, the advanced settings or the lesson differ from what
+ * was loaded (or last saved). The assignment name is not counted: it is saved
+ * when its field loses the focus, which pressing ✕ does first.
+ * @param {object} state - the editor's current and stored values
+ * @param {Array<object>} state.pages - the pages in the editor
+ * @param {Array<object>} state.savedPages - the pages as loaded / last saved
+ * @param {string} state.starterMode - 'none' | 'keep' | 'new'
+ * @param {string} state.savedStarterMode - the starter mode as loaded
+ * @param {string} state.peerView - the chosen peer view
+ * @param {string} state.savedPeerView - the stored peer view
+ * @param {number} state.meshGroupLimit - the chosen mesh group size
+ * @param {number} state.savedMeshGroupLimit - the stored mesh group size
+ * @param {boolean} [state.lessonChanged] - the lesson draft differs from the stored lesson
+ * @returns {boolean} true when leaving would lose a change
+ */
+const hasUnsavedAssignmentChanges = ({
+    pages,
+    savedPages,
+    starterMode,
+    savedStarterMode,
+    peerView,
+    savedPeerView,
+    meshGroupLimit,
+    savedMeshGroupLimit,
+    lessonChanged = false,
+}) => {
+    if (lessonChanged) return true;
+    if (starterMode !== savedStarterMode) return true;
+    if (normalizePeerView(peerView) !== normalizePeerView(savedPeerView)) return true;
+    if (normalizeMeshGroupLimit(meshGroupLimit) !== normalizeMeshGroupLimit(savedMeshGroupLimit)) return true;
+    const current = (pages || []).map(pageSaveKey);
+    const saved = (savedPages || []).map(pageSaveKey);
+    return current.length !== saved.length || current.some((key, i) => key !== saved[i]);
+};
+
 export {
     MAX_ASSIGNMENT_PAGES,
     MAX_ASSIGNMENT_PAGE_TEXT_LENGTH,
@@ -148,6 +195,7 @@ export {
     MESH_GROUP_LIMIT_VALUES,
     PEER_VIEW_VALUES,
     buildAssignmentPayload,
+    hasUnsavedAssignmentChanges,
     normalizeMeshGroupLimit,
     normalizePeerView,
     validateEditorPages,

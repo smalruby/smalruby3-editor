@@ -564,6 +564,8 @@ test/unit/components/*
 !test/unit/components/classroom-teacher-header.test.jsx
 !test/unit/components/classroom-teacher-modal-share-suggestion.test.js
 !test/unit/components/teacher-open-work-confirm.test.jsx
+!test/unit/components/teacher-close-row.test.jsx
+!test/unit/components/classroom-teacher-modal-close-row.test.jsx
 !test/unit/components/classroom-tab.test.jsx
 !test/unit/components/classroom-teacher-view-layout.test.jsx
 !test/unit/components/classroom-teacher-evaluation.test.jsx
