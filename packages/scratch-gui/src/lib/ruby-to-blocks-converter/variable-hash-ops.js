@@ -141,16 +141,49 @@ export const isKnownStringReceiver = function (converter, block) {
 };
 
 /**
+ * The block of `x` when a Ruby index is `x - 1` (issue #2115).
+ * A block made in the block editor with the index `k` ("item (k) of", "letter (k) of") is written
+ * `[k - 1]`, so `[k - 1]` is the index `k` of the block: the same blocks and the same Ruby come
+ * back. Without this, it became "((k - 1) + 1)". Only a subtraction of the integer 1 from a block
+ * is taken, with no comment (a `@ruby:` mark keeps another Ruby form, such as `@a.index(x)`).
+ * `3 - 1` stays as it is: the generator would write the index 3 as `2`.
+ * The subtraction and its `1` are dropped from the context.
+ * @param {object} converter - The converter instance.
+ * @param {object} index - The index block or value.
+ * @param {?Function} keepsMinuend - Returns true for a block of `x` that must stay `x - 1` + 1.
+ * @returns {?object} The block of `x`, or null when the index is not `x - 1`.
+ */
+const indexCountedFromOne = function (converter, index, keepsMinuend) {
+    if (!converter._isBlock(index) || index.opcode !== 'operator_subtract' || index.comment) return null;
+    const blocks = converter._context.blocks;
+    const minuendInput = index.inputs.NUM1;
+    const oneInput = index.inputs.NUM2;
+    if (!minuendInput || !oneInput || !minuendInput.block || minuendInput.block === minuendInput.shadow) return null;
+    const one = blocks[oneInput.block];
+    if (!one || !one.shadow || oneInput.block !== oneInput.shadow || !one.fields.NUM) return null;
+    if (String(one.fields.NUM.value) !== '1') return null;
+    const minuend = blocks[minuendInput.block];
+    if (!minuend || (keepsMinuend && keepsMinuend(minuend))) return null;
+    index.inputs.NUM1 = { ...minuendInput, block: minuendInput.shadow };
+    converter._discardBlock(index);
+    minuend.parent = null;
+    return minuend;
+};
+
+/**
  * Adjust a 0-indexed Ruby array index to 1-indexed Scratch list index.
  * Always wraps in operator_add(index, 1) with `@ruby`:array:index comment
  * to enable round-trip conversion.
  * @param {object} converter - The converter instance.
  * @param {object} index - The index block or value.
  * @param {boolean} converted - Whether the receiver was converted to a list block.
+ * @param {?Function} keepsMinuend - Returns true for a block of `x` that `x - 1` must not become.
  * @returns {object} The adjusted index.
  */
-export const adjustIndex = function (converter, index, converted) {
+export const adjustIndex = function (converter, index, converted, keepsMinuend = null) {
     if (!converted) return index;
+    const counted = indexCountedFromOne(converter, index, keepsMinuend);
+    if (counted) return counted;
     const addBlock = converter._createBlock('operator_add', 'value');
     converter._addNumberInput(addBlock, 'NUM1', 'math_number', index, 0);
     converter._addNumberInput(addBlock, 'NUM2', 'math_number', 1, 0);
@@ -392,7 +425,7 @@ const rubyNameOfVariable = function (variable) {
 /**
  * Find the two lists (keys and values) that hold the hash a receiver reads, for the methods of Hash
  * that are also methods of Array or String (`length` / `empty?`). A receiver is a hash when the code
- * sets it to a hash literal (`_collectVariableUses`) or the lists of the hash already exist (a hash
+ * sets it to a hash literal (the analysis, `variables.uses`) or the lists of the hash already exist (a hash
  * of the project, or set earlier in this code). Otherwise these methods would use a list named
  * after the hash, which is always empty (issue #1652).
  * @param {object} converter - The converter instance.

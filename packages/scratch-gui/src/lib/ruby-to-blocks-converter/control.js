@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import { messages } from './converter-errors';
 import { RubyToBlocksConverterError } from './errors';
+import { fieldArg, numberArg, registerSendTable } from './send-table';
 
 const createControlRepeatBlock = function (converter, times, body) {
     const block = converter._createBlock('control_repeat', 'statement');
@@ -31,19 +32,38 @@ const addWithScreenRefreshComment = function (converter, block) {
 };
 
 /**
+ * The calls of control that map one to one onto a block (see `send-table.js`). `repeat`, `loop` /
+ * `forever` with a body, `N.times`, `create_clone` / `clone` and `with_screen_refresh` are handlers
+ * below, as are `if` / `until`. `loop` without a body is `control_forever` that
+ * `loop.with_screen_refresh do` fills.
+ */
+const CONTROL_SENDS = [
+    {
+        receiver: 'self',
+        name: 'sleep',
+        opcode: 'control_wait',
+        args: [numberArg('DURATION', 1, 'math_positive_number')],
+    },
+    { receiver: 'self', name: 'loop', opcode: 'control_forever', type: 'terminate' },
+    {
+        receiver: 'self',
+        name: 'stop',
+        opcode: 'control_stop',
+        type: 'terminate',
+        args: [fieldArg('STOP_OPTION', StopOptions)],
+    },
+    { receiver: 'sprite', name: 'when_start_as_a_clone', opcode: 'control_start_as_clone', hat: true },
+    { receiver: 'sprite', name: 'delete_this_clone', opcode: 'control_delete_this_clone' },
+];
+
+/**
  * Control converter
  */
 const ControlConverter = {
-    register: function (converter) {
-        // sleep(duration) - control_wait
-        converter.registerOnSend('self', 'sleep', 1, (params) => {
-            const { args } = params;
-            if (!converter._isNumberOrBlock(args[0])) return null;
+    sends: CONTROL_SENDS,
 
-            const block = converter._createBlock('control_wait', 'statement');
-            converter._addNumberInput(block, 'DURATION', 'math_positive_number', args[0], 1);
-            return block;
-        });
+    register: function (converter) {
+        registerSendTable(converter, CONTROL_SENDS);
 
         // repeat(times) { block } - control_repeat
         converter.registerOnSendWithBlock('self', 'repeat', 1, 0, (params) => {
@@ -57,9 +77,6 @@ const ControlConverter = {
             }
             return block;
         });
-
-        // loop (without block) - returns control_forever for chaining with with_screen_refresh
-        converter.registerOnSend('self', 'loop', 0, () => converter._createBlock('control_forever', 'terminate'));
 
         // loop { block } and forever { block } - control_forever
         ['loop', 'forever'].forEach((methodName) => {
@@ -75,16 +92,6 @@ const ControlConverter = {
                 }
                 return block;
             });
-        });
-
-        // stop(option) - control_stop
-        converter.registerOnSend('self', 'stop', 1, (params) => {
-            const { args } = params;
-            if (!converter._isString(args[0]) || StopOptions.indexOf(args[0].toString()) < 0) return null;
-
-            const block = converter._createBlock('control_stop', 'terminate');
-            converter._addField(block, 'STOP_OPTION', args[0]);
-            return block;
         });
 
         // create_clone(target) - control_create_clone_of
@@ -219,19 +226,6 @@ const ControlConverter = {
             if (hadWait) addMethodComment(converter, receiver, WAIT_COMMENT);
             return receiver;
         });
-
-        // when_start_as_a_clone { block } (sprite only)
-        converter.registerOnSendWithBlock('sprite', 'when_start_as_a_clone', 0, 0, (params) => {
-            const { rubyBlock } = params;
-            const block = converter.createBlock('control_start_as_clone', 'hat');
-            converter.setParent(rubyBlock, block);
-            return block;
-        });
-
-        // delete_this_clone method (sprite only)
-        converter.registerOnSend('sprite', 'delete_this_clone', 0, () =>
-            converter._createBlock('control_delete_this_clone', 'statement'),
-        );
 
         // backward compatibility
         converter.registerOnSendWithBlock('self', 'when', 1, 0, (params) => {

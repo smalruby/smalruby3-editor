@@ -74,9 +74,19 @@ describe('names of the prototype of an object (issue #2034)', () => {
         expect(names).toEqual(['constructor']);
     });
 
-    // A local `__proto__` also goes through the tables of `_collectVariableUses`, which are still
-    // plain objects: it is left to the change that moves those uses to the analysis (#2016).
-    test.todo('a local variable named __proto__');
+    // A local also goes through the tables of the analysis (`variables.uses`, `locals.uses`).
+    test('a local variable named __proto__', async () => {
+        const { target, runtime } = makeSpriteTarget();
+        const converter = makeConverter(target, runtime, { version: '2' });
+        await expectRoundTrip(converter, target, ['__proto__ = 1', 'say(__proto__)'].join('\n'));
+        const names = Object.values(converter._context.localVariables).map((v) => v.originalName);
+        expect(names).toEqual(['__proto__']);
+    });
+
+    test('a method named constructor called as a value is counted', async () => {
+        const converter = await convert(['def constructor', '  return 1', 'end', '', 'say(constructor)'].join('\n'));
+        expect(converter._context.analysis.procedures.valueCallCounts.constructor).toBe(1);
+    });
 
     test('converting the names does not change Object.prototype', async () => {
         await convert(

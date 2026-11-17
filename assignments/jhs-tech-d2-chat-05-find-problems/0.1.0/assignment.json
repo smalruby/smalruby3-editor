@@ -1,0 +1,43 @@
+{
+    "schemaVersion": 1,
+    "id": "jhs-tech-d2-chat-05-find-problems",
+    "version": "0.1.0",
+    "series": "jhs-tech-d2-chat",
+    "number": 5,
+    "title": "チャットを便利・快適・安全にする",
+    "goal": "チャットの問題を見つけ、それを直す機能にはどんなものがあるかを知る。",
+    "schoolType": "jhs",
+    "subject": "技術・家庭科〈技術分野〉",
+    "curriculum": "D(2) 双方向性のあるコンテンツのプログラミングによる問題解決",
+    "grade": 2,
+    "hours": 1,
+    "starter": null,
+    "license": "CC0-1.0",
+    "worksheetPages": [
+        6
+    ],
+    "lessons": [
+        {
+            "course": "chat-wo-tsukurou",
+            "lessons": [
+                "chat-l5"
+            ]
+        }
+    ],
+    "submit": {
+        "project": null,
+        "worksheet": true
+    },
+    "files": [
+        {
+            "file": "worksheet.pdf",
+            "kind": "worksheet",
+            "audience": "student"
+        },
+        {
+            "file": "worksheet-teacher.pdf",
+            "kind": "worksheet",
+            "audience": "teacher"
+        }
+    ]
+}

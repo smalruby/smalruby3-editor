@@ -1,5 +1,6 @@
 // Tutorial category locale strings are split into per-category modules
 // (issue #932) so tutorial categories can be developed independently.
+import { en as activityDiagramMessages } from '../lib/lessons/activity-diagram/activity-diagram.locale.js';
 import { en as lessonsMessages } from '../lib/lessons/lessons.locale.js';
 import { en as blockSeriesHowtos } from '../lib/libraries/decks/categories/block-series.locale.js';
 import { en as dnclHowtos } from '../lib/libraries/decks/categories/dncl.locale.js';
@@ -403,6 +404,13 @@ export default {
     'gui.classroom.board.tabClasswork': 'Classwork',
     'gui.classroom.board.tabGrading': 'Grading',
     'gui.classroom.board.classSettings': 'Class settings',
+    'gui.classroom.closeRow.backToAssignments': 'Back to the assignments',
+    'gui.classroom.closeRow.backToClass': 'Back to the class',
+    'gui.classroom.closeRow.backToClassList': 'Back to the class list',
+    'gui.classroom.closeRow.backToAssignment': 'Back to the assignment',
+    'gui.classroom.closeRow.discardQuestion': 'Discard the changes? The changes you have not saved will be lost.',
+    'gui.classroom.closeRow.discard': 'Discard',
+    'gui.classroom.closeRow.cancel': 'Cancel',
     'gui.classroom.board.streamEmpty': 'Nothing here yet. Assignments you create are listed here.',
     'gui.classroom.board.streamCreated': 'Created the assignment "{name}"',
     'gui.classroom.board.streamArchived': 'Archived the assignment "{name}"',
@@ -1540,11 +1548,28 @@ export default {
     'gui.library.rubyBasics': 'Ruby Basics',
     ...rubyBasicsHowtos,
     ...lessonsMessages,
+    ...activityDiagramMessages,
     'gui.lessonTaskBar.ariaLabel': 'Lesson task',
     'gui.lessonTaskBar.position': '{number} of {count}',
     'gui.lessonTaskBar.hint': 'Hint',
     'gui.lessonTaskBar.another': 'Try another challenge',
     'gui.lessonTaskBar.end': 'End lesson',
+    'gui.lessonTaskBar.readDiagram': 'Read and build',
+    'gui.lessonTaskBar.role': 'Your role',
+    'gui.lessonTaskBar.roleShimaraby': 'Shimaraby',
+    'gui.lessonTaskBar.roleShimacat': 'Shimacat',
+    'gui.lessonTaskBar.roleRemembered': 'Last time: {role}',
+    'gui.lessonTaskBar.roleSeat': 'Decided by seat number',
+    'gui.lessonPracticePartner.title': 'Practice partner: {name}',
+    'gui.lessonPracticePartner.note': 'With a partner, close this and connect with Mesh.',
+    'gui.lessonPracticePartner.close': 'Close the practice partner',
+    'gui.lessonPracticePartner.received': 'Reached {name}: {what}',
+    'gui.lessonPracticePartner.sendHeading': 'Send as {name}',
+    'gui.lessonPracticePartner.receivedHeading': 'Reached {name}',
+    'gui.lessonPracticePartner.variableName': '← {name}',
+    'gui.lessonPracticePartner.nothingReceived': '(nothing yet)',
+    'gui.lessonPracticePartner.missingVariable': '"{name}" is still empty. Click the flag and enter it first.',
+    'gui.lessonPracticePartner.open': 'Practice partner',
     'gui.lessonHint.ariaLabel': 'Hint',
     'gui.lessonHint.position': 'Hint {number} of {count}',
     'gui.lessonHint.prev': 'Back',
@@ -1560,6 +1585,13 @@ export default {
     'gui.lessonHint.dragLabel': 'Drag to move',
     'gui.lessonHint.insertCodeError': 'The program cannot be inserted yet. Do the earlier hints first.',
     'gui.lessonHint.blocksError': '(These blocks could not be drawn.)',
+    'gui.lessonHint.readDiagram.answerAtEnd':
+        'Read the diagram and the explanation, and make the program yourself. The answer is on the last page of the hint.',
+    'gui.lessonHint.readDiagram.try':
+        'When you have made it, run it and try it. Does it work like the diagram? If not, read the diagram again and fix it. You can see the answer on the next page.',
+    'gui.lessonHint.readDiagram.answerOf': 'Program of {name}',
+    'gui.lessonHint.readDiagram.answer':
+        'This is the answer. Compare it with your program. Your program stays as it is.',
     'gui.menuBar.lessons': 'Lessons',
     'gui.lessonsLibrary.title': 'Choose a Lesson',
     'gui.lessonsLibrary.search': 'Search',
