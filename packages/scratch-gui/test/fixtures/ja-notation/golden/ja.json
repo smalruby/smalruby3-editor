@@ -4579,7 +4579,7 @@
         "row": 0,
         "column": 0,
         "type": "error",
-        "text": "\"@x = !@a[1]\" is the wrong instruction.\nCheck the spelling or use a supported block.",
+        "text": "\"x = a[1]でない\" is the wrong instruction.\nCheck the spelling or use a supported block.",
         "source": null
       }
     ]
@@ -6461,7 +6461,7 @@
         "row": 0,
         "column": 0,
         "type": "error",
-        "text": "\"puts(rand(rand(1..10)))\" is the wrong instruction.\nCheck the spelling or use a supported block.",
+        "text": "\"表示する(乱数(乱数(1..10)))\" is the wrong instruction.\nCheck the spelling or use a supported block.",
         "source": null
       }
     ]
@@ -7462,7 +7462,7 @@
         "row": 4,
         "column": 0,
         "type": "error",
-        "text": "\"@i\" is a value, so it cannot be written as a command by itself.\nUse it in a command (e.g. say(@i)) or set it to a variable.",
+        "text": "\"i\" is a value, so it cannot be written as a command by itself.\nUse it in a command (e.g. say(@i)) or set it to a variable.",
         "source": null
       }
     ]
@@ -9990,7 +9990,7 @@
         "row": 0,
         "column": 0,
         "type": "error",
-        "text": "\"@a, @b = @b, @a\" is the wrong instruction.\nCheck the spelling or use a supported block.",
+        "text": "\"a, b = b, a\" is the wrong instruction.\nCheck the spelling or use a supported block.",
         "source": null
       }
     ]
@@ -10007,7 +10007,7 @@
         "row": 1,
         "column": 0,
         "type": "error",
-        "text": "\"@_array_A_[0], @_array_A_[1] = @_array_A...\" is the wrong instruction.\nCheck the spelling or use a supported block.",
+        "text": "\"A[0], A[1] = A[1], A[0]\" is the wrong instruction.\nCheck the spelling or use a supported block.",
         "source": null
       }
     ]

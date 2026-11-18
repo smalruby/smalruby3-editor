@@ -212,6 +212,85 @@ describe('DnclSourceMap', () => {
             expect(errors.map((err) => err.line)).toEqual([4]);
         });
 
+        // The converter quotes the Ruby statement (`"@a, @b = @b, @a" is the wrong instruction.`),
+        // which has `@` the student did not write: the Japanese line is quoted instead (issue #1822).
+        describe('the quoted Ruby becomes the Japanese line', () => {
+            test('in the English and the Japanese words', () => {
+                const map = dnclToRuby('a, b = b, a').sourceMap;
+                const moved = map.rubyErrorsToDncl([
+                    {
+                        row: 0,
+                        column: 0,
+                        source: '@a, @b = @b, @a',
+                        text: '"@a, @b = @b, @a" is the wrong instruction.',
+                    },
+                    {
+                        row: 0,
+                        column: 0,
+                        source: '@a, @b = @b, @a',
+                        text: '「@a, @b = @b, @a」は命令がまちがっています。',
+                    },
+                ]);
+
+                expect(moved.map((err) => err.text)).toEqual([
+                    '"a, b = b, a" is the wrong instruction.',
+                    '「a, b = b, a」は命令がまちがっています。',
+                ]);
+            });
+
+            test('without the line number, the marks of the block and the comment', () => {
+                const dncl = ['(1) もし a > 0 ならば:', '(2) ⎿ x = 含む(1, 2)  # 確かめる'].join('\n');
+                const { ruby, sourceMap } = dnclToRuby(dncl);
+                const row = rubyLineOf(ruby, 'include?') - 1;
+                const source = ruby.split('\n')[row].trim();
+                const [moved] = sourceMap.rubyErrorsToDncl([
+                    { row, column: 2, source, text: `「${source}」は命令がまちがっています。` },
+                ]);
+
+                expect(moved.row).toBe(1);
+                expect(moved.text).toBe('「x = 含む(1, 2)」は命令がまちがっています。');
+            });
+
+            test('a statement of more lines quoted by its first line', () => {
+                const dncl = ['もし a.foo > 0 ならば:', '    b = 1'].join('\n');
+                const map = new DnclSourceMap([1, 2, 2], 2, {
+                    ja: dncl,
+                    ruby: 'if @a.foo > 0\n  @b = 1\nend',
+                });
+                const [moved] = map.rubyErrorsToDncl([
+                    {
+                        row: 0,
+                        column: 0,
+                        source: 'if @a.foo > 0...',
+                        text: '"if @a.foo > 0..." is the wrong instruction.',
+                    },
+                ]);
+
+                expect(moved.text).toBe('"もし a.foo > 0 ならば:" is the wrong instruction.');
+            });
+
+            test('a long line cut as the converter cuts it', () => {
+                const name = 'とてもながいなまえのへんすう';
+                const dncl = `${name}1, ${name}2 = ${name}2, ${name}1`;
+                const map = dnclToRuby(dncl).sourceMap;
+                const ruby = `@${name}1, @${name}2 = @${name}2, @${name}1`;
+                const cut = `${ruby.slice(0, 40)}...`;
+                const [moved] = map.rubyErrorsToDncl([
+                    { row: 0, column: 0, source: cut, text: `"${cut}" is the wrong instruction.` },
+                ]);
+
+                expect(moved.text).toBe(`"${dncl.slice(0, 40)}..." is the wrong instruction.`);
+            });
+
+            test('a quote that is not the Ruby of the line is kept', () => {
+                const map = dnclToRuby('a = 1').sourceMap;
+                const text = 'Put the number part in parentheses, like "a" + (x - 1).';
+                const [moved] = map.rubyErrorsToDncl([{ row: 0, column: 0, source: null, text }]);
+
+                expect(moved.text).toBe(text);
+            });
+        });
+
         test('an error after the last Ruby line lands on the last DNCL line', () => {
             const dncl = 'a = 【外部からの入力】\nb = 2';
             const map = dnclToRuby(dncl).sourceMap;

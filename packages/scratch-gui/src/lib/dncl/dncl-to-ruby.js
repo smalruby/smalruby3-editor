@@ -40,7 +40,7 @@ const dnclToRuby = (source) => {
     return {
         ruby: result.ruby,
         errors: [],
-        sourceMap: new DnclSourceMap(result.jaLines, source.split('\n').length),
+        sourceMap: new DnclSourceMap(result.jaLines, source.split('\n').length, { ja: source, ruby: result.ruby }),
     };
 };
 
