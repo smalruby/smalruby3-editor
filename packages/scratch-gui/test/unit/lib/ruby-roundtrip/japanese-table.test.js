@@ -399,4 +399,26 @@ defineBlockRubyTable('Japanese mode ⇔ Ruby ⇔ blocks', [
             looks_sayforsecs(MESSAGE: @x, SECS: 1) ${PUTS}
         `,
     },
+    {
+        name: 'a name with 々 is one variable (issue #1714)',
+        ja: `
+            佐々木 = 7
+            表示する(佐々木)
+        `,
+        ruby: `
+            @佐々木 = 7
+            puts(@佐々木)
+        `,
+        blocks: `
+            data_setvariableto(VARIABLE = @佐々木, VALUE: "7")
+            looks_sayforsecs(MESSAGE: @佐々木, SECS: 1) ${PUTS}
+        `,
+    },
+    {
+        name: 'a kanji of the CJK extension A and a Greek letter are names (issue #1714)',
+        ja: 'α = 㐀 ＋ 1',
+        jaOnly: 'jaToBlocks',
+        ruby: '@α = @㐀 + 1',
+        blocks: 'data_setvariableto(VARIABLE = @α, VALUE: operator_add(NUM1: @㐀, NUM2: 1))',
+    },
 ]);

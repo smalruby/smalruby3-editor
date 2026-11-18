@@ -134,6 +134,13 @@
     "ja": "もし a > 0 ならば\n  表示する(\"正の数\")\nそうでなければ\n  表示する(\"正でない\")\nを実行する"
   },
   {
+    "id": "ja-906fd1a488",
+    "from": [
+      "issue #1714"
+    ],
+    "ja": "x〆 = 1\n𠮷田 = x〆 + 2\nｘ１ = 𠮷田 ÷ 2\n表示する(ｘ１)"
+  },
+  {
     "id": "ja-80ddb38c57",
     "from": [
       "test/fixtures/dncl/broken/assign-to-param.dncl",
@@ -4421,6 +4428,20 @@
       "test/unit/lib/genai-ruby-adapter.test.js › the Ruby tab adapter in the Japanese (DNCL) mode (#1402) switches a sprite no longer in the editor through Ruby"
     ],
     "ja": "x ← 1\n表示する(x)\n"
+  },
+  {
+    "id": "ja-25540a0107",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › a kanji of the CJK extension A and a Greek letter are names (issue #1714)"
+    ],
+    "ja": "α = 㐀 ＋ 1"
+  },
+  {
+    "id": "ja-c2fd5fbf11",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › a name with 々 is one variable (issue #1714)"
+    ],
+    "ja": "佐々木 = 7\n表示する(佐々木)"
   },
   {
     "id": "ja-b925e51bb0",

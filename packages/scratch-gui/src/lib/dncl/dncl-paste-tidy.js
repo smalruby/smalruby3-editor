@@ -18,6 +18,7 @@
 // See Issue #1192.
 import { lineNumberSeparator } from './dncl-line-number';
 import { codeOfLine, commentIndex, stringEndAt } from './dncl-trailing-comment';
+import { NAME_PATTERN } from './paren-utils';
 
 /**
  * A line-number prefix and the whitespace after it: the DNCLv2 form
@@ -88,8 +89,11 @@ const removeLineNumbers = (lines) => {
  */
 const OPERATOR_RE = /[+\-*/%=<>!&|÷×≦≧≠]|(?:^|\s)(?:かつ|または)(?=\s|$)/;
 
-/** An identifier as the DNCL converter accepts it (ASCII + kana + kanji). */
-const NAME_RE = /[a-zA-Z_぀-ゟ゠-ヿ一-鿿][a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿]*/g;
+/** A name as the converter (ja-notation) reads it (`佐々木` is one name; Issue #1714). */
+const NAME_RE = new RegExp(NAME_PATTERN, 'gu');
+
+/** A name at the start of a text. */
+const LEADING_NAME_RE = new RegExp(`^${NAME_PATTERN}`, 'u');
 
 /**
  * Index of the `#` that starts the comment of a line, ignoring `#` inside
@@ -203,7 +207,7 @@ const isDivisionSlash = (line, i, names) => {
     const rest = line.substring(i + 2, commentStart(line)).trim();
     if (rest === '') return false;
     if (/^[\x21-\x7e]/.test(rest)) return true;
-    const m = rest.match(/^[a-zA-Z_぀-ゟ゠-ヿ一-鿿][a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿]*/);
+    const m = rest.match(LEADING_NAME_RE);
     if (m !== null && names.has(m[0])) return true;
     if (OPERATOR_RE.test(withoutStrings(rest))) return true;
     return bracketDepth(line.substring(0, i)) > 0;

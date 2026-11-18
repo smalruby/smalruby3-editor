@@ -2534,6 +2534,13 @@
     "ruby": "move(0)\n"
   },
   {
+    "id": "ruby-424f214fbb",
+    "from": [
+      "test/unit/lib/ruby-roundtrip/japanese-table.test.js › a name with 々 is one variable (issue #1714)"
+    ],
+    "ruby": "@佐々木 = 7\nputs(@佐々木)"
+  },
+  {
     "id": "ruby-bb37969227",
     "from": [
       "test/unit/lib/ruby-roundtrip/japanese-table.test.js › Japanese mode ⇔ Ruby ⇔ blocks ÷ is the integer division toJa"

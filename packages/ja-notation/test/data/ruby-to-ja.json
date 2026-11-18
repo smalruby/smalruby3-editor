@@ -49,6 +49,13 @@
             "ruby": "# はじめ\nx = 1\n\nif x > 0 # x が正\n  x = 2\nend",
             "ja": "# はじめ\nx = 1\n\nもし x > 0 ならば: # x が正\n    x = 2",
             "errors": []
+        },
+        {
+            "title": "a name with 々, 〆 or a kanji of the CJK extensions is written as it is, and is read back as one name (Issue #1714)",
+            "table": "none",
+            "ruby": "佐々木 = 7\n㐀〆 = 佐々木 + 2\nα = 佐々木",
+            "ja": "佐々木 = 7\n㐀〆 = 佐々木 + 2\nα = 佐々木",
+            "errors": []
         }
     ]
 }

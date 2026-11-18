@@ -1,4 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (DNCL paren utilities) ===
+import { isNameChar as isJaNameChar, NAME_HEAD_RE, NAME_TAIL_RE } from '@smalruby/ja-notation';
 
 /**
  * Find the end of a string literal starting at position `start`.
@@ -53,12 +54,26 @@ const findMatchingClose = (text, openParenPos) => {
 };
 
 /**
- * Whether `ch` can be part of a DNCL name: a letter of any script (so kanji
- * and kana too), a digit or `_`. (Issue #1711)
+ * A name of the Japanese mode, as a pattern for `new RegExp(..., 'u')` (the
+ * `u` flag is needed): the characters ja-notation reads as a name
+ * (`NAME_HEAD_RE` / `NAME_TAIL_RE` of packages/ja-notation/src/lexer.js), so
+ * every check of the editor agrees with the conversion on what a name is
+ * (`佐々木` is one name; Issue #1714).
+ */
+const NAME_PATTERN = `${NAME_HEAD_RE.source}${NAME_TAIL_RE.source}*`;
+
+/** One character of a name, as a pattern (with the `u` flag). */
+const NAME_CHAR_PATTERN = NAME_TAIL_RE.source;
+
+/**
+ * Whether `ch` can be part of a DNCL name, as ja-notation reads names: a
+ * letter of any script (kanji, kana, `々`), a digit or `_` (Issue #1711,
+ * Issue #1714). Half of a character out of the BMP (`𠮷`, as `line[i]` gives
+ * it) counts as one, so a check of the boundary of a word does not cut such a name.
  * @param {string} ch - The character.
  * @returns {boolean} True for a name character.
  */
-const isNameChar = (ch) => typeof ch === 'string' && /[\p{L}\p{N}_]/u.test(ch);
+const isNameChar = (ch) => typeof ch === 'string' && (isJaNameChar(ch) || /^[\uD800-\uDFFF]$/.test(ch));
 
 /**
  * Whether `word` stands on its own at `line[i]`: no name character
@@ -73,4 +88,4 @@ const isNameChar = (ch) => typeof ch === 'string' && /[\p{L}\p{N}_]/u.test(ch);
 const isWholeWordAt = (line, i, word) =>
     line.startsWith(word, i) && !isNameChar(line[i - 1]) && !isNameChar(line[i + word.length]);
 
-export { findMatchingClose, isNameChar, isWholeWordAt, skipString };
+export { findMatchingClose, isNameChar, isWholeWordAt, NAME_CHAR_PATTERN, NAME_PATTERN, skipString };

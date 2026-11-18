@@ -112,7 +112,7 @@ DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`]
 | `dncl-validator.js` | 日本語モードに無いことばの判定（`findUnsupportedCommands` / `isPostTestLoopLine`）と、その文言・id。ja-notation が読めない行の言いかえ（`ja-notation-errors.js`）が使う。文言と id は Ruby → 日本語の誤りにも使う |
 | `dncl-source-map.js` | DNCL 行 ↔ Ruby 行のマッピング（エラー位置表示用。詳細は下の「エラー行の対応（ソースマップ）」）|
 | `dncl-block-filter.js` | DNCL モードで使えるブロックのフィルタ |
-| `paren-utils.js` | 括弧と名前の文字の判定（`findMatchingClose` / `skipString` / `isNameChar` / `isWholeWordAt`）。`dncl-validator.js` と文字列の計算の警告が使う |
+| `paren-utils.js` | 括弧と名前の文字の判定（`findMatchingClose` / `skipString` / `isNameChar` / `isWholeWordAt`、名前の正規表現の `NAME_PATTERN` / `NAME_CHAR_PATTERN`）。名前の文字は ja-notation の判定をそのまま使う（下の「名前に使える文字」）。`dncl-validator.js`・`dncl-paste-tidy.js`・`dncl-paste-index-shift.js` と文字列の計算の警告が使う |
 | `dncl-trailing-comment.js` | **行末の `# コメント` の切り分け**（`splitTrailingComment` / `codeOfLine`）。日本語の行の判定（貼り付けの整形、文字列の計算の警告、読めない行の言いかえ）が、行末のコメントを外してから行を見る。文字列（`"..."` / `'...'` / `「...」`）の中の `#` はコメントにしない |
 | `ruby-to-dncl.js` | Ruby → 日本語変換のエントリポイント（`rubyToDncl`）。prism で解析し、ja-notation（下の「Ruby → 日本語の変換」）で読んで標準の形で書き、誤りを `ja-notation-errors.js` で日本語モードの文言にする。prism を先に読みこんでおく（`loadPrism()`） |
 
@@ -137,10 +137,19 @@ DNCL 風の形の読み方（切りかえる前の変換に合わせたもの）
 | ファイル | 役割 |
 |---|---|
 | `packages/ja-notation/`（ワークスペースのパッケージ `@smalruby/ja-notation`。MIT。`LICENSE` あり） | ライブラリ。依存は無く、`src/` の外を import しない（`packages/ja-notation/test/boundary.test.js`）。使い方・JaAST の形・テストのデータは `packages/ja-notation/README.md`。下の `ja-notation/<ファイル>` は `packages/ja-notation/src/<ファイル>` |
-| `ja-notation/lexer.js` | 1 行を字句に分ける。全角の演算子・`≦` などは半角のものとして読む |
+| `ja-notation/lexer.js` | 1 行を字句に分ける。全角の演算子・`≦` などは半角のものとして読む。名前の文字の判定（`isName` / `isNameHead` / `isNameChar`。下の「名前に使える文字」）もここにあり、エディタの判定（`paren-utils.js`）も同じものを使う |
 | `ja-notation/parse.js` | 日本語を読む。標準の形（行番号・`｜` `⎿`・字下げ・`ならば:`・`and` / `or` / `not`）と DNCL 風の形（閉じる行・`←`・`かつ`・`でない`・「...」）。JaAST の形は `ja-notation/ja-ast.js` |
 | `ja-notation/build-ruby.js` | JaAST → Ruby の構文木（prism のノード名を使う小さな形）。変数の名前・関数・入力は外から受けとる表で決める |
 | `ja-notation/write-ruby.js` | Ruby のテキストと、Ruby の行ごとの日本語の行を書く |
+
+名前に使える文字（`ja-notation/lexer.js` の `NAME_HEAD_RE` / `NAME_TAIL_RE`。Issue #1714）:
+
+- 1 文字目: 英字・`_`・どの文字体系の文字（Unicode の `\p{L}`。かな・漢字（CJK 拡張 A〜と BMP の外の `𠮷` も）・`々`・`〆`・`ヵ` `ヶ`・`ー`・全角英字・ギリシャ文字など）・
+  文字としての数字（`\p{Nl}`。`〇` `Ⅱ`）と、ひらがな・カタカナの区画の記号（`゛` `・` など。前から読めていたもの）
+- 2 文字目から: 上に加えて、数字（`\p{Nd}`。全角の `１` も）と結合文字（`\p{M}`。`か` + `゙`）
+- Ruby はこれらをどれも名前に使えて、Ruby → 日本語は名前をそのまま書く（`@佐々木` → `佐々木`）。日本語 → Ruby が同じ範囲を名前として読むので、書いた名前は読み戻せる。
+- 全角英字は全角のままの別の名前（`ｘ` は `x` ではない）。Ruby でも別の変数なので、見た目の揺れとして 1 つにそろえない（`policy.md`）。
+- `☆` `①` `😀` のような記号は名前に使えず、「「☆」が読めません」の誤りになる（BMP の外の文字も 1 文字として示す）。
 
 誤りは `{code, message, line, column}` に、日本語モードの文言を作るための `name`（字句）・`opener` / `direction` / `colon` / `word`（ブロック）・`block`（`stray-closer` / `closer-indent` / `stray-branch`）を添えて返す。
 
