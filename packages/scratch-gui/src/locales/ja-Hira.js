@@ -18,11 +18,11 @@ export default {
     'gui.rubyVersion.v1': 'バージョン1',
     'gui.rubyVersion.v2': 'バージョン2 (しょきせってい)',
     'gui.menuBar.meshV2': 'メッシュ',
-    'gui.menuBar.smalrubotS1': 'スモウルボットS1',
+    'gui.menuBar.smalrubotS1': 'Studuino (スタディーノ)',
     'gui.menuBar.smalrubotS1.flashFirmware': 'ファームウェアかきこみ',
-    'gui.smalrubotFirmware.title': 'スモウルボットS1 ファームウェア',
+    'gui.smalrubotFirmware.title': 'Studuino (スタディーノ) ファームウェア',
     'gui.smalrubotFirmware.description':
-        'スモウルボットS1のファームウェアをStuduinoきばんにかきこみます。USBケーブルできばんをせつぞくしてから、したのボタンをおしてシリアルポートせんたくダイアログで、おつかいのスモウルボット S1 をえらんでください。',
+        'スタディーノようのファームウェアをきばんにかきこみます。USBケーブルできばんをせつぞくしてから、したのボタンをおしてシリアルポートせんたくダイアログで、おつかいのスタディーノをえらんでください。',
     'gui.smalrubotFirmware.warning': 'ファームウェアかきこみちゅうにUSBケーブルをぬかないでください。',
     'gui.smalrubotFirmware.flashButton': 'ファームウェアかきこみ',
     'gui.smalrubotFirmware.cancelButton': 'キャンセル',
@@ -1416,10 +1416,11 @@ export default {
     'faceSensing.topOfHead': 'あたまのてっぺん',
     'faceSensing.left': 'ひだり',
     'faceSensing.right': 'みぎ',
-    'gui.smalruby3.extension.smalrubotS1.name': 'スモウルボットS1 (エス1)',
-    'gui.smalruby3.extension.smalrubotS1.description': 'スモウルボットS1 (エス1) をせいぎょする。',
-    'gui.smalruby3.extension.smalrubotS1.connectingMessage': 'スモウルボットS1 (エス1) にせつぞくしています。',
-    'smalrubotS1.categoryName': 'スモウルボットS1 (エス1)',
+    'gui.smalruby3.extension.smalrubotS1.name': 'Studuino (スタディーノ)',
+    'gui.smalruby3.extension.smalrubotS1.description':
+        'ロボットせいさくにとくかした Arduino (アルドゥイーノ) ごかんきばん Studuino® (スタディーノ) をうごかす。Studuino® はかぶしきがいしゃアーテックのとうろくしょうひょうです。',
+    'gui.smalruby3.extension.smalrubotS1.connectingMessage': 'スタディーノにせつぞくしています。',
+    'smalrubotS1.categoryName': 'Studuino (スタディーノ)',
     'smalrubotS1.action': '[ACTION] (M1, M2)',
     'smalrubotS1.actionAndStopAfter': '[SECS] びょう [ACTION] (M1, M2)',
     'smalrubotS1.bendArm': '[SECS] びょうでアーム (D10) を [DEGREE] どにまげる',
@@ -1719,30 +1720,30 @@ export default {
 
     // SmalrubotS1 dedicated flow messages
     'gui.connection.smalrubotS1Initial.intro':
-        'スモウルボット S1 をどのようにつかいますか？ はじめてのばあいは、まずファームウェアをかきこんでください。',
+        'スタディーノをどのようにつかいますか？ はじめてのばあいは、まずファームウェアをかきこんでください。',
     'gui.connection.smalrubotS1Initial.connect': 'せつぞくする（せいとよう）',
     'gui.connection.smalrubotS1Initial.connectDescription':
-        'ファームウェアがかきこまれているスモウルボット S1 にせつぞくします。',
+        'ファームウェアがかきこまれているスタディーノにせつぞくします。',
     'gui.connection.smalrubotS1Initial.flashFirmware': 'ファームウェアをかきこむ（せんせいよう）',
     'gui.connection.smalrubotS1Initial.flashFirmwareDescription':
-        'あたらしいスモウルボット S1 にファームウェアをかきこみます。',
+        'あたらしいスタディーノにファームウェアをかきこみます。',
     'gui.connection.smalrubotS1Initial.helpButton': 'ヘルプ',
     'gui.connection.smalrubotS1Unsupported.title': 'WebSerial にたいおうしていません',
     'gui.connection.smalrubotS1Unsupported.description':
-        'スモウルボット S1 をつかうには WebSerial API にたいおうしたブラウザがひつようです。' +
+        'スタディーノをつかうには WebSerial API にたいおうしたブラウザがひつようです。' +
         'Google Chrome、Microsoft Edge、または Opera のデスクトップばんをおつかいください。',
     'gui.connection.smalrubotS1Unsupported.helpButton': 'ヘルプ',
     'gui.connection.smalrubotS1Connecting.title': 'せつぞくちゅう...',
     'gui.connection.smalrubotS1Connecting.description':
-        'シリアルポートせんたくダイアログで、おつかいのスモウルボット S1 をえらんでください。' +
+        'シリアルポートせんたくダイアログで、おつかいのスタディーノをえらんでください。' +
         'ダイアログがひょうじされないばあいは「もどる」をおしてやりなおしてください。',
     'gui.connection.smalrubotS1Connected.title': 'せつぞくしました',
-    'gui.connection.smalrubotS1Connected.description': 'スモウルボット S1 をつかうじゅんびができました。',
+    'gui.connection.smalrubotS1Connected.description': 'スタディーノをつかうじゅんびができました。',
     'gui.connection.smalrubotS1Connected.disconnectButton': 'せつだんする',
     'gui.connection.smalrubotS1Connected.goToEditorButton': 'エディターにもどる',
     'gui.connection.smalrubotS1Error.title': 'せつぞくにしっぱいしました',
     'gui.connection.smalrubotS1Error.description':
-        'スモウルボット S1 にせつぞくできませんでした。デバイスがせつぞくされていることをかくにんして、もういちどおためしください。',
+        'スタディーノにせつぞくできませんでした。デバイスがせつぞくされていることをかくにんして、もういちどおためしください。',
     'gui.connection.smalrubotS1Error.retryButton': 'もういちどためす',
     'gui.connection.smalrubotS1.backButton': 'もどる',
 

@@ -1307,8 +1307,8 @@ describe('FuriganaAnnotator', () => {
     });
 
     describe('smalrubot_s1 extension (predefined receiver)', () => {
-        test('smalrubot_s1 receiver → スモウルボットS1', () => {
-            expect(labelsAt(annotate('smalrubot_s1.action("forward")'), 1)).toContain('スモウルボットS1');
+        test('smalrubot_s1 receiver → スタディーノ', () => {
+            expect(labelsAt(annotate('smalrubot_s1.action("forward")'), 1)).toContain('スタディーノ');
         });
         test('smalrubot_s1.action("forward") → 動作する + 進める', () => {
             const labels = labelsAt(annotate('smalrubot_s1.action("forward")'), 1);
