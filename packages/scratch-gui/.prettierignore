@@ -114,6 +114,8 @@ src/components/*
 !src/components/mesh-status-popup/**
 !src/components/mesh-practice-partner/
 !src/components/mesh-practice-partner/**
+!src/components/studuino-practice-board/
+!src/components/studuino-practice-board/**
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-bottom-tabs/**
 !src/components/mobile-drawer/
@@ -227,6 +229,7 @@ src/containers/*
 !src/containers/koshien-mock-panel.jsx
 !src/containers/lesson-hint.jsx
 !src/containers/lesson-practice-partner.jsx
+!src/containers/studuino-practice-board.jsx
 !src/containers/lesson-analytics.jsx
 !src/containers/lesson-progress-sync.jsx
 !src/containers/lesson-goal-watcher.jsx
@@ -535,6 +538,7 @@ test/unit/components/*
 !test/unit/components/lesson-hint.test.jsx
 !test/unit/components/lesson-hint-nudge.test.jsx
 !test/unit/containers/lesson-practice-partner.test.jsx
+!test/unit/containers/studuino-practice-board.test.jsx
 !test/unit/components/balloon.test.jsx
 !test/unit/components/classroom-tutorial.test.jsx
 !test/unit/components/lessons-library.test.jsx
