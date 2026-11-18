@@ -176,8 +176,9 @@ describe('LessonsLibrary', () => {
     test('puts a check before the course name when every challenge of the course is done', () => {
         const { getByTestId } = renderLibrary({ progress: progressWith(ALL_IDS) });
         expect(courseProgressText(getByTestId)).toBe('11 / 11');
-        const title = getByTestId(`lessons-library-course-${COURSE_ID}`).querySelector('h2');
-        expect(title.firstChild).toBe(getByTestId('lessons-library-course-done'));
+        // 見出しのボタンの中で、開閉の印のすぐ後（名前の前）
+        const toggle = getByTestId(`lessons-library-course-toggle-${COURSE_ID}`);
+        expect(toggle.children[1]).toBe(getByTestId('lessons-library-course-done'));
         expect(getByTestId('lessons-library-course-done')).toHaveAttribute('aria-label', 'Done');
     });
 
@@ -299,5 +300,125 @@ describe('LessonsLibrary', () => {
         } finally {
             delete window.HTMLElement.prototype.scrollIntoView;
         }
+    });
+
+    // たたみ方（#2148）: いま進めているところだけ開く
+    const isOpen = (getByTestId, testId) => getByTestId(testId).getAttribute('data-expanded') === 'true';
+    const CHAT_ID = 'chat-wo-tsukurou';
+
+    test('at first, opens only lesson 0 and lesson 1 of the first course, and folds the other course', () => {
+        const { getByTestId } = renderLibrary();
+        expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l0')).toBe(true);
+        expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l1')).toBe(true);
+        expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l2')).toBe(false);
+        expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l3')).toBe(false);
+        expect(isOpen(getByTestId, `lessons-library-course-${COURSE_ID}`)).toBe(true);
+        expect(isOpen(getByTestId, `lessons-library-course-${CHAT_ID}`)).toBe(false);
+        // たたんだコースも見出しと進み具合のバーは出す
+        expect(courseProgressText(getByTestId, CHAT_ID)).toMatch(/^0 \/ \d+$/);
+        expect(getByTestId(`lessons-library-course-lessons-${CHAT_ID}`)).not.toBeVisible();
+        // 閉じたレッスンのカードは隠す
+        expect(getByTestId('lessons-library-challenge-blocks-l1-count')).not.toBeVisible();
+        expect(getByTestId('lessons-library-challenge-blocks-l1-key-sound')).toBeVisible();
+    });
+
+    test('the headings are buttons with aria-expanded and aria-controls', () => {
+        const { getByTestId } = renderLibrary();
+        const toggle = getByTestId('lessons-library-lesson-toggle-blocks-l2');
+        expect(toggle.tagName).toBe('BUTTON');
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        expect(toggle).toHaveAttribute('title', 'Show the challenges');
+        const cards = document.getElementById(toggle.getAttribute('aria-controls'));
+        expect(cards).not.toBeNull();
+        expect(cards).not.toBeVisible();
+        fireEvent.click(toggle);
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(toggle).toHaveAttribute('title', 'Hide the challenges');
+        expect(cards).toBeVisible();
+        fireEvent.click(toggle);
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+        const course = getByTestId(`lessons-library-course-toggle-${CHAT_ID}`);
+        expect(course).toHaveAttribute('aria-expanded', 'false');
+        expect(course).toHaveAttribute('title', 'Show the lessons');
+        fireEvent.click(course);
+        expect(course).toHaveAttribute('aria-expanded', 'true');
+        expect(getByTestId(`lessons-library-course-lessons-${CHAT_ID}`)).toBeVisible();
+    });
+
+    test('Space on a heading opens and closes it (the GUI cancels the click of Space)', () => {
+        const { getByTestId } = renderLibrary();
+        const toggle = getByTestId('lessons-library-lesson-toggle-blocks-l3');
+        fireEvent.keyUp(toggle, { key: ' ' });
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        fireEvent.keyUp(toggle, { key: 'a' });
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        const course = getByTestId('lessons-library-course-toggle-chat-wo-tsukurou');
+        fireEvent.keyUp(course, { key: ' ' });
+        expect(course).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    test('a closed lesson shows a dot per challenge and "n / m"; a done lesson shows a check', () => {
+        const l0 = COURSES[0].warmupLessons[0].challenges.map((c) => c.id);
+        const { getByTestId } = renderLibrary({ progress: progressWith([...l0, 'blocks-l1-if']) });
+        const l0Section = getByTestId('lessons-library-lesson-blocks-l0');
+        expect(l0Section).toHaveAttribute('data-expanded', 'false');
+        expect(l0Section.querySelector('[data-testid="lessons-library-lesson-done"]')).not.toBeNull();
+        expect(l0Section.querySelector('[data-testid="lessons-library-lesson-progress-text"]').textContent).toBe(
+            `${l0.length} / ${l0.length}`,
+        );
+        const l2 = getByTestId('lessons-library-lesson-blocks-l2');
+        expect(l2).toHaveAttribute('data-expanded', 'true');
+        const l3 = getByTestId('lessons-library-lesson-blocks-l3');
+        expect(l3).toHaveAttribute('data-expanded', 'false');
+        const dots = Array.from(l3.querySelectorAll('[data-testid="lessons-library-lesson-dot"]'));
+        expect(dots).toHaveLength(COURSES[0].lessons[2].challenges.length);
+        expect(dots.every((d) => d.getAttribute('data-state') === 'todo')).toBe(true);
+        // 開いたレッスンには丸を出さない（カードで見える）
+        expect(l2.querySelector('[data-testid="lessons-library-lesson-dots"]')).toBeNull();
+    });
+
+    test('the dots of a closed lesson show the done and the next challenges', () => {
+        const { getByTestId } = renderLibrary({
+            progress: progressWith(['blocks-l1-count']),
+            focusLessonId: 'blocks-l1',
+            nextChallengeId: 'blocks-l1-broadcast',
+        });
+        fireEvent.click(getByTestId('lessons-library-lesson-toggle-blocks-l3'));
+        fireEvent.click(getByTestId('lessons-library-lesson-toggle-blocks-l3'));
+        const l3 = getByTestId('lessons-library-lesson-blocks-l3');
+        expect(l3).toHaveAttribute('data-expanded', 'false');
+        const states = Array.from(l3.querySelectorAll('[data-testid="lessons-library-lesson-dot"]')).map((d) =>
+            d.getAttribute('data-state'),
+        );
+        expect(states).toEqual(['done', 'next', 'todo', 'todo']);
+    });
+
+    test('opens everything while searching, and goes back to the rule when the search is cleared', () => {
+        const { getByTestId } = renderLibrary();
+        fireEvent.click(getByTestId('lessons-library-lesson-toggle-blocks-l1'));
+        expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l1')).toBe(false);
+        typeSearch(getByTestId, 'a');
+        expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l3')).toBe(true);
+        expect(isOpen(getByTestId, `lessons-library-course-${CHAT_ID}`)).toBe(true);
+        typeSearch(getByTestId, '');
+        expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l1')).toBe(true);
+        expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l3')).toBe(false);
+    });
+
+    test('opens every lesson in the library of the class assignment challenges', () => {
+        const { getByTestId } = renderLibrary({
+            courses: [COURSES[0]],
+            assignmentChallengeIds: ['blocks-l1-key-sound', 'blocks-l1-count'],
+        });
+        expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l1')).toBe(true);
+        expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l3')).toBe(true);
+    });
+
+    test('opens the focused lesson even when it is after the current lesson', () => {
+        const { getByTestId } = renderLibrary({ focusLessonId: 'blocks-l3', nextChallengeId: 'blocks-l1-count' });
+        expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l3')).toBe(true);
+        expect(isOpen(getByTestId, 'lessons-library-lesson-blocks-l0')).toBe(false);
+        expect(getByTestId('lessons-library-challenge-blocks-l1-count')).toBeVisible();
     });
 });

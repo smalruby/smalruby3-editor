@@ -174,7 +174,7 @@ export default function (Generator) {
         if (block.opcode === 'procedures_call') {
             return /^(?:@ruby:super(?::forwarding)?,)?@ruby:return:\S+$/.test(comment);
         }
-        if (block.opcode === 'data_setvariableto') return /^@ruby:return:\w+:\d+$/.test(comment);
+        if (block.opcode === 'data_setvariableto') return /^@ruby:return:[^:,\s]+:\d+$/.test(comment);
         return false;
     };
 

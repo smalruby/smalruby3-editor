@@ -38,14 +38,18 @@ const FOCUS_LESSONS_LIBRARY_START = 'scratch-gui/lesson-mode/FOCUS_LESSONS_LIBRA
 const CLEAR_LESSONS_LIBRARY_FOCUS = 'scratch-gui/lesson-mode/CLEAR_LESSONS_LIBRARY_FOCUS';
 const SET_LIBRARY_ASSIGNMENT_ONLY = 'scratch-gui/lesson-mode/SET_LIBRARY_ASSIGNMENT_ONLY';
 const SET_ROLE = 'scratch-gui/lesson-mode/SET_ROLE';
+const SOLVE_PART_QUIZ = 'scratch-gui/lesson-mode/SOLVE_PART_QUIZ';
 // チュートリアルのカードを開く action（reducers/cards.js の ACTIVATE_DECK）。カードの
 // allowedBlocks / setup がレッスンのものと食い違うので、開いたらレッスンモードを抜ける
 const ACTIVATE_DECK = 'scratch-gui/cards/ACTIVATE_DECK';
 
-// ヒントの吹き出しの状態。チャレンジを閉じるたびに最初にもどす（開くときは 1 ページ目を出す）
+// ヒントの吹き出しの状態。チャレンジを閉じるたびに最初にもどす（開くときは 1 ページ目を出す）。
+// hintMinimized = 吹き出しを小さくして、課題バーの近くに札（いまのページの番号と見出し）だけを残しているか。
+// 子どもはヒントを読んで操作するときに閉じてしまい、手順を見失っていたので、閉じる代わりに小さくする（#2131）
 const hintClosedState = {
     hintVisible: false,
     hintIndex: 0,
+    hintMinimized: false,
 };
 
 // ヒントのページ数。steps の後ろに「うまく動かないときは」と「プログラムを入れる」の
@@ -55,6 +59,15 @@ const hintClosedState = {
 const hasLastResort = (challenge) =>
     !isReadDiagram(challenge) && (challenge.debug.length > 0 || Boolean(challenge.code));
 const hintPageCount = (challenge) => challenge.steps.length + (hasLastResort(challenge) ? 1 : 0);
+
+/**
+ * チャレンジを始めたら、ヒントの 1 ページ目を自動で開くか。ヒントのあるチャレンジは全部開く（ヒントを表示した
+ * まま操作することに気づかない子が多いため・#2129 の Q1）。読むときに邪魔なら「－」で小さくする。
+ * ヒントの無いチャレンジは開かない。
+ * @param {{lesson: object, challenge: object}} found - findChallenge の結果。
+ * @returns {boolean} 自動で開くか。
+ */
+const autoOpensHint = (found) => hintPageCount(found.challenge) > 0;
 
 const closedState = {
     courseId: null,
@@ -87,6 +100,9 @@ const closedState = {
     // 役を選びなおしてチャレンジを始めなおすときの役と、どう決めたか（開くまでの間だけ入る）
     pendingRole: null,
     pendingRoleSource: null,
+    // 画面の部分をクリックして答えるクイズ（チャレンジの `partQuiz`・#2134）で、正しく答えた問いの数。
+    // いまの問いは、この数の番め（0 から）。チャレンジを開くたびに 0 にもどす
+    partQuizSolved: 0,
 };
 
 const initialState = {
@@ -185,10 +201,9 @@ const reducer = function (state, action) {
                 state.pendingChallengeId === found.challenge.id &&
                 isRole(state.pendingRole);
             const hintState = restartedInRole
-                ? { hintIndex: state.hintIndex, hintVisible: state.hintVisible }
-                : { ...hintClosedState, hintVisible: hintPageCount(found.challenge) > 0 };
-            // ヒントボタンを押さなくても、始めたら 1 ページ目を出す（ヒントの無いチャレンジは出さない）。
-            // 閉じたあとは課題バーの「ヒント」で開き直す
+                ? { hintIndex: state.hintIndex, hintVisible: state.hintVisible, hintMinimized: state.hintMinimized }
+                : { ...hintClosedState, hintVisible: autoOpensHint(found) };
+            // ヒントボタンを押さなくても、始めたら 1 ページ目を出す（autoOpensHint）
             return {
                 ...state,
                 courseId: found.course.id,
@@ -208,7 +223,16 @@ const reducer = function (state, action) {
                 justCompletedId: null,
                 justCompletedNew: false,
                 completedHidden: false,
+                partQuizSolved: 0,
             };
+        }
+        case SOLVE_PART_QUIZ: {
+            // ちがうチャレンジ（開きなおした後に届いたもの）の答えは数えない
+            const found = state.challengeId === action.challengeId ? findChallenge(state.challengeId) : null;
+            const questions = found && found.challenge.partQuiz ? found.challenge.partQuiz.questions.length : 0;
+            const solved = state.partQuizSolved || 0;
+            if (solved >= questions || action.index !== solved) return state;
+            return { ...state, partQuizSolved: solved + 1 };
         }
         case CLOSE_LESSON:
         case ACTIVATE_DECK:
@@ -217,13 +241,15 @@ const reducer = function (state, action) {
                 : { ...state, ...closedState };
         case SHOW_HINT:
             if (state.challengeId === null || hintCount(state) === 0) return state;
-            return { ...state, hintVisible: true };
+            return { ...state, hintVisible: true, hintMinimized: false };
         case HIDE_HINT:
-            // ×で閉じたときは、開き直すと同じページから
-            return state.hintVisible ? { ...state, hintVisible: false } : state;
+            // 小さくする（閉じない）。課題バーの近くに札が残り、押すと同じページで元の大きさにもどる（#2131）
+            return state.hintVisible ? { ...state, hintVisible: false, hintMinimized: true } : state;
         case FINISH_HINT:
             // 「おわり」で閉じたときは、最後まで読んだので、開き直すと 1 ページ目から（#1528）
-            if (state.challengeId === null || (!state.hintVisible && state.hintIndex === 0)) return state;
+            if (state.challengeId === null || (!state.hintVisible && !state.hintMinimized && state.hintIndex === 0)) {
+                return state;
+            }
             return { ...state, ...hintClosedState };
         case NEXT_HINT: {
             if (state.challengeId === null) return state;
@@ -244,6 +270,8 @@ const reducer = function (state, action) {
             // ヒントの役目が終わり、「できた！」（の「次のチャレンジ」）を吹き出しで隠さないため。
             // ページはそのまま（×で閉じたときと同じ。課題バーの「ヒント」で開き直すと同じページ）
             const hintVisible = action.challengeId === state.challengeId ? false : state.hintVisible;
+            // 小さくした札も消す（できたあとはヒントの役目が終わる）
+            const hintMinimized = action.challengeId === state.challengeId ? false : state.hintMinimized;
             const justCompletedNew =
                 justCompletedId === action.challengeId ? progress !== latest : state.justCompletedNew;
             // 「できた！」を出し直すときは、隠していたのを解く
@@ -252,12 +280,21 @@ const reducer = function (state, action) {
                 progress === state.progress &&
                 justCompletedId === state.justCompletedId &&
                 hintVisible === state.hintVisible &&
+                hintMinimized === state.hintMinimized &&
                 justCompletedNew === state.justCompletedNew &&
                 completedHidden === state.completedHidden
             ) {
                 return state;
             }
-            return { ...state, progress, justCompletedId, hintVisible, justCompletedNew, completedHidden };
+            return {
+                ...state,
+                progress,
+                justCompletedId,
+                hintVisible,
+                hintMinimized,
+                justCompletedNew,
+                completedHidden,
+            };
         }
         case DISMISS_COMPLETED:
             return state.justCompletedId === null
@@ -368,6 +405,15 @@ const setLessonRole = (role, { roleSource = null, rolePair } = {}) => ({
 });
 
 const closeLesson = () => ({ type: CLOSE_LESSON });
+
+/**
+ * 画面の部分をクリックして答えるクイズで、`index` 番め（0 から）の問いに正しく答えた（#2134）。いまの問いで
+ * なければ数えない（同じ問いを 2 回数えない）。
+ * @param {string} challengeId - クイズのあるチャレンジ id。
+ * @param {number} index - 答えた問いの番号（0 から）。
+ * @returns {object} action。
+ */
+const solvePartQuiz = (challengeId, index) => ({ type: SOLVE_PART_QUIZ, challengeId, index });
 
 const showHint = () => ({ type: SHOW_HINT });
 
@@ -493,7 +539,7 @@ const getLessonDnclModeAllowed = (state) => {
 /**
  * ヒントの吹き出しの状態（見た目は吹き出しの実装が作る）。
  * @param {object} state - Redux の state。
- * @returns {?{visible: boolean, index: number, count: number, step: ?object, spotlight: boolean,
+ * @returns {?{visible: boolean, minimized: boolean, index: number, count: number, step: ?object, spotlight: boolean,
  *   lastResort: boolean, debug: Array<object>, code: ?(string|object), session: number}}
  *   レッスンモードでなければ null。`step` はいまのヒント（最後の手段のページでは null）。
  *   `spotlight` はこのページで周りを暗くするか（はじめて開いたチャレンジ、かつ `step.spotlight`）。
@@ -503,11 +549,13 @@ const getLessonDnclModeAllowed = (state) => {
 const getCurrentHint = (state) => {
     const found = getCurrentChallenge(state);
     if (!found) return null;
-    const { hintVisible, hintIndex, hintSession, hintSpotlight } = state.scratchGui.lessonMode;
+    const { hintVisible, hintIndex, hintMinimized, hintSession, hintSpotlight } = state.scratchGui.lessonMode;
     const { steps, debug, code } = found.challenge;
     const step = steps[hintIndex] || null;
     return {
         visible: hintVisible,
+        // 小さくして札だけを残しているか（visible とは同時に true にならない）
+        minimized: Boolean(hintMinimized) && !hintVisible,
         index: hintIndex,
         count: hintPageCount(found.challenge),
         step,
@@ -526,6 +574,7 @@ export {
     cancelStartChallenge,
     openChallenge,
     closeLesson,
+    solvePartQuiz,
     showHint,
     hideHint,
     finishHint,

@@ -5,16 +5,16 @@ import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { LessonMode } from '../../../src/containers/lesson-mode.jsx';
 import analytics from '../../../src/lib/analytics';
-import { applyDeckSetup } from '../../../src/lib/deck-setup';
+import { applySetup } from '../../../src/lib/lessons/apply-setup';
 import { applyChallengeStart } from '../../../src/lib/lessons/challenge-start';
 import * as courses from '../../../src/lib/lessons/courses';
 import { findChallenge } from '../../../src/lib/lessons/courses';
 import { targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';
 
 jest.mock('../../../src/lib/analytics', () => ({ event: jest.fn() }));
-jest.mock('../../../src/lib/deck-setup', () => ({
-    ...jest.requireActual('../../../src/lib/deck-setup'),
-    applyDeckSetup: jest.fn(() => Promise.resolve()),
+jest.mock('../../../src/lib/lessons/apply-setup', () => ({
+    ...jest.requireActual('../../../src/lib/lessons/apply-setup'),
+    applySetup: jest.fn(() => Promise.resolve()),
 }));
 jest.mock('../../../src/lib/ruby-to-blocks-converter', () => ({
     __esModule: true,
@@ -75,7 +75,7 @@ const flush = () => act(() => Promise.resolve());
 
 describe('LessonMode container', () => {
     beforeEach(() => {
-        applyDeckSetup.mockClear();
+        applySetup.mockClear();
         applyChallengeStart.mockClear();
         jest.spyOn(window, 'confirm').mockReturnValue(true);
     });
@@ -189,6 +189,60 @@ describe('LessonMode container', () => {
         expect(analytics.event).not.toHaveBeenCalled();
         expect(props.onCloseLesson).toHaveBeenCalledTimes(1);
         expect(props.onEndLesson).toHaveBeenCalledTimes(1);
+    });
+
+    // 画面の部分の名前の札（#2133）
+    test('the "Guide" button shows the part names for a few seconds, and hides them when pressed again', () => {
+        jest.useFakeTimers();
+        try {
+            const props = {
+                ...baseProps(),
+                current: findChallenge(CHALLENGE_ID),
+                hint: { visible: false, index: 0, count: 2, step: {} },
+            };
+            const { getByTestId, queryByTestId } = renderLessonMode(props);
+            expect(queryByTestId('lesson-part-names')).not.toBeInTheDocument();
+            fireEvent.click(getByTestId('lesson-task-bar-part-names'));
+            expect(getByTestId('lesson-part-names')).toBeInTheDocument();
+            expect(getByTestId('lesson-task-bar-part-names')).toHaveAttribute('aria-pressed', 'true');
+            fireEvent.click(getByTestId('lesson-task-bar-part-names'));
+            expect(queryByTestId('lesson-part-names')).not.toBeInTheDocument();
+            fireEvent.click(getByTestId('lesson-task-bar-part-names'));
+            act(() => {
+                jest.advanceTimersByTime(6000);
+            });
+            expect(queryByTestId('lesson-part-names')).not.toBeInTheDocument();
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('a lesson with showPartNames shows the part names from the start and keeps them', () => {
+        jest.useFakeTimers();
+        try {
+            const found = findChallenge(CHALLENGE_ID);
+            const props = {
+                ...baseProps(),
+                current: { ...found, lesson: { ...found.lesson, showPartNames: true } },
+                hint: { visible: false, index: 0, count: 2, step: {} },
+            };
+            const { getByTestId, queryByTestId } = renderLessonMode(props);
+            expect(getByTestId('lesson-part-names')).toBeInTheDocument();
+            act(() => {
+                jest.advanceTimersByTime(10000);
+            });
+            fireEvent.pointerDown(document.body);
+            expect(getByTestId('lesson-part-names')).toBeInTheDocument();
+            fireEvent.click(getByTestId('lesson-task-bar-part-names'));
+            expect(queryByTestId('lesson-part-names')).not.toBeInTheDocument();
+            fireEvent.click(getByTestId('lesson-task-bar-part-names'));
+            act(() => {
+                jest.advanceTimersByTime(10000);
+            });
+            expect(getByTestId('lesson-part-names')).toBeInTheDocument();
+        } finally {
+            jest.useRealTimers();
+        }
     });
 
     test('hint button shows the hint, and hides it when it is visible', () => {
@@ -381,11 +435,11 @@ describe('LessonMode container', () => {
             isShowingWithoutId: false,
         };
         const { rerender } = renderLessonMode(props);
-        expect(applyDeckSetup).not.toHaveBeenCalled();
+        expect(applySetup).not.toHaveBeenCalled();
         rerender({ ...props, isAnyCreatingNewState: false, isShowingProject: true, isShowingWithoutId: true });
-        expect(applyDeckSetup).toHaveBeenCalledWith({ tab: 'code' }, props.dispatch, props.vm);
+        expect(applySetup).toHaveBeenCalledWith({ tab: 'code' }, props.dispatch, props.vm);
         await flush();
-        // deck-setup（拡張機能）のあとで、スプライトの置きかえと前の段の答え（lib/lessons/challenge-start.js）
+        // apply-setup（拡張機能）のあとで、スプライトの置きかえと前の段の答え（lib/lessons/challenge-start.js）
         expect(applyChallengeStart).toHaveBeenCalledWith(
             props.vm,
             { tab: 'code' },
@@ -486,7 +540,7 @@ describe('LessonMode container', () => {
 
     test('does not open the challenge when it was cancelled during the setup', async () => {
         let resolveSetup;
-        applyDeckSetup.mockImplementationOnce(() => new Promise((resolve) => (resolveSetup = resolve)));
+        applySetup.mockImplementationOnce(() => new Promise((resolve) => (resolveSetup = resolve)));
         const props = {
             ...baseProps(),
             pendingChallengeId: CHALLENGE_ID,
@@ -506,7 +560,7 @@ describe('LessonMode container', () => {
 
     test('opens the challenge even when the setup fails', async () => {
         jest.spyOn(console, 'warn').mockImplementation(() => {});
-        applyDeckSetup.mockImplementationOnce(() => Promise.reject(new Error('boom')));
+        applySetup.mockImplementationOnce(() => Promise.reject(new Error('boom')));
         const props = {
             ...baseProps(),
             pendingChallengeId: CHALLENGE_ID,
@@ -560,7 +614,7 @@ describe('LessonMode container', () => {
 describe('LessonMode container: the role of a pair challenge (#2062)', () => {
     beforeEach(() => {
         window.localStorage.clear();
-        applyDeckSetup.mockClear();
+        applySetup.mockClear();
         applyChallengeStart.mockClear();
     });
 
