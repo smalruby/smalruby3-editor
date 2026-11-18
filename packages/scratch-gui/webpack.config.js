@@ -48,6 +48,11 @@ const MONACO_VS_DEST = `static/monaco/${MONACO_EDITOR_VERSION}/vs`;
 // `min/vs` は約 16MB あり、PWA の precache に入れると初回インストールが極端に重くなる。
 // precache からは除外し、runtime caching (StaleWhileRevalidate) でオフライン対応する。
 const monacoPrecacheExclude = /^static[\\/]monaco[\\/]/;
+// === Smalruby: Start of standard assignments ===
+// The PDFs under assignments/ are printed by teachers, not used by the editor. Keep them out of the
+// service worker's precache so that installing the PWA does not download them.
+const assignmentsPrecacheExclude = /^assignments[\\/]/;
+// === Smalruby: End of standard assignments ===
 const monacoRuntimeCaching = {
     urlPattern: /\/static\/monaco\//,
     handler: 'StaleWhileRevalidate',
@@ -63,6 +68,32 @@ const monacoRuntimeCaching = {
     }
 };
 // === Smalruby: End of self-hosted Monaco Editor (#1171) ===
+
+// === Smalruby: Start of lazy tutorial images ===
+// The upstream tutorials bring back ~1,400 step images and thumbnails (about 50 MB).
+// Emit them under static/assets/decks/ as files (never inlined into gui.js), keep them and the
+// per-language step chunks out of the service worker precache, and cache them only after a
+// tutorial is opened, so that the first visit does not download them.
+const decksImagesDir = path.resolve(__dirname, 'src/lib/libraries/decks');
+const decksPrecacheExclude = [
+    /^static[\\/]assets[\\/]decks[\\/]/,
+    /^chunks[\\/][A-Za-z_]+-steps\./
+];
+const decksRuntimeCaching = {
+    urlPattern: /\/(static\/assets\/decks\/|chunks\/[A-Za-z_]+-steps\.)/,
+    handler: 'CacheFirst',
+    options: {
+        cacheName: 'smalruby-tutorial-images',
+        expiration: {
+            maxEntries: 300,
+            maxAgeSeconds: 30 * 24 * 60 * 60 // 30 日
+        },
+        cacheableResponse: {
+            statuses: [0, 200]
+        }
+    }
+};
+// === Smalruby: End of lazy tutorial images ===
 
 const cssModuleExceptions = [
     /\.raw\.css$/, // Allow for overriding CSS classes from libraries
@@ -133,6 +164,17 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         resourceQuery: /^$/, // reject any query string
         type: 'asset' // let webpack decide on the best type of asset
     })
+    // === Smalruby: Start of lazy tutorial images ===
+    .addModuleRule({
+        test: /\.(png|gif|jpg)$/,
+        include: decksImagesDir,
+        resourceQuery: /^$/,
+        type: 'asset/resource',
+        generator: {
+            filename: 'static/assets/decks/[name].[hash][ext][query]'
+        }
+    })
+    // === Smalruby: End of lazy tutorial images ===
     .addPlugin(new webpack.DefinePlugin({
         'process.env.DEBUG': Boolean(process.env.DEBUG),
         'process.env.GA_ID': `"${process.env.GA_ID || 'UA-000000-01'}"`,
@@ -369,7 +411,16 @@ const buildConfig = baseConfig.clone()
                 from: 'extensions/**',
                 to: 'static',
                 context: 'src/examples'
+            },
+            // === Smalruby: Start of standard assignments ===
+            // Publish the repository's assignments/ at smalruby.app/assignments/ (CC0 materials).
+            {
+                from: '**/*',
+                context: path.resolve(__dirname, '../../assignments'),
+                to: 'assignments',
+                globOptions: { ignore: ['**/README.md'] }
             }
+            // === Smalruby: End of standard assignments ===
         ]
     }));
 
@@ -383,10 +434,13 @@ const buildWithPwaConfig = buildConfig.clone()
             exclude: [
                 /\.DS_Store/,
                 /version\.json$/, // === Smalruby: exclude from precache for version update notification ===
-                monacoPrecacheExclude // === Smalruby: Monaco is runtime-cached instead (#1171) ===
+                monacoPrecacheExclude, // === Smalruby: Monaco is runtime-cached instead (#1171) ===
+                assignmentsPrecacheExclude, // === Smalruby: standard assignments are not precached ===
+                ...decksPrecacheExclude // === Smalruby: tutorial images are runtime-cached (lazy tutorial images) ===
             ],
             // === Smalruby: runtime caching for the self-hosted Monaco Editor (#1171) ===
-            runtimeCaching: [monacoRuntimeCaching],
+            // === Smalruby: and for the tutorial images (lazy tutorial images) ===
+            runtimeCaching: [monacoRuntimeCaching, decksRuntimeCaching],
             maximumFileSizeToCacheInBytes: 64 * 1024 * 1024,
             // Don't add revision to files that already have hash in filename
             dontCacheBustURLsMatching: /\.[0-9a-f]{8,}\./
@@ -454,10 +508,13 @@ const distWithHtmlConfig = buildConfig.clone()
             exclude: [
                 /\.DS_Store/,
                 /version\.json$/, // === Smalruby: exclude from precache for version update notification ===
-                monacoPrecacheExclude // === Smalruby: Monaco is runtime-cached instead (#1171) ===
+                monacoPrecacheExclude, // === Smalruby: Monaco is runtime-cached instead (#1171) ===
+                assignmentsPrecacheExclude, // === Smalruby: standard assignments are not precached ===
+                ...decksPrecacheExclude // === Smalruby: tutorial images are runtime-cached (lazy tutorial images) ===
             ],
             // === Smalruby: runtime caching for the self-hosted Monaco Editor (#1171) ===
-            runtimeCaching: [monacoRuntimeCaching],
+            // === Smalruby: and for the tutorial images (lazy tutorial images) ===
+            runtimeCaching: [monacoRuntimeCaching, decksRuntimeCaching],
             maximumFileSizeToCacheInBytes: 64 * 1024 * 1024,
             // Don't add revision to files that already have hash in filename
             dontCacheBustURLsMatching: /\.[0-9a-f]{8,}\./

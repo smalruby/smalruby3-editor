@@ -188,6 +188,9 @@ import smalrubyLogo from './hatti.svg';
 import hattiGreeting from './hatti-greeting.png';
 import {createVersionChecker} from '../../lib/version-checker';
 // === Smalruby: End of replace Scratch logos with Smalruby logo ===
+// === Smalruby: Start of help menu ===
+import {arrangeHelpMenu, shortVersion} from '../../lib/help-menu';
+// === Smalruby: End of help menu ===
 
 import sharedMessages from '../../lib/shared-messages';
 
@@ -214,6 +217,18 @@ const ariaMessages = defineMessages({
         description: 'accessibility text for the debug button'
     // === Smalruby: Start of koshien menu ===
     },
+    // === Smalruby: Start of help menu ===
+    version: {
+        id: 'gui.menuBar.version',
+        defaultMessage: 'Version: {version}',
+        description: 'Item at the bottom of the "?" menu that shows the version (the short commit id) of this build'
+    },
+    versionDevelopment: {
+        id: 'gui.menuBar.versionDevelopment',
+        defaultMessage: 'development build',
+        description: 'Shown as the version in the "?" menu when the build has no commit id (a local build)'
+    },
+    // === Smalruby: End of help menu ===
     koshien: {
         id: 'gui.menuBar.koshien',
         defaultMessage: 'Smalruby Koshien',
@@ -343,7 +358,8 @@ class MenuBar extends React.Component {
             'handleSmalrubotS1FirmwareFlash',
             'handleClickWelcomeTooltip', // === Smalruby: welcome tooltip ===
             'handleUpdateAvailable',
-            'handleUpdateNotificationClick'
+            'handleUpdateNotificationClick',
+            'handleClickVersion' // === Smalruby: help menu ===
             // === Smalruby: End of smalruby menu handlers ===
         ]);
         // === Smalruby: Start of version update notification ===
@@ -415,6 +431,10 @@ class MenuBar extends React.Component {
         } else {
             this.setState({updateAvailable: true});
         }
+    }
+    handleClickVersion () {
+        // Looking at the version is a good moment to tell about a newer one (shown on the logo).
+        this.versionChecker.check();
     }
     handleUpdateNotificationClick () {
         // eslint-disable-next-line no-alert
@@ -762,43 +782,55 @@ class MenuBar extends React.Component {
                 >
                     {/* === Smalruby: Start of help menu === */}
                     {/* Tutorials / Debug live here instead of as menu-bar buttons so
-                        they stay out of sight until someone looks for help. The
-                        upstream "about" items below get their own MenuSection so a
-                        divider separates the two groups. */}
-                    <MenuSection>
-                        <MenuItem
-                            data-testid="menu-bar-help-tutorials"
-                            onClick={this.wrapAboutMenuCallback(this.props.onOpenTipsLibrary)}
-                        >
-                            <FormattedMessage {...ariaMessages.tutorials} />
-                        </MenuItem>
-                        <MenuItem
-                            data-testid="menu-bar-help-debug"
-                            onClick={this.wrapAboutMenuCallback(this.props.onOpenDebugModal)}
-                        >
-                            <FormattedMessage {...ariaMessages.debug} />
-                        </MenuItem>
-                    </MenuSection>
-                    <MenuSection>
-                        {/* === Smalruby: End of help menu === */}
-                        {
-                            onClickAbout.map(itemProps => (
+                        they stay out of sight until someone looks for help. The order
+                        and the dividers come from HELP_MENU_SECTIONS (lib/help-menu.js). */}
+                    {arrangeHelpMenu(this.buildHelpMenuItems(onClickAbout)).map(section => (
+                        <MenuSection key={section[0].id || section[0].title}>
+                            {section.map(itemProps => (
                                 <MenuItem
-                                    key={itemProps.title}
+                                    data-testid={itemProps.testId}
                                     isRtl={this.props.isRtl}
+                                    key={itemProps.id || itemProps.title}
                                     onClick={this.wrapAboutMenuCallback(itemProps.onClick)}
                                 >
                                     {itemProps.title}
                                 </MenuItem>
-                            ))
-                        }
-                        {/* === Smalruby: Start of help menu === */}
-                    </MenuSection>
+                            ))}
+                        </MenuSection>
+                    ))}
                     {/* === Smalruby: End of help menu === */}
                 </MenuBarMenu>
             </div>
         );
     }
+    // === Smalruby: Start of help menu ===
+    buildHelpMenuItems (onClickAbout) {
+        const version = shortVersion(process.env.COMMIT_SHA);
+        return [
+            {
+                id: 'tutorials',
+                testId: 'menu-bar-help-tutorials',
+                title: <FormattedMessage {...ariaMessages.tutorials} />,
+                onClick: this.props.onOpenTipsLibrary
+            },
+            {
+                id: 'debug',
+                testId: 'menu-bar-help-debug',
+                title: <FormattedMessage {...ariaMessages.debug} />,
+                onClick: this.props.onOpenDebugModal
+            },
+            {
+                id: 'version',
+                testId: 'menu-bar-help-version',
+                title: this.props.intl.formatMessage(ariaMessages.version, {
+                    version: version || this.props.intl.formatMessage(ariaMessages.versionDevelopment)
+                }),
+                onClick: this.handleClickVersion
+            },
+            ...onClickAbout
+        ];
+    }
+    // === Smalruby: End of help menu ===
     wrapAboutMenuCallback (callback) {
         return () => {
             callback();

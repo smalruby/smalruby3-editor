@@ -8,6 +8,18 @@ import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
+import {
+    SITE_APEX_TXT_TTL_SECONDS,
+    SITE_APEX_TXT_VALUES,
+    SITE_CAA_TTL_SECONDS,
+    SITE_CAA_VALUES,
+    SITE_DELEGATION_TTL_SECONDS,
+    SITE_DELEGATIONS,
+    SITE_GITHUB_PAGES_CHALLENGE_NAME,
+    SITE_GITHUB_PAGES_CHALLENGE_TTL_SECONDS,
+    SITE_GITHUB_PAGES_CHALLENGE_VALUES,
+    SITE_ZONE_NAME,
+} from './site-zone-records';
 
 /** プレビュー配信用のゾーン名（お名前.com から NS を委任する）。 */
 export const PREVIEW_ZONE_NAME = 'preview.smalruby.app';
@@ -52,6 +64,38 @@ export const SITE_DEPLOY_SUBJECTS = [
  */
 export const SITE_NONCURRENT_VERSION_EXPIRATION_DAYS = 30;
 
+/**
+ * 本番 CloudFront のアクセスログを残す日数（人間が 30 日に決めた）。
+ * ログには利用者の IP アドレスが入るので、必要な間だけ残して消す（docs/hosting/README.md）。
+ * 変えるときはこの値だけを変える（バケットのライフサイクルが追従する）。
+ */
+export const SITE_ACCESS_LOG_RETENTION_DAYS = 30;
+
+/** アクセスログのオブジェクトキーの接頭辞（ログのバケットを後でほかの用途と分けられるように付ける）。 */
+export const SITE_ACCESS_LOG_PREFIX = 'cloudfront/smalruby.app/';
+
+/**
+ * 存在しないファイル（S3 の 403 / 404）に返すページ。ビルド（packages/scratch-gui/pages/404.html）が
+ * トップレベルに置く。CDK からは置かない（CI の同期は --delete なので消える）。
+ */
+export const SITE_NOT_FOUND_PAGE_PATH = '/404.html';
+
+/** エラー応答をキャッシュする最短の秒数。後から置いたファイルがすぐ見えるよう短めにする。 */
+export const SITE_ERROR_CACHING_MIN_TTL_SECONDS = 60;
+
+/**
+ * smalruby.app の配信に付いている WAF の Web ACL（us-east-1・CLOUDFRONT スコープ）。
+ *
+ * CloudFront の定額プラン（Pro）に配信を入れたときに、プランが作って配信に付けたもの。
+ * CDK が作ったものではなく、このスタックは Web ACL を作らない・import しない（ARN を参照するだけ）。
+ * 消さないこと・WAF のコンソールで中身を変えないこと。プランは Web ACL が付いていることを条件にするので、
+ * テンプレートに WebACLId が無いと次の deploy で配信から外れる（またはプランの条件違反で失敗する）。
+ * プランを変える・入れ直すなどで Web ACL が変わるときは、CloudFront のコンソールでプランと
+ * 配信に付いている Web ACL を確かめてから、この値を書き換える。
+ */
+export const SITE_WEB_ACL_ARN =
+    'arn:aws:wafv2:us-east-1:007325983811:global/webacl/CreatedByCloudFront-086021c8/a34b81cf-b3e7-42f7-9c2c-6390e96e30d7';
+
 /** GitHub Actions の OIDC プロバイダ（アカウントに 1 つだけ。Deploy Infra 用に作成済みのものを使う）。 */
 const GITHUB_OIDC_HOST = 'token.actions.githubusercontent.com';
 
@@ -61,6 +105,7 @@ export interface SmalrubyWebHostingStackProps extends cdk.StackProps {
 
 export class SmalrubyWebHostingStack extends cdk.Stack {
     public readonly previewZone?: route53.PublicHostedZone;
+    public readonly siteZone?: route53.PublicHostedZone;
 
     constructor(scope: Construct, id: string, props: SmalrubyWebHostingStackProps) {
         super(scope, id, props);
@@ -72,10 +117,13 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
         cdk.Tags.of(this).add('Service', 'Route53');
         cdk.Tags.of(this).add('ManagedBy', 'CDK');
 
-        // 本番（smalruby.app）の配信基盤は prod だけに作る。独自ドメインと DNS はまだ付けない
-        // （smalruby.app のゾーンを Route 53 に移してから、別の変更で足す）。
+        // 本番（smalruby.app）の配信基盤と DNS のゾーンは prod だけに作る。ゾーンにはお名前.com の
+        // レコードを同じ値で写し、CloudFront には smalruby.app の証明書と代替ドメインを付ける
+        // （ネームサーバーを Route 53 に変えたあとなので DNS 検証が終わる）。apex の A / AAAA は
+        // CloudFront の ALIAS（#2007。GitHub Pages から切り替えた）。
         if (stage === SITE_STAGE) {
-            this.createSiteDelivery();
+            this.siteZone = this.createSiteZone();
+            this.createSiteDelivery(this.siteZone);
             return;
         }
 
@@ -202,15 +250,73 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
     }
 
     /**
-     * 本番（smalruby.app）の配信基盤（S3 + CloudFront + CI 用ロール）。
+     * 本番のパブリックホストゾーン `smalruby.app` と、お名前.com から写したレコード。
      *
-     * いまの本番は GitHub Pages で配信しており、これは切り替え先として並べて作るだけ。
-     * 独自ドメイン（smalruby.app）・証明書・DNS はまだ付けないので、CloudFront の既定の
-     * ドメイン（`*.cloudfront.net`）でしか見えず、いまの本番には影響しない。
-     * 証明書は smalruby.app のゾーンを Route 53 に移してから足す（委任前だと DNS 検証が
-     * 終わらないのはプレビューと同じ）。
+     * お名前.com のネームサーバーを Route 53 の 4 本に変えるまで（人間が夜間に行う）、誰もこの
+     * ゾーンを引かないので、作っただけではいまの本番に何も起きない。変えた瞬間から答えが
+     * 変わらないよう、値はお名前.com と同じにする（site-zone-records.ts）。
      */
-    private createSiteDelivery(): void {
+    private createSiteZone(): route53.PublicHostedZone {
+        const zone = new route53.PublicHostedZone(this, 'SiteHostedZone', {
+            zoneName: SITE_ZONE_NAME,
+            comment: 'Smalruby production (smalruby.app, copied from onamae.com)',
+        });
+        // 作り直すと NS が変わり、お名前.com に登録したネームサーバーと食い違うので残す
+        // （preview.smalruby.app と同じ扱い。論理 ID・スタック名・zoneName を変えない）。
+        zone.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
+
+        // apex の A / AAAA は createSiteDelivery() で CloudFront の ALIAS として作る（#2007）。
+        new route53.TxtRecord(this, 'SiteApexTxt', {
+            zone,
+            values: SITE_APEX_TXT_VALUES,
+            ttl: cdk.Duration.seconds(SITE_APEX_TXT_TTL_SECONDS),
+        });
+        // GitHub の組織のドメイン検証。消さない（docs/security/github-pages-subdomain-takeover.md）。
+        new route53.TxtRecord(this, 'SiteGitHubPagesChallenge', {
+            zone,
+            recordName: SITE_GITHUB_PAGES_CHALLENGE_NAME,
+            values: SITE_GITHUB_PAGES_CHALLENGE_VALUES,
+            ttl: cdk.Duration.seconds(SITE_GITHUB_PAGES_CHALLENGE_TTL_SECONDS),
+        });
+        new route53.CaaRecord(this, 'SiteApexCaa', {
+            zone,
+            values: SITE_CAA_VALUES.map(({ tag, value }) => ({
+                flag: 0,
+                tag: tag === 'issue' ? route53.CaaTag.ISSUE : route53.CaaTag.ISSUEWILD,
+                value,
+            })),
+            ttl: cdk.Duration.seconds(SITE_CAA_TTL_SECONDS),
+        });
+        // api. と preview. はそれぞれ別のゾーンへの委任を、いまの NS のまま写す。
+        for (const { name, id, nameServers } of SITE_DELEGATIONS) {
+            new route53.NsRecord(this, id, {
+                zone,
+                recordName: name,
+                values: nameServers,
+                ttl: cdk.Duration.seconds(SITE_DELEGATION_TTL_SECONDS),
+            });
+        }
+
+        new cdk.CfnOutput(this, 'SiteHostedZoneId', {
+            value: zone.hostedZoneId,
+            description: `Route 53 hosted zone id of ${SITE_ZONE_NAME}`,
+        });
+        new cdk.CfnOutput(this, 'SiteHostedZoneNameServers', {
+            value: cdk.Fn.join(',', zone.hostedZoneNameServers!),
+            description: `Name servers to register at onamae.com for ${SITE_ZONE_NAME}`,
+        });
+        return zone;
+    }
+
+    /**
+     * 本番（smalruby.app）の配信基盤（S3 + CloudFront + 証明書 + CI 用ロール）。
+     *
+     * apex の A / AAAA を CloudFront の ALIAS にして、GitHub Pages から配信元を切り替える（#2007）。
+     * CloudFront には `smalruby.app` の証明書と代替ドメインを付ける。
+     * 証明書は、お名前.com のネームサーバーを `createSiteZone()` のゾーンに変えてから足した
+     * （変える前だと DNS 検証が終わらないのはプレビューと同じ）。
+     */
+    private createSiteDelivery(zone: route53.IHostedZone): void {
         const bucket = new s3.Bucket(this, 'SiteBucket', {
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
             encryption: s3.BucketEncryption.S3_MANAGED,
@@ -236,56 +342,100 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             ],
         });
 
-        // `/` → `/index.html`、`/admin/` → `/admin/index.html`、`/admin` → `/admin/` への 301。
-        // プレビューと同じ規則で足りるので、同じ関数のコードを使う。
+        // `/` → `/index.html`、`/admin` → `/admin/` への 301。拡張子の無い URL は、ディレクトリの一覧を
+        // 持たずに全部 `/<path>/` へ 301 する（`/about` は `/about/` → 404 ページ。サイト内のリンクは
+        // `.html` 付きにする）。プレビューと同じ規則なので同じコードを使うが、関数（リソース）は別にする
+        // （定額プランの配信は、ほかの配信に付いている CloudFront Functions を付けられない）。
         const viewerRequest = this.createViewerRequestFunction(
             'SiteViewerRequest',
             'Resolve directory URLs to index.html for smalruby.app',
         );
-        const cachePolicy = this.createCachePolicy(
-            'SiteCachePolicy',
-            'smalruby.app: short for index.html, honor Cache-Control for assets',
-        );
+        // 配信は CloudFront の定額プラン（Pro）に入れる。定額プランはカスタムのキャッシュポリシーと
+        // カスタムのレスポンスヘッダーポリシーを使えないので、配信には AWS 管理の CachingOptimized と
+        // viewer-response 関数（ヘッダ）を付ける。
+        //
+        // HSTS（365 日・includeSubDomains なし）と nosniff を付ける。管理ポリシー
+        // Managed-SecurityHeadersPolicy は X-Frame-Options: SAMEORIGIN なども足し、smalruby.app を
+        // iframe に埋めている所を壊しうるので使わない。
+        const viewerResponse = new cloudfront.Function(this, 'SiteViewerResponse', {
+            runtime: cloudfront.FunctionRuntime.JS_2_0,
+            code: cloudfront.FunctionCode.fromFile({
+                filePath: path.join(__dirname, 'functions/site-viewer-response.js'),
+            }),
+            comment: 'Add HSTS and nosniff to smalruby.app responses',
+        });
 
-        // GitHub Pages が返している HSTS をそのまま引き継ぐ（.app は HSTS preload 済みなので
-        // ブラウザは常に HTTPS で来るが、ヘッダが消えると診断ツールで差分に見える）。
-        const responseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(
-            this,
-            'SiteResponseHeaders',
-            {
-                comment: 'smalruby.app: HSTS and nosniff',
-                securityHeadersBehavior: {
-                    strictTransportSecurity: {
-                        accessControlMaxAge: cdk.Duration.days(365),
-                        includeSubdomains: false,
-                        override: true,
-                    },
-                    contentTypeOptions: { override: true },
-                },
-            },
-        );
+        const logBucket = this.createSiteAccessLogBucket();
+
+        // CloudFront 用の証明書は us-east-1 に要る。プレビューと同じく DnsValidatedCertificate で
+        // us-east-1 に作り、smalruby.app のゾーンで検証する（スタックは分けない）。
+        // www.smalruby.app は今は無いので SAN に足さない。
+        const certificate = new acm.DnsValidatedCertificate(this, 'SiteCertificate', {
+            domainName: SITE_ZONE_NAME,
+            hostedZone: zone,
+            region: 'us-east-1',
+        });
 
         const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
-            comment: 'Smalruby production site (smalruby.app, not attached yet)',
-            // minimumProtocolVersion（TLS 1.2 以上）は既定の証明書では効かないので、
-            // smalruby.app の証明書を付けるときに一緒に足す。
+            comment: `Smalruby production site (${SITE_ZONE_NAME})`,
+            domainNames: [SITE_ZONE_NAME],
+            certificate,
+            minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
+            // 標準ログ（従来の S3 配信）。v2（CloudWatch Logs の配信）は S3 へ出すと 1 GB あたりの
+            // 料金がかかり、CloudFront の配信元の設定を us-east-1 に置く必要がある（このスタックは
+            // ap-northeast-1 で、スタックは分けない）。従来の方式は配信が無料で、プロパティを足すだけで済む。
+            enableLogging: true,
+            logBucket,
+            logFilePrefix: SITE_ACCESS_LOG_PREFIX,
+            logIncludesCookies: false,
             httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
-            priceClass: cloudfront.PriceClass.PRICE_CLASS_200,
+            // 定額プランは料金クラスを持たない（プランに入れると PriceClass_All になる）。200 のままだと
+            // 次の deploy で CloudFront とずれるので All にする。
+            priceClass: cloudfront.PriceClass.PRICE_CLASS_ALL,
+            // 定額プランが作った Web ACL（SITE_WEB_ACL_ARN の説明を参照）。
+            webAclId: SITE_WEB_ACL_ARN,
+            // 存在しないファイルは S3（OAC）が 403 を返すので、404 と同じく 404 ページを 404 で返す。
+            // ページ /404.html はビルド（packages/scratch-gui/pages/404.html）が置く。エラーの応答は
+            // 短めにキャッシュし、あとから置いたファイルがすぐ見えるようにする。
+            errorResponses: [403, 404].map((httpStatus) => ({
+                httpStatus,
+                responseHttpStatus: 404,
+                responsePagePath: SITE_NOT_FOUND_PAGE_PATH,
+                ttl: cdk.Duration.seconds(SITE_ERROR_CACHING_MIN_TTL_SECONDS),
+            })),
             defaultBehavior: {
                 origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),
                 viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
                 compress: true,
-                cachePolicy,
-                responseHeadersPolicy,
+                // キャッシュキーは自前のポリシーと同じ（クエリ・ヘッダ・cookie なし、gzip / br）。
+                // TTL は CI が全オブジェクトに付ける Cache-Control で決まる（ハッシュ付きは 1 年、
+                // それ以外は s-maxage=60）。Cache-Control の無いオブジェクトは既定の 1 日になるので、
+                // CI の配置で Cache-Control を落とさないこと（docs/hosting/README.md）。
+                cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
                 functionAssociations: [
                     {
                         function: viewerRequest,
                         eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
                     },
+                    {
+                        function: viewerResponse,
+                        eventType: cloudfront.FunctionEventType.VIEWER_RESPONSE,
+                    },
                 ],
             },
         });
+
+        // apex を CloudFront に向ける（段 9・#2007）。A は GitHub Pages の IP を書いていたときと
+        // **同じ論理 ID（SiteApexA）** のままにする。論理 ID が変わると CloudFormation は「新しい A を
+        // 作ってから古い A を消す」になり、同じ名前・型のレコードは 2 つ作れないので失敗する（Deploy
+        // Infra の安全装置でも止まる）。ResourceRecords / TTL → AliasTarget はその場の更新で済む。
+        // 戻すときは docs/hosting/README.md の「戻し方」。
+        const siteAliasTarget = route53.RecordTarget.fromAlias(
+            new targets.CloudFrontTarget(distribution),
+        );
+        new route53.ARecord(this, 'SiteApexA', { zone, target: siteAliasTarget });
+        new route53.AaaaRecord(this, 'SiteApexAAAA', { zone, target: siteAliasTarget });
 
         // 本番に出すのは develop への push だけなので、信頼する subject をプレビューより狭くする。
         const deployRole = this.createDeployRole(
@@ -312,11 +462,48 @@ export class SmalrubyWebHostingStack extends cdk.Stack {
             value: distribution.distributionDomainName,
             description: 'CloudFront domain name (check before attaching smalruby.app)',
         });
+        new cdk.CfnOutput(this, 'SiteCertificateArn', {
+            value: certificate.certificateArn,
+            description: `ACM certificate (us-east-1) of ${SITE_ZONE_NAME} attached to CloudFront`,
+        });
+        new cdk.CfnOutput(this, 'SiteLogBucketName', {
+            value: logBucket.bucketName,
+            description: `S3 bucket that keeps CloudFront access logs of smalruby.app (${SITE_ACCESS_LOG_RETENTION_DAYS} days)`,
+        });
+    }
+
+    /**
+     * 本番 CloudFront のアクセスログ専用バケット。非公開・SSE-S3・SSL のみで、
+     * `SITE_ACCESS_LOG_RETENTION_DAYS` を過ぎたログは消す。
+     *
+     * 標準ログ（従来の S3 配信）は CloudFront（awslogsdelivery）がバケットの ACL で書き込むので、
+     * ACL を無効にする BUCKET_OWNER_ENFORCED は使えない。BUCKET_OWNER_PREFERRED にして、
+     * 書かれたログの持ち主をこのアカウントにする。ACL の付与は特定のアカウント宛てで公開ではないので、
+     * Block Public Access は全部 ON のまま使える。
+     * ログは取り戻せなくても配信は止まらないので RETAIN にしない（.claude/rules/infra/development.md の
+     * 「データ保持」）。autoDeleteObjects は付けないので、中身が残っている間は削除が失敗して止まる。
+     */
+    private createSiteAccessLogBucket(): s3.Bucket {
+        return new s3.Bucket(this, 'SiteLogBucket', {
+            blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+            encryption: s3.BucketEncryption.S3_MANAGED,
+            enforceSSL: true,
+            objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_PREFERRED,
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+            lifecycleRules: [
+                {
+                    id: 'ExpireAccessLogs',
+                    expiration: cdk.Duration.days(SITE_ACCESS_LOG_RETENTION_DAYS),
+                    abortIncompleteMultipartUploadAfter: cdk.Duration.days(7),
+                },
+            ],
+        });
     }
 
     /**
      * ディレクトリの URL を index.html に解決する viewer-request 関数。S3 は REST
      * エンドポイント（OAC）なので、ディレクトリの index.html を自分で解決しない。
+     * 本番とプレビューで同じコードを使う（関数のリソースはそれぞれ作る）。
      */
     private createViewerRequestFunction(id: string, comment: string): cloudfront.Function {
         return new cloudfront.Function(this, id, {

@@ -28,3 +28,15 @@ defineBlockRubyTable(
     ],
     { versions: ['1', '2'] },
 );
+
+// The Japanese column: a row with `ja` also runs Japanese → blocks and blocks → Japanese.
+defineBlockRubyTable('defineBlockRubyTable: the Japanese column', [
+    { ja: '表示する(x)', ruby: 'puts(@x)', blocks: 'looks_sayforsecs(MESSAGE: @x, SECS: 1) #"@ruby:method:puts"' },
+    {
+        name: 'jaOnly runs one Japanese direction',
+        ja: 'x ← 1',
+        jaOnly: 'jaToBlocks',
+        ruby: '@x = 1',
+        blocks: 'data_setvariableto(VARIABLE = @x, VALUE: "1")',
+    },
+]);

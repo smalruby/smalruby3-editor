@@ -37,6 +37,7 @@ import reducer, {
     setLibraryAssignmentOnly,
     getCurrentRole,
     setLessonRole,
+    solvePartQuiz,
 } from '../../../src/reducers/lesson-mode';
 
 const wrap = (lessonMode) => ({ scratchGui: { lessonMode } });
@@ -351,6 +352,7 @@ describe('lesson-mode reducer: hints', () => {
         const state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
         expect(getCurrentHint(wrap(state))).toEqual({
             visible: true,
+            minimized: false,
             index: 0,
             count: 3,
             step: STEPS[0],
@@ -465,18 +467,58 @@ describe('lesson-mode reducer: hints', () => {
         let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
         state = reducer(state, hideHint());
         state = reducer(state, nextHint());
-        state = reducer(state, openChallenge('blocks-l1-quiz'));
+        state = reducer(state, openChallenge('blocks-l1-repeat'));
         expect(state.hintVisible).toBe(true);
+        expect(state.hintMinimized).toBe(false);
         expect(state.hintIndex).toBe(0);
     });
 
-    test('closing with × keeps the page; reopening shows the same page', () => {
+    test('every challenge with hints opens the hint on start (#2145), in any course', () => {
+        ['blocks-l1-click-say', 'blocks-l1-if', 'chat-l1-sequence'].forEach((id) => {
+            const state = reducer(lessonModeInitialState, openChallenge(id));
+            expect(getCurrentHint(wrap(state))).toEqual(
+                expect.objectContaining({ visible: true, minimized: false, index: 0 }),
+            );
+        });
+    });
+
+    test('defineLesson has no setting to keep the hint closed', () => {
+        const { defineLesson } = require('../../../src/lib/lessons/courses');
+        expect(defineLesson({ id: 'x', challenges: [] })).not.toHaveProperty('autoOpenHints');
+    });
+
+    test('hideHint makes the balloon small (a tag stays) and showHint brings back the same page', () => {
         let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
         state = reducer(state, nextHint());
         state = reducer(state, nextHint());
         state = reducer(state, hideHint());
+        expect(getCurrentHint(wrap(state))).toEqual(
+            expect.objectContaining({ visible: false, minimized: true, index: 2 }),
+        );
+        // 小さくしたあとにもう一度小さくしても変わらない
+        expect(reducer(state, hideHint())).toBe(state);
         state = reducer(state, showHint());
-        expect(getCurrentHint(wrap(state))).toEqual(expect.objectContaining({ visible: true, index: 2 }));
+        expect(getCurrentHint(wrap(state))).toEqual(
+            expect.objectContaining({ visible: true, minimized: false, index: 2 }),
+        );
+    });
+
+    test('finishing, completing or closing the lesson removes the small tag', () => {
+        let state = withSteps(reducer(lessonModeInitialState, openChallenge('blocks-l1-click-say')));
+        state = reducer(state, nextHint());
+        const small = reducer(state, hideHint());
+        expect(getCurrentHint(wrap(reducer(small, finishHint())))).toEqual(
+            expect.objectContaining({ visible: false, minimized: false, index: 0 }),
+        );
+        const done = reducer(small, markChallengeCompleted('blocks-l1-click-say', '2026-11-10T00:00:00.000Z'));
+        expect(getCurrentHint(wrap(done))).toEqual(
+            expect.objectContaining({ visible: false, minimized: false, index: 1 }),
+        );
+        expect(reducer(small, closeLesson()).hintMinimized).toBe(false);
+        // ほかのチャレンジができても札は消えない
+        expect(
+            reducer(small, markChallengeCompleted('blocks-l1-quiz', '2026-11-10T00:00:00.000Z')).hintMinimized,
+        ).toBe(true);
     });
 
     test('finishHint closes the balloon and the next open starts from the first page', () => {
@@ -488,8 +530,8 @@ describe('lesson-mode reducer: hints', () => {
         state = reducer(state, showHint());
         expect(getCurrentHint(wrap(state))).toEqual(expect.objectContaining({ visible: true, index: 0 }));
         expect(reducer(lessonModeInitialState, finishHint())).toBe(lessonModeInitialState);
-        // すでに閉じていて 1 ページ目なら、何も変えない（同じ state を返す）
-        const closed = reducer(state, hideHint());
+        // すでに閉じていて（小さくした札も無く）1 ページ目なら、何も変えない（同じ state を返す）
+        const closed = reducer(state, finishHint());
         expect(reducer(closed, finishHint())).toBe(closed);
     });
 
@@ -629,6 +671,11 @@ describe('lesson-mode reducer: read-and-build challenge (mode readDiagram)', () 
         state = reducer(state, nextHint());
         expect(getCurrentHint(wrap(state)).index).toBe(2);
     });
+
+    test('opens the hint on start (read and build)', () => {
+        const state = reducer(lessonModeInitialState, openChallenge('blocks-l1-quiz'));
+        expect(getCurrentHint(wrap(state)).visible).toBe(true);
+    });
 });
 
 describe('lesson-mode reducer: the role of a pair challenge (#2061)', () => {
@@ -712,5 +759,32 @@ describe('lesson-mode reducer: the role of a pair challenge (#2061)', () => {
         // ふつうに開き直したら 1 ページ目から
         state = reducer(reducer(state, startChallenge('chat-l5-stamp')), openChallenge('chat-l5-stamp'));
         expect(state.hintIndex).toBe(0);
+    });
+});
+
+describe('the "where is it?" quiz of lesson 0 (#2134)', () => {
+    const open = (id) => reducer(lessonModeInitialState, openChallenge(id));
+
+    test('counts the questions answered in order, once each, up to the number of questions', () => {
+        let state = open('blocks-l0-where');
+        expect(state.partQuizSolved).toBe(0);
+        state = reducer(state, solvePartQuiz('blocks-l0-where', 0));
+        expect(state.partQuizSolved).toBe(1);
+        // 同じ問いを 2 回数えない・先の問いを飛ばさない
+        expect(reducer(state, solvePartQuiz('blocks-l0-where', 0))).toBe(state);
+        expect(reducer(state, solvePartQuiz('blocks-l0-where', 3))).toBe(state);
+        for (let i = 1; i < 5; i++) state = reducer(state, solvePartQuiz('blocks-l0-where', i));
+        expect(state.partQuizSolved).toBe(5);
+        expect(reducer(state, solvePartQuiz('blocks-l0-where', 5))).toBe(state);
+    });
+
+    test('ignores answers for another challenge and starts again when the challenge is opened', () => {
+        let state = open('blocks-l0-where');
+        expect(reducer(state, solvePartQuiz('blocks-l0-tabs', 0))).toBe(state);
+        state = reducer(state, solvePartQuiz('blocks-l0-where', 0));
+        expect(reducer(state, openChallenge('blocks-l0-where')).partQuizSolved).toBe(0);
+        // クイズの無いチャレンジでは数えない
+        const tabs = open('blocks-l0-tabs');
+        expect(reducer(tabs, solvePartQuiz('blocks-l0-tabs', 0))).toBe(tabs);
     });
 });

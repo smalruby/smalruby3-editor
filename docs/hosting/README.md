@@ -37,9 +37,9 @@
                                        │  smalruby.app  A / AAAA（ALIAS）→ CloudFront
                                        ▼
                                    CloudFront ──(OAC)──▶ S3（非公開・バージョニングあり）
-                                       │  viewer-request: /  → /index.html、/admin → /admin/
+                                       │  viewer-request: /  → /index.html、/admin → /admin/（拡張子の無い URL は /<path>/ へ 301）
                                        │  証明書: ACM（us-east-1・DNS 検証）
-                                       └─ 応答ヘッダ: HSTS / nosniff
+                                       └─ viewer-response: HSTS / nosniff
 ```
 
 | 項目 | 移した後 |
@@ -50,7 +50,22 @@
 | 証明書 | ACM（us-east-1）。Route 53 のゾーンで DNS 検証する |
 | `api.` / `preview.` | 切り替えが落ち着いたあと、それぞれのゾーンを `smalruby.app` のゾーンへまとめ、委任とゾーンを消す（費用を戻す） |
 
-prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hosting-stack.ts` の `createSiteDelivery()` にある。最初は独自ドメインも DNS も付けず、CloudFront の既定のドメイン（`*.cloudfront.net`）でしか見えない形で作る。だから作っただけでは、いまの本番には何も起きない。
+prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hosting-stack.ts` の `createSiteDelivery()` にある。最初は独自ドメインも DNS も付けず、CloudFront の既定のドメイン（`*.cloudfront.net`）でしか見えない形で作った。段 7 で `smalruby.app` の証明書と代替ドメインを付けるが、apex の A が GitHub Pages を向いている間は利用者のリクエストが CloudFront に来ないので、いまの本番には何も起きない。
+
+## 証明書と代替ドメイン（段 7）
+
+ネームサーバーが Route 53 に変わった（段 6）あとに、prod の CloudFront へ次を足す。
+
+| もの | 値 |
+|---|---|
+| ACM 証明書 | `smalruby.app`（SAN なし）。CloudFront 用なので us-east-1。`DnsValidatedCertificate` で作り、段 2 のゾーンで DNS 検証する（スタックは分けない。プレビューと同じ形） |
+| 代替ドメイン | `smalruby.app` だけ。`www.smalruby.app` は今は無いので足さない（要るなら別に決める） |
+| TLS | 1.2 以上（`TLSv1.2_2021`）・SNI |
+
+- 段 6 の前に足すと、公開 DNS から検証の CNAME が引けず、デプロイが証明書を待ち続けて失敗する。
+- ディストリビューションへの設定の追加なので、**置き換え（replacement）にはならない**。`cdk diff` は証明書のカスタムリソース（と Lambda・ロール）の追加と、`SiteDistribution` の `Aliases` / `ViewerCertificate` の追加だけになる。追加だけの差分なので、develop へのマージで `Deploy Infra` が prod に出す。
+- apex の A は GitHub Pages のまま変えない（段 9）。代替ドメインを付けても、DNS が CloudFront を向くまで利用者のリクエストは来ない。
+- 出したあとに確かめること: Output `SiteCertificateArn` の証明書が `ISSUED`（`aws acm describe-certificate --region us-east-1 --certificate-arn <値>`）、`curl -sI --resolve smalruby.app:443:<CloudFront の IP> https://smalruby.app/` が CloudFront から返る。
 
 ### GitHub Pages から引き継ぐもの
 
@@ -60,13 +75,28 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 | `/admin/`（管理 SPA） | CI が `admin/` に置く。本体の `--delete` で消えないよう、本体の同期では `admin/` を除く |
 | `/.well-known/microsoft-identity-association.json` | `packages/scratch-gui/legal/.well-known/` からビルドに入る。ドットで始まるディレクトリも同期の対象にする（Microsoft のパブリッシャー検証に要る） |
 | `/auth-redirect.html`（Microsoft ログインの戻り先） | ビルドに入っている。オリジンが同じなので Microsoft / Google の設定は変えない |
-| `/about.html` などの静的ページ | ビルドに入っている。拡張子付きの URL はそのまま返す |
-| HSTS ヘッダ | CloudFront の応答ヘッダポリシーで付ける（`.app` は HSTS preload 済みなので、ブラウザはもともと HTTPS でしか来ない） |
+| `/about.html` などの静的ページ | ビルドに入っている。拡張子付きの URL はそのまま返す。`/about` のように拡張子を省いた URL は開けない（`/about/` へ 301 したあと 404 ページになる。下の「拡張子の無い URL」） |
+| `/404.html`（存在しないファイルのページ） | ビルドに入っている（`packages/scratch-gui/pages/404.html`）。CloudFront のエラー応答が中身に使う（下の「存在しないファイル」） |
+| HSTS ヘッダ | CloudFront の viewer-response 関数で付ける（定額プランは応答ヘッダポリシーを使えないため。`.app` は HSTS preload 済みなので、ブラウザはもともと HTTPS でしか来ない） |
 | `CNAME` / `.nojekyll` | GitHub Pages 専用なので S3 には要らない |
 
-URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末尾の `/` も無い URL は、GitHub Pages では `about.html` を返すが、CloudFront では `/about/` へ 301 になる（プレビューと同じ関数を使うため）。ビルドの中のリンクは拡張子付き（`about.html`）か、`/admin/` のように末尾が `/` なので、困る URL は今のところ無い。
+### 拡張子の無い URL
 
-存在しないファイルは S3 が 403 を返す（OAC では一覧を見せないため）。GitHub Pages も独自の 404 ページは置いていないので、困ることは無い。必要になったら CloudFront のエラー応答で 404 に変える。
+本番の viewer-request 関数は、どのディレクトリに `index.html` があるかの一覧を持たずに、URL の形だけで決める。
+
+| URL | 返すもの |
+|---|---|
+| `/`、`/admin/` のように末尾が `/` | `.../index.html` |
+| `/x.js`、`/about.html` のように最後の部分に拡張子がある | そのまま |
+| `/admin`、`/about`、`/assignments/LICENSE` のように最後の部分に拡張子が無い | `/<path>/` へ 301（クエリ文字列は保つ） |
+
+`/admin` → `/admin/` は管理 SPA のために要る（相対パスでアセットを読むので、`/` 無しのままだと 1 階層上を見てしまう）。一方、`/about` は `/about/` → `/about/index.html` を探して 404 ページになる。**拡張子の無いページの URL は使えない**ので、サイト内のリンクは `about.html` のように `.html` 付きで書く（GitHub Pages は `/about` に `about.html` を返していたが、CloudFront Functions からは S3 にファイルがあるかを問い合わせられず、そうするには `index.html` を持つディレクトリの一覧を関数に持つ必要があるため、持たないことにした）。`/assignments/LICENSE` のような拡張子の無いファイルも URL では開けない（サイトからはリンクしていない）。
+
+規則はプレビュー（`preview.smalruby.app/<slug>/`）と同じなので、関数のコードは同じファイル（`lib/functions/preview-viewer-request.js`）を使う。関数のリソースは本番とプレビューで別にする（定額プランの配信には、ほかの配信に付いている CloudFront Functions を付けられない）。
+
+### 存在しないファイル
+
+存在しないファイルは S3 が 403 を返す（OAC では一覧を見せないため。GitHub Pages は GitHub の 404 ページを返す）。これを 404 にするため、ビルドに 404 ページ `404.html` を入れてある（`packages/scratch-gui/pages/404.html`。ほかのページと同じく `pages/` からトップレベルにコピーされ、CI がハッシュ無しの規則で `Cache-Control: max-age=0, s-maxage=60` を付けて S3 に置く）。CDK からは置かない（CI の同期は `--delete` なので、ビルドに無いものは消える）。配信には CloudFront のカスタムエラー応答で、オリジンの 403 / 404 を応答コード 404・ページ `/404.html` にする。エラー応答のページが 403 にならないよう、**404 ページが本番に出てから（`https://smalruby.app/404.html` が 200 になってから）エラー応答を足す**。404 ページはどの階層の URL（`/a/b/c` など）にも返るので、中のアセットとリンクは `/` から始まる絶対パスで書く（相対パスにしない）。検索に載らないよう `noindex` を付けている。SPA は `/` の `index.html` だけでパスのルーティングを持たず、管理 SPA はハッシュのルーティングなので、403 を 404 に変えても壊れない。
 
 ## 進める順番
 
@@ -99,7 +129,7 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
   - `_github-pages-challenge-smalruby.smalruby.app` TXT（GitHub の組織のドメイン検証。**消さない**。`docs/security/github-pages-subdomain-takeover.md` の Layer 1）
   - `smalruby.app` CAA ×6（amazon.com / amazonaws.com / amazontrust.com / awstrust.com / letsencrypt.org / issuewild `;`）
   - `api.smalruby.app` NS ×4、`preview.smalruby.app` NS ×4（委任をそのまま写す）
-  - `everdiary.smalruby.app` A は使っていないので写さない
+  - `everdiary.smalruby.app` A は使っていないので写さない（人間が確かめ、お名前.com からも消した）
 - 段 3 のスクリプトで、両方のネームサーバーの応答が一致している（照合はホストか GitHub Actions で行う。コンテナの firewall は任意の DNS サーバーへの問い合わせを止めている）。
 - DNSSEC は無効のまま（有効なら先に外す）。
 
@@ -149,9 +179,36 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 | ファイル名にハッシュが付いたもの（`/\.[0-9a-f]{8,}\./`。Workbox の `dontCacheBustURLsMatching` と同じ） | `public, max-age=31536000, immutable` | 中身が変わると名前が変わる |
 | それ以外（`index.html`、`service-worker.js`、`version.json`、`auth-redirect.*`、`.well-known/*`、`admin/index.html` など） | `max-age=0, s-maxage=60` | ブラウザは毎回確かめ直し、CloudFront には 60 秒だけ置く |
 
-- CloudFront のキャッシュポリシーはプレビューと同じ（`Cache-Control` が無ければ 60 秒、あれば従う・最長 1 年。クエリ文字列・ヘッダ・Cookie はキーに含めない）。
+- CloudFront のキャッシュポリシーは AWS 管理の `CachingOptimized`（`Cache-Control` があれば従う・最長 1 年。クエリ文字列・ヘッダ・Cookie はキーに含めない）。定額プランはカスタムのキャッシュポリシーを使えないため。**`Cache-Control` が無いオブジェクトはエッジに 1 日残る**（プレビューの 60 秒と違う）ので、CI は上の表のとおり全ファイルに `Cache-Control` を付けて置く。
 - CI は置いたあとに `/*` を invalidation する（1 回 1 パスとして数えるので、月 1,000 パスの無料枠に十分収まる）。
 - S3 はバージョニングを有効にし、上書き・削除された古い版を 30 日残す（CI の誤りで消えたファイルを戻すため。日数は人間が決める値）。いまの版は期限で消さない（プレビューと違う点）。バケットは本番の配信元なので `RETAIN`（スタックを消しても残る）。
+
+## アクセスログ（段 5）
+
+本番の CloudFront（`SiteDistribution`）のアクセスログを、ログ専用の S3 バケット `SiteLogBucket` に残す。
+
+| 項目 | 内容 |
+|---|---|
+| 方式 | CloudFront の**標準ログ（従来の S3 配信）** |
+| 置き場所 | `SiteLogBucket` の `cloudfront/smalruby.app/` 以下（gzip のファイルが数分〜1 時間ごとに届く） |
+| バケット | 非公開（Block Public Access 全部 ON）・SSE-S3 で暗号化・SSL のみ。CI 用ロールからは触れない |
+| 保持期間 | **30 日で消す**（人間が決めた値）。`infra/smalruby-web-hosting/lib/web-hosting-stack.ts` の `SITE_ACCESS_LOG_RETENTION_DAYS` だけを変えれば、バケットのライフサイクルが追従する |
+| Cookie | 記録しない（`logIncludesCookies: false`） |
+
+### 標準ログ（従来）を選んだ理由
+
+- **費用**: 従来の方式は、ログを S3 に届けること自体は無料で、かかるのは S3 の保存とリクエストだけ。新しい方式（v2。CloudWatch Logs の配信の仕組みを使う）は、S3 へ届けたログの量に応じて料金がかかる。
+- **手間**: 従来の方式は CloudFront のディストリビューションに設定を足すだけ（ディストリビューションの置き換えにならない）。v2 は配信元の設定を us-east-1 に作る必要があるが、このスタックは ap-northeast-1 で、スタックを分けない決まり（`Deploy Infra` が `cdk deploy` をスタック名なしで呼ぶため）がある。
+- **引き換え**: 従来の方式は CloudFront がバケットの ACL を使って書き込むので、ログのバケットだけ ACL を無効にせず `BucketOwnerPreferred` にする（書かれたログの持ち主はこのアカウントになる）。ACL の相手は CloudFront のログ配信用アカウントで、公開ではないので Block Public Access は全部 ON のまま使える。
+- v2 にしかない機能（項目の選択、Parquet、CloudWatch Logs や Firehose への配信）が必要になったら、そのときに移る。
+
+### 個人を特定しうる情報の扱い
+
+- 標準ログには、利用者の **IP アドレス**、要求した URL（クエリ文字列を含む。`?tab=ruby` など）、User-Agent、Referer が入る。Cookie は記録しない。エディタはログインの情報や作品の中身を URL に入れないので、それらはログに入らない。
+- ログは障害の調査と、転送量・利用の傾向をつかむためだけに使う。**ログを外へ出さない**（Issue・PR・チャットに IP アドレスや生のログを貼らない。集計した数だけを書く）。
+- 読めるのはこの AWS アカウントの管理者だけ（バケットは非公開、CI 用ロールの権限にも入れない）。
+- 保持期間を過ぎたものは S3 のライフサイクルで自動で消える。期間を延ばすときは、使い道と見合うかを人間が決める。
+- `SiteDistribution` には WAF の Web ACL（`CreatedByCloudFront-...`）が付いている。CloudFront の定額プラン（Pro）が配信を入れたときに作ったもので、料金はプランに含まれる。CDK は作らず、ARN を `webAclId` で参照するだけ（`SITE_WEB_ACL_ARN`）。消したり中身を変えたりしない。ルールを足すなどのフィルタリングは、必要になったら別に決める。
 
 ## PWA / service worker
 
@@ -180,9 +237,11 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 | S3 の保存 | 月 0.1 未満 | ビルドは 1 版あたり 100〜200 MB。古い版を 30 日残しても数 GB |
 | CloudFront のデータ転送 | 月 0〜230 | 毎月 1 TB までは無料。新しい端末は precache で 60〜100 MB を読む。1 日の利用者 3,000 人が平均 10〜30 MB を読むと月 1〜3 TB。1 TB を超えた分は 1 GB あたり約 0.114 |
 | CloudFront のリクエストと関数 | 月 0〜30 | 毎月 1,000 万リクエスト・関数 200 万回までは無料。1 回の読み込みで数百のリクエストがあるので、無料枠を超えうる |
-| アクセスログ | 月 1 未満 | S3 に置き、保持期間を決めて消す |
+| アクセスログ | 月 1 未満 | 標準ログ（従来）は届けるのが無料で、かかるのは S3 の保存と書き込みだけ。月 3,000 万リクエストでもログは gzip で月 数 GB、30 日分を置いて月 0.05〜0.2 程度 |
 
-- 従量課金の上限が読みにくいので、**CloudFront の定額プラン**（Pro は月 15 で転送量の上限が十分大きい）を使うかどうかを人間が決める。まず従量で 1〜2 週間動かし、CloudFront の使用量レポートで実際の転送量を見てから決めるのが安全。
+- 従量課金の上限が読みにくいので、`SiteDistribution`（smalruby.app）は **CloudFront の定額プラン Pro**（月 15 で転送量の上限が十分大きい）に入れてある。プレビューの配信は従量のまま。
+  - 定額プランはカスタムのキャッシュポリシー・応答ヘッダポリシーを使えないので、`SiteDistribution` は AWS 管理の `CachingOptimized` + viewer-response 関数・Price Class All にしてある。プランの選択・変更はコンソールで人間が行う（CDK にはプランの設定が無い）。
+  - プランに入れると CloudFront が WAF の Web ACL を作って配信に付ける。テンプレートに WebACLId が無いと次の deploy で外れる（またはプランの条件違反で失敗する）ので、CDK はその ARN を `webAclId` に書いている（`lib/web-hosting-stack.ts` の `SITE_WEB_ACL_ARN`）。プランを変える・入れ直すなどで Web ACL が変わったら、コンソールで配信に付いている Web ACL を確かめてから定数を書き換える。
 - **AWS Budgets の予算アラート**（例: 月 50 を超えたら通知）を切り替えの前に設定する。
 - GitHub Pages は無料なので、移すと費用は増える。理由（依存をなくす・ログ・調整のしやすさ）と見合うかを、転送量を見て判断する。
 
@@ -206,7 +265,7 @@ URL の扱いで GitHub Pages と違う点: `/about` のように拡張子も末
 | ファイル | 役割 |
 |---|---|
 | `infra/smalruby-web-hosting/lib/web-hosting-stack.ts` | 配信基盤の CDK。prod は `createSiteDelivery()`、stg はプレビュー |
-| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | CloudFront Function（ディレクトリの URL を `index.html` に解決）。本番とプレビューで共用 |
+| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | viewer-request の CloudFront Function のコード（ディレクトリの URL を `index.html` に解決し、拡張子の無い URL を `/<path>/` へ 301）。本番とプレビューで共用（関数のリソースは別） |
 | `infra/smalruby-web-hosting/test/web-hosting.test.ts` | スタックのテスト |
 | `.github/workflows/ci-cd.yml`（`build-and-deploy`） | 本番のビルドと配置 |
 | `docs/infra/smalruby-web-hosting.md` | 配信基盤の CDK の詳細と運用 |

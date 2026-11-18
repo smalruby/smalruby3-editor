@@ -25,6 +25,7 @@ export const ja = {
     [`${P}hat.stageClicked`]: 'ステージが押されたとき',
     [`${P}hat.receive`]: '{name}を受け取ったとき',
     [`${P}hat.clone`]: 'クローンされたとき',
+    [`${P}hat.define`]: '{name}の定義',
     [`${P}hat.backdrop`]: '背景が{name}になったとき',
     [`${P}hat.partnerButton`]: '「{label}」ボタンを押したとき',
     [`${P}say`]: '{message}と言う',
@@ -67,6 +68,12 @@ export const ja = {
     [`${P}key.leftArrow`]: '左向き矢印',
     [`${P}key.rightArrow`]: '右向き矢印',
     [`${P}key.any`]: 'どれかの',
+    // ブロックを右クリックして描く図（#1647）
+    [`${P}blockMenu`]: 'アクティビティ図',
+    [`${P}popupTitle`]: 'アクティビティ図（{name}）',
+    [`${P}close`]: '閉じる',
+    [`${P}scriptGone`]: 'このスクリプトはなくなりました。ブロックを右クリックして、もう一度開いてください。',
+    [`${P}liveNote`]: 'ブロックを変えると、図も変わります。',
 };
 
 export const jaHira = {
@@ -89,6 +96,7 @@ export const jaHira = {
     [`${P}hat.stageClicked`]: 'ステージがおされたとき',
     [`${P}hat.receive`]: '{name}をうけとったとき',
     [`${P}hat.clone`]: 'クローンされたとき',
+    [`${P}hat.define`]: '{name}のていぎ',
     [`${P}hat.backdrop`]: 'はいけいが{name}になったとき',
     [`${P}hat.partnerButton`]: '「{label}」ボタンをおしたとき',
     [`${P}say`]: '{message}という',
@@ -131,6 +139,11 @@ export const jaHira = {
     [`${P}key.leftArrow`]: 'ひだりむきやじるし',
     [`${P}key.rightArrow`]: 'みぎむきやじるし',
     [`${P}key.any`]: 'どれかの',
+    [`${P}blockMenu`]: 'アクティビティず',
+    [`${P}popupTitle`]: 'アクティビティず（{name}）',
+    [`${P}close`]: 'とじる',
+    [`${P}scriptGone`]: 'このスクリプトはなくなりました。ブロックをみぎクリックして、もういちどひらいてください。',
+    [`${P}liveNote`]: 'ブロックをかえると、ずもかわります。',
 };
 
 export const en = {
@@ -153,6 +166,7 @@ export const en = {
     [`${P}hat.stageClicked`]: 'when stage clicked',
     [`${P}hat.receive`]: 'when I receive {name}',
     [`${P}hat.clone`]: 'when I start as a clone',
+    [`${P}hat.define`]: 'define {name}',
     [`${P}hat.backdrop`]: 'when backdrop switches to {name}',
     [`${P}hat.partnerButton`]: 'when the "{label}" button is pressed',
     [`${P}say`]: 'say {message}',
@@ -195,4 +209,9 @@ export const en = {
     [`${P}key.leftArrow`]: 'left arrow',
     [`${P}key.rightArrow`]: 'right arrow',
     [`${P}key.any`]: 'any',
+    [`${P}blockMenu`]: 'Activity diagram',
+    [`${P}popupTitle`]: 'Activity diagram ({name})',
+    [`${P}close`]: 'Close',
+    [`${P}scriptGone`]: 'This script is gone. Right-click a block to open the diagram again.',
+    [`${P}liveNote`]: 'The diagram changes when you change the blocks.',
 };

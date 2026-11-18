@@ -1,0 +1,12 @@
+{
+  "ResourceRecordSets": [
+    {"Name": "example.com.", "Type": "A", "TTL": 300, "ResourceRecords": [{"Value": "192.0.2.10"}, {"Value": "192.0.2.11"}]},
+    {"Name": "example.com.", "Type": "NS", "TTL": 172800, "ResourceRecords": [{"Value": "ns-9.awsdns.example.org."}]},
+    {"Name": "example.com.", "Type": "SOA", "TTL": 900, "ResourceRecords": [{"Value": "ns-9.awsdns.example.org. hostmaster.example.com. 1 7200 900 1209600 86400"}]},
+    {"Name": "example.com.", "Type": "TXT", "TTL": 3600, "ResourceRecords": [{"Value": "\"site-verification=EXAMPLEONLY\""}]},
+    {"Name": "example.com.", "Type": "CAA", "TTL": 3600, "ResourceRecords": [{"Value": "0 issue \"amazon.com\""}, {"Value": "0 issuewild \";\""}]},
+    {"Name": "_pages-challenge-example.example.com.", "Type": "TXT", "TTL": 3600, "ResourceRecords": [{"Value": "\"0123456789abcdef\""}]},
+    {"Name": "www.example.com.", "Type": "CNAME", "TTL": 3600, "ResourceRecords": [{"Value": "example.com"}]},
+    {"Name": "api.example.com.", "Type": "NS", "TTL": 3600, "ResourceRecords": [{"Value": "ns-1.awsdns.example.org."}, {"Value": "ns-2.awsdns.example.org."}]}
+  ]
+}

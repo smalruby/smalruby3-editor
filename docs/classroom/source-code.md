@@ -247,8 +247,9 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 
 | ファイル | 責務 |
 |---------|------|
-| `classroom-modal/teacher-view-layout.jsx` | `TeacherScreen`（いまいる所を持つトップレベル画面）と `TeacherSubView`（パネル内サブ画面。`as="form"` で `<form>` になる）。タブの行 → タイトル → 説明 → エラー → 本文 → フッター の順を固定する。`breadcrumbs` は紫のヘッダーへ運ばれる（`teacher-breadcrumbs.jsx`） |
+| `classroom-modal/teacher-view-layout.jsx` | `TeacherScreen`（いまいる所を持つトップレベル画面）と `TeacherSubView`（パネル内サブ画面。`as="form"` で `<form>` になる。`onClose` を渡すとタイトルが「✕ ＋ 見出し」の行になる）。タブの行 → タイトル → 説明 → エラー → 本文 → フッター の順を固定する。`breadcrumbs` は紫のヘッダーへ運ばれる（`teacher-breadcrumbs.jsx`） |
 | `classroom-modal/teacher-breadcrumbs.jsx` | `TeacherBreadcrumbs`（いまいる所「クラス管理 › クラス名 › 課題名」）。`BreadcrumbSlotContext` で渡されたヘッダーの要素へポータルで描く（無ければその場に描く）。いまの画面は太字で `aria-current="page"`、長い名前は「…」で切って `title` に全体。`breadcrumbMessages`（「クラス管理」・nav の名前） |
+| `classroom-modal/teacher-close-row.jsx` | `TeacherCloseRow`（1 つの物を編集する画面の本文の上の「✕ ＋ 見出し」の行）。✕ は `onClose`（行き先は画面ごと）、`unsaved` のときは先に行の中で「変更を破棄しますか？」［キャンセル］［破棄］を聞く。右端は `children`（課題詳細の参加コード・［課題を保存］）。`TeacherSubView` は `onClose` を渡すとタイトルをこの行にする。`closeRowMessages`（✕ の名前・確認の文） |
 | `classroom-modal/teacher-class-tabs.jsx` | `TeacherClassTabs`（クラスの中のタブ［ストリーム］［授業］［採点］と、tablist の外の［⚙ クラスの設定］）。クラスの画面と採点の画面で使う。`classTabMessages` |
 | `classroom-teacher-modal/teacher-header.jsx` | `TeacherHeader`（紫のヘッダー「← エディタに戻る｜いまいる所」＋ 右にベル・アバター）。いまいる所はポータルで運び込まれる要素（`slotRef`）。共有 `Modal` のヘッダーは隠す |
 | `classroom-modal/class-ai-settings.jsx` | クラス設定の「このクラスで使う AI」欄。「学校の生成AI に相談」（使わない / Gemini / ChatGPT / その他）とルビティー（トグル）の 2 行に、それぞれ生徒の画面に起こることを書く。生成AI を選ぶとその行の下に条件・必須の確認・URL を、ルビティーをオンにするとその行の下に条件・必須の確認を開く。下書きは親のクラス設定フォームが持ち、「保存」で変わった項目だけ送る |
