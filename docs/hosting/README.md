@@ -38,8 +38,9 @@
                                        ▼
                                    CloudFront ──(OAC)──▶ S3（非公開・バージョニングあり）
                                        │  viewer-request: /  → /index.html、/admin → /admin/（拡張子の無い URL は /<path>/ へ 301）
+                                       │                  /gui.<hash>.js → .br / .gz（Accept-Encoding による）
                                        │  証明書: ACM（us-east-1・DNS 検証）
-                                       └─ viewer-response: HSTS / nosniff
+                                       └─ viewer-response: HSTS / nosniff、圧縮版に Vary: Accept-Encoding
 ```
 
 | 項目 | 移した後 |
@@ -181,6 +182,57 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 
 - CloudFront のキャッシュポリシーは AWS 管理の `CachingOptimized`（`Cache-Control` があれば従う・最長 1 年。クエリ文字列・ヘッダ・Cookie はキーに含めない）。定額プランはカスタムのキャッシュポリシーを使えないため。**`Cache-Control` が無いオブジェクトはエッジに 1 日残る**（プレビューの 60 秒と違う）ので、CI は上の表のとおり全ファイルに `Cache-Control` を付けて置く。
 - CI は置いたあとに `/*` を invalidation する（1 回 1 パスとして数えるので、月 1,000 パスの無料枠に十分収まる）。
+
+### 事前圧縮した gui の JS
+
+CloudFront は **1,000〜10,000,000 バイトのファイルしか自動で圧縮しない**（[Serving compressed files](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html)）。エディタ本体の `gui.<hash>.js` は約 25 MB あるので、そのままでは無圧縮で送られる（GitHub Pages は gzip で約 7.7 MB）。また CloudFront がその場でかける br は brotli の q1〜q2 程度と弱い。設計の出発点は #2198。
+
+そのため CI が、S3 に置く直前に gui の JS を事前に圧縮して、元のファイルの隣に置く:
+
+| 置くもの | 中身 | ヘッダ |
+|---|---|---|
+| `gui.<hash>.js.br`（プレビューは `gui.js.br`） | brotli quality 11（ウィンドウ 24 ビット） | `Content-Type: text/javascript`、`Content-Encoding: br`、`Cache-Control` は元と同じ |
+| `gui.<hash>.js.gz`（プレビューは `gui.js.gz`） | gzip -9 | `Content-Type: text/javascript`、`Content-Encoding: gzip`、`Cache-Control` は元と同じ |
+
+- 圧縮は `scripts/precompress-assets.mjs`（node の `zlib` だけ。依存なし）。解いて元と同じになることを確かめてから書く。テストは `scripts/precompress-assets.test.mjs`（CI の同じ段で流す）。
+- 対象は**トップレベルの `gui.js` / `gui.<hash>.js` だけ**。ほかのファイルは 10 MB 未満で CloudFront が圧縮するので、手間（br q11 は 25 MB で約 30 秒）をかけない。ほかに 10,000,000 バイトを超えるファイル（`.map` を除く。ソースマップは DevTools しか読まない）が出てきたら、CI が `::warning::` を出す。そのときは対象に足すか、ビルドで分ける。
+- `aws s3 sync` は拡張子からヘッダを推測するので、`.br` / `.gz` は `aws s3 cp` でヘッダを明示して置く。置く順番は「ハッシュ付きのファイル → `.br` / `.gz` → `index.html` などハッシュの無いもの」。
+- 圧縮版はビルドの出力（本番は `dist`、プレビューは `build`）の中に作る。本番では GitHub Pages へ出したあとに作るので、GitHub Pages には載らない。最後の `--delete --size-only` は、出力にある圧縮版を消さず（大きさが同じなので置き直しもしない）、古い gui の圧縮版は消す。
+- 圧縮版を `Accept-Encoding` に応じて返すのは viewer-request の CloudFront Function（URI を `.br` / `.gz` に書きかえる）。オリジンの応答に `Content-Encoding` があれば CloudFront は圧縮し直さないので、置いたものがそのまま返る。
+
+#### URI の書きかえと `Vary`
+
+viewer-request 関数（`infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js`。本番とプレビューで同じコード）が、gui の JS の URI に `.br` / `.gz` を足す:
+
+| 条件 | 書きかえ |
+|---|---|
+| URI が gui の JS（`/gui.js`・`/gui.<hash>.js`、プレビューは `/<slug>/gui.js`・`/<slug>/gui.<hash>.js`。正規表現 `^/(?:[^/]+/)?gui(?:\.[0-9a-f]{8,})?\.js$`）で、`Accept-Encoding` に `br` がある | `<URI>.br` |
+| 同じく、`br` は無いが `gzip` がある | `<URI>.gz` |
+| `Accept-Encoding` が無い・`br` も `gzip` も無い（`identity` だけ、`*` だけを含む） | 書きかえない（無圧縮の元のファイル） |
+| ほかのファイル | 書きかえない（10 MB 未満なので CloudFront がその場で圧縮する） |
+
+- 並び順や `q` の大小にかかわらず br を優先する。`q=0`（`br;q=0` など）は「受け取らない」と読む。
+- 対象は `scripts/precompress-assets.mjs` が圧縮するもの（ビルドの出力のトップレベルの gui の JS）だけにしてある。**圧縮版が S3 に無い URI へ書きかえると 404 になる**ので、対象を広げるときはスクリプトと関数を一緒に変える。事前圧縮を入れる前のビルドのまま残っているプレビューは `gui.js.br` が無く、br / gzip を受け取るブラウザでは開かない。develop を取り込んで push し直せば直る。
+- `Accept-Encoding` を落とすプロキシ（SSL 検査つきのフィルタなど）経由では書きかえが起きないので、無圧縮の元のファイルが返る（壊れない）。
+- キャッシュは本番は `CachingOptimized`、プレビューは自前のポリシーのまま。キャッシュキーは URI と正規化した `Accept-Encoding` なので、書きかえた URI（`.br` / `.gz`）ごとに別にキャッシュされ、取り違えは起きない。
+- S3 も CloudFront も、事前圧縮した応答には `Vary` を付けない。途中のキャッシュが br をほかのクライアントへ渡さないよう、viewer-response 関数が **`Content-Encoding` のある応答に `Vary: Accept-Encoding` を付ける**（すでに含むなら足さない）。本番は `lib/functions/site-viewer-response.js`（HSTS / nosniff と一緒）、プレビューは `lib/functions/preview-viewer-response.js`（`Vary` だけ。関数のリソースは配信ごとに別）。
+
+確かめ方（CloudFront を直接たたく。DNS が CloudFront を向いていなくても使える）:
+
+```sh
+IP=$(dig +short d12gb4o1ln0uqd.cloudfront.net | head -1)
+GUI=$(curl -s --resolve smalruby.app:443:$IP https://smalruby.app/ | grep -o 'gui\.[0-9a-f]*\.js' | head -1)
+for ae in br gzip identity; do
+  curl -s -o /dev/null --resolve smalruby.app:443:$IP -H "Accept-Encoding: $ae" \
+    -D - -w "[$ae] %{http_code} %{size_download}\n" "https://smalruby.app/$GUI" |
+    grep -iE '^(content-encoding|vary|cache-control)|^\['
+done
+# 解いた中身が無圧縮と同じか
+curl -s --resolve smalruby.app:443:$IP -H 'Accept-Encoding: br' "https://smalruby.app/$GUI" | brotli -d | sha256sum
+curl -s --resolve smalruby.app:443:$IP -H 'Accept-Encoding: identity' "https://smalruby.app/$GUI" | sha256sum
+```
+
+プレビューは `https://preview.smalruby.app/<slug>/gui.js` を同じように取る。
 - S3 はバージョニングを有効にし、上書き・削除された古い版を 30 日残す（CI の誤りで消えたファイルを戻すため。日数は人間が決める値）。いまの版は期限で消さない（プレビューと違う点）。バケットは本番の配信元なので `RETAIN`（スタックを消しても残る）。
 
 ## アクセスログ（段 5）
@@ -265,8 +317,10 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 | ファイル | 役割 |
 |---|---|
 | `infra/smalruby-web-hosting/lib/web-hosting-stack.ts` | 配信基盤の CDK。prod は `createSiteDelivery()`、stg はプレビュー |
-| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | viewer-request の CloudFront Function のコード（ディレクトリの URL を `index.html` に解決し、拡張子の無い URL を `/<path>/` へ 301）。本番とプレビューで共用（関数のリソースは別） |
+| `infra/smalruby-web-hosting/lib/functions/preview-viewer-request.js` | viewer-request の CloudFront Function のコード（ディレクトリの URL を `index.html` に解決し、拡張子の無い URL を `/<path>/` へ 301、gui の JS を `.br` / `.gz` へ書きかえる）。本番とプレビューで共用（関数のリソースは別） |
+| `infra/smalruby-web-hosting/lib/functions/site-viewer-response.js` / `preview-viewer-response.js` | viewer-response の CloudFront Function のコード（本番は HSTS / nosniff と `Vary`、プレビューは `Vary` だけ） |
 | `infra/smalruby-web-hosting/test/web-hosting.test.ts` | スタックのテスト |
 | `.github/workflows/ci-cd.yml`（`build-and-deploy`） | 本番のビルドと配置 |
+| `scripts/precompress-assets.mjs` | gui の JS の `.br` / `.gz` を作る（「事前圧縮した gui の JS」）。テストは `scripts/precompress-assets.test.mjs` |
 | `docs/infra/smalruby-web-hosting.md` | 配信基盤の CDK の詳細と運用 |
 | `docs/security/github-pages-subdomain-takeover.md` | GitHub Pages のサブドメイン乗っ取り対策（検証用 TXT は残す） |

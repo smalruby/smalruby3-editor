@@ -275,6 +275,7 @@ describe('SmalrubyWebHostingStack', () => {
                 expect(fn.Properties.FunctionConfig.Runtime).toBe('cloudfront-js-2.0');
                 expect(fn.Properties.FunctionCode).toContain('strict-transport-security');
                 expect(fn.Properties.FunctionCode).toContain('x-content-type-options');
+                expect(fn.Properties.FunctionCode).toContain("'vary'");
             });
 
             // 定額プランはカスタムのポリシーを使えないので、配信から外したポリシーは定義も持たない。
@@ -551,6 +552,7 @@ describe('SmalrubyWebHostingStack', () => {
                         ViewerProtocolPolicy: 'redirect-to-https',
                         FunctionAssociations: [
                             Match.objectLike({ EventType: 'viewer-request' }),
+                            Match.objectLike({ EventType: 'viewer-response' }),
                         ],
                     }),
                 }),
@@ -567,13 +569,34 @@ describe('SmalrubyWebHostingStack', () => {
             });
             template.resourceCountIs('AWS::CloudFront::CachePolicy', 1);
             template.resourceCountIs('AWS::CloudFront::ResponseHeadersPolicy', 0);
-            template.resourceCountIs('AWS::CloudFront::Function', 1);
+            template.resourceCountIs('AWS::CloudFront::Function', 2);
         });
 
+        const previewFunction = (eventType: string) => {
+            const behavior = Object.values(template.findResources('AWS::CloudFront::Distribution'))[0]
+                .Properties.DistributionConfig.DefaultCacheBehavior;
+            const assoc = behavior.FunctionAssociations.find(
+                (a: { EventType: string }) => a.EventType === eventType,
+            );
+            const fnId = assoc.FunctionARN['Fn::GetAtt'][0];
+            return { fnId, fn: template.findResources('AWS::CloudFront::Function')[fnId] };
+        };
+
         test('preview keeps the preview viewer-request function (/<slug> is a directory)', () => {
-            const fn = Object.values(template.findResources('AWS::CloudFront::Function'))[0];
+            const { fnId, fn } = previewFunction('viewer-request');
+            // 論理 ID を変えると関数が作り直しになる（削除を含む差分は Deploy Infra が止まる）。
+            expect(fnId).toMatch(/^PreviewViewerRequest/);
             expect(fn.Properties.FunctionCode).toBe(
                 fs.readFileSync(path.join(__dirname, '../lib/functions/preview-viewer-request.js'), 'utf8'),
+            );
+        });
+
+        test('preview adds Vary to the pre-compressed gui JS with its own viewer-response function', () => {
+            const { fnId, fn } = previewFunction('viewer-response');
+            expect(fnId).toMatch(/^PreviewViewerResponse/);
+            expect(fn.Properties.FunctionConfig.Runtime).toBe('cloudfront-js-2.0');
+            expect(fn.Properties.FunctionCode).toBe(
+                fs.readFileSync(path.join(__dirname, '../lib/functions/preview-viewer-response.js'), 'utf8'),
             );
         });
 

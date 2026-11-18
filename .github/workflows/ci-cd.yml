@@ -375,6 +375,16 @@ jobs:
         with:
           role-to-assume: ${{ vars.SITE_DEPLOY_ROLE_ARN }}
           aws-region: ap-northeast-1
+      # CloudFront does not compress files over 10,000,000 bytes, and gui.<hash>.js is about
+      # 25 MB (#2198). Write gui.<hash>.js.br / .gz into dist here, after GitHub Pages got dist,
+      # so only S3 has them. A CloudFront Function picks them by Accept-Encoding (#2200); until
+      # then nothing requests them. Also warns about other files over 10,000,000 bytes.
+      - name: Pre-compress the gui JS (brotli / gzip)
+        if: steps.site.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          node --test scripts/precompress-assets.test.mjs
+          node scripts/precompress-assets.mjs packages/scratch-gui/dist
       - name: Upload to the S3 site bucket
         if: steps.site.outputs.enabled == 'true'
         env:
@@ -386,13 +396,35 @@ jobs:
           # hash are immutable, the rest (index.html, service-worker.js, version.json, .well-known,
           # auth-redirect.*) are re-checked on every load. Types aws s3 may guess wrong (.wasm /
           # .mjs / .hex) are uploaded with an explicit Content-Type.
+          # The pre-compressed gui JS (gui.<hash>.js.br / .gz) go up with cp, before index.html,
+          # with the Cache-Control of the original, Content-Type text/javascript and
+          # Content-Encoding br / gzip (aws s3 sync would guess the headers from the extension).
+          upload_precompressed() {
+            local src="$1" dest="$2" f name enc cache
+            for f in "${src}"/gui*.js.br "${src}"/gui*.js.gz; do
+              [ -e "${f}" ] || continue
+              name="$(basename "${f}")"
+              case "${name}" in
+                *.br) enc=br ;;
+                *) enc=gzip ;;
+              esac
+              if printf '%s' "${name}" | grep -qE '\.[0-9a-f]{8,}\.'; then
+                cache='public, max-age=31536000, immutable'
+              else
+                cache='max-age=0, s-maxage=60'
+              fi
+              aws s3 cp "${f}" "${dest}${name}" --only-show-errors \
+                --content-type 'text/javascript' --content-encoding "${enc}" --cache-control "${cache}"
+            done
+          }
           upload() {
             local src="$1" dest="$2"
             shift 2
             local hashed plain
             hashed="$(mktemp -d)"
             plain="$(mktemp -d)"
-            (cd "${src}" && find . -type f ! -name '.DS_Store' ! -name '.nojekyll' ! -name 'CNAME' -print0) |
+            (cd "${src}" && find . -type f ! -name '.DS_Store' ! -name '.nojekyll' ! -name 'CNAME' \
+              ! -path './gui*.js.br' ! -path './gui*.js.gz' -print0) |
               while IFS= read -r -d '' f; do
                 if printf '%s' "${f}" | grep -qE '\.[0-9a-f]{8,}\.'; then
                   to="${hashed}"
@@ -405,6 +437,7 @@ jobs:
             local typed=(--exclude '*.wasm' --exclude '*.mjs' --exclude '*.hex')
             aws s3 sync "${hashed}" "${dest}" --only-show-errors "${typed[@]}" \
               --cache-control 'public, max-age=31536000, immutable'
+            upload_precompressed "${src}" "${dest}"
             aws s3 sync "${plain}" "${dest}" --only-show-errors "${typed[@]}" \
               --cache-control 'max-age=0, s-maxage=60'
             local ext type dir cache
@@ -424,6 +457,7 @@ jobs:
             done
             # Remove what the new build no longer has. Everything left was just uploaded, so
             # --size-only keeps sync from re-uploading it (which would drop the Cache-Control).
+            # The .br / .gz are in src too, so they stay; the ones of an old gui are removed.
             aws s3 sync "${src}" "${dest}" --delete --size-only --only-show-errors \
               --exclude '.DS_Store' --exclude '.nojekyll' --exclude 'CNAME' "$@"
           }
@@ -575,6 +609,14 @@ jobs:
         with:
           role-to-assume: ${{ vars.PREVIEW_DEPLOY_ROLE_ARN }}
           aws-region: ap-northeast-1
+      # Same as production (#2198, #2199): build/gui.js.br / .gz for the CloudFront Function
+      # (#2200). After postbuild.mjs, which edits gui.js.
+      - name: Pre-compress the gui JS (brotli / gzip)
+        if: steps.check.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          node --test scripts/precompress-assets.test.mjs
+          node scripts/precompress-assets.mjs packages/scratch-gui/build
       - name: Upload to s3://<bucket>/<slug>/
         if: steps.check.outputs.enabled == 'true'
         env:
@@ -589,7 +631,8 @@ jobs:
           # (index.html, gui.js, sw.js, ...) are re-checked on every load.
           hashed="$(mktemp -d)"
           plain="$(mktemp -d)"
-          (cd "${build}" && find . -type f ! -name '.DS_Store' -print0) |
+          (cd "${build}" && find . -type f ! -name '.DS_Store' \
+            ! -path './gui*.js.br' ! -path './gui*.js.gz' -print0) |
             while IFS= read -r -d '' f; do
               if printf '%s' "${f}" | grep -qE '\.[0-9a-f]{8,}\.'; then
                 to="${hashed}"
@@ -601,10 +644,28 @@ jobs:
             done
           aws s3 sync "${hashed}" "${dest}" --only-show-errors \
             --cache-control 'public, max-age=31536000, immutable'
+          # The pre-compressed gui.js.br / .gz, before index.html (same as production: explicit
+          # Content-Type / Content-Encoding, the Cache-Control of gui.js).
+          for f in "${build}"/gui*.js.br "${build}"/gui*.js.gz; do
+            [ -e "${f}" ] || continue
+            name="$(basename "${f}")"
+            case "${name}" in
+              *.br) enc=br ;;
+              *) enc=gzip ;;
+            esac
+            if printf '%s' "${name}" | grep -qE '\.[0-9a-f]{8,}\.'; then
+              cache='public, max-age=31536000, immutable'
+            else
+              cache='max-age=0, s-maxage=60'
+            fi
+            aws s3 cp "${f}" "${dest}${name}" --only-show-errors \
+              --content-type 'text/javascript' --content-encoding "${enc}" --cache-control "${cache}"
+          done
           aws s3 sync "${plain}" "${dest}" --only-show-errors \
             --cache-control 'max-age=0, s-maxage=60'
           # Remove what the new build no longer has. Everything left was just uploaded, so
           # --size-only keeps sync from re-uploading it (which would drop the Cache-Control).
+          # The .br / .gz are in build too, so they stay.
           aws s3 sync "${build}" "${dest}" --delete --size-only --only-show-errors \
             --exclude '.DS_Store'
       # Microsoft login returns to window.location.origin + '/auth-redirect.html', i.e. the
