@@ -176,7 +176,7 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 
 | ファイル | `Cache-Control` | 理由 |
 |---|---|---|
-| ファイル名にハッシュが付いたもの（`/\.[0-9a-f]{8,}\./`。Workbox の `dontCacheBustURLsMatching` と同じ） | `public, max-age=31536000, immutable` | 中身が変わると名前が変わる |
+| ファイル名にハッシュが付いたもの（`/\.[0-9a-f]{8,}\./`） | `public, max-age=31536000, immutable` | 中身が変わると名前が変わる |
 | それ以外（`index.html`、`service-worker.js`、`version.json`、`auth-redirect.*`、`.well-known/*`、`admin/index.html` など） | `max-age=0, s-maxage=60` | ブラウザは毎回確かめ直し、CloudFront には 60 秒だけ置く |
 
 - CloudFront のキャッシュポリシーは AWS 管理の `CachingOptimized`（`Cache-Control` があれば従う・最長 1 年。クエリ文字列・ヘッダ・Cookie はキーに含めない）。定額プランはカスタムのキャッシュポリシーを使えないため。**`Cache-Control` が無いオブジェクトはエッジに 1 日残る**（プレビューの 60 秒と違う）ので、CI は上の表のとおり全ファイルに `Cache-Control` を付けて置く。
@@ -229,13 +229,11 @@ CloudFront は **1,000〜10,000,000 バイトのファイルしか自動で圧�
 
 ## PWA / service worker
 
-エディタは Workbox の `GenerateSW` で作った `/service-worker.js`（scope `/`・`skipWaiting` + `clientsClaim`）を登録し、ビルドの大部分を precache する。
+エディタは **Web App Manifest だけで PWA としてインストールできる**ようにしている（`index.html` が `manifest.<hash>.json` を読む）。service worker の登録と precache はしない（全ファイルを precache すると、端末ごとに 60〜100 MB を CloudFront から読むことになり、配信の量に見合わないため）。オフラインで使う仕組みは、別に設計する。
 
-- **オリジン（`https://smalruby.app`）は変わらない**ので、service worker の登録・precache・`localStorage` / IndexedDB はそのまま引き継がれる。利用者の側で何かする必要は無い。
-- precache の版は中身のハッシュで決まる。**切り替えの時点で S3 と GitHub Pages に同じコミットのビルドがあれば、何も再ダウンロードされない**。そのため段 4（並行デプロイ）を先に入れ、切り替えの前後は develop へのマージを止める。
-- 違うビルドが混ざっても、ふだんのリリースと同じく新しい版に更新されるだけで壊れはしない（`version.json` は precache から外してあり、更新のお知らせはこれで出る）。
+- `/service-worker.js` には、以前の smalruby3-gui が登録した service worker を外すためだけのもの（`packages/scratch-gui/pages/service-worker.js`）を置く。ブラウザは登録済みの service worker の URL を確かめ直すので、これに入れ替わり、キャッシュを消して自分の登録を解除する。fetch ハンドラは持たない。開いているページは再読み込みしない。
 - `service-worker.js` には `max-age=0` を付ける。ブラウザは service worker のスクリプト自体を HTTP キャッシュより優先して確かめ直すが、CloudFront に古いものが長く残らないようにするため。
-- 戻すときも同じオリジンなので、service worker の扱いは変わらない。
+- **オリジン（`https://smalruby.app`）は変わらない**ので、`localStorage` / IndexedDB とインストール済みの PWA はそのまま引き継がれる。利用者の側で何かする必要は無い。
 
 ## 切り替えの時間帯
 
@@ -252,7 +250,7 @@ CloudFront は **1,000〜10,000,000 バイトのファイルしか自動で圧�
 | Route 53 のゾーン | 月 0.5 → 一時的に 1.5 → 最後に 0.5 | いまは `api` と `preview` の 2 つ（月 1.0）。段 2 で 3 つになり、段 12 で 1 つにまとまる。ALIAS への問い合わせは無料 |
 | ACM の証明書 | 0 | パブリック証明書は無料 |
 | S3 の保存 | 月 0.1 未満 | ビルドは 1 版あたり 100〜200 MB。古い版を 30 日残しても数 GB |
-| CloudFront のデータ転送 | 月 0〜230 | 毎月 1 TB までは無料。新しい端末は precache で 60〜100 MB を読む。1 日の利用者 3,000 人が平均 10〜30 MB を読むと月 1〜3 TB。1 TB を超えた分は 1 GB あたり約 0.114 |
+| CloudFront のデータ転送 | 月 0〜230 | 毎月 1 TB までは無料。1 日の利用者 3,000 人が平均 10〜30 MB を読むと月 1〜3 TB。1 TB を超えた分は 1 GB あたり約 0.114 |
 | CloudFront のリクエストと関数 | 月 0〜30 | 毎月 1,000 万リクエスト・関数 200 万回までは無料。1 回の読み込みで数百のリクエストがあるので、無料枠を超えうる |
 | アクセスログ | 月 1 未満 | 標準ログ（従来）は届けるのが無料で、かかるのは S3 の保存と書き込みだけ。月 3,000 万リクエストでもログは gzip で月 数 GB、30 日分を置いて月 0.05〜0.2 程度 |
 
