@@ -445,6 +445,7 @@ end
 | `a <= b` | `(a < b) または (a = b)` | 3 つに `@ruby:operator:<=:<番号>` |
 | `a != b` | `(a = b) ではない` | 2 つに `@ruby:operator:!=:<番号>` |
 | `-a` | `0 - a` | `@ruby:unary_minus` |
+| `rand(10)`（1 以上の整数） | `0 から 9 までの乱数` | `@ruby:rand:n` |
 | `x.empty?` | `(x の長さ) = 0`（リストならリストの長さ） | 2 つに `@ruby:method:empty?:<番号>` |
 | `x.to_s` | `x と ""` をつなぐ | `@ruby:method:to_s` |
 | `"3".to_i` | `"3"` の切り下げ | `@ruby:method:to_i` |
@@ -465,7 +466,7 @@ say(@a.empty?)
 
 - 同じコードに戻る。
 
-**テスト**: `ruby-to-blocks-converter/operators/comparison-compound.test.js`、`comparison-not-equals.test.js`、`type-conversion.test.js`、`string.test.js`、`ruby-generator/operators/operators1.test.js`、`operators2.test.js`、`ruby-roundtrip/operators.test.js`、`operator-order.test.js`、`unary-minus.test.js`。
+**テスト**: `ruby-to-blocks-converter/operators/comparison-compound.test.js`、`comparison-not-equals.test.js`、`type-conversion.test.js`、`string.test.js`、`ruby-generator/operators/operators1.test.js`、`operators2.test.js`、`ruby-roundtrip/operators.test.js`、`operator-order.test.js`、`unary-minus.test.js`、`rand-integer.test.js`。
 
 ### P11. Scratch に無いメソッド（`@ruby:method`・`@ruby:argument`）
 
@@ -792,6 +793,7 @@ _1_文字えらぶ(1)
 | `@ruby:variable_condition` | `@ruby:variable_condition` | 変換器 `node-utils.js` | 生成器 `operators.js` | `if @f` | P9 |
 | `@ruby:operator` | `>=:<番号>` / `<=:<番号>` / `!=:<番号>` / `=~:<番号>[:receiver]` / `!~:<番号>[:receiver]` / `+=` / `-=` | 変換器 `operators.js` / `motion.js` | 生成器 `operators.js` / `motion.js` | `@ruby:operator:>=:1` | P8・P10 |
 | `@ruby:unary_minus` | `@ruby:unary_minus` | 変換器 `operators-math.js` | 生成器 `operators-math-gen.js` | `-@a` | P10 |
+| `@ruby:rand` | `@ruby:rand:n` | 変換器 `operators-math.js` | 生成器 `operators-math-gen.js` | `rand(10)` | P10 |
 | `@ruby:method` | `@ruby:method:<名前>`（`puts` / `print` / `p` / `gets` / `clone` / `wait` / `with_screen_refresh` / `to_s` / `to_i`）、`@ruby:method:empty?:<番号>` | 変換器 `looks.js` / `sensing.js` / `control.js` / `operators.js` / `variable-list-ops.js` | 生成器 `looks.js` / `sensing.js` / `control.js` / `operators.js` / `operators-math-gen.js` / `data-list.js`、変換器 `node-utils.js`（型の推定） | `@ruby:method:puts` | P10・P11 |
 | `@ruby:argument` | `@ruby:argument:1:type:Integer\|Float` | 変換器 `looks.js` | 生成器 `looks.js` | `puts(1)` | P11 |
 | `@ruby:syntax` | `+=` / `-=` / `*=` / `/=` / `%=` / `elsif:<番号>` / `if_modifier` / `unless` / `unless_else` / `unless_modifier` / `case:<式>:<番号>` / `while` / `wait_until` / `begin_end` / `return` | 変換器 `variables.js` / `ast-handlers/control-flow.js` / `expressions.js` | 生成器 `data.js` / `control.js` / `scrub.js`、変換器 `my-blocks.js` | `@ruby:syntax:elsif:1` | P2・P12 |

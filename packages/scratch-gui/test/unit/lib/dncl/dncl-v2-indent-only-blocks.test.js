@@ -212,3 +212,103 @@ describe('DNCLv2 indentation-only blocks: the Ruby turns into blocks (Issue #171
         expect(converted.ok).toBe(true);
     });
 });
+
+describe('DNCLv2 indentation-only blocks inside `｜` / `⎿` (Issue #1723)', () => {
+    test('`⎿` closes an indentation-only block opened on a `｜` line first', () => {
+        expect(
+            ruby([
+                'i を 1 から 3 まで 1 ずつ増やしながら繰り返す:',
+                '｜ もし i > 1 ならば:',
+                '｜     表示する(i)',
+                '⎿ 表示する(0)',
+                '表示する(9)',
+            ]),
+        ).toBe(
+            [
+                '@i = 1',
+                'while @i <= 3',
+                '  if @i > 1',
+                '    puts(@i)',
+                '  end',
+                '  puts(0)',
+                '  @i += 1',
+                'end',
+                'puts(9)',
+            ].join('\n'),
+        );
+    });
+
+    test('a `｜` line back at the opener closes the indentation-only block', () => {
+        expect(
+            ruby([
+                'i を 1 から 3 まで 1 ずつ増やしながら繰り返す:',
+                '｜ もし i > 1 ならば:',
+                '｜     表示する(i)',
+                '｜ 表示する(0)',
+                '⎿ 表示する(1)',
+            ]),
+        ).toBe(
+            [
+                '@i = 1',
+                'while @i <= 3',
+                '  if @i > 1',
+                '    puts(@i)',
+                '  end',
+                '  puts(0)',
+                '  puts(1)',
+                '  @i += 1',
+                'end',
+            ].join('\n'),
+        );
+    });
+
+    test('else of an indentation-only block inside `｜` stays in the block', () => {
+        expect(
+            ruby([
+                'i を 1 から 3 まで 1 ずつ増やしながら繰り返す:',
+                '｜ もし i > 1 ならば:',
+                '｜     表示する(i)',
+                '｜ そうでなければ:',
+                '｜     表示する(0)',
+                '⎿ 表示する(1)',
+            ]),
+        ).toBe(
+            [
+                '@i = 1',
+                'while @i <= 3',
+                '  if @i > 1',
+                '    puts(@i)',
+                '  else',
+                '    puts(0)',
+                '  end',
+                '  puts(1)',
+                '  @i += 1',
+                'end',
+            ].join('\n'),
+        );
+    });
+
+    test('on numbered lines, too', () => {
+        expect(
+            ruby([
+                '(1) i を 1 から 3 まで 1 ずつ増やしながら繰り返す:',
+                '(2) ｜ もし i > 1 ならば:',
+                '(3) ｜     表示する(i)',
+                '(4) ⎿ 表示する(0)',
+                '(5) 表示する(9)',
+            ]),
+        ).toBe(
+            [
+                '@i = 1',
+                'while @i <= 3',
+                '  if @i > 1',
+                '    puts(@i)',
+                '  end',
+                '  puts(0)',
+                '  @i += 1',
+                'end',
+                'puts(9)',
+            ].join('\n'),
+        );
+    });
+});
