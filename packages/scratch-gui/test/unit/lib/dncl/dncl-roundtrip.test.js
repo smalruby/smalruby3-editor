@@ -1,4 +1,5 @@
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
+import { findUnsupportedCommands } from '../../../../src/lib/dncl/dncl-validator';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 import { loadPrism } from '../../../../src/lib/prism-parser';
 
@@ -100,6 +101,23 @@ describe('DNCL round-trip (DNCL → Ruby → DNCL)', () => {
             const dncl = '関数 f(x)\n  返す x * 2\nと定義する';
             const standard = '関数 f(x):\n    x * 2 を返す';
             expectRoundtrip(dncl, dncl, standard);
+        });
+    });
+
+    describe('an element added to an array (#1759)', () => {
+        test('を追加する round-trips', () => {
+            expectRoundtrip('Data = []\nData に 3 を追加する', 'Data = []\nData に 3 を追加する');
+            expectRoundtrip('a = []\na に x + 1 を追加する', 'a = []\na に x + 1 を追加する');
+        });
+
+        test('を追加する is push, and is not a command the Japanese mode does not have', () => {
+            expect(toRuby('Data = []\nData に 3 を追加する')).toBe('@_array_Data_ = []\n@_array_Data_.push(3)');
+            expect(findUnsupportedCommands('Data = []\nData に 3 を追加する')).toEqual([]);
+            expect(findUnsupportedCommands('a = []\na に x を追加する')).toEqual([]);
+        });
+
+        test('<< of Ruby is written as を追加する', () => {
+            expect(rubyToDncl('@_array_Data_ = []\n@_array_Data_ << 3').dncl).toBe('Data = []\nData に 3 を追加する');
         });
     });
 

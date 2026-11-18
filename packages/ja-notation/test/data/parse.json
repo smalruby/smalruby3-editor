@@ -1134,6 +1134,51 @@
                 "line": 1,
                 "column": 0
             }
+        },
+        {
+            "title": "an element added at the end of an array (`A に 値 を追加する`)",
+            "ja": "A に x + 1 を追加する",
+            "program": {
+                "type": "Program",
+                "settings": {
+                    "indexBase": 0,
+                    "commentMarker": "#",
+                    "logicNote": false
+                },
+                "body": [
+                    {
+                        "type": "Append",
+                        "target": {
+                            "type": "Name",
+                            "name": "A",
+                            "line": 1,
+                            "column": 0
+                        },
+                        "value": {
+                            "type": "Binary",
+                            "operator": "+",
+                            "left": {
+                                "type": "Name",
+                                "name": "x",
+                                "line": 1,
+                                "column": 4
+                            },
+                            "right": {
+                                "type": "Number",
+                                "value": "1",
+                                "line": 1,
+                                "column": 8
+                            },
+                            "line": 1,
+                            "column": 4
+                        },
+                        "line": 1,
+                        "column": 0
+                    }
+                ],
+                "line": 1,
+                "column": 0
+            }
         }
     ],
     "same": [
@@ -1246,6 +1291,11 @@
             "title": "`end` closes a block opened without `:`",
             "ja": "もし a > 0 ならば\n  b = 1\nend",
             "as": "もし a > 0 ならば:\n  b = 1"
+        },
+        {
+            "title": "`を追加する` with no spaces around the value in brackets",
+            "ja": "A に (3) を追加する",
+            "as": "A に 3 を追加する"
         }
     ],
     "errors": [
@@ -1410,6 +1460,30 @@
                     "line": 2,
                     "column": 4,
                     "name": "1_000"
+                }
+            ]
+        },
+        {
+            "title": "an element is added only to an array variable",
+            "ja": "A[0] に 3 を追加する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "要素を追加できるのは配列の変数だけです",
+                    "line": 1,
+                    "column": 0
+                }
+            ]
+        },
+        {
+            "title": "`を追加する` with no value",
+            "ja": "A に を追加する",
+            "errors": [
+                {
+                    "code": "syntax",
+                    "message": "「を追加する」の前に追加する値を書きます",
+                    "line": 1,
+                    "column": 0
                 }
             ]
         }

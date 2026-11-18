@@ -25,6 +25,7 @@
 //   For          { variable: Name, from, to, step, direction: 'up' | 'down', body }
 //   FunctionDef  { name, params: [string], body }
 //   Return       { value: Expression | null }
+//   Append       { target: Name, value: Expression }   (`A に 値 を追加する`: at the end of the array)
 //   Comment      { text }                       (a line that is only a comment; `text`
 //                                               starts with `#` whatever the comment mark is)
 //   RubyCode     { text }                       (Ruby with no Japanese form, as written; `readRuby` only)
@@ -63,6 +64,7 @@ const STATEMENT_TYPES = [
     'For',
     'FunctionDef',
     'Return',
+    'Append',
     'Comment',
     'RubyCode',
 ];

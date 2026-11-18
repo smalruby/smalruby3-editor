@@ -269,6 +269,8 @@ class JaWriter {
                 return expression(s.expression);
             case 'Return':
                 return s.value ? `${expression(s.value)} を返す` : '返す';
+            case 'Append':
+                return `${expression(s.target)} に ${expression(s.value)} を追加する`;
             default:
                 throw new Error(`ja-notation: cannot write ${s.type}`);
         }

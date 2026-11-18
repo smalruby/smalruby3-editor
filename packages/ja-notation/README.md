@@ -48,7 +48,8 @@ JaAST はただの JSON（クラスなし）なので、ほかの言語の実装
 - どのノードも `type`・`line`（日本語の行。1 から）・`column`（0 から）を持ちます。
 - `Program { settings, body, lineCount?, blankLines? }`。`settings` は冒頭の説明文から読んだ設定。
   `lineCount` / `blankLines` は `readRuby` が付け、`writeJa` が空行を保つのに使います。
-- 文: `Assign`・`OpAssign`・`MultiAssign`・`Input`・`ExpressionStatement`・`If`・`While`・`For`・`FunctionDef`・`Return`・`Comment`・`RubyCode`。
+- 文: `Assign`・`OpAssign`・`MultiAssign`・`Input`・`ExpressionStatement`・`If`・`While`・`For`・`FunctionDef`・`Return`・`Append`・`Comment`・`RubyCode`。
+  `Append { target, value }` は `A に 値 を追加する`（配列の最後に足す。Ruby は `A.push(値)`、`A << 値` も読む）。
   ブロックの文は `closeLine`・`closeAfter`、自分の行で閉じたもの（DNCL 風の形）は `closeOwnLine`・`closeComment` も持ちます。
 - 式: `Number`・`String`・`Boolean`・`Name`・`Index`・`ArrayLiteral`・`Call`・`Unary`（`parens?`）・`Binary`・`RubyCode`。
 - `RubyCode { text }` は日本語の形が無い Ruby をそのまま持ちます（`readRuby` だけが作ります）。

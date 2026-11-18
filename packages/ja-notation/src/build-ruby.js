@@ -128,6 +128,7 @@ const analyze = (program, functions) => {
         if (s.type === 'Assign' && s.target.type === 'Name' && s.value.type === 'ArrayLiteral') {
             arrays.add(s.target.name);
         }
+        if (s.type === 'Append') arrays.add(s.target.name);
         if (s.type === 'MultiAssign') s.targets.forEach(assigned);
         if (s.type === 'For') declared.add(s.variable.name);
         if (s.type === 'FunctionDef') {
@@ -388,6 +389,8 @@ class RubyBuilder {
                 return this.functionDef(s);
             case 'Return':
                 return { type: 'ReturnNode', value: s.value ? this.expression(s.value) : null };
+            case 'Append':
+                return call(this.expression(s.target), 'push', [this.expression(s.value)]);
             default:
                 this.fail('syntax', `「${s.type}」は書けません`, s);
                 return [];

@@ -167,6 +167,13 @@
                     "name": "a[0, 1], b = 1, 2"
                 }
             ]
+        },
+        {
+            "title": "push and << of an array are `を追加する`",
+            "table": "none",
+            "ruby": "a = []\na.push(3)\na << 4 + 1",
+            "ja": "a = []\na に 3 を追加する\na に 4 + 1 を追加する",
+            "errors": []
         }
     ]
 }

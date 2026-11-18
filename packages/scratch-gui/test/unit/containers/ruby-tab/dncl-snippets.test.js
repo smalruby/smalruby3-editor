@@ -48,7 +48,7 @@ const expand = (insertText) =>
 const BLOCK_OPENER = /^(?:もし|そうでなくもし|そうでなければ|関数 |.+ の間|.+ずつ(?:増やし|減らし)ながら)/;
 
 // The snippets that put in a statement; the others put in a value.
-const isStatement = (text) => text.includes('\n') || /^表示する\(|=|を返す$/.test(text);
+const isStatement = (text) => text.includes('\n') || /^表示する\(|=|を返す$|を追加する$/.test(text);
 
 /**
  * The program a snippet is tried in: the variables it uses are set first,
