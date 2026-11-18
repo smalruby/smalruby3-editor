@@ -7,6 +7,7 @@ const debug = debugLogger(process.env.DEBUG);
 const formatMessage = require('format-message');
 const Cast = require('../../util/cast');
 const Timer = require('../../util/timer');
+const StuduinoPracticeBoard = require('./practice-board');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -490,6 +491,11 @@ class Smalrubot {
                 log.info('[SetConnectionState] Emitting PERIPHERAL_DISCONNECTED event');
                 this.emitRuntime('PERIPHERAL_DISCONNECTED');
                 break;
+        }
+
+        // Lets the extension switch between the real board and the practice board (#2191).
+        if (typeof this.onConnectionStateChange === 'function') {
+            this.onConnectionStateChange(connectionState);
         }
     }
 
@@ -1077,17 +1083,61 @@ class Scratch3SmalrubotS1Blocks {
         this.runtime.registerPeripheralExtension(Scratch3SmalrubotS1Blocks.EXTENSION_ID, this);
 
         this._smalrubot = null;
+
+        /**
+         * The board in the browser that receives the commands while no real board is connected (#2191).
+         * @type {StuduinoPracticeBoard}
+         */
+        this.practiceBoard = new StuduinoPracticeBoard(this.runtime);
+        this.practiceBoard.emitState();
+    }
+
+    /**
+     * @returns {string} - the runtime event sent on every change of the practice board's state.
+     */
+    static get PRACTICE_BOARD_STATE_EVENT() {
+        return StuduinoPracticeBoard.STATE_EVENT;
     }
 
     get smalrubot() {
         try {
             if (!this._smalrubot) {
                 this._smalrubot = new SmalrubotS1(this.runtime);
+                // Keep the speeds set before the real board was made (they used to be kept on it).
+                this._smalrubot.dcMotorPowerRatios = Object.assign({}, this.practiceBoard.dcMotorPowerRatios);
+                this._smalrubot.onConnectionStateChange = () => {
+                    this.practiceBoard.setMode(this.isConnected() ? 'device' : 'practice');
+                };
             }
         } catch (e) {
             log.error(e);
         }
         return this._smalrubot;
+    }
+
+    /**
+     * The board the blocks talk to: the real board while it is connected, otherwise the practice board.
+     * @returns {SmalrubotS1|StuduinoPracticeBoard} - the board.
+     */
+    get board() {
+        return this.isConnected() ? this._smalrubot : this.practiceBoard;
+    }
+
+    /**
+     * @returns {object} - a copy of the practice board's state (for the GUI panel).
+     */
+    getPracticeBoardState() {
+        return this.practiceBoard.getState();
+    }
+
+    /**
+     * Change a sensor value of the practice board (for the GUI panel).
+     * @param {string} portOrPosition - a port ('A6') or a sensor menu value ('light').
+     * @param {number|string} value - the new value.
+     * @returns {boolean} - true when the value was changed.
+     */
+    setPracticeSensorValue(portOrPosition, value) {
+        return this.practiceBoard.setSensorValue(portOrPosition, value);
     }
 
     /**
@@ -1286,11 +1336,7 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `action: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return;
-            }
-
-            this.smalrubot.action(args.ACTION);
+            this.board.action(args.ACTION).catch((error) => log.error(error));
         } catch (error) {
             log.error(error);
         }
@@ -1298,10 +1344,6 @@ class Scratch3SmalrubotS1Blocks {
 
     actionAndStopAfter(args, util) {
         try {
-            if (!this.smalrubot) {
-                return;
-            }
-
             if (util.stackTimerNeedsInit()) {
                 debug(() => `actionAndStopAfter: args=<${JSON.stringify(args, null, 2)}>`);
 
@@ -1309,12 +1351,12 @@ class Scratch3SmalrubotS1Blocks {
                 util.startStackTimer(duration);
                 this.runtime.requestRedraw();
 
-                this.smalrubot.action(args.ACTION);
+                this.board.action(args.ACTION).catch((error) => log.error(error));
 
                 util.yield();
             } else if (util.stackTimerFinished()) {
                 if (args.ACTION !== 'stop') {
-                    this.smalrubot.action('stop');
+                    this.board.action('stop');
                 }
             } else {
                 util.yield();
@@ -1327,33 +1369,25 @@ class Scratch3SmalrubotS1Blocks {
     bendArm(args, util) {
         try {
             if (util.stackFrame.timer) {
-                if (!this.smalrubot || !this.isConnected()) {
-                    return;
-                }
-
                 const timeElapsed = util.stackFrame.timer.timeElapsed();
                 if (timeElapsed < util.stackFrame.duration * 1000) {
                     const frac = timeElapsed / (util.stackFrame.duration * 1000);
                     const d = frac * (util.stackFrame.endDegree - util.stackFrame.startDegree);
-                    this.smalrubot.bendArm(util.stackFrame.startDegree + d);
+                    this.board.bendArm(util.stackFrame.startDegree + d);
                     util.yield();
                 } else {
-                    this.smalrubot.bendArm(util.stackFrame.endDegree);
+                    this.board.bendArm(util.stackFrame.endDegree);
                 }
             } else {
                 debug(() => `bendArm: args=<${JSON.stringify(args, null, 2)}>`);
 
-                if (!this.smalrubot || !this.isConnected()) {
-                    return;
-                }
-
                 util.stackFrame.timer = new Timer();
                 util.stackFrame.timer.start();
                 util.stackFrame.duration = Cast.toNumber(args.SECS);
-                util.stackFrame.startDegree = this.smalrubot.armDegree;
+                util.stackFrame.startDegree = this.board.armDegree;
                 util.stackFrame.endDegree = Cast.toNumber(args.DEGREE);
                 if (util.stackFrame.duration <= 0) {
-                    this.smalrubot.bendArm(util.stackFrame.endDegree);
+                    this.board.bendArm(util.stackFrame.endDegree);
                     return;
                 }
                 util.yield();
@@ -1367,11 +1401,7 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `getSensorValue: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return Promise.resolve(0);
-            }
-
-            return this.smalrubot.getSensorValue(args.POSITION);
+            return this.board.getSensorValue(args.POSITION);
         } catch (error) {
             log.error(error);
         }
@@ -1382,11 +1412,7 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `turnLedOn: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return Promise.resolve();
-            }
-
-            return this.smalrubot.led(args.POSITION, true);
+            return this.board.led(args.POSITION, true);
         } catch (error) {
             log.error(error);
         }
@@ -1397,11 +1423,7 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `turnLedOff: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return Promise.resolve();
-            }
-
-            return this.smalrubot.led(args.POSITION, false);
+            return this.board.led(args.POSITION, false);
         } catch (error) {
             log.error(error);
         }
@@ -1412,11 +1434,7 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `getMotorSpeed: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return 0;
-            }
-
-            return this.smalrubot.getMotorSpeed(args.POSITION);
+            return this.board.getMotorSpeed(args.POSITION);
         } catch (error) {
             log.error(error);
         }
@@ -1427,11 +1445,12 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `setMotorSpeed: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return;
+            // The speed is a setting, so both boards keep it: it is still used after connecting or disconnecting.
+            const speed = Cast.toNumber(args.SPEED);
+            this.practiceBoard.setMotorSpeed(args.POSITION, speed);
+            if (this._smalrubot) {
+                this._smalrubot.setMotorSpeed(args.POSITION, speed);
             }
-
-            this.smalrubot.setMotorSpeed(args.POSITION, Cast.toNumber(args.SPEED));
         } catch (error) {
             log.error(error);
         }
@@ -1441,11 +1460,7 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `setArmCalibration: args=<${JSON.stringify(args, null, 2)}>`);
 
-            if (!this.smalrubot) {
-                return Promise.resolve();
-            }
-
-            return this.smalrubot.setArmCalibration(Cast.toNumber(args.DEGREE));
+            return this.board.setArmCalibration(Cast.toNumber(args.DEGREE));
         } catch (error) {
             log.error(error);
         }
@@ -1455,7 +1470,8 @@ class Scratch3SmalrubotS1Blocks {
     isConnected() {
         debug(() => `isConnected`);
 
-        return this.smalrubot ? this.smalrubot.isConnected() : false;
+        // Use the board only if it was made (by scan / connect): making it without Web Serial reports an error.
+        return this._smalrubot ? this._smalrubot.isConnected() : false;
     }
 
     scan() {
@@ -1499,11 +1515,13 @@ class Scratch3SmalrubotS1Blocks {
     }
 
     stopAll() {
-        if (!this.smalrubot) {
-            return;
-        }
+        // The practice board stops too, so a project stopped while connected does not leave it running.
+        const stopped = this.practiceBoard.stopAll();
 
-        this.smalrubot.stopAll();
+        if (this._smalrubot) {
+            this._smalrubot.stopAll();
+        }
+        return stopped;
     }
 }
 
