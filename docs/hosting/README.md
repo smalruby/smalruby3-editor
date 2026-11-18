@@ -76,6 +76,7 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 | `/.well-known/microsoft-identity-association.json` | `packages/scratch-gui/legal/.well-known/` からビルドに入る。ドットで始まるディレクトリも同期の対象にする（Microsoft のパブリッシャー検証に要る） |
 | `/auth-redirect.html`（Microsoft ログインの戻り先） | ビルドに入っている。オリジンが同じなので Microsoft / Google の設定は変えない |
 | `/about.html` などの静的ページ | ビルドに入っている。拡張子付きの URL はそのまま返す。`/about` のように拡張子を省いた URL は開けない（`/about/` へ 301 したあと 404 ページになる。下の「拡張子の無い URL」） |
+| `/404.html`（存在しないファイルのページ） | ビルドに入っている（`packages/scratch-gui/pages/404.html`）。CloudFront のエラー応答が中身に使う（下の「存在しないファイル」） |
 | HSTS ヘッダ | CloudFront の viewer-response 関数で付ける（定額プランは応答ヘッダポリシーを使えないため。`.app` は HSTS preload 済みなので、ブラウザはもともと HTTPS でしか来ない） |
 | `CNAME` / `.nojekyll` | GitHub Pages 専用なので S3 には要らない |
 
@@ -95,7 +96,7 @@ prod ステージのリソースは、`infra/smalruby-web-hosting/lib/web-hostin
 
 ### 存在しないファイル
 
-存在しないファイルは S3 が 403 を返す（OAC では一覧を見せないため。GitHub Pages は GitHub の 404 ページを返す）。CloudFront のカスタムエラー応答は定額プラン Pro でも使えるが、404 にするには応答の中身にするページ（`/404.html` など）がバケットに要る。いまのビルドには無く、CI の同期は `--delete` なので CDK から置いても消える。404 にするときは、先にビルド（`packages/scratch-gui/pages/`）に 404 ページを足して本番に出し、そのあとで配信に 403 → 404 のエラー応答を足す（SPA は `/` の `index.html` だけでパスのルーティングを持たず、管理 SPA はハッシュのルーティングなので、403 を 404 に変えても壊れない）。
+存在しないファイルは S3 が 403 を返す（OAC では一覧を見せないため。GitHub Pages は GitHub の 404 ページを返す）。これを 404 にするため、ビルドに 404 ページ `404.html` を入れてある（`packages/scratch-gui/pages/404.html`。ほかのページと同じく `pages/` からトップレベルにコピーされ、CI がハッシュ無しの規則で `Cache-Control: max-age=0, s-maxage=60` を付けて S3 に置く）。CDK からは置かない（CI の同期は `--delete` なので、ビルドに無いものは消える）。配信には CloudFront のカスタムエラー応答で、オリジンの 403 / 404 を応答コード 404・ページ `/404.html` にする。エラー応答のページが 403 にならないよう、**404 ページが本番に出てから（`https://smalruby.app/404.html` が 200 になってから）エラー応答を足す**。404 ページはどの階層の URL（`/a/b/c` など）にも返るので、中のアセットとリンクは `/` から始まる絶対パスで書く（相対パスにしない）。検索に載らないよう `noindex` を付けている。SPA は `/` の `index.html` だけでパスのルーティングを持たず、管理 SPA はハッシュのルーティングなので、403 を 404 に変えても壊れない。
 
 ## 進める順番
 
