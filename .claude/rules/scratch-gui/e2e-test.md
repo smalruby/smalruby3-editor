@@ -62,6 +62,8 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | `ruby-toolbar-menu-insert-class` | div | クラス挿入 |
 | `ruby-toolbar-menu-preview` | div | プレビュー |
 | `ruby-toolbar-menu-auto-correct-settings` | div | 自動置換設定 |
+| `ruby-toolbar-menu-copy-problem-form` | div | 問題の形でコピー（日本語モードのみ） |
+| `ruby-tab-problem-form-done` | button | 「できた」（日本語モードで、問題の形に切りかえる） |
 
 ### Target Selector (`target-selector.jsx`)
 

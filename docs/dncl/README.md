@@ -41,6 +41,27 @@ DNCL モードに切り替えると：
 
 DNCL モードと**ふりがな**は排他（DNCL 自体が日本語のためふりがな不要）。
 
+### 問題の形（行番号と罫線）
+
+共通テストの問題と同じ見た目で読めるように、エディタは **テキスト** と **問題の形** を分けて見せる（設計は [`design.md`](./design.md) の 2 章）。
+
+| | 中身 | 保存されるか |
+|---|---|---|
+| テキスト | エディタの文字。字下げ（と見出しの `:`）でブロックを表す。行番号と罫線は書かない | ブロックに直して作品に保存される |
+| 行番号 `(01)` | 日本語モードのあいだは、行の左の欄にいつも `(01)` の形で出す（2 けた。100 行をこえたら 3 けた。最後の改行の後ろの空の行は数えない。コピーと同じ数え方）。欄の幅は桁に合わせる。エラーの印も同じ行番号の隣に出る | 見た目だけ |
+| 罫線（縦線と L 字） | エディタに**フォーカスが無いとき**だけ、字下げの空白の上に重ねて描く。文字の位置は動かない | 見た目だけ |
+
+![問題の形（フォーカスが無いとき）](screenshots/0101-problem-form-1280x800.png)
+
+![テキスト（フォーカスがあるとき）と「できた」](screenshots/0102-text-1280x800.png)
+
+- **フォーカスがあるあいだ**はテキスト（空白の点と字下げのガイドも見える）。フォーカスを外すか、エディタ右上の **「できた」** ボタン（`ruby-tab-problem-form-done`。フォーカスがあるときだけ出る。キーボードでも押せる）を押すと問題の形になる。検索などでエディタのフォーカスが外れたときも問題の形になる（フォーカスで切りかえる仕様）。
+- 罫線は字下げから決める（`dncl-problem-form.js` の `layoutProblemForm`）。字下げの幅の数え方（タブは 4 桁、全角空白は 2 桁）は読み込みと共通（`dncl-indent.js`）。字下げの幅は 2 空白でも 4 空白でもよい。ブロックの最後の行は L 字、それ以外は縦線。
+  - **if/else は最後の枝だけ L 字**（次の行が同じ深さの `そうでなくもし` / `そうでなければ` なら縦線のまま）。
+  - **DNCL 風の形**（`を実行する` / `を繰り返す` / `と定義する` で閉じる）は、縦線を閉じの行の手前まで引き、L 字にしない。閉じのことばがブロックの終わりを示すので、L 字を足すと終わりが 2 つになり、コピーを読み込むと `end` が 1 つ余る。
+  - 空の行と、コメントだけの行は、ブロックを開きも閉じもしない（読み込みと同じ）。前後でつづくブロックの縦線を通す。字下げの無い空の行には、テキストに無い空白を見た目だけ足して縦線を描く。字下げより左に書いたコメントの行は、その行の縦線を省く（文字の位置を動かさない）。
+- **コピー**: ふつうのコピーはテキストのまま。`⋯` メニューの **「問題の形でコピー」**（`ruby-toolbar-menu-copy-problem-form`。日本語モードのときだけ）は、行番号と罫線（`｜` / `⎿`）を文字で付けた形をクリップボードに入れる（行の終わりの空白は落とす）。これを日本語モードに貼り付けると、同じプログラムとして読み込める。
+
 ### ブロック制限の通知と DNCL モードからの復帰
 
 DNCL モードではコードタブのブロックが制限される（後述の「関連ブロック」参照）ため、想定外に DNCL モードになっているユーザーが「ブロックが少ない・拡張機能が選べない」状態に気づけるよう、2 つの復帰導線を用意している。
@@ -79,6 +100,8 @@ DNCL の行に戻して見せる。詳しくは [`docs/genai-consult/README.md`]
 |---|---|
 | `dncl-to-ruby.js` | DNCL → Ruby 変換のエントリポイント（pre-processor → validator → line converter） |
 | `dncl-v2-preprocessor.js` | **DNCLv2 → Smalruby DNCL 正規化**（行番号、コロン、`｜` / `⎿`、複数代入、`and` / `or` / `not`、関数定義 opener） |
+| `dncl-indent.js` | **字下げの幅の数え方**（`indentWidth`: タブは 4 桁・全角空白は 2 桁、`indentOffset`: ある幅の位置の字下げの文字）。`dncl-v2-preprocessor.js` と問題の形が使う |
+| `dncl-problem-form.js` | **問題の形の配置**（`layoutProblemForm`: 行ごとの行番号 `(01)` と罫線の位置・種類、`problemFormText`: 行番号と罫線を文字で付けた形）。エディタの描画（`dncl-problem-form-view.js`）と「問題の形でコピー」が使う |
 | `dncl-line-number.js` | **行番号と本文の間の区切り**（`lineNumberSeparator`）。行番号の後ろの空白のうち、どこまでが区切りでどこからが字下げかを決める。`dncl-v2-preprocessor.js` と `dncl-paste-tidy.js` が使う |
 | `dncl-paste-tidy.js` | **貼り付け時の整形**（日本語モードのエディタに貼り付けた行番号付きのテキストの行番号を消し、`//` コメントを `#` に直す。下の「貼り付け時の整形」）と、`//` のある行の変換エラーに「`//` はコメントではない」と添える `withDoubleSlashHint` |
 | `dncl-array-index-hint.js` | **範囲外の添字の警告**（`findArrayIndexHints`）。1 から始まる添字で書いたときのように配列の範囲外を読む `X[i]` / `X[3]` を見つける。`ruby-tab.jsx` が警告マーカー（`gui.rubyTab.dnclArrayIndexHint`）にして、添字が 0 から始まることと直し方を表示する。下の「配列の添字は 0 から」 |
@@ -155,6 +178,7 @@ DNCL モードでは、DNCL を Ruby に変換してからブロックに変換�
 
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-mode.js` — Monaco の DNCL 言語定義（トークナイザ、シンタックスハイライト）
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-snippets.js` — DNCL コード補完スニペット。ブロックは標準の形（`もし 条件 ならば:` / `〜の間繰り返す:` / `関数 名前(引数):` と字下げ 4 つ。閉じのことばの行は入れない）で入れる
+- `packages/scratch-gui/src/containers/ruby-tab/dncl-problem-form-view.js` — 問題の形を Monaco に描く（罫線のデコレーション、行番号 `(01)` の `lineNumbers`、フォーカスでの切りかえ `createProblemFormView`）
 - `packages/scratch-gui/src/containers/ruby-tab/dncl-index-shift.js` — 貼り付け時の添字の書き換えの確認ダイアログ・書き換え（1 回の Undo）・印（Monaco デコレーション）・まとめの表示（`offerDnclIndexShift`）
 
 #### UI / 状態管理
@@ -382,6 +406,8 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-v2-example.test.js` — DNCLv2 例題の end-to-end 変換テスト
   - `dncl-v2-ictl-samples.test.js` — 共通テスト例題で使われる記法（`もし(`・`(00-1)`・全角コロン・継続行・`//` が常に整数除算であること・入力形式・インデントだけのブロック）と、例題プログラムが prism で構文エラーにならないことの検証
   - `dncl-v2-indent-only-blocks.test.js` — 字下げだけで書いたブロック（字下げの幅・全角空白・タブ・入れ子・`そうでなければ`・空行・行末コメント・日本語の関数名・行番号付き・桁をそろえた行番号）の Ruby の字下げと終了行、エラーの列が書いた DNCL の位置を指すこと、変換した Ruby がブロックに変換できること
+  - `dncl-problem-form.test.js` — 問題の形の行番号と罫線（ブロックの最後の L 字・入れ子・if/else は最後の枝だけ L 字・DNCL 風の閉じの行・中身の無い if・続けて並ぶブロック・2 空白の字下げ・空行・字下げの無いコメント・CRLF・タブ）、行番号の桁、文字で付けた形、それを貼り付けると同じ Ruby になること（Ruby から作った DNCL 風の形も）
+  - `dncl-indent.test.js` — 字下げの幅の数え方
   - `dncl-line-number.test.js` — 行番号と本文の間の区切りの決め方（1 空白・幅の違う行番号・桁をそろえた行番号・全部の行が字下げされている場合）
   - `dncl-array-index-hint.test.js` — 範囲外の添字の警告（1 から数えたループ・数の添字・0 から数えたループは警告しない・二度代入した配列・要素を追加/削除する配列・関数の引数と同じ名前は推測しない）
   - `dncl-paste-tidy.test.js` — 貼り付け時の整形（行番号の削除と字下げの保持・`//` コメント → `#`・整数除算と文字列の `//` は不変）
@@ -397,7 +423,7 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `dncl-unsupported-command.test.js` — 日本語モードに無い命令（引数あり・なし・変数と同じ名前・式や条件の中・`xxx do` と `|x|`）がその行のエラーで止まり、定義した関数の呼び出しや組み込み関数は往復できること（DNCL → Ruby と Ruby → DNCL の両方）
   - `dncl-do-block.test.js` — 日本語にしない `xxx do ... end` が `を実行する` で閉じ、外側の `〜の間` / `もし` / `関数` の閉じのことばがずれないこと（入れ子・`until x do`・後判定の中・文字列やコメントの中の `do`）
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
-- エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-shift.test.js`（注釈なしでは聞かない・「いいえ」で何も変えない・「はい」で 1 回の編集と印とまとめ）
+- エディタ側の単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-index-shift.test.js`（注釈なしでは聞かない・「いいえ」で何も変えない・「はい」で 1 回の編集と印とまとめ）、`dncl-problem-form-view.test.js`（罫線のデコレーションの位置・タブの字下げ・空の行の縦線・行番号の桁と欄の幅・フォーカスと日本語モードでの切りかえ）。統合テスト `test/integration/dncl-problem-form.test.js`（フォーカスでの切りかえ・「できた」・Ruby に戻すと行番号と空白の点が戻ること）
 - 補完と色分けの単体テスト: `packages/scratch-gui/test/unit/containers/ruby-tab/dncl-snippets.test.js`（スニペットが標準の形（`:` と字下げ 4 つ・閉じのことばの行なし・`繰り返す:`）で、場所を埋めて入れたものがそのまま Ruby とブロックになり、Ruby から同じ日本語に戻ること）、`dncl-mode.test.js`（開始の行の後の字下げ・`and` / `or` / `not`・`繰り返す` の付いたことば・`を返す`・全角の `％` の色分け）
 - Round-trip テスト (左結合演算子の括弧除去): `packages/scratch-gui/test/unit/lib/ruby-roundtrip-puts-concat.test.js`
 - ブロック制限 UX の単体テスト:
