@@ -12,9 +12,7 @@ import Filter from '../filter/filter.jsx';
 import TagButton from '../../containers/tag-button.jsx';
 import {legacyConfig} from '../../legacy-config';
 import Spinner from '../spinner/spinner.jsx';
-// === Smalruby: Start of tutorial categories ===
-import {CATEGORIES} from '../../lib/libraries/tutorial-tags';
-// === Smalruby: End of tutorial categories ===
+import {CATEGORIES} from '../../../src/lib/libraries/decks/index.jsx';
 
 import styles from './library.css';
 import {ModalFocusContext} from '../../contexts/modal-focus-context.jsx';
@@ -37,38 +35,21 @@ const messages = defineMessages({
         defaultMessage: 'Getting Started',
         description: 'Label for getting started category'
     },
-    // === Smalruby: Start of tutorial categories ===
-    [CATEGORIES.blockBasics]: {
-        id: `gui.library.blockBasics`,
-        defaultMessage: 'ブロックのきほん：はじめての操作',
-        description: 'Label for the Block Basics tutorial category — first steps with blocks'
+    [CATEGORIES.basics]: {
+        id: `gui.library.basics`,
+        defaultMessage: 'Basics',
+        description: 'Label for basics category'
     },
-    [CATEGORIES.blockGames]: {
-        id: `gui.library.blockGames`,
-        defaultMessage: 'ブロックでゲーム：シューティング',
-        description: 'Label for the Block Games tutorial category — make a shooting game'
+    [CATEGORIES.intermediate]: {
+        id: `gui.library.intermediate`,
+        defaultMessage: 'Intermediate',
+        description: 'Label for intermediate category'
     },
-    [CATEGORIES.meshStep1]: {
-        id: `gui.library.meshStep1`,
-        defaultMessage: '通信入門 ① メッセージを送ってみよう',
-        description: 'Label for Mesh tutorial step 1 — send a message between same-sprite scripts'
+    [CATEGORIES.prompts]: {
+        id: `gui.library.prompts`,
+        defaultMessage: 'Prompts',
+        description: 'Label for prompts category'
     },
-    [CATEGORIES.meshStep2]: {
-        id: `gui.library.meshStep2`,
-        defaultMessage: '通信入門 ② ふたりで会話しよう',
-        description: 'Label for Mesh tutorial step 2 — chat between two sprites'
-    },
-    [CATEGORIES.meshStep3]: {
-        id: `gui.library.meshStep3`,
-        defaultMessage: '通信入門 ③ みんなで会話しよう (メッシュ)',
-        description: 'Label for Mesh tutorial step 3 — chat across devices via Mesh extension'
-    },
-    [CATEGORIES.rubyBasics]: {
-        id: `gui.library.rubyBasics`,
-        defaultMessage: 'Ruby のきほん',
-        description: 'Label for Ruby Basics tutorial category — TryRuby-inspired puts-centric series'
-    },
-    // === Smalruby: End of tutorial categories ===
     membershipTag: {
         defaultMessage: 'Membership',
         description: 'Tag for filtering a library for member only assets',

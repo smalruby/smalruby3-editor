@@ -4,7 +4,7 @@
 
 ## 概要
 
-いまのチュートリアル（`docs/tutorial/`）を、**コース › レッスン › チャレンジ** の形に作り直す機能。
+スモウルビーの独自のチュートリアル（いまは上流のチュートリアルに戻した。`docs/tutorial/`）の役目を、**コース › レッスン › チャレンジ** の形に作り直した機能。
 探すための一覧ではなく、「何をやって、何ができるようになったか」が見えるレッスンにして、先生の
 説明がなくてもスモウルビーでのプログラミングのやり方が身につくようにする。
 
@@ -46,7 +46,14 @@
 | `id` | string | 例: `kyou-kara-programmer` |
 | `language` | `blocks` \| `ruby` \| `dncl` | `LANGUAGES` |
 | `name` | message | コースの名前 |
-| `lessons` | レッスン[] | 並び順 |
+| `lessons` | レッスン[] | 並び順。**コースの数に入れるレッスンだけ**（`warmup` のレッスンは入らない） |
+| `warmupLessons` | レッスン[] | コースの数に入れない、はじめのレッスン（レッスン 0）。`defineCourse` が渡されたレッスンから `warmup: true` のものを分けて置く |
+
+`course.lessons` はコースの数（レッスン表の進みぐあいのバーと「n / 11」・コースの ✓・クラス管理の課題に選べるチャレンジ・
+先生の進みぐあいの表・ウェルカムの案内の数）に使う。レッスン 0 を `lessons` から外して `warmupLessons` に置くので、レッスン 0 を
+足してもこれらの数とクラスの課題の中身は変わらない（課題の「全部」の条件・チャレンジ id の並びにも入らない）。レッスン表・
+チャレンジの検索（`findChallenge` / `findLesson`）・「次のレッスン」・ウェルカムの「レッスンを始める」は **`courseLessons(course)`**
+（レッスン 0 が先頭）を使い、レッスン表の番号は `lessonNumberOf`（レッスン 0 は 0）。
 
 ### レッスン
 
@@ -56,6 +63,8 @@
 | `name` | message | レッスンの名前 |
 | `challenges` | チャレンジ[] | 並び順 |
 | `allowDnclMode` | boolean | レッスンのあいだ Ruby タブを日本語モードに切りかえてよいか。**書いていなければ不可**（`false`）。下の「日本語モードの切りかえ」 |
+| `showPartNames` | boolean | チャレンジを開いたときから画面の部分の名前の札を出しておくか（下の「名前の札」。課題バーの「ガイド」で消せる）。**書いていなければ出さない**（`false`）。画面の部分の名前を覚えるレッスン 0 で使う |
+| `warmup` | boolean | コースの数に入れない、はじめのレッスンか（上の「コース」）。**書いていなければ数える**（`false`）。「きょうからプログラマー」のレッスン 0 だけ `true` |
 | `checkCount` | number | レッスンの ✓（「全部できた」）に要るできた数。**書いていなければチャレンジの数**（全部）。テーマを選んでやるレッスン（「チャットをつくろう」のレッスン 5）だけ `1` |
 
 必須のチャレンジは持たない。`checkCount` を書いたレッスンは、その数だけできれば ✓ がつく。まだ残りのチャレンジがあるときの「できた！」は、
@@ -104,7 +113,7 @@
 | `card` | `{category, main}` \| null | null | レッスン表のカード。`category` = 左の帯の色のなかま、`main` = そのチャレンジで覚えるメインのなかま（同じ数で並んだときの色）。どちらも `CATEGORIES` の値（`motion` / `looks` / `sound` / `events` / `control` / `sensing` / `operators` / `variables` / `lists` / `extensions`）。決め方は下の「カードの色」 |
 | `goal` | 条件[] \| null | null | できた の判定。条件の配列で、全部を満たしたら「できた」（下の「できた の判定」）。null なら判定しない |
 | `allowedBlocks` | object \| null | null | パレットに出すブロック（deck と同じ形）。項目は opcode か、初期値を持つ `{opcode, fields, inputs}`（下の「パレットのブロックの初期値」） |
-| `setup` | object \| null | null | 始めるときの準備。deck と同じ項目（`tab` / `rubyMode` / `extensions` / `rubyVersion`。`lib/deck-setup.js`）に、作品の準備（`sprites` / `code` / `spriteCodes` / `stageCode` / `lists` / `warpProcedures`。`lib/lessons/challenge-start.js`）を足せる。下の「レッスンモード」の **setup** |
+| `setup` | object \| null | null | 始めるときの準備。deck と同じ項目（`tab` / `rubyMode` / `extensions` / `rubyVersion`。`lib/lessons/apply-setup.js`）に、作品の準備（`sprites` / `code` / `spriteCodes` / `stageCode` / `lists` / `warpProcedures`。`lib/lessons/challenge-start.js`）を足せる。下の「レッスンモード」の **setup** |
 | `steps` | ヒント[] | [] | ヒント（下の表） |
 | `code` | string \| `{ja, 'ja-Hira', en}` \| null | null | ヒントの最後の手段「プログラムを入れる」（Ruby。deck の `code` と同じ）。作品の中の名前が locale で変わるときは locale ごとに書く（下の「英語の UI でも使う（locale ごとの `code`）」） |
 | `codeTarget` | `'stage'` \| null | null | `code` を入れる相手。null はいま編集中のスプライト。`'stage'` はステージのプログラムのチャレンジ（入れる前にステージをえらぶ） |
@@ -113,6 +122,7 @@
 | `activityDiagram` | boolean | false | 答えのプログラム（`code` と `spriteCodes`）から描くアクティビティ図を、課題の全文とヒントの 1 ページ目に出すか。答えが無いチャレンジでは true でも出さない。描き方は下の「アクティビティ図（答えから描く）」 |
 | `partner` | object \| null | null | メッシュの練習相手の定義 `{name, buttons: [{label, set, broadcast}], replies: [{onBroadcast, set, broadcast}], watch}`（`set` = `{variable, value}` か、その配列。`watch` は任意で、パネルの「〜に届いた」に出す生徒の変数の名前の配列）。あればチャレンジ中に練習相手のパネルを出す（下の「メッシュの練習相手」）。図では相手のスイムレーンになる。無ければ自分のプログラムだけを描く |
 | `quiz` | `{question, choices, answer, explanation}` \| null | null | ふりかえりのクイズ（3 択）。「できた！」の表示の中に出す（下の「ふりかえりのクイズ」）。`question` / `choices`（3 つ）/ `explanation` は message、`answer` は正解が `choices` の何番目か（0 から）。ふつうは `challengeQuiz(id, answer)` で書く |
+| `partQuiz` | `{questions: [label, ...]}` \| null | null | 「どこでしょう？」のクイズ（下の「どこでしょう？のクイズ」）。`label` は名前の札の名前（`lib/lessons/part-names.js` の `PART_NAMES`）。クイズのあいだは画面のクリックをクイズが受け、名前の札と「ガイド」のボタンは出さない。`validatePartQuiz` が形を確かめる |
 | `mode` | `'readDiagram'` \| null | null | チャレンジの形。null = ふつう。`'readDiagram'` = **読んで作る**（説明とアクティビティ図だけで指示する）。図を必ず出し（`activityDiagram` は true になる）、ヒントを 3 ページ（図と説明 → 試す → 答えを見る）に置き換える（`steps` は使わない）。最後の手段のページ（「正解のプログラムを確認する」）は付かない。答えは `code`。下の「読んで作るチャレンジ」 |
 | `explanation` | message \| null | null | 読んで作るチャレンジのヒントの 1 ページ目の説明。無ければ `task` を出す |
 
@@ -122,7 +132,7 @@
 | 項目 | 型 | 既定 | 説明 |
 |------|----|------|------|
 | `title` | message \| null | null | 吹き出しの文言 |
-| `target` | string \| null | null | 指す場所（`lib/lessons/hint-targets.js` の `HINT_TARGETS`）: `palette`（パレット）・`code-area`（コードエリア）・`stage`（ステージ）・`sprite-list`（スプライトリスト）・`sounds-tab`（音タブ）・`costumes-tab`（コスチュームタブ）・`backdrop`（背景を選ぶ）・`extension-button`（拡張機能のボタン）・`green-flag`（旗）・`practice-partner`（メッシュの練習相手のパネル。閉じているときは小さな「練習相手」のボタン）・`role-picker`（課題バーの役のボタン。役のあるチャレンジの「役を決めよう」のページ）・`keyboard`（場所の無いもの。画面の真ん中に出す） |
+| `target` | string \| null | null | 指す場所（`lib/lessons/hint-targets.js` の `HINT_TARGETS`）: `palette`（ブロックパレット）・`code-area`（スクリプトエリア）・`stage`（ステージ）・`sprite-list`（スプライトペイン）・`sounds-tab`（音タブ）・`costumes-tab`（コスチュームタブ）・`backdrop`（背景を選ぶ）・`extension-button`（拡張機能のボタン）・`green-flag`（緑の旗）・`stop-button`（停止ボタン）・`code-tab`（コードタブ）・`ruby-tab`（ルビータブ）・`task-bar`（課題バー）・`hint-button`（課題バーの「ヒント」）・`practice-partner`（メッシュの練習相手のパネル。閉じているときは小さな「練習相手」のボタン）・`role-picker`（課題バーの役のボタン。役のあるチャレンジの「役を決めよう」のページ）・`keyboard`（場所の無いもの。画面の真ん中に出す） |
 | `blocks` | string \| `{ja, 'ja-Hira', en}` \| null | null | 吹き出しに描くブロック（Ruby。`code` と同じ変換でブロックにする）。`code` と同じく locale ごとにも書ける |
 | `spotlight` | boolean | false | はじめて開いたチャレンジだけ、周りを暗くして `target` を照らす |
 
@@ -151,9 +161,9 @@ locale ごとに書ける:
 
 ```js
 code: {
-    ja: 'when_key_pressed("space") do\n  play_until_done("ニャー")\n  play("Owl")\nend\n',
-    'ja-Hira': 'when_key_pressed("space") do\n  play_until_done("Meow")\n  play("Owl")\nend\n',
-    en: 'when_key_pressed("space") do\n  play_until_done("Meow")\n  play("Owl")\nend\n',
+    ja: 'when_key_pressed("space") do\n  play_until_done("ニャー")\nend\n',
+    'ja-Hira': 'when_key_pressed("space") do\n  play_until_done("Meow")\nend\n',
+    en: 'when_key_pressed("space") do\n  play_until_done("Meow")\nend\n',
 },
 ```
 
@@ -164,12 +174,12 @@ code: {
   （scratch-l10n に ja-Hira の訳が無い）。スプライト名（「スプライト1」/ "Sprite1"）・コスチューム名・背景名も
   locale で変わるので、`code` で名前を使うときは locale ごとに書く（いまのレッスン 1 で名前を使うのはチャレンジ 1 の
   ネコの音だけ。スプライトは名前でなく「`spriteCodes` に名前の無い最初のスプライト」で探す）。ライブラリの名前
-  （"Owl" / "Canyon" / "Arctic" / "Penguin"）は locale で変わらない。
+  （"Canyon" / "Arctic" / "Penguin"）は locale で変わらない。
 - **「プログラムを入れる」は作品に合う組を探す**: いまの locale の `code`（と `spriteCodes`）を音・背景の確かめ込みで
   試し、作品に合わない（日本語の作品を英語の UI で開いた、先生が配った日本語の作品を英語の生徒が開いた等）ときは、
   ほかの locale の組を順に試して、合った組を入れる（`challengeCodeCandidates`）。試すのは変換だけで、作品に
   入れるのは選んだ 1 組だけ。どれも合わなければ、わけのいちばん少ない組（同じならいまの locale の組）のわけを出す
-  （Owl をまだ足していない等。日本語の作品を英語の UI で開いたときに、作品に無い "Meow" を探させない）。
+  （背景「Canyon」をまだ足していない等。日本語の作品を英語の UI で開いたときに、作品に無い "Meow" を探させない）。
 - セリフ・変数名・リスト名は、その locale の課題とヒントの文言に合わせる。レッスン 1 では en の課題が
   "Hello!" / "That tickles!" / "Touch me" / "What's your name?" / " seconds" / "Correct" / "Wrong" と書くので en の
   `code` もそれを言う。
@@ -205,11 +215,13 @@ code: {
 
 ### コース「きょうからプログラマー」のチャレンジ
 
+最初に **レッスン 0「スモウルビーをたんけんしよう」**（`blocks-l0`・`warmup`。下の「レッスン 0 のチャレンジ」）を置き、その後ろに
 11 のチャレンジを 3 つのレッスンに分ける（順番と中身は 1 つのレッスンだったころと同じ）。下の表の # は
 コースの通し番号で、課題バーやレッスン表の番号はレッスンの中の番号（例: 6 は レッスン 2 の 2 個め）。
 
 | レッスン | id | 名前（ja / ja-Hira / en） | チャレンジ（通し番号） |
 |---------|----|------------------------|---------------------|
+| 0 | `blocks-l0` | スモウルビーをたんけんしよう / スモウルビーを たんけんしよう / Explore Smalruby | 0-1〜0-8（コースの数に入れない） |
 | 1 | `blocks-l1` | うごかしてみよう / うごかしてみよう / Let's Move | 1〜4 |
 | 2 | `blocks-l2` | えらんで たずねよう / えらんで たずねよう / Choose and Ask | 5〜7 |
 | 3 | `blocks-l3` | おぼえて つたえよう / おぼえて つたえよう / Remember and Tell | 8〜11 |
@@ -219,22 +231,44 @@ code: {
 
 | # | id | 課題 | パレット（`allowedBlocks`） | できた の条件（`goal`） |
 |---|----|------|---------------------------|------------------------|
-| 1 | `blocks-l1-key-sound` | スペースキーを押したら、ネコが「ニャー」と鳴いたあと、「Owl」の音が鳴る | `event_whenkeypressed` / `sound_playuntildone` / `sound_play` | スペースキーのスクリプトで `sound_playuntildone` → `sound_play` の順に動いた |
+| 1 | `blocks-l1-key-sound` | スペースキーを押したら、ネコが「ニャー」と鳴く（音タブを使わない。はじめての操作を少なくする） | `event_whenkeypressed` / `sound_playuntildone` | スペースキーのスクリプトで `sound_playuntildone` か `sound_play` が動いた（音の名前は見ない） |
 | 2 | `blocks-l1-arrow-move` | 上向き矢印キーで上へ、下向き矢印キーで下へ、ネコを動かす | `event_whenkeypressed` / `motion_changeyby` | 上向き矢印キーのスクリプトで `DY > 0`、下向き矢印キーのスクリプトで `DY < 0` の `motion_changeyby` が動いた |
 | 3 | `blocks-l1-click-say` | コスチュームを足して、押したら「こんにちは！」と言って、見た目がかわる | `event_whenthisspriteclicked` / `looks_sayforsecs` / `looks_nextcostume` | コスチュームが始めより 1 つ以上増え、スプライトを押したスクリプトで `looks_sayforsecs` と `looks_nextcostume` が動いた |
-| 4 | `blocks-l1-repeat` | 1 のキーを押したら、背景が「Canyon」と「Arctic」に 3 回かわる（**ステージのプログラム**） | `event_whenkeypressed` / `control_repeat` / `control_wait` / `looks_switchbackdropto` | ステージの 1 のキーのスクリプトで `control_repeat` が動き、`looks_switchbackdropto` が 6 回動いた |
+| 4 | `blocks-l1-repeat` | 1 のキーを押したら、「Canyon」という名前の背景と「Arctic」という名前の背景に 3 回かわる（**ステージのプログラム**） | `event_whenkeypressed` / `control_repeat` / `control_wait` / `looks_switchbackdropto` | ステージの 1 のキーのスクリプトで `control_repeat` が動き、`looks_switchbackdropto` が 6 回動いた |
 | 5 | `blocks-l1-if` | マウスでネコにさわったら「くすぐったい！」、さわっていないときは「さわってみて」と言う | `event_whenflagclicked` / `control_forever` / `control_if` / `control_if_else` / `sensing_touchingobject` / `looks_say` | 旗のスクリプトで `sensing_touchingobject` が動き、ちがうセリフ（`MESSAGE`）の `looks_say` が 2 種類動いた |
 | 6 | `blocks-l1-ask-answer` | ネコを押したら名前を聞いて、答えた名前と、答えるまでにかかった秒数を言う | `event_whenthisspriteclicked` / `sensing_resettimer` / `sensing_askandwait` / `sensing_answer` / `sensing_timer` / `operator_join` / `looks_sayforsecs` | スプライトを押したスクリプトで `sensing_resettimer` → `sensing_askandwait` の順に動き、`sensing_answer`・`sensing_timer`・`looks_sayforsecs` 2 回が動いた。答えと同じことばを言った |
 | 7 | `blocks-l1-quiz` | ネコを押したら「4＋3＝？」と聞いて、7 なら「正解です」、ちがえば「ちがいます」と言う | `event_whenthisspriteclicked` / `sensing_askandwait` / `sensing_answer` / `control_if` / `control_if_else` / `operator_equals` / `looks_sayforsecs` | 答えが 7 のときに「正解です」（ja-Hira の「せいかいです」、en の "Correct" も可）、7 でないときに「ちがいます」（en の "Wrong" も可）を言った（両方） |
 | 8 | `blocks-l1-count` | ネコを押した回数を数えて、その数を言う。3 回押す | `event_whenflagclicked` / `event_whenthisspriteclicked` / `data_setvariableto` / `data_changevariableby` / `data_variable` / `looks_say` | 変数「回数」（ja-Hira の「かいすう」、en の `count` も可）が 3 以上になり、その値を言った |
-| 9 | `blocks-l1-broadcast` | ペンギンを足して、ネコを押したらペンギンが「やあ！」と言う（**2 つのスプライト**） | `event_whenthisspriteclicked` / `event_broadcast` / `event_whenbroadcastreceived` / `looks_sayforsecs` | スプライト 2 つ以上・押されたときで送る・**別のスプライト**が受け取ったときに言う（`sentBy: 'other'`） |
+| 9 | `blocks-l1-broadcast` | ペンギンを足して、ネコを押したらペンギンが「やあ！」と言う（**2 つのスプライト**。『Penguin』という名前のスプライトだという説明はヒント 1 に書き、課題バーは短くする） | `event_whenthisspriteclicked` / `event_broadcast` / `event_whenbroadcastreceived` / `looks_sayforsecs` | スプライト 2 つ以上・押されたときで送る・**別のスプライト**が受け取ったときに言う（`sentBy: 'other'`） |
 | 10 | `blocks-l1-speak` | 拡張機能「音声合成」を足して、ネコを押したら「ボタンが押されました」としゃべる | `event_whenthisspriteclicked` / `text2speech_speakAndWait` | 拡張機能 `text2speech` が読み込まれている・押されたときで `text2speech_speakAndWait` |
 | 11 | `blocks-l1-message-list` | ネコを押したら「メッセージは？」と聞いて、答えをリスト「トーク」にためる。3 つためる | `event_whenflagclicked` / `event_whenthisspriteclicked` / `data_deletealloflist` / `data_addtolist` / `sensing_askandwait` / `sensing_answer` | リスト「トーク」（en の `talk` も可）の長さ 3 以上・中身が答えから（`itemsFromAnswers`） |
 
-ヒントは、音タブ・コスチュームタブ・背景を選ぶ・スプライトリストのように「足す・えらぶ」場所を指すものと、
-パレット・コードエリアを指して**本物のブロック**を描くもの、ステージ・キーボードを指して「動かしてみよう」と
+#### レッスン 0 のチャレンジ
+
+画面の部分の名前とレッスンの進め方（ヒントを出したまま操作する）を覚える。8 チャレンジ・合計 約 12〜15 分で、
+1 チャレンジで新しく出る名前は 1〜2 個。`showPartNames: true`（名前の札を最初から出す）で、
+**パレットはしぼらない**（`allowedBlocks: null`）。ヒントは各 1〜3 ページで、吹き出しは `target` で部分を指す（スポットライトは
+つかむ・押す・くっつける・消す・旗の基本操作だけ）。判定は**結果で見る**（タブを開いたことは見ない）。0-4 は前の答え、0-5 は
+「15 度回す」と「マウスのポインターへ行く」の旗のスクリプト（`setup.code`）から、0-6 はシマラビ（`setup.sprites`。絵が 2 つ）から始める。課題・ヒント・クイズの部分の名前は **Scratch Wiki「Scratchユーザーインターフェース (3.0)」の名前**
+（ブロックパレット・スクリプトエリア・コスチュームタブ・音タブ・コードタブ・ステージ・緑の旗・
+停止ボタン・スプライトペイン。Wiki に無い背景・課題バー・ヒントはそのまま。en は Block Palette / Code Area / Green Flag /
+Stop Button / Sprite Pane など）で書く。
+
+| # | id | 課題 | 新しい名前 | できた の条件（`goal`） |
+|---|----|------|-----------|------------------------|
+| 0-1 | `blocks-l0-drag-cat` | ステージのネコを、マウスでつかんで好きなところへ動かす | ステージ・スプライト | `moved`（ネコの位置がチャレンジを開いたときから変わった） |
+| 0-2 | `blocks-l0-click-block` | ブロックパレットの「10 歩動かす」を押す（置かずにブロックパレットで） | ブロックパレット | `uses`・`trigger: {click: 'palette'}`・`motion_movesteps`（ブロックパレットで押して動いた。スクリプトエリアで押したもの・つかんで動かしたものは数えない） |
+| 0-3 | `blocks-l0-snap` | 「10 歩動かす」と「15 度回す」をスクリプトエリアに置いて、くっつけて押す | スクリプトエリア・ドラッグ・くっつける | `uses`・`trigger: {click: 'codeArea'}`・`together: true`（スクリプトエリアで押した 1 回の実行で 2 つとも動いた = つながっている） |
+| 0-4 | `blocks-l0-flag` | 「旗が押されたとき」をいちばん上にくっつけて緑の旗を押す。止めるときは停止ボタン（赤い ●） | 緑の旗・停止ボタン | `uses`・旗のスクリプトで「歩動かす」か「度回す」が動いた |
+| 0-5 | `blocks-l0-change-number` | 「15 度回す」の「15」を「90」に変え、「マウスのポインターへ行く」の ▼ で「どこかの場所」をえらぶ。いらないブロックはブロックパレットへもどすと消える | 白いところ・▼・消す | `uses`・`trigger: {click: 'any'}`・`DEGREES` が 15 でない「度回す」と、`TO` がマウスのポインターでない「へ行く」が動いた（旗でも押してでも・別々の実行でもよい） |
+| 0-6 | `blocks-l0-tabs` | シマラビ（絵が 2 つ）で始め、コスチュームタブで 2 つめの絵をえらび、音タブで ▶ を押して「Chirp」という名前の音を聞き、コードタブにもどる | タブ | `currentCostume`（`number: 2`）・`tab`（`code`）。音の再生は判定しない |
+| 0-7 | `blocks-l0-sprite-backdrop` | スプライトペインのボタンからスプライトを 1 つ足し、背景も 1 つえらぶ | スプライトペイン・背景 | `sprites`（`min: 2`）・`currentCostume`（`target: 'stage'`・`changed: true`） |
+| 0-8 | `blocks-l0-where` | 「ブロックパレットはどこ？」のように聞かれたら、画面のその場所をクリックして答える（5 問） | ふりかえり | `partQuiz`（`count: 5`。下の「どこでしょう？のクイズ」） |
+
+「足す・えらぶ」場所を指すものと、
+ブロックパレット・スクリプトエリアを指して**本物のブロック**を描くもの、ステージ・キーボードを指して「動かしてみよう」と
 言うものの並び。スポットライト（はじめて開いたときだけ）は基本操作（出す・くっつける・押す・消す）のヒントに
-だけ付けている（チャレンジ 1 のパレットとキーボード、チャレンジ 3 のパレット・ステージ・コードエリア）。
+だけ付けている（チャレンジ 1 のブロックパレットとキーボード、チャレンジ 3 のブロックパレット・ステージ・スクリプトエリア）。
 
 どのチャレンジも、できあがりのプログラムの帽子のブロックを置くページがあり、ブロックを描くページは
 そのページで置いてほしいブロックを置いてほしい並びのまま描く（決まりは [`design.md`](design.md) の「ヒント」）。
@@ -246,29 +280,39 @@ code: {
 「ずっと」に入れた「もし〜なら でなければ」）。描くのは相手（すぐ上のブロック・入れる先のブロック）と置くブロックで、
 スクリプト全体ではない。これは `hint-pictures.test.js`（`a hint that names where to put a block draws it connected
 with its partner`）が、文言の言い方（正規表現 `NAMES_A_PARTNER`）と描いたかたまりの数で 3 locale とも確かめる。
-手順の最後のヒント（「うまく動かないときは」のページの前）は、どのチャレンジも「できた」になる操作を促すページ（ステージ・キーボード・旗を指す）で、
-それより前のページはステージ・キーボード・旗を指さない（できたら吹き出しが閉じて、そのあとのページは
+手順の最後のヒント（「うまく動かないときは」のページの前）は、どのチャレンジも「できた」になる操作を促すページ（ステージ・キーボード・緑の旗を指す）で、
+それより前のページはステージ・キーボード・緑の旗を指さない（できたら吹き出しが閉じて、そのあとのページは
 見られないため）。これは `courses.test.js`（`the hint that asks to try it out is the last one`）が確かめる。
-チャレンジ 3 は、ブロックの消し方（コードエリアを指す）を、ステージのスプライトを押すページの前に置く。
+チャレンジ 3 は、ブロックの消し方（スクリプトエリアを指す）を、ステージのスプライトを押すページの前に置く。
 
 作るときの注意:
 
 - **ヒントに描くブロックは、まだ足していない音・背景でもよい**。吹き出しの変換（`hint-blocks.js`）は
-  converter の `validateAssets: false` で音・コスチューム・背景の存在を確かめない（「Owl の音を鳴らす」は
-  Owl を足す前から描く）。**`code` を入れるときの変換は従来どおり確かめる**ので、チャレンジ 1 の `code`
-  （`play("Owl")`）はヒント 1 のとおり Owl を足してから、チャレンジ 4 の `code` は背景を足してから入れる
-  （足していなければ入れずに、吹き出しの中に「まだプログラムを入れられないよ。先にヒントのとおりに足そう。」と
-  変換のエラー（「音「Owl」は存在しません。…先に音を追加してください。」）を出す）。
+  converter の `validateAssets: false` で音・コスチューム・背景の存在を確かめない（「Canyon の背景にする」は
+  Canyon を足す前から描く）。**`code` を入れるときの変換は従来どおり確かめる**ので、チャレンジ 4 の `code` は
+  ヒント 1 のとおり背景を足してから入れる（足していなければ入れずに、吹き出しの中に「まだプログラムを
+  入れられないよ。先にヒントのとおりに足そう。」と変換のエラーを出す）。
 - 中身の無い「繰り返す」を描くときは **`3.times`**（ブロック無し）と書く（帽子のブロックの下なら
   `when_key_pressed("1") do\n  3.times\nend\n`）。`3.times do ... end` は中身が無いと変換できない。帽子のブロックだけを描くときは `when_key_pressed("1") do\nend\n` のように中身の無い
   `do ... end` でよい（帽子のブロックは中身が無くても変換できる）。
 - チャレンジ 4 のヒント 5 は、「繰り返す」の中に入れる 4 つ（`switch_backdrop("Canyon")` / `sleep(1)` /
   `switch_backdrop("Arctic")` / `sleep(1)`）を、「繰り返す」に入れた 1 つのかたまり（`3.times do ... end`）として描く。
 - `self.y += -10` は「y座標を -10 ずつ変える」になる（チャレンジ 2 の下向き矢印）。
-- チャレンジ 1 の `code` とヒント 3 のネコの音は locale ごとに書く（ja は「ニャー」、en / ja-Hira は "Meow"。上の
+- **チャレンジ 1 は音タブを使わない**。はじめての操作を少なくするため（[`design.md`](design.md) の「はじめの一歩」）、
+  音を足す手順は無く、ネコの音だけを鳴らす。ヒントは、イベントのブロックを置く → 音のブロックをくっつける →
+  キーを押す、の 3 ページ（と「うまく動かないときは」）。
+- チャレンジ 1 の `code` とヒント 2 のネコの音は locale ごとに書く（ja は「ニャー」、en / ja-Hira は "Meow"。上の
   「英語の UI でも使う」）。`goal` は音の名前を見ない。
-- ライブラリの音「Owl」・背景「Canyon」「Arctic」の表示名は日本語でも英語のまま（ライブラリの名前は
-  翻訳されない）。ヒントの文言もそのまま "Owl" / "Canyon" / "Arctic" と書く。
+- ライブラリの背景「Canyon」「Arctic」・スプライト「Penguin」の表示名は日本語でも英語のまま（ライブラリの名前は
+  翻訳されない）。英語の名前だけでは何のことか分からないので、課題とヒントの文言は「『Canyon』という名前の背景」
+  「『Penguin』という名前のスプライト」のように、何の名前かを書く（ja-Hira も「『Meow』というなまえのおと」）。
+  ただしチャレンジ 9 の課題は「ペンギン」だけにして課題バーを短く保ち、『Penguin』という名前のスプライトだという説明は
+  ヒント 1 に書く。
+- **ヒントの文の画面の部分の呼び方**は、レッスン 0 で覚える 9 つの名前（タブ・ブロックパレット・スクリプトエリア・ステージ・
+  緑の旗と停止ボタン・スプライトペイン・背景・課題バー・ヒント）にそろえる（「上の『音』タブ」ではなく「音タブ」、
+  「右下の『スプライトを選ぶ』」ではなく「スプライトペインの『スプライトを選ぶ』」）。名前は Scratch Wiki の名前
+  （決まりと 3 locale の対応表は `design.md` の「はじめの一歩」の「部分の名前は Scratch Wiki の名前」）。
+  ブロックの名前（「旗が押されたとき」）はブロックの文字のまま書く。
 - チャレンジ 4 のように**ステージのプログラム**のチャレンジは `codeTarget: 'stage'` にする。
   「プログラムを入れる」がステージをえらんで（`vm.setEditingTarget`）Ruby タブの相手（`rubyCode.target`）も
   ステージにしてから入れるので、スプライトを編集中に押してもステージに入る。
@@ -650,6 +694,14 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
 | `costumes` | コスチューム（`target: 'stage'` なら背景）の数が、チャレンジを開いたときより増えた。後から足したスプライトは数えない | `added`（既定 1）, `target` |
 | `extension` | 拡張機能を読み込んだ | `id`（例: `text2speech`） |
 | `ngram` | 「ことばを予想する AI」のリスト（まえ・つぎ・こうほ）の中身 | `check`（`'learned'` / `'candidates'`）, `before`, `after`, `length`, `textbook`, `scope`, `candidates`, `text`（下の「`ngram` の項目」） |
+| `moved` | スプライトの位置が、チャレンジを開いたとき（見張りを始めたとき）から `min`（既定 1）以上動いた。後から足したスプライトは見ない | `min` |
+| `currentCostume` | いまのコスチューム（`target: 'stage'` なら背景）。`number` = 何番め（1 から）、`changed: true` = 開いたときと別のコスチュームになった。始めにいたものだけ見る | `number`, `changed`, `target`（どちらか 1 つは要る） |
+| `tab` | いま開いているタブ（エディタの画面の状態。`code` / `costumes` / `sounds`） | `tab` |
+| `partQuiz` | 「どこでしょう？」のクイズに `count` 問正しく答えた（エディタの画面の状態） | `count` |
+
+`tab` と `partQuiz` は VM ではなく**エディタの画面の状態**を見る。見張り（`attachGoalMonitor`）に `getUi`（`{activeTab, partQuizSolved}` を
+返す関数）を渡し、`containers/lesson-goal-watcher.jsx` がタブ・クイズの答えが変わったら `refresh()` で判定を予約する。
+`tab` は「タブを開いた」ことを数えるのではなく、ほかの条件（コスチュームを変えた）を満たしたあとに**いまそのタブにいる**ことを見る。
 
 **`uses` の項目**
 
@@ -663,6 +715,9 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
   合わない。メッシュの合図に `'other'` は使えない。`'remote'` はレッスン 5 で使う）。
   省くとどのハットから始まったスクリプトでもよい。コードエリアでスクリプトをクリックして動かしたものは
   数えない（きっかけが違う）。
+  `click` は、ブロックを**押して**動かしたものを数える: `'palette'` = パレットで（置かずに）押した、`'codeArea'` = コードエリアで
+  押した、`'any'` = どちらでもよく、ハットから始まった実行も数える。パレットで押したかは、スレッドの先頭のブロックがスプライトの
+  ブロックに無く `runtime.flyoutBlocks` にあることで分ける（`goal-monitor.js` の `describeThread`）。
 - `blocks`: 動いたブロックの一覧。要素は opcode の文字列か `{opcode, count, args, distinct}`。`opcode` は、どれでもよい opcode の
   配列でもよい（例: `['event_broadcast', 'event_broadcastandwait', 'meshV2_broadcastWithValue']` = どの「送る」で送ってもよい。数は合計する）。
   - `count`: **1 回のスクリプトの実行（スレッド 1 本）の中で** その回数以上動いた（例: 背景を 6 回かえた）。
@@ -675,6 +730,8 @@ design.md の「中 2 のコース」。コースの ✓ もこれで数える�
 - `not: true`: 「`trigger` に合う**いちばん新しい**スクリプトの実行で、`blocks` のとおりに動いていない」（例: 最後に旗を押した実行で、
   NG ワードを自分のメッセージの変数に入れていない）。前の実行は見ないので、直して旗を押し直せば満たす（チャレンジを開き直さなくてよい）。
   きっかけに合う実行がまだ無ければ満たす。ほかの条件と組み合わせて使う。`uses` 以外の条件には書けない（`validateGoal` が弾く）
+- `together: true`: `blocks` が全部、**1 回のスクリプトの実行（スレッド 1 本）の中で**動いた（= くっついている。別々に押して
+  動かしたものは合わない）。書いていなければ、要素ごとに別の実行で満たしてよい
 - `order`: opcode の並び。1 回のスクリプトの実行の中で、それぞれの **最初の実行** がこの順だった
   （例: `['sensing_resettimer', 'sensing_askandwait']`）
 
@@ -1152,7 +1209,8 @@ partner: {
 |------|------|
 | `courseId` / `lessonId` / `challengeId` | いま開いているチャレンジ。`challengeId` が null ならレッスンモードではない |
 | `pendingChallengeId` | 開こうとしているチャレンジ（新しい作品ができるまでの間だけ入る。下の「レッスンモード」） |
-| `hintVisible` / `hintIndex` | ヒントの吹き出しを出しているか・何番めのヒントか（チャレンジを開く・閉じるたびに最初にもどる。開いたときはヒントがあれば出す） |
+| `hintVisible` / `hintIndex` | ヒントの吹き出しを出しているか・何番めのヒントか（チャレンジを開く・閉じるたびに最初にもどる。開いたときは、ヒントがあれば出す） |
+| `hintMinimized` | ヒントを小さくして札だけを残しているか（`hideHint` で true、`showHint`・`finishHint`・できた・チャレンジを開く・閉じるで false） |
 | `hintSession` | チャレンジを開いた回数（`openChallenge` のたびに増える。同じチャレンジを開き直しても増える）。吹き出しの `key` にして、開き直したらドラッグした位置・確認・入れられなかったわけを持ち越さない（吹き出しは開いたまま次のチャレンジに移ることがあり、そのときは作り直されないため） |
 | `hintSpotlight` | はじめて開いたチャレンジか（`spotlight` のヒントで周りを暗くする）。`openChallenge` で `smalruby:lessonSpotlightSeen` を見て決め、同時に「見た」と記録する |
 | `progress` | 記録の写し（起動時に localStorage から読む） |
@@ -1171,7 +1229,7 @@ partner: {
 | `cancelStartChallenge()` | 開こうとしていたチャレンジを取り消す（「保存しますか」で取りやめたとき） |
 | `openChallenge(challengeId)` | レッスンモードに入る（作品の準備は済んでいる前提。知らない id は無視）。「できた！」は消す |
 | `closeLesson()` | レッスンモードを抜ける（記録は残す） |
-| `showHint()` / `hideHint()` / `nextHint()` / `prevHint()` | ヒントの吹き出しの出し入れと「進める・もどる」（ヒントが無いチャレンジでは出ない。両端で止まる）。`hideHint` はページを保つ |
+| `showHint()` / `hideHint()` / `nextHint()` / `prevHint()` | ヒントの吹き出しの出し入れと「進める・もどる」（ヒントが無いチャレンジでは出ない。両端で止まる）。`hideHint` は閉じずに小さくする（札が残る・ページを保つ） |
 | `finishHint()` | 「おわり」で閉じる（次に開くときは 1 ページ目から） |
 | `markChallengeCompleted(challengeId, completedAt?)` | 「できた」にして localStorage にも書く。書く前に localStorage の最新と合わせる（別のタブが書いた分を消さない）。`justCompletedId` をそのチャレンジにする（すでにできていても）。いま開いているチャレンジなら、ヒントの吹き出しを閉じる（ページは保つ） |
 | `dismissCompleted()` | 「できた！」を閉じる |
@@ -1180,7 +1238,7 @@ partner: {
 | `reloadProgress()` | localStorage の最新を写しに取り込む（別のタブが書いた分を、レッスン表を開くときなどに反映する。書かない） |
 | `isLessonMode(state)` / `getCurrentChallenge(state)` | レッスンモードか / `{course, lesson, challenge}` |
 | `getLessonDnclModeAllowed(state)` | Ruby タブを日本語モードに切りかえてよいか（レッスンモードでなければ true、レッスンモードならいまのレッスンの `allowDnclMode`）。`containers/ruby-tab.jsx` が読んで「日本語」ボタンを押せなくする |
-| `getLessonAllowedBlocks(state)` | パレットに出すブロック（チャレンジの `allowedBlocks`。無ければ null）。Blocks コンテナがチュートリアルの `tutorialAllowedBlocks` より優先して使う |
+| `getLessonAllowedBlocks(state)` | パレットに出すブロック（チャレンジの `allowedBlocks`。無ければ null）。Blocks コンテナがこれでパレットを絞る（prop の名前は `tutorialAllowedBlocks` のまま） |
 | `getCurrentHint(state)` | `{visible, index, count, step, spotlight, lastResort, debug, code, session}`（レッスンモードでなければ null）。`count` は最後の手段のページを含む。`step` はいまのヒント（最後の手段のページでは null）、`spotlight` はこのページで周りを暗くするか、`lastResort` は最後の手段のページか。吹き出しのコンテナ（`containers/lesson-hint.jsx`）はこれを読む |
 
 ## レッスン表
@@ -1222,7 +1280,7 @@ partner: {
 
   | チャレンジ | 数 | 色 |
   |---|---|---|
-  | key-sound | サウンド 2・イベント 1 | サウンド |
+  | key-sound | サウンド 1・イベント 1（同数） | サウンド（メイン） |
   | arrow-move | 動き 2・イベント 2（同数） | 動き（メイン） |
   | click-say | 見た目 2・イベント 1 | 見た目 |
   | repeat | 制御 3・見た目 2・イベント 1 | 制御 |
@@ -1239,6 +1297,19 @@ partner: {
   区別しない（`normalizeQuery`）。合うチャレンジだけ出し、合うものが無いレッスン・コースは隠す。コースの
   バーと「n / m」は絞り込みで変えない。1 つも無いときは「『○○』に合うチャレンジはありません」。
   判定は `lib/lessons/library-filter.js` の `filterCourseStatuses`（純粋関数）。
+- **たたみ方**: コースとレッスンの見出しはボタン（`aria-expanded`・`aria-controls`・キーボードの Enter / Space でも開閉）。
+  表を開いたときは**いま進めているところだけ開く**（決まりは `design.md` の「たたみ方」。判定は
+  `lib/lessons/library-fold.js` の `initialFoldState`（純粋関数））:
+  - いま進めているコース（いちばん最近チャレンジができた、まだ全部できていないコース。どれも始めていなければ最初のコース。
+    「次のチャレンジ」から開いたときはそのレッスンのコース）だけ開く。たたんだコースは見出しと進み具合のバーだけ。
+  - コースの中では、いまのレッスン（まだ全部できていない最初のレッスン。`focusLessonId` があればそれ）と、
+    その後ろのまだ全部できていないレッスン 1 つを開く。全部できたレッスンとそれより後ろは閉じる。
+  - 閉じたレッスンは 1 行（▶・✓・「レッスン 2」・名前・チャレンジの数だけの丸・「2 / 4」）。丸はできた＝緑の塗り、
+    次（「次はこれ！」のチャレンジ）＝オレンジ、まだ＝白（`lessonDots`）。開いたレッスンの行には丸を出さない（カードで見える）。
+  - 閉じてもカードは DOM に残して隠す（`hidden`）。
+  - 開閉は覚えない（表を開くたびに決まりどおり）。検索中と、クラスの課題のチャレンジだけのレッスン表は全部開く。
+    検索を始めた・やめたときは、見出しを押して変えた分を捨てる。コースのボタン（コースが 4 つを超えたとき）を押すと
+    そのコースを開いてスクロールする。
 - **記録の取り込み**: 開くたびに `reloadProgress()` を呼び、別のタブで書いた記録も反映する。
 - **ほかのチャレンジへ → もどる**: レッスンモードの「ほかのチャレンジへ」は `closeLesson()` のあとレッスン表を開く（次のチャレンジを
   すぐ選べる）。
@@ -1288,11 +1359,18 @@ partner: {
 | `lessons-library-tab-<blocks\|ruby\|dncl>` | button | 言語のボタン（コースがある言語だけ。`aria-pressed`） |
 | `lessons-library-course-nav` | div | コースのボタンの段（コースが 4 つを超えたときだけ） |
 | `lessons-library-course-nav-<courseId>` | button | コースのボタン（押すとそのコースまでスクロール） |
-| `lessons-library-course-<courseId>` | section | コース |
+| `lessons-library-course-<courseId>` | section | コース（`data-expanded="true\|false"`） |
+| `lessons-library-course-toggle-<courseId>` | button | コースの見出し（押すと開閉。`aria-expanded`・`aria-controls`） |
+| `lessons-library-course-lessons-<courseId>` | div | コースのレッスンの入れ物（たたむと `hidden`） |
 | `lessons-library-course-done` | span | コース名の前の ✓（コースのチャレンジが全部できたときだけ） |
 | `lessons-library-course-progress` | div | コースのプログレスバー（`role="progressbar"`）と数（課題のチャレンジだけのレッスン表では出さない） |
 | `lessons-library-course-progress-text` | span | 「m / n」（コース全体） |
-| `lessons-library-lesson-<lessonId>` | section | レッスン（`data-focused`） |
+| `lessons-library-lesson-<lessonId>` | section | レッスン（`data-focused`・`data-expanded="true\|false"`） |
+| `lessons-library-lesson-toggle-<lessonId>` | button | レッスンの見出し（押すと開閉。`aria-expanded`・`aria-controls` = カードの並び `lessons-library-lesson-cards-<lessonId>`） |
+| `lessons-library-lesson-done` | span | レッスン名の前の ✓（レッスンが全部できたときだけ） |
+| `lessons-library-lesson-progress-text` | span | 見出しの右の「m / n」（レッスン） |
+| `lessons-library-lesson-dots` | span | 閉じたレッスンの丸の並び（閉じているときだけ） |
+| `lessons-library-lesson-dot` | span | 丸 1 つ（`data-state="done\|next\|todo"`） |
 | `lessons-library-challenge-<challengeId>` | button | チャレンジのカード（`data-completed="true\|false"`・`data-next`） |
 | `lessons-library-card-band` | span | カードの左の色の帯（`data-category` = なかま） |
 | `lessons-library-challenge-done` | span | カードの右上の ✓ |
@@ -1317,7 +1395,7 @@ partner: {
   結び付きも切る）→ 作品ができたらチャレンジの setup を適用 → `openChallenge(id)`。
   この流れは `containers/lesson-mode.jsx` が進める（作成中 → 表示中の遷移で「できた」を検出する）。
 - **setup**: `lib/lessons/challenge-setup.js` の `setupForChallenge(course, challenge)` が
-  `lib/deck-setup.js` に渡す形を作る。コースの言語から既定（ブロック = コードタブ、Ruby = Ruby タブ・Ruby
+  `lib/lessons/apply-setup.js` の `applySetup` に渡す形を作る（レッスンだけが使う）。コースの言語から既定（ブロック = コードタブ、Ruby = Ruby タブ・Ruby
   モード、DNCL = Ruby タブ・DNCL モード）を決め、チャレンジの `setup` で上書きする。
   deck と同じ項目を適用したあと（拡張機能を読み込んでから）、作品の準備をする（`lib/lessons/challenge-start.js`）:
 
@@ -1402,17 +1480,16 @@ partner: {
 
   ![画像つきの課題の全文（1300×600）](screenshots/0205-lesson-task-full-text-image-1300x600.png)
 - **チャレンジの画像**（`image`。任意）: `{src, alt}`。`src` は `src/lib/lessons/images/` に置いた画像を
-  `courses.js` で import した URL（webpack の asset。チュートリアルの deck の画像
-  `src/lib/libraries/decks/steps/` と同じ扱いで、バンドルに入るので file:// の integration テストでもそのまま
+  `courses.js` で import した URL（webpack の asset。バンドルに入るので file:// の integration テストでもそのまま
   読める）。`alt` は message descriptor（`gui.lessons.challenge.<id>.image`）。画像の文字は言語で変わるので、
   画像の中には字を入れない（言葉は課題の文と `alt` に書く）。例: チャレンジ 2「矢印キーで動かそう」の
   `images/arrow-keys.svg`（上・下の矢印キーとネコの動く向き）。
-- **パレットを絞る**: チャレンジの `allowedBlocks`（deck と同じ形）。Blocks コンテナの `tutorialAllowedBlocks`
-  にレッスンの分を優先して渡すので、仕組みはチュートリアルと同じ（`allowedBlocks` が null なら絞らない）。
+- **パレットを絞る**: チャレンジの `allowedBlocks`。Blocks コンテナの `tutorialAllowedBlocks`（名前はもとの
+  チュートリアルのまま）にレッスンの分を渡す（`allowedBlocks` が null なら絞らない。上流のチュートリアルは絞らない）。
   - **「変数」「ブロック定義」も絞る**: この 2 つは scratch-blocks が flyout を開くたびに中身を作る動的カテゴリ
     （toolbox XML では `custom="VARIABLE"` / `custom="PROCEDURE"` の空の category）なので、ふつうのカテゴリの
     絞り込み（`only_blocks`）が効かない。`allowedBlocks` があるときは `src/lib/lesson-dynamic-categories.js` で
-    次のように決める（チュートリアルのカードの `allowedBlocks` にも同じように効く）。
+    次のように決める。
     - カテゴリを出すか: そのカテゴリの opcode（`data_*` / `procedures_*`）が `allowedBlocks` に 1 つも無ければ
       出さない（`make-toolbox-xml.js` の最後の引数。Smalruby マーカー `lesson dynamic category filtering`）。
     - 中身: `allowedBlocks` にあるブロックだけ（`blocks.jsx` で登録するカテゴリのコールバックで絞る）。
@@ -1421,17 +1498,17 @@ partner: {
       変数・リストのレポーター（`data_variable` / `data_listcontents`）も同じ条件で出す。モニターの
       チェックボックスを持ち、作った変数・リストをステージに出すのはこのチェックボックスなので、
       残さないと「リストを作る」で作ったリストの箱がステージに出ない。
-    - 変数を使うチャレンジ・チュートリアルは、`allowedBlocks` に `data: [...]`（ブロック定義なら
-      `procedures: [...]`）を書く。キー名は自由（中の opcode だけを見る）。チャットのチュートリアルと
-      Ruby の基本 3・4・6 には書いてある。deck とチャレンジのプログラム（`code`・ヒントのブロック）が使う
+    - 変数を使うチャレンジは、`allowedBlocks` に `data: [...]`（ブロック定義なら
+      `procedures: [...]`）を書く。キー名は自由（中の opcode だけを見る）。チャレンジのプログラム（`code`・ヒントのブロック）が使う
       変数・リスト・ブロック定義の opcode が `allowedBlocks` に入っているかは
-      `test/unit/lib/lesson-dynamic-categories-decks.test.js` が Ruby をブロックに変換して確かめる。
+      `test/unit/lib/lessons/challenge-dynamic-categories.test.js` が Ruby をブロックに変換して確かめる
+      （道具は `test/helpers/dynamic-category-opcodes.js`）。
     - `?only_blocks=`・ステージのコメント・ブロックの選択（`selectedBlocks`）で絞るときは、これまでどおり
       2 つとも出る。
 - **パレットのブロックの初期値**: `allowedBlocks` の項目は opcode の文字列のほかに
   `{opcode, fields: {名前: 値}, inputs: {名前: 値}}` と書ける。仕様のパレットの表記（`[1 ▼]`・`(3)`）の初期値を
   ここに書く（`src/lib/lessons/block-defaults.js`。Blocks コンテナがツールボックスの XML と「変数」「ブロック
-  定義」の flyout に入れる。チュートリアルのカードの `allowedBlocks` にも効く）。
+  定義」の flyout に入れる）。
   - `fields` はブロックそのもののフィールド（「キーが押されたとき」の `KEY_OPTION` など。ツールボックスの XML に
     書いていないフィールドは足す）。`inputs` は入力の影のフィールド（数・文字・音や背景のメニュー）。影の無い
     入力（「もし」の六角形の穴など）には入れられない。
@@ -1440,7 +1517,7 @@ partner: {
     （足す前の背景「Canyon」など）も、そのまま ▼ に出る。
   - 書かないブロックはツールボックスの初期値のまま。メッセージ（「あいさつ」）・変数（「回数」）・リスト
     （「トーク」）の ▼ は子どもが作るものなので書かない（無い名前を入れると flyout が作ってしまう）。
-  - レッスン 1 で書いている初期値: 1 = キー「スペース」・音 2 つとも「ニャー」（Owl を足したあとも）、
+  - レッスン 1 で書いている初期値: 1 = キー「スペース」・音「ニャー」（終わるまで鳴らす）、
     2 = キー「上向き矢印」、3・6・8 = 言う「こんにちは！」（en "Hello!"。ツールボックスの初期値は半角の
     「こんにちは!」なので書く）、4 = キー「1」・繰り返す 3・背景「Canyon」、5 = 言う「くすぐったい！」、
     6 = 聞く「なまえは？」、7 = 聞く「4+3=?」・`=` の右 7・言う「正解です」、9 = 言う「やあ！」、
@@ -1448,8 +1525,10 @@ partner: {
     「なにか」を追加など）はツールボックスの初期値が仕様と同じ。
     初期値で済むようになったヒント（▼で「上向き矢印」をえらぶ・「こんにちは！」と書く・「なまえは？」と書く・
     右に 7 を入れる・ことばを書く）は、「なっているか見よう」「のままでいいよ」の文言にしている。
-- **ヒント**: チャレンジを始めると（`openChallenge`）ヒントの 1 ページ目が**自動で開く**（ヒントボタンに
-  気づかない子でも、何から始めるかがわかるように）。閉じたあとは「ヒント」ボタンで `showHint` / `hideHint`。
+- **ヒント**: どのコースのどのチャレンジも、チャレンジを始めると（`openChallenge`）ヒントの 1 ページ目が
+  **自動で開く**（ヒントボタンに気づかない子・ヒントを出したまま操作してよいとわからない子でも、何から始めるかが
+  わかるように。レッスンごとの設定は無い）。開いたあとは「ヒント」ボタンで `showHint` / `hideHint`
+  （`hideHint` は閉じずに小さくする。下の「ヒントの吹き出し」の「小さくする」）。
   吹き出し（下の「ヒントの吹き出し」）は `containers/lesson-mode.jsx` の `<LessonTaskBar>` の次に置いた
   `containers/lesson-hint.jsx` が出す。ヒントが無いチャレンジでは自動で開かず、ボタンも無効。
   自動で開くのはレッスンモードに入ったあとなので、「保存しますか」の確認・レッスン表とは重ならない。
@@ -1462,8 +1541,7 @@ partner: {
   ヒント・「できた！」が消え、`getLessonAllowedBlocks` が null になってパレットは全部のブロックにもどる。作品
   （プログラム）はそのまま残る（チャレンジは毎回新しい作品から始めるので、残しても前の作品とまざらない）。
   レッスンにもどるのはメニューの「レッスン」から。「ほかのチャレンジへ」（白地）より目立たせない（透明地に白い枠）。
-- **いまのチュートリアル（カード）との関係**: 両方が同時に開くと、カードの `allowedBlocks` / setup と
-  レッスンのものが食い違うので、どちらか一方だけにする。チャレンジを開くときは開いていたカードを閉じ
+- **上流のチュートリアル（カード）との関係**: 両方が同時に開くと画面が重なって分かりにくいので、どちらか一方だけにする。チャレンジを開くときは開いていたカードを閉じ
   （`closeCards`）、レッスンモード中に「?」メニューなどからチュートリアルを開く（`activateDeck`）と
   レッスンモードを抜ける（開こうとしていたチャレンジも取り消す）。
 
@@ -1511,16 +1589,43 @@ partner: {
   パネルの左（右）へずらす。指す場所にかからない置き方を先に選び、無ければ指す場所にかかる面積がいちばん小さいもの
   （1300×600 で図のある 1 ページ目をパレットの右に置くと、パネルをよけてパレットの右はしに少しかかる）。どう置いても
   かぶるときは、今までどおりに置く。
+  同じしくみで、コスチュームタブ・音タブの左の一覧（`selector_wrapper_`。ヒントを読みながら絵や音をえらぶ）と、
+  スクリプトエリアを指すときはそこに置いてあるスクリプト（いちばん上のブロックの組。置いてあるブロックの数や ▼ を
+  変えさせるヒントで、そのブロックを隠さない）にもかぶせない。
   ずらした結果、しっぽの位置が次のどれかになるときは、しっぽを出さない（何も指さず、閉じるボタンの横の白いひし形に見えるため）:
   指す場所の真ん中が吹き出しの辺の外、左右の辺でヘッダーの帯の横（1300×600 で旗を指すページ）、上の辺で閉じるボタンの上。
   帯の下の端と閉じるボタンの位置は、吹き出しの DOM から測って渡す。
 - **スポットライト**: `spotlight: true` のヒントで、かつ `hintSpotlight`（はじめて開いたチャレンジ）のときだけ、
   指す場所の矩形に穴を開けた巨大な box-shadow で周りを暗くする。`pointer-events: none` なので、照らした
   パレットやステージはそのまま操作できる（ドラッグ中のブロックは吹き出しより上を通る）。
-- **進める・もどる・閉じる**: `nextHint` / `prevHint` / `hideHint`。最初で「もどる」が無効。最後のページは
+- **進める・もどる・小さくする**: `nextHint` / `prevHint` / `hideHint`。最初で「もどる」が無効。最後のページは
   そのあとが無いので、「進める」の代わりに **「おわり」**（`lesson-hint-finish`。押すと閉じる）を出す。
+- **小さくする（閉じない）**: ヘッダーのボタンは × ではなく **「－」**（ヒントを小さくする）。押すと吹き出しの代わりに、
+  課題バーのすぐ下に**小さな札**（`lesson-hint-minimized`。いまのページの「ヒント n/N」と、文言の最初の文から作った
+  短い見出し・もどす印 ⤢）が残り、押すと同じページで元の大きさにもどる（課題バーの「ヒント」でももどる）。
+  授業で、子どもがヒントを読んで操作するときに閉じてしまい、手順を見失っていたため（ヒントを出したまま操作して
+  よいことがわかっていなかった）。小さくしても消えず、「もどしたくなる」ように吹き出しのヘッダーと同じ色の札にする。
+  - 札の置き場所（`lib/lessons/hint-minimized.js` の `minimizedHintPosition`）: 課題バーのすぐ下で、右の端をバーの
+    「ヒント」ボタンにそろえる。ステージの列（旗・止める・ステージの大きさのボタン）にかかるときはその左（コードエリアの
+    右上）へずらし、そこがパレットにかかるとき（SP の狭い画面）はパレットの右へずらす。1300×600 では
+    コードエリアの右上（タブの行の右）に出る。
+  - 小さくしたらスポットライトも消す（照らしたまま操作のじゃまをしない）。札の z-index は 460（タップで開いたままの
+    課題の全文のパネル 470 より下で、全文を隠さない）。
+  - 「おわり」・できたとき・レッスンを出たときは、札も残さず閉じる（今までどおり）。
+  - 状態は `lessonMode.hintMinimized`（`getCurrentHint` の `minimized`。`visible` と同時に true にならない）。
+- **手が止まったら光らせる**: プログラム（ブロックの変化）もステージ（スプライトの位置・見た目・実行）も **2 分**変わらなければ、
+  課題バーの「ヒント」と小さくしたヒントの札をゆっくり（2.4 秒で 1 往復）オレンジに光らせ、その下に「ヒントを見てみよう」
+  （`lesson-hint-nudge`。押せない文字・`role="status"`）を出す。音は出さない。何か操作したら（押す・キー・ホイール・
+  プログラムやステージの変化）止め、そこからまた 2 分を数える。ヒントを大きく出しているあいだ・「できた！」のあいだは
+  光らせない。ヒントのページを変えた・小さくした・チャレンジを変えたときも数え直す。
+  - 動きを減らす設定（`prefers-reduced-motion: reduce`）では光らせず、文字だけを出す。
+  - 判定は純粋関数（`lib/lessons/idle-nudge.js` の `shouldNudgeHint` / `nextNudgeCheckIn`。2 分は `IDLE_NUDGE_MS`）、
+    変化は `lib/lessons/use-idle-nudge.js` が VM のイベントで知る（VM の `PROJECT_CHANGED`・`targetsUpdate`・`workspaceUpdate`、
+    runtime の `PROJECT_RUN_START`・`SAY`）。イベントでは時刻を覚えるだけで、光らせる時刻にタイマーを 1 つ置いて判定し直す
+    （毎フレームの処理はしない）。`containers/lesson-mode.jsx` が hook を呼び、課題バー（`hintNudge`）・札（`nudge`）・
+    文字（`LessonHintNudge`）に渡す。GA には送らない。
 - **開き直したときのページ**: 閉じ方で変える。
-  - **×（閉じる・`hideHint`）**: 同じページから。読みかけを一度よけただけなので。
+  - **「－」（小さくする・`hideHint`）**: 同じページから。読みかけを一度よけただけなので。
   - **「おわり」（`finishHint`）**: 1 ページ目から。最後まで読んだので、次に「ヒント」を押したときに最後のページ
     （うまく動かないときは）がまた出ると、何をすればよいかわかりにくいため。
   - **できたとき（`markChallengeCompleted` がいま開いているチャレンジ）**: 吹き出しを自動で閉じる。できたあとは
@@ -1551,12 +1656,12 @@ partner: {
   消えます。」［いいえ］［はい］を出す（`window.confirm` は使わない。アプリの外の見た目になり、子どもには何のダイアログか
   わかりにくいため）。**いいえ**では何も変えずにボタンにもどる。**はい**で正解のプログラムを入れる（下の動き。この
   ドキュメントで「プログラムを入れる」と書くのはこの動き）。ページを変えると確認は消える。
-  プログラムを入れる動きはチュートリアルのカードの `insertCodeButton` と同じ仕組み
+  プログラムを入れる動きは
   （`updateRubyCode(code)` → ブロックのコースではコードタブ、Ruby / DNCL のコースでは Ruby タブを出す。
   コードタブでは Ruby タブが変換してブロックにする）。チャレンジの `codeTarget` が `'stage'` なら、入れる前に
   ステージをえらび、Ruby タブの相手（`rubyCode.target`）もステージにする（ステージのプログラムのチャレンジ）。
   入れる前に同じ変換を音・コスチューム・背景の確かめ込みで試し（`rubyToBlocksXml` の `validateAssets: true`）、
-  失敗するとき（ヒントの「Owl を足そう」をまだしていない等）は入れずに、ボタンの下にわけを出す
+  失敗するとき（チャレンジ 4 のヒントの「背景を足そう」をまだしていない等）は入れずに、ボタンの下にわけを出す
   （`lesson-hint-insert-code-error`。入れると Ruby タブに切りかわってエラーになり、ブロックのコースの子どもには
   何が起きたかわかりにくいため）。入れると吹き出しは閉じる。入れて動かしても「できた」になる（判定側は区別しない）。
 - **ほかのスプライトのプログラム（`spriteCodes`）**: Ruby タブは編集中のスプライト 1 つに向けて変換するので、
@@ -1758,6 +1863,51 @@ partner: {
 | ウェルカムバルーン（`welcome-tooltip/`。`docs/welcome/`） | 青の `callout` + `BalloonCloseButton`、しっぽは右 |
 | クラス管理のツールチップ（`classroom-tutorial/`。`docs/tutorial/`） | 画面の真ん中のカードで吹き出しとは形が違うので `Balloon` は使わず、`balloon-tokens.css`（白地・角丸・影・文字色）と `BalloonButton`（OK）だけを使う |
 
+### 名前の札（「ガイド」）
+
+画面の部分の名前（ヒントの文と同じ呼び方。Scratch Wiki の名前・`design.md`）を、部分を囲む枠と札で重ねて出す。「音タブを押して」が通じない子が、
+名前と場所を結びつけられるようにする。
+
+- **出す部分**: 課題バー・ヒント（課題バーの「ヒント」）・コードタブ・コスチュームタブ・音タブ・ルビータブ・緑の旗・停止ボタン・
+  ブロックパレット・スクリプトエリア・ステージ・スプライトペイン・背景（9 つの部分。タブは 4 つ、緑の旗と停止ボタンは 2 つの札）。
+  スプライトペインの札は「スプライトペイン（スプライトをえらぶところ）」と短い説明を付ける（クイズの問いは名前だけ）。
+  部分の探し方はヒントの吹き出しと同じ（`findHintTargetRect`）で、いまの画面に無い部分（コスチュームタブを開いているときの
+  ブロックパレットなど）は出さない。ルビータブは 4 つめのタブ（SP はサイドレールの `mobile-side-rail-ruby`）。
+- **置き方**（`lib/lessons/part-names.js` の `computePartNameLayout`。純粋関数）: 小さな部分（ボタン・タブ）は札をすぐ下
+  （入らなければ横）に、広い部分は中の左上に置く。札が画面の外にはみ出さず、札どうし・ほかの小さな部分・ヒントの
+  吹き出し・練習相手のパネルに重ならない置き場所を、部分に近いものから選ぶ。部分が動く（タブの切りかえ・画面の
+  大きさの変化）のに合わせて 0.5 秒ごとに置き直す。
+- **出し方**: 課題バーの「ガイド」（「ヒント」の左。en は "Guide"）で出し、**6 秒たつか、どこかを押すか、
+  Esc で消える**。もう一度「ガイド」を押しても消える。押した操作はそのまま下の部品に届く。
+- **「ガイド」のボタン**: 大きさ・字・枠は「ヒント」と同じ（`lesson-task-bar.css` の `.button`。字は `$font-size-small`・
+  上下の余白は `$space-small`）。字の左に目のアイコンを付け、札を出しているときは開いた目と白地（`aria-pressed="true"`）、
+  隠しているときは斜めの線で消した目（`aria-pressed="false"`）にして、出し入れの状態がわかるようにする。
+- **最初から出す**: レッスンの `showPartNames: true` なら、チャレンジを開いたときから出したままにする（時間でも
+  押しても消えない。「ガイド」で消せ、もう一度押すと出したままにもどる）。枠と札は `pointer-events: none` なので、
+  出したままでもブロックのドラッグやクリックを邪魔しない。
+- 層はヒントの吹き出し・課題バーより下（吹き出しを読みながら操作するため）。
+
+### どこでしょう？のクイズ（`partQuiz`）
+
+レッスン 0 の最後（0-8）のふりかえり。「「ブロックパレット」はどこ？ クリックしよう」と聞き、生徒が画面の部分を
+クリックして答える。
+
+- **問い**: チャレンジの `partQuiz.questions`（名前の札の `label`。問いに出す名前は Scratch Wiki の名前で、クイズの文言
+  `gui.lessonPartQuiz.part.<label>` に持つ。0-8 は `palette` / `codeArea` / `soundsTab` / `greenFlag` /
+  `spriteList` の 5 問・固定。9 つの名前から、レッスン 0 で手で操作した場所をえらんだ）。並び順に 1 問ずつ聞く。
+- **判定**: クリックした点が、問いの部分の矩形（`findHintTargetRect`。ヒントの吹き出し・名前の札と同じ探し方）の中か
+  （`lib/lessons/part-quiz.js` の `isPartQuizAnswer`。純粋関数）。正しければ「せいかい！」と出して次の問いへ。まちがえたら
+  「ちがうよ。光っているところを見て、もう一度」と出し、正しい場所を 2.5 秒光らせる（`PART_QUIZ_REVEAL_MS`。動きを減らす設定では
+  点滅しない）。同じ問いをやり直す（数は減らない）。全部答えたら「5 問ぜんぶ せいかい！」。
+- **できた**: 正しく答えた数は Redux（`lessonMode.partQuizSolved`。`solvePartQuiz(challengeId, index)` で、いまの問いのときだけ 1 つ
+  増える。チャレンジを開くたびに 0）に持ち、goal の `partQuiz`（`count: 5`）が「できた」を決める。
+- **クリックを奪う**: クイズのあいだは画面全体に透明な受け皿（`lesson-part-quiz-catcher`）を重ね、`pointerdown` / `mousedown` /
+  `click` / `contextmenu` を下へ届けない（答えのクリックでブロック・タブ・旗が動かない）。受け皿は、小さくしたヒントの札（460）・
+  「できた！」（480）・ヒントの吹き出し（490）・課題バー（491）より下の層（459）なので、それらは押せる。全部答えたら外す。
+- **問いの札**: コードエリアの下のほう（真ん中）に出す（パレット・タブ・旗・スプライトリストを隠さない。1300×600 で問いの文と
+  結果が見える）。ヒントの 1 ページ目はこの札を指す（`HINT_TARGETS.PART_QUIZ`）。
+- クイズのチャレンジでは、名前の札（`showPartNames` のレッスンでも）と課題バーの「ガイド」を出さない（答えが見えてしまう）。
+
 ### data-testid
 
 | data-testid | 要素 | 説明 |
@@ -1776,7 +1926,20 @@ partner: {
 | `lesson-task-bar-role-buttons` | span | 役のボタンの並び（ヒントの「役を決めよう」の吹き出しが指す・`role-picker`） |
 | `lesson-task-bar-role-shimaraby` / `lesson-task-bar-role-shimacat` | button | 「シマラビの役」/「シマネコの役」（いまの役は `aria-pressed="true"`） |
 | `lesson-task-bar-role-note` | span | 「前回はシマネコの役」/「出席番号で決めた役」（前回の役・出席番号で決めたときだけ。ボタンの下） |
+| `lesson-task-bar-part-names` | button | 「ガイド」。画面の部分の名前の札の出し入れ（出ているときは `aria-pressed="true"`） |
+| `lesson-task-bar-part-names-icon` | svg | 「ガイド」の目のアイコン（札が出ているときは `data-open="true"` の開いた目、隠しているときは `"false"` の消した目） |
 | `lesson-task-bar-hint` | button | ヒントの吹き出しの出し入れ（ヒントが無ければ disabled） |
+| `lesson-part-names` | div | 名前の札の重ね（出ているときだけある。document.body への portal） |
+| `lesson-part-names-frame-<label>` | div | 部分を囲む枠（見つかった部分だけ）。`<label>` は `taskBar` / `hint` / `codeTab` / `costumesTab` / `soundsTab` / `greenFlag` / `stop` / `palette` / `codeArea` / `stage` / `spriteList` / `backdrop` |
+| `lesson-part-quiz` | div | 「どこでしょう？」のクイズ（チャレンジに `partQuiz` があるときだけ。document.body への portal） |
+| `lesson-part-quiz-catcher` | div | クリックを受ける透明な受け皿（全部答えるまで） |
+| `lesson-part-quiz-panel` | div | 問いの札（コードエリアの下のほう） |
+| `lesson-part-quiz-title` | div | 「どこでしょう？ n / 5」 |
+| `lesson-part-quiz-question` | div | 問いの文（`data-part` = 問いの部分の `label`） |
+| `lesson-part-quiz-feedback` | div | 答えの結果（`data-result` = `correct` / `wrong`） |
+| `lesson-part-quiz-reveal` | div | まちがえたときに光らせる正しい場所（2.5 秒） |
+| `lesson-part-quiz-done` | div | 全部答えたときの「5 問ぜんぶ せいかい！」 |
+| `lesson-part-names-label-<label>` | span | 部分の名前の札（置いたものは `data-placed="true"`、画面に無い部分は `false` で見えない） |
 | `lesson-task-bar-quit` | button | ほかのチャレンジへ（いまのチャレンジを終えてレッスン表を開く。白地で目立たせる） |
 | `lesson-task-bar-end` | button | レッスンをおえる（右端。レッスンから出て、いつもの画面にもどる。レッスン表は開かない） |
 | `lesson-hint` | div | ヒントの吹き出し（`data-side` = 置いた側 `right` / `left` / `bottom` / `top` / `inside` / `center`、`data-target` = 指す場所） |
@@ -1796,7 +1959,10 @@ partner: {
 | `lesson-hint-finish` | button | おわり（最後のページで「進める」の代わり。押すと閉じ、次は 1 ページ目から開く） |
 | `lesson-hint-drag-handle` | div | 吹き出しのヘッダー（ドラッグで動かす取っ手） |
 | `lesson-hint-insert-code-error` | div | プログラムを入れられないときのわけ（音・背景をまだ足していない等） |
-| `lesson-hint-prev` / `lesson-hint-next` / `lesson-hint-close` | button | もどる / 進める（最後のページには無い） / 閉じる |
+| `lesson-hint-prev` / `lesson-hint-next` / `lesson-hint-close` | button | もどる / 進める（最後のページには無い） / 小さくする（「－」。閉じずに札を残す。testid は前の「閉じる」のまま） |
+| `lesson-hint-minimized` | button | 小さくしたヒントの札（押すと同じページで元の大きさにもどる） |
+| `lesson-hint-minimized-position` / `lesson-hint-minimized-heading` | span | 札の「ヒント n/N」と短い見出し |
+| `lesson-hint-nudge` | div | 手が止まったときの「ヒントを見てみよう」（光らせているあいだだけある。課題バーの「ヒント」と札は `data-nudge="true"`） |
 
 ### スクリーンショット
 
@@ -1812,6 +1978,7 @@ partner: {
 | `screenshots/0208-lesson-task-full-text-activity-diagram-swimlane-1300x600.png` | 練習相手の定義があるときのスイムレーン（「クイズを作ろう」にテスト用の `partner`（ボタンで変数を変えて合図を送る・合図を受け取ったら返す）を足して撮影） |
 | `screenshots/0209-lesson-task-full-text-activity-diagram-too-tall-1300x600.png` | 図が大きくて全文に入らないときの案内の 1 行（テスト用の 8 ブロックの答えで撮影） |
 | `screenshots/0210-lesson-task-full-text-read-diagram-1300x600.png` | 読んで作るチャレンジの課題バー（「読んで作る」の印）と全文の図（撮影のため、「クイズを作ろう」を見本の読んで作るチャレンジに実行時に差し替えた。いまのコースに読んで作るチャレンジは無い） |
+| `screenshots/0211-editor-map-1300x600.png` | 標準課題「はじめの一歩」の「スモウルビーの地図」に使った画面（1300×600 でチャレンジ 2「矢印キーで動かそう」を開き、ヒントを「－」で小さくしたところ。地図はこの写真に 9 つの名前を書きこむ） |
 | `screenshots/0410-lesson-hint-activity-diagram-scroll-1300x600.png` | 同じ大きい図をヒントの 1 ページ目で出したところ（下限の大きさで、図の枠の中をスクロールできる） |
 | `screenshots/0411-lesson-hint-read-diagram-page1-1300x600.png` | 読んで作るチャレンジのヒント 1 ページ目（自動で開く。図・説明・答えは最後のページ）。見本は 0210 と同じ |
 | `screenshots/0412-lesson-hint-read-diagram-page2-1300x600.png` | 同じチャレンジの 2 ページ目（試す） |
@@ -1822,13 +1989,17 @@ partner: {
 | `screenshots/0404-lesson-hint-last-resort-1300x600.png` | 最後の手段のページ（うまく動かないときは・正解のプログラムを確認する・おわり） |
 | `screenshots/0405-lesson-hint-check-answer-confirm-1300x600.png` | 「正解のプログラムを確認する」を押したあとの確認（いいえ・はい） |
 | `screenshots/0406-lesson-hint-auto-open-1300x600.png` | チャレンジを始めたら自動で開いたヒントの 1 ページ目（1300×600） |
+| `screenshots/0414-lesson-hint-minimized-1300x600.png` | ヒントを「－」で小さくしたところ（1300×600。課題バーの下・コードエリアの右上に「ヒント 2/7」と見出しの札。ステージの列にはかからない） |
+| `screenshots/0415-lesson-hint-minimized-844x390.png` | 同じところを SP 横（844×390）で（札はパレットの右） |
+| `screenshots/0416-lesson-hint-nudge-1300x600.png` | 2 分変化が無く、「ヒント」と札を光らせ、「ヒントを見てみよう」を出したところ（1300×600） |
+| `screenshots/0417-lesson-hint-nudge-reduced-motion-1300x600.png` | 動きを減らす設定のとき（光らせず文字だけ・ヒントを閉じたあとなので札も無い。1300×600） |
 | `screenshots/0407-lesson-hint-dragged-667x375.png` | SP 横でヘッダーをタッチでドラッグして動かしたところ（しっぽは消える） |
 | `screenshots/0408-lesson-hint-auto-open-375x667.png` | SP 縦（縦持ちの案内を閉じたあと）で自動で開いたヒント（サイドレールの右に置く） |
 | `screenshots/0409-lesson-hint-activity-diagram-1300x600.png` | ヒントの 1 ページ目にアクティビティ図を出したところ（1300×600。図・文言・ブロックの順） |
 | `screenshots/0301-lessons-button-1300x600.png` | メニューバーの「レッスン」ボタン（1300×600。はじめての人にも吹き出しは出ない） |
-| `screenshots/0302-lessons-library-1300x600.png` | レッスン表（1300×600）。3 つのレッスンで、いくつかできた状態 |
+| `screenshots/0302-lessons-library-1300x600.png` | レッスン表（1300×600）。レッスン 0 ができて、レッスン 1 の途中。レッスン 0（✓）・3 と「チャットをつくろう」はたたんである |
 | `screenshots/0303-lessons-library-375x667.png` | レッスン表（SP 縦 375×667。カード 2 列） |
-| `screenshots/0304-lessons-library-cleared-1300x600.png` | コースのチャレンジが全部できた状態（コース名の前に ✓） |
+| `screenshots/0304-lessons-library-cleared-1300x600.png` | コースのチャレンジが全部できた状態（コース名の前に ✓。そのコースはたたまれ、次のコースが開く） |
 | `screenshots/0306-lessons-library-667x375.png` | レッスン表（SP 横 667×375） |
 | `screenshots/0307-lessons-library-search-1300x600.png` | 検索したとき（「キー」） |
 | `screenshots/0101-completed-toast-1300x600.png` | 「できた！」（レッスンの途中。丸と「あと n つ」・次のチャレンジへ・もう少し見る） |
@@ -1838,7 +2009,14 @@ partner: {
 | `screenshots/0105-completed-toast-quiz-wrong-1300x600.png` | 同じクイズで、はずれを選んだところ（×・「はずれ。もう一度選んでみよう」・解説） |
 | `screenshots/0106-completed-toast-quiz-lesson-correct-1300x600.png` | 「レッスン 1 ぜんぶできた！」の中のクイズで正解を選んだところ（○・「正解！」・解説） |
 | `screenshots/0305-lessons-library-next-1300x600.png` | 「次のチャレンジ」で開いたレッスン表（1〜3 ができていて、4 に「次はこれ！」） |
-| `screenshots/0501-challenge1-key-sound-hint1-1300x600.png` | チャレンジ 1「キーで音を鳴らそう」の最初のヒント（音タブを指す） |
+| `screenshots/0523-lesson0-drag-cat-1300x600.png` | レッスン 0 の 0-1「ネコをつかんで動かそう」（ヒントが自動で開き、ステージを照らす。名前の札を最初から出す。1300×600） |
+| `screenshots/0528-lesson0-change-number-hint1-1300x600.png` | 0-5「数と ▼ を変えよう」のヒント 1（「15 度回す」と「マウスのポインターへ行く」の旗のスクリプトから始まる。吹き出しはスクリプトにかぶらない。1300×600） |
+| `screenshots/0529-lesson0-change-number-hint2-1300x600.png` | 0-5 のヒント 2（「マウスのポインターへ行く」の ▼ で「どこかの場所」をえらぶ。1300×600） |
+| `screenshots/0524-lesson0-tabs-1300x600.png` | 0-6「タブをめぐろう」のコスチュームタブ（シマラビの 2 つの絵。ヒントは左の絵の一覧にかぶらない。1300×600） |
+| `screenshots/0525-lesson0-where-1300x600.png` | 0-8「どこでしょう？」の問い（コードエリアの下の問いの札。ヒントは「－」で小さくした。1300×600） |
+| `screenshots/0526-lesson0-where-wrong-1300x600.png` | 0-8 でまちがえたところ（「ちがうよ」と、正しい場所を光らせる。1300×600） |
+| `screenshots/0527-lessons-library-lesson0-1300x600.png` | レッスン表の最初の「レッスン 0」（レッスン 0 の 3 つができても、コースの数は 0 / 11 のまま。1300×600） |
+| `screenshots/0501-challenge1-key-sound-hint1-1300x600.png` | チャレンジ 1「キーで音を鳴らそう」の最初のヒント（パレットを指し、帽子のブロック「スペースキーが押されたとき」を描く。音タブは使わない） |
 | `screenshots/0502-challenge2-arrow-move-hint1-1300x600.png` | チャレンジ 2「矢印キーで動かそう」の最初のヒント（パレットを指し、帽子のブロック「上向き矢印キーが押されたとき」を描く） |
 | `screenshots/0503-challenge3-click-say-hint1-1300x600.png` | チャレンジ 3「押したら話そう」の最初のヒント（コスチュームタブを指す） |
 | `screenshots/0504-challenge4-repeat-hint1-1300x600.png` | チャレンジ 4「くり返そう」の最初のヒント（背景を選ぶを指す） |
@@ -1933,6 +2111,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 - **先生（ログイン中）からは送らない**: 先生がクラス管理にログインしているあいだは、エディタでレッスンを開いても
   何も送らない（`state.scratchGui.classroom.teacherLoggedIn`。授業の準備で開くと数がゆがむため）。どこまで送ったかの
   覚えだけは進めるので、ログアウトしても、先生のときに開いたチャレンジを開いたことにはしない。
+- レッスン 0（`blocks-l0`）も同じイベントを送る（`lesson_id` = `blocks-l0`、`challenge_id` = `blocks-l0-*`）。項目は増やしていない。
 - 計測の失敗（`dataLayer` が無いなど）は握りつぶし、レッスンの動きを止めない。
 - 判断は純粋関数 `lib/lessons/lesson-analytics.js`（`stepLessonAnalytics`。前の状態と今の状態と時刻から、送るイベントを
   決める）、送るのは `containers/lesson-analytics.jsx`（gui.jsx のマーカー `lesson mode` の中に常時マウント）。
@@ -1943,11 +2122,11 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 
 ## いまのチュートリアルの入口
 
-レッスン機能がチュートリアルの役目を引き継ぐため、従来の **「チュートリアル」「デバッグ」のボタンはメニューバーから外し、右上の「?」メニューの項目**にした（ふだんは目に入らないようにする。そろったら消す）。
+学ぶ入口はレッスン（メニューバーの「レッスン」）。チュートリアルは上流（Scratch）のものをそのまま使い、**「チュートリアル」「デバッグ」のボタンはメニューバーに置かず、右上の「?」メニューの項目**にした（ふだんは目に入らないようにする）。
 
-- 「?」メニュー › チュートリアル → チュートリアル一覧（`tips-library`）
+- 「?」メニュー › チュートリアル → 上流のチュートリアル一覧（`tips-library`）
 - 「?」メニュー › デバッグ → デバッグ画面（`debug-modal`）
-- `?tutorial=<urlId>` で直接開く経路はそのまま動く（教科書や授業資料のリンク用）
+- `?tutorial=<urlId>` で直接開く経路は上流のまま動く。前にスモウルビーにあったチュートリアルの `urlId`（`chat1Basic1` など）はもう開かず、開かれた数を GA で数える（[`docs/tutorial/`](../tutorial/) の「GA の計測」）
 - はじめての人向けの吹き出し（旧 `tutorial-tooltip`）は出さない。代わりに「レッスン」ボタンの下に吹き出しを出す（上の「レッスン表」）
 
 詳細は [`docs/menu-bar/`](../menu-bar/) の「「?」メニュー（ヘルプ）」と [`docs/tutorial/`](../tutorial/) を参照。
@@ -1967,10 +2146,16 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/components/lesson-task-bar/lesson-role-picker.jsx` | 課題バーの役のボタン |
 | `packages/scratch-gui/src/lib/lessons/challenge-setup.js` | チャレンジを開くときの setup（言語の既定 + チャレンジの `setup`） |
 | `packages/scratch-gui/src/components/balloon/` | 吹き出し・ツールチップの見た目の土台（`Balloon` / `BalloonHeader` / `BalloonCloseButton` / `BalloonButton` / `balloon-tokens.css`。上の「吹き出しの共通の土台」） |
-| `packages/scratch-gui/src/components/lesson-hint/` | ヒントの吹き出し（`lesson-hint.jsx` = 中身・置き方・スポットライト・ドラッグ・正解のプログラムの確認（枠は `balloon/`）、`lesson-hint-blocks.jsx` = 読み取り専用ワークスペースに本物のブロックを描く） |
+| `packages/scratch-gui/src/components/lesson-hint/` | ヒントの吹き出し（`lesson-hint-nudge.jsx` = 手が止まったときの「ヒントを見てみよう」、`lesson-hint.jsx` = 中身・置き方・スポットライト・ドラッグ・正解のプログラムの確認（枠は `balloon/`）、`lesson-hint-blocks.jsx` = 読み取り専用ワークスペースに本物のブロックを描く、`lesson-hint-minimized.jsx` = 小さくしたヒントの札） |
+| `packages/scratch-gui/src/lib/lessons/idle-nudge.js` / `use-idle-nudge.js` | 手が止まったら「ヒント」を光らせるかの判定（純粋関数）と、VM のイベントで変化を知る hook |
+| `packages/scratch-gui/src/lib/lessons/hint-minimized.js` | 小さくしたヒントの札の短い見出し（`shortHintHeading`）と置き場所（`minimizedHintPosition`）（純粋関数） |
 | `packages/scratch-gui/src/containers/lesson-hint.jsx` | 吹き出しのコンテナ（`getCurrentHint` を読み、`blocks` を XML にし、「プログラムを入れる」を dispatch。クラスに参加中の生徒には手順の `classroomTitle` を出す） |
 | `packages/scratch-gui/src/lib/lessons/hint-text.js` | ヒントの文言の決まり（`**…**` の強調を分ける `splitEmphasis`、クラスの中と外で文言を選ぶ `hintStepTitle` / `isSeatedStudent`） |
 | `packages/scratch-gui/src/lib/lessons/hint-targets.js` | 指す場所の名前（`HINT_TARGETS`）・DOM の探し方・置き方・ドラッグした位置を画面に収める（`clampHintPosition`）・置いてよい範囲（`hintViewport`。SP のサイドレールの右・課題バーの下）（純粋関数） |
+| `packages/scratch-gui/src/lib/lessons/part-names.js` | 名前の札を出す部分（`PART_NAMES`）・探し方（`findPartNameRects`）・札の置き方（`computePartNameLayout`。純粋関数） |
+| `packages/scratch-gui/src/components/lesson-part-names/` | 名前の札の重ね（枠と札・置き直し・6 秒で消す） |
+| `packages/scratch-gui/src/lib/lessons/part-quiz.js` | 「どこでしょう？」のクイズの判定（`isPartQuizAnswer` / `partQuizTarget` / `validatePartQuiz`。純粋関数） |
+| `packages/scratch-gui/src/components/lesson-part-quiz/` | 「どこでしょう？」のクイズ（問いの札・クリックを受ける受け皿・まちがえたときに光らせる） |
 | `packages/scratch-gui/src/lib/lessons/read-diagram.js` | 読んで作るチャレンジ（`mode: 'readDiagram'`）のヒントの 3 ページを作る・定義に決まりを当てはめる（`readDiagramSteps`・`applyChallengeMode`。純粋関数） |
 | `packages/scratch-gui/test/unit/lib/lessons/read-diagram.test.js` | 読んで作るチャレンジの unit テスト |
 | `packages/scratch-gui/src/lib/lessons/hint-blocks.js` / `blocks-xml.js` | Ruby → ブロック → Blockly の XML |
@@ -2016,6 +2201,8 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/components/lessons-library/` | レッスン表（モーダル） |
 | `packages/scratch-gui/src/lib/lessons/library-filter.js` | レッスン表の検索（`filterCourseStatuses`）・出す言語（`libraryLanguages`）・コースのボタンを出すか（`showCourseNav`） |
 | `packages/scratch-gui/test/unit/lib/lessons/library-filter.test.js` | 上の unit テスト |
+| `packages/scratch-gui/src/lib/lessons/library-fold.js` | レッスン表を開いたときのたたみ方（`initialFoldState`・いま進めているコース `currentCourseId`・閉じた行の丸 `lessonDots`。純粋関数） |
+| `packages/scratch-gui/test/unit/lib/lessons/library-fold.test.js` | 上の unit テスト（全部できた・いま・つぎ・後ろ、検索中、課題だけの表、`focusLessonId`、コースのたたみ） |
 | `packages/scratch-gui/src/lib/lessons/open-lessons-library.js` | レッスン表をいまのレッスンを見せて開く（`openLessonsLibraryAt`。「次のチャレンジ」が使う）・クラスの課題のチャレンジだけで開く（`openAssignmentLessonsLibrary`。「はじめる」「レッスンを続ける」） |
 | `packages/scratch-gui/src/lib/lessons/assignment-progress.js` | クラスの課題のレッスンの数え方（設定をそろえる・条件の数・あと n つ・課題クリア・メニューバーの印・はじめての課題クリア・レッスン表を課題のチャレンジに絞る・次にやる課題のチャレンジ・クラスへ送る分の記録）の純粋関数 |
 | `packages/scratch-gui/test/unit/lib/lessons/assignment-progress.test.js` | 上の unit テスト |
@@ -2029,8 +2216,9 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/src/lib/lessons/block-defaults.js` | `allowedBlocks` に書いたブロックの初期値を集め、ツールボックスの XML・flyout の要素に入れる純粋関数（`blocks.jsx` のマーカー `lesson palette block defaults`） |
 | `packages/scratch-gui/src/lib/lesson-dynamic-categories.js` | 「変数」「ブロック定義」を `allowedBlocks` で絞る純粋関数（カテゴリを出すか・flyout の中身） |
 | `packages/scratch-gui/src/lib/make-toolbox-xml.js` | `allowedBlocks` に無ければ「変数」「ブロック定義」のカテゴリを出さない（マーカー `lesson dynamic category filtering`） |
-| `packages/scratch-gui/test/unit/lib/lesson-dynamic-categories.test.js` | 上の純粋関数・toolbox XML・既存の deck / チャレンジの unit テスト |
-| `packages/scratch-gui/test/unit/lib/lesson-dynamic-categories-decks.test.js` | すべての deck・チャレンジのプログラムを変換し、使う変数・リスト・ブロック定義の opcode が `allowedBlocks` にあるか |
+| `packages/scratch-gui/test/unit/lib/lesson-dynamic-categories.test.js` | 上の純粋関数・toolbox XML・既存のチャレンジの unit テスト |
+| `packages/scratch-gui/test/unit/lib/lessons/challenge-dynamic-categories.test.js` | すべてのチャレンジのプログラムを変換し、使う変数・リスト・ブロック定義の opcode が `allowedBlocks` にあるか（deck の分は `test/unit/lib/libraries/decks/deck-dynamic-categories.test.js`。道具は `test/helpers/dynamic-category-opcodes.js`） |
+| `packages/scratch-gui/src/lib/lessons/apply-setup.js` | チャレンジの setup（タブ・Ruby のモード・拡張機能・Ruby の版）を当てる `applySetup` |
 | `packages/scratch-gui/test/unit/lib/lessons/` | データの形・記録・クリア判定・setup・できた の判定・見張り・カードの色の決め方（`card-color.test.js`）の unit テスト |
 | `packages/scratch-gui/test/unit/reducers/lesson-mode-reducer.test.js` | reducer の unit テスト |
 | `packages/scratch-gui/test/unit/components/lesson-completed-toast.test.jsx` / `test/unit/components/lesson-completed-quiz.test.jsx` / `test/unit/containers/lesson-goal-watcher.test.jsx` | 「できた！」と見張りのコンテナの unit テスト |
@@ -2042,7 +2230,7 @@ GTM・GA4 の設定（トリガー・データレイヤー変数・カスタム�
 | `packages/scratch-gui/test/integration/smalruby-lesson-task-bar-layout.test.js` | 課題バーが画面の幅いっぱい・ボタンが右端・ステージの列の旗/止める/ステージの大きさが押せる・ページがスクロールしない、中サイズのステージのスプライトの情報が詰まった形でどの入力欄も押せる（大きいステージでは upstream の形）（Selenium・1300×600） |
 | `packages/scratch-gui/test/unit/components/sprite-info-compact.test.jsx` | 中サイズのステージのスプライトの情報（「スプライト」の字なし・x / y が左隣・大きさ / 向きのアイコンとツールチップ en / ja / ja-Hira、小・大は upstream のまま） |
 | `packages/scratch-gui/test/integration/smalruby-lessons.test.js` | チャレンジを開く → 課題バー・絞ったパレット → やめる → 元にもどる。「レッスンをおえる」でレッスン表を開かずに出て、プログラムが残り、パレットが全部にもどる（Selenium） |
-| `packages/scratch-gui/test/unit/components/lessons-library.test.jsx` / `test/unit/containers/lessons-library.test.jsx` / `test/unit/components/menu-bar-lessons.test.jsx` | レッスン表（3 つのレッスン・カードの色の帯・✓・コースのバー・検索・言語とコースのボタン・「次はこれ！」）、コンテナ、「レッスン」ボタン（吹き出しを出さないこと）の unit テスト |
+| `packages/scratch-gui/test/unit/components/lessons-library.test.jsx` / `test/unit/containers/lessons-library.test.jsx` / `test/unit/components/menu-bar-lessons.test.jsx` | レッスン表（3 つのレッスン・カードの色の帯・✓・コースのバー・検索・言語とコースのボタン・「次はこれ！」・見出しの開閉と丸）、コンテナ、「レッスン」ボタン（吹き出しを出さないこと）の unit テスト |
 | `packages/scratch-gui/test/integration/smalruby-lessons-library.test.js` | メニューから開く → チャレンジを押す → レッスンモード → やめる → レッスン表にもどる・記録に合わせた ✓ とコースの進み具合・検索（Selenium） |
 
 ## 設定・データ永続化

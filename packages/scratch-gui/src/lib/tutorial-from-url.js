@@ -5,6 +5,9 @@
 
 import tutorials from './libraries/decks/index.jsx';
 import analytics from './analytics';
+// === Smalruby: Start of unknown tutorial url analytics ===
+import {reportTutorialUrlNotFound} from './tutorial-url-analytics';
+// === Smalruby: End of unknown tutorial url analytics ===
 
 /**
  * Get the tutorial id from the given numerical id (representing the
@@ -40,7 +43,12 @@ const detectTutorialId = queryParams => {
         queryParams.tutorial;
     if (typeof tutorialID === 'undefined') return null;
     if (tutorialID === 'all') return tutorialID;
-    return getDeckIdFromUrlId(tutorialID);
+    // === Smalruby: Start of unknown tutorial url analytics ===
+    // Count links to tutorials that no longer exist (e.g. the old Smalruby tutorials).
+    const deckId = getDeckIdFromUrlId(tutorialID);
+    if (deckId === null) reportTutorialUrlNotFound(tutorialID);
+    return deckId;
+    // === Smalruby: End of unknown tutorial url analytics ===
 };
 
 export {

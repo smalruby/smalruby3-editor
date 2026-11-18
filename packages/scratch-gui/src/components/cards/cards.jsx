@@ -14,10 +14,6 @@ import leftArrow from './icon--prev.svg';
 
 import helpIcon from '../../lib/assets/icon--tutorials.svg';
 import closeIcon from './icon--close.svg';
-import codeIcon from './icon--code.svg';
-// === Smalruby: Start of start-tutorial button ===
-import startIcon from './icon--start.svg';
-// === Smalruby: End of start-tutorial button ===
 
 import {translateVideo} from '../../lib/libraries/decks/translate-video.js';
 import {translateImage} from '../../lib/libraries/decks/translate-image.js';
@@ -127,10 +123,10 @@ class VideoStep extends React.Component {
 
     componentWillUnmount () {
         const script = document.getElementById('wistia-video-content');
-        if (script) script.parentNode.removeChild(script);
+        script.parentNode.removeChild(script);
 
         const script2 = document.getElementById('wistia-video-api');
-        if (script2) script2.parentNode.removeChild(script2);
+        script2.parentNode.removeChild(script2);
     }
 
     render () {
@@ -153,15 +149,7 @@ VideoStep.propTypes = {
     video: PropTypes.string.isRequired
 };
 
-// === Smalruby: Start of tutorial glow animation (insert-code button overlay) ===
-// === Smalruby: Start of start-tutorial button ===
-const ImageStep = ({
-    title, image, code, codeType, onInsertCodeFactory, animateInsertCode,
-    startTutorial, onStartTutorial, animateStartTutorial,
-    // === Smalruby: Start of external-url button ===
-    externalUrl, externalUrlLabel
-    // === Smalruby: End of external-url button ===
-}) => (<Fragment>
+const ImageStep = ({title, image}) => (<Fragment>
     <div className={styles.stepTitle}>
         {title}
     </div>
@@ -172,106 +160,22 @@ const ImageStep = ({
             key={image} /* Use src as key to prevent hanging around on slow connections */
             src={image}
         />
-        {startTutorial && onStartTutorial ? (
-            <button
-                className={animateStartTutorial ?
-                    classNames(styles.insertCodeButton, styles.insertCodeButtonOverlay, styles.insertCodeButtonGlow) :
-                    classNames(styles.insertCodeButton, styles.insertCodeButtonOverlay)}
-                data-card-action="start-tutorial"
-                onClick={onStartTutorial}
-            >
-                <img
-                    className={styles.codeIcon}
-                    src={startIcon}
-                />
-                <FormattedMessage
-                    defaultMessage="Start Tutorial"
-                    description="Button to reset project and start tutorial"
-                    id="gui.cards.start-tutorial"
-                />
-            </button>
-        ) : null}
-        {code && onInsertCodeFactory ? (
-            <button
-                className={animateInsertCode ?
-                    classNames(styles.insertCodeButton, styles.insertCodeButtonOverlay, styles.insertCodeButtonGlow) :
-                    classNames(styles.insertCodeButton, styles.insertCodeButtonOverlay)}
-                data-card-action={codeType === 'blocks' ? 'insert-blocks' : 'insert-ruby'}
-                onClick={onInsertCodeFactory(code, codeType)}
-            >
-                <img
-                    className={styles.codeIcon}
-                    src={codeIcon}
-                />
-                {codeType === 'blocks' ? (
-                    <FormattedMessage
-                        defaultMessage="Insert Blocks"
-                        description="Button to insert code as blocks (injects Ruby then switches to blocks tab)"
-                        id="gui.cards.insert-blocks"
-                    />
-                ) : (
-                    <FormattedMessage
-                        defaultMessage="Insert This Ruby"
-                        description="Button to insert code into Ruby tab"
-                        id="gui.cards.insert-ruby"
-                    />
-                )}
-            </button>
-        ) : null}
-        {/* === Smalruby: Start of external-url button === */}
-        {externalUrl ? (
-            <a
-                className={classNames(styles.insertCodeButton, styles.insertCodeButtonOverlay)}
-                data-card-action="open-external-link"
-                href={externalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                {externalUrlLabel || (
-                    <FormattedMessage
-                        defaultMessage="Open External Link"
-                        description="Button to open an external website in a new browser tab"
-                        id="gui.cards.open-external-link"
-                    />
-                )}
-            </a>
-        ) : null}
-        {/* === Smalruby: End of external-url button === */}
     </div>
 </Fragment>
 );
 
 ImageStep.propTypes = {
-    animateInsertCode: PropTypes.bool, // Smalruby: tutorial glow animation
-    animateStartTutorial: PropTypes.bool, // Smalruby: start-tutorial button glow
-    code: PropTypes.string,
-    codeType: PropTypes.string, // 'ruby' (default) or 'blocks'
-    // === Smalruby: Start of external-url button ===
-    externalUrl: PropTypes.string, // Smalruby: opens this URL in a new tab (e.g. TryRuby)
-    externalUrlLabel: PropTypes.node, // Smalruby: optional custom label for the external link button
-    // === Smalruby: End of external-url button ===
     image: PropTypes.string.isRequired,
-    onInsertCodeFactory: PropTypes.func,
-    onStartTutorial: PropTypes.func, // Smalruby: start-tutorial button handler
-    startTutorial: PropTypes.bool, // Smalruby: show start-tutorial button
     title: PropTypes.node.isRequired
 };
-// === Smalruby: End of start-tutorial button ===
-// === Smalruby: End of tutorial glow animation (insert-code button overlay) ===
 
-// === Smalruby: Start of tutorial glow animation (next button) ===
-const NextPrevButtons = ({isRtl, onNextStep, onPrevStep, expanded, animateNext}) => (
+const NextPrevButtons = ({isRtl, onNextStep, onPrevStep, expanded}) => (
     <Fragment>
         {onNextStep ? (
             <div>
                 <div className={expanded ? (isRtl ? styles.leftCard : styles.rightCard) : styles.hidden} />
                 <div
-                    className={expanded ? (
-                        isRtl ?
-                            (animateNext ? classNames(styles.leftButton, styles.leftButtonGlow) : styles.leftButton) :
-                            (animateNext ? classNames(styles.rightButton, styles.rightButtonGlow) : styles.rightButton)
-                    ) : styles.hidden}
-                    data-card-action="next"
+                    className={expanded ? (isRtl ? styles.leftButton : styles.rightButton) : styles.hidden}
                     onClick={onNextStep}
                 >
                     <img
@@ -286,7 +190,6 @@ const NextPrevButtons = ({isRtl, onNextStep, onPrevStep, expanded, animateNext})
                 <div className={expanded ? (isRtl ? styles.rightCard : styles.leftCard) : styles.hidden} />
                 <div
                     className={expanded ? (isRtl ? styles.rightButton : styles.leftButton) : styles.hidden}
-                    data-card-action="prev"
                     onClick={onPrevStep}
                 >
                     <img
@@ -300,13 +203,11 @@ const NextPrevButtons = ({isRtl, onNextStep, onPrevStep, expanded, animateNext})
 );
 
 NextPrevButtons.propTypes = {
-    animateNext: PropTypes.bool, // Smalruby: tutorial glow animation
     expanded: PropTypes.bool.isRequired,
     isRtl: PropTypes.bool,
     onNextStep: PropTypes.func,
     onPrevStep: PropTypes.func
 };
-// === Smalruby: End of tutorial glow animation (next button) ===
 CardHeader.propTypes = {
     expanded: PropTypes.bool.isRequired,
     onCloseCards: PropTypes.func.isRequired,
@@ -330,14 +231,14 @@ const PreviewsStep = ({deckIds, content, onActivateDeckFactory, onShowAll}) => (
                 <div
                     className={styles.deck}
                     key={`deck-preview-${id}`}
-                    onClick={id in content ? onActivateDeckFactory(id) : null}
+                    onClick={onActivateDeckFactory(id)}
                 >
                     <img
                         className={styles.deckImage}
                         draggable={false}
-                        src={content[id]?.img}
+                        src={content[id].img}
                     />
-                    <div className={styles.deckName}>{content[id]?.name}</div>
+                    <div className={styles.deckName}>{content[id].name}</div>
                 </div>
             ))}
         </div>
@@ -441,26 +342,17 @@ const Cards = props => {
         onDrag,
         onStartDrag,
         onEndDrag,
-        onInsertCodeFactory,
         onShowAll,
         onNextStep,
         onPrevStep,
         step,
         expanded,
         showVideos,
-        // === Smalruby: Start of tutorial glow animation ===
-        animateNext,
-        animateInsertCode,
-        // === Smalruby: End of tutorial glow animation ===
-        // === Smalruby: Start of start-tutorial button ===
-        animateStartTutorial,
-        onStartTutorial,
-        // === Smalruby: End of start-tutorial button ===
         ...posProps
     } = props;
     let {x, y} = posProps;
 
-    if (activeDeckId === null) return null;
+    if (activeDeckId === null) return;
 
     // Tutorial cards need to calculate their own dragging bounds
     // to allow for dragging the cards off the left, right and bottom
@@ -474,9 +366,9 @@ const Cards = props => {
         // initialize positions
         x = isRtl ? (-190 - wideCardWidth - cardHorizontalDragOffset) : 292;
         x += cardHorizontalDragOffset;
-        // The tallest cards are about 500px high (header ~40 + title ~40 + image 360 + margins ~60),
-        // and the default position is pinned to near the bottom of the blocks palette to allow room to work above.
-        const tallCardHeight = 500;
+        // The tallest cards are about 320px high, and the default position is pinned
+        // to near the bottom of the blocks palette to allow room to work above.
+        const tallCardHeight = 320;
         const bottomMargin = 60; // To avoid overlapping the backpack region
         y = window.innerHeight - tallCardHeight - bottomMargin - menuBarHeight;
     }
@@ -503,13 +395,7 @@ const Cards = props => {
                 onStop={onEndDrag}
             >
                 <div className={styles.cardContainer}>
-                    <div
-                        className={styles.card}
-                        data-deck-id={activeDeckId}
-                        data-step={step + 1}
-                        data-total-steps={steps.length}
-                        data-steps-remaining={steps.length - step - 1}
-                    >
+                    <div className={styles.card}>
                         <CardHeader
                             expanded={expanded}
                             step={step}
@@ -549,18 +435,7 @@ const Cards = props => {
                                             )
                                     ) : (
                                         <ImageStep
-                                            animateInsertCode={animateInsertCode}
-                                            animateStartTutorial={animateStartTutorial}
-                                            code={steps[step].code}
-                                            codeType={steps[step].codeType}
-                                            // === Smalruby: Start of external-url button ===
-                                            externalUrl={steps[step].externalUrl}
-                                            externalUrlLabel={steps[step].externalUrlLabel}
-                                            // === Smalruby: End of external-url button ===
                                             image={translateImage(steps[step].image, locale)}
-                                            onInsertCodeFactory={onInsertCodeFactory}
-                                            onStartTutorial={steps[step].startTutorial ? onStartTutorial : null}
-                                            startTutorial={steps[step].startTutorial}
                                             title={steps[step].title}
                                         />
                                     )
@@ -568,7 +443,6 @@ const Cards = props => {
                             {steps[step].trackingPixel && steps[step].trackingPixel}
                         </div>
                         <NextPrevButtons
-                            animateNext={animateNext}
                             expanded={expanded}
                             isRtl={isRtl}
                             onNextStep={step < steps.length - 1 ? onNextStep : null}
@@ -582,14 +456,7 @@ const Cards = props => {
 };
 
 Cards.propTypes = {
-    activeDeckId: PropTypes.string,
-    // === Smalruby: Start of tutorial glow animation ===
-    animateInsertCode: PropTypes.bool,
-    animateNext: PropTypes.bool,
-    // === Smalruby: End of tutorial glow animation ===
-    // === Smalruby: Start of start-tutorial button ===
-    animateStartTutorial: PropTypes.bool,
-    // === Smalruby: End of start-tutorial button ===
+    activeDeckId: PropTypes.string.isRequired,
     content: PropTypes.shape({
         id: PropTypes.shape({
             name: PropTypes.node.isRequired,
@@ -598,12 +465,6 @@ Cards.propTypes = {
                 title: PropTypes.node,
                 image: PropTypes.string,
                 video: PropTypes.string,
-                code: PropTypes.string,
-                codeType: PropTypes.string,
-                // === Smalruby: Start of external-url button ===
-                externalUrl: PropTypes.string,
-                externalUrlLabel: PropTypes.node,
-                // === Smalruby: End of external-url button ===
                 deckIds: PropTypes.arrayOf(PropTypes.string)
             }))
         })
@@ -616,12 +477,8 @@ Cards.propTypes = {
     onCloseCards: PropTypes.func.isRequired,
     onDrag: PropTypes.func,
     onEndDrag: PropTypes.func,
-    onInsertCodeFactory: PropTypes.func,
     onNextStep: PropTypes.func.isRequired,
     onPrevStep: PropTypes.func.isRequired,
-    // === Smalruby: Start of start-tutorial button ===
-    onStartTutorial: PropTypes.func,
-    // === Smalruby: End of start-tutorial button ===
     onShowAll: PropTypes.func,
     onShrinkExpandCards: PropTypes.func.isRequired,
     onStartDrag: PropTypes.func,

@@ -14,7 +14,7 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 
 let driver;
 
-describe.skip('Working with the how-to library', () => {
+describe('Working with the how-to library', () => {
     beforeAll(async () => {
         driver = await getDriver();
     });
