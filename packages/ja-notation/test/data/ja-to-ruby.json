@@ -179,6 +179,13 @@
                     "column": 1
                 }
             ]
+        },
+        {
+            "title": "a multiple assignment to elements of an array (the swap) writes them as elements (Issue #2237)",
+            "table": "none",
+            "ja": "a = [1, 2]\na[0], a[1] = a[1], a[0]\nx, B[i + 1] = 1, 2",
+            "ruby": "a = [1, 2]\na[0], a[1] = a[1], a[0]\nx, B[i + 1] = 1, 2",
+            "jaLines": [1, 2, 3]
         }
     ]
 }

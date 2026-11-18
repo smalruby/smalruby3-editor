@@ -157,7 +157,7 @@ const TEXT = {
                     node.value,
                 )}`;
             case 'MultiWriteNode':
-                return `${node.targets.map((t) => (t.name ? t.name : this.simpleTarget(t))).join(', ')} = ${node.values
+                return `${node.targets.map((t) => (t.type === 'CallNode' ? this.simpleTarget(t) : t.name)).join(', ')} = ${node.values
                     .map((x) => this.expression(x))
                     .join(', ')}`;
             case 'ReturnNode':

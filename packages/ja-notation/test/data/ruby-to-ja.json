@@ -145,6 +145,28 @@
             "ruby": "A = 3\nx = A + 1",
             "ja": "A = 3\nx = A + 1",
             "errors": []
+        },
+        {
+            "title": "a multiple assignment to elements of an array is read as one (Issue #2237)",
+            "table": "none",
+            "ruby": "a = [1, 2]\na[0], a[1] = a[1], a[0]",
+            "ja": "a = [1, 2]\na[0], a[1] = a[1], a[0]",
+            "errors": []
+        },
+        {
+            "title": "an element with more than one index in a multiple assignment has no Japanese form",
+            "table": "none",
+            "ruby": "a = [1]\na[0, 1], b = 1, 2",
+            "ja": "a = [1]\na[0, 1], b = 1, 2",
+            "errors": [
+                {
+                    "code": "no-ja-form",
+                    "message": "「a[0, 1], b = 1, 2」は日本語では書けません",
+                    "line": 2,
+                    "column": 0,
+                    "name": "a[0, 1], b = 1, 2"
+                }
+            ]
         }
     ]
 }
