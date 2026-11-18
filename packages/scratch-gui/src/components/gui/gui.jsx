@@ -76,6 +76,9 @@ import MeshStatusPopup from '../../containers/mesh-status-popup.jsx';
 // === Smalruby: Start of lesson goal watcher ===
 import LessonGoalWatcher from '../../containers/lesson-goal-watcher.jsx';
 // === Smalruby: End of lesson goal watcher ===
+// === Smalruby: Start of studuino practice board ===
+import StuduinoPracticeBoard from '../../containers/studuino-practice-board.jsx';
+// === Smalruby: End of studuino practice board ===
 // === Smalruby: Start of block activity diagram ===
 import BlockActivityDiagram from '../../containers/block-activity-diagram.jsx';
 // === Smalruby: End of block activity diagram ===
@@ -598,6 +601,10 @@ const GUIComponent = props => {
                     {/* === Smalruby: Start of block activity diagram === */}
                     <BlockActivityDiagram />
                     {/* === Smalruby: End of block activity diagram === */}
+                    {/* === Smalruby: Start of studuino practice board === */}
+                    {/* Studuino の練習用の基板のパネル（拡張機能を読みこんだときだけ。document.body への portal） */}
+                    <StuduinoPracticeBoard />
+                    {/* === Smalruby: End of studuino practice board === */}
                     {/* === Smalruby: End of smalrubot firmware modal === */}
                     {/* === Smalruby: Start of welcome modal === */}
                     <WelcomeModalHOC />

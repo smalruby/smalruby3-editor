@@ -6,7 +6,7 @@
 - **デフォルト表示**: ✅（拡張機能ライブラリにデフォルトで表示される）
 
 > **いまの状態とこれから**: この拡張機能は、**同じ拡張機能のまま「Studuino（スタディーノ）」の名前に変えた**（前の名前は「スモウルボットS1」）。
-> ブロックの表示は一般的な名前にし、実機が無くても動かせる **練習用の基板**（VM の中のしくみ）を入れた。練習用の基板のパネルはこれから。
+> ブロックの表示は一般的な名前にし、実機が無くても動かせる **練習用の基板**（VM の中のしくみと、ステージの横のパネル）を入れた。
 > このページは、いまの挙動と、リニューアルで決まった方針の両方を書く。
 > 見分けがつくように、まだ実装していないことには **🚧 これから** と付ける（印の無いことは、いまの挙動）。
 
@@ -26,7 +26,7 @@
 
 - **Studuino（スモウルボットS1）を持っている小学生・中学生**として、Smalruby のブロックでロボットを動かしたい
 - **「計測・制御」を教える先生**として、教科書と同じ言葉（光センサー、DC モーターなど）で Studuino を扱わせたい
-- **基板が足りない教室・自宅で学ぶ生徒**として、実機が無くても練習用の基板でプログラムを動かして確かめたい（VM の中のしくみはできた。パネルは 🚧 これから）
+- **基板が足りない教室・自宅で学ぶ生徒**として、実機が無くても練習用の基板でプログラムを動かして確かめたい（センサーの値はパネルのスライダーとボタンで変える）
 - **教師**として、複数台のロボットを生徒それぞれに渡して、教室全体でロボットプログラミングをさせたい
 - **保護者**として、子どもが自分のノート PC から直接ロボットを動かせる（追加アプリのインストール不要）状態にしたい
 - **初めて使う子**として、自分のロボットにファームウェアを書き込む手順を Smalruby の中で完結させたい
@@ -222,15 +222,54 @@ studuino.sensor_value("ir_a4")
 
 GUI は、イベントを聞いて表示し、センサーの値はこのメソッドで変える（ほかの値は書きかえない）。
 
-### パネル（🚧 これから）
+### パネル
 
-- ステージの下（または横）に出す、**たためるパネル**。
-- 見た目は重要ではない。次のことがわかる程度でよい:
-  - 各センサー（タッチ・赤外線（フォトリフレクタ）左右・光・音）の値。**スライダーとボタンで変えられる**
-  - LED のオン／オフ
-  - DC モーター（M1 / M2）の **正転／逆転／停止** と速度
-  - サーボモーター（D10）の **いまの角度**
-- 値は数字と簡単な印で出す。
+Studuino の拡張機能を読みこむと、**コードエリアの右上（ステージの列のすぐ左）** に練習用の基板のパネルが出る。たためる。
+実装は `packages/scratch-gui/src/containers/studuino-practice-board.jsx`（状態を読む・センサーの値を変える）と
+`packages/scratch-gui/src/components/studuino-practice-board/`（表示）。
+
+![練習用の基板のパネル（1300×600）](screenshots/0501-practice-board-1300x600.png)
+
+- **見出し**: 「いまは練習用の基板（Studuino）」。実機につながっているあいだ（`mode` が `'device'`）は
+  「実機（Studuino）につながっています」に変わり、センサーの操作と部品の表示を消す（命令は実機に届き、練習用の基板は使わないため）。
+- **センサー**（拡張機能の選択肢と同じ名前）:
+  - 光センサー (A6)・赤外線センサー（フォトリフレクタ）(A4) / (A5)・音センサー (A7) は **スライダー（0〜1023）と数字**。
+    範囲は Studuino のアナログの値（`analogRead`）と同じ。
+  - タッチセンサー (A2) は **押しているあいだだけ押した値になるボタン**（マウス・タッチ・スペース / Enter キー）。
+    Studuino のタッチセンサーと同じく **押すと 0、はなすと 1**。拡張機能を読みこんだ直後の練習用の基板は 0（押した）なので、
+    パネルは最初に 1 回だけ 1（はなした）にそろえる。
+- **仕事を行う部分**: LED (A0) / (A1) のオン・オフ（ランプの印）、DC モーター (M1) / (M2) の正転 ↻ / 逆転 ↺ / 停止 ■ と速さ (%)、
+  サーボモーター (D10) のいまの角度（数字と簡単な針）。
+- **たたむ / ひらく**: 見出しの「−」でたたむと、同じ場所に小さな「練習用の基板」のボタンが残る。たたんだかどうかは端末に覚える。
+
+![たたんだとき](screenshots/0502-practice-board-folded-1300x600.png)
+
+#### 置き場所と出す条件
+
+- **コードエリアの右上**に重ねる（コードのタブと Ruby のタブ）。ステージの列は動かさない。ステージの列の下（スプライトの情報）は
+  レッスンのヒントが指す場所なので使わない。
+- レッスンのチャットの「練習相手のパネル」も同じ場所（ステージの列のすぐ左）に出る。**練習相手のパネルが出ているときは、その左に並べる**
+  （レッスン 4 の IoT で両方が同時に出ても重ならない）。練習相手のパネルをたたむと、そのボタンの左に並ぶ。
+- 1300×600（ステージが中サイズ）では、パネルの高さは画面に収まる（ひらいたときの下端がコードエリアの右下のズームのボタンにかからない）。
+- コスチューム・音のタブ、ステージを全画面にしたとき、プレイヤーだけの表示では出さない。スマホの小さい画面（MobileGui）にも出さない。
+- 拡張機能を一度読みこむと、ほかの作品を開いても出たまま（拡張機能のカテゴリが残るのと同じ）。
+
+#### data-testid
+
+| data-testid | 要素 | 説明 |
+|---|---|---|
+| `studuino-practice-board` | section | パネル（`data-mode` = `practice` / `device`） |
+| `studuino-practice-board-mode` | span | 見出し（「いまは練習用の基板」/「実機につながっています」） |
+| `studuino-practice-board-close` | button | たたむ |
+| `studuino-practice-board-open` | button | たたんだときの「練習用の基板」のボタン（ひらく） |
+| `studuino-practice-board-device-note` | p | 実機につながっているときの説明 |
+| `studuino-practice-board-sensor-A6` / `-A4` / `-A5` / `-A7` | input (range) | センサーのスライダー |
+| `studuino-practice-board-sensor-value-<port>` | span | センサーの値の数字（A2 も） |
+| `studuino-practice-board-touch-A2` | button | タッチセンサーのボタン（`aria-pressed`） |
+| `studuino-practice-board-led-A0` / `-A1` | span | LED（`data-on` = `true` / `false`） |
+| `studuino-practice-board-motor-M1` / `-M2` | div | DC モーター（`data-direction` = `normal` / `reverse` / `stop`） |
+| `studuino-practice-board-servo-D10` | div | サーボモーター |
+| `studuino-practice-board-servo-degree` | span | サーボの角度の数字 |
 
 ## 命令とセンサーの値の記録（🚧 これから）
 
@@ -283,6 +322,8 @@ GUI は、イベントを聞いて表示し、センサーの値はこのメソ�
 
 - `packages/scratch-gui/src/components/smalrubot-firmware-modal/` — ファームウェアフラッシュモーダル
 - `packages/scratch-gui/src/containers/smalrubot-firmware-modal.jsx`
+- `packages/scratch-gui/src/components/studuino-practice-board/` — 練習用の基板のパネル（表示）
+- `packages/scratch-gui/src/containers/studuino-practice-board.jsx` — 練習用の基板のパネルのコンテナ（状態を読む・センサーの値を変える・置き場所を測る）
 - `packages/scratch-gui/src/components/connection-modal/smalrubot-s1-*-step.jsx` × 5 — 専用接続ステップ（initial / connecting / connected / error / unsupported）
 
 #### ライブラリ
@@ -314,6 +355,7 @@ GUI は、イベントを聞いて表示し、センサーの値はこのメソ�
 - `src/components/connection-modal/connection-modal.jsx` — 専用フロー振り分け
 - `src/containers/connection-modal.jsx` — ファームウェアフラッシュ起動
 - `src/components/connection-modal/error-step.jsx` — エラーステップでのファームウェアボタン
+- `src/components/gui/gui.jsx` — 練習用の基板のパネルの配置
 
 詳細マーカー一覧: `docs/maintenance/smalruby-markers-gui.md`
 
@@ -329,17 +371,21 @@ GUI は、イベントを聞いて表示し、センサーの値はこのメソ�
 
 ## 設定・データ永続化
 
-なし（接続情報は揮発的、リロードで切断される）。
+| 置き場所 | キー | 内容 |
+|---|---|---|
+| localStorage | `smalruby:studuinoPracticeBoardOpen` | 練習用の基板のパネルをひらいているか（`'false'` でたたむ。既定はひらく） |
+
+接続情報は揮発的（リロードで切断される）。練習用の基板の値（センサーなど）も保存しない。
 
 ## 動作環境
 
 - **対応 OS**: Windows, ChromeOS, macOS（macOS は PL2303 Serial Driver 必要）
 - **対応ブラウザ**: Chrome / Edge（Web Serial API サポート必要）
-- **iPad / Android**: 実機は非対応（Web Serial 未サポート）。練習用の基板は実機を使わないので、これらでも動く（パネルは 🚧 これから）
+- **iPad / Android**: 実機は非対応（Web Serial 未サポート）。練習用の基板は実機を使わないので、これらでも動く（iPad はパネルも出る。スマホの小さい画面（MobileGui）にはパネルを出さない）
 
 ## テスト
 
-- 単体テスト: `packages/scratch-gui/test/unit/lib/smalrubot-firmware-flasher.test.js`
+- 単体テスト: `packages/scratch-gui/test/unit/lib/smalrubot-firmware-flasher.test.js`, `packages/scratch-gui/test/unit/containers/studuino-practice-board.test.jsx`（パネル）
 - 結合テスト: `packages/scratch-gui/test/integration/smalrubot-firmware.test.js`, `smalrubot-s1-connection-flow.test.js`
 - VM 単体テスト: `packages/scratch-vm/test/unit/extension_smalrubot_s1.js`
 
