@@ -4,8 +4,9 @@
  * Most `registerOnSend` handlers do the same four steps: check the kind of each argument, make
  * the block, put each argument into an input or a field, return the block. A row of the table
  * says only what differs (the method, the opcode, the arguments), and `registerSendTable` makes
- * the handler. A call that the table cannot say (an array of `[x, y]`, a keyword argument, a
- * choice of opcode by the argument) stays a handler of its own, beside the table.
+ * the handler. A call that the table cannot say (an array of `[x, y]`, a choice of opcode by the
+ * argument) stays a handler of its own, beside the table. Keyword arguments
+ * (`play_drum(drum: 1, beats: 0.25)`) are `keywords` of a row.
  *
  * The rows are plain data, so a test can read them: for example, that every opcode of the table
  * has a generator (`docs/ruby-editor/converter-stages.md`).
@@ -44,14 +45,17 @@ const textArg = (input, defaultValue) => ({ kind: 'text', input, defaultValue })
  * @param {?Function} [options.validate] - `(converter, arg, params)`, called before the block is
  *     made; it throws an error of conversion for a value that is not right (a costume that the
  *     sprite does not have, ...).
+ * @param {boolean} [options.number] - Takes a number or a block (put into the input as it is)
+ *     instead of a string (`play_drum(drum: 1, ...)` → `music_menu_DRUM`).
  * @returns {object} The argument of a row.
  */
-const menuArg = (input, menuOpcode, field = input, { validate = null } = {}) => ({
+const menuArg = (input, menuOpcode, field = input, { validate = null, number = false } = {}) => ({
     kind: 'menu',
     input,
     menuOpcode,
     field,
     validate,
+    number,
 });
 
 /**
@@ -83,6 +87,14 @@ const menuInputArg = (
     validate,
     anyBlock,
 });
+
+/**
+ * A number (or a value block) put into an input with a note shadow (`play_note(note: 60, ...)`).
+ * @param {string} input - The name of the input (`NOTE`).
+ * @param {number} defaultValue - The note of the shadow when the argument is a block.
+ * @returns {object} The argument of a row.
+ */
+const noteArg = (input, defaultValue) => ({ kind: 'note', input, defaultValue });
 
 /**
  * A color string (or a value block) put into a color input (`touching_color?("#ff0000")`).
@@ -125,7 +137,9 @@ const acceptsArg = (converter, spec, arg) => {
         case 'text':
             return converter._isStringOrBlock(arg);
         case 'menu':
-            return converter._isString(arg);
+            return spec.number ? converter._isNumberOrBlock(arg) : converter._isString(arg);
+        case 'note':
+            return converter._isNumberOrBlock(arg);
         case 'menuInput':
             if (spec.anyBlock ? converter._isBlock(arg) : converter._isValueBlock(arg)) return true;
             return converter._isString(arg) && (!spec.choices || spec.choices.indexOf(arg.toString()) >= 0);
@@ -156,6 +170,9 @@ const putArg = (converter, block, spec, arg) => {
         case 'menu':
             converter._addInput(block, spec.input, converter._createFieldBlock(spec.menuOpcode, spec.field, arg));
             break;
+        case 'note':
+            converter._addNoteInput(block, spec.input, arg, spec.defaultValue);
+            break;
         case 'menuInput':
             converter._addFieldInput(block, spec.input, spec.menuOpcode, spec.field, arg, spec.defaultValue);
             break;
@@ -181,19 +198,27 @@ const putArg = (converter, block, spec, arg) => {
  * (`fields: {NAME: value}`) and menus (`menus: {INPUT: [menuOpcode, field, value]}`), then the
  * arguments in order. A row with `changesReceiver: true` turns its receiver, a Ruby expression
  * (`pen` of `pen.down`), into the block instead of making a new one. A hat (`hat: true`) puts
- * the body of `do ... end` under the block.
+ * the body of `do ... end` under the block. A row with `keywords` (`[['drum', spec], ...]`)
+ * takes one hash of exactly these keys, and its values are the arguments in the order of the row.
  * @param {object} converter - The converter.
  * @param {object} row - The row.
  * @returns {Function} The handler.
  */
 const handlerOfRow = (converter, row) => {
-    const specs = row.args || [];
+    const keywords = row.keywords ? row.keywords.map(([key]) => `sym:${key}`) : null;
+    const specs = row.keywords ? row.keywords.map(([, spec]) => spec) : row.args || [];
     const type = row.hat ? 'hat' : row.type || 'statement';
     const fields = row.fields ? Object.entries(row.fields) : [];
     const menus = row.menus ? Object.entries(row.menus) : [];
     return (params) => {
-        const { receiver, args } = params;
+        const { receiver } = params;
         if (row.selfReceiver && !converter._isSelf(receiver) && receiver !== null) return null;
+        let { args } = params;
+        if (keywords) {
+            const hash = args[0];
+            if (!converter._isHash(hash) || hash.size !== keywords.length) return null;
+            args = keywords.map((key) => hash.get(key));
+        }
         if (!specs.every((spec, i) => acceptsArg(converter, spec, args[i]))) return null;
         specs.forEach((spec, i) => {
             if (spec.validate) spec.validate(converter, args[i], params);
@@ -222,13 +247,13 @@ const onSelf = (rows) => rows.map((row) => ({ ...row, selfReceiver: true }));
 /**
  * Register the rows of a send table on the converter, in the order of the rows.
  * @param {object} converter - The converter.
- * @param {Array<object>} rows - The rows: `{receiver, name, opcode, type?, args?, fields?,
- *     menus?, receiverArg?, changesReceiver?, hat?, selfReceiver?}`. A hat takes `do ... end`
+ * @param {Array<object>} rows - The rows: `{receiver, name, opcode, type?, args?, keywords?,
+ *     fields?, menus?, receiverArg?, changesReceiver?, hat?, selfReceiver?}`. A hat takes `do ... end`
  *     (with no block parameters).
  */
 const registerSendTable = (converter, rows) => {
     rows.forEach((row) => {
-        const numArgs = (row.args || []).length;
+        const numArgs = row.keywords ? 1 : (row.args || []).length;
         const handler = handlerOfRow(converter, row);
         if (row.hat) {
             converter.registerOnSendWithBlock(row.receiver, row.name, numArgs, 0, handler);
@@ -238,4 +263,4 @@ const registerSendTable = (converter, rows) => {
     });
 };
 
-export { colorArg, fieldArg, menuArg, menuInputArg, numberArg, onSelf, registerSendTable, textArg };
+export { colorArg, fieldArg, menuArg, menuInputArg, noteArg, numberArg, onSelf, registerSendTable, textArg };
