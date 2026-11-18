@@ -8,6 +8,7 @@ const formatMessage = require('format-message');
 const Cast = require('../../util/cast');
 const Timer = require('../../util/timer');
 const StuduinoPracticeBoard = require('./practice-board');
+const StuduinoCommandLog = require('./command-log');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -912,6 +913,26 @@ class SmalrubotS1 extends Smalrubot {
     }
 }
 
+// The ports and names in the command record (#2193): the fixed S1 layout, the same for both boards.
+const LOG_LED_PORT_BY_POSITION = { left: 'A0', right: 'A1' };
+const LOG_MOTOR_PORT_BY_POSITION = { left: 'M1', right: 'M2' };
+const LOG_MOTOR_DIRECTIONS_BY_ACTION = {
+    forward: ['normal', 'normal'],
+    backward: ['reverse', 'reverse'],
+    left: ['reverse', 'normal'],
+    right: ['normal', 'reverse'],
+    stop: ['stop', 'stop'],
+};
+const LOG_SENSOR_BY_POSITION = {
+    touch: { port: 'A2', kind: 'touch' },
+    left: { port: 'A4', kind: 'irPhotoreflector' },
+    ir_a4: { port: 'A4', kind: 'irPhotoreflector' },
+    right: { port: 'A5', kind: 'irPhotoreflector' },
+    ir_a5: { port: 'A5', kind: 'irPhotoreflector' },
+    light: { port: 'A6', kind: 'light' },
+    sound: { port: 'A7', kind: 'sound' },
+};
+
 /**
  * Host for the Smalrubot S1-related blocks
  * @param {Runtime} runtime - the runtime instantiating this block package.
@@ -1090,6 +1111,101 @@ class Scratch3SmalrubotS1Blocks {
          */
         this.practiceBoard = new StuduinoPracticeBoard(this.runtime);
         this.practiceBoard.emitState();
+
+        /**
+         * The record of the commands sent and the sensor values read, for the lessons (#2193).
+         * It is written here in the block methods, so the real board and the practice board make the same entries.
+         * @type {StuduinoCommandLog}
+         */
+        this.commandLog = new StuduinoCommandLog(this.runtime);
+        // A new run (green flag) and a new project start a new record.
+        this.runtime.on('PROJECT_START', () => this.commandLog.clear());
+        this.runtime.on('PROJECT_LOADED', () => this.commandLog.clear());
+    }
+
+    /**
+     * @returns {string} - the runtime event sent with every new entry of the command record.
+     */
+    static get COMMAND_LOG_EVENT() {
+        return StuduinoCommandLog.ENTRY_EVENT;
+    }
+
+    /**
+     * @returns {string} - the runtime event sent when the command record is cleared.
+     */
+    static get COMMAND_LOG_CLEAR_EVENT() {
+        return StuduinoCommandLog.CLEAR_EVENT;
+    }
+
+    /**
+     * The commands sent and the sensor values read (for the lessons' "done" check).
+     * @param {number} [limit] - only the latest `limit` entries.
+     * @returns {Array<object>} - copies of the entries, oldest first. The shape is in command-log.js.
+     */
+    getCommandLog(limit) {
+        return this.commandLog.getEntries(limit);
+    }
+
+    /**
+     * Remove all entries of the command record (for example when a lesson challenge starts).
+     */
+    clearCommandLog() {
+        this.commandLog.clear();
+    }
+
+    /**
+     * Add an entry to the command record. Never throws: the record must not stop the blocks.
+     * @param {object} fact - `{kind, port, value}` and `speed` / `sensor` when they apply.
+     */
+    recordCommand(fact) {
+        try {
+            this.commandLog.record(this.isConnected() ? 'device' : 'practice', fact);
+        } catch (error) {
+            log.error(error);
+        }
+    }
+
+    recordLed(position, on) {
+        this.recordCommand({
+            kind: 'led',
+            port: LOG_LED_PORT_BY_POSITION[position] || 'A1',
+            value: on ? 'on' : 'off',
+        });
+    }
+
+    recordAction(direction) {
+        const directions = LOG_MOTOR_DIRECTIONS_BY_ACTION[direction];
+        if (!directions) {
+            return;
+        }
+        ['left', 'right'].forEach((position, index) => {
+            const value = directions[index];
+            const speed = value === 'stop' ? 0 : Number(this.board.getMotorSpeed(position)) || 0;
+            this.recordCommand({ kind: 'motor', port: LOG_MOTOR_PORT_BY_POSITION[position], value, speed });
+        });
+    }
+
+    /**
+     * bendArm the board and record the angle.
+     * @param {number} degree - degrees.
+     * @param {boolean} [onTheWay] - true for an angle on the way of a timed bendArm: it is recorded only when the
+     *   angle changes (the arm moves every frame, often by less than 1 degree). The last angle is always recorded.
+     */
+    bendBoardArm(degree, onTheWay = false) {
+        let value = Cast.toNumber(degree);
+        value = value < 0 ? 0 : value > 180 ? 180 : Math.round(value);
+        if (!onTheWay || this.board.armDegree !== value) {
+            this.recordCommand({ kind: 'servo', port: 'D10', value });
+        }
+        this.board.bendArm(degree);
+    }
+
+    recordSensorRead(position, value) {
+        const sensor = LOG_SENSOR_BY_POSITION[position];
+        if (!sensor) {
+            return;
+        }
+        this.recordCommand({ kind: 'sensorRead', port: sensor.port, sensor: sensor.kind, value: Number(value) });
     }
 
     /**
@@ -1336,6 +1452,7 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `action: args=<${JSON.stringify(args, null, 2)}>`);
 
+            this.recordAction(args.ACTION);
             this.board.action(args.ACTION).catch((error) => log.error(error));
         } catch (error) {
             log.error(error);
@@ -1351,11 +1468,13 @@ class Scratch3SmalrubotS1Blocks {
                 util.startStackTimer(duration);
                 this.runtime.requestRedraw();
 
+                this.recordAction(args.ACTION);
                 this.board.action(args.ACTION).catch((error) => log.error(error));
 
                 util.yield();
             } else if (util.stackTimerFinished()) {
                 if (args.ACTION !== 'stop') {
+                    this.recordAction('stop');
                     this.board.action('stop');
                 }
             } else {
@@ -1373,10 +1492,10 @@ class Scratch3SmalrubotS1Blocks {
                 if (timeElapsed < util.stackFrame.duration * 1000) {
                     const frac = timeElapsed / (util.stackFrame.duration * 1000);
                     const d = frac * (util.stackFrame.endDegree - util.stackFrame.startDegree);
-                    this.board.bendArm(util.stackFrame.startDegree + d);
+                    this.bendBoardArm(util.stackFrame.startDegree + d, true);
                     util.yield();
                 } else {
-                    this.board.bendArm(util.stackFrame.endDegree);
+                    this.bendBoardArm(util.stackFrame.endDegree);
                 }
             } else {
                 debug(() => `bendArm: args=<${JSON.stringify(args, null, 2)}>`);
@@ -1387,7 +1506,7 @@ class Scratch3SmalrubotS1Blocks {
                 util.stackFrame.startDegree = this.board.armDegree;
                 util.stackFrame.endDegree = Cast.toNumber(args.DEGREE);
                 if (util.stackFrame.duration <= 0) {
-                    this.board.bendArm(util.stackFrame.endDegree);
+                    this.bendBoardArm(util.stackFrame.endDegree);
                     return;
                 }
                 util.yield();
@@ -1401,7 +1520,10 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `getSensorValue: args=<${JSON.stringify(args, null, 2)}>`);
 
-            return this.board.getSensorValue(args.POSITION);
+            return this.board.getSensorValue(args.POSITION).then((value) => {
+                this.recordSensorRead(args.POSITION, value);
+                return value;
+            });
         } catch (error) {
             log.error(error);
         }
@@ -1412,6 +1534,7 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `turnLedOn: args=<${JSON.stringify(args, null, 2)}>`);
 
+            this.recordLed(args.POSITION, true);
             return this.board.led(args.POSITION, true);
         } catch (error) {
             log.error(error);
@@ -1423,6 +1546,7 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `turnLedOff: args=<${JSON.stringify(args, null, 2)}>`);
 
+            this.recordLed(args.POSITION, false);
             return this.board.led(args.POSITION, false);
         } catch (error) {
             log.error(error);
@@ -1460,7 +1584,9 @@ class Scratch3SmalrubotS1Blocks {
         try {
             debug(() => `setArmCalibration: args=<${JSON.stringify(args, null, 2)}>`);
 
-            return this.board.setArmCalibration(Cast.toNumber(args.DEGREE));
+            const degree = Cast.toNumber(args.DEGREE);
+            this.recordCommand({ kind: 'servoCalibration', port: 'D10', value: Math.min(15, Math.max(-15, degree)) });
+            return this.board.setArmCalibration(degree);
         } catch (error) {
             log.error(error);
         }
