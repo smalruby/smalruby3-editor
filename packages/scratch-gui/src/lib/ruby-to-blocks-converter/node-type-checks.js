@@ -1,7 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (type-checking methods for RubyToBlocksConverter) ===
 import _ from 'lodash';
 import { normalizeColorString } from './color-utils';
-import { childNodesOf, nodeTypeName } from './node-walk';
+import { nodeTypeName } from './node-walk';
 
 /**
  * Type-checking utilities for RubyToBlocksConverter.
@@ -20,17 +20,6 @@ const NodeTypeChecks = {
      */
     _prismNodeType(value) {
         return nodeTypeName(value);
-    },
-
-    /**
-     * The child nodes of a `@ruby/prism` node, without the empty ones.
-     * Not `compactChildNodes()`: in `@ruby/prism` 1.9.0 it drops the children in an array
-     * (the `when` of a `case`, the conditions of a `when`, ...), issue #1813.
-     * @param {object} node - A prism node.
-     * @returns {Array<object>} The child nodes.
-     */
-    _childNodesOf(node) {
-        return childNodesOf(node);
     },
 
     _isSelf(block) {
