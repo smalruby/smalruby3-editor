@@ -72,11 +72,16 @@ export const dnclLanguage = {
         'を繰り返す',
         'ずつ増やしながら',
         'ずつ減らしながら',
+        // The standard form joins 繰り返す to the loop words and writes `値 を返す` (Issue #2035).
+        'の間繰り返す',
+        'ずつ増やしながら繰り返す',
+        'ずつ減らしながら繰り返す',
         'から',
         'まで',
         'を',
         '関数',
         '返す',
+        'を返す',
         'と定義する',
     ],
 
@@ -94,11 +99,12 @@ export const dnclLanguage = {
         '平方根',
     ],
 
-    operators: ['かつ', 'または', 'でない'],
+    // `and` / `or` / `not` of the standard form, `かつ` … of the DNCL 風の形.
+    operators: ['and', 'or', 'not', 'かつ', 'または', 'でない'],
 
     booleans: ['真', '偽'],
 
-    symbols: /[=><!~?:&|+\-*/^%÷≦≧←]+/,
+    symbols: /[=><!~?:&|+\-*/^%％÷≦≧←]+/,
 
     tokenizer: {
         root: [

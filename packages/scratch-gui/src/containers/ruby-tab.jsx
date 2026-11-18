@@ -684,7 +684,7 @@ const RubyTab = (props) => {
                     {
                         id: 'gui.rubyTab.dnclUndefinedFunctionError',
                         defaultMessage:
-                            '"{name}" is a function that is not defined. Define it with "関数 {name}(…)".',
+                            '"{name}" is a function that is not defined. Define it with "関数 {name}(…):".',
                     },
                     { name: err.name },
                 );

@@ -7,6 +7,14 @@ import { dnclV2PreprocessWithLineMap } from './dncl-v2-preprocessor';
 import { findDnclBlockErrors, validateDncl } from './dncl-validator';
 
 /**
+ * Whether a source line ends with `:` / `：` before its comment, as the
+ * opener of a block of the standard form does.
+ * @param {string} [line] - The source line.
+ * @returns {boolean} True when the line ends with a colon.
+ */
+const endsWithColon = (line) => /[:：]\s*$/.test(splitTrailingComment(line || '').code);
+
+/**
  * Transpile DNCL source code to Ruby.
  *
  * The source is first run through `dnclV2PreprocessWithLineMap` to normalize
@@ -36,7 +44,8 @@ const dnclToRuby = (source) => {
         line: lineMap[err.line - 1] || err.line,
         column: err.column + (columnShift[err.line - 1] || 0),
     });
-    const sourceLineCount = source.split('\n').length;
+    const sourceLines = source.split('\n');
+    const sourceLineCount = sourceLines.length;
     // A `# comment` at the end of a line is taken off before the lines are
     // checked and converted, so `もし a > 0 ならば # c` still opens a block,
     // and put back at the end of the Ruby line (Issue #1696). Taking it off
@@ -74,7 +83,11 @@ const dnclToRuby = (source) => {
         ruby: rubyLines.join('\n'),
         errors: [],
         sourceMap: new DnclSourceMap(rubyToDncl, sourceLineCount),
-        blockErrors: findDnclBlockErrors(normalized).map((err) => ({
+        blockErrors: findDnclBlockErrors(normalized, {
+            // The standard form ends the opener with `:` (taken off by the
+            // pre-processor); its block errors say the indent (Issue #2035).
+            isStandardLine: (line) => endsWithColon(sourceLines[(lineMap[line - 1] || line) - 1]),
+        }).map((err) => ({
             ...err,
             line: lineMap[err.line - 1] || err.line,
         })),

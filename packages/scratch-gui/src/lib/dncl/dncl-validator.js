@@ -83,7 +83,7 @@ const isRubyCommandName = (name) => /^[A-Za-z_]/.test(name);
 const unsupportedCommandMessage = (name) =>
     isRubyCommandName(name)
         ? `「${name}」は日本語モードでは書けない命令です。Ruby モードでは書けます。`
-        : `「${name}」は定義されていない関数です。「関数 ${name}(…)」で定義してください。`;
+        : `「${name}」は定義されていない関数です。「関数 ${name}(…):」で定義してください。`;
 
 /**
  * A line that starts with a Ruby keyword that jumps in a loop (`break`,
@@ -362,13 +362,24 @@ const BLOCK_KINDS = [
     {
         re: /^もし\s+.+\s+(?:なら|ならば)$/,
         name: '「もし〜ならば」',
+        standardName: '「もし〜ならば:」',
         closer: 'を実行する',
         isIf: true,
     },
-    { re: /\sずつ増やしながら$/, name: '「〜ずつ増やしながら」', closer: 'を繰り返す' },
-    { re: /\sずつ減らしながら$/, name: '「〜ずつ減らしながら」', closer: 'を繰り返す' },
-    { re: /^.+\sの間$/, name: '「〜の間」', closer: 'を繰り返す' },
-    { re: /^関数\s+\S+?\s*\(/, name: '「関数」', closer: 'と定義する' },
+    {
+        re: /\sずつ増やしながら$/,
+        name: '「〜ずつ増やしながら」',
+        standardName: '「〜ずつ増やしながら繰り返す:」',
+        closer: 'を繰り返す',
+    },
+    {
+        re: /\sずつ減らしながら$/,
+        name: '「〜ずつ減らしながら」',
+        standardName: '「〜ずつ減らしながら繰り返す:」',
+        closer: 'を繰り返す',
+    },
+    { re: /^.+\sの間$/, name: '「〜の間」', standardName: '「〜の間繰り返す:」', closer: 'を繰り返す' },
+    { re: /^関数\s+\S+?\s*\(/, name: '「関数」', standardName: '「関数 〜(…):」', closer: 'と定義する' },
     { re: { test: isDoBlockLine }, name: '「〜 do」', closer: 'を実行する' },
 ];
 
@@ -432,10 +443,25 @@ const isBalancedAsRuby = (blockLines) => {
     return stack.length === 0;
 };
 
-const unclosedError = (open) => ({
+// The standard form shows the inside of a block by its indent, so a block of
+// it left open is one whose inside is not indented (Issue #2035).
+const unclosedError = (open, isStandardLine) => ({
     line: open.line,
     column: 1,
-    message: `${open.opener.name}を「${open.opener.closer}」で閉じてください`,
+    message:
+        isStandardLine(open.line) && open.opener.standardName
+            ? `${open.opener.standardName}の中の行を字下げしてください`
+            : `${open.opener.name}を「${open.opener.closer}」で閉じてください`,
+});
+
+// An else / else-if of the standard form with no `もし` open stands at a
+// shallower indent than its `もし` (Issue #2035).
+const continuationError = (entry, isStandardLine) => ({
+    line: entry.line,
+    column: 1,
+    message: isStandardLine(entry.line)
+        ? `${entry.continuation.replace(/」$/, ':」')}は、「もし〜ならば:」と同じ字下げで書いてください`
+        : `${entry.continuation}の前に「もし〜ならば」がありません`,
 });
 
 /**
@@ -447,17 +473,23 @@ const unclosedError = (open) => ({
  * Only a structure that breaks the converted Ruby is reported: a block
  * closed by the closer of another kind (`もし … を繰り返す`) still converts,
  * and the editor takes it, so it is not an error here either.
+ *
+ * A block of the standard form (its opener ends with `:`) is told to indent
+ * its inside instead of to be closed (Issue #2035).
  * @param {string} source - DNCL source after the DNCLv2 pre-processor.
+ * @param {object} [options] - Options.
+ * @param {function(number): boolean} [options.isStandardLine] - Whether the
+ *   line of `source` (1-based) was written in the standard form.
  * @returns {Array<object>} Errors with `line`, `column` and `message`.
  */
-const findDnclBlockErrors = (source) => {
+const findDnclBlockErrors = (source, { isStandardLine = () => false } = {}) => {
     const blockLines = readBlockLines(source);
     if (isBalancedAsRuby(blockLines)) return [];
     const errors = [];
     const stack = [];
     // Close the blocks opened after `index`: they were left open.
     const closeAbove = (index) => {
-        while (stack.length > index + 1) errors.push(unclosedError(stack.pop()));
+        while (stack.length > index + 1) errors.push(unclosedError(stack.pop(), isStandardLine));
     };
     for (const entry of blockLines) {
         if (entry.opener) {
@@ -465,11 +497,7 @@ const findDnclBlockErrors = (source) => {
         } else if (entry.continuation) {
             const index = stack.map((open) => open.opener.isIf).lastIndexOf(true);
             if (index < 0) {
-                errors.push({
-                    line: entry.line,
-                    column: 1,
-                    message: `${entry.continuation}の前に「もし〜ならば」がありません`,
-                });
+                errors.push(continuationError(entry, isStandardLine));
             } else {
                 closeAbove(index);
             }
@@ -494,7 +522,7 @@ const findDnclBlockErrors = (source) => {
             }
         }
     }
-    while (stack.length > 0) errors.push(unclosedError(stack.pop()));
+    while (stack.length > 0) errors.push(unclosedError(stack.pop(), isStandardLine));
     return errors.sort((a, b) => a.line - b.line);
 };
 
