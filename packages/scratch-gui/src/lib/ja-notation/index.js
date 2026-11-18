@@ -6,6 +6,8 @@
 // and the functions and names of a Ruby system are given by the caller.
 import { buildRuby, RUBY } from './build-ruby';
 import { parse } from './parse';
+import { readRuby } from './read-ruby';
+import { writeJa } from './write-ja';
 import { writeRuby } from './write-ruby';
 
 /**
@@ -25,4 +27,20 @@ const jaToRuby = (source, options = {}) => {
     return { ruby, jaLines, errors: [], program: parsed.program };
 };
 
-export { buildRuby, jaToRuby, parse, RUBY, writeRuby };
+/**
+ * Ruby to Japanese in the standard form: parse with prism, read the tree (d)
+ * and write the Japanese (e).
+ * @param {string} source - The Ruby source.
+ * @param {object} options - `parse` (the parse function of prism, given by the
+ *   caller: `parse(source)` gives `{value, comments, errors}`) and the tables of
+ *   the Ruby system (see `readRuby`).
+ * @returns {{ja: string, errors: Array<object>, program: object}} The Japanese
+ *   (written also when there are errors: the Ruby with no Japanese form is kept
+ *   as it is), the errors (`{code, message, line, column}` on Ruby lines) and the JaAST.
+ */
+const rubyToJa = (source, options) => {
+    const { program, errors } = readRuby(options.parse(source), source, options);
+    return { ja: writeJa(program), errors, program };
+};
+
+export { buildRuby, jaToRuby, parse, readRuby, RUBY, rubyToJa, writeJa, writeRuby };

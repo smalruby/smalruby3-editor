@@ -1,21 +1,22 @@
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 /**
  * Round-trip test: DNCL → Ruby → DNCL
- * Verifies that converting DNCL to Ruby and back produces the same DNCL,
- * in both forms the writer has (Issue #1754): the DNCL 風の形 gives the
- * input back, the standard form gives the text written for it (the same
- * as the input when no block, logic or return value is in it). In both,
- * the text reads back to the same Ruby and does not change again.
+ * Verifies that converting DNCL to Ruby and back gives the text written for
+ * it in the standard form (Issue #1754, the only form the writer has; the
+ * same as the input when no block, logic or return value is in it), that the
+ * text reads back to the same Ruby and does not change again.
  */
-describe.each([FORMS.DNCL, FORMS.STANDARD])('DNCL round-trip (DNCL → Ruby → DNCL), form %s', (form) => {
-    const rubyToDncl = (ruby) => rubyToDnclInForm(ruby, { form });
+describe('DNCL round-trip (DNCL → Ruby → DNCL)', () => {
     const toRuby = (dncl) => dnclToRuby(dncl).ruby;
     const roundtrip = (dncl) => rubyToDncl(toRuby(dncl)).dncl;
     const expectRoundtrip = (input, expected, expectedStandard = expected) => {
         const result = roundtrip(input);
-        expect(result).toBe(form === FORMS.DNCL ? expected : expectedStandard);
+        expect(result).toBe(expectedStandard);
         expect(toRuby(result)).toBe(toRuby(input));
         expect(roundtrip(result)).toBe(result);
     };

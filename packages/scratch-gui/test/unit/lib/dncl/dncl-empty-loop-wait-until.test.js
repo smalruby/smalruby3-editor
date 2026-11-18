@@ -5,7 +5,8 @@
 // gets no form that the 共通テスト用プログラム表記 does not have.
 import dedent from 'dedent';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 import {
     makeConverter,
     makeSpriteTarget,
@@ -13,9 +14,7 @@ import {
     setupRubyGenerator,
 } from '../../helpers/ruby-roundtrip-helper';
 
-// These cases check the DNCL 風の形 the writer still has (Issue #1754);
-// the standard form is checked in dncl-standard-form.test.js.
-const rubyToDncl = (ruby) => rubyToDnclInForm(ruby, { form: FORMS.DNCL });
+beforeAll(() => loadPrism());
 
 const toRuby = (dncl) => dnclToRuby(dncl).ruby;
 const toDncl = (ruby) => rubyToDncl(ruby).dncl;
@@ -34,7 +33,7 @@ describe('DNCL empty loops become "wait until"', () => {
     test('an empty 「〜でない の間」 becomes "wait until"', async () => {
         const dncl = dedent`
             a = 0
-            a > 10 でない の間
+            not a > 10 の間繰り返す:
             を繰り返す
         `;
         const { ruby2, opcodes } = await toBlocks(toRuby(dncl));
@@ -64,7 +63,7 @@ describe('DNCL empty loops become "wait until"', () => {
         expect(first.ruby2).toContain('until @a > 10 do');
 
         const dncl = toDncl(first.ruby2);
-        expect(dncl).toBe('a = 0\na > 10 でない の間\nを繰り返す');
+        expect(dncl).toBe('a = 0\nnot a > 10 の間繰り返す:\nを繰り返す');
 
         const second = await toBlocks(toRuby(dncl));
         expect(second.opcodes).toContain('control_wait_until');

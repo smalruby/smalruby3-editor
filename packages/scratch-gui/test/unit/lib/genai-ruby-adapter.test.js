@@ -1,6 +1,9 @@
 import { EventEmitter } from 'events';
 import { editorErrors, lineDecorations, makeRubyTabAdapterFactory } from '../../../src/lib/genai-ruby-adapter.js';
 import { runTakeover } from '../../../src/lib/genai-takeover.js';
+import { loadPrism } from '../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const makeTarget = ({ id, name, isStage = false, code = '', sounds = [], costumes = [] }) => ({
     id,

@@ -198,6 +198,19 @@ const RubyTab = (props) => {
     });
     // Separate DNCL display code to prevent editor from showing Ruby
     const [dnclDisplayCode, setDnclDisplayCode] = useState('');
+    // Ruby → Japanese parses the Ruby with prism (ja-notation), so the Japanese is
+    // shown once prism is loaded.
+    const [prismReady, setPrismReady] = useState(() => Boolean(getPrism()));
+    useEffect(() => {
+        if (prismReady) return;
+        let alive = true;
+        loadPrism().then(() => {
+            if (alive) setPrismReady(true);
+        });
+        return () => {
+            alive = false;
+        };
+    }, []);
     // Whether the editor shows the problem form (line rules) of the Japanese
     // mode: when it has no focus (Issue #1755).
     const [problemFormShown, setProblemFormShown] = useState(false);
@@ -793,6 +806,8 @@ const RubyTab = (props) => {
 
         // Clear any existing errors before mode switch attempt.
         clearErrors();
+        // Ruby → Japanese parses the Ruby with prism.
+        if (enabling) await loadPrism();
 
         // Validate before switching TO DNCL mode:
         // Dry-run Ruby → DNCL → Ruby → Blocks to check for unsupported code.
@@ -1282,7 +1297,7 @@ const RubyTab = (props) => {
     // When code changes from blocks tab (Ruby → DNCL display), sync DNCL display
     const rubyCodeStr = rubyCode.code;
     useEffect(() => {
-        if (!dnclMode) return;
+        if (!dnclMode || !prismReady) return;
         if (!editorRef.current || !monacoRef.current) return;
         // Only sync when the Ruby code changed externally (e.g., from blocks)
         // not from our own editor change (which already sets dnclDisplayCode)
@@ -1292,7 +1307,7 @@ const RubyTab = (props) => {
             const result = rubyToDncl(rubyCodeStr);
             setDnclDisplayCode(result.dncl);
         }
-    }, [rubyCodeStr, dnclMode]);
+    }, [rubyCodeStr, dnclMode, prismReady]);
 
     // The problem form is drawn only in the Japanese mode.
     useEffect(() => {

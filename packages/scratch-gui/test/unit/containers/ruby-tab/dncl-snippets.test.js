@@ -8,7 +8,10 @@
 import { DNCL_SNIPPETS } from '../../../../src/containers/ruby-tab/dncl-snippets';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
+
+beforeAll(() => loadPrism());
 
 // What a place of a snippet is filled with, by its default text.
 const FILL = {

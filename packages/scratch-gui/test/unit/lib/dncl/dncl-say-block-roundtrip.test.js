@@ -22,6 +22,9 @@
 //   DNCL を経由すると秒数情報は失われる (1 秒のデフォルトに戻る)。
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 const dToR = (src) => dnclToRuby(src).ruby;
 const rToD = (src) => rubyToDncl(src).dncl;

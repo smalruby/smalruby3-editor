@@ -1,5 +1,8 @@
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
+
+beforeAll(() => loadPrism());
 
 /**
  * Division as in 共通テスト用プログラム表記: `/` is the ordinary division
@@ -107,7 +110,7 @@ describe('DNCL / and ÷ (Issue #1701)', () => {
             ['@b = ((@a / 2).to_i / 3).to_i', 'b = a ÷ 2 ÷ 3'],
             ['@b = (@a * 3 / 2).to_i', 'b = a * 3 ÷ 2'],
             ['@b = (@a / 2 / 3).to_i', 'b = a / 2 ÷ 3'],
-            ['@b = ((@a / 2) / 3).to_i', 'b = (a / 2) ÷ 3'],
+            ['@b = ((@a / 2) / 3).to_i', 'b = a / 2 ÷ 3'],
             ['@b = (@a / (@a / 2).to_i).to_i', 'b = a ÷ (a ÷ 2)'],
             ['@b = @a * (@a / 2).to_i', 'b = a * (a ÷ 2)'],
             ['@b = (@a / 2).to_i * 3', 'b = a ÷ 2 * 3'],
@@ -115,7 +118,7 @@ describe('DNCL / and ÷ (Issue #1701)', () => {
             // Not one quotient: 整数(式), with the ordinary `/` in it.
             ['@b = (@a / 2 * 3).to_i', 'b = 整数(a / 2 * 3)'],
             ['@b = (@a / 2 + 1).to_i', 'b = 整数(a / 2 + 1)'],
-            ['@b = ((@a / 2) * 3).to_i', 'b = 整数((a / 2) * 3)'],
+            ['@b = ((@a / 2) * 3).to_i', 'b = 整数(a / 2 * 3)'],
             ['@b = ((@a / 2).to_i * 3).to_i', 'b = 整数(a ÷ 2 * 3)'],
             ['@b = (@a / 2 * 3).to_i.to_s', 'b = 文字列(整数(a / 2 * 3))'],
         ])('%s → %s', (ruby, dncl) => {

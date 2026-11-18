@@ -7,7 +7,8 @@
  * (`a && (b && c)`, a different block tree) stay as written.
  */
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
-import { FORMS, rubyToDncl as rubyToDnclInForm } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 import {
     makeSpriteTarget,
     makeConverter,
@@ -16,9 +17,7 @@ import {
     rubyToBlocksToRuby,
 } from '../../helpers/ruby-roundtrip-helper';
 
-// These cases check the DNCL 風の形 the writer still has (Issue #1754);
-// the standard form is checked in dncl-standard-form.test.js.
-const rubyToDncl = (ruby) => rubyToDnclInForm(ruby, { form: FORMS.DNCL });
+beforeAll(() => loadPrism());
 
 /**
  * Describe the operator tree of a block as text, e.g. `and(and(gt,lt),gt)`.
@@ -125,9 +124,9 @@ describe('DNCL: a chain of かつ / または (issue #1634)', () => {
     });
 
     test.each([
-        'a = 1\nもし a > 0 かつ a < 3 かつ a > 1 ならば\n  a = 2\nを実行する',
-        'a = 1\nもし a > 0 または a < 3 または a > 1 ならば\n  a = 2\nを実行する',
-        'a = 1\nもし a > 0 または a < 3 かつ a > 1 ならば\n  a = 2\nを実行する',
+        'a = 1\nもし a > 0 and a < 3 and a > 1 ならば:\n    a = 2',
+        'a = 1\nもし a > 0 or a < 3 or a > 1 ならば:\n    a = 2',
+        'a = 1\nもし a > 0 or a < 3 and a > 1 ならば:\n    a = 2',
     ])('%s comes back as written through the blocks', async (dncl) => {
         const ruby = await rubyToBlocksToRuby(converter, target, dnclToRuby(dncl).ruby);
         expect(rubyToDncl(ruby).dncl).toBe(dncl);

@@ -7,6 +7,7 @@
  */
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
+import { loadPrism } from '../../../../src/lib/prism-parser';
 import RubyGenerator from '../../../../src/lib/ruby-generator';
 import {
     blockTrees,
@@ -15,6 +16,8 @@ import {
     setupRubyGenerator,
     rubyToBlocksToRuby,
 } from '../../helpers/ruby-roundtrip-helper';
+
+beforeAll(() => loadPrism());
 
 const convert = async (code) => {
     const { target, runtime } = makeSpriteTarget();

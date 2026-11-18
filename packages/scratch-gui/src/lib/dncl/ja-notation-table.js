@@ -91,7 +91,158 @@ const SMALRUBY_JA_NOTATION = {
     passthrough: RUBY_LITERALS,
 };
 
+// --- Ruby → Japanese (J4): the same table read the other way ---
+
+/**
+ * The Japanese name of a Scratch variable of the sprite: `@_array_Data_` and
+ * `@_var_A_` are `Data` and `A`, `@x` is `x`.
+ * @param {string} name - The Ruby name.
+ * @returns {?string} The Japanese name.
+ */
+const rubyVariable = (name) => {
+    const m = name.match(/^@_(?:array|var)_(.+)_$/) || name.match(/^@(.+)$/);
+    return m ? m[1] : null;
+};
+
+/**
+ * The terms of a `+` chain (`a + b + c`, also through parentheses).
+ * @param {object} node - The node.
+ * @param {object} r - The helpers of ja-notation.
+ * @returns {Array<object>} The terms.
+ */
+const plusTerms = (node, r) => {
+    const call = r.callOf(r.unwrap(node));
+    if (call && call.name === '+' && call.receiver && call.args && call.args.length === 1) {
+        return [...plusTerms(call.receiver, r), ...plusTerms(call.args[0], r)];
+    }
+    return [node];
+};
+
+/**
+ * The receiver of `x.to_s`, or null.
+ * @param {object} node - The node.
+ * @param {object} r - The helpers of ja-notation.
+ * @returns {?object} The receiver.
+ */
+const toSReceiver = (node, r) => {
+    const call = r.callOf(node);
+    return call && call.name === 'to_s' && call.receiver && call.args && call.args.length === 0
+        ? call.receiver
+        : null;
+};
+
+/**
+ * The arguments of `表示する` from those of `puts`: a joined string whose
+ * every term is a string literal or made a string (`.to_s`) is the arguments
+ * `表示する` with more than one argument writes (`a.to_s + "は"` → `a, "は"`).
+ * @param {Array<object>} args - The Ruby arguments.
+ * @param {object} r - The helpers of ja-notation.
+ * @returns {Array<object>} The Japanese arguments.
+ */
+const displayArgs = (args, r) => {
+    if (args.length === 1) {
+        const terms = plusTerms(args[0], r);
+        const isString = (term) => r.typeOf(term) === 'StringNode';
+        if (terms.length > 1 && terms.every((term) => isString(term) || toSReceiver(term, r))) {
+            return terms.map((term) => r.expression(isString(term) ? term : toSReceiver(term, r)));
+        }
+    }
+    return args.map((arg) => r.expression(arg));
+};
+
+/**
+ * A call without a receiver that is `表示する`.
+ * @param {object} call - The call.
+ * @param {object} r - The helpers of ja-notation.
+ * @returns {?object} The Japanese.
+ */
+const display = (call, r) => (call.receiver ? null : r.call('表示する', displayArgs(call.args, r)));
+
+/**
+ * A method of one value that is a built-in of one argument (`x.to_i` → `整数(x)`).
+ * @param {string} name - The built-in.
+ * @returns {function(object, object): ?object} The reading.
+ */
+const builtinOfReceiver = (name) => (call, r) =>
+    call.receiver && call.args.length === 0 ? r.call(name, [r.expression(call.receiver)]) : null;
+
+/** What the calls of Smalruby's Ruby are in the Japanese. */
+const rubyCalls = {
+    puts: display,
+    print: display,
+    p: display,
+    // `say(x, 2)` shows for 2 seconds: the Japanese has no time, so it is dropped.
+    say: (call, r) => {
+        if (call.receiver) return null;
+        const last = call.args[call.args.length - 1];
+        const timed = call.args.length >= 2 && /^(?:Integer|Float)Node$/.test(r.typeOf(last));
+        return r.call('表示する', displayArgs(timed ? call.args.slice(0, -1) : call.args, r));
+    },
+    rand: (call, r) =>
+        call.receiver
+            ? null
+            : r.call(
+                  '乱数',
+                  call.args.map((arg) => r.expression(arg)),
+              ),
+    to_i: builtinOfReceiver('整数'),
+    to_s: builtinOfReceiver('文字列'),
+    round: builtinOfReceiver('四捨五入'),
+    floor: builtinOfReceiver('切り捨て'),
+    ceil: builtinOfReceiver('切り上げ'),
+    abs: builtinOfReceiver('絶対値'),
+    length: builtinOfReceiver('要素数'),
+    'include?': (call, r) =>
+        call.receiver && call.args.length === 1
+            ? r.call('含む', [r.expression(call.receiver), r.expression(call.args[0])])
+            : null,
+    sqrt: (call, r) =>
+        call.receiver && r.typeOf(call.receiver) === 'ConstantReadNode' && r.text(call.receiver) === 'Math'
+            ? r.call(
+                  '平方根',
+                  call.args.map((arg) => r.expression(arg)),
+              )
+            : null,
+};
+
+/**
+ * Whether a call is `answer` (the answer of the last question).
+ * @param {object} node - The node.
+ * @param {object} r - The helpers of ja-notation.
+ * @returns {boolean} True if it is.
+ */
+const isAnswer = (node, r) => {
+    const call = r.callOf(node);
+    return Boolean(call && call.name === 'answer' && !call.receiver && call.args && call.args.length === 0);
+};
+
+/** An input: `ask("")` and the answer on the next line (made an integer for `【整数を入力】`). */
+const rubyInput = {
+    isQuestion: (call, r) =>
+        !call.receiver &&
+        (call.name === 'ask' || call.name === 'ask_and_wait') &&
+        call.args &&
+        call.args.length === 1 &&
+        r.text(call.args[0]) === '""',
+    kindOf: (value, r) => {
+        if (isAnswer(value, r)) return 'external';
+        const call = r.callOf(value);
+        if (call && call.name === 'to_i' && call.args && call.args.length === 0 && isAnswer(call.receiver, r)) {
+            return 'integer';
+        }
+        return null;
+    },
+};
+
+/** The options of `rubyToJa` (ja-notation) for Smalruby's Ruby. */
+const SMALRUBY_RUBY_TO_JA = {
+    variable: rubyVariable,
+    calls: rubyCalls,
+    input: rubyInput,
+    passthrough: RUBY_LITERALS,
+};
+
 /** The names of the built-in functions of the Japanese mode, in the order the AI prompt shows them. */
 const DNCL_BUILTIN_NAMES = Object.keys(functions);
 
-export { DNCL_BUILTIN_NAMES, SMALRUBY_JA_NOTATION };
+export { DNCL_BUILTIN_NAMES, SMALRUBY_JA_NOTATION, SMALRUBY_RUBY_TO_JA };

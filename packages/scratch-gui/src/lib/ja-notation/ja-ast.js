@@ -6,7 +6,9 @@
 // Japanese source) and `column` (0-based). Statements that span lines also
 // have `endLine`.
 //
-// Program      { settings, body: [Statement] }
+// Program      { settings, body: [Statement], lineCount?, blankLines? }
+//   (`lineCount` / `blankLines`: the lines of the source and the ones with
+//   nothing on them, which `writeJa` keeps; `readRuby` gives them.)
 //
 // Statements:
 //   Assign       { target: Name | Index, value: Expression }
@@ -20,6 +22,7 @@
 //   FunctionDef  { name, params: [string], body }
 //   Return       { value: Expression | null }
 //   Comment      { text }                       (a line that is only a comment)
+//   RubyCode     { text }                       (Ruby with no Japanese form, as written; `readRuby` only)
 //   Block statements also have `closeLine` (the line the block ends on) and
 //   `closeAfter` (the last line before the code after the block); the Ruby
 //   writer uses them for the line map. A block closed by a line of its own
@@ -35,8 +38,13 @@
 //   Index    { target, index }
 //   ArrayLiteral { elements }
 //   Call     { name, args }       a function, built in or defined in the program
-//   Unary    { operator: '-' | '+' | 'not', operand }
+//   Unary    { operator: '-' | '+' | 'not', operand, parens? }
+//            (`parens`: `readRuby` saw the operand of `not` in parentheses; `writeJa` keeps them)
 //   Binary   { operator, left, right }  operator: + - * / ÷ % == != < <= > >= and or .. ...
+//   RubyCode { text }             Ruby with no Japanese form (`$g`, `nil`), as written
+//
+// A minus before a quotient is on its left: `-a ÷ 2` is Binary(÷, Unary(-, a), 2)
+// and means `-(a ÷ 2)`, as `parse` reads it.
 
 /** The types of the statements. */
 const STATEMENT_TYPES = [
@@ -51,9 +59,21 @@ const STATEMENT_TYPES = [
     'FunctionDef',
     'Return',
     'Comment',
+    'RubyCode',
 ];
 
 /** The types of the expressions. */
-const EXPRESSION_TYPES = ['Number', 'String', 'Boolean', 'Name', 'Index', 'ArrayLiteral', 'Call', 'Unary', 'Binary'];
+const EXPRESSION_TYPES = [
+    'Number',
+    'String',
+    'Boolean',
+    'Name',
+    'Index',
+    'ArrayLiteral',
+    'Call',
+    'Unary',
+    'Binary',
+    'RubyCode',
+];
 
 export { EXPRESSION_TYPES, STATEMENT_TYPES };

@@ -1502,7 +1502,7 @@
     "blocks": "data_setvariableto(VARIABLE = @b, VALUE: operator_join(STRING1: \"x\", STRING2: \"\") #\"@ruby:method:to_s\")",
     "shown": {
       "ruby": "@b = \"x\".to_s",
-      "ja": "b = \"x\".to_s",
+      "ja": "b = 文字列(\"x\")",
       "errors": []
     }
   },
@@ -1572,7 +1572,7 @@
     "blocks": "data_setvariableto(VARIABLE = @b, VALUE: operator_contains(STRING1: operator_add(NUM1: @s, NUM2: @t), STRING2: \"a\"))",
     "shown": {
       "ruby": "@b = (@s + @t).include?(\"a\")",
-      "ja": "b = (s + t).include?(\"a\")",
+      "ja": "b = 含む(s + t, \"a\")",
       "errors": []
     }
   },
@@ -2054,7 +2054,7 @@
     "blocks": "procedures_definition(custom_block: shadow procedures_prototype)\ndata_setvariableto(VARIABLE = @_return_ハロー_, VALUE: \"\") #\"@ruby:return:ハロー:initialize\"\ndata_setvariableto(VARIABLE = @_return_ハロー_, VALUE: \"1\") #\"@ruby:syntax:return @ruby:return:ハロー\"\ncontrol_stop(STOP_OPTION = \"this script\") #\"@ruby:syntax:return\"",
     "shown": {
       "ruby": "def ハロー\n  return 1\nend",
-      "ja": "def ハロー\n1 を返す\nを実行する",
+      "ja": "関数 ハロー():\n    1 を返す",
       "errors": []
     }
   },
@@ -2088,7 +2088,7 @@
     "blocks": "data_setvariableto(VARIABLE = @i, VALUE: \"10\")\ncontrol_repeat_until(CONDITION: operator_not(OPERAND: operator_or(OPERAND1: operator_gt(OPERAND1: @i, OPERAND2: \"1\") #\"@ruby:operator:>=:1\", OPERAND2: operator_equals(OPERAND1: @i, OPERAND2: \"1\") #\"@ruby:operator:>=:1\") #\"@ruby:operator:>=:1\")) {\n  looks_sayforsecs(MESSAGE: @i, SECS: 1) #\"@ruby:method:puts\"\n  data_changevariableby(VARIABLE = @i, VALUE: operator_subtract(NUM1: 0, NUM2: -1) #\"@ruby:unary_minus\")\n} #\"@ruby:syntax:while\"",
     "shown": {
       "ruby": "@i = 10\nwhile @i >= 1\n  puts(@i)\n  @i += - -1\nend",
-      "ja": "i = 10\ni >= 1 の間繰り返す:\n    表示する(i)\n    i += - -1",
+      "ja": "i = 10\ni >= 1 の間繰り返す:\n    表示する(i)\n    i += -(-1)",
       "errors": []
     }
   },
@@ -3045,7 +3045,7 @@
     "blocks": "procedures_definition(custom_block: shadow procedures_prototype)\ndata_setvariableto(VARIABLE = @_return_hello_, VALUE: \"\") #\"@ruby:return:hello:initialize\"\ndata_setvariableto(VARIABLE = @_return_hello_, VALUE: \"1\") #\"@ruby:syntax:return @ruby:return:hello\"\ncontrol_stop(STOP_OPTION = \"this script\") #\"@ruby:syntax:return\"",
     "shown": {
       "ruby": "def hello\n  return 1\nend",
-      "ja": "def hello\n1 を返す\nを実行する",
+      "ja": "関数 hello():\n    1 を返す",
       "errors": []
     }
   },
@@ -6433,7 +6433,7 @@
     "blocks": "data_listcontainsitem(LIST = @s, ITEM: data_listcontainsitem(LIST = @a, ITEM: @b))",
     "shown": {
       "ruby": "@s.include?(@a.include?(@b))",
-      "ja": "含む(s, a.include?(b))",
+      "ja": "含む(s, 含む(a, b))",
       "errors": []
     }
   },
@@ -7502,7 +7502,7 @@
     "blocks": "procedures_definition(custom_block: shadow procedures_prototype)\nlooks_sayforsecs(MESSAGE: \"こんにちは\", SECS: 1) #\"@ruby:method:puts\"\n\nprocedures_call",
     "shown": {
       "ruby": "def あいさつ\n  puts(\"こんにちは\")\nend\n\nあいさつ",
-      "ja": "def あいさつ\n表示する(\"こんにちは\")\nを実行する\n\nあいさつ",
+      "ja": "関数 あいさつ():\n    表示する(\"こんにちは\")\n\nあいさつ",
       "errors": []
     }
   },
@@ -7519,16 +7519,8 @@
     "blocks": "procedures_definition(custom_block: shadow procedures_prototype)\nlooks_sayforsecs(MESSAGE: \"hi\", SECS: 1) #\"@ruby:method:puts\"\n\nprocedures_call",
     "shown": {
       "ruby": "def greet\n  puts(\"hi\")\nend\n\ngreet",
-      "ja": "def greet\n表示する(\"hi\")\nを実行する\n\ngreet",
-      "errors": [
-        {
-          "line": 5,
-          "column": 1,
-          "id": "unsupportedCommand",
-          "name": "greet",
-          "message": "「greet」は日本語モードでは書けない命令です。Ruby モードでは書けます。"
-        }
-      ]
+      "ja": "関数 greet():\n    表示する(\"hi\")\n\ngreet",
+      "errors": []
     }
   },
   "ja-e210ab6e45": {

@@ -28,7 +28,16 @@ const importsOf = (source) => {
 describe('ja-notation library boundary', () => {
     test('the library has its files', () => {
         expect(files).toEqual(
-            expect.arrayContaining(['index.js', 'lexer.js', 'parse.js', 'build-ruby.js', 'write-ruby.js']),
+            expect.arrayContaining([
+                'index.js',
+                'lexer.js',
+                'parse.js',
+                'build-ruby.js',
+                'write-ruby.js',
+                'prism-reader.js',
+                'read-ruby.js',
+                'write-ja.js',
+            ]),
         );
     });
 

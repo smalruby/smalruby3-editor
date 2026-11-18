@@ -861,7 +861,7 @@ defineBlockRubyTable('Motion blocks ⇔ Ruby', [
 | 大文字で始まり、配列として使う名前 `Data` | `@_array_Data_` | 同上 |
 | 大文字で始まる、それ以外の名前 `Kosu` | `@_var_Kosu_` | 同上 |
 
-Ruby から日本語モードに戻すときは `src/lib/dncl/ruby-to-dncl-identifier.js` が元の名前に戻す。
+Ruby から日本語モードに戻すときは `src/lib/dncl/ja-notation-table.js` の逆向きの表（`SMALRUBY_RUBY_TO_JA` の `variable`）が元の名前に戻す。
 
 日本語モードの変換を作り直す（`ja-notation`。[`converter-roadmap.md`](converter-roadmap.md) の 2 章・4 章）ための安全網は 2 つある。
 
