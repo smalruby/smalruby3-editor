@@ -23,11 +23,15 @@ export const procedureNamesInCode = (code) =>
     Array.from(String(code || '').matchAll(/^\s*(?:without_screen_refresh\s+)?def\s+([^\s(]+)\s*$/gm), (m) => m[1]);
 
 // ヒントの Ruby が自分で定義していない名前だけ、空の定義を前に足す（呼び出しを定義ブロックの呼び出しとして変換するため）
-const procedureStubs = (names, code) =>
-    names
-        .filter((name) => !new RegExp(`^\\s*(?:without_screen_refresh\\s+)?def\\s+${name}\\s*$`, 'm').test(code))
+// Ruby のメソッドの名前にできるか（空白などを含む名前の定義ブロックは、名前だけで呼ぶ Ruby にならないので足さない）
+const RUBY_METHOD_NAME = /^[\p{L}_][\p{L}\p{N}_]*$/u;
+const procedureStubs = (names, code) => {
+    const defined = procedureNamesInCode(code);
+    return [...new Set(names)]
+        .filter((name) => RUBY_METHOD_NAME.test(name) && code.includes(name) && !defined.includes(name))
         .map((name) => `def ${name}\nend\n`)
         .join('\n');
+};
 
 // 定義（ハット）の下にあるブロックを除く（足した空の定義は描かない）
 const withoutDefinitions = (blocks) => {

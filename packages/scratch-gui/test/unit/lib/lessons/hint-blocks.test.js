@@ -47,6 +47,8 @@ describe('rubyToBlocksXml', () => {
                 _blocks: {
                     p: { opcode: 'procedures_prototype', mutation: { proccode: '文をつくる' } },
                     q: { opcode: 'procedures_prototype', mutation: { proccode: 'with arg %s' } },
+                    // 空白のある名前（Ruby の名前にできない）は足さない（足すと変換ごと失敗する）
+                    r: { opcode: 'procedures_prototype', mutation: { proccode: 'my block' } },
                 },
             },
         };
