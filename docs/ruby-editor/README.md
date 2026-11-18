@@ -276,6 +276,7 @@ debounceMs = Math.max(50, lastRenderMs * 2);
 - [`docs/smalruby-language-spec.ja.md`](../smalruby-language-spec.ja.md) — Smalruby Ruby 言語仕様
 - [`bridging-patterns.md`](bridging-patterns.md) — Ruby → Scratch 橋渡しパターン集（Ruby の考え方をブロックと注釈 `@ruby:*` でどう表すか。変換器・生成器を直す人向け）
 - [`converter-stages.md`](converter-stages.md) — Ruby → ブロック変換器を解析・分析・変換・仕上げの 4 段に分ける設計（呼び出しの登録の表、移す順番、実行の効率）
+- [`converter-roadmap.md`](converter-roadmap.md) — 4 段の続き: 段の間で渡すもの、日本語モード（日本語の構文木 → Ruby の構文木）のつなぎ方、残りの移し方とリスク
 - [`docs/smalruby-language-spec-extensions.ja.md`](../smalruby-language-spec-extensions.ja.md) — 拡張機能の Ruby 表現
 - [`docs/smalruby-language-spec-v1-diff.ja.md`](../smalruby-language-spec-v1-diff.ja.md) — Ruby v1 と v2 の差分
 - `.claude/rules/scratch-gui/ruby-mode.md` — Ruby モード開発ルール
