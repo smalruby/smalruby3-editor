@@ -277,15 +277,10 @@ describe('SmalrubyWebHostingStack', () => {
                 expect(fn.Properties.FunctionCode).toContain('x-content-type-options');
             });
 
-            // 消すと cdk diff に削除が出て Deploy Infra の prod 自動デプロイが止まるので、
-            // 配信から外しても定義は残す（follow-up で消す）。
-            test('keeps the old cache policy and response headers policy (not deleted yet)', () => {
-                expect(Object.keys(template.findResources('AWS::CloudFront::CachePolicy'))).toEqual(
-                    [expect.stringMatching(/^SiteCachePolicy/)],
-                );
-                expect(
-                    Object.keys(template.findResources('AWS::CloudFront::ResponseHeadersPolicy')),
-                ).toEqual([expect.stringMatching(/^SiteResponseHeaders/)]);
+            // 定額プランはカスタムのポリシーを使えないので、配信から外したポリシーは定義も持たない。
+            test('has no custom cache policy or response headers policy', () => {
+                template.resourceCountIs('AWS::CloudFront::CachePolicy', 0);
+                template.resourceCountIs('AWS::CloudFront::ResponseHeadersPolicy', 0);
             });
         });
 
@@ -410,29 +405,6 @@ describe('SmalrubyWebHostingStack', () => {
             expect(JSON.stringify(records)).not.toContain('185.199.');
             // ALIAS は apex の 2 つだけ（ワイルドカードや他の名前を CloudFront へ向けない）。
             expect(records.filter((r) => r.Properties.AliasTarget)).toHaveLength(2);
-        });
-
-        test('cache policy keeps index.html short and lets hashed assets stay long', () => {
-            template.hasResourceProperties('AWS::CloudFront::CachePolicy', {
-                CachePolicyConfig: Match.objectLike({
-                    MinTTL: 0,
-                    DefaultTTL: PREVIEW_DEFAULT_TTL_SECONDS,
-                    MaxTTL: 365 * 24 * 60 * 60,
-                }),
-            });
-        });
-
-        test('response headers keep HSTS like GitHub Pages', () => {
-            template.hasResourceProperties('AWS::CloudFront::ResponseHeadersPolicy', {
-                ResponseHeadersPolicyConfig: Match.objectLike({
-                    SecurityHeadersConfig: Match.objectLike({
-                        StrictTransportSecurity: Match.objectLike({
-                            AccessControlMaxAgeSec: 365 * 24 * 60 * 60,
-                        }),
-                        ContentTypeOptions: Match.anyValue(),
-                    }),
-                }),
-            });
         });
 
         test('deploy role trusts only develop (or the prod environment) of this repository', () => {
@@ -593,6 +565,8 @@ describe('SmalrubyWebHostingStack', () => {
             expect(config.DefaultCacheBehavior.CachePolicyId).toEqual({
                 Ref: expect.stringMatching(/^PreviewCachePolicy/),
             });
+            template.resourceCountIs('AWS::CloudFront::CachePolicy', 1);
+            template.resourceCountIs('AWS::CloudFront::ResponseHeadersPolicy', 0);
             template.resourceCountIs('AWS::CloudFront::Function', 1);
         });
 
