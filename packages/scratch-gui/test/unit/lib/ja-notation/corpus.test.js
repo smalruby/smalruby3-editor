@@ -37,14 +37,14 @@ const dnclLike = results.filter(({ entry }) => DNCL_LIKE_RE.test(entry.ja));
 const oldFails = (record) => record.ruby === null || record.converterErrors.length > 0;
 
 /**
- * Bugs found by the golden (J0). They are after the Ruby (the converter: #2167,
- * #2168), so the Ruby of ja-notation is the same as now and the golden keeps the
- * bug, until they are fixed. (#2166, blocks → Japanese, was fixed by J4.)
+ * Bugs found by the golden (J0), after the Ruby, and fixed in the converter:
+ * #2167 (a call written before its function) and #2168 (`namae + "..."` with a
+ * name never set). Their programs have blocks in the golden now. (#2166, blocks
+ * → Japanese, was fixed by J4.) A bug the golden finds again is kept in the
+ * golden as it is, with a test here that the Ruby stays the same, until it is fixed.
  */
-const KNOWN_BUGS = {
-    // #2168: the converter cannot make blocks of the Ruby.
+const FIXED_BUGS = {
     'ja-8d7923f4fc': 2168,
-    // #2167: a call written before its function is not a block.
     'ja-e2e2f282bb': 2167,
     'ja-053fb08229': 2167,
 };
@@ -74,12 +74,12 @@ describe('ja-notation against the golden of the Japanese corpus', () => {
         expect(entry.ja.split('\n').length).toBeGreaterThan(0);
     });
 
-    test.each(Object.entries(KNOWN_BUGS))('known bug %s (#%s): the Ruby is the same as now', (id) => {
+    test.each(Object.entries(FIXED_BUGS))('fixed bug %s (#%s): the golden has the blocks', (id) => {
         const found = results.find((r) => r.entry.id === id);
         expect(found).toBeDefined();
         expect(rubyShape(prism, found.result.ruby)).toEqual(rubyShape(prism, golden[id].ruby));
-        const { converterErrors, shown } = golden[id];
-        const shownErrors = shown ? shown.errors : [];
-        expect(converterErrors.length + shownErrors.length).toBeGreaterThan(0);
+        expect(golden[id].converterErrors).toEqual([]);
+        expect(golden[id].blocks).toEqual(expect.any(String));
+        expect(golden[id].shown.errors).toEqual([]);
     });
 });

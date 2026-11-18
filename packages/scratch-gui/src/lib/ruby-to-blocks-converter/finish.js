@@ -21,6 +21,7 @@ const Finish = {
         const topBlocks = this._convertBareLiterals(blocks);
         this._markTopLevelBlocks(topBlocks);
         this._rejectRubyBlocksAndCollectExtensions();
+        this._rejectProceduresNotDefined();
 
         this._dropUnusedHashVariables();
         this._rejectVariableAndListOfSameName();
@@ -30,6 +31,19 @@ const Finish = {
 
         // Associate source comments with blocks
         this._associateSourceComments(parseResult, code);
+    },
+
+    /**
+     * A procedure declared for a call before its `def` (issue #2167) whose `def` the converter never
+     * came to (a `def` in a place that does not make a My Block): the call is the wrong instruction,
+     * as it was before the procedure was declared.
+     */
+    _rejectProceduresNotDefined() {
+        Object.values(this._context.procedures).forEach((procedure) => {
+            if (procedure.declaredBeforeDefinition) {
+                throw this._wrongInstructionError(procedure.callNodesBeforeDefinition[0]);
+            }
+        });
     },
 
     // === Smalruby: Start of bare literal to temp variable ===
