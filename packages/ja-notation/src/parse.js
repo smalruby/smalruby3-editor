@@ -289,7 +289,18 @@ class ExpressionReader {
      * @param {string} message - The message.
      */
     fail(token, message) {
-        throw new LineError(makeError('syntax', message, token ? token.line : this.line, token ? token.column : 0));
+        // A name right after a number (`2倍`) is not read as a product (Issue #1752): the
+        // student is told to write the operator between them.
+        const before = token ? this.tokens[this.tokens.indexOf(token) - 1] : null;
+        const words =
+            token &&
+            token.type === 'name' &&
+            before &&
+            before.type === 'number' &&
+            before.column + before.text.length === token.column
+                ? `「${before.text}${token.text}」は読めません。数と名前の間には、「${before.text} * ${token.text}」のように演算子を書いてください`
+                : message;
+        throw new LineError(makeError('syntax', words, token ? token.line : this.line, token ? token.column : 0));
     }
 
     /**

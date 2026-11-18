@@ -130,6 +130,21 @@ const stringEnd = (text, start) => {
 };
 
 /**
+ * A digit, half-width or full-width (`１２` is `12`): only how it looks differs, so a number
+ * written with full-width digits is read as the number (docs/dncl/policy.md: 見た目だけの揺れ).
+ * In a name (`x１`) a full-width digit stays a part of the name, as Ruby has it.
+ */
+const DIGIT_RE = /[0-9０-９]/;
+
+/**
+ * The number as the Ruby writes it: the full-width digits and `．` as half-width ones.
+ * @param {string} text - The number as written.
+ * @returns {string} The number.
+ */
+const halfWidthNumber = (text) =>
+    text.replace(/[０-９．]/g, (ch) => (ch === '．' ? '.' : String.fromCharCode(ch.charCodeAt(0) - 0xfee0)));
+
+/**
  * The end of a number that starts at `text[start]`, and whether it is written
  * in a way the Japanese does not have (`0x5`, `1_000`, `1e3`, `2i`): the
  * letters, `_` and exponent signs Ruby would read as a part of it are taken in.
@@ -139,10 +154,10 @@ const stringEnd = (text, start) => {
  */
 const numberEnd = (text, start) => {
     let i = start;
-    while (i < text.length && /[0-9]/.test(text[i])) i++;
-    if (text[i] === '.' && /[0-9]/.test(text[i + 1] || '')) {
+    while (i < text.length && DIGIT_RE.test(text[i])) i++;
+    if (/[.．]/.test(text[i] || '') && DIGIT_RE.test(text[i + 1] || '')) {
         i++;
-        while (i < text.length && /[0-9]/.test(text[i])) i++;
+        while (i < text.length && DIGIT_RE.test(text[i])) i++;
     }
     const plainEnd = i;
     for (;;) {
@@ -172,7 +187,7 @@ const longOperatorAt = (text, i) => LONG_OPERATORS.find((op) => text.startsWith(
  * Read one line of code into tokens. A token is `{type, text, column}` and,
  * for some types, `value`:
  *
- * - `number` (`value`: the number as written), `badNumber`, `string` (`text`
+ * - `number` (`value`: the number as written, with half-width digits), `badNumber`, `string` (`text`
  *   is the literal with its quotes), `name`, `op` (`value`: the operator, a
  *   full-width one read as its half-width one), `input` (`value`: `external` /
  *   `integer` / `string`), `comment` (`text` from `#` to the end; a comment
@@ -245,9 +260,9 @@ const tokenize = (text, offset = 0, commentMarker = '#') => {
             }
             continue;
         }
-        if (/[0-9]/.test(ch)) {
+        if (DIGIT_RE.test(ch)) {
             const { end, bad } = numberEnd(text, i);
-            push(bad ? 'badNumber' : 'number', i, end, bad ? {} : { value: text.substring(i, end) });
+            push(bad ? 'badNumber' : 'number', i, end, bad ? {} : { value: halfWidthNumber(text.substring(i, end)) });
             i = end;
             continue;
         }
